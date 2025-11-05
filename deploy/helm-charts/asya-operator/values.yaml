@@ -1,0 +1,97 @@
+replicaCount: 1
+
+image:
+  repository: asya-operator
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+rbac:
+  create: true
+
+podAnnotations: {}
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 65532
+  fsGroup: 65532
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: true
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 256Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+# Leader election settings
+leaderElection:
+  enabled: true
+
+# Metrics configuration
+metrics:
+  enabled: true
+  port: 8080
+
+# Health probe configuration
+health:
+  port: 8081
+
+# Pod termination grace period (in seconds)
+# Increase this if the operator needs more time for graceful shutdown
+terminationGracePeriodSeconds: 10
+
+# Default sidecar configuration
+sidecar:
+  defaultImage: asya-sidecar:latest
+  defaultResources:
+    limits:
+      cpu: 500m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 64Mi
+
+# Runtime configuration
+# The operator dynamically loads asya_runtime.py and creates the ConfigMap
+runtime:
+  # Runtime source: "local" (for development) or "github" (for production)
+  source: local
+
+  # Local source configuration (for development)
+  local:
+    # Path to asya_runtime.py relative to operator working directory
+    # For local Kind/Minikube: mount host path or use relative path from operator pod
+    path: "../src/asya-runtime/asya_runtime.py"
+
+  # GitHub source configuration (for production releases)
+  # Note: Assumes public repository (no authentication token needed)
+  github:
+    # GitHub repository (owner/repo)
+    repo: "deliveryhero/asya"
+    # Release version/tag (e.g., "v1.0.0")
+    version: ""
+
+  # Namespace where the ConfigMap will be created (where actors run)
+  namespace: asya

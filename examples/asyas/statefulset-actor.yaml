@@ -1,0 +1,55 @@
+# Actor using StatefulSet for stateful processing
+# Each pod gets a stable identity and persistent storage
+
+apiVersion: asya.io/v1alpha1
+kind: AsyncActor
+metadata:
+  name: stateful-processor
+  namespace: default
+spec:
+  queueName: document-processing-queue
+
+  transport:
+    type: rabbitmq
+    rabbitmq:
+      host: rabbitmq.rabbitmq.svc.cluster.local
+      port: 5672
+      username: admin
+      passwordSecretRef:
+        name: rabbitmq-secret
+        key: password
+
+  # Moderate scaling for stateful workload
+  scaling:
+    enabled: true
+    minReplicas: 0
+    maxReplicas: 10
+    queueLength: 5
+
+  # StatefulSet with persistent storage
+  workload:
+    type: StatefulSet
+    template:
+      spec:
+        containers:
+        - name: runtime
+          image: document-processor:v1.0
+          env:
+          - name: CACHE_DIR
+            value: /data/cache
+          - name: WORK_DIR
+            value: /data/work
+          resources:
+            limits:
+              cpu: 2000m
+              memory: 4Gi
+            requests:
+              cpu: 500m
+              memory: 1Gi
+          volumeMounts:
+          - name: data
+            mountPath: /data
+
+# Note: volumeClaimTemplates must be added to the StatefulSet
+# The operator currently passes through the workload spec as-is
+# Full StatefulSet support coming soon

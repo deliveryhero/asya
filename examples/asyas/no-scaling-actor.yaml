@@ -1,0 +1,42 @@
+# Actor without KEDA autoscaling
+# Uses fixed number of replicas
+
+apiVersion: asya.io/v1alpha1
+kind: AsyncActor
+metadata:
+  name: fixed-replicas-actor
+  namespace: default
+spec:
+  queueName: steady-workload-queue
+
+  transport:
+    type: rabbitmq
+    rabbitmq:
+      host: rabbitmq.rabbitmq.svc.cluster.local
+      port: 5672
+      username: admin
+      passwordSecretRef:
+        name: rabbitmq-secret
+        key: password
+
+  # Disable KEDA autoscaling
+  scaling:
+    enabled: false
+
+  workload:
+    type: Deployment
+    # This replica count will be used since scaling is disabled
+    replicas: 3
+    template:
+      spec:
+        containers:
+        - name: runtime
+          image: python:3.13-slim
+          command: ["python", "/opt/asya/asya_runtime.py"]
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 1Gi
+            requests:
+              cpu: 250m
+              memory: 256Mi

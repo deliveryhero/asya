@@ -1,0 +1,515 @@
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "2"
+
+services:
+  # PostgreSQL for gateway job storage
+  postgres:
+    image: postgres:16-alpine
+    logging: *default-logging
+    environment:
+      - POSTGRES_DB=gateway
+      - POSTGRES_USER=gateway
+      - POSTGRES_PASSWORD=gateway
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gateway"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    ports:
+      - "5432:5432"
+
+  # Database migration using sqitch
+  db-migrate:
+    image: sqitch/sqitch:latest
+    logging: *default-logging
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - SQITCH_TARGET=db:pg://gateway:gateway@postgres:5432/gateway
+    volumes:
+      - ../../../src/asya-gateway/db:/repo:ro
+    working_dir: /repo
+    command: ["deploy"]
+
+  # RabbitMQ for message queuing
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    logging: *default-logging
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    volumes:
+      - ./rabbitmq-definitions.json:/etc/rabbitmq/definitions.json:ro
+      - ./rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_running"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Asya Gateway
+  gateway:
+    build:
+      context: ../../../src/asya-gateway
+      dockerfile: Dockerfile
+    logging: *default-logging
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      db-migrate:
+        condition: service_completed_successfully
+    environment:
+      - ASYA_RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+      - ASYA_RABBITMQ_EXCHANGE=asya
+      - ASYA_DATABASE_URL=postgres://gateway:gateway@postgres:5432/gateway?sslmode=disable
+      - ASYA_CONFIG_PATH=/etc/asya/routes.yaml
+      - ASYA_GATEWAY_URL=http://gateway:8080
+      - ASYA_LOG_LEVEL=${ASYA_LOG_LEVEL:-INFO}
+      - ASYA_GATEWAY_PORT=8080
+      - ASYA_LOG_LEVEL=${ASYA_LOG_LEVEL:-INFO}
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./gateway-routes.yaml:/etc/asya/routes.yaml:ro
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # ===================
+  # == Asya Runtimes ==
+  # ===================
+
+  # 1. Actor runtime for echo handler
+  asya-echo-runtime:
+    build:
+      context: ../../mock_runtime
+      dockerfile: Dockerfile
+    logging: *default-logging
+    command: ["python", "/opt/asya/asya_runtime.py"]
+    environment:
+      - ASYA_HANDLER=handlers.mock_payload_handlers.echo_handler
+      - ASYA_SOCKET_PATH=/tmp/sockets/echo.sock
+      - ASYA_SOCKET_CHMOD=666
+      - ASYA_HANDLER_ARG_TYPE=payload
+      - ASYA_GATEWAY_URL=http://gateway:8080
+      - ASYA_LOG_LEVEL=${ASYA_LOG_LEVEL:-INFO}
+    volumes:
+      - sockets:/tmp/sockets
+      - ../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro  # auto-mounted by operator
+    healthcheck:
+      test: ["CMD", "test", "-S", "/tmp/sockets/echo.sock"]
+      interval: 2s
+      timeout: 1s
+      retries: 15
+
+  # 2. Actor runtime for progress handler
+  asya-progress-runtime:
+    build:
+      context: ../../mock_runtime
+      dockerfile: Dockerfile
+    logging: *default-logging
+    command: ["python", "/opt/asya/asya_runtime.py"]
+    environment:
+      - ASYA_SOCKET_CHMOD=666
+      - ASYA_HANDLER_ARG_TYPE=payload
+      - ASYA_GATEWAY_URL=http://gateway:8080
+      - ASYA_LOG_LEVEL=${ASYA_LOG_LEVEL:-INFO}
+      - ASYA_HANDLER=handlers.mock_payload_handlers.progress_handler
+      - ASYA_SOCKET_PATH=/tmp/sockets/progress.sock
+    volumes:
+      - sockets:/tmp/sockets
+      - ../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro  # auto-mounted by operator
+    healthcheck:
+      test: ["CMD", "test", "-S", "/tmp/sockets/progress.sock"]
+      interval: 2s
+      timeout: 1s
+      retries: 15
+
+  # 3. Actor runtime for doubler (pipeline step 1)
+  asya-doubler-runtime:
+    build:
+      context: ../../mock_runtime
+      dockerfile: Dockerfile
+    logging: *default-logging
+    command: ["python", "/opt/asya/asya_runtime.py"]
+    environment:
+      - ASYA_HANDLER=handlers.mock_payload_handlers.pipeline_doubler
+      - ASYA_SOCKET_CHMOD=666
+      - ASYA_HANDLER_ARG_TYPE=payload
+      - ASYA_GATEWAY_URL=http://gateway:8080
+      - ASYA_LOG_LEVEL=${ASYA_LOG_LEVEL:-INFO}
+      - ASYA_SOCKET_PATH=/tmp/sockets/doubler.sock
+    volumes:
+      - sockets:/tmp/sockets
+      - ../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro  # auto-mounted by operator
+    healthcheck:
+      test: ["CMD", "test", "-S", "/tmp/sockets/doubler.sock"]
+      interval: 2s
+      timeout: 1s
+      retries: 15
+
+  # 4. Actor runtime for incrementer (pipeline step 2)
+  asya-incrementer-runtime:
+    build:
+      context: ../../mock_runtime
+      dockerfile: Dockerfile
+    logging: *default-logging
+    command: ["python", "/opt/asya/asya_runtime.py"]
+    environment:
+      - ASYA_HANDLER=handlers.mock_payload_handlers.pipeline_incrementer
+      - ASYA_SOCKET_CHMOD=666
+      - ASYA_HANDLER_ARG_TYPE=payload
+      - ASYA_GATEWAY_URL=http://gateway:8080
+      - ASYA_LOG_LEVEL=${ASYA_LOG_LEVEL:-INFO}
+      - ASYA_SOCKET_PATH=/tmp/sockets/incrementer.sock
+    volumes:
+      - sockets:/tmp/sockets
+      - ../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro  # auto-mounted by operator
+    healthcheck:
+      test: ["CMD", "test", "-S", "/tmp/sockets/incrementer.sock"]
+      interval: 2s
+      timeout: 1s
+      retries: 15
+
+  # 5. Actor runtime for error handler
+  asya-exc-runtime:
+    build:
+      context: ../../mock_runtime
+      dockerfile: Dockerfile
+    logging: *default-logging
+    command: ["python", "/opt/asya/asya_runtime.py"]
+    environment:
+      - ASYA_HANDLER=handlers.mock_payload_handlers.error_handler
+      - ASYA_SOCKET_CHMOD=666
+      - ASYA_HANDLER_ARG_TYPE=payload
+      - ASYA_GATEWAY_URL=http://gateway:8080
+      - ASYA_LOG_LEVEL=${ASYA_LOG_LEVEL:-INFO}
+      - ASYA_SOCKET_PATH=/tmp/sockets/error.sock
+    volumes:
+      - sockets:/tmp/sockets
+      - ../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro  # auto-mounted by operator
+    healthcheck:
+      test: ["CMD", "test", "-S", "/tmp/sockets/error.sock"]
+      interval: 2s
+      timeout: 1s
+      retries: 15
+
+  # 6. Actor runtime for timeout handler
+  asya-timeout-runtime:
+    build:
+      context: ../../mock_runtime
+      dockerfile: Dockerfile
+    logging: *default-logging
+    command: ["python", "/opt/asya/asya_runtime.py"]
+    environment:
+      - ASYA_HANDLER=handlers.mock_payload_handlers.timeout_handler
+      - ASYA_SOCKET_CHMOD=666
+      - ASYA_HANDLER_ARG_TYPE=payload
+      - ASYA_GATEWAY_URL=http://gateway:8080
+      - ASYA_LOG_LEVEL=${ASYA_LOG_LEVEL:-INFO}
+      - ASYA_SOCKET_PATH=/tmp/sockets/timeout.sock
+    volumes:
+      - sockets:/tmp/sockets
+      - ../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro  # auto-mounted by operator
+    healthcheck:
+      test: ["CMD", "test", "-S", "/tmp/sockets/timeout.sock"]
+      interval: 2s
+      timeout: 1s
+      retries: 15
+
+  # 100. Actor runtime for happy-end (terminal actor)
+  asya-happy-end-runtime:
+    build:
+      context: ../../../src/asya-actors
+      dockerfile: Dockerfile
+    logging: *default-logging
+    command: ["python", "/opt/asya/asya_runtime.py"]
+    environment:
+      - ASYA_HANDLER=handlers.end_handlers.happy_end_handler
+      - ASYA_HANDLER_ARG_TYPE=message
+      - ASYA_ENABLE_VALIDATION=false
+      - ASYA_SOCKET_CHMOD=666
+      - ASYA_GATEWAY_URL=http://gateway:8080
+      - ASYA_LOG_LEVEL=${ASYA_LOG_LEVEL:-INFO}
+      - ASYA_SOCKET_PATH=/tmp/sockets/happy-end.sock
+    volumes:
+      - sockets:/tmp/sockets
+      - ../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro  # auto-mounted by operator
+    healthcheck:
+      test: ["CMD", "test", "-S", "/tmp/sockets/happy-end.sock"]
+      interval: 2s
+      timeout: 1s
+      retries: 15
+
+  # 101. Actor runtime for error-end (terminal actor)
+  asya-error-end-runtime:
+    build:
+      context: ../../../src/asya-actors
+      dockerfile: Dockerfile
+    logging: *default-logging
+    command: ["python", "/opt/asya/asya_runtime.py"]
+    environment:
+      - ASYA_HANDLER=handlers.end_handlers.error_end_handler
+      - ASYA_HANDLER_ARG_TYPE=message
+      - ASYA_ENABLE_VALIDATION=false
+      - ASYA_SOCKET_CHMOD=666
+      - ASYA_GATEWAY_URL=http://gateway:8080
+      - ASYA_LOG_LEVEL=${ASYA_LOG_LEVEL:-INFO}
+      - ASYA_SOCKET_PATH=/tmp/sockets/error-end.sock
+    volumes:
+      - sockets:/tmp/sockets
+      - ../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro  # auto-mounted by operator
+    healthcheck:
+      test: ["CMD", "test", "-S", "/tmp/sockets/error-end.sock"]
+      interval: 2s
+      timeout: 1s
+      retries: 15
+
+  # ===================
+  # == Asya Sidecars ==
+  # ===================
+
+  # 1. Actor sidecar for echo handler
+  asya-echo-sidecar:
+    build:
+      context: ../../../src/asya-sidecar
+      dockerfile: Dockerfile
+    logging: *default-logging
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      asya-echo-runtime:
+        condition: service_healthy
+    environment:
+      - ASYA_RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+      - ASYA_RABBITMQ_EXCHANGE=asya
+      - ASYA_RUNTIME_TIMEOUT=5s
+      - ASYA_STEP_HAPPY_END=happy-end
+      - ASYA_STEP_ERROR_END=error-end
+      - ASYA_GATEWAY_URL=http://gateway:8080
+      - ASYA_LOG_LEVEL=${ASYA_LOG_LEVEL:-INFO}
+      - ASYA_QUEUE_NAME=test-echo-queue
+      - ASYA_SOCKET_PATH=/tmp/sockets/echo.sock
+    volumes:
+      - sockets:/tmp/sockets
+
+  # 2. Actor sidecar for progress
+  asya-progress-sidecar:
+    build:
+      context: ../../../src/asya-sidecar
+      dockerfile: Dockerfile
+    logging: *default-logging
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      asya-progress-runtime:
+        condition: service_healthy
+    environment:
+      - ASYA_RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+      - ASYA_RABBITMQ_EXCHANGE=asya
+      - ASYA_RUNTIME_TIMEOUT=5s
+      - ASYA_STEP_HAPPY_END=happy-end
+      - ASYA_STEP_ERROR_END=error-end
+      - ASYA_GATEWAY_URL=http://gateway:8080
+      - ASYA_LOG_LEVEL=${ASYA_LOG_LEVEL:-INFO}
+      - ASYA_QUEUE_NAME=test-progress-queue
+      - ASYA_SOCKET_PATH=/tmp/sockets/progress.sock
+    volumes:
+      - sockets:/tmp/sockets
+
+  # 3. Actor sidecar for doubler
+  asya-doubler-sidecar:
+    build:
+      context: ../../../src/asya-sidecar
+      dockerfile: Dockerfile
+    logging: *default-logging
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      asya-doubler-runtime:
+        condition: service_healthy
+    environment:
+      - ASYA_RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+      - ASYA_RABBITMQ_EXCHANGE=asya
+      - ASYA_RUNTIME_TIMEOUT=5s
+      - ASYA_STEP_HAPPY_END=happy-end
+      - ASYA_STEP_ERROR_END=error-end
+      - ASYA_GATEWAY_URL=http://gateway:8080
+      - ASYA_LOG_LEVEL=${ASYA_LOG_LEVEL:-INFO}
+      - ASYA_QUEUE_NAME=test-doubler-queue
+      - ASYA_SOCKET_PATH=/tmp/sockets/doubler.sock
+    volumes:
+      - sockets:/tmp/sockets
+
+  # 4. Actor sidecar for incrementer
+  asya-incrementer-sidecar:
+    build:
+      context: ../../../src/asya-sidecar
+      dockerfile: Dockerfile
+    logging: *default-logging
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      asya-incrementer-runtime:
+        condition: service_healthy
+    environment:
+      - ASYA_RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+      - ASYA_RABBITMQ_EXCHANGE=asya
+      - ASYA_RUNTIME_TIMEOUT=5s
+      - ASYA_STEP_HAPPY_END=happy-end
+      - ASYA_STEP_ERROR_END=error-end
+      - ASYA_GATEWAY_URL=http://gateway:8080
+      - ASYA_LOG_LEVEL=${ASYA_LOG_LEVEL:-INFO}
+      - ASYA_QUEUE_NAME=test-incrementer-queue
+      - ASYA_SOCKET_PATH=/tmp/sockets/incrementer.sock
+    volumes:
+      - sockets:/tmp/sockets
+
+  # 5. Actor sidecar for error handler
+  asya-exc-sidecar:
+    build:
+      context: ../../../src/asya-sidecar
+      dockerfile: Dockerfile
+    logging: *default-logging
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      asya-exc-runtime:
+        condition: service_healthy
+    environment:
+      - ASYA_RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+      - ASYA_RABBITMQ_EXCHANGE=asya
+      - ASYA_RUNTIME_TIMEOUT=5s
+      - ASYA_STEP_HAPPY_END=happy-end
+      - ASYA_STEP_ERROR_END=error-end
+      - ASYA_GATEWAY_URL=http://gateway:8080
+      - ASYA_LOG_LEVEL=${ASYA_LOG_LEVEL:-INFO}
+      - ASYA_QUEUE_NAME=test-error-queue
+      - ASYA_SOCKET_PATH=/tmp/sockets/error.sock
+    volumes:
+      - sockets:/tmp/sockets
+
+  # 6. Actor sidecar for timeout
+  asya-timeout-sidecar:
+    build:
+      context: ../../../src/asya-sidecar
+      dockerfile: Dockerfile
+    logging: *default-logging
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      asya-timeout-runtime:
+        condition: service_healthy
+    environment:
+      - ASYA_RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+      - ASYA_RABBITMQ_EXCHANGE=asya
+      - ASYA_RUNTIME_TIMEOUT=5s
+      - ASYA_STEP_HAPPY_END=happy-end
+      - ASYA_STEP_ERROR_END=error-end
+      - ASYA_GATEWAY_URL=http://gateway:8080
+      - ASYA_LOG_LEVEL=${ASYA_LOG_LEVEL:-INFO}
+      - ASYA_QUEUE_NAME=test-timeout-queue
+      - ASYA_SOCKET_PATH=/tmp/sockets/timeout.sock
+    volumes:
+      - sockets:/tmp/sockets
+
+  # 100. Actor sidecar for happy-end
+  asya-happy-end-sidecar:
+    build:
+      context: ../../../src/asya-sidecar
+      dockerfile: Dockerfile
+    logging: *default-logging
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      asya-happy-end-runtime:
+        condition: service_healthy
+      gateway:
+        condition: service_healthy
+    environment:
+      - ASYA_RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+      - ASYA_RABBITMQ_EXCHANGE=asya
+      - ASYA_RUNTIME_TIMEOUT=5s
+      - ASYA_IS_TERMINAL=true
+      - ASYA_LOG_LEVEL=${ASYA_LOG_LEVEL:-INFO}
+      - ASYA_QUEUE_NAME=happy-end
+      - ASYA_SOCKET_PATH=/tmp/sockets/happy-end.sock
+    volumes:
+      - sockets:/tmp/sockets
+
+  # 101. Actor sidecar for error-end
+  asya-error-end-sidecar:
+    build:
+      context: ../../../src/asya-sidecar
+      dockerfile: Dockerfile
+    logging: *default-logging
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      asya-error-end-runtime:
+        condition: service_healthy
+      gateway:
+        condition: service_healthy
+    environment:
+      - ASYA_RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+      - ASYA_RABBITMQ_EXCHANGE=asya
+      - ASYA_RUNTIME_TIMEOUT=5s
+      - ASYA_IS_TERMINAL=true
+      - ASYA_LOG_LEVEL=${ASYA_LOG_LEVEL:-INFO}
+      - ASYA_QUEUE_NAME=error-end
+      - ASYA_SOCKET_PATH=/tmp/sockets/error-end.sock
+      # Note: No ASYA_GATEWAY_URL - error-end sidecar should not report progress
+      # Progress reflects position in original route, not error-end processing
+    volumes:
+      - sockets:/tmp/sockets
+
+  # Gateway test runner
+  tester:
+    build:
+      context: ./tests
+      dockerfile: Dockerfile
+    logging: *default-logging
+    depends_on:
+      gateway:
+        condition: service_healthy
+      asya-echo-sidecar:
+        condition: service_started
+      asya-progress-sidecar:
+        condition: service_started
+      asya-doubler-sidecar:
+        condition: service_started
+      asya-incrementer-sidecar:
+        condition: service_started
+      asya-exc-sidecar:
+        condition: service_started
+      asya-timeout-sidecar:
+        condition: service_started
+      asya-happy-end-sidecar:
+        condition: service_started
+      asya-error-end-sidecar:
+        condition: service_started
+    environment:
+      - ASYA_GATEWAY_URL=http://gateway:8080
+      - ASYA_LOG_LEVEL=${ASYA_LOG_LEVEL:-INFO}
+      - PYTEST_OPTS=${PYTEST_OPTS}
+      - ASYA_LOG_LEVEL=${ASYA_LOG_LEVEL:-INFO}
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - |
+        set -ex
+        pytest . ${PYTEST_OPTS:--v -s -p no:cacheprovider}
+
+volumes:
+  sockets:

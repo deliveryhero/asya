@@ -1,0 +1,10 @@
+[project]
+name = "asya-runtime"
+version = "0.1.0"
+description = "Unix socket server for actor runtime communication"
+readme = "README.md"
+requires-python = ">=3.7"
+dependencies = []
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

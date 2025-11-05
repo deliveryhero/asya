@@ -1,0 +1,72 @@
+# Actor with multiple containers in the runtime pod
+# The sidecar is automatically injected as the first container
+
+apiVersion: asya.io/v1alpha1
+kind: AsyncActor
+metadata:
+  name: multi-container-processor
+  namespace: default
+spec:
+  queueName: video-processing-queue
+
+  transport:
+    type: rabbitmq
+    rabbitmq:
+      host: rabbitmq.rabbitmq.svc.cluster.local
+      port: 5672
+      username: admin
+      passwordSecretRef:
+        name: rabbitmq-secret
+        key: password
+
+  scaling:
+    enabled: true
+    minReplicas: 0
+    maxReplicas: 20
+    queueLength: 3
+
+  timeout:
+    processing: 600  # 10 minutes for video processing
+    gracefulShutdown: 660  # 11 minutes
+
+  workload:
+    type: Deployment
+    template:
+      spec:
+        # Main processing container
+        containers:
+        - name: runtime
+          image: video-processor:v2.0
+          env:
+          - name: FFMPEG_THREADS
+            value: "4"
+          - name: OUTPUT_DIR
+            value: /shared/output
+          resources:
+            limits:
+              cpu: 4000m
+              memory: 8Gi
+          volumeMounts:
+          - name: shared
+            mountPath: /shared
+
+        # Helper container for uploading results
+        - name: uploader
+          image: minio-uploader:v1.0
+          env:
+          - name: MINIO_BUCKET
+            value: processed-videos
+          - name: WATCH_DIR
+            value: /shared/output
+          resources:
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          volumeMounts:
+          - name: shared
+            mountPath: /shared
+
+        volumes:
+        - name: shared
+          emptyDir:
+            sizeLimit: 10Gi

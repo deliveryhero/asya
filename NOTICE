@@ -1,0 +1,23 @@
+Asya
+Copyright 2025 Delivery Hero SE
+
+This product includes software developed at Delivery Hero SE (https://www.deliveryhero.com/).
+
+This software contains code derived from the following open source projects:
+
+Go Dependencies:
+- Kubernetes (k8s.io/api, k8s.io/apimachinery, k8s.io/client-go) - Apache License 2.0
+- KEDA (github.com/kedacore/keda/v2) - Apache License 2.0  
+- Controller Runtime (sigs.k8s.io/controller-runtime) - Apache License 2.0
+- Prometheus Client (github.com/prometheus/client_golang) - Apache License 2.0
+- RabbitMQ AMQP Client (github.com/rabbitmq/amqp091-go) - BSD 2-Clause License
+- PostgreSQL Driver (github.com/jackc/pgx/v5) - MIT License
+- MCP Go (github.com/mark3labs/mcp-go) - MIT License
+
+Python Dependencies:
+- Pika (RabbitMQ client) - BSD License
+- Requests - Apache License 2.0
+- Pytest - MIT License
+- Boto3 (AWS SDK) - Apache License 2.0
+
+For complete license information, see the LICENSE file and individual dependency licenses.

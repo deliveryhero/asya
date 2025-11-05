@@ -210,8 +210,16 @@ This will display admin credentials and open access to:
 
 To contribute, please read our [contributing docs](CONTRIBUTING.md).
 
+## Contributing
+
+To contribute, please read our [contributing docs](CONTRIBUTING.md) and [code of conduct](CODE_OF_CONDUCT.md).
+
+## Security
+
+For security issues, please see our [security policy](SECURITY.md).
+
 ## License
 
 Copyright © 2025 Delivery Hero SE
 
-Contents of this repository are licensed under the Apache-2.0 [License](LICENSE).
+Contents of this repository are licensed under the Apache-2.0 [License](LICENSE). See [NOTICE](NOTICE) for third-party attributions.

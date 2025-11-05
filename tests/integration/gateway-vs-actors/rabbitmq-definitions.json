@@ -1,0 +1,57 @@
+{
+  "rabbit_version": "3.13.0",
+  "rabbitmq_version": "3.13.0",
+  "product_name": "RabbitMQ",
+  "product_version": "3.13.0",
+  "users": [
+    {
+      "name": "guest",
+      "password_hash": "YNS6xVrAWHMYDlCgEkb+2zky4cx6TkFJMrQgYkGz/2ChLC6/",
+      "hashing_algorithm": "rabbit_password_hashing_sha256",
+      "tags": ["administrator"]
+    }
+  ],
+  "vhosts": [
+    {"name": "/"}
+  ],
+  "permissions": [
+    {
+      "user": "guest",
+      "vhost": "/",
+      "configure": ".*",
+      "write": ".*",
+      "read": ".*"
+    }
+  ],
+  "exchanges": [
+    {
+      "name": "asya",
+      "vhost": "/",
+      "type": "topic",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    }
+  ],
+  "queues": [
+    {"name": "test-echo-queue", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {}},
+    {"name": "test-progress-queue", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {}},
+    {"name": "test-doubler-queue", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {}},
+    {"name": "test-incrementer-queue", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {}},
+    {"name": "test-error-queue", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {}},
+    {"name": "test-timeout-queue", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {}},
+    {"name": "happy-end", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {}},
+    {"name": "error-end", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {}}
+  ],
+  "bindings": [
+    {"source": "asya", "vhost": "/", "destination": "test-echo-queue", "destination_type": "queue", "routing_key": "test-echo-queue", "arguments": {}},
+    {"source": "asya", "vhost": "/", "destination": "test-progress-queue", "destination_type": "queue", "routing_key": "test-progress-queue", "arguments": {}},
+    {"source": "asya", "vhost": "/", "destination": "test-doubler-queue", "destination_type": "queue", "routing_key": "test-doubler-queue", "arguments": {}},
+    {"source": "asya", "vhost": "/", "destination": "test-incrementer-queue", "destination_type": "queue", "routing_key": "test-incrementer-queue", "arguments": {}},
+    {"source": "asya", "vhost": "/", "destination": "test-error-queue", "destination_type": "queue", "routing_key": "test-error-queue", "arguments": {}},
+    {"source": "asya", "vhost": "/", "destination": "test-timeout-queue", "destination_type": "queue", "routing_key": "test-timeout-queue", "arguments": {}},
+    {"source": "asya", "vhost": "/", "destination": "happy-end", "destination_type": "queue", "routing_key": "happy-end", "arguments": {}},
+    {"source": "asya", "vhost": "/", "destination": "error-end", "destination_type": "queue", "routing_key": "error-end", "arguments": {}}
+  ]
+}

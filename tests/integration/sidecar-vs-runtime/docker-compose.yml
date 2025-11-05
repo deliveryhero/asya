@@ -1,0 +1,621 @@
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "2"
+
+services:
+  # RabbitMQ for message queuing
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    logging: *default-logging
+    ports:
+      # Note: using local port 5673/15673 instead of default 15672/5672 to avoid conflicts with other tests
+      - "5673:5672"   # AMQP (host:container)
+      - "15673:15672" # Management UI (host:container)
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    volumes:
+      - ./rabbitmq-definitions.json:/etc/rabbitmq/definitions.json:ro
+      - ./rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_running"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # ===================
+  # == Asya Runtimes ==
+  # ===================
+
+  # 1. Actor runtime for error testing
+  asya-exc-runtime:
+    build:
+      context: ../../mock_runtime
+      dockerfile: Dockerfile
+    logging: *default-logging
+    command: ["python", "/opt/asya/asya_runtime.py"]
+    environment:
+      - ASYA_HANDLER=handlers.mock_payload_handlers.error_handler
+      - ASYA_RUNTIME_TIMEOUT=5s
+      - ASYA_SOCKET_PATH=/tmp/sockets/error.sock
+      - ASYA_SOCKET_CHMOD=666
+      - ASYA_LOG_LEVEL=${ASYA_LOG_LEVEL:-INFO}
+    volumes:
+      - sockets:/tmp/sockets
+      - ../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro  # auto-mounted by operator
+    healthcheck:
+      test: ["CMD", "test", "-S", "/tmp/sockets/error.sock"]
+      interval: 2s
+      timeout: 1s
+      retries: 15
+
+  # 3. Actor runtime for OOM testing
+  asya-oom-runtime:
+    build:
+      context: ../../mock_runtime
+      dockerfile: Dockerfile
+    logging: *default-logging
+    command: ["python", "/opt/asya/asya_runtime.py"]
+    environment:
+      - ASYA_HANDLER=handlers.mock_payload_handlers.oom_handler
+      - ASYA_RUNTIME_TIMEOUT=5s
+      - ASYA_SOCKET_PATH=/tmp/sockets/oom.sock
+      - ASYA_SOCKET_CHMOD=666
+      - ASYA_ENABLE_OOM_DETECTION=true
+      - ASYA_LOG_LEVEL=${ASYA_LOG_LEVEL:-INFO}
+    volumes:
+      - sockets:/tmp/sockets
+      - ../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro  # auto-mounted by operator
+    healthcheck:
+      test: ["CMD", "test", "-S", "/tmp/sockets/oom.sock"]
+      interval: 2s
+      timeout: 1s
+      retries: 15
+
+  # 4. Actor runtime for CUDA OOM testing
+  asya-cuda-runtime-oom:
+    build:
+      context: ../../mock_runtime
+      dockerfile: Dockerfile
+    logging: *default-logging
+    command: ["python", "/opt/asya/asya_runtime.py"]
+    environment:
+      - ASYA_HANDLER=handlers.mock_payload_handlers.cuda_oom_handler
+      - ASYA_RUNTIME_TIMEOUT=5s
+      - ASYA_SOCKET_PATH=/tmp/sockets/cuda-oom.sock
+      - ASYA_SOCKET_CHMOD=666
+      - ASYA_ENABLE_OOM_DETECTION=true
+      - ASYA_CUDA_CLEANUP_ON_OOM=true
+      - ASYA_LOG_LEVEL=${ASYA_LOG_LEVEL:-INFO}
+    volumes:
+      - sockets:/tmp/sockets
+      - ../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro  # auto-mounted by operator
+    healthcheck:
+      test: ["CMD", "test", "-S", "/tmp/sockets/cuda-oom.sock"]
+      interval: 2s
+      timeout: 1s
+      retries: 15
+
+  # 5. Actor runtime for timeout testing
+  asya-timeout-runtime:
+    build:
+      context: ../../mock_runtime
+      dockerfile: Dockerfile
+    logging: *default-logging
+    command: ["python", "/opt/asya/asya_runtime.py"]
+    environment:
+      - ASYA_HANDLER=handlers.mock_payload_handlers.timeout_handler
+      - ASYA_RUNTIME_TIMEOUT=5s
+      - ASYA_SOCKET_PATH=/tmp/sockets/timeout.sock
+      - ASYA_SOCKET_CHMOD=666
+      - ASYA_LOG_LEVEL=${ASYA_LOG_LEVEL:-INFO}
+    volumes:
+      - sockets:/tmp/sockets
+      - ../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro  # auto-mounted by operator
+    healthcheck:
+      test: ["CMD", "test", "-S", "/tmp/sockets/timeout.sock"]
+      interval: 2s
+      timeout: 1s
+      retries: 15
+
+  # 6. Actor runtime for fanout testing
+  asya-fanout-runtime:
+    build:
+      context: ../../mock_runtime
+      dockerfile: Dockerfile
+    logging: *default-logging
+    command: ["python", "/opt/asya/asya_runtime.py"]
+    environment:
+      - ASYA_HANDLER=handlers.mock_payload_handlers.fanout_handler
+      - ASYA_RUNTIME_TIMEOUT=5s
+      - ASYA_SOCKET_PATH=/tmp/sockets/fanout.sock
+      - ASYA_SOCKET_CHMOD=666
+      - ASYA_LOG_LEVEL=${ASYA_LOG_LEVEL:-INFO}
+    volumes:
+      - sockets:/tmp/sockets
+      - ../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro  # auto-mounted by operator
+    healthcheck:
+      test: ["CMD", "test", "-S", "/tmp/sockets/fanout.sock"]
+      interval: 2s
+      timeout: 1s
+      retries: 15
+
+  # 7. Actor runtime for empty response testing
+  asya-empty-runtime:
+    build:
+      context: ../../mock_runtime
+      dockerfile: Dockerfile
+    logging: *default-logging
+    command: ["python", "/opt/asya/asya_runtime.py"]
+    environment:
+      - ASYA_HANDLER=handlers.mock_payload_handlers.empty_response_handler
+      - ASYA_RUNTIME_TIMEOUT=5s
+      - ASYA_SOCKET_PATH=/tmp/sockets/empty.sock
+      - ASYA_SOCKET_CHMOD=666
+      - ASYA_LOG_LEVEL=${ASYA_LOG_LEVEL:-INFO}
+    volumes:
+      - sockets:/tmp/sockets
+      - ../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro  # auto-mounted by operator
+    healthcheck:
+      test: ["CMD", "test", "-S", "/tmp/sockets/empty.sock"]
+      interval: 2s
+      timeout: 1s
+      retries: 15
+
+  # 8. Actor runtime for large payload testing
+  asya-large-runtime:
+    build:
+      context: ../../mock_runtime
+      dockerfile: Dockerfile
+    logging: *default-logging
+    command: ["python", "/opt/asya/asya_runtime.py"]
+    environment:
+      - ASYA_HANDLER=handlers.mock_payload_handlers.large_payload_handler
+      - ASYA_RUNTIME_TIMEOUT=5s
+      - ASYA_SOCKET_PATH=/tmp/sockets/large.sock
+      - ASYA_SOCKET_CHMOD=666
+      - ASYA_LOG_LEVEL=${ASYA_LOG_LEVEL:-INFO}
+    volumes:
+      - sockets:/tmp/sockets
+      - ../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro  # auto-mounted by operator
+    healthcheck:
+      test: ["CMD", "test", "-S", "/tmp/sockets/large.sock"]
+      interval: 2s
+      timeout: 1s
+      retries: 15
+
+  # 9. Actor runtime for Unicode testing
+  asya-unicode-runtime:
+    build:
+      context: ../../mock_runtime
+      dockerfile: Dockerfile
+    logging: *default-logging
+    command: ["python", "/opt/asya/asya_runtime.py"]
+    environment:
+      - ASYA_HANDLER=handlers.mock_payload_handlers.unicode_handler
+      - ASYA_RUNTIME_TIMEOUT=5s
+      - ASYA_SOCKET_PATH=/tmp/sockets/unicode.sock
+      - ASYA_SOCKET_CHMOD=666
+      - ASYA_LOG_LEVEL=${ASYA_LOG_LEVEL:-INFO}
+    volumes:
+      - sockets:/tmp/sockets
+      - ../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro  # auto-mounted by operator
+    healthcheck:
+      test: ["CMD", "test", "-S", "/tmp/sockets/unicode.sock"]
+      interval: 2s
+      timeout: 1s
+      retries: 15
+
+  # 10. Actor runtime for null values testing
+  asya-null-runtime:
+    build:
+      context: ../../mock_runtime
+      dockerfile: Dockerfile
+    logging: *default-logging
+    command: ["python", "/opt/asya/asya_runtime.py"]
+    environment:
+      - ASYA_HANDLER=handlers.mock_payload_handlers.null_values_handler
+      - ASYA_RUNTIME_TIMEOUT=5s
+      - ASYA_SOCKET_PATH=/tmp/sockets/null.sock
+      - ASYA_SOCKET_CHMOD=666
+      - ASYA_LOG_LEVEL=${ASYA_LOG_LEVEL:-INFO}
+    volumes:
+      - sockets:/tmp/sockets
+      - ../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro  # auto-mounted by operator
+    healthcheck:
+      test: ["CMD", "test", "-S", "/tmp/sockets/null.sock"]
+      interval: 2s
+      timeout: 1s
+      retries: 15
+
+  # 11. Actor runtime for conditional testing
+  asya-cond-runtime:
+    build:
+      context: ../../mock_runtime
+      dockerfile: Dockerfile
+    logging: *default-logging
+    command: ["python", "/opt/asya/asya_runtime.py"]
+    environment:
+      - ASYA_HANDLER=handlers.mock_payload_handlers.conditional_handler
+      - ASYA_RUNTIME_TIMEOUT=5s
+      - ASYA_SOCKET_PATH=/tmp/sockets/conditional.sock
+      - ASYA_SOCKET_CHMOD=666
+      - ASYA_LOG_LEVEL=${ASYA_LOG_LEVEL:-INFO}
+    volumes:
+      - sockets:/tmp/sockets
+      - ../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro  # auto-mounted by operator
+    healthcheck:
+      test: ["CMD", "test", "-S", "/tmp/sockets/conditional.sock"]
+      interval: 2s
+      timeout: 1s
+      retries: 15
+
+  # 12. Actor runtime for nested data testing
+  asya-nested-runtime:
+    build:
+      context: ../../mock_runtime
+      dockerfile: Dockerfile
+    logging: *default-logging
+    command: ["python", "/opt/asya/asya_runtime.py"]
+    environment:
+      - ASYA_HANDLER=handlers.mock_payload_handlers.nested_data_handler
+      - ASYA_RUNTIME_TIMEOUT=5s
+      - ASYA_SOCKET_PATH=/tmp/sockets/nested.sock
+      - ASYA_SOCKET_CHMOD=666
+      - ASYA_LOG_LEVEL=${ASYA_LOG_LEVEL:-INFO}
+    volumes:
+      - sockets:/tmp/sockets
+      - ../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro  # auto-mounted by operator
+    healthcheck:
+      test: ["CMD", "test", "-S", "/tmp/sockets/nested.sock"]
+      interval: 2s
+      timeout: 1s
+      retries: 15
+
+  # 13. Actor runtime for echo (multi-step routing)
+  asya-echo-runtime:
+    build:
+      context: ../../mock_runtime
+      dockerfile: Dockerfile
+    logging: *default-logging
+    command: ["python", "/opt/asya/asya_runtime.py"]
+    environment:
+      - ASYA_HANDLER=handlers.mock_payload_handlers.echo_handler
+      - ASYA_RUNTIME_TIMEOUT=5s
+      - ASYA_SOCKET_PATH=/tmp/sockets/echo.sock
+      - ASYA_SOCKET_CHMOD=666
+      - ASYA_LOG_LEVEL=${ASYA_LOG_LEVEL:-INFO}
+    volumes:
+      - sockets:/tmp/sockets
+      - ../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro  # auto-mounted by operator
+    healthcheck:
+      test: ["CMD", "test", "-S", "/tmp/sockets/echo.sock"]
+      interval: 2s
+      timeout: 1s
+      retries: 15
+
+  # ===================
+  # == Asya Sidecars ==
+  # ===================
+
+  # 2. Actor sidecar for error testing
+  asya-exc-sidecar:
+    build:
+      context: ../../../src/asya-sidecar
+      dockerfile: Dockerfile
+    logging: *default-logging
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      asya-exc-runtime:
+        condition: service_healthy
+    environment:
+      - ASYA_RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+      - ASYA_RABBITMQ_EXCHANGE=asya
+      - ASYA_QUEUE_NAME=test-error-queue
+      - ASYA_SOCKET_PATH=/tmp/sockets/error.sock
+      - ASYA_RUNTIME_TIMEOUT=30s
+      - ASYA_STEP_HAPPY_END=happy-end
+      - ASYA_STEP_ERROR_END=error-end
+      - ASYA_LOG_LEVEL=${ASYA_LOG_LEVEL:-INFO}
+    volumes:
+      - sockets:/tmp/sockets
+
+  # 3. Actor sidecar for OOM testing
+  asya-oom-sidecar:
+    build:
+      context: ../../../src/asya-sidecar
+      dockerfile: Dockerfile
+    logging: *default-logging
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      asya-oom-runtime:
+        condition: service_healthy
+    environment:
+      - ASYA_RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+      - ASYA_RABBITMQ_EXCHANGE=asya
+      - ASYA_QUEUE_NAME=test-oom-queue
+      - ASYA_SOCKET_PATH=/tmp/sockets/oom.sock
+      - ASYA_RUNTIME_TIMEOUT=30s
+      - ASYA_STEP_HAPPY_END=happy-end
+      - ASYA_STEP_ERROR_END=error-end
+      - ASYA_LOG_LEVEL=${ASYA_LOG_LEVEL:-INFO}
+    volumes:
+      - sockets:/tmp/sockets
+
+  # 4. Actor sidecar for CUDA OOM testing
+  asya-cuda-sidecar-oom:
+    build:
+      context: ../../../src/asya-sidecar
+      dockerfile: Dockerfile
+    logging: *default-logging
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      asya-cuda-runtime-oom:
+        condition: service_healthy
+    environment:
+      - ASYA_RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+      - ASYA_RABBITMQ_EXCHANGE=asya
+      - ASYA_QUEUE_NAME=test-cuda-oom-queue
+      - ASYA_SOCKET_PATH=/tmp/sockets/cuda-oom.sock
+      - ASYA_RUNTIME_TIMEOUT=30s
+      - ASYA_STEP_HAPPY_END=happy-end
+      - ASYA_STEP_ERROR_END=error-end
+      - ASYA_LOG_LEVEL=${ASYA_LOG_LEVEL:-INFO}
+    volumes:
+      - sockets:/tmp/sockets
+
+  # 5. Actor sidecar for timeout testing
+  asya-timeout-sidecar:
+    build:
+      context: ../../../src/asya-sidecar
+      dockerfile: Dockerfile
+    logging: *default-logging
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      asya-timeout-runtime:
+        condition: service_healthy
+    environment:
+      - ASYA_RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+      - ASYA_RABBITMQ_EXCHANGE=asya
+      - ASYA_QUEUE_NAME=test-timeout-queue
+      - ASYA_SOCKET_PATH=/tmp/sockets/timeout.sock
+      - ASYA_RUNTIME_TIMEOUT=3s
+      - ASYA_STEP_HAPPY_END=happy-end
+      - ASYA_STEP_ERROR_END=error-end
+      - ASYA_LOG_LEVEL=${ASYA_LOG_LEVEL:-INFO}
+    volumes:
+      - sockets:/tmp/sockets
+
+  # 6. Actor sidecar for fanout testing
+  asya-fanout-sidecar:
+    build:
+      context: ../../../src/asya-sidecar
+      dockerfile: Dockerfile
+    logging: *default-logging
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      asya-fanout-runtime:
+        condition: service_healthy
+    environment:
+      - ASYA_RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+      - ASYA_RABBITMQ_EXCHANGE=asya
+      - ASYA_QUEUE_NAME=test-fanout-queue
+      - ASYA_SOCKET_PATH=/tmp/sockets/fanout.sock
+      - ASYA_RUNTIME_TIMEOUT=30s
+      - ASYA_STEP_HAPPY_END=happy-end
+      - ASYA_STEP_ERROR_END=error-end
+      - ASYA_LOG_LEVEL=${ASYA_LOG_LEVEL:-INFO}
+    volumes:
+      - sockets:/tmp/sockets
+
+  # 7. Actor sidecar for empty response testing
+  asya-empty-sidecar:
+    build:
+      context: ../../../src/asya-sidecar
+      dockerfile: Dockerfile
+    logging: *default-logging
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      asya-empty-runtime:
+        condition: service_healthy
+    environment:
+      - ASYA_RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+      - ASYA_RABBITMQ_EXCHANGE=asya
+      - ASYA_QUEUE_NAME=test-empty-queue
+      - ASYA_SOCKET_PATH=/tmp/sockets/empty.sock
+      - ASYA_RUNTIME_TIMEOUT=30s
+      - ASYA_STEP_HAPPY_END=happy-end
+      - ASYA_STEP_ERROR_END=error-end
+      - ASYA_LOG_LEVEL=${ASYA_LOG_LEVEL:-INFO}
+    volumes:
+      - sockets:/tmp/sockets
+
+  # 8. Actor sidecar for large payload testing
+  asya-large-sidecar:
+    build:
+      context: ../../../src/asya-sidecar
+      dockerfile: Dockerfile
+    logging: *default-logging
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      asya-large-runtime:
+        condition: service_healthy
+    environment:
+      - ASYA_RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+      - ASYA_RABBITMQ_EXCHANGE=asya
+      - ASYA_QUEUE_NAME=test-large-queue
+      - ASYA_SOCKET_PATH=/tmp/sockets/large.sock
+      - ASYA_RUNTIME_TIMEOUT=30s
+      - ASYA_STEP_HAPPY_END=happy-end
+      - ASYA_STEP_ERROR_END=error-end
+      - ASYA_LOG_LEVEL=${ASYA_LOG_LEVEL:-INFO}
+    volumes:
+      - sockets:/tmp/sockets
+
+  # 9. Actor sidecar for Unicode testing
+  asya-unicode-sidecar:
+    build:
+      context: ../../../src/asya-sidecar
+      dockerfile: Dockerfile
+    logging: *default-logging
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      asya-unicode-runtime:
+        condition: service_healthy
+    environment:
+      - ASYA_RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+      - ASYA_RABBITMQ_EXCHANGE=asya
+      - ASYA_QUEUE_NAME=test-unicode-queue
+      - ASYA_SOCKET_PATH=/tmp/sockets/unicode.sock
+      - ASYA_RUNTIME_TIMEOUT=30s
+      - ASYA_STEP_HAPPY_END=happy-end
+      - ASYA_STEP_ERROR_END=error-end
+      - ASYA_LOG_LEVEL=${ASYA_LOG_LEVEL:-INFO}
+    volumes:
+      - sockets:/tmp/sockets
+
+  # 10. Actor sidecar for null values testing
+  asya-null-sidecar:
+    build:
+      context: ../../../src/asya-sidecar
+      dockerfile: Dockerfile
+    logging: *default-logging
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      asya-null-runtime:
+        condition: service_healthy
+    environment:
+      - ASYA_RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+      - ASYA_RABBITMQ_EXCHANGE=asya
+      - ASYA_QUEUE_NAME=test-null-queue
+      - ASYA_SOCKET_PATH=/tmp/sockets/null.sock
+      - ASYA_RUNTIME_TIMEOUT=30s
+      - ASYA_STEP_HAPPY_END=happy-end
+      - ASYA_STEP_ERROR_END=error-end
+      - ASYA_LOG_LEVEL=${ASYA_LOG_LEVEL:-INFO}
+    volumes:
+      - sockets:/tmp/sockets
+
+  # 11. Actor sidecar for conditional testing
+  asya-cond-sidecar:
+    build:
+      context: ../../../src/asya-sidecar
+      dockerfile: Dockerfile
+    logging: *default-logging
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      asya-cond-runtime:
+        condition: service_healthy
+    environment:
+      - ASYA_RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+      - ASYA_RABBITMQ_EXCHANGE=asya
+      - ASYA_QUEUE_NAME=test-conditional-queue
+      - ASYA_SOCKET_PATH=/tmp/sockets/conditional.sock
+      - ASYA_RUNTIME_TIMEOUT=30s
+      - ASYA_STEP_HAPPY_END=happy-end
+      - ASYA_STEP_ERROR_END=error-end
+      - ASYA_LOG_LEVEL=${ASYA_LOG_LEVEL:-INFO}
+    volumes:
+      - sockets:/tmp/sockets
+
+  # 12. Actor sidecar for nested data testing
+  asya-nested-sidecar:
+    build:
+      context: ../../../src/asya-sidecar
+      dockerfile: Dockerfile
+    logging: *default-logging
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      asya-nested-runtime:
+        condition: service_healthy
+    environment:
+      - ASYA_RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+      - ASYA_RABBITMQ_EXCHANGE=asya
+      - ASYA_QUEUE_NAME=test-nested-queue
+      - ASYA_SOCKET_PATH=/tmp/sockets/nested.sock
+      - ASYA_RUNTIME_TIMEOUT=30s
+      - ASYA_STEP_HAPPY_END=happy-end
+      - ASYA_STEP_ERROR_END=error-end
+      - ASYA_LOG_LEVEL=${ASYA_LOG_LEVEL:-INFO}
+    volumes:
+      - sockets:/tmp/sockets
+
+  # 13. Actor sidecar for echo
+  asya-echo-sidecar:
+    build:
+      context: ../../../src/asya-sidecar
+      dockerfile: Dockerfile
+    logging: *default-logging
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      asya-echo-runtime:
+        condition: service_healthy
+    environment:
+      - ASYA_RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+      - ASYA_RABBITMQ_EXCHANGE=asya
+      - ASYA_QUEUE_NAME=test-echo-queue
+      - ASYA_SOCKET_PATH=/tmp/sockets/echo.sock
+      - ASYA_RUNTIME_TIMEOUT=30s
+      - ASYA_STEP_HAPPY_END=happy-end
+      - ASYA_STEP_ERROR_END=error-end
+      - ASYA_LOG_LEVEL=${ASYA_LOG_LEVEL:-INFO}
+    volumes:
+      - sockets:/tmp/sockets
+
+  # Sidecar test runner
+  tester:
+    build:
+      context: ./tests
+      dockerfile: Dockerfile
+    logging: *default-logging
+    depends_on:
+      asya-exc-sidecar:
+        condition: service_started
+      asya-oom-sidecar:
+        condition: service_started
+      asya-cuda-sidecar-oom:
+        condition: service_started
+      asya-timeout-sidecar:
+        condition: service_started
+      asya-fanout-sidecar:
+        condition: service_started
+      asya-empty-sidecar:
+        condition: service_started
+      asya-large-sidecar:
+        condition: service_started
+      asya-unicode-sidecar:
+        condition: service_started
+      asya-null-sidecar:
+        condition: service_started
+      asya-cond-sidecar:
+        condition: service_started
+      asya-nested-sidecar:
+        condition: service_started
+      asya-echo-sidecar:
+        condition: service_started
+    environment:
+      - PYTEST_OPTS=${PYTEST_OPTS}
+      - ASYA_LOG_LEVEL=${ASYA_LOG_LEVEL}
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - |
+        set -ex
+        pytest . ${PYTEST_OPTS:--v -s -p no:cacheprovider}
+
+volumes:
+  sockets:

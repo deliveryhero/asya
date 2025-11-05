@@ -1,0 +1,82 @@
+apiVersion: asya.io/v1alpha1
+kind: AsyncActor
+metadata:
+  name: echo-actor
+  namespace: asya
+spec:
+  # Queue name for this actor
+  queueName: echo-queue
+
+  # Transport configuration (RabbitMQ)
+  transport:
+    type: rabbitmq
+    rabbitmq:
+      host: asya-rabbitmq.asya.svc.cluster.local
+      port: 5672
+      username: asya
+      passwordSecretRef:
+        name: rabbitmq-secret
+        key: password
+
+  # Sidecar configuration
+  sidecar:
+    image: asya-sidecar:latest
+    imagePullPolicy: IfNotPresent
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 100m
+        memory: 128Mi
+
+  # Socket configuration
+  socket:
+    path: /tmp/sockets/app.sock
+
+  # Timeout configuration
+  timeout:
+    processing: 300
+    gracefulShutdown: 30
+
+  # KEDA autoscaling configuration
+  scaling:
+    enabled: true
+    minReplicas: 0
+    maxReplicas: 10
+    pollingInterval: 10
+    cooldownPeriod: 60
+    queueLength: 5
+
+  # Workload configuration
+  workload:
+    type: Deployment
+    replicas: 1
+    template:
+      metadata:
+        labels:
+          app: echo-actor
+      spec:
+        containers:
+          - name: runtime
+            image: python:3.13-slim
+            imagePullPolicy: IfNotPresent
+            command: ["python", "/opt/asya/asya_runtime.py"]
+            env:
+              - name: ASYA_HANDLER
+                value: "test_handler.process"
+              - name: ASYA_SOCKET_PATH
+                value: /tmp/sockets/app.sock
+            resources:
+              requests:
+                cpu: 50m
+                memory: 64Mi
+              limits:
+                cpu: 100m
+                memory: 128Mi
+            volumeMounts:
+              - name: socket-dir
+                mountPath: /tmp/sockets
+        volumes:
+          - name: socket-dir
+            emptyDir: {}

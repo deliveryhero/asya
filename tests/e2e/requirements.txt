@@ -1,0 +1,4 @@
+# Integration test dependencies for gateway
+pytest>=8.0.0
+requests>=2.31.0
+sseclient-py>=1.8.0
