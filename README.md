@@ -4,7 +4,7 @@
 
 ## Description
 
-Async is an actor-based framework for serving AI workloads on Kubernetes that provides a CRD-based operator pattern for deploying AI actors with automatic sidecar injection, message queue integration, and event-driven autoscaling.
+Asya is an async actor-based framework for serving AI workloads on Kubernetes. It provides a CRD-based operator pattern for deploying AI actors with automatic sidecar injection, message queue integration, and event-driven autoscaling.
 
 📚 **[Full Documentation](docs/index.md)** | 🚀 **[Quick Start](docs/getting-started/quickstart.md)** | 📖 **[Examples](examples/README.md)**
 
