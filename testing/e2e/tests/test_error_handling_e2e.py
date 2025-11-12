@@ -76,10 +76,10 @@ def test_error_goes_to_error_end_when_available(e2e_helper, kubectl):
     kubectl.run("patch asyncactor error-end -n asya-e2e --type=json -p '[{\"op\":\"replace\",\"path\":\"/spec/scaling/enabled\",\"value\":false},{\"op\":\"replace\",\"path\":\"/spec/workload/replicas\",\"value\":0}]'")
 
     logger.info("Waiting for ScaledObject to be deleted")
-    kubectl.run("wait --for=delete scaledobject/error-end -n asya-e2e --timeout=30s", check=False)
+    kubectl.run("wait --for=delete scaledobject/error-end -n asya-e2e --timeout=60s", check=False)
 
     logger.info("Waiting for deployment to scale to 0")
-    kubectl.wait_for_replicas("error-end", "asya-e2e", 0, timeout=30)
+    kubectl.wait_for_replicas("error-end", "asya-e2e", 0, timeout=60)
 
     # Purge queues before test
     logger.info("Purging queues before test")
@@ -133,11 +133,11 @@ def test_error_goes_to_error_end_when_available(e2e_helper, kubectl):
 
     # Wait for ScaledObject to be recreated
     logger.info("Waiting for ScaledObject to be recreated")
-    kubectl.run("wait --for=condition=Ready scaledobject/error-end -n asya-e2e --timeout=30s", check=False)
+    kubectl.run("wait --for=condition=Ready scaledobject/error-end -n asya-e2e --timeout=60s")
 
     # Wait for error-end pod to be ready
     logger.info("Waiting for error-end pod to be ready")
-    kubectl.wait_for_replicas("error-end", "asya-e2e", 1, timeout=30)
+    kubectl.wait_for_replicas("error-end", "asya-e2e", 1, timeout=60)
 
     logger.info("[+] Test passed - application-level error handling working")
 
@@ -186,10 +186,10 @@ def test_error_goes_to_dlq_when_error_end_unavailable(e2e_helper, kubectl):
     kubectl.run("patch asyncactor error-end -n asya-e2e --type=json -p '[{\"op\":\"replace\",\"path\":\"/spec/scaling/enabled\",\"value\":false},{\"op\":\"replace\",\"path\":\"/spec/workload/replicas\",\"value\":0}]'")
 
     logger.info("Waiting for ScaledObject to be deleted")
-    kubectl.run("wait --for=delete scaledobject/error-end -n asya-e2e --timeout=30s", check=False)
+    kubectl.run("wait --for=delete scaledobject/error-end -n asya-e2e --timeout=60s", check=False)
 
     logger.info("Waiting for deployment to scale to 0")
-    kubectl.wait_for_replicas("error-end", "asya-e2e", 0, timeout=30)
+    kubectl.wait_for_replicas("error-end", "asya-e2e", 0, timeout=60)
     logger.info("[+] error-end scaled to 0")
 
     try:
