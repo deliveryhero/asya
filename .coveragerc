@@ -1,0 +1,42 @@
+[run]
+branch = True
+omit =
+    tests/*
+    */tests/*
+    *_test.py
+    test_*.py
+    __pycache__/*
+    */.venv/*
+    .venv/*
+    */.cache/*
+    .cache/*
+    */site-packages/*
+    */lib/python*/*
+    */archive-v0/*
+    */.ruff_cache/*
+    .ruff_cache/*
+    */.pytest_cache/*
+    .pytest_cache/*
+    */.mypy_cache/*
+    .mypy_cache/*
+    */.tox/*
+    */.nox/*
+    */build/*
+    */dist/*
+    */*.egg-info/*
+
+[report]
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    raise AssertionError
+    raise NotImplementedError
+    if __name__ == .__main__.:
+    if TYPE_CHECKING:
+    if typing.TYPE_CHECKING:
+precision = 2
+show_missing = True
+skip_empty = True
+
+[html]
+directory = .coverage/htmlcov

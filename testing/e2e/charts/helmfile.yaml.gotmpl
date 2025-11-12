@@ -1,0 +1,193 @@
+helmDefaults:
+  wait: true
+  timeout: 1200
+  createNamespace: true
+  atomic: false
+
+environments:
+  rabbitmq-minio:
+    values:
+      - values.yaml
+      - ../profiles/rabbitmq-minio.yaml
+  sqs-s3:
+    values:
+      - values.yaml
+      - ../profiles/sqs-s3.yaml
+
+---
+
+repositories:
+  - name: kedacore
+    url: https://kedacore.github.io/charts
+  # Disabled: prometheus and grafana not used in e2e
+  # - name: prometheus-community
+  #   url: https://prometheus-community.github.io/helm-charts
+  # - name: grafana
+  #   url: https://grafana.github.io/helm-charts
+
+releases:
+  - name: keda
+    namespace: {{ .Values.namespace | default "asya-e2e" }}
+    chart: kedacore/keda
+    labels:
+      layer: infra
+    hooks:
+      - events: ["presync"]
+        command: "sh"
+        args: ["-c", "echo '[.] Deploying KEDA...' && date +%s > /tmp/helm-keda-start"]
+      - events: ["postsync"]
+        command: "sh"
+        args: ["-c", "echo \"[+] KEDA deployed in $(($(date +%s) - $(cat /tmp/helm-keda-start)))s\""]
+
+# Disabled: prometheus and grafana are not tested in e2e
+  # - name: prometheus
+  #   namespace: {{ .Values.namespace | default "asya-e2e" }}
+  #   chart: prometheus-community/prometheus
+  #   labels:
+  #     layer: infra
+
+  # - name: grafana
+  #   namespace: {{ .Values.namespace | default "asya-e2e" }}
+  #   chart: grafana/grafana
+  #   labels:
+  #     layer: infra
+
+  - name: postgres
+    namespace: {{ .Values.namespace | default "asya-e2e" }}
+    chart: ./postgres
+    labels:
+      layer: infra
+    hooks:
+      - events: ["presync"]
+        command: "sh"
+        args: ["-c", "echo '[.] Deploying PostgreSQL...' && date +%s > /tmp/helm-postgres-start"]
+      - events: ["postsync"]
+        command: "sh"
+        args: ["-c", "echo \"[+] PostgreSQL deployed in $(($(date +%s) - $(cat /tmp/helm-postgres-start)))s\""]
+
+  - name: s3
+    namespace: {{ .Values.namespace | default "asya-e2e" }}
+    chart: ./s3
+    condition: storage.s3.enabled
+    values:
+      - enabled: {{ .Values.storage.s3.enabled | default false }}
+        region: us-east-1
+        {{- if and .Values.storage.s3.enabled .Values.actors.storage }}
+        buckets:
+          {{- if hasKey .Values.actors.storage "resultsBucket" }}
+          - name: {{ .Values.actors.storage.resultsBucket }}
+          {{- end }}
+          {{- if hasKey .Values.actors.storage "errorsBucket" }}
+          - name: {{ .Values.actors.storage.errorsBucket }}
+          {{- end }}
+          {{- if and (not (hasKey .Values.actors.storage "resultsBucket")) (not (hasKey .Values.actors.storage "errorsBucket")) (hasKey .Values.actors.storage "bucket") }}
+          - name: {{ .Values.actors.storage.bucket }}
+          {{- end }}
+        {{- end }}
+    labels:
+      layer: infra
+    hooks:
+      - events: ["presync"]
+        command: "sh"
+        args: ["-c", "echo '[.] Deploying S3 (LocalStack)...' && date +%s > /tmp/helm-s3-start"]
+      - events: ["postsync"]
+        command: "sh"
+        args: ["-c", "echo \"[+] S3 (LocalStack) deployed in $(($(date +%s) - $(cat /tmp/helm-s3-start)))s\""]
+
+  - name: sqs
+    namespace: {{ .Values.namespace | default "asya-e2e" }}
+    chart: ./sqs
+    condition: transport.sqs.enabled
+    values:
+      - enabled: {{ .Values.transport.sqs.enabled | default false }}
+        region: us-east-1
+    labels:
+      layer: infra
+    hooks:
+      - events: ["presync"]
+        command: "sh"
+        args: ["-c", "echo '[.] Deploying SQS (LocalStack)...' && date +%s > /tmp/helm-sqs-start"]
+      - events: ["postsync"]
+        command: "sh"
+        args: ["-c", "echo \"[+] SQS (LocalStack) deployed in $(($(date +%s) - $(cat /tmp/helm-sqs-start)))s\""]
+
+  - name: rabbitmq
+    namespace: {{ .Values.namespace | default "asya-e2e" }}
+    chart: ./rabbitmq
+    condition: transport.rabbitmq.enabled
+    labels:
+      layer: infra
+    hooks:
+      - events: ["presync"]
+        command: "sh"
+        args: ["-c", "echo '[.] Deploying RabbitMQ...' && date +%s > /tmp/helm-rabbitmq-start"]
+      - events: ["postsync"]
+        command: "sh"
+        args: ["-c", "echo \"[+] RabbitMQ deployed in $(($(date +%s) - $(cat /tmp/helm-rabbitmq-start)))s\""]
+
+  - name: minio
+    namespace: {{ .Values.namespace | default "asya-e2e" }}
+    chart: ./minio
+    condition: storage.minio.enabled
+    labels:
+      layer: infra
+    hooks:
+      - events: ["presync"]
+        command: "sh"
+        args: ["-c", "echo '[.] Deploying MinIO...' && date +%s > /tmp/helm-minio-start"]
+      - events: ["postsync"]
+        command: "sh"
+        args: ["-c", "echo \"[+] MinIO deployed in $(($(date +%s) - $(cat /tmp/helm-minio-start)))s\""]
+
+  - name: asya-operator
+    namespace: asya-system
+    chart: ../../../deploy/helm-charts/asya-operator
+    values:
+      - {{- .Values.operator | toYaml | nindent 8 }}
+    labels:
+      layer: infra
+
+  - name: asya-gateway
+    namespace: {{ .Values.namespace | default "asya-e2e" }}
+    chart: ../../../deploy/helm-charts/asya-gateway
+    needs:
+      - postgres
+    set:
+      - name: postgresql.enabled
+        value: false
+      - name: externalDatabase.host
+        value: asya-gateway-postgresql.{{ .Values.namespace | default "asya-e2e" }}.svc.cluster.local
+      - name: externalDatabase.port
+        value: 5432
+      - name: externalDatabase.database
+        value: asya_gateway
+      - name: externalDatabase.username
+        value: asya
+      - name: externalDatabase.password
+        value: asya-db-password
+    values:
+      - {{- .Values.gateway | toYaml | nindent 8 }}
+    labels:
+      layer: infra
+
+  # System actors (crew) - using asya-crew chart (deployed before test-actors)
+  - name: asya-crew
+    namespace: {{ .Values.namespace | default "asya-e2e" }}
+    chart: ../../../deploy/helm-charts/asya-crew
+    values:
+      - {{- .Values.crew | toYaml | nindent 8 }}
+    labels:
+      layer: app
+
+  # Test actors - deployed using generic asya-actor chart
+  - name: test-actors
+    namespace: {{ .Values.namespace | default "asya-e2e" }}
+    chart: ../../../deploy/helm-charts/asya-actor
+    needs:
+      - asya-crew
+    values:
+      - ./test-actors-values.yaml
+      - namespace: {{ .Values.actors.namespace | default "asya-e2e" }}
+        transport: {{ .Values.actors.transport | default "rabbitmq" }}
+    labels:
+      layer: app

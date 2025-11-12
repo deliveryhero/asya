@@ -1,0 +1,29 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: test-incrementer
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "asya-test-actors.labels" . | nindent 4 }}
+spec:
+  transport: {{ .Values.transport }}
+
+  scaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 10
+    queueLength: 5
+
+  workload:
+    kind: Deployment
+    template:
+      spec:
+        containers:
+        - name: asya-runtime
+          image: {{ .Values.workload.image }}
+          imagePullPolicy: {{ .Values.workload.imagePullPolicy }}
+          env:
+          - name: ASYA_HANDLER
+            value: asya_testing.handlers.payload.pipeline_incrementer
+          - name: ASYA_INCLUDE_ROUTE_INFO
+            value: 'true'

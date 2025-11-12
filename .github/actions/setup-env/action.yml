@@ -1,0 +1,113 @@
+name: "Setup Environment"
+description: "Sets up Python, Go, and dependencies"
+inputs:
+  install-docker:
+    description: "Install Docker buildx"
+    required: false
+    default: "false"
+  install-kind:
+    description: "Install Kind"
+    required: false
+    default: "false"
+  install-helm:
+    description: "Install Helm and Helmfile"
+    required: false
+    default: "false"
+  cache-precommit:
+    description: "Cache pre-commit environments"
+    required: false
+    default: "false"
+
+runs:
+  using: "composite"
+  steps:
+  - name: Install uv
+    uses: astral-sh/setup-uv@v6
+    with:
+      version: "0.9.1"
+      enable-cache: true
+      cache-dependency-glob: |
+        **/requirements*.txt
+        **/pyproject.toml
+
+  - name: Set up Python
+    shell: bash
+    run: uv python install 3.13
+
+  - name: Set up Go
+    uses: actions/setup-go@v5
+    with:
+      go-version: "1.23"
+      cache: true
+      cache-dependency-path: |
+        src/asya-gateway/go.sum
+        src/asya-sidecar/go.sum
+        src/asya-operator/go.sum
+
+  - name: Cache golangci-lint binary
+    uses: actions/cache@v4
+    with:
+      path: ~/go/bin/golangci-lint
+      key: golangci-lint-${{ runner.os }}-v1.59.1
+
+  - name: Install golangci-lint
+    shell: bash
+    run: |
+      GOLANGCI_LINT_VERSION=v1.59.1
+      INSTALL_SCRIPT_SHA256="9e99d38f3213411a1b6175e5b535c72e37c7ed42ccf251d331385a3f97b695e7"
+
+      if [ ! -f ~/go/bin/golangci-lint ]; then
+        curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh -o /tmp/install.sh
+        echo "${INSTALL_SCRIPT_SHA256}  /tmp/install.sh" | sha256sum -c -
+        sh /tmp/install.sh -b $(go env GOPATH)/bin ${GOLANGCI_LINT_VERSION}
+        rm /tmp/install.sh
+      fi
+      echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
+
+  - name: Cache golangci-lint build cache
+    if: inputs.cache-precommit == 'true'
+    uses: actions/cache@v4
+    with:
+      path: ~/.cache/golangci-lint
+      key: golangci-build-${{ runner.os }}-${{ hashFiles('**/.golangci.yml', '**/go.sum') }}
+      restore-keys: |
+        golangci-build-${{ runner.os }}-
+
+  - name: Cache pre-commit environments
+    if: inputs.cache-precommit == 'true'
+    uses: actions/cache@v4
+    with:
+      path: ~/.cache/pre-commit
+      key: precommit-${{ runner.os }}-${{ hashFiles('.pre-commit-config.yaml') }}
+      restore-keys: |
+        precommit-${{ runner.os }}-
+
+  - name: Install dependencies
+    shell: bash
+    run: |
+      uv venv
+      source .venv/bin/activate
+      make setup
+
+  - name: Set up Docker buildx
+    if: inputs.install-docker == 'true'
+    uses: docker/setup-buildx-action@v3
+
+  - name: Install Kind
+    if: inputs.install-kind == 'true'
+    uses: helm/kind-action@v1
+    with:
+      install_only: true
+      version: v0.25.0
+
+  - name: Install Helm
+    if: inputs.install-helm == 'true'
+    uses: azure/setup-helm@v4
+    with:
+      version: v3.16.3
+
+  - name: Install Helmfile
+    if: inputs.install-helm == 'true'
+    uses: helmfile/helmfile-action@v1
+    with:
+      helmfile-version: v0.169.2

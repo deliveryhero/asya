@@ -1,0 +1,122 @@
+# Test profile (values.yaml file): RabbitMQ + MinIO
+#
+# This is the default configuration for E2E tests using
+# RabbitMQ for message transport and MinIO for object storage.
+
+namespace: asya-e2e
+
+localstack:
+  enabled: false
+
+transport:
+  rabbitmq:
+    enabled: true
+  sqs:
+    enabled: false
+
+storage:
+  minio:
+    enabled: true
+  s3:
+    enabled: false
+
+actors:
+  namespace: asya-e2e
+  transport: rabbitmq
+  storage:
+    type: minio
+    endpoint: http://minio.asya-e2e.svc.cluster.local:9000
+    bucket: asya-results
+    resultsBucket: asya-results
+    errorsBucket: asya-errors
+    region: us-east-1
+    accessKey: minioadmin
+    secretKey: minioadmin
+
+crew:
+  happy-end:
+    transport: rabbitmq
+    scaling:
+      minReplicas: 1
+    workload:
+      template:
+        spec:
+          containers:
+          - name: asya-runtime
+            env:
+            - name: ASYA_HANDLER
+              value: handlers.end_handlers.happy_end_handler
+            - name: ASYA_HANDLER_MODE
+              value: envelope
+            - name: ASYA_ENABLE_VALIDATION
+              value: "false"
+            - name: ASYA_GATEWAY_URL
+              value: "http://asya-gateway.asya-e2e.svc.cluster.local:8080"
+            - name: ASYA_S3_BUCKET
+              value: "asya-results"
+            - name: ASYA_S3_ENDPOINT
+              value: "http://minio.asya-e2e.svc.cluster.local:9000"
+            - name: ASYA_S3_REGION
+              value: "us-east-1"
+            - name: AWS_ACCESS_KEY_ID
+              value: "minioadmin"
+            - name: AWS_SECRET_ACCESS_KEY
+              value: "minioadmin"
+            - name: ASYA_S3_RESULTS_PREFIX
+              value: ""
+  error-end:
+    transport: rabbitmq
+    scaling:
+      minReplicas: 1
+    workload:
+      template:
+        spec:
+          containers:
+          - name: asya-runtime
+            env:
+            - name: ASYA_HANDLER
+              value: handlers.end_handlers.error_end_handler
+            - name: ASYA_HANDLER_MODE
+              value: envelope
+            - name: ASYA_ENABLE_VALIDATION
+              value: "false"
+            - name: ASYA_GATEWAY_URL
+              value: "http://asya-gateway.asya-e2e.svc.cluster.local:8080"
+            - name: ASYA_S3_BUCKET
+              value: "asya-errors"
+            - name: ASYA_S3_ENDPOINT
+              value: "http://minio.asya-e2e.svc.cluster.local:9000"
+            - name: ASYA_S3_REGION
+              value: "us-east-1"
+            - name: AWS_ACCESS_KEY_ID
+              value: "minioadmin"
+            - name: AWS_SECRET_ACCESS_KEY
+              value: "minioadmin"
+            - name: ASYA_S3_ERRORS_PREFIX
+              value: ""
+
+operator:
+  gatewayURL: http://asya-gateway.asya-e2e.svc.cluster.local:8080
+  transports:
+    rabbitmq:
+      enabled: true
+      type: rabbitmq
+      config:
+        host: asya-rabbitmq.asya-e2e.svc.cluster.local
+        port: 5672
+        username: guest
+        passwordSecretRef:
+          name: rabbitmq-secret
+          key: password
+        queues:
+          autoCreate: true
+          dlq:
+            enabled: true
+            maxRetryCount: 3
+    sqs:
+      enabled: false
+
+gateway:
+  config:
+    rabbitmqURL: amqp://guest:guest@asya-rabbitmq.asya-e2e.svc.cluster.local:5672/
+    rabbitmqExchange: asya

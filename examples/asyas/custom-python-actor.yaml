@@ -1,0 +1,43 @@
+# Actor with custom Python executable and PYTHONPATH configuration
+# Demonstrates how to use non-standard Python locations or standalone scripts
+
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: conda-ml-actor
+  namespace: default
+spec:
+  transport: rabbitmq
+
+  scaling:
+    enabled: true
+    minReplicas: 0
+    maxReplicas: 5
+
+  workload:
+    kind: Deployment
+    # Use custom Python executable path (e.g., conda environment)
+    pythonExecutable: "/opt/conda/bin/python"
+
+    template:
+      spec:
+        containers:
+        - name: asya-runtime
+          image: continuumio/miniconda3:latest
+          env:
+          # Configure PYTHONPATH for handler import resolution
+          # If your handler is in /app/handlers/ml_model.py with function 'predict'
+          - name: PYTHONPATH
+            value: "/app/handlers"
+          - name: ASYA_HANDLER
+            value: "ml_model.predict" # No .py extension
+          # Additional environment variables
+          - name: MODEL_PATH
+            value: "/models/my-model"
+          resources:
+            limits:
+              cpu: 2000m
+              memory: 4Gi
+            requests:
+              cpu: 500m
+              memory: 1Gi

@@ -1,0 +1,32 @@
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "2"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    logging: *default-logging
+    env_file:
+    - envs/.env.postgres
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  postgres-migrate:
+    image: sqitch/sqitch:v1.6.0
+    restart: "no"
+    logging: *default-logging
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+    - SQITCH_TARGET=db:pg://postgres:postgres@postgres:5432/asya_test
+    volumes:
+    - ../../../src/asya-gateway/db:/repo
+    working_dir: /repo
+    command: ["deploy"]

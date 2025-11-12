@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "asya-gateway.fullname" . }}
+  labels:
+    {{- include "asya-gateway.labels" . | nindent 4 }}
+data:
+  ASYA_GATEWAY_PORT: "{{ .Values.config.port }}"
+  ASYA_RABBITMQ_URL: "{{ .Values.config.rabbitmqURL }}"
+  ASYA_RABBITMQ_EXCHANGE: "{{ .Values.config.rabbitmqExchange }}"

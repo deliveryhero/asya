@@ -1,0 +1,179 @@
+repos:
+# General file checks
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v6.0.0
+  hooks:
+  - id: no-commit-to-branch
+    args: ["--branch", "main"]
+  - id: trailing-whitespace
+    args: ["--markdown-linebreak-ext=md"]
+  - id: end-of-file-fixer
+  - id: check-yaml
+    args: ["--allow-multiple-documents"]
+    exclude: (^|/)helm-charts/|testing/e2e/charts/
+  - id: check-added-large-files
+    args: ["--maxkb=1000"]
+  - id: check-merge-conflict
+  - id: mixed-line-ending
+    args: ["--fix=lf"]
+
+# JSON formatting (auto-fix)
+- repo: https://github.com/pre-commit/mirrors-prettier
+  rev: v4.0.0-alpha.8
+  hooks:
+  - id: prettier
+    types: [json]
+    args: ["--write", "--print-width", "120"]
+
+# Check JSON validity (after prettier formatting)
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v6.0.0
+  hooks:
+  - id: check-json
+
+# TOML formatting (auto-fix)
+- repo: https://github.com/ComPWA/taplo-pre-commit
+  rev: v0.9.3
+  hooks:
+  - id: taplo-format
+
+# Check TOML validity (after taplo formatting)
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v6.0.0
+  hooks:
+  - id: check-toml
+
+# Python formatting and linting with Ruff (replaces black, flake8, isort)
+- repo: https://github.com/astral-sh/ruff-pre-commit
+  rev: v0.9.1
+  hooks:
+  - id: ruff
+    args: [--fix]
+    files: ^src/.*\.py$
+  - id: ruff-format
+    files: ^src/.*\.py$
+
+# Python type checking
+- repo: https://github.com/pre-commit/mirrors-mypy
+  rev: v1.14.1
+  hooks:
+  - id: mypy
+    files: ^src/.*\.py$
+    exclude: ^src/asya-runtime/
+    additional_dependencies: [types-requests, boto3-stubs]
+
+# Python security linting
+- repo: https://github.com/PyCQA/bandit
+  rev: 1.8.0
+  hooks:
+  - id: bandit
+    args: ["-c", ".bandit"]
+    files: ^src/.*\.py$
+
+# Find dead Python code
+- repo: https://github.com/jendrikseipp/vulture
+  rev: v2.14
+  hooks:
+  - id: vulture
+    files: ^src/.*\.py$
+    args: ["--min-confidence", "80", "--exclude", "*/.venv/*,*/venv/*,*/conftest.py", "src/"]
+    pass_filenames: false
+
+# Go linting and formatting
+- repo: https://github.com/dnephin/pre-commit-golang
+  rev: v0.5.1
+  hooks:
+  - id: go-fmt
+    files: ^src/(asya-sidecar|asya-gateway|asya-operator)/.*\.go$
+  - id: go-mod-tidy
+    files: ^src/(asya-sidecar|asya-gateway|asya-operator)/go\.(mod|sum)$
+
+# golangci-lint for each Go module
+- repo: local
+  hooks:
+  - id: golangci-lint-operator
+    name: golangci-lint (operator)
+    entry: >
+      bash -c 'cd src/asya-operator && timeout 600 golangci-lint run --timeout=10m ${VERBOSE:+--verbose} --fix ./...'
+    language: system
+    files: ^src/asya-operator/.*\.go$
+    pass_filenames: false
+  - id: golangci-lint-sidecar
+    name: golangci-lint (sidecar)
+    entry: >
+      bash -c 'cd src/asya-sidecar && timeout 600 golangci-lint run --timeout=10m ${VERBOSE:+--verbose} --fix ./...'
+    language: system
+    files: ^src/asya-sidecar/.*\.go$
+    pass_filenames: false
+  - id: golangci-lint-gateway
+    name: golangci-lint (gateway)
+    entry: >
+      bash -c 'cd src/asya-gateway && timeout 600 golangci-lint run --timeout=10m ${VERBOSE:+--verbose} --fix ./...'
+    language: system
+    files: ^src/asya-gateway/.*\.go$
+    pass_filenames: false
+
+# Operator code generation
+- repo: local
+  hooks:
+  - id: operator-generate
+    name: operator generate (DeepCopy)
+    entry: bash -c 'cd src/asya-operator && make generate && git diff --exit-code api/v1alpha1/zz_generated.deepcopy.go'
+    language: system
+    files: ^src/asya-operator/api/.*\.go$
+    pass_filenames: false
+  - id: operator-manifests
+    name: operator manifests (CRDs)
+    entry: bash -c 'cd src/asya-operator && make manifests && git diff --exit-code config/crd/'
+    language: system
+    files: ^src/asya-operator/api/.*\.go$
+    pass_filenames: false
+  - id: check-required-symlinks
+    name: check required symlinks
+    entry: bash -c 'bash .pre-commit-hooks/check-symlinks.sh'
+    language: system
+    files: (asya_runtime\.py|asya\.sh_asyncactors\.yaml)$
+    pass_filenames: false
+
+# Shell script formatting (auto-fix)
+- repo: https://github.com/scop/pre-commit-shfmt
+  rev: v3.12.0-2
+  hooks:
+  - id: shfmt
+    args: ["-i", "2", "-ci", "-sr", "-w"]
+    files: \.(sh|bash)$
+
+# Shell script checks
+- repo: https://github.com/shellcheck-py/shellcheck-py
+  rev: v0.11.0.1
+  hooks:
+  - id: shellcheck
+    files: \.(sh|bash)$
+
+# GitHub Actions workflow validation
+- repo: https://github.com/rhysd/actionlint
+  rev: v1.7.8
+  hooks:
+  - id: actionlint
+
+# Helm chart linting
+- repo: https://github.com/jorisdejosselin/pre-commit-helm
+  rev: v1.1.3
+  hooks:
+  - id: helm-lint
+    name: helm lint
+    files: ^deploy/helm-charts/
+
+# YAML formatting with yamlfmt (auto-fix)
+- repo: https://github.com/google/yamlfmt
+  rev: v0.14.0
+  hooks:
+  - id: yamlfmt
+    exclude: (^|/)templates/|operator/config/crd/|zz_generated
+
+# YAML linting
+- repo: https://github.com/adrienverge/yamllint
+  rev: v1.37.1
+  hooks:
+  - id: yamllint
+    args: ["-c", ".yamllint"]

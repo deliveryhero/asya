@@ -1,0 +1,16 @@
+[project]
+name = "asya-testing"
+version = "0.1.0"
+description = "Shared test library for Asya framework tests"
+requires-python = ">=3.7"
+dynamic = ["dependencies"]
+
+[tool.setuptools.dynamic]
+dependencies = { file = "requirements.txt" }
+
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = { find = {} }

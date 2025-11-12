@@ -1,0 +1,24 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+bin/
+testbin/
+
+# Test binary, built with `go test -c`
+*.test
+
+# Kubernetes generated files
+*.swp
+*.swo
+*~
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Temporary files
+tmp/

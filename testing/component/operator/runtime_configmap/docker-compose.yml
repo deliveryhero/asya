@@ -1,0 +1,22 @@
+services:
+  tester:
+    image: golang:1.23
+    working_dir: /workspace
+    volumes:
+    - .:/workspace
+    - ../../../../src/asya-operator:/src/asya-operator
+    - ../../../../src/asya-runtime/asya_runtime.py:/runtime/asya_runtime.py:ro
+    - ${COVERAGE_DIR}:/app/.coverage:rw
+    - go-cache:/go/pkg/mod
+    environment:
+    - CGO_ENABLED=0
+    command:
+    - /bin/bash
+    - -c
+    - |
+      set -ex
+      go mod download
+      go test -tags=integration -v -timeout=60s -coverprofile=/app/.coverage/cov.out -covermode=set
+
+volumes:
+  go-cache:

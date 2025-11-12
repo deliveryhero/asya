@@ -1,0 +1,14 @@
+# E2E test dependencies for local test execution
+# Same as ../../src/asya-testing/requirements.txt but kept here for convenience
+
+boto3>=1.35.0
+coverage>=7.3.0
+pika>=1.3.0
+psycopg2-binary>=2.9.0
+pytest-cov>=6.0.0
+pytest-order>=1.2.0
+pytest-timeout>=2.3.0
+pytest>=8.0.0
+pyyaml>=6.0.0
+requests>=2.31.0
+sseclient-py>=1.8.0

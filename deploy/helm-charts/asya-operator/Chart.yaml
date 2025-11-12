@@ -1,0 +1,14 @@
+apiVersion: v2
+name: asya-operator
+description: Asya Operator - Kubernetes operator for managing Actor resources
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+keywords:
+- operator
+- actor
+- crd
+- sidecar
+- ai
+maintainers:
+- name: Asya Team

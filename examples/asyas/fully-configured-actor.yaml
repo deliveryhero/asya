@@ -1,0 +1,58 @@
+# Fully configured actor showing all available runtime environment variables
+# This example demonstrates all optional configuration options
+
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: fully-configured-actor
+  namespace: default
+spec:
+  transport: rabbitmq
+
+  scaling:
+    enabled: true
+    minReplicas: 0
+    maxReplicas: 10
+    queueLength: 5
+
+  workload:
+    kind: Deployment
+    template:
+      spec:
+        containers:
+        - name: asya-runtime
+          image: my-custom-runtime:latest
+          env:
+          # Handler configuration (REQUIRED)
+          - name: ASYA_HANDLER
+            value: "my_module.MyClass.process"
+
+          # Handler mode (optional, default: "payload")
+          - name: ASYA_HANDLER_MODE
+            value: "payload" # "payload" or "envelope"
+
+          # Logging configuration (optional, default: "INFO")
+          - name: ASYA_LOG_LEVEL
+            value: "DEBUG" # DEBUG, INFO, WARNING, ERROR, CRITICAL
+
+          # Socket configuration (optional defaults shown)
+          - name: ASYA_SOCKET_PATH
+            value: "/tmp/sockets/app.sock"
+
+          - name: ASYA_SOCKET_CHMOD
+            value: "0o666" # Socket file permissions
+
+          - name: ASYA_CHUNK_SIZE
+            value: "65536" # Socket read chunk size in bytes
+
+          # Validation (optional, default: "true")
+          - name: ASYA_ENABLE_VALIDATION
+            value: "true" # Validate envelope structure
+
+          resources:
+            requests:
+              cpu: 500m
+              memory: 512Mi
+            limits:
+              cpu: 1000m
+              memory: 1Gi

@@ -1,0 +1,155 @@
+{{- if and .Values.default.healthChecks.deployment.enabled (not .Values.actors) }}
+{{- /* Deployment readiness check only runs in single-actor mode */ -}}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ .Release.Name }}-test-deployment-readiness"
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "asya-actor.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-weight": "5"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  restartPolicy: Never
+  containers:
+  - name: test
+    image: alpine/k8s:1.28.3
+    command:
+      - /bin/sh
+      - -c
+      - |
+        set -e
+
+        ACTOR_NAME="{{ .Values.name }}"
+        WORKLOAD_KIND="{{ .Values.default.workload.kind }}"
+        TIMEOUT={{ .Values.default.healthChecks.deployment.timeoutSeconds }}
+
+        echo "Testing deployment readiness for AsyncActor '$ACTOR_NAME'..."
+        echo "Workload kind: $WORKLOAD_KIND"
+        echo "Timeout: ${TIMEOUT}s"
+        echo ""
+
+        # Wait for AsyncActor to exist
+        echo "[.] Waiting for AsyncActor resource..."
+        MAX_ATTEMPTS=60
+        ATTEMPT=0
+        while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+          ATTEMPT=$((ATTEMPT + 1))
+          if kubectl get asyncactor "$ACTOR_NAME" -n {{ .Values.namespace }} >/dev/null 2>&1; then
+            echo "[+] AsyncActor '$ACTOR_NAME' exists"
+            break
+          fi
+          echo "[.] Attempt ${ATTEMPT}/${MAX_ATTEMPTS}: AsyncActor not found yet..."
+          sleep 1
+        done
+
+        if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
+          echo "[-] FAILED: AsyncActor '$ACTOR_NAME' does not exist after ${MAX_ATTEMPTS}s"
+          exit 1
+        fi
+        echo ""
+
+        # Wait for workload to be created by operator
+        echo "[.] Waiting for $WORKLOAD_KIND to be created..."
+        MAX_ATTEMPTS=120
+        ATTEMPT=0
+
+        if [ "$WORKLOAD_KIND" = "Deployment" ]; then
+          RESOURCE_TYPE="deployment"
+        elif [ "$WORKLOAD_KIND" = "StatefulSet" ]; then
+          RESOURCE_TYPE="statefulset"
+        else
+          echo "[-] FAILED: Unknown workload kind '$WORKLOAD_KIND'"
+          exit 1
+        fi
+
+        while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+          ATTEMPT=$((ATTEMPT + 1))
+          if kubectl get $RESOURCE_TYPE "$ACTOR_NAME" -n {{ .Values.namespace }} >/dev/null 2>&1; then
+            echo "[+] $WORKLOAD_KIND '$ACTOR_NAME' created by operator"
+            break
+          fi
+          echo "[.] Attempt ${ATTEMPT}/${MAX_ATTEMPTS}: $WORKLOAD_KIND not created yet..."
+          sleep 1
+        done
+
+        if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
+          echo "[-] FAILED: $WORKLOAD_KIND '$ACTOR_NAME' not created after ${MAX_ATTEMPTS}s"
+          echo ""
+          echo "Check operator logs:"
+          echo "  kubectl logs -n {{ .Values.infrastructure.operatorNamespace | default "asya-system" }} deployment/asya-operator"
+          echo ""
+          echo "AsyncActor status:"
+          kubectl get asyncactor -n {{ .Values.namespace }} "$ACTOR_NAME" -o yaml
+          exit 1
+        fi
+        echo ""
+
+        {{- if and .Values.default.scaling .Values.default.scaling.enabled }}
+        # Wait for KEDA ScaledObject to be created
+        echo "[.] Waiting for KEDA ScaledObject (scaling is enabled)..."
+        MAX_ATTEMPTS=60
+        ATTEMPT=0
+
+        while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+          ATTEMPT=$((ATTEMPT + 1))
+          if kubectl get scaledobject "$ACTOR_NAME" -n {{ .Values.namespace }} >/dev/null 2>&1; then
+            echo "[+] ScaledObject '$ACTOR_NAME' created"
+
+            # Check ScaledObject is ready
+            READY=$(kubectl get scaledobject "$ACTOR_NAME" -n {{ .Values.namespace }} -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null || echo "Unknown")
+            if [ "$READY" = "True" ]; then
+              echo "  [+] ScaledObject is ready"
+            else
+              echo "  [!] WARNING: ScaledObject not ready yet (status: $READY)"
+            fi
+            break
+          fi
+          echo "[.] Attempt ${ATTEMPT}/${MAX_ATTEMPTS}: ScaledObject not created yet..."
+          sleep 1
+        done
+
+        if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
+          echo "[!] WARNING: ScaledObject not created after ${MAX_ATTEMPTS}s"
+        fi
+        echo ""
+        {{- end }}
+
+        # Wait for workload to be ready
+        echo "[.] Waiting for $WORKLOAD_KIND to be ready (timeout: ${TIMEOUT}s)..."
+        kubectl wait --for=condition=available --timeout=${TIMEOUT}s \
+          $RESOURCE_TYPE "$ACTOR_NAME" -n {{ .Values.namespace }} 2>&1 || {
+          echo "[-] FAILED: $WORKLOAD_KIND not ready within ${TIMEOUT}s"
+          echo ""
+          echo "Check pod status:"
+          kubectl get pods -n {{ .Values.namespace }} -l app.kubernetes.io/name="$ACTOR_NAME" || true
+          echo ""
+          echo "Check pod logs:"
+          kubectl logs -n {{ .Values.namespace }} -l app.kubernetes.io/name="$ACTOR_NAME" --tail=50 || true
+          echo ""
+          echo "$WORKLOAD_KIND status:"
+          kubectl describe $RESOURCE_TYPE "$ACTOR_NAME" -n {{ .Values.namespace }} || true
+          exit 1
+        }
+
+        echo "[+] $WORKLOAD_KIND '$ACTOR_NAME' is ready"
+
+        # Get replica status
+        READY_REPLICAS=$(kubectl get $RESOURCE_TYPE "$ACTOR_NAME" -n {{ .Values.namespace }} -o jsonpath='{.status.readyReplicas}' 2>/dev/null || echo "0")
+        DESIRED_REPLICAS=$(kubectl get $RESOURCE_TYPE "$ACTOR_NAME" -n {{ .Values.namespace }} -o jsonpath='{.spec.replicas}' 2>/dev/null || echo "1")
+
+        echo "  Ready replicas: $READY_REPLICAS/$DESIRED_REPLICAS"
+
+        # List pods
+        echo ""
+        echo "Pods:"
+        kubectl get pods -n {{ .Values.namespace }} -l app.kubernetes.io/name="$ACTOR_NAME" || true
+        echo ""
+
+        echo "================================================"
+        echo "[+] Deployment readiness check passed!"
+        echo "================================================"
+        echo ""
+{{- end }}

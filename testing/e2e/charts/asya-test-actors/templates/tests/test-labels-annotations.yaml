@@ -1,0 +1,42 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ .Release.Name }}-test-labels-annotations"
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "asya-test-actors.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  restartPolicy: Never
+  containers:
+  - name: test
+    image: alpine/k8s:1.28.3
+    command:
+      - /bin/sh
+      - -c
+      - |
+        set -e
+
+        # Test a sample actor (echo) to validate labels and annotations
+        TEST_ACTOR="test-echo"
+        echo "Testing AsyncActor '$TEST_ACTOR' labels and annotations..."
+
+        # Check standard labels
+        APP_NAME=$(kubectl get asyncactor $TEST_ACTOR -n {{ .Release.Namespace }} -o jsonpath='{.metadata.labels.app\.kubernetes\.io/name}')
+        if [ -z "$APP_NAME" ]; then
+          echo "[-] app.kubernetes.io/name label is missing"
+          exit 1
+        fi
+        echo "[+] app.kubernetes.io/name label exists: $APP_NAME"
+
+        INSTANCE=$(kubectl get asyncactor $TEST_ACTOR -n {{ .Release.Namespace }} -o jsonpath='{.metadata.labels.app\.kubernetes\.io/instance}')
+        if [ "$INSTANCE" != "{{ .Release.Name }}" ]; then
+          echo "[-] app.kubernetes.io/instance label mismatch: expected '{{ .Release.Name }}', got '$INSTANCE'"
+          exit 1
+        fi
+        echo "[+] app.kubernetes.io/instance label is correct: $INSTANCE"
+
+        echo ""
+        echo "All label and annotation tests passed!"

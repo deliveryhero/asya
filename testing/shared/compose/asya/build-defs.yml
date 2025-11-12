@@ -1,0 +1,26 @@
+# Shared build definitions for Asya components
+# This file defines build configurations that can be referenced by other compose files
+
+x-build-gateway: &build-gateway
+  context: ../../../../src/asya-gateway
+  dockerfile: Dockerfile
+  target: ""
+
+x-build-gateway-tester: &build-gateway-tester
+  context: ../../../../src/asya-gateway
+  dockerfile: Dockerfile
+  target: tester
+
+x-build-sidecar: &build-sidecar
+  context: ../../../../src/asya-sidecar
+  dockerfile: Dockerfile
+
+x-build-crew: &build-crew
+  context: ../../../../src/asya-crew
+  dockerfile: Dockerfile
+
+x-build-testing: &build-testing
+  context: ../../../../src/asya-testing
+  dockerfile: Dockerfile
+
+services: {}

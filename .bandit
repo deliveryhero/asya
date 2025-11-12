@@ -1,0 +1,17 @@
+# Security linter configuration
+exclude_dirs:
+  - testing
+  - .venv
+  - venv
+  - build
+  - dist
+
+# Skip common false positives
+skips:
+  - B101  # Assert used - fine in tests and development code
+
+# Allow asserts in test files
+assert_used:
+  skips:
+    - "*/test_*.py"
+    - "*/*_test.py"

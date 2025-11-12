@@ -1,0 +1,14 @@
+enabled: true
+region: us-east-1
+
+auth:
+  accessKey: test
+  secretKey: test
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi

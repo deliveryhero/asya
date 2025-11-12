@@ -1,0 +1,15 @@
+# Default values for asya-test-actors chart
+# This chart deploys all test actors in a single release
+
+# Namespace to deploy the actors
+namespace: asya-e2e
+
+# Transport name (required)
+# Must reference a transport configured in the operator
+# Common values: rabbitmq, sqs
+transport: rabbitmq
+
+# Common workload configuration for all actors
+workload:
+  image: asya-testing:latest
+  imagePullPolicy: IfNotPresent

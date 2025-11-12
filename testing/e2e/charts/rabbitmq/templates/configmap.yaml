@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: asya-rabbitmq-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: rabbitmq
+    app.kubernetes.io/name: rabbitmq
+    app.kubernetes.io/instance: {{ .Release.Name }}
+data:
+  rabbitmq.conf: |
+    log.console.level = warning

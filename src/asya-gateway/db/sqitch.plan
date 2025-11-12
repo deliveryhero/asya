@@ -1,0 +1,8 @@
+%syntax-version=1.0.0
+%project=asya-gateway
+%uri=https://github.com/aimc/asya
+
+001_initial_schema 2025-10-05T22:50:00Z Asya Team <team@asya.sh> # Initial schema for envelopes table
+002_add_progress_tracking [001_initial_schema] 2025-10-16T00:00:00Z Asya Team <team@asya.sh> # Add progress tracking columns
+003_add_parent_id [002_add_progress_tracking] 2025-11-03T00:00:00Z Asya Team <team@asya.sh> # Add parent_id for fanout traceability
+004_lowercase_status_values [003_add_parent_id] 2025-11-05T00:00:00Z Asya Team <team@asya.sh> # Convert status values to lowercase for MCP compliance

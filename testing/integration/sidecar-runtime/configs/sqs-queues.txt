@@ -1,0 +1,19 @@
+# SQS queues for sidecar-runtime integration tests
+
+# Actor queues (with asya- prefix for sidecar compatibility)
+asya-test-echo
+asya-test-error
+asya-test-oom-queue
+asya-test-cuda-oom-queue
+asya-test-timeout
+asya-test-fanout
+asya-test-empty
+asya-test-large-queue
+asya-test-unicode
+asya-test-null
+asya-test-conditional-queue
+asya-test-nested
+
+# System actor queues
+asya-happy-end
+asya-error-end

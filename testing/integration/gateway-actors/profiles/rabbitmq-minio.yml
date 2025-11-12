@@ -1,0 +1,72 @@
+# Profile: RabbitMQ + MinIO
+#
+# This configuration uses:
+# - RabbitMQ for message transport
+# - MinIO for object storage
+#
+# Usage: docker compose -f profiles/rabbitmq-minio.yml up
+
+include:
+# Base infrastructure:
+- path: ../../../shared/compose/rabbitmq.yml
+- path: ../../../shared/compose/minio.yml
+- path: ../../../shared/compose/postgres.yml
+# Asya components:
+- path: ../../../shared/compose/asya/testing-actors.yml
+  env_file: .env.rabbitmq-minio
+- path: ../../../shared/compose/asya/crew-actors.yml
+  env_file: .env.rabbitmq-minio
+
+services:
+  gateway:
+    extends:
+      file: ../../../shared/compose/asya/gateway.yml
+      service: gateway
+    env_file: .env.rabbitmq-minio
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      queue-setup:
+        condition: service_completed_successfully
+      postgres-migrate:
+        condition: service_completed_successfully
+
+  tester:
+    extends:
+      file: ../compose/tester.yml
+      service: tester
+    env_file: .env.rabbitmq-minio
+    depends_on:
+      postgres-migrate:
+        condition: service_completed_successfully
+      rabbitmq:
+        condition: service_healthy
+      queue-setup:
+        condition: service_completed_successfully
+      storage-setup:
+        condition: service_completed_successfully
+      gateway:
+        condition: service_healthy
+      test-actors-waiter:
+        condition: service_completed_successfully
+      crew-actors-waiter:
+        condition: service_completed_successfully
+
+volumes:
+  asya-echo-sockets:
+  asya-doubler-sockets:
+  asya-incrementer-sockets:
+  asya-error-sockets:
+  asya-timeout-sockets:
+  asya-fanout-sockets:
+  asya-empty-sockets:
+  asya-unicode-sockets:
+  asya-large-payload-sockets:
+  asya-nested-sockets:
+  asya-null-sockets:
+  asya-slow-boundary-sockets:
+  asya-cycle-sockets:
+  asya-param-flow-1-sockets:
+  asya-param-flow-2-sockets:
+  asya-happy-end-sockets:
+  asya-error-end-sockets:

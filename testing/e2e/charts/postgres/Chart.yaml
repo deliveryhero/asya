@@ -1,0 +1,6 @@
+apiVersion: v2
+name: postgres
+description: Simple PostgreSQL deployment for Asya Gateway E2E tests
+type: application
+version: 1.0.0
+appVersion: "15"

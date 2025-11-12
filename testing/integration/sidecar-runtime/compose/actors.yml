@@ -1,0 +1,598 @@
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "2"
+
+x-runtime-env-files: &runtime-env-files
+- ../../../shared/compose/envs/.env.asya-shared
+- ../../../shared/compose/envs/.env.asya-runtime
+
+x-sidecar-env-files: &sidecar-env-files
+- ../../../shared/compose/envs/.env.asya-shared
+- ../../../shared/compose/envs/.env.asya-sidecar
+- ../../../shared/compose/envs/.env.${ASYA_TRANSPORT}
+
+services:
+
+  asya-error-runtime:
+    build:
+      context: ../../../../src/asya-testing
+      dockerfile: Dockerfile
+    logging: *default-logging
+    command: ["python3", "/opt/asya/asya_runtime.py"]
+    env_file: *runtime-env-files
+    environment:
+      ASYA_HANDLER: asya_testing.handlers.${ASYA_HANDLER_MODE}.error_handler
+      ASYA_RUNTIME_TIMEOUT: 5s
+    volumes:
+    - asya-error-sockets:/var/run/asya
+    - ../../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro
+    healthcheck:
+      test: ["CMD", "test", "-S", "/var/run/asya/asya-runtime.sock"]
+      interval: 500ms
+      timeout: 500ms
+      retries: 20
+      start_period: 1s
+
+  asya-oom-runtime:
+    build:
+      context: ../../../../src/asya-testing
+      dockerfile: Dockerfile
+    logging: *default-logging
+    command: ["python3", "/opt/asya/asya_runtime.py"]
+    env_file: *runtime-env-files
+    environment:
+      ASYA_HANDLER: asya_testing.handlers.${ASYA_HANDLER_MODE}.oom_handler
+      ASYA_RUNTIME_TIMEOUT: 5s
+
+
+      ASYA_ENABLE_OOM_DETECTION: true
+    volumes:
+    - asya-oom-sockets:/var/run/asya
+    - ../../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro
+    healthcheck:
+      start_period: 1s
+      test: ["CMD", "test", "-S", "/var/run/asya/asya-runtime.sock"]
+      interval: 500ms
+      timeout: 500ms
+      retries: 20
+
+  asya-cuda-runtime-oom:
+    build:
+      context: ../../../../src/asya-testing
+      dockerfile: Dockerfile
+    logging: *default-logging
+    command: ["python3", "/opt/asya/asya_runtime.py"]
+    env_file: *runtime-env-files
+    environment:
+      ASYA_HANDLER: asya_testing.handlers.${ASYA_HANDLER_MODE}.cuda_oom_handler
+      ASYA_RUNTIME_TIMEOUT: 5s
+
+
+      ASYA_ENABLE_OOM_DETECTION: true
+      ASYA_CUDA_CLEANUP_ON_OOM: true
+    volumes:
+    - asya-cuda-sockets:/var/run/asya
+    - ../../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro
+    healthcheck:
+      start_period: 1s
+      test: ["CMD", "test", "-S", "/var/run/asya/asya-runtime.sock"]
+      interval: 500ms
+      timeout: 500ms
+      retries: 20
+
+  asya-timeout-runtime:
+    build:
+      context: ../../../../src/asya-testing
+      dockerfile: Dockerfile
+    logging: *default-logging
+    command: ["python3", "/opt/asya/asya_runtime.py"]
+    env_file: *runtime-env-files
+    environment:
+      ASYA_HANDLER: asya_testing.handlers.${ASYA_HANDLER_MODE}.timeout_handler
+      ASYA_RUNTIME_TIMEOUT: 5s
+
+
+    volumes:
+    - asya-timeout-sockets:/var/run/asya
+    - ../../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro
+    healthcheck:
+      start_period: 1s
+      test: ["CMD", "test", "-S", "/var/run/asya/asya-runtime.sock"]
+      interval: 500ms
+      timeout: 500ms
+      retries: 20
+
+  asya-fanout-runtime:
+    build:
+      context: ../../../../src/asya-testing
+      dockerfile: Dockerfile
+    logging: *default-logging
+    command: ["python3", "/opt/asya/asya_runtime.py"]
+    env_file: *runtime-env-files
+    environment:
+      ASYA_HANDLER: asya_testing.handlers.${ASYA_HANDLER_MODE}.fanout_handler
+      ASYA_RUNTIME_TIMEOUT: 5s
+
+
+    volumes:
+    - asya-fanout-sockets:/var/run/asya
+    - ../../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro
+    healthcheck:
+      start_period: 1s
+      test: ["CMD", "test", "-S", "/var/run/asya/asya-runtime.sock"]
+      interval: 500ms
+      timeout: 500ms
+      retries: 20
+
+  asya-empty-runtime:
+    build:
+      context: ../../../../src/asya-testing
+      dockerfile: Dockerfile
+    logging: *default-logging
+    command: ["python3", "/opt/asya/asya_runtime.py"]
+    env_file: *runtime-env-files
+    environment:
+      ASYA_HANDLER: asya_testing.handlers.${ASYA_HANDLER_MODE}.empty_response_handler
+      ASYA_RUNTIME_TIMEOUT: 5s
+
+
+    volumes:
+    - asya-empty-sockets:/var/run/asya
+    - ../../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro
+    healthcheck:
+      start_period: 1s
+      test: ["CMD", "test", "-S", "/var/run/asya/asya-runtime.sock"]
+      interval: 500ms
+      timeout: 500ms
+      retries: 20
+
+  asya-large-runtime:
+    build:
+      context: ../../../../src/asya-testing
+      dockerfile: Dockerfile
+    logging: *default-logging
+    command: ["python3", "/opt/asya/asya_runtime.py"]
+    env_file: *runtime-env-files
+    environment:
+      ASYA_HANDLER: asya_testing.handlers.${ASYA_HANDLER_MODE}.large_payload_handler
+      ASYA_RUNTIME_TIMEOUT: 5s
+
+
+    volumes:
+    - asya-large-sockets:/var/run/asya
+    - ../../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro
+    healthcheck:
+      start_period: 1s
+      test: ["CMD", "test", "-S", "/var/run/asya/asya-runtime.sock"]
+      interval: 500ms
+      timeout: 500ms
+      retries: 20
+
+  asya-unicode-runtime:
+    build:
+      context: ../../../../src/asya-testing
+      dockerfile: Dockerfile
+    logging: *default-logging
+    command: ["python3", "/opt/asya/asya_runtime.py"]
+    env_file: *runtime-env-files
+    environment:
+      ASYA_HANDLER: asya_testing.handlers.${ASYA_HANDLER_MODE}.unicode_handler
+      ASYA_RUNTIME_TIMEOUT: 5s
+
+
+    volumes:
+    - asya-unicode-sockets:/var/run/asya
+    - ../../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro
+    healthcheck:
+      start_period: 1s
+      test: ["CMD", "test", "-S", "/var/run/asya/asya-runtime.sock"]
+      interval: 500ms
+      timeout: 500ms
+      retries: 20
+
+  asya-null-runtime:
+    build:
+      context: ../../../../src/asya-testing
+      dockerfile: Dockerfile
+    logging: *default-logging
+    command: ["python3", "/opt/asya/asya_runtime.py"]
+    env_file: *runtime-env-files
+    environment:
+      ASYA_HANDLER: asya_testing.handlers.${ASYA_HANDLER_MODE}.null_values_handler
+      ASYA_RUNTIME_TIMEOUT: 5s
+
+
+    volumes:
+    - asya-null-sockets:/var/run/asya
+    - ../../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro
+    healthcheck:
+      start_period: 1s
+      test: ["CMD", "test", "-S", "/var/run/asya/asya-runtime.sock"]
+      interval: 500ms
+      timeout: 500ms
+      retries: 20
+
+  asya-cond-runtime:
+    build:
+      context: ../../../../src/asya-testing
+      dockerfile: Dockerfile
+    logging: *default-logging
+    command: ["python3", "/opt/asya/asya_runtime.py"]
+    env_file: *runtime-env-files
+    environment:
+      ASYA_HANDLER: asya_testing.handlers.${ASYA_HANDLER_MODE}.conditional_handler
+      ASYA_RUNTIME_TIMEOUT: 5s
+
+
+    volumes:
+    - asya-cond-sockets:/var/run/asya
+    - ../../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro
+    healthcheck:
+      start_period: 1s
+      test: ["CMD", "test", "-S", "/var/run/asya/asya-runtime.sock"]
+      interval: 500ms
+      timeout: 500ms
+      retries: 20
+
+  asya-nested-runtime:
+    build:
+      context: ../../../../src/asya-testing
+      dockerfile: Dockerfile
+    logging: *default-logging
+    command: ["python3", "/opt/asya/asya_runtime.py"]
+    env_file: *runtime-env-files
+    environment:
+      ASYA_HANDLER: asya_testing.handlers.${ASYA_HANDLER_MODE}.nested_data_handler
+      ASYA_RUNTIME_TIMEOUT: 5s
+
+
+    volumes:
+    - asya-nested-sockets:/var/run/asya
+    - ../../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro
+    healthcheck:
+      start_period: 1s
+      test: ["CMD", "test", "-S", "/var/run/asya/asya-runtime.sock"]
+      interval: 500ms
+      timeout: 500ms
+      retries: 20
+
+  asya-echo-runtime:
+    build:
+      context: ../../../../src/asya-testing
+      dockerfile: Dockerfile
+    logging: *default-logging
+    command: ["python3", "/opt/asya/asya_runtime.py"]
+    env_file: *runtime-env-files
+    environment:
+      ASYA_HANDLER: asya_testing.handlers.${ASYA_HANDLER_MODE}.echo_handler
+      ASYA_RUNTIME_TIMEOUT: 5s
+
+
+    volumes:
+    - asya-echo-sockets:/var/run/asya
+    - ../../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro
+    healthcheck:
+      start_period: 1s
+      test: ["CMD", "test", "-S", "/var/run/asya/asya-runtime.sock"]
+      interval: 500ms
+      timeout: 500ms
+      retries: 20
+
+  asya-error-sidecar:
+    build:
+      context: ../../../../src/asya-sidecar
+      dockerfile: Dockerfile
+    logging: *default-logging
+    depends_on:
+      asya-error-runtime:
+        condition: service_healthy
+      queue-setup:
+        condition: service_completed_successfully
+    env_file: *sidecar-env-files
+    environment:
+      ASYA_ACTOR_NAME: test-error
+
+
+      ASYA_RUNTIME_TIMEOUT: 30s
+    volumes:
+    - asya-error-sockets:/var/run/asya
+
+  asya-oom-sidecar:
+    build:
+      context: ../../../../src/asya-sidecar
+      dockerfile: Dockerfile
+    logging: *default-logging
+    depends_on:
+      queue-setup:
+        condition: service_completed_successfully
+      asya-oom-runtime:
+        condition: service_healthy
+    env_file: *sidecar-env-files
+    environment:
+      ASYA_ACTOR_NAME: test-oom-queue
+
+
+      ASYA_RUNTIME_TIMEOUT: 30s
+    volumes:
+    - asya-oom-sockets:/var/run/asya
+
+  asya-cuda-sidecar-oom:
+    build:
+      context: ../../../../src/asya-sidecar
+      dockerfile: Dockerfile
+    logging: *default-logging
+    depends_on:
+      queue-setup:
+        condition: service_completed_successfully
+      asya-cuda-runtime-oom:
+        condition: service_healthy
+    env_file: *sidecar-env-files
+    environment:
+      ASYA_ACTOR_NAME: test-cuda-oom-queue
+
+
+      ASYA_RUNTIME_TIMEOUT: 30s
+    volumes:
+    - asya-cuda-sockets:/var/run/asya
+
+  asya-timeout-sidecar:
+    build:
+      context: ../../../../src/asya-sidecar
+      dockerfile: Dockerfile
+    logging: *default-logging
+    depends_on:
+      queue-setup:
+        condition: service_completed_successfully
+      asya-timeout-runtime:
+        condition: service_healthy
+    env_file: *sidecar-env-files
+    environment:
+      ASYA_ACTOR_NAME: test-timeout
+
+
+      ASYA_RUNTIME_TIMEOUT: 3s
+    volumes:
+    - asya-timeout-sockets:/var/run/asya
+
+  asya-fanout-sidecar:
+    build:
+      context: ../../../../src/asya-sidecar
+      dockerfile: Dockerfile
+    logging: *default-logging
+    depends_on:
+      queue-setup:
+        condition: service_completed_successfully
+      asya-fanout-runtime:
+        condition: service_healthy
+    env_file: *sidecar-env-files
+    environment:
+      ASYA_ACTOR_NAME: test-fanout
+
+
+      ASYA_RUNTIME_TIMEOUT: 30s
+    volumes:
+    - asya-fanout-sockets:/var/run/asya
+
+  asya-empty-sidecar:
+    build:
+      context: ../../../../src/asya-sidecar
+      dockerfile: Dockerfile
+    logging: *default-logging
+    depends_on:
+      queue-setup:
+        condition: service_completed_successfully
+      asya-empty-runtime:
+        condition: service_healthy
+    env_file: *sidecar-env-files
+    environment:
+      ASYA_ACTOR_NAME: test-empty
+
+
+      ASYA_RUNTIME_TIMEOUT: 30s
+    volumes:
+    - asya-empty-sockets:/var/run/asya
+
+  asya-large-sidecar:
+    build:
+      context: ../../../../src/asya-sidecar
+      dockerfile: Dockerfile
+    logging: *default-logging
+    depends_on:
+      queue-setup:
+        condition: service_completed_successfully
+      asya-large-runtime:
+        condition: service_healthy
+    env_file: *sidecar-env-files
+    environment:
+      ASYA_ACTOR_NAME: test-large-queue
+
+
+      ASYA_RUNTIME_TIMEOUT: 30s
+    volumes:
+    - asya-large-sockets:/var/run/asya
+
+  asya-unicode-sidecar:
+    build:
+      context: ../../../../src/asya-sidecar
+      dockerfile: Dockerfile
+    logging: *default-logging
+    depends_on:
+      queue-setup:
+        condition: service_completed_successfully
+      asya-unicode-runtime:
+        condition: service_healthy
+    env_file: *sidecar-env-files
+    environment:
+      ASYA_ACTOR_NAME: test-unicode
+
+
+      ASYA_RUNTIME_TIMEOUT: 30s
+    volumes:
+    - asya-unicode-sockets:/var/run/asya
+
+  asya-null-sidecar:
+    build:
+      context: ../../../../src/asya-sidecar
+      dockerfile: Dockerfile
+    logging: *default-logging
+    depends_on:
+      queue-setup:
+        condition: service_completed_successfully
+      asya-null-runtime:
+        condition: service_healthy
+    env_file: *sidecar-env-files
+    environment:
+      ASYA_ACTOR_NAME: test-null
+
+
+      ASYA_RUNTIME_TIMEOUT: 30s
+    volumes:
+    - asya-null-sockets:/var/run/asya
+
+  asya-cond-sidecar:
+    build:
+      context: ../../../../src/asya-sidecar
+      dockerfile: Dockerfile
+    logging: *default-logging
+    depends_on:
+      queue-setup:
+        condition: service_completed_successfully
+      asya-cond-runtime:
+        condition: service_healthy
+    env_file: *sidecar-env-files
+    environment:
+      ASYA_ACTOR_NAME: test-conditional-queue
+
+
+      ASYA_RUNTIME_TIMEOUT: 30s
+    volumes:
+    - asya-cond-sockets:/var/run/asya
+
+  asya-nested-sidecar:
+    build:
+      context: ../../../../src/asya-sidecar
+      dockerfile: Dockerfile
+    logging: *default-logging
+    depends_on:
+      queue-setup:
+        condition: service_completed_successfully
+      asya-nested-runtime:
+        condition: service_healthy
+    env_file: *sidecar-env-files
+    environment:
+      ASYA_ACTOR_NAME: test-nested
+
+
+      ASYA_RUNTIME_TIMEOUT: 30s
+    volumes:
+    - asya-nested-sockets:/var/run/asya
+
+  asya-echo-sidecar:
+    build:
+      context: ../../../../src/asya-sidecar
+      dockerfile: Dockerfile
+    logging: *default-logging
+    depends_on:
+      queue-setup:
+        condition: service_completed_successfully
+      asya-echo-runtime:
+        condition: service_healthy
+    env_file: *sidecar-env-files
+    environment:
+      ASYA_ACTOR_NAME: test-echo
+
+
+      ASYA_RUNTIME_TIMEOUT: 30s
+    volumes:
+    - asya-echo-sockets:/var/run/asya
+
+  asya-invalid-route-runtime:
+    build:
+      context: ../../../../src/asya-testing
+      dockerfile: Dockerfile
+    logging: *default-logging
+    command: ["python3", "/opt/asya/asya_runtime.py"]
+    env_file: *runtime-env-files
+    environment:
+      ASYA_HANDLER: asya_testing.handlers.envelope.invalid_route_current_handler
+      ASYA_RUNTIME_TIMEOUT: 5s
+
+
+      ASYA_ENABLE_VALIDATION: false
+    volumes:
+    - asya-invalid-route-sockets:/var/run/asya
+    - ../../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro
+    healthcheck:
+      start_period: 1s
+      test: ["CMD", "test", "-S", "/var/run/asya/asya-runtime.sock"]
+      interval: 500ms
+      timeout: 500ms
+      retries: 20
+
+  asya-invalid-route-sidecar:
+    build:
+      context: ../../../../src/asya-sidecar
+      dockerfile: Dockerfile
+    logging: *default-logging
+    depends_on:
+      queue-setup:
+        condition: service_completed_successfully
+      asya-invalid-route-runtime:
+        condition: service_healthy
+    env_file: *sidecar-env-files
+    environment:
+      ASYA_ACTOR_NAME: test-invalid-route
+
+
+      ASYA_RUNTIME_TIMEOUT: 30s
+    volumes:
+    - asya-invalid-route-sockets:/var/run/asya
+
+  # Waiter service for test actors dependency subgraph
+  test-actors-waiter:
+    image: busybox:latest
+    command: ["sh", "-c", "echo 'Test actors ready'"]
+    depends_on:
+      asya-echo-sidecar:
+        condition: service_started
+      asya-error-sidecar:
+        condition: service_started
+      asya-oom-sidecar:
+        condition: service_started
+      asya-cuda-sidecar-oom:
+        condition: service_started
+      asya-timeout-sidecar:
+        condition: service_started
+      asya-fanout-sidecar:
+        condition: service_started
+      asya-empty-sidecar:
+        condition: service_started
+      asya-large-sidecar:
+        condition: service_started
+      asya-unicode-sidecar:
+        condition: service_started
+      asya-null-sidecar:
+        condition: service_started
+      asya-cond-sidecar:
+        condition: service_started
+      asya-nested-sidecar:
+        condition: service_started
+      asya-invalid-route-sidecar:
+        condition: service_started
+
+volumes:
+  asya-error-sockets:
+  asya-oom-sockets:
+  asya-cuda-sockets:
+  asya-timeout-sockets:
+  asya-fanout-sockets:
+  asya-empty-sockets:
+  asya-large-sockets:
+  asya-unicode-sockets:
+  asya-null-sockets:
+  asya-cond-sockets:
+  asya-nested-sockets:
+  asya-echo-sockets:
+  asya-invalid-route-sockets:

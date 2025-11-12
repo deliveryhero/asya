@@ -1,0 +1,615 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.14.0
+  name: asyncactors.asya.sh
+spec:
+  group: asya.sh
+  names:
+    kind: AsyncActor
+    listKind: AsyncActorList
+    plural: asyncactors
+    shortNames:
+    - asyncactor
+    - asya
+    - asyas
+    singular: asyncactor
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .status.status
+      name: Status
+      type: string
+    - jsonPath: .status.replicas
+      name: Running
+      type: integer
+    - jsonPath: .status.failingPods
+      name: Failing
+      type: integer
+    - jsonPath: .status.totalReplicas
+      name: Total
+      type: integer
+    - jsonPath: .status.desiredReplicas
+      name: Desired
+      type: integer
+    - jsonPath: .spec.scaling.minReplicas
+      name: Min
+      type: integer
+    - jsonPath: .spec.scaling.maxReplicas
+      name: Max
+      type: integer
+    - jsonPath: .status.lastScaleFormatted
+      name: Last-Scale
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    - jsonPath: .spec.workload.kind
+      name: Workload
+      priority: 1
+      type: string
+    - jsonPath: .status.transportStatus
+      name: Transport
+      priority: 1
+      type: string
+    - jsonPath: .status.scalingMode
+      name: Scaling
+      priority: 1
+      type: string
+    - jsonPath: .status.queuedMessages
+      name: Queued
+      priority: 1
+      type: integer
+    - jsonPath: .status.processingMessages
+      name: Processing
+      priority: 1
+      type: integer
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: AsyncActor is the Schema for the asyncactors API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: AsyncActorSpec defines the desired state of AsyncActor
+            properties:
+              scaling:
+                description: KEDA autoscaling configuration
+                properties:
+                  advanced:
+                    description: Advanced scaling modifiers for KEDA
+                    properties:
+                      activationTarget:
+                        description: Activation threshold to scale from 0 to 1 replica
+                        type: string
+                      formula:
+                        description: Scaling formula (e.g., "ceil(queueLength / maxMessagesPerWorker)")
+                        type: string
+                      metricType:
+                        description: Metric type (AverageValue, Value, or Utilization)
+                        enum:
+                        - AverageValue
+                        - Value
+                        - Utilization
+                        type: string
+                      restoreToOriginalReplicaCount:
+                        description: Restore to original replica count when scaled
+                          object is deleted
+                        type: boolean
+                      target:
+                        description: Target value for the metric
+                        type: string
+                    type: object
+                  cooldownPeriod:
+                    default: 60
+                    description: Cooldown period in seconds
+                    type: integer
+                  enabled:
+                    default: false
+                    description: Enable KEDA autoscaling
+                    type: boolean
+                  maxReplicas:
+                    default: 50
+                    description: Maximum replicas
+                    format: int32
+                    minimum: 1
+                    type: integer
+                  minReplicas:
+                    default: 0
+                    description: Minimum replicas
+                    format: int32
+                    minimum: 0
+                    type: integer
+                  pollingInterval:
+                    default: 10
+                    description: Polling interval in seconds
+                    type: integer
+                  queueLength:
+                    default: 5
+                    description: Queue length threshold (messages per replica)
+                    minimum: 1
+                    type: integer
+                type: object
+              sidecar:
+                description: Sidecar container configuration
+                properties:
+                  env:
+                    description: Additional environment variables
+                    items:
+                      description: EnvVar represents an environment variable present
+                        in a Container.
+                      properties:
+                        name:
+                          description: Name of the environment variable. Must be a
+                            C_IDENTIFIER.
+                          type: string
+                        value:
+                          description: |-
+                            Variable references $(VAR_NAME) are expanded
+                            using the previously defined environment variables in the container and
+                            any service environment variables. If a variable cannot be resolved,
+                            the reference in the input string will be unchanged. Double $$ are reduced
+                            to a single $, which allows for escaping the $(VAR_NAME) syntax: i.e.
+                            "$$(VAR_NAME)" will produce the string literal "$(VAR_NAME)".
+                            Escaped references will never be expanded, regardless of whether the variable
+                            exists or not.
+                            Defaults to "".
+                          type: string
+                        valueFrom:
+                          description: Source for the environment variable's value.
+                            Cannot be used if value is not empty.
+                          properties:
+                            configMapKeyRef:
+                              description: Selects a key of a ConfigMap.
+                              properties:
+                                key:
+                                  description: The key to select.
+                                  type: string
+                                name:
+                                  description: |-
+                                    Name of the referent.
+                                    More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                    TODO: Add other useful fields. apiVersion, kind, uid?
+                                  type: string
+                                optional:
+                                  description: Specify whether the ConfigMap or its
+                                    key must be defined
+                                  type: boolean
+                              required:
+                              - key
+                              type: object
+                              x-kubernetes-map-type: atomic
+                            fieldRef:
+                              description: |-
+                                Selects a field of the pod: supports metadata.name, metadata.namespace, `metadata.labels['<KEY>']`, `metadata.annotations['<KEY>']`,
+                                spec.nodeName, spec.serviceAccountName, status.hostIP, status.podIP, status.podIPs.
+                              properties:
+                                apiVersion:
+                                  description: Version of the schema the FieldPath
+                                    is written in terms of, defaults to "v1".
+                                  type: string
+                                fieldPath:
+                                  description: Path of the field to select in the
+                                    specified API version.
+                                  type: string
+                              required:
+                              - fieldPath
+                              type: object
+                              x-kubernetes-map-type: atomic
+                            resourceFieldRef:
+                              description: |-
+                                Selects a resource of the container: only resources limits and requests
+                                (limits.cpu, limits.memory, limits.ephemeral-storage, requests.cpu, requests.memory and requests.ephemeral-storage) are currently supported.
+                              properties:
+                                containerName:
+                                  description: 'Container name: required for volumes,
+                                    optional for env vars'
+                                  type: string
+                                divisor:
+                                  anyOf:
+                                  - type: integer
+                                  - type: string
+                                  description: Specifies the output format of the
+                                    exposed resources, defaults to "1"
+                                  pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                  x-kubernetes-int-or-string: true
+                                resource:
+                                  description: 'Required: resource to select'
+                                  type: string
+                              required:
+                              - resource
+                              type: object
+                              x-kubernetes-map-type: atomic
+                            secretKeyRef:
+                              description: Selects a key of a secret in the pod's
+                                namespace
+                              properties:
+                                key:
+                                  description: The key of the secret to select from.  Must
+                                    be a valid secret key.
+                                  type: string
+                                name:
+                                  description: |-
+                                    Name of the referent.
+                                    More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                    TODO: Add other useful fields. apiVersion, kind, uid?
+                                  type: string
+                                optional:
+                                  description: Specify whether the Secret or its key
+                                    must be defined
+                                  type: boolean
+                              required:
+                              - key
+                              type: object
+                              x-kubernetes-map-type: atomic
+                          type: object
+                      required:
+                      - name
+                      type: object
+                    type: array
+                  image:
+                    description: Sidecar image (defaults to asya-sidecar:latest)
+                    type: string
+                  imagePullPolicy:
+                    default: IfNotPresent
+                    description: Image pull policy
+                    enum:
+                    - Always
+                    - IfNotPresent
+                    - Never
+                    type: string
+                  resources:
+                    description: Resource requirements
+                    properties:
+                      claims:
+                        description: |-
+                          Claims lists the names of resources, defined in spec.resourceClaims,
+                          that are used by this container.
+
+
+                          This is an alpha field and requires enabling the
+                          DynamicResourceAllocation feature gate.
+
+
+                          This field is immutable. It can only be set for containers.
+                        items:
+                          description: ResourceClaim references one entry in PodSpec.ResourceClaims.
+                          properties:
+                            name:
+                              description: |-
+                                Name must match the name of one entry in pod.spec.resourceClaims of
+                                the Pod where this field is used. It makes that resource available
+                                inside a container.
+                              type: string
+                          required:
+                          - name
+                          type: object
+                        type: array
+                        x-kubernetes-list-map-keys:
+                        - name
+                        x-kubernetes-list-type: map
+                      limits:
+                        additionalProperties:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        description: |-
+                          Limits describes the maximum amount of compute resources allowed.
+                          More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                        type: object
+                      requests:
+                        additionalProperties:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        description: |-
+                          Requests describes the minimum amount of compute resources required.
+                          If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
+                          otherwise to an implementation-defined value. Requests cannot exceed Limits.
+                          More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                        type: object
+                    type: object
+                type: object
+              timeout:
+                description: Timeout configuration
+                properties:
+                  gracefulShutdown:
+                    default: 30
+                    description: Graceful shutdown timeout in seconds
+                    type: integer
+                  processing:
+                    default: 300
+                    description: Processing timeout in seconds
+                    type: integer
+                type: object
+              transport:
+                description: Transport name referencing operator-configured transport
+                minLength: 1
+                type: string
+              workload:
+                description: Workload template for the actor runtime
+                properties:
+                  kind:
+                    default: Deployment
+                    description: Kind of workload
+                    enum:
+                    - Deployment
+                    - StatefulSet
+                    type: string
+                  pythonExecutable:
+                    default: python3
+                    description: Python executable path for runtime containers
+                    type: string
+                  replicas:
+                    default: 1
+                    description: Number of replicas (ignored if KEDA scaling enabled)
+                    format: int32
+                    minimum: 0
+                    type: integer
+                  template:
+                    description: Pod template
+                    properties:
+                      metadata:
+                        description: Metadata
+                        x-kubernetes-preserve-unknown-fields: true
+                      spec:
+                        description: Spec
+                        x-kubernetes-preserve-unknown-fields: true
+                    type: object
+                required:
+                - template
+                type: object
+            required:
+            - transport
+            - workload
+            type: object
+          status:
+            description: AsyncActorStatus defines the observed state of AsyncActor
+            properties:
+              conditions:
+                description: |-
+                  Conditions represent the latest available observations of the AsyncActor's state.
+                  Standard condition types: TransportReady, WorkloadReady, ScalingReady
+                items:
+                  description: "Condition contains details for one aspect of the current
+                    state of this API Resource.\n---\nThis struct is intended for
+                    direct use as an array at the field path .status.conditions.  For
+                    example,\n\n\n\ttype FooStatus struct{\n\t    // Represents the
+                    observations of a foo's current state.\n\t    // Known .status.conditions.type
+                    are: \"Available\", \"Progressing\", and \"Degraded\"\n\t    //
+                    +patchMergeKey=type\n\t    // +patchStrategy=merge\n\t    // +listType=map\n\t
+                    \   // +listMapKey=type\n\t    Conditions []metav1.Condition `json:\"conditions,omitempty\"
+                    patchStrategy:\"merge\" patchMergeKey:\"type\" protobuf:\"bytes,1,rep,name=conditions\"`\n\n\n\t
+                    \   // other fields\n\t}"
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: |-
+                        type of condition in CamelCase or in foo.example.com/CamelCase.
+                        ---
+                        Many .condition.type values are consistent across resources like Available, but because arbitrary conditions can be
+                        useful (see .node.status.conditions), the ability to deconflict is important.
+                        The regex it matches is (dns1123SubdomainFmt/)?(qualifiedNameFmt)
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+              desiredReplicas:
+                description: |-
+                  DesiredReplicas is the target number of replicas.
+                  When scaling is enabled, this comes from KEDA's HPA.
+                  When scaling is disabled, this comes from spec.workload.replicas.
+                  Displayed in kubectl output as DESIRED column.
+                format: int32
+                type: integer
+              failingPods:
+                description: |-
+                  FailingPods is the number of pods in failing states (CrashLoopBackOff, ImagePullBackOff, etc).
+                  Includes pods actively retrying with backoff, not permanently failed pods.
+                  Displayed in kubectl output as FAILING column.
+                format: int32
+                type: integer
+              lastScaleDirection:
+                description: |-
+                  LastScaleDirection indicates the direction of the last scaling event.
+                  Possible values: "up" (scaled up), "down" (scaled down), "" (no scaling yet)
+                type: string
+              lastScaleFormatted:
+                description: |-
+                  LastScaleFormatted is a human-readable representation of last scaling event.
+                  Format: "<time> ago (<direction>)" (e.g., "5m ago (up)", "2h ago (down)", "-")
+                  Displayed in kubectl output as LAST-SCALE column.
+                type: string
+              lastScaleTime:
+                description: |-
+                  LastScaleTime is the timestamp when replicas last changed (up or down).
+                  Used to calculate time since last scaling event.
+                format: date-time
+                type: string
+              observedGeneration:
+                description: |-
+                  ObservedGeneration reflects the generation of the most recently observed AsyncActor spec.
+                  Used to track if status is up-to-date with latest spec changes.
+                type: integer
+              pendingReplicas:
+                description: |-
+                  PendingReplicas is the number of pods created but not yet ready.
+                  Includes pods in Pending phase or Running but not ready.
+                  Displayed in kubectl output as PENDING column.
+                format: int32
+                type: integer
+              processingMessages:
+                description: |-
+                  ProcessingMessages is the number of messages currently being processed (in-flight).
+                  Only available for transports that track in-flight messages (RabbitMQ, SQS).
+                  Nil if transport doesn't support this metric.
+                  Displayed in kubectl -o wide output as PROCESSING column.
+                format: int32
+                type: integer
+              queuedMessages:
+                description: |-
+                  QueuedMessages is the number of messages waiting in the queue (ready to process).
+                  Only available for transports that support queue metrics (RabbitMQ, SQS).
+                  Displayed in kubectl -o wide output as QUEUED column.
+                format: int32
+                type: integer
+              readyReplicas:
+                description: |-
+                  ReadyReplicas is the number of ready pods from the workload status.
+                  Used to calculate ReadyReplicasSummary.
+                format: int32
+                type: integer
+              readyReplicasSummary:
+                description: |-
+                  ReadyReplicasSummary shows pod readiness in ready/total format.
+                  Format: "ready/total" (e.g., "3/5", "10/10", "0/3")
+                  Displayed in kubectl output as REPLICAS column.
+                type: string
+              readySummary:
+                description: |-
+                  ReadySummary is a formatted summary of ready conditions for kubectl output.
+                  Format: "ready/total" (e.g., "3/3", "2/3", "2/2")
+                  Deprecated: Use ReadyReplicasSummary instead (shows pod readiness, not conditions).
+                type: string
+              replicas:
+                description: |-
+                  Replicas is the current number of ready (running) replicas.
+                  Counts only pods that are fully ready and available.
+                  Displayed in kubectl output as RUNNING column.
+                format: int32
+                type: integer
+              replicasSummary:
+                description: |-
+                  ReplicasSummary is a formatted summary showing current/desired replicas.
+                  Format: "current/desired" (e.g., "5/5", "3/10", "0/0")
+                  Deprecated: Use separate Replicas and DesiredReplicas fields instead.
+                type: string
+              scaledObjectRef:
+                description: ScaledObjectRef is a reference to the KEDA ScaledObject
+                  (when scaling is enabled)
+                properties:
+                  name:
+                    type: string
+                  namespace:
+                    type: string
+                required:
+                - name
+                - namespace
+                type: object
+              scalingMode:
+                description: |-
+                  ScalingMode indicates the scaling mode for kubectl output.
+                  Values: "KEDA" (autoscaling enabled), "Manual" (fixed replicas)
+                  Displayed in kubectl -o wide output as SCALING column.
+                type: string
+              status:
+                description: |-
+                  Status is the overall status of the AsyncActor.
+                  Operational: Running, Napping, Degraded
+                  Transitional: Creating, ScalingUp, ScalingDown, Updating, Terminating
+                  Errors: TransportError, ScalingError, WorkloadError, PendingResources, ImagePullError, RuntimeError, SidecarError, VolumeError, ConfigError
+                  Future: WaitingDeps
+                  Displayed in kubectl output as STATUS column.
+                type: string
+              totalReplicas:
+                description: |-
+                  TotalReplicas is the total number of non-terminated pods from the workload status.
+                  Used to calculate ReadyReplicasSummary.
+                format: int32
+                type: integer
+              transportStatus:
+                description: |-
+                  TransportStatus indicates whether transport infrastructure is ready.
+                  Values: "Ready", "NotReady"
+                  Displayed in kubectl -o wide output as TRANSPORT column.
+                type: string
+              workloadRef:
+                description: WorkloadRef is a reference to the created workload (Deployment
+                  or StatefulSet)
+                properties:
+                  apiVersion:
+                    type: string
+                  kind:
+                    type: string
+                  name:
+                    type: string
+                  namespace:
+                    type: string
+                required:
+                - apiVersion
+                - kind
+                - name
+                - namespace
+                type: object
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

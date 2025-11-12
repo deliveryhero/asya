@@ -1,0 +1,159 @@
+# Default values for asya-actor chart
+# This is a generic chart for deploying AsyncActors
+#
+# MODE 1: Single Actor Deployment
+#   Set name, namespace, transport, and workload
+#
+# MODE 2: Multi-Actor Deployment
+#   Set actors list instead of individual fields
+#   Each actor inherits defaults but can override any field
+
+# MODE 1: Single actor deployment fields
+# Actor name (required if not using actors list)
+# Must be unique within the namespace
+name: ""
+
+# Namespace to deploy the actor(s)
+namespace: default
+
+# Transport name (required if not using actors list)
+# Must reference a transport configured in the operator
+# Common values: rabbitmq, sqs
+transport: ""
+
+# MODE 2: Multi-actor deployment
+# Deploy multiple actors with this chart
+# Each actor inherits namespace, transport, and default.* from root
+# but can override any field
+actors: []
+# Example:
+# - name: actor-one
+#   workload:
+#     template:
+#       spec:
+#         containers:
+#         - name: asya-runtime
+#           image: my-image:latest
+#           env:
+#           - name: ASYA_HANDLER
+#             value: module.handler_one
+#
+# - name: actor-two
+#   transport: sqs  # Override transport for this actor
+#   scaling:
+#     maxReplicas: 20  # Override default scaling
+#   workload:
+#     template:
+#       spec:
+#         containers:
+#         - name: asya-runtime
+#           image: my-image:latest
+#           env:
+#           - name: ASYA_HANDLER
+#             value: module.handler_two
+
+# Default configuration applied to all actors
+# Each actor can override by specifying scaling/workload/healthChecks
+default:
+  # Scaling configuration (optional)
+  scaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 10
+    pollingInterval: 10
+    cooldownPeriod: 60
+    queueLength: 5
+    # Advanced scaling (optional)
+    # advanced:
+    #   triggers:
+    #   - type: rabbitmq
+    #     metadata:
+    #       queueName: asya-my-actor
+    #       mode: QueueLength
+    #       value: "5"
+
+  # Workload configuration
+  workload:
+    # Workload type: Deployment or StatefulSet
+    kind: Deployment
+
+    # Template specification for the actor pods
+    template:
+      spec:
+        containers:
+        - name: asya-runtime
+          # Container image with actor handler code
+          image: my-actor:latest
+          imagePullPolicy: IfNotPresent
+
+          # Environment variables for runtime configuration
+          env:
+          # Handler module path (required)
+          - name: ASYA_HANDLER
+            value: my_module.my_handler
+
+          # Handler mode: payload (default) or envelope
+          # - name: ASYA_HANDLER_MODE
+          #   value: payload
+
+          # Optional configuration
+          # - name: ASYA_INCLUDE_ROUTE_INFO
+          #   value: 'true'
+
+          # Resource requests and limits
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+
+  # Health check configuration
+  healthChecks:
+    # Enable pre-install validation hook
+    preInstall:
+      enabled: true
+
+    # Enable crew actors health check
+    crew:
+      enabled: true
+      # List of required crew actors (defaults to happy-end and error-end)
+      requiredActors:
+      - happy-end
+      - error-end
+
+    # Enable queue health check
+    queue:
+      enabled: true
+      # Timeout in seconds to wait for queue creation
+      timeoutSeconds: 300
+
+    # Enable actor deployment readiness check
+    deployment:
+      enabled: true
+      # Timeout in seconds to wait for deployment to be ready
+      timeoutSeconds: 600
+
+    # Enable AsyncActor status validation
+    status:
+      enabled: true
+
+# Infrastructure configuration (for health checks)
+infrastructure:
+  # Operator namespace (for checking operator logs in error messages)
+  operatorNamespace: asya-system
+
+  # RabbitMQ configuration (for queue health checks)
+  rabbitmq:
+    # Pod name for executing rabbitmqctl commands
+    podName: asya-rabbitmq-0
+
+  # SQS configuration (for queue health checks)
+  sqs:
+    # Secret name containing AWS credentials
+    secretName: sqs-secret
+    # SQS endpoint URL (for LocalStack or custom endpoints)
+    endpoint: "" # Defaults to http://localstack-sqs.{namespace}.svc.cluster.local:4566
+    # AWS region
+    region: us-east-1

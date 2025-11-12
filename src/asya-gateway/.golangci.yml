@@ -1,0 +1,69 @@
+version: 2
+
+run:
+  timeout: 5m
+  tests: true
+  modules-download-mode: readonly
+
+linters:
+  enable:
+  - errcheck # Check error returns are handled
+  - gosec # Security-focused linter
+  #- contextcheck    # Ensure contexts are properly propagated
+  - staticcheck # Advanced static analysis
+  - govet # Standard Go vet
+  #- revive          # Fast, configurable linter
+  - gocyclo # Cyclomatic complexity
+  - goconst # Repeated strings that should be constants
+  - misspell # Spelling mistakes
+  #- unparam         # Unused function parameters
+  #- nilnil          # Prevent (nil, nil) returns
+  - nolintlint # Validate //nolint directives
+  - unused # Find unused constants, variables, functions and types
+  - ineffassign # Detect ineffectual assignments
+
+linters-settings:
+  errcheck:
+    check-type-assertions: true
+    check-blank: true
+
+  gosec:
+    excludes:
+    - G404 # Use of weak random number generator (math/rand) - often fine for non-crypto uses
+    - G112 # HTTP server timeouts (can be set at deploy time)
+    - G306 # File permissions (0644 is fine for non-sensitive files)
+    - G304 # File inclusion via variable (needed for config loading)
+    - G115 # Integer overflow conversion (often safe in practice)
+    - G204 # Subprocess with variable (safe in tests)
+
+  contextcheck:
+    check-generated: false
+
+  gocyclo:
+    min-complexity: 15
+
+  goconst:
+    min-len: 3
+    min-occurrences: 3
+
+  revive:
+    rules:
+    - name: error-return
+    - name: error-naming
+    - name: error-strings
+    - name: exported
+    - name: increment-decrement
+    - name: var-naming
+
+issues:
+  exclude-use-default: false
+  max-issues-per-linter: 0
+  max-same-issues: 0
+
+  exclude-rules:
+  # Exclude test files from some checks
+  - path: _test\.go
+    linters:
+    - gocyclo
+    - errcheck
+    - gosec

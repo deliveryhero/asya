@@ -1,0 +1,6 @@
+apiVersion: v2
+name: rabbitmq
+description: RabbitMQ transport for Asya E2E tests
+type: application
+version: 1.0.0
+appVersion: "3.13"

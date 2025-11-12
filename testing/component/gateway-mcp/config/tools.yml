@@ -1,0 +1,43 @@
+# MCP Tools Configuration for Testing
+# Simple test tools to validate MCP protocol compliance
+
+tools:
+- name: echo
+  description: Echo tool for testing - returns input payload
+  parameters:
+    message:
+      type: string
+      description: Message to echo back
+      required: true
+  route:
+  - echo
+
+- name: test_progress
+  description: Test tool with progress reporting
+  parameters:
+    value:
+      type: number
+      description: Test value
+      required: true
+  route:
+  - echo
+  progress: true
+  timeout: 30
+
+- name: test_validation
+  description: Test parameter validation
+  parameters:
+    required_string:
+      type: string
+      description: Required string parameter
+      required: true
+    optional_number:
+      type: number
+      description: Optional number parameter
+      required: false
+    boolean_flag:
+      type: boolean
+      description: Optional boolean flag
+      required: false
+  route:
+  - echo

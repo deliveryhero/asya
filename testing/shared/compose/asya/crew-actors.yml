@@ -1,0 +1,124 @@
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "2"
+
+# Note: Volumes must be defined in the compose file that includes this file
+
+services:
+  # Happy end actor (success handler)
+  asya-happy-end-runtime:
+    build:
+      context: ../../../../src/asya-crew
+      dockerfile: Dockerfile
+    logging: *default-logging
+    command: ["python3", "/opt/asya/asya_runtime.py"]
+    depends_on:
+      storage-setup:
+        condition: service_completed_successfully
+    env_file:
+    - ../envs/.env.asya-shared
+    - ../envs/.env.asya-runtime
+    - ../envs/.env.${ASYA_TRANSPORT}
+    - ../envs/.env.${ASYA_STORAGE}
+    environment:
+    - ASYA_HANDLER=handlers.end_handlers.happy_end_handler
+    - ASYA_HANDLER_MODE=envelope
+    - ASYA_ENABLE_VALIDATION=false # happy end doesn't validate
+    - ASYA_S3_BUCKET=asya-results
+    volumes:
+    - asya-happy-end-sockets:/var/run/asya
+    - ../../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro
+    healthcheck:
+      test: ["CMD", "test", "-S", "/var/run/asya/asya-runtime.sock"]
+      interval: 2s
+      timeout: 1s
+      retries: 15
+
+  asya-happy-end-sidecar:
+    network_mode: "service:asya-happy-end-runtime"
+    build:
+      context: ../../../../src/asya-sidecar
+      dockerfile: Dockerfile
+    logging: *default-logging
+    depends_on:
+      asya-happy-end-runtime:
+        condition: service_healthy
+      gateway:
+        condition: service_healthy
+      queue-setup:
+        condition: service_completed_successfully
+    env_file:
+    - ../envs/.env.asya-sidecar
+    - ../envs/.env.${ASYA_TRANSPORT}
+    environment:
+      ASYA_RUNTIME_TIMEOUT: 5s
+      ASYA_IS_END_ACTOR: "true"
+      ASYA_ACTOR_NAME: happy-end
+      ASYA_GATEWAY_URL: http://gateway:8080
+    volumes:
+    - asya-happy-end-sockets:/var/run/asya
+
+  # Error end actor (failure handler)
+  asya-error-end-runtime:
+    build:
+      context: ../../../../src/asya-crew
+      dockerfile: Dockerfile
+    logging: *default-logging
+    command: ["python3", "/opt/asya/asya_runtime.py"]
+    depends_on:
+      storage-setup:
+        condition: service_completed_successfully
+    env_file:
+    - ../envs/.env.asya-shared
+    - ../envs/.env.asya-runtime
+    - ../envs/.env.${ASYA_TRANSPORT}
+    - ../envs/.env.${ASYA_STORAGE}
+    environment:
+    - ASYA_HANDLER=handlers.end_handlers.error_end_handler
+    - ASYA_HANDLER_MODE=envelope
+    - ASYA_ENABLE_VALIDATION=false # error end doesn't validate
+    - ASYA_S3_BUCKET=asya-errors
+    volumes:
+    - asya-error-end-sockets:/var/run/asya
+    - ../../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro
+    healthcheck:
+      test: ["CMD", "test", "-S", "/var/run/asya/asya-runtime.sock"]
+      interval: 2s
+      timeout: 1s
+      retries: 15
+
+  asya-error-end-sidecar:
+    network_mode: "service:asya-error-end-runtime"
+    build:
+      context: ../../../../src/asya-sidecar
+      dockerfile: Dockerfile
+    logging: *default-logging
+    depends_on:
+      asya-error-end-runtime:
+        condition: service_healthy
+      gateway:
+        condition: service_healthy
+      queue-setup:
+        condition: service_completed_successfully
+    env_file:
+    - ../envs/.env.asya-sidecar
+    - ../envs/.env.${ASYA_TRANSPORT}
+    environment:
+      ASYA_RUNTIME_TIMEOUT: 5s
+      ASYA_IS_END_ACTOR: "true"
+      ASYA_ACTOR_NAME: error-end
+      ASYA_GATEWAY_URL: http://gateway:8080
+    volumes:
+    - asya-error-end-sockets:/var/run/asya
+
+  # Waiter service for system actors dependency subgraph
+  crew-actors-waiter:
+    image: busybox:latest
+    command: ["sh", "-c", "echo 'System actors ready'"]
+    depends_on:
+      asya-happy-end-sidecar:
+        condition: service_started
+      asya-error-end-sidecar:
+        condition: service_started

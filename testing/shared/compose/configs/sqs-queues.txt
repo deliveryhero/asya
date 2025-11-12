@@ -1,0 +1,39 @@
+# SQS queues for integration tests
+# Used by queue-setup service in sqs.yml
+
+# Test actor queues (with asya- prefix for sidecar compatibility)
+asya-test-echo
+asya-test-doubler
+asya-test-incrementer
+asya-test-error
+asya-test-timeout
+asya-test-verify
+asya-test-fanout
+asya-test-empty
+asya-test-unicode
+asya-test-large-payload
+asya-test-nested
+asya-test-null
+asya-test-slow-boundary
+asya-test-cycle
+asya-test-param-flow-1
+asya-test-param-flow-2
+
+# Gateway component test queues
+asya-test-queue
+asya-test-send-receive
+asya-test-multiple
+asya-test-deadline
+asya-test-large
+asya-test-multi-q1
+asya-test-multi-q2
+
+# Sidecar-runtime test queues
+asya-test-oom-queue
+asya-test-cuda-oom-queue
+asya-test-large-queue
+asya-test-conditional-queue
+
+# System actor queues (with asya- prefix for sidecar compatibility)
+asya-happy-end
+asya-error-end

@@ -1,0 +1,34 @@
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "2"
+
+services:
+  tester:
+    build:
+      context: ../../../../src/asya-testing
+      dockerfile: Dockerfile
+    user: "0:0" # root to write coverage
+    logging: *default-logging
+    env_file:
+    - ../../../shared/compose/envs/.env.tester
+    - ../../../shared/compose/envs/.env.${ASYA_TRANSPORT}
+    - ../../../shared/compose/envs/.env.${ASYA_STORAGE}
+    environment:
+    - PYTEST_OPTS=${PYTEST_OPTS}
+    - COVERAGE_FILE=/app/.coverage/cov.db
+    - COVERAGE_RCFILE=/app/.coveragerc
+    volumes:
+    - ${COVERAGE_DIR}:/app/.coverage:rw
+    - ${COVERAGERC}:/app/.coveragerc:ro
+    - ../tests:/app/tests
+    working_dir: /app
+    entrypoint: /bin/bash
+    command:
+    - -c
+    - |
+      set -ex
+      pytest ${PYTEST_OPTS} \
+        --cov --cov-report=term \
+        --cov-report=json:/app/.coverage/cov-${ASYA_HANDLER_MODE}-${ASYA_TRANSPORT}-${ASYA_STORAGE}.json

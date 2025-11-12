@@ -1,0 +1,174 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ .Release.Name }}-test-queue-exists"
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "asya-test-actors.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-weight": "0"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  restartPolicy: Never
+  containers:
+  - name: test
+    {{- if eq .Values.transport "rabbitmq" }}
+    image: alpine/k8s:1.28.3
+    {{- else if eq .Values.transport "sqs" }}
+    image: amazon/aws-cli:2.15.10
+    {{- else }}
+    image: busybox:1.36
+    {{- end }}
+    {{- if eq .Values.transport "sqs" }}
+    env:
+    - name: AWS_REGION
+      value: "us-east-1"
+    - name: AWS_ACCESS_KEY_ID
+      valueFrom:
+        secretKeyRef:
+          name: sqs-secret
+          key: access-key-id
+    - name: AWS_SECRET_ACCESS_KEY
+      valueFrom:
+        secretKeyRef:
+          name: sqs-secret
+          key: secret-access-key
+    - name: AWS_ENDPOINT_URL
+      value: "http://localstack-sqs.{{ .Release.Namespace }}.svc.cluster.local:4566"
+    {{- end }}
+    command:
+      - /bin/sh
+      - -c
+      - |
+        set -e
+
+        # Test a sample actor (echo) to validate queue creation
+        TEST_ACTOR="test-echo"
+        echo "Testing queue existence for AsyncActor '$TEST_ACTOR'..."
+        echo "Transport: {{ .Values.transport }}"
+        echo "Queue name: $TEST_ACTOR"
+        echo ""
+
+        {{- if eq .Values.transport "rabbitmq" }}
+        # RabbitMQ queue validation using rabbitmqctl
+        echo "[.] Validating RabbitMQ queue..."
+
+        QUEUE_NAME="asya-$TEST_ACTOR"
+        RABBITMQ_POD="asya-rabbitmq-0"
+
+        echo "Queue name: ${QUEUE_NAME}"
+        echo "RabbitMQ pod: ${RABBITMQ_POD}"
+        echo ""
+
+        # Wait for queue to be created (max 300 seconds)
+        MAX_ATTEMPTS=300
+        ATTEMPT=0
+
+        while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+          ATTEMPT=$((ATTEMPT + 1))
+
+          # Check if queue exists using rabbitmqctl
+          if kubectl exec -n {{ .Release.Namespace }} ${RABBITMQ_POD} -- rabbitmqctl list_queues name messages consumers -q 2>/dev/null | grep -q "^${QUEUE_NAME}"; then
+            echo "[+] Queue '${QUEUE_NAME}' exists in RabbitMQ"
+
+            # Get queue details
+            QUEUE_INFO=$(kubectl exec -n {{ .Release.Namespace }} ${RABBITMQ_POD} -- rabbitmqctl list_queues name messages consumers -q 2>/dev/null | grep "^${QUEUE_NAME}")
+            MESSAGES=$(echo "$QUEUE_INFO" | awk '{print $2}')
+            CONSUMERS=$(echo "$QUEUE_INFO" | awk '{print $3}')
+
+            echo "  Messages: ${MESSAGES}"
+            echo "  Consumers: ${CONSUMERS}"
+            echo ""
+            echo "[+] RabbitMQ queue validation passed!"
+            exit 0
+          fi
+
+          echo "[.] Attempt ${ATTEMPT}/${MAX_ATTEMPTS}: Queue not found yet, waiting..."
+          sleep 1
+        done
+
+        echo "[-] FAILED: Queue '${QUEUE_NAME}' does not exist in RabbitMQ after ${MAX_ATTEMPTS} seconds (5 minutes)"
+        echo ""
+        echo "Possible causes:"
+        echo "  1. Operator has not created the queue yet (check operator logs)"
+        echo "  2. Transport configuration is incorrect in operator values"
+        echo "  3. RabbitMQ pod is not accessible"
+        echo "  4. autoCreate is disabled in operator transport config"
+        echo ""
+        echo "Debug steps:"
+        echo "  kubectl logs -n asya-system deployment/asya-operator"
+        echo "  kubectl exec -n {{ .Release.Namespace }} ${RABBITMQ_POD} -- rabbitmqctl list_queues"
+        echo ""
+        echo "AsyncActor status:"
+        kubectl get asyncactor -n {{ .Release.Namespace }} "${TEST_ACTOR}" -o yaml
+        exit 1
+
+        {{- else if eq .Values.transport "sqs" }}
+        # SQS queue validation
+        echo "[.] Validating SQS queue..."
+
+        AWS_REGION="${AWS_REGION:-us-east-1}"
+        QUEUE_NAME="asya-$TEST_ACTOR"
+
+        echo "Region: ${AWS_REGION}"
+        echo "Queue name: ${QUEUE_NAME}"
+        echo ""
+
+        # Wait for queue to be created (max 300 seconds)
+        MAX_ATTEMPTS=300
+        ATTEMPT=0
+
+        while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+          ATTEMPT=$((ATTEMPT + 1))
+
+          # Try to get queue URL
+          if QUEUE_URL=$(aws sqs get-queue-url --queue-name "${QUEUE_NAME}" --region "${AWS_REGION}" --output text 2>/dev/null); then
+            echo "[+] Queue '${QUEUE_NAME}' exists in SQS"
+            echo "  Queue URL: ${QUEUE_URL}"
+
+            # Get queue attributes
+            ATTRS=$(aws sqs get-queue-attributes --queue-url "${QUEUE_URL}" \
+              --attribute-names ApproximateNumberOfMessages ApproximateNumberOfMessagesNotVisible VisibilityTimeout \
+              --region "${AWS_REGION}" --output json 2>/dev/null || echo "{}")
+
+            MESSAGES=$(echo "$ATTRS" | grep -o '"ApproximateNumberOfMessages":"[0-9]*"' | cut -d'"' -f4 || echo "0")
+            INFLIGHT=$(echo "$ATTRS" | grep -o '"ApproximateNumberOfMessagesNotVisible":"[0-9]*"' | cut -d'"' -f4 || echo "0")
+            VISIBILITY=$(echo "$ATTRS" | grep -o '"VisibilityTimeout":"[0-9]*"' | cut -d'"' -f4 || echo "unknown")
+
+            echo "  Messages available: ${MESSAGES}"
+            echo "  Messages in flight: ${INFLIGHT}"
+            echo "  Visibility timeout: ${VISIBILITY}s"
+            echo ""
+            echo "[+] SQS queue validation passed!"
+            exit 0
+          fi
+
+          echo "[.] Attempt ${ATTEMPT}/${MAX_ATTEMPTS}: Queue not found yet, waiting..."
+          sleep 1
+        done
+
+        echo "[-] FAILED: Queue '${QUEUE_NAME}' does not exist in SQS after ${MAX_ATTEMPTS} seconds (5 minutes)"
+        echo ""
+        echo "Possible causes:"
+        echo "  1. Operator has not created the queue yet (check operator logs)"
+        echo "  2. AWS credentials are not configured correctly"
+        echo "  3. Transport configuration is incorrect in operator values"
+        echo "  4. autoCreate is disabled in operator transport config"
+        echo "  5. IAM permissions are missing for sqs:GetQueueUrl"
+        echo ""
+        echo "Debug steps:"
+        echo "  kubectl logs -n asya-system deployment/asya-operator"
+        echo "  aws sqs list-queues --region ${AWS_REGION}"
+        echo ""
+        echo "AsyncActor status:"
+        kubectl get asyncactor -n {{ .Release.Namespace }} "${TEST_ACTOR}" -o yaml
+        exit 1
+
+        {{- else }}
+        # Unknown transport
+        echo "[-] FAILED: Unknown transport '{{ .Values.transport }}'"
+        echo ""
+        echo "Supported transports: rabbitmq, sqs"
+        exit 1
+        {{- end }}

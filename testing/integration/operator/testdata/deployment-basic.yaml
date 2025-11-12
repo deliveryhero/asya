@@ -1,0 +1,19 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: test-deployment-actor
+  namespace: test-system
+spec:
+  transport: rabbitmq
+  scaling:
+    enabled: false # Disabled for tests (envtest doesn't have KEDA CRDs)
+  workload:
+    kind: Deployment
+    template:
+      spec:
+        containers:
+        - name: asya-runtime
+          image: python:3.13-slim
+          env:
+          - name: ASYA_HANDLER
+            value: mymodule.process

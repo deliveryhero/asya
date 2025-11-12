@@ -1,0 +1,112 @@
+# octocov configuration for coverage reporting
+# https://github.com/k1LoW/octocov
+#
+# Coverage directory structure:
+# .coverage/<mirrored-project-path>/<coverage-files>
+# - Unit tests: cov.out (Go) or cov.json (Python)
+# - Integration tests: cov.out (Go) or cov.json (Python)
+# - Component tests: cov.json (Python)
+# - E2E tests: cov.json (Python)
+# - Special cases: cov-payload.json, cov-envelope.json (gateway-actors has 2 modes)
+#
+# Note: octocov automatically shows changed files coverage in PR comments when
+# both report and diff datastores are configured (PR #67 feature)
+
+coverage:
+  paths:
+  # Unit tests (Go)
+  - .coverage/src/asya-sidecar/cov.out
+  - .coverage/src/asya-gateway/cov.out
+  - .coverage/src/asya-operator/cov.out
+  # Unit tests (Python)
+  - .coverage/src/asya-runtime/cov.json
+  - .coverage/src/asya-crew/cov.json
+  # Component tests (Go)
+  - .coverage/testing/component/operator/transport_metrics/cov.out
+  - .coverage/testing/component/operator/runtime_configmap/cov.out
+  - .coverage/testing/component/gateway/cov-*.out
+  # Component tests (Python)
+  - .coverage/testing/component/gateway/cov-*.json
+  - .coverage/testing/component/sidecar/cov-*.json
+  - .coverage/testing/component/runtime/cov-*.json
+  # Integration tests (Go)
+  - .coverage/testing/integration/sidecar/cov.out
+  - .coverage/testing/integration/gateway/cov.out
+  - .coverage/testing/integration/operator/cov.out
+  # Integration tests (Python)
+  - .coverage/testing/integration/sidecar-runtime/cov-*.json
+  - .coverage/testing/integration/gateway-actors/cov-*.json
+  # E2E tests (Python)
+  - .coverage/testing/e2e/cov-*.json
+  badge:
+    path: docs/coverage.svg
+
+# Post coverage report as PR comment
+# octocov will automatically include:
+# - Overall coverage % with diff from base branch
+# - Code-to-test ratio with diff
+# - Test execution time with diff
+# - Changed files coverage table (when diff datastores configured)
+comment:
+  if: is_pull_request
+  deletePrevious: true
+  hideFooterLink: false
+  message: |
+    ## Code Coverage Report
+
+    **Coverage includes:** unit, component, integration, and e2e tests
+
+    **Metrics tracked:**
+    - Code Coverage (overall and per changed file)
+    - Code-to-Test Ratio
+    - Test Execution Time
+
+    **Legend:** `+` increase | `-` decrease | `~` no change
+  report:
+    datastores:
+    - artifact://${GITHUB_REPOSITORY}
+  diff:
+    datastores:
+    - artifact://${GITHUB_REPOSITORY}
+
+# Store reports for diff comparison
+report:
+  datastores:
+  - artifact://${GITHUB_REPOSITORY}
+
+# Code to test ratio
+codeToTestRatio:
+  code:
+  - "**/*.go"
+  - "**/*.py"
+  - "!**/*_test.go"
+  - "!**/test_*.py"
+  - "!testing/**"
+  test:
+  - "**/*_test.go"
+  - "**/test_*.py"
+  - "testing/**/*.py"
+  badge:
+    path: docs/ratio.svg
+
+# Test execution time tracking (from GitHub Actions)
+testExecutionTime:
+  steps:
+  - "Run unit tests"
+  - "Run component tests"
+  - "Run simple integration tests"
+  - "Run 2-parametrized integration tests.*"
+  - "Run 3-parametrized integration tests.*"
+  - "Run E2E tests.*"
+  badge:
+    path: docs/time.svg
+
+# Set coverage thresholds
+# - current >= 75%: Overall coverage must be at least 75%
+# - diff >= 0%: Coverage must not decrease (no regression allowed)
+acceptable:
+  coverage: current >= 75% && diff >= 0%
+
+# Push metrics and badges to artifact storage
+push:
+  if: is_default_branch

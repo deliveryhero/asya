@@ -1,0 +1,23 @@
+# Profile: RabbitMQ
+#
+# This configuration uses RabbitMQ for message transport
+#
+# Usage: docker compose -f profiles/rabbitmq.yml up
+
+include:
+- path: ../../../shared/compose/rabbitmq.yml
+- path: ../compose/actors.yml
+
+services:
+  tester:
+    extends:
+      file: ../compose/tester.yml
+      service: tester
+    env_file: .env.rabbitmq
+    environment:
+      ASYA_TRANSPORT: rabbitmq
+    depends_on:
+      queue-setup:
+        condition: service_completed_successfully
+      test-actors-waiter:
+        condition: service_completed_successfully

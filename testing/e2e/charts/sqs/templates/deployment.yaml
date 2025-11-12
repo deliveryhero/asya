@@ -1,0 +1,65 @@
+{{- if .Values.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sqs
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: sqs
+    app.kubernetes.io/name: sqs
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sqs
+  template:
+    metadata:
+      labels:
+        app: sqs
+    spec:
+      containers:
+      - name: localstack
+        image: localstack/localstack:latest
+        ports:
+        - containerPort: 4566
+          name: edge
+        env:
+        - name: SERVICES
+          value: "sqs"
+        - name: DEFAULT_REGION
+          value: {{ .Values.region | quote }}
+        - name: DEBUG
+          value: "0"
+        - name: PERSISTENCE
+          value: "0"
+        - name: AWS_ACCESS_KEY_ID
+          value: {{ .Values.auth.accessKey | quote }}
+        - name: AWS_SECRET_ACCESS_KEY
+          value: {{ .Values.auth.secretKey | quote }}
+        readinessProbe:
+          httpGet:
+            path: /_localstack/health
+            port: 4566
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /_localstack/health
+            port: 4566
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        resources:
+          limits:
+            memory: 1Gi
+            cpu: 500m
+          requests:
+            memory: 512Mi
+            cpu: 100m
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib/localstack
+      volumes:
+      - name: data
+        emptyDir: {}
+{{- end }}

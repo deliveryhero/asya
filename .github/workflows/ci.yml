@@ -1,0 +1,405 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+    - '**.md'
+  pull_request:
+    branches: [main]
+    paths-ignore:
+    - '**.md'
+
+# concurrency:
+#   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+#   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup environment
+      uses: ./.github/actions/setup-env
+      with:
+        cache-precommit: "true"
+
+    - name: Run linters
+      env:
+        SKIP: no-commit-to-branch
+        VERBOSE: true
+      run: |
+        source .venv/bin/activate
+        make lint
+
+  unit-tests:
+    name: "Unit tests: ${{ matrix.component }}"
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      pull-requests: write
+    strategy:
+      fail-fast: false
+      matrix:
+        component: [asya-crew, asya-gateway, asya-operator, asya-runtime, asya-sidecar]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup environment
+      uses: ./.github/actions/setup-env
+
+    - name: Run unit tests
+      run: |
+        source .venv/bin/activate
+        make -C src/${{ matrix.component }} test-unit
+
+    - name: Upload unit test coverage
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: coverage-unit-${{ matrix.component }}
+        path: .coverage/
+        retention-days: 1
+        include-hidden-files: true
+        if-no-files-found: ignore
+
+  component-tests:
+    name: "Component tests: ${{ matrix.name }}"
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # needs: [lint, unit-tests]
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        # Gateway component tests - test both transports
+        - name: gateway (sqs)
+          component: gateway
+          config_var: ASYA_TRANSPORT
+          config_value: sqs
+        - name: gateway (rabbitmq)
+          component: gateway
+          config_var: ASYA_TRANSPORT
+          config_value: rabbitmq
+        # Runtime component tests - test both handler modes
+        - name: runtime (payload)
+          component: runtime
+          config_var: ASYA_HANDLER_MODE
+          config_value: payload
+        - name: runtime (envelope)
+          component: runtime
+          config_var: ASYA_HANDLER_MODE
+          config_value: envelope
+        # Sidecar component tests - test both transports
+        - name: sidecar (sqs)
+          component: sidecar
+          config_var: ASYA_TRANSPORT
+          config_value: sqs
+        - name: sidecar (rabbitmq)
+          component: sidecar
+          config_var: ASYA_TRANSPORT
+          config_value: rabbitmq
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup environment
+      uses: ./.github/actions/setup-env
+      with:
+        install-docker: "true"
+
+    - name: Build Docker images
+      run: make build-images
+
+    - name: Run component tests
+      run: |
+        source .venv/bin/activate
+        make -C testing/component/${{ matrix.component }} test-one ${{ matrix.config_var }}=${{ matrix.config_value }}
+
+    - name: Upload component test coverage
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: coverage-component-${{ matrix.component }}-${{ matrix.config_value }}
+        path: .coverage/
+        retention-days: 1
+        include-hidden-files: true
+        if-no-files-found: ignore
+
+  integration-tests:
+    name: "Integration tests: ${{ matrix.name }}"
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # needs: [component-tests]
+    permissions:
+      contents: read
+    env:
+      ASYA_TRANSPORT: ${{ matrix.transport }}
+      ASYA_HANDLER_MODE: ${{ matrix.handler_mode }}
+      ASYA_STORAGE: ${{ matrix.storage }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        # Simple integration tests (no parametrization)
+        - name: gateway
+          target: gateway
+        - name: operator
+          target: operator
+        - name: sidecar
+          target: sidecar
+        # Sidecar-runtime tests (2 transports × 2 handler modes)
+        - name: sidecar-runtime (rabbitmq-payload)
+          target: sidecar-runtime
+          transport: rabbitmq
+          handler_mode: payload
+        - name: sidecar-runtime (rabbitmq-envelope)
+          target: sidecar-runtime
+          transport: rabbitmq
+          handler_mode: envelope
+        - name: sidecar-runtime (sqs-payload)
+          target: sidecar-runtime
+          transport: sqs
+          handler_mode: payload
+        - name: sidecar-runtime (sqs-envelope)
+          target: sidecar-runtime
+          transport: sqs
+          handler_mode: envelope
+        # Gateway-actors tests (2 transport-storage combos × 2 handler modes)
+        - name: gateway-actors (rabbitmq-minio-payload)
+          target: gateway-actors
+          transport: rabbitmq
+          storage: minio
+          handler_mode: payload
+        - name: gateway-actors (rabbitmq-minio-envelope)
+          target: gateway-actors
+          transport: rabbitmq
+          storage: minio
+          handler_mode: envelope
+        - name: gateway-actors (sqs-s3-payload)
+          target: gateway-actors
+          transport: sqs
+          storage: s3
+          handler_mode: payload
+        - name: gateway-actors (sqs-s3-envelope)
+          target: gateway-actors
+          transport: sqs
+          storage: s3
+          handler_mode: envelope
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup environment
+      uses: ./.github/actions/setup-env
+      with:
+        install-docker: "true"
+
+    - name: Build Docker images
+      run: make build-images
+
+    - name: Run simple integration tests
+      if: matrix.target == 'gateway' || matrix.target == 'operator' || matrix.target == 'sidecar'
+      run: |
+        source .venv/bin/activate
+        make -C testing/integration/${{ matrix.target }} test
+
+    - name: Run 2-parametrized integration tests (sidecar-runtime)
+      if: matrix.target == 'sidecar-runtime'
+      run: |
+        source .venv/bin/activate
+        make -C testing/integration/${{ matrix.target }} test-one
+
+    - name: Run 3-parametrized integration tests (gateway-actors)
+      if: matrix.target == 'gateway-actors'
+      run: |
+        source .venv/bin/activate
+        make -C testing/integration/${{ matrix.target }} test-one
+
+    - name: Upload integration test coverage
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: coverage-integration-${{ matrix.target }}-${{ matrix.transport || 'default' }}-${{ matrix.storage || 'none'}}-${{
+          matrix.handler_mode || 'all' }}
+        path: .coverage/
+        retention-days: 1
+        include-hidden-files: true
+        if-no-files-found: ignore
+
+  e2e-tests:
+    name: "E2E tests: ${{ matrix.name }}"
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    # needs: [integration-tests]
+    permissions:
+      contents: read
+    env:
+      PROFILE: ${{ matrix.profile }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - name: sqs-s3
+          profile: sqs-s3
+          run_pipeline: true
+          run_operator: true
+          ## For now, focusing on SQS+S3 only
+          # - name: rabbitmq-minio
+          #   profile: rabbitmq-minio
+          #   run_pipeline: true
+          #   run_operator: false
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup environment
+      uses: ./.github/actions/setup-env
+      with:
+        install-kind: "true"
+        install-helm: "true"
+
+    - name: Clean up any existing Kind clusters
+      run: |
+        kind delete cluster --name chart-testing || true
+        kind delete cluster --name asya-e2e-${{ matrix.profile }} || true
+
+    - name: Deploy E2E cluster
+      env:
+        CLUSTER_NAME: asya-e2e-${{ matrix.profile }}
+        PROFILE: ${{ matrix.profile }}
+      run: |
+        ./testing/e2e/scripts/deploy.sh
+
+    - name: "Run E2E tests (operator)"
+      if: matrix.run_operator
+      continue-on-error: true
+      id: e2e-operator
+      env:
+        ASYA_LOG_LEVEL: INFO
+      run: |
+        source .venv/bin/activate
+        cd testing/e2e
+        make test-operator
+
+    - name: "Run E2E tests (non-chaos)"
+      if: matrix.run_pipeline
+      continue-on-error: true
+      id: e2e-non-chaos
+      env:
+        ASYA_LOG_LEVEL: INFO
+      run: |
+        source .venv/bin/activate
+        cd testing/e2e
+        make trigger-tests ASYA_HANDLER_MODE=payload PYTEST_OPTS="-v --log-cli-level=INFO -m 'not chaos'"
+        make trigger-tests ASYA_HANDLER_MODE=envelope PYTEST_OPTS="-v --log-cli-level=INFO -m 'not chaos'"
+
+    - name: "Run E2E: chaos tests (payload only)"
+      if: matrix.run_pipeline
+      continue-on-error: true
+      id: e2e-chaos
+      env:
+        ASYA_LOG_LEVEL: INFO
+      run: |
+        source .venv/bin/activate
+        cd testing/e2e
+        make trigger-tests ASYA_HANDLER_MODE=payload PYTEST_OPTS="-v --log-cli-level=INFO -m chaos"
+
+    - name: Check if e2e tests succeeded
+      if: always()
+      run: |
+        FAILED=0
+        if [[ "${{ steps.e2e-operator.outcome }}" == "failure" ]]; then
+          echo "[-] E2E test suite failed: operator"
+          FAILED=1
+        fi
+        if [[ "${{ steps.e2e-non-chaos.outcome }}" == "failure" ]]; then
+          echo "[-] E2E test suite failed: non-chaos (payload + envelope)"
+          FAILED=1
+        fi
+        if [[ "${{ steps.e2e-chaos.outcome }}" == "failure" ]]; then
+          echo "[-] E2E test suite failed: chaos (payload only)"
+          FAILED=1
+        fi
+        if [[ $FAILED -eq 1 ]]; then
+          exit 1
+        fi
+        echo "[+] All E2E test suites passed"
+
+    - name: Cleanup E2E cluster
+      if: always()
+      run: |
+        kind delete cluster --name asya-e2e-${{ matrix.profile }} || true
+
+    - name: Upload E2E test coverage
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: coverage-e2e-${{ matrix.profile }}
+        path: .coverage/
+        retention-days: 1
+        include-hidden-files: true
+        if-no-files-found: ignore
+
+  coverage-report:
+    name: Generate coverage report
+    runs-on: ubuntu-latest
+    needs: [unit-tests, component-tests, integration-tests, e2e-tests]
+    permissions:
+      actions: read
+      contents: write
+      pull-requests: write
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Download all unit test coverage
+      uses: actions/download-artifact@v4
+      with:
+        pattern: coverage-unit-*
+        path: ./
+        merge-multiple: true
+
+    - name: Download all component test coverage
+      uses: actions/download-artifact@v4
+      with:
+        pattern: coverage-component-*
+        path: ./
+        merge-multiple: true
+
+    - name: Download all integration test coverage
+      uses: actions/download-artifact@v4
+      with:
+        pattern: coverage-integration-*
+        path: ./
+        merge-multiple: true
+
+    - name: Download all E2E test coverage
+      uses: actions/download-artifact@v4
+      with:
+        pattern: coverage-e2e-*
+        path: ./
+        merge-multiple: true
+
+    - name: Debug coverage files
+      run: |
+        echo "[.] Checking downloaded coverage files:"
+        find .coverage -type f \( -name "*.out" -o -name "*.json" \) 2>/dev/null || echo "[!] No coverage files found"
+        echo "[.] .coverage directory structure:"
+        find .coverage -ls 2>/dev/null | head -100 || echo "[!] .coverage directory not found"
+
+    - name: Generate coverage report and comment on PR
+      uses: k1LoW/octocov-action@v1
+      with:
+        github-token: ${{ github.token }}
+        config: .octocov.yml

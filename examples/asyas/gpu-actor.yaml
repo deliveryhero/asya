@@ -1,0 +1,49 @@
+# GPU Actor for AI inference workloads
+# Demonstrates GPU resource allocation, node selection, and tolerations
+
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: llm-actor
+  namespace: default
+spec:
+  transport: rabbitmq
+
+  scaling:
+    enabled: true
+    minReplicas: 0
+    maxReplicas: 5
+    queueLength: 2 # Lower for expensive GPU workloads
+
+  timeout: # Longer timeout for model loading
+    processing: 600 # 10 minutes
+    gracefulShutdown: 60
+
+  workload:
+    kind: Deployment
+    template:
+      spec:
+        containers:
+        - name: asya-runtime
+          image: my-llm-server:latest
+          env:
+          - name: ASYA_HANDLER
+            value: "model_server.inference"
+          resources:
+            requests:
+              cpu: 2000m
+              memory: 8Gi
+            limits:
+              nvidia.com/gpu: 1 # Request 1 GPU
+              cpu: 4000m
+              memory: 16Gi
+
+        # Schedule only on GPU nodes
+        nodeSelector:
+          accelerator: nvidia-tesla-t4
+
+        # Tolerate GPU node taints
+        tolerations:
+        - key: nvidia.com/gpu
+          operator: Exists
+          effect: NoSchedule
