@@ -487,8 +487,12 @@ func (r *Router) sendToErrorQueue(ctx context.Context, originalBody []byte, erro
 	}
 
 	// Preserve original payload if available
+	// Unmarshal json.RawMessage to actual object so it serializes correctly
 	if originalMsg.Payload != nil {
-		errorPayload["original_payload"] = originalMsg.Payload
+		var originalPayload any
+		if err := json.Unmarshal(originalMsg.Payload, &originalPayload); err == nil {
+			errorPayload["original_payload"] = originalPayload
+		}
 	}
 
 	errorMessage := map[string]any{

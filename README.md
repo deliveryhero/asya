@@ -1,8 +1,9 @@
 # Asya🎭
 > `/ˈɑːsjə/`, from **asy**nc **a**ctors
 
+**Kubernetes-native Distributed AI Workflow Framework**. That actually scales.
 
-**Orchestrator-less AI orchestration framework**. That actually scales.
+Key idea: to fully decouple AI/ML/business logic from infrastructure pipelines to enable scalability.
 
 * async actors
 * simple message-passing `A → B → C` instead of request-response `A → B → A → C → A...`
@@ -17,20 +18,157 @@
 <img src="./img/dh-logo.png" alt="Delivery Hero" width="140"/>
 </p>
 
----
-
-**Asya🎭** is not another `@step(gpu=1, image="pytorch/pytorch:2.9.0-cuda12.8-cudnn9-runtime")` framework. It's a Kubernetes-native orchestration layer that completely decouples infrastructure from your data science code. Your pipelines are **data, not code** - routes are part of your business logic, accessible at runtime.
-
-**Under the hood:** Kubernetes Operator manages `AsyncActor` CRD, sidecar routes messages from queue to your Python runtime, KEDA autoscales based on queue depth. Optional MCP gateway for HTTP API access. See [Architecture section](#architecture-sketch--full-docs) for details.
-
-- **For DS teams:** Write functions, control routes.
-- **For Platform teams:** Install once, DS teams deploy via CRDs.
-
 Battle-tested at [Delivery Hero](https://tech.deliveryhero.com/) for global-scale AI-powered image enhancement. Now powering LLM and agentic workflows.
 
+## For DS teams:
+
+No more mixing pipeline with real logic, no DAGs or pipelines with custom decorators `@step` or `@pipeline`, even no pip packages - only pure python functions!
+
+Write only a pure python function:
+```python
+# classifier.py
+def process(payload: dict) -> dict:         # input - a dict
+    if payload.get("ping"):
+        return {"pong": "ok"}               # output - another dict
+    raise ValueError("No ping received!")   # or an error
+```
+
+**Key idea**: Your handler function *mutates* the payload and returns it — not a request/response pattern. The mutated payload flows to the next actor in the pipeline. Think data transformation pipeline, not API endpoint.
+
+
+More AI-friendly - a class handlers:
+```py
+class MyActor:
+    def __init__(self, config: str = "/default/path"):
+        self.model = load_model(config)  # init once
+
+    def process(self, payload: dict) -> dict:
+        return {
+            **payload,
+            "response": self.model.generate(payload["prompt"]),
+        }
+```
+
+Your pipelines are **data, not code**, they are a part of messsages passing between actors, not of a third-party orchestrator.
+
+Routes are dynamic, if needed, they can be modified at runtime (for example, for smart routing by LLM agents) - with env var `ASYA_HANDLER_MODE=envelope`:
+```py
+class MyActor:
+    def __init__(self, config: str = "/default/path"):
+        self.model = load_model(config)  # init once
+
+    def process_with_modifying_route(self, envelope: dict) -> dict:
+        # Envelope is a message passed between actors with structure:
+        # {
+        #  "payload": {...},    # <- your data object
+        #  "route": {           # a route in your "DAG"
+        #     "actors": ["data-loader","llm-agent",...],  # list of actors to hit
+        #     "current": 0       # zero-based pointer to actor
+        #   }
+        # }
+
+        # 1. do inference, mutate payload:
+        payload = envelope["payload"]
+        payload["llm-judge-output"] = model.generate(payload["prompt"])
+
+        # 2. update route by adding extra step and incrementing pointer:
+        route = envelope["route"]
+        route["actors"] += ["extra-step-at-the-end"]  # add more steps
+        route["current"] += 1  # increment current to send it further
+
+        # 3. return mutated envelope:
+        return envelope
+```
+
+<!-- You can always call it as a pure function for testing - no additional code required:
+```python
+>>> envelope = {"payload": {"prompt": "text"}, "route": {"actors": ["data-loader"], "current": 0}}
+>>> process_with_modifying_route(envelope)
+{'payload': {'prompt': 'text', 'llm-judge-output': 'generated'},
+ 'route': {'actors': ['data-loader', 'extra-step-at-the-end'], 'current': 1}}
+``` -->
+
+# For Platform teams:
+Deploy user code via CRDs:
+```yaml
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: image-classifier
+spec:
+  transport: sqs
+  scaling:  # via KEDA
+    minReplicas: 0
+    maxReplicas: 100
+    queueLength: 5
+  workload:
+    type: Deployment
+    template:
+      spec:
+        containers:
+        #- name: asya-sidecar # <- auto-injected container for routing logic
+        - name: asya-runtime  # <- container running user code
+          image: my-classifier:latest
+          env:
+          - name: ASYA_HANDLER
+            value: "my_classifier.MyActor.process"
+```
+
+**Under the hood:** Kubernetes Operator manages `AsyncActor` CRD, sidecar routes messages from queue to your Python runtime, KEDA autoscales based on queue depth. Optional MCP gateway for HTTP API access.
+
+ℹ️ **Soon**, we'll provide a more flexible way to integrate with existing Deployments via binding pattern, see [Roadmap](#project-status) below.
+
+See [Architecture section](#architecture-sketch) for details.
+
+## **Mutating payloads**
+The most natural way of work with Asya🎭 is not via request-response, it's via [Message Passing](https://www.enterpriseintegrationpatterns.com/patterns/messaging/).
+The messages sent from actor to actor (we call them `envelope`) contain `route` (pipeline information) and `payload` (data serving as inputs/outputs to actors).
+
+We recommend to design your system with [Enrichment pattern](https://www.enterpriseintegrationpatterns.com/patterns/messaging/DataEnricher.html), so that actors *append* the results of their work to the payload, not overwrite it (however, it's not a requirement of the system).
+
+Suppose the following route of actors: `["data-loader", "recipe-generator", "llm-judge", "post-processor"]`.
+Payloads passing between actors would be:
+```jsonc
+// input payload for actor 0 'data-loader':
+{
+    "product_id": "12345"
+}
+
+// output of 'data-loader' = input for 'recipe-generator':
+{
+    "product_id": "12345",
+    // product details are retrieved by previous step:
+    "product_name": "Ice-cream Bourgignon",
+    "product_description": "A weird mix of soft ice-cream and French Beef Bourgignon"
+}
+
+// output of 'recipe-generator' = input for 'llm-judge':
+{
+    "product_id": "12345",
+    "product_name": "Ice-cream Bourgignon",
+    "product_description": "A weird mix of soft ice-cream and French Beef Bourgignon",
+    // recipe generated by 'recipe-generator':
+    "recipe": "Take a vanilla-tasted soft ice-cream, cook it in tomato sauce for at least 3 hours"
+}
+
+// output of 'llm-judge' = input for 'post-processor':
+{
+    "product_id": "12345",
+    "product_name": "Ice-cream Bourgignon",
+    "product_description": "A weird mix of soft ice-cream and French Beef Bourgignon",
+    "recipe": "Take a vanilla-tasted soft ice-cream, cook it in tomato sauce for at least 3 hours",
+    // evaluatio generated by 'llm-judge':
+    "recipe_eval": "INVALID",
+    "recipe_eval_details": "The recipe is nonesense"
+}
+```
+At the end of the route, the payload will have all necessary fields for further processing.
+
+This allows to better decouple actors and design them in a more abstract way (for example, `data-loader` needs only `product_id` to retrieve necessary data, however `llm-judge` does not care about it - all it needs is `product_name` and `product_description`, etc). This information is preserved in payload (1) for tracking purposes and (2) for the routing flexibility.
+
 ---
 
-## Problem
+## Problem Definition
 
 You need to run AI/ML workloads in production, but existing solutions force bad tradeoffs:
 
@@ -58,92 +196,33 @@ You need to run AI/ML workloads in production, but existing solutions force bad 
 </tr>
 </table>
 
----
+### Why Async Actors?
 
-## Solution
+**The root cause**: Traditional architectures treat AI workloads as HTTP services, but AI workloads are **batch processing jobs** with unique requirements:
+- Expensive GPU compute that sits idle 80% of the time
+- Mixed latencies (10ms preprocessing + 30s LLM inference in same pipeline)
+- Bursty traffic patterns (10x spikes during business hours, silence at night)
+- Multi-step dependencies that need orchestration
 
-Asya🎭 is an **async actor** framework built on Kubernetes primitives:
+**Async actors invert control**: Instead of clients holding state and orchestrating workflows, **messages carry their own routes**. Instead of always-on servers waiting for requests, **actors scale based on work available**.
 
-```yaml
-# Define your actor with a CRD
-apiVersion: asya.sh/v1alpha1
-kind: AsyncActor
-metadata:
-  name: image-classifier
-spec:
-  transport: sqs          # Queues are auto-created
-  scaling:                # Same configuration as KEDA
-    minReplicas: 0        # Scale to zero when idle
-    maxReplicas: 100      # Scale up to 100 replicas
-    queueLength: 5        # 1 replica per 5 messages
-  workload:
-    type: Deployment      # Standard Deployment config
-    template:
-      spec:
-        containers:
-        - name: asya-runtime             # main container, Asya🎭 will
-          image: my-classifier:latest    # inject entrypoint asya_runtime.py
-          env:                           # and add sidecar container asya-sidecar
-          - name: ASYA_HANDLER
-            value: "classifier.process"  # Your code
-        # also, Asya🎭 will inject 'asya-sidecar' container for handling messaging
-        # and communicating to asya-runtime via a Unix socket
-```
+### How It Solves Each Problem:
 
-<!-- > ℹ️ If you're feeling slightly uncomfortable with the new CRD `AsyncActor` in your cluster and wondering how we're planning to integrate with other K8s-native tools, wait a little - soon we'll support more composable patterns. -->
+**1. Eliminates vendor lock-in and rate limits**
 
-**What you get**:
-- Queue-based message routing with at-least-once delivery (no rate limits, natural backpressure)
-- KEDA autoscaling from 0→N based on queue depth
-- Built-in reliability: exponential backoff, dead-letter queues, poison message handling
-- Sidecar handles infrastructure via Unix socket (<1ms IPC), your code focuses on business logic (no pip dependencies, complete decoupling)
-- Multi-step pipelines via declarative routes (no DAG code)
+Queue-based routing removes HTTP rate limits entirely—process as fast as your infrastructure allows. Backpressure is automatic: queue depth signals system capacity, no manual throttling needed. At-least-once delivery guarantees no data loss during provider switches. Change providers by swapping Docker image, not rewriting pipeline orchestration.
 
+**2. Scales to zero, eliminates idle waste**
 
-**What you write**:
+KEDA monitors queue depth: 0 messages = 0 pods = $0 cost. Queue fills → spin up to `maxReplicas` in seconds. Each actor scales independently: data-loader runs on cheap CPU pods, LLM runs on expensive GPU pods—only when needed. No warm pools, no idle GPUs bleeding $1000s/month waiting for work.
 
-```python
-# classifier.py
-def process(payload: dict) -> dict:         # input - a dict
-    if payload.get("ping"):
-        return {"pong": "ok"}               # output - another dict
-    raise ValueError("No ping received!")   # or error
-```
+**3. Removes orchestration complexity**
 
-Or more AI-y:
-```python
-# classifier.py
-model = load_model()  # global variable
+Routes are **data**, not code: `{"route": {"actors": ["preprocess", "llm", "postprocess"]}}`. Multi-step pipelines work declaratively—no Airflow/Temporal DAG code for simple flows. Errors route to `error-end` automatically: exponential backoff, dead-letter queues, poison message handling built-in. Your code is pure functions (`dict → dict`)—testable without any infrastructure running.
 
-def process(payload: dict) -> dict:
-    image = load_image(payload["url"])
-    result = model.predict(image)
-    return {
-        **payload,
-        "label": result.label,      # we recommend to mutate payload monotonically
-        "confidence": result.score, # (enrichment pattern) for better composability
-    }
-```
+**4. Decouples infrastructure from business logic**
 
-Or with class:
-```python
-# classifier.py
-class MyModel:
-    def __init__(self, model_path="/model.pkl"):  # parameters with default values
-        self.model = load_model(model_path)
-
-    def process(self, payload: dict) -> dict:
-        image = load_image(payload["url"])
-        result = self.model.predict(image)  # no global variables, class attributes
-        return {
-            **payload,
-            "label": result.label,
-            "confidence": result.score,
-        }
-```
-
-
-**Key concept**: Your function mutates the payload and returns it—not a request/response pattern. The mutated payload flows to the next actor in the pipeline. Think data transformation pipeline, not API endpoint.
+Sidecar handles queues/routing via Unix socket (<1ms IPC overhead). Your code has **zero pip dependencies** for queues, retries, scaling, monitoring. Same code runs everywhere: local pytest, Docker Compose, staging, production—zero changes required. Deploy new models by changing `image:` tag in CRD, not touching queue/routing/scaling code.
 
 ---
 
@@ -168,7 +247,7 @@ class MyModel:
 
 ---
 
-## Architecture (sketch & full docs)
+## Architecture Sketch
 
 **See**: [Full Architecture Documentation](docs/architecture/) for detailed component design, protocols, and deployment patterns.
 

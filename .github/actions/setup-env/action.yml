@@ -111,3 +111,5 @@ runs:
     uses: helmfile/helmfile-action@v1
     with:
       helmfile-version: v0.169.2
+      helm-version: v3.16.3
+      helm-plugins: https://github.com/databus23/helm-diff --version v3.8.1
