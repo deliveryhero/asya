@@ -128,7 +128,7 @@ We recommend to design your system with [Enrichment pattern](https://www.enterpr
 
 Suppose the following route of actors: `["data-loader", "recipe-generator", "llm-judge", "post-processor"]`.
 Payloads passing between actors would be:
-```json
+```jsonc
 // input payload for actor 0 'data-loader':
 {
     "product_id": "12345"
