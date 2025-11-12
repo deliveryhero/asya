@@ -515,6 +515,7 @@ Processing: 100% |████████████████████�
 
 ### Common Commands
 ```bash
+make build                # Build Go code
 make build-images         # Build all images
 make test-unit            # Unit tests (Go + Python)
 make test-integration     # Integration tests (requires Docker)

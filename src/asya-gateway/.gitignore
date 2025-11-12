@@ -1,6 +1,6 @@
 # Binaries
 bin/
-gateway
+/gateway
 *.exe
 *.exe~
 *.dll
