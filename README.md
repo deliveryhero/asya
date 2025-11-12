@@ -11,11 +11,11 @@
 * no central orchestrator/pipeline/DAG/flow - message knows the route
 * zero pip dependencies (infra completely decoupled from your code)
 
-<p align="center">
-  <img src="./img/dh-logo.png" alt="Delivery Hero" width="120"/>
+<p align="left">
+📘 <a href="docs/">Docs</a> • 🏗️ <a href="docs/architecture/">Architecture</a> • 🔧 <a href="examples/">Examples</a> • 💻 <a href="src/">Source</a> • ⚙️ <a href="deploy/helm-charts/">Charts</a> • 🧪 <a href="testing/">Testing</a>
+<br/><br/>
+<img src="./img/dh-logo.png" alt="Delivery Hero" width="140"/>
 </p>
-
-📘 [Docs](docs/) • 🏗️ [Architecture](docs/architecture/) • 🔧 [Examples](examples/) • 💻 [Source](src/) • ⚙️ [Charts](deploy/helm-charts/) • 🧪 [Testing](testing/)
 
 ---
 
@@ -522,19 +522,16 @@ make test-e2e             # E2E tests (requires Kind)
 make lint                 # Linters with auto-fix
 ```
 
-**Contributing**: See [CONTRIBUTING.md](CONTRIBUTING.md) for development workflow.
-
----
 
 ## Contributing
 
-To contribute, please read our [contributing docs](CONTRIBUTING.md).
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development workflow.
 
 ## License
 
 Copyright © 2025 Delivery Hero SE
 
-Contents of this repository are licensed under the Apache-2.0 [License](LICENSE).
+Contents of this repository are licensed under the Apache 2.0 [License](LICENSE).
 
 ---
 
