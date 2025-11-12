@@ -1,8 +1,9 @@
 # Asya🎭
 > `/ˈɑːsjə/`, from **asy**nc **a**ctors
 
+**Kubernetes-native Distributed AI Workflow Framework**. That actually scales.
 
-**Orchestrator-less AI orchestration framework**. That actually scales.
+Key idea: to fully decouple AI/ML/business logic from infrastructure pipelines to enable scalability.
 
 * async actors
 * simple message-passing `A → B → C` instead of request-response `A → B → A → C → A...`
@@ -17,20 +18,143 @@
 <img src="./img/dh-logo.png" alt="Delivery Hero" width="140"/>
 </p>
 
----
-
-**Asya🎭** is not another `@step(gpu=1, image="pytorch/pytorch:2.9.0-cuda12.8-cudnn9-runtime")` framework. It's a Kubernetes-native orchestration layer that completely decouples infrastructure from your data science code. Your pipelines are **data, not code** - routes are part of your business logic, accessible at runtime.
-
-**Under the hood:** Kubernetes Operator manages `AsyncActor` CRD, sidecar routes messages from queue to your Python runtime, KEDA autoscales based on queue depth. Optional MCP gateway for HTTP API access. See [Architecture section](#architecture-sketch--full-docs) for details.
-
-- **For DS teams:** Write functions, control routes.
-- **For Platform teams:** Install once, DS teams deploy via CRDs.
-
 Battle-tested at [Delivery Hero](https://tech.deliveryhero.com/) for global-scale AI-powered image enhancement. Now powering LLM and agentic workflows.
 
+## For DS teams:
+
+No more mixing pipeline with real logic, no DAGs or pipelines with ~~`@step(gpu=1, image="pytorch/pytorch:2.9.0-cuda12.8-cudnn9-runtime")`~~, even no pip packages - only pure python functions!
+
+
+Write only code:
+```py
+class MyActor:
+    def __init__(self, config: str = "/default/path"):
+        self.model = load_model(config)  # init once
+
+    def process(self, payload: dict) -> dict:
+        return {
+            **payload,
+            "response": self.model.generate(payload["prompt"]),
+        }
+```
+
+Your pipelines are **data, not code**, they are a part of messsages passing between actors, not of a third-party orchestrator.
+
+Routes are dynamic, if needed, they can be modified at runtime (for example, for smart routing by LLM agents) - with env var `ASYA_HANDLER_MODE=envelope`:
+```py
+class MyActor:
+    def __init__(self, config: str = "/default/path"):
+        self.model = load_model(config)  # init once
+
+    def process_with_modifying_route(self, envelope: dict) -> dict:
+        # Envelope is a message passed between actors with structure:
+        # {
+        #  "payload": {...},    # <- your data object
+        #  "route": {           # a route in your "DAG"
+        #     "actors": ["data-loader","llm-agent",...],  # list of actors to hit
+        #     "current": 0       # zero-based pointer to actor
+        #   }
+        # }
+
+        # 1. do inference, mutate payload:
+        payload = envelope["payload"]
+        payload["llm-judge-output"] = model.generate(payload["prompt"])
+        
+        # 2. update route by adding extra step and incrementing pointer:
+        route = envelope["route"]
+        route["actors"] += ["extra-step-at-the-end"]  # add more steps
+        route["current"] += 1  # increment current to send it further
+        
+        # 3. return mutated envelope:
+        return envelope
+```
+
+You can always call it as a pure function for testing - no additional code required!
+<!-- ```python
+>>> envelope = {"payload": {"prompt": "text"}, "route": {"actors": ["data-loader"], "current": 0}}
+>>> process_with_modifying_route(envelope)
+{'payload': {'prompt': 'text', 'llm-judge-output': 'generated'},
+ 'route': {'actors': ['data-loader', 'extra-step-at-the-end'], 'current': 1}}
+``` -->
+
+# For Platform teams:
+Deploy user code via CRDs:
+```yaml
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: image-classifier
+spec:
+  transport: sqs
+  scaling:  # via KEDA
+    minReplicas: 0
+    maxReplicas: 100
+    queueLength: 5
+  workload:
+    type: Deployment
+    template:
+      spec:
+        containers:
+        #- name: asya-sidecar # <- auto-injected container for routing logic
+        - name: asya-runtime  # <- container running user code
+          image: my-classifier:latest
+          env:
+          - name: ASYA_HANDLER
+            value: "my_classifier.MyActor.process"
+```
+
+**Under the hood:** Kubernetes Operator manages `AsyncActor` CRD, sidecar routes messages from queue to your Python runtime, KEDA autoscales based on queue depth. Optional MCP gateway for HTTP API access.
+
+ℹ️ **Soon**, we'll provide a more flexible way to integrate with existing Deployments via binding pattern, see [Roadmap](#project-status) below.
+
+See [Architecture section](#architecture-sketch--full-docs) for details.
+
+## **Mutating payloads**
+The most natural way of work with Asya🎭 is not via request-response, it's via [Message Passing](https://www.enterpriseintegrationpatterns.com/patterns/messaging/).
+The messages sent from actor to actor (we call them `envelope`) contain `route` (pipeline information) and `payload` (data serving as inputs/outputs to actors).
+
+We recommend to design your system with [Enrichment pattern](https://www.enterpriseintegrationpatterns.com/patterns/messaging/DataEnricher.html), so that actors *append* the results of their work to the payload, not overwrite it (however, it's not a requirement of the system).
+
+Suppose the following route of actors: `["data-loader", "llm-agent", "llm-judge", "post-processor"]`. 
+Payloads passing between actors would be:
+```json
+// input payload for actor 0 'data-loader':
+{
+    "product_id": "12345"
+}
+
+// output of 'data-loader' = input for 'llm-agent':
+{
+    "product_id": "12345",
+    // product details are retrieved by previous step:
+    "product_name": "Ice-cream Bourgignon",
+    "product_description": "A weird mix of soft ice-cream and French Beef Bourgignon"
+}
+
+// output of 'llm-agent' = input for 'llm-judge':
+{
+    "product_id": "12345",
+    "product_name": "Ice-cream Bourgignon",
+    "product_description": "A weird mix of soft ice-cream and French Beef Bourgignon",
+    // recipe generated by 'llm-agent':
+    "recipe": "Take a vanilla-tasted soft ice-cream, cook it in tomato sauce for at least 3 hours"
+}
+
+// output of 'llm-judge' = input for 'post-processor':
+{
+    "product_id": "12345",
+    "product_name": "Ice-cream Bourgignon",
+    "product_description": "A weird mix of soft ice-cream and French Beef Bourgignon",
+    "recipe": "Take a vanilla-tasted soft ice-cream, cook it in tomato sauce for at least 3 hours",
+    // recipe generated by 'llm-agent':
+    "recipe_eval": "INVALID",
+    "recipe_eval_details": "The recipe is nonesense"
+}
+```
+
 ---
 
-## Problem
+## Problem Definition
 
 You need to run AI/ML workloads in production, but existing solutions force bad tradeoffs:
 
@@ -61,36 +185,6 @@ You need to run AI/ML workloads in production, but existing solutions force bad 
 ---
 
 ## Solution
-
-Asya🎭 is an **async actor** framework built on Kubernetes primitives:
-
-```yaml
-# Define your actor with a CRD
-apiVersion: asya.sh/v1alpha1
-kind: AsyncActor
-metadata:
-  name: image-classifier
-spec:
-  transport: sqs          # Queues are auto-created
-  scaling:                # Same configuration as KEDA
-    minReplicas: 0        # Scale to zero when idle
-    maxReplicas: 100      # Scale up to 100 replicas
-    queueLength: 5        # 1 replica per 5 messages
-  workload:
-    type: Deployment      # Standard Deployment config
-    template:
-      spec:
-        containers:
-        - name: asya-runtime             # main container, Asya🎭 will
-          image: my-classifier:latest    # inject entrypoint asya_runtime.py
-          env:                           # and add sidecar container asya-sidecar
-          - name: ASYA_HANDLER
-            value: "classifier.process"  # Your code
-        # also, Asya🎭 will inject 'asya-sidecar' container for handling messaging
-        # and communicating to asya-runtime via a Unix socket
-```
-
-<!-- > ℹ️ If you're feeling slightly uncomfortable with the new CRD `AsyncActor` in your cluster and wondering how we're planning to integrate with other K8s-native tools, wait a little - soon we'll support more composable patterns. -->
 
 **What you get**:
 - Queue-based message routing with at-least-once delivery (no rate limits, natural backpressure)

@@ -8,11 +8,11 @@ Tests the two-tier error handling strategy:
 
 Test Scenarios:
 - test_error_goes_to_error_end_when_available: Normal case - error-end handles errors
-- test_error_goes_to_dlq_when_error_end_unavailable: Fallback - DLQ handles errors
+- test_error_goes_to_dlq_when_error_end_unavailable: Fallback - DLQ handles errors (RabbitMQ only)
 
 Transport Support:
-- ✅ RabbitMQ: Full support
-- ✅ SQS: Full support with LocalStack
+- ✅ RabbitMQ: Full support (both tests)
+- ✅ SQS: Application-level error handling only (DLQ test skipped - SQS is store-and-forward)
 """
 
 import logging
@@ -76,7 +76,7 @@ def test_error_goes_to_error_end_when_available(e2e_helper, kubectl):
     kubectl.run("patch asyncactor error-end -n asya-e2e --type=json -p '[{\"op\":\"replace\",\"path\":\"/spec/scaling/enabled\",\"value\":false},{\"op\":\"replace\",\"path\":\"/spec/workload/replicas\",\"value\":0}]'")
 
     logger.info("Waiting for ScaledObject to be deleted")
-    kubectl.run("wait --for=delete scaledobject/error-end -n asya-e2e --timeout=30s || true")
+    kubectl.run("wait --for=delete scaledobject/error-end -n asya-e2e --timeout=30s", check=False)
 
     logger.info("Waiting for deployment to scale to 0")
     kubectl.wait_for_replicas("error-end", "asya-e2e", 0, timeout=30)
@@ -127,14 +127,20 @@ def test_error_goes_to_error_end_when_available(e2e_helper, kubectl):
         f"DLQ {dlq_name} should be empty when error-end handles the error"
     logger.info("[+] DLQ is empty - error was handled by error-end")
 
-    # Re-enable KEDA scaling for error-end
+    # Re-enable KEDA scaling for error-end and reset replicas
     logger.info("Re-enabling KEDA scaling for error-end")
-    kubectl.run("patch asyncactor error-end -n asya-e2e --type=json -p '[{\"op\":\"replace\",\"path\":\"/spec/scaling/enabled\",\"value\":true}]'")
+    kubectl.run("patch asyncactor error-end -n asya-e2e --type=json -p '[{\"op\":\"replace\",\"path\":\"/spec/scaling/enabled\",\"value\":true},{\"op\":\"replace\",\"path\":\"/spec/workload/replicas\",\"value\":1}]'")
 
     logger.info("[+] Test passed - application-level error handling working")
 
 
 @pytest.mark.slow
+@pytest.mark.skipif(
+    os.getenv("ASYA_TRANSPORT") == "sqs",
+    reason="SQS accepts messages even when consumers are unavailable (store-and-forward). "
+           "Message goes to error-end queue instead of DLQ when error-end deployment is scaled to 0. "
+           "This test only works for RabbitMQ where publishing can fail when consumers are unavailable."
+)
 def test_error_goes_to_dlq_when_error_end_unavailable(e2e_helper, kubectl):
     """
     E2E: Test errors go to DLQ when error-end is unavailable.
@@ -153,6 +159,9 @@ def test_error_goes_to_dlq_when_error_end_unavailable(e2e_helper, kubectl):
     - error-end queue remains empty
 
     This is the FALLBACK case - transport handles errors when app can't.
+
+    NOTE: Only works with RabbitMQ. SQS is store-and-forward - messages are accepted
+    even when no consumers are available, so errors go to error-end queue, not DLQ.
     """
     transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
     transport_client = _get_transport_client(transport)
@@ -169,7 +178,7 @@ def test_error_goes_to_dlq_when_error_end_unavailable(e2e_helper, kubectl):
     kubectl.run("patch asyncactor error-end -n asya-e2e --type=json -p '[{\"op\":\"replace\",\"path\":\"/spec/scaling/enabled\",\"value\":false},{\"op\":\"replace\",\"path\":\"/spec/workload/replicas\",\"value\":0}]'")
 
     logger.info("Waiting for ScaledObject to be deleted")
-    kubectl.run("wait --for=delete scaledobject/error-end -n asya-e2e --timeout=30s || true")
+    kubectl.run("wait --for=delete scaledobject/error-end -n asya-e2e --timeout=30s", check=False)
 
     logger.info("Waiting for deployment to scale to 0")
     kubectl.wait_for_replicas("error-end", "asya-e2e", 0, timeout=30)
