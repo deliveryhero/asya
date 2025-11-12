@@ -70,12 +70,12 @@ class MyActor:
         # 1. do inference, mutate payload:
         payload = envelope["payload"]
         payload["llm-judge-output"] = model.generate(payload["prompt"])
-        
+
         # 2. update route by adding extra step and incrementing pointer:
         route = envelope["route"]
         route["actors"] += ["extra-step-at-the-end"]  # add more steps
         route["current"] += 1  # increment current to send it further
-        
+
         # 3. return mutated envelope:
         return envelope
 ```
@@ -126,7 +126,7 @@ The messages sent from actor to actor (we call them `envelope`) contain `route` 
 
 We recommend to design your system with [Enrichment pattern](https://www.enterpriseintegrationpatterns.com/patterns/messaging/DataEnricher.html), so that actors *append* the results of their work to the payload, not overwrite it (however, it's not a requirement of the system).
 
-Suppose the following route of actors: `["data-loader", "recipe-generator", "llm-judge", "post-processor"]`. 
+Suppose the following route of actors: `["data-loader", "recipe-generator", "llm-judge", "post-processor"]`.
 Payloads passing between actors would be:
 ```json
 // input payload for actor 0 'data-loader':
