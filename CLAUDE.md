@@ -139,12 +139,50 @@ Development and deployment utilities including scripts for manifest generation, 
 **Building**: `make build` (all components), `make build-images` (Docker images), `make build-go` (Go only)
 
 **Testing**:
-- `make test-unit` - Unit tests (Go + Python)
-- `make test-component` - Component tests (single component + lightweight mocks in Docker Compose)
-- `make test-integration` - Integration tests (multi-component in Docker Compose)
-- `make test-e2e` - End-to-end tests (full stack in Kind cluster)
-- `make test` - All unit + integration tests
-- `make cov` - All tests with coverage reports
+```bash
+# Run all unit tests (Go + Python)
+make test-unit
+
+# Run unit tests for specific components
+make -C src/asya-sidecar test-unit    # Go sidecar unit tests only
+make -C src/asya-gateway test-unit    # Go gateway unit tests only
+make -C src/asya-runtime test-unit    # Python runtime unit tests only
+
+# Run all component tests
+make test-component
+
+# Run all integration tests (requires Docker Compose)
+make test-integration
+
+# Run specific integration test suites
+make -C testing/integration/sidecar-runtime test   # Sidecar ↔ Runtime
+make -C testing/integration/gateway-actors test    # Gateway ↔ Actors
+
+# Run all tests (unit + integration)
+make test
+
+# Run end-to-end tests (requires Kind cluster)
+make test-e2e
+
+# Clean up integration test Docker resources
+make clean-integration
+```
+
+**Code Coverage**:
+
+The project uses **octocov** for code coverage reporting - a fully open-source solution that runs in GitHub Actions without external services.
+
+```bash
+# Run all tests with coverage and display summary (recommended)
+make cov
+
+# Run coverage for specific components
+make -C src/asya-sidecar cov-unit   # Sidecar (Go)
+make -C src/asya-gateway cov-unit   # Gateway (Go)
+make -C src/asya-operator cov-unit  # Operator (Go)
+make -C src/asya-runtime cov-unit   # Runtime (Python)
+make -C src/asya-crew cov-unit      # System actors (Python)
+```
 
 **Linting**: `make lint` (auto-fix enabled via pre-commit)
 

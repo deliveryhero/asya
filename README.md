@@ -71,7 +71,7 @@ kind: AsyncActor
 metadata:
   name: image-classifier
 spec:
-  transport: sqsq         # Queues are auto-created
+  transport: sqs          # Queues are auto-created
   scaling:                # Same configuration as KEDA
     minReplicas: 0        # Scale to zero when idle
     maxReplicas: 100      # Scale up to 100 replicas

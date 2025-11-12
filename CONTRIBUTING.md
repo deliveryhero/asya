@@ -37,22 +37,22 @@ The `install-dev` target installs dependencies for local development.
 
 ```bash
 # Run all unit tests (Go + Python)
-make unit-tests
+make test-unit
 
 # Run unit tests for specific components
-make unit-tests-sidecar    # Go sidecar unit tests only
-make unit-tests-gateway    # Go gateway unit tests only
-make unit-tests-runtime    # Python runtime unit tests only
+make -C src/asya-sidecar test-unit    # Go sidecar unit tests only
+make -C src/asya-gateway test-unit    # Go gateway unit tests only
+make -C src/asya-runtime test-unit    # Python runtime unit tests only
 
-# Run all integration tests (requires Docker compose)
-make integration-tests
+# Run all integration tests (requires Docker Compose)
+make test-integration
 
 # Run specific integration test suites
-make integration-tests-sidecar   # E2E: Sidecar ↔ Runtime via RabbitMQ
-make integration-tests-gateway   # E2E: Gateway ↔ Actors via RabbitMQ
+make -C testing/integration/sidecar-runtime test   # Sidecar ↔ Runtime
+make -C testing/integration/gateway-actors test    # Gateway ↔ Actors
 
 # Run all tests (unit + integration)
-make test-all
+make test
 
 # Clean up integration test Docker resources
 make clean-integration
@@ -65,24 +65,24 @@ The project uses **octocov** for code coverage reporting - a fully open-source s
 **Quick Coverage Check:**
 ```bash
 # Run all tests with coverage and display summary (recommended)
-make coverage
+make cov
 
 # Run coverage for specific components
-make -C src/asya-sidecar coverage   # Sidecar (Go)
-make -C src/asya-gateway coverage   # Gateway (Go)
-make -C operator coverage           # Operator (Go)
-make -C src/asya-runtime coverage   # Runtime (Python)
-make -C src/asya-crew coverage    # System actors (Python)
+make -C src/asya-sidecar cov-unit   # Sidecar (Go)
+make -C src/asya-gateway cov-unit   # Gateway (Go)
+make -C src/asya-operator cov-unit  # Operator (Go)
+make -C src/asya-runtime cov-unit   # Runtime (Python)
+make -C src/asya-crew cov-unit      # System actors (Python)
 ```
 
-The `make coverage` command:
+The `make cov` command:
 - Runs all tests with coverage enabled
 - Displays a clean summary for each component
 - Prevents coverage output from getting lost in verbose test logs
 - Generates HTML reports for detailed analysis
 
 **Local Development:**
-- Use `make coverage` to see coverage summaries
+- Use `make cov` to see coverage summaries
 - Tests display coverage stats in the terminal
 - No configuration needed
 
@@ -93,7 +93,7 @@ The `make coverage` command:
 
 **Viewing detailed coverage reports:**
 ```bash
-# After running 'make coverage', HTML reports are generated:
+# After running 'make cov', HTML reports are generated:
 # - Python: open src/asya-runtime/htmlcov/index.html
 # - Go: go tool cover -html=src/asya-sidecar/coverage.out
 ```

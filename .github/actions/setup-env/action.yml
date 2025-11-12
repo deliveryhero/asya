@@ -48,12 +48,12 @@ runs:
     uses: actions/cache@v4
     with:
       path: ~/go/bin/golangci-lint
-      key: golangci-lint-${{ runner.os }}-v2.5.0
+      key: golangci-lint-${{ runner.os }}-v1.59.1
 
   - name: Install golangci-lint
     shell: bash
     run: |
-      GOLANGCI_LINT_VERSION=v2.5.0
+      GOLANGCI_LINT_VERSION=v1.59.1
       INSTALL_SCRIPT_SHA256="9e99d38f3213411a1b6175e5b535c72e37c7ed42ccf251d331385a3f97b695e7"
 
       if [ ! -f ~/go/bin/golangci-lint ]; then
