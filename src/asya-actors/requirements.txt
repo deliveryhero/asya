@@ -1,4 +1,0 @@
-requests>=2.31.0
-
-# MinIO/S3 integration:
-boto3>=1.34.0

@@ -1,4 +1,0 @@
-# Integration test dependencies for sidecar
-pytest>=8.0.0
-requests>=2.31.0
-pika>=1.3.0
