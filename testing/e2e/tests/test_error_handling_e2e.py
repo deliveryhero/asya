@@ -131,6 +131,14 @@ def test_error_goes_to_error_end_when_available(e2e_helper, kubectl):
     logger.info("Re-enabling KEDA scaling for error-end")
     kubectl.run("patch asyncactor error-end -n asya-e2e --type=json -p '[{\"op\":\"replace\",\"path\":\"/spec/scaling/enabled\",\"value\":true},{\"op\":\"replace\",\"path\":\"/spec/workload/replicas\",\"value\":1}]'")
 
+    # Wait for ScaledObject to be recreated
+    logger.info("Waiting for ScaledObject to be recreated")
+    kubectl.run("wait --for=condition=Ready scaledobject/error-end -n asya-e2e --timeout=30s", check=False)
+
+    # Wait for error-end pod to be ready
+    logger.info("Waiting for error-end pod to be ready")
+    kubectl.wait_for_replicas("error-end", "asya-e2e", 1, timeout=30)
+
     logger.info("[+] Test passed - application-level error handling working")
 
 

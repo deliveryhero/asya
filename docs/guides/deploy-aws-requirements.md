@@ -6,11 +6,12 @@ Infrastructure requirements for deploying Asya🎭 framework on Amazon EKS with 
 
 ## Component Categories
 
-- **Asya🎭-Critical:** Required for Asya🎭 framework to function
+- **Critical:** Required for Asya🎭 to function
 - **Standard Kubernetes:** Default EKS components, not Asya🎭-specific
 - **Optional:** Enhancements for specific use cases
 
-## Asya🎭-Critical Components
+
+## Critical Components
 
 ### 1. EKS Pod Identity Agent
 
@@ -95,6 +96,12 @@ Infrastructure requirements for deploying Asya🎭 framework on Amazon EKS with 
   - S3: `GetObject`, `PutObject`, `DeleteObject`, `ListBucket` on results bucket
   - Additional permissions needed by application code
 - Pod Identity associations: created per-actor by operator
+
+**asya-gateway:**
+- Trust policy: Pod Identity (`pods.eks.amazonaws.com`)
+- Permissions: `sqs:SendMessage`, `sqs:GetQueueUrl` on `asya-*` (sends messages to first actor in route)
+- Pod Identity association: namespace where actors are deployed (e.g., `asya-prod`, `asya-e2e`), service account `asya-gateway`
+- Note: Gateway is deployed in the same namespace as actors, NOT in `asya-system` with the operator
 
 ### 9. S3 Bucket
 
@@ -256,6 +263,7 @@ Infrastructure requirements for deploying Asya🎭 framework on Amazon EKS with 
 **IAM for Asya🎭:**
 - [ ] asya-operator role + Pod Identity association
 - [ ] asya-actor role (operator creates associations per-actor)
+- [ ] asya-gateway role + Pod Identity association
 
 **Security:**
 - [ ] IAM policies scoped to `asya-*`
@@ -280,6 +288,7 @@ kubectl get pods -n keda -l app.kubernetes.io/name=keda-operator
 ```bash
 aws iam get-role --role-name asya-operator
 aws iam get-role --role-name asya-actor
+aws iam get-role --role-name asya-gateway
 ```
 
 **Pod Identity associations:**

@@ -1,5 +1,5 @@
 
-# SQS Authentication Architecture (Solution C: Shared Role)
+# SQS Authentication Architecture (Shared Role)
 
 ## Overview
 
@@ -10,7 +10,7 @@ This document describes the authentication architecture for SQS transport in the
 
 ## Design Decision
 
-**Solution C: Shared Role Approach**
+**Shared Role Approach**
 
 - ✅ Single IAM role created manually (one-time setup)
 - ✅ Operator creates per-actor ServiceAccounts pointing to shared role
