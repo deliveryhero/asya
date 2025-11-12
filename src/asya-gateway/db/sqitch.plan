@@ -1,6 +1,0 @@
-%syntax-version=1.0.0
-%project=asya-gateway
-%uri=https://github.com/aimc/asya
-
-001_initial_schema 2025-10-05T22:50:00Z Asya Team <team@asya.io> # Initial schema for jobs table
-002_add_progress_tracking [001_initial_schema] 2025-10-16T00:00:00Z Asya Team <team@asya.io> # Add progress tracking columns

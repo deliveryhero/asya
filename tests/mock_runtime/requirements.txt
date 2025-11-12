@@ -1,3 +1,0 @@
-# Dependencies for mock runtime handlers
-# Currently no external dependencies - handlers use stdlib only
-# Add dependencies here if future test handlers need them
