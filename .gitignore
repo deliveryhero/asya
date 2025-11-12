@@ -212,3 +212,8 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Go binaries
+src/asya-operator/main
+src/asya-sidecar/sidecar
+src/asya-gateway/gateway
