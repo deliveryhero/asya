@@ -1,7 +1,3 @@
-<table>
-<tr>
-<td width="70%">
-
 # Asya🎭
 > `/ˈɑːsjə/`, from **asy**nc **a**ctors
 
@@ -15,14 +11,9 @@
 * no central orchestrator/pipeline/DAG/flow - message knows the route
 * zero pip dependencies (infra completely decoupled from your code)
 
-</td>
-<td width="30%" align="center">
-
-[![dh](./img/dh-logo.png)](#)
-
-</td>
-</tr>
-</table>
+<p align="center">
+  <img src="./img/dh-logo.png" alt="Delivery Hero" width="120"/>
+</p>
 
 📘 [Docs](docs/) • 🏗️ [Architecture](docs/architecture/) • 🔧 [Examples](examples/) • 💻 [Source](src/) • ⚙️ [Charts](deploy/helm-charts/) • 🧪 [Testing](testing/)
 
