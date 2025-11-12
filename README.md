@@ -22,7 +22,7 @@ Battle-tested at [Delivery Hero](https://tech.deliveryhero.com/) for global-scal
 
 ## For DS teams:
 
-No more mixing pipeline with real logic, no DAGs or pipelines with ~~`@step(gpu=1, image="pytorch/pytorch:2.9.0-cuda12.8-cudnn9-runtime")`~~, even no pip packages - only pure python functions!
+No more mixing pipeline with real logic, no DAGs or pipelines with custom decorators `@step` or `@pipeline`, even no pip packages - only pure python functions!
 
 Write only a pure python function:
 ```python
