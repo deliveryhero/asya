@@ -1,0 +1,113 @@
+name-template: 'v$RESOLVED_VERSION'
+tag-template: 'v$RESOLVED_VERSION'
+
+categories:
+- title: 'Features'
+  labels:
+  - 'feature'
+  - 'enhancement'
+- title: 'Bug Fixes'
+  labels:
+  - 'fix'
+  - 'bugfix'
+  - 'bug'
+- title: 'Documentation'
+  labels:
+  - 'documentation'
+  - 'docs'
+- title: 'Testing'
+  labels:
+  - 'test'
+  - 'testing'
+- title: 'Performance'
+  labels:
+  - 'performance'
+  - 'optimization'
+- title: 'Infrastructure'
+  labels:
+  - 'ci'
+  - 'build'
+  - 'dependencies'
+  - 'chore'
+- title: 'Breaking Changes'
+  labels:
+  - 'breaking'
+  - 'breaking-change'
+
+change-template: '- $TITLE @$AUTHOR (#$NUMBER)'
+change-title-escapes: '\<*_&'
+
+version-resolver:
+  major:
+    labels:
+    - 'major'
+    - 'breaking'
+    - 'breaking-change'
+  minor:
+    labels:
+    - 'minor'
+    - 'feature'
+    - 'enhancement'
+  patch:
+    labels:
+    - 'patch'
+    - 'fix'
+    - 'bugfix'
+    - 'bug'
+    - 'documentation'
+    - 'chore'
+  default: patch
+
+autolabeler:
+- label: 'documentation'
+  files:
+  - '**/*.md'
+  - 'docs/**/*'
+- label: 'test'
+  files:
+  - 'testing/**/*'
+  - '**/*_test.go'
+  - '**/test_*.py'
+- label: 'ci'
+  files:
+  - '.github/**/*'
+- label: 'dependencies'
+  files:
+  - 'go.mod'
+  - 'go.sum'
+  - '**/requirements*.txt'
+  - '**/pyproject.toml'
+- label: 'operator'
+  files:
+  - 'src/asya-operator/**/*'
+- label: 'gateway'
+  files:
+  - 'src/asya-gateway/**/*'
+- label: 'sidecar'
+  files:
+  - 'src/asya-sidecar/**/*'
+- label: 'runtime'
+  files:
+  - 'src/asya-runtime/**/*'
+- label: 'crew'
+  files:
+  - 'src/asya-crew/**/*'
+
+template: |
+  ## What's Changed
+
+  $CHANGES
+
+  ## Docker Images
+
+  All images are published to GitHub Container Registry:
+
+  - `ghcr.io/$OWNER/asya-operator:$RESOLVED_VERSION`
+  - `ghcr.io/$OWNER/asya-gateway:$RESOLVED_VERSION`
+  - `ghcr.io/$OWNER/asya-sidecar:$RESOLVED_VERSION`
+  - `ghcr.io/$OWNER/asya-crew:$RESOLVED_VERSION`
+  - `ghcr.io/$OWNER/asya-testing:$RESOLVED_VERSION`
+
+  ## Contributors
+
+  $CONTRIBUTORS

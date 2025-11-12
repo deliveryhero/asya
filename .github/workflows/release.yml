@@ -1,0 +1,90 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-and-publish:
+    name: Build and publish Docker images
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup environment
+      uses: ./.github/actions/setup-env
+      with:
+        install-docker: "true"
+
+    - name: Log in to GitHub Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Extract version from tag
+      id: version
+      run: |
+        TAG="${{ github.event.release.tag_name }}"
+        VERSION="${TAG#v}"
+        echo "version=${VERSION}" >> $GITHUB_OUTPUT
+        echo "tag=${TAG}" >> $GITHUB_OUTPUT
+
+    - name: Build and push images
+      env:
+        TAG: ${{ steps.version.outputs.version }}
+        REGISTRY: ghcr.io/${{ github.repository_owner }}
+      run: |
+        source .venv/bin/activate
+        ./src/build-images.sh --push --tag "$TAG" --registry "$REGISTRY"
+
+    - name: Tag images as latest
+      if: github.event.release.prerelease == false
+      env:
+        VERSION: ${{ steps.version.outputs.version }}
+        REGISTRY: ghcr.io/${{ github.repository_owner }}
+      run: |
+        IMAGES=(
+          "asya-operator"
+          "asya-gateway"
+          "asya-sidecar"
+          "asya-crew"
+          "asya-testing"
+        )
+
+        for img in "${IMAGES[@]}"; do
+          echo "[.] Tagging ${REGISTRY}/${img}:${VERSION} as latest"
+          docker tag "${REGISTRY}/${img}:${VERSION}" "${REGISTRY}/${img}:latest"
+          docker push "${REGISTRY}/${img}:latest"
+          echo "[+] Published ${REGISTRY}/${img}:latest"
+        done
+
+    - name: Create release summary
+      run: |
+        cat >> $GITHUB_STEP_SUMMARY <<EOF
+        ## Published Docker Images
+
+        Version: \`${{ steps.version.outputs.version }}\`
+
+        The following images have been published to GitHub Container Registry:
+
+        - \`ghcr.io/${{ github.repository_owner }}/asya-operator:${{ steps.version.outputs.version }}\`
+        - \`ghcr.io/${{ github.repository_owner }}/asya-gateway:${{ steps.version.outputs.version }}\`
+        - \`ghcr.io/${{ github.repository_owner }}/asya-sidecar:${{ steps.version.outputs.version }}\`
+        - \`ghcr.io/${{ github.repository_owner }}/asya-crew:${{ steps.version.outputs.version }}\`
+        - \`ghcr.io/${{ github.repository_owner }}/asya-testing:${{ steps.version.outputs.version }}\`
+        EOF
+
+        if [ "${{ github.event.release.prerelease }}" == "false" ]; then
+          cat >> $GITHUB_STEP_SUMMARY <<EOF
+
+        All images have also been tagged as \`latest\`.
+        EOF
+        fi

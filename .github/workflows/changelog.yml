@@ -1,0 +1,83 @@
+name: Update Changelog
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update-changelog:
+    name: Update CHANGELOG.md
+    runs-on: ubuntu-latest
+    if: github.event.release.prerelease == false
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        ref: main
+        fetch-depth: 0
+
+    - name: Extract release information
+      id: release
+      run: |
+        TAG="${{ github.event.release.tag_name }}"
+        VERSION="${TAG#v}"
+        DATE=$(date +%Y-%m-%d)
+
+        echo "version=${VERSION}" >> $GITHUB_OUTPUT
+        echo "tag=${TAG}" >> $GITHUB_OUTPUT
+        echo "date=${DATE}" >> $GITHUB_OUTPUT
+
+    - name: Update CHANGELOG.md
+      env:
+        VERSION: ${{ steps.release.outputs.version }}
+        TAG: ${{ steps.release.outputs.tag }}
+        DATE: ${{ steps.release.outputs.date }}
+        RELEASE_NOTES: ${{ github.event.release.body }}
+      run: |
+        TEMP_FILE=$(mktemp)
+
+        cat > "$TEMP_FILE" <<'EOF'
+        # Changelog
+
+        All notable changes to this project will be documented in this file.
+
+        The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+        and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+        ## [Unreleased]
+
+        EOF
+
+        echo "" >> "$TEMP_FILE"
+        echo "## [$VERSION] - $DATE" >> "$TEMP_FILE"
+        echo "" >> "$TEMP_FILE"
+        echo "$RELEASE_NOTES" >> "$TEMP_FILE"
+        echo "" >> "$TEMP_FILE"
+
+        tail -n +7 CHANGELOG.md | grep -v "^\[Unreleased\]:" >> "$TEMP_FILE" || true
+
+        echo "" >> "$TEMP_FILE"
+        echo "[Unreleased]: https://github.com/${{ github.repository }}/compare/${TAG}...HEAD" >> "$TEMP_FILE"
+        echo "[$VERSION]: https://github.com/${{ github.repository }}/releases/tag/${TAG}" >> "$TEMP_FILE"
+
+        mv "$TEMP_FILE" CHANGELOG.md
+
+    - name: Create Pull Request
+      uses: peter-evans/create-pull-request@v7
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        commit-message: "Update CHANGELOG.md for ${{ steps.release.outputs.tag }}"
+        title: "Update CHANGELOG.md for ${{ steps.release.outputs.tag }}"
+        body: |
+          Automated changelog update for release ${{ steps.release.outputs.tag }}.
+
+          This PR was automatically created by the changelog workflow.
+        branch: changelog-${{ steps.release.outputs.tag }}
+        delete-branch: true
+        labels: |
+          documentation
+          automated

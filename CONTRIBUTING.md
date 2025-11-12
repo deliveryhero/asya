@@ -170,3 +170,60 @@ make help
 4. Run linters: `make lint`
 5. Commit your changes (pre-commit hooks will run automatically)
 6. Push and create a pull request
+
+## Release Process
+
+### Automated Release Workflow
+
+Asya uses automated workflows for releases and changelog management:
+
+1. **Draft Releases**: Release-drafter automatically maintains a draft release with categorized changelog based on merged PRs
+2. **Docker Images**: When a release is published, Docker images are automatically built and pushed to GitHub Container Registry
+3. **Changelog**: CHANGELOG.md is automatically updated via a pull request after release
+
+### Creating a Release
+
+1. **Review the draft release**:
+   - Go to [Releases](https://github.com/deliveryhero/asya/releases)
+   - Review the auto-generated draft release created by release-drafter
+   - Edit the release notes if needed
+
+2. **Publish the release**:
+   - Click "Publish release"
+   - This triggers the release workflow which:
+     - Builds all Docker images (asya-operator, asya-gateway, asya-sidecar, asya-crew, asya-testing)
+     - Pushes images to `ghcr.io/deliveryhero/asya-*:VERSION`
+     - Tags images as `latest` (for non-prerelease versions)
+
+3. **Docker Images**:
+   - Images are published to GitHub Container Registry (ghcr.io)
+   - Available at: `ghcr.io/deliveryhero/asya-<component>:<version>`
+   - Latest stable version tagged as: `ghcr.io/deliveryhero/asya-<component>:latest`
+
+4. **Changelog Update**:
+   - After release publication, a PR is automatically created to update CHANGELOG.md
+   - Review and merge the PR to keep the changelog in sync
+
+### PR Labels for Release Notes
+
+To help categorize changes in the release notes, use these labels on your PRs:
+
+- `feature`, `enhancement` - New features
+- `fix`, `bugfix`, `bug` - Bug fixes
+- `documentation`, `docs` - Documentation updates
+- `test`, `testing` - Test improvements
+- `performance`, `optimization` - Performance improvements
+- `ci`, `build`, `dependencies`, `chore` - Infrastructure changes
+- `breaking`, `breaking-change` - Breaking changes (triggers major version bump)
+
+Labels are automatically applied based on file paths, but you can add them manually for better categorization.
+
+### Versioning
+
+The project follows [Semantic Versioning](https://semver.org/):
+
+- **Major** (X.0.0): Breaking changes (labels: `breaking`, `breaking-change`)
+- **Minor** (0.X.0): New features (labels: `feature`, `enhancement`)
+- **Patch** (0.0.X): Bug fixes and minor improvements (labels: `fix`, `bugfix`, `documentation`, `chore`)
+
+Release-drafter automatically suggests the next version based on PR labels.
