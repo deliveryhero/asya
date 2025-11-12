@@ -1,0 +1,52 @@
+# Actor with multiple containers in the runtime pod
+# Demonstrates adding a Redis sidecar for caching
+
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: cached-actor
+  namespace: default
+spec:
+  transport: rabbitmq
+
+  scaling:
+    enabled: true
+    minReplicas: 0
+    maxReplicas: 10
+    queueLength: 5
+
+  workload:
+    kind: Deployment
+    template:
+      spec:
+        containers:
+        # Main processing container
+        - name: asya-runtime
+          image: my-app:latest
+          env:
+          - name: ASYA_HANDLER
+            value: "processor.process"
+          - name: CACHE_HOST # Point to localhost Redis
+            value: localhost
+          - name: CACHE_PORT
+            value: "6379"
+          resources:
+            requests:
+              cpu: 500m
+              memory: 512Mi
+            limits:
+              cpu: 1000m
+              memory: 1Gi
+
+        # Redis container for caching
+        - name: redis
+          image: redis:7-alpine
+          ports:
+          - containerPort: 6379
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi

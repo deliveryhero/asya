@@ -1,0 +1,56 @@
+# Profile: RabbitMQ
+#
+# This configuration uses:
+# - RabbitMQ for message transport
+#
+# Usage: docker compose -f profiles/rabbitmq.yml up
+
+include:
+# Base infrastructure:
+- path: ../../../shared/compose/rabbitmq.yml
+- path: ../../../shared/compose/minio.yml
+- path: ../../../shared/compose/postgres.yml
+
+- path: ../compose/testing-actors.yml
+  env_file: .env.rabbitmq
+
+services:
+  gateway:
+    build:
+      context: ../../../../src/asya-gateway
+      dockerfile: Dockerfile
+    env_file: .env.rabbitmq
+    environment:
+      ASYA_DATABASE_URL: postgres://postgres:postgres@postgres:5432/asya_test?sslmode=disable
+      ASYA_CONFIG_PATH: /etc/asya/routes.yaml
+      ASYA_LOG_LEVEL: ${ASYA_LOG_LEVEL:-INFO}
+      ASYA_GATEWAY_PORT: 8080
+    volumes:
+    - ../../../shared/compose/configs/gateway-routes.yaml:/etc/asya/routes.yaml:ro
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    depends_on:
+      postgres-migrate:
+        condition: service_completed_successfully
+      rabbitmq:
+        condition: service_healthy
+
+  tester:
+    extends:
+      file: ../compose/tester.yml
+      service: tester
+    env_file: .env.rabbitmq
+    environment:
+      ASYA_TRANSPORT: rabbitmq
+    depends_on:
+      postgres-migrate:
+        condition: service_completed_successfully
+      storage-setup:
+        condition: service_completed_successfully
+      gateway:
+        condition: service_healthy
+      test-actors-waiter:
+        condition: service_completed_successfully

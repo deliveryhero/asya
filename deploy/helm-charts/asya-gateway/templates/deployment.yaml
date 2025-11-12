@@ -1,0 +1,165 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "asya-gateway.fullname" . }}
+  labels:
+    {{- include "asya-gateway.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "asya-gateway.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "asya-gateway.labels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "asya-gateway.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- if or .Values.postgresql.enabled .Values.externalDatabase.host }}
+      initContainers:
+      - name: check-db-schema
+        image: postgres:15-alpine
+        command:
+        - sh
+        - -c
+        - |
+          set -e
+          echo "[.] Checking database connectivity and schema..."
+
+          # Wait for database to be ready
+          until pg_isready -h {{ include "asya-gateway.databaseHost" . }} -p {{ include "asya-gateway.databasePort" . }} -U {{ include "asya-gateway.databaseUsername" . }}; do
+            echo "[.] Waiting for database to be ready..."
+            sleep 2
+          done
+          echo "[+] Database is reachable"
+
+          # Check if required tables exist
+          TABLES_EXIST=$(psql -h {{ include "asya-gateway.databaseHost" . }} \
+                              -p {{ include "asya-gateway.databasePort" . }} \
+                              -U {{ include "asya-gateway.databaseUsername" . }} \
+                              -d {{ include "asya-gateway.databaseName" . }} \
+                              -tAc "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='public' AND table_name IN ('envelopes', 'envelope_updates')")
+
+          if [ "$TABLES_EXIST" -eq 2 ]; then
+            echo "[+] Database schema validated (envelopes and envelope_updates tables exist)"
+          else
+            echo "[-] Database schema validation failed!"
+            echo "[-] Expected tables: envelopes, envelope_updates"
+            echo "[-] Found $TABLES_EXIST table(s)"
+            echo "[-] Please ensure database migrations have been run successfully"
+            exit 1
+          fi
+        env:
+        - name: PGPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "asya-gateway.databaseSecretName" . }}
+              key: {{ include "asya-gateway.databasePasswordKey" . }}
+      {{- end }}
+      containers:
+      - name: gateway
+        securityContext:
+          {{- toYaml .Values.securityContext | nindent 12 }}
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        ports:
+        - name: http
+          containerPort: {{ .Values.config.port }}
+          protocol: TCP
+        env:
+        - name: ASYA_GATEWAY_PORT
+          value: "{{ .Values.config.port }}"
+        {{- if .Values.config.rabbitmqURL }}
+        - name: ASYA_RABBITMQ_URL
+          value: "{{ .Values.config.rabbitmqURL }}"
+        {{- end }}
+        {{- if .Values.config.rabbitmqExchange }}
+        - name: ASYA_RABBITMQ_EXCHANGE
+          value: "{{ .Values.config.rabbitmqExchange }}"
+        {{- end }}
+        {{- if .Values.config.sqsEndpoint }}
+        - name: ASYA_SQS_ENDPOINT
+          value: "{{ .Values.config.sqsEndpoint }}"
+        {{- end }}
+        {{- if .Values.config.sqsRegion }}
+        - name: ASYA_SQS_REGION
+          value: "{{ .Values.config.sqsRegion }}"
+        {{- end }}
+        {{- if .Values.routes.createConfigMap }}
+        - name: ASYA_CONFIG_PATH
+          value: "/config/routes.yaml"
+        {{- end }}
+        {{- if or .Values.postgresql.enabled .Values.externalDatabase.host }}
+        - name: ASYA_DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "asya-gateway.fullname" . }}-db
+              key: database-url
+        {{- else }}
+        - name: ASYA_DATABASE_URL
+          value: ""
+        {{- end }}
+        {{- with .Values.env }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          {{- toYaml .Values.resources | nindent 12 }}
+        volumeMounts:
+        {{- if .Values.routes.createConfigMap }}
+        - name: routes-config
+          mountPath: /config
+          readOnly: true
+        {{- end }}
+        {{- with .Values.volumeMounts }}
+          {{- toYaml . | nindent 12 }}
+        {{- end }}
+      volumes:
+      {{- if .Values.routes.createConfigMap }}
+      - name: routes-config
+        configMap:
+          name: gateway-routes
+      {{- end }}
+      {{- with .Values.volumes }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "asya-operator.fullname" . }}-test-runtime-cm"
+  labels:
+    {{- include "asya-operator.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  restartPolicy: Never
+  serviceAccountName: {{ include "asya-operator.fullname" . }}-test
+  containers:
+  - name: kubectl
+    image: alpine/k8s:1.28.3
+    command: ['/bin/sh', '-c']
+    args:
+    - |
+      echo "Testing runtime ConfigMap creation capability..."
+
+      # Check if the asya-runtime ConfigMap exists (created by Helm chart)
+      if ! kubectl get configmap asya-runtime -n {{ .Release.Namespace }} 2>/dev/null; then
+        echo "[-] Runtime ConfigMap 'asya-runtime' not found"
+        echo "[!] The operator Helm chart should create this ConfigMap as a base template"
+        exit 1
+      fi
+
+      echo "[+] Base runtime ConfigMap 'asya-runtime' exists"
+
+      # Verify ConfigMap has the runtime script
+      script_size=$(kubectl get configmap asya-runtime -n {{ .Release.Namespace }} -o jsonpath='{.data.asya_runtime\.py}' | wc -c)
+
+      if [ "$script_size" -lt "100" ]; then
+        echo "[-] Runtime script is too small ($script_size bytes)"
+        exit 1
+      fi
+
+      echo "[+] Runtime ConfigMap is valid (script size: $script_size bytes)"
+      echo "[+] Operator can inject this ConfigMap into actor pods"
+
+      exit 0

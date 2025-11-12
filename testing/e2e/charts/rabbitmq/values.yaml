@@ -1,0 +1,36 @@
+auth:
+  username: guest
+  password: guest
+  erlangCookie: asya-secret-cookie
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+persistence:
+  enabled: true
+  size: 2Gi
+
+# Operator transport configuration
+operator:
+  transport:
+    rabbitmq:
+      enabled: true
+      type: rabbitmq
+      config:
+        host: asya-rabbitmq.asya-e2e.svc.cluster.local
+        port: 5672
+        username: guest
+        passwordSecretRef:
+          name: rabbitmq-secret
+          key: password
+        exchange: asya
+
+# Gateway configuration
+gateway:
+  rabbitmqURL: amqp://guest:guest@asya-rabbitmq.asya-e2e.svc.cluster.local:5672
+  rabbitmqExchange: asya

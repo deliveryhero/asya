@@ -1,0 +1,55 @@
+services:
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  localstack:
+    image: localstack/localstack:latest
+    environment:
+      SERVICES: sqs
+      AWS_DEFAULT_REGION: us-east-1
+      EDGE_PORT: 4566
+    healthcheck:
+      test: ["CMD", "awslocal", "sqs", "list-queues"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  tester:
+    image: golang:1.23
+    working_dir: /workspace
+    volumes:
+    - .:/workspace
+    - ../../../../src/asya-operator:/src/asya-operator
+    - ../../../../src/asya-runtime:/src/asya-runtime:ro
+    - ${COVERAGE_DIR}:/app/.coverage:rw
+    - go-cache:/go/pkg/mod
+    environment:
+    - RABBITMQ_HOST=rabbitmq
+    - ASYA_SQS_ENDPOINT=http://localstack:4566
+    - AWS_REGION=us-east-1
+    - AWS_ACCESS_KEY_ID=test
+    - AWS_SECRET_ACCESS_KEY=test
+    - CGO_ENABLED=0
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      localstack:
+        condition: service_healthy
+    command:
+    - /bin/bash
+    - -c
+    - |
+      set -ex
+      go mod download
+      go test -tags=integration -v -timeout=60s -coverprofile=/app/.coverage/cov.out -covermode=set
+
+volumes:
+  go-cache:

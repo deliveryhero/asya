@@ -1,0 +1,69 @@
+services:
+  # Testing runtimes - use shared definitions
+  asya-echo-runtime:
+    extends:
+      file: ../../../shared/compose/asya/testing-actors.yml
+      service: asya-echo-runtime
+
+  asya-error-runtime:
+    extends:
+      file: ../../../shared/compose/asya/testing-actors.yml
+      service: asya-error-runtime
+
+  asya-timeout-runtime:
+    extends:
+      file: ../../../shared/compose/asya/testing-actors.yml
+      service: asya-timeout-runtime
+
+  # Sidecars - use shared definitions
+  # Note: Transport dependencies added via healthcheck waiting
+  asya-echo-sidecar:
+    extends:
+      file: ../../../shared/compose/asya/testing-actors.yml
+      service: asya-echo-sidecar
+    depends_on:
+      asya-echo-runtime:
+        condition: service_healthy
+    restart: on-failure:30
+
+  asya-error-sidecar:
+    extends:
+      file: ../../../shared/compose/asya/testing-actors.yml
+      service: asya-error-sidecar
+    depends_on:
+      asya-error-runtime:
+        condition: service_healthy
+    restart: on-failure:30
+
+  asya-timeout-sidecar:
+    extends:
+      file: ../../../shared/compose/asya/testing-actors.yml
+      service: asya-timeout-sidecar
+    depends_on:
+      asya-timeout-runtime:
+        condition: service_healthy
+    restart: on-failure:30
+
+  # Waiter service for test actors dependency subgraph
+  test-actors-waiter:
+    image: busybox:latest
+    command: ["sh", "-c", "echo 'Test actors ready'"]
+    depends_on:
+      asya-echo-runtime:
+        condition: service_healthy
+      asya-error-runtime:
+        condition: service_healthy
+      asya-timeout-runtime:
+        condition: service_healthy
+      asya-echo-sidecar:
+        condition: service_started
+      asya-error-sidecar:
+        condition: service_started
+      asya-timeout-sidecar:
+        condition: service_started
+
+volumes:
+  sockets:
+  asya-echo-sockets:
+  asya-error-sockets:
+  asya-timeout-sockets:

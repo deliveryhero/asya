@@ -1,0 +1,39 @@
+# Multi-actor pipeline: Stage 2 - Model inference
+# GPU-bound, slow processing with limited parallelism
+
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: inference
+  namespace: default
+spec:
+  transport: rabbitmq
+
+  scaling:
+    enabled: true
+    minReplicas: 0
+    maxReplicas: 5 # Limited by GPU availability
+    queueLength: 2
+
+  timeout:
+    processing: 300 # 5min for model loading
+    gracefulShutdown: 60
+
+  workload:
+    kind: Deployment
+    template:
+      spec:
+        containers:
+        - name: asya-runtime
+          image: bert-inference:latest
+          env:
+          - name: ASYA_HANDLER
+            value: "model.predict"
+          resources:
+            requests:
+              cpu: 2000m
+              memory: 8Gi
+            limits:
+              nvidia.com/gpu: 1
+              cpu: 4000m
+              memory: 16Gi

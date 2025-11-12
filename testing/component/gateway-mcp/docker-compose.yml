@@ -1,0 +1,59 @@
+include:
+- path: ../../shared/compose/postgres.yml
+
+services:
+  # Asya Gateway - MCP server under test
+  asya-gateway:
+    build:
+      context: ../../../src/asya-gateway
+      dockerfile: Dockerfile
+    ports:
+    - "8089:8089"
+    environment:
+    - ASYA_GATEWAY_PORT=8089
+    - ASYA_GATEWAY_HOST=0.0.0.0
+    - ASYA_GATEWAY_DB_HOST=postgres
+    - ASYA_GATEWAY_DB_PORT=5432
+    - ASYA_GATEWAY_DB_NAME=asya
+    - ASYA_GATEWAY_DB_USER=asya
+    - ASYA_GATEWAY_DB_PASSWORD=asya
+    - ASYA_CONFIG_PATH=/app/config/tools.yml
+    - ASYA_LOG_LEVEL=${ASYA_LOG_LEVEL:-INFO}
+    volumes:
+    - ./config:/app/config:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8089/health"]
+      interval: 2s
+      timeout: 1s
+      retries: 30
+
+  # MCP Compliance Tester
+  tester:
+    build:
+      context: ../../../src/asya-testing
+      dockerfile: Dockerfile
+    depends_on:
+      asya-gateway:
+        condition: service_healthy
+    env_file:
+    - ../../shared/compose/envs/.env.tester
+    environment:
+    - GATEWAY_URL=http://asya-gateway:8089
+    - PROTOCOL_VERSION=${PROTOCOL_VERSION:-2024-11-05}
+    - COVERAGE_FILE=.coverage/cov.db
+    - PYTHONUNBUFFERED=1
+    volumes:
+    - ${COVERAGE_DIR}:/app/.coverage:rw
+    - ${COVERAGERC}:/app/.coveragerc:ro
+    - ./tests:/app/tests
+    working_dir: /app
+    entrypoint: /bin/bash
+    command:
+    - -c
+    - |
+      set -ex
+      pytest tests/ ${PYTEST_OPTS} \
+        --cov --cov-config=/app/.coveragerc --cov-report=term --cov-report=json:/app/.coverage/cov.json

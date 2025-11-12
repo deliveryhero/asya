@@ -1,0 +1,42 @@
+{{- $happyEnd := index .Values "happy-end" }}
+{{- if $happyEnd.enabled }}
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: {{ $happyEnd.name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "asya-crew.happy-end.labels" . | nindent 4 }}
+  {{- with $happyEnd.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  transport: {{ $happyEnd.transport }}
+
+  {{- if $happyEnd.scaling.enabled }}
+  scaling:
+    {{- toYaml $happyEnd.scaling | nindent 4 }}
+  {{- end }}
+
+  workload:
+    kind: {{ $happyEnd.workload.kind }}
+    template:
+      spec:
+        containers:
+        - name: asya-runtime
+          image: {{ $happyEnd.workload.template.spec.containers | first | dig "image" "asya-crew:latest" }}
+          imagePullPolicy: {{ $happyEnd.workload.template.spec.containers | first | dig "imagePullPolicy" "IfNotPresent" }}
+          env:
+          - name: ASYA_HANDLER_MODE
+            value: envelope
+          - name: ASYA_ENABLE_VALIDATION
+            value: "false"
+          {{- with (index $happyEnd.workload.template.spec.containers 0).env }}
+          {{- toYaml . | nindent 10 }}
+          {{- end }}
+          {{- with (index $happyEnd.workload.template.spec.containers 0).resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+{{- end }}

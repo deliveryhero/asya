@@ -1,0 +1,13 @@
+apiVersion: v2
+name: asya-crew
+description: System AsyncActors with reserved roles (happy-end, error-end, ...) for Asya framework
+type: application
+version: 0.1.0
+appVersion: "1.0"
+keywords:
+- asya
+- actor
+- system
+- crew
+maintainers:
+- name: Asya Team

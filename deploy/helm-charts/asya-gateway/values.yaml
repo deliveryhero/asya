@@ -1,0 +1,135 @@
+replicaCount: 1
+
+image:
+  repository: asya-gateway
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext:
+  fsGroup: 2000
+
+securityContext:
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 1000
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8080
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+  - host: asya-gateway.local
+    paths:
+    - path: /
+      pathType: Prefix
+  tls: []
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 250m
+    memory: 256Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+
+volumes: []
+volumeMounts: []
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# Gateway configuration
+config:
+  port: "8080"
+  # RabbitMQ transport (leave empty to disable)
+  rabbitmqURL: "amqp://guest:guest@rabbitmq:5672/"
+  rabbitmqExchange: "asya"
+  # SQS transport (leave empty to disable, takes precedence over RabbitMQ if set)
+  sqsEndpoint: ""
+  sqsRegion: ""
+
+# Gateway routes configuration
+# When createConfigMap is true, chart creates gateway-routes ConfigMap from these values
+routes:
+  createConfigMap: true
+  defaults:
+    progress: true
+    timeout: 30
+  tools: []
+  # Example tool definition:
+  # - name: test_echo
+  #   description: Echo back the input message
+  #   parameters:
+  #     message:
+  #       type: string
+  #       description: Message to echo
+  #       required: true
+  #   route: [test-echo]
+
+# PostgreSQL configuration
+postgresql:
+  enabled: true
+  auth:
+    database: asya_gateway
+    username: asya
+    password: asya-password # Change in production!
+  primary:
+    persistence:
+      enabled: true
+      size: 8Gi
+    resources:
+      limits:
+        memory: 256Mi
+      requests:
+        memory: 128Mi
+
+# Database migration job
+migration:
+  enabled: true
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  backoffLimit: 5
+
+# External database (if postgresql.enabled=false)
+# Leave host empty to use in-memory store (no persistence)
+externalDatabase:
+  host: "" # Set to hostname for external PostgreSQL, or leave empty for in-memory store
+  port: 5432
+  database: asya_gateway
+  username: asya
+  password: "" # Password for external database (only used if existingSecret is not set)
+  existingSecret: "" # Name of existing secret containing database password (recommended)
+  existingSecretKey: password # Key in existingSecret that contains the password

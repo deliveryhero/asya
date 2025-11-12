@@ -1,0 +1,43 @@
+{{- $errorEnd := index .Values "error-end" }}
+{{- if $errorEnd.enabled }}
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: {{ $errorEnd.name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "asya-crew.error-end.labels" . | nindent 4 }}
+  {{- with $errorEnd.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  transport: {{ $errorEnd.transport }}
+
+  {{- if $errorEnd.scaling.enabled }}
+  scaling:
+    {{- toYaml $errorEnd.scaling | nindent 4 }}
+  {{- end }}
+
+  workload:
+    kind: {{ $errorEnd.workload.kind }}
+    template:
+      spec:
+        containers:
+        - name: asya-runtime
+          image: {{ $errorEnd.workload.template.spec.containers | first | dig "image" "asya-crew:latest" }}
+          imagePullPolicy: {{ $errorEnd.workload.template.spec.containers | first | dig "imagePullPolicy" "IfNotPresent" }}
+          env:
+          # required non-overridable env vars:
+          - name: ASYA_HANDLER_MODE
+            value: envelope
+          - name: ASYA_ENABLE_VALIDATION
+            value: "false"
+          {{- with (index $errorEnd.workload.template.spec.containers 0).env }}
+          {{- toYaml . | nindent 10 }}
+          {{- end }}
+          {{- with (index $errorEnd.workload.template.spec.containers 0).resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+{{- end }}

@@ -1,0 +1,113 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "asya-operator.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "asya-operator.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "asya-operator.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        kubectl.kubernetes.io/default-container: manager
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "asya-operator.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "asya-operator.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+      - name: manager
+        securityContext:
+          {{- toYaml .Values.securityContext | nindent 12 }}
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        args:
+        - --health-probe-bind-address=:{{ .Values.health.port }}
+        - --metrics-bind-address=:{{ .Values.metrics.port }}
+        {{- if .Values.leaderElection.enabled }}
+        - --leader-elect
+        {{- end }}
+        {{- if eq .Values.logLevel "debug" }}
+        - --zap-log-level=debug
+        {{- else if eq .Values.logLevel "info" }}
+        - --zap-log-level=info
+        {{- end }}
+        env:
+        - name: ASYA_MAX_CONCURRENT_RECONCILES
+          value: {{ .Values.controller.maxConcurrentReconciles | quote }}
+        - name: ASYA_SIDECAR_IMAGE
+          value: {{ .Values.sidecar.image | quote }}
+        - name: ASYA_RUNTIME_SOURCE
+          value: {{ .Values.runtime.source | quote }}
+        - name: ASYA_RUNTIME_LOCAL_PATH
+          value: {{ .Values.runtime.localPath | quote }}
+        {{- if .Values.runtime.githubRelease }}
+        - name: ASYA_RUNTIME_GITHUB_RELEASE
+          value: {{ .Values.runtime.githubRelease | quote }}
+        {{- end }}
+        - name: ASYA_RUNTIME_NAMESPACE
+          value: {{ .Release.Namespace | quote }}
+        - name: ASYA_TRANSPORT_CONFIG
+          value: {{ dict "transports" .Values.transports | toJson | quote }}
+        {{- if .Values.gatewayURL }}
+        - name: ASYA_GATEWAY_URL
+          value: {{ .Values.gatewayURL | quote }}
+        {{- end }}
+        ports:
+        - name: metrics
+          containerPort: {{ .Values.metrics.port }}
+          protocol: TCP
+        - name: health
+          containerPort: {{ .Values.health.port }}
+          protocol: TCP
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: health
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: health
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          {{- toYaml .Values.resources | nindent 12 }}
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        {{- with .Values.volumeMounts }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      volumes:
+      - name: tmp
+        emptyDir: {}
+      {{- with .Values.volumes }}
+      {{- toYaml . | nindent 6 }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}

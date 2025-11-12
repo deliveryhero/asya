@@ -1,0 +1,21 @@
+# Binaries
+bin/
+gateway
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary
+*.test
+
+# Go workspace file
+go.work
+go.work.sum
+
+# Dependency directories
+vendor/
+
+# Misc
+.DS_Store/

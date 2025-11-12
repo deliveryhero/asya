@@ -1,0 +1,239 @@
+include:
+- path: ../../shared/compose/sqs.yml
+
+services:
+  # Echo runtime - use shared definition
+  asya-echo-runtime:
+    extends:
+      file: ../../shared/compose/asya/testing-actors.yml
+      service: asya-echo-runtime
+    environment:
+    - ASYA_HANDLER=asya_testing.handlers.${ASYA_HANDLER_MODE}.echo_handler
+    - ASYA_HANDLER_MODE=${ASYA_HANDLER_MODE}
+    - ASYA_SOCKET_NAME=echo.sock
+    volumes:
+    - sockets:/var/run/asya
+    - ../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro
+    healthcheck:
+      test: ["CMD", "test", "-S", "/var/run/asya/echo.sock"]
+      interval: 2s
+      timeout: 1s
+      retries: 15
+
+  # Error runtime - use shared definition
+  asya-error-runtime:
+    extends:
+      file: ../../shared/compose/asya/testing-actors.yml
+      service: asya-error-runtime
+    environment:
+    - ASYA_HANDLER=asya_testing.handlers.${ASYA_HANDLER_MODE}.error_handler
+    - ASYA_HANDLER_MODE=${ASYA_HANDLER_MODE}
+    - ASYA_SOCKET_NAME=error.sock
+    volumes:
+    - sockets:/var/run/asya
+    - ../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro
+    healthcheck:
+      test: ["CMD", "test", "-S", "/var/run/asya/error.sock"]
+      interval: 2s
+      timeout: 1s
+      retries: 15
+
+  # Timeout runtime - use shared definition
+  asya-timeout-runtime:
+    extends:
+      file: ../../shared/compose/asya/testing-actors.yml
+      service: asya-timeout-runtime
+    environment:
+    - ASYA_HANDLER=asya_testing.handlers.${ASYA_HANDLER_MODE}.timeout_handler
+    - ASYA_HANDLER_MODE=${ASYA_HANDLER_MODE}
+    - ASYA_SOCKET_NAME=timeout.sock
+    volumes:
+    - sockets:/var/run/asya
+    - ../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro
+    healthcheck:
+      test: ["CMD", "test", "-S", "/var/run/asya/timeout.sock"]
+      interval: 2s
+      timeout: 1s
+      retries: 15
+
+  # OOM runtime - for testing OOM handling
+  asya-oom-runtime:
+    build:
+      context: ../../../src/asya-testing
+      dockerfile: Dockerfile
+    command: ["python3", "/opt/asya/asya_runtime.py"]
+    environment:
+    - ASYA_HANDLER=asya_testing.handlers.${ASYA_HANDLER_MODE}.oom_handler
+    - ASYA_HANDLER_MODE=${ASYA_HANDLER_MODE}
+    - ASYA_SOCKET_NAME=oom.sock
+
+
+    - ASYA_SOCKET_CHMOD=666
+    - ASYA_ENABLE_OOM_DETECTION=true
+    - ASYA_LOG_LEVEL=${ASYA_LOG_LEVEL:-INFO}
+    volumes:
+    - sockets:/var/run/asya
+    - ../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro
+    healthcheck:
+      test: ["CMD", "test", "-S", "/var/run/asya/oom.sock"]
+      interval: 2s
+      timeout: 1s
+      retries: 15
+
+  # Class handler runtimes - for testing stateful class handlers
+  asya-slow-model-runtime:
+    build:
+      context: ../../../src/asya-testing
+      dockerfile: Dockerfile
+    command: ["python3", "/opt/asya/asya_runtime.py"]
+    environment:
+    - ASYA_HANDLER=asya_testing.handlers.classes.SlowModelHandler.process
+    - ASYA_HANDLER_MODE=payload
+    - ASYA_SOCKET_NAME=slow-model.sock
+
+
+    - ASYA_SOCKET_CHMOD=666
+    - ASYA_LOG_LEVEL=${ASYA_LOG_LEVEL:-INFO}
+    volumes:
+    - sockets:/var/run/asya
+    - ../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro
+    healthcheck:
+      test: ["CMD", "test", "-S", "/var/run/asya/slow-model.sock"]
+      interval: 2s
+      timeout: 1s
+      retries: 15
+
+  asya-caching-runtime:
+    build:
+      context: ../../../src/asya-testing
+      dockerfile: Dockerfile
+    command: ["python3", "/opt/asya/asya_runtime.py"]
+    environment:
+    - ASYA_HANDLER=asya_testing.handlers.classes.CachingHandler.process
+    - ASYA_HANDLER_MODE=payload
+    - ASYA_SOCKET_NAME=caching.sock
+
+
+    - ASYA_SOCKET_CHMOD=666
+    - ASYA_LOG_LEVEL=${ASYA_LOG_LEVEL:-INFO}
+    volumes:
+    - sockets:/var/run/asya
+    - ../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro
+    healthcheck:
+      test: ["CMD", "test", "-S", "/var/run/asya/caching.sock"]
+      interval: 2s
+      timeout: 1s
+      retries: 15
+
+  asya-large-payload-class-runtime:
+    build:
+      context: ../../../src/asya-testing
+      dockerfile: Dockerfile
+    command: ["python3", "/opt/asya/asya_runtime.py"]
+    environment:
+    - ASYA_HANDLER=asya_testing.handlers.classes.LargePayloadHandler.process
+    - ASYA_HANDLER_MODE=payload
+    - ASYA_SOCKET_NAME=large-payload-class.sock
+
+
+    - ASYA_SOCKET_CHMOD=666
+    - ASYA_LOG_LEVEL=${ASYA_LOG_LEVEL:-INFO}
+    volumes:
+    - sockets:/var/run/asya
+    - ../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro
+    healthcheck:
+      test: ["CMD", "test", "-S", "/var/run/asya/large-payload-class.sock"]
+      interval: 2s
+      timeout: 1s
+      retries: 15
+
+  asya-counter-runtime:
+    build:
+      context: ../../../src/asya-testing
+      dockerfile: Dockerfile
+    command: ["python3", "/opt/asya/asya_runtime.py"]
+    environment:
+    - ASYA_HANDLER=asya_testing.handlers.classes.CounterHandler.process
+    - ASYA_HANDLER_MODE=payload
+    - ASYA_SOCKET_NAME=counter.sock
+
+
+    - ASYA_SOCKET_CHMOD=666
+    - ASYA_LOG_LEVEL=${ASYA_LOG_LEVEL:-INFO}
+    volumes:
+    - sockets:/var/run/asya
+    - ../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro
+    healthcheck:
+      test: ["CMD", "test", "-S", "/var/run/asya/counter.sock"]
+      interval: 2s
+      timeout: 1s
+      retries: 15
+
+  asya-envelope-class-runtime:
+    build:
+      context: ../../../src/asya-testing
+      dockerfile: Dockerfile
+    command: ["python3", "/opt/asya/asya_runtime.py"]
+    environment:
+    - ASYA_HANDLER=asya_testing.handlers.classes.EnvelopeHandler.process
+    - ASYA_HANDLER_MODE=envelope
+    - ASYA_SOCKET_NAME=envelope-class.sock
+
+
+    - ASYA_SOCKET_CHMOD=666
+    - ASYA_LOG_LEVEL=${ASYA_LOG_LEVEL:-INFO}
+    volumes:
+    - sockets:/var/run/asya
+    - ../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro
+    healthcheck:
+      test: ["CMD", "test", "-S", "/var/run/asya/envelope-class.sock"]
+      interval: 2s
+      timeout: 1s
+      retries: 15
+
+  # Test container - component-specific
+  tester:
+    build:
+      context: ../../../src/asya-testing
+      dockerfile: Dockerfile
+    depends_on:
+      sqs:
+        condition: service_healthy
+      asya-echo-runtime:
+        condition: service_healthy
+      asya-error-runtime:
+        condition: service_healthy
+      asya-timeout-runtime:
+        condition: service_healthy
+      asya-oom-runtime:
+        condition: service_healthy
+      asya-slow-model-runtime:
+        condition: service_healthy
+      asya-caching-runtime:
+        condition: service_healthy
+      asya-large-payload-class-runtime:
+        condition: service_healthy
+      asya-counter-runtime:
+        condition: service_healthy
+      asya-envelope-class-runtime:
+        condition: service_healthy
+    env_file:
+    - ../../shared/compose/envs/.env.tester
+    environment:
+    - COVERAGE_FILE=.coverage/cov.db
+    volumes:
+    - ${COVERAGE_DIR}:/app/.coverage:rw
+    - ${COVERAGERC}:/app/.coveragerc:ro
+    - sockets:/var/run/asya
+    - ./tests:/app/tests
+    working_dir: /app
+    entrypoint: /bin/bash
+    command:
+    - -c
+    - |
+      set -ex
+      pytest tests/ ${PYTEST_OPTS} \
+        --cov --cov-config=/app/.coveragerc --cov-report=term --cov-report=json:/app/.coverage/cov-${ASYA_HANDLER_MODE}.json
+
+volumes:
+  sockets:

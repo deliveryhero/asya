@@ -1,0 +1,6 @@
+# S3 buckets for test results/errors
+# One bucket name per line
+# Used by storage-setup service in s3.yml
+
+asya-results
+asya-errors

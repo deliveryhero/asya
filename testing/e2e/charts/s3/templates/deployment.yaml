@@ -1,0 +1,48 @@
+{{- if .Values.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: s3
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: s3
+    app.kubernetes.io/name: s3
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: s3
+  template:
+    metadata:
+      labels:
+        app: s3
+    spec:
+      containers:
+      - name: localstack
+        image: localstack/localstack:latest
+        ports:
+        - containerPort: 4566
+          name: edge
+        env:
+        - name: SERVICES
+          value: "s3"
+        - name: DEFAULT_REGION
+          value: {{ .Values.region | quote }}
+        - name: DEBUG
+          value: "0"
+        - name: PERSISTENCE
+          value: "0"
+        - name: AWS_ACCESS_KEY_ID
+          value: {{ .Values.auth.accessKey | quote }}
+        - name: AWS_SECRET_ACCESS_KEY
+          value: {{ .Values.auth.secretKey | quote }}
+        resources:
+          {{- toYaml .Values.resources | nindent 10 }}
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib/localstack
+      volumes:
+      - name: data
+        emptyDir: {}
+{{- end }}

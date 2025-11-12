@@ -1,0 +1,15 @@
+database: asya_gateway
+username: asya
+password: asya-db-password
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 250m
+    memory: 256Mi
+
+persistence:
+  enabled: true
+  size: 2Gi

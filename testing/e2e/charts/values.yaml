@@ -1,0 +1,292 @@
+operator:
+  image:
+    repository: asya-operator
+    tag: latest
+    pullPolicy: IfNotPresent
+
+  replicaCount: 1
+
+  logLevel: debug
+
+  transports:
+    rabbitmq:
+      enabled: false
+      type: rabbitmq
+      config:
+        host: asya-rabbitmq.asya-e2e.svc.cluster.local
+        port: 5672
+        username: guest
+        passwordSecretRef:
+          name: rabbitmq-secret
+          key: password
+        queues:
+          autoCreate: true
+    sqs:
+      enabled: false
+      type: sqs
+      config:
+        region: us-east-1
+        accountId: "000000000000"
+        endpoint: http://localstack.asya-e2e.svc.cluster.local:4566
+        actorRoleArn: ""
+        visibilityTimeout: 300
+        waitTimeSeconds: 20
+        queues:
+          autoCreate: true
+        credentials:
+          accessKeyIdSecretRef:
+            name: localstack-secret
+            key: access-key-id
+          secretAccessKeySecretRef:
+            name: localstack-secret
+            key: secret-access-key
+
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 100m
+      memory: 128Mi
+
+gateway:
+  image:
+    repository: asya-gateway
+    tag: latest
+    pullPolicy: IfNotPresent
+
+  replicaCount: 1
+
+  service:
+    type: ClusterIP
+    port: 8080
+
+  postgresql:
+    host: postgres.asya-e2e.svc.cluster.local
+    port: 5432
+    database: asya
+    username: asya
+    passwordSecretRef:
+      name: postgres-secret
+      key: password
+
+  routes:
+    tools:
+    - name: test_echo
+      description: Echo back the input message
+      parameters:
+        message:
+          type: string
+          description: Message to echo
+          required: true
+      route: [test-echo]
+    - name: test_pipeline
+      description: Process value through doubler and incrementer pipeline
+      parameters:
+        value:
+          type: number
+          description: Value to process through pipeline
+          required: true
+      route: [test-doubler, test-incrementer]
+      timeout: 45
+    - name: test_error
+      description: Test error handling
+      parameters:
+        should_fail:
+          type: boolean
+          description: Whether to trigger an error
+          required: true
+      route: [test-error]
+    - name: test_timeout
+      description: Test timeout handling
+      parameters:
+        sleep_seconds:
+          type: number
+          description: Duration to sleep in seconds
+          required: true
+      route: [test-timeout]
+    - name: test_fanout
+      description: Create multiple envelopes via fan-out
+      parameters:
+        count:
+          type: number
+          description: Number of envelopes to create
+          required: true
+      route: [test-fanout]
+    - name: test_empty_response
+      description: Test empty response handling
+      parameters:
+        message:
+          type: string
+          description: Test message
+          required: false
+      route: [test-empty]
+    - name: test_slow_boundary
+      description: |
+        Test slow processing at actor boundary
+        (1.5s processing, 4s timeout with overhead)
+      parameters:
+        first_call:
+          type: boolean
+          description: Whether this is the first call
+          required: true
+      route: [test-slow-boundary]
+      timeout: 4
+    - name: test_unicode
+      description: Test Unicode character handling
+      parameters:
+        message:
+          type: string
+          description: Unicode message
+          required: false
+      route: [test-unicode]
+    - name: test_large_payload
+      description: Test large payload handling
+      parameters:
+        size_kb:
+          type: number
+          description: Size of payload in KB
+          required: false
+      route: [test-large-payload]
+    - name: test_nested
+      description: Test nested JSON handling
+      parameters:
+        depth:
+          type: number
+          description: Nesting depth
+          required: false
+      route: [test-nested]
+    - name: test_multihop
+      description: Test multi-hop envelope processing through 15 actors
+      parameters:
+        message:
+          type: string
+          description: Initial message
+          required: false
+      route:
+      - test-multihop-0
+      - test-multihop-1
+      - test-multihop-2
+      - test-multihop-3
+      - test-multihop-4
+      - test-multihop-5
+      - test-multihop-6
+      - test-multihop-7
+      - test-multihop-8
+      - test-multihop-9
+      - test-multihop-10
+      - test-multihop-11
+      - test-multihop-12
+      - test-multihop-13
+      - test-multihop-14
+      timeout: 60
+
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 100m
+      memory: 128Mi
+
+actors:
+  namespace: asya-e2e
+  transport: rabbitmq
+  storage:
+    type: minio
+    endpoint: http://minio.asya-e2e.svc.cluster.local:9000
+    bucket: asya-results
+    accessKey: minioadmin
+    secretKey: minioadmin
+
+crew:
+  happy-end:
+    enabled: true
+    name: happy-end
+    transport: rabbitmq
+    scaling:
+      enabled: true
+      minReplicas: 1
+      maxReplicas: 10
+      pollingInterval: 10
+      cooldownPeriod: 60
+      queueLength: 5
+    workload:
+      kind: Deployment
+      template:
+        spec:
+          containers:
+          - name: asya-runtime
+            image: asya-crew:latest
+            imagePullPolicy: IfNotPresent
+            env:
+            - name: ASYA_HANDLER
+              value: handlers.end_handlers.happy_end_handler
+            - name: ASYA_HANDLER_MODE
+              value: envelope
+            - name: ASYA_ENABLE_VALIDATION
+              value: "false"
+            - name: ASYA_GATEWAY_URL
+              value: "http://asya-gateway.asya-e2e.svc.cluster.local:8080"
+            - name: ASYA_S3_BUCKET
+              value: "asya-results"
+            - name: ASYA_S3_ENDPOINT
+              value: "http://minio.asya-e2e.svc.cluster.local:9000"
+            - name: ASYA_S3_ACCESS_KEY
+              value: "minioadmin"
+            - name: ASYA_S3_SECRET_KEY
+              value: "minioadmin"
+            - name: ASYA_S3_RESULTS_PREFIX
+              value: ""
+            resources:
+              requests:
+                cpu: 50m
+                memory: 64Mi
+              limits:
+                cpu: 200m
+                memory: 128Mi
+  error-end:
+    enabled: true
+    name: error-end
+    transport: rabbitmq
+    scaling:
+      enabled: true
+      minReplicas: 1
+      maxReplicas: 10
+      pollingInterval: 10
+      cooldownPeriod: 60
+      queueLength: 5
+    workload:
+      kind: Deployment
+      template:
+        spec:
+          containers:
+          - name: asya-runtime
+            image: asya-crew:latest
+            imagePullPolicy: IfNotPresent
+            env:
+            - name: ASYA_HANDLER
+              value: handlers.end_handlers.error_end_handler
+            - name: ASYA_HANDLER_MODE
+              value: envelope
+            - name: ASYA_ENABLE_VALIDATION
+              value: "false"
+            - name: ASYA_GATEWAY_URL
+              value: "http://asya-gateway.asya-e2e.svc.cluster.local:8080"
+            - name: ASYA_S3_BUCKET
+              value: "asya-errors"
+            - name: ASYA_S3_ENDPOINT
+              value: "http://minio.asya-e2e.svc.cluster.local:9000"
+            - name: ASYA_S3_ACCESS_KEY
+              value: "minioadmin"
+            - name: ASYA_S3_SECRET_KEY
+              value: "minioadmin"
+            - name: ASYA_S3_ERRORS_PREFIX
+              value: ""
+            resources:
+              requests:
+                cpu: 50m
+                memory: 64Mi
+              limits:
+                cpu: 200m
+                memory: 128Mi

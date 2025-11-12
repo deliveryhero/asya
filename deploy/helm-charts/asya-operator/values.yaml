@@ -1,0 +1,147 @@
+replicaCount: 1
+
+image:
+  repository: asya-operator
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+rbac:
+  create: true
+
+podAnnotations: {}
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 65532
+  fsGroup: 65532
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: true
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 256Mi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+# Log level: "info" or "debug" (default: info)
+logLevel: info
+
+# Leader election settings
+leaderElection:
+  enabled: true
+
+# Controller configuration
+controller:
+  maxConcurrentReconciles: 50 # Number of concurrent AsyncActor reconciliations
+
+# Metrics configuration
+metrics:
+  enabled: true
+  port: 8080
+
+# Health probe configuration
+health:
+  port: 8081
+
+# Pod termination grace period (in seconds)
+# Increase this if the operator needs more time for graceful shutdown
+terminationGracePeriodSeconds: 10
+
+# Default sidecar configuration
+sidecar:
+  image: asya-sidecar:latest
+  defaultResources:
+    limits:
+      cpu: 500m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 64Mi
+
+# Runtime configuration
+# The operator dynamically loads asya_runtime.py and creates the ConfigMap
+
+# Operator configuration
+operator:
+  # Gateway URL for progress reporting and envelope tracking
+  gatewayURL: "" # e.g., "http://asya-gateway.asya-e2e.svc.cluster.local:8080"
+
+  # Transport configurations
+  # Define all available message transports for AsyncActors to use
+  transports:
+    rabbitmq:
+      enabled: true
+      type: rabbitmq
+      config:
+        host: rabbitmq.default.svc.cluster.local
+        port: 5672
+        username: guest
+        passwordSecretRef:
+          name: rabbitmq-secret
+          key: password
+        queues:
+          autoCreate: true # Auto-create queues if not exist (default: true)
+          forceRecreate: false # Delete and recreate queues (default: false, WARNING: data loss!)
+          dlq:
+            enabled: true # Enable DLQ for poison message handling (default: true)
+            maxRetryCount: 3 # Messages retried 3 times before going to DLQ (default: 3)
+
+    sqs:
+      enabled: false
+      type: sqs
+      config:
+        region: us-east-1
+        accountId: "" # REQUIRED: AWS account ID for queue URL construction
+        actorRoleArn: ""
+        visibilityTimeout: 300
+        waitTimeSeconds: 20
+        queues:
+          autoCreate: true # Auto-create queues if not exist (default: true)
+          forceRecreate: false # Delete and recreate queues (default: false, WARNING: data loss!)
+          dlq:
+            enabled: true # Enable DLQ for poison message handling (default: true)
+            maxRetryCount: 3 # Messages retried 3 times before going to DLQ (default: 3)
+            retentionDays: 14 # DLQ message retention period in days (default: 14)
+        tags: # Additional tags to apply to all SQS queues (asya.sh/actor and asya.sh/namespace always added)
+          environment: production
+          team: ml-platform
+          cost-center: "1234"
+
+# Additional volumes to mount
+# Auto-populated when runtime.createConfigMap is true
+volumes: []
+
+# Additional volume mounts
+# Auto-populated when runtime.createConfigMap is true
+volumeMounts: []
+# Runtime configuration
+# The operator can load asya_runtime.py from different sources:
+# - "local": Embedded in operator image at /runtime/asya_runtime.py
+# - "github": Download from GitHub releases (requires runtime.githubRelease)
+runtime:
+  source: "local"
+  localPath: "/runtime/asya_runtime.py"
+  # For GitHub source (when source: "github"):
+  # githubRelease: "v0.1.0"

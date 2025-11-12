@@ -1,0 +1,67 @@
+# Actor with custom sidecar configuration
+# Demonstrates all sidecar customization options
+
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: custom-sidecar-actor
+  namespace: default
+spec:
+  transport: rabbitmq
+
+  # Custom sidecar configuration
+  sidecar:
+    # Use a specific version
+    image: asya-sidecar:v2.1.0
+    imagePullPolicy: Always
+
+    # Custom resource limits
+    resources:
+      limits:
+        cpu: 1000m
+        memory: 512Mi
+      requests:
+        cpu: 200m
+        memory: 128Mi
+
+    # Additional environment variables for the sidecar
+    env:
+    - name: ASYA_LOG_LEVEL
+      value: debug
+    - name: ENABLE_TRACING
+      value: "true"
+    - name: JAEGER_ENDPOINT
+      value: http://jaeger-collector:14268/api/traces
+    - name: CUSTOM_TIMEOUT
+      value: "30"
+
+  # Custom socket configuration
+  socket:
+    dir: /custom/path
+    maxSize: "20971520" # 20MB
+
+  # Custom timeouts
+  timeout:
+    processing: 600
+    gracefulShutdown: 60
+
+  scaling:
+    enabled: true
+    minReplicas: 0
+    maxReplicas: 10
+    queueLength: 5
+
+  workload:
+    kind: Deployment
+    template:
+      spec:
+        containers:
+        - name: asya-runtime
+          image: custom-runtime:latest
+          env:
+          - name: ASYA_HANDLER
+            value: "handlers.process"
+          resources:
+            limits:
+              cpu: 2000m
+              memory: 2Gi

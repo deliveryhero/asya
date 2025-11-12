@@ -1,0 +1,37 @@
+{{- $hopCount := 15 -}}
+{{- range $i := until $hopCount }}
+---
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: test-multihop-{{ $i }}
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    {{- include "asya-test-actors.labels" $ | nindent 4 }}
+    test-type: multihop
+    hop-index: "{{ $i }}"
+spec:
+  transport: {{ $.Values.transport }}
+
+  scaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 5
+    queueLength: 5
+
+  workload:
+    kind: Deployment
+    template:
+      spec:
+        containers:
+        - name: asya-runtime
+          image: {{ $.Values.workload.image }}
+          imagePullPolicy: {{ $.Values.workload.imagePullPolicy }}
+          env:
+          - name: ASYA_HANDLER
+            value: asya_testing.handlers.payload.multihop_handler
+          - name: HOP_NUMBER
+            value: "{{ $i }}"
+          - name: ASYA_GATEWAY_URL
+            value: "http://asya-gateway.{{ $.Release.Namespace }}.svc.cluster.local:8080"
+{{- end }}

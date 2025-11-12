@@ -1,0 +1,137 @@
+# Gateway test tools configuration
+# Used by gateway E2E integration tests
+
+defaults:
+  progress: true # Enable SSE progress streaming for all tools
+  timeout: 30 # 30 second timeout for test tools
+
+tools:
+# Simple echo tool - single actor
+- name: test_echo
+  description: Echo back the input message
+  parameters:
+    message:
+      type: string
+      description: Message to echo
+      required: true
+  route: [test-echo]
+
+# Multi-actor pipeline - tests routing through multiple actors
+- name: test_pipeline
+  description: Test multi-actor pipeline processing
+  parameters:
+    value:
+      type: integer
+      description: Value to process through pipeline
+      required: true
+  route: [test-doubler, test-incrementer]
+  timeout: 45
+
+# Error handling test
+- name: test_error
+  description: Test error handling and error reporting
+  parameters:
+    should_fail:
+      type: boolean
+      description: Whether the handler should fail
+      default: true
+  route: [test-error]
+
+# Timeout test
+- name: test_timeout
+  description: Test timeout handling
+  parameters:
+    sleep_seconds:
+      type: integer
+      description: How long to sleep (should exceed timeout)
+      default: 60
+  route: [test-timeout]
+  timeout: 10 # Short timeout for testing
+
+# Edge case tests
+- name: test_fanout
+  description: Test fan-out array response
+  parameters:
+    count:
+      type: integer
+      description: Number of items to fan out
+      default: 3
+  route: [test-fanout]
+
+- name: test_empty_response
+  description: Test empty/null payload handling
+  parameters:
+    message:
+      type: string
+      description: Test message
+      default: "empty test"
+  route: [test-empty]
+
+- name: test_unicode
+  description: Test Unicode payload handling
+  parameters:
+    message:
+      type: string
+      description: Unicode message
+      required: true
+  route: [test-unicode]
+
+- name: test_large_payload
+  description: Test large payload processing
+  parameters:
+    size_kb:
+      type: integer
+      description: Payload size in KB
+      default: 1024
+  route: [test-large-payload]
+
+- name: test_nested_data
+  description: Test deeply nested JSON structures
+  parameters:
+    message:
+      type: string
+      description: Test message
+      default: "nested test"
+  route: [test-nested]
+
+- name: test_null_values
+  description: Test null/None value handling
+  parameters:
+    message:
+      type: string
+      description: Test message
+      default: "null test"
+  route: [test-null]
+
+- name: test_slow_boundary
+  description: Test timeout boundary condition (1.5s processing, adequate timeout with overhead)
+  parameters:
+    first_call:
+      type: boolean
+      description: Is this the first call
+      default: true
+  route: [test-slow-boundary]
+  timeout: 10
+
+- name: test_cyclic_route
+  description: Test cyclic route detection
+  parameters:
+    message:
+      type: string
+      description: Test message
+      default: "cycle test"
+  route: [test-cycle, test-cycle, test-cycle] # Intentional cycle
+
+- name: test_param_flow
+  description: Test that multi-actor pipelines pass outputs correctly
+  parameters:
+    original_param:
+      type: string
+      description: Original parameter to track
+      required: true
+    number:
+      type: integer
+      description: Number to transform
+      default: 10
+  route: [test-param-flow-1, test-param-flow-2]
+  timeout: 45

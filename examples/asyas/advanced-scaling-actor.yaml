@@ -1,0 +1,46 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: advanced-scaling-actor
+  namespace: asya
+  labels:
+    app: advanced-scaling-actor
+spec:
+  transport: rabbitmq
+
+  scaling:
+    enabled: true
+    minReplicas: 0
+    maxReplicas: 50
+    pollingInterval: 10
+    cooldownPeriod: 60
+    queueLength: 10
+
+    advanced:
+      formula: "ceil(queueLength / 10)"
+      target: "10"
+      activationTarget: "5"
+      metricType: "AverageValue"
+      restoreToOriginalReplicaCount: false
+
+  workload:
+    kind: Deployment
+    template:
+      metadata:
+        labels:
+          app: advanced-scaling-actor
+      spec:
+        containers:
+        - name: asya-runtime
+          image: python:3.13-slim
+          imagePullPolicy: IfNotPresent
+          env:
+          - name: ASYA_HANDLER
+            value: "handlers.process"
+          resources:
+            limits:
+              cpu: 2000m
+              memory: 2Gi
+            requests:
+              cpu: 500m
+              memory: 512Mi

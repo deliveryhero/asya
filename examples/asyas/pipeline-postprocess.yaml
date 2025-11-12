@@ -1,0 +1,34 @@
+# Multi-actor pipeline: Stage 3 - Formatting results
+# CPU-bound, fast processing with high parallelism
+
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: postprocess
+  namespace: default
+spec:
+  transport: rabbitmq
+
+  scaling:
+    enabled: true
+    minReplicas: 0
+    maxReplicas: 20 # High parallelism again
+    queueLength: 10
+
+  workload:
+    kind: Deployment
+    template:
+      spec:
+        containers:
+        - name: asya-runtime
+          image: result-formatter:latest
+          env:
+          - name: ASYA_HANDLER
+            value: "formatter.format_output"
+          resources:
+            requests:
+              cpu: 500m
+              memory: 512Mi
+            limits:
+              cpu: 1000m
+              memory: 1Gi

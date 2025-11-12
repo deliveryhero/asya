@@ -1,0 +1,734 @@
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "2"
+
+# Note: Volumes must be defined in the compose file that includes this file
+
+services:
+  # Echo actor
+  asya-echo-runtime:
+    build:
+      context: ../../../../src/asya-testing
+      dockerfile: Dockerfile
+    logging: *default-logging
+    command: ["python3", "/opt/asya/asya_runtime.py"]
+    env_file: # TODO: can we define them once for all?
+    - ../envs/.env.asya-shared
+    - ../envs/.env.asya-runtime
+    environment:
+      ASYA_HANDLER: asya_testing.handlers.${ASYA_HANDLER_MODE}.echo_handler
+
+
+    volumes:
+    - asya-echo-sockets:/var/run/asya
+    - ../../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro
+    healthcheck:
+      test: ["CMD", "test", "-S", "/var/run/asya/asya-runtime.sock"]
+      interval: 2s
+      timeout: 1s
+      retries: 15
+
+  asya-echo-sidecar:
+    build:
+      context: ../../../../src/asya-sidecar
+      dockerfile: Dockerfile
+    logging: *default-logging
+    network_mode: "service:asya-echo-runtime"
+    depends_on:
+      asya-echo-runtime:
+        condition: service_healthy
+      queue-setup:
+        condition: service_completed_successfully
+    env_file:
+    - ../envs/.env.asya-shared
+    - ../envs/.env.asya-sidecar
+    - ../envs/.env.${ASYA_TRANSPORT}
+    environment:
+      ASYA_RUNTIME_TIMEOUT: 5s
+      ASYA_ACTOR_NAME: test-echo
+
+
+    volumes:
+    - asya-echo-sockets:/var/run/asya
+
+  # Doubler actor
+  asya-doubler-runtime:
+    build:
+      context: ../../../../src/asya-testing
+      dockerfile: Dockerfile
+    logging: *default-logging
+    command: ["python3", "/opt/asya/asya_runtime.py"]
+    env_file:
+    - ../envs/.env.asya-shared
+    - ../envs/.env.asya-runtime
+    environment:
+      ASYA_HANDLER: asya_testing.handlers.${ASYA_HANDLER_MODE}.pipeline_doubler
+
+
+    volumes:
+    - asya-doubler-sockets:/var/run/asya
+    - ../../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro
+    healthcheck:
+      test: ["CMD", "test", "-S", "/var/run/asya/asya-runtime.sock"]
+      interval: 2s
+      timeout: 1s
+      retries: 15
+
+  asya-doubler-sidecar:
+    network_mode: "service:asya-doubler-runtime"
+    build:
+      context: ../../../../src/asya-sidecar
+      dockerfile: Dockerfile
+    logging: *default-logging
+    depends_on:
+      asya-doubler-runtime:
+        condition: service_healthy
+      queue-setup:
+        condition: service_completed_successfully
+    env_file:
+    - ../envs/.env.asya-shared
+    - ../envs/.env.asya-sidecar
+    - ../envs/.env.${ASYA_TRANSPORT}
+    environment:
+      ASYA_RUNTIME_TIMEOUT: 5s
+      ASYA_ACTOR_NAME: test-doubler
+
+
+    volumes:
+    - asya-doubler-sockets:/var/run/asya
+
+  # Incrementer actor
+  asya-incrementer-runtime:
+    build:
+      context: ../../../../src/asya-testing
+      dockerfile: Dockerfile
+    logging: *default-logging
+    command: ["python3", "/opt/asya/asya_runtime.py"]
+    env_file:
+    - ../envs/.env.asya-shared
+    - ../envs/.env.asya-runtime
+    environment:
+      ASYA_HANDLER: asya_testing.handlers.${ASYA_HANDLER_MODE}.pipeline_incrementer
+
+
+    volumes:
+    - asya-incrementer-sockets:/var/run/asya
+    - ../../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro
+    healthcheck:
+      test: ["CMD", "test", "-S", "/var/run/asya/asya-runtime.sock"]
+      interval: 2s
+      timeout: 1s
+      retries: 15
+
+  asya-incrementer-sidecar:
+    network_mode: "service:asya-incrementer-runtime"
+    build:
+      context: ../../../../src/asya-sidecar
+      dockerfile: Dockerfile
+    logging: *default-logging
+    depends_on:
+      asya-incrementer-runtime:
+        condition: service_healthy
+      queue-setup:
+        condition: service_completed_successfully
+    env_file:
+    - ../envs/.env.asya-shared
+    - ../envs/.env.asya-sidecar
+    - ../envs/.env.${ASYA_TRANSPORT}
+    environment:
+      ASYA_RUNTIME_TIMEOUT: 5s
+      ASYA_ACTOR_NAME: test-incrementer
+
+
+    volumes:
+    - asya-incrementer-sockets:/var/run/asya
+
+  # Error actor
+  asya-error-runtime:
+    build:
+      context: ../../../../src/asya-testing
+      dockerfile: Dockerfile
+    logging: *default-logging
+    command: ["python3", "/opt/asya/asya_runtime.py"]
+    env_file:
+    - ../envs/.env.asya-shared
+    - ../envs/.env.asya-runtime
+    environment:
+      ASYA_HANDLER: asya_testing.handlers.${ASYA_HANDLER_MODE}.error_handler
+
+
+    volumes:
+    - asya-error-sockets:/var/run/asya
+    - ../../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro
+    healthcheck:
+      test: ["CMD", "test", "-S", "/var/run/asya/asya-runtime.sock"]
+      interval: 2s
+      timeout: 1s
+      retries: 15
+
+  asya-error-sidecar:
+    network_mode: "service:asya-error-runtime"
+    build:
+      context: ../../../../src/asya-sidecar
+      dockerfile: Dockerfile
+    logging: *default-logging
+    depends_on:
+      asya-error-runtime:
+        condition: service_healthy
+      queue-setup:
+        condition: service_completed_successfully
+    env_file:
+    - ../envs/.env.asya-shared
+    - ../envs/.env.asya-sidecar
+    - ../envs/.env.${ASYA_TRANSPORT}
+    environment:
+      ASYA_RUNTIME_TIMEOUT: 5s
+      ASYA_ACTOR_NAME: test-error
+
+
+    volumes:
+    - asya-error-sockets:/var/run/asya
+
+  # Timeout actor
+  asya-timeout-runtime:
+    build:
+      context: ../../../../src/asya-testing
+      dockerfile: Dockerfile
+    logging: *default-logging
+    command: ["python3", "/opt/asya/asya_runtime.py"]
+    env_file:
+    - ../envs/.env.asya-shared
+    - ../envs/.env.asya-runtime
+    environment:
+      ASYA_HANDLER: asya_testing.handlers.${ASYA_HANDLER_MODE}.timeout_handler
+
+
+    volumes:
+    - asya-timeout-sockets:/var/run/asya
+    - ../../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro
+    healthcheck:
+      test: ["CMD", "test", "-S", "/var/run/asya/asya-runtime.sock"]
+      interval: 2s
+      timeout: 1s
+      retries: 15
+
+  asya-timeout-sidecar:
+    network_mode: "service:asya-timeout-runtime"
+    build:
+      context: ../../../../src/asya-sidecar
+      dockerfile: Dockerfile
+    logging: *default-logging
+    depends_on:
+      asya-timeout-runtime:
+        condition: service_healthy
+      queue-setup:
+        condition: service_completed_successfully
+    env_file:
+    - ../envs/.env.asya-shared
+    - ../envs/.env.asya-sidecar
+    - ../envs/.env.${ASYA_TRANSPORT}
+    environment:
+      ASYA_RUNTIME_TIMEOUT: 5s
+      ASYA_ACTOR_NAME: test-timeout
+
+
+    volumes:
+    - asya-timeout-sockets:/var/run/asya
+
+  # Fanout actor
+  asya-fanout-runtime:
+    build:
+      context: ../../../../src/asya-testing
+      dockerfile: Dockerfile
+    logging: *default-logging
+    command: ["python3", "/opt/asya/asya_runtime.py"]
+    env_file:
+    - ../envs/.env.asya-shared
+    - ../envs/.env.asya-runtime
+    environment:
+      ASYA_HANDLER: asya_testing.handlers.${ASYA_HANDLER_MODE}.fanout_handler
+
+
+    volumes:
+    - asya-fanout-sockets:/var/run/asya
+    - ../../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro
+    healthcheck:
+      test: ["CMD", "test", "-S", "/var/run/asya/asya-runtime.sock"]
+      interval: 2s
+      timeout: 1s
+      retries: 15
+
+  asya-fanout-sidecar:
+    network_mode: "service:asya-fanout-runtime"
+    build:
+      context: ../../../../src/asya-sidecar
+      dockerfile: Dockerfile
+    logging: *default-logging
+    depends_on:
+      asya-fanout-runtime:
+        condition: service_healthy
+      queue-setup:
+        condition: service_completed_successfully
+    env_file:
+    - ../envs/.env.asya-shared
+    - ../envs/.env.asya-sidecar
+    - ../envs/.env.${ASYA_TRANSPORT}
+    environment:
+      ASYA_RUNTIME_TIMEOUT: 30s
+      ASYA_ACTOR_NAME: test-fanout
+
+
+    volumes:
+    - asya-fanout-sockets:/var/run/asya
+
+  # Empty actor
+  asya-empty-runtime:
+    build:
+      context: ../../../../src/asya-testing
+      dockerfile: Dockerfile
+    logging: *default-logging
+    command: ["python3", "/opt/asya/asya_runtime.py"]
+    env_file:
+    - ../envs/.env.asya-shared
+    - ../envs/.env.asya-runtime
+    environment:
+      ASYA_HANDLER: asya_testing.handlers.${ASYA_HANDLER_MODE}.empty_response_handler
+
+
+    volumes:
+    - asya-empty-sockets:/var/run/asya
+    - ../../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro
+    healthcheck:
+      test: ["CMD", "test", "-S", "/var/run/asya/asya-runtime.sock"]
+      interval: 2s
+      timeout: 1s
+      retries: 15
+
+  asya-empty-sidecar:
+    network_mode: "service:asya-empty-runtime"
+    build:
+      context: ../../../../src/asya-sidecar
+      dockerfile: Dockerfile
+    logging: *default-logging
+    depends_on:
+      asya-empty-runtime:
+        condition: service_healthy
+      queue-setup:
+        condition: service_completed_successfully
+    env_file:
+    - ../envs/.env.asya-shared
+    - ../envs/.env.asya-sidecar
+    - ../envs/.env.${ASYA_TRANSPORT}
+    environment:
+      ASYA_RUNTIME_TIMEOUT: 30s
+      ASYA_ACTOR_NAME: test-empty
+
+
+    volumes:
+    - asya-empty-sockets:/var/run/asya
+
+  # Unicode actor
+  asya-unicode-runtime:
+    build:
+      context: ../../../../src/asya-testing
+      dockerfile: Dockerfile
+    logging: *default-logging
+    command: ["python3", "/opt/asya/asya_runtime.py"]
+    env_file:
+    - ../envs/.env.asya-shared
+    - ../envs/.env.asya-runtime
+    environment:
+      ASYA_HANDLER: asya_testing.handlers.${ASYA_HANDLER_MODE}.unicode_handler
+
+
+    volumes:
+    - asya-unicode-sockets:/var/run/asya
+    - ../../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro
+    healthcheck:
+      test: ["CMD", "test", "-S", "/var/run/asya/asya-runtime.sock"]
+      interval: 2s
+      timeout: 1s
+      retries: 15
+
+  asya-unicode-sidecar:
+    network_mode: "service:asya-unicode-runtime"
+    build:
+      context: ../../../../src/asya-sidecar
+      dockerfile: Dockerfile
+    logging: *default-logging
+    depends_on:
+      asya-unicode-runtime:
+        condition: service_healthy
+      queue-setup:
+        condition: service_completed_successfully
+    env_file:
+    - ../envs/.env.asya-shared
+    - ../envs/.env.asya-sidecar
+    - ../envs/.env.${ASYA_TRANSPORT}
+    environment:
+      ASYA_RUNTIME_TIMEOUT: 30s
+      ASYA_ACTOR_NAME: test-unicode
+
+
+    volumes:
+    - asya-unicode-sockets:/var/run/asya
+
+  # Large payload actor
+  asya-large-payload-runtime:
+    build:
+      context: ../../../../src/asya-testing
+      dockerfile: Dockerfile
+    logging: *default-logging
+    command: ["python3", "/opt/asya/asya_runtime.py"]
+    env_file:
+    - ../envs/.env.asya-shared
+    - ../envs/.env.asya-runtime
+    environment:
+      ASYA_HANDLER: asya_testing.handlers.${ASYA_HANDLER_MODE}.large_payload_handler
+
+
+    volumes:
+    - asya-large-payload-sockets:/var/run/asya
+    - ../../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro
+    healthcheck:
+      test: ["CMD", "test", "-S", "/var/run/asya/asya-runtime.sock"]
+      interval: 2s
+      timeout: 1s
+      retries: 15
+
+  asya-large-payload-sidecar:
+    network_mode: "service:asya-large-payload-runtime"
+    build:
+      context: ../../../../src/asya-sidecar
+      dockerfile: Dockerfile
+    logging: *default-logging
+    depends_on:
+      asya-large-payload-runtime:
+        condition: service_healthy
+      queue-setup:
+        condition: service_completed_successfully
+    env_file:
+    - ../envs/.env.asya-shared
+    - ../envs/.env.asya-sidecar
+    - ../envs/.env.${ASYA_TRANSPORT}
+    environment:
+      ASYA_RUNTIME_TIMEOUT: 30s
+      ASYA_ACTOR_NAME: test-large-payload
+
+
+    volumes:
+    - asya-large-payload-sockets:/var/run/asya
+
+  # Nested actor
+  asya-nested-runtime:
+    build:
+      context: ../../../../src/asya-testing
+      dockerfile: Dockerfile
+    logging: *default-logging
+    command: ["python3", "/opt/asya/asya_runtime.py"]
+    env_file:
+    - ../envs/.env.asya-shared
+    - ../envs/.env.asya-runtime
+    environment:
+      ASYA_HANDLER: asya_testing.handlers.${ASYA_HANDLER_MODE}.nested_data_handler
+
+
+    volumes:
+    - asya-nested-sockets:/var/run/asya
+    - ../../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro
+    healthcheck:
+      test: ["CMD", "test", "-S", "/var/run/asya/asya-runtime.sock"]
+      interval: 2s
+      timeout: 1s
+      retries: 15
+
+  asya-nested-sidecar:
+    network_mode: "service:asya-nested-runtime"
+    build:
+      context: ../../../../src/asya-sidecar
+      dockerfile: Dockerfile
+    logging: *default-logging
+    depends_on:
+      asya-nested-runtime:
+        condition: service_healthy
+      queue-setup:
+        condition: service_completed_successfully
+    env_file:
+    - ../envs/.env.asya-shared
+    - ../envs/.env.asya-sidecar
+    - ../envs/.env.${ASYA_TRANSPORT}
+    environment:
+      ASYA_RUNTIME_TIMEOUT: 30s
+      ASYA_ACTOR_NAME: test-nested
+
+
+    volumes:
+    - asya-nested-sockets:/var/run/asya
+
+  # Null actor
+  asya-null-runtime:
+    build:
+      context: ../../../../src/asya-testing
+      dockerfile: Dockerfile
+    logging: *default-logging
+    command: ["python3", "/opt/asya/asya_runtime.py"]
+    env_file:
+    - ../envs/.env.asya-shared
+    - ../envs/.env.asya-runtime
+    environment:
+      ASYA_HANDLER: asya_testing.handlers.${ASYA_HANDLER_MODE}.null_values_handler
+
+
+    volumes:
+    - asya-null-sockets:/var/run/asya
+    - ../../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro
+    healthcheck:
+      test: ["CMD", "test", "-S", "/var/run/asya/asya-runtime.sock"]
+      interval: 2s
+      timeout: 1s
+      retries: 15
+
+  asya-null-sidecar:
+    network_mode: "service:asya-null-runtime"
+    build:
+      context: ../../../../src/asya-sidecar
+      dockerfile: Dockerfile
+    logging: *default-logging
+    depends_on:
+      asya-null-runtime:
+        condition: service_healthy
+      queue-setup:
+        condition: service_completed_successfully
+    env_file:
+    - ../envs/.env.asya-shared
+    - ../envs/.env.asya-sidecar
+    - ../envs/.env.${ASYA_TRANSPORT}
+    environment:
+      ASYA_RUNTIME_TIMEOUT: 30s
+      ASYA_ACTOR_NAME: test-null
+
+
+    volumes:
+    - asya-null-sockets:/var/run/asya
+
+  # Slow boundary actor
+  asya-slow-boundary-runtime:
+    build:
+      context: ../../../../src/asya-testing
+      dockerfile: Dockerfile
+    logging: *default-logging
+    command: ["python3", "/opt/asya/asya_runtime.py"]
+    env_file:
+    - ../envs/.env.asya-shared
+    - ../envs/.env.asya-runtime
+    environment:
+      ASYA_HANDLER: asya_testing.handlers.${ASYA_HANDLER_MODE}.slow_then_fast_handler
+
+
+    volumes:
+    - asya-slow-boundary-sockets:/var/run/asya
+    - ../../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro
+    healthcheck:
+      test: ["CMD", "test", "-S", "/var/run/asya/asya-runtime.sock"]
+      interval: 2s
+      timeout: 1s
+      retries: 15
+
+  asya-slow-boundary-sidecar:
+    network_mode: "service:asya-slow-boundary-runtime"
+    build:
+      context: ../../../../src/asya-sidecar
+      dockerfile: Dockerfile
+    logging: *default-logging
+    depends_on:
+      asya-slow-boundary-runtime:
+        condition: service_healthy
+      queue-setup:
+        condition: service_completed_successfully
+    env_file:
+    - ../envs/.env.asya-shared
+    - ../envs/.env.asya-sidecar
+    - ../envs/.env.${ASYA_TRANSPORT}
+    environment:
+      ASYA_RUNTIME_TIMEOUT: 30s
+      ASYA_ACTOR_NAME: test-slow-boundary
+
+
+    volumes:
+    - asya-slow-boundary-sockets:/var/run/asya
+
+  # Cycle actor
+  asya-cycle-runtime:
+    build:
+      context: ../../../../src/asya-testing
+      dockerfile: Dockerfile
+    logging: *default-logging
+    command: ["python3", "/opt/asya/asya_runtime.py"]
+    env_file:
+    - ../envs/.env.asya-shared
+    - ../envs/.env.asya-runtime
+    environment:
+      ASYA_HANDLER: asya_testing.handlers.${ASYA_HANDLER_MODE}.cyclic_route_detector
+
+
+    volumes:
+    - asya-cycle-sockets:/var/run/asya
+    - ../../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro
+    healthcheck:
+      test: ["CMD", "test", "-S", "/var/run/asya/asya-runtime.sock"]
+      interval: 2s
+      timeout: 1s
+      retries: 15
+
+  asya-cycle-sidecar:
+    network_mode: "service:asya-cycle-runtime"
+    build:
+      context: ../../../../src/asya-sidecar
+      dockerfile: Dockerfile
+    logging: *default-logging
+    depends_on:
+      asya-cycle-runtime:
+        condition: service_healthy
+      queue-setup:
+        condition: service_completed_successfully
+    env_file:
+    - ../envs/.env.asya-shared
+    - ../envs/.env.asya-sidecar
+    - ../envs/.env.${ASYA_TRANSPORT}
+    environment:
+      ASYA_RUNTIME_TIMEOUT: 30s
+      ASYA_ACTOR_NAME: test-cycle
+
+
+    volumes:
+    - asya-cycle-sockets:/var/run/asya
+
+  # Param flow 1 actor
+  asya-param-flow-1-runtime:
+    build:
+      context: ../../../../src/asya-testing
+      dockerfile: Dockerfile
+    logging: *default-logging
+    command: ["python3", "/opt/asya/asya_runtime.py"]
+    env_file:
+    - ../envs/.env.asya-shared
+    - ../envs/.env.asya-runtime
+    environment:
+      ASYA_HANDLER: asya_testing.handlers.${ASYA_HANDLER_MODE}.param_flow_actor_1
+
+
+    volumes:
+    - asya-param-flow-1-sockets:/var/run/asya
+    - ../../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro
+    healthcheck:
+      test: ["CMD", "test", "-S", "/var/run/asya/asya-runtime.sock"]
+      interval: 2s
+      timeout: 1s
+      retries: 15
+
+  asya-param-flow-1-sidecar:
+    network_mode: "service:asya-param-flow-1-runtime"
+    build:
+      context: ../../../../src/asya-sidecar
+      dockerfile: Dockerfile
+    logging: *default-logging
+    depends_on:
+      asya-param-flow-1-runtime:
+        condition: service_healthy
+      queue-setup:
+        condition: service_completed_successfully
+    env_file:
+    - ../envs/.env.asya-shared
+    - ../envs/.env.asya-sidecar
+    - ../envs/.env.${ASYA_TRANSPORT}
+    environment:
+      ASYA_RUNTIME_TIMEOUT: 30s
+      ASYA_ACTOR_NAME: test-param-flow-1
+
+
+    volumes:
+    - asya-param-flow-1-sockets:/var/run/asya
+
+  # Param flow 2 actor
+  asya-param-flow-2-runtime:
+    build:
+      context: ../../../../src/asya-testing
+      dockerfile: Dockerfile
+    logging: *default-logging
+    command: ["python3", "/opt/asya/asya_runtime.py"]
+    env_file:
+    - ../envs/.env.asya-shared
+    - ../envs/.env.asya-runtime
+    environment:
+      ASYA_HANDLER: asya_testing.handlers.${ASYA_HANDLER_MODE}.param_flow_actor_2
+
+
+    volumes:
+    - asya-param-flow-2-sockets:/var/run/asya
+    - ../../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro
+    healthcheck:
+      test: ["CMD", "test", "-S", "/var/run/asya/asya-runtime.sock"]
+      interval: 2s
+      timeout: 1s
+      retries: 15
+
+  asya-param-flow-2-sidecar:
+    network_mode: "service:asya-param-flow-2-runtime"
+    build:
+      context: ../../../../src/asya-sidecar
+      dockerfile: Dockerfile
+    logging: *default-logging
+    depends_on:
+      asya-param-flow-2-runtime:
+        condition: service_healthy
+      queue-setup:
+        condition: service_completed_successfully
+    env_file:
+    - ../envs/.env.asya-shared
+    - ../envs/.env.asya-sidecar
+    - ../envs/.env.${ASYA_TRANSPORT}
+    environment:
+      ASYA_RUNTIME_TIMEOUT: 30s
+      ASYA_ACTOR_NAME: test-param-flow-2
+
+
+    volumes:
+    - asya-param-flow-2-sockets:/var/run/asya
+
+  # Waiter service for test actors dependency subgraph
+  test-actors-waiter:
+    image: busybox:latest
+    command: ["sh", "-c", "echo 'Test actors ready'"]
+    depends_on:
+      asya-echo-sidecar:
+        condition: service_started
+      asya-doubler-sidecar:
+        condition: service_started
+      asya-incrementer-sidecar:
+        condition: service_started
+      asya-error-sidecar:
+        condition: service_started
+      asya-timeout-sidecar:
+        condition: service_started
+      asya-fanout-sidecar:
+        condition: service_started
+      asya-empty-sidecar:
+        condition: service_started
+      asya-unicode-sidecar:
+        condition: service_started
+      asya-large-payload-sidecar:
+        condition: service_started
+      asya-nested-sidecar:
+        condition: service_started
+      asya-null-sidecar:
+        condition: service_started
+      asya-slow-boundary-sidecar:
+        condition: service_started
+      asya-cycle-sidecar:
+        condition: service_started
+      asya-param-flow-1-sidecar:
+        condition: service_started
+      asya-param-flow-2-sidecar:
+        condition: service_started

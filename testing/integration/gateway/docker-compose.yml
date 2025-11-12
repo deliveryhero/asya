@@ -1,0 +1,55 @@
+services:
+  postgres:
+    extends:
+      file: ../../shared/compose/postgres.yml
+      service: postgres
+
+  postgres-migrate:
+    extends:
+      file: ../../shared/compose/postgres.yml
+      service: postgres-migrate
+    volumes:
+    - ../../../src/asya-gateway/db:/repo
+
+  rabbitmq:
+    extends:
+      file: ../../shared/compose/rabbitmq.yml
+      service: rabbitmq
+
+  tester:
+    build:
+      context: ../../../src/asya-gateway
+      dockerfile: Dockerfile
+      target: tester
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      postgres-migrate:
+        condition: service_completed_successfully
+    user: "0:0"
+    env_file:
+    - ../../shared/compose/envs/.env.tester
+    - ../../shared/compose/envs/.env.rabbitmq
+    environment:
+    - CGO_ENABLED=0
+    - GOCACHE=/tmp/go-cache
+    - COVERAGE_FILE=/app/.coverage/cov.db
+    - COVERAGE_RCFILE=/app/.coveragerc
+    volumes:
+    - ${COVERAGE_DIR}:/app/.coverage:rw
+    - ${COVERAGERC}:/app/.coveragerc:ro
+    - ./tests:/build/tests:ro
+    tmpfs:
+    - /tmp:exec
+    working_dir: /build
+    command:
+    - sh
+    - -c
+    - |
+      go test -v \
+        -tags=integration \
+        -coverpkg=github.com/deliveryhero/asya/asya-gateway/... \
+        -coverprofile=/app/.coverage/cov.out \
+        ./tests/...
