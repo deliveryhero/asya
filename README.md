@@ -1,3 +1,7 @@
+<table>
+<tr>
+<td width="70%">
+
 # Asya🎭
 > `/ˈɑːsjə/`, from **asy**nc **a**ctors
 
@@ -10,6 +14,15 @@
 * stateless by design
 * no central orchestrator/pipeline/DAG/flow - message knows the route
 * zero pip dependencies (infra completely decoupled from your code)
+
+</td>
+<td width="30%" align="center">
+
+[![dh](./img/dh-logo.png)](#)
+
+</td>
+</tr>
+</table>
 
 📘 [Docs](docs/) • 🏗️ [Architecture](docs/architecture/) • 🔧 [Examples](examples/) • 💻 [Source](src/) • ⚙️ [Charts](deploy/helm-charts/) • 🧪 [Testing](testing/)
 
@@ -522,9 +535,15 @@ make lint                 # Linters with auto-fix
 
 ---
 
+## Contributing
+
+To contribute, please read our [contributing docs](CONTRIBUTING.md).
+
 ## License
 
-Apache 2.0 - see [LICENSE](./LICENSE)
+Copyright © 2025 Delivery Hero SE
+
+Contents of this repository are licensed under the Apache-2.0 [License](LICENSE).
 
 ---
 
