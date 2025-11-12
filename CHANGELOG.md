@@ -11,5 +11,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CI workflow for publishing Docker images on GitHub releases
 - Automated changelog generation using release-drafter
 - Release workflow for building and publishing asya-* images to ghcr.io
-
-[Unreleased]: https://github.com/deliveryhero/asya/compare/HEAD...HEAD
