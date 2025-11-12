@@ -71,10 +71,15 @@ def test_error_goes_to_error_end_when_available(e2e_helper, kubectl):
     logger.info(f"Transport: {transport}")
     logger.info("Scenario: error-end available (normal application-level handling)")
 
-    # Scale error-end to 0 temporarily via AsyncActor (operator manages deployment)
-    logger.info("Scaling error-end to 0 to inspect queue")
-    kubectl.run("patch asyncactor error-end -n asya-e2e --type=json -p '[{\"op\":\"replace\",\"path\":\"/spec/workload/replicas\",\"value\":0}]'")
-    kubectl.wait_for_replicas("error-end", "asya-e2e", 0, timeout=20)
+    # Disable KEDA scaling and scale error-end to 0
+    logger.info("Disabling KEDA scaling for error-end")
+    kubectl.run("patch asyncactor error-end -n asya-e2e --type=json -p '[{\"op\":\"replace\",\"path\":\"/spec/scaling/enabled\",\"value\":false},{\"op\":\"replace\",\"path\":\"/spec/workload/replicas\",\"value\":0}]'")
+
+    logger.info("Waiting for ScaledObject to be deleted")
+    kubectl.run("wait --for=delete scaledobject/error-end -n asya-e2e --timeout=30s || true")
+
+    logger.info("Waiting for deployment to scale to 0")
+    kubectl.wait_for_replicas("error-end", "asya-e2e", 0, timeout=30)
 
     # Purge queues before test
     logger.info("Purging queues before test")
@@ -122,9 +127,9 @@ def test_error_goes_to_error_end_when_available(e2e_helper, kubectl):
         f"DLQ {dlq_name} should be empty when error-end handles the error"
     logger.info("[+] DLQ is empty - error was handled by error-end")
 
-    # Scale error-end back to 1
-    logger.info("Scaling error-end back to 1 replica")
-    kubectl.run("scale deployment error-end -n asya-e2e --replicas=1")
+    # Re-enable KEDA scaling for error-end
+    logger.info("Re-enabling KEDA scaling for error-end")
+    kubectl.run("patch asyncactor error-end -n asya-e2e --type=json -p '[{\"op\":\"replace\",\"path\":\"/spec/scaling/enabled\",\"value\":true}]'")
 
     logger.info("[+] Test passed - application-level error handling working")
 
@@ -159,14 +164,15 @@ def test_error_goes_to_dlq_when_error_end_unavailable(e2e_helper, kubectl):
     logger.info(f"Transport: {transport}")
     logger.info("Scenario: error-end unavailable (transport-level DLQ fallback)")
 
-    # Pause KEDA autoscaling first (KEDA fights manual scaling)
-    logger.info("Pausing KEDA autoscaling for error-end")
-    kubectl.run("annotate scaledobject error-end -n asya-e2e autoscaling.keda.sh/paused=true --overwrite")
+    # Disable KEDA scaling and scale error-end to 0
+    logger.info("Disabling KEDA scaling for error-end")
+    kubectl.run("patch asyncactor error-end -n asya-e2e --type=json -p '[{\"op\":\"replace\",\"path\":\"/spec/scaling/enabled\",\"value\":false},{\"op\":\"replace\",\"path\":\"/spec/workload/replicas\",\"value\":0}]'")
 
-    # Scale error-end to 0 via AsyncActor CRD (operator manages deployment)
-    logger.info("Scaling error-end to 0 replicas")
-    kubectl.run("patch asyncactor error-end -n asya-e2e --type=json -p '[{\"op\":\"replace\",\"path\":\"/spec/workload/replicas\",\"value\":0}]'")
-    kubectl.wait_for_replicas("error-end", "asya-e2e", 0, timeout=20)
+    logger.info("Waiting for ScaledObject to be deleted")
+    kubectl.run("wait --for=delete scaledobject/error-end -n asya-e2e --timeout=30s || true")
+
+    logger.info("Waiting for deployment to scale to 0")
+    kubectl.wait_for_replicas("error-end", "asya-e2e", 0, timeout=30)
     logger.info("[+] error-end scaled to 0")
 
     try:
@@ -227,12 +233,10 @@ def test_error_goes_to_dlq_when_error_end_unavailable(e2e_helper, kubectl):
         logger.info("[+] Test passed - transport-level DLQ fallback working")
 
     finally:
-        # Restore error-end to 1 replica and resume KEDA
-        logger.info("Restoring error-end to 1 replica")
-        kubectl.run("patch asyncactor error-end -n asya-e2e --type=json -p '[{\"op\":\"replace\",\"path\":\"/spec/workload/replicas\",\"value\":1}]'")
-        kubectl.wait_for_replicas("error-end", "asya-e2e", 1, timeout=20)
-        kubectl.run("annotate scaledobject error-end -n asya-e2e autoscaling.keda.sh/paused-")
-        logger.info("[+] error-end restored and KEDA resumed")
+        # Re-enable KEDA scaling for error-end
+        logger.info("Re-enabling KEDA scaling for error-end")
+        kubectl.run("patch asyncactor error-end -n asya-e2e --type=json -p '[{\"op\":\"replace\",\"path\":\"/spec/scaling/enabled\",\"value\":true}]'")
+        logger.info("[+] KEDA scaling re-enabled for error-end")
 
 
 @pytest.mark.slow
