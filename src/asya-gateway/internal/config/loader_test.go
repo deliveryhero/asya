@@ -168,7 +168,7 @@ tools:
     timeout: 60
 `
 
-	if err := os.WriteFile(configFile, []byte(yaml), 0644); err != nil { //nolint:gosec
+	if err := os.WriteFile(configFile, []byte(yaml), 0644); err != nil {
 		t.Fatalf("Failed to write test file: %v", err)
 	}
 
@@ -231,7 +231,7 @@ tools:
 
 	for filename, content := range files {
 		path := filepath.Join(tmpDir, filename)
-		if err := os.WriteFile(path, []byte(content), 0644); err != nil { //nolint:gosec
+		if err := os.WriteFile(path, []byte(content), 0644); err != nil {
 			t.Fatalf("Failed to write %s: %v", filename, err)
 		}
 	}

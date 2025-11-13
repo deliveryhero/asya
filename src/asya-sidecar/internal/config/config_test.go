@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-func TestLoadFromEnv(t *testing.T) { //nolint:gocyclo
+func TestLoadFromEnv(t *testing.T) {
 	// Save and restore original env
 	origEnv := os.Environ()
 	defer func() {

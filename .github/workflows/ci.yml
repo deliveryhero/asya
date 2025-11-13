@@ -15,38 +15,10 @@ on:
 #   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  golangci-lint:
-    name: "golangci-lint: ${{ matrix.component }}"
+  lint:
+    name: Lint
     runs-on: ubuntu-latest
-    timeout-minutes: 20
-    permissions:
-      contents: read
-    strategy:
-      fail-fast: false
-      matrix:
-        component: [asya-operator, asya-sidecar, asya-gateway]
-
-    steps:
-    - uses: actions/checkout@v4
-
-    - name: Set up Go
-      uses: actions/setup-go@v5
-      with:
-        go-version: "1.23"
-        cache-dependency-path: src/${{ matrix.component }}/go.sum
-
-    - name: golangci-lint
-      uses: golangci/golangci-lint-action@v4
-      with:
-        version: v1.62.2
-        working-directory: src/${{ matrix.component }}
-        args: --verbose --fix
-        skip-cache: false
-
-  other-lints:
-    name: Other linters (Python, YAML, Shell, etc.)
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 60
     permissions:
       contents: read
 
@@ -58,9 +30,9 @@ jobs:
       with:
         cache-precommit: "true"
 
-    - name: Run non-Go linters
+    - name: Run linters
       env:
-        SKIP: no-commit-to-branch,golangci-lint-operator,golangci-lint-sidecar,golangci-lint-gateway
+        SKIP: no-commit-to-branch
       run: |
         source .venv/bin/activate
         make lint

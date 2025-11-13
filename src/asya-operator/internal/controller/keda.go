@@ -214,13 +214,13 @@ func (r *AsyncActorReconciler) reconcileScaledObject(ctx context.Context, asya *
 		// Set polling and cooldown
 		pollingInterval := int32(10)
 		if asya.Spec.Scaling.PollingInterval > 0 {
-			pollingInterval = int32(asya.Spec.Scaling.PollingInterval) //nolint:gosec
+			pollingInterval = int32(asya.Spec.Scaling.PollingInterval)
 		}
 		scaledObject.Spec.PollingInterval = &pollingInterval
 
 		cooldownPeriod := int32(300) // default 5 min
 		if asya.Spec.Scaling.CooldownPeriod > 0 {
-			cooldownPeriod = int32(asya.Spec.Scaling.CooldownPeriod) //nolint:gosec
+			cooldownPeriod = int32(asya.Spec.Scaling.CooldownPeriod)
 		}
 		scaledObject.Spec.CooldownPeriod = &cooldownPeriod
 

@@ -27,7 +27,7 @@ func TestLocalFileLoader_Load(t *testing.T) {
 				dir := t.TempDir()
 				file := filepath.Join(dir, "asya_runtime.py")
 				content := "#!/usr/bin/env python3\nprint('hello')\n"
-				if err := os.WriteFile(file, []byte(content), 0644); err != nil { //nolint:gosec
+				if err := os.WriteFile(file, []byte(content), 0644); err != nil {
 					t.Fatal(err)
 				}
 				return file
@@ -47,7 +47,7 @@ func TestLocalFileLoader_Load(t *testing.T) {
 			setupFile: func(t *testing.T) string {
 				dir := t.TempDir()
 				file := filepath.Join(dir, "empty.py")
-				if err := os.WriteFile(file, []byte(""), 0644); err != nil { //nolint:gosec
+				if err := os.WriteFile(file, []byte(""), 0644); err != nil {
 					t.Fatal(err)
 				}
 				return file
@@ -95,7 +95,7 @@ func TestLocalFileLoader_LoadContent(t *testing.T) {
 	dir := t.TempDir()
 	file := filepath.Join(dir, "test.py")
 
-	if err := os.WriteFile(file, []byte(testPythonScript), 0644); err != nil { //nolint:gosec
+	if err := os.WriteFile(file, []byte(testPythonScript), 0644); err != nil {
 		t.Fatal(err)
 	}
 

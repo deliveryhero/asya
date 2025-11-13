@@ -52,8 +52,8 @@ func NewPgStore(ctx context.Context, connString string) (*PgStore, error) {
 	}
 
 	// Configure connection pool from environment variables
-	config.MaxConns = int32(getEnvInt("ASYA_DB_MAX_CONNS", 10)) //nolint:gosec
-	config.MinConns = int32(getEnvInt("ASYA_DB_MIN_CONNS", 2))  //nolint:gosec
+	config.MaxConns = int32(getEnvInt("ASYA_DB_MAX_CONNS", 10))
+	config.MinConns = int32(getEnvInt("ASYA_DB_MIN_CONNS", 2))
 	config.MaxConnLifetime = getEnvDuration("ASYA_DB_MAX_CONN_LIFETIME", time.Hour)
 	config.MaxConnIdleTime = getEnvDuration("ASYA_DB_MAX_CONN_IDLE_TIME", 30*time.Minute)
 

@@ -371,7 +371,7 @@ func (m *Metrics) StartMetricsServer(ctx context.Context, addr string) error {
 		_, _ = w.Write([]byte("OK"))
 	})
 
-	server := &http.Server{ //nolint:gosec
+	server := &http.Server{
 		Addr:    addr,
 		Handler: mux,
 	}

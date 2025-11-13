@@ -44,6 +44,21 @@ runs:
         src/asya-sidecar/go.sum
         src/asya-operator/go.sum
 
+  - name: Extract tool versions from Makefile
+    id: tool-versions
+    shell: bash
+    run: |
+      GOIMPORTS_VERSION=$(grep '^GOIMPORTS_VERSION :=' Makefile | awk '{print $3}' || echo "unknown")
+      GOLANGCI_VERSION=$(grep '^GOLANGCI_LINT_VERSION :=' Makefile | awk '{print $3}' || echo "unknown")
+      echo "goimports=$GOIMPORTS_VERSION" >> $GITHUB_OUTPUT
+      echo "golangci=$GOLANGCI_VERSION" >> $GITHUB_OUTPUT
+
+  - name: Cache Go tools
+    uses: actions/cache@v4
+    with:
+      path: ~/go/bin
+      key: go-tools-${{ runner.os }}-goimports-${{ steps.tool-versions.outputs.goimports }}-golangci-${{ steps.tool-versions.outputs.golangci
+        }}
 
   - name: Cache pre-commit environments
     if: inputs.cache-precommit == 'true'

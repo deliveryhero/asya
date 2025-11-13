@@ -12,7 +12,7 @@ import (
 
 // LoadFromFile loads configuration from a YAML file
 func LoadFromFile(path string) (*Config, error) {
-	f, err := os.Open(path) //nolint:gosec
+	f, err := os.Open(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open config file: %w", err)
 	}

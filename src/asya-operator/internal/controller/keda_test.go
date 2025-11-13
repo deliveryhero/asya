@@ -712,7 +712,6 @@ func TestReconcileTriggerAuthentication(t *testing.T) {
 	})
 }
 
-//nolint:gocyclo
 func TestReconcileScaledObject_KEDAStabilization(t *testing.T) {
 	testScheme := runtime.NewScheme()
 	_ = scheme.AddToScheme(testScheme)

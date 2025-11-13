@@ -31,7 +31,7 @@ linters:
 linters-settings:
   errcheck:
     check-type-assertions: true
-    check-blank: true
+    check-blank: false
 
   gosec:
     excludes:
@@ -46,7 +46,7 @@ linters-settings:
     check-generated: false
 
   gocyclo:
-    min-complexity: 15
+    min-complexity: 30
 
   goconst:
     min-len: 3

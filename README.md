@@ -1,9 +1,9 @@
 # Asya🎭
 > `/ˈɑːsjə/`, from **asy**nc **a**ctors
 
-**Kubernetes-native Distributed AI Workflow Framework**. That actually scales.
+Kubernetes-native • Distributed • Event-Driven • **AI Orchestration Framework** • That actually scales.
 
-Key idea: to fully decouple AI/ML/business logic from infrastructure pipelines to enable scalability.
+**Key idea**: to fully decouple AI/ML/business logic from infrastructure pipelines to enable scalability.
 
 * async actors
 * simple message-passing `A → B → C` instead of request-response `A → B → A → C → A...`
