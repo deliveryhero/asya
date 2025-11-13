@@ -7,7 +7,7 @@ GREEN_START := \033[32m
 GREEN_END := \033[0m
 
 # Tool versions (keep the format - it's grepped in action.yml)
-GOLANGCI_LINT_VERSION := v1.59.1
+GOLANGCI_LINT_VERSION := v1.62.2
 GOIMPORTS_VERSION := v0.28.0
 
 # =============================================================================
