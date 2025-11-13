@@ -69,8 +69,9 @@ runs:
     uses: actions/cache@v4
     with:
       path: ~/.cache/golangci-lint
-      key: golangci-build-${{ runner.os }}-${{ hashFiles('**/.golangci.yml', '**/go.sum') }}
+      key: golangci-build-${{ runner.os }}-${{ hashFiles('**/go.sum') }}-v1
       restore-keys: |
+        golangci-build-${{ runner.os }}-${{ hashFiles('**/go.sum') }}-
         golangci-build-${{ runner.os }}-
 
   - name: Cache pre-commit environments

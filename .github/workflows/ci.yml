@@ -35,9 +35,10 @@ jobs:
       env:
         SKIP: no-commit-to-branch
         GOMEMLIMIT: 4GiB
+        VERBOSE: 1
       run: |
         source .venv/bin/activate
-        make lint
+        time make lint
 
   unit-tests:
     name: "Unit tests: ${{ matrix.component }}"
