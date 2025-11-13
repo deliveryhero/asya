@@ -390,6 +390,7 @@ def wait_for_asyncactor_ready(
     namespace: str = "asya-e2e",
     timeout: int = 60,
     required_conditions: list[str] | None = None,
+    require_true: bool = True,
 ) -> bool:
     """
     Wait for AsyncActor to be ready by checking status conditions.
@@ -398,10 +399,11 @@ def wait_for_asyncactor_ready(
         name: AsyncActor name
         namespace: Target namespace
         timeout: Maximum wait time in seconds
-        required_conditions: List of condition types that must be True (default: ["WorkloadReady"])
+        required_conditions: List of condition types that must be present (default: ["WorkloadReady"])
+        require_true: If True, wait for conditions to be True; if False, just wait for them to exist
 
     Returns:
-        True if all required conditions are True, False if timeout
+        True if all required conditions meet criteria, False if timeout
     """
     if required_conditions is None:
         required_conditions = ["WorkloadReady"]
@@ -430,14 +432,18 @@ def wait_for_asyncactor_ready(
             all_ready = True
             for required_type in required_conditions:
                 condition = next((c for c in conditions if c["type"] == required_type), None)
-                if not condition or condition.get("status") != "True":
+                if not condition:
+                    all_ready = False
+                    break
+                if require_true and condition.get("status") != "True":
                     all_ready = False
                     break
 
             if all_ready:
                 elapsed = time.time() - start_time
+                status_desc = "True" if require_true else "present"
                 logger.info(
-                    f"AsyncActor {name} ready (conditions: {required_conditions}) after {elapsed:.1f}s ({attempt} attempts)"
+                    f"AsyncActor {name} ready (conditions {status_desc}: {required_conditions}) after {elapsed:.1f}s ({attempt} attempts)"
                 )
                 return True
 

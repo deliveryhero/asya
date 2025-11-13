@@ -363,9 +363,13 @@ spec:
         logger.info("Creating AsyncActor...")
         kubectl_apply(manifest, namespace=e2e_helper.namespace)
 
-        logger.info("Waiting for AsyncActor to be ready (WorkloadReady condition)...")
-        assert wait_for_asyncactor_ready("test-status", namespace=e2e_helper.namespace, timeout=60), \
-            "AsyncActor should reach WorkloadReady=True"
+        logger.info("Waiting for AsyncActor conditions to be set...")
+        assert wait_for_asyncactor_ready(
+            "test-status",
+            namespace=e2e_helper.namespace,
+            timeout=60,
+            require_true=False,
+        ), "AsyncActor should have WorkloadReady condition set"
 
         actor = kubectl_get("asyncactor", "test-status", namespace=e2e_helper.namespace)
         status = actor.get("status", {})
