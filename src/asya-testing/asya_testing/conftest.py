@@ -8,6 +8,7 @@ Fixtures are auto-discovered from asya_testing.fixtures submodules.
 import logging
 import os
 import re
+from pathlib import Path
 
 import pytest
 
@@ -20,8 +21,52 @@ configure_logging()
 logger = logging.getLogger(__name__)
 
 
+def _load_profile_env_file():
+    """
+    Auto-load environment variables from profile-specific .env file for E2E tests.
+
+    This hook loads environment variables from testing/e2e/profiles/.env.{PROFILE}
+    based on the PROFILE environment variable. This allows E2E tests to automatically
+    get the correct localhost URLs without requiring manual environment variable
+    passing in the Makefile.
+
+    Only loads variables that are not already set (doesn't override existing values).
+    """
+    profile = os.getenv("PROFILE")
+    if not profile:
+        return
+
+    project_root = Path(os.getenv("PROJECT_ROOT", Path.cwd()))
+    env_file = project_root / "testing" / "e2e" / "profiles" / f".env.{profile}"
+
+    if not env_file.exists():
+        logger.warning(f"Profile env file not found: {env_file}")
+        return
+
+    logger.info(f"Loading environment from: {env_file}")
+
+    with open(env_file) as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+
+            if "=" not in line:
+                continue
+
+            key, value = line.split("=", 1)
+            key = key.strip()
+            value = value.strip()
+
+            if key and not os.getenv(key):
+                os.environ[key] = value
+                logger.debug(f"Loaded: {key}={value}")
+
+
 def pytest_sessionstart(session):
     """Hook called at the start of the test session."""
+    _load_profile_env_file()
+
     if get_env("ASYA_E2E_DIAGNOSTICS", "false").lower() == "true":
         logger.info("Running pre-test diagnostics...")
         try:

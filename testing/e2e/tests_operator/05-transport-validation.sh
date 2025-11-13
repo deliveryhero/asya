@@ -14,13 +14,17 @@
 #
 set -euo pipefail
 
-TRANSPORT="${ASYA_TRANSPORT:-sqs}"
+ROOT_DIR="$(git rev-parse --show-toplevel)"
+TEST_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# shellcheck source=testing/e2e/tests_operator/load-profile.sh
+source "${TEST_DIR}/load-profile.sh"
+
+TRANSPORT="${ASYA_TRANSPORT}"
 
 NAMESPACE="${NAMESPACE:-asya-e2e-transport-test}"
 CLUSTER_NAME="${CLUSTER_NAME:-asya-e2e}"
 TIMEOUT="${TIMEOUT:-60}"
-
-ROOT_DIR="$(git rev-parse --show-toplevel)"
 
 echo "=== Transport Validation Test ==="
 echo "Namespace: $NAMESPACE"
