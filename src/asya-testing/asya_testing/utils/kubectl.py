@@ -408,8 +408,13 @@ def wait_for_asyncactor_ready(
     if required_conditions is None:
         required_conditions = ["WorkloadReady"]
 
+    logger.debug(
+        f"Waiting for AsyncActor {name}: required_conditions={required_conditions}, require_true={require_true}"
+    )
+
     start_time = time.time()
     attempt = 0
+    last_actor_yaml = None
 
     while time.time() - start_time < timeout:
         attempt += 1
@@ -422,21 +427,38 @@ def wait_for_asyncactor_ready(
             )
 
             if result.returncode != 0:
+                logger.debug(f"Attempt {attempt}: kubectl get failed, returncode={result.returncode}")
                 time.sleep(1)
                 continue
 
             actor = yaml.safe_load(result.stdout)
+            last_actor_yaml = result.stdout
             status = actor.get("status", {})
             conditions = status.get("conditions", [])
 
+            logger.debug(f"Attempt {attempt}: Found {len(conditions)} conditions: {[c['type'] for c in conditions]}")
+
             all_ready = True
+            missing_conditions = []
+            false_conditions = []
+
             for required_type in required_conditions:
                 condition = next((c for c in conditions if c["type"] == required_type), None)
                 if not condition:
                     all_ready = False
+                    missing_conditions.append(required_type)
+                    logger.debug(f"Attempt {attempt}: Condition '{required_type}' not found")
                     break
-                if require_true and condition.get("status") != "True":
+
+                cond_status = condition.get("status")
+                logger.debug(
+                    f"Attempt {attempt}: Condition '{required_type}' status={cond_status}, require_true={require_true}"
+                )
+
+                if require_true and cond_status != "True":
                     all_ready = False
+                    false_conditions.append(f"{required_type}={cond_status}")
+                    logger.debug(f"Attempt {attempt}: Condition '{required_type}' is {cond_status}, need True")
                     break
 
             if all_ready:
@@ -446,11 +468,20 @@ def wait_for_asyncactor_ready(
                     f"AsyncActor {name} ready (conditions {status_desc}: {required_conditions}) after {elapsed:.1f}s ({attempt} attempts)"
                 )
                 return True
+            else:
+                if missing_conditions:
+                    logger.debug(f"Attempt {attempt}: Missing conditions: {missing_conditions}")
+                if false_conditions:
+                    logger.debug(f"Attempt {attempt}: Conditions not True: {false_conditions}")
 
         except Exception as e:
-            logger.debug(f"Error checking AsyncActor conditions (attempt {attempt}): {e}")
+            logger.debug(f"Attempt {attempt}: Exception: {e}")
 
         time.sleep(1)
 
     logger.warning(f"AsyncActor {name} not ready after {timeout}s ({attempt} attempts)")
+
+    if last_actor_yaml:
+        logger.debug(f"Last AsyncActor YAML:\n{last_actor_yaml}")
+
     return False

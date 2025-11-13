@@ -364,10 +364,12 @@ spec:
         kubectl_apply(manifest, namespace=e2e_helper.namespace)
 
         logger.info("Waiting for AsyncActor conditions to be set...")
+        # Longer timeout needed: operator may encounter status update conflicts
+        # when it adds finalizer (generation 1→2), requiring retry with fresh version
         assert wait_for_asyncactor_ready(
             "test-status",
             namespace=e2e_helper.namespace,
-            timeout=60,
+            timeout=120,
             require_true=False,
         ), "AsyncActor should have WorkloadReady condition set"
 
