@@ -36,7 +36,7 @@ jobs:
         cache-dependency-path: src/${{ matrix.component }}/go.sum
 
     - name: golangci-lint
-      uses: golangci/golangci-lint-action@v6
+      uses: golangci/golangci-lint-action@v4
       with:
         version: v1.62.2
         working-directory: src/${{ matrix.component }}
