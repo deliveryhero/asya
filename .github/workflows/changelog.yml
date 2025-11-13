@@ -27,9 +27,11 @@ jobs:
         VERSION="${TAG#v}"
         DATE=$(date +%Y-%m-%d)
 
-        echo "version=${VERSION}" >> $GITHUB_OUTPUT
-        echo "tag=${TAG}" >> $GITHUB_OUTPUT
-        echo "date=${DATE}" >> $GITHUB_OUTPUT
+        {
+          printf "version=%s\n" "${VERSION}"
+          printf "tag=%s\n" "${TAG}"
+          printf "date=%s\n" "${DATE}"
+        } >> "$GITHUB_OUTPUT"
 
     - name: Update CHANGELOG.md
       env:

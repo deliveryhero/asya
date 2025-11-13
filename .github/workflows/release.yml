@@ -34,8 +34,10 @@ jobs:
       run: |
         TAG="${{ github.event.release.tag_name }}"
         VERSION="${TAG#v}"
-        echo "version=${VERSION}" >> $GITHUB_OUTPUT
-        echo "tag=${TAG}" >> $GITHUB_OUTPUT
+        {
+          printf "version=%s\n" "${VERSION}"
+          printf "tag=%s\n" "${TAG}"
+        } >> "$GITHUB_OUTPUT"
 
     - name: Build and push images
       env:
@@ -68,7 +70,7 @@ jobs:
 
     - name: Create release summary
       run: |
-        cat >> $GITHUB_STEP_SUMMARY <<EOF
+        cat >> "$GITHUB_STEP_SUMMARY" <<EOF
         ## Published Docker Images
 
         Version: \`${{ steps.version.outputs.version }}\`
@@ -83,7 +85,7 @@ jobs:
         EOF
 
         if [ "${{ github.event.release.prerelease }}" == "false" ]; then
-          cat >> $GITHUB_STEP_SUMMARY <<EOF
+          cat >> "$GITHUB_STEP_SUMMARY" <<EOF
 
         All images have also been tagged as \`latest\`.
         EOF
