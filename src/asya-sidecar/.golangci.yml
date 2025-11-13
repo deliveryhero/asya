@@ -4,6 +4,7 @@ run:
   timeout: 5m
   tests: true
   modules-download-mode: readonly
+  concurrency: 2
 
 output:
   print-issued-lines: true
