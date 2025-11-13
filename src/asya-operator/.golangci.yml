@@ -1,10 +1,10 @@
 version: 2
 
 run:
-  timeout: 10m
+  timeout: 15m
   tests: true
   modules-download-mode: readonly
-  concurrency: 1
+  concurrency: 3
 
 output:
   print-issued-lines: true
