@@ -29,7 +29,7 @@ setup-dev: setup ## Alias for setup (backwards compatibility)
 install-dev: setup ## Alias for setup (backwards compatibility)
 
 lint:
-	uv run pre-commit run -a
+	uv run pre-commit run --verbose --show-diff-on-failure -a
 
 # =============================================================================
 # Unit + integration tests

@@ -15,10 +15,38 @@ on:
 #   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  lint:
-    name: Lint
+  golangci-lint:
+    name: "golangci-lint: ${{ matrix.component }}"
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        component: [asya-operator, asya-sidecar, asya-gateway]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup environment
+      uses: ./.github/actions/setup-env
+      with:
+        cache-precommit: "true"
+
+    - name: Run golangci-lint
+      env:
+        GOMEMLIMIT: 4GiB
+      run: |
+        echo "[.] Running golangci-lint on ${{ matrix.component }} at $(date '+%H:%M:%S')"
+        cd src/${{ matrix.component }}
+        time golangci-lint run --verbose --fix ./...
+        echo "[+] Completed golangci-lint on ${{ matrix.component }} at $(date '+%H:%M:%S')"
+
+  other-lints:
+    name: Other linters (Python, YAML, Shell, etc.)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: write
       pull-requests: write
@@ -31,14 +59,12 @@ jobs:
       with:
         cache-precommit: "true"
 
-    - name: Run linters
+    - name: Run non-Go linters
       env:
-        SKIP: no-commit-to-branch
-        GOMEMLIMIT: 4GiB
-        VERBOSE: 1
+        SKIP: no-commit-to-branch,golangci-lint-operator,golangci-lint-sidecar,golangci-lint-gateway
       run: |
         source .venv/bin/activate
-        time make lint
+        make lint
 
   unit-tests:
     name: "Unit tests: ${{ matrix.component }}"
