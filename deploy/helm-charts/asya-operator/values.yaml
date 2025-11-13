@@ -31,13 +31,14 @@ securityContext:
     - ALL
   readOnlyRootFilesystem: true
 
+# parallelism defined in: controller.maxConcurrentReconciles
 resources:
-  limits:
-    cpu: 500m
-    memory: 512Mi
   requests:
-    cpu: 100m
-    memory: 256Mi
+    cpu: 500m # 5x KEDA baseline (handles normal concurrent load)
+    memory: 512Mi # 5x KEDA baseline (shared caches + 50 goroutine overhead)
+  limits:
+    cpu: 2000m # 2 full cores for burst reconciliation load
+    memory: 2048Mi # 2x KEDA limit (headroom for peak concurrent reconciles)
 
 nodeSelector: {}
 
