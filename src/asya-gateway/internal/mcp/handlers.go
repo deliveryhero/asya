@@ -175,8 +175,6 @@ func (h *Handler) HandleEnvelopeCreate(w http.ResponseWriter, r *http.Request) {
 			})
 			return
 		}
-
-		slog.Info("Fanout envelope sent to queue", "id", createReq.ID, "queue", createReq.Actors[0])
 	}()
 
 	w.WriteHeader(http.StatusCreated)

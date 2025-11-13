@@ -216,8 +216,6 @@ func (r *Registry) createToolHandler(toolDef config.Tool) func(context.Context, 
 				})
 				return
 			}
-
-			log.Printf("Envelope %s sent to queue %s", envelopeID, actors[0])
 		}()
 
 		// Build MCP-compliant structured response

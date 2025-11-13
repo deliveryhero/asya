@@ -152,8 +152,6 @@ func (s *Server) handleProcessImageWorkflow(ctx context.Context, request mcp.Cal
 			})
 			return
 		}
-
-		log.Printf("Envelope %s sent to queue %s", envelopeID, route[0])
 	}()
 
 	// Build MCP-compliant structured response

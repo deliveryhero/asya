@@ -131,9 +131,18 @@ def test_error_goes_to_error_end_when_available(e2e_helper, kubectl):
     logger.info("Re-enabling KEDA scaling for error-end")
     kubectl.run("patch asyncactor error-end -n asya-e2e --type=json -p '[{\"op\":\"replace\",\"path\":\"/spec/scaling/enabled\",\"value\":true},{\"op\":\"replace\",\"path\":\"/spec/workload/replicas\",\"value\":1}]'")
 
-    # Wait for ScaledObject to be recreated
+    # Wait for operator to reconcile and ScaledObject to be recreated
     logger.info("Waiting for ScaledObject to be recreated")
-    kubectl.run("wait --for=condition=Ready scaledobject/error-end -n asya-e2e --timeout=60s")
+    for attempt in range(30):
+        result = kubectl.run("get scaledobject error-end -n asya-e2e", check=False)
+        if result.returncode == 0:
+            logger.info("ScaledObject exists, waiting for Ready condition")
+            kubectl.run("wait --for=condition=Ready scaledobject/error-end -n asya-e2e --timeout=30s")
+            break
+        logger.info(f"ScaledObject not yet created, retrying ({attempt + 1}/30)")
+        time.sleep(2)
+    else:
+        raise TimeoutError("ScaledObject was not created within 60 seconds")
 
     # Wait for error-end pod to be ready
     logger.info("Waiting for error-end pod to be ready")
