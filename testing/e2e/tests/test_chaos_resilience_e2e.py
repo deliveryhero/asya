@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 @pytest.mark.slow
 @pytest.mark.chaos
 @pytest.mark.xdist_group(name="chaos")
-def test_rabbitmq_restart_during_processing(e2e_helper, rabbitmq_url):
+def test_rabbitmq_restart_during_processing(e2e_helper):
     """
     E2E: Test system handles RabbitMQ restart gracefully.
 
