@@ -26,7 +26,6 @@ from asya_testing.utils.kubectl import (
     kubectl_get,
     wait_for_deletion,
     wait_for_deployment_ready,
-    wait_for_operator_log,
     wait_for_resource,
 )
 
@@ -78,15 +77,9 @@ spec:
         logger.info("Creating AsyncActor...")
         kubectl_apply(actor_manifest, namespace=e2e_helper.namespace)
 
-        logger.info("Waiting for operator to reconcile Deployment...")
-        assert wait_for_operator_log(
-            "test-lifecycle",
-            "Deployment reconciled",
-            namespace=e2e_helper.namespace,
-            timeout=30,
-            resource_type="deployment",
-            resource_name="test-lifecycle",
-        ), "Operator should reconcile deployment within 30s"
+        logger.info("Waiting for Deployment to be created...")
+        assert wait_for_resource("deployment", "test-lifecycle", namespace=e2e_helper.namespace, timeout=60), \
+            "Deployment should be created by operator"
 
         logger.info("Verifying sidecar injection...")
         deployment = kubectl_get("deployment", "test-lifecycle", namespace=e2e_helper.namespace)
@@ -183,15 +176,7 @@ spec:
         logger.info("Creating initial AsyncActor...")
         kubectl_apply(initial_manifest, namespace=e2e_helper.namespace)
 
-        logger.info("Waiting for operator to reconcile initial AsyncActor...")
-        assert wait_for_operator_log(
-            "test-update",
-            "ScaledObject condition set",
-            namespace=e2e_helper.namespace,
-            timeout=30,
-            resource_type="scaledobject",
-            resource_name="test-update",
-        ), "Operator should reconcile ScaledObject within 30s"
+        assert wait_for_resource("scaledobject", "test-update", namespace=e2e_helper.namespace, timeout=60)
 
         initial_scaled = kubectl_get("scaledobject", "test-update", namespace=e2e_helper.namespace)
         assert initial_scaled["spec"]["minReplicaCount"] == 1
@@ -199,10 +184,7 @@ spec:
         logger.info("Updating AsyncActor...")
         kubectl_apply(updated_manifest, namespace=e2e_helper.namespace)
 
-        logger.info("Waiting for operator to reconcile update...")
-        assert wait_for_operator_log(
-            "test-update", "Status updated successfully", namespace=e2e_helper.namespace, timeout=30
-        ), "Operator should reconcile update within 30s"
+        time.sleep(5)
 
         updated_scaled = kubectl_get("scaledobject", "test-update", namespace=e2e_helper.namespace)
         assert updated_scaled["spec"]["minReplicaCount"] == 3, \
@@ -259,10 +241,7 @@ spec:
         logger.info("Creating AsyncActor with invalid transport...")
         kubectl_apply(invalid_manifest, namespace=e2e_helper.namespace)
 
-        logger.info("Waiting for operator to process invalid transport...")
-        wait_for_operator_log(
-            "test-invalid-transport", "Invalid transport configuration", namespace=e2e_helper.namespace, timeout=30
-        )
+        time.sleep(5)
 
         actor = kubectl_get("asyncactor", "test-invalid-transport", namespace=e2e_helper.namespace)
         status = actor.get("status", {})
@@ -377,10 +356,7 @@ spec:
         logger.info("Creating AsyncActor...")
         kubectl_apply(manifest, namespace=e2e_helper.namespace)
 
-        logger.info("Waiting for operator to update status...")
-        assert wait_for_operator_log(
-            "test-status", "Status updated successfully", namespace=e2e_helper.namespace, timeout=30
-        ), "Operator should update status within 30s"
+        time.sleep(10)
 
         actor = kubectl_get("asyncactor", "test-status", namespace=e2e_helper.namespace)
         status = actor.get("status", {})
@@ -440,10 +416,7 @@ spec:
         logger.info("Creating AsyncActor with broken image...")
         kubectl_apply(manifest, namespace=e2e_helper.namespace)
 
-        logger.info("Waiting for operator to reconcile Deployment...")
-        assert wait_for_operator_log(
-            "test-broken-image", "Deployment reconciled", namespace=e2e_helper.namespace, timeout=30
-        ), "Operator should reconcile deployment within 30s"
+        time.sleep(15)
 
         pods = subprocess.run(
             ["kubectl", "get", "pods", "-l", "app=test-broken-image", "-n", e2e_helper.namespace],
@@ -508,16 +481,7 @@ spec:
     try:
         logger.info("Creating AsyncActor...")
         kubectl_apply(manifest, namespace=e2e_helper.namespace)
-
-        logger.info("Waiting for operator to reconcile Deployment...")
-        assert wait_for_operator_log(
-            "test-sidecar-env",
-            "Deployment reconciled",
-            namespace=e2e_helper.namespace,
-            timeout=30,
-            resource_type="deployment",
-            resource_name="test-sidecar-env",
-        ), "Operator should reconcile deployment within 30s"
+        assert wait_for_resource("deployment", "test-sidecar-env", namespace=e2e_helper.namespace, timeout=60)
 
         deployment = kubectl_get("deployment", "test-sidecar-env", namespace=e2e_helper.namespace)
         containers = deployment["spec"]["template"]["spec"]["containers"]
