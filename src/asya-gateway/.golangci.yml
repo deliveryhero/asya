@@ -4,7 +4,7 @@ run:
   timeout: 5m
   tests: true
   modules-download-mode: readonly
-  concurrency: 2
+  concurrency: 1
 
 output:
   print-issued-lines: true
@@ -25,7 +25,7 @@ linters:
   #- unparam         # Unused function parameters
   #- nilnil          # Prevent (nil, nil) returns
   - nolintlint # Validate //nolint directives
-  - unused # Find unused constants, variables, functions and types
+  #- unused          # Disabled: excessive memory usage on CI (golangci-lint#898, #3565)
   - ineffassign # Detect ineffectual assignments
 
 linters-settings:
