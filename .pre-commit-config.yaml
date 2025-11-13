@@ -89,29 +89,25 @@ repos:
     files: ^src/(asya-sidecar|asya-gateway|asya-operator)/go\.(mod|sum)$
 
 # golangci-lint for each Go module
+# IMPORTANT: Must use golangci-lint v1.62.2 to match CI
+# Install: curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.62.2
 - repo: local
   hooks:
   - id: golangci-lint-operator
     name: golangci-lint (operator)
-    entry: >
-      bash -c 'echo "[.] Starting golangci-lint (operator) at $(date +%H:%M:%S)" && cd src/asya-operator && time golangci-lint
-      run ${VERBOSE:+--verbose} --fix ./... && echo "[+] Completed golangci-lint (operator) at $(date +%H:%M:%S)"'
+    entry: bash -c 'cd src/asya-operator && golangci-lint run ${VERBOSE:+--verbose} --fix ./...'
     language: system
     files: ^src/asya-operator/.*\.go$
     pass_filenames: false
   - id: golangci-lint-sidecar
     name: golangci-lint (sidecar)
-    entry: >
-      bash -c 'echo "[.] Starting golangci-lint (sidecar) at $(date +%H:%M:%S)" && cd src/asya-sidecar && time golangci-lint
-      run ${VERBOSE:+--verbose} --fix ./... && echo "[+] Completed golangci-lint (sidecar) at $(date +%H:%M:%S)"'
+    entry: bash -c 'cd src/asya-sidecar && golangci-lint run ${VERBOSE:+--verbose} --fix ./...'
     language: system
     files: ^src/asya-sidecar/.*\.go$
     pass_filenames: false
   - id: golangci-lint-gateway
     name: golangci-lint (gateway)
-    entry: >
-      bash -c 'echo "[.] Starting golangci-lint (gateway) at $(date +%H:%M:%S)" && cd src/asya-gateway && time golangci-lint
-      run ${VERBOSE:+--verbose} --fix ./... && echo "[+] Completed golangci-lint (gateway) at $(date +%H:%M:%S)"'
+    entry: bash -c 'cd src/asya-gateway && golangci-lint run ${VERBOSE:+--verbose} --fix ./...'
     language: system
     files: ^src/asya-gateway/.*\.go$
     pass_filenames: false

@@ -29,27 +29,26 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Setup environment
-      uses: ./.github/actions/setup-env
+    - name: Set up Go
+      uses: actions/setup-go@v5
       with:
-        cache-precommit: "true"
+        go-version: "1.23"
+        cache-dependency-path: src/${{ matrix.component }}/go.sum
 
-    - name: Run golangci-lint
-      env:
-        GOMEMLIMIT: 4GiB
-      run: |
-        echo "[.] Running golangci-lint on ${{ matrix.component }} at $(date '+%H:%M:%S')"
-        cd src/${{ matrix.component }}
-        time golangci-lint run --verbose --fix ./...
-        echo "[+] Completed golangci-lint on ${{ matrix.component }} at $(date '+%H:%M:%S')"
+    - name: golangci-lint
+      uses: golangci/golangci-lint-action@v6
+      with:
+        version: v1.62.2
+        working-directory: src/${{ matrix.component }}
+        args: --verbose --fix
+        skip-cache: false
 
   other-lints:
     name: Other linters (Python, YAML, Shell, etc.)
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
-      contents: write
-      pull-requests: write
+      contents: read
 
     steps:
     - uses: actions/checkout@v4
@@ -71,8 +70,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
-      contents: write
-      pull-requests: write
+      contents: read
     strategy:
       fail-fast: false
       matrix:
@@ -385,7 +383,6 @@ jobs:
     needs: [unit-tests, component-tests, integration-tests, e2e-tests]
     permissions:
       actions: read
-      contents: write
       pull-requests: write
 
     steps:

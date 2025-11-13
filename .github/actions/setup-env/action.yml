@@ -44,35 +44,6 @@ runs:
         src/asya-sidecar/go.sum
         src/asya-operator/go.sum
 
-  - name: Cache golangci-lint binary
-    uses: actions/cache@v4
-    with:
-      path: ~/go/bin/golangci-lint
-      key: golangci-lint-${{ runner.os }}-v1.59.1
-
-  - name: Install golangci-lint
-    shell: bash
-    run: |
-      GOLANGCI_LINT_VERSION=v1.59.1
-      INSTALL_SCRIPT_SHA256="9e99d38f3213411a1b6175e5b535c72e37c7ed42ccf251d331385a3f97b695e7"
-
-      if [ ! -f ~/go/bin/golangci-lint ]; then
-        curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh -o /tmp/install.sh
-        echo "${INSTALL_SCRIPT_SHA256}  /tmp/install.sh" | sha256sum -c -
-        sh /tmp/install.sh -b $(go env GOPATH)/bin ${GOLANGCI_LINT_VERSION}
-        rm /tmp/install.sh
-      fi
-      echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
-
-  - name: Cache golangci-lint build cache
-    if: inputs.cache-precommit == 'true'
-    uses: actions/cache@v4
-    with:
-      path: ~/.cache/golangci-lint
-      key: golangci-build-${{ runner.os }}-${{ hashFiles('**/go.sum') }}-v1
-      restore-keys: |
-        golangci-build-${{ runner.os }}-${{ hashFiles('**/go.sum') }}-
-        golangci-build-${{ runner.os }}-
 
   - name: Cache pre-commit environments
     if: inputs.cache-precommit == 'true'

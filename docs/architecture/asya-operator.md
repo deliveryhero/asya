@@ -90,16 +90,41 @@ spec:
 
 ### Reconciliation Behavior
 
-The operator reconciles AsyncActors when:
+The operator follows a standard Kubernetes controller pattern with event-driven reconciliation:
+
+**Reconciliation triggers**:
 - AsyncActor spec changes (user edits, CI/CD updates)
-- Owned Deployment/StatefulSet changes (pod crashes, node failures, rolling updates)
+- Owned resource changes (Deployment/StatefulSet updates, deletions)
 - Periodic resync (default: every 10 hours)
 
-The operator does NOT reconcile on:
+**Reconciliation filters**:
 - KEDA ScaledObject status updates (filtered to reduce event churn)
 - AsyncActor status-only updates (filtered by GenerationChangedPredicate)
 
-KEDA autoscaling state (desired replicas) is read from HPA and cached during reconciles. In stable clusters, this data may be stale by minutes to hours, but refreshes automatically on any spec or workload change.
+**Reconciliation flow**:
+1. **Validation**: Validate AsyncActor spec and transport configuration
+2. **Queue management**: Create/update message queues on configured transport
+3. **ServiceAccount**: Create ServiceAccount with IRSA annotations (SQS only, if actorRoleArn configured)
+4. **Runtime ConfigMap**: Ensure asya_runtime.py ConfigMap exists in actor namespace
+5. **Workload**: Create/update Deployment/StatefulSet with sidecar injection
+6. **Pod health check**: Verify pods are healthy and not in failing states
+7. **KEDA**: Create/update ScaledObject for autoscaling (if enabled)
+8. **HPA status**: Read desired replicas from KEDA-managed HPA (requeue if HPA not found)
+9. **Queue metrics**: Update queue depth metrics (optional, non-critical)
+10. **Status update**: Update AsyncActor status with conditions, replica counts, and display fields
+
+**Failure handling**:
+- Transport validation errors: Mark TransportReady condition as False, stop reconciliation
+- Workload creation errors: Mark WorkloadReady condition as False, requeue
+- Pod health failures: Mark WorkloadReady condition as False based on pod states
+- HPA not found: Requeue after 5 seconds (KEDA may still be creating it)
+- SQS queue deletion cooldown: Requeue after 65 seconds (AWS requires 60-second cooldown)
+
+**Status updates**:
+- Conditions track readiness of transport, workload, and scaling components
+- Replica counts (ready, pending, failing) derived from Deployment status and pod states
+- Queue metrics (queued, processing) fetched from transport APIs
+- Scaling events (last scale time, direction) tracked for observability
 
 ### Queue Management
 
