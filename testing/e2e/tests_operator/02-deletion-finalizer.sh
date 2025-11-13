@@ -20,12 +20,14 @@ ROOT_DIR="$(git rev-parse --show-toplevel)"
 TEST_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # shellcheck source=testing/e2e/tests_operator/load-profile.sh
+# shellcheck disable=SC1091
 source "${TEST_DIR}/load-profile.sh"
 
-NAMESPACE="${NAMESPACE:-asya-e2e-deletion-test}"
+TRANSPORT="${ASYA_TRANSPORT}"
+# Override NAMESPACE from profile to use isolated test namespace
+NAMESPACE="asya-e2e-deletion-finalizer"
 CLUSTER_NAME="${CLUSTER_NAME:-asya-e2e}"
 TIMEOUT="${TIMEOUT:-60}"
-TRANSPORT="${ASYA_TRANSPORT}"
 
 echo "=== AsyncActor Deletion and Finalizer Test ==="
 echo "Namespace: $NAMESPACE"
