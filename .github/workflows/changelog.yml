@@ -52,17 +52,21 @@ jobs:
 
         EOF
 
-        echo "" >> "$TEMP_FILE"
-        echo "## [$VERSION] - $DATE" >> "$TEMP_FILE"
-        echo "" >> "$TEMP_FILE"
-        echo "$RELEASE_NOTES" >> "$TEMP_FILE"
-        echo "" >> "$TEMP_FILE"
+        {
+          echo ""
+          echo "## [$VERSION] - $DATE"
+          echo ""
+          echo "$RELEASE_NOTES"
+          echo ""
+        } >> "$TEMP_FILE"
 
         tail -n +7 CHANGELOG.md | grep -v "^\[Unreleased\]:" >> "$TEMP_FILE" || true
 
-        echo "" >> "$TEMP_FILE"
-        echo "[Unreleased]: https://github.com/${{ github.repository }}/compare/${TAG}...HEAD" >> "$TEMP_FILE"
-        echo "[$VERSION]: https://github.com/${{ github.repository }}/releases/tag/${TAG}" >> "$TEMP_FILE"
+        {
+          echo ""
+          echo "[Unreleased]: https://github.com/${{ github.repository }}/compare/${TAG}...HEAD"
+          echo "[$VERSION]: https://github.com/${{ github.repository }}/releases/tag/${TAG}"
+        } >> "$TEMP_FILE"
 
         mv "$TEMP_FILE" CHANGELOG.md
 
