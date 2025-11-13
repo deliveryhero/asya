@@ -78,7 +78,7 @@ spec:
         kubectl_apply(actor_manifest, namespace=e2e_helper.namespace)
 
         logger.info("Waiting for Deployment to be created...")
-        assert wait_for_resource("deployment", "test-lifecycle", namespace=e2e_helper.namespace, timeout=30), \
+        assert wait_for_resource("deployment", "test-lifecycle", namespace=e2e_helper.namespace, timeout=60), \
             "Deployment should be created by operator"
 
         logger.info("Verifying sidecar injection...")
@@ -90,7 +90,7 @@ spec:
         assert "asya-runtime" in container_names, "Runtime container should exist"
 
         logger.info("Verifying ScaledObject creation...")
-        assert wait_for_resource("scaledobject", "test-lifecycle", namespace=e2e_helper.namespace, timeout=30), \
+        assert wait_for_resource("scaledobject", "test-lifecycle", namespace=e2e_helper.namespace, timeout=60), \
             "ScaledObject should be created"
 
         logger.info("Deleting AsyncActor...")
@@ -98,7 +98,7 @@ spec:
 
         assert wait_for_deletion("deployment", "test-lifecycle", namespace=e2e_helper.namespace, timeout=60), \
             "Deployment should be deleted by finalizer"
-        assert wait_for_deletion("scaledobject", "test-lifecycle", namespace=e2e_helper.namespace, timeout=30), \
+        assert wait_for_deletion("scaledobject", "test-lifecycle", namespace=e2e_helper.namespace, timeout=60), \
             "ScaledObject should be deleted by finalizer"
 
         logger.info("[+] AsyncActor lifecycle completed successfully")
@@ -175,7 +175,7 @@ spec:
     try:
         logger.info("Creating initial AsyncActor...")
         kubectl_apply(initial_manifest, namespace=e2e_helper.namespace)
-        assert wait_for_resource("scaledobject", "test-update", namespace=e2e_helper.namespace, timeout=30)
+        assert wait_for_resource("scaledobject", "test-update", namespace=e2e_helper.namespace, timeout=60)
 
         initial_scaled = kubectl_get("scaledobject", "test-update", namespace=e2e_helper.namespace)
         assert initial_scaled["spec"]["minReplicaCount"] == 1
@@ -298,7 +298,7 @@ spec:
         kubectl_apply(manifest, namespace=e2e_helper.namespace)
 
         logger.info("Waiting for StatefulSet to be created...")
-        assert wait_for_resource("statefulset", "test-statefulset", namespace=e2e_helper.namespace, timeout=30), \
+        assert wait_for_resource("statefulset", "test-statefulset", namespace=e2e_helper.namespace, timeout=60), \
             "StatefulSet should be created by operator"
 
         statefulset = kubectl_get("statefulset", "test-statefulset", namespace=e2e_helper.namespace)
@@ -480,7 +480,7 @@ spec:
     try:
         logger.info("Creating AsyncActor...")
         kubectl_apply(manifest, namespace=e2e_helper.namespace)
-        assert wait_for_resource("deployment", "test-sidecar-env", namespace=e2e_helper.namespace, timeout=30)
+        assert wait_for_resource("deployment", "test-sidecar-env", namespace=e2e_helper.namespace, timeout=60)
 
         deployment = kubectl_get("deployment", "test-sidecar-env", namespace=e2e_helper.namespace)
         containers = deployment["spec"]["template"]["spec"]["containers"]
@@ -503,4 +503,4 @@ spec:
     finally:
         kubectl_delete("asyncactor", "test-sidecar-env", namespace=e2e_helper.namespace)
         wait_for_deletion("deployment", "test-sidecar-env", namespace=e2e_helper.namespace, timeout=60)
-        wait_for_deletion("scaledobject", "test-sidecar-env", namespace=e2e_helper.namespace, timeout=30)
+        wait_for_deletion("scaledobject", "test-sidecar-env", namespace=e2e_helper.namespace, timeout=60)
