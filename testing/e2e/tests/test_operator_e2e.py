@@ -492,6 +492,7 @@ spec:
         containers:
         - name: asya-runtime
           image: asya-testing:latest
+          imagePullPolicy: IfNotPresent
           env:
           - name: ASYA_HANDLER
             value: asya_testing.handlers.payload.echo_handler
@@ -502,7 +503,7 @@ spec:
         kubectl_apply(manifest, namespace=e2e_helper.namespace)
 
         logger.info("Waiting for AsyncActor to be ready (WorkloadReady condition)...")
-        assert wait_for_asyncactor_ready("test-sidecar-env", namespace=e2e_helper.namespace, timeout=60), \
+        assert wait_for_asyncactor_ready("test-sidecar-env", namespace=e2e_helper.namespace, timeout=90), \
             "AsyncActor should reach WorkloadReady=True"
 
         deployment = kubectl_get("deployment", "test-sidecar-env", namespace=e2e_helper.namespace)
