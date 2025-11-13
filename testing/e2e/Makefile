@@ -52,7 +52,8 @@ trigger-tests: ## Only trigger tests, assuming that Kind cluster is already up (
 	@echo "Running E2E tests with profile=$(PROFILE) handler_mode=$(ASYA_HANDLER_MODE)..."
 	@mkdir -p $(COVERAGE_DIR)
 	$(MAKE) port-forward-up
-	uv run $(UV_RUN_OPTS) pytest tests/ $(PYTEST_OPTS)
+	set -a && . ./profiles/.env.$(PROFILE) && set +a && \
+		uv run $(UV_RUN_OPTS) pytest tests/ $(PYTEST_OPTS)
 	@test -f $(COVERAGE_DIR)/cov-$(ASYA_HANDLER_MODE).json && echo "[+] Coverage JSON: $(COVERAGE_DIR)/cov-$(ASYA_HANDLER_MODE).json" || echo "[-] Coverage not generated"
 	@echo "[+] Success: E2E tests with $(PROFILE) profile and $(ASYA_HANDLER_MODE) handler mode"
 	$(MAKE) port-forward-down

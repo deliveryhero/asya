@@ -178,7 +178,7 @@ def test_scale_down_after_idle(e2e_helper):
 
 
 @pytest.mark.fast
-def test_queue_backlog_processing(e2e_helper, rabbitmq_url):
+def test_queue_backlog_processing(e2e_helper):
     """
     E2E: Test system handles queue backlog correctly.
 

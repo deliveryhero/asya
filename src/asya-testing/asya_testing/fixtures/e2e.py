@@ -7,7 +7,6 @@ import logging
 import pytest
 import requests
 
-from asya_testing.config import require_env
 from asya_testing.helpers.e2e import E2ETestHelper
 
 
@@ -22,8 +21,12 @@ def rabbitmq_url():
     Note: This fixture does NOT fail-fast for backward compatibility with
     E2E tests that may run without RabbitMQ. For new tests, use test_config
     fixture which provides proper validation.
+
+    Returns None if RABBITMQ_URL is not set.
     """
-    return require_env("RABBITMQ_URL")
+    import os
+
+    return os.getenv("RABBITMQ_URL")
 
 
 @pytest.fixture(scope="function")
