@@ -24,6 +24,7 @@ from asya_testing.utils.kubectl import (
     kubectl_apply,
     kubectl_delete,
     kubectl_get,
+    wait_for_deletion,
     wait_for_deployment_ready,
     wait_for_resource,
 )
@@ -95,13 +96,10 @@ spec:
         logger.info("Deleting AsyncActor...")
         kubectl_delete("asyncactor", "test-lifecycle", namespace=e2e_helper.namespace)
 
-        time.sleep(5)
-
-        result = subprocess.run(
-            ["kubectl", "get", "deployment", "test-lifecycle", "-n", e2e_helper.namespace],
-            capture_output=True
-        )
-        assert result.returncode != 0, "Deployment should be deleted with AsyncActor"
+        assert wait_for_deletion("deployment", "test-lifecycle", namespace=e2e_helper.namespace, timeout=60), \
+            "Deployment should be deleted by finalizer"
+        assert wait_for_deletion("scaledobject", "test-lifecycle", namespace=e2e_helper.namespace, timeout=30), \
+            "ScaledObject should be deleted by finalizer"
 
         logger.info("[+] AsyncActor lifecycle completed successfully")
 
@@ -504,5 +502,5 @@ spec:
 
     finally:
         kubectl_delete("asyncactor", "test-sidecar-env", namespace=e2e_helper.namespace)
-        kubectl_delete("deployment", "test-sidecar-env", namespace=e2e_helper.namespace)
-        kubectl_delete("scaledobject", "test-sidecar-env", namespace=e2e_helper.namespace)
+        wait_for_deletion("deployment", "test-sidecar-env", namespace=e2e_helper.namespace, timeout=60)
+        wait_for_deletion("scaledobject", "test-sidecar-env", namespace=e2e_helper.namespace, timeout=30)

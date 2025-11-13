@@ -40,7 +40,14 @@ def kubectl_apply(manifest_yaml: str, namespace: str = "asya-e2e") -> None:
     logger.debug(f"kubectl apply output: {result.stdout.decode()}")
 
 
-def kubectl_delete(resource_type: str, name: str, namespace: str = "asya-e2e", ignore_not_found: bool = True) -> None:
+def kubectl_delete(
+    resource_type: str,
+    name: str,
+    namespace: str = "asya-e2e",
+    ignore_not_found: bool = True,
+    wait: bool = False,
+    timeout: int = 60,
+) -> None:
     """
     Delete a Kubernetes resource using kubectl.
 
@@ -49,12 +56,16 @@ def kubectl_delete(resource_type: str, name: str, namespace: str = "asya-e2e", i
         name: Resource name
         namespace: Target namespace
         ignore_not_found: Don't fail if resource doesn't exist
+        wait: Wait for deletion to complete
+        timeout: Maximum wait time in seconds
     """
     cmd = ["kubectl", "delete", resource_type, name, "-n", namespace]
     if ignore_not_found:
         cmd.append("--ignore-not-found=true")
+    if wait:
+        cmd.append(f"--timeout={timeout}s")
 
-    subprocess.run(cmd, capture_output=True, check=not ignore_not_found, timeout=30)
+    subprocess.run(cmd, capture_output=True, check=not ignore_not_found, timeout=timeout + 10)
 
 
 def kubectl_get(resource_type: str, name: str, namespace: str = "asya-e2e", output: str = "json") -> dict:
@@ -82,7 +93,7 @@ def kubectl_get(resource_type: str, name: str, namespace: str = "asya-e2e", outp
     return yaml.safe_load(result.stdout.decode())
 
 
-def wait_for_resource(resource_type: str, name: str, namespace: str = "asya-e2e", timeout: int = 30) -> bool:
+def wait_for_resource(resource_type: str, name: str, namespace: str = "asya-e2e", timeout: int = 60) -> bool:
     """
     Wait for a Kubernetes resource to exist.
 
@@ -95,13 +106,62 @@ def wait_for_resource(resource_type: str, name: str, namespace: str = "asya-e2e"
     Returns:
         True if resource exists, False if timeout
     """
-    for _ in range(timeout):
-        result = subprocess.run(
-            ["kubectl", "get", resource_type, name, "-n", namespace], capture_output=True, timeout=5
-        )
-        if result.returncode == 0:
-            return True
-        time.sleep(1)
+    start = time.time()
+    attempt = 0
+
+    while time.time() - start < timeout:
+        attempt += 1
+        try:
+            result = subprocess.run(
+                ["kubectl", "get", resource_type, name, "-n", namespace], capture_output=True, timeout=5
+            )
+            if result.returncode == 0:
+                elapsed = time.time() - start
+                logger.info(f"{resource_type}/{name} found after {elapsed:.1f}s ({attempt} attempts)")
+                return True
+        except Exception as e:
+            logger.debug(f"Error checking resource (attempt {attempt}): {e}")
+
+        sleep_time = min(2 ** (attempt // 2), 5)
+        time.sleep(sleep_time)
+
+    logger.warning(f"{resource_type}/{name} not found after {timeout}s ({attempt} attempts)")
+    return False
+
+
+def wait_for_deletion(resource_type: str, name: str, namespace: str = "asya-e2e", timeout: int = 60) -> bool:
+    """
+    Wait for a Kubernetes resource to be deleted (finalizers completed).
+
+    Args:
+        resource_type: Resource type (e.g., "pod", "deployment")
+        name: Resource name
+        namespace: Target namespace
+        timeout: Maximum wait time in seconds
+
+    Returns:
+        True if resource is deleted, False if timeout
+    """
+    start = time.time()
+    attempt = 0
+
+    while time.time() - start < timeout:
+        attempt += 1
+        try:
+            result = subprocess.run(
+                ["kubectl", "get", resource_type, name, "-n", namespace], capture_output=True, timeout=5
+            )
+            if result.returncode != 0:
+                elapsed = time.time() - start
+                logger.info(f"{resource_type}/{name} deleted after {elapsed:.1f}s ({attempt} attempts)")
+                return True
+        except Exception as e:
+            logger.debug(f"Error checking deletion (attempt {attempt}): {e}")
+
+        sleep_time = min(2 ** (attempt // 2), 5)
+        time.sleep(sleep_time)
+
+    logger.warning(f"{resource_type}/{name} not deleted after {timeout}s ({attempt} attempts)")
     return False
 
 
