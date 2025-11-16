@@ -21,13 +21,21 @@ start_port_forwards() {
   SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
   REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 
-  if ! uv run --directory "$REPO_ROOT/src/asya-tools" asya-mcp-forward \
-    --namespace "$NAMESPACE" \
-    --deployment asya-gateway \
-    --local-port 8080 \
-    --port 8080; then
-    echo "[-] Gateway port-forward failed"
-    exit 1
+  EXISTING_GATEWAY=$(pgrep -f "kubectl port-forward.*asya-gateway.*8080" || true)
+  if [ -n "$EXISTING_GATEWAY" ]; then
+    echo "[+] Gateway port-forward already running (localhost:8080)"
+    echo "    PID: $EXISTING_GATEWAY"
+  else
+    pkill -f "kubectl port-forward.*asya-gateway" 2> /dev/null || true
+    nohup uv run --directory "$REPO_ROOT/src/asya-tools" asya-mcp-forward \
+      --namespace "$NAMESPACE" \
+      --deployment asya-gateway \
+      --local-port 8080 \
+      --port 8080 \
+      --keep-alive > /dev/null 2>&1 &
+    PF_GATEWAY=$!
+    echo "[+] Gateway port-forward started (localhost:8080)"
+    echo "    PID: $PF_GATEWAY"
   fi
 
   # Forward S3 if present (for S3 storage tests)

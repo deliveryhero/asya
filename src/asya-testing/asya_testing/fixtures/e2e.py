@@ -49,52 +49,71 @@ def e2e_helper(gateway_url, namespace):
     return E2ETestHelper(gateway_url=gateway_url, namespace=namespace, progress_method="sse")
 
 
-@pytest.fixture(scope="function", autouse=True)
+@pytest.fixture(scope="session", autouse=True)
 def check_port_forward_health(gateway_url):
     """
-    Check port-forward health before each E2E test.
+    Check port-forward health at session start.
 
-    This fixture runs automatically before each test to ensure port-forwards
-    are still running. If any port-forward is dead, it restarts it.
+    This fixture runs once per pytest-xdist worker to ensure port-forwards
+    are running. Uses file-based locking to prevent race conditions when
+    multiple workers start simultaneously.
 
-    This prevents chaos tests that kill pods from breaking subsequent tests
-    due to dead port-forward connections.
+    The Makefile calls port-forward.sh before pytest, so this is primarily
+    a verification step and fallback for chaos tests that kill pods.
     """
+    import fcntl
     import os
     import subprocess
+    import tempfile
+    import time
 
-    services_to_check = [
-        ("gateway", gateway_url, 8080),
-    ]
+    lock_file = os.path.join(tempfile.gettempdir(), "asya-e2e-port-forward.lock")
 
-    for service_name, url, _port in services_to_check:
+    with open(lock_file, "w") as lock:
         try:
-            response = requests.get(f"{url}/health", timeout=2)
-            if response.status_code == 200:
-                logger.debug(f"[.] Port-forward for {service_name} is healthy")
-                continue
-        except requests.exceptions.RequestException:
-            pass
+            fcntl.flock(lock.fileno(), fcntl.LOCK_EX)
 
-        logger.warning(f"[!] Port-forward for {service_name} is dead, restarting...")
+            try:
+                response = requests.get(f"{gateway_url}/health", timeout=2)
+                if response.status_code == 200:
+                    logger.info("[+] Gateway port-forward is healthy")
+                    return
+            except requests.exceptions.RequestException:
+                logger.warning("[!] Gateway port-forward not responding, restarting...")
 
-        try:
-            script_dir = subprocess.run(
-                ["git", "rev-parse", "--show-toplevel"],
-                capture_output=True,
-                text=True,
-                timeout=5,
-            ).stdout.strip()
+            try:
+                script_dir = subprocess.run(
+                    ["git", "rev-parse", "--show-toplevel"],
+                    capture_output=True,
+                    text=True,
+                    timeout=5,
+                ).stdout.strip()
 
-            port_forward_script = f"{script_dir}/testing/e2e/scripts/port-forward.sh"
+                port_forward_script = f"{script_dir}/testing/e2e/scripts/port-forward.sh"
 
-            subprocess.run(
-                [port_forward_script, "start"],
-                env={**os.environ, "NAMESPACE": "asya-e2e"},
-                timeout=30,
-                check=True,
-            )
-            logger.info(f"[+] Port-forward for {service_name} restarted successfully")
-        except Exception as e:
-            logger.error(f"[-] Failed to restart port-forward for {service_name}: {e}")
-            raise
+                subprocess.run(
+                    [port_forward_script, "start"],
+                    env={**os.environ, "NAMESPACE": "asya-e2e"},
+                    timeout=30,
+                    check=True,
+                )
+                logger.info("[+] Port-forward restart completed")
+
+                for attempt in range(5):
+                    time.sleep(2)  # Wait for port-forward to stabilize
+                    try:
+                        response = requests.get(f"{gateway_url}/health", timeout=2)
+                        if response.status_code == 200:
+                            logger.info(f"[+] Gateway healthy after restart (attempt {attempt + 1}/5)")
+                            return
+                    except requests.exceptions.RequestException:
+                        pass
+
+                raise RuntimeError("Gateway port-forward failed to become healthy after restart")
+
+            except Exception as restart_error:
+                logger.error(f"[-] Failed to restart port-forward: {restart_error}")
+                raise
+
+        finally:
+            fcntl.flock(lock.fileno(), fcntl.LOCK_UN)

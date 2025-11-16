@@ -123,7 +123,7 @@ def test_scale_up_under_burst_load(e2e_helper):
             if final["status"] == "succeeded":
                 completed += 1
         except Exception as e:
-            logger.warning(f"Envelope failed: {e}")
+            logger.warning(f"Envelope {envelope_id} failed: {e}")
 
     logger.info(f"Completed {completed}/10 sample envelopes")
     assert completed >= 8, f"At least 8/10 should complete, got {completed}"

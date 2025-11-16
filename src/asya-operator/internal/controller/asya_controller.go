@@ -980,12 +980,15 @@ func (r *AsyncActorReconciler) reconcileDeployment(ctx context.Context, asya *as
 			return err
 		}
 
-		// Set replicas (will be overridden by KEDA if enabled)
-		replicas := int32(1)
-		if asya.Spec.Workload.Replicas != nil {
-			replicas = *asya.Spec.Workload.Replicas
+		// Set replicas only if KEDA scaling is disabled
+		// When scaling.enabled=true, HPA owns the replicas field
+		if !asya.Spec.Scaling.Enabled {
+			replicas := int32(1)
+			if asya.Spec.Workload.Replicas != nil {
+				replicas = *asya.Spec.Workload.Replicas
+			}
+			deployment.Spec.Replicas = &replicas
 		}
-		deployment.Spec.Replicas = &replicas
 
 		// Set selector
 		if deployment.Spec.Selector == nil {
