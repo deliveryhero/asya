@@ -114,7 +114,20 @@ time {
     echo "[+] Kind cluster ready (context: kind-${CLUSTER_NAME})"
   fi
 
-  # Start loading images immediately (both cluster and images are ready)
+  # Load Docker images into Kind cluster
+  echo "[.] Loading images into Kind cluster..."
+  IMAGES_TO_LOAD=(
+    "asya-operator:latest"
+    "asya-gateway:latest"
+    "asya-sidecar:latest"
+    "asya-crew:latest"
+  )
+
+  LOAD_PIDS=()
+  for img in "${IMAGES_TO_LOAD[@]}"; do
+    kind load docker-image "$img" --name "$CLUSTER_NAME" &
+    LOAD_PIDS+=($!)
+  done
 
   # Wait for manifest generation (runs in parallel with image loading)
   if ! wait "$MANIFEST_PID"; then

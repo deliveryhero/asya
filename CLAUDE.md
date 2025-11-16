@@ -219,6 +219,10 @@ Tests are organized by scope and dependencies with **strict isolation rules**:
    - **Location**: `testing/e2e/`
    - Full Kubernetes deployment with operator, gateway, actors
    - Tests user scenarios and autoscaling
+   - **Cluster naming**: Separate Kind cluster per profile (`asya-e2e-sqs-s3`, `asya-e2e-rabbitmq-minio`)
+   - **Namespace structure**:
+     - `asya-system`: Operator deployment (system components)
+     - `asya-e2e`: Gateway, actors, test workloads (application layer)
 
 ### E2E Test Fixing Strategy
 
