@@ -306,22 +306,16 @@ def log_full_e2e_diagnostics(namespace: str | None = None, transport: str | None
     log_pod_status("app.kubernetes.io/name=asya-gateway", "Gateway", namespace)
 
     # Infrastructure
-    log_pod_status("app=rabbitmq", "RabbitMQ", namespace)
+    if transport == "rabbitmq":
+        log_pod_status("app=rabbitmq", "RabbitMQ", namespace)
+        log_rabbitmq_queues()
     log_pod_status("app=postgresql", "PostgreSQL", namespace)
-
-    # Actors
-    actors = ["test-echo", "test-progress", "test-doubler", "test-incrementer", "test-error", "test-timeout"]
-    for actor in actors:
-        log_deployment_status(actor, namespace)
 
     # KEDA
     log_scaledobjects(namespace)
 
     # AsyncActors
     log_asyncactors(namespace)
-
-    if transport == "rabbitmq":
-        log_rabbitmq_queues()
 
     # Recent events
     log_recent_events(namespace)

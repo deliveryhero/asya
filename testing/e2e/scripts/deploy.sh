@@ -121,6 +121,7 @@ time {
     "asya-gateway:latest"
     "asya-sidecar:latest"
     "asya-crew:latest"
+    "asya-testing:latest"
   )
 
   LOAD_PIDS=()

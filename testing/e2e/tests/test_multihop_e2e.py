@@ -22,8 +22,6 @@ def test_multihop_chain(gateway_helper):
     """Test envelope processing through 15-actor chain with progress tracking."""
     logger.info("Testing multi-hop envelope processing through 15 actors")
 
-    hop_count = 15
-
     result = gateway_helper.call_mcp_tool(
         tool_name="test_multihop",
         arguments={"message": "Multi-hop test"}
