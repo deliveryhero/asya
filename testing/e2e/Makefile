@@ -5,7 +5,7 @@ MAKEFLAGS += --no-print-directory
 PROJECT_ROOT := $(shell git rev-parse --show-toplevel 2>/dev/null || echo $(CURDIR)/../..)
 COVERAGE_DIR := $(PROJECT_ROOT)/.coverage/$(shell realpath --relative-to=$(PROJECT_ROOT) $(CURDIR))
 
-UV_RUN_OPTS := --with $(PROJECT_ROOT)/src/asya-testing
+UV_RUN_OPTS := --with-editable $(PROJECT_ROOT)/src/asya-testing
 PYTEST_WORKERS ?= auto
 PYTEST_OPTS ?= -v -s -n $(PYTEST_WORKERS) --dist loadscope
 export PYTEST_OPTS

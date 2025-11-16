@@ -331,32 +331,3 @@ func TestRabbitMQTransport_DeleteQueue_InvalidConfigType(t *testing.T) {
 		t.Errorf("Expected 'invalid RabbitMQ config type' error, got %q", err.Error())
 	}
 }
-
-func TestRabbitMQTransport_GetInitContainers(t *testing.T) {
-	scheme := runtime.NewScheme()
-	_ = corev1.AddToScheme(scheme)
-	_ = asyav1alpha1.AddToScheme(scheme)
-
-	fakeClient := fake.NewClientBuilder().WithScheme(scheme).Build()
-
-	registry := &asyaconfig.TransportRegistry{
-		Transports: make(map[string]*asyaconfig.TransportConfig),
-	}
-
-	transport := NewRabbitMQTransport(fakeClient, registry)
-
-	actor := &asyav1alpha1.AsyncActor{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      testActorName,
-			Namespace: testActorNamespace,
-		},
-		Spec: asyav1alpha1.AsyncActorSpec{
-			Transport: transportTypeRabbitMQ,
-		},
-	}
-
-	initContainers := transport.GetInitContainers(actor, nil)
-	if initContainers != nil {
-		t.Errorf("Expected nil init containers for RabbitMQ, got %d containers", len(initContainers))
-	}
-}

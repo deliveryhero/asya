@@ -240,40 +240,6 @@ func (t *SQSTransport) ReconcileServiceAccount(ctx context.Context, actor *asyav
 	return nil
 }
 
-// GetInitContainers returns init containers for SQS queue initialization
-func (t *SQSTransport) GetInitContainers(actor *asyav1alpha1.AsyncActor, envVars []corev1.EnvVar) []corev1.Container {
-	transport, err := t.transportRegistry.GetTransport("sqs")
-	if err != nil || transport.Config == nil {
-		return nil
-	}
-
-	sqsConfig, ok := transport.Config.(*asyaconfig.SQSConfig)
-	if !ok || sqsConfig.Endpoint == "" {
-		return nil
-	}
-
-	// Only add init container for LocalStack (when custom endpoint is set)
-	queueName := fmt.Sprintf("asya-%s", actor.Name)
-
-	initEnv := append([]corev1.EnvVar{
-		{Name: "QUEUE_NAME", Value: queueName},
-		{Name: "QUEUE_URL", Value: fmt.Sprintf("%s/%s/%s", sqsConfig.Endpoint, sqsConfig.AccountID, queueName)},
-	}, envVars...)
-
-	return []corev1.Container{
-		{
-			Name:  "queue-init",
-			Image: "amazon/aws-cli:latest",
-			Command: []string{
-				"sh",
-				"-c",
-				`aws sqs get-queue-attributes --queue-url "$QUEUE_URL" --attribute-names QueueArn --region "$AWS_REGION" || aws sqs create-queue --queue-name "$QUEUE_NAME" --region "$AWS_REGION"`,
-			},
-			Env: initEnv,
-		},
-	}
-}
-
 // createSQSClient creates an SQS client with proper credentials
 func (t *SQSTransport) createSQSClient(ctx context.Context, sqsConfig *asyaconfig.SQSConfig, namespace string) (*sqs.Client, error) {
 	configOpts := []func(*config.LoadOptions) error{

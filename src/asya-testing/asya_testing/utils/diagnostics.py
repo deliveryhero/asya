@@ -81,10 +81,14 @@ def log_asyncactors(namespace: str = "asya-e2e"):
     if output:
         logger.info(f"\n{output}")
     else:
-        logger.warning("[!] No AsyncActors found")
+        logger.warning(f"[!] No AsyncActors found in namespace {namespace}")
 
 
-def log_rabbitmq_queues(mgmt_url: str | None = None, username: str | None = None, password: str | None = None):
+def log_rabbitmq_queues(
+    mgmt_url: str | None = None,
+    username: str | None = None,
+    password: str | None = None,
+):
     """
     Log RabbitMQ queue status via management API.
 
@@ -275,12 +279,13 @@ def log_actor_diagnostics(actor_name: str, namespace: str = "asya-e2e"):
     logger.info("=" * 80 + "\n")
 
 
-def log_full_e2e_diagnostics(namespace: str | None = None):
+def log_full_e2e_diagnostics(namespace: str | None = None, transport: str | None = None):
     """
     Log comprehensive diagnostics of all Asya components.
 
     Args:
         namespace: Kubernetes namespace to use for E2E components (default: from NAMESPACE env var or "asya-e2e")
+        transport: Transport type (default: from ASYA_TRANSPORT env var). Used to skip irrelevant diagnostics
     """
     import os
 
@@ -315,8 +320,8 @@ def log_full_e2e_diagnostics(namespace: str | None = None):
     # AsyncActors
     log_asyncactors(namespace)
 
-    # RabbitMQ queues
-    log_rabbitmq_queues()
+    if transport == "rabbitmq":
+        log_rabbitmq_queues()
 
     # Recent events
     log_recent_events(namespace)
@@ -326,7 +331,12 @@ def log_full_e2e_diagnostics(namespace: str | None = None):
     logger.info("=" * 80 + "\n")
 
 
-def log_test_failure_diagnostics(test_name: str, actors: list[str] | None = None, namespace: str = "asya-e2e"):
+def log_test_failure_diagnostics(
+    test_name: str,
+    actors: list[str] | None = None,
+    namespace: str = "asya-e2e",
+    transport: str | None = None,
+):
     """
     Log diagnostics specific to a failed test.
 
@@ -334,6 +344,7 @@ def log_test_failure_diagnostics(test_name: str, actors: list[str] | None = None
         test_name: Name of the failed test
         actors: List of actor names involved in the test (will diagnose these specifically)
         namespace: Kubernetes namespace
+        transport: Transport type (default: from ASYA_TRANSPORT env var). Used to skip irrelevant diagnostics
     """
     logger.info("\n" + "=" * 80)
     logger.info(f"=== Test Failure Diagnostics: {test_name} ===")
@@ -348,7 +359,8 @@ def log_test_failure_diagnostics(test_name: str, actors: list[str] | None = None
     log_pod_logs("app.kubernetes.io/name=asya-gateway", "Gateway (Failure Context)", namespace, tail=50)
 
     # RabbitMQ queues
-    log_rabbitmq_queues()
+    if transport == "rabbitmq":
+        log_rabbitmq_queues()
 
     # Recent events (last 30)
     log_recent_events(namespace, count=30)

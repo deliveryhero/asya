@@ -126,7 +126,7 @@ def kill_existing_port_forward(namespace: str, deployment: str) -> None:
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
         )
-        time.sleep(1)
+        time.sleep(3)
     except Exception:  # nosec B110
         pass
 

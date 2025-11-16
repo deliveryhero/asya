@@ -20,15 +20,7 @@ import time
 
 import pytest
 
-from asya_testing.utils.kubectl import (
-    kubectl_apply,
-    kubectl_delete,
-    kubectl_get,
-    wait_for_asyncactor_ready,
-    wait_for_deletion,
-    wait_for_deployment_ready,
-    wait_for_resource,
-)
+from asya_testing.utils import kubectl as kubectl_utils
 
 logger = logging.getLogger(__name__)
 
@@ -69,6 +61,7 @@ spec:
         containers:
         - name: asya-runtime
           image: asya-testing:latest
+          imagePullPolicy: IfNotPresent
           env:
           - name: ASYA_HANDLER
             value: asya_testing.handlers.payload.echo_handler
@@ -76,14 +69,14 @@ spec:
 
     try:
         logger.info("Creating AsyncActor...")
-        kubectl_apply(actor_manifest, namespace=e2e_helper.namespace)
+        kubectl_utils.kubectl_apply(actor_manifest, namespace=e2e_helper.namespace)
 
         logger.info("Waiting for AsyncActor to be ready (WorkloadReady condition)...")
-        assert wait_for_asyncactor_ready("test-lifecycle", namespace=e2e_helper.namespace, timeout=60), \
+        assert kubectl_utils.wait_for_asyncactor_ready("test-lifecycle", namespace=e2e_helper.namespace, timeout=60), \
             "AsyncActor should reach WorkloadReady=True"
 
         logger.info("Verifying sidecar injection...")
-        deployment = kubectl_get("deployment", "test-lifecycle", namespace=e2e_helper.namespace)
+        deployment = kubectl_utils.kubectl_get("deployment", "test-lifecycle", namespace=e2e_helper.namespace)
         containers = deployment["spec"]["template"]["spec"]["containers"]
         container_names = [c["name"] for c in containers]
 
@@ -91,23 +84,26 @@ spec:
         assert "asya-runtime" in container_names, "Runtime container should exist"
 
         logger.info("Verifying ScaledObject creation...")
-        assert wait_for_resource("scaledobject", "test-lifecycle", namespace=e2e_helper.namespace, timeout=60), \
+        assert kubectl_utils.wait_for_resource("scaledobject", "test-lifecycle", namespace=e2e_helper.namespace, timeout=60), \
             "ScaledObject should be created"
 
         logger.info("Deleting AsyncActor...")
-        kubectl_delete("asyncactor", "test-lifecycle", namespace=e2e_helper.namespace)
+        kubectl_utils.kubectl_delete("asyncactor", "test-lifecycle", namespace=e2e_helper.namespace)
 
-        assert wait_for_deletion("deployment", "test-lifecycle", namespace=e2e_helper.namespace, timeout=60), \
+        assert kubectl_utils.wait_for_deletion("deployment", "test-lifecycle", namespace=e2e_helper.namespace, timeout=60), \
             "Deployment should be deleted by finalizer"
-        assert wait_for_deletion("scaledobject", "test-lifecycle", namespace=e2e_helper.namespace, timeout=60), \
+        assert kubectl_utils.wait_for_deletion("scaledobject", "test-lifecycle", namespace=e2e_helper.namespace, timeout=60), \
             "ScaledObject should be deleted by finalizer"
 
         logger.info("[+] AsyncActor lifecycle completed successfully")
 
+    except Exception:
+        kubectl_utils.log_asyncactor_workload_diagnostics("test-lifecycle", namespace=e2e_helper.namespace)
+        raise
     finally:
-        kubectl_delete("asyncactor", "test-lifecycle", namespace=e2e_helper.namespace)
-        kubectl_delete("deployment", "test-lifecycle", namespace=e2e_helper.namespace)
-        kubectl_delete("scaledobject", "test-lifecycle", namespace=e2e_helper.namespace)
+        kubectl_utils.kubectl_delete("asyncactor", "test-lifecycle", namespace=e2e_helper.namespace)
+        kubectl_utils.kubectl_delete("deployment", "test-lifecycle", namespace=e2e_helper.namespace)
+        kubectl_utils.kubectl_delete("scaledobject", "test-lifecycle", namespace=e2e_helper.namespace)
 
 
 @pytest.mark.core
@@ -143,6 +139,7 @@ spec:
         containers:
         - name: asya-runtime
           image: asya-testing:latest
+          imagePullPolicy: IfNotPresent
           env:
           - name: ASYA_HANDLER
             value: asya_testing.handlers.payload.echo_handler
@@ -168,6 +165,7 @@ spec:
         containers:
         - name: asya-runtime
           image: asya-testing:latest
+          imagePullPolicy: IfNotPresent
           env:
           - name: ASYA_HANDLER
             value: asya_testing.handlers.payload.echo_handler
@@ -175,25 +173,25 @@ spec:
 
     try:
         logger.info("Creating initial AsyncActor...")
-        kubectl_apply(initial_manifest, namespace=e2e_helper.namespace)
+        kubectl_utils.kubectl_apply(initial_manifest, namespace=e2e_helper.namespace)
 
         logger.info("Waiting for AsyncActor to be ready (WorkloadReady + ScalingReady)...")
-        assert wait_for_asyncactor_ready(
+        assert kubectl_utils.wait_for_asyncactor_ready(
             "test-update",
             namespace=e2e_helper.namespace,
             timeout=60,
             required_conditions=["WorkloadReady", "ScalingReady"],
         ), "AsyncActor should reach WorkloadReady=True and ScalingReady=True"
 
-        initial_scaled = kubectl_get("scaledobject", "test-update", namespace=e2e_helper.namespace)
+        initial_scaled = kubectl_utils.kubectl_get("scaledobject", "test-update", namespace=e2e_helper.namespace)
         assert initial_scaled["spec"]["minReplicaCount"] == 1
 
         logger.info("Updating AsyncActor...")
-        kubectl_apply(updated_manifest, namespace=e2e_helper.namespace)
+        kubectl_utils.kubectl_apply(updated_manifest, namespace=e2e_helper.namespace)
 
         time.sleep(5)
 
-        updated_scaled = kubectl_get("scaledobject", "test-update", namespace=e2e_helper.namespace)
+        updated_scaled = kubectl_utils.kubectl_get("scaledobject", "test-update", namespace=e2e_helper.namespace)
         assert updated_scaled["spec"]["minReplicaCount"] == 3, \
             "ScaledObject should be updated with new minReplicas"
         assert updated_scaled["spec"]["maxReplicaCount"] == 10, \
@@ -210,10 +208,13 @@ spec:
 
         logger.info("[+] AsyncActor updates propagated successfully")
 
+    except Exception:
+        kubectl_utils.log_asyncactor_workload_diagnostics("test-update", namespace=e2e_helper.namespace)
+        raise
     finally:
-        kubectl_delete("asyncactor", "test-update", namespace=e2e_helper.namespace)
-        kubectl_delete("scaledobject", "test-update", namespace=e2e_helper.namespace)
-        kubectl_delete("deployment", "test-update", namespace=e2e_helper.namespace)
+        kubectl_utils.kubectl_delete("asyncactor", "test-update", namespace=e2e_helper.namespace)
+        kubectl_utils.kubectl_delete("scaledobject", "test-update", namespace=e2e_helper.namespace)
+        kubectl_utils.kubectl_delete("deployment", "test-update", namespace=e2e_helper.namespace)
 
 
 @pytest.mark.core
@@ -242,15 +243,16 @@ spec:
         containers:
         - name: asya-runtime
           image: asya-testing:latest
+          imagePullPolicy: IfNotPresent
 """
 
     try:
         logger.info("Creating AsyncActor with invalid transport...")
-        kubectl_apply(invalid_manifest, namespace=e2e_helper.namespace)
+        kubectl_utils.kubectl_apply(invalid_manifest, namespace=e2e_helper.namespace)
 
         time.sleep(5)
 
-        actor = kubectl_get("asyncactor", "test-invalid-transport", namespace=e2e_helper.namespace)
+        actor = kubectl_utils.kubectl_get("asyncactor", "test-invalid-transport", namespace=e2e_helper.namespace)
         status = actor.get("status", {})
 
         if "conditions" in status:
@@ -262,8 +264,11 @@ spec:
 
         logger.info("[+] Invalid transport handled appropriately")
 
+    except Exception:
+        kubectl_utils.log_asyncactor_workload_diagnostics("test-invalid-transport", namespace=e2e_helper.namespace)
+        raise
     finally:
-        kubectl_delete("asyncactor", "test-invalid-transport", namespace=e2e_helper.namespace)
+        kubectl_utils.kubectl_delete("asyncactor", "test-invalid-transport", namespace=e2e_helper.namespace)
 
 
 @pytest.mark.xfail(reason="StatefulSet support not fully implemented in operator yet")
@@ -296,6 +301,7 @@ spec:
         containers:
         - name: asya-runtime
           image: asya-testing:latest
+          imagePullPolicy: IfNotPresent
           env:
           - name: ASYA_HANDLER
             value: asya_testing.handlers.payload.echo_handler
@@ -303,13 +309,13 @@ spec:
 
     try:
         logger.info("Creating AsyncActor with StatefulSet...")
-        kubectl_apply(manifest, namespace=e2e_helper.namespace)
+        kubectl_utils.kubectl_apply(manifest, namespace=e2e_helper.namespace)
 
         logger.info("Waiting for StatefulSet to be created...")
-        assert wait_for_resource("statefulset", "test-statefulset", namespace=e2e_helper.namespace, timeout=60), \
+        assert kubectl_utils.wait_for_resource("statefulset", "test-statefulset", namespace=e2e_helper.namespace, timeout=60), \
             "StatefulSet should be created by operator"
 
-        statefulset = kubectl_get("statefulset", "test-statefulset", namespace=e2e_helper.namespace)
+        statefulset = kubectl_utils.kubectl_get("statefulset", "test-statefulset", namespace=e2e_helper.namespace)
         containers = statefulset["spec"]["template"]["spec"]["containers"]
         container_names = [c["name"] for c in containers]
 
@@ -318,9 +324,12 @@ spec:
 
         logger.info("[+] StatefulSet workload created successfully")
 
+    except Exception:
+        kubectl_utils.log_asyncactor_workload_diagnostics("test-statefulset", namespace=e2e_helper.namespace)
+        raise
     finally:
-        kubectl_delete("asyncactor", "test-statefulset", namespace=e2e_helper.namespace)
-        kubectl_delete("statefulset", "test-statefulset", namespace=e2e_helper.namespace)
+        kubectl_utils.kubectl_delete("asyncactor", "test-statefulset", namespace=e2e_helper.namespace)
+        kubectl_utils.kubectl_delete("statefulset", "test-statefulset", namespace=e2e_helper.namespace)
 
 
 @pytest.mark.core
@@ -354,6 +363,7 @@ spec:
         containers:
         - name: asya-runtime
           image: asya-testing:latest
+          imagePullPolicy: IfNotPresent
           env:
           - name: ASYA_HANDLER
             value: asya_testing.handlers.payload.echo_handler
@@ -361,19 +371,19 @@ spec:
 
     try:
         logger.info("Creating AsyncActor...")
-        kubectl_apply(manifest, namespace=e2e_helper.namespace)
+        kubectl_utils.kubectl_apply(manifest, namespace=e2e_helper.namespace)
 
         logger.info("Waiting for AsyncActor conditions to be set...")
         # Longer timeout needed: operator may encounter status update conflicts
         # when it adds finalizer (generation 1→2), requiring retry with fresh version
-        assert wait_for_asyncactor_ready(
+        assert kubectl_utils.wait_for_asyncactor_ready(
             "test-status",
             namespace=e2e_helper.namespace,
             timeout=120,
             require_true=False,
         ), "AsyncActor should have WorkloadReady condition set"
 
-        actor = kubectl_get("asyncactor", "test-status", namespace=e2e_helper.namespace)
+        actor = kubectl_utils.kubectl_get("asyncactor", "test-status", namespace=e2e_helper.namespace)
         status = actor.get("status", {})
 
         logger.info(f"AsyncActor status: {status}")
@@ -389,10 +399,13 @@ spec:
 
         logger.info("[+] AsyncActor status conditions verified")
 
+    except Exception:
+        kubectl_utils.log_asyncactor_workload_diagnostics("test-status", namespace=e2e_helper.namespace)
+        raise
     finally:
-        kubectl_delete("asyncactor", "test-status", namespace=e2e_helper.namespace)
-        kubectl_delete("deployment", "test-status", namespace=e2e_helper.namespace)
-        kubectl_delete("scaledobject", "test-status", namespace=e2e_helper.namespace)
+        kubectl_utils.kubectl_delete("asyncactor", "test-status", namespace=e2e_helper.namespace)
+        kubectl_utils.kubectl_delete("deployment", "test-status", namespace=e2e_helper.namespace)
+        kubectl_utils.kubectl_delete("scaledobject", "test-status", namespace=e2e_helper.namespace)
 
 
 @pytest.mark.core
@@ -429,10 +442,10 @@ spec:
 
     try:
         logger.info("Creating AsyncActor with broken image...")
-        kubectl_apply(manifest, namespace=e2e_helper.namespace)
+        kubectl_utils.kubectl_apply(manifest, namespace=e2e_helper.namespace)
 
         logger.info("Waiting for Deployment to be created...")
-        assert wait_for_resource("deployment", "test-broken-image", namespace=e2e_helper.namespace, timeout=60), \
+        assert kubectl_utils.wait_for_resource("deployment", "test-broken-image", namespace=e2e_helper.namespace, timeout=60), \
             "Deployment should be created by operator"
 
         time.sleep(10)
@@ -445,7 +458,7 @@ spec:
 
         logger.info(f"Pods status: {pods.stdout}")
 
-        deployment = kubectl_get("deployment", "test-broken-image", namespace=e2e_helper.namespace)
+        deployment = kubectl_utils.kubectl_get("deployment", "test-broken-image", namespace=e2e_helper.namespace)
         status = deployment.get("status", {})
         available_replicas = status.get("availableReplicas", 0)
 
@@ -453,9 +466,12 @@ spec:
 
         logger.info("[+] Broken image handled gracefully")
 
+    except Exception:
+        kubectl_utils.log_asyncactor_workload_diagnostics("test-broken-image", namespace=e2e_helper.namespace)
+        raise
     finally:
-        kubectl_delete("asyncactor", "test-broken-image", namespace=e2e_helper.namespace)
-        kubectl_delete("deployment", "test-broken-image", namespace=e2e_helper.namespace)
+        kubectl_utils.kubectl_delete("asyncactor", "test-broken-image", namespace=e2e_helper.namespace)
+        kubectl_utils.kubectl_delete("deployment", "test-broken-image", namespace=e2e_helper.namespace)
 
 
 @pytest.mark.core
@@ -500,13 +516,13 @@ spec:
 
     try:
         logger.info("Creating AsyncActor...")
-        kubectl_apply(manifest, namespace=e2e_helper.namespace)
+        kubectl_utils.kubectl_apply(manifest, namespace=e2e_helper.namespace)
 
         logger.info("Waiting for AsyncActor to be ready (WorkloadReady condition)...")
-        assert wait_for_asyncactor_ready("test-sidecar-env", namespace=e2e_helper.namespace, timeout=90), \
+        assert kubectl_utils.wait_for_asyncactor_ready("test-sidecar-env", namespace=e2e_helper.namespace, timeout=90), \
             "AsyncActor should reach WorkloadReady=True"
 
-        deployment = kubectl_get("deployment", "test-sidecar-env", namespace=e2e_helper.namespace)
+        deployment = kubectl_utils.kubectl_get("deployment", "test-sidecar-env", namespace=e2e_helper.namespace)
         containers = deployment["spec"]["template"]["spec"]["containers"]
         sidecar = next((c for c in containers if c["name"] == "asya-sidecar"), None)
 
@@ -524,7 +540,10 @@ spec:
 
         logger.info("[+] Sidecar environment variables verified")
 
+    except Exception:
+        kubectl_utils.log_asyncactor_workload_diagnostics("test-sidecar-env", namespace=e2e_helper.namespace)
+        raise
     finally:
-        kubectl_delete("asyncactor", "test-sidecar-env", namespace=e2e_helper.namespace)
-        wait_for_deletion("deployment", "test-sidecar-env", namespace=e2e_helper.namespace, timeout=60)
-        wait_for_deletion("scaledobject", "test-sidecar-env", namespace=e2e_helper.namespace, timeout=60)
+        kubectl_utils.kubectl_delete("asyncactor", "test-sidecar-env", namespace=e2e_helper.namespace)
+        kubectl_utils.wait_for_deletion("deployment", "test-sidecar-env", namespace=e2e_helper.namespace, timeout=60)
+        kubectl_utils.wait_for_deletion("scaledobject", "test-sidecar-env", namespace=e2e_helper.namespace, timeout=60)

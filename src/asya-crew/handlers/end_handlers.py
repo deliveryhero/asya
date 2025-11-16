@@ -32,7 +32,7 @@ gateway communication including final status reporting.
 import json
 import logging
 import os
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from functools import partial
 from typing import Any
 
@@ -148,7 +148,7 @@ def persist_to_s3(envelope: dict[str, Any], s3_prefix: str) -> dict[str, str]:
         ensure_bucket_exists(ASYA_S3_BUCKET)
 
         # Build key with date/hour/last-actor structure
-        now = datetime.now(UTC)
+        now = datetime.now(tz=timezone.utc)
         now_str = now.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
 
         # Find last non-end actor

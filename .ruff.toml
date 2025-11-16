@@ -67,7 +67,8 @@ exclude = [
   "A001",
   "A002",
   "SIM105",
-] # Allow shadowing id, contextlib.suppress
+  "UP017",
+] # Allow shadowing id, contextlib.suppress, timezone.utc (datetime.UTC requires Python 3.11+)
 
 [lint.isort]
 # Configure import sorting to be compatible with black

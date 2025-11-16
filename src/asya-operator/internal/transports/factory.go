@@ -50,15 +50,3 @@ func (f *Factory) GetServiceAccountReconciler(transportType string) (ServiceAcco
 		return nil, fmt.Errorf("unsupported transport type: %s", transportType)
 	}
 }
-
-// GetInitContainerProvider returns an init container provider for the given transport type
-func (f *Factory) GetInitContainerProvider(transportType string) (InitContainerProvider, error) {
-	switch transportType {
-	case transportTypeSQS:
-		return NewSQSTransport(f.k8sClient, f.transportRegistry), nil
-	case transportTypeRabbitMQ:
-		return NewRabbitMQTransport(f.k8sClient, f.transportRegistry), nil
-	default:
-		return nil, fmt.Errorf("unsupported transport type: %s", transportType)
-	}
-}

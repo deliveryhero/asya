@@ -41,6 +41,23 @@ def get_all_actors(namespace: str) -> List[str]:
     return [a for a in actors if a]
 
 
+def get_actors_scaling_config(namespace: str) -> Dict[str, bool]:
+    """Get scaling.enabled configuration for all AsyncActors."""
+    result = subprocess.run(
+        ["kubectl", "get", "asyncactors", "-n", namespace, "-o", "json"],
+        capture_output=True,
+        text=True,
+        check=True
+    )
+    data = json.loads(result.stdout)
+    scaling_config = {}
+    for item in data.get("items", []):
+        actor_name = item["metadata"]["name"]
+        scaling_enabled = item.get("spec", {}).get("scaling", {}).get("enabled", True)
+        scaling_config[actor_name] = scaling_enabled
+    return scaling_config
+
+
 def get_all_deployments(namespace: str) -> Set[str]:
     """Get set of all deployment names in the namespace."""
     result = subprocess.run(
@@ -165,9 +182,10 @@ def test_all_actors_healthy():
 
     logger.info(f"Found {len(actors)} actors: {', '.join(actors)}")
 
-    logger.info("\nFetching all deployments, queues, and ScaledObjects...")
+    logger.info("\nFetching all deployments, queues, ScaledObjects, and scaling config...")
     all_deployments = get_all_deployments(namespace)
     all_scaledobjects = get_all_scaledobjects(namespace)
+    actors_scaling_config = get_actors_scaling_config(namespace)
 
     if transport == "rabbitmq":
         all_queues = get_all_rabbitmq_queues(namespace)
@@ -202,16 +220,20 @@ def test_all_actors_healthy():
             missing_queues.append(queue_name)
             logger.error(f"  [-] {transport.upper()} queue missing")
 
-        if actor in all_scaledobjects:
-            ready_status = all_scaledobjects[actor]
-            if ready_status == "True":
-                logger.info(f"  [+] ScaledObject exists and Ready")
+        scaling_enabled = actors_scaling_config.get(actor, True)
+        if scaling_enabled:
+            if actor in all_scaledobjects:
+                ready_status = all_scaledobjects[actor]
+                if ready_status == "True":
+                    logger.info(f"  [+] ScaledObject exists and Ready")
+                else:
+                    unhealthy_scaledobjects[actor] = ready_status
+                    logger.error(f"  [-] ScaledObject not Ready (status={ready_status})")
             else:
-                unhealthy_scaledobjects[actor] = ready_status
-                logger.error(f"  [-] ScaledObject not Ready (status={ready_status})")
+                missing_scaledobjects.append(actor)
+                logger.error(f"  [-] ScaledObject not found")
         else:
-            missing_scaledobjects.append(actor)
-            logger.error(f"  [-] ScaledObject not found")
+            logger.info(f"  [.] ScaledObject skipped (scaling disabled)")
 
     # Report all failures
     failures = []

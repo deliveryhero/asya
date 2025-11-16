@@ -73,10 +73,6 @@ def _get_transport_client(transport: str):
 
 @pytest.mark.slow
 @pytest.mark.dlq
-@pytest.mark.xfail(
-    reason="DLQ testing impossible in E2E: operator deletes dependent queues when error-end is deleted. "
-           "Move to integration tests where we control queues without operator interference."
-)
 def test_poison_message_moves_to_dlq_e2e(e2e_helper, kubectl):
     """
     E2E: Test poison message (fails repeatedly) moves to DLQ.
@@ -104,7 +100,6 @@ def test_poison_message_moves_to_dlq_e2e(e2e_helper, kubectl):
     transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
     transport_client = _get_transport_client(transport)
 
-    actor_queue = "asya-test-error"
     dlq_name = "asya-dlq"
     error_end_queue = "asya-error-end"
 
@@ -126,13 +121,8 @@ def test_poison_message_moves_to_dlq_e2e(e2e_helper, kubectl):
         envelope_id = response["result"]["envelope_id"]
         logger.info(f"Envelope ID: {envelope_id}")
 
-        logger.info("Waiting for retries to exhaust (3 NACKs)")
-        if transport == "sqs":
-            logger.info("SQS: Waiting 60s for 3 retries + DLQ move")
-            time.sleep(60)
-        else:
-            logger.info("RabbitMQ: Waiting 30s for 3 retries + DLQ move")
-            time.sleep(30)
+        # wait a bit
+        time.sleep(30)
 
         logger.info(f"Checking if message moved to DLQ: {dlq_name}")
         dlq_message = None
@@ -149,7 +139,7 @@ def test_poison_message_moves_to_dlq_e2e(e2e_helper, kubectl):
         logger.info(f"[+] Message found in DLQ: {dlq_message.get('id')}")
 
         assert dlq_message.get("id") == envelope_id, \
-            f"DLQ message ID should match original envelope ID"
+            "DLQ message ID should match original envelope ID"
 
         assert "payload" in dlq_message, \
             "DLQ message should contain payload"
@@ -164,10 +154,6 @@ def test_poison_message_moves_to_dlq_e2e(e2e_helper, kubectl):
 
 @pytest.mark.slow
 @pytest.mark.dlq
-@pytest.mark.xfail(
-    reason="DLQ testing impossible in E2E: operator deletes dependent queues when error-end is deleted. "
-           "Move to integration tests where we control queues without operator interference."
-)
 def test_dlq_preserves_envelope_metadata_e2e(e2e_helper, kubectl):
     """
     E2E: Test DLQ preserves envelope metadata.
@@ -235,6 +221,7 @@ def test_dlq_preserves_envelope_metadata_e2e(e2e_helper, kubectl):
             dlq_message = transport_client.consume(dlq_name, timeout=2)
             if dlq_message:
                 break
+            logger.info(f"DLQ check attempt {attempt + 1}/15")
             time.sleep(2)
 
         assert dlq_message is not None, "Message should be in DLQ"

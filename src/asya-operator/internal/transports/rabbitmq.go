@@ -278,11 +278,6 @@ func (t *RabbitMQTransport) DeleteQueue(ctx context.Context, actor *asyav1alpha1
 	return nil
 }
 
-// GetInitContainers returns init containers for RabbitMQ (none needed)
-func (t *RabbitMQTransport) GetInitContainers(actor *asyav1alpha1.AsyncActor, envVars []corev1.EnvVar) []corev1.Container {
-	return nil
-}
-
 // loadPassword loads RabbitMQ password from Kubernetes secret
 func (t *RabbitMQTransport) loadPassword(ctx context.Context, rabbitmqConfig *asyaconfig.RabbitMQConfig, namespace string) (string, error) {
 	secret := &corev1.Secret{}

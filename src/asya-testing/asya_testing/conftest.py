@@ -70,7 +70,9 @@ def pytest_sessionstart(session):
     if get_env("ASYA_E2E_DIAGNOSTICS", "false").lower() == "true":
         logger.info("Running pre-test diagnostics...")
         try:
-            log_full_e2e_diagnostics()
+            log_full_e2e_diagnostics(
+                namespace=get_env("NAMESPACE", "asya-e2e"), transport=get_env("ASYA_TRANSPORT", "rabbitmq")
+            )
         except Exception as e:
             logger.warning(f"[!] Diagnostics failed: {e}")
 
@@ -152,6 +154,7 @@ def _print_module_diagnostics(module_name: str):
             test_name=f"{module_name}: {', '.join(test_names)}",
             actors=list(all_actors) if all_actors else None,
             namespace=namespace,
+            transport=get_env("ASYA_TRANSPORT", "rabbitmq"),
         )
     except Exception as e:
         logger.warning(f"[!] Failure diagnostics failed: {e}")
@@ -195,7 +198,7 @@ def e2e_test_diagnostics(request):
         )
 
 
-def pytest_sessionfinish(session, exitstatus):  # noqa: vulture - required by pytest hookspec
+def pytest_sessionfinish(session, exitstatus):
     """
     Hook called at the end of the test session.
 
@@ -213,7 +216,7 @@ def pytest_sessionfinish(session, exitstatus):  # noqa: vulture - required by py
 
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
-def pytest_runtest_makereport(item, call):  # noqa: vulture - call required by pytest hookspec
+def pytest_runtest_makereport(item, call):
     """Pytest hook to store test result for use in fixtures."""
     outcome = yield
     rep = outcome.get_result()
