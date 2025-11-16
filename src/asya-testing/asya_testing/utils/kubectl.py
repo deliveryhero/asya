@@ -291,3 +291,135 @@ def delete_pod(pod_name: str, namespace: str = "asya-e2e", force: bool = True) -
         cmd.extend(["--grace-period=0", "--force"])
 
     subprocess.run(cmd, capture_output=True, check=False, timeout=30)
+
+
+def wait_for_asyncactor_ready(
+    name: str,
+    namespace: str = "asya-e2e",
+    timeout: int = 60,
+    required_conditions: list | None = None,
+) -> bool:
+    """
+    Wait for AsyncActor to be ready by checking status conditions.
+
+    Args:
+        name: AsyncActor name
+        namespace: Target namespace
+        timeout: Maximum wait time in seconds
+        required_conditions: List of condition types that must be True (default: ["WorkloadReady"])
+
+    Returns:
+        True if all required conditions are True, False if timeout
+    """
+    if required_conditions is None:
+        required_conditions = ["WorkloadReady"]
+
+    start_time = time.time()
+    attempt = 0
+
+    while time.time() - start_time < timeout:
+        attempt += 1
+        try:
+            result = subprocess.run(
+                ["kubectl", "get", "asyncactor", name, "-n", namespace, "-o=json"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+
+            if result.returncode != 0:
+                time.sleep(1)
+                continue
+
+            actor = yaml.safe_load(result.stdout)
+            status = actor.get("status", {})
+            conditions = status.get("conditions", [])
+
+            all_ready = True
+            for required_type in required_conditions:
+                condition = next((c for c in conditions if c["type"] == required_type), None)
+                if not condition or condition.get("status") != "True":
+                    all_ready = False
+                    break
+
+            if all_ready:
+                elapsed = time.time() - start_time
+                logger.info(
+                    f"AsyncActor {name} ready (conditions: {required_conditions}) after {elapsed:.1f}s ({attempt} attempts)"
+                )
+                return True
+
+        except Exception as e:
+            logger.debug(f"Error checking AsyncActor conditions (attempt {attempt}): {e}")
+
+        time.sleep(1)
+
+    logger.warning(f"AsyncActor {name} not ready after {timeout}s ({attempt} attempts)")
+    return False
+
+
+def log_asyncactor_workload_diagnostics(name: str, namespace: str = "asya-e2e") -> None:
+    """
+    Log diagnostic information about an AsyncActor's workload for debugging.
+
+    Args:
+        name: AsyncActor name
+        namespace: Target namespace
+    """
+    logger.error(f"[-] Diagnostics for AsyncActor {name} in namespace {namespace}")
+
+    try:
+        result = subprocess.run(
+            ["kubectl", "get", "asyncactor", name, "-n", namespace, "-o=yaml"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        if result.returncode == 0:
+            logger.error(f"AsyncActor YAML:\n{result.stdout}")
+        else:
+            logger.error(f"Failed to get AsyncActor: {result.stderr}")
+    except Exception as e:
+        logger.error(f"Error getting AsyncActor: {e}")
+
+    try:
+        result = subprocess.run(
+            ["kubectl", "get", "deployment", name, "-n", namespace, "-o=yaml"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        if result.returncode == 0:
+            logger.error(f"Deployment YAML:\n{result.stdout}")
+        else:
+            logger.error(f"Failed to get Deployment: {result.stderr}")
+    except Exception as e:
+        logger.error(f"Error getting Deployment: {e}")
+
+    try:
+        result = subprocess.run(
+            ["kubectl", "get", "pods", "-n", namespace, "-l", f"app={name}", "-o=wide"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        if result.returncode == 0:
+            logger.error(f"Pods:\n{result.stdout}")
+        else:
+            logger.error(f"Failed to get Pods: {result.stderr}")
+    except Exception as e:
+        logger.error(f"Error getting Pods: {e}")
+
+    try:
+        result = subprocess.run(
+            ["kubectl", "describe", "asyncactor", name, "-n", namespace],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        if result.returncode == 0:
+            logger.error(f"AsyncActor description:\n{result.stdout}")
+        else:
+            logger.error(f"Failed to describe AsyncActor: {result.stderr}")
+    except Exception as e:
+        logger.error(f"Error describing AsyncActor: {e}")
