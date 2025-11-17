@@ -45,36 +45,16 @@ comment:
   if: is_pull_request
   deletePrevious: true
   hideFooterLink: true
-  message: |
-    ## Code Coverage Report
-
-    **Coverage includes:** unit, component, integration, and e2e tests
-
-    **Metrics tracked:**
-    - Code Coverage (overall and per changed file)
-    - Test Execution Time
-
-    **Legend:** `+` increase | `-` decrease | `~` no change
-  report:
-    datastores:
-    - artifact://${GITHUB_REPOSITORY}
 
 diff:
   if: is_pull_request
   datastores:
   - artifact://${GITHUB_REPOSITORY}
-  path: report.json
 
-summary:
-  if: is_default_branch
-  path: report.json
-
-# Store reports for diff comparison
+# Store reports for diff comparison (both PR and main branch)
 report:
-  if: is_default_branch
   datastores:
   - artifact://${GITHUB_REPOSITORY}
-  path: report.json
 
 # Test execution time tracking (from GitHub Actions)
 testExecutionTime:
@@ -94,6 +74,9 @@ testExecutionTime:
 acceptable:
   coverage: current >= 75% && diff >= 0%
 
-# Push metrics and badges to artifact storage
-push:
-  if: is_default_branch
+# Disable code-to-test ratio (not needed for this project)
+codeToTestRatio:
+  code:
+  - '!**/*'
+  test:
+  - '!**/*'
