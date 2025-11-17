@@ -46,6 +46,16 @@ class TransportClient(ABC):
         """
         pass
 
+    @abstractmethod
+    def list_queues(self) -> list[str]:
+        """
+        List all queue names.
+
+        Returns:
+            List of queue names
+        """
+        pass
+
 
 class ActorTransportClient(TransportClient):
     """

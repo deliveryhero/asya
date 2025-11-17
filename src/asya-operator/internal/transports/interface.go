@@ -13,6 +13,9 @@ type QueueReconciler interface {
 
 	// DeleteQueue deletes the queue for an actor
 	DeleteQueue(ctx context.Context, actor *asyav1alpha1.AsyncActor) error
+
+	// QueueExists checks if a queue exists for an actor
+	QueueExists(ctx context.Context, queueName string) (bool, error)
 }
 
 // ServiceAccountReconciler handles ServiceAccount creation for transports that need it (e.g., SQS with IRSA)

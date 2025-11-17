@@ -109,3 +109,12 @@ class RabbitMQClient(TransportClient):
             logger.debug(f"Created queue {queue}")
         else:
             response.raise_for_status()
+
+    def list_queues(self) -> list[str]:
+        """List all queue names."""
+        response = requests.get(f"{self.api_url}/queues/%2F", auth=self.auth)
+        response.raise_for_status()
+        queues = response.json()
+        queue_names = [q["name"] for q in queues]
+        logger.debug(f"Listed {len(queue_names)} queues")
+        return queue_names

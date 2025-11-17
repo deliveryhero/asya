@@ -1277,5 +1277,64 @@ func (r *AsyncActorReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&appsv1.StatefulSet{}).
 		WithOptions(controller.Options{MaxConcurrentReconciles: maxConcurrent})
 
+	// Start periodic queue health check
+	go r.startPeriodicQueueHealthCheck(mgr)
+
 	return bldr.Complete(r)
+}
+
+// startPeriodicQueueHealthCheck triggers periodic reconciliation for queue health monitoring
+func (r *AsyncActorReconciler) startPeriodicQueueHealthCheck(mgr ctrl.Manager) {
+	ticker := time.NewTicker(5 * time.Minute)
+	defer ticker.Stop()
+
+	logger := mgr.GetLogger().WithName("queue-health-checker")
+
+	for range ticker.C {
+		logger.V(1).Info("Running periodic queue health check")
+
+		ctx := context.Background()
+		asyncActors := &asyav1alpha1.AsyncActorList{}
+
+		if err := r.List(ctx, asyncActors); err != nil {
+			logger.Error(err, "Failed to list AsyncActors for health check")
+			continue
+		}
+
+		for i := range asyncActors.Items {
+			actor := &asyncActors.Items[i]
+
+			// Skip if actor is being deleted
+			if !actor.DeletionTimestamp.IsZero() {
+				continue
+			}
+
+			queueName := fmt.Sprintf("asya-%s", actor.Name)
+
+			// Get queue reconciler for the actor's transport
+			queueReconciler, err := r.TransportFactory.GetQueueReconciler(actor.Spec.Transport)
+			if err != nil {
+				logger.Error(err, "Failed to get queue reconciler", "actor", actor.Name, "transport", actor.Spec.Transport)
+				continue
+			}
+
+			// Check if queue exists
+			exists, err := queueReconciler.QueueExists(ctx, queueName)
+			if err != nil {
+				logger.Error(err, "Failed to check queue existence", "actor", actor.Name, "queue", queueName)
+				continue
+			}
+
+			// If queue doesn't exist, trigger reconciliation to recreate it
+			if !exists {
+				logger.Info("Queue missing, triggering reconciliation", "actor", actor.Name, "queue", queueName)
+
+				if err := queueReconciler.ReconcileQueue(ctx, actor); err != nil {
+					logger.Error(err, "Failed to recreate queue", "actor", actor.Name, "queue", queueName)
+				} else {
+					logger.Info("Queue recreated successfully", "actor", actor.Name, "queue", queueName)
+				}
+			}
+		}
+	}
 }

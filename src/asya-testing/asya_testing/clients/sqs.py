@@ -119,3 +119,23 @@ class SQSClient(TransportClient):
                 logger.debug(f"Queue {queue} already exists")
             else:
                 raise
+
+    def list_queues(self) -> list[str]:
+        """List all queue names."""
+        queue_names = []
+        next_token = None
+
+        while True:
+            response = self.sqs.list_queues(NextToken=next_token) if next_token else self.sqs.list_queues()
+
+            urls = response.get("QueueUrls", [])
+            for url in urls:
+                queue_name = url.split("/")[-1]
+                queue_names.append(queue_name)
+
+            next_token = response.get("NextToken")
+            if not next_token:
+                break
+
+        logger.debug(f"Listed {len(queue_names)} queues")
+        return queue_names
