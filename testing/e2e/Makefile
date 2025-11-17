@@ -26,12 +26,18 @@ ifdef PROFILE
   CLUSTER_NAME := asya-e2e-$(PROFILE)
 endif
 
+NAMESPACE := asya-e2e
+SYSTEM_NAMESPACE := asya-system
+
+export SYSTEM_NAMESPACE
+export NAMESPACE
+export PROJECT_ROOT
 export CLUSTER_NAME
 export PROFILE
 export ASYA_HANDLER_MODE
 
 up: ## Deploy E2E environment
-	CLUSTER_NAME=$(CLUSTER_NAME) PROFILE=$(PROFILE) ./scripts/deploy.sh
+	./scripts/deploy.sh
 
 test: ## Run complete E2E tests (deploy → port-forward-up → test both modes → port-forward-down → cleanup)
 	$(MAKE) up
@@ -63,7 +69,7 @@ test-operator: ## Run operator-specific E2E tests (shell scripts)
 	$(MAKE) port-forward-up
 	@for script in tests_operator/*.sh; do \
 		echo "[.] Running $$script"; \
-		PROJECT_ROOT=$(PROJECT_ROOT) PROFILE=$(PROFILE) SYSTEM_NAMESPACE=$(SYSTEM_NAMESPACE) bash "$$script" || exit 1; \
+		bash "$$script" || exit 1; \
 		echo "[+] $$script: PASSED"; \
 		echo ""; \
 	done

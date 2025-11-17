@@ -40,7 +40,7 @@ def chaos_actors(kubectl, namespace):
     Raises:
         AssertionError: If any required actor is not deployed after waiting
     """
-    required_actors = ["test-echo", "test-error", "error-end"]
+    required_actors = ["test-echo", "test-error", "test-queue-health", "error-end"]
     max_wait = 120
     check_interval = 5
 
@@ -100,6 +100,7 @@ def chaos_queues(chaos_actors, kubectl, namespace):
     expected_queues = [
         "asya-test-echo",
         "asya-test-error",
+        "asya-test-queue-health",
         "asya-error-end",
     ]
 

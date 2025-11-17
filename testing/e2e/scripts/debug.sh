@@ -33,8 +33,8 @@
 set -euo pipefail
 
 CLUSTER_NAME="${CLUSTER_NAME:-asya-e2e-${PROFILE}}" # PROFILE is requied
-NAMESPACE="${NAMESPACE:-e2e}"
 SYSTEM_NAMESPACE="${SYSTEM_NAMESPACE:-asya-system}"
+NAMESPACE="${NAMESPACE:-asya-e2e}"
 TAIL="${TAIL:-50}"
 ACTOR_TAIL="${ACTOR_TAIL:-20}"
 

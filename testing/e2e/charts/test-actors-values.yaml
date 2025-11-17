@@ -128,6 +128,25 @@ actors:
           - name: ASYA_HANDLER
             value: asya_testing.handlers.payload.error_handler
 
+- name: test-queue-health
+  workload:
+    kind: Deployment
+    template:
+      spec:
+        containers:
+        - name: asya-runtime
+          image: asya-testing:latest
+          imagePullPolicy: IfNotPresent
+          env:
+          - name: ASYA_HANDLER
+            value: asya_testing.handlers.payload.echo_handler
+          - name: ASYA_INCLUDE_ROUTE_INFO
+            value: 'true'
+          - name: ASYA_QUEUE_RETRY_MAX_ATTEMPTS
+            value: '2'
+          - name: ASYA_QUEUE_RETRY_BACKOFF
+            value: '1s'
+
 - name: test-timeout
   timeout:
     processing: 5

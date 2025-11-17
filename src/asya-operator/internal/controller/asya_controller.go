@@ -305,7 +305,7 @@ func (r *AsyncActorReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			logger.Error(err, "Failed to get HPA desired replicas")
 		} else if hpaDesired != nil {
 			asya.Status.DesiredReplicas = hpaDesired
-			logger.Info("Set desired replicas from HPA", "desiredReplicas", *hpaDesired)
+			logger.V(1).Info("Set desired replicas from HPA", "desiredReplicas", *hpaDesired)
 		} else {
 			// HPA not found - KEDA may still be creating it
 			logger.Info("HPA not found, KEDA may be creating it - will requeue to check again")

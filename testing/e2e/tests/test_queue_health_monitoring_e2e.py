@@ -126,19 +126,23 @@ def test_operator_recreates_deleted_actor_queue_e2e(e2e_helper, chaos_queues):
 @pytest.mark.chaos
 def test_operator_recreates_deleted_system_queue_e2e(e2e_helper, chaos_queues):
     """
-    E2E Chaos: Test operator recreates deleted system queue (error-end).
+    E2E Chaos: Test operator recreates deleted actor queue with small retry values.
 
     Scenario:
-    1. Delete error-end queue (simulate infrastructure failure)
+    1. Delete test-queue-health queue (simulate infrastructure failure)
     2. Wait for operator health check cycle
     3. Verify queue automatically recreated
-    4. Verify error handling still works
+    4. Verify actor still works after recreation
 
     Expected:
-    - System queue recreated automatically
-    - Error handling pipeline remains functional
+    - Queue recreated automatically
+    - Actor resumes normal operation
 
     Transport Support: Both RabbitMQ and SQS
+
+    Note: This test uses test-queue-health actor instead of system actors
+    because it has small ASYA_QUEUE_RETRY_MAX_ATTEMPTS and ASYA_QUEUE_RETRY_BACKOFF
+    values for faster testing.
 
     Args:
         e2e_helper: E2E test helper fixture
@@ -147,14 +151,14 @@ def test_operator_recreates_deleted_system_queue_e2e(e2e_helper, chaos_queues):
     transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
     transport_client = _get_transport_client(transport)
 
-    queue_name = "asya-error-end"
+    queue_name = "asya-test-queue-health"
 
-    logger.info(f"Transport: {transport}, Testing system queue: {queue_name}")
+    logger.info(f"Transport: {transport}, Testing queue: {queue_name}")
     logger.info(f"Chaos queues ready: {chaos_queues}")
 
-    logger.info("[1/3] Deleting system queue to simulate infrastructure failure")
+    logger.info("[1/3] Deleting queue to simulate infrastructure failure")
     transport_client.delete_queue(queue_name)
-    logger.info(f"[+] System queue deleted: {queue_name}")
+    logger.info(f"[+] Queue deleted: {queue_name}")
 
     logger.info("[2/3] Waiting for operator health check to recreate queue")
     max_wait = 360
@@ -167,23 +171,26 @@ def test_operator_recreates_deleted_system_queue_e2e(e2e_helper, chaos_queues):
         queues = transport_client.list_queues()
         if queue_name in queues:
             queue_recreated = True
-            logger.info(f"[+] System queue recreated after {elapsed}s: {queue_name}")
+            logger.info(f"[+] Queue recreated after {elapsed}s: {queue_name}")
             break
         time.sleep(check_interval)
         elapsed += check_interval
 
     assert queue_recreated, \
-        f"System queue {queue_name} was not recreated within {max_wait}s"
+        f"Queue {queue_name} was not recreated within {max_wait}s"
 
-    logger.info("[3/3] Verifying error handling works after queue recreation")
+    logger.info("[3/3] Verifying actor works after queue recreation")
     response = e2e_helper.call_mcp_tool(
-        tool_name="test_error",
-        arguments={"should_fail": True},
+        tool_name="test_queue_health",
+        arguments={"data": "chaos-test-recovery"},
     )
 
-    assert response["status"] == "success", "Error handling should work after queue recreation"
+    assert response["status"] == "success", "Actor should work after queue recreation"
+    result = response["result"]
+    assert result["payload"]["data"] == "chaos-test-recovery", \
+        "Actor should return correct payload after recovery"
 
-    logger.info("[+] System queue chaos test passed - error handling functional after recreation")
+    logger.info("[+] Queue chaos test passed - queue recreated and actor functional")
 
 
 @pytest.mark.slow

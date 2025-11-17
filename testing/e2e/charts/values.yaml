@@ -80,6 +80,14 @@ gateway:
           description: Message to echo
           required: true
       route: [test-echo]
+    - name: test_queue_health
+      description: Test queue health monitoring with small retry values
+      parameters:
+        data:
+          type: string
+          description: Test data
+          required: true
+      route: [test-queue-health]
     - name: test_pipeline
       description: Process value through doubler and incrementer pipeline
       parameters:
