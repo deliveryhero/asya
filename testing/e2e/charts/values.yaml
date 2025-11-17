@@ -188,7 +188,13 @@ gateway:
       - test-multihop-13
       - test-multihop-14
       timeout: 60
-
+    - name: test_queue_health
+      description: Test queue deletion scenario
+      parameters:
+        data:
+          type: string
+          description: Test data
+          required: false
   resources:
     requests:
       cpu: 50m
