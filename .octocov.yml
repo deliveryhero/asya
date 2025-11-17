@@ -95,5 +95,6 @@ acceptable:
   coverage: current >= 75% && diff >= 0%
 
 # Push metrics and badges to artifact storage
-push:
-  if: is_default_branch
+# Disabled: Using artifact datastore instead of git push
+# push:
+#   if: is_default_branch
