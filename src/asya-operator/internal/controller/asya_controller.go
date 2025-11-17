@@ -47,6 +47,8 @@ const (
 	actorNameHappyEnd = "happy-end"
 	actorNameErrorEnd = "error-end"
 
+	defaultQueueHealthCheckInterval = 5 * time.Minute
+
 	podReasonCrashLoopBackOff           = "CrashLoopBackOff"
 	podReasonImagePullBackOff           = "ImagePullBackOff"
 	podReasonErrImagePull               = "ErrImagePull"
@@ -169,6 +171,11 @@ type AsyncActorReconciler struct {
 // +kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch
 // +kubebuilder:rbac:groups=autoscaling,resources=horizontalpodautoscalers,verbs=get;list;watch
 
+// isQueueManagementEnabled checks if queue management is enabled via environment variable
+func isQueueManagementEnabled() bool {
+	return os.Getenv("ASYA_DISABLE_QUEUE_MANAGEMENT") != "true"
+}
+
 // Reconcile is the main reconciliation loop
 func (r *AsyncActorReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
@@ -230,14 +237,18 @@ func (r *AsyncActorReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{}, err
 	}
 
-	if err := queueReconciler.ReconcileQueue(ctx, asya); err != nil {
-		// Handle SQS-specific queue deletion cooldown error
-		if strings.Contains(err.Error(), "QueueDeletedRecently") {
-			logger.Info("Requeuing after SQS queue deletion cooldown", "retryAfter", "65s")
-			return ctrl.Result{RequeueAfter: 65 * time.Second}, nil
+	if isQueueManagementEnabled() {
+		if err := queueReconciler.ReconcileQueue(ctx, asya); err != nil {
+			// Handle SQS-specific queue deletion cooldown error
+			if strings.Contains(err.Error(), "QueueDeletedRecently") {
+				logger.Info("Requeuing after SQS queue deletion cooldown", "retryAfter", "65s")
+				return ctrl.Result{RequeueAfter: 65 * time.Second}, nil
+			}
+			logger.Error(err, "Failed to reconcile queue", "transport", asya.Spec.Transport)
+			return ctrl.Result{}, err
 		}
-		logger.Error(err, "Failed to reconcile queue", "transport", asya.Spec.Transport)
-		return ctrl.Result{}, err
+	} else {
+		logger.V(1).Info("Queue management disabled, skipping queue reconciliation")
 	}
 
 	// Only reconcile ServiceAccount if using SQS with IRSA (actorRoleArn configured)
@@ -1285,10 +1296,22 @@ func (r *AsyncActorReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 // startPeriodicQueueHealthCheck triggers periodic reconciliation for queue health monitoring
 func (r *AsyncActorReconciler) startPeriodicQueueHealthCheck(mgr ctrl.Manager) {
-	ticker := time.NewTicker(5 * time.Minute)
+	logger := mgr.GetLogger().WithName("queue-health-checker")
+
+	interval := defaultQueueHealthCheckInterval
+	if envInterval := os.Getenv("ASYA_QUEUE_HEALTH_CHECK_INTERVAL"); envInterval != "" {
+		if parsedInterval, err := time.ParseDuration(envInterval); err == nil {
+			interval = parsedInterval
+		}
+	} else {
+		logger.Info("Env var ASYA_QUEUE_HEALTH_CHECK_INTERVAL not set, skipping periodic queue health check")
+		return
+	}
+
+	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
-	logger := mgr.GetLogger().WithName("queue-health-checker")
+	logger.Info("Starting queue health check", "interval", interval)
 
 	for range ticker.C {
 		logger.V(1).Info("Running periodic queue health check")
@@ -1327,12 +1350,16 @@ func (r *AsyncActorReconciler) startPeriodicQueueHealthCheck(mgr ctrl.Manager) {
 
 			// If queue doesn't exist, trigger reconciliation to recreate it
 			if !exists {
-				logger.Info("Queue missing, triggering reconciliation", "actor", actor.Name, "queue", queueName)
+				if isQueueManagementEnabled() {
+					logger.Info("Queue missing, triggering reconciliation", "actor", actor.Name, "queue", queueName)
 
-				if err := queueReconciler.ReconcileQueue(ctx, actor); err != nil {
-					logger.Error(err, "Failed to recreate queue", "actor", actor.Name, "queue", queueName)
+					if err := queueReconciler.ReconcileQueue(ctx, actor); err != nil {
+						logger.Error(err, "Failed to recreate queue", "actor", actor.Name, "queue", queueName)
+					} else {
+						logger.Info("Queue recreated successfully", "actor", actor.Name, "queue", queueName)
+					}
 				} else {
-					logger.Info("Queue recreated successfully", "actor", actor.Name, "queue", queueName)
+					logger.Info("Queue missing but queue management disabled", "actor", actor.Name, "queue", queueName)
 				}
 			}
 		}

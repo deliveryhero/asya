@@ -4,12 +4,39 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"os"
+	"strconv"
 	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
-const queuePrefix = "asya-"
+const (
+	queuePrefix = "asya-"
+
+	defaultQueueRetryMaxAttempts = 10
+	defaultQueueRetryBackoff     = 1 * time.Second
+)
+
+// getQueueRetryMaxAttempts returns configured max retry attempts from environment or default
+func getQueueRetryMaxAttempts() int {
+	if val := os.Getenv("ASYA_QUEUE_RETRY_MAX_ATTEMPTS"); val != "" {
+		if attempts, err := strconv.Atoi(val); err == nil && attempts > 0 {
+			return attempts
+		}
+	}
+	return defaultQueueRetryMaxAttempts
+}
+
+// getQueueRetryBackoff returns configured retry backoff duration from environment or default
+func getQueueRetryBackoff() time.Duration {
+	if val := os.Getenv("ASYA_QUEUE_RETRY_BACKOFF"); val != "" {
+		if duration, err := time.ParseDuration(val); err == nil {
+			return duration
+		}
+	}
+	return defaultQueueRetryBackoff
+}
 
 // rabbitmqConnection defines the interface for RabbitMQ connection operations
 type rabbitmqConnection interface {
@@ -22,6 +49,7 @@ type rabbitmqChannel interface {
 	Qos(prefetchCount, prefetchSize int, global bool) error
 	ExchangeDeclare(name, kind string, durable, autoDelete, internal, noWait bool, args amqp.Table) error
 	QueueDeclare(name string, durable, autoDelete, exclusive, noWait bool, args amqp.Table) (amqp.Queue, error)
+	QueueDeclarePassive(name string, durable, autoDelete, exclusive, noWait bool, args amqp.Table) (amqp.Queue, error)
 	QueueBind(name, key, exchange string, noWait bool, args amqp.Table) error
 	Consume(queue, consumer string, autoAck, exclusive, noLocal, noWait bool, args amqp.Table) (<-chan amqp.Delivery, error)
 	PublishWithContext(ctx context.Context, exchange, key string, mandatory, immediate bool, msg amqp.Publishing) error
@@ -36,7 +64,6 @@ type RabbitMQTransport struct {
 	channel       rabbitmqChannel
 	exchange      string
 	prefetchCount int
-	autoCreate    bool
 	consumer      <-chan amqp.Delivery // Single long-lived consumer
 	consumerQueue string               // Queue name for the consumer
 	amqpChannel   *amqp.Channel        // Store real AMQP channel to monitor errors
@@ -49,7 +76,6 @@ type RabbitMQConfig struct {
 	URL           string
 	Exchange      string
 	PrefetchCount int
-	AutoCreate    bool
 }
 
 // NewRabbitMQTransport creates a new RabbitMQ transport
@@ -127,24 +153,21 @@ func NewRabbitMQTransport(cfg RabbitMQConfig) (*RabbitMQTransport, error) {
 		channel:       channel,
 		exchange:      cfg.Exchange,
 		prefetchCount: cfg.PrefetchCount,
-		autoCreate:    cfg.AutoCreate,
 		amqpChannel:   channel,
 		amqpConn:      realConn,
 		url:           cfg.URL,
 	}, nil
 }
 
-// ensureQueue declares a queue if it doesn't exist (only if autoCreate is enabled)
+// ensureQueue checks if queue exists using passive declaration
+// Does NOT create the queue - operator is responsible for queue creation
 func (t *RabbitMQTransport) ensureQueue(queueName string) error {
-	if !t.autoCreate {
-		return nil
-	}
-
 	if t.channel == nil {
 		return fmt.Errorf("channel is not available")
 	}
 
-	_, err := t.channel.QueueDeclare(
+	// Use passive declaration to check if queue exists without creating it
+	_, err := t.channel.QueueDeclarePassive(
 		queueName,
 		true,  // durable
 		false, // delete when unused
@@ -153,25 +176,7 @@ func (t *RabbitMQTransport) ensureQueue(queueName string) error {
 		nil,   // arguments
 	)
 	if err != nil {
-		return fmt.Errorf("failed to declare queue: %w", err)
-	}
-
-	// Derive routing key from queue name by stripping queue prefix
-	// This must match the routing key used in Send()
-	routingKey := queueName
-	if len(queueName) > len(queuePrefix) && queueName[:len(queuePrefix)] == queuePrefix {
-		routingKey = queueName[len(queuePrefix):]
-	}
-
-	// Bind queue to exchange with routing key = actor name (without asya- prefix)
-	if err := t.channel.QueueBind(
-		queueName,
-		routingKey, // routing key (actor name without prefix)
-		t.exchange,
-		false,
-		nil,
-	); err != nil {
-		return fmt.Errorf("failed to bind queue: %w", err)
+		return fmt.Errorf("queue does not exist: %w", err)
 	}
 
 	return nil
@@ -258,24 +263,63 @@ func (t *RabbitMQTransport) Receive(ctx context.Context, queueName string) (Queu
 	if t.consumer == nil || t.consumerQueue != queueName {
 		slog.Info("Initializing consumer", "queue", queueName, "consumer_was_nil", t.consumer == nil)
 
-		// Ensure queue exists and is bound to exchange
-		if err := t.ensureQueue(queueName); err != nil {
-			return QueueMessage{}, err
+		// Ensure queue exists and is bound to exchange with retry logic
+		// This handles cases where queue is deleted externally (chaos scenarios)
+		// and operator needs time to recreate it
+		maxRetries := getQueueRetryMaxAttempts()
+		initialBackoff := getQueueRetryBackoff()
+
+		var msgs <-chan amqp.Delivery
+		var err error
+
+		for attempt := 0; attempt < maxRetries; attempt++ {
+			// Try to ensure queue exists
+			if err = t.ensureQueue(queueName); err != nil {
+				if attempt < maxRetries-1 {
+					backoff := initialBackoff * (1 << uint(attempt))
+					slog.Warn("Failed to ensure queue exists, retrying",
+						"queue", queueName,
+						"attempt", attempt+1,
+						"maxRetries", maxRetries,
+						"backoff", backoff,
+						"error", err)
+					time.Sleep(backoff)
+					continue
+				}
+				return QueueMessage{}, fmt.Errorf("failed to ensure queue after %d attempts: %w", maxRetries, err)
+			}
+
+			// Try to start consuming
+			msgs, err = t.channel.Consume(
+				queueName,
+				"",    // consumer tag
+				false, // auto-ack
+				false, // exclusive
+				false, // no-local
+				false, // no-wait
+				nil,   // args
+			)
+			if err == nil {
+				break
+			}
+
+			if attempt < maxRetries-1 {
+				backoff := initialBackoff * (1 << uint(attempt))
+				slog.Warn("Failed to start consuming, retrying",
+					"queue", queueName,
+					"attempt", attempt+1,
+					"maxRetries", maxRetries,
+					"backoff", backoff,
+					"error", err)
+				time.Sleep(backoff)
+			}
 		}
 
-		msgs, err := t.channel.Consume(
-			queueName,
-			"",    // consumer tag
-			false, // auto-ack
-			false, // exclusive
-			false, // no-local
-			false, // no-wait
-			nil,   // args
-		)
 		if err != nil {
-			slog.Error("Failed to start consuming", "queue", queueName, "error", err)
-			return QueueMessage{}, fmt.Errorf("failed to start consuming: %w", err)
+			slog.Error("Failed to start consuming after retries", "queue", queueName, "error", err)
+			return QueueMessage{}, fmt.Errorf("failed to start consuming after %d attempts: %w", maxRetries, err)
 		}
+
 		slog.Info("Consumer started successfully", "queue", queueName, "msgs_chan_nil", msgs == nil)
 
 		t.consumer = msgs

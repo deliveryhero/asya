@@ -10,6 +10,17 @@ RabbitMQ uses **identity mapping** for queue name resolution: the actor name dir
 - Actor: `image-processor`
 - Queue: `image-processor`
 
+**Features**:
+- Topic exchange routing
+- Automatic queue declaration and binding
+- Prefetch control for load management
+- Durable queues and persistent messages
+
+**Configuration**:
+- AMQP connection URL
+- Exchange name
+- Prefetch count
+
 ## Configuration
 
 ### Environment Variables

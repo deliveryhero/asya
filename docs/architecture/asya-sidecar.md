@@ -136,18 +136,18 @@ type Transport interface {
 }
 ```
 
-### RabbitMQ Transport
+### Transport failures
+Asya🎭 operator owns the queues if deployed with `ASYA_QUEUE_AUTO_CREATE=true`.
+This means, it will try to recreate a queue if it doesn't exist or its configuration is not as desired.
 
-**Features**:
-- Topic exchange routing
-- Automatic queue declaration and binding
-- Prefetch control for load management
-- Durable queues and persistent messages
+Sidecar can detect queue errors and fail after graceful period that will cause pod restart.
+Consider scenario:
+1. Queue gets deleted (chaos scenario, accidental deletion, infrastructure failure)
+2. Sidecar detects missing queue when trying to consume messages
+3. Sidecar retries with exponential backoff (`ASYA_QUEUE_RETRY_MAX_ATTEMPTS=10` attempts, `ASYA_QUEUE_RETRY_BACKOFF=1s` seconds initial backoff)
+4. Operator health check (every 5 min) detects missing queue and recreates it (if `ASYA_QUEUE_AUTO_CREATE=true`)
+5. Sidecar successfully reconnects once queue is recreated (or enters failing state otherwise)
 
-**Configuration**:
-- AMQP connection URL
-- Exchange name
-- Prefetch count
 
 ## Runtime Protocol
 

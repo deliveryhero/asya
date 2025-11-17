@@ -134,7 +134,6 @@ func main() {
 			URL:           cfg.RabbitMQURL,
 			Exchange:      cfg.RabbitMQExchange,
 			PrefetchCount: cfg.RabbitMQPrefetch,
-			AutoCreate:    cfg.QueueAutoCreate,
 		})
 		if err != nil {
 			slog.Error("Failed to create RabbitMQ transport", "error", err)
