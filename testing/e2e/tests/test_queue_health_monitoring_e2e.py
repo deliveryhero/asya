@@ -266,6 +266,7 @@ def test_multiple_queue_deletions_e2e(e2e_helper, chaos_queues):
             logger.info(f"[+] All queues recreated after {elapsed}s")
             break
 
+        time.sleep(check_interval)
         elapsed += check_interval
 
     assert all_recreated, \
@@ -344,6 +345,7 @@ def test_queue_deletion_during_processing_e2e(e2e_helper, chaos_queues):
             logger.info(f"[+] Queue recreated after {elapsed}s: {queue_name}")
             break
 
+        time.sleep(check_interval)
         elapsed += check_interval
 
     assert queue_recreated, f"Queue {queue_name} not recreated within {max_wait}s"
