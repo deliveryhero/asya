@@ -68,6 +68,7 @@ jobs:
         retention-days: 1
         include-hidden-files: true
         if-no-files-found: ignore
+        compression-level: 0
 
   component-tests:
     name: "Component tests: ${{ matrix.name }}"
@@ -133,6 +134,7 @@ jobs:
         retention-days: 1
         include-hidden-files: true
         if-no-files-found: ignore
+        compression-level: 0
 
   integration-tests:
     name: "Integration tests: ${{ matrix.name }}"
@@ -234,6 +236,7 @@ jobs:
         retention-days: 1
         include-hidden-files: true
         if-no-files-found: ignore
+        compression-level: 0
 
   e2e-tests:
     name: "E2E tests: ${{ matrix.name }}"
@@ -348,6 +351,7 @@ jobs:
         retention-days: 1
         include-hidden-files: true
         if-no-files-found: ignore
+        compression-level: 0
 
   coverage-report:
     name: Generate coverage report
