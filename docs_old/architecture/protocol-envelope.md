@@ -230,19 +230,11 @@ Error envelope format:
 }
 ```
 
-## Error Scenarios
-
-| Scenario | Action |
-|----------|--------|
-| Timeout | Send to error-end with timeout error |
-| Parse error | Send to error-end with parse error |
-| Runtime error | Send to error-end with runtime error |
-
 ## Gateway Integration
 
 ```
 Client → Gateway (MCP) → Creates envelope (pending)
-  → step1 → step2 → happy-end → Reports to gateway (succeeded/failed)
+  → actor1 → actor2 → happy-end → Reports to gateway (succeeded/failed)
 
 Client polls: GET /envelopes/{id} or streams: GET /envelopes/{id}/stream
 ```
@@ -250,11 +242,11 @@ Client polls: GET /envelopes/{id} or streams: GET /envelopes/{id}/stream
 ## Design Principles
 
 - **Small payloads**: Use object storage for large data
-- **Clear names**: `preprocess-text` not `step1`
+- **Clear names**: `preprocess-text` not `actor1`
 - **Monitor errors**: Alert on error-end queue depth
 - **Version schema**: Include version in payload for breaking changes
 
-## Next Steps
+## Next steps
 
 - [Sidecar Component](asya-sidecar.md) - Detailed sidecar design
 - [Runtime Component](asya-runtime.md) - Runtime implementation

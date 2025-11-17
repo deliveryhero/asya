@@ -9,8 +9,15 @@ Kubernetes-native • Distributed • Event-Driven • **AI Orchestration Framew
 * simple message-passing `A → B → C` instead of request-response `A → B → A → C → A...`
 * auto-scale from 0 to ∞ based on work
 * stateless by design
+<<<<<<< Updated upstream
 * no central orchestrator/pipeline/DAG/flow - message knows the route
 * zero pip dependencies (infra completely decoupled from your code)
+=======
+* pipeline is data not code (no central orchestrator/DAG/flow/etc - message knows the route)
+* zero pip dependencies (infra completely decoupled from user code)
+* ideal for complex batch and near-realtime processing jobs (latency - seconds to minutes)
+* optional MCP HTTP gateway for easy integrations
+>>>>>>> Stashed changes
 
 <p align="left">
 📘 <a href="docs/">Docs</a> • 🏗️ <a href="docs/architecture/">Architecture</a> • 🔧 <a href="examples/">Examples</a> • 💻 <a href="src/">Source</a> • ⚙️ <a href="deploy/helm-charts/">Charts</a> • 🧪 <a href="testing/">Testing</a>

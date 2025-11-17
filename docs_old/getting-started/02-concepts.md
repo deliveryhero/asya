@@ -38,7 +38,7 @@ They communicate via Unix socket for high performance and simplicity.
 ### Message Flow
 
 ```
-Queue → Sidecar → Runtime → Sidecar → Next Queue
+[MCP Gateway] → Queue → Sidecar → Runtime → Sidecar → Next Queue
 ```
 
 1. Sidecar pulls message from queue
@@ -193,8 +193,10 @@ Let's trace a message through a 3-actor pipeline:
 3. Runtime returns `{"result": "Classified as greeting"}`
 4. No more actors, sends to `happy-end` queue
 
-## Fan-Out Pattern
+## Abort execution
+Runtime can return `None` (empty envelope) to abort its execution.
 
+## Fan-Out Pattern
 Runtime can return multiple results for fan-out:
 
 **Runtime Response:**
@@ -209,6 +211,9 @@ Runtime can return multiple results for fan-out:
 ```
 
 Sidecar creates separate messages for each result and routes them independently.
+
+## Fan-In Pattern
+Requires a stateful actor, not yet implemented
 
 ## Error Handling
 

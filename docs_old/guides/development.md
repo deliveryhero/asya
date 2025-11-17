@@ -9,16 +9,13 @@ Local development workflow for Asya🎭 framework.
 
 ### Install Tools
 
+TODO: not using minikube
 ```bash
 # macOS
 brew install minikube kubectl helm go python@3.13
 
 # uv (Python package manager - required)
 curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# Start Minikube
-minikube start --cpus=4 --memory=8192
-minikube addons enable metrics-server
 ```
 
 ## Quick Workflow

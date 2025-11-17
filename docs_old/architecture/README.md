@@ -125,7 +125,7 @@ sequenceDiagram
 - **Cost efficiency**: Actors scale to zero when idle, no wasted resources
 - **Flexibility**: Easy to add/remove/reorder actors without changing code
 
-## Core Concept
+## Core Concepts
 
 Asya🎭 breaks complex AI pipelines into **specialized, stateless, independent actors**. Each processing actor (data ingestion, prompt construction, model inference, post-processing) runs as an independent actor that:
 - Scales from zero to N replicas based on queue depth (KEDA)
@@ -151,13 +151,13 @@ Asya🎭 is composed of four main components that work together to provide an ac
 │                         Kubernetes Cluster                      │
 │                                                                 │
 │  ┌────────────────────────────────────────────────────────────┐ │
-│  │                    Asya🎭 Operator (asya-system)             │ │
+│  │                    Asya🎭 Operator (asya-system)           │ │
 │  │  Watches AsyncActor CRDs → Creates Workload with Sidecar   │ │
 │  └────────────────────────────────────────────────────────────┘ │
 │                              │                                  │
 │                              ▼                                  │
 │  ┌────────────────────────────────────────────────────────────┐ │
-│  │                Async Actor (asya) - CRD                    │ │
+│  │                 Asya🎭 AsyncActor - CRD                    │ │
 │  │                                                            │ │
 │  │  ┌──────────────┐         ┌────────────────────────┐       │ │
 │  │  │   Sidecar    │◄───────►│   Runtime Container    │       │ │

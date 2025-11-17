@@ -106,7 +106,7 @@ Introduce a namespace-scoped CRD that declares actor pipelines and auto-generate
 
 ```yaml
 apiVersion: asya.sh/v1alpha1
-kind: Route
+kind: AsyaTool
 metadata:
   name: image-processing-pipeline
   namespace: production
@@ -351,7 +351,7 @@ func (r *RouteReconciler) registerOrUpdateTool(ctx context.Context, route *asyav
    - When tool is called, gateway constructs envelope:
      ```json
      {
-       "id": "<generated-uuid>",
+       "id": "<generated-id>",
        "route": {
          "actors": ["actor1", "actor2", "actor3"],  // From Route spec
          "current": 0

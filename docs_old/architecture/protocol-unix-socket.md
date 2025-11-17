@@ -102,44 +102,27 @@ The raw message from the queue:
 
 ```json
 {
+  "id": "123",
   "route": {
     "actors": ["step1", "step2", "step3"],
     "current": 0
   },
-  "payload": <arbitrary JSON>
-}
-```
-
-The runtime transforms this based on `ASYA_HANDLER_MODE`:
-
-**When `ASYA_HANDLER_MODE=payload` (default)**:
-```json
-{
-  "payload": <arbitrary JSON>
-}
-```
-
-**When `ASYA_HANDLER_MODE=envelope`**:
-```json
-{
-  "route": {
-    "actors": ["step1", "step2", "step3"],
-    "current": 0
-  },
-  "payload": <arbitrary JSON>
+  "payload": <arbitrary JSON>,
+  "headers": {...}  //optional
 }
 ```
 
 ### Response (Runtime → Sidecar)
 
+- list of envelopes: success, send payload(s) further
+- empty list or `None`: success, abort execution (send to `happy-end`, ack)
+- list with dicts `{"error": <code>, "details": ...}`: error (send to `error-end`, ack)
+
+
 #### Success Response
 
-Runtime returns the mutated payload directly (no wrapper).
-
 **Single Result**:
-```json
-{"processed": true, "timestamp": "2025-10-24T12:00:00Z"}
-```
+
 
 **Fan-out (Multiple Results)**:
 ```json
