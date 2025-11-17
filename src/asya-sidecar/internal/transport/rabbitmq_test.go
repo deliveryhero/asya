@@ -264,6 +264,9 @@ func TestRabbitMQTransport_Receive(t *testing.T) {
 	})
 
 	t.Run("consume initialization failure", func(t *testing.T) {
+		t.Setenv("ASYA_QUEUE_RETRY_MAX_ATTEMPTS", "2")
+		t.Setenv("ASYA_QUEUE_RETRY_BACKOFF", "10ms")
+
 		mockChannel := &mockRabbitMQChannel{
 			consumeFunc: func(queue, consumer string, autoAck, exclusive, noLocal, noWait bool, args amqp.Table) (<-chan amqp.Delivery, error) {
 				return nil, errors.New("consume failed")
@@ -338,8 +341,8 @@ func TestRabbitMQTransport_Send(t *testing.T) {
 
 	t.Run("queue ensure failure", func(t *testing.T) {
 		mockChannel := &mockRabbitMQChannel{
-			queueDeclareFunc: func(name string, durable, autoDelete, exclusive, noWait bool, args amqp.Table) (amqp.Queue, error) {
-				return amqp.Queue{}, errors.New("queue declare failed")
+			queueDeclarePassiveFunc: func(name string, durable, autoDelete, exclusive, noWait bool, args amqp.Table) (amqp.Queue, error) {
+				return amqp.Queue{}, errors.New("queue does not exist")
 			},
 		}
 
