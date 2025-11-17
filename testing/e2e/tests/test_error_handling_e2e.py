@@ -164,7 +164,7 @@ def test_error_goes_to_error_end_when_available(e2e_helper, kubectl, chaos_queue
            "Message goes to error-end queue instead of DLQ when error-end deployment is scaled to 0. "
            "This test only works for RabbitMQ where publishing can fail when consumers are unavailable."
 )
-def test_error_goes_to_dlq_when_error_end_unavailable(e2e_helper, kubectl):
+def test_error_goes_to_dlq_when_error_end_unavailable(e2e_helper, kubectl, chaos_queues):
     """
     E2E: Test errors go to DLQ when error-end is unavailable.
 

@@ -65,7 +65,7 @@ def _get_transport_client(transport: str):
 
 @pytest.mark.slow
 @pytest.mark.dlq
-def test_poison_message_moves_to_dlq_e2e(e2e_helper, kubectl):
+def test_poison_message_moves_to_dlq_e2e(e2e_helper, kubectl, chaos_queues):
     """
     E2E: Test poison message (fails repeatedly) moves to DLQ.
 
@@ -146,7 +146,7 @@ def test_poison_message_moves_to_dlq_e2e(e2e_helper, kubectl):
 
 @pytest.mark.slow
 @pytest.mark.dlq
-def test_dlq_preserves_envelope_metadata_e2e(e2e_helper, kubectl):
+def test_dlq_preserves_envelope_metadata_e2e(e2e_helper, kubectl, chaos_queues):
     """
     E2E: Test DLQ preserves envelope metadata.
 
