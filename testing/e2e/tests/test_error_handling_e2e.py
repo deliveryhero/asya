@@ -81,78 +81,80 @@ def test_error_goes_to_error_end_when_available(e2e_helper, kubectl):
     logger.info("Waiting for deployment to scale to 0")
     kubectl.wait_for_replicas("error-end", "asya-e2e", 0, timeout=60)
 
-    # Purge queues before test
-    logger.info("Purging queues before test")
-    transport_client.purge(dlq_name)
-    transport_client.purge(error_end_queue)
+    try:
+        # Purge queues before test
+        logger.info("Purging queues before test")
+        transport_client.purge(dlq_name)
+        transport_client.purge(error_end_queue)
 
-    # Send failing envelope
-    logger.info("Sending failing envelope to test-error actor")
-    response = e2e_helper.call_mcp_tool(
-        tool_name="test_error",
-        arguments={"should_fail": True},
-    )
+        # Send failing envelope
+        logger.info("Sending failing envelope to test-error actor")
+        response = e2e_helper.call_mcp_tool(
+            tool_name="test_error",
+            arguments={"should_fail": True},
+        )
 
-    envelope_id = response["result"]["envelope_id"]
-    logger.info(f"Envelope ID: {envelope_id}")
+        envelope_id = response["result"]["envelope_id"]
+        logger.info(f"Envelope ID: {envelope_id}")
 
-    # Check error-end queue received the message
-    logger.info(f"Checking error-end queue for error message (envelope {envelope_id})")
-    logger.info("Waiting for test-error actor to process and sidecar to route to error-end...")
-    time.sleep(5)
+        # Check error-end queue received the message
+        logger.info(f"Checking error-end queue for error message (envelope {envelope_id})")
+        logger.info("Waiting for test-error actor to process and sidecar to route to error-end...")
+        time.sleep(5)
 
-    error_end_message = None
-    for attempt in range(15):
-        error_end_message = transport_client.consume(error_end_queue, timeout=2)
-        if error_end_message:
-            logger.info(f"[+] Found message in error-end queue on attempt {attempt + 1}")
-            break
-        logger.info(f"error-end queue check attempt {attempt + 1}/15, no message yet")
-        time.sleep(2)
+        error_end_message = None
+        for attempt in range(15):
+            error_end_message = transport_client.consume(error_end_queue, timeout=2)
+            if error_end_message:
+                logger.info(f"[+] Found message in error-end queue on attempt {attempt + 1}")
+                break
+            logger.info(f"error-end queue check attempt {attempt + 1}/15, no message yet")
+            time.sleep(2)
 
-    assert error_end_message is not None, \
-        f"Error message should be in error-end queue {error_end_queue} after 30s"
-    logger.info(f"[+] Error message found in error-end queue: {error_end_message.get('id')}")
+        assert error_end_message is not None, \
+            f"Error message should be in error-end queue {error_end_queue} after 30s"
+        logger.info(f"[+] Error message found in error-end queue: {error_end_message.get('id')}")
 
-    # Verify envelope ID matches
-    assert error_end_message.get("id") == envelope_id, \
-        "error-end message ID should match original envelope ID"
+        # Verify envelope ID matches
+        assert error_end_message.get("id") == envelope_id, \
+            "error-end message ID should match original envelope ID"
 
-    # Verify error payload structure
-    payload = error_end_message.get("payload", {})
-    assert "error" in payload, "error-end message should contain error details"
-    assert "original_payload" in payload, "error-end message should preserve original payload"
-    logger.info(f"[+] Error payload structure correct: {payload.keys()}")
+        # Verify error payload structure
+        payload = error_end_message.get("payload", {})
+        assert "error" in payload, "error-end message should contain error details"
+        assert "original_payload" in payload, "error-end message should preserve original payload"
+        logger.info(f"[+] Error payload structure correct: {payload.keys()}")
 
-    # Verify DLQ is EMPTY (message should NOT go to DLQ when error-end is available)
-    logger.info(f"Verifying DLQ {dlq_name} is empty")
-    dlq_message = transport_client.consume(dlq_name, timeout=2)
-    assert dlq_message is None, \
-        f"DLQ {dlq_name} should be empty when error-end handles the error"
-    logger.info("[+] DLQ is empty - error was handled by error-end")
+        # Verify DLQ is EMPTY (message should NOT go to DLQ when error-end is available)
+        logger.info(f"Verifying DLQ {dlq_name} is empty")
+        dlq_message = transport_client.consume(dlq_name, timeout=2)
+        assert dlq_message is None, \
+            f"DLQ {dlq_name} should be empty when error-end handles the error"
+        logger.info("[+] DLQ is empty - error was handled by error-end")
 
-    # Re-enable KEDA scaling for error-end and reset replicas
-    logger.info("Re-enabling KEDA scaling for error-end")
-    kubectl.run("patch asyncactor error-end -n asya-e2e --type=json -p '[{\"op\":\"replace\",\"path\":\"/spec/scaling/enabled\",\"value\":true},{\"op\":\"replace\",\"path\":\"/spec/workload/replicas\",\"value\":1}]'")
+        logger.info("[+] Test passed - application-level error handling working")
 
-    # Wait for operator to reconcile and ScaledObject to be recreated
-    logger.info("Waiting for ScaledObject to be recreated")
-    for attempt in range(30):
-        result = kubectl.run("get scaledobject error-end -n asya-e2e", check=False)
-        if result.returncode == 0:
-            logger.info("ScaledObject exists, waiting for Ready condition")
-            kubectl.run("wait --for=condition=Ready scaledobject/error-end -n asya-e2e --timeout=30s")
-            break
-        logger.info(f"ScaledObject not yet created, retrying ({attempt + 1}/30)")
-        time.sleep(2)
-    else:
-        raise TimeoutError("ScaledObject was not created within 60 seconds")
+    finally:
+        # Re-enable KEDA scaling for error-end and reset replicas
+        logger.info("Re-enabling KEDA scaling for error-end")
+        kubectl.run("patch asyncactor error-end -n asya-e2e --type=json -p '[{\"op\":\"replace\",\"path\":\"/spec/scaling/enabled\",\"value\":true},{\"op\":\"replace\",\"path\":\"/spec/workload/replicas\",\"value\":1}]'")
 
-    # Wait for error-end pod to be ready
-    logger.info("Waiting for error-end pod to be ready")
-    kubectl.wait_for_replicas("error-end", "asya-e2e", 1, timeout=60)
+        # Wait for operator to reconcile and ScaledObject to be recreated
+        logger.info("Waiting for ScaledObject to be recreated")
+        for attempt in range(30):
+            result = kubectl.run("get scaledobject error-end -n asya-e2e", check=False)
+            if result.returncode == 0:
+                logger.info("ScaledObject exists, waiting for Ready condition")
+                kubectl.run("wait --for=condition=Ready scaledobject/error-end -n asya-e2e --timeout=30s")
+                break
+            logger.info(f"ScaledObject not yet created, retrying ({attempt + 1}/30)")
+            time.sleep(2)
+        else:
+            logger.warning("ScaledObject was not created within 60 seconds")
 
-    logger.info("[+] Test passed - application-level error handling working")
+        # Wait for error-end pod to be ready
+        logger.info("Waiting for error-end pod to be ready")
+        kubectl.wait_for_replicas("error-end", "asya-e2e", 1, timeout=60)
 
 
 @pytest.mark.slow
