@@ -68,6 +68,7 @@ jobs:
           echo ""
           echo "[Unreleased]: https://github.com/${{ github.repository }}/compare/${TAG}...HEAD"
           echo "[$VERSION]: https://github.com/${{ github.repository }}/releases/tag/${TAG}"
+          echo ""
         } >> "$TEMP_FILE"
 
         mv "$TEMP_FILE" CHANGELOG.md
