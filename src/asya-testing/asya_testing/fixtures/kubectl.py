@@ -61,7 +61,7 @@ class KubectlHelper:
         )
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def kubectl() -> KubectlHelper:
     """Provide kubectl helper for E2E tests."""
     return KubectlHelper()

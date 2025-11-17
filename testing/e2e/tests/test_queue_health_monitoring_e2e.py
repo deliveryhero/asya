@@ -50,16 +50,15 @@ def _get_transport_client(transport: str):
 
 @pytest.mark.slow
 @pytest.mark.chaos
-def test_operator_recreates_deleted_actor_queue_e2e(e2e_helper, kubectl):
+def test_operator_recreates_deleted_actor_queue_e2e(e2e_helper, chaos_queues):
     """
     E2E Chaos: Test operator recreates deleted actor queue within 5 minutes.
 
     Scenario:
-    1. Verify test-echo AsyncActor exists and queue is created
-    2. Delete test-echo queue manually (simulate chaos)
-    3. Wait for operator health check cycle (max 6 minutes)
-    4. Verify queue is automatically recreated
-    5. Verify actor still processes messages correctly
+    1. Delete test-echo queue manually (simulate chaos)
+    2. Wait for operator health check cycle (max 6 minutes)
+    3. Verify queue is automatically recreated
+    4. Verify actor still processes messages correctly
 
     Expected:
     - Queue deleted successfully
@@ -68,48 +67,29 @@ def test_operator_recreates_deleted_actor_queue_e2e(e2e_helper, kubectl):
     - Actor resumes normal operation
 
     Transport Support: Both RabbitMQ and SQS
+
+    Args:
+        e2e_helper: E2E test helper fixture
+        chaos_queues: Session fixture ensuring required queues exist
     """
     transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
     transport_client = _get_transport_client(transport)
 
     queue_name = "asya-test-echo"
-    namespace = os.getenv("ASYA_NAMESPACE", "asya-e2e")
 
     logger.info(f"Transport: {transport}, Testing queue: {queue_name}")
+    logger.info(f"Chaos queues ready: {chaos_queues}")
 
-    logger.info("[1/5] Ensuring AsyncActor exists and queue is ready")
-    result = kubectl.run(f"get asyncactor test-echo -n {namespace}", check=False)
-    if result.returncode != 0:
-        pytest.skip(f"AsyncActor test-echo not found in namespace {namespace}")
-
-    max_wait = 60
-    elapsed = 0
-    check_interval = 5
-    queue_ready = False
-
-    while elapsed < max_wait:
-        queues = transport_client.list_queues()
-        if queue_name in queues:
-            queue_ready = True
-            logger.info(f"[+] Queue ready: {queue_name}")
-            break
-        logger.info(f"Waiting for queue to be created (elapsed: {elapsed}s / {max_wait}s)")
-        time.sleep(check_interval)
-        elapsed += check_interval
-
-    if not queue_ready:
-        pytest.skip(f"Queue {queue_name} not ready after {max_wait}s - may still be initializing")
-
-    logger.info("[2/5] Deleting queue to simulate chaos scenario")
+    logger.info("[1/4] Deleting queue to simulate chaos scenario")
     transport_client.delete_queue(queue_name)
     logger.info(f"[+] Queue deleted: {queue_name}")
 
-    logger.info("[3/5] Verifying queue is actually deleted")
+    logger.info("[2/4] Verifying queue is actually deleted")
     queues_after_delete = transport_client.list_queues()
     assert queue_name not in queues_after_delete, f"Queue {queue_name} should be deleted"
     logger.info(f"[+] Queue confirmed deleted: {queue_name}")
 
-    logger.info("[4/5] Waiting for operator health check cycle (max 6 minutes)")
+    logger.info("[3/4] Waiting for operator health check cycle (max 6 minutes)")
     max_wait = 360
     check_interval = 15
     elapsed = 0
@@ -128,7 +108,7 @@ def test_operator_recreates_deleted_actor_queue_e2e(e2e_helper, kubectl):
     assert queue_recreated, \
         f"Queue {queue_name} was not recreated within {max_wait}s. Operator health check may be disabled."
 
-    logger.info("[5/5] Verifying actor still processes messages after queue recreation")
+    logger.info("[4/4] Verifying actor still processes messages after queue recreation")
     response = e2e_helper.call_mcp_tool(
         tool_name="test_echo",
         arguments={"data": "chaos-test-recovery"},
@@ -144,59 +124,39 @@ def test_operator_recreates_deleted_actor_queue_e2e(e2e_helper, kubectl):
 
 @pytest.mark.slow
 @pytest.mark.chaos
-def test_operator_recreates_deleted_system_queue_e2e(e2e_helper, kubectl):
+def test_operator_recreates_deleted_system_queue_e2e(e2e_helper, chaos_queues):
     """
     E2E Chaos: Test operator recreates deleted system queue (error-end).
 
     Scenario:
-    1. Verify error-end AsyncActor exists and queue is created
-    2. Delete error-end queue (simulate infrastructure failure)
-    3. Wait for operator health check cycle
-    4. Verify queue automatically recreated
-    5. Verify error handling still works
+    1. Delete error-end queue (simulate infrastructure failure)
+    2. Wait for operator health check cycle
+    3. Verify queue automatically recreated
+    4. Verify error handling still works
 
     Expected:
     - System queue recreated automatically
     - Error handling pipeline remains functional
 
     Transport Support: Both RabbitMQ and SQS
+
+    Args:
+        e2e_helper: E2E test helper fixture
+        chaos_queues: Session fixture ensuring required queues exist
     """
     transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
     transport_client = _get_transport_client(transport)
 
     queue_name = "asya-error-end"
-    namespace = os.getenv("ASYA_NAMESPACE", "asya-e2e")
 
     logger.info(f"Transport: {transport}, Testing system queue: {queue_name}")
+    logger.info(f"Chaos queues ready: {chaos_queues}")
 
-    logger.info("[1/4] Ensuring error-end AsyncActor exists and queue is ready")
-    result = kubectl.run(f"get asyncactor error-end -n {namespace}", check=False)
-    if result.returncode != 0:
-        pytest.skip(f"AsyncActor error-end not found in namespace {namespace}")
-
-    max_wait = 60
-    elapsed = 0
-    check_interval = 5
-    queue_ready = False
-
-    while elapsed < max_wait:
-        queues = transport_client.list_queues()
-        if queue_name in queues:
-            queue_ready = True
-            logger.info(f"[+] System queue ready: {queue_name}")
-            break
-        logger.info(f"Waiting for system queue to be created (elapsed: {elapsed}s / {max_wait}s)")
-        time.sleep(check_interval)
-        elapsed += check_interval
-
-    if not queue_ready:
-        pytest.skip(f"System queue {queue_name} not ready after {max_wait}s - may still be initializing")
-
-    logger.info("[2/4] Deleting system queue to simulate infrastructure failure")
+    logger.info("[1/3] Deleting system queue to simulate infrastructure failure")
     transport_client.delete_queue(queue_name)
     logger.info(f"[+] System queue deleted: {queue_name}")
 
-    logger.info("[3/4] Waiting for operator health check to recreate queue")
+    logger.info("[2/3] Waiting for operator health check to recreate queue")
     max_wait = 360
     check_interval = 15
     elapsed = 0
@@ -215,7 +175,7 @@ def test_operator_recreates_deleted_system_queue_e2e(e2e_helper, kubectl):
     assert queue_recreated, \
         f"System queue {queue_name} was not recreated within {max_wait}s"
 
-    logger.info("[4/4] Verifying error handling works after queue recreation")
+    logger.info("[3/3] Verifying error handling works after queue recreation")
     response = e2e_helper.call_mcp_tool(
         tool_name="test_error",
         arguments={"should_fail": True},
@@ -228,13 +188,13 @@ def test_operator_recreates_deleted_system_queue_e2e(e2e_helper, kubectl):
 
 @pytest.mark.slow
 @pytest.mark.chaos
-def test_multiple_queue_deletions_e2e(e2e_helper, kubectl):
+def test_multiple_queue_deletions_e2e(e2e_helper, chaos_queues):
     """
     E2E Chaos: Test operator handles multiple simultaneous queue deletions.
 
     Scenario:
-    1. Identify multiple actor queues
-    2. Delete all queues simultaneously (catastrophic failure)
+    1. Delete all queues simultaneously (catastrophic failure)
+    2. Verify all queues deleted
     3. Wait for operator health check cycle
     4. Verify all queues recreated
     5. Verify all actors functional
@@ -245,45 +205,20 @@ def test_multiple_queue_deletions_e2e(e2e_helper, kubectl):
     - No cascade failures
 
     Transport Support: Both RabbitMQ and SQS
+
+    Args:
+        e2e_helper: E2E test helper fixture
+        chaos_queues: Session fixture ensuring required queues exist
     """
     transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
     transport_client = _get_transport_client(transport)
 
-    test_queues = [
-        "asya-test-echo",
-        "asya-test-error",
-        "asya-error-end",
-    ]
-    namespace = os.getenv("ASYA_NAMESPACE", "asya-e2e")
+    test_queues = chaos_queues
 
     logger.info(f"Transport: {transport}, Testing multiple queue deletions")
+    logger.info(f"Chaos queues ready: {chaos_queues}")
 
-    logger.info("[1/5] Ensuring all AsyncActors exist and queues are ready")
-    for actor_name in ["test-echo", "test-error", "error-end"]:
-        result = kubectl.run(f"get asyncactor {actor_name} -n {namespace}", check=False)
-        if result.returncode != 0:
-            pytest.skip(f"AsyncActor {actor_name} not found in namespace {namespace}")
-
-    max_wait = 60
-    elapsed = 0
-    check_interval = 5
-    all_ready = False
-
-    while elapsed < max_wait:
-        queues = transport_client.list_queues()
-        ready_count = sum(1 for q in test_queues if q in queues)
-        if ready_count == len(test_queues):
-            all_ready = True
-            logger.info(f"[+] All {len(test_queues)} queues ready")
-            break
-        logger.info(f"Waiting for queues ({ready_count}/{len(test_queues)} ready, elapsed: {elapsed}s / {max_wait}s)")
-        time.sleep(check_interval)
-        elapsed += check_interval
-
-    if not all_ready:
-        pytest.skip(f"Not all queues ready after {max_wait}s - may still be initializing")
-
-    logger.info("[2/5] Deleting all queues simultaneously (catastrophic scenario)")
+    logger.info("[1/5] Deleting all queues simultaneously (catastrophic scenario)")
     for queue_name in test_queues:
         try:
             transport_client.delete_queue(queue_name)
@@ -334,7 +269,7 @@ def test_multiple_queue_deletions_e2e(e2e_helper, kubectl):
 
 @pytest.mark.slow
 @pytest.mark.chaos
-def test_queue_deletion_during_processing_e2e(e2e_helper, kubectl):
+def test_queue_deletion_during_processing_e2e(e2e_helper, chaos_queues):
     """
     E2E Chaos: Test queue deletion while actor is processing messages.
 
@@ -353,39 +288,20 @@ def test_queue_deletion_during_processing_e2e(e2e_helper, kubectl):
 
     Note: Message might be lost if deleted before processing,
     but queue recreation ensures system recovers.
+
+    Args:
+        e2e_helper: E2E test helper fixture
+        chaos_queues: Session fixture ensuring required queues exist
     """
     transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
     transport_client = _get_transport_client(transport)
 
     queue_name = "asya-test-echo"
-    namespace = os.getenv("ASYA_NAMESPACE", "asya-e2e")
 
     logger.info(f"Transport: {transport}, Testing queue deletion during processing")
+    logger.info(f"Chaos queues ready: {chaos_queues}")
 
-    logger.info("[1/5] Ensuring AsyncActor exists and queue is ready")
-    result = kubectl.run(f"get asyncactor test-echo -n {namespace}", check=False)
-    if result.returncode != 0:
-        pytest.skip(f"AsyncActor test-echo not found in namespace {namespace}")
-
-    max_wait = 60
-    elapsed = 0
-    check_interval = 5
-    queue_ready = False
-
-    while elapsed < max_wait:
-        queues = transport_client.list_queues()
-        if queue_name in queues:
-            queue_ready = True
-            logger.info(f"[+] Queue ready: {queue_name}")
-            break
-        logger.info(f"Waiting for queue to be created (elapsed: {elapsed}s / {max_wait}s)")
-        time.sleep(check_interval)
-        elapsed += check_interval
-
-    if not queue_ready:
-        pytest.skip(f"Queue {queue_name} not ready after {max_wait}s - may still be initializing")
-
-    logger.info("[2/5] Sending message to actor")
+    logger.info("[1/4] Sending message to actor")
     response = e2e_helper.call_mcp_tool(
         tool_name="test_echo",
         arguments={"data": "processing-chaos-test"},
@@ -393,11 +309,11 @@ def test_queue_deletion_during_processing_e2e(e2e_helper, kubectl):
     envelope_id = response["result"]["envelope_id"]
     logger.info(f"[+] Message sent, envelope ID: {envelope_id}")
 
-    logger.info("[3/5] Deleting queue during/after processing")
+    logger.info("[2/4] Deleting queue during/after processing")
     transport_client.delete_queue(queue_name)
     logger.info(f"[+] Queue deleted: {queue_name}")
 
-    logger.info("[4/5] Waiting for operator to recreate queue")
+    logger.info("[3/4] Waiting for operator to recreate queue")
     max_wait = 360
     check_interval = 15
     elapsed = 0
@@ -414,7 +330,7 @@ def test_queue_deletion_during_processing_e2e(e2e_helper, kubectl):
 
     assert queue_recreated, f"Queue {queue_name} not recreated within {max_wait}s"
 
-    logger.info("[5/5] Verifying actor can process new messages after recreation")
+    logger.info("[4/4] Verifying actor can process new messages after recreation")
     response = e2e_helper.call_mcp_tool(
         tool_name="test_echo",
         arguments={"data": "post-chaos-test"},
