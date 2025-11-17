@@ -37,6 +37,22 @@ spec:
           value: {{ .Values.auth.accessKey | quote }}
         - name: AWS_SECRET_ACCESS_KEY
           value: {{ .Values.auth.secretKey | quote }}
+        readinessProbe:
+          httpGet:
+            path: /_localstack/health
+            port: 4566
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 6
+        livenessProbe:
+          httpGet:
+            path: /_localstack/health
+            port: 4566
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
         resources:
           {{- toYaml .Values.resources | nindent 10 }}
         volumeMounts:

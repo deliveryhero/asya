@@ -293,7 +293,7 @@ jobs:
         cd testing/e2e
         make test-operator
 
-    - name: "Run E2E tests (non-chaos)"
+    - name: "Run E2E tests (non-chaos, payload)"
       if: matrix.run_pipeline
       continue-on-error: true
       id: e2e-non-chaos
@@ -303,9 +303,19 @@ jobs:
         source .venv/bin/activate
         cd testing/e2e
         make trigger-tests ASYA_HANDLER_MODE=payload PYTEST_OPTS="-v --log-cli-level=INFO -m 'not chaos'"
+
+    - name: "Run E2E tests (non-chaos, envelope)"
+      if: matrix.run_pipeline
+      continue-on-error: true
+      id: e2e-non-chaos-envelope
+      env:
+        ASYA_LOG_LEVEL: INFO
+      run: |
+        source .venv/bin/activate
+        cd testing/e2e
         make trigger-tests ASYA_HANDLER_MODE=envelope PYTEST_OPTS="-v --log-cli-level=INFO -m 'not chaos'"
 
-    - name: "Run E2E: chaos tests (payload only)"
+    - name: "Run E2E: tests (chaos, payload)"
       if: matrix.run_pipeline
       continue-on-error: true
       id: e2e-chaos
@@ -325,7 +335,11 @@ jobs:
           FAILED=1
         fi
         if [[ "${{ steps.e2e-non-chaos.outcome }}" == "failure" ]]; then
-          echo "[-] E2E test suite failed: non-chaos (payload + envelope)"
+          echo "[-] E2E test suite failed: non-chaos (payload)"
+          FAILED=1
+        fi
+        if [[ "${{ steps.e2e-non-chaos-envelope.outcome }}" == "failure" ]]; then
+          echo "[-] E2E test suite failed: non-chaos (envelope)"
           FAILED=1
         fi
         if [[ "${{ steps.e2e-chaos.outcome }}" == "failure" ]]; then
