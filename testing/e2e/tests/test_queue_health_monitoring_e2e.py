@@ -322,7 +322,7 @@ def test_queue_deletion_during_processing_e2e(e2e_helper, chaos_queues):
     logger.info("[1/4] Sending message to actor")
     response = e2e_helper.call_mcp_tool(
         tool_name="test_echo",
-        arguments={"data": "processing-chaos-test"},
+        arguments={"message": "processing-chaos-test"},
     )
     envelope_id = response["result"]["envelope_id"]
     logger.info(f"[+] Message sent, envelope ID: {envelope_id}")

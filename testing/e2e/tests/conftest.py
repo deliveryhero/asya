@@ -22,9 +22,14 @@ from asya_testing.fixtures import (
     TransportTimeouts,
     e2e_helper,
     kubectl,
+    wait_for_actors_factory,
+    wait_for_queues_factory,
 )
 
 logger = logging.getLogger(__name__)
+
+
+CHAOS_ACTOR_NAMES = ["test-echo", "test-error", "test-queue-health", "error-end"]
 
 
 @pytest.fixture(scope="session")
@@ -35,41 +40,17 @@ def chaos_actors(kubectl, namespace):
     Required actors for chaos tests:
     - test-echo: For basic queue recreation tests
     - test-error: For error handling tests
+    - test-queue-health: For queue health monitoring tests
     - error-end: System actor for error handling
 
     Raises:
         AssertionError: If any required actor is not deployed after waiting
     """
-    required_actors = ["test-echo", "test-error", "test-queue-health", "error-end"]
-    max_wait = 120
-    check_interval = 5
-
-    logger.info(f"Ensuring chaos test actors are deployed in namespace {namespace}")
-
-    for actor_name in required_actors:
-        elapsed = 0
-        actor_ready = False
-
-        while elapsed < max_wait:
-            result = kubectl.run(f"get asyncactor {actor_name} -n {namespace}", check=False)
-            if result.returncode == 0:
-                actor_ready = True
-                logger.info(f"[+] AsyncActor {actor_name} found in namespace {namespace}")
-                break
-
-            logger.info(f"Waiting for AsyncActor {actor_name} (elapsed: {elapsed}s / {max_wait}s)")
-            time.sleep(check_interval)
-            elapsed += check_interval
-
-        assert actor_ready, \
-            f"AsyncActor {actor_name} not found in namespace {namespace} after {max_wait}s. " \
-            f"Ensure actors are deployed via Helm before running chaos tests."
-
-    return required_actors
+    return wait_for_actors_factory(kubectl, namespace, CHAOS_ACTOR_NAMES)
 
 
 @pytest.fixture(scope="session")
-def chaos_queues(chaos_actors, kubectl, namespace):
+def chaos_queues(chaos_actors):
     """
     Ensure chaos test queues are created and ready.
 
@@ -97,40 +78,7 @@ def chaos_queues(chaos_actors, kubectl, namespace):
     else:
         pytest.fail(f"Unsupported transport: {transport}")
 
-    expected_queues = [
-        "asya-test-echo",
-        "asya-test-error",
-        "asya-test-queue-health",
-        "asya-error-end",
-    ]
-
-    max_wait = 120
-    check_interval = 5
-    elapsed = 0
-    all_ready = False
-
-    logger.info(f"Waiting for {len(expected_queues)} queues to be created by operator")
-
-    while elapsed < max_wait:
-        queues = transport_client.list_queues()
-        ready_count = sum(1 for q in expected_queues if q in queues)
-
-        if ready_count == len(expected_queues):
-            all_ready = True
-            logger.info(f"[+] All {len(expected_queues)} queues are ready")
-            break
-
-        missing = [q for q in expected_queues if q not in queues]
-        logger.info(f"Waiting for queues ({ready_count}/{len(expected_queues)} ready, "
-                   f"missing: {missing}, elapsed: {elapsed}s / {max_wait}s)")
-        time.sleep(check_interval)
-        elapsed += check_interval
-
-    assert all_ready, \
-        f"Not all queues ready after {max_wait}s. Missing queues: {[q for q in expected_queues if q not in queues]}. " \
-        f"Check operator logs and ensure queue creation is working."
-
-    return expected_queues
+    return wait_for_queues_factory(transport_client, CHAOS_ACTOR_NAMES)
 
 
 __all__ = [

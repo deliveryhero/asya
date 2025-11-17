@@ -1,7 +1,13 @@
 """Shared pytest fixtures for Asya framework tests."""
 
 from .config import errors_bucket, gateway_url, namespace, results_bucket, s3_endpoint, test_config
-from .e2e import check_port_forward_health, e2e_helper, rabbitmq_url
+from .e2e import (
+    check_port_forward_health,
+    e2e_helper,
+    rabbitmq_url,
+    wait_for_actors_factory,
+    wait_for_queues_factory,
+)
 from .gateway import gateway_helper
 from .kubectl import kubectl
 from .log_config import configure_logging
@@ -24,4 +30,6 @@ __all__ = [
     "s3_endpoint",
     "test_config",
     "transport_timeouts",
+    "wait_for_actors_factory",
+    "wait_for_queues_factory",
 ]
