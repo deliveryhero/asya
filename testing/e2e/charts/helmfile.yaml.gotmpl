@@ -188,6 +188,7 @@ releases:
     values:
       - namespace: {{ .Values.actors.namespace | default "asya-e2e" }}
         transport: {{ .Values.actors.transport | default "rabbitmq" }}
+        handlerMode: {{ env "ASYA_HANDLER_MODE" | default "payload" }}
         workload:
           image: asya-testing:latest
           imagePullPolicy: IfNotPresent

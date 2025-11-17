@@ -175,8 +175,8 @@ def test_multiple_component_failures(e2e_helper):
         logger.info("Waiting for components to restart...")
         assert e2e_helper.wait_for_pod_ready("app.kubernetes.io/name=asya-gateway", timeout=60)
         assert e2e_helper.wait_for_pod_ready("app=test-echo", timeout=60)
-        assert e2e_helper.wait_for_pod_ready("app=happy-end", timeout=60)
-        assert e2e_helper.wait_for_pod_ready("app=error-end", timeout=60)
+        assert e2e_helper.wait_for_pod_ready("actor=happy-end", timeout=60)
+        assert e2e_helper.wait_for_pod_ready("actor=error-end", timeout=60)
 
         logger.info("Re-establishing port-forward to new gateway pod...")
         assert e2e_helper.restart_port_forward(), "Port-forward should be re-established"

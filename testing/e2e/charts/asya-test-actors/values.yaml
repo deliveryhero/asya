@@ -9,6 +9,10 @@ namespace: asya-e2e
 # Common values: rabbitmq, sqs
 transport: rabbitmq
 
+# Handler mode for test actors: payload or envelope
+# This determines which handler module to use
+handlerMode: payload
+
 # Common workload configuration for all actors
 workload:
   image: asya-testing:latest
