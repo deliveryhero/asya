@@ -25,5 +25,7 @@ spec:
           env:
           - name: ASYA_HANDLER
             value: asya_testing.handlers.{{ .Values.handlerMode }}.echo_handler
+          - name: ASYA_HANDLER_MODE
+            value: {{ .Values.handlerMode }}
           - name: ASYA_INCLUDE_ROUTE_INFO
             value: 'true'

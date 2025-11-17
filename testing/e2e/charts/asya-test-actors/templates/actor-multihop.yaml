@@ -30,6 +30,8 @@ spec:
           env:
           - name: ASYA_HANDLER
             value: asya_testing.handlers.{{ $.Values.handlerMode }}.multihop_handler
+          - name: ASYA_HANDLER_MODE
+            value: {{ $.Values.handlerMode }}
           - name: HOP_NUMBER
             value: "{{ $i }}"
           - name: ASYA_GATEWAY_URL
