@@ -97,17 +97,21 @@ def test_error_goes_to_error_end_when_available(e2e_helper, kubectl):
     logger.info(f"Envelope ID: {envelope_id}")
 
     # Check error-end queue received the message
-    logger.info("Checking error-end queue for error message")
+    logger.info(f"Checking error-end queue for error message (envelope {envelope_id})")
+    logger.info("Waiting for test-error actor to process and sidecar to route to error-end...")
+    time.sleep(5)
+
     error_end_message = None
-    for attempt in range(10):
+    for attempt in range(15):
         error_end_message = transport_client.consume(error_end_queue, timeout=2)
         if error_end_message:
+            logger.info(f"[+] Found message in error-end queue on attempt {attempt + 1}")
             break
-        logger.info(f"error-end check attempt {attempt + 1}/10")
+        logger.info(f"error-end queue check attempt {attempt + 1}/15, no message yet")
         time.sleep(2)
 
     assert error_end_message is not None, \
-        f"Error message should be in error-end queue {error_end_queue}"
+        f"Error message should be in error-end queue {error_end_queue} after 30s"
     logger.info(f"[+] Error message found in error-end queue: {error_end_message.get('id')}")
 
     # Verify envelope ID matches

@@ -2,6 +2,7 @@
 
 import logging
 import subprocess
+import time
 
 import requests
 from asya_testing.utils.gateway import GatewayTestHelper
@@ -94,6 +95,107 @@ class E2ETestHelper(GatewayTestHelper):
             logger.warning(f"Failed to get queue length: {e}")
             return 0
 
+    def wait_for_envelope_completion(
+        self,
+        envelope_id: str,
+        timeout: int = 20,
+        interval: float = 0.5,
+    ) -> dict:
+        """
+        Poll envelope status until it reaches end state.
+
+        This E2E version handles connection errors by automatically restarting
+        port-forward when needed (useful in chaos tests).
+
+        Returns the final envelope object when status is succeeded, failed, or unknown.
+
+        Raises:
+            TimeoutError: If envelope doesn't complete within timeout
+            ConnectionError: If gateway becomes unreachable after retries
+        """
+        logger.debug(f"Waiting for envelope completion: {envelope_id} (timeout={timeout}s)")
+        start_time = time.time()
+        consecutive_failures = 0
+        max_consecutive_failures = 3
+
+        i = 0
+        while time.time() - start_time < timeout:
+            try:
+                envelope = self.get_envelope_status(envelope_id)
+                consecutive_failures = 0
+
+                elapsed = time.time() - start_time
+
+                if envelope["status"] in ["succeeded", "failed", "unknown"]:
+                    logger.info(f"Envelope completed after {elapsed:.2f}s with status: {envelope['status']}")
+                    return envelope
+
+                i += 1
+                if i % int(5 / interval) == 0:
+                    logger.debug(f"Envelope still {envelope['status']} after {elapsed:.2f}s, waiting...")
+
+                time.sleep(interval)
+
+            except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+                consecutive_failures += 1
+                logger.warning(
+                    f"Connection error while checking envelope status (attempt {consecutive_failures}/{max_consecutive_failures}): {e}"
+                )
+
+                if consecutive_failures >= max_consecutive_failures:
+                    logger.error("Too many consecutive connection failures, attempting port-forward restart")
+                    try:
+                        self.ensure_gateway_connectivity(max_retries=2)
+                        consecutive_failures = 0
+                        logger.info("Gateway connectivity restored, resuming envelope wait")
+                    except ConnectionError as ce:
+                        raise ConnectionError(
+                            f"Gateway unreachable after port-forward restart while waiting for envelope {envelope_id}"
+                        ) from ce
+
+                time.sleep(interval)
+
+        raise TimeoutError(f"Envelope {envelope_id} did not complete within {timeout}s")
+
+    def ensure_gateway_connectivity(self, max_retries: int = 3) -> bool:
+        """
+        Ensure gateway is reachable, restarting port-forward if needed.
+
+        This method checks gateway connectivity and automatically restarts
+        port-forward if connection fails. Useful in chaos tests where
+        infrastructure components restart and may break port-forward.
+
+        Args:
+            max_retries: Maximum number of retry attempts
+
+        Returns:
+            True if gateway is reachable, False otherwise
+
+        Raises:
+            ConnectionError: If gateway unreachable after all retries
+        """
+        for attempt in range(max_retries):
+            try:
+                response = requests.get(
+                    f"{self.gateway_url}/health",
+                    timeout=2,
+                )
+                if response.status_code == 200:
+                    logger.debug("Gateway connectivity confirmed")
+                    return True
+            except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+                logger.warning(f"Gateway unreachable (attempt {attempt + 1}/{max_retries}): {e}")
+
+                if attempt < max_retries - 1:
+                    logger.info("Restarting port-forward...")
+                    if self.restart_port_forward():
+                        time.sleep(3)
+                    else:
+                        logger.error("Failed to restart port-forward")
+                        break
+
+        raise ConnectionError(f"Gateway unreachable after {max_retries} attempts")
+
     def restart_port_forward(self, service_name: str = "asya-gateway", local_port: int = 8080):
         """
         Restart port-forward connection to a service.
@@ -109,7 +211,6 @@ class E2ETestHelper(GatewayTestHelper):
         """
         import os
         import signal
-        import time
 
         logger.info(f"Restarting port-forward for {service_name}...")
 
