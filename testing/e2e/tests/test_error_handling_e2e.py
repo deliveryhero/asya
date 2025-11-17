@@ -44,7 +44,7 @@ def _get_transport_client(transport: str):
 
 
 @pytest.mark.slow
-def test_error_goes_to_error_end_when_available(e2e_helper, kubectl):
+def test_error_goes_to_error_end_when_available(e2e_helper, kubectl, chaos_queues):
     """
     E2E: Test errors go to error-end queue when error-end is available.
 
