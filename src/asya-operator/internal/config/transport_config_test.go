@@ -11,8 +11,6 @@ import (
 
 const (
 	testUsername          = "guest"
-	envValueFalse         = "false"
-	envValueTrue          = "true"
 	testTransportRabbitMQ = "rabbitmq"
 	testTransportSQS      = "sqs"
 )
@@ -896,7 +894,7 @@ func TestBuildEnvVars_RabbitMQQueueAutoCreate(t *testing.T) {
 	for _, e := range env {
 		if e.Name == "ASYA_QUEUE_AUTO_CREATE" {
 			found = true
-			if e.Value != envValueTrue {
+			if e.Value != "true" {
 				t.Errorf("Expected ASYA_QUEUE_AUTO_CREATE=true, got %s", e.Value)
 			}
 		}
@@ -931,7 +929,7 @@ func TestBuildEnvVars_RabbitMQQueueAutoCreateDisabled(t *testing.T) {
 	for _, e := range env {
 		if e.Name == "ASYA_QUEUE_AUTO_CREATE" {
 			found = true
-			if e.Value != envValueFalse {
+			if e.Value != "false" {
 				t.Errorf("Expected ASYA_QUEUE_AUTO_CREATE=false, got %s", e.Value)
 			}
 		}

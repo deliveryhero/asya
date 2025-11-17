@@ -6,7 +6,7 @@
 happy-end:
   enabled: true
   name: happy-end
-  transport: rabbitmq
+  transport: "" # required
   scaling:
     enabled: true
     minReplicas: 1
@@ -52,7 +52,7 @@ happy-end:
 error-end:
   enabled: true
   name: error-end
-  transport: rabbitmq
+  transport: "" # required
   scaling:
     enabled: true
     minReplicas: 1

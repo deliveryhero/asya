@@ -26,7 +26,6 @@ const (
 	testContainerRuntime  = "asya-runtime"
 	testTransportRabbitMQ = "rabbitmq"
 	testTransportSQS      = "sqs"
-	envValueTrue          = "true"
 )
 
 func TestInjectSidecar_PythonExecutable(t *testing.T) {
@@ -520,7 +519,7 @@ func TestInjectSidecar_EndActorsDisableValidation(t *testing.T) {
 			}
 
 			if tt.expectValidationDisabled {
-				if sidecarEnvMap["ASYA_IS_END_ACTOR"] != envValueTrue {
+				if sidecarEnvMap["ASYA_IS_END_ACTOR"] != "true" {
 					t.Errorf("Expected ASYA_IS_END_ACTOR=true in sidecar for %s, got %q", tt.actorName, sidecarEnvMap["ASYA_IS_END_ACTOR"])
 				}
 			} else {
@@ -644,7 +643,7 @@ func TestBuildSidecarEnv(t *testing.T) {
 				}
 
 				if tt.expectIsEndActor {
-					if envMap["ASYA_IS_END_ACTOR"] != envValueTrue {
+					if envMap["ASYA_IS_END_ACTOR"] != "true" {
 						t.Errorf("Expected ASYA_IS_END_ACTOR=true for %s, got %q", tt.actorName, envMap["ASYA_IS_END_ACTOR"])
 					}
 				} else {

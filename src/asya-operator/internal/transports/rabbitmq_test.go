@@ -331,3 +331,67 @@ func TestRabbitMQTransport_DeleteQueue_InvalidConfigType(t *testing.T) {
 		t.Errorf("Expected 'invalid RabbitMQ config type' error, got %q", err.Error())
 	}
 }
+
+func TestRabbitMQTransport_QueueExists_TransportNotFound(t *testing.T) {
+	scheme := runtime.NewScheme()
+	_ = corev1.AddToScheme(scheme)
+	_ = asyav1alpha1.AddToScheme(scheme)
+
+	fakeClient := fake.NewClientBuilder().WithScheme(scheme).Build()
+
+	registry := &asyaconfig.TransportRegistry{
+		Transports: make(map[string]*asyaconfig.TransportConfig),
+	}
+
+	transport := NewRabbitMQTransport(fakeClient, registry)
+
+	exists, err := transport.QueueExists(context.Background(), "asya-test-queue", "default")
+	if err == nil {
+		t.Fatal("Expected error when transport not found, got nil")
+	}
+
+	if exists {
+		t.Error("Expected exists=false when transport not found")
+	}
+
+	expectedError := "transport 'rabbitmq' not found in operator configuration"
+	if err.Error() != expectedError {
+		t.Errorf("Expected error %q, got %q", expectedError, err.Error())
+	}
+}
+
+func TestRabbitMQTransport_QueueExists_InvalidConfigType(t *testing.T) {
+	scheme := runtime.NewScheme()
+	_ = corev1.AddToScheme(scheme)
+	_ = asyav1alpha1.AddToScheme(scheme)
+
+	fakeClient := fake.NewClientBuilder().WithScheme(scheme).Build()
+
+	registry := &asyaconfig.TransportRegistry{
+		Transports: map[string]*asyaconfig.TransportConfig{
+			transportTypeRabbitMQ: {
+				Type:    transportTypeRabbitMQ,
+				Enabled: true,
+				Config: &asyaconfig.SQSConfig{
+					Region: "us-east-1",
+				},
+			},
+		},
+	}
+
+	transport := NewRabbitMQTransport(fakeClient, registry)
+
+	exists, err := transport.QueueExists(context.Background(), "asya-test-queue", "default")
+	if err == nil {
+		t.Fatal("Expected error for invalid config type, got nil")
+	}
+
+	if exists {
+		t.Error("Expected exists=false for invalid config type")
+	}
+
+	expectedError := "invalid RabbitMQ config type"
+	if err.Error() != expectedError {
+		t.Errorf("Expected %q error, got %q", expectedError, err.Error())
+	}
+}
