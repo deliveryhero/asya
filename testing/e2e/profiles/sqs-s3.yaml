@@ -34,6 +34,7 @@ crew:
   happy-end:
     transport: sqs
     scaling:
+      enabled: true
       minReplicas: 1
     workload:
       template:
@@ -64,6 +65,7 @@ crew:
   error-end:
     transport: sqs
     scaling:
+      enabled: true
       minReplicas: 1
     workload:
       template:
