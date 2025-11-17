@@ -560,13 +560,17 @@ func (r *Router) reportFinalStatusWithEnvelope(ctx context.Context, envelope *en
 		status = statusSucceeded
 	case r.errorEndQueue:
 		status = statusFailed
-		// For error-end, extract error info from payload
-		if payloadMap, ok := result.(map[string]interface{}); ok {
-			if err, ok := payloadMap["error"].(string); ok {
-				errorMsg = err
-			}
-			if details, ok := payloadMap["details"]; ok {
-				errorDetails = details
+		// For error-end, extract error info from envelope.Payload (not result)
+		// The envelope.Payload contains error details set by sendToErrorQueue
+		var envelopePayload interface{}
+		if err := json.Unmarshal(envelope.Payload, &envelopePayload); err == nil {
+			if payloadMap, ok := envelopePayload.(map[string]interface{}); ok {
+				if err, ok := payloadMap["error"].(string); ok {
+					errorMsg = err
+				}
+				if details, ok := payloadMap["details"]; ok {
+					errorDetails = details
+				}
 			}
 		}
 		// Use route from envelope to identify where the error occurred

@@ -41,16 +41,10 @@ coverage:
   badge:
     path: docs/coverage.svg
 
-# Post coverage report as PR comment
-# octocov will automatically include:
-# - Overall coverage % with diff from base branch
-# - Code-to-test ratio with diff
-# - Test execution time with diff
-# - Changed files coverage table (when diff datastores configured)
 comment:
   if: is_pull_request
   deletePrevious: true
-  hideFooterLink: false
+  hideFooterLink: true
   message: |
     ## Code Coverage Report
 
@@ -58,36 +52,29 @@ comment:
 
     **Metrics tracked:**
     - Code Coverage (overall and per changed file)
-    - Code-to-Test Ratio
     - Test Execution Time
 
     **Legend:** `+` increase | `-` decrease | `~` no change
   report:
     datastores:
     - artifact://${GITHUB_REPOSITORY}
-  diff:
-    datastores:
-    - artifact://${GITHUB_REPOSITORY}
+
+diff:
+  if: is_pull_request
+  datastores:
+  - artifact://${GITHUB_REPOSITORY}
+  path: report.json
+
+summary:
+  if: is_default_branch
+  path: report.json
 
 # Store reports for diff comparison
 report:
+  if: is_default_branch
   datastores:
   - artifact://${GITHUB_REPOSITORY}
-
-# Code to test ratio
-codeToTestRatio:
-  code:
-  - "**/*.go"
-  - "**/*.py"
-  - "!**/*_test.go"
-  - "!**/test_*.py"
-  - "!testing/**"
-  test:
-  - "**/*_test.go"
-  - "**/test_*.py"
-  - "testing/**/*.py"
-  badge:
-    path: docs/ratio.svg
+  path: report.json
 
 # Test execution time tracking (from GitHub Actions)
 testExecutionTime:

@@ -1880,6 +1880,230 @@ func TestRouter_ReportFinalStatus_ErrorEnd(t *testing.T) {
 	}
 }
 
+func TestRouter_ReportFinalStatusWithEnvelope_ErrorEnd_ExtractsErrorDetails(t *testing.T) {
+	mockServer := &mockHTTPServer{responses: make(map[string]mockHTTPResponse)}
+	mockServer.Start(t)
+	defer mockServer.Close()
+
+	socketPath := fmt.Sprintf("/tmp/test-error-details-%d.sock", time.Now().UnixNano())
+	defer func() { _ = os.Remove(socketPath) }()
+
+	listener, err := net.Listen("unix", socketPath)
+	if err != nil {
+		t.Fatalf("Failed to create socket: %v", err)
+	}
+	defer func() { _ = listener.Close() }()
+
+	go func() {
+		conn, err := listener.Accept()
+		if err != nil {
+			return
+		}
+		defer func() { _ = conn.Close() }()
+
+		_, err = runtime.RecvSocketData(conn)
+		if err != nil {
+			return
+		}
+
+		responses := []runtime.RuntimeResponse{
+			{
+				Payload: json.RawMessage(`{"status": "processed"}`),
+			},
+		}
+		data, _ := json.Marshal(responses)
+		_ = runtime.SendSocketData(conn, data)
+	}()
+
+	cfg := &config.Config{
+		ActorName:     "error-end",
+		HappyEndQueue: "happy-end",
+		ErrorEndQueue: "error-end",
+		TransportType: "rabbitmq",
+		IsEndActor:    true,
+		GatewayURL:    mockServer.URL,
+	}
+
+	mockTransport := &mockTransport{}
+	runtimeClient := runtime.NewClient(socketPath, 2*time.Second)
+	m := metrics.NewMetrics("test", []config.CustomMetricConfig{})
+
+	router := NewRouter(cfg, mockTransport, runtimeClient, m)
+
+	errorPayload := map[string]interface{}{
+		"error": "Processing failed due to invalid input",
+		"details": map[string]interface{}{
+			"type":    "validation_error",
+			"message": "Field 'name' is required",
+			"code":    400,
+		},
+		"original_payload": map[string]interface{}{
+			"data": "test",
+		},
+	}
+	errorPayloadBytes, _ := json.Marshal(errorPayload)
+
+	inputEnvelope := envelopes.Envelope{
+		ID: "test-error-details-789",
+		Route: envelopes.Route{
+			Actors:  []string{"actor1", "actor2"},
+			Current: 1,
+		},
+		Payload: json.RawMessage(errorPayloadBytes),
+	}
+	msgBody, _ := json.Marshal(inputEnvelope)
+
+	queueMsg := transport.QueueMessage{
+		ID:   "msg-1",
+		Body: msgBody,
+	}
+
+	ctx := context.Background()
+	err = router.ProcessEnvelope(ctx, queueMsg)
+	if err != nil {
+		t.Fatalf("ProcessEnvelope failed: %v", err)
+	}
+
+	expectedPath := "/envelopes/test-error-details-789/final"
+	req := mockServer.GetRequest(expectedPath)
+	if req == nil {
+		t.Fatalf("Expected request to %s, but none received", expectedPath)
+	}
+
+	var finalPayload map[string]interface{}
+	if err := json.Unmarshal(req.Body, &finalPayload); err != nil {
+		t.Fatalf("Failed to parse gateway request: %v", err)
+	}
+
+	if finalPayload["status"] != statusFailed {
+		t.Errorf("Expected status '%s', got %v", statusFailed, finalPayload["status"])
+	}
+
+	if finalPayload["error"] != "Processing failed due to invalid input" {
+		t.Errorf("Expected error message 'Processing failed due to invalid input', got %v", finalPayload["error"])
+	}
+
+	details, ok := finalPayload["error_details"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("Expected error_details to be a map, got %T", finalPayload["error_details"])
+	}
+
+	if details["type"] != "validation_error" {
+		t.Errorf("Expected error type 'validation_error', got %v", details["type"])
+	}
+
+	if details["message"] != "Field 'name' is required" {
+		t.Errorf("Expected error message 'Field 'name' is required', got %v", details["message"])
+	}
+
+	if details["code"] != float64(400) {
+		t.Errorf("Expected error code 400, got %v", details["code"])
+	}
+
+	if finalPayload["current_actor_idx"] != float64(1) {
+		t.Errorf("Expected current_actor_idx 1, got %v", finalPayload["current_actor_idx"])
+	}
+
+	if finalPayload["current_actor_name"] != "actor2" {
+		t.Errorf("Expected current_actor_name 'actor2', got %v", finalPayload["current_actor_name"])
+	}
+}
+
+func TestRouter_ReportFinalStatusWithEnvelope_ErrorEnd_NoErrorDetails(t *testing.T) {
+	mockServer := &mockHTTPServer{responses: make(map[string]mockHTTPResponse)}
+	mockServer.Start(t)
+	defer mockServer.Close()
+
+	socketPath := fmt.Sprintf("/tmp/test-no-error-details-%d.sock", time.Now().UnixNano())
+	defer func() { _ = os.Remove(socketPath) }()
+
+	listener, err := net.Listen("unix", socketPath)
+	if err != nil {
+		t.Fatalf("Failed to create socket: %v", err)
+	}
+	defer func() { _ = listener.Close() }()
+
+	go func() {
+		conn, err := listener.Accept()
+		if err != nil {
+			return
+		}
+		defer func() { _ = conn.Close() }()
+
+		_, err = runtime.RecvSocketData(conn)
+		if err != nil {
+			return
+		}
+
+		responses := []runtime.RuntimeResponse{
+			{
+				Payload: json.RawMessage(`{"status": "processed"}`),
+			},
+		}
+		data, _ := json.Marshal(responses)
+		_ = runtime.SendSocketData(conn, data)
+	}()
+
+	cfg := &config.Config{
+		ActorName:     "error-end",
+		HappyEndQueue: "happy-end",
+		ErrorEndQueue: "error-end",
+		TransportType: "rabbitmq",
+		IsEndActor:    true,
+		GatewayURL:    mockServer.URL,
+	}
+
+	mockTransport := &mockTransport{}
+	runtimeClient := runtime.NewClient(socketPath, 2*time.Second)
+	m := metrics.NewMetrics("test", []config.CustomMetricConfig{})
+
+	router := NewRouter(cfg, mockTransport, runtimeClient, m)
+
+	inputEnvelope := envelopes.Envelope{
+		ID: "test-no-error-details",
+		Route: envelopes.Route{
+			Actors:  []string{"actor1"},
+			Current: 0,
+		},
+		Payload: json.RawMessage(`{"some": "data"}`),
+	}
+	msgBody, _ := json.Marshal(inputEnvelope)
+
+	queueMsg := transport.QueueMessage{
+		ID:   "msg-1",
+		Body: msgBody,
+	}
+
+	ctx := context.Background()
+	err = router.ProcessEnvelope(ctx, queueMsg)
+	if err != nil {
+		t.Fatalf("ProcessEnvelope failed: %v", err)
+	}
+
+	expectedPath := "/envelopes/test-no-error-details/final"
+	req := mockServer.GetRequest(expectedPath)
+	if req == nil {
+		t.Fatalf("Expected request to %s, but none received", expectedPath)
+	}
+
+	var finalPayload map[string]interface{}
+	if err := json.Unmarshal(req.Body, &finalPayload); err != nil {
+		t.Fatalf("Failed to parse gateway request: %v", err)
+	}
+
+	if finalPayload["status"] != statusFailed {
+		t.Errorf("Expected status '%s', got %v", statusFailed, finalPayload["status"])
+	}
+
+	if finalPayload["error"] != "" && finalPayload["error"] != nil {
+		t.Errorf("Expected no error message, got %v", finalPayload["error"])
+	}
+
+	if finalPayload["error_details"] != nil {
+		t.Errorf("Expected no error_details, got %v", finalPayload["error_details"])
+	}
+}
+
 func TestRouter_ReportFinalStatus_NoGateway(t *testing.T) {
 	cfg := &config.Config{
 		ActorName:     "happy-end",
