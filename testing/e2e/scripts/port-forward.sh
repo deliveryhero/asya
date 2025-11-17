@@ -23,8 +23,25 @@ start_port_forwards() {
 
   EXISTING_GATEWAY=$(pgrep -f "kubectl port-forward.*asya-gateway.*8080" || true)
   if [ -n "$EXISTING_GATEWAY" ]; then
-    echo "[+] Gateway port-forward already running (localhost:8080)"
-    echo "    PID: $EXISTING_GATEWAY"
+    # Verify gateway port-forward is actually working
+    if curl -s -f -m 2 http://localhost:8080/health > /dev/null 2>&1; then
+      echo "[+] Gateway port-forward already running and healthy (localhost:8080)"
+      echo "    PID: $EXISTING_GATEWAY"
+    else
+      echo "[!] Gateway port-forward PID exists but not responding, restarting..."
+      pkill -f "kubectl port-forward.*asya-gateway" 2> /dev/null || true
+      sleep 1
+      nohup uv run --directory "$REPO_ROOT/src/asya-tools" asya-mcp-forward \
+        --namespace "$NAMESPACE" \
+        --deployment asya-gateway \
+        --local-port 8080 \
+        --port 8080 \
+        --keep-alive > /dev/null 2>&1 &
+      PF_GATEWAY=$!
+      echo "[+] Gateway port-forward restarted (localhost:8080)"
+      echo "    PID: $PF_GATEWAY"
+      sleep 2
+    fi
   else
     pkill -f "kubectl port-forward.*asya-gateway" 2> /dev/null || true
     nohup uv run --directory "$REPO_ROOT/src/asya-tools" asya-mcp-forward \
@@ -36,6 +53,7 @@ start_port_forwards() {
     PF_GATEWAY=$!
     echo "[+] Gateway port-forward started (localhost:8080)"
     echo "    PID: $PF_GATEWAY"
+    sleep 2
   fi
 
   # Forward S3 if present (for S3 storage tests)

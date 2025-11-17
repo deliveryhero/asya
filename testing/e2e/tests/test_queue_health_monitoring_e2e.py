@@ -96,12 +96,15 @@ def test_operator_recreates_deleted_actor_queue_e2e(e2e_helper, chaos_queues):
     queue_recreated = False
 
     while elapsed < max_wait:
-        logger.info(f"Checking queue existence (elapsed: {elapsed}s / {max_wait}s)")
+        logger.info(f"Checking queue {queue_name} existence (elapsed: {elapsed}s / {max_wait}s)")
         queues = transport_client.list_queues()
         if queue_name in queues:
             queue_recreated = True
             logger.info(f"[+] Queue recreated after {elapsed}s: {queue_name}")
             break
+        else:
+            logger.info(f"[-] Not found expected queue {queue_name} in: {queues} (sleeping {check_interval}s)")
+        time.sleep(check_interval)
 
         elapsed += check_interval
 
@@ -111,12 +114,14 @@ def test_operator_recreates_deleted_actor_queue_e2e(e2e_helper, chaos_queues):
     logger.info("[4/4] Verifying actor still processes messages after queue recreation")
     response = e2e_helper.call_mcp_tool(
         tool_name="test_echo",
-        arguments={"data": "chaos-test-recovery"},
+        arguments={"message": "chaos-test-recovery"},
     )
+    envelope_id = response["result"]["envelope_id"]
+    logger.info(f"Envelope ID: {envelope_id}")
 
-    assert response["status"] == "success", "Actor should process messages after queue recreation"
-    result = response["result"]
-    assert result["payload"]["data"] == "chaos-test-recovery", \
+    final_envelope = e2e_helper.wait_for_envelope_completion(envelope_id, timeout=60)
+    assert final_envelope["status"] == "succeeded", "Actor should process messages after queue recreation"
+    assert final_envelope["payload"]["message"] == "chaos-test-recovery", \
         "Actor should return correct payload after recovery"
 
     logger.info("[+] Chaos test passed - operator recreated queue and actor recovered")
@@ -167,12 +172,14 @@ def test_operator_recreates_deleted_system_queue_e2e(e2e_helper, chaos_queues):
     queue_recreated = False
 
     while elapsed < max_wait:
-        logger.info(f"Checking queue existence (elapsed: {elapsed}s / {max_wait}s)")
+        logger.info(f"Checking queue existence {queue_name} (elapsed: {elapsed}s / {max_wait}s)")
         queues = transport_client.list_queues()
         if queue_name in queues:
             queue_recreated = True
             logger.info(f"[+] Queue recreated after {elapsed}s: {queue_name}")
             break
+        else:
+            logger.info(f"[-] Not found expected queue {queue_name} in: {queues} (sleeping {check_interval}s)")
         time.sleep(check_interval)
         elapsed += check_interval
 
@@ -184,10 +191,12 @@ def test_operator_recreates_deleted_system_queue_e2e(e2e_helper, chaos_queues):
         tool_name="test_queue_health",
         arguments={"data": "chaos-test-recovery"},
     )
+    envelope_id = response["result"]["envelope_id"]
+    logger.info(f"Envelope ID: {envelope_id}")
 
-    assert response["status"] == "success", "Actor should work after queue recreation"
-    result = response["result"]
-    assert result["payload"]["data"] == "chaos-test-recovery", \
+    final_envelope = e2e_helper.wait_for_envelope_completion(envelope_id, timeout=60)
+    assert final_envelope["status"] == "succeeded", "Actor should work after queue recreation"
+    assert final_envelope["payload"]["data"] == "chaos-test-recovery", \
         "Actor should return correct payload after recovery"
 
     logger.info("[+] Queue chaos test passed - queue recreated and actor functional")
@@ -266,11 +275,13 @@ def test_multiple_queue_deletions_e2e(e2e_helper, chaos_queues):
     logger.info("[5/5] Verifying actors functional after mass recreation")
     response = e2e_helper.call_mcp_tool(
         tool_name="test_echo",
-        arguments={"data": "mass-recovery-test"},
+        arguments={"message": "mass-recovery-test"},
     )
+    envelope_id = response["result"]["envelope_id"]
+    logger.info(f"Envelope ID: {envelope_id}")
 
-    assert response["status"] == "success", "Actors should work after mass queue recreation"
-
+    final_envelope = e2e_helper.wait_for_envelope_completion(envelope_id, timeout=60)
+    assert final_envelope["status"] == "succeeded", "Actors should work after mass queue recreation"
     logger.info("[+] Mass deletion chaos test passed - all queues recreated, actors functional")
 
 
@@ -340,9 +351,12 @@ def test_queue_deletion_during_processing_e2e(e2e_helper, chaos_queues):
     logger.info("[4/4] Verifying actor can process new messages after recreation")
     response = e2e_helper.call_mcp_tool(
         tool_name="test_echo",
-        arguments={"data": "post-chaos-test"},
+        arguments={"message": "post-chaos-test"},
     )
+    envelope_id = response["result"]["envelope_id"]
+    logger.info(f"Envelope ID: {envelope_id}")
 
-    assert response["status"] == "success", "Actor should process messages after queue recreation"
+    final_envelope = e2e_helper.wait_for_envelope_completion(envelope_id, timeout=60)
+    assert final_envelope["status"] == "succeeded", "Actor should process messages after queue recreation"
 
     logger.info("[+] Processing chaos test passed - queue recreated, actor functional")

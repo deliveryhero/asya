@@ -29,7 +29,7 @@ def rabbitmq_url():
     return os.getenv("RABBITMQ_URL")
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture(scope="session")
 def e2e_helper(gateway_url, namespace):
     """
     Create E2E test helper with Kubernetes operations.
