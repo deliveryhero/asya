@@ -15,8 +15,9 @@ import (
 )
 
 const (
-	testActorName      = "test-actor"
-	testActorNamespace = "default"
+	testActorName        = "test-actor"
+	testActorNamespace   = "default"
+	errTransportNotFound = "transport 'rabbitmq' not found in operator configuration"
 )
 
 func TestRabbitMQTransport_ReconcileQueue_AutoCreateDisabled(t *testing.T) {
@@ -95,9 +96,8 @@ func TestRabbitMQTransport_ReconcileQueue_TransportNotFound(t *testing.T) {
 		t.Fatal("Expected error when transport not found, got nil")
 	}
 
-	expectedError := "transport 'rabbitmq' not found in operator configuration"
-	if err.Error() != expectedError {
-		t.Errorf("Expected error %q, got %q", expectedError, err.Error())
+	if err.Error() != errTransportNotFound {
+		t.Errorf("Expected error %q, got %q", errTransportNotFound, err.Error())
 	}
 }
 
@@ -137,8 +137,8 @@ func TestRabbitMQTransport_ReconcileQueue_InvalidConfigType(t *testing.T) {
 		t.Fatal("Expected error for invalid config type, got nil")
 	}
 
-	if err.Error() != "invalid RabbitMQ config type" {
-		t.Errorf("Expected 'invalid RabbitMQ config type' error, got %q", err.Error())
+	if err.Error() != errInvalidRabbitMQConfig {
+		t.Errorf("Expected %q error, got %q", errInvalidRabbitMQConfig, err.Error())
 	}
 }
 
@@ -285,9 +285,8 @@ func TestRabbitMQTransport_DeleteQueue_TransportNotFound(t *testing.T) {
 		t.Fatal("Expected error when transport not found, got nil")
 	}
 
-	expectedError := "transport 'rabbitmq' not found in operator configuration"
-	if err.Error() != expectedError {
-		t.Errorf("Expected error %q, got %q", expectedError, err.Error())
+	if err.Error() != errTransportNotFound {
+		t.Errorf("Expected error %q, got %q", errTransportNotFound, err.Error())
 	}
 }
 
@@ -327,8 +326,8 @@ func TestRabbitMQTransport_DeleteQueue_InvalidConfigType(t *testing.T) {
 		t.Fatal("Expected error for invalid config type, got nil")
 	}
 
-	if err.Error() != "invalid RabbitMQ config type" {
-		t.Errorf("Expected 'invalid RabbitMQ config type' error, got %q", err.Error())
+	if err.Error() != errInvalidRabbitMQConfig {
+		t.Errorf("Expected %q error, got %q", errInvalidRabbitMQConfig, err.Error())
 	}
 }
 

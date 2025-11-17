@@ -2,6 +2,7 @@ package transports
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -13,6 +14,11 @@ import (
 
 	asyav1alpha1 "github.com/asya/operator/api/v1alpha1"
 	asyaconfig "github.com/asya/operator/internal/config"
+)
+
+const (
+	defaultRabbitMQUsername  = "guest"
+	errInvalidRabbitMQConfig = "invalid RabbitMQ config type"
 )
 
 // RabbitMQTransport implements queue reconciliation for RabbitMQ
@@ -40,7 +46,7 @@ func (t *RabbitMQTransport) ReconcileQueue(ctx context.Context, actor *asyav1alp
 
 	rabbitmqConfig, ok := transport.Config.(*asyaconfig.RabbitMQConfig)
 	if !ok {
-		return fmt.Errorf("invalid RabbitMQ config type")
+		return errors.New(errInvalidRabbitMQConfig)
 	}
 
 	queueName := fmt.Sprintf("asya-%s", actor.Name)
@@ -68,7 +74,7 @@ func (t *RabbitMQTransport) ReconcileQueue(ctx context.Context, actor *asyav1alp
 	}
 	username := rabbitmqConfig.Username
 	if username == "" {
-		username = "guest"
+		return fmt.Errorf("failed to load RabbitMQ username")
 	}
 
 	amqpURL := fmt.Sprintf("amqp://%s:%s@%s:%d/", username, password, rabbitmqConfig.Host, port)
@@ -213,7 +219,7 @@ func (t *RabbitMQTransport) DeleteQueue(ctx context.Context, actor *asyav1alpha1
 
 	rabbitmqConfig, ok := transport.Config.(*asyaconfig.RabbitMQConfig)
 	if !ok {
-		return fmt.Errorf("invalid RabbitMQ config type")
+		return errors.New(errInvalidRabbitMQConfig)
 	}
 
 	queueName := fmt.Sprintf("asya-%s", actor.Name)
@@ -235,7 +241,7 @@ func (t *RabbitMQTransport) DeleteQueue(ctx context.Context, actor *asyav1alpha1
 	}
 	username := rabbitmqConfig.Username
 	if username == "" {
-		username = "guest"
+		username = defaultRabbitMQUsername
 	}
 
 	amqpURL := fmt.Sprintf("amqp://%s:%s@%s:%d/", username, password, rabbitmqConfig.Host, port)
@@ -322,7 +328,7 @@ func (t *RabbitMQTransport) QueueExists(ctx context.Context, queueName, namespac
 	password := rabbitmqConfig.Password
 	if rabbitmqConfig.PasswordSecretRef != nil {
 		var err error
-		password, err = t.loadPassword(ctx, rabbitmqConfig, namespace)
+		password, err = t.loadPassword(ctx, rabbitmqConfig, "default")
 		if err != nil {
 			return false, fmt.Errorf("failed to load RabbitMQ password: %w", err)
 		}
@@ -335,7 +341,7 @@ func (t *RabbitMQTransport) QueueExists(ctx context.Context, queueName, namespac
 	}
 	username := rabbitmqConfig.Username
 	if username == "" {
-		return false, fmt.Errorf("failed to load RabbitMQ username: %w", err)
+		username = defaultRabbitMQUsername
 	}
 
 	amqpURL := fmt.Sprintf("amqp://%s:%s@%s:%d/", username, password, rabbitmqConfig.Host, port)
