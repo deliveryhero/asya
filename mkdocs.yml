@@ -18,15 +18,15 @@ extra_css:
 - stylesheets/extra.css
 
 extra_javascript:
-- js/search-bridge.js
+- js/search-results-handler.js
 
 nav:
 - Home: README.md
 - GETTING STARTED:
   - Motivation: motivation.md
   - Concepts: concepts.md
-  - For Data Scientists 🧑‍🔬: quickstart/for-data_scientists.md
-  - For Platform Engineers ⚙️: quickstart/for-platform_engineers.md
+  - For Data Scientists 🧑‍🔬: quickstart/for-data-scientists.md
+  - For Platform Engineers ⚙️: quickstart/for-platform-engineers.md
 - INSTALLATION:
   - AWS EKS: install/aws-eks.md
   - Local Kind: install/local-kind.md

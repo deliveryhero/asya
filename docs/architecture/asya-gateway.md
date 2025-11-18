@@ -312,7 +312,7 @@ Response: `OK`
 ```
 
 ## Using MCP tools
-**See**: [For Data Scientists](../quickstart/for-data_scientists.md#using-mcp-tools) for instructions how to test MCP locally.
+**See**: [For Data Scientists](../quickstart/for-data-scientists.md#using-mcp-tools) for instructions how to test MCP locally.
 
 ## Deployment Helm Charts
 

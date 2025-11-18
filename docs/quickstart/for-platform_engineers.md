@@ -564,7 +564,7 @@ helm upgrade asya-crew deploy/helm-charts/asya-crew/ \
 
 ## Next Steps
 
-- Read [Architecture Overview](../architecture/)
+- Read [Architecture Overview](../architecture/README.md)
 - Configure [Monitoring](../operate/monitoring.md)
 - Review [AWS Installation Guide](../install/aws-eks.md)
 - Review [Local Kind Installation](../install/local-kind.md)

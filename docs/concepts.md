@@ -73,7 +73,7 @@ An actor is a stateless (by default) workload that:
 
 **Pluggable design**: Transport layer is abstracted - adding new transports (Kafka, NATS, Pub/Sub) requires implementing transport interface.
 
-**See**: [architecture/transports/](architecture/transports/) for details.
+**See**: [architecture/transports/README.md](architecture/transports/README.md) for details.
 
 ## Envelope
 

@@ -67,7 +67,7 @@ Each actor pod contains two containers:
 
 ### Infrastructure
 
-- **[Message Queue](transports/)**: Pluggable transports (SQS, RabbitMQ, Kafka/NATS planned)
+- **[Message Queue](transports/README.md)**: Pluggable transports (SQS, RabbitMQ, Kafka/NATS planned)
 - **[KEDA](autoscaling.md)**: Monitors queue depth, scales actors 0→N based on workload
 - **[Observability](observability.md)**: Prometheus metrics, structured logging, OpenTelemetry integration
 
@@ -124,4 +124,4 @@ Each actor pod contains two containers:
 - Results stored in MinIO (S3-compatible)
 - KEDA uses RabbitMQ API
 
-**See**: [Installation Guides](../install/) for detailed deployment instructions.
+**See**: Installation Guides ([AWS EKS](../install/aws-eks.md), [Local Kind](../install/local-kind.md)) for detailed deployment instructions.
