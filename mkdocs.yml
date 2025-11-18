@@ -19,6 +19,9 @@ theme:
 extra_css:
 - stylesheets/extra.css
 
+extra_javascript:
+- js/search-bridge.js
+
 nav:
 - Home: README.md
 - GETTING STARTED:
