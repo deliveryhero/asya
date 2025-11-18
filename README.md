@@ -1,7 +1,7 @@
 # Asya🎭
-> `/ˈɑːsjə/`, from **asy**nc **a**ctors
+> *`/ˈɑːsjə/`, from Async Actors*
 
-**Kubernetes-native** • **Event-Driven** • **AI Orchestration Framework**
+**Kubernetes-native** • **Event-Driven** • **AI Orchestration Framework** • That actually scales
 
 <p align="left">
 📘 <a href="docs/">Documentation</a> • 🚀 <a href="#getting-started">Get Started</a> • 🏗️ <a href="docs/architecture/">Architecture</a> • 💡 <a href="docs/concepts.md">Concepts</a>
@@ -32,7 +32,7 @@ Battle-tested at [Delivery Hero](https://tech.deliveryhero.com/) for global-scal
 
 **Write pure Python functions. Asya handles infrastructure.**
 
-No decorators, no DAGs, no pipeline code—just your logic:
+No decorators, no DAGs, no pipeline code - just your logic:
 
 Write only a pure python function:
 ```python
@@ -43,7 +43,7 @@ def process(payload: dict) -> dict:         # input - a dict
     raise ValueError("No ping received!")   # or an error
 ```
 
-**Pattern**: Mutate payload and return it—not request/response. The enriched payload flows to the next actor.
+**Pattern**: Mutate payload and return it - not request/response. The enriched payload flows to the next actor.
 
 **Class handlers** for stateful initialization (model loading):
 ```py
@@ -147,7 +147,7 @@ spec:
 
 Asya uses [Message Passing](https://www.enterpriseintegrationpatterns.com/patterns/messaging/), not request-response. Envelopes contain `route` (pipeline) and `payload` (data).
 
-**Recommended**: [Enrichment pattern](https://www.enterpriseintegrationpatterns.com/patterns/messaging/DataEnricher.html)—actors append results to payload instead of replacing it.
+**Recommended**: [Enrichment pattern](https://www.enterpriseintegrationpatterns.com/patterns/messaging/DataEnricher.html)  -  actors append results to payload instead of replacing it.
 
 Suppose the following route of actors: `["data-loader", "recipe-generator", "llm-judge", "post-processor"]`.
 Payloads passing between actors would be:
@@ -214,7 +214,7 @@ You need to run AI/ML workloads in production, but existing solutions force bad 
 <td width="50%">
 <img src="img/async-actors.png" alt="Asya🎭 async actor pattern" style="border: 4px solid #28a745; border-radius: 8px; height: 400px; object-fit: contain;"/>
 <br/>
-<em>✅ Asya🎭 pattern: Actors scale independently based on queue depth. Messages flow through pipeline. Errors route to DLQ. No client orchestration—framework handles everything.</em>
+<em>✅ Asya🎭 pattern: Actors scale independently based on queue depth. Messages flow through pipeline. Errors route to DLQ. No client orchestration - framework handles everything.</em>
 </td>
 </tr>
 </table>
@@ -233,19 +233,19 @@ You need to run AI/ML workloads in production, but existing solutions force bad 
 
 **1. Eliminates vendor lock-in and rate limits**
 
-Queue-based routing removes HTTP rate limits entirely—process as fast as your infrastructure allows. Backpressure is automatic: queue depth signals system capacity, no manual throttling needed. At-least-once delivery guarantees no data loss during provider switches. Change providers by swapping Docker image, not rewriting pipeline orchestration.
+Queue-based routing removes HTTP rate limits entirely - process as fast as your infrastructure allows. Backpressure is automatic: queue depth signals system capacity, no manual throttling needed. At-least-once delivery guarantees no data loss during provider switches. Change providers by swapping Docker image, not rewriting pipeline orchestration.
 
 **2. Scales to zero, eliminates idle waste**
 
-KEDA monitors queue depth: 0 messages = 0 pods = $0 cost. Queue fills → spin up to `maxReplicas` in seconds. Each actor scales independently: data-loader runs on cheap CPU pods, LLM runs on expensive GPU pods—only when needed. No warm pools, no idle GPUs bleeding $1000s/month waiting for work.
+KEDA monitors queue depth: 0 messages = 0 pods = $0 cost. Queue fills → spin up to `maxReplicas` in seconds. Each actor scales independently: data-loader runs on cheap CPU pods, LLM runs on expensive GPU pods - only when needed. No warm pools, no idle GPUs bleeding $1000s/month waiting for work.
 
 **3. Removes orchestration complexity**
 
-Routes are **data**, not code: `{"route": {"actors": ["preprocess", "llm", "postprocess"]}}`. Multi-step pipelines work declaratively—no Airflow/Temporal DAG code for simple flows. Errors route to `error-end` automatically: exponential backoff, dead-letter queues, poison message handling built-in. Your code is pure functions (`dict → dict`)—testable without any infrastructure running.
+Routes are **data**, not code: `{"route": {"actors": ["preprocess", "llm", "postprocess"]}}`. Multi-step pipelines work declaratively - no Airflow/Temporal DAG code for simple flows. Errors route to `error-end` automatically: exponential backoff, dead-letter queues, poison message handling built-in. Your code is pure functions (`dict → dict`) - testable without any infrastructure running.
 
 **4. Decouples infrastructure from business logic**
 
-Sidecar handles queues/routing via Unix socket (<1ms IPC overhead). Your code has **zero pip dependencies** for queues, retries, scaling, monitoring. Same code runs everywhere: local pytest, Docker Compose, staging, production—zero changes required. Deploy new models by changing `image:` tag in CRD, not touching queue/routing/scaling code.
+Sidecar handles queues/routing via Unix socket (<1ms IPC overhead). Your code has **zero pip dependencies** for queues, retries, scaling, monitoring. Same code runs everywhere: local pytest, Docker Compose, staging, production - zero changes required. Deploy new models by changing `image:` tag in CRD, not touching queue/routing/scaling code.
 
 ---
 
@@ -253,11 +253,11 @@ Sidecar handles queues/routing via Unix socket (<1ms IPC overhead). Your code ha
 
 ### vs Real-time Inference (KServe, Seldon, BentoML)
 - **Use them for**: < 100ms latency, synchronous HTTP, user-facing predictions, 1-2 step workflows
-- **Use Asya🎭 for**: Not instant, but ideal for multi-step flows mixing fast (<10ms) and slow (minutes) steps in same pipeline. Real-time tools can't handle this — they need orchestration code and state management. Asya🎭 handles it declaratively.
+- **Use Asya🎭 for**: Not instant, but ideal for multi-step flows mixing fast (<10ms) and slow (minutes) steps in same pipeline. Real-time tools can't handle this  -  they need orchestration code and state management. Asya🎭 handles it declaratively.
 
 ### vs Workflow Orchestration (Airflow, Prefect, Temporal)
 - **Use them for**: Complex branching logic, long-running workflows (hours/days), nice DAG visualizations
-- **Use Asya🎭 for**: Batch processing is natural too! You don't get a single DAG picture, but you get maximal throughput — GPUs process at full capacity when needed, scale to zero when idle. Event-driven and scheduled workloads both work.
+- **Use Asya🎭 for**: Batch processing is natural too! You don't get a single DAG picture, but you get maximal throughput  -  GPUs process at full capacity when needed, scale to zero when idle. Event-driven and scheduled workloads both work.
 
 ### vs Serverless AI (AWS Lambda, Modal, Replicate)
 - **Use them for**: Vendor-managed, pay-per-invoke, zero-ops
@@ -323,7 +323,7 @@ graph LR
 - **Sidecar**: Handles queue consumption, routing, retries (Go)
 - **Runtime**: Executes your Python function via Unix socket
 - **Gateway** (optional): HTTP API for envelope submission and status tracking
-- **Crew actors**: System actors for flow maintenance—`happy-end` (persists results), `error-end` (handles failures). More coming: auto-retry, routing, etc.
+- **Crew actors**: System actors for flow maintenance - `happy-end` (persists results), `error-end` (handles failures). More coming: auto-retry, routing, etc.
 - **KEDA**: Monitors queue depth, scales pods from 0→N
 
 **Message flow**: `Queue → Sidecar → Your Code → Sidecar → Next Queue`
@@ -662,11 +662,12 @@ Contents of this repository are licensed under the Apache 2.0 [License](LICENSE)
 Asya🎭 is **alpha software** under active development. APIs may change. Production deployments should thoroughly test their specific use cases.
 
 **Roadmap**:
+Find detailed proposals [GitHub Discussions](https://github.com/deliveryhero/asya/discussions).
 - Stabilization: project is still in early alpha
-- Fast startup: store heavy model files on PVC
-- Integrations: [KAITO](https://github.com/kaito-project/kaito) for model servers, [Knative](https://knative.dev/docs/eventing/) - via composable binding pattern instead of `AsyncActor` CRD
-- UX: easier definition of pre-defined routes, additional health checks
-- Transport: Kafka, NATS, Google Pub/Sub
+- Fast pod startup: e.g. store heavy model files on PVC
+- Integrations: [KAITO](https://github.com/kaito-project/kaito) for model servers, [Knative](https://knative.dev/docs/eventing/) - via composable binding pattern instead of `AsyncActor` CRD (see [Proposal #12](https://github.com/deliveryhero/asya/discussions/12))
+- UX: easier definition of pre-defined routes, additional health checks (see [Proposal #11](https://github.com/deliveryhero/asya/discussions/11))
+- Transport: Kafka, NATS, Google Pub/Sub (vote in [Discussion #13](https://github.com/deliveryhero/asya/discussions/13))
 - Runtime: Custom OpenTelemetry metrics
 - Observability: OpenTelemetry tracing
 - Possibly multi-cluster: Cross-region actor routing

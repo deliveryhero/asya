@@ -232,7 +232,7 @@ Runtime creates `/var/run/asya/runtime-ready` file after handler initialization.
 | `ASYA_ENABLE_VALIDATION` | `true` | Enable envelope validation |
 | `ASYA_LOG_LEVEL` | `INFO` | Logging level (DEBUG, INFO, WARNING, ERROR) |
 
-**Note**: `ASYA_SOCKET_DIR` and `ASYA_SOCKET_NAME` are for internal testing only. DO NOT set in production—socket path is managed by operator.
+**Note**: `ASYA_SOCKET_DIR` and `ASYA_SOCKET_NAME` are for internal testing only. DO NOT set in production - socket path is managed by operator.
 
 ## Examples
 

@@ -250,13 +250,34 @@ helm install asya-gateway deploy/helm-charts/asya-gateway/ \
 
 ```yaml
 # crew-values.yaml
-storage: s3
-s3Bucket: asya-results
-s3Region: us-east-1
+happy-end:
+  enabled: true
+  transport: sqs
+  workload:
+    template:
+      spec:
+        containers:
+        - name: asya-runtime
+          env:
+          - name: ASYA_HANDLER
+            value: handlers.end_handlers.happy_end_handler
+          - name: ASYA_S3_BUCKET
+            value: asya-results
+          # AWS_REGION from IRSA
 
-serviceAccount:
-  annotations:
-    eks.amazonaws.com/role-arn: arn:aws:iam::ACCOUNT:role/asya-actor-role
+error-end:
+  enabled: true
+  transport: sqs
+  workload:
+    template:
+      spec:
+        containers:
+        - name: asya-runtime
+          env:
+          - name: ASYA_HANDLER
+            value: handlers.end_handlers.error_end_handler
+          - name: ASYA_S3_BUCKET
+            value: asya-results
 ```
 
 ```bash
@@ -264,6 +285,8 @@ helm install asya-crew deploy/helm-charts/asya-crew/ \
   -n default \
   -f crew-values.yaml
 ```
+
+**Note**: IRSA annotation can be set per-actor in AsyncActor spec if needed.
 
 ### 6. Deploy Your Actors
 
@@ -280,7 +303,7 @@ spec:
     minReplicas: 0
     maxReplicas: 50
   workload:
-    type: Deployment
+    kind: Deployment
     template:
       spec:
         containers:

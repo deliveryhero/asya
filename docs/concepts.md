@@ -1,6 +1,6 @@
 # Core Concepts
 
-## § Actors
+## Actors
 
 **What is an Actor?**
 
@@ -10,7 +10,7 @@ An actor is a stateless (by default) workload that:
 - Sends results to the next queue in the route
 
 **Key characteristics**:
-- Stateless by design—no persistent state between messages
+- Stateless by design - no persistent state between messages
 - Independently scalable based on queue depth
 - Independently deployable as Kubernetes workloads
 
@@ -18,7 +18,7 @@ An actor is a stateless (by default) workload that:
 
 **See**: [architecture/asya-actor.md](architecture/asya-actor.md) for details.
 
-## § Sidecar
+## Sidecar
 
 **Responsibilities**:
 - Message routing between queues and runtime
@@ -30,7 +30,7 @@ An actor is a stateless (by default) workload that:
 
 **See**: [architecture/asya-sidecar.md](architecture/asya-sidecar.md) for details.
 
-## § Runtime
+## Runtime
 
 **Responsibilities**:
 - User code execution
@@ -43,7 +43,7 @@ An actor is a stateless (by default) workload that:
 
 **See**: [architecture/asya-runtime.md](architecture/asya-runtime.md) for details.
 
-## § Crew Actors
+## Crew Actors
 
 **Special system actors** for framework-level tasks:
 
@@ -57,7 +57,7 @@ An actor is a stateless (by default) workload that:
 
 **See**: [architecture/asya-crew.md](architecture/asya-crew.md) for details.
 
-## § Queues
+## Queues
 
 **Interface**: Send, receive, ack, nack messages
 
@@ -65,11 +65,11 @@ An actor is a stateless (by default) workload that:
 - **SQS**: AWS-managed queue service
 - **RabbitMQ**: Self-hosted open-source message broker
 
-**Pluggable design**: Transport layer is abstracted—adding new transports (Kafka, NATS, Pub/Sub) requires implementing transport interface.
+**Pluggable design**: Transport layer is abstracted - adding new transports (Kafka, NATS, Pub/Sub) requires implementing transport interface.
 
 **See**: [architecture/transports/](architecture/transports/) for details.
 
-## § Envelope
+## Envelope
 
 **Definition**: JSON object passed between actors via message queues.
 
@@ -103,7 +103,7 @@ An actor is a stateless (by default) workload that:
 
 **See**: [architecture/protocols/actor-actor.md](architecture/protocols/actor-actor.md) for details.
 
-## § Operator
+## Operator
 
 **Responsibilities**:
 - Manages lifecycle of AsyncActor CRDs
@@ -116,11 +116,11 @@ An actor is a stateless (by default) workload that:
 
 **See**: [architecture/asya-operator.md](architecture/asya-operator.md) for details.
 
-## § KEDA (Autoscaling)
+## KEDA (Autoscaling)
 
 **Benefits**:
 - Automatic scaling based on queue depth or custom metrics
-- Scale to zero—eliminate idle resource costs
+- Scale to zero - eliminate idle resource costs
 - Handle bursty workloads efficiently
 
 **Integration**: Asya operator creates KEDA ScaledObjects for each AsyncActor. KEDA monitors queue depth and scales actor deployments from 0 to maxReplicas.
@@ -129,7 +129,7 @@ An actor is a stateless (by default) workload that:
 
 **See**: [architecture/autoscaling.md](architecture/autoscaling.md) for details.
 
-## § MCP Gateway (Optional)
+## MCP Gateway (Optional)
 
 As an optional component, Asya🎭 offers an MCP-compliant HTTP gateway, which allows external clients to easily consume async pipelines as MCP tools.
 
@@ -145,7 +145,7 @@ As an optional component, Asya🎭 offers an MCP-compliant HTTP gateway, which a
 
 **See**: [architecture/asya-gateway.md](architecture/asya-gateway.md) for details.
 
-## § Observability (Optional)
+## Observability (Optional)
 
 **Built-in metrics** (OpenTelemetry):
 - Actor processing time

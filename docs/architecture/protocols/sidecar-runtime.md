@@ -10,18 +10,18 @@ Communication between Asya sidecar (Go) and runtime (Python) via Unix domain soc
 4. Connection closes
 5. Repeat for next message
 
-**One connection per message**—no pooling to ensure clean state.
+**One connection per message** - no pooling to ensure clean state.
 
 ## Framing Protocol
 
 All messages use **4-byte big-endian length prefix**:
 
 ```
-+------------------+---------------------------+
-| Length (4 bytes) | Payload (Length bytes)    |
-+------------------+---------------------------+
-| Big-endian uint32| JSON data                 |
-+------------------+---------------------------+
++-------------------+---------------------------+
+| Length (4 bytes)  | Payload (Length bytes)    |
++-------------------+---------------------------+
+| Big-endian uint32 | JSON data                 |
++-------------------+---------------------------+
 ```
 
 **Python** (sending):
@@ -95,30 +95,50 @@ null
 
 ## Error Categories
 
-| Error Code | Cause | Severity | Action |
-|------------|-------|----------|--------|
-| `timeout_error` | Sidecar timeout exceeded | Fatal | Route to `error-end` |
-| `oom_error` | Python RAM exhausted | Recoverable | Clear GC, route to `error-end` |
-| `cuda_oom_error` | GPU memory exhausted | Recoverable | Clear CUDA cache, route to `error-end` |
-| `processing_error` | Handler exception | Fatal | Route to `error-end` |
-| `invalid_json` | Malformed JSON | Fatal | Route to `error-end` |
-| `connection_error` | Socket failure | Fatal | Route to `error-end` |
+Runtime returns errors in this format:
+```json
+{
+  "error": "processing_error",
+  "details": {
+    "message": "Invalid input",
+    "type": "ValueError",
+    "traceback": "..."
+  }
+}
+```
+
+**Error codes** (returned by runtime):
+
+| Error Code | Cause | Action |
+|------------|-------|--------|
+| `processing_error` | Handler exception (any unhandled Python exception) | Route to `error-end` |
+| `connection_error` | Socket failure or connection handling error | Route to `error-end` |
+
+**Sidecar-side errors** (not from runtime):
+
+| Error | Cause | Action |
+|-------|-------|--------|
+| Timeout (`context.DeadlineExceeded`) | Runtime execution exceeded timeout | Crash pod to prevent zombie processing |
+| Parse error | Malformed JSON from runtime | Route to `error-end` |
 
 ## Timeout Strategy
 
-### Primary: Sidecar Enforcement
-
 Sidecar enforces overall timeout (default: 5 minutes):
 ```go
-conn.SetDeadline(time.Now().Add(cfg.Timeout))
+ctx, cancel := context.WithTimeout(ctx, c.timeout)
+conn.SetDeadline(deadline)
 ```
 
-On timeout:
-- Connection forcefully closed
-- Error sent to `error-end` queue
-- Metrics incremented
+**On timeout** (`context.DeadlineExceeded`):
+1. Sidecar sends envelope to `error-end` queue with timeout error
+2. Sidecar logs error and **crashes pod** (exits with status code 1)
+3. Kubernetes restarts pod to recover clean state
+
+**Rationale**: Prevents zombie processing where runtime may still be working after timeout
 
 **Configuration**: `ASYA_RUNTIME_TIMEOUT` (default: `5m`)
+
+**IMPORTANT**: Timeout crashes the pod for both end actors and regular actors to ensure clean state recovery.
 
 
 ## Configuration Reference
@@ -143,12 +163,12 @@ On timeout:
 
 ### For Handler Authors
 
-1. Catch `MemoryError` and return partial results if possible
-2. Monitor processing time, return early if approaching limit
-3. Use context managers for resource cleanup
-4. Return `None` to abort pipeline early
-5. Avoid global caches that leak memory
-6. Use structured logging
+1. Monitor processing time, return early if approaching timeout limit
+2. Use context managers for resource cleanup
+3. Return `None` or `[]` to abort pipeline early
+4. Avoid global caches that leak memory across requests
+5. Use structured logging
+6. Handle exceptions gracefully - runtime will catch unhandled exceptions and return `processing_error`
 
 ### For Operators
 

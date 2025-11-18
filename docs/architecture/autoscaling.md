@@ -60,19 +60,21 @@ Scaling configured in AsyncActor spec:
 ```yaml
 spec:
   scaling:
-    minReplicas: 0
-    maxReplicas: 100
-    queueLength: 5
-    cooldownPeriod: 300      # Seconds before scaling down
-    pollingInterval: 30      # How often KEDA checks queue depth
+    enabled: true            # Enable KEDA autoscaling
+    minReplicas: 0           # Minimum pods (0 for scale-to-zero)
+    maxReplicas: 100         # Maximum pods
+    queueLength: 5           # Target messages per replica
+    cooldownPeriod: 60       # Seconds before scaling down (default: 60s)
+    pollingInterval: 10      # How often KEDA checks queue depth (default: 10s)
 ```
 
 **Parameters**:
-- `minReplicas`: Minimum pods (0 for scale-to-zero)
-- `maxReplicas`: Maximum pods
-- `queueLength`: Target messages per replica
-- `cooldownPeriod`: Delay before scaling down (default: 300s)
-- `pollingInterval`: Queue check frequency (default: 30s)
+- `enabled`: Enable/disable KEDA autoscaling (default: false)
+- `minReplicas`: Minimum pods (default: 0 for scale-to-zero)
+- `maxReplicas`: Maximum pods (default: 50)
+- `queueLength`: Target messages per replica (default: 5)
+- `cooldownPeriod`: Delay before scaling down in seconds (default: 60)
+- `pollingInterval`: Queue check frequency in seconds (default: 10)
 
 ## Scaling Scenarios
 

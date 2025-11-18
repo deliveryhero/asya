@@ -1,6 +1,6 @@
 # Motivation
 
-## § The Problem
+## The Problem
 
 AI/ML teams building production pipelines face fundamental architectural challenges:
 
@@ -27,7 +27,7 @@ AI/ML teams building production pipelines face fundamental architectural challen
 This coupling is obvious for backend engineers to avoid, but unnatural for data science workflows.
 
 
-## § What is Asya🎭?
+## What is Asya🎭?
 
 Asya🎭 is a Kubernetes-native async actor framework for orchestrating complex near-realtime AI pipelines at scale.
 
@@ -35,13 +35,13 @@ Asya🎭 is a Kubernetes-native async actor framework for orchestrating complex 
 
 - Each component is an **independent actor**
 - Each actor has a **sidecar** (routing logic) + **runtime** (user code)
-- Zero pip dependencies—radically simple interface for data scientists
+- Zero pip dependencies - radically simple interface for data scientists
 - Actors communicate via **async message passing** (pluggable transports: SQS, RabbitMQ)
-- Pipeline structure is **data, not code**—indirectly defined by each message
+- Pipeline structure is **data, not code** - indirectly defined by each message
 - Built-in observability, reliability, extensibility, scalability
 - Optional **MCP HTTP gateway** for easy integration
 
-## § When to Use Asya🎭
+## When to Use Asya🎭
 
 ### Good Fit
 
@@ -85,7 +85,7 @@ Asya🎭 is a Kubernetes-native async actor framework for orchestrating complex 
 - Actors shine when they are stateless
 
 
-## § Problems Asya🎭 Solves
+## Problems Asya🎭 Solves
 
 ### No Single Point of Failure
 - Fully distributed architecture
@@ -118,20 +118,20 @@ Asya🎭 is a Kubernetes-native async actor framework for orchestrating complex 
 - Zero infrastructure management for DS
 - Easy for platform engineers to operate at scale (K8s-native)
 
-## § Problems Asya🎭 Does NOT Solve
+## Problems Asya🎭 Does NOT Solve
 
-- **Pre-defined AI components**: Asya doesn't provide inference runtimes—integrate with existing ones (KAITO, LLM-d)
+- **Pre-defined AI components**: Asya doesn't provide inference runtimes - integrate with existing ones (KAITO, LLM-d)
 - **CI/CD**: Bring your own deployment pipeline
 - **Data storage**: Bring your own databases, object stores
 - **Data processing frameworks**: DS build their own runtimes
 - **Synchronous HTTP APIs**: Cannot compete with ms-latency LLM deployments due to queue overhead
 - **Managed service**: Bring your own K8s cluster
 
-## § Existing Solutions Comparison
+## Existing Solutions Comparison
 
 ### Workflow Orchestrators (Airflow, Prefect, Dagster, Kubeflow Pipelines, Temporal)
 - Monolithic orchestrators with central DAG/flow definition
-- Not truly async—state held in orchestrator
+- Not truly async - state held in orchestrator
 - Hard to scale different components independently
 - Hard to deploy components independently
 
@@ -148,7 +148,7 @@ Asya🎭 is a Kubernetes-native async actor framework for orchestrating complex 
 - Perfect for deploying LLMs as REST APIs
 - Asya integrates with these via HTTP calls from actors
 
-## § Key Insight
+## Key Insight
 
 Traditional architectures treat AI workloads as HTTP services. AI workloads are actually **batch processing jobs** with unique requirements:
 

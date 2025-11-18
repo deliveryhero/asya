@@ -1,6 +1,6 @@
 # Asya🎭 Documentation
 
-Welcome to Asya🎭—a Kubernetes-native async actor framework for orchestrating AI/ML workloads at scale.
+Welcome to Asya🎭 - a Kubernetes-native async actor framework for orchestrating AI/ML workloads at scale.
 
 ## Documentation Structure
 

@@ -4,7 +4,7 @@ AWS-managed message queue service.
 
 ## Configuration
 
-**Operator config**:
+**Operator config** (`deploy/helm-charts/asya-operator/values.yaml`):
 ```yaml
 transports:
   sqs:
@@ -12,6 +12,19 @@ transports:
     type: sqs
     config:
       region: us-east-1
+      endpoint: ""  # Optional, for LocalStack or custom SQS endpoints
+      visibilityTimeout: 300  # Optional, seconds, defaults to 300 (5 minutes)
+      waitTimeSeconds: 20  # Optional, long polling, defaults to 20
+      queues:
+        autoCreate: true  # Optional, defaults to true
+        forceRecreate: false  # Optional, defaults to false
+        dlq:
+          enabled: true  # Optional
+          maxRetryCount: 3  # Optional, defaults to 3
+          retentionDays: 14  # Optional, defaults to 14
+      tags:  # Optional, tags applied to created queues
+        Environment: production
+        Team: ml-platform
 ```
 
 **AsyncActor reference**:
@@ -20,9 +33,16 @@ spec:
   transport: sqs
 ```
 
+**Sidecar environment variables** (injected by operator):
+- `ASYA_TRANSPORT=sqs`
+- `ASYA_AWS_REGION` → from `config.region`
+- `ASYA_SQS_ENDPOINT` → from `config.endpoint` (optional)
+- `ASYA_SQS_VISIBILITY_TIMEOUT` → from `config.visibilityTimeout` (optional)
+- `ASYA_SQS_WAIT_TIME_SECONDS` → from `config.waitTimeSeconds` (optional)
+
 ## Queue Creation
 
-Operator creates SQS queues automatically:
+Operator creates SQS queues automatically when AsyncActor is reconciled:
 
 **Queue name**: `asya-{actor_name}`
 
@@ -32,7 +52,7 @@ Operator creates SQS queues automatically:
 
 ## IAM Permissions
 
-**Sidecar permissions** (via IRSA or instance role):
+**Sidecar permissions** (via IRSA, Pod Identity, or instance role):
 ```json
 {
   "Version": "2012-10-17",
@@ -41,8 +61,11 @@ Operator creates SQS queues automatically:
       "Effect": "Allow",
       "Action": [
         "sqs:ReceiveMessage",
+        "sqs:SendMessage",
         "sqs:DeleteMessage",
-        "sqs:GetQueueAttributes"
+        "sqs:ChangeMessageVisibility",
+        "sqs:GetQueueAttributes",
+        "sqs:GetQueueUrl"
       ],
       "Resource": "arn:aws:sqs:*:*:asya-*"
     }
@@ -58,7 +81,22 @@ Operator creates SQS queues automatically:
     "sqs:CreateQueue",
     "sqs:DeleteQueue",
     "sqs:SetQueueAttributes",
-    "sqs:GetQueueUrl"
+    "sqs:GetQueueAttributes",
+    "sqs:GetQueueUrl",
+    "sqs:TagQueue"
+  ],
+  "Resource": "arn:aws:sqs:*:*:asya-*"
+}
+```
+
+**KEDA permissions** (for autoscaling):
+```json
+{
+  "Effect": "Allow",
+  "Action": [
+    "sqs:GetQueueAttributes",
+    "sqs:GetQueueUrl",
+    "sqs:ListQueues"
   ],
   "Resource": "arn:aws:sqs:*:*:asya-*"
 }
@@ -77,20 +115,36 @@ triggers:
 
 ## DLQ Configuration
 
-SQS queues automatically configured with DLQ:
+When `queues.dlq.enabled: true`, operator creates DLQ for each queue:
 
 **DLQ name**: `asya-{actor_name}-dlq`
 
-**Max receive count**: 3 (configurable)
+**Max receive count**: Configured via `queues.dlq.maxRetryCount` (default: 3)
 
-Failed messages move to DLQ after 3 nacks.
+**Retention**: Configured via `queues.dlq.retentionDays` (default: 14 days)
+
+**Behavior**: Messages move to DLQ after exceeding max receive count.
+
+## Implementation Details
+
+**Long polling**: Sidecar uses `waitTimeSeconds` for efficient message retrieval (default: 20s)
+
+**Visibility timeout**: Messages become invisible to other consumers for `visibilityTimeout` seconds (default: 300s)
+
+**Nack behavior**: `Nack()` sets visibility timeout to 0, making message immediately available for redelivery
+
+**Queue URL caching**: Sidecar caches resolved queue URLs to reduce API calls
+
+**Reconnection**: SQS client supports automatic reconnection with exponential backoff
 
 ## Best Practices
 
-- Use IRSA for pod-level IAM permissions
-- Set appropriate visibility timeout (default: 300s)
+- Use IRSA or Pod Identity for pod-level IAM permissions
+- Set `visibilityTimeout` longer than expected processing time
 - Monitor DLQ depth for stuck messages
 - Use `asya-` prefix for IAM policy granularity
+- Enable DLQ for production workloads
+- Set appropriate `tags` for cost tracking
 
 ## Cost Considerations
 

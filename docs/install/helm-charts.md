@@ -92,35 +92,67 @@ service:
 
 ### asya-crew
 
-Deploys crew actors (`happy-end`, `error-end`).
+Deploys crew actors (`happy-end`, `error-end`) as AsyncActor CRDs.
 
 **Location**: `deploy/helm-charts/asya-crew/`
 
 **Installation**:
 ```bash
 helm install asya-crew deploy/helm-charts/asya-crew/ \
+  --namespace asya-e2e \
   -f values.yaml
 ```
 
 **Key values**:
 ```yaml
-storage: s3  # or minio
-s3Bucket: asya-results
-s3Region: us-east-1
+happy-end:
+  enabled: true
+  transport: rabbitmq
+  scaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 10
+  workload:
+    template:
+      spec:
+        containers:
+        - name: asya-runtime
+          image: asya-crew:latest
+          env:
+          - name: ASYA_HANDLER
+            value: handlers.end_handlers.happy_end_handler
+          # Optional S3/MinIO persistence
+          - name: ASYA_S3_BUCKET
+            value: asya-results
+          - name: ASYA_S3_ENDPOINT
+            value: http://minio:9000
+          - name: ASYA_S3_ACCESS_KEY
+            value: minioadmin
+          - name: ASYA_S3_SECRET_KEY
+            value: minioadmin
 
-# For MinIO
-minioEndpoint: http://minio:9000
-minioAccessKey: minioadmin
-minioSecretKey: minioadmin
-minioBucket: asya-results
-
-gatewayUrl: http://asya-gateway:80
-
-serviceAccount:
-  create: true
-  annotations:
-    eks.amazonaws.com/role-arn: arn:aws:iam::ACCOUNT:role/actor-role
+error-end:
+  enabled: true
+  transport: rabbitmq
+  scaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 10
+  workload:
+    template:
+      spec:
+        containers:
+        - name: asya-runtime
+          image: asya-crew:latest
+          env:
+          - name: ASYA_HANDLER
+            value: handlers.end_handlers.error_end_handler
+          # Optional S3/MinIO persistence
+          - name: ASYA_S3_BUCKET
+            value: asya-results
 ```
+
+**Note**: Chart templates automatically inject `ASYA_HANDLER_MODE=envelope` and `ASYA_ENABLE_VALIDATION=false`.
 
 ### asya-actor
 
@@ -170,45 +202,108 @@ serviceAccount:
 
 ### AWS with SQS + S3
 
+**Operator** (`operator-values.yaml`):
 ```yaml
-# operator
 transports:
   sqs:
     enabled: true
+    type: sqs
     config:
       region: us-east-1
+```
 
-# crew
-storage: s3
-s3Bucket: asya-results
-s3Region: us-east-1
+**Crew** (`crew-values.yaml`):
+```yaml
+happy-end:
+  transport: sqs
+  workload:
+    template:
+      spec:
+        containers:
+        - name: asya-runtime
+          env:
+          - name: ASYA_S3_BUCKET
+            value: asya-results
+          # AWS_REGION from IRSA or instance metadata
 
-# actors
+error-end:
+  transport: sqs
+  workload:
+    template:
+      spec:
+        containers:
+        - name: asya-runtime
+          env:
+          - name: ASYA_S3_BUCKET
+            value: asya-results
+```
+
+**Actors**:
+```yaml
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
 spec:
   transport: sqs
 ```
 
 ### Local with RabbitMQ + MinIO
 
+**Operator** (`operator-values.yaml`):
 ```yaml
-# operator
 transports:
   rabbitmq:
     enabled: true
+    type: rabbitmq
     config:
       host: rabbitmq.default.svc.cluster.local
       port: 5672
       username: guest
-      password: guest
+      passwordSecretRef:
+        name: rabbitmq-secret
+        key: password
+```
 
-# crew
-storage: minio
-minioEndpoint: http://minio:9000
-minioAccessKey: minioadmin
-minioSecretKey: minioadmin
-minioBucket: asya-results
+**Crew** (`crew-values.yaml`):
+```yaml
+happy-end:
+  transport: rabbitmq
+  workload:
+    template:
+      spec:
+        containers:
+        - name: asya-runtime
+          env:
+          - name: ASYA_S3_BUCKET
+            value: asya-results
+          - name: ASYA_S3_ENDPOINT
+            value: http://minio.default.svc.cluster.local:9000
+          - name: ASYA_S3_ACCESS_KEY
+            value: minioadmin
+          - name: ASYA_S3_SECRET_KEY
+            value: minioadmin
 
-# actors
+error-end:
+  transport: rabbitmq
+  workload:
+    template:
+      spec:
+        containers:
+        - name: asya-runtime
+          env:
+          - name: ASYA_S3_BUCKET
+            value: asya-results
+          - name: ASYA_S3_ENDPOINT
+            value: http://minio.default.svc.cluster.local:9000
+          - name: ASYA_S3_ACCESS_KEY
+            value: minioadmin
+          - name: ASYA_S3_SECRET_KEY
+            value: minioadmin
+```
+
+**Actors**:
+```yaml
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
 spec:
   transport: rabbitmq
 ```

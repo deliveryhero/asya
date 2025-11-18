@@ -95,24 +95,51 @@ routes:
 ```
 
 ```bash
-helm install asya-gateway deploy/helm-charts/asya-gateway/ \
-  -f gateway-values.yaml
+helm install asya-gateway deploy/helm-charts/asya-gateway/ -f gateway-values.yaml
 ```
 
 ### 6. Install Crew Actors
 
 ```yaml
 # crew-values.yaml
-storage: s3  # or minio
-s3Bucket: asya-results
-s3Region: us-east-1
+happy-end:
+  enabled: true
+  transport: sqs  # or rabbitmq
+  workload:
+    template:
+      spec:
+        containers:
+        - name: asya-runtime
+          env:
+          - name: ASYA_HANDLER
+            value: handlers.end_handlers.happy_end_handler
+          - name: ASYA_S3_BUCKET
+            value: asya-results
+          # For MinIO:
+          # - name: ASYA_S3_ENDPOINT
+          #   value: http://minio:9000
+          # - name: ASYA_S3_ACCESS_KEY
+          #   value: minioadmin
+          # - name: ASYA_S3_SECRET_KEY
+          #   value: minioadmin
 
-gatewayUrl: http://asya-gateway:80
+error-end:
+  enabled: true
+  transport: sqs  # or rabbitmq
+  workload:
+    template:
+      spec:
+        containers:
+        - name: asya-runtime
+          env:
+          - name: ASYA_HANDLER
+            value: handlers.end_handlers.error_end_handler
+          - name: ASYA_S3_BUCKET
+            value: asya-results
 ```
 
 ```bash
-helm install asya-crew deploy/helm-charts/asya-crew/ \
-  -f crew-values.yaml
+helm install asya-crew deploy/helm-charts/asya-crew/ -f crew-values.yaml
 ```
 
 ### 7. Verify Installation
@@ -126,6 +153,9 @@ kubectl get pods -n keda
 
 # Check CRDs
 kubectl get crd | grep asya
+
+# Check crew actors
+kubectl get asya
 ```
 
 ## Supporting Data Science Teams
@@ -142,11 +172,12 @@ metadata:
 spec:
   transport: sqs  # or rabbitmq
   scaling:
+    enabled: true
     minReplicas: 0
     maxReplicas: 50
     queueLength: 5
   workload:
-    type: Deployment
+    kind: Deployment
     template:
       spec:
         containers:
@@ -155,6 +186,7 @@ spec:
           env:
           - name: ASYA_HANDLER
             value: "module.function"
+            # For class handlers: "module.Class.method"
           resources:
             requests:
               memory: "1Gi"
@@ -162,6 +194,15 @@ spec:
             limits:
               memory: "2Gi"
 ```
+
+**Key fields to explain**:
+- `spec.transport`: Which transport to use (ask platform team)
+- `spec.scaling.enabled`: Enable KEDA autoscaling (default: false)
+- `spec.scaling.minReplicas`: Minimum pods (0 for scale-to-zero)
+- `spec.scaling.maxReplicas`: Maximum pods
+- `spec.scaling.queueLength`: Messages per replica target
+- `spec.workload.kind`: Deployment or StatefulSet
+- `env.ASYA_HANDLER`: Handler path (`module.function` or `module.Class.method`)
 
 ### Configure Gateway Tools
 
@@ -185,12 +226,19 @@ routes:
 
 ### Grant Access
 
-**AWS**: Create IAM roles for actors
+**AWS (IRSA)**: Configure IAM role annotation in AsyncActor
+```yaml
+metadata:
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::ACCOUNT:role/asya-actor-role
+```
+
+**AWS (Pod Identity)**: Create pod identity association
 ```bash
 aws eks create-pod-identity-association \
   --cluster-name my-cluster \
   --namespace default \
-  --service-account my-actor \
+  --service-account asya-my-actor \
   --role-arn arn:aws:iam::ACCOUNT:role/asya-actor-role
 ```
 
@@ -204,12 +252,59 @@ kubectl create secret generic rabbitmq-secret \
 
 ### Prometheus Metrics
 
-**ServiceMonitors** created automatically by operator.
+**Important**: Operator does NOT automatically create ServiceMonitors. You must configure Prometheus scraping.
 
-**Key metrics**:
-- `asya_sidecar_processing_duration_seconds`
-- `asya_operator_reconcile_total`
-- `keda_scaler_active`
+**Key sidecar metrics** (namespace: `asya_actor`):
+- `asya_actor_processing_duration_seconds{queue}` - Processing time
+- `asya_actor_messages_processed_total{queue, status}` - Messages processed
+- `asya_actor_messages_failed_total{queue, reason}` - Failed messages
+- `asya_actor_runtime_errors_total{queue, error_type}` - Runtime errors
+
+**Key operator metrics**:
+- `controller_runtime_reconcile_total{controller="asyncactor"}` - Reconciliations
+- `controller_runtime_reconcile_errors_total{controller="asyncactor"}` - Errors
+
+**KEDA metrics**:
+- `keda_scaler_active{scaledObject}` - Active scalers
+- `keda_scaler_metrics_value{scaledObject}` - Queue depth
+
+### Prometheus Configuration
+
+**ServiceMonitor** (Prometheus Operator):
+```yaml
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: asya-actors
+spec:
+  selector:
+    matchLabels:
+      asya.sh/actor: "*"
+  endpoints:
+  - port: metrics
+    path: /metrics
+    interval: 30s
+```
+
+**Scrape config** (standard Prometheus):
+```yaml
+scrape_configs:
+- job_name: asya-actors
+  kubernetes_sd_configs:
+  - role: pod
+  relabel_configs:
+  - source_labels: [__meta_kubernetes_pod_label_asya_sh_actor]
+    action: keep
+    regex: .+
+  - source_labels: [__meta_kubernetes_pod_container_name]
+    action: keep
+    regex: asya-sidecar
+  - source_labels: [__address__]
+    action: replace
+    regex: ([^:]+)(?::\d+)?
+    replacement: $1:8080
+    target_label: __address__
+```
 
 ### Grafana Dashboards
 
@@ -217,7 +312,7 @@ kubectl create secret generic rabbitmq-secret \
 
 **Actor throughput**:
 ```promql
-rate(asya_sidecar_messages_processed_total[5m])
+rate(asya_actor_messages_processed_total{queue="asya-my-actor"}[5m])
 ```
 
 **Queue depth**:
@@ -227,8 +322,15 @@ keda_scaler_metrics_value{scaledObject="my-actor"}
 
 **Error rate**:
 ```promql
-rate(asya_sidecar_errors_total[5m])
+rate(asya_actor_messages_failed_total{queue="asya-my-actor"}[5m])
 ```
+
+**P95 latency**:
+```promql
+histogram_quantile(0.95, rate(asya_actor_processing_duration_seconds_bucket{queue="asya-my-actor"}[5m]))
+```
+
+**See**: [../operate/monitoring.md](../operate/monitoring.md) for complete metrics and alerts.
 
 ### Logging
 
@@ -239,6 +341,10 @@ kubectl logs -n asya-system deploy/asya-operator -f
 
 **View actor logs**:
 ```bash
+# Runtime logs (handler output)
+kubectl logs -l asya.sh/actor=my-actor -c asya-runtime -f
+
+# Sidecar logs (routing, transport)
 kubectl logs -l asya.sh/actor=my-actor -c asya-sidecar -f
 ```
 
@@ -252,18 +358,36 @@ kubectl logs -n asya-system deploy/asya-operator
 
 # Check AsyncActor status
 kubectl describe asya my-actor
+
+# Check conditions
+kubectl get asya my-actor -o jsonpath='{.status.conditions}'
 ```
+
+**Common causes**:
+- Transport not enabled in operator config
+- Missing IAM permissions (SQS)
+- RabbitMQ connection failure
+- AWS SQS 60-second cooldown after queue deletion
 
 ### Actor Not Scaling
 
 ```bash
-# Check KEDA
+# Check ScaledObject
 kubectl get scaledobject my-actor -o yaml
 kubectl describe scaledobject my-actor
 
-# Check HPA
+# Check HPA created by KEDA
 kubectl get hpa
+
+# Check KEDA operator logs
+kubectl logs -n keda deploy/keda-operator
 ```
+
+**Common causes**:
+- `spec.scaling.enabled` not set to `true`
+- KEDA not installed
+- Queue doesn't exist
+- Missing IAM permissions for KEDA to read queue metrics
 
 ### Sidecar Connection Errors
 
@@ -271,11 +395,16 @@ kubectl get hpa
 # Check sidecar logs
 kubectl logs deploy/my-actor -c asya-sidecar
 
-# Common issues:
-# - Wrong transport config
-# - Missing IAM permissions
-# - Queue doesn't exist
+# Check transport config
+kubectl get asya my-actor -o jsonpath='{.spec.transport}'
 ```
+
+**Common issues**:
+- Wrong transport configured (`sqs` vs `rabbitmq`)
+- Missing IAM permissions (SQS)
+- RabbitMQ credentials incorrect
+- Queue doesn't exist
+- Network connectivity issues
 
 ### Runtime Errors
 
@@ -283,24 +412,52 @@ kubectl logs deploy/my-actor -c asya-sidecar
 # Check runtime logs
 kubectl logs deploy/my-actor -c asya-runtime
 
-# Common issues:
-# - Handler not found (wrong ASYA_HANDLER)
-# - Missing dependencies
-# - OOM errors
+# Check handler config
+kubectl get asya my-actor -o jsonpath='{.spec.workload.template.spec.containers[?(@.name=="asya-runtime")].env}'
 ```
+
+**Common issues**:
+- Wrong `ASYA_HANDLER` value (handler not found)
+- Missing Python dependencies in image
+- Class handler `__init__` parameters missing defaults
+- OOM errors (insufficient memory)
+- CUDA OOM (GPU memory exhausted)
+
+### Pod Status Issues
+
+Check AsyncActor status for detailed error information:
+
+```bash
+kubectl get asya my-actor
+```
+
+**Status values**:
+- `Running` - Healthy
+- `Napping` - Scaled to zero (normal with minReplicas=0)
+- `Creating` - Initial deployment
+- `RuntimeError` - Runtime container crashing
+- `SidecarError` - Sidecar container crashing
+- `ImagePullError` - Cannot pull image
+- `TransportError` - Queue/transport issues
 
 ## Scaling Configuration
 
-### CPU-based Autoscaling
+### Queue-based Autoscaling (KEDA)
 
 ```yaml
 spec:
   scaling:
-    minReplicas: 1
-    maxReplicas: 50
-    queueLength: 5
-    cpuThreshold: 80  # Future: combine with queue-based
+    enabled: true
+    minReplicas: 0          # Scale to zero when idle
+    maxReplicas: 50         # Max replicas
+    queueLength: 5          # Target: 5 messages per replica
+    pollingInterval: 10     # Check queue every 10s
+    cooldownPeriod: 60      # Wait 60s before scaling down
 ```
+
+**Formula**: `desiredReplicas = ceil(queueDepth / queueLength)`
+
+**Example**: 100 messages, queueLength=5 → 20 replicas
 
 ### GPU Workloads
 
@@ -322,28 +479,65 @@ spec:
           effect: NoSchedule
 ```
 
+**Note**: Ensure GPU node group exists and NVIDIA device plugin is installed.
+
+### StatefulSet (for stateful workloads)
+
+```yaml
+spec:
+  workload:
+    kind: StatefulSet
+    template:
+      spec:
+        containers:
+        - name: asya-runtime
+          volumeMounts:
+          - name: data
+            mountPath: /data
+    volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 10Gi
+```
+
 ## Cost Optimization
 
 **Enable scale-to-zero**:
 ```yaml
 spec:
   scaling:
-    minReplicas: 0  # Scale to 0 when idle
+    enabled: true
+    minReplicas: 0  # $0 when idle
 ```
 
 **Set appropriate queueLength**:
-- Higher = fewer pods, slower processing
-- Lower = more pods, faster processing
+- Higher = fewer pods, slower processing, lower cost
+- Lower = more pods, faster processing, higher cost
 
-**Example**: `queueLength: 10` means 100 messages → 10 pods
+**Examples**:
+- `queueLength: 5` → 100 messages = 20 pods
+- `queueLength: 10` → 100 messages = 10 pods
+- `queueLength: 20` → 100 messages = 5 pods
 
 **Use Spot Instances** (AWS):
 ```bash
 eksctl create nodegroup \
   --cluster my-cluster \
   --spot \
-  --instance-types g4dn.xlarge
+  --instance-types g4dn.xlarge \
+  --nodes-min 0 \
+  --nodes-max 10
 ```
+
+**SQS cost optimization**:
+- First 1M requests/month free
+- $0.40 per million requests after
+- No idle costs (pay per use)
+- Scale to zero = $0
 
 ## Upgrades
 
@@ -362,10 +556,11 @@ helm upgrade asya-crew deploy/helm-charts/asya-crew/ \
   -f crew-values.yaml
 ```
 
-**See**: [../operate/upgrades.md](../operate/upgrades.md) for version compatibility.
+**Important**: Always upgrade operator before upgrading actors. AsyncActors may need to be reconciled after operator upgrade.
 
 ## Next Steps
 
 - Read [Architecture Overview](../architecture/)
 - Configure [Monitoring](../operate/monitoring.md)
 - Review [AWS Installation Guide](../install/aws-eks.md)
+- Review [Local Kind Installation](../install/local-kind.md)

@@ -4,7 +4,7 @@ Asya supports pluggable message queue transports for actor communication.
 
 ## Overview
 
-Transport layer is abstracted—sidecar implements transport interface, allowing different queue backends.
+Transport layer is abstracted - sidecar implements transport interface, allowing different queue backends.
 
 ## Supported Transports
 
@@ -35,11 +35,31 @@ transports:
       passwordSecretRef:
         name: rabbitmq-secret
         key: password
+      exchange: asya  # Optional, defaults to "asya"
+      queues:
+        autoCreate: true  # Optional, defaults to true
+        forceRecreate: false  # Optional, defaults to false
+        dlq:
+          enabled: true  # Optional
+          maxRetryCount: 3  # Optional, defaults to 3
   sqs:
     enabled: true
     type: sqs
     config:
       region: us-east-1
+      endpoint: ""  # Optional, for LocalStack or custom SQS endpoints
+      visibilityTimeout: 300  # Optional, seconds, defaults to 300
+      waitTimeSeconds: 20  # Optional, seconds, defaults to 20
+      queues:
+        autoCreate: true  # Optional, defaults to true
+        forceRecreate: false  # Optional, defaults to false
+        dlq:
+          enabled: true  # Optional
+          maxRetryCount: 3  # Optional, defaults to 3
+          retentionDays: 14  # Optional, defaults to 14
+      tags:  # Optional, tags for created queues
+        Environment: production
+        Team: ml-platform
 ```
 
 AsyncActors reference transport by name:
@@ -50,11 +70,11 @@ spec:
 
 ## Transport Interface
 
-Sidecar implements:
-- `Consume(queueName)`: Receive messages from queue
-- `Send(queueName, envelope)`: Send envelope to queue
-- `Ack(message)`: Acknowledge successful processing
-- `Nack(message)`: Negative acknowledge (requeue)
+Sidecar implements (`src/asya-sidecar/internal/transport/transport.go`):
+- `Receive(ctx, queueName)`: Receive single message from queue (blocking with long polling)
+- `Send(ctx, queueName, body)`: Send message body to queue
+- `Ack(ctx, message)`: Acknowledge successful processing
+- `Nack(ctx, message)`: Negative acknowledge (requeue or move to DLQ)
 
 ## Queue Management
 

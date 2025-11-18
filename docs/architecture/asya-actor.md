@@ -63,7 +63,7 @@ spec:
     maxReplicas: 50
     queueLength: 5
   workload:
-    type: Deployment
+    kind: Deployment
     template:
       spec:
         containers:

@@ -144,14 +144,49 @@ helm install asya-gateway deploy/helm-charts/asya-gateway/ \
 
 ```bash
 cat > crew-values.yaml <<EOF
-storage: minio
-minioEndpoint: http://minio.default.svc.cluster.local:9000
-minioAccessKey: minioadmin
-minioSecretKey: minioadmin
-minioBucket: asya-results
+happy-end:
+  enabled: true
+  transport: rabbitmq
+  workload:
+    template:
+      spec:
+        containers:
+        - name: asya-runtime
+          env:
+          - name: ASYA_HANDLER
+            value: handlers.end_handlers.happy_end_handler
+          - name: ASYA_S3_BUCKET
+            value: asya-results
+          - name: ASYA_S3_ENDPOINT
+            value: http://minio.default.svc.cluster.local:9000
+          - name: ASYA_S3_ACCESS_KEY
+            value: minioadmin
+          - name: ASYA_S3_SECRET_KEY
+            value: minioadmin
+
+error-end:
+  enabled: true
+  transport: rabbitmq
+  workload:
+    template:
+      spec:
+        containers:
+        - name: asya-runtime
+          env:
+          - name: ASYA_HANDLER
+            value: handlers.end_handlers.error_end_handler
+          - name: ASYA_S3_BUCKET
+            value: asya-results
+          - name: ASYA_S3_ENDPOINT
+            value: http://minio.default.svc.cluster.local:9000
+          - name: ASYA_S3_ACCESS_KEY
+            value: minioadmin
+          - name: ASYA_S3_SECRET_KEY
+            value: minioadmin
 EOF
 
 helm install asya-crew deploy/helm-charts/asya-crew/ \
+  --namespace default \
   -f crew-values.yaml
 ```
 
@@ -178,7 +213,7 @@ spec:
     minReplicas: 0
     maxReplicas: 5
   workload:
-    type: Deployment
+    kind: Deployment
     template:
       spec:
         containers:

@@ -13,6 +13,7 @@
 ```json
 {
   "id": "unique-envelope-id",
+  "parent_id": "original-envelope-id",
   "route": {
     "actors": ["prep", "infer", "post"],
     "current": 0
@@ -29,6 +30,7 @@
 
 **Fields**:
 - `id` (required): Unique envelope identifier
+- `parent_id` (optional): Parent envelope ID for fanout children (see Fan-Out section)
 - `route` (required): Actor list and current position
   - `actors`: Pipeline definition
   - `current`: Current actor index (0-based, incremented by runtime)
@@ -69,7 +71,7 @@ All actor queues follow pattern: `asya-{actor_name}`
 - Automatically routed when runtime returns error
 - Automatically routed on timeout
 
-**IMPORTANT**: Never include `happy-end` or `error-end` in route configurations—managed by sidecar.
+**Important**: Do not include `happy-end` or `error-end` in route configurations - managed by sidecar.
 
 ## Response Patterns
 
@@ -92,7 +94,17 @@ Runtime returns array:
 ]
 ```
 
-**Action**: Sidecar creates multiple envelopes (one per item) → Each gets unique ID → Routes to next actor
+**Action**: Sidecar creates multiple envelopes (one per item) → Routes to next actor
+
+**Fanout ID semantics**:
+- First envelope retains original ID (for SSE streaming compatibility)
+- Subsequent envelopes receive suffixed IDs: `{original_id}-{index}`
+- All fanout children have `parent_id` set to original envelope ID
+
+**Example**: Envelope `abc-123` returns 3 items:
+- Index 0: `id="abc-123"`, `parent_id=null` (original ID preserved)
+- Index 1: `id="abc-123-1"`, `parent_id="abc-123"` (fanout child)
+- Index 2: `id="abc-123-2"`, `parent_id="abc-123"` (fanout child)
 
 ### Empty Response
 
@@ -146,9 +158,9 @@ Runtime returns error object:
 ```
 
 **Benefits**:
-- Better actor decoupling—each actor only needs specific fields
-- Full traceability—complete processing history in final payload
-- Routing flexibility—later actors can access earlier results
+- Better actor decoupling - each actor only needs specific fields
+- Full traceability - complete processing history in final payload
+- Routing flexibility - later actors can access earlier results
 
 ## Envelope Status Tracking
 
