@@ -44,47 +44,39 @@ def _get_transport_client(transport: str):
 
 
 @pytest.mark.slow
-def test_error_goes_to_error_end_when_available(e2e_helper, kubectl):
+def test_error_goes_to_error_end_when_available(e2e_helper, kubectl, chaos_queues, errors_bucket):
     """
-    E2E: Test errors go to error-end queue when error-end is available.
+    E2E: Test errors are processed by error-end when error-end is available.
 
     Scenario (Application-level error handling):
-    1. error-end queue is available and running
+    1. error-end is running normally with KEDA autoscaling
     2. Send envelope to test-error actor with should_fail=True
-    3. Actor fails → sidecar sends to error-end queue
-    4. error-end processes the error, persists to S3
+    3. Actor fails → sidecar sends error to error-end queue
+    4. error-end consumes and processes the error
+    5. error-end persists error to S3 errors bucket
+    6. Gateway receives final status from error-end
 
     Expected:
-    - Message appears in error-end queue (NOT in DLQ)
-    - error-end persists error to S3
-    - Original queue's DLQ remains empty
+    - Envelope status becomes "failed" (error was handled)
+    - Error persisted to S3 errors bucket
+    - DLQ remains empty (error-end handled it, no fallback needed)
 
     This is the NORMAL case - application handles its own errors.
     """
+    from asya_testing.utils.s3 import wait_for_envelope_in_s3
+
     transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
     transport_client = _get_transport_client(transport)
 
     actor_queue = "asya-test-error"
     dlq_name = f"{actor_queue}-dlq"
-    error_end_queue = "asya-error-end"
 
     logger.info(f"Transport: {transport}")
     logger.info("Scenario: error-end available (normal application-level handling)")
 
-    # Disable KEDA scaling and scale error-end to 0
-    logger.info("Disabling KEDA scaling for error-end")
-    kubectl.run("patch asyncactor error-end -n asya-e2e --type=json -p '[{\"op\":\"replace\",\"path\":\"/spec/scaling/enabled\",\"value\":false},{\"op\":\"replace\",\"path\":\"/spec/workload/replicas\",\"value\":0}]'")
-
-    logger.info("Waiting for ScaledObject to be deleted")
-    kubectl.run("wait --for=delete scaledobject/error-end -n asya-e2e --timeout=60s", check=False)
-
-    logger.info("Waiting for deployment to scale to 0")
-    kubectl.wait_for_replicas("error-end", "asya-e2e", 0, timeout=60)
-
-    # Purge queues before test
-    logger.info("Purging queues before test")
+    # Purge DLQ before test
+    logger.info("Purging DLQ before test")
     transport_client.purge(dlq_name)
-    transport_client.purge(error_end_queue)
 
     # Send failing envelope
     logger.info("Sending failing envelope to test-error actor")
@@ -96,57 +88,33 @@ def test_error_goes_to_error_end_when_available(e2e_helper, kubectl):
     envelope_id = response["result"]["envelope_id"]
     logger.info(f"Envelope ID: {envelope_id}")
 
-    # Check error-end queue received the message
-    logger.info("Checking error-end queue for error message")
-    error_end_message = None
-    for attempt in range(10):
-        error_end_message = transport_client.consume(error_end_queue, timeout=2)
-        if error_end_message:
-            break
-        logger.info(f"error-end check attempt {attempt + 1}/10")
-        time.sleep(2)
+    # Wait for envelope to reach final status
+    logger.info("Waiting for envelope to complete (error-end should process it)...")
+    final_envelope = e2e_helper.wait_for_envelope_completion(envelope_id, timeout=30)
 
-    assert error_end_message is not None, \
-        f"Error message should be in error-end queue {error_end_queue}"
-    logger.info(f"[+] Error message found in error-end queue: {error_end_message.get('id')}")
+    # Verify envelope failed (error was handled by error-end)
+    assert final_envelope["status"] == "failed", \
+        "Envelope should be marked as 'failed' after error-end processes it"
+    logger.info("[+] Envelope marked as failed - error was processed")
 
-    # Verify envelope ID matches
-    assert error_end_message.get("id") == envelope_id, \
-        "error-end message ID should match original envelope ID"
+    # Verify error persisted to S3
+    logger.info("Waiting for error to appear in S3 errors bucket...")
+    s3_object = wait_for_envelope_in_s3(
+        bucket_name=errors_bucket,
+        envelope_id=envelope_id,
+        timeout=30
+    )
 
-    # Verify error payload structure
-    payload = error_end_message.get("payload", {})
-    assert "error" in payload, "error-end message should contain error details"
-    assert "original_payload" in payload, "error-end message should preserve original payload"
-    logger.info(f"[+] Error payload structure correct: {payload.keys()}")
+    assert s3_object is not None, \
+        f"Error should be persisted to S3 errors bucket by error-end"
+    logger.info("[+] Error persisted to S3 by error-end")
 
-    # Verify DLQ is EMPTY (message should NOT go to DLQ when error-end is available)
+    # Verify DLQ is EMPTY (error-end handled the error, no fallback needed)
     logger.info(f"Verifying DLQ {dlq_name} is empty")
     dlq_message = transport_client.consume(dlq_name, timeout=2)
     assert dlq_message is None, \
         f"DLQ {dlq_name} should be empty when error-end handles the error"
     logger.info("[+] DLQ is empty - error was handled by error-end")
-
-    # Re-enable KEDA scaling for error-end and reset replicas
-    logger.info("Re-enabling KEDA scaling for error-end")
-    kubectl.run("patch asyncactor error-end -n asya-e2e --type=json -p '[{\"op\":\"replace\",\"path\":\"/spec/scaling/enabled\",\"value\":true},{\"op\":\"replace\",\"path\":\"/spec/workload/replicas\",\"value\":1}]'")
-
-    # Wait for operator to reconcile and ScaledObject to be recreated
-    logger.info("Waiting for ScaledObject to be recreated")
-    for attempt in range(30):
-        result = kubectl.run("get scaledobject error-end -n asya-e2e", check=False)
-        if result.returncode == 0:
-            logger.info("ScaledObject exists, waiting for Ready condition")
-            kubectl.run("wait --for=condition=Ready scaledobject/error-end -n asya-e2e --timeout=30s")
-            break
-        logger.info(f"ScaledObject not yet created, retrying ({attempt + 1}/30)")
-        time.sleep(2)
-    else:
-        raise TimeoutError("ScaledObject was not created within 60 seconds")
-
-    # Wait for error-end pod to be ready
-    logger.info("Waiting for error-end pod to be ready")
-    kubectl.wait_for_replicas("error-end", "asya-e2e", 1, timeout=60)
 
     logger.info("[+] Test passed - application-level error handling working")
 
@@ -158,7 +126,7 @@ def test_error_goes_to_error_end_when_available(e2e_helper, kubectl):
            "Message goes to error-end queue instead of DLQ when error-end deployment is scaled to 0. "
            "This test only works for RabbitMQ where publishing can fail when consumers are unavailable."
 )
-def test_error_goes_to_dlq_when_error_end_unavailable(e2e_helper, kubectl):
+def test_error_goes_to_dlq_when_error_end_unavailable(e2e_helper, kubectl, chaos_queues):
     """
     E2E: Test errors go to DLQ when error-end is unavailable.
 

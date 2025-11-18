@@ -221,44 +221,6 @@ func TestLoadFromEnv(t *testing.T) {
 				}
 			},
 		},
-		{
-			name: "queue auto-create default (true)",
-			env: map[string]string{
-				"ASYA_ACTOR_NAME": "test-actor",
-			},
-			expectError: false,
-			validate: func(t *testing.T, cfg *Config) {
-				if !cfg.QueueAutoCreate {
-					t.Error("QueueAutoCreate should default to true")
-				}
-			},
-		},
-		{
-			name: "queue auto-create disabled",
-			env: map[string]string{
-				"ASYA_ACTOR_NAME":        "test-actor",
-				"ASYA_QUEUE_AUTO_CREATE": "false",
-			},
-			expectError: false,
-			validate: func(t *testing.T, cfg *Config) {
-				if cfg.QueueAutoCreate {
-					t.Error("QueueAutoCreate should be false")
-				}
-			},
-		},
-		{
-			name: "queue auto-create enabled explicitly",
-			env: map[string]string{
-				"ASYA_ACTOR_NAME":        "test-actor",
-				"ASYA_QUEUE_AUTO_CREATE": "true",
-			},
-			expectError: false,
-			validate: func(t *testing.T, cfg *Config) {
-				if !cfg.QueueAutoCreate {
-					t.Error("QueueAutoCreate should be true")
-				}
-			},
-		},
 	}
 
 	for _, tt := range tests {

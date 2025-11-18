@@ -2,6 +2,7 @@ package transports
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -13,6 +14,11 @@ import (
 
 	asyav1alpha1 "github.com/asya/operator/api/v1alpha1"
 	asyaconfig "github.com/asya/operator/internal/config"
+)
+
+const (
+	defaultRabbitMQUsername  = "guest"
+	errInvalidRabbitMQConfig = "invalid RabbitMQ config type"
 )
 
 // RabbitMQTransport implements queue reconciliation for RabbitMQ
@@ -40,7 +46,7 @@ func (t *RabbitMQTransport) ReconcileQueue(ctx context.Context, actor *asyav1alp
 
 	rabbitmqConfig, ok := transport.Config.(*asyaconfig.RabbitMQConfig)
 	if !ok {
-		return fmt.Errorf("invalid RabbitMQ config type")
+		return errors.New(errInvalidRabbitMQConfig)
 	}
 
 	queueName := fmt.Sprintf("asya-%s", actor.Name)
@@ -68,7 +74,7 @@ func (t *RabbitMQTransport) ReconcileQueue(ctx context.Context, actor *asyav1alp
 	}
 	username := rabbitmqConfig.Username
 	if username == "" {
-		username = "guest"
+		return fmt.Errorf("failed to load RabbitMQ username")
 	}
 
 	amqpURL := fmt.Sprintf("amqp://%s:%s@%s:%d/", username, password, rabbitmqConfig.Host, port)
@@ -213,7 +219,7 @@ func (t *RabbitMQTransport) DeleteQueue(ctx context.Context, actor *asyav1alpha1
 
 	rabbitmqConfig, ok := transport.Config.(*asyaconfig.RabbitMQConfig)
 	if !ok {
-		return fmt.Errorf("invalid RabbitMQ config type")
+		return errors.New(errInvalidRabbitMQConfig)
 	}
 
 	queueName := fmt.Sprintf("asya-%s", actor.Name)
@@ -235,7 +241,7 @@ func (t *RabbitMQTransport) DeleteQueue(ctx context.Context, actor *asyav1alpha1
 	}
 	username := rabbitmqConfig.Username
 	if username == "" {
-		username = "guest"
+		username = defaultRabbitMQUsername
 	}
 
 	amqpURL := fmt.Sprintf("amqp://%s:%s@%s:%d/", username, password, rabbitmqConfig.Host, port)
@@ -296,4 +302,83 @@ func (t *RabbitMQTransport) loadPassword(ctx context.Context, rabbitmqConfig *as
 	}
 
 	return string(passwordBytes), nil
+}
+
+// QueueExists checks if a RabbitMQ queue exists using the Management API
+func (t *RabbitMQTransport) QueueExists(ctx context.Context, queueName, namespace string) (bool, error) {
+	logger := log.FromContext(ctx)
+
+	// Skip in test environments
+	if os.Getenv("ASYA_SKIP_QUEUE_OPERATIONS") == "true" {
+		logger.V(1).Info("Skipping RabbitMQ queue existence check (ASYA_SKIP_QUEUE_OPERATIONS=true)", "queue", queueName)
+		return true, nil
+	}
+
+	transport, err := t.transportRegistry.GetTransport("rabbitmq")
+	if err != nil {
+		return false, err
+	}
+
+	rabbitmqConfig, ok := transport.Config.(*asyaconfig.RabbitMQConfig)
+	if !ok {
+		return false, fmt.Errorf("invalid RabbitMQ config type")
+	}
+
+	// Get RabbitMQ password from secret if configured
+	password := rabbitmqConfig.Password
+	if rabbitmqConfig.PasswordSecretRef != nil {
+		var err error
+		password, err = t.loadPassword(ctx, rabbitmqConfig, "default")
+		if err != nil {
+			return false, fmt.Errorf("failed to load RabbitMQ password: %w", err)
+		}
+	}
+
+	// Build AMQP URL
+	port := rabbitmqConfig.Port
+	if port == 0 {
+		port = 5672
+	}
+	username := rabbitmqConfig.Username
+	if username == "" {
+		username = defaultRabbitMQUsername
+	}
+
+	amqpURL := fmt.Sprintf("amqp://%s:%s@%s:%d/", username, password, rabbitmqConfig.Host, port)
+
+	// Connect to RabbitMQ
+	conn, err := amqp.Dial(amqpURL)
+	if err != nil {
+		return false, fmt.Errorf("failed to connect to RabbitMQ: %w", err)
+	}
+	defer func() {
+		_ = conn.Close()
+	}()
+
+	ch, err := conn.Channel()
+	if err != nil {
+		return false, fmt.Errorf("failed to open channel: %w", err)
+	}
+	defer func() {
+		_ = ch.Close()
+	}()
+
+	// Use passive declaration to check existence without creating
+	_, err = ch.QueueDeclarePassive(
+		queueName,
+		true,
+		false,
+		false,
+		false,
+		nil,
+	)
+
+	if err != nil {
+		if strings.Contains(err.Error(), "NOT_FOUND") || strings.Contains(err.Error(), "404") {
+			return false, nil
+		}
+		return false, fmt.Errorf("failed to check queue existence: %w", err)
+	}
+
+	return true, nil
 }

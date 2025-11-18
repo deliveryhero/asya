@@ -2,6 +2,17 @@
 
 Self-hosted open-source message broker.
 
+**Features**:
+- Topic exchange routing
+- Automatic queue declaration and binding
+- Prefetch control for load management
+- Durable queues and persistent messages
+
+**Configuration**:
+- AMQP connection URL
+- Exchange name
+- Prefetch count
+
 ## Configuration
 
 **Operator config** (`deploy/helm-charts/asya-operator/values.yaml`):

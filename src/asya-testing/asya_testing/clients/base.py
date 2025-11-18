@@ -46,6 +46,16 @@ class TransportClient(ABC):
         """
         pass
 
+    @abstractmethod
+    def list_queues(self) -> list[str]:
+        """
+        List all queue names.
+
+        Returns:
+            List of queue names
+        """
+        pass
+
 
 class ActorTransportClient(TransportClient):
     """
@@ -78,3 +88,7 @@ class ActorTransportClient(TransportClient):
         """Purge all messages from actor queue."""
         queue_name = self._resolve_queue_name(queue)
         self._transport.purge(queue_name)
+
+    def list_queues(self) -> list[str]:
+        """List all queue names (delegates to underlying transport)."""
+        return self._transport.list_queues()

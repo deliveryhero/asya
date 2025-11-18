@@ -179,15 +179,18 @@ releases:
     labels:
       layer: app
 
-  # Test actors - deployed using generic asya-actor chart
+  # Test actors - deployed using asya-test-actors chart
   - name: test-actors
     namespace: {{ .Values.namespace | default "asya-e2e" }}
-    chart: ../../../deploy/helm-charts/asya-actor
+    chart: ./asya-test-actors
     needs:
       - asya-crew
     values:
-      - ./test-actors-values.yaml
       - namespace: {{ .Values.actors.namespace | default "asya-e2e" }}
         transport: {{ .Values.actors.transport | default "rabbitmq" }}
+        handlerMode: {{ env "ASYA_HANDLER_MODE" | default "payload" }}
+        workload:
+          image: asya-testing:latest
+          imagePullPolicy: IfNotPresent
     labels:
       layer: app

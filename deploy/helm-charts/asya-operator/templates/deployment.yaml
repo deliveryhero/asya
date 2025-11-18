@@ -47,6 +47,10 @@ spec:
         env:
         - name: ASYA_MAX_CONCURRENT_RECONCILES
           value: {{ .Values.controller.maxConcurrentReconciles | quote }}
+        - name: ASYA_QUEUE_HEALTH_CHECK_INTERVAL
+          value: {{ .Values.controller.queueHealthCheckInterval | quote }}
+        - name: ASYA_DISABLE_QUEUE_MANAGEMENT
+          value: {{ .Values.controller.disableQueueManagement | quote }}
         - name: ASYA_SIDECAR_IMAGE
           value: {{ .Values.sidecar.image | quote }}
         - name: ASYA_RUNTIME_SOURCE

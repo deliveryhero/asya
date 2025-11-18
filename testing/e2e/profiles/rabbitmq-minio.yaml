@@ -37,6 +37,7 @@ crew:
   happy-end:
     transport: rabbitmq
     scaling:
+      enabled: true
       minReplicas: 1
     workload:
       template:
@@ -67,6 +68,7 @@ crew:
   error-end:
     transport: rabbitmq
     scaling:
+      enabled: true
       minReplicas: 1
     workload:
       template:

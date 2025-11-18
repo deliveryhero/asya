@@ -26,8 +26,8 @@ case "$PROFILE" in
 esac
 
 CLUSTER_NAME="${CLUSTER_NAME:-asya-e2e-${PROFILE}}"
-SYSTEM_NAMESPACE="asya-system"
-NAMESPACE="asya-e2e"
+SYSTEM_NAMESPACE="${SYSTEM_NAMESPACE:-asya-system}"
+NAMESPACE="${NAMESPACE:-asya-e2e}"
 
 export HELMFILE_LOG_LEVEL="${HELMFILE_LOG_LEVEL:-error}"
 

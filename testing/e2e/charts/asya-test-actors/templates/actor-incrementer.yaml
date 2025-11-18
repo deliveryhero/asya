@@ -24,6 +24,6 @@ spec:
           imagePullPolicy: {{ .Values.workload.imagePullPolicy }}
           env:
           - name: ASYA_HANDLER
-            value: asya_testing.handlers.payload.pipeline_incrementer
+            value: asya_testing.handlers.{{ .Values.handlerMode }}.pipeline_incrementer
           - name: ASYA_INCLUDE_ROUTE_INFO
             value: 'true'

@@ -47,6 +47,8 @@ const (
 	actorNameHappyEnd = "happy-end"
 	actorNameErrorEnd = "error-end"
 
+	defaultQueueHealthCheckInterval = 5 * time.Minute
+
 	podReasonCrashLoopBackOff           = "CrashLoopBackOff"
 	podReasonImagePullBackOff           = "ImagePullBackOff"
 	podReasonErrImagePull               = "ErrImagePull"
@@ -169,6 +171,11 @@ type AsyncActorReconciler struct {
 // +kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch
 // +kubebuilder:rbac:groups=autoscaling,resources=horizontalpodautoscalers,verbs=get;list;watch
 
+// isQueueManagementEnabled checks if queue management is enabled via environment variable
+func isQueueManagementEnabled() bool {
+	return os.Getenv("ASYA_DISABLE_QUEUE_MANAGEMENT") != "true"
+}
+
 // Reconcile is the main reconciliation loop
 func (r *AsyncActorReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
@@ -230,14 +237,18 @@ func (r *AsyncActorReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{}, err
 	}
 
-	if err := queueReconciler.ReconcileQueue(ctx, asya); err != nil {
-		// Handle SQS-specific queue deletion cooldown error
-		if strings.Contains(err.Error(), "QueueDeletedRecently") {
-			logger.Info("Requeuing after SQS queue deletion cooldown", "retryAfter", "65s")
-			return ctrl.Result{RequeueAfter: 65 * time.Second}, nil
+	if isQueueManagementEnabled() {
+		if err := queueReconciler.ReconcileQueue(ctx, asya); err != nil {
+			// Handle SQS-specific queue deletion cooldown error
+			if strings.Contains(err.Error(), "QueueDeletedRecently") {
+				logger.Info("Requeuing after SQS queue deletion cooldown", "retryAfter", "65s")
+				return ctrl.Result{RequeueAfter: 65 * time.Second}, nil
+			}
+			logger.Error(err, "Failed to reconcile queue", "transport", asya.Spec.Transport)
+			return ctrl.Result{}, err
 		}
-		logger.Error(err, "Failed to reconcile queue", "transport", asya.Spec.Transport)
-		return ctrl.Result{}, err
+	} else {
+		logger.V(1).Info("Queue management disabled, skipping queue reconciliation")
 	}
 
 	// Only reconcile ServiceAccount if using SQS with IRSA (actorRoleArn configured)
@@ -294,7 +305,7 @@ func (r *AsyncActorReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			logger.Error(err, "Failed to get HPA desired replicas")
 		} else if hpaDesired != nil {
 			asya.Status.DesiredReplicas = hpaDesired
-			logger.Info("Set desired replicas from HPA", "desiredReplicas", *hpaDesired)
+			logger.V(1).Info("Set desired replicas from HPA", "desiredReplicas", *hpaDesired)
 		} else {
 			// HPA not found - KEDA may still be creating it
 			logger.Info("HPA not found, KEDA may be creating it - will requeue to check again")
@@ -1277,5 +1288,80 @@ func (r *AsyncActorReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&appsv1.StatefulSet{}).
 		WithOptions(controller.Options{MaxConcurrentReconciles: maxConcurrent})
 
+	// Start periodic queue health check
+	go r.startPeriodicQueueHealthCheck(mgr)
+
 	return bldr.Complete(r)
+}
+
+// startPeriodicQueueHealthCheck triggers periodic reconciliation for queue health monitoring
+func (r *AsyncActorReconciler) startPeriodicQueueHealthCheck(mgr ctrl.Manager) {
+	logger := mgr.GetLogger().WithName("queue-health-checker")
+
+	interval := defaultQueueHealthCheckInterval
+	if envInterval := os.Getenv("ASYA_QUEUE_HEALTH_CHECK_INTERVAL"); envInterval != "" {
+		if parsedInterval, err := time.ParseDuration(envInterval); err == nil {
+			interval = parsedInterval
+		}
+	} else {
+		logger.Info("Env var ASYA_QUEUE_HEALTH_CHECK_INTERVAL not set, skipping periodic queue health check")
+		return
+	}
+
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+
+	logger.Info("Starting queue health check", "interval", interval)
+
+	for range ticker.C {
+		logger.V(1).Info("Running periodic queue health check")
+
+		ctx := context.Background()
+		asyncActors := &asyav1alpha1.AsyncActorList{}
+
+		if err := r.List(ctx, asyncActors); err != nil {
+			logger.Error(err, "Failed to list AsyncActors for health check")
+			continue
+		}
+
+		for i := range asyncActors.Items {
+			actor := &asyncActors.Items[i]
+
+			// Skip if actor is being deleted
+			if !actor.DeletionTimestamp.IsZero() {
+				continue
+			}
+
+			queueName := fmt.Sprintf("asya-%s", actor.Name)
+
+			// Get queue reconciler for the actor's transport
+			queueReconciler, err := r.TransportFactory.GetQueueReconciler(actor.Spec.Transport)
+			if err != nil {
+				logger.Error(err, "Failed to get queue reconciler", "actor", actor.Name, "transport", actor.Spec.Transport)
+				continue
+			}
+
+			// Check if queue exists
+			exists, err := queueReconciler.QueueExists(ctx, queueName, actor.Namespace)
+			if err != nil {
+				logger.Error(err, "Failed to check queue existence", "actor", actor.Name, "queue", queueName)
+				continue
+			}
+
+			// If queue doesn't exist, trigger reconciliation to recreate it
+			if !exists {
+				if isQueueManagementEnabled() {
+					logger.Info("Queue missing, triggering reconciliation", "actor", actor.Name, "queue", queueName)
+
+					if err := queueReconciler.ReconcileQueue(ctx, actor); err != nil {
+						logger.Error(err, "Failed to recreate queue", "actor", actor.Name, "queue", queueName)
+					} else {
+						logger.Info("Queue recreated successfully", "actor", actor.Name, "queue", queueName)
+					}
+				} else {
+					logger.Info("Queue missing but queue management disabled", "actor", actor.Name, "queue", queueName)
+				}
+			}
+		}
+	}
 }

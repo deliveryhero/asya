@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -83,18 +84,44 @@ func NewSQSTransport(ctx context.Context, cfg SQSConfig) (*SQSTransport, error) 
 }
 
 // resolveQueueURL resolves the full queue URL from queue name using GetQueueUrl API
+// with retry logic to handle cases where queue is temporarily missing
 func (t *SQSTransport) resolveQueueURL(ctx context.Context, queueName string) (string, error) {
 	// Check cache first
 	if url, ok := t.queueURLCache[queueName]; ok {
 		return url, nil
 	}
 
-	// Use GetQueueUrl API for dynamic resolution
-	result, err := t.client.GetQueueUrl(ctx, &sqs.GetQueueUrlInput{
-		QueueName: aws.String(queueName),
-	})
+	// Use GetQueueUrl API with retry logic for resilience
+	// This handles cases where queue is deleted externally (chaos scenarios)
+	// and operator needs time to recreate it
+	maxRetries := getQueueRetryMaxAttempts()
+	initialBackoff := getQueueRetryBackoff()
+
+	var result *sqs.GetQueueUrlOutput
+	var err error
+
+	for attempt := 0; attempt < maxRetries; attempt++ {
+		result, err = t.client.GetQueueUrl(ctx, &sqs.GetQueueUrlInput{
+			QueueName: aws.String(queueName),
+		})
+		if err == nil {
+			break
+		}
+
+		if attempt < maxRetries-1 {
+			backoff := initialBackoff * (1 << uint(attempt))
+			slog.Warn("Failed to resolve queue URL, retrying",
+				"queue", queueName,
+				"attempt", attempt+1,
+				"maxRetries", maxRetries,
+				"backoff", backoff,
+				"error", err)
+			time.Sleep(backoff)
+		}
+	}
+
 	if err != nil {
-		return "", fmt.Errorf("failed to resolve queue URL for %s: %w", queueName, err)
+		return "", fmt.Errorf("failed to resolve queue URL for %s after %d attempts: %w", queueName, maxRetries, err)
 	}
 
 	queueURL := aws.ToString(result.QueueUrl)
@@ -157,6 +184,9 @@ func (t *SQSTransport) Receive(ctx context.Context, queueName string) (QueueMess
 			MessageAttributeNames: []string{"All"},
 		})
 		if err != nil {
+			// Invalidate cache if queue no longer exists
+			// This allows retry to fetch fresh queue URL after operator recreates it
+			delete(t.queueURLCache, queueName)
 			return QueueMessage{}, fmt.Errorf("failed to receive from SQS: %w", err)
 		}
 

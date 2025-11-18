@@ -338,6 +338,7 @@ def test_concurrent_s3_writes_no_conflicts(e2e_helper, s3_endpoint, results_buck
 
 @pytest.mark.chaos
 @pytest.mark.xdist_group(name="chaos")
+@pytest.mark.timeout(300)
 def test_database_connection_recovery(e2e_helper):
     """
     E2E: Test gateway recovers from database connection issues.
@@ -381,7 +382,7 @@ def test_database_connection_recovery(e2e_helper):
         e2e_helper.kubectl("scale", "statefulset", "asya-gateway-postgresql", "--replicas=1")
 
         logger.info("Waiting for postgres pod...")
-        assert e2e_helper.wait_for_pod_ready("app=postgresql", timeout=60)
+        assert e2e_helper.wait_for_pod_ready("app=postgresql", timeout=120)
 
         logger.info("Waiting for gateway to recover...")
         assert e2e_helper.wait_for_pod_ready("app.kubernetes.io/name=asya-gateway", timeout=30)
@@ -405,7 +406,7 @@ def test_database_connection_recovery(e2e_helper):
     finally:
         logger.info("Ensuring database is restored...")
         e2e_helper.kubectl("scale", "statefulset", "asya-gateway-postgresql", "--replicas=1")
-        e2e_helper.wait_for_pod_ready("app=postgresql", timeout=60)
+        e2e_helper.wait_for_pod_ready("app=postgresql", timeout=120)
 
 
 @pytest.mark.chaos

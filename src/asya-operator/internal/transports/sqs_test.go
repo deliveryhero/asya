@@ -420,3 +420,67 @@ func TestSQSConfig_TagsMerging(t *testing.T) {
 		})
 	}
 }
+
+func TestSQSTransport_QueueExists_TransportNotFound(t *testing.T) {
+	scheme := runtime.NewScheme()
+	_ = corev1.AddToScheme(scheme)
+	_ = asyav1alpha1.AddToScheme(scheme)
+
+	fakeClient := fake.NewClientBuilder().WithScheme(scheme).Build()
+
+	registry := &asyaconfig.TransportRegistry{
+		Transports: make(map[string]*asyaconfig.TransportConfig),
+	}
+
+	transport := NewSQSTransport(fakeClient, registry)
+
+	exists, err := transport.QueueExists(context.Background(), "asya-test-queue", "default")
+	if err == nil {
+		t.Fatal("Expected error when transport not found, got nil")
+	}
+
+	if exists {
+		t.Error("Expected exists=false when transport not found")
+	}
+
+	expectedError := "transport 'sqs' not found in operator configuration"
+	if err.Error() != expectedError {
+		t.Errorf("Expected error %q, got %q", expectedError, err.Error())
+	}
+}
+
+func TestSQSTransport_QueueExists_InvalidConfigType(t *testing.T) {
+	scheme := runtime.NewScheme()
+	_ = corev1.AddToScheme(scheme)
+	_ = asyav1alpha1.AddToScheme(scheme)
+
+	fakeClient := fake.NewClientBuilder().WithScheme(scheme).Build()
+
+	registry := &asyaconfig.TransportRegistry{
+		Transports: map[string]*asyaconfig.TransportConfig{
+			transportTypeSQS: {
+				Type:    transportTypeSQS,
+				Enabled: true,
+				Config: &asyaconfig.RabbitMQConfig{
+					Host: "rabbitmq.default.svc.cluster.local",
+					Port: 5672,
+				},
+			},
+		},
+	}
+
+	transport := NewSQSTransport(fakeClient, registry)
+
+	exists, err := transport.QueueExists(context.Background(), "asya-test-queue", "default")
+	if err == nil {
+		t.Fatal("Expected error for invalid config type, got nil")
+	}
+
+	if exists {
+		t.Error("Expected exists=false for invalid config type")
+	}
+
+	if err.Error() != "invalid SQS config type" {
+		t.Errorf("Expected 'invalid SQS config type' error, got %q", err.Error())
+	}
+}

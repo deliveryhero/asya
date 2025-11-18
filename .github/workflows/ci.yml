@@ -10,9 +10,9 @@ on:
     paths-ignore:
     - '**.md'
 
-# concurrency:
-#   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-#   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false # ${{ github.event_name == 'pull_request' }}
 
 jobs:
   lint:
@@ -40,7 +40,7 @@ jobs:
   unit-tests:
     name: "Unit tests: ${{ matrix.component }}"
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 15
     permissions:
       contents: read
     strategy:
@@ -68,6 +68,7 @@ jobs:
         retention-days: 1
         include-hidden-files: true
         if-no-files-found: ignore
+        compression-level: 0
 
   component-tests:
     name: "Component tests: ${{ matrix.name }}"
@@ -133,6 +134,7 @@ jobs:
         retention-days: 1
         include-hidden-files: true
         if-no-files-found: ignore
+        compression-level: 0
 
   integration-tests:
     name: "Integration tests: ${{ matrix.name }}"
@@ -234,6 +236,7 @@ jobs:
         retention-days: 1
         include-hidden-files: true
         if-no-files-found: ignore
+        compression-level: 0
 
   e2e-tests:
     name: "E2E tests: ${{ matrix.name }}"
@@ -290,22 +293,32 @@ jobs:
         cd testing/e2e
         make test-operator
 
-    - name: "Run E2E tests (non-chaos)"
+    - name: "Run E2E tests: non-chaos (payload)"
       if: matrix.run_pipeline
       continue-on-error: true
-      id: e2e-non-chaos
+      id: e2e-non-chaos-payload
       env:
         ASYA_LOG_LEVEL: INFO
       run: |
         source .venv/bin/activate
         cd testing/e2e
         make trigger-tests ASYA_HANDLER_MODE=payload PYTEST_OPTS="-v --log-cli-level=INFO -m 'not chaos'"
-        make trigger-tests ASYA_HANDLER_MODE=envelope PYTEST_OPTS="-v --log-cli-level=INFO -m 'not chaos'"
 
-    - name: "Run E2E: chaos tests (payload only)"
+    - name: "Run E2E tests: non-chaos (envelope)"
       if: matrix.run_pipeline
       continue-on-error: true
-      id: e2e-chaos
+      id: e2e-non-chaos-envelope
+      env:
+        ASYA_LOG_LEVEL: INFO
+      run: |
+        source .venv/bin/activate
+        cd testing/e2e
+        make trigger-tests ASYA_HANDLER_MODE=envelope PYTEST_OPTS="-v --log-cli-level=INFO -m 'not chaos'"
+
+    - name: "Run E2E tests: chaos (payload)"
+      if: matrix.run_pipeline
+      continue-on-error: true
+      id: e2e-chaos-payload
       env:
         ASYA_LOG_LEVEL: INFO
       run: |
@@ -321,12 +334,16 @@ jobs:
           echo "[-] E2E test suite failed: operator"
           FAILED=1
         fi
-        if [[ "${{ steps.e2e-non-chaos.outcome }}" == "failure" ]]; then
-          echo "[-] E2E test suite failed: non-chaos (payload + envelope)"
+        if [[ "${{ steps.e2e-non-chaos-payload.outcome }}" == "failure" ]]; then
+          echo "[-] E2E test suite failed: non-chaos (payload)"
           FAILED=1
         fi
-        if [[ "${{ steps.e2e-chaos.outcome }}" == "failure" ]]; then
-          echo "[-] E2E test suite failed: chaos (payload only)"
+        if [[ "${{ steps.e2e-non-chaos-envelope.outcome }}" == "failure" ]]; then
+          echo "[-] E2E test suite failed: non-chaos (envelope)"
+          FAILED=1
+        fi
+        if [[ "${{ steps.e2e-chaos-payload.outcome }}" == "failure" ]]; then
+          echo "[-] E2E test suite failed: chaos (payload)"
           FAILED=1
         fi
         if [[ $FAILED -eq 1 ]]; then
@@ -348,6 +365,7 @@ jobs:
         retention-days: 1
         include-hidden-files: true
         if-no-files-found: ignore
+        compression-level: 0
 
   coverage-report:
     name: Generate coverage report

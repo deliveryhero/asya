@@ -24,4 +24,6 @@ spec:
           imagePullPolicy: {{ .Values.workload.imagePullPolicy }}
           env:
           - name: ASYA_HANDLER
-            value: asya_testing.handlers.payload.empty_response_handler
+            value: asya_testing.handlers.{{ .Values.handlerMode }}.empty_response_handler
+          - name: ASYA_HANDLER_MODE
+            value: {{ .Values.handlerMode }}

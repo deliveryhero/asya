@@ -1,7 +1,7 @@
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 metadata:
-  name: test-slow-boundary
+  name: test-queue-health
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "asya-test-actors.labels" . | nindent 4 }}
@@ -24,6 +24,12 @@ spec:
           imagePullPolicy: {{ .Values.workload.imagePullPolicy }}
           env:
           - name: ASYA_HANDLER
-            value: asya_testing.handlers.{{ .Values.handlerMode }}.slow_then_fast_handler
+            value: asya_testing.handlers.{{ .Values.handlerMode }}.echo_handler
           - name: ASYA_HANDLER_MODE
             value: {{ .Values.handlerMode }}
+          - name: ASYA_INCLUDE_ROUTE_INFO
+            value: 'true'
+          - name: ASYA_QUEUE_RETRY_MAX_ATTEMPTS
+            value: '2'
+          - name: ASYA_QUEUE_RETRY_BACKOFF
+            value: '1s'

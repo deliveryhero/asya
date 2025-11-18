@@ -36,7 +36,7 @@ def cleanup_s3():
 
 
 @pytest.mark.fast
-def test_happy_end_persists_to_s3_e2e(gateway_helper):
+def test_happy_end_persists_to_s3_e2e(e2e_helper):
     """
     Test that happy-end actor persists successful results to S3 in e2e environment.
 
@@ -48,11 +48,11 @@ def test_happy_end_persists_to_s3_e2e(gateway_helper):
     """
     logger.info("=== test_happy_end_persists_to_s3_e2e ===")
 
-    result = gateway_helper.call_mcp_tool("test_echo", {"message": "test s3 persistence e2e"})
+    result = e2e_helper.call_mcp_tool("test_echo", {"message": "test s3 persistence e2e"})
     envelope_id = result["result"]["envelope_id"]
     logger.info(f"Created envelope {envelope_id}")
 
-    final_envelope = gateway_helper.wait_for_envelope_completion(envelope_id, timeout=20)
+    final_envelope = e2e_helper.wait_for_envelope_completion(envelope_id, timeout=20)
     assert final_envelope["status"] == "succeeded", f"Envelope failed: {final_envelope}"
 
     logger.info(f"Envelope {envelope_id} completed successfully")
@@ -72,7 +72,7 @@ def test_happy_end_persists_to_s3_e2e(gateway_helper):
 
 
 @pytest.mark.fast
-def test_error_end_persists_to_s3_e2e(gateway_helper):
+def test_error_end_persists_to_s3_e2e(e2e_helper):
     """
     Test that error-end actor persists errors to S3 in e2e environment.
 
@@ -84,11 +84,11 @@ def test_error_end_persists_to_s3_e2e(gateway_helper):
     """
     logger.info("=== test_error_end_persists_to_s3_e2e ===")
 
-    result = gateway_helper.call_mcp_tool("test_error", {"should_fail": True})
+    result = e2e_helper.call_mcp_tool("test_error", {"should_fail": True})
     envelope_id = result["result"]["envelope_id"]
     logger.info(f"Created envelope {envelope_id}")
 
-    final_envelope = gateway_helper.wait_for_envelope_completion(envelope_id, timeout=20)
+    final_envelope = e2e_helper.wait_for_envelope_completion(envelope_id, timeout=20)
     assert final_envelope["status"] == "failed", f"Expected failure but got: {final_envelope}"
 
     logger.info(f"Envelope {envelope_id} failed as expected")

@@ -56,6 +56,8 @@ leaderElection:
 # Controller configuration
 controller:
   maxConcurrentReconciles: 50 # Number of concurrent AsyncActor reconciliations
+  queueHealthCheckInterval: "5m" # Interval for periodic queue health monitoring (e.g., "5m", "30s", "1h")
+  disableQueueManagement: false # Disable automatic queue creation and reconciliation (default: false)
 
 # Metrics configuration
 metrics:

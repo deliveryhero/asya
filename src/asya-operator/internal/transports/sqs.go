@@ -401,3 +401,44 @@ func (t *SQSTransport) ensureDLQ(ctx context.Context, sqsClient *sqs.Client, mai
 	logger.Info("Shared DLQ created", "dlq", dlqName, "arn", arn)
 	return arn, nil
 }
+
+// QueueExists checks if an SQS queue exists
+func (t *SQSTransport) QueueExists(ctx context.Context, queueName, namespace string) (bool, error) {
+	logger := log.FromContext(ctx)
+
+	// Skip in test environments
+	if os.Getenv("ASYA_SKIP_QUEUE_OPERATIONS") == "true" {
+		logger.V(1).Info("Skipping SQS queue existence check (ASYA_SKIP_QUEUE_OPERATIONS=true)", "queue", queueName)
+		return true, nil
+	}
+
+	transport, err := t.transportRegistry.GetTransport("sqs")
+	if err != nil {
+		return false, err
+	}
+
+	sqsConfig, ok := transport.Config.(*asyaconfig.SQSConfig)
+	if !ok {
+		return false, fmt.Errorf("invalid SQS config type")
+	}
+
+	sqsClient, err := t.createSQSClient(ctx, sqsConfig, namespace)
+	if err != nil {
+		return false, fmt.Errorf("failed to create SQS client: %w", err)
+	}
+
+	// Try to get queue URL
+	_, err = sqsClient.GetQueueUrl(ctx, &sqs.GetQueueUrlInput{
+		QueueName: aws.String(queueName),
+	})
+
+	if err != nil {
+		var qne *types.QueueDoesNotExist
+		if errors.As(err, &qne) {
+			return false, nil
+		}
+		return false, fmt.Errorf("failed to check queue existence: %w", err)
+	}
+
+	return true, nil
+}

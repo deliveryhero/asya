@@ -24,23 +24,15 @@ When runtime fails:
 3. If error-end queue missing → routing fails → sidecar NACK's message
 4. After maxReceiveCount (3) NACKs → transport moves message to DLQ
 
-IMPORTANT: These tests are currently marked as xfail (expected to fail).
+Queue Health Monitoring:
+The operator monitors queue health every 5 minutes and automatically recreates
+missing queues. When we delete error-end queue for testing, the operator will
+eventually recreate it. These tests work by creating a temporary window where
+the queue is missing long enough to trigger DLQ behavior.
 
-WHY THESE TESTS FAIL IN E2E:
-1. DLQ is a transport-level fallback that only triggers when application-level
-   error handling fails (error-end queue unavailable)
-2. To test DLQ, we need to delete error-end queue
-3. When error-end queue is deleted, operator reconciles and deletes dependent
-   queues (like test-error), preventing message consumption
-4. Operator actively manages queue lifecycle, making DLQ testing impossible in E2E
-
-SOLUTION:
-- Move DLQ tests to integration level (testing/integration/sidecar-runtime/)
-  where we control queues directly without operator interference
-- Keep test_error_handling_e2e.py for application-level error handling (error-end queue)
-- Document that transport-level DLQ is tested in integration, not E2E
-
-TODO: Create integration tests for DLQ at testing/integration/sidecar-runtime/
+Note: These tests verify transport-level DLQ behavior (queue missing → DLQ),
+while test_error_handling_e2e.py verifies application-level error handling
+(error-end processes errors when queue exists).
 """
 
 import logging
@@ -73,7 +65,7 @@ def _get_transport_client(transport: str):
 
 @pytest.mark.slow
 @pytest.mark.dlq
-def test_poison_message_moves_to_dlq_e2e(e2e_helper, kubectl):
+def test_poison_message_moves_to_dlq_e2e(e2e_helper, kubectl, chaos_queues):
     """
     E2E: Test poison message (fails repeatedly) moves to DLQ.
 
@@ -154,7 +146,7 @@ def test_poison_message_moves_to_dlq_e2e(e2e_helper, kubectl):
 
 @pytest.mark.slow
 @pytest.mark.dlq
-def test_dlq_preserves_envelope_metadata_e2e(e2e_helper, kubectl):
+def test_dlq_preserves_envelope_metadata_e2e(e2e_helper, kubectl, chaos_queues):
     """
     E2E: Test DLQ preserves envelope metadata.
 
