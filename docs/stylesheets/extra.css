@@ -238,6 +238,21 @@ h1, h2, h3, h4, h5, h6 {
   color: #2c3e50;
 }
 
+/* Dark mode: lighter headers for better visibility */
+.dark h1,
+.dark h2,
+.dark h3,
+.dark h4,
+.dark h5,
+.dark h6 {
+  color: #e8eaed;
+}
+
+/* Dark mode: lighter navigation titles for better visibility */
+.dark .text-muted-foreground {
+  color: #b4b8c0 !important;
+}
+
 /* Buttons */
 .btn-primary {
   background-color: #3498db;
@@ -247,4 +262,30 @@ h1, h2, h3, h4, h5, h6 {
 .btn-primary:hover {
   background-color: #2980b9;
   border-color: #21618c;
+}
+
+/* Table cells should wrap text instead of scrolling */
+.table-responsive {
+  overflow-x: visible !important;
+}
+
+table {
+  table-layout: fixed !important;
+  width: 100% !important;
+  overflow-x: visible !important;
+}
+
+table td,
+table th {
+  word-wrap: break-word !important;
+  overflow-wrap: break-word !important;
+  white-space: normal !important;
+  max-width: none !important;
+  min-width: 0 !important;
+}
+
+/* Force wrapping in table cells with code elements */
+table td code {
+  white-space: normal !important;
+  word-break: break-word !important;
 }
