@@ -338,6 +338,7 @@ def test_concurrent_s3_writes_no_conflicts(e2e_helper, s3_endpoint, results_buck
 
 @pytest.mark.chaos
 @pytest.mark.xdist_group(name="chaos")
+@pytest.mark.timeout(300)
 def test_database_connection_recovery(e2e_helper):
     """
     E2E: Test gateway recovers from database connection issues.
