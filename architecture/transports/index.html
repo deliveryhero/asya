@@ -345,7 +345,7 @@
         class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
 
         
-        For Data Scientists
+        For Data Scientists 🧑‍🔬
         
 
         
@@ -362,7 +362,7 @@
         class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
 
         
-        For Platform Engineers
+        For Platform Engineers ⚙️
         
 
         
@@ -890,18 +890,22 @@
 <span class="w">  </span><span class="nt">transport</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">sqs</span><span class="w">  </span><span class="c1"># or rabbitmq</span>
 </code></pre></div></p>
 <h2 id="transport-interface">Transport Interface<a class="headerlink" href="#transport-interface" title="Permanent link">&para;</a></h2>
-<p>Sidecar implements (<code>src/asya-sidecar/internal/transport/transport.go</code>):
-- <code>Receive(ctx, queueName)</code>: Receive single message from queue (blocking with long polling)
-- <code>Send(ctx, queueName, body)</code>: Send message body to queue
-- <code>Ack(ctx, message)</code>: Acknowledge successful processing
-- <code>Nack(ctx, message)</code>: Negative acknowledge (requeue or move to DLQ)</p>
+<p>Sidecar implements (<code>src/asya-sidecar/internal/transport/transport.go</code>):</p>
+<ul>
+<li><code>Receive(ctx, queueName)</code>: Receive single message from queue (blocking with long polling)</li>
+<li><code>Send(ctx, queueName, body)</code>: Send message body to queue</li>
+<li><code>Ack(ctx, message)</code>: Acknowledge successful processing</li>
+<li><code>Nack(ctx, message)</code>: Negative acknowledge (requeue or move to DLQ)</li>
+</ul>
 <h2 id="queue-management">Queue Management<a class="headerlink" href="#queue-management" title="Permanent link">&para;</a></h2>
 <p>Queues automatically created by operator when AsyncActor reconciled.</p>
 <p><strong>Queue naming</strong>: <code>asya-{actor_name}</code></p>
-<p><strong>Lifecycle</strong>:
-- Created when AsyncActor created
-- Deleted when AsyncActor deleted
-- Preserved when AsyncActor updated</p>
+<p><strong>Lifecycle</strong>:</p>
+<ul>
+<li>Created when AsyncActor created</li>
+<li>Deleted when AsyncActor deleted</li>
+<li>Preserved when AsyncActor updated</li>
+</ul>
 <h2 id="adding-new-transport">Adding New Transport<a class="headerlink" href="#adding-new-transport" title="Permanent link">&para;</a></h2>
 <ol>
 <li>Implement transport interface in <code>src/asya-sidecar/internal/transport/</code></li>
@@ -990,13 +994,13 @@
                         
                         <a class="text-2xl font-medium" href="../../quickstart/for-data_scientists/">
                             
-                            For Data Scientists
+                            For Data Scientists 🧑‍🔬
                             
                         </a>
                         
                         <a class="text-2xl font-medium" href="../../quickstart/for-platform_engineers/">
                             
-                            For Platform Engineers
+                            For Platform Engineers ⚙️
                             
                         </a>
                         

@@ -345,7 +345,7 @@
         class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
 
         
-        For Data Scientists
+        For Data Scientists 🧑‍🔬
         
 
         
@@ -362,7 +362,7 @@
         class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
 
         
-        For Platform Engineers
+        For Platform Engineers ⚙️
         
 
         
@@ -831,10 +831,7 @@
     </div>
   </div>
   <div class="typography w-full flex-1 *:data-[slot=alert]:first:mt-0">
-    <p>Detailed architecture of the Asya🎭 Actor Sidecar.</p>
-<blockquote>
-<p><strong>Source</strong>: <a href="https://github.com/deliveryhero/asya/blob/main/src/asya-sidecar/README.md"><code>src/asya-sidecar/README.md</code></a></p>
-</blockquote>
+    <p>Detailed architecture of the Asya🎭 Actor Sidecar. Please also refer to code documentation <a href="https://github.com/deliveryhero/asya/blob/main/src/asya-sidecar/README.md"><code>src/asya-sidecar/README.md</code></a></p>
 <h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
 <p>The Asya🎭 Actor Sidecar is a Go-based message routing service that sits between async message queues and actor runtime processes. It implements a pull-based architecture with pluggable transport layer.</p>
 <h2 id="key-features">Key Features<a class="headerlink" href="#key-features" title="Permanent link">&para;</a></h2>
@@ -847,8 +844,8 @@
 <li>Prometheus metrics exposure</li>
 </ul>
 <h2 id="quick-start">Quick Start<a class="headerlink" href="#quick-start" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><span class="nb">export</span><span class="w"> </span><span class="nv">ASYA_ACTOR_NAME</span><span class="o">=</span>my-queue
-<span class="nb">export</span><span class="w"> </span><span class="nv">ASYA_RABBITMQ_URL</span><span class="o">=</span>amqp://guest:guest@localhost:5672/
+<div class="highlight"><pre><span></span><code><span class="nb">export</span><span class="w"> </span><span class="nv">ASYA_ACTOR_NAME</span><span class="o">=</span><span class="s2">&quot;my-queue&quot;</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">ASYA_RABBITMQ_URL</span><span class="o">=</span><span class="s2">&quot;amqp://guest:guest@localhost:5672/&quot;</span>
 ./bin/sidecar
 </code></pre></div>
 <h2 id="design-principles">Design Principles<a class="headerlink" href="#design-principles" title="Permanent link">&para;</a></h2>
@@ -1017,6 +1014,7 @@ or
 <p>The Asya🎭 operator automatically injects the sidecar when you deploy an AsyncActor CRD.</p>
 <h3 id="manual-deployment">Manual Deployment<a class="headerlink" href="#manual-deployment" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><span class="nt">containers</span><span class="p">:</span>
+
 <span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya-runtime</span>
 <span class="w">  </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-actor:latest</span>
 <span class="w">  </span><span class="nt">volumeMounts</span><span class="p">:</span>
@@ -1031,6 +1029,7 @@ or
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">socket</span>
 <span class="w">    </span><span class="nt">mountPath</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/tmp/sockets</span>
 <span class="nt">volumes</span><span class="p">:</span>
+
 <span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">socket</span>
 <span class="w">  </span><span class="nt">emptyDir</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{}</span>
 </code></pre></div>
@@ -1139,11 +1138,13 @@ or
 </tr>
 </tbody>
 </table></div>
-<p><strong>Benefits</strong>:
-- No config files to manage
-- Container-friendly
-- Easy per-environment customization
-- Validation on startup</p>
+<p><strong>Benefits</strong>:</p>
+<ul>
+<li>No config files to manage</li>
+<li>Container-friendly</li>
+<li>Easy per-environment customization</li>
+<li>Validation on startup</li>
+</ul>
 <h2 id="concurrency-model">Concurrency Model<a class="headerlink" href="#concurrency-model" title="Permanent link">&para;</a></h2>
 <p><strong>Current</strong>: Single-threaded sequential processing
 - One message at a time
@@ -1238,10 +1239,12 @@ or
 </tbody>
 </table></div>
 <h3 id="at-least-once-semantics">At-Least-Once Semantics<a class="headerlink" href="#at-least-once-semantics" title="Permanent link">&para;</a></h3>
-<p>The sidecar implements <strong>at-least-once delivery</strong>, not exactly-once:
-- Messages ACK'd only after successful routing
-- Failures before ACK result in redelivery
-- Downstream actors <strong>must be idempotent</strong> to handle duplicates</p>
+<p>The sidecar implements <strong>at-least-once delivery</strong>, not exactly-once:</p>
+<ul>
+<li>Messages ACK'd only after successful routing</li>
+<li>Failures before ACK result in redelivery</li>
+<li>Downstream actors <strong>must be idempotent</strong> to handle duplicates</li>
+</ul>
 <h3 id="operational-considerations">Operational Considerations<a class="headerlink" href="#operational-considerations" title="Permanent link">&para;</a></h3>
 <p><strong>Recommended for production:</strong></p>
 <ol>
@@ -1356,13 +1359,13 @@ or
                         
                         <a class="text-2xl font-medium" href="../../quickstart/for-data_scientists/">
                             
-                            For Data Scientists
+                            For Data Scientists 🧑‍🔬
                             
                         </a>
                         
                         <a class="text-2xl font-medium" href="../../quickstart/for-platform_engineers/">
                             
-                            For Platform Engineers
+                            For Platform Engineers ⚙️
                             
                         </a>
                         

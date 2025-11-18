@@ -345,7 +345,7 @@
         class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
 
         
-        For Data Scientists
+        For Data Scientists 🧑‍🔬
         
 
         
@@ -362,7 +362,7 @@
         class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
 
         
-        For Platform Engineers
+        For Platform Engineers ⚙️
         
 
         
@@ -832,10 +832,12 @@
   </div>
   <div class="typography w-full flex-1 *:data-[slot=alert]:first:mt-0">
     <h2 id="what-is-an-actor">What is an Actor?<a class="headerlink" href="#what-is-an-actor" title="Permanent link">&para;</a></h2>
-<p>An actor is a <strong>stateless workload</strong> that:
-- Receives messages from an input queue
-- Processes them via user-defined code
-- Sends results to the next queue in the route</p>
+<p>An actor is a <strong>stateless workload</strong> that:</p>
+<ul>
+<li>Receives messages from an input queue</li>
+<li>Processes them via user-defined code</li>
+<li>Sends results to the next queue in the route</li>
+</ul>
 <p><strong>Alternative to monolithic pipelines</strong>: Instead of one large application handling <code>A → B → C</code>, each step is an independent actor.</p>
 <h2 id="benefits">Benefits<a class="headerlink" href="#benefits" title="Permanent link">&para;</a></h2>
 <ul>
@@ -864,7 +866,7 @@
 │        │                                     │
 └────────┼─────────────────────────────────────┘
          │ Queue Messages
-         │ 
+         │
          ▼
     ┌─────────┐
     │  Queue  │
@@ -895,13 +897,15 @@
 <span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_HANDLER</span>
 <span class="w">            </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;processor.TextProcessor.process&quot;</span>
 </code></pre></div>
-<p><strong>Operator injects</strong>:
-- <code>asya-sidecar</code> container (routing, transport)
-- <code>asya_runtime.py</code> entrypoint script via ConfigMap
-- Runtime container's command calling <code>asya_runtime.py</code>
-- Environment variables (<code>ASYA_SOCKET_DIR</code>, etc.)
-- Volume mounts for Unix socket
-- Readiness probes</p>
+<p><strong>Operator injects</strong>:</p>
+<ul>
+<li><code>asya-sidecar</code> container (routing, transport)</li>
+<li><code>asya_runtime.py</code> entrypoint script via ConfigMap</li>
+<li>Runtime container's command calling <code>asya_runtime.py</code></li>
+<li>Environment variables (<code>ASYA_SOCKET_DIR</code>, etc.)</li>
+<li>Volume mounts for Unix socket</li>
+<li>Readiness probes</li>
+</ul>
 <p><strong>See</strong> <a href="https://github.com/deliveryhero/asya/tree/main/examples/asyas"><code>examples/asyas/</code></a> for more <code>AsyncActor</code> examples.</p>
 <h2 id="basic-commands">Basic Commands<a class="headerlink" href="#basic-commands" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><span class="c1"># List actors</span>
@@ -1018,13 +1022,13 @@ kubectl<span class="w"> </span>logs<span class="w"> </span>-f<span class="w"> </
                         
                         <a class="text-2xl font-medium" href="../../quickstart/for-data_scientists/">
                             
-                            For Data Scientists
+                            For Data Scientists 🧑‍🔬
                             
                         </a>
                         
                         <a class="text-2xl font-medium" href="../../quickstart/for-platform_engineers/">
                             
-                            For Platform Engineers
+                            For Platform Engineers ⚙️
                             
                         </a>
                         

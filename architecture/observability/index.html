@@ -345,7 +345,7 @@
         class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
 
         
-        For Data Scientists
+        For Data Scientists 🧑‍🔬
         
 
         
@@ -362,7 +362,7 @@
         class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
 
         
-        For Platform Engineers
+        For Platform Engineers ⚙️
         
 
         
@@ -874,6 +874,7 @@
 <p>Sidecar exposes metrics on <code>:8080/metrics</code> (configurable via <code>ASYA_METRICS_ADDR</code>).</p>
 <p><strong>Scraping configuration</strong> (Prometheus):
 <div class="highlight"><pre><span></span><code><span class="nt">scrape_configs</span><span class="p">:</span>
+
 <span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">job_name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya-actors</span>
 <span class="w">  </span><span class="nt">kubernetes_sd_configs</span><span class="p">:</span>
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">role</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pod</span>
@@ -906,11 +907,13 @@
 </code></pre></div></p>
 <p><strong>Note</strong>: Operator does NOT automatically create ServiceMonitors. Users must configure Prometheus scraping manually.</p>
 <h2 id="integration-with-grafana">Integration with Grafana<a class="headerlink" href="#integration-with-grafana" title="Permanent link">&para;</a></h2>
-<p><strong>Example dashboards</strong> (future):
-- Actor performance (throughput, latency, errors)
-- Queue depth and autoscaling
-- Resource usage (CPU, memory, GPU)
-- Error rates and types</p>
+<p><strong>Example dashboards</strong> (future):</p>
+<ul>
+<li>Actor performance (throughput, latency, errors)</li>
+<li>Queue depth and autoscaling</li>
+<li>Resource usage (CPU, memory, GPU)</li>
+<li>Error rates and types</li>
+</ul>
 <h2 id="logging">Logging<a class="headerlink" href="#logging" title="Permanent link">&para;</a></h2>
 <p><strong>Structured logging</strong> with JSON format:</p>
 <div class="highlight"><pre><span></span><code><span class="p">{</span>
@@ -923,10 +926,12 @@
 </code></pre></div>
 <p><strong>Log aggregation</strong>: Use standard Kubernetes logging (Fluentd, Loki, CloudWatch).</p>
 <h2 id="tracing-future">Tracing (Future)<a class="headerlink" href="#tracing-future" title="Permanent link">&para;</a></h2>
-<p><strong>OpenTelemetry tracing</strong> for distributed request tracing:
-- Trace envelopes across actors
-- Visualize pipeline execution
-- Identify bottlenecks</p>
+<p><strong>OpenTelemetry tracing</strong> for distributed request tracing:</p>
+<ul>
+<li>Trace envelopes across actors</li>
+<li>Visualize pipeline execution</li>
+<li>Identify bottlenecks</li>
+</ul>
 <p>Currently not implemented.</p>
   </div>
 </article>
@@ -1008,13 +1013,13 @@
                         
                         <a class="text-2xl font-medium" href="../../quickstart/for-data_scientists/">
                             
-                            For Data Scientists
+                            For Data Scientists 🧑‍🔬
                             
                         </a>
                         
                         <a class="text-2xl font-medium" href="../../quickstart/for-platform_engineers/">
                             
-                            For Platform Engineers
+                            For Platform Engineers ⚙️
                             
                         </a>
                         

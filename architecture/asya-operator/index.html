@@ -345,7 +345,7 @@
         class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
 
         
-        For Data Scientists
+        For Data Scientists 🧑‍🔬
         
 
         
@@ -362,7 +362,7 @@
         class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
 
         
-        For Platform Engineers
+        For Platform Engineers ⚙️
         
 
         
@@ -875,31 +875,39 @@ helm<span class="w"> </span>install<span class="w"> </span>asya-operator<span cl
 </code></pre></div>
 <p><strong>Operator watches</strong> all namespaces for AsyncActor resources.</p>
 <h2 id="resource-ownership">Resource Ownership<a class="headerlink" href="#resource-ownership" title="Permanent link">&para;</a></h2>
-<p>Operator creates and owns (via <code>ownerReferences</code>):
-- <strong>Deployment/StatefulSet</strong>: Actor workload with injected sidecar
-- <strong>ScaledObject</strong>: KEDA autoscaling configuration (when <code>spec.scaling.enabled=true</code>)
-- <strong>TriggerAuthentication</strong>: KEDA auth for queue metrics (transport-specific)
-- <strong>ConfigMap</strong>: Runtime script (<code>asya-runtime</code>) in actor's namespace
-- <strong>ServiceAccount</strong>: IRSA-annotated ServiceAccount (SQS with EKS only)</p>
+<p>Operator creates and owns (via <code>ownerReferences</code>):</p>
+<ul>
+<li><strong>Deployment/StatefulSet</strong>: Actor workload with injected sidecar</li>
+<li><strong>ScaledObject</strong>: KEDA autoscaling configuration (when <code>spec.scaling.enabled=true</code>)</li>
+<li><strong>TriggerAuthentication</strong>: KEDA auth for queue metrics (transport-specific)</li>
+<li><strong>ConfigMap</strong>: Runtime script (<code>asya-runtime</code>) in actor's namespace</li>
+<li><strong>ServiceAccount</strong>: IRSA-annotated ServiceAccount (SQS with EKS only)</li>
+</ul>
 <p><strong>Note</strong>: Queues are NOT owned resources. Queues are managed by transport layer but have independent lifecycle (survive AsyncActor deletion by default, deleted explicitly during reconciliation).</p>
 <p>Deleting AsyncActor triggers cascade deletion of owned resources via <code>ownerReferences</code>.</p>
 <h2 id="queue-management">Queue Management<a class="headerlink" href="#queue-management" title="Permanent link">&para;</a></h2>
 <p>Operator automatically creates queues via transport layer abstraction.</p>
 <p><strong>Queue naming</strong>: <code>asya-{actor_name}</code></p>
-<p><strong>Lifecycle</strong>:
-- Created when AsyncActor first reconciled (if <code>spec.scaling.enabled=false</code>, queue created immediately; if KEDA enabled, KEDA creates queue)
-- Deleted when AsyncActor deleted (via finalizer cleanup)
-- Preserved when AsyncActor updated (no modification during reconciliation)</p>
-<p><strong>SQS-specific</strong>:
-- Queue creation via AWS SDK (<code>CreateQueue</code> API)
-- Handles 60-second cooldown after deletion (requeues reconciliation after 65 seconds)
-- Supports IRSA (IAM Roles for Service Accounts) on EKS
-- Supports static credentials via Kubernetes Secrets
-- Visibility timeout auto-calculated as 2x <code>ASYA_RUNTIME_TIMEOUT</code> if not specified</p>
-<p><strong>RabbitMQ-specific</strong>:
-- Queue creation via RabbitMQ Management API
-- Queue properties: durable, non-auto-delete
-- Supports basic auth via Kubernetes Secrets</p>
+<p><strong>Lifecycle</strong>:</p>
+<ul>
+<li>Created when AsyncActor first reconciled (if <code>spec.scaling.enabled=false</code>, queue created immediately; if KEDA enabled, KEDA creates queue)</li>
+<li>Deleted when AsyncActor deleted (via finalizer cleanup)</li>
+<li>Preserved when AsyncActor updated (no modification during reconciliation)</li>
+</ul>
+<p><strong>SQS-specific</strong>:</p>
+<ul>
+<li>Queue creation via AWS SDK (<code>CreateQueue</code> API)</li>
+<li>Handles 60-second cooldown after deletion (requeues reconciliation after 65 seconds)</li>
+<li>Supports IRSA (IAM Roles for Service Accounts) on EKS</li>
+<li>Supports static credentials via Kubernetes Secrets</li>
+<li>Visibility timeout auto-calculated as 2x <code>ASYA_RUNTIME_TIMEOUT</code> if not specified</li>
+</ul>
+<p><strong>RabbitMQ-specific</strong>:</p>
+<ul>
+<li>Queue creation via RabbitMQ Management API</li>
+<li>Queue properties: durable, non-auto-delete</li>
+<li>Supports basic auth via Kubernetes Secrets</li>
+</ul>
 <h2 id="keda-integration">KEDA Integration<a class="headerlink" href="#keda-integration" title="Permanent link">&para;</a></h2>
 <p>Operator creates KEDA ScaledObject for each AsyncActor:</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">keda.sh/v1alpha1</span>
@@ -959,75 +967,97 @@ helm<span class="w"> </span>install<span class="w"> </span>asya-operator<span cl
 <p>Operator recreates queue on next reconciliation.</p>
 <p><strong>SQS caveat</strong>: If queue deleted recently, AWS enforces 60-second cooldown. Operator detects <code>QueueDeletedRecently</code> error and requeues after 65 seconds.</p>
 <h3 id="pod-crashes">Pod Crashes<a class="headerlink" href="#pod-crashes" title="Permanent link">&para;</a></h3>
-<p>Kubernetes restarts pod automatically. Operator updates status to reflect pod health:
-- <strong><code>CrashLoopBackOff</code> in runtime container</strong>: Status → <code>RuntimeError</code>
-- <strong><code>CrashLoopBackOff</code> in sidecar container</strong>: Status → <code>SidecarError</code>
-- <strong><code>ImagePullBackOff</code></strong>: Status → <code>ImagePullError</code>
-- <strong>Volume mount failures</strong>: Status → <code>VolumeError</code>
-- <strong>ConfigMap/Secret not found</strong>: Status → <code>ConfigError</code></p>
+<p>Kubernetes restarts pod automatically. Operator updates status to reflect pod health:</p>
+<ul>
+<li><strong><code>CrashLoopBackOff</code> in runtime container</strong>: Status → <code>RuntimeError</code></li>
+<li><strong><code>CrashLoopBackOff</code> in sidecar container</strong>: Status → <code>SidecarError</code></li>
+<li><strong><code>ImagePullBackOff</code></strong>: Status → <code>ImagePullError</code></li>
+<li><strong>Volume mount failures</strong>: Status → <code>VolumeError</code></li>
+<li><strong>ConfigMap/Secret not found</strong>: Status → <code>ConfigError</code></li>
+</ul>
 <p>Operator is NOT involved in pod restart logic (Kubernetes handles it).</p>
 <h2 id="asyncactor-status">AsyncActor Status<a class="headerlink" href="#asyncactor-status" title="Permanent link">&para;</a></h2>
 <p>The operator calculates granular status based on conditions and pod health.</p>
 <h3 id="status-values">Status Values<a class="headerlink" href="#status-values" title="Permanent link">&para;</a></h3>
-<p><strong>Operational</strong>:
-- <code>Running</code> - All conditions ready, pods healthy
-- <code>Napping</code> - KEDA scaled to zero (no work, intentional)
-- <code>Degraded</code> - Some replicas unhealthy but not completely failed</p>
-<p><strong>Transitional</strong>:
-- <code>Creating</code> - First reconciliation (ObservedGeneration=0)
-- <code>ScalingUp</code> - Replicas increasing
-- <code>ScalingDown</code> - Replicas decreasing
-- <code>Updating</code> - Workload being updated
-- <code>Terminating</code> - DeletionTimestamp set</p>
-<p><strong>Errors</strong>:
-- <code>TransportError</code> - Transport not ready or queue creation failed
-- <code>ScalingError</code> - KEDA ScaledObject creation failed
-- <code>WorkloadError</code> - Generic workload error
-- <code>PendingResources</code> - Insufficient CPU/memory (Unschedulable pods)
-- <code>ImagePullError</code> - ImagePullBackOff or ErrImagePull
-- <code>RuntimeError</code> - Runtime container CrashLoopBackOff
-- <code>SidecarError</code> - Sidecar container CrashLoopBackOff
-- <code>VolumeError</code> - Volume mount failures
-- <code>ConfigError</code> - ConfigMap/Secret not found</p>
+<p><strong>Operational</strong>:</p>
+<ul>
+<li><code>Running</code> - All conditions ready, pods healthy</li>
+<li><code>Napping</code> - KEDA scaled to zero (no work, intentional)</li>
+<li><code>Degraded</code> - Some replicas unhealthy but not completely failed</li>
+</ul>
+<p><strong>Transitional</strong>:</p>
+<ul>
+<li><code>Creating</code> - First reconciliation (ObservedGeneration=0)</li>
+<li><code>ScalingUp</code> - Replicas increasing</li>
+<li><code>ScalingDown</code> - Replicas decreasing</li>
+<li><code>Updating</code> - Workload being updated</li>
+<li><code>Terminating</code> - DeletionTimestamp set</li>
+</ul>
+<p><strong>Errors</strong>:</p>
+<ul>
+<li><code>TransportError</code> - Transport not ready or queue creation failed</li>
+<li><code>ScalingError</code> - KEDA ScaledObject creation failed</li>
+<li><code>WorkloadError</code> - Generic workload error</li>
+<li><code>PendingResources</code> - Insufficient CPU/memory (Unschedulable pods)</li>
+<li><code>ImagePullError</code> - ImagePullBackOff or ErrImagePull</li>
+<li><code>RuntimeError</code> - Runtime container CrashLoopBackOff</li>
+<li><code>SidecarError</code> - Sidecar container CrashLoopBackOff</li>
+<li><code>VolumeError</code> - Volume mount failures</li>
+<li><code>ConfigError</code> - ConfigMap/Secret not found</li>
+</ul>
 <h3 id="status-conditions">Status Conditions<a class="headerlink" href="#status-conditions" title="Permanent link">&para;</a></h3>
-<p>Operator maintains three conditions:
-- <code>TransportReady</code> - Transport validated and queue reconciled
-- <code>WorkloadReady</code> - Workload created and pods healthy
-- <code>ScalingReady</code> - KEDA ScaledObject created (only if <code>spec.scaling.enabled=true</code>)</p>
+<p>Operator maintains three conditions:</p>
+<ul>
+<li><code>TransportReady</code> - Transport validated and queue reconciled</li>
+<li><code>WorkloadReady</code> - Workload created and pods healthy</li>
+<li><code>ScalingReady</code> - KEDA ScaledObject created (only if <code>spec.scaling.enabled=true</code>)</li>
+</ul>
 <h3 id="kubectl-output">kubectl Output<a class="headerlink" href="#kubectl-output" title="Permanent link">&para;</a></h3>
-<p><strong>Standard columns</strong>:
-- <code>STATUS</code> - Overall status (from status values above)
-- <code>RUNNING</code> - Ready replicas count
-- <code>FAILING</code> - Pods in CrashLoopBackOff/ImagePullBackOff
-- <code>TOTAL</code> - Total non-terminated pods
-- <code>DESIRED</code> - Target replicas (from HPA or spec)
-- <code>MIN</code> - Minimum replicas (from spec)
-- <code>MAX</code> - Maximum replicas (from spec)
-- <code>LAST-SCALE</code> - Time since last scale event with direction</p>
-<p><strong>Wide columns</strong> (<code>kubectl get asya -o wide</code>):
-- <code>WORKLOAD</code> - Deployment or StatefulSet
-- <code>TRANSPORT</code> - Ready or NotReady
-- <code>SCALING</code> - KEDA or Manual
-- <code>QUEUED</code> - Messages in queue
-- <code>PROCESSING</code> - In-flight messages</p>
+<p><strong>Standard columns</strong>:</p>
+<ul>
+<li><code>STATUS</code> - Overall status (from status values above)</li>
+<li><code>RUNNING</code> - Ready replicas count</li>
+<li><code>FAILING</code> - Pods in CrashLoopBackOff/ImagePullBackOff</li>
+<li><code>TOTAL</code> - Total non-terminated pods</li>
+<li><code>DESIRED</code> - Target replicas (from HPA or spec)</li>
+<li><code>MIN</code> - Minimum replicas (from spec)</li>
+<li><code>MAX</code> - Maximum replicas (from spec)</li>
+<li><code>LAST-SCALE</code> - Time since last scale event with direction</li>
+</ul>
+<p><strong>Wide columns</strong> (<code>kubectl get asya -o wide</code>):</p>
+<ul>
+<li><code>WORKLOAD</code> - Deployment or StatefulSet</li>
+<li><code>TRANSPORT</code> - Ready or NotReady</li>
+<li><code>SCALING</code> - KEDA or Manual</li>
+<li><code>QUEUED</code> - Messages in queue</li>
+<li><code>PROCESSING</code> - In-flight messages</li>
+</ul>
 <h2 id="validation-rules">Validation Rules<a class="headerlink" href="#validation-rules" title="Permanent link">&para;</a></h2>
 <p>Operator enforces strict validation on AsyncActor spec:</p>
 <h3 id="container-naming">Container Naming<a class="headerlink" href="#container-naming" title="Permanent link">&para;</a></h3>
-<p>✅ <strong>Required</strong>:
-- Exactly one container named <code>asya-runtime</code></p>
-<p>❌ <strong>Forbidden</strong>:
-- User containers named <code>asya-sidecar</code> (reserved for injected sidecar)
-- Init containers named <code>asya-sidecar</code> (reserved)
-- Multiple containers named <code>asya-runtime</code>
-- Zero containers named <code>asya-runtime</code></p>
+<p>✅ <strong>Required</strong>:</p>
+<ul>
+<li>Exactly one container named <code>asya-runtime</code></li>
+</ul>
+<p>❌ <strong>Forbidden</strong>:</p>
+<ul>
+<li>User containers named <code>asya-sidecar</code> (reserved for injected sidecar)</li>
+<li>Init containers named <code>asya-sidecar</code> (reserved)</li>
+<li>Multiple containers named <code>asya-runtime</code></li>
+<li>Zero containers named <code>asya-runtime</code></li>
+</ul>
 <h3 id="runtime-container-restrictions">Runtime Container Restrictions<a class="headerlink" href="#runtime-container-restrictions" title="Permanent link">&para;</a></h3>
-<p>❌ <strong>Forbidden</strong>:
-- Overriding <code>command</code> field in <code>asya-runtime</code> container (operator manages entrypoint)</p>
-<p>✅ <strong>Allowed</strong>:
-- Custom image (must contain user handler code)
-- Custom environment variables (merged with operator-injected vars)
-- Custom resource requests/limits
-- Custom volume mounts</p>
+<p>❌ <strong>Forbidden</strong>:</p>
+<ul>
+<li>Overriding <code>command</code> field in <code>asya-runtime</code> container (operator manages entrypoint)</li>
+</ul>
+<p>✅ <strong>Allowed</strong>:</p>
+<ul>
+<li>Custom image (must contain user handler code)</li>
+<li>Custom environment variables (merged with operator-injected vars)</li>
+<li>Custom resource requests/limits</li>
+<li>Custom volume mounts</li>
+</ul>
 <h3 id="transport-validation">Transport Validation<a class="headerlink" href="#transport-validation" title="Permanent link">&para;</a></h3>
 <p>Operator validates that referenced transport exists and is enabled in operator configuration:</p>
 <div class="highlight"><pre><span></span><code><span class="nt">spec</span><span class="p">:</span>
@@ -1048,35 +1078,46 @@ helm<span class="w"> </span>install<span class="w"> </span>asya-operator<span cl
 </code></pre></div></p>
 <p><strong>Mount into pods</strong>:
 <div class="highlight"><pre><span></span><code><span class="nt">volumeMounts</span><span class="p">:</span>
+
 <span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya-runtime</span>
 <span class="w">  </span><span class="nt">mountPath</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/opt/asya/asya_runtime.py</span>
 <span class="w">  </span><span class="nt">subPath</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya_runtime.py</span>
 <span class="w">  </span><span class="nt">readOnly</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
 </code></pre></div></p>
-<p><strong>Runtime script source</strong>:
-- Default: <code>/runtime/asya_runtime.py</code> (embedded in operator image)
-- Override via operator env: <code>ASYA_RUNTIME_SCRIPT_PATH</code></p>
+<p><strong>Runtime script source</strong>:</p>
+<ul>
+<li>Default: <code>/runtime/asya_runtime.py</code> (embedded in operator image)</li>
+<li>Override via operator env: <code>ASYA_RUNTIME_SCRIPT_PATH</code></li>
+</ul>
 <p><strong>Update behavior</strong>: ConfigMap updated if content differs from source file.</p>
 <h2 id="sidecar-injection">Sidecar Injection<a class="headerlink" href="#sidecar-injection" title="Permanent link">&para;</a></h2>
 <p>Operator injects <code>asya-sidecar</code> container into every actor pod.</p>
-<p><strong>Sidecar image</strong>:
-- Default: <code>asya-sidecar:latest</code>
-- Override via operator env: <code>ASYA_SIDECAR_IMAGE</code>
-- Override per-actor: <code>spec.sidecar.image</code></p>
-<p><strong>Injected environment variables</strong>:
-- <code>ASYA_ACTOR_NAME</code> - Actor name (for queue naming)
-- <code>ASYA_TRANSPORT</code> - Transport type (sqs, rabbitmq)
-- <code>ASYA_GATEWAY_URL</code> - Gateway URL (if configured)
-- <code>ASYA_IS_END_ACTOR</code> - Set to <code>true</code> for <code>happy-end</code> and <code>error-end</code> actors
-- Transport-specific variables (AWS region, RabbitMQ host, etc.)</p>
-<p><strong>Shared volumes</strong>:
-- <code>socket-dir</code> - Unix socket directory (<code>/var/run/asya</code>)
-- <code>tmp</code> - Temporary directory</p>
+<p><strong>Sidecar image</strong>:</p>
+<ul>
+<li>Default: <code>asya-sidecar:latest</code></li>
+<li>Override via operator env: <code>ASYA_SIDECAR_IMAGE</code></li>
+<li>Override per-actor: <code>spec.sidecar.image</code></li>
+</ul>
+<p><strong>Injected environment variables</strong>:</p>
+<ul>
+<li><code>ASYA_ACTOR_NAME</code> - Actor name (for queue naming)</li>
+<li><code>ASYA_TRANSPORT</code> - Transport type (sqs, rabbitmq)</li>
+<li><code>ASYA_GATEWAY_URL</code> - Gateway URL (if configured)</li>
+<li><code>ASYA_IS_END_ACTOR</code> - Set to <code>true</code> for <code>happy-end</code> and <code>error-end</code> actors</li>
+<li>Transport-specific variables (AWS region, RabbitMQ host, etc.)</li>
+</ul>
+<p><strong>Shared volumes</strong>:</p>
+<ul>
+<li><code>socket-dir</code> - Unix socket directory (<code>/var/run/asya</code>)</li>
+<li><code>tmp</code> - Temporary directory</li>
+</ul>
 <h2 id="observability">Observability<a class="headerlink" href="#observability" title="Permanent link">&para;</a></h2>
-<p><strong>Controller metrics</strong> (Prometheus):
-- <code>controller_runtime_reconcile_total{controller="asyncactor"}</code> - Total reconciliations
-- <code>controller_runtime_reconcile_errors_total{controller="asyncactor"}</code> - Failed reconciliations
-- <code>controller_runtime_reconcile_time_seconds{controller="asyncactor"}</code> - Reconciliation duration</p>
+<p><strong>Controller metrics</strong> (Prometheus):</p>
+<ul>
+<li><code>controller_runtime_reconcile_total{controller="asyncactor"}</code> - Total reconciliations</li>
+<li><code>controller_runtime_reconcile_errors_total{controller="asyncactor"}</code> - Failed reconciliations</li>
+<li><code>controller_runtime_reconcile_time_seconds{controller="asyncactor"}</code> - Reconciliation duration</li>
+</ul>
 <p><strong>Logs</strong>: Structured logging (JSON format) with reconciliation events, errors, and debug information.</p>
 <p><strong>See</strong>: <a href="../observability/">observability.md</a> for monitoring setup.</p>
 <h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
@@ -1185,13 +1226,13 @@ helm<span class="w"> </span>install<span class="w"> </span>asya-operator<span cl
                         
                         <a class="text-2xl font-medium" href="../../quickstart/for-data_scientists/">
                             
-                            For Data Scientists
+                            For Data Scientists 🧑‍🔬
                             
                         </a>
                         
                         <a class="text-2xl font-medium" href="../../quickstart/for-platform_engineers/">
                             
-                            For Platform Engineers
+                            For Platform Engineers ⚙️
                             
                         </a>
                         

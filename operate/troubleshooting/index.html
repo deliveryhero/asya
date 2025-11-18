@@ -345,7 +345,7 @@
         class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
 
         
-        For Data Scientists
+        For Data Scientists 🧑‍🔬
         
 
         
@@ -362,7 +362,7 @@
         class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
 
         
-        For Platform Engineers
+        For Platform Engineers ⚙️
         
 
         
@@ -838,21 +838,25 @@
 <div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>describe<span class="w"> </span>pod<span class="w"> </span>&lt;pod-name&gt;
 kubectl<span class="w"> </span>logs<span class="w"> </span>&lt;pod-name&gt;
 </code></pre></div></p>
-<p><strong>Common causes</strong>:
-- Missing image
-- Wrong ASYA_HANDLER value
-- Missing dependencies
-- Resource limits too low</p>
+<p><strong>Common causes</strong>:</p>
+<ul>
+<li>Missing image</li>
+<li>Wrong ASYA_HANDLER value</li>
+<li>Missing dependencies</li>
+<li>Resource limits too low</li>
+</ul>
 <h2 id="queue-not-created">Queue Not Created<a class="headerlink" href="#queue-not-created" title="Permanent link">&para;</a></h2>
 <p><strong>Symptoms</strong>: Sidecar connection errors</p>
 <p><strong>Check</strong>:
 <div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>logs<span class="w"> </span>-n<span class="w"> </span>asya-system<span class="w"> </span>deploy/asya-operator
 kubectl<span class="w"> </span>describe<span class="w"> </span>asya<span class="w"> </span>&lt;actor-name&gt;
 </code></pre></div></p>
-<p><strong>Common causes</strong>:
-- Transport not configured in operator
-- Missing IAM permissions (SQS)
-- RabbitMQ not accessible</p>
+<p><strong>Common causes</strong>:</p>
+<ul>
+<li>Transport not configured in operator</li>
+<li>Missing IAM permissions (SQS)</li>
+<li>RabbitMQ not accessible</li>
+</ul>
 <h2 id="actor-not-scaling">Actor Not Scaling<a class="headerlink" href="#actor-not-scaling" title="Permanent link">&para;</a></h2>
 <p><strong>Symptoms</strong>: Pods stuck at 0 or not scaling up</p>
 <p><strong>Check</strong>:
@@ -860,53 +864,65 @@ kubectl<span class="w"> </span>describe<span class="w"> </span>asya<span class="
 kubectl<span class="w"> </span>describe<span class="w"> </span>scaledobject<span class="w"> </span>&lt;actor-name&gt;
 kubectl<span class="w"> </span>get<span class="w"> </span>hpa
 </code></pre></div></p>
-<p><strong>Common causes</strong>:
-- KEDA not installed
-- Wrong queueLength configuration
-- IAM permissions missing for KEDA</p>
+<p><strong>Common causes</strong>:</p>
+<ul>
+<li>KEDA not installed</li>
+<li>Wrong queueLength configuration</li>
+<li>IAM permissions missing for KEDA</li>
+</ul>
 <h2 id="sidecar-connection-errors">Sidecar Connection Errors<a class="headerlink" href="#sidecar-connection-errors" title="Permanent link">&para;</a></h2>
 <p><strong>Symptoms</strong>: <code>connection_error</code> in sidecar logs</p>
 <p><strong>Check</strong>:
 <div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>logs<span class="w"> </span>deploy/&lt;actor&gt;<span class="w"> </span>-c<span class="w"> </span>asya-sidecar
 </code></pre></div></p>
-<p><strong>Common causes</strong>:
-- Wrong transport configuration
-- Missing credentials
-- Queue doesn't exist
-- Network policy blocking</p>
+<p><strong>Common causes</strong>:</p>
+<ul>
+<li>Wrong transport configuration</li>
+<li>Missing credentials</li>
+<li>Queue doesn't exist</li>
+<li>Network policy blocking</li>
+</ul>
 <h2 id="runtime-errors">Runtime Errors<a class="headerlink" href="#runtime-errors" title="Permanent link">&para;</a></h2>
 <p><strong>Symptoms</strong>: <code>processing_error</code> in logs</p>
 <p><strong>Check</strong>:
 <div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>logs<span class="w"> </span>deploy/&lt;actor&gt;<span class="w"> </span>-c<span class="w"> </span>asya-runtime
 </code></pre></div></p>
-<p><strong>Common causes</strong>:
-- Handler function not found
-- Wrong <code>ASYA_HANDLER</code> path
-- Missing Python dependencies
-- OOM (check memory limits)</p>
+<p><strong>Common causes</strong>:</p>
+<ul>
+<li>Handler function not found</li>
+<li>Wrong <code>ASYA_HANDLER</code> path</li>
+<li>Missing Python dependencies</li>
+<li>OOM (check memory limits)</li>
+</ul>
 <h2 id="frequent-oom">Frequent OOM<a class="headerlink" href="#frequent-oom" title="Permanent link">&para;</a></h2>
 <p><strong>Symptoms</strong>: <code>oom_error</code> or <code>cuda_oom_error</code></p>
-<p><strong>Solutions</strong>:
-- Increase memory limits
-- Use a larger GPU machine
-- Reduce batch size
-- Profile memory usage</p>
+<p><strong>Solutions</strong>:</p>
+<ul>
+<li>Increase memory limits</li>
+<li>Use a larger GPU machine</li>
+<li>Reduce batch size</li>
+<li>Profile memory usage</li>
+</ul>
 <h2 id="timeout-errors">Timeout Errors<a class="headerlink" href="#timeout-errors" title="Permanent link">&para;</a></h2>
 <p><strong>Symptoms</strong>: <code>timeout_error</code> in logs</p>
-<p><strong>Solutions</strong>:
-- Increase <code>ASYA_RUNTIME_TIMEOUT</code>
-- Optimize handler performance
-- Add timeout warning in handler</p>
+<p><strong>Solutions</strong>:</p>
+<ul>
+<li>Increase <code>ASYA_RUNTIME_TIMEOUT</code></li>
+<li>Optimize handler performance</li>
+<li>Add timeout warning in handler</li>
+</ul>
 <h2 id="gateway-not-responding">Gateway Not Responding<a class="headerlink" href="#gateway-not-responding" title="Permanent link">&para;</a></h2>
 <p><strong>Symptoms</strong>: HTTP 500 errors, timeouts</p>
 <p><strong>Check</strong>:
 <div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>logs<span class="w"> </span>deploy/asya-gateway
 kubectl<span class="w"> </span>describe<span class="w"> </span>pod<span class="w"> </span>&lt;gateway-pod&gt;
 </code></pre></div></p>
-<p><strong>Common causes</strong>:
-- PostgreSQL connection failed
-- Missing environment variables
-- Tool configuration errors</p>
+<p><strong>Common causes</strong>:</p>
+<ul>
+<li>PostgreSQL connection failed</li>
+<li>Missing environment variables</li>
+<li>Tool configuration errors</li>
+</ul>
 <h2 id="for-more-help">For More Help<a class="headerlink" href="#for-more-help" title="Permanent link">&para;</a></h2>
 <ul>
 <li>Check <a href="../architecture/">Architecture Documentation</a></li>
@@ -993,13 +1009,13 @@ kubectl<span class="w"> </span>describe<span class="w"> </span>pod<span class="w
                         
                         <a class="text-2xl font-medium" href="../../quickstart/for-data_scientists/">
                             
-                            For Data Scientists
+                            For Data Scientists 🧑‍🔬
                             
                         </a>
                         
                         <a class="text-2xl font-medium" href="../../quickstart/for-platform_engineers/">
                             
-                            For Platform Engineers
+                            For Platform Engineers ⚙️
                             
                         </a>
                         

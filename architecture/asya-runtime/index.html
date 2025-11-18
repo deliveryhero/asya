@@ -345,7 +345,7 @@
         class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
 
         
-        For Data Scientists
+        For Data Scientists 🧑‍🔬
         
 
         
@@ -362,7 +362,7 @@
         class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
 
         
-        For Platform Engineers
+        For Platform Engineers ⚙️
         
 
         
@@ -849,6 +849,7 @@
 <h2 id="deployment">Deployment<a class="headerlink" href="#deployment" title="Permanent link">&para;</a></h2>
 <p>User defines container with Python code. Operator injects <code>asya_runtime.py</code>:</p>
 <div class="highlight"><pre><span></span><code><span class="nt">containers</span><span class="p">:</span>
+
 <span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya-runtime</span>
 <span class="w">  </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-handler:v1</span>
 <span class="w">  </span><span class="nt">command</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;python3&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;/opt/asya/asya_runtime.py&quot;</span><span class="p p-Indicator">]</span><span class="w">  </span><span class="c1"># Injected</span>
@@ -908,10 +909,12 @@
 <div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">process</span><span class="p">(</span><span class="n">payload</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
     <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;result&quot;</span><span class="p">:</span> <span class="o">...</span><span class="p">}</span>  <span class="c1"># Single value or list for fan-out</span>
 </code></pre></div>
-<p>Runtime automatically:
-- Increments <code>route.current</code>
-- Preserves <code>headers</code>
-- Creates new envelope with mutated payload</p>
+<p>Runtime automatically:</p>
+<ul>
+<li>Increments <code>route.current</code></li>
+<li>Preserves <code>headers</code></li>
+<li>Creates new envelope with mutated payload</li>
+</ul>
 <h3 id="envelope-mode">Envelope Mode<a class="headerlink" href="#envelope-mode" title="Permanent link">&para;</a></h3>
 <p><strong>Configuration</strong>: <code>ASYA_HANDLER_MODE=envelope</code></p>
 <p>Handler receives full envelope structure:</p>
@@ -949,19 +952,25 @@
   <span class="p">}</span>
 <span class="p">}]</span>
 </code></pre></div>
-<p><strong>Error codes</strong>:
-- <code>processing_error</code>: Handler exception (any unhandled error)
-- <code>msg_parsing_error</code>: Invalid JSON or envelope structure
-- <code>connection_error</code>: Socket/network issues</p>
+<p><strong>Error codes</strong>:</p>
+<ul>
+<li><code>processing_error</code>: Handler exception (any unhandled error)</li>
+<li><code>msg_parsing_error</code>: Invalid JSON or envelope structure</li>
+<li><code>connection_error</code>: Socket/network issues</li>
+</ul>
 <p>Sidecar receives error response and routes envelope to <code>error-end</code>.</p>
 <h2 id="route-modification-rules">Route Modification Rules<a class="headerlink" href="#route-modification-rules" title="Permanent link">&para;</a></h2>
 <p>Handlers in envelope mode can modify routes but <strong>MUST preserve already-processed steps</strong>:</p>
-<p>✅ <strong>Allowed</strong>:
-- Add future steps: <code>["a","b","c"]</code> → <code>["a","b","c","d"]</code> (at current=0)
-- Replace future steps: <code>["a","b","c"]</code> → <code>["a","x","y"]</code> (at current=0)</p>
-<p>❌ <strong>Forbidden</strong>:
-- Erase processed steps: <code>["a","b","c"]</code> → <code>["c"]</code> at current=2
-- Modify processed actor names: <code>["a","b","c"]</code> → <code>["a-new","b","c"]</code> at current=1</p>
+<p>✅ <strong>Allowed</strong>:</p>
+<ul>
+<li>Add future steps: <code>["a","b","c"]</code> → <code>["a","b","c","d"]</code> (at current=0)</li>
+<li>Replace future steps: <code>["a","b","c"]</code> → <code>["a","x","y"]</code> (at current=0)</li>
+</ul>
+<p>❌ <strong>Forbidden</strong>:</p>
+<ul>
+<li>Erase processed steps: <code>["a","b","c"]</code> → <code>["c"]</code> at current=2</li>
+<li>Modify processed actor names: <code>["a","b","c"]</code> → <code>["a-new","b","c"]</code> at current=1</li>
+</ul>
 <p><strong>Validation</strong>: Runtime validates <code>route.actors[0:current+1]</code> unchanged.</p>
 <h2 id="asya_runtimepy-via-configmap"><code>asya_runtime.py</code> via ConfigMap<a class="headerlink" href="#asya_runtimepy-via-configmap" title="Permanent link">&para;</a></h2>
 <p><strong>Source</strong>: <code>src/asya-runtime/asya_runtime.py</code> (single file, no dependencies)</p>
@@ -969,9 +978,11 @@
 1. Operator reads <code>asya_runtime.py</code> at runtime (via <code>ASYA_RUNTIME_SCRIPT_PATH</code> or default)
 2. Stores content in ConfigMap
 3. Mounts ConfigMap into actor pods at <code>/opt/asya/asya_runtime.py</code></p>
-<p><strong>Symlinks</strong> (for testing):
-- <code>src/asya-operator/internal/controller/runtime_symlink/asya_runtime.py</code> → Operator reads
-- <code>testing/integration/operator/testdata/runtime_symlink/asya_runtime.py</code> → Tests use</p>
+<p><strong>Symlinks</strong> (for testing):</p>
+<ul>
+<li><code>src/asya-operator/internal/controller/runtime_symlink/asya_runtime.py</code> → Operator reads</li>
+<li><code>testing/integration/operator/testdata/runtime_symlink/asya_runtime.py</code> → Tests use</li>
+</ul>
 <p><strong>IMPORTANT</strong>: Symlinks automatically reflect changes to source file. No manual sync needed.</p>
 <h2 id="readiness-probe">Readiness Probe<a class="headerlink" href="#readiness-probe" title="Permanent link">&para;</a></h2>
 <p>Runtime signals readiness via separate mechanism:</p>
@@ -1138,13 +1149,13 @@
                         
                         <a class="text-2xl font-medium" href="../../quickstart/for-data_scientists/">
                             
-                            For Data Scientists
+                            For Data Scientists 🧑‍🔬
                             
                         </a>
                         
                         <a class="text-2xl font-medium" href="../../quickstart/for-platform_engineers/">
                             
-                            For Platform Engineers
+                            For Platform Engineers ⚙️
                             
                         </a>
                         

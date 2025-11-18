@@ -71,6 +71,7 @@ spec:
 ## Transport Interface
 
 Sidecar implements (`src/asya-sidecar/internal/transport/transport.go`):
+
 - `Receive(ctx, queueName)`: Receive single message from queue (blocking with long polling)
 - `Send(ctx, queueName, body)`: Send message body to queue
 - `Ack(ctx, message)`: Acknowledge successful processing
@@ -83,6 +84,7 @@ Queues automatically created by operator when AsyncActor reconciled.
 **Queue naming**: `asya-{actor_name}`
 
 **Lifecycle**:
+
 - Created when AsyncActor created
 - Deleted when AsyncActor deleted
 - Preserved when AsyncActor updated

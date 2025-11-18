@@ -3,12 +3,14 @@
 Self-hosted open-source message broker.
 
 **Features**:
+
 - Topic exchange routing
 - Automatic queue declaration and binding
 - Prefetch control for load management
 - Durable queues and persistent messages
 
 **Configuration**:
+
 - AMQP connection URL
 - Exchange name
 - Prefetch count
@@ -44,6 +46,7 @@ spec:
 ```
 
 **Sidecar environment variables** (injected by operator):
+
 - `ASYA_TRANSPORT=rabbitmq`
 - `ASYA_RABBITMQ_HOST` → from `config.host`
 - `ASYA_RABBITMQ_PORT` → from `config.port` (default: 5672)
@@ -70,6 +73,7 @@ amqp://{username}:{password}@{host}:{port}/
 **Example**: Actor `text-processor` → Queue `asya-text-processor`
 
 **Queue properties**:
+
 - Durable: `true`
 - Auto-delete: `false`
 - Exclusive: `false`
@@ -99,6 +103,7 @@ data:
 
 ```yaml
 triggers:
+
 - type: rabbitmq
   metadata:
     host: amqp://guest:password@rabbitmq:5672

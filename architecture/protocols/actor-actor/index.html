@@ -345,7 +345,7 @@
         class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
 
         
-        For Data Scientists
+        For Data Scientists 🧑‍🔬
         
 
         
@@ -362,7 +362,7 @@
         class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
 
         
-        For Platform Engineers
+        For Platform Engineers ⚙️
         
 
         
@@ -852,24 +852,30 @@
 <span class="w">  </span><span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div>
-<p><strong>Fields</strong>:
-- <code>id</code> (required): Unique envelope identifier
-- <code>parent_id</code> (optional): Parent envelope ID for fanout children (see Fan-Out section)
-- <code>route</code> (required): Actor list and current position
-  - <code>actors</code>: Pipeline definition
-  - <code>current</code>: Current actor index (0-based, incremented by runtime)
-- <code>payload</code> (required): User data processed by actors
-- <code>headers</code> (optional): Routing metadata (trace IDs, priorities)</p>
+<p><strong>Fields</strong>:</p>
+<ul>
+<li><code>id</code> (required): Unique envelope identifier</li>
+<li><code>parent_id</code> (optional): Parent envelope ID for fanout children (see Fan-Out section)</li>
+<li><code>route</code> (required): Actor list and current position</li>
+<li><code>actors</code>: Pipeline definition</li>
+<li><code>current</code>: Current actor index (0-based, incremented by runtime)</li>
+<li><code>payload</code> (required): User data processed by actors</li>
+<li><code>headers</code> (optional): Routing metadata (trace IDs, priorities)</li>
+</ul>
 <h2 id="queue-naming-convention">Queue Naming Convention<a class="headerlink" href="#queue-naming-convention" title="Permanent link">&para;</a></h2>
 <p>All actor queues follow pattern: <code>asya-{actor_name}</code></p>
-<p><strong>Examples</strong>:
-- Actor <code>text-analyzer</code> → Queue <code>asya-text-analyzer</code>
-- Actor <code>image-processor</code> → Queue <code>asya-image-processor</code>
-- System actors: <code>asya-happy-end</code>, <code>asya-error-end</code></p>
-<p><strong>Benefits</strong>:
-- Fine-grained IAM policies: <code>arn:aws:sqs:*:*:asya-*</code>
-- Clear namespace separation
-- Automated queue management by operator</p>
+<p><strong>Examples</strong>:</p>
+<ul>
+<li>Actor <code>text-analyzer</code> → Queue <code>asya-text-analyzer</code></li>
+<li>Actor <code>image-processor</code> → Queue <code>asya-image-processor</code></li>
+<li>System actors: <code>asya-happy-end</code>, <code>asya-error-end</code></li>
+</ul>
+<p><strong>Benefits</strong>:</p>
+<ul>
+<li>Fine-grained IAM policies: <code>arn:aws:sqs:*:*:asya-*</code></li>
+<li>Clear namespace separation</li>
+<li>Automated queue management by operator</li>
+</ul>
 <h2 id="message-acknowledgment">Message Acknowledgment<a class="headerlink" href="#message-acknowledgment" title="Permanent link">&para;</a></h2>
 <p><strong>Ack</strong>: Message processed successfully, remove from queue
 - Runtime returns valid response
@@ -899,14 +905,18 @@
 <span class="p">]</span>
 </code></pre></div></p>
 <p><strong>Action</strong>: Sidecar creates multiple envelopes (one per item) → Routes to next actor</p>
-<p><strong>Fanout ID semantics</strong>:
-- First envelope retains original ID (for SSE streaming compatibility)
-- Subsequent envelopes receive suffixed IDs: <code>{original_id}-{index}</code>
-- All fanout children have <code>parent_id</code> set to original envelope ID</p>
-<p><strong>Example</strong>: Envelope <code>abc-123</code> returns 3 items:
-- Index 0: <code>id="abc-123"</code>, <code>parent_id=null</code> (original ID preserved)
-- Index 1: <code>id="abc-123-1"</code>, <code>parent_id="abc-123"</code> (fanout child)
-- Index 2: <code>id="abc-123-2"</code>, <code>parent_id="abc-123"</code> (fanout child)</p>
+<p><strong>Fanout ID semantics</strong>:</p>
+<ul>
+<li>First envelope retains original ID (for SSE streaming compatibility)</li>
+<li>Subsequent envelopes receive suffixed IDs: <code>{original_id}-{index}</code></li>
+<li>All fanout children have <code>parent_id</code> set to original envelope ID</li>
+</ul>
+<p><strong>Example</strong>: Envelope <code>abc-123</code> returns 3 items:</p>
+<ul>
+<li>Index 0: <code>id="abc-123"</code>, <code>parent_id=null</code> (original ID preserved)</li>
+<li>Index 1: <code>id="abc-123-1"</code>, <code>parent_id="abc-123"</code> (fanout child)</li>
+<li>Index 2: <code>id="abc-123-2"</code>, <code>parent_id="abc-123"</code> (fanout child)</li>
+</ul>
 <h3 id="empty-response">Empty Response<a class="headerlink" href="#empty-response" title="Permanent link">&para;</a></h3>
 <p>Runtime returns <code>null</code> or <code>[]</code>:</p>
 <p><strong>Action</strong>: Sidecar routes envelope to <code>happy-end</code> (no increment)</p>
@@ -946,10 +956,12 @@
 <span class="w">  </span><span class="nt">&quot;recipe_eval_details&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Recipe is nonsense&quot;</span>
 <span class="p">}</span>
 </code></pre></div>
-<p><strong>Benefits</strong>:
-- Better actor decoupling - each actor only needs specific fields
-- Full traceability - complete processing history in final payload
-- Routing flexibility - later actors can access earlier results</p>
+<p><strong>Benefits</strong>:</p>
+<ul>
+<li>Better actor decoupling - each actor only needs specific fields</li>
+<li>Full traceability - complete processing history in final payload</li>
+<li>Routing flexibility - later actors can access earlier results</li>
+</ul>
 <h2 id="envelope-status-tracking">Envelope Status Tracking<a class="headerlink" href="#envelope-status-tracking" title="Permanent link">&para;</a></h2>
 <p>When gateway is enabled, envelopes have lifecycle statuses tracked throughout processing:</p>
 <h3 id="status-values">Status Values<a class="headerlink" href="#status-values" title="Permanent link">&para;</a></h3>
@@ -991,15 +1003,21 @@
 </table></div>
 <h3 id="progress-reporting">Progress Reporting<a class="headerlink" href="#progress-reporting" title="Permanent link">&para;</a></h3>
 <p>Sidecars report progress to gateway at three points per actor:</p>
-<p><strong>1. Received</strong> (<code>received</code>):
-- Message pulled from queue
-- Before forwarding to runtime</p>
-<p><strong>2. Processing</strong> (<code>processing</code>):
-- Message sent to runtime via Unix socket
-- Runtime is executing handler</p>
-<p><strong>3. Completed</strong> (<code>completed</code>):
-- Runtime returned successful response
-- Before routing to next actor</p>
+<p><strong>1. Received</strong> (<code>received</code>):</p>
+<ul>
+<li>Message pulled from queue</li>
+<li>Before forwarding to runtime</li>
+</ul>
+<p><strong>2. Processing</strong> (<code>processing</code>):</p>
+<ul>
+<li>Message sent to runtime via Unix socket</li>
+<li>Runtime is executing handler</li>
+</ul>
+<p><strong>3. Completed</strong> (<code>completed</code>):</p>
+<ul>
+<li>Runtime returned successful response</li>
+<li>Before routing to next actor</li>
+</ul>
 <p><strong>Progress calculation</strong>:
 <div class="highlight"><pre><span></span><code>progress_percent = (actors_completed / total_actors) * 100
 </code></pre></div></p>
@@ -1132,13 +1150,13 @@
                         
                         <a class="text-2xl font-medium" href="../../../quickstart/for-data_scientists/">
                             
-                            For Data Scientists
+                            For Data Scientists 🧑‍🔬
                             
                         </a>
                         
                         <a class="text-2xl font-medium" href="../../../quickstart/for-platform_engineers/">
                             
-                            For Platform Engineers
+                            For Platform Engineers ⚙️
                             
                         </a>
                         

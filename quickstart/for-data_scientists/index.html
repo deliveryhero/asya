@@ -36,11 +36,11 @@
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>For Data Scientists - Asya🎭</title>
+    <title>For Data Scientists 🧑‍🔬 - Asya🎭</title>
     
 
 
-<title>For Data Scientists</title>
+<title>For Data Scientists 🧑‍🔬</title>
 
 
 
@@ -55,7 +55,7 @@
 
 <!-- Open Graph (Facebook, LinkedIn) -->
 
-<meta property="og:title" content="For Data Scientists">
+<meta property="og:title" content="For Data Scientists 🧑‍🔬">
 
 
 
@@ -70,7 +70,7 @@
 
 <!-- Twitter Card -->
 
-<meta name="twitter:title" content="For Data Scientists">
+<meta name="twitter:title" content="For Data Scientists 🧑‍🔬">
 
 
 
@@ -345,7 +345,7 @@
         class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
 
         
-        For Data Scientists
+        For Data Scientists 🧑‍🔬
         
 
         
@@ -362,7 +362,7 @@
         class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
 
         
-        For Platform Engineers
+        For Platform Engineers ⚙️
         
 
         
@@ -757,7 +757,7 @@
         <h1
           class="scroll-m-20 text-4xl font-semibold tracking-tight sm:text-3xl xl:text-4xl"
         >
-          For Data Scientists
+          For Data Scientists 🧑‍🔬
         </h1>
 
         <div class="flex items-center gap-2 pt-1.5">
@@ -998,11 +998,13 @@
 
 <div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>apply<span class="w"> </span>-f<span class="w"> </span>text-processor.yaml
 </code></pre></div>
-<p><strong>Asya automatically injects</strong>:
-- Sidecar for routing and transport
-- Runtime entrypoint for handler loading
-- Autoscaling configuration (KEDA)
-- Queue creation (SQS/RabbitMQ)</p>
+<p><strong>Asya automatically injects</strong>:</p>
+<ul>
+<li>Sidecar for routing and transport</li>
+<li>Runtime entrypoint for handler loading</li>
+<li>Autoscaling configuration (KEDA)</li>
+<li>Queue creation (SQS/RabbitMQ)</li>
+</ul>
 <h2 id="using-mcp-tools">Using MCP Tools<a class="headerlink" href="#using-mcp-tools" title="Permanent link">&para;</a></h2>
 <p>If platform team deployed the gateway, use <code>asya-mcp</code> CLI tool:</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># Install asya-cli</span>
@@ -1127,11 +1129,13 @@ Processing: 100% |████████████████| , succeeded
 
         <span class="k">return</span> <span class="n">envelope</span>
 </code></pre></div>
-<p><strong>Important</strong>: Route modification rules:
-- ✅ Can add/replace future steps
-- ✅ Can insert actors after current position
-- ❌ Cannot modify already-processed steps
-- ❌ Cannot change which actor <code>route.current</code> points to</p>
+<p><strong>Important</strong>: Route modification rules:</p>
+<ul>
+<li>✅ Can add/replace future steps</li>
+<li>✅ Can insert actors after current position</li>
+<li>❌ Cannot modify already-processed steps</li>
+<li>❌ Cannot change which actor <code>route.current</code> points to</li>
+</ul>
 <h2 id="error-handling">Error Handling<a class="headerlink" href="#error-handling" title="Permanent link">&para;</a></h2>
 <p>Asya automatically handles exceptions:</p>
 <div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">process</span><span class="p">(</span><span class="n">payload</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
@@ -1197,7 +1201,7 @@ kubectl<span class="w"> </span>logs<span class="w"> </span>-f<span class="w"> </
     <a data-slot="button"
         class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-secondary text-secondary-foreground hover:bg-secondary/80 h-8 rounded-md gap-1.5 px-3 has-[&gt;svg]:px-2.5 ml-auto shadow-none"
         href="/asya/quickstart/for-platform_engineers/">
-        <span class="max-[500px]:hidden">For Platform Engineers</span>
+        <span class="max-[500px]:hidden">For Platform Engineers ⚙️</span>
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
             class="tabler-icon tabler-icon-arrow-right ">
@@ -1256,13 +1260,13 @@ kubectl<span class="w"> </span>logs<span class="w"> </span>-f<span class="w"> </
                         
                         <a class="text-2xl font-medium" href="./">
                             
-                            For Data Scientists
+                            For Data Scientists 🧑‍🔬
                             
                         </a>
                         
                         <a class="text-2xl font-medium" href="../for-platform_engineers/">
                             
-                            For Platform Engineers
+                            For Platform Engineers ⚙️
                             
                         </a>
                         

@@ -55,6 +55,7 @@ Sidecar exposes metrics on `:8080/metrics` (configurable via `ASYA_METRICS_ADDR`
 **Scraping configuration** (Prometheus):
 ```yaml
 scrape_configs:
+
 - job_name: asya-actors
   kubernetes_sd_configs:
   - role: pod
@@ -93,6 +94,7 @@ spec:
 ## Integration with Grafana
 
 **Example dashboards** (future):
+
 - Actor performance (throughput, latency, errors)
 - Queue depth and autoscaling
 - Resource usage (CPU, memory, GPU)
@@ -117,6 +119,7 @@ spec:
 ## Tracing (Future)
 
 **OpenTelemetry tracing** for distributed request tracing:
+
 - Trace envelopes across actors
 - Visualize pipeline execution
 - Identify bottlenecks

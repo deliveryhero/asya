@@ -3,6 +3,7 @@
 ## What is an Actor?
 
 An actor is a **stateless workload** that:
+
 - Receives messages from an input queue
 - Processes them via user-defined code
 - Sends results to the next queue in the route
@@ -38,7 +39,7 @@ An actor is a **stateless workload** that:
 │        │                                     │
 └────────┼─────────────────────────────────────┘
          │ Queue Messages
-         │ 
+         │
          ▼
     ┌─────────┐
     │  Queue  │
@@ -75,6 +76,7 @@ spec:
 ```
 
 **Operator injects**:
+
 - `asya-sidecar` container (routing, transport)
 - `asya_runtime.py` entrypoint script via ConfigMap
 - Runtime container's command calling `asya_runtime.py`

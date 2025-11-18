@@ -220,6 +220,7 @@ kubectl apply -f text-processor.yaml
 ```
 
 **Asya automatically injects**:
+
 - Sidecar for routing and transport
 - Runtime entrypoint for handler loading
 - Autoscaling configuration (KEDA)
@@ -374,6 +375,7 @@ class LLMJudge:
 ```
 
 **Important**: Route modification rules:
+
 - ✅ Can add/replace future steps
 - ✅ Can insert actors after current position
 - ❌ Cannot modify already-processed steps

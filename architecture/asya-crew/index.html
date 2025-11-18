@@ -345,7 +345,7 @@
         class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
 
         
-        For Data Scientists
+        For Data Scientists 🧑‍🔬
         
 
         
@@ -362,7 +362,7 @@
         class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
 
         
-        For Platform Engineers
+        For Platform Engineers ⚙️
         
 
         
@@ -833,18 +833,22 @@
   <div class="typography w-full flex-1 *:data-[slot=alert]:first:mt-0">
     <p>System actors with reserved roles for framework-level tasks.</p>
 <h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
-<p>Crew actors are <strong>end actors</strong> that run in special sidecar mode (<code>ASYA_IS_END_ACTOR=true</code>). They:
-- Run in envelope mode (<code>ASYA_HANDLER_MODE=envelope</code>)
-- Disable envelope validation (<code>ASYA_ENABLE_VALIDATION=false</code>)
-- Accept envelopes with ANY route state (no route validation)
-- Do NOT route responses to any queue (terminal processing)
-- Persist results to S3/MinIO (optional)
-- Sidecar reports final status to gateway (not the runtime)</p>
+<p>Crew actors are <strong>end actors</strong> that run in special sidecar mode (<code>ASYA_IS_END_ACTOR=true</code>). They:</p>
+<ul>
+<li>Run in envelope mode (<code>ASYA_HANDLER_MODE=envelope</code>)</li>
+<li>Disable envelope validation (<code>ASYA_ENABLE_VALIDATION=false</code>)</li>
+<li>Accept envelopes with ANY route state (no route validation)</li>
+<li>Do NOT route responses to any queue (terminal processing)</li>
+<li>Persist results to S3/MinIO (optional)</li>
+<li>Sidecar reports final status to gateway (not the runtime)</li>
+</ul>
 <h2 id="current-crew-actors">Current Crew Actors<a class="headerlink" href="#current-crew-actors" title="Permanent link">&para;</a></h2>
 <h3 id="happy-end">happy-end<a class="headerlink" href="#happy-end" title="Permanent link">&para;</a></h3>
-<p><strong>Responsibilities</strong>:
-- Persist successfully completed envelopes to S3/MinIO (optional)
-- Sidecar reports success to gateway with result payload</p>
+<p><strong>Responsibilities</strong>:</p>
+<ul>
+<li>Persist successfully completed envelopes to S3/MinIO (optional)</li>
+<li>Sidecar reports success to gateway with result payload</li>
+</ul>
 <p><strong>Queue</strong>: <code>asya-happy-end</code> (automatically routed by sidecar when pipeline completes)</p>
 <p><strong>Handler</strong>: <code>handlers.end_handlers.happy_end_handler</code></p>
 <p><strong>Environment Variables</strong>:
@@ -884,9 +888,11 @@ happy-asya/2025-11-18T14:30:45.123456Z/text-processor/abc-123.json
 5. Sidecar reports final status <code>succeeded</code> to gateway with result payload
 6. Sidecar acks message (does NOT route anywhere)</p>
 <h3 id="error-end">error-end<a class="headerlink" href="#error-end" title="Permanent link">&para;</a></h3>
-<p><strong>Responsibilities</strong>:
-- Persist failed envelopes to S3/MinIO (optional)
-- Sidecar reports failure to gateway with error details and actor info</p>
+<p><strong>Responsibilities</strong>:</p>
+<ul>
+<li>Persist failed envelopes to S3/MinIO (optional)</li>
+<li>Sidecar reports failure to gateway with error details and actor info</li>
+</ul>
 <p><strong>Queue</strong>: <code>asya-error-end</code> (automatically routed by sidecar when runtime/sidecar errors occur)</p>
 <p><strong>Handler</strong>: <code>handlers.end_handlers.error_end_handler</code></p>
 <p><strong>Environment Variables</strong>:
@@ -950,10 +956,12 @@ Envelopes routed to <code>error-end</code> contain error information in the payl
 <div class="highlight"><pre><span></span><code>helm<span class="w"> </span>install<span class="w"> </span>asya-crew<span class="w"> </span>deploy/helm-charts/asya-crew/<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--namespace<span class="w"> </span>asya-e2e
 </code></pre></div>
-<p><strong>Chart structure</strong>:
-- Creates two AsyncActor resources: <code>happy-end</code> and <code>error-end</code>
-- Helm templates inject required environment variables (<code>ASYA_HANDLER_MODE=envelope</code>, <code>ASYA_ENABLE_VALIDATION=false</code>)
-- Operator handles sidecar injection and <code>ASYA_IS_END_ACTOR=true</code> flag</p>
+<p><strong>Chart structure</strong>:</p>
+<ul>
+<li>Creates two AsyncActor resources: <code>happy-end</code> and <code>error-end</code></li>
+<li>Helm templates inject required environment variables (<code>ASYA_HANDLER_MODE=envelope</code>, <code>ASYA_ENABLE_VALIDATION=false</code>)</li>
+<li>Operator handles sidecar injection and <code>ASYA_IS_END_ACTOR=true</code> flag</li>
+</ul>
 <p><strong>Default configuration</strong> (from <code>values.yaml</code>):
 <div class="highlight"><pre><span></span><code><span class="nt">happy-end</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
@@ -1068,11 +1076,13 @@ Envelopes routed to <code>error-end</code> contain error information in the payl
 <p>These are automatically configured by Helm templates and operator injection.</p>
 <h3 id="s3-persistence">S3 Persistence<a class="headerlink" href="#s3-persistence" title="Permanent link">&para;</a></h3>
 <p><strong>Bucket auto-creation</strong>: Handlers check if bucket exists and create it if missing (for MinIO/S3).</p>
-<p><strong>Key structure breakdown</strong>:
-- <code>{prefix}</code>: Configurable prefix (default: <code>happy-asya/</code> or <code>error-asya/</code>)
-- <code>{timestamp}</code>: ISO 8601 UTC timestamp (<code>2025-11-18T14:30:45.123456Z</code>)
-- <code>{last_actor}</code>: Last non-end actor from route (extracted from <code>route.actors[current]</code>)
-- <code>{envelope_id}</code>: Envelope ID</p>
+<p><strong>Key structure breakdown</strong>:</p>
+<ul>
+<li><code>{prefix}</code>: Configurable prefix (default: <code>happy-asya/</code> or <code>error-asya/</code>)</li>
+<li><code>{timestamp}</code>: ISO 8601 UTC timestamp (<code>2025-11-18T14:30:45.123456Z</code>)</li>
+<li><code>{last_actor}</code>: Last non-end actor from route (extracted from <code>route.actors[current]</code>)</li>
+<li><code>{envelope_id}</code>: Envelope ID</li>
+</ul>
 <p><strong>Example key generation</strong>:
 <div class="highlight"><pre><span></span><code><span class="n">prefix</span> <span class="o">=</span> <span class="s2">&quot;happy-asya/&quot;</span>
 <span class="n">timestamp</span> <span class="o">=</span> <span class="s2">&quot;2025-11-18T14:30:45.123456Z&quot;</span>
@@ -1085,10 +1095,12 @@ Envelopes routed to <code>error-end</code> contain error information in the payl
 <p><strong>Persisted content</strong>: Complete envelope (including id, route, headers, payload) as formatted JSON.</p>
 <p><strong>Error handling</strong>: S3 upload failures are logged but do NOT fail the handler. Handler returns empty dict <code>{}</code> regardless of S3 success/failure.</p>
 <h3 id="handler-return-value">Handler Return Value<a class="headerlink" href="#handler-return-value" title="Permanent link">&para;</a></h3>
-<p>End handlers MUST return empty dict <code>{}</code>:
-- Sidecar ignores the response (end actor mode)
-- Sidecar uses original envelope payload as result for gateway reporting
-- Any non-empty response is ignored</p>
+<p>End handlers MUST return empty dict <code>{}</code>:</p>
+<ul>
+<li>Sidecar ignores the response (end actor mode)</li>
+<li>Sidecar uses original envelope payload as result for gateway reporting</li>
+<li>Any non-empty response is ignored</li>
+</ul>
 <h3 id="sidecar-integration">Sidecar Integration<a class="headerlink" href="#sidecar-integration" title="Permanent link">&para;</a></h3>
 <p>When <code>ASYA_IS_END_ACTOR=true</code>, sidecar:
 1. Accepts envelopes with any route state (no validation)
@@ -1101,22 +1113,28 @@ Envelopes routed to <code>error-end</code> contain error information in the payl
 6. Does NOT route to any queue (terminal)
 7. Acks message</p>
 <h2 id="future-crew-actors">Future Crew Actors<a class="headerlink" href="#future-crew-actors" title="Permanent link">&para;</a></h2>
-<p><strong>Stateful fan-in</strong>:
-- Aggregate fan-out results
-- Wait for all chunks to complete
-- Merge results and continue pipeline
-- Track parent-child relationships via <code>parent_id</code></p>
-<p><strong>Auto-retry</strong> functionality by <code>error-end</code>:
-- Implement exponential backoff
-- Classify errors as retriable vs permanent
-- Track retry count in envelope headers
-- Re-queue retriable envelopes with backoff delay
-- Move to DLQ after max retries exceeded</p>
-<p><strong>Custom monitoring</strong>:
-- Track SLA violations per actor
-- Alert on error rates and patterns
-- Generate pipeline execution reports
-- Aggregate metrics across envelopes</p>
+<p><strong>Stateful fan-in</strong>:</p>
+<ul>
+<li>Aggregate fan-out results</li>
+<li>Wait for all chunks to complete</li>
+<li>Merge results and continue pipeline</li>
+<li>Track parent-child relationships via <code>parent_id</code></li>
+</ul>
+<p><strong>Auto-retry</strong> functionality by <code>error-end</code>:</p>
+<ul>
+<li>Implement exponential backoff</li>
+<li>Classify errors as retriable vs permanent</li>
+<li>Track retry count in envelope headers</li>
+<li>Re-queue retriable envelopes with backoff delay</li>
+<li>Move to DLQ after max retries exceeded</li>
+</ul>
+<p><strong>Custom monitoring</strong>:</p>
+<ul>
+<li>Track SLA violations per actor</li>
+<li>Alert on error rates and patterns</li>
+<li>Generate pipeline execution reports</li>
+<li>Aggregate metrics across envelopes</li>
+</ul>
   </div>
 </article>
                                 <div class="mx-auto flex flex-wrap h-16 w-full max-w-2xl items-center gap-2 px-4 md:px-0">
@@ -1197,13 +1215,13 @@ Envelopes routed to <code>error-end</code> contain error information in the payl
                         
                         <a class="text-2xl font-medium" href="../../quickstart/for-data_scientists/">
                             
-                            For Data Scientists
+                            For Data Scientists 🧑‍🔬
                             
                         </a>
                         
                         <a class="text-2xl font-medium" href="../../quickstart/for-platform_engineers/">
                             
-                            For Platform Engineers
+                            For Platform Engineers ⚙️
                             
                         </a>
                         

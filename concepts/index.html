@@ -345,7 +345,7 @@
         class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
 
         
-        For Data Scientists
+        For Data Scientists 🧑‍🔬
         
 
         
@@ -362,7 +362,7 @@
         class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
 
         
-        For Platform Engineers
+        For Platform Engineers ⚙️
         
 
         
@@ -833,29 +833,37 @@
   <div class="typography w-full flex-1 *:data-[slot=alert]:first:mt-0">
     <h2 id="actors">Actors<a class="headerlink" href="#actors" title="Permanent link">&para;</a></h2>
 <p><strong>What is an Actor?</strong></p>
-<p>An actor is a stateless (by default) workload that:
-- Receives messages from an input queue
-- Processes them via user-defined code
-- Sends results to the next queue in the route</p>
-<p><strong>Key characteristics</strong>:
-- Stateless by design - no persistent state between messages
-- Independently scalable based on queue depth
-- Independently deployable as Kubernetes workloads</p>
-<p><strong>Motivation</strong>: Alternative to monolithic pipelines. Instead of one large application handling <code>A → B → C</code>, each step is an independent actor that can scale and deploy separately.</p>
+<p>An actor is a stateless (by default) workload that:</p>
+<ul>
+<li>Receives messages from an input queue</li>
+<li>Processes them via user-defined code</li>
+<li>Sends results to the next queue in the route</li>
+</ul>
+<p><strong>Key characteristics</strong>:</p>
+<ul>
+<li>Stateless by design - no persistent state between messages</li>
+<li>Independently scalable based on queue depth</li>
+<li>Independently deployable as Kubernetes workloads</li>
+</ul>
+<p><strong>Motivation</strong>: Alternative to monolithic pipelines. Instead of one large pipeline <code>A → B → C</code>, each step is an independent actor that can scale and deploy separately.</p>
 <p><strong>See</strong>: <a href="../architecture/asya-actor/">architecture/asya-actor.md</a> for details.</p>
 <h2 id="sidecar">Sidecar<a class="headerlink" href="#sidecar" title="Permanent link">&para;</a></h2>
-<p><strong>Responsibilities</strong>:
-- Message routing between queues and runtime
-- Transport management (RabbitMQ, SQS)
-- Observability (metrics, logs)
-- Reliability (retries, error handling)</p>
+<p><strong>Responsibilities</strong>:</p>
+<ul>
+<li>Message routing between queues and runtime</li>
+<li>Transport management (RabbitMQ, SQS)</li>
+<li>Observability (metrics, logs)</li>
+<li>Reliability (retries, error handling)</li>
+</ul>
 <p><strong>How it works</strong>: Injected as a container into actor pods. Consumes messages from queues, validates envelopes, forwards to runtime via Unix socket, routes responses to next queue.</p>
 <p><strong>See</strong>: <a href="../architecture/asya-sidecar/">architecture/asya-sidecar.md</a> for details.</p>
 <h2 id="runtime">Runtime<a class="headerlink" href="#runtime" title="Permanent link">&para;</a></h2>
-<p><strong>Responsibilities</strong>:
-- User code execution
-- Processing input messages
-- Generating output messages</p>
+<p><strong>Responsibilities</strong>:</p>
+<ul>
+<li>User code execution</li>
+<li>Processing input messages</li>
+<li>Generating output messages</li>
+</ul>
 <p><strong>How it works</strong>: Receives messages from sidecar via Unix socket, loads user handler (function or class), executes it, returns results back to sidecar.</p>
 <p><strong>Deployment</strong>: User defines container image with Python code. Asya operator injects <code>asya_runtime.py</code> entrypoint script via ConfigMap.</p>
 <p><strong>See</strong>: <a href="../architecture/asya-runtime/">architecture/asya-runtime.md</a> for details.</p>
@@ -866,15 +874,19 @@
 <li><strong><code>error-end</code></strong>: Handles failures (coming soon), implements retry logic, reports errors to gateway</li>
 <li>more crew actors coming soon</li>
 </ul>
-<p><strong>Future crew actors</strong>:
-- Stateful fan-in aggregation
-- Custom monitoring and alerting</p>
+<p><strong>Future crew actors</strong>:</p>
+<ul>
+<li>Stateful fan-in aggregation</li>
+<li>Custom monitoring and alerting</li>
+</ul>
 <p><strong>See</strong>: <a href="../architecture/asya-crew/">architecture/asya-crew.md</a> for details.</p>
 <h2 id="queues">Queues<a class="headerlink" href="#queues" title="Permanent link">&para;</a></h2>
 <p><strong>Interface</strong>: Send, receive, ack, nack messages</p>
-<p><strong>Transport types</strong>:
-- <strong>SQS</strong>: AWS-managed queue service
-- <strong>RabbitMQ</strong>: Self-hosted open-source message broker</p>
+<p><strong>Transport types</strong>:</p>
+<ul>
+<li><strong>SQS</strong>: AWS-managed queue service</li>
+<li><strong>RabbitMQ</strong>: Self-hosted open-source message broker</li>
+</ul>
 <p><strong>Pluggable design</strong>: Transport layer is abstracted - adding new transports (Kafka, NATS, Pub/Sub) requires implementing transport interface.</p>
 <p><strong>See</strong>: <a href="architecture/transports/">architecture/transports/</a> for details.</p>
 <h2 id="envelope">Envelope<a class="headerlink" href="#envelope" title="Permanent link">&para;</a></h2>
@@ -895,47 +907,57 @@
 <span class="w">  </span><span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div></p>
-<p><strong>Fields</strong>:
-- <code>id</code> (required): Unique identifier for tracking
-- <code>route</code> (required): Actor list and current position
-- <code>payload</code> (required): User data processed by actors
-- <code>headers</code> (optional): Routing metadata (traces, priorities)</p>
+<p><strong>Fields</strong>:</p>
+<ul>
+<li><code>id</code> (required): Unique identifier for tracking</li>
+<li><code>route</code> (required): Actor list and current position</li>
+<li><code>payload</code> (required): User data processed by actors</li>
+<li><code>headers</code> (optional): Routing metadata (traces, priorities)</li>
+</ul>
 <p><strong>Envelope vs Message</strong>: At queue level, messages are bytes. Envelopes are JSON objects with pre-defined structure.</p>
 <p><strong>Stateful routing</strong>: <code>route.current</code> increments after each actor processes the envelope. Note once again, this is a unique feature of Asya🎭: pipelines are stateless, but envelopes are stateful (they represent different pipeline executions).</p>
 <p><strong>See</strong>: <a href="../architecture/protocols/actor-actor/">architecture/protocols/actor-actor.md</a> for details.</p>
 <h2 id="operator">Operator<a class="headerlink" href="#operator" title="Permanent link">&para;</a></h2>
-<p><strong>Responsibilities</strong>:
-- Manages lifecycle of AsyncActor CRDs
-- Injects sidecars into actor pods
-- Creates Kubernetes Deployments/StatefulSets
-- Configures KEDA autoscaling
-- Creates and manages message queues</p>
+<p><strong>Responsibilities</strong>:</p>
+<ul>
+<li>Manages lifecycle of AsyncActor CRDs</li>
+<li>Injects sidecars into actor pods</li>
+<li>Creates Kubernetes Deployments/StatefulSets</li>
+<li>Configures KEDA autoscaling</li>
+<li>Creates and manages message queues</li>
+</ul>
 <p><strong>How it works</strong>: Watches AsyncActor custom resources, reconciles desired state with actual cluster state, injects infrastructure components.</p>
 <p><strong>See</strong>: <a href="../architecture/asya-operator/">architecture/asya-operator.md</a> for details.</p>
 <h2 id="keda-autoscaling">KEDA (Autoscaling)<a class="headerlink" href="#keda-autoscaling" title="Permanent link">&para;</a></h2>
-<p><strong>Benefits</strong>:
-- Automatic scaling based on queue depth or custom metrics
-- Scale to zero - eliminate idle resource costs
-- Handle bursty workloads efficiently</p>
+<p><strong>Benefits</strong>:</p>
+<ul>
+<li>Automatic scaling based on queue depth or custom metrics</li>
+<li>Scale to zero - eliminate idle resource costs</li>
+<li>Handle bursty workloads efficiently</li>
+</ul>
 <p><strong>Integration</strong>: Asya operator creates KEDA ScaledObjects for each AsyncActor. KEDA monitors queue depth and scales actor deployments from 0 to maxReplicas.</p>
 <p><strong>Example</strong>: Queue has 100 messages, queueLength=5 configured → KEDA scales to 20 replicas (100/5).</p>
 <p><strong>See</strong>: <a href="../architecture/autoscaling/">architecture/autoscaling.md</a> for details.</p>
 <h2 id="mcp-gateway-optional">MCP Gateway (Optional)<a class="headerlink" href="#mcp-gateway-optional" title="Permanent link">&para;</a></h2>
 <p>As an optional component, Asya🎭 offers an MCP-compliant HTTP gateway, which allows external clients to easily consume async pipelines as MCP tools.</p>
-<p><strong>Responsibilities</strong>:
-- Exposes MCP-compliant HTTP API
-- Receives HTTP requests, creates envelopes
-- Tracks envelope status in PostgreSQL
-- Streams progress updates via Server-Sent Events (SSE)</p>
+<p><strong>Responsibilities</strong>:</p>
+<ul>
+<li>Exposes MCP-compliant HTTP API</li>
+<li>Receives HTTP requests, creates envelopes</li>
+<li>Tracks envelope status in PostgreSQL</li>
+<li>Streams progress updates via Server-Sent Events (SSE)</li>
+</ul>
 <p><strong>How it works</strong>: Client calls tool → Gateway creates envelope → Sends to first actor's queue → Crew actors report status back → Gateway streams updates to client.</p>
 <p><strong>Use case</strong>: Easy integration for external systems or user-facing APIs.</p>
 <p><strong>See</strong>: <a href="../architecture/asya-gateway/">architecture/asya-gateway.md</a> for details.</p>
 <h2 id="observability-optional">Observability (Optional)<a class="headerlink" href="#observability-optional" title="Permanent link">&para;</a></h2>
-<p><strong>Built-in metrics</strong> (OpenTelemetry):
-- Actor processing time
-- Message throughput
-- Error rates
-- Queue depth</p>
+<p><strong>Built-in metrics</strong> (OpenTelemetry):</p>
+<ul>
+<li>Actor processing time</li>
+<li>Message throughput</li>
+<li>Error rates</li>
+<li>Queue depth</li>
+</ul>
 <p><strong>Integration</strong>: Prometheus scrapes metrics, Grafana dashboards visualize actor health, pipeline performance.</p>
 <p><strong>See</strong>: <a href="../architecture/observability/">architecture/observability.md</a> for details.</p>
   </div>
@@ -959,7 +981,7 @@
     <a data-slot="button"
         class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-secondary text-secondary-foreground hover:bg-secondary/80 h-8 rounded-md gap-1.5 px-3 has-[&gt;svg]:px-2.5 ml-auto shadow-none"
         href="/asya/quickstart/for-data_scientists/">
-        <span class="max-[500px]:hidden">For Data Scientists</span>
+        <span class="max-[500px]:hidden">For Data Scientists 🧑‍🔬</span>
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
             class="tabler-icon tabler-icon-arrow-right ">
@@ -1018,13 +1040,13 @@
                         
                         <a class="text-2xl font-medium" href="../quickstart/for-data_scientists/">
                             
-                            For Data Scientists
+                            For Data Scientists 🧑‍🔬
                             
                         </a>
                         
                         <a class="text-2xl font-medium" href="../quickstart/for-platform_engineers/">
                             
-                            For Platform Engineers
+                            For Platform Engineers ⚙️
                             
                         </a>
                         

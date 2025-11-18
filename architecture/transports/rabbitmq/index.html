@@ -345,7 +345,7 @@
         class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
 
         
-        For Data Scientists
+        For Data Scientists 🧑‍🔬
         
 
         
@@ -362,7 +362,7 @@
         class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
 
         
-        For Platform Engineers
+        For Platform Engineers ⚙️
         
 
         
@@ -832,15 +832,19 @@
   </div>
   <div class="typography w-full flex-1 *:data-[slot=alert]:first:mt-0">
     <p>Self-hosted open-source message broker.</p>
-<p><strong>Features</strong>:
-- Topic exchange routing
-- Automatic queue declaration and binding
-- Prefetch control for load management
-- Durable queues and persistent messages</p>
-<p><strong>Configuration</strong>:
-- AMQP connection URL
-- Exchange name
-- Prefetch count</p>
+<p><strong>Features</strong>:</p>
+<ul>
+<li>Topic exchange routing</li>
+<li>Automatic queue declaration and binding</li>
+<li>Prefetch control for load management</li>
+<li>Durable queues and persistent messages</li>
+</ul>
+<p><strong>Configuration</strong>:</p>
+<ul>
+<li>AMQP connection URL</li>
+<li>Exchange name</li>
+<li>Prefetch count</li>
+</ul>
 <h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
 <p><strong>Operator config</strong> (<code>deploy/helm-charts/asya-operator/values.yaml</code>):
 <div class="highlight"><pre><span></span><code><span class="nt">transports</span><span class="p">:</span>
@@ -866,14 +870,16 @@
 <div class="highlight"><pre><span></span><code><span class="nt">spec</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">transport</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">rabbitmq</span>
 </code></pre></div></p>
-<p><strong>Sidecar environment variables</strong> (injected by operator):
-- <code>ASYA_TRANSPORT=rabbitmq</code>
-- <code>ASYA_RABBITMQ_HOST</code> → from <code>config.host</code>
-- <code>ASYA_RABBITMQ_PORT</code> → from <code>config.port</code> (default: 5672)
-- <code>ASYA_RABBITMQ_USERNAME</code> → from <code>config.username</code> (default: guest)
-- <code>ASYA_RABBITMQ_PASSWORD</code> → from <code>config.passwordSecretRef</code> (secret reference)
-- <code>ASYA_RABBITMQ_EXCHANGE</code> → from <code>config.exchange</code> (optional, default: asya)
-- <code>ASYA_QUEUE_AUTO_CREATE</code> → from <code>config.queues.autoCreate</code></p>
+<p><strong>Sidecar environment variables</strong> (injected by operator):</p>
+<ul>
+<li><code>ASYA_TRANSPORT=rabbitmq</code></li>
+<li><code>ASYA_RABBITMQ_HOST</code> → from <code>config.host</code></li>
+<li><code>ASYA_RABBITMQ_PORT</code> → from <code>config.port</code> (default: 5672)</li>
+<li><code>ASYA_RABBITMQ_USERNAME</code> → from <code>config.username</code> (default: guest)</li>
+<li><code>ASYA_RABBITMQ_PASSWORD</code> → from <code>config.passwordSecretRef</code> (secret reference)</li>
+<li><code>ASYA_RABBITMQ_EXCHANGE</code> → from <code>config.exchange</code> (optional, default: asya)</li>
+<li><code>ASYA_QUEUE_AUTO_CREATE</code> → from <code>config.queues.autoCreate</code></li>
+</ul>
 <p><strong>Sidecar builds connection URL</strong>:
 <div class="highlight"><pre><span></span><code>amqp://{username}:{password}@{host}:{port}/
 </code></pre></div></p>
@@ -889,10 +895,12 @@
 </ol>
 <p><strong>Queue name</strong>: <code>asya-{actor_name}</code></p>
 <p><strong>Example</strong>: Actor <code>text-processor</code> → Queue <code>asya-text-processor</code></p>
-<p><strong>Queue properties</strong>:
-- Durable: <code>true</code>
-- Auto-delete: <code>false</code>
-- Exclusive: <code>false</code></p>
+<p><strong>Queue properties</strong>:</p>
+<ul>
+<li>Durable: <code>true</code></li>
+<li>Auto-delete: <code>false</code></li>
+<li>Exclusive: <code>false</code></li>
+</ul>
 <p><strong>Exchange</strong>: Topic exchange named <code>asya</code> (or configured value)</p>
 <p><strong>Routing key</strong>: Actor name without <code>asya-</code> prefix (e.g., <code>text-processor</code>)</p>
 <p><strong>Binding</strong>: Queue bound to exchange with routing key</p>
@@ -909,6 +917,7 @@
 <p><strong>Operator injects</strong> secret reference into sidecar environment via <code>SecretKeyRef</code>.</p>
 <h2 id="keda-scaler">KEDA Scaler<a class="headerlink" href="#keda-scaler" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><span class="nt">triggers</span><span class="p">:</span>
+
 <span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">rabbitmq</span>
 <span class="w">  </span><span class="nt">metadata</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">host</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">amqp://guest:password@rabbitmq:5672</span>
@@ -1032,13 +1041,13 @@ kubectl<span class="w"> </span>apply<span class="w"> </span>-f<span class="w"> <
                         
                         <a class="text-2xl font-medium" href="../../../quickstart/for-data_scientists/">
                             
-                            For Data Scientists
+                            For Data Scientists 🧑‍🔬
                             
                         </a>
                         
                         <a class="text-2xl font-medium" href="../../../quickstart/for-platform_engineers/">
                             
-                            For Platform Engineers
+                            For Platform Engineers ⚙️
                             
                         </a>
                         
