@@ -33,9 +33,10 @@ jobs:
       with:
         python-version: '3.13'
         cache: 'pip'
+        cache-dependency-path: 'docs/mkdocs/requirements.txt'
 
     - name: Install dependencies
-      run: pip install mkdocs mkdocs-shadcn pygments mkdocs-mermaid2-plugin
+      run: pip install -r docs/mkdocs/requirements.txt
 
     - name: Build site
       run: mkdocs build
@@ -64,9 +65,10 @@ jobs:
       with:
         python-version: '3.13'
         cache: 'pip'
+        cache-dependency-path: 'docs/mkdocs/requirements.txt'
 
     - name: Install dependencies
-      run: pip install mkdocs mkdocs-shadcn pygments mkdocs-mermaid2-plugin
+      run: pip install -r docs/mkdocs/requirements.txt
 
     - name: Configure Git
       run: |

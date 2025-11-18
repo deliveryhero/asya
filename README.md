@@ -100,7 +100,7 @@ class LLMJudge:
 
 **Pattern**: Enrich payload with your results, pass it to next actor. Full pipeline history preserved.
 
-**See**: [Quickstart for Data Scientists](docs/quickstart/for-data_scientists.md) | [Handler Examples](docs/quickstart/for-data_scientists.md#class-handler-examples)
+**See**: [Quickstart for Data Scientists](docs/quickstart/for-data-scientists.md) | [Handler Examples](docs/quickstart/for-data-scientists.md#class-handler-examples)
 
 ---
 
@@ -143,7 +143,7 @@ spec:
 
 **Transports**: SQS (AWS), RabbitMQ (self-hosted), Kafka/NATS (planned)
 
-**See**: [Quickstart for Platform Engineers](docs/quickstart/for-platform_engineers.md) | [Installation Guides](docs/install/) | [AsyncActor Examples](examples/asyas/)
+**See**: [Quickstart for Platform Engineers](docs/quickstart/for-platform-engineers.md) | [Installation Guides](docs/install/) | [AsyncActor Examples](examples/asyas/)
 
 ---
 
@@ -163,8 +163,8 @@ Asya uses a **sidecar pattern** for message routing:
 ---
 
 ## Quick Start
-- [For Data Scientists 🧑‍🔬](/docs/quickstart/for-data_scientists.md)
-- [For Platform Engineers ⚙️](/docs/quickstart/for-platform_engineers.md)
+- [For Data Scientists 🧑‍🔬](/docs/quickstart/for-data-scientists.md)
+- [For Platform Engineers ⚙️](/docs/quickstart/for-platform-engineers.md)
 
 **See also**: [AWS EKS Installation](docs/install/aws-eks.md) | [Local Kind Installation](docs/install/local-kind.md) | [Helm Charts](docs/install/helm-charts.md)
 

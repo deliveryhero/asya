@@ -123,6 +123,6 @@ kubectl describe pod <gateway-pod>
 
 ## For More Help
 
-- Check [Architecture Documentation](../architecture/)
+- Check [Architecture Documentation](../architecture/README.md)
 - Review logs with `kubectl logs`
 - Describe resources with `kubectl describe`

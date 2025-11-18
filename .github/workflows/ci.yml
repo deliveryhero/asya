@@ -5,12 +5,16 @@ on:
     branches: [main]
     paths-ignore:
     - '**.md'
+    - '**.yml'  # ignore configs unless code changed
+    - '**.yaml'
     - 'docs/**'
   pull_request:
     branches: [main]
     paths-ignore:
     - '**.md'
     - 'docs/**'
+    - '**.yml'
+    - '**.yaml'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}

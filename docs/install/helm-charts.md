@@ -13,9 +13,7 @@ Deploys Asya operator (CRD controller).
 **Installation**:
 ```bash
 kubectl apply -f src/asya-operator/config/crd/
-helm install asya-operator deploy/helm-charts/asya-operator/ \
-  -n asya-system --create-namespace \
-  -f values.yaml
+helm install asya-operator deploy/helm-charts/asya-operator/ -n asya-system --create-namespace -f values.yaml
 ```
 
 **Key values**:
@@ -55,8 +53,7 @@ Deploys MCP HTTP gateway.
 
 **Installation**:
 ```bash
-helm install asya-gateway deploy/helm-charts/asya-gateway/ \
-  -f values.yaml
+helm install asya-gateway deploy/helm-charts/asya-gateway/ -f values.yaml
 ```
 
 **Key values**:
@@ -98,9 +95,7 @@ Deploys crew actors (`happy-end`, `error-end`) as AsyncActor CRDs.
 
 **Installation**:
 ```bash
-helm install asya-crew deploy/helm-charts/asya-crew/ \
-  --namespace asya-e2e \
-  -f values.yaml
+helm install asya-crew deploy/helm-charts/asya-crew/ --namespace asya-e2e -f values.yaml
 ```
 
 **Key values**:
@@ -162,8 +157,7 @@ Deploys user actors (batch deployment).
 
 **Installation**:
 ```bash
-helm install my-actors deploy/helm-charts/asya-actor/ \
-  -f values.yaml
+helm install my-actors deploy/helm-charts/asya-actor/ -f values.yaml
 ```
 
 **Key values**:
@@ -312,17 +306,13 @@ spec:
 
 ```bash
 # Upgrade operator
-helm upgrade asya-operator deploy/helm-charts/asya-operator/ \
-  -n asya-system \
-  -f values.yaml
+helm upgrade asya-operator deploy/helm-charts/asya-operator/ -n asya-system -f values.yaml
 
 # Upgrade gateway
-helm upgrade asya-gateway deploy/helm-charts/asya-gateway/ \
-  -f values.yaml
+helm upgrade asya-gateway deploy/helm-charts/asya-gateway/ -f values.yaml
 
 # Upgrade crew
-helm upgrade asya-crew deploy/helm-charts/asya-crew/ \
-  -f values.yaml
+helm upgrade asya-crew deploy/helm-charts/asya-crew/ -f values.yaml
 ```
 
 ## Uninstalling
