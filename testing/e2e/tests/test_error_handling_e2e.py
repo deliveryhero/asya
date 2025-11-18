@@ -71,6 +71,10 @@ def test_error_goes_to_error_end_when_available(e2e_helper, kubectl, chaos_queue
     logger.info(f"Transport: {transport}")
     logger.info("Scenario: error-end available (normal application-level handling)")
 
+    # Wait for error-end to be ready before scaling (avoid race with previous tests)
+    logger.info("Waiting for error-end to be ready before scaling to 0")
+    kubectl.wait_for_replicas("error-end", "asya-e2e", 1, timeout=60)
+
     # Disable KEDA scaling and scale error-end to 0
     logger.info("Disabling KEDA scaling for error-end")
     kubectl.run("patch asyncactor error-end -n asya-e2e --type=json -p '[{\"op\":\"replace\",\"path\":\"/spec/scaling/enabled\",\"value\":false},{\"op\":\"replace\",\"path\":\"/spec/workload/replicas\",\"value\":0}]'")
