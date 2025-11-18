@@ -1,8 +1,6 @@
 # Sidecar Architecture
 
-Detailed architecture of the Asya🎭 Actor Sidecar.
-
-> **Source**: [`src/asya-sidecar/README.md`](https://github.com/deliveryhero/asya/blob/main/src/asya-sidecar/README.md)
+Detailed architecture of the Asya🎭 Actor Sidecar. Please also refer to code documentation [`src/asya-sidecar/README.md`](https://github.com/deliveryhero/asya/blob/main/src/asya-sidecar/README.md)
 
 ## Overview
 
@@ -20,8 +18,8 @@ The Asya🎭 Actor Sidecar is a Go-based message routing service that sits betwe
 ## Quick Start
 
 ```bash
-export ASYA_ACTOR_NAME=my-queue
-export ASYA_RABBITMQ_URL=amqp://guest:guest@localhost:5672/
+export ASYA_ACTOR_NAME="my-queue"
+export ASYA_RABBITMQ_URL="amqp://guest:guest@localhost:5672/"
 ./bin/sidecar
 ```
 
@@ -210,6 +208,7 @@ The Asya🎭 operator automatically injects the sidecar when you deploy an Async
 
 ```yaml
 containers:
+
 - name: asya-runtime
   image: my-actor:latest
   volumeMounts:
@@ -224,6 +223,7 @@ containers:
   - name: socket
     mountPath: /tmp/sockets
 volumes:
+
 - name: socket
   emptyDir: {}
 ```
@@ -257,6 +257,7 @@ All configuration via environment variables:
 | `ASYA_RABBITMQ_PREFETCH` | `1` | Prefetch count |
 
 **Benefits**:
+
 - No config files to manage
 - Container-friendly
 - Easy per-environment customization
@@ -339,6 +340,7 @@ All configuration via environment variables:
 ### At-Least-Once Semantics
 
 The sidecar implements **at-least-once delivery**, not exactly-once:
+
 - Messages ACK'd only after successful routing
 - Failures before ACK result in redelivery
 - Downstream actors **must be idempotent** to handle duplicates

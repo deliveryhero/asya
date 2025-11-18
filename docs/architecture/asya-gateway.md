@@ -140,6 +140,7 @@ Accept: text/event-stream
 ```
 
 **Features**:
+
 - Sends historical updates first (no missed progress)
 - Streams real-time updates as they occur
 - Keepalive comments every 15 seconds
@@ -161,6 +162,7 @@ data: {"id":"env-123","status":"succeeded","progress_percent":100,"result":{...}
 ```
 
 **EnvelopeUpdate fields**:
+
 - `id`: Envelope ID
 - `status`: Envelope status (`pending`, `running`, `succeeded`, `failed`)
 - `progress_percent`: Progress 0-100 (omitted if not a progress update)
@@ -248,6 +250,7 @@ Content-Type: application/json
 **Called by**: Sidecars when runtime returns array (fan-out)
 
 **Fanout ID semantics**:
+
 - Index 0: Original ID (`envelope-123`)
 - Index 1+: Suffixed (`envelope-123-1`, `envelope-123-2`)
 - All children have `parent_id` for traceability

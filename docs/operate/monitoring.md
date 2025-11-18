@@ -66,6 +66,7 @@ spec:
 **Prometheus scrape config** (standard Prometheus):
 ```yaml
 scrape_configs:
+
 - job_name: asya-actors
   kubernetes_sd_configs:
   - role: pod
@@ -208,6 +209,7 @@ asya_actor_active_messages{queue="asya-my-actor"}
 ## Logging
 
 Use standard Kubernetes logging tools:
+
 - Fluentd
 - Loki
 - CloudWatch (AWS)

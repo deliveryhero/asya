@@ -5,6 +5,7 @@ System actors with reserved roles for framework-level tasks.
 ## Overview
 
 Crew actors are **end actors** that run in special sidecar mode (`ASYA_IS_END_ACTOR=true`). They:
+
 - Run in envelope mode (`ASYA_HANDLER_MODE=envelope`)
 - Disable envelope validation (`ASYA_ENABLE_VALIDATION=false`)
 - Accept envelopes with ANY route state (no route validation)
@@ -17,6 +18,7 @@ Crew actors are **end actors** that run in special sidecar mode (`ASYA_IS_END_AC
 ### happy-end
 
 **Responsibilities**:
+
 - Persist successfully completed envelopes to S3/MinIO (optional)
 - Sidecar reports success to gateway with result payload
 
@@ -68,6 +70,7 @@ happy-asya/2025-11-18T14:30:45.123456Z/text-processor/abc-123.json
 ### error-end
 
 **Responsibilities**:
+
 - Persist failed envelopes to S3/MinIO (optional)
 - Sidecar reports failure to gateway with error details and actor info
 
@@ -148,6 +151,7 @@ helm install asya-crew deploy/helm-charts/asya-crew/ \
 ```
 
 **Chart structure**:
+
 - Creates two AsyncActor resources: `happy-end` and `error-end`
 - Helm templates inject required environment variables (`ASYA_HANDLER_MODE=envelope`, `ASYA_ENABLE_VALIDATION=false`)
 - Operator handles sidecar injection and `ASYA_IS_END_ACTOR=true` flag
@@ -278,6 +282,7 @@ These are automatically configured by Helm templates and operator injection.
 **Bucket auto-creation**: Handlers check if bucket exists and create it if missing (for MinIO/S3).
 
 **Key structure breakdown**:
+
 - `{prefix}`: Configurable prefix (default: `happy-asya/` or `error-asya/`)
 - `{timestamp}`: ISO 8601 UTC timestamp (`2025-11-18T14:30:45.123456Z`)
 - `{last_actor}`: Last non-end actor from route (extracted from `route.actors[current]`)
@@ -301,6 +306,7 @@ key = f"{prefix}{timestamp}/{last_actor}/{envelope_id}.json"
 ### Handler Return Value
 
 End handlers MUST return empty dict `{}`:
+
 - Sidecar ignores the response (end actor mode)
 - Sidecar uses original envelope payload as result for gateway reporting
 - Any non-empty response is ignored
@@ -321,12 +327,14 @@ When `ASYA_IS_END_ACTOR=true`, sidecar:
 ## Future Crew Actors
 
 **Stateful fan-in**:
+
 - Aggregate fan-out results
 - Wait for all chunks to complete
 - Merge results and continue pipeline
 - Track parent-child relationships via `parent_id`
 
 **Auto-retry** functionality by `error-end`:
+
 - Implement exponential backoff
 - Classify errors as retriable vs permanent
 - Track retry count in envelope headers
@@ -334,6 +342,7 @@ When `ASYA_IS_END_ACTOR=true`, sidecar:
 - Move to DLQ after max retries exceeded
 
 **Custom monitoring**:
+
 - Track SLA violations per actor
 - Alert on error rates and patterns
 - Generate pipeline execution reports

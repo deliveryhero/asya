@@ -9,65 +9,66 @@ theme:
   name: shadcn
   favicon: img/favicon.svg
   features:
-    - navigation.sections
-    - navigation.expand
-    - navigation.indexes
-    - toc.integrate
+  - navigation.sections
+  - navigation.expand
+  - navigation.indexes
+  - toc.integrate
 
 extra_css:
-  - stylesheets/extra.css
+- stylesheets/extra.css
 
 nav:
-  - Home: README.md
-  - GETTING STARTED:
-      - Motivation: motivation.md
-      - Concepts: concepts.md
-      - For Data Scientists: quickstart/for-data_scientists.md
-      - For Platform Engineers: quickstart/for-platform_engineers.md
-  - INSTALLATION:
-      - AWS EKS: install/aws-eks.md
-      - Local Kind: install/local-kind.md
-      - Helm Charts: install/helm-charts.md
-  - ARCHITECTURE:
-      - Overview: architecture/README.md
-      - Actors: architecture/asya-actor.md
-      - Sidecar: architecture/asya-sidecar.md
-      - Runtime: architecture/asya-runtime.md
-      - Operator: architecture/asya-operator.md
-      - Gateway: architecture/asya-gateway.md
-      - Crew: architecture/asya-crew.md
-      - CLI Tools: architecture/asya-cli.md
-      - Autoscaling: architecture/autoscaling.md
-      - Observability: architecture/observability.md
-      - Actor-Actor Protocol: architecture/protocols/actor-actor.md
-      - Sidecar-Runtime Protocol: architecture/protocols/sidecar-runtime.md
-      - Transports: architecture/transports/README.md
-      - Supported Transports:
-          - RabbitMQ: architecture/transports/rabbitmq.md
-          - SQS: architecture/transports/sqs.md
-  - OPERATIONS:
-      - Monitoring: operate/monitoring.md
-      - Troubleshooting: operate/troubleshooting.md
-      - Upgrades: operate/upgrades.md
+- Home: README.md
+- GETTING STARTED:
+  - Motivation: motivation.md
+  - Concepts: concepts.md
+  - For Data Scientists 🧑‍🔬: quickstart/for-data_scientists.md
+  - For Platform Engineers ⚙️: quickstart/for-platform_engineers.md
+- INSTALLATION:
+  - AWS EKS: install/aws-eks.md
+  - Local Kind: install/local-kind.md
+  - Helm Charts: install/helm-charts.md
+- ARCHITECTURE:
+  - Overview: architecture/README.md
+  - Actors: architecture/asya-actor.md
+  - Sidecar: architecture/asya-sidecar.md
+  - Runtime: architecture/asya-runtime.md
+  - Operator: architecture/asya-operator.md
+  - Gateway: architecture/asya-gateway.md
+  - Crew: architecture/asya-crew.md
+  - CLI Tools: architecture/asya-cli.md
+  - Autoscaling: architecture/autoscaling.md
+  - Observability: architecture/observability.md
+  - Actor-Actor Protocol: architecture/protocols/actor-actor.md
+  - Sidecar-Runtime Protocol: architecture/protocols/sidecar-runtime.md
+  - Transports: architecture/transports/README.md
+  - Supported Transports:
+    - RabbitMQ: architecture/transports/rabbitmq.md
+    - SQS: architecture/transports/sqs.md
+- OPERATIONS:
+  - Monitoring: operate/monitoring.md
+  - Troubleshooting: operate/troubleshooting.md
+  - Upgrades: operate/upgrades.md
 
 plugins:
-  - search
-  - mermaid2:
-      arguments:
-        theme: default
+- search
+- mermaid2:
+    arguments:
+      theme: default
 
 markdown_extensions:
-  - admonition
-  - toc:
-      permalink: true
-  - tables
-  - pymdownx.highlight:
-      use_pygments: true
-  - pymdownx.inlinehilite
-  - pymdownx.superfences:
-      custom_fences:
-        - name: mermaid
-          class: mermaid
-          format: !!python/name:mermaid2.fence_mermaid
+- admonition
+- toc:
+    permalink: true
+- tables
+- pymdownx.highlight:
+    use_pygments: true
+- pymdownx.inlinehilite
+- pymdownx.superfences:
+    custom_fences:
+    - name: mermaid
+      class: mermaid
+      format: !!python/name:mermaid2.fence_mermaid
+- pymdownx.snippets
 
 copyright: Copyright &copy; 2024 Delivery Hero SE

@@ -4,9 +4,9 @@ Local development cluster with Kind (Kubernetes in Docker).
 
 ## Prerequisites
 
-- Docker
-- kubectl
-- Helm 3.0+
+- [Docker](https://www.docker.com/get-started/)
+- [kubectl](https://kubernetes.io/docs/tasks/tools/)
+- [Helm 3.0+](https://helm.sh/docs/intro/install/)
 - [Kind](https://kind.sigs.k8s.io/docs/user/quick-start/#installation)
 
 ## Quick Start
@@ -24,6 +24,7 @@ make up PROFILE=sqs-minio
 ```
 
 **Includes**:
+
 - Kind cluster
 - KEDA operator
 - RabbitMQ or LocalStack SQS
@@ -43,6 +44,7 @@ make up PROFILE=sqs-minio
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 nodes:
+
 - role: control-plane
   extraPortMappings:
   - containerPort: 30080

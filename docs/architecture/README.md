@@ -111,12 +111,14 @@ Each actor pod contains two containers:
 ## Deployment Patterns
 
 **AWS (SQS + S3)**:
+
 - Operator creates SQS queues
 - Actors use IAM roles (IRSA/Pod Identity) for queue access
 - Results stored in S3
 - KEDA uses CloudWatch metrics
 
 **Self-hosted (RabbitMQ + MinIO)**:
+
 - Operator creates RabbitMQ queues via Management API
 - Actors use username/password from secrets
 - Results stored in MinIO (S3-compatible)

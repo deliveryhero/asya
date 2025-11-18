@@ -5,22 +5,25 @@
 **What is an Actor?**
 
 An actor is a stateless (by default) workload that:
+
 - Receives messages from an input queue
 - Processes them via user-defined code
 - Sends results to the next queue in the route
 
 **Key characteristics**:
+
 - Stateless by design - no persistent state between messages
 - Independently scalable based on queue depth
 - Independently deployable as Kubernetes workloads
 
-**Motivation**: Alternative to monolithic pipelines. Instead of one large application handling `A → B → C`, each step is an independent actor that can scale and deploy separately.
+**Motivation**: Alternative to monolithic pipelines. Instead of one large pipeline `A → B → C`, each step is an independent actor that can scale and deploy separately.
 
 **See**: [architecture/asya-actor.md](architecture/asya-actor.md) for details.
 
 ## Sidecar
 
 **Responsibilities**:
+
 - Message routing between queues and runtime
 - Transport management (RabbitMQ, SQS)
 - Observability (metrics, logs)
@@ -33,6 +36,7 @@ An actor is a stateless (by default) workload that:
 ## Runtime
 
 **Responsibilities**:
+
 - User code execution
 - Processing input messages
 - Generating output messages
@@ -52,6 +56,7 @@ An actor is a stateless (by default) workload that:
 - more crew actors coming soon
 
 **Future crew actors**:
+
 - Stateful fan-in aggregation
 - Custom monitoring and alerting
 
@@ -62,6 +67,7 @@ An actor is a stateless (by default) workload that:
 **Interface**: Send, receive, ack, nack messages
 
 **Transport types**:
+
 - **SQS**: AWS-managed queue service
 - **RabbitMQ**: Self-hosted open-source message broker
 
@@ -92,6 +98,7 @@ An actor is a stateless (by default) workload that:
 ```
 
 **Fields**:
+
 - `id` (required): Unique identifier for tracking
 - `route` (required): Actor list and current position
 - `payload` (required): User data processed by actors
@@ -106,6 +113,7 @@ An actor is a stateless (by default) workload that:
 ## Operator
 
 **Responsibilities**:
+
 - Manages lifecycle of AsyncActor CRDs
 - Injects sidecars into actor pods
 - Creates Kubernetes Deployments/StatefulSets
@@ -119,6 +127,7 @@ An actor is a stateless (by default) workload that:
 ## KEDA (Autoscaling)
 
 **Benefits**:
+
 - Automatic scaling based on queue depth or custom metrics
 - Scale to zero - eliminate idle resource costs
 - Handle bursty workloads efficiently
@@ -134,6 +143,7 @@ An actor is a stateless (by default) workload that:
 As an optional component, Asya🎭 offers an MCP-compliant HTTP gateway, which allows external clients to easily consume async pipelines as MCP tools.
 
 **Responsibilities**:
+
 - Exposes MCP-compliant HTTP API
 - Receives HTTP requests, creates envelopes
 - Tracks envelope status in PostgreSQL
@@ -148,6 +158,7 @@ As an optional component, Asya🎭 offers an MCP-compliant HTTP gateway, which a
 ## Observability (Optional)
 
 **Built-in metrics** (OpenTelemetry):
+
 - Actor processing time
 - Message throughput
 - Error rates
