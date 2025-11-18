@@ -101,7 +101,7 @@ spec:
             value: "asya-results"
 ```
 
-See [operator README](../../operator/README.md) for operator deployment.
+See [operator README](../asya-operator/README.md) for operator deployment.
 
 ## Testing
 

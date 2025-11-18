@@ -55,4 +55,4 @@ PostgreSQL with Sqitch migrations. See [db/README.md](./db/README.md) for setup.
 
 ## Full Documentation
 
-See [docs/architecture/gateway.md](../../docs/architecture/gateway.md)
+See [docs/architecture/asya-gateway.md](../../docs/architecture/asya-gateway.md)

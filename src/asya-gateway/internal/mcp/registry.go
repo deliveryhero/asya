@@ -12,7 +12,7 @@ import (
 	"github.com/mark3labs/mcp-go/server"
 
 	"github.com/deliveryhero/asya/asya-gateway/internal/config"
-	"github.com/deliveryhero/asya/asya-gateway/internal/jobs"
+	"github.com/deliveryhero/asya/asya-gateway/internal/envelopestore"
 	"github.com/deliveryhero/asya/asya-gateway/internal/queue"
 	"github.com/deliveryhero/asya/asya-gateway/pkg/types"
 )
@@ -23,14 +23,14 @@ type ToolHandler func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult
 // Registry manages dynamic MCP tool registration from configuration
 type Registry struct {
 	config      *config.Config
-	jobStore    jobs.JobStore
+	jobStore    envelopestore.EnvelopeStore
 	queueClient queue.Client
 	mcpServer   *server.MCPServer
 	handlers    map[string]ToolHandler // Map of tool name -> handler
 }
 
 // NewRegistry creates a new tool registry
-func NewRegistry(cfg *config.Config, jobStore jobs.JobStore, queueClient queue.Client) *Registry {
+func NewRegistry(cfg *config.Config, jobStore envelopestore.EnvelopeStore, queueClient queue.Client) *Registry {
 	return &Registry{
 		config:      cfg,
 		jobStore:    jobStore,

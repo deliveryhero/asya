@@ -1,156 +1,267 @@
-# Asya🎭 Runtime
+# Asya Runtime
 
-Lightweight Unix socket server for actor processing logic.
+## Responsibilities
 
-> **Full Documentation**: [src/asya-runtime/README.md](../../src/asya-runtime/README.md)
+- Load and execute user-defined handler
+- Process envelopes received from sidecar
+- Return results to sidecar
+- Handle errors gracefully
 
-## Overview
+## How It Works
 
-Single Python file (stdlib only) handling sidecar-runtime communication via Unix sockets.
-
-## Key Features
-
-- No dependencies (stdlib only)
-- Dynamic function loading from any module
-- Length-prefix framing (4-byte uint32)
-- OOM detection and recovery (RAM + CUDA)
-- Functional design (no global state)
-
-## Deployment Internals
-
-The operator automatically manages runtime deployment:
-
-1. **Auto-injection**: Command `["python3", "/opt/asya/asya_runtime.py"]` is injected into the `asya-runtime` container
-2. **ConfigMap mount**: Runtime script mounted at `/opt/asya/asya_runtime.py` from ConfigMap
-3. **Python requirement**: Container image must have `python3` in PATH (customizable via `workload.pythonExecutable`)
-
-### Container Naming Requirements
-
-**CRITICAL**: The runtime container MUST be named `asya-runtime`. The operator enforces this requirement and rejects AsyncActor CRDs that:
-- Use any other container name (e.g., `runtime`, `app`, `worker`)
-- Override the `command` field in the `asya-runtime` container
-
-These restrictions prevent security vulnerabilities and ensure the runtime script is properly injected.
-
-### Custom Python Location
-
-Override the Python executable in your Helm chart:
-
-```yaml
-workload:
-  pythonExecutable: "python3.11"  # Or "/opt/conda/bin/python"
-  template:
-    spec:
-      containers:
-      - name: asya-runtime  # MUST be named asya-runtime
-        image: your-custom-image
-        # DO NOT set command - it will be rejected by operator
-```
-
-### Handler Import Resolution
-
-Your handler function must be importable via Python's module system. Use `PYTHONPATH` to ensure the runtime can find your code:
-
-```yaml
-# Standalone script at /foo/bar/script.py
-env:
-- name: PYTHONPATH
-  value: "/foo/bar"
-- name: ASYA_HANDLER
-  value: "script.process"  # Imports from script.py
-
-# Package structure at /app/my_pkg/handler.py
-env:
-- name: PYTHONPATH
-  value: "/app"
-- name: ASYA_HANDLER
-  value: "my_pkg.handler.predict"
-```
-
-## Quick Start
-
-```bash
-export ASYA_HANDLER="my_app.handler.predict"
-python asya_runtime.py
-```
-
-## Environment Variables
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `ASYA_HANDLER` | _(required)_ | Function path (module.path.function) |
-| `ASYA_SOCKET_PATH` | `/tmp/sockets/app.sock` | Unix socket path |
-| `ASYA_HANDLER_MODE` | `payload` | Handler mode: `payload` or `envelope` |
-| `ASYA_ENABLE_OOM_DETECTION` | `true` | OOM error detection |
-| `ASYA_CUDA_CLEANUP_ON_OOM` | `true` | Clear CUDA cache on OOM |
-
-## Handler Modes
-
-Runtime supports two handler modes via `ASYA_HANDLER_MODE`:
-
-### Payload Mode (Default)
-
-**Simple mode**: Handler receives only the payload, runtime manages routing automatically.
-
-```python
-def process(payload: dict) -> dict:
-    # Process payload, return result
-    return {"result": payload["value"] * 2}
-```
-
-**Routing Contract**:
-- Runtime **automatically increments** `route.current` to point to next actor
-- Sidecar sends envelope as-is (no increment)
-- Handler doesn't see or modify routing information
-
-### Envelope Mode
-
-**Advanced mode**: Handler receives complete envelope structure and controls routing.
-
-```python
-def process(envelope: dict) -> dict:
-    # Access payload and route
-    payload = envelope["payload"]
-    route = envelope["route"]
-
-    # Process and return full envelope with updated route
-    return {
-        "payload": {"result": payload["value"] * 2},
-        "route": {"actors": route["actors"], "current": route["current"] + 1},
-        "headers": envelope.get("headers", {})
-    }
-```
-
-**Routing Contract**:
-- Handler **must increment** `route.current` manually
-- Handler can modify route (add/remove actors) but must preserve already-processed actors
-- Sidecar sends envelope as-is (no increment)
-
-## Routing Responsibility
-
-**Key principle**: Runtime returns complete envelope(s) ready to send with `route.current` already updated.
-
-| Mode | Who increments `current`? | Who modifies route? |
-|------|---------------------------|---------------------|
-| Payload | Runtime (automatic) | Runtime only |
-| Envelope | Handler (manual) | Handler can modify |
-| Sidecar | **NEVER** | Never |
-
-## OOM Handling
-
-- **RAM OOM**: Triggers GC, returns `oom_error` (recoverable, retry 30s)
-- **CUDA OOM**: Clears cache, returns `cuda_oom_error` (recoverable, retry 60s)
+1. Listen on Unix socket at `/var/run/asya/asya-runtime.sock`
+2. Receive envelope from sidecar
+3. Load user handler (function or class)
+4. Execute handler with payload (or full envelope)
+5. Return result to sidecar
 
 ## Deployment
 
-Injected via ConfigMap into user containers. See [src/asya-runtime/README.md](../../src/asya-runtime/README.md) for Kubernetes examples.
+User defines container with Python code. Operator injects `asya_runtime.py`:
 
-## Full Documentation
+```yaml
+containers:
+- name: asya-runtime
+  image: my-handler:v1
+  command: ["python3", "/opt/asya/asya_runtime.py"]  # Injected
+  env:
+  - name: ASYA_HANDLER
+    value: "my_module.MyClass.process"
+  - name: ASYA_SOCKET_DIR
+    value: /var/run/asya  # Injected
+  volumeMounts:
+  - name: asya-runtime  # Injected ConfigMap
+    mountPath: /opt/asya/asya_runtime.py
+    subPath: asya_runtime.py
+    readOnly: true
+  - name: socket-dir  # Injected
+    mountPath: /var/run/asya
+```
 
-[src/asya-runtime/README.md](../../src/asya-runtime/README.md)
+## Python Compatibility
 
-## Next Steps
+**Supports Python 3.7+** for compatibility with legacy AI frameworks.
 
-- [Sidecar Component](asya-sidecar.md)
-- [Gateway Component](asya-gateway.md)
-- [Development Guide](../guides/development.md)
+Runtime uses backward-compatible type hints:
+```python
+from typing import Dict, List  # Not dict, list
+```
+
+## Handler Types
+
+### Function Handler
+
+**Configuration**: `ASYA_HANDLER=module.function`
+
+**Example**:
+```python
+# handler.py
+def process(payload: dict) -> dict:
+    return {"result": payload["value"] * 2}
+```
+
+### Class Handler
+
+**Configuration**: `ASYA_HANDLER=module.Class.method`
+
+**Example**:
+```python
+# handler.py
+class Processor:
+    def __init__(self, model_path: str = "/models/default"):
+        self.model = load_model(model_path)  # Init once
+
+    def process(self, payload: dict) -> dict:
+        return {"result": self.model.predict(payload)}
+```
+
+**Benefits**: Stateful initialization (model loading, preprocessing setup)
+
+**Important**: All `__init__` parameters must have default values for zero-arg instantiation.
+
+```python
+# ✅ Correct - all params have defaults
+class Processor:
+    def __init__(self, model_path: str = "/models/default"):
+        self.model = load_model(model_path)
+
+# ❌ Wrong - param without default
+class Processor:
+    def __init__(self, model_path: str):  # Missing default!
+        self.model = load_model(model_path)
+```
+
+## Handler Modes
+
+### Payload Mode (Default)
+
+**Configuration**: `ASYA_HANDLER_MODE=payload`
+
+Handler receives only payload, headers/route preserved automatically:
+
+```python
+def process(payload: dict) -> dict:
+    return {"result": ...}  # Single value or list for fan-out
+```
+
+Runtime automatically:
+- Increments `route.current`
+- Preserves `headers`
+- Creates new envelope with mutated payload
+
+### Envelope Mode
+
+**Configuration**: `ASYA_HANDLER_MODE=envelope`
+
+Handler receives full envelope structure:
+
+```python
+def process(envelope: dict) -> dict:
+    # Modify route dynamically
+    envelope["route"]["actors"].append("extra-step")
+    envelope["route"]["current"] += 1
+    envelope["payload"]["processed"] = True
+    return envelope
+```
+
+**Use case**: Dynamic routing, route modification
+
+## Response Patterns
+
+### Single Response
+
+```python
+return {"processed": True}
+```
+
+Sidecar creates one envelope, routes to next actor.
+
+### Fan-Out
+
+```python
+return [{"chunk": 1}, {"chunk": 2}, {"chunk": 3}]
+```
+
+Sidecar creates multiple envelopes (one per item).
+
+### Abort
+
+```python
+return None  # or []
+```
+
+Sidecar routes envelope to `happy-end` (no more processing).
+
+### Error
+
+```python
+raise ValueError("Invalid input")
+```
+
+Runtime catches exception, creates error response with detailed traceback:
+
+```python
+[{
+  "error": "processing_error",
+  "details": {
+    "message": "Invalid input",
+    "type": "ValueError",
+    "traceback": "Traceback (most recent call last):\n  File ..."
+  }
+}]
+```
+
+**Error codes**:
+- `processing_error`: Handler exception (any unhandled error)
+- `msg_parsing_error`: Invalid JSON or envelope structure
+- `connection_error`: Socket/network issues
+
+Sidecar receives error response and routes envelope to `error-end`.
+
+## Route Modification Rules
+
+Handlers in envelope mode can modify routes but **MUST preserve already-processed steps**:
+
+✅ **Allowed**:
+- Add future steps: `["a","b","c"]` → `["a","b","c","d"]` (at current=0)
+- Replace future steps: `["a","b","c"]` → `["a","x","y"]` (at current=0)
+
+❌ **Forbidden**:
+- Erase processed steps: `["a","b","c"]` → `["c"]` at current=2
+- Modify processed actor names: `["a","b","c"]` → `["a-new","b","c"]` at current=1
+
+**Validation**: Runtime validates `route.actors[0:current+1]` unchanged.
+
+## `asya_runtime.py` via ConfigMap
+
+**Source**: `src/asya-runtime/asya_runtime.py` (single file, no dependencies)
+
+**Deployment**:
+1. Operator reads `asya_runtime.py` at runtime (via `ASYA_RUNTIME_SCRIPT_PATH` or default)
+2. Stores content in ConfigMap
+3. Mounts ConfigMap into actor pods at `/opt/asya/asya_runtime.py`
+
+**Symlinks** (for testing):
+- `src/asya-operator/internal/controller/runtime_symlink/asya_runtime.py` → Operator reads
+- `testing/integration/operator/testdata/runtime_symlink/asya_runtime.py` → Tests use
+
+**IMPORTANT**: Symlinks automatically reflect changes to source file. No manual sync needed.
+
+## Readiness Probe
+
+Runtime signals readiness via separate mechanism:
+
+```yaml
+readinessProbe:
+  exec:
+    command: ["sh", "-c", "test -S /var/run/asya/asya-runtime.sock && test -f /var/run/asya/runtime-ready"]
+```
+
+Runtime creates `/var/run/asya/runtime-ready` file after handler initialization.
+
+## Configuration
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `ASYA_HANDLER` | (required) | Handler path (`module.Class.method`) |
+| `ASYA_HANDLER_MODE` | `payload` | Mode: `payload` or `envelope` |
+| `ASYA_SOCKET_DIR` | `/var/run/asya` | Unix socket directory (internal testing only) |
+| `ASYA_SOCKET_NAME` | `asya-runtime.sock` | Socket filename (internal testing only) |
+| `ASYA_SOCKET_CHMOD` | `0o666` | Socket permissions in octal (empty = skip chmod) |
+| `ASYA_CHUNK_SIZE` | `65536` | Socket read chunk size in bytes |
+| `ASYA_ENABLE_VALIDATION` | `true` | Enable envelope validation |
+| `ASYA_LOG_LEVEL` | `INFO` | Logging level (DEBUG, INFO, WARNING, ERROR) |
+
+**Note**: `ASYA_SOCKET_DIR` and `ASYA_SOCKET_NAME` are for internal testing only. DO NOT set in production - socket path is managed by operator.
+
+## Examples
+
+**Data processing**:
+```python
+def process(payload: dict) -> dict:
+    data = fetch_data(payload["id"])
+    return {**payload, "data": data}
+```
+
+**AI inference**:
+```python
+class LLMInference:
+    def __init__(self):
+        self.model = load_llm("/models/llama3")
+
+    def process(self, payload: dict) -> dict:
+        response = self.model.generate(payload["prompt"])
+        return {**payload, "response": response}
+```
+
+**Dynamic routing**:
+```python
+def process(envelope: dict) -> dict:
+    if envelope["payload"]["priority"] == "high":
+        envelope["route"]["actors"].insert(
+            envelope["route"]["current"] + 1,
+            "priority-handler"
+        )
+    envelope["route"]["current"] += 1
+    return envelope
+```

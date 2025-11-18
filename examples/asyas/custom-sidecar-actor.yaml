@@ -35,11 +35,6 @@ spec:
     - name: CUSTOM_TIMEOUT
       value: "30"
 
-  # Custom socket configuration
-  socket:
-    dir: /custom/path
-    maxSize: "20971520" # 20MB
-
   # Custom timeouts
   timeout:
     processing: 600

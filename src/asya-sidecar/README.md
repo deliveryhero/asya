@@ -27,17 +27,7 @@ export ASYA_RABBITMQ_URL=amqp://user:pass@localhost:5672/
 
 ## Envelope Format
 
-```json
-{
-  "route": {
-    "actors": ["step1", "step2"],
-    "current": 0
-  },
-  "payload": <raw bytes>
-}
-```
-
-See [docs/architecture/envelope.md](../../docs/architecture/envelope.md) for details
+See [docs/architecture/protocols/actor-actor.md](../../docs/architecture/protocols/actor-actor.md) for complete envelope structure and routing details
 
 ## Building
 

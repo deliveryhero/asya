@@ -46,8 +46,6 @@ services:
       ASYA_HANDLER: asya_testing.handlers.${ASYA_HANDLER_MODE}.oom_handler
       ASYA_RUNTIME_TIMEOUT: 5s
 
-
-      ASYA_ENABLE_OOM_DETECTION: true
     volumes:
     - asya-oom-sockets:/var/run/asya
     - ../../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro
@@ -69,8 +67,6 @@ services:
       ASYA_HANDLER: asya_testing.handlers.${ASYA_HANDLER_MODE}.cuda_oom_handler
       ASYA_RUNTIME_TIMEOUT: 5s
 
-
-      ASYA_ENABLE_OOM_DETECTION: true
       ASYA_CUDA_CLEANUP_ON_OOM: true
     volumes:
     - asya-cuda-sockets:/var/run/asya

@@ -10,7 +10,7 @@ import (
 	"github.com/mark3labs/mcp-go/server"
 
 	"github.com/deliveryhero/asya/asya-gateway/internal/config"
-	"github.com/deliveryhero/asya/asya-gateway/internal/jobs"
+	"github.com/deliveryhero/asya/asya-gateway/internal/envelopestore"
 	"github.com/deliveryhero/asya/asya-gateway/internal/queue"
 	"github.com/deliveryhero/asya/asya-gateway/pkg/types"
 )
@@ -118,7 +118,7 @@ func TestNewRegistry(t *testing.T) {
 			{Name: "test_tool", Description: "Test"},
 		},
 	}
-	jobStore := jobs.NewStore()
+	jobStore := envelopestore.NewStore()
 	queueClient := &MockQueueClient{}
 
 	registry := NewRegistry(cfg, jobStore, queueClient)
@@ -142,7 +142,7 @@ func TestNewRegistry(t *testing.T) {
 
 // TestBuildParameterOptions tests parameter option building for all types
 func TestBuildParameterOptions(t *testing.T) {
-	registry := NewRegistry(&config.Config{}, jobs.NewStore(), &MockQueueClient{})
+	registry := NewRegistry(&config.Config{}, envelopestore.NewStore(), &MockQueueClient{})
 
 	tests := []struct {
 		name      string
@@ -318,7 +318,7 @@ func TestRegisterAll(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			registry := NewRegistry(tt.config, jobs.NewStore(), &MockQueueClient{})
+			registry := NewRegistry(tt.config, envelopestore.NewStore(), &MockQueueClient{})
 			mcpServer := server.NewMCPServer("test-server", "1.0.0")
 
 			err := registry.RegisterAll(mcpServer)
@@ -361,7 +361,7 @@ func TestGetToolHandler(t *testing.T) {
 		},
 	}
 
-	registry := NewRegistry(cfg, jobs.NewStore(), &MockQueueClient{})
+	registry := NewRegistry(cfg, envelopestore.NewStore(), &MockQueueClient{})
 	mcpServer := server.NewMCPServer("test-server", "1.0.0")
 	_ = registry.RegisterAll(mcpServer)
 
@@ -642,7 +642,7 @@ func TestGetToolOptions(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			registry := NewRegistry(tt.config, jobs.NewStore(), &MockQueueClient{})
+			registry := NewRegistry(tt.config, envelopestore.NewStore(), &MockQueueClient{})
 
 			opts, err := registry.GetToolOptions(tt.toolName)
 

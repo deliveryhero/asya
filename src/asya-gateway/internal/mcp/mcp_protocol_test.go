@@ -10,7 +10,7 @@ import (
 	mcpserver "github.com/mark3labs/mcp-go/server"
 
 	"github.com/deliveryhero/asya/asya-gateway/internal/config"
-	"github.com/deliveryhero/asya/asya-gateway/internal/jobs"
+	"github.com/deliveryhero/asya/asya-gateway/internal/envelopestore"
 )
 
 // Transport test helpers
@@ -34,7 +34,7 @@ func TestMCPProtocol_Initialize(t *testing.T) {
 }
 
 func testInitialize(t *testing.T, transportName string, serverFactory func(*mcpserver.MCPServer) http.Handler) {
-	jobStore := jobs.NewStore()
+	jobStore := envelopestore.NewStore()
 	queueClient := &MockQueueClient{}
 
 	cfg := &config.Config{
@@ -125,7 +125,7 @@ func testInitialize(t *testing.T, transportName string, serverFactory func(*mcps
 
 // TestMCPProtocol_ListTools verifies the tools/list method
 func TestMCPProtocol_ListTools(t *testing.T) {
-	jobStore := jobs.NewStore()
+	jobStore := envelopestore.NewStore()
 	queueClient := &MockQueueClient{}
 
 	cfg := &config.Config{
@@ -192,7 +192,7 @@ func TestMCPProtocol_InvalidMethod(t *testing.T) {
 }
 
 func testInvalidMethod(t *testing.T, transportName string, serverFactory func(*mcpserver.MCPServer) http.Handler) {
-	jobStore := jobs.NewStore()
+	jobStore := envelopestore.NewStore()
 	queueClient := &MockQueueClient{}
 
 	cfg := &config.Config{
@@ -243,7 +243,7 @@ func testInvalidMethod(t *testing.T, transportName string, serverFactory func(*m
 
 // TestMCPProtocol_ParameterValidation verifies parameter validation
 func TestMCPProtocol_ParameterValidation(t *testing.T) {
-	jobStore := jobs.NewStore()
+	jobStore := envelopestore.NewStore()
 	queueClient := &MockQueueClient{}
 
 	cfg := &config.Config{
@@ -284,7 +284,7 @@ func TestMCPProtocol_ParameterValidation(t *testing.T) {
 
 // TestMCPProtocol_MultipleParameterTypes verifies different parameter types
 func TestMCPProtocol_MultipleParameterTypes(t *testing.T) {
-	jobStore := jobs.NewStore()
+	jobStore := envelopestore.NewStore()
 	queueClient := &MockQueueClient{}
 
 	cfg := &config.Config{
@@ -321,7 +321,7 @@ func TestMCPProtocol_MultipleParameterTypes(t *testing.T) {
 
 // TestMCPProtocol_MissingRequiredParameter verifies parameter validation
 func TestMCPProtocol_MissingRequiredParameter(t *testing.T) {
-	jobStore := jobs.NewStore()
+	jobStore := envelopestore.NewStore()
 	queueClient := &MockQueueClient{}
 
 	cfg := &config.Config{
@@ -349,7 +349,7 @@ func TestMCPProtocol_MissingRequiredParameter(t *testing.T) {
 
 // TestMCPProtocol_EnvelopeCreation verifies envelope creation via tool call
 func TestMCPProtocol_EnvelopeCreation(t *testing.T) {
-	jobStore := jobs.NewStore()
+	jobStore := envelopestore.NewStore()
 	queueClient := &MockQueueClient{}
 
 	cfg := &config.Config{
@@ -384,7 +384,7 @@ func TestMCPProtocol_EnvelopeCreation(t *testing.T) {
 
 // TestMCPProtocol_BothTransportsWork verifies both transports can coexist
 func TestMCPProtocol_BothTransportsWork(t *testing.T) {
-	jobStore := jobs.NewStore()
+	jobStore := envelopestore.NewStore()
 	queueClient := &MockQueueClient{}
 
 	cfg := &config.Config{

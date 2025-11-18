@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/deliveryhero/asya/asya-gateway/internal/config"
-	"github.com/deliveryhero/asya/asya-gateway/internal/jobs"
+	"github.com/deliveryhero/asya/asya-gateway/internal/envelopestore"
 	"github.com/deliveryhero/asya/asya-gateway/pkg/types"
 )
 
@@ -87,7 +87,7 @@ func TestHandleEnvelopeProgress(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create in-memory job store
-			store := jobs.NewStore()
+			store := envelopestore.NewStore()
 
 			// Create test envelope if needed
 			if tt.jobExists {
@@ -202,7 +202,7 @@ func TestHandleEnvelopeProgress_ProgressCalculation(t *testing.T) {
 
 	for i, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			store := jobs.NewStore()
+			store := envelopestore.NewStore()
 			handler := NewHandler(store)
 
 			envelopeID := fmt.Sprintf("test-envelope-%d", i)
@@ -256,7 +256,7 @@ func TestHandleEnvelopeProgress_ProgressCalculation(t *testing.T) {
 }
 
 func TestHandleEnvelopeProgress_SSENotification(t *testing.T) {
-	store := jobs.NewStore()
+	store := envelopestore.NewStore()
 	handler := NewHandler(store)
 
 	envelopeID := "test-envelope-sse"
@@ -415,7 +415,7 @@ func TestHandleToolCall(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			store := jobs.NewStore()
+			store := envelopestore.NewStore()
 			handler := NewHandler(store)
 
 			if tt.setupMCP {
@@ -538,7 +538,7 @@ func TestHandleEnvelopeStatus(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			store := jobs.NewStore()
+			store := envelopestore.NewStore()
 			handler := NewHandler(store)
 
 			if tt.setupEnv {
@@ -666,7 +666,7 @@ func TestHandleEnvelopeActive(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			store := jobs.NewStore()
+			store := envelopestore.NewStore()
 			handler := NewHandler(store)
 
 			if tt.setupEnv {
@@ -862,7 +862,7 @@ func TestHandleEnvelopeFinal(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			store := jobs.NewStore()
+			store := envelopestore.NewStore()
 			handler := NewHandler(store)
 
 			if tt.setupEnv {
@@ -1092,7 +1092,7 @@ func TestEnvelopePathRegex(t *testing.T) {
 }
 
 func TestEnvelopePathRegex_EdgeCases(t *testing.T) {
-	store := jobs.NewStore()
+	store := envelopestore.NewStore()
 	handler := NewHandler(store)
 
 	tests := []struct {
@@ -1207,7 +1207,7 @@ func TestHandleEnvelopeCreate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			store := jobs.NewStore()
+			store := envelopestore.NewStore()
 			handler := NewHandler(store)
 
 			var body []byte
@@ -1258,7 +1258,7 @@ func TestHandleEnvelopeCreate(t *testing.T) {
 }
 
 func TestHandleEnvelopeCreate_DuplicateID(t *testing.T) {
-	store := jobs.NewStore()
+	store := envelopestore.NewStore()
 	handler := NewHandler(store)
 
 	// Create first envelope

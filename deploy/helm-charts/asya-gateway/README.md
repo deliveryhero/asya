@@ -91,8 +91,8 @@ helm install asya-gateway deploy/helm-charts/asya-gateway \
 
 The gateway uses two main tables:
 
-- **jobs**: Stores job metadata and current state
-- **job_updates**: Audit log of all job status changes (for SSE streaming)
+- **envelopes**: Stores envelope metadata and current state
+- **envelope_updates**: Audit log of all envelope status changes (for SSE streaming)
 
 Migrations are managed with Sqitch and run automatically as a Helm pre-install/pre-upgrade hook.
 

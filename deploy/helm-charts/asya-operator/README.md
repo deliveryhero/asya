@@ -198,7 +198,7 @@ Other namespaces:
 The operator requires cluster-wide permissions:
 
 - **AsyncActor CRDs**: Full CRUD + status updates
-- **Deployments/StatefulSets/Jobs**: Full CRUD
+- **Deployments/StatefulSets**: Full CRUD
 - **KEDA ScaledObjects/TriggerAuthentications**: Full CRUD
 - **ConfigMaps**: Full CRUD (for runtime ConfigMap)
 - **Secrets**: Read-only (for transport credentials)
