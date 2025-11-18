@@ -14,21 +14,18 @@ theme:
     - navigation.indexes
     - toc.integrate
 
-extra_css:
-  - stylesheets/extra.css
-
 nav:
   - Home: index.md
-  - Getting Started:
+  - GETTING STARTED:
       - Motivation: motivation.md
       - Concepts: concepts.md
       - For Data Scientists: quickstart/for-data_scientists.md
       - For Platform Engineers: quickstart/for-platform_engineers.md
-  - Installation:
+  - INSTALLATION:
       - AWS EKS: install/aws-eks.md
       - Local Kind: install/local-kind.md
       - Helm Charts: install/helm-charts.md
-  - Architecture:
+  - ARCHITECTURE:
       - Overview: architecture/README.md
       - Actors: architecture/asya-actor.md
       - Sidecar: architecture/asya-sidecar.md
@@ -39,14 +36,13 @@ nav:
       - CLI Tools: architecture/asya-cli.md
       - Autoscaling: architecture/autoscaling.md
       - Observability: architecture/observability.md
-      - Protocols:
-          - Actor-Actor: architecture/protocols/actor-actor.md
-          - Sidecar-Runtime: architecture/protocols/sidecar-runtime.md
-      - Transports:
-          - Overview: architecture/transports/README.md
+      - Actor-Actor Protocol: architecture/protocols/actor-actor.md
+      - Sidecar-Runtime Protocol: architecture/protocols/sidecar-runtime.md
+      - Transports: architecture/transports/README.md
+      - Supported Transports:
           - RabbitMQ: architecture/transports/rabbitmq.md
           - SQS: architecture/transports/sqs.md
-  - Operations:
+  - OPERATIONS:
       - Monitoring: operate/monitoring.md
       - Troubleshooting: operate/troubleshooting.md
       - Upgrades: operate/upgrades.md

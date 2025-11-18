@@ -138,7 +138,7 @@ clean: clean-integration clean-e2e ## Clean build artifacts
 # Documentation
 # =============================================================================
 
-docs-serve: ## Serve docs locally at http://127.0.0.1:8000
+docs-serve: docs-build ## Serve docs locally at http://127.0.0.1:8000
 	@uv run mkdocs --version >/dev/null 2>&1 || (echo "[.] Installing MkDocs..." && uv pip install mkdocs mkdocs-shadcn pygments mkdocs-mermaid2-plugin)
 	uv run mkdocs serve
 

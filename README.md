@@ -13,7 +13,7 @@ Asya🎭 is a **queue-based actor framework** for orchestrating AI/ML workloads 
 <p align="left">
 📘 <a href="docs/">Documentation</a> • 🚀 <a href="#quick-start">Quick Start</a> • 🏗️ <a href="docs/architecture/">Architecture</a> • 💡 <a href="docs/concepts.md">Concepts</a>
 <br/><br/>
-<img src="./img/dh-logo.png" alt="Delivery Hero" width="120"/>
+<img src="./docs/img/dh-logo.png" alt="Delivery Hero" width="120"/>
 </p>
 
 Battle-tested at [Delivery Hero](https://tech.deliveryhero.com/) for global-scale AI-powered image enhancement. Now powering LLM and agentic workflows.
