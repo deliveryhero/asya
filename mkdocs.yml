@@ -13,12 +13,11 @@ theme:
   - navigation.expand
   - navigation.indexes
   - toc.integrate
+  - search.suggest
+  - search.highlight
 
 extra_css:
 - stylesheets/extra.css
-
-extra_javascript:
-- js/search-results-handler.js
 
 nav:
 - Home: README.md
@@ -54,7 +53,8 @@ nav:
   - Upgrades: operate/upgrades.md
 
 plugins:
-- search
+- shadcn/search:
+    prebuild_index: python
 - mermaid2:
     arguments:
       theme: default
@@ -74,4 +74,4 @@ markdown_extensions:
       format: !!python/name:mermaid2.fence_mermaid
 - pymdownx.snippets
 
-copyright: Copyright &copy; 2024 Delivery Hero SE
+copyright: Copyright &copy; 2025 Delivery Hero SE

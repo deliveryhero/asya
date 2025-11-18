@@ -1,0 +1,9 @@
+# MkDocs documentation build requirements
+# Using patched shadcn theme with search fix
+# See docs/README-SHADCN-PATCH.md for details
+# Issue: https://github.com/asiffer/mkdocs-shadcn/issues/30
+git+https://github.com/asiffer/mkdocs-shadcn@30-search-indexing-broken
+mkdocs>=1.4
+mkdocs-mermaid2-plugin
+pygments
+lunr  # Required for prebuild_index
