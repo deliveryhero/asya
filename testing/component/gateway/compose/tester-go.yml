@@ -14,6 +14,8 @@ services:
     - ../../../shared/compose/envs/.env.postgres
     - ../../../shared/compose/envs/.env.tester
     - ../../../shared/compose/envs/.env.asya-shared
+    volumes:
+    - ../../../../testing/component/gateway/tests_go:/build/tests:ro
     working_dir: /build
     entrypoint: /bin/sh
     command:
