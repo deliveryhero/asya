@@ -1,0 +1,36 @@
+/* Custom styles for Asya documentation */
+
+:root {
+  --md-primary-fg-color: #4051b5;
+  --md-primary-fg-color--light: #5c6bc0;
+  --md-primary-fg-color--dark: #303f9f;
+  --md-accent-fg-color: #4051b5;
+}
+
+/* Custom admonition colors */
+.md-typeset .admonition.note {
+  border-color: #4051b5;
+}
+
+/* Code block improvements */
+.md-typeset code {
+  background-color: var(--md-code-bg-color);
+  border-radius: 0.2rem;
+  padding: 0.1rem 0.4rem;
+}
+
+/* Improve table styling */
+.md-typeset table:not([class]) {
+  border: 1px solid var(--md-default-fg-color--lightest);
+  border-radius: 0.2rem;
+}
+
+/* Navigation improvements */
+.md-nav__item--active > .md-nav__link {
+  font-weight: 600;
+}
+
+/* Footer styling */
+.md-footer-meta {
+  background-color: var(--md-footer-bg-color);
+}

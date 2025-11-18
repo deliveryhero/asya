@@ -1,0 +1,137 @@
+site_name: Asya🎭
+site_url: https://deliveryhero.github.io/asya
+site_description: Kubernetes-native async actor framework for orchestrating AI/ML workloads at scale
+repo_name: deliveryhero/asya
+repo_url: https://github.com/deliveryhero/asya
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  logo: https://raw.githubusercontent.com/deliveryhero/asya/main/.github/assets/logo.png
+  favicon: https://raw.githubusercontent.com/deliveryhero/asya/main/.github/assets/favicon.png
+  features:
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - navigation.footer
+    - search.suggest
+    - search.highlight
+    - search.share
+    - content.code.copy
+    - content.code.annotate
+    - content.action.edit
+    - content.action.view
+    - toc.follow
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+nav:
+  - Home: index.md
+  - Getting Started:
+      - Motivation: motivation.md
+      - Concepts: concepts.md
+      - Quickstart:
+          - For Data Scientists: quickstart/for-data_scientists.md
+          - For Platform Engineers: quickstart/for-platform_engineers.md
+  - Installation:
+      - AWS EKS: install/aws-eks.md
+      - Local Kind: install/local-kind.md
+      - Helm Charts: install/helm-charts.md
+  - Architecture:
+      - Overview: architecture/README.md
+      - Actors: architecture/asya-actor.md
+      - Sidecar: architecture/asya-sidecar.md
+      - Runtime: architecture/asya-runtime.md
+      - Operator: architecture/asya-operator.md
+      - Gateway: architecture/asya-gateway.md
+      - Crew: architecture/asya-crew.md
+      - CLI Tools: architecture/asya-cli.md
+      - Autoscaling: architecture/autoscaling.md
+      - Observability: architecture/observability.md
+      - Protocols:
+          - Actor-Actor: architecture/protocols/actor-actor.md
+          - Sidecar-Runtime: architecture/protocols/sidecar-runtime.md
+      - Transports:
+          - Overview: architecture/transports/README.md
+          - RabbitMQ: architecture/transports/rabbitmq.md
+          - SQS: architecture/transports/sqs.md
+  - Operations:
+      - Monitoring: operate/monitoring.md
+      - Troubleshooting: operate/troubleshooting.md
+      - Upgrades: operate/upgrades.md
+
+plugins:
+  - search:
+      separator: '[\s\-,:!=\[\]()"/]+|(?!\b)(?=[A-Z][a-z])|\.(?!\d)|&[lg]t;'
+  - git-revision-date-localized:
+      enable_creation_date: true
+      type: timeago
+  - minify:
+      minify_html: true
+
+markdown_extensions:
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - toc:
+      permalink: true
+      toc_depth: 3
+  - tables
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.caret
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.snippets:
+      auto_append:
+        - includes/abbreviations.md
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/deliveryhero/asya
+  version:
+    provider: mike
+
+extra_css:
+  - stylesheets/extra.css
+
+copyright: Copyright &copy; 2024 Delivery Hero SE
