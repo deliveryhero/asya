@@ -1,31 +1,38 @@
 # Asya🎭
 > `/ˈɑːsjə/`, from **asy**nc **a**ctors
 
-Kubernetes-native • Distributed • Event-Driven • **AI Orchestration Framework** • That actually scales.
-
-**Key idea**: to fully decouple AI/ML/business logic from infrastructure pipelines to enable scalability.
-
-* async actors
-* simple message-passing `A → B → C` instead of request-response `A → B → A → C → A...`
-* auto-scale from 0 to ∞ based on work
-* stateless by design
-* no central orchestrator/pipeline/DAG/flow - message knows the route
-* zero pip dependencies (infra completely decoupled from your code)
-* pipeline is data not code (no central orchestrator/DAG/flow/etc - message knows the route)
-* ideal for complex batch and near-realtime processing jobs (latency - seconds to minutes)
-* optional MCP HTTP gateway for easy integrations
+**Kubernetes-native** • **Event-Driven** • **AI Orchestration Framework**
 
 <p align="left">
-📘 <a href="docs/">Docs</a> • 🏗️ <a href="docs/architecture/">Architecture</a> • 🔧 <a href="examples/">Examples</a> • 💻 <a href="src/">Source</a> • ⚙️ <a href="deploy/helm-charts/">Charts</a> • 🧪 <a href="testing/">Testing</a>
+📘 <a href="docs/">Documentation</a> • 🚀 <a href="#getting-started">Get Started</a> • 🏗️ <a href="docs/architecture/">Architecture</a> • 💡 <a href="docs/concepts.md">Concepts</a>
 <br/><br/>
 <img src="./img/dh-logo.png" alt="Delivery Hero" width="140"/>
 </p>
 
 Battle-tested at [Delivery Hero](https://tech.deliveryhero.com/) for global-scale AI-powered image enhancement. Now powering LLM and agentic workflows.
 
-## For DS teams:
+---
 
-No more mixing pipeline with real logic, no DAGs or pipelines with custom decorators `@step` or `@pipeline`, even no pip packages - only pure python functions!
+## Key Ideas
+
+**Fully decouple AI/ML logic from infrastructure** to enable independent scaling, deployment, and development:
+
+- **Async actors**: Stateless workloads communicating via message passing
+- **Routes as data**: Pipeline structure embedded in messages, not code
+- **Auto-scale 0→∞**: KEDA-based scaling from zero to max based on queue depth
+- **Zero pip dependencies**: No infrastructure code in your handlers
+- **Independent scaling**: Each actor scales based on its own load
+- **Optional MCP gateway**: HTTP API for easy integration
+
+**See**: [Motivation](docs/motivation.md) | [Core Concepts](docs/concepts.md)
+
+---
+
+## Overview for Data Scientists
+
+**Write pure Python functions. Asya handles infrastructure.**
+
+No decorators, no DAGs, no pipeline code—just your logic:
 
 Write only a pure python function:
 ```python
@@ -36,10 +43,9 @@ def process(payload: dict) -> dict:         # input - a dict
     raise ValueError("No ping received!")   # or an error
 ```
 
-**Key idea**: Your handler function *mutates* the payload and returns it — not a request/response pattern. The mutated payload flows to the next actor in the pipeline. Think data transformation pipeline, not API endpoint.
+**Pattern**: Mutate payload and return it—not request/response. The enriched payload flows to the next actor.
 
-
-More AI-friendly - a class handlers:
+**Class handlers** for stateful initialization (model loading):
 ```py
 class MyActor:
     def __init__(self, config: str = "/default/path"):
@@ -52,9 +58,7 @@ class MyActor:
         }
 ```
 
-Your pipelines are **data, not code**, they are a part of messsages passing between actors, not of a third-party orchestrator.
-
-Routes are dynamic, if needed, they can be modified at runtime (for example, for smart routing by LLM agents) - with env var `ASYA_HANDLER_MODE=envelope`:
+**Routes as data**: Pipelines are embedded in messages, not code. Modify routes dynamically at runtime with `ASYA_HANDLER_MODE=envelope`:
 ```py
 class MyActor:
     def __init__(self, config: str = "/default/path"):
@@ -83,15 +87,11 @@ class MyActor:
         return envelope
 ```
 
-<!-- You can always call it as a pure function for testing - no additional code required:
-```python
->>> envelope = {"payload": {"prompt": "text"}, "route": {"actors": ["data-loader"], "current": 0}}
->>> process_with_modifying_route(envelope)
-{'payload': {'prompt': 'text', 'llm-judge-output': 'generated'},
- 'route': {'actors': ['data-loader', 'extra-step-at-the-end'], 'current': 1}}
-``` -->
+**See**: [Quickstart for Data Scientists](docs/quickstart/for-data_scientists.md)
 
-# For Platform teams:
+---
+
+## Overview for Platform Engineers
 Deploy user code via CRDs:
 ```yaml
 apiVersion: asya.sh/v1alpha1
@@ -117,17 +117,37 @@ spec:
             value: "my_classifier.MyActor.process"
 ```
 
-**Under the hood:** Kubernetes Operator manages `AsyncActor` CRD, sidecar routes messages from queue to your Python runtime, KEDA autoscales based on queue depth. Optional MCP gateway for HTTP API access.
+**Under the hood**:
+- Operator injects sidecar, configures KEDA autoscaling
+- Sidecar routes messages from queue to runtime via Unix socket
+- Runtime executes your handler, returns results
+- KEDA scales pods 0→max based on queue depth
 
-ℹ️ **Soon**, we'll provide a more flexible way to integrate with existing Deployments via binding pattern, see [Roadmap](#project-status) below.
+**See**: [Quickstart for Platform Engineers](docs/quickstart/for-platform_engineers.md) | [Architecture](docs/architecture/)
 
-See [Architecture section](#architecture-sketch) for details.
+---
 
-## **Mutating payloads**
-The most natural way of work with Asya🎭 is not via request-response, it's via [Message Passing](https://www.enterpriseintegrationpatterns.com/patterns/messaging/).
-The messages sent from actor to actor (we call them `envelope`) contain `route` (pipeline information) and `payload` (data serving as inputs/outputs to actors).
+## Features
 
-We recommend to design your system with [Enrichment pattern](https://www.enterpriseintegrationpatterns.com/patterns/messaging/DataEnricher.html), so that actors *append* the results of their work to the payload, not overwrite it (however, it's not a requirement of the system).
+**Core capabilities**:
+- ✅ **Stateless actors**: Independent scaling and deployment
+- ✅ **KEDA autoscaling**: Event-driven, scale-to-zero based on queue depth
+- ✅ **Pluggable transports**: SQS, RabbitMQ (Kafka, NATS planned)
+- ✅ **Dynamic routing**: Modify pipeline routes at runtime
+- ✅ **Fan-out/fan-in**: Parallel processing, result aggregation
+- ✅ **Built-in observability**: OpenTelemetry metrics, structured logging
+- ✅ **MCP HTTP gateway**: Optional API layer for external integration
+- ✅ **Error handling**: Automatic retries, DLQs, timeout management
+
+**See**: [Core Concepts](docs/concepts.md) for detailed feature explanations.
+
+---
+
+## Mutating Payloads
+
+Asya uses [Message Passing](https://www.enterpriseintegrationpatterns.com/patterns/messaging/), not request-response. Envelopes contain `route` (pipeline) and `payload` (data).
+
+**Recommended**: [Enrichment pattern](https://www.enterpriseintegrationpatterns.com/patterns/messaging/DataEnricher.html)—actors append results to payload instead of replacing it.
 
 Suppose the following route of actors: `["data-loader", "recipe-generator", "llm-judge", "post-processor"]`.
 Payloads passing between actors would be:
@@ -250,9 +270,11 @@ Sidecar handles queues/routing via Unix socket (<1ms IPC overhead). Your code ha
 
 ---
 
-## Architecture Sketch
+---
 
-**See**: [Full Architecture Documentation](docs/architecture/) for detailed component design, protocols, and deployment patterns.
+## Architecture
+
+**See**: [Architecture Documentation](docs/architecture/) for detailed component design, protocols, and deployment patterns.
 
 ```mermaid
 graph LR
@@ -308,9 +330,11 @@ graph LR
 
 ---
 
-## Quick Start
+---
 
-### Option 1: Full Stack (recommended for evaluation)
+## Getting Started
+
+### Option 1: Full Stack (Recommended for Evaluation)
 
 Deploy complete demo with SQS, S3, PostgreSQL, Prometheus, Grafana, KEDA, and example actors:
 
@@ -542,11 +566,9 @@ Processing: 100% |████████████████████�
 
 **MCP features**: Real-time SSE streaming, envelope tracking, progress display. See [asya-tools README](src/asya-tools/README.md) for advanced usage.
 
----
+**See**: [Installation Guides](docs/install/) | [Quickstart for Data Scientists](docs/quickstart/for-data_scientists.md) | [Quickstart for Platform Engineers](docs/quickstart/for-platform_engineers.md)
 
-**See**: [Getting Started Guide](docs/getting-started/README.md) for detailed setup.
-
-**Transport support**: Main stack is AWS-native (SQS+S3)—our team's primary focus. Open source stack (RabbitMQ+MinIO) already supported. Planning to support all/most [KEDA scalers](https://keda.sh/docs/2.18/scalers/). Leave requests in [GitHub issues](https://github.com/anthropics/asya/issues).
+**Transport support**: AWS (SQS+S3) and open-source (RabbitMQ+MinIO) currently supported. Planning support for [KEDA scalers](https://keda.sh/docs/2.18/scalers/).
 
 ---
 
@@ -581,11 +603,28 @@ Processing: 100% |████████████████████�
 
 ## Documentation
 
-- **[Getting Started](docs/getting-started/README.md)** - Installation, concepts, first actor
-- **[Architecture](docs/architecture/README.md)** - System design, components, protocols
-- **[Deployment Guide](docs/guides/deployment.md)** - Production deployment strategies
-- **[Development Guide](docs/guides/development.md)** - Local development workflow
-- **[Examples](docs/guides/examples-actors.md)** - AsyncActor configurations
+📘 **[Documentation Home](docs/)** - Complete documentation index
+
+**Getting Started**:
+- [Motivation](docs/motivation.md) - Why Asya exists, when to use it
+- [Core Concepts](docs/concepts.md) - Actors, envelopes, sidecars, runtime
+- [Installation Guides](docs/install/) - AWS EKS, Local Kind, Helm charts
+- [Quickstart for Data Scientists](docs/quickstart/for-data_scientists.md) - Build your first actor
+- [Quickstart for Platform Engineers](docs/quickstart/for-platform_engineers.md) - Deploy Asya infrastructure
+
+**Architecture**:
+- [Architecture Overview](docs/architecture/) - System design, components, protocols
+- [AsyncActor](docs/architecture/asya-actor.md) - Actor workloads and lifecycle
+- [Sidecar](docs/architecture/asya-sidecar.md) - Message routing and transport
+- [Runtime](docs/architecture/asya-runtime.md) - User code execution
+- [Operator](docs/architecture/asya-operator.md) - Kubernetes CRD controller
+- [Gateway](docs/architecture/asya-gateway.md) - MCP HTTP API
+- [Autoscaling](docs/architecture/autoscaling.md) - KEDA integration
+
+**Operations**:
+- [Monitoring](docs/operate/monitoring.md) - Metrics and observability
+- [Troubleshooting](docs/operate/troubleshooting.md) - Common issues
+- [Upgrades](docs/operate/upgrades.md) - Version upgrades
 
 ---
 

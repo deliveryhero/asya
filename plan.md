@@ -16,7 +16,7 @@ docs/
         # welcome to asya documentation
         # Overview of documentation structure (similar to this content)
         # Links to plan.md, concepts.md, architecture/, install/, operate/, quickstart-data_scientists.md, quickstart-platform_engineers.md
-    motivation.md
+    motivation.md  # more detailed motivation than in /README.md
         # Problems:
             # pipeline logic (if/else, retries, error handling) mixed with business logic (data processing, AI inference) - e.g. @flow decorators
             # hard to scale different components differently
@@ -261,7 +261,7 @@ docs/
         monitoring.md  # empty for now
         troubleshooting.md  # empty for now
         upgrades.md # empty for now
-    quickstart
+    quickstart/
         for-data_scientists.md  # setup local env, examples
             # how you see the framework as a data scientist
             # use asya-mcp tool to communicate with models via MCP Gateway
