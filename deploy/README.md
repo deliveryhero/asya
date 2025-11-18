@@ -45,16 +45,17 @@ See [helm-charts/asya-gateway/README.md](helm-charts/asya-gateway/README.md) for
 
 ## Quick Start
 
-**Option 1: Automated Full Stack** (Recommended for testing)
+**Automated E2E Testing Deployment**
 
-Complete deployment with infrastructure and examples:
+For local testing with full stack:
 ```bash
-cd ../examples/deployment-minikube
-./deploy.sh      # Automated deployment
-./test-e2e.sh        # Verify deployment
+cd ../testing/e2e
+make up
 ```
 
-**Option 2: Minimal Framework Only**
+See [docs/install/local-kind.md](../docs/install/local-kind.md) for detailed local deployment instructions.
+
+**Minimal Framework Installation**
 
 Install just the operator and CRDs:
 
@@ -115,6 +116,9 @@ kubectl delete -f ../src/asya-operator/config/crd/
 
 ## Examples
 
-See `../examples/` for:
-- AsyncActor CRD examples (`examples/asyas/`)
-- Minimal framework deployment (`examples/deployment-minimal/`)
+See `../examples/asyas/` for AsyncActor CRD examples.
+
+For deployment guides, see:
+- [Local Kind Installation](../docs/install/local-kind.md)
+- [AWS EKS Installation](../docs/install/aws-eks.md)
+- [Helm Charts Documentation](../docs/install/helm-charts.md)

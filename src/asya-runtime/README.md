@@ -174,13 +174,11 @@ The runtime validates all output envelopes (when `ASYA_ENABLE_VALIDATION=true`):
 
 **Success:** `{"status": "ok", "result": <value or list>}`
 
-**Error:** `{"status": "error", "error": "code", "message": "...", "severity": "recoverable|fatal"}`
+**Error:** `{"status": "error", "error": "code", "message": "..."}`
 
 **Error codes:**
-- `oom_error`: RAM OOM (recoverable, retry after 30s)
-- `cuda_oom_error`: GPU OOM (recoverable, retry after 60s)
-- `processing_error`: User function exception (fatal)
-- `invalid_json`: Parse error (fatal)
+- `processing_error`: User function exception or handler errors
+- `connection_error`: Socket communication failures
 
 ## Examples
 
@@ -254,12 +252,6 @@ make test         # Run tests
 make test-cov     # With coverage
 ```
 
-## OOM Detection
-
-**RAM OOM:** Triggers GC, returns `oom_error` (recoverable, retry after 30s)
-
-**CUDA OOM:** Clears cache, returns `cuda_oom_error` (recoverable, retry after 60s)
-
 ## Deployment
 
-See [docs/architecture/runtime.md](../../docs/architecture/runtime.md) for Kubernetes deployment details
+See [docs/architecture/asya-runtime.md](../../docs/architecture/asya-runtime.md) for Kubernetes deployment details

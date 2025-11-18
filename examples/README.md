@@ -8,8 +8,8 @@ Examples and reference deployments for Asya🎭.
 
 **Recommended:** Use E2E deployment for local testing:
 ```bash
-cd ../tests/gateway-vs-actors/e2e
-./scripts/deploy.sh
+cd ../testing/e2e
+make up
 ```
 
 ## Actor Examples (`asyas/`)
@@ -37,15 +37,7 @@ Deploy:
 kubectl apply -f asyas/simple-actor.yaml
 ```
 
-## Deployments
-
-| Directory | Description | Use Case |
-|-----------|-------------|----------|
-| **deployment-minimal/** | KEDA + Operator + Gateway | Production with existing infra |
-| **deployment-minikube/** | Full OSS stack (RabbitMQ, MinIO, PostgreSQL, Grafana) | Complete self-hosted solution |
-| **load-test/** | Mock actors for autoscaling testing | Load testing without GPU |
-
-**Recommended for local development:** [../tests/gateway-vs-actors/e2e/](../testing/gateway-vs-actors/e2e) (Kind cluster with automated deployment)
+**Recommended for local development:** See [../docs/install/local-kind.md](../docs/install/local-kind.md) for full stack deployment with Kind cluster.
 
 ## Using Examples
 

@@ -31,9 +31,9 @@ Define an `AsyncActor` resource, the operator automatically:
 **Recommended** - deploys complete stack with infrastructure:
 
 ```bash
-cd tests/gateway-vs-actors/e2e
-./scripts/deploy.sh      # Full stack (~5-10 minutes)
-./scripts/test-e2e.sh    # Verify deployment
+cd testing/e2e
+make up              # Full stack (~5-10 minutes)
+make trigger-tests   # Verify deployment
 ```
 
 ### Manual Installation
@@ -73,7 +73,7 @@ spec:
     queueLength: 5
 
   workload:
-    type: Deployment
+    kind: Deployment
     template:
       spec:
         containers:
@@ -195,7 +195,7 @@ kubectl create secret generic rabbitmq-credentials \
 **Deployment** (default):
 ```yaml
 workload:
-  type: Deployment
+  kind: Deployment
   template:
     spec:
       containers:
@@ -206,7 +206,7 @@ workload:
 **StatefulSet** (persistent storage):
 ```yaml
 workload:
-  type: StatefulSet
+  kind: StatefulSet
   volumeClaimTemplates:
   - metadata:
       name: data
@@ -370,7 +370,7 @@ kubectl get pods -l asya.sh/asya=my-actor
 
 ## Full Specification
 
-See [examples/asyas/](../examples/asyas/) for complete examples:
+See [examples/asyas/](../../examples/asyas/) for complete examples:
 - `simple.yaml` - Basic actor
 - `statefulset.yaml` - Persistent storage
 - `multi-container.yaml` - Multiple containers
