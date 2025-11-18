@@ -14,6 +14,9 @@ theme:
     - navigation.indexes
     - toc.integrate
 
+extra_css:
+  - stylesheets/extra.css
+
 nav:
   - Home: index.md
   - GETTING STARTED:
@@ -56,7 +59,8 @@ markdown_extensions:
   - toc:
       permalink: true
   - tables
-  - pymdownx.highlight:
+  - codehilite:
+      guess_lang: false
       use_pygments: true
   - pymdownx.inlinehilite
   - fenced_code

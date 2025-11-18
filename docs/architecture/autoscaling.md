@@ -5,6 +5,7 @@
 KEDA (Kubernetes Event Driven Autoscaling) monitors external metrics (queue depth, custom metrics) and scales Kubernetes Deployments.
 
 **Components**:
+
 - **KEDA Operator**: Watches ScaledObjects
 - **Metrics Server**: Exposes metrics to HPA
 - **ScaledObject**: Defines scaling triggers and targets
