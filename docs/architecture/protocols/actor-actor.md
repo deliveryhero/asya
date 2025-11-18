@@ -150,6 +150,92 @@ Runtime returns error object:
 - Full traceability—complete processing history in final payload
 - Routing flexibility—later actors can access earlier results
 
+## Envelope Status Tracking
+
+When gateway is enabled, envelopes have lifecycle statuses tracked throughout processing:
+
+### Status Values
+
+| Status | Description | When Set |
+|--------|-------------|----------|
+| `pending` | Envelope created, not yet processing | Gateway creates envelope from MCP tool call |
+| `running` | Envelope is being processed by actors | Sidecar sends first progress update |
+| `succeeded` | Pipeline completed successfully | `happy-end` crew actor reports success |
+| `failed` | Pipeline failed with error | `error-end` crew actor reports failure |
+| `unknown` | Status cannot be determined | Edge cases, missing updates |
+
+### Progress Reporting
+
+Sidecars report progress to gateway at three points per actor:
+
+**1. Received** (`received`):
+- Message pulled from queue
+- Before forwarding to runtime
+
+**2. Processing** (`processing`):
+- Message sent to runtime via Unix socket
+- Runtime is executing handler
+
+**3. Completed** (`completed`):
+- Runtime returned successful response
+- Before routing to next actor
+
+**Progress calculation**:
+```
+progress_percent = (actors_completed / total_actors) * 100
+```
+
+**Example**: Route `["prep", "infer", "post"]` (3 actors)
+- Actor `prep` completed → 33%
+- Actor `infer` completed → 66%
+- Actor `post` completed → 100% (final status from `happy-end`)
+
+### Progress Update Flow
+
+```
+Sidecar                    Gateway                    Client
+-------                    -------                    ------
+1. Receive from queue
+   └─> POST /envelopes/{id}/progress
+       {status: "received", current_actor_idx: 0}
+                           └─> Update DB: running
+                           └─> SSE: progress 10%
+
+2. Send to runtime
+   └─> POST /envelopes/{id}/progress
+       {status: "processing", current_actor_idx: 0}
+                           └─> SSE: progress 15%
+
+3. Runtime returns
+   └─> POST /envelopes/{id}/progress
+       {status: "completed", current_actor_idx: 0}
+                           └─> SSE: progress 33%
+
+4. Route to next actor...
+```
+
+### Final Status Reporting
+
+**Success path**:
+```
+Actor N completes → Sidecar routes to happy-end
+  → happy-end persists to S3
+  → happy-end reports: POST /envelopes/{id}/final
+     {status: "succeeded", result: {...}}
+  → Gateway updates: status=succeeded, progress=100%
+  → SSE: final success event
+```
+
+**Error path**:
+```
+Runtime error → Sidecar routes to error-end
+  → error-end persists to S3
+  → error-end reports: POST /envelopes/{id}/final
+     {status: "failed", error: "..."}
+  → Gateway updates: status=failed
+  → SSE: final error event
+```
+
 ## Design Principles
 
 - **Small payloads**: Use object storage (S3, MinIO) for large data, pass references

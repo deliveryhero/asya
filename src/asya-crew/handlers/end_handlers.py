@@ -22,7 +22,7 @@ Environment Variables:
 - ASYA_S3_ERRORS_PREFIX: Prefix for error results (default: asya-errors/)
 
 Note: boto3 works with MinIO by setting ASYA_S3_ENDPOINT to MinIO URL.
-Object keys are structured as: {prefix}{date}/{hour}/{last_actor}/{id}.json
+Object keys are structured as: {prefix}{timestamp}/{last_actor}/{id}.json
 Example: asya-results/2025-10-16/17/echo-actor/abc123.json
 
 Architecture: End actors only persist to S3. The sidecar handles all
@@ -149,6 +149,7 @@ def persist_to_s3(envelope: dict[str, Any], s3_prefix: str) -> dict[str, str]:
 
         # Build key with date/hour/last-actor structure
         now = datetime.now(tz=timezone.utc)
+        # TODO: save to more granular: .../{date}/{hour}/{last_actor}/{id}-{second}-{ms}.json
         now_str = now.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
 
         # Find last non-end actor

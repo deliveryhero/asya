@@ -112,11 +112,11 @@ kubectl apply -f text-processor.yaml
 If platform team deployed gateway, use `asya-mcp` tool:
 
 ```bash
-# Install asya-tools
-uv pip install -e ./src/asya-tools
+# Install asya-cli
+uv pip install -e ./src/asya-cli
 
 # Set gateway URL (ask platform team)
-export ASYA_TOOL_MCP_URL=http://gateway-url/
+export ASYA_CLI_MCP_URL=http://gateway-url/
 
 # List available tools
 asya-mcp list

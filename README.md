@@ -507,8 +507,8 @@ time=2025-11-12T02:02:28.586Z level=INFO msg="Successfully sent envelope to queu
 
 Add the MCP gateway for HTTP API access (requires Option 2 setup):
 ```bash
-# 1. Install asya-tools for CLI access
-uv pip install -e ./src/asya-tools
+# 1. Install asya-cli for CLI access
+uv pip install -e ./src/asya-cli
 
 # 2. Create gateway values with echo tool
 cat > gateway-values.yaml <<EOF
@@ -536,7 +536,7 @@ $ helm install asya-gateway deploy/helm-charts/asya-gateway/ -f gateway-values.y
 ```sh
 # 4. Port-forward gateway
 $ kubectl port-forward svc/asya-gateway 8089:80
-$ export ASYA_TOOL_MCP_URL=http://localhost:8089/
+$ export ASYA_CLI_MCP_URL=http://localhost:8089/
 
 # 5. List MCP tools
 $ asya-mcp list  
@@ -564,7 +564,7 @@ Processing: 100% |████████████████████�
 ```
 </details>
 
-**MCP features**: Real-time SSE streaming, envelope tracking, progress display. See [asya-tools README](src/asya-tools/README.md) for advanced usage.
+**MCP features**: Real-time SSE streaming, envelope tracking, progress display. See [asya-cli README](src/asya-cli/README.md) for advanced usage.
 
 **See**: [Installation Guides](docs/install/) | [Quickstart for Data Scientists](docs/quickstart/for-data_scientists.md) | [Quickstart for Platform Engineers](docs/quickstart/for-platform_engineers.md)
 

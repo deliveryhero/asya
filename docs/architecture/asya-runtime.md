@@ -77,6 +77,20 @@ class Processor:
 
 **Benefits**: Stateful initialization (model loading, preprocessing setup)
 
+**Important**: All `__init__` parameters must have default values for zero-arg instantiation.
+
+```python
+# ✅ Correct - all params have defaults
+class Processor:
+    def __init__(self, model_path: str = "/models/default"):
+        self.model = load_model(model_path)
+
+# ❌ Wrong - param without default
+class Processor:
+    def __init__(self, model_path: str):  # Missing default!
+        self.model = load_model(model_path)
+```
+
 ## Handler Modes
 
 ### Payload Mode (Default)
@@ -144,7 +158,25 @@ Sidecar routes envelope to `happy-end` (no more processing).
 raise ValueError("Invalid input")
 ```
 
-Runtime catches exception, creates error envelope, sends to sidecar → `error-end`.
+Runtime catches exception, creates error response with detailed traceback:
+
+```python
+[{
+  "error": "processing_error",
+  "details": {
+    "message": "Invalid input",
+    "type": "ValueError",
+    "traceback": "Traceback (most recent call last):\n  File ..."
+  }
+}]
+```
+
+**Error codes**:
+- `processing_error`: Handler exception (any unhandled error)
+- `msg_parsing_error`: Invalid JSON or envelope structure
+- `connection_error`: Socket/network issues
+
+Sidecar receives error response and routes envelope to `error-end`.
 
 ## Route Modification Rules
 
@@ -160,7 +192,7 @@ Handlers in envelope mode can modify routes but **MUST preserve already-processe
 
 **Validation**: Runtime validates `route.actors[0:current+1]` unchanged.
 
-## asya_runtime.py via ConfigMap
+## `asya_runtime.py` via ConfigMap
 
 **Source**: `src/asya-runtime/asya_runtime.py` (single file, no dependencies)
 
@@ -193,9 +225,14 @@ Runtime creates `/var/run/asya/runtime-ready` file after handler initialization.
 |----------|---------|-------------|
 | `ASYA_HANDLER` | (required) | Handler path (`module.Class.method`) |
 | `ASYA_HANDLER_MODE` | `payload` | Mode: `payload` or `envelope` |
-| `ASYA_SOCKET_DIR` | `/var/run/asya` | Unix socket directory |
-| `ASYA_ENABLE_OOM_DETECTION` | `true` | Enable OOM detection |
-| `ASYA_CUDA_CLEANUP_ON_OOM` | `true` | Clear CUDA cache on OOM |
+| `ASYA_SOCKET_DIR` | `/var/run/asya` | Unix socket directory (internal testing only) |
+| `ASYA_SOCKET_NAME` | `asya-runtime.sock` | Socket filename (internal testing only) |
+| `ASYA_SOCKET_CHMOD` | `0o666` | Socket permissions in octal (empty = skip chmod) |
+| `ASYA_CHUNK_SIZE` | `65536` | Socket read chunk size in bytes |
+| `ASYA_ENABLE_VALIDATION` | `true` | Enable envelope validation |
+| `ASYA_LOG_LEVEL` | `INFO` | Logging level (DEBUG, INFO, WARNING, ERROR) |
+
+**Note**: `ASYA_SOCKET_DIR` and `ASYA_SOCKET_NAME` are for internal testing only. DO NOT set in production—socket path is managed by operator.
 
 ## Examples
 

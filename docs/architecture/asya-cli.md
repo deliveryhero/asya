@@ -1,14 +1,28 @@
-# Asya Tools
+# Asya Toolkit
 
 CLI tools for interacting with Asya system.
 
 ## Installation
 
+From local repository:
 ```bash
-uv pip install -e ./src/asya-tools
+uv pip install -e ./src/asya-cli
+#call with: uv run asya-mcp...
+```
+Or as uv tool:
+```bash
+uv tool install src/asya-cli
+#call with: asya-mcp...
 ```
 
-## asya-mcp
+Or from remote repository:
+```bash
+uv tool install git+https://github.com/deliveryhero/asya.git#subdirectory=src/asya-cli
+#call with: asya-mcp...
+```
+
+
+## CLI command `asya-mcp`
 
 CLI for interacting with MCP Gateway.
 
@@ -57,7 +71,7 @@ asya-mcp status 5e6fdb2d-1d6b-4e91-baef-73e825434e7b
 
 Set gateway URL:
 ```bash
-export ASYA_TOOL_MCP_URL=http://localhost:8089/
+export ASYA_CLI_MCP_URL=http://localhost:8089/
 ```
 
 ## asya-mcp-forward
@@ -70,7 +84,7 @@ asya-mcp-forward
 
 Automatically:
 1. Port-forwards `asya-gateway` service to `localhost:8089`
-2. Sets `ASYA_TOOL_MCP_URL` environment variable
+2. Sets `ASYA_CLI_MCP_URL` environment variable
 3. Keeps port-forward alive until interrupted
 
-**See**: `src/asya-tools/README.md` for advanced usage.
+**See**: `src/asya-cli/README.md` for advanced usage.

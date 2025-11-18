@@ -207,7 +207,7 @@ docs/
             # Future crew actors:
             # - stateful fan-in crew actor
             # - TBD
-        asya-tools.md
+        asya-cli.md
             # common CLI tools for interacting with Asya system
             # asya-mcp: tiny CLI for interacting with MCP Gateway (mostly testing)
             # asya-mcp-forward: port-forwarding tool for MCP Gateway testing

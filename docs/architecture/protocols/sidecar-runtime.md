@@ -120,52 +120,6 @@ On timeout:
 
 **Configuration**: `ASYA_RUNTIME_TIMEOUT` (default: `5m`)
 
-### Optional: Runtime Warning
-
-Runtime can optionally warn handler before timeout:
-```python
-signal.alarm(ASYA_HANDLER_TIMEOUT)  # Warning timeout
-```
-
-**Configuration**: `ASYA_HANDLER_TIMEOUT` (seconds, optional)
-
-**Note**: Signal-based timeout unreliable for C extensions (NumPy, PyTorch)—sidecar timeout is essential.
-
-## Resource Management
-
-### RAM OOM Detection
-
-Runtime catches `MemoryError`:
-```python
-try:
-    result = func(msg)
-except MemoryError:
-    gc.collect()
-    return {
-        "error": "oom_error",
-        "message": "Out of memory",
-        "severity": "recoverable",
-        "retry_after": 30
-    }
-```
-
-### CUDA OOM Detection
-
-Runtime detects CUDA memory errors:
-```python
-if "CUDA" in type(e).__name__ and "memory" in str(e).lower():
-    torch.cuda.empty_cache()
-    return {
-        "error": "cuda_oom_error",
-        "message": str(e),
-        "severity": "recoverable",
-        "retry_after": 60
-    }
-```
-
-**Configuration**:
-- `ASYA_ENABLE_OOM_DETECTION` (default: `true`)
-- `ASYA_CUDA_CLEANUP_ON_OOM` (default: `true`)
 
 ## Configuration Reference
 
@@ -176,8 +130,6 @@ if "CUDA" in type(e).__name__ and "memory" in str(e).lower():
 | `ASYA_SOCKET_PATH` | `/var/run/asya/asya-runtime.sock` | Unix socket path |
 | `ASYA_HANDLER` | (required) | Handler path (`module.Class.method`) |
 | `ASYA_HANDLER_MODE` | `payload` | Mode: `payload` or `envelope` |
-| `ASYA_ENABLE_OOM_DETECTION` | `true` | Enable OOM detection |
-| `ASYA_CUDA_CLEANUP_ON_OOM` | `true` | Clear CUDA cache on OOM |
 
 ### Sidecar Variables
 

@@ -208,14 +208,14 @@ kubectl apply -f hello-actor.yaml
 ### Via asya-mcp Tool
 
 ```bash
-# Install asya-tools
-uv pip install -e ./src/asya-tools
+# Install asya-cli
+uv pip install -e ./src/asya-cli
 
 # Port-forward gateway
 kubectl port-forward svc/asya-gateway 8089:80
 
 # Set gateway URL
-export ASYA_TOOL_MCP_URL=http://localhost:8089/
+export ASYA_CLI_MCP_URL=http://localhost:8089/
 
 # List tools
 asya-mcp list

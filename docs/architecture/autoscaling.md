@@ -20,7 +20,7 @@ metadata:
   name: text-processor
 spec:
   scaleTargetRef:
-    name: text-processor  # Deployment to scale
+    name: text-processor   # Deployment to scale
   minReplicaCount: 0       # Scale to zero when idle
   maxReplicaCount: 50      # Max replicas
   triggers:

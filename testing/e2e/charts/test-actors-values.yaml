@@ -142,8 +142,6 @@ actors:
           env:
           - name: ASYA_HANDLER
             value: asya_testing.handlers.payload.timeout_handler
-          - name: ASYA_HANDLER_TIMEOUT
-            value: '30'
 
 - name: test-unicode
   workload:

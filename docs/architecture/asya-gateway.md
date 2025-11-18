@@ -22,8 +22,7 @@
 Deployed as separate Deployment in actor namespace:
 
 ```bash
-helm install asya-gateway deploy/helm-charts/asya-gateway/ \
-  -f gateway-values.yaml
+helm install asya-gateway deploy/helm-charts/asya-gateway/ -f gateway-values.yaml
 ```
 
 **Gateway is stateful**: Requires PostgreSQL database for envelope tracking.
@@ -59,33 +58,28 @@ routes:
 
 ## API Endpoints
 
-### List Tools
+Gateway exposes both **MCP-compliant** and **REST** endpoints.
 
+### MCP Endpoints
+
+**Standard MCP protocol** (recommended):
 ```bash
-GET /tools
+POST /mcp
+# MCP request/response format
+# Uses mark3labs/mcp-go server implementation
 ```
 
-Response:
-```json
-{
-  "tools": [
-    {
-      "name": "text-processor",
-      "description": "Process text with LLM",
-      "inputSchema": {
-        "type": "object",
-        "properties": {
-          "text": {"type": "string"},
-          "model": {"type": "string"}
-        },
-        "required": ["text"]
-      }
-    }
-  ]
-}
+**Legacy SSE endpoint** (deprecated):
+```bash
+/mcp/sse
+# Deprecated, use POST /mcp instead
 ```
 
-### Call Tool
+### REST Endpoints
+
+Simpler REST API for tool calls without MCP protocol overhead.
+
+#### Call Tool (REST)
 
 ```bash
 POST /tools/call
@@ -100,15 +94,22 @@ Content-Type: application/json
 }
 ```
 
-Response:
+Response (MCP CallToolResult):
 ```json
 {
-  "envelope_id": "5e6fdb2d-1d6b-4e91-baef-73e825434e7b",
-  "status": "pending"
+  "content": [
+    {
+      "type": "text",
+      "text": "{\"envelope_id\":\"5e6fdb2d...\",\"message\":\"Envelope created successfully\",\"status_url\":\"/envelopes/5e6fdb2d...\",\"stream_url\":\"/envelopes/5e6fdb2d.../stream\"}"
+    }
+  ],
+  "isError": false
 }
 ```
 
-### Get Status
+See [./protocols/actor-actor.md](/docs/architecture/protocols/actor-actor.md#envelope-status-tracking) for more details on envelope statuses.
+
+#### Get Envelope Status
 
 ```bash
 GET /envelopes/{id}
@@ -120,32 +121,144 @@ Response:
   "id": "5e6fdb2d-1d6b-4e91-baef-73e825434e7b",
   "status": "succeeded",
   "message": "Envelope completed successfully",
-  "result": {
-    "response": "Processed: Hello world"
-  },
+  "result": {"response": "Processed: Hello world"},
   "progress_percent": 100,
-  "timestamp": "2025-11-18T12:00:00Z"
+  "current_actor_idx": 2,
+  "current_actor_name": "postprocess",
+  "actors_completed": 3,
+  "total_actors": 3,
+  "created_at": "2025-11-18T12:00:00Z",
+  "updated_at": "2025-11-18T12:01:30Z"
 }
 ```
 
-### Stream Status (SSE)
+#### Stream Envelope Updates (SSE)
 
 ```bash
 GET /envelopes/{id}/stream
 Accept: text/event-stream
 ```
 
-Stream events:
-```
-event: status
-data: {"status": "processing", "progress_percent": 33, "message": "Actor preprocess completed"}
+**Features**:
+- Sends historical updates first (no missed progress)
+- Streams real-time updates as they occur
+- Keepalive comments every 15 seconds
+- Auto-closes on final status (`succeeded` or `failed`)
 
-event: status
-data: {"status": "processing", "progress_percent": 66, "message": "Actor llm-infer completed"}
-
-event: status
-data: {"status": "succeeded", "progress_percent": 100, "result": {...}}
+Stream events (EnvelopeUpdate):
 ```
+event: update
+data: {"id":"env-123","status":"running","progress_percent":10,"current_actor_idx":0,"envelope_state":"received","actor":"preprocess","actors":["preprocess","infer","post"],"message":"Actor preprocess: received","timestamp":"2025-11-18T12:00:15Z"}
+
+event: update
+data: {"id":"env-123","status":"running","progress_percent":33,"current_actor_idx":0,"envelope_state":"completed","actor":"preprocess","actors":["preprocess","infer","post"],"message":"Actor preprocess: completed","timestamp":"2025-11-18T12:00:20Z"}
+
+event: update
+data: {"id":"env-123","status":"running","progress_percent":66,"current_actor_idx":1,"envelope_state":"completed","actor":"infer","actors":["preprocess","infer","post"],"message":"Actor infer: completed","timestamp":"2025-11-18T12:01:00Z"}
+
+event: update
+data: {"id":"env-123","status":"succeeded","progress_percent":100,"result":{...},"message":"Envelope completed successfully","timestamp":"2025-11-18T12:01:30Z"}
+```
+
+**EnvelopeUpdate fields**:
+- `id`: Envelope ID
+- `status`: Envelope status (`pending`, `running`, `succeeded`, `failed`)
+- `progress_percent`: Progress 0-100 (omitted if not a progress update)
+- `current_actor_idx`: Current actor index (0-based, omitted for final states)
+- `envelope_state`: Actor processing state (`received`, `processing`, `completed`)
+- `actor`: Current actor name (omitted for final states)
+- `actors`: Full route (may be modified by envelope-mode actors)
+- `message`: Human-readable status message
+- `result`: Final result (only for `succeeded` status)
+- `error`: Error message (only for `failed` status)
+- `timestamp`: When this update occurred
+
+#### Check Envelope Active
+
+```bash
+GET /envelopes/{id}/active
+```
+
+**Used by**: Actors to verify envelope hasn't timed out
+
+Response (active):
+```json
+{"active": true}
+```
+
+Response (inactive - HTTP 410 Gone):
+```json
+{"active": false}
+```
+
+### Internal Endpoints (Sidecar/Crew)
+
+#### Report Progress
+
+```bash
+POST /envelopes/{id}/progress
+Content-Type: application/json
+
+{
+  "actors": ["prep", "infer", "post"],
+  "current_actor_idx": 0,
+  "status": "completed"
+}
+```
+
+**Called by**: Sidecars at three points per actor (`received`, `processing`, `completed`)
+
+**Progress formula**: `(actor_idx * 100 + status_weight) / total_actors`
+- `received` = 10, `processing` = 50, `completed` = 100
+
+Response:
+```json
+{"status": "ok", "progress_percent": 33.3}
+```
+
+#### Report Final Status
+
+```bash
+POST /envelopes/{id}/final
+Content-Type: application/json
+
+{
+  "id": "envelope-123",
+  "status": "succeeded",
+  "result": {...}
+}
+```
+
+**Called by**: `happy-end` (success) or `error-end` (failure) crew actors
+
+#### Create Fanout Envelope
+
+```bash
+POST /envelopes
+Content-Type: application/json
+
+{
+  "id": "envelope-123-1",
+  "parent_id": "envelope-123",
+  "actors": ["prep", "infer"],
+  "current": 1
+}
+```
+
+**Called by**: Sidecars when runtime returns array (fan-out)
+
+**Fanout ID semantics**:
+- Index 0: Original ID (`envelope-123`)
+- Index 1+: Suffixed (`envelope-123-1`, `envelope-123-2`)
+- All children have `parent_id` for traceability
+
+### Health Check
+
+```bash
+GET /health
+```
+
+Response: `OK`
 
 ## Tool Examples
 
@@ -194,6 +307,9 @@ data: {"status": "succeeded", "progress_percent": 100, "result": {...}}
           default: 1000
   route: [validate, llm-infer, postprocess]
 ```
+
+## Using MCP tools
+**See**: [../quickstart/for-data_scientists.md](/docs/quickstart/for-data_scientists.md#using-mcp-tools) for instructions how to test MCP locally.
 
 ## Deployment Helm Charts
 

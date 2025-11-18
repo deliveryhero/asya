@@ -75,7 +75,7 @@ kubectl logs deploy/<actor> -c asya-runtime
 
 **Common causes**:
 - Handler function not found
-- Wrong ASYA_HANDLER path
+- Wrong `ASYA_HANDLER` path
 - Missing Python dependencies
 - OOM (check memory limits)
 
@@ -85,7 +85,7 @@ kubectl logs deploy/<actor> -c asya-runtime
 
 **Solutions**:
 - Increase memory limits
-- Enable OOM detection: `ASYA_ENABLE_OOM_DETECTION=true`
+- Use a larger GPU machine
 - Reduce batch size
 - Profile memory usage
 

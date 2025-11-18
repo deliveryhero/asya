@@ -291,97 +291,6 @@ conn.SetDeadline(deadline)  // Apply to all socket operations
 - Applied to entire request-response cycle
 - On timeout, connection is closed and error sent to error-end queue
 
-### Secondary (Optional): Runtime (Python)
-
-**Rationale**:
-- Allows handler graceful cleanup
-- Can warn handler before hard timeout
-- Not enforced (sidecar will kill if exceeded)
-
-**Implementation** (Optional):
-```python
-import signal
-
-def timeout_handler(signum, frame):
-    # Warn handler approaching timeout
-    # Handler can clean up resources
-    pass
-
-signal.signal(signal.SIGALRM, timeout_handler)
-signal.alarm(ASYA_HANDLER_TIMEOUT)  # Warning timeout
-```
-
-**Configuration**:
-- `ASYA_HANDLER_TIMEOUT`: Optional warning timeout (seconds)
-- Should be < sidecar timeout to allow cleanup
-- Default: Not set (no warning)
-
-**Note**: Signal-based timeout in Python is **unreliable** for C extension code (numpy, PyTorch), so sidecar timeout is essential.
-
-## Resource Management
-
-### OOM Detection and Recovery
-
-#### RAM OOM (Python)
-
-**Detection**:
-```python
-try:
-    result = func(msg)
-except MemoryError as e:
-    # Trigger cleanup
-    import gc
-    gc.collect()
-    return {
-        "status": "error",
-        "error": "oom_error",
-        "message": str(e),
-        "type": "MemoryError",
-        "severity": "recoverable",
-        "retry_after": 30
-    }
-```
-
-**Recovery**:
-1. Python GC triggered automatically
-2. Runtime continues serving
-3. Sidecar may implement retry logic
-4. Error routed to error-end for monitoring
-
-#### CUDA OOM
-
-**Detection**:
-```python
-try:
-    result = func(msg)
-except Exception as e:
-    if "CUDA" in type(e).__name__ and "memory" in str(e).lower():
-        # CUDA OOM detected
-        if ASYA_CUDA_CLEANUP_ON_OOM:
-            try:
-                import torch
-                torch.cuda.empty_cache()
-            except:
-                pass
-        return {
-            "status": "error",
-            "error": "cuda_oom_error",
-            "message": str(e),
-            "type": type(e).__name__,
-            "severity": "recoverable",
-            "retry_after": 60
-        }
-```
-
-**Recovery**:
-1. CUDA cache cleared via `torch.cuda.empty_cache()`
-2. Runtime continues serving
-3. Next request may succeed with freed memory
-
-**Configuration**:
-- `ASYA_ENABLE_OOM_DETECTION`: Enable OOM detection (default: `true`)
-- `ASYA_CUDA_CLEANUP_ON_OOM`: Clear CUDA cache on OOM (default: `true`)
-
 ### Resource Limits
 
 **Memory Monitoring** (Future):
@@ -457,9 +366,6 @@ except Exception as e:
 | `ASYA_HANDLER` | (required) | Function path (e.g., `module.function`) |
 | `ASYA_HANDLER_MODE` | `payload` | Handler mode: `payload` or `envelope` |
 | `ASYA_CHUNK_SIZE` | `4096` | Socket read chunk size (bytes) |
-| `ASYA_HANDLER_TIMEOUT` | (none) | Optional warning timeout (seconds) |
-| `ASYA_ENABLE_OOM_DETECTION` | `true` | Enable OOM detection |
-| `ASYA_CUDA_CLEANUP_ON_OOM` | `true` | Clear CUDA cache on CUDA OOM |
 
 ### Sidecar Environment Variables
 

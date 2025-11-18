@@ -42,7 +42,7 @@ Yes we'll later implement mTLS-like signing of envelopes so that compromised act
 **All actors names are exactly same as their queue name**
 
 **All queues MUST use `asya-` prefix:**
-- Queue name: `asya-{actor-name}`
+- Queue name: `asya-{actor_name}`
 - Example: Actor `ml-model` → Queue `asya-ml-model`
 
 **IAM role naming:**
@@ -70,10 +70,10 @@ Yes we'll later implement mTLS-like signing of envelopes so that compromised act
 ### 3. Component Responsibilities
 
 **Operator:**
-- Creates SQS queue: `asya-{actor-name}` when AsyncActor is deployed
-- Creates ServiceAccount: `asya-{actor-name}` in actor's namespace with IRSA annotation
+- Creates SQS queue: `asya-{actor_name}` when AsyncActor is deployed
+- Creates ServiceAccount: `asya-{actor_name}` in actor's namespace with IRSA annotation
 - Annotates ServiceAccount with `eks.amazonaws.com/role-arn` pointing to shared actor role
-- Sets Deployment's `serviceAccountName: asya-{actor-name}`
+- Sets Deployment's `serviceAccountName: asya-{actor_name}`
 - Deletes queue and ServiceAccount when AsyncActor is deleted
 
 **Actor Pods:**
@@ -894,7 +894,7 @@ Error: AccessDenied: Access to the resource is denied
 Solutions:
 - Verify actor Pod Identity Association exists
 - Check shared actor role has permissions on `asya-*` queues
-- Verify queue exists: `aws sqs get-queue-url --queue-name asya-{actor-name}`
+- Verify queue exists: `aws sqs get-queue-url --queue-name asya-{actor_name}`
 - List associations: `aws eks list-pod-identity-associations --cluster-name <name> --namespace <ns>`
 
 ## Security Best Practices

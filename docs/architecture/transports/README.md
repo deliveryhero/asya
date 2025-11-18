@@ -60,7 +60,7 @@ Sidecar implements:
 
 Queues automatically created by operator when AsyncActor reconciled.
 
-**Queue naming**: `asya-{actor-name}`
+**Queue naming**: `asya-{actor_name}`
 
 **Lifecycle**:
 - Created when AsyncActor created

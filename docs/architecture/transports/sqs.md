@@ -24,11 +24,11 @@ spec:
 
 Operator creates SQS queues automatically:
 
-**Queue name**: `asya-{actor-name}`
+**Queue name**: `asya-{actor_name}`
 
 **Example**: Actor `text-processor` → Queue `asya-text-processor`
 
-**Queue URL**: `https://sqs.{region}.amazonaws.com/{account}/asya-{actor-name}`
+**Queue URL**: `https://sqs.{region}.amazonaws.com/{account}/asya-{actor_name}`
 
 ## IAM Permissions
 
@@ -79,7 +79,7 @@ triggers:
 
 SQS queues automatically configured with DLQ:
 
-**DLQ name**: `asya-{actor-name}-dlq`
+**DLQ name**: `asya-{actor_name}-dlq`
 
 **Max receive count**: 3 (configurable)
 

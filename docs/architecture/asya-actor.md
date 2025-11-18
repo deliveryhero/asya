@@ -26,21 +26,19 @@ An actor is a **stateless workload** that:
 ## Architecture Diagram
 
 ```
-┌──────────────────────────────────────┐
-│         AsyncActor Pod               │
-│                                      │
-│  ┌────────────┐    ┌──────────────┐ │
-│  │  Sidecar   │◄──►│   Runtime    │ │
-│  │            │    │              │ │
-│  │  Routing   │    │  User Code   │ │
-│  │  Transport │    │              │ │
-│  │  Metrics   │    │  Handler     │ │
-│  └─────▲──────┘    └──────────────┘ │
-│        │                             │
-│        │ Unix Socket                 │
-└────────┼─────────────────────────────┘
-         │
+┌──────────────────────────────────────────────┐
+│               AsyncActor Pod                 │
+│  ┌────────────┐             ┌──────────────┐ │
+│  │Asya Sidecar│◄───────────►│ Asya Runtime │ │
+│  │            │ Unix Socket │              │ │
+│  │  Routing   │             │  User Code   │ │
+│  │  Transport │             │              │ │
+│  │  Metrics   │             │  Handler     │ │
+│  └─────▲──────┘             └──────────────┘ │
+│        │                                     │
+└────────┼─────────────────────────────────────┘
          │ Queue Messages
+         │ 
          ▼
     ┌─────────┐
     │  Queue  │
@@ -79,11 +77,12 @@ spec:
 **Operator injects**:
 - `asya-sidecar` container (routing, transport)
 - `asya_runtime.py` entrypoint script via ConfigMap
+- Runtime container's command calling `asya_runtime.py`
 - Environment variables (`ASYA_SOCKET_DIR`, etc.)
 - Volume mounts for Unix socket
 - Readiness probes
 
-**See** `examples/asyas/` for more examples.
+**See** [examples/asyas/](/examples/asyas/) for more `AsyncActor` examples.
 
 ## Basic Commands
 

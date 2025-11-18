@@ -29,7 +29,7 @@ spec:
 
 Operator creates RabbitMQ queues via management API:
 
-**Queue name**: `asya-{actor-name}`
+**Queue name**: `asya-{actor_name}`
 
 **Example**: Actor `text-processor` → Queue `asya-text-processor`
 
@@ -70,7 +70,7 @@ Queues configured with dead-letter exchange:
 
 **DLX**: `asya-dlx`
 
-**DLQ**: `asya-{actor-name}-dlq`
+**DLQ**: `asya-{actor_name}-dlq`
 
 Messages move to DLQ after max retries.
 
