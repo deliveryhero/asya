@@ -4,27 +4,31 @@
 
 AI/ML teams building production pipelines face fundamental architectural challenges:
 
-**1. Logic Entanglement**
-- Pipeline orchestration (`if/else`, retries, error handling) mixed with business logic (AI/ML inference, data processing, API calls, decision making, etc)
-- Frameworks require code instrumentation (`@flow`, `@step` decorators)
-- Impossible to test components independently
+| Challenge | Why It Matters |
+|-----------|----------------|
+| **Logic Entanglement** | Pipeline orchestration (`if/else`, retries, error handling) mixed with business logic (AI/ML inference, data processing, API calls, decision making). Frameworks require code instrumentation (`@flow`, `@step` decorators). Impossible to test components independently. |
+| **Scaling Limitations** | All components scale together, wasting resources. GPU pods sit idle 80% of the time but still cost $1000s/month. Cannot independently deploy or scale different pipeline stages. |
+| **Infrastructure Complexity** | Data scientists manage infrastructure code alongside ML code. Platform engineers struggle to operate heterogeneous deployment patterns at scale. Batch vs streaming requires completely different frameworks. |
+| **Vendor Lock-in** | API rate limits throttle throughput. Model changes break pipelines. Costs scale unpredictably. |
 
-**2. Scaling Limitations**
-- All components scale together, wasting resources
-- GPU pods sit idle 80% of the time but still cost thousands per month
-- Cannot independently deploy or scale different pipeline stages
-
-**3. Infrastructure Complexity**
-- Data scientists manage infrastructure code alongside ML code
-- Platform engineers struggle to operate heterogeneous deployment patterns at scale
-- Batch vs streaming requires completely different frameworks
-
-**4. Vendor Lock-in**
-- API rate limits throttle throughput
-- Model changes break pipelines
-- Costs scale unpredictably
+**Core issue**: Traditional approaches treat AI workloads as HTTP services when they're actually **batch processing jobs** that need queue-based semantics.
 
 This coupling is obvious for backend engineers to avoid, but unnatural for data science workflows.
+
+<table>
+<tr>
+<td width="50%">
+<img src="../img/async-request-response.png" alt="Traditional async request-response pattern" style="border: 4px solid #dc3545; border-radius: 8px; height: 400px; object-fit: contain;"/>
+<br/>
+<em>❌ Traditional request-response pattern: Clients orchestrate workflows, hold state in memory, get stuck on failures. Servers scale independently but clients waste resources waiting.</em>
+</td>
+<td width="50%">
+<img src="../img/async-actors.png" alt="Asya🎭 async actor pattern" style="border: 4px solid #28a745; border-radius: 8px; height: 400px; object-fit: contain;"/>
+<br/>
+<em>✅ Asya🎭 pattern: Actors scale independently based on queue depth. Messages flow through pipeline. Errors route to DLQ. No client orchestration - framework handles everything.</em>
+</td>
+</tr>
+</table>
 
 
 ## What is Asya🎭?
