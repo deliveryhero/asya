@@ -1,0 +1,23 @@
+[project]
+name = "asya-cli"
+version = "0.1.0"
+description = "Command-line developer tools for debugging and operating Asya framework"
+requires-python = ">=3.9"
+dependencies = ["requests", "tqdm", "pyyaml"]
+
+[project.scripts]
+asya-mcp = "asya_cli.mcp:main"
+asya-mcp-forward = "asya_cli.port_forward:main"
+# asya-mq = "asya_cli.mq:main"         # Uncomment when ready
+# asya-envelope = "asya_cli.envelope:main"
+# asya-queue = "asya_cli.queue:main"
+
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = { find = {} }
+
+[dependency-groups]
+dev = ["types-pyyaml>=6.0.12.20250915"]

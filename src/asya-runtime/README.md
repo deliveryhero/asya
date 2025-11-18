@@ -79,9 +79,6 @@ env:
 | `ASYA_HANDLER_MODE` | `payload` | Handler mode: `payload` (simple) or `envelope` (full access) |
 | `ASYA_INCLUDE_METADATA` | `false` | Include route and other metadata in msg dict (`true`/`1`/`yes` to enable) |
 | `ASYA_CHUNK_SIZE` | `4096` | Socket receive buffer size in bytes |
-| `ASYA_HANDLER_TIMEOUT` | `0` (disabled) | Optional warning timeout in seconds (0 to disable) |
-| `ASYA_ENABLE_OOM_DETECTION` | `true` | Enable OOM error detection and categorization |
-| `ASYA_CUDA_CLEANUP_ON_OOM` | `true` | Clear CUDA cache on CUDA OOM errors |
 | `ASYA_ENABLE_VALIDATION` | `true` | Enable envelope validation (disable for performance) |
 
 Note: Socket path is hardcoded to `{ASYA_SOCKET_DIR}/asya-runtime.sock`

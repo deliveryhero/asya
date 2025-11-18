@@ -6,10 +6,10 @@ Finds a free local port, forwards to asya-gateway, and outputs the URL.
 All logs go to stderr, only URL goes to stdout for easy env var capture.
 
 Usage:
-    export ASYA_TOOLS_MCP_URL=$(asya-mcp-forward)
+    export ASYA_CLI_MCP_URL=$(asya-mcp-forward)
     asya-mcp list
 
-    export ASYA_TOOLS_MCP_URL=$(asya-mcp-forward --namespace my-ns)
+    export ASYA_CLI_MCP_URL=$(asya-mcp-forward --namespace my-ns)
     asya-mcp call echo --message hello
 
 Options:

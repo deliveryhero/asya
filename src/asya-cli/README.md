@@ -1,18 +1,18 @@
-# Asya🎭 Tools
+# Asya🎭 CLI
 
-Developer tools for debugging and operating the Asya🎭 framework.
+Command-line developer tools for debugging and operating the Asya🎭 framework.
 
 ## Installation
 
 ```bash
-cd src/asya-tools
+cd src/asya-cli
 uv pip install -e .
 ```
 
 Or install directly from the repository:
 
 ```bash
-uv pip install -e ./src/asya-tools
+uv pip install -e ./src/asya-cli
 ```
 
 ## Tools
@@ -78,7 +78,7 @@ asya-mcp stream <envelope-id>
 Alternatively, use as a Python module:
 
 ```bash
-python -m asya_tools.mcp list
+python -m asya_cli.mcp list
 ```
 
 **Call modes:**
@@ -128,21 +128,21 @@ Automatically finds a free local port, sets up port-forwarding to the gateway, a
 
 ```bash
 # Basic usage - auto-detect free port and forward to asya-gateway in asya-e2e namespace
-export ASYA_TOOLS_MCP_URL=$(asya-mcp-forward)
+export ASYA_CLI_MCP_URL=$(asya-mcp-forward)
 asya-mcp list
 
 # Custom namespace
-export ASYA_TOOLS_MCP_URL=$(asya-mcp-forward --namespace my-namespace)
+export ASYA_CLI_MCP_URL=$(asya-mcp-forward --namespace my-namespace)
 asya-mcp call echo --message hello
 
 # Custom deployment name
-export ASYA_TOOLS_MCP_URL=$(asya-mcp-forward --deployment my-gateway)
+export ASYA_CLI_MCP_URL=$(asya-mcp-forward --deployment my-gateway)
 
 # Custom ports
-export ASYA_TOOLS_MCP_URL=$(asya-mcp-forward --port 8080 --local-port 9000)
+export ASYA_CLI_MCP_URL=$(asya-mcp-forward --port 8080 --local-port 9000)
 
 # Skip health check (faster startup, but no verification)
-export ASYA_TOOLS_MCP_URL=$(asya-mcp-forward --no-check-health)
+export ASYA_CLI_MCP_URL=$(asya-mcp-forward --no-check-health)
 
 # Keep port-forward running in foreground (useful for debugging)
 asya-mcp-forward --keep-alive
@@ -171,7 +171,7 @@ asya-mcp-forward --keep-alive
 
 ```bash
 # Start port-forward and set URL in one command
-export ASYA_TOOLS_MCP_URL=$(asya-mcp-forward)
+export ASYA_CLI_MCP_URL=$(asya-mcp-forward)
 
 # Now use asya-mcp with the forwarded URL
 asya-mcp list
@@ -179,7 +179,7 @@ asya-mcp call echo --message "hello from kubectl port-forward"
 asya-mcp call process-data --input "test data"
 
 # Check what URL is being used
-echo $ASYA_TOOLS_MCP_URL
+echo $ASYA_CLI_MCP_URL
 # Output: http://localhost:8123 (or whatever free port was found)
 ```
 

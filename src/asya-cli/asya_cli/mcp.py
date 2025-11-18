@@ -15,12 +15,12 @@ Commands:
     stream <envelope-id>                           # Stream envelope updates
 
 Global Options:
-    --url URL                                      # Gateway URL (env: ASYA_TOOLS_MCP_URL, default: http://localhost:8089)
+    --url URL                                      # Gateway URL (env: ASYA_CLI_MCP_URL, default: http://localhost:8089)
     --no-stream, --no_stream                       # Disable streaming, return envelope ID immediately
-    --debug                                        # Print SSE events as JSON (env: ASYA_TOOLS_MCP_DEBUG)
+    --debug                                        # Print SSE events as JSON (env: ASYA_CLI_MCP_DEBUG)
 
 Examples:
-    export ASYA_TOOLS_MCP_URL=http://localhost:8011
+    export ASYA_CLI_MCP_URL=http://localhost:8011
     asya-mcp list
     asya-mcp show echo
     asya-mcp call my_tool                          # Streams results by default
@@ -371,8 +371,8 @@ class AsyaGatewayClient:
 
 
 def main():
-    default_url = os.getenv("ASYA_TOOLS_MCP_URL", "http://localhost:8089")
-    default_debug = os.getenv("ASYA_TOOLS_MCP_DEBUG", "").lower() in ["1", "true", "yes"]
+    default_url = os.getenv("ASYA_CLI_MCP_URL", "http://localhost:8089")
+    default_debug = os.getenv("ASYA_CLI_MCP_DEBUG", "").lower() in ["1", "true", "yes"]
 
     parser = argparse.ArgumentParser(
         description="Simple CLI for asya gateway MCP server",
@@ -384,7 +384,7 @@ def main():
     parser.add_argument(
         "--url",
         default=default_url,
-        help=f"Gateway URL (default: {default_url}, set via ASYA_TOOLS_MCP_URL)",
+        help=f"Gateway URL (default: {default_url}, set via ASYA_CLI_MCP_URL)",
     )
     parser.add_argument(
         "--no-stream",
@@ -397,7 +397,7 @@ def main():
         "--debug",
         action="store_true",
         default=default_debug,
-        help=f"Print each SSE event as one-line JSON to stderr (default: {default_debug}, set via ASYA_TOOLS_MCP_DEBUG)",
+        help=f"Print each SSE event as one-line JSON to stderr (default: {default_debug}, set via ASYA_CLI_MCP_DEBUG)",
     )
 
     subparsers = parser.add_subparsers(dest="command", required=True)
