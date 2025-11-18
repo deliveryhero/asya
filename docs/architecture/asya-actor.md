@@ -82,7 +82,7 @@ spec:
 - Volume mounts for Unix socket
 - Readiness probes
 
-**See** [examples/asyas/](/examples/asyas/) for more `AsyncActor` examples.
+**See** [`examples/asyas/`](https://github.com/deliveryhero/asya/tree/main/examples/asyas) for more `AsyncActor` examples.
 
 ## Basic Commands
 

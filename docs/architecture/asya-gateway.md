@@ -107,7 +107,7 @@ Response (MCP CallToolResult):
 }
 ```
 
-See [./protocols/actor-actor.md](/docs/architecture/protocols/actor-actor.md#envelope-status-tracking) for more details on envelope statuses.
+See [Actor-Actor Protocol](protocols/actor-actor.md#envelope-status-tracking) for more details on envelope statuses.
 
 #### Get Envelope Status
 
@@ -309,7 +309,7 @@ Response: `OK`
 ```
 
 ## Using MCP tools
-**See**: [../quickstart/for-data_scientists.md](/docs/quickstart/for-data_scientists.md#using-mcp-tools) for instructions how to test MCP locally.
+**See**: [For Data Scientists](../quickstart/for-data_scientists.md#using-mcp-tools) for instructions how to test MCP locally.
 
 ## Deployment Helm Charts
 

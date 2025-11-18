@@ -430,5 +430,5 @@ kubectl logs -f deploy/text-processor -c asya-sidecar
 
 - Read [Core Concepts](../concepts.md)
 - See [Architecture Overview](../architecture/)
-- Explore [Example Actors](../../examples/)
+- Explore [Example Actors](https://github.com/deliveryhero/asya/tree/main/examples)
 - Learn about [Envelope Protocol](../architecture/protocols/actor-actor.md)

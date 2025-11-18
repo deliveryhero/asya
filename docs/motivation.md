@@ -15,17 +15,23 @@ AI/ML teams building production pipelines face fundamental architectural challen
 
 This coupling is obvious for backend engineers to avoid, but unnatural for data science workflows.
 
-<table>
+<table style="table-layout: fixed; width: 100%; border-collapse: collapse;">
 <tr>
-<td width="50%">
-<img src="../img/async-request-response.png" alt="Traditional async request-response pattern" style="border: 4px solid #dc3545; border-radius: 8px; height: 400px; object-fit: contain;"/>
-<br/>
+<td style="width: 50%; padding: 10px; border: none; vertical-align: top;">
+<div style="width: 100%;">
+<img src="../img/async-request-response.png" alt="Traditional async request-response pattern" style="width: 100%; max-width: 100%; height: auto; display: block;"/>
+<p style="margin-top: 10px; word-wrap: break-word; white-space: normal; overflow-wrap: break-word;">
 <em>❌ Traditional request-response pattern: Clients orchestrate workflows, hold state in memory, get stuck on failures. Servers scale independently but clients waste resources waiting.</em>
+</p>
+</div>
 </td>
-<td width="50%">
-<img src="../img/async-actors.png" alt="Asya🎭 async actor pattern" style="border: 4px solid #28a745; border-radius: 8px; height: 400px; object-fit: contain;"/>
-<br/>
+<td style="width: 50%; padding: 10px; border: none; vertical-align: top;">
+<div style="width: 100%;">
+<img src="../img/async-actors.png" alt="Asya🎭 async actor pattern" style="width: 100%; max-width: 100%; height: auto; display: block;"/>
+<p style="margin-top: 10px; word-wrap: break-word; white-space: normal; overflow-wrap: break-word;">
 <em>✅ Asya🎭 pattern: Actors scale independently based on queue depth. Messages flow through pipeline. Errors route to DLQ. No client orchestration - framework handles everything.</em>
+</p>
+</div>
 </td>
 </tr>
 </table>

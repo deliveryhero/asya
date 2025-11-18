@@ -139,9 +139,9 @@ clean: clean-integration clean-e2e ## Clean build artifacts
 # =============================================================================
 
 docs-serve: ## Serve docs locally at http://127.0.0.1:8000
-	@command -v mkdocs >/dev/null 2>&1 || (echo "[.] Installing MkDocs..." && uv pip install mkdocs-material mkdocs-git-revision-date-localized-plugin mkdocs-minify-plugin)
-	mkdocs serve
+	@uv run mkdocs --version >/dev/null 2>&1 || (echo "[.] Installing MkDocs..." && uv pip install mkdocs mkdocs-shadcn pygments mkdocs-mermaid2-plugin)
+	uv run mkdocs serve
 
 docs-build: ## Build docs to site/ directory
-	@command -v mkdocs >/dev/null 2>&1 || (echo "[.] Installing MkDocs..." && uv pip install mkdocs-material mkdocs-git-revision-date-localized-plugin mkdocs-minify-plugin)
-	mkdocs build --strict
+	@uv run mkdocs --version >/dev/null 2>&1 || (echo "[.] Installing MkDocs..." && uv pip install mkdocs mkdocs-shadcn pygments mkdocs-mermaid2-plugin)
+	uv run mkdocs build

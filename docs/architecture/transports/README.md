@@ -94,4 +94,4 @@ Queues automatically created by operator when AsyncActor reconciled.
 3. Add KEDA scaler configuration
 4. Update documentation
 
-See [../../../src/asya-sidecar/internal/transport/](../../../src/asya-sidecar/internal/transport/) for implementation examples.
+See [`src/asya-sidecar/internal/transport/`](https://github.com/deliveryhero/asya/tree/main/src/asya-sidecar/internal/transport) for implementation examples.

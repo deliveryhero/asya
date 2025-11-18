@@ -20,8 +20,6 @@ Battle-tested at [Delivery Hero](https://tech.deliveryhero.com/) for global-scal
 
 ---
 
----
-
 ## When to Use Asya🎭
 
 ### ✅ Ideal For

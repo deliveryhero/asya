@@ -37,5 +37,5 @@ Welcome to Asya🎭 - a Kubernetes-native async actor framework for orchestratin
 ## Quick Links
 
 - [GitHub Repository](https://github.com/deliveryhero/asya)
-- [Examples](../examples/)
-- [Contributing Guide](../CONTRIBUTING.md)
+- [Examples](https://github.com/deliveryhero/asya/tree/main/examples)
+- [Contributing Guide](https://github.com/deliveryhero/asya/blob/main/CONTRIBUTING.md)
