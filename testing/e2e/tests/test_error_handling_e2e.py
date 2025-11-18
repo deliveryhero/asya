@@ -44,6 +44,12 @@ def _get_transport_client(transport: str):
 
 
 @pytest.mark.slow
+@pytest.mark.skipif(
+    os.getenv("ASYA_TRANSPORT") == "sqs",
+    reason="SQS is store-and-forward - messages sit in queue when consumers unavailable. "
+           "Cannot test queue routing by scaling error-end to 0. "
+           "Use test_error_end_persists_to_s3_e2e for end-to-end validation on SQS."
+)
 def test_error_goes_to_error_end_when_available(e2e_helper, kubectl, chaos_queues):
     """
     E2E: Test errors go to error-end queue when error-end is available.
