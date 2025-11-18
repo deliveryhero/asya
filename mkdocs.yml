@@ -18,7 +18,7 @@ extra_css:
   - stylesheets/extra.css
 
 nav:
-  - Home: index.md
+  - Home: README.md
   - GETTING STARTED:
       - Motivation: motivation.md
       - Concepts: concepts.md
@@ -52,17 +52,22 @@ nav:
 
 plugins:
   - search
-  - mermaid2
+  - mermaid2:
+      arguments:
+        theme: default
 
 markdown_extensions:
   - admonition
   - toc:
       permalink: true
   - tables
-  - codehilite:
-      guess_lang: false
+  - pymdownx.highlight:
       use_pygments: true
   - pymdownx.inlinehilite
-  - fenced_code
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:mermaid2.fence_mermaid
 
 copyright: Copyright &copy; 2024 Delivery Hero SE
