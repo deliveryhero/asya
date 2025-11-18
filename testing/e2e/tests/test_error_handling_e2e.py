@@ -44,12 +44,6 @@ def _get_transport_client(transport: str):
 
 
 @pytest.mark.slow
-@pytest.mark.skipif(
-    os.getenv("ASYA_TRANSPORT") == "sqs",
-    reason="SQS is store-and-forward - messages sit in queue when consumers unavailable. "
-           "Cannot test queue routing by scaling error-end to 0. "
-           "Use test_error_end_persists_to_s3_e2e for end-to-end validation on SQS."
-)
 def test_error_goes_to_error_end_when_available(e2e_helper, kubectl, chaos_queues):
     """
     E2E: Test errors go to error-end queue when error-end is available.
@@ -77,8 +71,14 @@ def test_error_goes_to_error_end_when_available(e2e_helper, kubectl, chaos_queue
     logger.info(f"Transport: {transport}")
     logger.info("Scenario: error-end available (normal application-level handling)")
 
-    logger.info("Scaling error-end to 0 to prevent queue consumption")
-    kubectl.run("scale deployment error-end -n asya-e2e --replicas=0")
+    # Disable KEDA scaling and scale error-end to 0
+    logger.info("Disabling KEDA scaling for error-end")
+    kubectl.run("patch asyncactor error-end -n asya-e2e --type=json -p '[{\"op\":\"replace\",\"path\":\"/spec/scaling/enabled\",\"value\":false},{\"op\":\"replace\",\"path\":\"/spec/workload/replicas\",\"value\":0}]'")
+
+    logger.info("Waiting for ScaledObject to be deleted")
+    kubectl.run("wait --for=delete scaledobject/error-end -n asya-e2e --timeout=60s", check=False)
+
+    logger.info("Waiting for deployment to scale to 0")
     kubectl.wait_for_replicas("error-end", "asya-e2e", 0, timeout=60)
 
     try:
@@ -135,8 +135,25 @@ def test_error_goes_to_error_end_when_available(e2e_helper, kubectl, chaos_queue
         logger.info("[+] Test passed - application-level error handling working")
 
     finally:
-        logger.info("Restoring error-end deployment")
-        kubectl.run("scale deployment error-end -n asya-e2e --replicas=1")
+        # Re-enable KEDA scaling for error-end and reset replicas
+        logger.info("Re-enabling KEDA scaling for error-end")
+        kubectl.run("patch asyncactor error-end -n asya-e2e --type=json -p '[{\"op\":\"replace\",\"path\":\"/spec/scaling/enabled\",\"value\":true},{\"op\":\"replace\",\"path\":\"/spec/workload/replicas\",\"value\":1}]'")
+
+        # Wait for operator to reconcile and ScaledObject to be recreated
+        logger.info("Waiting for ScaledObject to be recreated")
+        for attempt in range(30):
+            result = kubectl.run("get scaledobject error-end -n asya-e2e", check=False)
+            if result.returncode == 0:
+                logger.info("ScaledObject exists, waiting for Ready condition")
+                kubectl.run("wait --for=condition=Ready scaledobject/error-end -n asya-e2e --timeout=30s")
+                break
+            logger.info(f"ScaledObject not yet created, retrying ({attempt + 1}/30)")
+            time.sleep(2)
+        else:
+            logger.warning("ScaledObject was not created within 60 seconds")
+
+        # Wait for error-end pod to be ready
+        logger.info("Waiting for error-end pod to be ready")
         kubectl.wait_for_replicas("error-end", "asya-e2e", 1, timeout=60)
 
 
