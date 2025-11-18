@@ -51,7 +51,7 @@ Battle-tested at [Delivery Hero](https://tech.deliveryhero.com/) for global-scal
 
 ---
 
-## For Data Scientists
+## For Data Scientists 🧑‍🔬
 
 Write pure Python functions - no decorators, no DAGs, no infrastructure code:
 
@@ -106,7 +106,7 @@ class LLMJudge:
 
 ---
 
-## For Platform Engineers
+## For Platform Engineers ⚙️
 
 Deploy actors via Kubernetes CRDs:
 
@@ -149,92 +149,26 @@ spec:
 
 ---
 
-## Quick Start
-
-### Local Development (Kind cluster)
-
-```bash
-cd testing/e2e
-export PROFILE=sqs-s3
-make up             # Deploy full stack (~5 min)
-make trigger-tests  # Run E2E tests
-```
-
-Includes: Asya operator, gateway, KEDA, RabbitMQ, MinIO, PostgreSQL, Prometheus, Grafana.
-
-### Production (AWS EKS)
-
-```bash
-# 1. Install CRDs
-kubectl apply -f src/asya-operator/config/crd/
-
-# 2. Install operator
-helm install asya-operator deploy/helm-charts/asya-operator/ \
-  -n asya-system --create-namespace \
-  -f operator-values.yaml
-
-# 3. Deploy actors
-kubectl apply -f examples/asyas/simple-actor.yaml
-```
-
-**See**: [AWS EKS Installation](docs/install/aws-eks.md) | [Local Kind Installation](docs/install/local-kind.md) | [Helm Charts](docs/install/helm-charts.md)
-
----
-
 ## Architecture
 
-```mermaid
-graph LR
-    Client([Client])
-
-    subgraph "Asya Framework"
-        Gateway[Gateway<br/>MCP API]
-        Operator[Operator<br/>CRD controller]
-    end
-
-    subgraph "Your Actors"
-        A1[Actor Pod 1<br/>sidecar + runtime]
-        A2[Actor Pod 2<br/>sidecar + runtime]
-        A3[Actor Pod N<br/>sidecar + runtime]
-    end
-
-    subgraph "Infrastructure"
-        MQ[Message Queue<br/>RabbitMQ/SQS]
-        KEDA[KEDA<br/>autoscaler]
-    end
-
-    Client -->|HTTP| Gateway
-    Gateway -->|envelope| MQ
-    MQ -->|messages| A1
-    A1 -->|results| MQ
-    MQ -->|messages| A2
-    A2 -->|results| MQ
-    MQ -->|messages| A3
-
-    Operator -.->|deploys| A1
-    Operator -.->|deploys| A2
-    Operator -.->|deploys| A3
-    KEDA -.->|scales| A1
-    KEDA -.->|scales| A2
-    KEDA -.->|scales| A3
-
-    style Gateway fill:#e1f5ff
-    style Operator fill:#fff3cd
-    style A1 fill:#d4edda
-    style A2 fill:#d4edda
-    style A3 fill:#d4edda
-```
-
-**Components**:
-- **Operator**: Watches AsyncActor CRDs, injects sidecars, configures KEDA
-- **Sidecar**: Handles queue consumption, routing, retries (Go)
-- **Runtime**: Executes your Python handler via Unix socket
-- **Gateway**: Optional MCP HTTP API for envelope submission and SSE streaming
-- **Crew actors**: System actors (`happy-end`, `error-end`) for result persistence and error handling
+Asya uses a **sidecar pattern** for message routing:
+- **Operator** watches AsyncActor CRDs, injects sidecars, configures KEDA
+- **Sidecar** handles queue consumption, routing, retries (Go)
+- **Runtime** executes your Python handler via Unix socket
+- **Gateway** (optional) provides MCP HTTP API for envelope submission and SSE streaming
+- **KEDA** monitors queue depth, scales actors 0→N
 
 **Message flow**: `Queue → Sidecar → Your Code → Sidecar → Next Queue`
 
-**See**: [Architecture Documentation](docs/architecture/) | [Protocols](docs/architecture/protocols/) | [Components](docs/architecture/)
+**See**: [Architecture Documentation](docs/architecture/) for system diagram, component details, protocols, and deployment patterns
+
+---
+
+## Quick Start
+- [For Data Scientists 🧑‍🔬](/docs/quickstart/for-data_scientists.md)
+- [For Platform Engineers ⚙️](/docs/quickstart/for-platform_engineers.md)
+
+**See also**: [AWS EKS Installation](docs/install/aws-eks.md) | [Local Kind Installation](docs/install/local-kind.md) | [Helm Charts](docs/install/helm-charts.md)
 
 ---
 
@@ -271,7 +205,8 @@ Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) for detai
 
 **Alpha software** under active development. APIs may change. Production use requires thorough testing.
 
-**Current version**: v0.1.0
+**Maintainers**:
+- Artem Yushkovskiy 🐕 (`@atemate`, `@atemate-dh`)
 
 **Roadmap** (see [GitHub Discussions](https://github.com/deliveryhero/asya/discussions)):
 - Stabilization and API refinement
@@ -281,4 +216,4 @@ Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) for detai
 - Enhanced observability (OpenTelemetry tracing)
 - Multi-cluster routing
 
-**Feedback**: Open an issue or discussion on [GitHub](https://github.com/deliveryhero/asya)
+**Feedback**: Open an issue or discussion on [GitHub](https://github.com/deliveryhero/asya) ❤️
