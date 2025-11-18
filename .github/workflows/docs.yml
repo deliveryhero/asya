@@ -1,0 +1,77 @@
+name: Deploy Docs
+
+on:
+  push:
+    branches: [main]
+    paths:
+    - 'docs/**'
+    - 'mkdocs.yml'
+    - '.github/workflows/docs.yml'
+  pull_request:
+    branches: [main]
+    paths:
+    - 'docs/**'
+    - 'mkdocs.yml'
+    - '.github/workflows/docs.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build docs
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.13'
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: pip install mkdocs mkdocs-shadcn pygments mkdocs-mermaid2-plugin
+
+    - name: Build site
+      run: mkdocs build
+
+    - name: Upload artifact
+      if: github.event_name == 'pull_request'
+      uses: actions/upload-artifact@v4
+      with:
+        name: docs-site
+        path: site/
+        retention-days: 7
+
+  deploy:
+    name: Deploy to GitHub Pages
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.13'
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: pip install mkdocs mkdocs-shadcn pygments mkdocs-mermaid2-plugin
+
+    - name: Configure Git
+      run: |
+        git config user.name github-actions[bot]
+        git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+
+    - name: Deploy to gh-pages
+      run: mkdocs gh-deploy --force

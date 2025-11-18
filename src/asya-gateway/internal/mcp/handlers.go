@@ -9,7 +9,7 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/deliveryhero/asya/asya-gateway/internal/jobs"
+	"github.com/deliveryhero/asya/asya-gateway/internal/envelopestore"
 	"github.com/deliveryhero/asya/asya-gateway/pkg/types"
 	"github.com/mark3labs/mcp-go/mcp"
 )
@@ -25,12 +25,12 @@ var (
 // Handler provides HTTP endpoints for envelope management
 // MCP endpoints are now handled directly by mark3labs/mcp-go server
 type Handler struct {
-	jobStore jobs.JobStore
+	jobStore envelopestore.EnvelopeStore
 	server   *Server // For direct tool calls
 }
 
 // NewHandler creates a new HTTP handler for envelope management
-func NewHandler(jobStore jobs.JobStore) *Handler {
+func NewHandler(jobStore envelopestore.EnvelopeStore) *Handler {
 	return &Handler{
 		jobStore: jobStore,
 	}

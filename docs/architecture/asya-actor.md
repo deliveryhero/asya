@@ -1,104 +1,67 @@
-# AsyncActor (CRD)
+# AsyncActor
 
-The AsyncActor Custom Resource Definition (CRD) is the core abstraction for deploying actor workloads in the Asya🎭 framework. It declaratively defines an actor's configuration, including transport, scaling, and workload specifications.
+## What is an Actor?
 
-## Status Reference
+An actor is a **stateless workload** that:
 
-AsyncActors report a comprehensive status that reflects the current state of the workload, transport, and scaling infrastructure. The status is visible in `kubectl get asyncactor` output and provides detailed diagnostics for troubleshooting.
+- Receives messages from an input queue
+- Processes them via user-defined code
+- Sends results to the next queue in the route
 
-### Status Fields
+**Alternative to monolithic pipelines**: Instead of one large application handling `A → B → C`, each step is an independent actor.
 
-The AsyncActor status includes the following fields:
+## Benefits
 
-- **Status**: Overall status (see table below)
-- **Running**: Number of ready pods
-- **Pending**: Number of pods created but not yet ready (includes Pending phase and Running-but-not-ready)
-- **Failing**: Number of pods in failing states (CrashLoopBackOff, ImagePullBackOff, etc.)
-- **Total**: Total number of non-terminated pods
-- **Desired**: Target number of replicas (from HPA if KEDA enabled, or spec.workload.replicas)
-- **Last-Scale**: Time since last scaling event with direction (e.g., "5m ago (up)", "2h ago (down)")
-- **Transport** (wide output): Transport readiness (Ready/NotReady)
-- **Scaling** (wide output): Scaling mode (KEDA/Manual)
-- **Queued** (wide output): Number of messages waiting in queue
-- **Processing** (wide output): Number of messages currently being processed
+- **Independent scaling**: Each actor scales based on its queue depth
+- **Independent deployment**: Deploy actors separately, no downtime
+- **Separation of concerns**: Pipeline logic decoupled from business logic
+- **Resilience**: Actor failures don't affect others
 
-### Status Table
+## Actor Lifecycle States
 
-The following table describes all possible AsyncActor statuses, their underlying pod conditions, and example scenarios:
+- **Napping**: `minReplicas=0`, no pods running, queue empty
+- **Running**: Active pods processing messages
+- **Scaling**: KEDA adjusting replica count based on queue depth
+- **Failing**: Pods crashing, requires intervention
 
-| AsyncActor Status | Pod Conditions / Replica State | Example Scenario |
-|-------------------|--------------------------------|------------------|
-| **Creating** | ObservedGeneration=0, no workload created yet | Initial AsyncActor creation, operator hasn't completed first reconciliation |
-| **Running** | Ready=Desired, all pods healthy, no failures | Normal operation: 3/3 pods ready, processing messages |
-| **Napping** | Desired=0, KEDA scaling enabled | Scale-to-zero: no messages in queue, KEDA scaled actor to 0 replicas |
-| **Degraded** | Ready<Total, state persists >5min, no active scaling | Partial capacity: 2/3 pods ready for extended period, 1 pod stuck pending |
-| **ScalingUp** | Total<Desired or Ready<Total (recent) | KEDA scaling up: 2/5 pods ready, 3 more being created |
-| **ScalingDown** | Total>Desired | KEDA scaling down: 5/3 pods running, 2 being terminated |
-| **Terminating** | DeletionTimestamp set | AsyncActor deletion in progress, cleaning up resources |
-| **TransportError** | TransportReady condition=False | RabbitMQ connection failed, SQS queue creation failed, transport credentials invalid |
-| **WorkloadError** | WorkloadReady=False, FailingPods>0, Ready<Desired, generic error | Catch-all workload failure: failing pods with no specific classification |
-| **PendingResources** | PodScheduled=False + "Insufficient" in message | Insufficient CPU/memory/GPU, no nodes with requested resources available |
-| **ImagePullError** | Container waiting: ImagePullBackOff or ErrImagePull | Invalid image name, registry authentication failed, image not found |
-| **RuntimeError** | asya-runtime container: CrashLoopBackOff | Python handler crashes, import errors, CUDA OOM, unhandled exceptions |
-| **SidecarError** | asya-sidecar container: CrashLoopBackOff | Sidecar crashes, transport connection failures, envelope routing errors |
-| **VolumeError** | Pod events: MountVolume or VolumeMount failures | PVC not bound, volume provisioning failed, mount path conflicts |
-| **ConfigError** | Pod events: ConfigMap or Secret not found | Missing ASYA_HANDLER env var, missing transport credentials, runtime ConfigMap missing |
-| **ScalingError** | ScalingReady=False (KEDA enabled) | ScaledObject creation failed, KEDA controller unavailable, HPA errors |
+## Architecture Diagram
 
-### Status Priority Logic
+```
+┌──────────────────────────────────────────────┐
+│               AsyncActor Pod                 │
+│  ┌────────────┐             ┌──────────────┐ │
+│  │Asya Sidecar│◄───────────►│ Asya Runtime │ │
+│  │            │ Unix Socket │              │ │
+│  │  Routing   │             │  User Code   │ │
+│  │  Transport │             │              │ │
+│  │  Metrics   │             │  Handler     │ │
+│  └─────▲──────┘             └──────────────┘ │
+│        │                                     │
+└────────┼─────────────────────────────────────┘
+         │ Queue Messages
+         │
+         ▼
+    ┌─────────┐
+    │  Queue  │
+    │ (SQS/   │
+    │RabbitMQ)│
+    └─────────┘
+```
 
-Statuses are determined using the following priority order (highest to lowest):
+## Deployment
 
-1. **Lifecycle states**: Terminating (DeletionTimestamp), Creating (ObservedGeneration=0)
-2. **Critical errors**: TransportError, WorkloadError variants (PendingResources, ImagePullError, RuntimeError, SidecarError, VolumeError, ConfigError), ScalingError
-3. **Transitional states**: Napping (Desired=0 + KEDA), ScalingUp (Total<Desired or Ready<Total), ScalingDown (Total>Desired)
-4. **Operational states**: Running (Ready=Desired), Degraded (Ready<Total for >5min)
-
-### Error Classification Details
-
-**WorkloadError variants** are classified by examining the WorkloadReady condition message:
-
-- **PendingResources**: Message contains "Insufficient" (CPU, memory, GPU, storage)
-- **ImagePullError**: Message contains "ImagePullBackOff" or "ErrImagePull"
-- **RuntimeError**: Message contains "asya-runtime" and "CrashLoopBackOff"
-- **SidecarError**: Message contains "asya-sidecar" and "CrashLoopBackOff"
-- **VolumeError**: Message contains "MountVolume" or "VolumeMount"
-- **ConfigError**: Message contains "configmap" or "secret" with "not found"
-- **WorkloadError**: Generic fallback for unclassified workload failures
-
-**Failing pod detection** includes:
-
-- Container restart count > 5
-- Container waiting reasons: CrashLoopBackOff, ImagePullBackOff, ErrImagePull, CreateContainerError, CreateContainerConfigError, InvalidImageName, RunContainerError
-- Pod conditions: PodScheduled=False with Reason=Unschedulable
-- Pod phase: Failed
-
-## Spec Reference
-
-See [AsyncActor CRD definition](../../src/asya-operator/api/v1alpha1/asya_types.go) for complete spec schema.
-
-### Key Spec Fields
-
-- **transport**: Transport name (references operator-configured transport)
-- **sidecar**: Sidecar container configuration (image, resources, env vars)
-- **timeout**: Processing and graceful shutdown timeouts
-- **scaling**: KEDA autoscaling configuration (minReplicas, maxReplicas, queueLength, advanced options)
-- **workload**: Workload template (kind: Deployment/StatefulSet, replicas, pod template)
-
-### Example AsyncActor
+Actors deploy via AsyncActor CRD:
 
 ```yaml
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 metadata:
   name: text-processor
-  namespace: default
 spec:
-  transport: rabbitmq
+  transport: sqs
   scaling:
-    enabled: true
     minReplicas: 0
-    maxReplicas: 10
+    maxReplicas: 50
     queueLength: 5
   workload:
     kind: Deployment
@@ -106,18 +69,64 @@ spec:
       spec:
         containers:
         - name: asya-runtime
-          image: python:3.13-slim
+          image: my-processor:v1
           env:
           - name: ASYA_HANDLER
-            value: my_module.process
-          - name: ASYA_HANDLER_MODE
-            value: payload
+            value: "processor.TextProcessor.process"
 ```
 
-## Related Documentation
+**Operator injects**:
 
-- [Operator](asya-operator.md) - AsyncActor reconciliation and management
-- [Sidecar](asya-sidecar.md) - Envelope routing and transport integration
-- [Runtime](asya-runtime.md) - Actor handler execution
-- [KEDA](scaling-keda.md) - Autoscaling configuration
-- [Transport](transport.md) - Transport configuration and management
+- `asya-sidecar` container (routing, transport)
+- `asya_runtime.py` entrypoint script via ConfigMap
+- Runtime container's command calling `asya_runtime.py`
+- Environment variables (`ASYA_SOCKET_DIR`, etc.)
+- Volume mounts for Unix socket
+- Readiness probes
+
+**See** [`examples/asyas/`](https://github.com/deliveryhero/asya/tree/main/examples/asyas) for more `AsyncActor` examples.
+
+## Basic Commands
+
+```bash
+# List actors
+kubectl get asyas
+
+# View actor details
+kubectl get asya text-processor -o yaml
+
+# View actor status
+kubectl describe asya text-processor
+
+# Watch autoscaling
+kubectl get hpa -w
+
+# View pods
+kubectl get pods -l asya.sh/actor=text-processor
+
+# View logs
+kubectl logs -f deploy/text-processor
+kubectl logs -f deploy/text-processor -c asya-sidecar
+```
+
+## Deployment with Helm
+
+Use `asya-actor` chart for batch deployment:
+
+```yaml
+# values.yaml
+actors:
+  - name: text-processor
+    transport: sqs
+    scaling:
+      minReplicas: 0
+      maxReplicas: 50
+    image: my-processor:v1
+    handler: processor.TextProcessor.process
+```
+
+```bash
+helm install my-actors deploy/helm-charts/asya-actor/ -f values.yaml
+```
+
+**See**: [install/helm-charts.md](../install/helm-charts.md) for details.

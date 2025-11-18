@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/deliveryhero/asya/asya-gateway/internal/config"
-	"github.com/deliveryhero/asya/asya-gateway/internal/jobs"
+	"github.com/deliveryhero/asya/asya-gateway/internal/envelopestore"
 	"github.com/deliveryhero/asya/asya-gateway/internal/queue"
 	"github.com/deliveryhero/asya/asya-gateway/pkg/types"
 )
@@ -31,7 +31,7 @@ func (m *MockQueueClient) Close() error {
 
 func TestNewServer_WithoutConfig(t *testing.T) {
 	// Test server creation with nil config (uses hardcoded tools)
-	jobStore := jobs.NewStore()
+	jobStore := envelopestore.NewStore()
 	queueClient := &MockQueueClient{}
 
 	server := NewServer(jobStore, queueClient, nil)
@@ -89,7 +89,7 @@ func TestNewServer_WithConfig(t *testing.T) {
 		t.Fatalf("Config validation failed: %v", err)
 	}
 
-	jobStore := jobs.NewStore()
+	jobStore := envelopestore.NewStore()
 	queueClient := &MockQueueClient{}
 
 	server := NewServer(jobStore, queueClient, cfg)
@@ -154,7 +154,7 @@ func TestNewServer_WithMultipleTools(t *testing.T) {
 		t.Fatalf("Config validation failed: %v", err)
 	}
 
-	jobStore := jobs.NewStore()
+	jobStore := envelopestore.NewStore()
 	queueClient := &MockQueueClient{}
 
 	server := NewServer(jobStore, queueClient, cfg)
@@ -204,7 +204,7 @@ func TestNewServer_WithRouteTemplates(t *testing.T) {
 		t.Fatalf("Config validation failed: %v", err)
 	}
 
-	jobStore := jobs.NewStore()
+	jobStore := envelopestore.NewStore()
 	queueClient := &MockQueueClient{}
 
 	server := NewServer(jobStore, queueClient, cfg)
@@ -261,7 +261,7 @@ func TestNewServer_WithDefaults(t *testing.T) {
 		t.Fatalf("Config validation failed: %v", err)
 	}
 
-	jobStore := jobs.NewStore()
+	jobStore := envelopestore.NewStore()
 	queueClient := &MockQueueClient{}
 
 	server := NewServer(jobStore, queueClient, cfg)

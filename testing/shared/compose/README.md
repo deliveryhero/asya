@@ -11,7 +11,7 @@ testing/
 │   ├── sqs.yml                        # LocalStack SQS transport
 │   ├── minio.yml                      # MinIO object storage
 │   ├── postgres.yml                   # PostgreSQL + migrations
-│   ├── asya/                          # Asya🎭 framework components
+│   ├── asya/                          # Asya🎭 components
 │   │   ├── gateway.yml                # MCP gateway service
 │   │   ├── testing-actors.yml         # Test actor workloads
 │   │   └── crew-actors.yml            # System actors (happy-end, error-end)
@@ -27,8 +27,8 @@ testing/
     └── profiles/                      # Test profiles (assemblies)
         ├── .env.sqs-minio             # Profile variables: ASYA_TRANSPORT=sqs, ASYA_STORAGE=minio
         ├── .env.rabbitmq-minio        # Profile variables: ASYA_TRANSPORT=rabbitmq, ASYA_STORAGE=minio
-        ├── sqs-minio.yml              # Profile: SQS + MinIO + Asya🎭 + tester
-        └── rabbitmq-minio.yml         # Profile: RabbitMQ + MinIO + Asya🎭 + tester
+        ├── sqs-minio.yml              # Profile: SQS + MinIO + tester
+        └── rabbitmq-minio.yml         # Profile: RabbitMQ + MinIO + tester
 ```
 
 ## How It Works

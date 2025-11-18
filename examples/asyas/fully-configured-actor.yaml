@@ -35,16 +35,6 @@ spec:
           - name: ASYA_LOG_LEVEL
             value: "DEBUG" # DEBUG, INFO, WARNING, ERROR, CRITICAL
 
-          # Socket configuration (optional defaults shown)
-          - name: ASYA_SOCKET_PATH
-            value: "/tmp/sockets/app.sock"
-
-          - name: ASYA_SOCKET_CHMOD
-            value: "0o666" # Socket file permissions
-
-          - name: ASYA_CHUNK_SIZE
-            value: "65536" # Socket read chunk size in bytes
-
           # Validation (optional, default: "true")
           - name: ASYA_ENABLE_VALIDATION
             value: "true" # Validate envelope structure

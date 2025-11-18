@@ -79,9 +79,6 @@ env:
 | `ASYA_HANDLER_MODE` | `payload` | Handler mode: `payload` (simple) or `envelope` (full access) |
 | `ASYA_INCLUDE_METADATA` | `false` | Include route and other metadata in msg dict (`true`/`1`/`yes` to enable) |
 | `ASYA_CHUNK_SIZE` | `4096` | Socket receive buffer size in bytes |
-| `ASYA_HANDLER_TIMEOUT` | `0` (disabled) | Optional warning timeout in seconds (0 to disable) |
-| `ASYA_ENABLE_OOM_DETECTION` | `true` | Enable OOM error detection and categorization |
-| `ASYA_CUDA_CLEANUP_ON_OOM` | `true` | Clear CUDA cache on CUDA OOM errors |
 | `ASYA_ENABLE_VALIDATION` | `true` | Enable envelope validation (disable for performance) |
 
 Note: Socket path is hardcoded to `{ASYA_SOCKET_DIR}/asya-runtime.sock`
@@ -177,13 +174,11 @@ The runtime validates all output envelopes (when `ASYA_ENABLE_VALIDATION=true`):
 
 **Success:** `{"status": "ok", "result": <value or list>}`
 
-**Error:** `{"status": "error", "error": "code", "message": "...", "severity": "recoverable|fatal"}`
+**Error:** `{"status": "error", "error": "code", "message": "..."}`
 
 **Error codes:**
-- `oom_error`: RAM OOM (recoverable, retry after 30s)
-- `cuda_oom_error`: GPU OOM (recoverable, retry after 60s)
-- `processing_error`: User function exception (fatal)
-- `invalid_json`: Parse error (fatal)
+- `processing_error`: User function exception or handler errors
+- `connection_error`: Socket communication failures
 
 ## Examples
 
@@ -257,12 +252,6 @@ make test         # Run tests
 make test-cov     # With coverage
 ```
 
-## OOM Detection
-
-**RAM OOM:** Triggers GC, returns `oom_error` (recoverable, retry after 30s)
-
-**CUDA OOM:** Clears cache, returns `cuda_oom_error` (recoverable, retry after 60s)
-
 ## Deployment
 
-See [docs/architecture/runtime.md](../../docs/architecture/runtime.md) for Kubernetes deployment details
+See [docs/architecture/asya-runtime.md](../../docs/architecture/asya-runtime.md) for Kubernetes deployment details

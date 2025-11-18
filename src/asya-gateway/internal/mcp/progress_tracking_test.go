@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/deliveryhero/asya/asya-gateway/internal/jobs"
+	"github.com/deliveryhero/asya/asya-gateway/internal/envelopestore"
 	"github.com/deliveryhero/asya/asya-gateway/pkg/types"
 )
 
@@ -18,7 +18,7 @@ import (
 func TestProgressTracking_EndToEnd(t *testing.T) {
 	// Setup: Create job store and handler
 	_ = context.Background()
-	store := jobs.NewStore()
+	store := envelopestore.NewStore()
 	handler := NewHandler(store)
 
 	// Create a test job with 3 actors
@@ -155,7 +155,7 @@ func TestProgressTracking_EndToEnd(t *testing.T) {
 
 // TestProgressTracking_SSEStream tests the SSE streaming of progress updates
 func TestProgressTracking_SSEStream(t *testing.T) {
-	store := jobs.NewStore()
+	store := envelopestore.NewStore()
 	handler := NewHandler(store)
 
 	// Create job
@@ -225,7 +225,7 @@ func TestProgressTracking_SSEKeepalive(t *testing.T) {
 		t.Skip("Skipping keepalive test in short mode")
 	}
 
-	store := jobs.NewStore()
+	store := envelopestore.NewStore()
 	handler := NewHandler(store)
 
 	job := &types.Envelope{
@@ -273,7 +273,7 @@ func TestProgressTracking_SSEKeepalive(t *testing.T) {
 
 // TestProgressTracking_ConcurrentUpdates tests handling of concurrent progress updates
 func TestProgressTracking_ConcurrentUpdates(t *testing.T) {
-	store := jobs.NewStore()
+	store := envelopestore.NewStore()
 	handler := NewHandler(store)
 
 	envelopeID := "concurrent-test-envelope"
@@ -332,7 +332,7 @@ func TestProgressTracking_ConcurrentUpdates(t *testing.T) {
 
 // TestProgressTracking_InvalidEnvelopeID tests behavior with non-existent envelope
 func TestProgressTracking_InvalidEnvelopeID(t *testing.T) {
-	store := jobs.NewStore()
+	store := envelopestore.NewStore()
 	handler := NewHandler(store)
 
 	progressUpdate := types.ProgressUpdate{
@@ -356,7 +356,7 @@ func TestProgressTracking_InvalidEnvelopeID(t *testing.T) {
 
 // TestProgressTracking_RouteActorsUpdate tests that route_actors field is updated on each progress report
 func TestProgressTracking_RouteActorsUpdate(t *testing.T) {
-	store := jobs.NewStore()
+	store := envelopestore.NewStore()
 	handler := NewHandler(store)
 
 	// Create envelope with initial route
@@ -419,7 +419,7 @@ func TestProgressTracking_RouteActorsUpdate(t *testing.T) {
 
 // TestProgressTracking_RouteActorsMultipleUpdates tests route updates across multiple progress reports
 func TestProgressTracking_RouteActorsMultipleUpdates(t *testing.T) {
-	store := jobs.NewStore()
+	store := envelopestore.NewStore()
 	handler := NewHandler(store)
 
 	envelopeID := "route-multi-update-test"
@@ -464,7 +464,7 @@ func TestProgressTracking_RouteActorsMultipleUpdates(t *testing.T) {
 // TestProgressTracking_EmptyActorsList tests progress calculation when Actors list is empty
 // This is a regression test for the bug where empty Actors list caused progress_percent = 0
 func TestProgressTracking_EmptyActorsList(t *testing.T) {
-	store := jobs.NewStore()
+	store := envelopestore.NewStore()
 	handler := NewHandler(store)
 
 	// Create an envelope with 3 actors

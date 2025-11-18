@@ -1,5 +1,5 @@
 # Central Makefile chaining targets in other Makefiles
-.PHONY: setup lint test test-unit test-component clean-component test-integration clean-integration test-e2e up-e2e clean-e2e diagnostics-e2e build build-go build-images manifests clean cov
+.PHONY: setup lint test test-unit test-component clean-component test-integration clean-integration test-e2e up-e2e clean-e2e diagnostics-e2e build build-go build-images manifests clean cov docs-serve docs-build
 MAKEFLAGS += --no-print-directory
 .EXPORT_ALL_VARIABLES:
 
@@ -133,3 +133,15 @@ clean: clean-integration clean-e2e ## Clean build artifacts
 	find . -type f -name "cov*.json" -exec rm -rf {} + 2>/dev/null || true
 	find . -type f -name ".cov-db" -exec rm -rf {} + 2>/dev/null || true
 	find . -type d -name ".coverage" -exec rm -rf {} + 2>/dev/null || true
+
+# =============================================================================
+# Documentation
+# =============================================================================
+
+docs-serve: docs-build ## Serve docs locally at http://127.0.0.1:8000
+	@uv run mkdocs --version >/dev/null 2>&1 || (echo "[.] Installing MkDocs..." && uv pip install mkdocs mkdocs-shadcn pygments mkdocs-mermaid2-plugin)
+	uv run mkdocs serve
+
+docs-build: ## Build docs to site/ directory
+	@uv run mkdocs --version >/dev/null 2>&1 || (echo "[.] Installing MkDocs..." && uv pip install mkdocs mkdocs-shadcn pygments mkdocs-mermaid2-plugin)
+	uv run mkdocs build

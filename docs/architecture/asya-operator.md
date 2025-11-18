@@ -1,290 +1,356 @@
-# Asya🎭 Operator
+# Asya Operator
 
-Kubernetes operator for deploying Asya🎭 actors with automatic sidecar injection and KEDA autoscaling.
+## Responsibilities
 
-> **Full Documentation**: [operator/README.md](../../operator/README.md)
+- Watch AsyncActor CRDs across all namespaces
+- Validate AsyncActor specs (transport exists, container naming, runtime container requirements)
+- Inject sidecar container into actor pods
+- Create and manage Kubernetes workloads (Deployment/StatefulSet)
+- Configure KEDA ScaledObjects for autoscaling
+- Create and manage message queues via transport layer
+- Create and manage runtime ConfigMap (`asya-runtime`) containing `asya_runtime.py`
+- Create ServiceAccounts with IRSA annotations (for SQS with EKS)
+- Monitor actor health and update status with granular error states
+- Track replica scaling events and queue metrics
 
-## Overview
+## How It Works
 
-The operator watches `AsyncActor` CRDs and automatically:
-- Creates message queues on the configured transport
-- Injects sidecar containers
-- Creates workloads (Deployment or StatefulSet)
-- Configures KEDA autoscaling
-- Manages volumes and environment
+Operator reconciles AsyncActor CRDs, ensuring actual cluster state matches desired state defined in CRD.
 
-## Why Use the Operator?
+**Reconciliation loop**:
+1. Watch for AsyncActor create/update/delete events across all namespaces
+2. Add finalizer if not present
+3. Handle deletion if `deletionTimestamp` is set (delete ScaledObject, delete queue, remove finalizer)
+4. Validate AsyncActor spec:
+   - No user containers named `asya-sidecar` (reserved)
+   - Exactly one container named `asya-runtime` (required)
+   - Runtime container must not override `command` (managed by operator)
+5. Validate transport exists and is enabled in operator configuration
+6. Reconcile transport-specific resources (queue creation via transport layer)
+7. Reconcile ServiceAccount with IRSA annotation (SQS only, if `actorRoleArn` configured)
+8. Reconcile runtime ConfigMap (`asya-runtime`) in actor's namespace
+9. Reconcile workload (Deployment/StatefulSet) with injected sidecar
+10. Check pod health and update WorkloadReady condition
+11. Reconcile KEDA ScaledObject (if `spec.scaling.enabled=true`)
+12. Fetch desired replicas from HPA (if KEDA enabled)
+13. Update queue metrics (optional, non-critical)
+14. Update status display fields (status, replicas, scaling mode, last scale time)
+15. Persist status update
 
-**Without operator** (manual):
-- 100+ lines of YAML
-- Manual sidecar configuration
-- Complex KEDA setup
-- Repetitive boilerplate
+## Deployment
 
-**With operator**:
-```yaml
-# ~20 lines
-apiVersion: asya.sh/v1alpha1
-kind: AsyncActor
-metadata:
-  name: my-actor
-spec:
-  # Actor name is automatically used as the queue name
-  transport: rabbitmq
-  scaling:
-    enabled: true
-  workload:
-    type: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: my-actor:latest
-```
-
-## Key Benefits
-
-- Clean declarative API
-- Automatic sidecar injection
-- Centralized sidecar version management
-- Multiple workload kinds (Deployment or StatefulSet)
-- Built-in KEDA integration
-- Consistent patterns across all actors
-
-## Installation
+Deployed in central namespace `asya-system`:
 
 ```bash
-# Install CRD
+# Install CRDs
 kubectl apply -f src/asya-operator/config/crd/
 
 # Install operator
-helm install asya-operator deploy/helm-charts/asya-operator \
-  -n asya-system --create-namespace
+helm install asya-operator deploy/helm-charts/asya-operator/
 ```
 
-## Basic Example
+**Operator watches** all namespaces for AsyncActor resources.
+
+## Resource Ownership
+
+Operator creates and owns (via `ownerReferences`):
+
+- **Deployment/StatefulSet**: Actor workload with injected sidecar
+- **ScaledObject**: KEDA autoscaling configuration (when `spec.scaling.enabled=true`)
+- **TriggerAuthentication**: KEDA auth for queue metrics (transport-specific)
+- **ConfigMap**: Runtime script (`asya-runtime`) in actor's namespace
+- **ServiceAccount**: IRSA-annotated ServiceAccount (SQS with EKS only)
+
+**Note**: Queues are NOT owned resources. Queues are managed by transport layer but have independent lifecycle (survive AsyncActor deletion by default, deleted explicitly during reconciliation).
+
+Deleting AsyncActor triggers cascade deletion of owned resources via `ownerReferences`.
+
+## Queue Management
+
+Operator automatically creates queues via transport layer abstraction.
+
+**Queue naming**: `asya-{actor_name}`
+
+**Lifecycle**:
+
+- Created when AsyncActor first reconciled (if `spec.scaling.enabled=false`, queue created immediately; if KEDA enabled, KEDA creates queue)
+- Deleted when AsyncActor deleted (via finalizer cleanup)
+- Preserved when AsyncActor updated (no modification during reconciliation)
+
+**SQS-specific**:
+
+- Queue creation via AWS SDK (`CreateQueue` API)
+- Handles 60-second cooldown after deletion (requeues reconciliation after 65 seconds)
+- Supports IRSA (IAM Roles for Service Accounts) on EKS
+- Supports static credentials via Kubernetes Secrets
+- Visibility timeout auto-calculated as 2x `ASYA_RUNTIME_TIMEOUT` if not specified
+
+**RabbitMQ-specific**:
+
+- Queue creation via RabbitMQ Management API
+- Queue properties: durable, non-auto-delete
+- Supports basic auth via Kubernetes Secrets
+
+## KEDA Integration
+
+Operator creates KEDA ScaledObject for each AsyncActor:
 
 ```yaml
-apiVersion: asya.sh/v1alpha1
-kind: AsyncActor
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
 metadata:
-  name: hello-actor
+  name: text-processor
 spec:
-  # Actor name is automatically used as the queue name
-  transport: rabbitmq
-  scaling:
-    enabled: true
-    minReplicas: 0
-    maxReplicas: 10
-    queueLength: 5
-  workload:
-    type: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: asya-runtime:latest
+  scaleTargetRef:
+    name: text-processor
+  minReplicaCount: 0
+  maxReplicaCount: 50
+  triggers:
+  - type: aws-sqs-queue
+    metadata:
+      queueURL: https://sqs.us-east-1.amazonaws.com/.../asya-text-processor
+      queueLength: "5"
+      awsRegion: us-east-1
 ```
 
-## Key Concepts
+KEDA monitors queue depth, scales Deployment from 0 to maxReplicas.
 
-### Reconciliation Behavior
+**See**: [autoscaling.md](autoscaling.md) for details.
 
-The operator follows a standard Kubernetes controller pattern with event-driven reconciliation:
+## Behavior on Events
 
-**Reconciliation triggers**:
-- AsyncActor spec changes (user edits, CI/CD updates)
-- Owned resource changes (Deployment/StatefulSet updates, deletions)
-- Periodic resync (default: every 10 hours)
+### AsyncActor Created
 
-**Reconciliation filters**:
-- KEDA ScaledObject status updates (filtered to reduce event churn)
-- AsyncActor status-only updates (filtered by GenerationChangedPredicate)
+1. Add finalizer `asya.sh/finalizer`
+2. Validate spec (container naming, transport exists)
+3. Set `TransportReady` condition
+4. Reconcile queue via transport layer (`asya-{actor_name}`)
+5. Reconcile ServiceAccount if SQS + IRSA (`asya-{actor_name}` SA with IAM role annotation)
+6. Reconcile runtime ConfigMap (`asya-runtime` in actor's namespace)
+7. Create Deployment/StatefulSet with injected sidecar + runtime script mount
+8. Check pod health, set `WorkloadReady` condition
+9. Create ScaledObject if `spec.scaling.enabled=true`, set `ScalingReady` condition
+10. Fetch HPA desired replicas (if KEDA enabled)
+11. Update queue metrics (queued messages, processing messages)
+12. Calculate and set status (Running, Creating, errors)
+13. Update status with replicas, scaling mode, last scale time
 
-**Reconciliation flow**:
-1. **Validation**: Validate AsyncActor spec and transport configuration
-2. **Queue management**: Create/update message queues on configured transport
-3. **ServiceAccount**: Create ServiceAccount with IRSA annotations (SQS only, if actorRoleArn configured)
-4. **Runtime ConfigMap**: Ensure asya_runtime.py ConfigMap exists in actor namespace
-5. **Workload**: Create/update Deployment/StatefulSet with sidecar injection
-6. **Pod health check**: Verify pods are healthy and not in failing states
-7. **KEDA**: Create/update ScaledObject for autoscaling (if enabled)
-8. **HPA status**: Read desired replicas from KEDA-managed HPA (requeue if HPA not found)
-9. **Queue metrics**: Update queue depth metrics (optional, non-critical)
-10. **Status update**: Update AsyncActor status with conditions, replica counts, and display fields
+### AsyncActor Updated
 
-**Failure handling**:
-- Transport validation errors: Mark TransportReady condition as False, stop reconciliation
-- Workload creation errors: Mark WorkloadReady condition as False, requeue
-- Pod health failures: Mark WorkloadReady condition as False based on pod states
-- HPA not found: Requeue after 5 seconds (KEDA may still be creating it)
-- SQS queue deletion cooldown: Requeue after 65 seconds (AWS requires 60-second cooldown)
+1. Validate spec (same as create)
+2. Update runtime ConfigMap if content changed
+3. Update Deployment/StatefulSet (images, env, resources, sidecar config)
+4. Update or delete ScaledObject based on `spec.scaling.enabled`
+5. Do NOT modify queue (preserve messages)
+6. Update status fields
 
-**Status updates**:
-- Conditions track readiness of transport, workload, and scaling components
-- Replica counts (ready, pending, failing) derived from Deployment status and pod states
-- Queue metrics (queued, processing) fetched from transport APIs
-- Scaling events (last scale time, direction) tracked for observability
+### AsyncActor Deleted
 
-### Queue Management
+1. Delete ScaledObject and TriggerAuthentication
+2. Delete queue via transport layer
+3. Remove finalizer `asya.sh/finalizer`
+4. Kubernetes cascades deletion of Deployment, ConfigMap, ServiceAccount (via `ownerReferences`)
 
-The operator automatically creates and manages message queues for each AsyncActor:
+### Deployment Deleted Manually
 
-- Queue name matches the AsyncActor's `metadata.name`
-- Queue is created on the transport specified in `spec.transport`
-- Queues are configured with appropriate settings (durable, auto-delete, etc.)
-- Queue creation happens before workload deployment
-- Operator validates transport exists and is enabled before creating queues
+Operator recreates Deployment on next reconciliation (desired state enforcement).
 
-Example: An AsyncActor named `my-actor` automatically gets a queue named `my-actor` on the configured transport.
+### Queue Deleted Manually
 
-### Workload Types
+Operator recreates queue on next reconciliation.
 
-- **Deployment**: Stateless actors (default)
-- **StatefulSet**: Actors needing persistent storage
+**SQS caveat**: If queue deleted recently, AWS enforces 60-second cooldown. Operator detects `QueueDeletedRecently` error and requeues after 65 seconds.
 
-### Autoscaling
+### Pod Crashes
 
-KEDA-based queue depth scaling:
-```yaml
-scaling:
-  minReplicas: 0        # Scale to zero when idle
-  maxReplicas: 50
-  queueLength: 5        # Messages per replica
-```
+Kubernetes restarts pod automatically. Operator updates status to reflect pod health:
 
-Behavior:
-- 0 messages → 0 replicas (after cooldown)
-- 10 messages → 2 replicas (10/5)
-- 50 messages → 10 replicas (capped at maxReplicas)
+- **`CrashLoopBackOff` in runtime container**: Status → `RuntimeError`
+- **`CrashLoopBackOff` in sidecar container**: Status → `SidecarError`
+- **`ImagePullBackOff`**: Status → `ImagePullError`
+- **Volume mount failures**: Status → `VolumeError`
+- **ConfigMap/Secret not found**: Status → `ConfigError`
 
-### Status Monitoring
+Operator is NOT involved in pod restart logic (Kubernetes handles it).
 
-**List actors**:
-```bash
-kubectl get asyas
-```
+## AsyncActor Status
 
-Output columns:
-```
-NAME          STATUS    RUNNING   PENDING   FAILING   MIN   MAX   LAST-SCALE   AGE
-hello-actor   Running   3         0         0         0     10    5m (up)      2h
-error-actor   Degraded  0         0         1         0     10    -            30m
-```
+The operator calculates granular status based on conditions and pod health.
 
-**Wide output** (`kubectl get asyas -o wide`):
-```
-NAME          STATUS    RUNNING   PENDING   FAILING   MIN   MAX   LAST-SCALE   AGE   DESIRED   WORKLOAD    TRANSPORT   SCALING   QUEUED   PROCESSING
-hello-actor   Running   3         0         0         0     10    5m (up)      2h    3         Deployment  Ready       KEDA      15       2
-```
+### Status Values
 
-Column descriptions:
-- **STATUS**: Overall actor state (Running, Napping, Degraded, Creating, etc.)
-- **RUNNING**: Number of pods that are ready and running
-- **PENDING**: Pods created but not ready yet (normal startup, waiting for resources)
-- **FAILING**: Pods with init containers or runtime containers in error states actively retrying (CrashLoopBackOff, ImagePullBackOff, etc.)
-- **MIN/MAX**: KEDA autoscaling bounds
-- **LAST-SCALE**: Time since last scaling event and direction (up/down)
-- **DESIRED** (wide): Target replica count from KEDA HPA (may be stale, see Reconciliation Behavior)
-- **WORKLOAD** (wide): Deployment or StatefulSet
-- **TRANSPORT** (wide): Transport readiness status
-- **SCALING** (wide): KEDA (autoscaling) or Manual (fixed replicas)
-- **QUEUED** (wide): Messages waiting in queue
-- **PROCESSING** (wide): Messages currently being processed
+**Operational**:
 
-**FAILING vs pod phase**:
-- `FAILING=1` means pod is in an error state where Kubernetes keeps retrying with exponential backoff
-- Permanently failed pods (phase `Failed`) don't count in FAILING - these have stopped retrying
-- Failing states are detected in both init containers and runtime containers
-- Common failing reasons:
-  - `CrashLoopBackOff` - Container crashes after starting
-  - `ImagePullBackOff` / `ErrImagePull` - Cannot pull container image
-  - `CreateContainerError` / `CreateContainerConfigError` - Configuration error
-  - `RunContainerError` - Container runtime error
-  - `InvalidImageName` - Malformed image name
+- `Running` - All conditions ready, pods healthy
+- `Napping` - KEDA scaled to zero (no work, intentional)
+- `Degraded` - Some replicas unhealthy but not completely failed
 
-**Detailed status**:
-```bash
-kubectl get asya hello-actor -o yaml
-```
+**Transitional**:
 
-Shows:
-- WorkloadReady (Deployment created)
-- ScalingReady (KEDA configured)
-- References to created resources
+- `Creating` - First reconciliation (ObservedGeneration=0)
+- `ScalingUp` - Replicas increasing
+- `ScalingDown` - Replicas decreasing
+- `Updating` - Workload being updated
+- `Terminating` - DeletionTimestamp set
 
-## Examples
+**Errors**:
 
-See [examples/asyas/](../../examples/asyas/) for:
-- simple-actor.yaml
-- statefulset-actor.yaml
-- multi-container-actor.yaml
-- custom-sidecar-actor.yaml
-- no-scaling-actor.yaml
+- `TransportError` - Transport not ready or queue creation failed
+- `ScalingError` - KEDA ScaledObject creation failed
+- `WorkloadError` - Generic workload error
+- `PendingResources` - Insufficient CPU/memory (Unschedulable pods)
+- `ImagePullError` - ImagePullBackOff or ErrImagePull
+- `RuntimeError` - Runtime container CrashLoopBackOff
+- `SidecarError` - Sidecar container CrashLoopBackOff
+- `VolumeError` - Volume mount failures
+- `ConfigError` - ConfigMap/Secret not found
 
-## Full Documentation
+### Status Conditions
 
-For complete details, see:
-- [operator/README.md](../../operator/README.md) - Full reference
-- [operator/DEVELOPMENT.md](../../operator/DEVELOPMENT.md) - Development guide
-- [Troubleshooting](../../operator/README.md#troubleshooting) - Common issues
+Operator maintains three conditions:
 
-## AsyncActor CRD API Reference
+- `TransportReady` - Transport validated and queue reconciled
+- `WorkloadReady` - Workload created and pods healthy
+- `ScalingReady` - KEDA ScaledObject created (only if `spec.scaling.enabled=true`)
 
-> **CRD Source**: [`src/asya-operator/config/crd/asya.sh_asyncactors.yaml`](../../src/asya-operator/config/crd/)
+### kubectl Output
 
-### API Version
+**Standard columns**:
 
-```yaml
-apiVersion: asya.sh/v1alpha1
-kind: AsyncActor
-```
+- `STATUS` - Overall status (from status values above)
+- `RUNNING` - Ready replicas count
+- `FAILING` - Pods in CrashLoopBackOff/ImagePullBackOff
+- `TOTAL` - Total non-terminated pods
+- `DESIRED` - Target replicas (from HPA or spec)
+- `MIN` - Minimum replicas (from spec)
+- `MAX` - Maximum replicas (from spec)
+- `LAST-SCALE` - Time since last scale event with direction
 
-### Metadata
+**Wide columns** (`kubectl get asya -o wide`):
 
-Standard Kubernetes metadata:
+- `WORKLOAD` - Deployment or StatefulSet
+- `TRANSPORT` - Ready or NotReady
+- `SCALING` - KEDA or Manual
+- `QUEUED` - Messages in queue
+- `PROCESSING` - In-flight messages
+
+## Validation Rules
+
+Operator enforces strict validation on AsyncActor spec:
+
+### Container Naming
+
+✅ **Required**:
+
+- Exactly one container named `asya-runtime`
+
+❌ **Forbidden**:
+
+- User containers named `asya-sidecar` (reserved for injected sidecar)
+- Init containers named `asya-sidecar` (reserved)
+- Multiple containers named `asya-runtime`
+- Zero containers named `asya-runtime`
+
+### Runtime Container Restrictions
+
+❌ **Forbidden**:
+
+- Overriding `command` field in `asya-runtime` container (operator manages entrypoint)
+
+✅ **Allowed**:
+
+- Custom image (must contain user handler code)
+- Custom environment variables (merged with operator-injected vars)
+- Custom resource requests/limits
+- Custom volume mounts
+
+### Transport Validation
+
+Operator validates that referenced transport exists and is enabled in operator configuration:
 
 ```yaml
+spec:
+  transport: sqs  # Must exist in operator's transports config
+```
+
+If transport not found or disabled, reconciliation fails with `TransportError` status.
+
+## Runtime ConfigMap Injection
+
+Operator creates `asya-runtime` ConfigMap in actor's namespace containing `asya_runtime.py`.
+
+**ConfigMap structure**:
+```yaml
+apiVersion: v1
+kind: ConfigMap
 metadata:
-  name: my-actor          # Required: Actor name
-  namespace: default      # Optional: Namespace (default: default)
-  labels:                 # Optional: Labels
-    app: my-app
-  annotations:            # Optional: Annotations
-    description: "My actor"
+  name: asya-runtime
+  namespace: <actor-namespace>
+data:
+  asya_runtime.py: |
+    <runtime script content>
 ```
 
-### Spec
-
-#### Required Fields
-
+**Mount into pods**:
 ```yaml
-spec:
-  # Actor name is automatically used as the queue name
-  transport: rabbitmq     # Required: Transport name (configured in operator)
-  workload:               # Required: Workload template
-    type: Deployment      # Required: Workload type
-    template: {...}       # Required: Pod template
+volumeMounts:
+
+- name: asya-runtime
+  mountPath: /opt/asya/asya_runtime.py
+  subPath: asya_runtime.py
+  readOnly: true
 ```
 
-#### Transport Configuration
+**Runtime script source**:
 
-The `transport` field references a transport configured at the operator level. Common values:
-- `rabbitmq` - RabbitMQ transport
-- `sqs` - AWS SQS transport
+- Default: `/runtime/asya_runtime.py` (embedded in operator image)
+- Override via operator env: `ASYA_RUNTIME_SCRIPT_PATH`
 
-Transport details (host, credentials, etc.) are configured in the operator's Helm values, not in the AsyncActor CRD.
+**Update behavior**: ConfigMap updated if content differs from source file.
 
-**Example:**
-```yaml
-transport: rabbitmq  # References operator-configured transport
-```
+## Sidecar Injection
 
-**Configuring Transports (in operator values.yaml):**
+Operator injects `asya-sidecar` container into every actor pod.
+
+**Sidecar image**:
+
+- Default: `asya-sidecar:latest`
+- Override via operator env: `ASYA_SIDECAR_IMAGE`
+- Override per-actor: `spec.sidecar.image`
+
+**Injected environment variables**:
+
+- `ASYA_ACTOR_NAME` - Actor name (for queue naming)
+- `ASYA_TRANSPORT` - Transport type (sqs, rabbitmq)
+- `ASYA_GATEWAY_URL` - Gateway URL (if configured)
+- `ASYA_IS_END_ACTOR` - Set to `true` for `happy-end` and `error-end` actors
+- Transport-specific variables (AWS region, RabbitMQ host, etc.)
+
+**Shared volumes**:
+
+- `socket-dir` - Unix socket directory (`/var/run/asya`)
+- `tmp` - Temporary directory
+
+## Observability
+
+**Controller metrics** (Prometheus):
+
+- `controller_runtime_reconcile_total{controller="asyncactor"}` - Total reconciliations
+- `controller_runtime_reconcile_errors_total{controller="asyncactor"}` - Failed reconciliations
+- `controller_runtime_reconcile_time_seconds{controller="asyncactor"}` - Reconciliation duration
+
+**Logs**: Structured logging (JSON format) with reconciliation events, errors, and debug information.
+
+**See**: [observability.md](observability.md) for monitoring setup.
+
+## Configuration
+
+Operator configured via Helm values:
+
 ```yaml
 transports:
   rabbitmq:
-    enabled: true
+    enabled: false
     type: rabbitmq
     config:
       host: rabbitmq.default.svc.cluster.local
@@ -293,301 +359,21 @@ transports:
       passwordSecretRef:
         name: rabbitmq-secret
         key: password
-
   sqs:
-    enabled: false
+    enabled: true
     type: sqs
     config:
       region: us-east-1
-      queueBaseURL: ""
 ```
 
-#### Sidecar Configuration
-
+**AsyncActor references transport by name**:
 ```yaml
-sidecar:
-  image: asya-sidecar:latest              # Optional: Sidecar image
-  imagePullPolicy: IfNotPresent           # Optional: Pull policy
-  resources:                               # Optional: Resource limits
-    limits:
-      cpu: 500m
-      memory: 256Mi
-    requests:
-      cpu: 100m
-      memory: 64Mi
-  env:                                     # Optional: Environment variables
-  - name: ASYA_RUNTIME_TIMEOUT
-    value: "5m"
-```
-
-#### Socket Configuration
-
-```yaml
-socket:
-  path: /tmp/sockets/app.sock  # Optional: Unix socket path
-  maxSize: "10485760"          # Optional: Max message size (bytes)
-```
-
-#### Timeout Configuration
-
-```yaml
-timeout:
-  processing: 300              # Optional: Processing timeout (seconds)
-  gracefulShutdown: 30         # Optional: Graceful shutdown timeout
-```
-
-#### Scaling Configuration
-
-```yaml
-scaling:
-  enabled: true                # Optional: Enable KEDA autoscaling
-  minReplicas: 0               # Optional: Minimum replicas (0 = scale to zero)
-  maxReplicas: 10              # Optional: Maximum replicas
-  pollingInterval: 10          # Optional: Queue polling interval (seconds)
-  cooldownPeriod: 60           # Optional: Cooldown before scale to zero
-  queueLength: 5               # Optional: Messages per replica
-```
-
-#### Workload Configuration
-
-**Deployment:**
-```yaml
-workload:
-  type: Deployment
-  replicas: 1                  # Optional: Initial replicas (ignored if scaling enabled)
-  template:                    # Required: Pod template
-    metadata:
-      labels:
-        app: my-app
-    spec:
-      containers:
-      - name: asya-runtime
-        image: my-runtime:latest
-        env:
-        - name: ASYA_HANDLER
-          value: "my_module.process"
-        resources:
-          limits:
-            cpu: 1000m
-            memory: 1Gi
-```
-
-**StatefulSet:**
-```yaml
-workload:
-  type: StatefulSet
-  template:
-    spec:
-      containers:
-      - name: asya-runtime
-        image: my-stateful-runtime:latest
-        volumeMounts:
-        - name: data
-          mountPath: /data
-  volumeClaimTemplates:
-  - metadata:
-      name: data
-    spec:
-      accessModes: ["ReadWriteOnce"]
-      resources:
-        requests:
-          storage: 10Gi
-```
-
-### Status
-
-The operator updates the status with information about created resources:
-
-```yaml
-status:
-  conditions:
-  - type: WorkloadReady
-    status: "True"
-    reason: WorkloadCreated
-    message: Deployment successfully created
-    lastTransitionTime: "2024-10-06T12:00:00Z"
-
-  - type: ScalingReady
-    status: "True"
-    reason: ScaledObjectCreated
-    message: KEDA ScaledObject successfully created
-    lastTransitionTime: "2024-10-06T12:00:00Z"
-
-  workloadRef:
-    apiVersion: apps/v1
-    kind: Deployment
-    name: my-actor
-    namespace: default
-
-  scaledObjectRef:
-    name: my-actor
-    namespace: default
-
-  observedGeneration: 1
-```
-
-**Condition Types:**
-- `WorkloadReady` - Workload (Deployment or StatefulSet) created successfully
-- `ScalingReady` - KEDA ScaledObject created successfully (if scaling enabled)
-
-**Status Reasons:**
-- `WorkloadCreated` - Workload created
-- `WorkloadFailed` - Workload creation failed
-- `ScaledObjectCreated` - ScaledObject created
-- `ScaledObjectFailed` - ScaledObject creation failed
-
-### Complete Example
-
-```yaml
-apiVersion: asya.sh/v1alpha1
-kind: AsyncActor
-metadata:
-  name: text-processor
-  namespace: production
-  labels:
-    app: text-processing
-    team: nlp
-  annotations:
-    description: "Text processing actor with GPU support"
 spec:
-  # Transport (references operator-configured transport)
-  transport: rabbitmq
-
-  # Sidecar
-  sidecar:
-    image: asya-sidecar:v1.2.3
-    imagePullPolicy: IfNotPresent
-    resources:
-      limits:
-        cpu: 500m
-        memory: 256Mi
-      requests:
-        cpu: 100m
-        memory: 64Mi
-    env:
-    - name: ASYA_RUNTIME_TIMEOUT
-      value: "10m"
-
-  # Socket
-  socket:
-    path: /tmp/sockets/app.sock
-    maxSize: "52428800"  # 50MB
-
-  # Timeout
-  timeout:
-    processing: 600       # 10 minutes
-    gracefulShutdown: 60  # 1 minute
-
-  # Scaling
-  scaling:
-    enabled: true
-    minReplicas: 0
-    maxReplicas: 50
-    pollingInterval: 10
-    cooldownPeriod: 120
-    queueLength: 5
-
-  # Workload
-  workload:
-    type: Deployment
-    template:
-      metadata:
-        labels:
-          app: text-processor
-          version: v2
-      spec:
-        containers:
-        - name: asya-runtime
-          image: my-text-processor:v2.0
-          env:
-          - name: ASYA_HANDLER
-            value: "text_processor.handlers.process_text"
-          - name: MODEL_NAME
-            value: "bert-large"
-          - name: DEVICE
-            value: "cuda"
-          resources:
-            limits:
-              nvidia.com/gpu: 1
-              cpu: 4000m
-              memory: 8Gi
-            requests:
-              cpu: 2000m
-              memory: 4Gi
-          volumeMounts:
-          - name: models
-            mountPath: /models
-        volumes:
-        - name: models
-          persistentVolumeClaim:
-            claimName: model-cache
-        nodeSelector:
-          accelerator: nvidia-tesla-t4
-        tolerations:
-        - key: nvidia.com/gpu
-          operator: Exists
-          effect: NoSchedule
+  transport: sqs
 ```
 
-### kubectl Usage
+Operator validates referenced transport exists.
 
-**Create Actor:**
-```bash
-kubectl apply -f my-actor.yaml
-```
+## Deployment Helm Charts
 
-**List Actors:**
-```bash
-# All namespaces
-kubectl get asyas -A
-
-# Specific namespace
-kubectl get asyas -n production
-
-# With labels
-kubectl get asyas -l app=text-processing
-```
-
-**Describe Actor:**
-```bash
-kubectl describe asya my-actor
-```
-
-**Get Status:**
-```bash
-# Full status
-kubectl get asya my-actor -o yaml
-
-# Just conditions
-kubectl get asya my-actor -o jsonpath='{.status.conditions}'
-
-# Check if ready
-kubectl get asya my-actor -o jsonpath='{.status.conditions[?(@.type=="WorkloadReady")].status}'
-```
-
-**Update Actor:**
-```bash
-# Edit interactively
-kubectl edit asya my-actor
-
-# Patch
-kubectl patch asya my-actor -p '{"spec":{"scaling":{"maxReplicas":100}}}'
-
-# Replace
-kubectl replace -f my-actor.yaml
-```
-
-**Delete Actor:**
-```bash
-kubectl delete asya my-actor
-
-# Force delete
-kubectl delete asya my-actor --grace-period=0 --force
-```
-
-## Next Steps
-
-- [AsyncActor Examples](../guides/examples-actors.md) - Example AsyncActor configurations
-- [Gateway Component](asya-gateway.md) - MCP gateway
-- [Sidecar Component](asya-sidecar.md) - Message routing
-- [Deployment Guide](../guides/deployment.md) - Deployment strategies
+**See**: [../install/helm-charts.md](../install/helm-charts.md) for operator chart details.

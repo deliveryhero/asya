@@ -4,33 +4,27 @@
 
 ### Prerequisites
 
+- Make
 - Go 1.23+
 - Python 3.13+
 - **[uv](https://github.com/astral-sh/uv)** (required for Python development)
-- Docker and Docker Compose
-- Make
+- Docker and Docker Compose (for component- and integration tests)
+- Kubectl, Helm, Kind (for local deployment and e2e tests)
 
 **Install uv**:
 ```bash
 # macOS/Linux
 curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# Windows
+# Windows (not tested yet)
 powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
 ```
 
 ### Installing Development Dependencies
 
 ```bash
-# Install all development dependencies (Python + Go tools)
-make install-dev
-
-# Install pre-commit hooks
-make install-hooks
+make setup
 ```
-
-The `install-dev` target installs dependencies for local development.
-
 **Note**: All Python commands are executed via `uv` to ensure consistent dependency management.
 
 ### Running Tests

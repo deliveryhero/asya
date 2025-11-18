@@ -12,7 +12,7 @@ import (
 	"github.com/mark3labs/mcp-go/server"
 
 	"github.com/deliveryhero/asya/asya-gateway/internal/config"
-	"github.com/deliveryhero/asya/asya-gateway/internal/jobs"
+	"github.com/deliveryhero/asya/asya-gateway/internal/envelopestore"
 	"github.com/deliveryhero/asya/asya-gateway/internal/queue"
 	"github.com/deliveryhero/asya/asya-gateway/pkg/types"
 )
@@ -20,14 +20,14 @@ import (
 // Server wraps the mark3labs MCP server
 type Server struct {
 	mcpServer   *server.MCPServer
-	jobStore    jobs.JobStore
+	jobStore    envelopestore.EnvelopeStore
 	queueClient queue.Client
 	registry    *Registry
 }
 
 // NewServer creates a new MCP server using mark3labs/mcp-go
 // If cfg is nil, uses default hardcoded tools for backward compatibility
-func NewServer(jobStore jobs.JobStore, queueClient queue.Client, cfg *config.Config) *Server {
+func NewServer(jobStore envelopestore.EnvelopeStore, queueClient queue.Client, cfg *config.Config) *Server {
 	s := &Server{
 		jobStore:    jobStore,
 		queueClient: queueClient,

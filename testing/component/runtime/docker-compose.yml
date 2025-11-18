@@ -66,10 +66,7 @@ services:
     - ASYA_HANDLER=asya_testing.handlers.${ASYA_HANDLER_MODE}.oom_handler
     - ASYA_HANDLER_MODE=${ASYA_HANDLER_MODE}
     - ASYA_SOCKET_NAME=oom.sock
-
-
     - ASYA_SOCKET_CHMOD=666
-    - ASYA_ENABLE_OOM_DETECTION=true
     - ASYA_LOG_LEVEL=${ASYA_LOG_LEVEL:-INFO}
     volumes:
     - sockets:/var/run/asya

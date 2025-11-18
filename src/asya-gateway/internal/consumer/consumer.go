@@ -7,7 +7,7 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/deliveryhero/asya/asya-gateway/internal/jobs"
+	"github.com/deliveryhero/asya/asya-gateway/internal/envelopestore"
 	"github.com/deliveryhero/asya/asya-gateway/internal/queue"
 	"github.com/deliveryhero/asya/asya-gateway/pkg/types"
 )
@@ -16,11 +16,11 @@ import (
 // and updates job status accordingly
 type ResultConsumer struct {
 	queueClient queue.Client
-	jobStore    jobs.JobStore
+	jobStore    envelopestore.EnvelopeStore
 }
 
 // NewResultConsumer creates a new result consumer
-func NewResultConsumer(queueClient queue.Client, jobStore jobs.JobStore) *ResultConsumer {
+func NewResultConsumer(queueClient queue.Client, jobStore envelopestore.EnvelopeStore) *ResultConsumer {
 	return &ResultConsumer{
 		queueClient: queueClient,
 		jobStore:    jobStore,
