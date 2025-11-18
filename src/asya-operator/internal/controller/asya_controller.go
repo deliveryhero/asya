@@ -16,6 +16,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -24,6 +25,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
@@ -331,21 +333,58 @@ func (r *AsyncActorReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	// Update queue metrics (optional - non-critical)
 	r.updateQueueMetrics(ctx, asya)
 
-	// Update status
-	asya.Status.ObservedGeneration = asya.Generation
-	logger.Info("ObservedGeneration set", "generation", asya.Generation)
-
-	// Update display fields (includes status calculation)
-	r.updateDisplayFields(asya)
-	logger.Info("Display fields updated", "status", asya.Status.Status, "readySummary", asya.Status.ReadySummary, "replicasSummary", asya.Status.ReplicasSummary)
-
-	if err := r.Status().Update(ctx, asya); err != nil {
-		logger.Error(err, "Failed to update AsyncActor status")
+	// Update status with retry logic to handle optimistic concurrency conflicts
+	// This is necessary because KEDA's HPA may modify the Deployment during reconciliation,
+	// causing the AsyncActor resource version to change
+	if err := r.updateStatusWithRetry(ctx, asya); err != nil {
+		logger.Error(err, "Failed to update AsyncActor status after retries")
 		return ctrl.Result{}, err
 	}
-	logger.Info("Status updated successfully")
 
 	return ctrl.Result{}, nil
+}
+
+// updateStatusWithRetry updates AsyncActor status with retry logic for optimistic concurrency conflicts
+func (r *AsyncActorReconciler) updateStatusWithRetry(ctx context.Context, asya *asyav1alpha1.AsyncActor) error {
+	logger := log.FromContext(ctx)
+	maxRetries := 3
+
+	for attempt := 0; attempt <= maxRetries; attempt++ {
+		if attempt > 0 {
+			// Fetch latest version of AsyncActor before retrying
+			logger.Info("Retrying status update with fresh resource", "attempt", attempt)
+			fresh := &asyav1alpha1.AsyncActor{}
+			if err := r.Get(ctx, client.ObjectKey{Name: asya.Name, Namespace: asya.Namespace}, fresh); err != nil {
+				return fmt.Errorf("failed to fetch fresh AsyncActor: %w", err)
+			}
+
+			// Copy status fields from our reconciled state to the fresh object
+			fresh.Status = asya.Status
+			asya = fresh
+		}
+
+		// Update status fields before attempting update
+		asya.Status.ObservedGeneration = asya.Generation
+		logger.Info("ObservedGeneration set", "generation", asya.Generation)
+
+		// Update display fields (includes status calculation)
+		r.updateDisplayFields(asya)
+		logger.Info("Display fields updated", "status", asya.Status.Status, "readySummary", asya.Status.ReadySummary, "replicasSummary", asya.Status.ReplicasSummary)
+
+		// Attempt status update
+		if err := r.Status().Update(ctx, asya); err != nil {
+			if apierrors.IsConflict(err) && attempt < maxRetries {
+				logger.V(1).Info("Conflict updating status, will retry", "attempt", attempt+1)
+				continue
+			}
+			return err
+		}
+
+		logger.Info("Status updated successfully")
+		return nil
+	}
+
+	return fmt.Errorf("failed to update status after %d retries", maxRetries)
 }
 
 // validateAsyncActorSpec validates the AsyncActor spec for forbidden configurations
@@ -1282,9 +1321,53 @@ func (r *AsyncActorReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		maxConcurrent = 1
 	}
 
+	// Predicate to ignore Deployment replica-only changes (managed by KEDA HPA)
+	// This prevents reconciliation loops when HPA modifies deployment replicas via /scale subresource
+	// This is critical because HPA updates trigger reconciliation, which can conflict with ongoing reconciles
+	ignoreReplicaOnlyChanges := predicate.Funcs{
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			oldDep, oldOk := e.ObjectOld.(*appsv1.Deployment)
+			newDep, newOk := e.ObjectNew.(*appsv1.Deployment)
+
+			if !oldOk || !newOk {
+				return true
+			}
+
+			// Create copies of specs to compare without replicas field
+			oldSpec := oldDep.Spec.DeepCopy()
+			newSpec := newDep.Spec.DeepCopy()
+
+			// Null out replicas so they don't affect comparison
+			oldSpec.Replicas = nil
+			newSpec.Replicas = nil
+
+			// If specs are identical except for replicas, ignore this update
+			// This handles HPA scaling events which only change replicas
+			if equality.Semantic.DeepEqual(oldSpec, newSpec) {
+				// Specs are identical except possibly replicas - check if replicas actually changed
+				oldReplicas := int32(0)
+				newReplicas := int32(0)
+				if oldDep.Spec.Replicas != nil {
+					oldReplicas = *oldDep.Spec.Replicas
+				}
+				if newDep.Spec.Replicas != nil {
+					newReplicas = *newDep.Spec.Replicas
+				}
+
+				if oldReplicas != newReplicas {
+					// Only replicas changed - this is an HPA scaling event, ignore it
+					return false
+				}
+			}
+
+			// Meaningful spec change (template, strategy, etc.) - trigger reconcile
+			return true
+		},
+	}
+
 	bldr := ctrl.NewControllerManagedBy(mgr).
 		For(&asyav1alpha1.AsyncActor{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
-		Owns(&appsv1.Deployment{}).
+		Owns(&appsv1.Deployment{}, builder.WithPredicates(ignoreReplicaOnlyChanges)).
 		Owns(&appsv1.StatefulSet{}).
 		WithOptions(controller.Options{MaxConcurrentReconciles: maxConcurrent})
 
