@@ -9,21 +9,25 @@ Asya components expose Prometheus metrics.
 Default namespace: `asya_actor` (configurable via `ASYA_METRICS_NAMESPACE`)
 
 **Message Counters**:
+
 - `{namespace}_messages_received_total{queue, transport}` - Messages received from queue
 - `{namespace}_messages_processed_total{queue, status}` - Successfully processed (status: success, empty_response, end_consumed)
 - `{namespace}_messages_sent_total{destination_queue, message_type}` - Messages sent to queues (message_type: routing, happy_end, error_end)
 - `{namespace}_messages_failed_total{queue, reason}` - Failed messages (reason: parse_error, runtime_error, transport_error, validation_error, route_mismatch, error_queue_send_failed)
 
 **Duration Histograms**:
+
 - `{namespace}_processing_duration_seconds{queue}` - Total processing time (queue receive → queue send)
 - `{namespace}_runtime_execution_duration_seconds{queue}` - Runtime execution time only
 - `{namespace}_queue_receive_duration_seconds{queue, transport}` - Time to receive from queue
 - `{namespace}_queue_send_duration_seconds{destination_queue, transport}` - Time to send to queue
 
 **Size Metrics**:
+
 - `{namespace}_envelope_size_bytes{direction}` - Envelope size in bytes (direction: received, sent)
 
 **Other**:
+
 - `{namespace}_active_messages` - Currently processing messages (gauge)
 - `{namespace}_runtime_errors_total{queue, error_type}` - Runtime errors by type
 
@@ -34,8 +38,8 @@ Default namespace: `asya_actor` (configurable via `ASYA_METRICS_NAMESPACE`)
 Runtime does NOT expose Prometheus metrics. All metrics are collected by sidecar.
 
 ### Operator Metrics
-
 Exposed via controller-runtime:
+
 - `controller_runtime_reconcile_total{controller="asyncactor"}` - Total reconciliations
 - `controller_runtime_reconcile_errors_total{controller="asyncactor"}` - Failed reconciliations
 - `controller_runtime_reconcile_time_seconds{controller="asyncactor"}` - Reconciliation duration

@@ -19,7 +19,7 @@ This coupling is obvious for backend engineers to avoid, but unnatural for data 
 <tr>
 <td style="width: 50%; padding: 10px; border: none; vertical-align: top;">
 <div style="width: 100%;">
-<img src="../img/async-request-response.png" alt="Traditional async request-response pattern" style="width: 100%; max-width: 100%; height: auto; display: block;"/>
+<img src="img/async-request-response.png" alt="Traditional async request-response pattern" style="width: 100%; max-width: 100%; height: auto; display: block;"/>
 <p style="margin-top: 10px; word-wrap: break-word; white-space: normal; overflow-wrap: break-word;">
 <em>❌ Traditional request-response pattern: Clients orchestrate workflows, hold state in memory, get stuck on failures. Servers scale independently but clients waste resources waiting.</em>
 </p>
@@ -27,7 +27,7 @@ This coupling is obvious for backend engineers to avoid, but unnatural for data 
 </td>
 <td style="width: 50%; padding: 10px; border: none; vertical-align: top;">
 <div style="width: 100%;">
-<img src="../img/async-actors.png" alt="Asya🎭 async actor pattern" style="width: 100%; max-width: 100%; height: auto; display: block;"/>
+<img src="img/async-actors.png" alt="Asya🎭 async actor pattern" style="width: 100%; max-width: 100%; height: auto; display: block;"/>
 <p style="margin-top: 10px; word-wrap: break-word; white-space: normal; overflow-wrap: break-word;">
 <em>✅ Asya🎭 pattern: Actors scale independently based on queue depth. Messages flow through pipeline. Errors route to DLQ. No client orchestration - framework handles everything.</em>
 </p>
