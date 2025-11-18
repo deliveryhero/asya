@@ -16,7 +16,7 @@ GitHub repo: [https://github.com/deliveryhero/asya](https://github.com/deliveryh
 - **[Core Concepts](concepts.md)** - Actors, envelopes, sidecars, runtime, and system components
 
 ### Architecture
-- **[Architecture Overview](architecture/)** - Deep dive into system design and components
+- **[Architecture Overview](architecture/README.md)** - Deep dive into system design and components
   - [Actors](architecture/asya-actor.md) - Stateless workloads with message-based communication
   - [Sidecar](architecture/asya-sidecar.md) - Message routing and transport management
   - [Runtime](architecture/asya-runtime.md) - User code execution environment
@@ -24,8 +24,8 @@ GitHub repo: [https://github.com/deliveryhero/asya](https://github.com/deliveryh
   - [Gateway](architecture/asya-gateway.md) - Optional MCP HTTP API
   - [Crew](architecture/asya-crew.md) - System actors for flow maintenance
   - [Autoscaling](architecture/autoscaling.md) - KEDA integration details
-  - [Protocols](architecture/protocols/) - Communication protocols between components
-  - [Transports](architecture/transports/) - Message queue implementations
+  - [Protocols](architecture/protocols/actor-actor.md) - Communication protocols between components
+  - [Transports](architecture/transports/README.md) - Message queue implementations
 
 ### Installation
 - **[AWS EKS](install/aws-eks.md)** - Production deployment on AWS
@@ -33,8 +33,8 @@ GitHub repo: [https://github.com/deliveryhero/asya](https://github.com/deliveryh
 - **[Helm Charts](install/helm-charts.md)** - Chart configuration reference
 
 ### Quickstart
-- **[For Data Scientists](quickstart/for-data_scientists.md)** - Build and deploy your first actor
-- **[For Platform Engineers](quickstart/for-platform_engineers.md)** - Deploy and manage Asya infrastructure
+- **[For Data Scientists](quickstart/for-data-scientists.md)** - Build and deploy your first actor
+- **[For Platform Engineers](quickstart/for-platform-engineers.md)** - Deploy and manage Asya infrastructure
 
 ### Operations
 - **[Monitoring](operate/monitoring.md)** - Observability and metrics

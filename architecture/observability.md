@@ -31,7 +31,7 @@ Default namespace: `asya_actor` (configurable via `ASYA_METRICS_NAMESPACE`)
 - `{namespace}_active_messages` - Currently processing messages (gauge)
 - `{namespace}_runtime_errors_total{queue, error_type}` - Runtime errors by type
 
-**Custom Metrics**: Configurable via `ASYA_CUSTOM_METRICS` environment variable (JSON array). See [asya-sidecar.md](asya-sidecar.md#metrics) for details.
+**Custom Metrics**: Configurable via `ASYA_CUSTOM_METRICS` environment variable (JSON array). See [asya-sidecar.md](asya-sidecar.md#metrics-and-observability) for details.
 
 ### Runtime Metrics
 
