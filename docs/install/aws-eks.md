@@ -15,6 +15,7 @@ Production deployment of Asya🎭 on Amazon EKS.
 ### 1. VPC and Networking
 
 **Requirements**:
+
 - VPC with public and private subnets
 - NAT gateway for private subnet internet access
 - Security groups allowing pod-to-pod communication

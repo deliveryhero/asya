@@ -5,6 +5,7 @@ Deploy and manage Asya🎭 infrastructure.
 ## Overview
 
 As platform engineer, you:
+
 - Deploy Asya operator and gateway
 - Configure transports (SQS, RabbitMQ)
 - Manage IAM roles and permissions
@@ -255,16 +256,19 @@ kubectl create secret generic rabbitmq-secret \
 **Important**: Operator does NOT automatically create ServiceMonitors. You must configure Prometheus scraping.
 
 **Key sidecar metrics** (namespace: `asya_actor`):
+
 - `asya_actor_processing_duration_seconds{queue}` - Processing time
 - `asya_actor_messages_processed_total{queue, status}` - Messages processed
 - `asya_actor_messages_failed_total{queue, reason}` - Failed messages
 - `asya_actor_runtime_errors_total{queue, error_type}` - Runtime errors
 
 **Key operator metrics**:
+
 - `controller_runtime_reconcile_total{controller="asyncactor"}` - Reconciliations
 - `controller_runtime_reconcile_errors_total{controller="asyncactor"}` - Errors
 
 **KEDA metrics**:
+
 - `keda_scaler_active{scaledObject}` - Active scalers
 - `keda_scaler_metrics_value{scaledObject}` - Queue depth
 

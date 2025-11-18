@@ -24,6 +24,7 @@ make up PROFILE=sqs-minio
 ```
 
 **Includes**:
+
 - Kind cluster
 - KEDA operator
 - RabbitMQ or LocalStack SQS
@@ -43,6 +44,7 @@ make up PROFILE=sqs-minio
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 nodes:
+
 - role: control-plane
   extraPortMappings:
   - containerPort: 30080

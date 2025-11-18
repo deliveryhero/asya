@@ -21,6 +21,7 @@ User defines container with Python code. Operator injects `asya_runtime.py`:
 
 ```yaml
 containers:
+
 - name: asya-runtime
   image: my-handler:v1
   command: ["python3", "/opt/asya/asya_runtime.py"]  # Injected
@@ -105,6 +106,7 @@ def process(payload: dict) -> dict:
 ```
 
 Runtime automatically:
+
 - Increments `route.current`
 - Preserves `headers`
 - Creates new envelope with mutated payload
@@ -172,6 +174,7 @@ Runtime catches exception, creates error response with detailed traceback:
 ```
 
 **Error codes**:
+
 - `processing_error`: Handler exception (any unhandled error)
 - `msg_parsing_error`: Invalid JSON or envelope structure
 - `connection_error`: Socket/network issues
@@ -183,10 +186,12 @@ Sidecar receives error response and routes envelope to `error-end`.
 Handlers in envelope mode can modify routes but **MUST preserve already-processed steps**:
 
 ✅ **Allowed**:
+
 - Add future steps: `["a","b","c"]` → `["a","b","c","d"]` (at current=0)
 - Replace future steps: `["a","b","c"]` → `["a","x","y"]` (at current=0)
 
 ❌ **Forbidden**:
+
 - Erase processed steps: `["a","b","c"]` → `["c"]` at current=2
 - Modify processed actor names: `["a","b","c"]` → `["a-new","b","c"]` at current=1
 
@@ -202,6 +207,7 @@ Handlers in envelope mode can modify routes but **MUST preserve already-processe
 3. Mounts ConfigMap into actor pods at `/opt/asya/asya_runtime.py`
 
 **Symlinks** (for testing):
+
 - `src/asya-operator/internal/controller/runtime_symlink/asya_runtime.py` → Operator reads
 - `testing/integration/operator/testdata/runtime_symlink/asya_runtime.py` → Tests use
 

@@ -34,6 +34,7 @@ spec:
 ```
 
 **Sidecar environment variables** (injected by operator):
+
 - `ASYA_TRANSPORT=sqs`
 - `ASYA_AWS_REGION` → from `config.region`
 - `ASYA_SQS_ENDPOINT` → from `config.endpoint` (optional)
@@ -106,6 +107,7 @@ Operator creates SQS queues automatically when AsyncActor is reconciled:
 
 ```yaml
 triggers:
+
 - type: aws-sqs-queue
   metadata:
     queueURL: https://sqs.us-east-1.amazonaws.com/.../asya-actor

@@ -39,18 +39,22 @@ spec:
 ## Benefits
 
 **Scale to zero**:
+
 - 0 messages → 0 pods → $0 cost
 - Queue fills → Spin up to maxReplicas in seconds
 
 **Independent scaling**:
+
 - Each actor scales based on its own queue depth
 - Data-loader scales differently than LLM inference
 
 **Cost optimization**:
+
 - Only run GPU pods when needed
 - No warm pools, no idle resources
 
 **Handle bursts**:
+
 - Automatic response to traffic spikes
 - Gradual scale-down when load decreases
 
@@ -70,6 +74,7 @@ spec:
 ```
 
 **Parameters**:
+
 - `enabled`: Enable/disable KEDA autoscaling (default: false)
 - `minReplicas`: Minimum pods (default: 0 for scale-to-zero)
 - `maxReplicas`: Maximum pods (default: 50)
@@ -109,6 +114,7 @@ spec:
 
 ```yaml
 triggers:
+
 - type: aws-sqs-queue
   metadata:
     queueURL: https://sqs.us-east-1.amazonaws.com/.../asya-actor
@@ -120,6 +126,7 @@ triggers:
 
 ```yaml
 triggers:
+
 - type: rabbitmq
   metadata:
     host: amqp://rabbitmq:5672

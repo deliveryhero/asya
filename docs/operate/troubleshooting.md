@@ -13,6 +13,7 @@ kubectl logs <pod-name>
 ```
 
 **Common causes**:
+
 - Missing image
 - Wrong ASYA_HANDLER value
 - Missing dependencies
@@ -29,6 +30,7 @@ kubectl describe asya <actor-name>
 ```
 
 **Common causes**:
+
 - Transport not configured in operator
 - Missing IAM permissions (SQS)
 - RabbitMQ not accessible
@@ -45,6 +47,7 @@ kubectl get hpa
 ```
 
 **Common causes**:
+
 - KEDA not installed
 - Wrong queueLength configuration
 - IAM permissions missing for KEDA
@@ -59,6 +62,7 @@ kubectl logs deploy/<actor> -c asya-sidecar
 ```
 
 **Common causes**:
+
 - Wrong transport configuration
 - Missing credentials
 - Queue doesn't exist
@@ -74,6 +78,7 @@ kubectl logs deploy/<actor> -c asya-runtime
 ```
 
 **Common causes**:
+
 - Handler function not found
 - Wrong `ASYA_HANDLER` path
 - Missing Python dependencies
@@ -84,6 +89,7 @@ kubectl logs deploy/<actor> -c asya-runtime
 **Symptoms**: `oom_error` or `cuda_oom_error`
 
 **Solutions**:
+
 - Increase memory limits
 - Use a larger GPU machine
 - Reduce batch size
@@ -94,6 +100,7 @@ kubectl logs deploy/<actor> -c asya-runtime
 **Symptoms**: `timeout_error` in logs
 
 **Solutions**:
+
 - Increase `ASYA_RUNTIME_TIMEOUT`
 - Optimize handler performance
 - Add timeout warning in handler
@@ -109,6 +116,7 @@ kubectl describe pod <gateway-pod>
 ```
 
 **Common causes**:
+
 - PostgreSQL connection failed
 - Missing environment variables
 - Tool configuration errors

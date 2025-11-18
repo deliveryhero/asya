@@ -54,6 +54,7 @@ helm install asya-operator deploy/helm-charts/asya-operator/
 ## Resource Ownership
 
 Operator creates and owns (via `ownerReferences`):
+
 - **Deployment/StatefulSet**: Actor workload with injected sidecar
 - **ScaledObject**: KEDA autoscaling configuration (when `spec.scaling.enabled=true`)
 - **TriggerAuthentication**: KEDA auth for queue metrics (transport-specific)
@@ -71,11 +72,13 @@ Operator automatically creates queues via transport layer abstraction.
 **Queue naming**: `asya-{actor_name}`
 
 **Lifecycle**:
+
 - Created when AsyncActor first reconciled (if `spec.scaling.enabled=false`, queue created immediately; if KEDA enabled, KEDA creates queue)
 - Deleted when AsyncActor deleted (via finalizer cleanup)
 - Preserved when AsyncActor updated (no modification during reconciliation)
 
 **SQS-specific**:
+
 - Queue creation via AWS SDK (`CreateQueue` API)
 - Handles 60-second cooldown after deletion (requeues reconciliation after 65 seconds)
 - Supports IRSA (IAM Roles for Service Accounts) on EKS
@@ -83,6 +86,7 @@ Operator automatically creates queues via transport layer abstraction.
 - Visibility timeout auto-calculated as 2x `ASYA_RUNTIME_TIMEOUT` if not specified
 
 **RabbitMQ-specific**:
+
 - Queue creation via RabbitMQ Management API
 - Queue properties: durable, non-auto-delete
 - Supports basic auth via Kubernetes Secrets
@@ -160,6 +164,7 @@ Operator recreates queue on next reconciliation.
 ### Pod Crashes
 
 Kubernetes restarts pod automatically. Operator updates status to reflect pod health:
+
 - **`CrashLoopBackOff` in runtime container**: Status → `RuntimeError`
 - **`CrashLoopBackOff` in sidecar container**: Status → `SidecarError`
 - **`ImagePullBackOff`**: Status → `ImagePullError`
@@ -175,11 +180,13 @@ The operator calculates granular status based on conditions and pod health.
 ### Status Values
 
 **Operational**:
+
 - `Running` - All conditions ready, pods healthy
 - `Napping` - KEDA scaled to zero (no work, intentional)
 - `Degraded` - Some replicas unhealthy but not completely failed
 
 **Transitional**:
+
 - `Creating` - First reconciliation (ObservedGeneration=0)
 - `ScalingUp` - Replicas increasing
 - `ScalingDown` - Replicas decreasing
@@ -187,6 +194,7 @@ The operator calculates granular status based on conditions and pod health.
 - `Terminating` - DeletionTimestamp set
 
 **Errors**:
+
 - `TransportError` - Transport not ready or queue creation failed
 - `ScalingError` - KEDA ScaledObject creation failed
 - `WorkloadError` - Generic workload error
@@ -200,6 +208,7 @@ The operator calculates granular status based on conditions and pod health.
 ### Status Conditions
 
 Operator maintains three conditions:
+
 - `TransportReady` - Transport validated and queue reconciled
 - `WorkloadReady` - Workload created and pods healthy
 - `ScalingReady` - KEDA ScaledObject created (only if `spec.scaling.enabled=true`)
@@ -207,6 +216,7 @@ Operator maintains three conditions:
 ### kubectl Output
 
 **Standard columns**:
+
 - `STATUS` - Overall status (from status values above)
 - `RUNNING` - Ready replicas count
 - `FAILING` - Pods in CrashLoopBackOff/ImagePullBackOff
@@ -217,6 +227,7 @@ Operator maintains three conditions:
 - `LAST-SCALE` - Time since last scale event with direction
 
 **Wide columns** (`kubectl get asya -o wide`):
+
 - `WORKLOAD` - Deployment or StatefulSet
 - `TRANSPORT` - Ready or NotReady
 - `SCALING` - KEDA or Manual
@@ -230,9 +241,11 @@ Operator enforces strict validation on AsyncActor spec:
 ### Container Naming
 
 ✅ **Required**:
+
 - Exactly one container named `asya-runtime`
 
 ❌ **Forbidden**:
+
 - User containers named `asya-sidecar` (reserved for injected sidecar)
 - Init containers named `asya-sidecar` (reserved)
 - Multiple containers named `asya-runtime`
@@ -241,9 +254,11 @@ Operator enforces strict validation on AsyncActor spec:
 ### Runtime Container Restrictions
 
 ❌ **Forbidden**:
+
 - Overriding `command` field in `asya-runtime` container (operator manages entrypoint)
 
 ✅ **Allowed**:
+
 - Custom image (must contain user handler code)
 - Custom environment variables (merged with operator-injected vars)
 - Custom resource requests/limits
@@ -279,6 +294,7 @@ data:
 **Mount into pods**:
 ```yaml
 volumeMounts:
+
 - name: asya-runtime
   mountPath: /opt/asya/asya_runtime.py
   subPath: asya_runtime.py
@@ -286,6 +302,7 @@ volumeMounts:
 ```
 
 **Runtime script source**:
+
 - Default: `/runtime/asya_runtime.py` (embedded in operator image)
 - Override via operator env: `ASYA_RUNTIME_SCRIPT_PATH`
 
@@ -296,11 +313,13 @@ volumeMounts:
 Operator injects `asya-sidecar` container into every actor pod.
 
 **Sidecar image**:
+
 - Default: `asya-sidecar:latest`
 - Override via operator env: `ASYA_SIDECAR_IMAGE`
 - Override per-actor: `spec.sidecar.image`
 
 **Injected environment variables**:
+
 - `ASYA_ACTOR_NAME` - Actor name (for queue naming)
 - `ASYA_TRANSPORT` - Transport type (sqs, rabbitmq)
 - `ASYA_GATEWAY_URL` - Gateway URL (if configured)
@@ -308,12 +327,14 @@ Operator injects `asya-sidecar` container into every actor pod.
 - Transport-specific variables (AWS region, RabbitMQ host, etc.)
 
 **Shared volumes**:
+
 - `socket-dir` - Unix socket directory (`/var/run/asya`)
 - `tmp` - Temporary directory
 
 ## Observability
 
 **Controller metrics** (Prometheus):
+
 - `controller_runtime_reconcile_total{controller="asyncactor"}` - Total reconciliations
 - `controller_runtime_reconcile_errors_total{controller="asyncactor"}` - Failed reconciliations
 - `controller_runtime_reconcile_time_seconds{controller="asyncactor"}` - Reconciliation duration
