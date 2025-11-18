@@ -289,3 +289,138 @@ table td code {
   white-space: normal !important;
   word-break: break-word !important;
 }
+
+/* Dark mode: code blocks and syntax highlighting */
+.dark pre {
+  background-color: #1e1e1e;
+  border: 1px solid #3a3a3a;
+  color: #d4d4d4;
+}
+
+.dark code {
+  color: #e06c75;
+  background-color: #2d2d2d;
+}
+
+.dark pre code {
+  color: #d4d4d4;
+  background-color: transparent;
+}
+
+/* Dark mode syntax highlighting - VS Code Dark+ inspired colors */
+.dark .codehilite .hll,
+.dark .highlight .hll { background-color: #3a3a3a }
+.dark .codehilite .c,
+.dark .highlight .c { color: #6a9955; font-style: italic }
+.dark .codehilite .k,
+.dark .highlight .k { color: #c586c0; font-weight: normal }
+.dark .codehilite .o,
+.dark .highlight .o { color: #d4d4d4; font-weight: normal }
+.dark .codehilite .cm,
+.dark .highlight .cm { color: #6a9955; font-style: italic }
+.dark .codehilite .cp,
+.dark .highlight .cp { color: #6a9955; font-weight: normal; font-style: italic }
+.dark .codehilite .c1,
+.dark .highlight .c1 { color: #6a9955; font-style: italic }
+.dark .codehilite .cs,
+.dark .highlight .cs { color: #6a9955; font-weight: normal; font-style: italic }
+.dark .codehilite .gd,
+.dark .highlight .gd { color: #d4d4d4; background-color: #4b1818 }
+.dark .codehilite .gr,
+.dark .highlight .gr { color: #f44747 }
+.dark .codehilite .gh,
+.dark .highlight .gh { color: #808080 }
+.dark .codehilite .gi,
+.dark .highlight .gi { color: #d4d4d4; background-color: #1a3a1a }
+.dark .codehilite .go,
+.dark .highlight .go { color: #808080 }
+.dark .codehilite .gp,
+.dark .highlight .gp { color: #9cdcfe }
+.dark .codehilite .gu,
+.dark .highlight .gu { color: #808080 }
+.dark .codehilite .gt,
+.dark .highlight .gt { color: #f44747 }
+.dark .codehilite .kc,
+.dark .highlight .kc { color: #569cd6; font-weight: normal }
+.dark .codehilite .kd,
+.dark .highlight .kd { color: #569cd6; font-weight: normal }
+.dark .codehilite .kn,
+.dark .highlight .kn { color: #c586c0; font-weight: normal }
+.dark .codehilite .kp,
+.dark .highlight .kp { color: #569cd6; font-weight: normal }
+.dark .codehilite .kr,
+.dark .highlight .kr { color: #569cd6; font-weight: normal }
+.dark .codehilite .kt,
+.dark .highlight .kt { color: #4ec9b0; font-weight: normal }
+.dark .codehilite .m,
+.dark .highlight .m { color: #b5cea8 }
+.dark .codehilite .s,
+.dark .highlight .s { color: #ce9178 }
+.dark .codehilite .na,
+.dark .highlight .na { color: #9cdcfe }
+.dark .codehilite .nb,
+.dark .highlight .nb { color: #dcdcaa }
+.dark .codehilite .nc,
+.dark .highlight .nc { color: #4ec9b0; font-weight: normal }
+.dark .codehilite .no,
+.dark .highlight .no { color: #4fc1ff }
+.dark .codehilite .nd,
+.dark .highlight .nd { color: #dcdcaa; font-weight: normal }
+.dark .codehilite .ni,
+.dark .highlight .ni { color: #c586c0 }
+.dark .codehilite .ne,
+.dark .highlight .ne { color: #4ec9b0; font-weight: normal }
+.dark .codehilite .nf,
+.dark .highlight .nf { color: #dcdcaa; font-weight: normal }
+.dark .codehilite .nl,
+.dark .highlight .nl { color: #dcdcaa; font-weight: normal }
+.dark .codehilite .nn,
+.dark .highlight .nn { color: #4ec9b0 }
+.dark .codehilite .nt,
+.dark .highlight .nt { color: #569cd6 }
+.dark .codehilite .nv,
+.dark .highlight .nv { color: #9cdcfe }
+.dark .codehilite .ow,
+.dark .highlight .ow { color: #569cd6; font-weight: normal }
+.dark .codehilite .w,
+.dark .highlight .w { color: #d4d4d4 }
+.dark .codehilite .mf,
+.dark .highlight .mf { color: #b5cea8 }
+.dark .codehilite .mh,
+.dark .highlight .mh { color: #b5cea8 }
+.dark .codehilite .mi,
+.dark .highlight .mi { color: #b5cea8 }
+.dark .codehilite .mo,
+.dark .highlight .mo { color: #b5cea8 }
+.dark .codehilite .sb,
+.dark .highlight .sb { color: #ce9178 }
+.dark .codehilite .sc,
+.dark .highlight .sc { color: #ce9178 }
+.dark .codehilite .sd,
+.dark .highlight .sd { color: #ce9178 }
+.dark .codehilite .s2,
+.dark .highlight .s2 { color: #ce9178 }
+.dark .codehilite .se,
+.dark .highlight .se { color: #d7ba7d }
+.dark .codehilite .sh,
+.dark .highlight .sh { color: #ce9178 }
+.dark .codehilite .si,
+.dark .highlight .si { color: #d7ba7d }
+.dark .codehilite .sx,
+.dark .highlight .sx { color: #ce9178 }
+.dark .codehilite .sr,
+.dark .highlight .sr { color: #d16969 }
+.dark .codehilite .s1,
+.dark .highlight .s1 { color: #ce9178 }
+.dark .codehilite .ss,
+.dark .highlight .ss { color: #ce9178 }
+.dark .codehilite .bp,
+.dark .highlight .bp { color: #4ec9b0 }
+.dark .codehilite .vc,
+.dark .highlight .vc { color: #9cdcfe }
+.dark .codehilite .vg,
+.dark .highlight .vg { color: #9cdcfe }
+.dark .codehilite .vi,
+.dark .highlight .vi { color: #9cdcfe }
+.dark .codehilite .il,
+.dark .highlight .il { color: #b5cea8 }
