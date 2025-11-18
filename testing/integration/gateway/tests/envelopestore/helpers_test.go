@@ -1,6 +1,6 @@
 //go:build integration
 
-package jobs
+package envelopestore
 
 import (
 	"context"
