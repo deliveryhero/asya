@@ -18,12 +18,12 @@ extra_css:
   - stylesheets/extra.css
 
 nav:
-  - Home: README.md
+  - Asya🎭: README.md
   - GETTING STARTED:
       - Motivation: motivation.md
       - Concepts: concepts.md
-      - For Data Scientists: quickstart/for-data_scientists.md
-      - For Platform Engineers: quickstart/for-platform_engineers.md
+      - For Data Scientists 🧑‍🔬: quickstart/for-data_scientists.md
+      - For Platform Engineers ⚙️: quickstart/for-platform_engineers.md
   - INSTALLATION:
       - AWS EKS: install/aws-eks.md
       - Local Kind: install/local-kind.md
@@ -69,5 +69,6 @@ markdown_extensions:
         - name: mermaid
           class: mermaid
           format: !!python/name:mermaid2.fence_mermaid
+  - pymdownx.snippets
 
 copyright: Copyright &copy; 2024 Delivery Hero SE

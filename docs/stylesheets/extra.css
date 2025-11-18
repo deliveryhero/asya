@@ -1,5 +1,29 @@
 /* Custom styles for Asya documentation - Simplex theme customization */
 
+/* Hide non-functional copy button - all possible variations */
+.copy-button,
+button[data-clipboard-text],
+.md-clipboard,
+.highlighttable .copy-code-button,
+pre button,
+.codehilite button,
+.highlight button,
+button[title="Copy to clipboard"],
+button[aria-label="Copy to clipboard"],
+.btn-clipboard,
+div.highlight button,
+div.codehilite button,
+.highlight-container button,
+code + button,
+pre + button,
+[class*="copy"] button,
+[class*="clipboard"] button {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
 /* Force nested navigation to display */
 .bs-sidebar .nav .nav {
   display: block !important;

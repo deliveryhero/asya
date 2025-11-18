@@ -14,7 +14,7 @@ An actor is a stateless (by default) workload that:
 - Independently scalable based on queue depth
 - Independently deployable as Kubernetes workloads
 
-**Motivation**: Alternative to monolithic pipelines. Instead of one large application handling `A → B → C`, each step is an independent actor that can scale and deploy separately.
+**Motivation**: Alternative to monolithic pipelines. Instead of one large pipeline `A → B → C`, each step is an independent actor that can scale and deploy separately.
 
 **See**: [architecture/asya-actor.md](architecture/asya-actor.md) for details.
 
