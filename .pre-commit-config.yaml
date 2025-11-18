@@ -1,3 +1,5 @@
+exclude: (^|/)CHANGELOG.md
+
 repos:
 # General file checks
 - repo: https://github.com/pre-commit/pre-commit-hooks

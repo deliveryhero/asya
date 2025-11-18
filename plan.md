@@ -22,7 +22,7 @@ docs/
             # hard to scale different components differently
             # hard to deploy different components independently
             # hard to manage infra for data scientists
-            # hard to operate at scale for platform engineers    
+            # hard to operate at scale for platform engineers  
             # batch pipelines vs streaming, very different frameworks
             # (this decoupling is obvious for backend engineers, but very unnatural for data scientists)
         # What is Asya?
@@ -240,16 +240,31 @@ docs/
             rabbitmq.md
 
     install/
-        aws-eks.md  # see docs_old/guides/{deploy-aws-setup.md,deploy-aws-requirements.md}
-        ...
+        aws-eks.md  # should contain info from docs_old/guides/deploy-aws-requirements.md (verified) and deploy-aws-setup.md (might have outdated info)
+            # Prerequisites (EKS cluster, kubectl, helm, awscli, eksctl)
+            # VPC and Networking requirements
+            # IAM roles and permissions
+            # Optional components (EBS CSI Driver, Metrics Server, CloudWatch Container Insights)
+            # Asya🎭 Deployment steps
+        local-kind.md
+            # Prerequisites (kind, kubectl, helm)
+            # Create kind cluster with required config
+            # Deploy Asya🎭 via Helm
+        helm-charts.md
+            # Overview of Helm charts for Asya components
+            # asya-operator chart
+            # asya-gateway chart
+            # asya-actor chart
+            # asya-crew chart
 
     operate/
-        monitoring.md  # empty
-        troubleshooting.md  # empty
-        upgrades.md # empty
+        monitoring.md  # empty for now
+        troubleshooting.md  # empty for now
+        upgrades.md # empty for now
     quickstart
         for-data_scientists.md  # setup local env, examples
             # how you see the framework as a data scientist
+            # use asya-mcp tool to communicate with models via MCP Gateway
+            # TODO (later) configure VScode or Claude to talk to mcp
         for-platform_engineers.md
             # how you see the framework as a platform engineer
-    

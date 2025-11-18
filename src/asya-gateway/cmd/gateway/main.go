@@ -15,7 +15,7 @@ import (
 	mcpserver "github.com/mark3labs/mcp-go/server"
 
 	"github.com/deliveryhero/asya/asya-gateway/internal/config"
-	"github.com/deliveryhero/asya/asya-gateway/internal/jobs"
+	"github.com/deliveryhero/asya/asya-gateway/internal/envelopestore"
 	"github.com/deliveryhero/asya/asya-gateway/internal/mcp"
 	"github.com/deliveryhero/asya/asya-gateway/internal/queue"
 )
@@ -53,19 +53,19 @@ func main() {
 	defer cancel()
 
 	// Initialize envelope store (PostgreSQL or in-memory)
-	var jobStore jobs.JobStore
+	var envelopeStore envelopestore.EnvelopeStore
 	if dbURL != "" {
 		slog.Info("Using PostgreSQL envelope store")
-		pgStore, err := jobs.NewPgStore(ctx, dbURL)
+		pgStore, err := envelopestore.NewPgStore(ctx, dbURL)
 		if err != nil {
 			slog.Error("Failed to create PostgreSQL store", "error", err)
 			os.Exit(1)
 		}
 		defer pgStore.Close()
-		jobStore = pgStore
+		envelopeStore = pgStore
 	} else {
 		slog.Info("Using in-memory envelope store (not recommended for production)")
-		jobStore = jobs.NewStore()
+		envelopeStore = envelopestore.NewStore()
 	}
 
 	// Initialize queue client (RabbitMQ or SQS)
@@ -129,10 +129,10 @@ func main() {
 	}
 
 	// Create MCP server with mark3labs/mcp-go (minimal boilerplate!)
-	mcpServer := mcp.NewServer(jobStore, queueClient, toolConfig)
+	mcpServer := mcp.NewServer(envelopeStore, queueClient, toolConfig)
 
 	// Create envelope handler for custom endpoints
-	envelopeHandler := mcp.NewHandler(jobStore)
+	envelopeHandler := mcp.NewHandler(envelopeStore)
 	envelopeHandler.SetServer(mcpServer) // For REST tool calls
 
 	// Setup routes

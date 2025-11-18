@@ -1,4 +1,4 @@
-package jobs
+package envelopestore
 
 import (
 	"time"
@@ -6,8 +6,8 @@ import (
 	"github.com/deliveryhero/asya/asya-gateway/pkg/types"
 )
 
-// JobStore defines the interface for envelope storage
-type JobStore interface {
+// EnvelopeStore defines the interface for envelope storage
+type EnvelopeStore interface {
 	// Create creates a new envelope
 	Create(envelope *types.Envelope) error
 

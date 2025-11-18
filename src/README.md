@@ -5,9 +5,9 @@ All framework components and build scripts.
 ## Components
 
 ### asya-gateway (Go)
-MCP gateway with JSON-RPC 2.0, PostgreSQL job storage, and SSE streaming.
+MCP gateway with JSON-RPC 2.0, PostgreSQL envelope storage, and SSE streaming.
 
-**Purpose**: API integration, job tracking, SSE streaming for long-running jobs
+**Purpose**: API integration, envelope tracking, SSE streaming for long-running envelopes
 
 [Read more →](asya-gateway/README.md)
 

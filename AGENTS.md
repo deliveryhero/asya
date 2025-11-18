@@ -8,7 +8,7 @@ Asya🎭 is an async actor-based framework for deploying AI workloads on Kuberne
 - **CRD-based operator** for declarative actor deployment
 - **Sidecar pattern** (Go) for message routing with pluggable transports
 - **KEDA autoscaling** for event-driven, scale-to-zero workloads
-- **MCP gateway** (optional) for job tracking and API integration
+- **MCP gateway** (optional) for envelope tracking and API integration
 
 ## Quick Reference
 

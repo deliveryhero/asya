@@ -107,35 +107,14 @@ Infrastructure requirements for deploying Asya🎭 framework on Amazon EKS with 
 
 **Purpose:** Storage for actor processing results (happy-end writes here)
 
-**Requirements:**
-- Encryption: AES256 or KMS
-- Versioning: Enabled
-- Lifecycle policy: 90-day expiration, 30-day noncurrent version retention
-
-## Standard Kubernetes Components
-
-### CoreDNS
-
-**Purpose:** In-cluster DNS resolution
-
-**Required for Asya🎭?** No. Actors communicate with external AWS services, not internal K8s services.
-
-**Included because:** Standard K8s component, may be needed for monitoring/logging.
-
-### kube-proxy
-
-**Purpose:** Kubernetes Service networking (iptables/IPVS)
-
-**Required for Asya🎭?** No. Actors use SQS queues, not K8s Services.
-
-**Included because:** Fundamental K8s networking component.
-
+<!-- simpler not to list if for now -->
+<!--
 ## Optional Components
 
 ### AWS EBS CSI Driver
 
 **When needed:**
-- Stateful actors requiring persistent storage
+- Stateful actors of kind `StatefulSet` requiring persistent storage
 - Fast local disk for model caching
 - POSIX filesystem semantics
 
@@ -168,6 +147,8 @@ Infrastructure requirements for deploying Asya🎭 framework on Amazon EKS with 
 - Private subnets for node groups
 - Public subnets for NAT gateways (if using private nodes)
 - Subnet tags: `kubernetes.io/role/internal-elb=1` (private), `kubernetes.io/role/elb=1` (public)
+-->
+
 
 ## IAM Authentication Schemes
 
@@ -183,6 +164,7 @@ Infrastructure requirements for deploying Asya🎭 framework on Amazon EKS with 
 
 **Required actions:** `sts:AssumeRole`, `sts:TagSession`
 
+
 ### IRSA (IAM Roles for Service Accounts)
 
 **Legacy approach.** Use for:
@@ -196,6 +178,7 @@ Infrastructure requirements for deploying Asya🎭 framework on Amazon EKS with 
 **Conditions:** Match `<oidc-url>:sub` to `system:serviceaccount:<namespace>:<sa-name>`, `<oidc-url>:aud` to `sts.amazonaws.com`
 
 **Service account annotation:** `eks.amazonaws.com/role-arn: <role-arn>`
+
 
 ## Cost Optimization
 
@@ -219,6 +202,7 @@ Infrastructure requirements for deploying Asya🎭 framework on Amazon EKS with 
 - S3 Intelligent-Tiering: Automatic cost optimization
 - Versioning retention: 30 days for noncurrent versions
 
+
 ## Security
 
 ### Network Policies
@@ -240,6 +224,7 @@ Infrastructure requirements for deploying Asya🎭 framework on Amazon EKS with 
 - All SQS policies: Scoped to `arn:aws:sqs:*:<account>:asya-*`
 - S3 policies: Scoped to specific bucket ARN
 
+
 ## Deployment Checklist
 
 **Infrastructure:**
@@ -252,8 +237,8 @@ Infrastructure requirements for deploying Asya🎭 framework on Amazon EKS with 
 **Kubernetes:**
 - [ ] VPC CNI addon
 - [ ] EKS Pod Identity Agent addon
-- [ ] CoreDNS addon
-- [ ] kube-proxy addon
+<!-- - [ ] CoreDNS addon -- not required by Asya directly -->
+<!-- - [ ] kube-proxy addon -- not required by Asya directly -->
 - [ ] NVIDIA device plugin DaemonSet
 
 **Autoscaling:**
@@ -273,6 +258,9 @@ Infrastructure requirements for deploying Asya🎭 framework on Amazon EKS with 
 **Asya🎭:**
 - [ ] Operator Helm chart
 - [ ] Operator configured with SQS transport + actor role ARN
+- [ ] Optionally, Gateway Helm chart (with PostgreSQL for persistance)
+- [ ] Optionally, Grafana + Prometheus for observability
+
 
 ## Validation Commands
 

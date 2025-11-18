@@ -1,23 +1,22 @@
 //go:build integration
 
-package jobs
+package envelopestore
 
 import (
 	"context"
 	"testing"
 	"time"
 
-	"github.com/deliveryhero/asya/asya-gateway/internal/jobs"
 	"github.com/deliveryhero/asya/asya-gateway/pkg/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func setupPgStore(t *testing.T) (*jobs.PgStore, func()) {
+func setupPgStore(t *testing.T) (*envelopestore.PgStore, func()) {
 	t.Helper()
 
 	ctx := context.Background()
-	store, err := jobs.NewPgStore(ctx, getPostgresURL())
+	store, err := envelopestore.NewPgStore(ctx, getPostgresURL())
 	require.NoError(t, err, "Failed to create PgStore")
 
 	cleanup := func() {
