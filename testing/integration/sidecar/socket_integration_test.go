@@ -13,8 +13,19 @@ import (
 
 	"github.com/deliveryhero/asya/asya-sidecar/pkg/envelopes"
 	sidecartesting "github.com/deliveryhero/asya/asya-sidecar/pkg/testing"
+	"github.com/deliveryhero/asya/asya-sidecar/pkg/testutil"
 	"github.com/deliveryhero/asya/asya-sidecar/pkg/transport"
 )
+
+func integrationTempDir(t *testing.T) string {
+	t.Helper()
+	dir, cleanup, err := testutil.TempDir()
+	if err != nil {
+		t.Fatalf("failed to create temp dir: %v", err)
+	}
+	t.Cleanup(cleanup)
+	return dir
+}
 
 // RuntimeProcess manages a Python runtime subprocess for testing
 type RuntimeProcess struct {
@@ -158,7 +169,7 @@ func createTestMessage(payload map[string]interface{}) transport.QueueMessage {
 // Test Scenarios
 
 func TestSocketIntegration_HappyPath(t *testing.T) {
-	tempDir := t.TempDir()
+	tempDir := integrationTempDir(t)
 	socketPath := tempDir + "/asya-runtime.sock"
 	defer func() { _ = os.Remove(socketPath) }()
 
@@ -205,7 +216,7 @@ func TestSocketIntegration_HappyPath(t *testing.T) {
 }
 
 func TestSocketIntegration_Error(t *testing.T) {
-	tempDir := t.TempDir()
+	tempDir := integrationTempDir(t)
 	socketPath := tempDir + "/asya-runtime.sock"
 	defer func() { _ = os.Remove(socketPath) }()
 
@@ -300,7 +311,7 @@ func TestSocketIntegration_Timeout(t *testing.T) {
 }
 
 func TestSocketIntegration_Fanout(t *testing.T) {
-	tempDir := t.TempDir()
+	tempDir := integrationTempDir(t)
 	socketPath := tempDir + "/asya-runtime.sock"
 	defer func() { _ = os.Remove(socketPath) }()
 
@@ -348,7 +359,7 @@ func TestSocketIntegration_Fanout(t *testing.T) {
 }
 
 func TestSocketIntegration_EmptyResponse(t *testing.T) {
-	tempDir := t.TempDir()
+	tempDir := integrationTempDir(t)
 	socketPath := tempDir + "/asya-runtime.sock"
 	defer func() { _ = os.Remove(socketPath) }()
 
@@ -378,7 +389,7 @@ func TestSocketIntegration_EmptyResponse(t *testing.T) {
 }
 
 func TestSocketIntegration_LargePayload(t *testing.T) {
-	tempDir := t.TempDir()
+	tempDir := integrationTempDir(t)
 	socketPath := tempDir + "/asya-runtime.sock"
 	defer func() { _ = os.Remove(socketPath) }()
 
@@ -424,7 +435,7 @@ func TestSocketIntegration_LargePayload(t *testing.T) {
 }
 
 func TestSocketIntegration_Unicode(t *testing.T) {
-	tempDir := t.TempDir()
+	tempDir := integrationTempDir(t)
 	socketPath := tempDir + "/asya-runtime.sock"
 	defer func() { _ = os.Remove(socketPath) }()
 
