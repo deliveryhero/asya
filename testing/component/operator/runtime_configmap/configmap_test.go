@@ -56,8 +56,9 @@ if __name__ == "__main__":
 		t.Fatalf("Failed to create test runtime script: %v", err)
 	}
 
-	// Set environment variable for runtime script path
+	// Set environment variable for runtime script path and skip queue operations
 	t.Setenv("ASYA_RUNTIME_SCRIPT_PATH", runtimePath)
+	t.Setenv("ASYA_SKIP_QUEUE_OPERATIONS", "true")
 
 	fakeClient := fake.NewClientBuilder().
 		WithScheme(scheme).
@@ -165,7 +166,7 @@ func TestReconcileRuntimeConfigMap_CreatedDuringReconciliation(t *testing.T) {
 	// Verify labels
 	expectedLabels := map[string]string{
 		"app.kubernetes.io/name":      "asya-runtime",
-		"app.kubernetes.io/component": "runtime",
+		"app.kubernetes.io/component": "asya-runtime",
 		"app.kubernetes.io/part-of":   "asya",
 	}
 	for k, v := range expectedLabels {
