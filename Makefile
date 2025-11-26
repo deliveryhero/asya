@@ -83,7 +83,7 @@ clean-integration: ## Clean up integration test Docker resources
 # =============================================================================
 
 test-e2e: ## Run complete E2E tests (deploy → port-forward-up → test → port-forward-down → cleanup, plus separate operator e2e tests)
-	$(MAKE) -C testing/e2e test-complete-cycle
+	$(MAKE) -C testing/e2e test
 	@echo "$(GREEN_START)[++] Success: All e2e tests completed successfully!$(GREEN_END)"
 
 clean-e2e: ## Delete Kind cluster and cleanup
