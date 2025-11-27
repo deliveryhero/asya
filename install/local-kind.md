@@ -11,16 +11,16 @@ Local development cluster with Kind (Kubernetes in Docker).
 
 ## Quick Start
 
-Use E2E test infrastructure for fastest setup:
+Use the E2E test infrastructure for the fastest setup:
 
 ```bash
 cd testing/e2e
 
-# Deploy full stack (RabbitMQ + MinIO)
+# Deploy RabbitMQ + MinIO stack
 make up PROFILE=rabbitmq-minio
 
-# Or deploy AWS stack (LocalStack SQS + MinIO)
-make up PROFILE=sqs-minio
+# Or deploy AWS-style stack (LocalStack SQS + S3)
+make up PROFILE=sqs-s3
 ```
 
 **Includes**:
@@ -28,10 +28,9 @@ make up PROFILE=sqs-minio
 - Kind cluster
 - KEDA operator
 - RabbitMQ or LocalStack SQS
-- MinIO (S3-compatible storage)
+- MinIO or LocalStack S3
 - PostgreSQL (for gateway)
-- Asya operator, gateway, crew actors
-- Prometheus, Grafana (monitoring)
+- Asya operator, gateway, crew actors, and test actors
 
 **See**: `testing/e2e/README.md` for details.
 
@@ -66,30 +65,30 @@ helm install keda kedacore/keda --namespace keda --create-namespace
 ### 3. Install RabbitMQ
 
 ```bash
-kubectl apply -f testing/e2e/manifests/rabbitmq.yaml
-```
+helm upgrade --install asya-rabbitmq testing/e2e/charts/rabbitmq \
+  --namespace asya-e2e --create-namespace
 
-Wait for ready:
-```bash
-kubectl wait --for=condition=ready pod -l app=rabbitmq --timeout=300s
+kubectl wait --for=condition=ready pod -l app=rabbitmq \
+  -n asya-e2e --timeout=300s
 ```
 
 ### 4. Install MinIO
 
 ```bash
-kubectl apply -f testing/e2e/manifests/minio.yaml
+helm upgrade --install minio testing/e2e/charts/minio \
+  --namespace asya-e2e --create-namespace
 ```
 
-Create bucket:
-```bash
-kubectl exec -it deploy/minio -- mc alias set local http://localhost:9000 minioadmin minioadmin
-kubectl exec -it deploy/minio -- mc mb local/asya-results
-```
+The chart automatically creates the `asya-results` and `asya-errors` buckets via a post-install job, so no manual `mc` calls are required.
 
 ### 5. Install PostgreSQL
 
 ```bash
-kubectl apply -f testing/e2e/manifests/postgres.yaml
+helm upgrade --install asya-gateway-postgresql testing/e2e/charts/postgres \
+  --namespace asya-e2e --create-namespace
+
+kubectl wait --for=condition=ready pod -l app=postgresql \
+  -n asya-e2e --timeout=300s
 ```
 
 ### 6. Install Asya Operator
@@ -99,16 +98,18 @@ kubectl apply -f testing/e2e/manifests/postgres.yaml
 kubectl apply -f src/asya-operator/config/crd/
 
 # Create operator values
-cat > operator-values.yaml <<EOF
+cat > operator-values.yaml <<'EOF'
 transports:
   rabbitmq:
     enabled: true
     type: rabbitmq
     config:
-      host: rabbitmq.default.svc.cluster.local
+      host: asya-rabbitmq.asya-e2e.svc.cluster.local
       port: 5672
       username: guest
-      password: guest
+      passwordSecretRef:
+        name: rabbitmq-secret
+        key: password
 EOF
 
 # Install operator
@@ -120,9 +121,9 @@ helm install asya-operator deploy/helm-charts/asya-operator/ \
 ### 7. Install Gateway
 
 ```bash
-cat > gateway-values.yaml <<EOF
+cat > gateway-values.yaml <<'EOF'
 config:
-  postgresHost: postgres.default.svc.cluster.local
+  postgresHost: asya-gateway-postgresql.asya-e2e.svc.cluster.local
   postgresDatabase: asya_gateway
   postgresUsername: postgres
   postgresPassword: postgres
@@ -139,13 +140,14 @@ routes:
 EOF
 
 helm install asya-gateway deploy/helm-charts/asya-gateway/ \
+  -n asya-e2e --create-namespace \
   -f gateway-values.yaml
 ```
 
 ### 8. Install Crew
 
 ```bash
-cat > crew-values.yaml <<EOF
+cat > crew-values.yaml <<'EOF'
 happy-end:
   enabled: true
   transport: rabbitmq
@@ -160,7 +162,7 @@ happy-end:
           - name: ASYA_S3_BUCKET
             value: asya-results
           - name: ASYA_S3_ENDPOINT
-            value: http://minio.default.svc.cluster.local:9000
+            value: http://minio.asya-e2e.svc.cluster.local:9000
           - name: ASYA_S3_ACCESS_KEY
             value: minioadmin
           - name: ASYA_S3_SECRET_KEY
@@ -178,9 +180,9 @@ error-end:
           - name: ASYA_HANDLER
             value: handlers.end_handlers.error_end_handler
           - name: ASYA_S3_BUCKET
-            value: asya-results
+            value: asya-errors
           - name: ASYA_S3_ENDPOINT
-            value: http://minio.default.svc.cluster.local:9000
+            value: http://minio.asya-e2e.svc.cluster.local:9000
           - name: ASYA_S3_ACCESS_KEY
             value: minioadmin
           - name: ASYA_S3_SECRET_KEY
@@ -188,7 +190,7 @@ error-end:
 EOF
 
 helm install asya-crew deploy/helm-charts/asya-crew/ \
-  --namespace default \
+  --namespace asya-e2e \
   -f crew-values.yaml
 ```
 
@@ -249,7 +251,7 @@ kubectl apply -f hello-actor.yaml
 uv pip install -e ./src/asya-cli
 
 # Port-forward gateway
-kubectl port-forward svc/asya-gateway 8089:80
+kubectl port-forward -n asya-e2e svc/asya-gateway 8089:80
 
 # Set gateway URL
 export ASYA_CLI_MCP_URL=http://localhost:8089/
@@ -265,7 +267,7 @@ asya-mcp call hello --who=World
 
 ```bash
 # Port-forward RabbitMQ
-kubectl port-forward svc/rabbitmq 15672:15672 5672:5672
+kubectl port-forward -n asya-e2e svc/asya-rabbitmq 15672:15672 5672:5672
 
 # Open management UI: http://localhost:15672 (guest/guest)
 

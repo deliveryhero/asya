@@ -840,24 +840,23 @@
 <li><a href="https://kind.sigs.k8s.io/docs/user/quick-start/#installation">Kind</a></li>
 </ul>
 <h2 id="quick-start">Quick Start<a class="headerlink" href="#quick-start" title="Permanent link">&para;</a></h2>
-<p>Use E2E test infrastructure for fastest setup:</p>
+<p>Use the E2E test infrastructure for the fastest setup:</p>
 <div class="highlight"><pre><span></span><code><span class="nb">cd</span><span class="w"> </span>testing/e2e
 
-<span class="c1"># Deploy full stack (RabbitMQ + MinIO)</span>
+<span class="c1"># Deploy RabbitMQ + MinIO stack</span>
 make<span class="w"> </span>up<span class="w"> </span><span class="nv">PROFILE</span><span class="o">=</span>rabbitmq-minio
 
-<span class="c1"># Or deploy AWS stack (LocalStack SQS + MinIO)</span>
-make<span class="w"> </span>up<span class="w"> </span><span class="nv">PROFILE</span><span class="o">=</span>sqs-minio
+<span class="c1"># Or deploy AWS-style stack (LocalStack SQS + S3)</span>
+make<span class="w"> </span>up<span class="w"> </span><span class="nv">PROFILE</span><span class="o">=</span>sqs-s3
 </code></pre></div>
 <p><strong>Includes</strong>:</p>
 <ul>
 <li>Kind cluster</li>
 <li>KEDA operator</li>
 <li>RabbitMQ or LocalStack SQS</li>
-<li>MinIO (S3-compatible storage)</li>
+<li>MinIO or LocalStack S3</li>
 <li>PostgreSQL (for gateway)</li>
-<li>Asya operator, gateway, crew actors</li>
-<li>Prometheus, Grafana (monitoring)</li>
+<li>Asya operator, gateway, crew actors, and test actors</li>
 </ul>
 <p><strong>See</strong>: <code>testing/e2e/README.md</code> for details.</p>
 <h2 id="manual-installation">Manual Installation<a class="headerlink" href="#manual-installation" title="Permanent link">&para;</a></h2>
@@ -880,36 +879,41 @@ make<span class="w"> </span>up<span class="w"> </span><span class="nv">PROFILE</
 helm<span class="w"> </span>install<span class="w"> </span>keda<span class="w"> </span>kedacore/keda<span class="w"> </span>--namespace<span class="w"> </span>keda<span class="w"> </span>--create-namespace
 </code></pre></div>
 <h3 id="3-install-rabbitmq">3. Install RabbitMQ<a class="headerlink" href="#3-install-rabbitmq" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>apply<span class="w"> </span>-f<span class="w"> </span>testing/e2e/manifests/rabbitmq.yaml
+<div class="highlight"><pre><span></span><code>helm<span class="w"> </span>upgrade<span class="w"> </span>--install<span class="w"> </span>asya-rabbitmq<span class="w"> </span>testing/e2e/charts/rabbitmq<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--namespace<span class="w"> </span>asya-e2e<span class="w"> </span>--create-namespace
+
+kubectl<span class="w"> </span><span class="nb">wait</span><span class="w"> </span>--for<span class="o">=</span><span class="nv">condition</span><span class="o">=</span>ready<span class="w"> </span>pod<span class="w"> </span>-l<span class="w"> </span><span class="nv">app</span><span class="o">=</span>rabbitmq<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-n<span class="w"> </span>asya-e2e<span class="w"> </span>--timeout<span class="o">=</span>300s
 </code></pre></div>
-<p>Wait for ready:
-<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span><span class="nb">wait</span><span class="w"> </span>--for<span class="o">=</span><span class="nv">condition</span><span class="o">=</span>ready<span class="w"> </span>pod<span class="w"> </span>-l<span class="w"> </span><span class="nv">app</span><span class="o">=</span>rabbitmq<span class="w"> </span>--timeout<span class="o">=</span>300s
-</code></pre></div></p>
 <h3 id="4-install-minio">4. Install MinIO<a class="headerlink" href="#4-install-minio" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>apply<span class="w"> </span>-f<span class="w"> </span>testing/e2e/manifests/minio.yaml
+<div class="highlight"><pre><span></span><code>helm<span class="w"> </span>upgrade<span class="w"> </span>--install<span class="w"> </span>minio<span class="w"> </span>testing/e2e/charts/minio<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--namespace<span class="w"> </span>asya-e2e<span class="w"> </span>--create-namespace
 </code></pre></div>
-<p>Create bucket:
-<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-it<span class="w"> </span>deploy/minio<span class="w"> </span>--<span class="w"> </span>mc<span class="w"> </span><span class="nb">alias</span><span class="w"> </span><span class="nb">set</span><span class="w"> </span><span class="nb">local</span><span class="w"> </span>http://localhost:9000<span class="w"> </span>minioadmin<span class="w"> </span>minioadmin
-kubectl<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-it<span class="w"> </span>deploy/minio<span class="w"> </span>--<span class="w"> </span>mc<span class="w"> </span>mb<span class="w"> </span>local/asya-results
-</code></pre></div></p>
+<p>The chart automatically creates the <code>asya-results</code> and <code>asya-errors</code> buckets via a post-install job, so no manual <code>mc</code> calls are required.</p>
 <h3 id="5-install-postgresql">5. Install PostgreSQL<a class="headerlink" href="#5-install-postgresql" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>apply<span class="w"> </span>-f<span class="w"> </span>testing/e2e/manifests/postgres.yaml
+<div class="highlight"><pre><span></span><code>helm<span class="w"> </span>upgrade<span class="w"> </span>--install<span class="w"> </span>asya-gateway-postgresql<span class="w"> </span>testing/e2e/charts/postgres<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--namespace<span class="w"> </span>asya-e2e<span class="w"> </span>--create-namespace
+
+kubectl<span class="w"> </span><span class="nb">wait</span><span class="w"> </span>--for<span class="o">=</span><span class="nv">condition</span><span class="o">=</span>ready<span class="w"> </span>pod<span class="w"> </span>-l<span class="w"> </span><span class="nv">app</span><span class="o">=</span>postgresql<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-n<span class="w"> </span>asya-e2e<span class="w"> </span>--timeout<span class="o">=</span>300s
 </code></pre></div>
 <h3 id="6-install-asya-operator">6. Install Asya Operator<a class="headerlink" href="#6-install-asya-operator" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><span class="c1"># Install CRDs</span>
 kubectl<span class="w"> </span>apply<span class="w"> </span>-f<span class="w"> </span>src/asya-operator/config/crd/
 
 <span class="c1"># Create operator values</span>
-cat<span class="w"> </span>&gt;<span class="w"> </span>operator-values.yaml<span class="w"> </span><span class="s">&lt;&lt;EOF</span>
+cat<span class="w"> </span>&gt;<span class="w"> </span>operator-values.yaml<span class="w"> </span><span class="s">&lt;&lt;&#39;EOF&#39;</span>
 <span class="s">transports:</span>
 <span class="s">  rabbitmq:</span>
 <span class="s">    enabled: true</span>
 <span class="s">    type: rabbitmq</span>
 <span class="s">    config:</span>
-<span class="s">      host: rabbitmq.default.svc.cluster.local</span>
+<span class="s">      host: asya-rabbitmq.asya-e2e.svc.cluster.local</span>
 <span class="s">      port: 5672</span>
 <span class="s">      username: guest</span>
-<span class="s">      password: guest</span>
+<span class="s">      passwordSecretRef:</span>
+<span class="s">        name: rabbitmq-secret</span>
+<span class="s">        key: password</span>
 <span class="s">EOF</span>
 
 <span class="c1"># Install operator</span>
@@ -918,9 +922,9 @@ helm<span class="w"> </span>install<span class="w"> </span>asya-operator<span cl
 <span class="w">  </span>-f<span class="w"> </span>operator-values.yaml
 </code></pre></div>
 <h3 id="7-install-gateway">7. Install Gateway<a class="headerlink" href="#7-install-gateway" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code>cat<span class="w"> </span>&gt;<span class="w"> </span>gateway-values.yaml<span class="w"> </span><span class="s">&lt;&lt;EOF</span>
+<div class="highlight"><pre><span></span><code>cat<span class="w"> </span>&gt;<span class="w"> </span>gateway-values.yaml<span class="w"> </span><span class="s">&lt;&lt;&#39;EOF&#39;</span>
 <span class="s">config:</span>
-<span class="s">  postgresHost: postgres.default.svc.cluster.local</span>
+<span class="s">  postgresHost: asya-gateway-postgresql.asya-e2e.svc.cluster.local</span>
 <span class="s">  postgresDatabase: asya_gateway</span>
 <span class="s">  postgresUsername: postgres</span>
 <span class="s">  postgresPassword: postgres</span>
@@ -937,10 +941,11 @@ helm<span class="w"> </span>install<span class="w"> </span>asya-operator<span cl
 <span class="s">EOF</span>
 
 helm<span class="w"> </span>install<span class="w"> </span>asya-gateway<span class="w"> </span>deploy/helm-charts/asya-gateway/<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-n<span class="w"> </span>asya-e2e<span class="w"> </span>--create-namespace<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-f<span class="w"> </span>gateway-values.yaml
 </code></pre></div>
 <h3 id="8-install-crew">8. Install Crew<a class="headerlink" href="#8-install-crew" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code>cat<span class="w"> </span>&gt;<span class="w"> </span>crew-values.yaml<span class="w"> </span><span class="s">&lt;&lt;EOF</span>
+<div class="highlight"><pre><span></span><code>cat<span class="w"> </span>&gt;<span class="w"> </span>crew-values.yaml<span class="w"> </span><span class="s">&lt;&lt;&#39;EOF&#39;</span>
 <span class="s">happy-end:</span>
 <span class="s">  enabled: true</span>
 <span class="s">  transport: rabbitmq</span>
@@ -955,7 +960,7 @@ helm<span class="w"> </span>install<span class="w"> </span>asya-gateway<span cla
 <span class="s">          - name: ASYA_S3_BUCKET</span>
 <span class="s">            value: asya-results</span>
 <span class="s">          - name: ASYA_S3_ENDPOINT</span>
-<span class="s">            value: http://minio.default.svc.cluster.local:9000</span>
+<span class="s">            value: http://minio.asya-e2e.svc.cluster.local:9000</span>
 <span class="s">          - name: ASYA_S3_ACCESS_KEY</span>
 <span class="s">            value: minioadmin</span>
 <span class="s">          - name: ASYA_S3_SECRET_KEY</span>
@@ -973,9 +978,9 @@ helm<span class="w"> </span>install<span class="w"> </span>asya-gateway<span cla
 <span class="s">          - name: ASYA_HANDLER</span>
 <span class="s">            value: handlers.end_handlers.error_end_handler</span>
 <span class="s">          - name: ASYA_S3_BUCKET</span>
-<span class="s">            value: asya-results</span>
+<span class="s">            value: asya-errors</span>
 <span class="s">          - name: ASYA_S3_ENDPOINT</span>
-<span class="s">            value: http://minio.default.svc.cluster.local:9000</span>
+<span class="s">            value: http://minio.asya-e2e.svc.cluster.local:9000</span>
 <span class="s">          - name: ASYA_S3_ACCESS_KEY</span>
 <span class="s">            value: minioadmin</span>
 <span class="s">          - name: ASYA_S3_SECRET_KEY</span>
@@ -983,7 +988,7 @@ helm<span class="w"> </span>install<span class="w"> </span>asya-gateway<span cla
 <span class="s">EOF</span>
 
 helm<span class="w"> </span>install<span class="w"> </span>asya-crew<span class="w"> </span>deploy/helm-charts/asya-crew/<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--namespace<span class="w"> </span>default<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--namespace<span class="w"> </span>asya-e2e<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-f<span class="w"> </span>crew-values.yaml
 </code></pre></div>
 <h3 id="9-deploy-test-actor">9. Deploy Test Actor<a class="headerlink" href="#9-deploy-test-actor" title="Permanent link">&para;</a></h3>
@@ -1035,7 +1040,7 @@ helm<span class="w"> </span>install<span class="w"> </span>asya-crew<span class=
 uv<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>./src/asya-cli
 
 <span class="c1"># Port-forward gateway</span>
-kubectl<span class="w"> </span>port-forward<span class="w"> </span>svc/asya-gateway<span class="w"> </span><span class="m">8089</span>:80
+kubectl<span class="w"> </span>port-forward<span class="w"> </span>-n<span class="w"> </span>asya-e2e<span class="w"> </span>svc/asya-gateway<span class="w"> </span><span class="m">8089</span>:80
 
 <span class="c1"># Set gateway URL</span>
 <span class="nb">export</span><span class="w"> </span><span class="nv">ASYA_CLI_MCP_URL</span><span class="o">=</span>http://localhost:8089/
@@ -1048,7 +1053,7 @@ asya-mcp<span class="w"> </span>call<span class="w"> </span>hello<span class="w"
 </code></pre></div>
 <h3 id="via-rabbitmq-direct">Via RabbitMQ Direct<a class="headerlink" href="#via-rabbitmq-direct" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><span class="c1"># Port-forward RabbitMQ</span>
-kubectl<span class="w"> </span>port-forward<span class="w"> </span>svc/rabbitmq<span class="w"> </span><span class="m">15672</span>:15672<span class="w"> </span><span class="m">5672</span>:5672
+kubectl<span class="w"> </span>port-forward<span class="w"> </span>-n<span class="w"> </span>asya-e2e<span class="w"> </span>svc/asya-rabbitmq<span class="w"> </span><span class="m">15672</span>:15672<span class="w"> </span><span class="m">5672</span>:5672
 
 <span class="c1"># Open management UI: http://localhost:15672 (guest/guest)</span>
 
