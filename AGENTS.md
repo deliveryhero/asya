@@ -14,7 +14,7 @@ Asya🎭 is an async actor-based framework for deploying AI workloads on Kuberne
 
 ### Prerequisites
 - **uv** (required for Python): `curl -LsSf https://astral.sh/uv/install.sh | sh`
-- Go 1.23+, Python 3.7+ (asya-runtime), Python 3.13+ (other components), Docker, Make
+- Go 1.24+, Python 3.7+ (asya-runtime), Python 3.13+ (other components), Docker, Make
 
 ### Essential Commands
 ```bash

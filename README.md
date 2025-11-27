@@ -178,7 +178,7 @@ We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for:
 - Code standards and linting
 - Pull request process
 
-**Prerequisites**: Go 1.23+, Python 3.13+, Docker, Make, [uv](https://github.com/astral-sh/uv)
+**Prerequisites**: Go 1.24+, Python 3.13+, Docker, Make, [uv](https://github.com/astral-sh/uv)
 
 **Quick commands**:
 ```bash

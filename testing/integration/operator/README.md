@@ -27,7 +27,7 @@ KEDA-specific functionality requires a real cluster with KEDA installed:
 
 ## Prerequisites
 
-- **Go 1.23+**
+- **Go 1.24+**
 - **envtest binaries** (downloaded automatically via `make setup-envtest`)
 
 ## Running Integration Tests

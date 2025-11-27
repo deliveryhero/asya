@@ -17,7 +17,7 @@ GOIMPORTS_VERSION := v0.28.0
 setup: ## Set up development environment (install deps, pre-commit hooks)
 	@echo "[.] Setting up development environment..."
 	@command -v uv >/dev/null 2>&1 || (echo "[-] uv not found. Install: curl -LsSf https://astral.sh/uv/install.sh | sh" && exit 1)
-	@command -v go >/dev/null 2>&1 || (echo "[-] Go not found. Install Go 1.23+" && exit 1)
+	@command -v go >/dev/null 2>&1 || (echo "[-] Go not found. Install Go 1.24+" && exit 1)
 	@echo "[+] Installing Python development tools..."
 	uv pip install pre-commit
 	@echo "[+] Installing Go linting tools..."

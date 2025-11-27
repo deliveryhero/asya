@@ -5,7 +5,7 @@
 ### Prerequisites
 
 - Make
-- Go 1.23+
+- Go 1.24+
 - Python 3.13+
 - **[uv](https://github.com/astral-sh/uv)** (required for Python development)
 - Docker and Docker Compose (for component- and integration tests)
