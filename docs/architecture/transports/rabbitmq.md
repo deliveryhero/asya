@@ -150,13 +150,16 @@ When `queues.dlq.enabled: true`, queues are configured with dead-letter exchange
 
 ## Deployment
 
-**RabbitMQ deployed separately**:
+**RabbitMQ deployed separately** (example for local Kind using the maintained Helm chart):
 ```bash
-# Example: Official RabbitMQ manifest
-kubectl apply -f testing/e2e/manifests/rabbitmq.yaml
+helm upgrade --install asya-rabbitmq testing/e2e/charts/rabbitmq \
+  --namespace asya-e2e --create-namespace
+
+kubectl wait --for=condition=ready pod -l app=rabbitmq \
+  -n asya-e2e --timeout=300s
 ```
 
-**See**: [../../install/local-kind.md](../../install/local-kind.md) for local setup.
+**See**: [../../install/local-kind.md](../../install/local-kind.md) for full local setup.
 
 ## Cost Considerations
 

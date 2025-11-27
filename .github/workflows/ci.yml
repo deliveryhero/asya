@@ -5,7 +5,7 @@ on:
     branches: [main]
     paths-ignore:
     - '**.md'
-    - '**.yml'  # ignore configs unless code changed
+    - '**.yml' # ignore configs unless code changed
     - '**.yaml'
     - 'docs/**'
   pull_request:
