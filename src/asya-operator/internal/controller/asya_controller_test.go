@@ -1593,6 +1593,62 @@ func TestReconcileDelete_HandlesRabbitMQTransport(t *testing.T) {
 	}
 }
 
+func TestReconcileDelete_SkipsQueueDeletionWhenDisabled(t *testing.T) {
+	t.Setenv("ASYA_DISABLE_QUEUE_MANAGEMENT", "true")
+
+	scheme := runtime.NewScheme()
+	_ = asyav1alpha1.AddToScheme(scheme)
+	_ = corev1.AddToScheme(scheme)
+
+	asya := &asyav1alpha1.AsyncActor{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       "test-actor-no-queue-delete",
+			Namespace:  "default",
+			Finalizers: []string{actorFinalizer},
+		},
+		Spec: asyav1alpha1.AsyncActorSpec{
+			Transport: testTransportSQS,
+		},
+	}
+
+	transportRegistry := &asyaconfig.TransportRegistry{
+		Transports: map[string]*asyaconfig.TransportConfig{
+			testTransportSQS: {
+				Type:    testTransportSQS,
+				Enabled: true,
+				Config: &asyaconfig.SQSConfig{
+					Region:   "us-east-1",
+					Endpoint: "http://localstack:4566",
+				},
+			},
+		},
+	}
+
+	fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(asya).Build()
+
+	r := &AsyncActorReconciler{
+		Client:            fakeClient,
+		Scheme:            scheme,
+		TransportRegistry: transportRegistry,
+		TransportFactory:  transports.NewFactory(fakeClient, transportRegistry),
+	}
+
+	_, err := r.reconcileDelete(context.Background(), asya)
+	if err != nil {
+		t.Fatalf("reconcileDelete failed: %v", err)
+	}
+
+	var updatedAsya asyav1alpha1.AsyncActor
+	err = r.Get(context.Background(), client.ObjectKey{Name: "test-actor-no-queue-delete", Namespace: "default"}, &updatedAsya)
+	if err != nil {
+		t.Fatalf("Failed to get updated AsyncActor: %v", err)
+	}
+
+	if len(updatedAsya.Finalizers) != 0 {
+		t.Errorf("Expected finalizer to be removed, but finalizers still present: %v", updatedAsya.Finalizers)
+	}
+}
+
 func TestReconcileDeployment_PreservesUserLabels(t *testing.T) {
 	scheme := runtime.NewScheme()
 	_ = asyav1alpha1.AddToScheme(scheme)
