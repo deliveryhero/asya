@@ -16,7 +16,7 @@ make port-forward-down
 make cov                        # Print coverage info
 ```
 
-If you prefer to stay at repo root, prefix commands with `make -C testing/e2e <target>`.
+If you prefer to stay at the repo root, you can prefix commands like so: `PROFILE=rabbitmq-minio make -C testing/e2e <target>`.
 
 ## Prerequisites
 
