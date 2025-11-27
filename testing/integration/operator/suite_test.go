@@ -68,9 +68,9 @@ func TestMain(m *testing.M) {
 	// Override runtime script path for tests via environment variable
 	os.Setenv("ASYA_RUNTIME_SCRIPT_PATH", runtimeDst)
 
-	// Skip queue operations in integration tests (envtest has no real RabbitMQ/SQS)
+	// Disable queue management in integration tests (envtest has no real RabbitMQ/SQS)
 	// Queue validation is tested in unit tests with mocks (queue_validation_test.go)
-	os.Setenv("ASYA_SKIP_QUEUE_OPERATIONS", "true")
+	os.Setenv("ASYA_DISABLE_QUEUE_MANAGEMENT", "true")
 
 	ctx, cancel = context.WithCancel(context.TODO())
 
