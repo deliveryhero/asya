@@ -1,6 +1,8 @@
 module github.com/deliveryhero/asya/testing/integration/sidecar
 
-go 1.23.10
+go 1.24.0
+
+toolchain go1.24.1
 
 replace github.com/deliveryhero/asya/asya-sidecar => ../../../src/asya-sidecar
 
@@ -30,6 +32,7 @@ require (
 	github.com/prometheus/procfs v0.16.1 // indirect
 	github.com/rabbitmq/amqp091-go v1.10.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.2 // indirect
-	golang.org/x/sys v0.35.0 // indirect
+	golang.org/x/net v0.47.0 // indirect
+	golang.org/x/sys v0.38.0 // indirect
 	google.golang.org/protobuf v1.36.8 // indirect
 )
