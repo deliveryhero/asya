@@ -166,7 +166,7 @@ func TestReconcileRuntimeConfigMap_CreatedDuringReconciliation(t *testing.T) {
 	// Verify labels
 	expectedLabels := map[string]string{
 		"app.kubernetes.io/name":      "asya-runtime",
-		"app.kubernetes.io/component": "asya-runtime",
+		"app.kubernetes.io/component": "runtime",
 		"app.kubernetes.io/part-of":   "asya",
 	}
 	for k, v := range expectedLabels {
