@@ -432,13 +432,17 @@ func (r *AsyncActorReconciler) reconcileDelete(ctx context.Context, asya *asyav1
 	}
 
 	// Delete transport queue using transport layer
-	queueReconciler, err := r.TransportFactory.GetQueueReconciler(asya.Spec.Transport)
-	if err != nil {
-		logger.Error(err, "Failed to get queue reconciler for deletion", "transport", asya.Spec.Transport)
-	} else {
-		if err := queueReconciler.DeleteQueue(ctx, asya); err != nil {
-			logger.Error(err, "Failed to delete queue, continuing with deletion", "transport", asya.Spec.Transport)
+	if isQueueManagementEnabled() {
+		queueReconciler, err := r.TransportFactory.GetQueueReconciler(asya.Spec.Transport)
+		if err != nil {
+			logger.Error(err, "Failed to get queue reconciler for deletion", "transport", asya.Spec.Transport)
+		} else {
+			if err := queueReconciler.DeleteQueue(ctx, asya); err != nil {
+				logger.Error(err, "Failed to delete queue, continuing with deletion", "transport", asya.Spec.Transport)
+			}
 		}
+	} else {
+		logger.V(1).Info("Queue management disabled, skipping queue deletion")
 	}
 
 	// Remove finalizer
