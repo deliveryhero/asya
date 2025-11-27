@@ -14,6 +14,7 @@ import (
 	"github.com/deliveryhero/asya/asya-sidecar/pkg/envelopes"
 	sidecartesting "github.com/deliveryhero/asya/asya-sidecar/pkg/testing"
 	"github.com/deliveryhero/asya/asya-sidecar/pkg/transport"
+	"golang.org/x/net/nettest"
 )
 
 // RuntimeProcess manages a Python runtime subprocess for testing
@@ -48,6 +49,7 @@ func StartRuntime(t *testing.T, handler string, socketPath string, envVars map[s
 	cmd.Env = os.Environ()
 	cmd.Env = append(cmd.Env, fmt.Sprintf("ASYA_HANDLER=asya_testing.handlers.payload.%s", handler))
 	cmd.Env = append(cmd.Env, fmt.Sprintf("ASYA_SOCKET_DIR=%s", filepath.Dir(socketPath)))
+	cmd.Env = append(cmd.Env, fmt.Sprintf("ASYA_SOCKET_NAME=%s", filepath.Base(socketPath)))
 	cmd.Env = append(cmd.Env, fmt.Sprintf("PYTHONPATH=%s", testingDir))
 
 	// Add custom environment variables
@@ -158,9 +160,13 @@ func createTestMessage(payload map[string]interface{}) transport.QueueMessage {
 // Test Scenarios
 
 func TestSocketIntegration_HappyPath(t *testing.T) {
-	tempDir := t.TempDir()
-	socketPath := tempDir + "/asya-runtime.sock"
-	defer func() { _ = os.Remove(socketPath) }()
+	socketBasePath, err := nettest.LocalPath()
+	if err != nil {
+		t.Fatalf("Failed to create socket path: %v", err)
+	}
+	defer func() { _ = os.Remove(socketBasePath) }()
+
+	socketPath := socketBasePath + ".sock"
 
 	// Start runtime with echo_handler
 	runtimeProc := StartRuntime(t, "echo_handler", socketPath, nil)
@@ -177,7 +183,7 @@ func TestSocketIntegration_HappyPath(t *testing.T) {
 	})
 
 	ctx := context.Background()
-	err := r.ProcessEnvelope(ctx, testMsg)
+	err = r.ProcessEnvelope(ctx, testMsg)
 	if err != nil {
 		t.Fatalf("ProcessMessage failed: %v", err)
 	}
@@ -205,9 +211,13 @@ func TestSocketIntegration_HappyPath(t *testing.T) {
 }
 
 func TestSocketIntegration_Error(t *testing.T) {
-	tempDir := t.TempDir()
-	socketPath := tempDir + "/asya-runtime.sock"
-	defer func() { _ = os.Remove(socketPath) }()
+	socketBasePath, err := nettest.LocalPath()
+	if err != nil {
+		t.Fatalf("Failed to create socket path: %v", err)
+	}
+	defer func() { _ = os.Remove(socketBasePath) }()
+
+	socketPath := socketBasePath + ".sock"
 
 	// Start runtime with error_handler
 	runtimeProc := StartRuntime(t, "error_handler", socketPath, nil)
@@ -222,7 +232,7 @@ func TestSocketIntegration_Error(t *testing.T) {
 	})
 
 	ctx := context.Background()
-	err := r.ProcessEnvelope(ctx, testMsg)
+	err = r.ProcessEnvelope(ctx, testMsg)
 	if err != nil {
 		t.Fatalf("ProcessMessage failed: %v", err)
 	}
@@ -252,9 +262,13 @@ func TestSocketIntegration_Error(t *testing.T) {
 
 func TestSocketIntegration_Timeout(t *testing.T) {
 	t.Skip("Timeout test causes pod crash - tested in e2e tests instead")
-	tempDir := t.TempDir()
-	socketPath := tempDir + "/asya-runtime.sock"
-	defer func() { _ = os.Remove(socketPath) }()
+	socketBasePath, err := nettest.LocalPath()
+	if err != nil {
+		t.Fatalf("Failed to create socket path: %v", err)
+	}
+	defer func() { _ = os.Remove(socketBasePath) }()
+
+	socketPath := socketBasePath + ".sock"
 
 	// Start runtime with timeout_handler
 	runtimeProc := StartRuntime(t, "timeout_handler", socketPath, nil)
@@ -270,7 +284,7 @@ func TestSocketIntegration_Timeout(t *testing.T) {
 	})
 
 	ctx := context.Background()
-	err := r.ProcessEnvelope(ctx, testMsg)
+	err = r.ProcessEnvelope(ctx, testMsg)
 	if err != nil {
 		t.Fatalf("ProcessMessage failed: %v", err)
 	}
@@ -300,9 +314,13 @@ func TestSocketIntegration_Timeout(t *testing.T) {
 }
 
 func TestSocketIntegration_Fanout(t *testing.T) {
-	tempDir := t.TempDir()
-	socketPath := tempDir + "/asya-runtime.sock"
-	defer func() { _ = os.Remove(socketPath) }()
+	socketBasePath, err := nettest.LocalPath()
+	if err != nil {
+		t.Fatalf("Failed to create socket path: %v", err)
+	}
+	defer func() { _ = os.Remove(socketBasePath) }()
+
+	socketPath := socketBasePath + ".sock"
 
 	// Start runtime with fanout_handler
 	runtimeProc := StartRuntime(t, "fanout_handler", socketPath, nil)
@@ -318,7 +336,7 @@ func TestSocketIntegration_Fanout(t *testing.T) {
 	})
 
 	ctx := context.Background()
-	err := r.ProcessEnvelope(ctx, testMsg)
+	err = r.ProcessEnvelope(ctx, testMsg)
 	if err != nil {
 		t.Fatalf("ProcessMessage failed: %v", err)
 	}
@@ -348,9 +366,13 @@ func TestSocketIntegration_Fanout(t *testing.T) {
 }
 
 func TestSocketIntegration_EmptyResponse(t *testing.T) {
-	tempDir := t.TempDir()
-	socketPath := tempDir + "/asya-runtime.sock"
-	defer func() { _ = os.Remove(socketPath) }()
+	socketBasePath, err := nettest.LocalPath()
+	if err != nil {
+		t.Fatalf("Failed to create socket path: %v", err)
+	}
+	defer func() { _ = os.Remove(socketBasePath) }()
+
+	socketPath := socketBasePath + ".sock"
 
 	// Start runtime with empty_response_handler
 	runtimeProc := StartRuntime(t, "empty_response_handler", socketPath, nil)
@@ -365,7 +387,7 @@ func TestSocketIntegration_EmptyResponse(t *testing.T) {
 	})
 
 	ctx := context.Background()
-	err := r.ProcessEnvelope(ctx, testMsg)
+	err = r.ProcessEnvelope(ctx, testMsg)
 	if err != nil {
 		t.Fatalf("ProcessMessage failed: %v", err)
 	}
@@ -378,9 +400,13 @@ func TestSocketIntegration_EmptyResponse(t *testing.T) {
 }
 
 func TestSocketIntegration_LargePayload(t *testing.T) {
-	tempDir := t.TempDir()
-	socketPath := tempDir + "/asya-runtime.sock"
-	defer func() { _ = os.Remove(socketPath) }()
+	socketBasePath, err := nettest.LocalPath()
+	if err != nil {
+		t.Fatalf("Failed to create socket path: %v", err)
+	}
+	defer func() { _ = os.Remove(socketBasePath) }()
+
+	socketPath := socketBasePath + ".sock"
 
 	// Start runtime with large_payload_handler
 	runtimeProc := StartRuntime(t, "large_payload_handler", socketPath, nil)
@@ -396,7 +422,7 @@ func TestSocketIntegration_LargePayload(t *testing.T) {
 	})
 
 	ctx := context.Background()
-	err := r.ProcessEnvelope(ctx, testMsg)
+	err = r.ProcessEnvelope(ctx, testMsg)
 	if err != nil {
 		t.Fatalf("ProcessMessage failed: %v", err)
 	}
@@ -424,9 +450,13 @@ func TestSocketIntegration_LargePayload(t *testing.T) {
 }
 
 func TestSocketIntegration_Unicode(t *testing.T) {
-	tempDir := t.TempDir()
-	socketPath := tempDir + "/asya-runtime.sock"
-	defer func() { _ = os.Remove(socketPath) }()
+	socketBasePath, err := nettest.LocalPath()
+	if err != nil {
+		t.Fatalf("Failed to create socket path: %v", err)
+	}
+	defer func() { _ = os.Remove(socketBasePath) }()
+
+	socketPath := socketBasePath + ".sock"
 
 	// Start runtime with unicode_handler
 	runtimeProc := StartRuntime(t, "unicode_handler", socketPath, nil)
@@ -442,7 +472,7 @@ func TestSocketIntegration_Unicode(t *testing.T) {
 	})
 
 	ctx := context.Background()
-	err := r.ProcessEnvelope(ctx, testMsg)
+	err = r.ProcessEnvelope(ctx, testMsg)
 	if err != nil {
 		t.Fatalf("ProcessMessage failed: %v", err)
 	}
