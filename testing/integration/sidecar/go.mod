@@ -6,7 +6,10 @@ toolchain go1.24.1
 
 replace github.com/deliveryhero/asya/asya-sidecar => ../../../src/asya-sidecar
 
-require github.com/deliveryhero/asya/asya-sidecar v0.0.0-00010101000000-000000000000
+require (
+	github.com/deliveryhero/asya/asya-sidecar v0.0.0-00010101000000-000000000000
+	golang.org/x/net v0.47.0
+)
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.39.4 // indirect
@@ -32,7 +35,6 @@ require (
 	github.com/prometheus/procfs v0.16.1 // indirect
 	github.com/rabbitmq/amqp091-go v1.10.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.2 // indirect
-	golang.org/x/net v0.47.0 // indirect
 	golang.org/x/sys v0.38.0 // indirect
 	google.golang.org/protobuf v1.36.8 // indirect
 )
