@@ -11,6 +11,15 @@
 - Docker and Docker Compose (for component- and integration tests)
 - Kubectl, Helm, Kind (for local deployment and e2e tests)
 
+**Install Go 1.24+**:
+
+On Linux:
+```bash
+bash < <(curl -s -S -L https://raw.githubusercontent.com/moovweb/gvm/master/binscripts/gvm-installer)
+gvm install go1.24
+gvm use go1.24 --default
+```
+
 **Install uv**:
 ```bash
 # macOS/Linux
