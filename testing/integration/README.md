@@ -93,6 +93,54 @@ Tests operator CRD reconciliation logic:
 
 **Technology**: Go tests with envtest (Kubernetes API without full cluster)
 
+## macOS-Specific Setup
+
+### Docker Compose Version Requirement
+
+Integration tests require Docker Compose v2.17.0 or newer due to a [known bug in v2.16.0](https://github.com/docker/compose/issues/10258) that breaks `env_file` path resolution when using `extends`.
+
+**Check your version:**
+```bash
+docker-compose --version
+```
+
+**If you have v2.16.0, upgrade Docker Compose:**
+
+Option 1: Update Docker Desktop (recommended for macOS)
+- Install or update [Docker Desktop](https://docs.docker.com/desktop/install/mac-install/) to get the latest stable Compose v2
+- Docker Desktop includes `docker compose` (plugin) which is the recommended way to run Compose v2
+
+Option 2: Upgrade standalone docker-compose
+```bash
+brew upgrade docker-compose
+```
+
+**Configure environment:**
+```bash
+# If using Docker Desktop (docker compose plugin):
+export DOCKER_COMPOSE="docker compose"
+
+# If using standalone docker-compose:
+export DOCKER_COMPOSE="docker-compose"
+```
+
+Add this to your `~/.zshrc` or `~/.bashrc` to make it permanent.
+
+### Troubleshooting macOS Issues
+
+**Error: `Failed to load .../envs/.env.postgres: no such file or directory`**
+
+This indicates Docker Compose v2.16.0 is incorrectly resolving `env_file` paths when using `extends`. This is a [known regression bug](https://github.com/docker/compose/issues/10258) fixed in v2.17.0+.
+
+Solution: Upgrade Docker Compose (see above).
+
+**Verification:**
+```bash
+# After upgrading, verify the fix:
+cd testing/integration/gateway
+DOCKER_COMPOSE="docker-compose" make test  # or export DOCKER_COMPOSE="docker compose"
+```
+
 ## Running Tests
 
 ### All integration tests
