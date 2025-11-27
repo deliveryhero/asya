@@ -6,7 +6,7 @@ Build and deploy your first Asya actor.
 
 As a data scientist, you focus on writing pure Python functions. Asya handles infrastructure, routing, scaling, and monitoring.
 
-**Core pattern**: Mutate and enrich the payload  -  not request/response. Each actor adds its results to the payload, which flows through the pipeline. See [archtecture/protocols/actor-actor.md](../architecture/protocols/actor-actor.md#payload-enrichment-pattern) for more details.
+**Core pattern**: Mutate and enrich the payload  -  not request/response. Each actor adds its results to the payload, which flows through the pipeline. See [payload enrichment pattern](../architecture/protocols/actor-actor.md#payload-enrichment-pattern) for more details.
 
 Write a handler function or class:
 
