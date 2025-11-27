@@ -8,7 +8,9 @@ COVERAGE_DIR := $(PROJECT_ROOT)/.coverage/$(shell realpath --relative-to=$(PROJE
 UV_RUN_OPTS := --with-editable $(PROJECT_ROOT)/src/asya-testing
 PYTEST_WORKERS ?= auto
 PYTEST_OPTS ?= -v -s -n $(PYTEST_WORKERS) --dist loadscope
+COVERAGERC := $(PROJECT_ROOT)/.coveragerc
 export PYTEST_OPTS
+export COVERAGERC
 
 # Validate PROFILE is set and valid (only when needed)
 PROFILE_REQUIRED_TARGETS := up test trigger-tests test-operator down clean
@@ -59,8 +61,10 @@ trigger-tests: ## Only trigger tests, assuming that Kind cluster is already up (
 	@mkdir -p $(COVERAGE_DIR)
 	$(MAKE) port-forward-up
 	set -a && . ./profiles/.env.$(PROFILE) && set +a && \
-		uv run $(UV_RUN_OPTS) pytest tests/ $(PYTEST_OPTS)
-	@test -f $(COVERAGE_DIR)/cov-$(ASYA_HANDLER_MODE).json && echo "[+] Coverage JSON: $(COVERAGE_DIR)/cov-$(ASYA_HANDLER_MODE).json" || echo "[-] Coverage not generated"
+		uv run $(UV_RUN_OPTS) pytest tests/ $(PYTEST_OPTS) \
+			--cov --cov-config=$(COVERAGERC) --cov-report=term \
+			--cov-report=json:$(COVERAGE_DIR)/cov-$(PROFILE)-$(ASYA_HANDLER_MODE).json
+	@test -f $(COVERAGE_DIR)/cov-$(PROFILE)-$(ASYA_HANDLER_MODE).json && echo "[+] Coverage JSON: $(COVERAGE_DIR)/cov-$(PROFILE)-$(ASYA_HANDLER_MODE).json" || echo "[-] Coverage not generated"
 	@echo "[+] Success: E2E tests with $(PROFILE) profile and $(ASYA_HANDLER_MODE) handler mode"
 	$(MAKE) port-forward-down
 
@@ -78,7 +82,13 @@ test-operator: ## Run operator-specific E2E tests (shell scripts)
 
 cov: ## Display e2e test coverage report
 	@echo "E2e coverage:"
-	@uv run $(UV_RUN_OPTS) coverage report --data-file=$(COVERAGE_DIR)/cov.db
+	@for cov_file in $(COVERAGE_DIR)/cov-*.json; do \
+		if [ -f "$$cov_file" ]; then \
+			echo ""; \
+			echo "Coverage from $$cov_file:"; \
+			uv run $(UV_RUN_OPTS) coverage report --data-file=$$cov_file; \
+		fi; \
+	done
 
 
 diagnostics: ## Run diagnostics on the current E2E environment

@@ -8,6 +8,7 @@ on:
     - '**.yml' # ignore configs unless code changed
     - '**.yaml'
     - 'docs/**'
+    - '**/Makefile'
   pull_request:
     branches: [main]
     paths-ignore:
@@ -15,6 +16,7 @@ on:
     - 'docs/**'
     - '**.yml'
     - '**.yaml'
+    - '**/Makefile'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -388,36 +390,50 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         pattern: coverage-unit-*
-        path: ./
+        path: .coverage
         merge-multiple: true
 
     - name: Download all component test coverage
       uses: actions/download-artifact@v4
       with:
         pattern: coverage-component-*
-        path: ./
+        path: .coverage
         merge-multiple: true
 
     - name: Download all integration test coverage
       uses: actions/download-artifact@v4
       with:
         pattern: coverage-integration-*
-        path: ./
+        path: .coverage
         merge-multiple: true
 
     - name: Download all E2E test coverage
       uses: actions/download-artifact@v4
       with:
         pattern: coverage-e2e-*
-        path: ./
+        path: .coverage
         merge-multiple: true
 
     - name: Debug coverage files
       run: |
         echo "[.] Checking downloaded coverage files:"
-        find .coverage -type f \( -name "*.out" -o -name "*.json" \) 2>/dev/null || echo "[!] No coverage files found"
-        echo "[.] .coverage directory structure:"
-        find .coverage -ls 2>/dev/null | head -100 || echo "[!] .coverage directory not found"
+        if [ -d .coverage ]; then
+          COVERAGE_FILES=$(find .coverage -type f \( -name "*.out" -o -name "*.json" \) | wc -l)
+          if [ "$COVERAGE_FILES" -gt 0 ]; then
+            echo "[+] Found $COVERAGE_FILES coverage files"
+            find .coverage -type f \( -name "*.out" -o -name "*.json" \)
+          else
+            echo "[!] No coverage files found in .coverage directory"
+          fi
+          echo ""
+          echo "[.] .coverage directory structure:"
+          find .coverage -type d | head -50
+          echo ""
+          echo "[.] All files in .coverage:"
+          find .coverage -type f | head -100
+        else
+          echo "[!] .coverage directory not found"
+        fi
 
     - name: Generate coverage report and comment on PR
       uses: k1LoW/octocov-action@v1
