@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 	"strings"
 
 	amqp "github.com/rabbitmq/amqp091-go"
@@ -50,12 +49,6 @@ func (t *RabbitMQTransport) ReconcileQueue(ctx context.Context, actor *asyav1alp
 	}
 
 	queueName := fmt.Sprintf("asya-%s", actor.Name)
-
-	// Skip queue operations in test environments (e.g., envtest without real RabbitMQ)
-	if os.Getenv("ASYA_SKIP_QUEUE_OPERATIONS") == "true" {
-		logger.Info("Skipping RabbitMQ queue operations (ASYA_SKIP_QUEUE_OPERATIONS=true)", "queue", queueName)
-		return nil
-	}
 
 	// Get RabbitMQ password from secret if configured
 	password := rabbitmqConfig.Password
@@ -306,14 +299,6 @@ func (t *RabbitMQTransport) loadPassword(ctx context.Context, rabbitmqConfig *as
 
 // QueueExists checks if a RabbitMQ queue exists using the Management API
 func (t *RabbitMQTransport) QueueExists(ctx context.Context, queueName, namespace string) (bool, error) {
-	logger := log.FromContext(ctx)
-
-	// Skip in test environments
-	if os.Getenv("ASYA_SKIP_QUEUE_OPERATIONS") == "true" {
-		logger.V(1).Info("Skipping RabbitMQ queue existence check (ASYA_SKIP_QUEUE_OPERATIONS=true)", "queue", queueName)
-		return true, nil
-	}
-
 	transport, err := t.transportRegistry.GetTransport("rabbitmq")
 	if err != nil {
 		return false, err

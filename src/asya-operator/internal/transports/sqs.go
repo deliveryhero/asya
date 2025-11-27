@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -53,12 +52,6 @@ func (t *SQSTransport) ReconcileQueue(ctx context.Context, actor *asyav1alpha1.A
 	logger.V(1).Info("SQS config loaded", "configuredTags", sqsConfig.Tags, "autoCreate", sqsConfig.Queues.AutoCreate)
 
 	queueName := fmt.Sprintf("asya-%s", actor.Name)
-
-	// Skip queue operations in test environments (e.g., envtest without real SQS)
-	if os.Getenv("ASYA_SKIP_QUEUE_OPERATIONS") == "true" {
-		logger.Info("Skipping SQS queue operations (ASYA_SKIP_QUEUE_OPERATIONS=true)", "queue", queueName)
-		return nil
-	}
 
 	sqsClient, err := t.createSQSClient(ctx, sqsConfig, actor.Namespace)
 	if err != nil {
@@ -404,14 +397,6 @@ func (t *SQSTransport) ensureDLQ(ctx context.Context, sqsClient *sqs.Client, mai
 
 // QueueExists checks if an SQS queue exists
 func (t *SQSTransport) QueueExists(ctx context.Context, queueName, namespace string) (bool, error) {
-	logger := log.FromContext(ctx)
-
-	// Skip in test environments
-	if os.Getenv("ASYA_SKIP_QUEUE_OPERATIONS") == "true" {
-		logger.V(1).Info("Skipping SQS queue existence check (ASYA_SKIP_QUEUE_OPERATIONS=true)", "queue", queueName)
-		return true, nil
-	}
-
 	transport, err := t.transportRegistry.GetTransport("sqs")
 	if err != nil {
 		return false, err

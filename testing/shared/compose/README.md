@@ -25,9 +25,9 @@ testing/
     ├── compose/                       # Local service definitions
     │   └── tester.yml                 # Tester service (extended by profiles)
     └── profiles/                      # Test profiles (assemblies)
-        ├── .env.sqs-minio             # Profile variables: ASYA_TRANSPORT=sqs, ASYA_STORAGE=minio
+        ├── .env.sqs-s3                # Profile variables: ASYA_TRANSPORT=sqs, ASYA_STORAGE=s3
         ├── .env.rabbitmq-minio        # Profile variables: ASYA_TRANSPORT=rabbitmq, ASYA_STORAGE=minio
-        ├── sqs-minio.yml              # Profile: SQS + MinIO + tester
+        ├── sqs-s3.yml                 # Profile: SQS + S3 + tester
         └── rabbitmq-minio.yml         # Profile: RabbitMQ + MinIO + tester
 ```
 
@@ -38,16 +38,16 @@ testing/
 Profiles combine shared infrastructure, Asya🎭 components, and local services:
 
 ```yaml
-# profiles/sqs-minio.yml
+# profiles/sqs-s3.yml
 include:
   # Infrastructure (static)
   - path: ../../../shared/compose/sqs.yml
-  - path: ../../../shared/compose/minio.yml
+  - path: ../../../shared/compose/s3.yml
   - path: ../../../shared/compose/postgres.yml
 
   # Asya🎭 components (with variable substitution)
   - path: ../../../shared/compose/asya/gateway.yml
-    env_file: .env.sqs-minio  # Provides ASYA_TRANSPORT=sqs, ASYA_STORAGE=minio
+    env_file: .env.sqs-s3  # Provides ASYA_TRANSPORT=sqs, ASYA_STORAGE=s3
 
 services:
   tester:
@@ -63,7 +63,7 @@ services:
 
 ### Variable Substitution Flow
 
-1. Profile env file (`.env.sqs-minio`) defines: `ASYA_TRANSPORT=sqs`, `ASYA_STORAGE=minio`
+1. Profile env file (`.env.sqs-s3`) defines: `ASYA_TRANSPORT=sqs`, `ASYA_STORAGE=s3`
 2. Variables substitute in included files: `gateway.yml` line 14: `env_file: - ../envs/.env.${ASYA_TRANSPORT}` → `../envs/.env.sqs`
 3. Tester service references same variables: `env_file: - ../envs/.env.${ASYA_TRANSPORT}`
 
@@ -79,8 +79,8 @@ services:
 ```bash
 # Run specific profile
 cd testing/integration/gateway-actors
-docker compose -f profiles/sqs-minio.yml up
+docker compose -f profiles/sqs-s3.yml up
 
 # Via Makefile
-make test-one MODE=payload TRANSPORT=sqs STORAGE=minio
+make test-one MODE=payload TRANSPORT=sqs STORAGE=s3
 ```
