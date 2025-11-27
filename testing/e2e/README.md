@@ -4,31 +4,39 @@ End-to-end tests with Kind (Kubernetes in Docker).
 
 ## Quick Start
 
-All lifecycle commands require a profile: `PROFILE=rabbitmq-minio` (RabbitMQ + MinIO) or `PROFILE=sqs-s3` (LocalStack SQS + S3). Pick one and run:
+All lifecycle commands require a profile: `PROFILE=rabbitmq-minio` (RabbitMQ + MinIO) or `PROFILE=sqs-s3` (LocalStack SQS + S3). Pick one, e.g., 
+
+```bash
+# Ensure PROFILE is exported before running the `make` commands. Otherwise, you may 
+# do `make test PROFILE=...` for each command, as shown at the bottom of the README file. 
+export PROFILE=rabbitmq-minio
+```
+
+ and run:
 
 ```bash
 # Deploy cluster, run both handler modes + operator checks, then clean up
-make test PROFILE=rabbitmq-minio
+make test
 ```
 
 For incremental debugging, run the individual targets:
 
 ```bash
 # 1. Create/upgrade cluster (~5-10 min)
-make up PROFILE=rabbitmq-minio
+make up
 
 # 2. Optional helpers while the cluster is running
-make diagnostics PROFILE=rabbitmq-minio
-make logs PROFILE=rabbitmq-minio
+make diagnostics
+make logs
 
 # 3. Trigger pytest suite (default ASYA_HANDLER_MODE=payload)
 # Note: This target automatically manages port-forwarding for its duration.
-make trigger-tests PROFILE=rabbitmq-minio
+make trigger-tests
 # Run envelope mode explicitly if needed
-make trigger-tests PROFILE=rabbitmq-minio ASYA_HANDLER_MODE=envelope
+make trigger-tests
 
 # 4. Tear everything down
-make down PROFILE=rabbitmq-minio
+make down
 
 # Coverage summary from the most recent run
 make cov
