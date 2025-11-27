@@ -948,11 +948,14 @@
 <li>Monitor Management API port 15672 for queue metrics</li>
 </ul>
 <h2 id="deployment">Deployment<a class="headerlink" href="#deployment" title="Permanent link">&para;</a></h2>
-<p><strong>RabbitMQ deployed separately</strong>:
-<div class="highlight"><pre><span></span><code><span class="c1"># Example: Official RabbitMQ manifest</span>
-kubectl<span class="w"> </span>apply<span class="w"> </span>-f<span class="w"> </span>testing/e2e/manifests/rabbitmq.yaml
+<p><strong>RabbitMQ deployed separately</strong> (example for local Kind using the maintained Helm chart):
+<div class="highlight"><pre><span></span><code>helm<span class="w"> </span>upgrade<span class="w"> </span>--install<span class="w"> </span>asya-rabbitmq<span class="w"> </span>testing/e2e/charts/rabbitmq<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--namespace<span class="w"> </span>asya-e2e<span class="w"> </span>--create-namespace
+
+kubectl<span class="w"> </span><span class="nb">wait</span><span class="w"> </span>--for<span class="o">=</span><span class="nv">condition</span><span class="o">=</span>ready<span class="w"> </span>pod<span class="w"> </span>-l<span class="w"> </span><span class="nv">app</span><span class="o">=</span>rabbitmq<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-n<span class="w"> </span>asya-e2e<span class="w"> </span>--timeout<span class="o">=</span>300s
 </code></pre></div></p>
-<p><strong>See</strong>: <a href="../../../install/local-kind/">../../install/local-kind.md</a> for local setup.</p>
+<p><strong>See</strong>: <a href="../../../install/local-kind/">../../install/local-kind.md</a> for full local setup.</p>
 <h2 id="cost-considerations">Cost Considerations<a class="headerlink" href="#cost-considerations" title="Permanent link">&para;</a></h2>
 <ul>
 <li>Self-hosted: Pay for compute only</li>
