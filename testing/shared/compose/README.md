@@ -82,5 +82,5 @@ cd testing/integration/gateway-actors
 docker compose -f profiles/sqs-s3.yml up
 
 # Via Makefile
-make test-one MODE=payload TRANSPORT=sqs STORAGE=minio
+make test-one MODE=payload TRANSPORT=sqs STORAGE=s3
 ```
