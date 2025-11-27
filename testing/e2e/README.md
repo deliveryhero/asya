@@ -37,7 +37,7 @@ make cov
 
 ## Profiles
 
-- `rabbitmq-minio`: RabbitMQ transport plus MinIO object storage (default local stack).
+- `rabbitmq-minio`: The default profile, using RabbitMQ for transport and MinIO for object storage.
 - `sqs-s3`: LocalStack-backed SQS transport with S3-compatible storage for AWS parity testing.
 
 Each profile maps to `profiles/<name>.yaml` and wires all Helm charts plus `.env.<name>` settings used by `scripts/deploy.sh`.
