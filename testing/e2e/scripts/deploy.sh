@@ -249,7 +249,7 @@ time {
 echo
 
 echo "=== Deployment Complete ==="
-echo "Next steps (from repo root):"
-echo "$ make -C testing/e2e port-forward-up"
-echo "$ make -C testing/e2e trigger-tests"
-echo "$ make -C testing/e2e port-forward-down"
+echo "Next steps (from the current directory):"
+echo "$ make port-forward-up"
+echo "$ make trigger-tests"
+echo "$ make port-forward-down"
