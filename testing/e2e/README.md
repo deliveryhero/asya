@@ -4,11 +4,11 @@ End-to-end tests with Kind (Kubernetes in Docker).
 
 ## Quick Start
 
-All lifecycle commands require a profile: `PROFILE=rabbitmq-minio` (RabbitMQ + MinIO) or `PROFILE=sqs-s3` (LocalStack SQS + S3). Pick one, e.g., 
+All lifecycle commands require a profile: `PROFILE=rabbitmq-minio` (RabbitMQ + MinIO) or `PROFILE=sqs-s3` (LocalStack SQS + S3). Pick one, e.g.,
 
 ```bash
-# Ensure PROFILE is exported before running the `make` commands. Otherwise, you may 
-# do `make test PROFILE=...` for each command, as shown at the bottom of the README file. 
+# Ensure PROFILE is exported before running the `make` commands. Otherwise, you may
+# do `make test PROFILE=...` for each command, as shown at the bottom of the README file.
 export PROFILE=rabbitmq-minio
 ```
 
