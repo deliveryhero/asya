@@ -177,6 +177,10 @@ log_info "Building Asya Docker images..."
 log_info "Tag: ${TAG}"
 log_info "Registry: ${REGISTRY:-<none>}"
 log_info "Platform: ${PLATFORM}"
+if [[ "$(uname -s)" == "Darwin" ]] && [[ "$(uname -m)" == "arm64" ]] && [[ "$PLATFORM" == "linux/arm64" ]]; then
+  log_warn "Building for linux/arm64 (auto-detected for macOS ARM64 to avoid Go 1.24 compiler bug)"
+  log_warn "Images will work on ARM64 Kind clusters. To override: PLATFORM=linux/amd64 $0"
+fi
 log_info "Push: ${PUSH}"
 if [[ ${#IMAGE_FILTERS[@]} -gt 0 ]]; then
   log_info "Filtered images: ${IMAGE_FILTERS[*]}"
