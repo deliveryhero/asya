@@ -3,7 +3,7 @@ MAKEFLAGS += --no-print-directory
 .EXPORT_ALL_VARIABLES:
 
 PROJECT_ROOT := $(shell git rev-parse --show-toplevel 2>/dev/null || echo $(CURDIR)/../../..)
-COVERAGE_DIR := $(PROJECT_ROOT)/.coverage/$(shell realpath --relative-to=$(PROJECT_ROOT) $(CURDIR) 2>/dev/null || echo testing/integration/operator)
+COVERAGE_DIR := $(PROJECT_ROOT)/.coverage/$(subst $(PROJECT_ROOT)/,,$(CURDIR))
 COVERAGERC := $(PROJECT_ROOT)/.coveragerc
 $(shell mkdir -p "$(COVERAGE_DIR)" 2>/dev/null)
 
@@ -15,13 +15,15 @@ validate-env:
 
 GOTEST_OPTS ?= -v
 ENVTEST_K8S_VERSION := 1.29.0
+GOPATH := $(shell go env GOPATH)
+SETUP_ENVTEST := $(GOPATH)/bin/setup-envtest
 
 setup-envtest:
-	@command -v setup-envtest >/dev/null 2>&1 || go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
+	@test -x "$(SETUP_ENVTEST)" || go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
 
 test: setup-envtest validate-env
 	@echo "[.] Running operator integration tests"
-	KUBEBUILDER_ASSETS="$$(setup-envtest use $(ENVTEST_K8S_VERSION) -p path)" \
+	KUBEBUILDER_ASSETS="$$($(SETUP_ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" \
 		go test -coverprofile=$(COVERAGE_DIR)/cov.out \
 		-covermode=set -coverpkg=github.com/asya/operator/internal/controller,github.com/asya/operator/api/... \
 		$(GOTEST_OPTS) -tags=integration ./...

@@ -250,6 +250,7 @@ echo
 
 echo "=== Deployment Complete ==="
 echo "Next steps (from the current directory):"
-echo "$ make port-forward-up"
 echo "$ make trigger-tests"
+echo "To just port-forward services, run:"
+echo "$ make port-forward-up"
 echo "$ make port-forward-down"
