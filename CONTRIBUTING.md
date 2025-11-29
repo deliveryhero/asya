@@ -20,6 +20,25 @@ gvm install go1.24
 gvm use go1.24 --default
 ```
 
+**Configure Go binary PATH**:
+
+After installing Go, ensure `$GOPATH/bin` is in your PATH for Go tools (golangci-lint, goimports):
+
+```bash
+# Add to your shell profile (~/.zshrc, ~/.bashrc, or ~/.profile)
+export PATH="$(go env GOPATH)/bin:$PATH"
+
+# Reload your shell or source the profile
+source ~/.zshrc  # or ~/.bashrc
+```
+
+Verify the setup:
+```bash
+go version  # Should show go1.24+
+go env GOPATH  # Should show your GOPATH (e.g., /Users/username/go)
+echo $PATH | grep "$(go env GOPATH)/bin"  # Should include GOPATH/bin
+```
+
 **Install uv**:
 ```bash
 # macOS/Linux

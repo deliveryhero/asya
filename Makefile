@@ -19,6 +19,7 @@ setup: ## Set up development environment (install deps, pre-commit hooks)
 	@command -v uv >/dev/null 2>&1 || (echo "[-] uv not found. Install: curl -LsSf https://astral.sh/uv/install.sh | sh" && exit 1)
 	@command -v go >/dev/null 2>&1 || (echo "[-] Go not found. Install Go 1.24+" && exit 1)
 	@echo "[+] Installing Python development tools..."
+	uv venv --allow-existing
 	uv pip install pre-commit
 	@echo "[+] Installing Go linting tools..."
 	@command -v goimports >/dev/null 2>&1 || go install golang.org/x/tools/cmd/goimports@$(GOIMPORTS_VERSION)
