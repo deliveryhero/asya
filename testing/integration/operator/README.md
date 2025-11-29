@@ -54,8 +54,8 @@ This will:
 # Install envtest binaries
 make setup-envtest
 
-# Run tests with less verbose output (default value: "-v")
-GOTEST_OPTS="" make integration-tests
+# Run tests with verbose output
+GOTEST_OPTS="-v" make integration-tests
 
 # Run specific test
 KUBEBUILDER_ASSETS="$(setup-envtest use 1.29.0 -p path)" \

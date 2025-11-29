@@ -6,7 +6,6 @@ import (
 	"time"
 )
 
-//nolint:gocyclo // Table-driven test with many cases
 func TestLoadFromEnv(t *testing.T) {
 	// Save and restore original env
 	origEnv := os.Environ()

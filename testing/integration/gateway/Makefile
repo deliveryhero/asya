@@ -18,6 +18,7 @@ export DOCKER_BUILDKIT := 1
 export BUILDKIT_PROGRESS ?= plain
 export COMPOSE_ANSI ?= never
 DOCKER_COMPOSE_UP_OPTS := --exit-code-from tester
+GOTEST_OPTS ?= -v
 COMPOSE_PROJECT := int-gateway
 
 test: clean validate-env

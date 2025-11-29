@@ -16,7 +16,15 @@ export DOCKER_BUILDKIT=1
 PUSH=false
 TAG="${TAG:-latest}"
 REGISTRY="${REGISTRY:-}"
-PLATFORM="${PLATFORM:-linux/amd64}"
+
+# Auto-detect platform for macOS ARM64 to avoid Go 1.24 compiler segfault
+if [[ "$(uname -s)" == "Darwin" ]] && [[ "$(uname -m)" == "arm64" ]]; then
+  DEFAULT_PLATFORM="linux/arm64"
+else
+  DEFAULT_PLATFORM="linux/amd64"
+fi
+PLATFORM="${PLATFORM:-$DEFAULT_PLATFORM}"
+
 IMAGE_FILTERS=()
 
 # Parse arguments
