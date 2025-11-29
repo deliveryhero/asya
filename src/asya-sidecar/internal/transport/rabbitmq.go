@@ -276,6 +276,7 @@ func (t *RabbitMQTransport) Receive(ctx context.Context, queueName string) (Queu
 			// Try to ensure queue exists
 			if err = t.ensureQueue(queueName); err != nil {
 				if attempt < maxRetries-1 {
+					//nolint:gosec // G115: attempt is bounded by maxRetries (typically < 10), safe for bit shift
 					backoff := initialBackoff * (1 << uint(attempt))
 					slog.Warn("Failed to ensure queue exists, retrying",
 						"queue", queueName,
@@ -304,6 +305,7 @@ func (t *RabbitMQTransport) Receive(ctx context.Context, queueName string) (Queu
 			}
 
 			if attempt < maxRetries-1 {
+				//nolint:gosec // G115: attempt is bounded by maxRetries (typically < 10), safe for bit shift
 				backoff := initialBackoff * (1 << uint(attempt))
 				slog.Warn("Failed to start consuming, retrying",
 					"queue", queueName,

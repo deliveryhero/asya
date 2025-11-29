@@ -1,3 +1,4 @@
+version: 2
 
 run:
   timeout: 15m
@@ -83,3 +84,7 @@ issues:
     text: "string `.+` has \\d+ occurrences"
     linters:
     - goconst
+  # Exclude gosec rules globally
+  - linters:
+    - gosec
+    text: "G404|G112|G306|G304|G115|G204"

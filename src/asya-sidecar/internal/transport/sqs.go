@@ -109,6 +109,7 @@ func (t *SQSTransport) resolveQueueURL(ctx context.Context, queueName string) (s
 		}
 
 		if attempt < maxRetries-1 {
+			//nolint:gosec // G115: attempt is bounded by maxRetries (typically < 10), safe for bit shift
 			backoff := initialBackoff * (1 << uint(attempt))
 			slog.Warn("Failed to resolve queue URL, retrying",
 				"queue", queueName,

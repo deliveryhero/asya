@@ -18,6 +18,9 @@ inputs:
     required: false
     default: "false"
 
+env:
+  KIND_VERSION: "v0.25.0"
+
 runs:
   using: "composite"
   steps:
@@ -85,7 +88,7 @@ runs:
     uses: helm/kind-action@v1
     with:
       install_only: true
-      version: v0.25.0
+      version: "${KIND_VERSION}"
 
   - name: Install Helm
     if: inputs.install-helm == 'true'

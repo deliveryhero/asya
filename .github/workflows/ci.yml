@@ -37,6 +37,7 @@ jobs:
       uses: ./.github/actions/setup-env
       with:
         cache-precommit: "true"
+        install-helm: "true"
 
     - name: Run linters
       env:
