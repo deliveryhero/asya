@@ -65,3 +65,27 @@ Each profile maps to `profiles/<name>.yaml` and wires all Helm charts plus `.env
 - Helm v3.12+
 - Helmfile v0.157+
 - Docker v24+
+
+## Platform-Specific Notes
+
+### macOS
+
+**Port-forwarding stability**: `kubectl port-forward` can be unstable on macOS when running tests in parallel. If you experience connection errors:
+
+```bash
+# Reduce parallel workers (recommended for macOS)
+make trigger-tests PROFILE=sqs-s3 PYTEST_WORKERS=2
+
+# Or run sequentially for maximum stability
+make trigger-tests PROFILE=sqs-s3 PYTEST_WORKERS=1
+```
+
+The test framework includes automatic retry logic that restarts port-forwards when connections fail, but reducing parallelism improves stability.
+
+**Debug failing tests**: Use fail-fast mode to stop on first failure:
+
+```bash
+make trigger-tests PROFILE=sqs-s3 PYTEST_WORKERS=2 PYTEST_OPTS="-v -x"
+```
+
+Default parallelism (`PYTEST_WORKERS=auto`) works well on Linux CI but may overwhelm port-forwards on macOS.

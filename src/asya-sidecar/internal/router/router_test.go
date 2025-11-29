@@ -22,6 +22,7 @@ import (
 	"github.com/deliveryhero/asya/asya-sidecar/internal/runtime"
 	"github.com/deliveryhero/asya/asya-sidecar/internal/transport"
 	"github.com/deliveryhero/asya/asya-sidecar/pkg/envelopes"
+	"golang.org/x/net/nettest"
 )
 
 const (
@@ -580,8 +581,10 @@ func TestRouter_ResolveQueueName_Integration(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Setup Unix socket server to mock runtime
-			tempDir := t.TempDir()
-			socketPath := tempDir + "/test.sock"
+			socketPath, err := nettest.LocalPath()
+			if err != nil {
+				t.Fatalf("Failed to get local path: %v", err)
+			}
 
 			listener, err := net.Listen("unix", socketPath)
 			if err != nil {

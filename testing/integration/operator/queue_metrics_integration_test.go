@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"testing"
+	"time"
 
 	asyav1alpha1 "github.com/asya/operator/api/v1alpha1"
 	"github.com/asya/operator/internal/config"
@@ -108,8 +109,10 @@ func TestGetSQSQueueMetrics_WithStaticCredentials(t *testing.T) {
 		t.Skipf("Skipping test: could not create SQS client (LocalStack may not be running): %v", err)
 	}
 
-	// Create queue
-	_, err = sqsClient.CreateQueue(ctx, &sqs.CreateQueueInput{
+	// Create queue with timeout to avoid hanging if LocalStack is not reachable
+	createCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	_, err = sqsClient.CreateQueue(createCtx, &sqs.CreateQueueInput{
 		QueueName: aws.String(queueName),
 	})
 	if err != nil {

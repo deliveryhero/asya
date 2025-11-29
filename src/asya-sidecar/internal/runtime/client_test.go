@@ -9,11 +9,14 @@ import (
 	"time"
 
 	"github.com/deliveryhero/asya/asya-sidecar/pkg/envelopes"
+	"golang.org/x/net/nettest"
 )
 
 func TestClient_CallRuntime_Success(t *testing.T) {
-	tempDir := t.TempDir()
-	socketPath := tempDir + "/test.sock"
+	socketPath, err := nettest.LocalPath()
+	if err != nil {
+		t.Fatalf("Failed to get local path: %v", err)
+	}
 	defer func() { _ = os.Remove(socketPath) }()
 
 	listener, err := net.Listen("unix", socketPath)
@@ -78,8 +81,10 @@ func TestClient_CallRuntime_Success(t *testing.T) {
 }
 
 func TestClient_CallRuntime_Error(t *testing.T) {
-	tempDir := t.TempDir()
-	socketPath := tempDir + "/test-error.sock"
+	socketPath, err := nettest.LocalPath()
+	if err != nil {
+		t.Fatalf("Failed to get local path: %v", err)
+	}
 	defer func() { _ = os.Remove(socketPath) }()
 
 	listener, err := net.Listen("unix", socketPath)
@@ -131,8 +136,10 @@ func TestClient_CallRuntime_Error(t *testing.T) {
 }
 
 func TestClient_CallRuntime_Timeout(t *testing.T) {
-	tempDir := t.TempDir()
-	socketPath := tempDir + "/test-timeout.sock"
+	socketPath, err := nettest.LocalPath()
+	if err != nil {
+		t.Fatalf("Failed to get local path: %v", err)
+	}
 	defer func() { _ = os.Remove(socketPath) }()
 
 	listener, err := net.Listen("unix", socketPath)
@@ -157,8 +164,10 @@ func TestClient_CallRuntime_Timeout(t *testing.T) {
 }
 
 func TestClient_CallRuntime_FanOut(t *testing.T) {
-	tempDir := t.TempDir()
-	socketPath := tempDir + "/test-fanout.sock"
+	socketPath, err := nettest.LocalPath()
+	if err != nil {
+		t.Fatalf("Failed to get local path: %v", err)
+	}
 	defer func() { _ = os.Remove(socketPath) }()
 
 	listener, err := net.Listen("unix", socketPath)
@@ -221,8 +230,10 @@ func TestClient_CallRuntime_FanOut(t *testing.T) {
 }
 
 func TestClient_CallRuntime_EmptyArray(t *testing.T) {
-	tempDir := t.TempDir()
-	socketPath := tempDir + "/test-empty-test.sock"
+	socketPath, err := nettest.LocalPath()
+	if err != nil {
+		t.Fatalf("Failed to get local path: %v", err)
+	}
 	defer func() { _ = os.Remove(socketPath) }()
 
 	listener, err := net.Listen("unix", socketPath)
@@ -257,8 +268,10 @@ func TestClient_CallRuntime_EmptyArray(t *testing.T) {
 }
 
 func TestClient_CallRuntime_ParsingError(t *testing.T) {
-	tempDir := t.TempDir()
-	socketPath := tempDir + "/test-parse-error.sock"
+	socketPath, err := nettest.LocalPath()
+	if err != nil {
+		t.Fatalf("Failed to get local path: %v", err)
+	}
 	defer func() { _ = os.Remove(socketPath) }()
 
 	listener, err := net.Listen("unix", socketPath)
@@ -310,8 +323,10 @@ func TestClient_CallRuntime_ParsingError(t *testing.T) {
 }
 
 func TestClient_CallRuntime_ConnectionError(t *testing.T) {
-	tempDir := t.TempDir()
-	socketPath := tempDir + "/test-conn-error.sock"
+	socketPath, err := nettest.LocalPath()
+	if err != nil {
+		t.Fatalf("Failed to get local path: %v", err)
+	}
 	defer func() { _ = os.Remove(socketPath) }()
 
 	listener, err := net.Listen("unix", socketPath)

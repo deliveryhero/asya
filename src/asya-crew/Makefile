@@ -3,7 +3,7 @@ MAKEFLAGS += --no-print-directory
 .EXPORT_ALL_VARIABLES:
 
 PROJECT_ROOT := $(shell git rev-parse --show-toplevel 2>/dev/null || echo $(CURDIR)/../..)
-COVERAGE_DIR := $(PROJECT_ROOT)/.coverage/$(shell realpath --relative-to=$(PROJECT_ROOT) $(CURDIR))
+COVERAGE_DIR := $(PROJECT_ROOT)/.coverage/$(subst $(PROJECT_ROOT)/,,$(CURDIR))
 $(shell mkdir -p $(COVERAGE_DIR))
 UV_RUN_OPTS := --with-requirements requirements.txt --with-requirements tests/requirements.txt
 

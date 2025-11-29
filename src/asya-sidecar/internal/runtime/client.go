@@ -50,6 +50,7 @@ func NewClient(socketPath string, timeout time.Duration) *Client {
 func SendSocketData(conn net.Conn, data []byte) error {
 	// Send length prefix
 	length := make([]byte, 4)
+
 	binary.BigEndian.PutUint32(length, uint32(len(data)))
 	if _, err := conn.Write(length); err != nil {
 		return fmt.Errorf("failed to write length prefix: %w", err)
