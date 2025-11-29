@@ -249,7 +249,7 @@ time {
 echo
 
 echo "=== Deployment Complete ==="
-echo "Next steps:"
+echo "Next steps (from the current directory):"
 echo "$ make port-forward-up"
 echo "$ make trigger-tests"
 echo "$ make port-forward-down"
