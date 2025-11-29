@@ -6,7 +6,13 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CHARTS_DIR="$SCRIPT_DIR/../charts"
 
 # Detect CPU cores for parallel operations
-NCPU=$(nproc)
+if command -v nproc > /dev/null 2>&1; then
+  NCPU=$(nproc)
+elif command -v sysctl > /dev/null 2>&1; then
+  NCPU=$(sysctl -n hw.ncpu)
+else
+  NCPU=4
+fi
 CONCURRENCY="${CONCURRENCY:-$NCPU}"
 
 # Parse arguments
