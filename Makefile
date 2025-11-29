@@ -6,7 +6,7 @@ MAKEFLAGS += --no-print-directory
 GREEN_START := \033[32m
 GREEN_END := \033[0m
 
-GOLANGCI_LINT_VERSION := v2.6.2
+GOLANGCI_LINT_VERSION := v1.64.8
 GOIMPORTS_VERSION := v0.28.0
 
 # =============================================================================
@@ -22,7 +22,7 @@ setup: ## Set up development environment (install deps, pre-commit hooks)
 	uv pip install pre-commit
 	@echo "[+] Installing Go linting tools..."
 	@command -v goimports >/dev/null 2>&1 || go install golang.org/x/tools/cmd/goimports@$(GOIMPORTS_VERSION)
-	@command -v golangci-lint >/dev/null 2>&1 || go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
+	@command -v golangci-lint >/dev/null 2>&1 || go install github.com/golangci/golangci-lint/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
 	@echo "[+] Installing pre-commit hooks..."
 	uv run pre-commit install
 	@echo "[+] Syncing Go dependencies..."

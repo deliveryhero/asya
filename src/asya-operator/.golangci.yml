@@ -1,5 +1,3 @@
-version: 2
-
 run:
   timeout: 15m
   tests: true
@@ -46,7 +44,7 @@ linters-settings:
     check-generated: false
 
   gocyclo:
-    min-complexity: 35
+    min-complexity: 30
 
   goconst:
     min-len: 3
@@ -84,12 +82,3 @@ issues:
     text: "string `.+` has \\d+ occurrences"
     linters:
     - goconst
-  # Exclude gocyclo for specific complex test function
-  - path: 'keda_test\.go'
-    text: "cyclomatic complexity 31"
-    linters:
-    - gocyclo
-  # Exclude gosec rules globally
-  - linters:
-    - gosec
-    text: "G404|G112|G306|G304|G115|G204"
