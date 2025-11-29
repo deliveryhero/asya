@@ -2,114 +2,110 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://deliveryhero.github.io/asya/</loc>
-         <lastmod>2025-11-27</lastmod>
+         <lastmod>2025-11-29</lastmod>
     </url>
     <url>
          <loc>https://deliveryhero.github.io/asya/concepts/</loc>
-         <lastmod>2025-11-27</lastmod>
+         <lastmod>2025-11-29</lastmod>
     </url>
     <url>
          <loc>https://deliveryhero.github.io/asya/motivation/</loc>
-         <lastmod>2025-11-27</lastmod>
+         <lastmod>2025-11-29</lastmod>
     </url>
     <url>
          <loc>https://deliveryhero.github.io/asya/architecture/</loc>
-         <lastmod>2025-11-27</lastmod>
+         <lastmod>2025-11-29</lastmod>
     </url>
     <url>
          <loc>https://deliveryhero.github.io/asya/architecture/asya-actor/</loc>
-         <lastmod>2025-11-27</lastmod>
+         <lastmod>2025-11-29</lastmod>
     </url>
     <url>
          <loc>https://deliveryhero.github.io/asya/architecture/asya-cli/</loc>
-         <lastmod>2025-11-27</lastmod>
+         <lastmod>2025-11-29</lastmod>
     </url>
     <url>
          <loc>https://deliveryhero.github.io/asya/architecture/asya-crew/</loc>
-         <lastmod>2025-11-27</lastmod>
+         <lastmod>2025-11-29</lastmod>
     </url>
     <url>
          <loc>https://deliveryhero.github.io/asya/architecture/asya-gateway/</loc>
-         <lastmod>2025-11-27</lastmod>
+         <lastmod>2025-11-29</lastmod>
     </url>
     <url>
          <loc>https://deliveryhero.github.io/asya/architecture/asya-operator/</loc>
-         <lastmod>2025-11-27</lastmod>
+         <lastmod>2025-11-29</lastmod>
     </url>
     <url>
          <loc>https://deliveryhero.github.io/asya/architecture/asya-runtime/</loc>
-         <lastmod>2025-11-27</lastmod>
+         <lastmod>2025-11-29</lastmod>
     </url>
     <url>
          <loc>https://deliveryhero.github.io/asya/architecture/asya-sidecar/</loc>
-         <lastmod>2025-11-27</lastmod>
+         <lastmod>2025-11-29</lastmod>
     </url>
     <url>
          <loc>https://deliveryhero.github.io/asya/architecture/autoscaling/</loc>
-         <lastmod>2025-11-27</lastmod>
+         <lastmod>2025-11-29</lastmod>
     </url>
     <url>
          <loc>https://deliveryhero.github.io/asya/architecture/observability/</loc>
-         <lastmod>2025-11-27</lastmod>
+         <lastmod>2025-11-29</lastmod>
     </url>
     <url>
          <loc>https://deliveryhero.github.io/asya/architecture/protocols/actor-actor/</loc>
-         <lastmod>2025-11-27</lastmod>
+         <lastmod>2025-11-29</lastmod>
     </url>
     <url>
          <loc>https://deliveryhero.github.io/asya/architecture/protocols/sidecar-runtime/</loc>
-         <lastmod>2025-11-27</lastmod>
+         <lastmod>2025-11-29</lastmod>
     </url>
     <url>
          <loc>https://deliveryhero.github.io/asya/architecture/transports/</loc>
-         <lastmod>2025-11-27</lastmod>
+         <lastmod>2025-11-29</lastmod>
     </url>
     <url>
          <loc>https://deliveryhero.github.io/asya/architecture/transports/rabbitmq/</loc>
-         <lastmod>2025-11-27</lastmod>
+         <lastmod>2025-11-29</lastmod>
     </url>
     <url>
          <loc>https://deliveryhero.github.io/asya/architecture/transports/sqs/</loc>
-         <lastmod>2025-11-27</lastmod>
+         <lastmod>2025-11-29</lastmod>
     </url>
     <url>
          <loc>https://deliveryhero.github.io/asya/install/aws-eks/</loc>
-         <lastmod>2025-11-27</lastmod>
+         <lastmod>2025-11-29</lastmod>
     </url>
     <url>
          <loc>https://deliveryhero.github.io/asya/install/helm-charts/</loc>
-         <lastmod>2025-11-27</lastmod>
+         <lastmod>2025-11-29</lastmod>
     </url>
     <url>
          <loc>https://deliveryhero.github.io/asya/install/local-kind/</loc>
-         <lastmod>2025-11-27</lastmod>
+         <lastmod>2025-11-29</lastmod>
     </url>
     <url>
          <loc>https://deliveryhero.github.io/asya/mkdocs/README-mkdocs-shadcn-patch/</loc>
-         <lastmod>2025-11-27</lastmod>
+         <lastmod>2025-11-29</lastmod>
     </url>
     <url>
          <loc>https://deliveryhero.github.io/asya/operate/monitoring/</loc>
-         <lastmod>2025-11-27</lastmod>
+         <lastmod>2025-11-29</lastmod>
     </url>
     <url>
          <loc>https://deliveryhero.github.io/asya/operate/troubleshooting/</loc>
-         <lastmod>2025-11-27</lastmod>
+         <lastmod>2025-11-29</lastmod>
     </url>
     <url>
          <loc>https://deliveryhero.github.io/asya/operate/upgrades/</loc>
-         <lastmod>2025-11-27</lastmod>
+         <lastmod>2025-11-29</lastmod>
     </url>
     <url>
          <loc>https://deliveryhero.github.io/asya/quickstart/for-data-scientists/</loc>
-         <lastmod>2025-11-27</lastmod>
+         <lastmod>2025-11-29</lastmod>
     </url>
     <url>
          <loc>https://deliveryhero.github.io/asya/quickstart/for-platform-engineers/</loc>
-         <lastmod>2025-11-27</lastmod>
-    </url>
-    <url>
-         <loc>https://deliveryhero.github.io/asya/quickstart/for-platform_engineers/</loc>
-         <lastmod>2025-11-27</lastmod>
+         <lastmod>2025-11-29</lastmod>
     </url>
 </urlset>
