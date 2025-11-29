@@ -1,6 +1,6 @@
 services:
   tester:
-    image: golang:1.23
+    image: golang:1.24
     working_dir: /workspace
     volumes:
     - .:/workspace

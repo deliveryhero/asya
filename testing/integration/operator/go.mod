@@ -1,8 +1,6 @@
 module github.com/asya/operator/testing/integration
 
-go 1.23.0
-
-toolchain go1.23.10
+go 1.24.0
 
 replace (
 	github.com/asya/operator => ../../../src/asya-operator

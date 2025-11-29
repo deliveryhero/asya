@@ -7,7 +7,7 @@ GREEN_START := \033[32m
 GREEN_END := \033[0m
 
 # Tool versions (keep the format - it's grepped in action.yml)
-GOLANGCI_LINT_VERSION := v1.62.2
+GOLANGCI_LINT_VERSION := v1.64.8
 GOIMPORTS_VERSION := v0.28.0
 
 # =============================================================================
@@ -17,8 +17,9 @@ GOIMPORTS_VERSION := v0.28.0
 setup: ## Set up development environment (install deps, pre-commit hooks)
 	@echo "[.] Setting up development environment..."
 	@command -v uv >/dev/null 2>&1 || (echo "[-] uv not found. Install: curl -LsSf https://astral.sh/uv/install.sh | sh" && exit 1)
-	@command -v go >/dev/null 2>&1 || (echo "[-] Go not found. Install Go 1.23+" && exit 1)
+	@command -v go >/dev/null 2>&1 || (echo "[-] Go not found. Install Go 1.24+" && exit 1)
 	@echo "[+] Installing Python development tools..."
+	uv venv --allow-existing
 	uv pip install pre-commit
 	@echo "[+] Installing Go linting tools..."
 	@command -v goimports >/dev/null 2>&1 || go install golang.org/x/tools/cmd/goimports@$(GOIMPORTS_VERSION)
