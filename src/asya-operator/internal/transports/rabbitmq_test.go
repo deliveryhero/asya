@@ -45,7 +45,7 @@ func TestRabbitMQTransport_ReconcileQueue_AutoCreateDisabled(t *testing.T) {
 		},
 	}
 
-	transport := NewRabbitMQTransport(fakeClient, registry)
+	transport := NewRabbitMQTransport(fakeClient, registry, testActorNamespace)
 
 	actor := &asyav1alpha1.AsyncActor{
 		ObjectMeta: metav1.ObjectMeta{
@@ -79,7 +79,7 @@ func TestRabbitMQTransport_ReconcileQueue_TransportNotFound(t *testing.T) {
 		Transports: make(map[string]*asyaconfig.TransportConfig),
 	}
 
-	transport := NewRabbitMQTransport(fakeClient, registry)
+	transport := NewRabbitMQTransport(fakeClient, registry, testActorNamespace)
 
 	actor := &asyav1alpha1.AsyncActor{
 		ObjectMeta: metav1.ObjectMeta{
@@ -120,7 +120,7 @@ func TestRabbitMQTransport_ReconcileQueue_InvalidConfigType(t *testing.T) {
 		},
 	}
 
-	transport := NewRabbitMQTransport(fakeClient, registry)
+	transport := NewRabbitMQTransport(fakeClient, registry, testActorNamespace)
 
 	actor := &asyav1alpha1.AsyncActor{
 		ObjectMeta: metav1.ObjectMeta{
@@ -172,7 +172,7 @@ func TestRabbitMQTransport_ReconcileQueue_PasswordSecretNotFound(t *testing.T) {
 		},
 	}
 
-	transport := NewRabbitMQTransport(fakeClient, registry)
+	transport := NewRabbitMQTransport(fakeClient, registry, testActorNamespace)
 
 	actor := &asyav1alpha1.AsyncActor{
 		ObjectMeta: metav1.ObjectMeta{
@@ -234,7 +234,7 @@ func TestRabbitMQTransport_ReconcileQueue_PasswordSecretMissingKey(t *testing.T)
 		},
 	}
 
-	transport := NewRabbitMQTransport(fakeClient, registry)
+	transport := NewRabbitMQTransport(fakeClient, registry, testActorNamespace)
 
 	actor := &asyav1alpha1.AsyncActor{
 		ObjectMeta: metav1.ObjectMeta{
@@ -268,7 +268,7 @@ func TestRabbitMQTransport_DeleteQueue_TransportNotFound(t *testing.T) {
 		Transports: make(map[string]*asyaconfig.TransportConfig),
 	}
 
-	transport := NewRabbitMQTransport(fakeClient, registry)
+	transport := NewRabbitMQTransport(fakeClient, registry, testActorNamespace)
 
 	actor := &asyav1alpha1.AsyncActor{
 		ObjectMeta: metav1.ObjectMeta{
@@ -309,7 +309,7 @@ func TestRabbitMQTransport_DeleteQueue_InvalidConfigType(t *testing.T) {
 		},
 	}
 
-	transport := NewRabbitMQTransport(fakeClient, registry)
+	transport := NewRabbitMQTransport(fakeClient, registry, testActorNamespace)
 
 	actor := &asyav1alpha1.AsyncActor{
 		ObjectMeta: metav1.ObjectMeta{
@@ -342,7 +342,7 @@ func TestRabbitMQTransport_QueueExists_TransportNotFound(t *testing.T) {
 		Transports: make(map[string]*asyaconfig.TransportConfig),
 	}
 
-	transport := NewRabbitMQTransport(fakeClient, registry)
+	transport := NewRabbitMQTransport(fakeClient, registry, testActorNamespace)
 
 	exists, err := transport.QueueExists(context.Background(), "asya-test-queue", "default")
 	if err == nil {
@@ -378,7 +378,7 @@ func TestRabbitMQTransport_QueueExists_InvalidConfigType(t *testing.T) {
 		},
 	}
 
-	transport := NewRabbitMQTransport(fakeClient, registry)
+	transport := NewRabbitMQTransport(fakeClient, registry, testActorNamespace)
 
 	exists, err := transport.QueueExists(context.Background(), "asya-test-queue", "default")
 	if err == nil {

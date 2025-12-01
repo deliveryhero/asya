@@ -89,8 +89,8 @@ func main() {
 	}
 	setupLog.Info("Transport registry loaded", "transports", len(transportRegistry.Transports))
 
-	// Create transport factory
-	transportFactory := transports.NewFactory(mgr.GetClient(), transportRegistry)
+	// Create transport factory with credentials namespace (where transport secrets are stored)
+	transportFactory := transports.NewFactory(mgr.GetClient(), transportRegistry, runtimeNamespace)
 
 	// Read gateway URL from environment
 	gatewayURL := os.Getenv("ASYA_GATEWAY_URL")

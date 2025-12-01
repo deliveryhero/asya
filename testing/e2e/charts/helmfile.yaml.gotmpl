@@ -66,7 +66,7 @@ releases:
         args: ["-c", "echo \"[+] PostgreSQL deployed in $(($(date +%s) - $(cat /tmp/helm-postgres-start)))s\""]
 
   - name: s3
-    namespace: {{ .Values.namespace | default "asya-e2e" }}
+    namespace: asya-system
     chart: ./s3
     condition: storage.s3.enabled
     values:
@@ -95,7 +95,7 @@ releases:
         args: ["-c", "echo \"[+] S3 (LocalStack) deployed in $(($(date +%s) - $(cat /tmp/helm-s3-start)))s\""]
 
   - name: sqs
-    namespace: {{ .Values.namespace | default "asya-e2e" }}
+    namespace: asya-system
     chart: ./sqs
     condition: transport.sqs.enabled
     values:

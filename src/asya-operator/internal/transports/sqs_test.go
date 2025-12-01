@@ -42,7 +42,7 @@ func TestSQSTransport_ReconcileQueue_AutoCreateDisabled(t *testing.T) {
 		},
 	}
 
-	transport := NewSQSTransport(fakeClient, registry)
+	transport := NewSQSTransport(fakeClient, registry, testActorNamespace)
 
 	actor := &asyav1alpha1.AsyncActor{
 		ObjectMeta: metav1.ObjectMeta{
@@ -76,7 +76,7 @@ func TestSQSTransport_ReconcileQueue_TransportNotFound(t *testing.T) {
 		Transports: make(map[string]*asyaconfig.TransportConfig),
 	}
 
-	transport := NewSQSTransport(fakeClient, registry)
+	transport := NewSQSTransport(fakeClient, registry, testActorNamespace)
 
 	actor := &asyav1alpha1.AsyncActor{
 		ObjectMeta: metav1.ObjectMeta{
@@ -118,7 +118,7 @@ func TestSQSTransport_ReconcileQueue_InvalidConfigType(t *testing.T) {
 		},
 	}
 
-	transport := NewSQSTransport(fakeClient, registry)
+	transport := NewSQSTransport(fakeClient, registry, testActorNamespace)
 
 	actor := &asyav1alpha1.AsyncActor{
 		ObjectMeta: metav1.ObjectMeta{
@@ -151,7 +151,7 @@ func TestSQSTransport_DeleteQueue_TransportNotFound(t *testing.T) {
 		Transports: make(map[string]*asyaconfig.TransportConfig),
 	}
 
-	transport := NewSQSTransport(fakeClient, registry)
+	transport := NewSQSTransport(fakeClient, registry, testActorNamespace)
 
 	actor := &asyav1alpha1.AsyncActor{
 		ObjectMeta: metav1.ObjectMeta{
@@ -193,7 +193,7 @@ func TestSQSTransport_DeleteQueue_InvalidConfigType(t *testing.T) {
 		},
 	}
 
-	transport := NewSQSTransport(fakeClient, registry)
+	transport := NewSQSTransport(fakeClient, registry, testActorNamespace)
 
 	actor := &asyav1alpha1.AsyncActor{
 		ObjectMeta: metav1.ObjectMeta{
@@ -236,7 +236,7 @@ func TestSQSTransport_ReconcileServiceAccount_NoActorRoleArn(t *testing.T) {
 		},
 	}
 
-	transport := NewSQSTransport(fakeClient, registry)
+	transport := NewSQSTransport(fakeClient, registry, testActorNamespace)
 
 	actor := &asyav1alpha1.AsyncActor{
 		ObjectMeta: metav1.ObjectMeta{
@@ -265,7 +265,7 @@ func TestSQSTransport_ReconcileServiceAccount_TransportNotFound(t *testing.T) {
 		Transports: make(map[string]*asyaconfig.TransportConfig),
 	}
 
-	transport := NewSQSTransport(fakeClient, registry)
+	transport := NewSQSTransport(fakeClient, registry, testActorNamespace)
 
 	actor := &asyav1alpha1.AsyncActor{
 		ObjectMeta: metav1.ObjectMeta{
@@ -307,7 +307,7 @@ func TestSQSTransport_ReconcileServiceAccount_InvalidConfigType(t *testing.T) {
 		},
 	}
 
-	transport := NewSQSTransport(fakeClient, registry)
+	transport := NewSQSTransport(fakeClient, registry, testActorNamespace)
 
 	actor := &asyav1alpha1.AsyncActor{
 		ObjectMeta: metav1.ObjectMeta{
@@ -432,7 +432,7 @@ func TestSQSTransport_QueueExists_TransportNotFound(t *testing.T) {
 		Transports: make(map[string]*asyaconfig.TransportConfig),
 	}
 
-	transport := NewSQSTransport(fakeClient, registry)
+	transport := NewSQSTransport(fakeClient, registry, testActorNamespace)
 
 	exists, err := transport.QueueExists(context.Background(), "asya-test-queue", "default")
 	if err == nil {
@@ -469,7 +469,7 @@ func TestSQSTransport_QueueExists_InvalidConfigType(t *testing.T) {
 		},
 	}
 
-	transport := NewSQSTransport(fakeClient, registry)
+	transport := NewSQSTransport(fakeClient, registry, testActorNamespace)
 
 	exists, err := transport.QueueExists(context.Background(), "asya-test-queue", "default")
 	if err == nil {

@@ -23,15 +23,17 @@ import (
 
 // SQSTransport implements queue reconciliation for AWS SQS
 type SQSTransport struct {
-	k8sClient         client.Client
-	transportRegistry *asyaconfig.TransportRegistry
+	k8sClient            client.Client
+	transportRegistry    *asyaconfig.TransportRegistry
+	credentialsNamespace string // Namespace to look up transport credential secrets
 }
 
 // NewSQSTransport creates a new SQS transport reconciler
-func NewSQSTransport(k8sClient client.Client, registry *asyaconfig.TransportRegistry) *SQSTransport {
+func NewSQSTransport(k8sClient client.Client, registry *asyaconfig.TransportRegistry, credentialsNamespace string) *SQSTransport {
 	return &SQSTransport{
-		k8sClient:         k8sClient,
-		transportRegistry: registry,
+		k8sClient:            k8sClient,
+		transportRegistry:    registry,
+		credentialsNamespace: credentialsNamespace,
 	}
 }
 
@@ -53,7 +55,7 @@ func (t *SQSTransport) ReconcileQueue(ctx context.Context, actor *asyav1alpha1.A
 
 	queueName := fmt.Sprintf("asya-%s", actor.Name)
 
-	sqsClient, err := t.createSQSClient(ctx, sqsConfig, actor.Namespace)
+	sqsClient, err := t.createSQSClient(ctx, sqsConfig, t.credentialsNamespace)
 	if err != nil {
 		return fmt.Errorf("failed to create SQS client: %w", err)
 	}
@@ -190,7 +192,7 @@ func (t *SQSTransport) DeleteQueue(ctx context.Context, actor *asyav1alpha1.Asyn
 
 	queueName := fmt.Sprintf("asya-%s", actor.Name)
 
-	sqsClient, err := t.createSQSClient(ctx, sqsConfig, actor.Namespace)
+	sqsClient, err := t.createSQSClient(ctx, sqsConfig, t.credentialsNamespace)
 	if err != nil {
 		return fmt.Errorf("failed to create SQS client: %w", err)
 	}
@@ -407,7 +409,7 @@ func (t *SQSTransport) QueueExists(ctx context.Context, queueName, namespace str
 		return false, fmt.Errorf("invalid SQS config type")
 	}
 
-	sqsClient, err := t.createSQSClient(ctx, sqsConfig, namespace)
+	sqsClient, err := t.createSQSClient(ctx, sqsConfig, t.credentialsNamespace)
 	if err != nil {
 		return false, fmt.Errorf("failed to create SQS client: %w", err)
 	}

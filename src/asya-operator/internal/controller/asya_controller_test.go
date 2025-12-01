@@ -1518,7 +1518,7 @@ func TestReconcileDelete_RemovesFinalizer(t *testing.T) {
 		Client:            fakeClient,
 		Scheme:            scheme,
 		TransportRegistry: transportRegistry,
-		TransportFactory:  transports.NewFactory(fakeClient, transportRegistry),
+		TransportFactory:  transports.NewFactory(fakeClient, transportRegistry, "test-namespace"),
 	}
 
 	_, err := r.reconcileDelete(context.Background(), asya)
@@ -1574,7 +1574,7 @@ func TestReconcileDelete_HandlesRabbitMQTransport(t *testing.T) {
 		Client:            fakeClient,
 		Scheme:            scheme,
 		TransportRegistry: transportRegistry,
-		TransportFactory:  transports.NewFactory(fakeClient, transportRegistry),
+		TransportFactory:  transports.NewFactory(fakeClient, transportRegistry, "test-namespace"),
 	}
 
 	_, err := r.reconcileDelete(context.Background(), asya)
@@ -1630,7 +1630,7 @@ func TestReconcileDelete_SkipsQueueDeletionWhenDisabled(t *testing.T) {
 		Client:            fakeClient,
 		Scheme:            scheme,
 		TransportRegistry: transportRegistry,
-		TransportFactory:  transports.NewFactory(fakeClient, transportRegistry),
+		TransportFactory:  transports.NewFactory(fakeClient, transportRegistry, "test-namespace"),
 	}
 
 	_, err := r.reconcileDelete(context.Background(), asya)

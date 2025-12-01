@@ -15,15 +15,17 @@ const (
 
 // Factory creates transport-specific reconcilers
 type Factory struct {
-	k8sClient         client.Client
-	transportRegistry *asyaconfig.TransportRegistry
+	k8sClient            client.Client
+	transportRegistry    *asyaconfig.TransportRegistry
+	credentialsNamespace string // Namespace to look up transport credential secrets
 }
 
 // NewFactory creates a new transport factory
-func NewFactory(k8sClient client.Client, registry *asyaconfig.TransportRegistry) *Factory {
+func NewFactory(k8sClient client.Client, registry *asyaconfig.TransportRegistry, credentialsNamespace string) *Factory {
 	return &Factory{
-		k8sClient:         k8sClient,
-		transportRegistry: registry,
+		k8sClient:            k8sClient,
+		transportRegistry:    registry,
+		credentialsNamespace: credentialsNamespace,
 	}
 }
 
@@ -31,9 +33,9 @@ func NewFactory(k8sClient client.Client, registry *asyaconfig.TransportRegistry)
 func (f *Factory) GetQueueReconciler(transportType string) (QueueReconciler, error) {
 	switch transportType {
 	case transportTypeSQS:
-		return NewSQSTransport(f.k8sClient, f.transportRegistry), nil
+		return NewSQSTransport(f.k8sClient, f.transportRegistry, f.credentialsNamespace), nil
 	case transportTypeRabbitMQ:
-		return NewRabbitMQTransport(f.k8sClient, f.transportRegistry), nil
+		return NewRabbitMQTransport(f.k8sClient, f.transportRegistry, f.credentialsNamespace), nil
 	default:
 		return nil, fmt.Errorf("unsupported transport type: %s", transportType)
 	}
@@ -43,7 +45,7 @@ func (f *Factory) GetQueueReconciler(transportType string) (QueueReconciler, err
 func (f *Factory) GetServiceAccountReconciler(transportType string) (ServiceAccountReconciler, error) {
 	switch transportType {
 	case transportTypeSQS:
-		return NewSQSTransport(f.k8sClient, f.transportRegistry), nil
+		return NewSQSTransport(f.k8sClient, f.transportRegistry, f.credentialsNamespace), nil
 	case transportTypeRabbitMQ:
 		return nil, nil
 	default:
