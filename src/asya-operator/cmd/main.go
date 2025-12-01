@@ -89,8 +89,12 @@ func main() {
 	}
 	setupLog.Info("Transport registry loaded", "transports", len(transportRegistry.Transports))
 
+	// Get operator's namespace for transport credentials
+	operatorNamespace := getEnvOrDefault("POD_NAMESPACE", "asya-system")
+	setupLog.Info("Using namespace for transport credentials", "namespace", operatorNamespace)
+
 	// Create transport factory with credentials namespace (where transport secrets are stored)
-	transportFactory := transports.NewFactory(mgr.GetClient(), transportRegistry, runtimeNamespace)
+	transportFactory := transports.NewFactory(mgr.GetClient(), transportRegistry, operatorNamespace)
 
 	// Read gateway URL from environment
 	gatewayURL := os.Getenv("ASYA_GATEWAY_URL")
