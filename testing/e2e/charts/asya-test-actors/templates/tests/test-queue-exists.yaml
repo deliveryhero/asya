@@ -25,17 +25,11 @@ spec:
     - name: AWS_REGION
       value: "us-east-1"
     - name: AWS_ACCESS_KEY_ID
-      valueFrom:
-        secretKeyRef:
-          name: sqs-secret
-          key: access-key-id
+      value: "test"
     - name: AWS_SECRET_ACCESS_KEY
-      valueFrom:
-        secretKeyRef:
-          name: sqs-secret
-          key: secret-access-key
+      value: "test"
     - name: AWS_ENDPOINT_URL
-      value: "http://localstack-sqs.{{ .Release.Namespace }}.svc.cluster.local:4566"
+      value: "http://localstack-sqs.asya-system.svc.cluster.local:4566"
     {{- end }}
     command:
       - /bin/sh
