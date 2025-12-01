@@ -1031,15 +1031,12 @@ func (r *AsyncActorReconciler) buildSidecarEnv(asya *asyav1alpha1.AsyncActor) []
 	}
 
 	// Filter out credential env vars from transport config (operator-level secrets)
+	// Any env var with secretKeyRef is an operator-scoped secret that needs namespace translation
 	// We'll add actor-specific credential references below
 	filteredEnv := make([]corev1.EnvVar, 0, len(transportEnv))
 	for _, e := range transportEnv {
-		// Skip credential env vars - we'll add actor-specific ones
-		if e.Name == "AWS_ACCESS_KEY_ID" || e.Name == "AWS_SECRET_ACCESS_KEY" {
-			continue
-		}
-		// RabbitMQ password handled separately below
-		if e.Name == "ASYA_RABBITMQ_PASSWORD" {
+		// Skip any env var that references a secret (operator-scoped credentials)
+		if e.ValueFrom != nil && e.ValueFrom.SecretKeyRef != nil {
 			continue
 		}
 		filteredEnv = append(filteredEnv, e)
