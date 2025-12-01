@@ -31,7 +31,7 @@ start_port_forwards() {
       echo "[!] Gateway port-forward PID exists but not responding, restarting..."
       pkill -f "kubectl port-forward.*asya-gateway" 2> /dev/null || true
       sleep 1
-      nohup uv run --directory "$REPO_ROOT/src/asya-tools" asya-mcp-forward \
+      nohup uv run --directory "$REPO_ROOT/src/asya-cli" asya-mcp-forward \
         --namespace "$NAMESPACE" \
         --deployment asya-gateway \
         --local-port 8080 \

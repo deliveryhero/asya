@@ -7,11 +7,15 @@ import (
 	"path/filepath"
 	"testing"
 	"time"
+
+	"golang.org/x/net/nettest"
 )
 
 func TestVerifySocketConnection_Success(t *testing.T) {
-	tmpDir := t.TempDir()
-	socketPath := filepath.Join(tmpDir, "test.sock")
+	socketPath, err := nettest.LocalPath()
+	if err != nil {
+		t.Fatalf("Failed to get local path: %v", err)
+	}
 
 	listener, err := net.Listen("unix", socketPath)
 	if err != nil {
@@ -49,8 +53,10 @@ func TestVerifySocketConnection_NotASocket(t *testing.T) {
 }
 
 func TestVerifySocketConnection_NotListening(t *testing.T) {
-	tmpDir := t.TempDir()
-	socketPath := filepath.Join(tmpDir, "dead.sock")
+	socketPath, err := nettest.LocalPath()
+	if err != nil {
+		t.Fatalf("Failed to get local path: %v", err)
+	}
 
 	listener, err := net.Listen("unix", socketPath)
 	if err != nil {
@@ -67,7 +73,10 @@ func TestVerifySocketConnection_NotListening(t *testing.T) {
 func TestWaitForRuntime_Success(t *testing.T) {
 	tmpDir := t.TempDir()
 	readyFile := filepath.Join(tmpDir, "runtime-ready")
-	socketPath := filepath.Join(tmpDir, "runtime.sock")
+	socketPath, err := nettest.LocalPath()
+	if err != nil {
+		t.Fatalf("Failed to get local path: %v", err)
+	}
 
 	listener, err := net.Listen("unix", socketPath)
 	if err != nil {
@@ -93,12 +102,15 @@ func TestWaitForRuntime_Success(t *testing.T) {
 func TestWaitForRuntime_Timeout(t *testing.T) {
 	tmpDir := t.TempDir()
 	readyFile := filepath.Join(tmpDir, "runtime-ready")
-	socketPath := filepath.Join(tmpDir, "runtime.sock")
+	socketPath, err := nettest.LocalPath()
+	if err != nil {
+		t.Fatalf("Failed to get local path: %v", err)
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
 	defer cancel()
 
-	err := waitForRuntime(ctx, readyFile, socketPath, 500*time.Millisecond)
+	err = waitForRuntime(ctx, readyFile, socketPath, 500*time.Millisecond)
 	if err == nil {
 		t.Error("waitForRuntime() expected timeout error, got nil")
 	}
@@ -107,16 +119,19 @@ func TestWaitForRuntime_Timeout(t *testing.T) {
 func TestWaitForRuntime_ReadyFileButNoSocket(t *testing.T) {
 	tmpDir := t.TempDir()
 	readyFile := filepath.Join(tmpDir, "runtime-ready")
-	socketPath := filepath.Join(tmpDir, "runtime.sock")
+	socketPath, err := nettest.LocalPath()
+	if err != nil {
+		t.Fatalf("Failed to get local path: %v", err)
+	}
 
-	if err := os.WriteFile(readyFile, []byte("ready"), 0600); err != nil {
+	if err = os.WriteFile(readyFile, []byte("ready"), 0600); err != nil {
 		t.Fatalf("Failed to write ready file: %v", err)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
-	err := waitForRuntime(ctx, readyFile, socketPath, 1*time.Second)
+	err = waitForRuntime(ctx, readyFile, socketPath, 1*time.Second)
 	if err == nil {
 		t.Error("waitForRuntime() expected error when ready file exists but socket doesn't, got nil")
 	}
@@ -125,9 +140,12 @@ func TestWaitForRuntime_ReadyFileButNoSocket(t *testing.T) {
 func TestWaitForRuntime_ReadyFileButSocketNotListening(t *testing.T) {
 	tmpDir := t.TempDir()
 	readyFile := filepath.Join(tmpDir, "runtime-ready")
-	socketPath := filepath.Join(tmpDir, "runtime.sock")
+	socketPath, err := nettest.LocalPath()
+	if err != nil {
+		t.Fatalf("Failed to get local path: %v", err)
+	}
 
-	if err := os.WriteFile(readyFile, []byte("ready"), 0600); err != nil {
+	if err = os.WriteFile(readyFile, []byte("ready"), 0600); err != nil {
 		t.Fatalf("Failed to write ready file: %v", err)
 	}
 

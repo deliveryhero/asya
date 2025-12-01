@@ -50,15 +50,17 @@ runs:
     run: |
       GOIMPORTS_VERSION=$(grep '^GOIMPORTS_VERSION :=' Makefile | awk '{print $3}' || echo "unknown")
       GOLANGCI_VERSION=$(grep '^GOLANGCI_LINT_VERSION :=' Makefile | awk '{print $3}' || echo "unknown")
+      SETUP_ENVTEST_VERSION=$(grep '^SETUP_ENVTEST_VERSION :=' Makefile | awk '{print $3}' || echo "unknown")
       echo "goimports=$GOIMPORTS_VERSION" >> $GITHUB_OUTPUT
       echo "golangci=$GOLANGCI_VERSION" >> $GITHUB_OUTPUT
+      echo "setup-envtest=$SETUP_ENVTEST_VERSION" >> $GITHUB_OUTPUT
 
   - name: Cache Go tools
     uses: actions/cache@v4
     with:
       path: ~/go/bin
       key: go-tools-${{ runner.os }}-goimports-${{ steps.tool-versions.outputs.goimports }}-golangci-${{ steps.tool-versions.outputs.golangci
-        }}
+        }}-setup-envtest-${{ steps.tool-versions.outputs.setup-envtest }}
 
   - name: Cache pre-commit environments
     if: inputs.cache-precommit == 'true'

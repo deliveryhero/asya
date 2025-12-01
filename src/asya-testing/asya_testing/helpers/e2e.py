@@ -228,11 +228,19 @@ class E2ETestHelper(GatewayTestHelper):
                     try:
                         pid = int(pid_str.strip())
                         os.kill(pid, signal.SIGTERM)
-                        logger.debug(f"Killed existing port-forward PID {pid}")
-                    except (ValueError, ProcessLookupError):
-                        pass
+                        logger.debug(f"Killed existing port-forward PID {pid} with SIGTERM")
+                    except (ValueError, ProcessLookupError) as e:
+                        logger.debug(f"Could not kill PID {pid_str}: {e}")
 
                 time.sleep(1)
+
+                for pid_str in pids:
+                    try:
+                        pid = int(pid_str.strip())
+                        os.kill(pid, signal.SIGKILL)
+                        logger.debug(f"Force-killed port-forward PID {pid} with SIGKILL")
+                    except (ValueError, ProcessLookupError) as e:
+                        logger.debug(f"Could not force-kill PID {pid_str}: {e}")
 
         except Exception as e:
             logger.warning(f"Failed to kill existing port-forward: {e}")
