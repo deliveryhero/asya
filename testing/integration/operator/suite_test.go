@@ -170,7 +170,7 @@ func TestMain(m *testing.M) {
 		Client:            k8sManager.GetClient(),
 		Scheme:            k8sManager.GetScheme(),
 		TransportRegistry: transportRegistry,
-		TransportFactory:  transports.NewFactory(k8sManager.GetClient(), transportRegistry),
+		TransportFactory:  transports.NewFactory(k8sManager.GetClient(), transportRegistry, "default"),
 	}).SetupWithManager(k8sManager)
 	if err != nil {
 		panic(err)
