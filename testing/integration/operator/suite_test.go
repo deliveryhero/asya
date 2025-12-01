@@ -171,6 +171,7 @@ func TestMain(m *testing.M) {
 		Scheme:            k8sManager.GetScheme(),
 		TransportRegistry: transportRegistry,
 		TransportFactory:  transports.NewFactory(k8sManager.GetClient(), transportRegistry, "default"),
+		OperatorNamespace: "default",
 	}).SetupWithManager(k8sManager)
 	if err != nil {
 		panic(err)

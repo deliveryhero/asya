@@ -49,6 +49,8 @@ const (
 	actorNameHappyEnd = "happy-end"
 	actorNameErrorEnd = "error-end"
 
+	transportCredentialsSecretSuffix = "-transport-credentials"
+
 	defaultQueueHealthCheckInterval = 5 * time.Minute
 
 	podReasonCrashLoopBackOff           = "CrashLoopBackOff"
@@ -158,6 +160,7 @@ type AsyncActorReconciler struct {
 	TransportFactory        *transports.Factory
 	MaxConcurrentReconciles int
 	GatewayURL              string
+	OperatorNamespace       string // Namespace where operator and transport credentials are located
 }
 
 // +kubebuilder:rbac:groups=asya.sh,resources=asyncactors,verbs=get;list;watch;create;update;patch;delete
@@ -169,7 +172,7 @@ type AsyncActorReconciler struct {
 // +kubebuilder:rbac:groups=keda.sh,resources=triggerauthentications,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch
+// +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch
 // +kubebuilder:rbac:groups=autoscaling,resources=horizontalpodautoscalers,verbs=get;list;watch
 
@@ -264,6 +267,12 @@ func (r *AsyncActorReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	// Ensure runtime ConfigMap exists in actor's namespace
 	if err := r.reconcileRuntimeConfigMap(ctx, asya); err != nil {
 		logger.Error(err, "Failed to reconcile runtime ConfigMap")
+		return ctrl.Result{}, err
+	}
+
+	// Ensure transport credentials exist in actor's namespace
+	if err := r.reconcileTransportCredentials(ctx, asya); err != nil {
+		logger.Error(err, "Failed to reconcile transport credentials")
 		return ctrl.Result{}, err
 	}
 
@@ -632,6 +641,130 @@ func (r *AsyncActorReconciler) reconcileRuntimeConfigMap(ctx context.Context, as
 	return nil
 }
 
+// reconcileTransportCredentials creates or updates actor-specific transport credential secrets
+// Copies credentials from operator's namespace to actor's namespace with owner reference to AsyncActor
+func (r *AsyncActorReconciler) reconcileTransportCredentials(ctx context.Context, asya *asyav1alpha1.AsyncActor) error {
+	logger := log.FromContext(ctx)
+
+	// Get transport configuration
+	transportConfig, err := r.TransportRegistry.GetTransport(asya.Spec.Transport)
+	if err != nil {
+		return fmt.Errorf("failed to get transport config: %w", err)
+	}
+
+	// Extract secret references from transport config
+	var sourceSecretRefs []struct {
+		name string
+		key  string
+	}
+
+	switch asya.Spec.Transport {
+	case transportTypeSQS:
+		sqsConfig, ok := transportConfig.Config.(*asyaconfig.SQSConfig)
+		if !ok {
+			return fmt.Errorf("invalid SQS config type")
+		}
+		if sqsConfig.Credentials != nil {
+			if sqsConfig.Credentials.AccessKeyIdSecretRef != nil {
+				sourceSecretRefs = append(sourceSecretRefs, struct {
+					name string
+					key  string
+				}{
+					name: sqsConfig.Credentials.AccessKeyIdSecretRef.Name,
+					key:  sqsConfig.Credentials.AccessKeyIdSecretRef.Key,
+				})
+			}
+			if sqsConfig.Credentials.SecretAccessKeySecretRef != nil {
+				sourceSecretRefs = append(sourceSecretRefs, struct {
+					name string
+					key  string
+				}{
+					name: sqsConfig.Credentials.SecretAccessKeySecretRef.Name,
+					key:  sqsConfig.Credentials.SecretAccessKeySecretRef.Key,
+				})
+			}
+		}
+
+	case transportTypeRabbitMQ:
+		rabbitConfig, ok := transportConfig.Config.(*asyaconfig.RabbitMQConfig)
+		if !ok {
+			return fmt.Errorf("invalid RabbitMQ config type")
+		}
+		if rabbitConfig.PasswordSecretRef != nil {
+			sourceSecretRefs = append(sourceSecretRefs, struct {
+				name string
+				key  string
+			}{
+				name: rabbitConfig.PasswordSecretRef.Name,
+				key:  rabbitConfig.PasswordSecretRef.Key,
+			})
+		}
+	}
+
+	// If no credentials configured, skip secret creation (e.g., IRSA for SQS)
+	if len(sourceSecretRefs) == 0 {
+		logger.V(1).Info("No transport credentials configured, skipping secret creation")
+		return nil
+	}
+
+	// Read source secrets from operator's namespace
+	secretData := make(map[string][]byte)
+	for _, ref := range sourceSecretRefs {
+		sourceSecret := &corev1.Secret{}
+		key := client.ObjectKey{
+			Name:      ref.name,
+			Namespace: r.OperatorNamespace,
+		}
+		if err := r.Client.Get(ctx, key, sourceSecret); err != nil {
+			return fmt.Errorf("failed to get source secret %s/%s: %w", r.OperatorNamespace, ref.name, err)
+		}
+
+		value, ok := sourceSecret.Data[ref.key]
+		if !ok {
+			return fmt.Errorf("key %s not found in secret %s/%s", ref.key, r.OperatorNamespace, ref.name)
+		}
+		secretData[ref.key] = value
+	}
+
+	// Create or update actor-specific secret in actor's namespace
+	actorSecretName := asya.Name + transportCredentialsSecretSuffix
+	actorSecret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      actorSecretName,
+			Namespace: asya.Namespace,
+		},
+	}
+
+	result, err := controllerutil.CreateOrUpdate(ctx, r.Client, actorSecret, func() error {
+		// Set owner reference for automatic cleanup
+		if err := controllerutil.SetControllerReference(asya, actorSecret, r.Scheme); err != nil {
+			return fmt.Errorf("failed to set owner reference: %w", err)
+		}
+
+		// Set labels
+		if actorSecret.Labels == nil {
+			actorSecret.Labels = make(map[string]string)
+		}
+		actorSecret.Labels["app.kubernetes.io/name"] = asya.Name
+		actorSecret.Labels["app.kubernetes.io/component"] = "transport-credentials"
+		actorSecret.Labels["app.kubernetes.io/part-of"] = "asya"
+		actorSecret.Labels["app.kubernetes.io/managed-by"] = "asya-operator"
+
+		// Set secret data
+		actorSecret.Type = corev1.SecretTypeOpaque
+		actorSecret.Data = secretData
+
+		return nil
+	})
+
+	if err != nil {
+		return fmt.Errorf("failed to reconcile transport credentials secret: %w", err)
+	}
+
+	logger.Info("Transport credentials secret reconciled", "result", result, "secret", actorSecretName, "namespace", asya.Namespace)
+	return nil
+}
+
 // reconcileWorkload creates or updates the workload (Deployment or StatefulSet)
 func (r *AsyncActorReconciler) reconcileWorkload(ctx context.Context, asya *asyav1alpha1.AsyncActor) error {
 	_ = log.FromContext(ctx)
@@ -897,7 +1030,72 @@ func (r *AsyncActorReconciler) buildSidecarEnv(asya *asyav1alpha1.AsyncActor) []
 		return env
 	}
 
-	env = append(env, transportEnv...)
+	// Filter out credential env vars from transport config (operator-level secrets)
+	// We'll add actor-specific credential references below
+	filteredEnv := make([]corev1.EnvVar, 0, len(transportEnv))
+	for _, e := range transportEnv {
+		// Skip credential env vars - we'll add actor-specific ones
+		if e.Name == "AWS_ACCESS_KEY_ID" || e.Name == "AWS_SECRET_ACCESS_KEY" {
+			continue
+		}
+		// RabbitMQ password handled separately below
+		if e.Name == "ASYA_RABBITMQ_PASSWORD" {
+			continue
+		}
+		filteredEnv = append(filteredEnv, e)
+	}
+	env = append(env, filteredEnv...)
+
+	// Add actor-specific transport credentials (if any)
+	actorSecretName := asya.Name + transportCredentialsSecretSuffix
+	switch asya.Spec.Transport {
+	case transportTypeSQS:
+		sqsConfig, ok := transport.Config.(*asyaconfig.SQSConfig)
+		if ok && sqsConfig.Credentials != nil {
+			if sqsConfig.Credentials.AccessKeyIdSecretRef != nil {
+				env = append(env, corev1.EnvVar{
+					Name: "AWS_ACCESS_KEY_ID",
+					ValueFrom: &corev1.EnvVarSource{
+						SecretKeyRef: &corev1.SecretKeySelector{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: actorSecretName,
+							},
+							Key: sqsConfig.Credentials.AccessKeyIdSecretRef.Key,
+						},
+					},
+				})
+			}
+			if sqsConfig.Credentials.SecretAccessKeySecretRef != nil {
+				env = append(env, corev1.EnvVar{
+					Name: "AWS_SECRET_ACCESS_KEY",
+					ValueFrom: &corev1.EnvVarSource{
+						SecretKeyRef: &corev1.SecretKeySelector{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: actorSecretName,
+							},
+							Key: sqsConfig.Credentials.SecretAccessKeySecretRef.Key,
+						},
+					},
+				})
+			}
+		}
+
+	case transportTypeRabbitMQ:
+		rabbitConfig, ok := transport.Config.(*asyaconfig.RabbitMQConfig)
+		if ok && rabbitConfig.PasswordSecretRef != nil {
+			env = append(env, corev1.EnvVar{
+				Name: "ASYA_RABBITMQ_PASSWORD",
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: actorSecretName,
+						},
+						Key: rabbitConfig.PasswordSecretRef.Key,
+					},
+				},
+			})
+		}
+	}
 
 	return env
 }
