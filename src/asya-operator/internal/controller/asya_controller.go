@@ -232,6 +232,13 @@ func (r *AsyncActorReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 	r.setCondition(asya, "TransportReady", metav1.ConditionTrue, "TransportValidated", "Transport configuration validated")
 
+	// Ensure runtime ConfigMap exists in actor's namespace
+	// This must happen before workload reconciliation, and should succeed even if transport is misconfigured
+	if err := r.reconcileRuntimeConfigMap(ctx, asya); err != nil {
+		logger.Error(err, "Failed to reconcile runtime ConfigMap")
+		return ctrl.Result{}, err
+	}
+
 	// Reconcile transport-specific resources using transport layer
 	queueReconciler, err := r.TransportFactory.GetQueueReconciler(asya.Spec.Transport)
 	if err != nil {
@@ -259,12 +266,6 @@ func (r *AsyncActorReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			logger.Error(err, "Failed to reconcile ServiceAccount")
 			return ctrl.Result{}, err
 		}
-	}
-
-	// Ensure runtime ConfigMap exists in actor's namespace
-	if err := r.reconcileRuntimeConfigMap(ctx, asya); err != nil {
-		logger.Error(err, "Failed to reconcile runtime ConfigMap")
-		return ctrl.Result{}, err
 	}
 
 	// Reconcile the workload
