@@ -55,9 +55,6 @@ comment:
     - Test Execution Time
 
     **Legend:** `+` increase | `-` decrease | `~` no change
-  report:
-    datastores:
-    - artifact://${GITHUB_REPOSITORY}
 
 diff:
   if: is_pull_request
