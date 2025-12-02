@@ -91,6 +91,25 @@ Operator automatically creates queues via transport layer abstraction.
 - Queue properties: durable, non-auto-delete
 - Supports basic auth via Kubernetes Secrets
 
+## Credential Management
+
+Operator separates credentials by scope for security and namespace isolation.
+
+**Operator Credentials** (in operator's namespace, e.g., `asya-system`):
+- Used for queue management (create/delete/configure)
+- Configured in transport config (`sqs-secret`, `rabbitmq-secret`)
+- Admin-level permissions
+
+**Actor Credentials** (in actor's namespace):
+- Used by sidecars for message operations (send/receive/delete)
+- Secret name: `<actor-name>-transport-creds`
+- Auto-created by operator from operator credentials
+- Owned by AsyncActor CRD (auto-deleted when AsyncActor deleted)
+- Message-level permissions only
+
+**Lifecycle**: Operator reads credentials from its namespace → creates actor-specific secret in actor's namespace → sidecar references actor-specific secret.
+
+
 ## KEDA Integration
 
 Operator creates KEDA ScaledObject for each AsyncActor:

@@ -908,6 +908,19 @@ helm<span class="w"> </span>install<span class="w"> </span>asya-operator<span cl
 <li>Queue properties: durable, non-auto-delete</li>
 <li>Supports basic auth via Kubernetes Secrets</li>
 </ul>
+<h2 id="credential-management">Credential Management<a class="headerlink" href="#credential-management" title="Permanent link">&para;</a></h2>
+<p>Operator separates credentials by scope for security and namespace isolation.</p>
+<p><strong>Operator Credentials</strong> (in operator's namespace, e.g., <code>asya-system</code>):
+- Used for queue management (create/delete/configure)
+- Configured in transport config (<code>sqs-secret</code>, <code>rabbitmq-secret</code>)
+- Admin-level permissions</p>
+<p><strong>Actor Credentials</strong> (in actor's namespace):
+- Used by sidecars for message operations (send/receive/delete)
+- Secret name: <code>&lt;actor-name&gt;-transport-creds</code>
+- Auto-created by operator from operator credentials
+- Owned by AsyncActor CRD (auto-deleted when AsyncActor deleted)
+- Message-level permissions only</p>
+<p><strong>Lifecycle</strong>: Operator reads credentials from its namespace → creates actor-specific secret in actor's namespace → sidecar references actor-specific secret.</p>
 <h2 id="keda-integration">KEDA Integration<a class="headerlink" href="#keda-integration" title="Permanent link">&para;</a></h2>
 <p>Operator creates KEDA ScaledObject for each AsyncActor:</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">keda.sh/v1alpha1</span>
@@ -1435,6 +1448,14 @@ helm<span class="w"> </span>install<span class="w"> </span>asya-operator<span cl
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
             Queue Management
+        </a>
+        
+
+        
+        <a href="#credential-management"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Credential Management
         </a>
         
 
