@@ -622,8 +622,11 @@ spec:
             "Deployment should have operator label 'app.kubernetes.io/name'"
         assert deployment_labels.get("app.kubernetes.io/component") == "actor", \
             "Deployment should have operator label 'app.kubernetes.io/component=actor'"
+        assert deployment_labels.get("app.kubernetes.io/part-of") == "asya", \
+            "Deployment should have operator label 'app.kubernetes.io/part-of=asya'"
         assert deployment_labels.get("app.kubernetes.io/managed-by") == "asya-operator", \
             "Deployment should have operator label 'app.kubernetes.io/managed-by'"
+        logger.info("[+] Deployment labels verified")
 
         logger.info("Verifying Secret labels...")
         secret_name = "test-labels-transport-creds"
@@ -635,12 +638,47 @@ spec:
                 "Secret should have user label 'app=example-ecommerce'"
             assert secret_labels.get("team") == "ml-platform", \
                 "Secret should have user label 'team=ml-platform'"
+            assert secret_labels.get("env") == "test", \
+                "Secret should have user label 'env=test'"
             assert secret_labels.get("app.kubernetes.io/name") == "test-labels", \
                 "Secret should have operator label 'app.kubernetes.io/name'"
             assert secret_labels.get("app.kubernetes.io/component") == "transport-creds", \
                 "Secret should have operator label 'app.kubernetes.io/component=transport-creds'"
+            assert secret_labels.get("app.kubernetes.io/part-of") == "asya", \
+                "Secret should have operator label 'app.kubernetes.io/part-of=asya'"
+            assert secret_labels.get("app.kubernetes.io/managed-by") == "asya-operator", \
+                "Secret should have operator label 'app.kubernetes.io/managed-by'"
+            logger.info("[+] Secret labels verified")
         except subprocess.CalledProcessError:
             logger.info("Secret not found - skipping secret label verification (IRSA may be in use)")
+
+        logger.info("Verifying ServiceAccount labels (SQS only)...")
+        transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
+        if transport == "sqs":
+            sa_name = "asya-test-labels"
+            try:
+                sa = kubectl_get("serviceaccount", sa_name, namespace=e2e_helper.namespace)
+                sa_labels = sa["metadata"].get("labels", {})
+
+                assert sa_labels.get("app") == "example-ecommerce", \
+                    "ServiceAccount should have user label 'app=example-ecommerce'"
+                assert sa_labels.get("team") == "ml-platform", \
+                    "ServiceAccount should have user label 'team=ml-platform'"
+                assert sa_labels.get("env") == "test", \
+                    "ServiceAccount should have user label 'env=test'"
+                assert sa_labels.get("app.kubernetes.io/name") == "test-labels", \
+                    "ServiceAccount should have operator label 'app.kubernetes.io/name'"
+                assert sa_labels.get("app.kubernetes.io/component") == "serviceaccount", \
+                    "ServiceAccount should have operator label 'app.kubernetes.io/component=serviceaccount'"
+                assert sa_labels.get("app.kubernetes.io/part-of") == "asya", \
+                    "ServiceAccount should have operator label 'app.kubernetes.io/part-of=asya'"
+                assert sa_labels.get("app.kubernetes.io/managed-by") == "asya-operator", \
+                    "ServiceAccount should have operator label 'app.kubernetes.io/managed-by'"
+                logger.info("[+] ServiceAccount labels verified")
+            except subprocess.CalledProcessError:
+                logger.info("ServiceAccount not found - IRSA may not be configured")
+        else:
+            logger.info("Skipping ServiceAccount verification (not SQS transport)")
 
         logger.info("Verifying ScaledObject labels...")
         scaledobject = kubectl_get("scaledobject", "test-labels", namespace=e2e_helper.namespace)
@@ -650,10 +688,55 @@ spec:
             "ScaledObject should have user label 'app=example-ecommerce'"
         assert scaledobject_labels.get("team") == "ml-platform", \
             "ScaledObject should have user label 'team=ml-platform'"
+        assert scaledobject_labels.get("env") == "test", \
+            "ScaledObject should have user label 'env=test'"
         assert scaledobject_labels.get("app.kubernetes.io/name") == "test-labels", \
             "ScaledObject should have operator label 'app.kubernetes.io/name'"
         assert scaledobject_labels.get("app.kubernetes.io/component") == "scaledobject", \
             "ScaledObject should have operator label 'app.kubernetes.io/component=scaledobject'"
+        assert scaledobject_labels.get("app.kubernetes.io/part-of") == "asya", \
+            "ScaledObject should have operator label 'app.kubernetes.io/part-of=asya'"
+        assert scaledobject_labels.get("app.kubernetes.io/managed-by") == "asya-operator", \
+            "ScaledObject should have operator label 'app.kubernetes.io/managed-by'"
+        logger.info("[+] ScaledObject labels verified")
+
+        logger.info("Verifying TriggerAuthentication labels...")
+        trigger_auth_name = "test-labels-trigger-auth"
+        try:
+            trigger_auth = kubectl_get("triggerauthentication", trigger_auth_name, namespace=e2e_helper.namespace)
+            trigger_auth_labels = trigger_auth["metadata"].get("labels", {})
+
+            assert trigger_auth_labels.get("app") == "example-ecommerce", \
+                "TriggerAuthentication should have user label 'app=example-ecommerce'"
+            assert trigger_auth_labels.get("team") == "ml-platform", \
+                "TriggerAuthentication should have user label 'team=ml-platform'"
+            assert trigger_auth_labels.get("env") == "test", \
+                "TriggerAuthentication should have user label 'env=test'"
+            assert trigger_auth_labels.get("app.kubernetes.io/name") == "test-labels", \
+                "TriggerAuthentication should have operator label 'app.kubernetes.io/name'"
+            assert trigger_auth_labels.get("app.kubernetes.io/component") == "triggerauthentication", \
+                "TriggerAuthentication should have operator label 'app.kubernetes.io/component=triggerauthentication'"
+            assert trigger_auth_labels.get("app.kubernetes.io/part-of") == "asya", \
+                "TriggerAuthentication should have operator label 'app.kubernetes.io/part-of=asya'"
+            assert trigger_auth_labels.get("app.kubernetes.io/managed-by") == "asya-operator", \
+                "TriggerAuthentication should have operator label 'app.kubernetes.io/managed-by'"
+            logger.info("[+] TriggerAuthentication labels verified")
+        except subprocess.CalledProcessError:
+            logger.info("TriggerAuthentication not found - credentials may be using pod identity")
+
+        logger.info("Verifying ConfigMap does NOT have actor-specific labels...")
+        configmap = kubectl_get("configmap", "asya-runtime", namespace=e2e_helper.namespace)
+        configmap_labels = configmap["metadata"].get("labels", {})
+
+        assert "app" not in configmap_labels, \
+            "ConfigMap should NOT have actor-specific user label 'app' (shared resource)"
+        assert "team" not in configmap_labels, \
+            "ConfigMap should NOT have actor-specific user label 'team' (shared resource)"
+        assert configmap_labels.get("app.kubernetes.io/name") == "asya-runtime", \
+            "ConfigMap should have generic operator label 'app.kubernetes.io/name=asya-runtime'"
+        assert configmap_labels.get("app.kubernetes.io/component") == "asya-runtime", \
+            "ConfigMap should have generic operator label 'app.kubernetes.io/component=asya-runtime'"
+        logger.info("[+] ConfigMap labels verified (no actor-specific labels)")
 
         logger.info("Testing reserved label prefix rejection...")
         invalid_actor_manifest = f"""
