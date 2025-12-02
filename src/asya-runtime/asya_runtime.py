@@ -92,17 +92,21 @@ def _instantiate_class_handler(handler_class):
         TypeError: If __init__ has parameters without defaults
         RuntimeError: If instantiation fails
     """
-    # Validate constructor signature - all params must have defaults
-    sig = inspect.signature(handler_class.__init__)
-    params = [p for p in sig.parameters.values() if p.name != "self"]
+    # Check if class defines its own __init__ (not inherited from object)
+    has_custom_init = "__init__" in handler_class.__dict__
 
-    for param in params:
-        if param.default is inspect.Parameter.empty:
-            raise TypeError(
-                f"Class handler {handler_class.__name__}.__init__() "
-                f"parameter '{param.name}' must have a default value. "
-                f"All __init__ parameters must be optional for zero-arg instantiation."
-            )
+    if has_custom_init:
+        # Validate constructor signature - all params must have defaults
+        sig = inspect.signature(handler_class.__init__)
+        params = [p for p in sig.parameters.values() if p.name != "self"]
+
+        for param in params:
+            if param.default is inspect.Parameter.empty:
+                raise TypeError(
+                    f"Class handler {handler_class.__name__}.__init__() "
+                    f"parameter '{param.name}' must have a default value. "
+                    f"All __init__ parameters must be optional for zero-arg instantiation."
+                )
 
     # Instantiate with no arguments
     try:

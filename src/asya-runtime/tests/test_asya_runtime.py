@@ -1704,6 +1704,42 @@ class TestClassBasedHandlers:
         finally:
             sys.path.pop(0)
 
+    def test_class_handler_without_custom_init(self, socket_pair, mock_env, tmp_path):
+        """Test that class handlers without custom __init__ work correctly.
+
+        This tests the fix for the bug where classes inheriting object.__init__
+        (which has *args, **kwargs) were rejected by the runtime validation.
+        """
+        test_module = tmp_path / "no_init_handler.py"
+        test_module.write_text(
+            textwrap.dedent("""
+            class ProcessorWithoutInit:
+                MULTIPLIER = 3
+
+                def process(self, payload):
+                    return {"result": payload["value"] * self.MULTIPLIER}
+            """)
+        )
+
+        sys.path.insert(0, str(tmp_path))
+        try:
+            with mock_env(ASYA_HANDLER="no_init_handler.ProcessorWithoutInit.process"):
+                server_sock, client_sock = socket_pair
+                handler = asya_runtime._load_function()
+
+                envelope = {
+                    "payload": {"value": 7},
+                    "route": {"actors": ["a"], "current": 0},
+                }
+                asya_runtime._send_envelope(client_sock, json.dumps(envelope).encode())
+                responses = asya_runtime._handle_request(server_sock, handler)
+
+                assert len(responses) == 1
+                assert responses[0]["payload"]["result"] == 21
+
+        finally:
+            sys.path.pop(0)
+
 
 class TestLoadFunction:
     """Test the _load_function functionality."""

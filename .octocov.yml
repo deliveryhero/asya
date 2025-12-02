@@ -55,9 +55,6 @@ comment:
     - Test Execution Time
 
     **Legend:** `+` increase | `-` decrease | `~` no change
-  report:
-    datastores:
-    - artifact://${GITHUB_REPOSITORY}
 
 diff:
   if: is_pull_request
@@ -67,8 +64,6 @@ diff:
 
 summary:
   if: is_default_branch
-  datastores:
-  - artifact://${GITHUB_REPOSITORY}
   path: report.json
 
 # Store reports for diff comparison
