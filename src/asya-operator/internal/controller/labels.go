@@ -35,8 +35,14 @@ func propagateLabels(asya *asyav1alpha1.AsyncActor, operatorLabels map[string]st
 
 // validateUserLabels checks if user labels use reserved prefixes
 // Returns error if any user label uses a reserved prefix
+// Exception: app.kubernetes.io/managed-by is allowed (automatically added by Helm)
 func validateUserLabels(labels map[string]string) error {
 	for key := range labels {
+		// Allow app.kubernetes.io/managed-by (automatically added by Helm)
+		if key == "app.kubernetes.io/managed-by" {
+			continue
+		}
+
 		for _, prefix := range reservedLabelPrefixes {
 			if strings.HasPrefix(key, prefix) {
 				return fmt.Errorf("label key %q uses reserved prefix %q - reserved prefixes are: %v",
