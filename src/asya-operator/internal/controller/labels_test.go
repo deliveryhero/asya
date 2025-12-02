@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"strings"
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -177,7 +178,7 @@ func TestValidateUserLabels(t *testing.T) {
 			if tt.expectError {
 				if err == nil {
 					t.Errorf("Expected error containing %q, got nil", tt.errorMsg)
-				} else if tt.errorMsg != "" && !contains(err.Error(), tt.errorMsg) {
+				} else if tt.errorMsg != "" && !strings.Contains(err.Error(), tt.errorMsg) {
 					t.Errorf("Expected error containing %q, got %q", tt.errorMsg, err.Error())
 				}
 			} else {
@@ -187,17 +188,4 @@ func TestValidateUserLabels(t *testing.T) {
 			}
 		})
 	}
-}
-
-func contains(s, substr string) bool {
-	return len(s) >= len(substr) && (s == substr || len(substr) == 0 || (len(s) > 0 && len(substr) > 0 && stringContains(s, substr)))
-}
-
-func stringContains(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
 }
