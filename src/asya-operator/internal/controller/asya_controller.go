@@ -399,6 +399,11 @@ func (r *AsyncActorReconciler) updateStatusWithRetry(ctx context.Context, asya *
 
 // validateAsyncActorSpec validates the AsyncActor spec for forbidden configurations
 func (r *AsyncActorReconciler) validateAsyncActorSpec(asya *asyav1alpha1.AsyncActor) error {
+	// Validate: labels must not use reserved prefixes
+	if err := validateUserLabels(asya.Labels); err != nil {
+		return fmt.Errorf("invalid labels: %w", err)
+	}
+
 	// Validate: user containers must not be named "asya-sidecar"
 	for _, container := range asya.Spec.Workload.Template.Spec.Containers {
 		if container.Name == sidecarName {
@@ -573,6 +578,15 @@ func (r *AsyncActorReconciler) reconcileServiceAccountIfNeeded(ctx context.Conte
 		if err := controllerutil.SetControllerReference(asya, sa, r.Scheme); err != nil {
 			return err
 		}
+
+		// Propagate labels from AsyncActor to ServiceAccount
+		operatorLabels := map[string]string{
+			"app.kubernetes.io/name":       asya.Name,
+			"app.kubernetes.io/component":  "serviceaccount",
+			"app.kubernetes.io/part-of":    "asya",
+			"app.kubernetes.io/managed-by": "asya-operator",
+		}
+		sa.Labels = propagateLabels(asya, operatorLabels)
 
 		if sa.Annotations == nil {
 			sa.Annotations = make(map[string]string)
@@ -750,14 +764,14 @@ func (r *AsyncActorReconciler) reconcileTransportCredentials(ctx context.Context
 			return fmt.Errorf("failed to set owner reference: %w", err)
 		}
 
-		// Set labels
-		if actorSecret.Labels == nil {
-			actorSecret.Labels = make(map[string]string)
+		// Propagate labels from AsyncActor to Secret
+		operatorLabels := map[string]string{
+			"app.kubernetes.io/name":       asya.Name,
+			"app.kubernetes.io/component":  "transport-creds",
+			"app.kubernetes.io/part-of":    "asya",
+			"app.kubernetes.io/managed-by": "asya-operator",
 		}
-		actorSecret.Labels["app.kubernetes.io/name"] = asya.Name
-		actorSecret.Labels["app.kubernetes.io/component"] = "transport-creds"
-		actorSecret.Labels["app.kubernetes.io/part-of"] = "asya"
-		actorSecret.Labels["app.kubernetes.io/managed-by"] = "asya-operator"
+		actorSecret.Labels = propagateLabels(asya, operatorLabels)
 
 		// Set secret data
 		actorSecret.Type = corev1.SecretTypeOpaque
@@ -1237,6 +1251,15 @@ func (r *AsyncActorReconciler) reconcileDeployment(ctx context.Context, asya *as
 		if err := controllerutil.SetControllerReference(asya, deployment, r.Scheme); err != nil {
 			return err
 		}
+
+		// Propagate labels from AsyncActor to Deployment
+		operatorLabels := map[string]string{
+			"app.kubernetes.io/name":       asya.Name,
+			"app.kubernetes.io/component":  "actor",
+			"app.kubernetes.io/part-of":    "asya",
+			"app.kubernetes.io/managed-by": "asya-operator",
+		}
+		deployment.Labels = propagateLabels(asya, operatorLabels)
 
 		// Set replicas only if KEDA scaling is disabled
 		// When scaling.enabled=true, HPA owns the replicas field

@@ -187,6 +187,15 @@ func (r *AsyncActorReconciler) reconcileScaledObject(ctx context.Context, asya *
 			return err
 		}
 
+		// Propagate labels from AsyncActor to ScaledObject
+		operatorLabels := map[string]string{
+			"app.kubernetes.io/name":       asya.Name,
+			"app.kubernetes.io/component":  "scaledobject",
+			"app.kubernetes.io/part-of":    "asya",
+			"app.kubernetes.io/managed-by": "asya-operator",
+		}
+		scaledObject.Labels = propagateLabels(asya, operatorLabels)
+
 		// Track AsyncActor generation to avoid unnecessary trigger rebuilds
 		if scaledObject.Annotations == nil {
 			scaledObject.Annotations = make(map[string]string)
@@ -415,6 +424,15 @@ func (r *AsyncActorReconciler) reconcileTriggerAuthentication(ctx context.Contex
 		if err := controllerutil.SetControllerReference(asya, triggerAuth, r.Scheme); err != nil {
 			return err
 		}
+
+		// Propagate labels from AsyncActor to TriggerAuthentication
+		operatorLabels := map[string]string{
+			"app.kubernetes.io/name":       asya.Name,
+			"app.kubernetes.io/component":  "triggerauthentication",
+			"app.kubernetes.io/part-of":    "asya",
+			"app.kubernetes.io/managed-by": "asya-operator",
+		}
+		triggerAuth.Labels = propagateLabels(asya, operatorLabels)
 
 		switch transport.Type {
 		case transportTypeSQS:
