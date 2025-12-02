@@ -3194,7 +3194,7 @@ func TestReconcileTransportCredentials_SQS(t *testing.T) {
 		t.Fatalf("reconcileTransportCredentials failed: %v", err)
 	}
 
-	actorSecretName := "test-actor-transport-credentials"
+	actorSecretName := "test-actor-transport-creds"
 	actorSecret := &corev1.Secret{}
 	err = fakeClient.Get(context.Background(),
 		client.ObjectKey{Name: actorSecretName, Namespace: actorNamespace},
@@ -3218,8 +3218,8 @@ func TestReconcileTransportCredentials_SQS(t *testing.T) {
 			actorSecret.Labels["app.kubernetes.io/name"])
 	}
 
-	if actorSecret.Labels["app.kubernetes.io/component"] != "transport-credentials" {
-		t.Errorf("Expected label app.kubernetes.io/component to be 'transport-credentials', got %q",
+	if actorSecret.Labels["app.kubernetes.io/component"] != "transport-creds" {
+		t.Errorf("Expected label app.kubernetes.io/component to be 'transport-creds', got %q",
 			actorSecret.Labels["app.kubernetes.io/component"])
 	}
 
@@ -3322,7 +3322,7 @@ func TestReconcileTransportCredentials_RabbitMQ(t *testing.T) {
 		t.Fatalf("reconcileTransportCredentials failed: %v", err)
 	}
 
-	actorSecretName := "test-rabbit-actor-transport-credentials"
+	actorSecretName := "test-rabbit-actor-transport-creds"
 	actorSecret := &corev1.Secret{}
 	err = fakeClient.Get(context.Background(),
 		client.ObjectKey{Name: actorSecretName, Namespace: actorNamespace},
@@ -3397,7 +3397,7 @@ func TestReconcileTransportCredentials_NoCredentialsConfigured(t *testing.T) {
 		t.Errorf("reconcileTransportCredentials should not error with nil credentials (IRSA case), got: %v", err)
 	}
 
-	actorSecretName := "test-irsa-actor-transport-credentials"
+	actorSecretName := "test-irsa-actor-transport-creds"
 	actorSecret := &corev1.Secret{}
 	err = fakeClient.Get(context.Background(),
 		client.ObjectKey{Name: actorSecretName, Namespace: "default"},

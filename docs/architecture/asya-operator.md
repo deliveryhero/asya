@@ -102,7 +102,7 @@ Operator separates credentials by scope for security and namespace isolation.
 
 **Actor Credentials** (in actor's namespace):
 - Used by sidecars for message operations (send/receive/delete)
-- Secret name: `<actor-name>-transport-credentials`
+- Secret name: `<actor-name>-transport-creds`
 - Auto-created by operator from operator credentials
 - Owned by AsyncActor CRD (auto-deleted when AsyncActor deleted)
 - Message-level permissions only

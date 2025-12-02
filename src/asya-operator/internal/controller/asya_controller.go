@@ -49,7 +49,7 @@ const (
 	actorNameHappyEnd = "happy-end"
 	actorNameErrorEnd = "error-end"
 
-	transportCredentialsSecretSuffix = "-transport-credentials"
+	transportCredentialsSecretSuffix = "-transport-creds"
 
 	defaultQueueHealthCheckInterval = 5 * time.Minute
 
@@ -754,7 +754,7 @@ func (r *AsyncActorReconciler) reconcileTransportCredentials(ctx context.Context
 			actorSecret.Labels = make(map[string]string)
 		}
 		actorSecret.Labels["app.kubernetes.io/name"] = asya.Name
-		actorSecret.Labels["app.kubernetes.io/component"] = "transport-credentials"
+		actorSecret.Labels["app.kubernetes.io/component"] = "transport-creds"
 		actorSecret.Labels["app.kubernetes.io/part-of"] = "asya"
 		actorSecret.Labels["app.kubernetes.io/managed-by"] = "asya-operator"
 

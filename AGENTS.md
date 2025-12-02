@@ -400,7 +400,7 @@ transports:
 
 2. **Actor Credentials** (in actor's namespace)
    - Used by: Sidecar containers for message operations (send/receive/delete)
-   - Secret: `<actor-name>-transport-credentials` (auto-created by operator)
+   - Secret: `<actor-name>-transport-creds` (auto-created by operator)
    - Permissions: Message operations only
    - Ownership: AsyncActor CRD (auto-deleted when AsyncActor is deleted)
 
