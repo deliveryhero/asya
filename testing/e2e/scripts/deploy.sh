@@ -256,13 +256,16 @@ time {
     # Count actors with workloads created (check if deployment/statefulset ref exists)
     WORKLOADS_CREATED=$(kubectl get asyncactors -n "$NAMESPACE" -o jsonpath='{range .items[*]}{.status.workloadRef.name}{"\n"}{end}' 2> /dev/null | grep -c "." || true)
 
-    if [ "$READY_TRANSPORT" -eq "$TOTAL_ACTORS" ] && [ "$WORKLOADS_CREATED" -eq "$TOTAL_ACTORS" ]; then
-      echo "[+] All $TOTAL_ACTORS AsyncActors reconciled (transport ready + workloads created)"
+    # Count actors with ScaledObjects created (check if scaledObjectRef exists)
+    SCALEDOBJECTS_CREATED=$(kubectl get asyncactors -n "$NAMESPACE" -o jsonpath='{range .items[*]}{.status.scaledObjectRef.name}{"\n"}{end}' 2> /dev/null | grep -c "." || true)
+
+    if [ "$READY_TRANSPORT" -eq "$TOTAL_ACTORS" ] && [ "$WORKLOADS_CREATED" -eq "$TOTAL_ACTORS" ] && [ "$SCALEDOBJECTS_CREATED" -eq "$TOTAL_ACTORS" ]; then
+      echo "[+] All $TOTAL_ACTORS AsyncActors reconciled (transport + workloads + ScaledObjects ready)"
       break
     fi
 
     if [ $((ATTEMPT % 10)) -eq 0 ]; then
-      echo "[.] Waiting for AsyncActors to be reconciled: $READY_TRANSPORT/$TOTAL_ACTORS transport ready, $WORKLOADS_CREATED/$TOTAL_ACTORS workloads created (attempt $ATTEMPT/$MAX_RETRIES)"
+      echo "[.] Waiting for AsyncActors: $READY_TRANSPORT/$TOTAL_ACTORS transport, $WORKLOADS_CREATED/$TOTAL_ACTORS workloads, $SCALEDOBJECTS_CREATED/$TOTAL_ACTORS ScaledObjects (attempt $ATTEMPT/$MAX_RETRIES)"
     fi
 
     sleep "$RETRY_INTERVAL"
