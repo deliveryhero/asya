@@ -584,7 +584,7 @@ spec:
   transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
   scaling:
     enabled: true
-    minReplicas: 0
+    minReplicas: 1
     maxReplicas: 3
     queueLength: 5
   workload:
