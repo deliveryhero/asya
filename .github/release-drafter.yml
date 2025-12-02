@@ -5,6 +5,7 @@ categories:
 - title: 'Features'
   labels:
   - 'feature'
+  - 'feat'
   - 'enhancement'
 - title: 'Bug Fixes'
   labels:
@@ -18,6 +19,7 @@ categories:
 - title: 'Testing'
   labels:
   - 'test'
+  - 'tests'
   - 'testing'
 - title: 'Performance'
   labels:
@@ -28,7 +30,15 @@ categories:
   - 'ci'
   - 'build'
   - 'dependencies'
+  - 'deps'
   - 'chore'
+- title: 'Components'
+  labels:
+  - 'asya-operator'
+  - 'asya-gateway'
+  - 'asya-sidecar'
+  - 'asya-runtime'
+  - 'asya-crew'
 - title: 'Breaking Changes'
   labels:
   - 'breaking'
@@ -47,6 +57,7 @@ version-resolver:
     labels:
     - 'minor'
     - 'feature'
+    - 'feat'
     - 'enhancement'
   patch:
     labels:
@@ -55,22 +66,25 @@ version-resolver:
     - 'bugfix'
     - 'bug'
     - 'documentation'
+    - 'docs'
     - 'chore'
     - 'ci'
     - 'build'
     - 'dependencies'
+    - 'deps'
     - 'test'
+    - 'tests'
     - 'testing'
     - 'performance'
     - 'optimization'
   default: patch
 
 autolabeler:
-- label: 'documentation'
+- label: 'docs'
   files:
   - '**/*.md'
   - 'docs/**/*'
-- label: 'test'
+- label: 'tests'
   files:
   - 'testing/**/*'
   - '**/*_test.go'
@@ -78,25 +92,25 @@ autolabeler:
 - label: 'ci'
   files:
   - '.github/**/*'
-- label: 'dependencies'
+- label: 'deps'
   files:
   - 'go.mod'
   - 'go.sum'
   - '**/requirements*.txt'
   - '**/pyproject.toml'
-- label: 'operator'
+- label: 'asya-operator'
   files:
   - 'src/asya-operator/**/*'
-- label: 'gateway'
+- label: 'asya-gateway'
   files:
   - 'src/asya-gateway/**/*'
-- label: 'sidecar'
+- label: 'asya-sidecar'
   files:
   - 'src/asya-sidecar/**/*'
-- label: 'runtime'
+- label: 'asya-runtime'
   files:
   - 'src/asya-runtime/**/*'
-- label: 'crew'
+- label: 'asya-crew'
   files:
   - 'src/asya-crew/**/*'
 
