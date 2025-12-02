@@ -726,6 +726,14 @@ func (r *AsyncActorReconciler) reconcileTransportCredentials(ctx context.Context
 		secretData[ref.key] = value
 	}
 
+	// For RabbitMQ, also add username (plain config value)
+	if asya.Spec.Transport == transportTypeRabbitMQ {
+		rabbitConfig, _ := transportConfig.Config.(*asyaconfig.RabbitMQConfig)
+		if rabbitConfig != nil && rabbitConfig.Username != "" {
+			secretData["username"] = []byte(rabbitConfig.Username)
+		}
+	}
+
 	// Create or update actor-specific secret in actor's namespace
 	actorSecretName := asya.Name + transportCredentialsSecretSuffix
 	actorSecret := &corev1.Secret{
@@ -1469,7 +1477,7 @@ func (r *AsyncActorReconciler) GetSQSQueueMetrics(ctx context.Context, asya *asy
 		return nil, fmt.Errorf("invalid SQS config type")
 	}
 
-	sqsClient, err := r.CreateSQSClient(ctx, sqsConfig, asya.Namespace)
+	sqsClient, err := r.CreateSQSClient(ctx, sqsConfig, r.OperatorNamespace)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create SQS client: %w", err)
 	}
