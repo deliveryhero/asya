@@ -31,13 +31,26 @@ class E2ETestHelper(GatewayTestHelper):
     - RabbitMQ queue monitoring
     """
 
-    def __init__(self, gateway_url: str, namespace: str = "asya-e2e", progress_method: str = "sse"):
+    def __init__(
+        self,
+        gateway_url: str,
+        namespace: str = "asya-e2e",
+        system_namespace: str = "asya-system",
+        progress_method: str = "sse",
+    ):
         super().__init__(gateway_url=gateway_url, progress_method=progress_method)
         self.namespace = namespace
+        self.system_namespace = system_namespace
 
-    def kubectl(self, *args: str) -> str:
-        """Execute kubectl command."""
-        cmd = ["kubectl", "-n", self.namespace, *list(args)]
+    def kubectl(self, *args: str, namespace: str | None = None) -> str:
+        """Execute kubectl command.
+
+        Args:
+            *args: kubectl command arguments
+            namespace: Optional namespace override. If not provided, uses self.namespace
+        """
+        target_namespace = namespace or self.namespace
+        cmd = ["kubectl", "-n", target_namespace, *list(args)]
         logger.debug(f"Running: {' '.join(cmd)}")
 
         result = subprocess.run(

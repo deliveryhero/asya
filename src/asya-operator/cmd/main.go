@@ -89,8 +89,12 @@ func main() {
 	}
 	setupLog.Info("Transport registry loaded", "transports", len(transportRegistry.Transports))
 
-	// Create transport factory
-	transportFactory := transports.NewFactory(mgr.GetClient(), transportRegistry)
+	// Get operator's namespace for transport credentials
+	operatorNamespace := getEnvOrDefault("POD_NAMESPACE", "asya-system")
+	setupLog.Info("Using namespace for transport credentials", "namespace", operatorNamespace)
+
+	// Create transport factory with credentials namespace (where transport secrets are stored)
+	transportFactory := transports.NewFactory(mgr.GetClient(), transportRegistry, operatorNamespace)
 
 	// Read gateway URL from environment
 	gatewayURL := os.Getenv("ASYA_GATEWAY_URL")
@@ -102,6 +106,7 @@ func main() {
 		TransportFactory:        transportFactory,
 		MaxConcurrentReconciles: maxConcurrentReconciles,
 		GatewayURL:              gatewayURL,
+		OperatorNamespace:       operatorNamespace,
 	}
 	if err = asyncActorReconciler.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "AsyncActor")

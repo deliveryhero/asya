@@ -2,7 +2,7 @@ apiVersion: v1
 kind: Pod
 metadata:
   name: "{{ .Release.Name }}-test-queue-exists"
-  namespace: {{ .Release.Namespace }}
+  namespace: asya-system
   labels:
     {{- include "asya-test-actors.labels" . | nindent 4 }}
   annotations:
@@ -35,7 +35,7 @@ spec:
           name: sqs-secret
           key: secret-access-key
     - name: AWS_ENDPOINT_URL
-      value: "http://localstack-sqs.{{ .Release.Namespace }}.svc.cluster.local:4566"
+      value: "http://localstack-sqs.asya-system.svc.cluster.local:4566"
     {{- end }}
     command:
       - /bin/sh

@@ -425,15 +425,16 @@ func (r *AsyncActorReconciler) reconcileTriggerAuthentication(ctx context.Contex
 
 			if sqsConfig.Credentials != nil {
 				var secretTargetRef []kedav1alpha1.AuthSecretTargetRef
+				actorSecretName := asya.Name + transportCredentialsSecretSuffix
 
 				if sqsConfig.Credentials.AccessKeyIdSecretRef != nil {
 					secretTargetRef = append(secretTargetRef, kedav1alpha1.AuthSecretTargetRef{
 						Parameter: "awsAccessKeyID",
-						Name:      sqsConfig.Credentials.AccessKeyIdSecretRef.Name,
+						Name:      actorSecretName,
 						Key:       sqsConfig.Credentials.AccessKeyIdSecretRef.Key,
 					})
 					logger.V(1).Info("Configuring SQS TriggerAuthentication with AWS Access Key ID from secret",
-						"secret", sqsConfig.Credentials.AccessKeyIdSecretRef.Name,
+						"secret", actorSecretName,
 						"key", sqsConfig.Credentials.AccessKeyIdSecretRef.Key,
 						"actor", asya.Name)
 				}
@@ -441,11 +442,11 @@ func (r *AsyncActorReconciler) reconcileTriggerAuthentication(ctx context.Contex
 				if sqsConfig.Credentials.SecretAccessKeySecretRef != nil {
 					secretTargetRef = append(secretTargetRef, kedav1alpha1.AuthSecretTargetRef{
 						Parameter: "awsSecretAccessKey",
-						Name:      sqsConfig.Credentials.SecretAccessKeySecretRef.Name,
+						Name:      actorSecretName,
 						Key:       sqsConfig.Credentials.SecretAccessKeySecretRef.Key,
 					})
 					logger.V(1).Info("Configuring SQS TriggerAuthentication with AWS Secret Access Key from secret",
-						"secret", sqsConfig.Credentials.SecretAccessKeySecretRef.Name,
+						"secret", actorSecretName,
 						"key", sqsConfig.Credentials.SecretAccessKeySecretRef.Key,
 						"actor", asya.Name)
 				}
@@ -464,8 +465,9 @@ func (r *AsyncActorReconciler) reconcileTriggerAuthentication(ctx context.Contex
 			}
 
 			if config.PasswordSecretRef != nil {
+				actorSecretName := asya.Name + transportCredentialsSecretSuffix
 				logger.V(1).Info("Configuring RabbitMQ TriggerAuthentication with username and password",
-					"secret", config.PasswordSecretRef.Name,
+					"secret", actorSecretName,
 					"passwordKey", config.PasswordSecretRef.Key,
 					"username", config.Username,
 					"actor", asya.Name)
@@ -474,13 +476,13 @@ func (r *AsyncActorReconciler) reconcileTriggerAuthentication(ctx context.Contex
 
 				secretTargetRef = append(secretTargetRef, kedav1alpha1.AuthSecretTargetRef{
 					Parameter: "username",
-					Name:      config.PasswordSecretRef.Name,
+					Name:      actorSecretName,
 					Key:       "username",
 				})
 
 				secretTargetRef = append(secretTargetRef, kedav1alpha1.AuthSecretTargetRef{
 					Parameter: "password",
-					Name:      config.PasswordSecretRef.Name,
+					Name:      actorSecretName,
 					Key:       config.PasswordSecretRef.Key,
 				})
 

@@ -389,6 +389,27 @@ transports:
         key: password
 ```
 
+### Transport Credentials
+
+**Credential Separation**: Operator uses two types of credentials:
+
+1. **Operator Credentials** (in `asya-system` namespace)
+   - Used by: Operator for queue management (create/delete/configure)
+   - Secret: Configured in transport config (`sqs-secret`, `rabbitmq-secret`)
+   - Permissions: Admin-level queue operations
+
+2. **Actor Credentials** (in actor's namespace)
+   - Used by: Sidecar containers for message operations (send/receive/delete)
+   - Secret: `<actor-name>-transport-creds` (auto-created by operator)
+   - Permissions: Message operations only
+   - Ownership: AsyncActor CRD (auto-deleted when AsyncActor is deleted)
+
+**Secret Lifecycle**:
+- Operator reads credentials from its own namespace (`asya-system`)
+- Operator creates actor-specific secret in actor's namespace
+- Secret has owner reference to AsyncActor (automatic cleanup)
+- Sidecar references actor-specific secret (not operator secret)
+
 ## Key Deployment Facts
 
 **Operator chart** (`deploy/helm-charts/asya-operator/`): Deploys only the operator pod. Does NOT deploy CRDs, actors, or KEDA.

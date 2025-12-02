@@ -22,15 +22,17 @@ const (
 
 // RabbitMQTransport implements queue reconciliation for RabbitMQ
 type RabbitMQTransport struct {
-	k8sClient         client.Client
-	transportRegistry *asyaconfig.TransportRegistry
+	k8sClient            client.Client
+	transportRegistry    *asyaconfig.TransportRegistry
+	credentialsNamespace string // Namespace to look up transport credential secrets
 }
 
 // NewRabbitMQTransport creates a new RabbitMQ transport reconciler
-func NewRabbitMQTransport(k8sClient client.Client, registry *asyaconfig.TransportRegistry) *RabbitMQTransport {
+func NewRabbitMQTransport(k8sClient client.Client, registry *asyaconfig.TransportRegistry, credentialsNamespace string) *RabbitMQTransport {
 	return &RabbitMQTransport{
-		k8sClient:         k8sClient,
-		transportRegistry: registry,
+		k8sClient:            k8sClient,
+		transportRegistry:    registry,
+		credentialsNamespace: credentialsNamespace,
 	}
 }
 
@@ -54,7 +56,7 @@ func (t *RabbitMQTransport) ReconcileQueue(ctx context.Context, actor *asyav1alp
 	password := rabbitmqConfig.Password
 	if rabbitmqConfig.PasswordSecretRef != nil {
 		var err error
-		password, err = t.loadPassword(ctx, rabbitmqConfig, actor.Namespace)
+		password, err = t.loadPassword(ctx, rabbitmqConfig, t.credentialsNamespace)
 		if err != nil {
 			return fmt.Errorf("failed to load RabbitMQ password: %w", err)
 		}
@@ -221,7 +223,7 @@ func (t *RabbitMQTransport) DeleteQueue(ctx context.Context, actor *asyav1alpha1
 	password := rabbitmqConfig.Password
 	if rabbitmqConfig.PasswordSecretRef != nil {
 		var err error
-		password, err = t.loadPassword(ctx, rabbitmqConfig, actor.Namespace)
+		password, err = t.loadPassword(ctx, rabbitmqConfig, t.credentialsNamespace)
 		if err != nil {
 			return fmt.Errorf("failed to load RabbitMQ password: %w", err)
 		}
@@ -313,7 +315,7 @@ func (t *RabbitMQTransport) QueueExists(ctx context.Context, queueName, namespac
 	password := rabbitmqConfig.Password
 	if rabbitmqConfig.PasswordSecretRef != nil {
 		var err error
-		password, err = t.loadPassword(ctx, rabbitmqConfig, "default")
+		password, err = t.loadPassword(ctx, rabbitmqConfig, t.credentialsNamespace)
 		if err != nil {
 			return false, fmt.Errorf("failed to load RabbitMQ password: %w", err)
 		}

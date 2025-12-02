@@ -131,7 +131,7 @@ def get_all_sqs_queues(namespace: str) -> Set[str]:
     """Get set of all SQS queue names from LocalStack."""
     result = subprocess.run(
         [
-            "kubectl", "exec", "-n", namespace, "deployment/sqs", "--",
+            "kubectl", "exec", "-n", "asya-system", "deployment/sqs", "--",
             "aws", "--endpoint-url=http://localhost:4566", "--region=us-east-1",
             "sqs", "list-queues"
         ],

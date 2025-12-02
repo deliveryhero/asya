@@ -1518,7 +1518,7 @@ func TestReconcileDelete_RemovesFinalizer(t *testing.T) {
 		Client:            fakeClient,
 		Scheme:            scheme,
 		TransportRegistry: transportRegistry,
-		TransportFactory:  transports.NewFactory(fakeClient, transportRegistry),
+		TransportFactory:  transports.NewFactory(fakeClient, transportRegistry, "test-namespace"),
 	}
 
 	_, err := r.reconcileDelete(context.Background(), asya)
@@ -1574,7 +1574,7 @@ func TestReconcileDelete_HandlesRabbitMQTransport(t *testing.T) {
 		Client:            fakeClient,
 		Scheme:            scheme,
 		TransportRegistry: transportRegistry,
-		TransportFactory:  transports.NewFactory(fakeClient, transportRegistry),
+		TransportFactory:  transports.NewFactory(fakeClient, transportRegistry, "test-namespace"),
 	}
 
 	_, err := r.reconcileDelete(context.Background(), asya)
@@ -1630,7 +1630,7 @@ func TestReconcileDelete_SkipsQueueDeletionWhenDisabled(t *testing.T) {
 		Client:            fakeClient,
 		Scheme:            scheme,
 		TransportRegistry: transportRegistry,
-		TransportFactory:  transports.NewFactory(fakeClient, transportRegistry),
+		TransportFactory:  transports.NewFactory(fakeClient, transportRegistry, "test-namespace"),
 	}
 
 	_, err := r.reconcileDelete(context.Background(), asya)
@@ -3100,5 +3100,309 @@ func TestValidateAsyncActorSpec_CommandOverride(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestReconcileTransportCredentials_SQS(t *testing.T) {
+	scheme := runtime.NewScheme()
+	_ = asyav1alpha1.AddToScheme(scheme)
+	_ = corev1.AddToScheme(scheme)
+
+	operatorNamespace := "asya-system"
+	actorNamespace := "asya-e2e"
+
+	sqsSecret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "sqs-secret",
+			Namespace: operatorNamespace,
+		},
+		Data: map[string][]byte{
+			"access-key-id":     []byte("test-access-key"),
+			"secret-access-key": []byte("test-secret-key"),
+		},
+	}
+
+	fakeClient := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(sqsSecret).
+		Build()
+
+	transportRegistry := &asyaconfig.TransportRegistry{
+		Transports: map[string]*asyaconfig.TransportConfig{
+			"sqs": {
+				Type:    "sqs",
+				Enabled: true,
+				Config: &asyaconfig.SQSConfig{
+					Region:   "us-east-1",
+					Endpoint: "http://localhost:4566",
+					Credentials: &asyaconfig.SQSCredentialsConfig{
+						AccessKeyIdSecretRef: &corev1.SecretKeySelector{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: "sqs-secret",
+							},
+							Key: "access-key-id",
+						},
+						SecretAccessKeySecretRef: &corev1.SecretKeySelector{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: "sqs-secret",
+							},
+							Key: "secret-access-key",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	r := &AsyncActorReconciler{
+		Client:            fakeClient,
+		Scheme:            scheme,
+		TransportRegistry: transportRegistry,
+		OperatorNamespace: operatorNamespace,
+	}
+
+	asya := &asyav1alpha1.AsyncActor{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-actor",
+			Namespace: actorNamespace,
+			UID:       "test-uid-12345",
+		},
+		Spec: asyav1alpha1.AsyncActorSpec{
+			Transport: "sqs",
+			Workload: asyav1alpha1.WorkloadConfig{
+				Template: asyav1alpha1.PodTemplateSpec{
+					Spec: corev1.PodSpec{
+						Containers: []corev1.Container{
+							{
+								Name:  "asya-runtime",
+								Image: "python:3.13-slim",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	err := fakeClient.Create(context.Background(), asya)
+	if err != nil {
+		t.Fatalf("Failed to create AsyncActor: %v", err)
+	}
+
+	err = r.reconcileTransportCredentials(context.Background(), asya)
+	if err != nil {
+		t.Fatalf("reconcileTransportCredentials failed: %v", err)
+	}
+
+	actorSecretName := "test-actor-transport-creds"
+	actorSecret := &corev1.Secret{}
+	err = fakeClient.Get(context.Background(),
+		client.ObjectKey{Name: actorSecretName, Namespace: actorNamespace},
+		actorSecret)
+	if err != nil {
+		t.Fatalf("Failed to get actor transport credentials secret: %v", err)
+	}
+
+	if string(actorSecret.Data["access-key-id"]) != "test-access-key" {
+		t.Errorf("Expected access-key-id to be 'test-access-key', got %q",
+			string(actorSecret.Data["access-key-id"]))
+	}
+
+	if string(actorSecret.Data["secret-access-key"]) != "test-secret-key" {
+		t.Errorf("Expected secret-access-key to be 'test-secret-key', got %q",
+			string(actorSecret.Data["secret-access-key"]))
+	}
+
+	if actorSecret.Labels["app.kubernetes.io/name"] != "test-actor" {
+		t.Errorf("Expected label app.kubernetes.io/name to be 'test-actor', got %q",
+			actorSecret.Labels["app.kubernetes.io/name"])
+	}
+
+	if actorSecret.Labels["app.kubernetes.io/component"] != "transport-creds" {
+		t.Errorf("Expected label app.kubernetes.io/component to be 'transport-creds', got %q",
+			actorSecret.Labels["app.kubernetes.io/component"])
+	}
+
+	if len(actorSecret.OwnerReferences) != 1 {
+		t.Fatalf("Expected 1 owner reference, got %d", len(actorSecret.OwnerReferences))
+	}
+
+	ownerRef := actorSecret.OwnerReferences[0]
+	if ownerRef.Name != "test-actor" {
+		t.Errorf("Expected owner reference name 'test-actor', got %q", ownerRef.Name)
+	}
+	if ownerRef.UID != "test-uid-12345" {
+		t.Errorf("Expected owner reference UID 'test-uid-12345', got %q", ownerRef.UID)
+	}
+	if *ownerRef.Controller != true {
+		t.Errorf("Expected controller owner reference to be true")
+	}
+}
+
+func TestReconcileTransportCredentials_RabbitMQ(t *testing.T) {
+	scheme := runtime.NewScheme()
+	_ = asyav1alpha1.AddToScheme(scheme)
+	_ = corev1.AddToScheme(scheme)
+
+	operatorNamespace := "asya-system"
+	actorNamespace := "asya-e2e"
+
+	rabbitSecret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "rabbitmq-secret",
+			Namespace: operatorNamespace,
+		},
+		Data: map[string][]byte{
+			"password": []byte("rabbitmq-password"),
+		},
+	}
+
+	fakeClient := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(rabbitSecret).
+		Build()
+
+	transportRegistry := &asyaconfig.TransportRegistry{
+		Transports: map[string]*asyaconfig.TransportConfig{
+			"rabbitmq": {
+				Type:    "rabbitmq",
+				Enabled: true,
+				Config: &asyaconfig.RabbitMQConfig{
+					Host:     "rabbitmq.default.svc.cluster.local",
+					Port:     5672,
+					Username: "guest",
+					PasswordSecretRef: &corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: "rabbitmq-secret",
+						},
+						Key: "password",
+					},
+				},
+			},
+		},
+	}
+
+	r := &AsyncActorReconciler{
+		Client:            fakeClient,
+		Scheme:            scheme,
+		TransportRegistry: transportRegistry,
+		OperatorNamespace: operatorNamespace,
+	}
+
+	asya := &asyav1alpha1.AsyncActor{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-rabbit-actor",
+			Namespace: actorNamespace,
+			UID:       "test-uid-67890",
+		},
+		Spec: asyav1alpha1.AsyncActorSpec{
+			Transport: "rabbitmq",
+			Workload: asyav1alpha1.WorkloadConfig{
+				Template: asyav1alpha1.PodTemplateSpec{
+					Spec: corev1.PodSpec{
+						Containers: []corev1.Container{
+							{
+								Name:  "asya-runtime",
+								Image: "python:3.13-slim",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	err := fakeClient.Create(context.Background(), asya)
+	if err != nil {
+		t.Fatalf("Failed to create AsyncActor: %v", err)
+	}
+
+	err = r.reconcileTransportCredentials(context.Background(), asya)
+	if err != nil {
+		t.Fatalf("reconcileTransportCredentials failed: %v", err)
+	}
+
+	actorSecretName := "test-rabbit-actor-transport-creds"
+	actorSecret := &corev1.Secret{}
+	err = fakeClient.Get(context.Background(),
+		client.ObjectKey{Name: actorSecretName, Namespace: actorNamespace},
+		actorSecret)
+	if err != nil {
+		t.Fatalf("Failed to get actor transport credentials secret: %v", err)
+	}
+
+	if string(actorSecret.Data["password"]) != "rabbitmq-password" {
+		t.Errorf("Expected password to be 'rabbitmq-password', got %q",
+			string(actorSecret.Data["password"]))
+	}
+
+	if len(actorSecret.OwnerReferences) != 1 {
+		t.Fatalf("Expected 1 owner reference, got %d", len(actorSecret.OwnerReferences))
+	}
+}
+
+func TestReconcileTransportCredentials_NoCredentialsConfigured(t *testing.T) {
+	scheme := runtime.NewScheme()
+	_ = asyav1alpha1.AddToScheme(scheme)
+	_ = corev1.AddToScheme(scheme)
+
+	fakeClient := fake.NewClientBuilder().
+		WithScheme(scheme).
+		Build()
+
+	transportRegistry := &asyaconfig.TransportRegistry{
+		Transports: map[string]*asyaconfig.TransportConfig{
+			"sqs": {
+				Type:    "sqs",
+				Enabled: true,
+				Config: &asyaconfig.SQSConfig{
+					Region:      "us-east-1",
+					Credentials: nil,
+				},
+			},
+		},
+	}
+
+	r := &AsyncActorReconciler{
+		Client:            fakeClient,
+		Scheme:            scheme,
+		TransportRegistry: transportRegistry,
+		OperatorNamespace: "asya-system",
+	}
+
+	asya := &asyav1alpha1.AsyncActor{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-irsa-actor",
+			Namespace: "default",
+		},
+		Spec: asyav1alpha1.AsyncActorSpec{
+			Transport: "sqs",
+			Workload: asyav1alpha1.WorkloadConfig{
+				Template: asyav1alpha1.PodTemplateSpec{
+					Spec: corev1.PodSpec{
+						Containers: []corev1.Container{
+							{
+								Name:  "asya-runtime",
+								Image: "python:3.13-slim",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	err := r.reconcileTransportCredentials(context.Background(), asya)
+	if err != nil {
+		t.Errorf("reconcileTransportCredentials should not error with nil credentials (IRSA case), got: %v", err)
+	}
+
+	actorSecretName := "test-irsa-actor-transport-creds"
+	actorSecret := &corev1.Secret{}
+	err = fakeClient.Get(context.Background(),
+		client.ObjectKey{Name: actorSecretName, Namespace: "default"},
+		actorSecret)
+	if err == nil {
+		t.Errorf("Expected no secret to be created for IRSA transport, but found one")
 	}
 }

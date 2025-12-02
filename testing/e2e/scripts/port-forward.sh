@@ -2,6 +2,7 @@
 set -euo pipefail
 
 NAMESPACE="${NAMESPACE:-asya-e2e}"
+SYSTEM_NAMESPACE="${SYSTEM_NAMESPACE:-asya-system}"
 ACTION="${1:-start}"
 
 stop_port_forwards() {
@@ -59,18 +60,18 @@ start_port_forwards() {
   # Forward S3 if present (for S3 storage tests)
   # Use port 4567 for S3 when both S3 and SQS exist, otherwise use 4566
   S3_LOCAL_PORT=4566
-  if kubectl get svc -n "$NAMESPACE" localstack-s3 > /dev/null 2>&1 && kubectl get svc -n "$NAMESPACE" localstack-sqs > /dev/null 2>&1; then
+  if kubectl get svc -n "$SYSTEM_NAMESPACE" localstack-s3 > /dev/null 2>&1 && kubectl get svc -n "$SYSTEM_NAMESPACE" localstack-sqs > /dev/null 2>&1; then
     S3_LOCAL_PORT=4567
   fi
 
-  if kubectl get svc -n "$NAMESPACE" localstack-s3 > /dev/null 2>&1; then
+  if kubectl get svc -n "$SYSTEM_NAMESPACE" localstack-s3 > /dev/null 2>&1; then
     EXISTING_S3=$(pgrep -f "kubectl port-forward.*svc/localstack-s3.*$S3_LOCAL_PORT" || true)
     if [ -n "$EXISTING_S3" ]; then
       echo "[+] S3 port-forward already running (localhost:$S3_LOCAL_PORT)"
       echo "    PID: $EXISTING_S3"
     else
       pkill -f "kubectl port-forward.*svc/localstack-s3" 2> /dev/null || true
-      nohup kubectl port-forward -n "$NAMESPACE" svc/localstack-s3 $S3_LOCAL_PORT:4566 > /dev/null 2>&1 &
+      nohup kubectl port-forward -n "$SYSTEM_NAMESPACE" svc/localstack-s3 $S3_LOCAL_PORT:4566 > /dev/null 2>&1 &
       PF_S3=$!
       echo "[+] S3 port-forward started (localhost:$S3_LOCAL_PORT)"
       echo "    PID: $PF_S3"
@@ -78,14 +79,14 @@ start_port_forwards() {
   fi
 
   # Forward SQS if present
-  if kubectl get svc -n "$NAMESPACE" localstack-sqs > /dev/null 2>&1; then
+  if kubectl get svc -n "$SYSTEM_NAMESPACE" localstack-sqs > /dev/null 2>&1; then
     EXISTING_SQS=$(pgrep -f "kubectl port-forward.*svc/localstack-sqs.*4566" || true)
     if [ -n "$EXISTING_SQS" ]; then
       echo "[+] SQS port-forward already running (localhost:4566)"
       echo "    PID: $EXISTING_SQS"
     else
       pkill -f "kubectl port-forward.*svc/localstack-sqs" 2> /dev/null || true
-      nohup kubectl port-forward -n "$NAMESPACE" svc/localstack-sqs 4566:4566 > /dev/null 2>&1 &
+      nohup kubectl port-forward -n "$SYSTEM_NAMESPACE" svc/localstack-sqs 4566:4566 > /dev/null 2>&1 &
       PF_SQS=$!
       echo "[+] SQS port-forward started (localhost:4566)"
       echo "    PID: $PF_SQS"

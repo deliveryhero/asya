@@ -647,8 +647,9 @@ func TestReconcileTriggerAuthentication(t *testing.T) {
 		if usernameRef.Parameter != "username" {
 			t.Errorf("Expected parameter 'username', got %q", usernameRef.Parameter)
 		}
-		if usernameRef.Name != testSecretName {
-			t.Errorf("Expected secret name 'rabbitmq-secret', got %q", usernameRef.Name)
+		expectedActorSecretName := "test-actor-transport-creds"
+		if usernameRef.Name != expectedActorSecretName {
+			t.Errorf("Expected secret name '%q', got %q", expectedActorSecretName, usernameRef.Name)
 		}
 		if usernameRef.Key != "username" {
 			t.Errorf("Expected secret key 'username', got %q", usernameRef.Key)
@@ -658,8 +659,8 @@ func TestReconcileTriggerAuthentication(t *testing.T) {
 		if passwordRef.Parameter != testSecretPassword {
 			t.Errorf("Expected parameter 'password', got %q", passwordRef.Parameter)
 		}
-		if passwordRef.Name != testSecretName {
-			t.Errorf("Expected secret name 'rabbitmq-secret', got %q", passwordRef.Name)
+		if passwordRef.Name != expectedActorSecretName {
+			t.Errorf("Expected secret name '%q', got %q", expectedActorSecretName, passwordRef.Name)
 		}
 		if passwordRef.Key != testSecretPassword {
 			t.Errorf("Expected secret key 'password', got %q", passwordRef.Key)

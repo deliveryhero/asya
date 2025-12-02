@@ -46,7 +46,12 @@ def e2e_helper(gateway_url, namespace):
     Returns:
         E2ETestHelper instance with kubectl and pod management capabilities
     """
-    return E2ETestHelper(gateway_url=gateway_url, namespace=namespace, progress_method="sse")
+    return E2ETestHelper(
+        gateway_url=gateway_url,
+        namespace=namespace,
+        system_namespace="asya-system",
+        progress_method="sse",
+    )
 
 
 @pytest.fixture(scope="session", autouse=True)

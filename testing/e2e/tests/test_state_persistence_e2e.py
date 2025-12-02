@@ -19,6 +19,7 @@ import time
 import pytest
 import requests
 
+from asya_testing.utils.kubectl import wait_for_pod_ready as kubectl_wait_for_pod_ready
 from asya_testing.utils.s3 import wait_for_envelope_in_s3, delete_all_objects_in_bucket
 
 logger = logging.getLogger(__name__)
@@ -434,7 +435,7 @@ def test_s3_error_retry_logic(e2e_helper, s3_endpoint):
 
     logger.info("Simulating S3 failure...")
     try:
-        e2e_helper.kubectl("scale", "deployment", "s3", "--replicas=0")
+        e2e_helper.kubectl("scale", "deployment", "s3", "--replicas=0", namespace=e2e_helper.system_namespace)
         time.sleep(5)
 
         logger.info("Waiting for envelope to complete (S3 unavailable)...")
@@ -443,10 +444,10 @@ def test_s3_error_retry_logic(e2e_helper, s3_endpoint):
         logger.info(f"Envelope status: {final_envelope['status']}")
 
         logger.info("Restoring S3...")
-        e2e_helper.kubectl("scale", "deployment", "s3", "--replicas=1")
+        e2e_helper.kubectl("scale", "deployment", "s3", "--replicas=1", namespace=e2e_helper.system_namespace)
 
         logger.info("Waiting for s3 pod...")
-        assert e2e_helper.wait_for_pod_ready("app=s3", timeout=60)
+        assert kubectl_wait_for_pod_ready("app=s3", namespace=e2e_helper.system_namespace, timeout=60)
 
         logger.info("Waiting for gateway to recover...")
         assert e2e_helper.wait_for_pod_ready("app.kubernetes.io/name=asya-gateway", timeout=30)
@@ -459,5 +460,5 @@ def test_s3_error_retry_logic(e2e_helper, s3_endpoint):
 
     finally:
         logger.info("Ensuring S3 is restored...")
-        e2e_helper.kubectl("scale", "deployment", "s3", "--replicas=1")
-        e2e_helper.wait_for_pod_ready("app=s3", timeout=60)
+        e2e_helper.kubectl("scale", "deployment", "s3", "--replicas=1", namespace=e2e_helper.system_namespace)
+        kubectl_wait_for_pod_ready("app=s3", namespace=e2e_helper.system_namespace, timeout=60)
