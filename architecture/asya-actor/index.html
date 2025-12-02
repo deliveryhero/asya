@@ -907,6 +907,31 @@
 <li>Readiness probes</li>
 </ul>
 <p><strong>See</strong> <a href="https://github.com/deliveryhero/asya/tree/main/examples/asyas"><code>examples/asyas/</code></a> for more <code>AsyncActor</code> examples.</p>
+<h2 id="label-propagation">Label Propagation<a class="headerlink" href="#label-propagation" title="Permanent link">&para;</a></h2>
+<p>Labels from AsyncActor CR automatically propagate to all child resources (Deployment, Secret, ServiceAccount, ScaledObject, TriggerAuthentication):</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya.sh/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">AsyncActor</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">text-processor</span>
+<span class="w">  </span><span class="nt">labels</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">app</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example-ecommerce</span>
+<span class="w">    </span><span class="nt">team</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ml-platform</span>
+<span class="w">    </span><span class="nt">env</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">production</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="c1"># ... spec</span>
+</code></pre></div>
+<p><strong>Result</strong>: All resources created by operator inherit user labels plus operator-managed labels:
+- User labels: <code>app</code>, <code>team</code>, <code>env</code>
+- Operator labels: <code>app.kubernetes.io/name</code>, <code>app.kubernetes.io/component</code>, <code>app.kubernetes.io/managed-by</code></p>
+<p><strong>Filter resources by label</strong>:
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>get<span class="w"> </span>all<span class="w"> </span>-l<span class="w"> </span><span class="nv">app</span><span class="o">=</span>example-ecommerce
+kubectl<span class="w"> </span>get<span class="w"> </span>deployments,secrets<span class="w"> </span>-l<span class="w"> </span><span class="nv">team</span><span class="o">=</span>ml-platform
+</code></pre></div></p>
+<p><strong>Reserved label prefixes</strong> (rejected by operator):
+- <code>app.kubernetes.io/</code>
+- <code>asya.sh/</code>
+- <code>keda.sh/</code>
+- <code>kubernetes.io/</code></p>
 <h2 id="basic-commands">Basic Commands<a class="headerlink" href="#basic-commands" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><span class="c1"># List actors</span>
 kubectl<span class="w"> </span>get<span class="w"> </span>asyas
@@ -1231,6 +1256,14 @@ kubectl<span class="w"> </span>logs<span class="w"> </span>-f<span class="w"> </
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
             Deployment
+        </a>
+        
+
+        
+        <a href="#label-propagation"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Label Propagation
         </a>
         
 
