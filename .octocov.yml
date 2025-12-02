@@ -67,6 +67,8 @@ diff:
 
 summary:
   if: is_default_branch
+  datastores:
+  - artifact://${GITHUB_REPOSITORY}
   path: report.json
 
 # Store reports for diff comparison
