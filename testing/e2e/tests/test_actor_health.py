@@ -213,7 +213,7 @@ def test_all_actors_healthy():
             missing_deployments.append(actor)
             logger.error(f"  [-] Deployment not found")
 
-        queue_name = f"asya-{actor}"
+        queue_name = f"asya-{namespace}-{actor}"
         if queue_name in all_queues:
             logger.info(f"  [+] {transport.upper()} queue exists")
         else:
