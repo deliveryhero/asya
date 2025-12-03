@@ -5,7 +5,6 @@ Parses Python source code into Flow IR, tracking imports and validating DSL cons
 """
 
 import ast
-from typing import Dict, List, Optional
 
 from asya_cli.flow.errors import CompileError, create_error
 from asya_cli.flow.ir import (
@@ -33,9 +32,9 @@ class ImportTracker:
 
     def __init__(self):
         # Map: name → full_qualified_path
-        self.imports: Dict[str, str] = {}
+        self.imports: dict[str, str] = {}
 
-    def add_from_import(self, module: str, name: str, asname: Optional[str] = None):
+    def add_from_import(self, module: str, name: str, asname: str | None = None):
         """
         Add 'from module import name [as asname]' to tracker.
 
@@ -47,7 +46,7 @@ class ImportTracker:
         key = asname if asname else name
         self.imports[key] = f"{module}.{name}"
 
-    def add_import(self, module: str, asname: Optional[str] = None):
+    def add_import(self, module: str, asname: str | None = None):
         """
         Add 'import module [as asname]' to tracker.
 
@@ -95,10 +94,10 @@ class FlowParser:
         self.source_lines = source_code.splitlines()
 
         self.import_tracker = ImportTracker()
-        self.class_instances: Dict[str, str] = {}  # var_name → qualified_class_name
-        self.errors: List[CompileError] = []
+        self.class_instances: dict[str, str] = {}  # var_name → qualified_class_name
+        self.errors: list[CompileError] = []
 
-    def parse(self) -> Optional[FlowIR]:
+    def parse(self) -> FlowIR | None:
         """
         Parse source code into FlowIR.
 
@@ -146,7 +145,7 @@ class FlowParser:
             class_instances=self.class_instances,
         )
 
-    def _extract_imports(self, tree: ast.Module) -> List[ast.Import | ast.ImportFrom]:
+    def _extract_imports(self, tree: ast.Module) -> list[ast.Import | ast.ImportFrom]:
         """Extract and track all imports."""
         imports = []
 
@@ -164,7 +163,7 @@ class FlowParser:
 
         return imports
 
-    def _find_flow_function(self, tree: ast.Module) -> Optional[ast.FunctionDef]:
+    def _find_flow_function(self, tree: ast.Module) -> ast.FunctionDef | None:
         """
         Find the flow function in the module.
 
@@ -202,7 +201,7 @@ class FlowParser:
 
         return flow_functions[0]
 
-    def _validate_signature(self, func: ast.FunctionDef) -> Optional[str]:
+    def _validate_signature(self, func: ast.FunctionDef) -> str | None:
         """
         Validate function signature: def flow_name(p: dict) -> dict
 
@@ -256,7 +255,7 @@ class FlowParser:
 
         return param_name
 
-    def _parse_function_body(self, func: ast.FunctionDef) -> Optional[List[Operation]]:
+    def _parse_function_body(self, func: ast.FunctionDef) -> list[Operation] | None:
         """Parse function body into operations."""
         operations = []
 
@@ -284,7 +283,7 @@ class FlowParser:
 
         return operations if not self.errors else None
 
-    def _parse_statement(self, stmt: ast.stmt) -> Optional[Operation | List[Operation]]:
+    def _parse_statement(self, stmt: ast.stmt) -> Operation | list[Operation] | None:
         """Parse a single statement into operation(s)."""
         if isinstance(stmt, ast.Assign):
             return self._parse_assignment(stmt)
@@ -334,7 +333,7 @@ class FlowParser:
             )
             return None
 
-    def _parse_assignment(self, stmt: ast.Assign) -> Optional[Operation | List[Operation]]:
+    def _parse_assignment(self, stmt: ast.Assign) -> Operation | list[Operation] | None:
         """
         Parse assignment statement.
 
@@ -399,7 +398,7 @@ class FlowParser:
             )
             return None
 
-    def _parse_handler_call(self, stmt: ast.Assign, target_name: str) -> Optional[HandlerCall]:
+    def _parse_handler_call(self, stmt: ast.Assign, target_name: str) -> HandlerCall | None:
         """
         Parse handler call: p = handler(p) or p = instance.method(p)
 
@@ -486,9 +485,7 @@ class FlowParser:
         func_name = ast.unparse(func)
         return func_name, func_name
 
-    def _parse_class_instantiation(
-        self, stmt: ast.Assign, var_name: str
-    ) -> Optional[ClassInstantiation]:
+    def _parse_class_instantiation(self, stmt: ast.Assign, var_name: str) -> ClassInstantiation | None:
         """
         Parse class instantiation: var = ClassName(args)
 
@@ -534,7 +531,7 @@ class FlowParser:
             kwargs=kwargs,
         )
 
-    def _parse_payload_mutation(self, stmt: ast.Assign, target: ast.Subscript) -> Optional[Assignment]:
+    def _parse_payload_mutation(self, stmt: ast.Assign, target: ast.Subscript) -> Assignment | None:
         """
         Parse payload mutation: p["key"] = value
 
@@ -598,7 +595,7 @@ class FlowParser:
             value_str=value_str,
         )
 
-    def _parse_if(self, stmt: ast.If) -> Optional[IfBlock]:
+    def _parse_if(self, stmt: ast.If) -> IfBlock | None:
         """Parse if/elif/else statement."""
         condition_str = ast.unparse(stmt.test)
 
@@ -643,7 +640,7 @@ class FlowParser:
         )
 
     def _parse_elif_chain(
-        self, stmt: ast.If, elif_blocks: List[tuple[ast.expr, str, List[Operation]]], else_ops: List[Operation]
+        self, stmt: ast.If, elif_blocks: list[tuple[ast.expr, str, list[Operation]]], else_ops: list[Operation]
     ):
         """Recursively parse elif chain."""
         condition_str = ast.unparse(stmt.test)
@@ -675,7 +672,7 @@ class FlowParser:
                         else:
                             else_ops.append(op)
 
-    def _parse_while(self, stmt: ast.While) -> Optional[WhileLoop]:
+    def _parse_while(self, stmt: ast.While) -> WhileLoop | None:
         """Parse while loop."""
         condition_str = ast.unparse(stmt.test)
 
@@ -711,7 +708,7 @@ class FlowParser:
             body_ops=body_ops,
         )
 
-    def _parse_return(self, stmt: ast.Return) -> Optional[Return]:
+    def _parse_return(self, stmt: ast.Return) -> Return | None:
         """Parse return statement."""
         if not stmt.value:
             self.errors.append(

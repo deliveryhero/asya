@@ -40,7 +40,7 @@ def cmd_compile(args):
                 print(f"\n{warning}", file=sys.stderr)
 
     except FlowCompileError as e:
-        print(f"[-] Compilation failed:\n", file=sys.stderr)
+        print("[-] Compilation failed:\n", file=sys.stderr)
         print(str(e), file=sys.stderr)
         sys.exit(1)
     except FileNotFoundError as e:
@@ -81,7 +81,7 @@ def cmd_validate(args):
                 print(f"\n{warning}", file=sys.stderr)
 
     except FlowCompileError as e:
-        print(f"[-] Validation failed:\n", file=sys.stderr)
+        print("[-] Validation failed:\n", file=sys.stderr)
         print(str(e), file=sys.stderr)
         sys.exit(1)
     except Exception as e:
@@ -116,7 +116,7 @@ def cmd_show_mappings(args):
             print(f"  {func_name:30} -> {qualified_name}")
 
     except FlowCompileError as e:
-        print(f"[-] Failed to analyze flow:\n", file=sys.stderr)
+        print("[-] Failed to analyze flow:\n", file=sys.stderr)
         print(str(e), file=sys.stderr)
         sys.exit(1)
     except Exception as e:

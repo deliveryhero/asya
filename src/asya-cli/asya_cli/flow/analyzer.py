@@ -5,7 +5,6 @@ Analyzes control flow, assigns router IDs, detects infinite loops.
 """
 
 import ast
-from typing import List, Optional, Set
 
 from asya_cli.flow.ir import (
     Assignment,
@@ -28,8 +27,8 @@ class ControlFlowAnalyzer:
     def __init__(self, flow_name: str, check_infinite_loops: bool = True):
         self.flow_name = flow_name
         self.check_infinite_loops = check_infinite_loops
-        self.warnings: List[str] = []
-        self.loop_stack: List[WhileLoop] = []  # Track active loops for break/continue
+        self.warnings: list[str] = []
+        self.loop_stack: list[WhileLoop] = []  # Track active loops for break/continue
 
     def analyze(self, flow_ir: FlowIR) -> FlowIR:
         """
@@ -44,7 +43,7 @@ class ControlFlowAnalyzer:
         flow_ir.operations = self._analyze_ops(flow_ir.operations, depth=0, parent_continuation=[])
         return flow_ir
 
-    def _analyze_ops(self, ops: List[Operation], depth: int, parent_continuation: List[Operation]) -> List[Operation]:
+    def _analyze_ops(self, ops: list[Operation], depth: int, parent_continuation: list[Operation]) -> list[Operation]:
         """
         Analyze operations recursively, assigning router IDs and continuations.
 
@@ -142,7 +141,7 @@ class ControlFlowAnalyzer:
         """
         return f"{self.flow_name}_{stmt_type}_router_line_{line}"
 
-    def _has_break(self, ops: List[Operation]) -> bool:
+    def _has_break(self, ops: list[Operation]) -> bool:
         """Check if operations contain break statement."""
         for op in ops:
             if isinstance(op, Break):
@@ -160,7 +159,7 @@ class ControlFlowAnalyzer:
                 pass
         return False
 
-    def _has_continue(self, ops: List[Operation]) -> bool:
+    def _has_continue(self, ops: list[Operation]) -> bool:
         """Check if operations contain continue statement."""
         for op in ops:
             if isinstance(op, Continue):
@@ -178,7 +177,7 @@ class ControlFlowAnalyzer:
                 pass
         return False
 
-    def _check_infinite_loop(self, while_op: WhileLoop) -> Optional[str]:
+    def _check_infinite_loop(self, while_op: WhileLoop) -> str | None:
         """
         Check for potential infinite loops.
 
@@ -211,7 +210,7 @@ class ControlFlowAnalyzer:
 
         return None
 
-    def _extract_variables(self, node: ast.expr) -> Set[str]:
+    def _extract_variables(self, node: ast.expr) -> set[str]:
         """
         Extract variables referenced in an expression.
 
@@ -228,7 +227,7 @@ class ControlFlowAnalyzer:
 
         return variables
 
-    def _extract_modified_vars(self, ops: List[Operation]) -> Set[str]:
+    def _extract_modified_vars(self, ops: list[Operation]) -> set[str]:
         """Extract variables that are modified in operations."""
         modified = set()
 

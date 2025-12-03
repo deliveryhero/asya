@@ -7,7 +7,6 @@ and transformed into router code.
 
 import ast
 from dataclasses import dataclass, field
-from typing import Any, List, Optional
 
 
 @dataclass
@@ -47,7 +46,7 @@ class Assignment(Operation):
     """
 
     target: str
-    key: Optional[str]
+    key: str | None
     value_ast: ast.expr
     value_str: str
 
@@ -70,11 +69,11 @@ class IfBlock(Operation):
 
     condition: ast.expr
     condition_str: str
-    then_ops: List[Operation]
-    elif_blocks: List[tuple[ast.expr, str, List[Operation]]] = field(default_factory=list)
-    else_ops: List[Operation] = field(default_factory=list)
-    router_id: Optional[str] = None
-    continuation: List[Operation] = field(default_factory=list)
+    then_ops: list[Operation]
+    elif_blocks: list[tuple[ast.expr, str, list[Operation]]] = field(default_factory=list)
+    else_ops: list[Operation] = field(default_factory=list)
+    router_id: str | None = None
+    continuation: list[Operation] = field(default_factory=list)
     depth: int = 0
 
 
@@ -96,9 +95,9 @@ class WhileLoop(Operation):
 
     condition: ast.expr
     condition_str: str
-    body_ops: List[Operation]
-    router_id: Optional[str] = None
-    continuation: List[Operation] = field(default_factory=list)
+    body_ops: list[Operation]
+    router_id: str | None = None
+    continuation: list[Operation] = field(default_factory=list)
     depth: int = 0
     has_break: bool = False
     has_continue: bool = False
@@ -146,7 +145,7 @@ class ClassInstantiation(Operation):
     var_name: str
     class_name: str
     qualified_name: str
-    args: List[ast.expr] = field(default_factory=list)
+    args: list[ast.expr] = field(default_factory=list)
     kwargs: dict[str, ast.expr] = field(default_factory=dict)
 
 
@@ -167,8 +166,8 @@ class FlowIR:
 
     name: str
     param_name: str
-    operations: List[Operation]
+    operations: list[Operation]
     source_file: str
     lineno: int
-    imports: List[ast.Import | ast.ImportFrom] = field(default_factory=list)
+    imports: list[ast.Import | ast.ImportFrom] = field(default_factory=list)
     class_instances: dict[str, str] = field(default_factory=dict)

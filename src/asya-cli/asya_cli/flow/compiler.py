@@ -5,7 +5,6 @@ Main orchestrator that coordinates parsing, analysis, generation, and emission.
 """
 
 from pathlib import Path
-from typing import Optional
 
 from asya_cli.flow.analyzer import ControlFlowAnalyzer
 from asya_cli.flow.emitter import CodeEmitter
@@ -37,7 +36,7 @@ class FlowCompiler:
         self.verbose = verbose
         self.warnings: list[str] = []
 
-    def compile_file(self, source_file: str, output_file: Optional[str] = None) -> str:
+    def compile_file(self, source_file: str, output_file: str | None = None) -> str:
         """
         Compile a flow file.
 

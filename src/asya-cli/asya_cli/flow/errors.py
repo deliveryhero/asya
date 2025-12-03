@@ -6,7 +6,6 @@ Provides rich, helpful error messages with source code context.
 
 import ast
 from dataclasses import dataclass
-from typing import List, Optional
 
 
 @dataclass
@@ -34,8 +33,8 @@ class CompileError:
     location: SourceLocation
     message: str
     explanation: str
-    fix_hint: Optional[str] = None
-    code_context: Optional[List[tuple[int, str]]] = None
+    fix_hint: str | None = None
+    code_context: list[tuple[int, str]] | None = None
 
 
 class FlowCompileError(Exception):
@@ -45,7 +44,7 @@ class FlowCompileError(Exception):
     Collects multiple errors and formats them with rich context.
     """
 
-    def __init__(self, errors: List[CompileError], source_file: str, source_lines: List[str]):
+    def __init__(self, errors: list[CompileError], source_file: str, source_lines: list[str]):
         self.errors = errors
         self.source_file = source_file
         self.source_lines = source_lines
@@ -99,7 +98,7 @@ class FlowCompileError(Exception):
         return "\n".join(parts)
 
     def _format_code_context(
-        self, context: List[tuple[int, str]], location: SourceLocation, context_lines: int = 2
+        self, context: list[tuple[int, str]], location: SourceLocation, context_lines: int = 2
     ) -> str:
         """
         Format source code context around the error.
@@ -130,7 +129,7 @@ class FlowCompileError(Exception):
         return "\n".join(parts)
 
 
-def get_code_context(source_lines: List[str], lineno: int, context_lines: int = 2) -> List[tuple[int, str]]:
+def get_code_context(source_lines: list[str], lineno: int, context_lines: int = 2) -> list[tuple[int, str]]:
     """
     Extract code context around a line.
 
@@ -158,9 +157,9 @@ def create_error(
     message: str,
     node: ast.AST,
     source_file: str,
-    source_lines: List[str],
+    source_lines: list[str],
     explanation: str = "",
-    fix_hint: Optional[str] = None,
+    fix_hint: str | None = None,
 ) -> CompileError:
     """
     Create a CompileError from an AST node.

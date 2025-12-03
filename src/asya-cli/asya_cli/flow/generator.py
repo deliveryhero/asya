@@ -4,8 +4,6 @@ Router code generator for Flow DSL.
 Generates router functions from Flow IR.
 """
 
-from typing import List
-
 from asya_cli.flow.ir import (
     Break,
     Continue,
@@ -22,9 +20,9 @@ class RouterGenerator:
 
     def __init__(self, flow_ir: FlowIR):
         self.flow_ir = flow_ir
-        self.routers: List[tuple[str, str, str]] = []  # (router_id, docstring, code)
+        self.routers: list[tuple[str, str, str]] = []  # (router_id, docstring, code)
 
-    def generate(self) -> List[tuple[str, str, str]]:
+    def generate(self) -> list[tuple[str, str, str]]:
         """
         Generate all router functions.
 
@@ -34,7 +32,7 @@ class RouterGenerator:
         self._generate_routers_for_ops(self.flow_ir.operations)
         return self.routers
 
-    def _generate_routers_for_ops(self, ops: List[Operation]):
+    def _generate_routers_for_ops(self, ops: list[Operation]):
         """Recursively generate routers for all operations."""
         for op in ops:
             if isinstance(op, IfBlock):
@@ -156,7 +154,7 @@ class RouterGenerator:
         code = "\n".join(lines)
         self.routers.append((while_op.router_id, docstring, code))
 
-    def _collect_actors(self, ops: List[Operation]) -> List[str]:
+    def _collect_actors(self, ops: list[Operation]) -> list[str]:
         """
         Collect actor names from operations.
 

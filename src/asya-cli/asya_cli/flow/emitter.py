@@ -5,16 +5,15 @@ Combines all generated code into final Python file.
 """
 
 import ast
-from typing import List
 
-from asya_cli.flow.ir import FlowIR, HandlerCall, IfBlock, WhileLoop
+from asya_cli.flow.ir import FlowIR, IfBlock, WhileLoop
 from asya_cli.flow.templates import get_file_header, get_initial_route, get_resolve_function
 
 
 class CodeEmitter:
     """Emit final Python code from Flow IR and generated routers."""
 
-    def __init__(self, flow_ir: FlowIR, routers: List[tuple[str, str, str]], source_code: str):
+    def __init__(self, flow_ir: FlowIR, routers: list[tuple[str, str, str]], source_code: str):
         """
         Initialize code emitter.
 
