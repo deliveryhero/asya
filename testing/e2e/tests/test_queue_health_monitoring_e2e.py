@@ -75,7 +75,7 @@ def test_operator_recreates_deleted_actor_queue_e2e(e2e_helper, chaos_queues):
     transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
     transport_client = _get_transport_client(transport)
 
-    queue_name = "asya-test-echo"
+    queue_name = "asya-default-test-echo"
 
     logger.info(f"Transport: {transport}, Testing queue: {queue_name}")
     logger.info(f"Chaos queues ready: {chaos_queues}")
@@ -156,7 +156,7 @@ def test_operator_recreates_deleted_system_queue_e2e(e2e_helper, chaos_queues):
     transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
     transport_client = _get_transport_client(transport)
 
-    queue_name = "asya-test-queue-health"
+    queue_name = "asya-default-test-queue-health"
 
     logger.info(f"Transport: {transport}, Testing queue: {queue_name}")
     logger.info(f"Chaos queues ready: {chaos_queues}")
@@ -315,7 +315,7 @@ def test_queue_deletion_during_processing_e2e(e2e_helper, chaos_queues):
     transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
     transport_client = _get_transport_client(transport)
 
-    queue_name = "asya-test-echo"
+    queue_name = "asya-default-test-echo"
 
     logger.info(f"Transport: {transport}, Testing queue deletion during processing")
     logger.info(f"Chaos queues ready: {chaos_queues}")

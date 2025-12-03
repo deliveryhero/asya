@@ -93,7 +93,7 @@ def test_poison_message_moves_to_dlq_e2e(e2e_helper, kubectl, chaos_queues):
     transport_client = _get_transport_client(transport)
 
     dlq_name = "asya-dlq"
-    error_end_queue = "asya-error-end"
+    error_end_queue = "asya-default-error-end"
 
     logger.info(f"Transport: {transport}, DLQ: {dlq_name}")
     logger.info("Purging DLQ before test")
@@ -170,9 +170,9 @@ def test_dlq_preserves_envelope_metadata_e2e(e2e_helper, kubectl, chaos_queues):
     transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
     transport_client = _get_transport_client(transport)
 
-    actor_queue = "asya-test-error"
+    actor_queue = "asya-default-test-error"
     dlq_name = "asya-dlq"
-    error_end_queue = "asya-error-end"
+    error_end_queue = "asya-default-error-end"
 
     logger.info(f"Transport: {transport}, DLQ: {dlq_name}")
     logger.info("Purging DLQ before test")

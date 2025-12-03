@@ -434,7 +434,7 @@ func TestSQSTransport_QueueExists_TransportNotFound(t *testing.T) {
 
 	transport := NewSQSTransport(fakeClient, registry, testActorNamespace)
 
-	exists, err := transport.QueueExists(context.Background(), "asya-test-queue", "default")
+	exists, err := transport.QueueExists(context.Background(), "asya-default-test-queue", "default")
 	if err == nil {
 		t.Fatal("Expected error when transport not found, got nil")
 	}
@@ -471,7 +471,7 @@ func TestSQSTransport_QueueExists_InvalidConfigType(t *testing.T) {
 
 	transport := NewSQSTransport(fakeClient, registry, testActorNamespace)
 
-	exists, err := transport.QueueExists(context.Background(), "asya-test-queue", "default")
+	exists, err := transport.QueueExists(context.Background(), "asya-default-test-queue", "default")
 	if err == nil {
 		t.Fatal("Expected error for invalid config type, got nil")
 	}

@@ -64,7 +64,8 @@ def gateway_helper(request):
         else:
             logger.info("No specific queues detected, waiting for common actors")
             wait_for_rabbitmq_consumers(
-                required_queues=["asya-test-echo", "asya-happy-end", "asya-error-end"], timeout=60
+                required_queues=["asya-default-test-echo", "asya-default-happy-end", "asya-default-error-end"],
+                timeout=60,
             )
     else:
         logger.info(f"Using {config.transport.value} transport - skipping RabbitMQ consumer check")
@@ -85,17 +86,17 @@ def _get_required_queues_for_test(request) -> list[str]:
 
     # Common actor pattern mapping (actor name -> queue name with asya- prefix)
     actor_patterns = {
-        "echo": "asya-test-echo",
-        "doubler": "asya-test-doubler",
-        "incrementer": "asya-test-incrementer",
-        "error": "asya-test-error",
-        "timeout": "asya-test-timeout",
-        "fanout": "asya-test-fanout",
-        "nested": "asya-test-nested",
-        "empty": "asya-test-empty",
-        "unicode": "asya-test-unicode",
-        "large[_-]?payload": "asya-test-large-payload",
-        "slow[_-]?boundary": "asya-test-slow-boundary",
+        "echo": "asya-default-test-echo",
+        "doubler": "asya-default-test-doubler",
+        "incrementer": "asya-default-test-incrementer",
+        "error": "asya-default-test-error",
+        "timeout": "asya-default-test-timeout",
+        "fanout": "asya-default-test-fanout",
+        "nested": "asya-default-test-nested",
+        "empty": "asya-default-test-empty",
+        "unicode": "asya-default-test-unicode",
+        "large[_-]?payload": "asya-default-test-large-payload",
+        "slow[_-]?boundary": "asya-default-test-slow-boundary",
     }
 
     for pattern, queue_name in actor_patterns.items():
@@ -104,13 +105,13 @@ def _get_required_queues_for_test(request) -> list[str]:
 
     # Always include end actors as they're used in all tests
     if "happy" in test_name.lower() or "s3" in test_name.lower() or "persist" in test_name.lower():
-        queues.append("asya-happy-end")
+        queues.append("asya-default-happy-end")
     if "error" in test_name.lower():
-        queues.append("asya-error-end")
+        queues.append("asya-default-error-end")
 
     # Multihop tests
     if "multihop" in test_name.lower():
-        queues.extend([f"asya-test-multihop-{i}" for i in range(15)])
+        queues.extend([f"asya-default-test-multihop-{i}" for i in range(15)])
 
     return list(set(queues))
 
@@ -162,7 +163,8 @@ def gateway_helper_parametrized(request):
         else:
             logger.info("No specific queues detected, waiting for common actors")
             wait_for_rabbitmq_consumers(
-                required_queues=["asya-test-echo", "asya-happy-end", "asya-error-end"], timeout=60
+                required_queues=["asya-default-test-echo", "asya-default-happy-end", "asya-default-error-end"],
+                timeout=60,
             )
     else:
         logger.info(f"Using {config.transport.value} transport - skipping RabbitMQ consumer check")

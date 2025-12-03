@@ -142,7 +142,7 @@ def test_timeout_crash_and_pod_restart_e2e(e2e_helper, transport_timeouts):
         transport = os.environ.get("ASYA_TRANSPORT", "rabbitmq")
         if transport == "sqs":
             logger.info("Purging test-timeout queue to remove stuck messages...")
-            purge_queue("asya-test-timeout")
+            purge_queue("asya-default-test-timeout")
             time.sleep(2)
 
         logger.info("Cleaning up test-timeout pods before test...")

@@ -786,8 +786,8 @@ func (r *Router) reportFinalStatus(ctx context.Context, envelopeID string, resul
 func (r *Router) resolveQueueName(actorName string) string {
 	switch r.cfg.TransportType {
 	case "rabbitmq", "sqs":
-		// Both RabbitMQ and SQS use asya- prefix naming convention
-		return fmt.Sprintf("asya-%s", actorName)
+		// Both RabbitMQ and SQS use asya-{namespace}-{actor} naming convention
+		return fmt.Sprintf("asya-%s-%s", r.cfg.Namespace, actorName)
 	default:
 		return actorName
 	}

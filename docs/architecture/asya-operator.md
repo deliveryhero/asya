@@ -69,7 +69,7 @@ Deleting AsyncActor triggers cascade deletion of owned resources via `ownerRefer
 
 Operator automatically creates queues via transport layer abstraction.
 
-**Queue naming**: `asya-{actor_name}`
+**Queue naming**: `asya-{namespace}-{actor_name}`
 
 **Lifecycle**:
 
@@ -143,8 +143,8 @@ KEDA monitors queue depth, scales Deployment from 0 to maxReplicas.
 1. Add finalizer `asya.sh/finalizer`
 2. Validate spec (container naming, transport exists)
 3. Set `TransportReady` condition
-4. Reconcile queue via transport layer (`asya-{actor_name}`)
-5. Reconcile ServiceAccount if SQS + IRSA (`asya-{actor_name}` SA with IAM role annotation)
+4. Reconcile queue via transport layer (`asya-{namespace}-{actor_name}`)
+5. Reconcile ServiceAccount if SQS + IRSA (`asya-{namespace}-{actor_name}` SA with IAM role annotation)
 6. Reconcile runtime ConfigMap (`asya-runtime` in actor's namespace)
 7. Create Deployment/StatefulSet with injected sidecar + runtime script mount
 8. Check pod health, set `WorkloadReady` condition

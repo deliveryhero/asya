@@ -88,7 +88,7 @@ Each actor pod contains two containers:
 
 1. User creates AsyncActor CRD
 2. Operator reconciles:
-   - Creates queue (`asya-{actor_name}`)
+   - Creates queue (`asya-{namespace}-{actor_name}`)
    - Injects sidecar container
    - Injects runtime entrypoint
    - Creates KEDA ScaledObject (if scaling enabled)

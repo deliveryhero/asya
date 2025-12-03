@@ -358,10 +358,11 @@ spec:
 
 **IMPORTANT**: All message queues are automatically managed by the asya-operator when transport is enabled.
 
-**Queue naming convention**: `asya-{actor_name}`
-- Example: Actor named `text-analyzer` → Queue named `asya-text-analyzer`
-- Example: Actor named `image-processor` → Queue named `asya-image-processor`
-- System actors: `asya-happy-end`, `asya-error-end`
+**Queue naming convention**: `asya-{namespace}-{actor_name}`
+- Example: Actor `text-analyzer` in namespace `prod` → Queue `asya-prod-text-analyzer`
+- Example: Actor `image-processor` in namespace `dev` → Queue `asya-dev-image-processor`
+- System actors: `asya-{namespace}-happy-end`, `asya-{namespace}-error-end`
+- Enables multi-namespace deployments with actors of the same name in different namespaces
 
 **IAM granularity**: The `asya-` prefix enables fine-grained IAM policies:
 ```json

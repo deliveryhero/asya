@@ -68,7 +68,7 @@ def test_error_goes_to_error_end_when_available(e2e_helper, kubectl, chaos_queue
     transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
     transport_client = _get_transport_client(transport)
 
-    actor_queue = "asya-test-error"
+    actor_queue = "asya-default-test-error"
     dlq_name = f"{actor_queue}-dlq"
 
     logger.info(f"Transport: {transport}")
@@ -151,9 +151,9 @@ def test_error_goes_to_dlq_when_error_end_unavailable(e2e_helper, kubectl, chaos
     transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
     transport_client = _get_transport_client(transport)
 
-    actor_queue = "asya-test-error"
+    actor_queue = "asya-default-test-error"
     dlq_name = f"{actor_queue}-dlq"
-    error_end_queue = "asya-error-end"
+    error_end_queue = "asya-default-error-end"
 
     logger.info(f"Transport: {transport}")
     logger.info("Scenario: error-end unavailable (transport-level DLQ fallback)")

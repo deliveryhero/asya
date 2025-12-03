@@ -1008,6 +1008,7 @@ func (r *AsyncActorReconciler) buildSidecarEnv(asya *asyav1alpha1.AsyncActor) []
 		{Name: "ASYA_LOG_LEVEL", Value: "info"},
 		{Name: "ASYA_GATEWAY_URL", Value: gatewayURL},
 		{Name: "ASYA_ACTOR_NAME", Value: asya.Name},
+		{Name: "ASYA_NAMESPACE", Value: asya.Namespace},
 		{Name: "ASYA_ACTOR_HAPPY_END", Value: actorNameHappyEnd},
 		{Name: "ASYA_ACTOR_ERROR_END", Value: actorNameErrorEnd},
 	}
@@ -1281,7 +1282,7 @@ func (r *AsyncActorReconciler) reconcileDeployment(ctx context.Context, asya *as
 						if userProvidedSA != "" {
 							return fmt.Errorf("cannot use custom serviceAccountName %q when IRSA (actorRoleArn) is configured: remove serviceAccountName from spec or disable IRSA", userProvidedSA)
 						}
-						podTemplate.Spec.ServiceAccountName = fmt.Sprintf("asya-%s", asya.Name)
+						podTemplate.Spec.ServiceAccountName = fmt.Sprintf("asya-%s-%s", asya.Namespace, asya.Name)
 					}
 					// IRSA disabled: preserve user's ServiceAccount choice (or empty if not provided)
 				}

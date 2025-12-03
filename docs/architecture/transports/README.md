@@ -81,7 +81,7 @@ Sidecar implements (`src/asya-sidecar/internal/transport/transport.go`):
 
 Queues automatically created by operator when AsyncActor reconciled.
 
-**Queue naming**: `asya-{actor_name}`
+**Queue naming**: `asya-{namespace}-{actor_name}`
 
 **Lifecycle**:
 

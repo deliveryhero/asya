@@ -41,6 +41,7 @@ type Config struct {
 	// Gateway integration for progress reporting
 	GatewayURL string
 	ActorName  string
+	Namespace  string
 
 	// Metrics configuration
 	MetricsEnabled   bool
@@ -87,6 +88,7 @@ func LoadFromEnv() (*Config, error) {
 		// Progress reporting
 		GatewayURL: getEnv("ASYA_GATEWAY_URL", ""),
 		ActorName:  getEnv("ASYA_ACTOR_NAME", ""),
+		Namespace:  getEnv("ASYA_NAMESPACE", ""),
 
 		// Metrics defaults
 		MetricsEnabled:   getEnvBool("ASYA_METRICS_ENABLED", true),
@@ -110,6 +112,9 @@ func LoadFromEnv() (*Config, error) {
 	// Validate
 	if cfg.ActorName == "" {
 		return nil, fmt.Errorf("ASYA_ACTOR_NAME is required")
+	}
+	if cfg.Namespace == "" {
+		return nil, fmt.Errorf("ASYA_NAMESPACE is required")
 	}
 
 	return cfg, nil

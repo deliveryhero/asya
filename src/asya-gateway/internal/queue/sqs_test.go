@@ -64,12 +64,12 @@ func TestSQSQueueNaming(t *testing.T) {
 		{
 			name:          "test actor name",
 			actorName:     "test-echo",
-			expectedQueue: "asya-test-echo",
+			expectedQueue: "asya-default-test-echo",
 		},
 		{
 			name:          "crew actor name",
 			actorName:     "happy-end",
-			expectedQueue: "asya-happy-end",
+			expectedQueue: "asya-default-happy-end",
 		},
 	}
 

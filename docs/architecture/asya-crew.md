@@ -22,7 +22,7 @@ Crew actors are **end actors** that run in special sidecar mode (`ASYA_IS_END_AC
 - Persist successfully completed envelopes to S3/MinIO (optional)
 - Sidecar reports success to gateway with result payload
 
-**Queue**: `asya-happy-end` (automatically routed by sidecar when pipeline completes)
+**Queue**: `asya-{namespace}-happy-end` (automatically routed by sidecar when pipeline completes)
 
 **Handler**: `handlers.end_handlers.happy_end_handler`
 
@@ -60,7 +60,7 @@ happy-asya/2025-11-18T14:30:45.123456Z/text-processor/abc-123.json
 ```
 
 **Flow**:
-1. Sidecar receives envelope from `asya-happy-end` queue
+1. Sidecar receives envelope from `asya-{namespace}-happy-end` queue
 2. Sidecar forwards envelope to runtime via Unix socket
 3. Runtime persists complete envelope to S3 (if configured)
 4. Runtime returns empty dict `{}`
@@ -74,7 +74,7 @@ happy-asya/2025-11-18T14:30:45.123456Z/text-processor/abc-123.json
 - Persist failed envelopes to S3/MinIO (optional)
 - Sidecar reports failure to gateway with error details and actor info
 
-**Queue**: `asya-error-end` (automatically routed by sidecar when runtime/sidecar errors occur)
+**Queue**: `asya-{namespace}-error-end` (automatically routed by sidecar when runtime/sidecar errors occur)
 
 **Handler**: `handlers.end_handlers.error_end_handler`
 
@@ -133,7 +133,7 @@ Envelopes routed to `error-end` contain error information in the payload:
 ```
 
 **Flow**:
-1. Sidecar receives error envelope from `asya-error-end` queue
+1. Sidecar receives error envelope from `asya-{namespace}-error-end` queue
 2. Sidecar forwards envelope to runtime via Unix socket
 3. Runtime persists complete envelope (with error details) to S3 (if configured)
 4. Runtime returns empty dict `{}`

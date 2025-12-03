@@ -1097,8 +1097,8 @@ func TestReconcileDeployment_SQSServiceAccount(t *testing.T) {
 		t.Fatalf("Failed to get deployment: %v", err)
 	}
 
-	if deployment.Spec.Template.Spec.ServiceAccountName != "asya-test-actor" {
-		t.Errorf("Expected ServiceAccountName to be 'asya-test-actor', got %q", deployment.Spec.Template.Spec.ServiceAccountName)
+	if deployment.Spec.Template.Spec.ServiceAccountName != "asya-default-test-actor" {
+		t.Errorf("Expected ServiceAccountName to be 'asya-default-test-actor', got %q", deployment.Spec.Template.Spec.ServiceAccountName)
 	}
 }
 

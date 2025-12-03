@@ -68,7 +68,7 @@ amqp://{username}:{password}@{host}:{port}/
 
 2. **Sidecar auto-creates queues**: If `queues.autoCreate: true`, sidecar declares queues on first use
 
-**Queue name**: `asya-{actor_name}`
+**Queue name**: `asya-{namespace}-{actor_name}`
 
 **Example**: Actor `text-processor` → Queue `asya-text-processor`
 

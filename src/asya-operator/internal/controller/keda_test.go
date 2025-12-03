@@ -18,7 +18,7 @@ import (
 
 const (
 	testActorName      = "test-actor"
-	testSQSQueueName   = "asya-test-actor"
+	testSQSQueueName   = "asya-default-test-actor"
 	testSecretPassword = "password"
 	testSecretName     = "rabbitmq-secret"
 )
@@ -29,7 +29,8 @@ func TestResolveQueueIdentifier(t *testing.T) {
 	t.Run("RabbitMQ uses actor name", func(t *testing.T) {
 		asya := &asyav1alpha1.AsyncActor{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: testActorName,
+				Name:      testActorName,
+				Namespace: "default",
 			},
 		}
 		transport := &asyaconfig.TransportConfig{
@@ -40,15 +41,16 @@ func TestResolveQueueIdentifier(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
-		if queueID != "asya-"+testActorName {
-			t.Errorf("Expected queue ID 'asya-test-actor', got %q", queueID)
+		if queueID != "asya-default-"+testActorName {
+			t.Errorf("Expected queue ID 'asya-default-test-actor', got %q", queueID)
 		}
 	})
 
 	t.Run("SQS uses asya- prefix + actor name", func(t *testing.T) {
 		asya := &asyav1alpha1.AsyncActor{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: testActorName,
+				Name:      testActorName,
+				Namespace: "default",
 			},
 		}
 		transport := &asyaconfig.TransportConfig{
@@ -72,7 +74,8 @@ func TestResolveQueueIdentifier(t *testing.T) {
 	t.Run("SQS with invalid config type uses asya- prefix", func(t *testing.T) {
 		asya := &asyav1alpha1.AsyncActor{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: testActorName,
+				Name:      testActorName,
+				Namespace: "default",
 			},
 		}
 		transport := &asyaconfig.TransportConfig{
@@ -93,7 +96,8 @@ func TestResolveQueueIdentifier(t *testing.T) {
 	t.Run("unknown transport uses actor name", func(t *testing.T) {
 		asya := &asyav1alpha1.AsyncActor{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: testActorName,
+				Name:      testActorName,
+				Namespace: "default",
 			},
 		}
 		transport := &asyaconfig.TransportConfig{
@@ -138,7 +142,8 @@ func TestBuildKEDATriggers(t *testing.T) {
 	t.Run("RabbitMQ trigger with default queue length", func(t *testing.T) {
 		asya := &asyav1alpha1.AsyncActor{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: testActorName,
+				Name:      testActorName,
+				Namespace: "default",
 			},
 			Spec: asyav1alpha1.AsyncActorSpec{
 				Transport: "rabbitmq",
@@ -157,8 +162,8 @@ func TestBuildKEDATriggers(t *testing.T) {
 		if trigger.Type != testTransportRabbitMQ {
 			t.Errorf("Expected trigger type 'rabbitmq', got %q", trigger.Type)
 		}
-		if trigger.Metadata["queueName"] != "asya-test-actor" {
-			t.Errorf("Expected queueName 'asya-test-actor', got %q", trigger.Metadata["queueName"])
+		if trigger.Metadata["queueName"] != "asya-default-test-actor" {
+			t.Errorf("Expected queueName 'asya-default-test-actor', got %q", trigger.Metadata["queueName"])
 		}
 		if trigger.Metadata["value"] != "5" {
 			t.Errorf("Expected value '5', got %q", trigger.Metadata["value"])
@@ -168,7 +173,8 @@ func TestBuildKEDATriggers(t *testing.T) {
 	t.Run("RabbitMQ trigger with custom queue length", func(t *testing.T) {
 		asya := &asyav1alpha1.AsyncActor{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: testActorName,
+				Name:      testActorName,
+				Namespace: "default",
 			},
 			Spec: asyav1alpha1.AsyncActorSpec{
 				Transport: "rabbitmq",
@@ -192,7 +198,8 @@ func TestBuildKEDATriggers(t *testing.T) {
 	t.Run("SQS trigger", func(t *testing.T) {
 		asya := &asyav1alpha1.AsyncActor{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: testActorName,
+				Name:      testActorName,
+				Namespace: "default",
 			},
 			Spec: asyav1alpha1.AsyncActorSpec{
 				Transport: "sqs",
@@ -219,7 +226,8 @@ func TestBuildKEDATriggers(t *testing.T) {
 	t.Run("invalid transport returns error", func(t *testing.T) {
 		asya := &asyav1alpha1.AsyncActor{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: testActorName,
+				Name:      testActorName,
+				Namespace: "default",
 			},
 			Spec: asyav1alpha1.AsyncActorSpec{
 				Transport: "invalid",
@@ -246,7 +254,8 @@ func TestBuildKEDATriggers(t *testing.T) {
 
 		asya := &asyav1alpha1.AsyncActor{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: testActorName,
+				Name:      testActorName,
+				Namespace: "default",
 			},
 			Spec: asyav1alpha1.AsyncActorSpec{
 				Transport: "redis",
@@ -266,7 +275,8 @@ func TestBuildSQSTrigger(t *testing.T) {
 	t.Run("valid SQS config", func(t *testing.T) {
 		asya := &asyav1alpha1.AsyncActor{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: testActorName,
+				Name:      testActorName,
+				Namespace: "default",
 			},
 		}
 		transport := &asyaconfig.TransportConfig{
@@ -300,7 +310,8 @@ func TestBuildSQSTrigger(t *testing.T) {
 	t.Run("invalid config type returns error", func(t *testing.T) {
 		asya := &asyav1alpha1.AsyncActor{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: testActorName,
+				Name:      testActorName,
+				Namespace: "default",
 			},
 		}
 		transport := &asyaconfig.TransportConfig{
@@ -317,7 +328,8 @@ func TestBuildSQSTrigger(t *testing.T) {
 	t.Run("missing region returns error", func(t *testing.T) {
 		asya := &asyav1alpha1.AsyncActor{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: testActorName,
+				Name:      testActorName,
+				Namespace: "default",
 			},
 		}
 		transport := &asyaconfig.TransportConfig{
@@ -334,7 +346,8 @@ func TestBuildSQSTrigger(t *testing.T) {
 	t.Run("missing accountID returns error", func(t *testing.T) {
 		asya := &asyav1alpha1.AsyncActor{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: testActorName,
+				Name:      testActorName,
+				Namespace: "default",
 			},
 		}
 		transport := &asyaconfig.TransportConfig{
@@ -353,7 +366,8 @@ func TestBuildSQSTrigger(t *testing.T) {
 	t.Run("custom endpoint constructs queueURL correctly", func(t *testing.T) {
 		asya := &asyav1alpha1.AsyncActor{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: testActorName,
+				Name:      testActorName,
+				Namespace: "default",
 			},
 		}
 		transport := &asyaconfig.TransportConfig{
@@ -371,7 +385,7 @@ func TestBuildSQSTrigger(t *testing.T) {
 		}
 
 		trigger := triggers[0]
-		expectedQueueURL := "http://localhost:4566/123456789012/asya-test-actor"
+		expectedQueueURL := "http://localhost:4566/123456789012/asya-default-test-actor"
 		if trigger.Metadata["queueURL"] != expectedQueueURL {
 			t.Errorf("Expected queueURL %q, got %q", expectedQueueURL, trigger.Metadata["queueURL"])
 		}
@@ -383,7 +397,8 @@ func TestBuildSQSTrigger(t *testing.T) {
 	t.Run("AWS SQS constructs queueURL correctly", func(t *testing.T) {
 		asya := &asyav1alpha1.AsyncActor{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: testActorName,
+				Name:      testActorName,
+				Namespace: "default",
 			},
 		}
 		transport := &asyaconfig.TransportConfig{
@@ -400,7 +415,7 @@ func TestBuildSQSTrigger(t *testing.T) {
 		}
 
 		trigger := triggers[0]
-		expectedQueueURL := "https://sqs.eu-central-1.amazonaws.com/987654321098/asya-test-actor"
+		expectedQueueURL := "https://sqs.eu-central-1.amazonaws.com/987654321098/asya-default-test-actor"
 		if trigger.Metadata["queueURL"] != expectedQueueURL {
 			t.Errorf("Expected queueURL %q, got %q", expectedQueueURL, trigger.Metadata["queueURL"])
 		}
@@ -416,7 +431,8 @@ func TestBuildRabbitMQTrigger(t *testing.T) {
 	t.Run("valid RabbitMQ config", func(t *testing.T) {
 		asya := &asyav1alpha1.AsyncActor{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: testActorName,
+				Name:      testActorName,
+				Namespace: "default",
 			},
 		}
 		transport := &asyaconfig.TransportConfig{
@@ -451,7 +467,8 @@ func TestBuildRabbitMQTrigger(t *testing.T) {
 	t.Run("invalid config type returns error", func(t *testing.T) {
 		asya := &asyav1alpha1.AsyncActor{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: testActorName,
+				Name:      testActorName,
+				Namespace: "default",
 			},
 		}
 		transport := &asyaconfig.TransportConfig{
@@ -468,7 +485,8 @@ func TestBuildRabbitMQTrigger(t *testing.T) {
 	t.Run("missing host returns error", func(t *testing.T) {
 		asya := &asyav1alpha1.AsyncActor{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: testActorName,
+				Name:      testActorName,
+				Namespace: "default",
 			},
 		}
 		transport := &asyaconfig.TransportConfig{
@@ -488,7 +506,8 @@ func TestBuildRabbitMQTrigger(t *testing.T) {
 	t.Run("missing port returns error", func(t *testing.T) {
 		asya := &asyav1alpha1.AsyncActor{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: testActorName,
+				Name:      testActorName,
+				Namespace: "default",
 			},
 		}
 		transport := &asyaconfig.TransportConfig{
@@ -508,7 +527,8 @@ func TestBuildRabbitMQTrigger(t *testing.T) {
 	t.Run("missing username returns error", func(t *testing.T) {
 		asya := &asyav1alpha1.AsyncActor{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: testActorName,
+				Name:      testActorName,
+				Namespace: "default",
 			},
 		}
 		transport := &asyaconfig.TransportConfig{

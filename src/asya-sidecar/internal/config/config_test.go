@@ -27,6 +27,7 @@ func TestLoadFromEnv(t *testing.T) {
 			name: "valid RabbitMQ config",
 			env: map[string]string{
 				"ASYA_ACTOR_NAME":      "test-actor",
+				"ASYA_NAMESPACE":       "default",
 				"ASYA_RABBITMQ_URL":    "amqp://localhost:5672/",
 				"ASYA_RUNTIME_TIMEOUT": "10m",
 			},
@@ -52,6 +53,7 @@ func TestLoadFromEnv(t *testing.T) {
 			name: "default values",
 			env: map[string]string{
 				"ASYA_ACTOR_NAME": "test-actor",
+				"ASYA_NAMESPACE":  "default",
 			},
 			expectError: false,
 			validate: func(t *testing.T, cfg *Config) {
@@ -73,6 +75,7 @@ func TestLoadFromEnv(t *testing.T) {
 			name: "custom metrics configuration",
 			env: map[string]string{
 				"ASYA_ACTOR_NAME":     "test-actor",
+				"ASYA_NAMESPACE":      "default",
 				"ASYA_CUSTOM_METRICS": `[{"name":"custom_counter","type":"counter","help":"Test counter","labels":["label1"]}]`,
 			},
 			expectError: false,
@@ -97,6 +100,7 @@ func TestLoadFromEnv(t *testing.T) {
 			name: "end actor configuration",
 			env: map[string]string{
 				"ASYA_ACTOR_NAME":   "happy-end",
+				"ASYA_NAMESPACE":    "default",
 				"ASYA_IS_END_ACTOR": "true",
 			},
 			expectError: false,
@@ -110,6 +114,7 @@ func TestLoadFromEnv(t *testing.T) {
 			name: "SQS configuration",
 			env: map[string]string{
 				"ASYA_ACTOR_NAME":   "test-actor",
+				"ASYA_NAMESPACE":    "default",
 				"ASYA_TRANSPORT":    "sqs",
 				"ASYA_SQS_ENDPOINT": "https://sqs.us-west-2.amazonaws.com/123456789",
 				"ASYA_AWS_REGION":   "us-west-2",
@@ -131,6 +136,7 @@ func TestLoadFromEnv(t *testing.T) {
 			name: "gateway URL and metrics configuration",
 			env: map[string]string{
 				"ASYA_ACTOR_NAME":        "test-actor",
+				"ASYA_NAMESPACE":         "default",
 				"ASYA_GATEWAY_URL":       "http://gateway:8080",
 				"ASYA_METRICS_ENABLED":   "false",
 				"ASYA_METRICS_ADDR":      ":9090",
@@ -156,6 +162,7 @@ func TestLoadFromEnv(t *testing.T) {
 			name: "custom sockets dir and custom queues",
 			env: map[string]string{
 				"ASYA_ACTOR_NAME":      "test-actor",
+				"ASYA_NAMESPACE":       "default",
 				"ASYA_SOCKET_DIR":      "/custom/path",
 				"ASYA_ACTOR_HAPPY_END": "custom-happy",
 				"ASYA_ACTOR_ERROR_END": "custom-error",
@@ -177,6 +184,7 @@ func TestLoadFromEnv(t *testing.T) {
 			name: "RabbitMQ prefetch configuration",
 			env: map[string]string{
 				"ASYA_ACTOR_NAME":        "test-actor",
+				"ASYA_NAMESPACE":         "default",
 				"ASYA_RABBITMQ_PREFETCH": "10",
 			},
 			expectError: false,
@@ -190,6 +198,7 @@ func TestLoadFromEnv(t *testing.T) {
 			name: "RabbitMQ URL from individual env vars",
 			env: map[string]string{
 				"ASYA_ACTOR_NAME":        "test-actor",
+				"ASYA_NAMESPACE":         "default",
 				"ASYA_RABBITMQ_HOST":     "rabbitmq.svc.cluster.local",
 				"ASYA_RABBITMQ_PORT":     "5672",
 				"ASYA_RABBITMQ_USERNAME": "user",
@@ -207,6 +216,7 @@ func TestLoadFromEnv(t *testing.T) {
 			name: "RabbitMQ URL env var takes precedence",
 			env: map[string]string{
 				"ASYA_ACTOR_NAME":        "test-actor",
+				"ASYA_NAMESPACE":         "default",
 				"ASYA_RABBITMQ_URL":      "amqp://override:override@override:5672/",
 				"ASYA_RABBITMQ_HOST":     "rabbitmq.svc.cluster.local",
 				"ASYA_RABBITMQ_PORT":     "5672",

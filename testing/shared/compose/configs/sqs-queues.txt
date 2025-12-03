@@ -1,39 +1,39 @@
 # SQS queues for integration tests
 # Used by queue-setup service in sqs.yml
 
-# Test actor queues (with asya- prefix for sidecar compatibility)
-asya-test-echo
-asya-test-doubler
-asya-test-incrementer
-asya-test-error
-asya-test-timeout
-asya-test-verify
-asya-test-fanout
-asya-test-empty
-asya-test-unicode
-asya-test-large-payload
-asya-test-nested
-asya-test-null
-asya-test-slow-boundary
-asya-test-cycle
-asya-test-param-flow-1
-asya-test-param-flow-2
+# Test actor queues (with asya-{namespace}- prefix for namespace isolation)
+asya-default-test-echo
+asya-default-test-doubler
+asya-default-test-incrementer
+asya-default-test-error
+asya-default-test-timeout
+asya-default-test-verify
+asya-default-test-fanout
+asya-default-test-empty
+asya-default-test-unicode
+asya-default-test-large-payload
+asya-default-test-nested
+asya-default-test-null
+asya-default-test-slow-boundary
+asya-default-test-cycle
+asya-default-test-param-flow-1
+asya-default-test-param-flow-2
 
 # Gateway component test queues
-asya-test-queue
-asya-test-send-receive
-asya-test-multiple
-asya-test-deadline
-asya-test-large
-asya-test-multi-q1
-asya-test-multi-q2
+asya-default-test-queue
+asya-default-test-send-receive
+asya-default-test-multiple
+asya-default-test-deadline
+asya-default-test-large
+asya-default-test-multi-q1
+asya-default-test-multi-q2
 
 # Sidecar-runtime test queues
-asya-test-oom-queue
-asya-test-cuda-oom-queue
-asya-test-large-queue
-asya-test-conditional-queue
+asya-default-test-oom-queue
+asya-default-test-cuda-oom-queue
+asya-default-test-large-queue
+asya-default-test-conditional-queue
 
-# System actor queues (with asya- prefix for sidecar compatibility)
-asya-happy-end
-asya-error-end
+# System actor queues (with asya-{namespace}- prefix for namespace isolation)
+asya-default-happy-end
+asya-default-error-end

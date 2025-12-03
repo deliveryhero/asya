@@ -152,7 +152,7 @@ func TestRouter_RouteValidation(t *testing.T) {
 			expectedWarnContains: "Route mismatch: message routed to wrong actor",
 			shouldRejectAndError: true,
 			shouldCallRuntime:    false,
-			expectedDestQueue:    "asya-error-end",
+			expectedDestQueue:    "asya-default-error-end",
 		},
 		{
 			name:      "route current index out of sync - sends to error queue",
@@ -164,7 +164,7 @@ func TestRouter_RouteValidation(t *testing.T) {
 			expectedWarnContains: "Route mismatch: message routed to wrong actor",
 			shouldRejectAndError: true,
 			shouldCallRuntime:    false,
-			expectedDestQueue:    "asya-error-end",
+			expectedDestQueue:    "asya-default-error-end",
 		},
 	}
 
@@ -363,7 +363,7 @@ func TestRouter_ResolveQueueName(t *testing.T) {
 				TransportType: "rabbitmq",
 			},
 			actorName: "happy-end",
-			expected:  "asya-happy-end",
+			expected:  "asya-default-happy-end",
 		},
 		{
 			name:          "end queue - error-end with SQS",
@@ -373,7 +373,7 @@ func TestRouter_ResolveQueueName(t *testing.T) {
 				SQSBaseURL:    "https://sqs.us-west-2.amazonaws.com/987654321",
 			},
 			actorName: "error-end",
-			expected:  "asya-error-end",
+			expected:  "asya-default-error-end",
 		},
 	}
 

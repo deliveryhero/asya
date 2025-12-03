@@ -253,10 +253,10 @@ def test_happy_path(transport_helper):
     }
     logger.info(f"Publishing message to asya-test-echo: {json.dumps(message, indent=2)}")
 
-    transport_helper.publish_message("asya-test-echo", message)
+    transport_helper.publish_message("asya-default-test-echo", message)
     logger.info("Message published successfully, waiting for response in asya-happy-end...")
 
-    result = transport_helper.assert_message_in_queue("asya-happy-end", timeout=10)
+    result = transport_helper.assert_message_in_queue("asya-default-happy-end", timeout=10)
     logger.info(f"Result from happy-end: {json.dumps(result, indent=2) if result else 'None'}")
     assert result is not None, "No message in happy-end queue"
 
@@ -269,7 +269,7 @@ def test_happy_path(transport_helper):
 
 def test_error_handling(transport_helper):
     """Test runtime error handling."""
-    transport_helper.purge_queue("asya-error-end")
+    transport_helper.purge_queue("asya-default-error-end")
     message = {
         "id": "test-error-handling-1",
         "route": {"actors": ["test-error"], "current": 0},
@@ -277,10 +277,10 @@ def test_error_handling(transport_helper):
     }
     logger.info(f"Publishing error test message to test-error: {json.dumps(message, indent=2)}")
 
-    transport_helper.publish_message("asya-test-error", message)
+    transport_helper.publish_message("asya-default-test-error", message)
     logger.info("Message published, waiting for error in asya-error-end...")
 
-    result = transport_helper.assert_message_in_queue("asya-error-end", timeout=10)
+    result = transport_helper.assert_message_in_queue("asya-default-error-end", timeout=10)
     logger.info(f"Result from error-end: {json.dumps(result, indent=2) if result else 'None'}")
     assert result is not None, "No message in error-end queue"
 
@@ -298,7 +298,7 @@ def test_error_handling(transport_helper):
 
 def test_oom_error(transport_helper):
     """Test OOM error detection and recovery."""
-    transport_helper.purge_queue("asya-error-end")
+    transport_helper.purge_queue("asya-default-error-end")
     message = {
         "id": "test-oom-error-1",
         "route": {"actors": ["test-oom-queue"], "current": 0},
@@ -306,10 +306,10 @@ def test_oom_error(transport_helper):
     }
     logger.info(f"Publishing OOM test message: {json.dumps(message, indent=2)}")
 
-    transport_helper.publish_message("asya-test-oom-queue", message)
+    transport_helper.publish_message("asya-default-test-oom-queue", message)
     logger.info("Waiting for OOM error in asya-error-end...")
 
-    result = transport_helper.assert_message_in_queue("asya-error-end", timeout=10)
+    result = transport_helper.assert_message_in_queue("asya-default-error-end", timeout=10)
     logger.info(f"Result from error-end: {json.dumps(result, indent=2) if result else 'None'}")
     assert result is not None, "No message in error-end queue"
 
@@ -323,16 +323,16 @@ def test_oom_error(transport_helper):
 
 def test_cuda_oom_error(transport_helper):
     """Test CUDA OOM error detection."""
-    transport_helper.purge_queue("asya-error-end")
+    transport_helper.purge_queue("asya-default-error-end")
     message = {
         "id": "test-cuda-oom-error-1",
         "route": {"actors": ["test-cuda-oom-queue"], "current": 0},
         "payload": {"test": "cuda_oom_simulation"},
     }
 
-    transport_helper.publish_message("asya-test-cuda-oom-queue", message)
+    transport_helper.publish_message("asya-default-test-cuda-oom-queue", message)
 
-    result = transport_helper.assert_message_in_queue("asya-error-end", timeout=10)
+    result = transport_helper.assert_message_in_queue("asya-default-error-end", timeout=10)
     assert result is not None, "No message in error-end queue"
 
     error_data = str(result)
@@ -349,9 +349,9 @@ def test_timeout(transport_helper):
         "payload": {"test": "timeout", "sleep": 5},
     }
 
-    transport_helper.publish_message("asya-test-timeout", message)
+    transport_helper.publish_message("asya-default-test-timeout", message)
 
-    result = transport_helper.assert_message_in_queue("asya-error-end", timeout=10)
+    result = transport_helper.assert_message_in_queue("asya-default-error-end", timeout=10)
     assert result is not None, "No timeout error in error-end queue"
 
 
@@ -363,12 +363,12 @@ def test_fanout(transport_helper):
         "payload": {"test": "fanout", "count": 3},
     }
 
-    transport_helper.publish_message("asya-test-fanout", message)
+    transport_helper.publish_message("asya-default-test-fanout", message)
 
     # Should get 3 messages in asya-happy-end
     messages = []
     for _ in range(3):
-        msg = transport_helper.get_message("asya-happy-end", timeout=5)
+        msg = transport_helper.get_message("asya-default-happy-end", timeout=5)
         if msg:
             messages.append(msg)
 
@@ -386,10 +386,10 @@ def test_empty_response(transport_helper):
         "payload": {"test": "empty_response"},
     }
 
-    transport_helper.publish_message("asya-test-empty", message)
+    transport_helper.publish_message("asya-default-test-empty", message)
 
     # Empty response should go to asya-happy-end, not continue to next actor
-    result = transport_helper.assert_message_in_queue("asya-happy-end", timeout=10)
+    result = transport_helper.assert_message_in_queue("asya-default-happy-end", timeout=10)
     assert result is not None, "Empty response should go to happy-end"
 
 
@@ -401,9 +401,9 @@ def test_large_payload(transport_helper):
         "payload": {"test": "large_payload", "size_kb": 100},
     }
 
-    transport_helper.publish_message("asya-test-large-queue", message)
+    transport_helper.publish_message("asya-default-test-large-queue", message)
 
-    result = transport_helper.assert_message_in_queue("asya-happy-end", timeout=10)
+    result = transport_helper.assert_message_in_queue("asya-default-happy-end", timeout=10)
     assert result is not None, "Large payload not processed"
 
     payload = result.get("payload", {})
@@ -421,9 +421,9 @@ def test_unicode_handling(transport_helper):
         },
     }
 
-    transport_helper.publish_message("asya-test-unicode", message)
+    transport_helper.publish_message("asya-default-test-unicode", message)
 
-    result = transport_helper.assert_message_in_queue("asya-happy-end", timeout=10)
+    result = transport_helper.assert_message_in_queue("asya-default-happy-end", timeout=10)
     assert result is not None, "Unicode message not processed"
 
     payload = result.get("payload", {})
@@ -438,9 +438,9 @@ def test_null_values(transport_helper):
         "payload": {"test": "null_values", "data": None},
     }
 
-    transport_helper.publish_message("asya-test-null", message)
+    transport_helper.publish_message("asya-default-test-null", message)
 
-    result = transport_helper.assert_message_in_queue("asya-happy-end", timeout=10)
+    result = transport_helper.assert_message_in_queue("asya-default-happy-end", timeout=10)
     assert result is not None, "Null values not processed"
 
 
@@ -465,12 +465,12 @@ def test_multi_actor_routing(transport_helper):
     }
     logger.info(f"Publishing multi-actor message: {json.dumps(message, indent=2)}")
 
-    transport_helper.publish_message("asya-test-conditional-queue", message)
+    transport_helper.publish_message("asya-default-test-conditional-queue", message)
     logger.info("Message published to asya-test-conditional-queue")
     logger.info("Waiting for message to route through asya-test-conditional-queue -> asya-test-echo -> asya-happy-end...")
 
     # Should eventually reach asya-happy-end after going through both queues
-    result = transport_helper.assert_message_in_queue("asya-happy-end", timeout=30)
+    result = transport_helper.assert_message_in_queue("asya-default-happy-end", timeout=30)
     logger.info(f"Result from happy-end: {json.dumps(result, indent=2) if result else 'None'}")
     assert result is not None, "Multi-actor routing failed - no message in happy-end after 30s"
     logger.info("=== test_multi_actor_routing: PASSED ===\n")
@@ -484,9 +484,9 @@ def test_conditional_success(transport_helper):
         "payload": {"action": "success"},
     }
 
-    transport_helper.publish_message("asya-test-conditional-queue", message)
+    transport_helper.publish_message("asya-default-test-conditional-queue", message)
 
-    result = transport_helper.assert_message_in_queue("asya-happy-end", timeout=10)
+    result = transport_helper.assert_message_in_queue("asya-default-happy-end", timeout=10)
     assert result is not None, "Conditional success failed"
 
 
@@ -501,9 +501,9 @@ def test_conditional_error(transport_helper):
         "payload": {"action": "error", "error_msg": "conditional test error"},
     }
 
-    transport_helper.publish_message("asya-test-conditional-queue", message)
+    transport_helper.publish_message("asya-default-test-conditional-queue", message)
 
-    result = transport_helper.assert_message_in_queue("asya-error-end", timeout=20)
+    result = transport_helper.assert_message_in_queue("asya-default-error-end", timeout=20)
     assert result is not None, "Conditional error not caught"
 
 
@@ -515,9 +515,9 @@ def test_nested_data(transport_helper):
         "payload": {"test": "nested"},
     }
 
-    transport_helper.publish_message("asya-test-nested", message)
+    transport_helper.publish_message("asya-default-test-nested", message)
 
-    result = transport_helper.assert_message_in_queue("asya-happy-end", timeout=10)
+    result = transport_helper.assert_message_in_queue("asya-default-happy-end", timeout=10)
     assert result is not None, "Nested data not processed"
 
     payload = result.get("payload", {})
@@ -537,7 +537,7 @@ def test_invalid_route_current(transport_helper):
         logger.info("Skipping test_invalid_route_current (only for envelope mode)")
         return
 
-    transport_helper.purge_queue("asya-happy-end")
+    transport_helper.purge_queue("asya-default-happy-end")
     message = {
         "id": "test-invalid-route-current-1",
         "route": {"actors": ["test-invalid-route", "should-not-reach"], "current": 0},
@@ -545,10 +545,10 @@ def test_invalid_route_current(transport_helper):
     }
     logger.info(f"Publishing message to test-invalid-route: {json.dumps(message, indent=2)}")
 
-    transport_helper.publish_message("asya-test-invalid-route", message)
+    transport_helper.publish_message("asya-default-test-invalid-route", message)
     logger.info("Message published, waiting for result in asya-happy-end...")
 
-    result = transport_helper.assert_message_in_queue("asya-happy-end", timeout=10)
+    result = transport_helper.assert_message_in_queue("asya-default-happy-end", timeout=10)
     logger.info(f"Result from happy-end: {json.dumps(result, indent=2) if result else 'None'}")
     assert result is not None, "Message with invalid route.current not routed to happy-end"
 

@@ -63,7 +63,7 @@ class ActorTransportClient(TransportClient):
 
     This wrapper implements the Asya queue naming convention: asya-{actor_name}.
     Tests use actor names (e.g. "test-echo"), which are transformed to queue names
-    (e.g. "asya-test-echo") before calling the underlying transport client.
+    (e.g. "asya-default-test-echo") before calling the underlying transport client.
     """
 
     def __init__(self, transport: TransportClient):
