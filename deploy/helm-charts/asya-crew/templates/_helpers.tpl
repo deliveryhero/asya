@@ -14,30 +14,20 @@ Create chart name and version as used by the chart label.
 
 {{/*
 Common labels for happy-end actor
+Labels for AsyncActor CRs should NOT include reserved prefixes (app.kubernetes.io/, etc.)
+as these are managed by the operator and added to child resources.
 */}}
 {{- define "asya-crew.happy-end.labels" -}}
 helm.sh/chart: {{ include "asya-crew.chart" . }}
-app.kubernetes.io/name: {{ include "asya-crew.name" . }}
-app.kubernetes.io/instance: {{ .Release.Name }}
-app.kubernetes.io/component: happy-end
-{{- if .Chart.AppVersion }}
-app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
-{{- end }}
-app.kubernetes.io/managed-by: {{ .Release.Service }}
 actor: happy-end
 {{- end }}
 
 {{/*
 Common labels for error-end actor
+Labels for AsyncActor CRs should NOT include reserved prefixes (app.kubernetes.io/, etc.)
+as these are managed by the operator and added to child resources.
 */}}
 {{- define "asya-crew.error-end.labels" -}}
 helm.sh/chart: {{ include "asya-crew.chart" . }}
-app.kubernetes.io/name: {{ include "asya-crew.name" . }}
-app.kubernetes.io/instance: {{ .Release.Name }}
-app.kubernetes.io/component: error-end
-{{- if .Chart.AppVersion }}
-app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
-{{- end }}
-app.kubernetes.io/managed-by: {{ .Release.Service }}
 actor: error-end
 {{- end }}

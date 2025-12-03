@@ -232,9 +232,59 @@ time {
   echo
 }
 
-# Wait for actors to be ready
+# Wait for operator to reconcile all AsyncActor CRDs
+echo "[.] Waiting for operator to reconcile AsyncActor CRDs..."
+time {
+  MAX_RETRIES=60
+  RETRY_INTERVAL=2
+  ATTEMPT=0
+
+  while [ $ATTEMPT -lt $MAX_RETRIES ]; do
+    ATTEMPT=$((ATTEMPT + 1))
+
+    # Get total number of AsyncActors
+    TOTAL_ACTORS=$(kubectl get asyncactors -n "$NAMESPACE" --no-headers 2> /dev/null | wc -l)
+
+    if [ "$TOTAL_ACTORS" -eq 0 ]; then
+      echo "[!] No AsyncActor CRDs found in namespace $NAMESPACE"
+      exit 1
+    fi
+
+    # Count actors with transportStatus=Ready
+    READY_TRANSPORT=$(kubectl get asyncactors -n "$NAMESPACE" -o jsonpath='{range .items[*]}{.status.transportStatus}{"\n"}{end}' 2> /dev/null | grep -c "^Ready$" || true)
+
+    # Count actors with workloads created (check if deployment/statefulset ref exists)
+    WORKLOADS_CREATED=$(kubectl get asyncactors -n "$NAMESPACE" -o jsonpath='{range .items[*]}{.status.workloadRef.name}{"\n"}{end}' 2> /dev/null | grep -c "." || true)
+
+    # Count actors with ScaledObjects created (check if scaledObjectRef exists)
+    SCALEDOBJECTS_CREATED=$(kubectl get asyncactors -n "$NAMESPACE" -o jsonpath='{range .items[*]}{.status.scaledObjectRef.name}{"\n"}{end}' 2> /dev/null | grep -c "." || true)
+
+    if [ "$READY_TRANSPORT" -eq "$TOTAL_ACTORS" ] && [ "$WORKLOADS_CREATED" -eq "$TOTAL_ACTORS" ] && [ "$SCALEDOBJECTS_CREATED" -eq "$TOTAL_ACTORS" ]; then
+      echo "[+] All $TOTAL_ACTORS AsyncActors reconciled (transport + workloads + ScaledObjects ready)"
+      break
+    fi
+
+    if [ $((ATTEMPT % 10)) -eq 0 ]; then
+      echo "[.] Waiting for AsyncActors: $READY_TRANSPORT/$TOTAL_ACTORS transport, $WORKLOADS_CREATED/$TOTAL_ACTORS workloads, $SCALEDOBJECTS_CREATED/$TOTAL_ACTORS ScaledObjects (attempt $ATTEMPT/$MAX_RETRIES)"
+    fi
+
+    sleep "$RETRY_INTERVAL"
+  done
+
+  if [ $ATTEMPT -eq $MAX_RETRIES ]; then
+    echo "[!] Warning: Not all AsyncActors reconciled after ${MAX_RETRIES} attempts"
+    echo "[.] Current AsyncActor status:"
+    kubectl get asyncactors -n "$NAMESPACE"
+  fi
+}
+echo
+
+# Wait for actor pods to scale up and be ready
 echo "[.] Waiting for actor pods to be ready..."
 time {
+  # Give KEDA time to create HPAs and scale up pods
+  sleep 5
+
   if ! kubectl wait --for=condition=ready pod \
     -l app.kubernetes.io/component=actor \
     -n "$NAMESPACE" \
@@ -242,7 +292,8 @@ time {
     echo "[!] Warning: Some actor pods may not be ready yet"
     kubectl get pods -n "$NAMESPACE" -l app.kubernetes.io/component=actor
   else
-    echo "[+] All actor pods are ready"
+    READY_PODS=$(kubectl get pods -n "$NAMESPACE" -l app.kubernetes.io/component=actor --field-selector=status.phase=Running --no-headers 2> /dev/null | wc -l)
+    echo "[+] All $READY_PODS actor pods are ready"
   fi
 }
 echo

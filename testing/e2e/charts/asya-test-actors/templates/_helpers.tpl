@@ -14,23 +14,12 @@ Create chart name and version as used by the chart label.
 
 {{/*
 Common labels
+Labels for AsyncActor CRs should NOT include reserved prefixes (app.kubernetes.io/, etc.)
+as these are managed by the operator and added to child resources.
 */}}
 {{- define "asya-test-actors.labels" -}}
 helm.sh/chart: {{ include "asya-test-actors.chart" . }}
-{{ include "asya-test-actors.selectorLabels" . }}
-{{- if .Chart.AppVersion }}
-app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
-{{- end }}
-app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- with .Values.labels }}
 {{ toYaml . }}
 {{- end }}
-{{- end }}
-
-{{/*
-Selector labels
-*/}}
-{{- define "asya-test-actors.selectorLabels" -}}
-app.kubernetes.io/name: {{ include "asya-test-actors.name" . }}
-app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}

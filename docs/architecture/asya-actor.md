@@ -86,6 +86,39 @@ spec:
 
 **See** [`examples/asyas/`](https://github.com/deliveryhero/asya/tree/main/examples/asyas) for more `AsyncActor` examples.
 
+## Label Propagation
+
+Labels from AsyncActor CR automatically propagate to all child resources (Deployment, Secret, ServiceAccount, ScaledObject, TriggerAuthentication):
+
+```yaml
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: text-processor
+  labels:
+    app: example-ecommerce
+    team: ml-platform
+    env: production
+spec:
+  # ... spec
+```
+
+**Result**: All resources created by operator inherit user labels plus operator-managed labels:
+- User labels: `app`, `team`, `env`
+- Operator labels: `app.kubernetes.io/name`, `app.kubernetes.io/component`, `app.kubernetes.io/managed-by`
+
+**Filter resources by label**:
+```bash
+kubectl get all -l app=example-ecommerce
+kubectl get deployments,secrets -l team=ml-platform
+```
+
+**Reserved label prefixes** (rejected by operator):
+- `app.kubernetes.io/`
+- `asya.sh/`
+- `keda.sh/`
+- `kubernetes.io/`
+
 ## Basic Commands
 
 ```bash

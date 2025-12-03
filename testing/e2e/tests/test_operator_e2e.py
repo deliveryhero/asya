@@ -553,3 +553,237 @@ spec:
         kubectl_delete("asyncactor", "test-sidecar-env", namespace=e2e_helper.namespace)
         wait_for_deletion("deployment", "test-sidecar-env", namespace=e2e_helper.namespace, timeout=60)
         wait_for_deletion("scaledobject", "test-sidecar-env", namespace=e2e_helper.namespace, timeout=60)
+
+@pytest.mark.core
+def test_asyncactor_label_propagation(e2e_helper):
+    """
+    E2E: Test that AsyncActor labels are propagated to all child resources.
+
+    Scenario:
+    1. Create AsyncActor with custom labels
+    2. Verify labels propagate to Deployment
+    3. Verify labels propagate to Secret
+    4. Verify labels propagate to ServiceAccount (if present)
+    5. Verify labels propagate to ScaledObject
+    6. Verify labels propagate to TriggerAuthentication
+    7. Verify reserved labels are rejected
+
+    Expected: All user labels present on child resources, operator labels preserved
+    """
+    actor_manifest = f"""
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: test-labels
+  namespace: {e2e_helper.namespace}
+  labels:
+    app: example-ecommerce
+    team: ml-platform
+    env: test
+spec:
+  transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
+  scaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 3
+    queueLength: 5
+  workload:
+    kind: Deployment
+    template:
+      spec:
+        containers:
+        - name: asya-runtime
+          image: asya-testing:latest
+          imagePullPolicy: IfNotPresent
+          env:
+          - name: ASYA_HANDLER
+            value: asya_testing.handlers.payload.echo_handler
+"""
+
+    try:
+        logger.info("Creating AsyncActor with custom labels...")
+        kubectl_apply(actor_manifest, namespace=e2e_helper.namespace)
+
+        logger.info("Waiting for AsyncActor to be ready...")
+        assert wait_for_asyncactor_ready("test-labels", namespace=e2e_helper.namespace, timeout=60), \
+            "AsyncActor should reach WorkloadReady=True"
+
+        logger.info("Verifying Deployment labels...")
+        deployment = kubectl_get("deployment", "test-labels", namespace=e2e_helper.namespace)
+        deployment_labels = deployment["metadata"].get("labels", {})
+
+        assert deployment_labels.get("app") == "example-ecommerce", \
+            "Deployment should have user label 'app=example-ecommerce'"
+        assert deployment_labels.get("team") == "ml-platform", \
+            "Deployment should have user label 'team=ml-platform'"
+        assert deployment_labels.get("env") == "test", \
+            "Deployment should have user label 'env=test'"
+        assert deployment_labels.get("app.kubernetes.io/name") == "test-labels", \
+            "Deployment should have operator label 'app.kubernetes.io/name'"
+        assert deployment_labels.get("app.kubernetes.io/component") == "actor", \
+            "Deployment should have operator label 'app.kubernetes.io/component=actor'"
+        assert deployment_labels.get("app.kubernetes.io/part-of") == "asya", \
+            "Deployment should have operator label 'app.kubernetes.io/part-of=asya'"
+        assert deployment_labels.get("app.kubernetes.io/managed-by") == "asya-operator", \
+            "Deployment should have operator label 'app.kubernetes.io/managed-by'"
+        logger.info("[+] Deployment labels verified")
+
+        logger.info("Verifying Secret labels...")
+        secret_name = "test-labels-transport-creds"
+        try:
+            secret = kubectl_get("secret", secret_name, namespace=e2e_helper.namespace)
+            secret_labels = secret["metadata"].get("labels", {})
+
+            assert secret_labels.get("app") == "example-ecommerce", \
+                "Secret should have user label 'app=example-ecommerce'"
+            assert secret_labels.get("team") == "ml-platform", \
+                "Secret should have user label 'team=ml-platform'"
+            assert secret_labels.get("env") == "test", \
+                "Secret should have user label 'env=test'"
+            assert secret_labels.get("app.kubernetes.io/name") == "test-labels", \
+                "Secret should have operator label 'app.kubernetes.io/name'"
+            assert secret_labels.get("app.kubernetes.io/component") == "transport-creds", \
+                "Secret should have operator label 'app.kubernetes.io/component=transport-creds'"
+            assert secret_labels.get("app.kubernetes.io/part-of") == "asya", \
+                "Secret should have operator label 'app.kubernetes.io/part-of=asya'"
+            assert secret_labels.get("app.kubernetes.io/managed-by") == "asya-operator", \
+                "Secret should have operator label 'app.kubernetes.io/managed-by'"
+            logger.info("[+] Secret labels verified")
+        except subprocess.CalledProcessError:
+            logger.info("Secret not found - skipping secret label verification (IRSA may be in use)")
+
+        logger.info("Verifying ServiceAccount labels (SQS only)...")
+        transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
+        if transport == "sqs":
+            sa_name = "asya-test-labels"
+            try:
+                sa = kubectl_get("serviceaccount", sa_name, namespace=e2e_helper.namespace)
+                sa_labels = sa["metadata"].get("labels", {})
+
+                assert sa_labels.get("app") == "example-ecommerce", \
+                    "ServiceAccount should have user label 'app=example-ecommerce'"
+                assert sa_labels.get("team") == "ml-platform", \
+                    "ServiceAccount should have user label 'team=ml-platform'"
+                assert sa_labels.get("env") == "test", \
+                    "ServiceAccount should have user label 'env=test'"
+                assert sa_labels.get("app.kubernetes.io/name") == "test-labels", \
+                    "ServiceAccount should have operator label 'app.kubernetes.io/name'"
+                assert sa_labels.get("app.kubernetes.io/component") == "serviceaccount", \
+                    "ServiceAccount should have operator label 'app.kubernetes.io/component=serviceaccount'"
+                assert sa_labels.get("app.kubernetes.io/part-of") == "asya", \
+                    "ServiceAccount should have operator label 'app.kubernetes.io/part-of=asya'"
+                assert sa_labels.get("app.kubernetes.io/managed-by") == "asya-operator", \
+                    "ServiceAccount should have operator label 'app.kubernetes.io/managed-by'"
+                logger.info("[+] ServiceAccount labels verified")
+            except subprocess.CalledProcessError:
+                logger.info("ServiceAccount not found - IRSA may not be configured")
+        else:
+            logger.info("Skipping ServiceAccount verification (not SQS transport)")
+
+        logger.info("Verifying ScaledObject labels...")
+        scaledobject = kubectl_get("scaledobject", "test-labels", namespace=e2e_helper.namespace)
+        scaledobject_labels = scaledobject["metadata"].get("labels", {})
+
+        assert scaledobject_labels.get("app") == "example-ecommerce", \
+            "ScaledObject should have user label 'app=example-ecommerce'"
+        assert scaledobject_labels.get("team") == "ml-platform", \
+            "ScaledObject should have user label 'team=ml-platform'"
+        assert scaledobject_labels.get("env") == "test", \
+            "ScaledObject should have user label 'env=test'"
+        assert scaledobject_labels.get("app.kubernetes.io/name") == "test-labels", \
+            "ScaledObject should have operator label 'app.kubernetes.io/name'"
+        assert scaledobject_labels.get("app.kubernetes.io/component") == "scaledobject", \
+            "ScaledObject should have operator label 'app.kubernetes.io/component=scaledobject'"
+        assert scaledobject_labels.get("app.kubernetes.io/part-of") == "asya", \
+            "ScaledObject should have operator label 'app.kubernetes.io/part-of=asya'"
+        assert scaledobject_labels.get("app.kubernetes.io/managed-by") == "asya-operator", \
+            "ScaledObject should have operator label 'app.kubernetes.io/managed-by'"
+        logger.info("[+] ScaledObject labels verified")
+
+        logger.info("Verifying TriggerAuthentication labels...")
+        trigger_auth_name = "test-labels-trigger-auth"
+        try:
+            trigger_auth = kubectl_get("triggerauthentication", trigger_auth_name, namespace=e2e_helper.namespace)
+            trigger_auth_labels = trigger_auth["metadata"].get("labels", {})
+
+            assert trigger_auth_labels.get("app") == "example-ecommerce", \
+                "TriggerAuthentication should have user label 'app=example-ecommerce'"
+            assert trigger_auth_labels.get("team") == "ml-platform", \
+                "TriggerAuthentication should have user label 'team=ml-platform'"
+            assert trigger_auth_labels.get("env") == "test", \
+                "TriggerAuthentication should have user label 'env=test'"
+            assert trigger_auth_labels.get("app.kubernetes.io/name") == "test-labels", \
+                "TriggerAuthentication should have operator label 'app.kubernetes.io/name'"
+            assert trigger_auth_labels.get("app.kubernetes.io/component") == "triggerauthentication", \
+                "TriggerAuthentication should have operator label 'app.kubernetes.io/component=triggerauthentication'"
+            assert trigger_auth_labels.get("app.kubernetes.io/part-of") == "asya", \
+                "TriggerAuthentication should have operator label 'app.kubernetes.io/part-of=asya'"
+            assert trigger_auth_labels.get("app.kubernetes.io/managed-by") == "asya-operator", \
+                "TriggerAuthentication should have operator label 'app.kubernetes.io/managed-by'"
+            logger.info("[+] TriggerAuthentication labels verified")
+        except subprocess.CalledProcessError:
+            logger.info("TriggerAuthentication not found - credentials may be using pod identity")
+
+        logger.info("Verifying ConfigMap does NOT have actor-specific labels...")
+        configmap = kubectl_get("configmap", "asya-runtime", namespace=e2e_helper.namespace)
+        configmap_labels = configmap["metadata"].get("labels", {})
+
+        assert "app" not in configmap_labels, \
+            "ConfigMap should NOT have actor-specific user label 'app' (shared resource)"
+        assert "team" not in configmap_labels, \
+            "ConfigMap should NOT have actor-specific user label 'team' (shared resource)"
+        assert configmap_labels.get("app.kubernetes.io/name") == "asya-runtime", \
+            "ConfigMap should have generic operator label 'app.kubernetes.io/name=asya-runtime'"
+        assert configmap_labels.get("app.kubernetes.io/component") == "asya-runtime", \
+            "ConfigMap should have generic operator label 'app.kubernetes.io/component=asya-runtime'"
+        logger.info("[+] ConfigMap labels verified (no actor-specific labels)")
+
+        logger.info("Testing reserved label prefix rejection...")
+        invalid_actor_manifest = f"""
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: test-invalid-labels
+  namespace: {e2e_helper.namespace}
+  labels:
+    app.kubernetes.io/custom: forbidden
+spec:
+  transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
+  workload:
+    kind: Deployment
+    template:
+      spec:
+        containers:
+        - name: asya-runtime
+          image: asya-testing:latest
+          imagePullPolicy: IfNotPresent
+          env:
+          - name: ASYA_HANDLER
+            value: asya_testing.handlers.payload.echo_handler
+"""
+
+        kubectl_apply(invalid_actor_manifest, namespace=e2e_helper.namespace)
+
+        time.sleep(5)
+
+        asyncactor = kubectl_get("asyncactor", "test-invalid-labels", namespace=e2e_helper.namespace)
+        status = asyncactor.get("status", {})
+        conditions = status.get("conditions", [])
+
+        workload_ready = next((c for c in conditions if c["type"] == "WorkloadReady"), None)
+        assert workload_ready is not None, "WorkloadReady condition should exist"
+        assert workload_ready["status"] == "False", \
+            "WorkloadReady should be False when labels use reserved prefixes"
+        assert "reserved prefix" in workload_ready.get("message", "").lower(), \
+            "Error message should mention reserved prefix"
+
+        logger.info("[+] Label propagation verified successfully")
+
+    except Exception:
+        log_asyncactor_workload_diagnostics("test-labels", namespace=e2e_helper.namespace)
+        raise
+    finally:
+        kubectl_delete("asyncactor", "test-labels", namespace=e2e_helper.namespace, ignore_not_found=True)
+        kubectl_delete("asyncactor", "test-invalid-labels", namespace=e2e_helper.namespace, ignore_not_found=True)
+        wait_for_deletion("deployment", "test-labels", namespace=e2e_helper.namespace, timeout=60)
+        wait_for_deletion("scaledobject", "test-labels", namespace=e2e_helper.namespace, timeout=60)

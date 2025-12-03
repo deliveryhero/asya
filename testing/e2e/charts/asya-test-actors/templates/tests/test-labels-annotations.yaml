@@ -23,20 +23,29 @@ spec:
         TEST_ACTOR="test-echo"
         echo "Testing AsyncActor '$TEST_ACTOR' labels and annotations..."
 
-        # Check standard labels
-        APP_NAME=$(kubectl get asyncactor $TEST_ACTOR -n {{ .Release.Namespace }} -o jsonpath='{.metadata.labels.app\.kubernetes\.io/name}')
-        if [ -z "$APP_NAME" ]; then
-          echo "[-] app.kubernetes.io/name label is missing"
+        # Verify reserved labels are NOT on AsyncActor CR (operator adds them to child resources)
+        APP_NAME=$(kubectl get asyncactor $TEST_ACTOR -n {{ .Release.Namespace }} -o jsonpath='{.metadata.labels.app\.kubernetes\.io/name}' || true)
+        if [ -n "$APP_NAME" ]; then
+          echo "[-] app.kubernetes.io/name label should NOT be on AsyncActor CR (reserved for operator use)"
           exit 1
         fi
-        echo "[+] app.kubernetes.io/name label exists: $APP_NAME"
+        echo "[+] app.kubernetes.io/name label correctly absent from AsyncActor CR"
 
-        INSTANCE=$(kubectl get asyncactor $TEST_ACTOR -n {{ .Release.Namespace }} -o jsonpath='{.metadata.labels.app\.kubernetes\.io/instance}')
-        if [ "$INSTANCE" != "{{ .Release.Name }}" ]; then
-          echo "[-] app.kubernetes.io/instance label mismatch: expected '{{ .Release.Name }}', got '$INSTANCE'"
+        # Check that only Helm-managed label is present (automatically added by Helm)
+        MANAGED_BY=$(kubectl get asyncactor $TEST_ACTOR -n {{ .Release.Namespace }} -o jsonpath='{.metadata.labels.app\.kubernetes\.io/managed-by}')
+        if [ "$MANAGED_BY" != "Helm" ]; then
+          echo "[-] app.kubernetes.io/managed-by should be 'Helm', got '$MANAGED_BY'"
           exit 1
         fi
-        echo "[+] app.kubernetes.io/instance label is correct: $INSTANCE"
+        echo "[+] app.kubernetes.io/managed-by label is correct: $MANAGED_BY"
+
+        # Verify operator propagates labels to child resources (Deployment)
+        DEPLOYMENT_APP_NAME=$(kubectl get deployment $TEST_ACTOR -n {{ .Release.Namespace }} -o jsonpath='{.metadata.labels.app\.kubernetes\.io/name}')
+        if [ "$DEPLOYMENT_APP_NAME" != "$TEST_ACTOR" ]; then
+          echo "[-] Deployment should have app.kubernetes.io/name='$TEST_ACTOR', got '$DEPLOYMENT_APP_NAME'"
+          exit 1
+        fi
+        echo "[+] Operator correctly propagated labels to Deployment"
 
         echo ""
         echo "All label and annotation tests passed!"
