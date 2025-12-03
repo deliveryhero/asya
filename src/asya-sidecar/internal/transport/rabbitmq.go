@@ -63,6 +63,7 @@ type RabbitMQTransport struct {
 	conn          rabbitmqConnection
 	channel       rabbitmqChannel
 	exchange      string
+	namespace     string
 	prefetchCount int
 	consumer      <-chan amqp.Delivery // Single long-lived consumer
 	consumerQueue string               // Queue name for the consumer
@@ -76,6 +77,7 @@ type RabbitMQConfig struct {
 	URL           string
 	Exchange      string
 	PrefetchCount int
+	Namespace     string
 }
 
 // NewRabbitMQTransport creates a new RabbitMQ transport
@@ -152,6 +154,7 @@ func NewRabbitMQTransport(cfg RabbitMQConfig) (*RabbitMQTransport, error) {
 		conn:          conn,
 		channel:       channel,
 		exchange:      cfg.Exchange,
+		namespace:     cfg.Namespace,
 		prefetchCount: cfg.PrefetchCount,
 		amqpChannel:   channel,
 		amqpConn:      realConn,
@@ -374,10 +377,12 @@ func (t *RabbitMQTransport) Send(ctx context.Context, queueName string, body []b
 		return err
 	}
 
-	// Derive routing key from queue name by stripping queue prefix
+	// Derive routing key from queue name by stripping namespace prefix
+	// Queue names: asya-{namespace}-{actor} -> routing key: {actor}
+	namespacePrefix := fmt.Sprintf("%s%s-", queuePrefix, t.namespace)
 	routingKey := queueName
-	if len(queueName) > len(queuePrefix) && queueName[:len(queuePrefix)] == queuePrefix {
-		routingKey = queueName[len(queuePrefix):]
+	if len(queueName) > len(namespacePrefix) && queueName[:len(namespacePrefix)] == namespacePrefix {
+		routingKey = queueName[len(namespacePrefix):]
 	}
 
 	// Publish message
