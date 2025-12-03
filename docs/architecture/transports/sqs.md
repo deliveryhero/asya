@@ -47,7 +47,7 @@ Operator creates SQS queues automatically when AsyncActor is reconciled:
 
 **Queue name**: `asya-{namespace}-{actor_name}`
 
-**Example**: Actor `text-processor` → Queue `asya-text-processor`
+**Example**: Actor `text-processor` in namespace `default` → Queue `asya-default-text-processor`
 
 **Queue URL**: `https://sqs.{region}.amazonaws.com/{account}/asya-{actor_name}`
 
