@@ -78,6 +78,9 @@ autolabeler:
 - label: 'docs'
   title:
   - '/^(docs|documentation)(\(.*\))?:/i'
+  files:
+  - '**/*.md'
+  - 'docs/**/*'
 - label: 'chore'
   title:
   - '/^chore(\(.*\))?:/i'
@@ -103,10 +106,6 @@ autolabeler:
   title:
   - '/^[a-z]+(\(.*\))?!:/i'
   - '/BREAKING CHANGE/i'
-- label: 'docs'
-  files:
-  - '**/*.md'
-  - 'docs/**/*'
 - label: 'deps'
   files:
   - 'go.mod'
