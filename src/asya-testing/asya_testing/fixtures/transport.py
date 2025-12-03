@@ -58,7 +58,7 @@ def transport_client():
     Generic transport client fixture that selects RabbitMQ or SQS based on ASYA_TRANSPORT.
 
     Returns an ActorTransportClient wrapper that converts actor names to queue names
-    using the Asya naming convention (asya-{actor_name}).
+    using the Asya naming convention (asya-{namespace}-{actor_name}).
 
     Returns:
         ActorTransportClient: Wrapped transport client that handles actor name resolution
@@ -67,6 +67,7 @@ def transport_client():
         ValueError: If ASYA_TRANSPORT is not set or has invalid value
     """
     transport_type = require_env("ASYA_TRANSPORT").lower()
+    namespace = require_env("ASYA_NAMESPACE")
     base_client: TransportClient
 
     if transport_type == "rabbitmq":
@@ -86,7 +87,7 @@ def transport_client():
     else:
         raise ValueError(f"Unsupported transport: {transport_type}")
 
-    return ActorTransportClient(base_client)
+    return ActorTransportClient(base_client, namespace)
 
 
 @pytest.fixture(scope="session")

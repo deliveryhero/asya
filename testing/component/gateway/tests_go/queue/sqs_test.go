@@ -58,7 +58,7 @@ func TestSQS_SendAndReceive(t *testing.T) {
 	defer client.Close()
 
 	testActorName := "test-send-receive"
-	testQueueName := "asya-test-send-receive"
+	testQueueName := "asya-default-test-send-receive"
 
 	envelope := &types.Envelope{
 		ID: "test-send-receive-1",
@@ -102,7 +102,7 @@ func TestSQS_MultipleMessages(t *testing.T) {
 	defer client.Close()
 
 	testActorName := "test-multiple"
-	testQueueName := "asya-test-multiple"
+	testQueueName := "asya-default-test-multiple"
 
 	numMessages := 5
 	for i := 0; i < numMessages; i++ {
@@ -172,7 +172,7 @@ func TestSQS_EnvelopeWithDeadline(t *testing.T) {
 	defer client.Close()
 
 	testActorName := "test-deadline"
-	testQueueName := "asya-test-deadline"
+	testQueueName := "asya-default-test-deadline"
 
 	deadline := time.Now().Add(1 * time.Hour)
 	envelope := &types.Envelope{
@@ -242,7 +242,7 @@ func TestSQS_LargePayload(t *testing.T) {
 	defer client.Close()
 
 	testActorName := "test-large"
-	testQueueName := "asya-test-large"
+	testQueueName := "asya-default-test-large"
 
 	largeData := make([]byte, 100*1024)
 	for i := range largeData {
@@ -289,8 +289,8 @@ func TestSQS_MultipleQueues(t *testing.T) {
 
 	actor1 := "test-multi-q1"
 	actor2 := "test-multi-q2"
-	queue1 := "asya-test-multi-q1"
-	queue2 := "asya-test-multi-q2"
+	queue1 := "asya-default-test-multi-q1"
+	queue2 := "asya-default-test-multi-q2"
 
 	envelope1 := &types.Envelope{
 		ID: "test-multi-q-1",

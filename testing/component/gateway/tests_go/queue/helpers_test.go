@@ -27,9 +27,15 @@ func getSQSConfig() queue.SQSConfig {
 		region = "us-east-1"
 	}
 
+	namespace := os.Getenv("ASYA_NAMESPACE")
+	if namespace == "" {
+		namespace = "default"
+	}
+
 	return queue.SQSConfig{
 		Region:            region,
 		Endpoint:          endpoint,
+		Namespace:         namespace,
 		VisibilityTimeout: 30,
 		WaitTimeSeconds:   1,
 	}

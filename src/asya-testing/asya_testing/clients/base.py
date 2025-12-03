@@ -61,18 +61,25 @@ class ActorTransportClient(TransportClient):
     """
     Wrapper that converts actor names to queue names before delegating to transport client.
 
-    This wrapper implements the Asya queue naming convention: asya-{actor_name}.
+    This wrapper implements the Asya queue naming convention: asya-{namespace}-{actor_name}.
     Tests use actor names (e.g. "test-echo"), which are transformed to queue names
     (e.g. "asya-default-test-echo") before calling the underlying transport client.
     """
 
-    def __init__(self, transport: TransportClient):
-        """Initialize wrapper with underlying transport client."""
+    def __init__(self, transport: TransportClient, namespace: str):
+        """
+        Initialize wrapper with underlying transport client.
+
+        Args:
+            transport: Underlying transport client implementation
+            namespace: Asya namespace for queue naming (e.g. "default")
+        """
         self._transport = transport
+        self._namespace = namespace
 
     def _resolve_queue_name(self, actor_name: str) -> str:
         """Convert actor name to queue name using Asya naming convention."""
-        return f"asya-{actor_name}"
+        return f"asya-{self._namespace}-{actor_name}"
 
     def publish(self, queue: str, message: dict) -> None:
         """Publish message to actor queue."""
