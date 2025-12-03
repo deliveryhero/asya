@@ -11,28 +11,7 @@ categories:
   - 'breaking-change'
 - title: 'Other Changes'
   labels:
-  - 'minor'
-  - 'patch'
-  - 'fix'
-  - 'bugfix'
-  - 'bug'
-  - 'documentation'
-  - 'docs'
-  - 'test'
-  - 'tests'
-  - 'testing'
-  - 'performance'
-  - 'optimization'
-  - 'ci'
-  - 'build'
-  - 'dependencies'
-  - 'deps'
-  - 'chore'
-  - 'asya-operator'
-  - 'asya-gateway'
-  - 'asya-sidecar'
-  - 'asya-runtime'
-  - 'asya-crew'
+  - '*'
 
 change-template: '- $TITLE @$AUTHOR (#$NUMBER)'
 change-title-escapes: '\<*_&'
@@ -104,8 +83,6 @@ autolabeler:
   - 'src/asya-crew/**/*'
 
 template: |
-  ## What's Changed
-
   $CHANGES
 
   ## Docker Images
