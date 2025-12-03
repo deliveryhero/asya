@@ -27,11 +27,13 @@ class RabbitMQTestHelper:
         rabbitmq_port: int = 5672,
         rabbitmq_user: str = "guest",
         rabbitmq_pass: str = "guest",
+        namespace: str = "default",
     ):
         self.rabbitmq_host = rabbitmq_host
         self.rabbitmq_port = rabbitmq_port
         self.rabbitmq_user = rabbitmq_user
         self.rabbitmq_pass = rabbitmq_pass
+        self.namespace = namespace
         self.base_url = f"http://{rabbitmq_host}:15672/api"
         self.auth = (rabbitmq_user, rabbitmq_pass)
 
@@ -39,7 +41,7 @@ class RabbitMQTestHelper:
         self, queue: str, message: dict, exchange: str = "asya"
     ) -> None:
         """Publish a message to RabbitMQ with delivery confirmation."""
-        routing_key = queue.removeprefix("asya-") if queue.startswith("asya-") else queue
+        routing_key = queue.removeprefix(f"asya-{self.namespace}-")
         logger.debug(f"Publishing to exchange='{exchange}', routing_key='{routing_key}'")
         credentials = pika.PlainCredentials(self.rabbitmq_user, self.rabbitmq_pass)
         parameters = pika.ConnectionParameters(
@@ -212,10 +214,11 @@ def transport_helper():
         rabbitmq_port = int(require_env("RABBITMQ_PORT"))
         rabbitmq_user = require_env("RABBITMQ_USER")
         rabbitmq_pass = require_env("RABBITMQ_PASS")
+        namespace = require_env("ASYA_NAMESPACE")
         logger.info(f"[+] Environment loaded in {time.time()-start:.2f}s")
 
         helper = RabbitMQTestHelper(
-            rabbitmq_host, rabbitmq_port, rabbitmq_user, rabbitmq_pass
+            rabbitmq_host, rabbitmq_port, rabbitmq_user, rabbitmq_pass, namespace
         )
         logger.info(f"[+] RabbitMQ helper created in {time.time()-start:.2f}s")
     elif transport == "sqs":

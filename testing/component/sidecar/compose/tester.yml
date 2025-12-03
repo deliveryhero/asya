@@ -15,6 +15,7 @@ services:
     - ../../../shared/compose/envs/.env.tester
     - ../../../shared/compose/envs/.env.${ASYA_TRANSPORT}
     - ../../../shared/compose/envs/.env.asya-runtime
+    - ../../../shared/compose/envs/.env.asya-sidecar
     environment:
     - PYTEST_OPTS=${PYTEST_OPTS}
     - COVERAGE_FILE=/app/.coverage/cov.db
