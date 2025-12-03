@@ -76,6 +76,7 @@ def transport_client():
             port=int(require_env("RABBITMQ_PORT")),
             user=require_env("RABBITMQ_USER"),
             password=require_env("RABBITMQ_PASS"),
+            namespace=namespace,
         )
     elif transport_type == "sqs":
         base_client = SQSClient(

@@ -27,11 +27,13 @@ class RabbitMQClient(TransportClient):
         port: int = 5672,
         user: str = "guest",
         password: str = "guest",
+        namespace: str = "default",
     ):
         self.host = host
         self.port = port
         self.user = user
         self.password = password
+        self.namespace = namespace
         self.api_url = f"http://{host}:15672/api"
         self.auth = (user, password)
 
@@ -43,10 +45,8 @@ class RabbitMQClient(TransportClient):
         channel = connection.channel()
         channel.confirm_delivery()
 
-        # Derive routing key from queue name by stripping asya- prefix
-        routing_key = queue
-        if queue.startswith("asya-"):
-            routing_key = queue[5:]
+        # Derive routing key from queue name by stripping asya-{namespace}- prefix
+        routing_key = queue.removeprefix(f"asya-{self.namespace}-")
 
         body = json.dumps(message)
         channel.basic_publish(
