@@ -54,7 +54,7 @@ spec:
         # RabbitMQ queue validation using rabbitmqctl
         echo "[.] Validating RabbitMQ queue..."
 
-        QUEUE_NAME="asya-$TEST_ACTOR"
+        QUEUE_NAME="asya-{{ .Values.namespace }}-$TEST_ACTOR"
         RABBITMQ_POD="asya-rabbitmq-0"
 
         echo "Queue name: ${QUEUE_NAME}"
@@ -109,7 +109,7 @@ spec:
         echo "[.] Validating SQS queue..."
 
         AWS_REGION="${AWS_REGION:-us-east-1}"
-        QUEUE_NAME="asya-$TEST_ACTOR"
+        QUEUE_NAME="asya-{{ .Values.namespace }}-$TEST_ACTOR"
 
         echo "Region: ${AWS_REGION}"
         echo "Queue name: ${QUEUE_NAME}"
