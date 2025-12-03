@@ -104,7 +104,7 @@ autolabeler:
   - 'src/asya-crew/**/*'
 
 template: |
-  ## What's Changed
+  ## Important Changes
 
   $CHANGES
 
