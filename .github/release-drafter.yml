@@ -13,7 +13,6 @@ categories:
   labels:
   - 'minor'
   - 'patch'
-  - 'enhancement'
   - 'fix'
   - 'bugfix'
   - 'bug'
@@ -49,7 +48,6 @@ version-resolver:
     - 'minor'
     - 'feature'
     - 'feat'
-    - 'enhancement'
   patch:
     labels:
     - 'patch'
