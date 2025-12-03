@@ -2,47 +2,37 @@ name-template: 'v$RESOLVED_VERSION'
 tag-template: 'v$RESOLVED_VERSION'
 
 categories:
-- title: 'Features'
+- title: 'Important Changes'
   labels:
   - 'feature'
   - 'feat'
-  - 'enhancement'
-- title: 'Bug Fixes'
+  - 'major'
+  - 'breaking'
+  - 'breaking-change'
+- title: 'Other Changes'
   labels:
+  - 'minor'
+  - 'patch'
   - 'fix'
   - 'bugfix'
   - 'bug'
-- title: 'Documentation'
-  labels:
   - 'documentation'
   - 'docs'
-- title: 'Testing'
-  labels:
   - 'test'
   - 'tests'
   - 'testing'
-- title: 'Performance'
-  labels:
   - 'performance'
   - 'optimization'
-- title: 'Infrastructure'
-  labels:
   - 'ci'
   - 'build'
   - 'dependencies'
   - 'deps'
   - 'chore'
-- title: 'Components'
-  labels:
   - 'asya-operator'
   - 'asya-gateway'
   - 'asya-sidecar'
   - 'asya-runtime'
   - 'asya-crew'
-- title: 'Breaking Changes'
-  labels:
-  - 'breaking'
-  - 'breaking-change'
 
 change-template: '- $TITLE @$AUTHOR (#$NUMBER)'
 change-title-escapes: '\<*_&'
@@ -58,7 +48,6 @@ version-resolver:
     - 'minor'
     - 'feature'
     - 'feat'
-    - 'enhancement'
   patch:
     labels:
     - 'patch'

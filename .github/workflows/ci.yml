@@ -380,6 +380,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [unit-tests, component-tests, integration-tests, e2e-tests]
     permissions:
+      contents: write
       actions: write
       pull-requests: write
 
@@ -440,3 +441,16 @@ jobs:
       with:
         github-token: ${{ github.token }}
         config: .octocov.yml
+      env:
+        GITHUB_REPOSITORY: ${{ github.repository }}
+
+    - name: Verify report storage
+      if: github.ref == 'refs/heads/main'
+      run: |
+        echo "[.] Checking if report was stored for future comparisons..."
+        if [ -f report.json ]; then
+          echo "[+] report.json exists locally"
+          ls -lh report.json
+        else
+          echo "[!] report.json not found locally"
+        fi

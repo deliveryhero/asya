@@ -230,8 +230,9 @@ Asya uses automated workflows for releases and changelog management:
 
 To help categorize changes in the release notes, use these labels on your PRs:
 
-- `feature`, `enhancement` - New features
+- `feature`, `feat` - New features
 - `fix`, `bugfix`, `bug` - Bug fixes
+- `major` - Major changes
 - `documentation`, `docs` - Documentation updates
 - `test`, `testing` - Test improvements
 - `performance`, `optimization` - Performance improvements
@@ -245,7 +246,7 @@ Labels are automatically applied based on file paths, but you can add them manua
 The project follows [Semantic Versioning](https://semver.org/):
 
 - **Major** (X.0.0): Breaking changes (labels: `breaking`, `breaking-change`)
-- **Minor** (0.X.0): New features (labels: `feature`, `enhancement`)
+- **Minor** (0.X.0): New features (labels: `feature`, `major`)
 - **Patch** (0.0.X): Bug fixes and minor improvements (labels: `fix`, `bugfix`, `documentation`, `chore`)
 
 Release-drafter automatically suggests the next version based on PR labels.
