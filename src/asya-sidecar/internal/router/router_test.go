@@ -140,7 +140,7 @@ func TestRouter_RouteValidation(t *testing.T) {
 			},
 			shouldRejectAndError: false,
 			shouldCallRuntime:    true,
-			expectedDestQueue:    "asya-next-actor",
+			expectedDestQueue:    "asya-default-next-actor",
 		},
 		{
 			name:      "route does not match sidecar queue - sends to error queue",
@@ -215,6 +215,7 @@ func TestRouter_RouteValidation(t *testing.T) {
 
 			cfg := &config.Config{
 				ActorName:     tt.actorName,
+				Namespace:     "default",
 				HappyEndQueue: "happy-end",
 				ErrorEndQueue: "error-end",
 				TransportType: "rabbitmq",
@@ -323,35 +324,39 @@ func TestRouter_ResolveQueueName(t *testing.T) {
 			transportType: "rabbitmq",
 			config: &config.Config{
 				TransportType: "rabbitmq",
+				Namespace:     "default",
 			},
 			actorName: "my-actor",
-			expected:  "asya-my-actor",
+			expected:  "asya-default-my-actor",
 		},
 		{
 			name:          "sqs - with base URL",
 			transportType: "sqs",
 			config: &config.Config{
 				TransportType: "sqs",
+				Namespace:     "default",
 				SQSBaseURL:    "https://sqs.us-east-1.amazonaws.com/123456789",
 			},
 			actorName: "image-processor",
-			expected:  "asya-image-processor",
+			expected:  "asya-default-image-processor",
 		},
 		{
 			name:          "sqs - without base URL (fallback to identity)",
 			transportType: "sqs",
 			config: &config.Config{
 				TransportType: "sqs",
+				Namespace:     "default",
 				SQSBaseURL:    "",
 			},
 			actorName: "image-processor",
-			expected:  "asya-image-processor",
+			expected:  "asya-default-image-processor",
 		},
 		{
 			name:          "unknown transport - fallback to identity",
 			transportType: "unknown",
 			config: &config.Config{
 				TransportType: "unknown",
+				Namespace:     "default",
 			},
 			actorName: "some-actor",
 			expected:  "some-actor",
@@ -361,6 +366,7 @@ func TestRouter_ResolveQueueName(t *testing.T) {
 			transportType: "rabbitmq",
 			config: &config.Config{
 				TransportType: "rabbitmq",
+				Namespace:     "default",
 			},
 			actorName: "happy-end",
 			expected:  "asya-default-happy-end",
@@ -370,6 +376,7 @@ func TestRouter_ResolveQueueName(t *testing.T) {
 			transportType: "sqs",
 			config: &config.Config{
 				TransportType: "sqs",
+				Namespace:     "default",
 				SQSBaseURL:    "https://sqs.us-west-2.amazonaws.com/987654321",
 			},
 			actorName: "error-end",
@@ -461,6 +468,7 @@ func TestRouter_DynamicRouteModification(t *testing.T) {
 			// Setup test components
 			cfg := &config.Config{
 				ActorName:     tt.initialActors[0],
+				Namespace:     "default",
 				HappyEndQueue: "happy-end",
 				ErrorEndQueue: "error-end",
 			}
@@ -554,12 +562,13 @@ func TestRouter_ResolveQueueName_Integration(t *testing.T) {
 			transportType: "rabbitmq",
 			config: &config.Config{
 				TransportType: "rabbitmq",
+				Namespace:     "default",
 				ActorName:     "actor1",
 				HappyEndQueue: "happy-end",
 				ErrorEndQueue: "error-end",
 			},
 			inputActors:      []string{"actor1", "actor2", "actor3"},
-			expectedQueues:   []string{"asya-actor2"},
+			expectedQueues:   []string{"asya-default-actor2"},
 			shouldRouteToEnd: false,
 		},
 		{
@@ -567,13 +576,14 @@ func TestRouter_ResolveQueueName_Integration(t *testing.T) {
 			transportType: "sqs",
 			config: &config.Config{
 				TransportType: "sqs",
+				Namespace:     "default",
 				SQSBaseURL:    "https://sqs.us-east-1.amazonaws.com/123",
 				ActorName:     "processor",
 				HappyEndQueue: "happy-end",
 				ErrorEndQueue: "error-end",
 			},
 			inputActors:      []string{"processor", "validator"},
-			expectedQueues:   []string{"asya-validator"},
+			expectedQueues:   []string{"asya-default-validator"},
 			shouldRouteToEnd: false,
 		},
 	}
@@ -699,6 +709,7 @@ func TestNewRouter(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			cfg := &config.Config{
 				ActorName:     "test-actor",
+				Namespace:     "default",
 				HappyEndQueue: "happy-end",
 				ErrorEndQueue: "error-end",
 				GatewayURL:    tt.gatewayURL,
@@ -740,6 +751,7 @@ func TestNewRouter(t *testing.T) {
 func TestRouter_SendToHappyQueue(t *testing.T) {
 	cfg := &config.Config{
 		ActorName:     "test-actor",
+		Namespace:     "default",
 		HappyEndQueue: "happy-end",
 		ErrorEndQueue: "error-end",
 		TransportType: "rabbitmq",
@@ -776,8 +788,8 @@ func TestRouter_SendToHappyQueue(t *testing.T) {
 		t.Fatalf("Expected 1 message sent, got %d", len(mockTransport.sentMessages))
 	}
 
-	if mockTransport.sentMessages[0].queue != "asya-"+testQueueHappyEnd {
-		t.Errorf("Envelope sent to queue %q, expected %q", mockTransport.sentMessages[0].queue, "asya-"+testQueueHappyEnd)
+	if mockTransport.sentMessages[0].queue != "asya-default-"+testQueueHappyEnd {
+		t.Errorf("Envelope sent to queue %q, expected %q", mockTransport.sentMessages[0].queue, "asya-default-"+testQueueHappyEnd)
 	}
 
 	var sentEnvelope envelopes.Envelope
@@ -794,6 +806,7 @@ func TestRouter_SendToHappyQueue(t *testing.T) {
 func TestRouter_SendToErrorQueue(t *testing.T) {
 	cfg := &config.Config{
 		ActorName:     "test-actor",
+		Namespace:     "default",
 		HappyEndQueue: "happy-end",
 		ErrorEndQueue: "error-end",
 		TransportType: "rabbitmq",
@@ -832,8 +845,8 @@ func TestRouter_SendToErrorQueue(t *testing.T) {
 		t.Fatalf("Expected 1 message sent, got %d", len(mockTransport.sentMessages))
 	}
 
-	if mockTransport.sentMessages[0].queue != "asya-"+testQueueErrorEnd {
-		t.Errorf("Envelope sent to queue %q, expected %q", mockTransport.sentMessages[0].queue, "asya-"+testQueueErrorEnd)
+	if mockTransport.sentMessages[0].queue != "asya-default-"+testQueueErrorEnd {
+		t.Errorf("Envelope sent to queue %q, expected %q", mockTransport.sentMessages[0].queue, "asya-default-"+testQueueErrorEnd)
 	}
 
 	var errorMsg map[string]any
@@ -875,6 +888,7 @@ func TestRouter_SendToErrorQueue(t *testing.T) {
 func TestRouter_SendToErrorQueue_WithInvalidOriginalMessage(t *testing.T) {
 	cfg := &config.Config{
 		ActorName:     "test-actor",
+		Namespace:     "default",
 		HappyEndQueue: "happy-end",
 		ErrorEndQueue: "error-end",
 		TransportType: "rabbitmq",
@@ -935,6 +949,7 @@ func TestRouter_Run(t *testing.T) {
 
 	cfg := &config.Config{
 		ActorName:     "test-actor",
+		Namespace:     "default",
 		HappyEndQueue: "happy-end",
 		ErrorEndQueue: "error-end",
 		TransportType: "rabbitmq",
@@ -976,6 +991,7 @@ func TestRouter_Run(t *testing.T) {
 func TestRouter_ProcessMessage_ParseError(t *testing.T) {
 	cfg := &config.Config{
 		ActorName:     "test-actor",
+		Namespace:     "default",
 		HappyEndQueue: "happy-end",
 		ErrorEndQueue: "error-end",
 		TransportType: "rabbitmq",
@@ -1009,14 +1025,15 @@ func TestRouter_ProcessMessage_ParseError(t *testing.T) {
 		t.Fatalf("Expected 1 message sent to error queue, got %d", len(mockTransport.sentMessages))
 	}
 
-	if mockTransport.sentMessages[0].queue != "asya-"+testQueueErrorEnd {
-		t.Errorf("Envelope sent to %q, expected %q", mockTransport.sentMessages[0].queue, "asya-"+testQueueErrorEnd)
+	if mockTransport.sentMessages[0].queue != "asya-default-"+testQueueErrorEnd {
+		t.Errorf("Envelope sent to %q, expected %q", mockTransport.sentMessages[0].queue, "asya-default-"+testQueueErrorEnd)
 	}
 }
 
 func TestRouter_ProcessMessage_MissingEnvelopeID(t *testing.T) {
 	cfg := &config.Config{
 		ActorName:     "test-actor",
+		Namespace:     "default",
 		HappyEndQueue: "happy-end",
 		ErrorEndQueue: "error-end",
 		TransportType: "rabbitmq",
@@ -1050,8 +1067,8 @@ func TestRouter_ProcessMessage_MissingEnvelopeID(t *testing.T) {
 		t.Fatalf("Expected 1 message sent to error queue, got %d", len(mockTransport.sentMessages))
 	}
 
-	if mockTransport.sentMessages[0].queue != "asya-"+testQueueErrorEnd {
-		t.Errorf("Envelope sent to %q, expected %q", mockTransport.sentMessages[0].queue, "asya-"+testQueueErrorEnd)
+	if mockTransport.sentMessages[0].queue != "asya-default-"+testQueueErrorEnd {
+		t.Errorf("Envelope sent to %q, expected %q", mockTransport.sentMessages[0].queue, "asya-default-"+testQueueErrorEnd)
 	}
 
 	var errorEnvelope map[string]interface{}
@@ -1099,6 +1116,7 @@ func TestRouter_ProcessMessage_EmptyResponse(t *testing.T) {
 
 	cfg := &config.Config{
 		ActorName:     "test-actor",
+		Namespace:     "default",
 		HappyEndQueue: "happy-end",
 		ErrorEndQueue: "error-end",
 		TransportType: "rabbitmq",
@@ -1143,8 +1161,8 @@ func TestRouter_ProcessMessage_EmptyResponse(t *testing.T) {
 		t.Fatalf("Expected 1 message sent to happy-end, got %d", len(mockTransport.sentMessages))
 	}
 
-	if mockTransport.sentMessages[0].queue != "asya-"+testQueueHappyEnd {
-		t.Errorf("Envelope sent to %q, expected %q", mockTransport.sentMessages[0].queue, "asya-"+testQueueHappyEnd)
+	if mockTransport.sentMessages[0].queue != "asya-default-"+testQueueHappyEnd {
+		t.Errorf("Envelope sent to %q, expected %q", mockTransport.sentMessages[0].queue, "asya-default-"+testQueueHappyEnd)
 	}
 }
 
@@ -1185,6 +1203,7 @@ func TestRouter_ProcessMessage_EndActor(t *testing.T) {
 
 	cfg := &config.Config{
 		ActorName:     "happy-end",
+		Namespace:     "default",
 		HappyEndQueue: "happy-end",
 		ErrorEndQueue: "error-end",
 		TransportType: "rabbitmq",
@@ -1305,6 +1324,7 @@ func TestRouter_EndActor_WithInvalidRoute(t *testing.T) {
 
 			cfg := &config.Config{
 				ActorName:     "happy-end",
+				Namespace:     "default",
 				HappyEndQueue: "happy-end",
 				ErrorEndQueue: "error-end",
 				TransportType: "rabbitmq",
@@ -1387,6 +1407,7 @@ func TestRouter_EndActor_WithGatewayReporting(t *testing.T) {
 
 	cfg := &config.Config{
 		ActorName:     "happy-end",
+		Namespace:     "default",
 		HappyEndQueue: "happy-end",
 		ErrorEndQueue: "error-end",
 		TransportType: "rabbitmq",
@@ -1465,6 +1486,7 @@ func TestRouter_EndActor_RuntimeError(t *testing.T) {
 
 	cfg := &config.Config{
 		ActorName:     "error-end",
+		Namespace:     "default",
 		HappyEndQueue: "happy-end",
 		ErrorEndQueue: "error-end",
 		TransportType: "rabbitmq",
@@ -1553,6 +1575,7 @@ func TestRouter_EndActor_DoesNotIncrementCurrent(t *testing.T) {
 
 	cfg := &config.Config{
 		ActorName:     "happy-end",
+		Namespace:     "default",
 		HappyEndQueue: "happy-end",
 		ErrorEndQueue: "error-end",
 		TransportType: "rabbitmq",
@@ -1620,6 +1643,7 @@ func TestRouter_ProcessMessage_RuntimeError(t *testing.T) {
 
 	cfg := &config.Config{
 		ActorName:     "test-actor",
+		Namespace:     "default",
 		HappyEndQueue: "happy-end",
 		ErrorEndQueue: "error-end",
 		TransportType: "rabbitmq",
@@ -1664,8 +1688,8 @@ func TestRouter_ProcessMessage_RuntimeError(t *testing.T) {
 		t.Fatalf("Expected 1 message sent to error queue, got %d", len(mockTransport.sentMessages))
 	}
 
-	if mockTransport.sentMessages[0].queue != "asya-"+testQueueErrorEnd {
-		t.Errorf("Envelope sent to %q, expected %q", mockTransport.sentMessages[0].queue, "asya-"+testQueueErrorEnd)
+	if mockTransport.sentMessages[0].queue != "asya-default-"+testQueueErrorEnd {
+		t.Errorf("Envelope sent to %q, expected %q", mockTransport.sentMessages[0].queue, "asya-default-"+testQueueErrorEnd)
 	}
 }
 
@@ -1706,6 +1730,7 @@ func TestRouter_ProcessMessage_ErrorResponse(t *testing.T) {
 
 	cfg := &config.Config{
 		ActorName:     "test-actor",
+		Namespace:     "default",
 		HappyEndQueue: "happy-end",
 		ErrorEndQueue: "error-end",
 		TransportType: "rabbitmq",
@@ -1750,8 +1775,8 @@ func TestRouter_ProcessMessage_ErrorResponse(t *testing.T) {
 		t.Fatalf("Expected 1 message sent to error queue, got %d", len(mockTransport.sentMessages))
 	}
 
-	if mockTransport.sentMessages[0].queue != "asya-"+testQueueErrorEnd {
-		t.Errorf("Envelope sent to %q, expected %q", mockTransport.sentMessages[0].queue, "asya-"+testQueueErrorEnd)
+	if mockTransport.sentMessages[0].queue != "asya-default-"+testQueueErrorEnd {
+		t.Errorf("Envelope sent to %q, expected %q", mockTransport.sentMessages[0].queue, "asya-default-"+testQueueErrorEnd)
 	}
 
 	var errorMsg map[string]any
@@ -1796,6 +1821,7 @@ func TestRouter_ReportFinalStatus_HappyEnd(t *testing.T) {
 
 	cfg := &config.Config{
 		ActorName:     "happy-end",
+		Namespace:     "default",
 		HappyEndQueue: "happy-end",
 		ErrorEndQueue: "error-end",
 		GatewayURL:    mockServer.URL,
@@ -1847,6 +1873,7 @@ func TestRouter_ReportFinalStatus_ErrorEnd(t *testing.T) {
 
 	cfg := &config.Config{
 		ActorName:     "error-end",
+		Namespace:     "default",
 		HappyEndQueue: "happy-end",
 		ErrorEndQueue: "error-end",
 		GatewayURL:    mockServer.URL,
@@ -1920,6 +1947,7 @@ func TestRouter_ReportFinalStatusWithEnvelope_ErrorEnd_ExtractsErrorDetails(t *t
 
 	cfg := &config.Config{
 		ActorName:     "error-end",
+		Namespace:     "default",
 		HappyEndQueue: "happy-end",
 		ErrorEndQueue: "error-end",
 		TransportType: "rabbitmq",
@@ -2049,6 +2077,7 @@ func TestRouter_ReportFinalStatusWithEnvelope_ErrorEnd_NoErrorDetails(t *testing
 
 	cfg := &config.Config{
 		ActorName:     "error-end",
+		Namespace:     "default",
 		HappyEndQueue: "happy-end",
 		ErrorEndQueue: "error-end",
 		TransportType: "rabbitmq",
@@ -2110,6 +2139,7 @@ func TestRouter_ReportFinalStatusWithEnvelope_ErrorEnd_NoErrorDetails(t *testing
 func TestRouter_ReportFinalStatus_NoGateway(t *testing.T) {
 	cfg := &config.Config{
 		ActorName:     "happy-end",
+		Namespace:     "default",
 		HappyEndQueue: "happy-end",
 		ErrorEndQueue: "error-end",
 		GatewayURL:    "",
@@ -2173,6 +2203,7 @@ func TestRouter_ProcessMessage_FanOut(t *testing.T) {
 
 	cfg := &config.Config{
 		ActorName:     "test-actor",
+		Namespace:     "default",
 		HappyEndQueue: "happy-end",
 		ErrorEndQueue: "error-end",
 		TransportType: "rabbitmq",
@@ -2220,8 +2251,8 @@ func TestRouter_ProcessMessage_FanOut(t *testing.T) {
 	for i := 0; i < 3; i++ {
 		msg := mockTransport.sentMessages[i]
 
-		if msg.queue != "asya-next-actor" {
-			t.Errorf("Message %d sent to %q, expected %q", i, msg.queue, "asya-next-actor")
+		if msg.queue != "asya-default-next-actor" {
+			t.Errorf("Message %d sent to %q, expected %q", i, msg.queue, "asya-default-next-actor")
 		}
 
 		var envelope envelopes.Envelope
@@ -2346,6 +2377,7 @@ func TestRouter_ProcessMessage_FanOut_CreatesGatewayEnvelopes(t *testing.T) {
 
 	cfg := &config.Config{
 		ActorName:     "test-actor",
+		Namespace:     "default",
 		HappyEndQueue: "happy-end",
 		ErrorEndQueue: "error-end",
 		TransportType: "rabbitmq",
@@ -2435,6 +2467,7 @@ func TestRouter_CheckGatewayHealth_Success(t *testing.T) {
 
 	cfg := &config.Config{
 		ActorName:     "test-actor",
+		Namespace:     "default",
 		HappyEndQueue: "happy-end",
 		ErrorEndQueue: "error-end",
 		TransportType: "rabbitmq",
@@ -2469,6 +2502,7 @@ func TestRouter_CheckGatewayHealth_Failure(t *testing.T) {
 
 	cfg := &config.Config{
 		ActorName:     "test-actor",
+		Namespace:     "default",
 		HappyEndQueue: "happy-end",
 		ErrorEndQueue: "error-end",
 		TransportType: "rabbitmq",
@@ -2493,6 +2527,7 @@ func TestRouter_CheckGatewayHealth_Failure(t *testing.T) {
 func TestRouter_CheckGatewayHealth_NoGatewayConfigured(t *testing.T) {
 	cfg := &config.Config{
 		ActorName:     "test-actor",
+		Namespace:     "default",
 		HappyEndQueue: "happy-end",
 		ErrorEndQueue: "error-end",
 		TransportType: "rabbitmq",
@@ -2517,6 +2552,7 @@ func TestRouter_CheckGatewayHealth_NoGatewayConfigured(t *testing.T) {
 func TestRouter_CheckGatewayHealth_NetworkError(t *testing.T) {
 	cfg := &config.Config{
 		ActorName:     "test-actor",
+		Namespace:     "default",
 		HappyEndQueue: "happy-end",
 		ErrorEndQueue: "error-end",
 		TransportType: "rabbitmq",

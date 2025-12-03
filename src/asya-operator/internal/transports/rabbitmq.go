@@ -128,7 +128,7 @@ func (t *RabbitMQTransport) ReconcileQueue(ctx context.Context, actor *asyav1alp
 	// Create DLQ if enabled
 	var dlqName string
 	if rabbitmqConfig.Queues.DLQ.Enabled {
-		dlqName = fmt.Sprintf("%s-dlq", queueName)
+		dlqName = fmt.Sprintf("asya-%s-dlq", actor.Namespace)
 		_, err = ch.QueueDeclare(
 			dlqName,
 			true,
@@ -264,16 +264,8 @@ func (t *RabbitMQTransport) DeleteQueue(ctx context.Context, actor *asyav1alpha1
 		return fmt.Errorf("failed to delete queue: %w", err)
 	}
 
-	// Delete DLQ if it exists
-	if rabbitmqConfig.Queues.DLQ.Enabled {
-		dlqName := fmt.Sprintf("%s-dlq", queueName)
-		_, err = ch.QueueDelete(dlqName, false, false, false)
-		if err != nil {
-			logger.Info("Failed to delete DLQ (may not exist)", "dlq", dlqName, "error", err)
-		} else {
-			logger.Info("RabbitMQ DLQ deleted", "dlq", dlqName)
-		}
-	}
+	// Shared DLQ is not deleted when actors are removed
+	logger.V(1).Info("Shared DLQ preserved (not deleted with actor)", "queue", queueName)
 
 	logger.Info("RabbitMQ queue deleted", "queue", queueName)
 	return nil
