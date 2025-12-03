@@ -4,35 +4,35 @@ tag-template: 'v$RESOLVED_VERSION'
 categories:
 - title: 'Important Changes'
   labels:
-  - 'feature'
-  - 'feat'
-  - 'major'
-  - 'breaking'
   - 'breaking-change'
+  - 'breaking'
+  - 'bug'
+  - 'bugfix'
+  - 'feat'
+  - 'feature'
+  - 'fix'
+  - 'major'
 - title: 'Other Changes'
   labels:
-  - 'minor'
-  - 'patch'
-  - 'fix'
-  - 'bugfix'
-  - 'bug'
-  - 'documentation'
-  - 'docs'
-  - 'test'
-  - 'tests'
-  - 'testing'
-  - 'performance'
-  - 'optimization'
-  - 'ci'
+  - 'asya-crew'
+  - 'asya-gateway'
+  - 'asya-operator'
+  - 'asya-runtime'
+  - 'asya-sidecar'
   - 'build'
+  - 'chore'
+  - 'ci'
   - 'dependencies'
   - 'deps'
-  - 'chore'
-  - 'asya-operator'
-  - 'asya-gateway'
-  - 'asya-sidecar'
-  - 'asya-runtime'
-  - 'asya-crew'
+  - 'docs'
+  - 'documentation'
+  - 'minor'
+  - 'optimization'
+  - 'patch'
+  - 'performance'
+  - 'test'
+  - 'testing'
+  - 'tests'
 
 change-template: '- $TITLE @$AUTHOR (#$NUMBER)'
 change-title-escapes: '\<*_&'
@@ -69,18 +69,43 @@ version-resolver:
   default: patch
 
 autolabeler:
+- label: 'feature'
+  title:
+  - '/^(feat|feature)(\(.*\))?:/i'
+- label: 'fix'
+  title:
+  - '/^(fix|bug|bugfix)(\(.*\))?:/i'
 - label: 'docs'
+  title:
+  - '/^(docs|documentation)(\(.*\))?:/i'
   files:
   - '**/*.md'
   - 'docs/**/*'
+- label: 'chore'
+  title:
+  - '/^chore(\(.*\))?:/i'
+- label: 'ci'
+  title:
+  - '/^ci(\(.*\))?:/i'
+  files:
+  - '.github/**/*'
 - label: 'tests'
+  title:
+  - '/^(test|tests|testing)(\(.*\))?:/i'
   files:
   - 'testing/**/*'
   - '**/*_test.go'
   - '**/test_*.py'
-- label: 'ci'
-  files:
-  - '.github/**/*'
+- label: 'performance'
+  title:
+  - '/^(perf|performance)(\(.*\))?:/i'
+- label: 'build'
+  title:
+  - '/^build(\(.*\))?:/i'
+- label: 'breaking'
+  title:
+  - '/^[a-z]+(\(.*\))?!:/i'
+  - '/BREAKING CHANGE/i'
 - label: 'deps'
   files:
   - 'go.mod'
