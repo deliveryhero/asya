@@ -69,18 +69,44 @@ version-resolver:
   default: patch
 
 autolabeler:
+- label: 'feature'
+  title:
+  - '/^(feat|feature)(\(.*\))?:/i'
+- label: 'fix'
+  title:
+  - '/^(fix|bug|bugfix)(\(.*\))?:/i'
 - label: 'docs'
+  title:
+  - '/^(docs|documentation)(\(.*\))?:/i'
+- label: 'chore'
+  title:
+  - '/^chore(\(.*\))?:/i'
+- label: 'ci'
+  title:
+  - '/^ci(\(.*\))?:/i'
   files:
-  - '**/*.md'
-  - 'docs/**/*'
+  - '.github/**/*'
 - label: 'tests'
+  title:
+  - '/^(test|tests|testing)(\(.*\))?:/i'
   files:
   - 'testing/**/*'
   - '**/*_test.go'
   - '**/test_*.py'
-- label: 'ci'
+- label: 'performance'
+  title:
+  - '/^(perf|performance)(\(.*\))?:/i'
+- label: 'build'
+  title:
+  - '/^build(\(.*\))?:/i'
+- label: 'breaking'
+  title:
+  - '/^[a-z]+(\(.*\))?!:/i'
+  - '/BREAKING CHANGE/i'
+- label: 'docs'
   files:
-  - '.github/**/*'
+  - '**/*.md'
+  - 'docs/**/*'
 - label: 'deps'
   files:
   - 'go.mod'
