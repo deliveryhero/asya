@@ -49,7 +49,7 @@ func (m *mockSQSClient) GetQueueUrl(ctx context.Context, params *sqs.GetQueueUrl
 }
 
 // TestSQSQueueNaming tests that actor names are prefixed with "asya-" for SQS queue names
-// This is SQS-specific behavior: actor "data-processor" -> queue "asya-data-processor"
+// This is SQS-specific behavior: actor "data-processor" -> queue "asya-namespacename-data-processor"
 func TestSQSQueueNaming(t *testing.T) {
 	tests := []struct {
 		name          string
@@ -59,7 +59,7 @@ func TestSQSQueueNaming(t *testing.T) {
 		{
 			name:          "simple actor name",
 			actorName:     "data-processor",
-			expectedQueue: "asya-data-processor",
+			expectedQueue: "asya-default-data-processor",
 		},
 		{
 			name:          "test actor name",
@@ -90,6 +90,7 @@ func TestSQSQueueNaming(t *testing.T) {
 			sqsClient := &SQSClient{
 				client:        mockClient,
 				region:        "us-east-1",
+				namespace:     "default",
 				baseURL:       "http://sqs:4566",
 				queueURLCache: make(map[string]string),
 			}

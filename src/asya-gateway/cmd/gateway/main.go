@@ -79,7 +79,8 @@ func main() {
 	if sqsEndpoint != "" || rabbitmqURL == "" {
 		// Use SQS transport
 		sqsRegion := getEnv("ASYA_SQS_REGION", "us-east-1")
-		slog.Info("Using SQS transport", "region", sqsRegion, "endpoint", sqsEndpoint)
+		namespace := getEnv("ASYA_NAMESPACE", "default")
+		slog.Info("Using SQS transport", "region", sqsRegion, "namespace", namespace, "endpoint", sqsEndpoint)
 
 		visibilityTimeout := getEnvInt("ASYA_SQS_VISIBILITY_TIMEOUT", 300)
 		waitTimeSeconds := getEnvInt("ASYA_SQS_WAIT_TIME_SECONDS", 20)
@@ -87,6 +88,7 @@ func main() {
 		queueClient, err = queue.NewSQSClient(ctx, queue.SQSConfig{
 			Region:            sqsRegion,
 			Endpoint:          sqsEndpoint,
+			Namespace:         namespace,
 			VisibilityTimeout: int32(visibilityTimeout), // #nosec G115 - config values bounded by reasonable defaults
 			WaitTimeSeconds:   int32(waitTimeSeconds),   // #nosec G115 - config values bounded by reasonable defaults
 		})

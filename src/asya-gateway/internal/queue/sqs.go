@@ -17,18 +17,19 @@ import (
 // Queue Naming Convention (All Transports):
 //
 // Actor names are transport-agnostic identifiers (e.g., "data-processor", "test-echo").
-// All transports add an "asya-" prefix to actor names to create queue names.
+// All transports add an "asya-{namespace}-" prefix to actor names to create queue names.
 //
 // Examples:
-//   - Actor "data-processor"  → Queue "asya-data-processor"
-//   - Actor "test-echo"       → Queue "asya-test-echo"
-//   - Actor "happy-end"       → Queue "asya-happy-end"
+//   - Actor "data-processor" in namespace "default"  → Queue "asya-default-data-processor"
+//   - Actor "test-echo" in namespace "staging"       → Queue "asya-staging-test-echo"
+//   - Actor "happy-end" in namespace "default"       → Queue "asya-default-happy-end"
 //
 // The prefix is added by:
 // - Gateway queue clients (rabbitmq.go and this file) when sending envelopes
 // - Sidecar (router.go) when creating/consuming from queues
 //
-// This maintains consistent queue naming across all transport implementations.
+// This maintains consistent queue naming across all transport implementations and
+// provides namespace isolation for multi-tenant deployments.
 
 // sqsClient defines the interface for SQS operations
 type sqsClient interface {
@@ -42,6 +43,7 @@ type sqsClient interface {
 type SQSClient struct {
 	client            sqsClient
 	region            string
+	namespace         string
 	baseURL           string
 	visibilityTimeout int32
 	waitTimeSeconds   int32
@@ -52,6 +54,7 @@ type SQSClient struct {
 type SQSConfig struct {
 	Region            string
 	Endpoint          string
+	Namespace         string
 	VisibilityTimeout int32
 	WaitTimeSeconds   int32
 }
@@ -92,6 +95,7 @@ func NewSQSClient(ctx context.Context, cfg SQSConfig) (*SQSClient, error) {
 	return &SQSClient{
 		client:            client,
 		region:            cfg.Region,
+		namespace:         cfg.Namespace,
 		baseURL:           cfg.Endpoint,
 		visibilityTimeout: visibilityTimeout,
 		waitTimeSeconds:   waitTimeSeconds,
@@ -190,9 +194,9 @@ func (c *SQSClient) SendEnvelope(ctx context.Context, envelope *types.Envelope) 
 	}
 
 	// Get queue URL for current actor
-	// Add "asya-" prefix to convert actor name to queue name
+	// Add "asya-{namespace}-" prefix to convert actor name to queue name
 	actorName := envelope.Route.Actors[envelope.Route.Current]
-	queueName := fmt.Sprintf("asya-%s", actorName)
+	queueName := fmt.Sprintf("asya-%s-%s", c.namespace, actorName)
 	queueURL, err := c.resolveQueueURL(ctx, queueName)
 	if err != nil {
 		return fmt.Errorf("failed to resolve queue URL: %w", err)
