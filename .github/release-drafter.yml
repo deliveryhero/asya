@@ -2,7 +2,7 @@ name-template: 'v$RESOLVED_VERSION'
 tag-template: 'v$RESOLVED_VERSION'
 
 categories:
-- title: 'Important Changes'
+- title: 'Major Changes'
   labels:
   - 'breaking-change'
   - 'breaking'
@@ -28,8 +28,32 @@ categories:
   - 'style'
   - 'test'
 
-exclude-labels:
-- 'changelog'
+# Repeat list of categories above to exclude all other labels from changelog
+include-labels:
+# major changes:
+- 'breaking-change'
+- 'breaking'
+- 'feat'
+- 'fix'
+- 'major'
+# other changes:
+- 'asya-crew'
+- 'asya-gateway'
+- 'asya-operator'
+- 'asya-runtime'
+- 'asya-sidecar'
+- 'build'
+- 'chore'
+- 'ci'
+- 'deps'
+- 'docs'
+- 'minor'
+- 'patch'
+- 'perf'
+- 'refactor'
+- 'style'
+- 'test'
+
 
 category-template: "## $TITLE"
 change-title-escapes: '\<*_&'
