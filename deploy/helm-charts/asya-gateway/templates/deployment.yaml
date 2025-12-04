@@ -116,6 +116,8 @@ spec:
         - name: ASYA_DATABASE_URL
           value: ""
         {{- end }}
+        - name: ASYA_NAMESPACE
+          value: "{{ .Release.Namespace }}"
         {{- with .Values.env }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
