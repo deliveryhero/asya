@@ -28,7 +28,9 @@ categories:
   - 'style'
   - 'test'
 
-# Repeat list of categories above to exclude all other labels from changelog
+# This is an allow-list of labels. PRs without one of these labels are excluded from the changelog.
+# IMPORTANT: This list must be kept in sync with the labels in `categories` above.
+# If you add a label to a category, you MUST add it here too, otherwise it will be silently ignored.
 include-labels:
 # major changes:
 - 'breaking-change'
