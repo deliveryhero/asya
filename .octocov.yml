@@ -59,7 +59,7 @@ comment:
 diff:
   if: is_pull_request
   datastores:
-  - artifact://${GITHUB_REPOSITORY}/octocov-report
+  - artifact://deliveryhero/asya/octocov-report
   path: report.json
 
 summary:
@@ -70,7 +70,7 @@ summary:
 report:
   if: is_default_branch
   datastores:
-  - artifact://${GITHUB_REPOSITORY}/octocov-report
+  - artifact://deliveryhero/asya/octocov-report
   path: report.json
 
 # Test execution time tracking (from GitHub Actions)
