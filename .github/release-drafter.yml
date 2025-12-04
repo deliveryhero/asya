@@ -129,6 +129,7 @@ autolabeler:
   - 'src/asya-crew/**/*'
 
 template: |
+  ## Important Changes
   $CHANGES
 
   ## Docker Images
