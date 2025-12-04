@@ -28,7 +28,10 @@ categories:
   - 'style'
   - 'test'
 
-change-template: '- $TITLE @$AUTHOR (#$NUMBER)'
+exclude-labels:
+- 'changelog'
+
+category-template: "## $TITLE"
 change-title-escapes: '\<*_&'
 
 version-resolver:
@@ -123,7 +126,6 @@ autolabeler:
   - 'src/asya-crew/**/*'
 
 template: |
-  ## Important Changes
   $CHANGES
 
   ## Docker Images
