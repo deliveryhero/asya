@@ -168,25 +168,26 @@ def wait_for_actors_factory(kubectl, namespace, actor_names, max_wait=120, check
     return actor_names
 
 
-def wait_for_queues_factory(transport_client, queue_names, max_wait=120, check_interval=5):
+def wait_for_queues_factory(transport_client, queue_names, namespace, max_wait=120, check_interval=5):
     """
     Generic fixture factory to wait for queues to be created by operator.
 
     Args:
         transport_client: Transport client (RabbitMQClient or SQSClient)
-        queue_names: List of queue names to wait for (without 'asya-' prefix)
+        queue_names: List of queue names to wait for (actor names without prefix)
+        namespace: Kubernetes namespace for queue naming
         max_wait: Maximum wait time in seconds
         check_interval: Check interval in seconds
 
     Returns:
-        List of full queue names (with 'asya-' prefix) that are ready
+        List of full queue names (with 'asya-{namespace}-' prefix) that are ready
 
     Raises:
         AssertionError: If any queue is not created after max_wait
     """
     import time
 
-    expected_queues = [f"asya-{name}" if not name.startswith("asya-") else name for name in queue_names]
+    expected_queues = [f"asya-{namespace}-{name}" for name in queue_names]
     elapsed = 0
     all_ready = False
 

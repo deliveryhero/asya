@@ -80,7 +80,7 @@ def chaos_actors(kubectl, namespace):
 
 
 @pytest.fixture(scope="session")
-def chaos_queues(chaos_actors):
+def chaos_queues(chaos_actors, namespace):
     """
     Ensure chaos test queues are created and ready.
 
@@ -108,7 +108,7 @@ def chaos_queues(chaos_actors):
     else:
         pytest.fail(f"Unsupported transport: {transport}")
 
-    return wait_for_queues_factory(transport_client, CHAOS_ACTOR_NAMES)
+    return wait_for_queues_factory(transport_client, CHAOS_ACTOR_NAMES, namespace)
 
 
 __all__ = [
