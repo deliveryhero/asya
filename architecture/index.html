@@ -649,7 +649,7 @@
 <ol>
 <li>User creates AsyncActor CRD</li>
 <li>Operator reconciles:</li>
-<li>Creates queue (<code>asya-{actor_name}</code>)</li>
+<li>Creates queue (<code>asya-{namespace}-{actor_name}</code>)</li>
 <li>Injects sidecar container</li>
 <li>Injects runtime entrypoint</li>
 <li>Creates KEDA ScaledObject (if scaling enabled)</li>

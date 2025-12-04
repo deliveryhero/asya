@@ -45,11 +45,11 @@ spec:
 
 Operator creates SQS queues automatically when AsyncActor is reconciled:
 
-**Queue name**: `asya-{actor_name}`
+**Queue name**: `asya-{namespace}-{actor_name}`
 
-**Example**: Actor `text-processor` → Queue `asya-text-processor`
+**Example**: Actor `text-processor` in namespace `default` → Queue `asya-default-text-processor`
 
-**Queue URL**: `https://sqs.{region}.amazonaws.com/{account}/asya-{actor_name}`
+**Queue URL**: `https://sqs.{region}.amazonaws.com/{account}/asya-{namespace}-{actor_name}`
 
 ## IAM Permissions
 
@@ -119,7 +119,7 @@ triggers:
 
 When `queues.dlq.enabled: true`, operator creates DLQ for each queue:
 
-**DLQ name**: `asya-{actor_name}-dlq`
+**DLQ name**: `asya-{namespace}-{actor_name}-dlq`
 
 **Max receive count**: Configured via `queues.dlq.maxRetryCount` (default: 3)
 

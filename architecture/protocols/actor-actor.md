@@ -40,13 +40,13 @@
 
 ## Queue Naming Convention
 
-All actor queues follow pattern: `asya-{actor_name}`
+All actor queues follow pattern: `asya-{namespace}-{actor_name}`
 
 **Examples**:
-
-- Actor `text-analyzer` → Queue `asya-text-analyzer`
-- Actor `image-processor` → Queue `asya-image-processor`
-- System actors: `asya-happy-end`, `asya-error-end`
+Namespace: `example-ecommerce`
+- Actor `text-analyzer` → Queue `asya-example-ecommerce-text-analyzer`
+- Actor `image-processor` → Queue `asya-example-ecommerce-image-processor`
+- System actors: `asya-{namespace}-happy-end`, `asya-{namespace}-error-end`
 
 **Benefits**:
 

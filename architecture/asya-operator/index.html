@@ -887,7 +887,7 @@ helm<span class="w"> </span>install<span class="w"> </span>asya-operator<span cl
 <p>Deleting AsyncActor triggers cascade deletion of owned resources via <code>ownerReferences</code>.</p>
 <h2 id="queue-management">Queue Management<a class="headerlink" href="#queue-management" title="Permanent link">&para;</a></h2>
 <p>Operator automatically creates queues via transport layer abstraction.</p>
-<p><strong>Queue naming</strong>: <code>asya-{actor_name}</code></p>
+<p><strong>Queue naming</strong>: <code>asya-{namespace}-{actor_name}</code></p>
 <p><strong>Lifecycle</strong>:</p>
 <ul>
 <li>Created when AsyncActor first reconciled (if <code>spec.scaling.enabled=false</code>, queue created immediately; if KEDA enabled, KEDA creates queue)</li>
@@ -947,8 +947,8 @@ helm<span class="w"> </span>install<span class="w"> </span>asya-operator<span cl
 <li>Add finalizer <code>asya.sh/finalizer</code></li>
 <li>Validate spec (container naming, transport exists)</li>
 <li>Set <code>TransportReady</code> condition</li>
-<li>Reconcile queue via transport layer (<code>asya-{actor_name}</code>)</li>
-<li>Reconcile ServiceAccount if SQS + IRSA (<code>asya-{actor_name}</code> SA with IAM role annotation)</li>
+<li>Reconcile queue via transport layer (<code>asya-{namespace}-{actor_name}</code>)</li>
+<li>Reconcile ServiceAccount if SQS + IRSA (<code>asya-{namespace}-{actor_name}</code> SA with IAM role annotation)</li>
 <li>Reconcile runtime ConfigMap (<code>asya-runtime</code> in actor's namespace)</li>
 <li>Create Deployment/StatefulSet with injected sidecar + runtime script mount</li>
 <li>Check pod health, set <code>WorkloadReady</code> condition</li>

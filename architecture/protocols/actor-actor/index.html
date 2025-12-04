@@ -863,13 +863,12 @@
 <li><code>headers</code> (optional): Routing metadata (trace IDs, priorities)</li>
 </ul>
 <h2 id="queue-naming-convention">Queue Naming Convention<a class="headerlink" href="#queue-naming-convention" title="Permanent link">&para;</a></h2>
-<p>All actor queues follow pattern: <code>asya-{actor_name}</code></p>
-<p><strong>Examples</strong>:</p>
-<ul>
-<li>Actor <code>text-analyzer</code> → Queue <code>asya-text-analyzer</code></li>
-<li>Actor <code>image-processor</code> → Queue <code>asya-image-processor</code></li>
-<li>System actors: <code>asya-happy-end</code>, <code>asya-error-end</code></li>
-</ul>
+<p>All actor queues follow pattern: <code>asya-{namespace}-{actor_name}</code></p>
+<p><strong>Examples</strong>:
+Namespace: <code>example-ecommerce</code>
+- Actor <code>text-analyzer</code> → Queue <code>asya-example-ecommerce-text-analyzer</code>
+- Actor <code>image-processor</code> → Queue <code>asya-example-ecommerce-image-processor</code>
+- System actors: <code>asya-{namespace}-happy-end</code>, <code>asya-{namespace}-error-end</code></p>
 <p><strong>Benefits</strong>:</p>
 <ul>
 <li>Fine-grained IAM policies: <code>arn:aws:sqs:*:*:asya-*</code></li>

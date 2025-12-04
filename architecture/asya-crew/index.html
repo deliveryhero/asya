@@ -849,7 +849,7 @@
 <li>Persist successfully completed envelopes to S3/MinIO (optional)</li>
 <li>Sidecar reports success to gateway with result payload</li>
 </ul>
-<p><strong>Queue</strong>: <code>asya-happy-end</code> (automatically routed by sidecar when pipeline completes)</p>
+<p><strong>Queue</strong>: <code>asya-{namespace}-happy-end</code> (automatically routed by sidecar when pipeline completes)</p>
 <p><strong>Handler</strong>: <code>handlers.end_handlers.happy_end_handler</code></p>
 <p><strong>Environment Variables</strong>:
 <div class="highlight"><pre><span></span><code><span class="c1"># Required (auto-injected by operator)</span>
@@ -881,7 +881,7 @@ Example:
 happy-asya/2025-11-18T14:30:45.123456Z/text-processor/abc-123.json
 </code></pre></div></p>
 <p><strong>Flow</strong>:
-1. Sidecar receives envelope from <code>asya-happy-end</code> queue
+1. Sidecar receives envelope from <code>asya-{namespace}-happy-end</code> queue
 2. Sidecar forwards envelope to runtime via Unix socket
 3. Runtime persists complete envelope to S3 (if configured)
 4. Runtime returns empty dict <code>{}</code>
@@ -893,7 +893,7 @@ happy-asya/2025-11-18T14:30:45.123456Z/text-processor/abc-123.json
 <li>Persist failed envelopes to S3/MinIO (optional)</li>
 <li>Sidecar reports failure to gateway with error details and actor info</li>
 </ul>
-<p><strong>Queue</strong>: <code>asya-error-end</code> (automatically routed by sidecar when runtime/sidecar errors occur)</p>
+<p><strong>Queue</strong>: <code>asya-{namespace}-error-end</code> (automatically routed by sidecar when runtime/sidecar errors occur)</p>
 <p><strong>Handler</strong>: <code>handlers.end_handlers.error_end_handler</code></p>
 <p><strong>Environment Variables</strong>:
 <div class="highlight"><pre><span></span><code><span class="c1"># Required (auto-injected by operator)</span>
@@ -944,7 +944,7 @@ Envelopes routed to <code>error-end</code> contain error information in the payl
 <span class="p">}</span>
 </code></pre></div></p>
 <p><strong>Flow</strong>:
-1. Sidecar receives error envelope from <code>asya-error-end</code> queue
+1. Sidecar receives error envelope from <code>asya-{namespace}-error-end</code> queue
 2. Sidecar forwards envelope to runtime via Unix socket
 3. Runtime persists complete envelope (with error details) to S3 (if configured)
 4. Runtime returns empty dict <code>{}</code>

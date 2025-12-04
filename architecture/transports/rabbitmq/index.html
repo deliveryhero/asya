@@ -893,7 +893,7 @@
 <p><strong>Sidecar auto-creates queues</strong>: If <code>queues.autoCreate: true</code>, sidecar declares queues on first use</p>
 </li>
 </ol>
-<p><strong>Queue name</strong>: <code>asya-{actor_name}</code></p>
+<p><strong>Queue name</strong>: <code>asya-{namespace}-{actor_name}</code></p>
 <p><strong>Example</strong>: Actor <code>text-processor</code> → Queue <code>asya-text-processor</code></p>
 <p><strong>Queue properties</strong>:</p>
 <ul>
@@ -927,7 +927,7 @@
 <h2 id="dlq-configuration">DLQ Configuration<a class="headerlink" href="#dlq-configuration" title="Permanent link">&para;</a></h2>
 <p>When <code>queues.dlq.enabled: true</code>, queues are configured with dead-letter exchange:</p>
 <p><strong>DLX</strong>: <code>asya-dlx</code> (dead-letter exchange)</p>
-<p><strong>DLQ</strong>: <code>asya-{actor_name}-dlq</code> (dead-letter queue per actor)</p>
+<p><strong>DLQ</strong>: <code>asya-{namespace}-{actor_name}-dlq</code> (dead-letter queue per actor)</p>
 <p><strong>Max retries</strong>: Configured via <code>queues.dlq.maxRetryCount</code> (default: 3)</p>
 <p><strong>Behavior</strong>: Messages move to DLQ after being nacked <code>maxRetryCount</code> times.</p>
 <h2 id="implementation-details">Implementation Details<a class="headerlink" href="#implementation-details" title="Permanent link">&para;</a></h2>

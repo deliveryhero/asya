@@ -868,9 +868,9 @@
 </ul>
 <h2 id="queue-creation">Queue Creation<a class="headerlink" href="#queue-creation" title="Permanent link">&para;</a></h2>
 <p>Operator creates SQS queues automatically when AsyncActor is reconciled:</p>
-<p><strong>Queue name</strong>: <code>asya-{actor_name}</code></p>
-<p><strong>Example</strong>: Actor <code>text-processor</code> → Queue <code>asya-text-processor</code></p>
-<p><strong>Queue URL</strong>: <code>https://sqs.{region}.amazonaws.com/{account}/asya-{actor_name}</code></p>
+<p><strong>Queue name</strong>: <code>asya-{namespace}-{actor_name}</code></p>
+<p><strong>Example</strong>: Actor <code>text-processor</code> in namespace <code>default</code> → Queue <code>asya-default-text-processor</code></p>
+<p><strong>Queue URL</strong>: <code>https://sqs.{region}.amazonaws.com/{account}/asya-{namespace}-{actor_name}</code></p>
 <h2 id="iam-permissions">IAM Permissions<a class="headerlink" href="#iam-permissions" title="Permanent link">&para;</a></h2>
 <p><strong>Sidecar permissions</strong> (via IRSA, Pod Identity, or instance role):
 <div class="highlight"><pre><span></span><code><span class="p">{</span>
@@ -927,7 +927,7 @@
 </code></pre></div>
 <h2 id="dlq-configuration">DLQ Configuration<a class="headerlink" href="#dlq-configuration" title="Permanent link">&para;</a></h2>
 <p>When <code>queues.dlq.enabled: true</code>, operator creates DLQ for each queue:</p>
-<p><strong>DLQ name</strong>: <code>asya-{actor_name}-dlq</code></p>
+<p><strong>DLQ name</strong>: <code>asya-{namespace}-{actor_name}-dlq</code></p>
 <p><strong>Max receive count</strong>: Configured via <code>queues.dlq.maxRetryCount</code> (default: 3)</p>
 <p><strong>Retention</strong>: Configured via <code>queues.dlq.retentionDays</code> (default: 14 days)</p>
 <p><strong>Behavior</strong>: Messages move to DLQ after exceeding max receive count.</p>

@@ -68,7 +68,7 @@ amqp://{username}:{password}@{host}:{port}/
 
 2. **Sidecar auto-creates queues**: If `queues.autoCreate: true`, sidecar declares queues on first use
 
-**Queue name**: `asya-{actor_name}`
+**Queue name**: `asya-{namespace}-{actor_name}`
 
 **Example**: Actor `text-processor` → Queue `asya-text-processor`
 
@@ -117,7 +117,7 @@ When `queues.dlq.enabled: true`, queues are configured with dead-letter exchange
 
 **DLX**: `asya-dlx` (dead-letter exchange)
 
-**DLQ**: `asya-{actor_name}-dlq` (dead-letter queue per actor)
+**DLQ**: `asya-{namespace}-{actor_name}-dlq` (dead-letter queue per actor)
 
 **Max retries**: Configured via `queues.dlq.maxRetryCount` (default: 3)
 
