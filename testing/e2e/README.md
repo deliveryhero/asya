@@ -33,7 +33,7 @@ make logs
 # Note: This target automatically manages port-forwarding for its duration.
 make trigger-tests
 # Run envelope mode explicitly if needed
-make trigger-tests
+make trigger-tests ASYA_HANDLER_MODE=envelope
 
 # 4. Tear everything down
 make down
