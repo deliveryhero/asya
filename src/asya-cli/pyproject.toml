@@ -6,11 +6,7 @@ requires-python = ">=3.9"
 dependencies = ["requests", "tqdm", "pyyaml"]
 
 [project.scripts]
-asya-mcp = "asya_cli.mcp:main"
-asya-mcp-forward = "asya_cli.port_forward:main"
-# asya-mq = "asya_cli.mq:main"         # Uncomment when ready
-# asya-envelope = "asya_cli.envelope:main"
-# asya-queue = "asya_cli.queue:main"
+asya = "asya_cli.cli:main"
 
 [build-system]
 requires = ["setuptools>=68.0"]
