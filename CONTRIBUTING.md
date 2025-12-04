@@ -190,8 +190,41 @@ make help
 2. Make your changes
 3. Run tests: `make test`
 4. Run linters: `make lint`
-5. Commit your changes (pre-commit hooks will run automatically)
-6. Push and create a pull request
+5. Commit your changes following [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) (pre-commit hooks will run automatically)
+6. Push and create a pull request with a conventional commit prefix in the title
+
+### Commit Message Format
+
+This project follows the [Conventional Commits v1.0.0](https://www.conventionalcommits.org/en/v1.0.0/) specification. All PR titles **must** use one of these prefixes:
+
+**Required prefixes:**
+- `feat:` - New feature (triggers MINOR version bump)
+- `fix:` - Bug fix (triggers PATCH version bump)
+
+**Additional standard prefixes:**
+- `docs:` - Documentation changes
+- `style:` - Code formatting (no logic changes)
+- `refactor:` - Code restructuring (no functionality change)
+- `perf:` - Performance improvements
+- `test:` - Test changes
+- `build:` - Build system changes
+- `ci:` - CI configuration changes
+- `chore:` - Other changes (tooling, maintenance)
+
+**Breaking changes:**
+- Add `!` after type/scope: `feat!:` or `feat(api)!:`
+- Or include `BREAKING CHANGE:` in commit body
+
+**Examples:**
+```
+feat(gateway): add support for SQS transport
+fix(sidecar): resolve memory leak in message handler
+docs: update deployment instructions
+chore(deps): upgrade Go to 1.24
+ci: add automated release workflow
+```
+
+Labels are automatically applied based on PR title prefixes and file paths.
 
 ## Release Process
 
@@ -228,25 +261,33 @@ Asya uses automated workflows for releases and changelog management:
 
 ### PR Labels for Release Notes
 
-To help categorize changes in the release notes, use these labels on your PRs:
+Labels are **automatically applied** based on your PR title prefix (see Commit Message Format above) and changed file paths. The following labels are used:
 
-- `feature`, `feat` - New features
-- `fix`, `bugfix`, `bug` - Bug fixes
-- `major` - Major changes
-- `documentation`, `docs` - Documentation updates
-- `test`, `testing` - Test improvements
-- `performance`, `optimization` - Performance improvements
-- `ci`, `build`, `dependencies`, `chore` - Infrastructure changes
-- `breaking`, `breaking-change` - Breaking changes (triggers major version bump)
+**Conventional Commit labels:**
+- `feat` - New features (from `feat:` prefix)
+- `fix` - Bug fixes (from `fix:` prefix)
+- `docs` - Documentation (from `docs:` prefix or `*.md` files)
+- `style` - Code formatting (from `style:` prefix)
+- `refactor` - Code restructuring (from `refactor:` prefix)
+- `perf` - Performance improvements (from `perf:` prefix)
+- `test` - Tests (from `test:` prefix or test files)
+- `build` - Build changes (from `build:` prefix)
+- `ci` - CI changes (from `ci:` prefix or `.github/**` files)
+- `chore` - Maintenance (from `chore:` prefix)
 
-Labels are automatically applied based on file paths, but you can add them manually for better categorization.
+**Special labels:**
+- `breaking` - Breaking changes (from `type!:` or `BREAKING CHANGE:`)
+- `deps` - Dependencies (from `go.mod`, `requirements.txt` changes)
+- Component labels (`asya-gateway`, `asya-sidecar`, etc.) - Auto-applied based on changed files
+
+You can manually add labels if the autolabeler doesn't catch everything.
 
 ### Versioning
 
 The project follows [Semantic Versioning](https://semver.org/):
 
-- **Major** (X.0.0): Breaking changes (labels: `breaking`, `breaking-change`)
-- **Minor** (0.X.0): New features (labels: `feature`, `major`)
-- **Patch** (0.0.X): Bug fixes and minor improvements (labels: `fix`, `bugfix`, `documentation`, `chore`)
+- **Major** (X.0.0): Breaking changes (label: `breaking`)
+- **Minor** (0.X.0): New features (label: `feat`)
+- **Patch** (0.0.X): Bug fixes and other changes (labels: `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`)
 
 Release-drafter automatically suggests the next version based on PR labels.

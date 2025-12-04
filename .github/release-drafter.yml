@@ -6,10 +6,7 @@ categories:
   labels:
   - 'breaking-change'
   - 'breaking'
-  - 'bug'
-  - 'bugfix'
   - 'feat'
-  - 'feature'
   - 'fix'
   - 'major'
 - title: 'Other Changes'
@@ -22,17 +19,14 @@ categories:
   - 'build'
   - 'chore'
   - 'ci'
-  - 'dependencies'
   - 'deps'
   - 'docs'
-  - 'documentation'
   - 'minor'
-  - 'optimization'
   - 'patch'
-  - 'performance'
+  - 'perf'
+  - 'refactor'
+  - 'style'
   - 'test'
-  - 'testing'
-  - 'tests'
 
 change-template: '- $TITLE @$AUTHOR (#$NUMBER)'
 change-title-escapes: '\<*_&'
@@ -46,62 +40,62 @@ version-resolver:
   minor:
     labels:
     - 'minor'
-    - 'feature'
     - 'feat'
   patch:
     labels:
     - 'patch'
     - 'fix'
-    - 'bugfix'
-    - 'bug'
-    - 'documentation'
     - 'docs'
     - 'chore'
     - 'ci'
     - 'build'
-    - 'dependencies'
     - 'deps'
     - 'test'
-    - 'tests'
-    - 'testing'
-    - 'performance'
-    - 'optimization'
+    - 'perf'
+    - 'refactor'
+    - 'style'
   default: patch
 
 autolabeler:
-- label: 'feature'
+- label: 'feat'
   title:
-  - '/^(feat|feature)(\(.*\))?:/i'
+  - '/^feat(\(.*\))?:/i'
 - label: 'fix'
   title:
-  - '/^(fix|bug|bugfix)(\(.*\))?:/i'
+  - '/^fix(\(.*\))?:/i'
 - label: 'docs'
   title:
-  - '/^(docs|documentation)(\(.*\))?:/i'
+  - '/^docs(\(.*\))?:/i'
   files:
   - '**/*.md'
   - 'docs/**/*'
-- label: 'chore'
+- label: 'style'
   title:
-  - '/^chore(\(.*\))?:/i'
+  - '/^style(\(.*\))?:/i'
+- label: 'refactor'
+  title:
+  - '/^refactor(\(.*\))?:/i'
+- label: 'perf'
+  title:
+  - '/^perf(\(.*\))?:/i'
+- label: 'test'
+  title:
+  - '/^test(\(.*\))?:/i'
+  files:
+  - 'testing/**/*'
+  - '**/*_test.go'
+  - '**/test_*.py'
+- label: 'build'
+  title:
+  - '/^build(\(.*\))?:/i'
 - label: 'ci'
   title:
   - '/^ci(\(.*\))?:/i'
   files:
   - '.github/**/*'
-- label: 'tests'
+- label: 'chore'
   title:
-  - '/^(test|tests|testing)(\(.*\))?:/i'
-  files:
-  - 'testing/**/*'
-  - '**/*_test.go'
-  - '**/test_*.py'
-- label: 'performance'
-  title:
-  - '/^(perf|performance)(\(.*\))?:/i'
-- label: 'build'
-  title:
-  - '/^build(\(.*\))?:/i'
+  - '/^chore(\(.*\))?:/i'
 - label: 'breaking'
   title:
   - '/^[a-z]+(\(.*\))?!:/i'
