@@ -1,0 +1,51 @@
+name: PR Commit
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  # Read permission is enough for the title check.
+  # Write permission is needed for the autolabeler job below.
+  pull-requests: write
+
+jobs:
+  validate-title:
+    name: 1. Validate PR title
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check for Semantic Title
+      uses: amannn/action-semantic-pull-request@v5
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        # Configure which types are allowed (Conventional Commits standard)
+        types: |
+          feat
+          fix
+          docs
+          style
+          refactor
+          perf
+          test
+          build
+          ci
+          chore
+        requireScope: false
+
+  autolabeler:
+    name: Apply Labels from Title/Files
+    runs-on: ubuntu-latest
+    # Needs to run after title validation, but can run in parallel if validation is removed
+    needs: validate-title
+
+    steps:
+    - name: Auto-label PR using Release Drafter config
+      uses: release-drafter/release-drafter@v6
+      with:
+        # The action will read the 'autolabeler' section of this config file
+        config-name: release-drafter.yml
+      env:
+        # Requires write permission for pull-requests (set at job/workflow level)
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

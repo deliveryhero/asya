@@ -1,11 +1,9 @@
-name: Release Draft
+name: Main Commit
 
 on:
   push:
     branches:
     - main
-  pull_request:
-    types: [opened, reopened, synchronize, edited]
 
 permissions:
   contents: write
@@ -17,7 +15,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: release-drafter/release-drafter@v6
+    - name: Run Release Drafter
+      uses: release-drafter/release-drafter@v6
       with:
         config-name: release-drafter.yml
       env:
