@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   validate-title:
-    name: 1. Validate PR title
+    name: Validate PR title
     runs-on: ubuntu-latest
 
     steps:
