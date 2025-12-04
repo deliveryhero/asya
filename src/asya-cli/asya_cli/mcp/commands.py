@@ -100,11 +100,10 @@ def main() -> None:
     )
     pf_parser.add_argument(
         "--check-health",
-        action="store_true",
+        action=argparse.BooleanOptionalAction,
         default=True,
-        help="Verify gateway health endpoint (default: true)",
+        help="Verify gateway health endpoint (default: enabled)",
     )
-    pf_parser.add_argument("--no-check-health", dest="check_health", action="store_false", help="Skip health check")
     pf_parser.add_argument(
         "--keep-alive",
         action="store_true",
