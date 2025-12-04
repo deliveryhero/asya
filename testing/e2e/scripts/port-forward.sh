@@ -18,7 +18,7 @@ stop_port_forwards() {
 start_port_forwards() {
   echo "Setting up port-forwards for E2E testing..."
 
-  # Forward gateway using asya-mcp-forward tool
+  # Forward gateway using asya mcp port-forward tool
   SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
   REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 
@@ -32,7 +32,7 @@ start_port_forwards() {
       echo "[!] Gateway port-forward PID exists but not responding, restarting..."
       pkill -f "kubectl port-forward.*asya-gateway" 2> /dev/null || true
       sleep 1
-      nohup uv run --directory "$REPO_ROOT/src/asya-cli" asya-mcp-forward \
+      nohup uv run --directory "$REPO_ROOT/src/asya-cli" asya mcp port-forward \
         --namespace "$NAMESPACE" \
         --deployment asya-gateway \
         --local-port 8080 \
@@ -45,7 +45,7 @@ start_port_forwards() {
     fi
   else
     pkill -f "kubectl port-forward.*asya-gateway" 2> /dev/null || true
-    nohup uv run --directory "$REPO_ROOT/src/asya-cli" asya-mcp-forward \
+    nohup uv run --directory "$REPO_ROOT/src/asya-cli" asya mcp port-forward \
       --namespace "$NAMESPACE" \
       --deployment asya-gateway \
       --local-port 8080 \
