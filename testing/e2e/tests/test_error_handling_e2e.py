@@ -44,7 +44,7 @@ def _get_transport_client(transport: str):
 
 
 @pytest.mark.slow
-def test_error_goes_to_error_end_when_available(e2e_helper, kubectl, chaos_queues, errors_bucket):
+def test_error_goes_to_error_end_when_available(e2e_helper, kubectl, chaos_queues, namespace, errors_bucket):
     """
     E2E: Test errors are processed by error-end when error-end is available.
 
@@ -68,7 +68,7 @@ def test_error_goes_to_error_end_when_available(e2e_helper, kubectl, chaos_queue
     transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
     transport_client = _get_transport_client(transport)
 
-    actor_queue = "asya-default-test-error"
+    actor_queue = f"asya-{namespace}-test-error"
     dlq_name = f"{actor_queue}-dlq"
 
     logger.info(f"Transport: {transport}")
@@ -126,7 +126,7 @@ def test_error_goes_to_error_end_when_available(e2e_helper, kubectl, chaos_queue
            "Message goes to error-end queue instead of DLQ when error-end deployment is scaled to 0. "
            "This test only works for RabbitMQ where publishing can fail when consumers are unavailable."
 )
-def test_error_goes_to_dlq_when_error_end_unavailable(e2e_helper, kubectl, chaos_queues):
+def test_error_goes_to_dlq_when_error_end_unavailable(e2e_helper, kubectl, chaos_queues, namespace):
     """
     E2E: Test errors go to DLQ when error-end is unavailable.
 
@@ -151,9 +151,9 @@ def test_error_goes_to_dlq_when_error_end_unavailable(e2e_helper, kubectl, chaos
     transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
     transport_client = _get_transport_client(transport)
 
-    actor_queue = "asya-default-test-error"
+    actor_queue = f"asya-{namespace}-test-error"
     dlq_name = f"{actor_queue}-dlq"
-    error_end_queue = "asya-default-error-end"
+    error_end_queue = f"asya-{namespace}-error-end"
 
     logger.info(f"Transport: {transport}")
     logger.info("Scenario: error-end unavailable (transport-level DLQ fallback)")

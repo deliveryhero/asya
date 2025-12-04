@@ -118,7 +118,7 @@ def test_slow_boundary_completes_before_timeout_e2e(e2e_helper):
 
 
 @pytest.mark.fast
-def test_timeout_crash_and_pod_restart_e2e(e2e_helper, transport_timeouts):
+def test_timeout_crash_and_pod_restart_e2e(e2e_helper, namespace, transport_timeouts):
     """
     E2E: Test timeout causes pod crash and KEDA rescales for retry.
 
@@ -142,7 +142,7 @@ def test_timeout_crash_and_pod_restart_e2e(e2e_helper, transport_timeouts):
         transport = os.environ.get("ASYA_TRANSPORT", "rabbitmq")
         if transport == "sqs":
             logger.info("Purging test-timeout queue to remove stuck messages...")
-            purge_queue("asya-default-test-timeout")
+            purge_queue(f"asya-{namespace}-test-timeout")
             time.sleep(2)
 
         logger.info("Cleaning up test-timeout pods before test...")

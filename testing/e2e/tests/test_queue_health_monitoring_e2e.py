@@ -50,7 +50,7 @@ def _get_transport_client(transport: str):
 
 @pytest.mark.slow
 @pytest.mark.chaos
-def test_operator_recreates_deleted_actor_queue_e2e(e2e_helper, chaos_queues):
+def test_operator_recreates_deleted_actor_queue_e2e(e2e_helper, chaos_queues, namespace):
     """
     E2E Chaos: Test operator recreates deleted actor queue within 5 minutes.
 
@@ -75,7 +75,7 @@ def test_operator_recreates_deleted_actor_queue_e2e(e2e_helper, chaos_queues):
     transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
     transport_client = _get_transport_client(transport)
 
-    queue_name = "asya-default-test-echo"
+    queue_name = f"asya-{namespace}-test-echo"
 
     logger.info(f"Transport: {transport}, Testing queue: {queue_name}")
     logger.info(f"Chaos queues ready: {chaos_queues}")
@@ -129,7 +129,7 @@ def test_operator_recreates_deleted_actor_queue_e2e(e2e_helper, chaos_queues):
 
 @pytest.mark.slow
 @pytest.mark.chaos
-def test_operator_recreates_deleted_system_queue_e2e(e2e_helper, chaos_queues):
+def test_operator_recreates_deleted_system_queue_e2e(e2e_helper, chaos_queues, namespace):
     """
     E2E Chaos: Test operator recreates deleted actor queue with small retry values.
 
@@ -156,7 +156,7 @@ def test_operator_recreates_deleted_system_queue_e2e(e2e_helper, chaos_queues):
     transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
     transport_client = _get_transport_client(transport)
 
-    queue_name = "asya-default-test-queue-health"
+    queue_name = f"asya-{namespace}-test-queue-health"
 
     logger.info(f"Transport: {transport}, Testing queue: {queue_name}")
     logger.info(f"Chaos queues ready: {chaos_queues}")
@@ -204,7 +204,7 @@ def test_operator_recreates_deleted_system_queue_e2e(e2e_helper, chaos_queues):
 
 @pytest.mark.slow
 @pytest.mark.chaos
-def test_multiple_queue_deletions_e2e(e2e_helper, chaos_queues):
+def test_multiple_queue_deletions_e2e(e2e_helper, chaos_queues, namespace):
     """
     E2E Chaos: Test operator handles multiple simultaneous queue deletions.
 
@@ -288,7 +288,7 @@ def test_multiple_queue_deletions_e2e(e2e_helper, chaos_queues):
 
 @pytest.mark.slow
 @pytest.mark.chaos
-def test_queue_deletion_during_processing_e2e(e2e_helper, chaos_queues):
+def test_queue_deletion_during_processing_e2e(e2e_helper, chaos_queues, namespace):
     """
     E2E Chaos: Test queue deletion while actor is processing messages.
 
@@ -315,7 +315,7 @@ def test_queue_deletion_during_processing_e2e(e2e_helper, chaos_queues):
     transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
     transport_client = _get_transport_client(transport)
 
-    queue_name = "asya-default-test-echo"
+    queue_name = f"asya-{namespace}-test-echo"
 
     logger.info(f"Transport: {transport}, Testing queue deletion during processing")
     logger.info(f"Chaos queues ready: {chaos_queues}")
