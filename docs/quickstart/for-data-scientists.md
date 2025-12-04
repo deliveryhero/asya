@@ -228,7 +228,7 @@ kubectl apply -f text-processor.yaml
 
 ## Using MCP Tools
 
-If platform team deployed the gateway, use `asya-mcp` CLI tool:
+If platform team deployed the gateway, use `asya mcp` CLI tool:
 
 ```bash
 # Install asya-cli
@@ -238,10 +238,10 @@ pip install git+https://github.com/deliveryhero/asya.git#subdirectory=src/asya-c
 export ASYA_CLI_MCP_URL=http://gateway-url/
 
 # List available tools
-asya-mcp list
+asya mcp list
 
 # Call your actor
-asya-mcp call text-processor --text="hello world"
+asya mcp call text-processor --text="hello world"
 ```
 
 Output:
