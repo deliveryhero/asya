@@ -50,6 +50,7 @@ class RouterGenerator:
 
     def _generate_if_router(self, if_op: IfBlock):
         """Generate router for if statement."""
+        assert if_op.router_id is not None  # Should be set by analyzer
         lines = []
 
         # Function signature
@@ -75,7 +76,7 @@ class RouterGenerator:
             lines.append("        pass")
 
         # Generate elif branches
-        for elif_cond_ast, elif_cond_str, elif_ops in if_op.elif_blocks:
+        for _elif_cond_ast, elif_cond_str, elif_ops in if_op.elif_blocks:
             lines.append(f"    elif {elif_cond_str}:")
             elif_actors = self._collect_actors(elif_ops)
             if elif_actors:
@@ -109,6 +110,7 @@ class RouterGenerator:
 
     def _generate_while_router(self, while_op: WhileLoop):
         """Generate router for while loop."""
+        assert while_op.router_id is not None  # Should be set by analyzer
         lines = []
 
         # Function signature
@@ -167,8 +169,9 @@ class RouterGenerator:
             if isinstance(op, HandlerCall):
                 # Generate resolve() call
                 actors.append(f'resolve("{op.qualified_name}")')
-            elif isinstance(op, (IfBlock, WhileLoop)):
+            elif isinstance(op, IfBlock | WhileLoop):
                 # Add router for this control flow
+                assert op.router_id is not None  # Should be set by analyzer
                 actors.append(op.router_id)
                 # Don't recurse - the router will handle branching
                 break
@@ -216,7 +219,7 @@ class RouterGenerator:
         else:
             lines.append(f"  - If {if_op.condition_str}: (skip)")
 
-        for elif_cond_ast, elif_cond_str, elif_ops in if_op.elif_blocks:
+        for _elif_cond_ast, elif_cond_str, elif_ops in if_op.elif_blocks:
             elif_actors = [a for a in self._collect_actors(elif_ops) if not a.startswith("resolve")]
             if elif_actors:
                 lines.append(f"  - Elif {elif_cond_str}: {', '.join(elif_actors)}")

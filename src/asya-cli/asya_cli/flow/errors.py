@@ -176,12 +176,12 @@ def create_error(
         CompileError instance
     """
     location = SourceLocation(
-        line=node.lineno,
-        col=node.col_offset,
+        line=node.lineno,  # type: ignore[attr-defined]
+        col=node.col_offset,  # type: ignore[attr-defined]
         source_file=source_file,
     )
 
-    context = get_code_context(source_lines, node.lineno)
+    context = get_code_context(source_lines, node.lineno)  # type: ignore[attr-defined]
 
     return CompileError(
         location=location,

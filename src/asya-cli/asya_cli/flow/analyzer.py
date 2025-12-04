@@ -54,7 +54,7 @@ class ControlFlowAnalyzer:
         Returns:
             Updated operations with router IDs
         """
-        result = []
+        result: list[Operation] = []
         i = 0
 
         while i < len(ops):
@@ -114,11 +114,14 @@ class ControlFlowAnalyzer:
 
                 result.append(op)
 
-            elif isinstance(op, (Break, Continue)):
+            elif isinstance(op, Break | Continue):
                 # Validate that we're inside a loop
                 if not self.loop_stack:
-                    # This should have been caught by parser, but double-check
-                    pass
+                    # This should have been caught by parser
+                    raise RuntimeError(
+                        f"Internal Compiler Error: '{type(op).__name__}' statement outside of a loop at line {op.line}. "
+                        "This should have been caught by the parser."
+                    )
                 result.append(op)
 
             else:
@@ -201,11 +204,12 @@ class ControlFlowAnalyzer:
 
         # Check intersection
         if not (condition_vars & modified_vars):
+            sorted_vars = sorted(condition_vars)
             return (
                 f"Warning: Potential infinite loop at line {while_op.line}\n"
-                f"  Loop condition uses variables: {sorted(condition_vars)}\n"
+                f"  Loop condition uses variables: {sorted_vars}\n"
                 f"  But none are modified in loop body.\n"
-                f"  Suggestion: Add mutations like p['{list(condition_vars)[0]}'] += 1"
+                f"  Suggestion: Add mutations like p['{sorted_vars[0]}'] += 1"
             )
 
         return None
@@ -220,10 +224,14 @@ class ControlFlowAnalyzer:
 
         for child in ast.walk(node):
             # Look for p["key"] patterns
-            if isinstance(child, ast.Subscript):
-                if isinstance(child.value, ast.Name) and child.value.id == "p":
-                    if isinstance(child.slice, ast.Constant) and isinstance(child.slice.value, str):
-                        variables.add(child.slice.value)
+            if (
+                isinstance(child, ast.Subscript)
+                and isinstance(child.value, ast.Name)
+                and child.value.id == "p"
+                and isinstance(child.slice, ast.Constant)
+                and isinstance(child.slice.value, str)
+            ):
+                variables.add(child.slice.value)
 
         return variables
 

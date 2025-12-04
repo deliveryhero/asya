@@ -75,7 +75,7 @@ class CodeEmitter:
             sections.append("# " + "=" * 70)
             sections.append("")
 
-            for router_id, docstring, code in self.routers:
+            for _router_id, _docstring, code in self.routers:
                 sections.append(code)
                 sections.append("")
 
@@ -89,7 +89,7 @@ class CodeEmitter:
             Router ID of first control flow statement, or None if no routers
         """
         for op in self.flow_ir.operations:
-            if isinstance(op, (IfBlock, WhileLoop)) and op.router_id:
+            if isinstance(op, IfBlock | WhileLoop) and op.router_id:
                 return op.router_id
         return None
 
@@ -115,31 +115,20 @@ class CodeEmitter:
         tree = ast.parse(self.source_code)
         for node in tree.body:
             if isinstance(node, ast.FunctionDef) and node.name == self.flow_ir.name:
-                # Add docstring if it doesn't have one
-                func_code = ast.unparse(node)
-
-                # Check if function has docstring
-                has_docstring = False
-                if (
+                # Check if function has docstring and add one if missing
+                has_docstring = (
                     node.body
                     and isinstance(node.body[0], ast.Expr)
                     and isinstance(node.body[0].value, ast.Constant)
                     and isinstance(node.body[0].value.value, str)
-                ):
-                    has_docstring = True
+                )
 
                 if not has_docstring:
-                    # Add docstring
-                    lines = func_code.split("\n")
-                    if len(lines) > 1:
-                        # Insert docstring after def line
-                        func_header = lines[0]
-                        func_body = lines[1:]
-                        func_code = (
-                            f'{func_header}\n    """Original flow function for PoC mode execution"""\n'
-                            + "\n".join(func_body)
-                        )
+                    # Add docstring by modifying the AST
+                    docstring_node = ast.Expr(value=ast.Constant(value="Original flow function for PoC mode execution"))
+                    node.body.insert(0, docstring_node)
 
+                func_code = ast.unparse(node)
                 parts.append(func_code)
                 break
 

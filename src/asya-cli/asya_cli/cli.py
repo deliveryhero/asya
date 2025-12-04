@@ -19,7 +19,7 @@ def main():
     subparsers = parser.add_subparsers(dest="command", help="Subcommand to run")
 
     # Flow subcommand
-    flow_parser = subparsers.add_parser("flow", help="Flow DSL compiler", add_help=False)
+    subparsers.add_parser("flow", help="Flow DSL compiler", add_help=False)
 
     args, remaining = parser.parse_known_args()
 
@@ -27,8 +27,7 @@ def main():
         # Delegate to flow CLI
         from asya_cli.flow_cli import main as flow_main
 
-        sys.argv = ["asya-cli flow"] + remaining
-        flow_main()
+        flow_main(remaining)
     else:
         parser.print_help()
         sys.exit(1)

@@ -183,8 +183,9 @@ def FLOW_NAME(p: dict) -> dict:
     print(f"[+] Created flow template: {output_file}")
 
 
-def main():
+def main(argv=None):
     parser = argparse.ArgumentParser(
+        prog="asya-cli flow",
         description="Flow DSL compiler for Asya",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=__doc__,
@@ -228,7 +229,7 @@ def main():
     init_parser.add_argument("--force", "-f", action="store_true", help="Overwrite existing file")
     init_parser.set_defaults(func=cmd_init)
 
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     # Run command
     args.func(args)

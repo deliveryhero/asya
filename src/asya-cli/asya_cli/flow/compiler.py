@@ -165,21 +165,19 @@ class FlowCompiler:
             raise FlowCompileError(parser.errors, source_file, parser.source_lines)
 
         # Extract all handler calls
-        from asya_cli.flow.ir import HandlerCall, Operation
+        from asya_cli.flow.ir import HandlerCall, IfBlock, Operation, WhileLoop
 
         def collect_handlers(ops: list[Operation]) -> dict[str, str]:
             mappings = {}
             for op in ops:
                 if isinstance(op, HandlerCall):
                     mappings[op.func_name] = op.qualified_name
-                elif hasattr(op, "then_ops"):
-                    # IfBlock
+                elif isinstance(op, IfBlock):
                     mappings.update(collect_handlers(op.then_ops))
-                    for _, _, elif_ops in getattr(op, "elif_blocks", []):
+                    for _, _, elif_ops in op.elif_blocks:
                         mappings.update(collect_handlers(elif_ops))
-                    mappings.update(collect_handlers(getattr(op, "else_ops", [])))
-                elif hasattr(op, "body_ops"):
-                    # WhileLoop
+                    mappings.update(collect_handlers(op.else_ops))
+                elif isinstance(op, WhileLoop):
                     mappings.update(collect_handlers(op.body_ops))
             return mappings
 

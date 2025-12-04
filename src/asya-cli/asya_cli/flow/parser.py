@@ -107,12 +107,17 @@ class FlowParser:
         try:
             tree = ast.parse(self.source_code, filename=self.source_file)
         except SyntaxError as e:
+            from asya_cli.flow.errors import SourceLocation, get_code_context
+
+            location = SourceLocation(line=e.lineno or 1, col=e.offset or 0, source_file=self.source_file)
+            context = get_code_context(self.source_lines, e.lineno or 1)
             self.errors.append(
                 CompileError(
-                    location=e,
+                    location=location,
                     message=f"Syntax error: {e.msg}",
                     explanation="Python syntax error in source file",
                     fix_hint="Fix Python syntax errors before compiling flow",
+                    code_context=context,
                 )
             )
             return None
@@ -147,7 +152,7 @@ class FlowParser:
 
     def _extract_imports(self, tree: ast.Module) -> list[ast.Import | ast.ImportFrom]:
         """Extract and track all imports."""
-        imports = []
+        imports: list[ast.Import | ast.ImportFrom] = []
 
         for node in ast.walk(tree):
             if isinstance(node, ast.Import):
@@ -173,14 +178,16 @@ class FlowParser:
         flow_functions = []
 
         for node in tree.body:
-            if isinstance(node, ast.FunctionDef):
-                if node.name.startswith("flow"):
-                    flow_functions.append(node)
+            if isinstance(node, ast.FunctionDef) and node.name.startswith("flow"):
+                flow_functions.append(node)
 
         if not flow_functions:
+            from asya_cli.flow.errors import SourceLocation
+
+            location = SourceLocation(line=1, col=0, source_file=self.source_file)
             self.errors.append(
                 CompileError(
-                    location=None,
+                    location=location,
                     message="No flow function found",
                     explanation="Flow file must contain a function with name starting with 'flow'",
                     fix_hint="Define a function like: def flow_my_pipeline(p: dict) -> dict:",
@@ -189,9 +196,12 @@ class FlowParser:
             return None
 
         if len(flow_functions) > 1:
+            from asya_cli.flow.errors import SourceLocation
+
+            location = SourceLocation(line=1, col=0, source_file=self.source_file)
             self.errors.append(
                 CompileError(
-                    location=None,
+                    location=location,
                     message=f"Multiple flow functions found: {[f.name for f in flow_functions]}",
                     explanation="Flow file should contain only one flow function",
                     fix_hint="Keep only one flow function, or compile them separately",
@@ -309,7 +319,7 @@ class FlowParser:
                 )
             )
             return None
-        elif isinstance(stmt, (ast.Try, ast.With, ast.Raise)):
+        elif isinstance(stmt, ast.Try | ast.With | ast.Raise):
             self.errors.append(
                 create_error(
                     message=f"'{stmt.__class__.__name__}' statements are not supported in Flow DSL",
@@ -410,6 +420,7 @@ class FlowParser:
             HandlerCall operation or None if invalid
         """
         call = stmt.value
+        assert isinstance(call, ast.Call)  # Type narrowing for mypy
 
         # Validate arguments: must be single arg with value 'p'
         if len(call.args) != 1 or call.keywords:
@@ -497,6 +508,7 @@ class FlowParser:
             ClassInstantiation operation
         """
         call = stmt.value
+        assert isinstance(call, ast.Call)  # Type narrowing for mypy
 
         if not isinstance(call.func, ast.Name):
             self.errors.append(
@@ -519,7 +531,7 @@ class FlowParser:
 
         # Extract args and kwargs
         args = call.args
-        kwargs = {kw.arg: kw.value for kw in call.keywords}
+        kwargs = {kw.arg: kw.value for kw in call.keywords if kw.arg is not None}
 
         return ClassInstantiation(
             line=stmt.lineno,
@@ -610,8 +622,8 @@ class FlowParser:
                     then_ops.append(op)
 
         # Parse elif/else
-        elif_blocks = []
-        else_ops = []
+        elif_blocks: list[tuple[ast.expr, str, list[Operation]]] = []
+        else_ops: list[Operation] = []
 
         if stmt.orelse:
             # Check if it's elif or else
