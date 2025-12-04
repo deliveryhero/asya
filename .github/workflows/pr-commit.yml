@@ -46,6 +46,7 @@ jobs:
       with:
         # The action will read the 'autolabeler' section of this config file
         config-name: release-drafter.yml
+        disable-releaser: true
       env:
         # Requires write permission for pull-requests (set at job/workflow level)
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
