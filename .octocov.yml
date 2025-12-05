@@ -73,6 +73,19 @@ report:
   - artifact://${GITHUB_REPOSITORY}
   path: report.json
 
+codeToTestRatio:
+  acceptable: 1:1.2
+  code:
+  - '**/*.go'
+  - '**/*.py'
+  - '!**/*_test.go'
+  - '!**/tests/**.py'
+  - '!testing/**.py'
+  - '!src/aimc-testing/**.py'
+  test:
+  - '**/*_test.go'
+  - '!**/tests/**.py'
+
 # Test execution time tracking (from GitHub Actions)
 testExecutionTime:
   steps:
