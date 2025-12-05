@@ -4,10 +4,8 @@ Code emitter for Flow DSL compiler.
 Combines all generated code into final Python file.
 """
 
-import ast
-
 from asya_cli.flow.ir import FlowIR, HandlerCall, IfBlock, Operation, WhileLoop
-from asya_cli.flow.templates import get_file_header, get_initial_route, get_resolve_function
+from asya_cli.flow.templates import get_file_header, get_resolve_function
 
 
 class CodeEmitter:
@@ -61,17 +59,6 @@ class CodeEmitter:
             sections.append('"""')
             sections.append("")
 
-        # Initial route constant
-        first_router = self._find_first_router()
-        if first_router:
-            sections.append("")
-            sections.append("# " + "=" * 70)
-            sections.append("# Initial Route")
-            sections.append("# " + "=" * 70)
-            sections.append("")
-            sections.append(get_initial_route(self.flow_ir.name, first_router))
-            sections.append("")
-
         # Generated routers (for kubernetes deployment)
         if self.routers:
             sections.append("")
@@ -123,18 +110,23 @@ class CodeEmitter:
 
     def _generate_handler_mappings(self) -> list[str]:
         """
-        Generate suggested environment variable mappings for all handlers.
+        Generate suggested environment variable mappings for all handlers and routers.
 
         Returns:
             List of env var assignment strings (e.g., 'ASYA_HANDLER_IMAGE_PROCESSOR="module.handler"')
         """
         handlers = self._collect_handlers(self.flow_ir.operations)
-        if not handlers:
+
+        all_names = set(handlers)
+        for router_id, _, _ in self.routers:
+            all_names.add(router_id)
+
+        if not all_names:
             return []
 
         mappings = []
-        for qualified_name in sorted(handlers):
-            # Generate actor name from handler name (last component)
+        for qualified_name in sorted(all_names):
+            # Generate actor name from handler/router name (last component)
             handler_name = qualified_name.split(".")[-1]
             # Convert to UPPER_SNAKE_CASE
             actor_name_upper = handler_name.upper().replace("-", "_")
@@ -142,58 +134,3 @@ class CodeEmitter:
             mappings.append(env_var)
 
         return mappings
-
-    def _find_first_router(self) -> str | None:
-        """
-        Find the first router in the flow.
-
-        Returns:
-            Router ID of first control flow statement, or None if no routers
-        """
-        for op in self.flow_ir.operations:
-            if isinstance(op, IfBlock | WhileLoop) and op.router_id:
-                return op.router_id
-        return None
-
-    def _extract_original_flow(self) -> str:
-        """
-        Extract original flow function from source code.
-
-        Returns:
-            Source code of the flow function and its imports
-        """
-        parts = []
-
-        # Add imports
-        if self.flow_ir.imports:
-            import_lines = []
-            for imp in self.flow_ir.imports:
-                import_lines.append(ast.unparse(imp))
-            parts.append("\n".join(import_lines))
-            parts.append("")
-
-        # Add flow function
-        # Parse source to get just the function
-        tree = ast.parse(self.source_code)
-        for node in tree.body:
-            if isinstance(node, ast.FunctionDef) and node.name == self.flow_ir.name:
-                # Check if function has docstring and add one if missing
-                has_docstring = (
-                    node.body
-                    and isinstance(node.body[0], ast.Expr)
-                    and isinstance(node.body[0].value, ast.Constant)
-                    and isinstance(node.body[0].value.value, str)
-                )
-
-                if not has_docstring:
-                    # Add docstring by modifying the AST
-                    docstring_node = ast.Expr(
-                        value=ast.Constant(value="Original flow function for local mode execution")
-                    )
-                    node.body.insert(0, docstring_node)
-
-                func_code = ast.unparse(node)
-                parts.append(func_code)
-                break
-
-        return "\n".join(parts)

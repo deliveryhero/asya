@@ -140,9 +140,9 @@ class ControlFlowAnalyzer:
             line: Line number in source
 
         Returns:
-            Router ID like "my_flow_if_router_line_7"
+            Router ID like "my_flow_line_7_if"
         """
-        return f"{self.flow_name}_{stmt_type}_router_line_{line}"
+        return f"{self.flow_name}_line_{line}_{stmt_type}"
 
     def _has_break(self, ops: list[Operation]) -> bool:
         """Check if operations contain break statement."""

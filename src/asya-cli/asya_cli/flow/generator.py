@@ -29,8 +29,36 @@ class RouterGenerator:
         Returns:
             List of (router_id, docstring, code) tuples
         """
+        self._generate_entrypoint_router()
         self._generate_routers_for_ops(self.flow_ir.operations)
         return self.routers
+
+    def _generate_entrypoint_router(self):
+        """Generate entrypoint router for the flow."""
+        entrypoint_id = f"{self.flow_ir.name}_entrypoint"
+        lines = []
+
+        lines.append(f"def {entrypoint_id}(envelope: dict) -> dict:")
+
+        docstring = f"Entrypoint for flow '{self.flow_ir.name}'"
+        lines.append(f'    """{docstring}"""')
+
+        lines.append("    r = envelope['route']")
+        lines.append("    c = r['current']")
+        lines.append("")
+
+        first_actors = self._collect_actors(self.flow_ir.operations)
+        if first_actors:
+            actors_list = ", ".join(self._format_actor(a) for a in first_actors)
+            lines.append(f"    r['actors'][c+1:c+1] = [{actors_list}]")
+        else:
+            lines.append("    pass")
+
+        lines.append("")
+        lines.append("    return envelope")
+
+        code = "\n".join(lines)
+        self.routers.append((entrypoint_id, docstring, code))
 
     def _generate_routers_for_ops(self, ops: list[Operation]):
         """Recursively generate routers for all operations."""
@@ -134,10 +162,10 @@ class RouterGenerator:
         if body_actors:
             # Add body actors + self-loop
             actors_list = ", ".join(self._format_actor(a) for a in body_actors)
-            lines.append(f"        r['actors'][c+1:c+1] = [{actors_list}, '{while_op.router_id}']")
+            lines.append(f"        r['actors'][c+1:c+1] = [{actors_list}, resolve('{while_op.router_id}')]")
         else:
             # Just loop back
-            lines.append(f"        r['actors'][c+1:c+1] = ['{while_op.router_id}']")
+            lines.append(f"        r['actors'][c+1:c+1] = [resolve('{while_op.router_id}')]")
 
         lines.append("    else:")
 
@@ -190,21 +218,19 @@ class RouterGenerator:
         Format actor for inclusion in route list.
 
         Args:
-            actor: Actor string, either "resolve(...)" or router_id
+            actor: Actor string, either already wrapped in resolve() or a router_id
 
         Returns:
-            Formatted actor string (quoted if router_id, unquoted if resolve call)
+            Formatted actor string with resolve() call
         """
         if actor.startswith("resolve("):
-            # It's a resolve() call, don't quote it
             return actor
         else:
-            # It's a router ID, quote it
-            return f'"{actor}"'
+            return f"resolve('{actor}')"
 
     def _generate_if_docstring(self, if_op: IfBlock) -> str:
         """Generate docstring for if router."""
-        lines = []
+        lines = [""]
         lines.append(f"Router for if statement in flow '{self.flow_ir.name}' at line {if_op.line}")
         lines.append("")
         lines.append(f"Absolute line: {if_op.line} (from top of {self.flow_ir.source_file})")
@@ -233,11 +259,12 @@ class RouterGenerator:
             else:
                 lines.append("  - Else: ...")
 
+        lines.append("")
         return "\n    ".join(lines)
 
     def _generate_while_docstring(self, while_op: WhileLoop) -> str:
         """Generate docstring for while router."""
-        lines = []
+        lines = [""]
         lines.append(f"Router for while loop at line {while_op.line} in flow '{self.flow_ir.name}'")
         lines.append("")
         lines.append(f"Absolute line: {while_op.line} (from top of {self.flow_ir.source_file})")
@@ -258,4 +285,5 @@ class RouterGenerator:
         if while_op.has_continue:
             lines.append("Contains continue statement")
 
+        lines.append("")
         return "\n    ".join(lines)
