@@ -8,9 +8,9 @@ Commands:
     show-mappings - Show handler → actor mappings
 
 Usage:
-    asya-cli flow compile <flow_file.py> [options]
-    asya-cli flow validate <flow_file.py> [options]
-    asya-cli flow show-mappings <flow_file.py>
+    asya flow compile <flow_file.py> [options]
+    asya flow validate <flow_file.py> [options]
+    asya flow show-mappings <flow_file.py>
 """
 
 import argparse
@@ -185,7 +185,7 @@ def FLOW_NAME(p: dict) -> dict:
 
 def main(argv=None):
     parser = argparse.ArgumentParser(
-        prog="asya-cli flow",
+        prog="asya flow",
         description="Flow DSL compiler for Asya",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=__doc__,

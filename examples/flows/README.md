@@ -9,10 +9,11 @@ Install `asya-cli`:
 uv pip install "git+https://github.com/deliveryhero/asya#subdirectory=src/asya-cli"
 uv run asya --version
 ```
-Compile individually:
+Compile a flow:
+```bash
+cd examples/flows/
 
-
-uv run asya flow compile ../../examples/flows/simple_pipeline.py
+uv run asya flow compile ./simple_pipeline.py -o /tmp/simple_pipeline_compiled.py
 ```
 
 ## Overview
@@ -25,7 +26,7 @@ Valid flow functions must follow these rules:
 
 - Function name must start with `flow` prefix: `def flow_my_pipeline(p: dict) -> dict`
 - Function signature: Exactly one parameter of type `dict`, returns `dict`
-- Handler calls: `p = handler(p)` (reassign result to `p`)
+- Handler calls: `p = handler(p)` (both input and output of the handlers is `p`)
 - Payload mutations: `p["key"] = value`
 - Control flow: `if`/`elif`/`else`, `while` loops
 - Loop control: `break`, `continue`

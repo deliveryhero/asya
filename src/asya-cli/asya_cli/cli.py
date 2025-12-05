@@ -14,6 +14,16 @@ Usage:
 
 import argparse
 import sys
+from importlib.metadata import PackageNotFoundError, version
+
+
+def get_version() -> str:
+    """Get version from package metadata in v1.2.3 format."""
+    try:
+        pkg_version = version("asya-cli")
+        return f"v{pkg_version}"
+    except PackageNotFoundError:
+        return "v0.0.0-dev"
 
 
 def main() -> None:
@@ -21,6 +31,13 @@ def main() -> None:
         prog="asya",
         description="Developer tools for debugging and operating Asya framework",
         formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=get_version(),
+        help="Show version and exit",
     )
 
     subparsers = parser.add_subparsers(dest="command", required=True, help="Available commands")
