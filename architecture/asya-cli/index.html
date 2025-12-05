@@ -835,20 +835,20 @@
 <h2 id="installation">Installation<a class="headerlink" href="#installation" title="Permanent link">&para;</a></h2>
 <p>From local repository:
 <div class="highlight"><pre><span></span><code>uv<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>./src/asya-cli
-<span class="c1">#call with: uv run asya-mcp...</span>
+<span class="c1">#call with: uv run asya...</span>
 </code></pre></div>
 Or as uv tool:
 <div class="highlight"><pre><span></span><code>uv<span class="w"> </span>tool<span class="w"> </span>install<span class="w"> </span>src/asya-cli
-<span class="c1">#call with: asya-mcp...</span>
+<span class="c1">#call with: asya...</span>
 </code></pre></div></p>
 <p>Or from remote repository:
 <div class="highlight"><pre><span></span><code>uv<span class="w"> </span>tool<span class="w"> </span>install<span class="w"> </span>git+https://github.com/deliveryhero/asya.git#subdirectory<span class="o">=</span>src/asya-cli
-<span class="c1">#call with: asya-mcp...</span>
+<span class="c1">#call with: asya...</span>
 </code></pre></div></p>
-<h2 id="cli-command-asya-mcp">CLI command <code>asya-mcp</code><a class="headerlink" href="#cli-command-asya-mcp" title="Permanent link">&para;</a></h2>
+<h2 id="cli-command-asya-mcp">CLI command <code>asya mcp</code><a class="headerlink" href="#cli-command-asya-mcp" title="Permanent link">&para;</a></h2>
 <p>CLI for interacting with MCP Gateway.</p>
 <h3 id="list-tools">List Tools<a class="headerlink" href="#list-tools" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code>asya-mcp<span class="w"> </span>list
+<div class="highlight"><pre><span></span><code>asya<span class="w"> </span>mcp<span class="w"> </span>list
 </code></pre></div>
 <p>Output:
 <div class="highlight"><pre><span></span><code>- name: text-processor
@@ -859,7 +859,7 @@ Or as uv tool:
       required: true
 </code></pre></div></p>
 <h3 id="call-tool">Call Tool<a class="headerlink" href="#call-tool" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code>asya-mcp<span class="w"> </span>call<span class="w"> </span>text-processor<span class="w"> </span>--text<span class="o">=</span><span class="s2">&quot;Hello world&quot;</span>
+<div class="highlight"><pre><span></span><code>asya<span class="w"> </span>mcp<span class="w"> </span>call<span class="w"> </span>text-processor<span class="w"> </span>--text<span class="o">=</span><span class="s2">&quot;Hello world&quot;</span>
 </code></pre></div>
 <p>Output (with SSE streaming):
 <div class="highlight"><pre><span></span><code>[.] Envelope ID: 5e6fdb2d-1d6b-4e91-baef-73e825434e7b
@@ -873,20 +873,19 @@ Processing: 100% |████████████████████�
 }
 </code></pre></div></p>
 <h3 id="get-status">Get Status<a class="headerlink" href="#get-status" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code>asya-mcp<span class="w"> </span>status<span class="w"> </span>5e6fdb2d-1d6b-4e91-baef-73e825434e7b
+<div class="highlight"><pre><span></span><code>asya<span class="w"> </span>mcp<span class="w"> </span>status<span class="w"> </span>5e6fdb2d-1d6b-4e91-baef-73e825434e7b
 </code></pre></div>
 <h3 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h3>
 <p>Set gateway URL:
 <div class="highlight"><pre><span></span><code><span class="nb">export</span><span class="w"> </span><span class="nv">ASYA_CLI_MCP_URL</span><span class="o">=</span>http://localhost:8089/
 </code></pre></div></p>
-<h2 id="asya-mcp-forward">asya-mcp-forward<a class="headerlink" href="#asya-mcp-forward" title="Permanent link">&para;</a></h2>
+<h2 id="asya-mcp-port-forward">asya mcp port-forward<a class="headerlink" href="#asya-mcp-port-forward" title="Permanent link">&para;</a></h2>
 <p>Port-forwarding utility for local testing.</p>
-<div class="highlight"><pre><span></span><code>asya-mcp-forward
+<div class="highlight"><pre><span></span><code>asya<span class="w"> </span>mcp<span class="w"> </span>port-forward
 </code></pre></div>
 <p>Automatically:
-1. Port-forwards <code>asya-gateway</code> service to <code>localhost:8089</code>
-2. Sets <code>ASYA_CLI_MCP_URL</code> environment variable
-3. Keeps port-forward alive until interrupted</p>
+1. Port-forwards <code>asya-gateway</code> service to <code>localhost:8080</code>
+2. Keeps port-forward alive until interrupted</p>
 <p><strong>See</strong>: <code>src/asya-cli/README.md</code> for advanced usage.</p>
   </div>
 </article>
@@ -1152,7 +1151,7 @@ Processing: 100% |████████████████████�
         <a href="#cli-command-asya-mcp"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
-            CLI command asya-mcp
+            CLI command asya mcp
         </a>
         
         
@@ -1183,10 +1182,10 @@ Processing: 100% |████████████████████�
         
 
         
-        <a href="#asya-mcp-forward"
+        <a href="#asya-mcp-port-forward"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
-            asya-mcp-forward
+            asya mcp port-forward
         </a>
         
 

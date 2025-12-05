@@ -1035,7 +1035,7 @@ helm<span class="w"> </span>install<span class="w"> </span>asya-crew<span class=
 <div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>apply<span class="w"> </span>-f<span class="w"> </span>hello-actor.yaml
 </code></pre></div>
 <h2 id="testing">Testing<a class="headerlink" href="#testing" title="Permanent link">&para;</a></h2>
-<h3 id="via-asya-mcp-tool">Via asya-mcp Tool<a class="headerlink" href="#via-asya-mcp-tool" title="Permanent link">&para;</a></h3>
+<h3 id="via-asya-mcp-tool">Via asya mcp Tool<a class="headerlink" href="#via-asya-mcp-tool" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><span class="c1"># Install asya-cli</span>
 uv<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>./src/asya-cli
 
@@ -1046,10 +1046,10 @@ kubectl<span class="w"> </span>port-forward<span class="w"> </span>-n<span class
 <span class="nb">export</span><span class="w"> </span><span class="nv">ASYA_CLI_MCP_URL</span><span class="o">=</span>http://localhost:8089/
 
 <span class="c1"># List tools</span>
-asya-mcp<span class="w"> </span>list
+asya<span class="w"> </span>mcp<span class="w"> </span>list
 
 <span class="c1"># Call tool</span>
-asya-mcp<span class="w"> </span>call<span class="w"> </span>hello<span class="w"> </span>--who<span class="o">=</span>World
+asya<span class="w"> </span>mcp<span class="w"> </span>call<span class="w"> </span>hello<span class="w"> </span>--who<span class="o">=</span>World
 </code></pre></div>
 <h3 id="via-rabbitmq-direct">Via RabbitMQ Direct<a class="headerlink" href="#via-rabbitmq-direct" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><span class="c1"># Port-forward RabbitMQ</span>
@@ -1441,7 +1441,7 @@ kubectl<span class="w"> </span>logs<span class="w"> </span>&lt;pod-name&gt;
         <a href="#via-asya-mcp-tool"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="3">
-            Via asya-mcp Tool
+            Via asya mcp Tool
         </a>
         
         <a href="#via-rabbitmq-direct"

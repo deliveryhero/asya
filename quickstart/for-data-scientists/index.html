@@ -1006,7 +1006,7 @@
 <li>Queue creation (SQS/RabbitMQ)</li>
 </ul>
 <h2 id="using-mcp-tools">Using MCP Tools<a class="headerlink" href="#using-mcp-tools" title="Permanent link">&para;</a></h2>
-<p>If platform team deployed the gateway, use <code>asya-mcp</code> CLI tool:</p>
+<p>If platform team deployed the gateway, use <code>asya mcp</code> CLI tool:</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># Install asya-cli</span>
 pip<span class="w"> </span>install<span class="w"> </span>git+https://github.com/deliveryhero/asya.git#subdirectory<span class="o">=</span>src/asya-cli
 
@@ -1014,10 +1014,10 @@ pip<span class="w"> </span>install<span class="w"> </span>git+https://github.com
 <span class="nb">export</span><span class="w"> </span><span class="nv">ASYA_CLI_MCP_URL</span><span class="o">=</span>http://gateway-url/
 
 <span class="c1"># List available tools</span>
-asya-mcp<span class="w"> </span>list
+asya<span class="w"> </span>mcp<span class="w"> </span>list
 
 <span class="c1"># Call your actor</span>
-asya-mcp<span class="w"> </span>call<span class="w"> </span>text-processor<span class="w"> </span>--text<span class="o">=</span><span class="s2">&quot;hello world&quot;</span>
+asya<span class="w"> </span>mcp<span class="w"> </span>call<span class="w"> </span>text-processor<span class="w"> </span>--text<span class="o">=</span><span class="s2">&quot;hello world&quot;</span>
 </code></pre></div>
 <p>Output:
 <div class="highlight"><pre><span></span><code>[.] Envelope ID: abc-123
