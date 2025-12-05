@@ -41,7 +41,7 @@ Basic linear flow without control structures.
 **Pattern**: Sequential handler execution
 
 ```python
-def flow_simple_pipeline(p: Dict) -> Dict:
+def flow_simple_pipeline(p: dict) -> dict:
     p = preprocess(p)
     p = analyze(p)
     p = format_output(p)
@@ -57,7 +57,7 @@ If/elif/else branching based on payload data.
 **Pattern**: Type-based routing
 
 ```python
-def flow_conditional_routing(p: Dict) -> Dict:
+def flow_conditional_routing(p: dict) -> dict:
     p = validate_input(p)
     if p["type"] == "A":
         p = handle_type_a(p)
@@ -78,7 +78,7 @@ While loops with break and continue statements.
 **Pattern**: Iterative processing with early exit
 
 ```python
-def flow_loop_processing(p: Dict) -> Dict:
+def flow_loop_processing(p: dict) -> dict:
     p = initialize(p)
     while p["iteration"] < p["max_iterations"]:
         p = process_item(p)
@@ -102,7 +102,7 @@ Nested control structures combining multiple patterns.
 **Pattern**: Complex decision trees with loops
 
 ```python
-def flow_complex_workflow(p: Dict) -> Dict:
+def flow_complex_workflow(p: dict) -> dict:
     p = preprocess(p)
     if not p["valid"]:
         return error_handler(p)
@@ -203,22 +203,55 @@ Disable with `--disable-infinite-loop-check` flag.
 
 ### Handler Resolution
 
-Handlers are resolved in this priority:
-
-1. Environment variable `ASYA_ACTOR_{HANDLER_NAME}`
-2. Python object name (kebab-case conversion)
-3. Fallback to handler name in code
-
-Example:
-
-```python
-p = image_processor(p)  # Resolves to "image-processor"
-```
-
-Or override with environment:
+Router actors resolve handler calls to actor names using environment variables:
 
 ```bash
-export ASYA_ACTOR_IMAGE_PROCESSOR=custom-processor
+ASYA_HANDLER_<ACTOR_NAME>="module.submodule.handler"
+```
+
+**Format**:
+- **Actor name**: UPPERCASE_WITH_UNDERSCORES (converted to kebab-case for queues)
+- **Handler**: Full qualified name matching `ASYA_HANDLER` format used by asya-runtime
+
+**Examples**:
+
+```bash
+# Function handler
+export ASYA_HANDLER_IMAGE_PROCESSOR="my_module.process_images"
+
+# Class method handler
+export ASYA_HANDLER_TEXT_ANALYZER="text.analyzer.TextAnalyzer.analyze"
+
+# Deep module path
+export ASYA_HANDLER_SENTIMENT_MODEL="models.nlp.sentiment.SentimentClassifier.predict"
+```
+
+**In generated routers**:
+
+```python
+# Flow code
+p = process_images(p)
+
+# Compiled router code
+r['actors'][c+1:c+1] = [resolve("my_module.process_images")]
+
+# With ASYA_HANDLER_IMAGE_PROCESSOR="my_module.process_images"
+# resolve() returns "image-processor"
+```
+
+**Deployment**:
+
+```yaml
+# Docker Compose
+environment:
+  ASYA_HANDLER_IMAGE_PROCESSOR: "my_module.process_images"
+  ASYA_HANDLER_TEXT_ANALYZER: "text.analyzer.TextAnalyzer.analyze"
+
+# Kubernetes ConfigMap/env
+- name: ASYA_HANDLER_IMAGE_PROCESSOR
+  value: "my_module.process_images"
+- name: ASYA_HANDLER_TEXT_ANALYZER
+  value: "text.analyzer.TextAnalyzer.analyze"
 ```
 
 ### Best Practices

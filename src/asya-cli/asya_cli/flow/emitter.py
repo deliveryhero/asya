@@ -39,14 +39,6 @@ class CodeEmitter:
         sections.append(get_file_header(self.flow_ir.source_file))
         sections.append("")
 
-        # resolve() function
-        sections.append("# " + "=" * 70)
-        sections.append("# Handler Resolution")
-        sections.append("# " + "=" * 70)
-        sections.append("")
-        sections.append(get_resolve_function())
-        sections.append("")
-
         # Initial route constant
         first_router = self._find_first_router()
         if first_router:
@@ -57,15 +49,6 @@ class CodeEmitter:
             sections.append("")
             sections.append(get_initial_route(self.flow_ir.name, first_router))
             sections.append("")
-
-        # Original flow function (for local mode execution)
-        sections.append("")
-        sections.append("# " + "=" * 70)
-        sections.append("# Original Flow Function (for local execution)")
-        sections.append("# " + "=" * 70)
-        sections.append("")
-        sections.append(self._extract_original_flow())
-        sections.append("")
 
         # Generated routers (for kubernetes deployment)
         if self.routers:
@@ -78,6 +61,14 @@ class CodeEmitter:
             for _router_id, _docstring, code in self.routers:
                 sections.append(code)
                 sections.append("")
+
+        # resolve() function
+        sections.append("# " + "=" * 70)
+        sections.append("# Handler Resolution")
+        sections.append("# " + "=" * 70)
+        sections.append("")
+        sections.append(get_resolve_function())
+        sections.append("")
 
         return "\n".join(sections)
 

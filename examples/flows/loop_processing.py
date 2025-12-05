@@ -4,36 +4,8 @@ Loop processing flow example.
 Demonstrates while loops with break and continue statements.
 """
 
-from typing import Dict
 
-
-def initialize(p: Dict) -> Dict:
-    """Initialize processing state."""
-    p["iteration"] = 0
-    p["max_iterations"] = p.get("max_iterations", 5)
-    return p
-
-
-def process_item(p: Dict) -> Dict:
-    """Process single iteration."""
-    p["iteration"] += 1
-    p["last_processed"] = p["iteration"]
-    return p
-
-
-def check_threshold(p: Dict) -> Dict:
-    """Check if threshold is met."""
-    p["threshold_met"] = p["iteration"] >= p.get("threshold", 3)
-    return p
-
-
-def finalize_loop(p: Dict) -> Dict:
-    """Finalize after loop completion."""
-    p["completed"] = True
-    return p
-
-
-def flow_loop_processing(p: Dict) -> Dict:
+def flow_loop_processing(p: dict) -> dict:
     p = initialize(p)
 
     while p["iteration"] < p["max_iterations"]:
@@ -48,4 +20,30 @@ def flow_loop_processing(p: Dict) -> Dict:
             break
 
     p = finalize_loop(p)
+    return p
+
+
+def initialize(p: dict) -> dict:
+    """Initialize processing state."""
+    p["iteration"] = 0
+    p["max_iterations"] = p.get("max_iterations", 5)
+    return p
+
+
+def process_item(p: dict) -> dict:
+    """Process single iteration."""
+    p["iteration"] += 1
+    p["last_processed"] = p["iteration"]
+    return p
+
+
+def check_threshold(p: dict) -> dict:
+    """Check if threshold is met."""
+    p["threshold_met"] = p["iteration"] >= p.get("threshold", 3)
+    return p
+
+
+def finalize_loop(p: dict) -> dict:
+    """Finalize after loop completion."""
+    p["completed"] = True
     return p

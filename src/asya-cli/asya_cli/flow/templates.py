@@ -28,69 +28,54 @@ def get_resolve_function() -> str:
     Get resolve() function template.
 
     This function resolves handler full names to actor names for routing.
-    Uses the same import logic as asya_runtime.py.
+    Uses reverse lookup in ASYA_HANDLER_* environment variables.
     """
     return textwrap.dedent('''def resolve(handler_full_name: str) -> str:
     """
     Resolve handler full name to actor name for routing.
 
-    Priority:
-    1. Environment variable ASYA_ACTOR_{HANDLER_NAME}
-    2. Import Python object and use kebab-case conversion
+    Looks up handler in environment variables:
+    - ASYA_HANDLER_<ACTOR_NAME>="module.handler" or "module.Class.method"
+
+    The reverse mapping (handler -> actor) is built once at first call and cached.
 
     Args:
         handler_full_name: Full qualified name like "module.handler" or "module.Class.method"
 
     Returns:
-        Actor name for routing
+        Actor name for routing (kebab-case)
+
+    Raises:
+        ValueError: If handler not found in environment variables
 
     Examples:
-        resolve("my_module.processor") -> "processor" (or env var value)
-        resolve("my_module.ImageProcessor.process") -> "image-processor-process"
+        # Environment: ASYA_HANDLER_IMAGE_PROCESSOR="my_module.ImageProcessor.process"
+        resolve("my_module.ImageProcessor.process")  # returns "image-processor"
+
+        # Environment: ASYA_HANDLER_TEXT_ANALYZER="text.analyze"
+        resolve("text.analyze")  # returns "text-analyzer"
     """
-    import importlib
     import os
 
-    # Extract handler name (last component)
-    parts = handler_full_name.split(".")
-    handler_name = parts[-1]
+    # Build reverse mapping: {handler_full_name: actor_name}
+    if not hasattr(resolve, '_handler_to_actor'):
+        resolve._handler_to_actor = {}
+        for key, value in os.environ.items():
+            if key.startswith('ASYA_HANDLER_'):
+                # Extract actor name: ASYA_HANDLER_IMAGE_PROCESSOR -> IMAGE_PROCESSOR
+                actor_name_upper = key[len('ASYA_HANDLER_'):]
+                # Convert to kebab-case: IMAGE_PROCESSOR -> image-processor
+                actor_name = actor_name_upper.lower().replace('_', '-')
+                # Map handler -> actor
+                resolve._handler_to_actor[value] = actor_name
 
-    # Priority 1: Environment variable
-    env_key = f"ASYA_ACTOR_{handler_name.upper()}"
-    if env_key in os.environ:
-        return os.environ[env_key]
+    if handler_full_name not in resolve._handler_to_actor:
+        raise ValueError(
+            f"Handler '{handler_full_name}' not found in environment variables. "
+            f"Expected ASYA_HANDLER_<ACTOR_NAME>=\\"{handler_full_name}\\" to be set."
+        )
 
-    # Priority 2: Try to import and get actual name
-    # Use same algorithm as asya_runtime.py: try imports from right to left
-    module = None
-    module_parts = []
-    attr_parts = []
-
-    for i in range(len(parts) - 1, 0, -1):
-        module_path = ".".join(parts[:i])
-        try:
-            module = importlib.import_module(module_path)
-            module_parts = parts[:i]
-            attr_parts = parts[i:]
-            break
-        except ImportError:
-            continue
-
-    if module:
-        try:
-            # Get the object
-            obj = module
-            for part in attr_parts:
-                obj = getattr(obj, part)
-
-            # Use object's __name__ if available
-            actual_name = getattr(obj, "__name__", handler_name)
-            return actual_name.replace("_", "-")
-        except (AttributeError, TypeError):
-            pass
-
-    # Priority 3: Fallback to kebab-case conversion
-    return handler_name.replace("_", "-")''')
+    return resolve._handler_to_actor[handler_full_name]''')
 
 
 def get_initial_route(flow_name: str, first_router_id: str) -> str:

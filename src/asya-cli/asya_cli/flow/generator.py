@@ -71,7 +71,7 @@ class RouterGenerator:
         then_actors = self._collect_actors(if_op.then_ops)
         if then_actors:
             actors_list = ", ".join(self._format_actor(a) for a in then_actors)
-            lines.append(f"        r['actors'][c+1:] = [{actors_list}]")
+            lines.append(f"        r['actors'][c+1:c+1] = [{actors_list}]")
         else:
             lines.append("        pass")
 
@@ -81,7 +81,7 @@ class RouterGenerator:
             elif_actors = self._collect_actors(elif_ops)
             if elif_actors:
                 actors_list = ", ".join(self._format_actor(a) for a in elif_actors)
-                lines.append(f"        r['actors'][c+1:] = [{actors_list}]")
+                lines.append(f"        r['actors'][c+1:c+1] = [{actors_list}]")
             else:
                 lines.append("        pass")
 
@@ -91,7 +91,7 @@ class RouterGenerator:
             else_actors = self._collect_actors(if_op.else_ops)
             if else_actors:
                 actors_list = ", ".join(self._format_actor(a) for a in else_actors)
-                lines.append(f"        r['actors'][c+1:] = [{actors_list}]")
+                lines.append(f"        r['actors'][c+1:c+1] = [{actors_list}]")
             else:
                 lines.append("        pass")
 
@@ -134,10 +134,10 @@ class RouterGenerator:
         if body_actors:
             # Add body actors + self-loop
             actors_list = ", ".join(self._format_actor(a) for a in body_actors)
-            lines.append(f"        r['actors'][c+1:] = [{actors_list}, '{while_op.router_id}']")
+            lines.append(f"        r['actors'][c+1:c+1] = [{actors_list}, '{while_op.router_id}']")
         else:
             # Just loop back
-            lines.append(f"        r['actors'][c+1:] = ['{while_op.router_id}']")
+            lines.append(f"        r['actors'][c+1:c+1] = ['{while_op.router_id}']")
 
         lines.append("    else:")
 
@@ -145,7 +145,7 @@ class RouterGenerator:
         continuation_actors = self._collect_actors(while_op.continuation)
         if continuation_actors:
             actors_list = ", ".join(self._format_actor(a) for a in continuation_actors)
-            lines.append(f"        r['actors'][c+1:] = [{actors_list}]")
+            lines.append(f"        r['actors'][c+1:c+1] = [{actors_list}]")
         else:
             # No continuation, empty route (will go to happy-end)
             lines.append("        pass")
@@ -205,7 +205,7 @@ class RouterGenerator:
     def _generate_if_docstring(self, if_op: IfBlock) -> str:
         """Generate docstring for if router."""
         lines = []
-        lines.append(f"Router for if statement at line {if_op.line} in flow '{self.flow_ir.name}'")
+        lines.append(f"Router for if statement in flow '{self.flow_ir.name}' at line {if_op.line}")
         lines.append("")
         lines.append(f"Absolute line: {if_op.line} (from top of {self.flow_ir.source_file})")
         lines.append(f"Nesting level: {if_op.depth}")
@@ -217,21 +217,21 @@ class RouterGenerator:
         if then_actors:
             lines.append(f"  - If {if_op.condition_str}: {', '.join(then_actors)}")
         else:
-            lines.append(f"  - If {if_op.condition_str}: (skip)")
+            lines.append(f"  - If {if_op.condition_str}: ...")
 
         for _elif_cond_ast, elif_cond_str, elif_ops in if_op.elif_blocks:
             elif_actors = [a for a in self._collect_actors(elif_ops) if not a.startswith("resolve")]
             if elif_actors:
-                lines.append(f"  - Elif {elif_cond_str}: {', '.join(elif_actors)}")
+                lines.append(f"  - Else if {elif_cond_str}: {', '.join(elif_actors)}")
             else:
-                lines.append(f"  - Elif {elif_cond_str}: (skip)")
+                lines.append(f"  - Else if {elif_cond_str}: ...")
 
         if if_op.else_ops:
             else_actors = [a for a in self._collect_actors(if_op.else_ops) if not a.startswith("resolve")]
             if else_actors:
                 lines.append(f"  - Else: {', '.join(else_actors)}")
             else:
-                lines.append("  - Else: (skip)")
+                lines.append("  - Else: ...")
 
         return "\n    ".join(lines)
 
