@@ -441,6 +441,8 @@ jobs:
       with:
         github-token: ${{ github.token }}
         config: .octocov.yml
+      env:
+        GITHUB_REPOSITORY: ${{ github.repository }}
 
     - name: Verify report storage
       if: github.ref == 'refs/heads/main'
