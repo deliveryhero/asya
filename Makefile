@@ -56,6 +56,7 @@ test-unit: ## Run unit tests (go + python)
 	$(MAKE) -C src/asya-gateway test-unit
 	$(MAKE) -C src/asya-runtime test-unit
 	$(MAKE) -C src/asya-crew test-unit
+	$(MAKE) -C src/asya-cli test-unit
 	$(MAKE) -C src/asya-operator test-unit
 	@echo "$(GREEN_START)[++] Success: All unit tests completed successfully!$(GREEN_END)"
 
@@ -102,6 +103,7 @@ cov: ## Run all tests with coverage and display summary
 	$(MAKE) -C src/asya-operator cov-unit
 	$(MAKE) -C src/asya-runtime cov-unit
 	$(MAKE) -C src/asya-crew cov-unit
+	$(MAKE) -C src/asya-cli cov-unit
 	$(MAKE) -C testing/integration cov
 	$(MAKE) -C testing/component cov
 	$(MAKE) -C testing/e2e cov-e2e

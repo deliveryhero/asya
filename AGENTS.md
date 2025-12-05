@@ -131,8 +131,12 @@ Shared testing utilities and fixtures used across component, integration, and e2
 
 ### asya-cli (Python)
 Command-line tools for debugging and operating the Asya🎭 framework:
-- **asya-mcp**: Lightweight CLI for calling MCP tools on asya-gateway
-- **asya-mcp-forward**: Quick kubectl port-forward helper for accessing asya-gateway
+- **asya mcp call**: Call MCP tools on asya-gateway
+- **asya mcp list**: List available tools
+- **asya mcp show**: Show tool configuration
+- **asya mcp status**: Check envelope status
+- **asya mcp stream**: Stream envelope updates
+- **asya mcp port-forward**: Quick kubectl port-forward helper for accessing asya-gateway
 
 ## Development Workflow
 

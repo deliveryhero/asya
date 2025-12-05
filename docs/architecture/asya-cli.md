@@ -7,29 +7,29 @@ CLI tools for interacting with Asya system.
 From local repository:
 ```bash
 uv pip install -e ./src/asya-cli
-#call with: uv run asya-mcp...
+#call with: uv run asya...
 ```
 Or as uv tool:
 ```bash
 uv tool install src/asya-cli
-#call with: asya-mcp...
+#call with: asya...
 ```
 
 Or from remote repository:
 ```bash
 uv tool install git+https://github.com/deliveryhero/asya.git#subdirectory=src/asya-cli
-#call with: asya-mcp...
+#call with: asya...
 ```
 
 
-## CLI command `asya-mcp`
+## CLI command `asya mcp`
 
 CLI for interacting with MCP Gateway.
 
 ### List Tools
 
 ```bash
-asya-mcp list
+asya mcp list
 ```
 
 Output:
@@ -45,7 +45,7 @@ Output:
 ### Call Tool
 
 ```bash
-asya-mcp call text-processor --text="Hello world"
+asya mcp call text-processor --text="Hello world"
 ```
 
 Output (with SSE streaming):
@@ -64,7 +64,7 @@ Processing: 100% |████████████████████�
 ### Get Status
 
 ```bash
-asya-mcp status 5e6fdb2d-1d6b-4e91-baef-73e825434e7b
+asya mcp status 5e6fdb2d-1d6b-4e91-baef-73e825434e7b
 ```
 
 ### Configuration
@@ -74,17 +74,16 @@ Set gateway URL:
 export ASYA_CLI_MCP_URL=http://localhost:8089/
 ```
 
-## asya-mcp-forward
+## asya mcp port-forward
 
 Port-forwarding utility for local testing.
 
 ```bash
-asya-mcp-forward
+asya mcp port-forward
 ```
 
 Automatically:
-1. Port-forwards `asya-gateway` service to `localhost:8089`
-2. Sets `ASYA_CLI_MCP_URL` environment variable
-3. Keeps port-forward alive until interrupted
+1. Port-forwards `asya-gateway` service to `localhost:8080`
+2. Keeps port-forward alive until interrupted
 
 **See**: `src/asya-cli/README.md` for advanced usage.
