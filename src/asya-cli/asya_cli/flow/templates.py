@@ -94,6 +94,8 @@ Regenerate by running: asya-cli flow compile {source_file}
 def get_initial_route(flow_name: str, first_router_id: str) -> str:
     """Generate initial route setup code."""
     return f'''# Initial route for flow '{flow_name}'
-# In PoC mode: call flow function directly
-# In production: send envelope to gateway with route = ["{first_router_id}"]
+# Execution modes:
+#   - local: call flow function directly (import and execute)
+#   - docker: run handlers in local docker compose (future)
+#   - kubernetes: send envelope to gateway with route = ["{first_router_id}"]
 INITIAL_ROUTE = ["{first_router_id}"]'''

@@ -58,20 +58,20 @@ class CodeEmitter:
             sections.append(get_initial_route(self.flow_ir.name, first_router))
             sections.append("")
 
-        # Original flow function (for PoC mode)
+        # Original flow function (for local mode execution)
         sections.append("")
         sections.append("# " + "=" * 70)
-        sections.append("# Original Flow Function (for PoC execution)")
+        sections.append("# Original Flow Function (for local execution)")
         sections.append("# " + "=" * 70)
         sections.append("")
         sections.append(self._extract_original_flow())
         sections.append("")
 
-        # Generated routers (for production deployment)
+        # Generated routers (for kubernetes deployment)
         if self.routers:
             sections.append("")
             sections.append("# " + "=" * 70)
-            sections.append("# Generated Routers (for production deployment)")
+            sections.append("# Generated Routers (for kubernetes deployment)")
             sections.append("# " + "=" * 70)
             sections.append("")
 
@@ -125,7 +125,9 @@ class CodeEmitter:
 
                 if not has_docstring:
                     # Add docstring by modifying the AST
-                    docstring_node = ast.Expr(value=ast.Constant(value="Original flow function for PoC mode execution"))
+                    docstring_node = ast.Expr(
+                        value=ast.Constant(value="Original flow function for local mode execution")
+                    )
                     node.body.insert(0, docstring_node)
 
                 func_code = ast.unparse(node)
