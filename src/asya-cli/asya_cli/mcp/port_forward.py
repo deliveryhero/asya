@@ -6,11 +6,11 @@ Finds a free local port, forwards to asya-gateway, and outputs the URL.
 All logs go to stderr, only URL goes to stdout for easy env var capture.
 
 Usage:
-    export ASYA_CLI_MCP_URL=$(asya-mcp-forward)
-    asya-mcp list
+    export ASYA_CLI_MCP_URL=$(asya mcp port-forward)
+    asya mcp list
 
-    export ASYA_CLI_MCP_URL=$(asya-mcp-forward --namespace my-ns)
-    asya-mcp call echo --message hello
+    export ASYA_CLI_MCP_URL=$(asya mcp port-forward --namespace my-ns)
+    asya mcp call echo --message hello
 
 Options:
     --namespace, -n      Kubernetes namespace (default: asya-e2e)
@@ -215,6 +215,49 @@ def cleanup_on_exit(process: subprocess.Popen[bytes]) -> NoReturn:
     sys.exit(0)
 
 
+def run_port_forward(
+    namespace: str = "asya-e2e",
+    deployment: str = "asya-gateway",
+    remote_port: int = 8080,
+    local_port: int | None = None,
+    check_health_enabled: bool = True,
+    keep_alive: bool = False,
+) -> None:
+    """Run port-forward with given parameters."""
+    existing_port = find_existing_port_forward(namespace, deployment)
+
+    if existing_port:
+        if check_health_enabled and check_health(existing_port):
+            print(f"[+] Port-forward already running on localhost:{existing_port} (healthy)", file=sys.stderr)
+            print(f"http://localhost:{existing_port}")
+            return
+        else:
+            print(
+                f"[!] Port-forward found on localhost:{existing_port} but not healthy, kill...",
+                file=sys.stderr,
+            )
+            kill_existing_port_forward(namespace, deployment)
+
+    local_port = local_port if local_port else find_free_port()
+
+    if not check_port_available(local_port):
+        print(f"[-] Port {local_port} is already in use", file=sys.stderr)
+        sys.exit(1)
+
+    process = start_port_forward(namespace, deployment, local_port, remote_port, check_health_enabled)
+
+    url = f"http://localhost:{local_port}"
+    print(
+        f"[+] Port-forward active: localhost:{local_port} -> {deployment}.{namespace}:{remote_port}",
+        file=sys.stderr,
+    )
+    print(url)
+
+    if keep_alive:
+        print("[.] Port-forward is running. Press Ctrl+C to stop.", file=sys.stderr)
+        cleanup_on_exit(process)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="kubectl port-forward helper for asya gateway",
@@ -244,38 +287,14 @@ def main() -> None:
 
     args = parser.parse_args()
 
-    existing_port = find_existing_port_forward(args.namespace, args.deployment)
-
-    if existing_port:
-        if args.check_health and check_health(existing_port):
-            print(f"[+] Port-forward already running on htlocalhost:{existing_port} (healthy)", file=sys.stderr)
-            print(f"http://localhost:{existing_port}")
-            return
-        else:
-            print(
-                f"[!] Port-forward found on localhost:{existing_port} but not healthy, kill...",
-                file=sys.stderr,
-            )
-            kill_existing_port_forward(args.namespace, args.deployment)
-
-    local_port = args.local_port if args.local_port else find_free_port()
-
-    if not check_port_available(local_port):
-        print(f"[-] Port {local_port} is already in use", file=sys.stderr)
-        sys.exit(1)
-
-    process = start_port_forward(args.namespace, args.deployment, local_port, args.port, args.check_health)
-
-    url = f"http://localhost:{local_port}"
-    print(
-        f"[+] Port-forward active: localhost:{local_port} -> {args.deployment}.{args.namespace}:{args.port}",
-        file=sys.stderr,
+    run_port_forward(
+        namespace=args.namespace,
+        deployment=args.deployment,
+        remote_port=args.port,
+        local_port=args.local_port,
+        check_health_enabled=args.check_health,
+        keep_alive=args.keep_alive,
     )
-    print(url)
-
-    if args.keep_alive:
-        print("[.] Port-forward is running. Press Ctrl+C to stop.", file=sys.stderr)
-        cleanup_on_exit(process)
 
 
 if __name__ == "__main__":

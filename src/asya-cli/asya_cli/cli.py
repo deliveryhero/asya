@@ -1,30 +1,41 @@
 #!/usr/bin/env python3
 """
-Main CLI entry point for asya-cli.
+Main CLI entry point for asya developer tools.
 
-Dispatches to subcommands: flow, mcp, etc.
+Usage:
+    asya mcp call <tool-name> [args]
+    asya mcp list
+    asya mcp show <tool-name>
+    asya mcp status <envelope-id>
+    asya mcp stream <envelope-id>
+    asya mcp port-forward [options]
+    asya flow <subcommand> [args]
 """
 
 import argparse
 import sys
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(
-        prog="asya-cli",
-        description="Developer tools for Asya framework",
+        prog="asya",
+        description="Developer tools for debugging and operating Asya framework",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
 
-    subparsers = parser.add_subparsers(dest="command", help="Subcommand to run")
+    subparsers = parser.add_subparsers(dest="command", required=True, help="Available commands")
 
-    # Flow subcommand
+    subparsers.add_parser("mcp", help="MCP gateway tools", add_help=False)
     subparsers.add_parser("flow", help="Flow DSL compiler", add_help=False)
 
     args, remaining = parser.parse_known_args()
 
-    if args.command == "flow":
-        # Delegate to flow CLI
+    if args.command == "mcp":
+        from asya_cli.mcp.commands import main as mcp_main
+
+        sys.argv = ["asya mcp", *remaining]
+        mcp_main()
+    elif args.command == "flow":
         from asya_cli.flow_cli import main as flow_main
 
         flow_main(remaining)

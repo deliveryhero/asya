@@ -244,7 +244,7 @@ kubectl apply -f hello-actor.yaml
 
 ## Testing
 
-### Via asya-mcp Tool
+### Via asya mcp Tool
 
 ```bash
 # Install asya-cli
@@ -257,10 +257,10 @@ kubectl port-forward -n asya-e2e svc/asya-gateway 8089:80
 export ASYA_CLI_MCP_URL=http://localhost:8089/
 
 # List tools
-asya-mcp list
+asya mcp list
 
 # Call tool
-asya-mcp call hello --who=World
+asya mcp call hello --who=World
 ```
 
 ### Via RabbitMQ Direct

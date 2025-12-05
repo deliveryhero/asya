@@ -59,7 +59,7 @@ comment:
 diff:
   if: is_pull_request
   datastores:
-  - artifact://deliveryhero/asya/octocov-report
+  - artifact://${GITHUB_REPOSITORY}
   path: report.json
 
 summary:
@@ -70,8 +70,21 @@ summary:
 report:
   if: is_default_branch
   datastores:
-  - artifact://deliveryhero/asya/octocov-report
+  - artifact://${GITHUB_REPOSITORY}
   path: report.json
+
+codeToTestRatio:
+  acceptable: 1:1.2
+  code:
+  - '**/*.go'
+  - '**/*.py'
+  - '!**/*_test.go'
+  - '!**/tests/**.py'
+  - '!testing/**.py'
+  - '!src/aimc-testing/**.py'
+  test:
+  - '**/*_test.go'
+  - '!**/tests/**.py'
 
 # Test execution time tracking (from GitHub Actions)
 testExecutionTime:
