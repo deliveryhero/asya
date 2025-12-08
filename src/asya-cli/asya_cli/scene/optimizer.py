@@ -146,20 +146,12 @@ class RouterOptimizer:
             op = operations[i]
 
             if isinstance(op, ActorCall):
-                # Look ahead for continuation operations
+                # Collect all operations after this ActorCall
                 continuation_ops = []
                 j = i + 1
                 while j < len(operations):
                     next_op = operations[j]
-                    # Stop at Labels and ConditionalGoto (these mark new routing decision points)
-                    # But include Goto (continue/break/return) as part of continuation
-                    if isinstance(next_op, (Label, ConditionalGoto)):
-                        break
                     continuation_ops.append(next_op)
-                    # If we hit a Goto, include it and stop
-                    if isinstance(next_op, Goto):
-                        j += 1
-                        break
                     j += 1
 
                 if continuation_ops:
