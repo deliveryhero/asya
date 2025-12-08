@@ -5,7 +5,7 @@ Demonstrates while loops with break and continue statements.
 """
 
 
-def scene(p: dict) -> dict:
+def loop_scene(p: dict) -> dict:
     p = initialize(p)
 
     p["iteration"] = 0
@@ -15,7 +15,6 @@ def scene(p: dict) -> dict:
 
         if p.get("skip_threshold_check"):
             continue
-
         p = check_threshold(p)
 
         if p["threshold_met"]:

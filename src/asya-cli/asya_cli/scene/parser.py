@@ -105,10 +105,33 @@ class SceneParser:
         self._label_counter += 1
         return f"{prefix}{self._label_counter}"
 
-    def _new_router_id(self) -> str:
-        """Generate unique router ID."""
-        self._router_counter += 1
-        return f"router_{self._router_counter}"
+    def _new_router_id(self, flow_type: str, line: int) -> str:
+        """Generate unique router ID: router_{scene}_line_xx_{type}."""
+        return f"router_{self.scene_name}_line_{line}_{flow_type}"
+
+    def _detect_router_type(self, operations: list) -> str:
+        """Detect primary control flow type from router operations."""
+        # Build label map to check for backward jumps
+        label_positions = {}
+        for idx, op in enumerate(operations):
+            if isinstance(op, Label):
+                label_positions[op.name] = idx
+
+        # Look for backward jumps (while loops)
+        for idx, op in enumerate(operations):
+            if isinstance(op, Goto):
+                target_pos = label_positions.get(op.target)
+                if target_pos is not None and target_pos < idx:
+                    # Backward jump = while loop
+                    return "while"
+
+        # Check for ConditionalGoto (if statement)
+        for op in operations:
+            if isinstance(op, ConditionalGoto):
+                return "if"
+
+        # No control flow found, generic mutation router
+        return "mutations"
 
     def _transform_if_to_gotos(
         self, stmt: ast.If
@@ -661,6 +684,9 @@ class SceneParser:
         if not scene_func:
             return None
 
+        # Store scene name for router ID generation
+        self.scene_name = scene_func.name
+
         # Validate function signature FIRST (so param_name is set)
         param_name = self._validate_signature(scene_func)
         if param_name is None:
@@ -843,11 +869,12 @@ class SceneParser:
 
                 # Flush any pending router
                 if router_ops:
+                    flow_type = self._detect_router_type(router_ops)
                     steps.append(
                         Router(
                             line=router_start_line,
                             col=0,
-                            router_id=self._new_router_id(),
+                            router_id=self._new_router_id(flow_type, router_start_line),
                             operations=router_ops,
                         )
                     )
@@ -868,11 +895,12 @@ class SceneParser:
             if self._is_scene_level_actor_call(stmt):
                 # Flush any pending router
                 if router_ops:
+                    flow_type = self._detect_router_type(router_ops)
                     steps.append(
                         Router(
                             line=router_start_line,
                             col=0,
-                            router_id=self._new_router_id(),
+                            router_id=self._new_router_id(flow_type, router_start_line),
                             operations=router_ops,
                         )
                     )
@@ -903,11 +931,12 @@ class SceneParser:
 
         # Flush any final router
         if router_ops:
+            flow_type = self._detect_router_type(router_ops)
             steps.append(
                 Router(
                     line=router_start_line,
                     col=0,
-                    router_id=self._new_router_id(),
+                    router_id=self._new_router_id(flow_type, router_start_line),
                     operations=router_ops,
                 )
             )
