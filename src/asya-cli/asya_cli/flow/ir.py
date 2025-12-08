@@ -1,8 +1,7 @@
 """
 Intermediate Representation (IR) for Flow DSL.
 
-Represents the flow as a sequence of operations that can be analyzed
-and transformed into router code.
+Lower-level IR focused on actor routing primitives rather than Python constructs.
 """
 
 import ast
@@ -18,115 +17,33 @@ class Operation:
 
 
 @dataclass
-class HandlerCall(Operation):
+class ActorCall(Operation):
     """
-    Handler call: p = handler(p)
+    Call an actor - adds actor to the route.
 
     Attributes:
-        func_name: Function/method name from code (e.g., "processor" or "processor.process")
-        qualified_name: Full qualified name (e.g., "my_module.ImageProcessor.process")
-        target: Variable being assigned to (always "p" in valid flows)
+        qualified_name: Full qualified name for resolve() (e.g., "my_module.handler")
+        display_name: Name for display in diagrams (e.g., "handler")
     """
 
-    func_name: str
     qualified_name: str
-    target: str = "p"
+    display_name: str
 
 
 @dataclass
-class Assignment(Operation):
+class PayloadMutation(Operation):
     """
-    Payload mutation: p["key"] = value
+    Mutate payload: p["key"] = value
 
     Attributes:
-        target: The variable being assigned (must be "p")
-        key: The key being assigned (for p["key"] = value)
-        value_ast: AST node of the value expression
-        value_str: String representation of value for codegen
+        key: Payload key being mutated
+        value_str: String representation of value expression
+        value_ast: AST node of value expression (for analysis)
     """
 
-    target: str
-    key: str | None
-    value_ast: ast.expr
+    key: str
     value_str: str
-
-
-@dataclass
-class IfBlock(Operation):
-    """
-    If/elif/else control flow.
-
-    Attributes:
-        condition: AST node of the condition
-        condition_str: String representation for codegen
-        then_ops: Operations in the if branch
-        elif_blocks: List of (condition_ast, condition_str, operations) for elif branches
-        else_ops: Operations in the else branch
-        router_id: Assigned router ID (set by analyzer)
-        continuation: Operations that come after this if block (set by analyzer)
-        depth: Nesting depth (set by analyzer)
-    """
-
-    condition: ast.expr
-    condition_str: str
-    then_ops: list[Operation]
-    elif_blocks: list[tuple[ast.expr, str, list[Operation]]] = field(default_factory=list)
-    else_ops: list[Operation] = field(default_factory=list)
-    router_id: str | None = None
-    continuation: list[Operation] = field(default_factory=list)
-    depth: int = 0
-
-
-@dataclass
-class WhileLoop(Operation):
-    """
-    While loop.
-
-    Attributes:
-        condition: AST node of the condition
-        condition_str: String representation for codegen
-        body_ops: Operations in the loop body
-        router_id: Assigned router ID (set by analyzer)
-        continuation: Operations that come after this loop (set by analyzer)
-        depth: Nesting depth (set by analyzer)
-        has_break: Whether loop contains break statement (set by analyzer)
-        has_continue: Whether loop contains continue statement (set by analyzer)
-    """
-
-    condition: ast.expr
-    condition_str: str
-    body_ops: list[Operation]
-    router_id: str | None = None
-    continuation: list[Operation] = field(default_factory=list)
-    depth: int = 0
-    has_break: bool = False
-    has_continue: bool = False
-
-
-@dataclass
-class Break(Operation):
-    """Break from loop."""
-
-    pass
-
-
-@dataclass
-class Continue(Operation):
-    """Continue to next iteration."""
-
-    pass
-
-
-@dataclass
-class Return(Operation):
-    """
-    Return statement.
-
-    Attributes:
-        value: Variable being returned (must be "p" in valid flows)
-    """
-
-    value: str = "p"
+    value_ast: ast.expr
 
 
 @dataclass
@@ -135,9 +52,9 @@ class ClassInstantiation(Operation):
     Class instantiation: var = ClassName(args)
 
     Attributes:
-        var_name: Variable name (e.g., "processor")
-        class_name: Class name from code (e.g., "ImageProcessor")
-        qualified_name: Full qualified name (e.g., "my_module.ImageProcessor")
+        var_name: Variable name
+        class_name: Class name from code
+        qualified_name: Full qualified name
         args: Constructor arguments (AST nodes)
         kwargs: Constructor keyword arguments (AST nodes)
     """
@@ -147,6 +64,78 @@ class ClassInstantiation(Operation):
     qualified_name: str
     args: list[ast.expr] = field(default_factory=list)
     kwargs: dict[str, ast.expr] = field(default_factory=dict)
+
+
+@dataclass
+class ConditionalGoto(Operation):
+    """
+    Conditional jump: if condition goto label_true else goto label_false
+
+    Attributes:
+        condition_str: Condition expression
+        condition_ast: AST node of condition (for analysis)
+        true_target: Label to jump to if condition is true
+        false_target: Label to jump to if condition is false (None for fall-through)
+    """
+
+    condition_str: str
+    condition_ast: ast.expr
+    true_target: str
+    false_target: str | None = None
+
+
+@dataclass
+class Label(Operation):
+    """
+    Label for goto targets.
+
+    Attributes:
+        name: Label identifier
+    """
+
+    name: str
+
+
+@dataclass
+class Goto(Operation):
+    """
+    Unconditional jump to label.
+
+    Attributes:
+        target: Target label name
+    """
+
+    target: str
+
+
+@dataclass
+class ReturnPayload(Operation):
+    """Return from flow (ends routing)."""
+
+    pass
+
+
+@dataclass
+class Router(Operation):
+    """
+    Router actor - contains operations and control flow.
+
+    Represents a generated actor function that can:
+    - Perform payload mutations
+    - Make routing decisions (if/goto)
+    - Call other actors
+
+    Attributes:
+        router_id: Unique router identifier
+        operations: Sequence of operations (mutations, calls, gotos, labels)
+        continuation: Operations that come after this router
+        depth: Nesting depth
+    """
+
+    router_id: str
+    operations: list[Operation]
+    continuation: list[Operation] = field(default_factory=list)
+    depth: int = 0
 
 
 @dataclass

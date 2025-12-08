@@ -8,16 +8,16 @@ import ast
 
 from asya_cli.flow.errors import CompileError, create_error
 from asya_cli.flow.ir import (
-    Assignment,
-    Break,
+    ActorCall,
+    Branch,
     ClassInstantiation,
-    Continue,
     FlowIR,
-    HandlerCall,
-    IfBlock,
+    Goto,
+    Label,
     Operation,
-    Return,
-    WhileLoop,
+    PayloadMutation,
+    ReturnPayload,
+    Router,
 )
 
 
