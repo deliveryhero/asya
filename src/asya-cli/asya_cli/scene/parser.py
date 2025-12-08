@@ -15,6 +15,7 @@ from asya_cli.scene.ir import (
     Label,
     PayloadMutation,
     Router,
+    RouterBoundary,
     SceneIR,
 )
 
@@ -266,6 +267,9 @@ class SceneParser:
         # Loop body
         operations.append(Label(line=stmt.lineno, col=stmt.col_offset, name=body_label))
         for s in stmt.body:
+            # Insert router boundary before nested while loops
+            if isinstance(s, ast.While):
+                operations.append(RouterBoundary(line=s.lineno, col=s.col_offset))
             ops = self._parse_statement_to_router_ops(s)
             if ops:
                 operations.extend(ops)
@@ -273,7 +277,8 @@ class SceneParser:
         # Jump back to start
         operations.append(Goto(line=stmt.lineno, col=stmt.col_offset, target=start_label))
 
-        # Loop exit
+        # Loop exit - operations after this should be in a separate router
+        operations.append(RouterBoundary(line=stmt.lineno, col=stmt.col_offset))
         operations.append(Label(line=stmt.lineno, col=stmt.col_offset, name=exit_label))
 
         # Pop loop context

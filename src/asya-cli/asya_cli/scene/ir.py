@@ -108,12 +108,16 @@ class ConditionalGoto(Operation):
         condition_ast: AST node of condition (for analysis)
         true_target: Label name to jump to if condition is true
         false_target: Label name to jump to if condition is false (None for fall-through)
+        true_target_router_id: Resolved router ID for true branch (filled by optimizer)
+        false_target_router_id: Resolved router ID for false branch (filled by optimizer)
     """
 
     condition_str: str
     condition_ast: ast.expr
     true_target: str
     false_target: str | None = None
+    true_target_router_id: str | None = None
+    false_target_router_id: str | None = None
 
 
 @dataclass
@@ -130,6 +134,20 @@ class Goto(Operation):
 
     target: str
     target_router_id: str | None = None
+
+
+@dataclass
+class RouterBoundary(Operation):
+    """
+    Marker for router split boundary.
+
+    Can ONLY appear inside Router.operations.
+
+    Signals to the optimizer that a new router should start here.
+    Used for nested loops - each nested loop should start in a new router.
+    """
+
+    pass
 
 
 # ======================================================================

@@ -105,7 +105,6 @@ class RouterGenerator:
         lines.extend(operation_lines)
 
         lines.append("")
-        lines.append("    # Set these actors as next immediate steps")
         lines.append("    r['actors'][c+1:c+1] = _next_actors")
         lines.append("    return envelope")
 
@@ -159,8 +158,7 @@ class RouterGenerator:
                 i += 1
 
             elif isinstance(op, Label):
-                # Labels become comments
-                lines.append(f"{base_indent}# Label: {op.name}")
+                # Skip labels (they're IR artifacts, not useful in generated code)
                 i += 1
 
             elif isinstance(op, ConditionalGoto):
@@ -170,19 +168,22 @@ class RouterGenerator:
                 i = next_i
 
             elif isinstance(op, Goto):
-                # Handle goto - explicit routing to target router
                 if op.target == "scene_exit":
-                    # Early return: route to end actor
                     scene_name = self.scene_ir.name
                     end_actor = f"end_{scene_name}"
-                    lines.append(f"{base_indent}# return - route to end")
                     lines.append(f"{base_indent}_next_actors.append({self._format_actor(end_actor)})")
                 elif op.target_router_id:
-                    # Route to resolved target router (continue/break/other goto)
-                    lines.append(f"{base_indent}# goto {op.target} - route to target router")
+                    # Determine comment based on target label name
+                    comment = None
+                    if "loop_start" in op.target:
+                        comment = "continue loop"
+                    elif "loop_exit" in op.target:
+                        comment = "break loop"
+
+                    if comment:
+                        lines.append(f"{base_indent}# {comment}")
                     lines.append(f"{base_indent}_next_actors.append({self._format_actor(op.target_router_id)})")
                 else:
-                    # Unresolved goto (should not happen after optimization)
                     lines.append(f"{base_indent}# Unresolved goto: {op.target}")
                 i += 1
 
@@ -283,6 +284,10 @@ class RouterGenerator:
                 lines.extend(branch_lines)
             else:
                 lines.append(f"{base_indent}    pass")
+        elif cond_goto.false_target_router_id:
+            # False branch is in a different router - route to it
+            lines.append(f"{base_indent}else:")
+            lines.append(f"{base_indent}    _next_actors.append({self._format_actor(cond_goto.false_target_router_id)})")
 
         # Find convergence point by looking for Goto in true branch
         convergence_label = None
@@ -379,19 +384,22 @@ class RouterGenerator:
                 i = next_i
 
             elif isinstance(op, Goto):
-                # Handle goto - explicit routing to target router
                 if op.target == "scene_exit":
-                    # Early return: route to end actor
                     scene_name = self.scene_ir.name
                     end_actor = f"end_{scene_name}"
-                    lines.append(f"{base_indent}# return - route to end")
                     lines.append(f"{base_indent}_next_actors.append({self._format_actor(end_actor)})")
                 elif op.target_router_id:
-                    # Route to resolved target router (continue/break/other goto)
-                    lines.append(f"{base_indent}# goto {op.target} - route to target router")
+                    # Determine comment based on target label name
+                    comment = None
+                    if "loop_start" in op.target:
+                        comment = "continue loop"
+                    elif "loop_exit" in op.target:
+                        comment = "break loop"
+
+                    if comment:
+                        lines.append(f"{base_indent}# {comment}")
                     lines.append(f"{base_indent}_next_actors.append({self._format_actor(op.target_router_id)})")
                 else:
-                    # Unresolved goto (should not happen after optimization)
                     lines.append(f"{base_indent}# Unresolved goto: {op.target}")
                 i += 1
 
@@ -506,13 +514,52 @@ class RouterGenerator:
         return len(operations)
 
     def _collect_actors_from_steps(self, steps: list[ActorCall | Router]) -> list[str]:
-        """Collect all actors from scene steps, including end router."""
+        """
+        Collect only top-level actors from scene steps.
+
+        Top-level routers are those in the initial execution path (first pass through the scene).
+        Excludes:
+        - Continuation routers (reachable via ActorCall.continuation_router_id)
+        - Loop-back routers (contain only Goto/Label operations)
+        - False-branch routers (reachable only via ConditionalGoto false_target)
+        """
+        # Identify routers to exclude
+        continuation_routers = set()
+        false_branch_routers = set()
+
+        for step in steps:
+            if isinstance(step, Router):
+                for op in step.operations:
+                    # Continuation routers
+                    if isinstance(op, ActorCall) and op.continuation_router_id:
+                        continuation_routers.add(op.continuation_router_id)
+                    # False branch routers (loop exit paths)
+                    elif isinstance(op, ConditionalGoto) and op.false_target_router_id:
+                        false_branch_routers.add(op.false_target_router_id)
+
+        # Identify loop-back routers (routers that only contain Goto back to loop start)
+        loop_back_routers = set()
+        for step in steps:
+            if isinstance(step, Router):
+                # Check if router only contains Label and Goto (no mutations, no actor calls, no conditions)
+                has_only_labels_and_goto = all(
+                    isinstance(op, (Label, Goto)) for op in step.operations
+                )
+                if has_only_labels_and_goto and len(step.operations) > 0:
+                    loop_back_routers.add(step.router_id)
+
+        # Collect top-level actors
         actors = []
         for step in steps:
             if isinstance(step, ActorCall):
                 actors.append(step.qualified_name)
             elif isinstance(step, Router):
-                actors.append(step.router_id)
+                # Exclude continuation, loop-back, and false-branch routers
+                if (step.router_id not in continuation_routers and
+                    step.router_id not in loop_back_routers and
+                    step.router_id not in false_branch_routers):
+                    actors.append(step.router_id)
+
         # Add end router as final step
         actors.append(f"end_{self.scene_ir.name}")
         return actors
