@@ -1,3 +1,4 @@
+import textwrap  # Standard Python library for wrapping text
 from pathlib import Path
 
 # Assuming these classes are available from your provided context
@@ -21,7 +22,7 @@ class DiagramGenerator:
     Shows which router/actor executes which code using nested clusters.
     """
 
-    def __init__(self, flow_ir: FlowIR, max_label_length: int = 30):
+    def __init__(self, flow_ir: FlowIR, max_label_width: int = 30):
         """
         Initialize diagram generator.
 
@@ -33,14 +34,16 @@ class DiagramGenerator:
         self.cluster_counter = 0
         self.dot_lines: list[str] = []
         self.edges: list[str] = []
-        self.max_label_length = max_label_length
+        self.max_label_width = max_label_width
 
-    def _truncate_label(self, text: str) -> str:
-        """Truncate a string to max_label_length and add ellipsis if truncated."""
-        text = text.replace("\n", " ")  # Replace newlines for cleaner truncation
-        if len(text) > self.max_label_length:
-            return text[: self.max_label_length - 3] + "..."
-        return text
+    def _wrap_label(self, text: str) -> str:
+        """Wrap a string to max_label_width using textwrap and prepare for DOT."""
+        # Replace newlines with a space temporarily for clean wrapping, then wrap
+        clean_text = text.replace("\n", " ")
+        wrapped_text = textwrap.fill(clean_text, width=self.max_label_width)
+        return wrapped_text
+
+    # --- Core DOT Generation Methods ---
 
     def generate_dot(self) -> str:
         """
@@ -61,8 +64,9 @@ class DiagramGenerator:
         self.dot_lines.append("")
 
         start_node = self._new_node()
+        start_label = self._escape_label(self._wrap_label(self.flow_ir.name))
         self.dot_lines.append(
-            f'  {start_node} [label="{self._truncate_label(self.flow_ir.name)}", shape=ellipse, style=filled, fillcolor=lightgreen];'
+            f'  {start_node} [label="{start_label}", shape=ellipse, style=filled, fillcolor=lightgreen];'
         )
 
         end_node = self._new_node()
@@ -103,7 +107,6 @@ class DiagramGenerator:
     ) -> list[str]:
         """
         Process a list of operations and generate DOT nodes/edges.
-        [... body remains the same ...]
         """
         current_nodes = prev_nodes
 
@@ -128,8 +131,8 @@ class DiagramGenerator:
                         self.edges.append(f'  {node} -> {loop_end_node} [label="break", color=darkred];')
                     return []
                 else:
-                    # Truncation applied to diamond 'break' node
-                    label = self._truncate_label("break")
+                    # Wrapping applied to diamond 'break' node
+                    label = self._escape_label(self._wrap_label("break"))
                     break_node = self._new_node()
                     self.dot_lines.append(
                         f'  {break_node} [label="{label}", shape=diamond, style=filled, fillcolor=pink];'
@@ -144,7 +147,7 @@ class DiagramGenerator:
                         self.edges.append(f'  {node} -> {loop_start_node} [label="continue", color=darkblue];')
                     return []
                 else:
-                    label = self._truncate_label("continue")
+                    label = self._escape_label(self._wrap_label("continue"))
                     continue_node = self._new_node()
                     self.dot_lines.append(
                         f'  {continue_node} [label="{label}", shape=diamond, style=filled, fillcolor=lightblue];'
@@ -164,15 +167,14 @@ class DiagramGenerator:
         """Process handler call operation as a cluster."""
         cluster_id = self._new_cluster()
         handler_node = self._new_node()
-        actor_name = self._truncate_label(op.func_name)
-        handler_name = self._truncate_label(op.func_name)
+
+        handler_name = self._escape_label(self._wrap_label(op.func_name))
+        actor_name = ""  # XXX: support mapping of handlers to actor names
 
         self.dot_lines.append(f"  subgraph {cluster_id} {{")
         self.dot_lines.append("    style=filled;")
         self.dot_lines.append("    fillcolor=lightblue;")
-        self.dot_lines.append(
-            f'    label="{actor_name}";'
-        )  # Cluster label can remain untruncated for better context if needed, but truncating handler_name
+        self.dot_lines.append(f'    label="{actor_name}";')
         self.dot_lines.append("")
         self.dot_lines.append(
             f'    {handler_node} [label="{handler_name}", shape=box, style="rounded,filled", fillcolor=white, width=2, height=0.5];'
@@ -189,13 +191,9 @@ class DiagramGenerator:
         """Process assignment operation."""
         assign_node = self._new_node()
 
-        # Determine the full label before truncation
         full_label = f'p["{op.key}"] = ...' if op.key else f"{op.target} = ..."
+        label = self._escape_label(self._wrap_label(full_label))
 
-        # Truncate and escape the label
-        label = self._escape_label(self._truncate_label(full_label))
-
-        # Truncate and escape the label
         self.dot_lines.append(f'  {assign_node} [label="{label}", shape=note, style=filled, fillcolor=lightyellow];')
         for prev_node in prev_nodes:
             self.edges.append(f"  {prev_node} -> {assign_node};")
@@ -217,7 +215,7 @@ class DiagramGenerator:
         condition_node = self._new_node()
         condition_nodes.append(condition_node)
 
-        condition_label = self._escape_label(self._truncate_label(op.condition_str))
+        condition_label = self._escape_label(self._wrap_label(op.condition_str))
 
         self.dot_lines.append(f"  subgraph {cluster_id} {{")
         self.dot_lines.append("    style=filled;")
@@ -231,7 +229,7 @@ class DiagramGenerator:
         for _elif_cond, elif_cond_str, _elif_ops in op.elif_blocks:
             elif_condition = self._new_node()
             condition_nodes.append(elif_condition)
-            elif_label = self._escape_label(self._truncate_label(elif_cond_str))
+            elif_label = self._escape_label(self._wrap_label(elif_cond_str))
             self.dot_lines.append(
                 f'    {elif_condition} [label="{elif_label}", shape=diamond, style=filled, fillcolor=white];'
             )
@@ -299,8 +297,7 @@ class DiagramGenerator:
         router_name = op.router_id or "while_router"
 
         condition_node = self._new_node()
-
-        condition_label = self._escape_label(self._truncate_label(f"if {op.condition_str}"))
+        condition_label = self._escape_label(self._wrap_label(f"if {op.condition_str}"))
 
         self.dot_lines.append(f"  subgraph {cluster_id} {{")
         self.dot_lines.append("    style=filled;")
