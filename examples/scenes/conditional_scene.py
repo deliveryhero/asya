@@ -16,15 +16,21 @@ When deploying compiled routers, set environment variables:
 def conditional_scene(p: dict) -> dict:
     p = handler_validate_input(p)
 
+    p["mut"] = 1
     if p["type"] == "A":
+        p["mut"] = 1 + p["mut"]
         p = handler_type_a(p)
     elif p["type"] == "B":
+        p["mut"] += 2
         p = handler_type_b(p)
     elif p["type"] == "C":
+        p["mut"] += 3
         p = handler_type_c(p)
     else:
+        p["mut"] += 4
         p = handler_default(p)
 
+    p["mut"] += 5
     p = handler_finalize(p)
     return p
 

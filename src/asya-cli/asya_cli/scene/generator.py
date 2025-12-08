@@ -97,6 +97,7 @@ class RouterGenerator:
         lines.append(f"    {param_name} = envelope['payload']")
         lines.append("    r = envelope['route']")
         lines.append("    c = r['current']")
+        lines.append("    _next_actors = []")
         lines.append("")
 
         # Generate code from router operations
@@ -104,6 +105,8 @@ class RouterGenerator:
         lines.extend(operation_lines)
 
         lines.append("")
+        lines.append("    # Assign accumulated actors to route")
+        lines.append("    r['actors'][c+1:c+1] = _next_actors")
         lines.append("    return envelope")
 
         code = "\n".join(lines)
@@ -148,7 +151,7 @@ class RouterGenerator:
                 i += 1
 
             elif isinstance(op, ActorCall):
-                lines.append(f"{base_indent}r['actors'][c+1:c+1] = [{self._format_actor(op.qualified_name)}]")
+                lines.append(f"{base_indent}_next_actors.append({self._format_actor(op.qualified_name)})")
                 i += 1
 
             elif isinstance(op, Label):
@@ -165,17 +168,18 @@ class RouterGenerator:
             elif isinstance(op, Goto):
                 # Handle different goto targets
                 if op.target == "scene_exit":
-                    # Early return: keep actors added so far, then add only end actor
+                    # Early return: assign accumulated actors + end, then return
                     scene_name = self.scene_ir.name
                     end_actor = f"end_{scene_name}"
-                    lines.append(f"{base_indent}# return: jump to scene end, skip remaining steps")
-                    lines.append(f"{base_indent}r['actors'] = r['actors'] + [{self._format_actor(end_actor)}]")
+                    lines.append(f"{base_indent}# return: assign accumulated actors + end, skip remaining")
+                    lines.append(f"{base_indent}r['actors'][c+1:] = _next_actors + [{self._format_actor(end_actor)}]")
+                    lines.append(f"{base_indent}return envelope")
                 elif loop_info and router_id:
                     # Generate route rewriting for loop control (continue/break)
                     if op.target == loop_info["start_label"]:
                         # Continue: re-add this router to route
                         lines.append(f"{base_indent}# continue: re-queue loop router")
-                        lines.append(f"{base_indent}r['actors'][c+1:c+1] = [{self._format_actor(router_id)}]")
+                        lines.append(f"{base_indent}_next_actors.append({self._format_actor(router_id)})")
                     elif op.target == loop_info["exit_label"]:
                         # Break: do nothing (fall through)
                         lines.append(f"{base_indent}# break: exit loop")
@@ -361,7 +365,7 @@ class RouterGenerator:
                 i += 1
 
             elif isinstance(op, ActorCall):
-                lines.append(f"{base_indent}r['actors'][c+1:c+1] = [{self._format_actor(op.qualified_name)}]")
+                lines.append(f"{base_indent}_next_actors.append({self._format_actor(op.qualified_name)})")
                 i += 1
 
             elif isinstance(op, Label):
@@ -379,17 +383,18 @@ class RouterGenerator:
             elif isinstance(op, Goto):
                 # Handle different goto targets
                 if op.target == "scene_exit":
-                    # Early return: keep actors added so far, then add only end actor
+                    # Early return: assign accumulated actors + end, then return
                     scene_name = self.scene_ir.name
                     end_actor = f"end_{scene_name}"
-                    lines.append(f"{base_indent}# return: jump to scene end, skip remaining steps")
-                    lines.append(f"{base_indent}r['actors'] = r['actors'] + [{self._format_actor(end_actor)}]")
+                    lines.append(f"{base_indent}# return: assign accumulated actors + end, skip remaining")
+                    lines.append(f"{base_indent}r['actors'][c+1:] = _next_actors + [{self._format_actor(end_actor)}]")
+                    lines.append(f"{base_indent}return envelope")
                 elif loop_info and router_id:
                     # Generate route rewriting for loop control (continue/break)
                     if op.target == loop_info["start_label"]:
                         # Continue: re-add this router to route
                         lines.append(f"{base_indent}# continue: re-queue loop router")
-                        lines.append(f"{base_indent}r['actors'][c+1:c+1] = [{self._format_actor(router_id)}]")
+                        lines.append(f"{base_indent}_next_actors.append({self._format_actor(router_id)})")
                     elif op.target == loop_info["exit_label"]:
                         # Break: do nothing (fall through)
                         lines.append(f"{base_indent}# break: exit loop")

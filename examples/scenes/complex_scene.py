@@ -12,9 +12,6 @@ def complex_scene(p: dict) -> dict:
     if not p["valid"]:
         p = handler_error(p)
         return p
-    
-    if p["invalid"]:
-        raise ValueError("invalid!")
 
     if p.get("needs_enrichment"):
         p = handler_enrich_data(p)
