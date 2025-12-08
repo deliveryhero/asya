@@ -30,16 +30,17 @@ class RouterGenerator:
         Returns:
             List of (router_id, docstring, code) tuples
         """
-        self._generate_entrypoint_router()
+        self._generate_start_router()
+        self._generate_end_router()
         self._generate_routers_from_steps(self.scene_ir.steps)
         return self.routers
 
-    def _generate_entrypoint_router(self):
+    def _generate_start_router(self):
         """Generate entrypoint router for the scene."""
-        entrypoint_id = self.scene_ir.name
+        start_id = f"start_{self.scene_ir.name}"
         lines = []
 
-        lines.append(f"def {entrypoint_id}(envelope: dict) -> dict:")
+        lines.append(f"def {start_id}(envelope: dict) -> dict:")
 
         docstring = f"Entrypoint for scene '{self.scene_ir.name}'"
         lines.append(f'    """{docstring}"""')
@@ -59,7 +60,22 @@ class RouterGenerator:
         lines.append("    return envelope")
 
         code = "\n".join(lines)
-        self.routers.append((entrypoint_id, docstring, code))
+        self.routers.append((start_id, docstring, code))
+
+    def _generate_end_router(self):
+        """Generate exitpoint router for the scene."""
+        end_id = f"end_{self.scene_ir.name}"
+        lines = []
+
+        lines.append(f"def {end_id}(envelope: dict) -> dict:")
+
+        docstring = f"Exitpoint for scene '{self.scene_ir.name}'"
+        lines.append(f'    """{docstring}"""')
+
+        lines.append("    return envelope")
+
+        code = "\n".join(lines)
+        self.routers.append((end_id, docstring, code))
 
     def _generate_routers_from_steps(self, steps: list[ActorCall | Router]):
         """Generate router functions for all Router steps."""
@@ -396,13 +412,15 @@ class RouterGenerator:
         return len(operations)
 
     def _collect_actors_from_steps(self, steps: list[ActorCall | Router]) -> list[str]:
-        """Collect all actors from scene steps."""
+        """Collect all actors from scene steps, including end router."""
         actors = []
         for step in steps:
             if isinstance(step, ActorCall):
                 actors.append(step.qualified_name)
             elif isinstance(step, Router):
                 actors.append(step.router_id)
+        # Add end router as final step
+        actors.append(f"end_{self.scene_ir.name}")
         return actors
 
     def _format_actor(self, actor: str) -> str:
