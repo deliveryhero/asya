@@ -293,7 +293,7 @@ class RouterGenerator:
         # Find convergence point by looking for Goto in true branch
         convergence_label = None
         if true_start != -1:
-            for idx in range(true_start + 1, true_end + 1):
+            for idx in range(true_start + 1, true_end):
                 if isinstance(operations[idx], Goto):
                     convergence_label = operations[idx].target
                     break
@@ -468,7 +468,7 @@ class RouterGenerator:
         # Find convergence point by looking for Goto in true branch
         convergence_label = None
         if true_start != -1:
-            for idx in range(true_start + 1, true_end + 1):
+            for idx in range(true_start + 1, true_end):
                 if isinstance(operations[idx], Goto):
                     convergence_label = operations[idx].target
                     break

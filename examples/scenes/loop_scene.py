@@ -14,6 +14,9 @@ def loop_scene(p: dict) -> dict:
         p = process_item(p)
 
         if p.get("skip_threshold_check"):
+            p['abort'] = 1
+            p = process_abort(p)
+            p['abort'] = 2
             continue
         p = check_threshold(p)
 
@@ -23,6 +26,9 @@ def loop_scene(p: dict) -> dict:
     p = finalize_loop(p)
     return p
 
+
+def process_abort(p: dict) -> dict:
+    return None
 
 def initialize(p: dict) -> dict:
     """Initialize processing state."""
