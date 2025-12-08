@@ -1,0 +1,138 @@
+digraph flow {
+  rankdir=TB;
+  compound=true;
+  node [shape=box, style=rounded];
+
+  n0 [label="flow_conditional_routing", shape=ellipse, style=filled, fillcolor=lightgreen];
+  n1 [label="End", shape=ellipse, style=filled, fillcolor=lightcoral];
+
+  subgraph cluster_0 {
+    style=filled;
+    fillcolor=lightgrey;
+    label="flow_conditional_routing_entrypoint";
+
+    n2 [label="Entry", shape=circle, width=0.5];
+    n3 [label="Setup route", shape=box, style="rounded,filled", fillcolor=white];
+    n2 -> n3;
+  }
+
+  subgraph cluster_1 {
+    style=filled;
+    fillcolor=lightblue;
+    label="handler_validate_input";
+
+    n4 [label="Entry", shape=circle, width=0.5];
+    n5 [label="Execute\nhandler_validate_input", shape=box, style="rounded,filled", fillcolor=white];
+    n6 [label="Exit", shape=circle, width=0.5];
+    n4 -> n5 -> n6;
+  }
+
+  subgraph cluster_2 {
+    style=filled;
+    fillcolor=wheat;
+    label="flow_conditional_routing_line_19_if";
+
+    n7 [label="Entry", shape=circle, width=0.5];
+    n8 [label="Check:\np['type'] == 'A'", shape=diamond, style=filled, fillcolor=white];
+    n7 -> n8;
+  }
+
+  n10 [label="", shape=point, width=0.1];
+  subgraph cluster_3 {
+    style=filled;
+    fillcolor=lightblue;
+    label="handler_type_a";
+
+    n11 [label="Entry", shape=circle, width=0.5];
+    n12 [label="Execute\nhandler_type_a", shape=box, style="rounded,filled", fillcolor=white];
+    n13 [label="Exit", shape=circle, width=0.5];
+    n11 -> n12 -> n13;
+  }
+
+  subgraph cluster_4 {
+    style=filled;
+    fillcolor=wheat;
+    label="flow_conditional_routing_line_19_if elif";
+
+    n14 [label="Entry", shape=circle, width=0.5];
+    n15 [label="Check:\np['type'] == 'B'", shape=diamond, style=filled, fillcolor=white];
+    n14 -> n15;
+  }
+
+  n16 [label="", shape=point, width=0.1];
+  subgraph cluster_5 {
+    style=filled;
+    fillcolor=lightblue;
+    label="handler_type_b";
+
+    n17 [label="Entry", shape=circle, width=0.5];
+    n18 [label="Execute\nhandler_type_b", shape=box, style="rounded,filled", fillcolor=white];
+    n19 [label="Exit", shape=circle, width=0.5];
+    n17 -> n18 -> n19;
+  }
+
+  subgraph cluster_6 {
+    style=filled;
+    fillcolor=wheat;
+    label="flow_conditional_routing_line_19_if elif";
+
+    n20 [label="Entry", shape=circle, width=0.5];
+    n21 [label="Check:\np['type'] == 'C'", shape=diamond, style=filled, fillcolor=white];
+    n20 -> n21;
+  }
+
+  n22 [label="", shape=point, width=0.1];
+  subgraph cluster_7 {
+    style=filled;
+    fillcolor=lightblue;
+    label="handler_type_c";
+
+    n23 [label="Entry", shape=circle, width=0.5];
+    n24 [label="Execute\nhandler_type_c", shape=box, style="rounded,filled", fillcolor=white];
+    n25 [label="Exit", shape=circle, width=0.5];
+    n23 -> n24 -> n25;
+  }
+
+  n26 [label="", shape=point, width=0.1];
+  subgraph cluster_8 {
+    style=filled;
+    fillcolor=lightblue;
+    label="handler_default";
+
+    n27 [label="Entry", shape=circle, width=0.5];
+    n28 [label="Execute\nhandler_default", shape=box, style="rounded,filled", fillcolor=white];
+    n29 [label="Exit", shape=circle, width=0.5];
+    n27 -> n28 -> n29;
+  }
+
+  subgraph cluster_9 {
+    style=filled;
+    fillcolor=lightblue;
+    label="handler_finalize";
+
+    n30 [label="Entry", shape=circle, width=0.5];
+    n31 [label="Execute\nhandler_finalize", shape=box, style="rounded,filled", fillcolor=white];
+    n32 [label="Exit", shape=circle, width=0.5];
+    n30 -> n31 -> n32;
+  }
+
+  n0 -> n2;
+  n3 -> n4;
+  n6 -> n7;
+  n8 -> n10 [label="true", color=green];
+  n10 -> n11;
+  n13 -> n9;
+  n8 -> n14 [label="false", color=red];
+  n15 -> n16 [label="true", color=green];
+  n16 -> n17;
+  n19 -> n9;
+  n15 -> n20 [label="false", color=red];
+  n21 -> n22 [label="true", color=green];
+  n22 -> n23;
+  n25 -> n9;
+  n21 -> n26 [label="else", color=red];
+  n26 -> n27;
+  n29 -> n9;
+  n9 -> n30;
+  n32 -> n1 [label="return"];
+}

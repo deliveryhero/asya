@@ -5,7 +5,8 @@ Compiles high-level flow functions into distributed async actor routers.
 """
 
 from asya_cli.flow.compiler import FlowCompiler
+from asya_cli.flow.diagram import DiagramGenerator, generate_diagram
 from asya_cli.flow.errors import FlowCompileError
 
 
-__all__ = ["FlowCompileError", "FlowCompiler"]
+__all__ = ["DiagramGenerator", "FlowCompileError", "FlowCompiler", "generate_diagram"]

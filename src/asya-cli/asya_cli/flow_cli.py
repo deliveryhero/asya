@@ -32,6 +32,33 @@ def cmd_compile(args):
 
         print(f"[+] Successfully compiled flow to: {output_file}")
 
+        if args.diagram:
+            output_path = Path(output_file)
+
+            dot_file = str(output_path.with_suffix(".dot"))
+            png_file = str(output_path.with_suffix(".png"))
+
+            try:
+                dot_content, png_path = compiler.generate_diagram(
+                    output_dot=dot_file,
+                    output_png=png_file,
+                )
+                print(f"[+] Generated diagram: {dot_file}")
+                if png_path:
+                    print(f"[+] Generated PNG diagram: {png_path}")
+            except ImportError as e:
+                print(f"[!] Warning: {e}", file=sys.stderr)
+                try:
+                    compiler.generate_diagram(output_dot=dot_file, output_png=None)
+                    print(f"[+] DOT file still generated: {dot_file}", file=sys.stderr)
+                except Exception:
+                    pass
+            except RuntimeError as e:
+                print(f"[!] Warning: {e}", file=sys.stderr)
+                print(f"[+] DOT file still generated: {dot_file}", file=sys.stderr)
+            except Exception as e:
+                print(f"[!] Warning: Failed to generate diagram: {e}", file=sys.stderr)
+
         # Show warnings if any
         warnings = compiler.get_warnings()
         if warnings:
@@ -203,6 +230,12 @@ def main(argv=None):
         help="Disable infinite loop detection",
     )
     compile_parser.add_argument("--verbose", "-v", action="store_true", help="Show verbose output")
+    compile_parser.add_argument(
+        "--diagram",
+        "-d",
+        action="store_true",
+        help="Generate flow diagram in DOT format and PNG (requires graphviz for PNG)",
+    )
     compile_parser.set_defaults(func=cmd_compile)
 
     # Validate command

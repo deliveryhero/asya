@@ -7,9 +7,11 @@ Main orchestrator that coordinates parsing, analysis, generation, and emission.
 from pathlib import Path
 
 from asya_cli.flow.analyzer import ControlFlowAnalyzer
+from asya_cli.flow.diagram import generate_diagram
 from asya_cli.flow.emitter import CodeEmitter
 from asya_cli.flow.errors import FlowCompileError
 from asya_cli.flow.generator import RouterGenerator
+from asya_cli.flow.ir import FlowIR
 from asya_cli.flow.parser import FlowParser
 
 
@@ -35,6 +37,7 @@ class FlowCompiler:
         self.check_infinite_loops = check_infinite_loops
         self.verbose = verbose
         self.warnings: list[str] = []
+        self.flow_ir: FlowIR | None = None
 
     def compile_file(self, source_file: str, output_file: str | None = None) -> str:
         """
@@ -95,6 +98,9 @@ class FlowCompiler:
         # Stage 2: Analyze
         analyzer = ControlFlowAnalyzer(flow_ir.name, flow_ir.param_name, self.check_infinite_loops)
         flow_ir = analyzer.analyze(flow_ir)
+
+        # Store flow IR for diagram generation
+        self.flow_ir = flow_ir
 
         # Collect warnings
         if analyzer.warnings:
@@ -182,3 +188,26 @@ class FlowCompiler:
             return mappings
 
         return collect_handlers(flow_ir.operations)
+
+    def generate_diagram(self, output_dot: str | None = None, output_png: str | None = None) -> tuple[str, str | None]:
+        """
+        Generate flow diagram after compilation.
+
+        Must be called after compile() or compile_file().
+
+        Args:
+            output_dot: Optional path to save DOT file
+            output_png: Optional path to save PNG file (requires graphviz)
+
+        Returns:
+            Tuple of (dot_content, png_path)
+            png_path is None if PNG generation was skipped or failed
+
+        Raises:
+            RuntimeError: If called before compilation
+            FileNotFoundError: If graphviz not found (only when output_png specified)
+        """
+        if self.flow_ir is None:
+            raise RuntimeError("Must compile flow before generating diagram")
+
+        return generate_diagram(self.flow_ir, output_dot, output_png)
