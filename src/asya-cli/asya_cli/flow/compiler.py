@@ -93,7 +93,7 @@ class FlowCompiler:
             raise FlowCompileError(parser.errors, source_file, parser.source_lines)
 
         # Stage 2: Analyze
-        analyzer = ControlFlowAnalyzer(flow_ir.name, self.check_infinite_loops)
+        analyzer = ControlFlowAnalyzer(flow_ir.name, flow_ir.param_name, self.check_infinite_loops)
         flow_ir = analyzer.analyze(flow_ir)
 
         # Collect warnings
@@ -132,7 +132,7 @@ class FlowCompiler:
             raise FlowCompileError(parser.errors, source_file, parser.source_lines)
 
         # Run analyzer to check for warnings
-        analyzer = ControlFlowAnalyzer(flow_ir.name, self.check_infinite_loops)
+        analyzer = ControlFlowAnalyzer(flow_ir.name, flow_ir.param_name, self.check_infinite_loops)
         analyzer.analyze(flow_ir)
 
         if analyzer.warnings:

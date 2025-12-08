@@ -82,6 +82,7 @@ class RouterGenerator:
     def _generate_if_router(self, if_op: IfBlock):
         """Generate router for if statement."""
         assert if_op.router_id is not None  # Should be set by analyzer
+        param_name = self.flow_ir.param_name
         lines = []
 
         # Function signature
@@ -92,7 +93,7 @@ class RouterGenerator:
         lines.append(f'    """{docstring}"""')
 
         # Extract envelope components
-        lines.append("    p = envelope['payload']")
+        lines.append(f"    {param_name} = envelope['payload']")
         lines.append("    r = envelope['route']")
         lines.append("    c = r['current']")
         lines.append("")
@@ -142,6 +143,7 @@ class RouterGenerator:
     def _generate_while_router(self, while_op: WhileLoop):
         """Generate router for while loop."""
         assert while_op.router_id is not None  # Should be set by analyzer
+        param_name = self.flow_ir.param_name
         lines = []
 
         # Function signature
@@ -152,7 +154,7 @@ class RouterGenerator:
         lines.append(f'    """{docstring}"""')
 
         # Extract envelope components
-        lines.append("    p = envelope['payload']")
+        lines.append(f"    {param_name} = envelope['payload']")
         lines.append("    r = envelope['route']")
         lines.append("    c = r['current']")
         lines.append("")
@@ -258,6 +260,7 @@ class RouterGenerator:
 
         self.inline_block_counter += 1
         actor_id = f"{self.flow_ir.name}_inline_{self.inline_block_counter}"
+        param_name = self.flow_ir.param_name
 
         lines = []
         lines.append(f"def {actor_id}(envelope: dict) -> dict:")
@@ -273,15 +276,15 @@ class RouterGenerator:
         lines.append(f'    """{docstring}"""')
 
         # Extract payload
-        lines.append("    p = envelope['payload']")
+        lines.append(f"    {param_name} = envelope['payload']")
         lines.append("")
 
         # Generate operation statements
         for op in operations:
             if isinstance(op, Assignment):
-                # Assignment: p["key"] = value
+                # Assignment: payload["key"] = value
                 if op.key:
-                    lines.append(f"    p[{op.key!r}] = {op.value_str}")
+                    lines.append(f"    {param_name}[{op.key!r}] = {op.value_str}")
 
             elif isinstance(op, ClassInstantiation):
                 # Class instantiation: var = ClassName(args, kwargs)

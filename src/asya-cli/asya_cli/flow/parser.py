@@ -96,6 +96,7 @@ class FlowParser:
         self.import_tracker = ImportTracker()
         self.class_instances: dict[str, str] = {}  # var_name → qualified_class_name
         self.errors: list[CompileError] = []
+        self.param_name: str = "p"  # Default parameter name, updated after parsing signature
 
     def parse(self) -> FlowIR | None:
         """
@@ -130,14 +131,17 @@ class FlowParser:
         if not flow_func:
             return None
 
+        # Validate function signature FIRST (so param_name is set)
+        param_name = self._validate_signature(flow_func)
+        if param_name is None:
+            return None
+
+        # Store param_name for use in parsing
+        self.param_name = param_name
+
         # Parse function body
         operations = self._parse_function_body(flow_func)
         if operations is None:
-            return None
-
-        # Validate function signature
-        param_name = self._validate_signature(flow_func)
-        if param_name is None:
             return None
 
         return FlowIR(
@@ -389,32 +393,32 @@ class FlowParser:
 
         target = stmt.targets[0]
 
-        # Case 1: p = handler(p) or p = var.method(p)
+        # Case 1: payload = handler(payload) or payload = var.method(payload)
         if isinstance(target, ast.Name):
             target_name = target.id
 
             # Check if it's a handler call
             if isinstance(stmt.value, ast.Call):
-                # Check if it's class instantiation
-                if target_name != "p":
+                # Check if it's class instantiation (target is not the payload param)
+                if target_name != self.param_name:
                     return self._parse_class_instantiation(stmt, target_name)
 
-                # It's a handler call: p = handler(p)
+                # It's a handler call: payload = handler(payload)
                 return self._parse_handler_call(stmt, target_name)
 
-            # p["key"] assignment but wrong syntax
+            # Wrong syntax
             self.errors.append(
                 create_error(
                     message=f"Invalid assignment to '{target_name}'",
                     node=stmt,
                     source_file=self.source_file,
                     source_lines=self.source_lines,
-                    explanation="Assignments must be handler calls (p = handler(p)) or payload mutations (p['key'] = value)",
+                    explanation=f"Assignments must be handler calls ({self.param_name} = handler({self.param_name})) or payload mutations ({self.param_name}['key'] = value)",
                 )
             )
             return None
 
-        # Case 2: p["key"] = value
+        # Case 2: payload["key"] = value
         elif isinstance(target, ast.Subscript):
             return self._parse_payload_mutation(stmt, target)
 
@@ -432,11 +436,11 @@ class FlowParser:
 
     def _parse_handler_call(self, stmt: ast.Assign, target_name: str) -> HandlerCall | None:
         """
-        Parse handler call: p = handler(p) or p = instance.method(p)
+        Parse handler call: payload = handler(payload) or payload = instance.method(payload)
 
         Args:
             stmt: Assignment statement
-            target_name: Target variable name (must be "p")
+            target_name: Target variable name (payload parameter name)
 
         Returns:
             HandlerCall operation or None if invalid
@@ -444,30 +448,30 @@ class FlowParser:
         call = stmt.value
         assert isinstance(call, ast.Call)  # Type narrowing for mypy
 
-        # Validate arguments: must be single arg with value 'p'
+        # Validate arguments: must be single arg with value matching param name
         if len(call.args) != 1 or call.keywords:
             self.errors.append(
                 create_error(
-                    message="Handler calls must have exactly one argument 'p'",
+                    message=f"Handler calls must have exactly one argument '{self.param_name}'",
                     node=call,
                     source_file=self.source_file,
                     source_lines=self.source_lines,
                     explanation="Flow DSL handlers receive only the payload",
-                    fix_hint="Change to: p = handler(p)",
+                    fix_hint=f"Change to: {self.param_name} = handler({self.param_name})",
                 )
             )
             return None
 
         arg = call.args[0]
-        if not isinstance(arg, ast.Name) or arg.id != "p":
+        if not isinstance(arg, ast.Name) or arg.id != self.param_name:
             self.errors.append(
                 create_error(
-                    message=f"Handler argument must be 'p', got '{ast.unparse(arg)}'",
+                    message=f"Handler argument must be '{self.param_name}', got '{ast.unparse(arg)}'",
                     node=arg,
                     source_file=self.source_file,
                     source_lines=self.source_lines,
                     explanation="Flow DSL requires explicit payload passing",
-                    fix_hint="Change to: p = handler(p)",
+                    fix_hint=f"Change to: {self.param_name} = handler({self.param_name})",
                 )
             )
             return None
@@ -567,25 +571,25 @@ class FlowParser:
 
     def _parse_payload_mutation(self, stmt: ast.Assign, target: ast.Subscript) -> Assignment | None:
         """
-        Parse payload mutation: p["key"] = value
+        Parse payload mutation: payload["key"] = value
 
         Args:
             stmt: Assignment statement
-            target: Subscript target (p["key"])
+            target: Subscript target (payload["key"])
 
         Returns:
             Assignment operation or None if invalid
         """
-        # Validate: must be p[...]
-        if not isinstance(target.value, ast.Name) or target.value.id != "p":
+        # Validate: must be payload[...]
+        if not isinstance(target.value, ast.Name) or target.value.id != self.param_name:
             self.errors.append(
                 create_error(
-                    message="Subscript assignment must be on 'p'",
+                    message=f"Subscript assignment must be on '{self.param_name}'",
                     node=target,
                     source_file=self.source_file,
                     source_lines=self.source_lines,
-                    explanation="Flow DSL only allows payload mutations via p[...]",
-                    fix_hint="Change to: p['key'] = value",
+                    explanation=f"Flow DSL only allows payload mutations via {self.param_name}[...]",
+                    fix_hint=f"Change to: {self.param_name}['key'] = value",
                 )
             )
             return None
@@ -623,7 +627,7 @@ class FlowParser:
         return Assignment(
             line=stmt.lineno,
             col=stmt.col_offset,
-            target="p",
+            target=self.param_name,
             key=key,
             value_ast=stmt.value,
             value_str=value_str,
@@ -631,7 +635,7 @@ class FlowParser:
 
     def _parse_augmented_assignment(self, stmt: ast.AugAssign) -> Assignment | None:
         """
-        Parse augmented assignment: p["key"] += value
+        Parse augmented assignment: payload["key"] += value
 
         Converts to Assignment IR with combined expression.
 
@@ -641,7 +645,7 @@ class FlowParser:
         Returns:
             Assignment operation or None if invalid
         """
-        # Validate: target must be p[...]
+        # Validate: target must be payload[...]
         if not isinstance(stmt.target, ast.Subscript):
             self.errors.append(
                 create_error(
@@ -649,24 +653,24 @@ class FlowParser:
                     node=stmt.target,
                     source_file=self.source_file,
                     source_lines=self.source_lines,
-                    explanation="Flow DSL only allows augmented assignments via p['key']",
-                    fix_hint="Change to: p['key'] += value",
+                    explanation=f"Flow DSL only allows augmented assignments via {self.param_name}['key']",
+                    fix_hint=f"Change to: {self.param_name}['key'] += value",
                 )
             )
             return None
 
         target = stmt.target
 
-        # Validate: must be p[...]
-        if not isinstance(target.value, ast.Name) or target.value.id != "p":
+        # Validate: must be payload[...]
+        if not isinstance(target.value, ast.Name) or target.value.id != self.param_name:
             self.errors.append(
                 create_error(
-                    message="Augmented assignment must be on 'p'",
+                    message=f"Augmented assignment must be on '{self.param_name}'",
                     node=target,
                     source_file=self.source_file,
                     source_lines=self.source_lines,
-                    explanation="Flow DSL only allows payload mutations via p[...]",
-                    fix_hint="Change to: p['key'] += value",
+                    explanation=f"Flow DSL only allows payload mutations via {self.param_name}[...]",
+                    fix_hint=f"Change to: {self.param_name}['key'] += value",
                 )
             )
             return None
@@ -700,11 +704,11 @@ class FlowParser:
             return None
 
         # Convert augmented assignment to regular assignment
-        # p["key"] += value becomes p["key"] = p["key"] + value
-        # Create BinOp: p["key"] + value
+        # payload["key"] += value becomes payload["key"] = payload["key"] + value
+        # Create BinOp: payload["key"] + value
         combined_expr = ast.BinOp(
             left=ast.Subscript(
-                value=ast.Name(id="p", ctx=ast.Load()),
+                value=ast.Name(id=self.param_name, ctx=ast.Load()),
                 slice=ast.Constant(value=key),
                 ctx=ast.Load(),
             ),
@@ -717,7 +721,7 @@ class FlowParser:
         return Assignment(
             line=stmt.lineno,
             col=stmt.col_offset,
-            target="p",
+            target=self.param_name,
             key=key,
             value_ast=combined_expr,
             value_str=value_str,
@@ -846,22 +850,22 @@ class FlowParser:
                     source_file=self.source_file,
                     source_lines=self.source_lines,
                     explanation="Flow DSL requires returning the payload",
-                    fix_hint="Change to: return p",
+                    fix_hint=f"Change to: return {self.param_name}",
                 )
             )
             return None
 
-        if not isinstance(stmt.value, ast.Name) or stmt.value.id != "p":
+        if not isinstance(stmt.value, ast.Name) or stmt.value.id != self.param_name:
             self.errors.append(
                 create_error(
-                    message=f"Return statement must return 'p', got '{ast.unparse(stmt.value)}'",
+                    message=f"Return statement must return '{self.param_name}', got '{ast.unparse(stmt.value)}'",
                     node=stmt.value,
                     source_file=self.source_file,
                     source_lines=self.source_lines,
                     explanation="Flow DSL requires explicit payload return",
-                    fix_hint="Change to: return p",
+                    fix_hint=f"Change to: return {self.param_name}",
                 )
             )
             return None
 
-        return Return(line=stmt.lineno, col=stmt.col_offset, value="p")
+        return Return(line=stmt.lineno, col=stmt.col_offset, value=self.param_name)

@@ -24,8 +24,9 @@ class ControlFlowAnalyzer:
     Uses stack-based approach to track nesting depth and continuation.
     """
 
-    def __init__(self, flow_name: str, check_infinite_loops: bool = True):
+    def __init__(self, flow_name: str, param_name: str = "p", check_infinite_loops: bool = True):
         self.flow_name = flow_name
+        self.param_name = param_name
         self.check_infinite_loops = check_infinite_loops
         self.warnings: list[str] = []
         self.loop_stack: list[WhileLoop] = []  # Track active loops for break/continue
@@ -193,7 +194,7 @@ class ControlFlowAnalyzer:
             Warning message if potential infinite loop detected
         """
         # Extract variables from condition
-        condition_vars = self._extract_variables(while_op.condition)
+        condition_vars = self._extract_variables(while_op.condition, self.param_name)
 
         if not condition_vars:
             # Can't analyze, skip
@@ -209,25 +210,32 @@ class ControlFlowAnalyzer:
                 f"Warning: Potential infinite loop at line {while_op.line}\n"
                 f"  Loop condition uses variables: {sorted_vars}\n"
                 f"  But none are modified in loop body.\n"
-                f"  Suggestion: Add mutations like p['{sorted_vars[0]}'] += 1"
+                f"  Suggestion: Add mutations like {self.param_name}['{sorted_vars[0]}'] += 1"
             )
 
         return None
 
-    def _extract_variables(self, node: ast.expr) -> set[str]:
+    def _extract_variables(self, node: ast.expr, param_name: str = "p") -> set[str]:
         """
         Extract variables referenced in an expression.
 
-        For p["count"] < 5, extracts {"count"}
+        For payload["count"] < 5, extracts {"count"}
+
+        Args:
+            node: AST expression node to analyze
+            param_name: Name of the payload parameter
+
+        Returns:
+            Set of variable names referenced in the expression
         """
         variables = set()
 
         for child in ast.walk(node):
-            # Look for p["key"] patterns
+            # Look for payload["key"] patterns
             if (
                 isinstance(child, ast.Subscript)
                 and isinstance(child.value, ast.Name)
-                and child.value.id == "p"
+                and child.value.id == param_name
                 and isinstance(child.slice, ast.Constant)
                 and isinstance(child.slice.value, str)
             ):
