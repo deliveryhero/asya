@@ -212,3 +212,6 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# compiled files (asya-cli - scene)
+compiled/

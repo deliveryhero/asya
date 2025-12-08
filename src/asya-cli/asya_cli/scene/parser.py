@@ -938,9 +938,8 @@ class SceneParser:
                     )
                 )
             else:
-                # Check if this is a control flow statement (if/while)
-                # Flush any pending non-control-flow router ops before control flow
-                if isinstance(stmt, (ast.If, ast.While)) and router_ops:
+                # Flush before while loops to ensure clean entry point for goto
+                if isinstance(stmt, ast.While) and router_ops:
                     # Check if router_ops contains only simple operations (no control flow yet)
                     has_control_flow = any(
                         isinstance(op, (Label, ConditionalGoto, Goto)) for op in router_ops
