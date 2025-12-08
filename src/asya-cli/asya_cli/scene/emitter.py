@@ -1,26 +1,26 @@
 """
-Code emitter for Flow DSL compiler.
+Code emitter for Scene DSL compiler.
 
 Combines all generated code into final Python file.
 """
 
-from asya_cli.scene.ir import HandlerCall, IfBlock, Operation, SceneIR, WhileLoop
+from asya_cli.scene.ir import ActorCall, Router, SceneIR
 from asya_cli.scene.templates import get_file_header, get_resolve_function
 
 
 class CodeEmitter:
-    """Emit final Python code from Flow IR and generated routers."""
+    """Emit final Python code from Scene IR and generated routers."""
 
-    def __init__(self, flow_ir: SceneIR, routers: list[tuple[str, str, str]], source_code: str):
+    def __init__(self, scene_ir: SceneIR, routers: list[tuple[str, str, str]], source_code: str):
         """
         Initialize code emitter.
 
         Args:
-            flow_ir: Flow intermediate representation
+            scene_ir: Scene intermediate representation
             routers: List of (router_id, docstring, code) tuples
             source_code: Original source code
         """
-        self.flow_ir = flow_ir
+        self.scene_ir = scene_ir
         self.routers = routers
         self.source_code = source_code
 
@@ -34,7 +34,7 @@ class CodeEmitter:
         sections = []
 
         # File header
-        sections.append(get_file_header(self.flow_ir.source_file))
+        sections.append(get_file_header(self.scene_ir.source_file))
         sections.append("")
 
         # Environment variable mappings documentation
@@ -81,30 +81,26 @@ class CodeEmitter:
 
         return "\n".join(sections)
 
-    def _collect_handlers(self, ops: list[Operation]) -> set[str]:
+    def _collect_handlers(self, steps: list[ActorCall | Router]) -> set[str]:
         """
-        Recursively collect all unique handler qualified names from operations.
+        Collect all unique actor qualified names from scene steps.
 
         Args:
-            ops: List of operations to scan
+            steps: List of scene steps to scan
 
         Returns:
-            Set of handler qualified names
+            Set of actor qualified names
         """
         handlers = set()
 
-        for op in ops:
-            if isinstance(op, HandlerCall):
-                handlers.add(op.qualified_name)
-            elif isinstance(op, IfBlock):
-                handlers.update(self._collect_handlers(op.then_ops))
-                for _, _, elif_ops in op.elif_blocks:
-                    handlers.update(self._collect_handlers(elif_ops))
-                handlers.update(self._collect_handlers(op.else_ops))
-                handlers.update(self._collect_handlers(op.continuation))
-            elif isinstance(op, WhileLoop):
-                handlers.update(self._collect_handlers(op.body_ops))
-                handlers.update(self._collect_handlers(op.continuation))
+        for step in steps:
+            if isinstance(step, ActorCall):
+                handlers.add(step.qualified_name)
+            elif isinstance(step, Router):
+                # Collect ActorCalls from router operations
+                for op in step.operations:
+                    if isinstance(op, ActorCall):
+                        handlers.add(op.qualified_name)
 
         return handlers
 
@@ -115,7 +111,7 @@ class CodeEmitter:
         Returns:
             List of env var assignment strings (e.g., 'ASYA_HANDLER_IMAGE_PROCESSOR="module.handler"')
         """
-        handlers = self._collect_handlers(self.flow_ir.operations)
+        handlers = self._collect_handlers(self.scene_ir.steps)
 
         all_names = set(handlers)
         for router_id, _, _ in self.routers:

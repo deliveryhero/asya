@@ -1,12 +1,11 @@
 """
-Flow DSL compiler.
+Scene DSL compiler.
 
-Main orchestrator that coordinates parsing, analysis, generation, and emission.
+Main orchestrator that coordinates parsing, generation, and emission.
 """
 
 from pathlib import Path
 
-from asya_cli.scene.analyzer import ControlFlowAnalyzer
 from asya_cli.scene.diagram import generate_diagram
 from asya_cli.scene.emitter import CodeEmitter
 from asya_cli.scene.errors import SceneCompileError
@@ -17,27 +16,24 @@ from asya_cli.scene.parser import SceneParser
 
 class SceneCompiler:
     """
-    Main Flow DSL compiler.
+    Main Scene DSL compiler.
 
     Coordinates all compilation stages:
     1. Parse source code into IR
-    2. Analyze control flow and assign router IDs
-    3. Generate router code
-    4. Emit final Python code
+    2. Generate router code
+    3. Emit final Python code
     """
 
-    def __init__(self, check_infinite_loops: bool = True, verbose: bool = False):
+    def __init__(self, verbose: bool = False):
         """
         Initialize compiler.
 
         Args:
-            check_infinite_loops: Enable infinite loop detection
             verbose: Show all errors and warnings
         """
-        self.check_infinite_loops = check_infinite_loops
         self.verbose = verbose
         self.warnings: list[str] = []
-        self.flow_ir: SceneIR | None = None
+        self.scene_ir: SceneIR | None = None
 
     def compile_file(self, source_file: str, output_file: str | None = None) -> str:
         """
@@ -76,10 +72,10 @@ class SceneCompiler:
 
     def compile(self, source_code: str, source_file: str = "<string>") -> str:
         """
-        Compile flow source code to generated Python code.
+        Compile scene source code to generated Python code.
 
         Args:
-            source_code: Flow source code
+            source_code: Scene source code
             source_file: Source file name (for error messages)
 
         Returns:
@@ -90,38 +86,30 @@ class SceneCompiler:
         """
         # Stage 1: Parse
         parser = SceneParser(source_file, source_code)
-        flow_ir = parser.parse()
+        scene_ir = parser.parse()
 
-        if flow_ir is None or parser.errors:
+        if scene_ir is None or parser.errors:
             raise SceneCompileError(parser.errors, source_file, parser.source_lines)
 
-        # Stage 2: Analyze
-        analyzer = ControlFlowAnalyzer(flow_ir.name, flow_ir.param_name, self.check_infinite_loops)
-        flow_ir = analyzer.analyze(flow_ir)
+        # Store scene IR for diagram generation
+        self.scene_ir = scene_ir
 
-        # Store flow IR for diagram generation
-        self.flow_ir = flow_ir
-
-        # Collect warnings
-        if analyzer.warnings:
-            self.warnings.extend(analyzer.warnings)
-
-        # Stage 3: Generate routers
-        generator = RouterGenerator(flow_ir)
+        # Stage 2: Generate routers
+        generator = RouterGenerator(scene_ir)
         routers = generator.generate()
 
-        # Stage 4: Emit code
-        emitter = CodeEmitter(flow_ir, routers, source_code)
+        # Stage 3: Emit code
+        emitter = CodeEmitter(scene_ir, routers, source_code)
         generated_code = emitter.emit()
 
         return generated_code
 
     def validate(self, source_code: str, source_file: str = "<string>") -> bool:
         """
-        Validate flow source code without generating output.
+        Validate scene source code without generating output.
 
         Args:
-            source_code: Flow source code
+            source_code: Scene source code
             source_file: Source file name (for error messages)
 
         Returns:
@@ -132,17 +120,10 @@ class SceneCompiler:
         """
         # Just run parser
         parser = SceneParser(source_file, source_code)
-        flow_ir = parser.parse()
+        scene_ir = parser.parse()
 
-        if flow_ir is None or parser.errors:
+        if scene_ir is None or parser.errors:
             raise SceneCompileError(parser.errors, source_file, parser.source_lines)
-
-        # Run analyzer to check for warnings
-        analyzer = ControlFlowAnalyzer(flow_ir.name, flow_ir.param_name, self.check_infinite_loops)
-        analyzer.analyze(flow_ir)
-
-        if analyzer.warnings:
-            self.warnings.extend(analyzer.warnings)
 
         return True
 
@@ -152,46 +133,43 @@ class SceneCompiler:
 
     def show_mappings(self, source_code: str, source_file: str = "<string>") -> dict[str, str]:
         """
-        Show handler → actor name mappings for a flow.
+        Show actor → qualified name mappings for a scene.
 
         Args:
-            source_code: Flow source code
+            source_code: Scene source code
             source_file: Source file name
 
         Returns:
-            Dictionary of handler_name → qualified_name
+            Dictionary of display_name → qualified_name
 
         Raises:
             SceneCompileError: If parsing fails
         """
         parser = SceneParser(source_file, source_code)
-        flow_ir = parser.parse()
+        scene_ir = parser.parse()
 
-        if flow_ir is None or parser.errors:
+        if scene_ir is None or parser.errors:
             raise SceneCompileError(parser.errors, source_file, parser.source_lines)
 
-        # Extract all handler calls
-        from asya_cli.scene.ir import HandlerCall, IfBlock, Operation, WhileLoop
+        # Extract all actor calls
+        from asya_cli.scene.ir import ActorCall, Router
 
-        def collect_handlers(ops: list[Operation]) -> dict[str, str]:
+        def collect_actors(steps: list[ActorCall | Router]) -> dict[str, str]:
             mappings = {}
-            for op in ops:
-                if isinstance(op, HandlerCall):
-                    mappings[op.func_name] = op.qualified_name
-                elif isinstance(op, IfBlock):
-                    mappings.update(collect_handlers(op.then_ops))
-                    for _, _, elif_ops in op.elif_blocks:
-                        mappings.update(collect_handlers(elif_ops))
-                    mappings.update(collect_handlers(op.else_ops))
-                elif isinstance(op, WhileLoop):
-                    mappings.update(collect_handlers(op.body_ops))
+            for step in steps:
+                if isinstance(step, ActorCall):
+                    mappings[step.display_name] = step.qualified_name
+                elif isinstance(step, Router):
+                    for op in step.operations:
+                        if isinstance(op, ActorCall):
+                            mappings[op.display_name] = op.qualified_name
             return mappings
 
-        return collect_handlers(flow_ir.operations)
+        return collect_actors(scene_ir.steps)
 
     def generate_diagram(self, output_dot: str | None = None, output_png: str | None = None) -> tuple[str, str | None]:
         """
-        Generate flow diagram after compilation.
+        Generate scene diagram after compilation.
 
         Must be called after compile() or compile_file().
 
@@ -207,7 +185,7 @@ class SceneCompiler:
             RuntimeError: If called before compilation
             FileNotFoundError: If graphviz not found (only when output_png specified)
         """
-        if self.flow_ir is None:
-            raise RuntimeError("Must compile flow before generating diagram")
+        if self.scene_ir is None:
+            raise RuntimeError("Must compile scene before generating diagram")
 
-        return generate_diagram(self.flow_ir, output_dot, output_png)
+        return generate_diagram(self.scene_ir, output_dot, output_png)

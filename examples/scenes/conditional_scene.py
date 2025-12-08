@@ -13,7 +13,7 @@ When deploying compiled routers, set environment variables:
 """
 
 
-def flow_conditional_routing(p: dict) -> dict:
+def conditional_scene(p: dict) -> dict:
     p = handler_validate_input(p)
 
     if p["type"] == "A":

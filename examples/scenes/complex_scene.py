@@ -5,7 +5,7 @@ Demonstrates nested control structures combining if/else and while loops.
 """
 
 
-def flow_complex_workflow(p: dict) -> dict:
+def complex_scene(p: dict) -> dict:
     p = handler_preprocess(p)
     p = handler_validate(p)
 

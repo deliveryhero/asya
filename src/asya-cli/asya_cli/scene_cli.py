@@ -21,10 +21,9 @@ from asya_cli.scene import SceneCompileError, SceneCompiler
 
 
 def cmd_compile(args):
-    """Compile flow file."""
+    """Compile scene file."""
     try:
         compiler = SceneCompiler(
-            check_infinite_loops=not args.disable_infinite_loop_check,
             verbose=args.verbose,
         )
 
@@ -83,10 +82,9 @@ def cmd_compile(args):
 
 
 def cmd_validate(args):
-    """Validate flow file."""
+    """Validate scene file."""
     try:
         compiler = SceneCompiler(
-            check_infinite_loops=not args.disable_infinite_loop_check,
             verbose=args.verbose,
         )
 
