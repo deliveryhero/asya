@@ -51,6 +51,10 @@ class PayloadMutation(Operation):
     value_str: str
     value_ast: ast.expr
 
+    def __str__(self) -> str:
+        """Serialize back to parsed syntax (right-hand side only)."""
+        return self.value_str
+
 
 @dataclass
 class ClassInstantiation(Operation):
@@ -72,6 +76,10 @@ class ClassInstantiation(Operation):
     qualified_name: str
     args: list[ast.expr] = field(default_factory=list)
     kwargs: dict[str, ast.expr] = field(default_factory=dict)
+
+    def __str__(self) -> str:
+        """Serialize back to parsed syntax."""
+        return f'{self.var_name} = {self.class_name}()'
 
 
 @dataclass
@@ -143,6 +151,10 @@ class ActorCall(Operation):
 
     qualified_name: str
     display_name: str
+
+    def __str__(self) -> str:
+        """Serialize back to parsed syntax (without param context)."""
+        return self.display_name
 
 
 @dataclass

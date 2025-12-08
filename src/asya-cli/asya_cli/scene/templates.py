@@ -75,7 +75,7 @@ def get_resolve_function() -> str:
             if handler_full_name not in resolve._handler_to_actor:
                 raise ValueError(
                     f"Handler '{handler_full_name}' not found in environment variables. "
-                    f"Expected ASYA_HANDLER_<ACTOR_NAME>="{handler_full_name}" to be set. "
+                    f'Expected ASYA_HANDLER_<ACTOR_NAME>="{handler_full_name}" to be set. '
                     f"See loaded handlers mapping: {resolve._handler_to_actor}"
                 )
 

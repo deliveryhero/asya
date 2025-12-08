@@ -81,7 +81,7 @@ class ImportTracker:
 
 class SceneParser:
     """
-    Parse Python source code into Flow IR.
+    Parse Python source code into Scene IR.
 
     Validates DSL constraints and builds intermediate representation.
     """
@@ -319,7 +319,7 @@ class SceneParser:
             # Return statements should not appear in router ops
             self.errors.append(
                 create_error(
-                    message="Return statement inside control flow not supported",
+                    message="Return statement inside control scene not supported",
                     node=stmt,
                     source_file=self.source_file,
                     source_lines=self.source_lines,
@@ -336,7 +336,7 @@ class SceneParser:
                     node=stmt,
                     source_file=self.source_file,
                     source_lines=self.source_lines,
-                    explanation="Scene DSL only supports 'while' loops for clear async control flow",
+                    explanation="Scene DSL only supports 'while' loops for clear async control scene",
                     fix_hint="Convert to while loop with explicit index: i = 0; while i < len(items): ...; i += 1",
                 )
             )
@@ -656,13 +656,13 @@ class SceneParser:
         # Extract imports
         imports = self._extract_imports(tree)
 
-        # Find flow function
-        flow_func = self._find_flow_function(tree)
-        if not flow_func:
+        # Find scene function
+        scene_func = self._find_scene_function(tree)
+        if not scene_func:
             return None
 
         # Validate function signature FIRST (so param_name is set)
-        param_name = self._validate_signature(flow_func)
+        param_name = self._validate_signature(scene_func)
         if param_name is None:
             return None
 
@@ -670,16 +670,16 @@ class SceneParser:
         self.param_name = param_name
 
         # Parse function body
-        steps = self._parse_function_body(flow_func)
+        steps = self._parse_function_body(scene_func)
         if steps is None:
             return None
 
         return SceneIR(
-            name=flow_func.name,
+            name=scene_func.name,
             param_name=param_name,
             steps=steps,
             source_file=self.source_file,
-            lineno=flow_func.lineno,
+            lineno=scene_func.lineno,
             imports=imports,
             class_instances=self.class_instances,
         )
@@ -702,52 +702,52 @@ class SceneParser:
 
         return imports
 
-    def _find_flow_function(self, tree: ast.Module) -> ast.FunctionDef | None:
+    def _find_scene_function(self, tree: ast.Module) -> ast.FunctionDef | None:
         """
         Find the scene function in the module.
 
-        For now, looks for function with name starting with 'flow'.
+        For now, looks for function with name starting with 'scene'.
         Later we can make this configurable.
         """
-        flow_functions = []
+        scene_functions = []
 
         for node in tree.body:
-            if isinstance(node, ast.FunctionDef) and node.name.startswith("flow"):
-                flow_functions.append(node)
+            if isinstance(node, ast.FunctionDef) and "scene" in node.name:
+                scene_functions.append(node)
 
-        if not flow_functions:
+        if not scene_functions:
             from asya_cli.scene.errors import SourceLocation
 
             location = SourceLocation(line=1, col=0, source_file=self.source_file)
             self.errors.append(
                 CompileError(
                     location=location,
-                    message="No flow function found",
-                    explanation="Flow file must contain a function with name starting with 'flow'",
-                    fix_hint="Define a function like: def flow_my_pipeline(p: dict) -> dict:",
+                    message="No scene function found",
+                    explanation="Scene file must contain a function with name starting with 'scene'",
+                    fix_hint="Define a function like: def scene_my_pipeline(p: dict) -> dict:",
                 )
             )
             return None
 
-        if len(flow_functions) > 1:
+        if len(scene_functions) > 1:
             from asya_cli.scene.errors import SourceLocation
 
             location = SourceLocation(line=1, col=0, source_file=self.source_file)
             self.errors.append(
                 CompileError(
                     location=location,
-                    message=f"Multiple flow functions found: {[f.name for f in flow_functions]}",
-                    explanation="Flow file should contain only one flow function",
-                    fix_hint="Keep only one flow function, or compile them separately",
+                    message=f"Multiple scene functions found: {[f.name for f in scene_functions]}",
+                    explanation="Scene file should contain only one scene function",
+                    fix_hint="Keep only one scene function, or compile them separately",
                 )
             )
             return None
 
-        return flow_functions[0]
+        return scene_functions[0]
 
     def _validate_signature(self, func: ast.FunctionDef) -> str | None:
         """
-        Validate function signature: def flow_name(p: dict) -> dict
+        Validate function signature: def scene_name(p: dict) -> dict
 
         Returns:
             Parameter name if valid, None otherwise
@@ -756,11 +756,11 @@ class SceneParser:
         if len(func.args.args) != 1:
             self.errors.append(
                 create_error(
-                    message=f"Flow function must have exactly 1 parameter, got {len(func.args.args)}",
+                    message=f"Scene function must have exactly 1 parameter, got {len(func.args.args)}",
                     node=func,
                     source_file=self.source_file,
                     source_lines=self.source_lines,
-                    explanation="Flow DSL requires single dict parameter for payload",
+                    explanation="Scene DSL requires single dict parameter for payload",
                     fix_hint=f"Change signature to: def {func.name}(p: dict) -> dict:",
                 )
             )
@@ -777,7 +777,7 @@ class SceneParser:
                     node=param,
                     source_file=self.source_file,
                     source_lines=self.source_lines,
-                    explanation="Flow DSL requires typed parameter for clarity",
+                    explanation="Scene DSL requires typed parameter for clarity",
                     fix_hint=f"Change to: {param_name}: dict",
                 )
             )
@@ -787,11 +787,11 @@ class SceneParser:
         if not func.returns:
             self.errors.append(
                 create_error(
-                    message="Flow function must have return type annotation '-> dict'",
+                    message="Scene function must have return type annotation '-> dict'",
                     node=func,
                     source_file=self.source_file,
                     source_lines=self.source_lines,
-                    explanation="Flow DSL requires return type for clarity",
+                    explanation="Scene DSL requires return type for clarity",
                     fix_hint=f"Change signature to: def {func.name}({param_name}: dict) -> dict:",
                 )
             )
@@ -805,7 +805,7 @@ class SceneParser:
 
         Grouping algorithm:
         - Top-level p = handler(p) → Scene-level ActorCall
-        - Control flow / mutations → Grouped into Router
+        - Control scene / mutations → Grouped into Router
         - Return statement → Implicit, validate but don't include in IR
         """
         steps: list[ActorCall | Router] = []
