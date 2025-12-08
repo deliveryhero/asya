@@ -51,8 +51,8 @@ def cmd_compile(args):
                 try:
                     compiler.generate_diagram(output_dot=dot_file, output_png=None)
                     print(f"[+] DOT file still generated: {dot_file}", file=sys.stderr)
-                except Exception:
-                    pass
+                except Exception as ex:
+                    print(f"[!] Failed to generate DOT file: {ex}", file=sys.stderr)
             except RuntimeError as e:
                 print(f"[!] Warning: {e}", file=sys.stderr)
                 print(f"[+] DOT file still generated: {dot_file}", file=sys.stderr)
