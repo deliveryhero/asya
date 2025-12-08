@@ -109,44 +109,6 @@ class SceneParser:
         """Generate unique router ID: router_{scene}_line_xx_{type}."""
         return f"router_{self.scene_name}_line_{line}_{flow_type}"
 
-    def _split_operations_at_actor_calls(
-        self, operations: list[PayloadMutation | ClassInstantiation | Label | ConditionalGoto | Goto | ActorCall]
-    ) -> list[list[PayloadMutation | ClassInstantiation | Label | ConditionalGoto | Goto | ActorCall]]:
-        """
-        Split operations at ActorCall boundaries when followed by mutations.
-
-        This ensures mutations after actor calls operate on the actor's result, not the original payload.
-        """
-        if not operations:
-            return [operations]
-
-        chunks = []
-        current_chunk = []
-
-        for i, op in enumerate(operations):
-            current_chunk.append(op)
-
-            if isinstance(op, ActorCall):
-                # Check if there are any mutations after this actor call (before next actor/control flow)
-                has_mutations_after = False
-                for next_op in operations[i + 1:]:
-                    if isinstance(next_op, (ActorCall, Label, ConditionalGoto, Goto)):
-                        # Hit control flow or another actor - stop checking
-                        break
-                    if isinstance(next_op, (PayloadMutation, ClassInstantiation)):
-                        has_mutations_after = True
-                        break
-
-                if has_mutations_after:
-                    # Flush current chunk
-                    chunks.append(current_chunk)
-                    current_chunk = []
-
-        # Add remaining operations
-        if current_chunk:
-            chunks.append(current_chunk)
-
-        return chunks if len(chunks) > 1 else [operations]
 
     def _flush_router_ops(
         self,
@@ -154,19 +116,12 @@ class SceneParser:
         router_ops: list[PayloadMutation | ClassInstantiation | Label | ConditionalGoto | Goto | ActorCall],
         router_start_line: int
     ) -> None:
-        """Flush router operations as one or more routers (split at actor calls if needed)."""
-        chunks = self._split_operations_at_actor_calls(router_ops)
-        for chunk in chunks:
-            flow_type = self._detect_router_type(chunk)
-            chunk_line = chunk[0].line if chunk else router_start_line
-            steps.append(
-                Router(
-                    line=chunk_line,
-                    col=0,
-                    router_id=self._new_router_id(flow_type, chunk_line),
-                    operations=chunk,
-                )
-            )
+        """Flush router operations by optimizing them into grouped routers."""
+        from asya_cli.scene.optimizer import RouterOptimizer
+
+        optimizer = RouterOptimizer(self.scene_name)
+        routers = optimizer.optimize(router_ops)
+        steps.extend(routers)
 
     def _detect_router_type(self, operations: list) -> str:
         """Detect primary control flow type from router operations."""

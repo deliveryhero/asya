@@ -125,9 +125,11 @@ class Goto(Operation):
 
     Attributes:
         target: Target label name
+        target_router_id: Resolved router ID to jump to (filled by optimizer)
     """
 
     target: str
+    target_router_id: str | None = None
 
 
 # ======================================================================
@@ -147,10 +149,13 @@ class ActorCall(Operation):
     Attributes:
         qualified_name: Full qualified name for resolve() (e.g., "my_module.handler")
         display_name: Name for display in diagrams (e.g., "handler")
+        continuation_router_id: Optional router to route to after this actor completes
+                                (used when there are mutations/operations after actor call)
     """
 
     qualified_name: str
     display_name: str
+    continuation_router_id: str | None = None
 
     def __str__(self) -> str:
         """Serialize back to parsed syntax (without param context)."""

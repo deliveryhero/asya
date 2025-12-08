@@ -105,7 +105,7 @@ class RouterGenerator:
         lines.extend(operation_lines)
 
         lines.append("")
-        lines.append("    # Assign accumulated actors to route")
+        lines.append("    # Set these actors as next immediate steps")
         lines.append("    r['actors'][c+1:c+1] = _next_actors")
         lines.append("    return envelope")
 
@@ -151,7 +151,11 @@ class RouterGenerator:
                 i += 1
 
             elif isinstance(op, ActorCall):
+                # Route to actor
                 lines.append(f"{base_indent}_next_actors.append({self._format_actor(op.qualified_name)})")
+                # If actor has continuation, route to continuation router after actor
+                if op.continuation_router_id:
+                    lines.append(f"{base_indent}_next_actors.append({self._format_actor(op.continuation_router_id)})")
                 i += 1
 
             elif isinstance(op, Label):
@@ -166,30 +170,20 @@ class RouterGenerator:
                 i = next_i
 
             elif isinstance(op, Goto):
-                # Handle different goto targets
+                # Handle goto - explicit routing to target router
                 if op.target == "scene_exit":
-                    # Early return: assign accumulated actors + end, then return
+                    # Early return: route to end actor
                     scene_name = self.scene_ir.name
                     end_actor = f"end_{scene_name}"
-                    lines.append(f"{base_indent}# return: assign accumulated actors + end, skip remaining")
-                    lines.append(f"{base_indent}r['actors'][c+1:] = _next_actors + [{self._format_actor(end_actor)}]")
-                    lines.append(f"{base_indent}return envelope")
-                elif loop_info and router_id:
-                    # Generate route rewriting for loop control (continue/break)
-                    if op.target == loop_info["start_label"]:
-                        # Continue: re-add this router to route
-                        lines.append(f"{base_indent}# continue: re-queue loop router")
-                        lines.append(f"{base_indent}_next_actors.append({self._format_actor(router_id)})")
-                    elif op.target == loop_info["exit_label"]:
-                        # Break: do nothing (fall through)
-                        lines.append(f"{base_indent}# break: exit loop")
-                        lines.append(f"{base_indent}pass")
-                    else:
-                        # Other goto
-                        lines.append(f"{base_indent}# Goto: {op.target}")
+                    lines.append(f"{base_indent}# return - route to end")
+                    lines.append(f"{base_indent}_next_actors.append({self._format_actor(end_actor)})")
+                elif op.target_router_id:
+                    # Route to resolved target router (continue/break/other goto)
+                    lines.append(f"{base_indent}# goto {op.target} - route to target router")
+                    lines.append(f"{base_indent}_next_actors.append({self._format_actor(op.target_router_id)})")
                 else:
-                    # Not in a loop, just comment
-                    lines.append(f"{base_indent}# Goto: {op.target}")
+                    # Unresolved goto (should not happen after optimization)
+                    lines.append(f"{base_indent}# Unresolved goto: {op.target}")
                 i += 1
 
             else:
@@ -365,7 +359,11 @@ class RouterGenerator:
                 i += 1
 
             elif isinstance(op, ActorCall):
+                # Route to actor
                 lines.append(f"{base_indent}_next_actors.append({self._format_actor(op.qualified_name)})")
+                # If actor has continuation, route to continuation router after actor
+                if op.continuation_router_id:
+                    lines.append(f"{base_indent}_next_actors.append({self._format_actor(op.continuation_router_id)})")
                 i += 1
 
             elif isinstance(op, Label):
@@ -381,28 +379,20 @@ class RouterGenerator:
                 i = next_i
 
             elif isinstance(op, Goto):
-                # Handle different goto targets
+                # Handle goto - explicit routing to target router
                 if op.target == "scene_exit":
-                    # Early return: assign accumulated actors + end, then return
+                    # Early return: route to end actor
                     scene_name = self.scene_ir.name
                     end_actor = f"end_{scene_name}"
-                    lines.append(f"{base_indent}# return: assign accumulated actors + end, skip remaining")
-                    lines.append(f"{base_indent}r['actors'][c+1:] = _next_actors + [{self._format_actor(end_actor)}]")
-                    lines.append(f"{base_indent}return envelope")
-                elif loop_info and router_id:
-                    # Generate route rewriting for loop control (continue/break)
-                    if op.target == loop_info["start_label"]:
-                        # Continue: re-add this router to route
-                        lines.append(f"{base_indent}# continue: re-queue loop router")
-                        lines.append(f"{base_indent}_next_actors.append({self._format_actor(router_id)})")
-                    elif op.target == loop_info["exit_label"]:
-                        # Break: do nothing (fall through)
-                        lines.append(f"{base_indent}# break: exit loop")
-                        lines.append(f"{base_indent}pass")
-                    else:
-                        # Other goto - just skip
-                        pass
-                # Gotos mark end of branch, always advance
+                    lines.append(f"{base_indent}# return - route to end")
+                    lines.append(f"{base_indent}_next_actors.append({self._format_actor(end_actor)})")
+                elif op.target_router_id:
+                    # Route to resolved target router (continue/break/other goto)
+                    lines.append(f"{base_indent}# goto {op.target} - route to target router")
+                    lines.append(f"{base_indent}_next_actors.append({self._format_actor(op.target_router_id)})")
+                else:
+                    # Unresolved goto (should not happen after optimization)
+                    lines.append(f"{base_indent}# Unresolved goto: {op.target}")
                 i += 1
 
             else:
