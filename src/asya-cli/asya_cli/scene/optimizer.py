@@ -33,9 +33,8 @@ class RouterOptimizer:
         self.router_counter = 0
 
     def _new_router_id(self, flow_type: str, line: int) -> str:
-        """Generate unique router ID."""
-        self.router_counter += 1
-        return f"router_{self.scene_name}_line_{line}_{flow_type}_{self.router_counter}"
+        """Generate router ID based on line and flow type."""
+        return f"router_{self.scene_name}_line_{line}_{flow_type}"
 
     def _detect_router_type(
         self, operations: list[PayloadMutation | ClassInstantiation | Label | ConditionalGoto | Goto | ActorCall]

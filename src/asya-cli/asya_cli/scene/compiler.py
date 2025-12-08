@@ -10,7 +10,7 @@ from asya_cli.scene.diagram import generate_diagram
 from asya_cli.scene.emitter import CodeEmitter
 from asya_cli.scene.errors import SceneCompileError
 from asya_cli.scene.generator import RouterGenerator
-from asya_cli.scene.ir import SceneIR
+from asya_cli.scene.ir import SceneIR, ActorCall, Router
 from asya_cli.scene.parser import SceneParser
 
 
@@ -70,7 +70,7 @@ class SceneCompiler:
 
         return str(output_path)
 
-    def compile(self, source_code: str, source_file: str = "<string>") -> str:
+    def compile(self, source_code: str, source_file: str) -> str:
         """
         Compile scene source code to generated Python code.
 
@@ -104,7 +104,7 @@ class SceneCompiler:
 
         return generated_code
 
-    def validate(self, source_code: str, source_file: str = "<string>") -> bool:
+    def validate(self, source_code: str, source_file: str) -> bool:
         """
         Validate scene source code without generating output.
 
@@ -131,7 +131,7 @@ class SceneCompiler:
         """Get all warnings from last compilation."""
         return self.warnings
 
-    def show_mappings(self, source_code: str, source_file: str = "<string>") -> dict[str, str]:
+    def show_mappings(self, source_code: str, source_file: str) -> dict[str, str]:
         """
         Show actor → qualified name mappings for a scene.
 
@@ -150,9 +150,6 @@ class SceneCompiler:
 
         if scene_ir is None or parser.errors:
             raise SceneCompileError(parser.errors, source_file, parser.source_lines)
-
-        # Extract all actor calls
-        from asya_cli.scene.ir import ActorCall, Router
 
         def collect_actors(steps: list[ActorCall | Router]) -> dict[str, str]:
             mappings = {}
