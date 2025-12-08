@@ -6,16 +6,16 @@ Main orchestrator that coordinates parsing, analysis, generation, and emission.
 
 from pathlib import Path
 
-from asya_cli.flow.analyzer import ControlFlowAnalyzer
-from asya_cli.flow.diagram import generate_diagram
-from asya_cli.flow.emitter import CodeEmitter
-from asya_cli.flow.errors import FlowCompileError
-from asya_cli.flow.generator import RouterGenerator
-from asya_cli.flow.ir import FlowIR
-from asya_cli.flow.parser import FlowParser
+from asya_cli.scene.analyzer import ControlFlowAnalyzer
+from asya_cli.scene.diagram import generate_diagram
+from asya_cli.scene.emitter import CodeEmitter
+from asya_cli.scene.errors import SceneCompileError
+from asya_cli.scene.generator import RouterGenerator
+from asya_cli.scene.ir import SceneIR
+from asya_cli.scene.parser import SceneParser
 
 
-class FlowCompiler:
+class SceneCompiler:
     """
     Main Flow DSL compiler.
 
@@ -37,7 +37,7 @@ class FlowCompiler:
         self.check_infinite_loops = check_infinite_loops
         self.verbose = verbose
         self.warnings: list[str] = []
-        self.flow_ir: FlowIR | None = None
+        self.flow_ir: SceneIR | None = None
 
     def compile_file(self, source_file: str, output_file: str | None = None) -> str:
         """
@@ -51,7 +51,7 @@ class FlowCompiler:
             Path to output file
 
         Raises:
-            FlowCompileError: If compilation fails
+            SceneCompileError: If compilation fails
             FileNotFoundError: If source file doesn't exist
         """
         source_path = Path(source_file)
@@ -86,14 +86,14 @@ class FlowCompiler:
             Generated Python code
 
         Raises:
-            FlowCompileError: If compilation fails
+            SceneCompileError: If compilation fails
         """
         # Stage 1: Parse
-        parser = FlowParser(source_file, source_code)
+        parser = SceneParser(source_file, source_code)
         flow_ir = parser.parse()
 
         if flow_ir is None or parser.errors:
-            raise FlowCompileError(parser.errors, source_file, parser.source_lines)
+            raise SceneCompileError(parser.errors, source_file, parser.source_lines)
 
         # Stage 2: Analyze
         analyzer = ControlFlowAnalyzer(flow_ir.name, flow_ir.param_name, self.check_infinite_loops)
@@ -128,14 +128,14 @@ class FlowCompiler:
             True if valid, False otherwise
 
         Raises:
-            FlowCompileError: If validation fails
+            SceneCompileError: If validation fails
         """
         # Just run parser
-        parser = FlowParser(source_file, source_code)
+        parser = SceneParser(source_file, source_code)
         flow_ir = parser.parse()
 
         if flow_ir is None or parser.errors:
-            raise FlowCompileError(parser.errors, source_file, parser.source_lines)
+            raise SceneCompileError(parser.errors, source_file, parser.source_lines)
 
         # Run analyzer to check for warnings
         analyzer = ControlFlowAnalyzer(flow_ir.name, flow_ir.param_name, self.check_infinite_loops)
@@ -162,16 +162,16 @@ class FlowCompiler:
             Dictionary of handler_name → qualified_name
 
         Raises:
-            FlowCompileError: If parsing fails
+            SceneCompileError: If parsing fails
         """
-        parser = FlowParser(source_file, source_code)
+        parser = SceneParser(source_file, source_code)
         flow_ir = parser.parse()
 
         if flow_ir is None or parser.errors:
-            raise FlowCompileError(parser.errors, source_file, parser.source_lines)
+            raise SceneCompileError(parser.errors, source_file, parser.source_lines)
 
         # Extract all handler calls
-        from asya_cli.flow.ir import HandlerCall, IfBlock, Operation, WhileLoop
+        from asya_cli.scene.ir import HandlerCall, IfBlock, Operation, WhileLoop
 
         def collect_handlers(ops: list[Operation]) -> dict[str, str]:
             mappings = {}

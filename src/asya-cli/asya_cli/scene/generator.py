@@ -4,12 +4,12 @@ Router code generator for Flow DSL.
 Generates router functions from Flow IR.
 """
 
-from asya_cli.flow.ir import (
+from asya_cli.scene.ir import (
     Assignment,
     Break,
     ClassInstantiation,
     Continue,
-    FlowIR,
+    SceneIR,
     HandlerCall,
     IfBlock,
     Operation,
@@ -20,7 +20,7 @@ from asya_cli.flow.ir import (
 class RouterGenerator:
     """Generate router functions from Flow IR."""
 
-    def __init__(self, flow_ir: FlowIR):
+    def __init__(self, flow_ir: SceneIR):
         self.flow_ir = flow_ir
         self.routers: list[tuple[str, str, str]] = []  # (router_id, docstring, code)
         self.inline_block_counter = 0  # Counter for generated inline operation actors

@@ -37,7 +37,7 @@ class CompileError:
     code_context: list[tuple[int, str]] | None = None
 
 
-class FlowCompileError(Exception):
+class SceneCompileError(Exception):
     """
     Exception raised when flow compilation fails.
 

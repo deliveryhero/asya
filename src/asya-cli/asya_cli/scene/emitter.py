@@ -4,14 +4,14 @@ Code emitter for Flow DSL compiler.
 Combines all generated code into final Python file.
 """
 
-from asya_cli.flow.ir import FlowIR, HandlerCall, IfBlock, Operation, WhileLoop
-from asya_cli.flow.templates import get_file_header, get_resolve_function
+from asya_cli.scene.ir import SceneIR, HandlerCall, IfBlock, Operation, WhileLoop
+from asya_cli.scene.templates import get_file_header, get_resolve_function
 
 
 class CodeEmitter:
     """Emit final Python code from Flow IR and generated routers."""
 
-    def __init__(self, flow_ir: FlowIR, routers: list[tuple[str, str, str]], source_code: str):
+    def __init__(self, flow_ir: SceneIR, routers: list[tuple[str, str, str]], source_code: str):
         """
         Initialize code emitter.
 

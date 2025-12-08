@@ -6,12 +6,12 @@ Parses Python source code into Flow IR, tracking imports and validating DSL cons
 
 import ast
 
-from asya_cli.flow.errors import CompileError, create_error
-from asya_cli.flow.ir import (
+from asya_cli.scene.errors import CompileError, create_error
+from asya_cli.scene.ir import (
     ActorCall,
-    Branch,
     ClassInstantiation,
-    FlowIR,
+    ConditionalGoto,
+    SceneIR,
     Goto,
     Label,
     Operation,
@@ -81,7 +81,7 @@ class ImportTracker:
         return self.imports.get(name, name)
 
 
-class FlowParser:
+class SceneParser:
     """
     Parse Python source code into Flow IR.
 
@@ -98,17 +98,17 @@ class FlowParser:
         self.errors: list[CompileError] = []
         self.param_name: str = "p"  # Default parameter name, updated after parsing signature
 
-    def parse(self) -> FlowIR | None:
+    def parse(self) -> SceneIR | None:
         """
-        Parse source code into FlowIR.
+        Parse source code into SceneIR.
 
         Returns:
-            FlowIR if successful, None if errors occurred
+            SceneIR if successful, None if errors occurred
         """
         try:
             tree = ast.parse(self.source_code, filename=self.source_file)
         except SyntaxError as e:
-            from asya_cli.flow.errors import SourceLocation, get_code_context
+            from asya_cli.scene.errors import SourceLocation, get_code_context
 
             location = SourceLocation(line=e.lineno or 1, col=e.offset or 0, source_file=self.source_file)
             context = get_code_context(self.source_lines, e.lineno or 1)
@@ -144,7 +144,7 @@ class FlowParser:
         if operations is None:
             return None
 
-        return FlowIR(
+        return SceneIR(
             name=flow_func.name,
             param_name=param_name,
             operations=operations,
@@ -186,7 +186,7 @@ class FlowParser:
                 flow_functions.append(node)
 
         if not flow_functions:
-            from asya_cli.flow.errors import SourceLocation
+            from asya_cli.scene.errors import SourceLocation
 
             location = SourceLocation(line=1, col=0, source_file=self.source_file)
             self.errors.append(
@@ -200,7 +200,7 @@ class FlowParser:
             return None
 
         if len(flow_functions) > 1:
-            from asya_cli.flow.errors import SourceLocation
+            from asya_cli.scene.errors import SourceLocation
 
             location = SourceLocation(line=1, col=0, source_file=self.source_file)
             self.errors.append(

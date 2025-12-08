@@ -2,11 +2,11 @@ import textwrap  # Standard Python library for wrapping text
 from pathlib import Path
 
 # Assuming these classes are available from your provided context
-from asya_cli.flow.ir import (
+from asya_cli.scene.ir import (
     Assignment,
     Break,
     Continue,
-    FlowIR,
+    SceneIR,
     HandlerCall,
     IfBlock,
     Operation,
@@ -22,7 +22,7 @@ class DiagramGenerator:
     Shows which router/actor executes which code using nested clusters.
     """
 
-    def __init__(self, flow_ir: FlowIR, max_label_width: int = 30):
+    def __init__(self, flow_ir: SceneIR, max_label_width: int = 30):
         """
         Initialize diagram generator.
 
@@ -306,7 +306,7 @@ class DiagramGenerator:
 
 
 def generate_diagram(
-    flow_ir: FlowIR, output_dot: str | None = None, output_png: str | None = None
+    flow_ir: SceneIR, output_dot: str | None = None, output_png: str | None = None
 ) -> tuple[str, str | None]:
     """
     Generate flow diagram.

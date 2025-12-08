@@ -6,11 +6,11 @@ Analyzes control flow, assigns router IDs, detects infinite loops.
 
 import ast
 
-from asya_cli.flow.ir import (
+from asya_cli.scene.ir import (
     Assignment,
     Break,
     Continue,
-    FlowIR,
+    SceneIR,
     IfBlock,
     Operation,
     WhileLoop,
@@ -31,7 +31,7 @@ class ControlFlowAnalyzer:
         self.warnings: list[str] = []
         self.loop_stack: list[WhileLoop] = []  # Track active loops for break/continue
 
-    def analyze(self, flow_ir: FlowIR) -> FlowIR:
+    def analyze(self, flow_ir: SceneIR) -> SceneIR:
         """
         Analyze flow and assign router IDs.
 
@@ -39,7 +39,7 @@ class ControlFlowAnalyzer:
             flow_ir: Flow intermediate representation
 
         Returns:
-            Updated FlowIR with router IDs assigned
+            Updated SceneIR with router IDs assigned
         """
         flow_ir.operations = self._analyze_ops(flow_ir.operations, depth=0, parent_continuation=[])
         return flow_ir

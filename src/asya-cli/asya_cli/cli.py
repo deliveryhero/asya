@@ -9,7 +9,7 @@ Usage:
     asya mcp status <envelope-id>
     asya mcp stream <envelope-id>
     asya mcp port-forward [options]
-    asya flow <subcommand> [args]
+    asya scene <subcommand> [args]
 """
 
 import argparse
@@ -43,7 +43,7 @@ def main() -> None:
     subparsers = parser.add_subparsers(dest="command", required=True, help="Available commands")
 
     subparsers.add_parser("mcp", help="MCP gateway tools", add_help=False)
-    subparsers.add_parser("flow", help="Flow DSL compiler", add_help=False)
+    subparsers.add_parser("scene", help="Scene DSL compiler", add_help=False)
 
     args, remaining = parser.parse_known_args()
 
@@ -52,10 +52,10 @@ def main() -> None:
 
         sys.argv = ["asya mcp", *remaining]
         mcp_main()
-    elif args.command == "flow":
-        from asya_cli.flow_cli import main as flow_main
+    elif args.command == "scene":
+        from asya_cli.scene_cli import main as scene_main
 
-        flow_main(remaining)
+        scene_main(remaining)
     else:
         parser.print_help()
         sys.exit(1)
