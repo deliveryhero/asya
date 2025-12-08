@@ -339,18 +339,35 @@ class SceneParser:
             return None
 
         elif isinstance(stmt, ast.Return):
-            # Return statements should not appear in router ops
-            self.errors.append(
-                create_error(
-                    message="Return statement inside control scene not supported",
-                    node=stmt,
-                    source_file=self.source_file,
-                    source_lines=self.source_lines,
-                    explanation="Return must be at top level of scene function",
-                    fix_hint="Move return to end of function",
+            # Early return inside control flow - compile to route to end actor
+            if not stmt.value:
+                self.errors.append(
+                    create_error(
+                        message="Return statement must return a value",
+                        node=stmt,
+                        source_file=self.source_file,
+                        source_lines=self.source_lines,
+                        explanation="Scene DSL requires returning the payload",
+                        fix_hint=f"Change to: return {self.param_name}",
+                    )
                 )
-            )
-            return None
+                return None
+
+            if not isinstance(stmt.value, ast.Name) or stmt.value.id != self.param_name:
+                self.errors.append(
+                    create_error(
+                        message=f"Return statement must return '{self.param_name}', got '{ast.unparse(stmt.value)}'",
+                        node=stmt.value,
+                        source_file=self.source_file,
+                        source_lines=self.source_lines,
+                        explanation="Scene DSL requires explicit payload return",
+                        fix_hint=f"Change to: return {self.param_name}",
+                    )
+                )
+                return None
+
+            # Generate Goto to scene exit (will route to end actor)
+            return [Goto(line=stmt.lineno, col=stmt.col_offset, target="scene_exit")]
 
         elif isinstance(stmt, ast.For):
             self.errors.append(
