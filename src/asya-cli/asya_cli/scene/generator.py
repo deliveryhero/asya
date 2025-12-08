@@ -163,8 +163,15 @@ class RouterGenerator:
                 i = next_i
 
             elif isinstance(op, Goto):
-                # Generate route rewriting for loop control (continue/break)
-                if loop_info and router_id:
+                # Handle different goto targets
+                if op.target == "scene_exit":
+                    # Early return: keep actors added so far, then add only end actor
+                    scene_name = self.scene_ir.name
+                    end_actor = f"end_{scene_name}"
+                    lines.append(f"{base_indent}# return: jump to scene end, skip remaining steps")
+                    lines.append(f"{base_indent}r['actors'] = r['actors'] + [{self._format_actor(end_actor)}]")
+                elif loop_info and router_id:
+                    # Generate route rewriting for loop control (continue/break)
                     if op.target == loop_info["start_label"]:
                         # Continue: re-add this router to route
                         lines.append(f"{base_indent}# continue: re-queue loop router")
@@ -370,8 +377,15 @@ class RouterGenerator:
                 i = next_i
 
             elif isinstance(op, Goto):
-                # Generate route rewriting for loop control (continue/break)
-                if loop_info and router_id:
+                # Handle different goto targets
+                if op.target == "scene_exit":
+                    # Early return: keep actors added so far, then add only end actor
+                    scene_name = self.scene_ir.name
+                    end_actor = f"end_{scene_name}"
+                    lines.append(f"{base_indent}# return: jump to scene end, skip remaining steps")
+                    lines.append(f"{base_indent}r['actors'] = r['actors'] + [{self._format_actor(end_actor)}]")
+                elif loop_info and router_id:
+                    # Generate route rewriting for loop control (continue/break)
                     if op.target == loop_info["start_label"]:
                         # Continue: re-add this router to route
                         lines.append(f"{base_indent}# continue: re-queue loop router")
