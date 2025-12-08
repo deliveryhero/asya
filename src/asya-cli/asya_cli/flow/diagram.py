@@ -125,36 +125,8 @@ class DiagramGenerator:
             elif isinstance(op, WhileLoop):
                 current_nodes = self._process_while_loop(op, current_nodes, end_node)
 
-            elif isinstance(op, Break):
-                if loop_end_node:
-                    for node in current_nodes:
-                        self.edges.append(f'  {node} -> {loop_end_node} [label="break", color=darkred];')
-                    return []
-                else:
-                    # Wrapping applied to diamond 'break' node
-                    label = self._escape_label(self._wrap_label("break"))
-                    break_node = self._new_node()
-                    self.dot_lines.append(
-                        f'  {break_node} [label="{label}", shape=diamond, style=filled, fillcolor=pink];'
-                    )
-                    for node in current_nodes:
-                        self.edges.append(f"  {node} -> {break_node};")
-                    return []
-
-            elif isinstance(op, Continue):
-                if loop_start_node:
-                    for node in current_nodes:
-                        self.edges.append(f'  {node} -> {loop_start_node} [label="continue", color=darkblue];')
-                    return []
-                else:
-                    label = self._escape_label(self._wrap_label("continue"))
-                    continue_node = self._new_node()
-                    self.dot_lines.append(
-                        f'  {continue_node} [label="{label}", shape=diamond, style=filled, fillcolor=lightblue];'
-                    )
-                    for node in current_nodes:
-                        self.edges.append(f"  {node} -> {continue_node};")
-                    return []
+            elif isinstance(op, Break) or isinstance(op, Continue):
+                return current_nodes
 
             elif isinstance(op, Return):
                 for node in current_nodes:
@@ -292,7 +264,7 @@ class DiagramGenerator:
         return branch_endings
 
     def _process_while_loop(self, op: WhileLoop, prev_nodes: list[str], end_node: str) -> list[str]:
-        """Process while loop as a router cluster."""
+        """Process while loop as a router cluster (simplified as if-like structure)."""
         cluster_id = self._new_cluster()
         router_name = op.router_id or "while_router"
 
@@ -313,21 +285,20 @@ class DiagramGenerator:
         for prev_node in prev_nodes:
             self.edges.append(f"  {prev_node} -> {condition_node};")
 
+        branch_endings = []
+
         if op.body_ops:
             num_edges_before = len(self.edges)
-            body_last_nodes = self._process_operations(
-                op.body_ops, [condition_node], end_node, router_name, condition_node, None
-            )
+            body_last_nodes = self._process_operations(op.body_ops, [condition_node], end_node, router_name, None, None)
             if len(self.edges) > num_edges_before and "label=" not in self.edges[num_edges_before]:
                 self.edges[num_edges_before] = (
                     self.edges[num_edges_before].rstrip(";") + ' [label="true", color=darkgreen];'
                 )
-            for body_last in body_last_nodes:
-                self.edges.append(f'  {body_last} -> {condition_node} [label="loop", color=darkblue];')
-        else:
-            self.edges.append(f'  {condition_node} -> {condition_node} [label="true", color=darkgreen];')
+            branch_endings.extend(body_last_nodes)
 
-        return [condition_node]
+        branch_endings.append(condition_node)
+
+        return branch_endings
 
     def _escape_label(self, text: str) -> str:
         """Escape special characters in DOT labels."""
