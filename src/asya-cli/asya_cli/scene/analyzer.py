@@ -10,9 +10,9 @@ from asya_cli.scene.ir import (
     Assignment,
     Break,
     Continue,
-    SceneIR,
     IfBlock,
     Operation,
+    SceneIR,
     WhileLoop,
 )
 

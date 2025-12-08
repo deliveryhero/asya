@@ -4,7 +4,7 @@ Code emitter for Flow DSL compiler.
 Combines all generated code into final Python file.
 """
 
-from asya_cli.scene.ir import SceneIR, HandlerCall, IfBlock, Operation, WhileLoop
+from asya_cli.scene.ir import HandlerCall, IfBlock, Operation, SceneIR, WhileLoop
 from asya_cli.scene.templates import get_file_header, get_resolve_function
 
 

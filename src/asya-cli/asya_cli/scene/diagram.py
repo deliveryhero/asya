@@ -6,11 +6,11 @@ from asya_cli.scene.ir import (
     Assignment,
     Break,
     Continue,
-    SceneIR,
     HandlerCall,
     IfBlock,
     Operation,
     Return,
+    SceneIR,
     WhileLoop,
 )
 
