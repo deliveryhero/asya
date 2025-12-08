@@ -100,7 +100,7 @@ class RouterGenerator:
         lines.append("")
 
         # Generate code from router operations
-        operation_lines = self._generate_router_operations(router.operations, indent=1)
+        operation_lines = self._generate_router_operations(router.operations, indent=1, router_id=router_id)
         lines.extend(operation_lines)
 
         lines.append("")
@@ -113,6 +113,7 @@ class RouterGenerator:
         self,
         operations: list[PayloadMutation | ClassInstantiation | Label | ConditionalGoto | Goto | ActorCall],
         indent: int = 0,
+        router_id: str | None = None,
     ) -> list[str]:
         """
         Generate code from router operations.
@@ -122,6 +123,10 @@ class RouterGenerator:
         lines = []
         param_name = self.scene_ir.param_name
         base_indent = "    " * indent
+
+        # Build label map and detect loop structure
+        label_map = self._build_label_map(operations)
+        loop_info = self._detect_loop_labels(operations, label_map) if router_id else None
 
         i = 0
         while i < len(operations):
@@ -153,13 +158,27 @@ class RouterGenerator:
 
             elif isinstance(op, ConditionalGoto):
                 # Generate if/else structure
-                if_lines, next_i = self._generate_conditional_block(operations, i, indent)
+                if_lines, next_i = self._generate_conditional_block(operations, i, indent, router_id, loop_info)
                 lines.extend(if_lines)
                 i = next_i
 
             elif isinstance(op, Goto):
-                # Gotos become comments
-                lines.append(f"{base_indent}# Goto: {op.target}")
+                # Generate route rewriting for loop control (continue/break)
+                if loop_info and router_id:
+                    if op.target == loop_info["start_label"]:
+                        # Continue: re-add this router to route
+                        lines.append(f"{base_indent}# continue: re-queue loop router")
+                        lines.append(f"{base_indent}r['actors'][c+1:c+1] = [{self._format_actor(router_id)}]")
+                    elif op.target == loop_info["exit_label"]:
+                        # Break: do nothing (fall through)
+                        lines.append(f"{base_indent}# break: exit loop")
+                        lines.append(f"{base_indent}pass")
+                    else:
+                        # Other goto
+                        lines.append(f"{base_indent}# Goto: {op.target}")
+                else:
+                    # Not in a loop, just comment
+                    lines.append(f"{base_indent}# Goto: {op.target}")
                 i += 1
 
             else:
@@ -168,11 +187,49 @@ class RouterGenerator:
 
         return lines
 
+    def _build_label_map(
+        self, operations: list[PayloadMutation | ClassInstantiation | Label | ConditionalGoto | Goto | ActorCall]
+    ) -> dict[str, int]:
+        """Build mapping of label names to their indices."""
+        label_map = {}
+        for idx, op in enumerate(operations):
+            if isinstance(op, Label):
+                label_map[op.name] = idx
+        return label_map
+
+    def _detect_loop_labels(
+        self,
+        operations: list[PayloadMutation | ClassInstantiation | Label | ConditionalGoto | Goto | ActorCall],
+        label_map: dict[str, int],
+    ) -> dict[str, str] | None:
+        """
+        Detect loop structure and return loop labels.
+
+        Returns dict with 'start_label' and 'exit_label' if loop detected, None otherwise.
+        """
+        # Look for backward jumps (goto to earlier label)
+        for idx, op in enumerate(operations):
+            if isinstance(op, Goto):
+                target_idx = label_map.get(op.target)
+                if target_idx is not None and target_idx < idx:
+                    # Backward jump found - this is a loop
+                    start_label = op.target
+                    # Find the exit label by looking for forward jumps from ConditionalGoto
+                    for cond_op in operations:
+                        if isinstance(cond_op, ConditionalGoto):
+                            if cond_op.false_target and cond_op.false_target in label_map:
+                                false_idx = label_map[cond_op.false_target]
+                                if false_idx > target_idx:
+                                    return {"start_label": start_label, "exit_label": cond_op.false_target}
+        return None
+
     def _generate_conditional_block(
         self,
         operations: list[PayloadMutation | ClassInstantiation | Label | ConditionalGoto | Goto | ActorCall],
         start_idx: int,
         indent: int,
+        router_id: str | None = None,
+        loop_info: dict[str, str] | None = None,
     ) -> tuple[list[str], int]:
         """
         Generate if/else block from ConditionalGoto pattern.
@@ -202,7 +259,9 @@ class RouterGenerator:
         # Generate true branch (process range in-place, no slicing)
         if true_start != -1:
             true_end = self._find_branch_end(operations, true_start + 1, label_map)
-            branch_lines = self._generate_operations_range(operations, true_start + 1, true_end, indent + 1, label_map)
+            branch_lines = self._generate_operations_range(
+                operations, true_start + 1, true_end, indent + 1, label_map, None, router_id, loop_info
+            )
             if branch_lines:
                 lines.extend(branch_lines)
             else:
@@ -212,7 +271,9 @@ class RouterGenerator:
         if false_start != -1:
             lines.append(f"{base_indent}else:")
             false_end = self._find_branch_end(operations, false_start + 1, label_map)
-            branch_lines = self._generate_operations_range(operations, false_start + 1, false_end, indent + 1, label_map)
+            branch_lines = self._generate_operations_range(
+                operations, false_start + 1, false_end, indent + 1, label_map, None, router_id, loop_info
+            )
             if branch_lines:
                 lines.extend(branch_lines)
             else:
@@ -253,6 +314,8 @@ class RouterGenerator:
         indent: int,
         label_map: dict[str, int],
         visited: set[int] | None = None,
+        router_id: str | None = None,
+        loop_info: dict[str, str] | None = None,
     ) -> list[str]:
         """
         Generate code for a range of operations without slicing.
@@ -300,12 +363,27 @@ class RouterGenerator:
 
             elif isinstance(op, ConditionalGoto):
                 # Recursively generate nested if/else
-                if_lines, next_i = self._generate_conditional_block_with_map(operations, i, indent, label_map, visited)
+                if_lines, next_i = self._generate_conditional_block_with_map(
+                    operations, i, indent, label_map, visited, router_id, loop_info
+                )
                 lines.extend(if_lines)
                 i = next_i
 
             elif isinstance(op, Goto):
-                # Gotos mark end of branch, skip them
+                # Generate route rewriting for loop control (continue/break)
+                if loop_info and router_id:
+                    if op.target == loop_info["start_label"]:
+                        # Continue: re-add this router to route
+                        lines.append(f"{base_indent}# continue: re-queue loop router")
+                        lines.append(f"{base_indent}r['actors'][c+1:c+1] = [{self._format_actor(router_id)}]")
+                    elif op.target == loop_info["exit_label"]:
+                        # Break: do nothing (fall through)
+                        lines.append(f"{base_indent}# break: exit loop")
+                        lines.append(f"{base_indent}pass")
+                    else:
+                        # Other goto - just skip
+                        pass
+                # Gotos mark end of branch, always advance
                 i += 1
 
             else:
@@ -321,6 +399,8 @@ class RouterGenerator:
         indent: int,
         label_map: dict[str, int],
         visited: set[int] | None = None,
+        router_id: str | None = None,
+        loop_info: dict[str, str] | None = None,
     ) -> tuple[list[str], int]:
         """
         Generate if/else block using pre-built label_map.
@@ -346,7 +426,9 @@ class RouterGenerator:
         # Generate true branch
         if true_start != -1:
             true_end = self._find_branch_end(operations, true_start + 1, label_map)
-            branch_lines = self._generate_operations_range(operations, true_start + 1, true_end, indent + 1, label_map, visited)
+            branch_lines = self._generate_operations_range(
+                operations, true_start + 1, true_end, indent + 1, label_map, visited, router_id, loop_info
+            )
             if branch_lines:
                 lines.extend(branch_lines)
             else:
@@ -356,7 +438,9 @@ class RouterGenerator:
         if false_start != -1:
             lines.append(f"{base_indent}else:")
             false_end = self._find_branch_end(operations, false_start + 1, label_map)
-            branch_lines = self._generate_operations_range(operations, false_start + 1, false_end, indent + 1, label_map, visited)
+            branch_lines = self._generate_operations_range(
+                operations, false_start + 1, false_end, indent + 1, label_map, visited, router_id, loop_info
+            )
             if branch_lines:
                 lines.extend(branch_lines)
             else:
@@ -395,7 +479,7 @@ class RouterGenerator:
         start_idx: int,
         label_map: dict[str, int],
     ) -> int:
-        """Find the end of a branch (before Goto or convergence Label)."""
+        """Find the end of a branch (including Goto or at convergence Label)."""
         conditional_targets = set()
         for op in operations:
             if isinstance(op, ConditionalGoto):
@@ -406,7 +490,8 @@ class RouterGenerator:
         for idx in range(start_idx, len(operations)):
             op = operations[idx]
             if isinstance(op, Goto):
-                return idx
+                # Include the Goto operation so it can generate route rewriting
+                return idx + 1
             if isinstance(op, Label) and op.name not in conditional_targets:
                 return idx
         return len(operations)

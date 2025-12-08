@@ -921,6 +921,26 @@ class SceneParser:
                     )
                 )
             else:
+                # Check if this is a control flow statement (if/while)
+                # Flush any pending non-control-flow router ops before control flow
+                if isinstance(stmt, (ast.If, ast.While)) and router_ops:
+                    # Check if router_ops contains only simple operations (no control flow yet)
+                    has_control_flow = any(
+                        isinstance(op, (Label, ConditionalGoto, Goto)) for op in router_ops
+                    )
+                    if not has_control_flow:
+                        # Flush simple mutations/assignments as separate router
+                        flow_type = self._detect_router_type(router_ops)
+                        steps.append(
+                            Router(
+                                line=router_start_line,
+                                col=0,
+                                router_id=self._new_router_id(flow_type, router_start_line),
+                                operations=router_ops,
+                            )
+                        )
+                        router_ops = []
+
                 # Router operation - parse and collect
                 if not router_ops:
                     router_start_line = stmt.lineno
