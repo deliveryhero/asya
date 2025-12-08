@@ -38,7 +38,7 @@ class RouterGenerator:
 
     def _generate_entrypoint_router(self):
         """Generate entrypoint router for the flow."""
-        entrypoint_id = f"{self.flow_ir.name}_entrypoint"
+        entrypoint_id = self.flow_ir.name  # entrypoint = same as flow name
         lines = []
 
         lines.append(f"def {entrypoint_id}(envelope: dict) -> dict:")

@@ -66,9 +66,7 @@ class DiagramGenerator:
         self.dot_lines.append(f'  {end_node} [label="End", shape=ellipse, style=filled, fillcolor=lightcoral];')
         self.dot_lines.append("")
 
-        entrypoint_exit = self._generate_entrypoint(start_node)
-
-        last_node = self._process_operations(self.flow_ir.operations, entrypoint_exit, end_node, router_context=None)
+        last_node = self._process_operations(self.flow_ir.operations, start_node, end_node, router_context=None)
 
         if last_node != end_node:
             self.edges.append(f"  {last_node} -> {end_node};")
@@ -99,28 +97,25 @@ class DiagramGenerator:
             start_node: Starting node to connect from
 
         Returns:
-            Exit node from entrypoint
+            Node representing the entrypoint operation
         """
         cluster_id = self._new_cluster()
-        entry_node = self._new_node()
-        exit_node = self._new_node()
+        setup_node = self._new_node()
 
         self.dot_lines.append(f"  subgraph {cluster_id} {{")
         self.dot_lines.append("    style=filled;")
         self.dot_lines.append("    fillcolor=lightgrey;")
-        self.dot_lines.append(f'    label="{self.flow_ir.name}_entrypoint";')
+        self.dot_lines.append(f'    label="{self.flow_ir.name}";')
         self.dot_lines.append("")
-        self.dot_lines.append(f'    {entry_node} [label="Entry", shape=circle, width=0.5];')
         self.dot_lines.append(
-            f'    {exit_node} [label="Setup route", shape=box, style="rounded,filled", fillcolor=white];'
+            f'    {setup_node} [label="Setup route", shape=box, style="rounded,filled", fillcolor=white];'
         )
-        self.dot_lines.append(f"    {entry_node} -> {exit_node};")
         self.dot_lines.append("  }")
         self.dot_lines.append("")
 
-        self.edges.append(f"  {start_node} -> {entry_node};")
+        self.edges.append(f"  {start_node} -> {setup_node};")
 
-        return exit_node
+        return setup_node
 
     def _process_operations(
         self,
@@ -193,9 +188,7 @@ class DiagramGenerator:
     def _process_handler_call(self, op: HandlerCall, prev_node: str) -> str:
         """Process handler call operation as a cluster."""
         cluster_id = self._new_cluster()
-        entry_node = self._new_node()
         handler_node = self._new_node()
-        exit_node = self._new_node()
 
         actor_name = self._escape_label(op.func_name)
 
@@ -204,18 +197,15 @@ class DiagramGenerator:
         self.dot_lines.append("    fillcolor=lightblue;")
         self.dot_lines.append(f'    label="{actor_name}";')
         self.dot_lines.append("")
-        self.dot_lines.append(f'    {entry_node} [label="Entry", shape=circle, width=0.5];')
         self.dot_lines.append(
             f'    {handler_node} [label="Execute\\n{actor_name}", shape=box, style="rounded,filled", fillcolor=white];'
         )
-        self.dot_lines.append(f'    {exit_node} [label="Exit", shape=circle, width=0.5];')
-        self.dot_lines.append(f"    {entry_node} -> {handler_node} -> {exit_node};")
         self.dot_lines.append("  }")
         self.dot_lines.append("")
 
-        self.edges.append(f"  {prev_node} -> {entry_node};")
+        self.edges.append(f"  {prev_node} -> {handler_node};")
 
-        return exit_node
+        return handler_node
 
     def _process_assignment(self, op: Assignment, prev_node: str, router_context: str | None) -> str:
         """Process assignment operation."""
@@ -241,9 +231,10 @@ class DiagramGenerator:
         cluster_id = self._new_cluster()
         router_name = op.router_id or "if_router"
 
-        entry_node = self._new_node()
+        condition_nodes = []
         condition_node = self._new_node()
-        exit_node = self._new_node()
+        condition_nodes.append(condition_node)
+        merge_node = self._new_node()
 
         condition_label = self._escape_label(op.condition_str)
 
@@ -252,84 +243,74 @@ class DiagramGenerator:
         self.dot_lines.append("    fillcolor=wheat;")
         self.dot_lines.append(f'    label="{router_name}";')
         self.dot_lines.append("")
-        self.dot_lines.append(f'    {entry_node} [label="Entry", shape=circle, width=0.5];')
         self.dot_lines.append(
             f'    {condition_node} [label="Check:\\n{condition_label}", shape=diamond, style=filled, fillcolor=white];'
         )
-        self.dot_lines.append(f"    {entry_node} -> {condition_node};")
-        self.dot_lines.append("  }")
-        self.dot_lines.append("")
 
-        self.edges.append(f"  {prev_node} -> {entry_node};")
-
-        if op.then_ops:
-            branch_exit = self._new_node()
-            self.dot_lines.append(f'  {branch_exit} [label="", shape=point, width=0.1];')
-            self.edges.append(f'  {condition_node} -> {branch_exit} [label="true", color=green];')
-            then_last = self._process_operations(
-                op.then_ops, branch_exit, end_node, router_name, loop_start_node, loop_end_node
-            )
-            if then_last != end_node:
-                self.edges.append(f"  {then_last} -> {exit_node};")
-        else:
-            self.edges.append(f'  {condition_node} -> {exit_node} [label="true", color=green];')
-
-        prev_condition = condition_node
         for elif_cond, elif_cond_str, elif_ops in op.elif_blocks:
-            elif_cluster = self._new_cluster()
-            elif_entry = self._new_node()
             elif_condition = self._new_node()
+            condition_nodes.append(elif_condition)
             elif_label = self._escape_label(elif_cond_str)
-
-            self.dot_lines.append(f"  subgraph {elif_cluster} {{")
-            self.dot_lines.append("    style=filled;")
-            self.dot_lines.append("    fillcolor=wheat;")
-            self.dot_lines.append(f'    label="{router_name} elif";')
-            self.dot_lines.append("")
-            self.dot_lines.append(f'    {elif_entry} [label="Entry", shape=circle, width=0.5];')
             self.dot_lines.append(
                 f'    {elif_condition} [label="Check:\\n{elif_label}", shape=diamond, style=filled, fillcolor=white];'
             )
-            self.dot_lines.append(f"    {elif_entry} -> {elif_condition};")
-            self.dot_lines.append("  }")
-            self.dot_lines.append("")
 
-            self.edges.append(f'  {prev_condition} -> {elif_entry} [label="false", color=red];')
+        for i in range(len(condition_nodes) - 1):
+            self.dot_lines.append(f'    {condition_nodes[i]} -> {condition_nodes[i + 1]} [label="false", color=red];')
 
-            if elif_ops:
-                branch_exit = self._new_node()
-                self.dot_lines.append(f'  {branch_exit} [label="", shape=point, width=0.1];')
-                self.edges.append(f'  {elif_condition} -> {branch_exit} [label="true", color=green];')
-                elif_last = self._process_operations(
-                    elif_ops, branch_exit, end_node, router_name, loop_start_node, loop_end_node
-                )
-                if elif_last != end_node:
-                    self.edges.append(f"  {elif_last} -> {exit_node};")
-            else:
-                self.edges.append(f'  {elif_condition} -> {exit_node} [label="true", color=green];')
+        self.dot_lines.append("  }")
+        self.dot_lines.append("")
+        self.dot_lines.append(f'  {merge_node} [label="", shape=point, width=0.1];')
+        self.dot_lines.append("")
 
-            prev_condition = elif_condition
+        self.edges.append(f"  {prev_node} -> {condition_node};")
 
-        if op.else_ops:
-            else_branch = self._new_node()
-            self.dot_lines.append(f'  {else_branch} [label="", shape=point, width=0.1];')
-            self.edges.append(f'  {prev_condition} -> {else_branch} [label="else", color=red];')
-            else_last = self._process_operations(
-                op.else_ops, else_branch, end_node, router_name, loop_start_node, loop_end_node
+        if op.then_ops:
+            num_edges_before = len(self.edges)
+            then_last = self._process_operations(
+                op.then_ops, condition_node, end_node, router_name, loop_start_node, loop_end_node
             )
-            if else_last != end_node:
-                self.edges.append(f"  {else_last} -> {exit_node};")
+            if len(self.edges) > num_edges_before and "label=" not in self.edges[-1]:
+                self.edges[-1] = self.edges[-1].rstrip(";") + ' [label="true", color=green];'
+            if then_last != end_node:
+                self.edges.append(f"  {then_last} -> {merge_node};")
         else:
-            self.edges.append(f'  {prev_condition} -> {exit_node} [label="false", color=red];')
+            self.edges.append(f'  {condition_node} -> {merge_node} [label="true", color=green];')
 
-        return exit_node
+        for i, (elif_cond, elif_cond_str, elif_ops) in enumerate(op.elif_blocks):
+            elif_condition = condition_nodes[i + 1]
+            if elif_ops:
+                num_edges_before = len(self.edges)
+                elif_last = self._process_operations(
+                    elif_ops, elif_condition, end_node, router_name, loop_start_node, loop_end_node
+                )
+                if len(self.edges) > num_edges_before and "label=" not in self.edges[-1]:
+                    self.edges[-1] = self.edges[-1].rstrip(";") + ' [label="true", color=green];'
+                if elif_last != end_node:
+                    self.edges.append(f"  {elif_last} -> {merge_node};")
+            else:
+                self.edges.append(f'  {elif_condition} -> {merge_node} [label="true", color=green];')
+
+        last_condition = condition_nodes[-1]
+        if op.else_ops:
+            num_edges_before = len(self.edges)
+            else_last = self._process_operations(
+                op.else_ops, last_condition, end_node, router_name, loop_start_node, loop_end_node
+            )
+            if len(self.edges) > num_edges_before and "label=" not in self.edges[-1]:
+                self.edges[-1] = self.edges[-1].rstrip(";") + ' [label="false", color=red];'
+            if else_last != end_node:
+                self.edges.append(f"  {else_last} -> {merge_node};")
+        else:
+            self.edges.append(f'  {last_condition} -> {merge_node} [label="false", color=red];')
+
+        return merge_node
 
     def _process_while_loop(self, op: WhileLoop, prev_node: str, end_node: str) -> str:
         """Process while loop as a router cluster."""
         cluster_id = self._new_cluster()
         router_name = op.router_id or "while_router"
 
-        entry_node = self._new_node()
         condition_node = self._new_node()
         exit_node = self._new_node()
 
@@ -340,23 +321,23 @@ class DiagramGenerator:
         self.dot_lines.append("    fillcolor=wheat;")
         self.dot_lines.append(f'    label="{router_name}";')
         self.dot_lines.append("")
-        self.dot_lines.append(f'    {entry_node} [label="Entry", shape=circle, width=0.5];')
         self.dot_lines.append(
             f'    {condition_node} [label="Check:\\n{condition_label}", shape=diamond, style=filled, fillcolor=white];'
         )
-        self.dot_lines.append(f"    {entry_node} -> {condition_node};")
         self.dot_lines.append("  }")
         self.dot_lines.append("")
+        self.dot_lines.append(f'  {exit_node} [label="", shape=point, width=0.1];')
+        self.dot_lines.append("")
 
-        self.edges.append(f"  {prev_node} -> {entry_node};")
+        self.edges.append(f"  {prev_node} -> {condition_node};")
 
         if op.body_ops:
-            branch_exit = self._new_node()
-            self.dot_lines.append(f'  {branch_exit} [label="", shape=point, width=0.1];')
-            self.edges.append(f'  {condition_node} -> {branch_exit} [label="true", color=green];')
+            num_edges_before = len(self.edges)
             body_last = self._process_operations(
-                op.body_ops, branch_exit, end_node, router_name, condition_node, exit_node
+                op.body_ops, condition_node, end_node, router_name, condition_node, exit_node
             )
+            if len(self.edges) > num_edges_before and "label=" not in self.edges[-1]:
+                self.edges[-1] = self.edges[-1].rstrip(";") + ' [label="true", color=green];'
             if body_last != end_node and body_last != exit_node:
                 self.edges.append(f'  {body_last} -> {condition_node} [label="loop", color=blue];')
         else:
