@@ -382,8 +382,8 @@ class RouterGenerator:
         elif cond_goto.false_target_router_id == router_id:
             # False target points to self (loop exit condition)
             lines.append(f"{base_indent}else:")
-            # Find exit point: scan forward past all routers to first ActorCall or end
-            exit_target = None
+            # Find exit points: scan forward past all routers and collect all remaining steps
+            exit_targets = []
             steps = self.scene_ir.steps
             for i, step in enumerate(steps):
                 if isinstance(step, Router) and step.router_id == router_id:
@@ -391,15 +391,19 @@ class RouterGenerator:
                     j = i + 1
                     while j < len(steps) and isinstance(steps[j], Router):
                         j += 1
-                    # Found first ActorCall or reached end
-                    if j < len(steps):
+                    # Collect all remaining ActorCalls
+                    while j < len(steps):
                         if isinstance(steps[j], ActorCall):
-                            exit_target = steps[j].qualified_name
+                            exit_targets.append(steps[j].qualified_name)
+                        j += 1
+                    # Add end if no more steps
+                    if not exit_targets:
+                        exit_targets.append(f"end_{self.scene_ir.name}")
                     else:
-                        exit_target = f"end_{self.scene_ir.name}"
+                        exit_targets.append(f"end_{self.scene_ir.name}")
                     break
-            if exit_target:
-                lines.append(f"{base_indent}    _next.append({self._format_actor(exit_target)})")
+            for target in exit_targets:
+                lines.append(f"{base_indent}    _next.append({self._format_actor(target)})")
         elif false_start == -1 and next_step:
             # No false branch operations in this router, route to next step (loop exit)
             lines.append(f"{base_indent}else:")
