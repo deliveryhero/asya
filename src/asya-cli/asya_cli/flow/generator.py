@@ -5,7 +5,9 @@ Generates router functions from Flow IR.
 """
 
 from asya_cli.flow.ir import (
+    Assignment,
     Break,
+    ClassInstantiation,
     Continue,
     FlowIR,
     HandlerCall,
@@ -21,6 +23,7 @@ class RouterGenerator:
     def __init__(self, flow_ir: FlowIR):
         self.flow_ir = flow_ir
         self.routers: list[tuple[str, str, str]] = []  # (router_id, docstring, code)
+        self.inline_block_counter = 0  # Counter for generated inline operation actors
 
     def generate(self) -> list[tuple[str, str, str]]:
         """
@@ -188,30 +191,113 @@ class RouterGenerator:
         """
         Collect actor names from operations.
 
-        Returns list of actor names (either handler names or router IDs).
+        Groups consecutive inline operations (assignments, class instantiations) into actors.
+        Returns list of actor names (either handler names, router IDs, or inline actors).
         Stops at control flow (if/while) since they have their own routers.
         """
         actors = []
+        inline_buffer: list[Assignment | ClassInstantiation] = []
+
+        def flush_inline_ops():
+            """Generate actor for buffered inline operations and add to actors list."""
+            if inline_buffer:
+                inline_actor_id = self._generate_inline_actor(inline_buffer[:])
+                actors.append(inline_actor_id)
+                inline_buffer.clear()
 
         for op in ops:
-            if isinstance(op, HandlerCall):
-                # Generate resolve() call
+            if isinstance(op, Assignment | ClassInstantiation):
+                # Buffer inline operation for grouping
+                inline_buffer.append(op)
+
+            elif isinstance(op, HandlerCall):
+                # Flush any pending inline ops first
+                flush_inline_ops()
+                # Add handler call
                 actors.append(f'resolve("{op.qualified_name}")')
+
             elif isinstance(op, IfBlock | WhileLoop):
+                # Flush any pending inline ops first
+                flush_inline_ops()
                 # Add router for this control flow
                 assert op.router_id is not None  # Should be set by analyzer
                 actors.append(op.router_id)
                 # Don't recurse - the router will handle branching
                 break
+
             elif isinstance(op, Break):
+                # Flush any pending inline ops first
+                flush_inline_ops()
                 # Break handled by parent router
                 break
+
             elif isinstance(op, Continue):
+                # Flush any pending inline ops first
+                flush_inline_ops()
                 # Continue handled by parent router
                 break
-            # Skip Assignment, ClassInstantiation, Return - they don't generate actors
+
+            # Skip Return - doesn't generate actors
+
+        # Flush any remaining inline ops
+        flush_inline_ops()
 
         return actors
+
+    def _generate_inline_actor(self, operations: list[Assignment | ClassInstantiation]) -> str:
+        """
+        Generate an actor that executes a block of inline operations.
+
+        Args:
+            operations: List of inline operations (Assignment, ClassInstantiation) to execute
+
+        Returns:
+            Actor ID (router name) for this inline block
+        """
+        import ast
+
+        self.inline_block_counter += 1
+        actor_id = f"{self.flow_ir.name}_inline_{self.inline_block_counter}"
+
+        lines = []
+        lines.append(f"def {actor_id}(envelope: dict) -> dict:")
+
+        # Docstring
+        op_count = len(operations)
+        first_line = operations[0].line
+        last_line = operations[-1].line
+        docstring = (
+            f"Inline block {self.inline_block_counter} in flow '{self.flow_ir.name}'\n    \n    "
+            f"Lines {first_line}-{last_line}: {op_count} operation(s)"
+        )
+        lines.append(f'    """{docstring}"""')
+
+        # Extract payload
+        lines.append("    p = envelope['payload']")
+        lines.append("")
+
+        # Generate operation statements
+        for op in operations:
+            if isinstance(op, Assignment):
+                # Assignment: p["key"] = value
+                if op.key:
+                    lines.append(f"    p[{op.key!r}] = {op.value_str}")
+
+            elif isinstance(op, ClassInstantiation):
+                # Class instantiation: var = ClassName(args, kwargs)
+                args_str = ", ".join(ast.unparse(arg) for arg in op.args)
+                kwargs_str = ", ".join(f"{k}={ast.unparse(v)}" for k, v in op.kwargs.items())
+                all_args = ", ".join(filter(None, [args_str, kwargs_str]))
+                lines.append(f"    {op.var_name} = {op.class_name}({all_args})")
+
+        lines.append("")
+        lines.append("    return envelope")
+
+        code = "\n".join(lines)
+        docstring_summary = f"Inline block {self.inline_block_counter} ({op_count} operation(s))"
+        self.routers.append((actor_id, docstring_summary, code))
+
+        return actor_id
 
     def _format_actor(self, actor: str) -> str:
         """
@@ -236,29 +322,7 @@ class RouterGenerator:
         lines.append(f"Absolute line: {if_op.line} (from top of {self.flow_ir.source_file})")
         lines.append(f"Nesting level: {if_op.depth}")
         lines.append("")
-
-        # Describe branches
-        lines.append("Branches:")
-        then_actors = [a for a in self._collect_actors(if_op.then_ops) if not a.startswith("resolve")]
-        if then_actors:
-            lines.append(f"  - If {if_op.condition_str}: {', '.join(then_actors)}")
-        else:
-            lines.append(f"  - If {if_op.condition_str}: ...")
-
-        for _elif_cond_ast, elif_cond_str, elif_ops in if_op.elif_blocks:
-            elif_actors = [a for a in self._collect_actors(elif_ops) if not a.startswith("resolve")]
-            if elif_actors:
-                lines.append(f"  - Else if {elif_cond_str}: {', '.join(elif_actors)}")
-            else:
-                lines.append(f"  - Else if {elif_cond_str}: ...")
-
-        if if_op.else_ops:
-            else_actors = [a for a in self._collect_actors(if_op.else_ops) if not a.startswith("resolve")]
-            if else_actors:
-                lines.append(f"  - Else: {', '.join(else_actors)}")
-            else:
-                lines.append("  - Else: ...")
-
+        lines.append(f"Condition: {if_op.condition_str}")
         lines.append("")
         return "\n    ".join(lines)
 
@@ -270,15 +334,7 @@ class RouterGenerator:
         lines.append(f"Absolute line: {while_op.line} (from top of {self.flow_ir.source_file})")
         lines.append(f"Nesting level: {while_op.depth}")
         lines.append("")
-
-        # Describe loop
         lines.append(f"Condition: {while_op.condition_str}")
-
-        body_actors = [a for a in self._collect_actors(while_op.body_ops) if not a.startswith("resolve")]
-        if body_actors:
-            lines.append(f"Body actors: {', '.join(body_actors)}")
-        else:
-            lines.append("Body: (empty)")
 
         if while_op.has_break:
             lines.append("Contains break statement")

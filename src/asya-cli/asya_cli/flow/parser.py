@@ -295,8 +295,27 @@ class FlowParser:
 
     def _parse_statement(self, stmt: ast.stmt) -> Operation | list[Operation] | None:
         """Parse a single statement into operation(s)."""
-        if isinstance(stmt, ast.Assign):
+        if isinstance(stmt, ast.Expr):
+            # Skip docstrings and standalone expressions
+            if isinstance(stmt.value, ast.Constant) and isinstance(stmt.value.value, str):
+                # It's a docstring, skip it
+                return None
+            # Other expressions are not supported
+            self.errors.append(
+                create_error(
+                    message="Standalone expressions are not supported in Flow DSL",
+                    node=stmt,
+                    source_file=self.source_file,
+                    source_lines=self.source_lines,
+                    explanation="Flow DSL only supports assignments, if/while, and return",
+                    fix_hint="Remove standalone expression or assign it to a variable",
+                )
+            )
+            return None
+        elif isinstance(stmt, ast.Assign):
             return self._parse_assignment(stmt)
+        elif isinstance(stmt, ast.AugAssign):
+            return self._parse_augmented_assignment(stmt)
         elif isinstance(stmt, ast.If):
             return self._parse_if(stmt)
         elif isinstance(stmt, ast.While):
@@ -307,6 +326,9 @@ class FlowParser:
             return Break(line=stmt.lineno, col=stmt.col_offset)
         elif isinstance(stmt, ast.Continue):
             return Continue(line=stmt.lineno, col=stmt.col_offset)
+        elif isinstance(stmt, ast.Pass):
+            # Pass statements are no-ops, skip them
+            return None
         elif isinstance(stmt, ast.For):
             self.errors.append(
                 create_error(
@@ -604,6 +626,100 @@ class FlowParser:
             target="p",
             key=key,
             value_ast=stmt.value,
+            value_str=value_str,
+        )
+
+    def _parse_augmented_assignment(self, stmt: ast.AugAssign) -> Assignment | None:
+        """
+        Parse augmented assignment: p["key"] += value
+
+        Converts to Assignment IR with combined expression.
+
+        Args:
+            stmt: AugAssign statement
+
+        Returns:
+            Assignment operation or None if invalid
+        """
+        # Validate: target must be p[...]
+        if not isinstance(stmt.target, ast.Subscript):
+            self.errors.append(
+                create_error(
+                    message="Augmented assignment must be on payload subscript",
+                    node=stmt.target,
+                    source_file=self.source_file,
+                    source_lines=self.source_lines,
+                    explanation="Flow DSL only allows augmented assignments via p['key']",
+                    fix_hint="Change to: p['key'] += value",
+                )
+            )
+            return None
+
+        target = stmt.target
+
+        # Validate: must be p[...]
+        if not isinstance(target.value, ast.Name) or target.value.id != "p":
+            self.errors.append(
+                create_error(
+                    message="Augmented assignment must be on 'p'",
+                    node=target,
+                    source_file=self.source_file,
+                    source_lines=self.source_lines,
+                    explanation="Flow DSL only allows payload mutations via p[...]",
+                    fix_hint="Change to: p['key'] += value",
+                )
+            )
+            return None
+
+        # Extract key
+        if isinstance(target.slice, ast.Constant):
+            key = target.slice.value
+            if not isinstance(key, str):
+                self.errors.append(
+                    create_error(
+                        message=f"Subscript key must be string, got {type(key).__name__}",
+                        node=target.slice,
+                        source_file=self.source_file,
+                        source_lines=self.source_lines,
+                        explanation="Payload keys must be strings",
+                        fix_hint="Use string key: p['key'] += value",
+                    )
+                )
+                return None
+        else:
+            self.errors.append(
+                create_error(
+                    message="Subscript key must be a constant string",
+                    node=target.slice,
+                    source_file=self.source_file,
+                    source_lines=self.source_lines,
+                    explanation="Flow DSL requires static keys for payload mutations",
+                    fix_hint="Use constant string: p['key'] += value",
+                )
+            )
+            return None
+
+        # Convert augmented assignment to regular assignment
+        # p["key"] += value becomes p["key"] = p["key"] + value
+        # Create BinOp: p["key"] + value
+        combined_expr = ast.BinOp(
+            left=ast.Subscript(
+                value=ast.Name(id="p", ctx=ast.Load()),
+                slice=ast.Constant(value=key),
+                ctx=ast.Load(),
+            ),
+            op=stmt.op,
+            right=stmt.value,
+        )
+
+        value_str = ast.unparse(combined_expr)
+
+        return Assignment(
+            line=stmt.lineno,
+            col=stmt.col_offset,
+            target="p",
+            key=key,
+            value_ast=combined_expr,
             value_str=value_str,
         )
 

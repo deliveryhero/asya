@@ -13,52 +13,52 @@ When deploying compiled routers, set environment variables:
 """
 
 
-def flow_conditional_routing(p: dict) -> dict:
-    p = handler_validate_input(p)
+def flow_conditional_routing(payload: dict) -> dict:
+    payload = handler_validate_input(payload)
 
-    if p["type"] == "A":
-        p = handler_type_a(p)
-    elif p["type"] == "B":
-        p = handler_type_b(p)
-    elif p["type"] == "C":
-        p = handler_type_c(p)
+    if payload["type"] == "A":
+        payload = handler_type_a(payload)
+    elif payload["type"] == "B":
+        payload = handler_type_b(payload)
+    elif payload["type"] == "C":
+        payload = handler_type_c(payload)
     else:
-        p = handler_default(p)
+        payload = handler_default(payload)
 
-    p = handler_finalize(p)
-    return p
+    payload = handler_finalize(payload)
+    return payload
 
-def handler_validate_input(p: dict) -> dict:
+def handler_validate_input(payload: dict) -> dict:
     """Mock validation handler."""
-    p["validated"] = True
-    return p
+    payload["validated"] = True
+    return payload
 
 
-def handler_type_a(p: dict) -> dict:
+def handler_type_a(payload: dict) -> dict:
     """Handler for type A data."""
-    p["handler"] = "type_a"
-    return p
+    payload["handler"] = "type_a"
+    return payload
 
 
-def handler_type_b(p: dict) -> dict:
+def handler_type_b(payload: dict) -> dict:
     """Handler for type B data."""
-    p["handler"] = "type_b"
-    return p
+    payload["handler"] = "type_b"
+    return payload
 
 
-def handler_type_c(p: dict) -> dict:
+def handler_type_c(payload: dict) -> dict:
     """Handler for type C data."""
-    p["handler"] = "type_c"
-    return p
+    payload["handler"] = "type_c"
+    return payload
 
 
-def handler_default(p: dict) -> dict:
+def handler_default(payload: dict) -> dict:
     """Default handler."""
-    p["handler"] = "default"
-    return p
+    payload["handler"] = "default"
+    return payload
 
 
-def handler_finalize(p: dict) -> dict:
+def handler_finalize(payload: dict) -> dict:
     """Mock finalizer handler."""
-    p["finalized"] = True
-    return p
+    payload["finalized"] = True
+    return payload

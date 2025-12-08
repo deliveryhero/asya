@@ -8,7 +8,9 @@ Demonstrates while loops with break and continue statements.
 def flow_loop_processing(p: dict) -> dict:
     p = initialize(p)
 
+    p["iteration"] = 0
     while p["iteration"] < p["max_iterations"]:
+        p["iteration"] += 1
         p = process_item(p)
 
         if p.get("skip_threshold_check"):
