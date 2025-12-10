@@ -170,7 +170,6 @@ class RouterGenerator:
                 return next_steps
         return []
 
-
     def _generate_router_operations(
         self,
         operations: list[PayloadMutation | ClassInstantiation | Label | ConditionalGoto | Goto | ActorCall],
@@ -225,7 +224,9 @@ class RouterGenerator:
 
             elif isinstance(op, ConditionalGoto):
                 # Generate if/else structure
-                if_lines, next_i = self._generate_conditional_block(operations, i, indent, router_id, loop_info, next_step, next_steps)
+                if_lines, next_i = self._generate_conditional_block(
+                    operations, i, indent, router_id, loop_info, next_step, next_steps
+                )
                 lines.extend(if_lines)
                 i = next_i
 
@@ -338,7 +339,16 @@ class RouterGenerator:
             # True branch operations are in this router - execute inline
             true_end = self._find_branch_end(operations, true_start + 1, label_map)
             branch_lines = self._generate_operations_range(
-                operations, true_start + 1, true_end, indent + 1, label_map, None, router_id, loop_info, next_step, next_steps
+                operations,
+                true_start + 1,
+                true_end,
+                indent + 1,
+                label_map,
+                None,
+                router_id,
+                loop_info,
+                next_step,
+                next_steps,
             )
             if branch_lines:
                 lines.extend(branch_lines)
@@ -346,7 +356,7 @@ class RouterGenerator:
                 lines.append(f"{base_indent}    pass")
 
             # After inline operations, route to next step if no Goto was encountered
-            branch_ops = operations[true_start + 1:true_end]
+            branch_ops = operations[true_start + 1 : true_end]
             has_goto = any(isinstance(op, (Goto, ActorCall)) for op in branch_ops)
             if not has_goto and next_step:
                 lines.append(f"{base_indent}    _next.append({self._format_actor(next_step)})")
@@ -360,7 +370,16 @@ class RouterGenerator:
             lines.append(f"{base_indent}else:")
             false_end = self._find_branch_end(operations, false_start + 1, label_map)
             branch_lines = self._generate_operations_range(
-                operations, false_start + 1, false_end, indent + 1, label_map, None, router_id, loop_info, next_step, next_steps
+                operations,
+                false_start + 1,
+                false_end,
+                indent + 1,
+                label_map,
+                None,
+                router_id,
+                loop_info,
+                next_step,
+                next_steps,
             )
             if branch_lines:
                 lines.extend(branch_lines)
@@ -368,7 +387,7 @@ class RouterGenerator:
                 lines.append(f"{base_indent}    pass")
 
             # After inline operations, route to appropriate step if no Goto was encountered
-            branch_ops = operations[false_start + 1:false_end]
+            branch_ops = operations[false_start + 1 : false_end]
             has_goto = any(isinstance(op, (Goto, ActorCall)) for op in branch_ops)
             if not has_goto:
                 # For false branch (loop exit), route to the step AFTER the loop
@@ -382,28 +401,21 @@ class RouterGenerator:
         elif cond_goto.false_target_router_id == router_id:
             # False target points to self (loop exit condition)
             lines.append(f"{base_indent}else:")
-            # Find exit points: scan forward past all routers and collect all remaining steps
-            exit_targets = []
+            # Find loop exit target: skip ALL nested routers to find first ActorCall
+            exit_target = None
             steps = self.scene_ir.steps
             for i, step in enumerate(steps):
                 if isinstance(step, Router) and step.router_id == router_id:
-                    # Found current router, scan forward
+                    # Found current router, scan forward past all routers
                     j = i + 1
                     while j < len(steps) and isinstance(steps[j], Router):
                         j += 1
-                    # Collect all remaining ActorCalls
-                    while j < len(steps):
-                        if isinstance(steps[j], ActorCall):
-                            exit_targets.append(steps[j].qualified_name)
-                        j += 1
-                    # Add end if no more steps
-                    if not exit_targets:
-                        exit_targets.append(f"end_{self.scene_ir.name}")
-                    else:
-                        exit_targets.append(f"end_{self.scene_ir.name}")
+                    # Found first ActorCall after all nested routers
+                    if j < len(steps) and isinstance(steps[j], ActorCall):
+                        exit_target = steps[j].qualified_name
                     break
-            for target in exit_targets:
-                lines.append(f"{base_indent}    _next.append({self._format_actor(target)})")
+            if exit_target:
+                lines.append(f"{base_indent}    _next.append({self._format_actor(exit_target)})")
         elif false_start == -1 and next_step:
             # No false branch operations in this router, route to next step (loop exit)
             lines.append(f"{base_indent}else:")
@@ -580,7 +592,16 @@ class RouterGenerator:
             lines.append(f"{base_indent}else:")
             false_end = self._find_branch_end(operations, false_start + 1, label_map)
             branch_lines = self._generate_operations_range(
-                operations, false_start + 1, false_end, indent + 1, label_map, visited, router_id, loop_info, next_step, next_steps
+                operations,
+                false_start + 1,
+                false_end,
+                indent + 1,
+                label_map,
+                visited,
+                router_id,
+                loop_info,
+                next_step,
+                next_steps,
             )
             if branch_lines:
                 lines.extend(branch_lines)
@@ -666,9 +687,7 @@ class RouterGenerator:
         for step in steps:
             if isinstance(step, Router):
                 # Check if router only contains Label and Goto (no mutations, no actor calls, no conditions)
-                has_only_labels_and_goto = all(
-                    isinstance(op, (Label, Goto)) for op in step.operations
-                )
+                has_only_labels_and_goto = all(isinstance(op, (Label, Goto)) for op in step.operations)
                 if has_only_labels_and_goto and len(step.operations) > 0:
                     loop_back_routers.add(step.router_id)
 
@@ -679,9 +698,11 @@ class RouterGenerator:
                 actors.append(step.qualified_name)
             elif isinstance(step, Router):
                 # Exclude continuation, loop-back, and false-branch routers
-                if (step.router_id not in continuation_routers and
-                    step.router_id not in loop_back_routers and
-                    step.router_id not in false_branch_routers):
+                if (
+                    step.router_id not in continuation_routers
+                    and step.router_id not in loop_back_routers
+                    and step.router_id not in false_branch_routers
+                ):
                     actors.append(step.router_id)
 
         # Add end router as final step
