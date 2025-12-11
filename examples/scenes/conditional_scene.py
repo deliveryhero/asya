@@ -18,17 +18,17 @@ def conditional_scene(p: dict) -> dict:
 
     p["mut"] = 1
     if p["type"] == "A":
-        p["mut"] = 1 + p["mut"]
+        p["mut"] += 1
         p = handler_type_a(p)
+        p["mut"] += 10
     elif p["type"] == "B":
         p["mut"] += 2
         p = handler_type_b(p)
-    elif p["type"] == "C":
+        p["mut"] += 20
+    else:
         p["mut"] += 3
         p = handler_type_c(p)
-    else:
-        p["mut"] += 4
-        p = handler_default(p)
+        p["mut"] += 30
 
     p["mut"] += 5
     p = handler_finalize(p)

@@ -49,23 +49,26 @@ class RouterGenerator:
         lines.append("    c = r['current']")
         lines.append("")
 
-        # Low-level routing: set first step(s) (actor calls + next router)
+        # Set up complete high-level flow from start to end
         if self.scene_ir.steps:
             actors_to_route = []
-            i = 0
 
-            # Collect all initial ActorCalls
+            # Collect all top-level steps (initial ActorCalls + first router)
+            i = 0
             while i < len(self.scene_ir.steps) and isinstance(self.scene_ir.steps[i], ActorCall):
                 actors_to_route.append(self._format_actor(self.scene_ir.steps[i].qualified_name))
                 i += 1
 
-            # After ActorCalls, add the next router
+            # Add the first router (if exists)
             if i < len(self.scene_ir.steps):
                 next_step = self.scene_ir.steps[i]
                 if isinstance(next_step, Router):
                     actors_to_route.append(self._format_actor(next_step.router_id))
                 else:
                     actors_to_route.append(self._format_actor(next_step.qualified_name))
+
+            # Always add end router to complete the flow
+            actors_to_route.append(self._format_actor(f"end_{self.scene_ir.name}"))
 
             if actors_to_route:
                 actors_list = ", ".join(actors_to_route)
