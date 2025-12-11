@@ -51,19 +51,74 @@ class OperationGrouper:
                 return [convergence_stack[-1]]
             return []
 
-        mutations = []
-        actors = []
+        result = []
         i = 0
 
         while i < len(operations):
             op = operations[i]
 
             if isinstance(op, Mutation):
-                mutations.append(op)
+                mutations = [op]
                 i += 1
 
+                while i < len(operations) and isinstance(operations[i], Mutation):
+                    mutations.append(operations[i])
+                    i += 1
+
+                if i < len(operations) and isinstance(operations[i], ActorCall):
+                    actor = operations[i]
+                    i += 1
+
+                    continuation = self._process_operations(operations[i:], convergence_stack)
+
+                    router = Router(
+                        name=f"router_{self.scene_name}_line_{mutations[0].lineno}_seq",
+                        lineno=mutations[0].lineno,
+                        mutations=mutations,
+                        true_branch_actors=[actor.name] + continuation
+                    )
+                    self.routers.append(router)
+                    return result + [router.name]
+
+                elif i < len(operations) and isinstance(operations[i], Condition):
+                    cond = operations[i]
+                    i += 1
+
+                    convergence_label = f"CONVERGENCE_{self.convergence_counter}"
+                    self.convergence_counter += 1
+
+                    new_stack = convergence_stack + [convergence_label]
+
+                    true_actors = self._process_operations(cond.true_branch, new_stack)
+                    false_actors = self._process_operations(cond.false_branch, new_stack)
+
+                    continuation_actors = self._process_operations(operations[i:], convergence_stack)
+
+                    self.convergence_map[convergence_label] = continuation_actors
+
+                    router = Router(
+                        name=f"router_{self.scene_name}_line_{cond.lineno}_if",
+                        lineno=cond.lineno,
+                        mutations=mutations,
+                        condition=cond,
+                        true_branch_actors=true_actors,
+                        false_branch_actors=false_actors
+                    )
+                    self.routers.append(router)
+                    return result + [router.name]
+                else:
+                    continuation = self._process_operations(operations[i:], convergence_stack)
+                    router = Router(
+                        name=f"router_{self.scene_name}_line_{mutations[0].lineno}_seq",
+                        lineno=mutations[0].lineno,
+                        mutations=mutations,
+                        true_branch_actors=continuation
+                    )
+                    self.routers.append(router)
+                    return result + [router.name]
+
             elif isinstance(op, ActorCall):
-                actors.append(op.name)
+                result.append(op.name)
                 i += 1
 
             elif isinstance(op, Condition):
@@ -79,45 +134,22 @@ class OperationGrouper:
 
                 self.convergence_map[convergence_label] = continuation_actors
 
-                if mutations or actors:
-                    next_router_name = f"router_{self.scene_name}_line_{op.lineno}_if"
-                    router = Router(
-                        name=next_router_name,
-                        lineno=op.lineno,
-                        mutations=mutations,
-                        condition=op,
-                        true_branch_actors=true_actors,
-                        false_branch_actors=false_actors
-                    )
-                    self.routers.append(router)
-                    return actors + [router.name]
-                else:
-                    router = Router(
-                        name=f"router_{self.scene_name}_line_{op.lineno}_if",
-                        lineno=op.lineno,
-                        condition=op,
-                        true_branch_actors=true_actors,
-                        false_branch_actors=false_actors
-                    )
-                    self.routers.append(router)
-                    return [router.name]
+                router = Router(
+                    name=f"router_{self.scene_name}_line_{op.lineno}_if",
+                    lineno=op.lineno,
+                    condition=op,
+                    true_branch_actors=true_actors,
+                    false_branch_actors=false_actors
+                )
+                self.routers.append(router)
+                return result + [router.name]
 
             else:
                 i += 1
 
-        if mutations or actors:
+        if result:
             continuation = self._process_operations(operations[i:], convergence_stack)
-            if mutations:
-                router = Router(
-                    name=f"router_{self.scene_name}_line_{mutations[0].lineno}_seq",
-                    lineno=mutations[0].lineno,
-                    mutations=mutations,
-                    true_branch_actors=actors + continuation
-                )
-                self.routers.append(router)
-                return [router.name]
-            else:
-                return actors + continuation
+            return result + continuation
 
         if convergence_stack:
             return [convergence_stack[-1]]
