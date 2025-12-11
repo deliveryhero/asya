@@ -28,8 +28,6 @@ class CodeGenerator:
     def _collect_handlers(self) -> None:
         for router in self.routers:
             self.all_handlers.add(router.name)
-            for actor_name in router.actors:
-                self.all_handlers.add(actor_name)
             for actor_name in router.true_branch_actors:
                 self.all_handlers.add(actor_name)
             for actor_name in router.false_branch_actors:
@@ -98,8 +96,8 @@ Regenerate by running: asya scene compile {self.source_file}
         lines.append("    c = r['current']")
         lines.append("")
 
-        if router.actors:
-            next_list = ", ".join([f'resolve("{name}")' for name in router.actors])
+        if router.true_branch_actors:
+            next_list = ", ".join([f'resolve("{name}")' for name in router.true_branch_actors])
             lines.append(f"    r['actors'][c+1:c+1] = [{next_list}]")
         lines.append("")
         lines.append("    return envelope")
@@ -131,13 +129,19 @@ Regenerate by running: asya scene compile {self.source_file}
 
         if router.condition:
             lines.append(f"    if {router.condition.test}:")
-            for actor in router.true_branch_actors:
-                lines.append(f'        _next.append(resolve("{actor}"))')
+            if router.true_branch_actors:
+                for actor in router.true_branch_actors:
+                    lines.append(f'        _next.append(resolve("{actor}"))')
+            else:
+                lines.append("        pass")
             lines.append("    else:")
-            for actor in router.false_branch_actors:
-                lines.append(f'        _next.append(resolve("{actor}"))')
+            if router.false_branch_actors:
+                for actor in router.false_branch_actors:
+                    lines.append(f'        _next.append(resolve("{actor}"))')
+            else:
+                lines.append("        pass")
         else:
-            for actor in router.actors:
+            for actor in router.true_branch_actors:
                 lines.append(f'    _next.append(resolve("{actor}"))')
 
         lines.append("    r['actors'][c+1:c+1] = _next")

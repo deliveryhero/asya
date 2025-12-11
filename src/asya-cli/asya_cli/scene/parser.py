@@ -4,7 +4,7 @@ import ast
 from typing import List, Optional, Tuple
 
 from asya_cli.scene.errors import SceneCompileError
-from asya_cli.scene.ir import ActorCall, Condition, Convergence, IROperation, Mutation
+from asya_cli.scene.ir import ActorCall, Condition, IROperation, Mutation
 
 
 class SceneParser:
@@ -12,7 +12,6 @@ class SceneParser:
         self.source_code = source_code
         self.filename = filename
         self.scene_name: Optional[str] = None
-        self.convergence_counter = 0
 
     def parse(self) -> Tuple[str, List[IROperation]]:
         try:
@@ -74,7 +73,7 @@ class SceneParser:
 
         target = stmt.targets[0]
 
-        if isinstance(target, ast.Name) and target.id == "p":
+        if isinstance(target, ast.Name) and target.id in ("p", "payload"):
             if isinstance(stmt.value, ast.Call):
                 return [self._parse_actor_call(stmt)]
             else:
@@ -110,11 +109,5 @@ class SceneParser:
         test = ast.unparse(stmt.test)
         true_branch = self._parse_body(stmt.body)
         false_branch = self._parse_body(stmt.orelse) if stmt.orelse else []
-
-        convergence_label = f"CONVERGENCE_{self.convergence_counter}"
-        self.convergence_counter += 1
-
-        true_branch.append(Convergence(lineno=stmt.lineno, label=convergence_label))
-        false_branch.append(Convergence(lineno=stmt.lineno, label=convergence_label))
 
         return [Condition(lineno=stmt.lineno, test=test, true_branch=true_branch, false_branch=false_branch)]
