@@ -29,7 +29,7 @@ class OperationGrouper:
         self.convergence_counter = 0
         self.convergence_map = {}
 
-        start_actors = self._process_operations(self.operations, [])
+        start_actors = self._process_operations(self.operations, [], is_top_level=True)
 
         start_router = Router(
             name=f"start_{self.scene_name}",
@@ -45,10 +45,12 @@ class OperationGrouper:
 
         return self.routers
 
-    def _process_operations(self, operations: List[IROperation], convergence_stack: List[str]) -> List[str]:
+    def _process_operations(self, operations: List[IROperation], convergence_stack: List[str], is_top_level: bool = False) -> List[str]:
         if not operations:
             if convergence_stack:
                 return [convergence_stack[-1]]
+            if is_top_level:
+                return [f"end_{self.scene_name}"]
             return []
 
         result = []
@@ -92,7 +94,7 @@ class OperationGrouper:
                     true_actors = self._process_operations(cond.true_branch, new_stack)
                     false_actors = self._process_operations(cond.false_branch, new_stack)
 
-                    continuation_actors = self._process_operations(operations[i:], convergence_stack)
+                    continuation_actors = self._process_operations(operations[i:], convergence_stack, is_top_level=is_top_level)
 
                     self.convergence_map[convergence_label] = continuation_actors
 
@@ -130,7 +132,7 @@ class OperationGrouper:
                 true_actors = self._process_operations(op.true_branch, new_stack)
                 false_actors = self._process_operations(op.false_branch, new_stack)
 
-                continuation_actors = self._process_operations(operations[i+1:], convergence_stack)
+                continuation_actors = self._process_operations(operations[i+1:], convergence_stack, is_top_level=is_top_level)
 
                 self.convergence_map[convergence_label] = continuation_actors
 
@@ -148,11 +150,14 @@ class OperationGrouper:
                 i += 1
 
         if result:
-            continuation = self._process_operations(operations[i:], convergence_stack)
+            continuation = self._process_operations(operations[i:], convergence_stack, is_top_level=is_top_level)
             return result + continuation
 
         if convergence_stack:
             return [convergence_stack[-1]]
+
+        if is_top_level:
+            return [f"end_{self.scene_name}"]
 
         return []
 
