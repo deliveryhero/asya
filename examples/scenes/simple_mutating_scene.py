@@ -2,7 +2,7 @@
 
 def simple_mutating_scene(p: dict) -> dict:
     p = actor0(p)
-    
+
     p["k"] = 1
     p = actor1(p)
 

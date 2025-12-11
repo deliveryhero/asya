@@ -62,7 +62,10 @@ class RouterOptimizer:
         return "seq"
 
     def optimize(
-        self, operations: list[PayloadMutation | ClassInstantiation | Label | ConditionalGoto | Goto | ActorCall | RouterBoundary]
+        self,
+        operations: list[
+            PayloadMutation | ClassInstantiation | Label | ConditionalGoto | Goto | ActorCall | RouterBoundary
+        ],
     ) -> list[Router]:
         """
         Split operations into optimal router groupings.
@@ -92,10 +95,16 @@ class RouterOptimizer:
         # Optimize away simple forwarding routers
         routers = self._inline_forwarding_routers(routers)
 
+        # Resolve convergence routing for continuation routers
+        self._resolve_convergence_routing(routers)
+
         return routers
 
     def _split_at_boundaries(
-        self, operations: list[PayloadMutation | ClassInstantiation | Label | ConditionalGoto | Goto | ActorCall | RouterBoundary]
+        self,
+        operations: list[
+            PayloadMutation | ClassInstantiation | Label | ConditionalGoto | Goto | ActorCall | RouterBoundary
+        ],
     ) -> list[list[PayloadMutation | ClassInstantiation | Label | ConditionalGoto | Goto | ActorCall]]:
         """Split operations at RouterBoundary markers."""
         chunks = []
@@ -199,11 +208,78 @@ class RouterOptimizer:
                 # For ActorCall continuations pointing to empty routers, set to None
                 if isinstance(op, ActorCall) and op.continuation_router_id in empty_routers:
                     op.continuation_router_id = None
-                # For Goto/ConditionalGoto pointing to empty routers, this shouldn't happen
-                # but if it does, it's a bug in the IR generation
+                # For Goto pointing to empty routers, set to None
+                elif isinstance(op, Goto) and op.target_router_id in empty_routers:
+                    op.target_router_id = None
+                # For ConditionalGoto pointing to empty routers, set to None
+                elif isinstance(op, ConditionalGoto):
+                    if op.true_target_router_id in empty_routers:
+                        op.true_target_router_id = None
+                    if op.false_target_router_id in empty_routers:
+                        op.false_target_router_id = None
 
         # Remove forwarding and empty routers from the list
         return [r for r in routers if r.router_id not in forwarding_map and r.router_id not in empty_routers]
+
+    def _resolve_convergence_routing(self, routers: list[Router]) -> None:
+        """
+        Resolve continuation→convergence routing after all routers created.
+
+        Convergence router detection:
+        1. Find all continuation routers (only mutations/labels/class instantiations, no control flow)
+        2. For each continuation, find convergence point:
+           - Scan forward in router list
+           - Track last continuation router seen
+           - When hit control-flow router or end of routers, use last continuation as convergence
+        3. Add Goto operation to continuation routers pointing to convergence
+
+        This makes routing explicit in IR so generator can just emit it.
+        """
+        if not routers:
+            return
+
+        continuation_routers = []
+        for i, router in enumerate(routers):
+            non_label_ops = [op for op in router.operations if not isinstance(op, Label)]
+
+            is_continuation = all(isinstance(op, (PayloadMutation, ClassInstantiation)) for op in non_label_ops)
+
+            if is_continuation and non_label_ops:
+                continuation_routers.append((i, router))
+
+        for router_idx, router in continuation_routers:
+            convergence_router_id = None
+            last_continuation_idx = None
+
+            for j in range(router_idx + 1, len(routers)):
+                next_router = routers[j]
+                next_non_label_ops = [op for op in next_router.operations if not isinstance(op, Label)]
+
+                is_next_continuation = (
+                    all(isinstance(op, (PayloadMutation, ClassInstantiation)) for op in next_non_label_ops)
+                    and next_non_label_ops
+                )
+
+                if is_next_continuation:
+                    last_continuation_idx = j
+                else:
+                    if last_continuation_idx is not None:
+                        convergence_router_id = routers[last_continuation_idx].router_id
+                    break
+
+            if not convergence_router_id and last_continuation_idx is not None:
+                convergence_router_id = routers[last_continuation_idx].router_id
+
+            if convergence_router_id and convergence_router_id != router.router_id:
+                has_goto = any(isinstance(op, Goto) for op in router.operations)
+                if not has_goto:
+                    goto_op = Goto(
+                        line=router.line,
+                        col=0,
+                        target=f"convergence_{convergence_router_id}",
+                        target_router_id=convergence_router_id,
+                    )
+                    router.operations.append(goto_op)
 
     def _resolve_goto_targets(self, routers: list[Router]) -> None:
         """
@@ -271,7 +347,15 @@ class RouterOptimizer:
                 while j < len(operations):
                     next_op = operations[j]
                     # Stop at control flow boundaries and router boundaries
-                    if isinstance(next_op, (Label, ConditionalGoto, Goto, RouterBoundary)):
+                    if isinstance(next_op, (Label, ConditionalGoto, RouterBoundary)):
+                        break
+                    # Stop at convergence Gotos (after_if, etc.), but include loop control Gotos
+                    if isinstance(next_op, Goto):
+                        # Include loop control Gotos (continue/break) in continuation
+                        if "loop_start" in next_op.target or "loop_exit" in next_op.target:
+                            continuation_ops.append(next_op)
+                            j += 1
+                        # Stop at convergence/other Gotos
                         break
                     # Continue with mutations and class instantiations
                     continuation_ops.append(next_op)

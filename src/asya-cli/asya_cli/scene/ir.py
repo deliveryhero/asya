@@ -79,7 +79,7 @@ class ClassInstantiation(Operation):
 
     def __str__(self) -> str:
         """Serialize back to parsed syntax."""
-        return f'{self.var_name} = {self.class_name}()'
+        return f"{self.var_name} = {self.class_name}()"
 
 
 @dataclass

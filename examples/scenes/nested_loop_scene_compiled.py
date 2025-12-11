@@ -159,4 +159,3 @@ def resolve(handler_full_name: str) -> str:
         )
 
     return resolve._handler_to_actor[handler_full_name]
-

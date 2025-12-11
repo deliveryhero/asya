@@ -110,12 +110,11 @@ class SceneParser:
         """Generate unique router ID: router_{scene}_line_xx_{type}."""
         return f"router_{self.scene_name}_line_{line}_{flow_type}"
 
-
     def _flush_router_ops(
         self,
         steps: list[ActorCall | Router],
         router_ops: list[PayloadMutation | ClassInstantiation | Label | ConditionalGoto | Goto | ActorCall],
-        router_start_line: int
+        router_start_line: int,
     ) -> None:
         """Flush router operations by optimizing them into grouped routers."""
         from asya_cli.scene.optimizer import RouterOptimizer
@@ -946,9 +945,7 @@ class SceneParser:
                 # Flush before while loops to ensure clean entry point for goto
                 if isinstance(stmt, ast.While) and router_ops:
                     # Check if router_ops contains only simple operations (no control flow yet)
-                    has_control_flow = any(
-                        isinstance(op, (Label, ConditionalGoto, Goto)) for op in router_ops
-                    )
+                    has_control_flow = any(isinstance(op, (Label, ConditionalGoto, Goto)) for op in router_ops)
                     if not has_control_flow:
                         # Flush simple mutations/assignments as separate router
                         self._flush_router_ops(steps, router_ops, router_start_line)

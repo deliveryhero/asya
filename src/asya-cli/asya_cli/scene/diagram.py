@@ -78,7 +78,9 @@ class DiagramGenerator:
 
         # Entrypoint
         start_node = "start"
-        self.dot_lines.append(f'  {start_node} [label="{scene_name}_start", shape=ellipse, fillcolor=lightgreen, style=filled];')
+        self.dot_lines.append(
+            f'  {start_node} [label="{scene_name}_start", shape=ellipse, fillcolor=lightgreen, style=filled];'
+        )
 
         prev_node = start_node
         for step in self.scene_ir.steps:
@@ -93,7 +95,9 @@ class DiagramGenerator:
 
         # Exit point
         end_node = "end"
-        self.dot_lines.append(f'  {end_node} [label="{scene_name}_end", shape=ellipse, fillcolor=lightcoral, style=filled];')
+        self.dot_lines.append(
+            f'  {end_node} [label="{scene_name}_end", shape=ellipse, fillcolor=lightcoral, style=filled];'
+        )
         self.dot_lines.append(f"  {prev_node} -> {end_node};")
 
         self.dot_lines.append("}")
@@ -120,8 +124,8 @@ class DiagramGenerator:
         self.dot_lines.append(f"  subgraph {cluster_id} {{")
         self.dot_lines.append('    label="";')
         self.dot_lines.append('    style="rounded,filled";')
-        self.dot_lines.append('    color=blue;')
-        self.dot_lines.append('    fillcolor=lightblue;')
+        self.dot_lines.append("    color=blue;")
+        self.dot_lines.append("    fillcolor=lightblue;")
         self.dot_lines.append(
             f'    {node_id} [label="{step_label}", shape=box, style="rounded", fillcolor=white, width=2, height=0.8];'
         )
@@ -178,24 +182,24 @@ class DiagramGenerator:
         # Create nodes for operations
         op_nodes = {}
         for idx, op in enumerate(operations):
-            if isinstance(op, Label):
-                continue
-            elif isinstance(op, Goto):
+            if isinstance(op, Label) or isinstance(op, Goto):
                 continue
             elif isinstance(op, ConditionalGoto):
                 # Decision point - invisible diamond
                 node_id = self._new_node()
-                self.dot_lines.append(f'    {node_id} [label="", shape=diamond, width=0.3, height=0.3, style=filled, fillcolor=white];')
+                self.dot_lines.append(
+                    f'    {node_id} [label="", shape=diamond, width=0.3, height=0.3, style=filled, fillcolor=white];'
+                )
                 op_nodes[idx] = node_id
             elif isinstance(op, ActorCall):
                 node_id = self._new_node()
-                label = f"{param_name} = {str(op)}({param_name})"
+                label = f"{param_name} = {op!s}({param_name})"
                 label = self._escape_label(label)
                 self.dot_lines.append(f'    {node_id} [label="{label}", shape=box, style=rounded, fillcolor=white];')
                 op_nodes[idx] = node_id
             elif isinstance(op, PayloadMutation):
                 node_id = self._new_node()
-                label = f'{param_name}["{op.key}"] = {str(op)}'
+                label = f'{param_name}["{op.key}"] = {op!s}'
                 label = self._escape_label(label)
                 self.dot_lines.append(f'    {node_id} [label="{label}", shape=box, style=rounded, fillcolor=white];')
                 op_nodes[idx] = node_id
@@ -248,8 +252,12 @@ class DiagramGenerator:
             if true_idx is not None:
                 true_target_idx = self._find_first_visible_op(operations, true_idx + 1, op_nodes)
                 if true_target_idx is not None:
-                    self.dot_lines.append(f'    {node_id} -> {op_nodes[true_target_idx]} [color="darkgreen", label="true"];')
-                    self._connect_cfg_edges(operations, true_target_idx, label_map, op_nodes, entry_node, exit_node, visited)
+                    self.dot_lines.append(
+                        f'    {node_id} -> {op_nodes[true_target_idx]} [color="darkgreen", label="true"];'
+                    )
+                    self._connect_cfg_edges(
+                        operations, true_target_idx, label_map, op_nodes, entry_node, exit_node, visited
+                    )
                 else:
                     # True branch leads to exit
                     self.dot_lines.append(f'    {node_id} -> {exit_node} [color="darkgreen", label="true"];')
@@ -260,8 +268,12 @@ class DiagramGenerator:
                 if false_idx is not None:
                     false_target_idx = self._find_first_visible_op(operations, false_idx + 1, op_nodes)
                     if false_target_idx is not None:
-                        self.dot_lines.append(f'    {node_id} -> {op_nodes[false_target_idx]} [color="darkred", label="false"];')
-                        self._connect_cfg_edges(operations, false_target_idx, label_map, op_nodes, entry_node, exit_node, visited)
+                        self.dot_lines.append(
+                            f'    {node_id} -> {op_nodes[false_target_idx]} [color="darkred", label="false"];'
+                        )
+                        self._connect_cfg_edges(
+                            operations, false_target_idx, label_map, op_nodes, entry_node, exit_node, visited
+                        )
                     else:
                         # False branch leads to exit
                         self.dot_lines.append(f'    {node_id} -> {exit_node} [color="darkred", label="false"];')
@@ -277,17 +289,23 @@ class DiagramGenerator:
                     # Backward jump - don't follow to avoid infinite loop
                     target_node_idx = self._find_first_visible_op(operations, target_idx + 1, op_nodes)
                     if target_node_idx is not None:
-                        self.dot_lines.append(f'    {op_nodes[prev_node]} -> {op_nodes[target_node_idx]} [style=dashed, color=gray, label="loop"];')
+                        self.dot_lines.append(
+                            f'    {op_nodes[prev_node]} -> {op_nodes[target_node_idx]} [style=dashed, color=gray, label="loop"];'
+                        )
                     else:
-                        self.dot_lines.append(f'    {op_nodes[prev_node]} -> {exit_node} [style=dashed, color=gray, label="loop"];')
+                        self.dot_lines.append(
+                            f'    {op_nodes[prev_node]} -> {exit_node} [style=dashed, color=gray, label="loop"];'
+                        )
                 else:
                     # Forward jump
                     target_node_idx = self._find_first_visible_op(operations, target_idx + 1, op_nodes)
                     if target_node_idx is not None:
-                        self.dot_lines.append(f'    {op_nodes[prev_node]} -> {op_nodes[target_node_idx]};')
-                        self._connect_cfg_edges(operations, target_node_idx, label_map, op_nodes, entry_node, exit_node, visited)
+                        self.dot_lines.append(f"    {op_nodes[prev_node]} -> {op_nodes[target_node_idx]};")
+                        self._connect_cfg_edges(
+                            operations, target_node_idx, label_map, op_nodes, entry_node, exit_node, visited
+                        )
                     else:
-                        self.dot_lines.append(f'    {op_nodes[prev_node]} -> {exit_node};')
+                        self.dot_lines.append(f"    {op_nodes[prev_node]} -> {exit_node};")
 
         elif isinstance(op, Label):
             # Skip labels - they don't create nodes, continue traversal
@@ -306,7 +324,9 @@ class DiagramGenerator:
                 next_visible = self._find_first_visible_op(operations, next_idx, op_nodes)
                 if next_visible is not None:
                     self.dot_lines.append(f"    {op_nodes[idx]} -> {op_nodes[next_visible]};")
-                    self._connect_cfg_edges(operations, next_visible, label_map, op_nodes, entry_node, exit_node, visited)
+                    self._connect_cfg_edges(
+                        operations, next_visible, label_map, op_nodes, entry_node, exit_node, visited
+                    )
                 else:
                     # No more operations - connect to exit
                     self.dot_lines.append(f"    {op_nodes[idx]} -> {exit_node};")

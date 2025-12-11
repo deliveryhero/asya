@@ -122,16 +122,16 @@ class RouterGenerator:
         lines.append("    _next = []")
         lines.append("")
 
-        # Find the next step(s) in the sequential flow (for default routing)
-        next_steps = self._find_next_steps(router_id)
-        # For operations that need a single next_step, use the first one (the immediate next)
-        next_step = next_steps[0] if next_steps else None
-
         # Generate code from router operations
-        operation_lines = self._generate_router_operations(
-            router.operations, indent=1, router_id=router_id, next_step=next_step, next_steps=next_steps
-        )
+        operation_lines = self._generate_router_operations(router.operations, indent=1, router_id=router_id)
         lines.extend(operation_lines)
+
+        # If router has no explicit routing (no Goto/ActorCall), add routing to next scene-level steps
+        has_routing = any(isinstance(op, (Goto, ActorCall)) for op in router.operations)
+        if not has_routing:
+            next_scene_steps = self._find_next_scene_steps(router_id)
+            for step in next_scene_steps:
+                lines.append(f"    _next.append({self._format_actor(step)})")
 
         lines.append("")
         lines.append("    r['actors'][c+1:c+1] = _next")
@@ -140,80 +140,64 @@ class RouterGenerator:
         code = "\n".join(lines)
         self.routers.append((router_id, docstring, code))
 
-    def _find_next_steps(self, router_id: str) -> list[str]:
-        """
-        Find the next step(s) after the given router in the sequential flow.
+    def _find_next_control_flow_router(self, router_id: str) -> str | None:
+        """Find the next router with control flow operations after the given router."""
+        steps = self.scene_ir.steps
+        found_router = False
 
-        For continuation routers (only mutations, no control flow), finds the convergence router.
-        Otherwise returns the next sequential step.
+        for step in steps:
+            if isinstance(step, Router) and step.router_id == router_id:
+                found_router = True
+                continue
+
+            if found_router and isinstance(step, Router):
+                # Check if this router has control flow (ConditionalGoto/Goto)
+                has_control_flow = any(
+                    isinstance(op, (ConditionalGoto, Goto)) for op in step.operations
+                )
+                if has_control_flow:
+                    return step.router_id
+
+        return None
+
+    def _find_next_scene_steps(self, router_id: str) -> list[str]:
+        """
+        Find all scene-level steps after the given router.
+
+        Returns list of:
+        - Next Router if it's a control-flow router (while/if)
+        - Scene-level ActorCalls
+        - end router
         """
         steps = self.scene_ir.steps
+        found_router = False
+        next_steps = []
+
         for i, step in enumerate(steps):
             if isinstance(step, Router) and step.router_id == router_id:
-                # Check if this is a continuation router (only mutations, created by ActorCall split)
-                is_continuation = all(
-                    isinstance(op, (PayloadMutation, ClassInstantiation))
-                    for op in step.operations
-                )
+                found_router = True
+                continue
 
-                if is_continuation:
-                    # Find convergence router: last continuation router before next scene-level ActorCall
-                    # This handles branch-specific continuations routing to convergence point
-                    last_continuation_router = None
-                    for j in range(i + 1, len(steps)):
-                        if isinstance(steps[j], Router):
-                            # Check if this is also a continuation router
-                            next_router = steps[j]
-                            is_next_continuation = all(
-                                isinstance(op, (PayloadMutation, ClassInstantiation, Label))
-                                for op in next_router.operations
-                            )
-                            if is_next_continuation:
-                                last_continuation_router = next_router.router_id
-                            else:
-                                # Found a router with control flow - this is the target
-                                return [next_router.router_id]
-                        elif isinstance(steps[j], ActorCall):
-                            # Found ActorCall - if we saved a continuation router, use it
-                            # Otherwise route to end
-                            if last_continuation_router:
-                                return [last_continuation_router]
-                            return [f"end_{self.scene_ir.name}"]
-                    # No more steps, route to last continuation or end
-                    if last_continuation_router:
-                        return [last_continuation_router]
-                    return [f"end_{self.scene_ir.name}"]
+            if found_router:
+                if isinstance(step, Router):
+                    next_router_ops = [op for op in step.operations if not isinstance(op, Label)]
+                    is_control_flow = any(isinstance(op, (ConditionalGoto, Goto)) for op in next_router_ops)
+                    if is_control_flow:
+                        next_steps.append(step.router_id)
+                        return next_steps
+                elif isinstance(step, ActorCall):
+                    next_steps.append(step.qualified_name)
 
-                # Not a continuation router, use normal logic
-                next_steps = []
-                j = i + 1
+        if found_router:
+            next_steps.append(f"end_{self.scene_ir.name}")
 
-                # Collect all sequential ActorCalls
-                while j < len(steps) and isinstance(steps[j], ActorCall):
-                    next_steps.append(steps[j].qualified_name)
-                    j += 1
-
-                # After ActorCalls, add the next router (or end)
-                if j < len(steps):
-                    next_step = steps[j]
-                    if isinstance(next_step, Router):
-                        next_steps.append(next_step.router_id)
-                    else:
-                        next_steps.append(next_step.qualified_name)
-                else:
-                    # No more steps, route to end
-                    next_steps.append(f"end_{self.scene_ir.name}")
-
-                return next_steps
-        return []
+        return next_steps
 
     def _generate_router_operations(
         self,
         operations: list[PayloadMutation | ClassInstantiation | Label | ConditionalGoto | Goto | ActorCall],
         indent: int = 0,
         router_id: str | None = None,
-        next_step: str | None = None,
-        next_steps: list[str] | None = None,
     ) -> list[str]:
         """
         Generate code from router operations.
@@ -228,9 +212,20 @@ class RouterGenerator:
         label_map = self._build_label_map(operations)
         loop_info = self._detect_loop_labels(operations, label_map) if router_id else None
 
+        # Track if we've emitted any routing actions (to enforce rule: no mutations/conditions after routing)
+        has_emitted_routing = False
+
         i = 0
         while i < len(operations):
             op = operations[i]
+
+            # If we've already emitted routing, stop processing mutations and conditions
+            if has_emitted_routing and isinstance(op, (PayloadMutation, ClassInstantiation, ConditionalGoto)):
+                # Route to next router that will handle remaining operations
+                next_router = self._find_next_control_flow_router(router_id)
+                if next_router:
+                    lines.append(f"{base_indent}_next.append({self._format_actor(next_router)})")
+                break
 
             if isinstance(op, PayloadMutation):
                 lines.append(f"{base_indent}{param_name}['{op.key}'] = {op.value_str}")
@@ -250,6 +245,7 @@ class RouterGenerator:
             elif isinstance(op, ActorCall):
                 # Route to actor
                 lines.append(f"{base_indent}_next.append({self._format_actor(op.qualified_name)})")
+                has_emitted_routing = True
                 # If actor has continuation, route to continuation router after actor
                 if op.continuation_router_id:
                     lines.append(f"{base_indent}_next.append({self._format_actor(op.continuation_router_id)})")
@@ -261,9 +257,7 @@ class RouterGenerator:
 
             elif isinstance(op, ConditionalGoto):
                 # Generate if/else structure
-                if_lines, next_i = self._generate_conditional_block(
-                    operations, i, indent, router_id, loop_info, next_step, next_steps
-                )
+                if_lines, next_i = self._generate_conditional_block(operations, i, indent, router_id, loop_info)
                 lines.extend(if_lines)
                 i = next_i
 
@@ -292,13 +286,6 @@ class RouterGenerator:
             else:
                 lines.append(f"{base_indent}# Unknown operation: {op.__class__.__name__}")
                 i += 1
-
-        # Low-level routing: if no control flow operations, route to next step(s)
-        has_control_flow = any(isinstance(op, (ConditionalGoto, Goto, ActorCall)) for op in operations)
-        if not has_control_flow and next_steps:
-            # Route to all next steps (actor calls + next router)
-            for step in next_steps:
-                lines.append(f"{base_indent}_next.append({self._format_actor(step)})")
 
         return lines
 
@@ -345,8 +332,6 @@ class RouterGenerator:
         indent: int,
         router_id: str | None = None,
         loop_info: dict[str, str] | None = None,
-        next_step: str | None = None,
-        next_steps: list[str] | None = None,
     ) -> tuple[list[str], int]:
         """
         Generate if/else block from ConditionalGoto pattern with low-level routing.
@@ -386,22 +371,35 @@ class RouterGenerator:
                 None,
                 router_id,
                 loop_info,
-                next_step,
-                next_steps,
             )
             if branch_lines:
                 lines.extend(branch_lines)
             else:
-                lines.append(f"{base_indent}    pass")
-
-            # After inline operations, route to next step if no Goto was encountered
-            branch_ops = operations[true_start + 1 : true_end]
-            has_goto = any(isinstance(op, (Goto, ActorCall)) for op in branch_ops)
-            if not has_goto and next_step:
-                lines.append(f"{base_indent}    _next.append({self._format_actor(next_step)})")
+                # Empty true branch - check if we need to route to next scene-level steps
+                branch_ops = operations[true_start + 1 : true_end]
+                # Check if there's valid routing (Goto/ActorCall with non-None targets)
+                has_valid_routing = any(
+                    (isinstance(op, Goto) and op.target_router_id)
+                    or isinstance(op, ActorCall)
+                    for op in branch_ops
+                )
+                if not has_valid_routing:
+                    next_scene_steps = self._find_next_scene_steps(router_id)
+                    if next_scene_steps:
+                        for step in next_scene_steps:
+                            lines.append(f"{base_indent}    _next.append({self._format_actor(step)})")
+                    else:
+                        lines.append(f"{base_indent}    pass")
+                else:
+                    lines.append(f"{base_indent}    pass")
         elif cond_goto.true_target_router_id and cond_goto.true_target_router_id != router_id:
             # True branch is in a different router - route to it
             lines.append(f"{base_indent}    _next.append({self._format_actor(cond_goto.true_target_router_id)})")
+        elif not cond_goto.true_target_router_id and true_start == -1:
+            # No true target router (was empty/inlined) - route to next scene-level steps
+            next_scene_steps = self._find_next_scene_steps(router_id)
+            for step in next_scene_steps:
+                lines.append(f"{base_indent}    _next.append({self._format_actor(step)})")
 
         # Generate false branch
         if false_start != -1:
@@ -417,48 +415,21 @@ class RouterGenerator:
                 None,
                 router_id,
                 loop_info,
-                next_step,
-                next_steps,
             )
             if branch_lines:
                 lines.extend(branch_lines)
             else:
                 lines.append(f"{base_indent}    pass")
-
-            # After inline operations, route to appropriate step if no Goto was encountered
-            branch_ops = operations[false_start + 1 : false_end]
-            has_goto = any(isinstance(op, (Goto, ActorCall)) for op in branch_ops)
-            if not has_goto:
-                # For false branch (loop exit), route to the step AFTER the loop
-                # This requires finding what comes after the current router
-                if next_step:
-                    lines.append(f"{base_indent}    _next.append({self._format_actor(next_step)})")
         elif cond_goto.false_target_router_id and cond_goto.false_target_router_id != router_id:
             # False branch is in a different router - route to it
             lines.append(f"{base_indent}else:")
             lines.append(f"{base_indent}    _next.append({self._format_actor(cond_goto.false_target_router_id)})")
-        elif cond_goto.false_target_router_id == router_id:
-            # False target points to self (loop exit condition)
+        elif not cond_goto.false_target_router_id and false_start == -1:
+            # No false target router (was empty/inlined) - route to next scene-level steps
             lines.append(f"{base_indent}else:")
-            # Find loop exit target: skip ALL nested routers to find first ActorCall
-            exit_target = None
-            steps = self.scene_ir.steps
-            for i, step in enumerate(steps):
-                if isinstance(step, Router) and step.router_id == router_id:
-                    # Found current router, scan forward past all routers
-                    j = i + 1
-                    while j < len(steps) and isinstance(steps[j], Router):
-                        j += 1
-                    # Found first ActorCall after all nested routers
-                    if j < len(steps) and isinstance(steps[j], ActorCall):
-                        exit_target = steps[j].qualified_name
-                    break
-            if exit_target:
-                lines.append(f"{base_indent}    _next.append({self._format_actor(exit_target)})")
-        elif false_start == -1 and next_step:
-            # No false branch operations in this router, route to next step (loop exit)
-            lines.append(f"{base_indent}else:")
-            lines.append(f"{base_indent}    _next.append({self._format_actor(next_step)})")
+            next_scene_steps = self._find_next_scene_steps(router_id)
+            for step in next_scene_steps:
+                lines.append(f"{base_indent}    _next.append({self._format_actor(step)})")
 
         # Find convergence point by looking for Goto in true branch
         convergence_label = None
@@ -508,8 +479,6 @@ class RouterGenerator:
         visited: set[int] | None = None,
         router_id: str | None = None,
         loop_info: dict[str, str] | None = None,
-        next_step: str | None = None,
-        next_steps: list[str] | None = None,
     ) -> list[str]:
         """
         Generate code for a range of operations without slicing.
@@ -524,6 +493,9 @@ class RouterGenerator:
         param_name = self.scene_ir.param_name
         base_indent = "    " * indent
 
+        # Track if we've emitted routing (to enforce rule: no mutations/conditions after routing)
+        has_emitted_routing = False
+
         i = start_idx
         while i < end_idx:
             if i in visited:
@@ -531,6 +503,14 @@ class RouterGenerator:
                 continue
             visited.add(i)
             op = operations[i]
+
+            # If we've emitted routing, stop processing mutations and conditions
+            if has_emitted_routing and isinstance(op, (PayloadMutation, ClassInstantiation, ConditionalGoto)):
+                # Route to next router that will handle remaining operations
+                next_router = self._find_next_control_flow_router(router_id)
+                if next_router:
+                    lines.append(f"{base_indent}_next.append({self._format_actor(next_router)})")
+                break
 
             if isinstance(op, PayloadMutation):
                 lines.append(f"{base_indent}{param_name}['{op.key}'] = {op.value_str}")
@@ -550,6 +530,7 @@ class RouterGenerator:
             elif isinstance(op, ActorCall):
                 # Route to actor
                 lines.append(f"{base_indent}_next.append({self._format_actor(op.qualified_name)})")
+                has_emitted_routing = True
                 # If actor has continuation, route to continuation router after actor
                 if op.continuation_router_id:
                     lines.append(f"{base_indent}_next.append({self._format_actor(op.continuation_router_id)})")
@@ -562,7 +543,7 @@ class RouterGenerator:
             elif isinstance(op, ConditionalGoto):
                 # Recursively generate nested if/else
                 if_lines, next_i = self._generate_conditional_block_with_map(
-                    operations, i, indent, label_map, visited, router_id, loop_info, next_step, next_steps
+                    operations, i, indent, label_map, visited, router_id, loop_info
                 )
                 lines.extend(if_lines)
                 i = next_i
@@ -604,8 +585,6 @@ class RouterGenerator:
         visited: set[int] | None = None,
         router_id: str | None = None,
         loop_info: dict[str, str] | None = None,
-        next_step: str | None = None,
-        next_steps: list[str] | None = None,
     ) -> tuple[list[str], int]:
         """
         Generate if/else block using pre-built label_map.
@@ -632,7 +611,7 @@ class RouterGenerator:
         if true_start != -1:
             true_end = self._find_branch_end(operations, true_start + 1, label_map)
             branch_lines = self._generate_operations_range(
-                operations, true_start + 1, true_end, indent + 1, label_map, visited, router_id, loop_info, next_step
+                operations, true_start + 1, true_end, indent + 1, label_map, visited, router_id, loop_info
             )
             if branch_lines:
                 lines.extend(branch_lines)
@@ -652,8 +631,6 @@ class RouterGenerator:
                 visited,
                 router_id,
                 loop_info,
-                next_step,
-                next_steps,
             )
             if branch_lines:
                 lines.extend(branch_lines)

@@ -10,7 +10,7 @@ from asya_cli.scene.diagram import generate_diagram
 from asya_cli.scene.emitter import CodeEmitter
 from asya_cli.scene.errors import SceneCompileError
 from asya_cli.scene.generator import RouterGenerator
-from asya_cli.scene.ir import SceneIR, ActorCall, Router
+from asya_cli.scene.ir import ActorCall, Router, SceneIR
 from asya_cli.scene.parser import SceneParser
 
 
