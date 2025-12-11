@@ -144,13 +144,47 @@ class RouterGenerator:
         """
         Find the next step(s) after the given router in the sequential flow.
 
-        If next step is an ActorCall, return [actor, step_after_actor].
-        Otherwise return [next_router].
+        For continuation routers (only mutations, no control flow), finds the convergence router.
+        Otherwise returns the next sequential step.
         """
         steps = self.scene_ir.steps
         for i, step in enumerate(steps):
             if isinstance(step, Router) and step.router_id == router_id:
-                # Found current router, collect next steps
+                # Check if this is a continuation router (only mutations, created by ActorCall split)
+                is_continuation = all(
+                    isinstance(op, (PayloadMutation, ClassInstantiation))
+                    for op in step.operations
+                )
+
+                if is_continuation:
+                    # Find convergence router: last continuation router before next scene-level ActorCall
+                    # This handles branch-specific continuations routing to convergence point
+                    last_continuation_router = None
+                    for j in range(i + 1, len(steps)):
+                        if isinstance(steps[j], Router):
+                            # Check if this is also a continuation router
+                            next_router = steps[j]
+                            is_next_continuation = all(
+                                isinstance(op, (PayloadMutation, ClassInstantiation, Label))
+                                for op in next_router.operations
+                            )
+                            if is_next_continuation:
+                                last_continuation_router = next_router.router_id
+                            else:
+                                # Found a router with control flow - this is the target
+                                return [next_router.router_id]
+                        elif isinstance(steps[j], ActorCall):
+                            # Found ActorCall - if we saved a continuation router, use it
+                            # Otherwise route to end
+                            if last_continuation_router:
+                                return [last_continuation_router]
+                            return [f"end_{self.scene_ir.name}"]
+                    # No more steps, route to last continuation or end
+                    if last_continuation_router:
+                        return [last_continuation_router]
+                    return [f"end_{self.scene_ir.name}"]
+
+                # Not a continuation router, use normal logic
                 next_steps = []
                 j = i + 1
 
@@ -239,18 +273,20 @@ class RouterGenerator:
                     end_actor = f"end_{scene_name}"
                     lines.append(f"{base_indent}_next.append({self._format_actor(end_actor)})")
                 elif op.target_router_id:
-                    # Determine comment based on target label name
-                    comment = None
-                    if "loop_start" in op.target:
-                        comment = "continue loop"
-                    elif "loop_exit" in op.target:
-                        comment = "break loop"
+                    # Skip Gotos that jump to convergence labels (after_if, etc.)
+                    # These mark branch endpoints, not explicit routing
+                    if "after_if" not in op.target:
+                        # Loop control flow or explicit routing - generate routing
+                        comment = None
+                        if "loop_start" in op.target:
+                            comment = "continue loop"
+                        elif "loop_exit" in op.target:
+                            comment = "break loop"
 
-                    if comment:
-                        lines.append(f"{base_indent}# {comment}")
-                    lines.append(f"{base_indent}_next.append({self._format_actor(op.target_router_id)})")
-                else:
-                    lines.append(f"{base_indent}# Unresolved goto: {op.target}")
+                        if comment:
+                            lines.append(f"{base_indent}# {comment}")
+                        lines.append(f"{base_indent}_next.append({self._format_actor(op.target_router_id)})")
+                    # else: skip convergence gotos
                 i += 1
 
             else:
@@ -432,6 +468,13 @@ class RouterGenerator:
                     convergence_label = operations[idx].target
                     break
 
+        # Check if branches have actor calls with continuations
+        has_actor_continuations = False
+        for op in operations[start_idx:]:
+            if isinstance(op, ActorCall) and op.continuation_router_id:
+                has_actor_continuations = True
+                break
+
         # Find next_idx: skip past the convergence label
         if convergence_label and convergence_label in label_map:
             convergence_idx = label_map[convergence_label]
@@ -443,7 +486,11 @@ class RouterGenerator:
                     next_idx += 1
             else:
                 # Forward jump - normal convergence
-                next_idx = convergence_idx + 1
+                # If branches have actor continuations, stop AT convergence label
+                if has_actor_continuations:
+                    next_idx = convergence_idx
+                else:
+                    next_idx = convergence_idx + 1
         else:
             next_idx = max(true_end if true_start != -1 else start_idx, false_end if false_start != -1 else start_idx)
             if next_idx < len(operations) and isinstance(operations[next_idx], Label):
@@ -526,18 +573,20 @@ class RouterGenerator:
                     end_actor = f"end_{scene_name}"
                     lines.append(f"{base_indent}_next.append({self._format_actor(end_actor)})")
                 elif op.target_router_id:
-                    # Determine comment based on target label name
-                    comment = None
-                    if "loop_start" in op.target:
-                        comment = "continue loop"
-                    elif "loop_exit" in op.target:
-                        comment = "break loop"
+                    # Skip Gotos that jump to convergence labels (after_if, etc.)
+                    # These mark branch endpoints, not explicit routing
+                    if "after_if" not in op.target:
+                        # Loop control flow or explicit routing - generate routing
+                        comment = None
+                        if "loop_start" in op.target:
+                            comment = "continue loop"
+                        elif "loop_exit" in op.target:
+                            comment = "break loop"
 
-                    if comment:
-                        lines.append(f"{base_indent}# {comment}")
-                    lines.append(f"{base_indent}_next.append({self._format_actor(op.target_router_id)})")
-                else:
-                    lines.append(f"{base_indent}# Unresolved goto: {op.target}")
+                        if comment:
+                            lines.append(f"{base_indent}# {comment}")
+                        lines.append(f"{base_indent}_next.append({self._format_actor(op.target_router_id)})")
+                    # else: skip convergence gotos
                 i += 1
 
             else:
@@ -619,6 +668,13 @@ class RouterGenerator:
                     convergence_label = operations[idx].target
                     break
 
+        # Check if branches have actor calls with continuations
+        has_actor_continuations = False
+        for op in operations[start_idx:]:
+            if isinstance(op, ActorCall) and op.continuation_router_id:
+                has_actor_continuations = True
+                break
+
         # Find next_idx: skip past the convergence label
         if convergence_label and convergence_label in label_map:
             convergence_idx = label_map[convergence_label]
@@ -630,7 +686,11 @@ class RouterGenerator:
                     next_idx += 1
             else:
                 # Forward jump - normal convergence
-                next_idx = convergence_idx + 1
+                # If branches have actor continuations, stop AT convergence label
+                if has_actor_continuations:
+                    next_idx = convergence_idx
+                else:
+                    next_idx = convergence_idx + 1
         else:
             next_idx = max(true_end if true_start != -1 else start_idx, false_end if false_start != -1 else start_idx)
             if next_idx < len(operations) and isinstance(operations[next_idx], Label):
@@ -644,7 +704,12 @@ class RouterGenerator:
         start_idx: int,
         label_map: dict[str, int],
     ) -> int:
-        """Find the end of a branch (including Goto or at convergence Label)."""
+        """
+        Find the end of a branch.
+
+        Handles nested control flow by tracking nesting depth.
+        Returns index after the last operation in this branch.
+        """
         conditional_targets = set()
         for op in operations:
             if isinstance(op, ConditionalGoto):
@@ -652,13 +717,43 @@ class RouterGenerator:
                 if op.false_target:
                     conditional_targets.add(op.false_target)
 
-        for idx in range(start_idx, len(operations)):
+        nesting_depth = 0
+        idx = start_idx
+        while idx < len(operations):
             op = operations[idx]
+
+            # Track nested conditionals
+            if isinstance(op, ConditionalGoto):
+                nesting_depth += 1
+                idx += 1
+                continue
+
+            # Goto only ends branch if we're not nested
             if isinstance(op, Goto):
-                # Include the Goto operation so it can generate route rewriting
-                return idx + 1
-            if isinstance(op, Label) and op.name not in conditional_targets:
-                return idx
+                if nesting_depth == 0:
+                    return idx + 1
+                # Inside nested structure, check if this Goto exits a nested level
+                # by seeing if its target is outside the current nesting
+                if op.target in label_map:
+                    target_idx = label_map[op.target]
+                    # If target is before start_idx, it's a loop - don't count as branch end
+                    if target_idx < start_idx:
+                        idx += 1
+                        continue
+                # Goto might exit current nesting level
+                nesting_depth = max(0, nesting_depth - 1)
+                idx += 1
+                continue
+
+            # Label that's not a conditional target ends the branch (if not nested)
+            if isinstance(op, Label):
+                if op.name not in conditional_targets and nesting_depth == 0:
+                    return idx
+                idx += 1
+                continue
+
+            idx += 1
+
         return len(operations)
 
     def _collect_actors_from_steps(self, steps: list[ActorCall | Router]) -> list[str]:

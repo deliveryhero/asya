@@ -217,7 +217,9 @@ class SceneParser:
                     if ops:
                         operations.extend(ops)
 
-        # After label
+        # After label - add router boundary before convergence label
+        # This splits operations after if/elif/else into separate convergence router
+        operations.append(RouterBoundary(line=stmt.lineno, col=stmt.col_offset))
         operations.append(Label(line=stmt.lineno, col=stmt.col_offset, name=after_label))
 
         return operations

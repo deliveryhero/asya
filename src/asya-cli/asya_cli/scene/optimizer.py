@@ -240,10 +240,16 @@ class RouterOptimizer:
         Split operations at ActorCall boundaries when followed by non-control-flow operations.
 
         Logic:
-        - When we encounter ActorCall followed by mutations/operations (before next Label/Goto/ConditionalGoto)
+        - When we encounter ActorCall followed by mutations/operations (before next control flow boundary)
         - Extract those operations into a continuation router
         - Link the ActorCall to the continuation router via continuation_router_id
         - This ensures mutations operate on actor result, not original payload
+
+        Continuation boundary rules:
+        - Stop at Labels (control flow convergence points)
+        - Stop at ConditionalGoto (if/elif/else branches)
+        - Stop at Goto (loop continue/break, explicit jumps)
+        - Continue through mutations and class instantiations
 
         Returns:
             (modified_operations, continuation_routers)
@@ -259,11 +265,15 @@ class RouterOptimizer:
             op = operations[i]
 
             if isinstance(op, ActorCall):
-                # Collect all operations after this ActorCall
+                # Collect operations after ActorCall until next control flow boundary
                 continuation_ops = []
                 j = i + 1
                 while j < len(operations):
                     next_op = operations[j]
+                    # Stop at control flow boundaries and router boundaries
+                    if isinstance(next_op, (Label, ConditionalGoto, Goto, RouterBoundary)):
+                        break
+                    # Continue with mutations and class instantiations
                     continuation_ops.append(next_op)
                     j += 1
 
@@ -274,7 +284,6 @@ class RouterOptimizer:
                     cont_router_id = self._new_router_id(flow_type, cont_line)
 
                     # Recursively optimize continuation operations
-                    # (they might have nested actor calls)
                     cont_routers = self.optimize(continuation_ops)
 
                     if cont_routers:
