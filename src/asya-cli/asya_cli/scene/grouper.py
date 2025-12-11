@@ -71,7 +71,7 @@ class OperationGrouper:
                     actor = operations[i]
                     i += 1
 
-                    continuation = self._process_operations(operations[i:], convergence_stack)
+                    continuation = self._process_operations(operations[i:], convergence_stack, is_top_level=is_top_level)
 
                     router = Router(
                         name=f"router_{self.scene_name}_line_{mutations[0].lineno}_seq",
@@ -109,7 +109,7 @@ class OperationGrouper:
                     self.routers.append(router)
                     return result + [router.name]
                 else:
-                    continuation = self._process_operations(operations[i:], convergence_stack)
+                    continuation = self._process_operations(operations[i:], convergence_stack, is_top_level=is_top_level)
                     router = Router(
                         name=f"router_{self.scene_name}_line_{mutations[0].lineno}_seq",
                         lineno=mutations[0].lineno,
