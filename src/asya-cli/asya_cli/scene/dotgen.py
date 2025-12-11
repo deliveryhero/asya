@@ -63,7 +63,7 @@ class DotGenerator:
         label_parts.append(f'<tr><td bgcolor="{color}" align="center"> </td></tr>')
 
         handler_parts = []
-        handler_parts.append(f'<tr><td bgcolor="white" align="center"><b>{router.name}</b></td></tr>')
+        handler_parts.append(f'<tr><td bgcolor="white" align="center"><font face="Courier"><i>{router.name}</i></font></td></tr>')
 
         if router.mutations:
             for mutation in router.mutations:
@@ -103,7 +103,7 @@ class DotGenerator:
         label_parts = []
         label_parts.append(f'<tr><td bgcolor="lightblue" align="center"> </td></tr>')
         label_parts.append(
-            f'<tr><td><table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><b>{actor_name}</b></td></tr></table></td></tr>'
+            f'<tr><td><table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><font face="Courier"><i>{actor_name}</i></font></td></tr></table></td></tr>'
         )
 
         label = f'<<table border="0" cellspacing="0" cellpadding="0">{"".join(label_parts)}</table>>'
