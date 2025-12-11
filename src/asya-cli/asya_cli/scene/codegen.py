@@ -144,6 +144,7 @@ Regenerate by running: asya scene compile {self.source_file}
             for actor in router.true_branch_actors:
                 lines.append(f'    _next.append(resolve("{actor}"))')
 
+        lines.append("")
         lines.append("    r['actors'][c+1:c+1] = _next")
         lines.append("    return envelope")
         lines.append("")

@@ -10,7 +10,7 @@ mkdir -p "$COMPILED_DIR"
 echo "[+] Compiling scene files..."
 echo ""
 
-for scene_file in "$SCRIPT_DIR"/*_scene.py; do
+for scene_file in "$SCRIPT_DIR"/*.py; do
     [[ -f "$scene_file" ]] || continue
 
     basename_with_ext="$(basename "$scene_file")"
