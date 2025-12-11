@@ -26,7 +26,6 @@ def conditional_scene(p: dict) -> dict:
         p = handler_type_b(p)
         p["mut"] += 20
     else:
-        p["mut"] += 3
         p = handler_type_c(p)
         p["mut"] += 30
 

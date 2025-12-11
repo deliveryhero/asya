@@ -1,16 +1,15 @@
 """Generate DOT diagrams for scene visualization."""
 
-from typing import Dict, List, Set
-
 from asya_cli.scene.grouper import Router
 
 
 class DotGenerator:
-    def __init__(self, scene_name: str, routers: List[Router]):
+    def __init__(self, scene_name: str, routers: list[Router], step_width: int = 30):
         self.scene_name = scene_name
         self.routers = routers
-        self.user_actors: Set[str] = set()
-        self.router_map: Dict[str, Router] = {}
+        self.step_width = step_width
+        self.user_actors: set[str] = set()
+        self.router_map: dict[str, Router] = {}
 
     def generate(self) -> str:
         self._collect_actors()
@@ -18,8 +17,9 @@ class DotGenerator:
         parts = []
         parts.append("digraph scene {")
         parts.append("  rankdir=TB;")
-        parts.append('  node [fontname="Arial"];')
-        parts.append('  edge [fontname="Arial"];')
+        parts.append('  graph [fontname="Courier", fontsize=10];')
+        parts.append('  node [fontname="Courier", fontsize=10, shape=box, style="filled,rounded", margin="0.2"];')
+        parts.append('  edge [fontname="Courier", fontsize=10];')
         parts.append("")
 
         for router in self.routers:
@@ -52,63 +52,47 @@ class DotGenerator:
                     self.user_actors.add(actor)
 
     def _generate_actor_node(self, router: Router) -> str:
-        if router.name.startswith("start_"):
+        if router.name.startswith("start_") or router.name.startswith("end_"):
             color = "lightgreen"
-        elif router.name.startswith("end_"):
-            color = "lightgreen"  # "lightcoral"
         else:
             color = "wheat"
 
-        label_parts = []
-        label_parts.append(f'<tr><td bgcolor="{color}" align="center"> </td></tr>')
-
-        handler_parts = []
-        handler_parts.append(f'<tr><td bgcolor="white" align="center"><font face="Courier"><i>{router.name}</i></font></td></tr>')
+        rows = []
+        centered_name = self._center_text(router.name)
+        rows.append(f'<tr><td bgcolor="white"><i>{self._escape_html(centered_name)}</i></td></tr>')
 
         if router.mutations:
             for mutation in router.mutations:
-                mutation_html = self._escape_html(mutation.code)
-                handler_parts.append(
-                    f'<tr><td bgcolor="white" align="left"><font face="Courier">{mutation_html}</font></td></tr>'
-                )
+                truncated_code = self._truncate_text(mutation.code)
+                rows.append(f'<tr><td bgcolor="white" align="left">{self._escape_html(truncated_code)}</td></tr>')
 
         if router.condition:
-            condition_html = self._escape_html(router.condition.test)
-            handler_parts.append(
-                f'<tr><td bgcolor="lightyellow" align="center"><font face="Courier"><b>if</b> {condition_html}</font></td></tr>'
-            )
+            truncated_test = self._truncate_text(router.condition.test)
+            rows.append(f'<tr><td bgcolor="lightyellow"><b>if</b> {self._escape_html(truncated_test)}</td></tr>')
 
             true_label = "TRUE" if router.true_branch_actors else "pass"
             false_label = "FALSE" if router.false_branch_actors else "pass"
 
-            handler_parts.append(f'<tr><td><table border="0" cellspacing="0" cellpadding="4"><tr>')
-            handler_parts.append(
-                f'<td bgcolor="darkgreen" align="center"><font color="white"><b>{true_label}</b></font></td>'
-            )
-            handler_parts.append(
-                f'<td bgcolor="darkred" align="center"><font color="white"><b>{false_label}</b></font></td>'
-            )
-            handler_parts.append(f"</tr></table></td></tr>")
-
-        if handler_parts:
-            label_parts.append(
-                f'<tr><td><table border="0" cellspacing="0" cellpadding="6" cellborder="1">{"".join(handler_parts)}</table></td></tr>'
+            rows.append(
+                f'<tr><td><table border="0" cellspacing="0" cellpadding="4"><tr>'
+                f'<td bgcolor="darkgreen"><font color="white"><b>{true_label}</b></font></td>'
+                f'<td bgcolor="darkred"><font color="white"><b>{false_label}</b></font></td>'
+                f"</tr></table></td></tr>"
             )
 
-        label = f'<<table border="0" cellspacing="0" cellpadding="0">{"".join(label_parts)}</table>>'
+        label = f'<<table border="0" cellspacing="0" cellpadding="6" cellborder="1">{"".join(rows)}</table>>'
 
-        return f'  {self._node_id(router.name)} [shape=box, style="filled,rounded", fillcolor="{color}", label={label}];'
+        return f'  {self._node_id(router.name)} [fillcolor="{color}", label={label}];'
 
     def _generate_user_actor_node(self, actor_name: str) -> str:
-        label_parts = []
-        label_parts.append(f'<tr><td bgcolor="lightblue" align="center"> </td></tr>')
-        label_parts.append(
-            f'<tr><td><table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><font face="Courier"><i>{actor_name}</i></font></td></tr></table></td></tr>'
+        centered_name = self._center_text(actor_name)
+        label = (
+            f'<<table border="0" cellspacing="0" cellpadding="6" cellborder="1">'
+            f'<tr><td bgcolor="white"><i>{self._escape_html(centered_name)}</i></td></tr>'
+            f"</table>>"
         )
 
-        label = f'<<table border="0" cellspacing="0" cellpadding="0">{"".join(label_parts)}</table>>'
-
-        return f'  {self._node_id(actor_name)} [shape=box, style="filled,rounded", fillcolor="lightblue", label={label}];'
+        return f'  {self._node_id(actor_name)} [fillcolor="lightblue", label={label}];'
 
     def _generate_edges(self, router: Router) -> str:
         lines = []
@@ -118,16 +102,12 @@ class DotGenerator:
             false_actors = router.false_branch_actors
 
             if true_actors:
-                lines.append(
-                    f'  {self._node_id(router.name)} -> {self._node_id(true_actors[0])} [color=darkgreen];'
-                )
+                lines.append(f"  {self._node_id(router.name)} -> {self._node_id(true_actors[0])} [color=darkgreen];")
                 for i in range(len(true_actors) - 1):
                     lines.append(f"  {self._node_id(true_actors[i])} -> {self._node_id(true_actors[i + 1])};")
 
             if false_actors:
-                lines.append(
-                    f'  {self._node_id(router.name)} -> {self._node_id(false_actors[0])} [color=darkred];'
-                )
+                lines.append(f"  {self._node_id(router.name)} -> {self._node_id(false_actors[0])} [color=darkred];")
                 for i in range(len(false_actors) - 1):
                     lines.append(f"  {self._node_id(false_actors[i])} -> {self._node_id(false_actors[i + 1])};")
         else:
@@ -144,3 +124,18 @@ class DotGenerator:
 
     def _escape_html(self, text: str) -> str:
         return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
+
+    def _truncate_text(self, text: str) -> str:
+        if len(text) <= self.step_width:
+            return text
+        postfix_len = 10
+        prefix_len = self.step_width - postfix_len - 3
+        return f"{text[:prefix_len]}...{text[-postfix_len:]}"
+
+    def _center_text(self, text: str) -> str:
+        if len(text) >= self.step_width:
+            return self._truncate_text(text)
+        padding = self.step_width - len(text)
+        left_pad = padding // 2
+        right_pad = padding - left_pad
+        return " " * left_pad + text + " " * right_pad
