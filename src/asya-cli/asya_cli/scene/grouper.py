@@ -31,11 +31,7 @@ class OperationGrouper:
 
         start_actors = self._process_operations(self.operations, [], is_top_level=True)
 
-        start_router = Router(
-            name=f"start_{self.scene_name}",
-            lineno=0,
-            true_branch_actors=start_actors
-        )
+        start_router = Router(name=f"start_{self.scene_name}", lineno=0, true_branch_actors=start_actors)
         self.routers.insert(0, start_router)
 
         end_router = Router(name=f"end_{self.scene_name}", lineno=999999)
@@ -45,7 +41,9 @@ class OperationGrouper:
 
         return self.routers
 
-    def _process_operations(self, operations: List[IROperation], convergence_stack: List[str], is_top_level: bool = False) -> List[str]:
+    def _process_operations(
+        self, operations: List[IROperation], convergence_stack: List[str], is_top_level: bool = False
+    ) -> List[str]:
         if not operations:
             if convergence_stack:
                 return [convergence_stack[-1]]
@@ -71,13 +69,15 @@ class OperationGrouper:
                     actor = operations[i]
                     i += 1
 
-                    continuation = self._process_operations(operations[i:], convergence_stack, is_top_level=is_top_level)
+                    continuation = self._process_operations(
+                        operations[i:], convergence_stack, is_top_level=is_top_level
+                    )
 
                     router = Router(
                         name=f"router_{self.scene_name}_line_{mutations[0].lineno}_seq",
                         lineno=mutations[0].lineno,
                         mutations=mutations,
-                        true_branch_actors=[actor.name] + continuation
+                        true_branch_actors=[actor.name] + continuation,
                     )
                     self.routers.append(router)
                     return result + [router.name]
@@ -94,7 +94,9 @@ class OperationGrouper:
                     true_actors = self._process_operations(cond.true_branch, new_stack)
                     false_actors = self._process_operations(cond.false_branch, new_stack)
 
-                    continuation_actors = self._process_operations(operations[i:], convergence_stack, is_top_level=is_top_level)
+                    continuation_actors = self._process_operations(
+                        operations[i:], convergence_stack, is_top_level=is_top_level
+                    )
 
                     self.convergence_map[convergence_label] = continuation_actors
 
@@ -104,17 +106,19 @@ class OperationGrouper:
                         mutations=mutations,
                         condition=cond,
                         true_branch_actors=true_actors,
-                        false_branch_actors=false_actors
+                        false_branch_actors=false_actors,
                     )
                     self.routers.append(router)
                     return result + [router.name]
                 else:
-                    continuation = self._process_operations(operations[i:], convergence_stack, is_top_level=is_top_level)
+                    continuation = self._process_operations(
+                        operations[i:], convergence_stack, is_top_level=is_top_level
+                    )
                     router = Router(
                         name=f"router_{self.scene_name}_line_{mutations[0].lineno}_seq",
                         lineno=mutations[0].lineno,
                         mutations=mutations,
-                        true_branch_actors=continuation
+                        true_branch_actors=continuation,
                     )
                     self.routers.append(router)
                     return result + [router.name]
@@ -132,7 +136,9 @@ class OperationGrouper:
                 true_actors = self._process_operations(op.true_branch, new_stack)
                 false_actors = self._process_operations(op.false_branch, new_stack)
 
-                continuation_actors = self._process_operations(operations[i+1:], convergence_stack, is_top_level=is_top_level)
+                continuation_actors = self._process_operations(
+                    operations[i + 1 :], convergence_stack, is_top_level=is_top_level
+                )
 
                 self.convergence_map[convergence_label] = continuation_actors
 
@@ -141,7 +147,7 @@ class OperationGrouper:
                     lineno=op.lineno,
                     condition=op,
                     true_branch_actors=true_actors,
-                    false_branch_actors=false_actors
+                    false_branch_actors=false_actors,
                 )
                 self.routers.append(router)
                 return result + [router.name]
