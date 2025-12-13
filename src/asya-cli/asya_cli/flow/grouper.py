@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass, field
 
-from asya_cli.flow.ir import ActorCall, Condition, IROperation, Mutation
+from asya_cli.flow.ir import ActorCall, Condition, IROperation, Mutation, Return
 
 
 @dataclass
@@ -152,6 +152,9 @@ class OperationGrouper:
                 )
                 self.routers.append(router)
                 return [*result, router.name]
+
+            elif isinstance(op, Return):
+                return [*result, f"end_{self.flow_name}"]
 
             else:
                 i += 1

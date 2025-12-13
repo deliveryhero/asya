@@ -28,3 +28,8 @@ class Condition(IROperation):
 @dataclass
 class Convergence(IROperation):
     label: str
+
+
+@dataclass
+class Return(IROperation):
+    pass

@@ -3,7 +3,7 @@
 import ast
 
 from asya_cli.flow.errors import FlowCompileError
-from asya_cli.flow.ir import ActorCall, Condition, IROperation, Mutation
+from asya_cli.flow.ir import ActorCall, Condition, IROperation, Mutation, Return
 
 
 class FlowParser:
@@ -54,7 +54,9 @@ class FlowParser:
             return self._parse_augassign(stmt)
         elif isinstance(stmt, ast.If):
             return self._parse_if(stmt)
-        elif isinstance(stmt, ast.Return | ast.Pass):
+        elif isinstance(stmt, ast.Return):
+            return [Return(lineno=stmt.lineno)]
+        elif isinstance(stmt, ast.Pass):
             return []
         else:
             raise FlowCompileError(f"{self.filename}:{stmt.lineno}: Unsupported statement type: {type(stmt).__name__}")
