@@ -9,7 +9,6 @@ def if_no_else_flow(p: dict) -> dict:
     p = handler_setup(p)
     if p["condition"]:
         p = handler_true(p)
-    p = handler_finalize(p)
     return p
 
 

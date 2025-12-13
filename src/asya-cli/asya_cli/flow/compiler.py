@@ -15,22 +15,27 @@ class FlowCompiler:
         self.flow_name: str | None = None
         self.routers: list[Router] = []
 
-    def compile_file(self, source_file: str, output_file: str | None = None) -> str:
+    def compile_file(self, source_file: str, output_dir: str) -> str:
         source_path = Path(source_file)
         if not source_path.exists():
             raise FileNotFoundError(f"Source file not found: {source_file}")
 
-        if output_file is None:
-            raise ValueError("Missing required parameter: output_file")
+        output_path = Path(output_dir)
+        if output_path.exists():
+            if not output_path.is_dir():
+                raise ValueError(f"Output path exists and is not a directory: {output_dir}")
+            if any(output_path.iterdir()):
+                raise ValueError(f"Output directory is not empty: {output_dir}")
+
+        output_path.mkdir(parents=True, exist_ok=True)
 
         source_code = source_path.read_text()
         compiled_code = self.compile(source_code, str(source_path))
 
-        output_path = Path(output_file)
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        output_path.write_text(compiled_code)
+        compiled_file = output_path / "compiled_routers.py"
+        compiled_file.write_text(compiled_code)
 
-        return str(output_path)
+        return str(compiled_file)
 
     def compile(self, source_code: str, filename: str) -> str:
         flow_name, operations = self._parse(source_code, filename)
@@ -55,49 +60,46 @@ class FlowCompiler:
 
         return mappings
 
-    def generate_diagram(self, output_dot: str | None = None, output_png: str | None = None) -> tuple[str, str | None]:
+    def generate_plot(self, output_dir: str) -> tuple[str, str | None]:
         if not self.flow_name or not self.routers:
-            raise RuntimeError("Must compile flow before generating diagram")
+            raise RuntimeError("Must compile flow before generating plot")
 
         generator = DotGenerator(self.flow_name, self.routers)
         dot_content = generator.generate()
 
-        if output_dot:
-            dot_path = Path(output_dot)
-            dot_path.parent.mkdir(parents=True, exist_ok=True)
-            dot_path.write_text(dot_content)
+        output_path = Path(output_dir)
+        dot_file = output_path / "plot.dot"
+        dot_file.write_text(dot_content)
 
         png_path = None
-        if output_png and output_dot:
-            try:
-                import subprocess  # nosec B404
+        try:
+            import subprocess  # nosec B404
 
-                subprocess.run(["dot", "-V"], capture_output=True, check=True)  # nosec B603, B607
+            subprocess.run(["dot", "-V"], capture_output=True, check=True)  # nosec B603, B607
 
-                png_file = Path(output_png)
-                png_file.parent.mkdir(parents=True, exist_ok=True)
+            png_file = output_path / "plot.png"
 
-                result = subprocess.run(  # nosec B603, B607
-                    ["dot", "-Tpng", output_dot, "-o", str(png_file)],
-                    capture_output=True,
-                    text=True,
-                    check=True,
-                )
+            result = subprocess.run(  # nosec B603, B607
+                ["dot", "-Tpng", str(dot_file), "-o", str(png_file)],
+                capture_output=True,
+                text=True,
+                check=True,
+            )
 
-                if result.returncode == 0:
-                    png_path = str(png_file)
-                else:
-                    raise RuntimeError(f"graphviz dot failed: {result.stderr}")
+            if result.returncode == 0:
+                png_path = str(png_file)
+            else:
+                raise RuntimeError(f"graphviz dot failed: {result.stderr}")
 
-            except FileNotFoundError as e:
-                raise ImportError(
-                    "graphviz 'dot' command not found. Install graphviz to generate PNG diagrams. "
-                    "On Ubuntu/Debian: apt-get install graphviz"
-                ) from e
-            except subprocess.CalledProcessError as e:
-                raise RuntimeError(f"graphviz dot failed: {e.stderr}") from e
+        except FileNotFoundError as e:
+            raise ImportError(
+                "graphviz 'dot' command not found. Install graphviz to generate PNG plots. "
+                "On Ubuntu/Debian: apt-get install graphviz"
+            ) from e
+        except subprocess.CalledProcessError as e:
+            raise RuntimeError(f"graphviz dot failed: {e.stderr}") from e
 
-        return dot_content, png_path
+        return str(dot_file), png_path
 
     def get_warnings(self) -> list[str]:
         return self.warnings

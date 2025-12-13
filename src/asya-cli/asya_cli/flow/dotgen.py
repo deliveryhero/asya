@@ -92,27 +92,27 @@ class DotGenerator:
         return f'  {self._node_id(actor_name)} [fillcolor="lightblue", label={label}];'
 
     def _generate_edges(self, router: Router) -> str:
-        lines = []
+        lines = set()
 
         if router.condition:
             true_actors = router.true_branch_actors
             false_actors = router.false_branch_actors
 
             if true_actors:
-                lines.append(f"  {self._node_id(router.name)} -> {self._node_id(true_actors[0])} [color=darkgreen];")
+                lines.add(f"  {self._node_id(router.name)} -> {self._node_id(true_actors[0])} [color=darkgreen];")
                 for i in range(len(true_actors) - 1):
-                    lines.append(f"  {self._node_id(true_actors[i])} -> {self._node_id(true_actors[i + 1])};")
+                    lines.add(f"  {self._node_id(true_actors[i])} -> {self._node_id(true_actors[i + 1])};")
 
             if false_actors:
-                lines.append(f"  {self._node_id(router.name)} -> {self._node_id(false_actors[0])} [color=darkred];")
+                lines.add(f"  {self._node_id(router.name)} -> {self._node_id(false_actors[0])} [color=darkred];")
                 for i in range(len(false_actors) - 1):
-                    lines.append(f"  {self._node_id(false_actors[i])} -> {self._node_id(false_actors[i + 1])};")
+                    lines.add(f"  {self._node_id(false_actors[i])} -> {self._node_id(false_actors[i + 1])};")
         else:
             actors = router.true_branch_actors
             if actors:
-                lines.append(f"  {self._node_id(router.name)} -> {self._node_id(actors[0])};")
+                lines.add(f"  {self._node_id(router.name)} -> {self._node_id(actors[0])};")
                 for i in range(len(actors) - 1):
-                    lines.append(f"  {self._node_id(actors[i])} -> {self._node_id(actors[i + 1])};")
+                    lines.add(f"  {self._node_id(actors[i])} -> {self._node_id(actors[i + 1])};")
 
         return "\n".join(lines) if lines else ""
 

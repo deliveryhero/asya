@@ -23,42 +23,30 @@ from asya_cli.flow import FlowCompileError, FlowCompiler
 def cmd_compile(args):
     """Compile flow file."""
     try:
+        if not args.output_dir:
+            print("[-] Error: --output-dir is required", file=sys.stderr)
+            sys.exit(1)
+
         compiler = FlowCompiler(
             verbose=args.verbose,
         )
 
-        output_file = compiler.compile_file(args.flow_file, args.output)
+        compiled_file = compiler.compile_file(args.flow_file, args.output_dir)
+        print(f"[+] Successfully compiled flow to: {compiled_file}")
 
-        print(f"[+] Successfully compiled flow to: {output_file}")
-
-        if args.diagram:
-            output_path = Path(output_file)
-
-            dot_file = str(output_path.with_suffix(".dot"))
-            png_file = str(output_path.with_suffix(".png"))
-
+        if args.plot:
             try:
-                dot_content, png_path = compiler.generate_diagram(
-                    output_dot=dot_file,
-                    output_png=png_file,
-                )
-                print(f"[+] Generated diagram: {dot_file}")
+                dot_file, png_path = compiler.generate_plot(args.output_dir)
+                print(f"[+] Generated graphviz dot file: {dot_file}")
                 if png_path:
-                    print(f"[+] Generated PNG diagram: {png_path}")
+                    print(f"[+] Generated graphviz png plot: {png_path}")
             except ImportError as e:
                 print(f"[!] Warning: {e}", file=sys.stderr)
-                try:
-                    compiler.generate_diagram(output_dot=dot_file, output_png=None)
-                    print(f"[+] DOT file still generated: {dot_file}", file=sys.stderr)
-                except Exception as ex:
-                    print(f"[!] Failed to generate DOT file: {ex}", file=sys.stderr)
             except RuntimeError as e:
                 print(f"[!] Warning: {e}", file=sys.stderr)
-                print(f"[+] DOT file still generated: {dot_file}", file=sys.stderr)
             except Exception as e:
-                print(f"[!] Warning: Failed to generate diagram: {e}", file=sys.stderr)
+                print(f"[!] Warning: Failed to generate plot: {e}", file=sys.stderr)
 
-        # Show warnings if any
         warnings = compiler.get_warnings()
         if warnings:
             print("\nWarnings:", file=sys.stderr)
@@ -69,7 +57,7 @@ def cmd_compile(args):
         print("[-] Compilation failed:\n", file=sys.stderr)
         print(str(e), file=sys.stderr)
         sys.exit(1)
-    except FileNotFoundError as e:
+    except (FileNotFoundError, ValueError) as e:
         print(f"[-] {e}", file=sys.stderr)
         sys.exit(1)
     except Exception as e:
@@ -221,7 +209,12 @@ def main(argv=None):
     # Compile command
     compile_parser = subparsers.add_parser("compile", help="Compile flow to routers")
     compile_parser.add_argument("flow_file", help="Flow source file (.py)")
-    compile_parser.add_argument("--output", "-o", help="Output file (default: <input>_compiled.py)")
+    compile_parser.add_argument(
+        "--output-dir",
+        "-o",
+        required=True,
+        help="Output directory for compiled files (must not exist or be empty)",
+    )
     compile_parser.add_argument(
         "--disable-infinite-loop-check",
         action="store_true",
@@ -229,8 +222,7 @@ def main(argv=None):
     )
     compile_parser.add_argument("--verbose", "-v", action="store_true", help="Show verbose output")
     compile_parser.add_argument(
-        "--diagram",
-        "-d",
+        "--plot",
         action="store_true",
         help="Generate flow diagram in DOT format and PNG (requires graphviz for PNG)",
     )
