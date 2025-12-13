@@ -6,19 +6,11 @@ Tests mutation grouping around handler calls.
 
 
 def mutations_before_after_handler_flow(p: dict) -> dict:
-    p["init"] = True
     p["step"] = 1
-
     p = handler_a(p)
-
-    p["after_a"] = True
     p["step"] = 2
-
     p = handler_b(p)
-
-    p["after_b"] = True
     p["step"] = 3
-
     return p
 
 
