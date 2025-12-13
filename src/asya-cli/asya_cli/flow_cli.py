@@ -5,12 +5,10 @@ CLI for Flow DSL compiler.
 Commands:
     compile    - Compile flow to routers
     validate   - Validate flow without compiling
-    show-mappings - Show handler → actor mappings
 
 Usage:
     asya flow compile <flow_file.py> [options]
     asya flow validate <flow_file.py> [options]
-    asya flow show-mappings <flow_file.py>
 """
 
 import argparse
@@ -95,41 +93,6 @@ def cmd_validate(args):
 
     except FlowCompileError as e:
         print("[-] Validation failed:\n", file=sys.stderr)
-        print(str(e), file=sys.stderr)
-        sys.exit(1)
-    except Exception as e:
-        print(f"[-] Unexpected error: {e}", file=sys.stderr)
-        if args.verbose:
-            import traceback
-
-            traceback.print_exc()
-        sys.exit(1)
-
-
-def cmd_show_mappings(args):
-    """Show handler → actor name mappings."""
-    try:
-        compiler = FlowCompiler()
-
-        source_path = Path(args.flow_file)
-        if not source_path.exists():
-            print(f"[-] Source file not found: {args.flow_file}", file=sys.stderr)
-            sys.exit(1)
-
-        source_code = source_path.read_text()
-        mappings = compiler.show_mappings(source_code, str(source_path))
-
-        if not mappings:
-            print("[!] No handlers found in flow", file=sys.stderr)
-            return
-
-        print("Handler Mappings:")
-        print()
-        for func_name, qualified_name in sorted(mappings.items()):
-            print(f"  {func_name:30} -> {qualified_name}")
-
-    except FlowCompileError as e:
-        print("[-] Failed to analyze flow:\n", file=sys.stderr)
         print(str(e), file=sys.stderr)
         sys.exit(1)
     except Exception as e:
@@ -238,12 +201,6 @@ def main(argv=None):
     )
     validate_parser.add_argument("--verbose", "-v", action="store_true", help="Show verbose output")
     validate_parser.set_defaults(func=cmd_validate)
-
-    # Show mappings command
-    mappings_parser = subparsers.add_parser("show-mappings", help="Show handler → actor name mappings")
-    mappings_parser.add_argument("flow_file", help="Flow source file (.py)")
-    mappings_parser.add_argument("--verbose", "-v", action="store_true", help="Show verbose output")
-    mappings_parser.set_defaults(func=cmd_show_mappings)
 
     # Init command
     init_parser = subparsers.add_parser("init", help="Generate template flow file")

@@ -11,6 +11,7 @@ class FlowParser:
         self.source_code = source_code
         self.filename = filename
         self.flow_name: str | None = None
+        self.instances: dict[str, str] = {}  # Map instance variable to class name
 
     def parse(self) -> tuple[str, list[IROperation]]:
         try:
@@ -68,13 +69,46 @@ class FlowParser:
         target = stmt.targets[0]
 
         if isinstance(target, ast.Name) and target.id in ("p", "payload"):
+            # Assignment to p: must be actor call
             if isinstance(stmt.value, ast.Call):
                 return [self._parse_actor_call(stmt)]
             else:
                 raise FlowCompileError(f"{self.filename}:{stmt.lineno}: Invalid assignment to 'p'")
         elif isinstance(target, ast.Subscript):
+            # Subscript assignment: payload mutation
             code = ast.unparse(stmt)
             return [Mutation(lineno=stmt.lineno, code=code)]
+        elif isinstance(target, ast.Name) and isinstance(stmt.value, ast.Call):
+            # Assignment to variable: could be class instantiation or invalid
+            call = stmt.value
+
+            # Check if it's a call to a capitalized name (likely a class)
+            is_class_call = isinstance(call.func, ast.Name) and call.func.id[0].isupper()
+
+            if call.args or call.keywords:
+                # Has arguments
+                if is_class_call:
+                    # Class instantiation with arguments - validate and reject
+                    self._validate_class_instantiation(stmt)
+                    return []  # Never reached, but helps mypy
+                else:
+                    # Function call assigned to variable - not supported
+                    raise FlowCompileError(
+                        f"{self.filename}:{stmt.lineno}: Unsupported assignment target. "
+                        f"Handler results must be assigned to 'p', not '{target.id}'"
+                    )
+            else:
+                # No arguments - valid class instantiation
+                # Extract class name from the call
+                if isinstance(call.func, ast.Name):
+                    class_name = call.func.id
+                elif isinstance(call.func, ast.Attribute):
+                    class_name = ast.unparse(call.func)
+                else:
+                    raise FlowCompileError(f"{self.filename}:{stmt.lineno}: Unsupported class instantiation")
+
+                self.instances[target.id] = class_name
+                return []  # No operation generated - just tracking
         else:
             raise FlowCompileError(f"{self.filename}:{stmt.lineno}: Unsupported assignment target")
 
@@ -90,7 +124,16 @@ class FlowParser:
         if isinstance(call.func, ast.Name):
             actor_name = call.func.id
         elif isinstance(call.func, ast.Attribute):
-            actor_name = ast.unparse(call.func)
+            # Check if this is a method call on an instantiated class
+            if isinstance(call.func.value, ast.Name) and call.func.value.id in self.instances:
+                # Instance method call - use ClassName.method format
+                instance_var = call.func.value.id
+                class_name = self.instances[instance_var]
+                method_name = call.func.attr
+                actor_name = f"{class_name}.{method_name}"
+            else:
+                # Regular attribute access (module.function)
+                actor_name = ast.unparse(call.func)
         else:
             raise FlowCompileError(f"{self.filename}:{stmt.lineno}: Unsupported call type")
 
@@ -105,3 +148,23 @@ class FlowParser:
         false_branch = self._parse_body(stmt.orelse) if stmt.orelse else []
 
         return [Condition(lineno=stmt.lineno, test=test, true_branch=true_branch, false_branch=false_branch)]
+
+    def _validate_class_instantiation(self, stmt: ast.Assign) -> None:
+        """Validate that class instantiation uses only default arguments."""
+        call = stmt.value
+        if not isinstance(call, ast.Call):
+            return
+
+        # Check that call has no arguments (all must have defaults)
+        if call.args:
+            raise FlowCompileError(
+                f"{self.filename}:{stmt.lineno}: Class instantiation must use only default arguments. "
+                f"Found {len(call.args)} positional arguments."
+            )
+
+        # Check for keyword arguments
+        if call.keywords:
+            raise FlowCompileError(
+                f"{self.filename}:{stmt.lineno}: Class instantiation must use only default arguments. "
+                f"Found keyword arguments: {', '.join(kw.arg for kw in call.keywords if kw.arg)}"
+            )

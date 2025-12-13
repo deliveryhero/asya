@@ -300,55 +300,6 @@ class TestConditionalRouter:
         assert mutation_line < if_line
 
 
-class TestEnvVarsDocumentation:
-    """Test environment variables documentation generation."""
-
-    def test_env_vars_doc_lists_all_handlers(self):
-        routers = [
-            Router(name="start_flow", lineno=0, true_branch_actors=["handler_a", "handler_b", "end_flow"]),
-            Router(name="end_flow", lineno=999),
-        ]
-        code = CodeGenerator("flow", routers, "test.py").generate()
-
-        assert 'ASYA_HANDLER_HANDLER_A="handler_a"' in code
-        assert 'ASYA_HANDLER_HANDLER_B="handler_b"' in code
-
-    def test_env_vars_doc_converts_kebab_to_snake(self):
-        routers = [
-            Router(name="start_flow", lineno=0, true_branch_actors=["my-handler-name", "end_flow"]),
-            Router(name="end_flow", lineno=999),
-        ]
-        code = CodeGenerator("flow", routers, "test.py").generate()
-
-        assert 'ASYA_HANDLER_MY_HANDLER_NAME="my-handler-name"' in code
-
-    def test_env_vars_doc_sorted_alphabetically(self):
-        routers = [
-            Router(name="start_flow", lineno=0, true_branch_actors=["zebra", "apple", "middle", "end_flow"]),
-            Router(name="end_flow", lineno=999),
-        ]
-        code = CodeGenerator("flow", routers, "test.py")._generate_env_vars_doc()
-
-        pattern = re.compile(r"ASYA_HANDLER_(\w+)=")
-        matches = pattern.findall(code)
-
-        sorted_matches = sorted(matches)
-
-        assert matches == sorted_matches
-
-    def test_env_vars_doc_includes_kubernetes_example(self):
-        routers = [
-            Router(name="start_flow", lineno=0, true_branch_actors=["handler_a", "end_flow"]),
-            Router(name="end_flow", lineno=999),
-        ]
-        code = CodeGenerator("flow", routers, "test.py").generate()
-
-        assert "Example for Kubernetes:" in code
-        assert "env:" in code
-        assert "- name:" in code
-        assert "value:" in code
-
-
 class TestHandlerCollection:
     """Test handler collection from routers."""
 

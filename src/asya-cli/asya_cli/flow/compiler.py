@@ -50,16 +50,6 @@ class FlowCompiler:
     def validate(self, source_code: str, filename: str) -> None:
         self._parse(source_code, filename)
 
-    def show_mappings(self, source_code: str, filename: str) -> dict[str, str]:
-        flow_name, operations = self._parse(source_code, filename)
-        units = self._group(flow_name, operations)
-
-        mappings = {}
-        for unit in units:
-            mappings[unit.name] = unit.name
-
-        return mappings
-
     def generate_plot(self, output_dir: str) -> tuple[str, str | None]:
         if not self.flow_name or not self.routers:
             raise RuntimeError("Must compile flow before generating plot")

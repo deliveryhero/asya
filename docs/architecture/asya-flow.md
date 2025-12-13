@@ -14,7 +14,7 @@ The Asya Flow DSL compiler transforms Python-based workflow descriptions into ro
 
 ## Architecture
 
-```              
+```
 ┌────────────────┐
 │   Flow DSL     │  Python function with p: dict parameter
 │  (user code)   │  Contains handler calls, conditionals, mutations
@@ -71,15 +71,39 @@ Call actors/handlers to process payload:
 
 ```python
 def my_flow(p: dict) -> dict:
-    p = handler_a(p)        # Single actor
-    p = handler_b(p)        # Sequential calls
-    p = MyClass.method(p)   # Method calls supported
+    # Function handlers - simple stateless operations
+    p = validate_input(p)
+    p = normalize_data(p)
+
+    # Class-based handlers - stateful operations (model loading, config)
+    model = MLModel()  # Instantiate once (only default args)
+
+    # Use instantiated classes
+    p = preprocessor.clean(p)
+    p = model.predict(p)
+
     return p
+
+
+# Class definitions with default arguments
+class MLModel:
+    def __init__(self, model_path: str = "/models/default"):
+        # Load model once at initialization
+        self.model = load_model(model_path)
+
+    def predict(self, p: dict) -> dict:
+        """Run prediction."""
+        result = self.model.predict(p["input"])
+        return {**p, "prediction": result}
 ```
 
 **Rules**:
 - Actor calls must pass `p` as the only argument
 - Result must be assigned back to `p`
+- Class instantiation must use **only default arguments** (no positional args, no keyword args)
+- Instance variables can be used for method calls
+- Use classes for stateful handlers (model loading, configuration)
+- Use functions for simple stateless handlers
 
 #### 2. Payload Mutations
 
@@ -148,7 +172,7 @@ def order_processing_flow(p: dict) -> dict:
     # Conditional processing
     if not p.get("valid", False):
         p["status"] = "rejected"
-        return p
+        return p  # early return
 
     # Process by type
     if p["order_type"] == "express":
@@ -292,22 +316,6 @@ asya flow validate <flow.py>
 ```
 
 Checks flow syntax without generating code.
-
-### Show Mappings
-
-```bash
-asya flow mappings <flow.py>
-```
-
-Lists all routers that will be generated.
-
-### Generate Plot Only
-
-```bash
-asya flow plot <flow.py> --output <output-dir>
-```
-
-Creates flow visualization without compiling.
 
 ## Deployment
 

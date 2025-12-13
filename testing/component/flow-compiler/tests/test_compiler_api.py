@@ -86,35 +86,6 @@ class TestValidate:
             compiler.validate(source, "test.py")
 
 
-class TestShowMappings:
-    """Test FlowCompiler.show_mappings() method."""
-
-    def test_show_mappings_returns_dict(self):
-        source = textwrap.dedent("""
-            def flow(p: dict) -> dict:
-                p = handler_a(p)
-                return p
-        """)
-        compiler = FlowCompiler()
-        mappings = compiler.show_mappings(source, "test.py")
-
-        assert isinstance(mappings, dict)
-        assert len(mappings) > 0
-
-    def test_show_mappings_includes_routers(self):
-        source = textwrap.dedent("""
-            def flow(p: dict) -> dict:
-                if p["x"]:
-                    p = handler_a(p)
-                return p
-        """)
-        compiler = FlowCompiler()
-        mappings = compiler.show_mappings(source, "test.py")
-
-        assert "start_flow" in mappings
-        assert "end_flow" in mappings
-
-
 class TestCompileFile:
     """Test FlowCompiler.compile_file() method."""
 

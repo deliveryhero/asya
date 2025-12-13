@@ -451,6 +451,119 @@ class TestMixedOperations:
         assert isinstance(ops[1], Condition)
 
 
+class TestClassInstantiation:
+    """Test class instantiation and method calls."""
+
+    def test_class_instantiation_with_default_args(self):
+        source = textwrap.dedent(
+            """
+            def flow(p: dict) -> dict:
+                processor = MyProcessor()
+                p = processor.process(p)
+                return p
+            """
+        )
+        parser = FlowParser(source, "test.py")
+        flow_name, operations = parser.parse()
+
+        assert flow_name == "flow"
+        assert len(operations) == 2
+        assert isinstance(operations[0], ActorCall)
+        assert operations[0].name == "MyProcessor.process"
+        assert isinstance(operations[1], Return)
+
+    def test_class_instantiation_with_multiple_instances(self):
+        source = textwrap.dedent(
+            """
+            def flow(p: dict) -> dict:
+                preprocessor = Preprocessor()
+                model = Model()
+                p = preprocessor.clean(p)
+                p = model.predict(p)
+                return p
+            """
+        )
+        parser = FlowParser(source, "test.py")
+        flow_name, operations = parser.parse()
+
+        assert len(operations) == 3
+        assert isinstance(operations[0], ActorCall)
+        assert operations[0].name == "Preprocessor.clean"
+        assert isinstance(operations[1], ActorCall)
+        assert operations[1].name == "Model.predict"
+        assert isinstance(operations[2], Return)
+
+    def test_class_instantiation_rejects_positional_args(self):
+        source = textwrap.dedent(
+            """
+            def flow(p: dict) -> dict:
+                processor = MyProcessor("arg1")
+                p = processor.process(p)
+                return p
+            """
+        )
+        parser = FlowParser(source, "test.py")
+
+        with pytest.raises(FlowCompileError) as exc:
+            parser.parse()
+        assert "only default arguments" in str(exc.value)
+        assert "1 positional arguments" in str(exc.value)
+
+    def test_class_instantiation_rejects_keyword_args(self):
+        source = textwrap.dedent(
+            """
+            def flow(p: dict) -> dict:
+                processor = MyProcessor(config="custom")
+                p = processor.process(p)
+                return p
+            """
+        )
+        parser = FlowParser(source, "test.py")
+
+        with pytest.raises(FlowCompileError) as exc:
+            parser.parse()
+        assert "only default arguments" in str(exc.value)
+        assert "keyword arguments" in str(exc.value)
+
+    def test_class_instantiation_with_function_calls_mixed(self):
+        source = textwrap.dedent(
+            """
+            def flow(p: dict) -> dict:
+                processor = Preprocessor()
+                p = validator(p)
+                p = processor.clean(p)
+                p = normalizer(p)
+                return p
+            """
+        )
+        parser = FlowParser(source, "test.py")
+        flow_name, operations = parser.parse()
+
+        assert len(operations) == 4
+        assert isinstance(operations[0], ActorCall)
+        assert operations[0].name == "validator"
+        assert isinstance(operations[1], ActorCall)
+        assert operations[1].name == "Preprocessor.clean"
+        assert isinstance(operations[2], ActorCall)
+        assert operations[2].name == "normalizer"
+        assert isinstance(operations[3], Return)
+
+    def test_class_instantiation_multiple_args_rejects(self):
+        source = textwrap.dedent(
+            """
+            def flow(p: dict) -> dict:
+                processor = MyProcessor("arg1", "arg2", key="value")
+                p = processor.process(p)
+                return p
+            """
+        )
+        parser = FlowParser(source, "test.py")
+
+        with pytest.raises(FlowCompileError) as exc:
+            parser.parse()
+        assert "only default arguments" in str(exc.value)
+
+
 class TestEdgeCases:
     """Test edge cases and error handling."""
 

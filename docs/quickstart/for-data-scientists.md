@@ -78,6 +78,19 @@ def __init__(self, model_path: str):
     ...
 ```
 
+**Using Class Handlers in Flow DSL**: When using the Flow DSL compiler, instantiate classes with default arguments only, then call methods:
+
+```python
+def my_flow(p: dict) -> dict:
+    # Instantiate with default args only
+    classifier = TextClassifier()
+
+    # Use the instance
+    p = classifier.process(p)
+
+    return p
+```
+
 ### Pipeline Flow Example
 
 ```python

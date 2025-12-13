@@ -11,6 +11,11 @@ class DotGenerator:
         self.user_actors: set[str] = set()
         self.router_map: dict[str, Router] = {}
 
+    @staticmethod
+    def _sanitize_node_id(name: str) -> str:
+        """Sanitize node name for DOT syntax (replace dots with underscores)."""
+        return name.replace(".", "_")
+
     def generate(self) -> str:
         self._collect_actors()
 
@@ -121,7 +126,7 @@ class DotGenerator:
         return lines
 
     def _node_id(self, name: str) -> str:
-        return name.replace("-", "_")
+        return name.replace("-", "_").replace(".", "_")
 
     def _escape_html(self, text: str) -> str:
         return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")

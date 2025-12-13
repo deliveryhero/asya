@@ -140,14 +140,6 @@ asya flow validate conditional_routing.py
 
 Checks syntax and DSL constraints without generating code.
 
-### Show handler mappings
-
-```bash
-asya flow show-mappings loop_processing.py
-```
-
-Displays handler name to actor name mappings.
-
 ## Output Structure
 
 Compiled files contain:
