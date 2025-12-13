@@ -5,7 +5,7 @@ from asya_cli.flow.grouper import Router
 
 class DotGenerator:
     def __init__(
-        self, flow_name: str, routers: list[Router], step_width: int = 35, class_methods: set[str] | None = None
+        self, flow_name: str, routers: list[Router], step_width: int = 50, class_methods: set[str] | None = None
     ):
         self.flow_name = flow_name
         self.routers = routers
@@ -39,6 +39,18 @@ class DotGenerator:
                 return parts[-1]
         # Function or special router: show as-is
         return full_name
+
+    def _truncate_display_name(self, display_name: str) -> str:
+        """Truncate display name if it exceeds step_width."""
+        full_text = f"p = {display_name}(p)"
+        if len(full_text) <= self.step_width:
+            return full_text
+        # Truncate with ellipsis
+        cut = "…"
+        max_len = self.step_width - len("p = (p)") - len(cut)
+        if max_len > 0:
+            return f"p = {display_name[:max_len]}{cut}(p)"
+        return full_text
 
     def generate(self) -> str:
         self._collect_actors()
@@ -89,8 +101,8 @@ class DotGenerator:
 
         rows = []
         display_name = self._get_display_name(router.name)
-        centered_name = self._center_text(f"p = {display_name}(p)")
-        rows.append(f'<tr><td bgcolor="white"><i>{self._escape_html(centered_name)}</i></td></tr>')
+        truncated_name = self._truncate_display_name(display_name)
+        rows.append(f'<tr><td bgcolor="white" align="center"><i>{self._escape_html(truncated_name)}</i></td></tr>')
 
         if router.mutations:
             for mutation in router.mutations:
@@ -117,10 +129,11 @@ class DotGenerator:
 
     def _generate_user_actor_node(self, actor_name: str) -> str:
         display_name = self._get_display_name(actor_name)
-        centered_name = self._center_text(f"p = {display_name}(p)")
+        truncated_name = self._truncate_display_name(display_name)
         label = (
             f'<<table border="0" cellspacing="0" cellpadding="6" cellborder="1">'
-            f'<tr><td bgcolor="white"><i>{self._escape_html(centered_name)}</i></td></tr>'
+            f'<tr><td bgcolor="white" align="center">'
+            f"<i>{self._escape_html(truncated_name)}</i></td></tr>"
             f"</table>>"
         )
 
@@ -160,15 +173,7 @@ class DotGenerator:
     def _truncate_text(self, text: str) -> str:
         if len(text) <= self.step_width:
             return text
-        postfix_len = 12 # approx to have 'line_XX' included
+        postfix_len = 12  # approx to have 'line_XX' included
         cut = "…"
         prefix_len = self.step_width - postfix_len - len(cut)
         return f"{text[:prefix_len]}{cut}{text[-postfix_len:]}"
-
-    def _center_text(self, text: str) -> str:
-        if len(text) >= self.step_width:
-            return self._truncate_text(text)
-        padding = self.step_width - len(text)
-        left_pad = padding // 2
-        right_pad = padding - left_pad
-        return " " * left_pad + text + " " * right_pad

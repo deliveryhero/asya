@@ -34,7 +34,7 @@ def cmd_compile(args):
 
         if args.plot:
             try:
-                dot_file, png_path = compiler.generate_plot(args.output_dir)
+                dot_file, png_path = compiler.generate_plot(args.output_dir, plot_width=args.plot_width)
                 print(f"[+] Generated graphviz dot file: {dot_file}")
                 if png_path:
                     print(f"[+] Generated graphviz png plot: {png_path}")
@@ -188,6 +188,12 @@ def main(argv=None):
         "--plot",
         action="store_true",
         help="Generate flow diagram in DOT format and PNG (requires graphviz for PNG)",
+    )
+    compile_parser.add_argument(
+        "--plot-width",
+        type=int,
+        default=50,
+        help="Maximum width for plot node labels (default: 50 characters)",
     )
     compile_parser.set_defaults(func=cmd_compile)
 

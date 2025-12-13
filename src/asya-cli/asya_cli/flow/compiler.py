@@ -19,7 +19,6 @@ def _calculate_module_path(filename: str) -> str:
     filepath = Path(filename).resolve()
 
     # Try to find the module root by looking for common markers
-    current = filepath.parent
     python_paths = [Path(p).resolve() for p in os.environ.get("PYTHONPATH", "").split(":") if p]
 
     # Check if file is under any PYTHONPATH
@@ -27,7 +26,7 @@ def _calculate_module_path(filename: str) -> str:
         try:
             rel_path = filepath.relative_to(python_path)
             # Convert path to module notation
-            parts = list(rel_path.parts[:-1]) + [rel_path.stem]
+            parts = [*list(rel_path.parts[:-1]), rel_path.stem]
             return ".".join(parts)
         except ValueError:
             continue
@@ -79,11 +78,11 @@ class FlowCompiler:
     def validate(self, source_code: str, filename: str) -> None:
         self._parse(source_code, filename)
 
-    def generate_plot(self, output_dir: str) -> tuple[str, str | None]:
+    def generate_plot(self, output_dir: str, plot_width: int = 50) -> tuple[str, str | None]:
         if not self.flow_name or not self.routers:
             raise RuntimeError("Must compile flow before generating plot")
 
-        generator = DotGenerator(self.flow_name, self.routers, class_methods=self.class_methods)
+        generator = DotGenerator(self.flow_name, self.routers, step_width=plot_width, class_methods=self.class_methods)
         dot_content = generator.generate()
 
         output_path = Path(output_dir)
