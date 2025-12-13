@@ -1,6 +1,7 @@
-"""Scene DSL compiler for Asya framework."""
+"""Flow DSL compiler for Asya framework."""
 
-from asya_cli.scene.compiler import SceneCompiler
-from asya_cli.scene.errors import SceneCompileError
+from asya_cli.flow.compiler import FlowCompiler
+from asya_cli.flow.errors import FlowCompileError
 
-__all__ = ["SceneCompiler", "SceneCompileError"]
+
+__all__ = ["FlowCompileError", "FlowCompiler"]

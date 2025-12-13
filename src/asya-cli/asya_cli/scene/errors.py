@@ -1,5 +1,5 @@
-"""Scene compiler errors."""
+"""Flow compiler errors."""
 
 
-class SceneCompileError(Exception):
+class FlowCompileError(Exception):
     pass

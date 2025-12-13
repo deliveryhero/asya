@@ -1,6 +1,6 @@
 
 
-def simple_mutating_scene(p: dict) -> dict:
+def simple_mutating_flow(p: dict) -> dict:
     p = actor0(p)
 
     p["k"] = 1

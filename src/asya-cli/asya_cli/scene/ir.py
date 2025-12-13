@@ -1,7 +1,6 @@
-"""Intermediate representation for scene operations."""
+"""Intermediate representation for flow operations."""
 
 from dataclasses import dataclass
-from typing import List
 
 
 @dataclass
@@ -22,8 +21,8 @@ class Mutation(IROperation):
 @dataclass
 class Condition(IROperation):
     test: str
-    true_branch: List[IROperation]
-    false_branch: List[IROperation]
+    true_branch: list[IROperation]
+    false_branch: list[IROperation]
 
 
 @dataclass

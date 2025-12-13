@@ -1,40 +1,39 @@
 """Group IR operations into execution units (actors/routers)."""
 
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
 
-from asya_cli.scene.ir import ActorCall, Condition, IROperation, Mutation
+from asya_cli.flow.ir import ActorCall, Condition, IROperation, Mutation
 
 
 @dataclass
 class Router:
     name: str
     lineno: int
-    mutations: List[Mutation] = field(default_factory=list)
-    condition: Optional[Condition] = None
-    true_branch_actors: List[str] = field(default_factory=list)
-    false_branch_actors: List[str] = field(default_factory=list)
+    mutations: list[Mutation] = field(default_factory=list)
+    condition: Condition | None = None
+    true_branch_actors: list[str] = field(default_factory=list)
+    false_branch_actors: list[str] = field(default_factory=list)
 
 
 class OperationGrouper:
-    def __init__(self, scene_name: str, operations: List[IROperation]):
-        self.scene_name = scene_name
+    def __init__(self, flow_name: str, operations: list[IROperation]):
+        self.flow_name = flow_name
         self.operations = operations
-        self.routers: List[Router] = []
+        self.routers: list[Router] = []
         self.convergence_counter = 0
-        self.convergence_map: Dict[str, List[str]] = {}
+        self.convergence_map: dict[str, list[str]] = {}
 
-    def group(self) -> List[Router]:
+    def group(self) -> list[Router]:
         self.routers = []
         self.convergence_counter = 0
         self.convergence_map = {}
 
         start_actors = self._process_operations(self.operations, [], is_top_level=True)
 
-        start_router = Router(name=f"start_{self.scene_name}", lineno=0, true_branch_actors=start_actors)
+        start_router = Router(name=f"start_{self.flow_name}", lineno=0, true_branch_actors=start_actors)
         self.routers.insert(0, start_router)
 
-        end_router = Router(name=f"end_{self.scene_name}", lineno=999999)
+        end_router = Router(name=f"end_{self.flow_name}", lineno=999999)
         self.routers.append(end_router)
 
         self._resolve_convergence_labels()
@@ -42,13 +41,13 @@ class OperationGrouper:
         return self.routers
 
     def _process_operations(
-        self, operations: List[IROperation], convergence_stack: List[str], is_top_level: bool = False
-    ) -> List[str]:
+        self, operations: list[IROperation], convergence_stack: list[str], is_top_level: bool = False
+    ) -> list[str]:
         if not operations:
             if convergence_stack:
                 return [convergence_stack[-1]]
             if is_top_level:
-                return [f"end_{self.scene_name}"]
+                return [f"end_{self.flow_name}"]
             return []
 
         result = []
@@ -74,7 +73,7 @@ class OperationGrouper:
                     )
 
                     router = Router(
-                        name=f"router_{self.scene_name}_line_{mutations[0].lineno}_seq",
+                        name=f"router_{self.flow_name}_line_{mutations[0].lineno}_seq",
                         lineno=mutations[0].lineno,
                         mutations=mutations,
                         true_branch_actors=[actor.name] + continuation,
@@ -101,7 +100,7 @@ class OperationGrouper:
                     self.convergence_map[convergence_label] = continuation_actors
 
                     router = Router(
-                        name=f"router_{self.scene_name}_line_{cond.lineno}_if",
+                        name=f"router_{self.flow_name}_line_{cond.lineno}_if",
                         lineno=cond.lineno,
                         mutations=mutations,
                         condition=cond,
@@ -115,7 +114,7 @@ class OperationGrouper:
                         operations[i:], convergence_stack, is_top_level=is_top_level
                     )
                     router = Router(
-                        name=f"router_{self.scene_name}_line_{mutations[0].lineno}_seq",
+                        name=f"router_{self.flow_name}_line_{mutations[0].lineno}_seq",
                         lineno=mutations[0].lineno,
                         mutations=mutations,
                         true_branch_actors=continuation,
@@ -143,7 +142,7 @@ class OperationGrouper:
                 self.convergence_map[convergence_label] = continuation_actors
 
                 router = Router(
-                    name=f"router_{self.scene_name}_line_{op.lineno}_if",
+                    name=f"router_{self.flow_name}_line_{op.lineno}_if",
                     lineno=op.lineno,
                     condition=op,
                     true_branch_actors=true_actors,
@@ -163,11 +162,11 @@ class OperationGrouper:
             return [convergence_stack[-1]]
 
         if is_top_level:
-            return [f"end_{self.scene_name}"]
+            return [f"end_{self.flow_name}"]
 
         return []
 
-    def _process_branch(self, branch: List[IROperation], convergence_stack: List[str]) -> List[str]:
+    def _process_branch(self, branch: list[IROperation], convergence_stack: list[str]) -> list[str]:
         return self._process_operations(branch, convergence_stack)
 
     def _resolve_convergence_labels(self):
@@ -175,7 +174,7 @@ class OperationGrouper:
             router.true_branch_actors = self._resolve_actors(router.true_branch_actors)
             router.false_branch_actors = self._resolve_actors(router.false_branch_actors)
 
-    def _resolve_actors(self, actors: List[str]) -> List[str]:
+    def _resolve_actors(self, actors: list[str]) -> list[str]:
         resolved = []
         for actor in actors:
             if actor.startswith("CONVERGENCE_"):

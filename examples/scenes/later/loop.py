@@ -5,7 +5,7 @@ Demonstrates while loops with break and continue statements.
 """
 
 
-def loop_scene(p: dict) -> dict:
+def loop_flow(p: dict) -> dict:
     p = initialize(p)
 
     p["iteration"] = 0

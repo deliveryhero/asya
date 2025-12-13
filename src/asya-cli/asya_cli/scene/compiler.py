@@ -1,21 +1,19 @@
-"""Scene compiler public API."""
+"""Flow compiler public API."""
 
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
 
-from asya_cli.scene.codegen import CodeGenerator
-from asya_cli.scene.dotgen import DotGenerator
-from asya_cli.scene.errors import SceneCompileError
-from asya_cli.scene.grouper import OperationGrouper, Router
-from asya_cli.scene.parser import SceneParser
+from asya_cli.flow.codegen import CodeGenerator
+from asya_cli.flow.dotgen import DotGenerator
+from asya_cli.flow.grouper import OperationGrouper, Router
+from asya_cli.flow.parser import FlowParser
 
 
-class SceneCompiler:
+class FlowCompiler:
     def __init__(self, verbose: bool = False):
         self.verbose = verbose
-        self.warnings: List[str] = []
-        self.scene_name: Optional[str] = None
-        self.routers: List[Router] = []
+        self.warnings: list[str] = []
+        self.flow_name: str | None = None
+        self.routers: list[Router] = []
 
     def compile_file(self, source_file: str, output_file: str = None) -> str:
         source_path = Path(source_file)
@@ -23,7 +21,7 @@ class SceneCompiler:
             raise FileNotFoundError(f"Source file not found: {source_file}")
 
         if output_file is None:
-            raise ValueError(f"Missing required parameter: output_file")
+            raise ValueError("Missing required parameter: output_file")
 
         source_code = source_path.read_text()
         compiled_code = self.compile(source_code, str(source_path))
@@ -35,11 +33,11 @@ class SceneCompiler:
         return str(output_path)
 
     def compile(self, source_code: str, filename: str) -> str:
-        scene_name, operations = self._parse(source_code, filename)
-        units = self._group(scene_name, operations)
-        code = self._generate(scene_name, units, filename)
+        flow_name, operations = self._parse(source_code, filename)
+        units = self._group(flow_name, operations)
+        code = self._generate(flow_name, units, filename)
 
-        self.scene_name = scene_name
+        self.flow_name = flow_name
         self.routers = units
 
         return code
@@ -47,9 +45,9 @@ class SceneCompiler:
     def validate(self, source_code: str, filename: str) -> None:
         self._parse(source_code, filename)
 
-    def show_mappings(self, source_code: str, filename: str) -> Dict[str, str]:
-        scene_name, operations = self._parse(source_code, filename)
-        units = self._group(scene_name, operations)
+    def show_mappings(self, source_code: str, filename: str) -> dict[str, str]:
+        flow_name, operations = self._parse(source_code, filename)
+        units = self._group(flow_name, operations)
 
         mappings = {}
         for unit in units:
@@ -57,11 +55,11 @@ class SceneCompiler:
 
         return mappings
 
-    def generate_diagram(self, output_dot: str = None, output_png: str = None) -> Tuple[str, Optional[str]]:
-        if not self.scene_name or not self.routers:
-            raise RuntimeError("Must compile scene before generating diagram")
+    def generate_diagram(self, output_dot: str = None, output_png: str = None) -> tuple[str, str | None]:
+        if not self.flow_name or not self.routers:
+            raise RuntimeError("Must compile flow before generating diagram")
 
-        generator = DotGenerator(self.scene_name, self.routers)
+        generator = DotGenerator(self.flow_name, self.routers)
         dot_content = generator.generate()
 
         if output_dot:
@@ -101,17 +99,17 @@ class SceneCompiler:
 
         return dot_content, png_path
 
-    def get_warnings(self) -> List[str]:
+    def get_warnings(self) -> list[str]:
         return self.warnings
 
     def _parse(self, source_code: str, filename: str):
-        parser = SceneParser(source_code, filename)
+        parser = FlowParser(source_code, filename)
         return parser.parse()
 
-    def _group(self, scene_name: str, operations):
-        grouper = OperationGrouper(scene_name, operations)
+    def _group(self, flow_name: str, operations):
+        grouper = OperationGrouper(flow_name, operations)
         return grouper.group()
 
-    def _generate(self, scene_name: str, units, filename: str):
-        generator = CodeGenerator(scene_name, units, filename)
+    def _generate(self, flow_name: str, units, filename: str):
+        generator = CodeGenerator(flow_name, units, filename)
         return generator.generate()

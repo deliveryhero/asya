@@ -13,25 +13,22 @@ When deploying compiled routers, set environment variables:
 """
 
 
-def conditional_scene(p: dict) -> dict:
+def conditional_flow(p: dict) -> dict:
     p = handler_validate_input(p)
 
-    p["mut"] = 1
     if p["type"] == "A":
-        p["mut"] += 1
         p = handler_type_a(p)
-        p["mut"] += 10
+        p["mut"] = "A"
     elif p["type"] == "B":
-        p["mut"] += 2
         p = handler_type_b(p)
-        p["mut"] += 20
+        p["mut"] = "B"
     else:
-        p = handler_type_c(p)
-        p["mut"] += 30
+        p = handler_type_default(p)
+        p["mut"] = "default"
 
-    p["mut"] += 5
     p = handler_finalize(p)
     return p
+
 
 def handler_validate_input(p: dict) -> dict:
     """Mock validation handler."""

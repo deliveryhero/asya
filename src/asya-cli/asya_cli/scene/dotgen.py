@@ -1,11 +1,11 @@
-"""Generate DOT diagrams for scene visualization."""
+"""Generate DOT diagrams for flow visualization."""
 
-from asya_cli.scene.grouper import Router
+from asya_cli.flow.grouper import Router
 
 
 class DotGenerator:
-    def __init__(self, scene_name: str, routers: list[Router], step_width: int = 30):
-        self.scene_name = scene_name
+    def __init__(self, flow_name: str, routers: list[Router], step_width: int = 30):
+        self.flow_name = flow_name
         self.routers = routers
         self.step_width = step_width
         self.user_actors: set[str] = set()
@@ -15,7 +15,7 @@ class DotGenerator:
         self._collect_actors()
 
         parts = []
-        parts.append("digraph scene {")
+        parts.append("digraph flow {")
         parts.append("  rankdir=TB;")
         parts.append('  graph [fontname="Courier", fontsize=10];')
         parts.append('  node [fontname="Courier", fontsize=10, shape=box, style="filled,rounded", margin="0.2"];')

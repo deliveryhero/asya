@@ -1,5 +1,5 @@
 
-def conditional_nested_scene(p: dict) -> dict:
+def conditional_nested_flow(p: dict) -> dict:
     p = handler_validate_input(p)
 
     p["x"] = 1
