@@ -30,10 +30,14 @@ class DotGenerator:
 
         parts.append("")
 
+        all_edges = set()
         for router in self.routers:
             edges = self._generate_edges(router)
-            if edges:
-                parts.append(edges)
+            all_edges.update(edges)
+
+        if all_edges:
+            for edge in sorted(all_edges):
+                parts.append(edge)
 
         parts.append("}")
 
@@ -91,7 +95,7 @@ class DotGenerator:
 
         return f'  {self._node_id(actor_name)} [fillcolor="lightblue", label={label}];'
 
-    def _generate_edges(self, router: Router) -> str:
+    def _generate_edges(self, router: Router) -> set[str]:
         lines = set()
 
         if router.condition:
@@ -114,7 +118,7 @@ class DotGenerator:
                 for i in range(len(actors) - 1):
                     lines.add(f"  {self._node_id(actors[i])} -> {self._node_id(actors[i + 1])};")
 
-        return "\n".join(lines) if lines else ""
+        return lines
 
     def _node_id(self, name: str) -> str:
         return name.replace("-", "_")
