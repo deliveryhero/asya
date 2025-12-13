@@ -7,11 +7,13 @@ from asya_cli.flow.ir import ActorCall, Condition, IROperation, Mutation, Return
 
 
 class FlowParser:
-    def __init__(self, source_code: str, filename: str):
+    def __init__(self, source_code: str, filename: str, module_path: str = ""):
         self.source_code = source_code
         self.filename = filename
+        self.module_path = module_path
         self.flow_name: str | None = None
         self.instances: dict[str, str] = {}  # Map instance variable to class name
+        self.class_methods: set[str] = set()  # Track class method handlers
 
     def parse(self) -> tuple[str, list[IROperation]]:
         try:
@@ -26,6 +28,10 @@ class FlowParser:
         self.flow_name = flow_func.name
         operations = self._parse_body(flow_func.body)
         return self.flow_name, operations
+
+    def get_class_methods(self) -> set[str]:
+        """Return set of handler names that are class methods."""
+        return self.class_methods.copy()
 
     def _find_flow_function(self, tree: ast.Module) -> ast.FunctionDef | None:
         for node in tree.body:
@@ -126,11 +132,17 @@ class FlowParser:
         elif isinstance(call.func, ast.Attribute):
             # Check if this is a method call on an instantiated class
             if isinstance(call.func.value, ast.Name) and call.func.value.id in self.instances:
-                # Instance method call - use ClassName.method format
+                # Instance method call - use module.ClassName.method format
                 instance_var = call.func.value.id
                 class_name = self.instances[instance_var]
                 method_name = call.func.attr
-                actor_name = f"{class_name}.{method_name}"
+                # Prefix with module path if available and class is local
+                if self.module_path and "." not in class_name:
+                    actor_name = f"{self.module_path}.{class_name}.{method_name}"
+                else:
+                    actor_name = f"{class_name}.{method_name}"
+                # Track that this is a class method
+                self.class_methods.add(actor_name)
             else:
                 # Regular attribute access (module.function)
                 actor_name = ast.unparse(call.func)

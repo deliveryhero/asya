@@ -1,5 +1,6 @@
 """Flow compiler public API."""
 
+import os
 from pathlib import Path
 
 from asya_cli.flow.codegen import CodeGenerator
@@ -8,12 +9,40 @@ from asya_cli.flow.grouper import OperationGrouper, Router
 from asya_cli.flow.parser import FlowParser
 
 
+def _calculate_module_path(filename: str) -> str:
+    """
+    Calculate Python module path from filename.
+
+    Converts /path/to/my_project/handlers/processor.py to my_project.handlers.processor
+    Uses PYTHONPATH or current working directory as the base.
+    """
+    filepath = Path(filename).resolve()
+
+    # Try to find the module root by looking for common markers
+    current = filepath.parent
+    python_paths = [Path(p).resolve() for p in os.environ.get("PYTHONPATH", "").split(":") if p]
+
+    # Check if file is under any PYTHONPATH
+    for python_path in python_paths:
+        try:
+            rel_path = filepath.relative_to(python_path)
+            # Convert path to module notation
+            parts = list(rel_path.parts[:-1]) + [rel_path.stem]
+            return ".".join(parts)
+        except ValueError:
+            continue
+
+    # Fallback: use filename without extension as module name
+    return filepath.stem
+
+
 class FlowCompiler:
     def __init__(self, verbose: bool = False):
         self.verbose = verbose
         self.warnings: list[str] = []
         self.flow_name: str | None = None
         self.routers: list[Router] = []
+        self.class_methods: set[str] = set()
 
     def compile_file(self, source_file: str, output_dir: str) -> str:
         source_path = Path(source_file)
@@ -54,7 +83,7 @@ class FlowCompiler:
         if not self.flow_name or not self.routers:
             raise RuntimeError("Must compile flow before generating plot")
 
-        generator = DotGenerator(self.flow_name, self.routers)
+        generator = DotGenerator(self.flow_name, self.routers, class_methods=self.class_methods)
         dot_content = generator.generate()
 
         output_path = Path(output_dir)
@@ -95,8 +124,12 @@ class FlowCompiler:
         return self.warnings
 
     def _parse(self, source_code: str, filename: str):
-        parser = FlowParser(source_code, filename)
-        return parser.parse()
+        module_path = _calculate_module_path(filename)
+        parser = FlowParser(source_code, filename, module_path)
+        flow_name, operations = parser.parse()
+        # Store class methods info for later use by DotGenerator
+        self.class_methods = parser.get_class_methods()
+        return flow_name, operations
 
     def _group(self, flow_name: str, operations):
         grouper = OperationGrouper(flow_name, operations)

@@ -4,17 +4,41 @@ from asya_cli.flow.grouper import Router
 
 
 class DotGenerator:
-    def __init__(self, flow_name: str, routers: list[Router], step_width: int = 30):
+    def __init__(
+        self, flow_name: str, routers: list[Router], step_width: int = 35, class_methods: set[str] | None = None
+    ):
         self.flow_name = flow_name
         self.routers = routers
         self.step_width = step_width
         self.user_actors: set[str] = set()
         self.router_map: dict[str, Router] = {}
+        self.class_methods = class_methods or set()
 
     @staticmethod
     def _sanitize_node_id(name: str) -> str:
         """Sanitize node name for DOT syntax (replace dots with underscores)."""
         return name.replace(".", "_")
+
+    def _get_display_name(self, full_name: str) -> str:
+        """Extract readable display name from full module path.
+
+        Examples:
+            "class_instantiation.DataPreprocessor.clean" -> "DataPreprocessor.clean"
+            "my_module.process_data" -> "process_data"
+            "module.submodule.function" -> "function"
+            "start_flow_name" -> "start_flow_name"
+        """
+        parts = full_name.split(".")
+        if len(parts) >= 2:
+            # Check if this is a known class method
+            if full_name in self.class_methods:
+                # Class method: show ClassName.method
+                return f"{parts[-2]}.{parts[-1]}"
+            else:
+                # Module function: show just function name
+                return parts[-1]
+        # Function or special router: show as-is
+        return full_name
 
     def generate(self) -> str:
         self._collect_actors()
@@ -64,7 +88,8 @@ class DotGenerator:
         color = "lightgreen" if router.name.startswith("start_") or router.name.startswith("end_") else "wheat"
 
         rows = []
-        centered_name = self._center_text(router.name)
+        display_name = self._get_display_name(router.name)
+        centered_name = self._center_text(f"p = {display_name}(p)")
         rows.append(f'<tr><td bgcolor="white"><i>{self._escape_html(centered_name)}</i></td></tr>')
 
         if router.mutations:
@@ -91,7 +116,8 @@ class DotGenerator:
         return f'  {self._node_id(router.name)} [fillcolor="{color}", label={label}];'
 
     def _generate_user_actor_node(self, actor_name: str) -> str:
-        centered_name = self._center_text(actor_name)
+        display_name = self._get_display_name(actor_name)
+        centered_name = self._center_text(f"p = {display_name}(p)")
         label = (
             f'<<table border="0" cellspacing="0" cellpadding="6" cellborder="1">'
             f'<tr><td bgcolor="white"><i>{self._escape_html(centered_name)}</i></td></tr>'
