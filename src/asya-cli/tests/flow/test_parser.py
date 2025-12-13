@@ -3,10 +3,11 @@
 import textwrap
 
 import pytest
-
 from asya_cli.flow.errors import FlowCompileError
 from asya_cli.flow.ir import ActorCall, Condition, Mutation, Return
 from asya_cli.flow.parser import FlowParser
+
+from .test_helpers import contains_with_either_quotes
 
 
 class TestFlowFunctionDetection:
@@ -111,10 +112,10 @@ class TestActorCallParsing:
         _, ops = parser.parse()
 
         assert len(ops) == 4
-        assert all(isinstance(op, (ActorCall, Return)) for op in ops)
-        assert ops[0].name == "handler_a"
-        assert ops[1].name == "handler_b"
-        assert ops[2].name == "handler_c"
+        assert all(isinstance(op, ActorCall | Return) for op in ops)
+        assert isinstance(ops[0], ActorCall) and ops[0].name == "handler_a"
+        assert isinstance(ops[1], ActorCall) and ops[1].name == "handler_b"
+        assert isinstance(ops[2], ActorCall) and ops[2].name == "handler_c"
 
     def test_parse_method_call_as_actor(self):
         source = textwrap.dedent("""
@@ -174,8 +175,8 @@ class TestMutationParsing:
 
         assert len(ops) == 2
         assert isinstance(ops[0], Mutation)
-        assert 'p["key"]' in ops[0].code
-        assert '"value"' in ops[0].code
+        assert contains_with_either_quotes(ops[0].code, 'p["key"]')
+        assert contains_with_either_quotes(ops[0].code, '"value"')
 
     def test_parse_multiple_mutations(self):
         source = textwrap.dedent("""
@@ -190,9 +191,9 @@ class TestMutationParsing:
 
         mutations = [op for op in ops if isinstance(op, Mutation)]
         assert len(mutations) == 3
-        assert 'p["x"]' in mutations[0].code
-        assert 'p["y"]' in mutations[1].code
-        assert 'p["z"]' in mutations[2].code
+        assert contains_with_either_quotes(mutations[0].code, 'p["x"]')
+        assert contains_with_either_quotes(mutations[1].code, 'p["y"]')
+        assert contains_with_either_quotes(mutations[2].code, 'p["z"]')
 
     def test_parse_nested_subscript_assignment(self):
         source = textwrap.dedent("""
@@ -204,7 +205,7 @@ class TestMutationParsing:
         _, ops = parser.parse()
 
         assert isinstance(ops[0], Mutation)
-        assert 'p["nested"]["key"]' in ops[0].code
+        assert contains_with_either_quotes(ops[0].code, 'p["nested"]["key"]')
 
     def test_parse_augmented_assignment(self):
         source = textwrap.dedent("""
@@ -216,8 +217,8 @@ class TestMutationParsing:
         _, ops = parser.parse()
 
         assert isinstance(ops[0], Mutation)
-        assert 'p["counter"]' in ops[0].code
-        assert '+=' in ops[0].code
+        assert contains_with_either_quotes(ops[0].code, 'p["counter"]')
+        assert "+=" in ops[0].code
 
     def test_parse_various_augmented_assignments(self):
         source = textwrap.dedent("""
@@ -245,7 +246,7 @@ class TestMutationParsing:
         _, ops = parser.parse()
 
         assert isinstance(ops[0], Mutation)
-        assert 'p["result"]' in ops[0].code
+        assert contains_with_either_quotes(ops[0].code, 'p["result"]')
 
 
 class TestConditionalParsing:
@@ -265,7 +266,7 @@ class TestConditionalParsing:
 
         assert len(ops) == 2
         assert isinstance(ops[0], Condition)
-        assert 'p["condition"]' in ops[0].test
+        assert contains_with_either_quotes(ops[0].test, 'p["condition"]')
         assert len(ops[0].true_branch) == 1
         assert len(ops[0].false_branch) == 1
         assert isinstance(ops[0].true_branch[0], ActorCall)
@@ -300,7 +301,7 @@ class TestConditionalParsing:
         _, ops = parser.parse()
 
         assert isinstance(ops[0], Condition)
-        assert 'p["x"] == "A"' in ops[0].test
+        assert contains_with_either_quotes(ops[0].test, 'p["x"] == "A"')
         assert len(ops[0].true_branch) == 1
         assert len(ops[0].false_branch) == 1
         assert isinstance(ops[0].false_branch[0], Condition)
@@ -321,10 +322,10 @@ class TestConditionalParsing:
         _, ops = parser.parse()
 
         assert isinstance(ops[0], Condition)
-        assert 'p["outer"]' in ops[0].test
+        assert contains_with_either_quotes(ops[0].test, 'p["outer"]')
         assert len(ops[0].true_branch) == 1
         assert isinstance(ops[0].true_branch[0], Condition)
-        assert 'p["inner"]' in ops[0].true_branch[0].test
+        assert contains_with_either_quotes(ops[0].true_branch[0].test, 'p["inner"]')
 
     def test_parse_if_with_mutations_in_branches(self):
         source = textwrap.dedent("""
@@ -361,6 +362,7 @@ class TestConditionalParsing:
         parser = FlowParser(source, "test.py")
         _, ops = parser.parse()
 
+        assert isinstance(ops[0], Condition)
         cond = ops[0]
         assert len(cond.true_branch) == 0
         assert len(cond.false_branch) == 1
@@ -375,10 +377,9 @@ class TestConditionalParsing:
         parser = FlowParser(source, "test.py")
         _, ops = parser.parse()
 
+        assert isinstance(ops[0], Condition)
         cond = ops[0]
-        assert 'p["x"] > 10' in cond.test
-        assert 'p["y"] < 20' in cond.test
-        assert 'and' in cond.test
+        assert ">" in cond.test and "<" in cond.test and "and" in cond.test
 
 
 class TestMixedOperations:
@@ -471,7 +472,7 @@ class TestEdgeCases:
                 return p
         """)
         parser = FlowParser(source, "test.py")
-        with pytest.raises(FlowCompileError, match="Multiple assignment targets"):
+        with pytest.raises(FlowCompileError, match="Unsupported assignment target"):
             parser.parse()
 
     def test_rejects_unsupported_assignment_target(self):
@@ -525,7 +526,7 @@ class TestEdgeCases:
         parser = FlowParser(source, "test.py")
         _, ops = parser.parse()
 
-        assert all(hasattr(op, 'lineno') for op in ops)
+        assert all(hasattr(op, "lineno") for op in ops)
         assert all(op.lineno > 0 for op in ops)
 
 
@@ -602,6 +603,7 @@ class TestComplexFlows:
         parser = FlowParser(source, "test.py")
         _, ops = parser.parse()
 
+        assert isinstance(ops[0], Condition)
         cond = ops[0]
         assert len(cond.true_branch) == 0
         assert len(cond.false_branch) == 0

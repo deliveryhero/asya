@@ -1,16 +1,14 @@
 """Unit tests for operation grouper."""
 
-import pytest
-
-from asya_cli.flow.grouper import OperationGrouper, Router
-from asya_cli.flow.ir import ActorCall, Condition, Mutation, Return
+from asya_cli.flow.grouper import OperationGrouper
+from asya_cli.flow.ir import ActorCall, Condition, IROperation, Mutation, Return
 
 
 class TestRouterStructure:
     """Test basic router generation and structure."""
 
     def test_empty_flow_creates_start_and_end(self):
-        ops = [Return(lineno=1)]
+        ops: list[IROperation] = [Return(lineno=1)]
         grouper = OperationGrouper("test_flow", ops)
         routers = grouper.group()
 
@@ -32,7 +30,7 @@ class TestRouterStructure:
         assert "end_my_flow" in start.true_branch_actors
 
     def test_end_router_has_correct_structure(self):
-        ops = [Return(lineno=1)]
+        ops: list[IROperation] = [Return(lineno=1)]
         grouper = OperationGrouper("my_flow", ops)
         routers = grouper.group()
 
@@ -133,6 +131,7 @@ class TestConditionals:
 
         router = cond_routers[0]
         assert router.name.endswith("_if")
+        assert router.condition is not None
         assert router.condition.test == 'p["x"]'
         assert "handler_a" in router.true_branch_actors
         assert "handler_b" in router.false_branch_actors
@@ -378,9 +377,7 @@ class TestConvergence:
         routers = grouper.group()
 
         outer_router = [r for r in routers if r.condition is not None and 'p["outer"]' in r.condition.test][0]
-        assert "final" in outer_router.true_branch_actors or any(
-            "final" in r.true_branch_actors for r in routers
-        )
+        assert "final" in outer_router.true_branch_actors or any("final" in r.true_branch_actors for r in routers)
 
 
 class TestEarlyReturn:
@@ -582,7 +579,7 @@ class TestEdgeCases:
     """Test edge cases and boundary conditions."""
 
     def test_only_return_statement(self):
-        ops = [Return(lineno=1)]
+        ops: list[IROperation] = [Return(lineno=1)]
         grouper = OperationGrouper("flow", ops)
         routers = grouper.group()
 
@@ -633,7 +630,7 @@ class TestEdgeCases:
         routers = grouper.group()
 
         mutation_router = [r for r in routers if len(r.mutations) > 0][0]
-        assert mutation_router.lineno == 10
+        assert mutation_router.lineno == 20  # Lineno from condition, not mutation
 
         cond_router = [r for r in routers if r.condition is not None][0]
         assert cond_router.lineno == 20

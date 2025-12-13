@@ -2,7 +2,6 @@
 
 import textwrap
 from pathlib import Path
-
 import pytest
 
 from asya_cli.flow import FlowCompiler
@@ -12,18 +11,18 @@ class TestExampleFlows:
     """Test compilation of example flows from examples/flows/."""
 
     @pytest.mark.parametrize("flow_file,expected_min_routers", [
-        ("01_minimal.py", 2),
-        ("02_sequential.py", 2),
-        ("03_mutations_only.py", 3),
-        ("04_mutations_with_handler.py", 3),
-        ("05_if_no_else.py", 3),
-        ("06_if_else_simple.py", 3),
-        ("07_if_elif_else.py", 3),
-        ("10_nested_if.py", 3),
-        ("11_early_return.py", 3),
+        ("minimal.py", 2),
+        ("sequential.py", 2),
+        ("mutations_only.py", 3),
+        ("mutations_with_handler.py", 3),
+        ("if_no_else.py", 3),
+        ("if_else_simple.py", 3),
+        ("if_elif_else.py", 3),
+        ("nested_if.py", 3),
+        ("early_return.py", 3),
     ])
-    def test_example_flow_compiles(self, flow_file, expected_min_routers):
-        flow_path = Path("examples/flows") / flow_file
+    def test_example_flow_compiles(self, project_root: Path, flow_file, expected_min_routers):
+        flow_path = project_root / "examples/flows" / flow_file
 
         if not flow_path.exists():
             pytest.skip(f"Example file not found: {flow_path}")
@@ -36,8 +35,8 @@ class TestExampleFlows:
         assert any(r.name.startswith("start_") for r in compiler.routers)
         assert any(r.name.startswith("end_") for r in compiler.routers)
 
-    def test_01_minimal_structure(self):
-        flow_path = Path("examples/flows/01_minimal.py")
+    def test_01_minimal_structure(self, project_root: Path):
+        flow_path = project_root / "examples/flows/01_minimal.py"
         if not flow_path.exists():
             pytest.skip("Example file not found")
 
@@ -51,8 +50,8 @@ class TestExampleFlows:
         assert "handler_a" in start.true_branch_actors
         assert end.name in start.true_branch_actors
 
-    def test_06_if_else_simple_structure(self):
-        flow_path = Path("examples/flows/06_if_else_simple.py")
+    def test_06_if_else_simple_structure(self, project_root: Path):
+        flow_path = project_root / "examples/flows/06_if_else_simple.py"
         if not flow_path.exists():
             pytest.skip("Example file not found")
 
@@ -69,8 +68,8 @@ class TestExampleFlows:
         assert "handler_finalize" in str(router.true_branch_actors)
         assert "handler_finalize" in str(router.false_branch_actors)
 
-    def test_10_nested_if_structure(self):
-        flow_path = Path("examples/flows/10_nested_if.py")
+    def test_10_nested_if_structure(self, project_root: Path):
+        flow_path = project_root / "examples/flows/10_nested_if.py"
         if not flow_path.exists():
             pytest.skip("Example file not found")
 

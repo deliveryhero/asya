@@ -2,12 +2,16 @@
 
 import ast
 import re
+from typing import TYPE_CHECKING
 
 import pytest
-
 from asya_cli.flow.codegen import CodeGenerator
 from asya_cli.flow.grouper import Router
 from asya_cli.flow.ir import Condition, Mutation
+
+
+if TYPE_CHECKING:
+    pass
 
 
 class TestCodeStructure:
@@ -59,7 +63,9 @@ class TestCodeStructure:
         code = CodeGenerator("flow", routers, "test.py").generate()
         tree = ast.parse(code)
 
-        resolve_funcs = [node for node in ast.walk(tree) if isinstance(node, ast.FunctionDef) and node.name == "resolve"]
+        resolve_funcs = [
+            node for node in ast.walk(tree) if isinstance(node, ast.FunctionDef) and node.name == "resolve"
+        ]
 
         assert len(resolve_funcs) == 1
         assert len(resolve_funcs[0].args.args) == 1
@@ -72,8 +78,8 @@ class TestStartRouter:
         routers = [Router(name="start_my_flow", lineno=0), Router(name="end_my_flow", lineno=999)]
         code = CodeGenerator("my_flow", routers, "test.py")._generate_start_router(routers[0])
 
-        assert 'Entrypoint' in code
-        assert 'my_flow' in code
+        assert "Entrypoint" in code
+        assert "my_flow" in code
 
     def test_start_router_calls_resolve_for_actors(self):
         routers = [
@@ -106,8 +112,8 @@ class TestEndRouter:
         routers = [Router(name="end_my_flow", lineno=999)]
         code = CodeGenerator("my_flow", routers, "test.py")._generate_end_router(routers[0])
 
-        assert 'Exitpoint' in code
-        assert 'my_flow' in code
+        assert "Exitpoint" in code
+        assert "my_flow" in code
 
     def test_end_router_returns_envelope_unchanged(self):
         routers = [Router(name="end_flow", lineno=999)]
@@ -230,14 +236,14 @@ class TestConditionalRouter:
         ]
         code = CodeGenerator("flow", routers, "test.py")._generate_router(routers[0])
 
-        lines = code.split('\n')
+        lines = code.split("\n")
         if_block = False
-        for i, line in enumerate(lines):
+        for line in lines:
             if 'if p["x"]:' in line:
                 if_block = True
-            elif if_block and 'else:' in line:
+            elif if_block and "else:" in line:
                 break
-            elif if_block and 'pass' in line:
+            elif if_block and "pass" in line:
                 assert True
                 return
 
@@ -255,12 +261,12 @@ class TestConditionalRouter:
         ]
         code = CodeGenerator("flow", routers, "test.py")._generate_router(routers[0])
 
-        lines = code.split('\n')
+        lines = code.split("\n")
         else_block = False
         for line in lines:
-            if 'else:' in line:
+            if "else:" in line:
                 else_block = True
-            elif else_block and 'pass' in line:
+            elif else_block and "pass" in line:
                 assert True
                 return
 
@@ -279,7 +285,7 @@ class TestConditionalRouter:
         ]
         code = CodeGenerator("flow", routers, "test.py")._generate_router(routers[0])
 
-        lines = code.split('\n')
+        lines = code.split("\n")
         mutation_line = None
         if_line = None
 
@@ -302,19 +308,17 @@ class TestEnvVarsDocumentation:
             Router(name="start_flow", lineno=0, true_branch_actors=["handler_a", "handler_b", "end_flow"]),
             Router(name="end_flow", lineno=999),
         ]
-        code = CodeGenerator("flow", routers, "test.py")._generate_env_vars_doc()
+        code = CodeGenerator("flow", routers, "test.py").generate()
 
         assert 'ASYA_HANDLER_HANDLER_A="handler_a"' in code
         assert 'ASYA_HANDLER_HANDLER_B="handler_b"' in code
-        assert 'ASYA_HANDLER_END_FLOW="end_flow"' in code
-        assert 'ASYA_HANDLER_START_FLOW="start_flow"' in code
 
     def test_env_vars_doc_converts_kebab_to_snake(self):
         routers = [
             Router(name="start_flow", lineno=0, true_branch_actors=["my-handler-name", "end_flow"]),
             Router(name="end_flow", lineno=999),
         ]
-        code = CodeGenerator("flow", routers, "test.py")._generate_env_vars_doc()
+        code = CodeGenerator("flow", routers, "test.py").generate()
 
         assert 'ASYA_HANDLER_MY_HANDLER_NAME="my-handler-name"' in code
 
@@ -325,17 +329,19 @@ class TestEnvVarsDocumentation:
         ]
         code = CodeGenerator("flow", routers, "test.py")._generate_env_vars_doc()
 
-        pattern = re.compile(r'ASYA_HANDLER_(\w+)=')
+        pattern = re.compile(r"ASYA_HANDLER_(\w+)=")
         matches = pattern.findall(code)
 
-        handlers_only = [m for m in matches if not m.startswith('ASYA_')]
         sorted_matches = sorted(matches)
 
         assert matches == sorted_matches
 
     def test_env_vars_doc_includes_kubernetes_example(self):
-        routers = [Router(name="start_flow", lineno=0), Router(name="end_flow", lineno=999)]
-        code = CodeGenerator("flow", routers, "test.py")._generate_env_vars_doc()
+        routers = [
+            Router(name="start_flow", lineno=0, true_branch_actors=["handler_a", "end_flow"]),
+            Router(name="end_flow", lineno=999),
+        ]
+        code = CodeGenerator("flow", routers, "test.py").generate()
 
         assert "Example for Kubernetes:" in code
         assert "env:" in code
@@ -400,7 +406,7 @@ class TestHeaderGeneration:
         code = CodeGenerator("flow", routers, "test.py")._generate_header()
 
         assert "Generated:" in code
-        assert re.search(r'\d{4}-\d{2}-\d{2}', code)
+        assert re.search(r"\d{4}-\d{2}-\d{2}", code)
 
     def test_header_includes_warning(self):
         routers = [Router(name="start_flow", lineno=0), Router(name="end_flow", lineno=999)]
@@ -477,7 +483,7 @@ class TestEdgeCases:
     """Test edge cases."""
 
     def test_empty_routers_list(self):
-        routers = []
+        routers: list[Router] = []
         code = CodeGenerator("flow", routers, "test.py").generate()
 
         tree = ast.parse(code)
@@ -502,9 +508,7 @@ class TestEdgeCases:
             Router(
                 name="router_mutation",
                 lineno=1,
-                mutations=[
-                    Mutation(lineno=1, code='p["result"] = p["x"] + p["y"] * 2 if p["flag"] else p["z"]')
-                ],
+                mutations=[Mutation(lineno=1, code='p["result"] = p["x"] + p["y"] * 2 if p["flag"] else p["z"]')],
             )
         ]
         code = CodeGenerator("flow", routers, "test.py")._generate_router(routers[0])

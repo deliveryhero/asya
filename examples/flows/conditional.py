@@ -2,14 +2,6 @@
 Conditional routing flow example.
 
 Demonstrates if/elif/else branching based on payload data.
-
-When deploying compiled routers, set environment variables:
-    ASYA_HANDLER_INPUT_VALIDATOR="examples.flows.conditional_routing.handler_validate_input"
-    ASYA_HANDLER_TYPE_A_PROCESSOR="examples.flows.conditional_routing.handler_type_a"
-    ASYA_HANDLER_TYPE_B_PROCESSOR="examples.flows.conditional_routing.handler_type_b"
-    ASYA_HANDLER_TYPE_C_PROCESSOR="examples.flows.conditional_routing.handler_type_c"
-    ASYA_HANDLER_DEFAULT_PROCESSOR="examples.flows.conditional_routing.handler_default"
-    ASYA_HANDLER_FINALIZER="examples.flows.conditional_routing.handler_finalize"
 """
 
 

@@ -323,6 +323,209 @@ env:
   value: "resnet50"
 ```
 
+## Flow DSL: Simplified Pipeline Authoring
+
+**Use case**: Define multi-actor pipelines in Python instead of manually managing routes and deployments.
+
+The Flow DSL compiler transforms Python workflow descriptions into router-based actor networks, automating route management and deployment configuration.
+
+### Writing a Flow
+
+Flows are Python functions that describe how data flows through your pipeline:
+
+```python
+# text_analysis_flow.py
+def text_analysis_flow(p: dict) -> dict:
+    # Initialize metadata
+    p["pipeline"] = "text_analysis"
+    p["started_at"] = time.time()
+
+    # Preprocessing
+    p = clean_text(p)
+    p = tokenize(p)
+
+    # Conditional analysis
+    if p["language"] == "en":
+        p = english_sentiment(p)
+    elif p["language"] == "es":
+        p = spanish_sentiment(p)
+    else:
+        p["sentiment"] = "neutral"  # Skip analysis
+
+    # Enrichment
+    p = extract_entities(p)
+    p["completed_at"] = time.time()
+
+    return p
+
+# Define your handler functions
+def clean_text(p: dict) -> dict:
+    return p
+
+def tokenize(p: dict) -> dict:
+    return p
+
+def english_sentiment(p: dict) -> dict:
+    return p
+
+def spanish_sentiment(p: dict) -> dict:
+    return p
+
+def extract_entities(p: dict) -> dict:
+    return p
+```
+
+**Key Features**:
+- Write in familiar Python syntax
+- Inline payload mutations (`p["key"] = value`)
+- Conditional routing (`if`/`elif`/`else`)
+- Early returns for validation
+- Automatic router generation
+
+### Compiling Flows
+
+```bash
+# Install asya-cli
+pip install git+https://github.com/deliveryhero/asya.git#subdirectory=src/asya-cli
+
+# Compile flow
+asya flow compile text_analysis_flow.py --output compiled/
+
+# Generates:
+# - compiled_routers.py (router actors)
+# - plot.dot (flow diagram)
+# - plot.png (visualization, requires graphviz)
+```
+
+### Deployment
+
+Deploy generated routers and handler actors:
+
+**1. Router Actors** (auto-generated):
+
+```yaml
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: start-text-analysis-flow
+spec:
+  transport: sqs
+  workload:
+    kind: Deployment
+    template:
+      spec:
+        containers:
+        - name: asya-runtime
+          image: my-routers:latest
+          env:
+          - name: ASYA_HANDLER
+            value: "compiled_routers.start_text_analysis_flow"
+          # Handler mappings
+          - name: ASYA_HANDLER_CLEAN_TEXT
+            value: "text_handlers.clean_text"
+          - name: ASYA_HANDLER_TOKENIZE
+            value: "text_handlers.tokenize"
+          - name: ASYA_HANDLER_ENGLISH_SENTIMENT
+            value: "sentiment.english_sentiment"
+          - name: ASYA_HANDLER_SPANISH_SENTIMENT
+            value: "sentiment.spanish_sentiment"
+          - name: ASYA_HANDLER_EXTRACT_ENTITIES
+            value: "nlp.extract_entities"
+```
+
+**2. Handler Actors** (your ML code):
+
+```yaml
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: english-sentiment
+spec:
+  transport: sqs
+  scaling:
+    minReplicas: 0
+    maxReplicas: 10
+  workload:
+    kind: Deployment
+    template:
+      spec:
+        containers:
+        - name: asya-runtime
+          image: my-sentiment-model:latest
+          env:
+          - name: ASYA_HANDLER
+            value: "sentiment.EnglishSentiment.process"
+          resources:
+            limits:
+              nvidia.com/gpu: 1  # GPU for ML models
+```
+
+### Flow DSL Syntax Summary
+
+**Supported**:
+- Actor calls: `p = handler(p)`
+- Payload mutations: `p["key"] = value`, `p["count"] += 1`
+- Conditionals: `if`/`elif`/`else`, nested conditions
+- Early returns: `if error: return p`
+- Complex expressions: `p["result"] = p["x"] + p["y"] * 2`
+
+**Not Supported** (use envelope mode instead):
+- Loops (`for`, `while`)
+- Custom routing logic
+- Multiple assignments: `p, q = handler(p)`
+
+### When to Use Flow DSL
+
+✅ **Good for**:
+- Linear pipelines with branching
+- Data enrichment workflows
+- Preprocessing → Model → Postprocessing patterns
+- Validation and conditional processing
+
+❌ **Not suitable for**:
+- Dynamic routing based on runtime conditions
+- Iterative processing (use loops in handlers)
+- Complex control flow (use envelope mode)
+
+### Example: ML Pipeline
+
+```python
+def ml_pipeline_flow(p: dict) -> dict:
+    # Validation
+    p = validate_input(p)
+    if not p.get("valid", False):
+        p["error"] = "Invalid input"
+        return p  # Early exit
+
+    # Preprocessing
+    p["preprocessed"] = True
+    p = normalize_data(p)
+    p = extract_features(p)
+
+    # Model selection
+    if p["model_type"] == "fast":
+        p = lightweight_model(p)
+    elif p["model_type"] == "accurate":
+        p = deep_model(p)
+    else:
+        p["error"] = "Unknown model type"
+        return p
+
+    # Postprocessing
+    p = format_results(p)
+    p["pipeline_complete"] = True
+
+    return p
+```
+
+Compiles to:
+- `start_ml_pipeline_flow` - Entry router with validation
+- `router_ml_pipeline_flow_line_8_if` - Validation check router
+- `router_ml_pipeline_flow_line_17_if` - Model selection router
+- `end_ml_pipeline_flow` - Exit router
+
+See [Flow Compiler Architecture](../architecture/asya-flow.md) for complete documentation.
+
 ## Advanced: Envelope Mode (Dynamic Routing)
 
 **Use case**: AI agents, LLM judges, conditional routing based on model outputs.
