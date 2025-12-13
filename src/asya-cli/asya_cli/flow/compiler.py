@@ -15,7 +15,7 @@ class FlowCompiler:
         self.flow_name: str | None = None
         self.routers: list[Router] = []
 
-    def compile_file(self, source_file: str, output_file: str = None) -> str:
+    def compile_file(self, source_file: str, output_file: str | None = None) -> str:
         source_path = Path(source_file)
         if not source_path.exists():
             raise FileNotFoundError(f"Source file not found: {source_file}")
@@ -55,7 +55,7 @@ class FlowCompiler:
 
         return mappings
 
-    def generate_diagram(self, output_dot: str = None, output_png: str = None) -> tuple[str, str | None]:
+    def generate_diagram(self, output_dot: str | None = None, output_png: str | None = None) -> tuple[str, str | None]:
         if not self.flow_name or not self.routers:
             raise RuntimeError("Must compile flow before generating diagram")
 
@@ -68,16 +68,16 @@ class FlowCompiler:
             dot_path.write_text(dot_content)
 
         png_path = None
-        if output_png:
+        if output_png and output_dot:
             try:
-                import subprocess
+                import subprocess  # nosec B404
 
-                subprocess.run(["dot", "-V"], capture_output=True, check=True)
+                subprocess.run(["dot", "-V"], capture_output=True, check=True)  # nosec B603, B607
 
                 png_file = Path(output_png)
                 png_file.parent.mkdir(parents=True, exist_ok=True)
 
-                result = subprocess.run(
+                result = subprocess.run(  # nosec B603, B607
                     ["dot", "-Tpng", output_dot, "-o", str(png_file)],
                     capture_output=True,
                     text=True,
@@ -89,13 +89,13 @@ class FlowCompiler:
                 else:
                     raise RuntimeError(f"graphviz dot failed: {result.stderr}")
 
-            except FileNotFoundError:
+            except FileNotFoundError as e:
                 raise ImportError(
                     "graphviz 'dot' command not found. Install graphviz to generate PNG diagrams. "
                     "On Ubuntu/Debian: apt-get install graphviz"
-                )
+                ) from e
             except subprocess.CalledProcessError as e:
-                raise RuntimeError(f"graphviz dot failed: {e.stderr}")
+                raise RuntimeError(f"graphviz dot failed: {e.stderr}") from e
 
         return dot_content, png_path
 

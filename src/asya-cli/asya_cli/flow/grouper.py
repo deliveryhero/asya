@@ -50,7 +50,7 @@ class OperationGrouper:
                 return [f"end_{self.flow_name}"]
             return []
 
-        result = []
+        result: list[str] = []
         i = 0
 
         while i < len(operations):
@@ -60,67 +60,69 @@ class OperationGrouper:
                 mutations = [op]
                 i += 1
 
-                while i < len(operations) and isinstance(operations[i], Mutation):
-                    mutations.append(operations[i])
-                    i += 1
+                while i < len(operations):
+                    next_op = operations[i]
+                    if isinstance(next_op, Mutation):
+                        mutations.append(next_op)
+                        i += 1
+                    else:
+                        break
 
-                if i < len(operations) and isinstance(operations[i], ActorCall):
-                    actor = operations[i]
-                    i += 1
+                if i < len(operations):
+                    next_op = operations[i]
+                    if isinstance(next_op, ActorCall):
+                        i += 1
 
-                    continuation = self._process_operations(
-                        operations[i:], convergence_stack, is_top_level=is_top_level
-                    )
+                        continuation = self._process_operations(
+                            operations[i:], convergence_stack, is_top_level=is_top_level
+                        )
 
-                    router = Router(
-                        name=f"router_{self.flow_name}_line_{mutations[0].lineno}_seq",
-                        lineno=mutations[0].lineno,
-                        mutations=mutations,
-                        true_branch_actors=[actor.name] + continuation,
-                    )
-                    self.routers.append(router)
-                    return result + [router.name]
+                        router = Router(
+                            name=f"router_{self.flow_name}_line_{mutations[0].lineno}_seq",
+                            lineno=mutations[0].lineno,
+                            mutations=mutations,
+                            true_branch_actors=[next_op.name, *continuation],
+                        )
+                        self.routers.append(router)
+                        return [*result, router.name]
 
-                elif i < len(operations) and isinstance(operations[i], Condition):
-                    cond = operations[i]
-                    i += 1
+                    elif isinstance(next_op, Condition):
+                        i += 1
 
-                    convergence_label = f"CONVERGENCE_{self.convergence_counter}"
-                    self.convergence_counter += 1
+                        convergence_label = f"CONVERGENCE_{self.convergence_counter}"
+                        self.convergence_counter += 1
 
-                    new_stack = convergence_stack + [convergence_label]
+                        new_stack = [*convergence_stack, convergence_label]
 
-                    true_actors = self._process_operations(cond.true_branch, new_stack)
-                    false_actors = self._process_operations(cond.false_branch, new_stack)
+                        true_actors = self._process_operations(next_op.true_branch, new_stack)
+                        false_actors = self._process_operations(next_op.false_branch, new_stack)
 
-                    continuation_actors = self._process_operations(
-                        operations[i:], convergence_stack, is_top_level=is_top_level
-                    )
+                        continuation_actors = self._process_operations(
+                            operations[i:], convergence_stack, is_top_level=is_top_level
+                        )
 
-                    self.convergence_map[convergence_label] = continuation_actors
+                        self.convergence_map[convergence_label] = continuation_actors
 
-                    router = Router(
-                        name=f"router_{self.flow_name}_line_{cond.lineno}_if",
-                        lineno=cond.lineno,
-                        mutations=mutations,
-                        condition=cond,
-                        true_branch_actors=true_actors,
-                        false_branch_actors=false_actors,
-                    )
-                    self.routers.append(router)
-                    return result + [router.name]
-                else:
-                    continuation = self._process_operations(
-                        operations[i:], convergence_stack, is_top_level=is_top_level
-                    )
-                    router = Router(
-                        name=f"router_{self.flow_name}_line_{mutations[0].lineno}_seq",
-                        lineno=mutations[0].lineno,
-                        mutations=mutations,
-                        true_branch_actors=continuation,
-                    )
-                    self.routers.append(router)
-                    return result + [router.name]
+                        router = Router(
+                            name=f"router_{self.flow_name}_line_{next_op.lineno}_if",
+                            lineno=next_op.lineno,
+                            mutations=mutations,
+                            condition=next_op,
+                            true_branch_actors=true_actors,
+                            false_branch_actors=false_actors,
+                        )
+                        self.routers.append(router)
+                        return [*result, router.name]
+
+                continuation = self._process_operations(operations[i:], convergence_stack, is_top_level=is_top_level)
+                router = Router(
+                    name=f"router_{self.flow_name}_line_{mutations[0].lineno}_seq",
+                    lineno=mutations[0].lineno,
+                    mutations=mutations,
+                    true_branch_actors=continuation,
+                )
+                self.routers.append(router)
+                return [*result, router.name]
 
             elif isinstance(op, ActorCall):
                 result.append(op.name)
@@ -130,7 +132,7 @@ class OperationGrouper:
                 convergence_label = f"CONVERGENCE_{self.convergence_counter}"
                 self.convergence_counter += 1
 
-                new_stack = convergence_stack + [convergence_label]
+                new_stack = [*convergence_stack, convergence_label]
 
                 true_actors = self._process_operations(op.true_branch, new_stack)
                 false_actors = self._process_operations(op.false_branch, new_stack)
@@ -149,7 +151,7 @@ class OperationGrouper:
                     false_branch_actors=false_actors,
                 )
                 self.routers.append(router)
-                return result + [router.name]
+                return [*result, router.name]
 
             else:
                 i += 1

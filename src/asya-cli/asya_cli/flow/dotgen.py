@@ -52,10 +52,7 @@ class DotGenerator:
                     self.user_actors.add(actor)
 
     def _generate_actor_node(self, router: Router) -> str:
-        if router.name.startswith("start_") or router.name.startswith("end_"):
-            color = "lightgreen"
-        else:
-            color = "wheat"
+        color = "lightgreen" if router.name.startswith("start_") or router.name.startswith("end_") else "wheat"
 
         rows = []
         centered_name = self._center_text(router.name)

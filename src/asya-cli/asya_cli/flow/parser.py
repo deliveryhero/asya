@@ -16,7 +16,7 @@ class FlowParser:
         try:
             tree = ast.parse(self.source_code, filename=self.filename)
         except SyntaxError as e:
-            raise FlowCompileError(f"Syntax error in {self.filename}:{e.lineno}: {e.msg}")
+            raise FlowCompileError(f"Syntax error in {self.filename}:{e.lineno}: {e.msg}") from e
 
         flow_func = self._find_flow_function(tree)
         if not flow_func:
@@ -28,9 +28,8 @@ class FlowParser:
 
     def _find_flow_function(self, tree: ast.Module) -> ast.FunctionDef | None:
         for node in tree.body:
-            if isinstance(node, ast.FunctionDef):
-                if self._is_flow_function(node):
-                    return node
+            if isinstance(node, ast.FunctionDef) and self._is_flow_function(node):
+                return node
         return None
 
     def _is_flow_function(self, func: ast.FunctionDef) -> bool:
@@ -39,9 +38,7 @@ class FlowParser:
         arg = func.args.args[0]
         if arg.arg not in ("p", "payload"):
             return False
-        if not func.returns:
-            return False
-        return True
+        return bool(func.returns)
 
     def _parse_body(self, stmts: list[ast.stmt]) -> list[IROperation]:
         operations = []
@@ -57,7 +54,7 @@ class FlowParser:
             return self._parse_augassign(stmt)
         elif isinstance(stmt, ast.If):
             return self._parse_if(stmt)
-        elif isinstance(stmt, ast.Return) or isinstance(stmt, ast.Pass):
+        elif isinstance(stmt, ast.Return | ast.Pass):
             return []
         else:
             raise FlowCompileError(f"{self.filename}:{stmt.lineno}: Unsupported statement type: {type(stmt).__name__}")
