@@ -160,9 +160,10 @@ class DotGenerator:
     def _truncate_text(self, text: str) -> str:
         if len(text) <= self.step_width:
             return text
-        postfix_len = 10
-        prefix_len = self.step_width - postfix_len - 3
-        return f"{text[:prefix_len]}...{text[-postfix_len:]}"
+        postfix_len = 12 # approx to have 'line_XX' included
+        cut = "…"
+        prefix_len = self.step_width - postfix_len - len(cut)
+        return f"{text[:prefix_len]}{cut}{text[-postfix_len:]}"
 
     def _center_text(self, text: str) -> str:
         if len(text) >= self.step_width:
