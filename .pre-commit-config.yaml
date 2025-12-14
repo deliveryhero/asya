@@ -139,6 +139,12 @@ repos:
     language: system
     files: (asya_runtime\.py|asya\.sh_asyncactors\.yaml)$
     pass_filenames: false
+  - id: flow-compile
+    name: compile flow DSL
+    entry: bash -c 'bash .pre-commit-hooks/compile-flows.sh'
+    language: system
+    files: testing/e2e/flows/.*/flow\.py$
+    pass_filenames: false
 
 # Shell script formatting (auto-fix)
 - repo: https://github.com/scop/pre-commit-shfmt

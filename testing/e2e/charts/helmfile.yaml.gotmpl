@@ -194,3 +194,18 @@ releases:
           imagePullPolicy: IfNotPresent
     labels:
       layer: app
+
+  # Flow test actors - deployed using asya-test-flows chart
+  - name: test-flows
+    namespace: {{ .Values.namespace | default "asya-e2e" }}
+    chart: ./asya-test-flows
+    needs:
+      - asya-crew
+    values:
+      - transport: {{ .Values.actors.transport | default "rabbitmq" }}
+        handlerMode: {{ env "ASYA_HANDLER_MODE" | default "payload" }}
+        workload:
+          image: asya-testing:latest
+          imagePullPolicy: IfNotPresent
+    labels:
+      layer: app

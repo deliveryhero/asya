@@ -77,7 +77,7 @@ class TestSimpleFlows:
         routers = grouper.group()
 
         assert len(routers) == 3
-        router = [r for r in routers if r.name.startswith("router_")][0]
+        router = next(r for r in routers if r.name.startswith("router_"))
         assert len(router.mutations) == 2
         assert router.condition is None
 
@@ -90,7 +90,7 @@ class TestSimpleFlows:
         grouper = OperationGrouper("flow", ops)
         routers = grouper.group()
 
-        router = [r for r in routers if r.name.startswith("router_")][0]
+        router = next(r for r in routers if r.name.startswith("router_"))
         assert len(router.mutations) == 1
         assert "handler" in router.true_branch_actors
         assert "end_flow" in router.true_branch_actors
@@ -106,7 +106,7 @@ class TestSimpleFlows:
         grouper = OperationGrouper("flow", ops)
         routers = grouper.group()
 
-        router = [r for r in routers if r.name.startswith("router_")][0]
+        router = next(r for r in routers if r.name.startswith("router_"))
         assert len(router.mutations) == 3
 
 
@@ -149,7 +149,7 @@ class TestConditionals:
         grouper = OperationGrouper("flow", ops)
         routers = grouper.group()
 
-        cond_router = [r for r in routers if r.condition is not None][0]
+        cond_router = next(r for r in routers if r.condition is not None)
         assert len(cond_router.true_branch_actors) > 0
         assert "end_flow" in cond_router.false_branch_actors
 
@@ -167,7 +167,7 @@ class TestConditionals:
         grouper = OperationGrouper("flow", ops)
         routers = grouper.group()
 
-        cond_router = [r for r in routers if r.condition is not None][0]
+        cond_router = next(r for r in routers if r.condition is not None)
         assert "final_handler" in cond_router.true_branch_actors
         assert "final_handler" in cond_router.false_branch_actors
         assert "end_flow" in cond_router.true_branch_actors
@@ -187,7 +187,7 @@ class TestConditionals:
         grouper = OperationGrouper("flow", ops)
         routers = grouper.group()
 
-        cond_router = [r for r in routers if r.condition is not None][0]
+        cond_router = next(r for r in routers if r.condition is not None)
         assert len(cond_router.mutations) == 1
         assert cond_router.mutations[0].code == 'p["init"] = True'
 
@@ -334,7 +334,7 @@ class TestConvergence:
         grouper = OperationGrouper("flow", ops)
         routers = grouper.group()
 
-        cond_router = [r for r in routers if r.condition is not None][0]
+        cond_router = next(r for r in routers if r.condition is not None)
         assert "finalize" in cond_router.true_branch_actors
         assert "finalize" in cond_router.false_branch_actors
 
@@ -351,7 +351,7 @@ class TestConvergence:
         grouper = OperationGrouper("flow", ops)
         routers = grouper.group()
 
-        cond_router = [r for r in routers if r.condition is not None][0]
+        cond_router = next(r for r in routers if r.condition is not None)
         assert "end_flow" in cond_router.true_branch_actors
         assert "end_flow" in cond_router.false_branch_actors
 
@@ -376,7 +376,7 @@ class TestConvergence:
         grouper = OperationGrouper("flow", ops)
         routers = grouper.group()
 
-        outer_router = [r for r in routers if r.condition is not None and 'p["outer"]' in r.condition.test][0]
+        outer_router = next(r for r in routers if r.condition is not None and 'p["outer"]' in r.condition.test)
         assert "final" in outer_router.true_branch_actors or any("final" in r.true_branch_actors for r in routers)
 
 
@@ -396,7 +396,7 @@ class TestEarlyReturn:
         grouper = OperationGrouper("flow", ops)
         routers = grouper.group()
 
-        cond_router = [r for r in routers if r.condition is not None][0]
+        cond_router = next(r for r in routers if r.condition is not None)
         assert "end_flow" in cond_router.true_branch_actors
         assert "handler" in cond_router.false_branch_actors
 
@@ -413,7 +413,7 @@ class TestEarlyReturn:
         grouper = OperationGrouper("flow", ops)
         routers = grouper.group()
 
-        cond_router = [r for r in routers if r.condition is not None][0]
+        cond_router = next(r for r in routers if r.condition is not None)
         assert "handler" in cond_router.true_branch_actors
         assert "end_flow" in cond_router.false_branch_actors
 
@@ -431,7 +431,7 @@ class TestEarlyReturn:
         grouper = OperationGrouper("flow", ops)
         routers = grouper.group()
 
-        cond_router = [r for r in routers if r.condition is not None][0]
+        cond_router = next(r for r in routers if r.condition is not None)
         assert "end_flow" in cond_router.true_branch_actors
         assert "end_flow" in cond_router.false_branch_actors
 
@@ -452,7 +452,7 @@ class TestEmptyBranches:
         grouper = OperationGrouper("flow", ops)
         routers = grouper.group()
 
-        cond_router = [r for r in routers if r.condition is not None][0]
+        cond_router = next(r for r in routers if r.condition is not None)
         assert "end_flow" in cond_router.true_branch_actors
 
     def test_empty_false_branch(self):
@@ -468,7 +468,7 @@ class TestEmptyBranches:
         grouper = OperationGrouper("flow", ops)
         routers = grouper.group()
 
-        cond_router = [r for r in routers if r.condition is not None][0]
+        cond_router = next(r for r in routers if r.condition is not None)
         assert "end_flow" in cond_router.false_branch_actors
 
     def test_both_branches_empty(self):
@@ -485,7 +485,7 @@ class TestEmptyBranches:
         grouper = OperationGrouper("flow", ops)
         routers = grouper.group()
 
-        cond_router = [r for r in routers if r.condition is not None][0]
+        cond_router = next(r for r in routers if r.condition is not None)
         assert "handler" in cond_router.true_branch_actors
         assert "handler" in cond_router.false_branch_actors
 
@@ -592,7 +592,7 @@ class TestEdgeCases:
         grouper = OperationGrouper("flow", ops)
         routers = grouper.group()
 
-        router = [r for r in routers if r.name.startswith("router_")][0]
+        router = next(r for r in routers if r.name.startswith("router_"))
         assert len(router.mutations) == 1
 
     def test_convergence_counter_increments(self):
@@ -629,10 +629,10 @@ class TestEdgeCases:
         grouper = OperationGrouper("flow", ops)
         routers = grouper.group()
 
-        mutation_router = [r for r in routers if len(r.mutations) > 0][0]
+        mutation_router = next(r for r in routers if len(r.mutations) > 0)
         assert mutation_router.lineno == 20  # Lineno from condition, not mutation
 
-        cond_router = [r for r in routers if r.condition is not None][0]
+        cond_router = next(r for r in routers if r.condition is not None)
         assert cond_router.lineno == 20
 
     def test_no_duplicate_convergence_actors(self):
@@ -649,7 +649,7 @@ class TestEdgeCases:
         grouper = OperationGrouper("flow", ops)
         routers = grouper.group()
 
-        cond_router = [r for r in routers if r.condition is not None][0]
+        cond_router = next(r for r in routers if r.condition is not None)
         true_final_count = cond_router.true_branch_actors.count("final")
         false_final_count = cond_router.false_branch_actors.count("final")
 
