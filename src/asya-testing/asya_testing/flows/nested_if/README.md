@@ -5,7 +5,7 @@ E2E test for nested if-else flow with 2 levels of branching.
 ## Files
 
 - `flow.py` - Source flow DSL (hand-written)
-- `compiled_routers.py` - Generated routers (auto-compiled by pre-commit hook)
+- `routers.py` - Generated routers (auto-compiled by pre-commit hook)
 
 ## Flow Structure
 
@@ -57,7 +57,7 @@ else:
 Flow compilation is automatic via pre-commit hook:
 - Edit `flow.py`
 - Run `git add flow.py`
-- Pre-commit hook compiles and stages `compiled_routers.py`
+- Pre-commit hook compiles and stages `routers.py`
 
 Manual compilation (happens with pre-commit as well):
 ```bash

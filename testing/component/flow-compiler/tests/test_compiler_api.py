@@ -103,7 +103,7 @@ class TestCompileFile:
         result_path = compiler.compile_file(str(source_file), str(output_dir))
 
         assert Path(result_path).exists()
-        assert Path(result_path).name == "compiled_routers.py"
+        assert Path(result_path).name == "routers.py"
         assert "def start_flow(" in Path(result_path).read_text()
 
     def test_compile_file_nonexistent_source(self):

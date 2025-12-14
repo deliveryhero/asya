@@ -46,7 +46,7 @@ flows/
     ├── deploy.sh                 # Actor deployment script
     ├── compiled/
     │   ├── __init__.py
-    │   └── compiled_routers.py   # Generated routers
+    │   └── routers.py   # Generated routers
     └── manifests/
         └── actors.yaml           # AsyncActor CRDs
 ```

@@ -405,7 +405,7 @@ pip install git+https://github.com/deliveryhero/asya.git#subdirectory=src/asya-c
 asya flow compile text_analysis_flow.py --output compiled/
 
 # Generates:
-# - compiled_routers.py (router actors)
+# - routers.py (router actors)
 # - flow.dot (flow diagram)
 # - flow.png (visualization, requires graphviz)
 ```

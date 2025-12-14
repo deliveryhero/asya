@@ -60,7 +60,7 @@ class FlowCompiler:
         source_code = source_path.read_text()
         compiled_code = self.compile(source_code, str(source_path))
 
-        compiled_file = output_path / "compiled_routers.py"
+        compiled_file = output_path / "routers.py"
         compiled_file.write_text(compiled_code)
 
         return str(compiled_file)
