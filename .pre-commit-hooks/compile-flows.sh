@@ -18,8 +18,8 @@ for flow_dir in "$FLOWS_DIR"/*; do
     temp_dir=$(mktemp -d)
     trap 'rm -rf "$temp_dir"' EXIT
 
-    cd "$flow_dir"
-    uv run --with-editable "$REPO_ROOT/src/asya-cli" asya flow compile flow.py -p -o "$temp_dir" > /dev/null 2>&1
+    cd "$REPO_ROOT/src/asya-cli"
+    uv run asya flow compile "$flow_dir/flow.py" -o "$temp_dir" > /dev/null 2>&1
 
     if ! diff -q "$temp_dir/compiled_routers.py" "$compiled_file" > /dev/null 2>&1; then
       echo "[!] Flow '$flow_name' is out of sync with source"
