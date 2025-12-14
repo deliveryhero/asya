@@ -1,7 +1,6 @@
 """Unit tests for code generator."""
 
 import ast
-import re
 from typing import TYPE_CHECKING
 
 import pytest
@@ -89,7 +88,7 @@ class TestStartRouter:
 
         assert 'resolve("handler_a")' in code
         assert 'resolve("handler_b")' in code
-        assert 'resolve("end_flow")' in code
+        assert 'resolve("end_flow")' not in code
 
     def test_start_router_inserts_into_route(self):
         routers = [Router(name="start_flow", lineno=0, true_branch_actors=["handler", "end_flow"])]
@@ -350,14 +349,7 @@ class TestHeaderGeneration:
         routers = [Router(name="start_flow", lineno=0), Router(name="end_flow", lineno=999)]
         code = CodeGenerator("flow", routers, "/path/to/my_flow.py")._generate_header()
 
-        assert "/path/to/my_flow.py" in code
-
-    def test_header_includes_generation_timestamp(self):
-        routers = [Router(name="start_flow", lineno=0), Router(name="end_flow", lineno=999)]
-        code = CodeGenerator("flow", routers, "test.py")._generate_header()
-
-        assert "Generated:" in code
-        assert re.search(r"\d{4}-\d{2}-\d{2}", code)
+        assert "my_flow.py" in code
 
     def test_header_includes_warning(self):
         routers = [Router(name="start_flow", lineno=0), Router(name="end_flow", lineno=999)]

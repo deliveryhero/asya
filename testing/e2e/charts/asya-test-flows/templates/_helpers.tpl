@@ -40,19 +40,19 @@ These environment variables allow routers to resolve handler names to actor name
 - name: ASYA_HANDLER_FINALIZE_RESULT
   value: asya_testing.flows.nested_if.flow.finalize_result
 - name: ASYA_HANDLER_ROUTER_TEST_NESTED_FLOW_LINE_4_IF
-  value: asya_testing.flows.nested_if.compiled_routers.router_test_nested_flow_line_4_if
+  value: asya_testing.flows.nested_if.compiled.routers.router_test_nested_flow_line_4_if
 - name: ASYA_HANDLER_ROUTER_TEST_NESTED_FLOW_LINE_6_IF
-  value: asya_testing.flows.nested_if.compiled_routers.router_test_nested_flow_line_6_if
+  value: asya_testing.flows.nested_if.compiled.routers.router_test_nested_flow_line_6_if
 - name: ASYA_HANDLER_ROUTER_TEST_NESTED_FLOW_LINE_7_SEQ
-  value: asya_testing.flows.nested_if.compiled_routers.router_test_nested_flow_line_7_seq
+  value: asya_testing.flows.nested_if.compiled.routers.router_test_nested_flow_line_7_seq
 - name: ASYA_HANDLER_ROUTER_TEST_NESTED_FLOW_LINE_10_SEQ
-  value: asya_testing.flows.nested_if.compiled_routers.router_test_nested_flow_line_10_seq
+  value: asya_testing.flows.nested_if.compiled.routers.router_test_nested_flow_line_10_seq
 - name: ASYA_HANDLER_ROUTER_TEST_NESTED_FLOW_LINE_14_IF
-  value: asya_testing.flows.nested_if.compiled_routers.router_test_nested_flow_line_14_if
+  value: asya_testing.flows.nested_if.compiled.routers.router_test_nested_flow_line_14_if
 - name: ASYA_HANDLER_ROUTER_TEST_NESTED_FLOW_LINE_15_SEQ
-  value: asya_testing.flows.nested_if.compiled_routers.router_test_nested_flow_line_15_seq
+  value: asya_testing.flows.nested_if.compiled.routers.router_test_nested_flow_line_15_seq
 - name: ASYA_HANDLER_ROUTER_TEST_NESTED_FLOW_LINE_18_SEQ
-  value: asya_testing.flows.nested_if.compiled_routers.router_test_nested_flow_line_18_seq
+  value: asya_testing.flows.nested_if.compiled.routers.router_test_nested_flow_line_18_seq
 - name: ASYA_HANDLER_END_TEST_NESTED_FLOW
-  value: asya_testing.flows.nested_if.compiled_routers.end_test_nested_flow
+  value: asya_testing.flows.nested_if.compiled.routers.end_test_nested_flow
 {{- end }}

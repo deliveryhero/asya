@@ -1,15 +1,31 @@
 """Generate Python code for routers."""
 
+import os
+from pathlib import Path
 from textwrap import dedent
 
 from asya_cli.flow.grouper import Router
 
 
 class CodeGenerator:
-    def __init__(self, flow_name: str, routers: list[Router], source_file: str):
+    def __init__(self, flow_name: str, routers: list[Router], source_file: str, output_file: str | None = None):
         self.flow_name = flow_name
         self.routers = routers
-        self.source_file = source_file
+
+        # Compute relative path from output to source if both are provided
+        if output_file:
+            try:
+                output_path = Path(output_file).resolve()
+                source_path = Path(source_file).resolve()
+                # Get relative path from output directory to source file
+                relative_path = os.path.relpath(source_path, output_path.parent)
+                self.source_file = relative_path
+            except (ValueError, OSError):
+                # Fallback to basename if relative path computation fails
+                self.source_file = os.path.basename(source_file)
+        else:
+            self.source_file = os.path.basename(source_file)
+
         self.all_handlers: set[str] = set()
 
     def generate(self) -> str:
@@ -139,10 +155,6 @@ class CodeGenerator:
             # Handler Resolution
             # ======================================================================
 
-            _HANDLER_TO_ACTOR: dict[str, str] = {}
-            _SUFFIX_TO_HANDLERS: dict[str, list[str]] = {}
-
-
             def resolve(handler_full_name: str) -> str:
                 """
                 Resolve handler name to actor name using suffix-based matching.
@@ -179,27 +191,30 @@ class CodeGenerator:
                 """
                 import os, logging
 
-                if not _HANDLER_TO_ACTOR:
+                if not hasattr(resolve, "_handler_to_actor"):
+                    resolve._handler_to_actor = {}
+                    resolve._suffix_to_handlers = {}
+
                     for env_var, handler_name in os.environ.items():
                         if env_var.startswith('ASYA_HANDLER_'):
                             actor_name = env_var[len('ASYA_HANDLER_'):].lower().replace('_', '-')
-                            _HANDLER_TO_ACTOR[handler_name] = actor_name
+                            resolve._handler_to_actor[handler_name] = actor_name
 
                             # Index all suffixes (e.g., "a.b.c" -> ["c", "b.c", "a.b.c"])
                             parts = handler_name.split('.')
                             for i in range(len(parts)):
                                 suffix = '.'.join(parts[i:])
-                                if suffix not in _SUFFIX_TO_HANDLERS:
-                                    _SUFFIX_TO_HANDLERS[suffix] = []
-                                _SUFFIX_TO_HANDLERS[suffix].append(handler_name)
+                                if suffix not in resolve._suffix_to_handlers:
+                                    resolve._suffix_to_handlers[suffix] = []
+                                resolve._suffix_to_handlers[suffix].append(handler_name)
 
-                    logging.info(f"Loaded {len(_HANDLER_TO_ACTOR)} handler-to-actor mappings")
+                    logging.info(f"Loaded {len(resolve._handler_to_actor)} handler-to-actor mappings")
 
                 # Try suffix-based resolution (exact match or any valid suffix)
-                if handler_full_name in _SUFFIX_TO_HANDLERS:
-                    candidates = _SUFFIX_TO_HANDLERS[handler_full_name]
+                if handler_full_name in resolve._suffix_to_handlers:
+                    candidates = resolve._suffix_to_handlers[handler_full_name]
                     if len(candidates) == 1:
-                        return _HANDLER_TO_ACTOR[candidates[0]]
+                        return resolve._handler_to_actor[candidates[0]]
                     else:
                         raise ValueError(
                             f"Handler suffix '{handler_full_name}' is ambiguous. "
@@ -210,6 +225,6 @@ class CodeGenerator:
                 raise ValueError(
                     f"Handler '{handler_full_name}' not found in environment variables. "
                     f'No handler ends with suffix "{handler_full_name}". '
-                    f"Available handlers: {list(_HANDLER_TO_ACTOR.keys())}"
+                    f"Available handlers: {list(resolve._handler_to_actor.keys())}"
                 )
             ''')

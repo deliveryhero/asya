@@ -54,15 +54,15 @@ def compiled_module(sample_flow_code):
             # Reload to ensure fresh import
             import importlib
 
-            import compiled_routers
+            import routers
 
-            importlib.reload(compiled_routers)
+            importlib.reload(routers)
 
-            yield compiled_routers
+            yield routers
         finally:
             sys.path.remove(str(output_dir))
-            if "compiled_routers" in sys.modules:
-                del sys.modules["compiled_routers"]
+            if "routers" in sys.modules:
+                del sys.modules["routers"]
 
 
 class TestResolveFunction:

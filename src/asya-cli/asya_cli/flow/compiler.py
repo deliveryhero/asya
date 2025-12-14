@@ -58,17 +58,17 @@ class FlowCompiler:
         output_path.mkdir(parents=True, exist_ok=True)
 
         source_code = source_path.read_text()
-        compiled_code = self.compile(source_code, str(source_path))
-
         compiled_file = output_path / "routers.py"
+        compiled_code = self.compile(source_code, str(source_path), str(compiled_file))
+
         compiled_file.write_text(compiled_code)
 
         return str(compiled_file)
 
-    def compile(self, source_code: str, filename: str) -> str:
+    def compile(self, source_code: str, filename: str, output_file: str | None = None) -> str:
         flow_name, operations = self._parse(source_code, filename)
         units = self._group(flow_name, operations)
-        code = self._generate(flow_name, units, filename)
+        code = self._generate(flow_name, units, filename, output_file)
 
         self.flow_name = flow_name
         self.routers = units
@@ -134,6 +134,6 @@ class FlowCompiler:
         grouper = OperationGrouper(flow_name, operations)
         return grouper.group()
 
-    def _generate(self, flow_name: str, units, filename: str):
-        generator = CodeGenerator(flow_name, units, filename)
+    def _generate(self, flow_name: str, units, filename: str, output_file: str | None = None):
+        generator = CodeGenerator(flow_name, units, filename, output_file)
         return generator.generate()
