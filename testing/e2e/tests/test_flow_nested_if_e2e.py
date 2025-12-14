@@ -190,3 +190,33 @@ def test_all_routes_parallel(flow_helper):
         logger.info(f"[+] Envelope {envelope_id} ({level1}-{level2}): verified")
 
     logger.info("[+] All routes completed successfully in parallel without crosstalk")
+
+
+@pytest.mark.flow
+def test_route_a_x_via_mcp_tool(e2e_helper):
+    """Test route A-X via MCP tool on gateway."""
+    logger.info("Testing route A-X via MCP tool")
+
+    response = e2e_helper.call_mcp_tool(
+        tool_name="test_nested_flow",
+        arguments={"level1": "A", "level2": "X"},
+    )
+
+    envelope_id = response["result"]["envelope_id"]
+    logger.info(f"Envelope ID: {envelope_id}")
+
+    final_envelope = e2e_helper.wait_for_envelope_completion(envelope_id, timeout=60)
+
+    assert final_envelope["status"] == "succeeded", \
+        f"Envelope should succeed, got {final_envelope['status']}"
+
+    result_payload = final_envelope.get("result", {})
+    assert result_payload.get("validated") is True
+    assert result_payload.get("path") == "A"
+    assert result_payload.get("route") == "A-X"
+    assert result_payload.get("processed_by") == "route_a_x"
+    assert result_payload.get("result") == "A-X complete"
+    assert result_payload.get("status") == "completed"
+    assert result_payload.get("final") is True
+
+    logger.info("[+] Route A-X via MCP tool completed successfully")

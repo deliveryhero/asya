@@ -143,6 +143,19 @@ gateway:
           required: true
       route: [test-slow-boundary]
       timeout: 4
+    - name: test_nested_flow
+      description: Test nested if-else flow with level1 and level2 parameters
+      parameters:
+        level1:
+          type: string
+          description: First level decision (A or B)
+          required: true
+        level2:
+          type: string
+          description: Second level decision (X or Y)
+          required: true
+      route: [start-test-nested-flow]
+      timeout: 60
     - name: test_unicode
       description: Test Unicode character handling
       parameters:

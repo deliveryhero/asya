@@ -2,7 +2,7 @@
 set -euo pipefail
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"
-FLOWS_DIR="$REPO_ROOT/testing/e2e/flows"
+FLOWS_DIR="$REPO_ROOT/src/asya-testing/asya_testing/flows"
 
 echo "[.] Checking flow DSL files for compilation"
 

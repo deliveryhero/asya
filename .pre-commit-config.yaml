@@ -19,6 +19,22 @@ repos:
   - id: mixed-line-ending
     args: ["--fix=lf"]
 
+# Local custom checks, code generation
+- repo: local
+  hooks:
+  - id: check-required-symlinks
+    name: check required symlinks
+    entry: bash -c 'bash .pre-commit-hooks/check-symlinks.sh'
+    language: system
+    files: (asya_runtime\.py|asya\.sh_asyncactors\.yaml)$
+    pass_filenames: false
+  - id: flow-compile
+    name: compile flow DSL
+    entry: bash -c 'bash .pre-commit-hooks/compile-flows.sh'
+    language: system
+    files: src/asya-testing/asya_testing/flows/.*/flow\.py$
+    pass_filenames: false
+
 # JSON formatting (auto-fix)
 - repo: https://github.com/pre-commit/mirrors-prettier
   rev: v4.0.0-alpha.8
@@ -132,18 +148,6 @@ repos:
     entry: bash -c 'cd src/asya-operator && make manifests && git diff --exit-code config/crd/'
     language: system
     files: ^src/asya-operator/api/.*\.go$
-    pass_filenames: false
-  - id: check-required-symlinks
-    name: check required symlinks
-    entry: bash -c 'bash .pre-commit-hooks/check-symlinks.sh'
-    language: system
-    files: (asya_runtime\.py|asya\.sh_asyncactors\.yaml)$
-    pass_filenames: false
-  - id: flow-compile
-    name: compile flow DSL
-    entry: bash -c 'bash .pre-commit-hooks/compile-flows.sh'
-    language: system
-    files: testing/e2e/flows/.*/flow\.py$
     pass_filenames: false
 
 # Shell script formatting (auto-fix)
