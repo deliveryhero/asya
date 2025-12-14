@@ -2,41 +2,18 @@
 set -euo pipefail
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"
-FLOWS_DIR="$REPO_ROOT/src/asya-testing/asya_testing/flows"
+cd "$REPO_ROOT"
 
-echo "[.] Checking flow DSL files for compilation"
+echo "[.] Compiling flow DSL files"
 
-has_changes=false
+for flow_file in "$REPO_ROOT"/src/asya-testing/asya_testing/flows/*/flow.py \
+  "$REPO_ROOT"/examples/flows/*/flow.py; do
+  [ -f "$flow_file" ] || continue
+  flow_dir="$(dirname "$flow_file")"
+  flow_name="$(basename "$flow_dir")"
 
-for flow_dir in "$FLOWS_DIR"/*; do
-  if [ -d "$flow_dir" ] && [ -f "$flow_dir/flow.py" ]; then
-    flow_name=$(basename "$flow_dir")
-    compiled_file="$flow_dir/compiled_routers.py"
-
-    echo "[.] Compiling flow: $flow_name"
-
-    temp_dir=$(mktemp -d)
-    trap 'rm -rf "$temp_dir"' EXIT
-
-    cd "$REPO_ROOT/src/asya-cli"
-    uv run asya flow compile "$flow_dir/flow.py" -o "$temp_dir" > /dev/null 2>&1
-
-    if ! diff -q "$temp_dir/compiled_routers.py" "$compiled_file" > /dev/null 2>&1; then
-      echo "[!] Flow '$flow_name' is out of sync with source"
-      cp "$temp_dir/compiled_routers.py" "$compiled_file"
-      git add "$compiled_file"
-      has_changes=true
-    else
-      echo "[+] Flow '$flow_name' is up to date"
-    fi
-  fi
+  echo "[.] Compiling: $flow_name"
+  uv run --with-editable src/asya-cli asya flow compile "$flow_file" -o "$flow_dir/compiled" --plot --overwrite
 done
 
-if [ "$has_changes" = true ]; then
-  echo ""
-  echo "[!] Flow compilation updated compiled_routers.py files"
-  echo "    Updated files have been staged automatically"
-  exit 0
-fi
-
-echo "[+] All flows are up to date"
+echo "[+] Flow compilation complete"

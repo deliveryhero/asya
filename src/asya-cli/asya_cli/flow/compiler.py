@@ -43,7 +43,7 @@ class FlowCompiler:
         self.routers: list[Router] = []
         self.class_methods: set[str] = set()
 
-    def compile_file(self, source_file: str, output_dir: str) -> str:
+    def compile_file(self, source_file: str, output_dir: str, overwrite: bool = False) -> str:
         source_path = Path(source_file)
         if not source_path.exists():
             raise FileNotFoundError(f"Source file not found: {source_file}")
@@ -52,7 +52,7 @@ class FlowCompiler:
         if output_path.exists():
             if not output_path.is_dir():
                 raise ValueError(f"Output path exists and is not a directory: {output_dir}")
-            if any(output_path.iterdir()):
+            if not overwrite and any(output_path.iterdir()):
                 raise ValueError(f"Output directory is not empty: {output_dir}")
 
         output_path.mkdir(parents=True, exist_ok=True)

@@ -9,7 +9,9 @@ repos:
     args: ["--branch", "main"]
   - id: trailing-whitespace
     args: ["--markdown-linebreak-ext=md"]
+    exclude: (^|/)compiled/
   - id: end-of-file-fixer
+    exclude: (^|/)compiled/
   - id: check-yaml
     args: ["--allow-multiple-documents"]
     exclude: (^|/)helm-charts/|testing/e2e/charts/|mkdocs\.yml
@@ -32,7 +34,7 @@ repos:
     name: compile flow DSL
     entry: bash -c 'bash .pre-commit-hooks/compile-flows.sh'
     language: system
-    files: src/asya-testing/asya_testing/flows/.*/flow\.py$
+    files: (src/asya-testing/asya_testing/flows/.*/flow\.py$|examples/flows/.*/flow\.py$)
     pass_filenames: false
 
 # JSON formatting (auto-fix)
@@ -68,8 +70,10 @@ repos:
   - id: ruff
     args: [--fix]
     files: ^src/.*\.py$
+    exclude: (^|/)compiled/
   - id: ruff-format
     files: ^src/.*\.py$
+    exclude: (^|/)compiled/
 
 # Python type checking
 - repo: https://github.com/pre-commit/mirrors-mypy

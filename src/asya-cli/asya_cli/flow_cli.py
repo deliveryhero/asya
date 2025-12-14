@@ -29,7 +29,7 @@ def cmd_compile(args):
             verbose=args.verbose,
         )
 
-        compiled_file = compiler.compile_file(args.flow_file, args.output_dir)
+        compiled_file = compiler.compile_file(args.flow_file, args.output_dir, overwrite=args.overwrite)
         print(f"[+] Successfully compiled flow to: {compiled_file}")
 
         if args.plot:
@@ -149,7 +149,7 @@ def FLOW_NAME(p: dict) -> dict:
     output_path = Path(output_file)
     if output_path.exists() and not args.force:
         print(f"[-] File already exists: {output_file}", file=sys.stderr)
-        print("    Use --force to overwrite", file=sys.stderr)
+        print("    Use --overwrite to overwrite", file=sys.stderr)
         sys.exit(1)
 
     # Replace placeholder with actual flow name
@@ -195,6 +195,11 @@ def main(argv=None):
         default=50,
         help="Maximum width for plot node labels (default: 50 characters)",
     )
+    compile_parser.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="Overwrite existing files in output directory",
+    )
     compile_parser.set_defaults(func=cmd_compile)
 
     # Validate command
@@ -212,7 +217,7 @@ def main(argv=None):
     init_parser = subparsers.add_parser("init", help="Generate template flow file")
     init_parser.add_argument("flow_name", help="Flow function name")
     init_parser.add_argument("--output", "-o", help="Output file (default: <flow_name>.py)")
-    init_parser.add_argument("--force", "-f", action="store_true", help="Overwrite existing file")
+    init_parser.add_argument("--overwrite", action="store_true", help="Overwrite existing files")
     init_parser.set_defaults(func=cmd_init)
 
     args = parser.parse_args(argv)
