@@ -364,7 +364,7 @@ def text_analysis_flow(p: dict) -> dict:
 
     # Enrichment
     p = extract_entities(p)
-    p["extracted"] = true
+    p["extracted"] = True
 
     return p  # Flow exitpoint: end_text_analysis_flow
 
