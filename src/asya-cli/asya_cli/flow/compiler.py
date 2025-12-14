@@ -86,7 +86,7 @@ class FlowCompiler:
         dot_content = generator.generate()
 
         output_path = Path(output_dir)
-        dot_file = output_path / "plot.dot"
+        dot_file = output_path / "flow.dot"
         dot_file.write_text(dot_content)
 
         png_path = None
@@ -95,7 +95,7 @@ class FlowCompiler:
 
             subprocess.run(["dot", "-V"], capture_output=True, check=True)  # nosec B603, B607
 
-            png_file = output_path / "plot.png"
+            png_file = output_path / "flow.png"
 
             result = subprocess.run(  # nosec B603, B607
                 ["dot", "-Tpng", str(dot_file), "-o", str(png_file)],

@@ -175,7 +175,7 @@ class TestGeneratePlot:
         dot_path, png_path = compiler.generate_plot(str(tmp_path))
 
         assert Path(dot_path).exists()
-        assert Path(dot_path).name == "plot.dot"
+        assert Path(dot_path).name == "flow.dot"
         dot_content = Path(dot_path).read_text()
         assert "digraph flow {" in dot_content
 

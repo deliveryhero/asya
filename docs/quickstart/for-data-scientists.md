@@ -406,8 +406,8 @@ asya flow compile text_analysis_flow.py --output compiled/
 
 # Generates:
 # - compiled_routers.py (router actors)
-# - plot.dot (flow diagram)
-# - plot.png (visualization, requires graphviz)
+# - flow.dot (flow diagram)
+# - flow.png (visualization, requires graphviz)
 ```
 
 ### Deployment

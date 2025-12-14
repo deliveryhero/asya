@@ -306,8 +306,8 @@ asya flow compile <flow.py> --output <output-dir>
 
 **Generates**:
 - `compiled_routers.py` - Router implementations
-- `plot.dot` - Graphviz diagram (if graphviz installed)
-- `plot.png` - Visual flow diagram (if graphviz installed)
+- `flow.dot` - Graphviz diagram (if graphviz installed)
+- `flow.png` - Visual flow diagram (if graphviz installed)
 
 ### Validate Flow
 
