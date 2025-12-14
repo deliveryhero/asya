@@ -614,6 +614,7 @@ spec:
             value: "envelope"
 
           # Handler-to-actor mappings (for generated `resolve()` function)
+          # User handlers - map function names to deployed actor names
           - name: ASYA_HANDLER_CLEAN_TEXT
             value: "text_handlers.clean_text"
           - name: ASYA_HANDLER_TOKENIZE
@@ -624,8 +625,16 @@ spec:
             value: "sentiment.SpanishSentiment.process"
           - name: ASYA_HANDLER_EXTRACT_ENTITIES
             value: "nlp.extract_entities"
+
+          # Router handlers - map router function names to deployed actor names
+          - name: ASYA_HANDLER_ROUTER_TEXT_ANALYSIS_FLOW_LINE_10_IF
+            value: "routers.router_text_analysis_flow_line_10_if"
+          - name: ASYA_HANDLER_ROUTER_TEXT_ANALYSIS_FLOW_LINE_15_SEQ
+            value: "routers.router_text_analysis_flow_line_15_seq"
+          # ... (add mappings for all generated routers)
 ---
 # Deploy other routers similarly
+# All routers share the same handler mappings (user + router functions)
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 metadata:
@@ -644,9 +653,13 @@ spec:
             value: "routers.router_text_analysis_flow_line_10_if"
           - name: ASYA_HANDLER_MODE
             value: "envelope"
-          # Same handler mappings as above
+          # Same handler mappings as above (both user handlers AND router functions)
           - name: ASYA_HANDLER_CLEAN_TEXT
             value: "text_handlers.clean_text"
+          - name: ASYA_HANDLER_TOKENIZE
+            value: "text_handlers.tokenize"
+          - name: ASYA_HANDLER_ROUTER_TEXT_ANALYSIS_FLOW_LINE_10_IF
+            value: "routers.router_text_analysis_flow_line_10_if"
           # ... (repeat all mappings)
 ```
 

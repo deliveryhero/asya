@@ -1,5 +1,7 @@
 """Generate DOT diagrams for flow visualization."""
 
+from __future__ import annotations
+
 from asya_cli.flow.grouper import Router
 
 

@@ -1,5 +1,7 @@
 """Group IR operations into execution units (actors/routers)."""
 
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 
 from asya_cli.flow.ir import ActorCall, Condition, IROperation, Mutation, Return

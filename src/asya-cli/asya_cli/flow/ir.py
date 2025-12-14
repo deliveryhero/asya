@@ -1,5 +1,7 @@
 """Intermediate representation for flow operations."""
 
+from __future__ import annotations
+
 from dataclasses import dataclass
 
 

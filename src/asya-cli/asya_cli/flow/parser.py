@@ -1,5 +1,7 @@
 """Parse flow DSL from Python AST."""
 
+from __future__ import annotations
+
 import ast
 
 from asya_cli.flow.errors import FlowCompileError

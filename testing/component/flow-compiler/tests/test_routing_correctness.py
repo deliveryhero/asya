@@ -442,7 +442,10 @@ class TestResolveFunction:
         with pytest.raises(ValueError, match="not found in environment variables"):
             resolve_func("nonexistent_handler")
 
-    def test_resolve_caches_mappings(self):
+    def test_resolve_loads_mappings_at_import(self):
+        os.environ["ASYA_HANDLER_ACTOR1"] = "handler1"
+        os.environ["ASYA_HANDLER_ACTOR2"] = "handler2"
+
         source = textwrap.dedent("""
             def flow(p: dict) -> dict:
                 p = handler(p)
@@ -458,16 +461,9 @@ class TestResolveFunction:
         namespace = {}
         exec(code, namespace)
 
-        os.environ["ASYA_HANDLER_ACTOR1"] = "handler1"
-        os.environ["ASYA_HANDLER_ACTOR2"] = "handler2"
-
-        resolve_func = namespace["resolve"]
-
-        resolve_func("handler1")
-
-        assert hasattr(resolve_func, "_handler_to_actor")
-        assert "handler1" in resolve_func._handler_to_actor
-        assert "handler2" in resolve_func._handler_to_actor
+        assert "_HANDLER_TO_ACTOR" in namespace
+        assert "handler1" in namespace["_HANDLER_TO_ACTOR"]
+        assert "handler2" in namespace["_HANDLER_TO_ACTOR"]
 
 
 class TestRouteInsertion:
