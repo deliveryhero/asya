@@ -66,6 +66,28 @@ def end_if_elif_else_flow(envelope: dict) -> dict:
 # Handler Resolution
 # ======================================================================
 
+import os
+import logging
+
+_HANDLER_TO_ACTOR: dict[str, str] = {}
+_SUFFIX_TO_HANDLERS: dict[str, list[str]] = {}
+
+for _env_var, _handler_name in os.environ.items():
+    if _env_var.startswith('ASYA_HANDLER_'):
+        _actor_name = _env_var[len('ASYA_HANDLER_'):].lower().replace('_', '-')
+        _HANDLER_TO_ACTOR[_handler_name] = _actor_name
+
+        # Index all suffixes (e.g., "a.b.c" -> ["c", "b.c", "a.b.c"])
+        _parts = _handler_name.split('.')
+        for _i in range(len(_parts)):
+            _suffix = '.'.join(_parts[_i:])
+            if _suffix not in _SUFFIX_TO_HANDLERS:
+                _SUFFIX_TO_HANDLERS[_suffix] = []
+            _SUFFIX_TO_HANDLERS[_suffix].append(_handler_name)
+
+logging.info(f"Loaded {len(_HANDLER_TO_ACTOR)} handler-to-actor mappings")
+
+
 def resolve(handler_full_name: str) -> str:
     """
     Resolve handler name to actor name using suffix-based matching.
@@ -100,32 +122,10 @@ def resolve(handler_full_name: str) -> str:
         # Env: ASYA_HANDLER_A="module1.clean", ASYA_HANDLER_B="module2.clean"
         resolve("clean")  # raises ValueError: ambiguous, use longer suffix
     """
-    import os, logging
-
-    if not hasattr(resolve, "_handler_to_actor"):
-        resolve._handler_to_actor = {}
-        resolve._suffix_to_handlers = {}
-
-        for env_var, handler_name in os.environ.items():
-            if env_var.startswith('ASYA_HANDLER_'):
-                actor_name = env_var[len('ASYA_HANDLER_'):].lower().replace('_', '-')
-                resolve._handler_to_actor[handler_name] = actor_name
-
-                # Index all suffixes (e.g., "a.b.c" -> ["c", "b.c", "a.b.c"])
-                parts = handler_name.split('.')
-                for i in range(len(parts)):
-                    suffix = '.'.join(parts[i:])
-                    if suffix not in resolve._suffix_to_handlers:
-                        resolve._suffix_to_handlers[suffix] = []
-                    resolve._suffix_to_handlers[suffix].append(handler_name)
-
-        logging.info(f"Loaded {len(resolve._handler_to_actor)} handler-to-actor mappings")
-
-    # Try suffix-based resolution (exact match or any valid suffix)
-    if handler_full_name in resolve._suffix_to_handlers:
-        candidates = resolve._suffix_to_handlers[handler_full_name]
+    if handler_full_name in _SUFFIX_TO_HANDLERS:
+        candidates = _SUFFIX_TO_HANDLERS[handler_full_name]
         if len(candidates) == 1:
-            return resolve._handler_to_actor[candidates[0]]
+            return _HANDLER_TO_ACTOR[candidates[0]]
         else:
             raise ValueError(
                 f"Handler suffix '{handler_full_name}' is ambiguous. "
@@ -136,5 +136,5 @@ def resolve(handler_full_name: str) -> str:
     raise ValueError(
         f"Handler '{handler_full_name}' not found in environment variables. "
         f'No handler ends with suffix "{handler_full_name}". '
-        f"Available handlers: {list(resolve._handler_to_actor.keys())}"
+        f"Available handlers: {list(_HANDLER_TO_ACTOR.keys())}"
     )

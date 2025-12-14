@@ -30,7 +30,7 @@ repos:
     language: system
     files: (asya_runtime\.py|asya\.sh_asyncactors\.yaml)$
     pass_filenames: false
-  - id: flow-compile
+  - id: compile-flows
     name: compile flow DSL
     entry: bash -c 'bash .pre-commit-hooks/compile-flows.sh'
     language: system

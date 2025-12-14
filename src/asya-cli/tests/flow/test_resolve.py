@@ -74,10 +74,9 @@ class TestResolveFunction:
         os.environ["ASYA_HANDLER_TEST_FLOW_MLMODEL_PREDICT"] = "test_flow.MLModel.predict"
         os.environ["ASYA_HANDLER_VALIDATE"] = "validate"
 
-        # Clear cached data
-        if hasattr(compiled_module.resolve, "_handler_to_actor"):
-            delattr(compiled_module.resolve, "_handler_to_actor")
-            delattr(compiled_module.resolve, "_suffix_to_handlers")
+        import importlib
+
+        importlib.reload(compiled_module)
 
         # Test full name resolution
         assert compiled_module.resolve("test_flow.DataPreprocessor.clean") == "test-flow-datapreprocessor-clean"
@@ -89,10 +88,9 @@ class TestResolveFunction:
         os.environ["ASYA_HANDLER_TEST_FLOW_DATAPREPROCESSOR_CLEAN"] = "test_flow.DataPreprocessor.clean"
         os.environ["ASYA_HANDLER_VALIDATE"] = "validate"
 
-        # Clear cached data
-        if hasattr(compiled_module.resolve, "_handler_to_actor"):
-            delattr(compiled_module.resolve, "_handler_to_actor")
-            delattr(compiled_module.resolve, "_suffix_to_handlers")
+        import importlib
+
+        importlib.reload(compiled_module)
 
         # Test short suffix resolution (unambiguous)
         assert compiled_module.resolve("clean") == "test-flow-datapreprocessor-clean"
@@ -103,10 +101,9 @@ class TestResolveFunction:
         os.environ["ASYA_HANDLER_TEST_FLOW_DATAPREPROCESSOR_CLEAN"] = "test_flow.DataPreprocessor.clean"
         os.environ["ASYA_HANDLER_TEST_FLOW_MLMODEL_PREDICT"] = "test_flow.MLModel.predict"
 
-        # Clear cached data
-        if hasattr(compiled_module.resolve, "_handler_to_actor"):
-            delattr(compiled_module.resolve, "_handler_to_actor")
-            delattr(compiled_module.resolve, "_suffix_to_handlers")
+        import importlib
+
+        importlib.reload(compiled_module)
 
         # Test ClassName.method suffix resolution
         assert compiled_module.resolve("DataPreprocessor.clean") == "test-flow-datapreprocessor-clean"
@@ -117,10 +114,9 @@ class TestResolveFunction:
         os.environ["ASYA_HANDLER_A"] = "module1.Processor.process"
         os.environ["ASYA_HANDLER_B"] = "module2.Processor.process"
 
-        # Clear cached data
-        if hasattr(compiled_module.resolve, "_handler_to_actor"):
-            delattr(compiled_module.resolve, "_handler_to_actor")
-            delattr(compiled_module.resolve, "_suffix_to_handlers")
+        import importlib
+
+        importlib.reload(compiled_module)
 
         # Test ambiguous suffix
         with pytest.raises(ValueError, match="Handler suffix 'process' is ambiguous"):
@@ -134,32 +130,29 @@ class TestResolveFunction:
         """Test that unknown handler raises ValueError."""
         os.environ["ASYA_HANDLER_KNOWN"] = "known_handler"
 
-        # Clear cached data
-        if hasattr(compiled_module.resolve, "_handler_to_actor"):
-            delattr(compiled_module.resolve, "_handler_to_actor")
-            delattr(compiled_module.resolve, "_suffix_to_handlers")
+        import importlib
+
+        importlib.reload(compiled_module)
 
         with pytest.raises(ValueError, match="Handler 'unknown_handler' not found"):
             compiled_module.resolve("unknown_handler")
 
-    def test_resolve_caches_on_first_call(self, compiled_module):
-        """Test that resolve() caches environment variables on first call."""
+    def test_resolve_loads_on_module_import(self, compiled_module):
+        """Test that resolve() loads environment variables at module import time."""
         os.environ["ASYA_HANDLER_TEST"] = "test_handler"
 
-        # Clear cached data
-        if hasattr(compiled_module.resolve, "_handler_to_actor"):
-            delattr(compiled_module.resolve, "_handler_to_actor")
-            delattr(compiled_module.resolve, "_suffix_to_handlers")
+        import importlib
 
-        # First call caches data
+        importlib.reload(compiled_module)
+
+        # Module constants are populated
+        assert compiled_module._HANDLER_TO_ACTOR["test_handler"] == "test"
         assert compiled_module.resolve("test_handler") == "test"
-        assert hasattr(compiled_module.resolve, "_handler_to_actor")
-        assert hasattr(compiled_module.resolve, "_suffix_to_handlers")
 
-        # Modify environment after caching
+        # Modify environment after module load
         os.environ["ASYA_HANDLER_NEW"] = "new_handler"
 
-        # New handler should not be found (cache not updated)
+        # New handler should not be found (module-level constants already initialized)
         with pytest.raises(ValueError, match="Handler 'new_handler' not found"):
             compiled_module.resolve("new_handler")
 
@@ -167,10 +160,9 @@ class TestResolveFunction:
         """Test all possible suffixes for a.b.c handler."""
         os.environ["ASYA_HANDLER_ABC"] = "a.b.c"
 
-        # Clear cached data
-        if hasattr(compiled_module.resolve, "_handler_to_actor"):
-            delattr(compiled_module.resolve, "_handler_to_actor")
-            delattr(compiled_module.resolve, "_suffix_to_handlers")
+        import importlib
+
+        importlib.reload(compiled_module)
 
         # All suffixes should resolve correctly
         assert compiled_module.resolve("c") == "abc"
@@ -181,10 +173,9 @@ class TestResolveFunction:
         """Test that actor names are correctly converted to kebab-case."""
         os.environ["ASYA_HANDLER_MY_LONG_ACTOR_NAME"] = "my.long.handler.name"
 
-        # Clear cached data
-        if hasattr(compiled_module.resolve, "_handler_to_actor"):
-            delattr(compiled_module.resolve, "_handler_to_actor")
-            delattr(compiled_module.resolve, "_suffix_to_handlers")
+        import importlib
+
+        importlib.reload(compiled_module)
 
         # Underscores should become hyphens, lowercase
         assert compiled_module.resolve("my.long.handler.name") == "my-long-actor-name"

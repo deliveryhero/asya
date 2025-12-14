@@ -347,13 +347,8 @@ The Flow DSL compiler transforms Python workflow descriptions into router-based 
 Flows are Python functions that describe how data flows through your pipeline. Each flow becomes a chain of routers with an entrypoint and exitpoint:
 
 ```python
-# text_analysis_flow.py
 def text_analysis_flow(p: dict) -> dict:
     # Flow entrypoint: start_text_analysis_flow
-
-    # Initialize metadata
-    p["pipeline"] = "text_analysis"
-    p["started_at"] = time.time()
 
     # Preprocessing
     p = clean_text(p)
@@ -369,26 +364,43 @@ def text_analysis_flow(p: dict) -> dict:
 
     # Enrichment
     p = extract_entities(p)
-    p["completed_at"] = time.time()
+    p["extracted"] = true
 
     return p  # Flow exitpoint: end_text_analysis_flow
 
 # Define your handler functions (can be in separate files)
 def clean_text(p: dict) -> dict:
+    ...
     return p
 
 def tokenize(p: dict) -> dict:
+    ...
     return p
 
 def english_sentiment(p: dict) -> dict:
+    ...
     return p
 
 def spanish_sentiment(p: dict) -> dict:
+    ...
     return p
 
 def extract_entities(p: dict) -> dict:
+    ...
     return p
 ```
+
+See detailed flow syntax in section [below](#flow-dsl-syntax-summary).
+
+**Generated Flow**:
+
+Each square depicts a separate actor (blue - user actor, yellow-ish - new generated routers, which **modify control-flow graph dynamically** based on conditions on payload `p`).
+
+Note, there's no free variables, **all state transfer** happens through payload variable `p`.
+
+![text_analysis_flow-plot](/docs/img/for-data-scientists-flows/compiled/text_analysis_flow/flow.png)
+
+
 
 **Flow Structure**:
 - **Entrypoint**: `start_{flowname}` - Generated actor that starts the flow
@@ -410,6 +422,7 @@ Install `asya-cli` to compile flows:
 
 ```bash
 # Install asya-cli
+# (or: `uv pip install ...`)
 pip install git+https://github.com/deliveryhero/asya.git#subdirectory=src/asya-cli
 ```
 
@@ -417,6 +430,7 @@ Compile your flow:
 
 ```bash
 # Basic compilation
+# (or: uv run asya flow ...)
 asya flow compile text_analysis_flow.py --output-dir ./compiled/
 
 # With visualization (requires graphviz for PNG)
@@ -463,6 +477,11 @@ def sample_flow(p: dict) -> dict:
     p = handler_finalize(p)
     return p
 ```
+
+**Generated Flow**:
+
+![sample-flow-plot](/docs/img/for-data-scientists-flows/compiled/sample_flow/flow.png)
+
 
 **Generated Routers** (see `compiled/routers.py`):
 
@@ -569,6 +588,8 @@ docker build -t my-flow-routers:v1 .
 
 **Step 2: Deploy Router Actors**
 
+⚠️ Automatic generation of deployed charts is coming soon as part of extended functionality to easy deploying any actor by Data Scientists using `asya-cli` tool.
+
 Deploy each generated router as an AsyncActor. **IMPORTANT**: Set handler mappings in environment variables:
 
 ```yaml
@@ -592,7 +613,7 @@ spec:
           - name: ASYA_HANDLER_MODE
             value: "envelope"
 
-          # Handler-to-actor mappings (for resolve())
+          # Handler-to-actor mappings (for generated `resolve()` function)
           - name: ASYA_HANDLER_CLEAN_TEXT
             value: "text_handlers.clean_text"
           - name: ASYA_HANDLER_TOKENIZE
@@ -663,6 +684,9 @@ spec:
 
 ### Flow DSL Syntax Summary
 
+See [flow examples](/examples/flows) and their [compiled code](/examples/flows/compiled).
+
+
 **Supported**:
 - Actor calls: `p = handler(p)`
 - Payload mutations: `p["key"] = value`, `p["count"] += 1`
@@ -699,9 +723,8 @@ def my_flow(p: dict) -> dict:
 - ML inference pipelines
 
 ❌ **Not suitable for**:
-- Dynamic routing based on runtime conditions
-- Iterative processing (use loops in handlers)
-- Complex control flow (use envelope mode)
+- Dynamic routing based on state outside of `p` (need to implement branching inside your actor in envelope mode)
+- Iterative processing (loops support coming soon)
 
 ### Complete Example: ML Pipeline
 
@@ -716,9 +739,9 @@ def ml_pipeline_flow(p: dict) -> dict:
         return p  # Early exit to end_ml_pipeline_flow
 
     # Preprocessing
-    p["preprocessed"] = True
     p = normalize_data(p)
     p = extract_features(p)
+    p["preprocessed"] = True
 
     # Model selection
     if p["model_type"] == "fast":

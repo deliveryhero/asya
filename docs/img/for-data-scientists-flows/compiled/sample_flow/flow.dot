@@ -1,0 +1,26 @@
+digraph flow {
+  rankdir=TB;
+  graph [fontname="Courier", fontsize=10];
+  node [fontname="Courier", fontsize=10, shape=box, style="filled,rounded", margin="0.2"];
+  edge [fontname="Courier", fontsize=10];
+
+  start_sample_flow [fillcolor="lightgreen", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = start_sample_flow(p)</i></td></tr></table>>];
+  router_sample_flow_line_4_seq [fillcolor="wheat", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_sample_flow_line_4_seq(p)</i></td></tr><tr><td bgcolor="white" align="left">p['branch'] = 'A'</td></tr></table>>];
+  router_sample_flow_line_8_seq [fillcolor="wheat", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_sample_flow_line_8_seq(p)</i></td></tr><tr><td bgcolor="white" align="left">p['branch'] = 'B'</td></tr></table>>];
+  router_sample_flow_line_3_if [fillcolor="wheat", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_sample_flow_line_3_if(p)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> p['type'] == 'A'</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkgreen"><font color="white"><b>TRUE</b></font></td><td bgcolor="darkred"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
+  end_sample_flow [fillcolor="lightgreen", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = end_sample_flow(p)</i></td></tr></table>>];
+  handler_finalize [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = handler_finalize(p)</i></td></tr></table>>];
+  handler_setup [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = handler_setup(p)</i></td></tr></table>>];
+  handler_type_a [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = handler_type_a(p)</i></td></tr></table>>];
+  handler_type_b [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = handler_type_b(p)</i></td></tr></table>>];
+
+  handler_finalize -> end_sample_flow;
+  handler_setup -> router_sample_flow_line_3_if;
+  handler_type_a -> handler_finalize;
+  handler_type_b -> router_sample_flow_line_8_seq;
+  router_sample_flow_line_3_if -> handler_type_b [color=darkred];
+  router_sample_flow_line_3_if -> router_sample_flow_line_4_seq [color=darkgreen];
+  router_sample_flow_line_4_seq -> handler_type_a;
+  router_sample_flow_line_8_seq -> handler_finalize;
+  start_sample_flow -> handler_setup;
+}
