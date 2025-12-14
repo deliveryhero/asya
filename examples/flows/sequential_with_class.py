@@ -12,8 +12,13 @@ def class_instantiation_flow(p: dict) -> dict:
 
     # Use instances
     p = preprocessor.clean(p)
+    p = transformation(p)
     p = model.predict(p)
 
+    return p
+
+
+def transformation(p: dict) -> dict:
     return p
 
 

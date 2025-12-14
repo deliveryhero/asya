@@ -34,7 +34,8 @@ repos:
     name: compile flow DSL
     entry: bash -c 'bash .pre-commit-hooks/compile-flows.sh'
     language: system
-    files: (src/asya-testing/asya_testing/flows/.*/flow\.py$|examples/flows/.*/flow\.py$)
+    files: (src/asya-testing/asya_testing/flows/.*/flow\.py$|examples/flows/.*\.py$)
+    exclude: (^|/)(__init__|compiled/)
     pass_filenames: false
 
 # JSON formatting (auto-fix)
