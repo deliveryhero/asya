@@ -9,7 +9,9 @@ repos:
     args: ["--branch", "main"]
   - id: trailing-whitespace
     args: ["--markdown-linebreak-ext=md"]
+    exclude: (^|/)compiled/
   - id: end-of-file-fixer
+    exclude: (^|/)compiled/
   - id: check-yaml
     args: ["--allow-multiple-documents"]
     exclude: (^|/)helm-charts/|testing/e2e/charts/|mkdocs\.yml
@@ -18,6 +20,23 @@ repos:
   - id: check-merge-conflict
   - id: mixed-line-ending
     args: ["--fix=lf"]
+
+# Local custom checks, code generation
+- repo: local
+  hooks:
+  - id: check-required-symlinks
+    name: check required symlinks
+    entry: bash -c 'bash .pre-commit-hooks/check-symlinks.sh'
+    language: system
+    files: (asya_runtime\.py|asya\.sh_asyncactors\.yaml)$
+    pass_filenames: false
+  - id: compile-flows
+    name: compile flow DSL
+    entry: bash -c 'bash .pre-commit-hooks/compile-flows.sh'
+    language: system
+    files: (src/asya-testing/asya_testing/flows/.*/flow\.py$|examples/flows/.*\.py$)
+    exclude: (^|/)(__init__|compiled/)
+    pass_filenames: false
 
 # JSON formatting (auto-fix)
 - repo: https://github.com/pre-commit/mirrors-prettier
@@ -52,8 +71,10 @@ repos:
   - id: ruff
     args: [--fix]
     files: ^src/.*\.py$
+    exclude: (^|/)compiled/
   - id: ruff-format
     files: ^src/.*\.py$
+    exclude: (^|/)compiled/
 
 # Python type checking
 - repo: https://github.com/pre-commit/mirrors-mypy
@@ -132,12 +153,6 @@ repos:
     entry: bash -c 'cd src/asya-operator && make manifests && git diff --exit-code config/crd/'
     language: system
     files: ^src/asya-operator/api/.*\.go$
-    pass_filenames: false
-  - id: check-required-symlinks
-    name: check required symlinks
-    entry: bash -c 'bash .pre-commit-hooks/check-symlinks.sh'
-    language: system
-    files: (asya_runtime\.py|asya\.sh_asyncactors\.yaml)$
     pass_filenames: false
 
 # Shell script formatting (auto-fix)

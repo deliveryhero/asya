@@ -1,0 +1,13 @@
+transport: sqs
+
+workload:
+  image: localhost/asya-runtime:latest
+  imagePullPolicy: IfNotPresent
+
+handlerMode: payload
+
+scaling:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 5
+  queueLength: 5

@@ -1,0 +1,49 @@
+digraph flow {
+  rankdir=TB;
+  graph [fontname="Courier", fontsize=10];
+  node [fontname="Courier", fontsize=10, shape=box, style="filled,rounded", margin="0.2"];
+  edge [fontname="Courier", fontsize=10];
+
+  start_conditional_nested_flow [fillcolor="lightgreen", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = start_conditional_nested_flow(p)</i></td></tr></table>>];
+  router_conditional_nested_flow_line_15_seq [fillcolor="wheat", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_conditional_nested_flow_line_15_seq(p)</i></td></tr><tr><td bgcolor="white" align="left">p['x'] += 4</td></tr></table>>];
+  router_conditional_nested_flow_line_13_seq [fillcolor="wheat", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_conditional_nested_flow_line_13_seq(p)</i></td></tr><tr><td bgcolor="white" align="left">p['x'] += 3</td></tr></table>>];
+  router_conditional_nested_flow_line_17_seq [fillcolor="wheat", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_conditional_nested_flow_line_17_seq(p)</i></td></tr><tr><td bgcolor="white" align="left">p['x'] += 5</td></tr></table>>];
+  router_conditional_nested_flow_line_12_if [fillcolor="wheat", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_conditional_nested_flow_line_12_if(p)</i></td></tr><tr><td bgcolor="white" align="left">p['x'] += 2</td></tr><tr><td bgcolor="lightyellow"><b>if</b> p['x'] &gt; 2</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkgreen"><font color="white"><b>TRUE</b></font></td><td bgcolor="darkred"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
+  router_conditional_nested_flow_line_22_seq [fillcolor="wheat", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_conditional_nested_flow_line_22_seq(p)</i></td></tr><tr><td bgcolor="white" align="left">p['x'] += 7</td></tr></table>>];
+  router_conditional_nested_flow_line_20_seq [fillcolor="wheat", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_conditional_nested_flow_line_20_seq(p)</i></td></tr><tr><td bgcolor="white" align="left">p['x'] += 6</td></tr></table>>];
+  router_conditional_nested_flow_line_9_if [fillcolor="wheat", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_conditional_nested_flow_line_9_if(p)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> p['x'] &gt; 2</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkgreen"><font color="white"><b>TRUE</b></font></td><td bgcolor="darkred"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
+  router_conditional_nested_flow_line_7_seq [fillcolor="wheat", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_conditional_nested_flow_line_7_seq(p)</i></td></tr><tr><td bgcolor="white" align="left">p['x'] += 1</td></tr></table>>];
+  router_conditional_nested_flow_line_26_seq [fillcolor="wheat", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_conditional_nested_flow_line_26_seq(p)</i></td></tr><tr><td bgcolor="white" align="left">p['x'] += 9</td></tr><tr><td bgcolor="white" align="left">p['x'] *= 10</td></tr></table>>];
+  router_conditional_nested_flow_line_24_seq [fillcolor="wheat", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_conditional_nested_flow_line_24_seq(p)</i></td></tr><tr><td bgcolor="white" align="left">p['x'] += 8</td></tr></table>>];
+  router_conditional_nested_flow_line_6_if [fillcolor="wheat", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_conditional_nested_flow_line_6_if(p)</i></td></tr><tr><td bgcolor="white" align="left">p['x'] = 1</td></tr><tr><td bgcolor="lightyellow"><b>if</b> p['a'] == 'A'</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkgreen"><font color="white"><b>TRUE</b></font></td><td bgcolor="darkred"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
+  end_conditional_nested_flow [fillcolor="lightgreen", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = end_conditional_nested_flow(p)</i></td></tr></table>>];
+  handler_a [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = handler_a(p)</i></td></tr></table>>];
+  handler_b [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = handler_b(p)</i></td></tr></table>>];
+  handler_c [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = handler_c(p)</i></td></tr></table>>];
+  handler_d [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = handler_d(p)</i></td></tr></table>>];
+  handler_finalize [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = handler_finalize(p)</i></td></tr></table>>];
+  handler_validate_input [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = handler_validate_input(p)</i></td></tr></table>>];
+
+  handler_a -> router_conditional_nested_flow_line_9_if;
+  handler_b -> router_conditional_nested_flow_line_12_if;
+  handler_b -> router_conditional_nested_flow_line_15_seq;
+  handler_c -> router_conditional_nested_flow_line_24_seq;
+  handler_d -> router_conditional_nested_flow_line_22_seq;
+  handler_finalize -> router_conditional_nested_flow_line_26_seq;
+  handler_validate_input -> router_conditional_nested_flow_line_6_if;
+  router_conditional_nested_flow_line_12_if -> router_conditional_nested_flow_line_13_seq [color=darkgreen];
+  router_conditional_nested_flow_line_12_if -> router_conditional_nested_flow_line_17_seq [color=darkred];
+  router_conditional_nested_flow_line_13_seq -> handler_b;
+  router_conditional_nested_flow_line_15_seq -> router_conditional_nested_flow_line_24_seq;
+  router_conditional_nested_flow_line_17_seq -> handler_c;
+  router_conditional_nested_flow_line_20_seq -> handler_d;
+  router_conditional_nested_flow_line_22_seq -> router_conditional_nested_flow_line_24_seq;
+  router_conditional_nested_flow_line_24_seq -> handler_finalize;
+  router_conditional_nested_flow_line_26_seq -> end_conditional_nested_flow;
+  router_conditional_nested_flow_line_6_if -> router_conditional_nested_flow_line_24_seq [color=darkred];
+  router_conditional_nested_flow_line_6_if -> router_conditional_nested_flow_line_7_seq [color=darkgreen];
+  router_conditional_nested_flow_line_7_seq -> handler_a;
+  router_conditional_nested_flow_line_9_if -> handler_b [color=darkgreen];
+  router_conditional_nested_flow_line_9_if -> router_conditional_nested_flow_line_20_seq [color=darkred];
+  start_conditional_nested_flow -> handler_validate_input;
+}

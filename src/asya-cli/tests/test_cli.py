@@ -4,6 +4,20 @@ import subprocess  # nosec B404
 import sys
 
 
+def test_asya_cli_version():
+    """Test that the main CLI shows version in v1.2.3 format."""
+    result = subprocess.run(  # nosec B603
+        [sys.executable, "-m", "asya_cli.cli", "--version"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0
+    assert result.stdout.startswith("v")
+    version_parts = result.stdout.strip()[1:].split(".")
+    assert len(version_parts) >= 2
+
+
 def test_asya_cli_help():
     """Test that the main CLI shows help."""
     result = subprocess.run(  # nosec B603

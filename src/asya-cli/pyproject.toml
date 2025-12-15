@@ -5,6 +5,9 @@ description = "Command-line developer tools for debugging and operating Asya fra
 requires-python = ">=3.9"
 dependencies = ["requests", "tqdm", "pyyaml"]
 
+[project.optional-dependencies]
+diagram = ["graphviz>=0.20.0"]
+
 [project.scripts]
 asya = "asya_cli.cli:main"
 

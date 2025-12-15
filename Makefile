@@ -127,11 +127,13 @@ manifests: ## Regenerate operator CRDs and manifests
 build-images: ## Build all Docker images for the framework
 	./src/build-images.sh
 
-clean: clean-integration clean-e2e ## Clean build artifacts
+clean: clean-integration ## Clean build artifacts
 	$(MAKE) -C src/asya-crew clean
 	$(MAKE) -C src/asya-sidecar clean
 	$(MAKE) -C src/asya-runtime clean
 	$(MAKE) -C src/asya-gateway clean
+	PROFILE=sqs-s3 $(MAKE) -C testing/e2e clean
+	PROFILE=rabbitmq-minio $(MAKE) -C testing/e2e clean
 	find . -type f -name "*.pyc" -delete
 	find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 	find . -type d -name ".pytest_cache" -exec rm -rf {} + 2>/dev/null || true
