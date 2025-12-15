@@ -220,17 +220,78 @@ time {
   echo
 }
 
-# Run Helm tests
-echo "[.] Running Helm tests..."
-time {
-  cd "$CHARTS_DIR"
-  if ! helmfile -f helmfile.yaml.gotmpl -e "$PROFILE" test --concurrency "$CONCURRENCY"; then
-    echo "[-] Helm tests failed"
-    exit 1
-  fi
-  echo "[+] All Helm tests completed successfully"
+# Run Helm tests (can be disabled with SKIP_HELM_TESTS=true)
+if [ "${SKIP_HELM_TESTS:-false}" = "true" ]; then
+  echo "[!] Skipping Helm tests (SKIP_HELM_TESTS=true)"
   echo
-}
+else
+  echo "[.] Running Helm tests..."
+  time {
+    cd "$CHARTS_DIR"
+
+    # Add timeout and better error handling
+    HELM_TEST_TIMEOUT="${HELM_TEST_TIMEOUT:-300}"
+    echo "[.] Helm test timeout: ${HELM_TEST_TIMEOUT}s"
+
+    TEST_OUTPUT=$(helmfile -f helmfile.yaml.gotmpl -e "$PROFILE" test --concurrency "$CONCURRENCY" --timeout "$HELM_TEST_TIMEOUT" --logs 2>&1) || TEST_EXIT_CODE=$?
+    echo "$TEST_OUTPUT"
+
+    if [ "${TEST_EXIT_CODE:-0}" -ne 0 ]; then
+      case "$TEST_OUTPUT" in
+        *"Phase: "*"Failed"*)
+          echo "[-] Helm tests failed! Gathering diagnostics..."
+          echo ""
+
+          echo "=== Helm Release Status ==="
+          helm list -n "$NAMESPACE" || true
+          helm list -n "$SYSTEM_NAMESPACE" || true
+          echo ""
+
+          echo "=== All Pods (including completed/failed) ==="
+          kubectl get pods -n "$NAMESPACE" -o wide || true
+          kubectl get pods -n "$SYSTEM_NAMESPACE" -o wide || true
+          echo ""
+
+          echo "=== Recent Events (namespace: $NAMESPACE) ==="
+          kubectl get events -n "$NAMESPACE" --sort-by='.lastTimestamp' | tail -50 || true
+          echo ""
+
+          echo "=== Recent Events (namespace: $SYSTEM_NAMESPACE) ==="
+          kubectl get events -n "$SYSTEM_NAMESPACE" --sort-by='.lastTimestamp' | tail -50 || true
+          echo ""
+
+          echo "=== Test Pod Logs (if still available) ==="
+          for ns in "$NAMESPACE" "$SYSTEM_NAMESPACE"; do
+            kubectl get pods -n "$ns" -l 'helm.sh/hook=test' -o name 2> /dev/null | while read -r pod; do
+              [ -z "$pod" ] && continue
+              echo "--- Logs from $pod (namespace: $ns) ---"
+              kubectl logs -n "$ns" "$pod" --tail=100 || true
+              echo ""
+            done
+          done
+
+          exit 1
+          ;;
+        *"unable to get pod logs"*"pods "*"not found"*)
+          echo "[!] Helm test command failed trying to fetch logs from deleted test pods"
+          echo "[.] Checking if all tests actually passed..."
+          if [[ "$TEST_OUTPUT" == *"Phase: "*"Succeeded"* ]] && ! [[ "$TEST_OUTPUT" == *"Phase: "*"Failed"* ]]; then
+            echo "[+] All tests passed (ignoring log fetch errors for deleted pods)"
+          else
+            echo "[-] Unable to determine test status, failing deployment"
+            exit 1
+          fi
+          ;;
+        *)
+          echo "[-] Helm tests failed with unexpected error"
+          exit 1
+          ;;
+      esac
+    fi
+    echo "[+] All Helm tests completed successfully"
+    echo
+  }
+fi
 
 # Wait for operator to reconcile all AsyncActor CRDs
 echo "[.] Waiting for operator to reconcile AsyncActor CRDs..."
@@ -305,7 +366,18 @@ time {
 }
 echo
 
+# Save operator logs to file for debugging
+LOGS_DIR="$SCRIPT_DIR/../.logs"
+mkdir -p "$LOGS_DIR"
+OPERATOR_LOGS="$LOGS_DIR/operator-$(date +%Y%m%d-%H%M%S).log"
+echo "[.] Saving operator logs to: $OPERATOR_LOGS"
+kubectl logs -n "$SYSTEM_NAMESPACE" -l app.kubernetes.io/name=asya-operator --tail=1000 > "$OPERATOR_LOGS" 2>&1 || true
+echo "[+] Operator logs saved"
+echo
+
 echo "=== Deployment Complete ==="
+echo "Operator logs saved to: $OPERATOR_LOGS"
+echo ""
 echo "Next steps (from the current directory):"
 echo "$ make trigger-tests"
 echo "To just port-forward services, run:"
