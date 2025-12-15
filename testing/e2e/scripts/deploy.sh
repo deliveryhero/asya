@@ -237,53 +237,56 @@ else
     echo "$TEST_OUTPUT"
 
     if [ "${TEST_EXIT_CODE:-0}" -ne 0 ]; then
-      if echo "$TEST_OUTPUT" | grep -q "Phase:.*Failed"; then
-        echo "[-] Helm tests failed! Gathering diagnostics..."
-        echo ""
+      case "$TEST_OUTPUT" in
+        *"Phase: "*"Failed"*)
+          echo "[-] Helm tests failed! Gathering diagnostics..."
+          echo ""
 
-        echo "=== Helm Release Status ==="
-        helm list -n "$NAMESPACE" || true
-        helm list -n "$SYSTEM_NAMESPACE" || true
-        echo ""
+          echo "=== Helm Release Status ==="
+          helm list -n "$NAMESPACE" || true
+          helm list -n "$SYSTEM_NAMESPACE" || true
+          echo ""
 
-        echo "=== All Pods (including completed/failed) ==="
-        kubectl get pods -n "$NAMESPACE" -o wide || true
-        kubectl get pods -n "$SYSTEM_NAMESPACE" -o wide || true
-        echo ""
+          echo "=== All Pods (including completed/failed) ==="
+          kubectl get pods -n "$NAMESPACE" -o wide || true
+          kubectl get pods -n "$SYSTEM_NAMESPACE" -o wide || true
+          echo ""
 
-        echo "=== Recent Events (namespace: $NAMESPACE) ==="
-        kubectl get events -n "$NAMESPACE" --sort-by='.lastTimestamp' | tail -50 || true
-        echo ""
+          echo "=== Recent Events (namespace: $NAMESPACE) ==="
+          kubectl get events -n "$NAMESPACE" --sort-by='.lastTimestamp' | tail -50 || true
+          echo ""
 
-        echo "=== Recent Events (namespace: $SYSTEM_NAMESPACE) ==="
-        kubectl get events -n "$SYSTEM_NAMESPACE" --sort-by='.lastTimestamp' | tail -50 || true
-        echo ""
+          echo "=== Recent Events (namespace: $SYSTEM_NAMESPACE) ==="
+          kubectl get events -n "$SYSTEM_NAMESPACE" --sort-by='.lastTimestamp' | tail -50 || true
+          echo ""
 
-        echo "=== Test Pod Logs (if still available) ==="
-        for ns in "$NAMESPACE" "$SYSTEM_NAMESPACE"; do
-          for pod in $(kubectl get pods -n "$ns" -l 'helm.sh/hook=test' -o name 2> /dev/null || true); do
-            if kubectl get -n "$ns" "$pod" &> /dev/null; then
+          echo "=== Test Pod Logs (if still available) ==="
+          for ns in "$NAMESPACE" "$SYSTEM_NAMESPACE"; do
+            kubectl get pods -n "$ns" -l 'helm.sh/hook=test' -o name 2> /dev/null | while read -r pod; do
+              [ -z "$pod" ] && continue
               echo "--- Logs from $pod (namespace: $ns) ---"
               kubectl logs -n "$ns" "$pod" --tail=100 || true
               echo ""
-            fi
+            done
           done
-        done
 
-        exit 1
-      elif echo "$TEST_OUTPUT" | grep -q "unable to get pod logs.*pods.*not found"; then
-        echo "[!] Helm test command failed trying to fetch logs from deleted test pods"
-        echo "[.] Checking if all tests actually passed..."
-        if echo "$TEST_OUTPUT" | grep -q "Phase:.*Succeeded" && ! echo "$TEST_OUTPUT" | grep -q "Phase:.*Failed"; then
-          echo "[+] All tests passed (ignoring log fetch errors for deleted pods)"
-        else
-          echo "[-] Unable to determine test status, failing deployment"
           exit 1
-        fi
-      else
-        echo "[-] Helm tests failed with unexpected error"
-        exit 1
-      fi
+          ;;
+        *"unable to get pod logs"*"pods "*"not found"*)
+          echo "[!] Helm test command failed trying to fetch logs from deleted test pods"
+          echo "[.] Checking if all tests actually passed..."
+          if [[ "$TEST_OUTPUT" == *"Phase: "*"Succeeded"* ]] && ! [[ "$TEST_OUTPUT" == *"Phase: "*"Failed"* ]]; then
+            echo "[+] All tests passed (ignoring log fetch errors for deleted pods)"
+          else
+            echo "[-] Unable to determine test status, failing deployment"
+            exit 1
+          fi
+          ;;
+        *)
+          echo "[-] Helm tests failed with unexpected error"
+          exit 1
+          ;;
+      esac
     fi
     echo "[+] All Helm tests completed successfully"
     echo
