@@ -1,16 +1,18 @@
-name: Deploy Docs
+name: Deploy Site
 
 on:
   push:
     branches: [main]
     paths:
     - 'docs/**'
+    - 'website/**'
     - 'mkdocs.yml'
     - '.github/workflows/docs.yml'
   pull_request:
     branches: [main]
     paths:
     - 'docs/**'
+    - 'website/**'
     - 'mkdocs.yml'
     - '.github/workflows/docs.yml'
   workflow_dispatch:
@@ -20,7 +22,7 @@ permissions:
 
 jobs:
   build:
-    name: Build docs
+    name: Build site
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
@@ -38,14 +40,19 @@ jobs:
     - name: Install dependencies
       run: pip install -r docs/mkdocs/requirements.txt
 
-    - name: Build site
-      run: mkdocs build
+    - name: Build MkDocs site
+      run: mkdocs build -d site/docs
+
+    - name: Copy landing page
+      run: |
+        cp -r website/* site/
+        echo "asya.sh" > site/CNAME
 
     - name: Upload artifact
       if: github.event_name == 'pull_request'
       uses: actions/upload-artifact@v4
       with:
-        name: docs-site
+        name: site
         path: site/
         retention-days: 7
 
@@ -70,10 +77,17 @@ jobs:
     - name: Install dependencies
       run: pip install -r docs/mkdocs/requirements.txt
 
-    - name: Configure Git
+    - name: Build MkDocs site
+      run: mkdocs build -d site/docs
+
+    - name: Copy landing page
       run: |
-        git config user.name github-actions[bot]
-        git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+        cp -r website/* site/
+        echo "asya.sh" > site/CNAME
 
     - name: Deploy to gh-pages
-      run: mkdocs gh-deploy --force
+      uses: peaceiris/actions-gh-pages@v4
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./site
+        cname: asya.sh

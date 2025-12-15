@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Asya - Kubernetes-native Async Actor Framework</title>
+    <meta name="description" content="Kubernetes-native async actor framework for orchestrating AI/ML workloads at scale">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 60px 40px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 3.5rem;
+            margin-bottom: 1rem;
+            color: #667eea;
+            font-weight: 700;
+        }
+
+        .tagline {
+            font-size: 1.3rem;
+            color: #666;
+            margin-bottom: 2rem;
+            font-weight: 300;
+        }
+
+        .description {
+            font-size: 1.1rem;
+            color: #555;
+            margin-bottom: 3rem;
+            line-height: 1.8;
+        }
+
+        .links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            justify-content: center;
+            margin-bottom: 3rem;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 14px 32px;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: white;
+            color: #667eea;
+            border: 2px solid #667eea;
+        }
+
+        .btn-secondary:hover {
+            background: #f8f9ff;
+            transform: translateY(-2px);
+        }
+
+        .install-section {
+            background: #f8f9ff;
+            border-radius: 8px;
+            padding: 2rem;
+            margin-top: 2rem;
+        }
+
+        .install-section h3 {
+            color: #667eea;
+            margin-bottom: 1rem;
+            font-size: 1.3rem;
+        }
+
+        .code-block {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 1rem;
+            border-radius: 6px;
+            font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+            font-size: 0.9rem;
+            text-align: left;
+            overflow-x: auto;
+            margin-top: 0.5rem;
+        }
+
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+            text-align: left;
+        }
+
+        .feature {
+            padding: 1rem;
+        }
+
+        .feature h4 {
+            color: #667eea;
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+        }
+
+        .feature p {
+            color: #666;
+            font-size: 0.95rem;
+        }
+
+        footer {
+            margin-top: 3rem;
+            padding-top: 2rem;
+            border-top: 1px solid #e0e0e0;
+            color: #999;
+            font-size: 0.9rem;
+        }
+
+        footer a {
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 600px) {
+            h1 {
+                font-size: 2.5rem;
+            }
+
+            .container {
+                padding: 40px 24px;
+            }
+
+            .links {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Asya🎭</h1>
+        <p class="tagline">Kubernetes-native Async Actor Framework</p>
+        <p class="description">
+            Orchestrate AI/ML workloads at scale with a powerful actor-based framework
+            built for Kubernetes. Deploy distributed systems with ease using familiar patterns.
+        </p>
+
+        <div class="links">
+            <a href="/docs" class="btn btn-primary">Documentation</a>
+            <a href="https://github.com/deliveryhero/asya" class="btn btn-secondary">GitHub</a>
+            <a href="/docs/quickstart/for-data-scientists" class="btn btn-secondary">Quick Start</a>
+        </div>
+
+        <div class="install-section">
+            <h3>Get Started</h3>
+            <p>Add the Helm repository:</p>
+            <div class="code-block">helm repo add asya https://asya.sh/charts</div>
+
+            <p style="margin-top: 1.5rem;">Install the operator:</p>
+            <div class="code-block">helm install asya-operator asya/asya-operator -n asya-system --create-namespace</div>
+        </div>
+
+        <div class="features">
+            <div class="feature">
+                <h4>🎯 Actor Model</h4>
+                <p>Build resilient systems with the proven actor pattern</p>
+            </div>
+            <div class="feature">
+                <h4>⚡ Auto-scaling</h4>
+                <p>KEDA-powered scaling based on queue depth</p>
+            </div>
+            <div class="feature">
+                <h4>🔌 Multi-transport</h4>
+                <p>RabbitMQ, SQS, and more message brokers</p>
+            </div>
+            <div class="feature">
+                <h4>📊 Observable</h4>
+                <p>Built-in metrics, tracing, and monitoring</p>
+            </div>
+        </div>
+
+        <footer>
+            <p>
+                Built with ❤️ by <a href="https://github.com/deliveryhero">Delivery Hero</a> |
+                <a href="/docs">Documentation</a> |
+                <a href="https://github.com/deliveryhero/asya">Source Code</a> |
+                <a href="https://github.com/deliveryhero/asya/blob/main/LICENSE">Apache 2.0 License</a>
+            </p>
+        </footer>
+    </div>
+</body>
+</html>
