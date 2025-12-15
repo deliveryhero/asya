@@ -8,6 +8,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 
+## [0.3.0] - 2025-12-15
+
+## Major Changes
+
+* feat: Add basic support for flows (#58) @atemate-dh
+* refactor(asya-cli)!: Consolidate tools into single `asya` CLI with subcommands (#59) @atemate-dh
+
+## Other Changes
+
+* docs: Add landing page for asya.sh, deploy charts to asya.sh/charts (#62) @atemate-dh
+* chore: Increase verbosity of helm tests (#61) @atemate-dh
+* feat: Add basic support for flows (#58) @atemate-dh
+* ci: Try to fix Octocov coverage again again (#60) @atemate-dh
+* refactor(asya-cli)!: Consolidate tools into single `asya` CLI with subcommands (#59) @atemate-dh
+
+## Docker Images
+
+All images are published to GitHub Container Registry:
+
+- `ghcr.io/deliveryhero/asya-operator:1.0.0`
+- `ghcr.io/deliveryhero/asya-gateway:1.0.0`
+- `ghcr.io/deliveryhero/asya-sidecar:1.0.0`
+- `ghcr.io/deliveryhero/asya-crew:1.0.0`
+- `ghcr.io/deliveryhero/asya-testing:1.0.0`
+
+## Contributors
+
+@atemate-dh, @github-actions[bot] and [github-actions[bot]](https://github.com/apps/github-actions)
+
+
+
+## [Unreleased]
+
+
 ## [0.2.0] - 2025-12-04
 
 ## Major Changes
@@ -157,6 +191,9 @@ All images are published to GitHub Container Registry:
 [0.1.1]: https://github.com/deliveryhero/asya/releases/tag/v0.1.1
 
 
-[Unreleased]: https://github.com/deliveryhero/asya/compare/v0.2.0...HEAD
 [0.2.0]: https://github.com/deliveryhero/asya/releases/tag/v0.2.0
+
+
+[Unreleased]: https://github.com/deliveryhero/asya/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/deliveryhero/asya/releases/tag/v0.3.0
 
