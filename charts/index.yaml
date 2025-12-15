@@ -1,0 +1,71 @@
+apiVersion: v1
+entries:
+  asya-actor:
+  - apiVersion: v2
+    appVersion: 0.3.0
+    created: "2025-12-15T21:07:52.813013358Z"
+    description: Generic Helm chart for deploying AsyncActor resources with health
+      validation
+    digest: 34dc4ccd9feb6c330fbb0dffe62a9a77d5dd9329af90d090398b75d5bf8065c7
+    keywords:
+    - asya
+    - actor
+    - async
+    - kubernetes
+    maintainers:
+    - name: Asya Team
+    name: asya-actor
+    type: application
+    urls:
+    - https://asya.sh/charts/asya-actor-0.3.0.tgz
+    version: 0.3.0
+  asya-crew:
+  - apiVersion: v2
+    appVersion: 0.3.0
+    created: "2025-12-15T21:07:52.813380414Z"
+    description: System AsyncActors with reserved roles (happy-end, error-end, ...)
+      for Asya framework
+    digest: b9ad791389f713b7f4df7ba4a76d8dd484db5c870531651dd5e351703be8b7b0
+    keywords:
+    - asya
+    - actor
+    - system
+    - crew
+    maintainers:
+    - name: Asya Team
+    name: asya-crew
+    type: application
+    urls:
+    - https://asya.sh/charts/asya-crew-0.3.0.tgz
+    version: 0.3.0
+  asya-gateway:
+  - apiVersion: v2
+    appVersion: 0.3.0
+    created: "2025-12-15T21:07:52.813963654Z"
+    description: Asya MCP Gateway with PostgreSQL backend
+    digest: aea7c10414269a7873053abf5960c223e3c9a91a8b52f9458a7f7e4bda324f83
+    name: asya-gateway
+    type: application
+    urls:
+    - https://asya.sh/charts/asya-gateway-0.3.0.tgz
+    version: 0.3.0
+  asya-operator:
+  - apiVersion: v2
+    appVersion: 0.3.0
+    created: "2025-12-15T21:07:52.814721782Z"
+    description: Asya Operator - Kubernetes operator for managing Actor resources
+    digest: f5d9dd3f186eaba1a6d0732c42f2911bf910c59142fb174c194ba52862e363ac
+    keywords:
+    - operator
+    - actor
+    - crd
+    - sidecar
+    - ai
+    maintainers:
+    - name: Asya Team
+    name: asya-operator
+    type: application
+    urls:
+    - https://asya.sh/charts/asya-operator-0.3.0.tgz
+    version: 0.3.0
+generated: "2025-12-15T21:07:52.81229815Z"
