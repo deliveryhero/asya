@@ -220,17 +220,44 @@ time {
   echo
 }
 
-# Run Helm tests
-echo "[.] Running Helm tests..."
-time {
-  cd "$CHARTS_DIR"
-  if ! helmfile -f helmfile.yaml.gotmpl -e "$PROFILE" test --concurrency "$CONCURRENCY"; then
-    echo "[-] Helm tests failed"
-    exit 1
-  fi
-  echo "[+] All Helm tests completed successfully"
+# Run Helm tests (can be disabled with SKIP_HELM_TESTS=true)
+if [ "${SKIP_HELM_TESTS:-false}" = "true" ]; then
+  echo "[!] Skipping Helm tests (SKIP_HELM_TESTS=true)"
   echo
-}
+else
+  echo "[.] Running Helm tests..."
+  time {
+    cd "$CHARTS_DIR"
+
+    # Add timeout and better error handling
+    HELM_TEST_TIMEOUT="${HELM_TEST_TIMEOUT:-300s}"
+    echo "[.] Helm test timeout: $HELM_TEST_TIMEOUT"
+
+    if ! helmfile -f helmfile.yaml.gotmpl -e "$PROFILE" test --concurrency "$CONCURRENCY" --timeout "$HELM_TEST_TIMEOUT" --args --logs 2>&1; then
+      echo "[-] Helm tests failed! Gathering diagnostics..."
+      echo ""
+      echo "=== Test Pod Status ==="
+      kubectl get pods -n "$NAMESPACE" -l 'helm.sh/hook=test' -o wide || true
+      kubectl get pods -n "$SYSTEM_NAMESPACE" -l 'helm.sh/hook=test' -o wide || true
+      echo ""
+      echo "=== Test Pod Logs (namespace: $NAMESPACE) ==="
+      for pod in $(kubectl get pods -n "$NAMESPACE" -l 'helm.sh/hook=test' -o name 2> /dev/null || true); do
+        echo "--- Logs from $pod ---"
+        kubectl logs -n "$NAMESPACE" "$pod" --tail=50 || true
+        echo ""
+      done
+      echo "=== Test Pod Logs (namespace: $SYSTEM_NAMESPACE) ==="
+      for pod in $(kubectl get pods -n "$SYSTEM_NAMESPACE" -l 'helm.sh/hook=test' -o name 2> /dev/null || true); do
+        echo "--- Logs from $pod ---"
+        kubectl logs -n "$SYSTEM_NAMESPACE" "$pod" --tail=50 || true
+        echo ""
+      done
+      exit 1
+    fi
+    echo "[+] All Helm tests completed successfully"
+    echo
+  }
+fi
 
 # Wait for operator to reconcile all AsyncActor CRDs
 echo "[.] Waiting for operator to reconcile AsyncActor CRDs..."
@@ -305,7 +332,18 @@ time {
 }
 echo
 
+# Save operator logs to file for debugging
+LOGS_DIR="$SCRIPT_DIR/../.logs"
+mkdir -p "$LOGS_DIR"
+OPERATOR_LOGS="$LOGS_DIR/operator-$(date +%Y%m%d-%H%M%S).log"
+echo "[.] Saving operator logs to: $OPERATOR_LOGS"
+kubectl logs -n "$SYSTEM_NAMESPACE" -l app.kubernetes.io/name=asya-operator --tail=1000 > "$OPERATOR_LOGS" 2>&1 || true
+echo "[+] Operator logs saved"
+echo
+
 echo "=== Deployment Complete ==="
+echo "Operator logs saved to: $OPERATOR_LOGS"
+echo ""
 echo "Next steps (from the current directory):"
 echo "$ make trigger-tests"
 echo "To just port-forward services, run:"
