@@ -230,29 +230,60 @@ else
     cd "$CHARTS_DIR"
 
     # Add timeout and better error handling
-    HELM_TEST_TIMEOUT="${HELM_TEST_TIMEOUT:-300s}"
-    echo "[.] Helm test timeout: $HELM_TEST_TIMEOUT"
+    HELM_TEST_TIMEOUT="${HELM_TEST_TIMEOUT:-300}"
+    echo "[.] Helm test timeout: ${HELM_TEST_TIMEOUT}s"
 
-    if ! helmfile -f helmfile.yaml.gotmpl -e "$PROFILE" test --concurrency "$CONCURRENCY" --timeout "$HELM_TEST_TIMEOUT" --args --logs 2>&1; then
-      echo "[-] Helm tests failed! Gathering diagnostics..."
-      echo ""
-      echo "=== Test Pod Status ==="
-      kubectl get pods -n "$NAMESPACE" -l 'helm.sh/hook=test' -o wide || true
-      kubectl get pods -n "$SYSTEM_NAMESPACE" -l 'helm.sh/hook=test' -o wide || true
-      echo ""
-      echo "=== Test Pod Logs (namespace: $NAMESPACE) ==="
-      for pod in $(kubectl get pods -n "$NAMESPACE" -l 'helm.sh/hook=test' -o name 2> /dev/null || true); do
-        echo "--- Logs from $pod ---"
-        kubectl logs -n "$NAMESPACE" "$pod" --tail=50 || true
+    TEST_OUTPUT=$(helmfile -f helmfile.yaml.gotmpl -e "$PROFILE" test --concurrency "$CONCURRENCY" --timeout "$HELM_TEST_TIMEOUT" --logs 2>&1) || TEST_EXIT_CODE=$?
+    echo "$TEST_OUTPUT"
+
+    if [ "${TEST_EXIT_CODE:-0}" -ne 0 ]; then
+      if echo "$TEST_OUTPUT" | grep -q "Phase:.*Failed"; then
+        echo "[-] Helm tests failed! Gathering diagnostics..."
         echo ""
-      done
-      echo "=== Test Pod Logs (namespace: $SYSTEM_NAMESPACE) ==="
-      for pod in $(kubectl get pods -n "$SYSTEM_NAMESPACE" -l 'helm.sh/hook=test' -o name 2> /dev/null || true); do
-        echo "--- Logs from $pod ---"
-        kubectl logs -n "$SYSTEM_NAMESPACE" "$pod" --tail=50 || true
+
+        echo "=== Helm Release Status ==="
+        helm list -n "$NAMESPACE" || true
+        helm list -n "$SYSTEM_NAMESPACE" || true
         echo ""
-      done
-      exit 1
+
+        echo "=== All Pods (including completed/failed) ==="
+        kubectl get pods -n "$NAMESPACE" -o wide || true
+        kubectl get pods -n "$SYSTEM_NAMESPACE" -o wide || true
+        echo ""
+
+        echo "=== Recent Events (namespace: $NAMESPACE) ==="
+        kubectl get events -n "$NAMESPACE" --sort-by='.lastTimestamp' | tail -50 || true
+        echo ""
+
+        echo "=== Recent Events (namespace: $SYSTEM_NAMESPACE) ==="
+        kubectl get events -n "$SYSTEM_NAMESPACE" --sort-by='.lastTimestamp' | tail -50 || true
+        echo ""
+
+        echo "=== Test Pod Logs (if still available) ==="
+        for ns in "$NAMESPACE" "$SYSTEM_NAMESPACE"; do
+          for pod in $(kubectl get pods -n "$ns" -l 'helm.sh/hook=test' -o name 2> /dev/null || true); do
+            if kubectl get -n "$ns" "$pod" &> /dev/null; then
+              echo "--- Logs from $pod (namespace: $ns) ---"
+              kubectl logs -n "$ns" "$pod" --tail=100 || true
+              echo ""
+            fi
+          done
+        done
+
+        exit 1
+      elif echo "$TEST_OUTPUT" | grep -q "unable to get pod logs.*pods.*not found"; then
+        echo "[!] Helm test command failed trying to fetch logs from deleted test pods"
+        echo "[.] Checking if all tests actually passed..."
+        if echo "$TEST_OUTPUT" | grep -q "Phase:.*Succeeded" && ! echo "$TEST_OUTPUT" | grep -q "Phase:.*Failed"; then
+          echo "[+] All tests passed (ignoring log fetch errors for deleted pods)"
+        else
+          echo "[-] Unable to determine test status, failing deployment"
+          exit 1
+        fi
+      else
+        echo "[-] Helm tests failed with unexpected error"
+        exit 1
+      fi
     fi
     echo "[+] All Helm tests completed successfully"
     echo
