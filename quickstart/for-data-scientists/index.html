@@ -889,6 +889,16 @@
 <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
     <span class="o">...</span>
 </code></pre></div>
+<p><strong>Using Class Handlers in Flow DSL</strong>: When using the Flow DSL compiler, instantiate classes with default arguments only, then call methods:</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">my_flow</span><span class="p">(</span><span class="n">p</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="c1"># Instantiate with default args only</span>
+    <span class="n">classifier</span> <span class="o">=</span> <span class="n">TextClassifier</span><span class="p">()</span>
+
+    <span class="c1"># Use the instance</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">classifier</span><span class="o">.</span><span class="n">process</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">p</span>
+</code></pre></div>
 <h3 id="pipeline-flow-example">Pipeline Flow Example<a class="headerlink" href="#pipeline-flow-example" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><span class="c1"># Actor 1: preprocessor</span>
 <span class="p">{</span><span class="s2">&quot;text&quot;</span><span class="p">:</span> <span class="s2">&quot;Hello World&quot;</span><span class="p">}</span>
@@ -1085,6 +1095,375 @@ Processing: 100% |████████████████| , succeeded
 <span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">MODEL_NAME</span>
 <span class="w">  </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;resnet50&quot;</span>
 </code></pre></div></p>
+<h2 id="flow-dsl-simplified-pipeline-authoring">Flow DSL: Simplified Pipeline Authoring<a class="headerlink" href="#flow-dsl-simplified-pipeline-authoring" title="Permanent link">&para;</a></h2>
+<p><strong>Use case</strong>: Define multi-actor pipelines in Python instead of manually managing routes and deployments.</p>
+<p>The Flow DSL compiler transforms Python workflow descriptions into router-based actor networks, automating route management and deployment configuration.</p>
+<h3 id="writing-a-flow">Writing a Flow<a class="headerlink" href="#writing-a-flow" title="Permanent link">&para;</a></h3>
+<p>Flows are Python functions that describe how data flows through your pipeline. Each flow becomes a chain of routers with an entrypoint and exitpoint:</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">text_analysis_flow</span><span class="p">(</span><span class="n">p</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="c1"># Flow entrypoint: start_text_analysis_flow</span>
+
+    <span class="c1"># Preprocessing</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">clean_text</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">tokenize</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+
+    <span class="c1"># Conditional analysis (creates router)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="p">[</span><span class="s2">&quot;language&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;en&quot;</span><span class="p">:</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">english_sentiment</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">p</span><span class="p">[</span><span class="s2">&quot;language&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;es&quot;</span><span class="p">:</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">spanish_sentiment</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">p</span><span class="p">[</span><span class="s2">&quot;sentiment&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;neutral&quot;</span>  <span class="c1"># Skip analysis</span>
+
+    <span class="c1"># Enrichment</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">extract_entities</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="n">p</span><span class="p">[</span><span class="s2">&quot;extracted&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="k">return</span> <span class="n">p</span>  <span class="c1"># Flow exitpoint: end_text_analysis_flow</span>
+
+<span class="c1"># Define your handler functions (can be in separate files)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">clean_text</span><span class="p">(</span><span class="n">p</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="o">...</span>
+    <span class="k">return</span> <span class="n">p</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">tokenize</span><span class="p">(</span><span class="n">p</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="o">...</span>
+    <span class="k">return</span> <span class="n">p</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">english_sentiment</span><span class="p">(</span><span class="n">p</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="o">...</span>
+    <span class="k">return</span> <span class="n">p</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">spanish_sentiment</span><span class="p">(</span><span class="n">p</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="o">...</span>
+    <span class="k">return</span> <span class="n">p</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">extract_entities</span><span class="p">(</span><span class="n">p</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="o">...</span>
+    <span class="k">return</span> <span class="n">p</span>
+</code></pre></div>
+<p>See detailed flow syntax in section <a href="#flow-dsl-syntax-summary">below</a>.</p>
+<p><strong>Generated Flow</strong>:</p>
+<p>Each square depicts a separate actor (blue - user actor, yellow-ish - new generated routers, which <strong>modify control-flow graph dynamically</strong> based on conditions on payload <code>p</code>).</p>
+<p>Note, there's no free variables, <strong>all state transfer</strong> happens through payload variable <code>p</code>.</p>
+<p><img alt="text_analysis_flow-plot" src="/docs/img/for-data-scientists-flows/compiled/text_analysis_flow/flow.png" /></p>
+<p><strong>Flow Structure</strong>:
+- <strong>Entrypoint</strong>: <code>start_{flowname}</code> - Generated actor that starts the flow
+- <strong>Routers</strong>: <code>router_{flowname}_line_{N}_{type}</code> - Control flow logic (conditions, mutations)
+- <strong>Exitpoint</strong>: <code>end_{flowname}</code> - Generated actor that completes the flow
+- <strong>Handlers</strong>: Your ML/data processing functions (deployed as separate actors)</p>
+<p><strong>Key Features</strong>:
+- Write in familiar Python syntax
+- Inline payload mutations (<code>p["key"] = value</code>)
+- Conditional routing (<code>if</code>/<code>elif</code>/<code>else</code>)
+- Early returns for validation
+- Automatic router generation
+- Flow visualization</p>
+<h3 id="compiling-flows">Compiling Flows<a class="headerlink" href="#compiling-flows" title="Permanent link">&para;</a></h3>
+<p>Install <code>asya-cli</code> to compile flows:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Install asya-cli</span>
+<span class="c1"># (or: `uv pip install ...`)</span>
+pip<span class="w"> </span>install<span class="w"> </span>git+https://github.com/deliveryhero/asya.git#subdirectory<span class="o">=</span>src/asya-cli
+</code></pre></div>
+<p>Compile your flow:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Basic compilation</span>
+<span class="c1"># (or: uv run asya flow ...)</span>
+asya<span class="w"> </span>flow<span class="w"> </span>compile<span class="w"> </span>text_analysis_flow.py<span class="w"> </span>--output-dir<span class="w"> </span>./compiled/
+
+<span class="c1"># With visualization (requires graphviz for PNG)</span>
+asya<span class="w"> </span>flow<span class="w"> </span>compile<span class="w"> </span>text_analysis_flow.py<span class="w"> </span>--output-dir<span class="w"> </span>./compiled/<span class="w"> </span>--plot
+
+<span class="c1"># Options:</span>
+<span class="c1">#   --verbose, -v              Show verbose output</span>
+<span class="c1">#   --plot                     Generate flow.dot and flow.png</span>
+<span class="c1">#   --plot-width WIDTH         Maximum width for node labels (default: 50)</span>
+<span class="c1">#   --overwrite               Overwrite existing output directory</span>
+<span class="c1">#   --disable-infinite-loop-check  Skip infinite loop detection</span>
+</code></pre></div>
+<p><strong>Generated Files</strong>:
+<div class="highlight"><pre><span></span><code>compiled/
+├── routers.py       # Generated router actors (Python)
+├── flow.dot         # Flow diagram (GraphViz format)
+└── flow.png         # Flow visualization (if --plot enabled)
+</code></pre></div></p>
+<p><strong>Example Output</strong>:
+<div class="highlight"><pre><span></span><code>$ asya flow compile text_analysis_flow.py --output-dir ./compiled/ --plot
+[+] Successfully compiled flow to: compiled/routers.py
+[+] Generated graphviz dot file: compiled/flow.dot
+[+] Generated graphviz png plot: compiled/flow.png
+</code></pre></div></p>
+<h3 id="understanding-generated-routers">Understanding Generated Routers<a class="headerlink" href="#understanding-generated-routers" title="Permanent link">&para;</a></h3>
+<p>The compiler generates control-flow routers from your flow definition. Example from <code>if_else_simple.py</code>:</p>
+<p><strong>Source Flow</strong>:
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">sample_flow</span><span class="p">(</span><span class="n">p</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">handler_setup</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;A&quot;</span><span class="p">:</span>
+        <span class="n">p</span><span class="p">[</span><span class="s2">&quot;branch&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;A&quot;</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">handler_type_a</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">handler_type_b</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+        <span class="n">p</span><span class="p">[</span><span class="s2">&quot;branch&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;B&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">handler_finalize</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span>
+</code></pre></div></p>
+<p><strong>Generated Flow</strong>:</p>
+<p><img alt="sample-flow-plot" src="/docs/img/for-data-scientists-flows/compiled/sample_flow/flow.png" /></p>
+<p><strong>Generated Routers</strong> (see <code>compiled/routers.py</code>):</p>
+<ol>
+<li><strong><code>start_sample_flow</code></strong> - Flow entrypoint, routes to first handler</li>
+<li><strong><code>router_sample_flow_line_3_if</code></strong> - Conditional branching on line 3</li>
+<li><strong><code>router_sample_flow_line_4_seq</code></strong> - Sequential mutations for "A" branch</li>
+<li><strong><code>router_sample_flow_line_8_seq</code></strong> - Sequential mutations for "B" branch</li>
+<li><strong><code>end_sample_flow</code></strong> - Flow exitpoint</li>
+</ol>
+<p><strong>Key Generated Functions</strong>:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Entrypoint - starts the flow</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">start_sample_flow</span><span class="p">(</span><span class="n">envelope</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Entrypoint for flow &#39;sample_flow&#39;&quot;&quot;&quot;</span>
+    <span class="n">r</span> <span class="o">=</span> <span class="n">envelope</span><span class="p">[</span><span class="s1">&#39;route&#39;</span><span class="p">]</span>
+    <span class="n">c</span> <span class="o">=</span> <span class="n">r</span><span class="p">[</span><span class="s1">&#39;current&#39;</span><span class="p">]</span>
+
+    <span class="c1"># Insert first handler and conditional router</span>
+    <span class="n">r</span><span class="p">[</span><span class="s1">&#39;actors&#39;</span><span class="p">][</span><span class="n">c</span><span class="o">+</span><span class="mi">1</span><span class="p">:</span><span class="n">c</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">resolve</span><span class="p">(</span><span class="s2">&quot;handler_setup&quot;</span><span class="p">),</span>
+        <span class="n">resolve</span><span class="p">(</span><span class="s2">&quot;router_sample_flow_line_3_if&quot;</span><span class="p">)</span>
+    <span class="p">]</span>
+    <span class="n">r</span><span class="p">[</span><span class="s1">&#39;current&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">c</span> <span class="o">+</span> <span class="mi">1</span>
+    <span class="k">return</span> <span class="n">envelope</span>
+
+<span class="c1"># Conditional router - branches based on payload</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">router_sample_flow_line_3_if</span><span class="p">(</span><span class="n">envelope</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Router for control flow and payload mutations&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">envelope</span><span class="p">[</span><span class="s1">&#39;payload&#39;</span><span class="p">]</span>
+    <span class="n">r</span> <span class="o">=</span> <span class="n">envelope</span><span class="p">[</span><span class="s1">&#39;route&#39;</span><span class="p">]</span>
+    <span class="n">c</span> <span class="o">=</span> <span class="n">r</span><span class="p">[</span><span class="s1">&#39;current&#39;</span><span class="p">]</span>
+    <span class="n">_next</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="p">[</span><span class="s1">&#39;type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;A&#39;</span><span class="p">:</span>
+        <span class="n">_next</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">resolve</span><span class="p">(</span><span class="s2">&quot;router_sample_flow_line_4_seq&quot;</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">_next</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">resolve</span><span class="p">(</span><span class="s2">&quot;handler_type_b&quot;</span><span class="p">))</span>
+        <span class="n">_next</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">resolve</span><span class="p">(</span><span class="s2">&quot;router_sample_flow_line_8_seq&quot;</span><span class="p">))</span>
+
+    <span class="n">r</span><span class="p">[</span><span class="s1">&#39;actors&#39;</span><span class="p">][</span><span class="n">c</span><span class="o">+</span><span class="mi">1</span><span class="p">:</span><span class="n">c</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">_next</span>
+    <span class="n">r</span><span class="p">[</span><span class="s1">&#39;current&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">c</span> <span class="o">+</span> <span class="mi">1</span>
+    <span class="k">return</span> <span class="n">envelope</span>
+</code></pre></div>
+<h3 id="handler-resolution-system">Handler Resolution System<a class="headerlink" href="#handler-resolution-system" title="Permanent link">&para;</a></h3>
+<p>Generated routers use <code>resolve()</code> to map handler names to actor names via environment variables:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># In generated routers.py</span>
+<span class="n">resolve</span><span class="p">(</span><span class="s2">&quot;handler_setup&quot;</span><span class="p">)</span>  <span class="c1"># Maps to actor name via env vars</span>
+</code></pre></div>
+<p><strong>How it works</strong>:
+1. Routers reference handlers by name: <code>resolve("handler_type_a")</code>
+2. At runtime, <code>resolve()</code> looks up <code>ASYA_HANDLER_{ACTOR_NAME}</code> environment variables
+3. Supports <strong>suffix matching</strong> - use shortest unambiguous suffix:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Environment variable format:</span>
+<span class="nv">ASYA_HANDLER_MY_ACTOR</span><span class="o">=</span><span class="s2">&quot;full.module.path.ClassName.method&quot;</span>
+
+<span class="c1"># All of these work (if unambiguous):</span>
+resolve<span class="o">(</span><span class="s2">&quot;method&quot;</span><span class="o">)</span><span class="w">                              </span><span class="c1"># Shortest suffix</span>
+resolve<span class="o">(</span><span class="s2">&quot;ClassName.method&quot;</span><span class="o">)</span><span class="w">                    </span><span class="c1"># Class + method</span>
+resolve<span class="o">(</span><span class="s2">&quot;module.ClassName.method&quot;</span><span class="o">)</span><span class="w">             </span><span class="c1"># Partial path</span>
+resolve<span class="o">(</span><span class="s2">&quot;full.module.path.ClassName.method&quot;</span><span class="o">)</span><span class="w">   </span><span class="c1"># Full path</span>
+</code></pre></div>
+<p><strong>Example</strong>:
+<div class="highlight"><pre><span></span><code><span class="c1"># Your handler deployments:</span>
+<span class="nv">ASYA_HANDLER_SENTIMENT_EN</span><span class="o">=</span><span class="s2">&quot;sentiment.EnglishSentiment.process&quot;</span>
+<span class="nv">ASYA_HANDLER_SENTIMENT_ES</span><span class="o">=</span><span class="s2">&quot;sentiment.SpanishSentiment.process&quot;</span>
+
+<span class="c1"># In router deployment:</span>
+<span class="nv">ASYA_HANDLER_SENTIMENT_EN</span><span class="o">=</span><span class="s2">&quot;sentiment.EnglishSentiment.process&quot;</span>
+<span class="nv">ASYA_HANDLER_SENTIMENT_ES</span><span class="o">=</span><span class="s2">&quot;sentiment.SpanishSentiment.process&quot;</span>
+
+<span class="c1"># resolve() maps:</span>
+resolve<span class="o">(</span><span class="s2">&quot;EnglishSentiment.process&quot;</span><span class="o">)</span><span class="w"> </span>-&gt;<span class="w"> </span><span class="s2">&quot;sentiment-en&quot;</span>
+resolve<span class="o">(</span><span class="s2">&quot;SpanishSentiment.process&quot;</span><span class="o">)</span><span class="w"> </span>-&gt;<span class="w"> </span><span class="s2">&quot;sentiment-es&quot;</span>
+</code></pre></div></p>
+<h3 id="deployment_1">Deployment<a class="headerlink" href="#deployment_1" title="Permanent link">&para;</a></h3>
+<p>Deploy generated routers and handler actors as regular AsyncActor CRDs.</p>
+<p><strong>Step 1: Build Router Image</strong></p>
+<p>Package compiled routers in a Docker image:</p>
+<div class="highlight"><pre><span></span><code><span class="k">FROM</span><span class="w"> </span><span class="s">python:3.13-slim</span>
+<span class="k">WORKDIR</span><span class="w"> </span><span class="s">/app</span>
+<span class="k">COPY</span><span class="w"> </span>compiled/routers.py<span class="w"> </span>/app/routers.py
+<span class="k">CMD</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;python3&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;-c&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;import routers; print(&#39;Routers loaded&#39;)&quot;</span><span class="p">]</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>docker<span class="w"> </span>build<span class="w"> </span>-t<span class="w"> </span>my-flow-routers:v1<span class="w"> </span>.
+</code></pre></div>
+<p><strong>Step 2: Deploy Router Actors</strong></p>
+<p>⚠️ Automatic generation of deployed charts is coming soon as part of extended functionality to easy deploying any actor by Data Scientists using <code>asya-cli</code> tool.</p>
+<p>Deploy each generated router as an AsyncActor. <strong>IMPORTANT</strong>: Set handler mappings in environment variables:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya.sh/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">AsyncActor</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">start-text-analysis-flow</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">transport</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">sqs</span>
+<span class="w">  </span><span class="nt">workload</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Deployment</span>
+<span class="w">    </span><span class="nt">template</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">spec</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">containers</span><span class="p">:</span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya-runtime</span>
+<span class="w">          </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-flow-routers:v1</span>
+<span class="w">          </span><span class="nt">env</span><span class="p">:</span>
+<span class="w">          </span><span class="c1"># This router&#39;s handler</span>
+<span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_HANDLER</span>
+<span class="w">            </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;routers.start_text_analysis_flow&quot;</span>
+<span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_HANDLER_MODE</span>
+<span class="w">            </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;envelope&quot;</span>
+
+<span class="w">          </span><span class="c1"># Handler-to-actor mappings (for generated `resolve()` function)</span>
+<span class="w">          </span><span class="c1"># User handlers - map function names to deployed actor names</span>
+<span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_HANDLER_CLEAN_TEXT</span>
+<span class="w">            </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;text_handlers.clean_text&quot;</span>
+<span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_HANDLER_TOKENIZE</span>
+<span class="w">            </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;text_handlers.tokenize&quot;</span>
+<span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_HANDLER_ENGLISH_SENTIMENT</span>
+<span class="w">            </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;sentiment.EnglishSentiment.process&quot;</span>
+<span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_HANDLER_SPANISH_SENTIMENT</span>
+<span class="w">            </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;sentiment.SpanishSentiment.process&quot;</span>
+<span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_HANDLER_EXTRACT_ENTITIES</span>
+<span class="w">            </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;nlp.extract_entities&quot;</span>
+
+<span class="w">          </span><span class="c1"># Router handlers - map router function names to deployed actor names</span>
+<span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_HANDLER_ROUTER_TEXT_ANALYSIS_FLOW_LINE_10_IF</span>
+<span class="w">            </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;routers.router_text_analysis_flow_line_10_if&quot;</span>
+<span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_HANDLER_ROUTER_TEXT_ANALYSIS_FLOW_LINE_15_SEQ</span>
+<span class="w">            </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;routers.router_text_analysis_flow_line_15_seq&quot;</span>
+<span class="w">          </span><span class="c1"># ... (add mappings for all generated routers)</span>
+<span class="nn">---</span>
+<span class="c1"># Deploy other routers similarly</span>
+<span class="c1"># All routers share the same handler mappings (user + router functions)</span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya.sh/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">AsyncActor</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">router-text-analysis-flow-line-10-if</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">transport</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">sqs</span>
+<span class="w">  </span><span class="nt">workload</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Deployment</span>
+<span class="w">    </span><span class="nt">template</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">spec</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">containers</span><span class="p">:</span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya-runtime</span>
+<span class="w">          </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-flow-routers:v1</span>
+<span class="w">          </span><span class="nt">env</span><span class="p">:</span>
+<span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_HANDLER</span>
+<span class="w">            </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;routers.router_text_analysis_flow_line_10_if&quot;</span>
+<span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_HANDLER_MODE</span>
+<span class="w">            </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;envelope&quot;</span>
+<span class="w">          </span><span class="c1"># Same handler mappings as above (both user handlers AND router functions)</span>
+<span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_HANDLER_CLEAN_TEXT</span>
+<span class="w">            </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;text_handlers.clean_text&quot;</span>
+<span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_HANDLER_TOKENIZE</span>
+<span class="w">            </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;text_handlers.tokenize&quot;</span>
+<span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_HANDLER_ROUTER_TEXT_ANALYSIS_FLOW_LINE_10_IF</span>
+<span class="w">            </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;routers.router_text_analysis_flow_line_10_if&quot;</span>
+<span class="w">          </span><span class="c1"># ... (repeat all mappings)</span>
+</code></pre></div>
+<p><strong>Step 3: Deploy Handler Actors</strong></p>
+<p>Deploy your ML/data processing handlers as regular actors:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya.sh/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">AsyncActor</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">english-sentiment</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">transport</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">sqs</span>
+<span class="w">  </span><span class="nt">scaling</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">minReplicas</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0</span>
+<span class="w">    </span><span class="nt">maxReplicas</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10</span>
+<span class="w">    </span><span class="nt">queueLength</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5</span>
+<span class="w">  </span><span class="nt">workload</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Deployment</span>
+<span class="w">    </span><span class="nt">template</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">spec</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">containers</span><span class="p">:</span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya-runtime</span>
+<span class="w">          </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-sentiment-model:latest</span>
+<span class="w">          </span><span class="nt">env</span><span class="p">:</span>
+<span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_HANDLER</span>
+<span class="w">            </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;sentiment.EnglishSentiment.process&quot;</span>
+<span class="w">          </span><span class="nt">resources</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">limits</span><span class="p">:</span>
+<span class="w">              </span><span class="nt">nvidia.com/gpu</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span><span class="w">  </span><span class="c1"># GPU for ML models</span>
+</code></pre></div>
+<p><strong>Deployment Tip</strong>: See <code>examples/flows/compiled/</code> for complete examples. Platform teams can automate deployment chart generation (coming soon).</p>
+<h3 id="flow-dsl-syntax-summary">Flow DSL Syntax Summary<a class="headerlink" href="#flow-dsl-syntax-summary" title="Permanent link">&para;</a></h3>
+<p>See <a href="/examples/flows">flow examples</a> and their <a href="/examples/flows/compiled">compiled code</a>.</p>
+<p><strong>Supported</strong>:
+- Actor calls: <code>p = handler(p)</code>
+- Payload mutations: <code>p["key"] = value</code>, <code>p["count"] += 1</code>
+- Conditionals: <code>if</code>/<code>elif</code>/<code>else</code>, nested conditions
+- Early returns: <code>if error: return p</code>
+- Complex expressions: <code>p["result"] = p["x"] + p["y"] * 2</code>
+- Class instantiation: <code>classifier = TextClassifier()</code> (default args only)</p>
+<p><strong>Not Supported</strong> (use envelope mode instead):
+- Loops (<code>for</code>, <code>while</code>)
+- Custom routing logic
+- Multiple assignments: <code>p, q = handler(p)</code>
+- Non-default constructor arguments</p>
+<p><strong>Class Handler Example in Flows</strong>:
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">my_flow</span><span class="p">(</span><span class="n">p</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="c1"># Instantiate with default args only</span>
+    <span class="n">classifier</span> <span class="o">=</span> <span class="n">TextClassifier</span><span class="p">()</span>
+
+    <span class="c1"># Use instance</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">classifier</span><span class="o">.</span><span class="n">process</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">p</span>
+</code></pre></div></p>
+<h3 id="when-to-use-flow-dsl">When to Use Flow DSL<a class="headerlink" href="#when-to-use-flow-dsl" title="Permanent link">&para;</a></h3>
+<p>✅ <strong>Good for</strong>:
+- Linear pipelines with branching
+- Data enrichment workflows
+- Preprocessing → Model → Postprocessing patterns
+- Validation and conditional processing
+- ML inference pipelines</p>
+<p>❌ <strong>Not suitable for</strong>:
+- Dynamic routing based on state outside of <code>p</code> (need to implement branching inside your actor in envelope mode)
+- Iterative processing (loops support coming soon)</p>
+<h3 id="complete-example-ml-pipeline">Complete Example: ML Pipeline<a class="headerlink" href="#complete-example-ml-pipeline" title="Permanent link">&para;</a></h3>
+<p><strong>Write Flow</strong> (<code>ml_pipeline_flow.py</code>):</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">ml_pipeline_flow</span><span class="p">(</span><span class="n">p</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="c1"># Validation</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">validate_input</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;valid&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+        <span class="n">p</span><span class="p">[</span><span class="s2">&quot;error&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;Invalid input&quot;</span>
+        <span class="k">return</span> <span class="n">p</span>  <span class="c1"># Early exit to end_ml_pipeline_flow</span>
+
+    <span class="c1"># Preprocessing</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">normalize_data</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">extract_features</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="n">p</span><span class="p">[</span><span class="s2">&quot;preprocessed&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="c1"># Model selection</span>
+    <span class="k">if</span> <span class="n">p</span><span class="p">[</span><span class="s2">&quot;model_type&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;fast&quot;</span><span class="p">:</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">lightweight_model</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">p</span><span class="p">[</span><span class="s2">&quot;model_type&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;accurate&quot;</span><span class="p">:</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">deep_model</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">p</span><span class="p">[</span><span class="s2">&quot;error&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;Unknown model type&quot;</span>
+        <span class="k">return</span> <span class="n">p</span>
+
+    <span class="c1"># Postprocessing</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">format_results</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="n">p</span><span class="p">[</span><span class="s2">&quot;pipeline_complete&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="k">return</span> <span class="n">p</span>
+</code></pre></div>
+<p><strong>Compile</strong>:
+<div class="highlight"><pre><span></span><code>asya<span class="w"> </span>flow<span class="w"> </span>compile<span class="w"> </span>ml_pipeline_flow.py<span class="w"> </span>--output-dir<span class="w"> </span>./compiled/<span class="w"> </span>--plot
+</code></pre></div></p>
+<p><strong>Generated Routers</strong>:
+- <code>start_ml_pipeline_flow</code> - Entry router
+- <code>router_ml_pipeline_flow_line_4_if</code> - Validation check
+- <code>router_ml_pipeline_flow_line_13_if</code> - Model selection
+- <code>end_ml_pipeline_flow</code> - Exit router</p>
+<p><strong>Visualize</strong>: Open <code>compiled/flow.png</code> to see the control flow diagram.</p>
+<p><strong>Deploy</strong>: Package routers and handlers, deploy as AsyncActor CRDs (see <code>examples/flows/compiled/README.md</code> for complete deployment examples).</p>
+<p>See <a href="../../architecture/asya-flow/">Flow Compiler Architecture</a> for complete documentation and <code>examples/flows/</code> for more flow examples.</p>
 <h2 id="advanced-envelope-mode-dynamic-routing">Advanced: Envelope Mode (Dynamic Routing)<a class="headerlink" href="#advanced-envelope-mode-dynamic-routing" title="Permanent link">&para;</a></h2>
 <p><strong>Use case</strong>: AI agents, LLM judges, conditional routing based on model outputs.</p>
 <p>Envelope mode gives you full control over the routing structure:</p>
@@ -1542,6 +1921,64 @@ kubectl<span class="w"> </span>logs<span class="w"> </span>-f<span class="w"> </
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="3">
             Image Classification
+        </a>
+        
+        
+
+        
+        <a href="#flow-dsl-simplified-pipeline-authoring"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Flow DSL: Simplified Pipeline Authoring
+        </a>
+        
+        
+        <a href="#writing-a-flow"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Writing a Flow
+        </a>
+        
+        <a href="#compiling-flows"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Compiling Flows
+        </a>
+        
+        <a href="#understanding-generated-routers"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Understanding Generated Routers
+        </a>
+        
+        <a href="#handler-resolution-system"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Handler Resolution System
+        </a>
+        
+        <a href="#deployment_1"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Deployment
+        </a>
+        
+        <a href="#flow-dsl-syntax-summary"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Flow DSL Syntax Summary
+        </a>
+        
+        <a href="#when-to-use-flow-dsl"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            When to Use Flow DSL
+        </a>
+        
+        <a href="#complete-example-ml-pipeline"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Complete Example: ML Pipeline
         </a>
         
         
