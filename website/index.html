@@ -84,6 +84,22 @@
             color: var(--text-primary);
         }
 
+        .theme-icon-light {
+            display: block;
+        }
+
+        .theme-icon-dark {
+            display: none;
+        }
+
+        body.dark-mode .theme-icon-light {
+            display: none;
+        }
+
+        body.dark-mode .theme-icon-dark {
+            display: block;
+        }
+
         .container {
             max-width: 900px;
             margin: 0 auto;
@@ -273,13 +289,22 @@
 </head>
 <body>
     <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">
-        <svg xmlns="http://www.w3.org/2000/svg" class="theme-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <!-- Light mode icon (shown in light mode) -->
+        <svg xmlns="http://www.w3.org/2000/svg" class="theme-icon-light" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
             <path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0"></path>
             <path d="M12 3l0 18"></path>
             <path d="M12 9l4.65 -4.65"></path>
             <path d="M12 14.3l7.37 -7.37"></path>
             <path d="M12 19.6l8.85 -8.85"></path>
+        </svg>
+        <!-- Dark mode icon (shown in dark mode) -->
+        <svg xmlns="http://www.w3.org/2000/svg" class="theme-icon-dark" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0"></path>
+            <path d="M12 3v18"></path>
+            <path d="M12 14.3l-7.37 -7.37"></path>
+            <path d="M12 19.6l-8.85 -8.85"></path>
         </svg>
     </button>
 
@@ -344,43 +369,30 @@
         const themeToggle = document.getElementById('themeToggle');
         const body = document.body;
 
-        // SVG icons
-        const lightModeIcon = `<svg xmlns="http://www.w3.org/2000/svg" class="theme-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-            <path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0"></path>
-            <path d="M12 3l0 18"></path>
-            <path d="M12 9l4.65 -4.65"></path>
-            <path d="M12 14.3l7.37 -7.37"></path>
-            <path d="M12 19.6l8.85 -8.85"></path>
-        </svg>`;
+        function applyTheme(theme) {
+            if (theme === 'dark') {
+                body.classList.add('dark-mode');
+            } else {
+                body.classList.remove('dark-mode');
+            }
+        }
 
-        const darkModeIcon = `<svg xmlns="http://www.w3.org/2000/svg" class="theme-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-            <path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0"></path>
-            <path d="M12 3v18"></path>
-            <path d="M12 14.3l-7.37 -7.37"></path>
-            <path d="M12 19.6l-8.85 -8.85"></path>
-        </svg>`;
-
-        // Check for saved theme preference or default to light mode
-        const currentTheme = localStorage.getItem('theme') || 'light';
-        if (currentTheme === 'dark') {
-            body.classList.add('dark-mode');
-            themeToggle.innerHTML = darkModeIcon;
+        function initializeTheme() {
+            let theme = localStorage.getItem('theme');
+            if (!theme) {
+                // If no theme is stored, use the system preference.
+                theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+            }
+            applyTheme(theme);
         }
 
         themeToggle.addEventListener('click', () => {
-            body.classList.toggle('dark-mode');
-
-            // Update icon and save preference
-            if (body.classList.contains('dark-mode')) {
-                themeToggle.innerHTML = darkModeIcon;
-                localStorage.setItem('theme', 'dark');
-            } else {
-                themeToggle.innerHTML = lightModeIcon;
-                localStorage.setItem('theme', 'light');
-            }
+            const newTheme = body.classList.contains('dark-mode') ? 'light' : 'dark';
+            applyTheme(newTheme);
+            localStorage.setItem('theme', newTheme);
         });
+
+        initializeTheme();
     </script>
 </body>
 </html>
