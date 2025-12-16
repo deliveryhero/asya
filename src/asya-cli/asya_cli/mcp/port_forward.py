@@ -138,6 +138,8 @@ def start_port_forward(
     cmd = [
         "kubectl",
         "port-forward",
+        "--address",
+        "127.0.0.1",
         "-n",
         namespace,
         "--pod-running-timeout=5m",

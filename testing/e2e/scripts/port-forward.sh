@@ -71,7 +71,7 @@ start_port_forwards() {
       echo "    PID: $EXISTING_S3"
     else
       pkill -f "kubectl port-forward.*svc/localstack-s3" 2> /dev/null || true
-      nohup kubectl port-forward -n "$SYSTEM_NAMESPACE" svc/localstack-s3 $S3_LOCAL_PORT:4566 > /dev/null 2>&1 &
+      nohup kubectl port-forward --address 127.0.0.1 -n "$SYSTEM_NAMESPACE" svc/localstack-s3 $S3_LOCAL_PORT:4566 > /dev/null 2>&1 &
       PF_S3=$!
       echo "[+] S3 port-forward started (localhost:$S3_LOCAL_PORT)"
       echo "    PID: $PF_S3"
@@ -86,7 +86,7 @@ start_port_forwards() {
       echo "    PID: $EXISTING_SQS"
     else
       pkill -f "kubectl port-forward.*svc/localstack-sqs" 2> /dev/null || true
-      nohup kubectl port-forward -n "$SYSTEM_NAMESPACE" svc/localstack-sqs 4566:4566 > /dev/null 2>&1 &
+      nohup kubectl port-forward --address 127.0.0.1 -n "$SYSTEM_NAMESPACE" svc/localstack-sqs 4566:4566 > /dev/null 2>&1 &
       PF_SQS=$!
       echo "[+] SQS port-forward started (localhost:4566)"
       echo "    PID: $PF_SQS"
@@ -101,7 +101,7 @@ start_port_forwards() {
       echo "    PID: $EXISTING_RABBITMQ"
     else
       pkill -f "kubectl port-forward.*svc/asya-rabbitmq" 2> /dev/null || true
-      nohup kubectl port-forward -n "$NAMESPACE" svc/asya-rabbitmq 5672:5672 > /dev/null 2>&1 &
+      nohup kubectl port-forward --address 127.0.0.1 -n "$NAMESPACE" svc/asya-rabbitmq 5672:5672 > /dev/null 2>&1 &
       PF_RABBITMQ=$!
       echo "[+] RabbitMQ port-forward started (localhost:5672 AMQP)"
       echo "    PID: $PF_RABBITMQ"
@@ -116,7 +116,7 @@ start_port_forwards() {
       echo "    PID: $EXISTING_MINIO"
     else
       pkill -f "kubectl port-forward.*svc/minio" 2> /dev/null || true
-      nohup kubectl port-forward -n "$NAMESPACE" svc/minio 9000:9000 > /dev/null 2>&1 &
+      nohup kubectl port-forward --address 127.0.0.1 -n "$NAMESPACE" svc/minio 9000:9000 > /dev/null 2>&1 &
       PF_MINIO=$!
       echo "[+] MinIO port-forward started (localhost:9000)"
       echo "    PID: $PF_MINIO"

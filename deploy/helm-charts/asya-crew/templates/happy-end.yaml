@@ -25,8 +25,8 @@ spec:
       spec:
         containers:
         - name: asya-runtime
-          image: {{ $happyEnd.workload.template.spec.containers | first | dig "image" "asya-crew:latest" }}
-          imagePullPolicy: {{ $happyEnd.workload.template.spec.containers | first | dig "imagePullPolicy" "IfNotPresent" }}
+          image: {{ (index $happyEnd.workload.template.spec.containers 0).image | default "ghcr.io/deliveryhero/asya-crew:latest" }}
+          imagePullPolicy: {{ (index $happyEnd.workload.template.spec.containers 0).imagePullPolicy | default "IfNotPresent" }}
           env:
           - name: ASYA_HANDLER_MODE
             value: envelope
