@@ -77,8 +77,10 @@ kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=localstack \
 
 Install `AsyncActor` CRD:
 
+<!-- TODO: fix CRD release instead:
+kubectl apply -f https://github.com/deliveryhero/asya/releases/latest/download/asya-crds.yaml
+-->
 ```bash
-# kubectl apply -f https://github.com/deliveryhero/asya/releases/latest/download/asya-crds.yaml
 kubectl apply -f https://raw.githubusercontent.com/deliveryhero/asya/refs/heads/main/src/asya-operator/config/crd/asya.sh_asyncactors.yaml
 ```
 
@@ -86,6 +88,7 @@ Add Helm repository:
 
 ```bash
 helm repo add asya https://asya.sh/charts
+#helm repo update  # to re-download repos
 ```
 
 Create AWS credentials secret:
@@ -136,7 +139,7 @@ kubectl -n asya-system get po -l app.kubernetes.io/name=asya-operator
 
 In order to debug 🎭 behavior (e.g. if scaling doesn't work), it's good to check operator logs:
 ```bash
-kubectl -n asya-system logs -f -l app.kubernetes.io/name=asya-operator
+kubectl -n asya-system logs -l app.kubernetes.io/name=asya-operator
 ```
 
 ### 4. Deploy Your First Actor
@@ -202,15 +205,15 @@ spec:
 EOF
 
 kubectl apply -f hello-actor.yaml
-```
 
-Check status:
-
-```bash
-kubectl get asyncactor
-kubectl get deployment -l asya.sh/actor=hello
-kubectl get scaledobjects
+kubectl get asya
+# NAME    STATUS    RUNNING   FAILING   TOTAL   DESIRED   MIN   MAX   LAST-SCALE   AGE
+# hello   Napping   0         0         0       0         0     5     -            6s
 ```
+<!-- # kubectl get deployment -l asya.sh/actor=hello -->
+
+The state `Napping` means the actor is healthy but scaled to `0` replicas. Read more on actor states[here](/docs/architecture/asya-operator.md#status-values).
+
 
 ## Add S3 Storage (Optional)
 
@@ -384,9 +387,9 @@ helm upgrade asya-operator asya/asya-operator \
 ### 5. Update Crew for Gateway Reporting
 
 ```bash
-cat >> crew-values.yaml <<'EOF'
-
+cat > crew-values.yaml <<EOF
 happy-end:
+  transport: sqs
   workload:
     template:
       spec:
@@ -395,8 +398,19 @@ happy-end:
           env:
           - name: ASYA_GATEWAY_URL
             value: "http://asya-gateway.asya-system.svc.cluster.local:8080"
+          - name: ASYA_S3_BUCKET
+            value: "asya-results"
+          - name: ASYA_S3_ENDPOINT
+            value: "http://localstack.asya-system.svc.cluster.local:4566"
+          - name: ASYA_S3_REGION
+            value: "us-east-1"
+          - name: AWS_ACCESS_KEY_ID
+            value: "test"
+          - name: AWS_SECRET_ACCESS_KEY
+            value: "test"
 
 error-end:
+  transport: sqs
   workload:
     template:
       spec:
@@ -405,6 +419,16 @@ error-end:
           env:
           - name: ASYA_GATEWAY_URL
             value: "http://asya-gateway.asya-system.svc.cluster.local:8080"
+          - name: ASYA_S3_BUCKET
+            value: "asya-errors"
+          - name: ASYA_S3_ENDPOINT
+            value: "http://localstack.asya-system.svc.cluster.local:4566"
+          - name: ASYA_S3_REGION
+            value: "us-east-1"
+          - name: AWS_ACCESS_KEY_ID
+            value: "test"
+          - name: AWS_SECRET_ACCESS_KEY
+            value: "test"
 EOF
 
 helm upgrade asya-crew asya/asya-crew \
@@ -515,22 +539,21 @@ For production on AWS, replace LocalStack with real AWS services:
 
 ```yaml
 # operator-values.yaml for production
-operator:
-  transports:
-    sqs:
-      enabled: true
-      type: sqs
-      config:
-        region: us-east-1
-        accountId: "123456789012"
-        # Remove endpoint for production AWS
-        actorRoleArn: "arn:aws:iam::123456789012:role/asya-actor-role"
-        queues:
-          autoCreate: true
-          dlq:
-            enabled: true
-            maxRetryCount: 3
-        # Use IRSA instead of static credentials
+transports:
+  sqs:
+    enabled: true
+    type: sqs
+    config:
+      region: us-east-1
+      accountId: "123456789012"
+      # Remove endpoint for production AWS
+      actorRoleArn: "arn:aws:iam::123456789012:role/asya-actor-role"
+      queues:
+        autoCreate: true
+        dlq:
+          enabled: true
+          maxRetryCount: 3
+      # Use IRSA instead of static credentials
 ```
 
 See [AWS EKS Installation](../install/aws-eks.md) for full production guide.
