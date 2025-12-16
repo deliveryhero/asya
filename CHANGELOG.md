@@ -8,6 +8,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 
+## [0.3.2] - 2025-12-16
+
+## Changes
+- ci: Fix CRD upload on release (#70)
+
+
+## Docker Images
+
+All images are published to GitHub Container Registry:
+
+- `ghcr.io/deliveryhero/asya-operator:0.3.2`
+- `ghcr.io/deliveryhero/asya-gateway:0.3.2`
+- `ghcr.io/deliveryhero/asya-sidecar:0.3.2`
+- `ghcr.io/deliveryhero/asya-crew:0.3.2`
+- `ghcr.io/deliveryhero/asya-testing:0.3.2`
+
+## Contributors
+
+@atemate, @github-actions[bot] and [github-actions[bot]](https://github.com/apps/github-actions)
+
+
+
+## [Unreleased]
+
+
 ## [0.3.1] - 2025-12-16
 
 ## Major Changes
@@ -228,6 +253,9 @@ All images are published to GitHub Container Registry:
 [0.3.0]: https://github.com/deliveryhero/asya/releases/tag/v0.3.0
 
 
-[Unreleased]: https://github.com/deliveryhero/asya/compare/v0.3.1...HEAD
 [0.3.1]: https://github.com/deliveryhero/asya/releases/tag/v0.3.1
+
+
+[Unreleased]: https://github.com/deliveryhero/asya/compare/v0.3.2...HEAD
+[0.3.2]: https://github.com/deliveryhero/asya/releases/tag/v0.3.2
 
