@@ -256,6 +256,15 @@ h1, h2, h3, h4, h5, h6 {
   color: #b4b8c0 !important;
 }
 
+/* Fix sidebar spacing - prevent left menu from touching screen edge */
+[data-slot="sidebar"] {
+  padding-left: 1rem;
+}
+
+[data-slot="sidebar-content"] {
+  padding-left: 0.5rem;
+}
+
 /* Buttons */
 .btn-primary {
   background-color: #3498db;
