@@ -5,14 +5,14 @@
   --bg-primary: #fafafa;
   --bg-secondary: white;
   --bg-tertiary: #f8f8f8;
-  --bg-code: #2d2d2d;
+  --bg-code: #f8f9fa;
 
   /* Text colors */
   --text-primary: #1a1a1a;
   --text-secondary: #4a4a4a;
   --text-tertiary: #666;
   --text-muted: #999;
-  --text-code: #e5e5e5;
+  --text-code: #24292e;
   --text-code-inline: #c7254e;
   --bg-code-inline: #f9f2f4;
 
@@ -60,8 +60,6 @@ body.dark {
 
 /* Base styles */
 * {
-  margin: 0;
-  padding: 0;
   box-sizing: border-box;
 }
 
@@ -84,6 +82,11 @@ pre {
   font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
   font-size: 0.875rem;
   line-height: 1.5;
+}
+
+/* Ensure code blocks have proper text color in both modes */
+pre, .code-block {
+  color: var(--text-code);
 }
 
 /* Inline code */
@@ -118,4 +121,19 @@ a:focus {
 h1, h2, h3, h4, h5, h6 {
   color: var(--text-primary);
   font-weight: 600;
+}
+
+/* Terminal/command-style code blocks - always dark background */
+.code-block-terminal,
+.code-block-command {
+  background-color: #2d2d2d !important;
+  color: #e5e5e5 !important;
+  border: 1px solid #404040 !important;
+}
+
+body.dark .code-block-terminal,
+body.dark .code-block-command {
+  background-color: #1e1e1e !important;
+  color: #d4d4d4 !important;
+  border: 1px solid #3a3a3a !important;
 }

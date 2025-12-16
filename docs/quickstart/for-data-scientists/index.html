@@ -848,8 +848,6 @@
     <span class="p">}</span>
 </code></pre></div>
 <p><strong>That's it.</strong> No infrastructure code, no decorators, no pip dependencies for queues/routing.</p>
-<h2 id="mutating-payloads">Mutating Payloads<a class="headerlink" href="#mutating-payloads" title="Permanent link">&para;</a></h2>
-<p><strong>Pattern</strong>: Each actor enriches the payload by adding its own fields. The enriched payload flows to the next actor.</p>
 <h3 id="function-handler">Function Handler<a class="headerlink" href="#function-handler" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><span class="c1"># preprocessor.py</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">process</span><span class="p">(</span><span class="n">payload</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
@@ -899,41 +897,14 @@
 
     <span class="k">return</span> <span class="n">p</span>
 </code></pre></div>
-<h3 id="pipeline-flow-example">Pipeline Flow Example<a class="headerlink" href="#pipeline-flow-example" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><span class="c1"># Actor 1: preprocessor</span>
-<span class="p">{</span><span class="s2">&quot;text&quot;</span><span class="p">:</span> <span class="s2">&quot;Hello World&quot;</span><span class="p">}</span>
-<span class="err">→</span> <span class="p">{</span><span class="s2">&quot;text&quot;</span><span class="p">:</span> <span class="s2">&quot;Hello World&quot;</span><span class="p">,</span> <span class="s2">&quot;cleaned_text&quot;</span><span class="p">:</span> <span class="s2">&quot;hello world&quot;</span><span class="p">,</span> <span class="s2">&quot;word_count&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">}</span>
-
-<span class="c1"># Actor 2: classifier</span>
-<span class="p">{</span><span class="s2">&quot;text&quot;</span><span class="p">:</span> <span class="s2">&quot;Hello World&quot;</span><span class="p">,</span> <span class="s2">&quot;cleaned_text&quot;</span><span class="p">:</span> <span class="s2">&quot;hello world&quot;</span><span class="p">,</span> <span class="s2">&quot;word_count&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">}</span>
-<span class="err">→</span> <span class="p">{</span><span class="s2">&quot;text&quot;</span><span class="p">:</span> <span class="s2">&quot;Hello World&quot;</span><span class="p">,</span> <span class="s2">&quot;cleaned_text&quot;</span><span class="p">:</span> <span class="s2">&quot;hello world&quot;</span><span class="p">,</span> <span class="s2">&quot;word_count&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span> <span class="s2">&quot;category&quot;</span><span class="p">:</span> <span class="s2">&quot;greeting&quot;</span><span class="p">,</span> <span class="s2">&quot;confidence&quot;</span><span class="p">:</span> <span class="mf">0.95</span><span class="p">}</span>
-
-<span class="c1"># Actor 3: translator</span>
-<span class="p">{</span><span class="s2">&quot;text&quot;</span><span class="p">:</span> <span class="s2">&quot;Hello World&quot;</span><span class="p">,</span> <span class="o">...</span><span class="p">,</span> <span class="s2">&quot;category&quot;</span><span class="p">:</span> <span class="s2">&quot;greeting&quot;</span><span class="p">,</span> <span class="s2">&quot;confidence&quot;</span><span class="p">:</span> <span class="mf">0.95</span><span class="p">}</span>
-<span class="err">→</span> <span class="p">{</span><span class="s2">&quot;text&quot;</span><span class="p">:</span> <span class="s2">&quot;Hello World&quot;</span><span class="p">,</span> <span class="o">...</span><span class="p">,</span> <span class="s2">&quot;category&quot;</span><span class="p">:</span> <span class="s2">&quot;greeting&quot;</span><span class="p">,</span> <span class="s2">&quot;confidence&quot;</span><span class="p">:</span> <span class="mf">0.95</span><span class="p">,</span> <span class="s2">&quot;translation&quot;</span><span class="p">:</span> <span class="s2">&quot;Hola Mundo&quot;</span><span class="p">}</span>
-</code></pre></div>
-<p>Each actor adds its own fields, preserving all previous work.</p>
-<h3 id="fan-out-pattern">Fan-Out Pattern<a class="headerlink" href="#fan-out-pattern" title="Permanent link">&para;</a></h3>
-<p>Return a list to create multiple envelopes for parallel processing:</p>
-<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">process</span><span class="p">(</span><span class="n">payload</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
-    <span class="c1"># Split text into chunks</span>
-    <span class="n">chunks</span> <span class="o">=</span> <span class="n">payload</span><span class="p">[</span><span class="s2">&quot;text&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
-
-    <span class="c1"># Each chunk becomes a separate envelope</span>
-    <span class="k">return</span> <span class="p">[</span>
-        <span class="p">{</span><span class="o">**</span><span class="n">payload</span><span class="p">,</span> <span class="s2">&quot;chunk_id&quot;</span><span class="p">:</span> <span class="n">i</span><span class="p">,</span> <span class="s2">&quot;chunk_text&quot;</span><span class="p">:</span> <span class="n">chunk</span><span class="p">}</span>
-        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">chunks</span><span class="p">)</span>
-    <span class="p">]</span>
-</code></pre></div>
-<p><strong>Result</strong>: Sidecar creates multiple envelopes (one per list item), routes each to the next actor in parallel.</p>
-<h3 id="abort-pattern">Abort Pattern<a class="headerlink" href="#abort-pattern" title="Permanent link">&para;</a></h3>
-<p>Return <code>None</code> or <code>[]</code> to stop pipeline execution:</p>
+<h3 id="abort-execution">Abort Execution<a class="headerlink" href="#abort-execution" title="Permanent link">&para;</a></h3>
+<p>If an actor needs to stop processing of current payload, it should return <code>None</code>:</p>
 <div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">process</span><span class="p">(</span><span class="n">payload</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
     <span class="c1"># Skip processing if already done</span>
     <span class="k">if</span> <span class="n">payload</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;already_processed&quot;</span><span class="p">):</span>
         <span class="k">return</span> <span class="kc">None</span>  <span class="c1"># Routes to happy-end, no further processing</span>
 
-    <span class="c1"># Normal processing</span>
+    <span class="c1"># Normal processing - sent to the next actor</span>
     <span class="k">return</span> <span class="p">{</span><span class="o">**</span><span class="n">payload</span><span class="p">,</span> <span class="s2">&quot;result&quot;</span><span class="p">:</span> <span class="s2">&quot;...&quot;</span><span class="p">}</span>
 </code></pre></div>
 <h2 id="local-development">Local Development<a class="headerlink" href="#local-development" title="Permanent link">&para;</a></h2>
@@ -949,7 +920,7 @@
 </code></pre></div>
 <h3 id="2-test-locally">2. Test Locally<a class="headerlink" href="#2-test-locally" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><span class="c1"># test_handler.py</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">text_processor</span><span class="w"> </span><span class="kn">import</span> <span class="n">process</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">src.text_processor</span><span class="w"> </span><span class="kn">import</span> <span class="n">process</span>
 
 <span class="n">payload</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;text&quot;</span><span class="p">:</span> <span class="s2">&quot;hello world&quot;</span><span class="p">,</span> <span class="s2">&quot;request_id&quot;</span><span class="p">:</span> <span class="s2">&quot;123&quot;</span><span class="p">}</span>
 <span class="n">result</span> <span class="o">=</span> <span class="n">process</span><span class="p">(</span><span class="n">payload</span><span class="p">)</span>
@@ -962,7 +933,7 @@
 </code></pre></div>
 <p><strong>No infrastructure needed for testing</strong> - pure Python functions.</p>
 <h3 id="3-package-in-docker">3. Package in Docker<a class="headerlink" href="#3-package-in-docker" title="Permanent link">&para;</a></h3>
-<p>CI/CD is out of scope of Asya🎭 framework - ask your platform team for support.</p>
+<p>Note: CI/CD is out of scope of Asya🎭 framework - ask your platform team for support. For now let's assume that your code can be built into docker images, which are accessible by the Kubernetes cluster.</p>
 <div class="highlight"><pre><span></span><code><span class="k">FROM</span><span class="w"> </span><span class="s">python:3.13-slim</span>
 
 <span class="k">WORKDIR</span><span class="w"> </span><span class="s">/app</span>
@@ -971,12 +942,13 @@
 <span class="c"># Install dependencies (if any)</span>
 <span class="c"># RUN pip install --no-cache-dir torch transformers</span>
 
-<span class="k">CMD</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;python3&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;-c&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;import text_processor; print(&#39;Handler loaded&#39;)&quot;</span><span class="p">]</span>
+<span class="k">CMD</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;python3&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;-c&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;import src.text_processor; print(&#39;Handler loaded&#39;)&quot;</span><span class="p">]</span>
 </code></pre></div>
 <div class="highlight"><pre><span></span><code>docker<span class="w"> </span>build<span class="w"> </span>-t<span class="w"> </span>my-processor:v1<span class="w"> </span>.
 </code></pre></div>
 <h2 id="deployment">Deployment<a class="headerlink" href="#deployment" title="Permanent link">&para;</a></h2>
 <p>Platform team provides cluster access. Your code will be deployed as <code>AsyncActor</code> CRD.</p>
+<p>⚠️ We're planning to support via a CLI tool to easy deploy, debug and maybe even build actors to Kubernetes.</p>
 <details>
 <summary>Click to see AsyncActor YAML (usually managed by platform team)</summary>
 
@@ -999,9 +971,9 @@
 <span class="w">          </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-processor:v1</span>
 <span class="w">          </span><span class="nt">env</span><span class="p">:</span>
 <span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_HANDLER</span>
-<span class="w">            </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;text_processor.process&quot;</span><span class="w">  </span><span class="c1"># module.function</span>
+<span class="w">            </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;src.text_processor.process&quot;</span><span class="w">  </span><span class="c1"># module.function</span>
 <span class="w">          </span><span class="c1"># For class handlers:</span>
-<span class="w">          </span><span class="c1"># value: &quot;text_processor.TextProcessor.process&quot;  # module.Class.method</span>
+<span class="w">          </span><span class="c1"># value: &quot;src.text_processor.TextProcessor.process&quot;  # module.Class.method</span>
 </code></pre></div>
 
 </details>
@@ -1061,6 +1033,7 @@ Processing: 100% |████████████████| , succeeded
 </code></pre></div>
 <p><strong>Deployment</strong>:
 <div class="highlight"><pre><span></span><code><span class="nt">env</span><span class="p">:</span>
+
 <span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_HANDLER</span>
 <span class="w">  </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;llm_inference.LLMInference.process&quot;</span>
 <span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">MODEL_PATH</span>
@@ -1090,6 +1063,7 @@ Processing: 100% |████████████████| , succeeded
 <span class="w">  </span><span class="nt">limits</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">nvidia.com/gpu</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
 <span class="nt">env</span><span class="p">:</span>
+
 <span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_HANDLER</span>
 <span class="w">  </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;image_classifier.ImageClassifier.process&quot;</span>
 <span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">MODEL_NAME</span>
@@ -1147,18 +1121,22 @@ Processing: 100% |████████████████| , succeeded
 <p>Each square depicts a separate actor (blue - user actor, yellow-ish - new generated routers, which <strong>modify control-flow graph dynamically</strong> based on conditions on payload <code>p</code>).</p>
 <p>Note, there's no free variables, <strong>all state transfer</strong> happens through payload variable <code>p</code>.</p>
 <p><img alt="text_analysis_flow-plot" src="/docs/img/for-data-scientists-flows/compiled/text_analysis_flow/flow.png" /></p>
-<p><strong>Flow Structure</strong>:
-- <strong>Entrypoint</strong>: <code>start_{flowname}</code> - Generated actor that starts the flow
-- <strong>Routers</strong>: <code>router_{flowname}_line_{N}_{type}</code> - Control flow logic (conditions, mutations)
-- <strong>Exitpoint</strong>: <code>end_{flowname}</code> - Generated actor that completes the flow
-- <strong>Handlers</strong>: Your ML/data processing functions (deployed as separate actors)</p>
-<p><strong>Key Features</strong>:
-- Write in familiar Python syntax
-- Inline payload mutations (<code>p["key"] = value</code>)
-- Conditional routing (<code>if</code>/<code>elif</code>/<code>else</code>)
-- Early returns for validation
-- Automatic router generation
-- Flow visualization</p>
+<p><strong>Flow Structure</strong>:</p>
+<ul>
+<li><strong>Entrypoint</strong>: <code>start_{flowname}</code> - Generated actor that starts the flow</li>
+<li><strong>Routers</strong>: <code>router_{flowname}_line_{N}_{type}</code> - Control flow logic (conditions, mutations)</li>
+<li><strong>Exitpoint</strong>: <code>end_{flowname}</code> - Generated actor that completes the flow</li>
+<li><strong>Handlers</strong>: Your ML/data processing functions (deployed as separate actors)</li>
+</ul>
+<p><strong>Key Features</strong>:</p>
+<ul>
+<li>Write in familiar Python syntax</li>
+<li>Inline payload mutations (<code>p["key"] = value</code>)</li>
+<li>Conditional routing (<code>if</code>/<code>elif</code>/<code>else</code>)</li>
+<li>Early returns for validation</li>
+<li>Automatic router generation</li>
+<li>Flow visualization</li>
+</ul>
 <h3 id="compiling-flows">Compiling Flows<a class="headerlink" href="#compiling-flows" title="Permanent link">&para;</a></h3>
 <p>Install <code>asya-cli</code> to compile flows:</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># Install asya-cli</span>
@@ -1392,18 +1370,22 @@ resolve<span class="o">(</span><span class="s2">&quot;SpanishSentiment.process&q
 <p><strong>Deployment Tip</strong>: See <code>examples/flows/compiled/</code> for complete examples. Platform teams can automate deployment chart generation (coming soon).</p>
 <h3 id="flow-dsl-syntax-summary">Flow DSL Syntax Summary<a class="headerlink" href="#flow-dsl-syntax-summary" title="Permanent link">&para;</a></h3>
 <p>See <a href="/examples/flows">flow examples</a> and their <a href="/examples/flows/compiled">compiled code</a>.</p>
-<p><strong>Supported</strong>:
-- Actor calls: <code>p = handler(p)</code>
-- Payload mutations: <code>p["key"] = value</code>, <code>p["count"] += 1</code>
-- Conditionals: <code>if</code>/<code>elif</code>/<code>else</code>, nested conditions
-- Early returns: <code>if error: return p</code>
-- Complex expressions: <code>p["result"] = p["x"] + p["y"] * 2</code>
-- Class instantiation: <code>classifier = TextClassifier()</code> (default args only)</p>
-<p><strong>Not Supported</strong> (use envelope mode instead):
-- Loops (<code>for</code>, <code>while</code>)
-- Custom routing logic
-- Multiple assignments: <code>p, q = handler(p)</code>
-- Non-default constructor arguments</p>
+<p><strong>Supported</strong>:</p>
+<ul>
+<li>Actor calls: <code>p = handler(p)</code></li>
+<li>Payload mutations: <code>p["key"] = value</code>, <code>p["count"] += 1</code></li>
+<li>Conditionals: <code>if</code>/<code>elif</code>/<code>else</code>, nested conditions</li>
+<li>Early returns: <code>if error: return p</code></li>
+<li>Complex expressions: <code>p["result"] = p["x"] + p["y"] * 2</code></li>
+<li>Class instantiation: <code>classifier = TextClassifier()</code> (default args only)</li>
+</ul>
+<p><strong>Not Supported</strong> (use envelope mode instead):</p>
+<ul>
+<li>Loops (<code>for</code>, <code>while</code>)</li>
+<li>Custom routing logic</li>
+<li>Multiple assignments: <code>p, q = handler(p)</code></li>
+<li>Non-default constructor arguments</li>
+</ul>
 <p><strong>Class Handler Example in Flows</strong>:
 <div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">my_flow</span><span class="p">(</span><span class="n">p</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
     <span class="c1"># Instantiate with default args only</span>
@@ -1415,15 +1397,19 @@ resolve<span class="o">(</span><span class="s2">&quot;SpanishSentiment.process&q
     <span class="k">return</span> <span class="n">p</span>
 </code></pre></div></p>
 <h3 id="when-to-use-flow-dsl">When to Use Flow DSL<a class="headerlink" href="#when-to-use-flow-dsl" title="Permanent link">&para;</a></h3>
-<p>✅ <strong>Good for</strong>:
-- Linear pipelines with branching
-- Data enrichment workflows
-- Preprocessing → Model → Postprocessing patterns
-- Validation and conditional processing
-- ML inference pipelines</p>
-<p>❌ <strong>Not suitable for</strong>:
-- Dynamic routing based on state outside of <code>p</code> (need to implement branching inside your actor in envelope mode)
-- Iterative processing (loops support coming soon)</p>
+<p>✅ <strong>Good for</strong>:</p>
+<ul>
+<li>Linear pipelines with branching</li>
+<li>Data enrichment workflows</li>
+<li>Preprocessing → Model → Postprocessing patterns</li>
+<li>Validation and conditional processing</li>
+<li>ML inference pipelines</li>
+</ul>
+<p>❌ <strong>Not suitable for</strong>:</p>
+<ul>
+<li>Dynamic routing based on state outside of <code>p</code> (need to implement branching inside your actor in envelope mode)</li>
+<li>Iterative processing (loops support coming soon)</li>
+</ul>
 <h3 id="complete-example-ml-pipeline">Complete Example: ML Pipeline<a class="headerlink" href="#complete-example-ml-pipeline" title="Permanent link">&para;</a></h3>
 <p><strong>Write Flow</strong> (<code>ml_pipeline_flow.py</code>):</p>
 <div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">ml_pipeline_flow</span><span class="p">(</span><span class="n">p</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
@@ -1456,11 +1442,13 @@ resolve<span class="o">(</span><span class="s2">&quot;SpanishSentiment.process&q
 <p><strong>Compile</strong>:
 <div class="highlight"><pre><span></span><code>asya<span class="w"> </span>flow<span class="w"> </span>compile<span class="w"> </span>ml_pipeline_flow.py<span class="w"> </span>--output-dir<span class="w"> </span>./compiled/<span class="w"> </span>--plot
 </code></pre></div></p>
-<p><strong>Generated Routers</strong>:
-- <code>start_ml_pipeline_flow</code> - Entry router
-- <code>router_ml_pipeline_flow_line_4_if</code> - Validation check
-- <code>router_ml_pipeline_flow_line_13_if</code> - Model selection
-- <code>end_ml_pipeline_flow</code> - Exit router</p>
+<p><strong>Generated Routers</strong>:</p>
+<ul>
+<li><code>start_ml_pipeline_flow</code> - Entry router</li>
+<li><code>router_ml_pipeline_flow_line_4_if</code> - Validation check</li>
+<li><code>router_ml_pipeline_flow_line_13_if</code> - Model selection</li>
+<li><code>end_ml_pipeline_flow</code> - Exit router</li>
+</ul>
 <p><strong>Visualize</strong>: Open <code>compiled/flow.png</code> to see the control flow diagram.</p>
 <p><strong>Deploy</strong>: Package routers and handlers, deploy as AsyncActor CRDs (see <code>examples/flows/compiled/README.md</code> for complete deployment examples).</p>
 <p>See <a href="../../architecture/asya-flow/">Flow Compiler Architecture</a> for complete documentation and <code>examples/flows/</code> for more flow examples.</p>
@@ -1468,6 +1456,7 @@ resolve<span class="o">(</span><span class="s2">&quot;SpanishSentiment.process&q
 <p><strong>Use case</strong>: AI agents, LLM judges, conditional routing based on model outputs.</p>
 <p>Envelope mode gives you full control over the routing structure:</p>
 <div class="highlight"><pre><span></span><code><span class="nt">env</span><span class="p">:</span>
+
 <span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_HANDLER_MODE</span>
 <span class="w">  </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;envelope&quot;</span><span class="w">  </span><span class="c1"># Receive full envelope, not just payload</span>
 </code></pre></div>
@@ -1818,14 +1807,6 @@ kubectl<span class="w"> </span>logs<span class="w"> </span>-f<span class="w"> </
             Overview
         </a>
         
-
-        
-        <a href="#mutating-payloads"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="2">
-            Mutating Payloads
-        </a>
-        
         
         <a href="#function-handler"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
@@ -1839,22 +1820,10 @@ kubectl<span class="w"> </span>logs<span class="w"> </span>-f<span class="w"> </
             Class Handler
         </a>
         
-        <a href="#pipeline-flow-example"
+        <a href="#abort-execution"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="3">
-            Pipeline Flow Example
-        </a>
-        
-        <a href="#fan-out-pattern"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="3">
-            Fan-Out Pattern
-        </a>
-        
-        <a href="#abort-pattern"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="3">
-            Abort Pattern
+            Abort Execution
         </a>
         
         

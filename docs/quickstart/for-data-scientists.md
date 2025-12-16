@@ -25,9 +25,6 @@ def process(payload: dict) -> dict:
 
 **That's it.** No infrastructure code, no decorators, no pip dependencies for queues/routing.
 
-## Mutating Payloads
-
-**Pattern**: Each actor enriches the payload by adding its own fields. The enriched payload flows to the next actor.
 
 ### Function Handler
 
@@ -91,45 +88,9 @@ def my_flow(p: dict) -> dict:
     return p
 ```
 
-### Pipeline Flow Example
+### Abort Execution
 
-```python
-# Actor 1: preprocessor
-{"text": "Hello World"}
-→ {"text": "Hello World", "cleaned_text": "hello world", "word_count": 2}
-
-# Actor 2: classifier
-{"text": "Hello World", "cleaned_text": "hello world", "word_count": 2}
-→ {"text": "Hello World", "cleaned_text": "hello world", "word_count": 2, "category": "greeting", "confidence": 0.95}
-
-# Actor 3: translator
-{"text": "Hello World", ..., "category": "greeting", "confidence": 0.95}
-→ {"text": "Hello World", ..., "category": "greeting", "confidence": 0.95, "translation": "Hola Mundo"}
-```
-
-Each actor adds its own fields, preserving all previous work.
-
-### Fan-Out Pattern
-
-Return a list to create multiple envelopes for parallel processing:
-
-```python
-def process(payload: dict) -> list:
-    # Split text into chunks
-    chunks = payload["text"].split("\n")
-
-    # Each chunk becomes a separate envelope
-    return [
-        {**payload, "chunk_id": i, "chunk_text": chunk}
-        for i, chunk in enumerate(chunks)
-    ]
-```
-
-**Result**: Sidecar creates multiple envelopes (one per list item), routes each to the next actor in parallel.
-
-### Abort Pattern
-
-Return `None` or `[]` to stop pipeline execution:
+If an actor needs to stop processing of current payload, it should return `None`:
 
 ```python
 def process(payload: dict) -> dict | None:
@@ -137,7 +98,7 @@ def process(payload: dict) -> dict | None:
     if payload.get("already_processed"):
         return None  # Routes to happy-end, no further processing
 
-    # Normal processing
+    # Normal processing - sent to the next actor
     return {**payload, "result": "..."}
 ```
 
@@ -160,7 +121,7 @@ def process(payload: dict) -> dict:
 
 ```python
 # test_handler.py
-from text_processor import process
+from src.text_processor import process
 
 payload = {"text": "hello world", "request_id": "123"}
 result = process(payload)
@@ -176,7 +137,7 @@ assert result == {
 
 ### 3. Package in Docker
 
-CI/CD is out of scope of Asya🎭 framework - ask your platform team for support.
+Note: CI/CD is out of scope of Asya🎭 framework - ask your platform team for support. For now let's assume that your code can be built into docker images, which are accessible by the Kubernetes cluster.
 
 ```dockerfile
 FROM python:3.13-slim
@@ -187,7 +148,7 @@ COPY text_processor.py /app/
 # Install dependencies (if any)
 # RUN pip install --no-cache-dir torch transformers
 
-CMD ["python3", "-c", "import text_processor; print('Handler loaded')"]
+CMD ["python3", "-c", "import src.text_processor; print('Handler loaded')"]
 ```
 
 ```bash
@@ -197,6 +158,8 @@ docker build -t my-processor:v1 .
 ## Deployment
 
 Platform team provides cluster access. Your code will be deployed as `AsyncActor` CRD.
+
+⚠️ We're planning to support via a CLI tool to easy deploy, debug and maybe even build actors to Kubernetes.
 
 <details>
 <summary>Click to see AsyncActor YAML (usually managed by platform team)</summary>
@@ -221,9 +184,9 @@ spec:
           image: my-processor:v1
           env:
           - name: ASYA_HANDLER
-            value: "text_processor.process"  # module.function
+            value: "src.text_processor.process"  # module.function
           # For class handlers:
-          # value: "text_processor.TextProcessor.process"  # module.Class.method
+          # value: "src.text_processor.TextProcessor.process"  # module.Class.method
 ```
 
 </details>
@@ -296,6 +259,7 @@ class LLMInference:
 **Deployment**:
 ```yaml
 env:
+
 - name: ASYA_HANDLER
   value: "llm_inference.LLMInference.process"
 - name: MODEL_PATH
@@ -330,6 +294,7 @@ resources:
   limits:
     nvidia.com/gpu: 1
 env:
+
 - name: ASYA_HANDLER
   value: "image_classifier.ImageClassifier.process"
 - name: MODEL_NAME
@@ -403,12 +368,14 @@ Note, there's no free variables, **all state transfer** happens through payload 
 
 
 **Flow Structure**:
+
 - **Entrypoint**: `start_{flowname}` - Generated actor that starts the flow
 - **Routers**: `router_{flowname}_line_{N}_{type}` - Control flow logic (conditions, mutations)
 - **Exitpoint**: `end_{flowname}` - Generated actor that completes the flow
 - **Handlers**: Your ML/data processing functions (deployed as separate actors)
 
 **Key Features**:
+
 - Write in familiar Python syntax
 - Inline payload mutations (`p["key"] = value`)
 - Conditional routing (`if`/`elif`/`else`)
@@ -701,6 +668,7 @@ See [flow examples](/examples/flows) and their [compiled code](/examples/flows/c
 
 
 **Supported**:
+
 - Actor calls: `p = handler(p)`
 - Payload mutations: `p["key"] = value`, `p["count"] += 1`
 - Conditionals: `if`/`elif`/`else`, nested conditions
@@ -709,6 +677,7 @@ See [flow examples](/examples/flows) and their [compiled code](/examples/flows/c
 - Class instantiation: `classifier = TextClassifier()` (default args only)
 
 **Not Supported** (use envelope mode instead):
+
 - Loops (`for`, `while`)
 - Custom routing logic
 - Multiple assignments: `p, q = handler(p)`
@@ -729,6 +698,7 @@ def my_flow(p: dict) -> dict:
 ### When to Use Flow DSL
 
 ✅ **Good for**:
+
 - Linear pipelines with branching
 - Data enrichment workflows
 - Preprocessing → Model → Postprocessing patterns
@@ -736,6 +706,7 @@ def my_flow(p: dict) -> dict:
 - ML inference pipelines
 
 ❌ **Not suitable for**:
+
 - Dynamic routing based on state outside of `p` (need to implement branching inside your actor in envelope mode)
 - Iterative processing (loops support coming soon)
 
@@ -778,6 +749,7 @@ asya flow compile ml_pipeline_flow.py --output-dir ./compiled/ --plot
 ```
 
 **Generated Routers**:
+
 - `start_ml_pipeline_flow` - Entry router
 - `router_ml_pipeline_flow_line_4_if` - Validation check
 - `router_ml_pipeline_flow_line_13_if` - Model selection
@@ -797,6 +769,7 @@ Envelope mode gives you full control over the routing structure:
 
 ```yaml
 env:
+
 - name: ASYA_HANDLER_MODE
   value: "envelope"  # Receive full envelope, not just payload
 ```

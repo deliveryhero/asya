@@ -33,6 +33,7 @@ GitHub repo: [https://github.com/deliveryhero/asya](https://github.com/deliveryh
 - **[Helm Charts](install/helm-charts.md)** - Chart configuration reference
 
 ### Quickstart
+- **[Getting Started](quickstart/README.md)** - 5-minute introduction: run Asya locally, deploy your first actor
 - **[For Data Scientists](quickstart/for-data-scientists.md)** - Build and deploy your first actor
 - **[For Platform Engineers](quickstart/for-platform-engineers.md)** - Deploy and manage Asya infrastructure
 

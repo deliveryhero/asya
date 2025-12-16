@@ -36,11 +36,11 @@
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Home - Asya🎭</title>
+    <title>Index - Asya🎭</title>
     
 
 
-<title>Home</title>
+<title>Index</title>
 
 
 
@@ -50,18 +50,18 @@
 
 
 
-<link rel="canonical" href="https://asya.sh/docs/">
+<link rel="canonical" href="https://asya.sh/docs/quickstart/">
 
 
 <!-- Open Graph (Facebook, LinkedIn) -->
 
-<meta property="og:title" content="Home">
+<meta property="og:title" content="Index">
 
 
 
 
 
-<meta property="og:url" content="https://asya.sh/docs/">
+<meta property="og:url" content="https://asya.sh/docs/quickstart/">
 
 
 
@@ -70,7 +70,7 @@
 
 <!-- Twitter Card -->
 
-<meta name="twitter:title" content="Home">
+<meta name="twitter:title" content="Index">
 
 
 
@@ -81,17 +81,17 @@
 
 
 
-    <link rel="icon" href="img/favicon.svg">
+    <link rel="icon" href="../img/favicon.svg">
 
-    <link href="css/base.css" rel="stylesheet">
-    <link href="css/geist.css" rel="stylesheet">
-
-    
-    <link href="stylesheets/extra.css" rel="stylesheet">
+    <link href="../css/base.css" rel="stylesheet">
+    <link href="../css/geist.css" rel="stylesheet">
 
     
+    <link href="../stylesheets/extra.css" rel="stylesheet">
 
-    <script src="js/callbacks.js"></script>
+    
+
+    <script src="../js/callbacks.js"></script>
 
     
 
@@ -274,7 +274,7 @@
                 
                 
                 <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
-    <a data-slot="sidebar-menu-button" data-active="true" data-sidebar="menu-button"
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
         data-size="default" href="/docs/"
         class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
 
@@ -757,12 +757,12 @@
         <h1
           class="scroll-m-20 text-4xl font-semibold tracking-tight sm:text-3xl xl:text-4xl"
         >
-          Home
+          Index
         </h1>
 
         <div class="flex items-center gap-2 pt-1.5">
           
-<button onclick="fetch(`https://asya.sh/docs/README.md`).then((r) => r.blob()).then((blob) => navigator.clipboard.write([new ClipboardItem({ 'text/plain': blob })]))" 
+<button onclick="fetch(`https://asya.sh/docs/quickstart/README.md`).then((r) => r.blob()).then((blob) => navigator.clipboard.write([new ClipboardItem({ 'text/plain': blob })]))" 
         data-slot="button" 
         class="cursor-pointer inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-secondary text-secondary-foreground hover:bg-secondary/80 rounded-md gap-1.5 px-3 has-[&>svg]:px-2.5 h-8 shadow-none md:h-7 md:text-[0.8rem]">
 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="tabler-icon tabler-icon-copy ">
@@ -771,31 +771,6 @@
 <span class="max-md:hidden">Copy Page</span>
 </button> 
            
-          
-          <a
-            data-slot="button"
-            id="next-button"
-            class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-secondary text-secondary-foreground hover:bg-secondary/80 extend-touch-target size-8 shadow-none md:size-7"
-            href="/docs/motivation/"
-          >
-            <span class="sr-only">Next</span>
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              class="tabler-icon tabler-icon-arrow-right"
-            >
-              <path d="M5 12l14 0"></path>
-              <path d="M13 18l6 -6"></path>
-              <path d="M13 6l6 6"></path>
-            </svg>
-          </a>
           
         </div>
       </div>
@@ -806,73 +781,597 @@
     </div>
   </div>
   <div class="typography w-full flex-1 *:data-[slot=alert]:first:mt-0">
-    <p>Meet Asya🎭 - a new open-source Kubernetes-native <strong>async actor framework</strong> for orchestrating AI/ML workloads at scale.</p>
-<p>GitHub repo: <a href="https://github.com/deliveryhero/asya">https://github.com/deliveryhero/asya</a> ⭐</p>
-<div style="width: 100%;">
-<img src="./img/asya-full.jpg" alt="Asya image" width="50%"/>
-<p style="font-size: 0.7em; font-style: italic; color: #666; margin-top: -2px;">Image generated with OpenAI</p>
-</div>
+    <!--
+IMPORTANT: All ```bash commands in this file are tested as part of e2e test suite: /testing/e2e/tests/test_quickstart_readme.py
+-->
+<h1 id="getting-started-with-asya">Getting Started with Asya🎭<a class="headerlink" href="#getting-started-with-asya" title="Permanent link">&para;</a></h1>
+<p><strong>5-minute guide to running Asya🎭 locally</strong></p>
+<p>Asya🎭 is a Kubernetes-native queue-based actor framework for AI/ML workloads. Write pure Python functions, deploy them as actors, and let Asya🎭 handle queues, routing, and autoscaling (0→N pods based on queue depth).</p>
+<p><strong>Core idea</strong>: Build multi-step AI/ML pipelines where each step scales independently. No infrastructure code in your handlers - just pure Python.</p>
+<h2 id="prerequisites">Prerequisites<a class="headerlink" href="#prerequisites" title="Permanent link">&para;</a></h2>
+<p>Before you begin, install:</p>
+<ul>
+<li><a href="https://www.docker.com/get-started/">Docker</a> 24+</li>
+<li><a href="https://kubernetes.io/docs/tasks/tools/">kubectl</a> 1.28+</li>
+<li><a href="https://helm.sh/docs/intro/install/">Helm</a> 3.12+</li>
+<li><a href="https://kind.sigs.k8s.io/docs/user/quick-start/#installation">Kind</a> 0.20+</li>
+</ul>
+<h2 id="setup-options">Setup Options<a class="headerlink" href="#setup-options" title="Permanent link">&para;</a></h2>
+<p>Choose your setup based on your needs:</p>
+<ul>
+<li><strong><a href="#minimal-setup">Minimal Setup</a></strong> - KEDA + SQS + Asya Operator (core functionality only)</li>
+<li><strong><a href="#add-s3-storage-optional">+ S3 Storage</a></strong> - Add persistence of the result message</li>
+<li><strong><a href="#add-gateway-optional">+ Asya Gateway</a></strong> - Add MCP HTTP API with PostgreSQL</li>
+<li><strong><a href="#add-prometheus-optional">+ Prometheus</a></strong> - Add observability</li>
+</ul>
+<h2 id="initial-setup">Initial Setup<a class="headerlink" href="#initial-setup" title="Permanent link">&para;</a></h2>
+<h3 id="1-create-kind-cluster">1. Create Kind Cluster<a class="headerlink" href="#1-create-kind-cluster" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>cat<span class="w"> </span>&gt;<span class="w"> </span>kind-config.yaml<span class="w"> </span><span class="s">&lt;&lt;EOF</span>
+<span class="s">kind: Cluster</span>
+<span class="s">apiVersion: kind.x-k8s.io/v1alpha4</span>
+<span class="s">nodes:</span>
+<span class="s">- role: control-plane</span>
+<span class="s">  extraPortMappings:</span>
+<span class="s">  - containerPort: 30080</span>
+<span class="s">    hostPort: 8080</span>
+<span class="s">    protocol: TCP</span>
+<span class="s">EOF</span>
 
-<h2 id="documentation-structure">Documentation Structure<a class="headerlink" href="#documentation-structure" title="Permanent link">&para;</a></h2>
-<h3 id="getting-started">Getting Started<a class="headerlink" href="#getting-started" title="Permanent link">&para;</a></h3>
-<ul>
-<li><strong><a href="motivation/">Motivation</a></strong> - Why Asya exists, problems it solves, when to use it</li>
-<li><strong><a href="concepts/">Core Concepts</a></strong> - Actors, envelopes, sidecars, runtime, and system components</li>
-</ul>
-<h3 id="architecture">Architecture<a class="headerlink" href="#architecture" title="Permanent link">&para;</a></h3>
-<ul>
-<li><strong><a href="architecture/">Architecture Overview</a></strong> - Deep dive into system design and components</li>
-<li><a href="architecture/asya-actor/">Actors</a> - Stateless workloads with message-based communication</li>
-<li><a href="architecture/asya-sidecar/">Sidecar</a> - Message routing and transport management</li>
-<li><a href="architecture/asya-runtime/">Runtime</a> - User code execution environment</li>
-<li><a href="architecture/asya-operator/">Operator</a> - Kubernetes CRD controller</li>
-<li><a href="architecture/asya-gateway/">Gateway</a> - Optional MCP HTTP API</li>
-<li><a href="architecture/asya-crew/">Crew</a> - System actors for flow maintenance</li>
-<li><a href="architecture/autoscaling/">Autoscaling</a> - KEDA integration details</li>
-<li><a href="architecture/protocols/actor-actor/">Protocols</a> - Communication protocols between components</li>
-<li><a href="architecture/transports/">Transports</a> - Message queue implementations</li>
-</ul>
-<h3 id="installation">Installation<a class="headerlink" href="#installation" title="Permanent link">&para;</a></h3>
-<ul>
-<li><strong><a href="install/aws-eks/">AWS EKS</a></strong> - Production deployment on AWS</li>
-<li><strong><a href="install/local-kind/">Local Kind</a></strong> - Local development cluster</li>
-<li><strong><a href="install/helm-charts/">Helm Charts</a></strong> - Chart configuration reference</li>
-</ul>
-<h3 id="quickstart">Quickstart<a class="headerlink" href="#quickstart" title="Permanent link">&para;</a></h3>
-<ul>
-<li><strong><a href="quickstart/">Getting Started</a></strong> - 5-minute introduction: run Asya locally, deploy your first actor</li>
-<li><strong><a href="quickstart/for-data-scientists/">For Data Scientists</a></strong> - Build and deploy your first actor</li>
-<li><strong><a href="quickstart/for-platform-engineers/">For Platform Engineers</a></strong> - Deploy and manage Asya infrastructure</li>
-</ul>
-<h3 id="operations">Operations<a class="headerlink" href="#operations" title="Permanent link">&para;</a></h3>
-<ul>
-<li><strong><a href="operate/monitoring/">Monitoring</a></strong> - Observability and metrics</li>
-<li><strong><a href="operate/troubleshooting/">Troubleshooting</a></strong> - Common issues and solutions</li>
-<li><strong><a href="operate/upgrades/">Upgrades</a></strong> - Version upgrade procedures</li>
-</ul>
-<h2 id="quick-links">Quick Links<a class="headerlink" href="#quick-links" title="Permanent link">&para;</a></h2>
-<ul>
-<li><a href="https://github.com/deliveryhero/asya">GitHub Repository</a></li>
-<li><a href="https://github.com/deliveryhero/asya/tree/main/examples">Examples</a></li>
-<li><a href="https://github.com/deliveryhero/asya/blob/main/CONTRIBUTING.md">Contributing Guide</a></li>
-</ul>
+kind<span class="w"> </span>create<span class="w"> </span>cluster<span class="w"> </span>--name<span class="w"> </span>asya-local<span class="w"> </span>--config<span class="w"> </span>kind-config.yaml
+kubectl<span class="w"> </span>config<span class="w"> </span>use-context<span class="w"> </span>kind-asya-local
+</code></pre></div>
+<h2 id="minimal-setup">Minimal Setup<a class="headerlink" href="#minimal-setup" title="Permanent link">&para;</a></h2>
+<p><strong>What you get</strong>: Core actor framework with SQS transport and autoscaling</p>
+<h3 id="1-install-keda">1. Install KEDA<a class="headerlink" href="#1-install-keda" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>helm<span class="w"> </span>repo<span class="w"> </span>add<span class="w"> </span>kedacore<span class="w"> </span>https://kedacore.github.io/charts
+helm<span class="w"> </span>install<span class="w"> </span>keda<span class="w"> </span>kedacore/keda<span class="w"> </span>--namespace<span class="w"> </span>keda-system<span class="w"> </span>--create-namespace
+</code></pre></div>
+<h3 id="2-install-localstack-sqs">2. Install LocalStack (SQS)<a class="headerlink" href="#2-install-localstack-sqs" title="Permanent link">&para;</a></h3>
+<p>LocalStack provides local AWS SQS emulation:</p>
+<div class="highlight"><pre><span></span><code>helm<span class="w"> </span>repo<span class="w"> </span>add<span class="w"> </span>localstack<span class="w"> </span>https://helm.localstack.cloud
+helm<span class="w"> </span>install<span class="w"> </span>localstack<span class="w"> </span>localstack/localstack<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--namespace<span class="w"> </span>asya-system<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--create-namespace<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--set<span class="w"> </span>image.tag<span class="o">=</span>latest
+
+kubectl<span class="w"> </span><span class="nb">wait</span><span class="w"> </span>--for<span class="o">=</span><span class="nv">condition</span><span class="o">=</span>ready<span class="w"> </span>pod<span class="w"> </span>-l<span class="w"> </span>app.kubernetes.io/name<span class="o">=</span>localstack<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-n<span class="w"> </span>asya-system<span class="w"> </span>--timeout<span class="o">=</span>300s
+</code></pre></div>
+<h3 id="3-install-asya-operator">3. Install Asya🎭 Operator<a class="headerlink" href="#3-install-asya-operator" title="Permanent link">&para;</a></h3>
+<p>Install <code>AsyncActor</code> CRD:</p>
+<!-- TODO: fix CRD release instead:
+kubectl apply -f https://github.com/deliveryhero/asya/releases/latest/download/asya-crds.yaml
+-->
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>apply<span class="w"> </span>-f<span class="w"> </span>https://raw.githubusercontent.com/deliveryhero/asya/refs/heads/main/src/asya-operator/config/crd/asya.sh_asyncactors.yaml
+</code></pre></div>
+<p>Add Helm repository:</p>
+<div class="highlight"><pre><span></span><code>helm<span class="w"> </span>repo<span class="w"> </span>add<span class="w"> </span>asya<span class="w"> </span>https://asya.sh/charts
+<span class="c1">#helm repo update  # to re-download repos</span>
+</code></pre></div>
+<p>Create AWS credentials secret:</p>
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>create<span class="w"> </span>secret<span class="w"> </span>generic<span class="w"> </span>sqs-secret<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--namespace<span class="w"> </span>asya-system<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--from-literal<span class="o">=</span>access-key-id<span class="o">=</span><span class="nb">test</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--from-literal<span class="o">=</span>secret-access-key<span class="o">=</span><span class="nb">test</span>
+</code></pre></div>
+<p>Install operator:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># TODO: remove image.repository overload for 0.4.0+</span>
+cat<span class="w"> </span>&gt;<span class="w"> </span>operator-values.yaml<span class="w"> </span><span class="s">&lt;&lt;EOF</span>
+<span class="s">image:</span>
+<span class="s">  repository: ghcr.io/deliveryhero/asya-operator</span>
+<span class="s">transports:</span>
+<span class="s">  sqs:</span>
+<span class="s">    enabled: true</span>
+<span class="s">    config:</span>
+<span class="s">      region: us-east-1</span>
+<span class="s">      accountId: &quot;000000000000&quot;</span>
+<span class="s">      endpoint: http://localstack.asya-system.svc.cluster.local:4566</span>
+<span class="s">      credentials:</span>
+<span class="s">        accessKeyIdSecretRef:</span>
+<span class="s">          name: sqs-secret</span>
+<span class="s">          key: access-key-id</span>
+<span class="s">        secretAccessKeySecretRef:</span>
+<span class="s">          name: sqs-secret</span>
+<span class="s">          key: secret-access-key</span>
+<span class="s">EOF</span>
+
+helm<span class="w"> </span>install<span class="w"> </span>asya-operator<span class="w"> </span>asya/asya-operator<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-n<span class="w"> </span>asya-system<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--create-namespace<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-f<span class="w"> </span>operator-values.yaml
+
+kubectl<span class="w"> </span><span class="nb">wait</span><span class="w"> </span>--for<span class="o">=</span><span class="nv">condition</span><span class="o">=</span>ready<span class="w"> </span>pod<span class="w"> </span>-l<span class="w"> </span>app.kubernetes.io/name<span class="o">=</span>asya-operator<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-n<span class="w"> </span>asya-system<span class="w"> </span>--timeout<span class="o">=</span>300s
+
+<span class="c1"># check manually:</span>
+kubectl<span class="w"> </span>-n<span class="w"> </span>asya-system<span class="w"> </span>get<span class="w"> </span>po<span class="w"> </span>-l<span class="w"> </span>app.kubernetes.io/name<span class="o">=</span>asya-operator
+<span class="c1"># NAME                             READY   STATUS    RESTARTS   AGE</span>
+<span class="c1"># asya-operator-7c8cdc4ff4-4qj2f   1/1     Running   0          40s</span>
+</code></pre></div>
+<p>In order to debug 🎭 behavior (e.g. if scaling doesn't work), it's good to check operator logs:
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>-n<span class="w"> </span>asya-system<span class="w"> </span>logs<span class="w"> </span>-l<span class="w"> </span>app.kubernetes.io/name<span class="o">=</span>asya-operator
+</code></pre></div></p>
+<h3 id="4-deploy-your-first-actor">4. Deploy Your First Actor<a class="headerlink" href="#4-deploy-your-first-actor" title="Permanent link">&para;</a></h3>
+<p>Write a handler:</p>
+<div class="highlight"><pre><span></span><code>cat<span class="w"> </span>&gt;<span class="w"> </span>handler.py<span class="w"> </span><span class="s">&lt;&lt;EOF</span>
+<span class="s">import time</span>
+
+<span class="s">def process(payload: dict) -&gt; dict:</span>
+<span class="s">    time.sleep(1)  # simulate workload</span>
+<span class="s">    return {</span>
+<span class="s">        **payload,</span>
+<span class="s">        &quot;greeting&quot;: f&quot;Hello, {payload.get(&#39;name&#39;, &#39;World&#39;)}!&quot;</span>
+<span class="s">    }</span>
+<span class="s">EOF</span>
+</code></pre></div>
+<p>Build a docker image and load it to kind context (in real world, use CI to build and push packages automatically):</p>
+<div class="highlight"><pre><span></span><code>cat<span class="w"> </span>&gt;<span class="w"> </span>Dockerfile<span class="w"> </span><span class="s">&lt;&lt;EOF</span>
+<span class="s">FROM python:3.13-slim</span>
+<span class="s">WORKDIR /app</span>
+<span class="s">COPY handler.py .</span>
+<span class="s">EOF</span>
+
+docker<span class="w"> </span>build<span class="w"> </span>-t<span class="w"> </span>my-hello-actor:latest<span class="w"> </span>.
+kind<span class="w"> </span>load<span class="w"> </span>docker-image<span class="w"> </span>my-hello-actor:latest<span class="w"> </span>--name<span class="w"> </span>asya-local
+</code></pre></div>
+<p>Deploy the actor:</p>
+<div class="highlight"><pre><span></span><code>cat<span class="w"> </span>&gt;<span class="w"> </span>hello-actor.yaml<span class="w"> </span><span class="s">&lt;&lt;EOF</span>
+<span class="s">apiVersion: asya.sh/v1alpha1</span>
+<span class="s">kind: AsyncActor</span>
+<span class="s">metadata:</span>
+<span class="s">  name: hello</span>
+<span class="s">  namespace: default</span>
+<span class="s">spec:</span>
+<span class="s">  transport: sqs</span>
+<span class="s">  scaling:</span>
+<span class="s">    enabled: true</span>
+<span class="s">    minReplicas: 0</span>
+<span class="s">    maxReplicas: 10</span>
+<span class="s">    queueLength: 5  # for each 5 messages in queue create 1 new pod</span>
+<span class="s">  workload:</span>
+<span class="s">    kind: Deployment</span>
+<span class="s">    template:</span>
+<span class="s">      spec:</span>
+<span class="s">        containers:</span>
+<span class="s">        - name: asya-runtime</span>
+<span class="s">          image: my-hello-actor:latest</span>
+<span class="s">          imagePullPolicy: IfNotPresent</span>
+<span class="s">          env:</span>
+<span class="s">          - name: ASYA_HANDLER</span>
+<span class="s">            value: &quot;handler.process&quot;</span>
+<span class="s">          - name: PYTHONPATH</span>
+<span class="s">            value: /app</span>
+<span class="s">          - name: AWS_ACCESS_KEY_ID</span>
+<span class="s">            value: &quot;test&quot;</span>
+<span class="s">          - name: AWS_SECRET_ACCESS_KEY</span>
+<span class="s">            value: &quot;test&quot;</span>
+<span class="s">          - name: AWS_REGION</span>
+<span class="s">            value: &quot;us-east-1&quot;</span>
+<span class="s">EOF</span>
+
+kubectl<span class="w"> </span>apply<span class="w"> </span>-f<span class="w"> </span>hello-actor.yaml
+
+kubectl<span class="w"> </span>get<span class="w"> </span>asya
+<span class="c1"># NAME    STATUS    RUNNING   FAILING   TOTAL   DESIRED   MIN   MAX   LAST-SCALE   AGE</span>
+<span class="c1"># hello   Napping   0         0         0       0         0     10    -            18s</span>
+</code></pre></div>
+<!-- # kubectl get deployment -l asya.sh/asya=hello -->
+
+<p>The actor is in <code>Napping</code> state with 0 replicas, demonstrating scale-to-zero capability. It will automatically scale up when messages arrive in the queue.
+See more on actor states <a href="/docs/architecture/asya-operator.md#status-values">here</a>.</p>
+<h3 id="5-test-the-actor">5. Test the Actor<a class="headerlink" href="#5-test-the-actor" title="Permanent link">&para;</a></h3>
+<p>Send a message to the actor's SQS queue:</p>
+<div class="highlight"><pre><span></span><code><span class="nv">MSG</span><span class="o">=</span><span class="s1">&#39;{&quot;id&quot;:&quot;test-123&quot;,&quot;route&quot;:{&quot;actors&quot;:[&quot;hello&quot;],&quot;current&quot;:0},&quot;payload&quot;:{&quot;name&quot;:&quot;Asya&quot;}}&#39;</span>
+
+kubectl<span class="w"> </span>run<span class="w"> </span>aws-cli<span class="w"> </span>--rm<span class="w"> </span>-i<span class="w"> </span>--restart<span class="o">=</span>Never<span class="w"> </span>--image<span class="o">=</span>amazon/aws-cli<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--namespace<span class="w"> </span>default<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--env<span class="o">=</span><span class="s2">&quot;AWS_ACCESS_KEY_ID=test&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--env<span class="o">=</span><span class="s2">&quot;AWS_SECRET_ACCESS_KEY=test&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--env<span class="o">=</span><span class="s2">&quot;AWS_DEFAULT_REGION=us-east-1&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--command<span class="w"> </span>--<span class="w"> </span>sh<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;</span>
+<span class="s2">    aws sqs send-message \</span>
+<span class="s2">      --endpoint-url=http://localstack.asya-system.svc.cluster.local:4566 \</span>
+<span class="s2">      --queue-url http://localstack.asya-system.svc.cluster.local:4566/000000000000/asya-default-hello \</span>
+<span class="s2">      --message-body &#39;</span><span class="nv">$MSG</span><span class="s2">&#39;</span>
+<span class="s2">  &quot;</span>
+</code></pre></div>
+<p>Watch the actor scale up and process the message (timeout after 60s):</p>
+<p>Read the logs using <code>kubectl logs</code> and find the greeting message (with timeout):</p>
+<div class="highlight"><pre><span></span><code>timeout<span class="w"> </span>30s<span class="w"> </span>sh<span class="w"> </span>-c<span class="w"> </span><span class="s1">&#39;</span>
+<span class="s1">  until kubectl logs -l asya.sh/asya=hello -c asya-runtime 2&gt;&amp;1 | tee /dev/stderr | grep -q &quot;greeting&quot;; do</span>
+<span class="s1">    sleep 1</span>
+<span class="s1">  done</span>
+<span class="s1">&#39;</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;[+] Found expected greeting in logs&quot;</span>
+</code></pre></div>
+<p>Expected output should contain:
+<div class="highlight"><pre><span></span><code><span class="n">user_func</span> <span class="n">returned</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;Asya&#39;</span><span class="p">,</span> <span class="s1">&#39;greeting&#39;</span><span class="p">:</span> <span class="s1">&#39;Hello, Asya!&#39;</span><span class="p">}</span>
+</code></pre></div></p>
+<p>Watch horizontal autoscaling by sending 25 messages to trigger multiple pods:</p>
+<div class="highlight"><pre><span></span><code><span class="nv">MSG</span><span class="o">=</span><span class="s1">&#39;{&quot;id&quot;:&quot;test-123&quot;,&quot;route&quot;:{&quot;actors&quot;:[&quot;hello&quot;],&quot;current&quot;:0},&quot;payload&quot;:{&quot;name&quot;:&quot;Asya&quot;}}&#39;</span>
+
+kubectl<span class="w"> </span>run<span class="w"> </span>send-many-messages<span class="w"> </span>--rm<span class="w"> </span>-i<span class="w"> </span>--restart<span class="o">=</span>Never<span class="w"> </span>--image<span class="o">=</span>amazon/aws-cli<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--namespace<span class="w"> </span>default<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--env<span class="o">=</span><span class="s2">&quot;AWS_ACCESS_KEY_ID=test&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--env<span class="o">=</span><span class="s2">&quot;AWS_SECRET_ACCESS_KEY=test&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--env<span class="o">=</span><span class="s2">&quot;AWS_DEFAULT_REGION=us-east-1&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--command<span class="w"> </span>--<span class="w"> </span>sh<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;</span>
+<span class="s2">    for i in {1..25}; do</span>
+<span class="s2">      aws sqs send-message \</span>
+<span class="s2">        --endpoint-url=http://localstack.asya-system.svc.cluster.local:4566 \</span>
+<span class="s2">        --queue-url http://localstack.asya-system.svc.cluster.local:4566/000000000000/asya-default-hello \</span>
+<span class="s2">        --message-body &#39;</span><span class="nv">$MSG</span><span class="s2">&#39; &amp;</span>
+<span class="s2">    done</span>
+<span class="s2">    wait</span>
+<span class="s2">    echo &#39;[+] All 25 messages sent&#39;</span>
+<span class="s2">  &quot;</span>
+</code></pre></div>
+<p>Watch the actor scale up to 5 pods (25 messages / 5 messages per pod) using <code>kubectl get asya hello -w</code>.</p>
+<p>Press <code>Ctrl+C</code> to stop watching for pods.</p>
+<h2 id="add-s3-storage-optional">Add S3 Storage (Optional)<a class="headerlink" href="#add-s3-storage-optional" title="Permanent link">&para;</a></h2>
+<p><strong>What you get</strong>: Pipeline completion with result persistence to S3</p>
+<h3 id="1-create-s3-buckets">1. Create S3 Buckets<a class="headerlink" href="#1-create-s3-buckets" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>run<span class="w"> </span>aws-cli<span class="w"> </span>--rm<span class="w"> </span>-i<span class="w"> </span>--restart<span class="o">=</span>Never<span class="w"> </span>--image<span class="o">=</span>amazon/aws-cli<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--namespace<span class="w"> </span>asya-system<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--env<span class="o">=</span><span class="s2">&quot;AWS_ACCESS_KEY_ID=test&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--env<span class="o">=</span><span class="s2">&quot;AWS_SECRET_ACCESS_KEY=test&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--env<span class="o">=</span><span class="s2">&quot;AWS_DEFAULT_REGION=us-east-1&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--<span class="w"> </span>sh<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;</span>
+<span class="s2">    aws --endpoint-url=http://localstack.asya-system.svc.cluster.local:4566 s3 mb s3://asya-results</span>
+<span class="s2">    aws --endpoint-url=http://localstack.asya-system.svc.cluster.local:4566 s3 mb s3://asya-errors</span>
+<span class="s2">  &quot;</span>
+</code></pre></div>
+<h3 id="2-install-crew-actors">2. Install Crew Actors<a class="headerlink" href="#2-install-crew-actors" title="Permanent link">&para;</a></h3>
+<p>Crew actors handle pipeline completion:</p>
+<div class="highlight"><pre><span></span><code>cat<span class="w"> </span>&gt;<span class="w"> </span>crew-values.yaml<span class="w"> </span><span class="s">&lt;&lt;EOF</span>
+<span class="s">happy-end:</span>
+<span class="s">  transport: sqs</span>
+<span class="s">  workload:</span>
+<span class="s">    template:</span>
+<span class="s">      spec:</span>
+<span class="s">        containers:</span>
+<span class="s">        - name: asya-runtime</span>
+<span class="s">          env:</span>
+<span class="s">          - name: ASYA_GATEWAY_URL</span>
+<span class="s">            value: &quot;&quot;  # Set this when gateway is installed</span>
+<span class="s">          - name: ASYA_S3_BUCKET</span>
+<span class="s">            value: &quot;asya-results&quot;</span>
+<span class="s">          - name: ASYA_S3_ENDPOINT</span>
+<span class="s">            value: &quot;http://localstack.asya-system.svc.cluster.local:4566&quot;</span>
+<span class="s">          - name: ASYA_S3_REGION</span>
+<span class="s">            value: &quot;us-east-1&quot;</span>
+<span class="s">          - name: AWS_ACCESS_KEY_ID</span>
+<span class="s">            value: &quot;test&quot;</span>
+<span class="s">          - name: AWS_SECRET_ACCESS_KEY</span>
+<span class="s">            value: &quot;test&quot;</span>
+
+<span class="s">error-end:</span>
+<span class="s">  transport: sqs</span>
+<span class="s">  workload:</span>
+<span class="s">    template:</span>
+<span class="s">      spec:</span>
+<span class="s">        containers:</span>
+<span class="s">        - name: asya-runtime</span>
+<span class="s">          env:</span>
+<span class="s">          - name: ASYA_GATEWAY_URL</span>
+<span class="s">            value: &quot;&quot;  # Set this when gateway is installed</span>
+<span class="s">          - name: ASYA_S3_BUCKET</span>
+<span class="s">            value: &quot;asya-errors&quot;</span>
+<span class="s">          - name: ASYA_S3_ENDPOINT</span>
+<span class="s">            value: &quot;http://localstack.asya-system.svc.cluster.local:4566&quot;</span>
+<span class="s">          - name: ASYA_S3_REGION</span>
+<span class="s">            value: &quot;us-east-1&quot;</span>
+<span class="s">          - name: AWS_ACCESS_KEY_ID</span>
+<span class="s">            value: &quot;test&quot;</span>
+<span class="s">          - name: AWS_SECRET_ACCESS_KEY</span>
+<span class="s">            value: &quot;test&quot;</span>
+<span class="s">EOF</span>
+
+helm<span class="w"> </span>install<span class="w"> </span>asya-crew<span class="w"> </span>asya/asya-crew<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-n<span class="w"> </span>asya-system<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-f<span class="w"> </span>crew-values.yaml
+</code></pre></div>
+<p>Your pipeline results are now automatically persisted to S3: whenever an actor finishes processing the last message in the route, 🎭 automatically sends it to <code>happy-end</code> actor to persist it on S3. Similarly, error messages will be sent to <code>error-end</code>.</p>
+<h2 id="add-gateway-optional">Add Gateway (Optional)<a class="headerlink" href="#add-gateway-optional" title="Permanent link">&para;</a></h2>
+<p><strong>What you get</strong>: HTTP API, MCP tools, SSE streaming, envelope tracking</p>
+<h3 id="1-install-postgresql">1. Install PostgreSQL<a class="headerlink" href="#1-install-postgresql" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>apply<span class="w"> </span>-f<span class="w"> </span>-<span class="w"> </span><span class="s">&lt;&lt;EOF</span>
+<span class="s">apiVersion: v1</span>
+<span class="s">kind: Service</span>
+<span class="s">metadata:</span>
+<span class="s">  name: asya-gateway-postgresql</span>
+<span class="s">  namespace: asya-system</span>
+<span class="s">spec:</span>
+<span class="s">  selector:</span>
+<span class="s">    app: postgresql</span>
+<span class="s">  ports:</span>
+<span class="s">    - port: 5432</span>
+<span class="s">---</span>
+<span class="s">apiVersion: apps/v1</span>
+<span class="s">kind: Deployment</span>
+<span class="s">metadata:</span>
+<span class="s">  name: asya-gateway-postgresql</span>
+<span class="s">  namespace: asya-system</span>
+<span class="s">spec:</span>
+<span class="s">  selector:</span>
+<span class="s">    matchLabels:</span>
+<span class="s">      app: postgresql</span>
+<span class="s">  template:</span>
+<span class="s">    metadata:</span>
+<span class="s">      labels:</span>
+<span class="s">        app: postgresql</span>
+<span class="s">    spec:</span>
+<span class="s">      containers:</span>
+<span class="s">        - name: postgres</span>
+<span class="s">          image: &#39;postgres:15-alpine&#39;</span>
+<span class="s">          env:</span>
+<span class="s">            - name: POSTGRES_USER</span>
+<span class="s">              value: asya</span>
+<span class="s">            - name: POSTGRES_PASSWORD</span>
+<span class="s">              value: asya</span>
+<span class="s">            - name: POSTGRES_DB</span>
+<span class="s">              value: asya</span>
+<span class="s">EOF</span>
+</code></pre></div>
+<h3 id="2-create-postgresql-secret">2. Create PostgreSQL Secret<a class="headerlink" href="#2-create-postgresql-secret" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>create<span class="w"> </span>secret<span class="w"> </span>generic<span class="w"> </span>asya-gateway-postgresql<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--namespace<span class="w"> </span>asya-system<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--from-literal<span class="o">=</span><span class="nv">password</span><span class="o">=</span>asya
+</code></pre></div>
+<hr />
+<p>TODO: complete tutorial</p>
+<!--
+### 3. Install Gateway
+
+<div class="highlight"><pre><span></span><code>cat<span class="w"> </span>&gt;<span class="w"> </span>gateway-values.yaml<span class="w"> </span><span class="s">&lt;&lt;EOF</span>
+<span class="s">image:</span>
+<span class="s">  repository: ghcr.io/deliveryhero/asya-gateway</span>
+<span class="s">  tag: latest</span>
+
+<span class="s">config:</span>
+<span class="s">  sqsEndpoint: http://localstack.asya-system.svc.cluster.local:4566</span>
+<span class="s">  sqsRegion: us-east-1</span>
+<span class="s">  database:</span>
+<span class="s">    host: asya-gateway-postgresql.asya-system.svc.cluster.local</span>
+<span class="s">    name: asya</span>
+<span class="s">    user: asya</span>
+<span class="s">    password: asya</span>
+
+<span class="s">env:</span>
+<span class="s">- name: AWS_ACCESS_KEY_ID</span>
+<span class="s">  value: &quot;test&quot;</span>
+<span class="s">- name: AWS_SECRET_ACCESS_KEY</span>
+<span class="s">  value: &quot;test&quot;</span>
+<span class="s">EOF</span>
+
+helm<span class="w"> </span>install<span class="w"> </span>asya-gateway<span class="w"> </span>asya/asya-gateway<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-n<span class="w"> </span>asya-system<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-f<span class="w"> </span>gateway-values.yaml
+
+kubectl<span class="w"> </span><span class="nb">wait</span><span class="w"> </span>--for<span class="o">=</span><span class="nv">condition</span><span class="o">=</span>ready<span class="w"> </span>pod<span class="w"> </span>-l<span class="w"> </span>app.kubernetes.io/name<span class="o">=</span>asya-gateway<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-n<span class="w"> </span>asya-system<span class="w"> </span>--timeout<span class="o">=</span>300s
+</code></pre></div>
+
+### 4. Update Operator for Gateway Integration
+
+<div class="highlight"><pre><span></span><code>cat<span class="w"> </span>&gt;&gt;<span class="w"> </span>operator-values.yaml<span class="w"> </span><span class="s">&lt;&lt;EOF</span>
+<span class="s">gatewayURL: &quot;http://asya-gateway.asya-system.svc.cluster.local:8080&quot;</span>
+<span class="s">EOF</span>
+
+helm<span class="w"> </span>upgrade<span class="w"> </span>asya-operator<span class="w"> </span>asya/asya-operator<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-n<span class="w"> </span>asya-system<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-f<span class="w"> </span>operator-values.yaml
+</code></pre></div>
+
+### 5. Update Crew for Gateway Reporting
+
+<div class="highlight"><pre><span></span><code>cat<span class="w"> </span>&gt;<span class="w"> </span>crew-values.yaml<span class="w"> </span><span class="s">&lt;&lt;EOF</span>
+<span class="s">happy-end:</span>
+<span class="s">  transport: sqs</span>
+<span class="s">  workload:</span>
+<span class="s">    template:</span>
+<span class="s">      spec:</span>
+<span class="s">        containers:</span>
+<span class="s">        - name: asya-runtime</span>
+<span class="s">          env:</span>
+<span class="s">          - name: ASYA_GATEWAY_URL</span>
+<span class="s">            value: &quot;http://asya-gateway.asya-system.svc.cluster.local:8080&quot;</span>
+<span class="s">          - name: ASYA_S3_BUCKET</span>
+<span class="s">            value: &quot;asya-results&quot;</span>
+<span class="s">          - name: ASYA_S3_ENDPOINT</span>
+<span class="s">            value: &quot;http://localstack.asya-system.svc.cluster.local:4566&quot;</span>
+<span class="s">          - name: ASYA_S3_REGION</span>
+<span class="s">            value: &quot;us-east-1&quot;</span>
+<span class="s">          - name: AWS_ACCESS_KEY_ID</span>
+<span class="s">            value: &quot;test&quot;</span>
+<span class="s">          - name: AWS_SECRET_ACCESS_KEY</span>
+<span class="s">            value: &quot;test&quot;</span>
+
+<span class="s">error-end:</span>
+<span class="s">  transport: sqs</span>
+<span class="s">  workload:</span>
+<span class="s">    template:</span>
+<span class="s">      spec:</span>
+<span class="s">        containers:</span>
+<span class="s">        - name: asya-runtime</span>
+<span class="s">          env:</span>
+<span class="s">          - name: ASYA_GATEWAY_URL</span>
+<span class="s">            value: &quot;http://asya-gateway.asya-system.svc.cluster.local:8080&quot;</span>
+<span class="s">          - name: ASYA_S3_BUCKET</span>
+<span class="s">            value: &quot;asya-errors&quot;</span>
+<span class="s">          - name: ASYA_S3_ENDPOINT</span>
+<span class="s">            value: &quot;http://localstack.asya-system.svc.cluster.local:4566&quot;</span>
+<span class="s">          - name: ASYA_S3_REGION</span>
+<span class="s">            value: &quot;us-east-1&quot;</span>
+<span class="s">          - name: AWS_ACCESS_KEY_ID</span>
+<span class="s">            value: &quot;test&quot;</span>
+<span class="s">          - name: AWS_SECRET_ACCESS_KEY</span>
+<span class="s">            value: &quot;test&quot;</span>
+<span class="s">EOF</span>
+
+helm<span class="w"> </span>upgrade<span class="w"> </span>asya-crew<span class="w"> </span>asya/asya-crew<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-n<span class="w"> </span>asya-system<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-f<span class="w"> </span>crew-values.yaml
+</code></pre></div>
+
+### 6. Use the Gateway
+
+Install CLI:
+
+<div class="highlight"><pre><span></span><code>pip<span class="w"> </span>install<span class="w"> </span>git+https://github.com/deliveryhero/asya.git#subdirectory<span class="o">=</span>src/asya-cli
+</code></pre></div>
+
+Port-forward and test:
+
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>port-forward<span class="w"> </span>-n<span class="w"> </span>asya-system<span class="w"> </span>svc/asya-gateway<span class="w"> </span><span class="m">8080</span>:80
+
+<span class="nb">export</span><span class="w"> </span><span class="nv">ASYA_CLI_MCP_URL</span><span class="o">=</span>http://localhost:8080/
+
+<span class="c1"># List tools</span>
+asya<span class="w"> </span>mcp<span class="w"> </span>list
+
+<span class="c1"># Call an actor</span>
+asya<span class="w"> </span>mcp<span class="w"> </span>call<span class="w"> </span>hello<span class="w"> </span>--name<span class="o">=</span>Asya
+
+<span class="c1"># Stream progress</span>
+asya<span class="w"> </span>mcp<span class="w"> </span>call<span class="w"> </span>hello<span class="w"> </span>--name<span class="o">=</span>Asya<span class="w"> </span>--stream
+</code></pre></div>
+
+## Add Prometheus (Optional)
+
+**What you get**: Metrics collection and observability
+
+### 1. Install Prometheus
+
+<div class="highlight"><pre><span></span><code>helm<span class="w"> </span>repo<span class="w"> </span>add<span class="w"> </span>prometheus-community<span class="w"> </span>https://prometheus-community.github.io/helm-charts
+helm<span class="w"> </span>install<span class="w"> </span>prometheus<span class="w"> </span>prometheus-community/kube-prometheus-stack<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--namespace<span class="w"> </span>monitoring<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--create-namespace
+</code></pre></div>
+
+### 2. Configure ServiceMonitors
+
+The Asya operator exposes metrics at `:8080/metrics`. Create a ServiceMonitor:
+
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>apply<span class="w"> </span>-f<span class="w"> </span>-<span class="w"> </span><span class="s">&lt;&lt;EOF</span>
+<span class="s">apiVersion: monitoring.coreos.com/v1</span>
+<span class="s">kind: ServiceMonitor</span>
+<span class="s">metadata:</span>
+<span class="s">  name: asya-operator</span>
+<span class="s">  namespace: asya-system</span>
+<span class="s">spec:</span>
+<span class="s">  selector:</span>
+<span class="s">    matchLabels:</span>
+<span class="s">      app.kubernetes.io/name: asya-operator</span>
+<span class="s">  endpoints:</span>
+<span class="s">  - port: metrics</span>
+<span class="s">    interval: 30s</span>
+<span class="s">EOF</span>
+</code></pre></div>
+
+### 3. Access Grafana
+
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>port-forward<span class="w"> </span>-n<span class="w"> </span>monitoring<span class="w"> </span>svc/prometheus-grafana<span class="w"> </span><span class="m">3000</span>:80
+</code></pre></div>
+
+Default credentials: `admin` / `prom-operator`
+
+Import Asya dashboards from the [monitoring guide](../operate/monitoring.md).
+
+## Testing Your Setup
+
+Send a message and watch scaling:
+
+<div class="highlight"><pre><span></span><code><span class="c1"># Send message</span>
+asya<span class="w"> </span>mcp<span class="w"> </span>call<span class="w"> </span>hello<span class="w"> </span>--name<span class="o">=</span><span class="s2">&quot;Test&quot;</span>
+
+<span class="c1"># Watch pods scale</span>
+kubectl<span class="w"> </span>get<span class="w"> </span>pods<span class="w"> </span>-l<span class="w"> </span>asya.sh/asya<span class="o">=</span>hello<span class="w"> </span>-w
+
+<span class="c1"># Check logs</span>
+<span class="nv">POD</span><span class="o">=</span><span class="k">$(</span>kubectl<span class="w"> </span>get<span class="w"> </span>pods<span class="w"> </span>-l<span class="w"> </span>asya.sh/asya<span class="o">=</span>hello<span class="w"> </span>-o<span class="w"> </span>name<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-1<span class="k">)</span>
+kubectl<span class="w"> </span>logs<span class="w"> </span><span class="nv">$POD</span><span class="w"> </span>-c<span class="w"> </span>asya-runtime
+kubectl<span class="w"> </span>logs<span class="w"> </span><span class="nv">$POD</span><span class="w"> </span>-c<span class="w"> </span>asya-sidecar
+</code></pre></div>
+
+## Alternative: Quick E2E Setup
+
+For rapid testing with all components:
+
+<div class="highlight"><pre><span></span><code><span class="nb">cd</span><span class="w"> </span>testing/e2e
+make<span class="w"> </span>up<span class="w"> </span><span class="nv">PROFILE</span><span class="o">=</span>sqs-s3
+</code></pre></div>
+
+This deploys everything in one command but uses test configurations.
+
+## Production Deployment
+
+For production on AWS, replace LocalStack with real AWS services:
+
+<div class="highlight"><pre><span></span><code><span class="c1"># operator-values.yaml for production</span>
+<span class="nt">transports</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">sqs</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">    </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">sqs</span>
+<span class="w">    </span><span class="nt">config</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">region</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">us-east-1</span>
+<span class="w">      </span><span class="nt">accountId</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;123456789012&quot;</span>
+<span class="w">      </span><span class="c1"># Remove endpoint for production AWS</span>
+<span class="w">      </span><span class="nt">actorRoleArn</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;arn:aws:iam::123456789012:role/asya-actor-role&quot;</span>
+<span class="w">      </span><span class="nt">queues</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">autoCreate</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">        </span><span class="nt">dlq</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">          </span><span class="nt">maxRetryCount</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3</span>
+<span class="w">      </span><span class="c1"># Use IRSA instead of static credentials</span>
+</code></pre></div>
+
+See [AWS EKS Installation](../install/aws-eks.md) for full production guide.
+
+## What's Next?
+
+### For Data Scientists
+
+- **[Quickstart for Data Scientists](for-data-scientists.md)** - Class handlers, model loading, dynamic routing
+- **[Flow DSL](../architecture/asya-flow.md)** - Write pipelines in Python-like syntax
+
+**Use cases**:
+- Multi-step LLM workflows (RAG → generate → judge → refine)
+- Document processing (OCR → classify → extract → store)
+- Image pipelines (resize → detect → classify → tag)
+
+### For Platform Engineers
+
+- **[Quickstart for Platform Engineers](for-platform-engineers.md)** - Deployment strategies, scaling policies
+- **[AWS EKS Installation](../install/aws-eks.md)** - Production deployment
+- **[Monitoring](../operate/monitoring.md)** - Metrics, alerts, dashboards
+- **[Troubleshooting](../operate/troubleshooting.md)** - Common issues
+
+## Learn More
+
+- [Core Concepts](../concepts.md) - Actors, envelopes, sidecars, routing
+- [Motivation](../motivation.md) - Why Asya🎭 exists, when to use it
+- [Architecture](../architecture/README.md) - Deep dive into system design
+- [Examples](https://github.com/deliveryhero/asya/tree/main/examples) - Sample actors and flows
+
+## Clean Up
+
+
+TODO: add more granular deletions:
+
+<div class="highlight"><pre><span></span><code>helm<span class="w"> </span>uninstall<span class="w"> </span>asya-operator<span class="w"> </span>-n<span class="w"> </span>asya-system
+...
+</code></pre></div>
+
+```bash
+kind delete cluster --name asya-local
+``` -->
+
+<hr />
+<p><strong>Next</strong>: Choose your path - <a href="for-data-scientists/">Data Scientists</a> or <a href="for-platform-engineers/">Platform Engineers</a></p>
   </div>
 </article>
                                 <div class="mx-auto flex flex-wrap h-16 w-full max-w-2xl items-center gap-2 px-4 md:px-0">
     
-    
-    <a data-slot="button"
-        class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-secondary text-secondary-foreground hover:bg-secondary/80 h-8 rounded-md gap-1.5 px-3 has-[&gt;svg]:px-2.5 ml-auto shadow-none"
-        href="/docs/motivation/">
-        <span class="max-[500px]:hidden">Motivation</span>
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-            class="tabler-icon tabler-icon-arrow-right ">
-            <path d="M5 12l14 0"></path>
-            <path d="M13 18l6 -6"></path>
-            <path d="M13 6l6 6"></path>
-        </svg>
-    </a>
     
 </div>
                                 <dialog id="bottom-sidebar" onclick="onBottomSidebarDialogClick(event)" class="bg-transparent"
@@ -891,7 +1390,7 @@
                 <div class="text-muted-foreground text-sm font-medium">Menu</div>
                 <div class="flex flex-col gap-3">
                     
-                    <a class="text-2xl font-medium" href=".">
+                    <a class="text-2xl font-medium" href="..">
                         
                         Home
                         
@@ -909,25 +1408,25 @@
                     
                     <div class="flex flex-col gap-3">
                         
-                        <a class="text-2xl font-medium" href="motivation/">
+                        <a class="text-2xl font-medium" href="../motivation/">
                             
                             Motivation
                             
                         </a>
                         
-                        <a class="text-2xl font-medium" href="concepts/">
+                        <a class="text-2xl font-medium" href="../concepts/">
                             
                             Concepts
                             
                         </a>
                         
-                        <a class="text-2xl font-medium" href="quickstart/for-data-scientists/">
+                        <a class="text-2xl font-medium" href="for-data-scientists/">
                             
                             For Data Scientists 🧑‍🔬
                             
                         </a>
                         
-                        <a class="text-2xl font-medium" href="quickstart/for-platform-engineers/">
+                        <a class="text-2xl font-medium" href="for-platform-engineers/">
                             
                             For Platform Engineers ⚙️
                             
@@ -942,19 +1441,19 @@
                     
                     <div class="flex flex-col gap-3">
                         
-                        <a class="text-2xl font-medium" href="install/aws-eks/">
+                        <a class="text-2xl font-medium" href="../install/aws-eks/">
                             
                             AWS EKS
                             
                         </a>
                         
-                        <a class="text-2xl font-medium" href="install/local-kind/">
+                        <a class="text-2xl font-medium" href="../install/local-kind/">
                             
                             Local Kind
                             
                         </a>
                         
-                        <a class="text-2xl font-medium" href="install/helm-charts/">
+                        <a class="text-2xl font-medium" href="../install/helm-charts/">
                             
                             Helm Charts
                             
@@ -969,79 +1468,79 @@
                     
                     <div class="flex flex-col gap-3">
                         
-                        <a class="text-2xl font-medium" href="architecture/">
+                        <a class="text-2xl font-medium" href="../architecture/">
                             
                             Overview
                             
                         </a>
                         
-                        <a class="text-2xl font-medium" href="architecture/asya-actor/">
+                        <a class="text-2xl font-medium" href="../architecture/asya-actor/">
                             
                             Actors
                             
                         </a>
                         
-                        <a class="text-2xl font-medium" href="architecture/asya-sidecar/">
+                        <a class="text-2xl font-medium" href="../architecture/asya-sidecar/">
                             
                             Sidecar
                             
                         </a>
                         
-                        <a class="text-2xl font-medium" href="architecture/asya-runtime/">
+                        <a class="text-2xl font-medium" href="../architecture/asya-runtime/">
                             
                             Runtime
                             
                         </a>
                         
-                        <a class="text-2xl font-medium" href="architecture/asya-operator/">
+                        <a class="text-2xl font-medium" href="../architecture/asya-operator/">
                             
                             Operator
                             
                         </a>
                         
-                        <a class="text-2xl font-medium" href="architecture/asya-gateway/">
+                        <a class="text-2xl font-medium" href="../architecture/asya-gateway/">
                             
                             Gateway
                             
                         </a>
                         
-                        <a class="text-2xl font-medium" href="architecture/asya-crew/">
+                        <a class="text-2xl font-medium" href="../architecture/asya-crew/">
                             
                             Crew
                             
                         </a>
                         
-                        <a class="text-2xl font-medium" href="architecture/asya-cli/">
+                        <a class="text-2xl font-medium" href="../architecture/asya-cli/">
                             
                             CLI Tools
                             
                         </a>
                         
-                        <a class="text-2xl font-medium" href="architecture/autoscaling/">
+                        <a class="text-2xl font-medium" href="../architecture/autoscaling/">
                             
                             Autoscaling
                             
                         </a>
                         
-                        <a class="text-2xl font-medium" href="architecture/observability/">
+                        <a class="text-2xl font-medium" href="../architecture/observability/">
                             
                             Observability
                             
                         </a>
                         
-                        <a class="text-2xl font-medium" href="architecture/protocols/actor-actor/">
+                        <a class="text-2xl font-medium" href="../architecture/protocols/actor-actor/">
                             
                             Actor-Actor Protocol
                             
                         </a>
                         
-                        <a class="text-2xl font-medium" href="architecture/protocols/sidecar-runtime/">
+                        <a class="text-2xl font-medium" href="../architecture/protocols/sidecar-runtime/">
                             
                             Sidecar-Runtime Protocol
                             
                         </a>
                         
-                        <a class="text-2xl font-medium" href="architecture/transports/">
+                        <a class="text-2xl font-medium" href="../architecture/transports/">
                             
                             Transports
                             
@@ -1056,19 +1555,19 @@
                     
                     <div class="flex flex-col gap-3">
                         
-                        <a class="text-2xl font-medium" href="operate/monitoring/">
+                        <a class="text-2xl font-medium" href="../operate/monitoring/">
                             
                             Monitoring
                             
                         </a>
                         
-                        <a class="text-2xl font-medium" href="operate/troubleshooting/">
+                        <a class="text-2xl font-medium" href="../operate/troubleshooting/">
                             
                             Troubleshooting
                             
                         </a>
                         
-                        <a class="text-2xl font-medium" href="operate/upgrades/">
+                        <a class="text-2xl font-medium" href="../operate/upgrades/">
                             
                             Upgrades
                             
@@ -1096,51 +1595,119 @@
         
         
         
-        <a href="#documentation-structure"
+        <a href="#prerequisites"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
-            Documentation Structure
+            Prerequisites
+        </a>
+        
+
+        
+        <a href="#setup-options"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Setup Options
+        </a>
+        
+
+        
+        <a href="#initial-setup"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Initial Setup
         </a>
         
         
-        <a href="#getting-started"
+        <a href="#1-create-kind-cluster"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="3">
-            Getting Started
-        </a>
-        
-        <a href="#architecture"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="3">
-            Architecture
-        </a>
-        
-        <a href="#installation"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="3">
-            Installation
-        </a>
-        
-        <a href="#quickstart"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="3">
-            Quickstart
-        </a>
-        
-        <a href="#operations"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="3">
-            Operations
+            1. Create Kind Cluster
         </a>
         
         
 
         
-        <a href="#quick-links"
+        <a href="#minimal-setup"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
-            Quick Links
+            Minimal Setup
         </a>
+        
+        
+        <a href="#1-install-keda"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            1. Install KEDA
+        </a>
+        
+        <a href="#2-install-localstack-sqs"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            2. Install LocalStack (SQS)
+        </a>
+        
+        <a href="#3-install-asya-operator"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            3. Install Asya🎭 Operator
+        </a>
+        
+        <a href="#4-deploy-your-first-actor"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            4. Deploy Your First Actor
+        </a>
+        
+        <a href="#5-test-the-actor"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            5. Test the Actor
+        </a>
+        
+        
+
+        
+        <a href="#add-s3-storage-optional"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Add S3 Storage (Optional)
+        </a>
+        
+        
+        <a href="#1-create-s3-buckets"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            1. Create S3 Buckets
+        </a>
+        
+        <a href="#2-install-crew-actors"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            2. Install Crew Actors
+        </a>
+        
+        
+
+        
+        <a href="#add-gateway-optional"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Add Gateway (Optional)
+        </a>
+        
+        
+        <a href="#1-install-postgresql"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            1. Install PostgreSQL
+        </a>
+        
+        <a href="#2-create-postgresql-secret"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            2. Create PostgreSQL Secret
+        </a>
+        
         
 
         
@@ -1172,16 +1739,16 @@
     </div>
      
 
-<script src="js/search-bridge.js"></script>
+<script src="../js/search-bridge.js"></script>
 
      
 
-<script src="search/main.js"></script>
+<script src="../search/main.js"></script>
 
 
     
 
-    <script src="js/copy-button.js"></script>
+    <script src="../js/copy-button.js"></script>
     <script>updatePygmentsStylesheet();</script>
     
     <script>fetchStargazers("https://github.com/deliveryhero/asya");</script>
