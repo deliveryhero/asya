@@ -167,6 +167,7 @@ Runtime returns error object:
 - Better actor decoupling - each actor only needs specific fields
 - Full traceability - complete processing history in final payload
 - Routing flexibility - later actors can access earlier results
+- Monotonic computation - much easier to reason about and integrate with
 
 ## Envelope Status Tracking
 
