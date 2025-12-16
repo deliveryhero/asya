@@ -1,5 +1,8 @@
 /* Custom styles for Asya documentation - Simplex theme customization */
 
+/* Import shared CSS variables and base styles */
+@import url('shared.css');
+
 /* Hide non-functional copy button - all possible variations */
 .copy-button,
 button[data-clipboard-text],
