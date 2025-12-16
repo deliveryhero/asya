@@ -163,6 +163,10 @@ Asya uses a **sidecar pattern** for message routing:
 ---
 
 ## Quick Start
+
+**New to Asya?** Start here: [Getting Started Guide](/docs/quickstart/README.md) (5 min read)
+
+Then choose your path:
 - [For Data Scientists 🧑‍🔬](/docs/quickstart/for-data-scientists.md)
 - [For Platform Engineers ⚙️](/docs/quickstart/for-platform-engineers.md)
 
