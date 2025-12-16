@@ -5,8 +5,7 @@ on:
     branches: [main]
     paths-ignore:
     - '**.md'
-    - '**.yml'
-    - '**.yaml'
+    - '.github/**'
     - '**.html'
     - '**.css'
     - 'docs/**'
@@ -15,9 +14,8 @@ on:
     branches: [main]
     paths-ignore:
     - '**.md'
+    - '.github/**'
     - 'docs/**'
-    - '**.yml'
-    - '**.yaml'
     - '**.html'
     - '**.css'
     - '**/Makefile'
