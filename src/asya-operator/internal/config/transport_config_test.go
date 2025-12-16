@@ -19,21 +19,48 @@ func TestLoadTransportRegistry_EmptyConfig(t *testing.T) {
 	_ = os.Setenv("ASYA_TRANSPORT_CONFIG", "")
 	defer func() { _ = os.Unsetenv("ASYA_TRANSPORT_CONFIG") }()
 
-	registry, err := LoadTransportRegistry()
-	if err != nil {
-		t.Fatalf("Expected no error, got %v", err)
+	_, err := LoadTransportRegistry()
+	if err == nil {
+		t.Fatal("Expected error for empty ASYA_TRANSPORT_CONFIG, got nil")
 	}
 
-	if registry == nil {
-		t.Fatal("Expected non-nil registry")
+	expectedMsg := "ASYA_TRANSPORT_CONFIG environment variable is not set: at least one transport must be configured"
+	if err.Error() != expectedMsg {
+		t.Errorf("Expected error '%s', got '%s'", expectedMsg, err.Error())
+	}
+}
+
+func TestLoadTransportRegistry_NullTransports(t *testing.T) {
+	configJSON := `{"transports": null}`
+
+	_ = os.Setenv("ASYA_TRANSPORT_CONFIG", configJSON)
+	defer func() { _ = os.Unsetenv("ASYA_TRANSPORT_CONFIG") }()
+
+	_, err := LoadTransportRegistry()
+	if err == nil {
+		t.Fatal("Expected error for null transports, got nil")
 	}
 
-	if registry.Transports == nil {
-		t.Fatal("Expected non-nil Transports map")
+	expectedMsg := "no transports configured: at least one transport must be defined in ASYA_TRANSPORT_CONFIG"
+	if err.Error() != expectedMsg {
+		t.Errorf("Expected error '%s', got '%s'", expectedMsg, err.Error())
+	}
+}
+
+func TestLoadTransportRegistry_EmptyTransportsMap(t *testing.T) {
+	configJSON := `{"transports": {}}`
+
+	_ = os.Setenv("ASYA_TRANSPORT_CONFIG", configJSON)
+	defer func() { _ = os.Unsetenv("ASYA_TRANSPORT_CONFIG") }()
+
+	_, err := LoadTransportRegistry()
+	if err == nil {
+		t.Fatal("Expected error for empty transports map, got nil")
 	}
 
-	if len(registry.Transports) != 0 {
-		t.Errorf("Expected empty transports map, got %d items", len(registry.Transports))
+	expectedMsg := "no transports configured: at least one transport must be defined in ASYA_TRANSPORT_CONFIG"
+	if err.Error() != expectedMsg {
+		t.Errorf("Expected error '%s', got '%s'", expectedMsg, err.Error())
 	}
 }
 

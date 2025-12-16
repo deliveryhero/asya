@@ -120,7 +120,7 @@ func (s *SQSConfig) isTransportConfig() {}
 func LoadTransportRegistry() (*TransportRegistry, error) {
 	configJSON := os.Getenv("ASYA_TRANSPORT_CONFIG")
 	if configJSON == "" {
-		return &TransportRegistry{Transports: make(map[string]*TransportConfig)}, nil
+		return nil, fmt.Errorf("ASYA_TRANSPORT_CONFIG environment variable is not set: at least one transport must be configured")
 	}
 
 	rawRegistry := &rawTransportRegistry{}
@@ -128,6 +128,10 @@ func LoadTransportRegistry() (*TransportRegistry, error) {
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(rawRegistry); err != nil {
 		return nil, fmt.Errorf("failed to parse transport config: %w", err)
+	}
+
+	if len(rawRegistry.Transports) == 0 {
+		return nil, fmt.Errorf("no transports configured: at least one transport must be defined in ASYA_TRANSPORT_CONFIG")
 	}
 
 	registry := &TransportRegistry{
