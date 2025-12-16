@@ -1,6 +1,6 @@
 operator:
   image:
-    repository: asya-operator
+    repository: ghcr.io/deliveryhero/asya-operator
     tag: latest
     pullPolicy: IfNotPresent
 
@@ -54,7 +54,7 @@ operator:
 
 gateway:
   image:
-    repository: asya-gateway
+    repository: ghcr.io/deliveryhero/asya-gateway
     tag: latest
     pullPolicy: IfNotPresent
 
@@ -240,7 +240,7 @@ crew:
         spec:
           containers:
           - name: asya-runtime
-            image: asya-crew:latest
+            image: ghcr.io/deliveryhero/asya-crew:latest
             imagePullPolicy: IfNotPresent
             env:
             - name: ASYA_HANDLER
@@ -285,7 +285,7 @@ crew:
         spec:
           containers:
           - name: asya-runtime
-            image: asya-crew:latest
+            image: ghcr.io/deliveryhero/asya-crew:latest
             imagePullPolicy: IfNotPresent
             env:
             - name: ASYA_HANDLER

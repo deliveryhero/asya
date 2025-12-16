@@ -215,7 +215,7 @@ containers:
   - name: socket
     mountPath: /tmp/sockets
 - name: sidecar
-  image: asya-sidecar:latest
+  image: ghcr.io/deliveryhero/asya-sidecar:latest
   env:
     - name: ASYA_ACTOR_NAME
       value: "my-actor-queue"

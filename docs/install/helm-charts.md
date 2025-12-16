@@ -36,7 +36,7 @@ transports:
         key: password
 
 image:
-  repository: asya-operator
+  repository: ghcr.io/deliveryhero/asya-operator
   tag: latest
 
 serviceAccount:
@@ -112,7 +112,7 @@ happy-end:
       spec:
         containers:
         - name: asya-runtime
-          image: asya-crew:latest
+          image: ghcr.io/deliveryhero/asya-crew:latest
           env:
           - name: ASYA_HANDLER
             value: handlers.end_handlers.happy_end_handler
@@ -138,7 +138,7 @@ error-end:
       spec:
         containers:
         - name: asya-runtime
-          image: asya-crew:latest
+          image: ghcr.io/deliveryhero/asya-crew:latest
           env:
           - name: ASYA_HANDLER
             value: handlers.end_handlers.error_end_handler

@@ -68,7 +68,7 @@ spec:
       spec:
         containers:
         - name: asya-runtime
-          image: asya-testing:latest
+          image: ghcr.io/deliveryhero/asya-testing:latest
           imagePullPolicy: IfNotPresent
           env:
           - name: ASYA_HANDLER
@@ -146,7 +146,7 @@ spec:
       spec:
         containers:
         - name: asya-runtime
-          image: asya-testing:latest
+          image: ghcr.io/deliveryhero/asya-testing:latest
           imagePullPolicy: IfNotPresent
           env:
           - name: ASYA_HANDLER
@@ -172,7 +172,7 @@ spec:
       spec:
         containers:
         - name: asya-runtime
-          image: asya-testing:latest
+          image: ghcr.io/deliveryhero/asya-testing:latest
           imagePullPolicy: IfNotPresent
           env:
           - name: ASYA_HANDLER
@@ -250,7 +250,7 @@ spec:
       spec:
         containers:
         - name: asya-runtime
-          image: asya-testing:latest
+          image: ghcr.io/deliveryhero/asya-testing:latest
           imagePullPolicy: IfNotPresent
 """
 
@@ -308,7 +308,7 @@ spec:
       spec:
         containers:
         - name: asya-runtime
-          image: asya-testing:latest
+          image: ghcr.io/deliveryhero/asya-testing:latest
           imagePullPolicy: IfNotPresent
           env:
           - name: ASYA_HANDLER
@@ -370,7 +370,7 @@ spec:
       spec:
         containers:
         - name: asya-runtime
-          image: asya-testing:latest
+          image: ghcr.io/deliveryhero/asya-testing:latest
           imagePullPolicy: IfNotPresent
           env:
           - name: ASYA_HANDLER
@@ -513,7 +513,7 @@ spec:
       spec:
         containers:
         - name: asya-runtime
-          image: asya-testing:latest
+          image: ghcr.io/deliveryhero/asya-testing:latest
           imagePullPolicy: IfNotPresent
           env:
           - name: ASYA_HANDLER
@@ -593,7 +593,7 @@ spec:
       spec:
         containers:
         - name: asya-runtime
-          image: asya-testing:latest
+          image: ghcr.io/deliveryhero/asya-testing:latest
           imagePullPolicy: IfNotPresent
           env:
           - name: ASYA_HANDLER
@@ -755,7 +755,7 @@ spec:
       spec:
         containers:
         - name: asya-runtime
-          image: asya-testing:latest
+          image: ghcr.io/deliveryhero/asya-testing:latest
           imagePullPolicy: IfNotPresent
           env:
           - name: ASYA_HANDLER

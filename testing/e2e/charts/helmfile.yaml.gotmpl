@@ -190,7 +190,7 @@ releases:
         transport: {{ .Values.actors.transport | default "rabbitmq" }}
         handlerMode: {{ env "ASYA_HANDLER_MODE" | default "payload" }}
         workload:
-          image: asya-testing:latest
+          image: ghcr.io/deliveryhero/asya-testing:latest
           imagePullPolicy: IfNotPresent
     labels:
       layer: app
@@ -205,7 +205,7 @@ releases:
       - transport: {{ .Values.actors.transport | default "rabbitmq" }}
         handlerMode: {{ env "ASYA_HANDLER_MODE" | default "payload" }}
         workload:
-          image: asya-testing:latest
+          image: ghcr.io/deliveryhero/asya-testing:latest
           imagePullPolicy: IfNotPresent
     labels:
       layer: app

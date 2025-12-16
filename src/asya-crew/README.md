@@ -93,7 +93,7 @@ spec:
       spec:
         containers:
         - name: asya-runtime
-          image: asya-runtime:latest
+          image: my-actor:latest
           env:
           - name: ASYA_HANDLER
             value: "handlers.end_handlers.happy_end_handler"

@@ -15,5 +15,5 @@ handlerMode: payload
 
 # Common workload configuration for all actors
 workload:
-  image: asya-testing:latest
+  image: ghcr.io/deliveryhero/asya-testing:latest
   imagePullPolicy: IfNotPresent

@@ -12,7 +12,7 @@ spec:
   # Custom sidecar configuration
   sidecar:
     # Use a specific version
-    image: asya-sidecar:v2.1.0
+    image: ghcr.io/deliveryhero/asya-sidecar:v2.1.0
     imagePullPolicy: Always
 
     # Custom resource limits

@@ -1,7 +1,7 @@
 replicaCount: 1
 
 image:
-  repository: asya-operator
+  repository: ghcr.io/deliveryhero/asya-operator
   pullPolicy: IfNotPresent
   tag: "latest"
 
@@ -74,7 +74,7 @@ terminationGracePeriodSeconds: 10
 
 # Default sidecar configuration
 sidecar:
-  image: asya-sidecar:latest
+  image: ghcr.io/deliveryhero/asya-sidecar:latest
   defaultResources:
     limits:
       cpu: 500m

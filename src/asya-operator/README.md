@@ -78,7 +78,7 @@ spec:
       spec:
         containers:
         - name: asya-runtime
-          image: asya-runtime:latest
+          image: my-actor:latest
           resources:
             limits:
               cpu: 1000m
