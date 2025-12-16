@@ -4,6 +4,14 @@ set -euo pipefail
 ROOT_DIR="$(git rev-parse --show-toplevel)"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CHARTS_DIR="$SCRIPT_DIR/../charts"
+REGISTRY="${REGISTRY:-ghcr.io/deliveryhero}"
+
+# Set image prefix based on registry
+if [[ -n "$REGISTRY" ]]; then
+  IMAGE_PREFIX="${REGISTRY}/"
+else
+  IMAGE_PREFIX=""
+fi
 
 # Detect CPU cores for parallel operations
 if command -v nproc > /dev/null 2>&1; then
@@ -132,7 +140,7 @@ time {
 
   LOAD_PIDS=()
   for img in "${IMAGES_TO_LOAD[@]}"; do
-    kind load docker-image "$img" --name "$CLUSTER_NAME" &
+    kind load docker-image "${IMAGE_PREFIX}$img" --name "$CLUSTER_NAME" &
     LOAD_PIDS+=($!)
   done
 
