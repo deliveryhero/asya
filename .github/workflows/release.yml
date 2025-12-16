@@ -175,3 +175,42 @@ jobs:
         helm install asya-gateway asya/asya-gateway --version ${{ steps.version.outputs.version }}
         \`\`\`
         EOF
+
+  upload-crds:
+    name: Upload CRDs to release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Create CRDs bundle
+      run: |
+        cp src/asya-operator/config/crd/asya.sh_asyncactors.yaml asya-crds.yaml
+
+    - name: Upload CRDs to release
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        gh release upload ${{ github.event.release.tag_name }} asya-crds.yaml --clobber
+
+    - name: Add CRDs to release summary
+      run: |
+        cat >> "$GITHUB_STEP_SUMMARY" <<EOF
+
+        ## CRDs
+
+        CRDs have been uploaded to the release assets.
+
+        Install CRDs:
+        \`\`\`bash
+        kubectl apply -f https://github.com/${{ github.repository }}/releases/download/${{ github.event.release.tag_name }}/asya-crds.yaml
+        \`\`\`
+
+        Or use the latest version:
+        \`\`\`bash
+        kubectl apply -f https://github.com/${{ github.repository }}/releases/latest/download/asya-crds.yaml
+        \`\`\`
+        EOF
