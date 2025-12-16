@@ -68,10 +68,10 @@ spec:
         - name: ASYA_RUNTIME_NAMESPACE
           value: {{ .Release.Namespace | quote }}
         - name: ASYA_TRANSPORT_CONFIG
-          value: {{ dict "transports" .Values.operator.transports | toJson | quote }}
-        {{- if .Values.operator.gatewayURL }}
+          value: {{ dict "transports" .Values.transports | toJson | quote }}
+        {{- if .Values.gatewayURL }}
         - name: ASYA_GATEWAY_URL
-          value: {{ .Values.operator.gatewayURL | quote }}
+          value: {{ .Values.gatewayURL | quote }}
         {{- end }}
         ports:
         - name: metrics

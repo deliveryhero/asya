@@ -86,51 +86,49 @@ sidecar:
 # Runtime configuration
 # The operator dynamically loads asya_runtime.py and creates the ConfigMap
 
-# Operator configuration
-operator:
-  # Gateway URL for progress reporting and envelope tracking
-  gatewayURL: "" # e.g., "http://asya-gateway.asya-e2e.svc.cluster.local:8080"
+# Gateway URL for progress reporting and envelope tracking
+gatewayURL: "" # e.g., "http://asya-gateway.asya-e2e.svc.cluster.local:8080"
 
-  # Transport configurations
-  # Define all available message transports for AsyncActors to use
-  transports:
-    rabbitmq:
-      enabled: true
-      type: rabbitmq
-      config:
-        host: rabbitmq.default.svc.cluster.local
-        port: 5672
-        username: guest
-        passwordSecretRef:
-          name: rabbitmq-secret
-          key: password
-        queues:
-          autoCreate: true # Auto-create queues if not exist (default: true)
-          forceRecreate: false # Delete and recreate queues (default: false, WARNING: data loss!)
-          dlq:
-            enabled: true # Enable DLQ for poison message handling (default: true)
-            maxRetryCount: 3 # Messages retried 3 times before going to DLQ (default: 3)
+# Transport configurations
+# Define all available message transports for AsyncActors to use
+transports:
+  rabbitmq:
+    enabled: true
+    type: rabbitmq
+    config:
+      host: rabbitmq.default.svc.cluster.local
+      port: 5672
+      username: guest
+      passwordSecretRef:
+        name: rabbitmq-secret
+        key: password
+      queues:
+        autoCreate: true # Auto-create queues if not exist (default: true)
+        forceRecreate: false # Delete and recreate queues (default: false, WARNING: data loss!)
+        dlq:
+          enabled: true # Enable DLQ for poison message handling (default: true)
+          maxRetryCount: 3 # Messages retried 3 times before going to DLQ (default: 3)
 
-    sqs:
-      enabled: false
-      type: sqs
-      config:
-        region: us-east-1
-        accountId: "" # REQUIRED: AWS account ID for queue URL construction
-        actorRoleArn: ""
-        visibilityTimeout: 300
-        waitTimeSeconds: 20
-        queues:
-          autoCreate: true # Auto-create queues if not exist (default: true)
-          forceRecreate: false # Delete and recreate queues (default: false, WARNING: data loss!)
-          dlq:
-            enabled: true # Enable DLQ for poison message handling (default: true)
-            maxRetryCount: 3 # Messages retried 3 times before going to DLQ (default: 3)
-            retentionDays: 14 # DLQ message retention period in days (default: 14)
-        tags: # Additional tags to apply to all SQS queues (asya.sh/actor and asya.sh/namespace always added)
-          environment: production
-          team: ml-platform
-          cost-center: "1234"
+  sqs:
+    enabled: false
+    type: sqs
+    config:
+      region: us-east-1
+      accountId: "" # REQUIRED: AWS account ID for queue URL construction
+      actorRoleArn: ""
+      visibilityTimeout: 300
+      waitTimeSeconds: 20
+      queues:
+        autoCreate: true # Auto-create queues if not exist (default: true)
+        forceRecreate: false # Delete and recreate queues (default: false, WARNING: data loss!)
+        dlq:
+          enabled: true # Enable DLQ for poison message handling (default: true)
+          maxRetryCount: 3 # Messages retried 3 times before going to DLQ (default: 3)
+          retentionDays: 14 # DLQ message retention period in days (default: 14)
+      tags: # Additional tags to apply to all SQS queues (asya.sh/actor and asya.sh/namespace always added)
+        environment: production
+        team: ml-platform
+        cost-center: "1234"
 
 # Additional volumes to mount
 # Auto-populated when runtime.createConfigMap is true
