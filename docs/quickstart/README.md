@@ -357,7 +357,8 @@ helm install asya-crew asya/asya-crew \
   -f crew-values.yaml
 ```
 
-Your pipeline results are now persisted to S3!
+Your pipeline results are now automatically persisted to S3: whenever an actor finishes processing the last message in the route, 🎭 automatically sends it to `happy-end` actor to persist it on S3. Similarly, error messages will be sent to `error-end`.
+
 
 ## Add Gateway (Optional)
 
