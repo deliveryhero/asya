@@ -7,7 +7,7 @@ COVERAGE_DIR := $(PROJECT_ROOT)/.coverage/$(subst $(PROJECT_ROOT)/,,$(CURDIR))
 
 UV_RUN_OPTS := --with-editable $(PROJECT_ROOT)/src/asya-testing
 PYTEST_WORKERS ?= auto
-PYTEST_OPTS ?= -v -s -n $(PYTEST_WORKERS) --dist loadscope  -k test_quickstart_
+PYTEST_OPTS ?= -v -s -n $(PYTEST_WORKERS) --dist loadscope
 COVERAGERC := $(PROJECT_ROOT)/.coveragerc
 export PYTEST_OPTS
 export COVERAGERC

@@ -104,21 +104,20 @@ Install operator:
 cat > operator-values.yaml <<EOF
 image:
   repository: ghcr.io/deliveryhero/asya-operator
-operator:
-  transports:
-    sqs:
-      enabled: true
-      config:
-        region: us-east-1
-        accountId: "000000000000"
-        endpoint: http://localstack.asya-system.svc.cluster.local:4566
-        credentials:
-          accessKeyIdSecretRef:
-            name: sqs-secret
-            key: access-key-id
-          secretAccessKeySecretRef:
-            name: sqs-secret
-            key: secret-access-key
+transports:
+  sqs:
+    enabled: true
+    config:
+      region: us-east-1
+      accountId: "000000000000"
+      endpoint: http://localstack.asya-system.svc.cluster.local:4566
+      credentials:
+        accessKeyIdSecretRef:
+          name: sqs-secret
+          key: access-key-id
+        secretAccessKeySecretRef:
+          name: sqs-secret
+          key: secret-access-key
 EOF
 
 helm install asya-operator asya/asya-operator \
@@ -245,10 +244,14 @@ happy-end:
         containers:
         - name: asya-runtime
           env:
+          - name: ASYA_GATEWAY_URL
+            value: ""  # Set this when gateway is installed
           - name: ASYA_S3_BUCKET
             value: "asya-results"
           - name: ASYA_S3_ENDPOINT
             value: "http://localstack.asya-system.svc.cluster.local:4566"
+          - name: ASYA_S3_REGION
+            value: "us-east-1"
           - name: AWS_ACCESS_KEY_ID
             value: "test"
           - name: AWS_SECRET_ACCESS_KEY
@@ -262,10 +265,14 @@ error-end:
         containers:
         - name: asya-runtime
           env:
+          - name: ASYA_GATEWAY_URL
+            value: ""  # Set this when gateway is installed
           - name: ASYA_S3_BUCKET
             value: "asya-errors"
           - name: ASYA_S3_ENDPOINT
             value: "http://localstack.asya-system.svc.cluster.local:4566"
+          - name: ASYA_S3_REGION
+            value: "us-east-1"
           - name: AWS_ACCESS_KEY_ID
             value: "test"
           - name: AWS_SECRET_ACCESS_KEY
@@ -365,22 +372,44 @@ helm install asya-gateway asya/asya-gateway \
 ### 4. Update Operator for Gateway Integration
 
 ```bash
+cat >> operator-values.yaml <<EOF
+gatewayURL: "http://asya-gateway.asya-system.svc.cluster.local:8080"
+EOF
+
 helm upgrade asya-operator asya/asya-operator \
   -n asya-system \
-  -f operator-values.yaml \
-  --set operator.gatewayURL="http://asya-gateway.asya-system.svc.cluster.local:8080"
+  -f operator-values.yaml
 ```
 
 ### 5. Update Crew for Gateway Reporting
 
 ```bash
+cat >> crew-values.yaml <<'EOF'
+
+happy-end:
+  workload:
+    template:
+      spec:
+        containers:
+        - name: asya-runtime
+          env:
+          - name: ASYA_GATEWAY_URL
+            value: "http://asya-gateway.asya-system.svc.cluster.local:8080"
+
+error-end:
+  workload:
+    template:
+      spec:
+        containers:
+        - name: asya-runtime
+          env:
+          - name: ASYA_GATEWAY_URL
+            value: "http://asya-gateway.asya-system.svc.cluster.local:8080"
+EOF
+
 helm upgrade asya-crew asya/asya-crew \
   -n asya-system \
-  -f crew-values.yaml \
-  --set happy-end.workload.template.spec.containers[0].env[0].name="ASYA_GATEWAY_URL" \
-  --set happy-end.workload.template.spec.containers[0].env[0].value="http://asya-gateway.asya-system.svc.cluster.local:8080" \
-  --set error-end.workload.template.spec.containers[0].env[0].name="ASYA_GATEWAY_URL" \
-  --set error-end.workload.template.spec.containers[0].env[0].value="http://asya-gateway.asya-system.svc.cluster.local:8080"
+  -f crew-values.yaml
 ```
 
 ### 6. Use the Gateway
