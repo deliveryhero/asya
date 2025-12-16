@@ -414,6 +414,11 @@ kubectl create secret generic asya-gateway-postgresql \
   --from-literal=password=asya
 ```
 
+---
+
+TODO: complete tutorial
+
+<!--
 ### 3. Install Gateway
 
 ```bash
@@ -441,6 +446,9 @@ EOF
 helm install asya-gateway asya/asya-gateway \
   -n asya-system \
   -f gateway-values.yaml
+
+kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=asya-gateway \
+  -n asya-system --timeout=300s
 ```
 
 ### 4. Update Operator for Gateway Integration
@@ -526,10 +534,10 @@ export ASYA_CLI_MCP_URL=http://localhost:8080/
 asya mcp list
 
 # Call an actor
-asya mcp call hello --name=Asya🎭
+asya mcp call hello --name=Asya
 
 # Stream progress
-asya mcp call hello --name=Asya🎭 --stream
+asya mcp call hello --name=Asya --stream
 ```
 
 ## Add Prometheus (Optional)
@@ -667,7 +675,7 @@ helm uninstall asya-operator -n asya-system
 
 ```bash
 kind delete cluster --name asya-local
-```
+``` -->
 
 ---
 
