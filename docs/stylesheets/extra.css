@@ -256,13 +256,18 @@ h1, h2, h3, h4, h5, h6 {
   color: #b4b8c0 !important;
 }
 
-/* Fix sidebar spacing - prevent left menu from touching screen edge */
-[data-slot="sidebar"] {
-  padding-left: 1rem;
+/* Fix global layout spacing - add margins to center content and prevent elements from touching screen edges */
+.container-wrapper {
+  padding-left: 1.5rem !important;
+  padding-right: 1.5rem !important;
 }
 
-[data-slot="sidebar-content"] {
-  padding-left: 0.5rem;
+/* Ensure consistent spacing on smaller screens */
+@media (max-width: 1024px) {
+  .container-wrapper {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
 }
 
 /* Buttons */
