@@ -91,9 +91,10 @@ gatewayURL: "" # e.g., "http://asya-gateway.asya-e2e.svc.cluster.local:8080"
 
 # Transport configurations
 # Define all available message transports for AsyncActors to use
+# All transports are disabled by default - users must enable at least one
 transports:
   rabbitmq:
-    enabled: true
+    enabled: false
     type: rabbitmq
     config:
       host: rabbitmq.default.svc.cluster.local
