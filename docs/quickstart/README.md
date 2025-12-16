@@ -185,7 +185,7 @@ spec:
   transport: sqs
   scaling:
     enabled: true
-    minReplicas: 1
+    minReplicas: 0
     maxReplicas: 10
     queueLength: 5  # for each 5 messages in queue create 1 new pod
   workload:
@@ -210,15 +210,14 @@ spec:
 EOF
 
 kubectl apply -f hello-actor.yaml
-kubectl wait --for=condition=ready pod -l asya.sh/asya=hello --timeout=60s
 
 kubectl get asya
-# NAME    STATUS    RUNNING   FAILING   TOTAL   DESIRED   MIN   MAX   LAST-SCALE    AGE
-# hello   Running   1         0         1       1         1     5     0s ago (up)   18s
+# NAME    STATUS    RUNNING   FAILING   TOTAL   DESIRED   MIN   MAX   LAST-SCALE   AGE
+# hello   Napping   0         0         0       0         0     10    -            18s
 ```
 <!-- # kubectl get deployment -l asya.sh/asya=hello -->
 
-Great, the actor is in `Running` state, meaning there's at least one replica that's ready to process requests.
+The actor is in `Napping` state with 0 replicas, demonstrating scale-to-zero capability. It will automatically scale up when messages arrive in the queue.
 See more on actor states [here](/docs/architecture/asya-operator.md#status-values).
 
 ### 5. Test the Actor
@@ -259,13 +258,31 @@ Expected output should contain:
 user_func returned: {'name': 'Asya', 'greeting': 'Hello, Asya!'}
 ```
 
-Watch the actor scale back down to 0 after processing:
+Watch horizontal autoscaling by sending 25 messages to trigger multiple pods:
 
 ```bash
-kubectl get asya hello
+MSG='{"id":"test-123","route":{"actors":["hello"],"current":0},"payload":{"name":"Asya"}}'
+
+kubectl run send-many-messages --rm -i --restart=Never --image=amazon/aws-cli \
+  --namespace default \
+  --env="AWS_ACCESS_KEY_ID=test" \
+  --env="AWS_SECRET_ACCESS_KEY=test" \
+  --env="AWS_DEFAULT_REGION=us-east-1" \
+  --command -- sh -c "
+    for i in {1..25}; do
+      aws sqs send-message \
+        --endpoint-url=http://localstack.asya-system.svc.cluster.local:4566 \
+        --queue-url http://localstack.asya-system.svc.cluster.local:4566/000000000000/asya-default-hello \
+        --message-body '$MSG' &
+    done
+    wait
+    echo '[+] All 25 messages sent'
+  "
 ```
 
-Press `Ctrl+C` after seeing `Napping` state again.
+Watch the actor scale up to 5 pods (25 messages / 5 messages per pod) using `kubectl get asya hello -w`.
+
+Press `Ctrl+C` to stop watching for pods.
 
 
 ## Add S3 Storage (Optional)
