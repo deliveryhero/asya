@@ -1,0 +1,121 @@
+/* Shared CSS variables for Asya website and documentation */
+
+:root {
+  /* Background colors */
+  --bg-primary: #fafafa;
+  --bg-secondary: white;
+  --bg-tertiary: #f8f8f8;
+  --bg-code: #2d2d2d;
+
+  /* Text colors */
+  --text-primary: #1a1a1a;
+  --text-secondary: #4a4a4a;
+  --text-tertiary: #666;
+  --text-muted: #999;
+  --text-code: #e5e5e5;
+  --text-code-inline: #c7254e;
+  --bg-code-inline: #f9f2f4;
+
+  /* Border colors */
+  --border-primary: #e5e5e5;
+  --border-secondary: #d4d4d4;
+
+  /* Button colors */
+  --btn-primary-bg: #555;
+  --btn-primary-hover: #666;
+  --btn-secondary-bg: white;
+  --btn-border: #d4d4d4;
+
+  /* Accent colors */
+  --accent-primary: #5a6c8f;
+  --accent-hover: #3d4f6b;
+}
+
+/* Dark mode color overrides */
+body.dark {
+  --bg-primary: #1a1a1a;
+  --bg-secondary: #2d2d2d;
+  --bg-tertiary: #242424;
+  --bg-code: #1e1e1e;
+
+  --text-primary: #e5e5e5;
+  --text-secondary: #d4d4d4;
+  --text-tertiary: #b3b3b3;
+  --text-muted: #808080;
+  --text-code: #d4d4d4;
+  --text-code-inline: #e06c75;
+  --bg-code-inline: #2d2d2d;
+
+  --border-primary: #404040;
+  --border-secondary: #555;
+
+  --btn-primary-bg: #e5e5e5;
+  --btn-primary-hover: #f5f5f5;
+  --btn-secondary-bg: #2d2d2d;
+  --btn-border: #555;
+
+  --accent-primary: #5a6c8f;
+  --accent-hover: #7a8ca0;
+}
+
+/* Base styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  line-height: 1.6;
+  color: var(--text-primary);
+  background: var(--bg-primary);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Code blocks */
+pre {
+  background-color: var(--bg-code);
+  color: var(--text-code);
+  border: 1px solid var(--border-primary);
+  border-radius: 4px;
+  padding: 0.75rem 1rem;
+  overflow-x: auto;
+  font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+/* Inline code */
+code {
+  color: var(--text-code-inline);
+  background-color: var(--bg-code-inline);
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 90%;
+}
+
+pre code {
+  color: inherit;
+  background-color: transparent;
+  padding: 0;
+  font-size: inherit;
+}
+
+/* Links */
+a {
+  color: var(--accent-primary);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+a:hover,
+a:focus {
+  color: var(--accent-hover);
+}
+
+/* Headers */
+h1, h2, h3, h4, h5, h6 {
+  color: var(--text-primary);
+  font-weight: 600;
+}

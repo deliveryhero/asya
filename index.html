@@ -5,57 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Asya - Kubernetes-native Async Actor Framework</title>
     <meta name="description" content="Kubernetes-native async actor framework for orchestrating AI/ML workloads at scale">
+    <link rel="icon" type="image/svg+xml" href="/docs/img/favicon.svg">
+    <link rel="stylesheet" href="/docs/stylesheets/shared.css">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        :root {
-            --bg-primary: #fafafa;
-            --bg-secondary: white;
-            --bg-tertiary: #f8f8f8;
-            --bg-code: #2d2d2d;
-            --text-primary: #1a1a1a;
-            --text-secondary: #4a4a4a;
-            --text-tertiary: #666;
-            --text-muted: #999;
-            --text-code: #e5e5e5;
-            --border-primary: #e5e5e5;
-            --border-secondary: #d4d4d4;
-            --btn-primary-bg: #555;
-            --btn-primary-hover: #666;
-            --btn-secondary-bg: white;
-            --btn-border: #d4d4d4;
-        }
-
-        body.dark-mode {
-            --bg-primary: #1a1a1a;
-            --bg-secondary: #2d2d2d;
-            --bg-tertiary: #242424;
-            --bg-code: #1a1a1a;
-            --text-primary: #e5e5e5;
-            --text-secondary: #d4d4d4;
-            --text-tertiary: #b3b3b3;
-            --text-muted: #808080;
-            --text-code: #d4d4d4;
-            --border-primary: #404040;
-            --border-secondary: #555;
-            --btn-primary-bg: #e5e5e5;
-            --btn-primary-hover: #f5f5f5;
-            --btn-secondary-bg: #2d2d2d;
-            --btn-border: #555;
-        }
-
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            line-height: 1.6;
-            color: var(--text-primary);
-            background: var(--bg-primary);
             min-height: 100vh;
             padding: 20px;
-            transition: background-color 0.3s ease, color 0.3s ease;
         }
 
         .theme-toggle {
@@ -92,11 +47,11 @@
             display: none;
         }
 
-        body.dark-mode .theme-icon-light {
+        body.dark .theme-icon-light {
             display: none;
         }
 
-        body.dark-mode .theme-icon-dark {
+        body.dark .theme-icon-dark {
             display: block;
         }
 
@@ -172,7 +127,7 @@
             border-color: var(--btn-primary-bg);
         }
 
-        body.dark-mode .btn-primary {
+        body.dark .btn-primary {
             color: #1a1a1a;
         }
 
@@ -216,7 +171,14 @@
             margin-top: 0.5rem;
             border: 1px solid var(--border-primary);
             border-radius: 4px;
+            white-space: pre;
+            line-height: 1.5;
         }
+
+        .code-block .comment { color: #6a9955; }
+        .code-block .keyword { color: #569cd6; }
+        .code-block .string { color: #ce9178; }
+        .code-block .function { color: #dcdcaa; }
 
         .features {
             display: grid;
@@ -371,23 +333,22 @@
 
         function applyTheme(theme) {
             if (theme === 'dark') {
-                body.classList.add('dark-mode');
+                body.classList.add('dark');
             } else {
-                body.classList.remove('dark-mode');
+                body.classList.remove('dark');
             }
         }
 
         function initializeTheme() {
             let theme = localStorage.getItem('theme');
             if (!theme) {
-                // If no theme is stored, use the system preference.
                 theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
             }
             applyTheme(theme);
         }
 
         themeToggle.addEventListener('click', () => {
-            const newTheme = body.classList.contains('dark-mode') ? 'light' : 'dark';
+            const newTheme = body.classList.contains('dark') ? 'light' : 'dark';
             applyTheme(newTheme);
             localStorage.setItem('theme', newTheme);
         });
