@@ -5,14 +5,14 @@
   --bg-primary: #fafafa;
   --bg-secondary: white;
   --bg-tertiary: #f8f8f8;
-  --bg-code: #2d2d2d;
+  --bg-code: #f8f9fa;
 
   /* Text colors */
   --text-primary: #1a1a1a;
   --text-secondary: #4a4a4a;
   --text-tertiary: #666;
   --text-muted: #999;
-  --text-code: #e5e5e5;
+  --text-code: #24292e;
   --text-code-inline: #c7254e;
   --bg-code-inline: #f9f2f4;
 

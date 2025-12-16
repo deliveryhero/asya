@@ -296,6 +296,7 @@ class LLMInference:
 **Deployment**:
 ```yaml
 env:
+
 - name: ASYA_HANDLER
   value: "llm_inference.LLMInference.process"
 - name: MODEL_PATH
@@ -330,6 +331,7 @@ resources:
   limits:
     nvidia.com/gpu: 1
 env:
+
 - name: ASYA_HANDLER
   value: "image_classifier.ImageClassifier.process"
 - name: MODEL_NAME
@@ -403,12 +405,14 @@ Note, there's no free variables, **all state transfer** happens through payload 
 
 
 **Flow Structure**:
+
 - **Entrypoint**: `start_{flowname}` - Generated actor that starts the flow
 - **Routers**: `router_{flowname}_line_{N}_{type}` - Control flow logic (conditions, mutations)
 - **Exitpoint**: `end_{flowname}` - Generated actor that completes the flow
 - **Handlers**: Your ML/data processing functions (deployed as separate actors)
 
 **Key Features**:
+
 - Write in familiar Python syntax
 - Inline payload mutations (`p["key"] = value`)
 - Conditional routing (`if`/`elif`/`else`)
@@ -701,6 +705,7 @@ See [flow examples](/examples/flows) and their [compiled code](/examples/flows/c
 
 
 **Supported**:
+
 - Actor calls: `p = handler(p)`
 - Payload mutations: `p["key"] = value`, `p["count"] += 1`
 - Conditionals: `if`/`elif`/`else`, nested conditions
@@ -709,6 +714,7 @@ See [flow examples](/examples/flows) and their [compiled code](/examples/flows/c
 - Class instantiation: `classifier = TextClassifier()` (default args only)
 
 **Not Supported** (use envelope mode instead):
+
 - Loops (`for`, `while`)
 - Custom routing logic
 - Multiple assignments: `p, q = handler(p)`
@@ -729,6 +735,7 @@ def my_flow(p: dict) -> dict:
 ### When to Use Flow DSL
 
 ✅ **Good for**:
+
 - Linear pipelines with branching
 - Data enrichment workflows
 - Preprocessing → Model → Postprocessing patterns
@@ -736,6 +743,7 @@ def my_flow(p: dict) -> dict:
 - ML inference pipelines
 
 ❌ **Not suitable for**:
+
 - Dynamic routing based on state outside of `p` (need to implement branching inside your actor in envelope mode)
 - Iterative processing (loops support coming soon)
 
@@ -778,6 +786,7 @@ asya flow compile ml_pipeline_flow.py --output-dir ./compiled/ --plot
 ```
 
 **Generated Routers**:
+
 - `start_ml_pipeline_flow` - Entry router
 - `router_ml_pipeline_flow_line_4_if` - Validation check
 - `router_ml_pipeline_flow_line_13_if` - Model selection
@@ -797,6 +806,7 @@ Envelope mode gives you full control over the routing structure:
 
 ```yaml
 env:
+
 - name: ASYA_HANDLER_MODE
   value: "envelope"  # Receive full envelope, not just payload
 ```
