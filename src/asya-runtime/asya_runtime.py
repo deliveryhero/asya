@@ -135,18 +135,21 @@ def _load_function():
     # Validate ASYA_HANDLER format to prevent path traversal and injection attacks
     handler_pattern = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*)+$")
     if not handler_pattern.match(ASYA_HANDLER):
-        logger.critical(f"FATAL: Invalid ASYA_HANDLER format: {ASYA_HANDLER}")
+        logger.critical(
+            f"FATAL: Invalid ASYA_HANDLER format: '{ASYA_HANDLER}' (not matching pattern {handler_pattern})"
+        )
         logger.critical("Expected format: 'module.path.function' or 'module.path.Class.method'")
         sys.exit(1)
 
     # Split into parts and find module boundary by attempting imports
     parts = ASYA_HANDLER.split(".")
     if len(parts) < 2:
-        logger.critical(f"FATAL: Invalid ASYA_HANDLER format: {ASYA_HANDLER}")
+        logger.critical(f"FATAL: Invalid ASYA_HANDLER format: '{ASYA_HANDLER}' (parts: {parts})")
         logger.critical("Expected format: 'module.path.function' or 'module.path.Class.method'")
         sys.exit(1)
 
     # Try to find the module by attempting imports with progressively longer paths
+    tried_modules = []
     module = None
     module_parts = []
     attr_parts = []
@@ -154,6 +157,7 @@ def _load_function():
     for i in range(len(parts) - 1, 0, -1):
         module_path = ".".join(parts[:i])
         try:
+            tried_modules.append(module_path)
             module = importlib.import_module(module_path)
             module_parts = parts[:i]
             attr_parts = parts[i:]
@@ -162,7 +166,7 @@ def _load_function():
             continue
 
     if module is None:
-        logger.critical(f"FATAL: Could not import module from {ASYA_HANDLER}")
+        logger.critical(f"FATAL: Could not import module from '{ASYA_HANDLER}' (no module found: {tried_modules})")
         logger.critical("Expected format: 'module.path.function' or 'module.path.Class.method'")
         sys.exit(1)
 
@@ -466,7 +470,7 @@ def _handle_request(conn: socket.socket, user_func: Any) -> list[dict[str, Any]]
 
 def _log_env_vars():
     logger.info(
-        f"Asya Actor Runtime starting with handler: {ASYA_HANDLER} "
+        f"Asya Actor Runtime starting with handler: '{ASYA_HANDLER}' "
         f"(mode: {ASYA_HANDLER_MODE}, validation: {ASYA_ENABLE_VALIDATION})"
     )
     if logger.isEnabledFor(logging.DEBUG):

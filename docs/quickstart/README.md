@@ -148,7 +148,10 @@ Write a handler:
 
 ```bash
 cat > handler.py <<EOF
+import time
+
 def process(payload: dict) -> dict:
+    time.sleep(1)  # simulate workload
     return {
         **payload,
         "greeting": f"Hello, {payload.get('name', 'World')}!"
@@ -163,7 +166,6 @@ cat > Dockerfile <<EOF
 FROM python:3.13-slim
 WORKDIR /app
 COPY handler.py .
-CMD ["python", "-m", "asya_runtime"]
 EOF
 
 docker build -t my-hello-actor:latest .
@@ -183,9 +185,9 @@ spec:
   transport: sqs
   scaling:
     enabled: true
-    minReplicas: 0
-    maxReplicas: 5
-    queueLength: 5
+    minReplicas: 1
+    maxReplicas: 10
+    queueLength: 5  # for each 5 messages in queue create 1 new pod
   workload:
     kind: Deployment
     template:
@@ -193,9 +195,12 @@ spec:
         containers:
         - name: asya-runtime
           image: my-hello-actor:latest
+          imagePullPolicy: IfNotPresent
           env:
           - name: ASYA_HANDLER
             value: "handler.process"
+          - name: PYTHONPATH
+            value: /app
           - name: AWS_ACCESS_KEY_ID
             value: "test"
           - name: AWS_SECRET_ACCESS_KEY
@@ -205,14 +210,62 @@ spec:
 EOF
 
 kubectl apply -f hello-actor.yaml
+kubectl wait --for=condition=ready pod -l asya.sh/asya=hello --timeout=60s
 
 kubectl get asya
-# NAME    STATUS    RUNNING   FAILING   TOTAL   DESIRED   MIN   MAX   LAST-SCALE   AGE
-# hello   Napping   0         0         0       0         0     5     -            6s
+# NAME    STATUS    RUNNING   FAILING   TOTAL   DESIRED   MIN   MAX   LAST-SCALE    AGE
+# hello   Running   1         0         1       1         1     5     0s ago (up)   18s
 ```
-<!-- # kubectl get deployment -l asya.sh/actor=hello -->
+<!-- # kubectl get deployment -l asya.sh/asya=hello -->
 
-The state `Napping` means the actor is healthy but scaled to `0` replicas. Read more on actor states[here](/docs/architecture/asya-operator.md#status-values).
+Great, the actor is in `Running` state, meaning there's at least one replica that's ready to process requests.
+See more on actor states [here](/docs/architecture/asya-operator.md#status-values).
+
+### 5. Test the Actor
+
+Send a message to the actor's SQS queue:
+
+```bash
+MSG='{"id":"test-123","route":{"actors":["hello"],"current":0},"payload":{"name":"Asya"}}'
+
+kubectl run aws-cli --rm -i --restart=Never --image=amazon/aws-cli \
+  --namespace default \
+  --env="AWS_ACCESS_KEY_ID=test" \
+  --env="AWS_SECRET_ACCESS_KEY=test" \
+  --env="AWS_DEFAULT_REGION=us-east-1" \
+  --command -- sh -c "
+    aws sqs send-message \
+      --endpoint-url=http://localstack.asya-system.svc.cluster.local:4566 \
+      --queue-url http://localstack.asya-system.svc.cluster.local:4566/000000000000/asya-default-hello \
+      --message-body '$MSG'
+  "
+```
+
+Watch the actor scale up and process the message (timeout after 60s):
+
+
+Read the logs using `kubectl logs` and find the greeting message (with timeout):
+
+```bash
+timeout 30s sh -c '
+  until kubectl logs -l asya.sh/asya=hello -c asya-runtime 2>&1 | tee /dev/stderr | grep -q "greeting"; do
+    sleep 1
+  done
+' && echo "[+] Found expected greeting in logs"
+```
+
+Expected output should contain:
+```py
+user_func returned: {'name': 'Asya', 'greeting': 'Hello, Asya!'}
+```
+
+Watch the actor scale back down to 0 after processing:
+
+```bash
+kubectl get asya hello
+```
+
+Press `Ctrl+C` after seeing `Napping` state again.
 
 
 ## Add S3 Storage (Optional)
@@ -514,10 +567,10 @@ Send a message and watch scaling:
 asya mcp call hello --name="Test"
 
 # Watch pods scale
-kubectl get pods -l asya.sh/actor=hello -w
+kubectl get pods -l asya.sh/asya=hello -w
 
 # Check logs
-POD=$(kubectl get pods -l asya.sh/actor=hello -o name | head -1)
+POD=$(kubectl get pods -l asya.sh/asya=hello -o name | head -1)
 kubectl logs $POD -c asya-runtime
 kubectl logs $POD -c asya-sidecar
 ```
