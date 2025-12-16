@@ -7,7 +7,7 @@ AI/ML teams building production pipelines face fundamental architectural challen
 | Challenge | Why It Matters |
 |-----------|----------------|
 | **Logic Entanglement** | Pipeline orchestration (`if/else`, retries, error handling) mixed with business logic (AI/ML inference, data processing, API calls, decision making). Frameworks require code instrumentation (`@flow`, `@step` decorators). Impossible to test components independently. |
-| **Scaling Limitations** | All components scale together, wasting resources. GPU pods sit idle 80% of the time but still cost $1000s/month. Cannot independently deploy or scale different pipeline stages. |
+| **Scaling Limitations** | All components scale together, wasting resources. GPU pods sit idle waiting for REST requests and consuming $$. Cannot independently deploy or scale different pipeline stages running on different hardware. |
 | **Infrastructure Complexity** | Data scientists manage infrastructure code alongside ML code. Platform engineers struggle to operate heterogeneous deployment patterns at scale. Batch vs streaming requires completely different frameworks. |
 | **Vendor Lock-in** | API rate limits throttle throughput. Model changes break pipelines. Costs scale unpredictably. |
 
