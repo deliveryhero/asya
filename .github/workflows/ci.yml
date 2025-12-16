@@ -5,8 +5,10 @@ on:
     branches: [main]
     paths-ignore:
     - '**.md'
-    - '**.yml' # ignore configs unless code changed
+    - '**.yml'
     - '**.yaml'
+    - '**.html'
+    - '**.css'
     - 'docs/**'
     - '**/Makefile'
   pull_request:
@@ -16,6 +18,8 @@ on:
     - 'docs/**'
     - '**.yml'
     - '**.yaml'
+    - '**.html'
+    - '**.css'
     - '**/Makefile'
 
 concurrency:
