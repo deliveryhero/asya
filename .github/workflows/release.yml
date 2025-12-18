@@ -181,7 +181,7 @@ jobs:
   upload-crds:
     name: Upload CRDs to release
     runs-on: ubuntu-latest
-    if: github.event.action == 'created'
+    if: github.event.action == 'published'
     permissions:
       contents: write
 
