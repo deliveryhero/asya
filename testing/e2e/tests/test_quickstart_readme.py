@@ -44,6 +44,10 @@ def should_skip_block(block: str) -> tuple[bool, str]:
         ("kubectl get pods -l asya.sh/actor=hello -w", "Watch command"),
         ("kubectl logs", "Logs checked separately"),
         ("POD=", "Interactive command"),
+        ("helm repo add asya", "Helm repo not yet published"),
+        ("helm install asya-operator asya/", "Requires published Helm repo"),
+        ("helm install asya-gateway asya/", "Requires published Helm repo"),
+        ("helm install asya-crew asya/", "Requires published Helm repo"),
     ]
 
     for pattern, reason in skip_patterns:
@@ -102,10 +106,10 @@ def test_quickstart_readme_commands(project_root):
             )
 
             if result.returncode == 0:
-                print(f"  ✓ PASSED")
+                print(f"  [+] PASSED")
                 passed += 1
             else:
-                print(f"  ✗ FAILED (exit code: {result.returncode})")
+                print(f"  [-] FAILED (exit code: {result.returncode})")
                 print(f"  stdout: {result.stdout[:200]}")
                 print(f"  stderr: {result.stderr[:200]}")
                 failed_blocks.append({
@@ -116,7 +120,7 @@ def test_quickstart_readme_commands(project_root):
                     'stderr': result.stderr,
                 })
         except subprocess.TimeoutExpired:
-            print(f"  ✗ TIMEOUT")
+            print(f"  [-] TIMEOUT")
             failed_blocks.append({
                 'number': i,
                 'block': block,
@@ -204,4 +208,4 @@ def test_quickstart_readme_syntax():
 
         pytest.fail(f"{len(failed_blocks)} blocks have syntax errors")
 
-    print(f"All {len(blocks)} bash blocks have valid syntax ✓")
+    print(f"[+] All {len(blocks)} bash blocks have valid syntax")
