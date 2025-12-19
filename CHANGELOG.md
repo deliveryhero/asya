@@ -8,6 +8,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 
+## [0.3.7] - 2025-12-19
+
+* No changes
+
+## Docker Images
+
+All images are published to GitHub Container Registry:
+
+- `ghcr.io/deliveryhero/asya-operator:0.3.7`
+- `ghcr.io/deliveryhero/asya-gateway:0.3.7`
+- `ghcr.io/deliveryhero/asya-sidecar:0.3.7`
+- `ghcr.io/deliveryhero/asya-crew:0.3.7`
+- `ghcr.io/deliveryhero/asya-testing:0.3.7`
+
+## Contributors
+
+@atemate
+
+
+
+## [Unreleased]
+
+
 ## [0.3.3] - 2025-12-19
 
 ## Major Changes
@@ -292,6 +315,9 @@ All images are published to GitHub Container Registry:
 [0.3.2]: https://github.com/deliveryhero/asya/releases/tag/v0.3.2
 
 
-[Unreleased]: https://github.com/deliveryhero/asya/compare/v0.3.3...HEAD
 [0.3.3]: https://github.com/deliveryhero/asya/releases/tag/v0.3.3
+
+
+[Unreleased]: https://github.com/deliveryhero/asya/compare/v0.3.7...HEAD
+[0.3.7]: https://github.com/deliveryhero/asya/releases/tag/v0.3.7
 
