@@ -1,6 +1,6 @@
 # Monitoring
 
-Observability and monitoring for Asya🎭 deployments.
+Observability and monitoring for 🎭 deployments.
 
 ## Overview
 

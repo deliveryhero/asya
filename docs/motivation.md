@@ -39,7 +39,7 @@ This coupling is obvious for backend engineers to avoid, but unnatural for data 
 
 ## What is Asya🎭?
 
-Asya🎭 is a Kubernetes-native async actor framework for orchestrating complex near-realtime AI pipelines at scale.
+🎭 is a Kubernetes-native async actor framework for orchestrating complex near-realtime AI pipelines at scale.
 
 **Core principle**: Decouple pipeline logic, infrastructure logic, and component logic.
 

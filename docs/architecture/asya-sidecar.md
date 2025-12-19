@@ -1,10 +1,10 @@
 # Sidecar Architecture
 
-Detailed architecture of the Asya🎭 Actor Sidecar. Please also refer to code documentation [`src/asya-sidecar/README.md`](https://github.com/deliveryhero/asya/blob/main/src/asya-sidecar/README.md)
+Detailed architecture of the 🎭 Actor Sidecar. Please also refer to code documentation [`src/asya-sidecar/README.md`](https://github.com/deliveryhero/asya/blob/main/src/asya-sidecar/README.md)
 
 ## Overview
 
-The Asya🎭 Actor Sidecar is a Go-based message routing service that sits between async message queues and actor runtime processes. It implements a pull-based architecture with pluggable transport layer.
+The 🎭 Actor Sidecar is a Go-based message routing service that sits between async message queues and actor runtime processes. It implements a pull-based architecture with pluggable transport layer.
 
 ## Key Features
 
@@ -35,7 +35,7 @@ export ASYA_RABBITMQ_URL="amqp://guest:guest@localhost:5672/"
 
 ```
 ┌──────────────────────────────────────────────────────────┐
-│                    Asya🎭 Actor Sidecar                  │
+│                    🎭 Actor Sidecar                      │
 ├──────────────────────────────────────────────────────────┤
 │                                                          │
 │  ┌──────────┐     ┌──────────┐     ┌─────────────────┐   │
@@ -135,7 +135,7 @@ type Transport interface {
 ```
 
 ### Transport failures
-Asya🎭 operator owns the queues if deployed with `ASYA_QUEUE_AUTO_CREATE=true`.
+🎭 operator owns the queues if deployed with `ASYA_QUEUE_AUTO_CREATE=true`.
 This means, it will try to recreate a queue if it doesn't exist or its configuration is not as desired.
 
 Sidecar can detect queue errors and fail after graceful period that will cause pod restart.
@@ -202,7 +202,7 @@ The sidecar will consume messages, forward to runtime, discard responses, and AC
 
 ### Kubernetes Sidecar (Automatic)
 
-The Asya🎭 operator automatically injects the sidecar when you deploy an AsyncActor CRD.
+The 🎭 operator automatically injects the sidecar when you deploy an AsyncActor CRD.
 
 ### Manual Deployment
 

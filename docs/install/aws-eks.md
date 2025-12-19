@@ -1,6 +1,6 @@
 # AWS EKS Installation
 
-Production deployment of Asya🎭 on Amazon EKS.
+Production deployment of 🎭 on Amazon EKS.
 
 ## Prerequisites
 
