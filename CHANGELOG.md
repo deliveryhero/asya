@@ -8,6 +8,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 
+## [0.3.3] - 2025-12-19
+
+## Major Changes
+
+* fix(charts): Disable RabbitMQ transport enabled by default (#69) @atemate
+
+## Other Changes
+
+* docs: Add quickstart plans (#80) @atemate
+* docs: Set Quick Start button to go to All not DS (#79) @atemate
+* docs: Small docs cleanup, replace Asya🎭 with 🎭 (#77) @atemate
+* docs: Add onboarding readme, fix docs, fix formatting (#72) @atemate
+* fix(charts): Disable RabbitMQ transport enabled by default (#69) @atemate
+
+## Docker Images
+
+All images are published to GitHub Container Registry:
+
+- `ghcr.io/deliveryhero/asya-operator:0.3.3`
+- `ghcr.io/deliveryhero/asya-gateway:0.3.3`
+- `ghcr.io/deliveryhero/asya-sidecar:0.3.3`
+- `ghcr.io/deliveryhero/asya-crew:0.3.3`
+- `ghcr.io/deliveryhero/asya-testing:0.3.3`
+
+## Contributors
+
+@atemate, @github-actions[bot] and [github-actions[bot]](https://github.com/apps/github-actions)
+
+
+
+## [Unreleased]
+
+
 ## [0.3.2] - 2025-12-16
 
 ## Changes
@@ -256,6 +289,9 @@ All images are published to GitHub Container Registry:
 [0.3.1]: https://github.com/deliveryhero/asya/releases/tag/v0.3.1
 
 
-[Unreleased]: https://github.com/deliveryhero/asya/compare/v0.3.2...HEAD
 [0.3.2]: https://github.com/deliveryhero/asya/releases/tag/v0.3.2
+
+
+[Unreleased]: https://github.com/deliveryhero/asya/compare/v0.3.3...HEAD
+[0.3.3]: https://github.com/deliveryhero/asya/releases/tag/v0.3.3
 
