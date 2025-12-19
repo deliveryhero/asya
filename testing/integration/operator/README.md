@@ -1,6 +1,6 @@
 # Operator Integration Tests
 
-Integration tests for the Asya🎭 operator using [envtest](https://book.kubebuilder.io/reference/envtest.html).
+Integration tests for the 🎭 operator using [envtest](https://book.kubebuilder.io/reference/envtest.html).
 
 **Location**: `/testing/integration/operator/`
 

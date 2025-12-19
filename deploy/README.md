@@ -1,10 +1,10 @@
 # Asya🎭 Framework Deployment
 
-This directory contains Helm charts for deploying the Asya🎭 framework components.
+This directory contains Helm charts for deploying the 🎭 framework components.
 
-## What is the Asya🎭 Operator?
+## What is the 🎭 Operator?
 
-The Asya🎭 operator is a **single Kubernetes operator** that watches AsyncActor CRDs and manages their lifecycle. It does NOT deploy actors themselves - it only deploys the operator pod that manages actors.
+The 🎭 operator is a **single Kubernetes operator** that watches AsyncActor CRDs and manages their lifecycle. It does NOT deploy actors themselves - it only deploys the operator pod that manages actors.
 
 When installed, it:
 - Runs as a single Deployment in your cluster
@@ -30,7 +30,7 @@ helm upgrade --install asya-operator helm-charts/asya-operator -n asya-system
 
 ### Gateway Chart (`helm-charts/asya-gateway/`)
 
-Helm chart for deploying the Asya🎭 MCP gateway with PostgreSQL backend:
+Helm chart for deploying the 🎭 MCP gateway with PostgreSQL backend:
 
 ```bash
 # Install with bundled PostgreSQL (recommended)

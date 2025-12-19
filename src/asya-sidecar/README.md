@@ -1,6 +1,6 @@
 # Asya🎭 Actor Sidecar (Go)
 
-Go-based sidecar implementing the Asya🎭 Actor protocol for message routing between queues and runtimes.
+Go-based sidecar implementing the 🎭 Actor protocol for message routing between queues and runtimes.
 
 ## Quick Start
 

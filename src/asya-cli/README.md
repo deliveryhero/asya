@@ -1,6 +1,6 @@
 # Asya🎭 CLI
 
-Command-line developer tools for debugging and operating the Asya🎭 framework.
+Command-line developer tools for debugging and operating the 🎭 framework.
 
 ## Installation
 

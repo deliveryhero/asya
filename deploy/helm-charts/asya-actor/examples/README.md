@@ -58,7 +58,7 @@ helm test sqs-processor -n production
 # Install AsyncActor CRD
 kubectl apply -f src/asya-operator/config/crd/
 
-# Install Asya🎭 operator
+# Install 🎭 operator
 helm install asya-operator deploy/helm-charts/asya-operator \
   -n asya-system --create-namespace
 

@@ -1,6 +1,6 @@
 # MCP Protocol Compliance Tests
 
-Behavioral validation tests for Asya🎭 Gateway's MCP (Model Context Protocol) implementation.
+Behavioral validation tests for 🎭 Gateway's MCP (Model Context Protocol) implementation.
 
 ## What Is Tested
 

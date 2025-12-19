@@ -27,6 +27,7 @@ nav:
 - GETTING STARTED:
   - Motivation: motivation.md
   - Concepts: concepts.md
+  - For All: quickstart/README.md
   - For Data Scientists 🧑‍🔬: quickstart/for-data-scientists.md
   - For Platform Engineers ⚙️: quickstart/for-platform-engineers.md
 - INSTALLATION:

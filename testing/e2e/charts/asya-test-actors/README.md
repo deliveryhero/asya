@@ -1,10 +1,10 @@
 # Asya🎭 Actor Helm Chart
 
-A reusable Helm chart for deploying Asya🎭 AsyncActor resources to Kubernetes.
+A reusable Helm chart for deploying 🎭 AsyncActor resources to Kubernetes.
 
 ## Overview
 
-This chart creates an AsyncActor CRD resource. The Asya🎭 operator will automatically handle:
+This chart creates an AsyncActor CRD resource. The 🎭 operator will automatically handle:
 - ✅ Sidecar container injection (asya-sidecar)
 - ✅ Runtime command injection (`["python3", "/opt/asya/asya_runtime.py"]`)
 - ✅ Socket configuration and volume mounts
@@ -24,7 +24,7 @@ This chart creates an AsyncActor CRD resource. The Asya🎭 operator will automa
 - Kubernetes 1.19+
 - Helm 3.x
 - AsyncActor CRDs installed (`kubectl apply -f src/asya-operator/config/crd/`)
-- Asya🎭 operator running in the cluster
+- 🎭 operator running in the cluster
 - KEDA installed (if using autoscaling)
 
 ## Installation
@@ -207,7 +207,7 @@ env:
 
 #### Workload Kinds
 
-The Asya🎭 operator supports two Kubernetes workload kinds for AsyncActor resources. Choose the kind based on your actor's characteristics:
+The 🎭 operator supports two Kubernetes workload kinds for AsyncActor resources. Choose the kind based on your actor's characteristics:
 
 **Note:** Only workload kinds with KEDA scaling support (Deployment and StatefulSet) are supported. Pod workload kind is NOT supported because it lacks the `/scale` subresource required for KEDA autoscaling.
 

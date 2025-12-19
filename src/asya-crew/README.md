@@ -1,6 +1,6 @@
 # Crew Actors
 
-Crew actors with pre-defined roles for Asya🎭 pipelines: `happy-end` (successful completion) and `error-end` (error handling).
+Crew actors with pre-defined roles for 🎭 pipelines: `happy-end` (successful completion) and `error-end` (error handling).
 
 ## Overview
 

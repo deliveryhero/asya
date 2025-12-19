@@ -1,6 +1,6 @@
 # asya_testing
 
-Shared test library for Asya🎭 framework integration and E2E tests.
+Shared test library for 🎭 framework integration and E2E tests.
 
 ## Structure
 

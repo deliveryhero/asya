@@ -6,12 +6,12 @@ Reusable Docker Compose files for integration testing with maximal configuration
 
 ```
 testing/
-├── shared/compose/                    # Shared infrastructure and Asya🎭 components
+├── shared/compose/                    # Shared infrastructure and 🎭 components
 │   ├── rabbitmq.yml                   # RabbitMQ message transport
 │   ├── sqs.yml                        # LocalStack SQS transport
 │   ├── minio.yml                      # MinIO object storage
 │   ├── postgres.yml                   # PostgreSQL + migrations
-│   ├── asya/                          # Asya🎭 components
+│   ├── asya/                          # 🎭 components
 │   │   ├── gateway.yml                # MCP gateway service
 │   │   ├── testing-actors.yml         # Test actor workloads
 │   │   └── crew-actors.yml            # System actors (happy-end, error-end)
@@ -35,7 +35,7 @@ testing/
 
 ### Profile Assembly Pattern
 
-Profiles combine shared infrastructure, Asya🎭 components, and local services:
+Profiles combine shared infrastructure, 🎭 components, and local services:
 
 ```yaml
 # profiles/sqs-s3.yml

@@ -20,7 +20,7 @@ Generic Helm chart for deploying AsyncActor resources with comprehensive health 
   ```bash
   kubectl apply -f src/asya-operator/config/crd/
   ```
-- Asya🎭 operator running:
+- 🎭 operator running:
   ```bash
   helm install asya-operator deploy/helm-charts/asya-operator \
     -n asya-system --create-namespace

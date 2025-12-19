@@ -1,6 +1,6 @@
 # Asya🎭 Gateway Database Migrations
 
-This directory contains database migrations for the Asya🎭 Gateway using [Sqitch](https://sqitch.org/).
+This directory contains database migrations for the 🎭 Gateway using [Sqitch](https://sqitch.org/).
 
 ## Prerequisites
 

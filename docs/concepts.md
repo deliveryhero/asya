@@ -106,7 +106,7 @@ An actor is a stateless (by default) workload that:
 
 **Envelope vs Message**: At queue level, messages are bytes. Envelopes are JSON objects with pre-defined structure.
 
-**Stateful routing**: `route.current` increments after each actor processes the envelope. Note once again, this is a unique feature of Asya🎭: pipelines are stateless, but envelopes are stateful (they represent different pipeline executions).
+**Stateful routing**: `route.current` increments after each actor processes the envelope. Note once again, this is a unique feature of 🎭: pipelines are stateless, but envelopes are stateful (they represent different pipeline executions).
 
 **See**: [architecture/protocols/actor-actor.md](architecture/protocols/actor-actor.md) for details.
 
@@ -140,7 +140,7 @@ An actor is a stateless (by default) workload that:
 
 ## MCP Gateway (Optional)
 
-As an optional component, Asya🎭 offers an MCP-compliant HTTP gateway, which allows external clients to easily consume async pipelines as MCP tools.
+As an optional component, 🎭 offers an MCP-compliant HTTP gateway, which allows external clients to easily consume async pipelines as MCP tools.
 
 **Responsibilities**:
 

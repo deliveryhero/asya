@@ -1,10 +1,10 @@
 # Asya🎭 Operator Helm Chart
 
-This Helm chart deploys the Asya🎭 Operator, which manages AsyncActor custom resources in a Kubernetes cluster.
+This Helm chart deploys the 🎭 Operator, which manages AsyncActor custom resources in a Kubernetes cluster.
 
 ## Overview
 
-The Asya🎭 Operator is a cluster-scoped controller that:
+The 🎭 Operator is a cluster-scoped controller that:
 - Watches AsyncActor CRDs across all namespaces
 - Automatically injects sidecar containers for message queue consumption
 - Creates and manages Deployments, StatefulSets, or Jobs based on actor configuration

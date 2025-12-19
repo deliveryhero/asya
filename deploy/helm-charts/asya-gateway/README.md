@@ -1,6 +1,6 @@
 # Asya🎭 Gateway Helm Chart
 
-This Helm chart deploys the Asya🎭 MCP Gateway with PostgreSQL backend.
+This Helm chart deploys the 🎭 MCP Gateway with PostgreSQL backend.
 
 ## Prerequisites
 

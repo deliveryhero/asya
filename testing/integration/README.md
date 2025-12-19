@@ -1,6 +1,6 @@
 # Integration Tests
 
-This directory contains integration tests for the Asya🎭 framework, organized into test suites that validate component interactions.
+This directory contains integration tests for the 🎭 framework, organized into test suites that validate component interactions.
 
 ## Directory Structure
 
