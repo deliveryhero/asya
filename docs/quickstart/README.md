@@ -1,13 +1,17 @@
 <!--
 IMPORTANT: All ```bash commands in this file are tested as part of e2e test suite: /testing/e2e/tests/test_quickstart_readme.py
 -->
-# Getting Started with Asya🎭
+# Getting Started with Asya🎭 Locally
 
-**5-minute guide to running Asya🎭 locally**
+**Core idea**: Build multi-step AI/ML pipelines where each step deployed as an [actor](https://en.wikipedia.org/wiki/Actor_model) and scales independently. No infrastructure code in your code - just pure Python.
 
-Asya🎭 is a Kubernetes-native queue-based actor framework for AI/ML workloads. Write pure Python functions, deploy them as actors, and let Asya🎭 handle queues, routing, and autoscaling (0→N pods based on queue depth).
+## What You'll Learn
 
-**Core idea**: Build multi-step AI/ML pipelines where each step scales independently. No infrastructure code in your handlers - just pure Python.
+- Create a Kind cluster to run Kubernetes locally in Docker, and install KEDA for autoscaling
+- Deploy the Asya operator with SQS transport (running via LocalStack)
+- Build and deploy your first actor with scale-to-zero capability
+- Test autoscaling by sending messages to actor queues
+- Optionally add S3 storage, MCP gateway, and Prometheus monitoring
 
 ## Prerequisites
 
