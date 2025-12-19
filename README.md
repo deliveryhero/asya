@@ -1,6 +1,6 @@
 # Asya🎭
 
-🎭 is a **actor framework** for orchestrating AI/ML workloads on Kubernetes with:
+🎭 is a **queue-based actor framework** for orchestrating AI/ML workloads on Kubernetes with:
 - **Independent scaling**: Each actor scales 0→N based on its own queue depth
 - **Zero infrastructure code**: Pure Python functions, no dependencies for queues/routing/retries
 - **Dynamic pipelines**: Routes are data, not code - modify at runtime
