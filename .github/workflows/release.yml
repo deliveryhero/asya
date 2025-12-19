@@ -4,16 +4,15 @@ on:
   release:
     types: [created, published]
 
-permissions:
-  contents: read
-  packages: write
-
 jobs:
   build-and-publish:
     name: Build and publish Docker images
     runs-on: ubuntu-latest
     timeout-minutes: 30
     if: github.event.action == 'published'
+    permissions:
+      contents: read
+      packages: write
 
     steps:
     - uses: actions/checkout@v4
