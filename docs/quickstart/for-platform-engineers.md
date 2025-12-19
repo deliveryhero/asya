@@ -2,6 +2,14 @@
 
 Deploy and manage Asya🎭 infrastructure.
 
+## What You'll Learn
+
+- Install and configure Asya operator with transports (SQS/RabbitMQ)
+- Deploy gateway and crew actors for pipeline completion
+- Support data science teams with templates and IAM configuration
+- Set up monitoring with Prometheus and troubleshoot common issues
+- Optimize scaling and costs for production workloads
+
 ## Overview
 
 As platform engineer, you:
