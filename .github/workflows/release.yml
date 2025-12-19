@@ -189,15 +189,36 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
+    - name: Debug release info
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        echo "[.] Release event: ${{ github.event.action }}"
+        echo "[.] Release tag: ${{ github.event.release.tag_name }}"
+        echo "[.] Release name: ${{ github.event.release.name }}"
+
     - name: Create CRDs bundle
       run: |
+        echo "[.] Creating CRD bundle from src/asya-operator/config/crd/asya.sh_asyncactors.yaml"
         cp src/asya-operator/config/crd/asya.sh_asyncactors.yaml asya-crds.yaml
+        ls -lh asya-crds.yaml
+        echo "[+] CRD bundle created successfully"
 
     - name: Upload CRDs to release
       env:
         GH_TOKEN: ${{ github.token }}
       run: |
-        gh release upload ${{ github.event.release.tag_name }} asya-crds.yaml --clobber
+        echo "[.] Uploading asya-crds.yaml to release ${{ github.event.release.tag_name }}"
+        gh release upload "${{ github.event.release.tag_name }}" asya-crds.yaml --clobber
+        echo "[+] CRD uploaded successfully"
+
+    - name: Verify CRD upload
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        echo "[.] Verifying CRD was uploaded to release"
+        gh release view "${{ github.event.release.tag_name }}" --json assets --jq '.assets[].name' | grep asya-crds.yaml
+        echo "[+] CRD verified in release assets"
 
     - name: Add CRDs to release summary
       run: |
