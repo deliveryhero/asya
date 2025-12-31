@@ -5,7 +5,109 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+
+## [0.3.8] - 2025-12-31
+
+## Other Changes
+
+* ci: Upload CRD on each main commit (#90) @atemate
+
+## Installation
+
+### CRDs
+
+Install or upgrade AsyncActor CRDs:
+```bash
+kubectl apply -f https://github.com/deliveryhero/asya/releases/download/0.3.8/asya-crds.yaml
+```
+
+### Helm Charts
+
+Add the Helm repository:
+```bash
+helm repo add asya https://asya.sh/charts
+helm repo update
+```
+
+Install the operator:
+```bash
+helm install asya-operator asya/asya-operator \
+  --version 0.3.8 \
+  --namespace asya-system \
+  --create-namespace
+```
+
+## Docker Images
+
+All images are published to GitHub Container Registry:
+
+- `ghcr.io/deliveryhero/asya-operator:0.3.8`
+- `ghcr.io/deliveryhero/asya-gateway:0.3.8`
+- `ghcr.io/deliveryhero/asya-sidecar:0.3.8`
+- `ghcr.io/deliveryhero/asya-crew:0.3.8`
+- `ghcr.io/deliveryhero/asya-testing:0.3.8`
+
+## Contributors
+
+@atemate
+
+
+## [0.3.7] - 2025-12-19
+
+* No changes
+
+## Docker Images
+
+All images are published to GitHub Container Registry:
+
+- `ghcr.io/deliveryhero/asya-operator:0.3.7`
+- `ghcr.io/deliveryhero/asya-gateway:0.3.7`
+- `ghcr.io/deliveryhero/asya-sidecar:0.3.7`
+- `ghcr.io/deliveryhero/asya-crew:0.3.7`
+- `ghcr.io/deliveryhero/asya-testing:0.3.7`
+
+## Contributors
+
+@atemate
+
+
+
+## [0.3.6] - 2025-12-19
+
+
+## Docker Images
+
+All images are published to GitHub Container Registry:
+
+- `ghcr.io/deliveryhero/asya-operator:0.3.6`
+- `ghcr.io/deliveryhero/asya-gateway:0.3.6`
+- `ghcr.io/deliveryhero/asya-sidecar:0.3.6`
+- `ghcr.io/deliveryhero/asya-crew:0.3.6`
+- `ghcr.io/deliveryhero/asya-testing:0.3.6`
+
+## Contributors
+
+@atemate
+
+
+
+## [0.3.5] - 2025-12-19
+
+* No changes
+
+## Docker Images
+
+All images are published to GitHub Container Registry:
+
+- `ghcr.io/deliveryhero/asya-operator:0.3.5`
+- `ghcr.io/deliveryhero/asya-gateway:0.3.5`
+- `ghcr.io/deliveryhero/asya-sidecar:0.3.5`
+- `ghcr.io/deliveryhero/asya-crew:0.3.5`
+- `ghcr.io/deliveryhero/asya-testing:0.3.5`
+
+## Contributors
+
+@atemate
 
 
 ## [0.3.4] - 2025-12-19
@@ -27,10 +129,6 @@ All images are published to GitHub Container Registry:
 ## Contributors
 
 @atemate and @github-actions[bot]
-
-
-
-## [Unreleased]
 
 
 ## [0.3.3] - 2025-12-19
@@ -62,10 +160,6 @@ All images are published to GitHub Container Registry:
 @atemate, @github-actions[bot] and [github-actions[bot]](https://github.com/apps/github-actions)
 
 
-
-## [Unreleased]
-
-
 ## [0.3.2] - 2025-12-16
 
 ## Changes
@@ -85,10 +179,6 @@ All images are published to GitHub Container Registry:
 ## Contributors
 
 @atemate, @github-actions[bot] and [github-actions[bot]](https://github.com/apps/github-actions)
-
-
-
-## [Unreleased]
 
 
 ## [0.3.1] - 2025-12-16
@@ -116,10 +206,6 @@ All images are published to GitHub Container Registry:
 ## Contributors
 
 @atemate, @github-actions[bot] and [github-actions[bot]](https://github.com/apps/github-actions)
-
-
-
-## [Unreleased]
 
 
 ## [0.3.0] - 2025-12-15
@@ -150,10 +236,6 @@ All images are published to GitHub Container Registry:
 ## Contributors
 
 @atemate-dh, @github-actions[bot] and [github-actions[bot]](https://github.com/apps/github-actions)
-
-
-
-## [Unreleased]
 
 
 ## [0.2.0] - 2025-12-04
@@ -213,10 +295,6 @@ All images are published to GitHub Container Registry:
 @atemate-dh, @github-actions[bot], @msaharan and [github-actions[bot]](https://github.com/apps/github-actions)
 
 
-
-## [Unreleased]
-
-
 ## [0.1.1] - 2025-11-18
 
 ## What's Changed
@@ -259,10 +337,6 @@ All images are published to GitHub Container Registry:
 @atemate-dh, @github-actions[bot] and [github-actions[bot]](https://github.com/apps/github-actions)
 
 
-
-## [Unreleased]
-
-
 ## [0.1.0] - 2025-11-17
 
 ## What's Changed
@@ -290,10 +364,6 @@ All images are published to GitHub Container Registry:
 ## Contributors
 
 @atemate-dh and @nmertaydin
-
-
-
-## [Unreleased]
 
 ### Added
 - CI workflow for publishing Docker images on GitHub releases
