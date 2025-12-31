@@ -5,6 +5,7 @@ This test extracts and executes bash code blocks from docs/quickstart/README.md
 to ensure the quickstart guide actually works.
 """
 
+import logging
 import os
 import re
 import subprocess
@@ -12,6 +13,49 @@ import tempfile
 from pathlib import Path
 
 import pytest
+
+logger = logging.getLogger(__name__)
+
+
+@pytest.fixture(scope="function")
+def quickstart_cluster():
+    """
+    Manage Kind cluster lifecycle for quickstart README test.
+
+    Pre: Delete asya-local cluster if exists (test creates it)
+    Post: Delete asya-local cluster, restore kubectl context
+    """
+    cluster_name = "asya-local"  # Matches the name in quickstart README
+
+    # Pre: Delete any existing cluster to ensure clean state
+    logger.info(f"[.] Pre-cleanup: Deleting cluster if exists: {cluster_name}")
+    subprocess.run(
+        ["kind", "delete", "cluster", "--name", cluster_name],
+        capture_output=True,
+    )
+    logger.info(f"[+] Pre-cleanup complete")
+
+    # Test runs and creates the cluster itself as part of validation
+    yield cluster_name
+
+    # Post: Always cleanup cluster
+    logger.info(f"[.] Post-cleanup: Deleting cluster: {cluster_name}")
+    subprocess.run(
+        ["kind", "delete", "cluster", "--name", cluster_name],
+        capture_output=True,
+    )
+    logger.info(f"[+] Cluster deleted: {cluster_name}")
+
+    # Restore kubectl context to e2e cluster if running in e2e environment
+    if os.getenv("PROFILE"):
+        profile = os.getenv("PROFILE")
+        original_cluster = f"kind-asya-e2e-{profile}"
+        result = subprocess.run(
+            ["kubectl", "config", "use-context", original_cluster],
+            capture_output=True,
+        )
+        if result.returncode == 0:
+            logger.info(f"[+] Restored kubectl context: {original_cluster}")
 
 
 def extract_bash_blocks(markdown_file: Path) -> list[str]:
@@ -69,12 +113,9 @@ def extract_file_blocks(markdown_file: Path) -> list[tuple[str, str]]:
 def should_skip_block(block: str) -> tuple[bool, str]:
     """Determine if a block should be skipped during testing."""
     skip_patterns = [
-        ("kind create cluster", "Cluster creation handled separately"),
-        ("kubectl config use-context", "Context handled separately"),
         ("make up", "E2E-specific command"),
         ("make down", "E2E-specific command"),
         ("make trigger-tests", "E2E-specific command"),
-        ("kind delete cluster", "Cleanup handled separately"),
         ("pip install", "CLI installation not needed for test"),
         ("asya mcp", "Requires gateway and CLI setup"),
         ("kubectl port-forward", "Port forwarding tested separately"),
@@ -98,37 +139,24 @@ def should_skip_block(block: str) -> tuple[bool, str]:
     return False, ""
 
 
-@pytest.mark.manual
-@pytest.mark.chaos
-@pytest.mark.xdist_group(name="chaos")
-@pytest.mark.timeout(600)
-def test_quickstart_readme_commands(project_root):
+@pytest.mark.docs
+@pytest.mark.xdist_group(name="docs")
+@pytest.mark.order("last")
+@pytest.mark.timeout(900)
+def test_quickstart_readme_commands(project_root, quickstart_cluster):
     """Test that bash commands in quickstart README are valid.
 
     This test deploys infrastructure components (KEDA, LocalStack, Operator, etc.)
-    and should be run in isolation from other tests.
+    in a dedicated Kind cluster (asya-local) to avoid conflicts with e2e tests.
 
-    Timeout is 600s (10 minutes) to allow for infrastructure deployment.
+    Timeout is 900s (15 minutes) to allow for cluster creation + infrastructure deployment.
 
-    Note: This test is marked as 'chaos' so it runs serially and won't interfere
-    with other tests. It validates the quickstart documentation against a real cluster.
+    Fixtures:
+    - quickstart_cluster: Ensures clean cluster state (pre/post cleanup)
 
-    IMPORTANT: This test requires a clean Kind cluster and will conflict with existing
-    e2e infrastructure. Skip if running in e2e environment.
+    Note: This test is part of the "docs" group which runs LAST (after chaos tests)
+    to ensure it doesn't interfere with the shared e2e infrastructure.
     """
-    # Skip if running in e2e environment (check for existing KEDA installation)
-    check_keda = subprocess.run(
-        ['kubectl', 'get', 'namespace', 'keda-system'],
-        capture_output=True,
-        text=True,
-    )
-    if check_keda.returncode == 0:
-        pytest.skip(
-            "Skipping quickstart README test: KEDA already installed (e2e environment detected). "
-            "This test requires a clean Kind cluster. Run manually with: "
-            "kind create cluster --name quickstart-test && pytest tests/test_quickstart_readme.py::test_quickstart_readme_commands"
-        )
-
     readme_path = project_root / "docs" / "quickstart" / "README.md"
 
     if not readme_path.exists():

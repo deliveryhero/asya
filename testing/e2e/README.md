@@ -90,28 +90,45 @@ make trigger-tests PROFILE=sqs-s3 PYTEST_WORKERS=2 PYTEST_OPTS="-v -x"
 
 Default parallelism (`PYTEST_WORKERS=auto`) works well on Linux CI but may overwhelm port-forwards on macOS.
 
-## Special Tests
+## Test Groups
 
-### Quickstart README Validation
+E2E tests are organized into execution groups using pytest markers:
 
-The `test_quickstart_readme_commands` test validates all bash commands in `docs/quickstart/README.md` against a real Kubernetes cluster. This test:
+### Execution Order
 
-- **Requires a clean Kind cluster** - will skip if KEDA is already installed (e.g., in e2e environment)
-- **Is marked as `@pytest.mark.manual`** - not run automatically in CI
-- **Takes ~10 minutes** - deploys KEDA, LocalStack, operator, and validates all tutorial steps
+1. **Regular tests** (unmarked, `@pytest.mark.fast`) - Run in parallel
+2. **Chaos tests** (`@pytest.mark.chaos`) - Run serially (disrupt infrastructure)
+3. **Docs tests** (`@pytest.mark.docs`) - Run serially, AFTER chaos (separate cluster)
+
+### Docs Group: Quickstart README Validation
+
+The `test_quickstart_readme_commands` test validates all bash commands in `docs/quickstart/README.md` against a real Kubernetes cluster.
+
+**Characteristics**:
+- **Dedicated cluster** - uses `asya-local` cluster (created by tutorial itself)
+- **Runs LAST** - part of "docs" group with `@pytest.mark.order("last")`
+- **Full isolation** - no conflicts with e2e infrastructure (separate cluster name)
+- **Takes ~15 minutes** - cluster creation + infrastructure deployment + validation
+- **Single cleanup** - `kind delete cluster --name asya-local` in post-fixture
+
+**Fixture Lifecycle** (`quickstart_cluster`):
+- **Pre**: Delete `asya-local` cluster if exists (ensures clean state)
+- **Test**: Executes tutorial commands including `kind create cluster --name asya-local`
+- **Post**: Delete `asya-local` cluster, restore kubectl context to e2e cluster
 
 **To run manually**:
 
 ```bash
-# Create a clean Kind cluster
-kind create cluster --name quickstart-test
-
-# Run the test
 cd testing/e2e
 uv run --with-editable ../../src/asya-testing pytest tests/test_quickstart_readme.py::test_quickstart_readme_commands -v
-
-# Cleanup
-kind delete cluster --name quickstart-test
+# Note: Fixture handles cleanup automatically, tutorial creates the cluster
 ```
 
-This test automatically skips in the regular e2e suite to avoid conflicts with existing infrastructure.
+**To run only docs tests**:
+
+```bash
+cd testing/e2e
+uv run --with-editable ../../src/asya-testing pytest -m docs -v
+```
+
+This test is part of the regular CI suite and validates that the quickstart documentation actually works.
