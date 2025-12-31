@@ -81,11 +81,8 @@ kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=localstack \
 
 Install `AsyncActor` CRD:
 
-<!-- TODO: fix CRD release instead:
-kubectl apply -f https://github.com/deliveryhero/asya/releases/latest/download/asya-crds.yaml
--->
 ```bash
-kubectl apply -f https://raw.githubusercontent.com/deliveryhero/asya/refs/heads/main/src/asya-operator/config/crd/asya.sh_asyncactors.yaml
+kubectl apply -f https://github.com/deliveryhero/asya/releases/latest/download/asya-crds.yaml
 ```
 
 Add Helm repository:
@@ -107,10 +104,7 @@ kubectl create secret generic sqs-secret \
 Install operator:
 
 ```bash
-# TODO: remove image.repository overload for 0.4.0+
 cat > operator-values.yaml <<EOF
-image:
-  repository: ghcr.io/deliveryhero/asya-operator
 transports:
   sqs:
     enabled: true
@@ -214,6 +208,7 @@ spec:
 EOF
 
 kubectl apply -f hello-actor.yaml
+sleep 1
 
 kubectl get asya
 # NAME    STATUS    RUNNING   FAILING   TOTAL   DESIRED   MIN   MAX   LAST-SCALE   AGE
@@ -251,7 +246,7 @@ Read the logs using `kubectl logs` and find the greeting message (with timeout):
 
 ```bash
 timeout 30s sh -c '
-  until kubectl logs -l asya.sh/asya=hello -c asya-runtime 2>&1 | tee /dev/stderr | grep -q "greeting"; do
+  until kubectl logs -l asya.sh/asya=hello -c asya-runtime | tee /dev/stderr | grep -q "greeting"; do
     sleep 1
   done
 ' && echo "[+] Found expected greeting in logs"
@@ -309,7 +304,7 @@ kubectl run aws-cli --rm -i --restart=Never --image=amazon/aws-cli \
 
 ### 2. Install Crew Actors
 
-Crew actors handle pipeline completion:
+Crew actors are pre-defined system actors proved by the framework to handle typical operations like message persistence (`happy-end` and `error-end`):
 
 ```bash
 cat > crew-values.yaml <<EOF
