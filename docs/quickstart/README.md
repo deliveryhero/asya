@@ -59,7 +59,10 @@ kubectl config use-context kind-asya-local
 
 ```bash
 helm repo add kedacore https://kedacore.github.io/charts
-helm install keda kedacore/keda --namespace keda-system --create-namespace
+helm install keda kedacore/keda \
+  --namespace keda-system \
+  --create-namespace \
+  --timeout=3m
 ```
 
 ### 2. Install LocalStack (SQS)
@@ -71,10 +74,13 @@ helm repo add localstack https://helm.localstack.cloud
 helm install localstack localstack/localstack \
   --namespace asya-system \
   --create-namespace \
-  --set image.tag=latest
+  --set image.tag=latest \
+  --timeout=3m
 
 kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=localstack \
-  -n asya-system --timeout=300s
+  -n asya-system --timeout=120s || true
+
+kubectl get pods -l app.kubernetes.io/name=localstack -n asya-system
 ```
 
 ### 3. Install Asya🎭 Operator
@@ -124,13 +130,13 @@ EOF
 helm install asya-operator asya/asya-operator \
   -n asya-system \
   --create-namespace \
-  -f operator-values.yaml
+  -f operator-values.yaml \
+  --timeout=3m
 
 kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=asya-operator \
-  -n asya-system --timeout=300s
+  -n asya-system --timeout=120s || true
 
-# check manually:
-kubectl -n asya-system get po -l app.kubernetes.io/name=asya-operator
+kubectl get pods -l app.kubernetes.io/name=asya-operator -n asya-system
 # NAME                             READY   STATUS    RESTARTS   AGE
 # asya-operator-7c8cdc4ff4-4qj2f   1/1     Running   0          40s
 ```
@@ -279,9 +285,11 @@ kubectl run send-many-messages --rm -i --restart=Never --image=amazon/aws-cli \
   "
 ```
 
-Watch the actor scale up to 5 pods (25 messages / 5 messages per pod) using `kubectl get asya hello -w`.
+Watch the actor scale up to 5 pods (25 messages / 5 messages per pod):
 
-Press `Ctrl+C` to stop watching for pods.
+```bash
+timeout 60s kubectl get asya hello -w || true
+```
 
 
 ## Add S3 Storage (Optional)
@@ -353,7 +361,8 @@ EOF
 
 helm install asya-crew asya/asya-crew \
   -n asya-system \
-  -f crew-values.yaml
+  -f crew-values.yaml \
+  --timeout=3m
 ```
 
 Your pipeline results are now automatically persisted to S3: whenever an actor finishes processing the last message in the route, 🎭 automatically sends it to `happy-end` actor to persist it on S3. Similarly, error messages will be sent to `error-end`.
@@ -415,9 +424,6 @@ kubectl create secret generic asya-gateway-postgresql \
 
 ---
 
-TODO: complete tutorial
-
-<!--
 ### 3. Install Gateway
 
 ```bash
@@ -444,10 +450,13 @@ EOF
 
 helm install asya-gateway asya/asya-gateway \
   -n asya-system \
-  -f gateway-values.yaml
+  -f gateway-values.yaml \
+  --timeout=3m
 
 kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=asya-gateway \
-  -n asya-system --timeout=300s
+  -n asya-system --timeout=120s || true
+
+kubectl get pods -l app.kubernetes.io/name=asya-gateway -n asya-system
 ```
 
 ### 4. Update Operator for Gateway Integration
@@ -459,10 +468,11 @@ EOF
 
 helm upgrade asya-operator asya/asya-operator \
   -n asya-system \
-  -f operator-values.yaml
+  -f operator-values.yaml \
+  --timeout=3m
 ```
 
-### 5. Update Crew for Gateway Reporting
+### 5. Update Crew Actors for Gateway Reporting
 
 ```bash
 cat > crew-values.yaml <<EOF
@@ -511,7 +521,8 @@ EOF
 
 helm upgrade asya-crew asya/asya-crew \
   -n asya-system \
-  -f crew-values.yaml
+  -f crew-values.yaml \
+  --timeout=3m
 ```
 
 ### 6. Use the Gateway
@@ -525,7 +536,9 @@ pip install git+https://github.com/deliveryhero/asya.git#subdirectory=src/asya-c
 Port-forward and test:
 
 ```bash
-kubectl port-forward -n asya-system svc/asya-gateway 8080:80
+kubectl port-forward -n asya-system svc/asya-gateway 8080:80 &
+PORT_FORWARD_PID=$!
+sleep 2  # Wait for port-forward to establish
 
 export ASYA_CLI_MCP_URL=http://localhost:8080/
 
@@ -537,6 +550,8 @@ asya mcp call hello --name=Asya
 
 # Stream progress
 asya mcp call hello --name=Asya --stream
+
+kill $PORT_FORWARD_PID 2>/dev/null || true
 ```
 
 ## Add Prometheus (Optional)
@@ -549,7 +564,8 @@ asya mcp call hello --name=Asya --stream
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
 helm install prometheus prometheus-community/kube-prometheus-stack \
   --namespace monitoring \
-  --create-namespace
+  --create-namespace \
+  --timeout=5m
 ```
 
 ### 2. Configure ServiceMonitors
@@ -576,7 +592,13 @@ EOF
 ### 3. Access Grafana
 
 ```bash
-kubectl port-forward -n monitoring svc/prometheus-grafana 3000:80
+kubectl port-forward -n monitoring svc/prometheus-grafana 3000:80 &
+GRAFANA_PID=$!
+sleep 2  # Wait for port-forward to establish
+
+# Now access http://localhost:3000 in your browser
+# When done:
+kill $GRAFANA_PID 2>/dev/null || true
 ```
 
 Default credentials: `admin` / `prom-operator`
@@ -591,8 +613,8 @@ Send a message and watch scaling:
 # Send message
 asya mcp call hello --name="Test"
 
-# Watch pods scale
-kubectl get pods -l asya.sh/asya=hello -w
+# Watch pods scale (timeout after 60s)
+timeout 60s kubectl get pods -l asya.sh/asya=hello -w || true
 
 # Check logs
 POD=$(kubectl get pods -l asya.sh/asya=hello -o name | head -1)
@@ -664,17 +686,51 @@ See [AWS EKS Installation](../install/aws-eks.md) for full production guide.
 
 ## Clean Up
 
+### Clean Up Specific Components
 
-TODO: add more granular deletions:
+If you want to remove specific components while keeping the cluster:
 
 ```bash
+# Remove Prometheus (if installed)
+helm uninstall prometheus -n monitoring
+kubectl delete namespace monitoring
+
+# Remove Gateway (if installed)
+helm uninstall asya-gateway -n asya-system
+kubectl delete secret asya-gateway-postgresql -n asya-system
+kubectl delete deployment asya-gateway-postgresql -n asya-system
+kubectl delete service asya-gateway-postgresql -n asya-system
+
+# Remove Crew actors (if installed)
+helm uninstall asya-crew -n asya-system
+
+# Remove your custom actors
+kubectl delete asya hello -n default
+
+# Remove Asya operator
 helm uninstall asya-operator -n asya-system
-...
+
+# Remove LocalStack
+helm uninstall localstack -n asya-system
+
+# Remove KEDA
+helm uninstall keda -n keda-system
+kubectl delete namespace keda-system
+
+# Remove CRDs
+kubectl delete crd asyncactors.asya.sh
+
+# Remove namespace
+kubectl delete namespace asya-system
 ```
+
+### Clean Up Everything
+
+To completely remove the Kind cluster and all components:
 
 ```bash
 kind delete cluster --name asya-local
-``` -->
+```
 
 ---
 
