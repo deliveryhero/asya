@@ -221,7 +221,14 @@ spec:
 
 ```bash
 kubectl apply -f hello-actor.yaml
-sleep 1
+
+# Wait for AsyncActor to be recognized by operator
+timeout 30s sh -c '
+  until kubectl get asya hello &>/dev/null; do
+    echo "Waiting for AsyncActor hello to be created..."
+    sleep 1
+  done
+' && echo "[+] AsyncActor hello created"
 
 kubectl get asya
 # NAME    STATUS    RUNNING   FAILING   TOTAL   DESIRED   MIN   MAX   LAST-SCALE   AGE
@@ -396,23 +403,24 @@ kubectl run aws-cli --rm -i --restart=Never --image=amazon/aws-cli \
   "
 ```
 
-Wait for processing and check S3 for the result:
+Wait for the message to be processed and persisted to S3:
 
 ```bash
-# Wait a few seconds for message to be processed and persisted
-sleep 10
-
-# List objects in results bucket
-kubectl run aws-cli --rm -i --restart=Never --image=amazon/aws-cli \
-  --namespace asya-system \
-  --env="AWS_ACCESS_KEY_ID=test" \
-  --env="AWS_SECRET_ACCESS_KEY=test" \
-  --env="AWS_DEFAULT_REGION=us-east-1" \
-  --command -- /bin/bash -c "
-    echo '[+] Listing S3 objects in asya-results bucket:'
-    aws --endpoint-url=http://localstack.asya-system.svc.cluster.local:4566 \
-      s3 ls s3://asya-results/ --recursive
-  "
+# Poll until S3 object appears (with 30s timeout)
+timeout 30s sh -c '
+  until kubectl run aws-cli --rm -i --restart=Never --image=amazon/aws-cli \
+    --namespace asya-system \
+    --env="AWS_ACCESS_KEY_ID=test" \
+    --env="AWS_SECRET_ACCESS_KEY=test" \
+    --env="AWS_DEFAULT_REGION=us-east-1" \
+    --command -- /bin/bash -c "
+      aws --endpoint-url=http://localstack.asya-system.svc.cluster.local:4566 \
+        s3 ls s3://asya-results/s3-test-001.json 2>/dev/null
+    " | grep -q "s3-test-001.json"; do
+    echo "Waiting for S3 object s3-test-001.json..."
+    sleep 2
+  done
+' && echo "[+] S3 object found: s3-test-001.json"
 ```
 
 You should see an S3 object with a key like `s3-test-001.json`. Download and inspect it:
@@ -588,13 +596,26 @@ kubectl run aws-cli --rm -i --restart=Never --image=amazon/aws-cli \
   "
 ```
 
-Check that result is persisted to S3:
+Wait for processing and verify S3 persistence:
 
 ```bash
-# Wait for processing
-sleep 10
+# Poll until S3 object appears (with 30s timeout)
+timeout 30s sh -c '
+  until kubectl run aws-cli --rm -i --restart=Never --image=amazon/aws-cli \
+    --namespace asya-system \
+    --env="AWS_ACCESS_KEY_ID=test" \
+    --env="AWS_SECRET_ACCESS_KEY=test" \
+    --env="AWS_DEFAULT_REGION=us-east-1" \
+    --command -- /bin/bash -c "
+      aws --endpoint-url=http://localstack.asya-system.svc.cluster.local:4566 \
+        s3 ls s3://asya-results/gateway-test-001.json 2>/dev/null
+    " | grep -q "gateway-test-001.json"; do
+    echo "Waiting for S3 object gateway-test-001.json..."
+    sleep 2
+  done
+' && echo "[+] S3 object found: gateway-test-001.json"
 
-# Verify S3 object exists
+# Download and inspect the object
 kubectl run aws-cli --rm -i --restart=Never --image=amazon/aws-cli \
   --namespace asya-system \
   --env="AWS_ACCESS_KEY_ID=test" \
@@ -619,7 +640,14 @@ Port-forward and test:
 ```bash
 kubectl port-forward -n asya-system svc/asya-gateway 8080:80 &
 PORT_FORWARD_PID=$!
-sleep 2  # Wait for port-forward to establish
+
+# Wait for port-forward to establish
+timeout 30s sh -c '
+  until curl -s http://localhost:8080/health &>/dev/null; do
+    echo "Waiting for gateway port-forward to establish..."
+    sleep 1
+  done
+' && echo "[+] Gateway port-forward established"
 
 export ASYA_CLI_MCP_URL=http://localhost:8080/
 
@@ -675,7 +703,14 @@ EOF
 ```bash
 kubectl port-forward -n monitoring svc/prometheus-grafana 3000:80 &
 GRAFANA_PID=$!
-sleep 2  # Wait for port-forward to establish
+
+# Wait for port-forward to establish
+timeout 30s sh -c '
+  until curl -s http://localhost:3000/api/health &>/dev/null; do
+    echo "Waiting for Grafana port-forward to establish..."
+    sleep 1
+  done
+' && echo "[+] Grafana port-forward established"
 
 # Now access http://localhost:3000 in your browser
 # When done:
