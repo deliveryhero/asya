@@ -25,6 +25,47 @@ def extract_bash_blocks(markdown_file: Path) -> list[str]:
     return [block.strip() for block in blocks if block.strip()]
 
 
+def extract_file_blocks(markdown_file: Path) -> list[tuple[str, str]]:
+    """Extract code blocks with filenames from a markdown file.
+
+    Returns list of (filename, content) tuples for blocks that start with # filename comment.
+    Extracts from typed code blocks (```python, ```yaml, ```dockerfile, etc.) but not ```bash.
+    """
+    content = markdown_file.read_text()
+
+    # Pattern to match typed code blocks (not bash, not untyped)
+    pattern = r"```(\w+)\n(.*?)```"
+    matches = re.findall(pattern, content, re.DOTALL)
+
+    file_blocks = []
+    for lang, block_content in matches:
+        # Skip bash blocks (handled separately)
+        if lang == "bash":
+            continue
+
+        # Skip untyped blocks
+        if not block_content.strip():
+            continue
+
+        # Check if first line is a filename comment
+        lines = block_content.strip().split('\n')
+        if not lines:
+            continue
+
+        first_line = lines[0].strip()
+
+        # Match comment patterns: # filename.ext or // filename.ext or # Dockerfile
+        # Supports filenames with or without extensions
+        filename_match = re.match(r'^[#/]+\s+([\w.-]+)$', first_line)
+        if filename_match:
+            filename = filename_match.group(1)
+            # Content is everything after the first line
+            file_content = '\n'.join(lines[1:])
+            file_blocks.append((filename, file_content))
+
+    return file_blocks
+
+
 def should_skip_block(block: str) -> tuple[bool, str]:
     """Determine if a block should be skipped during testing."""
     skip_patterns = [
@@ -67,6 +108,16 @@ def test_quickstart_readme_commands(project_root):
 
     if not readme_path.exists():
         pytest.skip(f"README not found: {readme_path}")
+
+    # First, create files from code blocks with filenames
+    file_blocks = extract_file_blocks(readme_path)
+    if file_blocks:
+        print(f"\nCreating {len(file_blocks)} files from code blocks:")
+        for filename, content in file_blocks:
+            print(f"  Creating: {filename}")
+            with open(filename, 'w') as f:
+                f.write(content)
+                f.write('\n')
 
     blocks = extract_bash_blocks(readme_path)
 

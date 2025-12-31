@@ -1,5 +1,7 @@
 <!--
-IMPORTANT: All ```bash commands in this file are tested as part of e2e test suite: /testing/e2e/tests/test_quickstart_readme.py
+IMPORTANT: This file is tested as part of e2e test suite: /testing/e2e/tests/test_quickstart_readme.py
+- All ```bash commands are executed during testing
+- All typed code blocks (```python, ```yaml, ```dockerfile, etc.) with first line as "# filename" are written to files
 -->
 # Getting Started with Asya🎭 Locally
 
@@ -35,8 +37,9 @@ Choose your setup based on your needs:
 
 ### 1. Create Kind Cluster
 
-```bash
-cat > kind-config.yaml <<EOF
+Create Kind configuration file:
+```yaml
+# kind-config.yaml
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 nodes:
@@ -45,8 +48,10 @@ nodes:
   - containerPort: 30080
     hostPort: 8080
     protocol: TCP
-EOF
+```
 
+Create Kind cluster:
+```bash
 kind create cluster --name asya-local --config kind-config.yaml
 kubectl config use-context kind-asya-local
 ```
@@ -109,8 +114,8 @@ kubectl create secret generic sqs-secret \
 
 Install operator:
 
-```bash
-cat > operator-values.yaml <<EOF
+```yaml
+# operator-values.yaml
 transports:
   sqs:
     enabled: true
@@ -125,8 +130,9 @@ transports:
         secretAccessKeySecretRef:
           name: sqs-secret
           key: secret-access-key
-EOF
+```
 
+```bash
 helm install asya-operator asya/asya-operator \
   -n asya-system \
   --create-namespace \
@@ -150,8 +156,8 @@ kubectl -n asya-system logs -l app.kubernetes.io/name=asya-operator
 
 Write a handler:
 
-```bash
-cat > handler.py <<EOF
+```python
+# handler.py
 import time
 
 def process(payload: dict) -> dict:
@@ -160,26 +166,26 @@ def process(payload: dict) -> dict:
         **payload,
         "greeting": f"Hello, {payload.get('name', 'World')}!"
     }
-EOF
 ```
 
 Build a docker image and load it to kind context (in real world, use CI to build and push packages automatically):
 
-```bash
-cat > Dockerfile <<EOF
+```dockerfile
+# Dockerfile
 FROM python:3.13-slim
 WORKDIR /app
 COPY handler.py .
-EOF
+```
 
+```bash
 docker build -t my-hello-actor:latest .
 kind load docker-image my-hello-actor:latest --name asya-local
 ```
 
 Deploy the actor:
 
-```bash
-cat > hello-actor.yaml <<EOF
+```yaml
+# hello-actor.yaml
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 metadata:
@@ -211,8 +217,9 @@ spec:
             value: "test"
           - name: AWS_REGION
             value: "us-east-1"
-EOF
+```
 
+```bash
 kubectl apply -f hello-actor.yaml
 sleep 1
 
@@ -314,8 +321,8 @@ kubectl run aws-cli --rm -i --restart=Never --image=amazon/aws-cli \
 
 Crew actors are pre-defined system actors proved by the framework to handle typical operations like message persistence (`happy-end` and `error-end`):
 
-```bash
-cat > crew-values.yaml <<EOF
+```yaml
+# crew-values.yaml
 happy-end:
   transport: sqs
   workload:
@@ -357,8 +364,9 @@ error-end:
             value: "test"
           - name: AWS_SECRET_ACCESS_KEY
             value: "test"
-EOF
+```
 
+```bash
 helm install asya-crew asya/asya-crew \
   -n asya-system \
   -f crew-values.yaml \
@@ -426,8 +434,8 @@ kubectl create secret generic asya-gateway-postgresql \
 
 ### 3. Install Gateway
 
-```bash
-cat > gateway-values.yaml <<EOF
+```yaml
+# gateway-values.yaml
 image:
   repository: ghcr.io/deliveryhero/asya-gateway
   tag: latest
@@ -446,8 +454,9 @@ env:
   value: "test"
 - name: AWS_SECRET_ACCESS_KEY
   value: "test"
-EOF
+```
 
+```bash
 helm install asya-gateway asya/asya-gateway \
   -n asya-system \
   -f gateway-values.yaml \
@@ -461,11 +470,28 @@ kubectl get pods -l app.kubernetes.io/name=asya-gateway -n asya-system
 
 ### 4. Update Operator for Gateway Integration
 
-```bash
-cat >> operator-values.yaml <<EOF
-gatewayURL: "http://asya-gateway.asya-system.svc.cluster.local:8080"
-EOF
+Update the operator configuration to include the gateway URL:
 
+```yaml
+# operator-values.yaml
+transports:
+  sqs:
+    enabled: true
+    config:
+      region: us-east-1
+      accountId: "000000000000"
+      endpoint: http://localstack.asya-system.svc.cluster.local:4566
+      credentials:
+        accessKeyIdSecretRef:
+          name: sqs-secret
+          key: access-key-id
+        secretAccessKeySecretRef:
+          name: sqs-secret
+          key: secret-access-key
+gatewayURL: "http://asya-gateway.asya-system.svc.cluster.local:8080"
+```
+
+```bash
 helm upgrade asya-operator asya/asya-operator \
   -n asya-system \
   -f operator-values.yaml \
@@ -474,8 +500,10 @@ helm upgrade asya-operator asya/asya-operator \
 
 ### 5. Update Crew Actors for Gateway Reporting
 
-```bash
-cat > crew-values.yaml <<EOF
+Update crew configuration to report status to the gateway:
+
+```yaml
+# crew-values.yaml
 happy-end:
   transport: sqs
   workload:
@@ -517,8 +545,9 @@ error-end:
             value: "test"
           - name: AWS_SECRET_ACCESS_KEY
             value: "test"
-EOF
+```
 
+```bash
 helm upgrade asya-crew asya/asya-crew \
   -n asya-system \
   -f crew-values.yaml \
