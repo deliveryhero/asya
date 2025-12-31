@@ -89,3 +89,29 @@ make trigger-tests PROFILE=sqs-s3 PYTEST_WORKERS=2 PYTEST_OPTS="-v -x"
 ```
 
 Default parallelism (`PYTEST_WORKERS=auto`) works well on Linux CI but may overwhelm port-forwards on macOS.
+
+## Special Tests
+
+### Quickstart README Validation
+
+The `test_quickstart_readme_commands` test validates all bash commands in `docs/quickstart/README.md` against a real Kubernetes cluster. This test:
+
+- **Requires a clean Kind cluster** - will skip if KEDA is already installed (e.g., in e2e environment)
+- **Is marked as `@pytest.mark.manual`** - not run automatically in CI
+- **Takes ~10 minutes** - deploys KEDA, LocalStack, operator, and validates all tutorial steps
+
+**To run manually**:
+
+```bash
+# Create a clean Kind cluster
+kind create cluster --name quickstart-test
+
+# Run the test
+cd testing/e2e
+uv run --with-editable ../../src/asya-testing pytest tests/test_quickstart_readme.py::test_quickstart_readme_commands -v
+
+# Cleanup
+kind delete cluster --name quickstart-test
+```
+
+This test automatically skips in the regular e2e suite to avoid conflicts with existing infrastructure.

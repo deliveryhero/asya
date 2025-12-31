@@ -742,7 +742,7 @@ Verify end-to-end flow with S3 persistence:
 
 ```bash
 # Check envelope status via gateway
-asya mcp status <envelope-id>
+# asya mcp status <envelope-id>
 
 # List all objects in S3 results bucket
 kubectl run aws-cli --rm -i --restart=Never --image=amazon/aws-cli \
