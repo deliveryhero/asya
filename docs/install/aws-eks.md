@@ -189,7 +189,7 @@ kubectl apply -f https://raw.githubusercontent.com/aws-samples/amazon-cloudwatch
 ### 1. Install CRDs
 
 ```bash
-kubectl apply -f src/asya-operator/config/crd/
+kubectl apply -f https://github.com/deliveryhero/asya/releases/latest/download/asya-crds.yaml
 ```
 
 ### 2. Configure Operator Values

@@ -15,7 +15,7 @@ The 🎭 Operator is a cluster-scoped controller that:
 
 - Kubernetes 1.19+
 - Helm 3.2.0+
-- AsyncActor CRDs installed (`kubectl apply -f src/asya-operator/config/crd/`)
+- AsyncActor CRDs installed (`kubectl apply -f https://github.com/deliveryhero/asya/releases/latest/download/asya-crds.yaml`)
 
 ### For SQS Transport (EKS only)
 
@@ -52,7 +52,7 @@ The operator will manage AsyncActor resources in **all namespaces**, typically:
 
 ```bash
 # Install CRDs first (if not already installed)
-kubectl apply -f src/asya-operator/config/crd/
+kubectl apply -f https://github.com/deliveryhero/asya/releases/latest/download/asya-crds.yaml
 
 # Install operator
 helm install asya-operator deploy/helm-charts/asya-operator \
@@ -326,7 +326,7 @@ kubectl logs -n asya-system -l app.kubernetes.io/name=asya-operator
 ```
 
 Common issues:
-- CRDs not installed: `kubectl apply -f src/asya-operator/config/crd/`
+- CRDs not installed: `kubectl apply -f https://github.com/deliveryhero/asya/releases/latest/download/asya-crds.yaml`
 - RBAC permissions: Verify ClusterRole and ClusterRoleBinding exist
 - Image pull errors: Check `imagePullSecrets` configuration
 
@@ -393,7 +393,7 @@ kind load docker-image asya-operator:dev
 kind create cluster --name asya-dev
 
 # Install CRDs
-kubectl apply -f src/asya-operator/config/crd/
+kubectl apply -f https://github.com/deliveryhero/asya/releases/latest/download/asya-crds.yaml
 
 # Build and load image
 make docker-build IMG=asya-operator:dev

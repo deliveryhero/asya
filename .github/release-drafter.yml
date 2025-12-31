@@ -173,7 +173,10 @@ template: |
 
   Install the operator:
   ```bash
-  helm install asya-operator asya/asya-operator --version $RESOLVED_VERSION
+  helm install asya-operator asya/asya-operator \
+    --version $RESOLVED_VERSION \
+    --namespace asya-system \
+    --create-namespace
   ```
 
   ## Docker Images
