@@ -160,13 +160,14 @@ def test_quickstart_readme_commands(project_root):
 
         try:
             # Run the command with real-time output
+            # Timeout set to 310s (5min + 10s buffer) to handle longest helm timeout (5min for prometheus)
             import sys
             result = subprocess.run(
                 ['bash', temp_script],
                 stdout=sys.stdout,
                 stderr=sys.stderr,
                 text=True,
-                timeout=180,
+                timeout=310,
             )
 
             if result.returncode == 0:
@@ -182,11 +183,11 @@ def test_quickstart_readme_commands(project_root):
                     'stderr': '',
                 })
         except subprocess.TimeoutExpired:
-            print(f"  [-] TIMEOUT after 180 seconds")
+            print(f"  [-] TIMEOUT after 310 seconds")
             failed_blocks.append({
                 'number': i,
                 'block': block,
-                'error': 'Command timed out after 180 seconds',
+                'error': 'Command timed out after 310 seconds',
             })
         finally:
             # Cleanup temp file

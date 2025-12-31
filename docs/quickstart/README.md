@@ -375,6 +375,72 @@ helm install asya-crew asya/asya-crew \
 
 Your pipeline results are now automatically persisted to S3: whenever an actor finishes processing the last message in the route, 🎭 automatically sends it to `happy-end` actor to persist it on S3. Similarly, error messages will be sent to `error-end`.
 
+### 3. Verify S3 Persistence
+
+Send a test message and verify it's persisted to S3:
+
+```bash
+# Send a message through hello actor
+MSG='{"id":"s3-test-001","route":{"actors":["hello"],"current":0},"payload":{"name":"S3 Test"}}'
+
+kubectl run aws-cli --rm -i --restart=Never --image=amazon/aws-cli \
+  --namespace default \
+  --env="AWS_ACCESS_KEY_ID=test" \
+  --env="AWS_SECRET_ACCESS_KEY=test" \
+  --env="AWS_DEFAULT_REGION=us-east-1" \
+  --command -- sh -c "
+    aws sqs send-message \
+      --endpoint-url=http://localstack.asya-system.svc.cluster.local:4566 \
+      --queue-url http://localstack.asya-system.svc.cluster.local:4566/000000000000/asya-default-hello \
+      --message-body '$MSG'
+  "
+```
+
+Wait for processing and check S3 for the result:
+
+```bash
+# Wait a few seconds for message to be processed and persisted
+sleep 10
+
+# List objects in results bucket
+kubectl run aws-cli --rm -i --restart=Never --image=amazon/aws-cli \
+  --namespace asya-system \
+  --env="AWS_ACCESS_KEY_ID=test" \
+  --env="AWS_SECRET_ACCESS_KEY=test" \
+  --env="AWS_DEFAULT_REGION=us-east-1" \
+  --command -- /bin/bash -c "
+    echo '[+] Listing S3 objects in asya-results bucket:'
+    aws --endpoint-url=http://localstack.asya-system.svc.cluster.local:4566 \
+      s3 ls s3://asya-results/ --recursive
+  "
+```
+
+You should see an S3 object with a key like `s3-test-001.json`. Download and inspect it:
+
+```bash
+kubectl run aws-cli --rm -i --restart=Never --image=amazon/aws-cli \
+  --namespace asya-system \
+  --env="AWS_ACCESS_KEY_ID=test" \
+  --env="AWS_SECRET_ACCESS_KEY=test" \
+  --env="AWS_DEFAULT_REGION=us-east-1" \
+  --command -- /bin/bash -c "
+    aws --endpoint-url=http://localstack.asya-system.svc.cluster.local:4566 \
+      s3 cp s3://asya-results/s3-test-001.json - | cat
+  "
+```
+
+Expected output should contain the greeting:
+```json
+{
+  "id": "s3-test-001",
+  "route": {"actors": ["hello"], "current": 1},
+  "payload": {
+    "name": "S3 Test",
+    "greeting": "Hello, S3 Test!"
+  }
+}
+```
+
 
 ## Add Gateway (Optional)
 
@@ -472,29 +538,11 @@ kubectl get pods -l app.kubernetes.io/name=asya-gateway -n asya-system
 
 Update the operator configuration to include the gateway URL:
 
-```yaml
-# operator-values.yaml
-transports:
-  sqs:
-    enabled: true
-    config:
-      region: us-east-1
-      accountId: "000000000000"
-      endpoint: http://localstack.asya-system.svc.cluster.local:4566
-      credentials:
-        accessKeyIdSecretRef:
-          name: sqs-secret
-          key: access-key-id
-        secretAccessKeySecretRef:
-          name: sqs-secret
-          key: secret-access-key
-gatewayURL: "http://asya-gateway.asya-system.svc.cluster.local:8080"
-```
-
 ```bash
 helm upgrade asya-operator asya/asya-operator \
   -n asya-system \
   -f operator-values.yaml \
+  --set gatewayURL="http://asya-gateway.asya-system.svc.cluster.local:8080" \
   --timeout=3m
 ```
 
@@ -502,56 +550,60 @@ helm upgrade asya-operator asya/asya-operator \
 
 Update crew configuration to report status to the gateway:
 
-```yaml
-# crew-values.yaml
-happy-end:
-  transport: sqs
-  workload:
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          env:
-          - name: ASYA_GATEWAY_URL
-            value: "http://asya-gateway.asya-system.svc.cluster.local:8080"
-          - name: ASYA_S3_BUCKET
-            value: "asya-results"
-          - name: ASYA_S3_ENDPOINT
-            value: "http://localstack.asya-system.svc.cluster.local:4566"
-          - name: ASYA_S3_REGION
-            value: "us-east-1"
-          - name: AWS_ACCESS_KEY_ID
-            value: "test"
-          - name: AWS_SECRET_ACCESS_KEY
-            value: "test"
-
-error-end:
-  transport: sqs
-  workload:
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          env:
-          - name: ASYA_GATEWAY_URL
-            value: "http://asya-gateway.asya-system.svc.cluster.local:8080"
-          - name: ASYA_S3_BUCKET
-            value: "asya-errors"
-          - name: ASYA_S3_ENDPOINT
-            value: "http://localstack.asya-system.svc.cluster.local:4566"
-          - name: ASYA_S3_REGION
-            value: "us-east-1"
-          - name: AWS_ACCESS_KEY_ID
-            value: "test"
-          - name: AWS_SECRET_ACCESS_KEY
-            value: "test"
-```
-
 ```bash
 helm upgrade asya-crew asya/asya-crew \
   -n asya-system \
   -f crew-values.yaml \
+  --set-string 'happy-end.workload.template.spec.containers[0].env[0].value=http://asya-gateway.asya-system.svc.cluster.local:8080' \
+  --set-string 'error-end.workload.template.spec.containers[0].env[0].value=http://asya-gateway.asya-system.svc.cluster.local:8080' \
   --timeout=3m
+```
+
+Wait for crew actors to be ready:
+
+```bash
+kubectl wait --for=condition=ready pod -l asya.sh/asya=happy-end \
+  -n asya-system --timeout=120s || true
+
+kubectl wait --for=condition=ready pod -l asya.sh/asya=error-end \
+  -n asya-system --timeout=120s || true
+```
+
+Verify S3 persistence with gateway reporting:
+
+```bash
+# Send a test message
+MSG='{"id":"gateway-test-001","route":{"actors":["hello"],"current":0},"payload":{"name":"Gateway Test"}}'
+
+kubectl run aws-cli --rm -i --restart=Never --image=amazon/aws-cli \
+  --namespace default \
+  --env="AWS_ACCESS_KEY_ID=test" \
+  --env="AWS_SECRET_ACCESS_KEY=test" \
+  --env="AWS_DEFAULT_REGION=us-east-1" \
+  --command -- sh -c "
+    aws sqs send-message \
+      --endpoint-url=http://localstack.asya-system.svc.cluster.local:4566 \
+      --queue-url http://localstack.asya-system.svc.cluster.local:4566/000000000000/asya-default-hello \
+      --message-body '$MSG'
+  "
+```
+
+Check that result is persisted to S3:
+
+```bash
+# Wait for processing
+sleep 10
+
+# Verify S3 object exists
+kubectl run aws-cli --rm -i --restart=Never --image=amazon/aws-cli \
+  --namespace asya-system \
+  --env="AWS_ACCESS_KEY_ID=test" \
+  --env="AWS_SECRET_ACCESS_KEY=test" \
+  --env="AWS_DEFAULT_REGION=us-east-1" \
+  --command -- /bin/bash -c "
+    aws --endpoint-url=http://localstack.asya-system.svc.cluster.local:4566 \
+      s3 cp s3://asya-results/gateway-test-001.json - | cat
+  "
 ```
 
 ### 6. Use the Gateway
@@ -639,7 +691,7 @@ Import Asya dashboards from the [monitoring guide](../operate/monitoring.md).
 Send a message and watch scaling:
 
 ```bash
-# Send message
+# Send message via MCP gateway
 asya mcp call hello --name="Test"
 
 # Watch pods scale (timeout after 60s)
@@ -649,6 +701,25 @@ timeout 60s kubectl get pods -l asya.sh/asya=hello -w || true
 POD=$(kubectl get pods -l asya.sh/asya=hello -o name | head -1)
 kubectl logs $POD -c asya-runtime
 kubectl logs $POD -c asya-sidecar
+```
+
+Verify end-to-end flow with S3 persistence:
+
+```bash
+# Check envelope status via gateway
+asya mcp status <envelope-id>
+
+# List all objects in S3 results bucket
+kubectl run aws-cli --rm -i --restart=Never --image=amazon/aws-cli \
+  --namespace asya-system \
+  --env="AWS_ACCESS_KEY_ID=test" \
+  --env="AWS_SECRET_ACCESS_KEY=test" \
+  --env="AWS_DEFAULT_REGION=us-east-1" \
+  --command -- /bin/bash -c "
+    echo '[+] All results persisted to S3:'
+    aws --endpoint-url=http://localstack.asya-system.svc.cluster.local:4566 \
+      s3 ls s3://asya-results/ --recursive
+  "
 ```
 
 ## Alternative: Quick E2E Setup
