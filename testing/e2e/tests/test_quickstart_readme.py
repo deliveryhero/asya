@@ -98,12 +98,20 @@ def should_skip_block(block: str) -> tuple[bool, str]:
     return False, ""
 
 
-@pytest.mark.skipif(
-    os.getenv("SKIP_QUICKSTART_README_TEST") == "1",
-    reason="Quickstart README test disabled",
-)
+@pytest.mark.chaos
+@pytest.mark.xdist_group(name="chaos")
+@pytest.mark.timeout(600)
 def test_quickstart_readme_commands(project_root):
-    """Test that bash commands in quickstart README are valid."""
+    """Test that bash commands in quickstart README are valid.
+
+    This test deploys infrastructure components (KEDA, LocalStack, Operator, etc.)
+    and should be run in isolation from other tests.
+
+    Timeout is 600s (10 minutes) to allow for infrastructure deployment.
+
+    Note: This test is marked as 'chaos' so it runs serially and won't interfere
+    with other tests. It validates the quickstart documentation against a real cluster.
+    """
     readme_path = project_root / "docs" / "quickstart" / "README.md"
 
     if not readme_path.exists():
@@ -140,20 +148,25 @@ def test_quickstart_readme_commands(project_root):
 
         print(f"\n[{i}/{len(blocks)}] Testing block:")
         print(f"  {block[:80]}...")
+        print(f"  [Running...]")
 
         # Create temporary file for the command
         with tempfile.NamedTemporaryFile(mode='w', suffix='.sh', delete=False) as f:
+            f.write('#!/bin/bash\n')
+            f.write('set -x\n')  # Enable bash command tracing
             f.write(block)
             f.write('\n')
             temp_script = f.name
 
         try:
-            # Run the command
+            # Run the command with real-time output
+            import sys
             result = subprocess.run(
                 ['bash', temp_script],
-                capture_output=True,
+                stdout=sys.stdout,
+                stderr=sys.stderr,
                 text=True,
-                timeout=60,
+                timeout=180,
             )
 
             if result.returncode == 0:
@@ -161,21 +174,19 @@ def test_quickstart_readme_commands(project_root):
                 passed += 1
             else:
                 print(f"  [-] FAILED (exit code: {result.returncode})")
-                print(f"  stdout: {result.stdout[:200]}")
-                print(f"  stderr: {result.stderr[:200]}")
                 failed_blocks.append({
                     'number': i,
                     'block': block,
                     'returncode': result.returncode,
-                    'stdout': result.stdout,
-                    'stderr': result.stderr,
+                    'stdout': '',
+                    'stderr': '',
                 })
         except subprocess.TimeoutExpired:
-            print(f"  [-] TIMEOUT")
+            print(f"  [-] TIMEOUT after 180 seconds")
             failed_blocks.append({
                 'number': i,
                 'block': block,
-                'error': 'Command timed out after 60 seconds',
+                'error': 'Command timed out after 180 seconds',
             })
         finally:
             # Cleanup temp file
@@ -203,7 +214,8 @@ def test_quickstart_readme_commands(project_root):
             print(f"  Command: {failure['block'][:100]}...")
             if 'returncode' in failure:
                 print(f"  Exit code: {failure['returncode']}")
-                print(f"  Error: {failure['stderr'][:200]}")
+            if 'error' in failure:
+                print(f"  Error: {failure['error']}")
 
         pytest.fail(f"{len(failed_blocks)} command blocks failed validation")
 

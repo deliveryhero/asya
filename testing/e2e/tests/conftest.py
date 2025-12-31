@@ -45,6 +45,10 @@ def ensure_gateway_port_forward(request, e2e_helper):
     if "chaos" not in request.keywords:
         return
 
+    # Skip for quickstart README test which deploys gateway itself
+    if "test_quickstart_readme" in request.node.name:
+        return
+
     max_retries = 3
     for attempt in range(max_retries):
         try:

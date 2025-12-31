@@ -311,7 +311,7 @@ kubectl run aws-cli --rm -i --restart=Never --image=amazon/aws-cli \
   --env="AWS_ACCESS_KEY_ID=test" \
   --env="AWS_SECRET_ACCESS_KEY=test" \
   --env="AWS_DEFAULT_REGION=us-east-1" \
-  -- sh -c "
+  --command -- /bin/bash -c "
     aws --endpoint-url=http://localstack.asya-system.svc.cluster.local:4566 s3 mb s3://asya-results
     aws --endpoint-url=http://localstack.asya-system.svc.cluster.local:4566 s3 mb s3://asya-errors
   "
