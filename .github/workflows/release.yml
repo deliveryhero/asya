@@ -4,6 +4,10 @@ on:
   release:
     types: [created, published]
 
+concurrency:
+  group: release-management
+  cancel-in-progress: false
+
 jobs:
   build-and-publish:
     name: Build and publish Docker images
