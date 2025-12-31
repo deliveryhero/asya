@@ -43,10 +43,10 @@ Deployed in central namespace `asya-system`:
 
 ```bash
 # Install CRDs
-kubectl apply -f src/asya-operator/config/crd/
+kubectl apply -f https://github.com/deliveryhero/asya/releases/latest/download/asya-crds.yaml
 
 # Install operator
-helm install asya-operator deploy/helm-charts/asya-operator/
+helm install asya-operator deploy/helm-charts/asya-operator/ -n asya-system --create-namespace
 ```
 
 **Operator watches** all namespaces for AsyncActor resources.

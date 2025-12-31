@@ -854,7 +854,7 @@
 <p>Deploys Asya operator (CRD controller).</p>
 <p><strong>Location</strong>: <code>deploy/helm-charts/asya-operator/</code></p>
 <p><strong>Installation</strong>:
-<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>apply<span class="w"> </span>-f<span class="w"> </span>src/asya-operator/config/crd/
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>apply<span class="w"> </span>-f<span class="w"> </span>https://github.com/deliveryhero/asya/releases/latest/download/asya-crds.yaml
 helm<span class="w"> </span>install<span class="w"> </span>asya-operator<span class="w"> </span>deploy/helm-charts/asya-operator/<span class="w"> </span>-n<span class="w"> </span>asya-system<span class="w"> </span>--create-namespace<span class="w"> </span>-f<span class="w"> </span>values.yaml
 </code></pre></div></p>
 <p><strong>Key values</strong>:
@@ -1121,7 +1121,7 @@ helm<span class="w"> </span>uninstall<span class="w"> </span>asya-crew
 helm<span class="w"> </span>uninstall<span class="w"> </span>asya-operator<span class="w"> </span>-n<span class="w"> </span>asya-system
 
 <span class="c1"># Remove CRDs (will delete all AsyncActors)</span>
-kubectl<span class="w"> </span>delete<span class="w"> </span>-f<span class="w"> </span>src/asya-operator/config/crd/
+kubectl<span class="w"> </span>delete<span class="w"> </span>-f<span class="w"> </span>https://github.com/deliveryhero/asya/releases/latest/download/asya-crds.yaml
 </code></pre></div>
   </div>
 </article>

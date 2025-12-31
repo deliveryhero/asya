@@ -885,10 +885,10 @@
 <h2 id="deployment">Deployment<a class="headerlink" href="#deployment" title="Permanent link">&para;</a></h2>
 <p>Deployed in central namespace <code>asya-system</code>:</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># Install CRDs</span>
-kubectl<span class="w"> </span>apply<span class="w"> </span>-f<span class="w"> </span>src/asya-operator/config/crd/
+kubectl<span class="w"> </span>apply<span class="w"> </span>-f<span class="w"> </span>https://github.com/deliveryhero/asya/releases/latest/download/asya-crds.yaml
 
 <span class="c1"># Install operator</span>
-helm<span class="w"> </span>install<span class="w"> </span>asya-operator<span class="w"> </span>deploy/helm-charts/asya-operator/
+helm<span class="w"> </span>install<span class="w"> </span>asya-operator<span class="w"> </span>deploy/helm-charts/asya-operator/<span class="w"> </span>-n<span class="w"> </span>asya-system<span class="w"> </span>--create-namespace
 </code></pre></div>
 <p><strong>Operator watches</strong> all namespaces for AsyncActor resources.</p>
 <h2 id="resource-ownership">Resource Ownership<a class="headerlink" href="#resource-ownership" title="Permanent link">&para;</a></h2>

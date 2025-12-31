@@ -916,7 +916,7 @@ kubectl<span class="w"> </span><span class="nb">wait</span><span class="w"> </sp
 </code></pre></div>
 <h3 id="6-install-asya-operator">6. Install Asya Operator<a class="headerlink" href="#6-install-asya-operator" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><span class="c1"># Install CRDs</span>
-kubectl<span class="w"> </span>apply<span class="w"> </span>-f<span class="w"> </span>src/asya-operator/config/crd/
+kubectl<span class="w"> </span>apply<span class="w"> </span>-f<span class="w"> </span>https://github.com/deliveryhero/asya/releases/latest/download/asya-crds.yaml
 
 <span class="c1"># Create operator values</span>
 cat<span class="w"> </span>&gt;<span class="w"> </span>operator-values.yaml<span class="w"> </span><span class="s">&lt;&lt;&#39;EOF&#39;</span>

@@ -879,7 +879,7 @@
 helm<span class="w"> </span>install<span class="w"> </span>keda<span class="w"> </span>kedacore/keda<span class="w"> </span>--namespace<span class="w"> </span>keda<span class="w"> </span>--create-namespace
 </code></pre></div>
 <h3 id="2-install-crds">2. Install CRDs<a class="headerlink" href="#2-install-crds" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>apply<span class="w"> </span>-f<span class="w"> </span>src/asya-operator/config/crd/
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>apply<span class="w"> </span>-f<span class="w"> </span>https://github.com/deliveryhero/asya/releases/latest/download/asya-crds.yaml
 </code></pre></div>
 <h3 id="3-configure-transports">3. Configure Transports<a class="headerlink" href="#3-configure-transports" title="Permanent link">&para;</a></h3>
 <p><strong>For AWS (SQS)</strong>:

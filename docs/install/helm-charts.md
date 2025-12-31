@@ -12,7 +12,7 @@ Deploys Asya operator (CRD controller).
 
 **Installation**:
 ```bash
-kubectl apply -f src/asya-operator/config/crd/
+kubectl apply -f https://github.com/deliveryhero/asya/releases/latest/download/asya-crds.yaml
 helm install asya-operator deploy/helm-charts/asya-operator/ -n asya-system --create-namespace -f values.yaml
 ```
 
@@ -324,5 +324,5 @@ helm uninstall asya-crew
 helm uninstall asya-operator -n asya-system
 
 # Remove CRDs (will delete all AsyncActors)
-kubectl delete -f src/asya-operator/config/crd/
+kubectl delete -f https://github.com/deliveryhero/asya/releases/latest/download/asya-crds.yaml
 ```

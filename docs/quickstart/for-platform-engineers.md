@@ -39,7 +39,7 @@ helm install keda kedacore/keda --namespace keda --create-namespace
 ### 2. Install CRDs
 
 ```bash
-kubectl apply -f src/asya-operator/config/crd/
+kubectl apply -f https://github.com/deliveryhero/asya/releases/latest/download/asya-crds.yaml
 ```
 
 ### 3. Configure Transports

@@ -992,7 +992,7 @@ kubectl<span class="w"> </span>apply<span class="w"> </span>-f<span class="w"> <
 </code></pre></div>
 <h2 id="asya-deployment">Asya🎭 Deployment<a class="headerlink" href="#asya-deployment" title="Permanent link">&para;</a></h2>
 <h3 id="1-install-crds">1. Install CRDs<a class="headerlink" href="#1-install-crds" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>apply<span class="w"> </span>-f<span class="w"> </span>src/asya-operator/config/crd/
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>apply<span class="w"> </span>-f<span class="w"> </span>https://github.com/deliveryhero/asya/releases/latest/download/asya-crds.yaml
 </code></pre></div>
 <h3 id="2-configure-operator-values">2. Configure Operator Values<a class="headerlink" href="#2-configure-operator-values" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><span class="c1"># operator-values.yaml</span>
