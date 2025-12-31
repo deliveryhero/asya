@@ -8,6 +8,56 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 
+## [0.3.8] - 2025-12-31
+
+## Other Changes
+
+* ci: Upload CRD on each main commit (#90) @atemate
+
+## Installation
+
+### CRDs
+
+Install or upgrade AsyncActor CRDs:
+```bash
+kubectl apply -f https://github.com/deliveryhero/asya/releases/download/0.3.8/asya-crds.yaml
+```
+
+### Helm Charts
+
+Add the Helm repository:
+```bash
+helm repo add asya https://asya.sh/charts
+helm repo update
+```
+
+Install the operator:
+```bash
+helm install asya-operator asya/asya-operator \
+  --version 0.3.8 \
+  --namespace asya-system \
+  --create-namespace
+```
+
+## Docker Images
+
+All images are published to GitHub Container Registry:
+
+- `ghcr.io/deliveryhero/asya-operator:0.3.8`
+- `ghcr.io/deliveryhero/asya-gateway:0.3.8`
+- `ghcr.io/deliveryhero/asya-sidecar:0.3.8`
+- `ghcr.io/deliveryhero/asya-crew:0.3.8`
+- `ghcr.io/deliveryhero/asya-testing:0.3.8`
+
+## Contributors
+
+@atemate
+
+
+
+## [Unreleased]
+
+
 ## [0.3.3] - 2025-12-19
 
 ## Major Changes
@@ -292,6 +342,9 @@ All images are published to GitHub Container Registry:
 [0.3.2]: https://github.com/deliveryhero/asya/releases/tag/v0.3.2
 
 
-[Unreleased]: https://github.com/deliveryhero/asya/compare/v0.3.3...HEAD
 [0.3.3]: https://github.com/deliveryhero/asya/releases/tag/v0.3.3
+
+
+[Unreleased]: https://github.com/deliveryhero/asya/compare/v0.3.8...HEAD
+[0.3.8]: https://github.com/deliveryhero/asya/releases/tag/v0.3.8
 
