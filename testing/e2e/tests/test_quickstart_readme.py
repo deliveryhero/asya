@@ -23,6 +23,7 @@ def quickstart_cluster():
     Manage Kind cluster lifecycle for quickstart README test.
 
     Pre: Delete asya-local cluster if exists (test creates it)
+    Pre: Clean up any KEDA CRDs from previous test runs
     Post: Delete asya-local cluster, restore kubectl context
     """
     cluster_name = "asya-local"  # Matches the name in quickstart README
@@ -34,6 +35,14 @@ def quickstart_cluster():
         capture_output=True,
     )
     logger.info(f"[+] Pre-cleanup complete")
+
+    # Pre: Clean up KEDA CRDs from previous e2e runs (if kubectl is connected to another cluster)
+    logger.info(f"[.] Pre-cleanup: Removing KEDA CRDs if present")
+    subprocess.run(
+        ["kubectl", "delete", "crd", "-l", "app.kubernetes.io/part-of=keda-operator"],
+        capture_output=True,
+    )
+    logger.info(f"[+] KEDA CRD cleanup complete")
 
     # Test runs and creates the cluster itself as part of validation
     yield cluster_name
@@ -176,7 +185,6 @@ def test_quickstart_readme_commands(project_root, quickstart_cluster):
 
     passed = 0
     skipped = 0
-    failed_blocks = []
 
     for i, block in enumerate(blocks, 1):
         should_skip, skip_reason = should_skip_block(block)
@@ -216,20 +224,16 @@ def test_quickstart_readme_commands(project_root, quickstart_cluster):
                 passed += 1
             else:
                 print(f"  [-] FAILED (exit code: {result.returncode})")
-                failed_blocks.append({
-                    'number': i,
-                    'block': block,
-                    'returncode': result.returncode,
-                    'stdout': '',
-                    'stderr': '',
-                })
+                pytest.fail(
+                    f"Block #{i} failed with exit code {result.returncode}\n"
+                    f"Command: {block[:100]}..."
+                )
         except subprocess.TimeoutExpired:
             print(f"  [-] TIMEOUT after 310 seconds")
-            failed_blocks.append({
-                'number': i,
-                'block': block,
-                'error': 'Command timed out after 310 seconds',
-            })
+            pytest.fail(
+                f"Block #{i} timed out after 310 seconds\n"
+                f"Command: {block[:100]}..."
+            )
         finally:
             # Cleanup temp file
             try:
@@ -242,21 +246,7 @@ def test_quickstart_readme_commands(project_root, quickstart_cluster):
     print("Test Summary:")
     print(f"{'='*60}")
     print(f"Total blocks:  {len(blocks)}")
-    print(f"Tested:        {passed + len(failed_blocks)}")
+    print(f"Tested:        {passed}")
     print(f"Passed:        {passed}")
-    print(f"Failed:        {len(failed_blocks)}")
     print(f"Skipped:       {skipped}")
     print(f"{'='*60}")
-
-    # Report failures
-    if failed_blocks:
-        print("\nFailed blocks:")
-        for failure in failed_blocks:
-            print(f"\nBlock #{failure['number']}:")
-            print(f"  Command: {failure['block'][:100]}...")
-            if 'returncode' in failure:
-                print(f"  Exit code: {failure['returncode']}")
-            if 'error' in failure:
-                print(f"  Error: {failure['error']}")
-
-        pytest.fail(f"{len(failed_blocks)} command blocks failed validation")

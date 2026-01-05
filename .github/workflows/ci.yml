@@ -367,6 +367,10 @@ jobs:
           echo "[-] E2E test suite failed: chaos (payload)"
           FAILED=1
         fi
+        if [[ "${{ steps.e2e-docs.outcome }}" == "failure" ]]; then
+          echo "[-] E2E test suite failed: docs"
+          FAILED=1
+        fi
         if [[ $FAILED -eq 1 ]]; then
           exit 1
         fi
