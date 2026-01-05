@@ -288,8 +288,8 @@ jobs:
         ASYA_LOG_LEVEL: INFO
       run: |
         source .venv/bin/activate
-        cd testing/e2e
-        make trigger-tests ASYA_HANDLER_MODE=notused PYTEST_OPTS="-v --log-cli-level=INFO -m docs"
+        cd testing/docs
+        make test PYTEST_OPTS="-v --log-cli-level=INFO"
 
     - name: Clean up any existing Kind clusters
       run: |
