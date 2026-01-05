@@ -280,6 +280,17 @@ jobs:
         install-kind: "true"
         install-helm: "true"
 
+    - name: "Run E2E tests: docs"
+      if: matrix.run_pipeline
+      continue-on-error: true
+      id: e2e-docs
+      env:
+        ASYA_LOG_LEVEL: INFO
+      run: |
+        source .venv/bin/activate
+        cd testing/e2e
+        make trigger-tests ASYA_HANDLER_MODE=notused PYTEST_OPTS="-v --log-cli-level=INFO -m docs"
+
     - name: Clean up any existing Kind clusters
       run: |
         kind delete cluster --name chart-testing || true
@@ -335,17 +346,6 @@ jobs:
         source .venv/bin/activate
         cd testing/e2e
         make trigger-tests ASYA_HANDLER_MODE=payload PYTEST_OPTS="-v --log-cli-level=INFO -m chaos"
-
-    - name: "Run E2E tests: docs"
-      if: matrix.run_pipeline
-      continue-on-error: true
-      id: e2e-docs
-      env:
-        ASYA_LOG_LEVEL: INFO
-      run: |
-        source .venv/bin/activate
-        cd testing/e2e
-        make trigger-tests ASYA_HANDLER_MODE=notused PYTEST_OPTS="-v --log-cli-level=INFO -m docs"
 
     - name: Check if e2e tests succeeded
       if: always()

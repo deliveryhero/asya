@@ -24,12 +24,16 @@ def quickstart_cluster():
 
     Pre: Delete asya-local cluster if exists (test creates it)
     Pre: Clean up any KEDA CRDs from previous test runs
-    Post: Delete asya-local cluster, restore kubectl context
+    Post: Delete asya-local cluster
     """
     cluster_name = "asya-local"  # Matches the name in quickstart README
 
+    print(f"\n{'='*80}")
+    print(f"DOCS TEST SETUP: {cluster_name}")
+    print(f"{'='*80}")
+
     # Pre: Delete any existing cluster to ensure clean state
-    logger.info(f"[.] Pre-cleanup: Deleting cluster if exists: {cluster_name}")
+    print(f"[.] Pre-cleanup: Deleting cluster if exists: {cluster_name}")
     subprocess.run(
         ["kind", "delete", "cluster", "--name", cluster_name],
         capture_output=True,
@@ -50,37 +54,30 @@ def quickstart_cluster():
         time.sleep(1)  # Poll for cluster deletion
         waited += 1
 
-    logger.info(f"[+] Pre-cleanup complete")
+    print(f"[+] Pre-cleanup complete")
 
-    # Pre: Clean up KEDA CRDs from previous e2e runs (if kubectl is connected to another cluster)
-    logger.info(f"[.] Pre-cleanup: Removing KEDA CRDs if present")
+    # Pre: Clean up KEDA CRDs from previous runs
+    print(f"[.] Pre-cleanup: Removing KEDA CRDs if present")
     subprocess.run(
         ["kubectl", "delete", "crd", "-l", "app.kubernetes.io/part-of=keda-operator"],
         capture_output=True,
     )
-    logger.info(f"[+] KEDA CRD cleanup complete")
+    print(f"[+] KEDA CRD cleanup complete\n")
 
     # Test runs and creates the cluster itself as part of validation
     yield cluster_name
 
     # Post: Always cleanup cluster
-    logger.info(f"[.] Post-cleanup: Deleting cluster: {cluster_name}")
+    print(f"\n{'='*80}")
+    print(f"DOCS TEST TEARDOWN: {cluster_name}")
+    print(f"{'='*80}")
+    print(f"[.] Post-cleanup: Deleting cluster: {cluster_name}")
     subprocess.run(
         ["kind", "delete", "cluster", "--name", cluster_name],
         capture_output=True,
     )
-    logger.info(f"[+] Cluster deleted: {cluster_name}")
-
-    # Restore kubectl context to e2e cluster if running in e2e environment
-    if os.getenv("PROFILE"):
-        profile = os.getenv("PROFILE")
-        original_cluster = f"kind-asya-e2e-{profile}"
-        result = subprocess.run(
-            ["kubectl", "config", "use-context", original_cluster],
-            capture_output=True,
-        )
-        if result.returncode == 0:
-            logger.info(f"[+] Restored kubectl context: {original_cluster}")
+    print(f"[+] Cluster deleted: {cluster_name}")
+    print(f"{'='*80}\n")
 
 
 def extract_bash_blocks(markdown_file: Path) -> list[str]:
@@ -138,8 +135,8 @@ def extract_file_blocks(markdown_file: Path) -> list[tuple[str, str]]:
 def should_skip_block(block: str) -> tuple[bool, str]:
     """Determine if a block should be skipped during testing."""
     skip_patterns = [
-        ("make up", "E2E-specific command"),
-        ("make down", "E2E-specific command"),
+        # ("make up", "E2E-specific command"),
+        # ("make down", "E2E-specific command"),
         ("make trigger-tests", "E2E-specific command"),
         ("pip install", "CLI installation not needed for test"),
         ("asya mcp", "Requires gateway and CLI setup"),
@@ -156,22 +153,21 @@ def should_skip_block(block: str) -> tuple[bool, str]:
 
 
 @pytest.mark.docs
-@pytest.mark.xdist_group(name="docs")
-@pytest.mark.order("last")
+@pytest.mark.quickstart
 @pytest.mark.timeout(900)
 def test_quickstart_readme_commands(project_root, quickstart_cluster):
     """Test that bash commands in quickstart README are valid.
 
     This test deploys infrastructure components (KEDA, LocalStack, Operator, etc.)
-    in a dedicated Kind cluster (asya-local) to avoid conflicts with e2e tests.
+    in a dedicated Kind cluster (asya-local) to validate the quickstart guide.
 
     Timeout is 900s (15 minutes) to allow for cluster creation + infrastructure deployment.
 
     Fixtures:
-    - quickstart_cluster: Ensures clean cluster state (pre/post cleanup)
+    - project_root: Path to project root directory
+    - quickstart_cluster: Manages Kind cluster lifecycle (pre/post cleanup)
 
-    Note: This test is part of the "docs" group which runs LAST (after chaos tests)
-    to ensure it doesn't interfere with the shared e2e infrastructure.
+    Note: This test runs independently of e2e infrastructure and creates its own Kind cluster.
     """
     readme_path = project_root / "docs" / "quickstart" / "README.md"
 
