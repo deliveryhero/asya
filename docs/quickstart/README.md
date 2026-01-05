@@ -456,6 +456,8 @@ Expected output should contain the greeting:
 
 ### 1. Install PostgreSQL
 
+Persistence layer. On production setup, a managed PostgreSQL can be used. In future, if needed, we may support other databases.
+
 ```bash
 kubectl apply -f - <<EOF
 apiVersion: v1
@@ -544,7 +546,7 @@ kubectl get pods -l app.kubernetes.io/name=asya-gateway -n asya-system
 
 ### 4. Update Operator for Gateway Integration
 
-Update the operator configuration to include the gateway URL:
+Update the operator configuration to include the gateway URL (so that new asyas created after this point are aware of gateway and report their statuses):
 
 ```bash
 helm upgrade asya-operator asya/asya-operator \

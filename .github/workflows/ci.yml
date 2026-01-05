@@ -303,27 +303,27 @@ jobs:
         cd testing/e2e
         make test-operator
 
-    - name: "Run E2E tests: non-chaos (payload)"
+    - name: "Run E2E tests: regular (payload)"
       if: matrix.run_pipeline
       continue-on-error: true
-      id: e2e-non-chaos-payload
+      id: e2e-regular-payload
       env:
         ASYA_LOG_LEVEL: INFO
       run: |
         source .venv/bin/activate
         cd testing/e2e
-        make trigger-tests ASYA_HANDLER_MODE=payload PYTEST_OPTS="-v --log-cli-level=INFO -m 'not chaos'"
+        make trigger-tests ASYA_HANDLER_MODE=payload PYTEST_OPTS="-v --log-cli-level=INFO -m 'not chaos and not docs'"
 
-    - name: "Run E2E tests: non-chaos (envelope)"
+    - name: "Run E2E tests: regular (envelope)"
       if: matrix.run_pipeline
       continue-on-error: true
-      id: e2e-non-chaos-envelope
+      id: e2e-regular-envelope
       env:
         ASYA_LOG_LEVEL: INFO
       run: |
         source .venv/bin/activate
         cd testing/e2e
-        make trigger-tests ASYA_HANDLER_MODE=envelope PYTEST_OPTS="-v --log-cli-level=INFO -m 'not chaos'"
+        make trigger-tests ASYA_HANDLER_MODE=envelope PYTEST_OPTS="-v --log-cli-level=INFO -m 'not chaos and not docs'"
 
     - name: "Run E2E tests: chaos (payload)"
       if: matrix.run_pipeline
@@ -336,6 +336,17 @@ jobs:
         cd testing/e2e
         make trigger-tests ASYA_HANDLER_MODE=payload PYTEST_OPTS="-v --log-cli-level=INFO -m chaos"
 
+    - name: "Run E2E tests: docs"
+      if: matrix.run_pipeline
+      continue-on-error: true
+      id: e2e-docs
+      env:
+        ASYA_LOG_LEVEL: INFO
+      run: |
+        source .venv/bin/activate
+        cd testing/e2e
+        make trigger-tests ASYA_HANDLER_MODE=notused PYTEST_OPTS="-v --log-cli-level=INFO -m docs"
+
     - name: Check if e2e tests succeeded
       if: always()
       run: |
@@ -344,12 +355,12 @@ jobs:
           echo "[-] E2E test suite failed: operator"
           FAILED=1
         fi
-        if [[ "${{ steps.e2e-non-chaos-payload.outcome }}" == "failure" ]]; then
-          echo "[-] E2E test suite failed: non-chaos (payload)"
+        if [[ "${{ steps.e2e-regular-payload.outcome }}" == "failure" ]]; then
+          echo "[-] E2E test suite failed: regular (payload)"
           FAILED=1
         fi
-        if [[ "${{ steps.e2e-non-chaos-envelope.outcome }}" == "failure" ]]; then
-          echo "[-] E2E test suite failed: non-chaos (envelope)"
+        if [[ "${{ steps.e2e-regular-envelope.outcome }}" == "failure" ]]; then
+          echo "[-] E2E test suite failed: regular (envelope)"
           FAILED=1
         fi
         if [[ "${{ steps.e2e-chaos-payload.outcome }}" == "failure" ]]; then
