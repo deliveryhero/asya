@@ -407,9 +407,9 @@ kubectl run aws-cli --rm -i --restart=Never --image=amazon/aws-cli \
 Wait for the message to be processed and persisted to S3:
 
 ```bash
-# Poll until S3 object appears (with 30s timeout)
-timeout 30s sh -c '
-  until kubectl run aws-cli --rm -i --restart=Never --image=amazon/aws-cli \
+# Poll until S3 object appears (with 60s timeout)
+timeout 60s sh -c '
+  until kubectl run "aws-cli-$(date +%s%N)" --rm -i --restart=Never --image=amazon/aws-cli \
     --namespace asya-system \
     --env="AWS_ACCESS_KEY_ID=test" \
     --env="AWS_SECRET_ACCESS_KEY=test" \
@@ -419,7 +419,7 @@ timeout 30s sh -c '
         s3 ls s3://asya-results/s3-test-001.json 2>/dev/null
     " | grep -q "s3-test-001.json"; do
     echo "Waiting for S3 object s3-test-001.json..."
-    sleep 2
+    sleep 5
   done
 ' && echo "[+] S3 object found: s3-test-001.json"
 ```
@@ -603,9 +603,9 @@ kubectl run aws-cli --rm -i --restart=Never --image=amazon/aws-cli \
 Wait for processing and verify S3 persistence:
 
 ```bash
-# Poll until S3 object appears (with 30s timeout)
-timeout 30s sh -c '
-  until kubectl run aws-cli --rm -i --restart=Never --image=amazon/aws-cli \
+# Poll until S3 object appears (with 60s timeout)
+timeout 60s sh -c '
+  until kubectl run "aws-cli-$(date +%s%N)" --rm -i --restart=Never --image=amazon/aws-cli \
     --namespace asya-system \
     --env="AWS_ACCESS_KEY_ID=test" \
     --env="AWS_SECRET_ACCESS_KEY=test" \
@@ -615,7 +615,7 @@ timeout 30s sh -c '
         s3 ls s3://asya-results/gateway-test-001.json 2>/dev/null
     " | grep -q "gateway-test-001.json"; do
     echo "Waiting for S3 object gateway-test-001.json..."
-    sleep 2
+    sleep 5
   done
 ' && echo "[+] S3 object found: gateway-test-001.json"
 
