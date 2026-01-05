@@ -63,7 +63,7 @@ kubectl config use-context kind-asya-local
 ### 1. Install KEDA
 
 ```bash
-helm repo add kedacore https://kedacore.github.io/charts
+helm repo add kedacore https://kedacore.github.io/charts --force-update
 helm install keda kedacore/keda \
   --namespace keda-system \
   --create-namespace \
@@ -75,7 +75,7 @@ helm install keda kedacore/keda \
 LocalStack provides local AWS SQS emulation:
 
 ```bash
-helm repo add localstack https://helm.localstack.cloud
+helm repo add localstack https://helm.localstack.cloud --force-update
 helm install localstack localstack/localstack \
   --namespace asya-system \
   --create-namespace \
@@ -99,7 +99,7 @@ kubectl apply -f https://github.com/deliveryhero/asya/releases/latest/download/a
 Add Helm repository:
 
 ```bash
-helm repo add asya https://asya.sh/charts
+helm repo add asya https://asya.sh/charts --force-update
 #helm repo update  # to re-download repos
 ```
 
@@ -109,7 +109,8 @@ Create AWS credentials secret:
 kubectl create secret generic sqs-secret \
   --namespace asya-system \
   --from-literal=access-key-id=test \
-  --from-literal=secret-access-key=test
+  --from-literal=secret-access-key=test \
+  --dry-run=client -o yaml | kubectl apply -f -
 ```
 
 Install operator:
@@ -503,7 +504,8 @@ EOF
 ```bash
 kubectl create secret generic asya-gateway-postgresql \
   --namespace asya-system \
-  --from-literal=password=asya
+  --from-literal=password=asya \
+  --dry-run=client -o yaml | kubectl apply -f -
 ```
 
 ---
@@ -672,7 +674,7 @@ kill $PORT_FORWARD_PID 2>/dev/null || true
 ### 1. Install Prometheus
 
 ```bash
-helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts --force-update
 helm install prometheus prometheus-community/kube-prometheus-stack \
   --namespace monitoring \
   --create-namespace \
@@ -829,36 +831,36 @@ If you want to remove specific components while keeping the cluster:
 
 ```bash
 # Remove Prometheus (if installed)
-helm uninstall prometheus -n monitoring
-kubectl delete namespace monitoring
+helm uninstall prometheus -n monitoring || true
+kubectl delete namespace monitoring || true
 
 # Remove Gateway (if installed)
-helm uninstall asya-gateway -n asya-system
-kubectl delete secret asya-gateway-postgresql -n asya-system
-kubectl delete deployment asya-gateway-postgresql -n asya-system
-kubectl delete service asya-gateway-postgresql -n asya-system
+helm uninstall asya-gateway -n asya-system || true
+kubectl delete secret asya-gateway-postgresql -n asya-system || true
+kubectl delete deployment asya-gateway-postgresql -n asya-system || true
+kubectl delete service asya-gateway-postgresql -n asya-system || true
 
 # Remove Crew actors (if installed)
-helm uninstall asya-crew -n asya-system
+helm uninstall asya-crew -n asya-system || true
 
 # Remove your custom actors
-kubectl delete asya hello -n default
+kubectl delete asya hello -n default || true
 
 # Remove Asya operator
-helm uninstall asya-operator -n asya-system
+helm uninstall asya-operator -n asya-system || true
 
 # Remove LocalStack
-helm uninstall localstack -n asya-system
+helm uninstall localstack -n asya-system || true
 
 # Remove KEDA
-helm uninstall keda -n keda-system
-kubectl delete namespace keda-system
+helm uninstall keda -n keda-system || true
+kubectl delete namespace keda-system || true
 
 # Remove CRDs
-kubectl delete crd asyncactors.asya.sh
+kubectl delete crd asyncactors.asya.sh || true
 
 # Remove namespace
-kubectl delete namespace asya-system
+kubectl delete namespace asya-system || true
 ```
 
 ### Clean Up Everything

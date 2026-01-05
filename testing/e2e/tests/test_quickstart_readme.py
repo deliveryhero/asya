@@ -34,6 +34,22 @@ def quickstart_cluster():
         ["kind", "delete", "cluster", "--name", cluster_name],
         capture_output=True,
     )
+
+    # Wait for cluster to be fully deleted
+    import time
+    max_wait = 30
+    waited = 0
+    while waited < max_wait:
+        result = subprocess.run(
+            ["kind", "get", "clusters"],
+            capture_output=True,
+            text=True,
+        )
+        if cluster_name not in result.stdout:
+            break
+        time.sleep(1)  # Poll for cluster deletion
+        waited += 1
+
     logger.info(f"[+] Pre-cleanup complete")
 
     # Pre: Clean up KEDA CRDs from previous e2e runs (if kubectl is connected to another cluster)
@@ -129,11 +145,6 @@ def should_skip_block(block: str) -> tuple[bool, str]:
         ("asya mcp", "Requires gateway and CLI setup"),
         ("kubectl port-forward", "Port forwarding tested separately"),
         ("export ASYA_CLI_MCP_URL", "CLI-specific setup"),
-        ("docker build", "Actor build tested separately"),
-        ("kind load docker-image", "Actor deployment tested separately"),
-        ("kubectl apply -f hello-actor.yaml", "Actor deployment tested separately"),
-        ("kubectl get pods -l asya.sh/actor=hello -w", "Watch command"),
-        ("kubectl logs", "Logs checked separately"),
         ("POD=", "Interactive command"),
     ]
 
