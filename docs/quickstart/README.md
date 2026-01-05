@@ -379,6 +379,10 @@ helm install asya-crew asya/asya-crew \
   -n asya-system \
   -f crew-values.yaml \
   --timeout=3m
+
+# Wait for crew actors to be ready
+kubectl wait --for=condition=ready pod -l asya.sh/asya=happy-end -n asya-system --timeout=60s
+kubectl wait --for=condition=ready pod -l asya.sh/asya=error-end -n asya-system --timeout=60s
 ```
 
 Your pipeline results are now automatically persisted to S3: whenever an actor finishes processing the last message in the route, 🎭 automatically sends it to `happy-end` actor to persist it on S3. Similarly, error messages will be sent to `error-end`.
