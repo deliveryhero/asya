@@ -126,10 +126,6 @@ def should_skip_block(block: str) -> tuple[bool, str]:
         ("kubectl get pods -l asya.sh/actor=hello -w", "Watch command"),
         ("kubectl logs", "Logs checked separately"),
         ("POD=", "Interactive command"),
-        ("helm repo add asya", "Helm repo not yet published"),
-        ("helm install asya-operator asya/", "Requires published Helm repo"),
-        ("helm install asya-gateway asya/", "Requires published Helm repo"),
-        ("helm install asya-crew asya/", "Requires published Helm repo"),
     ]
 
     for pattern, reason in skip_patterns:
