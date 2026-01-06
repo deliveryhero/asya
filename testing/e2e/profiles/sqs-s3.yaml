@@ -42,12 +42,6 @@ crew:
           containers:
           - name: asya-runtime
             env:
-            - name: ASYA_HANDLER
-              value: handlers.end_handlers.happy_end_handler
-            - name: ASYA_HANDLER_MODE
-              value: envelope
-            - name: ASYA_ENABLE_VALIDATION
-              value: "false"
             - name: ASYA_GATEWAY_URL
               value: "http://asya-gateway.asya-e2e.svc.cluster.local:8080"
             - name: ASYA_S3_BUCKET
@@ -73,12 +67,6 @@ crew:
           containers:
           - name: asya-runtime
             env:
-            - name: ASYA_HANDLER
-              value: handlers.end_handlers.error_end_handler
-            - name: ASYA_HANDLER_MODE
-              value: envelope
-            - name: ASYA_ENABLE_VALIDATION
-              value: "false"
             - name: ASYA_GATEWAY_URL
               value: "http://asya-gateway.asya-e2e.svc.cluster.local:8080"
             - name: ASYA_S3_BUCKET
