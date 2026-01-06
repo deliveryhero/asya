@@ -83,11 +83,23 @@ helm install localstack localstack/localstack \
   --timeout=3m
 
 kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=localstack \
-  -n asya-system --timeout=120s || true
+  -n asya-system --timeout=120s
 
 kubectl get pods -l app.kubernetes.io/name=localstack -n asya-system
 ```
 <!-- TEST: sleep 15 -->
+
+Create a persistent AWS CLI pod for testing (we'll use this throughout the guide):
+
+```bash
+kubectl run aws-cli --image=amazon/aws-cli \
+  --env="AWS_ACCESS_KEY_ID=test" \
+  --env="AWS_SECRET_ACCESS_KEY=test" \
+  --env="AWS_DEFAULT_REGION=us-east-1" \
+  --command -- sleep infinity
+
+kubectl wait --for=condition=ready pod/aws-cli --timeout=60s
+```
 
 ### 3. Install Asya🎭 Operator
 
@@ -142,7 +154,7 @@ helm install asya-operator asya/asya-operator \
   --timeout=3m
 
 kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=asya-operator \
-  -n asya-system --timeout=120s || true
+  -n asya-system --timeout=120s
 
 kubectl get pods -l app.kubernetes.io/name=asya-operator -n asya-system
 # NAME                             READY   STATUS    RESTARTS   AGE
@@ -248,17 +260,11 @@ Send a message to the actor's SQS queue:
 ```bash
 MSG='{"id":"test-123","route":{"actors":["hello"],"current":0},"payload":{"name":"Asya"}}'
 
-kubectl run aws-cli --rm -i --restart=Never --image=amazon/aws-cli \
-  --namespace default \
-  --env="AWS_ACCESS_KEY_ID=test" \
-  --env="AWS_SECRET_ACCESS_KEY=test" \
-  --env="AWS_DEFAULT_REGION=us-east-1" \
-  --command -- sh -c "
-    aws sqs send-message \
-      --endpoint-url=http://localstack.asya-system.svc.cluster.local:4566 \
-      --queue-url http://localstack.asya-system.svc.cluster.local:4566/000000000000/asya-default-hello \
-      --message-body '$MSG'
-  "
+kubectl exec aws-cli -- \
+  aws sqs send-message \
+    --endpoint-url=http://localstack.asya-system.svc.cluster.local:4566 \
+    --queue-url http://localstack.asya-system.svc.cluster.local:4566/000000000000/asya-default-hello \
+    --message-body "$MSG"
 ```
 
 Watch the actor scale up and process the message (timeout after 60s):
@@ -284,21 +290,16 @@ Watch horizontal autoscaling by sending 25 messages to trigger multiple pods:
 ```bash
 MSG='{"id":"test-123","route":{"actors":["hello"],"current":0},"payload":{"name":"Asya"}}'
 
-kubectl run send-many-messages --rm -i --restart=Never --image=amazon/aws-cli \
-  --namespace default \
-  --env="AWS_ACCESS_KEY_ID=test" \
-  --env="AWS_SECRET_ACCESS_KEY=test" \
-  --env="AWS_DEFAULT_REGION=us-east-1" \
-  --command -- sh -c "
-    for i in {1..25}; do
-      aws sqs send-message \
-        --endpoint-url=http://localstack.asya-system.svc.cluster.local:4566 \
-        --queue-url http://localstack.asya-system.svc.cluster.local:4566/000000000000/asya-default-hello \
-        --message-body '$MSG' &
-    done
-    wait
-    echo '[+] All 25 messages sent'
-  "
+kubectl exec aws-cli -- sh -c "
+  for i in {1..25}; do
+    aws sqs send-message \
+      --endpoint-url=http://localstack.asya-system.svc.cluster.local:4566 \
+      --queue-url http://localstack.asya-system.svc.cluster.local:4566/000000000000/asya-default-hello \
+      --message-body '$MSG' &
+  done
+  wait
+  echo '[+] All 25 messages sent'
+"
 ```
 
 Watch the actor scale up to 5 pods (25 messages / 5 messages per pod):
@@ -315,15 +316,10 @@ timeout 60s kubectl get asya hello -w || true
 ### 1. Create S3 Buckets
 
 ```bash
-kubectl run aws-cli --rm -i --restart=Never --image=amazon/aws-cli \
-  --namespace asya-system \
-  --env="AWS_ACCESS_KEY_ID=test" \
-  --env="AWS_SECRET_ACCESS_KEY=test" \
-  --env="AWS_DEFAULT_REGION=us-east-1" \
-  --command -- /bin/bash -c "
-    aws --endpoint-url=http://localstack.asya-system.svc.cluster.local:4566 s3 mb s3://asya-results
-    aws --endpoint-url=http://localstack.asya-system.svc.cluster.local:4566 s3 mb s3://asya-errors
-  "
+kubectl exec aws-cli -- sh -c "
+  aws --endpoint-url=http://localstack.asya-system.svc.cluster.local:4566 s3 mb s3://asya-results
+  aws --endpoint-url=http://localstack.asya-system.svc.cluster.local:4566 s3 mb s3://asya-errors
+"
 ```
 
 ### 2. Install Crew Actors
@@ -395,20 +391,13 @@ Your pipeline results are now automatically persisted to S3: whenever an actor f
 Send a test message and verify it's persisted to S3:
 
 ```bash
-# Send a message through hello actor
 MSG='{"id":"s3-test-001","route":{"actors":["hello"],"current":0},"payload":{"name":"S3 Test"}}'
 
-kubectl run aws-cli --rm -i --restart=Never --image=amazon/aws-cli \
-  --namespace default \
-  --env="AWS_ACCESS_KEY_ID=test" \
-  --env="AWS_SECRET_ACCESS_KEY=test" \
-  --env="AWS_DEFAULT_REGION=us-east-1" \
-  --command -- sh -c "
-    aws sqs send-message \
-      --endpoint-url=http://localstack.asya-system.svc.cluster.local:4566 \
-      --queue-url http://localstack.asya-system.svc.cluster.local:4566/000000000000/asya-default-hello \
-      --message-body '$MSG'
-  "
+kubectl exec aws-cli -- \
+  aws sqs send-message \
+    --endpoint-url=http://localstack.asya-system.svc.cluster.local:4566 \
+    --queue-url http://localstack.asya-system.svc.cluster.local:4566/000000000000/asya-default-hello \
+    --message-body "$MSG"
 ```
 
 <!-- TEST: kubectl get pods -n asya-system | grep -E '(happy-end|error-end)' || true -->
@@ -419,17 +408,10 @@ kubectl run aws-cli --rm -i --restart=Never --image=amazon/aws-cli \
 Wait for the message to be processed and persisted to S3:
 
 ```bash
-# Poll until S3 object appears (with 60s timeout)
 timeout 60s sh -c '
-  until kubectl run "aws-cli-$(date +%s%N)" --rm -i --restart=Never --image=amazon/aws-cli \
-    --namespace asya-system \
-    --env="AWS_ACCESS_KEY_ID=test" \
-    --env="AWS_SECRET_ACCESS_KEY=test" \
-    --env="AWS_DEFAULT_REGION=us-east-1" \
-    --command -- /bin/bash -c "
-      aws --endpoint-url=http://localstack.asya-system.svc.cluster.local:4566 \
-        s3 ls s3://asya-results/s3-test-001.json 2>/dev/null
-    " | grep -q "s3-test-001.json"; do
+  until kubectl exec aws-cli -- \
+    aws --endpoint-url=http://localstack.asya-system.svc.cluster.local:4566 \
+      s3 ls s3://asya-results/s3-test-001.json 2>/dev/null | grep -q "s3-test-001.json"; do
     echo "Waiting for S3 object s3-test-001.json..."
     sleep 5
   done
@@ -439,15 +421,9 @@ timeout 60s sh -c '
 You should see an S3 object with a key like `s3-test-001.json`. Download and inspect it:
 
 ```bash
-kubectl run aws-cli --rm -i --restart=Never --image=amazon/aws-cli \
-  --namespace asya-system \
-  --env="AWS_ACCESS_KEY_ID=test" \
-  --env="AWS_SECRET_ACCESS_KEY=test" \
-  --env="AWS_DEFAULT_REGION=us-east-1" \
-  --command -- /bin/bash -c "
-    aws --endpoint-url=http://localstack.asya-system.svc.cluster.local:4566 \
-      s3 cp s3://asya-results/s3-test-001.json - | cat
-  "
+kubectl exec aws-cli -- \
+  aws --endpoint-url=http://localstack.asya-system.svc.cluster.local:4566 \
+    s3 cp s3://asya-results/s3-test-001.json -
 ```
 
 Expected output should contain the greeting:
@@ -553,7 +529,7 @@ helm install asya-gateway asya/asya-gateway \
   --timeout=3m
 
 kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=asya-gateway \
-  -n asya-system --timeout=120s || true
+  -n asya-system --timeout=120s
 
 kubectl get pods -l app.kubernetes.io/name=asya-gateway -n asya-system
 ```
@@ -587,60 +563,39 @@ Wait for crew actors to be ready:
 
 ```bash
 kubectl wait --for=condition=ready pod -l asya.sh/asya=happy-end \
-  -n asya-system --timeout=120s || true
+  -n asya-system --timeout=120s
 
 kubectl wait --for=condition=ready pod -l asya.sh/asya=error-end \
-  -n asya-system --timeout=120s || true
+  -n asya-system --timeout=120s
 ```
 
 Verify S3 persistence with gateway reporting:
 
 ```bash
-# Send a test message
 MSG='{"id":"gateway-test-001","route":{"actors":["hello"],"current":0},"payload":{"name":"Gateway Test"}}'
 
-kubectl run aws-cli --rm -i --restart=Never --image=amazon/aws-cli \
-  --namespace default \
-  --env="AWS_ACCESS_KEY_ID=test" \
-  --env="AWS_SECRET_ACCESS_KEY=test" \
-  --env="AWS_DEFAULT_REGION=us-east-1" \
-  --command -- sh -c "
-    aws sqs send-message \
-      --endpoint-url=http://localstack.asya-system.svc.cluster.local:4566 \
-      --queue-url http://localstack.asya-system.svc.cluster.local:4566/000000000000/asya-default-hello \
-      --message-body '$MSG'
-  "
+kubectl exec aws-cli -- \
+  aws sqs send-message \
+    --endpoint-url=http://localstack.asya-system.svc.cluster.local:4566 \
+    --queue-url http://localstack.asya-system.svc.cluster.local:4566/000000000000/asya-default-hello \
+    --message-body "$MSG"
 ```
 
 Wait for processing and verify S3 persistence:
 
 ```bash
-# Poll until S3 object appears (with 60s timeout)
 timeout 60s sh -c '
-  until kubectl run "aws-cli-$(date +%s%N)" --rm -i --restart=Never --image=amazon/aws-cli \
-    --namespace asya-system \
-    --env="AWS_ACCESS_KEY_ID=test" \
-    --env="AWS_SECRET_ACCESS_KEY=test" \
-    --env="AWS_DEFAULT_REGION=us-east-1" \
-    --command -- /bin/bash -c "
-      aws --endpoint-url=http://localstack.asya-system.svc.cluster.local:4566 \
-        s3 ls s3://asya-results/gateway-test-001.json 2>/dev/null
-    " | grep -q "gateway-test-001.json"; do
+  until kubectl exec aws-cli -- \
+    aws --endpoint-url=http://localstack.asya-system.svc.cluster.local:4566 \
+      s3 ls s3://asya-results/gateway-test-001.json 2>/dev/null | grep -q "gateway-test-001.json"; do
     echo "Waiting for S3 object gateway-test-001.json..."
     sleep 5
   done
 ' && echo "[+] S3 object found: gateway-test-001.json"
 
-# Download and inspect the object
-kubectl run aws-cli --rm -i --restart=Never --image=amazon/aws-cli \
-  --namespace asya-system \
-  --env="AWS_ACCESS_KEY_ID=test" \
-  --env="AWS_SECRET_ACCESS_KEY=test" \
-  --env="AWS_DEFAULT_REGION=us-east-1" \
-  --command -- /bin/bash -c "
-    aws --endpoint-url=http://localstack.asya-system.svc.cluster.local:4566 \
-      s3 cp s3://asya-results/gateway-test-001.json - | cat
-  "
+kubectl exec aws-cli -- \
+  aws --endpoint-url=http://localstack.asya-system.svc.cluster.local:4566 \
+    s3 cp s3://asya-results/gateway-test-001.json -
 ```
 
 ### 6. Use the Gateway
@@ -761,16 +716,10 @@ Verify end-to-end flow with S3 persistence:
 # asya mcp status <envelope-id>
 
 # List all objects in S3 results bucket
-kubectl run aws-cli --rm -i --restart=Never --image=amazon/aws-cli \
-  --namespace asya-system \
-  --env="AWS_ACCESS_KEY_ID=test" \
-  --env="AWS_SECRET_ACCESS_KEY=test" \
-  --env="AWS_DEFAULT_REGION=us-east-1" \
-  --command -- /bin/bash -c "
-    echo '[+] All results persisted to S3:'
-    aws --endpoint-url=http://localstack.asya-system.svc.cluster.local:4566 \
-      s3 ls s3://asya-results/ --recursive
-  "
+echo '[+] All results persisted to S3:'
+kubectl exec aws-cli -- \
+  aws --endpoint-url=http://localstack.asya-system.svc.cluster.local:4566 \
+    s3 ls s3://asya-results/ --recursive
 ```
 
 ## Alternative: Quick E2E Setup
@@ -842,6 +791,9 @@ See [AWS EKS Installation](../install/aws-eks.md) for full production guide.
 If you want to remove specific components while keeping the cluster:
 
 ```bash
+# Delete the AWS CLI debug pod
+kubectl delete pod aws-cli || true
+
 # Remove Prometheus (if installed)
 helm uninstall prometheus -n monitoring || true
 kubectl delete namespace monitoring || true
