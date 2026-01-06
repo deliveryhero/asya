@@ -23,8 +23,7 @@ happy-end:
           image: ghcr.io/deliveryhero/asya-crew:latest
           imagePullPolicy: IfNotPresent
           env:
-          - name: ASYA_HANDLER
-            value: handlers.end_handlers.happy_end_handler
+          # ASYA_HANDLER, ASYA_HANDLER_MODE, ASYA_ENABLE_VALIDATION are set by the chart template (non-overridable)
           # Gateway URL for result reporting (uncomment to enable)
           # - name: ASYA_GATEWAY_URL
           #   value: "http://asya-gateway:8080"
@@ -69,8 +68,7 @@ error-end:
           image: ghcr.io/deliveryhero/asya-crew:latest
           imagePullPolicy: IfNotPresent
           env:
-          - name: ASYA_HANDLER
-            value: handlers.end_handlers.error_end_handler
+          # ASYA_HANDLER, ASYA_HANDLER_MODE, ASYA_ENABLE_VALIDATION are set by the chart template (non-overridable)
           # Gateway URL for result reporting (uncomment to enable)
           # - name: ASYA_GATEWAY_URL
           #   value: "http://asya-gateway:8080"

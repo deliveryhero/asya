@@ -29,6 +29,8 @@ spec:
           imagePullPolicy: {{ (index $errorEnd.workload.template.spec.containers 0).imagePullPolicy | default "IfNotPresent" }}
           env:
           # required non-overridable env vars:
+          - name: ASYA_HANDLER
+            value: handlers.end_handlers.error_end_handler
           - name: ASYA_HANDLER_MODE
             value: envelope
           - name: ASYA_ENABLE_VALIDATION
