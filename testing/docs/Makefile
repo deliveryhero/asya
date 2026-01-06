@@ -6,7 +6,7 @@ PROJECT_ROOT := $(shell git rev-parse --show-toplevel 2>/dev/null || echo $(CURD
 COVERAGE_DIR := $(PROJECT_ROOT)/.coverage/$(subst $(PROJECT_ROOT)/,,$(CURDIR))
 
 UV_RUN_OPTS := --with-editable $(PROJECT_ROOT)/src/asya-testing
-PYTEST_OPTS ?= -v --log-cli-level=INFO
+PYTEST_OPTS ?= -v --log-cli-level=INFO -s
 COVERAGERC := $(PROJECT_ROOT)/.coveragerc
 
 export PYTEST_OPTS

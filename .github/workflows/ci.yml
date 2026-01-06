@@ -6,9 +6,10 @@ on:
     paths-ignore:
     - '**.md'
     - '.github/**'
+    - 'docs/**'
+    - '!docs/quickstart/README.md'
     - '**.html'
     - '**.css'
-    - 'docs/**'
     - '**/Makefile'
   pull_request:
     branches: [main]
@@ -16,6 +17,7 @@ on:
     - '**.md'
     - '.github/**'
     - 'docs/**'
+    - '!docs/quickstart/README.md'
     - '**.html'
     - '**.css'
     - '**/Makefile'
