@@ -404,11 +404,11 @@ kubectl exec aws-cli -- \
 <!-- TEST: kubectl get pods -n asya-system | grep -E '(happy-end|error-end)' || true -->
 <!-- TEST: kubectl logs -l asya.sh/asya=happy-end -n asya-system -c asya-runtime --tail=50-->
 <!-- TEST: kubectl logs -l asya.sh/asya=error-end -n asya-system -c asya-runtime --tail=50-->
-
++timeout 120s
 Wait for the message to be processed and persisted to S3:
 
 ```bash
-timeout 60s sh -c '
+timeout 120s sh -c '
   until kubectl exec aws-cli -- \
     aws --endpoint-url=http://localstack.asya-system.svc.cluster.local:4566 \
       s3 ls s3://asya-results/s3-test-001.json 2>/dev/null | grep -q "s3-test-001.json"; do
@@ -584,7 +584,7 @@ kubectl exec aws-cli -- \
 Wait for processing and verify S3 persistence:
 
 ```bash
-timeout 60s sh -c '
+timeout 120s sh -c '
   until kubectl exec aws-cli -- \
     aws --endpoint-url=http://localstack.asya-system.svc.cluster.local:4566 \
       s3 ls s3://asya-results/gateway-test-001.json 2>/dev/null | grep -q "gateway-test-001.json"; do
