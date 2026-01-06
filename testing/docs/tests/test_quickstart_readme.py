@@ -239,7 +239,9 @@ def test_quickstart_readme_commands(project_root, quickstart_cluster):
             print(f"  [TEST commands will execute: {len(test_commands)} command(s)]")
             test_script_parts = []
             for cmd in test_commands:
-                test_script_parts.append(f"echo '[TEST] Executing: {cmd}'")
+                # Escape the command for safe echo output (replace ' with '\'' for bash)
+                escaped_cmd = cmd.replace("'", "'\"'\"'")
+                test_script_parts.append(f"echo '[TEST] Executing: {escaped_cmd}'")
                 test_script_parts.append(cmd)
             processed_block_str = f"{block}\n" + "\n".join(test_script_parts)
 
