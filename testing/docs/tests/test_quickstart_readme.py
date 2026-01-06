@@ -80,15 +80,20 @@ def quickstart_cluster():
     print(f"{'='*80}\n")
 
 
-def extract_bash_blocks(markdown_file: Path) -> list[str]:
-    """Extract all bash code blocks from a markdown file."""
+def extract_bash_blocks(markdown_file: Path) -> list[tuple[str, str | None]]:
+    """Extract all bash code blocks from a markdown file.
+
+    Returns list of (block, test_command) tuples where test_command is extracted
+    from <!-- TEST: command --> HTML comments immediately after bash blocks.
+    """
     content = markdown_file.read_text()
 
-    # Pattern to match ```bash...``` blocks
-    pattern = r"```bash\n(.*?)```"
-    blocks = re.findall(pattern, content, re.DOTALL)
+    # Pattern to match ```bash...``` blocks optionally followed by <!-- TEST: ... -->
+    pattern = r"```bash\n(.*?)```(?:\n<!-- TEST: (.*?) -->)?"
+    matches = re.findall(pattern, content, re.DOTALL)
 
-    return [block.strip() for block in blocks if block.strip()]
+    return [(block.strip(), test_cmd.strip() if test_cmd else None)
+            for block, test_cmd in matches if block.strip()]
 
 
 def extract_file_blocks(markdown_file: Path) -> list[tuple[str, str]]:
@@ -193,7 +198,7 @@ def test_quickstart_readme_commands(project_root, quickstart_cluster):
     passed = 0
     skipped = 0
 
-    for i, block in enumerate(blocks, 1):
+    for i, (block, test_command) in enumerate(blocks, 1):
         should_skip, skip_reason = should_skip_block(block)
 
         if should_skip:
@@ -206,11 +211,17 @@ def test_quickstart_readme_commands(project_root, quickstart_cluster):
         print(f"  {block[:80]}...")
         print(f"  [Running...]")
 
+        # Append test command if present
+        processed_block_str = block
+        if test_command:
+            print(f"  [TEST command will execute after: {test_command}]")
+            processed_block_str = f"{block}\necho '[TEST] Executing: {test_command}'\n{test_command}"
+
         # Create temporary file for the command
         with tempfile.NamedTemporaryFile(mode='w', suffix='.sh', delete=False) as f:
             f.write('#!/bin/bash\n')
             f.write('set -x\n')  # Enable bash command tracing
-            f.write(block)
+            f.write(processed_block_str)
             f.write('\n')
             temp_script = f.name
 
@@ -231,6 +242,17 @@ def test_quickstart_readme_commands(project_root, quickstart_cluster):
                 passed += 1
             else:
                 print(f"  [-] FAILED (exit code: {result.returncode})")
+                print(f"\n{'='*60}")
+                print("FAILURE DIAGNOSTICS:")
+                print(f"{'='*60}")
+
+                # Show cluster state for debugging
+                print("\nChecking cluster state...")
+                subprocess.run(['kubectl', 'get', 'pods', '--all-namespaces'], check=False)
+                print("\nChecking services...")
+                subprocess.run(['kubectl', 'get', 'svc', '--all-namespaces'], check=False)
+                print(f"{'='*60}\n")
+
                 pytest.fail(
                     f"Block #{i} failed with exit code {result.returncode}\n"
                     f"Command: {block[:100]}..."
