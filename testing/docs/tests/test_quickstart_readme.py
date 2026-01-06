@@ -80,20 +80,42 @@ def quickstart_cluster():
     print(f"{'='*80}\n")
 
 
-def extract_bash_blocks(markdown_file: Path) -> list[tuple[str, str | None]]:
+def extract_bash_blocks(markdown_file: Path) -> list[tuple[str, list[str]]]:
     """Extract all bash code blocks from a markdown file.
 
-    Returns list of (block, test_command) tuples where test_command is extracted
-    from <!-- TEST: command --> HTML comments immediately after bash blocks.
+    Returns list of (block, test_commands) tuples where test_commands is a list of
+    commands extracted from <!-- TEST: command --> HTML comments immediately after bash blocks.
     """
     content = markdown_file.read_text()
 
-    # Pattern to match ```bash...``` blocks optionally followed by <!-- TEST: ... -->
-    pattern = r"```bash\n(.*?)```(?:\n<!-- TEST: (.*?) -->)?"
-    matches = re.findall(pattern, content, re.DOTALL)
+    # Split content into sections starting with ```bash
+    blocks_with_tests = []
 
-    return [(block.strip(), test_cmd.strip() if test_cmd else None)
-            for block, test_cmd in matches if block.strip()]
+    # Find all bash blocks
+    bash_pattern = r"```bash\n(.*?)```"
+    bash_matches = re.finditer(bash_pattern, content, re.DOTALL)
+
+    for match in bash_matches:
+        block = match.group(1).strip()
+        block_end = match.end()
+
+        # Look for TEST commands after this block
+        test_commands = []
+        remaining_content = content[block_end:]
+
+        # Find all consecutive TEST comments
+        test_pattern = r"^\n<!-- TEST: (.*?) -->"
+        while True:
+            test_match = re.match(test_pattern, remaining_content)
+            if test_match:
+                test_commands.append(test_match.group(1).strip())
+                remaining_content = remaining_content[test_match.end():]
+            else:
+                break
+
+        blocks_with_tests.append((block, test_commands))
+
+    return blocks_with_tests
 
 
 def extract_file_blocks(markdown_file: Path) -> list[tuple[str, str]]:
@@ -198,7 +220,7 @@ def test_quickstart_readme_commands(project_root, quickstart_cluster):
     passed = 0
     skipped = 0
 
-    for i, (block, test_command) in enumerate(blocks, 1):
+    for i, (block, test_commands) in enumerate(blocks, 1):
         should_skip, skip_reason = should_skip_block(block)
 
         if should_skip:
@@ -211,11 +233,15 @@ def test_quickstart_readme_commands(project_root, quickstart_cluster):
         print(f"  {block[:80]}...")
         print(f"  [Running...]")
 
-        # Append test command if present
+        # Append test commands if present
         processed_block_str = block
-        if test_command:
-            print(f"  [TEST command will execute after: {test_command}]")
-            processed_block_str = f"{block}\necho '[TEST] Executing: {test_command}'\n{test_command}"
+        if test_commands:
+            print(f"  [TEST commands will execute: {len(test_commands)} command(s)]")
+            test_script_parts = []
+            for cmd in test_commands:
+                test_script_parts.append(f"echo '[TEST] Executing: {cmd}'")
+                test_script_parts.append(cmd)
+            processed_block_str = f"{block}\n" + "\n".join(test_script_parts)
 
         # Create temporary file for the command
         with tempfile.NamedTemporaryFile(mode='w', suffix='.sh', delete=False) as f:

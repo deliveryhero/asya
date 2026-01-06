@@ -385,7 +385,10 @@ helm install asya-crew asya/asya-crew \
 kubectl wait --for=condition=ready pod -l asya.sh/asya=happy-end -n asya-system --timeout=60s
 kubectl wait --for=condition=ready pod -l asya.sh/asya=error-end -n asya-system --timeout=60s
 ```
+<!-- TEST: kubectl get pods -n asya-system | grep -E '(happy-end|error-end)' || true -->
 <!-- TEST: sleep 10 -->
+<!-- TEST: kubectl logs -l asya.sh/asya=happy-end -n asya-system -c asya-runtime --tail=50 | tee /dev/stderr || echo "[!] No happy-end logs available" -->
+<!-- TEST: kubectl logs -l asya.sh/asya=error-end -n asya-system -c asya-runtime --tail=50 | tee /dev/stderr || echo "[!] No error-end logs available" -->
 
 Your pipeline results are now automatically persisted to S3: whenever an actor finishes processing the last message in the route, 🎭 automatically sends it to `happy-end` actor to persist it on S3. Similarly, error messages will be sent to `error-end`.
 
