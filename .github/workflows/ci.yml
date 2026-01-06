@@ -250,6 +250,31 @@ jobs:
         if-no-files-found: ignore
         compression-level: 0
 
+  docs-tests:
+    name: "Docs tests"
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    # needs: [integration-tests]
+    permissions:
+      contents: read
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup environment
+      uses: ./.github/actions/setup-env
+      with:
+        install-kind: "true"
+        install-helm: "true"
+
+    - name: "Run docs tests"
+      env:
+        ASYA_LOG_LEVEL: INFO
+      run: |
+        source .venv/bin/activate
+        cd testing/docs
+        make test PYTEST_OPTS="-v --log-cli-level=INFO"
+
   e2e-tests:
     name: "E2E tests: ${{ matrix.name }}"
     runs-on: ubuntu-latest
@@ -281,17 +306,6 @@ jobs:
       with:
         install-kind: "true"
         install-helm: "true"
-
-    - name: "Run E2E tests: docs"
-      if: matrix.run_pipeline
-      continue-on-error: true
-      id: e2e-docs
-      env:
-        ASYA_LOG_LEVEL: INFO
-      run: |
-        source .venv/bin/activate
-        cd testing/docs
-        make test PYTEST_OPTS="-v --log-cli-level=INFO"
 
     - name: Clean up any existing Kind clusters
       run: |
@@ -367,10 +381,6 @@ jobs:
         fi
         if [[ "${{ steps.e2e-chaos-payload.outcome }}" == "failure" ]]; then
           echo "[-] E2E test suite failed: chaos (payload)"
-          FAILED=1
-        fi
-        if [[ "${{ steps.e2e-docs.outcome }}" == "failure" ]]; then
-          echo "[-] E2E test suite failed: docs"
           FAILED=1
         fi
         if [[ $FAILED -eq 1 ]]; then
