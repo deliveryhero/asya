@@ -400,10 +400,10 @@ kubectl exec aws-cli -- \
     --message-body "$MSG"
 ```
 
+<!-- TEST: sleep 5 -->
 <!-- TEST: kubectl get pods -n asya-system | grep -E '(happy-end|error-end)' || true -->
 <!-- TEST: kubectl logs -l asya.sh/asya=happy-end -n asya-system -c asya-runtime --tail=50-->
 <!-- TEST: kubectl logs -l asya.sh/asya=error-end -n asya-system -c asya-runtime --tail=50-->
-<!-- TEST: sleep 5 -->
 
 Wait for the message to be processed and persisted to S3:
 

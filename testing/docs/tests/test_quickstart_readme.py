@@ -103,8 +103,8 @@ def extract_bash_blocks(markdown_file: Path) -> list[tuple[str, list[str]]]:
         test_commands = []
         remaining_content = content[block_end:]
 
-        # Find all consecutive TEST comments
-        test_pattern = r"^\n<!-- TEST: (.*?) -->"
+        # Find all consecutive TEST comments (allow multiple newlines/blank lines)
+        test_pattern = r"^\s*<!-- TEST: (.*?) -->"
         while True:
             test_match = re.match(test_pattern, remaining_content)
             if test_match:
@@ -253,20 +253,15 @@ def test_quickstart_readme_commands(project_root, quickstart_cluster):
                         test_script_parts.append(cmd)
                     processed_block_str = f"{block}\n" + "\n".join(test_script_parts)
 
-                # Create temporary file for the command
-                with tempfile.NamedTemporaryFile(mode='w', suffix='.sh', delete=False) as f:
-                    f.write('#!/bin/bash\n')
-                    f.write('set -x\n')  # Enable bash command tracing
-                    f.write(processed_block_str)
-                    f.write('\n')
-                    temp_script = f.name
+                # Build complete script with bash options
+                full_script = f"#!/bin/bash\nset -x\n{processed_block_str}\n"
 
                 try:
                     # Run the command with real-time output
                     # Timeout set to 310s (5min + 10s buffer) to handle longest helm timeout (5min for prometheus)
                     import sys
                     result = subprocess.run(
-                        ['bash', temp_script],
+                        ['bash', '-c', full_script],
                         stdout=sys.stdout,
                         stderr=sys.stderr,
                         text=True,
@@ -299,12 +294,6 @@ def test_quickstart_readme_commands(project_root, quickstart_cluster):
                         f"Block #{i} timed out after 310 seconds\n"
                         f"Command: {block[:100]}..."
                     )
-                finally:
-                    # Cleanup temp file
-                    try:
-                        os.unlink(temp_script)
-                    except:
-                        pass
 
             # Print summary
             print(f"\n{'='*60}")
