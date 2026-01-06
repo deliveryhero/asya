@@ -387,7 +387,6 @@ kubectl wait --for=condition=ready pod -l asya.sh/asya=error-end -n asya-system 
 ```
 <!-- TEST: kubectl get pods -n asya-system | grep -E '(happy-end|error-end)' || true -->
 <!-- TEST: sleep 10 -->
-<!-- TEST: kubectl logs -l asya.sh/asya=happy-end -n asya-system -c asya-runtime --tail=50-->
 
 Your pipeline results are now automatically persisted to S3: whenever an actor finishes processing the last message in the route, 🎭 automatically sends it to `happy-end` actor to persist it on S3. Similarly, error messages will be sent to `error-end`.
 
@@ -411,6 +410,11 @@ kubectl run aws-cli --rm -i --restart=Never --image=amazon/aws-cli \
       --message-body '$MSG'
   "
 ```
+
+<!-- TEST: kubectl get pods -n asya-system | grep -E '(happy-end|error-end)' || true -->
+<!-- TEST: kubectl logs -l asya.sh/asya=happy-end -n asya-system -c asya-runtime --tail=50-->
+<!-- TEST: kubectl logs -l asya.sh/asya=error-end -n asya-system -c asya-runtime --tail=50-->
+<!-- TEST: sleep 5 -->
 
 Wait for the message to be processed and persisted to S3:
 

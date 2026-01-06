@@ -201,109 +201,120 @@ def test_quickstart_readme_commands(project_root, quickstart_cluster):
     if not readme_path.exists():
         pytest.skip(f"README not found: {readme_path}")
 
-    # First, create files from code blocks with filenames
-    file_blocks = extract_file_blocks(readme_path)
-    if file_blocks:
-        print(f"\nCreating {len(file_blocks)} files from code blocks:")
-        for filename, content in file_blocks:
-            print(f"  Creating: {filename}")
-            with open(filename, 'w') as f:
-                f.write(content)
-                f.write('\n')
-
-    blocks = extract_bash_blocks(readme_path)
-
-    assert len(blocks) > 0, "No bash blocks found in README"
-
-    print(f"\nFound {len(blocks)} bash code blocks in quickstart README")
-
-    passed = 0
-    skipped = 0
-
-    for i, (block, test_commands) in enumerate(blocks, 1):
-        should_skip, skip_reason = should_skip_block(block)
-
-        if should_skip:
-            print(f"\n[{i}/{len(blocks)}] Skipping block (reason: {skip_reason}):")
-            print(f"  {block[:80]}...")
-            skipped += 1
-            continue
-
-        print(f"\n[{i}/{len(blocks)}] Testing block:")
-        print(f"  {block[:80]}...")
-        print(f"  [Running...]")
-
-        # Append test commands if present
-        processed_block_str = block
-        if test_commands:
-            print(f"  [TEST commands will execute: {len(test_commands)} command(s)]")
-            test_script_parts = []
-            for cmd in test_commands:
-                # Escape the command for safe echo output (replace ' with '\'' for bash)
-                escaped_cmd = cmd.replace("'", "'\"'\"'")
-                test_script_parts.append(f"echo '[TEST] Executing: {escaped_cmd}'")
-                test_script_parts.append(cmd)
-            processed_block_str = f"{block}\n" + "\n".join(test_script_parts)
-
-        # Create temporary file for the command
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.sh', delete=False) as f:
-            f.write('#!/bin/bash\n')
-            f.write('set -x\n')  # Enable bash command tracing
-            f.write(processed_block_str)
-            f.write('\n')
-            temp_script = f.name
-
+    # Create a temporary directory for test files
+    with tempfile.TemporaryDirectory(prefix="quickstart-test-") as temp_dir:
+        original_cwd = os.getcwd()
         try:
-            # Run the command with real-time output
-            # Timeout set to 310s (5min + 10s buffer) to handle longest helm timeout (5min for prometheus)
-            import sys
-            result = subprocess.run(
-                ['bash', temp_script],
-                stdout=sys.stdout,
-                stderr=sys.stderr,
-                text=True,
-                timeout=310,
-            )
+            # Change to temp directory for file creation and command execution
+            os.chdir(temp_dir)
+            print(f"\n[.] Working directory: {temp_dir}")
 
-            if result.returncode == 0:
-                print(f"  [+] PASSED")
-                passed += 1
-            else:
-                print(f"  [-] FAILED (exit code: {result.returncode})")
-                print(f"\n{'='*60}")
-                print("FAILURE DIAGNOSTICS:")
-                print(f"{'='*60}")
+            # First, create files from code blocks with filenames
+            file_blocks = extract_file_blocks(readme_path)
+            if file_blocks:
+                print(f"\nCreating {len(file_blocks)} files from code blocks:")
+                for filename, content in file_blocks:
+                    print(f"  Creating: {filename}")
+                    with open(filename, 'w') as f:
+                        f.write(content)
+                        f.write('\n')
 
-                # Show cluster state for debugging
-                print("\nChecking cluster state...")
-                subprocess.run(['kubectl', 'get', 'pods', '--all-namespaces'], check=False)
-                print("\nChecking services...")
-                subprocess.run(['kubectl', 'get', 'svc', '--all-namespaces'], check=False)
-                print(f"{'='*60}\n")
+            blocks = extract_bash_blocks(readme_path)
 
-                pytest.fail(
-                    f"Block #{i} failed with exit code {result.returncode}\n"
-                    f"Command: {block[:100]}..."
-                )
-        except subprocess.TimeoutExpired:
-            print(f"  [-] TIMEOUT after 310 seconds")
-            pytest.fail(
-                f"Block #{i} timed out after 310 seconds\n"
-                f"Command: {block[:100]}..."
-            )
+            assert len(blocks) > 0, "No bash blocks found in README"
+
+            print(f"\nFound {len(blocks)} bash code blocks in quickstart README")
+
+            passed = 0
+            skipped = 0
+
+            for i, (block, test_commands) in enumerate(blocks, 1):
+                should_skip, skip_reason = should_skip_block(block)
+
+                if should_skip:
+                    print(f"\n[{i}/{len(blocks)}] Skipping block (reason: {skip_reason}):")
+                    print(f"  {block[:80]}...")
+                    skipped += 1
+                    continue
+
+                print(f"\n[{i}/{len(blocks)}] Testing block:")
+                print(f"  {block[:80]}...")
+                print(f"  [Running...]")
+
+                # Append test commands if present
+                processed_block_str = block
+                if test_commands:
+                    print(f"  [TEST commands will execute: {len(test_commands)} command(s)]")
+                    test_script_parts = []
+                    for cmd in test_commands:
+                        # Escape the command for safe echo output (replace ' with '\'' for bash)
+                        escaped_cmd = cmd.replace("'", "'\"'\"'")
+                        test_script_parts.append(f"echo '[TEST] Executing: {escaped_cmd}'")
+                        test_script_parts.append(cmd)
+                    processed_block_str = f"{block}\n" + "\n".join(test_script_parts)
+
+                # Create temporary file for the command
+                with tempfile.NamedTemporaryFile(mode='w', suffix='.sh', delete=False) as f:
+                    f.write('#!/bin/bash\n')
+                    f.write('set -x\n')  # Enable bash command tracing
+                    f.write(processed_block_str)
+                    f.write('\n')
+                    temp_script = f.name
+
+                try:
+                    # Run the command with real-time output
+                    # Timeout set to 310s (5min + 10s buffer) to handle longest helm timeout (5min for prometheus)
+                    import sys
+                    result = subprocess.run(
+                        ['bash', temp_script],
+                        stdout=sys.stdout,
+                        stderr=sys.stderr,
+                        text=True,
+                        timeout=310,
+                    )
+
+                    if result.returncode == 0:
+                        print(f"  [+] PASSED")
+                        passed += 1
+                    else:
+                        print(f"  [-] FAILED (exit code: {result.returncode})")
+                        print(f"\n{'='*60}")
+                        print("FAILURE DIAGNOSTICS:")
+                        print(f"{'='*60}")
+
+                        # Show cluster state for debugging
+                        print("\nChecking cluster state...")
+                        subprocess.run(['kubectl', 'get', 'pods', '--all-namespaces'], check=False)
+                        print("\nChecking services...")
+                        subprocess.run(['kubectl', 'get', 'svc', '--all-namespaces'], check=False)
+                        print(f"{'='*60}\n")
+
+                        pytest.fail(
+                            f"Block #{i} failed with exit code {result.returncode}\n"
+                            f"Command: {block[:100]}..."
+                        )
+                except subprocess.TimeoutExpired:
+                    print(f"  [-] TIMEOUT after 310 seconds")
+                    pytest.fail(
+                        f"Block #{i} timed out after 310 seconds\n"
+                        f"Command: {block[:100]}..."
+                    )
+                finally:
+                    # Cleanup temp file
+                    try:
+                        os.unlink(temp_script)
+                    except:
+                        pass
+
+            # Print summary
+            print(f"\n{'='*60}")
+            print("Test Summary:")
+            print(f"{'='*60}")
+            print(f"Total blocks:  {len(blocks)}")
+            print(f"Tested:        {passed}")
+            print(f"Passed:        {passed}")
+            print(f"Skipped:       {skipped}")
+            print(f"{'='*60}")
         finally:
-            # Cleanup temp file
-            try:
-                os.unlink(temp_script)
-            except:
-                pass
-
-    # Print summary
-    print(f"\n{'='*60}")
-    print("Test Summary:")
-    print(f"{'='*60}")
-    print(f"Total blocks:  {len(blocks)}")
-    print(f"Tested:        {passed}")
-    print(f"Passed:        {passed}")
-    print(f"Skipped:       {skipped}")
-    print(f"{'='*60}")
+            # Restore original working directory
+            os.chdir(original_cwd)
