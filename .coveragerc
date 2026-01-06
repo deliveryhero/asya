@@ -5,6 +5,8 @@ omit =
     */tests/*
     *_test.py
     test_*.py
+    conftest.py
+    */conftest.py
     __pycache__/*
     */.venv/*
     .venv/*
