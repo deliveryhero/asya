@@ -80,11 +80,13 @@ def quickstart_cluster():
     print(f"{'='*80}\n")
 
 
-def extract_bash_blocks(markdown_file: Path) -> list[tuple[str, list[str]]]:
+def extract_bash_blocks(markdown_file: Path) -> list[tuple[str, list[str], int | None]]:
     """Extract all bash code blocks from a markdown file.
 
-    Returns list of (block, test_commands) tuples where test_commands is a list of
-    commands extracted from <!-- TEST: command --> HTML comments immediately after bash blocks.
+    Returns list of (block, test_commands, timeout) tuples where:
+    - block: the bash code block content
+    - test_commands: list of commands from <!-- TEST: command --> comments
+    - timeout: timeout in seconds from <!-- TIMEOUT: N --> comment, or None
     """
     content = markdown_file.read_text()
 
@@ -99,21 +101,29 @@ def extract_bash_blocks(markdown_file: Path) -> list[tuple[str, list[str]]]:
         block = match.group(1).strip()
         block_end = match.end()
 
-        # Look for TEST commands after this block
+        # Look for TEST commands and TIMEOUT directive after this block
         test_commands = []
+        timeout = None
         remaining_content = content[block_end:]
 
-        # Find all consecutive TEST comments (allow multiple newlines/blank lines)
+        # Find all consecutive TEST/TIMEOUT comments (allow multiple newlines/blank lines)
         test_pattern = r"^\s*<!-- TEST: (.*?) -->"
+        timeout_pattern = r"^\s*<!-- TIMEOUT: (\d+) -->"
+
         while True:
             test_match = re.match(test_pattern, remaining_content)
+            timeout_match = re.match(timeout_pattern, remaining_content)
+
             if test_match:
                 test_commands.append(test_match.group(1).strip())
                 remaining_content = remaining_content[test_match.end():]
+            elif timeout_match:
+                timeout = int(timeout_match.group(1))
+                remaining_content = remaining_content[timeout_match.end():]
             else:
                 break
 
-        blocks_with_tests.append((block, test_commands))
+        blocks_with_tests.append((block, test_commands, timeout))
 
     return blocks_with_tests
 
@@ -228,7 +238,7 @@ def test_quickstart_readme_commands(project_root, quickstart_cluster):
             passed = 0
             skipped = 0
 
-            for i, (block, test_commands) in enumerate(blocks, 1):
+            for i, (block, test_commands, block_timeout) in enumerate(blocks, 1):
                 should_skip, skip_reason = should_skip_block(block)
 
                 if should_skip:
@@ -237,8 +247,13 @@ def test_quickstart_readme_commands(project_root, quickstart_cluster):
                     skipped += 1
                     continue
 
+                # Determine timeout: use TIMEOUT comment if present, else default 310s
+                effective_timeout = block_timeout if block_timeout is not None else 310
+
                 print(f"\n[{i}/{len(blocks)}] Testing block:")
                 print(f"  {block[:80]}...")
+                if block_timeout is not None:
+                    print(f"  [Timeout: {block_timeout}s]")
                 print(f"  [Running...]")
 
                 # Append test commands if present
@@ -258,14 +273,15 @@ def test_quickstart_readme_commands(project_root, quickstart_cluster):
 
                 try:
                     # Run the command with real-time output
-                    # Timeout set to 310s (5min + 10s buffer) to handle longest helm timeout (5min for prometheus)
+                    # Default timeout: 310s (5min + 10s buffer) to handle longest helm timeout (5min for prometheus)
+                    # Custom timeout: from <!-- TIMEOUT: N --> comment
                     import sys
                     result = subprocess.run(
                         ['bash', '-c', full_script],
                         stdout=sys.stdout,
                         stderr=sys.stderr,
                         text=True,
-                        timeout=310,
+                        timeout=effective_timeout,
                     )
 
                     if result.returncode == 0:
@@ -289,9 +305,9 @@ def test_quickstart_readme_commands(project_root, quickstart_cluster):
                             f"Command: {block[:100]}..."
                         )
                 except subprocess.TimeoutExpired:
-                    print(f"  [-] TIMEOUT after 310 seconds")
+                    print(f"  [-] TIMEOUT after {effective_timeout} seconds")
                     pytest.fail(
-                        f"Block #{i} timed out after 310 seconds\n"
+                        f"Block #{i} timed out after {effective_timeout} seconds\n"
                         f"Command: {block[:100]}..."
                     )
 
