@@ -98,37 +98,3 @@ E2E tests are organized into execution groups using pytest markers:
 
 1. **Regular tests** (unmarked, `@pytest.mark.fast`) - Run in parallel
 2. **Chaos tests** (`@pytest.mark.chaos`) - Run serially (disrupt infrastructure)
-3. **Docs tests** (`@pytest.mark.docs`) - Run serially, AFTER chaos (separate cluster)
-
-### Docs Group: Quickstart README Validation
-
-The `test_quickstart_readme_commands` test validates all bash commands in `docs/quickstart/README.md` against a real Kubernetes cluster.
-
-**Characteristics**:
-- **Dedicated cluster** - uses `asya-local` cluster (created by tutorial itself)
-- **Runs LAST** - part of "docs" group with `@pytest.mark.order("last")`
-- **Full isolation** - no conflicts with e2e infrastructure (separate cluster name)
-- **Takes ~15 minutes** - cluster creation + infrastructure deployment + validation
-- **Single cleanup** - `kind delete cluster --name asya-local` in post-fixture
-
-**Fixture Lifecycle** (`quickstart_cluster`):
-- **Pre**: Delete `asya-local` cluster if exists (ensures clean state)
-- **Test**: Executes tutorial commands including `kind create cluster --name asya-local`
-- **Post**: Delete `asya-local` cluster, restore kubectl context to e2e cluster
-
-**To run manually**:
-
-```bash
-cd testing/e2e
-uv run --with-editable ../../src/asya-testing pytest tests/test_quickstart_readme.py::test_quickstart_readme_commands -v
-# Note: Fixture handles cleanup automatically, tutorial creates the cluster
-```
-
-**To run only docs tests**:
-
-```bash
-cd testing/e2e
-uv run --with-editable ../../src/asya-testing pytest -m docs -v
-```
-
-This test is part of the regular CI suite and validates that the quickstart documentation actually works.

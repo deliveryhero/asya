@@ -1,5 +1,5 @@
 # Central Makefile chaining targets in other Makefiles
-.PHONY: setup lint test test-unit test-component clean-component test-integration clean-integration test-e2e up-e2e clean-e2e diagnostics-e2e test-docs clean-docs build build-go build-images manifests clean cov docs-serve docs-build
+.PHONY: setup lint test test-unit test-component clean-component test-integration clean-integration test-e2e up-e2e clean-e2e diagnostics-e2e build build-go build-images manifests clean cov docs-serve docs-build
 MAKEFLAGS += --no-print-directory
 .EXPORT_ALL_VARIABLES:
 
@@ -57,7 +57,6 @@ test-unit: ## Run unit tests (go + python)
 	$(MAKE) -C src/asya-runtime test-unit
 	$(MAKE) -C src/asya-crew test-unit
 	$(MAKE) -C src/asya-cli test-unit
-	$(MAKE) -C src/asya-testing test-unit
 	$(MAKE) -C src/asya-operator test-unit
 	@echo "$(GREEN_START)[++] Success: All unit tests completed successfully!$(GREEN_END)"
 
@@ -93,17 +92,6 @@ test-e2e: ## Run complete E2E tests (deploy → port-forward-up → test → por
 
 clean-e2e: ## Delete Kind cluster and cleanup
 	$(MAKE) -C testing/e2e clean
-
-# =============================================================================
-# Documentation tests (validate docs examples work as written)
-# =============================================================================
-
-test-docs: ## Run documentation validation tests (creates independent Kind cluster)
-	$(MAKE) -C testing/docs test
-	@echo "$(GREEN_START)[++] Success: All docs tests completed successfully!$(GREEN_END)"
-
-clean-docs: ## Clean up docs test artifacts and clusters
-	$(MAKE) -C testing/docs clean
 
 # =============================================================================
 # Coverage

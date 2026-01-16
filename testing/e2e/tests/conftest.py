@@ -33,7 +33,7 @@ CHAOS_ACTOR_NAMES = ["test-echo", "test-error", "test-queue-health", "error-end"
 
 
 @pytest.fixture(scope="function", autouse=True)
-def ensure_gateway_port_forward(request):
+def ensure_gateway_port_forward(request, e2e_helper):
     """
     Ensure gateway port-forward is healthy before each chaos test.
 
@@ -44,13 +44,6 @@ def ensure_gateway_port_forward(request):
     """
     if "chaos" not in request.keywords:
         return
-
-    # Skip for quickstart README test which deploys gateway itself
-    if "test_quickstart_readme" in request.node.name:
-        return
-
-    # Only request e2e_helper when actually needed (for chaos tests)
-    e2e_helper = request.getfixturevalue("e2e_helper")
 
     max_retries = 3
     for attempt in range(max_retries):
