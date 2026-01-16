@@ -322,15 +322,18 @@ func (r *AsyncActorReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			// HPA not found - KEDA may still be creating it
 			logger.Info("HPA not found, KEDA may be creating it - will requeue to check again")
 
-			// Update status before requeuing to show current state
-			asya.Status.ObservedGeneration = asya.Generation
-			r.updateDisplayFields(asya)
-			if updateErr := r.Status().Update(ctx, asya); updateErr != nil {
+			// Update status before requeuing using retry logic to handle concurrent modifications
+			if updateErr := r.updateStatusWithRetry(ctx, asya); updateErr != nil {
 				logger.Error(updateErr, "Failed to update status before requeue")
+				return ctrl.Result{}, updateErr
 			}
 
-			// Requeue after 5 seconds to give KEDA time to create the HPA
-			return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+			// Requeue after 1 second with exponential backoff (max 10 seconds)
+			requeueAfter := time.Second
+			if asya.Status.ObservedGeneration > 0 {
+				requeueAfter = 10 * time.Second
+			}
+			return ctrl.Result{RequeueAfter: requeueAfter}, nil
 		}
 	} else {
 		logger.Info("KEDA scaling disabled, ensuring ScaledObject is deleted")
@@ -1311,6 +1314,10 @@ func (r *AsyncActorReconciler) reconcileDeployment(ctx context.Context, asya *as
 				}
 			}
 		}
+
+		// Clear creationTimestamp from template metadata to avoid spurious updates
+		// Kubernetes may set this field on read, causing unnecessary reconciliation
+		podTemplate.ObjectMeta.CreationTimestamp = metav1.Time{}
 
 		deployment.Spec.Template = podTemplate
 
