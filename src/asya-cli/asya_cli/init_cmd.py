@@ -22,10 +22,11 @@ FROM python:3.13-slim
 WORKDIR /app
 COPY handler.py /app/
 
-# Install dependencies (uncomment if needed)
-# RUN pip install --no-cache-dir requests
+# Install dependencies, including the Asya runtime.
+# A requirements.txt file is recommended for managing dependencies.
+# RUN pip install --no-cache-dir asya-runtime
 
-CMD ["python3", "-c", "import handler; print('Handler loaded')"]
+CMD ["python3", "-m", "asya_runtime"]
 """.lstrip()
 
 TEMPLATE_ACTOR_YAML = """
@@ -99,7 +100,7 @@ def main(argv=None):
     generate_files(target_dir, parsed_args.name, parsed_args.force)
     print("\nDone! To get started:")
     print(f"  cd {parsed_args.name}")
-    print("  docker build -t my-actor:v1 .")
+    print(f"  docker build -t {parsed_args.name}:v1 .")
 
 
 if __name__ == "__main__":
