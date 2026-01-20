@@ -44,6 +44,7 @@ def main() -> None:
 
     subparsers.add_parser("mcp", help="MCP gateway tools", add_help=False)
     subparsers.add_parser("flow", help="Flow DSL compiler", add_help=False)
+    subparsers.add_parser("init", help="Initialize a new actor project", add_help=False)
 
     args, remaining = parser.parse_known_args()
 
@@ -56,6 +57,10 @@ def main() -> None:
         from asya_cli.flow_cli import main as flow_main
 
         flow_main(remaining)
+    elif args.command == "init":
+        from asya_cli.init_cmd import main as init_main
+
+        init_main(remaining)
     else:
         parser.print_help()
         sys.exit(1)
