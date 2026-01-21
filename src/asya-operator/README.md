@@ -365,7 +365,7 @@ kubectl get hpa keda-hpa-my-actor -o yaml
 **Check workload status**:
 ```bash
 kubectl get deployment my-actor
-kubectl get pods -l asya.sh/asya=my-actor
+kubectl get pods -l asya.sh/actor=my-actor
 ```
 
 ## Full Specification

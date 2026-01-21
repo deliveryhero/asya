@@ -86,6 +86,44 @@ spec:
 
 **See** [`examples/asyas/`](https://github.com/deliveryhero/asya/tree/main/examples/asyas) for more `AsyncActor` examples.
 
+## Actor Identity and Queue Naming
+
+**Actor name** determines queue naming and routing identity. By default, it uses `metadata.name`:
+
+```yaml
+metadata:
+  name: text-processor  # Actor name = text-processor
+  namespace: production # Queue name = asya-production-text-processor
+```
+
+**Custom actor name** via `asya.sh/actor` label enables multi-region/multi-cluster deployments:
+
+```yaml
+# EU region
+metadata:
+  name: text-processor-eu
+  labels:
+    asya.sh/actor: text-processor  # Actor name = text-processor
+# Queue: asya-production-text-processor
+
+# US region
+metadata:
+  name: text-processor-us
+  labels:
+    asya.sh/actor: text-processor  # Same actor name
+# Queue: asya-production-text-processor (same queue!)
+```
+
+**Benefits**:
+- ✅ Same logical actor across regions/clusters
+- ✅ Distinct resource names for cluster management
+- ✅ Shared queue for load distribution
+- ✅ Filter by actor: `kubectl get asya -l asya.sh/actor=text-processor`
+
+**Queue naming format**: `asya-{namespace}-{actor-name}`
+
+**See**: [`examples/asyas/multi-region-actor.yaml`](https://github.com/deliveryhero/asya/tree/main/examples/asyas/multi-region-actor.yaml) for multi-region example.
+
 ## Label Propagation
 
 Labels from AsyncActor CR automatically propagate to all child resources (Deployment, Secret, ServiceAccount, ScaledObject, TriggerAuthentication):
@@ -96,6 +134,7 @@ kind: AsyncActor
 metadata:
   name: text-processor
   labels:
+    asya.sh/flow: document-processing
     app: example-ecommerce
     team: ml-platform
     env: production
@@ -104,26 +143,37 @@ spec:
 ```
 
 **Result**: All resources created by operator inherit user labels plus operator-managed labels:
-- User labels: `app`, `team`, `env`
-- Operator labels: `app.kubernetes.io/name`, `app.kubernetes.io/component`, `app.kubernetes.io/managed-by`
+- User labels: `asya.sh/flow`, `app`, `team`, `env`
+- Operator labels: `asya.sh/actor`, `app.kubernetes.io/name`, `app.kubernetes.io/component`, `app.kubernetes.io/managed-by`
 
 **Filter resources by label**:
 ```bash
 kubectl get all -l app=example-ecommerce
 kubectl get deployments,secrets -l team=ml-platform
+kubectl get asya -l asya.sh/flow=document-processing
+kubectl get asya -l asya.sh/actor=text-processor
 ```
 
-**Reserved label prefixes** (rejected by operator):
+**Reserved label prefixes** (user labels using these are rejected by operator):
 - `app.kubernetes.io/`
-- `asya.sh/`
+- `asya.sh/` (except `asya.sh/actor` and `asya.sh/flow` which are user-controlled)
 - `keda.sh/`
 - `kubernetes.io/`
 
 ## Basic Commands
 
 ```bash
-# List actors
+# List actors (shows ACTOR column from asya.sh/actor label)
 kubectl get asyas
+
+# List actors with flow and other details
+kubectl get asyas -o wide
+
+# Filter by actor name
+kubectl get asya -l asya.sh/actor=text-processor
+
+# Filter by flow
+kubectl get asya -l asya.sh/flow=document-processing
 
 # View actor details
 kubectl get asya text-processor -o yaml
@@ -134,7 +184,7 @@ kubectl describe asya text-processor
 # Watch autoscaling
 kubectl get hpa -w
 
-# View pods
+# View pods (uses asya.sh/actor label for pod selection)
 kubectl get pods -l asya.sh/actor=text-processor
 
 # View logs

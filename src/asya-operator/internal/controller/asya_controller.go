@@ -182,6 +182,8 @@ func isQueueManagementEnabled() bool {
 }
 
 // Reconcile is the main reconciliation loop
+//
+//gocyclo:ignore
 func (r *AsyncActorReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 	logger.Info("[DEBUG-VERSION-CHECK] Starting Reconcile with DEBUG logging enabled", "resource", req.NamespacedName)
@@ -197,9 +199,18 @@ func (r *AsyncActorReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{}, err
 	}
 
+	// Ensure required labels are set on AsyncActor resource
+	labelsModified := ensureActorLabels(asya)
+
 	// Add finalizer if not present
+	finalizerAdded := false
 	if !controllerutil.ContainsFinalizer(asya, actorFinalizer) {
 		controllerutil.AddFinalizer(asya, actorFinalizer)
+		finalizerAdded = true
+	}
+
+	// Update resource if labels or finalizer were modified
+	if labelsModified || finalizerAdded {
 		if err := r.Update(ctx, asya); err != nil {
 			return ctrl.Result{}, err
 		}
@@ -883,7 +894,8 @@ func (r *AsyncActorReconciler) injectSidecar(asya *asyav1alpha1.AsyncActor) core
 			)
 
 			// Disable validation for end actors
-			if asya.Name == actorNameHappyEnd || asya.Name == actorNameErrorEnd {
+			actorName := asya.GetActorName()
+			if actorName == actorNameHappyEnd || actorName == actorNameErrorEnd {
 				template.Spec.Containers[i].Env = append(template.Spec.Containers[i].Env,
 					corev1.EnvVar{
 						Name:  "ASYA_ENABLE_VALIDATION",
@@ -1021,17 +1033,19 @@ func (r *AsyncActorReconciler) buildSidecarEnv(asya *asyav1alpha1.AsyncActor) []
 		gatewayURL = r.extractGatewayURLFromRuntime(asya)
 	}
 
+	actorName := asya.GetActorName()
+
 	env := []corev1.EnvVar{
 		{Name: "ASYA_LOG_LEVEL", Value: "info"},
 		{Name: "ASYA_GATEWAY_URL", Value: gatewayURL},
-		{Name: "ASYA_ACTOR_NAME", Value: asya.Name},
+		{Name: "ASYA_ACTOR_NAME", Value: actorName},
 		{Name: "ASYA_NAMESPACE", Value: asya.Namespace},
 		{Name: "ASYA_ACTOR_HAPPY_END", Value: actorNameHappyEnd},
 		{Name: "ASYA_ACTOR_ERROR_END", Value: actorNameErrorEnd},
 	}
 
 	// Set ASYA_IS_END_ACTOR for end actors
-	if asya.Name == actorNameHappyEnd || asya.Name == actorNameErrorEnd {
+	if actorName == actorNameHappyEnd || actorName == actorNameErrorEnd {
 		env = append(env, corev1.EnvVar{
 			Name:  "ASYA_IS_END_ACTOR",
 			Value: "true",
@@ -1131,7 +1145,7 @@ func (r *AsyncActorReconciler) checkPodHealth(ctx context.Context, asya *asyav1a
 	podList := &corev1.PodList{}
 	listOpts := []client.ListOption{
 		client.InNamespace(asya.Namespace),
-		client.MatchingLabels{"asya.sh/asya": asya.Name},
+		client.MatchingLabels{"asya.sh/actor": asya.GetActorName()},
 	}
 
 	if err := r.List(ctx, podList, listOpts...); err != nil {
@@ -1187,7 +1201,7 @@ func (r *AsyncActorReconciler) updatePodStateCounts(ctx context.Context, asya *a
 	podList := &corev1.PodList{}
 	listOpts := []client.ListOption{
 		client.InNamespace(asya.Namespace),
-		client.MatchingLabels{"asya.sh/asya": asya.Name},
+		client.MatchingLabels{"asya.sh/actor": asya.GetActorName()},
 	}
 
 	if err := r.List(ctx, podList, listOpts...); err != nil {
@@ -1280,7 +1294,7 @@ func (r *AsyncActorReconciler) reconcileDeployment(ctx context.Context, asya *as
 			deployment.Spec.Selector = &metav1.LabelSelector{
 				MatchLabels: map[string]string{
 					"app":              asya.Name,
-					"asya.sh/asya":     asya.Name,
+					"asya.sh/actor":    asya.GetActorName(),
 					"asya.sh/workload": "deployment",
 				},
 			}
@@ -1459,7 +1473,7 @@ func (r *AsyncActorReconciler) updateQueueMetrics(ctx context.Context, asya *asy
 		return
 	}
 
-	queueName := fmt.Sprintf("asya-%s", asya.Name)
+	queueName := fmt.Sprintf("asya-%s-%s", asya.Namespace, asya.GetActorName())
 
 	var metrics *asyaconfig.QueueMetrics
 
@@ -1654,7 +1668,7 @@ func (r *AsyncActorReconciler) startPeriodicQueueHealthCheck(mgr ctrl.Manager) {
 				continue
 			}
 
-			queueName := fmt.Sprintf("asya-%s-%s", actor.Namespace, actor.Name)
+			queueName := fmt.Sprintf("asya-%s-%s", actor.Namespace, actor.GetActorName())
 
 			// Get queue reconciler for the actor's transport
 			queueReconciler, err := r.TransportFactory.GetQueueReconciler(actor.Spec.Transport)

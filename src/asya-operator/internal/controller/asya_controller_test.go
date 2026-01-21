@@ -1728,8 +1728,8 @@ func TestReconcileDeployment_PreservesUserLabels(t *testing.T) {
 		t.Errorf("Expected 'asya.sh/custom-label' to be preserved, got %q", labels["asya.sh/custom-label"])
 	}
 
-	if labels["asya.sh/asya"] != "test-actor" {
-		t.Errorf("Expected operator-managed 'asya.sh/asya' label to be added, got %q", labels["asya.sh/asya"])
+	if labels["asya.sh/actor"] != "test-actor" {
+		t.Errorf("Expected operator-managed 'asya.sh/actor' label to be added, got %q", labels["asya.sh/actor"])
 	}
 
 	if labels["asya.sh/workload"] != "deployment" {
@@ -1757,7 +1757,7 @@ func TestUpdatePodStateCounts(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "test-pod-1",
 						Namespace: "default",
-						Labels:    map[string]string{"asya.sh/asya": "test-actor"},
+						Labels:    map[string]string{"asya.sh/actor": "test-actor"},
 					},
 					Status: corev1.PodStatus{
 						Phase: corev1.PodRunning,
@@ -1782,7 +1782,7 @@ func TestUpdatePodStateCounts(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "test-pod-backoff",
 						Namespace: "default",
-						Labels:    map[string]string{"asya.sh/asya": "test-actor"},
+						Labels:    map[string]string{"asya.sh/actor": "test-actor"},
 					},
 					Status: corev1.PodStatus{
 						Phase: corev1.PodPending,
@@ -1808,7 +1808,7 @@ func TestUpdatePodStateCounts(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "test-pod-imagepull",
 						Namespace: "default",
-						Labels:    map[string]string{"asya.sh/asya": "test-actor"},
+						Labels:    map[string]string{"asya.sh/actor": "test-actor"},
 					},
 					Status: corev1.PodStatus{
 						Phase: corev1.PodPending,
@@ -1834,7 +1834,7 @@ func TestUpdatePodStateCounts(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "test-pod-runtime-crash",
 						Namespace: "default",
-						Labels:    map[string]string{"asya.sh/asya": "test-actor"},
+						Labels:    map[string]string{"asya.sh/actor": "test-actor"},
 					},
 					Status: corev1.PodStatus{
 						Phase: corev1.PodRunning,
@@ -1863,7 +1863,7 @@ func TestUpdatePodStateCounts(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "test-pod-pending",
 						Namespace: "default",
-						Labels:    map[string]string{"asya.sh/asya": "test-actor"},
+						Labels:    map[string]string{"asya.sh/actor": "test-actor"},
 					},
 					Status: corev1.PodStatus{
 						Phase: corev1.PodPending,
@@ -1889,7 +1889,7 @@ func TestUpdatePodStateCounts(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "pod-ready",
 						Namespace: "default",
-						Labels:    map[string]string{"asya.sh/asya": "test-actor"},
+						Labels:    map[string]string{"asya.sh/actor": "test-actor"},
 					},
 					Status: corev1.PodStatus{
 						Phase: corev1.PodRunning,
@@ -1902,7 +1902,7 @@ func TestUpdatePodStateCounts(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "pod-backoff",
 						Namespace: "default",
-						Labels:    map[string]string{"asya.sh/asya": "test-actor"},
+						Labels:    map[string]string{"asya.sh/actor": "test-actor"},
 					},
 					Status: corev1.PodStatus{
 						Phase: corev1.PodPending,
@@ -1918,7 +1918,7 @@ func TestUpdatePodStateCounts(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "pod-pending",
 						Namespace: "default",
-						Labels:    map[string]string{"asya.sh/asya": "test-actor"},
+						Labels:    map[string]string{"asya.sh/actor": "test-actor"},
 					},
 					Status: corev1.PodStatus{
 						Phase: corev1.PodPending,
@@ -1936,7 +1936,7 @@ func TestUpdatePodStateCounts(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "pod-failed",
 						Namespace: "default",
-						Labels:    map[string]string{"asya.sh/asya": "test-actor"},
+						Labels:    map[string]string{"asya.sh/actor": "test-actor"},
 					},
 					Status: corev1.PodStatus{
 						Phase: corev1.PodFailed,
@@ -1954,7 +1954,7 @@ func TestUpdatePodStateCounts(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "pod-errimagepull",
 						Namespace: "default",
-						Labels:    map[string]string{"asya.sh/asya": "test-actor"},
+						Labels:    map[string]string{"asya.sh/actor": "test-actor"},
 					},
 					Status: corev1.PodStatus{
 						Phase: corev1.PodPending,
@@ -1978,7 +1978,7 @@ func TestUpdatePodStateCounts(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "pod-config-error",
 						Namespace: "default",
-						Labels:    map[string]string{"asya.sh/asya": "test-actor"},
+						Labels:    map[string]string{"asya.sh/actor": "test-actor"},
 					},
 					Status: corev1.PodStatus{
 						Phase: corev1.PodPending,
@@ -2002,7 +2002,7 @@ func TestUpdatePodStateCounts(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "pod-run-error",
 						Namespace: "default",
-						Labels:    map[string]string{"asya.sh/asya": "test-actor"},
+						Labels:    map[string]string{"asya.sh/actor": "test-actor"},
 					},
 					Status: corev1.PodStatus{
 						Phase: corev1.PodRunning,
@@ -2029,7 +2029,7 @@ func TestUpdatePodStateCounts(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "pod-volume-mount-fail",
 						Namespace: "default",
-						Labels:    map[string]string{"asya.sh/asya": "test-actor"},
+						Labels:    map[string]string{"asya.sh/actor": "test-actor"},
 					},
 					Status: corev1.PodStatus{
 						Phase: corev1.PodPending,
@@ -2054,7 +2054,7 @@ func TestUpdatePodStateCounts(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "pod-secret-not-found",
 						Namespace: "default",
-						Labels:    map[string]string{"asya.sh/asya": "test-actor"},
+						Labels:    map[string]string{"asya.sh/actor": "test-actor"},
 					},
 					Status: corev1.PodStatus{
 						Phase: corev1.PodPending,
@@ -2079,7 +2079,7 @@ func TestUpdatePodStateCounts(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "pod-unschedulable",
 						Namespace: "default",
-						Labels:    map[string]string{"asya.sh/asya": "test-actor"},
+						Labels:    map[string]string{"asya.sh/actor": "test-actor"},
 					},
 					Status: corev1.PodStatus{
 						Phase: corev1.PodPending,
@@ -2104,7 +2104,7 @@ func TestUpdatePodStateCounts(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "pod-waiting-schedule",
 						Namespace: "default",
-						Labels:    map[string]string{"asya.sh/asya": "test-actor"},
+						Labels:    map[string]string{"asya.sh/actor": "test-actor"},
 					},
 					Status: corev1.PodStatus{
 						Phase: corev1.PodPending,
@@ -2128,7 +2128,7 @@ func TestUpdatePodStateCounts(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "pod-volume-fail",
 						Namespace: "default",
-						Labels:    map[string]string{"asya.sh/asya": "test-actor"},
+						Labels:    map[string]string{"asya.sh/actor": "test-actor"},
 					},
 					Status: corev1.PodStatus{
 						Phase: corev1.PodPending,
@@ -2342,7 +2342,7 @@ func TestCheckPodHealth(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "test-pod-1",
 						Namespace: "default",
-						Labels:    map[string]string{"asya.sh/asya": "test-actor"},
+						Labels:    map[string]string{"asya.sh/actor": "test-actor"},
 					},
 					Status: corev1.PodStatus{
 						Phase: corev1.PodRunning,
@@ -2363,7 +2363,7 @@ func TestCheckPodHealth(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "test-pod-backoff",
 						Namespace: "default",
-						Labels:    map[string]string{"asya.sh/asya": "test-actor"},
+						Labels:    map[string]string{"asya.sh/actor": "test-actor"},
 					},
 					Status: corev1.PodStatus{
 						Phase: corev1.PodPending,
@@ -2388,7 +2388,7 @@ func TestCheckPodHealth(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "test-pod-imagepull",
 						Namespace: "default",
-						Labels:    map[string]string{"asya.sh/asya": "test-actor"},
+						Labels:    map[string]string{"asya.sh/actor": "test-actor"},
 					},
 					Status: corev1.PodStatus{
 						Phase: corev1.PodPending,
@@ -2413,7 +2413,7 @@ func TestCheckPodHealth(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "test-pod-runtime",
 						Namespace: "default",
-						Labels:    map[string]string{"asya.sh/asya": "test-actor"},
+						Labels:    map[string]string{"asya.sh/actor": "test-actor"},
 					},
 					Status: corev1.PodStatus{
 						Phase: corev1.PodRunning,
@@ -2438,7 +2438,7 @@ func TestCheckPodHealth(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "test-pod-failed",
 						Namespace: "default",
-						Labels:    map[string]string{"asya.sh/asya": "test-actor"},
+						Labels:    map[string]string{"asya.sh/actor": "test-actor"},
 					},
 					Status: corev1.PodStatus{
 						Phase: corev1.PodFailed,
@@ -2455,7 +2455,7 @@ func TestCheckPodHealth(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "test-pod-restarts",
 						Namespace: "default",
-						Labels:    map[string]string{"asya.sh/asya": "test-actor"},
+						Labels:    map[string]string{"asya.sh/actor": "test-actor"},
 					},
 					Status: corev1.PodStatus{
 						Phase: corev1.PodPending,
@@ -2478,7 +2478,7 @@ func TestCheckPodHealth(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "test-pod-restarts",
 						Namespace: "default",
-						Labels:    map[string]string{"asya.sh/asya": "test-actor"},
+						Labels:    map[string]string{"asya.sh/actor": "test-actor"},
 					},
 					Status: corev1.PodStatus{
 						Phase: corev1.PodRunning,
@@ -2507,7 +2507,7 @@ func TestCheckPodHealth(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "test-pod-errimagepull",
 						Namespace: "default",
-						Labels:    map[string]string{"asya.sh/asya": "test-actor"},
+						Labels:    map[string]string{"asya.sh/actor": "test-actor"},
 					},
 					Status: corev1.PodStatus{
 						Phase: corev1.PodPending,
@@ -2532,7 +2532,7 @@ func TestCheckPodHealth(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "test-pod-config-error",
 						Namespace: "default",
-						Labels:    map[string]string{"asya.sh/asya": "test-actor"},
+						Labels:    map[string]string{"asya.sh/actor": "test-actor"},
 					},
 					Status: corev1.PodStatus{
 						Phase: corev1.PodPending,
@@ -2557,7 +2557,7 @@ func TestCheckPodHealth(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "test-pod-create-error",
 						Namespace: "default",
-						Labels:    map[string]string{"asya.sh/asya": "test-actor"},
+						Labels:    map[string]string{"asya.sh/actor": "test-actor"},
 					},
 					Status: corev1.PodStatus{
 						Phase: corev1.PodRunning,
@@ -2582,7 +2582,7 @@ func TestCheckPodHealth(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "test-pod-run-error",
 						Namespace: "default",
-						Labels:    map[string]string{"asya.sh/asya": "test-actor"},
+						Labels:    map[string]string{"asya.sh/actor": "test-actor"},
 					},
 					Status: corev1.PodStatus{
 						Phase: corev1.PodRunning,
