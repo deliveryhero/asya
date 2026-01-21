@@ -1654,7 +1654,7 @@ func (r *AsyncActorReconciler) startPeriodicQueueHealthCheck(mgr ctrl.Manager) {
 				continue
 			}
 
-			queueName := fmt.Sprintf("asya-%s", actor.Name)
+			queueName := fmt.Sprintf("asya-%s-%s", actor.Namespace, actor.Name)
 
 			// Get queue reconciler for the actor's transport
 			queueReconciler, err := r.TransportFactory.GetQueueReconciler(actor.Spec.Transport)
