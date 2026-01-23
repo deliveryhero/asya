@@ -2,6 +2,9 @@
 
 import subprocess  # nosec B404
 import sys
+from unittest.mock import patch
+
+from asya_cli.init_cmd import main
 
 
 def test_asya_cli_version():
@@ -124,3 +127,43 @@ def test_asya_mcp_port_forward_help():
     assert result.returncode == 0
     assert "port-forward" in result.stdout.lower() or "kubectl" in result.stdout.lower()
     assert "namespace" in result.stdout.lower()
+
+
+def test_init_creates_files(tmp_path):
+    """Test that init command creates the expected files."""
+    actor_name = "test-actor"
+
+    # Change working directory to tmp_path for the test
+    with patch("pathlib.Path.cwd", return_value=tmp_path):
+        # Call main with arguments
+        main([actor_name])
+
+    project_dir = tmp_path / actor_name
+    assert project_dir.exists()
+    assert (project_dir / "handler.py").exists()
+    assert (project_dir / "Dockerfile").exists()
+    assert (project_dir / "actor.yaml").exists()
+
+    # Verify content interpolation
+    with open(project_dir / "actor.yaml") as f:
+        content = f.read()
+        assert f"name: {actor_name}" in content
+
+
+def test_init_force_overwrite(tmp_path):
+    """Test that --force overwrites existing files."""
+    actor_name = "test-actor"
+    project_dir = tmp_path / actor_name
+    project_dir.mkdir()
+
+    # Create a dummy file
+    (project_dir / "handler.py").write_text("OLD CONTENT")
+
+    with patch("pathlib.Path.cwd", return_value=tmp_path):
+        # First run without force
+        main([actor_name])
+        assert (project_dir / "handler.py").read_text() == "OLD CONTENT"
+
+        # Second run with force
+        main([actor_name, "--force"])
+        assert "def process" in (project_dir / "handler.py").read_text()
