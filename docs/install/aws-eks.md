@@ -42,7 +42,7 @@ Production deployment of 🎭 on Amazon EKS.
 }
 ```
 
-**Actor role** (`asya-actor-role`) - access to the SQS queues and S3 bucket:
+**Actor role** (`asya-actor-role`) - access to the SQS queues and S3 bucket for persising messages (in this tutorial, we're using sample bucket `s3://asya-results-bucket` - any S3-compatible bucket can be used):
 ```json
 {
   "Effect": "Allow",
