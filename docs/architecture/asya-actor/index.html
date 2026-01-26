@@ -970,8 +970,14 @@
 - User labels: <code>asya.sh/flow</code>, <code>app</code>, <code>team</code>, <code>env</code>
 - Operator labels: <code>asya.sh/actor</code>, <code>app.kubernetes.io/name</code>, <code>app.kubernetes.io/component</code>, <code>app.kubernetes.io/managed-by</code></p>
 <p><strong>Filter resources by label</strong>:
-<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>get<span class="w"> </span>all<span class="w"> </span>-l<span class="w"> </span><span class="nv">app</span><span class="o">=</span>example-ecommerce
+<div class="highlight"><pre><span></span><code><span class="c1"># Recommended: Use asya.sh/actor to find all resources for an actor</span>
+kubectl<span class="w"> </span>get<span class="w"> </span>all<span class="w"> </span>-l<span class="w"> </span>asya.sh/actor<span class="o">=</span>text-processor
+
+<span class="c1"># Filter by custom user labels (Deployments, Secrets, ScaledObjects, etc.)</span>
+kubectl<span class="w"> </span>get<span class="w"> </span>deployments,secrets<span class="w"> </span>-l<span class="w"> </span><span class="nv">app</span><span class="o">=</span>example-ecommerce
 kubectl<span class="w"> </span>get<span class="w"> </span>deployments,secrets<span class="w"> </span>-l<span class="w"> </span><span class="nv">team</span><span class="o">=</span>ml-platform
+
+<span class="c1"># Filter AsyncActors by flow or actor name</span>
 kubectl<span class="w"> </span>get<span class="w"> </span>asya<span class="w"> </span>-l<span class="w"> </span>asya.sh/flow<span class="o">=</span>document-processing
 kubectl<span class="w"> </span>get<span class="w"> </span>asya<span class="w"> </span>-l<span class="w"> </span>asya.sh/actor<span class="o">=</span>text-processor
 </code></pre></div></p>
