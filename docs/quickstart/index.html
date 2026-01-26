@@ -1028,7 +1028,7 @@ kubectl<span class="w"> </span>get<span class="w"> </span>asya
 <span class="c1"># NAME    STATUS    RUNNING   FAILING   TOTAL   DESIRED   MIN   MAX   LAST-SCALE   AGE</span>
 <span class="c1"># hello   Napping   0         0         0       0         0     10    -            18s</span>
 </code></pre></div>
-<!-- # kubectl get deployment -l asya.sh/asya=hello -->
+<!-- # kubectl get deployment -l asya.sh/actor=hello -->
 
 <p>The actor is in <code>Napping</code> state with 0 replicas, demonstrating scale-to-zero capability. It will automatically scale up when messages arrive in the queue.
 See more on actor states <a href="/docs/architecture/asya-operator.md#status-values">here</a>.</p>
@@ -1051,7 +1051,7 @@ kubectl<span class="w"> </span>run<span class="w"> </span>aws-cli<span class="w"
 <p>Watch the actor scale up and process the message (timeout after 60s):</p>
 <p>Read the logs using <code>kubectl logs</code> and find the greeting message (with timeout):</p>
 <div class="highlight"><pre><span></span><code>timeout<span class="w"> </span>30s<span class="w"> </span>sh<span class="w"> </span>-c<span class="w"> </span><span class="s1">&#39;</span>
-<span class="s1">  until kubectl logs -l asya.sh/asya=hello -c asya-runtime 2&gt;&amp;1 | tee /dev/stderr | grep -q &quot;greeting&quot;; do</span>
+<span class="s1">  until kubectl logs -l asya.sh/actor=hello -c asya-runtime 2&gt;&amp;1 | tee /dev/stderr | grep -q &quot;greeting&quot;; do</span>
 <span class="s1">    sleep 1</span>
 <span class="s1">  done</span>
 <span class="s1">&#39;</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;[+] Found expected greeting in logs&quot;</span>
@@ -1359,10 +1359,10 @@ Send a message and watch scaling:
 asya<span class="w"> </span>mcp<span class="w"> </span>call<span class="w"> </span>hello<span class="w"> </span>--name<span class="o">=</span><span class="s2">&quot;Test&quot;</span>
 
 <span class="c1"># Watch pods scale</span>
-kubectl<span class="w"> </span>get<span class="w"> </span>pods<span class="w"> </span>-l<span class="w"> </span>asya.sh/asya<span class="o">=</span>hello<span class="w"> </span>-w
+kubectl<span class="w"> </span>get<span class="w"> </span>pods<span class="w"> </span>-l<span class="w"> </span>asya.sh/actor<span class="o">=</span>hello<span class="w"> </span>-w
 
 <span class="c1"># Check logs</span>
-<span class="nv">POD</span><span class="o">=</span><span class="k">$(</span>kubectl<span class="w"> </span>get<span class="w"> </span>pods<span class="w"> </span>-l<span class="w"> </span>asya.sh/asya<span class="o">=</span>hello<span class="w"> </span>-o<span class="w"> </span>name<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-1<span class="k">)</span>
+<span class="nv">POD</span><span class="o">=</span><span class="k">$(</span>kubectl<span class="w"> </span>get<span class="w"> </span>pods<span class="w"> </span>-l<span class="w"> </span>asya.sh/actor<span class="o">=</span>hello<span class="w"> </span>-o<span class="w"> </span>name<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-1<span class="k">)</span>
 kubectl<span class="w"> </span>logs<span class="w"> </span><span class="nv">$POD</span><span class="w"> </span>-c<span class="w"> </span>asya-runtime
 kubectl<span class="w"> </span>logs<span class="w"> </span><span class="nv">$POD</span><span class="w"> </span>-c<span class="w"> </span>asya-sidecar
 </code></pre></div>

@@ -924,6 +924,34 @@
 <li>Readiness probes</li>
 </ul>
 <p><strong>See</strong> <a href="https://github.com/deliveryhero/asya/tree/main/examples/asyas"><code>examples/asyas/</code></a> for more <code>AsyncActor</code> examples.</p>
+<h2 id="actor-identity-and-queue-naming">Actor Identity and Queue Naming<a class="headerlink" href="#actor-identity-and-queue-naming" title="Permanent link">&para;</a></h2>
+<p><strong>Actor name</strong> determines queue naming and routing identity. By default, it uses <code>metadata.name</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">text-processor</span><span class="w">  </span><span class="c1"># Actor name = text-processor</span>
+<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">production</span><span class="w"> </span><span class="c1"># Queue name = asya-production-text-processor</span>
+</code></pre></div>
+<p><strong>Custom actor name</strong> via <code>asya.sh/actor</code> label enables multi-region/multi-cluster deployments:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># EU region</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">text-processor-eu</span>
+<span class="w">  </span><span class="nt">labels</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">asya.sh/actor</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">text-processor</span><span class="w">  </span><span class="c1"># Actor name = text-processor</span>
+<span class="c1"># Queue: asya-production-text-processor</span>
+
+<span class="c1"># US region</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">text-processor-us</span>
+<span class="w">  </span><span class="nt">labels</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">asya.sh/actor</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">text-processor</span><span class="w">  </span><span class="c1"># Same actor name</span>
+<span class="c1"># Queue: asya-production-text-processor (same queue!)</span>
+</code></pre></div>
+<p><strong>Benefits</strong>:
+- ✅ Same logical actor across regions/clusters
+- ✅ Distinct resource names for cluster management
+- ✅ Shared queue for load distribution
+- ✅ Filter by actor: <code>kubectl get asya -l asya.sh/actor=text-processor</code></p>
+<p><strong>Queue naming format</strong>: <code>asya-{namespace}-{actor-name}</code></p>
+<p><strong>See</strong>: <a href="https://github.com/deliveryhero/asya/tree/main/examples/asyas/multi-region-actor.yaml"><code>examples/asyas/multi-region-actor.yaml</code></a> for multi-region example.</p>
 <h2 id="label-propagation">Label Propagation<a class="headerlink" href="#label-propagation" title="Permanent link">&para;</a></h2>
 <p>Labels from AsyncActor CR automatically propagate to all child resources (Deployment, Secret, ServiceAccount, ScaledObject, TriggerAuthentication):</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya.sh/v1alpha1</span>
@@ -931,6 +959,7 @@
 <span class="nt">metadata</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">text-processor</span>
 <span class="w">  </span><span class="nt">labels</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">asya.sh/flow</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">document-processing</span>
 <span class="w">    </span><span class="nt">app</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example-ecommerce</span>
 <span class="w">    </span><span class="nt">team</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ml-platform</span>
 <span class="w">    </span><span class="nt">env</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">production</span>
@@ -938,20 +967,31 @@
 <span class="w">  </span><span class="c1"># ... spec</span>
 </code></pre></div>
 <p><strong>Result</strong>: All resources created by operator inherit user labels plus operator-managed labels:
-- User labels: <code>app</code>, <code>team</code>, <code>env</code>
-- Operator labels: <code>app.kubernetes.io/name</code>, <code>app.kubernetes.io/component</code>, <code>app.kubernetes.io/managed-by</code></p>
+- User labels: <code>asya.sh/flow</code>, <code>app</code>, <code>team</code>, <code>env</code>
+- Operator labels: <code>asya.sh/actor</code>, <code>app.kubernetes.io/name</code>, <code>app.kubernetes.io/component</code>, <code>app.kubernetes.io/managed-by</code></p>
 <p><strong>Filter resources by label</strong>:
 <div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>get<span class="w"> </span>all<span class="w"> </span>-l<span class="w"> </span><span class="nv">app</span><span class="o">=</span>example-ecommerce
 kubectl<span class="w"> </span>get<span class="w"> </span>deployments,secrets<span class="w"> </span>-l<span class="w"> </span><span class="nv">team</span><span class="o">=</span>ml-platform
+kubectl<span class="w"> </span>get<span class="w"> </span>asya<span class="w"> </span>-l<span class="w"> </span>asya.sh/flow<span class="o">=</span>document-processing
+kubectl<span class="w"> </span>get<span class="w"> </span>asya<span class="w"> </span>-l<span class="w"> </span>asya.sh/actor<span class="o">=</span>text-processor
 </code></pre></div></p>
-<p><strong>Reserved label prefixes</strong> (rejected by operator):
+<p><strong>Reserved label prefixes</strong> (user labels using these are rejected by operator):
 - <code>app.kubernetes.io/</code>
-- <code>asya.sh/</code>
+- <code>asya.sh/</code> (except <code>asya.sh/actor</code> and <code>asya.sh/flow</code> which are user-controlled)
 - <code>keda.sh/</code>
 - <code>kubernetes.io/</code></p>
 <h2 id="basic-commands">Basic Commands<a class="headerlink" href="#basic-commands" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><span class="c1"># List actors</span>
+<div class="highlight"><pre><span></span><code><span class="c1"># List actors (shows ACTOR column from asya.sh/actor label)</span>
 kubectl<span class="w"> </span>get<span class="w"> </span>asyas
+
+<span class="c1"># List actors with flow and other details</span>
+kubectl<span class="w"> </span>get<span class="w"> </span>asyas<span class="w"> </span>-o<span class="w"> </span>wide
+
+<span class="c1"># Filter by actor name</span>
+kubectl<span class="w"> </span>get<span class="w"> </span>asya<span class="w"> </span>-l<span class="w"> </span>asya.sh/actor<span class="o">=</span>text-processor
+
+<span class="c1"># Filter by flow</span>
+kubectl<span class="w"> </span>get<span class="w"> </span>asya<span class="w"> </span>-l<span class="w"> </span>asya.sh/flow<span class="o">=</span>document-processing
 
 <span class="c1"># View actor details</span>
 kubectl<span class="w"> </span>get<span class="w"> </span>asya<span class="w"> </span>text-processor<span class="w"> </span>-o<span class="w"> </span>yaml
@@ -962,7 +1002,7 @@ kubectl<span class="w"> </span>describe<span class="w"> </span>asya<span class="
 <span class="c1"># Watch autoscaling</span>
 kubectl<span class="w"> </span>get<span class="w"> </span>hpa<span class="w"> </span>-w
 
-<span class="c1"># View pods</span>
+<span class="c1"># View pods (uses asya.sh/actor label for pod selection)</span>
 kubectl<span class="w"> </span>get<span class="w"> </span>pods<span class="w"> </span>-l<span class="w"> </span>asya.sh/actor<span class="o">=</span>text-processor
 
 <span class="c1"># View logs</span>
@@ -1279,6 +1319,14 @@ kubectl<span class="w"> </span>logs<span class="w"> </span>-f<span class="w"> </
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
             Deployment
+        </a>
+        
+
+        
+        <a href="#actor-identity-and-queue-naming"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Actor Identity and Queue Naming
         </a>
         
 
