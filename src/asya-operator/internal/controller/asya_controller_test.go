@@ -1681,7 +1681,6 @@ func TestReconcileDeployment_PreservesUserLabels(t *testing.T) {
 				Template: asyav1alpha1.PodTemplateSpec{
 					Metadata: metav1.ObjectMeta{
 						Labels: map[string]string{
-							"app":                  "custom-app-value",
 							"user-label":           "user-value",
 							"asya.sh/custom-label": "custom-value",
 						},
@@ -1715,10 +1714,6 @@ func TestReconcileDeployment_PreservesUserLabels(t *testing.T) {
 	}
 
 	labels := deployment.Spec.Template.Labels
-
-	if labels["app"] != "custom-app-value" {
-		t.Errorf("Expected user-provided 'app' label to be preserved, got %q", labels["app"])
-	}
 
 	if labels["user-label"] != "user-value" {
 		t.Errorf("Expected 'user-label' to be preserved, got %q", labels["user-label"])

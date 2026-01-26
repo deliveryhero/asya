@@ -1293,7 +1293,6 @@ func (r *AsyncActorReconciler) reconcileDeployment(ctx context.Context, asya *as
 		if deployment.Spec.Selector == nil {
 			deployment.Spec.Selector = &metav1.LabelSelector{
 				MatchLabels: map[string]string{
-					"app":              asya.Name,
 					"asya.sh/actor":    asya.GetActorName(),
 					"asya.sh/workload": "deployment",
 				},

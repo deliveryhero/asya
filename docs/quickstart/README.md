@@ -215,7 +215,7 @@ EOF
 
 kubectl apply -f hello-actor.yaml
 
-kubectl get asya
+kubectl get asya -l asya.sh/asya=hello
 # NAME    STATUS    RUNNING   FAILING   TOTAL   DESIRED   MIN   MAX   LAST-SCALE   AGE
 # hello   Napping   0         0         0       0         0     10    -            18s
 ```
