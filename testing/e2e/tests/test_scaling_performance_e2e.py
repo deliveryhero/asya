@@ -40,7 +40,7 @@ def test_cold_start_latency(e2e_helper):
     e2e_helper.kubectl("scale", "deployment", "test-echo", "--replicas=0")
     time.sleep(5)
 
-    pod_count = e2e_helper.get_pod_count("app=test-echo")
+    pod_count = e2e_helper.get_pod_count("asya.sh/actor=test-echo")
     logger.info(f"Initial pod count: {pod_count}")
 
     logger.info("Sending envelope to trigger scale-up...")
@@ -54,7 +54,7 @@ def test_cold_start_latency(e2e_helper):
     envelope_id = response["result"]["envelope_id"]
 
     logger.info("Waiting for KEDA to scale up...")
-    pod_ready = e2e_helper.wait_for_pod_ready("app=test-echo", timeout=30)
+    pod_ready = e2e_helper.wait_for_pod_ready("asya.sh/actor=test-echo", timeout=30)
     scale_up_time = time.time() - start_time
 
     assert pod_ready, "Pod should scale up within 30s"
@@ -84,7 +84,7 @@ def test_scale_up_under_burst_load(e2e_helper):
     Expected: Pod count increases to handle load
     """
     logger.info("Checking initial pod count...")
-    initial_pods = e2e_helper.get_pod_count("app=test-echo")
+    initial_pods = e2e_helper.get_pod_count("asya.sh/actor=test-echo")
     logger.info(f"Initial pods: {initial_pods}")
 
     logger.info("Sending burst of 100 envelopes...")
@@ -105,7 +105,7 @@ def test_scale_up_under_burst_load(e2e_helper):
     max_pods = initial_pods
     for check in range(12):
         time.sleep(2)
-        current_pods = e2e_helper.get_pod_count("app=test-echo")
+        current_pods = e2e_helper.get_pod_count("asya.sh/actor=test-echo")
         logger.info(f"Check {check+1}/12: {current_pods} pods")
         max_pods = max(max_pods, current_pods)
 
@@ -153,13 +153,13 @@ def test_scale_down_after_idle(e2e_helper):
 
     time.sleep(5)
 
-    initial_pods = e2e_helper.get_pod_count("app=test-echo")
+    initial_pods = e2e_helper.get_pod_count("asya.sh/actor=test-echo")
     logger.info(f"Pods after burst: {initial_pods}")
 
     logger.info("Waiting for cooldown period (60s)...")
     time.sleep(65)
 
-    final_pods = e2e_helper.get_pod_count("app=test-echo")
+    final_pods = e2e_helper.get_pod_count("asya.sh/actor=test-echo")
     logger.info(f"Pods after cooldown: {final_pods}")
 
     scaled_obj = e2e_helper.kubectl(
@@ -211,7 +211,7 @@ def test_queue_backlog_processing(e2e_helper):
     logger.info("Triggering scale-up (KEDA should detect queue length)...")
 
     logger.info("Waiting for KEDA to scale up...")
-    pod_ready = e2e_helper.wait_for_pod_ready("app=test-echo", timeout=45)
+    pod_ready = e2e_helper.wait_for_pod_ready("asya.sh/actor=test-echo", timeout=45)
     assert pod_ready, "Pod should scale up to process backlog"
 
     logger.info("Waiting for backlog to be processed...")
@@ -292,7 +292,7 @@ def test_multiple_actors_scaling_simultaneously(e2e_helper):
 
     time.sleep(5)
 
-    echo_pods = e2e_helper.get_pod_count("app=test-echo")
+    echo_pods = e2e_helper.get_pod_count("asya.sh/actor=test-echo")
     logger.info(f"Echo pods: {echo_pods}")
 
     logger.info("Waiting for sample completions...")
@@ -407,7 +407,7 @@ def test_keda_pollingInterval_effectiveness(e2e_helper):
         )
 
     logger.info("Monitoring for scale-up...")
-    pod_ready = e2e_helper.wait_for_pod_ready("app=test-echo", timeout=polling_interval * 3)
+    pod_ready = e2e_helper.wait_for_pod_ready("asya.sh/actor=test-echo", timeout=polling_interval * 3)
     scale_up_time = time.time() - start_time
 
     assert pod_ready, f"Pod should scale up within {polling_interval * 3}s"

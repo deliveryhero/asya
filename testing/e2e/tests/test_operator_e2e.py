@@ -457,7 +457,7 @@ spec:
         time.sleep(10)
 
         pods = subprocess.run(
-            ["kubectl", "get", "pods", "-l", "app=test-broken-image", "-n", e2e_helper.namespace],
+            ["kubectl", "get", "pods", "-l", "asya.sh/actor=test-broken-image", "-n", e2e_helper.namespace],
             capture_output=True,
             text=True
         )

@@ -590,7 +590,7 @@ def test_hpa_desired_replicas_after_pod_kill(ensure_keda_installed):
 
         # Kill the pod
         result = subprocess.run(
-            ["kubectl", "delete", "pod", "-l", "app=test-pod-kill", "-n", "asya-e2e", "--wait=false"],
+            ["kubectl", "delete", "pod", "-l", "asya.sh/actor=test-pod-kill", "-n", "asya-e2e", "--wait=false"],
             capture_output=True
         )
         assert result.returncode == 0, "Pod deletion should succeed"
