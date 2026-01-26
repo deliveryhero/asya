@@ -42,7 +42,7 @@ Production deployment of 🎭 on Amazon EKS.
 }
 ```
 
-**Actor role** (`asya-actor-role`):
+**Actor role** (`asya-actor-role`) - access to the SQS queues and S3 bucket:
 ```json
 {
   "Effect": "Allow",
@@ -64,8 +64,8 @@ Production deployment of 🎭 on Amazon EKS.
     "s3:ListBucket"
   ],
   "Resource": [
-    "arn:aws:s3:::asya-results",
-    "arn:aws:s3:::asya-results/*"
+    "arn:aws:s3:::asya-results-bucket",
+    "arn:aws:s3:::asya-results-bucket/*"
   ]
 }
 ```
@@ -122,8 +122,10 @@ aws eks create-pod-identity-association \
 
 ### 5. S3 Bucket for Results
 
+Create a sample S3 bucket for persisting result messages:
+
 ```bash
-aws s3 mb s3://asya-results --region us-east-1
+aws s3 mb s3://asya-results-bucket --region us-east-1
 ```
 
 ## Optional Components
@@ -223,7 +225,7 @@ helm install asya-operator deploy/helm-charts/asya-operator/ \
 # gateway-values.yaml
 config:
   sqsRegion: us-east-1
-  s3Bucket: asya-results
+  s3Bucket: asya-results-bucket
   postgresHost: postgres.default.svc.cluster.local
 
 serviceAccount:
@@ -249,6 +251,11 @@ helm install asya-gateway deploy/helm-charts/asya-gateway/ \
 
 ### 5. Install Crew Actors
 
+Crew actors are pre-defined system actors for handling common scenarios.
+For example, actors `happy-end` and `error-end` are the common flow finalizers and can persist messages to S3-compatible storage.
+
+Suppose, we want to save all messages to the bucket `s3://asya-results-bucket`. Note that the bucket name should be globally unique.
+
 ```yaml
 # crew-values.yaml
 happy-end:
@@ -263,7 +270,7 @@ happy-end:
           - name: ASYA_HANDLER
             value: handlers.end_handlers.happy_end_handler
           - name: ASYA_S3_BUCKET
-            value: asya-results
+            value: asya-results-bucket
           # AWS_REGION from IRSA
 
 error-end:
@@ -278,7 +285,7 @@ error-end:
           - name: ASYA_HANDLER
             value: handlers.end_handlers.error_end_handler
           - name: ASYA_S3_BUCKET
-            value: asya-results
+            value: asya-results-bucket
 ```
 
 ```bash

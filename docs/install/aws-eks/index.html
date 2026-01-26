@@ -882,7 +882,7 @@
 <span class="w">  </span><span class="nt">&quot;Resource&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;arn:aws:sqs:*:*:asya-*&quot;</span>
 <span class="p">}</span>
 </code></pre></div></p>
-<p><strong>Actor role</strong> (<code>asya-actor-role</code>):
+<p><strong>Actor role</strong> (<code>asya-actor-role</code>) - access to the SQS queues and S3 bucket:
 <div class="highlight"><pre><span></span><code><span class="p">{</span>
 <span class="w">  </span><span class="nt">&quot;Effect&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Allow&quot;</span><span class="p">,</span>
 <span class="w">  </span><span class="nt">&quot;Action&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
@@ -903,8 +903,8 @@
 <span class="w">    </span><span class="s2">&quot;s3:ListBucket&quot;</span>
 <span class="w">  </span><span class="p">],</span>
 <span class="w">  </span><span class="nt">&quot;Resource&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<span class="w">    </span><span class="s2">&quot;arn:aws:s3:::asya-results&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="s2">&quot;arn:aws:s3:::asya-results/*&quot;</span>
+<span class="w">    </span><span class="s2">&quot;arn:aws:s3:::asya-results-bucket&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">&quot;arn:aws:s3:::asya-results-bucket/*&quot;</span>
 <span class="w">  </span><span class="p">]</span>
 <span class="p">}</span>
 </code></pre></div></p>
@@ -949,7 +949,8 @@ helm<span class="w"> </span>install<span class="w"> </span>keda<span class="w"> 
 <span class="w">  </span>--role-arn<span class="w"> </span>arn:aws:iam::ACCOUNT:role/keda-operator-role
 </code></pre></div></p>
 <h3 id="5-s3-bucket-for-results">5. S3 Bucket for Results<a class="headerlink" href="#5-s3-bucket-for-results" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code>aws<span class="w"> </span>s3<span class="w"> </span>mb<span class="w"> </span>s3://asya-results<span class="w"> </span>--region<span class="w"> </span>us-east-1
+<p>Create a sample S3 bucket for persisting result messages:</p>
+<div class="highlight"><pre><span></span><code>aws<span class="w"> </span>s3<span class="w"> </span>mb<span class="w"> </span>s3://asya-results-bucket<span class="w"> </span>--region<span class="w"> </span>us-east-1
 </code></pre></div>
 <h2 id="optional-components">Optional Components<a class="headerlink" href="#optional-components" title="Permanent link">&para;</a></h2>
 <h3 id="gpu-node-group">GPU Node Group<a class="headerlink" href="#gpu-node-group" title="Permanent link">&para;</a></h3>
@@ -1017,7 +1018,7 @@ kubectl<span class="w"> </span>apply<span class="w"> </span>-f<span class="w"> <
 <div class="highlight"><pre><span></span><code><span class="c1"># gateway-values.yaml</span>
 <span class="nt">config</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">sqsRegion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">us-east-1</span>
-<span class="w">  </span><span class="nt">s3Bucket</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya-results</span>
+<span class="w">  </span><span class="nt">s3Bucket</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya-results-bucket</span>
 <span class="w">  </span><span class="nt">postgresHost</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">postgres.default.svc.cluster.local</span>
 
 <span class="nt">serviceAccount</span><span class="p">:</span>
@@ -1039,6 +1040,9 @@ kubectl<span class="w"> </span>apply<span class="w"> </span>-f<span class="w"> <
 <span class="w">  </span>-f<span class="w"> </span>gateway-values.yaml
 </code></pre></div>
 <h3 id="5-install-crew-actors">5. Install Crew Actors<a class="headerlink" href="#5-install-crew-actors" title="Permanent link">&para;</a></h3>
+<p>Crew actors are pre-defined system actors for handling common scenarios.
+For example, actors <code>happy-end</code> and <code>error-end</code> are the common flow finalizers and can persist messages to S3-compatible storage.</p>
+<p>Suppose, we want to save all messages to the bucket <code>s3://asya-results-bucket</code>. Note that the bucket name should be globally unique.</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># crew-values.yaml</span>
 <span class="nt">happy-end</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
@@ -1052,7 +1056,7 @@ kubectl<span class="w"> </span>apply<span class="w"> </span>-f<span class="w"> <
 <span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_HANDLER</span>
 <span class="w">            </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">handlers.end_handlers.happy_end_handler</span>
 <span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_S3_BUCKET</span>
-<span class="w">            </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya-results</span>
+<span class="w">            </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya-results-bucket</span>
 <span class="w">          </span><span class="c1"># AWS_REGION from IRSA</span>
 
 <span class="nt">error-end</span><span class="p">:</span>
@@ -1067,7 +1071,7 @@ kubectl<span class="w"> </span>apply<span class="w"> </span>-f<span class="w"> <
 <span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_HANDLER</span>
 <span class="w">            </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">handlers.end_handlers.error_end_handler</span>
 <span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_S3_BUCKET</span>
-<span class="w">            </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya-results</span>
+<span class="w">            </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya-results-bucket</span>
 </code></pre></div>
 <div class="highlight"><pre><span></span><code>helm<span class="w"> </span>install<span class="w"> </span>asya-crew<span class="w"> </span>deploy/helm-charts/asya-crew/<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-n<span class="w"> </span>default<span class="w"> </span><span class="se">\</span>
