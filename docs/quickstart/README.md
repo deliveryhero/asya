@@ -295,6 +295,8 @@ Press `Ctrl+C` to stop watching for pods.
 
 ### 1. Create S3 Buckets
 
+Suppose, we want to save all messages to the buckets `s3://asya-results-bucket` and `s3://asya-errors-bucket`. Note that the bucket name should be globally unique.
+
 ```bash
 kubectl run aws-cli --rm -i --restart=Never --image=amazon/aws-cli \
   --namespace asya-system \
@@ -302,8 +304,8 @@ kubectl run aws-cli --rm -i --restart=Never --image=amazon/aws-cli \
   --env="AWS_SECRET_ACCESS_KEY=test" \
   --env="AWS_DEFAULT_REGION=us-east-1" \
   -- sh -c "
-    aws --endpoint-url=http://localstack.asya-system.svc.cluster.local:4566 s3 mb s3://asya-results
-    aws --endpoint-url=http://localstack.asya-system.svc.cluster.local:4566 s3 mb s3://asya-errors
+    aws --endpoint-url=http://localstack.asya-system.svc.cluster.local:4566 s3 mb s3://asya-results-bucket
+    aws --endpoint-url=http://localstack.asya-system.svc.cluster.local:4566 s3 mb s3://asya-errors-bucket
   "
 ```
 
@@ -324,7 +326,7 @@ happy-end:
           - name: ASYA_GATEWAY_URL
             value: ""  # Set this when gateway is installed
           - name: ASYA_S3_BUCKET
-            value: "asya-results"
+            value: "asya-results-bucket"
           - name: ASYA_S3_ENDPOINT
             value: "http://localstack.asya-system.svc.cluster.local:4566"
           - name: ASYA_S3_REGION
@@ -345,7 +347,7 @@ error-end:
           - name: ASYA_GATEWAY_URL
             value: ""  # Set this when gateway is installed
           - name: ASYA_S3_BUCKET
-            value: "asya-errors"
+            value: "asya-errors-bucket"
           - name: ASYA_S3_ENDPOINT
             value: "http://localstack.asya-system.svc.cluster.local:4566"
           - name: ASYA_S3_REGION
@@ -482,7 +484,7 @@ happy-end:
           - name: ASYA_GATEWAY_URL
             value: "http://asya-gateway.asya-system.svc.cluster.local:8080"
           - name: ASYA_S3_BUCKET
-            value: "asya-results"
+            value: "asya-results-bucket"
           - name: ASYA_S3_ENDPOINT
             value: "http://localstack.asya-system.svc.cluster.local:4566"
           - name: ASYA_S3_REGION
@@ -503,7 +505,7 @@ error-end:
           - name: ASYA_GATEWAY_URL
             value: "http://asya-gateway.asya-system.svc.cluster.local:8080"
           - name: ASYA_S3_BUCKET
-            value: "asya-errors"
+            value: "asya-errors-bucket"
           - name: ASYA_S3_ENDPOINT
             value: "http://localstack.asya-system.svc.cluster.local:4566"
           - name: ASYA_S3_REGION
