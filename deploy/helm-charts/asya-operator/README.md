@@ -254,7 +254,7 @@ EOF
 
 # Verify the operator created the Deployment
 kubectl get deployment -n asya test-actor
-kubectl get pods -n asya -l app=test-actor
+kubectl get pods -n asya -l asya.sh/actor=test-actor
 ```
 
 ## Upgrading the Chart

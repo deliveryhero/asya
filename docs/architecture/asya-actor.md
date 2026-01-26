@@ -148,8 +148,14 @@ spec:
 
 **Filter resources by label**:
 ```bash
-kubectl get all -l app=example-ecommerce
+# Recommended: Use asya.sh/actor to find all resources for an actor
+kubectl get all -l asya.sh/actor=text-processor
+
+# Filter by custom user labels (Deployments, Secrets, ScaledObjects, etc.)
+kubectl get deployments,secrets -l app=example-ecommerce
 kubectl get deployments,secrets -l team=ml-platform
+
+# Filter AsyncActors by flow or actor name
 kubectl get asya -l asya.sh/flow=document-processing
 kubectl get asya -l asya.sh/actor=text-processor
 ```
