@@ -6,6 +6,60 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.4.0] - 2026-01-26
+
+## Major Changes
+
+* feat(operator)!: Do not set "app" K8s label to resources (#108) @atemate
+* feat(operator)!: Use K8s labels only instead of resource names (#104) @atemate
+
+## Other Changes
+
+* feat(operator)!: Do not set "app" K8s label to resources (#108) @atemate
+* feat(operator)!: Use K8s labels only instead of resource names (#104) @atemate
+
+## Installation
+
+### CRDs
+
+Install or upgrade AsyncActor CRDs:
+```bash
+kubectl apply -f https://github.com/deliveryhero/asya/releases/download/1.0.0/asya-crds.yaml
+```
+
+### Helm Charts
+
+Add the Helm repository:
+```bash
+helm repo add asya https://asya.sh/charts
+helm repo update
+```
+
+Install the operator:
+```bash
+helm install asya-operator asya/asya-operator \
+  --version 1.0.0 \
+  --namespace asya-system \
+  --create-namespace
+```
+
+## Docker Images
+
+All images are published to GitHub Container Registry:
+
+- `ghcr.io/deliveryhero/asya-operator:1.0.0`
+- `ghcr.io/deliveryhero/asya-gateway:1.0.0`
+- `ghcr.io/deliveryhero/asya-sidecar:1.0.0`
+- `ghcr.io/deliveryhero/asya-crew:1.0.0`
+- `ghcr.io/deliveryhero/asya-testing:1.0.0`
+
+## Contributors
+
+@atemate, @github-actions[bot] and [github-actions[bot]](https://github.com/apps/github-actions)
+
+
+
+
 ## [0.3.10] - 2026-01-26
 
 ## Major Changes
@@ -499,6 +553,9 @@ All images are published to GitHub Container Registry:
 [0.3.9]: https://github.com/deliveryhero/asya/releases/tag/v0.3.9
 
 
-[Unreleased]: https://github.com/deliveryhero/asya/compare/v0.3.10...HEAD
 [0.3.10]: https://github.com/deliveryhero/asya/releases/tag/v0.3.10
+
+
+[Unreleased]: https://github.com/deliveryhero/asya/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/deliveryhero/asya/releases/tag/v0.4.0
 
