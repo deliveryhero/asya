@@ -882,7 +882,7 @@
 <span class="w">  </span><span class="nt">&quot;Resource&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;arn:aws:sqs:*:*:asya-*&quot;</span>
 <span class="p">}</span>
 </code></pre></div></p>
-<p><strong>Actor role</strong> (<code>asya-actor-role</code>) - access to the SQS queues and S3 bucket:
+<p><strong>Actor role</strong> (<code>asya-actor-role</code>) - access to the SQS queues and S3 bucket for persising messages (in this tutorial, we're using sample bucket <code>s3://asya-results-bucket</code> - any S3-compatible bucket can be used):
 <div class="highlight"><pre><span></span><code><span class="p">{</span>
 <span class="w">  </span><span class="nt">&quot;Effect&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Allow&quot;</span><span class="p">,</span>
 <span class="w">  </span><span class="nt">&quot;Action&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
