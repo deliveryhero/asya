@@ -40,17 +40,17 @@ Issues in Beads are:
 
 ## Why Beads?
 
-✨ **AI-Native Design**
+**AI-Native Design**
 - Built specifically for AI-assisted development workflows
 - CLI-first interface works seamlessly with AI coding agents
 - No context switching to web UIs
 
-🚀 **Developer Focused**
+**Developer Focused**
 - Issues live in your repo, right next to your code
 - Works offline, syncs when you push
 - Fast, lightweight, and stays out of your way
 
-🔧 **Git Integration**
+**Git Integration**
 - Automatic sync with git commits
 - Branch-aware issue tracking
 - Intelligent JSONL merge resolution
