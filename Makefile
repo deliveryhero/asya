@@ -1,5 +1,5 @@
 # Central Makefile chaining targets in other Makefiles
-.PHONY: setup lint test test-unit test-component clean-component test-integration clean-integration test-e2e up-e2e clean-e2e diagnostics-e2e build build-go build-images manifests clean cov docs-serve docs-build
+.PHONY: setup lint test test-unit test-component clean-component test-integration clean-integration test-e2e up-e2e clean-e2e diagnostics-e2e build-go build-images manifests clean cov docs-serve docs-build
 MAKEFLAGS += --no-print-directory
 .EXPORT_ALL_VARIABLES:
 
@@ -116,9 +116,7 @@ build-go: ## Build all Go components
 	$(MAKE) -C src/asya-gateway build
 	$(MAKE) -C src/asya-sidecar build
 	$(MAKE) -C src/asya-operator build
-
-build: build-go ## Build all components
-	@echo "$(GREEN_START)[++] Success: All components built successfully!$(GREEN_END)"
+	@echo "$(GREEN_START)[++] Success: All Go components built successfully!$(GREEN_END)"
 
 manifests: ## Regenerate operator CRDs and manifests
 	$(MAKE) -C src/asya-operator manifests

@@ -65,19 +65,34 @@ make test-unit
 make -C src/asya-sidecar test-unit    # Go sidecar unit tests only
 make -C src/asya-gateway test-unit    # Go gateway unit tests only
 make -C src/asya-runtime test-unit    # Python runtime unit tests only
+make -C src/asya-operator test-unit   # Go operator unit tests only
+make -C src/asya-crew test-unit       # Python crew unit tests only
+make -C src/asya-cli test-unit        # Python CLI unit tests only
 
-# Run all integration tests (requires Docker Compose)
+# Run all component tests (single component + lightweight mocks in Docker Compose)
+make test-component
+
+# Clean up component test Docker resources
+make clean-component
+
+# Run all integration tests (multiple components in Docker Compose)
 make test-integration
 
 # Run specific integration test suites
 make -C testing/integration/sidecar-runtime test   # Sidecar ↔ Runtime
 make -C testing/integration/gateway-actors test    # Gateway ↔ Actors
 
-# Run all tests (unit + integration)
-make test
-
 # Clean up integration test Docker resources
 make clean-integration
+
+# Run end-to-end tests (full stack in Kind cluster)
+make test-e2e
+
+# Clean up e2e test resources (delete Kind cluster)
+make clean-e2e
+
+# Run all tests (unit + integration)
+make test
 ```
 
 ### Code Coverage
@@ -95,6 +110,7 @@ make -C src/asya-gateway cov-unit   # Gateway (Go)
 make -C src/asya-operator cov-unit  # Operator (Go)
 make -C src/asya-runtime cov-unit   # Runtime (Python)
 make -C src/asya-crew cov-unit      # System actors (Python)
+make -C src/asya-cli cov-unit       # CLI (Python)
 ```
 
 The `make cov` command:
@@ -128,20 +144,14 @@ The `make cov` command:
 ### Building
 
 ```bash
-# Build all components (Go sidecar + gateway)
-make build
-
-# Build only Go components
+# Build all Go components (sidecar, gateway, operator)
 make build-go
 
 # Build all Docker images
 make build-images
 
-# Load built images into Minikube
-make load-minikube
-
-# Build and load images into Minikube (one command)
-make load-minikube-build
+# Regenerate operator CRDs and manifests (after modifying CRD types)
+make manifests
 ```
 
 ### Linting and Formatting
@@ -149,10 +159,9 @@ make load-minikube-build
 ```bash
 # Run all linters and formatters (automatically fixes issues when possible)
 make lint
-
-# Install pre-commit hooks (runs linters on git commit)
-make install-hooks
 ```
+
+**Note**: Pre-commit hooks are automatically installed by `make setup`. They run linters on every git commit.
 
 ### Integration Test Requirements
 
@@ -164,24 +173,21 @@ The integration tests require Docker to spin up:
 
 These tests validate the complete message flow through the system.
 
-### Deployment Commands
+### Documentation
 
 ```bash
-# Deploy full stack to Minikube (requires Minikube running)
-make deploy-minikube
+# Build documentation to site/ directory
+make docs-build
 
-# Port-forward Grafana to localhost:3000
-make port-forward-grafana
+# Serve documentation locally at http://127.0.0.1:8000
+make docs-serve
 ```
 
 ### Other Utilities
 
 ```bash
-# Clean build artifacts
+# Clean build artifacts and test resources
 make clean
-
-# See all available commands
-make help
 ```
 
 ## Making Changes

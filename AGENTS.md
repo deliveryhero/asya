@@ -4,11 +4,14 @@ AI developer guidance for the Asya🎭 project.
 
 ## Project Overview
 
-Asya🎭 is an async actor-based framework for deploying AI workloads on Kubernetes using:
+Asya is an Actor Mesh framework for deploying AI workloads on Kubernetes using:
 - **CRD-based operator** for declarative actor deployment
 - **Sidecar pattern** (Go) for message routing with pluggable transports
 - **KEDA autoscaling** for event-driven, scale-to-zero workloads
 - **MCP gateway** (optional) for envelope tracking and API integration
+- **Choreography (decentralized)** instead of centralized orchestration
+- **Message passing** each message contains "route" which allows actors send messages each other
+- **Synchronous MCP-compliant HTTP gateway** for exposing async actors routes (pipelines) via sync HTTP
 
 ## Quick Reference
 
@@ -98,6 +101,7 @@ Lightweight socket server injected via ConfigMap. Loads user function, executes 
   # Class handler: ASYA_HANDLER=my_module.Processor.process
   class Processor:
       def __init__(self, model_path: str = "/models/default"):
+          # __init__ arguments must have default value
           self.model = load_model(model_path)  # Init once
 
       def process(self, payload: dict) -> dict:
@@ -121,7 +125,7 @@ Lightweight socket server injected via ConfigMap. Loads user function, executes 
   ```
 
 ### asya-crew (Python)
-System actors with reserved roles: `happy-end` (persist results to S3), `error-end` (retry with exponential backoff, DLQ handling). Both report final status to gateway.
+System actors with reserved roles: `happy-end` (persist results to S3), `error-end` (retry with exponential backoff - not yet implemented, DLQ handling). Both report final status to gateway (`happy-end` - because it's route's `current` index is larger than `len(route["actors"])`, `error-end` - because the handler had an error), see this logic in `src/asya-sidecar/internal/progress/reporter.go`.
 
 ### asya-operator (Go/Kubebuilder)
 Watches AsyncActor CRDs, injects sidecars, creates workloads (Deployment/StatefulSet), configures KEDA autoscaling. Source of truth: `src/asya-operator/config/crd/`
@@ -131,12 +135,174 @@ Shared testing utilities and fixtures used across component, integration, and e2
 
 ### asya-cli (Python)
 Command-line tools for debugging and operating the Asya🎭 framework:
+
+**MCP Gateway Commands**:
 - **asya mcp call**: Call MCP tools on asya-gateway
 - **asya mcp list**: List available tools
 - **asya mcp show**: Show tool configuration
 - **asya mcp status**: Check envelope status
 - **asya mcp stream**: Stream envelope updates
 - **asya mcp port-forward**: Quick kubectl port-forward helper for accessing asya-gateway
+
+**Flow DSL Commands**:
+- **asya flow compile**: Compile flow DSL to router actors
+- **asya flow validate**: Validate flow syntax without compiling
+
+## Asya Flow DSL
+
+**Purpose**: Simplify complex actor pipeline development by writing Python-like flow definitions instead of manually configuring routes and actors.
+
+### Overview
+
+The Flow DSL compiler transforms Python-based workflow descriptions into router-based actor networks. Instead of manually managing envelope routes and creating router actors, you write familiar Python code with conditionals, and the compiler generates optimized router actors automatically.
+
+**Key Benefits**:
+- Write actor pipelines in familiar Python syntax
+- Automatic router generation and optimization
+- Compile-time validation of flow logic
+- Visual flow diagrams with Graphviz integration
+
+### Quick Example
+
+**Flow Definition** (`my_flow.py`):
+```python
+def order_processing(p: dict) -> dict:
+    p = validate_order(p)
+
+    if not p.get("valid", False):
+        p["status"] = "rejected"
+        return p
+
+    if p["order_type"] == "express":
+        p = express_handler(p)
+    else:
+        p = standard_handler(p)
+
+    p = payment_processor(p)
+    return p
+```
+
+**Compile**:
+```bash
+asya flow compile my_flow.py --output-dir compiled/ --plot
+```
+
+**Generated Output**:
+- `compiled/routers.py` - Router implementations
+- `compiled/flow.dot` - Graphviz diagram
+- `compiled/flow.png` - Visual flow diagram (requires graphviz)
+
+### Flow DSL Syntax
+
+**Function Signature** (required):
+```python
+def <flow_name>(p: dict) -> dict:
+    return p
+```
+
+**Supported Operations**:
+
+1. **Actor Calls** - Process payload through handlers:
+   ```python
+   p = handler_function(p)
+
+   # Class-based handlers (stateful)
+   model = MLModel()  # Only default args allowed
+   p = model.predict(p)
+   ```
+
+2. **Payload Mutations** - Modify payload inline:
+   ```python
+   p["status"] = "processing"
+   p["count"] += 1
+   p["nested"]["key"] = "value"
+   ```
+
+3. **Conditionals** - Branch execution:
+   ```python
+   if p["type"] == "A":
+       p = handler_a(p)
+   elif p["type"] == "B":
+       p = handler_b(p)
+   else:
+       p = handler_default(p)
+   ```
+
+4. **Early Returns** - Exit flow conditionally:
+   ```python
+   if p.get("skip", False):
+       return p
+   ```
+
+**Limitations**:
+- Loops (`for`, `while`) not yet supported
+- Parameter must be named `p` or `payload`
+- Actor calls must pass `p` as only argument
+- Class instantiation must use only default arguments
+
+### CLI Commands
+
+**Initialize Flow Template**:
+```bash
+asya flow init my_flow --output my_flow.py
+```
+
+**Validate Flow**:
+```bash
+asya flow validate my_flow.py
+```
+
+**Compile Flow**:
+```bash
+asya flow compile my_flow.py --output-dir compiled/ [options]
+```
+
+Options:
+- `--plot` - Generate flow diagram (DOT and PNG)
+- `--plot-width N` - Max width for plot labels (default: 50)
+- `--overwrite` - Overwrite existing files
+- `--verbose` - Show detailed output
+
+### Deployment
+
+1. **Compile flow** to generate routers
+2. **Deploy router actors** as AsyncActors (use generated `routers.py`)
+3. **Deploy handler actors** for each handler function
+4. **Configure environment variables** to map handlers to actors
+
+**Example Router Actor**:
+```yaml
+apiVersion: asya.dev/v1alpha1
+kind: AsyncActor
+metadata:
+  name: start-order-processing
+spec:
+  image: my-routers:latest
+  transport: rabbitmq
+  handler: compiled_routers.start_order_processing
+  env:
+    - name: ASYA_HANDLER_VALIDATE_ORDER
+      value: "handlers.validate_order"
+    - name: ASYA_HANDLER_EXPRESS_HANDLER
+      value: "handlers.express_handler"
+```
+
+**Generated routers always run in envelope mode** to dynamically modify routes.
+
+### How It Works
+
+1. **Parser** - Extracts operations from Python AST, validates syntax
+2. **Grouper** - Groups operations into optimized routers, batches mutations
+3. **Code Generator** - Generates router Python code with `resolve()` function
+4. **Dot Generator** (optional) - Creates visual flow diagrams
+
+**Router Types**:
+- **Start Router** - Entry point with initial mutations
+- **Mutation Router** - Executes payload mutations, routes to next actors
+- **Conditional Router** - Evaluates conditions, routes to branches
+- **End Router** - Exit point
+
+See `docs/architecture/asya-flow.md` for complete documentation.
 
 ## Development Workflow
 
@@ -553,3 +719,29 @@ logger.info("[+] Test passed")
 # Good - text marker
 # - Working deployment
 ```
+
+## Landing the Plane (Session Completion)
+
+**When ending a work session**, you MUST complete ALL steps below. Work is NOT complete until `git push` succeeds.
+
+**MANDATORY WORKFLOW:**
+
+1. **File issues for remaining work** - Create issues for anything that needs follow-up
+2. **Run quality gates** (if code changed) - Tests, linters, builds
+3. **Update issue status** - Close finished work, update in-progress items
+4. **PUSH TO REMOTE** - This is MANDATORY:
+   ```bash
+   git pull --rebase
+   bd sync
+   git push
+   git status  # MUST show "up to date with origin"
+   ```
+5. **Clean up** - Clear stashes, prune remote branches
+6. **Verify** - All changes committed AND pushed
+7. **Hand off** - Provide context for next session
+
+**CRITICAL RULES:**
+- Work is NOT complete until `git push` succeeds
+- NEVER stop before pushing - that leaves work stranded locally
+- NEVER say "ready to push when you are" - YOU must push
+- If push fails, resolve and retry until it succeeds
