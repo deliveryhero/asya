@@ -1,8 +1,5 @@
 {
   "enabledPlugins": {
     "beads@beads-marketplace": true
-  },
-  "permissions": {
-    "allow": ["Bash(bd *)", "Bash(git *)"]
   }
 }
