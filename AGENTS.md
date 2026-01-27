@@ -4,7 +4,7 @@ AI developer guidance for the Asya🎭 project.
 
 ## Project Overview
 
-Asya is an Actor Mesh framework for deploying AI workloads on Kubernetes using:
+Asya🎭 is an Actor Mesh framework for deploying AI workloads on Kubernetes using:
 - **CRD-based operator** for declarative actor deployment
 - **Sidecar pattern** (Go) for message routing with pluggable transports
 - **KEDA autoscaling** for event-driven, scale-to-zero workloads
@@ -241,11 +241,6 @@ def <flow_name>(p: dict) -> dict:
 - Class instantiation must use only default arguments
 
 ### CLI Commands
-
-**Initialize Flow Template**:
-```bash
-asya flow init my_flow --output my_flow.py
-```
 
 **Validate Flow**:
 ```bash
