@@ -1925,13 +1925,18 @@ Actor yields:
 
 ### Additional Protocol Standards (Research)
 
-See [Agent Protocol Standards Research](../research/agent-protocol-standards.md) for comprehensive analysis.
+Feasibility research tracked in beads:
 
-- **AAIF (Agentic AI Foundation)**: https://lfaidata.foundation/projects/aaif/ - Linux Foundation initiative hosting MCP, AGENTS.md, goose
-- **AGNTCY**: https://agntcy.org/ - Cisco-led project for agent discovery, identity, messaging, observability
-- **Agent Skills**: https://github.com/anthropics/anthropic-cookbook/tree/main/skills - Anthropic's open standard for procedural knowledge packages
-- **ANP (Agent Network Protocol)**: Peer-to-peer agent communication with DID-based identity (emerging)
-- **OASF (Open Agent Schema Framework)**: JSON Schema for agent capability descriptions (emerging)
+| Bead | Protocol | Priority | Description |
+|------|----------|----------|-------------|
+| `asya-8sa` | AGNTCY | P3 | Cisco/LF agent discovery, identity, observability |
+| `asya-3d6` | AAIF | P4 | Linux Foundation standards (MCP host, AGENTS.md) |
+| `asya-e5s` | ANP/OASF | P4 | Decentralized protocols (P2P, DID-based identity) |
+
+**Resources:**
+- **AAIF (Agentic AI Foundation)**: https://lfaidata.foundation/projects/aaif/
+- **AGNTCY**: https://agntcy.org/
+- **Agent Skills**: https://github.com/anthropics/anthropic-cookbook/tree/main/skills
 
 ---
 
