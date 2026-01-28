@@ -31,12 +31,16 @@ echo $OBSIDIAN_VAULT_PATH
 
 If `OBSIDIAN_VAULT_PATH` is not set, ask the user to configure it.
 
+**Important**: Always first pull fresh changes when in $OBSIDIAN_VAULT_PATH - this repo changes very fast with auto-sync from other devices.
+
 ## First Step: Read Vault's AGENTS.md
 
 Before making any changes, read the vault's own guidance:
 
 ```bash
-cat $OBSIDIAN_VAULT_PATH/AGENTS.md
+cd $OBSIDIAN_VAULT_PATH
+git pull
+cat AGENTS.md
 ```
 
 This file documents:
@@ -133,7 +137,8 @@ git commit -m "sync: update notes based on asya project progress
 - Close questions: [list items]
 - Update status: [list items]"
 
-# Push to remote
+# pull once again - to see if there are new changes
+git pull
 git push
 ```
 
