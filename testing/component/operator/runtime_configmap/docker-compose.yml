@@ -10,6 +10,7 @@ services:
     - go-cache:/go/pkg/mod
     environment:
     - CGO_ENABLED=0
+    - ASYA_QUEUE_HEALTH_CHECK_INTERVAL=30s
     command:
     - /bin/bash
     - -c
