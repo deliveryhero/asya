@@ -53,7 +53,7 @@ func (t *SQSTransport) ReconcileQueue(ctx context.Context, actor *asyav1alpha1.A
 
 	logger.V(1).Info("SQS config loaded", "configuredTags", sqsConfig.Tags, "autoCreate", sqsConfig.Queues.AutoCreate)
 
-	queueName := fmt.Sprintf("asya-%s-%s", actor.Namespace, actor.Name)
+	queueName := fmt.Sprintf("asya-%s-%s", actor.Namespace, actor.GetActorName())
 
 	sqsClient, err := t.createSQSClient(ctx, sqsConfig, t.credentialsNamespace)
 	if err != nil {
@@ -190,7 +190,7 @@ func (t *SQSTransport) DeleteQueue(ctx context.Context, actor *asyav1alpha1.Asyn
 		return fmt.Errorf("invalid SQS config type")
 	}
 
-	queueName := fmt.Sprintf("asya-%s-%s", actor.Namespace, actor.Name)
+	queueName := fmt.Sprintf("asya-%s-%s", actor.Namespace, actor.GetActorName())
 
 	sqsClient, err := t.createSQSClient(ctx, sqsConfig, t.credentialsNamespace)
 	if err != nil {

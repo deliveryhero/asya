@@ -61,7 +61,7 @@ Install just the operator and CRDs:
 
 ```bash
 # 1. Install CRDs
-kubectl apply -f ../src/asya-operator/config/crd/
+kubectl apply -f https://github.com/deliveryhero/asya/releases/latest/download/asya-crds.yaml
 
 # 2. Install operator
 helm install asya-operator helm-charts/asya-operator --create-namespace -n asya-system
@@ -98,7 +98,7 @@ make manifests
 
 ```bash
 # Update CRDs first
-kubectl apply -f ../src/asya-operator/config/crd/
+kubectl apply -f https://github.com/deliveryhero/asya/releases/latest/download/asya-crds.yaml
 
 # Then upgrade operator
 helm upgrade asya-operator helm-charts/asya-operator -n asya-system

@@ -2,6 +2,14 @@
 
 Build and deploy your first Asya actor.
 
+## What You'll Learn
+
+- Write pure Python handlers (functions or classes) for ML pipelines
+- Test handlers locally and package them in Docker images
+- Deploy actors using AsyncActor CRDs with autoscaling
+- Use Flow DSL to build multi-step pipelines with conditional routing
+- Handle dynamic routing with envelope mode for AI agents
+
 ## Overview
 
 As a data scientist, you focus on writing pure Python functions. Asya handles infrastructure, routing, scaling, and monitoring.

@@ -261,13 +261,14 @@ func (r *AsyncActorReconciler) reconcileScaledObject(ctx context.Context, asya *
 
 // resolveQueueIdentifier resolves actor name to queue identifier based on transport
 func (r *AsyncActorReconciler) resolveQueueIdentifier(asya *asyav1alpha1.AsyncActor, transport *asyaconfig.TransportConfig) (string, error) {
+	actorName := asya.GetActorName()
 	switch transport.Type {
 	case transportTypeRabbitMQ:
-		return fmt.Sprintf("asya-%s-%s", asya.Namespace, asya.Name), nil
+		return fmt.Sprintf("asya-%s-%s", asya.Namespace, actorName), nil
 	case transportTypeSQS:
-		return fmt.Sprintf("asya-%s-%s", asya.Namespace, asya.Name), nil
+		return fmt.Sprintf("asya-%s-%s", asya.Namespace, actorName), nil
 	default:
-		return asya.Name, nil
+		return actorName, nil
 	}
 }
 
@@ -309,7 +310,7 @@ func (r *AsyncActorReconciler) buildSQSTrigger(asya *asyav1alpha1.AsyncActor, tr
 		return nil, fmt.Errorf("SQS accountId is required in operator transport config")
 	}
 
-	queueName := fmt.Sprintf("asya-%s-%s", asya.Namespace, asya.Name)
+	queueName := fmt.Sprintf("asya-%s-%s", asya.Namespace, asya.GetActorName())
 
 	metadata := map[string]string{
 		"queueLength": queueLength,

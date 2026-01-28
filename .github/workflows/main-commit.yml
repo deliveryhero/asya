@@ -9,16 +9,40 @@ permissions:
   contents: write
   pull-requests: write
 
+concurrency:
+  group: release-management
+  cancel-in-progress: false
+
 jobs:
   update-release-draft:
     name: Update release draft
     runs-on: ubuntu-latest
 
     steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
     - name: Run Release Drafter
+      id: release-drafter
       uses: release-drafter/release-drafter@v6
       with:
         config-name: release-drafter.yml
         disable-autolabeler: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Create CRDs bundle
+      run: |
+        echo "[.] Creating CRD bundle from src/asya-operator/config/crd/asya.sh_asyncactors.yaml"
+        cp src/asya-operator/config/crd/asya.sh_asyncactors.yaml asya-crds.yaml
+        ls -lh asya-crds.yaml
+        echo "[+] CRD bundle created successfully"
+
+    - name: Upload CRDs to draft release
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        TAG="${{ steps.release-drafter.outputs.tag_name }}"
+        echo "[.] Uploading asya-crds.yaml to draft release ${TAG}"
+        gh release upload "${TAG}" asya-crds.yaml --clobber
+        echo "[+] CRD uploaded successfully to draft release"

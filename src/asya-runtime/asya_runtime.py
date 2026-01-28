@@ -459,7 +459,6 @@ def _handle_request(conn: socket.socket, user_func: Any) -> list[dict[str, Any]]
         else:
             raise ValueError(f"Invalid ASYA_HANDLER_MODE={ASYA_HANDLER_MODE}: not in {VALID_ASYA_HANDLER_MODES}")
 
-        logger.info(f"[DIAG] Handler completed successfully: returning {len(out_list)} response(s)")
         return out_list
 
     except Exception as exc:

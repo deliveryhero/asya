@@ -154,6 +154,31 @@ autolabeler:
 template: |
   $CHANGES
 
+  ## Installation
+
+  ### CRDs
+
+  Install or upgrade AsyncActor CRDs:
+  ```bash
+  kubectl apply -f https://github.com/$OWNER/$REPOSITORY/releases/download/$RESOLVED_VERSION/asya-crds.yaml
+  ```
+
+  ### Helm Charts
+
+  Add the Helm repository:
+  ```bash
+  helm repo add asya https://asya.sh/charts
+  helm repo update
+  ```
+
+  Install the operator:
+  ```bash
+  helm install asya-operator asya/asya-operator \
+    --version $RESOLVED_VERSION \
+    --namespace asya-system \
+    --create-namespace
+  ```
+
   ## Docker Images
 
   All images are published to GitHub Container Registry:

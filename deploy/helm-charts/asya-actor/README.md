@@ -18,7 +18,7 @@ Generic Helm chart for deploying AsyncActor resources with comprehensive health 
 - Kubernetes cluster (1.24+)
 - AsyncActor CRD installed:
   ```bash
-  kubectl apply -f src/asya-operator/config/crd/
+  kubectl apply -f https://github.com/deliveryhero/asya/releases/latest/download/asya-crds.yaml
   ```
 - 🎭 operator running:
   ```bash

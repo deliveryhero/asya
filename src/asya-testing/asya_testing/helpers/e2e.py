@@ -79,7 +79,7 @@ class E2ETestHelper(GatewayTestHelper):
         Wait for at least one pod matching label selector to be ready.
 
         Args:
-            label_selector: Kubernetes label selector (e.g., "app=my-app")
+            label_selector: Kubernetes label selector (e.g., "asya.sh/actor=my-actor")
             timeout: Maximum time to wait in seconds
             poll_interval: Polling interval in seconds
 

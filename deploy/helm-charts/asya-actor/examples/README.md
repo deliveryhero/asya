@@ -56,7 +56,7 @@ helm test sqs-processor -n production
 
 ```bash
 # Install AsyncActor CRD
-kubectl apply -f src/asya-operator/config/crd/
+kubectl apply -f https://github.com/deliveryhero/asya/releases/latest/download/asya-crds.yaml
 
 # Install 🎭 operator
 helm install asya-operator deploy/helm-charts/asya-operator \

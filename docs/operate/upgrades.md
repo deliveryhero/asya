@@ -22,7 +22,7 @@ kubectl get asyas -A -o yaml > asyas-backup.yaml
 ### 2. Upgrade CRDs
 
 ```bash
-kubectl apply -f src/asya-operator/config/crd/
+kubectl apply -f https://github.com/deliveryhero/asya/releases/latest/download/asya-crds.yaml
 ```
 
 ### 3. Upgrade Operator

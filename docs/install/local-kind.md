@@ -95,7 +95,7 @@ kubectl wait --for=condition=ready pod -l app=postgresql \
 
 ```bash
 # Install CRDs
-kubectl apply -f src/asya-operator/config/crd/
+kubectl apply -f https://github.com/deliveryhero/asya/releases/latest/download/asya-crds.yaml
 
 # Create operator values
 cat > operator-values.yaml <<'EOF'
