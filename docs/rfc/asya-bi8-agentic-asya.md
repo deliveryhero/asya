@@ -1,0 +1,1372 @@
+# RFC: ADK-to-Asya Compilation - Agentic Workflows on Distributed Choreography
+
+**Bead**: asya-bi8
+**Status**: Pre-RFC (Design Document)  
+**Author**: Architecture Discussion  
+**Date**: 2026-01-26  
+**Target**: Asya Framework Enhancement
+
+---
+
+## Executive Summary
+
+This document proposes a compilation strategy to transform Google's Agent Development Kit (ADK) agents into Asya's distributed choreography model. ADK is a centralized, asyncio-based AI orchestration framework, while Asya is a decentralized, message-queue-based choreography system. The goal is to enable ADK agents to run as stateless Asya actors, leveraging Asya's scalability, fault tolerance, and multi-tenancy capabilities.
+
+**Key Innovation**: Dual-channel architecture separating control flow (asya messages) from data flow (streaming events), with framework-level event classification enabling simple user code.
+
+---
+
+## Table of Contents
+
+1. [Background](#background)
+2. [Architecture Overview](#architecture-overview)
+3. [Event Classification & Routing](#event-classification--routing)
+4. [Session State Management](#session-state-management)
+5. [Service Reconstruction](#service-reconstruction)
+6. [Streaming Architecture](#streaming-architecture)
+7. [Agent Compilation Strategy](#agent-compilation-strategy)
+8. [Implementation Examples](#implementation-examples)
+9. [Trade-offs & Design Decisions](#trade-offs--design-decisions)
+10. [Open Questions](#open-questions)
+11. [References](#references)
+
+---
+
+## Background
+
+### ADK Architecture
+
+ADK (Agent Development Kit) is Google's Python framework for building AI agents. Key characteristics:
+
+- **Centralized orchestration**: [`Runner`](src/google/adk/runners.py:102) manages entire invocation lifecycle
+- **Asyncio-based**: Concurrent execution via Python's async/await
+- **Stateful sessions**: [`Session`](src/google/adk/sessions/session.py:27) accumulates conversation history
+- **Event streaming**: Agents yield [`Event`](src/google/adk/events/event.py:30) objects incrementally
+- **Service-oriented**: Pluggable services for artifacts, memory, sessions
+
+**Core Components**:
+- **Agent**: Blueprint defining behavior ([`BaseAgent`](src/google/adk/agents/base_agent.py:85))
+- **Runner**: Execution engine ([`Runner`](src/google/adk/runners.py:102))
+- **Session**: Conversation state ([`Session`](src/google/adk/sessions/session.py:27))
+- **Event**: Unit of conversation ([`Event`](src/google/adk/events/event.py:30))
+- **Tools**: Functions agents can call
+
+### Asya Architecture
+
+Asya is a decentralized choreography framework where:
+
+- **Actors**: Stateless microservices processing messages
+- **Message queues**: SQS, Pub/Sub for actor-to-actor communication
+- **Routing tables**: Stored in messages, not centralized
+- **Enrichment pattern**: Monotonic computation (recommended)
+- **Go sidecar**: Handles message routing, actor lifecycle
+
+**Key Principle**: Actors are pure functions that return routing decisions, not orchestrators.
+
+### The Challenge
+
+Transform ADK's centralized orchestration into Asya's distributed choreography while preserving:
+- Real-time streaming (partial text, audio, video)
+- Multi-agent workflows (sequential, parallel, loops)
+- Session continuity across actor boundaries
+- Tool execution and agent transfers
+
+---
+
+## Architecture Overview
+
+### High-Level Design
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        End User (Browser/App)                    │
+└────────────────────────────┬────────────────────────────────────┘
+                             │
+                             │ WebSocket/SSE
+                             │
+                             v
+                    ┌─────────────────┐
+                    │  Asya Gateway   │ ← MCP-compliant HTTP server
+                    │  (asya.sh)      │    Stateful, handles streaming
+                    └────────┬────────┘
+                             │
+                ┌────────────┴────────────┐
+                │                         │
+                v                         v
+         ┌─────────────┐          ┌─────────────┐
+         │ SQS Message │          │ Direct HTTP │
+         │  (Control)  │          │ (Streaming) │
+         └──────┬──────┘          └──────▲──────┘
+                │                        │
+                v                        │
+         ┌─────────────┐                 │
+         │  LlmAgent   │─────────────────┘
+         │    Actor    │  Partial events sent directly
+         │             │  to gateway via HTTP
+         └──────┬──────┘
+                │
+                │ Returns routing decision
+                v
+         ┌─────────────┐
+         │ Go Sidecar  │ ← Sends control messages to SQS
+         └─────────────┘
+```
+
+### Key Principles
+
+1. **Dual-channel communication**:
+   - **Control channel**: SQS/Pub/Sub for actor-to-actor orchestration
+   - **Streaming channel**: HTTP/WebSocket for real-time UI updates
+
+2. **Stateless actors**:
+   - All context in message payload
+   - Services initialized from environment
+   - No in-memory state between messages
+
+3. **Framework-level routing**:
+   - User code just yields events
+   - Framework classifies events (control vs. streaming)
+   - Sidecar handles actual message sending
+
+4. **Session as message**:
+   - Full conversation history in message payload
+   - Compression strategies for large sessions
+   - Artifact references instead of inline data
+
+---
+
+## Event Classification & Routing
+
+### ADK Event Types
+
+ADK agents yield two categories of events:
+
+#### 1. Streaming Events (Display-Only)
+
+**Partial Text** ([`llm_response.py:71`](src/google/adk/models/llm_response.py:71)):
+```python
+Event(
+    partial=True,  # Incomplete text chunk
+    content=Content(parts=[Part(text="Hello wor")])
+)
+```
+- **Purpose**: Show typing animation in UI
+- **Not actionable**: Cannot make decisions on partial text
+- **Not persisted**: Skipped by session service ([`runners.py:829`](src/google/adk/runners.py:829))
+
+**Audio/Video Chunks** ([`base_llm_flow.py:389`](src/google/adk/flows/llm_flows/base_llm_flow.py:389)):
+```python
+Event(
+    content=Content(parts=[Part(inline_data=Blob(
+        data=b"<audio bytes>",
+        mime_type="audio/pcm"
+    ))])
+)
+```
+- **Purpose**: Real-time audio playback
+- **High frequency**: 10-100 events/second
+- **Large payload**: Can be MBs per event
+
+**Transcriptions** ([`llm_response.py:113`](src/google/adk/models/llm_response.py:113)):
+```python
+Event(
+    input_transcription=Transcription(text="Hello", partial=True)
+)
+```
+- **Purpose**: Show what user/model said
+- **Metadata only**: Not used for decision-making
+
+#### 2. Control Events (Actionable)
+
+**Function Calls**:
+```python
+Event(
+    partial=False,
+    content=Content(parts=[Part(function_call=FunctionCall(
+        name="search",
+        args={"query": "weather"}
+    ))])
+)
+```
+- **Triggers**: Tool execution
+- **Routing**: Send to tool executor actor
+
+**Function Responses**:
+```python
+Event(
+    content=Content(parts=[Part(function_response=FunctionResponse(
+        name="search",
+        response={"result": "Sunny, 72°F"}
+    ))])
+)
+```
+- **Triggers**: Resume agent with tool result
+- **Routing**: Send back to agent actor
+
+**Agent Transfers** ([`event_actions.py:73`](src/google/adk/events/event_actions.py:73)):
+```python
+Event(
+    actions=EventActions(transfer_to_agent="specialist_agent")
+)
+```
+- **Triggers**: Delegate to another agent
+- **Routing**: Send to target agent actor
+
+**Final Responses**:
+```python
+Event(
+    partial=False,
+    content=Content(parts=[Part(text="Here's the weather: Sunny, 72°F")])
+)
+```
+- **Triggers**: End of invocation
+- **Routing**: Send to gateway for user
+
+### Framework-Level Classification
+
+**User Code** (Simple):
+```python
+# actor_handler.py
+async def handle_llm_agent(message: dict):
+    """User just yields events - framework handles routing."""
+    context = create_context(message)
+
+    async for event in MY_AGENT.run_async(context):
+        yield event  # Framework classifies and routes
+
+    yield {"type": "end"}  # Signal completion
+```
+
+**Framework Runtime** (`asya_runtime.py` - mounted as ConfigMap):
+```python
+async def classify_event(event: dict) -> str:
+    """Classify event type for routing."""
+    # Partial/streaming events → SSE
+    if event.get("partial") is True:
+        return "sse"
+
+    # Transcription events → SSE
+    if event.get("input_transcription") or event.get("output_transcription"):
+        return "sse"
+
+    # Audio/video chunks → WebSocket
+    content_parts = event.get("content", {}).get("parts", [])
+    if content_parts:
+        inline_data = content_parts[0].get("inline_data", {})
+        mime_type = inline_data.get("mime_type", "")
+        if mime_type.startswith(("audio/", "video/")):
+            return "ws"
+
+    # Control events → Message queue
+    if content_parts:
+        if content_parts[0].get("function_call"):
+            return "control"
+        if content_parts[0].get("function_response"):
+            return "control"
+
+    if event.get("actions", {}).get("transfer_to_agent"):
+        return "control"
+
+    if event.get("type") == "end":
+        return "control"
+
+    if event.get("partial") is False and event.get("content"):
+        return "control"
+
+    return "control"  # Default
+
+async def wrap_user_handler(user_handler, message: dict):
+    """Framework wrapper - classifies and routes events."""
+    session = message["session"]
+
+    async for event in user_handler(message):
+        event_type = await classify_event(event)
+
+        if event_type == "control":
+            # Control event - include full session for next actor
+            await send_to_sidecar("control", {
+                "route": determine_route(event),
+                "payload": {
+                    "session": session,
+                    "event": event
+                }
+            })
+        else:
+            # Streaming event - minimal payload
+            await send_to_sidecar(event_type, {
+                "invocation_id": message["invocation_id"],
+                "session_id": session["id"],
+                "event": event
+            })
+
+def determine_route(event: dict) -> list[str]:
+    """Determine next actor based on event content."""
+    if event.get("type") == "end":
+        return ["gateway"]
+
+    content_parts = event.get("content", {}).get("parts", [])
+    if content_parts and content_parts[0].get("function_call"):
+        return ["tool_executor"]
+
+    if event.get("actions", {}).get("transfer_to_agent"):
+        return [event["actions"]["transfer_to_agent"]]
+
+    return ["gateway"]  # Final response
+```
+
+**Go Sidecar** (Routes messages):
+```go
+func handleEventFromRuntime(eventMsg EventMessage) {
+    switch eventMsg.EventType {
+    case "control":
+        // Send to SQS/Pub/Sub for next actor
+        sendToMessageQueue(eventMsg.Payload)
+
+    case "sse":
+        // Forward to HTTP gateway for SSE streaming
+        forwardToGateway("/stream/sse", eventMsg.Payload)
+
+    case "ws":
+        // Forward to HTTP gateway for WebSocket streaming
+        forwardToGateway("/stream/ws", eventMsg.Payload)
+    }
+}
+```
+
+---
+
+## Session State Management
+
+### Session Structure
+
+From [`session.py:27-50`](src/google/adk/sessions/session.py:27):
+
+```python
+class Session(BaseModel):
+    id: str                    # Session identifier
+    app_name: str              # Application name
+    user_id: str               # User identifier
+    state: dict[str, Any]      # Key-value state (agent outputs, temp vars)
+    events: list[Event]        # Full conversation history
+    last_update_time: float    # Timestamp
+```
+
+**What's in `events`?**
+- User messages
+- Agent responses (text, function calls, transfers)
+- Tool execution results
+- State changes ([`event_actions.py:66`](src/google/adk/events/event_actions.py:66))
+- Artifact references ([`event_actions.py:69`](src/google/adk/events/event_actions.py:69))
+
+### Size Analysis
+
+**Typical conversation (10 turns)**:
+- ~10-20 events (user + agent + tools)
+- **Text-only**: 5-50 KB JSON
+- **With images/audio inline**: Can be **MBs** (base64-encoded)
+- **After 100 turns**: 50-500 KB (text) or **10s of MBs** (multimodal)
+
+**Message queue limits**:
+- AWS SQS: 256 KB per message
+- Google Pub/Sub: 10 MB per message
+
+### Compression Strategies
+
+#### Strategy 1: Artifact References (Primary)
+
+**Problem**: Images/audio in `inline_data` bloat messages
+
+**Solution**: Store large blobs in artifact service, keep only references
+
+```python
+# Before (bloated):
+event.content.parts[0].inline_data = Blob(
+    data=b"<10MB image>",
+    mime_type="image/png"
+)
+
+# After (compact):
+event.content.parts[0].file_data = FileData(
+    file_uri="gs://artifacts/session123/image_0.png"
+)
+event.actions.artifact_delta = {"image_0.png": 1}  # version 1
+```
+
+**Impact**: Reduces event size from MBs to ~100 bytes per artifact
+
+**Implementation**: ADK already supports this via [`artifact_util.py`](src/google/adk/artifacts/artifact_util.py)
+
+#### Strategy 2: Event Compaction
+
+ADK's built-in compaction ([`compaction.py`](src/google/adk/apps/compaction.py)):
+
+```python
+# Original: 50 events (20 KB)
+events[0:40]  # Old conversation
+
+# Compacted: 1 event (2 KB)
+CompactedEvent(
+    compaction=EventCompaction(
+        compacted_content="User asked about weather, agent provided forecast...",
+        start_timestamp=1234567890.0,
+        end_timestamp=1234567950.0
+    )
+)
+```
+
+**For Asya**: Run compaction as a **separate actor** when message size exceeds threshold:
+
+```
+LlmAgent → (message > 200KB) → CompactionActor → (compacted message) → NextAgent
+```
+
+**Trigger**: Framework detects message size before sending to sidecar
+
+#### Strategy 3: Sliding Window
+
+Keep only recent events in message, rest in shared store:
+
+```python
+# Message payload
+{
+    "session_id": "user123_session456",
+    "recent_events": events[-10:],  # Last 10 events
+    "total_event_count": 150,
+    "event_store_pointer": "gs://sessions/user123_session456/events.jsonl"
+}
+```
+
+**When to fetch full history**: Only when agent needs it (e.g., memory retrieval)
+
+**Trade-off**: Adds latency for full history fetch, but keeps messages small
+
+#### Strategy 4: Binary Serialization
+
+| Format | Size (10 events) | Pros | Cons |
+|--------|------------------|------|------|
+| JSON | 20 KB | Human-readable, debuggable | Verbose |
+| MessagePack | 12 KB | Faster, smaller | Binary |
+| Protobuf | 8 KB | Smallest, schema validation | Requires .proto files |
+
+**Recommendation**: Start with JSON + artifact references. Add MessagePack if hitting size limits.
+
+### Recommended Approach
+
+1. **Always**: Use artifact references for images/audio/video
+2. **If session > 50 events**: Route to compaction actor
+3. **If message > 200 KB**: Use sliding window
+4. **If still too large**: Switch to MessagePack
+
+---
+
+## Service Reconstruction
+
+### The Challenge
+
+ADK's [`InvocationContext`](src/google/adk/agents/invocation_context.py:98) contains non-serializable services:
+
+```python
+class InvocationContext:
+    artifact_service: BaseArtifactService      # GCS client, file handles
+    session_service: BaseSessionService        # Spanner connection, DB pool
+    memory_service: BaseMemoryService          # Vector DB client
+    credential_service: BaseCredentialService  # OAuth tokens, API keys
+    # ... other fields
+```
+
+These **cannot** be serialized into messages.
+
+### Solution: Environment-Based Configuration
+
+**Deployment-Time Configuration** (Kubernetes):
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: llm-agent-actor
+spec:
+  template:
+    spec:
+      containers:
+      - name: actor
+        image: my-llm-agent:latest
+        env:
+          # ADK service configurations
+          - name: ADK_ARTIFACT_SERVICE_TYPE
+            value: "gcs"
+          - name: ADK_ARTIFACT_SERVICE_BUCKET
+            value: "my-artifacts"
+
+          - name: ADK_SESSION_SERVICE_TYPE
+            value: "spanner"
+          - name: ADK_SESSION_SERVICE_INSTANCE
+            value: "my-instance"
+          - name: ADK_SESSION_SERVICE_DATABASE
+            value: "sessions"
+
+          - name: ADK_MEMORY_SERVICE_TYPE
+            value: "vertex_ai_rag"
+          - name: ADK_MEMORY_SERVICE_CORPUS
+            value: "my-corpus"
+
+          # Asya gateway URL
+          - name: ASYA_GATEWAY_URL
+            value: "http://gateway.asya.svc.cluster.local:8080"
+```
+
+**Service Factory** (Fail-Fast Initialization):
+
+```python
+# services.py - Initialized at module load time
+import os
+from typing import Optional
+
+# Global service instances (one per pod)
+_artifact_service: Optional[BaseArtifactService] = None
+_session_service: Optional[BaseSessionService] = None
+_memory_service: Optional[BaseMemoryService] = None
+
+def init_services():
+    """Initialize all services at startup. Fail-fast if misconfigured."""
+    global _artifact_service, _session_service, _memory_service
+
+    # Artifact Service
+    artifact_type = os.environ.get("ADK_ARTIFACT_SERVICE_TYPE")
+    if artifact_type == "gcs":
+        from google.adk.artifacts.gcs_artifact_service import GCSArtifactService
+        _artifact_service = GCSArtifactService(
+            bucket=os.environ["ADK_ARTIFACT_SERVICE_BUCKET"]
+        )
+    elif artifact_type == "file":
+        from google.adk.artifacts.file_artifact_service import FileArtifactService
+        _artifact_service = FileArtifactService(
+            base_path=os.environ.get("ADK_ARTIFACT_SERVICE_PATH", "/tmp/artifacts")
+        )
+    else:
+        raise ValueError(f"Unknown artifact service type: {artifact_type}")
+
+    # Session Service
+    session_type = os.environ.get("ADK_SESSION_SERVICE_TYPE")
+    if session_type == "spanner":
+        from google.adk.sessions.database_session_service import DatabaseSessionService
+        _session_service = DatabaseSessionService(
+            instance=os.environ["ADK_SESSION_SERVICE_INSTANCE"],
+            database=os.environ["ADK_SESSION_SERVICE_DATABASE"]
+        )
+    elif session_type == "in_memory":
+        from google.adk.sessions.in_memory_session_service import InMemorySessionService
+        _session_service = InMemorySessionService()
+    else:
+        raise ValueError(f"Unknown session service type: {session_type}")
+
+    # Memory Service (optional)
+    memory_type = os.environ.get("ADK_MEMORY_SERVICE_TYPE")
+    if memory_type == "vertex_ai_rag":
+        from google.adk.memory.vertex_ai_rag_memory_service import VertexAiRagMemoryService
+        _memory_service = VertexAiRagMemoryService(
+            corpus_id=os.environ["ADK_MEMORY_SERVICE_CORPUS"]
+        )
+
+def get_artifact_service() -> BaseArtifactService:
+    if _artifact_service is None:
+        raise RuntimeError("Services not initialized")
+    return _artifact_service
+
+def get_session_service() -> BaseSessionService:
+    if _session_service is None:
+        raise RuntimeError("Services not initialized")
+    return _session_service
+
+def get_memory_service() -> Optional[BaseMemoryService]:
+    return _memory_service
+
+# Initialize at module load time (fail-fast)
+init_services()
+```
+
+**Actor Usage**:
+
+```python
+# actor_handler.py
+from services import get_artifact_service, get_session_service
+
+# Services already initialized
+ARTIFACT_SERVICE = get_artifact_service()
+SESSION_SERVICE = get_session_service()
+
+async def handle_llm_agent(message: dict):
+    context = InvocationContext(
+        artifact_service=ARTIFACT_SERVICE,  # Global instance
+        session_service=SESSION_SERVICE,
+        session=Session.model_validate(message["session"]),
+        agent=MY_AGENT,
+        invocation_id=message["invocation_id"]
+    )
+
+    async for event in MY_AGENT.run_async(context):
+        yield event
+```
+
+### Advantages
+
+✅ **Fail-fast**: Misconfiguration detected at startup, not runtime  
+✅ **Simple**: No service locator pattern, no lazy initialization  
+✅ **Message size**: No service configs in messages  
+✅ **Performance**: Services initialized once, reused for all messages  
+✅ **Pure Python**: No external dependencies, just environment variables
+
+### Multi-Tenancy
+
+If different users need different artifact buckets:
+
+```python
+# Message contains tenant-specific identifiers
+{
+    "session": {...},
+    "tenant_id": "customer_123"
+}
+
+# Service uses tenant_id to route to correct bucket
+async def handle_llm_agent(message: dict):
+    tenant_id = message["tenant_id"]
+
+    # Artifact service uses tenant_id in path
+    await ARTIFACT_SERVICE.save_artifact(
+        app_name=f"{tenant_id}_myapp",  # Tenant-specific
+        user_id=message["session"]["user_id"],
+        session_id=message["session"]["id"],
+        filename="image.png",
+        artifact=...
+    )
+```
+
+---
+
+## Streaming Architecture
+
+### Gateway Responsibilities
+
+The Asya gateway (asya.sh) is a **stateful** MCP-compliant HTTP server that:
+
+1. **Accepts client connections**: WebSocket/SSE from browsers/apps
+2. **Converts HTTP → SQS**: User messages become actor messages
+3. **Receives streaming events**: HTTP POST from actor sidecars
+4. **Forwards to clients**: Maintains `invocation_id → WebSocket` mapping
+5. **Handles MCP protocol**: Exposes tools, resources, prompts
+
+### Session Management in Gateway
+
+**Mapping invocation_id → WebSocket connection**:
+
+```python
+class Gateway:
+    def __init__(self):
+        # invocation_id → WebSocket connection
+        self.active_connections: dict[str, WebSocket] = {}
+
+    async def handle_new_request(self, websocket: WebSocket, user_message: str):
+        """User sends message via WebSocket."""
+        invocation_id = generate_invocation_id()
+
+        # Track this connection
+        self.active_connections[invocation_id] = websocket
+
+        # Send to actor via SQS
+        await send_to_sqs({
+            "route": ["llm_agent"],
+            "payload": {
+                "invocation_id": invocation_id,
+                "session": await load_session(websocket.session_id),
+                "user_message": user_message
+            }
+        })
+
+    async def handle_streaming_event(self, event: dict):
+        """Actor sends streaming event via HTTP POST."""
+        invocation_id = event["invocation_id"]
+
+        # Find the WebSocket connection for this invocation
+        if websocket := self.active_connections.get(invocation_id):
+            # Forward to client
+            await websocket.send_json(event)
+
+    async def handle_final_event(self, event: dict):
+        """Actor sends final event - close connection."""
+        invocation_id = event["invocation_id"]
+
+        if websocket := self.active_connections.get(invocation_id):
+            await websocket.send_json(event)
+            await websocket.close()
+            del self.active_connections[invocation_id]
+```
+
+### Scalability Considerations
+
+#### Horizontal Scaling with Sticky Sessions
+
+```
+                    ┌─────────────┐
+                    │ Load Balancer│
+                    │  (Sticky)    │
+                    └──────┬───────┘
+                           │
+          ┌────────────────┼────────────────┐
+          │                │                │
+          v                v                v
+    ┌──────────┐     ┌──────────┐     ┌──────────┐
+    │ Gateway 1│     │ Gateway 2│     │ Gateway 3│
+    └────┬─────┘     └────┬─────┘     └────┬─────┘
+         │                │                │
+         └────────────────┼────────────────┘
+                          │
+                    ┌─────▼──────┐
+                    │   Redis    │ ← Shared invocation_id → gateway mapping
+                    └────────────┘
+```
+
+**How it works**:
+1. Client connects → Load balancer assigns to Gateway 1 (sticky session)
+2. Gateway 1 stores `invocation_id → "gateway-1"` in Redis
+3. Actor sends streaming event → HTTP POST to any gateway
+4. Gateway checks Redis → "This invocation is on gateway-1"
+5. Gateway forwards → HTTP POST to gateway-1 (internal)
+6. Gateway-1 sends → WebSocket to client
+
+#### Stateless Gateway Alternative (SSE)
+
+```python
+@app.get("/stream/{invocation_id}")
+async def stream_events(invocation_id: str):
+    """Client opens SSE connection - gateway is stateless."""
+    async def event_generator():
+        # Subscribe to Redis pub/sub for this invocation
+        pubsub = redis.pubsub()
+        await pubsub.subscribe(f"invocation:{invocation_id}")
+
+        async for message in pubsub.listen():
+            yield f"data: {message['data']}\n\n"
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
+
+# Actor publishes streaming event
+async def send_streaming_event(event: dict):
+    await redis.publish(
+        f"invocation:{event['invocation_id']}",
+        json.dumps(event)
+    )
+```
+
+**Trade-off**: Adds Redis dependency but enables true stateless gateways.
+
+### Complete Message Flow
+
+```
+1. User: "Generate an image of a dog"
+   ↓ WebSocket
+2. Gateway → SQS message → LlmAgent actor
+   ↓
+3. LlmAgent actor yields:
+
+   Event 1 (partial=True): "I'll"
+     → Framework: classify as "sse"
+     → Sidecar: HTTP POST to gateway /stream/sse
+     → Gateway: Send to user via WebSocket ✓
+
+   Event 2 (partial=True): "I'll generate"
+     → Framework: classify as "sse"
+     → Sidecar: HTTP POST to gateway
+     → Gateway: Send to user via WebSocket ✓
+
+   Event 3 (partial=False): function_call(generate_image, "dog")
+     → Framework: classify as "control"
+     → Sidecar: Send to SQS with route=["tool_executor"]
+     → (NOT sent to gateway yet)
+   ↓
+4. ToolExecutor actor:
+   - Executes tool
+   - Yields function_response
+     → Framework: classify as "control"
+     → Sidecar: Send to SQS with route=["llm_agent"]
+   ↓
+5. LlmAgent actor yields:
+
+   Event 4 (partial=True): "Here's"
+     → Gateway → User ✓
+
+   Event 5 (partial=True): "Here's your"
+     → Gateway → User ✓
+
+   Event 6 (partial=False): final_response with image reference
+     → Framework: classify as "control"
+     → Sidecar: Send to SQS with route=["gateway"]
+
+   Event 7 (type="end"):
+     → Framework: classify as "control"
+     → Sidecar: Send to SQS with route=["gateway"]
+   ↓
+6. Gateway receives final event → Sends to user → Closes WebSocket
+```
+
+**Key insight**: User sees **all** events (streaming + control), but actors only process **control** events.
+
+---
+
+## Agent Compilation Strategy
+
+### Supported Agent Types
+
+ADK provides several built-in agent types. We compile these **declaratively** (recognize patterns, not disassemble implementation):
+
+#### 1. LlmAgent
+
+**ADK Definition** ([`llm_agent.py:183`](src/google/adk/agents/llm_agent.py:183)):
+```python
+root_agent = Agent(
+    name="my_agent",
+    model="gemini-2.5-flash",
+    instruction="You are a helpful assistant",
+    tools=[search_tool, calculator_tool]
+)
+```
+
+**Asya Compilation**: Single actor
+
+```
+┌─────────────┐
+│  LlmAgent   │
+│    Actor    │
+└─────────────┘
+```
+
+**Actor behavior**:
+- Runs ADK's reason-act loop internally
+- Yields events (streaming + control)
+- Framework routes to tool executor or next agent
+
+#### 2. SequentialAgent
+
+**ADK Definition** ([`sequential_agent.py:47`](src/google/adk/agents/sequential_agent.py:47)):
+```python
+workflow = SequentialAgent(
+    name="workflow",
+    sub_agents=[agent_a, agent_b, agent_c]
+)
+```
+
+**Asya Compilation**: Linear chain of actors
+
+```
+┌─────────┐    ┌─────────┐    ┌─────────┐
+│ Agent A │ -> │ Agent B │ -> │ Agent C │
+└─────────┘    └─────────┘    └─────────┘
+```
+
+**Routing logic**:
+```python
+# Agent A finishes
+return {
+    "route": ["agent_b"],
+    "payload": {"session": updated_session}
+}
+
+# Agent B finishes
+return {
+    "route": ["agent_c"],
+    "payload": {"session": updated_session}
+}
+
+# Agent C finishes
+return {
+    "route": ["gateway"],
+    "payload": {"session": updated_session}
+}
+```
+
+#### 3. ParallelAgent
+
+**ADK Definition** ([`parallel_agent.py:150`](src/google/adk/agents/parallel_agent.py:150)):
+```python
+parallel = ParallelAgent(
+    name="parallel",
+    sub_agents=[agent_a, agent_b, agent_c]
+)
+```
+
+**Asya Compilation**: Fan-out/fan-in pattern
+
+```
+                ┌─────────┐
+            ┌──>│ Agent A │──┐
+            │   └─────────┘  │
+┌──────┐   │   ┌─────────┐  │   ┌──────────┐
+│Router│───┼──>│ Agent B │──┼──>│Aggregator│
+└──────┘   │   └─────────┘  │   └──────────┘
+            │   ┌─────────┐  │
+            └──>│ Agent C │──┘
+                └─────────┘
+```
+
+**Router actor**:
+```python
+async def handle_parallel_router(message: dict):
+    """Fan-out to all sub-agents."""
+    session = message["session"]
+
+    # Send to all sub-agents with unique branches
+    for agent_name in ["agent_a", "agent_b", "agent_c"]:
+        yield {
+            "route": [agent_name],
+            "payload": {
+                "session": session,
+                "branch": f"parallel.{agent_name}",
+                "aggregator_id": message["invocation_id"]
+            }
+        }
+```
+
+**Aggregator actor**:
+```python
+async def handle_parallel_aggregator(message: dict):
+    """Wait for all sub-agents to finish."""
+    aggregator_id = message["aggregator_id"]
+
+    # Store result in Redis
+    await redis.lpush(f"results:{aggregator_id}", message["event"])
+
+    # Check if all done
+    results = await redis.lrange(f"results:{aggregator_id}", 0, -1)
+    if len(results) == 3:  # All 3 agents finished
+        # Merge results and continue
+        return {
+            "route": ["gateway"],
+            "payload": {"session": merge_sessions(results)}
+        }
+    else:
+        # Wait for more results (no routing)
+        return {"route": []}
+```
+
+#### 4. LoopAgent
+
+**ADK Definition** ([`loop_agent.py:51`](src/google/adk/agents/loop_agent.py:51)):
+```python
+loop = LoopAgent(
+    name="loop",
+    sub_agents=[agent_a, agent_b],
+    max_iterations=5
+)
+```
+
+**Asya Compilation**: Loop with exit condition
+
+```
+    ┌─────────────────────────┐
+    │                         │
+    v                         │
+┌─────────┐    ┌─────────┐   │
+│ Agent A │ -> │ Agent B │ ──┘
+└─────────┘    └─────────┘
+    │
+    │ (escalate or max_iterations)
+    v
+┌─────────┐
+│ Gateway │
+└─────────┘
+```
+
+**Routing logic**:
+```python
+async def handle_agent_b(message: dict):
+    """Last agent in loop - decide whether to continue."""
+    session = message["session"]
+    iteration = message.get("iteration", 0)
+
+    # Run agent
+    async for event in agent_b.run_async(context):
+        yield event
+
+    # Check exit conditions
+    if event.actions.escalate or iteration >= 5:
+        # Exit loop
+        return {
+            "route": ["gateway"],
+            "payload": {"session": session}
+        }
+    else:
+        # Continue loop
+        return {
+            "route": ["agent_a"],
+            "payload": {
+                "session": session,
+                "iteration": iteration + 1
+            }
+        }
+```
+
+### Unsupported: Custom Agents
+
+**Not supported initially**: Agents with custom `_run_async_impl()` logic
+
+```python
+class MyCustomAgent(BaseAgent):
+    async def _run_async_impl(self, ctx):
+        # Complex custom logic
+        if some_condition:
+            async for event in sub_agent_a.run_async(ctx):
+                yield event
+        else:
+            async for event in sub_agent_b.run_async(ctx):
+                yield event
+```
+
+**Reason**: Requires AST analysis or runtime interpretation, too complex for initial implementation.
+
+**Workaround**: Treat as single actor (no distribution), or refactor to use built-in agents.
+
+---
+
+## Implementation Examples
+
+### Example 1: Simple LlmAgent
+
+**ADK Agent**:
+```python
+# agent.py
+from google.adk import Agent
+from google.adk.tools.google_search_tool import GoogleSearchTool
+
+root_agent = Agent(
+    name="search_assistant",
+    model="gemini-2.5-flash",
+    instruction="You are a helpful assistant that can search the web.",
+    tools=[GoogleSearchTool()]
+)
+```
+
+**Asya Actor**:
+```python
+# actor_handler.py
+from agent import root_agent
+from services import get_artifact_service, get_session_service
+
+async def handle_search_assistant(message: dict):
+    """Actor handler - just yield events."""
+    context = InvocationContext(
+        artifact_service=get_artifact_service(),
+        session_service=get_session_service(),
+        session=Session.model_validate(message["session"]),
+        agent=root_agent,
+        invocation_id=message["invocation_id"]
+    )
+
+    async for event in root_agent.run_async(context):
+        yield event
+
+    yield {"type": "end"}
+```
+
+**Deployment**:
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: search-assistant-actor
+spec:
+  template:
+    spec:
+      containers:
+      - name: actor
+        image: asya-adk-actor:latest
+        env:
+          - name: ACTOR_HANDLER
+            value: "actor_handler:handle_search_assistant"
+          - name: ADK_ARTIFACT_SERVICE_TYPE
+            value: "gcs"
+          - name: ADK_ARTIFACT_SERVICE_BUCKET
+            value: "my-artifacts"
+        volumeMounts:
+        - name: agent-code
+          mountPath: /app/agent.py
+          subPath: agent.py
+        - name: actor-code
+          mountPath: /app/actor_handler.py
+          subPath: actor_handler.py
+        - name: asya-runtime
+          mountPath: /app/asya_runtime.py
+          subPath: asya_runtime.py
+      volumes:
+      - name: agent-code
+        configMap:
+          name: search-assistant-agent
+      - name: actor-code
+        configMap:
+          name: search-assistant-actor
+      - name: asya-runtime
+        configMap:
+          name: asya-runtime  # Framework-provided
+```
+
+### Example 2: Sequential Workflow
+
+**ADK Agent**:
+```python
+# workflow.py
+from google.adk.agents import SequentialAgent, Agent
+
+planner = Agent(name="planner", instruction="Create a plan")
+executor = Agent(name="executor", instruction="Execute the plan")
+reviewer = Agent(name="reviewer", instruction="Review the results")
+
+workflow = SequentialAgent(
+    name="workflow",
+    sub_agents=[planner, executor, reviewer]
+)
+```
+
+**Asya Compilation**:
+
+Three actors: `planner`, `executor`, `reviewer`
+
+**Planner Actor**:
+```python
+async def handle_planner(message: dict):
+    context = create_context(message)
+
+    async for event in planner.run_async(context):
+        yield event
+
+    # Route to executor
+    yield {
+        "type": "end",
+        "next_route": ["executor"]
+    }
+```
+
+**Executor Actor**:
+```python
+async def handle_executor(message: dict):
+    context = create_context(message)
+
+    async for event in executor.run_async(context):
+        yield event
+
+    # Route to reviewer
+    yield {
+        "type": "end",
+        "next_route": ["reviewer"]
+    }
+```
+
+**Reviewer Actor**:
+```python
+async def handle_reviewer(message: dict):
+    context = create_context(message)
+
+    async for event in reviewer.run_async(context):
+        yield event
+
+    # Route to gateway (end of workflow)
+    yield {
+        "type": "end",
+        "next_route": ["gateway"]
+    }
+```
+
+---
+
+## Trade-offs & Design Decisions
+
+### Decision 1: Dual-Channel vs. Single-Channel
+
+**Chosen**: Dual-channel (control via SQS, streaming via HTTP)
+
+| Aspect | Dual-Channel | Single-Channel |
+|--------|--------------|----------------|
+| **Complexity** | Higher (two transports) | Lower (one transport) |
+| **Scalability** | Better (streaming doesn't block control) | Worse (queue flooded) |
+| **Latency** | Lower (direct HTTP for streaming) | Higher (queue overhead) |
+| **Ordering** | Requires sequence numbers | Natural ordering |
+| **Infrastructure** | Needs HTTP gateway | Just message queue |
+
+**Rationale**: Real-time streaming is critical for chat UIs. Mixing high-frequency streaming with low-frequency control messages would flood queues and add latency.
+
+### Decision 2: Session in Message vs. Shared Store
+
+**Chosen**: Session in message (with compression strategies)
+
+| Aspect | Session in Message | Shared Store |
+|--------|-------------------|--------------|
+| **Simplicity** | Higher (self-contained) | Lower (fetch required) |
+| **Latency** | Lower (no fetch) | Higher (DB roundtrip) |
+| **Message size** | Larger (grows with conversation) | Smaller (just session_id) |
+| **Fault tolerance** | Better (message has all context) | Worse (DB dependency) |
+| **Consistency** | Easier (no distributed state) | Harder (cache invalidation) |
+
+**Rationale**: Aligns with Asya's philosophy of self-contained messages. Compression strategies (artifact references, compaction) keep messages manageable.
+
+### Decision 3: Services from Environment vs. Message
+
+**Chosen**: Services from environment (deployment-time config)
+
+| Aspect | Environment | Message |
+|--------|-------------|---------|
+| **Message size** | Smaller (no configs) | Larger (configs in every message) |
+| **Flexibility** | Lower (requires redeployment) | Higher (per-message configs) |
+| **Security** | Better (secrets in env vars) | Worse (secrets in messages) |
+| **Simplicity** | Higher (fail-fast at startup) | Lower (lazy initialization) |
+
+**Rationale**: Most deployments use same services for all messages. Multi-tenancy handled via tenant_id in message, not different service configs.
+
+### Decision 4: Framework-Level Routing vs. User-Level
+
+**Chosen**: Framework-level routing (user just yields events)
+
+| Aspect | Framework Routing | User Routing |
+|--------|------------------|--------------|
+| **User code complexity** | Lower (just yield) | Higher (classify + route) |
+| **Framework complexity** | Higher (classification logic) | Lower (pass-through) |
+| **Consistency** | Better (centralized logic) | Worse (user errors) |
+| **Flexibility** | Lower (fixed classification) | Higher (custom routing) |
+
+**Rationale**: Simplifies user code dramatically. Classification logic is well-defined (partial vs. control) and unlikely to need customization.
+
+### Decision 5: Stateful vs. Stateless Gateway
+
+**Chosen**: Stateful gateway (for MVP), with stateless option (for scale)
+
+| Aspect | Stateful | Stateless (Redis) |
+|--------|----------|-------------------|
+| **Simplicity** | Higher (in-memory map) | Lower (Redis dependency) |
+| **Scalability** | Lower (sticky sessions) | Higher (any gateway) |
+| **Fault tolerance** | Lower (crash loses connections) | Higher (client reconnects) |
+| **Latency** | Lower (no Redis hop) | Higher (~1-5ms) |
+
+**Rationale**: Start simple with stateful gateway. Add Redis pub/sub when scaling beyond single gateway instance.
+
+---
+
+## Open Questions
+
+### 1. Event Ordering Guarantees
+
+**Question**: How does ADK guarantee event ordering? Do we need to replicate this?
+
+**Investigation needed**:
+- Check if ADK uses sequence numbers
+- Understand ordering guarantees between streaming and control events
+- Determine if out-of-order delivery is acceptable
+
+**Proposed solution**: Add `sequence_number` to all events, document best-effort ordering for streaming events.
+
+### 2. Backpressure and Flow Control
+
+**Question**: What happens when actor generates events faster than gateway can send to client?
+
+**Options**:
+- Drop old streaming events (acceptable for audio/video)
+- Buffer all events (memory risk)
+- Backpressure to actor (complex)
+
+**Decision**: Document as known limitation, implement dropping strategy for MVP.
+
+### 3. Partial Event Accumulation
+
+**Question**: Should framework accumulate partial text, or should UI?
+
+**ADK behavior**: Each partial event contains **accumulated** text:
+```python
+Event 1: "Hello"
+Event 2: "Hello world"  # Accumulated
+Event 3: "Hello world, how are you?"  # Accumulated
+```
+
+**Investigation needed**: Check A2UI protocol requirements.
+
+**Proposed solution**: Follow A2UI protocol specification.
+
+### 4. Error Handling in Streaming
+
+**Question**: How does user know if actor crashes mid-stream?
+
+**Scenario**:
+```
+Actor yields:
+1. Event A (partial=True) → Sent to user ✓
+2. Event B (partial=True) → Sent to user ✓
+3. [Actor crashes]
+4. No "end" event sent
+```
+
+**Proposed solution**: Sidecar detects actor crash, sends error event to gateway.
+
+### 5. Multi-Agent Streaming
+
+**Question**: How to display interleaved streams from parallel agents?
+
+**ADK behavior**: Uses `branch` field ([`parallel_agent.py:42`](src/google/adk/agents/parallel_agent.py:42)) to separate parallel agents.
+
+**Proposed solution**: Include `branch` in streaming events, UI separates by branch.
+
+### 6. Session Persistence During Streaming
+
+**Question**: Should partial events be persisted if actor crashes?
+
+**ADK behavior**: Partial events are **not** saved to session ([`runners.py:829`](src/google/adk/runners.py:829)).
+
+**Decision**: Follow ADK behavior - partial events are ephemeral.
+
+### 7. Compilation of Custom Flows
+
+**Question**: How to handle custom `_run_async_impl()` logic?
+
+**Decision**: Not supported initially. Document limitation. Users must refactor to use built-in agents or accept single-actor deployment.
+
+---
+
+## References
+
+### ADK Source Code
+
+- **Runner**: [`src/google/adk/runners.py:102`](src/google/adk/runners.py:102)
+- **BaseAgent**: [`src/google/adk/agents/base_agent.py:85`](src/google/adk/agents/base_agent.py:85)
+- **LlmAgent**: [`src/google/adk/agents/llm_agent.py:183`](src/google/adk/agents/llm_agent.py:183)
+- **SequentialAgent**: [`src/google/adk/agents/sequential_agent.py:47`](src/google/adk/agents/sequential_agent.py:47)
+- **ParallelAgent**: [`src/google/adk/agents/parallel_agent.py:150`](src/google/adk/agents/parallel_agent.py:150)
+- **LoopAgent**: [`src/google/adk/agents/loop_agent.py:51`](src/google/adk/agents/loop_agent.py:51)
+- **Session**: [`src/google/adk/sessions/session.py:27`](src/google/adk/sessions/session.py:27)
+- **Event**: [`src/google/adk/events/event.py:30`](src/google/adk/events/event.py:30)
+- **EventActions**: [`src/google/adk/events/event_actions.py:50`](src/google/adk/events/event_actions.py:50)
+- **LlmResponse**: [`src/google/adk/models/llm_response.py:28`](src/google/adk/models/llm_response.py:28)
+- **BaseLlmFlow**: [`src/google/adk/flows/llm_flows/base_llm_flow.py:108`](src/google/adk/flows/llm_flows/base_llm_flow.py:108)
+- **InvocationContext**: [`src/google/adk/agents/invocation_context.py:98`](src/google/adk/agents/invocation_context.py:98)
+- **Event Compaction**: [`src/google/adk/apps/compaction.py`](src/google/adk/apps/compaction.py)
+
+### Asya Documentation
+
+- **Actor-to-Actor Protocol**: https://github.com/deliveryhero/asya/blob/main/docs/architecture/protocols/actor-actor.md
+- **Flows Example**: https://github.com/deliveryhero/asya/blob/main/examples/flows/if_mutations_in_branches.py
+- **Compiled Routers**: https://github.com/deliveryhero/asya/blob/main/examples/flows/compiled/if_mutations_in_branches/routers.py
+
+### External References
+
+- **ADK Documentation**: https://google.github.io/adk-docs
+- **ADK GitHub**: https://github.com/google/adk-python
+- **Asya GitHub**: https://github.com/deliveryhero/asya
+
+---
+
+## Next Steps
+
+1. **Validate core architecture**: Build prototype with single LlmAgent actor
+2. **Test session compression**: Measure message sizes with real conversations
+3. **Implement framework runtime**: Create `asya_runtime.py` with event classification
+4. **Build gateway integration**: Implement streaming event forwarding
+5. **Compile SequentialAgent**: Validate multi-actor workflows
+6. **Address open questions**: Investigate event ordering, A2UI protocol
+7. **Performance testing**: Measure latency, throughput, scalability
+8. **Documentation**: User guide for deploying ADK agents on Asya
+
+---
+
+**End of Document**

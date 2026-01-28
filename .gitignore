@@ -213,3 +213,10 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 .logs
+
+# bv (beads viewer) local config and caches
+.bv/
+
+# Git worktrees for parallel Claude Code agents
+.worktrees/
+worktrees/
