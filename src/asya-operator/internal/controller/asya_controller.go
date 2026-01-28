@@ -51,7 +51,7 @@ const (
 
 	transportCredentialsSecretSuffix = "-transport-creds"
 
-	defaultQueueHealthCheckInterval = 30 * time.Second
+	defaultQueueHealthCheckInterval = 5 * time.Minute
 
 	podReasonCrashLoopBackOff           = "CrashLoopBackOff"
 	podReasonImagePullBackOff           = "ImagePullBackOff"
