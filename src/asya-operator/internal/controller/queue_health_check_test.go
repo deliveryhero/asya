@@ -57,7 +57,7 @@ func TestQueueHealthCheckInterval(t *testing.T) {
 		{
 			name:             "default interval when env not set",
 			envValue:         "",
-			expectedInterval: 5 * time.Minute,
+			expectedInterval: 30 * time.Second,
 		},
 		{
 			name:             "custom interval from env",
@@ -72,7 +72,7 @@ func TestQueueHealthCheckInterval(t *testing.T) {
 		{
 			name:             "invalid env uses default",
 			envValue:         "invalid",
-			expectedInterval: 5 * time.Minute,
+			expectedInterval: 30 * time.Second,
 		},
 	}
 
