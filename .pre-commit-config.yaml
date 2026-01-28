@@ -1,4 +1,4 @@
-exclude: (^|/)CHANGELOG.md
+exclude: (^|/)(CHANGELOG\.md|\.beads/)
 
 repos:
 # General file checks

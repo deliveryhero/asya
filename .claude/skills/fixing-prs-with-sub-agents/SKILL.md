@@ -1,6 +1,6 @@
 ---
 name: fixing-prs-with-sub-agents
-description: Use when fixing multiple failing PRs by dispatching parallel Haiku sub-agents to create worktrees, apply fixes, and push changes - agents run unit tests only, full suite testing happens on remote CI
+description: Use when fixing one or multiple failing PRs by dispatching one or parallel Haiku sub-agents to create (or checkout to) git worktrees, apply fixes, and push changes - agents run unit tests only, full suite testing happens on remote CI
 ---
 
 # Fixing PRs with Parallel Sub-Agents
@@ -12,6 +12,8 @@ This skill enables systematic parallel fixing of multiple failing PRs using Haik
 **Core principle:** Sub-agents handle fixes → Remote CI validates → Loop until all tests pass.
 git
 **Announce at start:** "I'm using the fixing-prs-with-sub-agents skill to dispatch parallel fix agents for these PRs."
+
+**Worktree skill:** Sub-agents should use the `using-git-worktrees` skill for isolation.
 
 ## Key Constraints
 
@@ -73,16 +75,24 @@ Task(
   ROOT CAUSE: [identified issue]
 
   STEPS:
-  1. Create worktree: git worktree add /tmp/fix-pr-NNN origin/[branch-name]
-  2. cd /tmp/fix-pr-NNN
-  3. Merge fresh main: git pull origin main
-  4. Apply fix: [specific changes needed]
-  5. Run unit tests only: make test-unit
-  6. If tests pass:
-     - git add [files]
-     - git commit -m "fix: [description]"
-     - git push origin HEAD:[branch-name]
-  7. Clean up: cd /home/a.yushkovskiy/asya && git worktree remove /tmp/fix-pr-NNN
+  1. Use the using-git-worktrees skill to create isolated workspace:
+     Skill(skill="using-git-worktrees")
+
+     When prompted for branch name, use: [actual-branch-name]
+     (Get it with: gh pr view NNN --json headRefName)
+
+  2. In the worktree directory:
+     - Merge fresh main: git pull origin main
+     - Apply fix: [specific changes needed]
+     - Run unit tests only: make test-unit
+     - If tests pass:
+       * git add [files]
+       * git commit -m "fix: [description]"
+       * git push origin HEAD:[branch-name]
+
+  3. Clean up:
+     - Exit worktree directory
+     - Skill will handle cleanup
 
   Report: Summary of changes + test results
 
@@ -90,6 +100,7 @@ Task(
   - Do NOT run integration/component/e2e tests
   - Only run: make test-unit
   - Push changes to remote for CI to run full suite
+  - Use using-git-worktrees skill for isolation (don't manually create /tmp/ dirs)
   """
 )
 ```
@@ -98,19 +109,34 @@ Task(
 
 When creating a fix agent, include these requirements:
 
-### 1. Worktree Setup
+### 1. Worktree Setup Using Skill
 
+**Use the `using-git-worktrees` skill** for proper isolation:
+
+```
+Skill(skill="using-git-worktrees")
+```
+
+The skill will:
+- Detect optimal worktree location (.worktrees/ or ~/.config/superpowers/worktrees/)
+- Create isolated workspace
+- Verify git safety (.gitignore checks)
+- Return workspace directory path
+
+**When prompted for branch name**, provide the actual PR branch:
 ```bash
-# Create isolated workspace
-git worktree add /tmp/fix-pr-NNN origin/[actual-branch-name]
-cd /tmp/fix-pr-NNN
+# Get the PR branch name with:
+gh pr view NNN --json headRefName
+# Example: dependabot/go_modules/src/asya-operator/github.com/expr-lang/expr-1.17.7
+```
 
-# Verify on correct branch
+**Verify correct branch in worktree**:
+```bash
 git branch -v
 git log --oneline -3
 ```
 
-**Why critical:** Each PR has a specific branch (often `dependabot/...`). Use `gh pr view NNN --json headRefName` to get the exact branch name.
+**Why critical:** Each PR has a specific branch (often `dependabot/...`). Using the skill ensures proper isolation and safety checks.
 
 ### 2. Merge Fresh Main
 
@@ -121,27 +147,6 @@ git pull origin main  # Merge latest from main
 **Why needed:** Ensures fixes are compatible with current main code.
 
 ### 3. Apply Fix
-
-The fix strategy depends on root cause:
-
-**Version incompatibility (revert to known-good):**
-```bash
-# Example: expr 1.17.7 → 1.17.0
-sed -i 's/expr v1.17.7/expr v1.17.0/' go.mod
-go mod tidy
-```
-
-**Configuration workaround:**
-```bash
-# Example: reduce health check interval
-sed -i 's/5m/30s/' config/values.yaml
-```
-
-**Code change (small fix):**
-```bash
-# Edit file with targeted changes
-# Minimal modifications only
-```
 
 ### 4. Unit Tests Only
 
@@ -167,7 +172,7 @@ git commit -m "fix: [description]"
 git push origin HEAD:[branch-name]
 ```
 
-**Critical:** Push to the ACTUAL PR branch, not to rfc0 or main.
+**Critical:** Push to the ACTUAL PR branch, not to main or whatever other branch.
 
 Get branch name with:
 ```bash
@@ -178,10 +183,12 @@ gh pr view NNN --json headRefName
 
 ### 6. Clean Up
 
-```bash
-cd /home/a.yushkovskiy/asya
-git worktree remove /tmp/fix-pr-NNN
-```
+The `using-git-worktrees` skill handles all cleanup automatically:
+- Removes worktree after agent completes
+- Cleans up branch references
+- Verifies cleanup was successful
+
+No manual cleanup needed.
 
 ## Phase 4: Monitor Remote CI
 
@@ -196,6 +203,8 @@ done
 # Get logs for failed test
 gh run view [run-id] --log -j [job-id] 2>&1 | tail -100
 ```
+
+Typically, it takes ~5 minutes to run integration tests and ~20 minutes for e2e tests.
 
 ## Phase 5: Iterative Loop
 
@@ -219,29 +228,13 @@ sed -i 's/package-name v1.2.3/package-name v1.2.0/' go.mod
 go mod tidy
 ```
 
-### Pattern: Reduce Health Check Timeout
-
-```bash
-# For E2E tests
-sed -i 's/HEALTH_CHECK_INTERVAL=5m/HEALTH_CHECK_INTERVAL=30s/' deploy/helm/values.yaml
-```
-
-### Pattern: Fix Configuration
-
-```bash
-# Update test configuration
-cat > testing/config.yaml << EOF
-timeout: 120
-interval: 30s
-EOF
-```
 
 ## Safety Rules
 
-1. **Always use git worktree** - Never modify main workspace
+1. **Always use `using-git-worktrees` skill** - Creates proper isolation, verifies safety
 2. **Run unit tests first** - Before pushing
-3. **Push to PR branch** - Not to main or rfc0
-4. **Clean up worktrees** - After pushing
+3. **Push to PR branch** - Not to main or rfc0 (use `gh pr view NNN --json headRefName`)
+4. **Let skill handle cleanup** - Don't manually remove worktrees
 5. **Report clearly** - Summary of changes and test results
 6. **No merges without tests** - Must pass at least unit tests locally
 
@@ -265,36 +258,8 @@ Changes:
 Next: Waiting for remote CI build results
 ```
 
-## Monitoring Build Results
-
-After fixes are pushed, watch for CI updates:
-
-```bash
-# Watch single PR
-gh pr view 92 --json statusCheckRollup -q '.statusCheckRollup[] | select(.name == "Unit tests") | {name, conclusion}'
-
-# Watch all PRs
-watch -n 30 'for pr in 74 78 89 91 92; do echo "PR #$pr:"; gh pr view $pr --json statusCheckRollup -q ".statusCheckRollup[] | select(.conclusion != null) | .name, .conclusion" | head -3; done'
-```
 
 ## Troubleshooting
-
-### Agent Pushes to Wrong Branch
-
-**Problem:** Agent pushed to `rfc0` instead of PR branch
-
-**Solution:**
-1. Get correct branch name: `gh pr view NNN --json headRefName`
-2. Force-reset PR branch: `git reset --hard [commit-with-fix]`
-3. Force-push: `git push -f origin HEAD:[correct-branch]`
-
-### PR Shows 0 Files Changed
-
-**Cause:** Fix reverted changes to match main (e.g., reverted version upgrade)
-
-**Status:** This is actually CORRECT if the fix is to avoid a problematic upgrade
-
-**Action:** Decide if the revert is acceptable or if proper fix is needed
 
 ### Unit Tests Pass but E2E Tests Fail on Remote
 
@@ -305,28 +270,40 @@ watch -n 30 'for pr in 74 78 89 91 92; do echo "PR #$pr:"; gh pr view $pr --json
 ## Example: Complete PR Fix Workflow
 
 ```bash
-# 1. Create umbrella
+# 1. Create umbrella (if needed)
 bd create --title="[Umbrella] Fix expr 1.17.7 upgrade issues" --type=epic --priority=1
 # → Returns: asya-abc
 
 # 2. Analyze (optional, if not already known)
-Task(subagent_type="general-purpose", model="haiku",
-  prompt="Analyze PR #74 failure using gh CLI...")
+Task(
+  description="Analyze PR #74 failure",
+  subagent_type="general-purpose",
+  model="haiku",
+  prompt="Analyze PR #74 failure using gh CLI: ..."
+)
 
-# 3. Dispatch fix agents (PARALLEL)
-Task 1: Fix PR #74 (expr revert)
-Task 2: Fix PR #78 (expr revert)
-Task 3: Fix PR #89 (KEDA downgrade)
-Task 4: Fix PR #91 (health interval config)
-Task 5: Fix PR #92 (health interval config)
+# 3. Dispatch fix agents IN PARALLEL (5 agents at once)
+Task 1: Fix PR #74 using using-git-worktrees skill
+Task 2: Fix PR #78 using using-git-worktrees skill
+Task 3: Fix PR #89 using using-git-worktrees skill
+Task 4: Fix PR #91 using using-git-worktrees skill
+Task 5: Fix PR #92 using using-git-worktrees skill
 
-# 4. Monitor results
+# Each agent will:
+# - Call Skill(skill="using-git-worktrees")
+# - Apply fix in isolated workspace
+# - Run make test-unit
+# - Push to PR branch
+# - Let skill cleanup
+
+# 4. Monitor results (check every 5 minutes)
 for pr in 74 78 89 91 92; do
   gh pr view $pr --json statusCheckRollup
 done
 
-# 5. If failures, iterate
-Task: Re-fix PR #XX based on CI logs
+# 5. If failures, create new fix agents
+Task: Re-fix PR #XX using using-git-worktrees skill
+  Prompt: "Previous fix showed [error]. New root cause: [analysis]. Apply this fix instead: ..."
 ```
 
 ## Key Decisions

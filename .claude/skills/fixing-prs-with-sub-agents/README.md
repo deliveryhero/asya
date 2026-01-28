@@ -24,24 +24,46 @@ Task(
   description="Fix PR #NNN: [issue]",
   subagent_type="general-purpose",
   model="haiku",
-  prompt="[Instructions from SKILL.md]"
+  prompt="""
+  Fix PR #NNN using using-git-worktrees skill.
+
+  STEPS:
+  1. Skill(skill="using-git-worktrees")
+  2. In workspace: merge main, apply fix
+  3. make test-unit
+  4. git commit & push
+  5. Let skill cleanup
+
+  [Full instructions from SKILL.md]
+  """
 )
 ```
 
 ## Key Rules (Enforce These!)
 
-### Git Worktree Pattern
-```bash
-git worktree add /tmp/fix-pr-NNN origin/[branch-name]
-cd /tmp/fix-pr-NNN
-git pull origin main                    # Merge fresh main
-[apply fix]
-make test-unit                          # ONLY unit tests!
-git commit -m "fix: [description]"
-git push origin HEAD:[branch-name]
-cd /home/a.yushkovskiy/asya
-git worktree remove /tmp/fix-pr-NNN
+### Git Worktree Pattern (Using Skill)
+
 ```
+1. Skill(skill="using-git-worktrees")
+   → Provides isolated workspace
+   → Verifies safety (.gitignore)
+   → Returns workspace directory
+
+2. In workspace:
+   git pull origin main                 # Merge fresh main
+   [apply fix]
+   make test-unit                       # ONLY unit tests!
+   git commit -m "fix: [description]"
+   git push origin HEAD:[branch-name]
+
+3. Skill cleanup handles worktree removal
+```
+
+**Why use the skill:**
+- ✓ Proper isolation (.worktrees/ or ~/.config/)
+- ✓ Git safety verification
+- ✓ Automatic cleanup
+- ✓ Follows project conventions
 
 ### Critical Constraints
 
@@ -179,8 +201,9 @@ A PR fix is complete when:
 | Agent pushed to wrong branch | Misidentified PR branch | Use `gh pr view NNN --json headRefName` to get correct name |
 | PR shows 0 files changed | Fix reverted to match main | This is OK if revert is intentional |
 | Unit tests pass but E2E fails on CI | E2E needs full environment | Normal - that's why we test remotely |
-| Worktree already exists | Leftover from previous run | `git worktree remove /tmp/fix-pr-NNN` |
+| Worktree already exists | using-git-worktrees skill didn't cleanup | Agent should verify workspace cleanup; use `git worktree list` to check |
 | go mod tidy fails | Go environment not set up | Agent should work in module directory: `cd [module] && go mod tidy` |
+| Skill creation fails | Workspace directory not available | Check `.worktrees/` exists and is in `.gitignore`; or ensure `~/.config/superpowers/` writable |
 
 ## When NOT to Use This Skill
 
