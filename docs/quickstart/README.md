@@ -215,11 +215,11 @@ EOF
 
 kubectl apply -f hello-actor.yaml
 
-kubectl get asya
+kubectl get asya -l asya.sh/asya=hello
 # NAME    STATUS    RUNNING   FAILING   TOTAL   DESIRED   MIN   MAX   LAST-SCALE   AGE
 # hello   Napping   0         0         0       0         0     10    -            18s
 ```
-<!-- # kubectl get deployment -l asya.sh/asya=hello -->
+<!-- # kubectl get deployment -l asya.sh/actor=hello -->
 
 The actor is in `Napping` state with 0 replicas, demonstrating scale-to-zero capability. It will automatically scale up when messages arrive in the queue.
 See more on actor states [here](/docs/architecture/asya-operator.md#status-values).
@@ -251,7 +251,7 @@ Read the logs using `kubectl logs` and find the greeting message (with timeout):
 
 ```bash
 timeout 30s sh -c '
-  until kubectl logs -l asya.sh/asya=hello -c asya-runtime 2>&1 | tee /dev/stderr | grep -q "greeting"; do
+  until kubectl logs -l asya.sh/actor=hello -c asya-runtime 2>&1 | tee /dev/stderr | grep -q "greeting"; do
     sleep 1
   done
 ' && echo "[+] Found expected greeting in logs"
@@ -295,6 +295,8 @@ Press `Ctrl+C` to stop watching for pods.
 
 ### 1. Create S3 Buckets
 
+Suppose, we want to save all messages to the buckets `s3://asya-results-bucket` and `s3://asya-errors-bucket`. Note that the bucket name should be globally unique.
+
 ```bash
 kubectl run aws-cli --rm -i --restart=Never --image=amazon/aws-cli \
   --namespace asya-system \
@@ -302,8 +304,8 @@ kubectl run aws-cli --rm -i --restart=Never --image=amazon/aws-cli \
   --env="AWS_SECRET_ACCESS_KEY=test" \
   --env="AWS_DEFAULT_REGION=us-east-1" \
   -- sh -c "
-    aws --endpoint-url=http://localstack.asya-system.svc.cluster.local:4566 s3 mb s3://asya-results
-    aws --endpoint-url=http://localstack.asya-system.svc.cluster.local:4566 s3 mb s3://asya-errors
+    aws --endpoint-url=http://localstack.asya-system.svc.cluster.local:4566 s3 mb s3://asya-results-bucket
+    aws --endpoint-url=http://localstack.asya-system.svc.cluster.local:4566 s3 mb s3://asya-errors-bucket
   "
 ```
 
@@ -324,7 +326,7 @@ happy-end:
           - name: ASYA_GATEWAY_URL
             value: ""  # Set this when gateway is installed
           - name: ASYA_S3_BUCKET
-            value: "asya-results"
+            value: "asya-results-bucket"
           - name: ASYA_S3_ENDPOINT
             value: "http://localstack.asya-system.svc.cluster.local:4566"
           - name: ASYA_S3_REGION
@@ -345,7 +347,7 @@ error-end:
           - name: ASYA_GATEWAY_URL
             value: ""  # Set this when gateway is installed
           - name: ASYA_S3_BUCKET
-            value: "asya-errors"
+            value: "asya-errors-bucket"
           - name: ASYA_S3_ENDPOINT
             value: "http://localstack.asya-system.svc.cluster.local:4566"
           - name: ASYA_S3_REGION
@@ -482,7 +484,7 @@ happy-end:
           - name: ASYA_GATEWAY_URL
             value: "http://asya-gateway.asya-system.svc.cluster.local:8080"
           - name: ASYA_S3_BUCKET
-            value: "asya-results"
+            value: "asya-results-bucket"
           - name: ASYA_S3_ENDPOINT
             value: "http://localstack.asya-system.svc.cluster.local:4566"
           - name: ASYA_S3_REGION
@@ -503,7 +505,7 @@ error-end:
           - name: ASYA_GATEWAY_URL
             value: "http://asya-gateway.asya-system.svc.cluster.local:8080"
           - name: ASYA_S3_BUCKET
-            value: "asya-errors"
+            value: "asya-errors-bucket"
           - name: ASYA_S3_ENDPOINT
             value: "http://localstack.asya-system.svc.cluster.local:4566"
           - name: ASYA_S3_REGION
@@ -597,10 +599,10 @@ Send a message and watch scaling:
 asya mcp call hello --name="Test"
 
 # Watch pods scale
-kubectl get pods -l asya.sh/asya=hello -w
+kubectl get pods -l asya.sh/actor=hello -w
 
 # Check logs
-POD=$(kubectl get pods -l asya.sh/asya=hello -o name | head -1)
+POD=$(kubectl get pods -l asya.sh/actor=hello -o name | head -1)
 kubectl logs $POD -c asya-runtime
 kubectl logs $POD -c asya-sidecar
 ```

@@ -19,7 +19,6 @@ func TestPropagateLabels(t *testing.T) {
 		{
 			name: "merge user and operator labels",
 			asyaLabels: map[string]string{
-				"app":  "my-app",
 				"team": "ml-platform",
 			},
 			operatorLabels: map[string]string{
@@ -27,7 +26,6 @@ func TestPropagateLabels(t *testing.T) {
 				"app.kubernetes.io/component": "actor",
 			},
 			expected: map[string]string{
-				"app":                         "my-app",
 				"team":                        "ml-platform",
 				"app.kubernetes.io/name":      "test-actor",
 				"app.kubernetes.io/component": "actor",
@@ -111,7 +109,6 @@ func TestValidateUserLabels(t *testing.T) {
 		{
 			name: "valid user labels",
 			labels: map[string]string{
-				"app":     "my-app",
 				"team":    "ml-platform",
 				"env":     "production",
 				"version": "v1.0.0",
@@ -153,7 +150,7 @@ func TestValidateUserLabels(t *testing.T) {
 		{
 			name: "mixed valid and invalid",
 			labels: map[string]string{
-				"app":                    "valid",
+				"team":                   "ml-platform",
 				"app.kubernetes.io/name": "invalid",
 			},
 			expectError: true,

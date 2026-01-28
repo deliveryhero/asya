@@ -206,7 +206,7 @@ def check_actor_readiness(actor_name: str, namespace: str = "asya-e2e") -> dict:
 
     # Check pod status
     output = run_kubectl(
-        ["get", "pods", "-l", f"asya.sh/asya={actor_name}", "-o", "json"],
+        ["get", "pods", "-l", f"asya.sh/actor={actor_name}", "-o", "json"],
         namespace,
     )
     if output:
@@ -238,7 +238,7 @@ def check_actor_readiness(actor_name: str, namespace: str = "asya-e2e") -> dict:
         pass
 
     # Check recent pod errors
-    output = run_kubectl(["logs", "-l", f"asya.sh/asya={actor_name}", "--tail=50", "-c", "sidecar"], namespace)
+    output = run_kubectl(["logs", "-l", f"asya.sh/actor={actor_name}", "--tail=50", "-c", "sidecar"], namespace)
     if output:
         errors = [line for line in output.split("\n") if "ERROR" in line or "FATAL" in line or "panic" in line]
         result["recent_errors"] = errors[-5:] if len(errors) > 5 else errors
@@ -274,7 +274,7 @@ def log_actor_diagnostics(actor_name: str, namespace: str = "asya-e2e"):
 
     # Show detailed pod logs if actor is not ready
     if not info["deployment_ready"] or info["queue_consumers"] == 0:
-        log_pod_logs(f"asya.sh/asya={actor_name}", f"{actor_name} (Not Ready)", namespace, tail=30)
+        log_pod_logs(f"asya.sh/actor={actor_name}", f"{actor_name} (Not Ready)", namespace, tail=30)
 
     logger.info("=" * 80 + "\n")
 

@@ -165,6 +165,8 @@ func (r *AsyncActorReconciler) classifyWorkloadError(cond *metav1.Condition) str
 }
 
 // determineStatus determines the overall AsyncActor status using priority logic
+//
+//gocyclo:ignore
 func (r *AsyncActorReconciler) determineStatus(asya *asyav1alpha1.AsyncActor) string {
 	// 1. Lifecycle states
 	if asya.DeletionTimestamp != nil {
@@ -175,22 +177,13 @@ func (r *AsyncActorReconciler) determineStatus(asya *asyav1alpha1.AsyncActor) st
 		return "Creating"
 	}
 
-	// 2. Critical errors (highest priority)
+	// 2. Critical errors (check readiness conditions first)
 	transportReady := r.isConditionTrue(asya, "TransportReady")
 	workloadReady := r.isConditionTrue(asya, "WorkloadReady")
 	scalingReady := r.isConditionTrue(asya, "ScalingReady")
 
 	if !transportReady {
 		return "TransportError"
-	}
-
-	if !workloadReady {
-		for _, cond := range asya.Status.Conditions {
-			if cond.Type == "WorkloadReady" && cond.Status == metav1.ConditionFalse {
-				return r.classifyWorkloadError(&cond)
-			}
-		}
-		return statusWorkloadError
 	}
 
 	if asya.Spec.Scaling.Enabled && !scalingReady {
@@ -216,20 +209,32 @@ func (r *AsyncActorReconciler) determineStatus(asya *asyav1alpha1.AsyncActor) st
 		failing = *asya.Status.FailingPods
 	}
 
-	// 4. Check for failing pods before transitional states
+	// 4. Check Napping state (after confirming scaling is healthy)
+	// When KEDA successfully scales to zero, desired=0 is intentional, not an error
+	if desired == 0 && asya.Spec.Scaling.Enabled && scalingReady {
+		return "Napping"
+	}
+
+	// 5. Check workload errors after Napping check
+	// This allows desired=0 with healthy scaling to be Napping, not WorkloadError
+	if !workloadReady {
+		for _, cond := range asya.Status.Conditions {
+			if cond.Type == "WorkloadReady" && cond.Status == metav1.ConditionFalse {
+				return r.classifyWorkloadError(&cond)
+			}
+		}
+		return statusWorkloadError
+	}
+
+	// 6. Check for failing pods before transitional states
 	// Failing pods indicate persistent issues only if we don't have enough running pods
 	// If ready >= desired, we have sufficient capacity even with some failing pods
 	if failing > 0 && ready < desired {
 		return statusWorkloadError
 	}
 
-	// 5. Transitional states (scaling/updating)
+	// 7. Transitional states (scaling/updating)
 	// TODO: Detect Updating state (check deployment revision change)
-
-	// Check Napping state first when desired=0 to avoid showing ScalingDown during scale-to-zero
-	if desired == 0 && asya.Spec.Scaling.Enabled {
-		return "Napping"
-	}
 
 	if total < desired && desired > 0 {
 		return "ScalingUp"
@@ -239,7 +244,7 @@ func (r *AsyncActorReconciler) determineStatus(asya *asyav1alpha1.AsyncActor) st
 		return "ScalingDown"
 	}
 
-	// 6. Operational states
+	// 8. Operational states
 
 	// Degraded: some pods not ready for extended period
 	if ready < total && total > 0 {

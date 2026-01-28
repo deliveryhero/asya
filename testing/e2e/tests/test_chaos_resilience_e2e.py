@@ -165,7 +165,7 @@ def test_multiple_component_failures(e2e_helper):
         logger.info("Killing actor pod...")
         actor_pods = e2e_helper.kubectl(
             "get", "pods",
-            "-l", "app=test-echo",
+            "-l", "asya.sh/actor=test-echo",
             "-o", "jsonpath='{.items[*].metadata.name}'"
         )
         if actor_pods and actor_pods != "''":
@@ -174,7 +174,7 @@ def test_multiple_component_failures(e2e_helper):
 
         logger.info("Waiting for components to restart...")
         assert e2e_helper.wait_for_pod_ready("app.kubernetes.io/name=asya-gateway", timeout=60)
-        assert e2e_helper.wait_for_pod_ready("app=test-echo", timeout=60)
+        assert e2e_helper.wait_for_pod_ready("asya.sh/actor=test-echo", timeout=60)
 
         # Crew actors (happy-end, error-end) may be scaled to 0 by KEDA if queues are empty
         # They will scale up automatically when needed, so we don't check them here
@@ -291,7 +291,7 @@ def test_network_partition_simulation(e2e_helper):
     try:
         actor_pods = e2e_helper.kubectl(
             "get", "pods",
-            "-l", "app=test-echo",
+            "-l", "asya.sh/actor=test-echo",
             "-o", "jsonpath='{.items[*].metadata.name}'"
         )
 
@@ -301,7 +301,7 @@ def test_network_partition_simulation(e2e_helper):
             e2e_helper.delete_pod(pod_name)
 
         logger.info("Waiting for pod to restart...")
-        assert e2e_helper.wait_for_pod_ready("app=test-echo", timeout=60)
+        assert e2e_helper.wait_for_pod_ready("asya.sh/actor=test-echo", timeout=60)
 
         logger.info("Waiting for envelope to complete (with network issues)...")
         final_envelope = e2e_helper.wait_for_envelope_completion(envelope_id, timeout=120)
@@ -484,7 +484,7 @@ def test_full_cluster_restart_simulation(e2e_helper):
     components = [
         ("gateway", "app.kubernetes.io/name=asya-gateway"),
         ("operator", "app.kubernetes.io/name=asya-operator"),
-        ("test-echo", "app=test-echo"),
+        ("test-echo", "asya.sh/actor=test-echo"),
     ]
 
     try:

@@ -19,6 +19,9 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
+    - jsonPath: .metadata.labels['asya\.sh/actor']
+      name: Actor
+      type: string
     - jsonPath: .status.status
       name: Status
       type: string
@@ -46,6 +49,10 @@ spec:
     - jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
+    - jsonPath: .metadata.labels['asya\.sh/flow']
+      name: Flow
+      priority: 1
+      type: string
     - jsonPath: .spec.workload.kind
       name: Workload
       priority: 1

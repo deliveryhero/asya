@@ -50,7 +50,7 @@ func (t *RabbitMQTransport) ReconcileQueue(ctx context.Context, actor *asyav1alp
 		return errors.New(errInvalidRabbitMQConfig)
 	}
 
-	queueName := fmt.Sprintf("asya-%s-%s", actor.Namespace, actor.Name)
+	queueName := fmt.Sprintf("asya-%s-%s", actor.Namespace, actor.GetActorName())
 
 	// Get RabbitMQ password from secret if configured
 	password := rabbitmqConfig.Password
@@ -217,7 +217,7 @@ func (t *RabbitMQTransport) DeleteQueue(ctx context.Context, actor *asyav1alpha1
 		return errors.New(errInvalidRabbitMQConfig)
 	}
 
-	queueName := fmt.Sprintf("asya-%s-%s", actor.Namespace, actor.Name)
+	queueName := fmt.Sprintf("asya-%s-%s", actor.Namespace, actor.GetActorName())
 
 	// Get RabbitMQ password from secret if configured
 	password := rabbitmqConfig.Password

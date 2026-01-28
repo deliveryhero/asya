@@ -146,11 +146,11 @@ def test_timeout_crash_and_pod_restart_e2e(e2e_helper, namespace, transport_time
             time.sleep(2)
 
         logger.info("Cleaning up test-timeout pods before test...")
-        e2e_helper.kubectl("delete", "pod", "-l", "app=test-timeout", "--grace-period=5")
+        e2e_helper.kubectl("delete", "pod", "-l", "asya.sh/actor=test-timeout", "--grace-period=5")
         time.sleep(5)
 
         # Wait for fresh pod to be ready
-        pod_ready = e2e_helper.wait_for_pod_ready("app=test-timeout", timeout=30)
+        pod_ready = e2e_helper.wait_for_pod_ready("asya.sh/actor=test-timeout", timeout=30)
         if not pod_ready:
             logger.warning("Pod not ready after cleanup, continuing anyway...")
     except Exception as e:
@@ -166,13 +166,13 @@ def test_timeout_crash_and_pod_restart_e2e(e2e_helper, namespace, transport_time
 
     # Wait for KEDA to scale up the actor pod
     logger.info("Waiting for KEDA to scale up actor pod...")
-    pod_ready = e2e_helper.wait_for_pod_ready("app=test-timeout", timeout=30)
+    pod_ready = e2e_helper.wait_for_pod_ready("asya.sh/actor=test-timeout", timeout=30)
     assert pod_ready, "KEDA should scale up pod within 30s"
 
     # Get initial pod name and restart count
     pods_before = e2e_helper.kubectl(
         "get", "pods",
-        "-l", "app=test-timeout",
+        "-l", "asya.sh/actor=test-timeout",
         "-o", "jsonpath='{.items[*].metadata.name}'"
     )
     logger.info(f"Pods before timeout: {pods_before}")
@@ -182,7 +182,7 @@ def test_timeout_crash_and_pod_restart_e2e(e2e_helper, namespace, transport_time
     try:
         restart_counts_str = e2e_helper.kubectl(
             "get", "pods",
-            "-l", "app=test-timeout",
+            "-l", "asya.sh/actor=test-timeout",
             "-o", "jsonpath='{.items[0].status.containerStatuses[*].restartCount}'"
         )
         if restart_counts_str and restart_counts_str != "''":
@@ -204,7 +204,7 @@ def test_timeout_crash_and_pod_restart_e2e(e2e_helper, namespace, transport_time
         try:
             restart_counts_str = e2e_helper.kubectl(
                 "get", "pods",
-                "-l", "app=test-timeout",
+                "-l", "asya.sh/actor=test-timeout",
                 "-o", "jsonpath='{.items[0].status.containerStatuses[*].restartCount}'"
             )
             if restart_counts_str and restart_counts_str != "''":
@@ -224,7 +224,7 @@ def test_timeout_crash_and_pod_restart_e2e(e2e_helper, namespace, transport_time
     # Verify crash was due to timeout by checking pod logs
     try:
         logs = e2e_helper.kubectl(
-            "logs", "-l", "app=test-timeout",
+            "logs", "-l", "asya.sh/actor=test-timeout",
             "-c", "asya-sidecar",
             "--previous",
             "--tail=50"
@@ -251,7 +251,7 @@ def test_timeout_crash_and_pod_restart_e2e(e2e_helper, namespace, transport_time
 
     # Wait for pod to be ready again after crash
     logger.info("Waiting for pod to recover after crash...")
-    pod_ready = e2e_helper.wait_for_pod_ready("app=test-timeout", timeout=60)
+    pod_ready = e2e_helper.wait_for_pod_ready("asya.sh/actor=test-timeout", timeout=60)
     assert pod_ready, "Pod should become ready after crash"
 
     # Envelope should eventually complete (fail or succeed after retries)
@@ -302,7 +302,7 @@ def test_message_redelivery_after_pod_restart_e2e(e2e_helper):
     try:
         pods = e2e_helper.kubectl(
             "get", "pods",
-            "-l", "app=test-slow-boundary",
+            "-l", "asya.sh/actor=test-slow-boundary",
             "-o", "jsonpath='{.items[*].metadata.name}'"
         )
 
@@ -314,7 +314,7 @@ def test_message_redelivery_after_pod_restart_e2e(e2e_helper):
                 e2e_helper.delete_pod(pod_name)
 
                 # Wait for pod to restart and be ready
-                pod_ready = e2e_helper.wait_for_pod_ready("app=test-slow-boundary", timeout=60)
+                pod_ready = e2e_helper.wait_for_pod_ready("asya.sh/actor=test-slow-boundary", timeout=60)
                 assert pod_ready, "Pod should restart and become ready after deletion"
             else:
                 logger.warning("No pods found to kill - KEDA may not have scaled up yet")
@@ -411,7 +411,7 @@ def test_keda_scales_actor_under_load_e2e(e2e_helper):
     Expected: Actor count increases during load, then decreases
     """
     # Check initial pod count (should be 0 or min replicas)
-    initial_pods = e2e_helper.get_pod_count("app=test-echo")
+    initial_pods = e2e_helper.get_pod_count("asya.sh/actor=test-echo")
     logger.info(f"Initial pod count: {initial_pods}")
 
     # Send 100 envelopes rapidly
@@ -433,7 +433,7 @@ def test_keda_scales_actor_under_load_e2e(e2e_helper):
     max_pods = initial_pods
     for i in range(12):  # 12 * 2s = 24s
         time.sleep(2)  # Poll kubectl API for KEDA autoscaling changes
-        current_pods = e2e_helper.get_pod_count("app=test-echo")
+        current_pods = e2e_helper.get_pod_count("asya.sh/actor=test-echo")
         logger.info(f"Check {i+1}/12: Current pod count: {current_pods}")
         max_pods = max(max_pods, current_pods)
 

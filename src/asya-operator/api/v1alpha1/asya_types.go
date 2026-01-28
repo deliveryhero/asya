@@ -308,6 +308,7 @@ type NamespacedName struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:shortName=asyncactor;asya;asyas
+// +kubebuilder:printcolumn:name="Actor",type=string,JSONPath=`.metadata.labels['asya\.sh/actor']`
 // +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.status`
 // +kubebuilder:printcolumn:name="Running",type=integer,JSONPath=`.status.replicas`
 // +kubebuilder:printcolumn:name="Failing",type=integer,JSONPath=`.status.failingPods`
@@ -317,6 +318,7 @@ type NamespacedName struct {
 // +kubebuilder:printcolumn:name="Max",type=integer,JSONPath=`.spec.scaling.maxReplicas`
 // +kubebuilder:printcolumn:name="Last-Scale",type=string,JSONPath=`.status.lastScaleFormatted`
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
+// +kubebuilder:printcolumn:name="Flow",type=string,JSONPath=`.metadata.labels['asya\.sh/flow']`,priority=1
 // +kubebuilder:printcolumn:name="Workload",type=string,JSONPath=`.spec.workload.kind`,priority=1
 // +kubebuilder:printcolumn:name="Transport",type=string,JSONPath=`.status.transportStatus`,priority=1
 // +kubebuilder:printcolumn:name="Scaling",type=string,JSONPath=`.status.scalingMode`,priority=1
@@ -339,6 +341,20 @@ type AsyncActorList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []AsyncActor `json:"items"`
+}
+
+// GetActorName returns the logical actor name used for routing and queue operations.
+// Returns the value from asya.sh/actor label if set, otherwise falls back to metadata.name.
+// The asya.sh/actor label is the source of truth for actor identity, allowing custom
+// resource names (e.g., text-processor-eu) while using the same actor name (text-processor)
+// for routing across regions/clusters.
+func (a *AsyncActor) GetActorName() string {
+	if a.Labels != nil {
+		if actorName, ok := a.Labels["asya.sh/actor"]; ok && actorName != "" {
+			return actorName
+		}
+	}
+	return a.Name
 }
 
 func init() {

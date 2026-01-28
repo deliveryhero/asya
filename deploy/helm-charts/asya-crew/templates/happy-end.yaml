@@ -28,13 +28,15 @@ spec:
           image: {{ (index $happyEnd.workload.template.spec.containers 0).image | default "ghcr.io/deliveryhero/asya-crew:latest" }}
           imagePullPolicy: {{ (index $happyEnd.workload.template.spec.containers 0).imagePullPolicy | default "IfNotPresent" }}
           env:
+          {{- with (index $happyEnd.workload.template.spec.containers 0).env }}
+          {{- toYaml . | nindent 10 }}
+          {{- end }}
+          - name: ASYA_HANDLER
+            value: handlers.end_handlers.happy_end_handler
           - name: ASYA_HANDLER_MODE
             value: envelope
           - name: ASYA_ENABLE_VALIDATION
             value: "false"
-          {{- with (index $happyEnd.workload.template.spec.containers 0).env }}
-          {{- toYaml . | nindent 10 }}
-          {{- end }}
           {{- with (index $happyEnd.workload.template.spec.containers 0).resources }}
           resources:
             {{- toYaml . | nindent 12 }}

@@ -1,5 +1,12 @@
 # Simple Actor example with RabbitMQ transport
 # This is the minimal configuration needed to create an actor
+#
+# Actor name: defaults to metadata.name (hello-actor)
+# Queue name: asya-default-hello-actor
+#
+# To use a different actor name for routing, add the asya.sh/actor label:
+#   labels:
+#     asya.sh/actor: custom-name
 
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor

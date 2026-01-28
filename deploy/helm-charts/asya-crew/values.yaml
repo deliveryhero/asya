@@ -1,5 +1,8 @@
 # Default values for asya-crew chart
 # Deploys system actors with reserved roles (happy-end, error-end)
+#
+# IMPORTANT: ASYA_HANDLER, ASYA_HANDLER_MODE, and ASYA_ENABLE_VALIDATION are
+# pre-configured by the Helm templates and MUST NOT be overridden in values.
 
 # Happy-end actor configuration
 # Persists successful results to S3 and reports to gateway
@@ -23,8 +26,8 @@ happy-end:
           image: ghcr.io/deliveryhero/asya-crew:latest
           imagePullPolicy: IfNotPresent
           env:
-          - name: ASYA_HANDLER
-            value: handlers.end_handlers.happy_end_handler
+          # DO NOT set ASYA_HANDLER, ASYA_HANDLER_MODE, or ASYA_ENABLE_VALIDATION here
+          # These are pre-configured by the Helm template and cannot be overridden
           # Gateway URL for result reporting (uncomment to enable)
           # - name: ASYA_GATEWAY_URL
           #   value: "http://asya-gateway:8080"
@@ -69,8 +72,8 @@ error-end:
           image: ghcr.io/deliveryhero/asya-crew:latest
           imagePullPolicy: IfNotPresent
           env:
-          - name: ASYA_HANDLER
-            value: handlers.end_handlers.error_end_handler
+          # DO NOT set ASYA_HANDLER, ASYA_HANDLER_MODE, or ASYA_ENABLE_VALIDATION here
+          # These are pre-configured by the Helm template and cannot be overridden
           # Gateway URL for result reporting (uncomment to enable)
           # - name: ASYA_GATEWAY_URL
           #   value: "http://asya-gateway:8080"

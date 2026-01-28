@@ -200,7 +200,7 @@ def wait_for_pod_ready(
     Wait for at least one pod matching label selector to be ready.
 
     Args:
-        label_selector: Kubernetes label selector (e.g., "app=my-app")
+        label_selector: Kubernetes label selector (e.g., "asya.sh/actor=my-actor")
         namespace: Target namespace
         timeout: Maximum wait time in seconds
         poll_interval: Polling interval in seconds
@@ -398,7 +398,7 @@ def log_asyncactor_workload_diagnostics(name: str, namespace: str = "asya-e2e") 
 
     try:
         result = subprocess.run(
-            ["kubectl", "get", "pods", "-n", namespace, "-l", f"app={name}", "-o=wide"],
+            ["kubectl", "get", "pods", "-n", namespace, "-l", f"asya.sh/actor={name}", "-o=wide"],
             capture_output=True,
             text=True,
             timeout=10,
