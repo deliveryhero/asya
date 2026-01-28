@@ -1,9 +1,9 @@
 ---
-name: fixing-prs-with-sub-agents
+name: fix-pr-with-sub-agents
 description: Use when fixing one or multiple failing PRs by dispatching one or parallel Haiku sub-agents to create (or checkout to) git worktrees, apply fixes, and push changes - agents run unit tests only, full suite testing happens on remote CI
 ---
 
-# Fixing PRs with Parallel Sub-Agents
+# Fixing PR Tests with Parallel Sub-Agents
 
 ## Overview
 

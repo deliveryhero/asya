@@ -1,4 +1,4 @@
-# Fixing PRs with Sub-Agents: Quick Reference
+# Fixing PR Tests with Sub-Agents: Quick Reference
 
 ## Pattern Overview
 
