@@ -12,7 +12,10 @@
 
 This document proposes a compilation strategy to transform Google's Agent Development Kit (ADK) agents into Asya's distributed choreography model. ADK is a centralized, asyncio-based AI orchestration framework, while Asya is a decentralized, message-queue-based choreography system. The goal is to enable ADK agents to run as stateless Asya actors, leveraging Asya's scalability, fault tolerance, and multi-tenancy capabilities.
 
-**Key Innovation**: Dual-channel architecture separating control flow (asya messages) from data flow (streaming events), with framework-level event classification enabling simple user code.
+**Key Innovations**:
+- **Dual-channel architecture**: Separating control flow (SQS messages) from data flow (streaming events), with framework-level event classification enabling simple user code
+- **A2A protocol compliance**: Gateway implements the [Agent2Agent (A2A) Protocol](https://a2a-protocol.org/) for agent interoperability, enabling external agents to interact with Asya actor networks
+- **Human-in-the-loop support**: Native support for interactive workflows via A2A's `input_required` task state
 
 ---
 
@@ -20,15 +23,17 @@ This document proposes a compilation strategy to transform Google's Agent Develo
 
 1. [Background](#background)
 2. [Architecture Overview](#architecture-overview)
-3. [Event Classification & Routing](#event-classification--routing)
-4. [Session State Management](#session-state-management)
-5. [Service Reconstruction](#service-reconstruction)
-6. [Streaming Architecture](#streaming-architecture)
-7. [Agent Compilation Strategy](#agent-compilation-strategy)
-8. [Implementation Examples](#implementation-examples)
-9. [Trade-offs & Design Decisions](#trade-offs--design-decisions)
-10. [Open Questions](#open-questions)
-11. [References](#references)
+3. [A2A Protocol Compliance](#a2a-protocol-compliance)
+4. [Event Classification & Routing](#event-classification--routing)
+5. [Session State Management](#session-state-management)
+6. [Service Reconstruction](#service-reconstruction)
+7. [Streaming Architecture](#streaming-architecture)
+8. [Human-in-the-Loop Architecture](#human-in-the-loop-architecture)
+9. [Agent Compilation Strategy](#agent-compilation-strategy)
+10. [Implementation Examples](#implementation-examples)
+11. [Trade-offs & Design Decisions](#trade-offs--design-decisions)
+12. [Open Questions](#open-questions)
+13. [References](#references)
 
 ---
 
@@ -86,7 +91,7 @@ Transform ADK's centralized orchestration into Asya's distributed choreography w
                              │
                              v
                     ┌─────────────────┐
-                    │  Asya Gateway   │ ← MCP-compliant HTTP server
+                    │  Asya Gateway   │ ← A2A + MCP compliant HTTP server
                     │  (asya.sh)      │    Stateful, handles streaming
                     └────────┬────────┘
                              │
@@ -132,6 +137,269 @@ Transform ADK's centralized orchestration into Asya's distributed choreography w
    - Full conversation history in message payload
    - Compression strategies for large sessions
    - Artifact references instead of inline data
+
+---
+
+## A2A Protocol Compliance
+
+### Protocol Background
+
+The [Agent2Agent (A2A) Protocol](https://a2a-protocol.org/latest/) is an open standard for agent-to-agent communication, developed by Google and now governed by the Linux Foundation. A2A complements MCP (Model Context Protocol):
+
+- **MCP**: Agent-to-tool communication (how agents connect to tools, APIs, resources)
+- **A2A**: Agent-to-agent communication (how agents collaborate, delegate, exchange context)
+
+**Note**: IBM's ACP (Agent Communication Protocol) merged with A2A in September 2025. The ACP repository was archived (read-only) on August 27, 2025, and all development moved to A2A. There is no compatibility layer - ACP users migrate directly to A2A. By implementing A2A, we cover all agent interoperability needs without supporting a deprecated protocol.
+
+### Asya Gateway as A2A Server
+
+The Asya Gateway will implement A2A server capabilities, allowing external agents to interact with Asya actor networks as A2A-compliant remote agents.
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                     External Agent (A2A Client)                      │
+└──────────────────────────────┬──────────────────────────────────────┘
+                               │ A2A Protocol (HTTP + SSE)
+                               ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                         Asya Gateway                                 │
+│  ┌─────────────────────────────────────────────────────────────┐    │
+│  │ A2A Server Implementation                                    │    │
+│  │  - Agent Card discovery                                      │    │
+│  │  - Task lifecycle management                                 │    │
+│  │  - Message/streaming handling                                │    │
+│  │  - Push notification support                                 │    │
+│  └─────────────────────────────────────────────────────────────┘    │
+│  ┌─────────────────────────────────────────────────────────────┐    │
+│  │ MCP Server Implementation (existing)                         │    │
+│  │  - Tool execution                                            │    │
+│  │  - Resource access                                           │    │
+│  └─────────────────────────────────────────────────────────────┘    │
+└──────────────────────────────┬──────────────────────────────────────┘
+                               │ SQS/Internal
+                               ▼
+                        ┌─────────────┐
+                        │ Asya Actors │
+                        └─────────────┘
+```
+
+### A2A HTTP Endpoints
+
+The Gateway will implement these A2A-compliant endpoints:
+
+#### Agent Discovery
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/.well-known/a2a/agent-card` | GET | Public Agent Card (capabilities, skills, auth) |
+| `/agent-card:extended` | GET | Extended Agent Card (after authentication) |
+
+#### Message Operations
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/messages` | POST | Send message to initiate or continue task |
+| `/messages:stream` | POST | Send message with streaming response (SSE) |
+
+#### Task Management
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/tasks/{task_id}` | GET | Retrieve task state and history |
+| `/tasks` | GET | List tasks with filtering |
+| `/tasks/{task_id}:cancel` | POST | Cancel a running task |
+| `/tasks/{task_id}:subscribe` | GET | Subscribe to task updates (SSE stream) |
+
+#### Push Notifications (Optional)
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/tasks/{task_id}/pushNotificationConfigs` | POST | Create push notification config |
+| `/tasks/{task_id}/pushNotificationConfigs/{id}` | GET | Get config |
+| `/tasks/{task_id}/pushNotificationConfigs` | GET | List configs |
+| `/tasks/{task_id}/pushNotificationConfigs/{id}` | DELETE | Delete config |
+
+### A2A Task States
+
+A2A defines a task lifecycle that maps to Asya's envelope states:
+
+| A2A State | Description | Asya Mapping |
+|-----------|-------------|--------------|
+| `submitted` | Task created, not yet processing | Envelope queued |
+| `working` | Task actively processing | Actor processing |
+| `input_required` | Waiting for client/human input | Suspended (→ happy-end → S3) |
+| `completed` | Task finished successfully | happy-end received |
+| `failed` | Task encountered error | error-end received |
+| `cancelled` | Task terminated by client | Envelope cancelled |
+| `rejected` | Agent declined the task | Validation failed |
+| `auth_required` | Additional auth needed | Auth challenge |
+
+### Agent Card Format
+
+The Gateway publishes an Agent Card at `/.well-known/a2a/agent-card`:
+
+```json
+{
+  "name": "Asya Agent Network",
+  "description": "Distributed AI agent orchestration via Asya actor mesh",
+  "version": "1.0.0",
+  "protocol_versions": ["1.0"],
+  "supported_interfaces": [
+    {
+      "type": "rest",
+      "url": "https://gateway.asya.example.com"
+    }
+  ],
+  "capabilities": {
+    "streaming": true,
+    "pushNotifications": true,
+    "extendedAgentCard": true
+  },
+  "security_schemes": {
+    "bearer": {
+      "type": "http",
+      "scheme": "bearer"
+    },
+    "oauth2": {
+      "type": "oauth2",
+      "flows": {
+        "clientCredentials": {
+          "tokenUrl": "https://auth.example.com/token",
+          "scopes": {
+            "agent:invoke": "Invoke agent tasks",
+            "agent:read": "Read task status"
+          }
+        }
+      }
+    }
+  },
+  "default_input_modes": ["application/json", "text/plain"],
+  "default_output_modes": ["application/json", "text/plain", "text/event-stream"],
+  "skills": [
+    {
+      "id": "code-assistant",
+      "name": "Code Assistant",
+      "description": "AI-powered coding assistance with file operations",
+      "tags": ["coding", "development"]
+    },
+    {
+      "id": "data-pipeline",
+      "name": "Data Pipeline Executor",
+      "description": "Execute multi-stage data processing workflows",
+      "tags": ["data", "etl"]
+    }
+  ]
+}
+```
+
+### A2A Message Format
+
+Messages follow A2A's multimodal part structure:
+
+```json
+{
+  "message_id": "msg-123",
+  "context_id": "conversation-456",
+  "task_id": "task-789",
+  "role": "user",
+  "parts": [
+    {
+      "text": "Analyze this code and suggest improvements",
+      "media_type": "text/plain"
+    },
+    {
+      "url": "s3://bucket/code-snippet.py",
+      "media_type": "text/x-python"
+    }
+  ]
+}
+```
+
+### Mapping A2A to Asya Envelopes
+
+When the Gateway receives an A2A message, it translates to an Asya envelope:
+
+```python
+# A2A Message → Asya Envelope translation
+def a2a_to_envelope(message: A2AMessage, skill_id: str) -> AsyaEnvelope:
+    return {
+        "id": generate_envelope_id(),
+        "route": {
+            "actors": resolve_skill_to_actors(skill_id),
+            "current": 0
+        },
+        "headers": {
+            "a2a_task_id": message.task_id,
+            "a2a_context_id": message.context_id,
+            "a2a_message_id": message.message_id
+        },
+        "payload": {
+            "parts": message.parts,
+            "session": load_or_create_session(message.context_id)
+        }
+    }
+```
+
+### Streaming via SSE
+
+A2A streaming maps directly to Asya's dual-channel architecture:
+
+```
+Client                    Gateway                     Actor
+  │                          │                          │
+  │ POST /messages:stream    │                          │
+  │ ───────────────────────► │                          │
+  │                          │ SQS envelope             │
+  │                          │ ─────────────────────────►
+  │                          │                          │
+  │ ◄─── SSE: TaskStatusUpdateEvent (working)          │
+  │                          │                          │
+  │                          │ ◄── streaming event ────│
+  │ ◄─── SSE: partial text   │                          │
+  │                          │                          │
+  │                          │ ◄── streaming event ────│
+  │ ◄─── SSE: partial text   │                          │
+  │                          │                          │
+  │                          │ ◄── control event ──────│
+  │ ◄─── SSE: TaskStatusUpdateEvent (completed)        │
+  │                          │                          │
+  │ ◄─── SSE: TaskArtifactUpdateEvent                  │
+  │                          │                          │
+```
+
+### MCP and A2A Coexistence
+
+The Gateway implements **both** protocols on the same server:
+
+| Protocol | Purpose | Base Path | Endpoints |
+|----------|---------|-----------|-----------|
+| **A2A** | Agent-to-agent communication | `/` (root) | `/.well-known/a2a/agent-card`, `/messages`, `/tasks/*` |
+| **MCP** | Agent-to-tool communication | `/mcp` | `/mcp` (JSON-RPC 2.0) |
+
+**Routing convention**:
+- A2A endpoints at root level (`/messages`, `/tasks/{id}`, etc.)
+- MCP endpoint at `/mcp` (single JSON-RPC endpoint)
+- Discovery at `/.well-known/a2a/agent-card` (standard well-known URI)
+
+**Why this layout?**
+- A2A is the primary external interface (root path)
+- MCP is a secondary interface for tool-oriented clients
+- No collision: A2A uses REST, MCP uses JSON-RPC
+- `/.well-known/` is a standard URI namespace (RFC 8615)
+
+**Migration note**: Current Gateway uses `/envelopes/*` routes. These will be migrated to A2A-compliant `/messages` and `/tasks/*` endpoints. See epic `asya-bi8` for implementation plan.
+
+**Architectural relationship**: External agents use A2A to delegate tasks to Asya. Internally, Asya actors may use MCP to access tools and resources. The Gateway serves both roles.
+
+### Authentication Alignment
+
+A2A supports OpenAPI-compatible auth schemes. Gateway will implement:
+
+1. **Bearer Token** (primary): JWT validation against configured OIDC provider
+2. **OAuth2 Client Credentials** (machine-to-machine): For external agent integration
+3. **API Key** (simple): For development/testing
+
+Auth configuration flows from Gateway's existing auth middleware, extended with A2A's security scheme advertisement. Both A2A and MCP endpoints share the same auth layer.
 
 ---
 
@@ -1258,12 +1526,24 @@ Interactive agents (coding assistants, approval workflows) require **bidirection
 
 This differs from the unidirectional "agent generates, user watches" model. The agent must **suspend** while waiting for human input, potentially for minutes or hours.
 
+### A2A Alignment
+
+The A2A protocol natively supports this pattern through the `input_required` task state. When an agent needs human input:
+
+1. Task transitions to `input_required` state
+2. Client receives `TaskStatusUpdateEvent` with the question/options
+3. Client sends response via `POST /messages` with same `task_id`
+4. Task resumes processing (state → `working`)
+
+This is a core A2A capability, not a custom extension. The `input_required` state is specifically designed for human-in-the-loop workflows.
+
 ### Design Principles
 
 1. **Actors remain stateless**: All state lives in the envelope (message)
-2. **Gateway stays thin**: Postgres stores only routing metadata, not conversation history
+2. **Gateway stays thin**: Postgres stores only A2A task metadata, not conversation history
 3. **S3 for persistence**: Conversation state persisted via existing `happy-end` crew actor
 4. **Resume capability**: Suspended conversations can be resumed from S3
+5. **A2A compliance**: Use standard `input_required` state and A2A message flow
 
 ### Architecture
 
@@ -1303,11 +1583,13 @@ This differs from the unidirectional "agent generates, user watches" model. The 
 2. Agent needs human input (approval, clarification)
    │
    ▼
-3. Agent yields event:
+3. Agent yields A2A-compliant message (role=agent):
    {
-     "type": "waiting_for_human",
-     "question": "Delete these 15 files?",
-     "options": ["yes", "no", "show files"]
+     "role": "agent",
+     "parts": [
+       {"text": "Delete these 15 files?", "media_type": "text/plain"},
+       {"data": {"type": "input_request", "options": ["yes", "no", "show files"]}, "media_type": "application/json"}
+     ]
    }
    │
    ▼
@@ -1317,8 +1599,9 @@ This differs from the unidirectional "agent generates, user watches" model. The 
    │
    ▼
 5. Gateway receives notification:
-   - Stores: envelope_id → S3 path (Postgres)
-   - Streams to user: the question + options
+   - Updates A2A task state → `input_required`
+   - Stores: task_id → S3 path (Postgres)
+   - Streams to client: `TaskStatusUpdateEvent` with question + options
    │
    ▼
 6. User sees question, connection can close
@@ -1328,25 +1611,36 @@ This differs from the unidirectional "agent generates, user watches" model. The 
 ### Resume Flow (Human Responds)
 
 ```
-1. User sends response via HTTP:
-   POST /conversations/{envelope_id}/respond
-   { "response": "yes" }
+1. Client sends response via A2A message:
+   POST /messages
+   {
+     "message_id": "msg-456",
+     "task_id": "task-123",
+     "context_id": "ctx-789",
+     "role": "user",
+     "parts": [{"text": "yes", "media_type": "text/plain"}]
+   }
    │
    ▼
-2. Gateway looks up S3 path from Postgres
+2. Gateway looks up S3 path from Postgres using task_id
    │
    ▼
 3. Gateway fetches envelope from S3
    │
    ▼
-4. Gateway creates new SQS message:
+4. Gateway creates new Asya envelope (task state → `working`):
    {
      "id": "new-envelope-id",
-     "parent_id": "{original-envelope-id}",  // links to conversation
+     "parent_id": "{original-envelope-id}",
      "route": {"actors": ["agent"], "current": 0},
+     "headers": {
+       "a2a_task_id": "task-123",
+       "a2a_context_id": "ctx-789",
+       "a2a_message_id": "msg-456"
+     },
      "payload": {
        "session": <restored from S3>,
-       "human_response": "yes"
+       "human_response": {"parts": [{"text": "yes", "media_type": "text/plain"}]}
      }
    }
    │
@@ -1354,31 +1648,43 @@ This differs from the unidirectional "agent generates, user watches" model. The 
 5. Agent actor receives message, continues execution
 ```
 
-### Conversation Identity
+### Task and Context Identity (A2A Alignment)
 
-The envelope's `id` field (or a dedicated `conversation_id` field - TBD, similar to ADK's session model) serves as the conversation identifier. Gateway's Postgres table is minimal:
+A2A defines two identity concepts that map to Asya:
+
+| A2A Concept | Description | Asya Mapping |
+|-------------|-------------|--------------|
+| `task_id` | Single request-response cycle | Envelope ID |
+| `context_id` | Multi-turn conversation grouping | Session ID / Conversation ID |
+
+Gateway's Postgres table uses A2A terminology:
 
 ```sql
-CREATE TABLE conversations (
-    envelope_id    TEXT PRIMARY KEY,
-    s3_path        TEXT NOT NULL,
-    status         TEXT NOT NULL,  -- 'active', 'waiting', 'completed'
+CREATE TABLE a2a_tasks (
+    task_id        TEXT PRIMARY KEY,
+    context_id     TEXT NOT NULL,     -- Groups related tasks into conversations
+    s3_path        TEXT NOT NULL,     -- Location of persisted envelope
+    status         TEXT NOT NULL,     -- A2A states: 'working', 'input_required', 'completed', 'failed'
     created_at     TIMESTAMP,
     updated_at     TIMESTAMP
 );
+
+CREATE INDEX idx_tasks_context ON a2a_tasks(context_id);
+CREATE INDEX idx_tasks_status ON a2a_tasks(status);
 ```
 
-**Note**: The exact field name (`id` vs `conversation_id`) and format will be defined during implementation, potentially aligning with ADK's session identifier conventions.
+**A2A compliance note**: The `context_id` allows grouping multiple tasks into a logical conversation, enabling queries like "show all tasks in this conversation" via `GET /tasks?context_id=ctx-789`.
 
 ### Advantages
 
 | Aspect | Benefit |
 |--------|---------|
-| **Gateway simplicity** | Postgres grows with active conversations, not message count |
+| **Gateway simplicity** | Postgres grows with active tasks, not message count |
 | **Actor statelessness** | No in-memory state; envelope IS the state |
 | **Fault tolerance** | Crash-safe; state persisted to S3 before suspension |
 | **Scalability** | Gateway instances share Postgres; actors are ephemeral |
 | **Resume latency** | Cold start acceptable (seconds) for human-timescale waits |
+| **A2A interoperability** | External A2A clients can interact with Asya agents natively |
 
 ### Future Enhancement: Checkpointing
 
@@ -1523,24 +1829,35 @@ Actor yields:
 - **Flows Example**: https://github.com/deliveryhero/asya/blob/main/examples/flows/if_mutations_in_branches.py
 - **Compiled Routers**: https://github.com/deliveryhero/asya/blob/main/examples/flows/compiled/if_mutations_in_branches/routers.py
 
+### A2A Protocol
+
+- **A2A Specification**: https://a2a-protocol.org/latest/specification/
+- **A2A Definitions**: https://a2a-protocol.org/latest/definitions/
+- **A2A GitHub**: https://github.com/a2aproject/A2A
+- **A2A Python SDK**: https://github.com/a2aproject/a2a-python
+- **Linux Foundation Announcement**: https://www.linuxfoundation.org/press/linux-foundation-launches-the-agent2agent-protocol-project
+
 ### External References
 
 - **ADK Documentation**: https://google.github.io/adk-docs
 - **ADK GitHub**: https://github.com/google/adk-python
 - **Asya GitHub**: https://github.com/deliveryhero/asya
+- **MCP (Model Context Protocol)**: https://modelcontextprotocol.io/
 
 ---
 
 ## Next Steps
 
-1. **Validate core architecture**: Build prototype with single LlmAgent actor
-2. **Test session compression**: Measure message sizes with real conversations
-3. **Implement framework runtime**: Create `asya_runtime.py` with event classification
-4. **Build gateway integration**: Implement streaming event forwarding
-5. **Compile SequentialAgent**: Validate multi-actor workflows
-6. **Address open questions**: Investigate event ordering, A2UI protocol
-7. **Performance testing**: Measure latency, throughput, scalability
-8. **Documentation**: User guide for deploying ADK agents on Asya
+1. **Implement A2A endpoints**: Add Agent Card, message, and task endpoints to Gateway
+2. **Validate core architecture**: Build prototype with single LlmAgent actor
+3. **Test session compression**: Measure message sizes with real conversations
+4. **Implement framework runtime**: Create `asya_runtime.py` with event classification
+5. **Build A2A streaming**: Implement `TaskStatusUpdateEvent` and `TaskArtifactUpdateEvent` via SSE
+6. **Compile SequentialAgent**: Validate multi-actor workflows
+7. **Test human-in-the-loop**: Validate `input_required` state with A2A clients
+8. **Performance testing**: Measure latency, throughput, scalability
+9. **A2A compliance testing**: Test interoperability with A2A Python SDK
+10. **Documentation**: User guide for deploying ADK agents on Asya via A2A
 
 ---
 
