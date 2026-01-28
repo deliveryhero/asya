@@ -143,6 +143,34 @@ git commit -m "..."     # Commit code changes
 git push                # Push code to remote
 ```
 
+## Custom Project Skills
+
+### fixing-prs-with-sub-agents
+
+**Location**: `.claude/skills/fixing-prs-with-sub-agents/SKILL.md`
+
+**Purpose**: Fix multiple failing PRs using parallel Haiku sub-agents
+
+**When to use**:
+- Multiple PRs failing with similar or related issues
+- Each PR needs independent investigation and fix
+- Fixes are relatively isolated (dependency changes, config tweaks)
+
+**Key features**:
+- Parallel Haiku sub-agents for cost-effective fixes
+- Git worktree isolation for each PR
+- Unit tests locally, full suite on remote CI
+- GH CLI monitoring and iterative loop
+- Clear agent instructions and safety rules
+
+**Invocation**:
+```bash
+# View skill instructions
+cat .claude/skills/fixing-prs-with-sub-agents/SKILL.md
+
+# Then dispatch parallel fix agents using Task tool with model="haiku"
+```
+
 ## References
 
 - [beads](https://github.com/steveyegge/beads) - Beads framework
