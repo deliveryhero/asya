@@ -13,7 +13,7 @@ This skill enables systematic parallel fixing of multiple failing PRs using Haik
 git
 **Announce at start:** "I'm using the fixing-prs-with-sub-agents skill to dispatch parallel fix agents for these PRs."
 
-**Worktree skill:** Sub-agents should use the `using-git-worktrees` skill for isolation.
+**Worktree skill:** Sub-agents should .
 
 ## Key Constraints
 

@@ -741,20 +741,14 @@ logger.info("[+] Test passed")
 - NEVER say "ready to push when you are" - YOU must push
 - If push fails, resolve and retry until it succeeds
 
-<!-- bv-agent-instructions-v1 -->
-
----
 
 ## Beads Workflow Integration
 
-This project uses [beads_viewer](https://github.com/Dicklesworthstone/beads_viewer) for issue tracking. Issues are stored in `.beads/` and tracked in git.
+This project uses [beads](https://github.com/steveyegge/beads) for issue tracking. Issues are stored in `.beads/` and tracked in git.
 
 ### Essential Commands
 
 ```bash
-# View issues (launches TUI - avoid in automated sessions)
-bv
-
 # CLI commands for agents (use these instead)
 bd ready              # Show issues ready to work (no blockers)
 bd list --status=open # All open issues
@@ -768,7 +762,7 @@ bd sync               # Commit and push changes
 
 ### Workflow Pattern
 
-1. **Start**: Run `bd ready` to find actionable work
+1. **Start**: Run `bd ready` to find actionable work (or the user might ask to implement a specific bead)
 2. **Claim**: Use `bd update <id> --status=in_progress`
 3. **Work**: Implement the task
 4. **Complete**: Use `bd close <id>`
@@ -796,10 +790,10 @@ git push                # Push to remote
 
 ### Best Practices
 
+- Use sub-agents to execute beads
+- Ensure that the beads are executed in a separate git worktree (use the `using-git-worktrees` skill for isolation)
 - Check `bd ready` at session start to find available work
 - Update status as you work (in_progress → closed)
 - Create new issues with `bd create` when you discover tasks
 - Use descriptive titles and set appropriate priority/type
 - Always `bd sync` before ending session
-
-<!-- end-bv-agent-instructions -->
