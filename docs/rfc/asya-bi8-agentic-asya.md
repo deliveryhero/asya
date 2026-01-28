@@ -367,29 +367,95 @@ Client                    Gateway                     Actor
   │                          │                          │
 ```
 
-### MCP and A2A Coexistence
+### Protocol Stack: MCP, A2A, AG-UI, A2UI
 
-The Gateway implements **both** protocols on the same server:
+The Gateway implements multiple complementary protocols on the same server:
 
-| Protocol | Purpose | Base Path | Endpoints |
-|----------|---------|-----------|-----------|
-| **A2A** | Agent-to-agent communication | `/` (root) | `/.well-known/a2a/agent-card`, `/messages`, `/tasks/*` |
-| **MCP** | Agent-to-tool communication | `/mcp` | `/mcp` (JSON-RPC 2.0) |
+| Protocol | Purpose | Type | Base Path |
+|----------|---------|------|-----------|
+| **A2A** | Agent-to-agent communication | REST + SSE | `/` (root) |
+| **MCP** | Agent-to-tool communication | JSON-RPC 2.0 | `/mcp` |
+| **AG-UI** | Agent-to-user streaming | Event-based SSE | `/ag-ui` |
+| **A2UI** | Declarative UI payloads | JSON format | (via A2A/AG-UI) |
+
+**Protocol relationships**:
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    Asya Gateway Protocol Stack                   │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│   ┌─────────────┐     ┌─────────────┐     ┌─────────────┐       │
+│   │    MCP      │     │    A2A      │     │   AG-UI     │       │
+│   │ Agent↔Tool  │     │ Agent↔Agent │     │ Agent↔User  │       │
+│   │   /mcp      │     │  / (root)   │     │  /ag-ui     │       │
+│   └─────────────┘     └─────────────┘     └─────────────┘       │
+│                              │                   │               │
+│                              └───────┬───────────┘               │
+│                                      ▼                           │
+│                              ┌───────────────┐                   │
+│                              │     A2UI      │                   │
+│                              │ (UI payloads) │                   │
+│                              └───────────────┘                   │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
 
 **Routing convention**:
 - A2A endpoints at root level (`/messages`, `/tasks/{id}`, etc.)
 - MCP endpoint at `/mcp` (single JSON-RPC endpoint)
+- AG-UI endpoint at `/ag-ui` (SSE event stream)
 - Discovery at `/.well-known/a2a/agent-card` (standard well-known URI)
 
 **Why this layout?**
 - A2A is the primary external interface (root path)
 - MCP is a secondary interface for tool-oriented clients
-- No collision: A2A uses REST, MCP uses JSON-RPC
-- `/.well-known/` is a standard URI namespace (RFC 8615)
+- AG-UI enables rich frontend integration (CopilotKit, etc.)
+- No collision: Each uses different paths and protocols
 
-**Migration note**: Current Gateway uses `/envelopes/*` routes. These will be migrated to A2A-compliant `/messages` and `/tasks/*` endpoints. See epic `asya-bi8` for implementation plan.
+**Migration note**: Current Gateway uses `/envelopes/*` routes. These will be migrated to A2A-compliant `/messages` and `/tasks/*` endpoints. See epic `asya-7j1` for implementation plan.
 
-**Architectural relationship**: External agents use A2A to delegate tasks to Asya. Internally, Asya actors may use MCP to access tools and resources. The Gateway serves both roles.
+**Architectural relationship**: External agents use A2A to delegate tasks to Asya. Frontends use AG-UI for real-time streaming. Internally, Asya actors may use MCP to access tools. The Gateway serves all roles.
+
+### AG-UI Event Types
+
+AG-UI defines 17 event types for agent↔frontend communication:
+
+| Category | Events | Purpose |
+|----------|--------|---------|
+| **Lifecycle** | `RunStarted`, `RunFinished`, `RunError`, `StepStarted`, `StepFinished` | Execution state |
+| **Text** | `TextMessageStart`, `TextMessageContent`, `TextMessageEnd` | Streaming text |
+| **Tools** | `ToolCallStart`, `ToolCallArgs`, `ToolCallEnd`, `ToolCallResult` | Tool invocations |
+| **State** | `StateSnapshot`, `StateDelta`, `MessagesSnapshot` | UI state sync |
+| **Special** | `RawEvent`, `CustomEvent` | Extensions |
+
+**AG-UI endpoint**:
+```
+GET /ag-ui/stream?thread_id=xxx&run_id=yyy
+Content-Type: text/event-stream
+
+event: RUN_STARTED
+data: {"thread_id": "xxx", "run_id": "yyy"}
+
+event: TEXT_MESSAGE_START
+data: {"message_id": "msg-1", "role": "assistant"}
+
+event: TEXT_MESSAGE_CONTENT
+data: {"message_id": "msg-1", "delta": "Hello"}
+
+event: TEXT_MESSAGE_END
+data: {"message_id": "msg-1"}
+
+event: RUN_FINISHED
+data: {"thread_id": "xxx", "run_id": "yyy"}
+```
+
+### A2UI Integration (Optional)
+
+A2UI is a declarative UI format that can be transported via A2A or AG-UI. If actors generate A2UI payloads, they're delivered as:
+- A2A: `TaskArtifactUpdateEvent` with `media_type: "application/a2ui+json"`
+- AG-UI: `CustomEvent` with `name: "A2UI_COMPONENT"`
+
+A2UI support is optional and depends on whether actors generate dynamic UIs.
 
 ### Authentication Alignment
 
@@ -1837,12 +1903,35 @@ Actor yields:
 - **A2A Python SDK**: https://github.com/a2aproject/a2a-python
 - **Linux Foundation Announcement**: https://www.linuxfoundation.org/press/linux-foundation-launches-the-agent2agent-protocol-project
 
+### AG-UI Protocol
+
+- **AG-UI Documentation**: https://docs.ag-ui.com/
+- **AG-UI GitHub**: https://github.com/ag-ui-protocol/ag-ui
+- **CopilotKit Integration**: https://docs.copilotkit.ai/ag-ui-protocol
+- **Event Types Guide**: https://www.copilotkit.ai/blog/master-the-17-ag-ui-event-types-for-building-agents-the-right-way
+
+### A2UI Protocol
+
+- **A2UI Official Site**: https://a2ui.org/
+- **A2UI GitHub**: https://github.com/google/A2UI
+- **Google Announcement**: https://developers.googleblog.com/introducing-a2ui-an-open-project-for-agent-driven-interfaces/
+
 ### External References
 
 - **ADK Documentation**: https://google.github.io/adk-docs
 - **ADK GitHub**: https://github.com/google/adk-python
 - **Asya GitHub**: https://github.com/deliveryhero/asya
 - **MCP (Model Context Protocol)**: https://modelcontextprotocol.io/
+
+### Additional Protocol Standards (Research)
+
+See [Agent Protocol Standards Research](../research/agent-protocol-standards.md) for comprehensive analysis.
+
+- **AAIF (Agentic AI Foundation)**: https://lfaidata.foundation/projects/aaif/ - Linux Foundation initiative hosting MCP, AGENTS.md, goose
+- **AGNTCY**: https://agntcy.org/ - Cisco-led project for agent discovery, identity, messaging, observability
+- **Agent Skills**: https://github.com/anthropics/anthropic-cookbook/tree/main/skills - Anthropic's open standard for procedural knowledge packages
+- **ANP (Agent Network Protocol)**: Peer-to-peer agent communication with DID-based identity (emerging)
+- **OASF (Open Agent Schema Framework)**: JSON Schema for agent capability descriptions (emerging)
 
 ---
 
