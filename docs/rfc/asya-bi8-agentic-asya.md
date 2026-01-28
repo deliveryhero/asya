@@ -1246,6 +1246,150 @@ async def handle_reviewer(message: dict):
 
 ---
 
+## Human-in-the-Loop Architecture
+
+### The Challenge
+
+Interactive agents (coding assistants, approval workflows) require **bidirectional** communication:
+
+- **Approval gates**: "I'm about to delete 15 files. Proceed?"
+- **Clarification requests**: "Which authentication method?"
+- **Mid-stream corrections**: User interrupts with new instructions
+
+This differs from the unidirectional "agent generates, user watches" model. The agent must **suspend** while waiting for human input, potentially for minutes or hours.
+
+### Design Principles
+
+1. **Actors remain stateless**: All state lives in the envelope (message)
+2. **Gateway stays thin**: Postgres stores only routing metadata, not conversation history
+3. **S3 for persistence**: Conversation state persisted via existing `happy-end` crew actor
+4. **Resume capability**: Suspended conversations can be resumed from S3
+
+### Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                           User (CLI/UI)                              │
+└──────────────────────────────┬──────────────────────────────────────┘
+                               │ HTTP (request + SSE streaming)
+                               ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                         Gateway                                      │
+│  - Postgres: envelope_id → S3 path (thin registry)                  │
+│  - NOT storing: conversation history, session state                 │
+│  - Linear growth: O(active_conversations), not O(total_messages)    │
+└──────────┬─────────────────────────────────────────────┬────────────┘
+           │ SQS (envelope with full state)              │ SSE
+           ▼                                             │
+┌────────────────────┐                                   │
+│   Agent Actor      │───────────────────────────────────┘
+│ - Stateless        │   streaming events
+│ - Full state in    │
+│   envelope payload │
+└──────────┬─────────┘
+           │
+           ▼ (routes to happy-end when done or waiting)
+┌────────────────────┐
+│  happy-end → S3    │  Persists envelope (full conversation state)
+└────────────────────┘
+```
+
+### Suspension Flow (Agent Needs Human Input)
+
+```
+1. Agent processing turn...
+   │
+   ▼
+2. Agent needs human input (approval, clarification)
+   │
+   ▼
+3. Agent yields event:
+   {
+     "type": "waiting_for_human",
+     "question": "Delete these 15 files?",
+     "options": ["yes", "no", "show files"]
+   }
+   │
+   ▼
+4. Framework routes envelope to happy-end
+   - Envelope contains FULL conversation state
+   - happy-end persists to S3
+   │
+   ▼
+5. Gateway receives notification:
+   - Stores: envelope_id → S3 path (Postgres)
+   - Streams to user: the question + options
+   │
+   ▼
+6. User sees question, connection can close
+   (User may take minutes/hours to respond)
+```
+
+### Resume Flow (Human Responds)
+
+```
+1. User sends response via HTTP:
+   POST /conversations/{envelope_id}/respond
+   { "response": "yes" }
+   │
+   ▼
+2. Gateway looks up S3 path from Postgres
+   │
+   ▼
+3. Gateway fetches envelope from S3
+   │
+   ▼
+4. Gateway creates new SQS message:
+   {
+     "id": "new-envelope-id",
+     "parent_id": "{original-envelope-id}",  // links to conversation
+     "route": {"actors": ["agent"], "current": 0},
+     "payload": {
+       "session": <restored from S3>,
+       "human_response": "yes"
+     }
+   }
+   │
+   ▼
+5. Agent actor receives message, continues execution
+```
+
+### Conversation Identity
+
+The envelope's `id` field (or a dedicated `conversation_id` field - TBD, similar to ADK's session model) serves as the conversation identifier. Gateway's Postgres table is minimal:
+
+```sql
+CREATE TABLE conversations (
+    envelope_id    TEXT PRIMARY KEY,
+    s3_path        TEXT NOT NULL,
+    status         TEXT NOT NULL,  -- 'active', 'waiting', 'completed'
+    created_at     TIMESTAMP,
+    updated_at     TIMESTAMP
+);
+```
+
+**Note**: The exact field name (`id` vs `conversation_id`) and format will be defined during implementation, potentially aligning with ADK's session identifier conventions.
+
+### Advantages
+
+| Aspect | Benefit |
+|--------|---------|
+| **Gateway simplicity** | Postgres grows with active conversations, not message count |
+| **Actor statelessness** | No in-memory state; envelope IS the state |
+| **Fault tolerance** | Crash-safe; state persisted to S3 before suspension |
+| **Scalability** | Gateway instances share Postgres; actors are ephemeral |
+| **Resume latency** | Cold start acceptable (seconds) for human-timescale waits |
+
+### Future Enhancement: Checkpointing
+
+For long-running agent turns (not just human waits), periodic checkpointing to S3 could enable:
+- Resume after actor crash mid-execution
+- Horizontal scaling of single conversation across actors
+
+This is out of scope for initial implementation but the architecture supports it.
+
+---
+
 ## Open Questions
 
 ### 1. Event Ordering Guarantees
@@ -1321,6 +1465,37 @@ Actor yields:
 **Question**: How to handle custom `_run_async_impl()` logic?
 
 **Decision**: Not supported initially. Document limitation. Users must refactor to use built-in agents or accept single-actor deployment.
+
+### 8. Conversation State Size for Coding Agents
+
+**Question**: Coding agents accumulate large context (files, diffs, error traces). How to manage envelope size?
+
+**Considerations**:
+- Coding conversations can exceed SQS 256 KB limit quickly
+- Full file contents vs references to workspace files
+- Should workspace state be part of envelope or external?
+
+**Proposed approach**:
+- Envelope contains conversation history + references (file paths, commit SHAs)
+- Actual file contents fetched by actor from mounted workspace or object storage
+- Workspace state is external; envelope contains pointers
+
+### 9. Tool Execution Model
+
+**Question**: Should tools be local functions, remote actors, or hybrid?
+
+**Trade-offs**:
+
+| Model | Latency | Scalability | Isolation |
+|-------|---------|-------------|-----------|
+| Local functions | Low (~ms) | Limited to actor resources | None |
+| Remote actors | High (~100ms+) | Independent scaling | Full |
+| Hybrid | Varies | Best of both | Partial |
+
+**Proposed approach**: Hybrid model where:
+- Fast, simple tools (file read, shell exec) run locally within actor
+- Expensive, shared tools (LLM calls, embeddings, search) are separate actors
+- Tool classification defined in agent configuration
 
 ---
 
