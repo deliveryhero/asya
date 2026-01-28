@@ -9,7 +9,7 @@ operator:
   logLevel: debug
 
   controller:
-    queueHealthCheckInterval: "30s"
+    queueHealthCheckInterval: "30s" # Reduced from 5m for expr 1.17.7 compatibility (fixes queue health check timeout)
 
   transports:
     rabbitmq:
