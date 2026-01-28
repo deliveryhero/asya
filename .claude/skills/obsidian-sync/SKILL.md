@@ -76,10 +76,10 @@ Search for notes related to the current work:
 grep -rl "topic-keyword" $OBSIDIAN_VAULT_PATH/ --include="*.md"
 
 # List Asya-related notes
-ls $OBSIDIAN_VAULT_PATH/Asya*.md
+ls $OBSIDIAN_VAULT_PATH/Asya/
 
-# Search for specific patterns
-grep -l "TODO\|FIXME\|WIP\|open question" $OBSIDIAN_VAULT_PATH/*.md
+# Search for specific patterns (recursive to include Asya/ folder)
+grep -rl "TODO\|FIXME\|WIP\|open question" $OBSIDIAN_VAULT_PATH/ --include="*.md"
 ```
 
 ### Phase 3: Apply Minimal Updates
@@ -144,7 +144,7 @@ git push
 ```bash
 # Bead asya-12 "Implement happy-end actor" was closed
 # Find related obsidian note
-grep -l "happy-end\|crew actors" $OBSIDIAN_VAULT_PATH/*.md
+grep -rl "happy-end\|crew actors" $OBSIDIAN_VAULT_PATH/ --include="*.md"
 
 # Update the note
 # - Mark the TODO as done
@@ -156,7 +156,7 @@ grep -l "happy-end\|crew actors" $OBSIDIAN_VAULT_PATH/*.md
 ```bash
 # RFC asya-bi8 was merged
 # Find notes discussing this topic
-grep -l "agentic\|multi-agent" $OBSIDIAN_VAULT_PATH/*.md
+grep -rl "agentic\|multi-agent" $OBSIDIAN_VAULT_PATH/ --include="*.md"
 
 # Update the notes
 # - Close open questions about approach
@@ -172,7 +172,7 @@ bd list --status=closed --since=7d
 git log --oneline --since="7 days ago"
 
 # 2. For each completed item, search obsidian
-grep -l "keyword" $OBSIDIAN_VAULT_PATH/*.md
+grep -rl "keyword" $OBSIDIAN_VAULT_PATH/ --include="*.md"
 
 # 3. Update matching notes
 # 4. Commit all changes together
