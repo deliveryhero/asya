@@ -52,7 +52,7 @@ def _get_transport_client(transport: str):
 @pytest.mark.chaos
 def test_operator_recreates_deleted_actor_queue_e2e(e2e_helper, chaos_queues, namespace):
     """
-    E2E Chaos: Test operator recreates deleted actor queue within 5 minutes.
+    E2E Chaos: Test operator recreates deleted actor queue within 30 seconds.
 
     Scenario:
     1. Delete test-echo queue manually (simulate chaos)
@@ -62,7 +62,7 @@ def test_operator_recreates_deleted_actor_queue_e2e(e2e_helper, chaos_queues, na
 
     Expected:
     - Queue deleted successfully
-    - Operator detects missing queue within 5 minutes
+    - Operator detects missing queue within 30 seconds (health check interval)
     - Queue automatically recreated with correct configuration
     - Actor resumes normal operation
 
