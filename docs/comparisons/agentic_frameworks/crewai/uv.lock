@@ -525,7 +525,7 @@ wheels = [
 [[package]]
 name = "crewai-examples"
 version = "0.1.0"
-source = { editable = "." }
+source = { virtual = "." }
 dependencies = [
     { name = "crewai" },
     { name = "python-dotenv" },

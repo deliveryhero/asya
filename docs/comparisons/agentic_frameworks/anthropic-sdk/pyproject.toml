@@ -1,12 +1,8 @@
 [project]
 name = "anthropic-sdk-examples"
 version = "0.1.0"
-description = "Minimal examples using Anthropic SDK with tool use pattern"
-requires-python = ">=3.9"
-dependencies = [
-    "anthropic>=0.28.0",
-]
+requires-python = ">=3.10"
+dependencies = ["anthropic"]
 
-[build-system]
-requires = ["setuptools", "wheel"]
-build-backend = "setuptools.build_meta"
+[tool.uv]
+package = false

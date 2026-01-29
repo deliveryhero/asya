@@ -44,7 +44,7 @@ export OPENAI_API_KEY="your-api-key-here"
 ## Running the Example
 
 ```bash
-python main.py
+python agent.py
 ```
 
 ### Expected Output

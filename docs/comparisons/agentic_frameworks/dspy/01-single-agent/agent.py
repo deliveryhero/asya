@@ -14,7 +14,7 @@ import dspy
 import os
 from typing import Optional
 
-# Mock tool implementations (in production, these would call real APIs)
+# Stub tool implementations (in production, these would call real APIs)
 
 def search_knowledge_base(query: str) -> str:
     """
@@ -26,7 +26,7 @@ def search_knowledge_base(query: str) -> str:
     Returns:
         Relevant information from the knowledge base
     """
-    # Mock knowledge base
+    # Stub knowledge base
     knowledge_base = {
         "dspy": "DSPy is a framework for programming language models without prompting. It uses signatures for declarative task specification.",
         "python": "Python is a high-level programming language known for simplicity and readability.",
@@ -125,12 +125,12 @@ def main():
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
         print(
-            "Error: OPENAI_API_KEY environment variable not set. "
-            "Please set it to use the example."
+            "Warning: OPENAI_API_KEY environment variable not set. "
+            "Using mock instead."
         )
         print("\nExample with mock output:")
         print("=" * 60)
-        demonstrate_with_mock()
+        demonstrate_with_stub()
         return
 
     # Configure with OpenAI
@@ -165,11 +165,11 @@ def main():
     print("Agent completed processing all questions")
 
 
-def demonstrate_with_mock():
+def demonstrate_with_stub():
     """
     Demonstrate agent behavior with mock output (no LM required).
     """
-    print("\nExample Agent Behavior (Mock):")
+    print("\nExample Agent Behavior (Stub):")
     print("-" * 60)
 
     # Simulate tool calls

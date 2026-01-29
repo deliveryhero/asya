@@ -55,13 +55,13 @@ export OPENAI_API_KEY="your-api-key-here"
 From the `01-single-agent/` directory:
 
 ```bash
-uv run main.py
+uv run agent.py
 ```
 
 Or with Python directly:
 
 ```bash
-python main.py
+python agent.py
 ```
 
 ## Expected Output
@@ -144,7 +144,7 @@ Functions agents can call, decorated with `@tool()`:
 
 ## Next Steps
 
-1. **Modify the review**: Edit the `sample_review` string in `main.py` to test with different inputs
+1. **Modify the review**: Edit the `sample_review` string in `agent.py` to test with different inputs
 2. **Add more tools**: Create additional `@tool` decorated functions for different capabilities
 3. **Chain tasks**: Create multiple tasks for the agent to execute sequentially
 4. **Multi-agent**: Check the companion examples for multi-agent architectures

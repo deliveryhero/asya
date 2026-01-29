@@ -89,7 +89,7 @@ export ANTHROPIC_API_KEY="your-api-key-here"
 ```bash
 # From this directory
 cd docs/comparisons/agentic_frameworks/langgraph/01-single-agent
-python main.py
+python agent.py
 ```
 
 ## Example Output

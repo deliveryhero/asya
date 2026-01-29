@@ -15,7 +15,7 @@ This example demonstrates:
 google-adk/
 ├── pyproject.toml                 # Python dependencies (google-adk)
 └── 01-single-agent/
-    ├── main.py                    # Agent implementation with tools
+    ├── agent.py                    # Agent implementation with tools
     └── README.md                  # This file
 ```
 
@@ -44,12 +44,12 @@ pip install google-adk
 From the `google-adk/` directory:
 
 ```bash
-uv run 01-single-agent/main.py
+uv run 01-single-agent/agent.py
 ```
 
 Or with Python directly:
 ```bash
-python 01-single-agent/main.py
+python 01-single-agent/agent.py
 ```
 
 ## Example Output

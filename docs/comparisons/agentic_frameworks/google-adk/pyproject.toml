@@ -1,11 +1,8 @@
 [project]
-name = "google-adk-single-agent"
+name = "google-adk-examples"
 version = "0.1.0"
-description = "Minimal single-agent example for Google ADK"
 requires-python = ">=3.10"
-dependencies = [
-    "google-adk>=0.0.45",
-]
+dependencies = ["google-adk"]
 
 [tool.uv]
-python-version = "3.13"
+package = false

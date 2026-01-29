@@ -26,7 +26,7 @@ Is response a tool call?
 
 ## Files
 
-- `main.py` - Single-agent implementation with tool execution loop
+- `agent.py` - Single-agent implementation with tool execution loop
 - `README.md` - This file
 
 ## Setup
@@ -57,7 +57,7 @@ export ANTHROPIC_API_KEY="your-api-key-here"
 ## Running the Example
 
 ```bash
-python 01-single-agent/main.py
+python 01-single-agent/agent.py
 ```
 
 ## Key Concepts

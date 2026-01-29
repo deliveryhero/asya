@@ -49,7 +49,7 @@ def search_knowledge_base(query: str) -> str:
 Using uv:
 ```bash
 cd docs/comparisons/agentic_frameworks/dspy/
-uv pip install -e .
+uv sync
 ```
 
 Or with pip:
@@ -60,20 +60,12 @@ pip install -e .
 
 ## Running
 
-### With OpenAI API Key
-
 ```bash
-export OPENAI_API_KEY="sk-..."
-cd docs/comparisons/agentic_frameworks/dspy/01-single-agent/
-python main.py
+#optionally: export OPENAI_API_KEY="sk-..."
+cd docs/comparisons/agentic_frameworks/dspy/
+uv run 01-single-agent/agent.py
 ```
 
-### Without API Key (Demo Mode)
-
-```bash
-cd docs/comparisons/agentic_frameworks/dspy/01-single-agent/
-python main.py
-```
 
 This will demonstrate tool calls with mock output, showing how the agent would behave.
 
@@ -97,7 +89,7 @@ Reasoning: The agent used the search_knowledge_base tool to find information abo
 ### File Structure
 ```
 01-single-agent/
-├── main.py       # Single agent module with ReAct pattern
+├── agent.py       # Single agent module with ReAct pattern
 └── README.md     # This file
 ```
 

@@ -4,12 +4,34 @@ This example demonstrates:
 - Creating an LlmAgent with mock tools
 - Using InMemoryRunner for testing without external services
 - Running the agent with queries via run_async()
+- Optional stub AI provider support via STUB_AI_BASE_URL
 """
 
 import asyncio
+import os
+from functools import cached_property
+
 from google.adk.agents import LlmAgent
-from google.adk.runners import InMemoryRunner
-from google.genai import types
+from google.adk.runners import Runner
+from google.adk.sessions import InMemorySessionService
+from google.adk.models.google_llm import Gemini
+from google.genai import Client, types
+
+
+class StubGemini(Gemini):
+    """Gemini model that supports custom base URL for testing."""
+
+    @cached_property
+    def api_client(self) -> Client:
+        base_url = os.getenv("STUB_AI_BASE_URL")
+        return Client(
+            api_key=os.getenv("GOOGLE_API_KEY", "stub-test-key"),
+            http_options=types.HttpOptions(
+                baseUrl=base_url,
+                headers=self._tracking_headers(),
+                retry_options=self.retry_options,
+            )
+        )
 
 
 def get_weather(city: str) -> dict:
@@ -98,17 +120,34 @@ def get_capital(country: str) -> dict:
 
 async def main():
     """Initialize and run the agent."""
+    # Use StubGemini if STUB_AI_BASE_URL is set, otherwise use model string
+    stub_url = os.getenv("STUB_AI_BASE_URL")
+    if stub_url:
+        model = StubGemini(model="gemini-2.0-flash")
+        print(f"[Using stub AI at {stub_url}]")
+    else:
+        model = "gemini-2.0-flash"
+
     # Create the agent with tools
     agent = LlmAgent(
         name="helpful_assistant",
-        model="gemini-2.0-flash",
+        model=model,
         description="A helpful assistant that can answer questions about weather, perform calculations, and provide geography information.",
         instruction="You are a helpful assistant. Use the available tools to answer user questions accurately and helpfully.",
         tools=[get_weather, calculate, get_capital],
     )
 
-    # Create an in-memory runner for testing
-    runner = InMemoryRunner(agent=agent, app_name="single-agent-example")
+    # Create session service and runner following official pattern
+    session_service = InMemorySessionService()
+    app_name = "single-agent-example"
+    runner = Runner(agent=agent, app_name=app_name, session_service=session_service)
+
+    # Create a session before running queries
+    session = await session_service.create_session(
+        app_name=app_name,
+        user_id="test-user",
+        session_id="test-session",
+    )
 
     # Sample queries to demonstrate the agent
     queries = [
@@ -121,31 +160,31 @@ async def main():
     print("Google ADK Single-Agent Example")
     print("=" * 60)
 
-    async with runner:
-        for query in queries:
-            print(f"\nUser: {query}")
-            print("-" * 60)
+    for query in queries:
+        print(f"\nUser: {query}")
+        print("-" * 60)
 
-            # Execute the agent with the query
-            content = types.Content(
-                role="user",
-                parts=[types.Part(text=query)]
-            )
+        # Execute the agent with the query
+        content = types.Content(
+            role="user",
+            parts=[types.Part(text=query)]
+        )
 
-            response_text = ""
-            async for event in runner.run_async(
-                user_id="test-user",
-                session_id="test-session",
-                new_message=content,
-            ):
-                # Collect text parts from model responses
+        response_text = ""
+        async for event in runner.run_async(
+            user_id="test-user",
+            session_id="test-session",
+            new_message=content,
+        ):
+            # Collect final response using standard pattern
+            if hasattr(event, 'is_final_response') and event.is_final_response():
                 if event.content and event.content.parts:
                     for part in event.content.parts:
                         if hasattr(part, 'text') and part.text:
-                            response_text += part.text
+                            response_text = part.text
 
-            print(f"Agent: {response_text}")
-            print()
+        print(f"Agent: {response_text}")
+        print()
 
 
 if __name__ == "__main__":
