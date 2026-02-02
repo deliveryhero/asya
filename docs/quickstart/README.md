@@ -644,7 +644,23 @@ spec:
 EOF
 ```
 
-### 3. Access Grafana
+### 3. Configure Asya Dashboard
+
+Create a ConfigMap with the Asya dashboard:
+
+```bash
+kubectl create configmap asya-dashboard \
+  -n monitoring \
+  --from-file=asya-actors.json=https://raw.githubusercontent.com/deliveryhero/asya/refs/heads/main/deploy/grafana-dashboards/asya-actors.json
+
+kubectl label configmap asya-dashboard \
+  -n monitoring \
+  grafana_dashboard=1
+```
+
+The Grafana sidecar will automatically discover and load the dashboard.
+
+### 4. Access Grafana
 
 Port-forward Grafana:
 
@@ -654,22 +670,7 @@ kubectl port-forward -n monitoring svc/prometheus-grafana 3000:80
 
 Default credentials: `admin` / `prom-operator`
 
-Open http://localhost:3000 in your browser.
-
-### 4. Import Asya Dashboard
-
-Download the dashboard JSON:
-
-```bash
-curl -sL https://raw.githubusercontent.com/deliveryhero/asya/refs/heads/main/deploy/grafana-dashboards/asya-actors.json -o asya-actors.json
-```
-
-In Grafana UI:
-1. Navigate to **Dashboards** → **Import**
-2. Click **Upload JSON file**
-3. Select `asya-actors.json`
-4. Select **Prometheus** as the datasource
-5. Click **Import**
+Open http://localhost:3000 → **Dashboards** → **Asya Actors Overview**
 
 The dashboard shows:
 - Message throughput and active messages
