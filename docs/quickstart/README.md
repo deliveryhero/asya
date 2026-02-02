@@ -359,7 +359,7 @@ error-end:
 EOF
 
 helm install asya-crew asya/asya-crew \
-  -n asya-system \
+  -n default \
   -f crew-values.yaml
 ```
 
@@ -372,7 +372,6 @@ Asya🎭 uses namespace separation to distinguish infrastructure from business l
 
 **asya-system namespace** (infrastructure layer):
 - ✅ Asya🎭 Operator (watches AsyncActors across all namespaces)
-- ✅ Crew actors (happy-end, error-end - system actors serving all namespaces)
 - ✅ LocalStack / infrastructure services
 - ✅ KEDA (monitors queues across all namespaces)
 - ✅ Prometheus / Grafana (when installed)
@@ -381,6 +380,7 @@ Asya🎭 uses namespace separation to distinguish infrastructure from business l
 - ✅ Gateway (routes messages to actors in same namespace)
 - ✅ Gateway PostgreSQL (gateway's envelope tracking database)
 - ✅ AsyncActors (your ML/AI workloads)
+- ✅ Crew actors (happy-end, error-end - handle pipeline completion)
 
 **Why this separation?**
 
@@ -532,11 +532,11 @@ error-end:
 EOF
 
 helm upgrade asya-crew asya/asya-crew \
-  -n asya-system \
+  -n default \
   -f crew-values.yaml
 
 kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=asya-crew \
-  -n asya-system --timeout=300s
+  -n default --timeout=300s
 ```
 
 ### 6. Install asya CLI
@@ -785,7 +785,7 @@ To remove components individually:
 kubectl delete asya --all
 
 # Remove crew
-helm uninstall asya-crew -n asya-system
+helm uninstall asya-crew -n default
 
 # Remove gateway
 helm uninstall asya-gateway -n default
