@@ -303,7 +303,7 @@ kubectl run aws-cli --rm -i --restart=Never --image=amazon/aws-cli \
   --env="AWS_ACCESS_KEY_ID=test" \
   --env="AWS_SECRET_ACCESS_KEY=test" \
   --env="AWS_DEFAULT_REGION=us-east-1" \
-  -- sh -c "
+  --command -- sh -c "
     aws --endpoint-url=http://localstack.asya-system.svc.cluster.local:4566 s3 mb s3://asya-results-bucket
     aws --endpoint-url=http://localstack.asya-system.svc.cluster.local:4566 s3 mb s3://asya-errors-bucket
   "
@@ -556,10 +556,10 @@ kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=asya-gateway \
 
 ### 8. Test Gateway Integration
 
-Port-forward the gateway service to your local machine:
+In a separate terminal, port-forward the gateway service to your local machine:
 
 ```bash
-kubectl port-forward -n asya-system svc/asya-gateway 8080:80 &
+kubectl port-forward -n asya-system svc/asya-gateway 8080:80
 ```
 
 Set the MCP URL environment variable:
