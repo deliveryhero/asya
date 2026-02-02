@@ -25,11 +25,14 @@ spec:
       spec:
         containers:
         - name: asya-runtime
-          image: {{ (index $errorEnd.workload.template.spec.containers 0).image | default "ghcr.io/deliveryhero/asya-crew:latest" }}
-          imagePullPolicy: {{ (index $errorEnd.workload.template.spec.containers 0).imagePullPolicy | default "IfNotPresent" }}
+          image: {{ include "asya-crew.error-end.image" . }}
+          imagePullPolicy: {{ include "asya-crew.error-end.imagePullPolicy" . }}
           env:
-          {{- with (index $errorEnd.workload.template.spec.containers 0).env }}
-          {{- toYaml . | nindent 10 }}
+          {{- range $key, $value := $errorEnd.env }}
+          {{- if ne $value "" }}
+          - name: {{ $key }}
+            value: {{ $value | quote }}
+          {{- end }}
           {{- end }}
           - name: ASYA_HANDLER
             value: handlers.end_handlers.error_end_handler
@@ -37,7 +40,7 @@ spec:
             value: envelope
           - name: ASYA_ENABLE_VALIDATION
             value: "false"
-          {{- with (index $errorEnd.workload.template.spec.containers 0).resources }}
+          {{- with $errorEnd.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
