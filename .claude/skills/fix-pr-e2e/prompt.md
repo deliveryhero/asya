@@ -68,7 +68,7 @@ git push origin <BRANCH_NAME>
 
 ### 7. Cleanup Worktree (10 seconds)
 ```bash
-cd /home/a.yushkovskiy/asya  # Return to main repo
+cd -  # Return to main repo
 git worktree remove "$WORKTREE_PATH" --force
 ```
 
