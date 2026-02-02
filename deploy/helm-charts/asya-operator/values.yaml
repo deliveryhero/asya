@@ -75,7 +75,7 @@ terminationGracePeriodSeconds: 10
 # Default sidecar configuration
 sidecar:
   image: ghcr.io/deliveryhero/asya-sidecar
-  tag: ""
+  tag: "" # Defaults to Chart.AppVersion (ensures operator and sidecar versions match)
   defaultResources:
     limits:
       cpu: 500m
