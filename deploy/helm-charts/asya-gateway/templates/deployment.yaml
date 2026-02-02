@@ -32,6 +32,7 @@ spec:
       serviceAccountName: {{ include "asya-gateway.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- include "asya-gateway.validateTransports" . }}
       {{- if or .Values.postgresql.enabled .Values.externalDatabase.host }}
       initContainers:
       - name: check-db-schema
@@ -83,31 +84,10 @@ spec:
         - name: http
           containerPort: {{ .Values.config.port }}
           protocol: TCP
+        envFrom:
+        - configMapRef:
+            name: {{ include "asya-gateway.fullname" . }}
         env:
-        - name: ASYA_GATEWAY_PORT
-          value: "{{ .Values.config.port }}"
-        {{- if .Values.transports.rabbitmq.enabled }}
-        - name: ASYA_RABBITMQ_URL
-          value: "{{ .Values.transports.rabbitmq.config.url }}"
-        - name: ASYA_RABBITMQ_EXCHANGE
-          value: "{{ .Values.transports.rabbitmq.config.exchange }}"
-        - name: ASYA_RABBITMQ_POOL_SIZE
-          value: "{{ .Values.transports.rabbitmq.config.poolSize }}"
-        {{- end }}
-        {{- if .Values.transports.sqs.enabled }}
-        - name: ASYA_SQS_ENDPOINT
-          value: "{{ .Values.transports.sqs.config.endpoint }}"
-        - name: ASYA_SQS_REGION
-          value: "{{ .Values.transports.sqs.config.region }}"
-        - name: ASYA_SQS_VISIBILITY_TIMEOUT
-          value: "{{ .Values.transports.sqs.config.visibilityTimeout }}"
-        - name: ASYA_SQS_WAIT_TIME_SECONDS
-          value: "{{ .Values.transports.sqs.config.waitTimeSeconds }}"
-        {{- end }}
-        {{- if .Values.routes.createConfigMap }}
-        - name: ASYA_CONFIG_PATH
-          value: "/config/routes.yaml"
-        {{- end }}
         {{- if or .Values.postgresql.enabled .Values.externalDatabase.host }}
         - name: ASYA_DATABASE_URL
           valueFrom:
