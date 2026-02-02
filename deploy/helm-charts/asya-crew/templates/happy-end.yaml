@@ -29,8 +29,10 @@ spec:
           imagePullPolicy: {{ include "asya-crew.happy-end.imagePullPolicy" . }}
           env:
           {{- range $key, $value := $happyEnd.env }}
+          {{- if ne $value "" }}
           - name: {{ $key }}
             value: {{ $value | quote }}
+          {{- end }}
           {{- end }}
           - name: ASYA_HANDLER
             value: handlers.end_handlers.happy_end_handler

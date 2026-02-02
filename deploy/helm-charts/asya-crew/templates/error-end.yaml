@@ -29,8 +29,10 @@ spec:
           imagePullPolicy: {{ include "asya-crew.error-end.imagePullPolicy" . }}
           env:
           {{- range $key, $value := $errorEnd.env }}
+          {{- if ne $value "" }}
           - name: {{ $key }}
             value: {{ $value | quote }}
+          {{- end }}
           {{- end }}
           - name: ASYA_HANDLER
             value: handlers.end_handlers.error_end_handler
