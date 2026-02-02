@@ -31,6 +31,36 @@ Choose your setup based on your needs:
 - **[+ Asya Gateway](#add-gateway-optional)** - Add MCP HTTP API with PostgreSQL
 - **[+ Prometheus](#add-prometheus-optional)** - Add observability
 
+## Quick Setup Script
+
+For rapid setup, use the automated script that consolidates all manual steps:
+
+```bash
+# Download the script
+curl -o setup-in-kind.sh https://raw.githubusercontent.com/deliveryhero/asya/main/docs/quickstart/setup-in-kind.sh
+chmod +x setup-in-kind.sh
+
+# Minimal setup (KEDA + SQS + Operator)
+./setup-in-kind.sh
+
+# Or install all components at once
+./setup-in-kind.sh --full
+
+# Or choose specific components
+./setup-in-kind.sh --with-s3 --with-gateway
+./setup-in-kind.sh --with-prometheus
+```
+
+**Available options:**
+- `--full` - Install all components (S3 + Gateway + Prometheus)
+- `--with-s3` - Add S3 storage and crew actors
+- `--with-gateway` - Add MCP HTTP Gateway with PostgreSQL
+- `--with-prometheus` - Add monitoring with Prometheus and Grafana
+
+The script automates all the manual steps below. Continue reading for step-by-step instructions if you prefer manual setup.
+
+---
+
 ## Initial Setup
 
 ### 1. Create Kind Cluster
@@ -708,16 +738,24 @@ kubectl logs $POD -c asya-runtime
 kubectl logs $POD -c asya-sidecar
 ```
 
-## Alternative: Quick E2E Setup
+## Alternative Setup Options
 
-For rapid testing with all components:
+**Option 1: Quick setup script** (recommended for local development)
+
+```bash
+./setup-in-kind.sh --full
+```
+
+Uses production-like configurations with LocalStack. See [Quick Setup Script](#quick-setup-script) above.
+
+**Option 2: E2E test environment** (for framework development)
 
 ```bash
 cd testing/e2e
 make up PROFILE=sqs-s3
 ```
 
-This deploys everything in one command but uses test configurations.
+Uses test-specific configurations. Intended for Asya framework developers.
 
 ---
 
