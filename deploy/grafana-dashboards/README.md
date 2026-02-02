@@ -1,12 +1,20 @@
-# Grafana Dashboards
+# Asya Grafana Dashboards
 
-Pre-configured Grafana dashboards for monitoring Asya actors.
+Pre-configured Grafana dashboards for monitoring Asya actors and components.
+
+## Dashboard Organization
+
+All Asya dashboards are organized into the **"Asya"** folder in Grafana for easy discovery and grouped navigation.
 
 ## Available Dashboards
 
-### asya-actors.json
+### Asya - Actors Overview
 
-Comprehensive dashboard showing:
+**File**: `asya-actors-overview.json`
+**UID**: `asya-actors-overview`
+**Folder**: Asya
+
+Comprehensive overview dashboard showing:
 
 **Message Throughput**
 - Message rate (received, processed, sent)
@@ -39,22 +47,35 @@ Comprehensive dashboard showing:
 
 ### ConfigMap Installation (Kubernetes)
 
+Deploy dashboard to the "Asya" folder in Grafana:
+
 ```bash
-kubectl create configmap asya-grafana-dashboards \
-  --from-file=asya-actors.json \
-  -n monitoring
+kubectl create configmap asya-dashboard \
+  -n monitoring \
+  --from-file=asya-actors.json=asya-actors-overview.json \
+  --dry-run=client -o yaml | \
+  kubectl label -f - --local \
+    grafana_dashboard=1 \
+    grafana_folder=Asya \
+    -o yaml | \
+  kubectl apply -f -
 ```
 
-Add label for Grafana sidecar discovery:
+**Labels explained**:
+- `grafana_dashboard=1`: Enables Grafana sidecar discovery
+- `grafana_folder=Asya`: Places dashboard in "Asya" folder
+
+ConfigMap structure:
 
 ```yaml
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: asya-grafana-dashboards
+  name: asya-dashboard
   namespace: monitoring
   labels:
     grafana_dashboard: "1"
+    grafana_folder: "Asya"
 data:
   asya-actors.json: |
     <dashboard JSON content>
@@ -83,13 +104,18 @@ scrape_configs:
     target_label: __address__
 ```
 
+## Dashboard Links
+
+Each dashboard includes a dropdown menu labeled **"Asya Dashboards"** in the top navigation bar. This dropdown automatically lists all dashboards tagged with `asya`, providing quick navigation between related dashboards.
+
 ## Dashboard Variables
 
-The dashboard includes template variables for filtering:
+The dashboard includes template variables for filtering and customization:
 
 - **Datasource**: Select Prometheus datasource
 - **Namespace**: Filter by Kubernetes namespace (multi-select)
-- **Queue**: Filter by queue name (multi-select)
+- **Queue**: Filter by actor queue name (multi-select)
+- **Percentile**: Select percentile for latency metrics (p50, p95, p99)
 
 ## Metrics Reference
 
