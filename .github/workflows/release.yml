@@ -129,11 +129,24 @@ jobs:
           sed -i "s/^appVersion:.*/appVersion: \"${VERSION}\"/" "$chart"
         done
 
+    - name: Update chart dependencies
+      run: |
+        for chart_dir in deploy/helm-charts/*/; do
+          if [ -f "${chart_dir}Chart.yaml" ]; then
+            if grep -q "^dependencies:" "${chart_dir}Chart.yaml"; then
+              echo "[.] Updating dependencies for $(basename ${chart_dir})"
+              cd "${chart_dir}"
+              helm dependency update
+              cd -
+            fi
+          fi
+        done
+
     - name: Package Helm charts
       run: |
         mkdir -p .deploy/charts
         for chart_dir in deploy/helm-charts/*/; do
-          echo "Packaging ${chart_dir}..."
+          echo "[.] Packaging ${chart_dir}..."
           helm package "${chart_dir}" -d .deploy/charts
         done
 

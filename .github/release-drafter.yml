@@ -179,6 +179,32 @@ template: |
   helm repo update
   ```
 
+  #### Quick Start (Full Demo Package)
+
+  For demos and evaluation, install the complete Asya🎭 environment:
+  ```bash
+  # Install with SQS + S3 (LocalStack)
+  helm install asya asya/asya-quickstart \
+    --version $RESOLVED_VERSION \
+    --namespace asya-demo \
+    --create-namespace \
+    --set global.transport=sqs \
+    --set global.storage=s3
+
+  # Install with RabbitMQ + MinIO
+  helm install asya asya/asya-quickstart \
+    --version $RESOLVED_VERSION \
+    --namespace asya-demo \
+    --create-namespace \
+    --set global.transport=rabbitmq \
+    --set global.storage=minio
+  ```
+
+  This deploys a complete demo environment with sample actors, flows, and infrastructure.
+  For production deployments, install components individually.
+
+  #### Individual Components
+
   Install the operator:
   ```bash
   helm install asya-operator asya/asya-operator \
