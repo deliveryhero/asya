@@ -34,6 +34,8 @@ actors:
     secretKey: minioadmin
 
 crew:
+  image:
+    pullPolicy: Never
   happy-end:
     transport: rabbitmq
     scaling:
