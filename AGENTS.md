@@ -356,7 +356,7 @@ Linting tools with auto-fix capabilities:
 
 **Issue Tracking with Beads**:
 
-**CRITICAL**: Never manually edit `.beads/` files! Always use the `bd` CLI tool for all issue operations:
+**⚠️ CRITICAL**: Never manually edit `.beads/` files! Always use the `bd` CLI tool for all issue operations:
 - Create: `bd create --title="..." --type=task|bug|feature`
 - Update: `bd update <id> --status=in_progress|completed`
 - Close: `bd close <id>`
