@@ -670,7 +670,7 @@ kubectl port-forward -n monitoring svc/prometheus-grafana 3000:80
 
 Default credentials: `admin` / `prom-operator`
 
-Open http://localhost:3000 → **Dashboards** → **Asya Actors Overview**
+Open `http://localhost:3002/d/asya-actors/asya-actors-overview`
 
 The dashboard shows:
 - Message throughput and active messages
