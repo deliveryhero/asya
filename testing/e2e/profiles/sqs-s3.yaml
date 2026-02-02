@@ -31,6 +31,8 @@ actors:
     secretKey: test
 
 crew:
+  image:
+    pullPolicy: Never
   happy-end:
     transport: sqs
     scaling:
