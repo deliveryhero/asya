@@ -6,8 +6,16 @@ Missing points:
 - cli deployment
     - flow abstraction deployment at once
 - control plane gateway API
-- fan-in actor
+    - register new mcp tools for existing actors
+    - create new actors from code (???)
 - agentic frameworks integration
     - python syntax for tools/agents
     - event streaming
+    - gateway to comply with a2a
+    - stateful fan-in actor
 - binary protocol optimization
+- docs
+    - quickstart guide
+    - comparisons pages
+    - more real-world examples
+    - initiate ards
