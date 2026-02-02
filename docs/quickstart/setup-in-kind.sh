@@ -23,6 +23,9 @@
 
 set -euo pipefail
 
+TMP_DIR=$(mktemp -d)
+trap 'rm -rf -- "$TMP_DIR"' EXIT
+
 # Parse options
 INSTALL_S3=false
 INSTALL_GATEWAY=false
@@ -96,7 +99,7 @@ if kind get clusters 2> /dev/null | grep -q "^${CLUSTER_NAME}$"; then
   kubectl config use-context "kind-${CLUSTER_NAME}"
 else
   echo "[.] Creating Kind cluster..."
-  cat > /tmp/kind-config-$$.yaml << EOF
+  cat > "$TMP_DIR/kind-config.yaml" << EOF
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 nodes:
@@ -107,8 +110,7 @@ nodes:
     protocol: TCP
 EOF
 
-  kind create cluster --name "$CLUSTER_NAME" --config /tmp/kind-config-$$.yaml
-  rm /tmp/kind-config-$$.yaml
+  kind create cluster --name "$CLUSTER_NAME" --config "$TMP_DIR/kind-config.yaml"
   kubectl config use-context "kind-${CLUSTER_NAME}"
   echo "[+] Kind cluster created"
 fi
@@ -166,7 +168,7 @@ helm repo add asya https://asya.sh/charts 2> /dev/null || true
 helm repo update asya > /dev/null
 
 # Create operator values
-cat > /tmp/operator-values-$$.yaml << EOF
+cat > "$TMP_DIR"/operator-values.yaml << EOF
 image:
   repository: ghcr.io/deliveryhero/asya-operator
 transports:
@@ -189,12 +191,12 @@ if helm list -n "$SYSTEM_NAMESPACE" 2> /dev/null | grep -q "^asya-operator"; the
   echo "[!] Operator already installed, upgrading..."
   helm upgrade asya-operator asya/asya-operator \
     -n "$SYSTEM_NAMESPACE" \
-    -f /tmp/operator-values-$$.yaml
+    -f "$TMP_DIR"/operator-values.yaml
 else
   helm install asya-operator asya/asya-operator \
     -n "$SYSTEM_NAMESPACE" \
     --create-namespace \
-    -f /tmp/operator-values-$$.yaml
+    -f "$TMP_DIR"/operator-values.yaml
 fi
 
 kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=asya-operator \
@@ -205,7 +207,7 @@ echo ""
 # Deploy hello actor
 echo "[.] Deploying hello actor..."
 
-cat > /tmp/handler-$$.py << EOF
+cat > "$TMP_DIR"/handler.py << EOF
 import time
 
 def process(payload: dict) -> dict:
@@ -216,21 +218,18 @@ def process(payload: dict) -> dict:
     }
 EOF
 
-cat > /tmp/Dockerfile-$$ << EOF
+cat > "$TMP_DIR"/Dockerfile << EOF
 FROM python:3.13-slim
 WORKDIR /app
 COPY handler.py .
 EOF
 
 # Build and load image
-cp /tmp/handler-$$.py handler.py
-cp /tmp/Dockerfile-$$ Dockerfile
-docker build -t my-hello-actor:latest -f Dockerfile . > /dev/null 2>&1
-rm handler.py Dockerfile
+docker build -t my-hello-actor:latest "$TMP_DIR"
 kind load docker-image my-hello-actor:latest --name "$CLUSTER_NAME"
 
 # Deploy actor
-cat > /tmp/hello-actor-$$.yaml << EOF
+cat > "$TMP_DIR"/hello-actor.yaml << EOF
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 metadata:
@@ -264,12 +263,9 @@ spec:
             value: "us-east-1"
 EOF
 
-kubectl apply -f /tmp/hello-actor-$$.yaml
+kubectl apply -f "$TMP_DIR"/hello-actor.yaml
 echo "[+] Hello actor deployed"
 echo ""
-
-# Clean up temp files
-rm /tmp/operator-values-$$.yaml /tmp/handler-$$.py /tmp/Dockerfile-$$ /tmp/hello-actor-$$.yaml
 
 # Install S3 storage (optional)
 if [ "$INSTALL_S3" = true ]; then
@@ -294,7 +290,7 @@ if [ "$INSTALL_S3" = true ]; then
   fi
 
   # Install crew actors
-  cat > /tmp/crew-values-$$.yaml << EOF
+  cat > "$TMP_DIR"/crew-values.yaml << EOF
 happy-end:
   transport: sqs
   workload:
@@ -338,17 +334,15 @@ error-end:
             value: "test"
 EOF
 
-  if helm list -n "$SYSTEM_NAMESPACE" 2> /dev/null | grep -q "^asya-crew"; then
+  if helm list -n "$ACTOR_NAMESPACE" 2> /dev/null | grep -q "^asya-crew"; then
     helm upgrade asya-crew asya/asya-crew \
-      -n "$SYSTEM_NAMESPACE" \
-      -f /tmp/crew-values-$$.yaml
+      -n "$ACTOR_NAMESPACE" \
+      -f "$TMP_DIR"/crew-values.yaml
   else
     helm install asya-crew asya/asya-crew \
-      -n "$SYSTEM_NAMESPACE" \
-      -f /tmp/crew-values-$$.yaml
+      -n "$ACTOR_NAMESPACE" \
+      -f "$TMP_DIR"/crew-values.yaml
   fi
-
-  rm /tmp/crew-values-$$.yaml
   echo "[+] S3 storage installed"
   echo ""
 fi
@@ -410,7 +404,7 @@ EOF
   fi
 
   # Install Gateway
-  cat > /tmp/gateway-values-$$.yaml << EOF
+  cat > "$TMP_DIR"/gateway-values.yaml << EOF
 image:
   repository: ghcr.io/deliveryhero/asya-gateway
   tag: latest
@@ -445,20 +439,20 @@ EOF
   if helm list -n "$SYSTEM_NAMESPACE" 2> /dev/null | grep -q "^asya-gateway"; then
     helm upgrade asya-gateway asya/asya-gateway \
       -n "$SYSTEM_NAMESPACE" \
-      -f /tmp/gateway-values-$$.yaml
+      -f "$TMP_DIR"/gateway-values.yaml
   else
     helm install asya-gateway asya/asya-gateway \
       -n "$SYSTEM_NAMESPACE" \
-      -f /tmp/gateway-values-$$.yaml
+      -f "$TMP_DIR"/gateway-values.yaml
   fi
 
   kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=asya-gateway \
     -n "$SYSTEM_NAMESPACE" --timeout=300s
 
-  rm /tmp/gateway-values-$$.yaml
+  rm "$TMP_DIR"/gateway-values.yaml
 
   # Update operator for gateway integration
-  cat > /tmp/operator-values-gateway-$$.yaml << EOF
+  cat > "$TMP_DIR"/operator-values-gateway.yaml << EOF
 image:
   repository: ghcr.io/deliveryhero/asya-operator
 transports:
@@ -480,66 +474,7 @@ EOF
 
   helm upgrade asya-operator asya/asya-operator \
     -n "$SYSTEM_NAMESPACE" \
-    -f /tmp/operator-values-gateway-$$.yaml
-
-  rm /tmp/operator-values-gateway-$$.yaml
-
-  # Update crew if it was installed
-  if [ "$INSTALL_S3" = true ]; then
-    echo "[.] Updating crew for gateway reporting..."
-    cat > /tmp/crew-values-gateway-$$.yaml << EOF
-happy-end:
-  transport: sqs
-  workload:
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          env:
-          - name: ASYA_GATEWAY_URL
-            value: "http://asya-gateway.${SYSTEM_NAMESPACE}.svc.cluster.local:8080"
-          - name: ASYA_S3_BUCKET
-            value: "asya-results-bucket"
-          - name: ASYA_S3_ENDPOINT
-            value: "http://localstack.${SYSTEM_NAMESPACE}.svc.cluster.local:4566"
-          - name: ASYA_S3_REGION
-            value: "us-east-1"
-          - name: AWS_ACCESS_KEY_ID
-            value: "test"
-          - name: AWS_SECRET_ACCESS_KEY
-            value: "test"
-
-error-end:
-  transport: sqs
-  workload:
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          env:
-          - name: ASYA_GATEWAY_URL
-            value: "http://asya-gateway.${SYSTEM_NAMESPACE}.svc.cluster.local:8080"
-          - name: ASYA_S3_BUCKET
-            value: "asya-errors-bucket"
-          - name: ASYA_S3_ENDPOINT
-            value: "http://localstack.${SYSTEM_NAMESPACE}.svc.cluster.local:4566"
-          - name: ASYA_S3_REGION
-            value: "us-east-1"
-          - name: AWS_ACCESS_KEY_ID
-            value: "test"
-          - name: AWS_SECRET_ACCESS_KEY
-            value: "test"
-EOF
-
-    helm upgrade asya-crew asya/asya-crew \
-      -n "$SYSTEM_NAMESPACE" \
-      -f /tmp/crew-values-gateway-$$.yaml
-
-    kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=asya-crew \
-      -n "$SYSTEM_NAMESPACE" --timeout=300s
-
-    rm /tmp/crew-values-gateway-$$.yaml
-  fi
+    -f "$TMP_DIR"/operator-values-gateway.yaml
 
   echo "[+] Gateway installed"
   echo ""
