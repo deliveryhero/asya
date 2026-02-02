@@ -211,9 +211,9 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 24,
-        "x": 0,
-        "y": 9
+        "w": 12,
+        "x": 12,
+        "y": 1
       },
       "id": 23,
       "options": {
@@ -234,13 +234,26 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "(sum by (queue) (rate(asya_actor_messages_processed_total{namespace=~\"$namespace\", queue=~\"$queue\", status=\"success\"}[5m])) / (sum by (queue) (rate(asya_actor_messages_processed_total{namespace=~\"$namespace\", queue=~\"$queue\", status=\"success\"}[5m])) + sum by (queue) (rate(asya_actor_messages_failed_total{namespace=~\"$namespace\", queue=~\"$queue\"}[5m])))) * 100",
+          "expr": "(sum by (queue) (rate(asya_actor_messages_processed_total{namespace=~\"$namespace\", queue=~\"$queue\", status=\"success\"}[5m])) / (sum by (queue) (rate(asya_actor_messages_processed_total{namespace=~\"$namespace\", queue=~\"$queue\"}[5m])))) * 100",
           "legendFormat": "{{queue}}",
           "refId": "A"
         }
       ],
       "title": "Success Rate by Actor",
       "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 9
+      },
+      "id": 10,
+      "panels": [],
+      "title": "Scaling",
+      "type": "row"
     },
     {
       "datasource": {
@@ -302,7 +315,7 @@
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 17
+        "y": 10
       },
       "id": 15,
       "options": {
@@ -391,7 +404,7 @@
         "h": 8,
         "w": 8,
         "x": 8,
-        "y": 25
+        "y": 10
       },
       "id": 20,
       "options": {
@@ -480,7 +493,7 @@
         "h": 8,
         "w": 8,
         "x": 16,
-        "y": 25
+        "y": 10
       },
       "id": 21,
       "options": {
@@ -515,7 +528,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 25
+        "y": 18
       },
       "id": 4,
       "panels": [],
@@ -582,7 +595,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 26
+        "y": 19
       },
       "id": 100,
       "options": {
@@ -671,7 +684,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 34
+        "y": 19
       },
       "id": 101,
       "options": {
@@ -706,7 +719,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 34
+        "y": 27
       },
       "id": 7,
       "panels": [],
@@ -771,9 +784,9 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 12,
+        "w": 24,
         "x": 0,
-        "y": 35
+        "y": 28
       },
       "id": 8,
       "options": {
@@ -808,9 +821,9 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 43
+        "y": 36
       },
-      "id": 10,
+      "id": 11,
       "panels": [],
       "title": "Message Sizes",
       "type": "row"
@@ -875,9 +888,9 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 44
+        "y": 37
       },
-      "id": 11,
+      "id": 102,
       "options": {
         "legend": {
           "calcs": ["mean", "max"],
@@ -919,7 +932,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 52
+        "y": 45
       },
       "id": 12,
       "panels": [],
@@ -986,7 +999,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 53
+        "y": 46
       },
       "id": 13,
       "options": {
@@ -1084,7 +1097,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 61
+        "y": 46
       },
       "id": 14,
       "options": {
