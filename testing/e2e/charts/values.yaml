@@ -227,6 +227,8 @@ actors:
     secretKey: minioadmin
 
 crew:
+  image:
+    tag: latest
   happy-end:
     enabled: true
     name: happy-end
