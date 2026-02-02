@@ -109,7 +109,6 @@ Sample infrastructure provides quick-start transport and storage backends for de
 | `sampleStorages.s3Localstack.enabled` | Deploy LocalStack for S3 | `true` |
 | `sampleStorages.minio.enabled` | Deploy MinIO | `false` |
 | `postgresql.enabled` | Deploy PostgreSQL for gateway | `true` |
-| `monitoring.enabled` | Deploy Prometheus + Grafana | `false` |
 
 **Production Note**: Sample infrastructure components are not suitable for production use. Configure proper cloud services (AWS SQS/S3, hosted RabbitMQ, etc.) instead.
 
@@ -180,6 +179,35 @@ kubectl run aws-cli --rm -i --restart=Never --image=amazon/aws-cli \
   "
 ```
 
+## Monitoring and Observability
+
+For production-grade monitoring, use the `kube-prometheus-stack` Helm chart from the prometheus-community:
+
+```bash
+# Add prometheus-community repository
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
+
+# Install kube-prometheus-stack
+helm install prometheus prometheus-community/kube-prometheus-stack \
+  --namespace monitoring \
+  --create-namespace
+```
+
+This provides:
+- Prometheus for metrics collection
+- Grafana with pre-configured dashboards
+- Alert Manager for notifications
+- Service monitors for Kubernetes components
+
+Access Grafana:
+```bash
+kubectl port-forward -n monitoring svc/prometheus-grafana 3000:80
+# Default credentials: admin/prom-operator
+```
+
+**Note:** Custom Asya🎭 Grafana dashboards will be added in a future release (tracked separately).
+
 ## Uninstallation
 
 ```bash
@@ -207,7 +235,6 @@ kubectl delete pvc minio-data -n default
 │ - localstack-sqs / localstack-s3 (if enabled)        │
 │ - rabbitmq (if enabled)                              │
 │ - minio (if enabled)                                 │
-│ - prometheus / grafana (if monitoring.enabled)       │
 └─────────────────────────────────────────────────────┘
 ```
 

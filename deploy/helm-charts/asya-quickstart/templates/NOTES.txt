@@ -86,13 +86,9 @@ Next steps:
 {{- end }}
 {{- end }}
 
-{{- if .Values.monitoring.enabled }}
-
-6. Access Grafana (if monitoring enabled):
-   kubectl port-forward -n {{ .Release.Namespace }} svc/grafana 3000:3000
-   Username: admin
-   Password: {{ .Values.monitoring.grafana.adminPassword }}
-{{- end }}
+6. (Optional) Install monitoring with kube-prometheus-stack:
+   helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+   helm install prometheus prometheus-community/kube-prometheus-stack -n monitoring --create-namespace
 
 Documentation: https://github.com/deliveryhero/asya
 
