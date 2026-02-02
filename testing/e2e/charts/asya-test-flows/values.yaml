@@ -2,7 +2,7 @@ transport: sqs
 
 workload:
   image: localhost/asya-runtime:latest
-  imagePullPolicy: IfNotPresent
+  imagePullPolicy: Never
 
 handlerMode: payload
 

@@ -191,7 +191,7 @@ releases:
         handlerMode: {{ env "ASYA_HANDLER_MODE" | default "payload" }}
         workload:
           image: ghcr.io/deliveryhero/asya-testing:latest
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Never
     labels:
       layer: app
 
@@ -206,6 +206,6 @@ releases:
         handlerMode: {{ env "ASYA_HANDLER_MODE" | default "payload" }}
         workload:
           image: ghcr.io/deliveryhero/asya-testing:latest
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Never
     labels:
       layer: app
