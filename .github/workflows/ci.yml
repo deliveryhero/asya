@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths-ignore:
     - '**.md'
+    - '**.sh'
     - '.github/**'
     - '**.html'
     - '**.css'
@@ -14,6 +15,7 @@ on:
     branches: [main]
     paths-ignore:
     - '**.md'
+    - '**.sh'
     - '.github/**'
     - 'docs/**'
     - '**.html'
