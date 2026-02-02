@@ -58,3 +58,15 @@ Create the name of the service account to use
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}
 {{- end }}
+
+{{/*
+Validate version compatibility between operator and sidecar
+Sidecar image tag must match operator version to ensure protocol compatibility
+*/}}
+{{- define "asya-operator.validateVersions" -}}
+{{- $operatorVersion := .Chart.AppVersion -}}
+{{- $sidecarTag := .Values.sidecar.tag | default .Chart.AppVersion -}}
+{{- if ne $sidecarTag $operatorVersion -}}
+{{- fail (printf "Sidecar image tag (%s) must match operator version (%s)" $sidecarTag $operatorVersion) -}}
+{{- end -}}
+{{- end -}}

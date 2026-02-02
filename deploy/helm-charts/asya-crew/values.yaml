@@ -4,6 +4,10 @@
 # IMPORTANT: ASYA_HANDLER, ASYA_HANDLER_MODE, and ASYA_ENABLE_VALIDATION are
 # pre-configured by the Helm templates and MUST NOT be overridden in values.
 
+# Optional: Operator version for validation
+# If set, crew version must match this version
+operatorVersion: ""
+
 # Global image configuration
 image:
   repository: ghcr.io/deliveryhero/asya-crew

@@ -8,6 +8,18 @@ This Helm chart deploys the 🎭 MCP Gateway with PostgreSQL backend.
 - Helm 3.2.0+
 - PV provisioner support in the underlying infrastructure (for PostgreSQL persistence)
 
+## Version Compatibility
+
+The gateway validates version constraints when `operatorVersion` is set:
+
+- **Gateway version MUST be >= operator version** - Gateway must support the operator's protocol version to communicate with actors via sidecars
+
+Set `operatorVersion` in values.yaml to enable validation:
+
+```yaml
+operatorVersion: "1.0.0"  # Must match deployed operator version
+```
+
 ## Installing the Chart
 
 ### With bundled PostgreSQL (recommended for development)

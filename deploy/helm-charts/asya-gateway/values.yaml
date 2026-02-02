@@ -66,6 +66,10 @@ nodeSelector: {}
 tolerations: []
 affinity: {}
 
+# Optional: Operator version for validation
+# If set, gateway version must be >= this version
+operatorVersion: ""
+
 # Gateway configuration
 config:
   port: "8080"

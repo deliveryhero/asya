@@ -128,3 +128,18 @@ Database password key
 {{- print "password" }}
 {{- end }}
 {{- end }}
+
+{{/*
+Validate version compatibility with operator
+Gateway version must be >= operator version to ensure protocol compatibility
+Only validates if operatorVersion is explicitly set
+*/}}
+{{- define "asya-gateway.validateOperatorVersion" -}}
+{{- if .Values.operatorVersion -}}
+{{- $gatewayVersion := .Chart.AppVersion -}}
+{{- $operatorVersion := .Values.operatorVersion -}}
+{{- if semverCompare (printf "< %s" $operatorVersion) $gatewayVersion -}}
+{{- fail (printf "Gateway version (%s) must be >= operator version (%s)" $gatewayVersion $operatorVersion) -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}

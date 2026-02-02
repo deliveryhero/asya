@@ -1,3 +1,4 @@
+{{- include "asya-crew.validateOperatorVersion" . -}}
 {{- $errorEnd := index .Values "error-end" }}
 {{- if $errorEnd.enabled }}
 apiVersion: asya.sh/v1alpha1

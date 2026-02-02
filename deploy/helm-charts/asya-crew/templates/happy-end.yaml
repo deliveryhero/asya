@@ -1,3 +1,4 @@
+{{- include "asya-crew.validateOperatorVersion" . -}}
 {{- $happyEnd := index .Values "happy-end" }}
 {{- if $happyEnd.enabled }}
 apiVersion: asya.sh/v1alpha1

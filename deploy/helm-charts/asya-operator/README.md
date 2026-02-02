@@ -26,6 +26,16 @@ If using SQS transport, create two IAM roles before installing the operator:
 
 See `/AUTH_SQS.md` for detailed IAM setup instructions.
 
+## Version Compatibility
+
+The operator validates version constraints to ensure compatibility between components:
+
+- **Sidecar image tag MUST match operator version** - The operator injects sidecar containers with a tag that must match `.Chart.AppVersion` to ensure protocol compatibility
+- **Gateway version MUST be >= operator version** - Gateway must support the operator's protocol version
+- **Crew version MUST match operator version** - Crew actors use the same runtime/sidecar as the operator
+
+These validations run during Helm template rendering and will fail the installation if versions mismatch.
+
 ## Namespace Convention
 
 **IMPORTANT**: The operator should always be deployed to the `asya-system` namespace following Kubernetes conventions for infrastructure components.

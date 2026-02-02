@@ -83,3 +83,18 @@ Resolve image pull policy for error-end actor (convenience wrapper)
 {{- define "asya-crew.error-end.imagePullPolicy" -}}
 {{- include "asya-crew.actor.imagePullPolicy" (dict "root" . "actorName" "error-end") }}
 {{- end }}
+
+{{/*
+Validate version compatibility with operator
+Crew version must match operator version to ensure runtime compatibility
+Only validates if operatorVersion is explicitly set
+*/}}
+{{- define "asya-crew.validateOperatorVersion" -}}
+{{- if .Values.operatorVersion -}}
+{{- $crewVersion := .Chart.AppVersion -}}
+{{- $operatorVersion := .Values.operatorVersion -}}
+{{- if ne $crewVersion $operatorVersion -}}
+{{- fail (printf "Crew version (%s) must match operator version (%s)" $crewVersion $operatorVersion) -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
