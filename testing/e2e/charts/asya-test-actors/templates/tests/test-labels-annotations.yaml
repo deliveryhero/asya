@@ -51,7 +51,7 @@ spec:
             break
           fi
           if [ $i -eq $MAX_RETRIES ]; then
-            echo "[-] Deployment not created after ${MAX_RETRIES} attempts (${MAX_RETRIES}s)"
+            echo "[-] Deployment not created after ${MAX_RETRIES} attempts ($((MAX_RETRIES * RETRY_INTERVAL))s)"
             exit 1
           fi
           sleep $RETRY_INTERVAL
