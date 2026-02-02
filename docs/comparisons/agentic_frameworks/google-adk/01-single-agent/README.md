@@ -5,9 +5,10 @@ A minimal working example of a single agent using Google's Agent Development Kit
 ## Overview
 
 This example demonstrates:
-- **Agent Creation**: Using ADK's `Agent` class with model, instructions, and tools
+- **Agent Creation**: Using ADK's `LlmAgent` class with model, instructions, and tools
 - **Tool Integration**: Defining mock tools (get_weather, calculate, get_capital) using simple Python functions
-- **Agent Execution**: Running the agent with sample queries via `Runner` and `Session`
+- **Agent Execution**: Running the agent with sample queries via `Runner` and `InMemorySessionService`
+- **Standard Gemini**: Using Gemini 2.0 Flash model for LLM capabilities
 
 ## File Structure
 
@@ -24,6 +25,7 @@ google-adk/
 ### Prerequisites
 - Python 3.10+ (3.13+ recommended)
 - `uv` or `pip` for dependency management
+- Google API key with Gemini API access
 
 ### Install Dependencies
 
@@ -38,6 +40,14 @@ Or using `pip`:
 cd docs/comparisons/agentic_frameworks/google-adk
 pip install google-adk
 ```
+
+### Set Up API Key
+
+```bash
+export GOOGLE_API_KEY="your-api-key-here"
+```
+
+Get your API key from [Google AI Studio](https://aistudio.google.com/app/apikey).
 
 ## Run the Example
 
@@ -89,7 +99,7 @@ Each tool includes:
 ### Agent Definition
 
 ```python
-agent = Agent(
+agent = LlmAgent(
     name="helpful_assistant",
     model="gemini-2.0-flash",
     description="A helpful assistant that can answer questions...",
@@ -108,13 +118,20 @@ Key components:
 ### Execution
 
 ```python
-session = Session()
-runner = Runner(agent=agent)
-response = runner.execute(query, session=session)
+session_service = InMemorySessionService()
+runner = Runner(agent=agent, app_name="single-agent-example", session_service=session_service)
+
+async for event in runner.run_async(
+    user_id="test-user",
+    session_id="test-session",
+    new_message=content,
+):
+    # Process events
 ```
 
-- **Session**: Stores conversation history (enables multi-turn conversations)
-- **Runner**: Executes the agent, handling tool calling and orchestration
+- **InMemorySessionService**: Stores conversation history in memory (enables multi-turn conversations)
+- **Runner**: Executes the agent asynchronously, handling tool calling and orchestration
+- **run_async**: Streams events from agent execution
 
 ## Extending the Example
 
@@ -129,7 +146,7 @@ To add more tools:
 
 2. Add it to the agent's tools list:
    ```python
-   agent = Agent(
+   agent = LlmAgent(
        ...
        tools=[get_weather, calculate, get_capital, my_tool],
    )

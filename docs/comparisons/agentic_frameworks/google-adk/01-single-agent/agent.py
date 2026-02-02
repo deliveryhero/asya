@@ -2,36 +2,17 @@
 
 This example demonstrates:
 - Creating an LlmAgent with mock tools
-- Using InMemoryRunner for testing without external services
+- Using InMemorySessionService for session management
 - Running the agent with queries via run_async()
-- Optional stub AI provider support via STUB_AI_BASE_URL
+- Standard Gemini model configuration
 """
 
 import asyncio
-import os
-from functools import cached_property
 
 from google.adk.agents import LlmAgent
 from google.adk.runners import Runner
 from google.adk.sessions import InMemorySessionService
-from google.adk.models.google_llm import Gemini
-from google.genai import Client, types
-
-
-class StubGemini(Gemini):
-    """Gemini model that supports custom base URL for testing."""
-
-    @cached_property
-    def api_client(self) -> Client:
-        base_url = os.getenv("STUB_AI_BASE_URL")
-        return Client(
-            api_key=os.getenv("GOOGLE_API_KEY", "stub-test-key"),
-            http_options=types.HttpOptions(
-                baseUrl=base_url,
-                headers=self._tracking_headers(),
-                retry_options=self.retry_options,
-            )
-        )
+from google.genai import types
 
 
 def get_weather(city: str) -> dict:
@@ -120,18 +101,10 @@ def get_capital(country: str) -> dict:
 
 async def main():
     """Initialize and run the agent."""
-    # Use StubGemini if STUB_AI_BASE_URL is set, otherwise use model string
-    stub_url = os.getenv("STUB_AI_BASE_URL")
-    if stub_url:
-        model = StubGemini(model="gemini-2.0-flash")
-        print(f"[Using stub AI at {stub_url}]")
-    else:
-        model = "gemini-2.0-flash"
-
     # Create the agent with tools
     agent = LlmAgent(
         name="helpful_assistant",
-        model=model,
+        model="gemini-2.0-flash",
         description="A helpful assistant that can answer questions about weather, perform calculations, and provide geography information.",
         instruction="You are a helpful assistant. Use the available tools to answer user questions accurately and helpfully.",
         tools=[get_weather, calculate, get_capital],

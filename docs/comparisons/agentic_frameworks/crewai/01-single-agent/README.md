@@ -55,13 +55,13 @@ export OPENAI_API_KEY="your-api-key-here"
 From the `01-single-agent/` directory:
 
 ```bash
-uv run agent.py
+python agent.py
 ```
 
-Or with Python directly:
+Or with uv:
 
 ```bash
-python agent.py
+uv run agent.py
 ```
 
 ## Expected Output
