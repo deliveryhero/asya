@@ -1229,7 +1229,7 @@
         "current": {
           "selected": true,
           "text": "p95",
-          "value": "0.95"
+          "value": 0.95
         },
         "hide": 0,
         "includeAll": false,
@@ -1240,21 +1240,20 @@
           {
             "selected": false,
             "text": "p50",
-            "value": "0.50"
+            "value": 0.5
           },
           {
             "selected": true,
             "text": "p95",
-            "value": "0.95"
+            "value": 0.95
           },
           {
             "selected": false,
             "text": "p99",
-            "value": "0.99"
+            "value": 0.99
           }
         ],
         "query": "0.50,0.95,0.99",
-        "queryValue": "",
         "skipUrlSync": false,
         "type": "custom"
       }
@@ -1268,6 +1267,6 @@
   "timezone": "browser",
   "title": "Asya - Actors Overview",
   "uid": "asya-actors-overview",
-  "version": 1,
+  "version": 2,
   "weekStart": ""
 }
