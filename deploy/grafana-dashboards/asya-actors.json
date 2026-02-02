@@ -115,7 +115,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "rate(asya_actor_messages_received_total{namespace=~\"$namespace\", queue=~\"$queue\"}[5m])",
+          "expr": "sum by (queue) (rate(asya_actor_messages_received_total{namespace=~\"$namespace\", queue=~\"$queue\"}[5m]))",
           "legendFormat": "{{queue}} received",
           "refId": "A"
         },
@@ -124,7 +124,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "rate(asya_actor_messages_processed_total{namespace=~\"$namespace\", queue=~\"$queue\", status=\"success\"}[5m])",
+          "expr": "sum by (queue) (rate(asya_actor_messages_processed_total{namespace=~\"$namespace\", queue=~\"$queue\", status=\"success\"}[5m]))",
           "legendFormat": "{{queue}} processed",
           "refId": "B"
         },
@@ -133,7 +133,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "rate(asya_actor_messages_sent_total{namespace=~\"$namespace\", destination_queue=~\"$queue\"}[5m])",
+          "expr": "sum by (destination_queue) (rate(asya_actor_messages_sent_total{namespace=~\"$namespace\", destination_queue=~\"$queue\"}[5m]))",
           "legendFormat": "{{destination_queue}} sent",
           "refId": "C"
         }
@@ -303,7 +303,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "histogram_quantile(0.50, rate(asya_actor_processing_duration_seconds_bucket{namespace=~\"$namespace\", queue=~\"$queue\"}[5m]))",
+          "expr": "histogram_quantile(0.50, sum by (le, queue) (rate(asya_actor_processing_duration_seconds_bucket{namespace=~\"$namespace\", queue=~\"$queue\"}[5m])))",
           "legendFormat": "{{queue}} p50",
           "refId": "A"
         },
@@ -312,7 +312,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "histogram_quantile(0.95, rate(asya_actor_processing_duration_seconds_bucket{namespace=~\"$namespace\", queue=~\"$queue\"}[5m]))",
+          "expr": "histogram_quantile(0.95, sum by (le, queue) (rate(asya_actor_processing_duration_seconds_bucket{namespace=~\"$namespace\", queue=~\"$queue\"}[5m])))",
           "legendFormat": "{{queue}} p95",
           "refId": "B"
         },
@@ -321,7 +321,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "histogram_quantile(0.99, rate(asya_actor_processing_duration_seconds_bucket{namespace=~\"$namespace\", queue=~\"$queue\"}[5m]))",
+          "expr": "histogram_quantile(0.99, sum by (le, queue) (rate(asya_actor_processing_duration_seconds_bucket{namespace=~\"$namespace\", queue=~\"$queue\"}[5m])))",
           "legendFormat": "{{queue}} p99",
           "refId": "C"
         }
@@ -410,7 +410,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "histogram_quantile(0.50, rate(asya_actor_runtime_execution_duration_seconds_bucket{namespace=~\"$namespace\", queue=~\"$queue\"}[5m]))",
+          "expr": "histogram_quantile(0.50, sum by (le, queue) (rate(asya_actor_runtime_execution_duration_seconds_bucket{namespace=~\"$namespace\", queue=~\"$queue\"}[5m])))",
           "legendFormat": "{{queue}} p50",
           "refId": "A"
         },
@@ -419,7 +419,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "histogram_quantile(0.95, rate(asya_actor_runtime_execution_duration_seconds_bucket{namespace=~\"$namespace\", queue=~\"$queue\"}[5m]))",
+          "expr": "histogram_quantile(0.95, sum by (le, queue) (rate(asya_actor_runtime_execution_duration_seconds_bucket{namespace=~\"$namespace\", queue=~\"$queue\"}[5m])))",
           "legendFormat": "{{queue}} p95",
           "refId": "B"
         },
@@ -428,7 +428,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "histogram_quantile(0.99, rate(asya_actor_runtime_execution_duration_seconds_bucket{namespace=~\"$namespace\", queue=~\"$queue\"}[5m]))",
+          "expr": "histogram_quantile(0.99, sum by (le, queue) (rate(asya_actor_runtime_execution_duration_seconds_bucket{namespace=~\"$namespace\", queue=~\"$queue\"}[5m])))",
           "legendFormat": "{{queue}} p99",
           "refId": "C"
         }
@@ -530,7 +530,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "rate(asya_actor_messages_failed_total{namespace=~\"$namespace\", queue=~\"$queue\"}[5m])",
+          "expr": "sum by (queue, reason) (rate(asya_actor_messages_failed_total{namespace=~\"$namespace\", queue=~\"$queue\"}[5m]))",
           "legendFormat": "{{queue}} - {{reason}}",
           "refId": "A"
         }
@@ -619,7 +619,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "rate(asya_actor_runtime_errors_total{namespace=~\"$namespace\", queue=~\"$queue\"}[5m])",
+          "expr": "sum by (queue, error_type) (rate(asya_actor_runtime_errors_total{namespace=~\"$namespace\", queue=~\"$queue\"}[5m]))",
           "legendFormat": "{{queue}} - {{error_type}}",
           "refId": "A"
         }
@@ -721,7 +721,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "histogram_quantile(0.50, rate(asya_actor_envelope_size_bytes_bucket{namespace=~\"$namespace\", direction=\"received\"}[5m]))",
+          "expr": "histogram_quantile(0.50, sum by (le, direction) (rate(asya_actor_envelope_size_bytes_bucket{namespace=~\"$namespace\", direction=\"received\"}[5m])))",
           "legendFormat": "received p50",
           "refId": "A"
         },
@@ -730,7 +730,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "histogram_quantile(0.95, rate(asya_actor_envelope_size_bytes_bucket{namespace=~\"$namespace\", direction=\"received\"}[5m]))",
+          "expr": "histogram_quantile(0.95, sum by (le, direction) (rate(asya_actor_envelope_size_bytes_bucket{namespace=~\"$namespace\", direction=\"received\"}[5m])))",
           "legendFormat": "received p95",
           "refId": "B"
         },
@@ -739,7 +739,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "histogram_quantile(0.50, rate(asya_actor_envelope_size_bytes_bucket{namespace=~\"$namespace\", direction=\"sent\"}[5m]))",
+          "expr": "histogram_quantile(0.50, sum by (le, direction) (rate(asya_actor_envelope_size_bytes_bucket{namespace=~\"$namespace\", direction=\"sent\"}[5m])))",
           "legendFormat": "sent p50",
           "refId": "C"
         },
@@ -748,7 +748,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "histogram_quantile(0.95, rate(asya_actor_envelope_size_bytes_bucket{namespace=~\"$namespace\", direction=\"sent\"}[5m]))",
+          "expr": "histogram_quantile(0.95, sum by (le, direction) (rate(asya_actor_envelope_size_bytes_bucket{namespace=~\"$namespace\", direction=\"sent\"}[5m])))",
           "legendFormat": "sent p95",
           "refId": "D"
         }
@@ -850,7 +850,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "rate(controller_runtime_reconcile_total{controller=\"asyncactor\"}[5m])",
+          "expr": "sum(rate(controller_runtime_reconcile_total{controller=\"asyncactor\"}[5m]))",
           "legendFormat": "Reconciliations",
           "refId": "A"
         },
@@ -859,7 +859,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "rate(controller_runtime_reconcile_errors_total{controller=\"asyncactor\"}[5m])",
+          "expr": "sum(rate(controller_runtime_reconcile_errors_total{controller=\"asyncactor\"}[5m]))",
           "legendFormat": "Errors",
           "refId": "B"
         }
@@ -948,7 +948,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "histogram_quantile(0.50, rate(controller_runtime_reconcile_time_seconds_bucket{controller=\"asyncactor\"}[5m]))",
+          "expr": "histogram_quantile(0.50, sum by (le) (rate(controller_runtime_reconcile_time_seconds_bucket{controller=\"asyncactor\"}[5m])))",
           "legendFormat": "p50",
           "refId": "A"
         },
@@ -957,7 +957,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "histogram_quantile(0.95, rate(controller_runtime_reconcile_time_seconds_bucket{controller=\"asyncactor\"}[5m]))",
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(controller_runtime_reconcile_time_seconds_bucket{controller=\"asyncactor\"}[5m])))",
           "legendFormat": "p95",
           "refId": "B"
         },
@@ -966,7 +966,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "histogram_quantile(0.99, rate(controller_runtime_reconcile_time_seconds_bucket{controller=\"asyncactor\"}[5m]))",
+          "expr": "histogram_quantile(0.99, sum by (le) (rate(controller_runtime_reconcile_time_seconds_bucket{controller=\"asyncactor\"}[5m])))",
           "legendFormat": "p99",
           "refId": "C"
         }
@@ -1063,8 +1063,8 @@
   },
   "timepicker": {},
   "timezone": "browser",
-  "title": "Asya Actors Overview",
-  "uid": "asya-actors",
+  "title": "Asya - Actors Dashboard",
+  "uid": "asya-actors-dashboard",
   "version": 1,
   "weekStart": ""
 }
