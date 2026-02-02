@@ -115,18 +115,9 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum by (queue) (rate(asya_actor_messages_received_total{namespace=~\"$namespace\", queue=~\"$queue\"}[5m]))",
-          "legendFormat": "{{queue}} received",
-          "refId": "A"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
           "expr": "sum by (queue) (rate(asya_actor_messages_processed_total{namespace=~\"$namespace\", queue=~\"$queue\", status=\"success\"}[5m]))",
           "legendFormat": "{{queue}} processed",
-          "refId": "B"
+          "refId": "A"
         },
         {
           "datasource": {
@@ -135,7 +126,7 @@
           },
           "expr": "sum by (destination_queue) (rate(asya_actor_messages_sent_total{namespace=~\"$namespace\", destination_queue=~\"$queue\"}[5m]))",
           "legendFormat": "{{destination_queue}} sent",
-          "refId": "C"
+          "refId": "B"
         }
       ],
       "title": "Message Rate",
@@ -149,7 +140,138 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "thresholds"
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "tooltip": false,
+              "viz": false,
+              "legend": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "max": 100,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 90
+              },
+              {
+                "color": "green",
+                "value": 95
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 9
+      },
+      "id": 23,
+      "options": {
+        "legend": {
+          "calcs": ["last", "mean", "min"],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "(sum by (queue) (rate(asya_actor_messages_processed_total{namespace=~\"$namespace\", queue=~\"$queue\", status=\"success\"}[5m])) / (sum by (queue) (rate(asya_actor_messages_processed_total{namespace=~\"$namespace\", queue=~\"$queue\", status=\"success\"}[5m])) + sum by (queue) (rate(asya_actor_messages_failed_total{namespace=~\"$namespace\", queue=~\"$queue\"}[5m])))) * 100",
+          "legendFormat": "{{queue}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Success Rate by Actor",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "tooltip": false,
+              "viz": false,
+              "legend": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
           },
           "mappings": [],
           "thresholds": {
@@ -158,14 +280,6 @@
               {
                 "color": "green",
                 "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 10
-              },
-              {
-                "color": "red",
-                "value": 50
               }
             ]
           },
@@ -175,39 +289,214 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 1
+        "w": 8,
+        "x": 0,
+        "y": 17
       },
-      "id": 3,
+      "id": 15,
       "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": ["lastNotNull"],
-          "fields": "",
-          "values": false
+        "legend": {
+          "calcs": ["last", "max"],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
         },
-        "showPercentChange": false,
-        "textMode": "auto",
-        "wideLayout": true
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
       },
-      "pluginVersion": "11.0.0",
       "targets": [
         {
           "datasource": {
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum(asya_actor_active_messages{namespace=~\"$namespace\"})",
-          "legendFormat": "Active Messages",
+          "expr": "sum by (deployment) (kube_deployment_status_replicas_available{namespace=~\"$namespace\", deployment=~\"$queue\"})",
+          "legendFormat": "{{deployment}}",
           "refId": "A"
         }
       ],
-      "title": "Active Messages",
-      "type": "stat"
+      "title": "Running Pods",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "tooltip": false,
+              "viz": false,
+              "legend": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 25
+      },
+      "id": 20,
+      "options": {
+        "legend": {
+          "calcs": ["last", "max"],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (deployment) (kube_deployment_status_replicas_unavailable{namespace=~\"$namespace\", deployment=~\"$queue\"})",
+          "legendFormat": "{{deployment}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Unavailable Pods",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "tooltip": false,
+              "viz": false,
+              "legend": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 25
+      },
+      "id": 21,
+      "options": {
+        "legend": {
+          "calcs": ["last", "max"],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (deployment) (kube_deployment_spec_replicas{namespace=~\"$namespace\", deployment=~\"$queue\"})",
+          "legendFormat": "{{deployment}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Desired Pods",
+      "type": "timeseries"
     },
     {
       "collapsed": false,
@@ -215,7 +504,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 9
+        "y": 25
       },
       "id": 4,
       "panels": [],
@@ -282,12 +571,12 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 10
+        "y": 26
       },
-      "id": 5,
+      "id": 100,
       "options": {
         "legend": {
-          "calcs": ["mean", "max"],
+          "calcs": ["last", "max"],
           "displayMode": "table",
           "placement": "bottom",
           "showLegend": true
@@ -303,30 +592,12 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "histogram_quantile(0.50, sum by (le, queue) (rate(asya_actor_processing_duration_seconds_bucket{namespace=~\"$namespace\", queue=~\"$queue\"}[5m])))",
-          "legendFormat": "{{queue}} p50",
+          "expr": "histogram_quantile(${percentile}, sum by (le, queue) (rate(asya_actor_processing_duration_seconds_bucket{namespace=~\"$namespace\", queue=~\"$queue\"}[5m])))",
+          "legendFormat": "{{queue}}",
           "refId": "A"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "histogram_quantile(0.95, sum by (le, queue) (rate(asya_actor_processing_duration_seconds_bucket{namespace=~\"$namespace\", queue=~\"$queue\"}[5m])))",
-          "legendFormat": "{{queue}} p95",
-          "refId": "B"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "histogram_quantile(0.99, sum by (le, queue) (rate(asya_actor_processing_duration_seconds_bucket{namespace=~\"$namespace\", queue=~\"$queue\"}[5m])))",
-          "legendFormat": "{{queue}} p99",
-          "refId": "C"
         }
       ],
-      "title": "Processing Duration (End-to-End)",
+      "title": "Processing Duration (${percentile:text})",
       "type": "timeseries"
     },
     {
@@ -389,12 +660,12 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 10
+        "y": 34
       },
-      "id": 6,
+      "id": 101,
       "options": {
         "legend": {
-          "calcs": ["mean", "max"],
+          "calcs": ["last", "max"],
           "displayMode": "table",
           "placement": "bottom",
           "showLegend": true
@@ -410,30 +681,12 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "histogram_quantile(0.50, sum by (le, queue) (rate(asya_actor_runtime_execution_duration_seconds_bucket{namespace=~\"$namespace\", queue=~\"$queue\"}[5m])))",
-          "legendFormat": "{{queue}} p50",
+          "expr": "histogram_quantile(${percentile}, sum by (le, queue) (rate(asya_actor_runtime_execution_duration_seconds_bucket{namespace=~\"$namespace\", queue=~\"$queue\"}[5m])))",
+          "legendFormat": "{{queue}}",
           "refId": "A"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "histogram_quantile(0.95, sum by (le, queue) (rate(asya_actor_runtime_execution_duration_seconds_bucket{namespace=~\"$namespace\", queue=~\"$queue\"}[5m])))",
-          "legendFormat": "{{queue}} p95",
-          "refId": "B"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "histogram_quantile(0.99, sum by (le, queue) (rate(asya_actor_runtime_execution_duration_seconds_bucket{namespace=~\"$namespace\", queue=~\"$queue\"}[5m])))",
-          "legendFormat": "{{queue}} p99",
-          "refId": "C"
         }
       ],
-      "title": "Runtime Execution Duration",
+      "title": "Runtime Execution (${percentile:text})",
       "type": "timeseries"
     },
     {
@@ -442,7 +695,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 18
+        "y": 34
       },
       "id": 7,
       "panels": [],
@@ -509,7 +762,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 19
+        "y": 35
       },
       "id": 8,
       "options": {
@@ -539,101 +792,12 @@
       "type": "timeseries"
     },
     {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 10,
-            "gradientMode": "none",
-            "hideFrom": {
-              "tooltip": false,
-              "viz": false,
-              "legend": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "never",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "normal"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "unit": "reqps"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 19
-      },
-      "id": 9,
-      "options": {
-        "legend": {
-          "calcs": ["last", "max"],
-          "displayMode": "table",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "sum by (queue, error_type) (rate(asya_actor_runtime_errors_total{namespace=~\"$namespace\", queue=~\"$queue\"}[5m]))",
-          "legendFormat": "{{queue}} - {{error_type}}",
-          "refId": "A"
-        }
-      ],
-      "title": "Runtime Errors by Type",
-      "type": "timeseries"
-    },
-    {
       "collapsed": false,
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 27
+        "y": 43
       },
       "id": 10,
       "panels": [],
@@ -700,7 +864,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 28
+        "y": 44
       },
       "id": 11,
       "options": {
@@ -721,8 +885,8 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "histogram_quantile(0.50, sum by (le, direction) (rate(asya_actor_envelope_size_bytes_bucket{namespace=~\"$namespace\", direction=\"received\"}[5m])))",
-          "legendFormat": "received p50",
+          "expr": "histogram_quantile(${percentile}, sum by (le, direction) (rate(asya_actor_envelope_size_bytes_bucket{namespace=~\"$namespace\", direction=\"received\"}[5m])))",
+          "legendFormat": "received",
           "refId": "A"
         },
         {
@@ -730,30 +894,12 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "histogram_quantile(0.95, sum by (le, direction) (rate(asya_actor_envelope_size_bytes_bucket{namespace=~\"$namespace\", direction=\"received\"}[5m])))",
-          "legendFormat": "received p95",
+          "expr": "histogram_quantile(${percentile}, sum by (le, direction) (rate(asya_actor_envelope_size_bytes_bucket{namespace=~\"$namespace\", direction=\"sent\"}[5m])))",
+          "legendFormat": "sent",
           "refId": "B"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "histogram_quantile(0.50, sum by (le, direction) (rate(asya_actor_envelope_size_bytes_bucket{namespace=~\"$namespace\", direction=\"sent\"}[5m])))",
-          "legendFormat": "sent p50",
-          "refId": "C"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "histogram_quantile(0.95, sum by (le, direction) (rate(asya_actor_envelope_size_bytes_bucket{namespace=~\"$namespace\", direction=\"sent\"}[5m])))",
-          "legendFormat": "sent p95",
-          "refId": "D"
         }
       ],
-      "title": "Envelope Size Distribution",
+      "title": "Envelope Size (${percentile:text})",
       "type": "timeseries"
     },
     {
@@ -762,7 +908,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 36
+        "y": 52
       },
       "id": 12,
       "panels": [],
@@ -829,7 +975,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 37
+        "y": 53
       },
       "id": 13,
       "options": {
@@ -927,7 +1073,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 37
+        "y": 61
       },
       "id": 14,
       "options": {
@@ -1054,6 +1200,39 @@
         "skipUrlSync": false,
         "sort": 1,
         "type": "query"
+      },
+      {
+        "current": {
+          "selected": true,
+          "text": "p95",
+          "value": "0.95"
+        },
+        "hide": 0,
+        "includeAll": false,
+        "label": "Percentile",
+        "multi": false,
+        "name": "percentile",
+        "options": [
+          {
+            "selected": false,
+            "text": "p50",
+            "value": "0.50"
+          },
+          {
+            "selected": true,
+            "text": "p95",
+            "value": "0.95"
+          },
+          {
+            "selected": false,
+            "text": "p99",
+            "value": "0.99"
+          }
+        ],
+        "query": "p50,p95,p99",
+        "queryValue": "",
+        "skipUrlSync": false,
+        "type": "custom"
       }
     ]
   },
@@ -1063,8 +1242,8 @@
   },
   "timepicker": {},
   "timezone": "browser",
-  "title": "Asya - Actors Dashboard",
-  "uid": "asya-actors-dashboard",
+  "title": "Asya - Actors Overview",
+  "uid": "asya-actors-overview",
   "version": 1,
   "weekStart": ""
 }
