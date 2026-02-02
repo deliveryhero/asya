@@ -1253,7 +1253,7 @@
             "value": "0.99"
           }
         ],
-        "query": "p50,p95,p99",
+        "query": "0.50,0.95,0.99",
         "queryValue": "",
         "skipUrlSync": false,
         "type": "custom"
