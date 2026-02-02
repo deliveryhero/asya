@@ -1089,7 +1089,7 @@ kubectl<span class="w"> </span>run<span class="w"> </span>send-many-messages<spa
 <span class="w">  </span>--env<span class="o">=</span><span class="s2">&quot;AWS_ACCESS_KEY_ID=test&quot;</span><span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--env<span class="o">=</span><span class="s2">&quot;AWS_SECRET_ACCESS_KEY=test&quot;</span><span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--env<span class="o">=</span><span class="s2">&quot;AWS_DEFAULT_REGION=us-east-1&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--<span class="w"> </span>sh<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;</span>
+<span class="w">  </span>--command<span class="w"> </span>--<span class="w"> </span>sh<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;</span>
 <span class="s2">    aws --endpoint-url=http://localstack.asya-system.svc.cluster.local:4566 s3 mb s3://asya-results-bucket</span>
 <span class="s2">    aws --endpoint-url=http://localstack.asya-system.svc.cluster.local:4566 s3 mb s3://asya-errors-bucket</span>
 <span class="s2">  &quot;</span>
@@ -1191,11 +1191,7 @@ helm<span class="w"> </span>install<span class="w"> </span>asya-crew<span class=
 <span class="w">  </span>--namespace<span class="w"> </span>asya-system<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--from-literal<span class="o">=</span><span class="nv">password</span><span class="o">=</span>asya
 </code></pre></div>
-<hr />
-<p>TODO: complete tutorial</p>
-<!--
-### 3. Install Gateway
-
+<h3 id="3-install-gateway">3. Install Gateway<a class="headerlink" href="#3-install-gateway" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code>cat<span class="w"> </span>&gt;<span class="w"> </span>gateway-values.yaml<span class="w"> </span><span class="s">&lt;&lt;EOF</span>
 <span class="s">image:</span>
 <span class="s">  repository: ghcr.io/deliveryhero/asya-gateway</span>
@@ -1224,9 +1220,7 @@ helm<span class="w"> </span>install<span class="w"> </span>asya-gateway<span cla
 kubectl<span class="w"> </span><span class="nb">wait</span><span class="w"> </span>--for<span class="o">=</span><span class="nv">condition</span><span class="o">=</span>ready<span class="w"> </span>pod<span class="w"> </span>-l<span class="w"> </span>app.kubernetes.io/name<span class="o">=</span>asya-gateway<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-n<span class="w"> </span>asya-system<span class="w"> </span>--timeout<span class="o">=</span>300s
 </code></pre></div>
-
-### 4. Update Operator for Gateway Integration
-
+<h3 id="4-update-operator-for-gateway-integration">4. Update Operator for Gateway Integration<a class="headerlink" href="#4-update-operator-for-gateway-integration" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code>cat<span class="w"> </span>&gt;&gt;<span class="w"> </span>operator-values.yaml<span class="w"> </span><span class="s">&lt;&lt;EOF</span>
 <span class="s">gatewayURL: &quot;http://asya-gateway.asya-system.svc.cluster.local:8080&quot;</span>
 <span class="s">EOF</span>
@@ -1235,9 +1229,7 @@ helm<span class="w"> </span>upgrade<span class="w"> </span>asya-operator<span cl
 <span class="w">  </span>-n<span class="w"> </span>asya-system<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-f<span class="w"> </span>operator-values.yaml
 </code></pre></div>
-
-### 5. Update Crew for Gateway Reporting
-
+<h3 id="5-update-crew-for-gateway-reporting">5. Update Crew for Gateway Reporting<a class="headerlink" href="#5-update-crew-for-gateway-reporting" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code>cat<span class="w"> </span>&gt;<span class="w"> </span>crew-values.yaml<span class="w"> </span><span class="s">&lt;&lt;EOF</span>
 <span class="s">happy-end:</span>
 <span class="s">  transport: sqs</span>
@@ -1285,47 +1277,78 @@ helm<span class="w"> </span>upgrade<span class="w"> </span>asya-operator<span cl
 helm<span class="w"> </span>upgrade<span class="w"> </span>asya-crew<span class="w"> </span>asya/asya-crew<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-n<span class="w"> </span>asya-system<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-f<span class="w"> </span>crew-values.yaml
+
+kubectl<span class="w"> </span><span class="nb">wait</span><span class="w"> </span>--for<span class="o">=</span><span class="nv">condition</span><span class="o">=</span>ready<span class="w"> </span>pod<span class="w"> </span>-l<span class="w"> </span>app.kubernetes.io/name<span class="o">=</span>asya-crew<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-n<span class="w"> </span>asya-system<span class="w"> </span>--timeout<span class="o">=</span>300s
 </code></pre></div>
-
-### 6. Use the Gateway
-
-Install CLI:
-
+<h3 id="6-install-asya-cli">6. Install asya CLI<a class="headerlink" href="#6-install-asya-cli" title="Permanent link">&para;</a></h3>
+<p>The Asya CLI provides MCP client tools for calling actors through the gateway:</p>
 <div class="highlight"><pre><span></span><code>pip<span class="w"> </span>install<span class="w"> </span>git+https://github.com/deliveryhero/asya.git#subdirectory<span class="o">=</span>src/asya-cli
 </code></pre></div>
+<h3 id="7-configure-gateway-tools">7. Configure Gateway Tools<a class="headerlink" href="#7-configure-gateway-tools" title="Permanent link">&para;</a></h3>
+<p>Define which actors are exposed as MCP tools. Update gateway values to add a tool for the hello actor:</p>
+<div class="highlight"><pre><span></span><code>cat<span class="w"> </span>&gt;<span class="w"> </span>gateway-tool-values.yaml<span class="w"> </span><span class="s">&lt;&lt;EOF</span>
+<span class="s">routes:</span>
+<span class="s">  tools:</span>
+<span class="s">  - name: hello</span>
+<span class="s">    description: Greets users by name</span>
+<span class="s">    parameters:</span>
+<span class="s">      name:</span>
+<span class="s">        type: string</span>
+<span class="s">        required: true</span>
+<span class="s">        description: Name to greet</span>
+<span class="s">    route: [hello]</span>
+<span class="s">EOF</span>
 
-Port-forward and test:
+helm<span class="w"> </span>upgrade<span class="w"> </span>asya-gateway<span class="w"> </span>asya/asya-gateway<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-n<span class="w"> </span>asya-system<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-f<span class="w"> </span>gateway-values.yaml<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-f<span class="w"> </span>gateway-tool-values.yaml
 
-<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>port-forward<span class="w"> </span>-n<span class="w"> </span>asya-system<span class="w"> </span>svc/asya-gateway<span class="w"> </span><span class="m">8080</span>:80
-
-<span class="nb">export</span><span class="w"> </span><span class="nv">ASYA_CLI_MCP_URL</span><span class="o">=</span>http://localhost:8080/
-
-<span class="c1"># List tools</span>
-asya<span class="w"> </span>mcp<span class="w"> </span>list
-
-<span class="c1"># Call an actor</span>
-asya<span class="w"> </span>mcp<span class="w"> </span>call<span class="w"> </span>hello<span class="w"> </span>--name<span class="o">=</span>Asya
-
-<span class="c1"># Stream progress</span>
-asya<span class="w"> </span>mcp<span class="w"> </span>call<span class="w"> </span>hello<span class="w"> </span>--name<span class="o">=</span>Asya<span class="w"> </span>--stream
+kubectl<span class="w"> </span><span class="nb">wait</span><span class="w"> </span>--for<span class="o">=</span><span class="nv">condition</span><span class="o">=</span>ready<span class="w"> </span>pod<span class="w"> </span>-l<span class="w"> </span>app.kubernetes.io/name<span class="o">=</span>asya-gateway<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-n<span class="w"> </span>asya-system<span class="w"> </span>--timeout<span class="o">=</span>300s
 </code></pre></div>
-
-## Add Prometheus (Optional)
-
-**What you get**: Metrics collection and observability
-
-### 1. Install Prometheus
-
+<h3 id="8-test-gateway-integration">8. Test Gateway Integration<a class="headerlink" href="#8-test-gateway-integration" title="Permanent link">&para;</a></h3>
+<p>In a separate terminal, port-forward the gateway service to your local machine:</p>
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>port-forward<span class="w"> </span>-n<span class="w"> </span>asya-system<span class="w"> </span>svc/asya-gateway<span class="w"> </span><span class="m">8080</span>:80
+</code></pre></div>
+<p>Set the MCP URL environment variable:</p>
+<div class="highlight"><pre><span></span><code><span class="nb">export</span><span class="w"> </span><span class="nv">ASYA_CLI_MCP_URL</span><span class="o">=</span>http://localhost:8080/
+</code></pre></div>
+<p>List available tools:</p>
+<div class="highlight"><pre><span></span><code>asya<span class="w"> </span>mcp<span class="w"> </span>list
+</code></pre></div>
+<p>Expected output:
+<div class="highlight"><pre><span></span><code>Available tools:
+- hello: Greets users by name
+</code></pre></div></p>
+<p>Call the hello actor through the gateway:</p>
+<div class="highlight"><pre><span></span><code>asya<span class="w"> </span>mcp<span class="w"> </span>call<span class="w"> </span>hello<span class="w"> </span>--name<span class="o">=</span>Asya
+</code></pre></div>
+<p>Expected output will show the envelope ID and completion status.</p>
+<p>Stream real-time progress using Server-Sent Events (SSE):</p>
+<div class="highlight"><pre><span></span><code>asya<span class="w"> </span>mcp<span class="w"> </span>call<span class="w"> </span>hello<span class="w"> </span>--name<span class="o">=</span>Asya<span class="w"> </span>--stream
+</code></pre></div>
+<p>This will show progress updates as the message flows through the pipeline until completion.</p>
+<p>Check envelope status by ID:</p>
+<div class="highlight"><pre><span></span><code>asya<span class="w"> </span>mcp<span class="w"> </span>status<span class="w"> </span>&lt;envelope-id&gt;
+</code></pre></div>
+<p>The gateway now provides:
+- <strong>MCP HTTP API</strong> for submitting envelopes to actor pipelines
+- <strong>SSE streaming</strong> for real-time progress updates
+- <strong>Envelope tracking</strong> in PostgreSQL for status queries
+- <strong>Tool configuration</strong> for data science teams to call actors</p>
+<hr />
+<h2 id="add-prometheus-optional">Add Prometheus (Optional)<a class="headerlink" href="#add-prometheus-optional" title="Permanent link">&para;</a></h2>
+<p><strong>What you get</strong>: Metrics collection and observability</p>
+<h3 id="1-install-prometheus">1. Install Prometheus<a class="headerlink" href="#1-install-prometheus" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code>helm<span class="w"> </span>repo<span class="w"> </span>add<span class="w"> </span>prometheus-community<span class="w"> </span>https://prometheus-community.github.io/helm-charts
 helm<span class="w"> </span>install<span class="w"> </span>prometheus<span class="w"> </span>prometheus-community/kube-prometheus-stack<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--namespace<span class="w"> </span>monitoring<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--create-namespace
 </code></pre></div>
-
-### 2. Configure ServiceMonitors
-
-The Asya operator exposes metrics at `:8080/metrics`. Create a ServiceMonitor:
-
+<h3 id="2-configure-servicemonitors">2. Configure ServiceMonitors<a class="headerlink" href="#2-configure-servicemonitors" title="Permanent link">&para;</a></h3>
+<p>The Asya operator exposes metrics at <code>:8080/metrics</code>. Create a ServiceMonitor:</p>
 <div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>apply<span class="w"> </span>-f<span class="w"> </span>-<span class="w"> </span><span class="s">&lt;&lt;EOF</span>
 <span class="s">apiVersion: monitoring.coreos.com/v1</span>
 <span class="s">kind: ServiceMonitor</span>
@@ -1341,20 +1364,24 @@ The Asya operator exposes metrics at `:8080/metrics`. Create a ServiceMonitor:
 <span class="s">    interval: 30s</span>
 <span class="s">EOF</span>
 </code></pre></div>
-
-### 3. Access Grafana
-
+<h3 id="3-access-grafana">3. Access Grafana<a class="headerlink" href="#3-access-grafana" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>port-forward<span class="w"> </span>-n<span class="w"> </span>monitoring<span class="w"> </span>svc/prometheus-grafana<span class="w"> </span><span class="m">3000</span>:80
 </code></pre></div>
-
-Default credentials: `admin` / `prom-operator`
-
-Import Asya dashboards from the [monitoring guide](../operate/monitoring.md).
-
-## Testing Your Setup
-
-Send a message and watch scaling:
-
+<p>Default credentials: <code>admin</code> / <code>prom-operator</code></p>
+<p>Import Asya dashboards from the <a href="../operate/monitoring/">monitoring guide</a>.</p>
+<h3 id="4-verify-metrics-collection">4. Verify Metrics Collection<a class="headerlink" href="#4-verify-metrics-collection" title="Permanent link">&para;</a></h3>
+<p>Send messages through the gateway to generate metrics:</p>
+<div class="highlight"><pre><span></span><code><span class="k">for</span><span class="w"> </span>i<span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="o">{</span><span class="m">1</span>..10<span class="o">}</span><span class="p">;</span><span class="w"> </span><span class="k">do</span>
+<span class="w">  </span>asya<span class="w"> </span>mcp<span class="w"> </span>call<span class="w"> </span>hello<span class="w"> </span>--name<span class="o">=</span><span class="s2">&quot;User</span><span class="nv">$i</span><span class="s2">&quot;</span>
+<span class="k">done</span>
+</code></pre></div>
+<p>In Grafana, query key metrics:
+- <code>asya_actor_processing_duration_seconds{queue="asya-default-hello"}</code>
+- <code>asya_actor_messages_processed_total{queue="asya-default-hello"}</code>
+- <code>asya_operator_reconcile_total</code></p>
+<p>These metrics show processing latency, throughput, and operator activity.</p>
+<h2 id="testing-your-setup">Testing Your Setup<a class="headerlink" href="#testing-your-setup" title="Permanent link">&para;</a></h2>
+<p>Send a message and watch scaling:</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># Send message</span>
 asya<span class="w"> </span>mcp<span class="w"> </span>call<span class="w"> </span>hello<span class="w"> </span>--name<span class="o">=</span><span class="s2">&quot;Test&quot;</span>
 
@@ -1366,21 +1393,15 @@ kubectl<span class="w"> </span>get<span class="w"> </span>pods<span class="w"> <
 kubectl<span class="w"> </span>logs<span class="w"> </span><span class="nv">$POD</span><span class="w"> </span>-c<span class="w"> </span>asya-runtime
 kubectl<span class="w"> </span>logs<span class="w"> </span><span class="nv">$POD</span><span class="w"> </span>-c<span class="w"> </span>asya-sidecar
 </code></pre></div>
-
-## Alternative: Quick E2E Setup
-
-For rapid testing with all components:
-
+<h2 id="alternative-quick-e2e-setup">Alternative: Quick E2E Setup<a class="headerlink" href="#alternative-quick-e2e-setup" title="Permanent link">&para;</a></h2>
+<p>For rapid testing with all components:</p>
 <div class="highlight"><pre><span></span><code><span class="nb">cd</span><span class="w"> </span>testing/e2e
 make<span class="w"> </span>up<span class="w"> </span><span class="nv">PROFILE</span><span class="o">=</span>sqs-s3
 </code></pre></div>
-
-This deploys everything in one command but uses test configurations.
-
-## Production Deployment
-
-For production on AWS, replace LocalStack with real AWS services:
-
+<p>This deploys everything in one command but uses test configurations.</p>
+<hr />
+<h2 id="production-deployment">Production Deployment<a class="headerlink" href="#production-deployment" title="Permanent link">&para;</a></h2>
+<p>For production on AWS, replace LocalStack with real AWS services:</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># operator-values.yaml for production</span>
 <span class="nt">transports</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">sqs</span><span class="p">:</span>
@@ -1398,48 +1419,63 @@ For production on AWS, replace LocalStack with real AWS services:
 <span class="w">          </span><span class="nt">maxRetryCount</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3</span>
 <span class="w">      </span><span class="c1"># Use IRSA instead of static credentials</span>
 </code></pre></div>
-
-See [AWS EKS Installation](../install/aws-eks.md) for full production guide.
-
-## What's Next?
-
-### For Data Scientists
-
-- **[Quickstart for Data Scientists](for-data-scientists.md)** - Class handlers, model loading, dynamic routing
-- **[Flow DSL](../architecture/asya-flow.md)** - Write pipelines in Python-like syntax
-
-**Use cases**:
+<p>See <a href="../install/aws-eks/">AWS EKS Installation</a> for full production guide.</p>
+<hr />
+<h2 id="whats-next">What's Next?<a class="headerlink" href="#whats-next" title="Permanent link">&para;</a></h2>
+<h3 id="for-data-scientists">For Data Scientists<a class="headerlink" href="#for-data-scientists" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong><a href="for-data-scientists/">Quickstart for Data Scientists</a></strong> - Class handlers, model loading, dynamic routing</li>
+<li><strong><a href="../architecture/asya-flow/">Flow DSL</a></strong> - Write pipelines in Python-like syntax</li>
+</ul>
+<p><strong>Use cases</strong>:
 - Multi-step LLM workflows (RAG → generate → judge → refine)
 - Document processing (OCR → classify → extract → store)
-- Image pipelines (resize → detect → classify → tag)
+- Image pipelines (resize → detect → classify → tag)</p>
+<h3 id="for-platform-engineers">For Platform Engineers<a class="headerlink" href="#for-platform-engineers" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong><a href="for-platform-engineers/">Quickstart for Platform Engineers</a></strong> - Deployment strategies, scaling policies</li>
+<li><strong><a href="../install/aws-eks/">AWS EKS Installation</a></strong> - Production deployment</li>
+<li><strong><a href="../operate/monitoring/">Monitoring</a></strong> - Metrics, alerts, dashboards</li>
+<li><strong><a href="../operate/troubleshooting/">Troubleshooting</a></strong> - Common issues</li>
+</ul>
+<h2 id="learn-more">Learn More<a class="headerlink" href="#learn-more" title="Permanent link">&para;</a></h2>
+<ul>
+<li><a href="../concepts/">Core Concepts</a> - Actors, envelopes, sidecars, routing</li>
+<li><a href="../motivation/">Motivation</a> - Why Asya🎭 exists, when to use it</li>
+<li><a href="../architecture/">Architecture</a> - Deep dive into system design</li>
+<li><a href="https://github.com/deliveryhero/asya/tree/main/examples">Examples</a> - Sample actors and flows</li>
+</ul>
+<hr />
+<h2 id="clean-up">Clean Up<a class="headerlink" href="#clean-up" title="Permanent link">&para;</a></h2>
+<p>To remove components individually:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Remove actors</span>
+kubectl<span class="w"> </span>delete<span class="w"> </span>asya<span class="w"> </span>--all
 
-### For Platform Engineers
+<span class="c1"># Remove crew</span>
+helm<span class="w"> </span>uninstall<span class="w"> </span>asya-crew<span class="w"> </span>-n<span class="w"> </span>asya-system
 
-- **[Quickstart for Platform Engineers](for-platform-engineers.md)** - Deployment strategies, scaling policies
-- **[AWS EKS Installation](../install/aws-eks.md)** - Production deployment
-- **[Monitoring](../operate/monitoring.md)** - Metrics, alerts, dashboards
-- **[Troubleshooting](../operate/troubleshooting.md)** - Common issues
+<span class="c1"># Remove gateway</span>
+helm<span class="w"> </span>uninstall<span class="w"> </span>asya-gateway<span class="w"> </span>-n<span class="w"> </span>asya-system
+kubectl<span class="w"> </span>delete<span class="w"> </span>secret<span class="w"> </span>asya-gateway-postgresql<span class="w"> </span>-n<span class="w"> </span>asya-system
+kubectl<span class="w"> </span>delete<span class="w"> </span>deployment<span class="w"> </span>asya-gateway-postgresql<span class="w"> </span>-n<span class="w"> </span>asya-system
+kubectl<span class="w"> </span>delete<span class="w"> </span>service<span class="w"> </span>asya-gateway-postgresql<span class="w"> </span>-n<span class="w"> </span>asya-system
 
-## Learn More
+<span class="c1"># Remove operator</span>
+helm<span class="w"> </span>uninstall<span class="w"> </span>asya-operator<span class="w"> </span>-n<span class="w"> </span>asya-system
+kubectl<span class="w"> </span>delete<span class="w"> </span>secret<span class="w"> </span>sqs-secret<span class="w"> </span>-n<span class="w"> </span>asya-system
 
-- [Core Concepts](../concepts.md) - Actors, envelopes, sidecars, routing
-- [Motivation](../motivation.md) - Why Asya🎭 exists, when to use it
-- [Architecture](../architecture/README.md) - Deep dive into system design
-- [Examples](https://github.com/deliveryhero/asya/tree/main/examples) - Sample actors and flows
+<span class="c1"># Remove KEDA</span>
+helm<span class="w"> </span>uninstall<span class="w"> </span>keda<span class="w"> </span>-n<span class="w"> </span>keda-system
 
-## Clean Up
+<span class="c1"># Remove LocalStack</span>
+helm<span class="w"> </span>uninstall<span class="w"> </span>localstack<span class="w"> </span>-n<span class="w"> </span>asya-system
 
-
-TODO: add more granular deletions:
-
-<div class="highlight"><pre><span></span><code>helm<span class="w"> </span>uninstall<span class="w"> </span>asya-operator<span class="w"> </span>-n<span class="w"> </span>asya-system
-...
+<span class="c1"># Remove Prometheus (if installed)</span>
+helm<span class="w"> </span>uninstall<span class="w"> </span>prometheus<span class="w"> </span>-n<span class="w"> </span>monitoring
 </code></pre></div>
-
-```bash
-kind delete cluster --name asya-local
-``` -->
-
+<p>To remove everything including the cluster:</p>
+<div class="highlight"><pre><span></span><code>kind<span class="w"> </span>delete<span class="w"> </span>cluster<span class="w"> </span>--name<span class="w"> </span>asya-local
+</code></pre></div>
 <hr />
 <p><strong>Next</strong>: Choose your path - <a href="for-data-scientists/">Data Scientists</a> or <a href="for-platform-engineers/">Platform Engineers</a></p>
   </div>
@@ -1822,6 +1858,138 @@ kind delete cluster --name asya-local
             2. Create PostgreSQL Secret
         </a>
         
+        <a href="#3-install-gateway"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            3. Install Gateway
+        </a>
+        
+        <a href="#4-update-operator-for-gateway-integration"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            4. Update Operator for Gateway Integration
+        </a>
+        
+        <a href="#5-update-crew-for-gateway-reporting"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            5. Update Crew for Gateway Reporting
+        </a>
+        
+        <a href="#6-install-asya-cli"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            6. Install asya CLI
+        </a>
+        
+        <a href="#7-configure-gateway-tools"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            7. Configure Gateway Tools
+        </a>
+        
+        <a href="#8-test-gateway-integration"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            8. Test Gateway Integration
+        </a>
+        
+        
+
+        
+        <a href="#add-prometheus-optional"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Add Prometheus (Optional)
+        </a>
+        
+        
+        <a href="#1-install-prometheus"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            1. Install Prometheus
+        </a>
+        
+        <a href="#2-configure-servicemonitors"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            2. Configure ServiceMonitors
+        </a>
+        
+        <a href="#3-access-grafana"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            3. Access Grafana
+        </a>
+        
+        <a href="#4-verify-metrics-collection"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            4. Verify Metrics Collection
+        </a>
+        
+        
+
+        
+        <a href="#testing-your-setup"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Testing Your Setup
+        </a>
+        
+
+        
+        <a href="#alternative-quick-e2e-setup"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Alternative: Quick E2E Setup
+        </a>
+        
+
+        
+        <a href="#production-deployment"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Production Deployment
+        </a>
+        
+
+        
+        <a href="#whats-next"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            What's Next?
+        </a>
+        
+        
+        <a href="#for-data-scientists"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            For Data Scientists
+        </a>
+        
+        <a href="#for-platform-engineers"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            For Platform Engineers
+        </a>
+        
+        
+
+        
+        <a href="#learn-more"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Learn More
+        </a>
+        
+
+        
+        <a href="#clean-up"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Clean Up
+        </a>
         
 
         

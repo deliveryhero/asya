@@ -303,7 +303,7 @@ kubectl run aws-cli --rm -i --restart=Never --image=amazon/aws-cli \
   --env="AWS_ACCESS_KEY_ID=test" \
   --env="AWS_SECRET_ACCESS_KEY=test" \
   --env="AWS_DEFAULT_REGION=us-east-1" \
-  -- sh -c "
+  --command -- sh -c "
     aws --endpoint-url=http://localstack.asya-system.svc.cluster.local:4566 s3 mb s3://asya-results-bucket
     aws --endpoint-url=http://localstack.asya-system.svc.cluster.local:4566 s3 mb s3://asya-errors-bucket
   "
@@ -420,11 +420,6 @@ kubectl create secret generic asya-gateway-postgresql \
   --from-literal=password=asya
 ```
 
----
-
-TODO: complete tutorial
-
-<!--
 ### 3. Install Gateway
 
 ```bash
@@ -519,32 +514,101 @@ EOF
 helm upgrade asya-crew asya/asya-crew \
   -n asya-system \
   -f crew-values.yaml
+
+kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=asya-crew \
+  -n asya-system --timeout=300s
 ```
 
-### 6. Use the Gateway
+### 6. Install asya CLI
 
-Install CLI:
+The Asya CLI provides MCP client tools for calling actors through the gateway:
 
 ```bash
 pip install git+https://github.com/deliveryhero/asya.git#subdirectory=src/asya-cli
 ```
 
-Port-forward and test:
+### 7. Configure Gateway Tools
+
+Define which actors are exposed as MCP tools. Update gateway values to add a tool for the hello actor:
+
+```bash
+cat > gateway-tool-values.yaml <<EOF
+routes:
+  tools:
+  - name: hello
+    description: Greets users by name
+    parameters:
+      name:
+        type: string
+        required: true
+        description: Name to greet
+    route: [hello]
+EOF
+
+helm upgrade asya-gateway asya/asya-gateway \
+  -n asya-system \
+  -f gateway-values.yaml \
+  -f gateway-tool-values.yaml
+
+kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=asya-gateway \
+  -n asya-system --timeout=300s
+```
+
+### 8. Test Gateway Integration
+
+In a separate terminal, port-forward the gateway service to your local machine:
 
 ```bash
 kubectl port-forward -n asya-system svc/asya-gateway 8080:80
+```
 
+Set the MCP URL environment variable:
+
+```bash
 export ASYA_CLI_MCP_URL=http://localhost:8080/
+```
 
-# List tools
+List available tools:
+
+```bash
 asya mcp list
+```
 
-# Call an actor
+Expected output:
+```
+Available tools:
+- hello: Greets users by name
+```
+
+Call the hello actor through the gateway:
+
+```bash
 asya mcp call hello --name=Asya
+```
 
-# Stream progress
+Expected output will show the envelope ID and completion status.
+
+Stream real-time progress using Server-Sent Events (SSE):
+
+```bash
 asya mcp call hello --name=Asya --stream
 ```
+
+This will show progress updates as the message flows through the pipeline until completion.
+
+Check envelope status by ID:
+
+```bash
+asya mcp status <envelope-id>
+```
+
+The gateway now provides:
+- **MCP HTTP API** for submitting envelopes to actor pipelines
+- **SSE streaming** for real-time progress updates
+- **Envelope tracking** in PostgreSQL for status queries
+- **Tool configuration** for data science teams to call actors
+
+---
 
 ## Add Prometheus (Optional)
 
@@ -590,6 +654,23 @@ Default credentials: `admin` / `prom-operator`
 
 Import Asya dashboards from the [monitoring guide](../operate/monitoring.md).
 
+### 4. Verify Metrics Collection
+
+Send messages through the gateway to generate metrics:
+
+```bash
+for i in {1..10}; do
+  asya mcp call hello --name="User$i"
+done
+```
+
+In Grafana, query key metrics:
+- `asya_actor_processing_duration_seconds{queue="asya-default-hello"}`
+- `asya_actor_messages_processed_total{queue="asya-default-hello"}`
+- `asya_operator_reconcile_total`
+
+These metrics show processing latency, throughput, and operator activity.
+
 ## Testing Your Setup
 
 Send a message and watch scaling:
@@ -618,6 +699,8 @@ make up PROFILE=sqs-s3
 
 This deploys everything in one command but uses test configurations.
 
+---
+
 ## Production Deployment
 
 For production on AWS, replace LocalStack with real AWS services:
@@ -642,6 +725,8 @@ transports:
 ```
 
 See [AWS EKS Installation](../install/aws-eks.md) for full production guide.
+
+---
 
 ## What's Next?
 
@@ -669,19 +754,44 @@ See [AWS EKS Installation](../install/aws-eks.md) for full production guide.
 - [Architecture](../architecture/README.md) - Deep dive into system design
 - [Examples](https://github.com/deliveryhero/asya/tree/main/examples) - Sample actors and flows
 
+---
+
 ## Clean Up
 
-
-TODO: add more granular deletions:
+To remove components individually:
 
 ```bash
+# Remove actors
+kubectl delete asya --all
+
+# Remove crew
+helm uninstall asya-crew -n asya-system
+
+# Remove gateway
+helm uninstall asya-gateway -n asya-system
+kubectl delete secret asya-gateway-postgresql -n asya-system
+kubectl delete deployment asya-gateway-postgresql -n asya-system
+kubectl delete service asya-gateway-postgresql -n asya-system
+
+# Remove operator
 helm uninstall asya-operator -n asya-system
-...
+kubectl delete secret sqs-secret -n asya-system
+
+# Remove KEDA
+helm uninstall keda -n keda-system
+
+# Remove LocalStack
+helm uninstall localstack -n asya-system
+
+# Remove Prometheus (if installed)
+helm uninstall prometheus -n monitoring
 ```
+
+To remove everything including the cluster:
 
 ```bash
 kind delete cluster --name asya-local
-``` -->
+```
 
 ---
 
