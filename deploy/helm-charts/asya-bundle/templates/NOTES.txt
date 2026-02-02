@@ -1,0 +1,105 @@
+🎭 Asya Bundle installed successfully!
+
+Components installed:
+{{- if .Values.operator.enabled }}
+  ✅ Operator ({{ .Release.Namespace }} namespace)
+{{- end }}
+{{- if .Values.crew.enabled }}
+  ✅ Crew actors (happy-end, error-end)
+{{- end }}
+{{- if .Values.gateway.enabled }}
+  ✅ Gateway (http://asya-gateway.{{ .Release.Namespace }}:80)
+{{- end }}
+{{- if .Values.postgresql.enabled }}
+  ✅ PostgreSQL (asya-gateway-postgresql)
+{{- end }}
+{{- if .Values.localstack.enabled }}
+  ✅ LocalStack (SQS + S3)
+{{- end }}
+{{- if .Values.rabbitmq.enabled }}
+  ✅ RabbitMQ
+{{- end }}
+{{- if .Values.minio.enabled }}
+  ✅ MinIO
+{{- end }}
+{{- if .Values.helloActor.enabled }}
+  ✅ Hello-world test actor
+{{- end }}
+
+Transport: {{ .Values.global.transport }}
+Storage: {{ .Values.global.storage }}
+Profile: {{ .Values.global.profile }}
+
+Next steps:
+
+1. Verify installation:
+   kubectl get pods -n {{ .Release.Namespace }}
+   kubectl get pods -n {{ .Release.Namespace }}
+{{- if .Values.helloActor.enabled }}
+   kubectl get asya {{ .Values.helloActor.name }} -n {{ .Release.Namespace }}
+{{- end }}
+
+{{- if .Values.helloActor.enabled }}
+
+2. Send test message:
+{{- if eq .Values.global.transport "sqs" }}
+   kubectl run aws-cli --rm -i --restart=Never --image=amazon/aws-cli \
+     --env="AWS_ACCESS_KEY_ID=test" \
+     --env="AWS_SECRET_ACCESS_KEY=test" \
+     --env="AWS_DEFAULT_REGION=us-east-1" \
+     --command -- sh -c "
+       aws sqs send-message \
+         --endpoint-url=http://localstack.{{ .Release.Namespace }}:4566 \
+         --queue-url http://localstack.{{ .Release.Namespace }}:4566/000000000000/asya-{{ .Release.Namespace }}-{{ .Values.helloActor.name }} \
+         --message-body '{\"id\":\"test-1\",\"route\":{\"actors\":[\"{{ .Values.helloActor.name }}\"],\"current\":0},\"payload\":{\"name\":\"Asya\"}}'
+     "
+{{- else if eq .Values.global.transport "rabbitmq" }}
+   kubectl run rabbitmq-client --rm -i --restart=Never --image=alpine \
+     --command -- sh -c "
+       apk add --no-cache curl && \
+       curl -u {{ .Values.rabbitmq.auth.username }}:{{ .Values.rabbitmq.auth.password }} \
+         -X POST http://rabbitmq.{{ .Release.Namespace }}:15672/api/exchanges/%2F/asya/publish \
+         -H 'Content-Type: application/json' \
+         -d '{\"properties\":{},\"routing_key\":\"asya.{{ .Release.Namespace }}.{{ .Values.helloActor.name }}\",\"payload\":\"{\\\"id\\\":\\\"test-1\\\",\\\"route\\\":{\\\"actors\\\":[\\\"{{ .Values.helloActor.name }}\\\"],\\\"current\\\":0},\\\"payload\\\":{\\\"name\\\":\\\"Asya\\\"}}\",\"payload_encoding\":\"string\"}'
+     "
+{{- end }}
+
+3. Watch actor scale up:
+   kubectl get asya {{ .Values.helloActor.name }} -n {{ .Release.Namespace }} -w
+
+4. Check logs:
+   kubectl logs -l asya.sh/actor={{ .Values.helloActor.name }} -c asya-runtime -n {{ .Release.Namespace }}
+{{- end }}
+
+{{- if .Values.gateway.enabled }}
+
+5. Access Gateway (port-forward):
+   kubectl port-forward -n {{ .Release.Namespace }} svc/asya-gateway 8080:80
+
+   Then in another terminal:
+   export ASYA_CLI_MCP_URL=http://localhost:8080/
+{{- if .Values.helloActor.enabled }}
+   asya mcp call {{ .Values.helloActor.name }} --name=Asya
+{{- end }}
+{{- end }}
+
+{{- if .Values.monitoring.enabled }}
+
+6. Access Grafana (if monitoring enabled):
+   kubectl port-forward -n {{ .Release.Namespace }} svc/grafana 3000:3000
+   Username: admin
+   Password: {{ .Values.monitoring.grafana.adminPassword }}
+{{- end }}
+
+Documentation: https://github.com/deliveryhero/asya
+
+To uninstall:
+  helm uninstall {{ .Release.Name }} -n {{ .Release.Namespace }}
+{{- if .Values.postgresql.persistence.enabled }}
+
+NOTE: PostgreSQL PVC will remain after uninstall. To delete:
+  kubectl delete pvc -l app=postgresql -n {{ .Release.Namespace }}
+{{- end }}
+{{- if and .Values.minio.enabled .Values.minio.persistence.enabled }}
+  kubectl delete pvc minio-data -n {{ .Release.Namespace }}
+{{- end }}

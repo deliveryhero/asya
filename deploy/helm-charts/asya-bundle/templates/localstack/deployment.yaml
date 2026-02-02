@@ -1,0 +1,42 @@
+{{- if .Values.localstack.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: localstack
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: localstack
+    app.kubernetes.io/name: localstack
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: localstack
+  template:
+    metadata:
+      labels:
+        app: localstack
+    spec:
+      containers:
+      - name: localstack
+        image: {{ .Values.localstack.image.repository }}:{{ .Values.localstack.image.tag }}
+        ports:
+        - containerPort: 4566
+          name: edge
+        env:
+        - name: SERVICES
+          value: "sqs,s3"
+        - name: DEBUG
+          value: "0"
+        - name: DATA_DIR
+          value: /tmp/localstack/data
+        resources:
+          {{- toYaml .Values.localstack.resources | nindent 10 }}
+        readinessProbe:
+          httpGet:
+            path: /_localstack/health
+            port: 4566
+          initialDelaySeconds: 10
+          periodSeconds: 5
+{{- end }}

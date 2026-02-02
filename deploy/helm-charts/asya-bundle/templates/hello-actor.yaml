@@ -1,0 +1,67 @@
+{{- if .Values.helloActor.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hello-handler
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: hello-actor
+    app.kubernetes.io/name: hello-actor
+    app.kubernetes.io/instance: {{ .Release.Name }}
+data:
+  hello_handler.py: |
+    """Simple hello-world handler for Asya testing"""
+
+    def process(payload: dict) -> dict:
+        """Greet the user by name"""
+        name = payload.get("name", "World")
+        return {
+            "greeting": f"Hello, {name}!",
+            "message": "Welcome to Asya🎭 Actor Mesh"
+        }
+---
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: {{ .Values.helloActor.name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: hello-actor
+    app.kubernetes.io/name: hello-actor
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  transport: {{ .Values.global.transport }}
+
+  workload:
+    kind: Deployment
+    template:
+      spec:
+        containers:
+        - name: asya-runtime
+          image: {{ .Values.helloActor.image.repository }}:{{ .Values.helloActor.image.tag }}
+          env:
+          - name: ASYA_HANDLER
+            value: {{ .Values.helloActor.handler | quote }}
+          - name: ASYA_HANDLER_MODE
+            value: {{ .Values.helloActor.handlerMode | quote }}
+          - name: PYTHONPATH
+            value: /app
+          volumeMounts:
+          - name: handler
+            mountPath: /app
+          resources:
+            {{- toYaml .Values.helloActor.resources | nindent 12 }}
+        volumes:
+        - name: handler
+          configMap:
+            name: hello-handler
+
+  scaling:
+    minReplicas: {{ .Values.helloActor.scaling.minReplicas }}
+    maxReplicas: {{ .Values.helloActor.scaling.maxReplicas }}
+    pollingInterval: {{ .Values.helloActor.scaling.pollingInterval }}
+    triggers:
+    - type: {{ .Values.global.transport }}
+      metadata:
+        queueLength: {{ .Values.helloActor.scaling.queueLength | quote }}
+{{- end }}

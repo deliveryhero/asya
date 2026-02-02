@@ -1,0 +1,26 @@
+{{- if .Values.operator.enabled }}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{ .Release.Name }}-test-operator
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: asya-bundle
+    app.kubernetes.io/instance: {{ .Release.Name }}
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  restartPolicy: Never
+  containers:
+  - name: test
+    image: curlimages/curl:latest
+    command:
+    - sh
+    - -c
+    - |
+      set -e
+      echo "Testing operator health endpoint..."
+      curl -f http://asya-operator.{{ .Release.Namespace }}:8081/healthz
+      echo "Operator is healthy!"
+{{- end }}

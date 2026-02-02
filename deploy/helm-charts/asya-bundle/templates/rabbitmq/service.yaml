@@ -1,0 +1,24 @@
+{{- if .Values.rabbitmq.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbitmq
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: rabbitmq
+    app.kubernetes.io/name: rabbitmq
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  type: {{ .Values.rabbitmq.service.type }}
+  ports:
+  - port: {{ .Values.rabbitmq.service.amqpPort }}
+    targetPort: amqp
+    protocol: TCP
+    name: amqp
+  - port: {{ .Values.rabbitmq.service.managementPort }}
+    targetPort: management
+    protocol: TCP
+    name: management
+  selector:
+    app: rabbitmq
+{{- end }}

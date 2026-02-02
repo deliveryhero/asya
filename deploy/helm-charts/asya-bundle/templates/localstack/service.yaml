@@ -1,0 +1,20 @@
+{{- if .Values.localstack.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: localstack
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: localstack
+    app.kubernetes.io/name: localstack
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  type: {{ .Values.localstack.service.type }}
+  ports:
+  - port: {{ .Values.localstack.service.port }}
+    targetPort: edge
+    protocol: TCP
+    name: edge
+  selector:
+    app: localstack
+{{- end }}

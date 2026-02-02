@@ -1,0 +1,254 @@
+# Asya Bundle - Complete installation values
+# This umbrella chart simplifies Asya🎭 deployment by bundling all components
+
+# Global settings
+global:
+  # Transport type: sqs, rabbitmq, or any other supported transport
+  transport: sqs
+
+  # Storage type: s3, minio
+  storage: s3
+
+  # Profile: local (with LocalStack/local infra) or production (cloud services)
+  profile: local
+
+# Note: All components are installed in the release namespace
+# For production, consider installing operator separately in asya-system
+# and the bundle (gateway + actors) in a dedicated namespace
+
+# Component toggles
+operator:
+  enabled: true
+
+crew:
+  enabled: true
+
+gateway:
+  enabled: true
+
+# Test hello-world actor
+helloActor:
+  enabled: true
+  name: hello
+  image:
+    repository: python
+    tag: "3.13-slim"
+  handler: "hello_handler.process"
+  handlerMode: "payload"
+  scaling:
+    minReplicas: 0
+    maxReplicas: 10
+    queueLength: 5
+    pollingInterval: 30
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+# Infrastructure components (for local testing)
+# These are simple deployments using official images (no Bitnami!)
+localstack:
+  enabled: true
+  image:
+    repository: localstack/localstack
+    tag: "3.1"
+  service:
+    type: ClusterIP
+    port: 4566
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+rabbitmq:
+  enabled: false
+  image:
+    repository: rabbitmq
+    tag: "3.13-management"
+  service:
+    type: ClusterIP
+    amqpPort: 5672
+    managementPort: 15672
+  auth:
+    username: guest
+    password: guest
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+minio:
+  enabled: false
+  image:
+    repository: minio/minio
+    tag: "latest"
+  service:
+    type: ClusterIP
+    apiPort: 9000
+    consolePort: 9001
+  auth:
+    rootUser: minioadmin
+    rootPassword: minioadmin
+  persistence:
+    enabled: true
+    size: 10Gi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+# PostgreSQL for gateway (simple deployment, not Bitnami)
+postgresql:
+  enabled: true
+  image:
+    repository: postgres
+    tag: "15-alpine"
+  service:
+    type: ClusterIP
+    port: 5432
+  auth:
+    database: asya_gateway
+    username: asya
+    password: asya-db-password
+  persistence:
+    enabled: true
+    size: 2Gi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 250m
+      memory: 256Mi
+
+# Monitoring (optional, for demos)
+monitoring:
+  enabled: false
+  prometheus:
+    enabled: true
+    retention: 7d
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+  grafana:
+    enabled: true
+    adminPassword: admin
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 250m
+        memory: 256Mi
+
+# Operator configuration (passed to asya-operator chart)
+asya-operator:
+  replicaCount: 1
+  image:
+    repository: ghcr.io/deliveryhero/asya-operator
+    tag: "latest"
+  logLevel: info
+  controller:
+    maxConcurrentReconciles: 50
+    queueHealthCheckInterval: "5m"
+  sidecar:
+    image: ghcr.io/deliveryhero/asya-sidecar
+    tag: "latest"
+  # Transport configurations (will be configured based on global.transport)
+  # Note: These should be enabled/disabled based on global.transport in practice
+  transports:
+    rabbitmq:
+      enabled: false
+      type: rabbitmq
+      config:
+        host: rabbitmq
+        port: 5672
+        username: guest
+        passwordSecretRef:
+          name: rabbitmq-secret
+          key: password
+    sqs:
+      enabled: false
+      type: sqs
+      config:
+        region: us-east-1
+        accountId: "000000000000"
+        endpoint: http://localstack:4566
+        visibilityTimeout: 300
+        waitTimeSeconds: 20
+
+# Crew configuration (passed to asya-crew chart)
+asya-crew:
+  image:
+    repository: ghcr.io/deliveryhero/asya-crew
+    tag: "latest"
+  # Storage configurations (will be configured based on global.storage)
+  storage:
+    s3:
+      endpoint: http://localstack:4566
+      bucket: asya-results
+      region: us-east-1
+      accessKeyId: test
+      secretAccessKey: test
+      forcePathStyle: true
+    minio:
+      endpoint: http://minio:9000
+      bucket: asya-results
+      accessKeyId: minioadmin
+      secretAccessKey: minioadmin
+      forcePathStyle: true
+
+# Gateway configuration (passed to asya-gateway chart)
+asya-gateway:
+  replicaCount: 1
+  image:
+    repository: ghcr.io/deliveryhero/asya-gateway
+    tag: "latest"
+  service:
+    type: ClusterIP
+    port: 80
+  config:
+    port: "8080"
+    rabbitmqURL: ""
+    sqsEndpoint: ""
+    sqsRegion: ""
+  # Gateway routes configuration
+  routes:
+    createConfigMap: true
+    defaults:
+      progress: true
+      timeout: 30
+    tools:
+    - name: hello
+      description: "Test hello-world actor"
+      parameters:
+        name:
+          type: string
+          required: true
+          description: "Name to greet"
+      route: ["hello"]
+  # PostgreSQL connection (uses bundled PostgreSQL by default)
+  postgresql:
+    enabled: false
+  externalDatabase:
+    host: asya-gateway-postgresql
+    port: 5432
+    database: asya_gateway
+    username: asya
+    password: asya-db-password

@@ -1,0 +1,27 @@
+{{- if .Values.helloActor.enabled }}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{ .Release.Name }}-test-hello-actor
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: asya-bundle
+    app.kubernetes.io/instance: {{ .Release.Name }}
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  restartPolicy: Never
+  serviceAccountName: {{ .Release.Name }}-test-sa
+  containers:
+  - name: test
+    image: alpine/k8s:1.28.0
+    command:
+    - sh
+    - -c
+    - |
+      set -e
+      echo "Checking if hello AsyncActor exists..."
+      kubectl get asya {{ .Values.helloActor.name }} -n {{ .Release.Namespace }}
+      echo "Hello actor exists!"
+{{- end }}
