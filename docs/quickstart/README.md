@@ -371,7 +371,8 @@ Your pipeline results are now automatically persisted to S3: whenever an actor f
 Asya🎭 uses namespace separation to distinguish infrastructure from business logic:
 
 **asya-system namespace** (infrastructure layer):
-- ✅ Asya Operator (watches AsyncActors across all namespaces)
+- ✅ Asya🎭 Operator (watches AsyncActors across all namespaces)
+- ✅ Crew actors (happy-end, error-end - system actors serving all namespaces)
 - ✅ LocalStack / infrastructure services
 - ✅ KEDA (monitors queues across all namespaces)
 - ✅ Prometheus / Grafana (when installed)
@@ -380,7 +381,6 @@ Asya🎭 uses namespace separation to distinguish infrastructure from business l
 - ✅ Gateway (routes messages to actors in same namespace)
 - ✅ Gateway PostgreSQL (gateway's envelope tracking database)
 - ✅ AsyncActors (your ML/AI workloads)
-- ✅ Crew actors (happy-end, error-end)
 
 **Why this separation?**
 
