@@ -86,21 +86,23 @@ spec:
         env:
         - name: ASYA_GATEWAY_PORT
           value: "{{ .Values.config.port }}"
-        {{- if .Values.config.rabbitmqURL }}
+        {{- if .Values.transports.rabbitmq.enabled }}
         - name: ASYA_RABBITMQ_URL
-          value: "{{ .Values.config.rabbitmqURL }}"
-        {{- end }}
-        {{- if .Values.config.rabbitmqExchange }}
+          value: "{{ .Values.transports.rabbitmq.config.url }}"
         - name: ASYA_RABBITMQ_EXCHANGE
-          value: "{{ .Values.config.rabbitmqExchange }}"
+          value: "{{ .Values.transports.rabbitmq.config.exchange }}"
+        - name: ASYA_RABBITMQ_POOL_SIZE
+          value: "{{ .Values.transports.rabbitmq.config.poolSize }}"
         {{- end }}
-        {{- if .Values.config.sqsEndpoint }}
+        {{- if .Values.transports.sqs.enabled }}
         - name: ASYA_SQS_ENDPOINT
-          value: "{{ .Values.config.sqsEndpoint }}"
-        {{- end }}
-        {{- if .Values.config.sqsRegion }}
+          value: "{{ .Values.transports.sqs.config.endpoint }}"
         - name: ASYA_SQS_REGION
-          value: "{{ .Values.config.sqsRegion }}"
+          value: "{{ .Values.transports.sqs.config.region }}"
+        - name: ASYA_SQS_VISIBILITY_TIMEOUT
+          value: "{{ .Values.transports.sqs.config.visibilityTimeout }}"
+        - name: ASYA_SQS_WAIT_TIME_SECONDS
+          value: "{{ .Values.transports.sqs.config.waitTimeSeconds }}"
         {{- end }}
         {{- if .Values.routes.createConfigMap }}
         - name: ASYA_CONFIG_PATH

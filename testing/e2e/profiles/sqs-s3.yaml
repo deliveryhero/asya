@@ -65,10 +65,16 @@ gateway:
     defaults:
       progress: true
       timeout: 60
-  config:
-    rabbitmqURL: ""
-    sqsEndpoint: "http://localstack-sqs.asya-system.svc.cluster.local:4566"
-    sqsRegion: "us-east-1"
+  transports:
+    rabbitmq:
+      enabled: false
+    sqs:
+      enabled: true
+      config:
+        endpoint: "http://localstack-sqs.asya-system.svc.cluster.local:4566"
+        region: "us-east-1"
+        visibilityTimeout: 300
+        waitTimeSeconds: 20
   env:
   - name: AWS_ACCESS_KEY_ID
     value: "test"

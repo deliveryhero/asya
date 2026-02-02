@@ -85,6 +85,12 @@ operator:
       enabled: false
 
 gateway:
-  config:
-    rabbitmqURL: amqp://guest:guest@asya-rabbitmq.asya-e2e.svc.cluster.local:5672/
-    rabbitmqExchange: asya
+  transports:
+    rabbitmq:
+      enabled: true
+      config:
+        url: amqp://guest:guest@asya-rabbitmq.asya-e2e.svc.cluster.local:5672/
+        exchange: asya
+        poolSize: 20
+    sqs:
+      enabled: false

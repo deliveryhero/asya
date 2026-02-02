@@ -68,6 +68,24 @@ gateway:
     type: ClusterIP
     port: 8080
 
+  config:
+    port: "8080"
+
+  transports:
+    rabbitmq:
+      enabled: false
+      config:
+        url: "amqp://guest:guest@asya-rabbitmq.asya-e2e.svc.cluster.local:5672/"
+        exchange: "asya"
+        poolSize: 20
+    sqs:
+      enabled: false
+      config:
+        endpoint: ""
+        region: "us-east-1"
+        visibilityTimeout: 300
+        waitTimeSeconds: 20
+
   postgresql:
     host: postgres.asya-e2e.svc.cluster.local
     port: 5432

@@ -69,12 +69,24 @@ affinity: {}
 # Gateway configuration
 config:
   port: "8080"
-  # RabbitMQ transport (leave empty to disable)
-  rabbitmqURL: "amqp://guest:guest@rabbitmq:5672/"
-  rabbitmqExchange: "asya"
-  # SQS transport (leave empty to disable, takes precedence over RabbitMQ if set)
-  sqsEndpoint: ""
-  sqsRegion: ""
+
+# Transport configuration
+# Choose exactly one transport to enable; all others should be disabled
+transports:
+  rabbitmq:
+    enabled: false
+    config:
+      url: "amqp://guest:guest@rabbitmq:5672/"
+      exchange: "asya"
+      poolSize: 20
+
+  sqs:
+    enabled: false
+    config:
+      endpoint: "" # Leave empty for AWS SQS; set to http://sqs:4566 for LocalStack
+      region: "us-east-1"
+      visibilityTimeout: 300
+      waitTimeSeconds: 20
 
 # Gateway routes configuration
 # When createConfigMap is true, chart creates gateway-routes ConfigMap from these values
