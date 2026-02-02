@@ -30,7 +30,7 @@ See `/AUTH_SQS.md` for detailed IAM setup instructions.
 
 The operator validates version constraints to ensure compatibility between components:
 
-- **Sidecar image tag MUST match operator version** - The operator injects sidecar containers with a tag that must match `.Chart.AppVersion` to ensure protocol compatibility
+- **Sidecar image tag MUST match operator image tag** - The operator injects sidecar containers with a tag that must match the operator's image tag to ensure protocol compatibility. Both default to `.Chart.AppVersion` if not explicitly set.
 - **Gateway version MUST be >= operator version** - Gateway must support the operator's protocol version
 - **Crew version MUST match operator version** - Crew actors use the same runtime/sidecar as the operator
 
