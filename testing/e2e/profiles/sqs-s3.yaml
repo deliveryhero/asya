@@ -35,66 +35,30 @@ crew:
     pullPolicy: Never
   happy-end:
     transport: sqs
+    env:
+      ASYA_GATEWAY_URL: "http://asya-gateway.asya-e2e.svc.cluster.local:8080"
+      ASYA_S3_BUCKET: "asya-results"
+      ASYA_S3_ENDPOINT: "http://localstack-s3.asya-system.svc.cluster.local:4566"
+      ASYA_S3_REGION: "us-east-1"
+      AWS_ACCESS_KEY_ID: "test"
+      AWS_SECRET_ACCESS_KEY: "test"
+      ASYA_S3_RESULTS_PREFIX: ""
     scaling:
       enabled: true
       minReplicas: 1
-    workload:
-      template:
-        spec:
-          containers:
-          - name: asya-runtime
-            env:
-            - name: ASYA_HANDLER
-              value: handlers.end_handlers.happy_end_handler
-            - name: ASYA_HANDLER_MODE
-              value: envelope
-            - name: ASYA_ENABLE_VALIDATION
-              value: "false"
-            - name: ASYA_GATEWAY_URL
-              value: "http://asya-gateway.asya-e2e.svc.cluster.local:8080"
-            - name: ASYA_S3_BUCKET
-              value: "asya-results"
-            - name: ASYA_S3_ENDPOINT
-              value: "http://localstack-s3.asya-system.svc.cluster.local:4566"
-            - name: ASYA_S3_REGION
-              value: "us-east-1"
-            - name: AWS_ACCESS_KEY_ID
-              value: "test"
-            - name: AWS_SECRET_ACCESS_KEY
-              value: "test"
-            - name: ASYA_S3_RESULTS_PREFIX
-              value: ""
   error-end:
     transport: sqs
+    env:
+      ASYA_GATEWAY_URL: "http://asya-gateway.asya-e2e.svc.cluster.local:8080"
+      ASYA_S3_BUCKET: "asya-errors"
+      ASYA_S3_ENDPOINT: "http://localstack-s3.asya-system.svc.cluster.local:4566"
+      ASYA_S3_REGION: "us-east-1"
+      AWS_ACCESS_KEY_ID: "test"
+      AWS_SECRET_ACCESS_KEY: "test"
+      ASYA_S3_ERRORS_PREFIX: ""
     scaling:
       enabled: true
       minReplicas: 1
-    workload:
-      template:
-        spec:
-          containers:
-          - name: asya-runtime
-            env:
-            - name: ASYA_HANDLER
-              value: handlers.end_handlers.error_end_handler
-            - name: ASYA_HANDLER_MODE
-              value: envelope
-            - name: ASYA_ENABLE_VALIDATION
-              value: "false"
-            - name: ASYA_GATEWAY_URL
-              value: "http://asya-gateway.asya-e2e.svc.cluster.local:8080"
-            - name: ASYA_S3_BUCKET
-              value: "asya-errors"
-            - name: ASYA_S3_ENDPOINT
-              value: "http://localstack-s3.asya-system.svc.cluster.local:4566"
-            - name: ASYA_S3_REGION
-              value: "us-east-1"
-            - name: AWS_ACCESS_KEY_ID
-              value: "test"
-            - name: AWS_SECRET_ACCESS_KEY
-              value: "test"
-            - name: ASYA_S3_ERRORS_PREFIX
-              value: ""
 
 gateway:
   routes:
