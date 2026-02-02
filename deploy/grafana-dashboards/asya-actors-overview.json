@@ -1253,7 +1253,7 @@
             "value": 0.99
           }
         ],
-        "query": "0.50,0.95,0.99",
+        "query": "p50 : 0.5, p95 : 0.95, p99 : 0.99",
         "skipUrlSync": false,
         "type": "custom"
       }
@@ -1266,7 +1266,7 @@
   "timepicker": {},
   "timezone": "browser",
   "title": "Asya - Actors Overview",
-  "uid": "asya-actors-v2",
-  "version": 3,
+  "uid": "asya-actors-v3",
+  "version": 4,
   "weekStart": ""
 }
