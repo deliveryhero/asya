@@ -1,5 +1,8 @@
 # Asya Quickstart - Full demo package showing Asya🎭 in action
 # This chart deploys a complete Asya environment with sample infrastructure
+#
+# QUICKSTART (LOCAL): Uses sample infrastructure (LocalStack, sample PostgreSQL)
+# PRODUCTION: Disable sample infrastructure, configure external services below
 
 # Global settings
 global:
@@ -10,6 +13,8 @@ global:
   storage: s3
 
   # Profile: local (with sample infra) or production (cloud services)
+  # - local: Enables sample infrastructure deployments
+  # - production: User must configure external services (see comments below)
   profile: local
 
 # Note: All components are installed in the release namespace
@@ -50,7 +55,18 @@ helloActor:
 
 # Sample infrastructure for demos/testing
 # WARNING: Sample infrastructure is for demos only, use cloud services in production
+#
+# To use external/managed services:
+# 1. Set sampleTransports.*.enabled: false (disable sample deployments)
+# 2. Set sampleStorages.*.enabled: false (disable sample deployments)
+# 3. Set postgresql.enabled: false (disable sample PostgreSQL)
+# 4. Configure external endpoints in asya-operator.transports.*.config
+# 5. Configure external endpoints in asya-crew.storage.*
+# 6. Configure external database in asya-gateway.externalDatabase
+#
 sampleTransports:
+  # LocalStack for SQS (demo only)
+  # For production: Set enabled: false and configure asya-operator.transports.sqs.config below
   sqsLocalstack:
     enabled: true
     image:
@@ -67,6 +83,8 @@ sampleTransports:
         cpu: 500m
         memory: 512Mi
 
+  # RabbitMQ (demo only)
+  # For production: Set enabled: false and configure asya-operator.transports.rabbitmq.config below
   rabbitmq:
     enabled: false
     image:
@@ -88,6 +106,8 @@ sampleTransports:
         memory: 512Mi
 
 sampleStorages:
+  # LocalStack for S3 (demo only)
+  # For production: Set enabled: false and configure asya-crew.storage.s3 below
   s3Localstack:
     enabled: true
     image:
@@ -104,6 +124,8 @@ sampleStorages:
         cpu: 500m
         memory: 512Mi
 
+  # MinIO (demo only)
+  # For production: Set enabled: false and configure asya-crew.storage.minio below
   minio:
     enabled: false
     image:
@@ -127,7 +149,9 @@ sampleStorages:
         cpu: 500m
         memory: 512Mi
 
-# PostgreSQL for gateway (required infrastructure, not sample)
+# PostgreSQL for gateway (required infrastructure)
+# Sample deployment for demos - for production, set enabled: false
+# and configure asya-gateway.externalDatabase below
 postgresql:
   enabled: true
   image:
@@ -167,23 +191,27 @@ asya-operator:
   # Transport configurations (will be configured based on global.transport)
   # Note: These should be enabled/disabled based on global.transport in practice
   transports:
+    # RabbitMQ transport configuration
+    # For external RabbitMQ: Update host/port/credentials, disable sampleTransports.rabbitmq
     rabbitmq:
       enabled: false
       type: rabbitmq
       config:
-        host: rabbitmq
+        host: rabbitmq # Change to external RabbitMQ host for production
         port: 5672
         username: guest
         passwordSecretRef:
           name: rabbitmq-secret
           key: password
+    # SQS transport configuration
+    # For AWS SQS: Set endpoint: "", update accountId, disable sampleTransports.sqsLocalstack
     sqs:
       enabled: false
       type: sqs
       config:
         region: us-east-1
-        accountId: "000000000000"
-        endpoint: http://localstack-sqs:4566
+        accountId: "000000000000" # Change to real AWS account ID for production
+        endpoint: http://localstack-sqs:4566 # Set to "" for AWS SQS
         visibilityTimeout: 300
         waitTimeSeconds: 20
 
@@ -194,18 +222,22 @@ asya-crew:
     tag: "latest"
   # Storage configurations (will be configured based on global.storage)
   storage:
+    # S3 storage configuration
+    # For AWS S3: Set endpoint: "", update credentials, disable sampleStorages.s3Localstack
     s3:
-      endpoint: http://localstack-s3:4566
+      endpoint: http://localstack-s3:4566 # Set to "" for AWS S3
       bucket: asya-results
       region: us-east-1
-      accessKeyId: test
-      secretAccessKey: test
-      forcePathStyle: true
+      accessKeyId: test # Use IAM roles or real credentials for production
+      secretAccessKey: test # Use IAM roles or real credentials for production
+      forcePathStyle: true # Set to false for AWS S3
+    # MinIO storage configuration
+    # For external MinIO: Update endpoint/credentials, disable sampleStorages.minio
     minio:
-      endpoint: http://minio:9000
+      endpoint: http://minio:9000 # Change to external MinIO endpoint for production
       bucket: asya-results
-      accessKeyId: minioadmin
-      secretAccessKey: minioadmin
+      accessKeyId: minioadmin # Change to real credentials for production
+      secretAccessKey: minioadmin # Change to real credentials for production
       forcePathStyle: true
 
 # Gateway configuration (passed to asya-gateway chart)
@@ -237,12 +269,14 @@ asya-gateway:
           required: true
           description: "Name to greet"
       route: ["hello"]
-  # PostgreSQL connection (uses bundled PostgreSQL by default)
+  # PostgreSQL connection
+  # Uses bundled PostgreSQL by default (asya-gateway-postgresql service)
+  # For external PostgreSQL: Set postgresql.enabled: false and configure externalDatabase below
   postgresql:
-    enabled: false
+    enabled: false # Gateway chart's own PostgreSQL (kept disabled, using quickstart's PostgreSQL)
   externalDatabase:
-    host: asya-gateway-postgresql
+    host: asya-gateway-postgresql # Change to external PostgreSQL host for production
     port: 5432
     database: asya_gateway
     username: asya
-    password: asya-db-password
+    password: asya-db-password # Use Kubernetes secrets for production

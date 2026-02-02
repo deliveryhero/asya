@@ -62,9 +62,12 @@ helm install asya deploy/helm-charts/asya-quickstart/ \
   --set global.profile=local
 ```
 
-### Production (AWS SQS + S3)
+### Production (External Infrastructure)
+
+Use existing/managed services instead of sample infrastructure:
 
 ```bash
+# AWS SQS + S3 + RDS PostgreSQL
 helm install asya deploy/helm-charts/asya-quickstart/ \
   --create-namespace \
   --namespace default \
@@ -73,8 +76,67 @@ helm install asya deploy/helm-charts/asya-quickstart/ \
   --set global.profile=production \
   --set sampleTransports.sqsLocalstack.enabled=false \
   --set sampleStorages.s3Localstack.enabled=false \
+  --set postgresql.enabled=false \
   --set asya-operator.transports.sqs.config.accountId=YOUR_AWS_ACCOUNT_ID \
-  --set asya-operator.transports.sqs.config.endpoint=""
+  --set asya-operator.transports.sqs.config.endpoint="" \
+  --set asya-crew.storage.s3.endpoint="" \
+  --set asya-crew.storage.s3.forcePathStyle=false \
+  --set asya-gateway.externalDatabase.host=YOUR_RDS_ENDPOINT \
+  --set asya-gateway.externalDatabase.password=YOUR_DB_PASSWORD
+
+# Or use a values file (recommended for production)
+helm install asya deploy/helm-charts/asya-quickstart/ \
+  --create-namespace \
+  --namespace default \
+  -f production-values.yaml
+```
+
+**Production values example** (`production-values.yaml`):
+```yaml
+global:
+  transport: sqs
+  storage: s3
+  profile: production
+
+# Disable all sample infrastructure
+sampleTransports:
+  sqsLocalstack:
+    enabled: false
+  rabbitmq:
+    enabled: false
+sampleStorages:
+  s3Localstack:
+    enabled: false
+  minio:
+    enabled: false
+postgresql:
+  enabled: false
+
+# Configure external AWS services
+asya-operator:
+  transports:
+    sqs:
+      enabled: true
+      config:
+        region: us-east-1
+        accountId: "123456789012"
+        endpoint: ""  # Empty for AWS SQS
+
+asya-crew:
+  storage:
+    s3:
+      endpoint: ""  # Empty for AWS S3
+      bucket: my-asya-results
+      region: us-east-1
+      forcePathStyle: false
+
+asya-gateway:
+  externalDatabase:
+    host: my-db.rds.amazonaws.com
+    port: 5432
+    database: asya_gateway
+    username: asya
+    password: "use-k8s-secret-in-real-deployment"
 ```
 
 ## Configuration
