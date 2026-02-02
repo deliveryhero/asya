@@ -2,7 +2,7 @@ operator:
   image:
     repository: ghcr.io/deliveryhero/asya-operator
     tag: latest
-    pullPolicy: IfNotPresent
+    pullPolicy: Never
 
   replicaCount: 1
 
@@ -10,6 +10,10 @@ operator:
 
   controller:
     queueHealthCheckInterval: "30s"
+
+  sidecar:
+    image: ghcr.io/deliveryhero/asya-sidecar
+    tag: latest
 
   transports:
     rabbitmq:
@@ -56,7 +60,7 @@ gateway:
   image:
     repository: ghcr.io/deliveryhero/asya-gateway
     tag: latest
-    pullPolicy: IfNotPresent
+    pullPolicy: Never
 
   replicaCount: 1
 
@@ -241,7 +245,7 @@ crew:
           containers:
           - name: asya-runtime
             image: ghcr.io/deliveryhero/asya-crew:latest
-            imagePullPolicy: IfNotPresent
+            imagePullPolicy: Never
             env:
             - name: ASYA_HANDLER
               value: handlers.end_handlers.happy_end_handler
@@ -286,7 +290,7 @@ crew:
           containers:
           - name: asya-runtime
             image: ghcr.io/deliveryhero/asya-crew:latest
-            imagePullPolicy: IfNotPresent
+            imagePullPolicy: Never
             env:
             - name: ASYA_HANDLER
               value: handlers.end_handlers.error_end_handler

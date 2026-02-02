@@ -4,12 +4,35 @@
 # IMPORTANT: ASYA_HANDLER, ASYA_HANDLER_MODE, and ASYA_ENABLE_VALIDATION are
 # pre-configured by the Helm templates and MUST NOT be overridden in values.
 
+# Global image configuration
+image:
+  repository: ghcr.io/deliveryhero/asya-crew
+  pullPolicy: IfNotPresent
+  # tag defaults to Chart.appVersion if not specified
+
 # Happy-end actor configuration
 # Persists successful results to S3 and reports to gateway
 happy-end:
   enabled: true
   name: happy-end
   transport: "" # required
+
+  # Image overrides (optional, uses global image config by default)
+  image:
+    repository: ""
+    tag: ""
+    pullPolicy: ""
+
+  # Resource limits and requests
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
+  # KEDA autoscaling configuration
   scaling:
     enabled: true
     minReplicas: 1
@@ -17,38 +40,26 @@ happy-end:
     pollingInterval: 10
     cooldownPeriod: 60
     queueLength: 5
+
+  # Workload configuration
   workload:
     kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: ghcr.io/deliveryhero/asya-crew:latest
-          imagePullPolicy: IfNotPresent
-          env:
-          # DO NOT set ASYA_HANDLER, ASYA_HANDLER_MODE, or ASYA_ENABLE_VALIDATION here
-          # These are pre-configured by the Helm template and cannot be overridden
-          # Gateway URL for result reporting (uncomment to enable)
-          # - name: ASYA_GATEWAY_URL
-          #   value: "http://asya-gateway:8080"
-          # S3/MinIO storage configuration (uncomment to enable)
-          # - name: ASYA_S3_BUCKET
-          #   value: "asya-results"
-          # - name: ASYA_S3_ENDPOINT
-          #   value: "http://minio:9000"
-          # - name: ASYA_S3_REGION
-          #   value: "us-east-1"
-          # - name: ASYA_S3_ACCESS_KEY
-          #   value: "minioadmin"
-          # - name: ASYA_S3_SECRET_KEY
-          #   value: "minioadmin"
-          resources:
-            requests:
-              cpu: 50m
-              memory: 64Mi
-            limits:
-              cpu: 200m
-              memory: 128Mi
+
+  # Additional annotations for AsyncActor CR
+  annotations: {}
+
+  # Environment variables
+  # DO NOT set ASYA_HANDLER, ASYA_HANDLER_MODE, or ASYA_ENABLE_VALIDATION
+  # These are pre-configured by the Helm template and cannot be overridden
+  env:
+    # Gateway URL for result reporting (set to enable)
+    ASYA_GATEWAY_URL: ""
+    # S3/MinIO storage configuration (set to enable)
+    ASYA_S3_BUCKET: ""
+    ASYA_S3_ENDPOINT: ""
+    ASYA_S3_REGION: ""
+    ASYA_S3_ACCESS_KEY: ""
+    ASYA_S3_SECRET_KEY: ""
 
 # Error-end actor configuration
 # Handles retries with exponential backoff and DLQ
@@ -56,6 +67,23 @@ error-end:
   enabled: true
   name: error-end
   transport: "" # required
+
+  # Image overrides (optional, uses global image config by default)
+  image:
+    repository: ""
+    tag: ""
+    pullPolicy: ""
+
+  # Resource limits and requests
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
+  # KEDA autoscaling configuration
   scaling:
     enabled: true
     minReplicas: 1
@@ -63,24 +91,17 @@ error-end:
     pollingInterval: 10
     cooldownPeriod: 60
     queueLength: 5
+
+  # Workload configuration
   workload:
     kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: ghcr.io/deliveryhero/asya-crew:latest
-          imagePullPolicy: IfNotPresent
-          env:
-          # DO NOT set ASYA_HANDLER, ASYA_HANDLER_MODE, or ASYA_ENABLE_VALIDATION here
-          # These are pre-configured by the Helm template and cannot be overridden
-          # Gateway URL for result reporting (uncomment to enable)
-          # - name: ASYA_GATEWAY_URL
-          #   value: "http://asya-gateway:8080"
-          resources:
-            requests:
-              cpu: 50m
-              memory: 64Mi
-            limits:
-              cpu: 200m
-              memory: 128Mi
+
+  # Additional annotations for AsyncActor CR
+  annotations: {}
+
+  # Environment variables
+  # DO NOT set ASYA_HANDLER, ASYA_HANDLER_MODE, or ASYA_ENABLE_VALIDATION
+  # These are pre-configured by the Helm template and cannot be overridden
+  env:
+    # Gateway URL for result reporting (set to enable)
+    ASYA_GATEWAY_URL: ""
