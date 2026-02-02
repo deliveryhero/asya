@@ -1,5 +1,5 @@
-# Asya Bundle - Complete installation values
-# This umbrella chart simplifies Asya🎭 deployment by bundling all components
+# Asya Quickstart - Full demo package showing Asya🎭 in action
+# This chart deploys a complete Asya environment with sample infrastructure
 
 # Global settings
 global:
@@ -9,12 +9,12 @@ global:
   # Storage type: s3, minio
   storage: s3
 
-  # Profile: local (with LocalStack/local infra) or production (cloud services)
+  # Profile: local (with sample infra) or production (cloud services)
   profile: local
 
 # Note: All components are installed in the release namespace
 # For production, consider installing operator separately in asya-system
-# and the bundle (gateway + actors) in a dedicated namespace
+# and the quickstart (gateway + actors) in a dedicated namespace
 
 # Component toggles
 operator:
@@ -48,68 +48,86 @@ helloActor:
       cpu: 100m
       memory: 128Mi
 
-# Infrastructure components (for local testing)
-# These are simple deployments using official images (no Bitnami!)
-localstack:
-  enabled: true
-  image:
-    repository: localstack/localstack
-    tag: "3.1"
-  service:
-    type: ClusterIP
-    port: 4566
-  resources:
-    requests:
-      cpu: 100m
-      memory: 256Mi
-    limits:
-      cpu: 500m
-      memory: 512Mi
-
-rabbitmq:
-  enabled: false
-  image:
-    repository: rabbitmq
-    tag: "3.13-management"
-  service:
-    type: ClusterIP
-    amqpPort: 5672
-    managementPort: 15672
-  auth:
-    username: guest
-    password: guest
-  resources:
-    requests:
-      cpu: 100m
-      memory: 256Mi
-    limits:
-      cpu: 500m
-      memory: 512Mi
-
-minio:
-  enabled: false
-  image:
-    repository: minio/minio
-    tag: "latest"
-  service:
-    type: ClusterIP
-    apiPort: 9000
-    consolePort: 9001
-  auth:
-    rootUser: minioadmin
-    rootPassword: minioadmin
-  persistence:
+# Sample infrastructure for demos/testing
+# WARNING: Sample infrastructure is for demos only, use cloud services in production
+sampleTransports:
+  sqsLocalstack:
     enabled: true
-    size: 10Gi
-  resources:
-    requests:
-      cpu: 100m
-      memory: 256Mi
-    limits:
-      cpu: 500m
-      memory: 512Mi
+    image:
+      repository: localstack/localstack
+      tag: "3.1"
+    service:
+      type: ClusterIP
+      port: 4566
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
 
-# PostgreSQL for gateway (simple deployment, not Bitnami)
+  rabbitmq:
+    enabled: false
+    image:
+      repository: rabbitmq
+      tag: "3.13-management"
+    service:
+      type: ClusterIP
+      amqpPort: 5672
+      managementPort: 15672
+    auth:
+      username: guest
+      password: guest
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+
+sampleStorages:
+  s3Localstack:
+    enabled: true
+    image:
+      repository: localstack/localstack
+      tag: "3.1"
+    service:
+      type: ClusterIP
+      port: 4566
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+
+  minio:
+    enabled: false
+    image:
+      repository: minio/minio
+      tag: "latest"
+    service:
+      type: ClusterIP
+      apiPort: 9000
+      consolePort: 9001
+    auth:
+      rootUser: minioadmin
+      rootPassword: minioadmin
+    persistence:
+      enabled: true
+      size: 10Gi
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+
+# PostgreSQL for gateway (required infrastructure, not sample)
 postgresql:
   enabled: true
   image:
@@ -189,7 +207,7 @@ asya-operator:
       config:
         region: us-east-1
         accountId: "000000000000"
-        endpoint: http://localstack:4566
+        endpoint: http://localstack-sqs:4566
         visibilityTimeout: 300
         waitTimeSeconds: 20
 
@@ -201,7 +219,7 @@ asya-crew:
   # Storage configurations (will be configured based on global.storage)
   storage:
     s3:
-      endpoint: http://localstack:4566
+      endpoint: http://localstack-s3:4566
       bucket: asya-results
       region: us-east-1
       accessKeyId: test

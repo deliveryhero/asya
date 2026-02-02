@@ -12,3 +12,5 @@
 *.orig
 *~
 .DS_Store
+Chart.lock
+charts/

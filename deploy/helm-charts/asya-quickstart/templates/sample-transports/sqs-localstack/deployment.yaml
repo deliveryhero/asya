@@ -1,38 +1,39 @@
-{{- if .Values.localstack.enabled }}
+{{- if and .Values.sampleTransports.sqsLocalstack.enabled (eq .Values.global.transport "sqs") }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: localstack
+  name: localstack-sqs
   namespace: {{ .Release.Namespace }}
   labels:
-    app: localstack
-    app.kubernetes.io/name: localstack
+    app: localstack-sqs
+    app.kubernetes.io/name: localstack-sqs
     app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: sample-transport
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: localstack
+      app: localstack-sqs
   template:
     metadata:
       labels:
-        app: localstack
+        app: localstack-sqs
     spec:
       containers:
       - name: localstack
-        image: {{ .Values.localstack.image.repository }}:{{ .Values.localstack.image.tag }}
+        image: {{ .Values.sampleTransports.sqsLocalstack.image.repository }}:{{ .Values.sampleTransports.sqsLocalstack.image.tag }}
         ports:
         - containerPort: 4566
           name: edge
         env:
         - name: SERVICES
-          value: "sqs,s3"
+          value: "sqs"
         - name: DEBUG
           value: "0"
         - name: DATA_DIR
           value: /tmp/localstack/data
         resources:
-          {{- toYaml .Values.localstack.resources | nindent 10 }}
+          {{- toYaml .Values.sampleTransports.sqsLocalstack.resources | nindent 10 }}
         readinessProbe:
           httpGet:
             path: /_localstack/health

@@ -1,4 +1,4 @@
-{{- if and .Values.minio.enabled .Values.minio.persistence.enabled }}
+{{- if and .Values.sampleStorages.minio.enabled (eq .Values.global.storage "minio") .Values.sampleStorages.minio.persistence.enabled }}
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -13,5 +13,5 @@ spec:
   - ReadWriteOnce
   resources:
     requests:
-      storage: {{ .Values.minio.persistence.size }}
+      storage: {{ .Values.sampleStorages.minio.persistence.size }}
 {{- end }}

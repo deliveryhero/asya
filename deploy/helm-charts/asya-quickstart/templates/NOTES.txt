@@ -1,29 +1,32 @@
-🎭 Asya Bundle installed successfully!
+Asya Quickstart installed successfully
 
 Components installed:
 {{- if .Values.operator.enabled }}
-  ✅ Operator ({{ .Release.Namespace }} namespace)
+  - Operator ({{ .Release.Namespace }} namespace)
 {{- end }}
 {{- if .Values.crew.enabled }}
-  ✅ Crew actors (happy-end, error-end)
+  - Crew actors (happy-end, error-end)
 {{- end }}
 {{- if .Values.gateway.enabled }}
-  ✅ Gateway (http://asya-gateway.{{ .Release.Namespace }}:80)
+  - Gateway (http://asya-gateway.{{ .Release.Namespace }}:80)
 {{- end }}
 {{- if .Values.postgresql.enabled }}
-  ✅ PostgreSQL (asya-gateway-postgresql)
+  - PostgreSQL (asya-gateway-postgresql)
 {{- end }}
-{{- if .Values.localstack.enabled }}
-  ✅ LocalStack (SQS + S3)
+{{- if .Values.sampleTransports.sqsLocalstack.enabled }}
+  - LocalStack SQS (localstack-sqs)
 {{- end }}
-{{- if .Values.rabbitmq.enabled }}
-  ✅ RabbitMQ
+{{- if .Values.sampleStorages.s3Localstack.enabled }}
+  - LocalStack S3 (localstack-s3)
 {{- end }}
-{{- if .Values.minio.enabled }}
-  ✅ MinIO
+{{- if .Values.sampleTransports.rabbitmq.enabled }}
+  - RabbitMQ
+{{- end }}
+{{- if .Values.sampleStorages.minio.enabled }}
+  - MinIO
 {{- end }}
 {{- if .Values.helloActor.enabled }}
-  ✅ Hello-world test actor
+  - Hello-world test actor
 {{- end }}
 
 Transport: {{ .Values.global.transport }}
@@ -49,15 +52,15 @@ Next steps:
      --env="AWS_DEFAULT_REGION=us-east-1" \
      --command -- sh -c "
        aws sqs send-message \
-         --endpoint-url=http://localstack.{{ .Release.Namespace }}:4566 \
-         --queue-url http://localstack.{{ .Release.Namespace }}:4566/000000000000/asya-{{ .Release.Namespace }}-{{ .Values.helloActor.name }} \
+         --endpoint-url=http://localstack-sqs.{{ .Release.Namespace }}:4566 \
+         --queue-url http://localstack-sqs.{{ .Release.Namespace }}:4566/000000000000/asya-{{ .Release.Namespace }}-{{ .Values.helloActor.name }} \
          --message-body '{\"id\":\"test-1\",\"route\":{\"actors\":[\"{{ .Values.helloActor.name }}\"],\"current\":0},\"payload\":{\"name\":\"Asya\"}}'
      "
 {{- else if eq .Values.global.transport "rabbitmq" }}
    kubectl run rabbitmq-client --rm -i --restart=Never --image=alpine \
      --command -- sh -c "
        apk add --no-cache curl && \
-       curl -u {{ .Values.rabbitmq.auth.username }}:{{ .Values.rabbitmq.auth.password }} \
+       curl -u {{ .Values.sampleTransports.rabbitmq.auth.username }}:{{ .Values.sampleTransports.rabbitmq.auth.password }} \
          -X POST http://rabbitmq.{{ .Release.Namespace }}:15672/api/exchanges/%2F/asya/publish \
          -H 'Content-Type: application/json' \
          -d '{\"properties\":{},\"routing_key\":\"asya.{{ .Release.Namespace }}.{{ .Values.helloActor.name }}\",\"payload\":\"{\\\"id\\\":\\\"test-1\\\",\\\"route\\\":{\\\"actors\\\":[\\\"{{ .Values.helloActor.name }}\\\"],\\\"current\\\":0},\\\"payload\\\":{\\\"name\\\":\\\"Asya\\\"}}\",\"payload_encoding\":\"string\"}'
@@ -100,6 +103,6 @@ To uninstall:
 NOTE: PostgreSQL PVC will remain after uninstall. To delete:
   kubectl delete pvc -l app=postgresql -n {{ .Release.Namespace }}
 {{- end }}
-{{- if and .Values.minio.enabled .Values.minio.persistence.enabled }}
+{{- if and .Values.sampleStorages.minio.enabled .Values.sampleStorages.minio.persistence.enabled }}
   kubectl delete pvc minio-data -n {{ .Release.Namespace }}
 {{- end }}

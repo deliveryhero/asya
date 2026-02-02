@@ -1,0 +1,21 @@
+{{- if and .Values.sampleTransports.sqsLocalstack.enabled (eq .Values.global.transport "sqs") }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: localstack-sqs
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: localstack-sqs
+    app.kubernetes.io/name: localstack-sqs
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: sample-transport
+spec:
+  type: {{ .Values.sampleTransports.sqsLocalstack.service.type }}
+  ports:
+  - port: {{ .Values.sampleTransports.sqsLocalstack.service.port }}
+    targetPort: edge
+    protocol: TCP
+    name: edge
+  selector:
+    app: localstack-sqs
+{{- end }}

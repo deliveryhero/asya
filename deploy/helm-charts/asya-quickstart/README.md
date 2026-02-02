@@ -1,20 +1,23 @@
-# Asya Bundle Helm Chart
+# Asya Quickstart Helm Chart
 
-Umbrella Helm chart for quick Asya🎭 installation with all components.
+Full demo package showing Asya🎭 in action with sample actors, flows, and infrastructure.
 
 ## Overview
 
-The `asya-bundle` chart simplifies Asya🎭 deployment by bundling:
+The `asya-quickstart` chart is a complete demonstration package that bundles:
 - **Operator + CRDs** - Kubernetes operator for AsyncActor resources
 - **Crew Actors** - System actors (happy-end, error-end)
 - **Gateway** - MCP gateway with PostgreSQL backend
-- **Test Actor** - Hello-world actor for validation
-- **Infrastructure** - Optional LocalStack, RabbitMQ, MinIO, PostgreSQL for local testing
+- **Sample Actors** - Hello-world actor for validation and testing
+- **Sample Infrastructure** - LocalStack (SQS/S3), RabbitMQ, MinIO for demos
 
 This chart is ideal for:
 - Quick demos and evaluations
-- Local development environments
-- Testing and CI/CD pipelines
+- Learning Asya🎭 concepts
+- Local development and testing
+- CI/CD pipeline validation
+
+**IMPORTANT**: This is a demo package. For production deployments, install components separately with proper cloud services and configurations.
 
 ## Prerequisites
 
@@ -22,14 +25,25 @@ This chart is ideal for:
 - Helm 3.8+
 - kubectl configured for your cluster
 
-For production deployments, consider installing components separately with custom configurations.
+For production deployments, install components separately with proper cloud services and custom configurations.
 
 ## Installation
 
 ### Quick Start (SQS + S3 via LocalStack)
 
 ```bash
-helm install asya deploy/helm-charts/asya-bundle/ \
+# From Helm repository
+helm repo add asya https://asya.sh/charts
+helm repo update
+helm install asya asya/asya-quickstart \
+  --create-namespace \
+  --namespace default \
+  --set global.transport=sqs \
+  --set global.storage=s3 \
+  --set global.profile=local
+
+# Or from local filesystem
+helm install asya deploy/helm-charts/asya-quickstart/ \
   --create-namespace \
   --namespace default \
   --set global.transport=sqs \
@@ -40,7 +54,7 @@ helm install asya deploy/helm-charts/asya-bundle/ \
 ### RabbitMQ + MinIO
 
 ```bash
-helm install asya deploy/helm-charts/asya-bundle/ \
+helm install asya deploy/helm-charts/asya-quickstart/ \
   --create-namespace \
   --namespace default \
   --set global.transport=rabbitmq \
@@ -51,13 +65,14 @@ helm install asya deploy/helm-charts/asya-bundle/ \
 ### Production (AWS SQS + S3)
 
 ```bash
-helm install asya deploy/helm-charts/asya-bundle/ \
+helm install asya deploy/helm-charts/asya-quickstart/ \
   --create-namespace \
   --namespace default \
   --set global.transport=sqs \
   --set global.storage=s3 \
   --set global.profile=production \
-  --set localstack.enabled=false \
+  --set sampleTransports.sqsLocalstack.enabled=false \
+  --set sampleStorages.s3Localstack.enabled=false \
   --set asya-operator.transports.sqs.config.accountId=YOUR_AWS_ACCOUNT_ID \
   --set asya-operator.transports.sqs.config.endpoint=""
 ```
@@ -81,15 +96,22 @@ helm install asya deploy/helm-charts/asya-bundle/ \
 | `gateway.enabled` | Deploy MCP gateway | `true` |
 | `helloActor.enabled` | Deploy test hello-world actor | `true` |
 
-### Infrastructure Components
+### Sample Infrastructure
+
+**WARNING**: Sample infrastructure is for demos only. Use cloud services in production.
+
+Sample infrastructure provides quick-start transport and storage backends for demos and testing:
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `localstack.enabled` | Deploy LocalStack (SQS + S3) | `true` |
-| `rabbitmq.enabled` | Deploy RabbitMQ | `false` |
-| `minio.enabled` | Deploy MinIO | `false` |
+| `sampleTransports.sqsLocalstack.enabled` | Deploy LocalStack for SQS | `true` |
+| `sampleTransports.rabbitmq.enabled` | Deploy RabbitMQ | `false` |
+| `sampleStorages.s3Localstack.enabled` | Deploy LocalStack for S3 | `true` |
+| `sampleStorages.minio.enabled` | Deploy MinIO | `false` |
 | `postgresql.enabled` | Deploy PostgreSQL for gateway | `true` |
 | `monitoring.enabled` | Deploy Prometheus + Grafana | `false` |
+
+**Production Note**: Sample infrastructure components are not suitable for production use. Configure proper cloud services (AWS SQS/S3, hosted RabbitMQ, etc.) instead.
 
 ### Namespaces
 
@@ -114,18 +136,24 @@ See `values.yaml` for complete configuration options.
 
 ### Local Profile (`global.profile=local`)
 
-- Deploys LocalStack for SQS/S3 (when `global.transport=sqs` or `global.storage=s3`)
-- Deploys RabbitMQ (when `global.transport=rabbitmq`)
-- Deploys MinIO (when `global.storage=minio`)
+- Deploys sample infrastructure automatically based on transport/storage selection
+- SQS transport → `localstack-sqs` service
+- S3 storage → `localstack-s3` service
+- RabbitMQ transport → `rabbitmq` service
+- MinIO storage → `minio` service
 - Uses in-cluster endpoints
 - Suitable for Kind, Minikube, or development clusters
 
 ### Production Profile (`global.profile=production`)
 
-- No infrastructure deployments
-- Expects external cloud services (AWS SQS/S3, etc.)
+- No sample infrastructure deployments
+- Expects external cloud services (AWS SQS/S3, hosted RabbitMQ, etc.)
 - Requires proper IAM roles and credentials
-- Set `localstack.enabled=false`, `rabbitmq.enabled=false`, etc.
+- Disable sample infrastructure:
+  - `sampleTransports.sqsLocalstack.enabled=false`
+  - `sampleTransports.rabbitmq.enabled=false`
+  - `sampleStorages.s3Localstack.enabled=false`
+  - `sampleStorages.minio.enabled=false`
 
 ## Testing the Installation
 
@@ -146,8 +174,8 @@ kubectl run aws-cli --rm -i --restart=Never --image=amazon/aws-cli \
   --env="AWS_DEFAULT_REGION=us-east-1" \
   --command -- sh -c "
     aws sqs send-message \
-      --endpoint-url=http://localstack.default:4566 \
-      --queue-url http://localstack.default:4566/000000000000/asya-default-hello \
+      --endpoint-url=http://localstack-sqs.default:4566 \
+      --queue-url http://localstack-sqs.default:4566/000000000000/asya-default-hello \
       --message-body '{\"id\":\"test-1\",\"route\":{\"actors\":[\"hello\"],\"current\":0},\"payload\":{\"name\":\"World\"}}'
   "
 ```
@@ -174,7 +202,11 @@ kubectl delete pvc minio-data -n default
 │ - asya-gateway + PostgreSQL                          │
 │ - asya-crew (happy-end, error-end)                   │
 │ - hello-world actor                                  │
-│ - localstack / rabbitmq / minio (if enabled)         │
+│                                                       │
+│ Sample Infrastructure (demo only):                   │
+│ - localstack-sqs / localstack-s3 (if enabled)        │
+│ - rabbitmq (if enabled)                              │
+│ - minio (if enabled)                                 │
 │ - prometheus / grafana (if monitoring.enabled)       │
 └─────────────────────────────────────────────────────┘
 ```
@@ -182,6 +214,7 @@ kubectl delete pvc minio-data -n default
 **Note**: For production, consider installing components in separate namespaces:
 - Operator in `asya-system`
 - Gateway + actors in dedicated namespaces per environment
+- Use cloud services instead of sample infrastructure
 
 ## Troubleshooting
 
@@ -219,10 +252,16 @@ kubectl get pods -l app=postgresql -n default
 
 ### LocalStack not responding
 
-Check LocalStack health:
+Check LocalStack SQS health:
 ```bash
 kubectl run curl --rm -i --restart=Never --image=curlimages/curl -- \
-  http://localstack.default:4566/_localstack/health
+  http://localstack-sqs.default:4566/_localstack/health
+```
+
+Check LocalStack S3 health:
+```bash
+kubectl run curl --rm -i --restart=Never --image=curlimages/curl -- \
+  http://localstack-s3.default:4566/_localstack/health
 ```
 
 ## Dependencies
@@ -234,18 +273,22 @@ This umbrella chart depends on:
 
 Dependencies are pulled from `file://../{chart-name}` (local filesystem).
 
+## Load Testing (Future)
+
+Load testing capabilities for stress-testing actor pipelines are tracked in a separate work item and will be added in a future release.
+
 ## Production Considerations
 
-For production deployments, consider:
+**IMPORTANT**: This quickstart chart is designed for demos and learning. For production deployments, consider:
 
-1. **Install components separately** with custom configurations
-2. **Use external databases** instead of bundled PostgreSQL
-3. **Configure IAM roles** for AWS SQS/S3 access
-4. **Set resource limits** appropriate for your workload
-5. **Enable persistence** for PostgreSQL and gateway state
-6. **Configure monitoring** with Prometheus and Grafana
-7. **Use Ingress** to expose gateway externally
-8. **Review security** settings (RBAC, network policies)
+1. **Install components separately** - Use individual charts (asya-operator, asya-gateway, asya-crew) with custom configurations
+2. **Use cloud services** - Replace sample infrastructure with AWS SQS/S3, hosted RabbitMQ, managed PostgreSQL
+3. **Configure IAM roles** - Set up proper AWS IAM roles for SQS/S3 access
+4. **Set resource limits** - Configure appropriate CPU/memory limits for your workload
+5. **Enable persistence** - Use persistent storage for PostgreSQL and gateway state
+6. **Configure monitoring** - Integrate with production monitoring (Prometheus, Datadog, etc.)
+7. **Use Ingress** - Expose gateway externally with proper TLS/authentication
+8. **Review security** - Configure RBAC, network policies, secrets management
 
 ## Links
 

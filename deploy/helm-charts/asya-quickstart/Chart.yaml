@@ -1,6 +1,6 @@
 apiVersion: v2
-name: asya-bundle
-description: Umbrella Helm chart for quick Asya🎭 installation with all components
+name: asya-quickstart
+description: Full demo package showing Asya🎭 in action with sample actors, flows, and load testing
 type: application
 version: 0.1.0
 appVersion: "1.0.0"
@@ -9,21 +9,21 @@ keywords:
 - actor
 - operator
 - gateway
-- bundle
-- umbrella
+- demo
+- quickstart
 maintainers:
 - name: Asya Team
 
 dependencies:
 - name: asya-operator
   version: ">=0.1.0"
-  repository: "file://../asya-operator"
+  repository: "https://asya.sh/charts"
   condition: operator.enabled
 - name: asya-crew
   version: ">=0.4.0"
-  repository: "file://../asya-crew"
+  repository: "https://asya.sh/charts"
   condition: crew.enabled
 - name: asya-gateway
   version: ">=0.1.0"
-  repository: "file://../asya-gateway"
+  repository: "https://asya.sh/charts"
   condition: gateway.enabled
