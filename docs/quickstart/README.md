@@ -11,7 +11,7 @@ IMPORTANT: All ```bash commands in this file are tested as part of e2e test suit
 - Deploy the Asya operator with SQS transport (running via LocalStack)
 - Build and deploy your first actor with scale-to-zero capability
 - Test autoscaling by sending messages to actor queues
-- Optionally add S3 storage, MCP gateway, and Prometheus monitoring
+- Optionally add S3 storage, MCP gateway, Prometheus monitoring, and Grafana dashboards
 
 ## Prerequisites
 
@@ -29,7 +29,7 @@ Choose your setup based on your needs:
 - **[Minimal Setup](#minimal-setup)** - KEDA + SQS + Asya Operator (core functionality only)
 - **[+ S3 Storage](#add-s3-storage-optional)** - Add persistence of the result message
 - **[+ Asya Gateway](#add-gateway-optional)** - Add MCP HTTP API with PostgreSQL
-- **[+ Prometheus](#add-prometheus-optional)** - Add observability
+- **[+ Prometheus](#add-prometheus-optional)** - Add metrics collection and Grafana dashboards
 
 ## Initial Setup
 
@@ -646,17 +646,41 @@ EOF
 
 ### 3. Access Grafana
 
+Port-forward Grafana:
+
 ```bash
 kubectl port-forward -n monitoring svc/prometheus-grafana 3000:80
 ```
 
 Default credentials: `admin` / `prom-operator`
 
-Import Asya dashboards from the [monitoring guide](../operate/monitoring.md).
+Open http://localhost:3000 in your browser.
 
-### 4. Verify Metrics Collection
+### 4. Import Asya Dashboard
 
-Send messages through the gateway to generate metrics:
+Download the dashboard JSON:
+
+```bash
+curl -sL https://raw.githubusercontent.com/deliveryhero/asya/refs/heads/main/deploy/grafana-dashboards/asya-actors.json -o asya-actors.json
+```
+
+In Grafana UI:
+1. Navigate to **Dashboards** → **Import**
+2. Click **Upload JSON file**
+3. Select `asya-actors.json`
+4. Select **Prometheus** as the datasource
+5. Click **Import**
+
+The dashboard shows:
+- Message throughput and active messages
+- Processing and runtime execution duration
+- Error rates by reason and type
+- Envelope size distribution
+- Operator health metrics
+
+### 5. Verify Metrics Collection
+
+Send messages to generate metrics:
 
 ```bash
 for i in {1..10}; do
@@ -664,12 +688,17 @@ for i in {1..10}; do
 done
 ```
 
-In Grafana, query key metrics:
+In the Grafana dashboard:
+- Select **default** namespace and **asya-default-hello** queue
+- Watch message rate increase
+- See processing duration metrics
+- Monitor error rates (should be zero)
+
+You can also query metrics directly in Grafana Explore:
 - `asya_actor_processing_duration_seconds{queue="asya-default-hello"}`
 - `asya_actor_messages_processed_total{queue="asya-default-hello"}`
-- `asya_operator_reconcile_total`
-
-These metrics show processing latency, throughput, and operator activity.
+- `asya_actor_active_messages`
+- `controller_runtime_reconcile_total{controller="asyncactor"}`
 
 ## Testing Your Setup
 
