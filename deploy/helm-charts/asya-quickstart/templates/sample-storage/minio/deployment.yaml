@@ -1,4 +1,4 @@
-{{- if and .Values.sampleStorages.minio.enabled (eq .Values.global.storage "minio") }}
+{{- if and .Values.sampleStorage.minio.enabled (eq .Values.global.storage "minio") }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
       - name: minio
-        image: {{ .Values.sampleStorages.minio.image.repository }}:{{ .Values.sampleStorages.minio.image.tag }}
+        image: {{ .Values.sampleStorage.minio.image.repository }}:{{ .Values.sampleStorage.minio.image.tag }}
         args:
         - server
         - /data
@@ -33,14 +33,14 @@ spec:
           name: console
         env:
         - name: MINIO_ROOT_USER
-          value: {{ .Values.sampleStorages.minio.auth.rootUser }}
+          value: {{ .Values.sampleStorage.minio.auth.rootUser }}
         - name: MINIO_ROOT_PASSWORD
-          value: {{ .Values.sampleStorages.minio.auth.rootPassword }}
+          value: {{ .Values.sampleStorage.minio.auth.rootPassword }}
         volumeMounts:
         - name: data
           mountPath: /data
         resources:
-          {{- toYaml .Values.sampleStorages.minio.resources | nindent 10 }}
+          {{- toYaml .Values.sampleStorage.minio.resources | nindent 10 }}
         readinessProbe:
           httpGet:
             path: /minio/health/ready
@@ -54,7 +54,7 @@ spec:
           initialDelaySeconds: 30
           periodSeconds: 30
       volumes:
-{{- if not .Values.sampleStorages.minio.persistence.enabled }}
+{{- if not .Values.sampleStorage.minio.persistence.enabled }}
       - name: data
         emptyDir: {}
 {{- else }}

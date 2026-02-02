@@ -75,8 +75,8 @@ helm install asya deploy/helm-charts/asya-quickstart/ \
   --set global.storage=s3 \
   --set global.profile=production \
   --set sampleTransports.sqsLocalstack.enabled=false \
-  --set sampleStorages.s3Localstack.enabled=false \
-  --set postgresql.enabled=false \
+  --set sampleStorage.s3Localstack.enabled=false \
+  --set sampleGatewayDb.postgresql.enabled=false \
   --set asya-operator.transports.sqs.config.accountId=YOUR_AWS_ACCOUNT_ID \
   --set asya-operator.transports.sqs.config.endpoint="" \
   --set asya-crew.storage.s3.endpoint="" \
@@ -104,13 +104,14 @@ sampleTransports:
     enabled: false
   rabbitmq:
     enabled: false
-sampleStorages:
+sampleStorage:
   s3Localstack:
     enabled: false
   minio:
     enabled: false
-postgresql:
-  enabled: false
+sampleGatewayDb:
+  postgresql:
+    enabled: false
 
 # Configure external AWS services
 asya-operator:
@@ -168,9 +169,9 @@ Sample infrastructure provides quick-start transport and storage backends for de
 |-----------|-------------|---------|
 | `sampleTransports.sqsLocalstack.enabled` | Deploy LocalStack for SQS | `true` |
 | `sampleTransports.rabbitmq.enabled` | Deploy RabbitMQ | `false` |
-| `sampleStorages.s3Localstack.enabled` | Deploy LocalStack for S3 | `true` |
-| `sampleStorages.minio.enabled` | Deploy MinIO | `false` |
-| `postgresql.enabled` | Deploy PostgreSQL for gateway | `true` |
+| `sampleStorage.s3Localstack.enabled` | Deploy LocalStack for S3 | `true` |
+| `sampleStorage.minio.enabled` | Deploy MinIO | `false` |
+| `sampleGatewayDb.postgresql.enabled` | Deploy PostgreSQL for gateway | `true` |
 
 **Production Note**: Sample infrastructure components are not suitable for production use. Configure proper cloud services (AWS SQS/S3, hosted RabbitMQ, etc.) instead.
 
@@ -213,8 +214,8 @@ See `values.yaml` for complete configuration options.
 - Disable sample infrastructure:
   - `sampleTransports.sqsLocalstack.enabled=false`
   - `sampleTransports.rabbitmq.enabled=false`
-  - `sampleStorages.s3Localstack.enabled=false`
-  - `sampleStorages.minio.enabled=false`
+  - `sampleStorage.s3Localstack.enabled=false`
+  - `sampleStorage.minio.enabled=false`
 
 ## Testing the Installation
 

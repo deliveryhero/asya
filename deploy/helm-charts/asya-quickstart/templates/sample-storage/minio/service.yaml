@@ -1,4 +1,4 @@
-{{- if and .Values.sampleStorages.minio.enabled (eq .Values.global.storage "minio") }}
+{{- if and .Values.sampleStorage.minio.enabled (eq .Values.global.storage "minio") }}
 apiVersion: v1
 kind: Service
 metadata:
@@ -9,13 +9,13 @@ metadata:
     app.kubernetes.io/name: minio
     app.kubernetes.io/instance: {{ .Release.Name }}
 spec:
-  type: {{ .Values.sampleStorages.minio.service.type }}
+  type: {{ .Values.sampleStorage.minio.service.type }}
   ports:
-  - port: {{ .Values.sampleStorages.minio.service.apiPort }}
+  - port: {{ .Values.sampleStorage.minio.service.apiPort }}
     targetPort: api
     protocol: TCP
     name: api
-  - port: {{ .Values.sampleStorages.minio.service.consolePort }}
+  - port: {{ .Values.sampleStorage.minio.service.consolePort }}
     targetPort: console
     protocol: TCP
     name: console

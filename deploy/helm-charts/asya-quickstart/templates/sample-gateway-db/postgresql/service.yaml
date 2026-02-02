@@ -1,4 +1,4 @@
-{{- if .Values.postgresql.enabled }}
+{{- if .Values.sampleGatewayDb.postgresql.enabled }}
 apiVersion: v1
 kind: Service
 metadata:
@@ -9,9 +9,9 @@ metadata:
     app.kubernetes.io/name: postgresql
     app.kubernetes.io/instance: {{ .Release.Name }}
 spec:
-  type: {{ .Values.postgresql.service.type }}
+  type: {{ .Values.sampleGatewayDb.postgresql.service.type }}
   ports:
-  - port: {{ .Values.postgresql.service.port }}
+  - port: {{ .Values.sampleGatewayDb.postgresql.service.port }}
     targetPort: postgres
     protocol: TCP
     name: postgres

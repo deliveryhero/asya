@@ -1,4 +1,4 @@
-{{- if and .Values.sampleStorages.s3Localstack.enabled (eq .Values.global.storage "s3") }}
+{{- if and .Values.sampleStorage.s3Localstack.enabled (eq .Values.global.storage "s3") }}
 apiVersion: v1
 kind: Service
 metadata:
@@ -10,9 +10,9 @@ metadata:
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/component: sample-storage
 spec:
-  type: {{ .Values.sampleStorages.s3Localstack.service.type }}
+  type: {{ .Values.sampleStorage.s3Localstack.service.type }}
   ports:
-  - port: {{ .Values.sampleStorages.s3Localstack.service.port }}
+  - port: {{ .Values.sampleStorage.s3Localstack.service.port }}
     targetPort: edge
     protocol: TCP
     name: edge

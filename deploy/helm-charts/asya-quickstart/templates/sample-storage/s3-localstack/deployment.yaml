@@ -1,4 +1,4 @@
-{{- if and .Values.sampleStorages.s3Localstack.enabled (eq .Values.global.storage "s3") }}
+{{- if and .Values.sampleStorage.s3Localstack.enabled (eq .Values.global.storage "s3") }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
       - name: localstack
-        image: {{ .Values.sampleStorages.s3Localstack.image.repository }}:{{ .Values.sampleStorages.s3Localstack.image.tag }}
+        image: {{ .Values.sampleStorage.s3Localstack.image.repository }}:{{ .Values.sampleStorage.s3Localstack.image.tag }}
         ports:
         - containerPort: 4566
           name: edge
@@ -33,7 +33,7 @@ spec:
         - name: DATA_DIR
           value: /tmp/localstack/data
         resources:
-          {{- toYaml .Values.sampleStorages.s3Localstack.resources | nindent 10 }}
+          {{- toYaml .Values.sampleStorage.s3Localstack.resources | nindent 10 }}
         readinessProbe:
           httpGet:
             path: /_localstack/health

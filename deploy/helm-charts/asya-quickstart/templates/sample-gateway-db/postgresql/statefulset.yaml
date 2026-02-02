@@ -1,4 +1,4 @@
-{{- if .Values.postgresql.enabled }}
+{{- if .Values.sampleGatewayDb.postgresql.enabled }}
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -21,20 +21,20 @@ spec:
     spec:
       containers:
       - name: postgresql
-        image: {{ .Values.postgresql.image.repository }}:{{ .Values.postgresql.image.tag }}
+        image: {{ .Values.sampleGatewayDb.postgresql.image.repository }}:{{ .Values.sampleGatewayDb.postgresql.image.tag }}
         ports:
         - containerPort: 5432
           name: postgres
         env:
         - name: POSTGRES_USER
-          value: {{ .Values.postgresql.auth.username }}
+          value: {{ .Values.sampleGatewayDb.postgresql.auth.username }}
         - name: POSTGRES_PASSWORD
           valueFrom:
             secretKeyRef:
               name: asya-gateway-postgresql
               key: password
         - name: POSTGRES_DB
-          value: {{ .Values.postgresql.auth.database }}
+          value: {{ .Values.sampleGatewayDb.postgresql.auth.database }}
         - name: PGDATA
           value: /var/lib/postgresql/data/pgdata
         volumeMounts:
@@ -45,7 +45,7 @@ spec:
             command:
             - /bin/sh
             - -c
-            - pg_isready -U {{ .Values.postgresql.auth.username }}
+            - pg_isready -U {{ .Values.sampleGatewayDb.postgresql.auth.username }}
           initialDelaySeconds: 5
           periodSeconds: 5
           timeoutSeconds: 5
@@ -55,19 +55,19 @@ spec:
             command:
             - /bin/sh
             - -c
-            - pg_isready -U {{ .Values.postgresql.auth.username }}
+            - pg_isready -U {{ .Values.sampleGatewayDb.postgresql.auth.username }}
           initialDelaySeconds: 30
           periodSeconds: 10
           timeoutSeconds: 5
           failureThreshold: 6
         resources:
-          {{- toYaml .Values.postgresql.resources | nindent 10 }}
-{{- if not .Values.postgresql.persistence.enabled }}
+          {{- toYaml .Values.sampleGatewayDb.postgresql.resources | nindent 10 }}
+{{- if not .Values.sampleGatewayDb.postgresql.persistence.enabled }}
       volumes:
       - name: data
         emptyDir: {}
 {{- end }}
-{{- if .Values.postgresql.persistence.enabled }}
+{{- if .Values.sampleGatewayDb.postgresql.persistence.enabled }}
   volumeClaimTemplates:
   - metadata:
       name: data
@@ -75,6 +75,6 @@ spec:
       accessModes: ["ReadWriteOnce"]
       resources:
         requests:
-          storage: {{ .Values.postgresql.persistence.size }}
+          storage: {{ .Values.sampleGatewayDb.postgresql.persistence.size }}
 {{- end }}
 {{- end }}

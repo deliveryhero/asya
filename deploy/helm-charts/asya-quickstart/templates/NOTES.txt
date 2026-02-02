@@ -10,19 +10,19 @@ Components installed:
 {{- if .Values.gateway.enabled }}
   - Gateway (http://asya-gateway.{{ .Release.Namespace }}:80)
 {{- end }}
-{{- if .Values.postgresql.enabled }}
+{{- if .Values.sampleGatewayDb.postgresql.enabled }}
   - PostgreSQL (asya-gateway-postgresql)
 {{- end }}
 {{- if .Values.sampleTransports.sqsLocalstack.enabled }}
   - LocalStack SQS (localstack-sqs)
 {{- end }}
-{{- if .Values.sampleStorages.s3Localstack.enabled }}
+{{- if .Values.sampleStorage.s3Localstack.enabled }}
   - LocalStack S3 (localstack-s3)
 {{- end }}
 {{- if .Values.sampleTransports.rabbitmq.enabled }}
   - RabbitMQ
 {{- end }}
-{{- if .Values.sampleStorages.minio.enabled }}
+{{- if .Values.sampleStorage.minio.enabled }}
   - MinIO
 {{- end }}
 {{- if .Values.helloActor.enabled }}
@@ -94,11 +94,11 @@ Documentation: https://github.com/deliveryhero/asya
 
 To uninstall:
   helm uninstall {{ .Release.Name }} -n {{ .Release.Namespace }}
-{{- if .Values.postgresql.persistence.enabled }}
+{{- if .Values.sampleGatewayDb.postgresql.persistence.enabled }}
 
 NOTE: PostgreSQL PVC will remain after uninstall. To delete:
   kubectl delete pvc -l app=postgresql -n {{ .Release.Namespace }}
 {{- end }}
-{{- if and .Values.sampleStorages.minio.enabled .Values.sampleStorages.minio.persistence.enabled }}
+{{- if and .Values.sampleStorage.minio.enabled .Values.sampleStorage.minio.persistence.enabled }}
   kubectl delete pvc minio-data -n {{ .Release.Namespace }}
 {{- end }}
