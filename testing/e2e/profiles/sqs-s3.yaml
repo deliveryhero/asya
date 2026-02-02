@@ -32,6 +32,7 @@ actors:
 
 crew:
   image:
+    tag: latest
     pullPolicy: Never
   happy-end:
     transport: sqs
