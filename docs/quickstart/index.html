@@ -1141,10 +1141,24 @@ kubectl<span class="w"> </span>run<span class="w"> </span>send-many-messages<spa
 <span class="s">EOF</span>
 
 helm<span class="w"> </span>install<span class="w"> </span>asya-crew<span class="w"> </span>asya/asya-crew<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>-n<span class="w"> </span>asya-system<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-n<span class="w"> </span>default<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-f<span class="w"> </span>crew-values.yaml
 </code></pre></div>
 <p>Your pipeline results are now automatically persisted to S3: whenever an actor finishes processing the last message in the route, 🎭 automatically sends it to <code>happy-end</code> actor to persist it on S3. Similarly, error messages will be sent to <code>error-end</code>.</p>
+<h2 id="namespace-architecture">Namespace Architecture<a class="headerlink" href="#namespace-architecture" title="Permanent link">&para;</a></h2>
+<p>Asya🎭 uses namespace separation to distinguish infrastructure from business logic:</p>
+<p><strong>asya-system namespace</strong> (infrastructure layer):
+- Asya🎭 Operator (watches AsyncActors across all namespaces)
+- LocalStack / infrastructure services
+- KEDA (monitors queues across all namespaces)
+- Prometheus / Grafana (when installed)</p>
+<p><strong>Business namespaces</strong> (e.g., default, production):
+- Gateway (routes messages to actors in same namespace)
+- Gateway PostgreSQL (gateway's envelope tracking database)
+- Async actors and flows (your ML/AI workloads)
+- Crew actors (happy-end, error-end - part of the pipelines)</p>
+<p><strong>Why this separation?</strong></p>
+<p>Gateway is part of the business logic layer - it exposes your actors as MCP tools and routes messages to actor queues. In multi-tenant deployments, each namespace can have its own gateway instance served by a single operator in asya-system.</p>
 <h2 id="add-gateway-optional">Add Gateway (Optional)<a class="headerlink" href="#add-gateway-optional" title="Permanent link">&para;</a></h2>
 <p><strong>What you get</strong>: HTTP API, MCP tools, SSE streaming, envelope tracking</p>
 <h3 id="1-install-postgresql">1. Install PostgreSQL<a class="headerlink" href="#1-install-postgresql" title="Permanent link">&para;</a></h3>
@@ -1153,7 +1167,7 @@ helm<span class="w"> </span>install<span class="w"> </span>asya-crew<span class=
 <span class="s">kind: Service</span>
 <span class="s">metadata:</span>
 <span class="s">  name: asya-gateway-postgresql</span>
-<span class="s">  namespace: asya-system</span>
+<span class="s">  namespace: default</span>
 <span class="s">spec:</span>
 <span class="s">  selector:</span>
 <span class="s">    app: postgresql</span>
@@ -1164,7 +1178,7 @@ helm<span class="w"> </span>install<span class="w"> </span>asya-crew<span class=
 <span class="s">kind: Deployment</span>
 <span class="s">metadata:</span>
 <span class="s">  name: asya-gateway-postgresql</span>
-<span class="s">  namespace: asya-system</span>
+<span class="s">  namespace: default</span>
 <span class="s">spec:</span>
 <span class="s">  selector:</span>
 <span class="s">    matchLabels:</span>
@@ -1188,7 +1202,7 @@ helm<span class="w"> </span>install<span class="w"> </span>asya-crew<span class=
 </code></pre></div>
 <h3 id="2-create-postgresql-secret">2. Create PostgreSQL Secret<a class="headerlink" href="#2-create-postgresql-secret" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>create<span class="w"> </span>secret<span class="w"> </span>generic<span class="w"> </span>asya-gateway-postgresql<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--namespace<span class="w"> </span>asya-system<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--namespace<span class="w"> </span>default<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--from-literal<span class="o">=</span><span class="nv">password</span><span class="o">=</span>asya
 </code></pre></div>
 <h3 id="3-install-gateway">3. Install Gateway<a class="headerlink" href="#3-install-gateway" title="Permanent link">&para;</a></h3>
@@ -1201,7 +1215,7 @@ helm<span class="w"> </span>install<span class="w"> </span>asya-crew<span class=
 <span class="s">  sqsEndpoint: http://localstack.asya-system.svc.cluster.local:4566</span>
 <span class="s">  sqsRegion: us-east-1</span>
 <span class="s">  database:</span>
-<span class="s">    host: asya-gateway-postgresql.asya-system.svc.cluster.local</span>
+<span class="s">    host: asya-gateway-postgresql.default.svc.cluster.local</span>
 <span class="s">    name: asya</span>
 <span class="s">    user: asya</span>
 <span class="s">    password: asya</span>
@@ -1214,15 +1228,15 @@ helm<span class="w"> </span>install<span class="w"> </span>asya-crew<span class=
 <span class="s">EOF</span>
 
 helm<span class="w"> </span>install<span class="w"> </span>asya-gateway<span class="w"> </span>asya/asya-gateway<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>-n<span class="w"> </span>asya-system<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-n<span class="w"> </span>default<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-f<span class="w"> </span>gateway-values.yaml
 
 kubectl<span class="w"> </span><span class="nb">wait</span><span class="w"> </span>--for<span class="o">=</span><span class="nv">condition</span><span class="o">=</span>ready<span class="w"> </span>pod<span class="w"> </span>-l<span class="w"> </span>app.kubernetes.io/name<span class="o">=</span>asya-gateway<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>-n<span class="w"> </span>asya-system<span class="w"> </span>--timeout<span class="o">=</span>300s
+<span class="w">  </span>-n<span class="w"> </span>default<span class="w"> </span>--timeout<span class="o">=</span>300s
 </code></pre></div>
 <h3 id="4-update-operator-for-gateway-integration">4. Update Operator for Gateway Integration<a class="headerlink" href="#4-update-operator-for-gateway-integration" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code>cat<span class="w"> </span>&gt;&gt;<span class="w"> </span>operator-values.yaml<span class="w"> </span><span class="s">&lt;&lt;EOF</span>
-<span class="s">gatewayURL: &quot;http://asya-gateway.asya-system.svc.cluster.local:8080&quot;</span>
+<span class="s">gatewayURL: &quot;http://asya-gateway.default.svc.cluster.local:8080&quot;</span>
 <span class="s">EOF</span>
 
 helm<span class="w"> </span>upgrade<span class="w"> </span>asya-operator<span class="w"> </span>asya/asya-operator<span class="w"> </span><span class="se">\</span>
@@ -1240,7 +1254,7 @@ helm<span class="w"> </span>upgrade<span class="w"> </span>asya-operator<span cl
 <span class="s">        - name: asya-runtime</span>
 <span class="s">          env:</span>
 <span class="s">          - name: ASYA_GATEWAY_URL</span>
-<span class="s">            value: &quot;http://asya-gateway.asya-system.svc.cluster.local:8080&quot;</span>
+<span class="s">            value: &quot;http://asya-gateway.default.svc.cluster.local:8080&quot;</span>
 <span class="s">          - name: ASYA_S3_BUCKET</span>
 <span class="s">            value: &quot;asya-results-bucket&quot;</span>
 <span class="s">          - name: ASYA_S3_ENDPOINT</span>
@@ -1261,7 +1275,7 @@ helm<span class="w"> </span>upgrade<span class="w"> </span>asya-operator<span cl
 <span class="s">        - name: asya-runtime</span>
 <span class="s">          env:</span>
 <span class="s">          - name: ASYA_GATEWAY_URL</span>
-<span class="s">            value: &quot;http://asya-gateway.asya-system.svc.cluster.local:8080&quot;</span>
+<span class="s">            value: &quot;http://asya-gateway.default.svc.cluster.local:8080&quot;</span>
 <span class="s">          - name: ASYA_S3_BUCKET</span>
 <span class="s">            value: &quot;asya-errors-bucket&quot;</span>
 <span class="s">          - name: ASYA_S3_ENDPOINT</span>
@@ -1275,11 +1289,11 @@ helm<span class="w"> </span>upgrade<span class="w"> </span>asya-operator<span cl
 <span class="s">EOF</span>
 
 helm<span class="w"> </span>upgrade<span class="w"> </span>asya-crew<span class="w"> </span>asya/asya-crew<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>-n<span class="w"> </span>asya-system<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-n<span class="w"> </span>default<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-f<span class="w"> </span>crew-values.yaml
 
 kubectl<span class="w"> </span><span class="nb">wait</span><span class="w"> </span>--for<span class="o">=</span><span class="nv">condition</span><span class="o">=</span>ready<span class="w"> </span>pod<span class="w"> </span>-l<span class="w"> </span>app.kubernetes.io/name<span class="o">=</span>asya-crew<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>-n<span class="w"> </span>asya-system<span class="w"> </span>--timeout<span class="o">=</span>300s
+<span class="w">  </span>-n<span class="w"> </span>default<span class="w"> </span>--timeout<span class="o">=</span>300s
 </code></pre></div>
 <h3 id="6-install-asya-cli">6. Install asya CLI<a class="headerlink" href="#6-install-asya-cli" title="Permanent link">&para;</a></h3>
 <p>The Asya CLI provides MCP client tools for calling actors through the gateway:</p>
@@ -1301,16 +1315,16 @@ kubectl<span class="w"> </span><span class="nb">wait</span><span class="w"> </sp
 <span class="s">EOF</span>
 
 helm<span class="w"> </span>upgrade<span class="w"> </span>asya-gateway<span class="w"> </span>asya/asya-gateway<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>-n<span class="w"> </span>asya-system<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-n<span class="w"> </span>default<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-f<span class="w"> </span>gateway-values.yaml<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-f<span class="w"> </span>gateway-tool-values.yaml
 
 kubectl<span class="w"> </span><span class="nb">wait</span><span class="w"> </span>--for<span class="o">=</span><span class="nv">condition</span><span class="o">=</span>ready<span class="w"> </span>pod<span class="w"> </span>-l<span class="w"> </span>app.kubernetes.io/name<span class="o">=</span>asya-gateway<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>-n<span class="w"> </span>asya-system<span class="w"> </span>--timeout<span class="o">=</span>300s
+<span class="w">  </span>-n<span class="w"> </span>default<span class="w"> </span>--timeout<span class="o">=</span>300s
 </code></pre></div>
 <h3 id="8-test-gateway-integration">8. Test Gateway Integration<a class="headerlink" href="#8-test-gateway-integration" title="Permanent link">&para;</a></h3>
 <p>In a separate terminal, port-forward the gateway service to your local machine:</p>
-<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>port-forward<span class="w"> </span>-n<span class="w"> </span>asya-system<span class="w"> </span>svc/asya-gateway<span class="w"> </span><span class="m">8080</span>:80
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>port-forward<span class="w"> </span>-n<span class="w"> </span>default<span class="w"> </span>svc/asya-gateway<span class="w"> </span><span class="m">8080</span>:80
 </code></pre></div>
 <p>Set the MCP URL environment variable:</p>
 <div class="highlight"><pre><span></span><code><span class="nb">export</span><span class="w"> </span><span class="nv">ASYA_CLI_MCP_URL</span><span class="o">=</span>http://localhost:8080/
@@ -1452,13 +1466,13 @@ make<span class="w"> </span>up<span class="w"> </span><span class="nv">PROFILE</
 kubectl<span class="w"> </span>delete<span class="w"> </span>asya<span class="w"> </span>--all
 
 <span class="c1"># Remove crew</span>
-helm<span class="w"> </span>uninstall<span class="w"> </span>asya-crew<span class="w"> </span>-n<span class="w"> </span>asya-system
+helm<span class="w"> </span>uninstall<span class="w"> </span>asya-crew<span class="w"> </span>-n<span class="w"> </span>default
 
 <span class="c1"># Remove gateway</span>
-helm<span class="w"> </span>uninstall<span class="w"> </span>asya-gateway<span class="w"> </span>-n<span class="w"> </span>asya-system
-kubectl<span class="w"> </span>delete<span class="w"> </span>secret<span class="w"> </span>asya-gateway-postgresql<span class="w"> </span>-n<span class="w"> </span>asya-system
-kubectl<span class="w"> </span>delete<span class="w"> </span>deployment<span class="w"> </span>asya-gateway-postgresql<span class="w"> </span>-n<span class="w"> </span>asya-system
-kubectl<span class="w"> </span>delete<span class="w"> </span>service<span class="w"> </span>asya-gateway-postgresql<span class="w"> </span>-n<span class="w"> </span>asya-system
+helm<span class="w"> </span>uninstall<span class="w"> </span>asya-gateway<span class="w"> </span>-n<span class="w"> </span>default
+kubectl<span class="w"> </span>delete<span class="w"> </span>secret<span class="w"> </span>asya-gateway-postgresql<span class="w"> </span>-n<span class="w"> </span>default
+kubectl<span class="w"> </span>delete<span class="w"> </span>deployment<span class="w"> </span>asya-gateway-postgresql<span class="w"> </span>-n<span class="w"> </span>default
+kubectl<span class="w"> </span>delete<span class="w"> </span>service<span class="w"> </span>asya-gateway-postgresql<span class="w"> </span>-n<span class="w"> </span>default
 
 <span class="c1"># Remove operator</span>
 helm<span class="w"> </span>uninstall<span class="w"> </span>asya-operator<span class="w"> </span>-n<span class="w"> </span>asya-system
@@ -1836,6 +1850,14 @@ helm<span class="w"> </span>uninstall<span class="w"> </span>prometheus<span cla
             2. Install Crew Actors
         </a>
         
+        
+
+        
+        <a href="#namespace-architecture"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Namespace Architecture
+        </a>
         
 
         
