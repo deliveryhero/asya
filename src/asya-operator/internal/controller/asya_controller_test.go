@@ -1291,51 +1291,56 @@ func TestReconcileDeployment_KEDAReplicasFieldCleared(t *testing.T) {
 	_ = corev1.AddToScheme(scheme)
 	_ = appsv1.AddToScheme(scheme)
 
-	t.Run("KEDA enabled - replicas field must be nil", func(t *testing.T) {
-		r := &AsyncActorReconciler{
-			Client: fake.NewClientBuilder().WithScheme(scheme).Build(),
-			Scheme: scheme,
-			TransportRegistry: &asyaconfig.TransportRegistry{
-				Transports: map[string]*asyaconfig.TransportConfig{
-					testTransportRabbitMQ: {
-						Type:    testTransportRabbitMQ,
-						Enabled: true,
-						Config: &asyaconfig.RabbitMQConfig{
-							Host:     "localhost",
-							Port:     5672,
-							Username: "guest",
-						},
-					},
+	// Common test setup to reduce boilerplate
+	transportRegistry := &asyaconfig.TransportRegistry{
+		Transports: map[string]*asyaconfig.TransportConfig{
+			testTransportRabbitMQ: {
+				Type:    testTransportRabbitMQ,
+				Enabled: true,
+				Config: &asyaconfig.RabbitMQConfig{
+					Host:     "localhost",
+					Port:     5672,
+					Username: "guest",
 				},
 			},
-		}
+		},
+	}
 
-		asya := &asyav1alpha1.AsyncActor{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test-actor",
-				Namespace: "default",
-			},
-			Spec: asyav1alpha1.AsyncActorSpec{
-				Transport: testTransportRabbitMQ,
-				Scaling: asyav1alpha1.ScalingConfig{
-					Enabled:     true,
-					MinReplicas: ptr(int32(0)),
-					MaxReplicas: ptr(int32(30)),
-					QueueLength: 5,
-				},
-				Workload: asyav1alpha1.WorkloadConfig{
-					Template: asyav1alpha1.PodTemplateSpec{
-						Spec: corev1.PodSpec{
-							Containers: []corev1.Container{
-								{
-									Name:  "asya-runtime",
-									Image: "python:3.13-slim",
-								},
+	baseActor := &asyav1alpha1.AsyncActor{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "default",
+		},
+		Spec: asyav1alpha1.AsyncActorSpec{
+			Transport: testTransportRabbitMQ,
+			Workload: asyav1alpha1.WorkloadConfig{
+				Template: asyav1alpha1.PodTemplateSpec{
+					Spec: corev1.PodSpec{
+						Containers: []corev1.Container{
+							{
+								Name:  "asya-runtime",
+								Image: "python:3.13-slim",
 							},
 						},
 					},
 				},
 			},
+		},
+	}
+
+	t.Run("KEDA enabled - replicas field must be nil", func(t *testing.T) {
+		r := &AsyncActorReconciler{
+			Client:            fake.NewClientBuilder().WithScheme(scheme).Build(),
+			Scheme:            scheme,
+			TransportRegistry: transportRegistry,
+		}
+
+		asya := baseActor.DeepCopy()
+		asya.Name = "test-actor"
+		asya.Spec.Scaling = asyav1alpha1.ScalingConfig{
+			Enabled:     true,
+			MinReplicas: ptr(int32(0)),
+			MaxReplicas: ptr(int32(30)),
+			QueueLength: 5,
 		}
 
 		podTemplate := r.injectSidecar(asya)
@@ -1357,48 +1362,17 @@ func TestReconcileDeployment_KEDAReplicasFieldCleared(t *testing.T) {
 
 	t.Run("KEDA disabled - replicas field must be set", func(t *testing.T) {
 		r := &AsyncActorReconciler{
-			Client: fake.NewClientBuilder().WithScheme(scheme).Build(),
-			Scheme: scheme,
-			TransportRegistry: &asyaconfig.TransportRegistry{
-				Transports: map[string]*asyaconfig.TransportConfig{
-					testTransportRabbitMQ: {
-						Type:    testTransportRabbitMQ,
-						Enabled: true,
-						Config: &asyaconfig.RabbitMQConfig{
-							Host:     "localhost",
-							Port:     5672,
-							Username: "guest",
-						},
-					},
-				},
-			},
+			Client:            fake.NewClientBuilder().WithScheme(scheme).Build(),
+			Scheme:            scheme,
+			TransportRegistry: transportRegistry,
 		}
 
-		asya := &asyav1alpha1.AsyncActor{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test-actor-manual",
-				Namespace: "default",
-			},
-			Spec: asyav1alpha1.AsyncActorSpec{
-				Transport: testTransportRabbitMQ,
-				Scaling: asyav1alpha1.ScalingConfig{
-					Enabled: false,
-				},
-				Workload: asyav1alpha1.WorkloadConfig{
-					Replicas: ptr(int32(3)),
-					Template: asyav1alpha1.PodTemplateSpec{
-						Spec: corev1.PodSpec{
-							Containers: []corev1.Container{
-								{
-									Name:  "asya-runtime",
-									Image: "python:3.13-slim",
-								},
-							},
-						},
-					},
-				},
-			},
+		asya := baseActor.DeepCopy()
+		asya.Name = "test-actor-manual"
+		asya.Spec.Scaling = asyav1alpha1.ScalingConfig{
+			Enabled: false,
 		}
+		asya.Spec.Workload.Replicas = ptr(int32(3))
 
 		podTemplate := r.injectSidecar(asya)
 		err := r.reconcileDeployment(context.Background(), asya, podTemplate)
@@ -1420,55 +1394,20 @@ func TestReconcileDeployment_KEDAReplicasFieldCleared(t *testing.T) {
 	})
 
 	t.Run("KEDA enabled after manual scaling - replicas field must be cleared", func(t *testing.T) {
-		// This tests the bug fix: when an existing deployment has replicas=0
-		// and KEDA is then enabled, the operator must clear the replicas field
 		fakeClient := fake.NewClientBuilder().WithScheme(scheme).Build()
 		r := &AsyncActorReconciler{
-			Client: fakeClient,
-			Scheme: scheme,
-			TransportRegistry: &asyaconfig.TransportRegistry{
-				Transports: map[string]*asyaconfig.TransportConfig{
-					testTransportRabbitMQ: {
-						Type:    testTransportRabbitMQ,
-						Enabled: true,
-						Config: &asyaconfig.RabbitMQConfig{
-							Host:     "localhost",
-							Port:     5672,
-							Username: "guest",
-						},
-					},
-				},
-			},
+			Client:            fakeClient,
+			Scheme:            scheme,
+			TransportRegistry: transportRegistry,
 		}
 
-		// Create AsyncActor with manual scaling first
-		asya := &asyav1alpha1.AsyncActor{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test-actor-migration",
-				Namespace: "default",
-			},
-			Spec: asyav1alpha1.AsyncActorSpec{
-				Transport: testTransportRabbitMQ,
-				Scaling: asyav1alpha1.ScalingConfig{
-					Enabled: false,
-				},
-				Workload: asyav1alpha1.WorkloadConfig{
-					Replicas: ptr(int32(0)),
-					Template: asyav1alpha1.PodTemplateSpec{
-						Spec: corev1.PodSpec{
-							Containers: []corev1.Container{
-								{
-									Name:  "asya-runtime",
-									Image: "python:3.13-slim",
-								},
-							},
-						},
-					},
-				},
-			},
+		asya := baseActor.DeepCopy()
+		asya.Name = "test-actor-migration"
+		asya.Spec.Scaling = asyav1alpha1.ScalingConfig{
+			Enabled: false,
 		}
+		asya.Spec.Workload.Replicas = ptr(int32(0))
 
-		// First reconciliation: create deployment with replicas=0
 		podTemplate := r.injectSidecar(asya)
 		err := r.reconcileDeployment(context.Background(), asya, podTemplate)
 		if err != nil {
@@ -1485,7 +1424,6 @@ func TestReconcileDeployment_KEDAReplicasFieldCleared(t *testing.T) {
 			t.Errorf("Expected Deployment.Spec.Replicas to be 0 initially, got %v", deployment.Spec.Replicas)
 		}
 
-		// Now enable KEDA and reconcile again
 		asya.Spec.Scaling.Enabled = true
 		asya.Spec.Scaling.MinReplicas = ptr(int32(0))
 		asya.Spec.Scaling.MaxReplicas = ptr(int32(30))
