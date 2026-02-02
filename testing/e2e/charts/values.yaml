@@ -11,6 +11,10 @@ operator:
   controller:
     queueHealthCheckInterval: "30s"
 
+  sidecar:
+    image: ghcr.io/deliveryhero/asya-sidecar
+    tag: latest
+
   transports:
     rabbitmq:
       enabled: false
