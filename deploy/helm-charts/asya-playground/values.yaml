@@ -453,3 +453,31 @@ loadGenerator:
     requests:
       cpu: 200m
       memory: 256Mi
+
+# k6 Load Testing (CNCF-native, uses standard grafana/k6 image)
+k6LoadTests:
+  enabled: false
+
+  image:
+    repository: grafana/k6
+    tag: "0.54.0"
+
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 300
+
+  prometheusUrl: "http://asya-kube-prometheus-stack-prometheus:9090/api/v1/write"
+
+  sqs:
+    enabled: false
+    endpoint: "http://localstack-sqs:4566"
+    awsRegion: "us-east-1"
+    awsAccessKeyId: "test"
+    awsSecretAccessKey: "test"
+
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 512Mi
+    requests:
+      cpu: 200m
+      memory: 256Mi

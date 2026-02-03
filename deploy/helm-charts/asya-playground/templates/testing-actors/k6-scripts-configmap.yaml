@@ -1,0 +1,107 @@
+{{- if .Values.k6LoadTests.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: k6-load-test-scripts
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: k6-scripts
+    app.kubernetes.io/instance: {{ .Release.Name }}
+data:
+  sqs-load-test.js: |
+    import { AWSConfig, SQSClient } from 'https://jslib.k6.io/aws/0.12.3/sqs.js';
+    import { check, sleep } from 'k6';
+    import { Counter, Trend } from 'k6/metrics';
+
+    const messagesSent = new Counter('asya_sqs_messages_sent_total');
+    const sendDuration = new Trend('asya_sqs_send_duration_ms');
+    const sendErrors = new Counter('asya_sqs_send_errors_total');
+
+    export const options = {
+      scenarios: {
+        steady_load: {
+          executor: 'constant-vus',
+          vus: 10,
+          duration: '3m',
+        },
+        burst_load: {
+          executor: 'ramping-arrival-rate',
+          startRate: 10,
+          timeUnit: '1s',
+          preAllocatedVUs: 50,
+          stages: [
+            { target: 50, duration: '30s' },
+            { target: 50, duration: '2m' },
+            { target: 10, duration: '30s' },
+          ],
+        },
+      },
+      thresholds: {
+        'asya_sqs_send_duration_ms': ['p(95)<500'],
+        'asya_sqs_send_errors_total': ['count<10'],
+      },
+    };
+
+    const awsConfig = new AWSConfig({
+      region: __ENV.AWS_REGION || 'us-east-1',
+      accessKeyId: __ENV.AWS_ACCESS_KEY_ID || 'test',
+      secretAccessKey: __ENV.AWS_SECRET_ACCESS_KEY || 'test',
+      endpoint: __ENV.SQS_ENDPOINT || 'http://localstack-sqs:4566',
+    });
+
+    const sqs = new SQSClient(awsConfig);
+    const actors = ['chaos-slow', 'chaos-flaky', 'chaos-cpu', 'chaos-fanout'];
+    const namespace = __ENV.ASYA_NAMESPACE || 'asya-demo';
+
+    function getQueueUrl(actor) {
+      return `${__ENV.SQS_ENDPOINT}/000000000000/asya-${namespace}-${actor}`;
+    }
+
+    export function steady_load() {
+      const actor = actors[Math.floor(Math.random() * actors.length)];
+      const queueUrl = getQueueUrl(actor);
+
+      const envelope = {
+        id: `k6-steady-${__VU}-${__ITER}`,
+        route: { actors: [actor], current: 0 },
+        payload: {
+          test: 'k6-steady',
+          vu: __VU,
+          iteration: __ITER,
+          timestamp: new Date().toISOString(),
+        },
+      };
+
+      const startTime = Date.now();
+      try {
+        sqs.sendMessage(queueUrl, JSON.stringify(envelope));
+        sendDuration.add(Date.now() - startTime);
+        messagesSent.add(1);
+        check(null, { 'message sent': () => true });
+      } catch (error) {
+        sendErrors.add(1);
+        console.error(`Send failed: ${error}`);
+      }
+      sleep(Math.random() * 2);
+    }
+
+    export function burst_load() {
+      const actor = actors[Math.floor(Math.random() * actors.length)];
+      const queueUrl = getQueueUrl(actor);
+
+      const envelope = {
+        id: `k6-burst-${__VU}-${__ITER}`,
+        route: { actors: [actor], current: 0 },
+        payload: { test: 'k6-burst', vu: __VU },
+      };
+
+      const startTime = Date.now();
+      try {
+        sqs.sendMessage(queueUrl, JSON.stringify(envelope));
+        sendDuration.add(Date.now() - startTime);
+        messagesSent.add(1);
+      } catch (error) {
+        sendErrors.add(1);
+      }
+    }
+{{- end }}

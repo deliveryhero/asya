@@ -1,0 +1,50 @@
+{{- if and .Values.k6LoadTests.enabled .Values.k6LoadTests.sqs.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: k6-load-test-sqs
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: k6-load-test-sqs
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  backoffLimit: {{ .Values.k6LoadTests.backoffLimit }}
+  ttlSecondsAfterFinished: {{ .Values.k6LoadTests.ttlSecondsAfterFinished }}
+  template:
+    metadata:
+      labels:
+        app: k6-load-test
+        test-type: sqs
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: k6
+        image: {{ .Values.k6LoadTests.image.repository }}:{{ .Values.k6LoadTests.image.tag }}
+        command:
+        - k6
+        - run
+        - --out=experimental-prometheus-rw
+        - /scripts/sqs-load-test.js
+        env:
+        - name: SQS_ENDPOINT
+          value: {{ .Values.k6LoadTests.sqs.endpoint | quote }}
+        - name: AWS_REGION
+          value: {{ .Values.k6LoadTests.sqs.awsRegion | quote }}
+        - name: AWS_ACCESS_KEY_ID
+          value: {{ .Values.k6LoadTests.sqs.awsAccessKeyId | quote }}
+        - name: AWS_SECRET_ACCESS_KEY
+          value: {{ .Values.k6LoadTests.sqs.awsSecretAccessKey | quote }}
+        - name: ASYA_NAMESPACE
+          value: {{ .Release.Namespace }}
+        - name: K6_PROMETHEUS_RW_SERVER_URL
+          value: {{ .Values.k6LoadTests.prometheusUrl | quote }}
+        volumeMounts:
+        - name: scripts
+          mountPath: /scripts
+        resources:
+          {{- toYaml .Values.k6LoadTests.resources | nindent 10 }}
+      volumes:
+      - name: scripts
+        configMap:
+          name: k6-load-test-scripts
+{{- end }}
