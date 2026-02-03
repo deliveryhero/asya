@@ -38,8 +38,6 @@ coverage:
   - .coverage/testing/integration/gateway-actors/cov-*.json
   # E2E tests (Python)
   - .coverage/testing/e2e/cov-*.json
-  badge:
-    path: docs/coverage.svg
 
 comment:
   if: is_pull_request
@@ -97,8 +95,6 @@ testExecutionTime:
   - "Run 2-parametrized integration tests.*"
   - "Run 3-parametrized integration tests.*"
   - "Run E2E tests.*"
-  badge:
-    path: docs/time.svg
 
 # Set coverage thresholds
 # - current >= 75%: Overall coverage must be at least 75%
