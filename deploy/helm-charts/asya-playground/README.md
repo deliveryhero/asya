@@ -4,7 +4,7 @@ Full demo package showing Asya🎭 in action with sample actors, flows, and infr
 
 ## Overview
 
-The `asya-quickstart` chart is a complete demonstration package that bundles:
+The `asya-playground` chart is a complete demonstration package that bundles:
 - **Operator + CRDs** - Kubernetes operator for AsyncActor resources
 - **Crew Actors** - System actors (happy-end, error-end)
 - **Gateway** - MCP gateway with PostgreSQL backend
@@ -35,17 +35,17 @@ For production deployments, install components separately with proper cloud serv
 # From Helm repository
 helm repo add asya https://asya.sh/charts
 helm repo update
-helm install asya asya/asya-quickstart \
+helm install asya asya/asya-playground \
   --create-namespace \
-  --namespace asya-quickstart \
+  --namespace asya-playground \
   --set global.transport=sqs \
   --set global.storage=s3 \
   --set global.profile=local
 
 # Or from local filesystem
-helm install asya deploy/helm-charts/asya-quickstart/ \
+helm install asya deploy/helm-charts/asya-playground/ \
   --create-namespace \
-  --namespace asya-quickstart \
+  --namespace asya-playground \
   --set global.transport=sqs \
   --set global.storage=s3 \
   --set global.profile=local
@@ -54,9 +54,9 @@ helm install asya deploy/helm-charts/asya-quickstart/ \
 ### RabbitMQ + MinIO
 
 ```bash
-helm install asya deploy/helm-charts/asya-quickstart/ \
+helm install asya deploy/helm-charts/asya-playground/ \
   --create-namespace \
-  --namespace asya-quickstart \
+  --namespace asya-playground \
   --set global.transport=rabbitmq \
   --set global.storage=minio \
   --set global.profile=local
@@ -68,9 +68,9 @@ Use existing/managed services instead of sample infrastructure:
 
 ```bash
 # AWS SQS + S3 + RDS PostgreSQL
-helm install asya deploy/helm-charts/asya-quickstart/ \
+helm install asya deploy/helm-charts/asya-playground/ \
   --create-namespace \
-  --namespace asya-quickstart \
+  --namespace asya-playground \
   --set global.transport=sqs \
   --set global.storage=s3 \
   --set global.profile=production \
@@ -85,9 +85,9 @@ helm install asya deploy/helm-charts/asya-quickstart/ \
   --set asya-gateway.externalDatabase.password=YOUR_DB_PASSWORD
 
 # Or use a values file (recommended for production)
-helm install asya deploy/helm-charts/asya-quickstart/ \
+helm install asya deploy/helm-charts/asya-playground/ \
   --create-namespace \
-  --namespace asya-quickstart \
+  --namespace asya-playground \
   -f production-values.yaml
 ```
 
@@ -236,8 +236,8 @@ kubectl run aws-cli --rm -i --restart=Never --image=amazon/aws-cli \
   --env="AWS_DEFAULT_REGION=us-east-1" \
   --command -- sh -c "
     aws sqs send-message \
-      --endpoint-url=http://localstack-sqs.asya-quickstart:4566 \
-      --queue-url http://localstack-sqs.asya-quickstart:4566/000000000000/asya-default-hello \
+      --endpoint-url=http://localstack-sqs.asya-playground:4566 \
+      --queue-url http://localstack-sqs.asya-playground:4566/000000000000/asya-default-hello \
       --message-body '{\"id\":\"test-1\",\"route\":{\"actors\":[\"hello\"],\"current\":0},\"payload\":{\"name\":\"World\"}}'
   "
 ```
@@ -274,14 +274,14 @@ kubectl port-forward -n monitoring svc/prometheus-grafana 3000:80
 ## Uninstallation
 
 ```bash
-helm uninstall asya -n asya-quickstart
+helm uninstall asya -n asya-playground
 ```
 
 **Note:** PersistentVolumeClaims are not automatically deleted. To remove them:
 
 ```bash
-kubectl delete pvc -l app=postgresql -n asya-quickstart
-kubectl delete pvc minio-data -n asya-quickstart
+kubectl delete pvc -l app=postgresql -n asya-playground
+kubectl delete pvc minio-data -n asya-playground
 ```
 
 ## Architecture
@@ -324,20 +324,20 @@ kubectl get pods -n keda
 
 Check ScaledObject:
 ```bash
-kubectl get scaledobject -n asya-quickstart
-kubectl describe scaledobject hello -n asya-quickstart
+kubectl get scaledobject -n asya-playground
+kubectl describe scaledobject hello -n asya-playground
 ```
 
 ### Gateway connection errors
 
 Check gateway logs:
 ```bash
-kubectl logs -n asya-quickstart -l app.kubernetes.io/name=asya-gateway
+kubectl logs -n asya-playground -l app.kubernetes.io/name=asya-gateway
 ```
 
 Verify PostgreSQL is ready:
 ```bash
-kubectl get pods -l app=postgresql -n asya-quickstart
+kubectl get pods -l app=postgresql -n asya-playground
 ```
 
 ### LocalStack not responding
@@ -345,13 +345,13 @@ kubectl get pods -l app=postgresql -n asya-quickstart
 Check LocalStack SQS health:
 ```bash
 kubectl run curl --rm -i --restart=Never --image=curlimages/curl -- \
-  http://localstack-sqs.asya-quickstart:4566/_localstack/health
+  http://localstack-sqs.asya-playground:4566/_localstack/health
 ```
 
 Check LocalStack S3 health:
 ```bash
 kubectl run curl --rm -i --restart=Never --image=curlimages/curl -- \
-  http://s3-localstack.asya-quickstart:4566/_localstack/health
+  http://s3-localstack.asya-playground:4566/_localstack/health
 ```
 
 ## Dependencies
