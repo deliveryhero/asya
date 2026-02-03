@@ -17,6 +17,14 @@ happy-end:
   name: happy-end
   transport: "" # required
 
+  # Sidecar configuration (passed to AsyncActor.spec.sidecar)
+  # Use this to configure sidecar environment variables, resources, etc.
+  sidecar: {}
+  # Example:
+  #   env:
+  #   - name: AWS_ACCESS_KEY_ID
+  #     value: "test"
+
   # Image overrides (optional, uses global image config by default)
   image:
     repository: ""
@@ -67,6 +75,14 @@ error-end:
   enabled: true
   name: error-end
   transport: "" # required
+
+  # Sidecar configuration (passed to AsyncActor.spec.sidecar)
+  # Use this to configure sidecar environment variables, resources, etc.
+  sidecar: {}
+  # Example:
+  #   env:
+  #   - name: AWS_ACCESS_KEY_ID
+  #     value: "test"
 
   # Image overrides (optional, uses global image config by default)
   image:

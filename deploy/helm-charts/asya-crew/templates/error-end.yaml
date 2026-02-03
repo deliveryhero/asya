@@ -14,6 +14,11 @@ metadata:
 spec:
   transport: {{ $errorEnd.transport }}
 
+  {{- with $errorEnd.sidecar }}
+  sidecar:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+
   {{- if $errorEnd.scaling.enabled }}
   scaling:
     {{- toYaml $errorEnd.scaling | nindent 4 }}

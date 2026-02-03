@@ -235,6 +235,30 @@ asya-crew:
   #   repository: ghcr.io/deliveryhero/asya-crew
   #   tag: "latest"
 
+  # Crew actors need transport configuration
+  # These MUST match the global.transport setting
+  happy-end:
+    transport: sqs
+    sidecar:
+      env:
+      - name: AWS_ACCESS_KEY_ID
+        value: "test"
+      - name: AWS_SECRET_ACCESS_KEY
+        value: "test"
+      - name: AWS_REGION
+        value: "us-east-1"
+
+  error-end:
+    transport: sqs
+    sidecar:
+      env:
+      - name: AWS_ACCESS_KEY_ID
+        value: "test"
+      - name: AWS_SECRET_ACCESS_KEY
+        value: "test"
+      - name: AWS_REGION
+        value: "us-east-1"
+
   # Storage configurations (ACTIVELY USED - configure for your environment)
   # These will be enabled/disabled based on global.storage
   storage:

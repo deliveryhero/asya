@@ -17,6 +17,10 @@ maintainers:
 
 # Local dependencies (for development/testing with unpublished chart versions)
 dependencies:
+# KEDA is required for autoscaling - non-optional dependency
+- name: keda
+  version: ">=2.16.0"
+  repository: "https://kedacore.github.io/charts"
 # locally, versions are always 0.0.0
 - name: asya-operator
   version: "0.0.0"

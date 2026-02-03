@@ -14,6 +14,11 @@ metadata:
 spec:
   transport: {{ $happyEnd.transport }}
 
+  {{- with $happyEnd.sidecar }}
+  sidecar:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+
   {{- if $happyEnd.scaling.enabled }}
   scaling:
     {{- toYaml $happyEnd.scaling | nindent 4 }}
