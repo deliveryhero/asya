@@ -471,8 +471,8 @@ k6LoadTests:
     enabled: false
     endpoint: "http://localstack-sqs:4566"
     awsRegion: "us-east-1"
-    awsAccessKeyId: "test"
-    awsSecretAccessKey: "test"
+    awsAccessKeyId: "testlocustackkey123"
+    awsSecretAccessKey: "testlocalstacksecret123456"
 
   resources:
     limits:
