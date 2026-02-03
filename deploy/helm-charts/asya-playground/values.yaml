@@ -17,9 +17,28 @@ global:
   # - production: User must configure external services (see comments below)
   profile: local
 
-# Note: All components are installed in the release namespace
-# For production, consider installing operator separately in asya-system
-# and the quickstart (gateway + actors) in a dedicated namespace
+# Namespace configuration
+# By default, all components deploy to the release namespace
+# Override these to separate concerns across namespaces
+#
+# Example with namespace separation:
+#   kubectl create namespace monitoring
+#   kubectl create namespace asya-infra
+#   helm install asya . -n asya-demo --create-namespace \
+#     --set namespaces.monitoring=monitoring \
+#     --set namespaces.infra=asya-infra \
+#     --set kube-prometheus-stack.namespaceOverride=monitoring
+#
+# This deploys:
+#   - asya-demo: Operator, Gateway, Crew, Actors, KEDA
+#   - monitoring: Prometheus, Grafana, dashboards, PodMonitors
+#   - asya-infra: LocalStack SQS, S3, MinIO, PostgreSQL
+namespaces:
+  # Namespace for monitoring resources (dashboard ConfigMap, PodMonitor)
+  # Note: To deploy Prometheus/Grafana here, also set kube-prometheus-stack.namespaceOverride
+  monitoring: ""
+  # Namespace for sample infrastructure (LocalStack, MinIO, PostgreSQL)
+  infra: ""
 
 # Component toggles
 enableAsyaCrew: true
@@ -339,7 +358,14 @@ asya-gateway:
 # Prometheus + Grafana configuration (passed to kube-prometheus-stack chart)
 # Only used when sampleMonitoring.enabled: true
 # Minimal configuration optimized for local development
+#
+# To deploy monitoring in a separate namespace, set:
+#   kube-prometheus-stack.namespaceOverride: monitoring
+# Note: The namespace must exist before install
 kube-prometheus-stack:
+  # Override namespace for monitoring stack (default: release namespace)
+  # Set to "monitoring" to deploy in dedicated namespace
+  namespaceOverride: ""
   # Shorten default names (default: kube-prometheus-stack)
   fullnameOverride: asya-monitoring
   cleanPrometheusOperatorObjectNames: true

@@ -27,7 +27,7 @@ spec:
         - /scripts/sqs-load-test.js
         env:
         - name: SQS_ENDPOINT
-          value: {{ .Values.k6LoadTests.sqs.endpoint | quote }}
+          value: {{ include "asya-playground.transport.sqs.endpoint" . | quote }}
         - name: AWS_REGION
           value: {{ .Values.k6LoadTests.sqs.awsRegion | quote }}
         - name: AWS_ACCESS_KEY_ID
@@ -37,7 +37,7 @@ spec:
         - name: ASYA_NAMESPACE
           value: {{ .Release.Namespace }}
         - name: K6_PROMETHEUS_RW_SERVER_URL
-          value: {{ .Values.k6LoadTests.prometheusUrl | quote }}
+          value: {{ include "asya-playground.prometheus.remoteWriteUrl" . | quote }}
         volumeMounts:
         - name: scripts
           mountPath: /scripts

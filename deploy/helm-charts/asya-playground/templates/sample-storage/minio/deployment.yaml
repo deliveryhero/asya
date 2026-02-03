@@ -3,7 +3,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: minio
-  namespace: {{ .Release.Namespace }}
+  namespace: {{ include "asya-playground.namespace.infra" . }}
   labels:
     app: minio
     app.kubernetes.io/name: minio

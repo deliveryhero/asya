@@ -3,7 +3,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: localstack-sqs
-  namespace: {{ .Release.Namespace }}
+  namespace: {{ include "asya-playground.namespace.infra" . }}
   labels:
     app: localstack-sqs
     app.kubernetes.io/name: localstack-sqs

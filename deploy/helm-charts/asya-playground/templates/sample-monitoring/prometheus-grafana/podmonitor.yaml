@@ -3,7 +3,7 @@ apiVersion: monitoring.coreos.com/v1
 kind: PodMonitor
 metadata:
   name: asya-actors
-  namespace: {{ .Release.Namespace }}
+  namespace: {{ include "asya-playground.namespace.monitoring" . }}
   labels:
     app.kubernetes.io/name: asya-actors
     app.kubernetes.io/part-of: asya

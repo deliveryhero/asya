@@ -2,12 +2,16 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: asya-gateway-postgresql-data
-  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Name }}-asya-gateway-postgresql-data
+  namespace: {{ include "asya-playground.namespace.infra" . }}
   labels:
-    app: postgresql
+    app: {{ .Release.Name }}-postgresql
     app.kubernetes.io/name: postgresql
     app.kubernetes.io/instance: {{ .Release.Name }}
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "-16"
+    "helm.sh/resource-policy": keep
 spec:
   accessModes:
   - ReadWriteOnce

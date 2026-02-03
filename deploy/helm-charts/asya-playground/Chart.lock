@@ -4,15 +4,15 @@ dependencies:
   version: 2.19.0
 - name: asya-operator
   repository: https://asya.sh/charts
-  version: 0.4.1
+  version: 0.4.2
 - name: asya-crew
   repository: https://asya.sh/charts
-  version: 0.4.1
+  version: 0.4.2
 - name: asya-gateway
   repository: https://asya.sh/charts
-  version: 0.4.1
+  version: 0.4.2
 - name: kube-prometheus-stack
   repository: https://prometheus-community.github.io/helm-charts
-  version: 81.4.3
-digest: sha256:58c0e4cd2bfeb0b39b1ce00215c99dd15f7bcffa43e534ba0f2188b68a7ce59e
-generated: "2026-02-03T13:25:50.811779677Z"
+  version: 81.5.0
+digest: sha256:1c7d364fd29f6cc1ca5de6cf335506f23b93120caabf91112e6d52679b801184
+generated: "2026-02-03T19:18:32.863675527Z"

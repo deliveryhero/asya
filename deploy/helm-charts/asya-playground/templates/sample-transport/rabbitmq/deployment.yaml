@@ -3,7 +3,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: rabbitmq
-  namespace: {{ .Release.Namespace }}
+  namespace: {{ include "asya-playground.namespace.infra" . }}
   labels:
     app: rabbitmq
     app.kubernetes.io/name: rabbitmq

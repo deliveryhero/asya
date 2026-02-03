@@ -3,7 +3,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: s3-localstack
-  namespace: {{ .Release.Namespace }}
+  namespace: {{ include "asya-playground.namespace.infra" . }}
   labels:
     app: s3-localstack
     app.kubernetes.io/name: s3-localstack
