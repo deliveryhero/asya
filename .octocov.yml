@@ -83,7 +83,7 @@ codeToTestRatio:
   - '!**/*_test.go'
   - '!**/tests/**.py'
   - '!testing/**.py'
-  - '!src/aimc-testing/**.py'
+  - '!src/asya-testing/**.py'
   test:
   - '**/*_test.go'
   - '!**/tests/**.py'
