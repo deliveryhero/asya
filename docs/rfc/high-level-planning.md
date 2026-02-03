@@ -3,16 +3,21 @@ Missing points:
 - infrastructure, stability
     - observability (metrics per-actor)
     - flow graph in grafana
+- timeouts
+- error handling
 - cli deployment
     - flow abstraction deployment at once
-- control plane gateway API
-    - register new mcp tools for existing actors
-    - create new actors from code (???)
+
 - agentic frameworks integration
     - python syntax for tools/agents
     - event streaming
     - gateway to comply with a2a
     - stateful fan-in actor
+- control plane gateway API
+    - register new mcp tools for existing actors
+    - create new actors from code (???)
+    - integration with kapp for asya flow
+
 - binary protocol optimization
 - docs
     - quickstart guide
