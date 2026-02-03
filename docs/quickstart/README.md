@@ -359,12 +359,32 @@ error-end:
 EOF
 
 helm install asya-crew asya/asya-crew \
-  -n asya-system \
+  -n default \
   -f crew-values.yaml
 ```
 
 Your pipeline results are now automatically persisted to S3: whenever an actor finishes processing the last message in the route, 🎭 automatically sends it to `happy-end` actor to persist it on S3. Similarly, error messages will be sent to `error-end`.
 
+
+## Namespace Architecture
+
+Asya🎭 uses namespace separation to distinguish infrastructure from business logic:
+
+**asya-system namespace** (infrastructure layer):
+- Asya🎭 Operator (watches AsyncActors across all namespaces)
+- LocalStack / infrastructure services
+- KEDA (monitors queues across all namespaces)
+- Prometheus / Grafana (when installed)
+
+**Business namespaces** (e.g., default, production):
+- Gateway (routes messages to actors in same namespace)
+- Gateway PostgreSQL (gateway's envelope tracking database)
+- Async actors and flows (your ML/AI workloads)
+- Crew actors (happy-end, error-end - part of the pipelines)
+
+**Why this separation?**
+
+Gateway is part of the business logic layer - it exposes your actors as MCP tools and routes messages to actor queues. In multi-tenant deployments, each namespace can have its own gateway instance served by a single operator in asya-system.
 
 ## Add Gateway (Optional)
 
@@ -378,7 +398,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: asya-gateway-postgresql
-  namespace: asya-system
+  namespace: default
 spec:
   selector:
     app: postgresql
@@ -389,7 +409,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: asya-gateway-postgresql
-  namespace: asya-system
+  namespace: default
 spec:
   selector:
     matchLabels:
@@ -416,7 +436,7 @@ EOF
 
 ```bash
 kubectl create secret generic asya-gateway-postgresql \
-  --namespace asya-system \
+  --namespace default \
   --from-literal=password=asya
 ```
 
@@ -432,7 +452,7 @@ config:
   sqsEndpoint: http://localstack.asya-system.svc.cluster.local:4566
   sqsRegion: us-east-1
   database:
-    host: asya-gateway-postgresql.asya-system.svc.cluster.local
+    host: asya-gateway-postgresql.default.svc.cluster.local
     name: asya
     user: asya
     password: asya
@@ -445,18 +465,18 @@ env:
 EOF
 
 helm install asya-gateway asya/asya-gateway \
-  -n asya-system \
+  -n default \
   -f gateway-values.yaml
 
 kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=asya-gateway \
-  -n asya-system --timeout=300s
+  -n default --timeout=300s
 ```
 
 ### 4. Update Operator for Gateway Integration
 
 ```bash
 cat >> operator-values.yaml <<EOF
-gatewayURL: "http://asya-gateway.asya-system.svc.cluster.local:8080"
+gatewayURL: "http://asya-gateway.default.svc.cluster.local:8080"
 EOF
 
 helm upgrade asya-operator asya/asya-operator \
@@ -477,7 +497,7 @@ happy-end:
         - name: asya-runtime
           env:
           - name: ASYA_GATEWAY_URL
-            value: "http://asya-gateway.asya-system.svc.cluster.local:8080"
+            value: "http://asya-gateway.default.svc.cluster.local:8080"
           - name: ASYA_S3_BUCKET
             value: "asya-results-bucket"
           - name: ASYA_S3_ENDPOINT
@@ -498,7 +518,7 @@ error-end:
         - name: asya-runtime
           env:
           - name: ASYA_GATEWAY_URL
-            value: "http://asya-gateway.asya-system.svc.cluster.local:8080"
+            value: "http://asya-gateway.default.svc.cluster.local:8080"
           - name: ASYA_S3_BUCKET
             value: "asya-errors-bucket"
           - name: ASYA_S3_ENDPOINT
@@ -512,11 +532,11 @@ error-end:
 EOF
 
 helm upgrade asya-crew asya/asya-crew \
-  -n asya-system \
+  -n default \
   -f crew-values.yaml
 
 kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=asya-crew \
-  -n asya-system --timeout=300s
+  -n default --timeout=300s
 ```
 
 ### 6. Install asya CLI
@@ -546,12 +566,12 @@ routes:
 EOF
 
 helm upgrade asya-gateway asya/asya-gateway \
-  -n asya-system \
+  -n default \
   -f gateway-values.yaml \
   -f gateway-tool-values.yaml
 
 kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=asya-gateway \
-  -n asya-system --timeout=300s
+  -n default --timeout=300s
 ```
 
 ### 8. Test Gateway Integration
@@ -559,7 +579,7 @@ kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=asya-gateway \
 In a separate terminal, port-forward the gateway service to your local machine:
 
 ```bash
-kubectl port-forward -n asya-system svc/asya-gateway 8080:80
+kubectl port-forward -n default svc/asya-gateway 8080:80
 ```
 
 Set the MCP URL environment variable:
@@ -765,13 +785,13 @@ To remove components individually:
 kubectl delete asya --all
 
 # Remove crew
-helm uninstall asya-crew -n asya-system
+helm uninstall asya-crew -n default
 
 # Remove gateway
-helm uninstall asya-gateway -n asya-system
-kubectl delete secret asya-gateway-postgresql -n asya-system
-kubectl delete deployment asya-gateway-postgresql -n asya-system
-kubectl delete service asya-gateway-postgresql -n asya-system
+helm uninstall asya-gateway -n default
+kubectl delete secret asya-gateway-postgresql -n default
+kubectl delete deployment asya-gateway-postgresql -n default
+kubectl delete service asya-gateway-postgresql -n default
 
 # Remove operator
 helm uninstall asya-operator -n asya-system

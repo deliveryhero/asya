@@ -53,8 +53,69 @@ helm install asya-gateway deploy/helm-charts/asya-gateway \
 | `image.tag` | Gateway image tag | `latest` |
 | `image.pullPolicy` | Image pull policy | `IfNotPresent` |
 | `config.port` | Gateway HTTP port | `"8080"` |
-| `config.awsRegion` | AWS region for SQS | `"us-east-1"` |
-| `config.queueBaseURL` | SQS base URL | `"http://localstack:4566/000000000000"` |
+
+### Transport Configuration
+
+Choose exactly one transport to enable. The gateway will use whichever transport is enabled.
+
+#### RabbitMQ Transport
+
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| `transports.rabbitmq.enabled` | Enable RabbitMQ transport | `false` |
+| `transports.rabbitmq.config.url` | RabbitMQ connection URL | `"amqp://guest:guest@rabbitmq:5672/"` |
+| `transports.rabbitmq.config.exchange` | RabbitMQ exchange name | `"asya"` |
+| `transports.rabbitmq.config.poolSize` | RabbitMQ connection pool size | `20` |
+
+**Example - Install with RabbitMQ**:
+```bash
+helm install asya-gateway deploy/helm-charts/asya-gateway \
+  --create-namespace \
+  --namespace asya \
+  --set transports.rabbitmq.enabled=true \
+  --set transports.sqs.enabled=false
+```
+
+#### SQS Transport
+
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| `transports.sqs.enabled` | Enable SQS transport | `false` |
+| `transports.sqs.config.endpoint` | SQS endpoint URL (leave empty for AWS SQS) | `""` |
+| `transports.sqs.config.region` | AWS region | `"us-east-1"` |
+| `transports.sqs.config.visibilityTimeout` | Message visibility timeout in seconds | `300` |
+| `transports.sqs.config.waitTimeSeconds` | Long-polling wait time in seconds | `20` |
+
+**Example - Install with SQS (AWS)**:
+```bash
+helm install asya-gateway deploy/helm-charts/asya-gateway \
+  --create-namespace \
+  --namespace asya \
+  --set transports.rabbitmq.enabled=false \
+  --set transports.sqs.enabled=true \
+  --set transports.sqs.config.region=us-west-2
+```
+
+**Example - Install with SQS (LocalStack)**:
+```bash
+helm install asya-gateway deploy/helm-charts/asya-gateway \
+  --create-namespace \
+  --namespace asya \
+  --set transports.rabbitmq.enabled=false \
+  --set transports.sqs.enabled=true \
+  --set transports.sqs.config.endpoint=http://localstack:4566
+```
+
+### Transport Alignment with Operator
+
+**Important**: The gateway's transport configuration must align with the operator's transport configuration in `deploy/helm-charts/asya-operator/values.yaml`:
+
+- Both must support the same transport backends (RabbitMQ and/or SQS)
+- RabbitMQ configuration must specify the same host, port, username, and credentials
+- SQS configuration must specify the same region, endpoint, and visibility timeout
+- Misaligned configurations will cause message delivery failures
+
+See `deploy/helm-charts/asya-operator/README.md` for operator transport configuration details.
 
 ### PostgreSQL Configuration (bundled)
 

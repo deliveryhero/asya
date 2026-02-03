@@ -6,5 +6,17 @@ metadata:
     {{- include "asya-gateway.labels" . | nindent 4 }}
 data:
   ASYA_GATEWAY_PORT: "{{ .Values.config.port }}"
-  ASYA_RABBITMQ_URL: "{{ .Values.config.rabbitmqURL }}"
-  ASYA_RABBITMQ_EXCHANGE: "{{ .Values.config.rabbitmqExchange }}"
+  {{- if .Values.transports.rabbitmq.enabled }}
+  ASYA_RABBITMQ_URL: "{{ .Values.transports.rabbitmq.config.url }}"
+  ASYA_RABBITMQ_EXCHANGE: "{{ .Values.transports.rabbitmq.config.exchange }}"
+  ASYA_RABBITMQ_POOL_SIZE: "{{ .Values.transports.rabbitmq.config.poolSize }}"
+  {{- end }}
+  {{- if .Values.transports.sqs.enabled }}
+  ASYA_SQS_ENDPOINT: "{{ .Values.transports.sqs.config.endpoint }}"
+  ASYA_SQS_REGION: "{{ .Values.transports.sqs.config.region }}"
+  ASYA_SQS_VISIBILITY_TIMEOUT: "{{ .Values.transports.sqs.config.visibilityTimeout }}"
+  ASYA_SQS_WAIT_TIME_SECONDS: "{{ .Values.transports.sqs.config.waitTimeSeconds }}"
+  {{- end }}
+  {{- if .Values.routes.createConfigMap }}
+  ASYA_CONFIG_PATH: "/config/routes.yaml"
+  {{- end }}

@@ -6,6 +6,75 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.4.1] - 2026-02-03
+
+## Major Changes
+
+* fix(ci): Add explicit verification to Helm chart publishing (#127) @atemate
+* fix(operator): Clear deployment replicas field when KEDA scaling enabled (#125) @atemate
+* feat(claude): Add fix-pr-e2e skill for optimized PR E2E test fixing (#123) @atemate
+* fix(e2e): use imagePullPolicy: Never for local-only images (#114) @atemate
+
+## Other Changes
+
+* fix(ci): Add explicit verification to Helm chart publishing (#127) @atemate
+* refactor: Gateway Helm chart to operator's transport pattern (#119) @atemate
+* fix(operator): Clear deployment replicas field when KEDA scaling enabled (#125) @atemate
+* docs: Add note about never editing .beads/ files manually to AGENTS.md (#126) @atemate
+* feat(claude): Add fix-pr-e2e skill for optimized PR E2E test fixing (#123) @atemate
+* build(deps): Consolidate dependency bumps with E2E fixes (#118) @atemate
+* docs: Fix gateway namespace in quickstart (`asya-system` → `default`) (#120) @atemate
+* docs: Complete Gateway section in quickstart README (#117) @atemate
+* build(deps): Bump github.com/expr-lang/expr from 1.17.0 to 1.17.7 in /testing/component/operator/runtime\_configmap (#91) @[dependabot[bot]](https://github.com/apps/dependabot)
+* build(deps): Bump github.com/kedacore/keda/v2 from 2.14.0 to 2.17.3 in /testing/integration/operator (#89) @[dependabot[bot]](https://github.com/apps/dependabot)
+* charts(crew): improve `asya-crew` Helm chart configurability (#113) @atemate
+* charts(operator): Bind `asya-sidecar` version to operator version in Helm chart (#112) @atemate
+* fix(e2e): use imagePullPolicy: Never for local-only images (#114) @atemate
+* chore: initialize beads for task management (#111) @atemate
+* docs: Cleanup docs, add asya flow commands, drop asya flow init (#110) @atemate
+
+## Installation
+
+### CRDs
+
+Install or upgrade AsyncActor CRDs:
+```bash
+kubectl apply -f https://github.com/deliveryhero/asya/releases/download/0.4.1/asya-crds.yaml
+```
+
+### Helm Charts
+
+Add the Helm repository:
+```bash
+helm repo add asya https://asya.sh/charts
+helm repo update
+```
+
+Install the operator:
+```bash
+helm install asya-operator asya/asya-operator \
+  --version 0.4.1 \
+  --namespace asya-system \
+  --create-namespace
+```
+
+## Docker Images
+
+All images are published to GitHub Container Registry:
+
+- `ghcr.io/deliveryhero/asya-operator:0.4.1`
+- `ghcr.io/deliveryhero/asya-gateway:0.4.1`
+- `ghcr.io/deliveryhero/asya-sidecar:0.4.1`
+- `ghcr.io/deliveryhero/asya-crew:0.4.1`
+- `ghcr.io/deliveryhero/asya-testing:0.4.1`
+
+## Contributors
+
+@atemate, @dependabot[bot], @github-actions[bot], [dependabot[bot]](https://github.com/apps/dependabot) and [github-actions[bot]](https://github.com/apps/github-actions)
+
+
+
+
 ## [0.4.0] - 2026-01-26
 
 ## Major Changes
@@ -556,6 +625,9 @@ All images are published to GitHub Container Registry:
 [0.3.10]: https://github.com/deliveryhero/asya/releases/tag/v0.3.10
 
 
-[Unreleased]: https://github.com/deliveryhero/asya/compare/v0.4.0...HEAD
 [0.4.0]: https://github.com/deliveryhero/asya/releases/tag/v0.4.0
+
+
+[Unreleased]: https://github.com/deliveryhero/asya/compare/v0.4.1...HEAD
+[0.4.1]: https://github.com/deliveryhero/asya/releases/tag/v0.4.1
 

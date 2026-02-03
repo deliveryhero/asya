@@ -354,6 +354,16 @@ Linting tools with auto-fix capabilities:
 
 **Cleaning**: `make clean` (remove build artifacts), `make clean-integration`, `make clean-e2e` (remove Docker/Kind resources)
 
+**Issue Tracking with Beads**:
+
+**⚠️ CRITICAL**: Never manually edit `.beads/` files! Always use the `bd` CLI tool for all issue operations:
+- Create: `bd create --title="..." --type=task|bug|feature`
+- Update: `bd update <id> --status=in_progress|completed`
+- Close: `bd close <id>`
+- Sync: `bd sync`
+
+Direct file edits can corrupt the issue database and break git-portable sync mode. The `bd` CLI ensures proper JSONL formatting and conflict resolution.
+
 ## Test Hierarchy
 
 Tests are organized by scope and dependencies with **strict isolation rules**:

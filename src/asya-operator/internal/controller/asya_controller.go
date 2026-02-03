@@ -1287,6 +1287,11 @@ func (r *AsyncActorReconciler) reconcileDeployment(ctx context.Context, asya *as
 				replicas = *asya.Spec.Workload.Replicas
 			}
 			deployment.Spec.Replicas = &replicas
+		} else {
+			// Explicitly clear replicas field when KEDA is enabled
+			// This ensures HPA has full control over scaling
+			// Without this, CreateOrUpdate preserves the old value from the cluster
+			deployment.Spec.Replicas = nil
 		}
 
 		// Set selector

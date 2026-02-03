@@ -34,68 +34,34 @@ actors:
     secretKey: minioadmin
 
 crew:
+  image:
+    pullPolicy: Never
   happy-end:
     transport: rabbitmq
+    env:
+      ASYA_GATEWAY_URL: "http://asya-gateway.asya-e2e.svc.cluster.local:8080"
+      ASYA_S3_BUCKET: "asya-results"
+      ASYA_S3_ENDPOINT: "http://minio.asya-e2e.svc.cluster.local:9000"
+      ASYA_S3_REGION: "us-east-1"
+      AWS_ACCESS_KEY_ID: "minioadmin"
+      AWS_SECRET_ACCESS_KEY: "minioadmin"
+      ASYA_S3_RESULTS_PREFIX: ""
     scaling:
       enabled: true
       minReplicas: 1
-    workload:
-      template:
-        spec:
-          containers:
-          - name: asya-runtime
-            env:
-            - name: ASYA_HANDLER
-              value: handlers.end_handlers.happy_end_handler
-            - name: ASYA_HANDLER_MODE
-              value: envelope
-            - name: ASYA_ENABLE_VALIDATION
-              value: "false"
-            - name: ASYA_GATEWAY_URL
-              value: "http://asya-gateway.asya-e2e.svc.cluster.local:8080"
-            - name: ASYA_S3_BUCKET
-              value: "asya-results"
-            - name: ASYA_S3_ENDPOINT
-              value: "http://minio.asya-e2e.svc.cluster.local:9000"
-            - name: ASYA_S3_REGION
-              value: "us-east-1"
-            - name: AWS_ACCESS_KEY_ID
-              value: "minioadmin"
-            - name: AWS_SECRET_ACCESS_KEY
-              value: "minioadmin"
-            - name: ASYA_S3_RESULTS_PREFIX
-              value: ""
   error-end:
     transport: rabbitmq
+    env:
+      ASYA_GATEWAY_URL: "http://asya-gateway.asya-e2e.svc.cluster.local:8080"
+      ASYA_S3_BUCKET: "asya-errors"
+      ASYA_S3_ENDPOINT: "http://minio.asya-e2e.svc.cluster.local:9000"
+      ASYA_S3_REGION: "us-east-1"
+      AWS_ACCESS_KEY_ID: "minioadmin"
+      AWS_SECRET_ACCESS_KEY: "minioadmin"
+      ASYA_S3_ERRORS_PREFIX: ""
     scaling:
       enabled: true
       minReplicas: 1
-    workload:
-      template:
-        spec:
-          containers:
-          - name: asya-runtime
-            env:
-            - name: ASYA_HANDLER
-              value: handlers.end_handlers.error_end_handler
-            - name: ASYA_HANDLER_MODE
-              value: envelope
-            - name: ASYA_ENABLE_VALIDATION
-              value: "false"
-            - name: ASYA_GATEWAY_URL
-              value: "http://asya-gateway.asya-e2e.svc.cluster.local:8080"
-            - name: ASYA_S3_BUCKET
-              value: "asya-errors"
-            - name: ASYA_S3_ENDPOINT
-              value: "http://minio.asya-e2e.svc.cluster.local:9000"
-            - name: ASYA_S3_REGION
-              value: "us-east-1"
-            - name: AWS_ACCESS_KEY_ID
-              value: "minioadmin"
-            - name: AWS_SECRET_ACCESS_KEY
-              value: "minioadmin"
-            - name: ASYA_S3_ERRORS_PREFIX
-              value: ""
 
 operator:
   gatewayURL: http://asya-gateway.asya-e2e.svc.cluster.local:8080
@@ -119,6 +85,12 @@ operator:
       enabled: false
 
 gateway:
-  config:
-    rabbitmqURL: amqp://guest:guest@asya-rabbitmq.asya-e2e.svc.cluster.local:5672/
-    rabbitmqExchange: asya
+  transports:
+    rabbitmq:
+      enabled: true
+      config:
+        url: amqp://guest:guest@asya-rabbitmq.asya-e2e.svc.cluster.local:5672/
+        exchange: asya
+        poolSize: 20
+    sqs:
+      enabled: false

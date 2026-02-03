@@ -128,3 +128,17 @@ Database password key
 {{- print "password" }}
 {{- end }}
 {{- end }}
+
+{{/*
+Validate transport configuration - ensure exactly one transport is enabled
+*/}}
+{{- define "asya-gateway.validateTransports" -}}
+{{- $rabbitmqEnabled := .Values.transports.rabbitmq.enabled }}
+{{- $sqsEnabled := .Values.transports.sqs.enabled }}
+{{- if and $rabbitmqEnabled $sqsEnabled }}
+{{- fail "ERROR: Cannot enable both RabbitMQ and SQS transports. Please set exactly one to enabled: true" }}
+{{- end }}
+{{- if and (not $rabbitmqEnabled) (not $sqsEnabled) }}
+{{- fail "ERROR: No transport enabled. Please set either transports.rabbitmq.enabled or transports.sqs.enabled to true" }}
+{{- end }}
+{{- end }}

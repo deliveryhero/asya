@@ -142,7 +142,17 @@ jobs:
           echo "[.] Packaging ${chart_dir}..."
           helm package "${chart_dir}" -d .deploy/charts
         done
+
         echo "[+] Packaged charts:"
+        ls -la .deploy/charts/
+
+        # Verify charts were packaged
+        chart_count=$(find .deploy/charts -name "*.tgz" | wc -l)
+        echo "[+] Packaged ${chart_count} charts"
+        if [ "${chart_count}" -eq 0 ]; then
+          echo "[-] No charts were packaged"
+          exit 1
+        fi
         ls -la .deploy/charts/
 
     - name: Checkout gh-pages
@@ -167,12 +177,12 @@ jobs:
         git config user.name github-actions[bot]
         git config user.email 41898282+github-actions[bot]@users.noreply.github.com
         git add charts/
-        if git diff --staged --quiet; then
-          echo "[!] No changes to commit"
+        if git diff --cached --quiet; then
+          echo "[!] No changes to commit (charts already published)"
         else
           git commit -m "Publish Helm charts for ${{ github.event.release.tag_name }}"
           git push
-          echo "[+] Base charts published"
+          echo "[+] Published charts to gh-pages"
         fi
 
     - name: Package asya-playground with published dependencies
@@ -205,7 +215,6 @@ jobs:
           git commit -m "Publish asya-playground for ${{ github.event.release.tag_name }}"
           git push
           echo "[+] asya-playground published"
-        fi
 
     - name: Add Helm charts to release summary
       run: |

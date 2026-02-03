@@ -1,0 +1,6 @@
+name: fix-pr-e2e
+description: Fix E2E test failures in PRs with minimal overhead (worktree + targeted log analysis)
+version: 1.0.0
+user_invocable: true
+agents:
+- all

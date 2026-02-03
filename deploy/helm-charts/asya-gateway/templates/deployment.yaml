@@ -32,6 +32,7 @@ spec:
       serviceAccountName: {{ include "asya-gateway.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- include "asya-gateway.validateTransports" . }}
       {{- if or .Values.postgresql.enabled .Values.externalDatabase.host }}
       initContainers:
       - name: check-db-schema
@@ -83,29 +84,10 @@ spec:
         - name: http
           containerPort: {{ .Values.config.port }}
           protocol: TCP
+        envFrom:
+        - configMapRef:
+            name: {{ include "asya-gateway.fullname" . }}
         env:
-        - name: ASYA_GATEWAY_PORT
-          value: "{{ .Values.config.port }}"
-        {{- if .Values.config.rabbitmqURL }}
-        - name: ASYA_RABBITMQ_URL
-          value: "{{ .Values.config.rabbitmqURL }}"
-        {{- end }}
-        {{- if .Values.config.rabbitmqExchange }}
-        - name: ASYA_RABBITMQ_EXCHANGE
-          value: "{{ .Values.config.rabbitmqExchange }}"
-        {{- end }}
-        {{- if .Values.config.sqsEndpoint }}
-        - name: ASYA_SQS_ENDPOINT
-          value: "{{ .Values.config.sqsEndpoint }}"
-        {{- end }}
-        {{- if .Values.config.sqsRegion }}
-        - name: ASYA_SQS_REGION
-          value: "{{ .Values.config.sqsRegion }}"
-        {{- end }}
-        {{- if .Values.routes.createConfigMap }}
-        - name: ASYA_CONFIG_PATH
-          value: "/config/routes.yaml"
-        {{- end }}
         {{- if or .Values.postgresql.enabled .Values.externalDatabase.host }}
         - name: ASYA_DATABASE_URL
           valueFrom:
