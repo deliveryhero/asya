@@ -1,3 +1,11 @@
+# LOCAL DEVELOPMENT ONLY - Used by E2E tests (testing/e2e/)
+#
+# This file uses file:// dependencies to test unpublished chart changes.
+# To use: cp Chart.yaml.local Chart.yaml && helm dependency build .
+#
+# The main Chart.yaml uses https://asya.sh/charts for published versions.
+# DO NOT commit Chart.lock generated from this file - it will have file:// paths.
+#
 apiVersion: v2
 name: asya-playground
 description: Demo package for local development and testing with Asya. NOT for production use.
