@@ -2,6 +2,7 @@ package envelopes
 
 import (
 	"encoding/json"
+	"reflect"
 	"testing"
 )
 
@@ -272,7 +273,7 @@ func TestEnvelope_RawMessagePreservesPayloadBytes(t *testing.T) {
 	// Verify payload is stored as raw bytes, not parsed
 	expectedPayload := `{"deeply": {"nested": {"structure": {"with": {"many": {"levels": "value"}}}}}, "array": [1,2,3,4,5]}`
 
-	// Compare after normalizing whitespace
+	// Compare after normalizing whitespace using reflect.DeepEqual
 	var expected, actual interface{}
 	if err := json.Unmarshal([]byte(expectedPayload), &expected); err != nil {
 		t.Fatalf("Failed to parse expected: %v", err)
@@ -281,10 +282,9 @@ func TestEnvelope_RawMessagePreservesPayloadBytes(t *testing.T) {
 		t.Fatalf("Failed to parse actual: %v", err)
 	}
 
-	expectedBytes, _ := json.Marshal(expected)
-	actualBytes, _ := json.Marshal(actual)
-
-	if string(expectedBytes) != string(actualBytes) {
+	if !reflect.DeepEqual(expected, actual) {
+		expectedBytes, _ := json.Marshal(expected)
+		actualBytes, _ := json.Marshal(actual)
 		t.Errorf("Payload mismatch:\ngot:  %s\nwant: %s", string(actualBytes), string(expectedBytes))
 	}
 
@@ -309,9 +309,9 @@ func TestEnvelope_RawMessagePreservesPayloadBytes(t *testing.T) {
 		t.Fatalf("Failed to parse roundtrip payload: %v", err)
 	}
 
-	origBytes, _ := json.Marshal(originalPayload)
-	rtBytes, _ := json.Marshal(roundtripPayload)
-	if string(origBytes) != string(rtBytes) {
+	if !reflect.DeepEqual(originalPayload, roundtripPayload) {
+		origBytes, _ := json.Marshal(originalPayload)
+		rtBytes, _ := json.Marshal(roundtripPayload)
 		t.Errorf("Payload not preserved after roundtrip:\ngot:  %s\nwant: %s", string(rtBytes), string(origBytes))
 	}
 }
@@ -336,10 +336,11 @@ func TestEnvelope_RawMessageForwardsUnchanged(t *testing.T) {
 		t.Fatalf("Payload is not valid JSON: %v", err)
 	}
 
-	if payload["key"] != "value" {
-		t.Errorf("payload[key] = %v, want 'value'", payload["key"])
+	expected := map[string]interface{}{
+		"key":    "value",
+		"number": float64(42),
 	}
-	if payload["number"] != float64(42) {
-		t.Errorf("payload[number] = %v, want 42", payload["number"])
+	if !reflect.DeepEqual(payload, expected) {
+		t.Errorf("payload mismatch:\ngot:  %v\nwant: %v", payload, expected)
 	}
 }
