@@ -59,18 +59,20 @@ comment:
 diff:
   if: is_pull_request
   datastores:
-  - artifact://${GITHUB_REPOSITORY}
+  - github://${GITHUB_REPOSITORY}@octocov
   path: report.json
 
 summary:
   if: is_default_branch
   path: report.json
 
-# Store reports for diff comparison
+# Store reports on dedicated octocov branch for baseline comparison
+# Uses github:// datastore which persists across workflow runs
+# Branch is separate from gh-pages to avoid public exposure
 report:
   if: is_default_branch
   datastores:
-  - artifact://${GITHUB_REPOSITORY}
+  - github://${GITHUB_REPOSITORY}@octocov
   path: report.json
 
 codeToTestRatio:
