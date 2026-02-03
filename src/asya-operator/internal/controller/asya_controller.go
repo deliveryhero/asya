@@ -1264,83 +1264,28 @@ func (r *AsyncActorReconciler) reconcileDeployment(ctx context.Context, asya *as
 		},
 	}
 
-	result, err := controllerutil.CreateOrUpdate(ctx, r.Client, deployment, func() error {
-		// Set owner reference
-		if err := controllerutil.SetControllerReference(asya, deployment, r.Scheme); err != nil {
-			return err
-		}
+	err := r.Get(ctx, client.ObjectKey{
+		Name:      asya.Name,
+		Namespace: asya.Namespace,
+	}, deployment)
 
-		// Propagate labels from AsyncActor to Deployment
-		operatorLabels := map[string]string{
-			"app.kubernetes.io/name":       asya.Name,
-			"app.kubernetes.io/component":  "actor",
-			"app.kubernetes.io/part-of":    "asya",
-			"app.kubernetes.io/managed-by": "asya-operator",
-		}
-		deployment.Labels = propagateLabels(asya, operatorLabels)
+	if err != nil && !apierrors.IsNotFound(err) {
+		return err
+	}
 
-		// Set replicas only if KEDA scaling is disabled
-		// When scaling.enabled=true, HPA owns the replicas field
-		if !asya.Spec.Scaling.Enabled {
-			replicas := int32(1)
-			if asya.Spec.Workload.Replicas != nil {
-				replicas = *asya.Spec.Workload.Replicas
-			}
-			deployment.Spec.Replicas = &replicas
-		} else {
-			// Explicitly clear replicas field when KEDA is enabled
-			// This ensures HPA has full control over scaling
-			// Without this, CreateOrUpdate preserves the old value from the cluster
-			deployment.Spec.Replicas = nil
-		}
+	deploymentPatch := client.MergeFrom(deployment.DeepCopy())
 
-		// Set selector
-		if deployment.Spec.Selector == nil {
-			deployment.Spec.Selector = &metav1.LabelSelector{
-				MatchLabels: map[string]string{
-					"asya.sh/actor":    asya.GetActorName(),
-					"asya.sh/workload": "deployment",
-				},
-			}
-		}
+	if err := r.applyDeploymentUpdates(ctx, asya, deployment, podTemplate); err != nil {
+		return err
+	}
 
-		// Merge labels: add operator-managed labels, preserve user labels
-		if podTemplate.Labels == nil {
-			podTemplate.Labels = make(map[string]string)
-		}
-		for k, v := range deployment.Spec.Selector.MatchLabels {
-			if _, exists := podTemplate.Labels[k]; !exists {
-				podTemplate.Labels[k] = v
-			}
-		}
-
-		// Set ServiceAccount for SQS transport (only if using IRSA)
-		if asya.Spec.Transport == transportTypeSQS {
-			transport, err := r.TransportRegistry.GetTransport(transportTypeSQS)
-			if err == nil {
-				if sqsConfig, ok := transport.Config.(*asyaconfig.SQSConfig); ok {
-					userProvidedSA := asya.Spec.Workload.Template.Spec.ServiceAccountName
-
-					if sqsConfig.ActorRoleArn != "" {
-						// IRSA enabled: require operator-managed ServiceAccount
-						if userProvidedSA != "" {
-							return fmt.Errorf("cannot use custom serviceAccountName %q when IRSA (actorRoleArn) is configured: remove serviceAccountName from spec or disable IRSA", userProvidedSA)
-						}
-						podTemplate.Spec.ServiceAccountName = fmt.Sprintf("asya-%s-%s", asya.Namespace, asya.Name)
-					}
-					// IRSA disabled: preserve user's ServiceAccount choice (or empty if not provided)
-				}
-			}
-		}
-
-		// Clear creationTimestamp from template metadata to avoid spurious updates
-		// Kubernetes may set this field on read, causing unnecessary reconciliation
-		podTemplate.ObjectMeta.CreationTimestamp = metav1.Time{}
-
-		deployment.Spec.Template = podTemplate
-
-		return nil
-	})
+	result := "patched"
+	if apierrors.IsNotFound(err) {
+		err = r.Create(ctx, deployment)
+		result = "created"
+	} else {
+		err = r.Patch(ctx, deployment, deploymentPatch)
+	}
 
 	if err != nil {
 		return err
@@ -1396,6 +1341,77 @@ func (r *AsyncActorReconciler) reconcileDeployment(ctx context.Context, asya *as
 			asya.Status.DesiredReplicas = deployment.Spec.Replicas
 		}
 	}
+
+	return nil
+}
+
+// applyDeploymentUpdates applies operator-owned updates to deployment
+// WITHOUT modifying spec.replicas when KEDA is enabled (KEDA owns this field)
+func (r *AsyncActorReconciler) applyDeploymentUpdates(
+	ctx context.Context,
+	asya *asyav1alpha1.AsyncActor,
+	deployment *appsv1.Deployment,
+	podTemplate corev1.PodTemplateSpec,
+) error {
+	if err := controllerutil.SetControllerReference(asya, deployment, r.Scheme); err != nil {
+		return err
+	}
+
+	operatorLabels := map[string]string{
+		"app.kubernetes.io/name":       asya.Name,
+		"app.kubernetes.io/component":  "actor",
+		"app.kubernetes.io/part-of":    "asya",
+		"app.kubernetes.io/managed-by": "asya-operator",
+	}
+	deployment.Labels = propagateLabels(asya, operatorLabels)
+
+	if !asya.Spec.Scaling.Enabled {
+		replicas := int32(1)
+		if asya.Spec.Workload.Replicas != nil {
+			replicas = *asya.Spec.Workload.Replicas
+		}
+		deployment.Spec.Replicas = &replicas
+	} else {
+		deployment.Spec.Replicas = nil
+	}
+
+	if deployment.Spec.Selector == nil {
+		deployment.Spec.Selector = &metav1.LabelSelector{
+			MatchLabels: map[string]string{
+				"asya.sh/actor":    asya.GetActorName(),
+				"asya.sh/workload": "deployment",
+			},
+		}
+	}
+
+	if podTemplate.Labels == nil {
+		podTemplate.Labels = make(map[string]string)
+	}
+	for k, v := range deployment.Spec.Selector.MatchLabels {
+		if _, exists := podTemplate.Labels[k]; !exists {
+			podTemplate.Labels[k] = v
+		}
+	}
+
+	if asya.Spec.Transport == transportTypeSQS {
+		transport, err := r.TransportRegistry.GetTransport(transportTypeSQS)
+		if err == nil {
+			if sqsConfig, ok := transport.Config.(*asyaconfig.SQSConfig); ok {
+				userProvidedSA := asya.Spec.Workload.Template.Spec.ServiceAccountName
+
+				if sqsConfig.ActorRoleArn != "" {
+					if userProvidedSA != "" {
+						return fmt.Errorf("cannot use custom serviceAccountName %q when IRSA (actorRoleArn) is configured: remove serviceAccountName from spec or disable IRSA", userProvidedSA)
+					}
+					podTemplate.Spec.ServiceAccountName = fmt.Sprintf("asya-%s-%s", asya.Namespace, asya.Name)
+				}
+			}
+		}
+	}
+
+	podTemplate.ObjectMeta.CreationTimestamp = metav1.Time{}
+
+	deployment.Spec.Template = podTemplate
 
 	return nil
 }
