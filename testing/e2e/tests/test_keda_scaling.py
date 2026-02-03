@@ -640,6 +640,168 @@ def test_hpa_desired_replicas_after_pod_kill(ensure_keda_installed):
 
 
 @pytest.mark.core
+def test_deployment_generation_stability_under_keda_load(ensure_keda_installed):
+    """
+    Verify deployment generation stays low and no conflicts occur during KEDA scaling.
+
+    This test validates the fix for asya-puk (operator ↔ KEDA race condition).
+    Before fix: deployment.generation reached 257, "object has been modified" errors
+    After fix: deployment.generation stays <20, no conflict errors
+
+    Regression protection for: https://github.com/deliveryhero/asya/pull/131
+    """
+    logger.info("Testing deployment generation stability under KEDA scaling load")
+
+    transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
+
+    actor_manifest = textwrap.dedent(f"""
+        apiVersion: asya.sh/v1alpha1
+        kind: AsyncActor
+        metadata:
+          name: test-generation-stability
+          namespace: asya-e2e
+        spec:
+          transport: {transport}
+          scaling:
+            enabled: true
+            minReplicas: 1
+            maxReplicas: 10
+            queueLength: 5
+            pollingInterval: 5
+          workload:
+            kind: Deployment
+            template:
+              spec:
+                containers:
+                - name: asya-runtime
+                  image: python:3.13-slim
+                  env:
+                  - name: ASYA_HANDLER
+                    value: "handlers.echo"
+    """)
+
+    try:
+        kubectl_apply(actor_manifest)
+
+        assert wait_for_resource("deployment", "test-generation-stability", timeout=60), \
+            "Deployment should be created"
+        assert wait_for_resource("hpa", "keda-hpa-test-generation-stability", timeout=60), \
+            "HPA should be created by KEDA"
+
+        result = subprocess.run(
+            ["kubectl", "wait", "--for=condition=available", "--timeout=60s",
+             "deployment/test-generation-stability", "-n", "asya-e2e"],
+            capture_output=True
+        )
+        assert result.returncode == 0, "Deployment should become available"
+        logger.info("[+] Deployment is ready")
+
+        deployment = kubectl_get("deployment", "test-generation-stability")
+        initial_generation = deployment["metadata"]["generation"]
+        logger.info(f"Initial deployment generation: {initial_generation}")
+
+        generation_samples = [initial_generation]
+
+        for burst in range(3):
+            logger.info(f"Sending message burst {burst + 1}/3 to trigger KEDA scaling")
+
+            if transport == "rabbitmq":
+                from asya_testing.clients.rabbitmq import RabbitMQClient
+                rabbitmq_host = os.getenv("RABBITMQ_HOST", "localhost")
+                client = RabbitMQClient(host=rabbitmq_host, port=15672)
+                queue_name = f"asya-asya-e2e-test-generation-stability"
+
+                for i in range(20):
+                    envelope = {
+                        "id": f"gen-test-{burst}-{i}",
+                        "route": {"actors": ["test-generation-stability"], "current": 0},
+                        "payload": {"test": f"message-{i}"}
+                    }
+                    client.publish(queue_name, envelope)
+            elif transport == "sqs":
+                from asya_testing.clients.sqs import SQSClient
+                endpoint_url = os.getenv("AWS_ENDPOINT_URL", "http://localhost:4566")
+                client = SQSClient(
+                    endpoint_url=endpoint_url,
+                    region=os.getenv("AWS_DEFAULT_REGION", "us-east-1"),
+                    access_key=os.getenv("AWS_ACCESS_KEY_ID", "test"),
+                    secret_key=os.getenv("AWS_SECRET_ACCESS_KEY", "test"),
+                )
+                queue_name = f"asya-asya-e2e-test-generation-stability"
+
+                for i in range(20):
+                    envelope = {
+                        "id": f"gen-test-{burst}-{i}",
+                        "route": {"actors": ["test-generation-stability"], "current": 0},
+                        "payload": {"test": f"message-{i}"}
+                    }
+                    client.publish(queue_name, envelope)
+
+            logger.info(f"Sent 20 messages in burst {burst + 1}")
+
+            for sample in range(6):
+                time.sleep(5)
+                deployment = kubectl_get("deployment", "test-generation-stability")
+                current_generation = deployment["metadata"]["generation"]
+                generation_samples.append(current_generation)
+                logger.info(f"Deployment generation at t+{(sample + 1) * 5}s: {current_generation}")
+
+            time.sleep(10)
+
+        max_generation = max(generation_samples)
+        logger.info(f"Max deployment generation observed: {max_generation}")
+        logger.info(f"Generation samples: {generation_samples}")
+
+        assert max_generation < 25, \
+            f"Deployment generation should stay <25 (got {max_generation}). " \
+            "High generation indicates operator ↔ KEDA race condition (asya-puk bug)"
+
+        logger.info("[+] Deployment generation stayed low during KEDA scaling")
+
+        operator_pod_result = subprocess.run(
+            ["kubectl", "get", "pod", "-n", "asya-system", "-l", "app.kubernetes.io/name=asya-operator",
+             "-o", "jsonpath={.items[0].metadata.name}"],
+            capture_output=True,
+            text=True
+        )
+
+        if operator_pod_result.returncode == 0:
+            operator_pod = operator_pod_result.stdout.strip()
+            if operator_pod:
+                logger.info(f"Checking operator logs for conflicts (pod: {operator_pod})")
+
+                logs_result = subprocess.run(
+                    ["kubectl", "logs", "-n", "asya-system", operator_pod, "--tail=200"],
+                    capture_output=True,
+                    text=True
+                )
+
+                if logs_result.returncode == 0:
+                    conflict_errors = [
+                        line for line in logs_result.stdout.split("\n")
+                        if "object has been modified" in line.lower()
+                    ]
+
+                    if conflict_errors:
+                        logger.warning(f"Found {len(conflict_errors)} conflict errors in operator logs:")
+                        for error_line in conflict_errors[:5]:
+                            logger.warning(f"  {error_line}")
+
+                    assert len(conflict_errors) == 0, \
+                        f"Found {len(conflict_errors)} 'object has been modified' errors in operator logs. " \
+                        "This indicates operator ↔ KEDA race condition (asya-puk bug)"
+
+                    logger.info("[+] No 'object has been modified' errors found in operator logs")
+
+        logger.info("[+] Test passed - deployment generation stable, no race condition errors")
+
+    finally:
+        kubectl_delete("asyncactor", "test-generation-stability")
+        kubectl_delete("scaledobject", "test-generation-stability")
+        kubectl_delete("hpa", "keda-hpa-test-generation-stability")
+
+
+@pytest.mark.core
 def test_operator_requeues_until_hpa_created(ensure_keda_installed):
     """Test that operator requeues when HPA doesn't exist yet after ScaledObject creation.
 
