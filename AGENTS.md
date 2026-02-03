@@ -616,6 +616,30 @@ image: minio/minio:latest
 chart: oci://registry-1.docker.io/bitnamicharts/minio
 ```
 
+### Helm Chart Dependencies Policy
+
+**NEVER modify `Chart.yaml` to use `file://` dependencies.** The main `Chart.yaml` must always use `https://asya.sh/charts` for published chart versions.
+
+**Two Chart.yaml files exist**:
+- `Chart.yaml` - Production: uses `https://asya.sh/charts` (remote OCI registry)
+- `Chart.yaml.local` - Development: uses `file://` for local testing with unpublished changes
+
+**For local testing with unpublished chart changes**:
+```bash
+cp Chart.yaml.local Chart.yaml
+helm dependency build .
+# Test locally...
+git checkout Chart.yaml  # Revert before committing
+```
+
+**NEVER commit**:
+- `Chart.yaml` with `file://` paths
+- `Chart.lock` generated from `Chart.yaml.local` (will contain `file://` paths)
+
+**Enforcement**: Pre-commit hook `.pre-commit-hooks/check-chart-locks.sh` validates that no `Chart.lock` files contain `file://` paths.
+
+**Rationale**: The `file://` pattern is only for E2E tests and local development. Published charts must reference the remote repository so users can install them without the source code.
+
 ### Command Execution Hierarchy
 1. **Prefer**: `make <target>` (e.g., `make test`, `make build`)
 2. **Last resort**: Direct commands only if no Makefile target exists
