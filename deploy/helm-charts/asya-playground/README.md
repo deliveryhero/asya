@@ -154,9 +154,8 @@ asya-gateway:
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `operator.enabled` | Deploy operator | `true` |
-| `crew.enabled` | Deploy crew actors | `true` |
-| `gateway.enabled` | Deploy MCP gateway | `true` |
+| `enableAsyaCrew` | Deploy crew actors | `true` |
+| `enableAsyaGateway` | Deploy MCP gateway | `true` |
 | `helloActor.enabled` | Deploy test hello-world actor | `true` |
 
 ### Sample Infrastructure

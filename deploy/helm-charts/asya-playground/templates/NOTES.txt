@@ -1,26 +1,24 @@
 Asya Quickstart installed successfully
 
 Components installed:
-{{- if .Values.operator.enabled }}
-  - Operator ({{ .Release.Namespace }} namespace)
+  - Asya Operator ({{ .Release.Namespace }} namespace)
+{{- if .Values.enableAsyaCrew }}
+  - Asya Crew actors (happy-end, error-end)
 {{- end }}
-{{- if .Values.crew.enabled }}
-  - Crew actors (happy-end, error-end)
-{{- end }}
-{{- if .Values.gateway.enabled }}
-  - Gateway (http://asya-gateway.{{ .Release.Namespace }}:80)
+{{- if .Values.enableAsyaGateway }}
+  - Asya Gateway (http://asya-gateway.{{ .Release.Namespace }}:80)
 {{- end }}
 {{- if .Values.sampleGatewayDb.postgresql.enabled }}
-  - PostgreSQL (asya-gateway-postgresql)
+  - PostgreSQL for Asya Gateway (asya-gateway-postgresql)
 {{- end }}
 {{- if .Values.sampleTransport.sqsLocalstack.enabled }}
   - LocalStack SQS (localstack-sqs)
 {{- end }}
-{{- if .Values.sampleStorage.s3Localstack.enabled }}
-  - LocalStack S3 (s3-localstack)
-{{- end }}
 {{- if .Values.sampleTransport.rabbitmq.enabled }}
   - RabbitMQ
+{{- end }}
+{{- if .Values.sampleStorage.s3Localstack.enabled }}
+  - LocalStack S3 (s3-localstack)
 {{- end }}
 {{- if .Values.sampleStorage.minio.enabled }}
   - MinIO
@@ -74,7 +72,7 @@ Next steps:
    kubectl logs -l asya.sh/actor={{ .Values.helloActor.name }} -c asya-runtime -n {{ .Release.Namespace }}
 {{- end }}
 
-{{- if .Values.gateway.enabled }}
+{{- if .Values.enableAsyaGateway }}
 
 5. Access Gateway (port-forward):
    kubectl port-forward -n {{ .Release.Namespace }} svc/asya-gateway 8080:80

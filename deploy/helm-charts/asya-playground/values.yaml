@@ -22,18 +22,12 @@ global:
 # and the quickstart (gateway + actors) in a dedicated namespace
 
 # Component toggles
-operator:
-  enabled: true
-
-crew:
-  enabled: true
-
-gateway:
-  enabled: false
+enableAsyaCrew: true
+enableAsyaGateway: true
 
 # Test hello-world actor
 helloActor:
-  enabled: true
+  enabled: false
   name: hello
   image:
     repository: python
@@ -335,8 +329,6 @@ asya-gateway:
   # PostgreSQL connection (ACTIVELY USED - configure database)
   # Uses bundled PostgreSQL by default (asya-gateway-postgresql service)
   # For external PostgreSQL: Set sampleGatewayDb.postgresql.enabled: false and configure externalDatabase below
-  postgresql:
-    enabled: false
   externalDatabase:
     host: asya-gateway-postgresql
     port: 5432
@@ -446,34 +438,10 @@ testingActors:
   fanout:
     count: "3"
 
-# Load generator for testing actor performance and autoscaling
-# Uses Locust to generate various load patterns
-loadGenerator:
-  enabled: false
-  image:
-    repository: python
-    tag: "3.13-slim"
-  users: 20
-  spawnRate: 5
-  runTime: "5m"
-  backoffLimit: 0
-  ttlSecondsAfterFinished: 300
-  keepAliveSeconds: 60
-  sqsEndpoint: "http://localstack-sqs:4566"
-  awsRegion: "us-east-1"
-  awsAccessKeyId: "test"
-  awsSecretAccessKey: "test"
-  resources:
-    limits:
-      cpu: 1000m
-      memory: 512Mi
-    requests:
-      cpu: 200m
-      memory: 256Mi
 
 # k6 Load Testing (CNCF-native, uses standard grafana/k6 image)
 k6LoadTests:
-  enabled: true
+  enabled: false
 
   image:
     repository: grafana/k6

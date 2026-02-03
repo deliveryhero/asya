@@ -39,7 +39,7 @@ http://s3-localstack.{{ .Release.Namespace }}:4566
 Gateway URL for operator
 */}}
 {{- define "asya-playground.gatewayURL" -}}
-{{- if .Values.gateway.enabled -}}
+{{- if (index .Values "asya-gateway").enabled -}}
 http://asya-gateway.{{ .Release.Namespace }}.svc.cluster.local:80
 {{- end -}}
 {{- end -}}

@@ -36,11 +36,11 @@ dependencies:
 - name: asya-crew
   version: "0.0.0"
   repository: "file://../asya-crew"
-  condition: crew.enabled
+  condition: asya-crew.enabled
 - name: asya-gateway
   version: "0.0.0"
   repository: "file://../asya-gateway"
-  condition: gateway.enabled
+  condition: enableAsyaGateway
 # Optional: Prometheus + Grafana monitoring stack
 - name: kube-prometheus-stack
   version: ">=65.0.0"
