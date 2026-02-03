@@ -859,7 +859,7 @@ IMPORTANT: All ```bash commands in this file are tested as part of e2e test suit
 <li>Deploy the Asya operator with SQS transport (running via LocalStack)</li>
 <li>Build and deploy your first actor with scale-to-zero capability</li>
 <li>Test autoscaling by sending messages to actor queues</li>
-<li>Optionally add S3 storage, MCP gateway, and Prometheus monitoring</li>
+<li>Optionally add S3 storage, MCP gateway, Prometheus monitoring, and Grafana dashboards</li>
 </ul>
 <h2 id="prerequisites">Prerequisites<a class="headerlink" href="#prerequisites" title="Permanent link">&para;</a></h2>
 <p>Before you begin, install:</p>
@@ -875,7 +875,7 @@ IMPORTANT: All ```bash commands in this file are tested as part of e2e test suit
 <li><strong><a href="#minimal-setup">Minimal Setup</a></strong> - KEDA + SQS + Asya Operator (core functionality only)</li>
 <li><strong><a href="#add-s3-storage-optional">+ S3 Storage</a></strong> - Add persistence of the result message</li>
 <li><strong><a href="#add-gateway-optional">+ Asya Gateway</a></strong> - Add MCP HTTP API with PostgreSQL</li>
-<li><strong><a href="#add-prometheus-optional">+ Prometheus</a></strong> - Add observability</li>
+<li><strong><a href="#add-prometheus-optional">+ Prometheus</a></strong> - Add metrics collection and Grafana dashboards</li>
 </ul>
 <h2 id="initial-setup">Initial Setup<a class="headerlink" href="#initial-setup" title="Permanent link">&para;</a></h2>
 <h3 id="1-create-kind-cluster">1. Create Kind Cluster<a class="headerlink" href="#1-create-kind-cluster" title="Permanent link">&para;</a></h3>
@@ -1378,22 +1378,48 @@ helm<span class="w"> </span>install<span class="w"> </span>prometheus<span class
 <span class="s">    interval: 30s</span>
 <span class="s">EOF</span>
 </code></pre></div>
-<h3 id="3-access-grafana">3. Access Grafana<a class="headerlink" href="#3-access-grafana" title="Permanent link">&para;</a></h3>
+<h3 id="3-configure-asya-dashboard">3. Configure Asya Dashboard<a class="headerlink" href="#3-configure-asya-dashboard" title="Permanent link">&para;</a></h3>
+<p>Create a ConfigMap with the Asya dashboard:</p>
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>create<span class="w"> </span>configmap<span class="w"> </span>asya-dashboard<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-n<span class="w"> </span>monitoring<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--from-file<span class="o">=</span>asya-actors.json<span class="o">=</span>https://raw.githubusercontent.com/deliveryhero/asya/refs/heads/main/deploy/grafana-dashboards/asya-actors.json
+
+kubectl<span class="w"> </span>label<span class="w"> </span>configmap<span class="w"> </span>asya-dashboard<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-n<span class="w"> </span>monitoring<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span><span class="nv">grafana_dashboard</span><span class="o">=</span><span class="m">1</span>
+</code></pre></div>
+<p>The Grafana sidecar will automatically discover and load the dashboard.</p>
+<h3 id="4-access-grafana">4. Access Grafana<a class="headerlink" href="#4-access-grafana" title="Permanent link">&para;</a></h3>
+<p>Port-forward Grafana:</p>
 <div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>port-forward<span class="w"> </span>-n<span class="w"> </span>monitoring<span class="w"> </span>svc/prometheus-grafana<span class="w"> </span><span class="m">3000</span>:80
 </code></pre></div>
-<p>Default credentials: <code>admin</code> / <code>prom-operator</code></p>
-<p>Import Asya dashboards from the <a href="../operate/monitoring/">monitoring guide</a>.</p>
-<h3 id="4-verify-metrics-collection">4. Verify Metrics Collection<a class="headerlink" href="#4-verify-metrics-collection" title="Permanent link">&para;</a></h3>
-<p>Send messages through the gateway to generate metrics:</p>
+<p>Get admin password:</p>
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>get<span class="w"> </span>secret<span class="w"> </span>-n<span class="w"> </span>monitoring<span class="w"> </span>prometheus-grafana<span class="w"> </span>-o<span class="w"> </span><span class="nv">jsonpath</span><span class="o">=</span><span class="s1">&#39;{.data.admin-password}&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>base64<span class="w"> </span>-d<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">echo</span>
+</code></pre></div>
+<p>Login with username <code>admin</code> and the password from above.</p>
+<p>Open <code>http://localhost:3003/d/asya-actors-dashboard/asya-actors-dashboard</code></p>
+<p>The dashboard shows:
+- Message throughput and active messages
+- Processing and runtime execution duration
+- Error rates by reason and type
+- Envelope size distribution
+- Operator health metrics</p>
+<h3 id="5-verify-metrics-collection">5. Verify Metrics Collection<a class="headerlink" href="#5-verify-metrics-collection" title="Permanent link">&para;</a></h3>
+<p>Send messages to generate metrics:</p>
 <div class="highlight"><pre><span></span><code><span class="k">for</span><span class="w"> </span>i<span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="o">{</span><span class="m">1</span>..10<span class="o">}</span><span class="p">;</span><span class="w"> </span><span class="k">do</span>
 <span class="w">  </span>asya<span class="w"> </span>mcp<span class="w"> </span>call<span class="w"> </span>hello<span class="w"> </span>--name<span class="o">=</span><span class="s2">&quot;User</span><span class="nv">$i</span><span class="s2">&quot;</span>
 <span class="k">done</span>
 </code></pre></div>
-<p>In Grafana, query key metrics:
+<p>In the Grafana dashboard:
+- Select <strong>default</strong> namespace and <strong>asya-default-hello</strong> queue
+- Watch message rate increase
+- See processing duration metrics
+- Monitor error rates (should be zero)</p>
+<p>You can also query metrics directly in Grafana Explore:
 - <code>asya_actor_processing_duration_seconds{queue="asya-default-hello"}</code>
 - <code>asya_actor_messages_processed_total{queue="asya-default-hello"}</code>
-- <code>asya_operator_reconcile_total</code></p>
-<p>These metrics show processing latency, throughput, and operator activity.</p>
+- <code>asya_actor_active_messages</code>
+- <code>controller_runtime_reconcile_total{controller="asyncactor"}</code></p>
 <h2 id="testing-your-setup">Testing Your Setup<a class="headerlink" href="#testing-your-setup" title="Permanent link">&para;</a></h2>
 <p>Send a message and watch scaling:</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># Send message</span>
@@ -1938,16 +1964,22 @@ helm<span class="w"> </span>uninstall<span class="w"> </span>prometheus<span cla
             2. Configure ServiceMonitors
         </a>
         
-        <a href="#3-access-grafana"
+        <a href="#3-configure-asya-dashboard"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="3">
-            3. Access Grafana
+            3. Configure Asya Dashboard
         </a>
         
-        <a href="#4-verify-metrics-collection"
+        <a href="#4-access-grafana"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="3">
-            4. Verify Metrics Collection
+            4. Access Grafana
+        </a>
+        
+        <a href="#5-verify-metrics-collection"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            5. Verify Metrics Collection
         </a>
         
         
