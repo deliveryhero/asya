@@ -28,7 +28,13 @@ repos:
     name: check required symlinks
     entry: bash -c 'bash .pre-commit-hooks/check-symlinks.sh'
     language: system
-    files: (asya_runtime\.py|asya\.sh_asyncactors\.yaml)$
+    files: (asya_runtime\.py|asya\.sh_asyncactors\.yaml|asya-actors-overview\.json)$
+    pass_filenames: false
+  - id: check-chart-locks
+    name: check Chart.lock for file:// paths
+    entry: bash -c 'bash .pre-commit-hooks/check-chart-locks.sh'
+    language: system
+    files: Chart\.lock$
     pass_filenames: false
   - id: compile-flows
     name: compile flow DSL
