@@ -85,6 +85,7 @@ func (r *Router) processEndActorEnvelope(ctx context.Context, envelope envelopes
 	if err != nil {
 		slog.Error("End actor runtime error", "id", envelope.ID, "error", err)
 		if r.metrics != nil {
+			r.metrics.RecordMessageProcessed(r.actorName, "error")
 			r.metrics.RecordMessageFailed(r.actorName, "runtime_error")
 			r.metrics.RecordRuntimeError(r.actorName, "execution_error")
 			r.metrics.RecordProcessingDuration(r.actorName, time.Since(startTime))
@@ -142,6 +143,7 @@ func (r *Router) parseAndValidateEnvelope(ctx context.Context, msgBody []byte, s
 		slog.Error("Failed to parse envelope", "error", err)
 
 		if r.metrics != nil {
+			r.metrics.RecordMessageProcessed(r.actorName, "error")
 			r.metrics.RecordMessageFailed(r.actorName, "parse_error")
 			r.metrics.RecordProcessingDuration(r.actorName, time.Since(startTime))
 		}
@@ -154,6 +156,7 @@ func (r *Router) parseAndValidateEnvelope(ctx context.Context, msgBody []byte, s
 		slog.Error("Envelope missing required ID field")
 
 		if r.metrics != nil {
+			r.metrics.RecordMessageProcessed(r.actorName, "error")
 			r.metrics.RecordMessageFailed(r.actorName, "validation_error")
 			r.metrics.RecordProcessingDuration(r.actorName, time.Since(startTime))
 		}
@@ -206,6 +209,7 @@ func (r *Router) handleRuntimeResponses(ctx context.Context, envelope *envelopes
 // handleErrorResponse handles error responses from runtime
 func (r *Router) handleErrorResponse(ctx context.Context, msgBody []byte, response runtime.RuntimeResponse, startTime time.Time) error {
 	if r.metrics != nil {
+		r.metrics.RecordMessageProcessed(r.actorName, "error")
 		r.metrics.RecordMessageFailed(r.actorName, "runtime_error")
 		r.metrics.RecordProcessingDuration(r.actorName, time.Since(startTime))
 	}
@@ -295,6 +299,7 @@ func (r *Router) ProcessEnvelope(ctx context.Context, msg transport.QueueMessage
 			"expected", r.cfg.ActorName, "actual", currentActor, "id", envelope.ID)
 
 		if r.metrics != nil {
+			r.metrics.RecordMessageProcessed(r.actorName, "error")
 			r.metrics.RecordMessageFailed(r.actorName, "route_mismatch")
 			r.metrics.RecordProcessingDuration(r.actorName, time.Since(startTime))
 		}
@@ -333,6 +338,7 @@ func (r *Router) ProcessEnvelope(ctx context.Context, msg transport.QueueMessage
 		slog.Error("Runtime calling error", "error", err)
 
 		if r.metrics != nil {
+			r.metrics.RecordMessageProcessed(r.actorName, "error")
 			r.metrics.RecordMessageFailed(r.actorName, "runtime_error")
 			r.metrics.RecordRuntimeError(r.actorName, "execution_error")
 			r.metrics.RecordProcessingDuration(r.actorName, time.Since(startTime))
