@@ -62,19 +62,13 @@ spec:
           failureThreshold: 6
         resources:
           {{- toYaml .Values.sampleGatewayDb.postgresql.resources | nindent 10 }}
-{{- if not .Values.sampleGatewayDb.postgresql.persistence.enabled }}
       volumes:
+{{- if not .Values.sampleGatewayDb.postgresql.persistence.enabled }}
       - name: data
         emptyDir: {}
-{{- end }}
-{{- if .Values.sampleGatewayDb.postgresql.persistence.enabled }}
-  volumeClaimTemplates:
-  - metadata:
-      name: data
-    spec:
-      accessModes: ["ReadWriteOnce"]
-      resources:
-        requests:
-          storage: {{ .Values.sampleGatewayDb.postgresql.persistence.size }}
+{{- else }}
+      - name: data
+        persistentVolumeClaim:
+          claimName: asya-gateway-postgresql-data
 {{- end }}
 {{- end }}

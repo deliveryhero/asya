@@ -1,0 +1,17 @@
+{{- if and .Values.sampleGatewayDb.postgresql.enabled .Values.sampleGatewayDb.postgresql.persistence.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: asya-gateway-postgresql-data
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: postgresql
+    app.kubernetes.io/name: postgresql
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.sampleGatewayDb.postgresql.persistence.size }}
+{{- end }}

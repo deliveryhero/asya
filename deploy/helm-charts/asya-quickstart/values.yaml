@@ -231,7 +231,7 @@ asya-crew:
     # S3 storage configuration
     # For AWS S3: Set endpoint: "", update credentials, disable sampleStorage.s3Localstack
     s3:
-      endpoint: http://localstack-s3:4566
+      endpoint: http://s3-localstack:4566
       bucket: asya-results
       region: us-east-1
       accessKeyId: test

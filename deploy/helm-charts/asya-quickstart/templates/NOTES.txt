@@ -17,7 +17,7 @@ Components installed:
   - LocalStack SQS (localstack-sqs)
 {{- end }}
 {{- if .Values.sampleStorage.s3Localstack.enabled }}
-  - LocalStack S3 (localstack-s3)
+  - LocalStack S3 (s3-localstack)
 {{- end }}
 {{- if .Values.sampleTransports.rabbitmq.enabled }}
   - RabbitMQ

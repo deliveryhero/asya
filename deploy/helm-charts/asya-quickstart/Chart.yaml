@@ -22,8 +22,8 @@ dependencies:
 - name: asya-crew
   version: ">=0.4.0"
   repository: "https://asya.sh/charts"
-  condition: crew.enabled
+  condition: asya-crew.enabled
 - name: asya-gateway
   version: ">=0.1.0"
   repository: "https://asya.sh/charts"
-  condition: gateway.enabled
+  condition: asya-gateway.enabled

@@ -200,7 +200,7 @@ See `values.yaml` for complete configuration options.
 
 - Deploys sample infrastructure automatically based on transport/storage selection
 - SQS transport → `localstack-sqs` service
-- S3 storage → `localstack-s3` service
+- S3 storage → `s3-localstack` service
 - RabbitMQ transport → `rabbitmq` service
 - MinIO storage → `minio` service
 - Uses in-cluster endpoints
@@ -295,7 +295,7 @@ kubectl delete pvc minio-data -n default
 │ - hello-world actor                                  │
 │                                                       │
 │ Sample Infrastructure (demo only):                   │
-│ - localstack-sqs / localstack-s3 (if enabled)        │
+│ - localstack-sqs / s3-localstack (if enabled)        │
 │ - rabbitmq (if enabled)                              │
 │ - minio (if enabled)                                 │
 └─────────────────────────────────────────────────────┘
@@ -351,7 +351,7 @@ kubectl run curl --rm -i --restart=Never --image=curlimages/curl -- \
 Check LocalStack S3 health:
 ```bash
 kubectl run curl --rm -i --restart=Never --image=curlimages/curl -- \
-  http://localstack-s3.default:4566/_localstack/health
+  http://s3-localstack.default:4566/_localstack/health
 ```
 
 ## Dependencies

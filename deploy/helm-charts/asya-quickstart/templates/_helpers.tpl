@@ -31,7 +31,7 @@ http://localstack-sqs.{{ .Release.Namespace }}:4566
 
 {{- define "asya-quickstart.storage.s3.endpoint" -}}
 {{- if and (eq .Values.global.storage "s3") (eq .Values.global.profile "local") -}}
-http://localstack-s3.{{ .Release.Namespace }}:4566
+http://s3-localstack.{{ .Release.Namespace }}:4566
 {{- end -}}
 {{- end -}}
 
