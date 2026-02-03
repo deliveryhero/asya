@@ -30,7 +30,10 @@ spec:
         - name: RABBITMQ_DEFAULT_USER
           value: {{ .Values.sampleTransports.rabbitmq.auth.username }}
         - name: RABBITMQ_DEFAULT_PASS
-          value: {{ .Values.sampleTransports.rabbitmq.auth.password }}
+          valueFrom:
+            secretKeyRef:
+              name: rabbitmq-secret
+              key: password
         resources:
           {{- toYaml .Values.sampleTransports.rabbitmq.resources | nindent 10 }}
         readinessProbe:

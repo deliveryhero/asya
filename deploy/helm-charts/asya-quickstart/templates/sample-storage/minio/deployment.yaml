@@ -33,9 +33,15 @@ spec:
           name: console
         env:
         - name: MINIO_ROOT_USER
-          value: {{ .Values.sampleStorage.minio.auth.rootUser }}
+          valueFrom:
+            secretKeyRef:
+              name: minio-secret
+              key: rootUser
         - name: MINIO_ROOT_PASSWORD
-          value: {{ .Values.sampleStorage.minio.auth.rootPassword }}
+          valueFrom:
+            secretKeyRef:
+              name: minio-secret
+              key: rootPassword
         volumeMounts:
         - name: data
           mountPath: /data

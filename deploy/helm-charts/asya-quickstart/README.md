@@ -37,7 +37,7 @@ helm repo add asya https://asya.sh/charts
 helm repo update
 helm install asya asya/asya-quickstart \
   --create-namespace \
-  --namespace default \
+  --namespace asya-quickstart \
   --set global.transport=sqs \
   --set global.storage=s3 \
   --set global.profile=local
@@ -45,7 +45,7 @@ helm install asya asya/asya-quickstart \
 # Or from local filesystem
 helm install asya deploy/helm-charts/asya-quickstart/ \
   --create-namespace \
-  --namespace default \
+  --namespace asya-quickstart \
   --set global.transport=sqs \
   --set global.storage=s3 \
   --set global.profile=local
@@ -56,7 +56,7 @@ helm install asya deploy/helm-charts/asya-quickstart/ \
 ```bash
 helm install asya deploy/helm-charts/asya-quickstart/ \
   --create-namespace \
-  --namespace default \
+  --namespace asya-quickstart \
   --set global.transport=rabbitmq \
   --set global.storage=minio \
   --set global.profile=local
@@ -70,7 +70,7 @@ Use existing/managed services instead of sample infrastructure:
 # AWS SQS + S3 + RDS PostgreSQL
 helm install asya deploy/helm-charts/asya-quickstart/ \
   --create-namespace \
-  --namespace default \
+  --namespace asya-quickstart \
   --set global.transport=sqs \
   --set global.storage=s3 \
   --set global.profile=production \
@@ -87,7 +87,7 @@ helm install asya deploy/helm-charts/asya-quickstart/ \
 # Or use a values file (recommended for production)
 helm install asya deploy/helm-charts/asya-quickstart/ \
   --create-namespace \
-  --namespace default \
+  --namespace asya-quickstart \
   -f production-values.yaml
 ```
 
@@ -236,8 +236,8 @@ kubectl run aws-cli --rm -i --restart=Never --image=amazon/aws-cli \
   --env="AWS_DEFAULT_REGION=us-east-1" \
   --command -- sh -c "
     aws sqs send-message \
-      --endpoint-url=http://localstack-sqs.default:4566 \
-      --queue-url http://localstack-sqs.default:4566/000000000000/asya-default-hello \
+      --endpoint-url=http://localstack-sqs.asya-quickstart:4566 \
+      --queue-url http://localstack-sqs.asya-quickstart:4566/000000000000/asya-default-hello \
       --message-body '{\"id\":\"test-1\",\"route\":{\"actors\":[\"hello\"],\"current\":0},\"payload\":{\"name\":\"World\"}}'
   "
 ```
@@ -274,14 +274,14 @@ kubectl port-forward -n monitoring svc/prometheus-grafana 3000:80
 ## Uninstallation
 
 ```bash
-helm uninstall asya -n default
+helm uninstall asya -n asya-quickstart
 ```
 
 **Note:** PersistentVolumeClaims are not automatically deleted. To remove them:
 
 ```bash
-kubectl delete pvc -l app=postgresql -n default
-kubectl delete pvc minio-data -n default
+kubectl delete pvc -l app=postgresql -n asya-quickstart
+kubectl delete pvc minio-data -n asya-quickstart
 ```
 
 ## Architecture
@@ -324,20 +324,20 @@ kubectl get pods -n keda
 
 Check ScaledObject:
 ```bash
-kubectl get scaledobject -n default
-kubectl describe scaledobject hello -n default
+kubectl get scaledobject -n asya-quickstart
+kubectl describe scaledobject hello -n asya-quickstart
 ```
 
 ### Gateway connection errors
 
 Check gateway logs:
 ```bash
-kubectl logs -n default -l app.kubernetes.io/name=asya-gateway
+kubectl logs -n asya-quickstart -l app.kubernetes.io/name=asya-gateway
 ```
 
 Verify PostgreSQL is ready:
 ```bash
-kubectl get pods -l app=postgresql -n default
+kubectl get pods -l app=postgresql -n asya-quickstart
 ```
 
 ### LocalStack not responding
@@ -345,13 +345,13 @@ kubectl get pods -l app=postgresql -n default
 Check LocalStack SQS health:
 ```bash
 kubectl run curl --rm -i --restart=Never --image=curlimages/curl -- \
-  http://localstack-sqs.default:4566/_localstack/health
+  http://localstack-sqs.asya-quickstart:4566/_localstack/health
 ```
 
 Check LocalStack S3 health:
 ```bash
 kubectl run curl --rm -i --restart=Never --image=curlimages/curl -- \
-  http://s3-localstack.default:4566/_localstack/health
+  http://s3-localstack.asya-quickstart:4566/_localstack/health
 ```
 
 ## Dependencies
