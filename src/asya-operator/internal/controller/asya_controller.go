@@ -1275,7 +1275,7 @@ func (r *AsyncActorReconciler) reconcileDeployment(ctx context.Context, asya *as
 
 	deploymentPatch := client.MergeFrom(deployment.DeepCopy())
 
-	if err := r.applyDeploymentUpdates(ctx, asya, deployment, podTemplate); err != nil {
+	if err := r.applyDeploymentUpdates(asya, deployment, podTemplate); err != nil {
 		return err
 	}
 
@@ -1348,7 +1348,6 @@ func (r *AsyncActorReconciler) reconcileDeployment(ctx context.Context, asya *as
 // applyDeploymentUpdates applies operator-owned updates to deployment
 // WITHOUT modifying spec.replicas when KEDA is enabled (KEDA owns this field)
 func (r *AsyncActorReconciler) applyDeploymentUpdates(
-	ctx context.Context,
 	asya *asyav1alpha1.AsyncActor,
 	deployment *appsv1.Deployment,
 	podTemplate corev1.PodTemplateSpec,
@@ -1371,8 +1370,6 @@ func (r *AsyncActorReconciler) applyDeploymentUpdates(
 			replicas = *asya.Spec.Workload.Replicas
 		}
 		deployment.Spec.Replicas = &replicas
-	} else {
-		deployment.Spec.Replicas = nil
 	}
 
 	if deployment.Spec.Selector == nil {

@@ -1393,7 +1393,7 @@ func TestReconcileDeployment_KEDAReplicasFieldCleared(t *testing.T) {
 		}
 	})
 
-	t.Run("KEDA enabled after manual scaling - replicas field must be cleared", func(t *testing.T) {
+	t.Run("KEDA enabled after manual scaling - replicas field must be preserved", func(t *testing.T) {
 		fakeClient := fake.NewClientBuilder().WithScheme(scheme).Build()
 		r := &AsyncActorReconciler{
 			Client:            fakeClient,
@@ -1406,7 +1406,7 @@ func TestReconcileDeployment_KEDAReplicasFieldCleared(t *testing.T) {
 		asya.Spec.Scaling = asyav1alpha1.ScalingConfig{
 			Enabled: false,
 		}
-		asya.Spec.Workload.Replicas = ptr(int32(0))
+		asya.Spec.Workload.Replicas = ptr(int32(3))
 
 		podTemplate := r.injectSidecar(asya)
 		err := r.reconcileDeployment(context.Background(), asya, podTemplate)
@@ -1420,12 +1420,12 @@ func TestReconcileDeployment_KEDAReplicasFieldCleared(t *testing.T) {
 			t.Fatalf("Failed to get deployment after first reconcile: %v", err)
 		}
 
-		if deployment.Spec.Replicas == nil || *deployment.Spec.Replicas != 0 {
-			t.Errorf("Expected Deployment.Spec.Replicas to be 0 initially, got %v", deployment.Spec.Replicas)
+		if deployment.Spec.Replicas == nil || *deployment.Spec.Replicas != 3 {
+			t.Errorf("Expected Deployment.Spec.Replicas to be 3 initially, got %v", deployment.Spec.Replicas)
 		}
 
 		asya.Spec.Scaling.Enabled = true
-		asya.Spec.Scaling.MinReplicas = ptr(int32(0))
+		asya.Spec.Scaling.MinReplicas = ptr(int32(1))
 		asya.Spec.Scaling.MaxReplicas = ptr(int32(30))
 		asya.Spec.Scaling.QueueLength = 5
 
@@ -1440,8 +1440,8 @@ func TestReconcileDeployment_KEDAReplicasFieldCleared(t *testing.T) {
 			t.Fatalf("Failed to get deployment after KEDA enabled: %v", err)
 		}
 
-		if deployment.Spec.Replicas != nil {
-			t.Errorf("Expected Deployment.Spec.Replicas to be nil after enabling KEDA, got %d. This is the bug - HPA cannot control scaling when replicas field is set!", *deployment.Spec.Replicas)
+		if deployment.Spec.Replicas == nil || *deployment.Spec.Replicas != 3 {
+			t.Errorf("Expected Deployment.Spec.Replicas to remain 3 after enabling KEDA (operator should not modify it), got %v. KEDA's HPA will take over management.", deployment.Spec.Replicas)
 		}
 	})
 }
