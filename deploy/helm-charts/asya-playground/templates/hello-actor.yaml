@@ -27,10 +27,19 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     app: hello-actor
-    app.kubernetes.io/name: hello-actor
-    app.kubernetes.io/instance: {{ .Release.Name }}
 spec:
   transport: {{ .Values.global.transport }}
+
+  {{- if eq .Values.global.transport "sqs" }}
+  sidecar:
+    env:
+    - name: AWS_ACCESS_KEY_ID
+      value: "test"
+    - name: AWS_SECRET_ACCESS_KEY
+      value: "test"
+    - name: AWS_REGION
+      value: "us-east-1"
+  {{- end }}
 
   workload:
     kind: Deployment
@@ -57,11 +66,9 @@ spec:
             name: hello-handler
 
   scaling:
+    enabled: true
     minReplicas: {{ .Values.helloActor.scaling.minReplicas }}
     maxReplicas: {{ .Values.helloActor.scaling.maxReplicas }}
     pollingInterval: {{ .Values.helloActor.scaling.pollingInterval }}
-    triggers:
-    - type: {{ .Values.global.transport }}
-      metadata:
-        queueLength: {{ .Values.helloActor.scaling.queueLength | quote }}
+    queueLength: {{ .Values.helloActor.scaling.queueLength }}
 {{- end }}

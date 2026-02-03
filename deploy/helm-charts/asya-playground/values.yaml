@@ -190,6 +190,16 @@ asya-operator:
   #   image: ghcr.io/deliveryhero/asya-sidecar
   #   tag: "latest"
 
+  # AWS credentials for LocalStack (for local profile only)
+  # In production, use IRSA (IAM Roles for Service Accounts) instead
+  extraEnv:
+  - name: AWS_ACCESS_KEY_ID
+    value: "test"
+  - name: AWS_SECRET_ACCESS_KEY
+    value: "test"
+  - name: AWS_REGION
+    value: "us-east-1"
+
   # Transport configurations (ACTIVELY USED - configure for your environment)
   # These will be enabled/disabled based on global.transport
   transports:
@@ -209,7 +219,7 @@ asya-operator:
     # SQS transport configuration
     # For AWS SQS: Set endpoint: "", update accountId, disable sampleTransports.sqsLocalstack
     sqs:
-      enabled: false
+      enabled: true
       type: sqs
       config:
         region: us-east-1

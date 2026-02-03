@@ -1,12 +1,15 @@
 dependencies:
+- name: keda
+  repository: https://kedacore.github.io/charts
+  version: 2.19.0
 - name: asya-operator
-  repository: file://../asya-operator
-  version: 0.4.0
+  repository: https://asya.sh/charts
+  version: 0.4.1
 - name: asya-crew
-  repository: file://../asya-crew
-  version: 0.4.0
+  repository: https://asya.sh/charts
+  version: 0.4.1
 - name: asya-gateway
-  repository: file://../asya-gateway
-  version: 0.4.0
-digest: sha256:e9eab85f18c1e6309f6cd9540dbf32a41eafd2cbd590424098f2b37ab7b828be
-generated: "2026-02-03T11:45:06.980885356Z"
+  repository: https://asya.sh/charts
+  version: 0.4.1
+digest: sha256:bd749ba96b8bf015442955e8399bb513d6eff0959ff9fb87d2426d0d4d27cd88
+generated: "2026-02-03T12:46:44.497861046Z"

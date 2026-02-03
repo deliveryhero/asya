@@ -12,5 +12,5 @@
 *.orig
 *~
 .DS_Store
-Chart.lock
-charts/
+# Keep Chart.lock for reproducible builds
+# Keep charts/ - needed for subchart dependencies

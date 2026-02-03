@@ -132,6 +132,18 @@ transports:
         team: ml-platform
         cost-center: "1234"
 
+# Additional environment variables for the operator container
+# Useful for configuring AWS credentials for LocalStack testing
+extraEnv: []
+# Example:
+# extraEnv:
+# - name: AWS_ACCESS_KEY_ID
+#   value: "test"
+# - name: AWS_SECRET_ACCESS_KEY
+#   value: "test"
+# - name: AWS_REGION
+#   value: "us-east-1"
+
 # Additional volumes to mount
 # Auto-populated when runtime.createConfigMap is true
 volumes: []

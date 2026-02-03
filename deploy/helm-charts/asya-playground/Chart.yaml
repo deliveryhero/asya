@@ -17,6 +17,10 @@ maintainers:
 
 # Remote dependencies (from published Helm repository)
 dependencies:
+# KEDA is required for autoscaling - non-optional dependency
+- name: keda
+  version: ">=2.16.0"
+  repository: "https://kedacore.github.io/charts"
 - name: asya-operator
   version: ">=0.4.0"
   repository: "https://asya.sh/charts"
