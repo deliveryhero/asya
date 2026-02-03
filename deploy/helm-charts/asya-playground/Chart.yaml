@@ -19,12 +19,12 @@ maintainers:
 dependencies:
 - name: asya-operator
   version: ">=0.4.0"
-  repository: "file://../asya-operator"
+  repository: "https://asya.sh/charts"
 - name: asya-crew
   version: ">=0.4.0"
-  repository: "file://../asya-crew"
+  repository: "https://asya.sh/charts"
   condition: crew.enabled
 - name: asya-gateway
   version: ">=0.4.0"
-  repository: "file://../asya-gateway"
+  repository: "https://asya.sh/charts"
   condition: gateway.enabled
