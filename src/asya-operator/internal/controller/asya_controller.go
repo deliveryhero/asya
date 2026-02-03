@@ -858,6 +858,13 @@ func (r *AsyncActorReconciler) injectSidecar(asya *asyav1alpha1.AsyncActor) core
 		ImagePullPolicy: imagePullPolicy,
 		Env:             env,
 		Resources:       asya.Spec.Sidecar.Resources,
+		Ports: []corev1.ContainerPort{
+			{
+				Name:          "metrics",
+				ContainerPort: 8080,
+				Protocol:      corev1.ProtocolTCP,
+			},
+		},
 		VolumeMounts: []corev1.VolumeMount{
 			{
 				Name:      socketVolume,
