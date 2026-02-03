@@ -1,6 +1,6 @@
 {{- if .Values.sampleMonitoring.enabled }}
 apiVersion: monitoring.coreos.com/v1
-kind: ServiceMonitor
+kind: PodMonitor
 metadata:
   name: asya-actors
   namespace: {{ .Release.Namespace }}
@@ -9,12 +9,16 @@ metadata:
     app.kubernetes.io/part-of: asya
 spec:
   selector:
-    matchLabels:
-      asya.sh/metrics: "true"
+    matchExpressions:
+    - key: asya.sh/actor
+      operator: Exists
+    - key: asya.sh/metrics
+      operator: NotIn
+      values: ["false"]
   namespaceSelector:
     matchNames:
     - {{ .Release.Namespace }}
-  endpoints:
+  podMetricsEndpoints:
   - port: metrics
     interval: 15s
     path: /metrics
