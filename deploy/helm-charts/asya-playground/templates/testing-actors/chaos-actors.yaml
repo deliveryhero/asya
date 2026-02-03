@@ -1,0 +1,212 @@
+{{- if .Values.testingActors.enabled }}
+---
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: chaos-slow
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: chaos-actors
+    chaos-type: latency
+spec:
+  transport: {{ .Values.global.transport }}
+  {{- if eq .Values.global.transport "sqs" }}
+  sidecar:
+    env:
+    - name: AWS_ACCESS_KEY_ID
+      value: "test"
+    - name: AWS_SECRET_ACCESS_KEY
+      value: "test"
+    - name: AWS_REGION
+      value: "us-east-1"
+  {{- end }}
+  workload:
+    kind: Deployment
+    template:
+      spec:
+        containers:
+        - name: asya-runtime
+          image: {{ .Values.testingActors.image.repository }}:{{ .Values.testingActors.image.tag }}
+          env:
+          - name: ASYA_HANDLER
+            value: "chaos_handlers.slow_actor"
+          - name: ASYA_HANDLER_MODE
+            value: "payload"
+          - name: PYTHONPATH
+            value: /app
+          - name: CHAOS_MIN_DELAY
+            value: {{ .Values.testingActors.slow.minDelay | quote }}
+          - name: CHAOS_MAX_DELAY
+            value: {{ .Values.testingActors.slow.maxDelay | quote }}
+          volumeMounts:
+          - name: handlers
+            mountPath: /app
+          resources:
+            {{- toYaml .Values.testingActors.resources | nindent 12 }}
+        volumes:
+        - name: handlers
+          configMap:
+            name: chaos-actors-handlers
+  scaling:
+    enabled: {{ .Values.testingActors.scaling.enabled }}
+    minReplicas: {{ .Values.testingActors.scaling.minReplicas }}
+    maxReplicas: {{ .Values.testingActors.scaling.maxReplicas }}
+    pollingInterval: {{ .Values.testingActors.scaling.pollingInterval }}
+    queueLength: {{ .Values.testingActors.scaling.queueLength }}
+---
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: chaos-flaky
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: chaos-actors
+    chaos-type: errors
+spec:
+  transport: {{ .Values.global.transport }}
+  {{- if eq .Values.global.transport "sqs" }}
+  sidecar:
+    env:
+    - name: AWS_ACCESS_KEY_ID
+      value: "test"
+    - name: AWS_SECRET_ACCESS_KEY
+      value: "test"
+    - name: AWS_REGION
+      value: "us-east-1"
+  {{- end }}
+  workload:
+    kind: Deployment
+    template:
+      spec:
+        containers:
+        - name: asya-runtime
+          image: {{ .Values.testingActors.image.repository }}:{{ .Values.testingActors.image.tag }}
+          env:
+          - name: ASYA_HANDLER
+            value: "chaos_handlers.flaky_actor"
+          - name: ASYA_HANDLER_MODE
+            value: "payload"
+          - name: PYTHONPATH
+            value: /app
+          - name: CHAOS_ERROR_RATE
+            value: {{ .Values.testingActors.flaky.errorRate | quote }}
+          volumeMounts:
+          - name: handlers
+            mountPath: /app
+          resources:
+            {{- toYaml .Values.testingActors.resources | nindent 12 }}
+        volumes:
+        - name: handlers
+          configMap:
+            name: chaos-actors-handlers
+  scaling:
+    enabled: {{ .Values.testingActors.scaling.enabled }}
+    minReplicas: {{ .Values.testingActors.scaling.minReplicas }}
+    maxReplicas: {{ .Values.testingActors.scaling.maxReplicas }}
+    pollingInterval: {{ .Values.testingActors.scaling.pollingInterval }}
+    queueLength: {{ .Values.testingActors.scaling.queueLength }}
+---
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: chaos-cpu
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: chaos-actors
+    chaos-type: cpu
+spec:
+  transport: {{ .Values.global.transport }}
+  {{- if eq .Values.global.transport "sqs" }}
+  sidecar:
+    env:
+    - name: AWS_ACCESS_KEY_ID
+      value: "test"
+    - name: AWS_SECRET_ACCESS_KEY
+      value: "test"
+    - name: AWS_REGION
+      value: "us-east-1"
+  {{- end }}
+  workload:
+    kind: Deployment
+    template:
+      spec:
+        containers:
+        - name: asya-runtime
+          image: {{ .Values.testingActors.image.repository }}:{{ .Values.testingActors.image.tag }}
+          env:
+          - name: ASYA_HANDLER
+            value: "chaos_handlers.cpu_intensive"
+          - name: ASYA_HANDLER_MODE
+            value: "payload"
+          - name: PYTHONPATH
+            value: /app
+          - name: CHAOS_CPU_ITERATIONS
+            value: {{ .Values.testingActors.cpu.iterations | quote }}
+          volumeMounts:
+          - name: handlers
+            mountPath: /app
+          resources:
+            {{- toYaml .Values.testingActors.resources | nindent 12 }}
+        volumes:
+        - name: handlers
+          configMap:
+            name: chaos-actors-handlers
+  scaling:
+    enabled: {{ .Values.testingActors.scaling.enabled }}
+    minReplicas: {{ .Values.testingActors.scaling.minReplicas }}
+    maxReplicas: {{ .Values.testingActors.scaling.maxReplicas }}
+    pollingInterval: {{ .Values.testingActors.scaling.pollingInterval }}
+    queueLength: {{ .Values.testingActors.scaling.queueLength }}
+---
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: chaos-fanout
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: chaos-actors
+    chaos-type: fanout
+spec:
+  transport: {{ .Values.global.transport }}
+  {{- if eq .Values.global.transport "sqs" }}
+  sidecar:
+    env:
+    - name: AWS_ACCESS_KEY_ID
+      value: "test"
+    - name: AWS_SECRET_ACCESS_KEY
+      value: "test"
+    - name: AWS_REGION
+      value: "us-east-1"
+  {{- end }}
+  workload:
+    kind: Deployment
+    template:
+      spec:
+        containers:
+        - name: asya-runtime
+          image: {{ .Values.testingActors.image.repository }}:{{ .Values.testingActors.image.tag }}
+          env:
+          - name: ASYA_HANDLER
+            value: "chaos_handlers.fanout_actor"
+          - name: ASYA_HANDLER_MODE
+            value: "payload"
+          - name: PYTHONPATH
+            value: /app
+          - name: CHAOS_FANOUT_COUNT
+            value: {{ .Values.testingActors.fanout.count | quote }}
+          volumeMounts:
+          - name: handlers
+            mountPath: /app
+          resources:
+            {{- toYaml .Values.testingActors.resources | nindent 12 }}
+        volumes:
+        - name: handlers
+          configMap:
+            name: chaos-actors-handlers
+  scaling:
+    enabled: {{ .Values.testingActors.scaling.enabled }}
+    minReplicas: {{ .Values.testingActors.scaling.minReplicas }}
+    maxReplicas: {{ .Values.testingActors.scaling.maxReplicas }}
+    pollingInterval: {{ .Values.testingActors.scaling.pollingInterval }}
+    queueLength: {{ .Values.testingActors.scaling.queueLength }}
+{{- end }}

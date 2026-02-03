@@ -398,3 +398,58 @@ kube-prometheus-stack:
     enabled: false
   kubeProxy:
     enabled: false
+
+# Testing actors with chaos/failure modes
+# These actors simulate various production scenarios for testing autoscaling and resilience
+testingActors:
+  enabled: false
+  image:
+    repository: python
+    tag: "3.13-slim"
+  resources:
+    limits:
+      cpu: 500m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  scaling:
+    enabled: true
+    minReplicas: 0
+    maxReplicas: 10
+    pollingInterval: 15
+    queueLength: 5
+  slow:
+    minDelay: "0.1"
+    maxDelay: "2.0"
+  flaky:
+    errorRate: "0.2"
+  cpu:
+    iterations: "500000"
+  fanout:
+    count: "3"
+
+# Load generator for testing actor performance and autoscaling
+# Uses Locust to generate various load patterns
+loadGenerator:
+  enabled: false
+  image:
+    repository: python
+    tag: "3.13-slim"
+  users: 20
+  spawnRate: 5
+  runTime: "5m"
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 300
+  keepAliveSeconds: 60
+  sqsEndpoint: "http://localstack-sqs:4566"
+  awsRegion: "us-east-1"
+  awsAccessKeyId: "test"
+  awsSecretAccessKey: "test"
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 512Mi
+    requests:
+      cpu: 200m
+      memory: 256Mi

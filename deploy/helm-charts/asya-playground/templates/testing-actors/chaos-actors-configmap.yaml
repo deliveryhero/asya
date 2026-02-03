@@ -1,0 +1,101 @@
+{{- if .Values.testingActors.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: chaos-actors-handlers
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: chaos-actors
+    app.kubernetes.io/instance: {{ .Release.Name }}
+data:
+  chaos_handlers.py: |
+    """Chaos actors with configurable failure modes for testing"""
+    import os
+    import random
+    import time
+    from typing import Dict, Any
+
+    def slow_actor(payload: Dict[str, Any]) -> Dict[str, Any]:
+        """Actor with random latency between min and max"""
+        min_delay = float(os.getenv("CHAOS_MIN_DELAY", "0.1"))
+        max_delay = float(os.getenv("CHAOS_MAX_DELAY", "1.0"))
+        delay = random.uniform(min_delay, max_delay)
+        time.sleep(delay)
+
+        return {
+            "status": "processed",
+            "actor": "slow",
+            "delay_seconds": delay,
+            "original": payload
+        }
+
+    def flaky_actor(payload: Dict[str, Any]) -> Dict[str, Any]:
+        """Actor that fails randomly based on error rate"""
+        error_rate = float(os.getenv("CHAOS_ERROR_RATE", "0.2"))
+
+        if random.random() < error_rate:
+            raise RuntimeError(f"Simulated random failure (error_rate={error_rate})")
+
+        return {
+            "status": "success",
+            "actor": "flaky",
+            "original": payload
+        }
+
+    def cpu_intensive(payload: Dict[str, Any]) -> Dict[str, Any]:
+        """Actor that performs CPU-intensive work"""
+        iterations = int(os.getenv("CHAOS_CPU_ITERATIONS", "100000"))
+
+        result = 0
+        for i in range(iterations):
+            result += i * i
+
+        return {
+            "status": "computed",
+            "actor": "cpu_intensive",
+            "result": result,
+            "iterations": iterations,
+            "original": payload
+        }
+
+    def memory_heavy(payload: Dict[str, Any]) -> Dict[str, Any]:
+        """Actor that allocates memory"""
+        size_mb = int(os.getenv("CHAOS_MEMORY_MB", "10"))
+
+        data = bytearray(size_mb * 1024 * 1024)
+        time.sleep(0.1)
+
+        return {
+            "status": "allocated",
+            "actor": "memory_heavy",
+            "memory_mb": size_mb,
+            "original": payload
+        }
+
+    def fanout_actor(payload: Dict[str, Any]) -> list:
+        """Actor that creates multiple outputs (fanout)"""
+        fanout_count = int(os.getenv("CHAOS_FANOUT_COUNT", "3"))
+
+        return [
+            {
+                "status": "fanout_item",
+                "actor": "fanout",
+                "item": i,
+                "total": fanout_count,
+                "original": payload
+            }
+            for i in range(fanout_count)
+        ]
+
+    def conditional_router(payload: Dict[str, Any]) -> Dict[str, Any]:
+        """Actor that routes based on payload content"""
+        priority = payload.get("priority", "normal")
+
+        return {
+            "status": "routed",
+            "actor": "conditional_router",
+            "priority": priority,
+            "route_decision": f"processed_as_{priority}",
+            "original": payload
+        }
+{{- end }}
