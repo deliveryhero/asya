@@ -49,7 +49,7 @@ Transport configuration for gateway
 */}}
 {{- define "asya-playground.gateway.rabbitmqURL" -}}
 {{- if eq .Values.global.transport "rabbitmq" -}}
-amqp://{{ .Values.sampleTransports.rabbitmq.auth.username }}:{{ .Values.sampleTransports.rabbitmq.auth.password }}@rabbitmq.{{ .Release.Namespace }}.svc.cluster.local:5672/
+amqp://{{ .Values.sampleTransport.rabbitmq.auth.username }}:{{ .Values.sampleTransport.rabbitmq.auth.password }}@rabbitmq.{{ .Release.Namespace }}.svc.cluster.local:5672/
 {{- end -}}
 {{- end -}}
 

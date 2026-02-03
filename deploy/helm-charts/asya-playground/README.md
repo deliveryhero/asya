@@ -74,7 +74,7 @@ helm install asya deploy/helm-charts/asya-playground/ \
   --set global.transport=sqs \
   --set global.storage=s3 \
   --set global.profile=production \
-  --set sampleTransports.sqsLocalstack.enabled=false \
+  --set sampleTransport.sqsLocalstack.enabled=false \
   --set sampleStorage.s3Localstack.enabled=false \
   --set sampleGatewayDb.postgresql.enabled=false \
   --set asya-operator.transports.sqs.config.accountId=YOUR_AWS_ACCOUNT_ID \
@@ -99,7 +99,7 @@ global:
   profile: production
 
 # Disable all sample infrastructure
-sampleTransports:
+sampleTransport:
   sqsLocalstack:
     enabled: false
   rabbitmq:
@@ -167,8 +167,8 @@ Sample infrastructure provides quick-start transport and storage backends for de
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `sampleTransports.sqsLocalstack.enabled` | Deploy LocalStack for SQS | `true` |
-| `sampleTransports.rabbitmq.enabled` | Deploy RabbitMQ | `false` |
+| `sampleTransport.sqsLocalstack.enabled` | Deploy LocalStack for SQS | `true` |
+| `sampleTransport.rabbitmq.enabled` | Deploy RabbitMQ | `false` |
 | `sampleStorage.s3Localstack.enabled` | Deploy LocalStack for S3 | `true` |
 | `sampleStorage.minio.enabled` | Deploy MinIO | `false` |
 | `sampleGatewayDb.postgresql.enabled` | Deploy PostgreSQL for gateway | `true` |
@@ -212,8 +212,8 @@ See `values.yaml` for complete configuration options.
 - Expects external cloud services (AWS SQS/S3, hosted RabbitMQ, etc.)
 - Requires proper IAM roles and credentials
 - Disable sample infrastructure:
-  - `sampleTransports.sqsLocalstack.enabled=false`
-  - `sampleTransports.rabbitmq.enabled=false`
+  - `sampleTransport.sqsLocalstack.enabled=false`
+  - `sampleTransport.rabbitmq.enabled=false`
   - `sampleStorage.s3Localstack.enabled=false`
   - `sampleStorage.minio.enabled=false`
 

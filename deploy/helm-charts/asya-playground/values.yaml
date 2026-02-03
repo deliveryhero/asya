@@ -29,7 +29,7 @@ crew:
   enabled: true
 
 gateway:
-  enabled: true
+  enabled: false
 
 # Test hello-world actor
 helloActor:
@@ -57,14 +57,14 @@ helloActor:
 # WARNING: Sample infrastructure is for demos only, use cloud services in production
 #
 # To use external/managed services:
-# 1. Set sampleTransports.*.enabled: false (disable sample deployments)
+# 1. Set sampleTransport.*.enabled: false (disable sample deployments)
 # 2. Set sampleStorage.*.enabled: false (disable sample deployments)
 # 3. Set sampleGatewayDb.postgresql.enabled: false (disable sample PostgreSQL)
 # 4. Configure external endpoints in asya-operator.transports.*.config
 # 5. Configure external endpoints in asya-crew.storage.*
 # 6. Configure external database in asya-gateway.externalDatabase
 #
-sampleTransports:
+sampleTransport:
   # LocalStack for SQS (demo only)
   # For production: Set enabled: false and configure asya-operator.transports.sqs.config below
   sqsLocalstack:
@@ -156,13 +156,13 @@ sampleMonitoring:
   # Prometheus + Grafana stack (demo/development only)
   # For production: Set enabled: false and use your existing monitoring infrastructure
   # When enabled, deploys kube-prometheus-stack with pre-configured Asya dashboards
-  enabled: false
+  enabled: true
 
 sampleGatewayDb:
   # PostgreSQL for gateway (sample deployment)
   # For production: Set enabled: false and configure asya-gateway.externalDatabase below
   postgresql:
-    enabled: true
+    enabled: false
     image:
       repository: postgres
       tag: "15-alpine"
@@ -213,7 +213,7 @@ asya-operator:
   # These will be enabled/disabled based on global.transport
   transports:
     # RabbitMQ transport configuration
-    # For external RabbitMQ: Update host/port/credentials, disable sampleTransports.rabbitmq
+    # For external RabbitMQ: Update host/port/credentials, disable sampleTransport.rabbitmq
     rabbitmq:
       enabled: false
       type: rabbitmq
@@ -226,7 +226,7 @@ asya-operator:
           key: password
 
     # SQS transport configuration
-    # For AWS SQS: Set endpoint: "", update accountId, disable sampleTransports.sqsLocalstack
+    # For AWS SQS: Set endpoint: "", update accountId, disable sampleTransport.sqsLocalstack
     # For production with IRSA: Remove credentials section entirely
     sqs:
       enabled: true
@@ -473,7 +473,7 @@ loadGenerator:
 
 # k6 Load Testing (CNCF-native, uses standard grafana/k6 image)
 k6LoadTests:
-  enabled: false
+  enabled: true
 
   image:
     repository: grafana/k6
@@ -485,7 +485,7 @@ k6LoadTests:
   prometheusUrl: "http://asya-kube-prometheus-stack-prometheus:9090/api/v1/write"
 
   sqs:
-    enabled: false
+    enabled: true
     endpoint: "http://localstack-sqs:4566"
     awsRegion: "us-east-1"
     awsAccessKeyId: "testlocalstackkey123"

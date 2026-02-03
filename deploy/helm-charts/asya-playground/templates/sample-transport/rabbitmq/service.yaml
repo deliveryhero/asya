@@ -1,4 +1,4 @@
-{{- if and .Values.sampleTransports.rabbitmq.enabled (eq .Values.global.transport "rabbitmq") }}
+{{- if and .Values.sampleTransport.rabbitmq.enabled (eq .Values.global.transport "rabbitmq") }}
 apiVersion: v1
 kind: Service
 metadata:
@@ -9,13 +9,13 @@ metadata:
     app.kubernetes.io/name: rabbitmq
     app.kubernetes.io/instance: {{ .Release.Name }}
 spec:
-  type: {{ .Values.sampleTransports.rabbitmq.service.type }}
+  type: {{ .Values.sampleTransport.rabbitmq.service.type }}
   ports:
-  - port: {{ .Values.sampleTransports.rabbitmq.service.amqpPort }}
+  - port: {{ .Values.sampleTransport.rabbitmq.service.amqpPort }}
     targetPort: amqp
     protocol: TCP
     name: amqp
-  - port: {{ .Values.sampleTransports.rabbitmq.service.managementPort }}
+  - port: {{ .Values.sampleTransport.rabbitmq.service.managementPort }}
     targetPort: management
     protocol: TCP
     name: management

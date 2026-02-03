@@ -1,4 +1,4 @@
-{{- if and .Values.sampleTransports.rabbitmq.enabled (eq .Values.global.transport "rabbitmq") }}
+{{- if and .Values.sampleTransport.rabbitmq.enabled (eq .Values.global.transport "rabbitmq") }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
       - name: rabbitmq
-        image: {{ .Values.sampleTransports.rabbitmq.image.repository }}:{{ .Values.sampleTransports.rabbitmq.image.tag }}
+        image: {{ .Values.sampleTransport.rabbitmq.image.repository }}:{{ .Values.sampleTransport.rabbitmq.image.tag }}
         ports:
         - containerPort: 5672
           name: amqp
@@ -28,14 +28,14 @@ spec:
           name: management
         env:
         - name: RABBITMQ_DEFAULT_USER
-          value: {{ .Values.sampleTransports.rabbitmq.auth.username }}
+          value: {{ .Values.sampleTransport.rabbitmq.auth.username }}
         - name: RABBITMQ_DEFAULT_PASS
           valueFrom:
             secretKeyRef:
               name: rabbitmq-secret
               key: password
         resources:
-          {{- toYaml .Values.sampleTransports.rabbitmq.resources | nindent 10 }}
+          {{- toYaml .Values.sampleTransport.rabbitmq.resources | nindent 10 }}
         readinessProbe:
           exec:
             command:

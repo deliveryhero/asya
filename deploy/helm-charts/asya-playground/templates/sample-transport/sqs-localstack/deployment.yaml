@@ -1,4 +1,4 @@
-{{- if and .Values.sampleTransports.sqsLocalstack.enabled (eq .Values.global.transport "sqs") }}
+{{- if and .Values.sampleTransport.sqsLocalstack.enabled (eq .Values.global.transport "sqs") }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
       - name: localstack
-        image: {{ .Values.sampleTransports.sqsLocalstack.image.repository }}:{{ .Values.sampleTransports.sqsLocalstack.image.tag }}
+        image: {{ .Values.sampleTransport.sqsLocalstack.image.repository }}:{{ .Values.sampleTransport.sqsLocalstack.image.tag }}
         ports:
         - containerPort: 4566
           name: edge
@@ -33,7 +33,7 @@ spec:
         - name: DATA_DIR
           value: /tmp/localstack/data
         resources:
-          {{- toYaml .Values.sampleTransports.sqsLocalstack.resources | nindent 10 }}
+          {{- toYaml .Values.sampleTransport.sqsLocalstack.resources | nindent 10 }}
         readinessProbe:
           httpGet:
             path: /_localstack/health

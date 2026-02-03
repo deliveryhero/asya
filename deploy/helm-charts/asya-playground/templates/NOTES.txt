@@ -13,13 +13,13 @@ Components installed:
 {{- if .Values.sampleGatewayDb.postgresql.enabled }}
   - PostgreSQL (asya-gateway-postgresql)
 {{- end }}
-{{- if .Values.sampleTransports.sqsLocalstack.enabled }}
+{{- if .Values.sampleTransport.sqsLocalstack.enabled }}
   - LocalStack SQS (localstack-sqs)
 {{- end }}
 {{- if .Values.sampleStorage.s3Localstack.enabled }}
   - LocalStack S3 (s3-localstack)
 {{- end }}
-{{- if .Values.sampleTransports.rabbitmq.enabled }}
+{{- if .Values.sampleTransport.rabbitmq.enabled }}
   - RabbitMQ
 {{- end }}
 {{- if .Values.sampleStorage.minio.enabled }}
@@ -60,7 +60,7 @@ Next steps:
    kubectl run rabbitmq-client --rm -i --restart=Never --image=alpine \
      --command -- sh -c "
        apk add --no-cache curl && \
-       curl -u {{ .Values.sampleTransports.rabbitmq.auth.username }}:{{ .Values.sampleTransports.rabbitmq.auth.password }} \
+       curl -u {{ .Values.sampleTransport.rabbitmq.auth.username }}:{{ .Values.sampleTransport.rabbitmq.auth.password }} \
          -X POST http://rabbitmq.{{ .Release.Namespace }}:15672/api/exchanges/%2F/asya/publish \
          -H 'Content-Type: application/json' \
          -d '{\"properties\":{},\"routing_key\":\"asya.{{ .Release.Namespace }}.{{ .Values.helloActor.name }}\",\"payload\":\"{\\\"id\\\":\\\"test-1\\\",\\\"route\\\":{\\\"actors\\\":[\\\"{{ .Values.helloActor.name }}\\\"],\\\"current\\\":0},\\\"payload\\\":{\\\"name\\\":\\\"Asya\\\"}}\",\"payload_encoding\":\"string\"}'
