@@ -11,6 +11,7 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SYMLINK_MAPPINGS=(
   "src/asya-runtime/asya_runtime.py|src/asya-operator/internal/controller/runtime_symlink/asya_runtime.py testing/integration/operator/testdata/runtime_symlink/asya_runtime.py"
   "src/asya-operator/config/crd/asya.sh_asyncactors.yaml|deploy/helm-charts/asya-operator/crds/asya.sh_asyncactors.yaml"
+  "deploy/grafana-dashboards/asya-actors-overview.json|deploy/helm-charts/asya-playground/files/asya-actors-overview.json"
 )
 
 EXIT_CODE=0
