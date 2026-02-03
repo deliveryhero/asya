@@ -1,5 +1,5 @@
 apiVersion: v2
-name: asya-playground
+name: asya-quickstart
 description: Full demo package showing Asya🎭 in action with sample actors, flows, and load testing
 type: application
 version: 0.1.0
