@@ -15,7 +15,7 @@ keywords:
 maintainers:
 - name: Asya Team
 
-# Local dependencies (for development/testing with unpublished chart versions)
+# Remote dependencies (from published Helm repository)
 dependencies:
 - name: asya-operator
   version: ">=0.4.0"

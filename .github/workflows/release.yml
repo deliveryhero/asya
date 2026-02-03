@@ -129,13 +129,21 @@ jobs:
           sed -i "s/^appVersion:.*/appVersion: \"${VERSION}\"/" "$chart"
         done
 
-    - name: Package Helm charts
+    - name: Package base Helm charts
       run: |
         mkdir -p .deploy/charts
+        # Package all charts except asya-playground (it depends on the others)
         for chart_dir in deploy/helm-charts/*/; do
-          echo "Packaging ${chart_dir}..."
+          chart_name=$(basename "$chart_dir")
+          if [ "$chart_name" = "asya-playground" ]; then
+            echo "[.] Skipping ${chart_name} (will package after dependencies are published)"
+            continue
+          fi
+          echo "[.] Packaging ${chart_dir}..."
           helm package "${chart_dir}" -d .deploy/charts
         done
+        echo "[+] Packaged charts:"
+        ls -la .deploy/charts/
 
     - name: Checkout gh-pages
       uses: actions/checkout@v4
@@ -143,20 +151,61 @@ jobs:
         ref: gh-pages
         path: gh-pages
 
-    - name: Update Helm repository
+    - name: Publish base charts to gh-pages
       run: |
         mkdir -p gh-pages/charts
-        cp .deploy/charts/*.tgz gh-pages/charts/ || true
+        echo "[.] Copying base charts to gh-pages..."
+        cp .deploy/charts/*.tgz gh-pages/charts/
+        echo "[.] Updating Helm repository index..."
         helm repo index gh-pages/charts --url https://asya.sh/charts
+        echo "[+] Charts in gh-pages/charts:"
+        ls -la gh-pages/charts/
 
-    - name: Deploy to gh-pages
+    - name: Deploy base charts to gh-pages
       working-directory: gh-pages
       run: |
         git config user.name github-actions[bot]
         git config user.email 41898282+github-actions[bot]@users.noreply.github.com
         git add charts/
-        git commit -m "Publish Helm charts for ${{ github.event.release.tag_name }}" || exit 0
-        git push
+        if git diff --staged --quiet; then
+          echo "[!] No changes to commit"
+        else
+          git commit -m "Publish Helm charts for ${{ github.event.release.tag_name }}"
+          git push
+          echo "[+] Base charts published"
+        fi
+
+    - name: Package asya-playground with published dependencies
+      run: |
+        # Add the freshly published repo
+        helm repo add asya https://asya.sh/charts
+        helm repo update
+
+        # Build dependencies for asya-playground (now available from remote)
+        echo "[.] Building asya-playground dependencies..."
+        helm dependency build deploy/helm-charts/asya-playground
+
+        # Package asya-playground
+        echo "[.] Packaging asya-playground..."
+        helm package deploy/helm-charts/asya-playground -d .deploy/charts
+
+        # Copy to gh-pages and update index
+        cp .deploy/charts/asya-playground-*.tgz gh-pages/charts/
+        helm repo index gh-pages/charts --url https://asya.sh/charts
+        echo "[+] All charts packaged:"
+        ls -la gh-pages/charts/
+
+    - name: Deploy asya-playground to gh-pages
+      working-directory: gh-pages
+      run: |
+        git add charts/
+        if git diff --staged --quiet; then
+          echo "[!] No changes to commit"
+        else
+          git commit -m "Publish asya-playground for ${{ github.event.release.tag_name }}"
+          git push
+          echo "[+] asya-playground published"
+        fi
 
     - name: Add Helm charts to release summary
       run: |
