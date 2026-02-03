@@ -133,9 +133,18 @@ jobs:
       run: |
         mkdir -p .deploy/charts
         for chart_dir in deploy/helm-charts/*/; do
-          echo "Packaging ${chart_dir}..."
+          echo "[.] Packaging ${chart_dir}..."
           helm package "${chart_dir}" -d .deploy/charts
         done
+
+        # Verify charts were packaged
+        chart_count=$(find .deploy/charts -name "*.tgz" | wc -l)
+        echo "[+] Packaged ${chart_count} charts"
+        if [ "${chart_count}" -eq 0 ]; then
+          echo "[-] No charts were packaged"
+          exit 1
+        fi
+        ls -la .deploy/charts/
 
     - name: Checkout gh-pages
       uses: actions/checkout@v4
@@ -146,8 +155,9 @@ jobs:
     - name: Update Helm repository
       run: |
         mkdir -p gh-pages/charts
-        cp .deploy/charts/*.tgz gh-pages/charts/ || true
+        cp .deploy/charts/*.tgz gh-pages/charts/
         helm repo index gh-pages/charts --url https://asya.sh/charts
+        echo "[+] Updated Helm repository index"
 
     - name: Deploy to gh-pages
       working-directory: gh-pages
@@ -155,8 +165,13 @@ jobs:
         git config user.name github-actions[bot]
         git config user.email 41898282+github-actions[bot]@users.noreply.github.com
         git add charts/
-        git commit -m "Publish Helm charts for ${{ github.event.release.tag_name }}" || exit 0
-        git push
+        if git diff --cached --quiet; then
+          echo "[!] No changes to commit (charts already published)"
+        else
+          git commit -m "Publish Helm charts for ${{ github.event.release.tag_name }}"
+          git push
+          echo "[+] Published charts to gh-pages"
+        fi
 
     - name: Add Helm charts to release summary
       run: |
