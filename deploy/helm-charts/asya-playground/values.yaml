@@ -149,6 +149,12 @@ sampleStorage:
         cpu: 500m
         memory: 512Mi
 
+sampleMonitoring:
+  # Prometheus + Grafana stack (demo/development only)
+  # For production: Set enabled: false and use your existing monitoring infrastructure
+  # When enabled, deploys kube-prometheus-stack with pre-configured Asya dashboards
+  enabled: false
+
 sampleGatewayDb:
   # PostgreSQL for gateway (sample deployment)
   # For production: Set enabled: false and configure asya-gateway.externalDatabase below
@@ -324,3 +330,71 @@ asya-gateway:
     database: asya_gateway
     username: asya
     password: asya-db-password
+
+# Prometheus + Grafana configuration (passed to kube-prometheus-stack chart)
+# Only used when sampleMonitoring.enabled: true
+# Minimal configuration optimized for local development
+kube-prometheus-stack:
+  # Prometheus configuration
+  prometheus:
+    prometheusSpec:
+      # Scrape all ServiceMonitors in all namespaces
+      serviceMonitorSelectorNilUsesHelmValues: false
+      podMonitorSelectorNilUsesHelmValues: false
+      # Reduce resource usage for local development
+      resources:
+        requests:
+          cpu: 100m
+          memory: 256Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+      # Minimal retention for demos
+      retention: 24h
+      retentionSize: 1GB
+
+  # Grafana configuration
+  grafana:
+    # Admin credentials for local development
+    adminPassword: asya-admin
+    # Enable sidecar for dashboard auto-discovery
+    sidecar:
+      dashboards:
+        enabled: true
+        searchNamespace: ALL
+        # Look for ConfigMaps with this label
+        label: grafana_dashboard
+        labelValue: "1"
+        folderAnnotation: grafana_folder
+        provider:
+          foldersFromFilesStructure: true
+    # Reduce resource usage
+    resources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
+      limits:
+        cpu: 200m
+        memory: 256Mi
+
+  # Disable components not needed for Asya demos
+  alertmanager:
+    enabled: false
+  kubeStateMetrics:
+    enabled: true
+  nodeExporter:
+    enabled: false
+  kubeApiServer:
+    enabled: false
+  kubelet:
+    enabled: false
+  kubeControllerManager:
+    enabled: false
+  coreDns:
+    enabled: false
+  kubeEtcd:
+    enabled: false
+  kubeScheduler:
+    enabled: false
+  kubeProxy:
+    enabled: false

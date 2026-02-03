@@ -41,3 +41,8 @@ dependencies:
   version: "0.0.0"
   repository: "file://../asya-gateway"
   condition: gateway.enabled
+# Optional: Prometheus + Grafana monitoring stack
+- name: kube-prometheus-stack
+  version: ">=65.0.0"
+  repository: "https://prometheus-community.github.io/helm-charts"
+  condition: sampleMonitoring.enabled

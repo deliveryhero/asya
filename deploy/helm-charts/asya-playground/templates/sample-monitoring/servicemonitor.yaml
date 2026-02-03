@@ -1,0 +1,21 @@
+{{- if .Values.sampleMonitoring.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: asya-actors
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: asya-actors
+    app.kubernetes.io/part-of: asya
+spec:
+  selector:
+    matchLabels:
+      asya.sh/metrics: "true"
+  namespaceSelector:
+    matchNames:
+    - {{ .Release.Namespace }}
+  endpoints:
+  - port: metrics
+    interval: 15s
+    path: /metrics
+{{- end }}
