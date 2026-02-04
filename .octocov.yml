@@ -57,13 +57,13 @@ comment:
 diff:
   if: is_pull_request
   datastores:
-  - github://${GITHUB_REPOSITORY}@octocov
+  - github://deliveryhero/asya@octocov
   path: report.json
 
 summary:
   if: is_default_branch
   datastores:
-  - github://${GITHUB_REPOSITORY}@octocov
+  - github://deliveryhero/asya@octocov
   path: report.json
 
 # Store reports on dedicated octocov branch for baseline comparison
@@ -72,7 +72,7 @@ summary:
 report:
   if: is_default_branch
   datastores:
-  - github://${GITHUB_REPOSITORY}@octocov
+  - github://deliveryhero/asya@octocov
   path: report.json
 
 codeToTestRatio:
