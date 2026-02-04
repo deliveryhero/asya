@@ -76,7 +76,6 @@ report:
   path: report.json
 
 codeToTestRatio:
-  acceptable: 1:1.2
   code:
   - '**/*.go'
   - '**/*.py'
@@ -99,9 +98,9 @@ testExecutionTime:
   - "Run E2E tests.*"
 
 # Set coverage thresholds
-# - current >= 75%: Overall coverage must be at least 75%
 acceptable:
   coverage: current >= 50%
+  codeToTestRatio: 1:1.2
 
 # Push metrics and badges to artifact storage
 # Disabled: Using artifact datastore instead of git push
