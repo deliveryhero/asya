@@ -449,6 +449,7 @@ jobs:
       with:
         github-token: ${{ github.token }}
         config: .octocov.yml
+        args: "-v"
       env:
         GITHUB_REPOSITORY: ${{ github.repository }}
 
