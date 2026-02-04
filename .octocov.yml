@@ -56,24 +56,19 @@ comment:
 
 diff:
   if: is_pull_request
-  datastores:
-  - github://deliveryhero/asya@octocov
-  path: report.json
 
 summary:
   if: is_default_branch
-  datastores:
-  - github://deliveryhero/asya@octocov
-  path: report.json
 
 # Store reports on dedicated octocov branch for baseline comparison
 # Uses github:// datastore which persists across workflow runs
 # Branch is separate from gh-pages to avoid public exposure
-report:
-  if: is_default_branch
-  datastores:
-  - github://deliveryhero/asya@octocov
-  path: report.json
+# TODO: Re-enable after diagnosing github:// datastore issue
+# report:
+#   if: is_default_branch
+#   datastores:
+#   - github://deliveryhero/asya@octocov
+#   path: report.json
 
 codeToTestRatio:
   code:
