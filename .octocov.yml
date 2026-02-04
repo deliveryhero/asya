@@ -54,24 +54,25 @@ comment:
 
     **Legend:** `+` increase | `-` decrease | `~` no change
 
-# Diff comparison for PRs - optional baseline
-# On first run, octocov branch won't exist yet, so skip error gracefully
+# Diff comparison for PRs - uses artifact datastore
+# Reports are generated during PR and compared against last main run
 diff:
   if: is_pull_request
+  datastores:
+  - artifact://${GITHUB_REPOSITORY}
+  path: report.json
 
 summary:
   if: is_default_branch
-  datastores:
-  - github://deliveryhero/asya@octocov
   path: report.json
 
-# Store reports on dedicated octocov branch for baseline comparison
-# Uses github:// datastore which persists across workflow runs
-# Branch is separate from gh-pages to avoid public exposure
+# Store reports for main branch - uses artifact datastore
+# Note: Artifact datastore doesn't persist across runs, but manual git push
+# in CI workflow persists reports to octocov branch for future comparisons
 report:
   if: is_default_branch
   datastores:
-  - github://deliveryhero/asya@octocov
+  - artifact://${GITHUB_REPOSITORY}
   path: report.json
 
 codeToTestRatio:

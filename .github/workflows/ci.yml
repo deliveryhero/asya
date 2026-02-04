@@ -455,10 +455,10 @@ jobs:
     - name: Verify report storage
       if: github.ref == 'refs/heads/main'
       run: |
-        echo "[.] Verifying coverage report was pushed to octocov branch..."
-        if git fetch origin octocov --depth=1 2>/dev/null; then
-          echo "[+] octocov branch exists"
-          git ls-tree origin/octocov --name-only 2>/dev/null | head -10 || echo "[!] Cannot list branch contents"
+        echo "[.] Verifying coverage report was generated..."
+        if [ -f report.json ]; then
+          echo "[+] report.json exists locally"
+          ls -lh report.json
         else
-          echo "[!] octocov branch not found (will be created on first main branch run)"
+          echo "[!] report.json not found"
         fi
