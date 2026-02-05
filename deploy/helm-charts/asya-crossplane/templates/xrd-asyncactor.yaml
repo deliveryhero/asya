@@ -73,7 +73,25 @@ spec:
 
                 workload:
                   type: object
-                  description: Workload template (Crossplane manages the Deployment)
+                  description: |
+                    Workload template (Crossplane manages the Deployment).
+                    Must contain exactly one container named 'asya-runtime' without 'command' defined.
+                  x-kubernetes-preserve-unknown-fields: true
+                  x-kubernetes-validations:
+                    # Must have template.spec.containers
+                    - rule: "has(self.template) && has(self.template.spec) && has(self.template.spec.containers)"
+                      message: "workload must have template.spec.containers"
+                    # Exactly one container named 'asya-runtime'
+                    - rule: "self.template.spec.containers.filter(c, c.name == 'asya-runtime').size() == 1"
+                      message: "workload must have exactly one container named 'asya-runtime'"
+                    # asya-runtime must NOT have 'command' (injected by operator)
+                    - rule: "self.template.spec.containers.filter(c, c.name == 'asya-runtime').all(c, !has(c.command) || c.command.size() == 0)"
+                      message: "asya-runtime container must not define 'command' (injected by operator)"
+                    # TODO: More validations planned
+                    # - No container named 'asya-sidecar' (reserved)
+                    # - Must have ASYA_HANDLER env var
+                    # - No forbidden env vars (ASYA_SOCKET_DIR, etc.)
+                    # - No forbidden mounts (/opt/asya/*)
                   properties:
                     kind:
                       type: string
@@ -81,49 +99,6 @@ spec:
                         - Deployment
                         - StatefulSet
                       default: Deployment
-                    template:
-                      type: object
-                      description: Pod template specification
-                      properties:
-                        spec:
-                          type: object
-                          x-kubernetes-preserve-unknown-fields: true
-                          properties:
-                            containers:
-                              type: array
-                              items:
-                                type: object
-                                properties:
-                                  name:
-                                    type: string
-                                  image:
-                                    type: string
-                                  env:
-                                    type: array
-                                    items:
-                                      type: object
-                                      x-kubernetes-preserve-unknown-fields: true
-                                  resources:
-                                    type: object
-                                    x-kubernetes-preserve-unknown-fields: true
-                                  volumeMounts:
-                                    type: array
-                                    items:
-                                      type: object
-                                      x-kubernetes-preserve-unknown-fields: true
-                            volumes:
-                              type: array
-                              items:
-                                type: object
-                                x-kubernetes-preserve-unknown-fields: true
-                            nodeSelector:
-                              type: object
-                              x-kubernetes-preserve-unknown-fields: true
-                            tolerations:
-                              type: array
-                              items:
-                                type: object
-                                x-kubernetes-preserve-unknown-fields: true
 
                 workloadRef:
                   type: object
