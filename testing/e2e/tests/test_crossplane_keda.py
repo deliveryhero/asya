@@ -10,18 +10,20 @@ Actual scaling behavior is tested in test_keda_scaling.py (operator-based).
 """
 
 import subprocess
+from pathlib import Path
 import yaml
 import pytest
 
-# Path to the Helm chart
-CHART_PATH = "deploy/helm-charts/asya-crossplane"
+# Path to the Helm chart (relative to repo root)
+REPO_ROOT = Path(__file__).parent.parent.parent.parent
+CHART_PATH = REPO_ROOT / "deploy/helm-charts/asya-crossplane"
 
 
-def helm_template(values_file: str | None = None) -> list[dict]:
+def helm_template(values_file: str | Path | None = None) -> list[dict]:
     """Render Helm chart and return parsed YAML documents."""
-    cmd = ["helm", "template", "test", CHART_PATH]
+    cmd = ["helm", "template", "test", str(CHART_PATH)]
     if values_file:
-        cmd.extend(["-f", values_file])
+        cmd.extend(["-f", str(values_file)])
 
     result = subprocess.run(cmd, capture_output=True, text=True)
     if result.returncode != 0:
@@ -66,7 +68,7 @@ class TestCrossplaneHelmTemplateValidation:
 
     def test_helm_template_localstack_values(self):
         """Test helm template renders with LocalStack values."""
-        docs = helm_template(f"{CHART_PATH}/values-localstack.yaml")
+        docs = helm_template(CHART_PATH / "values-localstack.yaml")
         assert len(docs) > 0, "Should render with LocalStack values"
 
 
@@ -84,7 +86,7 @@ class TestCompositionSqsKedaSteps:
     @pytest.fixture
     def composition_localstack(self) -> dict:
         """Get the SQS composition with LocalStack values."""
-        docs = helm_template(f"{CHART_PATH}/values-localstack.yaml")
+        docs = helm_template(CHART_PATH / "values-localstack.yaml")
         comp = find_composition(docs, "asyncactor-sqs")
         assert comp is not None, "asyncactor-sqs Composition should exist"
         return comp
@@ -209,7 +211,7 @@ class TestValuesConfiguration:
 
     def test_default_keda_auth_provider(self):
         """Test default KEDA authentication provider is podIdentity."""
-        with open(f"{CHART_PATH}/values.yaml") as f:
+        with open(CHART_PATH / "values.yaml") as f:
             values = yaml.safe_load(f)
 
         keda = values.get("keda", {})
@@ -218,7 +220,7 @@ class TestValuesConfiguration:
 
     def test_localstack_keda_auth_provider(self):
         """Test LocalStack uses secret-based authentication."""
-        with open(f"{CHART_PATH}/values-localstack.yaml") as f:
+        with open(CHART_PATH / "values-localstack.yaml") as f:
             values = yaml.safe_load(f)
 
         keda = values.get("keda", {})
@@ -227,7 +229,7 @@ class TestValuesConfiguration:
 
     def test_localstack_secret_configuration(self):
         """Test LocalStack secret configuration is complete."""
-        with open(f"{CHART_PATH}/values-localstack.yaml") as f:
+        with open(CHART_PATH / "values-localstack.yaml") as f:
             values = yaml.safe_load(f)
 
         secret_ref = values.get("keda", {}).get("secretRef", {})
@@ -237,7 +239,7 @@ class TestValuesConfiguration:
 
     def test_irsa_disabled_for_localstack(self):
         """Test IRSA is disabled for LocalStack."""
-        with open(f"{CHART_PATH}/values-localstack.yaml") as f:
+        with open(CHART_PATH / "values-localstack.yaml") as f:
             values = yaml.safe_load(f)
 
         irsa = values.get("irsa", {})
