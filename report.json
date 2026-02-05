@@ -1,7 +1,7 @@
 {
   "repository": "deliveryhero/asya",
   "ref": "refs/heads/main",
-  "commit": "8cfc6057488ca6e3552082cf3e4ab9be00116269",
+  "commit": "12e567e8d8c268af432647af52294df4cfa4836c",
   "coverage": {
     "type": "merged",
     "format": "Go coverage",
@@ -29069,7 +29069,7 @@
             "end_line": 174,
             "end_col": 3,
             "num_stmt": 1,
-            "count": 1
+            "count": 0
           },
           {
             "type": "statement",
@@ -33440,6 +33440,6 @@
       }
     ]
   },
-  "test_execution_time": 215000000000,
-  "timestamp": "2026-02-05T00:44:15.84643853Z"
+  "test_execution_time": 228000000000,
+  "timestamp": "2026-02-05T23:09:58.18628029Z"
 }
