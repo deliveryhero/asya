@@ -129,6 +129,18 @@ spec:
                   description: Name of the AWS ProviderConfig to use
                   default: default
 
+                irsa:
+                  type: object
+                  description: IRSA (IAM Roles for Service Accounts) configuration
+                  properties:
+                    enabled:
+                      type: boolean
+                      description: Enable ServiceAccount with IRSA annotation
+                      default: true
+                    roleArn:
+                      type: string
+                      description: IAM role ARN for the ServiceAccount (overrides default pattern)
+
             status:
               type: object
               properties:
@@ -136,7 +148,7 @@ spec:
                   type: string
                   description: |
                     Current phase of the AsyncActor.
-                    Values: Ready, Creating, Degraded, Failed
+                    Values: Ready, Creating, Running, Napping, Degraded, Failed
                 queueUrl:
                   type: string
                   description: URL of the SQS queue
@@ -154,6 +166,30 @@ spec:
                         ready:
                           type: boolean
                           description: Whether the queue is ready
+                        message:
+                          type: string
+                    keda:
+                      type: object
+                      description: KEDA ScaledObject status
+                      properties:
+                        ready:
+                          type: boolean
+                          description: Whether the ScaledObject is ready
+                        message:
+                          type: string
+                    workload:
+                      type: object
+                      description: Deployment/StatefulSet status
+                      properties:
+                        ready:
+                          type: boolean
+                          description: Whether the workload is ready
+                        replicas:
+                          type: integer
+                          description: Total desired replicas
+                        readyReplicas:
+                          type: integer
+                          description: Number of ready replicas
       additionalPrinterColumns:
         - name: Status
           type: string

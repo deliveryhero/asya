@@ -54,13 +54,11 @@ comment:
 
     **Legend:** `+` increase | `-` decrease | `~` no change
 
-# Diff comparison for PRs - uses artifact datastore
-# Reports are generated during PR and compared against last main run
+# Diff comparison for PRs
+# Note: Manual baseline persistence via git means octocov doesn't see previous reports
+# We manage baseline via workflow step (fetching from octocov branch) for future enhancement
 diff:
   if: is_pull_request
-  datastores:
-  - artifact://${GITHUB_REPOSITORY}
-  path: report.json
 
 summary:
   if: is_default_branch
@@ -99,9 +97,7 @@ testExecutionTime:
 
 # Set coverage thresholds
 acceptable:
-  coverage:
-  - current >= 50%
-  - diff >= 0
+  coverage: current >= 50%
   codeToTestRatio: 1:1.2
 
 # Push metrics and badges to artifact storage
