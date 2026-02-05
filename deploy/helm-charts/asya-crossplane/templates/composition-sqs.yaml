@@ -66,3 +66,37 @@ spec:
               - type: ToCompositeFieldPath
                 fromFieldPath: status.atProvider.arn
                 toFieldPath: status.queueArn
+
+    # Derive phase and infrastructure status from composed resources
+    - step: derive-status
+      functionRef:
+        name: function-go-templating
+      input:
+        apiVersion: gotemplating.fn.crossplane.io/v1beta1
+        kind: GoTemplate
+        source: Inline
+        inline:
+          template: |
+            {{`{{- $xr := .observed.composite.resource -}}`}}
+            {{`{{- $sqsQueue := index .observed.resources "sqs-queue" -}}`}}
+            {{`{{- $queueReady := false -}}`}}
+            {{`{{- if $sqsQueue -}}`}}
+              {{`{{- if $sqsQueue.resource.status -}}`}}
+                {{`{{- range $sqsQueue.resource.status.conditions -}}`}}
+                  {{`{{- if and (eq .type "Ready") (eq .status "True") -}}`}}
+                    {{`{{- $queueReady = true -}}`}}
+                  {{`{{- end -}}`}}
+                {{`{{- end -}}`}}
+              {{`{{- end -}}`}}
+            {{`{{- end -}}`}}
+            {{`{{- $phase := "Creating" -}}`}}
+            {{`{{- if $queueReady -}}`}}
+              {{`{{- $phase = "Ready" -}}`}}
+            {{`{{- end -}}`}}
+            apiVersion: asya.sh/v1alpha1
+            kind: XAsyncActor
+            status:
+              phase: {{`{{ $phase }}`}}
+              infrastructure:
+                queue:
+                  ready: {{`{{ $queueReady }}`}}

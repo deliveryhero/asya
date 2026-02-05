@@ -134,23 +134,33 @@ spec:
               properties:
                 phase:
                   type: string
-                  description: Current phase of the AsyncActor
+                  description: |
+                    Current phase of the AsyncActor.
+                    Values: Ready, Creating, Degraded, Failed
                 queueUrl:
                   type: string
                   description: URL of the SQS queue
                 queueArn:
                   type: string
                   description: ARN of the SQS queue
+                infrastructure:
+                  type: object
+                  description: Status of infrastructure components
+                  properties:
+                    queue:
+                      type: object
+                      description: SQS Queue status
+                      properties:
+                        ready:
+                          type: boolean
+                          description: Whether the queue is ready
       additionalPrinterColumns:
+        - name: Status
+          type: string
+          jsonPath: .status.phase
         - name: Transport
           type: string
           jsonPath: .spec.transport
-        - name: Phase
-          type: string
-          jsonPath: .status.phase
-        - name: Queue
-          type: string
-          jsonPath: .status.queueUrl
         - name: Age
           type: date
           jsonPath: .metadata.creationTimestamp
