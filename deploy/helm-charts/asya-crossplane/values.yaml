@@ -45,3 +45,23 @@ awsRegion: us-east-1
 
 # Namespace where AsyncActors will be created
 actorNamespace: asya-e2e
+
+# IRSA (IAM Roles for Service Accounts) configuration
+irsa:
+  # Enable ServiceAccount creation with IRSA annotation
+  enabled: true
+  # ServiceAccount name (shared per namespace)
+  serviceAccountName: asya-actors
+  # IAM role ARN pattern - {namespace} will be replaced with actual namespace
+  # For production, set this to your actual IAM role ARN pattern
+  roleArnPattern: "arn:aws:iam::ACCOUNT_ID:role/asya-actors-{namespace}"
+
+# KEDA authentication configuration
+keda:
+  # TriggerAuthentication provider type: "podIdentity" or "secret"
+  authProvider: podIdentity
+  # For secret-based auth, specify the secret reference
+  secretRef:
+    name: ""
+    accessKeyIdKey: AWS_ACCESS_KEY_ID
+    secretAccessKeyKey: AWS_SECRET_ACCESS_KEY

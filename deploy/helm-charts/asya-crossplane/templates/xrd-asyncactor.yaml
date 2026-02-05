@@ -129,6 +129,18 @@ spec:
                   description: Name of the AWS ProviderConfig to use
                   default: default
 
+                irsa:
+                  type: object
+                  description: IRSA (IAM Roles for Service Accounts) configuration
+                  properties:
+                    enabled:
+                      type: boolean
+                      description: Enable ServiceAccount with IRSA annotation
+                      default: true
+                    roleArn:
+                      type: string
+                      description: IAM role ARN for the ServiceAccount (overrides default pattern)
+
             status:
               type: object
               properties:
@@ -141,6 +153,33 @@ spec:
                 queueArn:
                   type: string
                   description: ARN of the SQS queue
+                infrastructure:
+                  type: object
+                  description: Status of infrastructure components
+                  properties:
+                    queue:
+                      type: object
+                      properties:
+                        ready:
+                          type: boolean
+                        message:
+                          type: string
+                    keda:
+                      type: object
+                      properties:
+                        ready:
+                          type: boolean
+                        message:
+                          type: string
+                    workload:
+                      type: object
+                      properties:
+                        ready:
+                          type: boolean
+                        replicas:
+                          type: integer
+                        readyReplicas:
+                          type: integer
       additionalPrinterColumns:
         - name: Transport
           type: string

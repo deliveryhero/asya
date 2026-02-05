@@ -17,3 +17,15 @@ awsProviderConfig:
   s3UsePathStyle: true
 
 awsRegion: us-east-1
+
+# IRSA disabled for LocalStack (no IAM integration)
+irsa:
+  enabled: false
+
+# KEDA uses secret-based auth for LocalStack
+keda:
+  authProvider: secret
+  secretRef:
+    name: aws-creds
+    accessKeyIdKey: AWS_ACCESS_KEY_ID
+    secretAccessKeyKey: AWS_SECRET_ACCESS_KEY
