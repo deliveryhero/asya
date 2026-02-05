@@ -1,0 +1,48 @@
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "2"
+
+services:
+  s3:
+    image: localstack/localstack:latest
+    logging: *default-logging
+    environment:
+    - SERVICES=s3
+    - DEBUG=0
+    - PERSISTENCE=0
+    - AWS_DEFAULT_REGION=us-east-1
+    - AWS_ACCESS_KEY_ID=test
+    - AWS_SECRET_ACCESS_KEY=test
+    healthcheck:
+      test: ["CMD", "awslocal", "s3", "ls"]
+      interval: 5s
+      timeout: 15s
+      retries: 15
+      start_period: 10s
+
+  storage-setup:
+    image: localstack/localstack:latest
+    logging: *default-logging
+    depends_on:
+      s3:
+        condition: service_healthy
+    environment:
+    - AWS_DEFAULT_REGION=us-east-1
+    - AWS_ACCESS_KEY_ID=test
+    - AWS_SECRET_ACCESS_KEY=test
+    - AWS_ENDPOINT_URL=http://s3:4566
+    volumes:
+    - ./configs/s3-buckets.txt:/tmp/s3-buckets.txt:ro
+    healthcheck:
+      disable: true
+    entrypoint: >
+      /bin/sh -c "
+      while IFS= read -r bucket || [ -n \"$$bucket\" ]; do
+        [ -z \"$$bucket\" ] && continue;
+        case \"$$bucket\" in '#'*) continue;; esac;
+        awslocal s3 mb \"s3://$$bucket\" --endpoint-url http://s3:4566 || true;
+      done < /tmp/s3-buckets.txt;
+      echo 'S3 buckets created successfully';
+      "

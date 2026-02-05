@@ -1,0 +1,115 @@
+# Test profile (values.yaml file): SQS + S3
+#
+# Tests SQS message transport with S3 object storage
+# (using LocalStack for both SQS and S3 emulation in E2E environment)
+
+namespace: asya-e2e
+
+transport:
+  rabbitmq:
+    enabled: false
+  sqs:
+    enabled: true
+
+storage:
+  minio:
+    enabled: false
+  s3:
+    enabled: true
+
+actors:
+  namespace: asya-e2e
+  transport: sqs
+  storage:
+    type: s3
+    endpoint: http://localstack-s3.asya-system.svc.cluster.local:4566
+    bucket: asya-results
+    resultsBucket: asya-results
+    errorsBucket: asya-errors
+    region: us-east-1
+    accessKey: test
+    secretKey: test
+
+crew:
+  image:
+    tag: latest
+    pullPolicy: Never
+  happy-end:
+    transport: sqs
+    env:
+      ASYA_GATEWAY_URL: "http://asya-gateway.asya-e2e.svc.cluster.local:8080"
+      ASYA_S3_BUCKET: "asya-results"
+      ASYA_S3_ENDPOINT: "http://localstack-s3.asya-system.svc.cluster.local:4566"
+      ASYA_S3_REGION: "us-east-1"
+      AWS_ACCESS_KEY_ID: "test"
+      AWS_SECRET_ACCESS_KEY: "test"
+      ASYA_S3_RESULTS_PREFIX: ""
+    scaling:
+      enabled: true
+      minReplicas: 1
+  error-end:
+    transport: sqs
+    env:
+      ASYA_GATEWAY_URL: "http://asya-gateway.asya-e2e.svc.cluster.local:8080"
+      ASYA_S3_BUCKET: "asya-errors"
+      ASYA_S3_ENDPOINT: "http://localstack-s3.asya-system.svc.cluster.local:4566"
+      ASYA_S3_REGION: "us-east-1"
+      AWS_ACCESS_KEY_ID: "test"
+      AWS_SECRET_ACCESS_KEY: "test"
+      ASYA_S3_ERRORS_PREFIX: ""
+    scaling:
+      enabled: true
+      minReplicas: 1
+
+gateway:
+  routes:
+    defaults:
+      progress: true
+      timeout: 60
+  transports:
+    rabbitmq:
+      enabled: false
+    sqs:
+      enabled: true
+      config:
+        endpoint: "http://localstack-sqs.asya-system.svc.cluster.local:4566"
+        region: "us-east-1"
+        visibilityTimeout: 300
+        waitTimeSeconds: 20
+  env:
+  - name: AWS_ACCESS_KEY_ID
+    value: "test"
+  - name: AWS_SECRET_ACCESS_KEY
+    value: "test"
+  - name: AWS_REGION
+    value: "us-east-1"
+
+operator:
+  gatewayURL: http://asya-gateway.asya-e2e.svc.cluster.local:8080
+  transports:
+    rabbitmq:
+      enabled: false
+      type: rabbitmq
+    sqs:
+      enabled: true
+      type: sqs
+      config:
+        region: us-east-1
+        accountId: "000000000000"
+        endpoint: http://localstack-sqs.asya-system.svc.cluster.local:4566
+        actorRoleArn: ""
+        visibilityTimeout: 300
+        waitTimeSeconds: 1
+        queues:
+          autoCreate: true
+          dlq:
+            enabled: true
+            maxRetryCount: 3
+            retentionDays: 14
+        credentials:
+          accessKeyIdSecretRef:
+            name: sqs-secret
+            key: access-key-id
+          secretAccessKeySecretRef:
+            name: sqs-secret
+            key: secret-access-key

@@ -1,0 +1,83 @@
+# Profile: SQS
+#
+# This configuration uses SQS (LocalStack) for message transport
+#
+# Usage: docker compose -f profiles/sqs.yml up
+
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "2"
+
+include:
+- path: ../compose/actors.yml
+
+services:
+  sqs:
+    image: localstack/localstack:latest
+    logging: *default-logging
+    networks:
+      default:
+        aliases:
+        - localstack
+    environment:
+    - SERVICES=sqs
+    - DEBUG=0
+    - PERSISTENCE=0
+    - AWS_DEFAULT_REGION=us-east-1
+    - AWS_ACCESS_KEY_ID=test
+    - AWS_SECRET_ACCESS_KEY=test
+    healthcheck:
+      test: ["CMD", "awslocal", "sqs", "list-queues"]
+      interval: 5s
+      timeout: 15s
+      retries: 15
+      start_period: 10s
+
+  queue-setup:
+    image: localstack/localstack:latest
+    logging: *default-logging
+    depends_on:
+      sqs:
+        condition: service_healthy
+    environment:
+    - AWS_DEFAULT_REGION=us-east-1
+    - AWS_ACCESS_KEY_ID=test
+    - AWS_SECRET_ACCESS_KEY=test
+    - AWS_ENDPOINT_URL=http://sqs:4566
+    volumes:
+    - ../configs/sqs-queues.txt:/tmp/sqs-queues.txt:ro
+    healthcheck:
+      test:
+      - CMD
+      - sh
+      - -c
+      - |
+        awslocal sqs list-queues --endpoint-url http://sqs:4566 | grep -q asya-happy-end &&
+        awslocal sqs list-queues --endpoint-url http://sqs:4566 | grep -q asya-error-end
+      interval: 2s
+      timeout: 5s
+      retries: 30
+      start_period: 5s
+    entrypoint: >
+      /bin/sh -c "
+      while IFS= read -r queue || [ -n \"$$queue\" ]; do
+        [ -z \"$$queue\" ] && continue;
+        case \"$$queue\" in '#'*) continue;; esac;
+        awslocal sqs create-queue --queue-name \"$$queue\" --endpoint-url http://sqs:4566 || true;
+      done < /tmp/sqs-queues.txt;
+      echo '[+] SQS queues created successfully';
+      "
+  tester:
+    extends:
+      file: ../compose/tester.yml
+      service: tester
+    env_file: .env.sqs
+    environment:
+      ASYA_TRANSPORT: sqs
+    depends_on:
+      queue-setup:
+        condition: service_completed_successfully
+      test-actors-waiter:
+        condition: service_completed_successfully

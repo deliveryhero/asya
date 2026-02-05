@@ -1,0 +1,91 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: asyncactor-sqs
+  labels:
+    {{- include "asya-crossplane.labels" . | nindent 4 }}
+    crossplane.io/xrd: xasyncactors.asya.sh
+    asya.sh/transport: sqs
+spec:
+  compositeTypeRef:
+    apiVersion: asya.sh/v1alpha1
+    kind: XAsyncActor
+  mode: Pipeline
+  pipeline:
+    - step: patch-and-transform
+      functionRef:
+        name: function-patch-and-transform
+      input:
+        apiVersion: pt.fn.crossplane.io/v1beta1
+        kind: Resources
+        resources:
+          # SQS Queue for the actor
+          - name: sqs-queue
+            base:
+              apiVersion: sqs.aws.upbound.io/v1beta1
+              kind: Queue
+              spec:
+                forProvider:
+                  visibilityTimeoutSeconds: 30
+                  messageRetentionSeconds: 345600
+                  receiveWaitTimeSeconds: 20
+                deletionPolicy: Delete
+            patches:
+              # Queue name: asya-{namespace}-{actorName}
+              - type: CombineFromComposite
+                combine:
+                  variables:
+                    - fromFieldPath: metadata.labels["crossplane.io/claim-namespace"]
+                    - fromFieldPath: spec.actorName
+                  strategy: string
+                  string:
+                    fmt: "asya-%s-%s"
+                toFieldPath: spec.forProvider.name
+                policy:
+                  fromFieldPath: Optional
+
+              # Fallback: use claim name if actorName not set
+              - type: CombineFromComposite
+                combine:
+                  variables:
+                    - fromFieldPath: metadata.labels["crossplane.io/claim-namespace"]
+                    - fromFieldPath: metadata.labels["crossplane.io/claim-name"]
+                  strategy: string
+                  string:
+                    fmt: "asya-%s-%s"
+                toFieldPath: spec.forProvider.name
+
+              # Region
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.region
+                toFieldPath: spec.forProvider.region
+
+              # Provider config reference
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.providerConfigRef
+                toFieldPath: spec.providerConfigRef.name
+
+              # Tags
+              - type: FromCompositeFieldPath
+                fromFieldPath: metadata.labels["crossplane.io/claim-namespace"]
+                toFieldPath: spec.forProvider.tags["asya.sh/namespace"]
+
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.actorName
+                toFieldPath: spec.forProvider.tags["asya.sh/actor"]
+                policy:
+                  fromFieldPath: Optional
+
+              - type: FromCompositeFieldPath
+                fromFieldPath: metadata.labels["crossplane.io/claim-name"]
+                toFieldPath: spec.forProvider.tags["asya.sh/actor"]
+
+              # Write queue URL to status
+              - type: ToCompositeFieldPath
+                fromFieldPath: status.atProvider.id
+                toFieldPath: status.queueUrl
+
+              # Write queue ARN to status
+              - type: ToCompositeFieldPath
+                fromFieldPath: status.atProvider.arn
+                toFieldPath: status.queueArn

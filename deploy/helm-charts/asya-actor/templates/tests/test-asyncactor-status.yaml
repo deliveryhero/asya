@@ -1,0 +1,123 @@
+{{- if and .Values.default.healthChecks.status.enabled (not .Values.actors) }}
+{{- /* AsyncActor status check only runs in single-actor mode */ -}}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ .Release.Name }}-test-asyncactor-status"
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "asya-actor.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-weight": "10"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  restartPolicy: Never
+  containers:
+  - name: test
+    image: alpine/k8s:1.28.3
+    command:
+      - /bin/sh
+      - -c
+      - |
+        set -e
+
+        ACTOR_NAME="{{ .Values.name }}"
+
+        echo "Testing AsyncActor status for '$ACTOR_NAME'..."
+        echo ""
+
+        # Get AsyncActor status
+        echo "AsyncActor spec:"
+        kubectl get asyncactor "$ACTOR_NAME" -n {{ .Values.namespace }} -o json | jq '.spec' || {
+          echo "[-] FAILED: Cannot retrieve AsyncActor spec"
+          exit 1
+        }
+        echo ""
+
+        # Validate spec fields
+        echo "Validating spec fields..."
+
+        TRANSPORT=$(kubectl get asyncactor "$ACTOR_NAME" -n {{ .Values.namespace }} -o jsonpath='{.spec.transport}')
+        if [ -z "$TRANSPORT" ]; then
+          echo "[-] FAILED: Transport not configured"
+          exit 1
+        fi
+        echo "[+] Transport: $TRANSPORT"
+
+        WORKLOAD_KIND=$(kubectl get asyncactor "$ACTOR_NAME" -n {{ .Values.namespace }} -o jsonpath='{.spec.workload.kind}')
+        if [ -z "$WORKLOAD_KIND" ]; then
+          echo "[-] FAILED: Workload kind not configured"
+          exit 1
+        fi
+        echo "[+] Workload kind: $WORKLOAD_KIND"
+
+        {{- if and .Values.default.scaling .Values.default.scaling.enabled }}
+        SCALING_ENABLED=$(kubectl get asyncactor "$ACTOR_NAME" -n {{ .Values.namespace }} -o jsonpath='{.spec.scaling.enabled}')
+        if [ "$SCALING_ENABLED" != "true" ]; then
+          echo "[-] FAILED: Scaling not enabled (expected: true, got: $SCALING_ENABLED)"
+          exit 1
+        fi
+        echo "[+] Scaling enabled: $SCALING_ENABLED"
+
+        MIN_REPLICAS=$(kubectl get asyncactor "$ACTOR_NAME" -n {{ .Values.namespace }} -o jsonpath='{.spec.scaling.minReplicas}')
+        MAX_REPLICAS=$(kubectl get asyncactor "$ACTOR_NAME" -n {{ .Values.namespace }} -o jsonpath='{.spec.scaling.maxReplicas}')
+        echo "  Min replicas: $MIN_REPLICAS"
+        echo "  Max replicas: $MAX_REPLICAS"
+
+        if [ "$MIN_REPLICAS" -gt "$MAX_REPLICAS" ]; then
+          echo "[-] FAILED: minReplicas ($MIN_REPLICAS) > maxReplicas ($MAX_REPLICAS)"
+          exit 1
+        fi
+        {{- end }}
+
+        echo ""
+
+        # Check status fields (if operator has set them)
+        echo "AsyncActor status:"
+        STATUS=$(kubectl get asyncactor "$ACTOR_NAME" -n {{ .Values.namespace }} -o jsonpath='{.status}' 2>/dev/null || echo "{}")
+
+        if [ "$STATUS" = "{}" ] || [ -z "$STATUS" ]; then
+          echo "[!] WARNING: No status fields set yet (operator may still be reconciling)"
+        else
+          echo "$STATUS" | jq '.' || echo "$STATUS"
+
+          # Check conditions if they exist
+          CONDITIONS=$(kubectl get asyncactor "$ACTOR_NAME" -n {{ .Values.namespace }} -o jsonpath='{.status.conditions}' 2>/dev/null || echo "[]")
+          if [ "$CONDITIONS" != "[]" ] && [ -n "$CONDITIONS" ]; then
+            echo ""
+            echo "Conditions:"
+            echo "$CONDITIONS" | jq '.' || echo "$CONDITIONS"
+
+            # Check for Ready condition
+            READY_STATUS=$(kubectl get asyncactor "$ACTOR_NAME" -n {{ .Values.namespace }} -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null || echo "")
+            if [ "$READY_STATUS" = "True" ]; then
+              echo "[+] AsyncActor is ready"
+            elif [ "$READY_STATUS" = "False" ]; then
+              echo "[!] WARNING: AsyncActor Ready condition is False"
+              REASON=$(kubectl get asyncactor "$ACTOR_NAME" -n {{ .Values.namespace }} -o jsonpath='{.status.conditions[?(@.type=="Ready")].reason}' 2>/dev/null || echo "Unknown")
+              MESSAGE=$(kubectl get asyncactor "$ACTOR_NAME" -n {{ .Values.namespace }} -o jsonpath='{.status.conditions[?(@.type=="Ready")].message}' 2>/dev/null || echo "")
+              echo "  Reason: $REASON"
+              echo "  Message: $MESSAGE"
+            fi
+          fi
+        fi
+        echo ""
+
+        # Verify labels and annotations
+        echo "Labels:"
+        kubectl get asyncactor "$ACTOR_NAME" -n {{ .Values.namespace }} -o json | jq '.metadata.labels' || echo "No labels"
+        echo ""
+
+        ANNOTATIONS=$(kubectl get asyncactor "$ACTOR_NAME" -n {{ .Values.namespace }} -o jsonpath='{.metadata.annotations}' 2>/dev/null || echo "{}")
+        if [ "$ANNOTATIONS" != "{}" ] && [ -n "$ANNOTATIONS" ]; then
+          echo "Annotations:"
+          echo "$ANNOTATIONS" | jq '.'
+          echo ""
+        fi
+
+        echo "================================================"
+        echo "[+] AsyncActor status validation passed!"
+        echo "================================================"
+        echo ""
+{{- end }}

@@ -1,0 +1,21 @@
+{{- if .Values.routes.createConfigMap }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gateway-routes
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "asya-gateway.labels" . | nindent 4 }}
+data:
+  routes.yaml: |
+    defaults:
+      progress: {{ .Values.routes.defaults.progress }}
+      timeout: {{ .Values.routes.defaults.timeout }}
+
+    tools:
+{{- if .Values.routes.tools }}
+{{ toYaml .Values.routes.tools | indent 6 }}
+{{- else }}
+      []
+{{- end }}
+{{- end }}

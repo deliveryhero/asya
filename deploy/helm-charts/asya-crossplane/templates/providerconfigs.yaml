@@ -1,0 +1,52 @@
+---
+apiVersion: aws.upbound.io/v1beta1
+kind: ProviderConfig
+metadata:
+  name: {{ .Values.awsProviderConfig.name }}
+  labels:
+    {{- include "asya-crossplane.labels" . | nindent 4 }}
+spec:
+  credentials:
+    source: {{ .Values.awsProviderConfig.credentialsSource }}
+    {{- if eq .Values.awsProviderConfig.credentialsSource "Secret" }}
+    secretRef:
+      namespace: {{ .Values.awsProviderConfig.secretRef.namespace }}
+      name: {{ .Values.awsProviderConfig.secretRef.name }}
+      key: {{ .Values.awsProviderConfig.secretRef.key }}
+    {{- end }}
+  {{- if .Values.awsProviderConfig.endpoint.enabled }}
+  endpoint:
+    url:
+      type: Static
+      static: {{ .Values.awsProviderConfig.endpoint.url }}
+    source: Custom
+    hostnameImmutable: {{ .Values.awsProviderConfig.endpoint.hostnameImmutable }}
+    services:
+      - sqs
+      - s3
+  {{- end }}
+  {{- if .Values.awsProviderConfig.skipCredentialsValidation }}
+  skip_credentials_validation: true
+  {{- end }}
+  {{- if .Values.awsProviderConfig.skipMetadataApiCheck }}
+  skip_metadata_api_check: true
+  {{- end }}
+  {{- if .Values.awsProviderConfig.skipRequestingAccountId }}
+  skip_requesting_account_id: true
+  {{- end }}
+  {{- if .Values.awsProviderConfig.skipRegionValidation }}
+  skip_region_validation: true
+  {{- end }}
+  {{- if .Values.awsProviderConfig.s3UsePathStyle }}
+  s3_use_path_style: true
+  {{- end }}
+---
+apiVersion: kubernetes.crossplane.io/v1alpha1
+kind: ProviderConfig
+metadata:
+  name: {{ .Values.kubernetesProviderConfig.name }}
+  labels:
+    {{- include "asya-crossplane.labels" . | nindent 4 }}
+spec:
+  credentials:
+    source: {{ .Values.kubernetesProviderConfig.credentialsSource }}

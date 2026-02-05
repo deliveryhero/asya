@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "asya-gateway.fullname" . }}-test-connection"
+  labels:
+    {{- include "asya-gateway.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  restartPolicy: Never
+  containers:
+  - name: wget
+    image: busybox:latest
+    command: ['/bin/sh', '-c']
+    args:
+    - |
+      echo "Testing gateway health endpoint..."
+      wget --spider -S http://{{ include "asya-gateway.fullname" . }}:{{ .Values.service.port }}/health
+      if [ $? -eq 0 ]; then
+        echo "[+] Gateway health check passed"
+        exit 0
+      else
+        echo "[-] Gateway health check failed"
+        exit 1
+      fi

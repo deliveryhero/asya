@@ -1,0 +1,49 @@
+{{- if and .Values.enabled .Values.buckets }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: s3-create-buckets
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: s3
+    app.kubernetes.io/name: s3
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  template:
+    metadata:
+      labels:
+        app: storage-setup
+    spec:
+      restartPolicy: OnFailure
+      containers:
+      - name: aws-cli
+        image: amazon/aws-cli:latest
+        command:
+        - /bin/sh
+        - -c
+        - |
+          {{- range .Values.buckets }}
+          aws --endpoint-url=http://localstack-s3.{{ $.Release.Namespace }}.svc.cluster.local:4566 \
+              --region={{ $.Values.region }} \
+              s3 mb s3://{{ .name }} || true
+          {{- end }}
+          echo "S3 buckets created successfully"
+        env:
+        - name: AWS_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: s3-secret
+              key: access-key-id
+        - name: AWS_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: s3-secret
+              key: secret-access-key
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 100m
+            memory: 128Mi
+{{- end }}

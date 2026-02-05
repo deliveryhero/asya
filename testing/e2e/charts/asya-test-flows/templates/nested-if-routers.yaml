@@ -1,0 +1,281 @@
+---
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: start-test-nested-flow
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "asya-test-flows.labels" . | nindent 4 }}
+    flow: nested-if
+    actor-type: router
+spec:
+  transport: {{ .Values.transport }}
+
+  scaling:
+    enabled: {{ .Values.scaling.enabled }}
+    minReplicas: {{ .Values.scaling.minReplicas }}
+    maxReplicas: {{ .Values.scaling.maxReplicas }}
+    queueLength: {{ .Values.scaling.queueLength }}
+
+  workload:
+    kind: Deployment
+    template:
+      spec:
+        containers:
+        - name: asya-runtime
+          image: {{ .Values.workload.image }}
+          imagePullPolicy: {{ .Values.workload.imagePullPolicy }}
+          env:
+          - name: ASYA_HANDLER
+            value: asya_testing.flows.nested_if.compiled.routers.start_test_nested_flow
+          - name: ASYA_HANDLER_MODE
+            value: envelope
+          {{- include "asya-test-flows.nested-if-handler-env" . | nindent 10 }}
+---
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: router-test-nested-flow-line-4-if
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "asya-test-flows.labels" . | nindent 4 }}
+    flow: nested-if
+    actor-type: router
+spec:
+  transport: {{ .Values.transport }}
+  scaling:
+    enabled: {{ .Values.scaling.enabled }}
+    minReplicas: {{ .Values.scaling.minReplicas }}
+    maxReplicas: {{ .Values.scaling.maxReplicas }}
+    queueLength: {{ .Values.scaling.queueLength }}
+  workload:
+    kind: Deployment
+    template:
+      spec:
+        containers:
+        - name: asya-runtime
+          image: {{ .Values.workload.image }}
+          imagePullPolicy: {{ .Values.workload.imagePullPolicy }}
+          env:
+          - name: ASYA_HANDLER
+            value: asya_testing.flows.nested_if.compiled.routers.router_test_nested_flow_line_4_if
+          - name: ASYA_HANDLER_MODE
+            value: envelope
+          {{- include "asya-test-flows.nested-if-handler-env" . | nindent 10 }}
+---
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: router-test-nested-flow-line-6-if
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "asya-test-flows.labels" . | nindent 4 }}
+    flow: nested-if
+    actor-type: router
+spec:
+  transport: {{ .Values.transport }}
+  scaling:
+    enabled: {{ .Values.scaling.enabled }}
+    minReplicas: {{ .Values.scaling.minReplicas }}
+    maxReplicas: {{ .Values.scaling.maxReplicas }}
+    queueLength: {{ .Values.scaling.queueLength }}
+  workload:
+    kind: Deployment
+    template:
+      spec:
+        containers:
+        - name: asya-runtime
+          image: {{ .Values.workload.image }}
+          imagePullPolicy: {{ .Values.workload.imagePullPolicy }}
+          env:
+          - name: ASYA_HANDLER
+            value: asya_testing.flows.nested_if.compiled.routers.router_test_nested_flow_line_6_if
+          - name: ASYA_HANDLER_MODE
+            value: envelope
+          {{- include "asya-test-flows.nested-if-handler-env" . | nindent 10 }}
+---
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: router-test-nested-flow-line-14-if
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "asya-test-flows.labels" . | nindent 4 }}
+    flow: nested-if
+    actor-type: router
+spec:
+  transport: {{ .Values.transport }}
+  scaling:
+    enabled: {{ .Values.scaling.enabled }}
+    minReplicas: {{ .Values.scaling.minReplicas }}
+    maxReplicas: {{ .Values.scaling.maxReplicas }}
+    queueLength: {{ .Values.scaling.queueLength }}
+  workload:
+    kind: Deployment
+    template:
+      spec:
+        containers:
+        - name: asya-runtime
+          image: {{ .Values.workload.image }}
+          imagePullPolicy: {{ .Values.workload.imagePullPolicy }}
+          env:
+          - name: ASYA_HANDLER
+            value: asya_testing.flows.nested_if.compiled.routers.router_test_nested_flow_line_14_if
+          - name: ASYA_HANDLER_MODE
+            value: envelope
+          {{- include "asya-test-flows.nested-if-handler-env" . | nindent 10 }}
+---
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: router-test-nested-flow-line-7-seq
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "asya-test-flows.labels" . | nindent 4 }}
+    flow: nested-if
+    actor-type: router
+spec:
+  transport: {{ .Values.transport }}
+  scaling:
+    enabled: {{ .Values.scaling.enabled }}
+    minReplicas: {{ .Values.scaling.minReplicas }}
+    maxReplicas: {{ .Values.scaling.maxReplicas }}
+    queueLength: {{ .Values.scaling.queueLength }}
+  workload:
+    kind: Deployment
+    template:
+      spec:
+        containers:
+        - name: asya-runtime
+          image: {{ .Values.workload.image }}
+          imagePullPolicy: {{ .Values.workload.imagePullPolicy }}
+          env:
+          - name: ASYA_HANDLER
+            value: asya_testing.flows.nested_if.compiled.routers.router_test_nested_flow_line_7_seq
+          - name: ASYA_HANDLER_MODE
+            value: envelope
+          {{- include "asya-test-flows.nested-if-handler-env" . | nindent 10 }}
+---
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: router-test-nested-flow-line-10-seq
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "asya-test-flows.labels" . | nindent 4 }}
+    flow: nested-if
+    actor-type: router
+spec:
+  transport: {{ .Values.transport }}
+  scaling:
+    enabled: {{ .Values.scaling.enabled }}
+    minReplicas: {{ .Values.scaling.minReplicas }}
+    maxReplicas: {{ .Values.scaling.maxReplicas }}
+    queueLength: {{ .Values.scaling.queueLength }}
+  workload:
+    kind: Deployment
+    template:
+      spec:
+        containers:
+        - name: asya-runtime
+          image: {{ .Values.workload.image }}
+          imagePullPolicy: {{ .Values.workload.imagePullPolicy }}
+          env:
+          - name: ASYA_HANDLER
+            value: asya_testing.flows.nested_if.compiled.routers.router_test_nested_flow_line_10_seq
+          - name: ASYA_HANDLER_MODE
+            value: envelope
+          {{- include "asya-test-flows.nested-if-handler-env" . | nindent 10 }}
+---
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: router-test-nested-flow-line-15-seq
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "asya-test-flows.labels" . | nindent 4 }}
+    flow: nested-if
+    actor-type: router
+spec:
+  transport: {{ .Values.transport }}
+  scaling:
+    enabled: {{ .Values.scaling.enabled }}
+    minReplicas: {{ .Values.scaling.minReplicas }}
+    maxReplicas: {{ .Values.scaling.maxReplicas }}
+    queueLength: {{ .Values.scaling.queueLength }}
+  workload:
+    kind: Deployment
+    template:
+      spec:
+        containers:
+        - name: asya-runtime
+          image: {{ .Values.workload.image }}
+          imagePullPolicy: {{ .Values.workload.imagePullPolicy }}
+          env:
+          - name: ASYA_HANDLER
+            value: asya_testing.flows.nested_if.compiled.routers.router_test_nested_flow_line_15_seq
+          - name: ASYA_HANDLER_MODE
+            value: envelope
+          {{- include "asya-test-flows.nested-if-handler-env" . | nindent 10 }}
+---
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: router-test-nested-flow-line-18-seq
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "asya-test-flows.labels" . | nindent 4 }}
+    flow: nested-if
+    actor-type: router
+spec:
+  transport: {{ .Values.transport }}
+  scaling:
+    enabled: {{ .Values.scaling.enabled }}
+    minReplicas: {{ .Values.scaling.minReplicas }}
+    maxReplicas: {{ .Values.scaling.maxReplicas }}
+    queueLength: {{ .Values.scaling.queueLength }}
+  workload:
+    kind: Deployment
+    template:
+      spec:
+        containers:
+        - name: asya-runtime
+          image: {{ .Values.workload.image }}
+          imagePullPolicy: {{ .Values.workload.imagePullPolicy }}
+          env:
+          - name: ASYA_HANDLER
+            value: asya_testing.flows.nested_if.compiled.routers.router_test_nested_flow_line_18_seq
+          - name: ASYA_HANDLER_MODE
+            value: envelope
+          {{- include "asya-test-flows.nested-if-handler-env" . | nindent 10 }}
+---
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: end-test-nested-flow
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "asya-test-flows.labels" . | nindent 4 }}
+    flow: nested-if
+    actor-type: router
+spec:
+  transport: {{ .Values.transport }}
+  scaling:
+    enabled: {{ .Values.scaling.enabled }}
+    minReplicas: {{ .Values.scaling.minReplicas }}
+    maxReplicas: {{ .Values.scaling.maxReplicas }}
+    queueLength: {{ .Values.scaling.queueLength }}
+  workload:
+    kind: Deployment
+    template:
+      spec:
+        containers:
+        - name: asya-runtime
+          image: {{ .Values.workload.image }}
+          imagePullPolicy: {{ .Values.workload.imagePullPolicy }}
+          env:
+          - name: ASYA_HANDLER
+            value: asya_testing.flows.nested_if.compiled.routers.end_test_nested_flow
+          - name: ASYA_HANDLER_MODE
+            value: envelope
+          {{- include "asya-test-flows.nested-if-handler-env" . | nindent 10 }}

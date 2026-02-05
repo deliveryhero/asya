@@ -1,0 +1,26 @@
+services:
+  tester-py:
+    build:
+      context: ../../../../src/asya-testing
+      dockerfile: Dockerfile
+    depends_on:
+      gateway:
+        condition: service_healthy
+    env_file:
+    - ../../../shared/compose/envs/.env.tester
+    # no additional env configuaration, tests only MCP for now
+    environment:
+    - COVERAGE_FILE=/app/.coverage/cov.db
+    - COVERAGE_RCFILE=/app/.coveragerc
+    volumes:
+    - ${COVERAGE_DIR}:/app/.coverage:rw
+    - ${COVERAGERC}:/app/.coveragerc:ro
+    - ../tests:/app/tests:ro
+    working_dir: /app
+    entrypoint: /bin/bash
+    command:
+    - -c
+    - |
+      set -ex
+      pytest tests/ ${PYTEST_OPTS} \
+        --cov --cov-report=term --cov-report=json:/app/.coverage/cov-${ASYA_TRANSPORT}.json

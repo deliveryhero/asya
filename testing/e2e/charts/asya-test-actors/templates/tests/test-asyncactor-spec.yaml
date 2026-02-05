@@ -1,0 +1,65 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ .Release.Name }}-test-asyncactor-spec"
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "asya-test-actors.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  restartPolicy: Never
+  containers:
+  - name: test
+    image: alpine/k8s:1.28.3
+    command:
+      - /bin/sh
+      - -c
+      - |
+        set -e
+
+        # Test a sample actor (echo) to validate common spec configuration
+        TEST_ACTOR="test-echo"
+        echo "Testing AsyncActor '$TEST_ACTOR' spec configuration..."
+
+        # Check scaling configuration
+        SCALING_ENABLED=$(kubectl get asyncactor $TEST_ACTOR -n {{ .Release.Namespace }} -o jsonpath='{.spec.scaling.enabled}')
+        if [ "$SCALING_ENABLED" != "true" ]; then
+          echo "[-] Scaling should be enabled"
+          exit 1
+        fi
+        echo "[+] Scaling is enabled"
+
+        MIN_REPLICAS=$(kubectl get asyncactor $TEST_ACTOR -n {{ .Release.Namespace }} -o jsonpath='{.spec.scaling.minReplicas}')
+        if [ "$MIN_REPLICAS" != "1" ]; then
+          echo "[-] Min replicas mismatch: expected 1, got $MIN_REPLICAS"
+          exit 1
+        fi
+        echo "[+] Min replicas: $MIN_REPLICAS"
+
+        MAX_REPLICAS=$(kubectl get asyncactor $TEST_ACTOR -n {{ .Release.Namespace }} -o jsonpath='{.spec.scaling.maxReplicas}')
+        if [ "$MAX_REPLICAS" != "10" ]; then
+          echo "[-] Max replicas mismatch: expected 10, got $MAX_REPLICAS"
+          exit 1
+        fi
+        echo "[+] Max replicas: $MAX_REPLICAS"
+
+        # Check workload kind
+        WORKLOAD_KIND=$(kubectl get asyncactor $TEST_ACTOR -n {{ .Release.Namespace }} -o jsonpath='{.spec.workload.kind}')
+        if [ "$WORKLOAD_KIND" != "Deployment" ]; then
+          echo "[-] Workload kind mismatch: expected 'Deployment', got '$WORKLOAD_KIND'"
+          exit 1
+        fi
+        echo "[+] Workload kind: $WORKLOAD_KIND"
+
+        # Check asya-runtime container exists
+        CONTAINERS=$(kubectl get asyncactor $TEST_ACTOR -n {{ .Release.Namespace }} -o jsonpath='{.spec.workload.template.spec.containers[*].name}')
+        if ! echo "$CONTAINERS" | grep -q "asya-runtime"; then
+          echo "[-] asya-runtime container not found in spec"
+          exit 1
+        fi
+        echo "[+] asya-runtime container found in spec"
+
+        echo ""
+        echo "All spec validation tests passed!"

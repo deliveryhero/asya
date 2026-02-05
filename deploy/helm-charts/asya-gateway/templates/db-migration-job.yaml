@@ -1,0 +1,94 @@
+{{- if .Values.migration.enabled -}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "asya-gateway.fullname" . }}-db-migration
+  labels:
+    {{- include "asya-gateway.labels" . | nindent 4 }}
+    app.kubernetes.io/component: migration
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "-5"
+    "helm.sh/hook-delete-policy": before-hook-creation
+spec:
+  backoffLimit: {{ .Values.migration.backoffLimit }}
+  template:
+    metadata:
+      name: {{ include "asya-gateway.fullname" . }}-db-migration
+      labels:
+        {{- include "asya-gateway.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: migration
+    spec:
+      restartPolicy: Never
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      initContainers:
+      - name: wait-for-db
+        image: postgres:15-alpine
+        command:
+        - sh
+        - -c
+        - |
+          echo "[.] Waiting for PostgreSQL to be ready..."
+          until pg_isready -h {{ include "asya-gateway.databaseHost" . }} -p {{ include "asya-gateway.databasePort" . }} -U {{ include "asya-gateway.databaseUsername" . }}; do
+            echo "[.] Database not ready, retrying..."
+            sleep 2
+          done
+          echo "[+] PostgreSQL is ready"
+        env:
+        - name: PGPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "asya-gateway.databaseSecretName" . }}
+              key: {{ include "asya-gateway.databasePasswordKey" . }}
+      - name: copy-migrations
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        command:
+        - sh
+        - -c
+        - |
+          set -e
+          echo "[.] Copying migration files from image..."
+          cp -r /app/db/* /work/
+          echo "[+] Migration files copied successfully"
+          ls -la /work/
+        volumeMounts:
+        - name: db-scripts
+          mountPath: /work
+      containers:
+      - name: run-migrations
+        image: sqitch/sqitch:v1.6.0
+        imagePullPolicy: IfNotPresent
+        command:
+        - sh
+        - -c
+        - |
+          set -e
+          echo "[.] Running Sqitch database migrations..."
+          sqitch deploy "db:pg://{{ include "asya-gateway.databaseUsername" . }}:${DB_PASSWORD}@{{ include "asya-gateway.databaseHost" . }}:{{ include "asya-gateway.databasePort" . }}/{{ include "asya-gateway.databaseName" . }}"
+          if [ $? -eq 0 ]; then
+            echo "[+] Database migrations completed successfully"
+          else
+            echo "[-] Database migration failed!"
+            exit 1
+          fi
+        env:
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "asya-gateway.databaseSecretName" . }}
+              key: {{ include "asya-gateway.databasePasswordKey" . }}
+        volumeMounts:
+        - name: db-scripts
+          mountPath: /work
+          readOnly: true
+        workingDir: /work
+        resources:
+          {{- toYaml .Values.migration.resources | nindent 10 }}
+      volumes:
+      - name: db-scripts
+        emptyDir: {}
+{{- end }}

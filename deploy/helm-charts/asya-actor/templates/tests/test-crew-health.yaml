@@ -1,0 +1,89 @@
+{{- if .Values.default.healthChecks.crew.enabled }}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ .Release.Name }}-test-crew-health"
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "asya-actor.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-weight": "-5"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  restartPolicy: Never
+  containers:
+  - name: test
+    image: alpine/k8s:1.28.3
+    command:
+      - /bin/sh
+      - -c
+      - |
+        set -e
+        echo "Testing crew actors health..."
+        echo "Namespace: {{ .Values.namespace }}"
+        echo ""
+
+        FAILED=0
+
+        {{- range .Values.default.healthChecks.crew.requiredActors }}
+        # Check crew actor: {{ . }}
+        echo "Checking crew actor '{{ . }}'..."
+
+        if ! kubectl get asyncactor {{ . }} -n {{ $.Values.namespace }} >/dev/null 2>&1; then
+          echo "[-] FAILED: Crew actor '{{ . }}' does not exist"
+          echo ""
+          echo "Crew actors are required for envelope routing."
+          echo "Install asya-crew chart:"
+          echo "  helm install asya-crew deploy/helm-charts/asya-crew -n {{ $.Values.namespace }}"
+          echo ""
+          FAILED=1
+        else
+          echo "[+] Crew actor '{{ . }}' exists"
+
+          # Check if actor has a deployment/statefulset
+          WORKLOAD_KIND=$(kubectl get asyncactor {{ . }} -n {{ $.Values.namespace }} -o jsonpath='{.spec.workload.kind}' 2>/dev/null || echo "unknown")
+          echo "  Workload kind: $WORKLOAD_KIND"
+
+          # Check workload readiness
+          if [ "$WORKLOAD_KIND" = "Deployment" ]; then
+            if kubectl get deployment {{ . }} -n {{ $.Values.namespace }} >/dev/null 2>&1; then
+              READY=$(kubectl get deployment {{ . }} -n {{ $.Values.namespace }} -o jsonpath='{.status.readyReplicas}' 2>/dev/null || echo "0")
+              DESIRED=$(kubectl get deployment {{ . }} -n {{ $.Values.namespace }} -o jsonpath='{.spec.replicas}' 2>/dev/null || echo "1")
+              if [ "$READY" = "$DESIRED" ] && [ "$READY" != "0" ]; then
+                echo "  [+] Deployment ready: $READY/$DESIRED replicas"
+              else
+                echo "  [!] WARNING: Deployment not fully ready: $READY/$DESIRED replicas"
+              fi
+            else
+              echo "  [!] WARNING: Deployment not found yet (operator may be reconciling)"
+            fi
+          elif [ "$WORKLOAD_KIND" = "StatefulSet" ]; then
+            if kubectl get statefulset {{ . }} -n {{ $.Values.namespace }} >/dev/null 2>&1; then
+              READY=$(kubectl get statefulset {{ . }} -n {{ $.Values.namespace }} -o jsonpath='{.status.readyReplicas}' 2>/dev/null || echo "0")
+              DESIRED=$(kubectl get statefulset {{ . }} -n {{ $.Values.namespace }} -o jsonpath='{.spec.replicas}' 2>/dev/null || echo "1")
+              if [ "$READY" = "$DESIRED" ] && [ "$READY" != "0" ]; then
+                echo "  [+] StatefulSet ready: $READY/$DESIRED replicas"
+              else
+                echo "  [!] WARNING: StatefulSet not fully ready: $READY/$DESIRED replicas"
+              fi
+            else
+              echo "  [!] WARNING: StatefulSet not found yet (operator may be reconciling)"
+            fi
+          fi
+        fi
+        echo ""
+        {{- end }}
+
+        if [ $FAILED -eq 1 ]; then
+          echo "================================================"
+          echo "[-] Crew health check FAILED"
+          echo "================================================"
+          exit 1
+        fi
+
+        echo "================================================"
+        echo "[+] All crew actors are healthy"
+        echo "================================================"
+        echo ""
+{{- end }}

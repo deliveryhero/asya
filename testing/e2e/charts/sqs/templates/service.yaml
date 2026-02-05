@@ -1,0 +1,20 @@
+{{- if .Values.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: localstack-sqs
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: sqs
+    app.kubernetes.io/name: localstack-sqs
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  type: ClusterIP
+  ports:
+  - port: 4566
+    targetPort: 4566
+    protocol: TCP
+    name: edge
+  selector:
+    app: sqs
+{{- end }}

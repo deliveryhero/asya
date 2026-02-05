@@ -1,0 +1,95 @@
+{{- if .Values.default.healthChecks.preInstall.enabled }}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ .Release.Name }}-pre-install-validation"
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "asya-actor.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "-10"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  restartPolicy: Never
+  containers:
+  - name: validate
+    image: alpine/k8s:1.28.3
+    command:
+      - /bin/sh
+      - -c
+      - |
+        set -e
+        echo "Pre-install validation for AsyncActor '{{ .Values.name }}'..."
+        echo ""
+
+        # Check AsyncActor CRD exists
+        echo "Checking for AsyncActor CRD..."
+        if ! kubectl get crd asyncactors.asya.sh >/dev/null 2>&1; then
+          echo "[-] CRITICAL: AsyncActor CRD not found"
+          echo ""
+          echo "The AsyncActor CRD must be installed before deploying actors."
+          echo "Install it with:"
+          echo "  kubectl apply -f src/asya-operator/config/crd/"
+          echo ""
+          exit 1
+        fi
+        echo "[+] AsyncActor CRD exists (asyncactors.asya.sh)"
+
+        # Check CRD version
+        CRD_VERSION=$(kubectl get crd asyncactors.asya.sh -o jsonpath='{.spec.versions[?(@.storage==true)].name}')
+        EXPECTED_VERSION="v1alpha1"
+        if [ "$CRD_VERSION" != "$EXPECTED_VERSION" ]; then
+          echo "[!] WARNING: CRD storage version is '$CRD_VERSION', expected '$EXPECTED_VERSION'"
+        else
+          echo "[+] CRD version matches expected: $CRD_VERSION"
+        fi
+        echo ""
+
+        {{- if and .Values.default.scaling .Values.default.scaling.enabled }}
+        # Check KEDA CRDs (required for autoscaling)
+        echo "Checking for KEDA (scaling is enabled)..."
+        if ! kubectl get crd scaledobjects.keda.sh >/dev/null 2>&1; then
+          echo "[-] CRITICAL: KEDA ScaledObject CRD not found"
+          echo ""
+          echo "KEDA must be installed when scaling is enabled."
+          echo "Install it with:"
+          echo "  helm repo add kedacore https://kedacore.github.io/charts"
+          echo "  helm install keda kedacore/keda --namespace keda-system --create-namespace"
+          echo ""
+          exit 1
+        fi
+        echo "[+] KEDA ScaledObject CRD exists"
+        echo ""
+        {{- end }}
+
+        # Check if operator is running
+        echo "Checking for Asya operator..."
+        OPERATOR_NS="{{ .Values.infrastructure.operatorNamespace | default "asya-system" }}"
+        if kubectl get deployment asya-operator -n "$OPERATOR_NS" >/dev/null 2>&1; then
+          READY=$(kubectl get deployment asya-operator -n "$OPERATOR_NS" -o jsonpath='{.status.readyReplicas}' 2>/dev/null || echo "0")
+          DESIRED=$(kubectl get deployment asya-operator -n "$OPERATOR_NS" -o jsonpath='{.spec.replicas}' 2>/dev/null || echo "1")
+          if [ "$READY" = "$DESIRED" ] && [ "$READY" != "0" ]; then
+            echo "[+] Operator is running and ready ($READY/$DESIRED replicas)"
+          else
+            echo "[-] CRITICAL: Operator exists but not ready ($READY/$DESIRED replicas)"
+            echo ""
+            echo "The operator must be ready to reconcile AsyncActor resources"
+            echo "Check operator logs:"
+            echo "  kubectl logs -n $OPERATOR_NS deployment/asya-operator"
+            exit 1
+          fi
+        else
+          echo "[-] CRITICAL: Operator deployment not found in $OPERATOR_NS namespace"
+          echo ""
+          echo "Install it with:"
+          echo "  helm install asya-operator deploy/helm-charts/asya-operator -n $OPERATOR_NS --create-namespace"
+          exit 1
+        fi
+        echo ""
+
+        echo "================================================"
+        echo "[+] Pre-install validation passed!"
+        echo "================================================"
+        echo ""
+{{- end }}

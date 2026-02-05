@@ -1,0 +1,6 @@
+# MinIO buckets for test results/errors
+# One bucket name per line
+# Used by storage-setup service in minio.yml
+
+asya-results
+asya-errors

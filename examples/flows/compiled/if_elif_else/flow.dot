@@ -1,0 +1,27 @@
+digraph flow {
+  rankdir=TB;
+  graph [fontname="Courier", fontsize=10];
+  node [fontname="Courier", fontsize=10, shape=box, style="filled,rounded", margin="0.2"];
+  edge [fontname="Courier", fontsize=10];
+
+  start_if_elif_else_flow [fillcolor="lightgreen", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = start_if_elif_else_flow(p)</i></td></tr></table>>];
+  router_if_elif_else_flow_line_12_if [fillcolor="wheat", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_if_elif_else_flow_line_12_if(p)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> p['type'] == 'B'</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkgreen"><font color="white"><b>TRUE</b></font></td><td bgcolor="darkred"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
+  router_if_elif_else_flow_line_10_if [fillcolor="wheat", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_if_elif_else_flow_line_10_if(p)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> p['type'] == 'A'</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkgreen"><font color="white"><b>TRUE</b></font></td><td bgcolor="darkred"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
+  end_if_elif_else_flow [fillcolor="lightgreen", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = end_if_elif_else_flow(p)</i></td></tr></table>>];
+  handler_default [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = handler_default(p)</i></td></tr></table>>];
+  handler_finalize [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = handler_finalize(p)</i></td></tr></table>>];
+  handler_type_a [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = handler_type_a(p)</i></td></tr></table>>];
+  handler_type_b [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = handler_type_b(p)</i></td></tr></table>>];
+  handler_validate [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = handler_validate(p)</i></td></tr></table>>];
+
+  handler_default -> handler_finalize;
+  handler_finalize -> end_if_elif_else_flow;
+  handler_type_a -> handler_finalize;
+  handler_type_b -> handler_finalize;
+  handler_validate -> router_if_elif_else_flow_line_10_if;
+  router_if_elif_else_flow_line_10_if -> handler_type_a [color=darkgreen];
+  router_if_elif_else_flow_line_10_if -> router_if_elif_else_flow_line_12_if [color=darkred];
+  router_if_elif_else_flow_line_12_if -> handler_default [color=darkred];
+  router_if_elif_else_flow_line_12_if -> handler_type_b [color=darkgreen];
+  start_if_elif_else_flow -> handler_validate;
+}

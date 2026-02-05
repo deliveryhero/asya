@@ -1,0 +1,60 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ .Release.Name }}-test-asyncactor-created"
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "asya-test-actors.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  restartPolicy: Never
+  containers:
+  - name: test
+    image: alpine/k8s:1.28.3
+    command:
+      - /bin/sh
+      - -c
+      - |
+        set -e
+        echo "Testing if all AsyncActors were created..."
+        echo ""
+
+        FAILED=0
+        {{- range .Values.actors }}
+        # Check AsyncActor: {{ .name }}
+        echo "[.] Checking AsyncActor '{{ .name }}'..."
+
+        if ! kubectl get asyncactor {{ .name }} -n {{ $.Release.Namespace }} >/dev/null 2>&1; then
+          echo "[-] AsyncActor '{{ .name }}' does not exist"
+          FAILED=1
+          continue
+        fi
+
+        # Verify actor name (used as queue name)
+        ACTOR_NAME=$(kubectl get asyncactor {{ .name }} -n {{ $.Release.Namespace }} -o jsonpath='{.metadata.name}')
+        if [ "$ACTOR_NAME" != "{{ .name }}" ]; then
+          echo "[-] Actor name mismatch: expected '{{ .name }}', got '$ACTOR_NAME'"
+          FAILED=1
+          continue
+        fi
+
+        # Verify transport
+        ASYA_TRANSPORT=$(kubectl get asyncactor {{ .name }} -n {{ $.Release.Namespace }} -o jsonpath='{.spec.transport}')
+        if [ "$ASYA_TRANSPORT" != "{{ $.Values.transport }}" ]; then
+          echo "[-] Transport mismatch: expected '{{ $.Values.transport }}', got '$ASYA_TRANSPORT'"
+          FAILED=1
+          continue
+        fi
+
+        echo "[+] AsyncActor '{{ .name }}' exists and is configured correctly"
+        echo ""
+        {{- end }}
+
+        if [ $FAILED -eq 1 ]; then
+          echo "[-] Some AsyncActors failed validation"
+          exit 1
+        fi
+
+        echo "[+] All AsyncActors created and configured correctly!"

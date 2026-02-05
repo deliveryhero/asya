@@ -1,0 +1,19 @@
+auth:
+  rootUser: minioadmin
+  rootPassword: minioadmin
+
+buckets:
+- name: asya-results
+- name: asya-errors
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 200m
+    memory: 256Mi
+
+persistence:
+  enabled: false
+  size: 10Gi

@@ -1,0 +1,35 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "asya-gateway.fullname" . }}-test-mcp-tools"
+  labels:
+    {{- include "asya-gateway.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  restartPolicy: Never
+  containers:
+  - name: curl
+    image: curlimages/curl:latest
+    command: ['/bin/sh', '-c']
+    args:
+    - |
+      echo "Testing MCP initialize endpoint..."
+      response=$(curl -s -w "\n%{http_code}" -X POST \
+        -H "Content-Type: application/json" \
+        -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"helm-test","version":"1.0.0"}}}' \
+        http://{{ include "asya-gateway.fullname" . }}:{{ .Values.service.port }}/mcp)
+
+      http_code=$(echo "$response" | tail -n1)
+      body=$(echo "$response" | head -n-1)
+
+      if [ "$http_code" = "200" ]; then
+        echo "[+] MCP initialize endpoint returned 200"
+        echo "Response body: $body"
+        exit 0
+      else
+        echo "[-] MCP initialize endpoint returned $http_code (expected 200)"
+        echo "Response body: $body"
+        exit 1
+      fi

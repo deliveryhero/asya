@@ -1,0 +1,41 @@
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "2"
+
+services:
+  minio:
+    image: minio/minio:latest
+    logging: *default-logging
+    environment:
+    - MINIO_ROOT_USER=minioadmin
+    - MINIO_ROOT_PASSWORD=minioadmin
+    command: server /data --console-address ":9001"
+    tmpfs:
+    - /data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 15s
+      retries: 10
+
+  storage-setup:
+    image: minio/mc:latest
+    logging: *default-logging
+    profiles: [""]
+    depends_on:
+      minio:
+        condition: service_healthy
+    volumes:
+    - ./configs/minio-buckets.txt:/tmp/minio-buckets.txt:ro
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set myminio http://minio:9000 minioadmin minioadmin;
+      while IFS= read -r bucket || [ -n \"$$bucket\" ]; do
+        [ -z \"$$bucket\" ] && continue;
+        case \"$$bucket\" in '#'*) continue;; esac;
+        mc mb --ignore-existing \"myminio/$$bucket\";
+      done < /tmp/minio-buckets.txt;
+      echo 'MinIO buckets created successfully';
+      "

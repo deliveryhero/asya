@@ -1,0 +1,39 @@
+# SQS queues for integration tests
+# Used by queue-setup service in sqs.yml
+
+# Test actor queues (with asya-{namespace}- prefix for namespace isolation)
+asya-default-test-echo
+asya-default-test-doubler
+asya-default-test-incrementer
+asya-default-test-error
+asya-default-test-timeout
+asya-default-test-verify
+asya-default-test-fanout
+asya-default-test-empty
+asya-default-test-unicode
+asya-default-test-large-payload
+asya-default-test-nested
+asya-default-test-null
+asya-default-test-slow-boundary
+asya-default-test-cycle
+asya-default-test-param-flow-1
+asya-default-test-param-flow-2
+
+# Gateway component test queues
+asya-default-test-queue
+asya-default-test-send-receive
+asya-default-test-multiple
+asya-default-test-deadline
+asya-default-test-large
+asya-default-test-multi-q1
+asya-default-test-multi-q2
+
+# Sidecar-runtime test queues
+asya-default-test-oom-queue
+asya-default-test-cuda-oom-queue
+asya-default-test-large-queue
+asya-default-test-conditional-queue
+
+# System actor queues (with asya-{namespace}- prefix for namespace isolation)
+asya-default-happy-end
+asya-default-error-end

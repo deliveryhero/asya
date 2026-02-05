@@ -1,0 +1,35 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: minio-create-buckets
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: minio
+    app.kubernetes.io/name: minio
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  template:
+    metadata:
+      labels:
+        app: storage-setup
+    spec:
+      restartPolicy: OnFailure
+      containers:
+      - name: mc
+        image: minio/mc:latest
+        command:
+        - /bin/sh
+        - -c
+        - |
+          mc alias set myminio http://minio.{{ .Release.Namespace }}.svc.cluster.local:9000 {{ .Values.auth.rootUser }} {{ .Values.auth.rootPassword }}
+          {{- range .Values.buckets }}
+          mc mb myminio/{{ .name }} --ignore-existing
+          {{- end }}
+          echo "Buckets created successfully"
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 100m
+            memory: 128Mi

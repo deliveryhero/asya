@@ -1,0 +1,320 @@
+{
+  "rabbit_version": "3.13.0",
+  "rabbitmq_version": "3.13.0",
+  "product_name": "RabbitMQ",
+  "product_version": "3.13.0",
+  "users": [
+    {
+      "name": "guest",
+      "password": "guest",
+      "tags": ["administrator"]
+    }
+  ],
+  "vhosts": [{ "name": "/" }],
+  "permissions": [
+    {
+      "user": "guest",
+      "vhost": "/",
+      "configure": ".*",
+      "write": ".*",
+      "read": ".*"
+    }
+  ],
+  "exchanges": [
+    {
+      "name": "asya",
+      "vhost": "/",
+      "type": "topic",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    }
+  ],
+  "queues": [
+    { "vhost": "/", "name": "asya-default-test-echo", "durable": true, "auto_delete": false, "arguments": {} },
+    { "vhost": "/", "name": "asya-default-test-doubler", "durable": true, "auto_delete": false, "arguments": {} },
+    { "vhost": "/", "name": "asya-default-test-incrementer", "durable": true, "auto_delete": false, "arguments": {} },
+    { "vhost": "/", "name": "asya-default-test-error", "durable": true, "auto_delete": false, "arguments": {} },
+    { "vhost": "/", "name": "asya-default-test-timeout", "durable": true, "auto_delete": false, "arguments": {} },
+    { "vhost": "/", "name": "asya-default-test-verify", "durable": true, "auto_delete": false, "arguments": {} },
+    { "vhost": "/", "name": "asya-default-test-fanout", "durable": true, "auto_delete": false, "arguments": {} },
+    { "vhost": "/", "name": "asya-default-test-empty", "durable": true, "auto_delete": false, "arguments": {} },
+    { "vhost": "/", "name": "asya-default-test-unicode", "durable": true, "auto_delete": false, "arguments": {} },
+    { "vhost": "/", "name": "asya-default-test-large-payload", "durable": true, "auto_delete": false, "arguments": {} },
+    { "vhost": "/", "name": "asya-default-test-nested", "durable": true, "auto_delete": false, "arguments": {} },
+    { "vhost": "/", "name": "asya-default-test-null", "durable": true, "auto_delete": false, "arguments": {} },
+    { "vhost": "/", "name": "asya-default-test-slow-boundary", "durable": true, "auto_delete": false, "arguments": {} },
+    { "vhost": "/", "name": "asya-default-test-cycle", "durable": true, "auto_delete": false, "arguments": {} },
+    { "vhost": "/", "name": "asya-default-test-param-flow-1", "durable": true, "auto_delete": false, "arguments": {} },
+    { "vhost": "/", "name": "asya-default-test-param-flow-2", "durable": true, "auto_delete": false, "arguments": {} },
+    { "vhost": "/", "name": "asya-default-happy-end", "durable": true, "auto_delete": false, "arguments": {} },
+    { "vhost": "/", "name": "asya-default-error-end", "durable": true, "auto_delete": false, "arguments": {} },
+    { "vhost": "/", "name": "asya-default-test-queue", "durable": true, "auto_delete": false, "arguments": {} },
+    { "vhost": "/", "name": "asya-default-test-send-receive", "durable": true, "auto_delete": false, "arguments": {} },
+    { "vhost": "/", "name": "asya-default-test-multiple", "durable": true, "auto_delete": false, "arguments": {} },
+    { "vhost": "/", "name": "asya-default-test-deadline", "durable": true, "auto_delete": false, "arguments": {} },
+    { "vhost": "/", "name": "asya-default-test-large", "durable": true, "auto_delete": false, "arguments": {} },
+    { "vhost": "/", "name": "asya-default-test-multi-q1", "durable": true, "auto_delete": false, "arguments": {} },
+    { "vhost": "/", "name": "asya-default-test-multi-q2", "durable": true, "auto_delete": false, "arguments": {} },
+    { "vhost": "/", "name": "asya-default-test-oom-queue", "durable": true, "auto_delete": false, "arguments": {} },
+    {
+      "vhost": "/",
+      "name": "asya-default-test-cuda-oom-queue",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    },
+    { "vhost": "/", "name": "asya-default-test-large-queue", "durable": true, "auto_delete": false, "arguments": {} },
+    {
+      "vhost": "/",
+      "name": "asya-default-test-conditional-queue",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    },
+    { "vhost": "/", "name": "asya-default-test-invalid-route", "durable": true, "auto_delete": false, "arguments": {} }
+  ],
+  "bindings": [
+    {
+      "source": "asya",
+      "vhost": "/",
+      "destination": "asya-default-test-echo",
+      "destination_type": "queue",
+      "routing_key": "test-echo",
+      "arguments": {}
+    },
+    {
+      "source": "asya",
+      "vhost": "/",
+      "destination": "asya-default-test-doubler",
+      "destination_type": "queue",
+      "routing_key": "test-doubler",
+      "arguments": {}
+    },
+    {
+      "source": "asya",
+      "vhost": "/",
+      "destination": "asya-default-test-incrementer",
+      "destination_type": "queue",
+      "routing_key": "test-incrementer",
+      "arguments": {}
+    },
+    {
+      "source": "asya",
+      "vhost": "/",
+      "destination": "asya-default-test-error",
+      "destination_type": "queue",
+      "routing_key": "test-error",
+      "arguments": {}
+    },
+    {
+      "source": "asya",
+      "vhost": "/",
+      "destination": "asya-default-test-timeout",
+      "destination_type": "queue",
+      "routing_key": "test-timeout",
+      "arguments": {}
+    },
+    {
+      "source": "asya",
+      "vhost": "/",
+      "destination": "asya-default-test-verify",
+      "destination_type": "queue",
+      "routing_key": "test-verify",
+      "arguments": {}
+    },
+    {
+      "source": "asya",
+      "vhost": "/",
+      "destination": "asya-default-test-fanout",
+      "destination_type": "queue",
+      "routing_key": "test-fanout",
+      "arguments": {}
+    },
+    {
+      "source": "asya",
+      "vhost": "/",
+      "destination": "asya-default-test-empty",
+      "destination_type": "queue",
+      "routing_key": "test-empty",
+      "arguments": {}
+    },
+    {
+      "source": "asya",
+      "vhost": "/",
+      "destination": "asya-default-test-unicode",
+      "destination_type": "queue",
+      "routing_key": "test-unicode",
+      "arguments": {}
+    },
+    {
+      "source": "asya",
+      "vhost": "/",
+      "destination": "asya-default-test-large-payload",
+      "destination_type": "queue",
+      "routing_key": "test-large-payload",
+      "arguments": {}
+    },
+    {
+      "source": "asya",
+      "vhost": "/",
+      "destination": "asya-default-test-nested",
+      "destination_type": "queue",
+      "routing_key": "test-nested",
+      "arguments": {}
+    },
+    {
+      "source": "asya",
+      "vhost": "/",
+      "destination": "asya-default-test-null",
+      "destination_type": "queue",
+      "routing_key": "test-null",
+      "arguments": {}
+    },
+    {
+      "source": "asya",
+      "vhost": "/",
+      "destination": "asya-default-test-slow-boundary",
+      "destination_type": "queue",
+      "routing_key": "test-slow-boundary",
+      "arguments": {}
+    },
+    {
+      "source": "asya",
+      "vhost": "/",
+      "destination": "asya-default-test-cycle",
+      "destination_type": "queue",
+      "routing_key": "test-cycle",
+      "arguments": {}
+    },
+    {
+      "source": "asya",
+      "vhost": "/",
+      "destination": "asya-default-test-param-flow-1",
+      "destination_type": "queue",
+      "routing_key": "test-param-flow-1",
+      "arguments": {}
+    },
+    {
+      "source": "asya",
+      "vhost": "/",
+      "destination": "asya-default-test-param-flow-2",
+      "destination_type": "queue",
+      "routing_key": "test-param-flow-2",
+      "arguments": {}
+    },
+    {
+      "source": "asya",
+      "vhost": "/",
+      "destination": "asya-default-test-queue",
+      "destination_type": "queue",
+      "routing_key": "test-queue",
+      "arguments": {}
+    },
+    {
+      "source": "asya",
+      "vhost": "/",
+      "destination": "asya-default-test-send-receive",
+      "destination_type": "queue",
+      "routing_key": "test-send-receive",
+      "arguments": {}
+    },
+    {
+      "source": "asya",
+      "vhost": "/",
+      "destination": "asya-default-test-multiple",
+      "destination_type": "queue",
+      "routing_key": "test-multiple",
+      "arguments": {}
+    },
+    {
+      "source": "asya",
+      "vhost": "/",
+      "destination": "asya-default-test-deadline",
+      "destination_type": "queue",
+      "routing_key": "test-deadline",
+      "arguments": {}
+    },
+    {
+      "source": "asya",
+      "vhost": "/",
+      "destination": "asya-default-test-large",
+      "destination_type": "queue",
+      "routing_key": "test-large",
+      "arguments": {}
+    },
+    {
+      "source": "asya",
+      "vhost": "/",
+      "destination": "asya-default-test-multi-q1",
+      "destination_type": "queue",
+      "routing_key": "test-multi-q1",
+      "arguments": {}
+    },
+    {
+      "source": "asya",
+      "vhost": "/",
+      "destination": "asya-default-test-multi-q2",
+      "destination_type": "queue",
+      "routing_key": "test-multi-q2",
+      "arguments": {}
+    },
+    {
+      "source": "asya",
+      "vhost": "/",
+      "destination": "asya-default-test-oom-queue",
+      "destination_type": "queue",
+      "routing_key": "test-oom-queue",
+      "arguments": {}
+    },
+    {
+      "source": "asya",
+      "vhost": "/",
+      "destination": "asya-default-test-cuda-oom-queue",
+      "destination_type": "queue",
+      "routing_key": "test-cuda-oom-queue",
+      "arguments": {}
+    },
+    {
+      "source": "asya",
+      "vhost": "/",
+      "destination": "asya-default-test-large-queue",
+      "destination_type": "queue",
+      "routing_key": "test-large-queue",
+      "arguments": {}
+    },
+    {
+      "source": "asya",
+      "vhost": "/",
+      "destination": "asya-default-test-conditional-queue",
+      "destination_type": "queue",
+      "routing_key": "test-conditional-queue",
+      "arguments": {}
+    },
+    {
+      "source": "asya",
+      "vhost": "/",
+      "destination": "asya-default-test-invalid-route",
+      "destination_type": "queue",
+      "routing_key": "test-invalid-route",
+      "arguments": {}
+    },
+    {
+      "source": "asya",
+      "vhost": "/",
+      "destination": "asya-default-happy-end",
+      "destination_type": "queue",
+      "routing_key": "happy-end",
+      "arguments": {}
+    },
+    {
+      "source": "asya",
+      "vhost": "/",
+      "destination": "asya-default-error-end",
+      "destination_type": "queue",
+      "routing_key": "error-end",
+      "arguments": {}
+    }
+  ]
+}

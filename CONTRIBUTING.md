@@ -1,0 +1,299 @@
+# Contributing to Asya🎭
+
+## Development Setup
+
+### Prerequisites
+
+- Make
+- Go 1.24+
+- Python 3.13+
+- **[uv](https://github.com/astral-sh/uv)** (required for Python development)
+- Docker and Docker Compose (for component- and integration tests)
+- Kubectl, Helm, Kind (for local deployment and e2e tests)
+
+**Install Go 1.24+**:
+
+On macOS/Linux:
+```bash
+bash < <(curl -s -S -L https://raw.githubusercontent.com/moovweb/gvm/master/binscripts/gvm-installer)
+gvm install go1.24
+gvm use go1.24 --default
+```
+
+**Configure Go binary PATH**:
+
+After installing Go, ensure `$GOPATH/bin` is in your PATH for Go tools (golangci-lint, goimports):
+
+```bash
+# Add to your shell profile (~/.zshrc, ~/.bashrc, or ~/.profile)
+export PATH="$(go env GOPATH)/bin:$PATH"
+
+# Reload your shell or source the profile
+source ~/.zshrc  # or ~/.bashrc
+```
+
+Verify the setup:
+```bash
+go version  # Should show go1.24+
+go env GOPATH  # Should show your GOPATH (e.g., /Users/username/go)
+echo $PATH | grep "$(go env GOPATH)/bin"  # Should include GOPATH/bin
+```
+
+**Install uv**:
+```bash
+# macOS/Linux
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Windows (not tested yet)
+powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+```
+
+### Installing Development Dependencies
+
+```bash
+make setup
+```
+**Note**: All Python commands are executed via `uv` to ensure consistent dependency management.
+
+### Running Tests
+
+```bash
+# Run all unit tests (Go + Python)
+make test-unit
+
+# Run unit tests for specific components
+make -C src/asya-sidecar test-unit    # Go sidecar unit tests only
+make -C src/asya-gateway test-unit    # Go gateway unit tests only
+make -C src/asya-runtime test-unit    # Python runtime unit tests only
+make -C src/asya-operator test-unit   # Go operator unit tests only
+make -C src/asya-crew test-unit       # Python crew unit tests only
+make -C src/asya-cli test-unit        # Python CLI unit tests only
+
+# Run all component tests (single component + lightweight mocks in Docker Compose)
+make test-component
+
+# Clean up component test Docker resources
+make clean-component
+
+# Run all integration tests (multiple components in Docker Compose)
+make test-integration
+
+# Run specific integration test suites
+make -C testing/integration/sidecar-runtime test   # Sidecar ↔ Runtime
+make -C testing/integration/gateway-actors test    # Gateway ↔ Actors
+
+# Clean up integration test Docker resources
+make clean-integration
+
+# Run end-to-end tests (full stack in Kind cluster)
+make test-e2e
+
+# Clean up e2e test resources (delete Kind cluster)
+make clean-e2e
+
+# Run all tests (unit + integration)
+make test
+```
+
+### Code Coverage
+
+The project uses **octocov** for code coverage reporting - a fully open-source solution that runs in GitHub Actions without external services.
+
+**Quick Coverage Check:**
+```bash
+# Run all tests with coverage and display summary (recommended)
+make cov
+
+# Run coverage for specific components
+make -C src/asya-sidecar cov-unit   # Sidecar (Go)
+make -C src/asya-gateway cov-unit   # Gateway (Go)
+make -C src/asya-operator cov-unit  # Operator (Go)
+make -C src/asya-runtime cov-unit   # Runtime (Python)
+make -C src/asya-crew cov-unit      # System actors (Python)
+make -C src/asya-cli cov-unit       # CLI (Python)
+```
+
+The `make cov` command:
+- Runs all tests with coverage enabled
+- Displays a clean summary for each component
+- Prevents coverage output from getting lost in verbose test logs
+- Generates HTML reports for detailed analysis
+
+**Local Development:**
+- Use `make cov` to see coverage summaries
+- Tests display coverage stats in the terminal
+- No configuration needed
+
+**CI/Pull Requests:**
+- Coverage reports are automatically posted as PR comments
+- Coverage history is tracked in the `gh-pages` branch
+- Uses only `GITHUB_TOKEN` (no third-party API keys needed)
+
+**Viewing detailed coverage reports:**
+```bash
+# After running 'make cov', HTML reports are generated:
+# - Python: open src/asya-runtime/htmlcov/index.html
+# - Go: go tool cover -html=src/asya-sidecar/coverage.out
+```
+
+**Coverage files:**
+- Go: `coverage.out`, `coverage-integration.out`
+- Python: `coverage.xml` (Cobertura format), `htmlcov/` (HTML reports)
+- All coverage files are ignored by git (see `.gitignore`)
+
+### Building
+
+```bash
+# Build all Go components (sidecar, gateway, operator)
+make build-go
+
+# Build all Docker images
+make build-images
+
+# Regenerate operator CRDs and manifests (after modifying CRD types)
+make manifests
+```
+
+### Linting and Formatting
+
+```bash
+# Run all linters and formatters (automatically fixes issues when possible)
+make lint
+```
+
+**Note**: Pre-commit hooks are automatically installed by `make setup`. They run linters on every git commit.
+
+### Integration Test Requirements
+
+The integration tests require Docker to spin up:
+- RabbitMQ for message queuing
+- Actor runtime (Python) containers
+- Actor sidecar (Go) containers
+- Gateway (for gateway tests)
+
+These tests validate the complete message flow through the system.
+
+### Documentation
+
+```bash
+# Build documentation to site/ directory
+make docs-build
+
+# Serve documentation locally at http://127.0.0.1:8000
+make docs-serve
+```
+
+### Other Utilities
+
+```bash
+# Clean build artifacts and test resources
+make clean
+```
+
+## Making Changes
+
+1. Create a feature branch from `main`
+2. Make your changes
+3. Run tests: `make test`
+4. Run linters: `make lint`
+5. Commit your changes following [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) (pre-commit hooks will run automatically)
+6. Push and create a pull request with a conventional commit prefix in the title
+
+### Commit Message Format
+
+This project follows the [Conventional Commits v1.0.0](https://www.conventionalcommits.org/en/v1.0.0/) specification. All PR titles **must** use one of these prefixes:
+
+**Required prefixes:**
+- `feat:` - New feature (triggers MINOR version bump)
+- `fix:` - Bug fix (triggers PATCH version bump)
+
+**Additional standard prefixes:**
+- `docs:` - Documentation changes
+- `style:` - Code formatting (no logic changes)
+- `refactor:` - Code restructuring (no functionality change)
+- `perf:` - Performance improvements
+- `test:` - Test changes
+- `build:` - Build system changes
+- `ci:` - CI configuration changes
+- `chore:` - Other changes (tooling, maintenance)
+
+**Breaking changes:**
+- Add `!` after type/scope: `feat!:` or `feat(api)!:`
+- Or include `BREAKING CHANGE:` in commit body
+
+**Examples:**
+```
+feat(gateway): add support for SQS transport
+fix(sidecar): resolve memory leak in message handler
+docs: update deployment instructions
+chore(deps): upgrade Go to 1.24
+ci: add automated release workflow
+```
+
+Labels are automatically applied based on PR title prefixes and file paths.
+
+## Release Process
+
+### Automated Release Workflow
+
+Asya uses automated workflows for releases and changelog management:
+
+1. **Draft Releases**: Release-drafter automatically maintains a draft release with categorized changelog based on merged PRs
+2. **Docker Images**: When a release is published, Docker images are automatically built and pushed to GitHub Container Registry
+3. **Changelog**: CHANGELOG.md is automatically updated via a pull request after release
+
+### Creating a Release
+
+1. **Review the draft release**:
+   - Go to [Releases](https://github.com/deliveryhero/asya/releases)
+   - Review the auto-generated draft release created by release-drafter
+   - Edit the release notes if needed
+
+2. **Publish the release**:
+   - Click "Publish release"
+   - This triggers the release workflow which:
+     - Builds all Docker images (asya-operator, asya-gateway, asya-sidecar, asya-crew, asya-testing)
+     - Pushes images to `ghcr.io/deliveryhero/asya-*:VERSION`
+     - Tags images as `latest` (for non-prerelease versions)
+
+3. **Docker Images**:
+   - Images are published to GitHub Container Registry (ghcr.io)
+   - Available at: `ghcr.io/deliveryhero/asya-<component>:<version>`
+   - Latest stable version tagged as: `ghcr.io/deliveryhero/asya-<component>:latest`
+
+4. **Changelog Update**:
+   - After release publication, a PR is automatically created to update CHANGELOG.md
+   - Review and merge the PR to keep the changelog in sync
+
+### PR Labels for Release Notes
+
+Labels are **automatically applied** based on your PR title prefix (see Commit Message Format above) and changed file paths. The following labels are used:
+
+**Conventional Commit labels:**
+- `feat` - New features (from `feat:` prefix)
+- `fix` - Bug fixes (from `fix:` prefix)
+- `docs` - Documentation (from `docs:` prefix or `*.md` files)
+- `style` - Code formatting (from `style:` prefix)
+- `refactor` - Code restructuring (from `refactor:` prefix)
+- `perf` - Performance improvements (from `perf:` prefix)
+- `test` - Tests (from `test:` prefix or test files)
+- `build` - Build changes (from `build:` prefix)
+- `ci` - CI changes (from `ci:` prefix or `.github/**` files)
+- `chore` - Maintenance (from `chore:` prefix)
+
+**Special labels:**
+- `breaking` - Breaking changes (from `type!:` or `BREAKING CHANGE:`)
+- `deps` - Dependencies (from `go.mod`, `requirements.txt` changes)
+- Component labels (`asya-gateway`, `asya-sidecar`, etc.) - Auto-applied based on changed files
+
+You can manually add labels if the autolabeler doesn't catch everything.
+
+### Versioning
+
+The project follows [Semantic Versioning](https://semver.org/):
+
+- **Major** (X.0.0): Breaking changes (label: `breaking`)
+- **Minor** (0.X.0): New features (label: `feat`)
+- **Patch** (0.0.X): Bug fixes and other changes (labels: `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`)
+
+Release-drafter automatically suggests the next version based on PR labels.

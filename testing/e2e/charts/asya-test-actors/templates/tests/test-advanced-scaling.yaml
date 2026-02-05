@@ -1,0 +1,71 @@
+{{- if and .Values.scaling .Values.scaling.advanced }}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ .Release.Name }}-test-advanced-scaling"
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "asya-test-actors.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  restartPolicy: Never
+  containers:
+  - name: test
+    image: alpine/k8s:1.28.3
+    command:
+      - /bin/sh
+      - -c
+      - |
+        set -e
+        echo "Testing advanced KEDA scaling modifiers for AsyncActor '{{ .Values.name }}'..."
+
+        {{- if .Values.scaling.advanced.formula }}
+        FORMULA=$(kubectl get asyncactor {{ .Values.name }} -n {{ .Values.namespace }} -o jsonpath='{.spec.scaling.advanced.formula}')
+        if [ "$FORMULA" != "{{ .Values.scaling.advanced.formula }}" ]; then
+          echo "[-] Formula mismatch: expected '{{ .Values.scaling.advanced.formula }}', got '$FORMULA'"
+          exit 1
+        fi
+        echo "[+] Formula: $FORMULA"
+        {{- end }}
+
+        {{- if .Values.scaling.advanced.target }}
+        TARGET=$(kubectl get asyncactor {{ .Values.name }} -n {{ .Values.namespace }} -o jsonpath='{.spec.scaling.advanced.target}')
+        if [ "$TARGET" != "{{ .Values.scaling.advanced.target }}" ]; then
+          echo "[-] Target mismatch: expected '{{ .Values.scaling.advanced.target }}', got '$TARGET'"
+          exit 1
+        fi
+        echo "[+] Target: $TARGET"
+        {{- end }}
+
+        {{- if .Values.scaling.advanced.activationTarget }}
+        ACTIVATION_TARGET=$(kubectl get asyncactor {{ .Values.name }} -n {{ .Values.namespace }} -o jsonpath='{.spec.scaling.advanced.activationTarget}')
+        if [ "$ACTIVATION_TARGET" != "{{ .Values.scaling.advanced.activationTarget }}" ]; then
+          echo "[-] Activation target mismatch: expected '{{ .Values.scaling.advanced.activationTarget }}', got '$ACTIVATION_TARGET'"
+          exit 1
+        fi
+        echo "[+] Activation target: $ACTIVATION_TARGET"
+        {{- end }}
+
+        {{- if .Values.scaling.advanced.metricType }}
+        METRIC_TYPE=$(kubectl get asyncactor {{ .Values.name }} -n {{ .Values.namespace }} -o jsonpath='{.spec.scaling.advanced.metricType}')
+        if [ "$METRIC_TYPE" != "{{ .Values.scaling.advanced.metricType }}" ]; then
+          echo "[-] Metric type mismatch: expected '{{ .Values.scaling.advanced.metricType }}', got '$METRIC_TYPE'"
+          exit 1
+        fi
+        echo "[+] Metric type: $METRIC_TYPE"
+        {{- end }}
+
+        {{- if .Values.scaling.advanced.restoreToOriginalReplicaCount }}
+        RESTORE=$(kubectl get asyncactor {{ .Values.name }} -n {{ .Values.namespace }} -o jsonpath='{.spec.scaling.advanced.restoreToOriginalReplicaCount}')
+        if [ "$RESTORE" != "{{ .Values.scaling.advanced.restoreToOriginalReplicaCount }}" ]; then
+          echo "[-] RestoreToOriginalReplicaCount mismatch: expected '{{ .Values.scaling.advanced.restoreToOriginalReplicaCount }}', got '$RESTORE'"
+          exit 1
+        fi
+        echo "[+] RestoreToOriginalReplicaCount: $RESTORE"
+        {{- end }}
+
+        echo ""
+        echo "All advanced scaling tests passed!"
+{{- end }}

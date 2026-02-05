@@ -1,0 +1,72 @@
+# Example values for deploying an actor with SQS transport
+
+name: sqs-processor
+namespace: production
+transport: sqs
+
+default:
+  scaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 50
+    pollingInterval: 15
+    cooldownPeriod: 120
+    queueLength: 10
+    # Advanced SQS scaling configuration
+    advanced:
+      triggers:
+      - type: aws-sqs-queue
+        metadata:
+          queueURL: "https://sqs.us-east-1.amazonaws.com/123456789/asya-sqs-processor"
+          queueLength: "10"
+          awsRegion: "us-east-1"
+
+  workload:
+    kind: Deployment
+    template:
+      spec:
+        containers:
+        - name: asya-runtime
+          image: my-sqs-processor:v1.0
+          imagePullPolicy: IfNotPresent
+          env:
+          - name: ASYA_HANDLER
+            value: processors.sqs_handler
+          - name: ASYA_HANDLER_MODE
+            value: payload
+          - name: AWS_REGION
+            value: us-east-1
+          - name: AWS_ACCESS_KEY_ID
+            valueFrom:
+              secretKeyRef:
+                name: aws-credentials
+                key: access-key-id
+          - name: AWS_SECRET_ACCESS_KEY
+            valueFrom:
+              secretKeyRef:
+                name: aws-credentials
+                key: secret-access-key
+          resources:
+            requests:
+              cpu: 200m
+              memory: 256Mi
+            limits:
+              cpu: 1000m
+              memory: 1Gi
+
+  healthChecks:
+    preInstall:
+      enabled: true
+    crew:
+      enabled: true
+      requiredActors:
+      - happy-end
+      - error-end
+    queue:
+      enabled: true
+      timeoutSeconds: 300
+    deployment:
+      enabled: true
+      timeoutSeconds: 600
+    status:
+      enabled: true

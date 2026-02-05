@@ -1,0 +1,14 @@
+apiVersion: v2
+name: asya-crossplane
+description: Crossplane XRDs and Compositions for Asya AsyncActor
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+keywords:
+- asya
+- crossplane
+- asyncactor
+- sqs
+maintainers:
+- name: Asya Team
+home: https://github.com/deliveryhero/asya

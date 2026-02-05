@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: asya-gateway-postgresql
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: postgresql
+    app.kubernetes.io/name: postgresql
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  ports:
+  - port: 5432
+    targetPort: 5432
+    protocol: TCP
+    name: postgres
+  selector:
+    app: postgresql
+  type: ClusterIP

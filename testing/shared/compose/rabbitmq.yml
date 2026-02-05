@@ -1,0 +1,41 @@
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "2"
+
+services:
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    logging: *default-logging
+    volumes:
+    - ./configs/rabbitmq-definitions.json:/etc/rabbitmq/definitions.json:ro
+    - ./configs/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+    environment:
+    - RABBITMQ_DEFAULT_USER=guest
+    - RABBITMQ_DEFAULT_PASS=guest
+    - RABBITMQ_MNESIA_BASE=/tmp/rabbitmq-mnesia
+    - RABBITMQ_LOG_BASE=/tmp/rabbitmq-log
+    - HOME=/tmp
+    - RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS=-rabbitmq_management load_definitions "/etc/rabbitmq/definitions.json"
+    healthcheck:
+      test:
+      - "CMD"
+      - "sh"
+      - "-c"
+      - "nc -z localhost 5672"
+      interval: 2s
+      timeout: 2s
+      retries: 5
+      start_period: 180s
+
+  queue-setup:
+    image: busybox:latest
+    logging: *default-logging
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    command: ["sh", "-c", "echo '[+] RabbitMQ queues are ready'"]
+
+volumes:
+  sockets:

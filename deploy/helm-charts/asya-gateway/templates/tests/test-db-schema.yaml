@@ -1,0 +1,110 @@
+{{- if or .Values.postgresql.enabled .Values.externalDatabase.host -}}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "asya-gateway.fullname" . }}-test-db-schema"
+  labels:
+    {{- include "asya-gateway.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-weight": "1"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  restartPolicy: Never
+  containers:
+  - name: test-db-schema
+    image: postgres:15-alpine
+    command:
+    - sh
+    - -c
+    - |
+      set -e
+      echo "[.] Testing database schema..."
+
+      # Wait for database to be ready
+      until pg_isready -h {{ include "asya-gateway.databaseHost" . }} -p {{ include "asya-gateway.databasePort" . }} -U {{ include "asya-gateway.databaseUsername" . }}; do
+        echo "[.] Waiting for database..."
+        sleep 2
+      done
+      echo "[+] Database is reachable"
+
+      # Check if envelopes table exists with correct schema
+      echo "[.] Verifying envelopes table..."
+      ENVELOPES_EXISTS=$(psql -h {{ include "asya-gateway.databaseHost" . }} \
+                              -p {{ include "asya-gateway.databasePort" . }} \
+                              -U {{ include "asya-gateway.databaseUsername" . }} \
+                              -d {{ include "asya-gateway.databaseName" . }} \
+                              -tAc "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='public' AND table_name='envelopes'")
+
+      if [ "$ENVELOPES_EXISTS" -ne 1 ]; then
+        echo "[-] envelopes table does not exist!"
+        exit 1
+      fi
+      echo "[+] envelopes table exists"
+
+      # Check if envelope_updates table exists
+      echo "[.] Verifying envelope_updates table..."
+      UPDATES_EXISTS=$(psql -h {{ include "asya-gateway.databaseHost" . }} \
+                            -p {{ include "asya-gateway.databasePort" . }} \
+                            -U {{ include "asya-gateway.databaseUsername" . }} \
+                            -d {{ include "asya-gateway.databaseName" . }} \
+                            -tAc "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='public' AND table_name='envelope_updates'")
+
+      if [ "$UPDATES_EXISTS" -ne 1 ]; then
+        echo "[-] envelope_updates table does not exist!"
+        exit 1
+      fi
+      echo "[+] envelope_updates table exists"
+
+      # Verify critical columns in envelopes table
+      echo "[.] Verifying envelopes table schema..."
+      REQUIRED_COLUMNS="id status route_actors route_current created_at updated_at"
+      for col in $REQUIRED_COLUMNS; do
+        COL_EXISTS=$(psql -h {{ include "asya-gateway.databaseHost" . }} \
+                          -p {{ include "asya-gateway.databasePort" . }} \
+                          -U {{ include "asya-gateway.databaseUsername" . }} \
+                          -d {{ include "asya-gateway.databaseName" . }} \
+                          -tAc "SELECT COUNT(*) FROM information_schema.columns WHERE table_schema='public' AND table_name='envelopes' AND column_name='$col'")
+
+        if [ "$COL_EXISTS" -ne 1 ]; then
+          echo "[-] Required column '$col' does not exist in envelopes table!"
+          exit 1
+        fi
+      done
+      echo "[+] All required columns exist in envelopes table"
+
+      # Test that we can insert and query (basic sanity check)
+      echo "[.] Testing database write/read..."
+      psql -h {{ include "asya-gateway.databaseHost" . }} \
+           -p {{ include "asya-gateway.databasePort" . }} \
+           -U {{ include "asya-gateway.databaseUsername" . }} \
+           -d {{ include "asya-gateway.databaseName" . }} \
+           -c "INSERT INTO envelopes (id, status, route_actors, route_current) VALUES ('test-schema-validation', 'pending', ARRAY['test'], 0) ON CONFLICT (id) DO NOTHING;"
+
+      RESULT=$(psql -h {{ include "asya-gateway.databaseHost" . }} \
+                    -p {{ include "asya-gateway.databasePort" . }} \
+                    -U {{ include "asya-gateway.databaseUsername" . }} \
+                    -d {{ include "asya-gateway.databaseName" . }} \
+                    -tAc "SELECT status FROM envelopes WHERE id='test-schema-validation'")
+
+      if [ "$RESULT" != "pending" ]; then
+        echo "[-] Database write/read test failed!"
+        exit 1
+      fi
+      echo "[+] Database write/read test passed"
+
+      # Cleanup test data
+      psql -h {{ include "asya-gateway.databaseHost" . }} \
+           -p {{ include "asya-gateway.databasePort" . }} \
+           -U {{ include "asya-gateway.databaseUsername" . }} \
+           -d {{ include "asya-gateway.databaseName" . }} \
+           -c "DELETE FROM envelopes WHERE id='test-schema-validation';"
+
+      echo "[+] Database schema validation completed successfully"
+    env:
+    - name: PGPASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: {{ include "asya-gateway.databaseSecretName" . }}
+          key: {{ include "asya-gateway.databasePasswordKey" . }}
+{{- end }}

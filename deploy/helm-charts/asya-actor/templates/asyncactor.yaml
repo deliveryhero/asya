@@ -1,0 +1,44 @@
+{{- $actors := .Values.actors | default (list .Values) }}
+{{- range $actors }}
+{{- $actor := . }}
+{{- $namespace := $actor.namespace | default $.Values.namespace }}
+{{- $transport := $actor.transport | default $.Values.transport }}
+{{- $scaling := $actor.scaling | default $.Values.default.scaling }}
+{{- $timeout := $actor.timeout }}
+{{- $workload := $actor.workload | default $.Values.default.workload }}
+{{- $healthChecks := $actor.healthChecks | default $.Values.default.healthChecks }}
+---
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: {{ $actor.name }}
+  namespace: {{ $namespace }}
+  labels:
+    {{- include "asya-actor.labels" $ | nindent 4 }}
+spec:
+  transport: {{ $transport }}
+
+  {{- if $scaling }}
+  scaling:
+    enabled: {{ $scaling.enabled }}
+    {{- if $scaling.enabled }}
+    minReplicas: {{ $scaling.minReplicas }}
+    maxReplicas: {{ $scaling.maxReplicas }}
+    pollingInterval: {{ $scaling.pollingInterval }}
+    cooldownPeriod: {{ $scaling.cooldownPeriod }}
+    queueLength: {{ $scaling.queueLength }}
+    {{- if $scaling.advanced }}
+    advanced:
+      {{- toYaml $scaling.advanced | nindent 6 }}
+    {{- end }}
+    {{- end }}
+  {{- end }}
+
+  {{- if $timeout }}
+  timeout:
+    {{- toYaml $timeout | nindent 4 }}
+  {{- end }}
+
+  workload:
+    {{- toYaml $workload | nindent 4 }}
+{{- end }}
