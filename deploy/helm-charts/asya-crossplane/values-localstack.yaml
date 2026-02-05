@@ -17,3 +17,12 @@ awsProviderConfig:
   s3UsePathStyle: true
 
 awsRegion: us-east-1
+
+# KEDA authentication for LocalStack (requires static credentials)
+keda:
+  authentication:
+    provider: secret
+    secret:
+      name: aws-creds
+      accessKeyIdKey: AWS_ACCESS_KEY_ID
+      secretAccessKeyKey: AWS_SECRET_ACCESS_KEY

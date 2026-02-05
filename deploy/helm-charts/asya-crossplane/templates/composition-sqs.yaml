@@ -47,6 +47,160 @@ spec:
                 name: {{`{{ $providerConfigRef }}`}}
               deletionPolicy: Delete
 
+    # Render KEDA TriggerAuthentication (for AWS authentication)
+    - step: render-keda-trigger-auth
+      functionRef:
+        name: function-go-templating
+      input:
+        apiVersion: gotemplating.fn.crossplane.io/v1beta1
+        kind: GoTemplate
+        source: Inline
+        inline:
+          template: |
+            {{`{{- $xr := .observed.composite.resource -}}`}}
+            {{`{{- $namespace := index $xr.metadata.labels "crossplane.io/claim-namespace" -}}`}}
+            {{`{{- $claimName := index $xr.metadata.labels "crossplane.io/claim-name" -}}`}}
+            {{`{{- $actorName := $xr.spec.actorName | default $claimName -}}`}}
+            {{`{{- $scaling := $xr.spec.scaling | default dict -}}`}}
+            {{`{{- $enabled := true -}}`}}
+            {{`{{- if hasKey $scaling "enabled" -}}`}}
+            {{`{{- $enabled = $scaling.enabled -}}`}}
+            {{`{{- end -}}`}}
+            {{`{{- if $enabled -}}`}}
+            apiVersion: kubernetes.crossplane.io/v1alpha2
+            kind: Object
+            metadata:
+              annotations:
+                gotemplating.fn.crossplane.io/composition-resource-name: keda-trigger-auth
+            spec:
+              providerConfigRef:
+                name: {{ .Values.kubernetesProviderConfig.name }}
+              forProvider:
+                manifest:
+                  apiVersion: keda.sh/v1alpha1
+                  kind: TriggerAuthentication
+                  metadata:
+                    name: {{`{{ $actorName }}`}}-trigger-auth
+                    namespace: {{`{{ $namespace }}`}}
+                    labels:
+                      app.kubernetes.io/name: {{`{{ $actorName }}`}}
+                      app.kubernetes.io/component: triggerauthentication
+                      app.kubernetes.io/part-of: asya
+                      app.kubernetes.io/managed-by: crossplane
+                  spec:
+                    {{- if eq .Values.keda.authentication.provider "podIdentity" }}
+                    podIdentity:
+                      provider: {{ .Values.keda.authentication.podIdentity.identityProvider }}
+                    {{- else }}
+                    secretTargetRef:
+                      - parameter: awsAccessKeyID
+                        name: {{ .Values.keda.authentication.secret.name }}
+                        key: {{ .Values.keda.authentication.secret.accessKeyIdKey }}
+                      - parameter: awsSecretAccessKey
+                        name: {{ .Values.keda.authentication.secret.name }}
+                        key: {{ .Values.keda.authentication.secret.secretAccessKeyKey }}
+                    {{- end }}
+            {{`{{- end -}}`}}
+
+    # Render KEDA ScaledObject (for autoscaling)
+    - step: render-keda-scaled-object
+      functionRef:
+        name: function-go-templating
+      input:
+        apiVersion: gotemplating.fn.crossplane.io/v1beta1
+        kind: GoTemplate
+        source: Inline
+        inline:
+          template: |
+            {{`{{- $xr := .observed.composite.resource -}}`}}
+            {{`{{- $namespace := index $xr.metadata.labels "crossplane.io/claim-namespace" -}}`}}
+            {{`{{- $claimName := index $xr.metadata.labels "crossplane.io/claim-name" -}}`}}
+            {{`{{- $actorName := $xr.spec.actorName | default $claimName -}}`}}
+            {{`{{- $region := $xr.spec.region | default "us-east-1" -}}`}}
+            {{`{{- $scaling := $xr.spec.scaling | default dict -}}`}}
+            {{`{{- $enabled := true -}}`}}
+            {{`{{- if hasKey $scaling "enabled" -}}`}}
+            {{`{{- $enabled = $scaling.enabled -}}`}}
+            {{`{{- end -}}`}}
+            {{`{{- $minReplicas := 0 -}}`}}
+            {{`{{- if hasKey $scaling "minReplicas" -}}`}}
+            {{`{{- $minReplicas = $scaling.minReplicas -}}`}}
+            {{`{{- end -}}`}}
+            {{`{{- $maxReplicas := 10 -}}`}}
+            {{`{{- if hasKey $scaling "maxReplicas" -}}`}}
+            {{`{{- $maxReplicas = $scaling.maxReplicas -}}`}}
+            {{`{{- end -}}`}}
+            {{`{{- $pollingInterval := 30 -}}`}}
+            {{`{{- if hasKey $scaling "pollingInterval" -}}`}}
+            {{`{{- $pollingInterval = $scaling.pollingInterval -}}`}}
+            {{`{{- end -}}`}}
+            {{`{{- $cooldownPeriod := 300 -}}`}}
+            {{`{{- if hasKey $scaling "cooldownPeriod" -}}`}}
+            {{`{{- $cooldownPeriod = $scaling.cooldownPeriod -}}`}}
+            {{`{{- end -}}`}}
+            {{`{{- $queueLength := 5 -}}`}}
+            {{`{{- if hasKey $scaling "queueLength" -}}`}}
+            {{`{{- $queueLength = $scaling.queueLength -}}`}}
+            {{`{{- end -}}`}}
+            {{`{{- if $enabled -}}`}}
+            apiVersion: kubernetes.crossplane.io/v1alpha2
+            kind: Object
+            metadata:
+              annotations:
+                gotemplating.fn.crossplane.io/composition-resource-name: keda-scaled-object
+            spec:
+              providerConfigRef:
+                name: {{ .Values.kubernetesProviderConfig.name }}
+              forProvider:
+                manifest:
+                  apiVersion: keda.sh/v1alpha1
+                  kind: ScaledObject
+                  metadata:
+                    name: {{`{{ $actorName }}`}}
+                    namespace: {{`{{ $namespace }}`}}
+                    labels:
+                      app.kubernetes.io/name: {{`{{ $actorName }}`}}
+                      app.kubernetes.io/component: scaledobject
+                      app.kubernetes.io/part-of: asya
+                      app.kubernetes.io/managed-by: crossplane
+                  spec:
+                    scaleTargetRef:
+                      name: {{`{{ $actorName }}`}}
+                    minReplicaCount: {{`{{ $minReplicas }}`}}
+                    maxReplicaCount: {{`{{ $maxReplicas }}`}}
+                    pollingInterval: {{`{{ $pollingInterval }}`}}
+                    cooldownPeriod: {{`{{ $cooldownPeriod }}`}}
+                    triggers:
+                      - type: aws-sqs-queue
+                        authenticationRef:
+                          name: {{`{{ $actorName }}`}}-trigger-auth
+                        metadata:
+                          queueURL: {{`{{ $xr.status.queueUrl | default "" }}`}}
+                          queueLength: "{{`{{ $queueLength }}`}}"
+                          awsRegion: {{`{{ $region }}`}}
+                          {{- if .Values.awsProviderConfig.endpoint.enabled }}
+                          awsEndpoint: {{ .Values.awsProviderConfig.endpoint.url }}
+                          {{- end }}
+                    advanced:
+                      horizontalPodAutoscalerConfig:
+                        behavior:
+                          scaleDown:
+                            stabilizationWindowSeconds: 300
+                            policies:
+                              - type: Pods
+                                value: 1
+                                periodSeconds: 60
+                          scaleUp:
+                            stabilizationWindowSeconds: 0
+                            policies:
+                              - type: Pods
+                                value: 10
+                                periodSeconds: 60
+                              - type: Percent
+                                value: 100
+                                periodSeconds: 60
+            {{`{{- end -}}`}}
+
     # Patch status back to composite
     - step: patch-status
       functionRef:
