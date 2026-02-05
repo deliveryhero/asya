@@ -1,0 +1,47 @@
+# Crossplane provider configuration
+providers:
+  aws:
+    # SQS provider version
+    sqsVersion: "v1.19.0"
+  kubernetes:
+    # Kubernetes provider version
+    version: "v0.17.0"
+
+# Crossplane functions
+functions:
+  patchAndTransformVersion: "v0.8.2"
+
+# AWS ProviderConfig settings
+awsProviderConfig:
+  # Name of the ProviderConfig
+  name: default
+  # Credentials source: Secret, InjectedIdentity, or Upbound
+  credentialsSource: Secret
+  # Secret reference for credentials (when source is Secret)
+  secretRef:
+    namespace: crossplane-system
+    name: aws-creds
+    key: credentials
+  # Custom endpoint configuration (for LocalStack or other AWS-compatible services)
+  endpoint:
+    enabled: false
+    url: ""
+    # Set to true for LocalStack
+    hostnameImmutable: true
+  # Skip validation flags (useful for LocalStack)
+  skipCredentialsValidation: false
+  skipMetadataApiCheck: false
+  skipRequestingAccountId: false
+  skipRegionValidation: false
+  s3UsePathStyle: false
+
+# Kubernetes ProviderConfig settings
+kubernetesProviderConfig:
+  name: in-cluster
+  credentialsSource: InjectedIdentity
+
+# Default region for AWS resources
+awsRegion: us-east-1
+
+# Namespace where AsyncActors will be created
+actorNamespace: asya-e2e
