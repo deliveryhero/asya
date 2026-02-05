@@ -143,6 +143,7 @@ spec:
             {{`{{- end }}`}}
 
     # Create KEDA ScaledObject for autoscaling based on SQS queue length
+    # Only rendered when queueURL is available from sqs-queue status (prevents race conditions)
     - step: render-scaledobject
       functionRef:
         name: function-go-templating
@@ -157,13 +158,19 @@ spec:
             {{`{{- $claimName := index $xr.metadata.labels "crossplane.io/claim-name" -}}`}}
             {{`{{- $actorName := $xr.spec.actorName | default $claimName -}}`}}
             {{`{{- $region := $xr.spec.region | default "us-east-1" -}}`}}
+            {{`{{- $queueURL := "" -}}`}}
+            {{`{{- if .observed.resources -}}`}}
+              {{`{{- if index .observed.resources "sqs-queue" -}}`}}
+                {{`{{- $queueURL = (index .observed.resources "sqs-queue").resource.status.atProvider.id | default "" -}}`}}
+              {{`{{- end -}}`}}
+            {{`{{- end -}}`}}
             {{`{{- $scalingEnabled := true -}}`}}
             {{`{{- if hasKey $xr.spec "scaling" -}}`}}
               {{`{{- if hasKey $xr.spec.scaling "enabled" -}}`}}
                 {{`{{- $scalingEnabled = $xr.spec.scaling.enabled -}}`}}
               {{`{{- end -}}`}}
             {{`{{- end -}}`}}
-            {{`{{- if $scalingEnabled -}}`}}
+            {{`{{- if and $scalingEnabled (ne $queueURL "") -}}`}}
             {{`{{- $minReplicas := 0 -}}`}}
             {{`{{- $maxReplicas := 10 -}}`}}
             {{`{{- $pollingInterval := 30 -}}`}}
@@ -205,7 +212,7 @@ spec:
                         authenticationRef:
                           name: {{`{{ $actorName }}`}}-trigger-auth
                         metadata:
-                          queueURL: https://sqs.{{`{{ $region }}`}}.amazonaws.com/000000000000/asya-{{`{{ $namespace }}`}}-{{`{{ $actorName }}`}}
+                          queueURL: {{`{{ $queueURL }}`}}
                           queueLength: "{{`{{ $queueLength }}`}}"
                           awsRegion: {{`{{ $region }}`}}
               providerConfigRef:
@@ -317,7 +324,7 @@ spec:
                 fromFieldPath: status.atProvider.manifest.status.replicas
                 toFieldPath: status.infrastructure.workload.replicas
 
-    # Derive phase from infrastructure status
+    # Derive phase from infrastructure status using Sprig default for safe nested access
     - step: derive-phase
       functionRef:
         name: function-go-templating
@@ -329,30 +336,12 @@ spec:
           template: |
             {{`{{- $xr := .observed.composite.resource -}}`}}
             {{`{{- $phase := "Creating" -}}`}}
-            {{`{{- $queueReady := false -}}`}}
-            {{`{{- $kedaReady := false -}}`}}
-            {{`{{- if hasKey $xr "status" -}}`}}
-              {{`{{- if hasKey $xr.status "infrastructure" -}}`}}
-                {{`{{- if hasKey $xr.status.infrastructure "queue" -}}`}}
-                  {{`{{- if hasKey $xr.status.infrastructure.queue "ready" -}}`}}
-                    {{`{{- $queueReady = $xr.status.infrastructure.queue.ready -}}`}}
-                  {{`{{- end -}}`}}
-                {{`{{- end -}}`}}
-                {{`{{- if hasKey $xr.status.infrastructure "keda" -}}`}}
-                  {{`{{- if hasKey $xr.status.infrastructure.keda "ready" -}}`}}
-                    {{`{{- $kedaReady = $xr.status.infrastructure.keda.ready -}}`}}
-                  {{`{{- end -}}`}}
-                {{`{{- end -}}`}}
-              {{`{{- end -}}`}}
-            {{`{{- end -}}`}}
+            {{`{{- $infra := $xr.status.infrastructure | default dict -}}`}}
+            {{`{{- $queueReady := ($infra.queue).ready | default false -}}`}}
+            {{`{{- $kedaReady := ($infra.keda).ready | default false -}}`}}
             {{`{{- if and $queueReady $kedaReady -}}`}}
               {{`{{- $phase = "Running" -}}`}}
-              {{`{{- $replicas := 0 -}}`}}
-              {{`{{- if hasKey $xr.status.infrastructure "workload" -}}`}}
-                {{`{{- if hasKey $xr.status.infrastructure.workload "replicas" -}}`}}
-                  {{`{{- $replicas = $xr.status.infrastructure.workload.replicas -}}`}}
-                {{`{{- end -}}`}}
-              {{`{{- end -}}`}}
+              {{`{{- $replicas := ($infra.workload).replicas | default 0 -}}`}}
               {{`{{- if eq $replicas 0 -}}`}}
                 {{`{{- $phase = "Napping" -}}`}}
               {{`{{- end -}}`}}
