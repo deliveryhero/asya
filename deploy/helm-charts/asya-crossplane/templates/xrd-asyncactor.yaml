@@ -24,6 +24,9 @@ spec:
               type: object
               required:
                 - transport
+              x-kubernetes-validations:
+                - rule: "!has(self.workload) || !has(self.workloadRef)"
+                  message: "workload and workloadRef are mutually exclusive"
               properties:
                 transport:
                   type: string
@@ -70,7 +73,25 @@ spec:
 
                 workload:
                   type: object
-                  description: Workload template (Crossplane manages the Deployment)
+                  description: |
+                    Workload template (Crossplane manages the Deployment).
+                    Must contain exactly one container named 'asya-runtime' without 'command' defined.
+                  x-kubernetes-preserve-unknown-fields: true
+                  x-kubernetes-validations:
+                    # Must have template.spec.containers
+                    - rule: "has(self.template) && has(self.template.spec) && has(self.template.spec.containers)"
+                      message: "workload must have template.spec.containers"
+                    # Exactly one container named 'asya-runtime'
+                    - rule: "self.template.spec.containers.filter(c, c.name == 'asya-runtime').size() == 1"
+                      message: "workload must have exactly one container named 'asya-runtime'"
+                    # asya-runtime must NOT have 'command' (injected by operator)
+                    - rule: "self.template.spec.containers.filter(c, c.name == 'asya-runtime').all(c, !has(c.command) || c.command.size() == 0)"
+                      message: "asya-runtime container must not define 'command' (injected by operator)"
+                    # TODO: More validations planned
+                    # - No container named 'asya-sidecar' (reserved)
+                    # - Must have ASYA_HANDLER env var
+                    # - No forbidden env vars (ASYA_SOCKET_DIR, etc.)
+                    # - No forbidden mounts (/opt/asya/*)
                   properties:
                     kind:
                       type: string
@@ -78,32 +99,6 @@ spec:
                         - Deployment
                         - StatefulSet
                       default: Deployment
-                    replicas:
-                      type: integer
-                      default: 1
-                    image:
-                      type: string
-                      description: Container image for the runtime
-                    handler:
-                      type: string
-                      description: Python handler path (e.g., my_module.process)
-                    handlerMode:
-                      type: string
-                      enum:
-                        - payload
-                        - envelope
-                      default: payload
-                    pythonExecutable:
-                      type: string
-                      default: python3
-                    resources:
-                      type: object
-                      x-kubernetes-preserve-unknown-fields: true
-                    env:
-                      type: array
-                      items:
-                        type: object
-                        x-kubernetes-preserve-unknown-fields: true
 
                 workloadRef:
                   type: object
@@ -134,6 +129,18 @@ spec:
                   description: Name of the AWS ProviderConfig to use
                   default: default
 
+                irsa:
+                  type: object
+                  description: IRSA (IAM Roles for Service Accounts) configuration
+                  properties:
+                    enabled:
+                      type: boolean
+                      description: Enable ServiceAccount with IRSA annotation
+                      default: true
+                    roleArn:
+                      type: string
+                      description: IAM role ARN for the ServiceAccount (overrides default pattern)
+
             status:
               type: object
               properties:
@@ -146,6 +153,33 @@ spec:
                 queueArn:
                   type: string
                   description: ARN of the SQS queue
+                infrastructure:
+                  type: object
+                  description: Status of infrastructure components
+                  properties:
+                    queue:
+                      type: object
+                      properties:
+                        ready:
+                          type: boolean
+                        message:
+                          type: string
+                    keda:
+                      type: object
+                      properties:
+                        ready:
+                          type: boolean
+                        message:
+                          type: string
+                    workload:
+                      type: object
+                      properties:
+                        ready:
+                          type: boolean
+                        replicas:
+                          type: integer
+                        readyReplicas:
+                          type: integer
       additionalPrinterColumns:
         - name: Transport
           type: string

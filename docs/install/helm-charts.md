@@ -149,6 +149,66 @@ error-end:
 
 **Note**: Chart templates automatically inject `ASYA_HANDLER_MODE=envelope` and `ASYA_ENABLE_VALIDATION=false`.
 
+### asya-crossplane
+
+Deploys Crossplane XRDs and Compositions for AsyncActor management (alternative to asya-operator).
+
+**Location**: `deploy/helm-charts/asya-crossplane/`
+
+**Installation**:
+```bash
+helm install asya-crossplane deploy/helm-charts/asya-crossplane/ -n crossplane-system
+```
+
+**Key values**:
+```yaml
+providers:
+  aws:
+    sqsVersion: "v1.19.0"
+  kubernetes:
+    version: "v0.17.0"
+
+awsProviderConfig:
+  name: default
+  credentialsSource: Secret
+  secretRef:
+    namespace: crossplane-system
+    name: aws-creds
+    key: credentials
+
+awsRegion: us-east-1
+actorNamespace: asya
+```
+
+**Workload Requirements**:
+
+AsyncActor claims using Crossplane must follow these rules:
+
+```yaml
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: my-actor
+spec:
+  transport: sqs
+  workload:
+    kind: Deployment
+    template:
+      spec:
+        containers:
+          - name: asya-runtime  # Required: must be named 'asya-runtime'
+            image: my-handler:latest
+            # command: NOT ALLOWED (injected by composition)
+            env:
+              - name: ASYA_HANDLER
+                value: my_module.process
+```
+
+**Validation Errors**:
+- `workload must have exactly one container named 'asya-runtime'` - rename container
+- `asya-runtime container must not define 'command'` - remove command field
+- `workload and workloadRef are mutually exclusive` - use only one
+
 ### asya-actor
 
 Deploys user actors (batch deployment).
