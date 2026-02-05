@@ -18,6 +18,9 @@ awsProviderConfig:
 
 awsRegion: us-east-1
 
+# LocalStack uses a fixed account ID
+awsAccountId: "000000000000"
+
 # IRSA disabled for LocalStack (no IAM integration)
 irsa:
   enabled: false

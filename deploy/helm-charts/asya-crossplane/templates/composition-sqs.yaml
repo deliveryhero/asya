@@ -12,7 +12,7 @@ spec:
     kind: XAsyncActor
   mode: Pipeline
   pipeline:
-    # Use go-templating for conditional logic (actorName priority over claim-name)
+    # Step 1: Render SQS Queue (always created)
     - step: render-sqs-queue
       functionRef:
         name: function-go-templating
@@ -183,9 +183,20 @@ spec:
               {{`{{- if hasKey $xr.spec.scaling "cooldownPeriod" }}{{ $cooldownPeriod = $xr.spec.scaling.cooldownPeriod }}{{ end -}}`}}
               {{`{{- if hasKey $xr.spec.scaling "queueLength" }}{{ $queueLength = $xr.spec.scaling.queueLength }}{{ end -}}`}}
             {{`{{- end -}}`}}
-            {{`{{- $workloadName := $actorName -}}`}}
+            {{`{{- $workloadName := "" -}}`}}
+            {{`{{- $workloadKind := "Deployment" -}}`}}
             {{`{{- if hasKey $xr.spec "workloadRef" -}}`}}
               {{`{{- $workloadName = $xr.spec.workloadRef.name -}}`}}
+              {{`{{- if hasKey $xr.spec.workloadRef "kind" -}}`}}
+                {{`{{- $workloadKind = $xr.spec.workloadRef.kind -}}`}}
+              {{`{{- end -}}`}}
+            {{`{{- else if hasKey $xr.spec "workload" -}}`}}
+              {{`{{- $workloadName = $actorName -}}`}}
+              {{`{{- if hasKey $xr.spec.workload "kind" -}}`}}
+                {{`{{- $workloadKind = $xr.spec.workload.kind -}}`}}
+              {{`{{- end -}}`}}
+            {{`{{- else -}}`}}
+              {{`{{- fail "Either spec.workload or spec.workloadRef must be provided" -}}`}}
             {{`{{- end -}}`}}
             apiVersion: kubernetes.crossplane.io/v1alpha2
             kind: Object
@@ -203,6 +214,7 @@ spec:
                   spec:
                     scaleTargetRef:
                       name: {{`{{ $workloadName }}`}}
+                      kind: {{`{{ $workloadKind }}`}}
                     minReplicaCount: {{`{{ $minReplicas }}`}}
                     maxReplicaCount: {{`{{ $maxReplicas }}`}}
                     pollingInterval: {{`{{ $pollingInterval }}`}}
@@ -239,6 +251,18 @@ spec:
             {{`{{- if hasKey $xr.spec.workload "kind" -}}`}}
               {{`{{- $workloadKind = $xr.spec.workload.kind -}}`}}
             {{`{{- end -}}`}}
+            {{`{{- $scalingEnabled := true -}}`}}
+            {{`{{- if hasKey $xr.spec "scaling" -}}`}}
+              {{`{{- if hasKey $xr.spec.scaling "enabled" -}}`}}
+                {{`{{- $scalingEnabled = $xr.spec.scaling.enabled -}}`}}
+              {{`{{- end -}}`}}
+            {{`{{- end -}}`}}
+            {{`{{- $replicas := 1 -}}`}}
+            {{`{{- if not $scalingEnabled -}}`}}
+              {{`{{- if hasKey $xr.spec.workload "replicas" -}}`}}
+                {{`{{- $replicas = $xr.spec.workload.replicas -}}`}}
+              {{`{{- end -}}`}}
+            {{`{{- end -}}`}}
             apiVersion: kubernetes.crossplane.io/v1alpha2
             kind: Object
             metadata:
@@ -256,10 +280,11 @@ spec:
                       app.kubernetes.io/name: {{`{{ $actorName }}`}}
                       app.kubernetes.io/component: actor
                       app.kubernetes.io/part-of: asya
+                      app.kubernetes.io/managed-by: crossplane
                       asya.sh/actor: {{`{{ $actorName }}`}}
                       asya.sh/inject: "true"
                   spec:
-                    replicas: 1
+                    replicas: {{`{{ $replicas }}`}}
                     selector:
                       matchLabels:
                         app.kubernetes.io/name: {{`{{ $actorName }}`}}

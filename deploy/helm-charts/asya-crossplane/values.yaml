@@ -43,6 +43,9 @@ kubernetesProviderConfig:
 # Default region for AWS resources
 awsRegion: us-east-1
 
+# AWS account ID (required for KEDA SQS trigger queue URL)
+awsAccountId: "000000000000"
+
 # Namespace where AsyncActors will be created
 actorNamespace: asya-e2e
 
