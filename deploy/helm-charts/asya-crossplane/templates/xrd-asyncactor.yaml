@@ -24,6 +24,9 @@ spec:
               type: object
               required:
                 - transport
+              x-kubernetes-validations:
+                - rule: "!has(self.workload) || !has(self.workloadRef)"
+                  message: "workload and workloadRef are mutually exclusive"
               properties:
                 transport:
                   type: string
@@ -78,32 +81,48 @@ spec:
                         - Deployment
                         - StatefulSet
                       default: Deployment
-                    replicas:
-                      type: integer
-                      default: 1
-                    image:
-                      type: string
-                      description: Container image for the runtime
-                    handler:
-                      type: string
-                      description: Python handler path (e.g., my_module.process)
-                    handlerMode:
-                      type: string
-                      enum:
-                        - payload
-                        - envelope
-                      default: payload
-                    pythonExecutable:
-                      type: string
-                      default: python3
-                    resources:
+                    template:
                       type: object
-                      x-kubernetes-preserve-unknown-fields: true
-                    env:
-                      type: array
-                      items:
-                        type: object
-                        x-kubernetes-preserve-unknown-fields: true
+                      description: Pod template specification
+                      properties:
+                        spec:
+                          type: object
+                          properties:
+                            containers:
+                              type: array
+                              items:
+                                type: object
+                                properties:
+                                  name:
+                                    type: string
+                                  image:
+                                    type: string
+                                  env:
+                                    type: array
+                                    items:
+                                      type: object
+                                      x-kubernetes-preserve-unknown-fields: true
+                                  resources:
+                                    type: object
+                                    x-kubernetes-preserve-unknown-fields: true
+                                  volumeMounts:
+                                    type: array
+                                    items:
+                                      type: object
+                                      x-kubernetes-preserve-unknown-fields: true
+                            volumes:
+                              type: array
+                              items:
+                                type: object
+                                x-kubernetes-preserve-unknown-fields: true
+                            nodeSelector:
+                              type: object
+                              x-kubernetes-preserve-unknown-fields: true
+                            tolerations:
+                              type: array
+                              items:
+                                type: object
+                                x-kubernetes-preserve-unknown-fields: true
 
                 workloadRef:
                   type: object
