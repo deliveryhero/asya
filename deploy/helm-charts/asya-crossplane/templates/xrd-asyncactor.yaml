@@ -1,0 +1,161 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: CompositeResourceDefinition
+metadata:
+  name: xasyncactors.asya.sh
+  labels:
+    {{- include "asya-crossplane.labels" . | nindent 4 }}
+spec:
+  group: asya.sh
+  names:
+    kind: XAsyncActor
+    plural: xasyncactors
+  claimNames:
+    kind: AsyncActor
+    plural: asyncactors
+  versions:
+    - name: v1alpha1
+      served: true
+      referenceable: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              required:
+                - transport
+              properties:
+                transport:
+                  type: string
+                  description: Transport type for message queue
+                  enum:
+                    - sqs
+                    - rabbitmq
+                  default: sqs
+
+                actorName:
+                  type: string
+                  description: Actor name used for queue naming and routing (defaults to metadata.name)
+
+                region:
+                  type: string
+                  description: AWS region for SQS queue
+                  default: us-east-1
+
+                scaling:
+                  type: object
+                  description: KEDA autoscaling configuration
+                  properties:
+                    enabled:
+                      type: boolean
+                      default: true
+                    minReplicas:
+                      type: integer
+                      default: 0
+                    maxReplicas:
+                      type: integer
+                      default: 10
+                    pollingInterval:
+                      type: integer
+                      description: Interval in seconds to poll for messages
+                      default: 30
+                    cooldownPeriod:
+                      type: integer
+                      description: Seconds to wait before scaling down
+                      default: 300
+                    queueLength:
+                      type: integer
+                      description: Target queue length per replica
+                      default: 5
+
+                workload:
+                  type: object
+                  description: Workload template (Crossplane manages the Deployment)
+                  properties:
+                    kind:
+                      type: string
+                      enum:
+                        - Deployment
+                        - StatefulSet
+                      default: Deployment
+                    replicas:
+                      type: integer
+                      default: 1
+                    image:
+                      type: string
+                      description: Container image for the runtime
+                    handler:
+                      type: string
+                      description: Python handler path (e.g., my_module.process)
+                    handlerMode:
+                      type: string
+                      enum:
+                        - payload
+                        - envelope
+                      default: payload
+                    pythonExecutable:
+                      type: string
+                      default: python3
+                    resources:
+                      type: object
+                      x-kubernetes-preserve-unknown-fields: true
+                    env:
+                      type: array
+                      items:
+                        type: object
+                        x-kubernetes-preserve-unknown-fields: true
+
+                workloadRef:
+                  type: object
+                  description: Reference to existing workload (user manages the Deployment)
+                  properties:
+                    name:
+                      type: string
+                    kind:
+                      type: string
+                      enum:
+                        - Deployment
+                        - StatefulSet
+                      default: Deployment
+
+                sidecar:
+                  type: object
+                  description: Sidecar configuration overrides
+                  properties:
+                    image:
+                      type: string
+                      default: ghcr.io/deliveryhero/asya-sidecar:latest
+                    resources:
+                      type: object
+                      x-kubernetes-preserve-unknown-fields: true
+
+                providerConfigRef:
+                  type: string
+                  description: Name of the AWS ProviderConfig to use
+                  default: default
+
+            status:
+              type: object
+              properties:
+                phase:
+                  type: string
+                  description: Current phase of the AsyncActor
+                queueUrl:
+                  type: string
+                  description: URL of the SQS queue
+                queueArn:
+                  type: string
+                  description: ARN of the SQS queue
+      additionalPrinterColumns:
+        - name: Transport
+          type: string
+          jsonPath: .spec.transport
+        - name: Phase
+          type: string
+          jsonPath: .status.phase
+        - name: Queue
+          type: string
+          jsonPath: .status.queueUrl
+        - name: Age
+          type: date
+          jsonPath: .metadata.creationTimestamp

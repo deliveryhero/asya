@@ -2,6 +2,7 @@ package envelopes
 
 import (
 	"encoding/json"
+	"reflect"
 	"testing"
 )
 
@@ -251,4 +252,95 @@ func TestEnvelope_ParentID_Serialization(t *testing.T) {
 
 func stringPtr(s string) *string {
 	return &s
+}
+
+// TestEnvelope_RawMessagePreservesPayloadBytes verifies that json.RawMessage
+// keeps payload as raw bytes without parsing into Go objects.
+// This is a regression test for the optimization in asya-866.
+func TestEnvelope_RawMessagePreservesPayloadBytes(t *testing.T) {
+	// Large nested payload that would be expensive to parse
+	rawJSON := `{
+		"id": "test-123",
+		"route": {"actors": ["a", "b"], "current": 0},
+		"payload": {"deeply": {"nested": {"structure": {"with": {"many": {"levels": "value"}}}}}, "array": [1,2,3,4,5]}
+	}`
+
+	var envelope Envelope
+	if err := json.Unmarshal([]byte(rawJSON), &envelope); err != nil {
+		t.Fatalf("Failed to unmarshal: %v", err)
+	}
+
+	// Verify payload is stored as raw bytes, not parsed
+	expectedPayload := `{"deeply": {"nested": {"structure": {"with": {"many": {"levels": "value"}}}}}, "array": [1,2,3,4,5]}`
+
+	// Compare after normalizing whitespace using reflect.DeepEqual
+	var expected, actual interface{}
+	if err := json.Unmarshal([]byte(expectedPayload), &expected); err != nil {
+		t.Fatalf("Failed to parse expected: %v", err)
+	}
+	if err := json.Unmarshal(envelope.Payload, &actual); err != nil {
+		t.Fatalf("Failed to parse actual: %v", err)
+	}
+
+	if !reflect.DeepEqual(expected, actual) {
+		expectedBytes, _ := json.Marshal(expected)
+		actualBytes, _ := json.Marshal(actual)
+		t.Errorf("Payload mismatch:\ngot:  %s\nwant: %s", string(actualBytes), string(expectedBytes))
+	}
+
+	// Verify that re-marshaling preserves the structure (semantically, not byte-for-byte)
+	remarshaled, err := json.Marshal(envelope)
+	if err != nil {
+		t.Fatalf("Failed to re-marshal: %v", err)
+	}
+
+	var roundtrip Envelope
+	if err := json.Unmarshal(remarshaled, &roundtrip); err != nil {
+		t.Fatalf("Failed to unmarshal roundtrip: %v", err)
+	}
+
+	// Payload should be semantically equivalent after roundtrip
+	// (whitespace may differ due to JSON normalization, but content must match)
+	var originalPayload, roundtripPayload interface{}
+	if err := json.Unmarshal(envelope.Payload, &originalPayload); err != nil {
+		t.Fatalf("Failed to parse original payload: %v", err)
+	}
+	if err := json.Unmarshal(roundtrip.Payload, &roundtripPayload); err != nil {
+		t.Fatalf("Failed to parse roundtrip payload: %v", err)
+	}
+
+	if !reflect.DeepEqual(originalPayload, roundtripPayload) {
+		origBytes, _ := json.Marshal(originalPayload)
+		rtBytes, _ := json.Marshal(roundtripPayload)
+		t.Errorf("Payload not preserved after roundtrip:\ngot:  %s\nwant: %s", string(rtBytes), string(origBytes))
+	}
+}
+
+// TestEnvelope_RawMessageForwardsUnchanged verifies that payload bytes
+// can be extracted and forwarded without modification.
+func TestEnvelope_RawMessageForwardsUnchanged(t *testing.T) {
+	// Simulate receiving a message from queue
+	queueMessage := []byte(`{"id":"msg-1","route":{"actors":["actor1"],"current":0},"payload":{"key":"value","number":42}}`)
+
+	var envelope Envelope
+	if err := json.Unmarshal(queueMessage, &envelope); err != nil {
+		t.Fatalf("Failed to unmarshal: %v", err)
+	}
+
+	// The payload should be extractable as raw bytes
+	payloadBytes := []byte(envelope.Payload)
+
+	// Verify it's valid JSON that can be parsed independently
+	var payload map[string]interface{}
+	if err := json.Unmarshal(payloadBytes, &payload); err != nil {
+		t.Fatalf("Payload is not valid JSON: %v", err)
+	}
+
+	expected := map[string]interface{}{
+		"key":    "value",
+		"number": float64(42),
+	}
+	if !reflect.DeepEqual(payload, expected) {
+		t.Errorf("payload mismatch:\ngot:  %v\nwant: %v", payload, expected)
+	}
 }

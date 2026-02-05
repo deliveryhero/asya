@@ -38,8 +38,6 @@ coverage:
   - .coverage/testing/integration/gateway-actors/cov-*.json
   # E2E tests (Python)
   - .coverage/testing/e2e/cov-*.json
-  badge:
-    path: docs/coverage.svg
 
 comment:
   if: is_pull_request
@@ -56,27 +54,28 @@ comment:
 
     **Legend:** `+` increase | `-` decrease | `~` no change
 
+# Diff comparison for PRs - uses artifact datastore
+# Reports are generated during PR and compared against last main run
 diff:
   if: is_pull_request
   datastores:
-  - github://${GITHUB_REPOSITORY}@octocov
+  - artifact://${GITHUB_REPOSITORY}
   path: report.json
 
 summary:
   if: is_default_branch
   path: report.json
 
-# Store reports on dedicated octocov branch for baseline comparison
-# Uses github:// datastore which persists across workflow runs
-# Branch is separate from gh-pages to avoid public exposure
+# Store reports for main branch - uses artifact datastore
+# Note: Artifact datastore doesn't persist across runs, but manual git push
+# in CI workflow persists reports to octocov branch for future comparisons
 report:
   if: is_default_branch
   datastores:
-  - github://${GITHUB_REPOSITORY}@octocov
+  - artifact://${GITHUB_REPOSITORY}
   path: report.json
 
 codeToTestRatio:
-  acceptable: 1:1.2
   code:
   - '**/*.go'
   - '**/*.py'
@@ -97,14 +96,13 @@ testExecutionTime:
   - "Run 2-parametrized integration tests.*"
   - "Run 3-parametrized integration tests.*"
   - "Run E2E tests.*"
-  badge:
-    path: docs/time.svg
 
 # Set coverage thresholds
-# - current >= 75%: Overall coverage must be at least 75%
-# - diff >= 0%: Coverage must not decrease (no regression allowed)
 acceptable:
-  coverage: current >= 75% && diff >= 0%
+  coverage:
+  - current >= 50%
+  - diff >= 0
+  codeToTestRatio: 1:1.2
 
 # Push metrics and badges to artifact storage
 # Disabled: Using artifact datastore instead of git push

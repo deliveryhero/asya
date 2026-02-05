@@ -452,13 +452,36 @@ jobs:
       env:
         GITHUB_REPOSITORY: ${{ github.repository }}
 
-    - name: Verify report storage
-      if: github.ref == 'refs/heads/main'
+    - name: Push coverage report to octocov branch for persistence
+      if: github.ref == 'refs/heads/main' && success()
       run: |
-        echo "[.] Verifying coverage report was pushed to octocov branch..."
-        if git fetch origin octocov --depth=1 2>/dev/null; then
-          echo "[+] octocov branch exists"
-          git ls-tree origin/octocov --name-only 2>/dev/null | head -10 || echo "[!] Cannot list branch contents"
-        else
-          echo "[!] octocov branch not found (will be created on first main branch run)"
+        if [ ! -f report.json ]; then
+          echo "[!] report.json not found, skipping persistence"
+          exit 0
         fi
+
+        echo "[.] Persisting coverage report to octocov branch..."
+
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+
+        # Create/update octocov branch with report.json
+        COMMIT_MSG="chore: Update coverage report from main (${{ github.sha }})"
+
+        # Try to fetch existing octocov branch
+        if git fetch origin octocov; then
+          # Branch exists - add to it
+          git checkout octocov
+          git add report.json
+          git commit -m "$COMMIT_MSG" || echo "[!] No changes to report"
+          git push origin octocov
+        else
+          # New branch - create it
+          git checkout --orphan octocov
+          git add report.json
+          git commit -m "$COMMIT_MSG"
+          git push -u origin octocov
+        fi
+
+        git checkout main
+        echo "[+] Coverage report persisted to octocov branch"
