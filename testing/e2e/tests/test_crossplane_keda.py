@@ -10,7 +10,6 @@ Actual scaling behavior is tested in test_keda_scaling.py (operator-based).
 """
 
 import subprocess
-import tempfile
 import yaml
 import pytest
 
@@ -91,24 +90,24 @@ class TestCompositionSqsKedaSteps:
         return comp
 
     def test_has_keda_trigger_auth_step(self, composition_default):
-        """Test composition has render-keda-trigger-auth pipeline step."""
-        step = get_pipeline_step(composition_default, "render-keda-trigger-auth")
-        assert step is not None, "Should have render-keda-trigger-auth step"
+        """Test composition has render-triggerauthentication pipeline step."""
+        step = get_pipeline_step(composition_default, "render-triggerauthentication")
+        assert step is not None, "Should have render-triggerauthentication step"
 
         # Verify it uses go-templating function
         assert step["functionRef"]["name"] == "function-go-templating"
 
     def test_has_keda_scaled_object_step(self, composition_default):
-        """Test composition has render-keda-scaled-object pipeline step."""
-        step = get_pipeline_step(composition_default, "render-keda-scaled-object")
-        assert step is not None, "Should have render-keda-scaled-object step"
+        """Test composition has render-scaledobject pipeline step."""
+        step = get_pipeline_step(composition_default, "render-scaledobject")
+        assert step is not None, "Should have render-scaledobject step"
 
         # Verify it uses go-templating function
         assert step["functionRef"]["name"] == "function-go-templating"
 
     def test_trigger_auth_uses_pod_identity_by_default(self, composition_default):
         """Test TriggerAuthentication uses podIdentity with default values."""
-        step = get_pipeline_step(composition_default, "render-keda-trigger-auth")
+        step = get_pipeline_step(composition_default, "render-triggerauthentication")
         template = step["input"]["inline"]["template"]
 
         # Should contain podIdentity configuration
@@ -117,7 +116,7 @@ class TestCompositionSqsKedaSteps:
 
     def test_trigger_auth_uses_secret_with_localstack(self, composition_localstack):
         """Test TriggerAuthentication uses secretTargetRef with LocalStack values."""
-        step = get_pipeline_step(composition_localstack, "render-keda-trigger-auth")
+        step = get_pipeline_step(composition_localstack, "render-triggerauthentication")
         template = step["input"]["inline"]["template"]
 
         # Should contain secretTargetRef configuration
@@ -125,9 +124,18 @@ class TestCompositionSqsKedaSteps:
         assert "awsAccessKeyID" in template, "Should have AWS Access Key ID parameter"
         assert "awsSecretAccessKey" in template, "Should have AWS Secret Access Key parameter"
 
+    def test_trigger_auth_has_labels(self, composition_default):
+        """Test TriggerAuthentication has proper labels."""
+        step = get_pipeline_step(composition_default, "render-triggerauthentication")
+        template = step["input"]["inline"]["template"]
+
+        assert "app.kubernetes.io/component: triggerauthentication" in template
+        assert "app.kubernetes.io/part-of: asya" in template
+        assert "app.kubernetes.io/managed-by: crossplane" in template
+
     def test_scaled_object_has_auth_ref(self, composition_default):
         """Test ScaledObject references TriggerAuthentication."""
-        step = get_pipeline_step(composition_default, "render-keda-scaled-object")
+        step = get_pipeline_step(composition_default, "render-scaledobject")
         template = step["input"]["inline"]["template"]
 
         # Should reference TriggerAuthentication
@@ -136,7 +144,7 @@ class TestCompositionSqsKedaSteps:
 
     def test_scaled_object_has_sqs_trigger(self, composition_default):
         """Test ScaledObject has aws-sqs-queue trigger type."""
-        step = get_pipeline_step(composition_default, "render-keda-scaled-object")
+        step = get_pipeline_step(composition_default, "render-scaledobject")
         template = step["input"]["inline"]["template"]
 
         assert "type: aws-sqs-queue" in template, "Should use aws-sqs-queue trigger"
@@ -146,7 +154,7 @@ class TestCompositionSqsKedaSteps:
 
     def test_scaled_object_has_localstack_endpoint(self, composition_localstack):
         """Test ScaledObject includes awsEndpoint for LocalStack."""
-        step = get_pipeline_step(composition_localstack, "render-keda-scaled-object")
+        step = get_pipeline_step(composition_localstack, "render-scaledobject")
         template = step["input"]["inline"]["template"]
 
         assert "awsEndpoint:" in template, "Should have awsEndpoint for LocalStack"
@@ -154,13 +162,31 @@ class TestCompositionSqsKedaSteps:
 
     def test_scaled_object_has_hpa_behavior(self, composition_default):
         """Test ScaledObject has HPA behavior configuration."""
-        step = get_pipeline_step(composition_default, "render-keda-scaled-object")
+        step = get_pipeline_step(composition_default, "render-scaledobject")
         template = step["input"]["inline"]["template"]
 
         # Should have HPA behavior for scale-down protection
         assert "horizontalPodAutoscalerConfig:" in template
         assert "scaleDown:" in template
         assert "stabilizationWindowSeconds: 300" in template
+
+    def test_scaled_object_has_labels(self, composition_default):
+        """Test ScaledObject has proper labels."""
+        step = get_pipeline_step(composition_default, "render-scaledobject")
+        template = step["input"]["inline"]["template"]
+
+        assert "app.kubernetes.io/component: scaledobject" in template
+        assert "app.kubernetes.io/part-of: asya" in template
+        assert "app.kubernetes.io/managed-by: crossplane" in template
+
+    def test_scaled_object_uses_observed_queue_url(self, composition_default):
+        """Test ScaledObject gets queueURL from observed resources (not status)."""
+        step = get_pipeline_step(composition_default, "render-scaledobject")
+        template = step["input"]["inline"]["template"]
+
+        # Should get queueURL from observed.resources (prevents race conditions)
+        assert '.observed.resources' in template, "Should use observed.resources for queue URL"
+        assert 'sqs-queue' in template, "Should reference sqs-queue resource"
 
     def test_pipeline_step_order(self, composition_default):
         """Test pipeline steps are in correct order."""
@@ -169,8 +195,8 @@ class TestCompositionSqsKedaSteps:
 
         # SQS queue must be created before KEDA resources
         sqs_idx = step_names.index("render-sqs-queue")
-        trigger_auth_idx = step_names.index("render-keda-trigger-auth")
-        scaled_obj_idx = step_names.index("render-keda-scaled-object")
+        trigger_auth_idx = step_names.index("render-triggerauthentication")
+        scaled_obj_idx = step_names.index("render-scaledobject")
         patch_idx = step_names.index("patch-status")
 
         assert sqs_idx < trigger_auth_idx, "SQS queue should be rendered before TriggerAuth"
@@ -186,17 +212,17 @@ class TestValuesConfiguration:
         with open(f"{CHART_PATH}/values.yaml") as f:
             values = yaml.safe_load(f)
 
-        keda_auth = values.get("keda", {}).get("authentication", {})
-        assert keda_auth.get("provider") == "podIdentity", \
-            "Default provider should be podIdentity (for IRSA)"
+        keda = values.get("keda", {})
+        assert keda.get("authProvider") == "podIdentity", \
+            "Default authProvider should be podIdentity (for IRSA)"
 
     def test_localstack_keda_auth_provider(self):
         """Test LocalStack uses secret-based authentication."""
         with open(f"{CHART_PATH}/values-localstack.yaml") as f:
             values = yaml.safe_load(f)
 
-        keda_auth = values.get("keda", {}).get("authentication", {})
-        assert keda_auth.get("provider") == "secret", \
+        keda = values.get("keda", {})
+        assert keda.get("authProvider") == "secret", \
             "LocalStack should use secret-based authentication"
 
     def test_localstack_secret_configuration(self):
@@ -204,7 +230,15 @@ class TestValuesConfiguration:
         with open(f"{CHART_PATH}/values-localstack.yaml") as f:
             values = yaml.safe_load(f)
 
-        secret_config = values.get("keda", {}).get("authentication", {}).get("secret", {})
-        assert secret_config.get("name") == "aws-creds", "Should use aws-creds secret"
-        assert secret_config.get("accessKeyIdKey") == "AWS_ACCESS_KEY_ID"
-        assert secret_config.get("secretAccessKeyKey") == "AWS_SECRET_ACCESS_KEY"
+        secret_ref = values.get("keda", {}).get("secretRef", {})
+        assert secret_ref.get("name") == "aws-creds", "Should use aws-creds secret"
+        assert secret_ref.get("accessKeyIdKey") == "AWS_ACCESS_KEY_ID"
+        assert secret_ref.get("secretAccessKeyKey") == "AWS_SECRET_ACCESS_KEY"
+
+    def test_irsa_disabled_for_localstack(self):
+        """Test IRSA is disabled for LocalStack."""
+        with open(f"{CHART_PATH}/values-localstack.yaml") as f:
+            values = yaml.safe_load(f)
+
+        irsa = values.get("irsa", {})
+        assert irsa.get("enabled") is False, "IRSA should be disabled for LocalStack"

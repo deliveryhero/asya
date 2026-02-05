@@ -144,6 +144,80 @@ spec:
                 memory: 512Mi
 ```
 
+## Using workloadRef (Bring Your Own Deployment)
+
+For cases where you want to manage the Deployment yourself (e.g., using Argo CD, Flux, or custom tooling), use `workloadRef` instead of `workload`. Crossplane will only create the SQS queue and ScaledObject, skipping Deployment creation.
+
+### Requirements
+
+Your existing Deployment must have:
+
+1. **Required labels on the Deployment**:
+   - `asya.sh/actor: <actor-name>` - must match the AsyncActor name
+   - `asya.sh/inject: "true"` - triggers sidecar injection by the webhook
+
+2. **Required labels on pod template**:
+   - Same labels as above on `spec.template.metadata.labels`
+
+3. **Container requirements**:
+   - One container named `asya-runtime` (without `command` defined)
+   - The sidecar injector will add the `asya-sidecar` container
+
+### Example with workloadRef
+
+```yaml
+# First, create your Deployment (managed by your preferred tool)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-processor
+  namespace: asya
+  labels:
+    asya.sh/actor: my-processor
+    asya.sh/inject: "true"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      asya.sh/actor: my-processor
+  template:
+    metadata:
+      labels:
+        asya.sh/actor: my-processor
+        asya.sh/inject: "true"
+    spec:
+      containers:
+        - name: asya-runtime
+          image: my-processor:v1
+          env:
+            - name: ASYA_HANDLER
+              value: processor.process
+---
+# Then, create the AsyncActor with workloadRef
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: my-processor
+  namespace: asya
+spec:
+  transport: sqs
+  workloadRef:
+    name: my-processor
+    kind: Deployment
+  scaling:
+    minReplicas: 0
+    maxReplicas: 10
+```
+
+### Important Notes
+
+- The AsyncActor creates the SQS queue and ScaledObject, but NOT the Deployment
+- You must ensure your Deployment exists before creating the AsyncActor
+- After updating your Deployment, trigger a rollout to pick up sidecar changes:
+  ```bash
+  kubectl rollout restart deployment/my-processor -n asya
+  ```
+
 ## CEL Validation
 
 The XRD includes CEL (Common Expression Language) validations that run at Kubernetes admission time:
@@ -166,11 +240,14 @@ AsyncActor Claim (asya.sh/v1alpha1)
          ▼
     Composition
          │
-    ┌────┴────┐
-    ▼         ▼
-SQS Queue   Deployment
-(AWS)       (Kubernetes)
+    ┌────┼────────────┐
+    ▼    ▼            ▼
+  SQS  ScaledObject  Deployment
+ Queue  (KEDA)       (if spec.workload)
+ (AWS)
 ```
+
+**With workloadRef:** Only SQS Queue and ScaledObject are created; Deployment is managed externally.
 
 ## Comparison with asya-operator
 

@@ -43,24 +43,28 @@ kubernetesProviderConfig:
 # Default region for AWS resources
 awsRegion: us-east-1
 
+# AWS account ID (required for KEDA SQS trigger queue URL)
+awsAccountId: "000000000000"
+
 # Namespace where AsyncActors will be created
 actorNamespace: asya-e2e
 
-# KEDA autoscaling configuration
+# IRSA (IAM Roles for Service Accounts) configuration
+irsa:
+  # Enable ServiceAccount creation with IRSA annotation
+  enabled: true
+  # ServiceAccount name (shared per namespace)
+  serviceAccountName: asya-actors
+  # IAM role ARN pattern - {namespace} will be replaced with actual namespace
+  # For production, set this to your actual IAM role ARN pattern
+  roleArnPattern: "arn:aws:iam::ACCOUNT_ID:role/asya-actors-{namespace}"
+
+# KEDA authentication configuration
 keda:
-  # TriggerAuthentication configuration for KEDA
-  authentication:
-    # Authentication provider: "podIdentity" (IRSA) or "secret"
-    provider: podIdentity
-    # Pod identity configuration (used when provider is "podIdentity")
-    podIdentity:
-      # AWS pod identity provider (for IRSA)
-      identityProvider: aws
-    # Secret configuration (used when provider is "secret")
-    secret:
-      # Secret name containing AWS credentials (in actor namespace)
-      name: aws-creds
-      # Key for AWS Access Key ID
-      accessKeyIdKey: AWS_ACCESS_KEY_ID
-      # Key for AWS Secret Access Key
-      secretAccessKeyKey: AWS_SECRET_ACCESS_KEY
+  # TriggerAuthentication provider type: "podIdentity" or "secret"
+  authProvider: podIdentity
+  # For secret-based auth, specify the secret reference
+  secretRef:
+    name: ""
+    accessKeyIdKey: AWS_ACCESS_KEY_ID
+    secretAccessKeyKey: AWS_SECRET_ACCESS_KEY

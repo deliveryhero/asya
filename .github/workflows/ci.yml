@@ -444,6 +444,24 @@ jobs:
           echo "[!] .coverage directory not found"
         fi
 
+    - name: Fetch baseline coverage report from octocov branch for PR comparison
+      run: |
+        echo "[.] Fetching baseline coverage report from octocov branch..."
+        if git fetch origin octocov 2>/dev/null; then
+          OCTOCOV_CONTENT=$(git show origin/octocov:report.json 2>/dev/null)
+          if [ -n "$OCTOCOV_CONTENT" ]; then
+            echo "$OCTOCOV_CONTENT" > .octocov-baseline.json
+            echo "[+] Baseline report fetched"
+            ls -lh .octocov-baseline.json
+            echo "[.] Baseline content (first 500 chars):"
+            head -c 500 .octocov-baseline.json
+          else
+            echo "[!] report.json not found on octocov branch"
+          fi
+        else
+          echo "[!] octocov branch not found (first run)"
+        fi
+
     - name: Generate coverage report and comment on PR
       uses: k1LoW/octocov-action@v1
       with:
