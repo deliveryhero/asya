@@ -161,6 +161,10 @@ spec:
         - name: Transport
           type: string
           jsonPath: .spec.transport
+        - name: Queue
+          type: string
+          jsonPath: .status.queueUrl
+          priority: 1
         - name: Age
           type: date
           jsonPath: .metadata.creationTimestamp
