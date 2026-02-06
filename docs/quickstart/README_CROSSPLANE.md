@@ -53,7 +53,6 @@ FROM python:3.12-slim
 WORKDIR /app
 COPY handler.py /app/handler.py
 ENV ASYA_HANDLER=handler.greet
-CMD ["python3", "/opt/asya/asya_runtime.py"]
 DEOF
 
 docker build -t test-actor:latest /tmp/test-actor/
@@ -71,6 +70,7 @@ kind load docker-image asya-sidecar:latest asya-injector:latest test-actor:lates
 ### cert-manager (for webhook TLS)
 
 ```bash
+kubectl cluster-info --context kind-asya-crossplane
 kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.17.1/cert-manager.yaml
 kubectl wait --for=condition=Available deployment/cert-manager-webhook -n cert-manager --timeout=120s
 ```
@@ -198,7 +198,7 @@ Wait for all providers and functions to become healthy:
 
 ```bash
 echo "Waiting for providers..."
-until [ "$(kubectl get providers,functions -o jsonpath='{range .items[*]}{.status.conditions[?(@.type=="Healthy")].status}{" "}{end}' 2>/dev/null | tr -cd 'True ' | grep -c True)" -ge 4 ] 2>/dev/null; do
+until kubectl get providers,functions -o jsonpath='{range .items[*]}{.status.conditions[?(@.type=="Healthy")].status}{" "}{end}' 2>/dev/null | grep -q "True True True True"; do
   sleep 5
 done
 echo "All providers healthy"
