@@ -100,3 +100,7 @@ config:
   runtimeMountPath: "/opt/asya/asya_runtime.py"
   # Gateway URL for progress reporting
   gatewayURL: ""
+  # Custom SQS endpoint (for LocalStack or other AWS-compatible services)
+  sqsEndpoint: ""
+  # AWS credentials secret name to inject into sidecar (for non-IRSA environments)
+  awsCredsSecret: ""

@@ -23,6 +23,12 @@ type Config struct {
 
 	// GatewayURL is the URL of the asya-gateway for progress reporting
 	GatewayURL string
+
+	// SQSEndpoint is the custom SQS endpoint URL (for LocalStack or other AWS-compatible services)
+	SQSEndpoint string
+
+	// AWSCredsSecret is the name of the secret containing AWS credentials to inject into the sidecar
+	AWSCredsSecret string
 }
 
 // LoadFromEnv loads configuration from environment variables
@@ -34,6 +40,8 @@ func LoadFromEnv() *Config {
 		SocketDir:              getEnv("ASYA_SOCKET_DIR", "/var/run/asya"),
 		RuntimeMountPath:       getEnv("ASYA_RUNTIME_MOUNT_PATH", "/opt/asya/asya_runtime.py"),
 		GatewayURL:             getEnv("ASYA_GATEWAY_URL", ""),
+		SQSEndpoint:            getEnv("ASYA_SQS_ENDPOINT", ""),
+		AWSCredsSecret:         getEnv("ASYA_AWS_CREDS_SECRET", ""),
 	}
 }
 

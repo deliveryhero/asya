@@ -16,6 +16,7 @@ import (
 	"github.com/deliveryhero/asya/asya-injector/internal/webhook"
 
 	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	k8sconfig "sigs.k8s.io/controller-runtime/pkg/client/config"
@@ -147,7 +148,14 @@ func handleHealthz(w http.ResponseWriter, r *http.Request) {
 func handleReadyz(restConfig *rest.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Check if we can connect to the Kubernetes API
-		_, err := rest.RESTClientFor(restConfig)
+		clientset, err := kubernetes.NewForConfig(restConfig)
+		if err != nil {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_, _ = fmt.Fprintln(w, "Not ready: cannot create Kubernetes client")
+			return
+		}
+
+		_, err = clientset.Discovery().ServerVersion()
 		if err != nil {
 			w.WriteHeader(http.StatusServiceUnavailable)
 			_, _ = fmt.Fprintln(w, "Not ready: cannot connect to Kubernetes API")

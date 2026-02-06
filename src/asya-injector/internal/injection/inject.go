@@ -65,6 +65,17 @@ func (i *Injector) Inject(pod *corev1.Pod, actorConfig *ActorConfig) (*corev1.Po
 		},
 	}
 
+	// Inject AWS credentials from secret if configured
+	if i.config.AWSCredsSecret != "" {
+		sidecar.EnvFrom = append(sidecar.EnvFrom, corev1.EnvFromSource{
+			SecretRef: &corev1.SecretEnvSource{
+				LocalObjectReference: corev1.LocalObjectReference{
+					Name: i.config.AWSCredsSecret,
+				},
+			},
+		})
+	}
+
 	// Check if sidecar already exists
 	for idx, c := range mutated.Spec.Containers {
 		if c.Name == sidecarContainerName {
@@ -115,9 +126,15 @@ func (i *Injector) buildSidecarEnv(actorConfig *ActorConfig) []corev1.EnvVar {
 	// Add transport-specific configuration
 	if actorConfig.Transport == "sqs" {
 		env = append(env, corev1.EnvVar{
-			Name:  "ASYA_SQS_REGION",
+			Name:  "ASYA_AWS_REGION",
 			Value: actorConfig.Region,
 		})
+		if i.config.SQSEndpoint != "" {
+			env = append(env, corev1.EnvVar{
+				Name:  "ASYA_SQS_ENDPOINT",
+				Value: i.config.SQSEndpoint,
+			})
+		}
 		if actorConfig.QueueURL != "" {
 			env = append(env, corev1.EnvVar{
 				Name:  "ASYA_QUEUE_URL",

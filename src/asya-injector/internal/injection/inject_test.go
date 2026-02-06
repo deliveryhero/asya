@@ -17,6 +17,7 @@ func TestInjector_Inject(t *testing.T) {
 		SocketDir:              "/var/run/asya",
 		RuntimeMountPath:       "/opt/asya/asya_runtime.py",
 		GatewayURL:             "http://gateway.default.svc:8080",
+		SQSEndpoint:            "http://localstack:4566",
 	}
 
 	injector := NewInjector(cfg)
@@ -81,7 +82,8 @@ func TestInjector_Inject(t *testing.T) {
 		"ASYA_NAMESPACE":       "default",
 		"ASYA_TRANSPORT":       "sqs",
 		"ASYA_GATEWAY_URL":     "http://gateway.default.svc:8080",
-		"ASYA_SQS_REGION":      "us-east-1",
+		"ASYA_AWS_REGION":      "us-east-1",
+		"ASYA_SQS_ENDPOINT":    "http://localstack:4566",
 		"ASYA_QUEUE_URL":       "http://sqs.localhost:4566/000000000000/asya-default-my-actor",
 		"ASYA_ACTOR_HAPPY_END": "happy-end",
 		"ASYA_ACTOR_ERROR_END": "error-end",

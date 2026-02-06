@@ -60,6 +60,14 @@ spec:
         - name: ASYA_GATEWAY_URL
           value: {{ .Values.config.gatewayURL | quote }}
         {{- end }}
+        {{- if .Values.config.sqsEndpoint }}
+        - name: ASYA_SQS_ENDPOINT
+          value: {{ .Values.config.sqsEndpoint | quote }}
+        {{- end }}
+        {{- if .Values.config.awsCredsSecret }}
+        - name: ASYA_AWS_CREDS_SECRET
+          value: {{ .Values.config.awsCredsSecret | quote }}
+        {{- end }}
         livenessProbe:
           httpGet:
             path: /healthz
