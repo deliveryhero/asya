@@ -3,7 +3,7 @@ module github.com/deliveryhero/asya/asya-injector
 go 1.24.0
 
 require (
-	github.com/evanphx/json-patch/v5 v5.8.0
+	github.com/mattbaird/jsonpatch v0.0.0-20240118010651-0ba75a80ca38
 	k8s.io/api v0.29.2
 	k8s.io/apimachinery v0.29.2
 	k8s.io/client-go v0.29.2
@@ -13,6 +13,7 @@ require (
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/emicklei/go-restful/v3 v3.11.0 // indirect
+	github.com/evanphx/json-patch/v5 v5.8.0 // indirect
 	github.com/go-logr/logr v1.4.1 // indirect
 	github.com/go-openapi/jsonpointer v0.19.6 // indirect
 	github.com/go-openapi/jsonreference v0.20.2 // indirect
