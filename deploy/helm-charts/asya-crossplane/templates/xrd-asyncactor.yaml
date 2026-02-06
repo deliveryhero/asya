@@ -144,16 +144,10 @@ spec:
                     Values: Creating, Ready, Napping
                 queueAddress:
                   type: string
-                  description: Connection address for the queue (transport-agnostic)
+                  description: Connection address for the queue
                 queueIdentifier:
                   type: string
-                  description: Unique identifier for the queue resource (transport-agnostic)
-                queueUrl:
-                  type: string
-                  description: URL of the SQS queue (deprecated, use queueAddress)
-                queueArn:
-                  type: string
-                  description: ARN of the SQS queue (deprecated, use queueIdentifier)
+                  description: Unique identifier for the queue resource
                 infrastructure:
                   type: object
                   description: Status of infrastructure components

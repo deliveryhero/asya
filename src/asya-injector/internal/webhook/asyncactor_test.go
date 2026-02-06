@@ -226,33 +226,6 @@ func TestExtractActorConfig(t *testing.T) {
 			},
 		},
 		{
-			name: "queueUrl fallback when queueAddress is absent",
-			asyncActor: &unstructured.Unstructured{
-				Object: map[string]interface{}{
-					"spec": map[string]interface{}{},
-					"status": map[string]interface{}{
-						"queueUrl": "http://localhost/fallback-queue",
-					},
-				},
-			},
-			wantErr: false,
-			checks: func(t *testing.T, cfg *struct {
-				ActorName        string
-				Namespace        string
-				Transport        string
-				QueueURL         string
-				Handler          string
-				HandlerMode      string
-				PythonExecutable string
-				SidecarImage     string
-				Region           string
-			}) {
-				if cfg.QueueURL != "http://localhost/fallback-queue" {
-					t.Errorf("expected fallback queueUrl 'http://localhost/fallback-queue', got '%s'", cfg.QueueURL)
-				}
-			},
-		},
-		{
 			name: "no spec",
 			asyncActor: &unstructured.Unstructured{
 				Object: map[string]interface{}{},
