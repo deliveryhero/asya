@@ -1,4 +1,4 @@
-# Thoughts: Templated AsyncActor Configuration (Profiles)
+# Thoughts: Templated AsyncActor Configuration (Flavors)
 
 > **Status**: Future exploration
 > **Date**: 2025-02-05
@@ -6,7 +6,7 @@
 
 ## Problem Statement
 
-Users want to avoid repetitive configuration when creating AsyncActors. Instead of specifying detailed scaling, resource, and timeout settings for every actor, they should be able to reference a **profile** that provides sensible defaults for their workload type.
+Users want to avoid repetitive configuration when creating AsyncActors. Instead of specifying detailed scaling, resource, and timeout settings for every actor, they should be able to reference a **flavor** that provides sensible defaults for their workload type.
 
 **Current (verbose):**
 ```yaml
@@ -30,14 +30,14 @@ spec:
         nvidia.com/gpu: "1"
 ```
 
-**Desired (with profiles):**
+**Desired (with flavors):**
 ```yaml
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 metadata:
   name: my-llm-actor
 spec:
-  profile: llm-heavy  # All defaults come from profile
+  flavor: llm-heavy  # All defaults come from flavor
   transport: sqs
   workload:
     image: my-llm:v1.0
@@ -45,9 +45,9 @@ spec:
 
 ## Requirements
 
-1. **Pre-defined profiles** for common workload types (LLM inference, batch processing, real-time, etc.)
-2. **Override capability** - users can override specific profile settings
-3. **Easy to add new profiles** - no code changes, just YAML
+1. **Pre-defined flavors** for common workload types (LLM inference, batch processing, real-time, etc.)
+2. **Override capability** - users can override specific flavor settings
+3. **Easy to add new flavors** - no code changes, just YAML
 4. **Scope options** - cluster-wide and optionally per-namespace
 
 ## Crossplane Implementation Options
@@ -56,19 +56,19 @@ spec:
 
 **How it works:**
 - Create multiple Compositions for the same XRD
-- Each Composition is labeled with its profile name
-- User selects profile via `compositionSelector.matchLabels`
+- Each Composition is labeled with its flavor name
+- User selects flavor via `compositionSelector.matchLabels`
 
 **Example Compositions:**
 
 ```yaml
-# Profile: default
+# Flavor: default
 apiVersion: apiextensions.crossplane.io/v1
 kind: Composition
 metadata:
   name: asyncactor-sqs-default
   labels:
-    asya.sh/profile: default
+    asya.sh/flavor: default
     asya.sh/transport: sqs
 spec:
   compositeTypeRef:
@@ -96,13 +96,13 @@ spec:
 ```
 
 ```yaml
-# Profile: llm-heavy
+# Flavor: llm-heavy
 apiVersion: apiextensions.crossplane.io/v1
 kind: Composition
 metadata:
   name: asyncactor-sqs-llm-heavy
   labels:
-    asya.sh/profile: llm-heavy
+    asya.sh/flavor: llm-heavy
     asya.sh/transport: sqs
 spec:
   compositeTypeRef:
@@ -129,7 +129,7 @@ spec:
           # LLM resources: 32Gi memory, 8 CPU, 1 GPU
 ```
 
-**User selects profile:**
+**User selects flavor:**
 ```yaml
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
@@ -138,7 +138,7 @@ metadata:
 spec:
   compositionSelector:
     matchLabels:
-      asya.sh/profile: llm-heavy
+      asya.sh/flavor: llm-heavy
   transport: sqs
   workload:
     image: my-llm:v1.0
@@ -147,32 +147,32 @@ spec:
 **Pros:**
 - No custom code needed
 - Standard Crossplane pattern
-- Easy to add profiles (just create new Composition)
+- Easy to add flavors (just create new Composition)
 - Clear separation of concerns
 
 **Cons:**
-- Compositions are cluster-scoped (same profile = same settings everywhere)
-- Requires one Composition per profile × transport combination
+- Compositions are cluster-scoped (same flavor = same settings everywhere)
+- Requires one Composition per flavor × transport combination
 - User overrides require understanding patch priority
 
 ---
 
-### Option 2: EnvironmentConfigs for Namespace-Scoped Profiles
+### Option 2: EnvironmentConfigs for Namespace-Scoped Flavors
 
 **How it works:**
-- Store profile configurations in EnvironmentConfig resources
+- Store flavor configurations in EnvironmentConfig resources
 - EnvironmentConfigs can be namespace-scoped
 - Composition reads from EnvironmentConfig in claim's namespace
 
-**Profile stored as EnvironmentConfig:**
+**Flavor stored as EnvironmentConfig:**
 ```yaml
 apiVersion: apiextensions.crossplane.io/v1alpha1
 kind: EnvironmentConfig
 metadata:
-  name: profile-llm-heavy
+  name: flavor-llm-heavy
   namespace: prod  # Namespace-scoped!
   labels:
-    asya.sh/profile: llm-heavy
+    asya.sh/flavor: llm-heavy
 data:
   scaling:
     minReplicas: 1
@@ -188,10 +188,10 @@ data:
 apiVersion: apiextensions.crossplane.io/v1alpha1
 kind: EnvironmentConfig
 metadata:
-  name: profile-llm-heavy
+  name: flavor-llm-heavy
   namespace: dev  # Different values in dev
   labels:
-    asya.sh/profile: llm-heavy
+    asya.sh/flavor: llm-heavy
 data:
   scaling:
     minReplicas: 0
@@ -210,19 +210,19 @@ spec:
       - type: Selector
         selector:
           matchLabels:
-            - key: asya.sh/profile
+            - key: asya.sh/flavor
               type: FromCompositeFieldPath
-              valueFromFieldPath: spec.profile
+              valueFromFieldPath: spec.flavor
 ```
 
 **Pros:**
-- Namespace-scoped profiles
-- Same profile name can mean different things in different namespaces
-- GitOps-friendly (profiles are just YAML resources)
+- Namespace-scoped flavors
+- Same flavor name can mean different things in different namespaces
+- GitOps-friendly (flavors are just YAML resources)
 
 **Cons:**
 - More complex setup
-- Requires EnvironmentConfig per profile × namespace
+- Requires EnvironmentConfig per flavor × namespace
 - Crossplane v2 feature (may need migration)
 
 ---
@@ -231,19 +231,19 @@ spec:
 
 **How it works:**
 - Write a Go/Python Composition Function
-- Function reads profile name from spec
-- Function applies defaults from built-in or ConfigMap-based profiles
+- Function reads flavor name from spec
+- Function applies defaults from built-in or ConfigMap-based flavors
 
 **Example function input:**
 ```yaml
 pipeline:
-  - step: apply-profile
+  - step: apply-flavor
     functionRef:
-      name: function-asya-profiles
+      name: function-asya-flavors
     input:
       apiVersion: asya.sh/v1alpha1
-      kind: ProfileConfig
-      profiles:
+      kind: FlavorConfig
+      flavors:
         default:
           scaling:
             minReplicas: 0
@@ -270,28 +270,28 @@ pipeline:
 **Pros:**
 - Full programmatic control
 - Can implement complex logic (templated names, inheritance)
-- Single Composition handles all profiles
+- Single Composition handles all flavors
 
 **Cons:**
 - Requires writing and maintaining Go/Python code
 - More complex deployment (function container)
-- Harder to add profiles (requires code change or ConfigMap)
+- Harder to add flavors (requires code change or ConfigMap)
 
 ---
 
 ### Option 4: Composition Function + Namespace ConfigMaps
 
 **How it works:**
-- Profiles stored in ConfigMaps per namespace
+- Flavors stored in ConfigMaps per namespace
 - Composition Function reads ConfigMap from claim's namespace
-- Applies profile defaults from ConfigMap
+- Applies flavor defaults from ConfigMap
 
 **ConfigMap per namespace:**
 ```yaml
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: asya-profiles
+  name: asya-flavors
   namespace: prod
 data:
   llm-heavy: |
@@ -310,8 +310,8 @@ data:
 
 **Pros:**
 - Namespace-scoped
-- Platform team can manage profiles per namespace
-- Users just reference profile name
+- Platform team can manage flavors per namespace
+- Users just reference flavor name
 
 **Cons:**
 - Requires custom Composition Function
@@ -323,11 +323,11 @@ data:
 
 ### Phase 1: Composition Selector (Cluster-Wide)
 
-Start simple with cluster-wide profiles using Composition Selector:
+Start simple with cluster-wide flavors using Composition Selector:
 
-1. Create Compositions for common profiles: `default`, `llm-heavy`, `batch-processing`, `real-time`
-2. Add `compositionSelector` or `profile` field to XRD
-3. Document available profiles
+1. Create Compositions for common flavors: `default`, `llm-heavy`, `batch-processing`, `real-time`
+2. Add `compositionSelector` or `flavor` field to XRD
+3. Document available flavors
 
 **Effort:** Low (just YAML)
 **Flexibility:** Cluster-wide only
@@ -336,7 +336,7 @@ Start simple with cluster-wide profiles using Composition Selector:
 
 Add namespace-scoped overrides:
 
-1. Define base profiles as cluster-wide Compositions
+1. Define base flavors as cluster-wide Compositions
 2. Allow namespace-specific overrides via EnvironmentConfigs
 3. Merge order: Composition defaults → EnvironmentConfig → User spec
 
@@ -347,18 +347,18 @@ Add namespace-scoped overrides:
 
 If needed for complex requirements:
 
-1. Build `function-asya-profiles` for advanced logic
-2. Support profile inheritance, templated fields
-3. Read profiles from ConfigMaps or built-in
+1. Build `function-asya-flavors` for advanced logic
+2. Support flavor inheritance, templated fields
+3. Read flavors from ConfigMaps or built-in
 
 **Effort:** High (Go code)
 **Flexibility:** Unlimited
 
 ---
 
-## Suggested Profile Catalog
+## Suggested Flavor Catalog
 
-| Profile | Use Case | Key Settings |
+| Flavor | Use Case | Key Settings |
 |---------|----------|--------------|
 | `default` | General purpose | 0-10 replicas, 256Mi memory |
 | `llm-heavy` | LLM inference (GPT, embeddings) | 1-4 replicas, 32Gi memory, GPU |
@@ -372,14 +372,14 @@ If needed for complex requirements:
 
 ## XRD Schema Changes
 
-Add `profile` field and `compositionSelector`:
+Add `flavor` field and `compositionSelector`:
 
 ```yaml
 spec:
   properties:
-    profile:
+    flavor:
       type: string
-      description: Pre-defined configuration profile
+      description: Pre-defined configuration flavor
       enum:
         - default
         - llm-heavy
@@ -392,7 +392,7 @@ spec:
 
     compositionSelector:
       type: object
-      description: Advanced composition selection (overrides profile)
+      description: Advanced composition selection (overrides flavor)
       properties:
         matchLabels:
           type: object
@@ -400,11 +400,11 @@ spec:
             type: string
 ```
 
-**Syntactic sugar:** If user specifies `profile: llm-heavy`, translate to:
+**Syntactic sugar:** If user specifies `flavor: llm-heavy`, translate to:
 ```yaml
 compositionSelector:
   matchLabels:
-    asya.sh/profile: llm-heavy
+    asya.sh/flavor: llm-heavy
     asya.sh/transport: <from spec.transport>
 ```
 
@@ -412,20 +412,20 @@ compositionSelector:
 
 ## Scope Considerations
 
-### Cluster-Wide Profiles
+### Cluster-Wide Flavors
 
 **When to use:**
-- Same profile means same settings everywhere
-- Central platform team manages all profiles
+- Same flavor means same settings everywhere
+- Central platform team manages all flavors
 - Simpler mental model
 
 **Implementation:** Composition Selector
 
-### Namespace-Scoped Profiles
+### Namespace-Scoped Flavors
 
 **When to use:**
 - Different environments need different defaults (dev vs prod)
-- Teams want to customize profiles for their namespace
+- Teams want to customize flavors for their namespace
 - Need to limit resources per namespace
 
 **Implementation:** EnvironmentConfigs or ConfigMaps
@@ -444,24 +444,24 @@ compositionSelector:
 
 ## Open Questions
 
-1. **Should `profile` be a first-class field or just use `compositionSelector`?**
+1. **Should `flavor` be a first-class field or just use `compositionSelector`?**
    - First-class is more user-friendly
    - compositionSelector is more flexible
 
-2. **How to handle profile × transport combinations?**
-   - One Composition per combination (profile × transport)
+2. **How to handle flavor × transport combinations?**
+   - One Composition per combination (flavor × transport)
    - Or single Composition with conditional patches
 
-3. **Can users create custom profiles?**
+3. **Can users create custom flavors?**
    - Platform team only (controlled via RBAC on Compositions)
-   - Or allow user-defined profiles in their namespace
+   - Or allow user-defined flavors in their namespace
 
-4. **Profile inheritance?**
+4. **Flavor inheritance?**
    - `llm-light` inherits from `llm-heavy` with overrides
    - Requires Composition Function for implementation
 
-5. **Validation of profile + override combinations?**
-   - What if user specifies `profile: llm-heavy` but overrides GPU to 0?
+5. **Validation of flavor + override combinations?**
+   - What if user specifies `flavor: llm-heavy` but overrides GPU to 0?
    - Warn? Error? Allow?
 
 ---
