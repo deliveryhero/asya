@@ -207,7 +207,7 @@ spec:
 **Validation Errors**:
 - `workload must have exactly one container named 'asya-runtime'` - rename container
 - `asya-runtime container must not define 'command'` - remove command field
-- `workload and workloadRef are mutually exclusive` - use only one
+- `workload is required` - specify workload with container spec
 
 ### asya-actor
 

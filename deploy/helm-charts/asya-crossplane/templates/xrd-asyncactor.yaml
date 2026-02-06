@@ -30,9 +30,7 @@ spec:
               type: object
               required:
                 - transport
-              x-kubernetes-validations:
-                - rule: "!has(self.workload) || !has(self.workloadRef)"
-                  message: "workload and workloadRef are mutually exclusive"
+                - workload
               properties:
                 transport:
                   type: string
@@ -92,19 +90,6 @@ spec:
                       type: object
                       description: Pod template specification
                       x-kubernetes-preserve-unknown-fields: true
-
-                workloadRef:
-                  type: object
-                  description: Reference to existing workload (user manages the Deployment)
-                  properties:
-                    name:
-                      type: string
-                    kind:
-                      type: string
-                      enum:
-                        - Deployment
-                        - StatefulSet
-                      default: Deployment
 
                 sidecar:
                   type: object
