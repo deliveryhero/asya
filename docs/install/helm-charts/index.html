@@ -1020,7 +1020,7 @@ helm<span class="w"> </span>install<span class="w"> </span>asya-operator<span cl
 <p><strong>Validation Errors</strong>:
 - <code>workload must have exactly one container named 'asya-runtime'</code> - rename container
 - <code>asya-runtime container must not define 'command'</code> - remove command field
-- <code>workload and workloadRef are mutually exclusive</code> - use only one</p>
+- <code>workload is required</code> - specify workload with container spec</p>
 <h3 id="asya-actor">asya-actor<a class="headerlink" href="#asya-actor" title="Permanent link">&para;</a></h3>
 <p>Deploys user actors (batch deployment).</p>
 <p><strong>Location</strong>: <code>deploy/helm-charts/asya-actor/</code></p>
