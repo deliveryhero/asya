@@ -358,26 +358,34 @@ spec:
             {{`{{- if .observed.resources -}}`}}
               {{`{{- if index .observed.resources "sqs-queue" -}}`}}
                 {{`{{- $q := (index .observed.resources "sqs-queue").resource -}}`}}
-                {{`{{- $queueUrl = ($q.status.atProvider).id | default "" -}}`}}
-                {{`{{- $queueArn = ($q.status.atProvider).arn | default "" -}}`}}
-                {{`{{- range $q.status.conditions -}}`}}
-                  {{`{{- if and (eq .type "Ready") (eq .status "True") -}}`}}
-                    {{`{{- $queueReady = true -}}`}}
+                {{`{{- if and (hasKey $q "status") (hasKey $q.status "atProvider") -}}`}}
+                  {{`{{- $queueUrl = $q.status.atProvider.id | default "" -}}`}}
+                  {{`{{- $queueArn = $q.status.atProvider.arn | default "" -}}`}}
+                {{`{{- end -}}`}}
+                {{`{{- if and (hasKey $q "status") (hasKey $q.status "conditions") -}}`}}
+                  {{`{{- range $q.status.conditions -}}`}}
+                    {{`{{- if and (eq .type "Ready") (eq .status "True") -}}`}}
+                      {{`{{- $queueReady = true -}}`}}
+                    {{`{{- end -}}`}}
                   {{`{{- end -}}`}}
                 {{`{{- end -}}`}}
               {{`{{- end -}}`}}
               {{`{{- if index .observed.resources "scaledobject" -}}`}}
                 {{`{{- $so := (index .observed.resources "scaledobject").resource -}}`}}
-                {{`{{- range ($so.status.atProvider).manifest.status.conditions | default list -}}`}}
-                  {{`{{- if and (eq .type "Ready") (eq .status "True") -}}`}}
-                    {{`{{- $kedaReady = true -}}`}}
+                {{`{{- if and (hasKey $so "status") (hasKey $so.status "atProvider") (hasKey $so.status.atProvider "manifest") (hasKey $so.status.atProvider.manifest "status") -}}`}}
+                  {{`{{- range $so.status.atProvider.manifest.status.conditions | default list -}}`}}
+                    {{`{{- if and (eq .type "Ready") (eq .status "True") -}}`}}
+                      {{`{{- $kedaReady = true -}}`}}
+                    {{`{{- end -}}`}}
                   {{`{{- end -}}`}}
                 {{`{{- end -}}`}}
               {{`{{- end -}}`}}
               {{`{{- if index .observed.resources "deployment" -}}`}}
                 {{`{{- $dep := (index .observed.resources "deployment").resource -}}`}}
-                {{`{{- $workloadReplicas = ($dep.status.atProvider).manifest.status.replicas | default 0 -}}`}}
-                {{`{{- $workloadReadyReplicas = ($dep.status.atProvider).manifest.status.readyReplicas | default 0 -}}`}}
+                {{`{{- if and (hasKey $dep "status") (hasKey $dep.status "atProvider") (hasKey $dep.status.atProvider "manifest") (hasKey $dep.status.atProvider.manifest "status") -}}`}}
+                  {{`{{- $workloadReplicas = $dep.status.atProvider.manifest.status.replicas | default 0 -}}`}}
+                  {{`{{- $workloadReadyReplicas = $dep.status.atProvider.manifest.status.readyReplicas | default 0 -}}`}}
+                {{`{{- end -}}`}}
               {{`{{- end -}}`}}
             {{`{{- end -}}`}}
             {{`{{- $phase := "Creating" -}}`}}
