@@ -1,6 +1,0 @@
-apiVersion: v2
-name: sqs
-description: LocalStack SQS service for AWS SQS emulation
-type: application
-version: 1.0.0
-appVersion: "latest"
