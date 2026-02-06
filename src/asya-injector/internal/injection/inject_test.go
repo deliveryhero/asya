@@ -254,6 +254,123 @@ func TestInjector_InjectMissingRuntimeContainer(t *testing.T) {
 	}
 }
 
+func TestInjector_InjectAWSCredentials(t *testing.T) {
+	cfg := &config.Config{
+		SidecarImage:           "ghcr.io/deliveryhero/asya-sidecar:test",
+		RuntimeConfigMap:       "asya-runtime",
+		SidecarImagePullPolicy: "IfNotPresent",
+		SocketDir:              "/var/run/asya",
+		RuntimeMountPath:       "/opt/asya/asya_runtime.py",
+		AWSCredsSecret:         "aws-creds",
+	}
+
+	injector := NewInjector(cfg)
+
+	pod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-pod",
+			Namespace: "default",
+		},
+		Spec: corev1.PodSpec{
+			Containers: []corev1.Container{
+				{Name: "asya-runtime", Image: "my-app:v1"},
+			},
+		},
+	}
+
+	actorConfig := &ActorConfig{
+		ActorName: "my-actor",
+		Namespace: "default",
+		Transport: "sqs",
+		Region:    "us-east-1",
+	}
+
+	mutated, err := injector.Inject(pod, actorConfig)
+	if err != nil {
+		t.Fatalf("Inject failed: %v", err)
+	}
+
+	var sidecar *corev1.Container
+	for i := range mutated.Spec.Containers {
+		if mutated.Spec.Containers[i].Name == "asya-sidecar" {
+			sidecar = &mutated.Spec.Containers[i]
+			break
+		}
+	}
+	if sidecar == nil {
+		t.Fatal("sidecar container was not added")
+	}
+
+	// Verify envFrom contains AWS credentials secret
+	if len(sidecar.EnvFrom) == 0 {
+		t.Fatal("expected envFrom with AWS credentials secret, got none")
+	}
+
+	found := false
+	for _, ef := range sidecar.EnvFrom {
+		if ef.SecretRef != nil && ef.SecretRef.Name == "aws-creds" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("expected envFrom with secretRef 'aws-creds', not found")
+	}
+}
+
+func TestInjector_InjectNoAWSCredentials(t *testing.T) {
+	cfg := &config.Config{
+		SidecarImage:           "ghcr.io/deliveryhero/asya-sidecar:test",
+		RuntimeConfigMap:       "asya-runtime",
+		SidecarImagePullPolicy: "IfNotPresent",
+		SocketDir:              "/var/run/asya",
+		RuntimeMountPath:       "/opt/asya/asya_runtime.py",
+		AWSCredsSecret:         "",
+	}
+
+	injector := NewInjector(cfg)
+
+	pod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-pod",
+			Namespace: "default",
+		},
+		Spec: corev1.PodSpec{
+			Containers: []corev1.Container{
+				{Name: "asya-runtime", Image: "my-app:v1"},
+			},
+		},
+	}
+
+	actorConfig := &ActorConfig{
+		ActorName: "my-actor",
+		Namespace: "default",
+		Transport: "sqs",
+		Region:    "us-east-1",
+	}
+
+	mutated, err := injector.Inject(pod, actorConfig)
+	if err != nil {
+		t.Fatalf("Inject failed: %v", err)
+	}
+
+	var sidecar *corev1.Container
+	for i := range mutated.Spec.Containers {
+		if mutated.Spec.Containers[i].Name == "asya-sidecar" {
+			sidecar = &mutated.Spec.Containers[i]
+			break
+		}
+	}
+	if sidecar == nil {
+		t.Fatal("sidecar container was not added")
+	}
+
+	// Verify no envFrom when AWSCredsSecret is empty
+	if len(sidecar.EnvFrom) != 0 {
+		t.Errorf("expected no envFrom when AWSCredsSecret is empty, got %d", len(sidecar.EnvFrom))
+	}
+}
+
 func TestInjector_SidecarImageOverride(t *testing.T) {
 	cfg := &config.Config{
 		SidecarImage:     "ghcr.io/deliveryhero/asya-sidecar:default",
