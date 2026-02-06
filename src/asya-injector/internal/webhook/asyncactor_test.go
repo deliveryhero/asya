@@ -186,7 +186,7 @@ func TestExtractActorConfig(t *testing.T) {
 						},
 					},
 					"status": map[string]interface{}{
-						"queueUrl": "http://localhost/queue",
+						"queueAddress": "http://localhost/queue",
 					},
 				},
 			},
@@ -221,7 +221,34 @@ func TestExtractActorConfig(t *testing.T) {
 					t.Errorf("expected sidecarImage 'custom-sidecar:v2', got '%s'", cfg.SidecarImage)
 				}
 				if cfg.QueueURL != "http://localhost/queue" {
-					t.Errorf("expected queueUrl 'http://localhost/queue', got '%s'", cfg.QueueURL)
+					t.Errorf("expected queueAddress 'http://localhost/queue', got '%s'", cfg.QueueURL)
+				}
+			},
+		},
+		{
+			name: "queueUrl fallback when queueAddress is absent",
+			asyncActor: &unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"spec": map[string]interface{}{},
+					"status": map[string]interface{}{
+						"queueUrl": "http://localhost/fallback-queue",
+					},
+				},
+			},
+			wantErr: false,
+			checks: func(t *testing.T, cfg *struct {
+				ActorName        string
+				Namespace        string
+				Transport        string
+				QueueURL         string
+				Handler          string
+				HandlerMode      string
+				PythonExecutable string
+				SidecarImage     string
+				Region           string
+			}) {
+				if cfg.QueueURL != "http://localhost/fallback-queue" {
+					t.Errorf("expected fallback queueUrl 'http://localhost/fallback-queue', got '%s'", cfg.QueueURL)
 				}
 			},
 		},

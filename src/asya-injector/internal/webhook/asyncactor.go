@@ -105,8 +105,11 @@ func extractActorConfig(asyncActor *unstructured.Unstructured) (*injection.Actor
 		config.Transport = "sqs"
 	}
 
-	// Extract queue URL from status
-	queueURL, _, _ := unstructured.NestedString(asyncActor.Object, "status", "queueUrl")
+	// Extract queue address from status (prefer transport-agnostic field, fall back to SQS-specific)
+	queueURL, _, _ := unstructured.NestedString(asyncActor.Object, "status", "queueAddress")
+	if queueURL == "" {
+		queueURL, _, _ = unstructured.NestedString(asyncActor.Object, "status", "queueUrl")
+	}
 	config.QueueURL = queueURL
 
 	// Extract workload configuration

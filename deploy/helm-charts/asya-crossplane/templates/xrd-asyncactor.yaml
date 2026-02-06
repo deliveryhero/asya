@@ -142,19 +142,25 @@ spec:
                   description: |
                     Current phase of the AsyncActor.
                     Values: Creating, Ready, Napping
+                queueAddress:
+                  type: string
+                  description: Connection address for the queue (transport-agnostic)
+                queueIdentifier:
+                  type: string
+                  description: Unique identifier for the queue resource (transport-agnostic)
                 queueUrl:
                   type: string
-                  description: URL of the SQS queue
+                  description: URL of the SQS queue (deprecated, use queueAddress)
                 queueArn:
                   type: string
-                  description: ARN of the SQS queue
+                  description: ARN of the SQS queue (deprecated, use queueIdentifier)
                 infrastructure:
                   type: object
                   description: Status of infrastructure components
                   properties:
                     queue:
                       type: object
-                      description: SQS Queue status
+                      description: Queue status
                       properties:
                         ready:
                           type: boolean
@@ -198,7 +204,7 @@ spec:
           jsonPath: .spec.transport
         - name: Queue
           type: string
-          jsonPath: .status.queueUrl
+          jsonPath: .status.queueAddress
           priority: 1
         - name: Age
           type: date

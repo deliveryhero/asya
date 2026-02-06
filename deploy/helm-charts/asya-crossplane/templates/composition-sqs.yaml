@@ -428,9 +428,11 @@ spec:
             status:
               phase: {{`{{ $phase }}`}}
               {{`{{- if ne $queueUrl "" }}`}}
+              queueAddress: {{`{{ $queueUrl }}`}}
               queueUrl: {{`{{ $queueUrl }}`}}
               {{`{{- end }}`}}
               {{`{{- if ne $queueArn "" }}`}}
+              queueIdentifier: {{`{{ $queueArn }}`}}
               queueArn: {{`{{ $queueArn }}`}}
               {{`{{- end }}`}}
               infrastructure:
