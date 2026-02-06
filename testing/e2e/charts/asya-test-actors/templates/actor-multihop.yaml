@@ -8,8 +8,8 @@ metadata:
   namespace: {{ $.Release.Namespace }}
   labels:
     {{- include "asya-test-actors.labels" $ | nindent 4 }}
-    test-type: multihop
-    hop-index: "{{ $i }}"
+    asya.sh/test-type: multihop
+    asya.sh/hop-index: "{{ $i }}"
 spec:
   transport: {{ $.Values.transport }}
 

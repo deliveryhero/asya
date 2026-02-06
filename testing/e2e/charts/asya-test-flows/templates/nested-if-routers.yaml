@@ -6,8 +6,8 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "asya-test-flows.labels" . | nindent 4 }}
-    flow: nested-if
-    actor-type: router
+    asya.sh/flow: nested-if
+    asya.sh/actor-type: router
 spec:
   transport: {{ .Values.transport }}
 
@@ -39,8 +39,8 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "asya-test-flows.labels" . | nindent 4 }}
-    flow: nested-if
-    actor-type: router
+    asya.sh/flow: nested-if
+    asya.sh/actor-type: router
 spec:
   transport: {{ .Values.transport }}
   scaling:
@@ -70,8 +70,8 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "asya-test-flows.labels" . | nindent 4 }}
-    flow: nested-if
-    actor-type: router
+    asya.sh/flow: nested-if
+    asya.sh/actor-type: router
 spec:
   transport: {{ .Values.transport }}
   scaling:
@@ -101,8 +101,8 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "asya-test-flows.labels" . | nindent 4 }}
-    flow: nested-if
-    actor-type: router
+    asya.sh/flow: nested-if
+    asya.sh/actor-type: router
 spec:
   transport: {{ .Values.transport }}
   scaling:
@@ -132,8 +132,8 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "asya-test-flows.labels" . | nindent 4 }}
-    flow: nested-if
-    actor-type: router
+    asya.sh/flow: nested-if
+    asya.sh/actor-type: router
 spec:
   transport: {{ .Values.transport }}
   scaling:
@@ -163,8 +163,8 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "asya-test-flows.labels" . | nindent 4 }}
-    flow: nested-if
-    actor-type: router
+    asya.sh/flow: nested-if
+    asya.sh/actor-type: router
 spec:
   transport: {{ .Values.transport }}
   scaling:
@@ -194,8 +194,8 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "asya-test-flows.labels" . | nindent 4 }}
-    flow: nested-if
-    actor-type: router
+    asya.sh/flow: nested-if
+    asya.sh/actor-type: router
 spec:
   transport: {{ .Values.transport }}
   scaling:
@@ -225,8 +225,8 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "asya-test-flows.labels" . | nindent 4 }}
-    flow: nested-if
-    actor-type: router
+    asya.sh/flow: nested-if
+    asya.sh/actor-type: router
 spec:
   transport: {{ .Values.transport }}
   scaling:
@@ -256,8 +256,8 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "asya-test-flows.labels" . | nindent 4 }}
-    flow: nested-if
-    actor-type: router
+    asya.sh/flow: nested-if
+    asya.sh/actor-type: router
 spec:
   transport: {{ .Values.transport }}
   scaling:

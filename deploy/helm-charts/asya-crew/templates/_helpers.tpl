@@ -19,7 +19,7 @@ as these are managed by the operator and added to child resources.
 */}}
 {{- define "asya-crew.happy-end.labels" -}}
 helm.sh/chart: {{ include "asya-crew.chart" . }}
-actor: happy-end
+asya.sh/actor: happy-end
 {{- end }}
 
 {{/*
@@ -29,7 +29,7 @@ as these are managed by the operator and added to child resources.
 */}}
 {{- define "asya-crew.error-end.labels" -}}
 helm.sh/chart: {{ include "asya-crew.chart" . }}
-actor: error-end
+asya.sh/actor: error-end
 {{- end }}
 
 {{/*
