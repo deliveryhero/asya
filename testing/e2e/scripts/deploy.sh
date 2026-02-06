@@ -145,7 +145,7 @@ echo
 echo "[.] Phase 2: Installing cluster-level infrastructure..."
 time {
   echo "[.] Installing cert-manager..."
-  kubectl apply -f https://github.com/cert-manager/cert-manager/releases/latest/download/cert-manager.yaml > /dev/null 2>&1
+  kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.14.5/cert-manager.yaml > /dev/null 2>&1
 
   echo "[.] Installing Crossplane core..."
   helm repo add crossplane-stable https://charts.crossplane.io/stable --force-update > /dev/null 2>&1
