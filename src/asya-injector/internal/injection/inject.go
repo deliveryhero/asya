@@ -181,7 +181,7 @@ func (i *Injector) modifyRuntimeContainer(pod *corev1.Pod, actorConfig *ActorCon
 
 	// Set runtime command if not already set
 	if len(runtime.Command) == 0 {
-		pythonExec := actorConfig.PythonExecutable
+		pythonExec := getEnvValue(runtime.Env, "ASYA_PYTHONPATH")
 		if pythonExec == "" {
 			pythonExec = "python3"
 		}
@@ -322,6 +322,16 @@ func appendOrReplaceEnv(envs []corev1.EnvVar, newEnv corev1.EnvVar) []corev1.Env
 		}
 	}
 	return append(envs, newEnv)
+}
+
+// getEnvValue returns the value of the named env var, or empty string if not found
+func getEnvValue(envs []corev1.EnvVar, name string) string {
+	for _, e := range envs {
+		if e.Name == name {
+			return e.Value
+		}
+	}
+	return ""
 }
 
 // appendEnvIfNotExists adds an env var if it doesn't already exist

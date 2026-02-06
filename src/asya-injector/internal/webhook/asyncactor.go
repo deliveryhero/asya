@@ -115,13 +115,9 @@ func extractActorConfig(asyncActor *unstructured.Unstructured) (*injection.Actor
 	if workloadFound {
 		config.Handler, _, _ = unstructured.NestedString(workload, "handler")
 		config.HandlerMode, _, _ = unstructured.NestedString(workload, "handlerMode")
-		config.PythonExecutable, _, _ = unstructured.NestedString(workload, "pythonExecutable")
 
 		if config.HandlerMode == "" {
 			config.HandlerMode = "payload"
-		}
-		if config.PythonExecutable == "" {
-			config.PythonExecutable = "python3"
 		}
 	}
 

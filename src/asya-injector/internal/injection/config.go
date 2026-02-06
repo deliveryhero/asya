@@ -22,9 +22,6 @@ type ActorConfig struct {
 	// HandlerMode is the handler mode (payload, envelope)
 	HandlerMode string
 
-	// PythonExecutable is the Python executable to use
-	PythonExecutable string
-
 	// SidecarImage is the sidecar container image (optional override)
 	SidecarImage string
 

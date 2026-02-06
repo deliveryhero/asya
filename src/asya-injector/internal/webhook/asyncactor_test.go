@@ -137,7 +137,6 @@ func TestExtractActorConfig(t *testing.T) {
 			QueueURL               string
 			Handler                string
 			HandlerMode            string
-			PythonExecutable       string
 			SidecarImage           string
 			SidecarImagePullPolicy string
 			SidecarEnvNames        []string
@@ -160,7 +159,6 @@ func TestExtractActorConfig(t *testing.T) {
 				QueueURL               string
 				Handler                string
 				HandlerMode            string
-				PythonExecutable       string
 				SidecarImage           string
 				SidecarImagePullPolicy string
 				SidecarEnvNames        []string
@@ -183,9 +181,8 @@ func TestExtractActorConfig(t *testing.T) {
 						"transport": "rabbitmq",
 						"region":    "eu-west-1",
 						"workload": map[string]interface{}{
-							"handler":          "my_module.process",
-							"handlerMode":      "envelope",
-							"pythonExecutable": "python3.11",
+							"handler":     "my_module.process",
+							"handlerMode": "envelope",
 						},
 						"sidecar": map[string]interface{}{
 							"image": "custom-sidecar:v2",
@@ -204,7 +201,6 @@ func TestExtractActorConfig(t *testing.T) {
 				QueueURL               string
 				Handler                string
 				HandlerMode            string
-				PythonExecutable       string
 				SidecarImage           string
 				SidecarImagePullPolicy string
 				SidecarEnvNames        []string
@@ -222,9 +218,6 @@ func TestExtractActorConfig(t *testing.T) {
 				}
 				if cfg.HandlerMode != "envelope" {
 					t.Errorf("expected handlerMode 'envelope', got '%s'", cfg.HandlerMode)
-				}
-				if cfg.PythonExecutable != "python3.11" {
-					t.Errorf("expected pythonExecutable 'python3.11', got '%s'", cfg.PythonExecutable)
 				}
 				if cfg.SidecarImage != "custom-sidecar:v2" {
 					t.Errorf("expected sidecarImage 'custom-sidecar:v2', got '%s'", cfg.SidecarImage)
@@ -265,7 +258,6 @@ func TestExtractActorConfig(t *testing.T) {
 				QueueURL               string
 				Handler                string
 				HandlerMode            string
-				PythonExecutable       string
 				SidecarImage           string
 				SidecarImagePullPolicy string
 				SidecarEnvNames        []string
@@ -309,7 +301,6 @@ func TestExtractActorConfig(t *testing.T) {
 				QueueURL               string
 				Handler                string
 				HandlerMode            string
-				PythonExecutable       string
 				SidecarImage           string
 				SidecarImagePullPolicy string
 				SidecarEnvNames        []string
@@ -358,7 +349,6 @@ func TestExtractActorConfig(t *testing.T) {
 					QueueURL               string
 					Handler                string
 					HandlerMode            string
-					PythonExecutable       string
 					SidecarImage           string
 					SidecarImagePullPolicy string
 					SidecarEnvNames        []string
@@ -369,7 +359,6 @@ func TestExtractActorConfig(t *testing.T) {
 					QueueURL:               cfg.QueueURL,
 					Handler:                cfg.Handler,
 					HandlerMode:            cfg.HandlerMode,
-					PythonExecutable:       cfg.PythonExecutable,
 					SidecarImage:           cfg.SidecarImage,
 					SidecarImagePullPolicy: cfg.SidecarImagePullPolicy,
 					SidecarEnvNames:        envNames,

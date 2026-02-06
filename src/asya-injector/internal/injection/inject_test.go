@@ -38,14 +38,13 @@ func TestInjector_Inject(t *testing.T) {
 	}
 
 	actorConfig := &ActorConfig{
-		ActorName:        "my-actor",
-		Namespace:        "default",
-		Transport:        "sqs",
-		QueueURL:         "http://sqs.localhost:4566/000000000000/asya-default-my-actor",
-		Handler:          "my_module.process",
-		HandlerMode:      "payload",
-		PythonExecutable: "python3",
-		Region:           "us-east-1",
+		ActorName:   "my-actor",
+		Namespace:   "default",
+		Transport:   "sqs",
+		QueueURL:    "http://sqs.localhost:4566/000000000000/asya-default-my-actor",
+		Handler:     "my_module.process",
+		HandlerMode: "payload",
+		Region:      "us-east-1",
 	}
 
 	mutated, err := injector.Inject(pod, actorConfig)
@@ -136,6 +135,117 @@ func TestInjector_Inject(t *testing.T) {
 	}
 	if runtime.ReadinessProbe == nil {
 		t.Error("readiness probe not added")
+	}
+}
+
+func TestInjector_InjectCustomPythonPath(t *testing.T) {
+	cfg := &config.Config{
+		SidecarImage:           "ghcr.io/deliveryhero/asya-sidecar:test",
+		RuntimeConfigMap:       "asya-runtime",
+		SidecarImagePullPolicy: "IfNotPresent",
+		SocketDir:              "/var/run/asya",
+		RuntimeMountPath:       "/opt/asya/asya_runtime.py",
+	}
+
+	injector := NewInjector(cfg)
+
+	pod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-pod",
+			Namespace: "default",
+		},
+		Spec: corev1.PodSpec{
+			Containers: []corev1.Container{
+				{
+					Name:  "asya-runtime",
+					Image: "my-app:v1",
+					Env: []corev1.EnvVar{
+						{Name: "ASYA_PYTHONPATH", Value: "/usr/bin/python3.11"},
+					},
+				},
+			},
+		},
+	}
+
+	actorConfig := &ActorConfig{
+		ActorName: "my-actor",
+		Namespace: "default",
+		Transport: "sqs",
+		Region:    "us-east-1",
+	}
+
+	mutated, err := injector.Inject(pod, actorConfig)
+	if err != nil {
+		t.Fatalf("Inject failed: %v", err)
+	}
+
+	var runtime *corev1.Container
+	for i := range mutated.Spec.Containers {
+		if mutated.Spec.Containers[i].Name == "asya-runtime" {
+			runtime = &mutated.Spec.Containers[i]
+			break
+		}
+	}
+	if runtime == nil {
+		t.Fatal("runtime container not found")
+	}
+
+	if len(runtime.Command) != 2 || runtime.Command[0] != "/usr/bin/python3.11" || runtime.Command[1] != "/opt/asya/asya_runtime.py" {
+		t.Errorf("expected runtime command [/usr/bin/python3.11 /opt/asya/asya_runtime.py], got %v", runtime.Command)
+	}
+}
+
+func TestInjector_InjectDefaultPythonPath(t *testing.T) {
+	cfg := &config.Config{
+		SidecarImage:           "ghcr.io/deliveryhero/asya-sidecar:test",
+		RuntimeConfigMap:       "asya-runtime",
+		SidecarImagePullPolicy: "IfNotPresent",
+		SocketDir:              "/var/run/asya",
+		RuntimeMountPath:       "/opt/asya/asya_runtime.py",
+	}
+
+	injector := NewInjector(cfg)
+
+	pod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-pod",
+			Namespace: "default",
+		},
+		Spec: corev1.PodSpec{
+			Containers: []corev1.Container{
+				{
+					Name:  "asya-runtime",
+					Image: "my-app:v1",
+				},
+			},
+		},
+	}
+
+	actorConfig := &ActorConfig{
+		ActorName: "my-actor",
+		Namespace: "default",
+		Transport: "sqs",
+		Region:    "us-east-1",
+	}
+
+	mutated, err := injector.Inject(pod, actorConfig)
+	if err != nil {
+		t.Fatalf("Inject failed: %v", err)
+	}
+
+	var runtime *corev1.Container
+	for i := range mutated.Spec.Containers {
+		if mutated.Spec.Containers[i].Name == "asya-runtime" {
+			runtime = &mutated.Spec.Containers[i]
+			break
+		}
+	}
+	if runtime == nil {
+		t.Fatal("runtime container not found")
+	}
+
+	if len(runtime.Command) != 2 || runtime.Command[0] != "python3" || runtime.Command[1] != "/opt/asya/asya_runtime.py" {
+		t.Errorf("expected runtime command [python3 /opt/asya/asya_runtime.py], got %v", runtime.Command)
 	}
 }
 
