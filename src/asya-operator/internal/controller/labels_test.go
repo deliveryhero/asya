@@ -124,12 +124,21 @@ func TestValidateUserLabels(t *testing.T) {
 			errorMsg:    "app.kubernetes.io/",
 		},
 		{
-			name: "reserved prefix asya.sh",
+			name: "asya.sh prefix allowed for user metadata",
 			labels: map[string]string{
 				"asya.sh/custom": "value",
 			},
-			expectError: true,
-			errorMsg:    "asya.sh/",
+			expectError: false,
+		},
+		{
+			name: "asya.sh metadata labels allowed",
+			labels: map[string]string{
+				"asya.sh/actor":      "my-actor",
+				"asya.sh/flow":       "my-flow",
+				"asya.sh/actor-type": "handler",
+				"asya.sh/test-type":  "flow",
+			},
+			expectError: false,
 		},
 		{
 			name: "reserved prefix keda.sh",

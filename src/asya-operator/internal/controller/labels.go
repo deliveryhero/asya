@@ -9,7 +9,6 @@ import (
 
 var reservedLabelPrefixes = []string{
 	"app.kubernetes.io/",
-	"asya.sh/",
 	"keda.sh/",
 	"kubernetes.io/",
 }
@@ -37,20 +36,21 @@ func propagateLabels(asya *asyav1alpha1.AsyncActor, operatorLabels map[string]st
 // Returns error if any user label uses a reserved prefix
 // Exceptions:
 // - app.kubernetes.io/managed-by (automatically added by Helm)
-// - asya.sh/actor (user-controlled actor identity)
-// - asya.sh/flow (user-controlled flow grouping)
+//
+// Note: asya.sh/ is NOT reserved. It is the project's own domain and users may
+// set metadata labels (asya.sh/actor, asya.sh/flow, asya.sh/actor-type, etc.).
+// Operator-managed asya.sh/ labels (asya.sh/actor, asya.sh/workload) are always
+// set via propagateLabels which overrides user values on child resources.
 func validateUserLabels(labels map[string]string) error {
 	for key := range labels {
 		// Allow specific exceptions
-		if key == "app.kubernetes.io/managed-by" ||
-			key == "asya.sh/actor" ||
-			key == "asya.sh/flow" {
+		if key == "app.kubernetes.io/managed-by" {
 			continue
 		}
 
 		for _, prefix := range reservedLabelPrefixes {
 			if strings.HasPrefix(key, prefix) {
-				return fmt.Errorf("label key %q uses reserved prefix %q - reserved prefixes are: %v (exceptions: asya.sh/actor, asya.sh/flow)",
+				return fmt.Errorf("label key %q uses reserved prefix %q - reserved prefixes are: %v",
 					key, prefix, reservedLabelPrefixes)
 			}
 		}
