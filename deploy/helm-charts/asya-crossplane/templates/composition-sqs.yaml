@@ -346,6 +346,8 @@ spec:
             {{`{{- end }}`}}
 
     # Patch status and derive phase using go-templating (handles missing resources gracefully)
+    # For managed workloads (spec.workload), workload readiness is required for Ready phase
+    # For external workloads (spec.workloadRef), workload status is not available
     - step: patch-status-and-derive-phase
       functionRef:
         name: function-go-templating
@@ -397,8 +399,26 @@ spec:
                 {{`{{- end -}}`}}
               {{`{{- end -}}`}}
             {{`{{- end -}}`}}
+            {{`{{- $workloadReady := true -}}`}}
+            {{`{{- if hasKey $xr.spec "workload" -}}`}}
+              {{`{{- if index .observed.resources "deployment" -}}`}}
+                {{`{{- $dep := (index .observed.resources "deployment").resource -}}`}}
+                {{`{{- if and (hasKey $dep "status") (hasKey $dep.status "atProvider") (hasKey $dep.status.atProvider "manifest") (hasKey $dep.status.atProvider.manifest "status") -}}`}}
+                  {{`{{- $workloadReady = false -}}`}}
+                  {{`{{- range $dep.status.atProvider.manifest.status.conditions | default list -}}`}}
+                    {{`{{- if and (eq .type "Available") (eq .status "True") -}}`}}
+                      {{`{{- $workloadReady = true -}}`}}
+                    {{`{{- end -}}`}}
+                  {{`{{- end -}}`}}
+                {{`{{- else -}}`}}
+                  {{`{{- $workloadReady = false -}}`}}
+                {{`{{- end -}}`}}
+              {{`{{- else -}}`}}
+                {{`{{- $workloadReady = false -}}`}}
+              {{`{{- end -}}`}}
+            {{`{{- end -}}`}}
             {{`{{- $phase := "Creating" -}}`}}
-            {{`{{- if and $queueReady $kedaReady -}}`}}
+            {{`{{- if and $queueReady $kedaReady $workloadReady -}}`}}
               {{`{{- $phase = "Ready" -}}`}}
               {{`{{- if eq (int $workloadReplicas) 0 -}}`}}
                 {{`{{- $phase = "Napping" -}}`}}
@@ -423,5 +443,6 @@ spec:
                 keda:
                   ready: {{`{{ $kedaReady }}`}}
                 workload:
+                  ready: {{`{{ $workloadReady }}`}}
                   replicas: {{`{{ $workloadReplicas }}`}}
                   readyReplicas: {{`{{ $workloadReadyReplicas }}`}}
