@@ -73,6 +73,7 @@ spec:
               annotations:
                 gotemplating.fn.crossplane.io/composition-resource-name: serviceaccount
             spec:
+              watch: true
               forProvider:
                 manifest:
                   apiVersion: v1
@@ -118,6 +119,7 @@ spec:
               annotations:
                 gotemplating.fn.crossplane.io/composition-resource-name: triggerauthentication
             spec:
+              watch: true
               forProvider:
                 manifest:
                   apiVersion: keda.sh/v1alpha1
@@ -212,6 +214,7 @@ spec:
               annotations:
                 gotemplating.fn.crossplane.io/composition-resource-name: scaledobject
             spec:
+              watch: true
               forProvider:
                 manifest:
                   apiVersion: keda.sh/v1alpha1
@@ -303,6 +306,7 @@ spec:
               annotations:
                 gotemplating.fn.crossplane.io/composition-resource-name: deployment
             spec:
+              watch: true
               forProvider:
                 manifest:
                   apiVersion: apps/v1
@@ -352,6 +356,8 @@ spec:
         inline:
           template: |
             {{`{{- $xr := .observed.composite.resource -}}`}}
+            {{`{{- $claimName := index $xr.metadata.labels "crossplane.io/claim-name" -}}`}}
+            {{`{{- $actorName := $xr.spec.actorName | default $claimName -}}`}}
             {{`{{- $queueUrl := "" -}}`}}
             {{`{{- $queueArn := "" -}}`}}
             {{`{{- $queueReady := false -}}`}}
@@ -393,13 +399,16 @@ spec:
             {{`{{- end -}}`}}
             {{`{{- $phase := "Creating" -}}`}}
             {{`{{- if and $queueReady $kedaReady -}}`}}
-              {{`{{- $phase = "Running" -}}`}}
+              {{`{{- $phase = "Ready" -}}`}}
               {{`{{- if eq (int $workloadReplicas) 0 -}}`}}
                 {{`{{- $phase = "Napping" -}}`}}
               {{`{{- end -}}`}}
             {{`{{- end -}}`}}
             apiVersion: asya.sh/v1alpha1
             kind: XAsyncActor
+            metadata:
+              labels:
+                asya.sh/actor: {{`{{ $actorName }}`}}
             status:
               phase: {{`{{ $phase }}`}}
               {{`{{- if ne $queueUrl "" }}`}}

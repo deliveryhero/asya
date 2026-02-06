@@ -8,6 +8,22 @@ metadata:
 spec:
   package: xpkg.upbound.io/upbound/provider-aws-sqs:{{ .Values.providers.aws.sqsVersion }}
 ---
+apiVersion: pkg.crossplane.io/v1beta1
+kind: DeploymentRuntimeConfig
+metadata:
+  name: provider-kubernetes-watches
+  labels:
+    {{- include "asya-crossplane.labels" . | nindent 4 }}
+spec:
+  deploymentTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: package-runtime
+              args:
+                - --enable-watches
+---
 apiVersion: pkg.crossplane.io/v1
 kind: Provider
 metadata:
@@ -16,6 +32,8 @@ metadata:
     {{- include "asya-crossplane.labels" . | nindent 4 }}
 spec:
   package: xpkg.upbound.io/crossplane-contrib/provider-kubernetes:{{ .Values.providers.kubernetes.version }}
+  runtimeConfigRef:
+    name: provider-kubernetes-watches
 ---
 apiVersion: pkg.crossplane.io/v1
 kind: Function

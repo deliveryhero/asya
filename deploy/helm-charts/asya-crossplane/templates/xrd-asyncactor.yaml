@@ -145,7 +145,7 @@ spec:
                   type: string
                   description: |
                     Current phase of the AsyncActor.
-                    Values: Ready, Creating, Running, Napping, Degraded, Failed
+                    Values: Creating, Ready, Napping
                 queueUrl:
                   type: string
                   description: URL of the SQS queue

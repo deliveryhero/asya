@@ -30,10 +30,10 @@ kind create cluster --name asya-crossplane --wait 60s
 From the repository root:
 
 ```bash
-# Build sidecar (from main branch)
+# Build sidecar
 docker build -t asya-sidecar:latest -f src/asya-sidecar/Dockerfile src/asya-sidecar/
 
-# Build injector (from crossplane-phase2 branch)
+# Build injector
 docker build -t asya-injector:latest -f src/asya-injector/Dockerfile src/asya-injector/
 ```
 
@@ -144,6 +144,25 @@ Providers must be installed first so their CRDs are available for the chart:
 
 ```bash
 kubectl apply -f - <<'EOF'
+apiVersion: pkg.crossplane.io/v1beta1
+kind: DeploymentRuntimeConfig
+metadata:
+  name: provider-kubernetes-watches
+  labels:
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    meta.helm.sh/release-name: asya-crossplane
+    meta.helm.sh/release-namespace: default
+spec:
+  deploymentTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: package-runtime
+              args:
+                - --enable-watches
+---
 apiVersion: pkg.crossplane.io/v1
 kind: Provider
 metadata:
@@ -167,6 +186,8 @@ metadata:
     meta.helm.sh/release-namespace: default
 spec:
   package: xpkg.upbound.io/crossplane-contrib/provider-kubernetes:v0.17.0
+  runtimeConfigRef:
+    name: provider-kubernetes-watches
 ---
 apiVersion: pkg.crossplane.io/v1
 kind: Function
@@ -298,6 +319,8 @@ kind: AsyncActor
 metadata:
   name: hello
   namespace: default
+  labels:
+    asya.sh/actor: hello
 spec:
   transport: sqs
   region: us-east-1
@@ -305,7 +328,7 @@ spec:
   scaling:
     enabled: true
     minReplicas: 0
-    maxReplicas: 5
+    maxReplicas: 10
     pollingInterval: 10
     cooldownPeriod: 30
     queueLength: 5
@@ -330,7 +353,7 @@ Wait for resources:
 
 ```bash
 kubectl get asyncactors -n default
-# STATUS should become "Running" or "Napping"
+# STATUS should become "Ready" or "Napping"
 
 kubectl get queue.sqs.aws.upbound.io
 # SQS queue should show READY=True
@@ -378,7 +401,59 @@ kubectl get deployment hello -n default
 # READY should show 0/0
 ```
 
-## 10. Test Deletion
+## 10. Test Scale-to-N
+
+Send a batch of messages with proper envelope format to trigger multiple replicas:
+
+```bash
+kubectl port-forward -n localstack svc/localstack 4566:4566 &
+sleep 3
+
+QUEUE_URL=http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/asya-default-hello
+
+for i in $(seq 1 100); do
+  AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test \
+    aws --endpoint-url=http://localhost:4566 --region us-east-1 \
+    sqs send-message \
+    --queue-url "$QUEUE_URL" \
+    --message-body "{\"id\":\"batch-$i\",\"route\":{\"actors\":[\"hello\"],\"current\":0},\"headers\":{},\"payload\":{\"name\":\"User-$i\"}}" \
+    --no-cli-pager > /dev/null
+done
+
+echo "Sent 100 messages"
+kill %1 2>/dev/null
+```
+
+Watch replicas scale up:
+
+```bash
+kubectl get deployment hello -n default -w
+# READY should increase beyond 1 (up to maxReplicas=10)
+```
+
+After all messages are processed and the cooldown period passes, replicas scale back to zero.
+
+## 11. Test Resilience
+
+Verify that Crossplane re-creates deleted resources:
+
+```bash
+# Delete the deployment
+kubectl delete deployment hello -n default
+
+# Wait for Crossplane to re-create it (should take a few seconds with watch enabled)
+sleep 10
+kubectl get deployment hello -n default
+# Deployment should exist again
+
+# Delete the ScaledObject
+kubectl delete scaledobject hello -n default
+sleep 10
+kubectl get scaledobject hello -n default
+# ScaledObject should exist again
+```
+
+## 12. Test Deletion
 
 ```bash
 kubectl delete asyncactor hello -n default
@@ -393,7 +468,7 @@ kubectl get deployment -n default               # No resources
 kubectl get scaledobject -n default             # No resources
 ```
 
-## 11. Clean Up
+## 13. Clean Up
 
 ```bash
 kind delete cluster --name asya-crossplane
