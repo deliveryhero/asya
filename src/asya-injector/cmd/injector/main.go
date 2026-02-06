@@ -37,12 +37,12 @@ func main() {
 	// Set up structured logging
 	logLevel := os.Getenv("ASYA_LOG_LEVEL")
 	var level slog.Level
-	switch logLevel {
-	case "DEBUG", "debug":
+	switch strings.ToUpper(logLevel) {
+	case "DEBUG":
 		level = slog.LevelDebug
-	case "WARN", "warn", "WARNING", "warning":
+	case "WARN", "WARNING":
 		level = slog.LevelWarn
-	case "ERROR", "error":
+	case "ERROR":
 		level = slog.LevelError
 	default:
 		level = slog.LevelInfo
