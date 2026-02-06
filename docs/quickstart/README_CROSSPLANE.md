@@ -198,7 +198,7 @@ Wait for all providers and functions to become healthy:
 
 ```bash
 echo "Waiting for providers..."
-until kubectl get providers,functions -o jsonpath='{range .items[*]}{.status.conditions[?(@.type=="Healthy")].status}{" "}{end}' 2>/dev/null | grep -q "True True True True True"; do
+until [ "$(kubectl get providers,functions -o jsonpath='{range .items[*]}{.status.conditions[?(@.type=="Healthy")].status}{" "}{end}' 2>/dev/null | tr -cd 'True ' | grep -c True)" -ge 4 ] 2>/dev/null; do
   sleep 5
 done
 echo "All providers healthy"
