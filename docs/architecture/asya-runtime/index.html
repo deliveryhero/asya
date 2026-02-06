@@ -883,6 +883,114 @@
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">socket-dir</span><span class="w">  </span><span class="c1"># Injected</span>
 <span class="w">    </span><span class="nt">mountPath</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/var/run/asya</span>
 </code></pre></div>
+<h2 id="python-executable-resolution">Python Executable Resolution<a class="headerlink" href="#python-executable-resolution" title="Permanent link">&para;</a></h2>
+<p>The injector launches the runtime with <code>python3 /opt/asya/asya_runtime.py</code>. The bare <code>python3</code> is resolved via the container's <code>PATH</code> at runtime — the same mechanism that conda, virtualenv, and pyenv all use.</p>
+<p><strong>Most users do not need to configure anything.</strong> As long as <code>python3</code> is on your container's <code>PATH</code>, it just works.</p>
+<h3 id="how-python-is-found">How Python is found<a class="headerlink" href="#how-python-is-found" title="Permanent link">&para;</a></h3>
+<ol>
+<li>The injector sets the runtime command to <code>["python3", "/opt/asya/asya_runtime.py"]</code></li>
+<li>Kubernetes resolves <code>python3</code> via the container's <code>PATH</code> when starting the process</li>
+<li>If <code>ASYA_PYTHONEXECUTABLE</code> is set on the runtime container, its value replaces <code>python3</code> in the command</li>
+</ol>
+<h3 id="standard-approach-ensure-python3-is-on-path">Standard approach: ensure <code>python3</code> is on PATH<a class="headerlink" href="#standard-approach-ensure-python3-is-on-path" title="Permanent link">&para;</a></h3>
+<p>This is how the Python ecosystem works — tools like conda, virtualenv, and pyenv all configure <code>PATH</code> so that <code>python3</code> resolves to the right binary.</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Image type</th>
+<th><code>python3</code> on PATH?</th>
+<th>Action needed</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>python:3.x</code></td>
+<td>Yes (<code>/usr/local/bin/python3</code>)</td>
+<td>None</td>
+</tr>
+<tr>
+<td><code>pytorch/pytorch</code>, <code>tensorflow/tensorflow</code></td>
+<td>Yes (conda's <code>python3</code>)</td>
+<td>None</td>
+</tr>
+<tr>
+<td>Conda image with activated env</td>
+<td>Yes (<code>/opt/conda/bin/python3</code>)</td>
+<td>None</td>
+</tr>
+<tr>
+<td>Custom image with <code>python3</code> installed</td>
+<td>Yes</td>
+<td>None</td>
+</tr>
+<tr>
+<td>Minimal image with only <code>python</code> (no <code>python3</code>)</td>
+<td><strong>No</strong></td>
+<td>Set <code>ASYA_PYTHONEXECUTABLE</code></td>
+</tr>
+<tr>
+<td>Custom install without <code>python3</code> symlink</td>
+<td><strong>No</strong></td>
+<td>Set <code>ASYA_PYTHONEXECUTABLE</code></td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="last-resort-asya_pythonexecutable">Last resort: <code>ASYA_PYTHONEXECUTABLE</code><a class="headerlink" href="#last-resort-asya_pythonexecutable" title="Permanent link">&para;</a></h3>
+<p>If your container does not have a <code>python3</code> binary on <code>PATH</code>, set <code>ASYA_PYTHONEXECUTABLE</code> to the full path of the Python binary:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">containers</span><span class="p">:</span>
+<span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya-runtime</span>
+<span class="w">  </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-custom-image:latest</span>
+<span class="w">  </span><span class="nt">env</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_PYTHONEXECUTABLE</span>
+<span class="w">    </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;/opt/conda/envs/inference/bin/python&quot;</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_HANDLER</span>
+<span class="w">    </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;ml_model.predict&quot;</span>
+</code></pre></div>
+<h3 id="python-environment-variables-reference">Python environment variables reference<a class="headerlink" href="#python-environment-variables-reference" title="Permanent link">&para;</a></h3>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Purpose</th>
+<th>Set by Asya?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>PATH</code></td>
+<td>OS-level executable search path; <code>python3</code> is resolved via this</td>
+<td>No — configured in your Dockerfile or container spec</td>
+</tr>
+<tr>
+<td><code>PYTHONPATH</code></td>
+<td>Tells Python where to find extra modules/packages</td>
+<td>No — set it if your handler is not on the default module path</td>
+</tr>
+<tr>
+<td><code>PYTHONHOME</code></td>
+<td>Tells Python where its standard library is located</td>
+<td>No — rarely needed, managed by conda/venv automatically</td>
+</tr>
+<tr>
+<td><code>VIRTUAL_ENV</code></td>
+<td>Indicates the active virtual environment path</td>
+<td>No — informational, does not affect which binary runs</td>
+</tr>
+<tr>
+<td><code>ASYA_PYTHONEXECUTABLE</code></td>
+<td>Overrides the Python binary used to launch the runtime</td>
+<td>Yes — only needed if <code>python3</code> is not on <code>PATH</code></td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="quick-decision-guide">Quick decision guide<a class="headerlink" href="#quick-decision-guide" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Standard Python image</strong> (<code>python:3.x</code>, <code>pytorch/pytorch</code>, etc.) → do nothing</li>
+<li><strong>Conda environment</strong> → ensure the env is activated in your Dockerfile (<code>conda activate</code> sets <code>PATH</code>); if not, set <code>ASYA_PYTHONEXECUTABLE</code></li>
+<li><strong>Virtual environment</strong> → ensure the venv is activated in your Dockerfile; if not, set <code>ASYA_PYTHONEXECUTABLE</code></li>
+<li><strong>Image has <code>python</code> but not <code>python3</code></strong> → set <code>ASYA_PYTHONEXECUTABLE=python</code></li>
+<li><strong>Custom handler import path</strong> → set <code>PYTHONPATH</code> (separate from the executable)</li>
+</ul>
 <h2 id="python-compatibility">Python Compatibility<a class="headerlink" href="#python-compatibility" title="Permanent link">&para;</a></h2>
 <p><strong>Supports Python 3.7+</strong> for compatibility with legacy AI frameworks.</p>
 <p>Runtime uses backward-compatible type hints:
@@ -1027,6 +1135,11 @@
 <td><code>ASYA_HANDLER_MODE</code></td>
 <td><code>payload</code></td>
 <td>Mode: <code>payload</code> or <code>envelope</code></td>
+</tr>
+<tr>
+<td><code>ASYA_PYTHONEXECUTABLE</code></td>
+<td><code>python3</code></td>
+<td>Python binary path for launching the runtime</td>
 </tr>
 <tr>
 <td><code>ASYA_SOCKET_DIR</code></td>
@@ -1366,6 +1479,46 @@
             data-active="false" data-depth="2">
             Deployment
         </a>
+        
+
+        
+        <a href="#python-executable-resolution"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Python Executable Resolution
+        </a>
+        
+        
+        <a href="#how-python-is-found"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            How Python is found
+        </a>
+        
+        <a href="#standard-approach-ensure-python3-is-on-path"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Standard approach: ensure python3 is on PATH
+        </a>
+        
+        <a href="#last-resort-asya_pythonexecutable"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Last resort: ASYA_PYTHONEXECUTABLE
+        </a>
+        
+        <a href="#python-environment-variables-reference"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Python environment variables reference
+        </a>
+        
+        <a href="#quick-decision-guide"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Quick decision guide
+        </a>
+        
         
 
         
