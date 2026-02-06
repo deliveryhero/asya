@@ -42,10 +42,6 @@ spec:
                     - rabbitmq
                   default: sqs
 
-                actorName:
-                  type: string
-                  description: Actor name used for queue naming and routing (defaults to metadata.name)
-
                 region:
                   type: string
                   description: AWS region for SQS queue
