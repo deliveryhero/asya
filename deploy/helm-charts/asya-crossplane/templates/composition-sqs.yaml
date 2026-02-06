@@ -402,14 +402,12 @@ spec:
             {{`{{- $workloadReady := true -}}`}}
             {{`{{- if hasKey $xr.spec "workload" -}}`}}
               {{`{{- $workloadReady = false -}}`}}
-              {{`{{- if .observed.resources -}}`}}
-                {{`{{- if index .observed.resources "deployment" -}}`}}
-                  {{`{{- $dep := (index .observed.resources "deployment").resource -}}`}}
-                  {{`{{- if and (hasKey $dep "status") (hasKey $dep.status "atProvider") (hasKey $dep.status.atProvider "manifest") (hasKey $dep.status.atProvider.manifest "status") -}}`}}
-                    {{`{{- range $dep.status.atProvider.manifest.status.conditions | default list -}}`}}
-                      {{`{{- if and (eq .type "Available") (eq .status "True") -}}`}}
-                        {{`{{- $workloadReady = true -}}`}}
-                      {{`{{- end -}}`}}
+              {{`{{- if and .observed.resources (index .observed.resources "deployment") -}}`}}
+                {{`{{- $dep := (index .observed.resources "deployment").resource -}}`}}
+                {{`{{- if and (hasKey $dep "status") (hasKey $dep.status "atProvider") (hasKey $dep.status.atProvider "manifest") (hasKey $dep.status.atProvider.manifest "status") -}}`}}
+                  {{`{{- range $dep.status.atProvider.manifest.status.conditions | default list -}}`}}
+                    {{`{{- if and (eq .type "Available") (eq .status "True") -}}`}}
+                      {{`{{- $workloadReady = true -}}`}}
                     {{`{{- end -}}`}}
                   {{`{{- end -}}`}}
                 {{`{{- end -}}`}}
