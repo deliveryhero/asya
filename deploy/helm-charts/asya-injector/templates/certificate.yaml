@@ -1,0 +1,49 @@
+{{- if .Values.certManager.enabled }}
+{{- if .Values.certManager.issuer.create }}
+---
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: {{ include "asya-injector.fullname" . }}-selfsigned
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "asya-injector.labels" . | nindent 4 }}
+spec:
+  selfSigned: {}
+{{- end }}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ include "asya-injector.certificateName" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "asya-injector.labels" . | nindent 4 }}
+spec:
+  secretName: {{ include "asya-injector.tlsSecretName" . }}
+  duration: {{ .Values.certManager.duration }}
+  renewBefore: {{ .Values.certManager.renewBefore }}
+  subject:
+    organizations:
+    - asya
+  isCA: false
+  privateKey:
+    algorithm: RSA
+    encoding: PKCS1
+    size: 2048
+  usages:
+  - server auth
+  dnsNames:
+  - {{ include "asya-injector.fullname" . }}
+  - {{ include "asya-injector.fullname" . }}.{{ .Release.Namespace }}
+  - {{ include "asya-injector.serviceDNS" . }}
+  - {{ include "asya-injector.serviceDNS" . }}.cluster.local
+  issuerRef:
+    {{- if .Values.certManager.issuer.create }}
+    name: {{ include "asya-injector.fullname" . }}-selfsigned
+    kind: Issuer
+    {{- else }}
+    name: {{ .Values.certManager.issuer.name }}
+    kind: {{ .Values.certManager.issuer.kind }}
+    {{- end }}
+{{- end }}

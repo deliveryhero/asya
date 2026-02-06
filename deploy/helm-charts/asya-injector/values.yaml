@@ -1,0 +1,106 @@
+replicaCount: 1
+
+image:
+  repository: ghcr.io/deliveryhero/asya-injector
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext:
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 65532
+
+service:
+  type: ClusterIP
+  port: 443
+  targetPort: 8443
+
+resources:
+  limits:
+    cpu: 200m
+    memory: 256Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# Webhook configuration
+webhook:
+  port: 8443
+  # Namespaces to target for injection (empty = all namespaces)
+  namespaceSelector:
+    matchExpressions:
+    - key: kubernetes.io/metadata.name
+      operator: NotIn
+      values:
+      - kube-system
+      - kube-public
+      - kube-node-lease
+      - asya-system
+  # Pod label that triggers injection
+  objectSelector:
+    matchLabels:
+      asya.sh/inject: "true"
+  # Failure policy: Fail or Ignore
+  failurePolicy: Fail
+  # Timeout for webhook calls in seconds
+  timeoutSeconds: 10
+
+# cert-manager configuration for TLS
+certManager:
+  enabled: true
+  # Duration of the certificate
+  duration: 8760h # 1 year
+  # When to renew the certificate
+  renewBefore: 720h # 30 days
+  issuer:
+    # Create a self-signed issuer
+    create: true
+    # Or reference an existing issuer
+    name: ""
+    kind: Issuer
+
+# Injector configuration
+config:
+  logLevel: "info"
+  # Sidecar image to inject
+  sidecarImage: "ghcr.io/deliveryhero/asya-sidecar:latest"
+  # Name of the runtime ConfigMap
+  runtimeConfigMap: "asya-runtime"
+  # Pull policy for the sidecar image
+  sidecarImagePullPolicy: "IfNotPresent"
+  # Socket directory path
+  socketDir: "/var/run/asya"
+  # Runtime mount path
+  runtimeMountPath: "/opt/asya/asya_runtime.py"
+  # Gateway URL for progress reporting
+  gatewayURL: ""
+  # Custom SQS endpoint (for LocalStack or other AWS-compatible services)
+  sqsEndpoint: ""
+  # AWS credentials secret name to inject into sidecar (for non-IRSA environments)
+  awsCredsSecret: ""

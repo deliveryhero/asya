@@ -32,6 +32,7 @@ setup: ## Set up development environment (install deps, pre-commit hooks)
 	cd src/asya-gateway && go mod download && go mod tidy
 	cd src/asya-sidecar && go mod download && go mod tidy
 	cd src/asya-operator && go mod download && go mod tidy
+	cd src/asya-injector && go mod download && go mod tidy
 	@echo "[++] Setup complete! Ready for development."
 
 setup-dev: setup ## Alias for setup (backwards compatibility)
@@ -58,6 +59,7 @@ test-unit: ## Run unit tests (go + python)
 	$(MAKE) -C src/asya-crew test-unit
 	$(MAKE) -C src/asya-cli test-unit
 	$(MAKE) -C src/asya-operator test-unit
+	$(MAKE) -C src/asya-injector test-unit
 	@echo "$(GREEN_START)[++] Success: All unit tests completed successfully!$(GREEN_END)"
 
 # =============================================================================
@@ -101,6 +103,7 @@ cov: ## Run all tests with coverage and display summary
 	$(MAKE) -C src/asya-sidecar cov-unit
 	$(MAKE) -C src/asya-gateway cov-unit
 	$(MAKE) -C src/asya-operator cov-unit
+	$(MAKE) -C src/asya-injector cov-unit
 	$(MAKE) -C src/asya-runtime cov-unit
 	$(MAKE) -C src/asya-crew cov-unit
 	$(MAKE) -C src/asya-cli cov-unit
@@ -116,6 +119,7 @@ build-go: ## Build all Go components
 	$(MAKE) -C src/asya-gateway build
 	$(MAKE) -C src/asya-sidecar build
 	$(MAKE) -C src/asya-operator build
+	$(MAKE) -C src/asya-injector build
 	@echo "$(GREEN_START)[++] Success: All Go components built successfully!$(GREEN_END)"
 
 manifests: ## Regenerate operator CRDs and manifests
