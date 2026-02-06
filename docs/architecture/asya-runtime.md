@@ -41,30 +41,37 @@ containers:
 
 ## Python Executable Resolution
 
-When the injector sets up the runtime container command, it determines which Python binary to use in the following order:
+The injector launches the runtime with `python3 /opt/asya/asya_runtime.py`. The bare `python3` is resolved via the container's `PATH` at runtime — the same mechanism that conda, virtualenv, and pyenv all use.
 
-1. **`ASYA_PYTHONEXECUTABLE`** env var on the runtime container — if set, its value is used as the Python binary path
-2. **`python3`** (default) — resolved via the container's `PATH` at runtime
+**Most users do not need to configure anything.** As long as `python3` is on your container's `PATH`, it just works.
 
-### When to set `ASYA_PYTHONEXECUTABLE`
+### How Python is found
 
-Most users **do not need to set this**. The default `python3` works whenever:
+1. The injector sets the runtime command to `["python3", "/opt/asya/asya_runtime.py"]`
+2. Kubernetes resolves `python3` via the container's `PATH` when starting the process
+3. If `ASYA_PYTHONEXECUTABLE` is set on the runtime container, its value replaces `python3` in the command
 
-- Your container image has `python3` on `PATH` (standard for most Python images)
-- You use official images like `python:3.11`, `pytorch/pytorch`, `tensorflow/tensorflow`
+### Standard approach: ensure `python3` is on PATH
 
-Set `ASYA_PYTHONEXECUTABLE` when your Python binary is **not on `PATH`** or you need a **specific interpreter**, such as:
+This is how the Python ecosystem works — tools like conda, virtualenv, and pyenv all configure `PATH` so that `python3` resolves to the right binary.
 
-- Conda environments: `ASYA_PYTHONEXECUTABLE=/opt/conda/envs/myenv/bin/python`
-- Virtual environments: `ASYA_PYTHONEXECUTABLE=/app/.venv/bin/python`
-- Custom installations: `ASYA_PYTHONEXECUTABLE=/usr/local/python3.11/bin/python3`
+| Image type | `python3` on PATH? | Action needed |
+|-----------|-------------------|---------------|
+| `python:3.x` | Yes (`/usr/local/bin/python3`) | None |
+| `pytorch/pytorch`, `tensorflow/tensorflow` | Yes (conda's `python3`) | None |
+| Conda image with activated env | Yes (`/opt/conda/bin/python3`) | None |
+| Custom image with `python3` installed | Yes | None |
+| Minimal image with only `python` (no `python3`) | **No** | Set `ASYA_PYTHONEXECUTABLE` |
+| Custom install without `python3` symlink | **No** | Set `ASYA_PYTHONEXECUTABLE` |
 
-### Example: Conda-based ML actor
+### Last resort: `ASYA_PYTHONEXECUTABLE`
+
+If your container does not have a `python3` binary on `PATH`, set `ASYA_PYTHONEXECUTABLE` to the full path of the Python binary:
 
 ```yaml
 containers:
 - name: asya-runtime
-  image: my-conda-image:latest
+  image: my-custom-image:latest
   env:
   - name: ASYA_PYTHONEXECUTABLE
     value: "/opt/conda/envs/inference/bin/python"
@@ -72,23 +79,23 @@ containers:
     value: "ml_model.predict"
 ```
 
-### How it relates to standard Python environment variables
+### Python environment variables reference
 
-| Variable | What it does | Managed by Asya? |
-|----------|-------------|------------------|
-| `ASYA_PYTHONEXECUTABLE` | Full path to the Python binary used to launch the runtime | Yes |
-| `PYTHONPATH` | Tells Python where to find extra modules/packages | No (set it yourself if your handler code is not on the default module path) |
-| `PYTHONHOME` | Tells Python where its standard library is located | No (rarely needed, set by conda/venv automatically) |
-| `VIRTUAL_ENV` | Indicates the active virtual environment path | No (informational, does not affect which Python binary runs) |
-| `PATH` | OS-level search path for executables | No (the default `python3` is resolved via your container's `PATH`) |
+| Variable | Purpose | Set by Asya? |
+|----------|---------|--------------|
+| `PATH` | OS-level executable search path; `python3` is resolved via this | No — configured in your Dockerfile or container spec |
+| `PYTHONPATH` | Tells Python where to find extra modules/packages | No — set it if your handler is not on the default module path |
+| `PYTHONHOME` | Tells Python where its standard library is located | No — rarely needed, managed by conda/venv automatically |
+| `VIRTUAL_ENV` | Indicates the active virtual environment path | No — informational, does not affect which binary runs |
+| `ASYA_PYTHONEXECUTABLE` | Overrides the Python binary used to launch the runtime | Yes — only needed if `python3` is not on `PATH` |
 
 ### Quick decision guide
 
-- **Standard Python image** (`python:3.x`, `pytorch/pytorch`, etc.) → do nothing, `python3` works
-- **Conda environment** → set `ASYA_PYTHONEXECUTABLE=/opt/conda/envs/<name>/bin/python`
-- **Virtual environment** → set `ASYA_PYTHONEXECUTABLE=/app/.venv/bin/python`
-- **Multiple Pythons installed** → set `ASYA_PYTHONEXECUTABLE` to the exact path you want
-- **Custom handler import path** → set `PYTHONPATH` (this is separate from the executable)
+- **Standard Python image** (`python:3.x`, `pytorch/pytorch`, etc.) → do nothing
+- **Conda environment** → ensure the env is activated in your Dockerfile (`conda activate` sets `PATH`); if not, set `ASYA_PYTHONEXECUTABLE`
+- **Virtual environment** → ensure the venv is activated in your Dockerfile; if not, set `ASYA_PYTHONEXECUTABLE`
+- **Image has `python` but not `python3`** → set `ASYA_PYTHONEXECUTABLE=python`
+- **Custom handler import path** → set `PYTHONPATH` (separate from the executable)
 
 ## Python Compatibility
 
