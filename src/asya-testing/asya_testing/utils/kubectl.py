@@ -40,6 +40,27 @@ def kubectl_apply(manifest_yaml: str, namespace: str = "asya-e2e") -> None:
     logger.debug(f"kubectl apply output: {result.stdout.decode()}")
 
 
+def kubectl_apply_raw(manifest_yaml: str, namespace: str = "asya-e2e") -> subprocess.CompletedProcess:
+    """
+    Apply a Kubernetes manifest and return the raw result without raising on failure.
+
+    Useful for testing admission rejection (e.g., invalid enum values in XRD).
+
+    Args:
+        manifest_yaml: YAML manifest as string
+        namespace: Target namespace
+
+    Returns:
+        subprocess.CompletedProcess with returncode, stdout, stderr
+    """
+    return subprocess.run(
+        ["kubectl", "apply", "-f", "-", "-n", namespace],
+        input=manifest_yaml.encode(),
+        capture_output=True,
+        timeout=30,
+    )
+
+
 def kubectl_delete(
     resource_type: str,
     name: str,

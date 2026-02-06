@@ -67,15 +67,14 @@ trigger-tests: ## Only trigger tests, assuming that Kind cluster is already up (
 	@echo "[+] Success: E2E tests with $(PROFILE) profile and $(ASYA_HANDLER_MODE) handler mode"
 	$(MAKE) port-forward-down
 
-test-operator: ## Run operator-specific E2E tests (shell scripts)
+test-operator: ## Run operator-specific E2E tests (Crossplane + Injector architecture)
 	@echo "[.] Running Operator E2E tests with profile=$(PROFILE)"
+	@mkdir -p $(COVERAGE_DIR)
 	$(MAKE) port-forward-up
-	@for script in tests_operator/*.sh; do \
-		echo "[.] Running $$script"; \
-		bash "$$script" || exit 1; \
-		echo "[+] $$script: PASSED"; \
-		echo ""; \
-	done
+	set -a && . ./profiles/.env.$(PROFILE) && set +a && \
+		uv run $(UV_RUN_OPTS) pytest tests/test_operator_e2e.py $(PYTEST_OPTS) \
+			--cov --cov-config=$(COVERAGERC) --cov-report=term \
+			--cov-report=json:$(COVERAGE_DIR)/cov-$(PROFILE)-operator.json
 	@echo "[+] All Operator E2E tests: PASSED"
 	$(MAKE) port-forward-down
 
