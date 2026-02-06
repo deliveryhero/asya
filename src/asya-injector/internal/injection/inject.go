@@ -76,18 +76,18 @@ func (i *Injector) Inject(pod *corev1.Pod, actorConfig *ActorConfig) (*corev1.Po
 		})
 	}
 
-	// Check if sidecar already exists
-	for idx, c := range mutated.Spec.Containers {
+	sidecarExists := false
+	for i, c := range mutated.Spec.Containers {
 		if c.Name == sidecarContainerName {
-			// Update existing sidecar
-			mutated.Spec.Containers[idx] = sidecar
-			goto skipAddSidecar
+			mutated.Spec.Containers[i] = sidecar
+			sidecarExists = true
+			break
 		}
 	}
-	// Add sidecar container
-	mutated.Spec.Containers = append(mutated.Spec.Containers, sidecar)
+	if !sidecarExists {
+		mutated.Spec.Containers = append(mutated.Spec.Containers, sidecar)
+	}
 
-skipAddSidecar:
 	// Modify runtime container
 	if err := i.modifyRuntimeContainer(mutated, actorConfig, socketPath); err != nil {
 		return nil, err
