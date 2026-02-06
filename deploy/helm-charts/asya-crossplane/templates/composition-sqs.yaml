@@ -166,7 +166,10 @@ spec:
             {{`{{- $queueURL := "" -}}`}}
             {{`{{- if .observed.resources -}}`}}
               {{`{{- if index .observed.resources "sqs-queue" -}}`}}
-                {{`{{- $queueURL = (index .observed.resources "sqs-queue").resource.status.atProvider.id | default "" -}}`}}
+                {{`{{- $q := (index .observed.resources "sqs-queue").resource -}}`}}
+                {{`{{- if and (hasKey $q "status") (hasKey $q.status "atProvider") -}}`}}
+                  {{`{{- $queueURL = $q.status.atProvider.id | default "" -}}`}}
+                {{`{{- end -}}`}}
               {{`{{- end -}}`}}
             {{`{{- end -}}`}}
             {{`{{- $scalingEnabled := true -}}`}}
