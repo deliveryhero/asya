@@ -326,7 +326,9 @@ spec:
                           asya.sh/actor: {{`{{ $actorName }}`}}
                           asya.sh/inject: "true"
                       spec:
+                        {{- if .Values.irsa.enabled }}
                         serviceAccountName: {{ .Values.irsa.serviceAccountName }}
+                        {{- end }}
                         {{`{{- if hasKey $xr.spec.workload "template" }}`}}
                         {{`{{- if hasKey $xr.spec.workload.template "spec" }}`}}
                         {{`{{- $xr.spec.workload.template.spec | toYaml | nindent 24 }}`}}
@@ -336,52 +338,8 @@ spec:
                 name: {{ .Values.kubernetesProviderConfig.name }}
             {{`{{- end }}`}}
 
-    # Patch status back to composite
-    - step: patch-status
-      functionRef:
-        name: function-patch-and-transform
-      input:
-        apiVersion: pt.fn.crossplane.io/v1beta1
-        kind: Resources
-        resources:
-          - name: sqs-queue
-            patches:
-              # Write queue URL to status
-              - type: ToCompositeFieldPath
-                fromFieldPath: status.atProvider.id
-                toFieldPath: status.queueUrl
-              # Write queue ARN to status
-              - type: ToCompositeFieldPath
-                fromFieldPath: status.atProvider.arn
-                toFieldPath: status.queueArn
-              # Write queue ready status
-              - type: ToCompositeFieldPath
-                fromFieldPath: status.conditions[?(@.type=='Ready')].status
-                toFieldPath: status.infrastructure.queue.ready
-                transforms:
-                  - type: convert
-                    convert:
-                      toType: bool
-          - name: scaledobject
-            patches:
-              - type: ToCompositeFieldPath
-                fromFieldPath: status.atProvider.manifest.status.conditions[?(@.type=='Ready')].status
-                toFieldPath: status.infrastructure.keda.ready
-                transforms:
-                  - type: convert
-                    convert:
-                      toType: bool
-          - name: deployment
-            patches:
-              - type: ToCompositeFieldPath
-                fromFieldPath: status.atProvider.manifest.status.readyReplicas
-                toFieldPath: status.infrastructure.workload.readyReplicas
-              - type: ToCompositeFieldPath
-                fromFieldPath: status.atProvider.manifest.status.replicas
-                toFieldPath: status.infrastructure.workload.replicas
-
-    # Derive phase from infrastructure status using Sprig default for safe nested access
-    - step: derive-phase
+    # Patch status and derive phase using go-templating (handles missing resources gracefully)
+    - step: patch-status-and-derive-phase
       functionRef:
         name: function-go-templating
       input:
@@ -391,14 +349,41 @@ spec:
         inline:
           template: |
             {{`{{- $xr := .observed.composite.resource -}}`}}
+            {{`{{- $queueUrl := "" -}}`}}
+            {{`{{- $queueArn := "" -}}`}}
+            {{`{{- $queueReady := false -}}`}}
+            {{`{{- $kedaReady := false -}}`}}
+            {{`{{- $workloadReplicas := 0 -}}`}}
+            {{`{{- $workloadReadyReplicas := 0 -}}`}}
+            {{`{{- if .observed.resources -}}`}}
+              {{`{{- if index .observed.resources "sqs-queue" -}}`}}
+                {{`{{- $q := (index .observed.resources "sqs-queue").resource -}}`}}
+                {{`{{- $queueUrl = ($q.status.atProvider).id | default "" -}}`}}
+                {{`{{- $queueArn = ($q.status.atProvider).arn | default "" -}}`}}
+                {{`{{- range $q.status.conditions -}}`}}
+                  {{`{{- if and (eq .type "Ready") (eq .status "True") -}}`}}
+                    {{`{{- $queueReady = true -}}`}}
+                  {{`{{- end -}}`}}
+                {{`{{- end -}}`}}
+              {{`{{- end -}}`}}
+              {{`{{- if index .observed.resources "scaledobject" -}}`}}
+                {{`{{- $so := (index .observed.resources "scaledobject").resource -}}`}}
+                {{`{{- range ($so.status.atProvider).manifest.status.conditions | default list -}}`}}
+                  {{`{{- if and (eq .type "Ready") (eq .status "True") -}}`}}
+                    {{`{{- $kedaReady = true -}}`}}
+                  {{`{{- end -}}`}}
+                {{`{{- end -}}`}}
+              {{`{{- end -}}`}}
+              {{`{{- if index .observed.resources "deployment" -}}`}}
+                {{`{{- $dep := (index .observed.resources "deployment").resource -}}`}}
+                {{`{{- $workloadReplicas = ($dep.status.atProvider).manifest.status.replicas | default 0 -}}`}}
+                {{`{{- $workloadReadyReplicas = ($dep.status.atProvider).manifest.status.readyReplicas | default 0 -}}`}}
+              {{`{{- end -}}`}}
+            {{`{{- end -}}`}}
             {{`{{- $phase := "Creating" -}}`}}
-            {{`{{- $infra := $xr.status.infrastructure | default dict -}}`}}
-            {{`{{- $queueReady := ($infra.queue).ready | default false -}}`}}
-            {{`{{- $kedaReady := ($infra.keda).ready | default false -}}`}}
             {{`{{- if and $queueReady $kedaReady -}}`}}
               {{`{{- $phase = "Running" -}}`}}
-              {{`{{- $replicas := ($infra.workload).replicas | default 0 -}}`}}
-              {{`{{- if eq $replicas 0 -}}`}}
+              {{`{{- if eq (int $workloadReplicas) 0 -}}`}}
                 {{`{{- $phase = "Napping" -}}`}}
               {{`{{- end -}}`}}
             {{`{{- end -}}`}}
@@ -406,3 +391,17 @@ spec:
             kind: XAsyncActor
             status:
               phase: {{`{{ $phase }}`}}
+              {{`{{- if ne $queueUrl "" }}`}}
+              queueUrl: {{`{{ $queueUrl }}`}}
+              {{`{{- end }}`}}
+              {{`{{- if ne $queueArn "" }}`}}
+              queueArn: {{`{{ $queueArn }}`}}
+              {{`{{- end }}`}}
+              infrastructure:
+                queue:
+                  ready: {{`{{ $queueReady }}`}}
+                keda:
+                  ready: {{`{{ $kedaReady }}`}}
+                workload:
+                  replicas: {{`{{ $workloadReplicas }}`}}
+                  readyReplicas: {{`{{ $workloadReadyReplicas }}`}}

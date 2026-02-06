@@ -20,6 +20,15 @@ spec:
 apiVersion: pkg.crossplane.io/v1
 kind: Function
 metadata:
+  name: function-go-templating
+  labels:
+    {{- include "asya-crossplane.labels" . | nindent 4 }}
+spec:
+  package: xpkg.upbound.io/crossplane-contrib/function-go-templating:{{ .Values.functions.goTemplatingVersion }}
+---
+apiVersion: pkg.crossplane.io/v1
+kind: Function
+metadata:
   name: function-patch-and-transform
   labels:
     {{- include "asya-crossplane.labels" . | nindent 4 }}

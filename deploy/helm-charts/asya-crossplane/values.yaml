@@ -9,6 +9,7 @@ providers:
 
 # Crossplane functions
 functions:
+  goTemplatingVersion: "v0.11.3"
   patchAndTransformVersion: "v0.8.2"
 
 # AWS ProviderConfig settings
