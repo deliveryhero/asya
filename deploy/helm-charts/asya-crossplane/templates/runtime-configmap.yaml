@@ -1,0 +1,14 @@
+{{- if .Values.runtime.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: asya-runtime
+  namespace: {{ .Values.actorNamespace }}
+  labels:
+    {{- include "asya-crossplane.labels" . | nindent 4 }}
+    app.kubernetes.io/name: asya-runtime
+    app.kubernetes.io/component: asya-runtime
+data:
+  asya_runtime.py: |
+{{ .Files.Get "files/asya_runtime.py" | indent 4 }}
+{{- end }}

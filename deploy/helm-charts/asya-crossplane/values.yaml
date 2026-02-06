@@ -60,6 +60,11 @@ irsa:
   # For production, set this to your actual IAM role ARN pattern
   roleArnPattern: "arn:aws:iam::ACCOUNT_ID:role/asya-actors-{namespace}"
 
+# Runtime ConfigMap provisioning
+runtime:
+  # Create asya-runtime ConfigMap in actor namespace
+  enabled: true
+
 # KEDA authentication configuration
 keda:
   # TriggerAuthentication provider type: "podIdentity" or "secret"
