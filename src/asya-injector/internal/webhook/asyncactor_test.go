@@ -131,15 +131,18 @@ func TestExtractActorConfig(t *testing.T) {
 		asyncActor *unstructured.Unstructured
 		wantErr    bool
 		checks     func(*testing.T, *struct {
-			ActorName        string
-			Namespace        string
-			Transport        string
-			QueueURL         string
-			Handler          string
-			HandlerMode      string
-			PythonExecutable string
-			SidecarImage     string
-			Region           string
+			ActorName              string
+			Namespace              string
+			Transport              string
+			QueueURL               string
+			Handler                string
+			HandlerMode            string
+			PythonExecutable       string
+			SidecarImage           string
+			SidecarImagePullPolicy string
+			SidecarEnvNames        []string
+			SidecarEnvValues       []string
+			Region                 string
 		})
 	}{
 		{
@@ -151,15 +154,18 @@ func TestExtractActorConfig(t *testing.T) {
 			},
 			wantErr: false,
 			checks: func(t *testing.T, cfg *struct {
-				ActorName        string
-				Namespace        string
-				Transport        string
-				QueueURL         string
-				Handler          string
-				HandlerMode      string
-				PythonExecutable string
-				SidecarImage     string
-				Region           string
+				ActorName              string
+				Namespace              string
+				Transport              string
+				QueueURL               string
+				Handler                string
+				HandlerMode            string
+				PythonExecutable       string
+				SidecarImage           string
+				SidecarImagePullPolicy string
+				SidecarEnvNames        []string
+				SidecarEnvValues       []string
+				Region                 string
 			}) {
 				if cfg.Transport != "sqs" {
 					t.Errorf("expected transport 'sqs', got '%s'", cfg.Transport)
@@ -192,15 +198,18 @@ func TestExtractActorConfig(t *testing.T) {
 			},
 			wantErr: false,
 			checks: func(t *testing.T, cfg *struct {
-				ActorName        string
-				Namespace        string
-				Transport        string
-				QueueURL         string
-				Handler          string
-				HandlerMode      string
-				PythonExecutable string
-				SidecarImage     string
-				Region           string
+				ActorName              string
+				Namespace              string
+				Transport              string
+				QueueURL               string
+				Handler                string
+				HandlerMode            string
+				PythonExecutable       string
+				SidecarImage           string
+				SidecarImagePullPolicy string
+				SidecarEnvNames        []string
+				SidecarEnvValues       []string
+				Region                 string
 			}) {
 				if cfg.Transport != "rabbitmq" {
 					t.Errorf("expected transport 'rabbitmq', got '%s'", cfg.Transport)
@@ -226,6 +235,96 @@ func TestExtractActorConfig(t *testing.T) {
 			},
 		},
 		{
+			name: "sidecar with imagePullPolicy and env",
+			asyncActor: &unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"spec": map[string]interface{}{
+						"transport": "sqs",
+						"sidecar": map[string]interface{}{
+							"image":           "custom:v1",
+							"imagePullPolicy": "Always",
+							"env": []interface{}{
+								map[string]interface{}{
+									"name":  "ASYA_LOG_LEVEL",
+									"value": "debug",
+								},
+								map[string]interface{}{
+									"name":  "MY_VAR",
+									"value": "my-value",
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: false,
+			checks: func(t *testing.T, cfg *struct {
+				ActorName              string
+				Namespace              string
+				Transport              string
+				QueueURL               string
+				Handler                string
+				HandlerMode            string
+				PythonExecutable       string
+				SidecarImage           string
+				SidecarImagePullPolicy string
+				SidecarEnvNames        []string
+				SidecarEnvValues       []string
+				Region                 string
+			}) {
+				if cfg.SidecarImage != "custom:v1" {
+					t.Errorf("expected sidecarImage 'custom:v1', got '%s'", cfg.SidecarImage)
+				}
+				if cfg.SidecarImagePullPolicy != "Always" {
+					t.Errorf("expected imagePullPolicy 'Always', got '%s'", cfg.SidecarImagePullPolicy)
+				}
+				if len(cfg.SidecarEnvNames) != 2 {
+					t.Fatalf("expected 2 env vars, got %d", len(cfg.SidecarEnvNames))
+				}
+				if cfg.SidecarEnvNames[0] != "ASYA_LOG_LEVEL" || cfg.SidecarEnvValues[0] != "debug" {
+					t.Errorf("expected first env ASYA_LOG_LEVEL=debug, got %s=%s", cfg.SidecarEnvNames[0], cfg.SidecarEnvValues[0])
+				}
+				if cfg.SidecarEnvNames[1] != "MY_VAR" || cfg.SidecarEnvValues[1] != "my-value" {
+					t.Errorf("expected second env MY_VAR=my-value, got %s=%s", cfg.SidecarEnvNames[1], cfg.SidecarEnvValues[1])
+				}
+			},
+		},
+		{
+			name: "sidecar without imagePullPolicy and env",
+			asyncActor: &unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"spec": map[string]interface{}{
+						"transport": "sqs",
+						"sidecar": map[string]interface{}{
+							"image": "custom:v1",
+						},
+					},
+				},
+			},
+			wantErr: false,
+			checks: func(t *testing.T, cfg *struct {
+				ActorName              string
+				Namespace              string
+				Transport              string
+				QueueURL               string
+				Handler                string
+				HandlerMode            string
+				PythonExecutable       string
+				SidecarImage           string
+				SidecarImagePullPolicy string
+				SidecarEnvNames        []string
+				SidecarEnvValues       []string
+				Region                 string
+			}) {
+				if cfg.SidecarImagePullPolicy != "" {
+					t.Errorf("expected empty imagePullPolicy, got '%s'", cfg.SidecarImagePullPolicy)
+				}
+				if len(cfg.SidecarEnvNames) != 0 {
+					t.Errorf("expected no env vars, got %d", len(cfg.SidecarEnvNames))
+				}
+			},
+		},
+		{
 			name: "no spec",
 			asyncActor: &unstructured.Unstructured{
 				Object: map[string]interface{}{},
@@ -244,25 +343,38 @@ func TestExtractActorConfig(t *testing.T) {
 			}
 
 			if err == nil && tt.checks != nil {
+				// Extract env names/values for easy checking
+				var envNames, envValues []string
+				for _, ev := range cfg.SidecarEnv {
+					envNames = append(envNames, ev.Name)
+					envValues = append(envValues, ev.Value)
+				}
+
 				// Convert to anonymous struct for checking
 				check := struct {
-					ActorName        string
-					Namespace        string
-					Transport        string
-					QueueURL         string
-					Handler          string
-					HandlerMode      string
-					PythonExecutable string
-					SidecarImage     string
-					Region           string
+					ActorName              string
+					Namespace              string
+					Transport              string
+					QueueURL               string
+					Handler                string
+					HandlerMode            string
+					PythonExecutable       string
+					SidecarImage           string
+					SidecarImagePullPolicy string
+					SidecarEnvNames        []string
+					SidecarEnvValues       []string
+					Region                 string
 				}{
-					Transport:        cfg.Transport,
-					QueueURL:         cfg.QueueURL,
-					Handler:          cfg.Handler,
-					HandlerMode:      cfg.HandlerMode,
-					PythonExecutable: cfg.PythonExecutable,
-					SidecarImage:     cfg.SidecarImage,
-					Region:           cfg.Region,
+					Transport:              cfg.Transport,
+					QueueURL:               cfg.QueueURL,
+					Handler:                cfg.Handler,
+					HandlerMode:            cfg.HandlerMode,
+					PythonExecutable:       cfg.PythonExecutable,
+					SidecarImage:           cfg.SidecarImage,
+					SidecarImagePullPolicy: cfg.SidecarImagePullPolicy,
+					SidecarEnvNames:        envNames,
+					SidecarEnvValues:       envValues,
+					Region:                 cfg.Region,
 				}
 				tt.checks(t, &check)
 			}

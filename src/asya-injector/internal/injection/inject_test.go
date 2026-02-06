@@ -371,6 +371,165 @@ func TestInjector_InjectNoAWSCredentials(t *testing.T) {
 	}
 }
 
+func TestInjector_SidecarImagePullPolicyOverride(t *testing.T) {
+	cfg := &config.Config{
+		SidecarImage:           "ghcr.io/deliveryhero/asya-sidecar:test",
+		RuntimeConfigMap:       "asya-runtime",
+		SidecarImagePullPolicy: "IfNotPresent",
+		SocketDir:              "/var/run/asya",
+		RuntimeMountPath:       "/opt/asya/asya_runtime.py",
+	}
+
+	injector := NewInjector(cfg)
+
+	pod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test-pod",
+		},
+		Spec: corev1.PodSpec{
+			Containers: []corev1.Container{
+				{Name: "asya-runtime", Image: "my-app:v1"},
+			},
+		},
+	}
+
+	actorConfig := &ActorConfig{
+		ActorName:              "my-actor",
+		Namespace:              "default",
+		Transport:              "sqs",
+		SidecarImagePullPolicy: "Always",
+	}
+
+	mutated, err := injector.Inject(pod, actorConfig)
+	if err != nil {
+		t.Fatalf("Inject failed: %v", err)
+	}
+
+	var sidecar *corev1.Container
+	for i := range mutated.Spec.Containers {
+		if mutated.Spec.Containers[i].Name == "asya-sidecar" {
+			sidecar = &mutated.Spec.Containers[i]
+			break
+		}
+	}
+
+	if sidecar.ImagePullPolicy != corev1.PullAlways {
+		t.Errorf("expected imagePullPolicy Always, got %q", sidecar.ImagePullPolicy)
+	}
+}
+
+func TestInjector_SidecarImagePullPolicyDefault(t *testing.T) {
+	cfg := &config.Config{
+		SidecarImage:           "ghcr.io/deliveryhero/asya-sidecar:test",
+		RuntimeConfigMap:       "asya-runtime",
+		SidecarImagePullPolicy: "IfNotPresent",
+		SocketDir:              "/var/run/asya",
+		RuntimeMountPath:       "/opt/asya/asya_runtime.py",
+	}
+
+	injector := NewInjector(cfg)
+
+	pod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test-pod",
+		},
+		Spec: corev1.PodSpec{
+			Containers: []corev1.Container{
+				{Name: "asya-runtime", Image: "my-app:v1"},
+			},
+		},
+	}
+
+	actorConfig := &ActorConfig{
+		ActorName: "my-actor",
+		Namespace: "default",
+		Transport: "sqs",
+	}
+
+	mutated, err := injector.Inject(pod, actorConfig)
+	if err != nil {
+		t.Fatalf("Inject failed: %v", err)
+	}
+
+	var sidecar *corev1.Container
+	for i := range mutated.Spec.Containers {
+		if mutated.Spec.Containers[i].Name == "asya-sidecar" {
+			sidecar = &mutated.Spec.Containers[i]
+			break
+		}
+	}
+
+	if sidecar.ImagePullPolicy != corev1.PullIfNotPresent {
+		t.Errorf("expected imagePullPolicy IfNotPresent (from global config), got %q", sidecar.ImagePullPolicy)
+	}
+}
+
+func TestInjector_SidecarEnvMerge(t *testing.T) {
+	cfg := &config.Config{
+		SidecarImage:           "ghcr.io/deliveryhero/asya-sidecar:test",
+		RuntimeConfigMap:       "asya-runtime",
+		SidecarImagePullPolicy: "IfNotPresent",
+		SocketDir:              "/var/run/asya",
+		RuntimeMountPath:       "/opt/asya/asya_runtime.py",
+	}
+
+	injector := NewInjector(cfg)
+
+	pod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test-pod",
+		},
+		Spec: corev1.PodSpec{
+			Containers: []corev1.Container{
+				{Name: "asya-runtime", Image: "my-app:v1"},
+			},
+		},
+	}
+
+	actorConfig := &ActorConfig{
+		ActorName: "my-actor",
+		Namespace: "default",
+		Transport: "sqs",
+		SidecarEnv: []corev1.EnvVar{
+			{Name: "ASYA_LOG_LEVEL", Value: "debug"},
+			{Name: "MY_CUSTOM_VAR", Value: "custom-value"},
+		},
+	}
+
+	mutated, err := injector.Inject(pod, actorConfig)
+	if err != nil {
+		t.Fatalf("Inject failed: %v", err)
+	}
+
+	var sidecar *corev1.Container
+	for i := range mutated.Spec.Containers {
+		if mutated.Spec.Containers[i].Name == "asya-sidecar" {
+			sidecar = &mutated.Spec.Containers[i]
+			break
+		}
+	}
+
+	envMap := make(map[string]string)
+	for _, e := range sidecar.Env {
+		envMap[e.Name] = e.Value
+	}
+
+	// ASYA_LOG_LEVEL should be overridden from "info" to "debug"
+	if envMap["ASYA_LOG_LEVEL"] != "debug" {
+		t.Errorf("expected ASYA_LOG_LEVEL=debug, got %q", envMap["ASYA_LOG_LEVEL"])
+	}
+
+	// Custom var should be added
+	if envMap["MY_CUSTOM_VAR"] != "custom-value" {
+		t.Errorf("expected MY_CUSTOM_VAR=custom-value, got %q", envMap["MY_CUSTOM_VAR"])
+	}
+
+	// Default vars should still be present
+	if envMap["ASYA_TRANSPORT"] != "sqs" {
+		t.Errorf("expected ASYA_TRANSPORT=sqs, got %q", envMap["ASYA_TRANSPORT"])
+	}
+}
+
 func TestInjector_SidecarImageOverride(t *testing.T) {
 	cfg := &config.Config{
 		SidecarImage:     "ghcr.io/deliveryhero/asya-sidecar:default",

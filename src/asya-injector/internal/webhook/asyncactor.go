@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -128,6 +129,26 @@ func extractActorConfig(asyncActor *unstructured.Unstructured) (*injection.Actor
 	sidecar, sidecarFound, _ := unstructured.NestedMap(spec, "sidecar")
 	if sidecarFound {
 		config.SidecarImage, _, _ = unstructured.NestedString(sidecar, "image")
+		config.SidecarImagePullPolicy, _, _ = unstructured.NestedString(sidecar, "imagePullPolicy")
+
+		// Extract sidecar env vars
+		envSlice, envFound, _ := unstructured.NestedSlice(sidecar, "env")
+		if envFound {
+			for _, item := range envSlice {
+				envMap, ok := item.(map[string]interface{})
+				if !ok {
+					continue
+				}
+				name, _, _ := unstructured.NestedString(envMap, "name")
+				value, _, _ := unstructured.NestedString(envMap, "value")
+				if name != "" {
+					config.SidecarEnv = append(config.SidecarEnv, corev1.EnvVar{
+						Name:  name,
+						Value: value,
+					})
+				}
+			}
+		}
 	}
 
 	// Extract region for SQS

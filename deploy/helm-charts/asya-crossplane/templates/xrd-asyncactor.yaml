@@ -113,6 +113,26 @@ spec:
                     image:
                       type: string
                       default: ghcr.io/deliveryhero/asya-sidecar:latest
+                    imagePullPolicy:
+                      type: string
+                      description: Image pull policy for the sidecar container
+                      enum:
+                        - Always
+                        - IfNotPresent
+                        - Never
+                    env:
+                      type: array
+                      description: Additional environment variables for the sidecar container
+                      items:
+                        type: object
+                        required:
+                          - name
+                          - value
+                        properties:
+                          name:
+                            type: string
+                          value:
+                            type: string
                     resources:
                       type: object
                       x-kubernetes-preserve-unknown-fields: true
