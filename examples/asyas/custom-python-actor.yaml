@@ -24,7 +24,7 @@ spec:
           image: continuumio/miniconda3:latest
           env:
           # Custom Python executable path (e.g., conda environment)
-          - name: ASYA_PYTHONPATH
+          - name: ASYA_PYTHONEXECUTABLE
             value: "/opt/conda/bin/python"
           # Configure PYTHONPATH for handler import resolution
           # If your handler is in /app/handlers/ml_model.py with function 'predict'

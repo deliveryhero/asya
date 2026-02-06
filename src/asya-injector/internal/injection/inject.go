@@ -181,7 +181,7 @@ func (i *Injector) modifyRuntimeContainer(pod *corev1.Pod, actorConfig *ActorCon
 
 	// Set runtime command if not already set
 	if len(runtime.Command) == 0 {
-		pythonExec := getEnvValue(runtime.Env, "ASYA_PYTHONPATH")
+		pythonExec := getEnvValue(runtime.Env, "ASYA_PYTHONEXECUTABLE")
 		if pythonExec == "" {
 			pythonExec = "python3"
 		}

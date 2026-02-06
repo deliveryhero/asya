@@ -39,6 +39,57 @@ containers:
     mountPath: /var/run/asya
 ```
 
+## Python Executable Resolution
+
+When the injector sets up the runtime container command, it determines which Python binary to use in the following order:
+
+1. **`ASYA_PYTHONEXECUTABLE`** env var on the runtime container — if set, its value is used as the Python binary path
+2. **`python3`** (default) — resolved via the container's `PATH` at runtime
+
+### When to set `ASYA_PYTHONEXECUTABLE`
+
+Most users **do not need to set this**. The default `python3` works whenever:
+
+- Your container image has `python3` on `PATH` (standard for most Python images)
+- You use official images like `python:3.11`, `pytorch/pytorch`, `tensorflow/tensorflow`
+
+Set `ASYA_PYTHONEXECUTABLE` when your Python binary is **not on `PATH`** or you need a **specific interpreter**, such as:
+
+- Conda environments: `ASYA_PYTHONEXECUTABLE=/opt/conda/envs/myenv/bin/python`
+- Virtual environments: `ASYA_PYTHONEXECUTABLE=/app/.venv/bin/python`
+- Custom installations: `ASYA_PYTHONEXECUTABLE=/usr/local/python3.11/bin/python3`
+
+### Example: Conda-based ML actor
+
+```yaml
+containers:
+- name: asya-runtime
+  image: my-conda-image:latest
+  env:
+  - name: ASYA_PYTHONEXECUTABLE
+    value: "/opt/conda/envs/inference/bin/python"
+  - name: ASYA_HANDLER
+    value: "ml_model.predict"
+```
+
+### How it relates to standard Python environment variables
+
+| Variable | What it does | Managed by Asya? |
+|----------|-------------|------------------|
+| `ASYA_PYTHONEXECUTABLE` | Full path to the Python binary used to launch the runtime | Yes |
+| `PYTHONPATH` | Tells Python where to find extra modules/packages | No (set it yourself if your handler code is not on the default module path) |
+| `PYTHONHOME` | Tells Python where its standard library is located | No (rarely needed, set by conda/venv automatically) |
+| `VIRTUAL_ENV` | Indicates the active virtual environment path | No (informational, does not affect which Python binary runs) |
+| `PATH` | OS-level search path for executables | No (the default `python3` is resolved via your container's `PATH`) |
+
+### Quick decision guide
+
+- **Standard Python image** (`python:3.x`, `pytorch/pytorch`, etc.) → do nothing, `python3` works
+- **Conda environment** → set `ASYA_PYTHONEXECUTABLE=/opt/conda/envs/<name>/bin/python`
+- **Virtual environment** → set `ASYA_PYTHONEXECUTABLE=/app/.venv/bin/python`
+- **Multiple Pythons installed** → set `ASYA_PYTHONEXECUTABLE` to the exact path you want
+- **Custom handler import path** → set `PYTHONPATH` (this is separate from the executable)
+
 ## Python Compatibility
 
 **Supports Python 3.7+** for compatibility with legacy AI frameworks.
@@ -231,6 +282,7 @@ Runtime creates `/var/run/asya/runtime-ready` file after handler initialization.
 |----------|---------|-------------|
 | `ASYA_HANDLER` | (required) | Handler path (`module.Class.method`) |
 | `ASYA_HANDLER_MODE` | `payload` | Mode: `payload` or `envelope` |
+| `ASYA_PYTHONEXECUTABLE` | `python3` | Python binary path for launching the runtime |
 | `ASYA_SOCKET_DIR` | `/var/run/asya` | Unix socket directory (internal testing only) |
 | `ASYA_SOCKET_NAME` | `asya-runtime.sock` | Socket filename (internal testing only) |
 | `ASYA_SOCKET_CHMOD` | `0o666` | Socket permissions in octal (empty = skip chmod) |

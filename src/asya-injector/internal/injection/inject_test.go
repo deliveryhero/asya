@@ -160,7 +160,7 @@ func TestInjector_InjectCustomPythonPath(t *testing.T) {
 					Name:  "asya-runtime",
 					Image: "my-app:v1",
 					Env: []corev1.EnvVar{
-						{Name: "ASYA_PYTHONPATH", Value: "/usr/bin/python3.11"},
+						{Name: "ASYA_PYTHONEXECUTABLE", Value: "/usr/bin/python3.11"},
 					},
 				},
 			},
