@@ -312,7 +312,7 @@ def wait_for_asyncactor_ready(
         True if all required conditions are True, False if timeout
     """
     if required_conditions is None:
-        required_conditions = ["WorkloadReady"]
+        required_conditions = ["Ready"]
 
     start_time = time.time()
     attempt = 0

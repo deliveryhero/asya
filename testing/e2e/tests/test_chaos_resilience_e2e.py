@@ -344,21 +344,21 @@ def test_operator_restart_during_scaling(e2e_helper):
 
     time.sleep(2)
 
-    logger.info("Restarting operator pod...")
+    logger.info("Restarting injector pod...")
     try:
-        operator_pods = e2e_helper.kubectl(
+        injector_pods = e2e_helper.kubectl(
             "get", "pods",
-            "-l", "app.kubernetes.io/name=asya-operator",
+            "-l", "app.kubernetes.io/name=asya-injector",
             "-o", "jsonpath='{.items[*].metadata.name}'"
         )
 
-        if operator_pods and operator_pods != "''":
-            pod_name = operator_pods.strip("'").split()[0]
-            logger.info(f"Deleting operator pod: {pod_name}")
+        if injector_pods and injector_pods != "''":
+            pod_name = injector_pods.strip("'").split()[0]
+            logger.info(f"Deleting injector pod: {pod_name}")
             e2e_helper.delete_pod(pod_name)
 
-            logger.info("Waiting for operator to restart...")
-            assert e2e_helper.wait_for_pod_ready("app.kubernetes.io/name=asya-operator", timeout=60)
+            logger.info("Waiting for injector to restart...")
+            assert e2e_helper.wait_for_pod_ready("app.kubernetes.io/name=asya-injector", timeout=60)
             time.sleep(5)
 
         logger.info("Waiting for sample envelopes to complete...")
@@ -374,7 +374,7 @@ def test_operator_restart_during_scaling(e2e_helper):
         logger.info(f"Completed {completed}/10 sample envelopes")
         assert completed >= 7, f"At least 7/10 should complete, got {completed}"
 
-        logger.info("[+] Operator restart handled gracefully")
+        logger.info("[+] Injector restart handled gracefully")
 
     except Exception as e:
         logger.error(f"Test failed: {e}")
@@ -483,7 +483,7 @@ def test_full_cluster_restart_simulation(e2e_helper):
     logger.info("Simulating cluster-wide restart...")
     components = [
         ("gateway", "app.kubernetes.io/name=asya-gateway"),
-        ("operator", "app.kubernetes.io/name=asya-operator"),
+        ("injector", "app.kubernetes.io/name=asya-injector"),
         ("test-echo", "asya.sh/actor=test-echo"),
     ]
 

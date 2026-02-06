@@ -97,8 +97,6 @@ def test_actor_pods_healthy():
     logger.info(f"Found {len(actors)} AsyncActor CRDs: {', '.join(actors)}")
 
     logger.info("Checking at least one deployment exists...")
-    # Note: Operator should create deployments for all actors, but may be in progress
-    # Check if test-echo deployment exists as a canary
     result = subprocess.run(
         ["kubectl", "get", "deployment", "test-echo", "-n", namespace, "-o", "jsonpath={.metadata.name}"],
         capture_output=True,
@@ -109,8 +107,7 @@ def test_actor_pods_healthy():
     if result.returncode == 0 and result.stdout.strip():
         logger.info(f"Found deployment: {result.stdout.strip()}")
     else:
-        logger.warning("test-echo deployment not found - operator may still be creating deployments")
-        # Don't fail - operator might still be reconciling
+        logger.warning("test-echo deployment not found - Crossplane may still be creating deployments")
 
     logger.info("Checking KEDA ScaledObjects...")
     result = subprocess.run(
@@ -135,7 +132,7 @@ def test_actor_pods_healthy():
         logger.info(f"  ScaledObject {so_name}: Ready")
 
     logger.info("Checking any running pods for health issues...")
-    label = "asya.sh/workload=deployment"
+    label = "app.kubernetes.io/component=actor"
     pods = get_pod_status(namespace, label)
 
     if not pods:
@@ -193,29 +190,54 @@ def _log_pod_diagnostics(namespace: str, failed_pods: List[Tuple[str, str, str, 
 
 @pytest.mark.core
 @pytest.mark.order(2)
-def test_operator_pod_healthy():
-    """Test that the operator pod is running."""
-    logger.info("Testing operator pod health")
+def test_injector_pod_healthy():
+    """Test that the injector pod is running."""
+    logger.info("Testing injector pod health")
 
     namespace = require_env("SYSTEM_NAMESPACE")
-    label = "app.kubernetes.io/name=asya-operator"
+    label = "app.kubernetes.io/name=asya-injector"
 
     pods = get_pod_status(namespace, label)
 
-    assert len(pods) > 0, "No operator pods found"
+    assert len(pods) > 0, "No injector pods found"
 
     for pod_name, ready_status, phase, reason in pods:
         ready_containers = ready_status.split()
         total_ready = sum(1 for r in ready_containers if r == "true")
         total_containers = len(ready_containers)
 
-        assert phase == "Running", f"Operator pod {pod_name} not Running (phase={phase}, reason={reason})"
+        assert phase == "Running", f"Injector pod {pod_name} not Running (phase={phase}, reason={reason})"
         assert total_ready == total_containers, (
-            f"Operator pod {pod_name} not all containers ready "
+            f"Injector pod {pod_name} not all containers ready "
             f"({total_ready}/{total_containers})"
         )
 
-    logger.info(f"[+] Operator pod is healthy")
+    logger.info(f"[+] Injector pod is healthy")
+
+
+@pytest.mark.core
+@pytest.mark.order(2)
+def test_crossplane_pods_healthy():
+    """Test that Crossplane provider pods are running."""
+    logger.info("Testing Crossplane provider pod health")
+
+    namespace = "crossplane-system"
+    label = "pkg.crossplane.io/revision"
+
+    pods = get_pod_status(namespace, label)
+
+    assert len(pods) > 0, "No Crossplane provider pods found"
+
+    healthy_count = 0
+    for pod_name, ready_status, phase, reason in pods:
+        if phase == "Running":
+            healthy_count += 1
+            logger.info(f"  Crossplane pod {pod_name}: Running")
+        else:
+            logger.warning(f"  Crossplane pod {pod_name}: {phase} (reason={reason})")
+
+    assert healthy_count > 0, "No healthy Crossplane provider pods found"
+    logger.info(f"[+] {healthy_count} Crossplane provider pod(s) healthy")
 
 
 @pytest.mark.core

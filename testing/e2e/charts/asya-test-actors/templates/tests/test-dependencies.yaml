@@ -71,21 +71,37 @@ spec:
         echo ""
         {{- end }}
 
-        # RECOMMENDED: Check if operator is running
-        echo "Checking for Asya operator..."
-        if kubectl get deployment asya-operator -n asya-system >/dev/null 2>&1; then
-          READY=$(kubectl get deployment asya-operator -n asya-system -o jsonpath='{.status.readyReplicas}' 2>/dev/null || echo "0")
-          DESIRED=$(kubectl get deployment asya-operator -n asya-system -o jsonpath='{.spec.replicas}' 2>/dev/null || echo "1")
-          if [ "$READY" = "$DESIRED" ] && [ "$READY" != "0" ]; then
-            echo "[+] Operator is running and ready ($READY/$DESIRED replicas)"
+        # RECOMMENDED: Check if Crossplane is healthy
+        echo "Checking for Crossplane providers..."
+        if kubectl get providers.pkg.crossplane.io >/dev/null 2>&1; then
+          HEALTHY=$(kubectl get providers.pkg.crossplane.io -o jsonpath='{range .items[*]}{.status.conditions[?(@.type=="Healthy")].status}{"\n"}{end}' 2>/dev/null | grep -c "True" || echo "0")
+          TOTAL=$(kubectl get providers.pkg.crossplane.io --no-headers 2>/dev/null | wc -l)
+          if [ "$HEALTHY" = "$TOTAL" ] && [ "$HEALTHY" != "0" ]; then
+            echo "[+] Crossplane providers healthy ($HEALTHY/$TOTAL)"
           else
-            echo "[!] WARNING: Operator exists but not ready ($READY/$DESIRED replicas)"
-            echo "  The operator must be ready to reconcile AsyncActor resources"
+            echo "[!] WARNING: Some Crossplane providers not healthy ($HEALTHY/$TOTAL)"
           fi
         else
-          echo "[!] WARNING: Operator deployment not found in asya-system namespace"
+          echo "[!] WARNING: No Crossplane providers found"
+          echo "  Install asya-crossplane chart first"
+        fi
+        echo ""
+
+        # RECOMMENDED: Check if injector is running
+        echo "Checking for Asya injector..."
+        if kubectl get deployment -n asya-system -l app.kubernetes.io/name=asya-injector >/dev/null 2>&1; then
+          READY=$(kubectl get deployment -n asya-system -l app.kubernetes.io/name=asya-injector -o jsonpath='{.items[0].status.readyReplicas}' 2>/dev/null || echo "0")
+          DESIRED=$(kubectl get deployment -n asya-system -l app.kubernetes.io/name=asya-injector -o jsonpath='{.items[0].spec.replicas}' 2>/dev/null || echo "1")
+          if [ "$READY" = "$DESIRED" ] && [ "$READY" != "0" ]; then
+            echo "[+] Injector is running and ready ($READY/$DESIRED replicas)"
+          else
+            echo "[!] WARNING: Injector exists but not ready ($READY/$DESIRED replicas)"
+            echo "  The injector must be ready to inject sidecars into actor pods"
+          fi
+        else
+          echo "[!] WARNING: Injector deployment not found in asya-system namespace"
           echo "  Install it with:"
-          echo "    helm install asya-operator deploy/helm-charts/asya-operator -n asya-system --create-namespace"
+          echo "    helm install asya-injector deploy/helm-charts/asya-injector -n asya-system --create-namespace"
         fi
         echo ""
 

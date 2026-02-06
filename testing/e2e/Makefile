@@ -46,7 +46,6 @@ test: ## Run complete E2E tests (deploy → port-forward-up → test both modes 
 	$(MAKE) port-forward-up
 	$(MAKE) trigger-tests ASYA_HANDLER_MODE=payload
 	$(MAKE) trigger-tests ASYA_HANDLER_MODE=envelope
-	$(MAKE) test-operator
 	$(MAKE) port-forward-down
 	$(MAKE) down
 
