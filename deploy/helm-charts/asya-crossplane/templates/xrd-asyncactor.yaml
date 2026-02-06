@@ -142,9 +142,9 @@ spec:
                   description: |
                     Current phase of the AsyncActor.
                     Values: Creating, Ready, Napping
-                queueAddress:
+                queueUrl:
                   type: string
-                  description: Connection address for the queue
+                  description: Connection URL for the queue
                 queueIdentifier:
                   type: string
                   description: Unique identifier for the queue resource
@@ -198,7 +198,7 @@ spec:
           jsonPath: .spec.transport
         - name: Queue
           type: string
-          jsonPath: .status.queueAddress
+          jsonPath: .status.queueUrl
           priority: 1
         - name: Age
           type: date

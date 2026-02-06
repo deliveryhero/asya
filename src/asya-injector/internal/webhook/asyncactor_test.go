@@ -186,7 +186,7 @@ func TestExtractActorConfig(t *testing.T) {
 						},
 					},
 					"status": map[string]interface{}{
-						"queueAddress": "http://localhost/queue",
+						"queueUrl": "http://localhost/queue",
 					},
 				},
 			},
@@ -221,7 +221,7 @@ func TestExtractActorConfig(t *testing.T) {
 					t.Errorf("expected sidecarImage 'custom-sidecar:v2', got '%s'", cfg.SidecarImage)
 				}
 				if cfg.QueueURL != "http://localhost/queue" {
-					t.Errorf("expected queueAddress 'http://localhost/queue', got '%s'", cfg.QueueURL)
+					t.Errorf("expected queueUrl 'http://localhost/queue', got '%s'", cfg.QueueURL)
 				}
 			},
 		},

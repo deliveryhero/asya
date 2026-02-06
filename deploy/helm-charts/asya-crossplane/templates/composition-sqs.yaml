@@ -360,7 +360,7 @@ spec:
             {{`{{- $xr := .observed.composite.resource -}}`}}
             {{`{{- $claimName := index $xr.metadata.labels "crossplane.io/claim-name" -}}`}}
             {{`{{- $actorName := (index $xr.metadata.labels "asya.sh/actor") | default $claimName -}}`}}
-            {{`{{- $queueAddress := "" -}}`}}
+            {{`{{- $queueUrl := "" -}}`}}
             {{`{{- $queueIdentifier := "" -}}`}}
             {{`{{- $queueReady := false -}}`}}
             {{`{{- $kedaReady := false -}}`}}
@@ -370,7 +370,7 @@ spec:
               {{`{{- if index .observed.resources "sqs-queue" -}}`}}
                 {{`{{- $q := (index .observed.resources "sqs-queue").resource -}}`}}
                 {{`{{- if and (hasKey $q "status") (hasKey $q.status "atProvider") -}}`}}
-                  {{`{{- $queueAddress = $q.status.atProvider.id | default "" -}}`}}
+                  {{`{{- $queueUrl = $q.status.atProvider.id | default "" -}}`}}
                   {{`{{- $queueIdentifier = $q.status.atProvider.arn | default "" -}}`}}
                 {{`{{- end -}}`}}
                 {{`{{- if and (hasKey $q "status") (hasKey $q.status "conditions") -}}`}}
@@ -427,8 +427,8 @@ spec:
                 asya.sh/actor: {{`{{ $actorName }}`}}
             status:
               phase: {{`{{ $phase }}`}}
-              {{`{{- if ne $queueAddress "" }}`}}
-              queueAddress: {{`{{ $queueAddress }}`}}
+              {{`{{- if ne $queueUrl "" }}`}}
+              queueUrl: {{`{{ $queueUrl }}`}}
               {{`{{- end }}`}}
               {{`{{- if ne $queueIdentifier "" }}`}}
               queueIdentifier: {{`{{ $queueIdentifier }}`}}
