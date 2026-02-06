@@ -9,9 +9,15 @@ spec:
   names:
     kind: XAsyncActor
     plural: xasyncactors
+    shortNames:
+      - xasya
+      - xasyas
   claimNames:
     kind: AsyncActor
     plural: asyncactors
+    shortNames:
+      - asya
+      - asyas
   versions:
     - name: v1alpha1
       served: true
