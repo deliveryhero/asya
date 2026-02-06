@@ -882,7 +882,9 @@
 <span class="w">  </span><span class="nt">&quot;Resource&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;arn:aws:sqs:*:*:asya-*&quot;</span>
 <span class="p">}</span>
 </code></pre></div></p>
-<p><strong>Actor role</strong> (<code>asya-actor-role</code>) - access to the SQS queues and S3 bucket for persising messages (in this tutorial, we're using sample bucket <code>s3://asya-results-bucket</code> - any S3-compatible bucket can be used):
+<p><strong>Actor role</strong> (<code>asya-actor-role</code>) - shared IAM role for all actor sidecars. Provides access to SQS queues and S3 bucket for persisting messages. This role is assigned via IRSA (or EKS Pod Identity) to a shared <code>asya-actors</code> ServiceAccount in each actor namespace — no static AWS credentials are stored in the cluster:</p>
+<blockquote>
+<p><strong>Note:</strong> For local development with LocalStack, IRSA is unavailable. Use a static <code>aws-creds</code> Secret with <code>AWS_ACCESS_KEY_ID</code>/<code>AWS_SECRET_ACCESS_KEY</code> instead. See <code>docs/quickstart/README_CROSSPLANE.md</code> for the dev setup.
 <div class="highlight"><pre><span></span><code><span class="p">{</span>
 <span class="w">  </span><span class="nt">&quot;Effect&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Allow&quot;</span><span class="p">,</span>
 <span class="w">  </span><span class="nt">&quot;Action&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
@@ -908,6 +910,7 @@
 <span class="w">  </span><span class="p">]</span>
 <span class="p">}</span>
 </code></pre></div></p>
+</blockquote>
 <p><strong>KEDA role</strong> (<code>keda-operator-role</code>):
 <div class="highlight"><pre><span></span><code><span class="p">{</span>
 <span class="w">  </span><span class="nt">&quot;Effect&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Allow&quot;</span><span class="p">,</span>
