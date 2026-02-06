@@ -225,13 +225,8 @@ aws_secret_access_key = test
     --dry-run=client -o yaml | kubectl apply -f - > /dev/null 2>&1
   echo "[+] Created aws-creds secret in $NAMESPACE"
 
-  # SQS secret in asya-system (for backward compat with SQS chart)
-  kubectl create secret generic sqs-secret \
-    -n "$SYSTEM_NAMESPACE" \
-    --from-literal=access-key-id=test \
-    --from-literal=secret-access-key=test \
-    --dry-run=client -o yaml | kubectl apply -f - > /dev/null 2>&1
-  echo "[+] Created sqs-secret in $SYSTEM_NAMESPACE"
+  # sqs-secret in asya-system is created by the SQS Helm chart (testing/e2e/charts/sqs/)
+  # Do NOT create it here — Helm requires ownership metadata on managed resources
 }
 echo
 
@@ -289,6 +284,17 @@ time {
   else
     echo "[+] All Crossplane functions healthy"
   fi
+}
+echo
+
+# Phase 6b: Install ProviderConfigs (CRDs now available after providers are healthy)
+echo "[.] Phase 6b: Installing Crossplane ProviderConfigs..."
+time {
+  cd "$CHARTS_DIR"
+  helm upgrade asya-crossplane ../../../deploy/helm-charts/asya-crossplane \
+    -n asya-system --reuse-values --set providerConfigs.install=true \
+    --wait --timeout 120s > /dev/null 2>&1
+  echo "[+] ProviderConfigs installed"
 }
 echo
 
@@ -410,11 +416,11 @@ time {
       exit 1
     fi
 
-    # Count actors with Ready condition True
-    READY_COUNT=$(kubectl get asyncactors -n "$NAMESPACE" -o jsonpath='{range .items[*]}{.status.conditions[?(@.type=="Ready")].status}{"\n"}{end}' 2> /dev/null | grep -c "^True$" || echo "0")
+    # Count actors with status.phase == Ready
+    READY_COUNT=$(kubectl get asyncactors -n "$NAMESPACE" -o jsonpath='{range .items[*]}{.status.phase}{"\n"}{end}' 2> /dev/null | grep -c "^Ready$" || true)
 
     if [ "$READY_COUNT" -eq "$TOTAL_ACTORS" ]; then
-      echo "[+] All $TOTAL_ACTORS AsyncActors reconciled (Ready condition True)"
+      echo "[+] All $TOTAL_ACTORS AsyncActors reconciled (status.phase=Ready)"
       break
     fi
 

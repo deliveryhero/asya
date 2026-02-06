@@ -85,6 +85,8 @@ gateway:
     value: "us-east-1"
 
 crossplane:
+  providerConfigs:
+    install: false
   awsProviderConfig:
     name: localstack
     credentialsSource: Secret

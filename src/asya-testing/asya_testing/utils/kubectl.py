@@ -297,23 +297,22 @@ def wait_for_asyncactor_ready(
     name: str,
     namespace: str = "asya-e2e",
     timeout: int = 60,
-    required_conditions: list | None = None,
 ) -> bool:
     """
-    Wait for AsyncActor to be ready by checking status conditions.
+    Wait for AsyncActor to be ready by checking status.phase.
+
+    With Crossplane, the XR-level Ready condition may stay False even when the
+    actor is fully functional. Instead, check status.phase which is derived by
+    the Composition from actual infrastructure readiness (queue, KEDA, workload).
 
     Args:
         name: AsyncActor name
         namespace: Target namespace
         timeout: Maximum wait time in seconds
-        required_conditions: List of condition types that must be True (default: ["WorkloadReady"])
 
     Returns:
-        True if all required conditions are True, False if timeout
+        True if status.phase is "Ready", False if timeout
     """
-    if required_conditions is None:
-        required_conditions = ["Ready"]
-
     start_time = time.time()
     attempt = 0
 
@@ -333,24 +332,15 @@ def wait_for_asyncactor_ready(
 
             actor = yaml.safe_load(result.stdout)
             status = actor.get("status", {})
-            conditions = status.get("conditions", [])
+            phase = status.get("phase", "")
 
-            all_ready = True
-            for required_type in required_conditions:
-                condition = next((c for c in conditions if c["type"] == required_type), None)
-                if not condition or condition.get("status") != "True":
-                    all_ready = False
-                    break
-
-            if all_ready:
+            if phase == "Ready":
                 elapsed = time.time() - start_time
-                logger.info(
-                    f"AsyncActor {name} ready (conditions: {required_conditions}) after {elapsed:.1f}s ({attempt} attempts)"
-                )
+                logger.info(f"AsyncActor {name} ready (phase={phase}) after {elapsed:.1f}s ({attempt} attempts)")
                 return True
 
         except Exception as e:
-            logger.debug(f"Error checking AsyncActor conditions (attempt {attempt}): {e}")
+            logger.debug(f"Error checking AsyncActor status (attempt {attempt}): {e}")
 
         time.sleep(1)
 

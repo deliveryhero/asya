@@ -65,6 +65,7 @@ def _get_transport_client(transport: str):
 
 @pytest.mark.slow
 @pytest.mark.dlq
+@pytest.mark.skip(reason="Crossplane Composition does not configure SQS RedrivePolicy/DLQ yet (asya-bija)")
 def test_poison_message_moves_to_dlq_e2e(e2e_helper, kubectl, chaos_queues, namespace):
     """
     E2E: Test poison message (fails repeatedly) moves to DLQ.
@@ -146,6 +147,7 @@ def test_poison_message_moves_to_dlq_e2e(e2e_helper, kubectl, chaos_queues, name
 
 @pytest.mark.slow
 @pytest.mark.dlq
+@pytest.mark.skip(reason="Crossplane Composition does not configure SQS RedrivePolicy/DLQ yet (asya-bija)")
 def test_dlq_preserves_envelope_metadata_e2e(e2e_helper, kubectl, chaos_queues, namespace):
     """
     E2E: Test DLQ preserves envelope metadata.

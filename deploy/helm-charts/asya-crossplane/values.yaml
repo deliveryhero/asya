@@ -1,3 +1,7 @@
+# ProviderConfig installation (set to false for first install before CRDs exist)
+providerConfigs:
+  install: true
+
 # Crossplane provider configuration
 providers:
   aws:

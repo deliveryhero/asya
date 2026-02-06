@@ -1,3 +1,4 @@
+{{- if .Values.providerConfigs.install }}
 ---
 apiVersion: aws.upbound.io/v1beta1
 kind: ProviderConfig
@@ -50,3 +51,4 @@ metadata:
 spec:
   credentials:
     source: {{ .Values.kubernetesProviderConfig.credentialsSource }}
+{{- end }}

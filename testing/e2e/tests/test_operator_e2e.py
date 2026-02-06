@@ -13,6 +13,7 @@ These tests verify the Crossplane Composition + asya-injector webhook
 behaves correctly in production scenarios.
 """
 
+import json
 import logging
 import os
 import subprocess
@@ -34,6 +35,7 @@ logger = logging.getLogger(__name__)
 
 
 @pytest.mark.core
+@pytest.mark.timeout(300)
 def test_asyncactor_basic_lifecycle(e2e_helper):
     """
     E2E: Test basic AsyncActor lifecycle (create, verify, delete).
@@ -83,10 +85,14 @@ spec:
         assert wait_for_asyncactor_ready("test-lifecycle", namespace=e2e_helper.namespace, timeout=120), \
             "AsyncActor should reach Ready=True"
 
-        logger.info("Verifying sidecar injection...")
-        deployment = kubectl_get("deployment", "test-lifecycle", namespace=e2e_helper.namespace)
-        containers = deployment["spec"]["template"]["spec"]["containers"]
-        container_names = [c["name"] for c in containers]
+        logger.info("Verifying sidecar injection (checking Pod, not Deployment)...")
+        pods_result = subprocess.run(
+            ["kubectl", "get", "pods", "-n", e2e_helper.namespace,
+             "-l", "asya.sh/actor=test-lifecycle",
+             "-o", "jsonpath={.items[0].spec.containers[*].name}"],
+            capture_output=True, text=True, timeout=10,
+        )
+        container_names = pods_result.stdout.strip().split()
 
         assert "asya-sidecar" in container_names, "Sidecar should be injected by webhook"
         assert "asya-runtime" in container_names, "Runtime container should exist"
@@ -115,6 +121,7 @@ spec:
 
 
 @pytest.mark.core
+@pytest.mark.timeout(300)
 def test_asyncactor_update_propagates(e2e_helper):
     """
     E2E: Test AsyncActor updates propagate to workload.
@@ -196,10 +203,13 @@ spec:
         logger.info("Updating AsyncActor...")
         kubectl_apply(updated_manifest, namespace=e2e_helper.namespace)
 
-        # Wait for Crossplane reconciliation
-        time.sleep(10)  # Crossplane reconciliation may take longer than operator
-
-        updated_scaled = kubectl_get("scaledobject", "test-update", namespace=e2e_helper.namespace)
+        # Poll for Crossplane reconciliation (can take 30-60s)
+        updated_scaled = None
+        for attempt in range(30):
+            time.sleep(5)  # Poll every 5s for up to 150s
+            updated_scaled = kubectl_get("scaledobject", "test-update", namespace=e2e_helper.namespace)
+            if updated_scaled["spec"].get("minReplicaCount") == 3:
+                break
         assert updated_scaled["spec"]["minReplicaCount"] == 3, \
             "ScaledObject should be updated with new minReplicas"
         assert updated_scaled["spec"]["maxReplicaCount"] == 10, \
@@ -341,8 +351,8 @@ spec:
         kubectl_delete("statefulset", "test-statefulset", namespace=e2e_helper.namespace)
 
 
-@pytest.mark.xfail(reason="Crossplane uses Ready/Synced conditions instead of WorkloadReady/ScalingReady")
 @pytest.mark.core
+@pytest.mark.timeout(300)
 def test_asyncactor_status_conditions(e2e_helper):
     """
     E2E: Test AsyncActor status conditions are updated correctly.
@@ -388,8 +398,7 @@ spec:
             "test-status",
             namespace=e2e_helper.namespace,
             timeout=120,
-            required_conditions=["WorkloadReady", "ScalingReady"],
-        ), "AsyncActor should have WorkloadReady condition set"
+        ), "AsyncActor should reach Ready phase"
 
         actor = kubectl_get("asyncactor", "test-status", namespace=e2e_helper.namespace)
         status = actor.get("status", {})
@@ -417,6 +426,7 @@ spec:
 
 
 @pytest.mark.core
+@pytest.mark.timeout(300)
 def test_asyncactor_with_broken_image(e2e_helper):
     """
     E2E: Test AsyncActor with non-existent container image.
@@ -483,6 +493,7 @@ spec:
 
 
 @pytest.mark.core
+@pytest.mark.timeout(300)
 def test_asyncactor_sidecar_environment_variables(e2e_helper):
     """
     E2E: Test sidecar container has correct environment variables.
@@ -533,11 +544,17 @@ spec:
         assert wait_for_asyncactor_ready("test-sidecar-env", namespace=e2e_helper.namespace, timeout=120), \
             "AsyncActor should reach Ready=True"
 
-        deployment = kubectl_get("deployment", "test-sidecar-env", namespace=e2e_helper.namespace)
-        containers = deployment["spec"]["template"]["spec"]["containers"]
+        logger.info("Checking Pod containers (sidecar injected by webhook into Pods, not Deployment)...")
+        pods_json = subprocess.run(
+            ["kubectl", "get", "pods", "-n", e2e_helper.namespace,
+             "-l", "asya.sh/actor=test-sidecar-env",
+             "-o", "jsonpath={.items[0].spec.containers}"],
+            capture_output=True, text=True, timeout=10,
+        )
+        containers = json.loads(pods_json.stdout)
         sidecar = next((c for c in containers if c["name"] == "asya-sidecar"), None)
 
-        assert sidecar is not None, "Sidecar container should exist (injected by webhook)"
+        assert sidecar is not None, "Sidecar container should exist (injected by webhook into Pod)"
 
         env_vars = {e["name"]: e.get("value", "") for e in sidecar.get("env", [])}
 

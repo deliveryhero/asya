@@ -199,11 +199,11 @@ class TestCompositionSqsKedaSteps:
         sqs_idx = step_names.index("render-sqs-queue")
         trigger_auth_idx = step_names.index("render-triggerauthentication")
         scaled_obj_idx = step_names.index("render-scaledobject")
-        patch_idx = step_names.index("patch-status")
+        patch_idx = step_names.index("patch-status-and-derive-phase")
 
         assert sqs_idx < trigger_auth_idx, "SQS queue should be rendered before TriggerAuth"
         assert trigger_auth_idx < scaled_obj_idx, "TriggerAuth should be rendered before ScaledObject"
-        assert scaled_obj_idx < patch_idx, "ScaledObject should be rendered before patch-status"
+        assert scaled_obj_idx < patch_idx, "ScaledObject should be rendered before patch-status-and-derive-phase"
 
 
 class TestValuesConfiguration:

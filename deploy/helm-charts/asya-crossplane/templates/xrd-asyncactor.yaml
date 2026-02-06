@@ -120,7 +120,7 @@ spec:
                 providerConfigRef:
                   type: string
                   description: Name of the AWS ProviderConfig to use
-                  default: default
+                  default: {{ .Values.awsProviderConfig.name }}
 
                 irsa:
                   type: object

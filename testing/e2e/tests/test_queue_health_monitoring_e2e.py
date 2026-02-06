@@ -48,6 +48,7 @@ def _get_transport_client(transport: str):
         pytest.skip(f"Unsupported transport: {transport}")
 
 
+@pytest.mark.skip(reason="Crossplane manages queues via AWS provider; operator queue health checks not applicable (asya-bija)")
 @pytest.mark.slow
 @pytest.mark.chaos
 def test_operator_recreates_deleted_actor_queue_e2e(e2e_helper, chaos_queues, namespace):
@@ -127,6 +128,7 @@ def test_operator_recreates_deleted_actor_queue_e2e(e2e_helper, chaos_queues, na
     logger.info("[+] Chaos test passed - operator recreated queue and actor recovered")
 
 
+@pytest.mark.skip(reason="Crossplane manages queues via AWS provider; operator queue health checks not applicable (asya-bija)")
 @pytest.mark.slow
 @pytest.mark.chaos
 def test_operator_recreates_deleted_system_queue_e2e(e2e_helper, chaos_queues, namespace):
@@ -202,6 +204,7 @@ def test_operator_recreates_deleted_system_queue_e2e(e2e_helper, chaos_queues, n
     logger.info("[+] Queue chaos test passed - queue recreated and actor functional")
 
 
+@pytest.mark.skip(reason="Crossplane manages queues via AWS provider; operator queue health checks not applicable (asya-bija)")
 @pytest.mark.slow
 @pytest.mark.chaos
 def test_multiple_queue_deletions_e2e(e2e_helper, chaos_queues, namespace):
@@ -286,6 +289,7 @@ def test_multiple_queue_deletions_e2e(e2e_helper, chaos_queues, namespace):
     logger.info("[+] Mass deletion chaos test passed - all queues recreated, actors functional")
 
 
+@pytest.mark.skip(reason="Crossplane manages queues via AWS provider; operator queue health checks not applicable (asya-bija)")
 @pytest.mark.slow
 @pytest.mark.chaos
 def test_queue_deletion_during_processing_e2e(e2e_helper, chaos_queues, namespace):
