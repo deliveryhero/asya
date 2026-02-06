@@ -34,22 +34,22 @@ Introduce **asya-stagedoor** — a management plane service that:
 | **MCP-First** | API designed for AI agent consumption, humans use same API via UI/CLI |
 | **Namespace Isolation** | Clear separation between experimentation (lab) and production namespaces |
 | **GitOps-Compatible** | Exports generate clean manifests ready for git commit |
-| **Profile-Driven** | Complexity hidden behind Crossplane Compositions ("flavors") |
+| **Flavor-Driven** | Complexity hidden behind Crossplane Compositions ("flavors") |
 
 ### 1.4 Key Terminology
 
 | Term | Definition |
 |------|------------|
-| **Profile** (aka Flavor) | A Crossplane Composition that defines a reusable actor configuration template. Profiles encapsulate scaling config, resource limits, node affinities, and defaults. DS selects by name (e.g., `profile: llm-heavy`); Crossplane expands to full spec. |
+| **Flavor** | A Crossplane Composition that defines a reusable actor configuration template. Flavors encapsulate scaling config, resource limits, node affinities, and defaults. DS selects by name (e.g., `flavor: llm-heavy`); Crossplane expands to full spec. |
 | **Lab Namespace** | Experimentation namespace (e.g., `lab-alice`) where DS can imperatively create/modify actors. Not managed by GitOps. |
 | **Prod Namespace** | Production namespace managed by GitOps (Flux/ArgoCD). Stagedoor has read-only access. |
 | **Flow** | A set of actors that process messages in sequence/parallel, identified by shared label `asya.sh/flow: <name>`. |
 | **Claim** | A Crossplane XRD instance that users create. Crossplane expands claims into full K8s resources. |
 | **Export** | The process of generating sanitized, GitOps-ready manifests from deployed or compiled actors. |
 
-**Example Profiles:**
+**Example Flavors:**
 
-| Profile | Use Case | Key Settings |
+| Flavor | Use Case | Key Settings |
 |---------|----------|--------------|
 | `fast-router` | Quick routing decisions (5ms) | minReplicas: 2, cooldown: 30s, 100m CPU |
 | `llm-heavy` | LLM inference (30s+) | minReplicas: 1, cooldown: 600s, 8 CPU, 32Gi RAM, GPU |
@@ -141,9 +141,10 @@ Introduce **asya-stagedoor** — a management plane service that:
 | **asya-stagedoor** | Management plane: CRUD actors, compile flows, export manifests | Go + React |
 | **asya-gateway** | Business logic: HTTP ingress, envelope routing, progress tracking | Go |
 | **asya-operator** | Reconcile AsyncActor CRDs → Deployments + sidecars | Go (Kubebuilder) |
-| **Crossplane** | Expand profile claims → full AsyncActor specs | Crossplane Compositions |
+| **Crossplane** | Expand flavor claims → full AsyncActor specs | Crossplane Compositions |
 | **Flux/ArgoCD** | Sync git manifests → cluster state | Standard GitOps |
 | **SigNoz** | Logs, traces, metrics aggregation | ClickHouse-backed |
+| **flow-compiler** | Compile flow.py → graph + routers + manifests | Python (crew actor) |
 
 ### 3.3 Gateway vs Stagedoor Distinction
 
@@ -202,8 +203,8 @@ Introduce **asya-stagedoor** — a management plane service that:
 │                                                                             │
 │  3. CONFIGURE                                                               │
 │     ├─ DS clicks on actors in graph                                        │
-│     ├─ Sets: name, profile (flavor), env vars, labels                      │
-│     ├─ UI validates the availability of selected profiles                  │
+│     ├─ Sets: name, flavor, env vars, labels                                │
+│     ├─ UI validates the availability of selected flavors                   │
 │     └─ Changes reflected in graph (re-render on edit)                      │
 │                                                                             │
 │  4. (Optional) TEST LOCALLY                                                 │
@@ -211,7 +212,7 @@ Introduce **asya-stagedoor** — a management plane service that:
 │     ├─ Tool generates docker-compose.yml from compiled manifests           │
 │     ├─ Spins up: RabbitMQ + actor containers (no K8s required)             │
 │     ├─ DS tests flow logic locally before deploying to cluster             │
-│     └─ Note: Profiles/KEDA don't apply locally (uses defaults)             │
+│     └─ Note: Flavors/KEDA don't apply locally (uses defaults)              │
 │     └─ Future: see bead asya-u8x for implementation                        │
 │                                                                             │
 │  5. DEPLOY TO LAB                                                           │
@@ -225,7 +226,7 @@ Introduce **asya-stagedoor** — a management plane service that:
 │     ├─ Enters test payload JSON + gateway URL                              │
 │     ├─ UI calls asya-gateway directly (like asya mcp call)                 │
 │     ├─ UI displays real-time envelope progress (gateway SSE stream)        │
-│     ├─ DS views actor logs via stagedoor (SigNoz/Loki integration)         │
+│     ├─ DS views recent pod logs via stagedoor (kubectl logs)               │
 │     ├─ On completion: UI shows final result or error details               │
 │     └─ Iterates: modify flow.py (maybe right in UI) → re-upload → re-deploy│
 │                                                                             │
@@ -236,7 +237,7 @@ Introduce **asya-stagedoor** — a management plane service that:
 │     │   ├─ routers.py (generated router handlers)                          │
 │     │   ├─ flow.dot + flow.png (documentation)                             │
 │     │   └─ kustomization.yaml (optional)                                   │
-│     ├─ DS downloads as zip                                                 │
+│     ├─ DS downloads as zip (or new command asya export --session <id>)     │
 │     └─ DS extracts to repo: flows/<flow-name>/                             │
 │                                                                             │
 │  8. PROMOTE TO PROD                                                         │
@@ -256,26 +257,29 @@ For power users or automation, the same workflow via `asya-cli`:
 # 1. Author (local)
 vim flows/my-flow/flow.py
 
-# 2. Validate (local)
-asya flow validate flows/my-flow/flow.py
-
-# 3. Compile (local or via stagedoor)
+# 2. Compile (local or via stagedoor)
 asya flow compile flows/my-flow/flow.py --output-dir flows/my-flow/compiled/
 
-# 4. Deploy to lab (via stagedoor API)
-asya deploy flows/my-flow/compiled/ --namespace lab-alice
+# 3. Deploy to lab (via stagedoor API)
+asya deploy flows/my-flow/compiled/ --to lab-alice
 
-# 5. Test (via gateway)
+# 4. Test (via gateway)
 asya mcp call my-flow-entrypoint '{"input": "test"}'
 asya mcp stream <envelope-id>
 
-# 6. View logs (via stagedoor)
+# 5. View logs (via stagedoor)
 asya logs my-actor --namespace lab-alice --follow
 
-# 7. Export is already done (compile step generated manifests)
+# 6. Export is already done (compile step generated manifests)
 # Just commit and push
 git add flows/my-flow/ && git commit -m "Add my-flow" && git push
 ```
+
+Note: commands very approximate, to be designed carefully in a separate bead (later). Main design principles:
+- simplicity
+- <asya> <verb> <args> -> to be carefully defined
+- notion of "contexts" like in kubectl: exactly similar commands to deploy to or interact with different K8s namespaces or local docker or even local python functions
+
 
 ### 4.3 AI Agent Workflow (MCP)
 
@@ -284,6 +288,7 @@ AI coding agents interact via MCP tools exposed by stagedoor:
 ```json
 {
   "tools": [
+    // --- Actor-level operations ---
     {
       "name": "list_actors",
       "description": "List actors in a namespace",
@@ -293,11 +298,6 @@ AI coding agents interact via MCP tools exposed by stagedoor:
       "name": "get_actor",
       "description": "Get actor details including status and recent logs",
       "parameters": {"namespace": "string", "name": "string"}
-    },
-    {
-      "name": "compile_flow",
-      "description": "Compile a flow.py and return the graph structure",
-      "parameters": {"source_code": "string"}
     },
     {
       "name": "deploy_actor",
@@ -314,9 +314,43 @@ AI coding agents interact via MCP tools exposed by stagedoor:
       "description": "Get recent logs for an actor",
       "parameters": {"namespace": "string", "name": "string", "lines": "integer"}
     },
+
+    // --- Flow-level operations (actors grouped by asya.sh/flow label) ---
     {
-      "name": "list_profiles",
-      "description": "List available actor profiles (flavors)",
+      "name": "list_flows",
+      "description": "List flows in a namespace (groups of actors with same flow label)",
+      "parameters": {"namespace": "string"}
+    },
+    {
+      "name": "get_flow",
+      "description": "Get flow details: all actors, their connections, and status",
+      "parameters": {"namespace": "string", "name": "string"}
+    },
+    {
+      "name": "compile_flow",
+      "description": "Compile a flow.py and return the graph structure + manifests",
+      "parameters": {"source_code": "string"}
+    },
+    {
+      "name": "deploy_flow",
+      "description": "Deploy all actors in a compiled flow to a lab namespace",
+      "parameters": {"namespace": "string", "flow_name": "string", "manifests": "array"}
+    },
+    {
+      "name": "delete_flow",
+      "description": "Delete all actors belonging to a flow (by label)",
+      "parameters": {"namespace": "string", "name": "string"}
+    },
+    {
+      "name": "get_flow_logs",
+      "description": "Get aggregated logs for all actors in a flow",
+      "parameters": {"namespace": "string", "name": "string", "lines": "integer"}
+    },
+
+    // --- Flavors ---
+    {
+      "name": "list_flavors",
+      "description": "List available actor flavors",
       "parameters": {}
     }
   ]
@@ -334,10 +368,10 @@ The export process must sanitize manifests for GitOps compatibility:
 | `metadata.creationTimestamp` | Remove |
 | `metadata.managedFields` | Remove |
 | `status` | Remove entirely |
-| `metadata.annotations["kustomize.toolkit.fluxcd.io/prune"]` | Remove (was "disabled" during experiment) |
-| Secret references | Preserve `secretRef`, redact inline values with TODO comment |
+| `metadata.annotations["kustomize.toolkit.fluxcd.io/prune"]` | Remove if present (was "disabled" during experiment) |
+| Secret references | Preserve `secretRef`, redact inline values with TODO comment, highlight warning in CLI/UI |
 | `metadata.namespace` | Preserve (explicit is safer for GitOps) |
-| `spec.profile` | Preserve (Crossplane resolves server-side) |
+| `spec.flavor` | Preserve (Crossplane resolves server-side) |
 
 ---
 
@@ -359,21 +393,24 @@ GET    /api/v1/namespaces/{ns}/actors/{name}/logs   # Get actor logs
 
 **Flow Management:**
 ```
-GET    /api/v1/namespaces/{ns}/flows           # List flows (by label)
-GET    /api/v1/namespaces/{ns}/flows/{name}    # Get flow (aggregated actors)
+GET    /api/v1/namespaces/{ns}/flows           # List flows (by asya.sh/flow label)
+GET    /api/v1/namespaces/{ns}/flows/{name}    # Get flow details (all actors, connections, status)
+POST   /api/v1/namespaces/{ns}/flows           # Deploy flow (all actors at once, lab only)
 DELETE /api/v1/namespaces/{ns}/flows/{name}    # Delete flow (all labeled actors, lab only)
+GET    /api/v1/namespaces/{ns}/flows/{name}/logs  # Aggregated logs for all actors in flow
 ```
 
-**Compiler:**
+**Compiler (via asya-gateway):**
 ```
-POST   /api/v1/compile                         # Compile flow.py → graph + manifests
-POST   /api/v1/export                          # Generate downloadable zip
+# Stagedoor proxies compile requests to gateway's flow-compiler MCP tool
+POST   /api/v1/compile                         # Calls gateway → flow-compiler actor
+POST   /api/v1/export                          # Generate downloadable zip (uses compile internally)
 ```
 
-**Profiles:**
+**Flavors:**
 ```
-GET    /api/v1/profiles                        # List available profiles
-GET    /api/v1/profiles/{name}                 # Get profile details
+GET    /api/v1/flavors                         # List available flavors
+GET    /api/v1/flavors/{name}                  # Get flavor details
 ```
 
 **Note:** Testing (send messages, track envelopes) is done via **asya-gateway** directly, not through stagedoor. The stagedoor UI calls gateway's public API, same as asya-cli.
@@ -392,14 +429,21 @@ POST   /mcp                                    # MCP JSON-RPC 2.0 endpoint
 | `deploy_actor` | `POST /api/v1/namespaces/{ns}/actors` |
 | `delete_actor` | `DELETE /api/v1/namespaces/{ns}/actors/{name}` |
 | `get_logs` | `GET /api/v1/namespaces/{ns}/actors/{name}/logs` |
-| `compile_flow` | `POST /api/v1/compile` |
-| `list_profiles` | `GET /api/v1/profiles` |
+| `list_flows` | `GET /api/v1/namespaces/{ns}/flows` |
+| `get_flow` | `GET /api/v1/namespaces/{ns}/flows/{name}` |
+| `compile_flow` | `POST /api/v1/compile` (proxied to gateway → flow-compiler actor) |
+| `deploy_flow` | `POST /api/v1/namespaces/{ns}/flows` |
+| `delete_flow` | `DELETE /api/v1/namespaces/{ns}/flows/{name}` |
+| `get_flow_logs` | `GET /api/v1/namespaces/{ns}/flows/{name}/logs` |
+| `list_flavors` | `GET /api/v1/flavors` |
 
-**Note:** Message sending and envelope tracking tools are exposed by **asya-gateway**, not stagedoor. AI agents use gateway's MCP endpoint for runtime operations.
+**Note:** Message sending and envelope tracking tools are exposed by **asya-gateway**, not stagedoor. AI agents use gateway's A2A endpoint (bead asya-7j1) for runtime operations.
 
 ---
 
 ## 6. Security Model
+
+**Note**: Security design is be tackled separately with deep research in separate beads, once the MVP is working.
 
 ### 6.1 Authentication
 
@@ -510,7 +554,7 @@ rules:
   - apiGroups: [""]
     resources: ["pods", "pods/log"]
     verbs: ["get", "list"]
-  # Read Crossplane Compositions (profiles)
+  # Read Crossplane Compositions (flavors)
   - apiGroups: ["apiextensions.crossplane.io"]
     resources: ["compositions"]
     verbs: ["get", "list"]
@@ -522,22 +566,22 @@ rules:
 
 ### 7.1 Crossplane Integration
 
-Stagedoor works with Crossplane Compositions to provide the "profile" abstraction:
+Stagedoor works with Crossplane Compositions to provide the "flavor" abstraction:
 
 ```
 ┌─────────────────┐         ┌─────────────────┐         ┌─────────────────┐
 │  User creates   │         │  Crossplane     │         │  asya-operator  │
 │  AsyncActor     │────────▶│  expands claim  │────────▶│  creates pods   │
 │  claim          │         │  via Composition│         │  + sidecars     │
-│  (profile: X)   │         │  (profile X)    │         │                 │
+│  (flavor: X)    │         │  (flavor X)     │         │                 │
 └─────────────────┘         └─────────────────┘         └─────────────────┘
 ```
 
-**Profile = Composition:**
+**Flavor = Composition:**
 - Platform engineers define Crossplane Compositions (e.g., `llm-heavy`, `fast-router`)
 - Each Composition specifies: scaling config, resource limits, node affinities, etc.
-- Users select profile by name; Crossplane expands to full spec
-- Exported YAMLs remain simple (just `profile: llm-heavy`)
+- Users select flavor by name; Crossplane expands to full spec
+- Exported YAMLs remain simple (just `flavor: llm-heavy`)
 
 ### 7.2 Gateway Integration
 
@@ -574,7 +618,7 @@ Stagedoor and Gateway are **separate public-facing services** with distinct purp
 |----------|-----------|-----|
 | Send test message | Gateway (direct) | UI calls gateway `/tools/call` directly |
 | Track envelope progress | Gateway (direct) | UI subscribes to gateway SSE stream |
-| View actor logs | Stagedoor | Query SigNoz/Loki, filter by actor labels |
+| View actor logs | Stagedoor | kubectl logs via K8s API (recent logs only) |
 | Deploy new actor | Stagedoor | Create Crossplane claim via K8s API |
 
 ### 7.3 GitOps Integration
@@ -605,20 +649,27 @@ Stagedoor is designed to complement, not replace, GitOps:
 
 ### 7.4 Observability Integration
 
-Stagedoor proxies logs from the observability stack:
+Stagedoor provides **simple kubectl-style logs** via the Kubernetes API:
 
 ```
 ┌─────────────┐       ┌─────────────┐       ┌─────────────┐
-│  Stagedoor  │──────▶│  SigNoz     │◀──────│  Actor Pods │
-│  /logs API  │       │  (query)    │       │  (stdout)   │
+│  Stagedoor  │──────▶│  K8s API    │──────▶│  Actor Pods │
+│  /logs API  │       │  (pods/log) │       │  (stdout)   │
 └─────────────┘       └─────────────┘       └─────────────┘
 ```
 
-**Log query filters:**
-- `namespace`: Target namespace
-- `app.kubernetes.io/name`: Actor name
-- `asya.sh/flow`: Flow name (for flow-level logs)
-- `trace_id`: Distributed trace correlation
+**Capabilities (via K8s API):**
+- Tail recent logs from actor pods
+- Follow logs in real-time (streaming)
+- Filter by container name
+
+**Limitations:**
+- No historical logs (only current pod lifecycle)
+- Logs lost on pod restart/reschedule
+
+**For advanced log analysis:** DS uses their organization's logging stack directly (Loki, SigNoz, Elasticsearch, etc.). Stagedoor does not integrate with these backends — this keeps stagedoor simple and avoids maintaining multiple integrations.
+
+**Recommended setup:** Platform team configures logging stack to auto-collect actor logs via standard K8s log collection (e.g., Promtail, Fluent Bit). DS accesses historical logs via Grafana/SigNoz dashboards.
 
 ---
 
@@ -642,12 +693,36 @@ Stagedoor proxies logs from the observability stack:
 
 ### 8.3 Flow Compilation
 
-**Options:**
-1. **Shell out to asya-cli**: Stagedoor calls `asya flow compile` as subprocess
-2. **Embed Python runtime**: Use embedded Python (e.g., go-python)
-3. **Port to Go**: Rewrite flow compiler in Go
+**Options considered:**
+1. Shell out to asya-cli (requires Python in stagedoor container)
+2. Embed Python runtime via go-python (complex build)
+3. Re-implement in Go/Rust (duplicates logic, maintenance burden)
+4. Sidecar container (overcomplicated)
+5. Separate FastAPI service (yet another deployment to maintain)
+6. **Crew actor via gateway MCP tool** ✅
 
-**Recommendation:** Option 1 (shell out) for simplicity. Python is already required for asya-runtime.
+**Decision: Option 6 — Crew actor exposed via asya-gateway**
+
+```
+┌─────────────┐     ┌─────────────┐     ┌─────────────────┐
+│  Stagedoor  │────▶│ asya-gateway│────▶│ flow-compiler   │
+│  UI / CLI   │     │ (MCP tool)  │     │ (crew actor)    │
+└─────────────┘     └─────────────┘     └─────────────────┘
+```
+
+**How it works:**
+- `flow-compiler` is a **crew actor** (like `happy-end`, `error-end`)
+- Exposed as MCP tool `compile_flow` in gateway's tool configuration
+- Stagedoor UI/CLI calls gateway's MCP endpoint to compile
+- Returns: graph structure, generated routers, manifests
+
+**Why this approach:**
+- ✅ **No mixed Go+Python** — stagedoor stays pure Go
+- ✅ **No separate deployment** — uses existing gateway + actor infrastructure
+- ✅ **Zero maintenance overhead** — just another crew actor in asya-crew chart
+- ✅ **Dogfooding** — uses Asya's own patterns
+- ✅ **Already connected** — stagedoor UI already calls gateway for testing
+- ✅ **100-500ms latency is acceptable** — compilation is not a hot path
 
 ---
 
@@ -666,7 +741,7 @@ Stagedoor proxies logs from the observability stack:
 
 | Enhancement | Priority | Description |
 |-------------|----------|-------------|
-| **Embedded log viewer** | P2 | Embed SigNoz panels in stagedoor UI |
+| **Deep link to logs** | P3 | Generate links to Grafana/SigNoz with pre-filtered queries |
 | **Flow diff view** | P3 | Compare deployed vs local flow versions |
 | **Collaborative editing** | P4 | Multiple DS editing same flow (WebSocket sync) |
 | **Template library** | P3 | Pre-built flow templates (RAG, batch inference, etc.) |
@@ -680,7 +755,7 @@ Stagedoor proxies logs from the observability stack:
 | **Phase 1: MVP** | Core API | HTTP API for CRUD, compile, export. CLI integration. |
 | **Phase 2: UI** | React SPA | Flow visualization, interactive editing, deploy button. |
 | **Phase 3: MCP** | AI integration | MCP-compliant endpoint, tool definitions. |
-| **Phase 4: Observability** | Logs integration | Log proxy, trace correlation, embedded panels. |
+| **Phase 4: Polish** | UX improvements | Deep links to logging stack, flow diff view, templates. |
 
 ---
 
@@ -690,7 +765,7 @@ Stagedoor proxies logs from the observability stack:
 - Crossplane Compositions documentation
 - MCP Protocol specification
 - React Flow documentation
-- SigNoz API documentation
+- Kubernetes Pods/Log API documentation
 
 ---
 
