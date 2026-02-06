@@ -192,10 +192,10 @@ spec:
           type: string
           jsonPath: .status.phase
         - name: Ready
-          type: string
+          type: integer
           jsonPath: .status.infrastructure.workload.readyReplicas
         - name: Replicas
-          type: string
+          type: integer
           jsonPath: .status.infrastructure.workload.replicas
         - name: Transport
           type: string
