@@ -310,12 +310,15 @@ func (i *Injector) addVolumes(pod *corev1.Pod) {
 	})
 }
 
-// appendOrReplaceEnv adds an env var, replacing any existing var with the same name
+// appendOrReplaceEnv adds an env var, replacing any existing var with the same name.
+// Returns a new slice on replacement to avoid mutating the input's backing array.
 func appendOrReplaceEnv(envs []corev1.EnvVar, newEnv corev1.EnvVar) []corev1.EnvVar {
 	for i, e := range envs {
 		if e.Name == newEnv.Name {
-			envs[i] = newEnv
-			return envs
+			out := make([]corev1.EnvVar, len(envs))
+			copy(out, envs)
+			out[i] = newEnv
+			return out
 		}
 	}
 	return append(envs, newEnv)
