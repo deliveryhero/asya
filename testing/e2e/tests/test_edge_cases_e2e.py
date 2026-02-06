@@ -23,23 +23,19 @@ NICE-TO-HAVE (4 tests) - Operational excellence:
 
 import logging
 import os
-import subprocess
 import time
 
 import pytest
-import requests
-
-from asya_testing.utils.gateway import GatewayTestHelper
 from asya_testing.utils.sqs import purge_queue
 
+
 logger = logging.getLogger(__name__)
-
-
 
 
 # ============================================================================
 # MUST-HAVE: Sidecar Behavior Tests
 # ============================================================================
+
 
 @pytest.mark.fast
 def test_fan_out_creates_multiple_envelopes_e2e(e2e_helper):
@@ -64,8 +60,7 @@ def test_fan_out_creates_multiple_envelopes_e2e(e2e_helper):
     final_envelope = e2e_helper.wait_for_envelope_completion(envelope_id, timeout=90)
 
     # Verify envelope completed
-    assert final_envelope["status"] == "succeeded", \
-        f"Fanout should succeed, got {final_envelope['status']}"
+    assert final_envelope["status"] == "succeeded", f"Fanout should succeed, got {final_envelope['status']}"
 
     logger.info(f"Fanout result: {final_envelope.get('result')}")
 
@@ -89,9 +84,7 @@ def test_empty_response_goes_to_happy_end_e2e(e2e_helper):
     final_envelope = e2e_helper.wait_for_envelope_completion(envelope_id, timeout=90)
 
     # Empty response should go to happy-end
-    assert final_envelope["status"] == "succeeded", \
-        f"Empty response should succeed, got {final_envelope['status']}"
-
+    assert final_envelope["status"] == "succeeded", f"Empty response should succeed, got {final_envelope['status']}"
 
 
 @pytest.mark.fast
@@ -112,9 +105,7 @@ def test_slow_boundary_completes_before_timeout_e2e(e2e_helper):
     # Wait longer to account for KEDA scale-up + 1.5s processing time
     final_envelope = e2e_helper.wait_for_envelope_completion(envelope_id, timeout=120)
 
-    assert final_envelope["status"] == "succeeded", \
-        f"Should complete before timeout, got {final_envelope['status']}"
-
+    assert final_envelope["status"] == "succeeded", f"Should complete before timeout, got {final_envelope['status']}"
 
 
 @pytest.mark.fast
@@ -172,9 +163,7 @@ def test_timeout_crash_and_pod_restart_e2e(e2e_helper, namespace, transport_time
 
     # Get initial pod name and restart count
     pods_before = e2e_helper.kubectl(
-        "get", "pods",
-        "-l", "asya.sh/actor=test-timeout",
-        "-o", "jsonpath='{.items[*].metadata.name}'"
+        "get", "pods", "-l", "asya.sh/actor=test-timeout", "-o", "jsonpath='{.items[*].metadata.name}'"
     )
     logger.info(f"Pods before timeout: {pods_before}")
 
@@ -182,9 +171,12 @@ def test_timeout_crash_and_pod_restart_e2e(e2e_helper, namespace, transport_time
     initial_restart_count = 0
     try:
         restart_counts_str = e2e_helper.kubectl(
-            "get", "pods",
-            "-l", "asya.sh/actor=test-timeout",
-            "-o", "jsonpath='{.items[0].status.containerStatuses[*].restartCount}'"
+            "get",
+            "pods",
+            "-l",
+            "asya.sh/actor=test-timeout",
+            "-o",
+            "jsonpath='{.items[0].status.containerStatuses[*].restartCount}'",
         )
         if restart_counts_str and restart_counts_str != "''":
             # Sum all container restart counts
@@ -204,15 +196,20 @@ def test_timeout_crash_and_pod_restart_e2e(e2e_helper, namespace, transport_time
     while time.time() - start_time < max_wait:
         try:
             restart_counts_str = e2e_helper.kubectl(
-                "get", "pods",
-                "-l", "asya.sh/actor=test-timeout",
-                "-o", "jsonpath='{.items[0].status.containerStatuses[*].restartCount}'"
+                "get",
+                "pods",
+                "-l",
+                "asya.sh/actor=test-timeout",
+                "-o",
+                "jsonpath='{.items[0].status.containerStatuses[*].restartCount}'",
             )
             if restart_counts_str and restart_counts_str != "''":
                 restart_counts = [int(x) for x in restart_counts_str.strip("'").split()]
                 current_restart_count = sum(restart_counts)
                 if current_restart_count > initial_restart_count:
-                    logger.info(f"Crash detected: total restart count increased from {initial_restart_count} to {current_restart_count}")
+                    logger.info(
+                        f"Crash detected: total restart count increased from {initial_restart_count} to {current_restart_count}"
+                    )
                     crash_detected = True
                     break
         except Exception as e:
@@ -225,10 +222,7 @@ def test_timeout_crash_and_pod_restart_e2e(e2e_helper, namespace, transport_time
     # Verify crash was due to timeout by checking pod logs
     try:
         logs = e2e_helper.kubectl(
-            "logs", "-l", "asya.sh/actor=test-timeout",
-            "-c", "asya-sidecar",
-            "--previous",
-            "--tail=50"
+            "logs", "-l", "asya.sh/actor=test-timeout", "-c", "asya-sidecar", "--previous", "--tail=50"
         )
         if "Runtime timeout exceeded - crashing pod to recover" in logs:
             logger.info("Verified timeout crash message in sidecar logs")
@@ -241,9 +235,12 @@ def test_timeout_crash_and_pod_restart_e2e(e2e_helper, namespace, transport_time
     try:
         pod_name = pods_before.strip("'")
         events = e2e_helper.kubectl(
-            "get", "events",
-            "--field-selector", f"involvedObject.name={pod_name}",
-            "-o", "jsonpath='{.items[*].message}'"
+            "get",
+            "events",
+            "--field-selector",
+            f"involvedObject.name={pod_name}",
+            "-o",
+            "jsonpath='{.items[*].message}'",
         )
         if events:
             logger.debug(f"Pod events: {events}")
@@ -260,8 +257,9 @@ def test_timeout_crash_and_pod_restart_e2e(e2e_helper, namespace, transport_time
     final_envelope = e2e_helper.wait_for_envelope_completion(envelope_id, timeout=180)
 
     # After timeout crash, message should eventually go to error-end
-    assert final_envelope["status"] in ["failed", "succeeded"], \
+    assert final_envelope["status"] in ["failed", "succeeded"], (
         f"Envelope should eventually complete (Failed or Succeeded), got {final_envelope['status']}"
+    )
 
     if final_envelope["status"] == "failed":
         logger.info("Envelope correctly failed after timeout-induced pod crash")
@@ -269,10 +267,10 @@ def test_timeout_crash_and_pod_restart_e2e(e2e_helper, namespace, transport_time
         logger.info("Envelope succeeded (may have been redelivered with sufficient timeout)")
 
 
-
 # ============================================================================
 # SHOULD-HAVE: RabbitMQ Interaction Tests
 # ============================================================================
+
 
 @pytest.mark.fast
 def test_message_redelivery_after_pod_restart_e2e(e2e_helper):
@@ -302,9 +300,7 @@ def test_message_redelivery_after_pod_restart_e2e(e2e_helper):
     # Find and delete the actor pod
     try:
         pods = e2e_helper.kubectl(
-            "get", "pods",
-            "-l", "asya.sh/actor=test-slow-boundary",
-            "-o", "jsonpath='{.items[*].metadata.name}'"
+            "get", "pods", "-l", "asya.sh/actor=test-slow-boundary", "-o", "jsonpath='{.items[*].metadata.name}'"
         )
 
         if pods and pods != "''":
@@ -330,9 +326,9 @@ def test_message_redelivery_after_pod_restart_e2e(e2e_helper):
     final_envelope = e2e_helper.wait_for_envelope_completion(envelope_id, timeout=150)
 
     # Should complete (possibly after redelivery)
-    assert final_envelope["status"] in ["succeeded", "failed"], \
+    assert final_envelope["status"] in ["succeeded", "failed"], (
         f"Envelope should complete, got {final_envelope['status']}"
-
+    )
 
 
 @pytest.mark.fast
@@ -363,9 +359,7 @@ def test_concurrent_envelopes_independent_routing_e2e(e2e_helper):
     # Wait for all concurrently - increased timeout for KEDA scale-up from 0
     def wait_for_envelope(index, envelope_id):
         try:
-            results[index] = e2e_helper.wait_for_envelope_completion(
-                envelope_id, timeout=90
-            )
+            results[index] = e2e_helper.wait_for_envelope_completion(envelope_id, timeout=90)
         except Exception as e:
             logger.error(f"Envelope {index} failed: {e}")
             results[index] = {"status": "Error", "error": str(e)}
@@ -380,17 +374,31 @@ def test_concurrent_envelopes_independent_routing_e2e(e2e_helper):
     for thread in threads:
         thread.join(timeout=95)
 
+    # Log all results for diagnostics before assertions
+    for i, result in enumerate(results):
+        if result and result.get("status") != "succeeded":
+            error_info = result.get("error", "no error field")
+            result_details = result.get("result", {})
+            failed_actor = result.get("current_actor_name", "unknown")
+            logger.error(
+                f"Envelope {i} (id={envelope_ids[i]}) status={result.get('status')}, "
+                f"actor={failed_actor}, error={error_info}, details={result_details}"
+            )
+
     # Verify all completed
     for i, result in enumerate(results):
         assert result is not None, f"Envelope {i} should have result"
-        assert result["status"] == "succeeded", \
-            f"Envelope {i} should succeed, got {result.get('status')}"
+        error_msg = result.get("error", "")
+        failed_actor = result.get("current_actor_name", "unknown")
+        assert result["status"] == "succeeded", (
+            f"Envelope {i} (id={envelope_ids[i]}) should succeed, "
+            f"got {result.get('status')} at actor={failed_actor}: {error_msg}"
+        )
 
     # Verify no cross-contamination
     for i, result in enumerate(results):
         echoed = result.get("result", {}).get("echoed", "")
-        assert f"concurrent-e2e-{i}" in echoed, \
-            f"Envelope {i} result contaminated: got '{echoed}'"
+        assert f"concurrent-e2e-{i}" in echoed, f"Envelope {i} result contaminated: got '{echoed}'"
 
     logger.info(f"[+] All {num_envelopes} concurrent envelopes completed independently")
 
@@ -398,6 +406,7 @@ def test_concurrent_envelopes_independent_routing_e2e(e2e_helper):
 # ============================================================================
 # NICE-TO-HAVE: KEDA Autoscaling Tests
 # ============================================================================
+
 
 @pytest.mark.slow
 def test_keda_scales_actor_under_load_e2e(e2e_helper):
@@ -435,7 +444,7 @@ def test_keda_scales_actor_under_load_e2e(e2e_helper):
     for i in range(12):  # 12 * 2s = 24s
         time.sleep(2)  # Poll kubectl API for KEDA autoscaling changes
         current_pods = e2e_helper.get_pod_count("asya.sh/actor=test-echo")
-        logger.info(f"Check {i+1}/12: Current pod count: {current_pods}")
+        logger.info(f"Check {i + 1}/12: Current pod count: {current_pods}")
         max_pods = max(max_pods, current_pods)
 
         if current_pods > initial_pods:
@@ -470,6 +479,7 @@ def test_keda_scales_actor_under_load_e2e(e2e_helper):
 # NICE-TO-HAVE: Data Handling Tests
 # ============================================================================
 
+
 @pytest.mark.fast
 def test_unicode_payload_end_to_end(e2e_helper):
     """
@@ -480,9 +490,7 @@ def test_unicode_payload_end_to_end(e2e_helper):
     """
     response = e2e_helper.call_mcp_tool(
         tool_name="test_unicode",
-        arguments={
-            "message": "Hello 世界 🌍 مرحبا こんにちは Привет"
-        },
+        arguments={"message": "Hello 世界 🌍 مرحبا こんにちは Привет"},
     )
 
     envelope_id = response["result"]["envelope_id"]
@@ -513,6 +521,7 @@ def test_large_payload_end_to_end(e2e_helper):
     Use RabbitMQ for large payload testing.
     """
     import os
+
     transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
     if transport == "sqs":
         pytest.skip("Large payload test not supported with SQS (256KB limit)")
@@ -527,9 +536,7 @@ def test_large_payload_end_to_end(e2e_helper):
     # Large payload may take longer
     final_envelope = e2e_helper.wait_for_envelope_completion(envelope_id, timeout=90)
 
-    assert final_envelope["status"] == "succeeded", \
-        f"Large payload should succeed, got {final_envelope['status']}"
-
+    assert final_envelope["status"] == "succeeded", f"Large payload should succeed, got {final_envelope['status']}"
 
 
 @pytest.mark.fast
