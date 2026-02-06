@@ -12,80 +12,397 @@ spec:
     kind: XAsyncActor
   mode: Pipeline
   pipeline:
-    - step: patch-and-transform
+    # Step 1: Render SQS Queue (always created)
+    - step: render-sqs-queue
+      functionRef:
+        name: function-go-templating
+      input:
+        apiVersion: gotemplating.fn.crossplane.io/v1beta1
+        kind: GoTemplate
+        source: Inline
+        inline:
+          template: |
+            {{`{{- $xr := .observed.composite.resource -}}`}}
+            {{`{{- $namespace := index $xr.metadata.labels "crossplane.io/claim-namespace" -}}`}}
+            {{`{{- $claimName := index $xr.metadata.labels "crossplane.io/claim-name" -}}`}}
+            {{`{{- $actorName := $xr.spec.actorName | default $claimName -}}`}}
+            {{`{{- $region := $xr.spec.region | default "us-east-1" -}}`}}
+            {{`{{- $providerConfigRef := $xr.spec.providerConfigRef | default "default" -}}`}}
+            apiVersion: sqs.aws.upbound.io/v1beta1
+            kind: Queue
+            metadata:
+              annotations:
+                gotemplating.fn.crossplane.io/composition-resource-name: sqs-queue
+            spec:
+              forProvider:
+                name: asya-{{`{{ $namespace }}`}}-{{`{{ $actorName }}`}}
+                region: {{`{{ $region }}`}}
+                visibilityTimeoutSeconds: 30
+                messageRetentionSeconds: 345600
+                receiveWaitTimeSeconds: 20
+                tags:
+                  asya.sh/namespace: {{`{{ $namespace }}`}}
+                  asya.sh/actor: {{`{{ $actorName }}`}}
+              providerConfigRef:
+                name: {{`{{ $providerConfigRef }}`}}
+              deletionPolicy: Delete
+
+    # Create ServiceAccount with IRSA annotation for AWS authentication
+    {{- if .Values.irsa.enabled }}
+    - step: render-serviceaccount
+      functionRef:
+        name: function-go-templating
+      input:
+        apiVersion: gotemplating.fn.crossplane.io/v1beta1
+        kind: GoTemplate
+        source: Inline
+        inline:
+          template: |
+            {{`{{- $xr := .observed.composite.resource -}}`}}
+            {{`{{- $namespace := index $xr.metadata.labels "crossplane.io/claim-namespace" -}}`}}
+            {{`{{- $irsaEnabled := true -}}`}}
+            {{`{{- if hasKey $xr.spec "irsa" -}}`}}
+              {{`{{- if hasKey $xr.spec.irsa "enabled" -}}`}}
+                {{`{{- $irsaEnabled = $xr.spec.irsa.enabled -}}`}}
+              {{`{{- end -}}`}}
+            {{`{{- end -}}`}}
+            {{`{{- if $irsaEnabled -}}`}}
+            apiVersion: kubernetes.crossplane.io/v1alpha2
+            kind: Object
+            metadata:
+              annotations:
+                gotemplating.fn.crossplane.io/composition-resource-name: serviceaccount
+            spec:
+              forProvider:
+                manifest:
+                  apiVersion: v1
+                  kind: ServiceAccount
+                  metadata:
+                    name: {{ .Values.irsa.serviceAccountName }}
+                    namespace: {{`{{ $namespace }}`}}
+                    annotations:
+                      {{`{{- if and (hasKey $xr.spec "irsa") (hasKey $xr.spec.irsa "roleArn") }}`}}
+                      eks.amazonaws.com/role-arn: {{`{{ $xr.spec.irsa.roleArn }}`}}
+                      {{`{{- else }}`}}
+                      eks.amazonaws.com/role-arn: {{ .Values.irsa.roleArnPattern }}
+                      {{`{{- end }}`}}
+              providerConfigRef:
+                name: {{ .Values.kubernetesProviderConfig.name }}
+            {{`{{- end }}`}}
+    {{- end }}
+
+    # Create KEDA TriggerAuthentication for SQS scaling
+    - step: render-triggerauthentication
+      functionRef:
+        name: function-go-templating
+      input:
+        apiVersion: gotemplating.fn.crossplane.io/v1beta1
+        kind: GoTemplate
+        source: Inline
+        inline:
+          template: |
+            {{`{{- $xr := .observed.composite.resource -}}`}}
+            {{`{{- $namespace := index $xr.metadata.labels "crossplane.io/claim-namespace" -}}`}}
+            {{`{{- $claimName := index $xr.metadata.labels "crossplane.io/claim-name" -}}`}}
+            {{`{{- $actorName := $xr.spec.actorName | default $claimName -}}`}}
+            {{`{{- $scalingEnabled := true -}}`}}
+            {{`{{- if hasKey $xr.spec "scaling" -}}`}}
+              {{`{{- if hasKey $xr.spec.scaling "enabled" -}}`}}
+                {{`{{- $scalingEnabled = $xr.spec.scaling.enabled -}}`}}
+              {{`{{- end -}}`}}
+            {{`{{- end -}}`}}
+            {{`{{- if $scalingEnabled -}}`}}
+            apiVersion: kubernetes.crossplane.io/v1alpha2
+            kind: Object
+            metadata:
+              annotations:
+                gotemplating.fn.crossplane.io/composition-resource-name: triggerauthentication
+            spec:
+              forProvider:
+                manifest:
+                  apiVersion: keda.sh/v1alpha1
+                  kind: TriggerAuthentication
+                  metadata:
+                    name: {{`{{ $actorName }}`}}-trigger-auth
+                    namespace: {{`{{ $namespace }}`}}
+                    labels:
+                      app.kubernetes.io/name: {{`{{ $actorName }}`}}
+                      app.kubernetes.io/component: triggerauthentication
+                      app.kubernetes.io/part-of: asya
+                      app.kubernetes.io/managed-by: crossplane
+                  spec:
+                    {{- if eq .Values.keda.authProvider "podIdentity" }}
+                    podIdentity:
+                      provider: aws
+                    {{- else }}
+                    secretTargetRef:
+                      - parameter: awsAccessKeyID
+                        name: {{ .Values.keda.secretRef.name }}
+                        key: {{ .Values.keda.secretRef.accessKeyIdKey }}
+                      - parameter: awsSecretAccessKey
+                        name: {{ .Values.keda.secretRef.name }}
+                        key: {{ .Values.keda.secretRef.secretAccessKeyKey }}
+                    {{- end }}
+              providerConfigRef:
+                name: {{ .Values.kubernetesProviderConfig.name }}
+            {{`{{- end }}`}}
+
+    # Create KEDA ScaledObject for autoscaling based on SQS queue length
+    # Only rendered when queueURL is available from sqs-queue status (prevents race conditions)
+    - step: render-scaledobject
+      functionRef:
+        name: function-go-templating
+      input:
+        apiVersion: gotemplating.fn.crossplane.io/v1beta1
+        kind: GoTemplate
+        source: Inline
+        inline:
+          template: |
+            {{`{{- $xr := .observed.composite.resource -}}`}}
+            {{`{{- $namespace := index $xr.metadata.labels "crossplane.io/claim-namespace" -}}`}}
+            {{`{{- $claimName := index $xr.metadata.labels "crossplane.io/claim-name" -}}`}}
+            {{`{{- $actorName := $xr.spec.actorName | default $claimName -}}`}}
+            {{`{{- $region := $xr.spec.region | default "us-east-1" -}}`}}
+            {{`{{- $queueURL := "" -}}`}}
+            {{`{{- if .observed.resources -}}`}}
+              {{`{{- if index .observed.resources "sqs-queue" -}}`}}
+                {{`{{- $queueURL = (index .observed.resources "sqs-queue").resource.status.atProvider.id | default "" -}}`}}
+              {{`{{- end -}}`}}
+            {{`{{- end -}}`}}
+            {{`{{- $scalingEnabled := true -}}`}}
+            {{`{{- if hasKey $xr.spec "scaling" -}}`}}
+              {{`{{- if hasKey $xr.spec.scaling "enabled" -}}`}}
+                {{`{{- $scalingEnabled = $xr.spec.scaling.enabled -}}`}}
+              {{`{{- end -}}`}}
+            {{`{{- end -}}`}}
+            {{`{{- if and $scalingEnabled (ne $queueURL "") -}}`}}
+            {{`{{- $minReplicas := 0 -}}`}}
+            {{`{{- $maxReplicas := 10 -}}`}}
+            {{`{{- $pollingInterval := 30 -}}`}}
+            {{`{{- $cooldownPeriod := 300 -}}`}}
+            {{`{{- $queueLength := 5 -}}`}}
+            {{`{{- if hasKey $xr.spec "scaling" -}}`}}
+              {{`{{- if hasKey $xr.spec.scaling "minReplicas" }}{{ $minReplicas = $xr.spec.scaling.minReplicas }}{{ end -}}`}}
+              {{`{{- if hasKey $xr.spec.scaling "maxReplicas" }}{{ $maxReplicas = $xr.spec.scaling.maxReplicas }}{{ end -}}`}}
+              {{`{{- if hasKey $xr.spec.scaling "pollingInterval" }}{{ $pollingInterval = $xr.spec.scaling.pollingInterval }}{{ end -}}`}}
+              {{`{{- if hasKey $xr.spec.scaling "cooldownPeriod" }}{{ $cooldownPeriod = $xr.spec.scaling.cooldownPeriod }}{{ end -}}`}}
+              {{`{{- if hasKey $xr.spec.scaling "queueLength" }}{{ $queueLength = $xr.spec.scaling.queueLength }}{{ end -}}`}}
+            {{`{{- end -}}`}}
+            {{`{{- $workloadName := "" -}}`}}
+            {{`{{- $workloadKind := "Deployment" -}}`}}
+            {{`{{- if hasKey $xr.spec "workloadRef" -}}`}}
+              {{`{{- $workloadName = $xr.spec.workloadRef.name -}}`}}
+              {{`{{- if hasKey $xr.spec.workloadRef "kind" -}}`}}
+                {{`{{- $workloadKind = $xr.spec.workloadRef.kind -}}`}}
+              {{`{{- end -}}`}}
+            {{`{{- else if hasKey $xr.spec "workload" -}}`}}
+              {{`{{- $workloadName = $actorName -}}`}}
+              {{`{{- if hasKey $xr.spec.workload "kind" -}}`}}
+                {{`{{- $workloadKind = $xr.spec.workload.kind -}}`}}
+              {{`{{- end -}}`}}
+            {{`{{- else -}}`}}
+              {{`{{- fail "Either spec.workload or spec.workloadRef must be provided" -}}`}}
+            {{`{{- end -}}`}}
+            apiVersion: kubernetes.crossplane.io/v1alpha2
+            kind: Object
+            metadata:
+              annotations:
+                gotemplating.fn.crossplane.io/composition-resource-name: scaledobject
+            spec:
+              forProvider:
+                manifest:
+                  apiVersion: keda.sh/v1alpha1
+                  kind: ScaledObject
+                  metadata:
+                    name: {{`{{ $actorName }}`}}
+                    namespace: {{`{{ $namespace }}`}}
+                    labels:
+                      app.kubernetes.io/name: {{`{{ $actorName }}`}}
+                      app.kubernetes.io/component: scaledobject
+                      app.kubernetes.io/part-of: asya
+                      app.kubernetes.io/managed-by: crossplane
+                  spec:
+                    scaleTargetRef:
+                      name: {{`{{ $workloadName }}`}}
+                      kind: {{`{{ $workloadKind }}`}}
+                    minReplicaCount: {{`{{ $minReplicas }}`}}
+                    maxReplicaCount: {{`{{ $maxReplicas }}`}}
+                    pollingInterval: {{`{{ $pollingInterval }}`}}
+                    cooldownPeriod: {{`{{ $cooldownPeriod }}`}}
+                    triggers:
+                      - type: aws-sqs-queue
+                        authenticationRef:
+                          name: {{`{{ $actorName }}`}}-trigger-auth
+                        metadata:
+                          queueURL: {{`{{ $queueURL }}`}}
+                          queueLength: "{{`{{ $queueLength }}`}}"
+                          awsRegion: {{`{{ $region }}`}}
+                          {{- if .Values.awsProviderConfig.endpoint.enabled }}
+                          awsEndpoint: {{ .Values.awsProviderConfig.endpoint.url }}
+                          {{- end }}
+                    advanced:
+                      horizontalPodAutoscalerConfig:
+                        behavior:
+                          scaleDown:
+                            stabilizationWindowSeconds: 300
+                            policies:
+                              - type: Pods
+                                value: 1
+                                periodSeconds: 60
+                          scaleUp:
+                            stabilizationWindowSeconds: 0
+                            policies:
+                              - type: Pods
+                                value: 10
+                                periodSeconds: 60
+                              - type: Percent
+                                value: 100
+                                periodSeconds: 60
+              providerConfigRef:
+                name: {{ .Values.kubernetesProviderConfig.name }}
+            {{`{{- end }}`}}
+
+    # Create Deployment only when workload is specified (not workloadRef)
+    - step: render-deployment
+      functionRef:
+        name: function-go-templating
+      input:
+        apiVersion: gotemplating.fn.crossplane.io/v1beta1
+        kind: GoTemplate
+        source: Inline
+        inline:
+          template: |
+            {{`{{- $xr := .observed.composite.resource -}}`}}
+            {{`{{- $namespace := index $xr.metadata.labels "crossplane.io/claim-namespace" -}}`}}
+            {{`{{- $claimName := index $xr.metadata.labels "crossplane.io/claim-name" -}}`}}
+            {{`{{- $actorName := $xr.spec.actorName | default $claimName -}}`}}
+            {{`{{- /* Only create Deployment if workload is specified (not workloadRef) */ -}}`}}
+            {{`{{- if hasKey $xr.spec "workload" -}}`}}
+            {{`{{- $workloadKind := "Deployment" -}}`}}
+            {{`{{- if hasKey $xr.spec.workload "kind" -}}`}}
+              {{`{{- $workloadKind = $xr.spec.workload.kind -}}`}}
+            {{`{{- end -}}`}}
+            {{`{{- $scalingEnabled := true -}}`}}
+            {{`{{- if hasKey $xr.spec "scaling" -}}`}}
+              {{`{{- if hasKey $xr.spec.scaling "enabled" -}}`}}
+                {{`{{- $scalingEnabled = $xr.spec.scaling.enabled -}}`}}
+              {{`{{- end -}}`}}
+            {{`{{- end -}}`}}
+            {{`{{- $replicas := 1 -}}`}}
+            {{`{{- if not $scalingEnabled -}}`}}
+              {{`{{- if hasKey $xr.spec.workload "replicas" -}}`}}
+                {{`{{- $replicas = $xr.spec.workload.replicas -}}`}}
+              {{`{{- end -}}`}}
+            {{`{{- end -}}`}}
+            apiVersion: kubernetes.crossplane.io/v1alpha2
+            kind: Object
+            metadata:
+              annotations:
+                gotemplating.fn.crossplane.io/composition-resource-name: deployment
+            spec:
+              forProvider:
+                manifest:
+                  apiVersion: apps/v1
+                  kind: {{`{{ $workloadKind }}`}}
+                  metadata:
+                    name: {{`{{ $actorName }}`}}
+                    namespace: {{`{{ $namespace }}`}}
+                    labels:
+                      app.kubernetes.io/name: {{`{{ $actorName }}`}}
+                      app.kubernetes.io/component: actor
+                      app.kubernetes.io/part-of: asya
+                      app.kubernetes.io/managed-by: crossplane
+                      asya.sh/actor: {{`{{ $actorName }}`}}
+                      asya.sh/inject: "true"
+                  spec:
+                    replicas: {{`{{ $replicas }}`}}
+                    selector:
+                      matchLabels:
+                        app.kubernetes.io/name: {{`{{ $actorName }}`}}
+                    template:
+                      metadata:
+                        labels:
+                          app.kubernetes.io/name: {{`{{ $actorName }}`}}
+                          asya.sh/actor: {{`{{ $actorName }}`}}
+                          asya.sh/inject: "true"
+                      spec:
+                        serviceAccountName: {{ .Values.irsa.serviceAccountName }}
+                        {{`{{- if hasKey $xr.spec.workload "template" }}`}}
+                        {{`{{- if hasKey $xr.spec.workload.template "spec" }}`}}
+                        {{`{{- $xr.spec.workload.template.spec | toYaml | nindent 24 }}`}}
+                        {{`{{- end }}`}}
+                        {{`{{- end }}`}}
+              providerConfigRef:
+                name: {{ .Values.kubernetesProviderConfig.name }}
+            {{`{{- end }}`}}
+
+    # Patch status back to composite
+    - step: patch-status
       functionRef:
         name: function-patch-and-transform
       input:
         apiVersion: pt.fn.crossplane.io/v1beta1
         kind: Resources
         resources:
-          # SQS Queue for the actor
           - name: sqs-queue
-            base:
-              apiVersion: sqs.aws.upbound.io/v1beta1
-              kind: Queue
-              spec:
-                forProvider:
-                  visibilityTimeoutSeconds: 30
-                  messageRetentionSeconds: 345600
-                  receiveWaitTimeSeconds: 20
-                deletionPolicy: Delete
             patches:
-              # Queue name: asya-{namespace}-{actorName}
-              - type: CombineFromComposite
-                combine:
-                  variables:
-                    - fromFieldPath: metadata.labels["crossplane.io/claim-namespace"]
-                    - fromFieldPath: spec.actorName
-                  strategy: string
-                  string:
-                    fmt: "asya-%s-%s"
-                toFieldPath: spec.forProvider.name
-                policy:
-                  fromFieldPath: Optional
-
-              # Fallback: use claim name if actorName not set
-              - type: CombineFromComposite
-                combine:
-                  variables:
-                    - fromFieldPath: metadata.labels["crossplane.io/claim-namespace"]
-                    - fromFieldPath: metadata.labels["crossplane.io/claim-name"]
-                  strategy: string
-                  string:
-                    fmt: "asya-%s-%s"
-                toFieldPath: spec.forProvider.name
-
-              # Region
-              - type: FromCompositeFieldPath
-                fromFieldPath: spec.region
-                toFieldPath: spec.forProvider.region
-
-              # Provider config reference
-              - type: FromCompositeFieldPath
-                fromFieldPath: spec.providerConfigRef
-                toFieldPath: spec.providerConfigRef.name
-
-              # Tags
-              - type: FromCompositeFieldPath
-                fromFieldPath: metadata.labels["crossplane.io/claim-namespace"]
-                toFieldPath: spec.forProvider.tags["asya.sh/namespace"]
-
-              - type: FromCompositeFieldPath
-                fromFieldPath: spec.actorName
-                toFieldPath: spec.forProvider.tags["asya.sh/actor"]
-                policy:
-                  fromFieldPath: Optional
-
-              - type: FromCompositeFieldPath
-                fromFieldPath: metadata.labels["crossplane.io/claim-name"]
-                toFieldPath: spec.forProvider.tags["asya.sh/actor"]
-
               # Write queue URL to status
               - type: ToCompositeFieldPath
                 fromFieldPath: status.atProvider.id
                 toFieldPath: status.queueUrl
-
               # Write queue ARN to status
               - type: ToCompositeFieldPath
                 fromFieldPath: status.atProvider.arn
                 toFieldPath: status.queueArn
+              # Write queue ready status
+              - type: ToCompositeFieldPath
+                fromFieldPath: status.conditions[?(@.type=='Ready')].status
+                toFieldPath: status.infrastructure.queue.ready
+                transforms:
+                  - type: convert
+                    convert:
+                      toType: bool
+          - name: scaledobject
+            patches:
+              - type: ToCompositeFieldPath
+                fromFieldPath: status.atProvider.manifest.status.conditions[?(@.type=='Ready')].status
+                toFieldPath: status.infrastructure.keda.ready
+                transforms:
+                  - type: convert
+                    convert:
+                      toType: bool
+          - name: deployment
+            patches:
+              - type: ToCompositeFieldPath
+                fromFieldPath: status.atProvider.manifest.status.readyReplicas
+                toFieldPath: status.infrastructure.workload.readyReplicas
+              - type: ToCompositeFieldPath
+                fromFieldPath: status.atProvider.manifest.status.replicas
+                toFieldPath: status.infrastructure.workload.replicas
+
+    # Derive phase from infrastructure status using Sprig default for safe nested access
+    - step: derive-phase
+      functionRef:
+        name: function-go-templating
+      input:
+        apiVersion: gotemplating.fn.crossplane.io/v1beta1
+        kind: GoTemplate
+        source: Inline
+        inline:
+          template: |
+            {{`{{- $xr := .observed.composite.resource -}}`}}
+            {{`{{- $phase := "Creating" -}}`}}
+            {{`{{- $infra := $xr.status.infrastructure | default dict -}}`}}
+            {{`{{- $queueReady := ($infra.queue).ready | default false -}}`}}
+            {{`{{- $kedaReady := ($infra.keda).ready | default false -}}`}}
+            {{`{{- if and $queueReady $kedaReady -}}`}}
+              {{`{{- $phase = "Running" -}}`}}
+              {{`{{- $replicas := ($infra.workload).replicas | default 0 -}}`}}
+              {{`{{- if eq $replicas 0 -}}`}}
+                {{`{{- $phase = "Napping" -}}`}}
+              {{`{{- end -}}`}}
+            {{`{{- end -}}`}}
+            apiVersion: asya.sh/v1alpha1
+            kind: XAsyncActor
+            status:
+              phase: {{`{{ $phase }}`}}
