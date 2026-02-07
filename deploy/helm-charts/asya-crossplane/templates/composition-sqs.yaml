@@ -353,6 +353,15 @@ spec:
             {{`{{- $queueIdentifier := "" -}}`}}
             {{`{{- $queueReady := false -}}`}}
             {{`{{- $kedaReady := false -}}`}}
+            {{`{{- $scalingEnabled := true -}}`}}
+            {{`{{- if hasKey $xr.spec "scaling" -}}`}}
+              {{`{{- if hasKey $xr.spec.scaling "enabled" -}}`}}
+                {{`{{- $scalingEnabled = $xr.spec.scaling.enabled -}}`}}
+              {{`{{- end -}}`}}
+            {{`{{- end -}}`}}
+            {{`{{- if not $scalingEnabled -}}`}}
+              {{`{{- $kedaReady = true -}}`}}
+            {{`{{- end -}}`}}
             {{`{{- $workloadReplicas := 0 -}}`}}
             {{`{{- $workloadReadyReplicas := 0 -}}`}}
             {{`{{- if .observed.resources -}}`}}

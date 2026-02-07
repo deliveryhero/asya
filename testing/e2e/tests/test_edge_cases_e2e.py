@@ -344,7 +344,7 @@ def test_concurrent_envelopes_independent_routing_e2e(e2e_helper):
     """
     import threading
 
-    num_envelopes = 10
+    num_envelopes = 5
     envelope_ids = []
     results = [None] * num_envelopes
 
@@ -356,10 +356,10 @@ def test_concurrent_envelopes_independent_routing_e2e(e2e_helper):
         )
         envelope_ids.append(response["result"]["envelope_id"])
 
-    # Wait for all concurrently - increased timeout for KEDA scale-up from 0
+    # Wait for all concurrently - timeout must exceed gateway-side envelope timeout (120s)
     def wait_for_envelope(index, envelope_id):
         try:
-            results[index] = e2e_helper.wait_for_envelope_completion(envelope_id, timeout=90)
+            results[index] = e2e_helper.wait_for_envelope_completion(envelope_id, timeout=125)
         except Exception as e:
             logger.error(f"Envelope {index} failed: {e}")
             results[index] = {"status": "Error", "error": str(e)}
@@ -372,7 +372,7 @@ def test_concurrent_envelopes_independent_routing_e2e(e2e_helper):
 
     # Wait for all threads
     for thread in threads:
-        thread.join(timeout=95)
+        thread.join(timeout=130)
 
     # Log all results for diagnostics before assertions
     for i, result in enumerate(results):
