@@ -2,7 +2,10 @@
 
 **Status:** Draft
 **Date:** 2026-02-05
+**Updated:** 2026-02-06
 **Topic:** Bridging the gap between Data Scientist experimentation and GitOps production standards.
+
+**Related:** [ADR: AsyncFlow CRD vs Labels](adr-async-flow-crd-vs-labels.md)
 
 ---
 
@@ -17,18 +20,43 @@ A strict "GitOps-only" approach introduces unacceptable latency for experimentat
 
 ### 2. Proposed Solution: The "Imperative-to-GitOps" Promotion Workflow
 
-We will implement a workflow that treats **Imperative Creation** and **GitOps Management** as sequential stages of the actor lifecycle, bridged by a robust `export` utility.
+We implement a workflow that treats **Imperative Creation** and **GitOps Management** as sequential stages of the actor lifecycle. Two complementary bridges connect these stages:
 
-#### 2.1. The Workflow
+#### 2.1. Bridge A: Generate from Source (Primary — for Flows)
+
+The CLI generates clean manifests from source code. No cluster interaction, no sanitization needed.
+
+1. **Develop:** DS writes `flow.py` (flow DSL) and handler code locally.
+2. **Compile:** `asya flow compile flow.py --output-dir compiled/` generates router code and flow graph.
+3. **Test (Imperative):** `asya flow deploy compiled/ --flow-name X -n sandbox` applies directly to cluster. DS iterates on flow logic, scaling, env vars.
+4. **Promote (Declarative):** `asya flow deploy compiled/ --flow-name X --output-dir manifests/` generates YAML files locally (like `helm template`). No cluster mutation.
+5. **Commit:** DS copies manifests to production git repo. ArgoCD/Flux applies.
+
+```
+flow.py ──► asya flow compile ──► compiled/ ──► asya flow deploy --output-dir ──► manifests/
+                                                                                      │
+                                                  Experimentation: kubectl apply ◄────┤
+                                                  Production: git commit + ArgoCD ◄───┘
+```
+
+Generated manifests include `asya.sh/flow=<name>` labels on all actors, enabling flow-level queries (`kubectl get asya -l asya.sh/flow=X`) and lifecycle management (`asya flow undeploy X`). See [ADR: AsyncFlow CRD vs Labels](adr-async-flow-crd-vs-labels.md) for the design rationale.
+
+#### 2.2. Bridge B: Export from Cluster (Complementary — for Individual Actors)
+
+For DS who hand-create individual actors (no flow.py), or who have been tweaking actors in the cluster and want to capture the current state:
 
 1. **Experiment (Imperative):** The user deploys an actor via CLI/UI (`asya run ...`). `asya-stagedoor` talks directly to the Kubernetes API for instant feedback.
 2. **Refine:** The user tests the actors, modifies parameters (memory, model version) imperatively until satisfied.
-3. **Promote (Declarative):** The user runs `asya export <actor-id>`. The tool generates a clean, sanitized YAML manifest.
+3. **Promote (Declarative):** The user runs `asya export <actor-id>`. The tool generates a clean, sanitized YAML manifest (see Section 3: Sanitizer).
 4. **Commit:** The user saves this manifest to their Git repository. The GitOps controller (Flux/Argo) then syncs this state to the production cluster/namespace.
 
-#### 2.2. Supporting Infrastructure Patterns
+**When to use which bridge:**
+- **Bridge A** (generate): Working from `flow.py` source. Preferred for flows, multi-actor pipelines, and reproducible setups.
+- **Bridge B** (export): Hand-created actors, ad-hoc experimentation, or capturing cluster state that diverged from source.
 
-To support the "Experiment" phase (Step 1), `asya-stagedoor` will support two configuration modes depending on the cluster's administrative policy:
+#### 2.3. Supporting Infrastructure Patterns
+
+To support the experimentation phase, two namespace modes are available depending on the cluster's administrative policy:
 
 * **Mode A: Namespace Isolation (Simpler UX)**
 * *Concept:* Specific namespaces (e.g., `sandbox-*`) are unmanaged by GitOps.
@@ -43,11 +71,13 @@ To support the "Experiment" phase (Step 1), `asya-stagedoor` will support two co
 * *Cons:* Complex collaboration of multiple users.
 
 
-### 3. Key Technical Deliverable: The Sanitizer
+### 3. Key Technical Deliverable: The Sanitizer (Bridge B only)
 
-See appendix section for Weak points below.
+See appendix section for weak points below.
 
-To make Step 3 ("Promote") viable, the `export` function must be more than a simple `kubectl get`. It must act as a **Smart Sanitizer**:
+Note: Bridge A (generate from source) does not need sanitization — manifests are generated clean from source code. The sanitizer is needed only for Bridge B (export from cluster), where `kubectl get -o yaml` output contains K8s metadata noise.
+
+To make the export step viable, the `export` function must be more than a simple `kubectl get`. It must act as a **Smart Sanitizer**:
 
 * **Strip Metadata:** Remove `uid`, `resourceVersion`, `managedFields`, and `status`.
 * **Remove Guardrails:** Strip the `prune: disabled` labels so the GitOps controller can take full ownership.
