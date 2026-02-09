@@ -21,51 +21,15 @@ See [KEDA scalers](https://keda.sh/docs/2.18/scalers/) for potential integration
 
 ## Transport Configuration
 
-Transports configured at operator installation time in `deploy/helm-charts/asya-operator/values.yaml`:
+Transport type is specified in the AsyncActor XRD claim via the `transport` field. The Crossplane composition creates the appropriate queue resources.
 
 ```yaml
-transports:
-  rabbitmq:
-    enabled: true
-    type: rabbitmq
-    config:
-      host: rabbitmq.default.svc.cluster.local
-      port: 5672
-      username: guest
-      passwordSecretRef:
-        name: rabbitmq-secret
-        key: password
-      exchange: asya  # Optional, defaults to "asya"
-      queues:
-        autoCreate: true  # Optional, defaults to true
-        forceRecreate: false  # Optional, defaults to false
-        dlq:
-          enabled: true  # Optional
-          maxRetryCount: 3  # Optional, defaults to 3
-  sqs:
-    enabled: true
-    type: sqs
-    config:
-      region: us-east-1
-      endpoint: ""  # Optional, for LocalStack or custom SQS endpoints
-      visibilityTimeout: 300  # Optional, seconds, defaults to 300
-      waitTimeSeconds: 20  # Optional, seconds, defaults to 20
-      queues:
-        autoCreate: true  # Optional, defaults to true
-        forceRecreate: false  # Optional, defaults to false
-        dlq:
-          enabled: true  # Optional
-          maxRetryCount: 3  # Optional, defaults to 3
-          retentionDays: 14  # Optional, defaults to 14
-      tags:  # Optional, tags for created queues
-        Environment: production
-        Team: ml-platform
-```
-
-AsyncActors reference transport by name:
-```yaml
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: my-actor
 spec:
-  transport: sqs  # or rabbitmq
+  transport: sqs  # Validated by XRD enum
 ```
 
 ## Transport Interface

@@ -26,7 +26,7 @@ Production deployment of 🎭 on Amazon EKS.
 
 **EKS Pod Identity** (recommended):
 
-**Operator role** (`asya-operator-role`):
+**Crossplane AWS provider role** (`crossplane-provider-aws-role`):
 ```json
 {
   "Effect": "Allow",
@@ -190,38 +190,44 @@ kubectl apply -f https://raw.githubusercontent.com/aws-samples/amazon-cloudwatch
 
 ## Asya🎭 Deployment
 
-### 1. Install CRDs
+### 1. Install Crossplane
 
 ```bash
-kubectl apply -f https://github.com/deliveryhero/asya/releases/latest/download/asya-crds.yaml
+helm repo add crossplane-stable https://charts.crossplane.io/stable
+helm install crossplane crossplane-stable/crossplane \
+  --namespace crossplane-system --create-namespace
 ```
 
-### 2. Configure Operator Values
+### 2. Configure Crossplane Values
 
 ```yaml
-# operator-values.yaml
-transports:
-  sqs:
-    enabled: true
-    type: sqs
-    config:
-      region: us-east-1
-
-serviceAccount:
-  create: true
-  annotations:
-    eks.amazonaws.com/role-arn: arn:aws:iam::ACCOUNT:role/asya-operator-role
+# crossplane-values.yaml
+awsRegion: us-east-1
+awsProviderConfig:
+  name: default
+  credentialsSource: Secret
+  secretRef:
+    namespace: crossplane-system
+    name: aws-creds
+    key: credentials
 ```
 
-### 3. Install Operator
+### 3. Install Asya Crossplane Chart
 
 ```bash
-helm install asya-operator deploy/helm-charts/asya-operator/ \
-  -n asya-system --create-namespace \
-  -f operator-values.yaml
+helm install asya-crossplane deploy/helm-charts/asya-crossplane/ \
+  -n crossplane-system \
+  -f crossplane-values.yaml
 ```
 
-### 4. Install Gateway (Optional)
+### 4. Install Asya Injector
+
+```bash
+helm install asya-injector deploy/helm-charts/asya-injector/ \
+  -n asya-system --create-namespace
+```
+
+### 5. Install Gateway (Optional)
 
 ```yaml
 # gateway-values.yaml
@@ -251,7 +257,7 @@ helm install asya-gateway deploy/helm-charts/asya-gateway/ \
   -f gateway-values.yaml
 ```
 
-### 5. Install Crew Actors
+### 6. Install Crew Actors
 
 Crew actors are pre-defined system actors for handling common scenarios.
 For example, actors `happy-end` and `error-end` are the common flow finalizers and can persist messages to S3-compatible storage.
@@ -298,7 +304,7 @@ helm install asya-crew deploy/helm-charts/asya-crew/ \
 
 **Note**: IRSA annotation can be set per-actor in AsyncActor spec if needed.
 
-### 6. Deploy Your Actors
+### 7. Deploy Your Actors
 
 ```yaml
 apiVersion: asya.sh/v1alpha1
@@ -331,18 +337,22 @@ kubectl apply -f my-actor.yaml
 ## Verification
 
 ```bash
-# Check operator
+# Check Crossplane
+kubectl get pods -n crossplane-system
+
+# Check injector
 kubectl get pods -n asya-system
 
 # Check KEDA
 kubectl get pods -n keda
 
 # Check actor
-kubectl get asya my-actor
+kubectl get asyncactor my-actor
 kubectl get pods -l asya.sh/actor=my-actor
 
 # Check queue created
 aws sqs list-queues | grep asya-my-actor
+kubectl get sqsqueue
 ```
 
 ## Cost Optimization

@@ -17,7 +17,6 @@ coverage:
   # Unit tests (Go)
   - .coverage/src/asya-sidecar/cov.out
   - .coverage/src/asya-gateway/cov.out
-  - .coverage/src/asya-operator/cov.out
   # Unit tests (Python)
   - .coverage/src/asya-runtime/cov.json
   - .coverage/src/asya-crew/cov.json

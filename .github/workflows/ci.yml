@@ -62,7 +62,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        component: [asya-crew, asya-cli, asya-gateway, asya-operator, asya-runtime, asya-sidecar]
+        component: [asya-crew, asya-cli, asya-gateway, asya-runtime, asya-sidecar]
 
     steps:
     - uses: actions/checkout@v4
@@ -170,8 +170,6 @@ jobs:
         # Simple integration tests (no parametrization)
         - name: gateway
           target: gateway
-        - name: operator
-          target: operator
         - name: sidecar
           target: sidecar
         # Sidecar-runtime tests (2 transports × 2 handler modes)
@@ -270,7 +268,7 @@ jobs:
         - name: sqs-s3
           profile: sqs-s3
           run_pipeline: true
-          run_operator: true
+          run_crossplane: true
           ## For now, focusing on SQS+S3 only
           # - name: rabbitmq-minio
           #   profile: rabbitmq-minio
@@ -298,16 +296,16 @@ jobs:
       run: |
         ./testing/e2e/scripts/deploy.sh
 
-    - name: "Run E2E tests (operator)"
-      if: matrix.run_operator
+    - name: "Run E2E tests (crossplane)"
+      if: matrix.run_crossplane
       continue-on-error: true
-      id: e2e-operator
+      id: e2e-crossplane
       env:
         ASYA_LOG_LEVEL: INFO
       run: |
         source .venv/bin/activate
         cd testing/e2e
-        make test-operator
+        make test-crossplane
 
     ##Ignoring temporarily to speedup iterations (might be affected by asya-vbc)
     # - name: "Run E2E tests: non-chaos (payload)"
@@ -347,8 +345,8 @@ jobs:
       if: always()
       run: |
         FAILED=0
-        if [[ "${{ steps.e2e-operator.outcome }}" == "failure" ]]; then
-          echo "[-] E2E test suite failed: operator"
+        if [[ "${{ steps.e2e-crossplane.outcome }}" == "failure" ]]; then
+          echo "[-] E2E test suite failed: crossplane"
           FAILED=1
         fi
         if [[ "${{ steps.e2e-non-chaos-envelope.outcome }}" == "failure" ]]; then

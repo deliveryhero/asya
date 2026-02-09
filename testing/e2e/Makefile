@@ -1,4 +1,4 @@
-.PHONY: help up test test-operator clean down trigger-tests port-forward-up port-forward-down diagnostics logs debug
+.PHONY: help up test test-crossplane clean down trigger-tests port-forward-up port-forward-down diagnostics logs debug
 MAKEFLAGS += --no-print-directory
 .EXPORT_ALL_VARIABLES:
 
@@ -13,7 +13,7 @@ export PYTEST_OPTS
 export COVERAGERC
 
 # Validate PROFILE is set and valid (only when needed)
-PROFILE_REQUIRED_TARGETS := up test trigger-tests test-operator down clean
+PROFILE_REQUIRED_TARGETS := up test trigger-tests test-crossplane down clean
 ifneq ($(filter $(PROFILE_REQUIRED_TARGETS),$(MAKECMDGOALS)),)
   ifndef PROFILE
     $(error PROFILE is not set. Use: make <target> PROFILE=sqs-s3 or PROFILE=rabbitmq-minio)
@@ -67,15 +67,15 @@ trigger-tests: ## Only trigger tests, assuming that Kind cluster is already up (
 	@echo "[+] Success: E2E tests with $(PROFILE) profile and $(ASYA_HANDLER_MODE) handler mode"
 	$(MAKE) port-forward-down
 
-test-operator: ## Run operator-specific E2E tests (Crossplane + Injector architecture)
-	@echo "[.] Running Operator E2E tests with profile=$(PROFILE)"
+test-crossplane: ## Run Crossplane + Injector E2E tests
+	@echo "[.] Running Crossplane E2E tests with profile=$(PROFILE)"
 	@mkdir -p $(COVERAGE_DIR)
 	$(MAKE) port-forward-up
 	set -a && . ./profiles/.env.$(PROFILE) && set +a && \
-		uv run $(UV_RUN_OPTS) pytest tests/test_operator_e2e.py $(PYTEST_OPTS) \
+		uv run $(UV_RUN_OPTS) pytest tests/test_crossplane_e2e.py $(PYTEST_OPTS) \
 			--cov --cov-config=$(COVERAGERC) --cov-report=term \
-			--cov-report=json:$(COVERAGE_DIR)/cov-$(PROFILE)-operator.json
-	@echo "[+] All Operator E2E tests: PASSED"
+			--cov-report=json:$(COVERAGE_DIR)/cov-$(PROFILE)-crossplane.json
+	@echo "[+] All Crossplane E2E tests: PASSED"
 	$(MAKE) port-forward-down
 
 cov: ## Display e2e test coverage report

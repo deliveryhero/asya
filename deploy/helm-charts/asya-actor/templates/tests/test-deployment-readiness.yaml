@@ -68,7 +68,7 @@ spec:
         while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
           ATTEMPT=$((ATTEMPT + 1))
           if kubectl get $RESOURCE_TYPE "$ACTOR_NAME" -n {{ .Values.namespace }} >/dev/null 2>&1; then
-            echo "[+] $WORKLOAD_KIND '$ACTOR_NAME' created by operator"
+            echo "[+] $WORKLOAD_KIND '$ACTOR_NAME' created by Crossplane"
             break
           fi
           echo "[.] Attempt ${ATTEMPT}/${MAX_ATTEMPTS}: $WORKLOAD_KIND not created yet..."
@@ -78,8 +78,11 @@ spec:
         if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
           echo "[-] FAILED: $WORKLOAD_KIND '$ACTOR_NAME' not created after ${MAX_ATTEMPTS}s"
           echo ""
-          echo "Check operator logs:"
-          echo "  kubectl logs -n {{ .Values.infrastructure.operatorNamespace | default "asya-system" }} deployment/asya-operator"
+          echo "Check Crossplane logs:"
+          echo "  kubectl logs -n crossplane-system deployment/crossplane"
+          echo ""
+          echo "Check asya-injector logs:"
+          echo "  kubectl logs -n {{ .Values.infrastructure.operatorNamespace | default "asya-system" }} deployment/asya-injector"
           echo ""
           echo "AsyncActor status:"
           kubectl get asyncactor -n {{ .Values.namespace }} "$ACTOR_NAME" -o yaml

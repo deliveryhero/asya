@@ -29,7 +29,7 @@ spec:
           echo ""
           echo "The AsyncActor CRD must be installed before deploying actors."
           echo "Install it with:"
-          echo "  kubectl apply -f src/asya-operator/config/crd/"
+          echo "  helm install asya-crossplane deploy/helm-charts/asya-crossplane/"
           echo ""
           exit 1
         fi

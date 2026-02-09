@@ -27,10 +27,11 @@ make up PROFILE=sqs-s3
 
 - Kind cluster
 - KEDA operator
+- Crossplane with AWS provider
 - RabbitMQ or LocalStack SQS
 - MinIO or LocalStack S3
 - PostgreSQL (for gateway)
-- Asya operator, gateway, crew actors, and test actors
+- Asya injector webhook, gateway, crew actors, and test actors
 
 **See**: `testing/e2e/README.md` for details.
 
@@ -91,31 +92,21 @@ kubectl wait --for=condition=ready pod -l app=postgresql \
   -n asya-e2e --timeout=300s
 ```
 
-### 6. Install Asya Operator
+### 6. Install Crossplane and Asya Components
 
 ```bash
-# Install CRDs
-kubectl apply -f https://github.com/deliveryhero/asya/releases/latest/download/asya-crds.yaml
+# Install Crossplane
+helm repo add crossplane-stable https://charts.crossplane.io/stable
+helm install crossplane crossplane-stable/crossplane \
+  --namespace crossplane-system --create-namespace
 
-# Create operator values
-cat > operator-values.yaml <<'EOF'
-transports:
-  rabbitmq:
-    enabled: true
-    type: rabbitmq
-    config:
-      host: asya-rabbitmq.asya-e2e.svc.cluster.local
-      port: 5672
-      username: guest
-      passwordSecretRef:
-        name: rabbitmq-secret
-        key: password
-EOF
+# Install Asya Crossplane chart
+helm install asya-crossplane deploy/helm-charts/asya-crossplane/ \
+  -n crossplane-system
 
-# Install operator
-helm install asya-operator deploy/helm-charts/asya-operator/ \
-  -n asya-system --create-namespace \
-  -f operator-values.yaml
+# Install Asya Injector webhook
+helm install asya-injector deploy/helm-charts/asya-injector/ \
+  -n asya-system --create-namespace
 ```
 
 ### 7. Install Gateway
@@ -320,5 +311,6 @@ kubectl logs -l asya.sh/actor=hello-actor -c asya-sidecar
 
 **Queue not created**:
 ```bash
-kubectl logs -n asya-system deploy/asya-operator
+kubectl describe asyncactor <actor-name>
+kubectl get sqsqueue <queue-name> -o yaml
 ```

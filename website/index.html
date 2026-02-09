@@ -291,11 +291,12 @@
 
         <div class="install-section">
             <h3>Get Started</h3>
-            <p>Add the Helm repository:</p>
-            <div class="code-block code-block-terminal">helm repo add asya https://asya.sh/charts</div>
+            <p>Install Crossplane:</p>
+            <div class="code-block code-block-terminal">helm repo add crossplane-stable https://charts.crossplane.io/stable
+helm install crossplane crossplane-stable/crossplane --namespace crossplane-system --create-namespace</div>
 
-            <p style="margin-top: 1.5rem;">Install the operator:</p>
-            <div class="code-block code-block-terminal">helm install asya-operator asya/asya-operator -n asya-system --create-namespace</div>
+            <p style="margin-top: 1.5rem;">Install Asya compositions:</p>
+            <div class="code-block code-block-terminal">kubectl apply -f https://github.com/deliveryhero/asya/releases/latest/download/asya-crossplane.yaml</div>
         </div>
 
         <div class="features">

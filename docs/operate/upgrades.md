@@ -8,29 +8,30 @@ Asya🎭 is alpha software. APIs may change between versions.
 
 ## Version Compatibility
 
-**CRD compatibility**: Regenerate CRDs after operator upgrades
+**XRD compatibility**: Crossplane XRDs managed via asya-crossplane chart
 **Backward compatibility**: Not guaranteed in alpha
 
 ## Upgrade Procedure
 
-### 1. Backup CRDs
+### 1. Backup AsyncActors
 
 ```bash
-kubectl get asyas -A -o yaml > asyas-backup.yaml
+kubectl get asyncactors -A -o yaml > asyncactors-backup.yaml
 ```
 
-### 2. Upgrade CRDs
+### 2. Upgrade Crossplane Chart
 
 ```bash
-kubectl apply -f https://github.com/deliveryhero/asya/releases/latest/download/asya-crds.yaml
+helm upgrade asya-crossplane deploy/helm-charts/asya-crossplane/ \
+  -n crossplane-system \
+  -f crossplane-values.yaml
 ```
 
-### 3. Upgrade Operator
+### 3. Upgrade Injector
 
 ```bash
-helm upgrade asya-operator deploy/helm-charts/asya-operator/ \
-  -n asya-system \
-  -f operator-values.yaml
+helm upgrade asya-injector deploy/helm-charts/asya-injector/ \
+  -n asya-system
 ```
 
 ### 4. Upgrade Gateway
@@ -50,15 +51,17 @@ helm upgrade asya-crew deploy/helm-charts/asya-crew/ \
 ### 6. Verify
 
 ```bash
+kubectl get pods -n crossplane-system
 kubectl get pods -n asya-system
-kubectl get asyas -A
+kubectl get asyncactors -A
 ```
 
 ## Rollback
 
 ```bash
-helm rollback asya-operator -n asya-system
-kubectl apply -f asyas-backup.yaml
+helm rollback asya-crossplane -n crossplane-system
+helm rollback asya-injector -n asya-system
+kubectl apply -f asyncactors-backup.yaml
 ```
 
 ## Breaking Changes

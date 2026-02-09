@@ -1,7 +1,6 @@
 extends: default
 
 ignore: |
-  src/asya-operator/config/crd/*.yaml
   **/templates/
   **/manifests/
   **/testdata/

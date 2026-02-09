@@ -9,8 +9,7 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # Define source files and their required symlinks
 # Format: "source_file|symlink1 symlink2 ..."
 SYMLINK_MAPPINGS=(
-  "src/asya-runtime/asya_runtime.py|src/asya-operator/internal/controller/runtime_symlink/asya_runtime.py testing/integration/operator/testdata/runtime_symlink/asya_runtime.py deploy/helm-charts/asya-crossplane/files/asya_runtime.py"
-  "src/asya-operator/config/crd/asya.sh_asyncactors.yaml|deploy/helm-charts/asya-operator/crds/asya.sh_asyncactors.yaml"
+  "src/asya-runtime/asya_runtime.py|deploy/helm-charts/asya-crossplane/files/asya_runtime.py"
 )
 
 EXIT_CODE=0

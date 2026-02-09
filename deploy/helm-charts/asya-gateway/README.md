@@ -106,16 +106,14 @@ helm install asya-gateway deploy/helm-charts/asya-gateway \
   --set transports.sqs.config.endpoint=http://localstack:4566
 ```
 
-### Transport Alignment with Operator
+### Transport Configuration
 
-**Important**: The gateway's transport configuration must align with the operator's transport configuration in `deploy/helm-charts/asya-operator/values.yaml`:
+**Important**: The gateway's transport configuration must match the transport used by your AsyncActor resources:
 
-- Both must support the same transport backends (RabbitMQ and/or SQS)
-- RabbitMQ configuration must specify the same host, port, username, and credentials
-- SQS configuration must specify the same region, endpoint, and visibility timeout
+- Gateway must support the same transport backends (RabbitMQ and/or SQS)
+- RabbitMQ configuration must specify the same host, port, username, and credentials as actor deployments
+- SQS configuration must specify the same region and endpoint as actor deployments
 - Misaligned configurations will cause message delivery failures
-
-See `deploy/helm-charts/asya-operator/README.md` for operator transport configuration details.
 
 ### PostgreSQL Configuration (bundled)
 

@@ -1,5 +1,5 @@
 # Central Makefile chaining targets in other Makefiles
-.PHONY: setup lint test test-unit test-component clean-component test-integration clean-integration test-e2e up-e2e clean-e2e diagnostics-e2e build-go build-images manifests clean cov docs-serve docs-build
+.PHONY: setup lint test test-unit test-component clean-component test-integration clean-integration test-e2e up-e2e clean-e2e diagnostics-e2e build-go build-images clean cov docs-serve docs-build
 MAKEFLAGS += --no-print-directory
 .EXPORT_ALL_VARIABLES:
 
@@ -8,7 +8,6 @@ GREEN_END := \033[0m
 
 GOLANGCI_LINT_VERSION := v1.64.8
 GOIMPORTS_VERSION := v0.28.0
-SETUP_ENVTEST_VERSION := latest
 
 # =============================================================================
 # Development
@@ -24,14 +23,11 @@ setup: ## Set up development environment (install deps, pre-commit hooks)
 	@echo "[+] Installing Go linting tools..."
 	@command -v goimports >/dev/null 2>&1 || go install golang.org/x/tools/cmd/goimports@$(GOIMPORTS_VERSION)
 	@command -v golangci-lint >/dev/null 2>&1 || go install github.com/golangci/golangci-lint/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
-	@echo "[+] Installing Go testing tools..."
-	@command -v setup-envtest >/dev/null 2>&1 || go install sigs.k8s.io/controller-runtime/tools/setup-envtest@$(SETUP_ENVTEST_VERSION)
 	@echo "[+] Installing pre-commit hooks..."
 	uv run pre-commit install
 	@echo "[+] Syncing Go dependencies..."
 	cd src/asya-gateway && go mod download && go mod tidy
 	cd src/asya-sidecar && go mod download && go mod tidy
-	cd src/asya-operator && go mod download && go mod tidy
 	cd src/asya-injector && go mod download && go mod tidy
 	@echo "[++] Setup complete! Ready for development."
 
@@ -58,7 +54,6 @@ test-unit: ## Run unit tests (go + python)
 	$(MAKE) -C src/asya-runtime test-unit
 	$(MAKE) -C src/asya-crew test-unit
 	$(MAKE) -C src/asya-cli test-unit
-	$(MAKE) -C src/asya-operator test-unit
 	$(MAKE) -C src/asya-injector test-unit
 	@echo "$(GREEN_START)[++] Success: All unit tests completed successfully!$(GREEN_END)"
 
@@ -102,7 +97,6 @@ clean-e2e: ## Delete Kind cluster and cleanup
 cov: ## Run all tests with coverage and display summary
 	$(MAKE) -C src/asya-sidecar cov-unit
 	$(MAKE) -C src/asya-gateway cov-unit
-	$(MAKE) -C src/asya-operator cov-unit
 	$(MAKE) -C src/asya-injector cov-unit
 	$(MAKE) -C src/asya-runtime cov-unit
 	$(MAKE) -C src/asya-crew cov-unit
@@ -118,13 +112,8 @@ cov: ## Run all tests with coverage and display summary
 build-go: ## Build all Go components
 	$(MAKE) -C src/asya-gateway build
 	$(MAKE) -C src/asya-sidecar build
-	$(MAKE) -C src/asya-operator build
 	$(MAKE) -C src/asya-injector build
 	@echo "$(GREEN_START)[++] Success: All Go components built successfully!$(GREEN_END)"
-
-manifests: ## Regenerate operator CRDs and manifests
-	$(MAKE) -C src/asya-operator manifests
-	@echo "$(GREEN_START)[+] Operator manifests regenerated (Helm chart uses symlink to src/asya-operator/config/crd/)$(GREEN_END)"
 
 build-images: ## Build all Docker images for the framework
 	./src/build-images.sh

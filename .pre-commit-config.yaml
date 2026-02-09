@@ -107,25 +107,18 @@ repos:
   rev: v0.5.1
   hooks:
   - id: go-fmt
-    files: &go-files ^src/(asya-sidecar|asya-gateway|asya-operator)/.*\.go$
+    files: &go-files ^src/(asya-sidecar|asya-gateway)/.*\.go$
   - id: go-imports
     files: *go-files
-    exclude: zz_generated\..*\.go$
   - id: no-go-testing
     files: *go-files
     exclude: _test\.go$
   - id: go-mod-tidy
-    files: ^src/(asya-sidecar|asya-gateway|asya-operator)/go\.(mod|sum)$
+    files: ^src/(asya-sidecar|asya-gateway)/go\.(mod|sum)$
 
 # golangci-lint for each Go module
 - repo: local
   hooks:
-  - id: golangci-lint-operator
-    name: golangci-lint (operator)
-    entry: bash -c 'cd src/asya-operator && golangci-lint run ${VERBOSE:+--verbose} --fix ./...'
-    language: system
-    files: ^src/asya-operator/.*\.go$
-    pass_filenames: false
   - id: golangci-lint-sidecar
     name: golangci-lint (sidecar)
     entry: bash -c 'cd src/asya-sidecar && golangci-lint run ${VERBOSE:+--verbose} --fix ./...'
@@ -137,22 +130,6 @@ repos:
     entry: bash -c 'cd src/asya-gateway && golangci-lint run ${VERBOSE:+--verbose} --fix ./...'
     language: system
     files: ^src/asya-gateway/.*\.go$
-    pass_filenames: false
-
-# Operator code generation
-- repo: local
-  hooks:
-  - id: operator-generate
-    name: operator generate (DeepCopy)
-    entry: bash -c 'cd src/asya-operator && make generate && git diff --exit-code api/v1alpha1/zz_generated.deepcopy.go'
-    language: system
-    files: ^src/asya-operator/api/.*\.go$
-    pass_filenames: false
-  - id: operator-manifests
-    name: operator manifests (CRDs)
-    entry: bash -c 'cd src/asya-operator && make manifests && git diff --exit-code config/crd/'
-    language: system
-    files: ^src/asya-operator/api/.*\.go$
     pass_filenames: false
 
 # Shell script formatting (auto-fix)
@@ -189,7 +166,7 @@ repos:
   rev: v0.14.0
   hooks:
   - id: yamlfmt
-    exclude: (^|/)templates/|operator/config/crd/|zz_generated
+    exclude: (^|/)templates/|zz_generated
 
 # YAML linting
 - repo: https://github.com/adrienverge/yamllint

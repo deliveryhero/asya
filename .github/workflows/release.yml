@@ -58,7 +58,6 @@ jobs:
         REGISTRY: ghcr.io/${{ github.repository_owner }}
       run: |
         IMAGES=(
-          "asya-operator"
           "asya-gateway"
           "asya-sidecar"
           "asya-crew"
@@ -81,7 +80,6 @@ jobs:
 
         The following images have been published to GitHub Container Registry:
 
-        - \`ghcr.io/${{ github.repository_owner }}/asya-operator:${{ steps.version.outputs.version }}\`
         - \`ghcr.io/${{ github.repository_owner }}/asya-gateway:${{ steps.version.outputs.version }}\`
         - \`ghcr.io/${{ github.repository_owner }}/asya-sidecar:${{ steps.version.outputs.version }}\`
         - \`ghcr.io/${{ github.repository_owner }}/asya-crew:${{ steps.version.outputs.version }}\`
@@ -191,7 +189,6 @@ jobs:
 
         Install charts:
         \`\`\`bash
-        helm install asya-operator asya/asya-operator --version ${{ steps.version.outputs.version }}
         helm install asya-gateway asya/asya-gateway --version ${{ steps.version.outputs.version }}
         \`\`\`
         EOF

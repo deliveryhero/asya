@@ -101,7 +101,7 @@ spec:
             value: "asya-results"
 ```
 
-See [operator README](../asya-operator/README.md) for operator deployment.
+See [Crossplane README](../../deploy/helm-charts/asya-crossplane/README.md) for deployment.
 
 ## Testing
 

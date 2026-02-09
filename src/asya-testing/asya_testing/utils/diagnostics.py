@@ -297,9 +297,9 @@ def log_full_e2e_diagnostics(namespace: str | None = None, transport: str | None
     logger.info(f"=== Namespace: {namespace} ===")
     logger.info("=" * 80)
 
-    # Operator
-    log_deployment_status("asya-operator", "asya-system")
-    log_pod_status("app.kubernetes.io/name=asya-operator", "Operator", "asya-system")
+    # Injector
+    log_deployment_status("asya-injector", "asya-system")
+    log_pod_status("app.kubernetes.io/name=asya-injector", "Injector", "asya-system")
 
     # Gateway
     log_deployment_status("asya-gateway", namespace)
