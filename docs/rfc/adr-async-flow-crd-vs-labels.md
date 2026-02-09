@@ -12,7 +12,7 @@ Asya actors are flat: each `AsyncActor` claim is an independent unit with its ow
 
 We needed a mechanism to:
 - **Group actors** belonging to the same flow (for queries, lifecycle, observability)
-- **Deploy flows** as coherent units (routers + processors + config)
+- **Deploy and get status of flows** as coherent units (routers + processors + gateway config)
 - **Expose flows** as MCP tools via the gateway
 - **Support GitOps** (declarative, reproducible, auditable)
 
