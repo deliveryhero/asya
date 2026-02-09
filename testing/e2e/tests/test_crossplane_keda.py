@@ -96,40 +96,40 @@ class TestXrdActorField:
         assert xrd is not None, "xasyncactors.asya.sh XRD should exist"
         return xrd
 
-    def _get_spec_schema(self, xrd: dict) -> dict:
-        """Extract spec schema from XRD."""
+    @pytest.fixture
+    def v1alpha1_version(self, xrd: dict) -> dict:
+        """Get the v1alpha1 version definition from the XRD."""
         versions = xrd["spec"]["versions"]
-        v1alpha1 = next(v for v in versions if v["name"] == "v1alpha1")
-        return v1alpha1["schema"]["openAPIV3Schema"]["properties"]["spec"]
+        return next(v for v in versions if v["name"] == "v1alpha1")
 
-    def test_actor_is_required(self, xrd):
+    @pytest.fixture
+    def spec_schema(self, v1alpha1_version: dict) -> dict:
+        """Extract spec schema from the v1alpha1 version."""
+        return v1alpha1_version["schema"]["openAPIV3Schema"]["properties"]["spec"]
+
+    def test_actor_is_required(self, spec_schema):
         """Test that actor is listed in required fields."""
-        spec_schema = self._get_spec_schema(xrd)
         required = spec_schema.get("required", [])
         assert "actor" in required, "spec.actor should be a required field"
 
-    def test_actor_field_properties(self, xrd):
+    def test_actor_field_properties(self, spec_schema):
         """Test that actor field has correct validation constraints."""
-        spec_schema = self._get_spec_schema(xrd)
         actor = spec_schema["properties"]["actor"]
 
         assert actor["type"] == "string"
         assert actor["minLength"] == 1
         assert actor["maxLength"] == 63
 
-    def test_actor_field_pattern(self, xrd):
+    def test_actor_field_pattern(self, spec_schema):
         """Test that actor field enforces DNS-compatible naming."""
-        spec_schema = self._get_spec_schema(xrd)
         actor = spec_schema["properties"]["actor"]
 
         assert "pattern" in actor, "actor field should have a regex pattern"
         assert actor["pattern"] == "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$"
 
-    def test_actor_printer_column(self, xrd):
+    def test_actor_printer_column(self, v1alpha1_version):
         """Test that Actor printer column exists for kubectl output."""
-        versions = xrd["spec"]["versions"]
-        v1alpha1 = next(v for v in versions if v["name"] == "v1alpha1")
-        columns = v1alpha1.get("additionalPrinterColumns", [])
+        columns = v1alpha1_version.get("additionalPrinterColumns", [])
         column_names = [c["name"] for c in columns]
 
         assert "Actor" in column_names, "Should have Actor printer column"
