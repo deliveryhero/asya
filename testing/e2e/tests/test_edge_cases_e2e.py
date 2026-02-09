@@ -336,7 +336,7 @@ def test_concurrent_envelopes_independent_routing_e2e(e2e_helper):
     """
     E2E: Test concurrent envelopes route independently.
 
-    Scenario: Send 10 envelopes concurrently to same queue
+    Scenario: Send 5 envelopes concurrently to same queue
     Expected:
     - All envelopes processed independently
     - No cross-contamination of results
@@ -347,6 +347,20 @@ def test_concurrent_envelopes_independent_routing_e2e(e2e_helper):
     num_envelopes = 5
     envelope_ids = []
     results = [None] * num_envelopes
+
+    # Warm up: ensure the test-echo actor is scaled up before concurrent sends.
+    # KEDA scale-from-zero can take 30-90s under CI load, which would eat into
+    # the gateway's per-envelope timeout and cause spurious failures.
+    warmup_response = e2e_helper.call_mcp_tool(
+        tool_name="test_echo",
+        arguments={"message": "warmup"},
+    )
+    warmup_id = warmup_response["result"]["envelope_id"]
+    warmup_result = e2e_helper.wait_for_envelope_completion(warmup_id, timeout=120)
+    assert warmup_result["status"] == "succeeded", (
+        f"Warm-up envelope failed: {warmup_result.get('error', 'unknown error')}"
+    )
+    logger.info("[+] Actor warm-up complete, starting concurrent test")
 
     # Create all envelopes
     for i in range(num_envelopes):
