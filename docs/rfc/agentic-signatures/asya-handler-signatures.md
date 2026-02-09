@@ -609,3 +609,30 @@ Based on the 14-framework survey (`asya-handler-syntax-comparisons.md`), **Googl
 - [Python inspect module](https://docs.python.org/3/library/inspect.html)
 - [PEP 484 - Type Hints](https://peps.python.org/pep-0484/)
 - [PEP 525 - Asynchronous Generators](https://peps.python.org/pep-0525/)
+
+
+---
+
+What Asya Should Do About Typed Payloads
+
+You're right that bare dicts don't scale. Here's a pragmatic path:
+
+# Level 1: Current (bare dict, no schema) — still supported
+def process(p: dict) -> dict:
+    return {"result": p["input"] * 2}
+
+# Level 2: TypedDict (compile-time checking, zero runtime cost)
+from typing import TypedDict
+
+class WeatherPayload(TypedDict):
+    city: str
+    timezone: str  # enriched by previous actor
+
+def detect_timezone(p: WeatherPayload) -> WeatherPayload:
+    p["timezone"] = lookup_tz(p["city"])
+    return p
+
+# Level 3: Typed handler (sidecar handles enrichment)
+def detect_timezone(city: str) -> str:
+    """Sidecar extracts city from payload, stores result under output_key."""
+    return lookup_tz(city)

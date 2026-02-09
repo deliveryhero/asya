@@ -1,0 +1,584 @@
+
+ ▐▛███▜▌   Claude Code v2.1.37
+▝▜█████▛▘  Opus 4.6 · API Usage Billing
+  ▘▘ ▝▝    ~/asya/.worktrees/rfc0
+
+  Welcome to Opus 4.6
+
+✻ Conversation compacted (ctrl+o for history)
+
+  ⎿  Referenced file docs/rfc/asya-handler-signatures.md
+  ⎿  Referenced file AGENTS.md
+  ⎿  Read CLAUDE.md (2 lines)
+  ⎿  Referenced file docs/rfc/asya-handler-syntax-comparisons.md
+  ⎿  Referenced file docs/rfc/asya-bi8-agentic-asya.md
+
+● Task "Research Google ADK syntax" completed in background
+
+● Task "Research smolagents syntax" completed in background
+
+● Task "Research CrewAI syntax" completed in background
+
+● Task "Research LlamaIndex syntax" completed in background
+
+● Task "Research OpenAI Swarm syntax" completed in background
+
+● Task "Research AutoGen syntax" completed in background
+
+● Task "Research Agno/phidata syntax" completed in background
+
+● Task "Research Mastra syntax" completed in background
+
+● Task "Research Anthropic + Bee syntax" completed in background
+
+● Task "Research DSPy + LangGraph" completed in background
+  ⎿  Skills restored (superpowers:brainstorming)
+
+● Continuing from where we left off — let me fetch the real ADK source code and
+  samples to validate our prototype against actual examples. I'll pull ADK's
+  sequential_agent.py and browse the samples repo in parallel.
+
+● Fetch(https://raw.githubusercontent.com/google/adk-python/8d0279251ce4fad6f0c8
+       4bd7777eb5a74f7ba07a/src/google/adk/agents/sequential_agent.py)
+  ⎿  Received 5.3KB (200 OK)
+
+● Fetch(https://github.com/google/adk-samples/tree/main/python)
+  ⎿  Received 205.4KB (200 OK)
+
+● Fetch(https://raw.githubusercontent.com/google/adk-python/8d0279251ce4fad6f0c8
+       4bd7777eb5a74f7ba07a/src/google/adk/agents/base_agent.py)
+  ⎿  Received 21.1KB (200 OK)
+
+● Fetch(https://raw.githubusercontent.com/google/adk-python/8d0279251ce4fad6f0c8
+       4bd7777eb5a74f7ba07a/src/google/adk/agents/loop_agent.py)
+  ⎿  Received 5.2KB (200 OK)
+  ⎿  Loaded AGENTS.md
+
+● Excellent! Now let me get the actual samples list and the critical LlmAgent
+  implementation — that's where the real tool-calling ReAct loop lives:
+
+● Fetch(https://github.com/google/adk-samples/tree/main/python/agents)
+  ⎿  Received 238.4KB (200 OK)
+
+● Fetch(https://raw.githubusercontent.com/google/adk-python/8d0279251ce4fad6f0c8
+       4bd7777eb5a74f7ba07a/src/google/adk/agents/llm_agent.py)
+  ⎿  Received 34.6KB (200 OK)
+
+● Fetch(https://raw.githubusercontent.com/google/adk-python/8d0279251ce4fad6f0c8
+       4bd7777eb5a74f7ba07a/src/google/adk/agents/parallel_agent.py)
+  ⎿  Received 7KB (200 OK)
+
+● The actual ReAct loop lives inside AutoFlow (not directly in LlmAgent). Let me
+   get that, plus a concrete sample agent for validation:
+
+● Fetch(https://raw.githubusercontent.com/google/adk-python/8d0279251ce4fad6f0c8
+       4bd7777eb5a74f7ba07a/src/google/adk/flows/llm_flows/auto_flow.py)
+  ⎿  Received 1.4KB (200 OK)
+
+● Fetch(https://github.com/google/adk-samples/tree/main/python/agents/brand-sear
+       ch-optimization)
+  ⎿  Received 234.4KB (200 OK)
+
+● Fetch(https://github.com/google/adk-samples/tree/main/python/agents/brand-sear
+       ch-optimization/brand_search_optimization)
+  ⎿  Received 189.7KB (200 OK)
+
+● Let me get the actual ReAct loop (in SingleFlow) and a cleaner sample agent:
+
+● Fetch(https://raw.githubusercontent.com/google/adk-python/8d0279251ce4fad6f0c8
+       4bd7777eb5a74f7ba07a/src/google/adk/flows/llm_flows/single_flow.py)
+  ⎿  Received 2.6KB (200 OK)
+
+● Fetch(https://raw.githubusercontent.com/google/adk-samples/main/python/agents/
+       brand-search-optimization/brand_search_optimization/agent.py)
+  ⎿  Received 1.2KB (200 OK)
+
+● Fetch(https://raw.githubusercontent.com/google/adk-samples/main/python/agents/
+       order-processing/order_processing/agent.py)
+  ⎿  Received 885 bytes (200 OK)
+
+● Let me find the actual ReAct loop implementation — it's likely in BaseLlmFlow
+  — and a richer multi-agent sample:
+
+● Fetch(https://raw.githubusercontent.com/google/adk-python/8d0279251ce4fad6f0c8
+       4bd7777eb5a74f7ba07a/src/google/adk/flows/llm_flows/base_llm_flow.py)
+  ⎿  Received 41.9KB (200 OK)
+
+● Fetch(https://raw.githubusercontent.com/google/adk-samples/main/python/agents/
+       customer-service/customer_service/agent.py)
+  ⎿  Received 2.1KB (200 OK)
+
+● Let me get one more critical piece — a multi-agent sample that uses
+  SequentialAgent/ParallelAgent/LoopAgent:
+
+● Fetch(https://raw.githubusercontent.com/google/adk-samples/main/python/agents/
+       travel-concierge/travel_concierge/agent.py)
+  ⎿  Received 1.9KB (200 OK)
+
+● Fetch(https://raw.githubusercontent.com/google/adk-samples/main/python/agents/
+       hierarchical-workflow-automation/hierarchical_workflow_automation/agent.p
+       y)
+  ⎿  Error: Request failed with status code 404
+
+● Fetch(https://github.com/google/adk-samples/tree/main/python/agents/hierarchic
+       al-workflow-automation/hierarchical_workflow_automation)
+  ⎿  Error: Request failed with status code 404
+
+● Fetch(https://github.com/google/adk-samples/tree/main/python/agents/hierarchic
+       al-workflow-automation)
+  ⎿  Received 325.6KB (200 OK)
+
+● Fetch(https://raw.githubusercontent.com/google/adk-samples/main/python/agents/
+       blog-writer/blog_writer/agent.py)
+  ⎿  Error: Request failed with status code 404
+
+● Fetch(https://raw.githubusercontent.com/google/adk-samples/main/python/agents/
+       llm-auditor/llm_auditor/agent.py)
+  ⎿  Received 1.1KB (200 OK)
+
+● Now let me get the full LLM Auditor sample — it's a clean SequentialAgent
+  example:
+
+● Fetch(https://github.com/google/adk-samples/tree/main/python/agents/llm-audito
+       r/llm_auditor)
+  ⎿  Received 188.5KB (200 OK)
+
+● Fetch(https://github.com/google/adk-samples/tree/main/python/agents/llm-audito
+       r/llm_auditor/sub_agents)
+  ⎿  Received 189.1KB (200 OK)
+
+● Fetch(https://raw.githubusercontent.com/google/adk-samples/main/python/agents/
+       llm-auditor/llm_auditor/sub_agents/critic_agent.py)
+  ⎿  Error: Request failed with status code 404
+
+● Fetch(https://raw.githubusercontent.com/google/adk-samples/main/python/agents/
+       llm-auditor/llm_auditor/sub_agents/reviser_agent.py)
+  ⎿  Error: Request failed with status code 404
+
+● Fetch(https://raw.githubusercontent.com/google/adk-samples/main/python/agents/
+       llm-auditor/llm_auditor/sub_agents/critic/agent.py)
+  ⎿  Received 2.4KB (200 OK)
+
+● Fetch(https://raw.githubusercontent.com/google/adk-samples/main/python/agents/
+       llm-auditor/llm_auditor/sub_agents/reviser/agent.py)
+  ⎿  Received 1.5KB (200 OK)
+
+● Fetch(https://raw.githubusercontent.com/google/adk-samples/main/python/agents/
+       llm-auditor/llm_auditor/agent.py)
+  ⎿  Received 1.1KB (200 OK)
+
+● Now I have the complete picture from real ADK source code. Let me also check
+  the current state of the RFC before synthesizing:
+
+● Read 1 file (ctrl+o to expand)
+
+● Now I have the complete picture from real ADK source code. Let me synthesize
+  this into a clear analysis of how the compiler would work.
+
+  ---
+  ★ Insight ─────────────────────────────────────
+
+  What I learned from studying ADK internals (real source code, not docs):
+
+  1. ADK's orchestration agents are surprisingly simple —
+  SequentialAgent._run_async_impl is just a for loop over sub-agents, yielding
+  their events. LoopAgent wraps that in another loop with max_iterations.
+  ParallelAgent uses asyncio.TaskGroup. The complexity lives in BaseLlmFlow,
+  which handles the ReAct loop (call LLM → detect tool calls → execute → feed
+  back → repeat).
+  2. All ADK orchestration works by generator composition — a parent agent
+  yields events from child agents via async for event in
+  sub_agent.run_async(ctx): yield event. This is in-process generator nesting —
+  which fundamentally cannot work in a distributed system where each agent runs
+  on a different pod.
+  3. ADK's tool execution is in-process too — when BaseLlmFlow detects a tool
+  call, it executes the tool function locally and feeds the result back. No
+  message passing, no queues.
+
+  ─────────────────────────────────────────────────
+
+  Analysis: Compiling ADK-Style Agents to Asya Actor Networks
+
+  The Real ADK Examples
+
+  Example 1: LLM Auditor (the cleanest multi-agent sample I found)
+
+  # ADK declarative code (from adk-samples/llm-auditor)
+  from google.adk.agents import SequentialAgent
+
+  llm_auditor = SequentialAgent(
+      name="llm_auditor",
+      sub_agents=[critic_agent, reviser_agent],
+  )
+
+  Where:
+  - critic_agent = Agent(model="gemini-2.5-flash", tools=[google_search],
+  instruction="...", after_model_callback=_render_reference)
+  - reviser_agent = Agent(model="gemini-2.5-flash", instruction="...",
+  after_model_callback=_remove_end_of_edit_mark)
+
+  Example 2: Brand Search Optimization (hierarchical multi-agent)
+
+  root_agent = Agent(
+      model="...",
+      sub_agents=[keyword_finding_agent, search_results_agent,
+  comparison_root_agent],
+      instruction=ROOT_PROMPT,
+  )
+
+  Here the root agent is an LlmAgent (not SequentialAgent), meaning the LLM
+  itself decides which sub-agent to invoke via agent transfer — essentially an
+  LLM-powered router.
+
+  What ADK does internally at SequentialAgent level
+
+  From the actual sequential_agent.py source I fetched:
+
+  async def _run_async_impl(self, ctx: InvocationContext) ->
+  AsyncGenerator[Event, None]:
+      for i in range(start_index, len(self.sub_agents)):
+          sub_agent = self.sub_agents[i]
+          async with Aclosing(sub_agent.run_async(ctx)) as agen:
+              async for event in agen:
+                  yield event
+                  if ctx.should_pause_invocation(event):
+                      return
+
+  This is generator composition — the parent yields child events. Each
+  sub_agent.run_async(ctx) returns an async generator. The parent iterates it,
+  forwarding events.
+
+  The Key Transformation: CPS (Continuation-Passing Style)
+
+  The user's vision is to take an async function and treat each await as a split
+   point. This is essentially CPS transformation applied to message passing:
+
+                        async function                          actor network
+                        ──────────────                          ─────────────
+                   ┌─ code before await ─┐              ┌─ Actor A (router) ─┐
+                   │                     │              │ prepares payload,   │
+                   │ state = await X()   │  ──compile──▶│ sends to X         │
+                   │                     │              └────────────────────┘
+                   │ code after await    │              ┌─ Actor X           ─┐
+                   │ state = await Y()   │              │ does work, returns  │
+                   │                     │              └────────────────────┘
+                   │ return state        │              ┌─ Continuation Rtr  ─┐
+                   └─────────────────────┘              │ receives X result,  │
+                                                        │ sends to Y          │
+                                                        └────────────────────┘
+
+  Each await splits the function into:
+  - Before-await → current actor (does work, sends message)
+  - After-await → continuation actor (receives result, continues)
+
+  Applying to the LLM Auditor
+
+  Step 1: User writes the Asya async flow (simplified version of ADK's
+  SequentialAgent):
+
+  # asya flow (async version)
+  async def llm_auditor(state: dict) -> dict:
+      state = await critic(state)     # await split #1
+      state = await reviser(state)    # await split #2
+      return state
+
+  Step 2: But critic is an LLM agent with tools. The user writes its event loop
+  too:
+
+  async def critic(state: dict) -> AsyncGenerator[dict, None]:
+      messages = state.get("messages", [{"role": "user", "content":
+  state["query"]}])
+
+      while True:
+          response = await llm_call(messages, model="gemini-2.5-flash")  # await
+   split
+
+          if response.tool_calls:
+              for tc in response.tool_calls:
+                  result = await google_search(**tc.args)  # await split
+                  messages.append({"role": "tool", "content": result,
+  "tool_call_id": tc.id})
+          else:
+              # Last yield = control event (our Option B convention)
+              yield {"type": "result", "critique": response.text, "messages":
+  messages}
+              return
+
+  Step 3: Compiler decomposes at each await
+
+  The compiler sees:
+  1. await llm_call(...) → split: send to LLM actor, finish
+  2. await google_search(...) → split: send to tool actor, finish
+  3. while True → loop: generate a router that loops back
+  4. if response.tool_calls → conditional: generate a dispatch router
+  5. yield {"type": "result", ...} → final event: pass to next actor in parent
+  flow
+
+  Step 4: Generated actor network
+
+                       ┌──────────────────────────────────────────────┐
+                       │              LLM AUDITOR FLOW                │
+                       │                                              │
+   ┌─────────────┐    │  ┌──────────┐    ┌──────────────────┐       │
+   │ entry-router │───▶│  │ llm-call │───▶│ dispatch-router  │       │
+   └─────────────┘    │  └──────────┘    └───┬──────────┬───┘       │
+                       │                      │          │            │
+                       │          tool_calls  │          │  no tools  │
+                       │                      ▼          │            │
+                       │             ┌──────────────┐    │            │
+                       │             │google-search │    │            │
+                       │             └──────┬───────┘    │            │
+                       │                    │            │            │
+                       │                    ▼            │            │
+                       │            ┌──────────────┐     │            │
+                       │            │collect-router│     │            │
+                       │            └──────┬───────┘     │            │
+                       │                   │             │            │
+                       │         ┌─────────┘             │            │
+                       │         │(loop back)            │            │
+                       │         ▼                       ▼            │
+                       │    [llm-call]             ┌──────────┐       │
+                       │                          │ reviser  │       │
+                       │                          │ llm-call │       │
+                       │                          └─────┬────┘       │
+                       │                                │            │
+                       └────────────────────────────────┼────────────┘
+                                                        │
+                                                        ▼
+                                                   (happy-end)
+
+  Actors deployed:
+  Actor: entry-router
+  Type: Generated router
+  What it does: Initializes messages array if needed, routes to llm-call
+  ────────────────────────────────────────
+  Actor: llm-call
+  Type: LLM actor
+  What it does: Calls Gemini with messages + tools, returns response
+  ────────────────────────────────────────
+  Actor: dispatch-router
+  Type: Generated router
+  What it does: Checks response.tool_calls: if yes → google-search, if no →
+    reviser-llm-call
+  ────────────────────────────────────────
+  Actor: google-search
+  Type: Tool actor
+  What it does: Executes Google Search API, returns result
+  ────────────────────────────────────────
+  Actor: collect-router
+  Type: Generated router
+  What it does: Appends tool result to messages, routes back to llm-call (loop)
+  ────────────────────────────────────────
+  Actor: reviser-llm-call
+  Type: LLM actor
+  What it does: Calls Gemini with critique + original query, returns revised
+    answer
+  State traveling in payload:
+  {
+    "query": "What is the capital of France?",
+    "messages": [
+      {"role": "user", "content": "What is the capital of France?"},
+      {"role": "assistant", "content": null, "tool_calls": [...]},
+      {"role": "tool", "content": "Paris is the capital...", "tool_call_id":
+  "tc_1"},
+      {"role": "assistant", "content": "The capital of France is Paris..."}
+    ],
+    "critique": "The answer is factually correct. References: [1] ...",
+    "revised_answer": "Paris is the capital of France. [Source: ...]"
+  }
+
+  Every actor is stateless. The full conversation state travels in the payload.
+  Any of the 100 pods of llm-call can pick up the next iteration.
+
+  The Compiler's Job: Decomposing at await
+
+  Here's what the compiler does, step by step:
+
+  # INPUT: User's async function
+  async def critic(state: dict) -> AsyncGenerator[dict, None]:
+      messages = state.get("messages", [])          # ← mutation (batched into
+  router)
+
+      while True:                                    # ← loop construct
+          response = await llm_call(messages)        # ← SPLIT: actor "llm-call"
+
+          if response.tool_calls:                    # ← conditional (router)
+              for tc in response.tool_calls:
+                  result = await google_search(tc)    # ← SPLIT: actor
+  "google-search"
+                  messages.append(tool_result(tc, result))  # ← mutation
+  (collect-router)
+          else:
+              yield {"type": "result", ...}          # ← control event → next
+  actor
+              return
+
+  Compiler output — pseudo-IR:
+  BLOCK entry:
+      mutation: messages = state.get("messages", [])
+      goto: llm_call
+
+  BLOCK llm_call:
+      actor: llm_call(messages) → response
+      goto: dispatch
+
+  BLOCK dispatch:
+      if response.tool_calls:
+          goto: google_search
+      else:
+          emit_result(state)
+          goto: NEXT_IN_PARENT  # returns to parent flow
+
+  BLOCK google_search:
+      actor: google_search(tc.args) → result
+      goto: collect
+
+  BLOCK collect:
+      mutation: messages.append(tool_result(tc, result))
+      goto: llm_call  # loop back
+
+  Each BLOCK becomes either an actor (if it has actor:) or a generated router
+  (if it only has mutations/conditionals/gotos).
+
+  Validation: Does This Work?
+
+  Let me validate against the real LLM Auditor scenario:
+
+  Scenario: User asks "What is the capital of France?" and the LLM answer might
+  be wrong.
+
+  Execution trace:
+
+  1. entry-router: Payload {"query": "What is..."} → adds messages: [{"role":
+  "user", ...}] → routes to llm-call
+  2. llm-call (pod #37 out of 100): Calls Gemini with messages + google_search
+  tool → returns {"tool_calls": [{"name": "google_search", "args": {"query":
+  "capital of France"}}]}
+  3. dispatch-router: Sees tool_calls → routes to google-search
+  4. google-search (pod #12): Executes search → returns {"result": "Paris is the
+   capital of France..."}
+  5. collect-router: Appends tool result to messages → routes back to llm-call
+  6. llm-call (pod #85 — different pod! stateless!): Calls Gemini with updated
+  messages → returns {"text": "The capital of France is Paris...", "tool_calls":
+   []} (no more tool calls)
+  7. dispatch-router: No tool_calls → routes to reviser-llm-call
+  8. reviser-llm-call (pod #3): Calls Gemini with critique + query → returns
+  revised answer
+  9. → happy-end
+
+  ✅ No sticky sessions needed
+  ✅ Every actor is stateless — any pod can process any message
+  ✅ Full conversation context travels in payload
+  ✅ The compiler generated the router network from the async function
+
+  What About Streaming?
+
+  During step 2 and 8 (LLM calls), the actors can yield partial text deltas via
+  the streaming side-channel:
+
+  async def llm_call(state: dict) -> AsyncGenerator[dict, None]:
+      messages = state["messages"]
+
+      async for chunk in gemini.generate_content_async(messages, stream=True):
+          if chunk.text:
+              yield {"type": "text_delta", "delta": chunk.text}  # → HTTP →
+  gateway → user
+          if chunk.tool_calls:
+              yield {"type": "result", "tool_calls": chunk.tool_calls}  # →
+  queue → dispatch-router
+              return
+
+      yield {"type": "result", "text": full_response}  # → queue → next actor
+
+  The sidecar classifies events:
+  - type: "text_delta" → HTTP side-channel → gateway → SSE to user
+  - type: "result" → queue → next actor (the last yield, per our Option B
+  convention)
+
+  The Two Compilation Levels
+
+  What emerges from this analysis is that there are two distinct levels the
+  compiler handles:
+
+  Level 1: Orchestration compilation (SequentialAgent → flow)
+  # ADK declarative:
+  SequentialAgent(sub_agents=[critic, reviser])
+
+  # Asya async function:
+  async def llm_auditor(state):
+      state = await critic(state)
+      state = await reviser(state)
+      return state
+
+  # Compiled: linear route [critic, reviser]
+  This is what the current flow compiler already does (sequential, conditional,
+  fan-out).
+
+  Level 2: Agent decomposition (LlmAgent with tools → ReAct loop actors)
+  # ADK declarative:
+  Agent(model="gemini", tools=[google_search])
+
+  # Asya async function:
+  async def critic(state) -> AsyncGenerator:
+      while True:
+          response = await llm_call(state)     # split
+          if response.tool_calls:
+              result = await tool(state)        # split
+          else:
+              yield result                      # done
+              return
+
+  # Compiled: llm-call → dispatch-router → [tools] → collect-router → (loop)
+  This is new — the flow compiler doesn't handle while loops, await split
+  points, or async generators today.
+
+  What the Compiler Needs to Learn
+
+  To support Level 2, the flow compiler needs three new capabilities:
+
+  1. await as split point: Each await expr becomes a message send + actor
+  boundary
+  2. while True as loop: The compiler generates a router that loops back to a
+  previous actor
+  3. AsyncGenerator yield convention: Intermediate yields → streaming
+  side-channel, last yield → control event → queue
+
+  These map directly to what ADK's internal orchestration does — but transformed
+   from in-process generator nesting to distributed message passing.
+
+  ★ Insight ─────────────────────────────────────
+
+  The core transformation is CPS (Continuation-Passing Style): Each await in the
+   user's code becomes a continuation boundary. The compiler transforms:
+  x = await A()
+  y = await B(x)
+  Into:
+  Actor-1: call A, put result in payload, route to Actor-2
+  Actor-2: read A's result from payload, call B, route to next
+
+  This is exactly what Go does with goroutines at the runtime level (stack
+  splitting at function calls), and what JavaScript does with async/await
+  transpilation to .then() chains. The Asya compiler does the same thing, but
+  across network boundaries.
+
+  ─────────────────────────────────────────────────
+
+  What's Next?
+
+  The prototype validates against the real ADK LLM Auditor. The compiler would
+  need to:
+  1. Parse the async function AST (extend current parser.py)
+  2. Recognize await calls as split points (new)
+  3. Recognize while True as loop constructs (new — currently "Loops not yet
+  supported")
+  4. Recognize yield as event emission with last-yield = control (new)
+  5. Generate the router network (extend current code_generator.py)
+
+  Shall I continue with one of these:
+  - (A) Prototype the compiler extension — write actual code for the async
+  function parser?
+  - (B) Look at more ADK samples (e.g., deep-search,
+  parallel_task_decomposition_execution) to validate parallel/loop patterns?
+  - (C) Update the RFC with these findings and the validated prototype?
+
+✻ Crunched for 7m 49s
