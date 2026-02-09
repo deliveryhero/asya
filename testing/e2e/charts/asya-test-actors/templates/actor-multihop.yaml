@@ -12,7 +12,6 @@ metadata:
     asya.sh/hop-index: "{{ $i }}"
 spec:
   actor: test-multihop-{{ $i }}
-  actor: test-multihop-{{ $i }}
   transport: {{ $.Values.transport }}
 
   scaling:

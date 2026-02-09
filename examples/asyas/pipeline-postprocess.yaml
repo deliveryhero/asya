@@ -7,6 +7,7 @@ metadata:
   name: postprocess
   namespace: default
 spec:
+  actor: postprocess
   transport: rabbitmq
 
   scaling:

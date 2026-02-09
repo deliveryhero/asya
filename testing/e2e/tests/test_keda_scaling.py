@@ -51,6 +51,7 @@ def test_scaledobject_created_with_scaling_enabled(ensure_keda_installed):
         name: test-keda-basic
         namespace: asya-e2e
         spec:
+        actor: test-keda-basic
         transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
         scaling:
             enabled: true
@@ -110,6 +111,7 @@ def test_scaledobject_not_created_when_scaling_disabled(ensure_keda_installed):
         name: test-no-scaling
         namespace: asya-e2e
         spec:
+        actor: test-no-scaling
         transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
         scaling:
             enabled: false
@@ -157,6 +159,7 @@ def test_advanced_scaling_configuration(ensure_keda_installed):
         name: test-advanced-scaling
         namespace: asya-e2e
         spec:
+        actor: test-advanced-scaling
         transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
         scaling:
             enabled: true
@@ -209,6 +212,7 @@ def test_scaledobject_updated_on_asyncactor_change(ensure_keda_installed):
         name: test-update-scaling
         namespace: asya-e2e
         spec:
+        actor: test-update-scaling
         transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
         scaling:
             enabled: true
@@ -231,6 +235,7 @@ def test_scaledobject_updated_on_asyncactor_change(ensure_keda_installed):
         name: test-update-scaling
         namespace: asya-e2e
         spec:
+        actor: test-update-scaling
         transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
         scaling:
             enabled: true
@@ -301,6 +306,7 @@ def test_triggerauthentication_created_for_secrets(ensure_keda_installed):
         name: test-trigger-auth
         namespace: asya-e2e
         spec:
+        actor: test-trigger-auth
         transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
         scaling:
             enabled: true
@@ -349,6 +355,7 @@ def test_scaledobject_owner_reference(ensure_keda_installed):
         name: test-owner-ref
         namespace: asya-e2e
         spec:
+        actor: test-owner-ref
         transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
         scaling:
             enabled: true
@@ -410,6 +417,7 @@ def test_hpa_metrics_available_with_trigger_auth(ensure_keda_installed):
         name: test-hpa-metrics
         namespace: asya-e2e
         spec:
+        actor: test-hpa-metrics
         transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
         scaling:
             enabled: true
@@ -540,6 +548,7 @@ def test_hpa_desired_replicas_after_pod_kill(ensure_keda_installed):
         name: test-pod-kill
         namespace: asya-e2e
         spec:
+        actor: test-pod-kill
         transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
         scaling:
             enabled: true
@@ -659,6 +668,7 @@ def test_operator_requeues_until_hpa_created(ensure_keda_installed):
         name: test-hpa-timing
         namespace: asya-e2e
         spec:
+        actor: test-hpa-timing
         transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
         scaling:
             enabled: true

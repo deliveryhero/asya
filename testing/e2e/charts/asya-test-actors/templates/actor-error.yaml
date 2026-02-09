@@ -7,7 +7,6 @@ metadata:
     {{- include "asya-test-actors.labels" . | nindent 4 }}
 spec:
   actor: test-error
-  actor: test-error
   transport: {{ .Values.transport }}
 
   scaling:

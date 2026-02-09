@@ -7,7 +7,6 @@ metadata:
     {{- include "asya-test-actors.labels" . | nindent 4 }}
 spec:
   actor: test-echo
-  actor: test-echo
   transport: {{ .Values.transport }}
 
   scaling:

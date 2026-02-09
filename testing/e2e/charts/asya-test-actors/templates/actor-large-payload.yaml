@@ -7,7 +7,6 @@ metadata:
     {{- include "asya-test-actors.labels" . | nindent 4 }}
 spec:
   actor: test-large-payload
-  actor: test-large-payload
   transport: {{ .Values.transport }}
 
   scaling:
