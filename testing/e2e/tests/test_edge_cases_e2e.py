@@ -348,19 +348,41 @@ def test_concurrent_tasks_independent_routing_e2e(e2e_helper):
     task_ids = []
     results = [None] * num_tasks
 
-    # Warm up: ensure the test-echo actor is scaled up before concurrent sends.
-    # KEDA scale-from-zero can take 30-90s under CI load, which would eat into
-    # the gateway's per-task timeout and cause spurious failures.
-    warmup_response = e2e_helper.call_mcp_tool(
-        tool_name="test_echo",
-        arguments={"message": "warmup"},
-    )
-    warmup_id = warmup_response["result"]["task_id"]
-    warmup_result = e2e_helper.wait_for_task_completion(warmup_id, timeout=180)
-    assert warmup_result["status"] == "succeeded", (
-        f"Warm-up task failed: {warmup_result.get('error', 'unknown error')}"
-    )
-    logger.info("[+] Actor warm-up complete, starting concurrent test")
+    # Warm up: verify end-to-end message flow before sending concurrent tasks.
+    # Occasionally a single task gets stuck (transient SQS/gateway blip), but
+    # subsequent tasks to the same actor succeed immediately.  Retry with a
+    # fresh task to distinguish a real outage from a one-off stuck message.
+    max_warmup_attempts = 3
+    warmup_timeout = 60
+    for warmup_attempt in range(max_warmup_attempts):
+        warmup_response = e2e_helper.call_mcp_tool(
+            tool_name="test_echo",
+            arguments={"message": f"warmup-{warmup_attempt}"},
+        )
+        warmup_id = warmup_response["result"]["task_id"]
+        try:
+            warmup_result = e2e_helper.wait_for_task_completion(
+                warmup_id, timeout=warmup_timeout,
+            )
+            if warmup_result["status"] == "succeeded":
+                logger.info("[+] Actor warm-up complete, starting concurrent test")
+                break
+            logger.warning(
+                f"Warm-up task {warmup_id} ended with status "
+                f"{warmup_result['status']}, retrying"
+            )
+        except TimeoutError:
+            logger.warning(
+                f"Warm-up attempt {warmup_attempt + 1}/{max_warmup_attempts} "
+                f"timed out after {warmup_timeout}s (task {warmup_id})"
+            )
+        if warmup_attempt < max_warmup_attempts - 1:
+            e2e_helper.ensure_gateway_connectivity()
+    else:
+        pytest.fail(
+            f"Warm-up failed after {max_warmup_attempts} attempts "
+            f"({warmup_timeout}s each) - infrastructure may be unstable"
+        )
 
     # Create all tasks
     for i in range(num_tasks):

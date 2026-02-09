@@ -35,16 +35,12 @@ CHAOS_ACTOR_NAMES = ["test-echo", "test-error", "test-queue-health", "error-end"
 @pytest.fixture(scope="function", autouse=True)
 def ensure_gateway_port_forward(request, e2e_helper):
     """
-    Ensure gateway port-forward is healthy before each chaos test.
+    Ensure gateway port-forward is healthy before each test.
 
-    Chaos tests often delete/restart pods which kills port-forwards.
-    This fixture checks connectivity before each test and restarts if needed.
-
-    Only runs for tests marked with @pytest.mark.chaos.
+    Pod restarts (from chaos tests, KEDA scaling, resource pressure) can
+    break port-forwards.  This fixture checks connectivity before every
+    test and restarts if needed.
     """
-    if "chaos" not in request.keywords:
-        return
-
     max_retries = 3
     for attempt in range(max_retries):
         try:

@@ -144,7 +144,11 @@ class E2ETestHelper(GatewayTestHelper):
                     return task
 
                 i += 1
-                if i % int(5 / interval) == 0:
+                every_5s = int(5 / interval)
+                every_30s = int(30 / interval)
+                if every_30s > 0 and i % every_30s == 0:
+                    logger.info(f"Task {task_id} still {task['status']} after {elapsed:.1f}s")
+                elif every_5s > 0 and i % every_5s == 0:
                     logger.debug(f"Task still {task['status']} after {elapsed:.2f}s, waiting...")
 
                 time.sleep(interval)
