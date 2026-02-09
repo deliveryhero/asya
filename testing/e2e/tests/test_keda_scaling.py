@@ -1,16 +1,22 @@
 #!/usr/bin/env python3
 """
-KEDA-specific E2E tests for Asya operator.
+KEDA-specific E2E tests for Asya with Crossplane architecture.
 
 These tests require a Kind cluster with KEDA installed and verify:
-1. ScaledObject creation when scaling.enabled=true
-2. KEDA triggers configuration (RabbitMQ/SQS)
-3. Advanced scaling parameters (formula, metricType, etc.)
-4. TriggerAuthentication for secrets
-5. Scale-to-zero behavior
+1. ScaledObject creation from AsyncActor scaling spec
+2. Trigger configuration (SQS queue-based autoscaling)
+3. Advanced scaling parameters (pollingInterval, cooldownPeriod, etc.)
+4. TriggerAuthentication for credentials
+5. Cascade deletion through Crossplane
+6. HPA creation by KEDA
+7. Workload recovery after pod kill
+
+With Crossplane, ScaledObjects are created as composed resources by the
+Composition pipeline (not directly by the operator). The Composition
+conditionally renders ScaledObject when scaling.enabled=true and the
+queue URL is available from the AWS provider.
 """
 
-import textwrap
 import logging
 import os
 import subprocess
@@ -22,17 +28,23 @@ from asya_testing.utils.kubectl import (
     kubectl_apply,
     kubectl_delete,
     kubectl_get,
+    log_asyncactor_workload_diagnostics,
+    wait_for_asyncactor_ready,
+    wait_for_deletion,
+    wait_for_pod_ready,
     wait_for_resource,
 )
 
 logger = logging.getLogger(__name__)
 
-# All tests skipped: manifests have invalid YAML and assertions assume operator-managed
-# ScaledObjects (ownerReferences, status.desiredReplicas) that don't exist in Crossplane model.
-# Needs full rewrite for Crossplane Composition-managed resources.
-pytestmark = pytest.mark.skip(
-    reason="KEDA scaling tests need rewrite for Crossplane architecture (asya-zpz2)"
-)
+
+def _cleanup_actor(name: str, namespace: str) -> None:
+    """Clean up AsyncActor and all Crossplane-managed resources."""
+    kubectl_delete("asyncactor", name, namespace=namespace)
+    kubectl_delete("scaledobject", name, namespace=namespace)
+    kubectl_delete("triggerauthentication", f"{name}-trigger-auth", namespace=namespace)
+    kubectl_delete("deployment", name, namespace=namespace)
+    kubectl_delete("hpa", f"keda-hpa-{name}", namespace=namespace)
 
 
 @pytest.fixture(scope="module")
@@ -47,154 +59,184 @@ def ensure_keda_installed(namespace):
 
 
 @pytest.mark.core
-def test_scaledobject_created_with_scaling_enabled(ensure_keda_installed):
-    """Test that ScaledObject is created when scaling.enabled=true."""
-    logger.info("Testing ScaledObject creation with scaling enabled")
+@pytest.mark.timeout(300)
+def test_scaledobject_created_with_scaling_enabled(ensure_keda_installed, namespace):
+    """Test that ScaledObject is created when scaling.enabled=true.
 
-    actor_manifest = textwrap.dedent(f"""
-        apiVersion: asya.sh/v1alpha1
-        kind: AsyncActor
-        metadata:
-        name: test-keda-basic
-        namespace: asya-e2e
-        spec:
-        actor: test-keda-basic
-        transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
-        scaling:
-            enabled: true
-            minReplicas: 0
-            maxReplicas: 10
-            queueLength: 5
-        workload:
-            kind: Deployment
-            template:
-            spec:
-                containers:
-                - name: asya-runtime
-                image: python:3.13-slim
-                env:
-                - name: ASYA_HANDLER
-                    value: "handlers.process"
-    """)
+    The Crossplane Composition renders a ScaledObject as a Kubernetes Object
+    when the AsyncActor has scaling enabled and the queue URL is available.
+    """
+    transport = os.getenv("ASYA_TRANSPORT", "sqs")
+    actor_name = "test-keda-basic"
+
+    actor_manifest = f"""
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: {actor_name}
+  namespace: {namespace}
+spec:
+  actor: {actor_name}
+  transport: {transport}
+  scaling:
+    enabled: true
+    minReplicas: 0
+    maxReplicas: 10
+    queueLength: 5
+  workload:
+    kind: Deployment
+    template:
+      spec:
+        containers:
+        - name: asya-runtime
+          image: ghcr.io/deliveryhero/asya-testing:latest
+          imagePullPolicy: IfNotPresent
+          env:
+          - name: ASYA_HANDLER
+            value: asya_testing.handlers.payload.echo_handler
+"""
 
     try:
-        kubectl_apply(actor_manifest)
+        kubectl_apply(actor_manifest, namespace=namespace)
 
-        # Wait for ScaledObject to be created
-        assert wait_for_resource("scaledobject", "test-keda-basic", timeout=30), \
-            "ScaledObject should be created"
+        assert wait_for_asyncactor_ready(actor_name, namespace=namespace, timeout=120), \
+            "AsyncActor should reach Ready condition"
 
-        # Verify ScaledObject configuration
-        scaled_obj = kubectl_get("scaledobject", "test-keda-basic")
+        assert wait_for_resource("scaledobject", actor_name, namespace=namespace, timeout=60), \
+            "ScaledObject should be created by Composition"
+
+        scaled_obj = kubectl_get("scaledobject", actor_name, namespace=namespace)
 
         assert scaled_obj["spec"]["minReplicaCount"] == 0
         assert scaled_obj["spec"]["maxReplicaCount"] == 10
 
-        # Verify triggers
         triggers = scaled_obj["spec"]["triggers"]
-        assert len(triggers) > 0, "Should have at least one trigger"
+        assert len(triggers) > 0, "ScaledObject should have at least one trigger"
 
-        rabbitmq_trigger = triggers[0]
-        assert rabbitmq_trigger["type"] == "rabbitmq"
-        assert rabbitmq_trigger["metadata"]["queueName"] == "test-keda-basic"
-        assert rabbitmq_trigger["metadata"]["value"] == "5"
+        trigger = triggers[0]
+        if transport == "sqs":
+            assert trigger["type"] == "aws-sqs-queue"
+            assert trigger["metadata"]["queueLength"] == "5"
+            assert "queueURL" in trigger["metadata"]
+        elif transport == "rabbitmq":
+            assert trigger["type"] == "rabbitmq"
 
         logger.info("[+] ScaledObject created with correct configuration")
 
+    except Exception:
+        log_asyncactor_workload_diagnostics(actor_name, namespace=namespace)
+        raise
     finally:
-        kubectl_delete("asyncactor", "test-keda-basic")
-        kubectl_delete("scaledobject", "test-keda-basic")
+        _cleanup_actor(actor_name, namespace)
 
 
 @pytest.mark.core
-def test_scaledobject_not_created_when_scaling_disabled(ensure_keda_installed):
-    """Test that ScaledObject is NOT created when scaling.enabled=false."""
-    logger.info("Testing ScaledObject not created when scaling disabled")
+@pytest.mark.timeout(300)
+def test_scaledobject_not_created_when_scaling_disabled(ensure_keda_installed, namespace):
+    """Test that ScaledObject is NOT created when scaling.enabled=false.
 
-    actor_manifest = textwrap.dedent(f"""
-        apiVersion: asya.sh/v1alpha1
-        kind: AsyncActor
-        metadata:
-        name: test-no-scaling
-        namespace: asya-e2e
-        spec:
-        actor: test-no-scaling
-        transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
-        scaling:
-            enabled: false
-        workload:
-            kind: Deployment
-            template:
-            spec:
-                containers:
-                - name: asya-runtime
-                image: python:3.13-slim
-    """)
+    The Composition conditionally renders ScaledObject only when scaling
+    is enabled, so disabling it should result in no ScaledObject resource.
+    """
+    transport = os.getenv("ASYA_TRANSPORT", "sqs")
+    actor_name = "test-no-scaling"
+
+    actor_manifest = f"""
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: {actor_name}
+  namespace: {namespace}
+spec:
+  actor: {actor_name}
+  transport: {transport}
+  scaling:
+    enabled: false
+  workload:
+    kind: Deployment
+    template:
+      spec:
+        containers:
+        - name: asya-runtime
+          image: ghcr.io/deliveryhero/asya-testing:latest
+          imagePullPolicy: IfNotPresent
+          env:
+          - name: ASYA_HANDLER
+            value: asya_testing.handlers.payload.echo_handler
+"""
 
     try:
-        kubectl_apply(actor_manifest)
+        kubectl_apply(actor_manifest, namespace=namespace)
 
-        # Wait to ensure ScaledObject is not created
-        time.sleep(5)  # Wait for operator to process (verify absence)
+        assert wait_for_asyncactor_ready(actor_name, namespace=namespace, timeout=120), \
+            "AsyncActor should reach Ready condition even without scaling"
 
-        # Verify ScaledObject does NOT exist
         result = subprocess.run(
-            ["kubectl", "get", "scaledobject", "test-no-scaling", "-n", "asya-e2e"],
-            capture_output=True
+            ["kubectl", "get", "scaledobject", actor_name, "-n", namespace],
+            capture_output=True,
         )
         assert result.returncode != 0, "ScaledObject should NOT be created when scaling is disabled"
 
         logger.info("[+] ScaledObject correctly not created when scaling disabled")
 
+    except Exception:
+        log_asyncactor_workload_diagnostics(actor_name, namespace=namespace)
+        raise
     finally:
-        kubectl_delete("asyncactor", "test-no-scaling")
+        _cleanup_actor(actor_name, namespace)
 
 
 @pytest.mark.core
-def test_advanced_scaling_configuration(ensure_keda_installed):
-    """Test advanced KEDA scaling parameters (pollingInterval, cooldownPeriod, etc.).
+@pytest.mark.timeout(300)
+def test_advanced_scaling_configuration(ensure_keda_installed, namespace):
+    """Test that advanced scaling parameters are passed through to ScaledObject.
 
-    This test verifies that KEDA accepts advanced scaling configurations.
-    Note: Formula-based scaling is not tested as it requires complex trigger metric references.
+    The Composition maps AsyncActor scaling fields to ScaledObject spec:
+    pollingInterval, cooldownPeriod, minReplicaCount, maxReplicaCount.
     """
-    logger.info("Testing advanced KEDA scaling configuration")
+    transport = os.getenv("ASYA_TRANSPORT", "sqs")
+    actor_name = "test-advanced-scaling"
 
-    actor_manifest = textwrap.dedent(f"""
-        apiVersion: asya.sh/v1alpha1
-        kind: AsyncActor
-        metadata:
-        name: test-advanced-scaling
-        namespace: asya-e2e
-        spec:
-        actor: test-advanced-scaling
-        transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
-        scaling:
-            enabled: true
-            minReplicas: 1
-            maxReplicas: 50
-            pollingInterval: 10
-            cooldownPeriod: 60
-            queueLength: 10
-            advanced:
-            restoreToOriginalReplicaCount: false
-        workload:
-            kind: Deployment
-            template:
-            spec:
-                containers:
-                - name: asya-runtime
-                image: python:3.13-slim
-    """)
+    actor_manifest = f"""
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: {actor_name}
+  namespace: {namespace}
+spec:
+  actor: {actor_name}
+  transport: {transport}
+  scaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 50
+    pollingInterval: 10
+    cooldownPeriod: 60
+    queueLength: 10
+  workload:
+    kind: Deployment
+    template:
+      spec:
+        containers:
+        - name: asya-runtime
+          image: ghcr.io/deliveryhero/asya-testing:latest
+          imagePullPolicy: IfNotPresent
+          env:
+          - name: ASYA_HANDLER
+            value: asya_testing.handlers.payload.echo_handler
+"""
 
     try:
-        kubectl_apply(actor_manifest)
+        kubectl_apply(actor_manifest, namespace=namespace)
 
-        # Wait for ScaledObject
-        assert wait_for_resource("scaledobject", "test-advanced-scaling", timeout=60)
+        assert wait_for_asyncactor_ready(actor_name, namespace=namespace, timeout=120), \
+            "AsyncActor should reach Ready condition"
 
-        scaled_obj = kubectl_get("scaledobject", "test-advanced-scaling")
+        assert wait_for_resource("scaledobject", actor_name, namespace=namespace, timeout=60), \
+            "ScaledObject should be created"
 
-        # Verify basic scaling params
+        scaled_obj = kubectl_get("scaledobject", actor_name, namespace=namespace)
+
         assert scaled_obj["spec"]["pollingInterval"] == 10
         assert scaled_obj["spec"]["cooldownPeriod"] == 60
         assert scaled_obj["spec"]["minReplicaCount"] == 1
@@ -202,546 +244,464 @@ def test_advanced_scaling_configuration(ensure_keda_installed):
 
         logger.info("[+] Advanced scaling configuration applied correctly")
 
+    except Exception:
+        log_asyncactor_workload_diagnostics(actor_name, namespace=namespace)
+        raise
     finally:
-        kubectl_delete("asyncactor", "test-advanced-scaling")
-        kubectl_delete("scaledobject", "test-advanced-scaling")
+        _cleanup_actor(actor_name, namespace)
 
 
 @pytest.mark.core
-def test_scaledobject_updated_on_asyncactor_change(ensure_keda_installed):
-    """Test that ScaledObject is updated when AsyncActor spec changes."""
-    logger.info("Testing ScaledObject update on AsyncActor change")
+@pytest.mark.timeout(300)
+def test_scaledobject_updated_on_asyncactor_change(ensure_keda_installed, namespace):
+    """Test that ScaledObject is updated when AsyncActor spec changes.
 
-    initial_manifest = textwrap.dedent(f"""
-        apiVersion: asya.sh/v1alpha1
-        kind: AsyncActor
-        metadata:
-        name: test-update-scaling
-        namespace: asya-e2e
-        spec:
-        actor: test-update-scaling
-        transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
-        scaling:
-            enabled: true
-            minReplicas: 0
-            maxReplicas: 5
-            queueLength: 10
-        workload:
-            kind: Deployment
-            template:
-            spec:
-                containers:
-                - name: asya-runtime
-                image: python:3.13-slim
-    """)
+    Updating the claim triggers Crossplane re-reconciliation, which
+    re-renders the Composition and updates the ScaledObject.
+    """
+    transport = os.getenv("ASYA_TRANSPORT", "sqs")
+    actor_name = "test-update-scaling"
 
-    updated_manifest = textwrap.dedent(f"""
-        apiVersion: asya.sh/v1alpha1
-        kind: AsyncActor
-        metadata:
-        name: test-update-scaling
-        namespace: asya-e2e
-        spec:
-        actor: test-update-scaling
-        transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
-        scaling:
-            enabled: true
-            minReplicas: 1
-            maxReplicas: 20
-            queueLength: 5
-        workload:
-            kind: Deployment
-            template:
-            spec:
-                containers:
-                - name: asya-runtime
-                image: python:3.13-slim
-    """)
+    initial_manifest = f"""
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: {actor_name}
+  namespace: {namespace}
+spec:
+  actor: {actor_name}
+  transport: {transport}
+  scaling:
+    enabled: true
+    minReplicas: 0
+    maxReplicas: 5
+    queueLength: 10
+  workload:
+    kind: Deployment
+    template:
+      spec:
+        containers:
+        - name: asya-runtime
+          image: ghcr.io/deliveryhero/asya-testing:latest
+          imagePullPolicy: IfNotPresent
+          env:
+          - name: ASYA_HANDLER
+            value: asya_testing.handlers.payload.echo_handler
+"""
+
+    updated_manifest = f"""
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: {actor_name}
+  namespace: {namespace}
+spec:
+  actor: {actor_name}
+  transport: {transport}
+  scaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 20
+    queueLength: 5
+  workload:
+    kind: Deployment
+    template:
+      spec:
+        containers:
+        - name: asya-runtime
+          image: ghcr.io/deliveryhero/asya-testing:latest
+          imagePullPolicy: IfNotPresent
+          env:
+          - name: ASYA_HANDLER
+            value: asya_testing.handlers.payload.echo_handler
+"""
 
     try:
-        # Create initial AsyncActor
-        kubectl_apply(initial_manifest)
-        assert wait_for_resource("scaledobject", "test-update-scaling", timeout=30)
+        kubectl_apply(initial_manifest, namespace=namespace)
 
-        # Verify initial ScaledObject
-        scaled_obj = kubectl_get("scaledobject", "test-update-scaling")
-        assert scaled_obj["spec"]["maxReplicaCount"] == 5
+        assert wait_for_asyncactor_ready(actor_name, namespace=namespace, timeout=120), \
+            "AsyncActor should reach Ready condition"
 
-        # Update AsyncActor
-        kubectl_apply(updated_manifest)
+        initial_scaled = kubectl_get("scaledobject", actor_name, namespace=namespace)
+        assert initial_scaled["spec"]["maxReplicaCount"] == 5
 
-        # Wait for ScaledObject to be updated
-        time.sleep(5)  # Wait for operator to apply ScaledObject changes
+        kubectl_apply(updated_manifest, namespace=namespace)
 
-        # Verify ScaledObject was updated
-        scaled_obj = kubectl_get("scaledobject", "test-update-scaling")
-        assert scaled_obj["spec"]["minReplicaCount"] == 1
-        assert scaled_obj["spec"]["maxReplicaCount"] == 20
+        # Poll for Crossplane reconciliation (can take 30-60s)
+        updated_scaled = None
+        for _attempt in range(30):
+            time.sleep(5)  # Poll every 5s for Crossplane reconciliation
+            updated_scaled = kubectl_get("scaledobject", actor_name, namespace=namespace)
+            if updated_scaled["spec"].get("minReplicaCount") == 1:
+                break
 
-        triggers = scaled_obj["spec"]["triggers"]
-        assert triggers[0]["metadata"]["value"] == "5"
+        assert updated_scaled["spec"]["minReplicaCount"] == 1, \
+            "ScaledObject should be updated with new minReplicas"
+        assert updated_scaled["spec"]["maxReplicaCount"] == 20, \
+            "ScaledObject should be updated with new maxReplicas"
+
+        triggers = updated_scaled["spec"]["triggers"]
+        if transport == "sqs":
+            assert triggers[0]["metadata"]["queueLength"] == "5", \
+                "Queue length trigger should be updated"
 
         logger.info("[+] ScaledObject updated when AsyncActor changes")
 
+    except Exception:
+        log_asyncactor_workload_diagnostics(actor_name, namespace=namespace)
+        raise
     finally:
-        kubectl_delete("asyncactor", "test-update-scaling")
-        kubectl_delete("scaledobject", "test-update-scaling")
+        _cleanup_actor(actor_name, namespace)
 
 
 @pytest.mark.core
-def test_triggerauthentication_created_for_secrets(ensure_keda_installed):
-    """Test that TriggerAuthentication is created when using password secrets."""
-    logger.info("Testing TriggerAuthentication creation for secrets")
+@pytest.mark.timeout(300)
+def test_triggerauthentication_created(ensure_keda_installed, namespace):
+    """Test that TriggerAuthentication is created by the Composition.
 
-    # First create a secret
-    secret_manifest = textwrap.dedent("""
-        apiVersion: v1
-        kind: Secret
-        metadata:
-        name: test-rabbitmq-secret
-        namespace: asya-e2e
-        type: Opaque
-        stringData:
-        password: guest
-    """)
-    kubectl_apply(secret_manifest)
-
-    actor_manifest = textwrap.dedent(f"""
-        apiVersion: asya.sh/v1alpha1
-        kind: AsyncActor
-        metadata:
-        name: test-trigger-auth
-        namespace: asya-e2e
-        spec:
-        actor: test-trigger-auth
-        transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
-        scaling:
-            enabled: true
-            minReplicas: 0
-            maxReplicas: 10
-        workload:
-            kind: Deployment
-            template:
-            spec:
-                containers:
-                - name: asya-runtime
-                image: python:3.13-slim
-    """)
-
-    try:
-        kubectl_apply(actor_manifest)
-
-        # Wait for ScaledObject
-        assert wait_for_resource("scaledobject", "test-trigger-auth", timeout=30)
-
-        # Check if TriggerAuthentication was created (if operator creates it)
-        # This depends on operator implementation
-        scaled_obj = kubectl_get("scaledobject", "test-trigger-auth")
-
-        # Verify ScaledObject has trigger config
-        triggers = scaled_obj["spec"]["triggers"]
-        assert len(triggers) > 0
-
-        logger.info("[+] TriggerAuthentication test completed")
-
-    finally:
-        kubectl_delete("asyncactor", "test-trigger-auth")
-        kubectl_delete("scaledobject", "test-trigger-auth")
-        kubectl_delete("secret", "test-rabbitmq-secret")
-
-
-@pytest.mark.core
-def test_scaledobject_owner_reference(ensure_keda_installed):
-    """Test that ScaledObject has correct owner reference to AsyncActor."""
-    logger.info("Testing ScaledObject owner reference")
-
-    actor_manifest = textwrap.dedent(f"""
-        apiVersion: asya.sh/v1alpha1
-        kind: AsyncActor
-        metadata:
-        name: test-owner-ref
-        namespace: asya-e2e
-        spec:
-        actor: test-owner-ref
-        transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
-        scaling:
-            enabled: true
-            minReplicas: 0
-            maxReplicas: 10
-        workload:
-            kind: Deployment
-            template:
-            spec:
-                containers:
-                - name: asya-runtime
-                image: python:3.13-slim
-    """)
-
-    try:
-        kubectl_apply(actor_manifest)
-        assert wait_for_resource("scaledobject", "test-owner-ref", timeout=30)
-
-        # Get ScaledObject and verify owner reference
-        scaled_obj = kubectl_get("scaledobject", "test-owner-ref")
-
-        owner_refs = scaled_obj["metadata"].get("ownerReferences", [])
-        assert len(owner_refs) > 0, "ScaledObject should have owner reference"
-
-        owner = owner_refs[0]
-        assert owner["kind"] == "AsyncActor"
-        assert owner["name"] == "test-owner-ref"
-        assert owner.get("controller") is True
-
-        logger.info("[+] ScaledObject has correct owner reference")
-
-        # Delete AsyncActor and verify ScaledObject is also deleted
-        kubectl_delete("asyncactor", "test-owner-ref")
-
-        time.sleep(5)  # Wait for Kubernetes garbage collection
-
-        result = subprocess.run(
-            ["kubectl", "get", "scaledobject", "test-owner-ref", "-n", "asya-e2e"],
-            capture_output=True
-        )
-        assert result.returncode != 0, "ScaledObject should be deleted with AsyncActor"
-
-        logger.info("[+] ScaledObject deleted with AsyncActor via owner reference")
-
-    finally:
-        kubectl_delete("asyncactor", "test-owner-ref")
-        kubectl_delete("scaledobject", "test-owner-ref")
-
-
-@pytest.mark.core
-def test_hpa_metrics_available_with_trigger_auth(ensure_keda_installed):
-    """Test that HPA metrics become available after TriggerAuthentication is properly configured."""
-    logger.info("Testing HPA metrics availability with TriggerAuthentication")
-
-    actor_manifest = textwrap.dedent(f"""
-        apiVersion: asya.sh/v1alpha1
-        kind: AsyncActor
-        metadata:
-        name: test-hpa-metrics
-        namespace: asya-e2e
-        spec:
-        actor: test-hpa-metrics
-        transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
-        scaling:
-            enabled: true
-            minReplicas: 1
-            maxReplicas: 10
-            queueLength: 5
-        workload:
-            kind: Deployment
-            template:
-            spec:
-                containers:
-                - name: asya-runtime
-                image: python:3.13-slim
-                env:
-                - name: ASYA_HANDLER
-                    value: "handlers.process"
-    """)
-
-    try:
-        kubectl_apply(actor_manifest)
-
-        # Wait for ScaledObject and HPA to be created
-        assert wait_for_resource("scaledobject", "test-hpa-metrics", timeout=30), \
-            "ScaledObject should be created"
-        assert wait_for_resource("hpa", "keda-hpa-test-hpa-metrics", timeout=30), \
-            "HPA should be created by KEDA"
-
-        # Wait for TriggerAuthentication if it exists
-        trigger_auth_exists = wait_for_resource("triggerauthentication", "test-hpa-metrics-trigger-auth", timeout=30)
-
-        if trigger_auth_exists:
-            # Verify TriggerAuthentication configuration
-            trigger_auth = kubectl_get("triggerauthentication", "test-hpa-metrics-trigger-auth")
-
-            secret_refs = trigger_auth["spec"].get("secretTargetRef", [])
-            assert len(secret_refs) > 0, "TriggerAuthentication should have secretTargetRef"
-
-            # Verify the password parameter is correctly set
-            secret_ref = secret_refs[0]
-            assert secret_ref["parameter"] == "password", \
-                f"Expected parameter 'password', got '{secret_ref['parameter']}'"
-            assert secret_ref["key"] == "password", \
-                f"Expected key 'password', got '{secret_ref['key']}'"
-
-            logger.info("[+] TriggerAuthentication has correct password configuration")
-
-        # Wait for deployment to be ready first
-        result = subprocess.run(
-            ["kubectl", "wait", "--for=condition=available", "--timeout=60s",
-             "deployment/test-hpa-metrics", "-n", "asya-e2e"],
-            capture_output=True
-        )
-        if result.returncode == 0:
-            logger.info("[+] Deployment is ready")
-
-        # Wait for HPA metrics to become available (may take up to 30s for KEDA metrics server)
-        hpa_ready = False
-        max_attempts = 60
-        for attempt in range(60):
-            logger.debug(f"Attempt: {attempt}/{max_attempts}")
-            hpa = kubectl_get("hpa", "keda-hpa-test-hpa-metrics")
-
-            # Check if metrics are available (not <unknown>)
-            metrics = hpa.get("status", {}).get("currentMetrics", [])
-            if metrics:
-                for metric in metrics:
-                    current_value = metric.get("external", {}).get("current", {}).get("averageValue")
-                    if current_value is not None:
-                        hpa_ready = True
-                        logger.info(f"[+] HPA metrics available: {current_value}")
-                        break
-
-            if hpa_ready:
-                break
-
-            time.sleep(1)  # Poll kubectl API for HPA metrics readiness
-
-        # Check conditions
-        conditions = hpa.get("status", {}).get("conditions", [])
-        scaling_active = any(
-            c.get("type") == "ScalingActive" and c.get("status") == "True"
-            for c in conditions
-        )
-
-        able_to_scale = any(
-            c.get("type") == "AbleToScale" and c.get("status") == "True"
-            for c in conditions
-        )
-
-        if not (hpa_ready or scaling_active):
-            logger.warning(f"HPA conditions: {conditions}")
-            scaled_obj = kubectl_get("scaledobject", "test-hpa-metrics")
-            so_conditions = scaled_obj.get("status", {}).get("conditions", [])
-            logger.warning(f"ScaledObject conditions: {so_conditions}")
-
-            keda_logs = subprocess.run(
-                ["kubectl", "logs", "-n", "keda", "deployment/keda-operator", "--tail=30"],
-                capture_output=True,
-                text=True
-            )
-            logger.warning(f"Recent KEDA operator logs:\n{keda_logs.stdout}")
-
-        assert hpa_ready or scaling_active or able_to_scale, \
-            "HPA should be functional (metrics available, ScalingActive, or AbleToScale) within 60 seconds"
-
-        logger.info("[+] HPA metrics are available with proper TriggerAuthentication")
-
-    finally:
-        kubectl_delete("asyncactor", "test-hpa-metrics")
-        kubectl_delete("scaledobject", "test-hpa-metrics")
-        kubectl_delete("hpa", "keda-hpa-test-hpa-metrics")
-
-
-@pytest.mark.core
-def test_hpa_desired_replicas_after_pod_kill(ensure_keda_installed):
-    """Test that AsyncActor status shows correct desired replicas from HPA after pod is killed.
-
-    This test verifies the fix for the issue where desired=0 was shown after killing a pod,
-    even though KEDA HPA wanted desired=1. The operator should fetch desired replicas from
-    the HPA status, not just copy the current running replicas.
+    The Composition always creates TriggerAuthentication when scaling is
+    enabled. The auth method depends on the Helm values (podIdentity or secret).
     """
-    logger.info("Testing HPA desired replicas after pod kill")
+    transport = os.getenv("ASYA_TRANSPORT", "sqs")
+    actor_name = "test-trigger-auth"
 
-    actor_manifest = textwrap.dedent(f"""
-        apiVersion: asya.sh/v1alpha1
-        kind: AsyncActor
-        metadata:
-        name: test-pod-kill
-        namespace: asya-e2e
-        spec:
-        actor: test-pod-kill
-        transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
-        scaling:
-            enabled: true
-            minReplicas: 1
-            maxReplicas: 5
-            queueLength: 5
-        workload:
-            kind: Deployment
-            template:
-            spec:
-                containers:
-                - name: asya-runtime
-                image: python:3.13-slim
-                env:
-                - name: ASYA_HANDLER
-                    value: "handlers.echo"
-    """)
+    actor_manifest = f"""
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: {actor_name}
+  namespace: {namespace}
+spec:
+  actor: {actor_name}
+  transport: {transport}
+  scaling:
+    enabled: true
+    minReplicas: 0
+    maxReplicas: 10
+  workload:
+    kind: Deployment
+    template:
+      spec:
+        containers:
+        - name: asya-runtime
+          image: ghcr.io/deliveryhero/asya-testing:latest
+          imagePullPolicy: IfNotPresent
+          env:
+          - name: ASYA_HANDLER
+            value: asya_testing.handlers.payload.echo_handler
+"""
 
     try:
-        kubectl_apply(actor_manifest)
+        kubectl_apply(actor_manifest, namespace=namespace)
 
-        # Wait for deployment and HPA to be ready
-        assert wait_for_resource("deployment", "test-pod-kill", timeout=60), \
-            "Deployment should be created"
-        assert wait_for_resource("hpa", "keda-hpa-test-pod-kill", timeout=60), \
-            "HPA should be created by KEDA"
+        assert wait_for_asyncactor_ready(actor_name, namespace=namespace, timeout=120), \
+            "AsyncActor should reach Ready condition"
 
-        # Wait for deployment to be available
+        trigger_auth_name = f"{actor_name}-trigger-auth"
+        assert wait_for_resource("triggerauthentication", trigger_auth_name, namespace=namespace, timeout=60), \
+            "TriggerAuthentication should be created by Composition"
+
+        trigger_auth = kubectl_get("triggerauthentication", trigger_auth_name, namespace=namespace)
+
+        spec = trigger_auth["spec"]
+        if "podIdentity" in spec:
+            assert spec["podIdentity"]["provider"] == "aws"
+            logger.info("[+] TriggerAuthentication uses podIdentity")
+        elif "secretTargetRef" in spec:
+            secret_refs = spec["secretTargetRef"]
+            assert len(secret_refs) > 0, "TriggerAuthentication should have secretTargetRef entries"
+            param_names = {ref["parameter"] for ref in secret_refs}
+            assert "awsAccessKeyID" in param_names
+            assert "awsSecretAccessKey" in param_names
+            logger.info("[+] TriggerAuthentication uses secret-based auth")
+        else:
+            pytest.fail("TriggerAuthentication should have podIdentity or secretTargetRef")
+
+        scaled_obj = kubectl_get("scaledobject", actor_name, namespace=namespace)
+        triggers = scaled_obj["spec"]["triggers"]
+        assert triggers[0]["authenticationRef"]["name"] == trigger_auth_name, \
+            "ScaledObject trigger should reference TriggerAuthentication"
+
+        logger.info("[+] TriggerAuthentication created with correct configuration")
+
+    except Exception:
+        log_asyncactor_workload_diagnostics(actor_name, namespace=namespace)
+        raise
+    finally:
+        _cleanup_actor(actor_name, namespace)
+
+
+@pytest.mark.core
+@pytest.mark.timeout(300)
+def test_scaledobject_cascade_deletion(ensure_keda_installed, namespace):
+    """Test that ScaledObject is deleted when AsyncActor is deleted.
+
+    Crossplane manages composed resource lifecycle: deleting the AsyncActor
+    claim triggers deletion of the XR and all composed resources including
+    the ScaledObject and Deployment.
+    """
+    transport = os.getenv("ASYA_TRANSPORT", "sqs")
+    actor_name = "test-cascade-del"
+
+    actor_manifest = f"""
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: {actor_name}
+  namespace: {namespace}
+spec:
+  actor: {actor_name}
+  transport: {transport}
+  scaling:
+    enabled: true
+    minReplicas: 0
+    maxReplicas: 10
+  workload:
+    kind: Deployment
+    template:
+      spec:
+        containers:
+        - name: asya-runtime
+          image: ghcr.io/deliveryhero/asya-testing:latest
+          imagePullPolicy: IfNotPresent
+          env:
+          - name: ASYA_HANDLER
+            value: asya_testing.handlers.payload.echo_handler
+"""
+
+    try:
+        kubectl_apply(actor_manifest, namespace=namespace)
+
+        assert wait_for_asyncactor_ready(actor_name, namespace=namespace, timeout=120), \
+            "AsyncActor should reach Ready condition"
+
+        assert wait_for_resource("scaledobject", actor_name, namespace=namespace, timeout=60), \
+            "ScaledObject should be created"
+
+        kubectl_delete("asyncactor", actor_name, namespace=namespace)
+
+        assert wait_for_deletion("scaledobject", actor_name, namespace=namespace, timeout=120), \
+            "ScaledObject should be deleted when AsyncActor is removed"
+
+        assert wait_for_deletion("deployment", actor_name, namespace=namespace, timeout=120), \
+            "Deployment should be deleted when AsyncActor is removed"
+
+        logger.info("[+] Cascade deletion completed successfully")
+
+    except Exception:
+        log_asyncactor_workload_diagnostics(actor_name, namespace=namespace)
+        raise
+    finally:
+        _cleanup_actor(actor_name, namespace)
+
+
+@pytest.mark.core
+@pytest.mark.timeout(300)
+def test_hpa_created_by_keda(ensure_keda_installed, namespace):
+    """Test that KEDA creates an HPA from the ScaledObject.
+
+    KEDA watches ScaledObjects and creates a corresponding HPA with the
+    configured triggers and scaling parameters.
+    """
+    transport = os.getenv("ASYA_TRANSPORT", "sqs")
+    actor_name = "test-hpa-keda"
+
+    actor_manifest = f"""
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: {actor_name}
+  namespace: {namespace}
+spec:
+  actor: {actor_name}
+  transport: {transport}
+  scaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 10
+    queueLength: 5
+  workload:
+    kind: Deployment
+    template:
+      spec:
+        containers:
+        - name: asya-runtime
+          image: ghcr.io/deliveryhero/asya-testing:latest
+          imagePullPolicy: IfNotPresent
+          env:
+          - name: ASYA_HANDLER
+            value: asya_testing.handlers.payload.echo_handler
+"""
+
+    try:
+        kubectl_apply(actor_manifest, namespace=namespace)
+
+        assert wait_for_asyncactor_ready(actor_name, namespace=namespace, timeout=120), \
+            "AsyncActor should reach Ready condition"
+
+        assert wait_for_resource("scaledobject", actor_name, namespace=namespace, timeout=60), \
+            "ScaledObject should be created"
+
+        hpa_name = f"keda-hpa-{actor_name}"
+        assert wait_for_resource("hpa", hpa_name, namespace=namespace, timeout=60), \
+            "HPA should be created by KEDA from ScaledObject"
+
+        hpa = kubectl_get("hpa", hpa_name, namespace=namespace)
+
+        assert hpa["spec"]["scaleTargetRef"]["name"] == actor_name
+        assert hpa["spec"]["scaleTargetRef"]["kind"] == "Deployment"
+        assert hpa["spec"]["minReplicas"] == 1
+        assert hpa["spec"]["maxReplicas"] == 10
+
+        logger.info("[+] HPA created by KEDA with correct configuration")
+
+    except Exception:
+        log_asyncactor_workload_diagnostics(actor_name, namespace=namespace)
+        raise
+    finally:
+        _cleanup_actor(actor_name, namespace)
+
+
+@pytest.mark.slow
+@pytest.mark.timeout(300)
+def test_workload_recovers_after_pod_kill(ensure_keda_installed, namespace):
+    """Test that workload recovers after pod is killed.
+
+    With KEDA ScaledObject (minReplicas=1), the Deployment controller
+    should recreate the pod after it's deleted. The AsyncActor infrastructure
+    status should reflect the recovery.
+    """
+    transport = os.getenv("ASYA_TRANSPORT", "sqs")
+    actor_name = "test-pod-kill"
+
+    actor_manifest = f"""
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: {actor_name}
+  namespace: {namespace}
+spec:
+  actor: {actor_name}
+  transport: {transport}
+  scaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 5
+    queueLength: 5
+  workload:
+    kind: Deployment
+    template:
+      spec:
+        containers:
+        - name: asya-runtime
+          image: ghcr.io/deliveryhero/asya-testing:latest
+          imagePullPolicy: IfNotPresent
+          env:
+          - name: ASYA_HANDLER
+            value: asya_testing.handlers.payload.echo_handler
+"""
+
+    try:
+        kubectl_apply(actor_manifest, namespace=namespace)
+
+        assert wait_for_asyncactor_ready(actor_name, namespace=namespace, timeout=120), \
+            "AsyncActor should reach Ready condition"
+
+        label_selector = f"asya.sh/actor={actor_name}"
+        assert wait_for_pod_ready(label_selector, namespace=namespace, timeout=60), \
+            "Pod should be running and ready"
+
         result = subprocess.run(
-            ["kubectl", "wait", "--for=condition=available", "--timeout=60s",
-             "deployment/test-pod-kill", "-n", "asya-e2e"],
-            capture_output=True
-        )
-        assert result.returncode == 0, "Deployment should become available"
-
-        # Wait for HPA to set desired replicas
-        time.sleep(10)  # Wait for HPA to stabilize
-
-        # Get initial state
-        hpa = kubectl_get("hpa", "keda-hpa-test-pod-kill")
-        initial_desired = hpa["status"]["desiredReplicas"]
-        logger.info(f"Initial HPA desired replicas: {initial_desired}")
-
-        # Get AsyncActor status
-        actor = kubectl_get("asyncactor", "test-pod-kill")
-        initial_actor_desired = actor["status"].get("desiredReplicas")
-        logger.info(f"Initial AsyncActor desired replicas: {initial_actor_desired}")
-
-        # Kill the pod
-        result = subprocess.run(
-            ["kubectl", "delete", "pod", "-l", "asya.sh/actor=test-pod-kill", "-n", "asya-e2e", "--wait=false"],
-            capture_output=True
+            ["kubectl", "delete", "pod", "-l", label_selector,
+             "-n", namespace, "--wait=false"],
+            capture_output=True,
         )
         assert result.returncode == 0, "Pod deletion should succeed"
         logger.info("[+] Pod killed")
 
-        # Wait a moment for operator to reconcile
-        time.sleep(5)  # Wait for operator to process pod deletion event
+        assert wait_for_pod_ready(
+            label_selector,
+            namespace=namespace,
+            timeout=60,
+        ), "New pod should be created and become ready after kill"
 
-        # Check that HPA still wants desired replicas (should be minReplicas=1)
-        hpa = kubectl_get("hpa", "keda-hpa-test-pod-kill")
-        hpa_desired = hpa["status"]["desiredReplicas"]
-        logger.info(f"HPA desired replicas after pod kill: {hpa_desired}")
+        logger.info("[+] Workload recovered after pod kill")
 
-        # Check AsyncActor status - this is the key test
-        actor = kubectl_get("asyncactor", "test-pod-kill")
-        actor_desired = actor["status"].get("desiredReplicas")
-        actor_running = actor["status"].get("replicas", 0)
-
-        logger.info(f"AsyncActor status after pod kill: running={actor_running}, desired={actor_desired}")
-
-        # The fix ensures that AsyncActor.status.desiredReplicas comes from HPA, not current replicas
-        # So even though running=0 (pod was killed), desired should match HPA (which should be 1)
-        assert actor_desired is not None, "AsyncActor should have desiredReplicas set"
-        assert actor_desired == hpa_desired, \
-            f"AsyncActor desired ({actor_desired}) should match HPA desired ({hpa_desired})"
-        assert actor_desired >= 1, \
-            f"AsyncActor desired should be at least minReplicas=1, got {actor_desired}"
-
-        # Verify that the operator didn't just copy running replicas to desired
-        # If the bug exists, actor_desired would be 0 (same as running)
-        if actor_running == 0:
-            assert actor_desired != 0, \
-                "BUG: AsyncActor desired should not be 0 when HPA wants replicas (this was the bug we fixed)"
-
-        logger.info("[+] AsyncActor correctly shows desired replicas from HPA after pod kill")
-
-        # Wait for new pod to start (verify recovery)
-        time.sleep(10)  # Wait for new pod to be scheduled
-        actor = kubectl_get("asyncactor", "test-pod-kill")
-        final_running = actor["status"].get("replicas", 0)
-        logger.info(f"Final running replicas: {final_running}")
-
+    except Exception:
+        log_asyncactor_workload_diagnostics(actor_name, namespace=namespace)
+        raise
     finally:
-        kubectl_delete("asyncactor", "test-pod-kill")
-        kubectl_delete("scaledobject", "test-pod-kill")
-        kubectl_delete("hpa", "keda-hpa-test-pod-kill")
+        _cleanup_actor(actor_name, namespace)
 
 
 @pytest.mark.core
-def test_operator_requeues_until_hpa_created(ensure_keda_installed):
-    """Test that operator requeues when HPA doesn't exist yet after ScaledObject creation.
+@pytest.mark.timeout(300)
+def test_scaledobject_has_queue_url(ensure_keda_installed, namespace):
+    """Test that ScaledObject trigger contains the correct queue URL.
 
-    This test verifies the fix for the race condition where:
-    1. Operator creates ScaledObject
-    2. Operator immediately tries to read HPA (but KEDA hasn't created it yet)
-    3. Operator should requeue with 5s delay instead of falling back to current replicas
-
-    The fix ensures operator doesn't set desired=0 when HPA is still being created by KEDA.
+    The Composition only renders the ScaledObject after the SQS queue
+    is created and its URL is available in the queue status. This verifies
+    the queue URL is correctly passed to the ScaledObject trigger metadata.
     """
-    logger.info("Testing operator requeue behavior when HPA is not yet created")
+    transport = os.getenv("ASYA_TRANSPORT", "sqs")
+    actor_name = "test-queue-url"
 
-    actor_manifest = textwrap.dedent(f"""
-        apiVersion: asya.sh/v1alpha1
-        kind: AsyncActor
-        metadata:
-        name: test-hpa-timing
-        namespace: asya-e2e
-        spec:
-        actor: test-hpa-timing
-        transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
-        scaling:
-            enabled: true
-            minReplicas: 1
-            maxReplicas: 10
-            queueLength: 5
-        workload:
-            kind: Deployment
-            template:
-            spec:
-                containers:
-                - name: asya-runtime
-                image: python:3.13-slim
-                env:
-                - name: ASYA_HANDLER
-                    value: "handlers.echo"
-    """)
+    actor_manifest = f"""
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: {actor_name}
+  namespace: {namespace}
+spec:
+  actor: {actor_name}
+  transport: {transport}
+  scaling:
+    enabled: true
+    minReplicas: 0
+    maxReplicas: 10
+    queueLength: 5
+  workload:
+    kind: Deployment
+    template:
+      spec:
+        containers:
+        - name: asya-runtime
+          image: ghcr.io/deliveryhero/asya-testing:latest
+          imagePullPolicy: IfNotPresent
+          env:
+          - name: ASYA_HANDLER
+            value: asya_testing.handlers.payload.echo_handler
+"""
 
     try:
-        kubectl_apply(actor_manifest)
+        kubectl_apply(actor_manifest, namespace=namespace)
 
-        # Wait for ScaledObject to be created first
-        assert wait_for_resource("scaledobject", "test-hpa-timing", timeout=30), \
+        assert wait_for_asyncactor_ready(actor_name, namespace=namespace, timeout=120), \
+            "AsyncActor should reach Ready condition"
+
+        assert wait_for_resource("scaledobject", actor_name, namespace=namespace, timeout=60), \
             "ScaledObject should be created"
-        logger.info("[+] ScaledObject created")
 
-        # Wait for HPA to be created by KEDA (this is what we're testing - operator should requeue until this exists)
-        hpa_created = wait_for_resource("hpa", "keda-hpa-test-hpa-timing", timeout=60)
-        assert hpa_created, "HPA should be created by KEDA within 60 seconds"
-        logger.info("[+] HPA created by KEDA")
+        scaled_obj = kubectl_get("scaledobject", actor_name, namespace=namespace)
+        triggers = scaled_obj["spec"]["triggers"]
+        assert len(triggers) > 0
 
-        # Get HPA and verify it has desired replicas set
-        hpa = kubectl_get("hpa", "keda-hpa-test-hpa-timing")
-        hpa_desired = hpa["status"].get("desiredReplicas")
-        logger.info(f"HPA desired replicas: {hpa_desired}")
+        trigger = triggers[0]
+        if transport == "sqs":
+            queue_url = trigger["metadata"].get("queueURL", "")
+            assert queue_url, "ScaledObject trigger should have a queueURL"
+            expected_queue_name = f"asya-{namespace}-{actor_name}"
+            assert expected_queue_name in queue_url, \
+                f"Queue URL should contain '{expected_queue_name}', got: {queue_url}"
+            logger.info(f"[+] ScaledObject trigger has queue URL: {queue_url}")
 
-        # Get AsyncActor status and verify desired replicas is not 0
-        actor = kubectl_get("asyncactor", "test-hpa-timing")
-        actor_desired = actor["status"].get("desiredReplicas")
-        logger.info(f"AsyncActor desired replicas: {actor_desired}")
+        actor = kubectl_get("asyncactor", actor_name, namespace=namespace)
+        actor_queue_url = actor.get("status", {}).get("queueUrl", "")
+        assert actor_queue_url, "AsyncActor status should have queueUrl"
+        logger.info(f"[+] AsyncActor status has queue URL: {actor_queue_url}")
 
-        # The key assertion: operator should have requeued until HPA was created,
-        # so desired replicas should come from HPA, not fall back to current replicas (0)
-        assert actor_desired is not None, "AsyncActor should have desiredReplicas set"
-        if hpa_desired is not None and hpa_desired > 0:
-            assert actor_desired == hpa_desired, \
-                f"AsyncActor desired ({actor_desired}) should match HPA desired ({hpa_desired})"
-
-        # Verify the operator didn't incorrectly set desired=0 during the race condition window
-        # This would happen if operator fell back to current replicas instead of requeuing
-        assert actor_desired >= 1, \
-            f"AsyncActor desired should be at least minReplicas=1, got {actor_desired}. " \
-            "This indicates operator may have fallen back to current replicas instead of requeuing."
-
-        logger.info("[+] Operator correctly requeued until HPA was created by KEDA")
-
-        # Verify deployment eventually becomes ready
-        result = subprocess.run(
-            ["kubectl", "wait", "--for=condition=available", "--timeout=120s",
-             "deployment/test-hpa-timing", "-n", "asya-e2e"],
-            capture_output=True
-        )
-        assert result.returncode == 0, "Deployment should become available"
-        logger.info("[+] Deployment is available")
-
+    except Exception:
+        log_asyncactor_workload_diagnostics(actor_name, namespace=namespace)
+        raise
     finally:
-        kubectl_delete("asyncactor", "test-hpa-timing")
-        kubectl_delete("scaledobject", "test-hpa-timing")
-        kubectl_delete("hpa", "keda-hpa-test-hpa-timing")
+        _cleanup_actor(actor_name, namespace)
