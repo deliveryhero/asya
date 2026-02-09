@@ -104,3 +104,7 @@ config:
   sqsEndpoint: ""
   # AWS credentials secret name to inject into sidecar (for non-IRSA environments)
   awsCredsSecret: ""
+  # RabbitMQ AMQP connection URL
+  rabbitmqURL: ""
+  # RabbitMQ credentials secret name to inject into sidecar
+  rabbitmqCredsSecret: ""

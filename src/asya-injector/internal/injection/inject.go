@@ -85,6 +85,17 @@ func (i *Injector) Inject(pod *corev1.Pod, actorConfig *ActorConfig) (*corev1.Po
 		})
 	}
 
+	// Inject RabbitMQ credentials from secret if configured
+	if actorConfig.Transport == "rabbitmq" && i.config.RabbitMQCredsSecret != "" {
+		sidecar.EnvFrom = append(sidecar.EnvFrom, corev1.EnvFromSource{
+			SecretRef: &corev1.SecretEnvSource{
+				LocalObjectReference: corev1.LocalObjectReference{
+					Name: i.config.RabbitMQCredsSecret,
+				},
+			},
+		})
+	}
+
 	sidecarExists := false
 	for i, c := range mutated.Spec.Containers {
 		if c.Name == sidecarContainerName {
@@ -148,6 +159,13 @@ func (i *Injector) buildSidecarEnv(actorConfig *ActorConfig) []corev1.EnvVar {
 			env = append(env, corev1.EnvVar{
 				Name:  "ASYA_QUEUE_URL",
 				Value: actorConfig.QueueURL,
+			})
+		}
+	} else if actorConfig.Transport == "rabbitmq" {
+		if i.config.RabbitMQURL != "" {
+			env = append(env, corev1.EnvVar{
+				Name:  "ASYA_RABBITMQ_URL",
+				Value: i.config.RabbitMQURL,
 			})
 		}
 	}

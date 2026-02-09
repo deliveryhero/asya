@@ -13,6 +13,9 @@ metadata:
   {{- end }}
 spec:
   actor: {{ $errorEnd.name }}
+  compositionSelector:
+    matchLabels:
+      asya.sh/transport: {{ $errorEnd.transport }}
   transport: {{ $errorEnd.transport }}
 
   {{- if $errorEnd.scaling.enabled }}

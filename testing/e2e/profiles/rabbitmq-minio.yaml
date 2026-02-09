@@ -63,27 +63,6 @@ crew:
       enabled: true
       minReplicas: 1
 
-operator:
-  gatewayURL: http://asya-gateway.asya-e2e.svc.cluster.local:8080
-  transports:
-    rabbitmq:
-      enabled: true
-      type: rabbitmq
-      config:
-        host: asya-rabbitmq.asya-e2e.svc.cluster.local
-        port: 5672
-        username: guest
-        passwordSecretRef:
-          name: rabbitmq-secret
-          key: password
-        queues:
-          autoCreate: true
-          dlq:
-            enabled: true
-            maxRetryCount: 3
-    sqs:
-      enabled: false
-
 gateway:
   transports:
     rabbitmq:
@@ -94,3 +73,33 @@ gateway:
         poolSize: 20
     sqs:
       enabled: false
+
+crossplane:
+  providers:
+    aws:
+      enabled: false
+  providerConfigs:
+    install: false
+  kubernetesProviderConfig:
+    name: in-cluster
+    credentialsSource: InjectedIdentity
+  actorNamespace: asya-e2e
+  irsa:
+    enabled: false
+  rabbitmq:
+    host: asya-rabbitmq.asya-e2e.svc.cluster.local
+    port: 5672
+    keda:
+      secretRef:
+        name: rabbitmq-secret
+        hostKey: host
+
+injector:
+  image:
+    tag: latest
+    pullPolicy: Never
+  config:
+    sidecarImage: ghcr.io/deliveryhero/asya-sidecar:latest
+    sidecarImagePullPolicy: Never
+    gatewayURL: http://asya-gateway.asya-e2e.svc.cluster.local:8080
+    rabbitmqURL: amqp://guest:guest@asya-rabbitmq.asya-e2e.svc.cluster.local:5672/

@@ -29,17 +29,13 @@ if [[ "${1:-}" == "--recreate" ]]; then
   RECREATE_CLUSTER=true
 fi
 
-# Validate profile (Crossplane deploy only supports sqs-s3)
+# Validate profile
 case "$PROFILE" in
   sqs-s3) ;;
-  rabbitmq-minio)
-    echo "[!] Profile rabbitmq-minio is not supported by Crossplane deploy."
-    echo "    Use deploy_old.sh for rabbitmq-minio profile."
-    exit 1
-    ;;
+  rabbitmq-minio) ;;
   *)
     echo "[!] Unknown profile: $PROFILE"
-    echo "    Valid profiles: sqs-s3"
+    echo "    Valid profiles: sqs-s3, rabbitmq-minio"
     exit 1
     ;;
 esac
@@ -207,26 +203,30 @@ time {
   kubectl create namespace "$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f - > /dev/null 2>&1
   kubectl create namespace "$SYSTEM_NAMESPACE" --dry-run=client -o yaml | kubectl apply -f - > /dev/null 2>&1
 
-  # AWS credentials for Crossplane provider (credentials file format)
-  kubectl create secret generic aws-creds \
-    -n crossplane-system \
-    --from-literal=credentials="[default]
+  if [[ "$PROFILE" == "sqs-s3" ]]; then
+    # AWS credentials for Crossplane provider (credentials file format)
+    kubectl create secret generic aws-creds \
+      -n crossplane-system \
+      --from-literal=credentials="[default]
 aws_access_key_id = test
 aws_secret_access_key = test
 " \
-    --dry-run=client -o yaml | kubectl apply -f - > /dev/null 2>&1
-  echo "[+] Created aws-creds secret in crossplane-system"
+      --dry-run=client -o yaml | kubectl apply -f - > /dev/null 2>&1
+    echo "[+] Created aws-creds secret in crossplane-system"
 
-  # AWS credentials for KEDA TriggerAuthentication (key/value format)
-  kubectl create secret generic aws-creds \
-    -n "$NAMESPACE" \
-    --from-literal=AWS_ACCESS_KEY_ID=test \
-    --from-literal=AWS_SECRET_ACCESS_KEY=test \
-    --dry-run=client -o yaml | kubectl apply -f - > /dev/null 2>&1
-  echo "[+] Created aws-creds secret in $NAMESPACE"
+    # AWS credentials for KEDA TriggerAuthentication (key/value format)
+    kubectl create secret generic aws-creds \
+      -n "$NAMESPACE" \
+      --from-literal=AWS_ACCESS_KEY_ID=test \
+      --from-literal=AWS_SECRET_ACCESS_KEY=test \
+      --dry-run=client -o yaml | kubectl apply -f - > /dev/null 2>&1
+    echo "[+] Created aws-creds secret in $NAMESPACE"
 
-  # sqs-secret in asya-system is created by the SQS Helm chart (testing/e2e/charts/sqs/)
-  # Do NOT create it here — Helm requires ownership metadata on managed resources
+    # sqs-secret in asya-system is created by the SQS Helm chart (testing/e2e/charts/sqs/)
+    # Do NOT create it here — Helm requires ownership metadata on managed resources
+  else
+    echo "[.] Skipping AWS credentials (not needed for $PROFILE)"
+  fi
 }
 echo
 
