@@ -29,14 +29,14 @@ logger = logging.getLogger(__name__)
 
 
 @pytest.fixture(scope="module")
-def ensure_keda_installed():
+def ensure_keda_installed(namespace):
     """Ensure KEDA is installed in the cluster."""
     result = subprocess.run(
-        ["kubectl", "get", "deployment", "-n", "keda", "keda-operator"],
-        capture_output=True
+        ["kubectl", "get", "deployment", "-n", namespace, "keda-operator"],
+        capture_output=True,
     )
     if result.returncode != 0:
-        pytest.skip("KEDA is not installed in the cluster. These tests require KEDA.")
+        pytest.skip(f"KEDA is not installed in namespace {namespace}. These tests require KEDA.")
 
 
 @pytest.mark.core

@@ -15,6 +15,7 @@ providers:
 functions:
   goTemplatingVersion: "v0.11.3"
   patchAndTransformVersion: "v0.8.2"
+  autoReadyVersion: "v0.6.0"
 
 # AWS ProviderConfig settings
 awsProviderConfig:

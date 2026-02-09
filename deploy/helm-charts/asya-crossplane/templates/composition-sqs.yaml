@@ -432,3 +432,8 @@ spec:
                   ready: {{`{{ $workloadReady }}`}}
                   replicas: {{`{{ $workloadReplicas }}`}}
                   readyReplicas: {{`{{ $workloadReadyReplicas }}`}}
+
+    # Automatically detect readiness from all composed resources
+    - step: automatically-detect-ready-composed-resources
+      functionRef:
+        name: function-auto-ready

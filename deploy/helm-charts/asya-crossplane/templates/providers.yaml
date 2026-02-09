@@ -56,3 +56,12 @@ metadata:
     {{- include "asya-crossplane.labels" . | nindent 4 }}
 spec:
   package: xpkg.crossplane.io/crossplane-contrib/function-patch-and-transform:{{ .Values.functions.patchAndTransformVersion }}
+---
+apiVersion: pkg.crossplane.io/v1
+kind: Function
+metadata:
+  name: function-auto-ready
+  labels:
+    {{- include "asya-crossplane.labels" . | nindent 4 }}
+spec:
+  package: xpkg.upbound.io/crossplane-contrib/function-auto-ready:{{ .Values.functions.autoReadyVersion }}
