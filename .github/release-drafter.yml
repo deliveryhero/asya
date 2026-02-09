@@ -175,7 +175,7 @@ template: |
     --create-namespace
   helm install asya-gateway asya/asya-gateway \
     --version $RESOLVED_VERSION \
-    --namespace asya-system
+    --namespace asya
   ```
 
   ## Docker Images

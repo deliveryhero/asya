@@ -399,7 +399,7 @@ Tests are organized by scope and dependencies with **strict isolation rules**:
 2. Rebuild images: `make build-images`
 3. Load images to Kind: `kind load docker-image {image}:{tag} --name asya-e2e-{profile}`
 4. Upgrade only affected deployments/Helm charts:
-   - Crossplane: `helm upgrade asya-crossplane deploy/helm-charts/asya-crossplane/`
+   - Crossplane: `helm upgrade asya-crossplane deploy/helm-charts/asya-crossplane/ -n crossplane-system`
    - Injector: `helm upgrade -n asya-system asya-injector deploy/helm-charts/asya-injector/`
    - Gateway: `helm upgrade -n asya-e2e asya-gateway deploy/helm-charts/asya-gateway/`
    - Crew: `helm upgrade -n asya-e2e asya-crew deploy/helm-charts/asya-crew/`
