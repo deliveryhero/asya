@@ -320,11 +320,11 @@ def wait_for_asyncactor_ready(
     timeout: int = 60,
 ) -> bool:
     """
-    Wait for AsyncActor to be ready by checking status.phase.
+    Wait for AsyncActor to be ready by checking the XR Ready condition.
 
-    With Crossplane, the XR-level Ready condition may stay False even when the
-    actor is fully functional. Instead, check status.phase which is derived by
-    the Composition from actual infrastructure readiness (queue, KEDA, workload).
+    With function-auto-ready in the Composition pipeline, Crossplane sets
+    Ready=True when all composed resources (Queue, ScaledObject, Deployment)
+    are healthy.
 
     Args:
         name: AsyncActor name
@@ -332,40 +332,28 @@ def wait_for_asyncactor_ready(
         timeout: Maximum wait time in seconds
 
     Returns:
-        True if status.phase is "Ready", False if timeout
+        True if Ready condition is True, False if timeout
     """
-    start_time = time.time()
-    attempt = 0
+    result = subprocess.run(
+        [
+            "kubectl",
+            "wait",
+            "--for=condition=Ready",
+            f"--timeout={timeout}s",
+            f"asyncactor/{name}",
+            "-n",
+            namespace,
+        ],
+        capture_output=True,
+        text=True,
+        timeout=timeout + 5,
+    )
 
-    while time.time() - start_time < timeout:
-        attempt += 1
-        try:
-            result = subprocess.run(
-                ["kubectl", "get", "asyncactor", name, "-n", namespace, "-o=json"],
-                capture_output=True,
-                text=True,
-                timeout=5,
-            )
+    if result.returncode == 0:
+        logger.info(f"AsyncActor {name} is Ready")
+        return True
 
-            if result.returncode != 0:
-                time.sleep(1)
-                continue
-
-            actor = yaml.safe_load(result.stdout)
-            status = actor.get("status", {})
-            phase = status.get("phase", "")
-
-            if phase == "Ready":
-                elapsed = time.time() - start_time
-                logger.info(f"AsyncActor {name} ready (phase={phase}) after {elapsed:.1f}s ({attempt} attempts)")
-                return True
-
-        except Exception as e:
-            logger.debug(f"Error checking AsyncActor status (attempt {attempt}): {e}")
-
-        time.sleep(1)
-
-    logger.warning(f"AsyncActor {name} not ready after {timeout}s ({attempt} attempts)")
+    logger.warning(f"AsyncActor {name} not ready after {timeout}s: {result.stderr.strip()}")
     return False
 
 

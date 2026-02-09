@@ -401,40 +401,13 @@ fi
 # Phase 8: Wait for Crossplane to reconcile all AsyncActor claims
 echo "[.] Phase 8: Waiting for Crossplane to reconcile AsyncActor claims..."
 time {
-  MAX_RETRIES=60
-  RETRY_INTERVAL=2
-  ATTEMPT=0
-
-  while [ $ATTEMPT -lt $MAX_RETRIES ]; do
-    ATTEMPT=$((ATTEMPT + 1))
-
-    # Get total number of AsyncActors
-    TOTAL_ACTORS=$(kubectl get asyncactors -n "$NAMESPACE" --no-headers 2> /dev/null | wc -l)
-
-    if [ "$TOTAL_ACTORS" -eq 0 ]; then
-      echo "[!] No AsyncActor CRDs found in namespace $NAMESPACE"
-      exit 1
-    fi
-
-    # Count actors with status.phase == Ready
-    READY_COUNT=$(kubectl get asyncactors -n "$NAMESPACE" -o jsonpath='{range .items[*]}{.status.phase}{"\n"}{end}' 2> /dev/null | grep -c "^Ready$" || true)
-
-    if [ "$READY_COUNT" -eq "$TOTAL_ACTORS" ]; then
-      echo "[+] All $TOTAL_ACTORS AsyncActors reconciled (status.phase=Ready)"
-      break
-    fi
-
-    if [ $((ATTEMPT % 10)) -eq 0 ]; then
-      echo "[.] Waiting for AsyncActors: $READY_COUNT/$TOTAL_ACTORS Ready (attempt $ATTEMPT/$MAX_RETRIES)"
-    fi
-
-    sleep "$RETRY_INTERVAL"
-  done
-
-  if [ $ATTEMPT -eq $MAX_RETRIES ]; then
-    echo "[!] Warning: Not all AsyncActors reconciled after ${MAX_RETRIES} attempts"
+  if ! kubectl wait --for=condition=Ready asyncactor --all -n "$NAMESPACE" --timeout=120s 2> /dev/null; then
+    echo "[!] Warning: Not all AsyncActors reached Ready condition"
     echo "[.] Current AsyncActor status:"
     kubectl get asyncactors -n "$NAMESPACE"
+  else
+    TOTAL_ACTORS=$(kubectl get asyncactors -n "$NAMESPACE" --no-headers 2> /dev/null | wc -l)
+    echo "[+] All $TOTAL_ACTORS AsyncActors reconciled (condition=Ready)"
   fi
 }
 echo
