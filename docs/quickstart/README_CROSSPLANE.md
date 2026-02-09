@@ -319,9 +319,8 @@ kind: AsyncActor
 metadata:
   name: hello
   namespace: default
-  labels:
-    asya.sh/actor: hello
 spec:
+  actor: hello
   transport: sqs
   region: us-east-1
   providerConfigRef: localstack
