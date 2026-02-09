@@ -247,6 +247,7 @@ spec:
             {{`{{- $actorName := (index $xr.metadata.labels "asya.sh/actor") | default $claimName -}}`}}
             {{`{{- $namespace := index $xr.metadata.labels "crossplane.io/claim-namespace" -}}`}}
             {{`{{- $queueIdentifier := printf "asya-%s-%s" $namespace $actorName -}}`}}
+            {{`{{- /* Queue is always ready for RabbitMQ: sidecar declares it via AMQP at runtime */ -}}`}}
             {{`{{- $queueReady := true -}}`}}
             {{`{{- $kedaReady := false -}}`}}
             {{`{{- $scalingEnabled := true -}}`}}
