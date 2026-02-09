@@ -127,8 +127,8 @@ func NewMetrics(namespace string, customMetricsConfig []config.CustomMetricConfi
 	m.messageSize = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Namespace: namespace,
-			Name:      "envelope_size_bytes",
-			Help:      "Size of envelopes in bytes",
+			Name:      "message_size_bytes",
+			Help:      "Size of messages in bytes",
 			Buckets:   prometheus.ExponentialBuckets(100, 10, 8), // 100B to ~10MB
 		},
 		[]string{"direction"}, // direction: received, sent
@@ -281,11 +281,11 @@ func (m *Metrics) RecordMessageSize(direction string, size int) {
 	m.messageSize.WithLabelValues(direction).Observe(float64(size))
 }
 
-func (m *Metrics) IncrementActiveEnvelopes() {
+func (m *Metrics) IncrementActiveMessages() {
 	m.activeMessages.Inc()
 }
 
-func (m *Metrics) DecrementActiveEnvelopes() {
+func (m *Metrics) DecrementActiveMessages() {
 	m.activeMessages.Dec()
 }
 

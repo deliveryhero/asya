@@ -10,8 +10,8 @@ import (
 	"github.com/mark3labs/mcp-go/server"
 
 	"github.com/deliveryhero/asya/asya-gateway/internal/config"
-	"github.com/deliveryhero/asya/asya-gateway/internal/envelopestore"
 	"github.com/deliveryhero/asya/asya-gateway/internal/queue"
+	"github.com/deliveryhero/asya/asya-gateway/internal/taskstore"
 	"github.com/deliveryhero/asya/asya-gateway/pkg/types"
 )
 
@@ -20,7 +20,7 @@ type MockQueueClientWithError struct {
 	sendErr error
 }
 
-func (m *MockQueueClientWithError) SendEnvelope(ctx context.Context, envelope *types.Envelope) error {
+func (m *MockQueueClientWithError) SendMessage(ctx context.Context, task *types.Task) error {
 	if m.sendErr != nil {
 		return m.sendErr
 	}
@@ -39,76 +39,76 @@ func (m *MockQueueClientWithError) Close() error {
 	return nil
 }
 
-// MockJobStore for testing
-type MockJobStore struct {
+// MockTaskStore for testing
+type MockTaskStore struct {
 	createErr error
 	updateErr error
-	envelopes map[string]*types.Envelope
+	tasks     map[string]*types.Task
 }
 
-func NewMockJobStore() *MockJobStore {
-	return &MockJobStore{
-		envelopes: make(map[string]*types.Envelope),
+func NewMockTaskStore() *MockTaskStore {
+	return &MockTaskStore{
+		tasks: make(map[string]*types.Task),
 	}
 }
 
-func (m *MockJobStore) Create(env *types.Envelope) error {
+func (m *MockTaskStore) Create(task *types.Task) error {
 	if m.createErr != nil {
 		return m.createErr
 	}
-	m.envelopes[env.ID] = env
+	m.tasks[task.ID] = task
 	return nil
 }
 
-func (m *MockJobStore) Update(update types.EnvelopeUpdate) error {
+func (m *MockTaskStore) Update(update types.TaskUpdate) error {
 	if m.updateErr != nil {
 		return m.updateErr
 	}
-	if env, ok := m.envelopes[update.ID]; ok {
-		env.Status = update.Status
-		env.Error = update.Error
+	if task, ok := m.tasks[update.ID]; ok {
+		task.Status = update.Status
+		task.Error = update.Error
 	}
 	return nil
 }
 
-func (m *MockJobStore) Get(id string) (*types.Envelope, error) {
-	if env, ok := m.envelopes[id]; ok {
-		return env, nil
+func (m *MockTaskStore) Get(id string) (*types.Task, error) {
+	if task, ok := m.tasks[id]; ok {
+		return task, nil
 	}
-	return nil, fmt.Errorf("envelope not found")
+	return nil, fmt.Errorf("task not found")
 }
 
-func (m *MockJobStore) AddProgress(id string, progress types.ProgressUpdate) error {
+func (m *MockTaskStore) AddProgress(id string, progress types.ProgressUpdate) error {
 	return nil
 }
 
-func (m *MockJobStore) Delete(id string) error {
-	delete(m.envelopes, id)
+func (m *MockTaskStore) Delete(id string) error {
+	delete(m.tasks, id)
 	return nil
 }
 
-func (m *MockJobStore) UpdateProgress(update types.EnvelopeUpdate) error {
+func (m *MockTaskStore) UpdateProgress(update types.TaskUpdate) error {
 	return m.Update(update)
 }
 
-func (m *MockJobStore) Subscribe(id string) chan types.EnvelopeUpdate {
-	return make(chan types.EnvelopeUpdate)
+func (m *MockTaskStore) Subscribe(id string) chan types.TaskUpdate {
+	return make(chan types.TaskUpdate)
 }
 
-func (m *MockJobStore) Unsubscribe(id string, ch chan types.EnvelopeUpdate) {
+func (m *MockTaskStore) Unsubscribe(id string, ch chan types.TaskUpdate) {
 	close(ch)
 }
 
-func (m *MockJobStore) IsActive(id string) bool {
-	env, exists := m.envelopes[id]
+func (m *MockTaskStore) IsActive(id string) bool {
+	task, exists := m.tasks[id]
 	if !exists {
 		return false
 	}
-	return env.Status == types.EnvelopeStatusPending || env.Status == types.EnvelopeStatusRunning
+	return task.Status == types.TaskStatusPending || task.Status == types.TaskStatusRunning
 }
 
-func (m *MockJobStore) GetUpdates(id string, since *time.Time) ([]types.EnvelopeUpdate, error) {
-	return []types.EnvelopeUpdate{}, nil
+func (m *MockTaskStore) GetUpdates(id string, since *time.Time) ([]types.TaskUpdate, error) {
+	return []types.TaskUpdate{}, nil
 }
 
 // TestNewRegistry tests registry initialization
@@ -118,10 +118,10 @@ func TestNewRegistry(t *testing.T) {
 			{Name: "test_tool", Description: "Test"},
 		},
 	}
-	jobStore := envelopestore.NewStore()
+	taskStore := taskstore.NewStore()
 	queueClient := &MockQueueClient{}
 
-	registry := NewRegistry(cfg, jobStore, queueClient)
+	registry := NewRegistry(cfg, taskStore, queueClient)
 
 	if registry == nil {
 		t.Fatal("Expected non-nil registry")
@@ -129,8 +129,8 @@ func TestNewRegistry(t *testing.T) {
 	if registry.config != cfg {
 		t.Error("Config not set correctly")
 	}
-	if registry.jobStore != jobStore {
-		t.Error("JobStore not set correctly")
+	if registry.taskStore != taskStore {
+		t.Error("TaskStore not set correctly")
 	}
 	if registry.queueClient != queueClient {
 		t.Error("QueueClient not set correctly")
@@ -142,7 +142,7 @@ func TestNewRegistry(t *testing.T) {
 
 // TestBuildParameterOptions tests parameter option building for all types
 func TestBuildParameterOptions(t *testing.T) {
-	registry := NewRegistry(&config.Config{}, envelopestore.NewStore(), &MockQueueClient{})
+	registry := NewRegistry(&config.Config{}, taskstore.NewStore(), &MockQueueClient{})
 
 	tests := []struct {
 		name      string
@@ -318,7 +318,7 @@ func TestRegisterAll(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			registry := NewRegistry(tt.config, envelopestore.NewStore(), &MockQueueClient{})
+			registry := NewRegistry(tt.config, taskstore.NewStore(), &MockQueueClient{})
 			mcpServer := server.NewMCPServer("test-server", "1.0.0")
 
 			err := registry.RegisterAll(mcpServer)
@@ -361,7 +361,7 @@ func TestGetToolHandler(t *testing.T) {
 		},
 	}
 
-	registry := NewRegistry(cfg, envelopestore.NewStore(), &MockQueueClient{})
+	registry := NewRegistry(cfg, taskstore.NewStore(), &MockQueueClient{})
 	mcpServer := server.NewMCPServer("test-server", "1.0.0")
 	_ = registry.RegisterAll(mcpServer)
 
@@ -383,12 +383,12 @@ func TestGetToolHandler(t *testing.T) {
 // TestCreateToolHandler tests the tool handler creation and execution
 func TestCreateToolHandler(t *testing.T) {
 	tests := []struct {
-		name        string
-		toolDef     config.Tool
-		request     mcp.CallToolRequest
-		jobStoreErr error
-		wantErr     bool
-		wantErrMsg  string
+		name         string
+		toolDef      config.Tool
+		request      mcp.CallToolRequest
+		taskStoreErr error
+		wantErr      bool
+		wantErrMsg   string
 	}{
 		{
 			name: "valid tool call - all parameters",
@@ -505,13 +505,13 @@ func TestCreateToolHandler(t *testing.T) {
 				},
 			}
 
-			jobStore := NewMockJobStore()
-			if tt.jobStoreErr != nil {
-				jobStore.createErr = tt.jobStoreErr
+			taskStore := NewMockTaskStore()
+			if tt.taskStoreErr != nil {
+				taskStore.createErr = tt.taskStoreErr
 			}
 
 			queueClient := &MockQueueClient{}
-			registry := NewRegistry(cfg, jobStore, queueClient)
+			registry := NewRegistry(cfg, taskStore, queueClient)
 
 			handler := registry.createToolHandler(tt.toolDef)
 			result, err := handler(context.Background(), tt.request)
@@ -541,24 +541,24 @@ func TestCreateToolHandler(t *testing.T) {
 
 			time.Sleep(50 * time.Millisecond)
 
-			if len(jobStore.envelopes) != 1 {
-				t.Errorf("Expected 1 envelope in store, got %d", len(jobStore.envelopes))
+			if len(taskStore.tasks) != 1 {
+				t.Errorf("Expected 1 task in store, got %d", len(taskStore.tasks))
 			}
 
-			for _, env := range jobStore.envelopes {
+			for _, task := range taskStore.tasks {
 				expectedActors, _ := tt.toolDef.Route.GetActors(cfg.Routes)
-				if len(env.Route.Actors) != len(expectedActors) {
-					t.Errorf("Expected %d actors, got %d", len(expectedActors), len(env.Route.Actors))
+				if len(task.Route.Actors) != len(expectedActors) {
+					t.Errorf("Expected %d actors, got %d", len(expectedActors), len(task.Route.Actors))
 				}
 
-				if env.Route.Current != 0 {
-					t.Errorf("Expected current=0, got %d", env.Route.Current)
+				if task.Route.Current != 0 {
+					t.Errorf("Expected current=0, got %d", task.Route.Current)
 				}
 
 				if tt.toolDef.Timeout != nil {
 					expectedTimeout := *tt.toolDef.Timeout
-					if env.TimeoutSec != expectedTimeout {
-						t.Errorf("Expected timeout=%d, got %d", expectedTimeout, env.TimeoutSec)
+					if task.TimeoutSec != expectedTimeout {
+						t.Errorf("Expected timeout=%d, got %d", expectedTimeout, task.TimeoutSec)
 					}
 				}
 			}
@@ -642,7 +642,7 @@ func TestGetToolOptions(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			registry := NewRegistry(tt.config, envelopestore.NewStore(), &MockQueueClient{})
+			registry := NewRegistry(tt.config, taskstore.NewStore(), &MockQueueClient{})
 
 			opts, err := registry.GetToolOptions(tt.toolName)
 
@@ -668,8 +668,8 @@ func TestGetToolOptions(t *testing.T) {
 	}
 }
 
-// TestEnvelopeCreation tests envelope creation with various configurations
-func TestEnvelopeCreation(t *testing.T) {
+// TestTaskCreation tests task creation with various configurations
+func TestTaskCreation(t *testing.T) {
 	tests := []struct {
 		name             string
 		toolDef          config.Tool
@@ -680,7 +680,7 @@ func TestEnvelopeCreation(t *testing.T) {
 		metadataContains map[string]interface{}
 	}{
 		{
-			name: "envelope with deadline",
+			name: "task with deadline",
 			toolDef: config.Tool{
 				Name:    "timeout_tool",
 				Route:   config.RouteSpec{Actors: []string{"actor1"}},
@@ -689,7 +689,7 @@ func TestEnvelopeCreation(t *testing.T) {
 			expectDeadline: true,
 		},
 		{
-			name: "envelope without timeout",
+			name: "task without timeout",
 			toolDef: config.Tool{
 				Name:  "no_timeout_tool",
 				Route: config.RouteSpec{Actors: []string{"actor1"}},
@@ -697,7 +697,7 @@ func TestEnvelopeCreation(t *testing.T) {
 			expectDeadline: true,
 		},
 		{
-			name: "envelope with job_id in metadata",
+			name: "task with task_id in metadata",
 			toolDef: config.Tool{
 				Name:  "metadata_tool",
 				Route: config.RouteSpec{Actors: []string{"actor1"}},
@@ -716,9 +716,9 @@ func TestEnvelopeCreation(t *testing.T) {
 				Defaults: tt.defaults,
 			}
 
-			jobStore := NewMockJobStore()
+			taskStore := NewMockTaskStore()
 			queueClient := &MockQueueClient{}
-			registry := NewRegistry(cfg, jobStore, queueClient)
+			registry := NewRegistry(cfg, taskStore, queueClient)
 
 			handler := registry.createToolHandler(tt.toolDef)
 			request := createCallToolRequest(map[string]interface{}{})
@@ -730,23 +730,23 @@ func TestEnvelopeCreation(t *testing.T) {
 
 			time.Sleep(50 * time.Millisecond)
 
-			if len(jobStore.envelopes) != 1 {
-				t.Fatalf("Expected 1 envelope, got %d", len(jobStore.envelopes))
+			if len(taskStore.tasks) != 1 {
+				t.Fatalf("Expected 1 task, got %d", len(taskStore.tasks))
 			}
 
-			for _, env := range jobStore.envelopes {
+			for _, task := range taskStore.tasks {
 				if tt.expectDeadline {
-					if env.Deadline.IsZero() {
+					if task.Deadline.IsZero() {
 						t.Error("Expected deadline to be set")
 					}
 				}
 
 				if tt.expectMetadata {
-					if env.Route.Metadata == nil {
+					if task.Route.Metadata == nil {
 						t.Fatal("Expected metadata to be set")
 					}
 					for key, expectedVal := range tt.metadataContains {
-						if val, ok := env.Route.Metadata[key]; !ok {
+						if val, ok := task.Route.Metadata[key]; !ok {
 							t.Errorf("Expected metadata key %q to exist", key)
 						} else if expectedVal != "should_be_set" && val != expectedVal {
 							t.Errorf("Expected metadata[%q]=%v, got %v", key, expectedVal, val)
@@ -758,8 +758,8 @@ func TestEnvelopeCreation(t *testing.T) {
 	}
 }
 
-// TestJobStoreFailure tests handling of job store failures
-func TestJobStoreFailure(t *testing.T) {
+// TestTaskStoreFailure tests handling of task store failures
+func TestTaskStoreFailure(t *testing.T) {
 	toolDef := config.Tool{
 		Name:  "test_tool",
 		Route: config.RouteSpec{Actors: []string{"actor1"}},
@@ -769,11 +769,11 @@ func TestJobStoreFailure(t *testing.T) {
 		Tools: []config.Tool{toolDef},
 	}
 
-	jobStore := NewMockJobStore()
-	jobStore.createErr = fmt.Errorf("database connection failed")
+	taskStore := NewMockTaskStore()
+	taskStore.createErr = fmt.Errorf("database connection failed")
 
 	queueClient := &MockQueueClient{}
-	registry := NewRegistry(cfg, jobStore, queueClient)
+	registry := NewRegistry(cfg, taskStore, queueClient)
 
 	handler := registry.createToolHandler(toolDef)
 	request := createCallToolRequest(map[string]interface{}{})
@@ -784,7 +784,7 @@ func TestJobStoreFailure(t *testing.T) {
 	}
 
 	if !result.IsError {
-		t.Error("Expected error result when job store fails")
+		t.Error("Expected error result when task store fails")
 	}
 }
 
@@ -799,12 +799,12 @@ func TestQueueSendFailure(t *testing.T) {
 		Tools: []config.Tool{toolDef},
 	}
 
-	jobStore := NewMockJobStore()
+	taskStore := NewMockTaskStore()
 
 	queueClient := &MockQueueClientWithError{
 		sendErr: fmt.Errorf("queue connection lost"),
 	}
-	registry := NewRegistry(cfg, jobStore, queueClient)
+	registry := NewRegistry(cfg, taskStore, queueClient)
 
 	handler := registry.createToolHandler(toolDef)
 	request := createCallToolRequest(map[string]interface{}{})
@@ -820,15 +820,15 @@ func TestQueueSendFailure(t *testing.T) {
 
 	time.Sleep(100 * time.Millisecond)
 
-	if len(jobStore.envelopes) != 1 {
-		t.Fatalf("Expected 1 envelope in store, got %d", len(jobStore.envelopes))
+	if len(taskStore.tasks) != 1 {
+		t.Fatalf("Expected 1 task in store, got %d", len(taskStore.tasks))
 	}
 
-	for _, env := range jobStore.envelopes {
-		if env.Status != types.EnvelopeStatusFailed {
-			t.Errorf("Expected envelope status to be Failed, got %v", env.Status)
+	for _, task := range taskStore.tasks {
+		if task.Status != types.TaskStatusFailed {
+			t.Errorf("Expected task status to be Failed, got %v", task.Status)
 		}
-		if env.Error == "" {
+		if task.Error == "" {
 			t.Error("Expected error message to be set")
 		}
 	}

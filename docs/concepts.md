@@ -29,7 +29,7 @@ An actor is a stateless (by default) workload that:
 - Observability (metrics, logs)
 - Reliability (retries, error handling)
 
-**How it works**: Injected as a container into actor pods. Consumes messages from queues, validates envelopes, forwards to runtime via Unix socket, routes responses to next queue.
+**How it works**: Injected as a container into actor pods. Consumes messages from queues, validates message structure, forwards to runtime via Unix socket, routes responses to next queue.
 
 **See**: [architecture/asya-sidecar.md](architecture/asya-sidecar.md) for details.
 
@@ -75,14 +75,14 @@ An actor is a stateless (by default) workload that:
 
 **See**: [architecture/transports/README.md](architecture/transports/README.md) for details.
 
-## Envelope
+## Message
 
 **Definition**: JSON object passed between actors via message queues.
 
 **Structure**:
 ```json
 {
-  "id": "unique-envelope-id",
+  "id": "unique-message-id",
   "route": {
     "actors": ["preprocess", "inference", "postprocess"],
     "current": 0
@@ -104,9 +104,7 @@ An actor is a stateless (by default) workload that:
 - `payload` (required): User data processed by actors
 - `headers` (optional): Routing metadata (traces, priorities)
 
-**Envelope vs Message**: At queue level, messages are bytes. Envelopes are JSON objects with pre-defined structure.
-
-**Stateful routing**: `route.current` increments after each actor processes the envelope. Note once again, this is a unique feature of 🎭: pipelines are stateless, but envelopes are stateful (they represent different pipeline executions).
+**Stateful routing**: `route.current` increments after each actor processes the message. Note once again, this is a unique feature of 🎭: pipelines are stateless, but messages are stateful (they represent different pipeline executions).
 
 **See**: [architecture/protocols/actor-actor.md](architecture/protocols/actor-actor.md) for details.
 
@@ -145,11 +143,11 @@ As an optional component, 🎭 offers an MCP-compliant HTTP gateway, which allow
 **Responsibilities**:
 
 - Exposes MCP-compliant HTTP API
-- Receives HTTP requests, creates envelopes
-- Tracks envelope status in PostgreSQL
+- Receives HTTP requests, creates tasks
+- Tracks task status in PostgreSQL
 - Streams progress updates via Server-Sent Events (SSE)
 
-**How it works**: Client calls tool → Gateway creates envelope → Sends to first actor's queue → Crew actors report status back → Gateway streams updates to client.
+**How it works**: Client calls tool → Gateway creates task → Sends to first actor's queue → Crew actors report status back → Gateway streams updates to client.
 
 **Use case**: Easy integration for external systems or user-facing APIs.
 

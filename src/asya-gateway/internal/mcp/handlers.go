@@ -9,30 +9,30 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/deliveryhero/asya/asya-gateway/internal/envelopestore"
+	"github.com/deliveryhero/asya/asya-gateway/internal/taskstore"
 	"github.com/deliveryhero/asya/asya-gateway/pkg/types"
 	"github.com/mark3labs/mcp-go/mcp"
 )
 
 var (
-	envelopePathRegex         = regexp.MustCompile(`^/envelopes/([^/]+)$`)
-	envelopeStreamPathRegex   = regexp.MustCompile(`^/envelopes/([^/]+)/stream$`)
-	envelopeActivePathRegex   = regexp.MustCompile(`^/envelopes/([^/]+)/active$`)
-	envelopeProgressPathRegex = regexp.MustCompile(`^/envelopes/([^/]+)/progress$`)
-	envelopeFinalPathRegex    = regexp.MustCompile(`^/envelopes/([^/]+)/final$`)
+	taskPathRegex         = regexp.MustCompile(`^/tasks/([^/]+)$`)
+	taskStreamPathRegex   = regexp.MustCompile(`^/tasks/([^/]+)/stream$`)
+	taskActivePathRegex   = regexp.MustCompile(`^/tasks/([^/]+)/active$`)
+	taskProgressPathRegex = regexp.MustCompile(`^/tasks/([^/]+)/progress$`)
+	taskFinalPathRegex    = regexp.MustCompile(`^/tasks/([^/]+)/final$`)
 )
 
-// Handler provides HTTP endpoints for envelope management
+// Handler provides HTTP endpoints for task management
 // MCP endpoints are now handled directly by mark3labs/mcp-go server
 type Handler struct {
-	jobStore envelopestore.EnvelopeStore
-	server   *Server // For direct tool calls
+	taskStore taskstore.TaskStore
+	server    *Server // For direct tool calls
 }
 
-// NewHandler creates a new HTTP handler for envelope management
-func NewHandler(jobStore envelopestore.EnvelopeStore) *Handler {
+// NewHandler creates a new HTTP handler for task management
+func NewHandler(taskStore taskstore.TaskStore) *Handler {
 	return &Handler{
-		jobStore: jobStore,
+		taskStore: taskStore,
 	}
 }
 
@@ -100,8 +100,8 @@ func (h *Handler) HandleToolCall(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// HandleEnvelopeCreate handles POST /envelopes (for sidecars to create fanout child envelopes)
-func (h *Handler) HandleEnvelopeCreate(w http.ResponseWriter, r *http.Request) {
+// HandleTaskCreate handles POST /tasks (for sidecars to create fanout child tasks)
+func (h *Handler) HandleTaskCreate(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -125,52 +125,52 @@ func (h *Handler) HandleEnvelopeCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	slog.Info("Creating fanout envelope", "id", createReq.ID, "parent_id", createReq.ParentID)
+	slog.Info("Creating fanout task", "id", createReq.ID, "parent_id", createReq.ParentID)
 
-	// Create minimal envelope for fanout child
-	envelope := &types.Envelope{
+	// Create minimal task for fanout child
+	task := &types.Task{
 		ID:              createReq.ID,
 		ParentID:        &createReq.ParentID,
-		Status:          types.EnvelopeStatusPending,
+		Status:          types.TaskStatusPending,
 		Route:           types.Route{Actors: createReq.Actors, Current: createReq.Current},
 		ProgressPercent: 0.0,
 		TotalActors:     len(createReq.Actors),
 		ActorsCompleted: 0,
 	}
 
-	if err := h.jobStore.Create(envelope); err != nil {
-		slog.Error("Failed to create fanout envelope", "id", createReq.ID, "error", err)
-		http.Error(w, "Failed to create envelope", http.StatusInternalServerError)
+	if err := h.taskStore.Create(task); err != nil {
+		slog.Error("Failed to create fanout task", "id", createReq.ID, "error", err)
+		http.Error(w, "Failed to create task", http.StatusInternalServerError)
 		return
 	}
 
-	slog.Info("Fanout envelope created successfully", "id", createReq.ID)
+	slog.Info("Fanout task created successfully", "id", createReq.ID)
 
-	// Send fanout envelope to queue (async)
+	// Send fanout task to queue (async)
 	go func() {
 		// Update status to Running
-		_ = h.jobStore.Update(types.EnvelopeUpdate{
+		_ = h.taskStore.Update(types.TaskUpdate{
 			ID:        createReq.ID,
-			Status:    types.EnvelopeStatusRunning,
-			Message:   "Sending envelope to first actor",
+			Status:    types.TaskStatusRunning,
+			Message:   "Sending task to first actor",
 			Timestamp: time.Now(),
 		})
 
 		// Skip sending to queue if server is not configured
 		if h.server == nil || h.server.queueClient == nil {
-			slog.Warn("Queue client not configured, skipping envelope send", "id", createReq.ID)
+			slog.Warn("Queue client not configured, skipping task send", "id", createReq.ID)
 			return
 		}
 
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 
-		if err := h.server.queueClient.SendEnvelope(ctx, envelope); err != nil {
-			slog.Error("Failed to send fanout envelope to queue", "id", createReq.ID, "error", err)
-			_ = h.jobStore.Update(types.EnvelopeUpdate{
+		if err := h.server.queueClient.SendMessage(ctx, task); err != nil {
+			slog.Error("Failed to send fanout task to queue", "id", createReq.ID, "error", err)
+			_ = h.taskStore.Update(types.TaskUpdate{
 				ID:        createReq.ID,
-				Status:    types.EnvelopeStatusFailed,
-				Error:     fmt.Sprintf("failed to send envelope: %v", err),
+				Status:    types.TaskStatusFailed,
+				Error:     fmt.Sprintf("failed to send task: %v", err),
 				Timestamp: time.Now(),
 			})
 			return
@@ -181,50 +181,50 @@ func (h *Handler) HandleEnvelopeCreate(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(map[string]string{"status": "created", "id": createReq.ID})
 }
 
-// HandleJobStatus handles GET /envelopes/{id}
-func (h *Handler) HandleEnvelopeStatus(w http.ResponseWriter, r *http.Request) {
+// HandleTaskStatus handles GET /tasks/{id}
+func (h *Handler) HandleTaskStatus(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	matches := envelopePathRegex.FindStringSubmatch(r.URL.Path)
+	matches := taskPathRegex.FindStringSubmatch(r.URL.Path)
 	if matches == nil {
-		http.Error(w, "Invalid envelope path", http.StatusBadRequest)
+		http.Error(w, "Invalid task path", http.StatusBadRequest)
 		return
 	}
-	envelopeID := matches[1]
+	taskID := matches[1]
 
-	envelope, err := h.jobStore.Get(envelopeID)
+	task, err := h.taskStore.Get(taskID)
 	if err != nil {
-		http.Error(w, "Envelope not found", http.StatusNotFound)
+		http.Error(w, "Task not found", http.StatusNotFound)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(envelope); err != nil {
-		slog.Error("Failed to encode envelope", "error", err)
+	if err := json.NewEncoder(w).Encode(task); err != nil {
+		slog.Error("Failed to encode task", "error", err)
 	}
 }
 
-// HandleJobStream handles GET /envelopes/{id}/stream (SSE)
-func (h *Handler) HandleEnvelopeStream(w http.ResponseWriter, r *http.Request) {
+// HandleTaskStream handles GET /tasks/{id}/stream (SSE)
+func (h *Handler) HandleTaskStream(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	matches := envelopeStreamPathRegex.FindStringSubmatch(r.URL.Path)
+	matches := taskStreamPathRegex.FindStringSubmatch(r.URL.Path)
 	if matches == nil {
-		http.Error(w, "Invalid envelope stream path", http.StatusBadRequest)
+		http.Error(w, "Invalid task stream path", http.StatusBadRequest)
 		return
 	}
-	envelopeID := matches[1]
+	taskID := matches[1]
 
-	// Verify envelope exists
-	_, err := h.jobStore.Get(envelopeID)
+	// Verify task exists
+	_, err := h.taskStore.Get(taskID)
 	if err != nil {
-		http.Error(w, "Envelope not found", http.StatusNotFound)
+		http.Error(w, "Task not found", http.StatusNotFound)
 		return
 	}
 
@@ -240,9 +240,9 @@ func (h *Handler) HandleEnvelopeStream(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Send historical updates first (to avoid missing early progress updates)
-	historicalUpdates, err := h.jobStore.GetUpdates(envelopeID, nil)
+	historicalUpdates, err := h.taskStore.GetUpdates(taskID, nil)
 	if err != nil {
-		slog.Warn("Failed to get historical updates", "error", err, "envelope_id", envelopeID)
+		slog.Warn("Failed to get historical updates", "error", err, "task_id", taskID)
 	} else {
 		for _, update := range historicalUpdates {
 			data, err := json.Marshal(update)
@@ -260,14 +260,14 @@ func (h *Handler) HandleEnvelopeStream(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Subscribe to updates
-	updateChan := h.jobStore.Subscribe(envelopeID)
-	defer h.jobStore.Unsubscribe(envelopeID, updateChan)
+	updateChan := h.taskStore.Subscribe(taskID)
+	defer h.taskStore.Unsubscribe(taskID, updateChan)
 
 	// Send keepalive comments every 15 seconds to prevent connection timeout
 	keepaliveTicker := time.NewTicker(15 * time.Second)
 	defer keepaliveTicker.Stop()
 
-	// Stream updates until envelope completes or client disconnects
+	// Stream updates until task completes or client disconnects
 	for {
 		select {
 		case <-r.Context().Done():
@@ -291,9 +291,9 @@ func (h *Handler) HandleEnvelopeStream(w http.ResponseWriter, r *http.Request) {
 			_, _ = fmt.Fprintf(w, "data: %s\n\n", data)
 			flusher.Flush()
 
-			// Close stream if envelope is in final state
+			// Close stream if task is in final state
 			if isFinalStatus(update.Status) {
-				// Final flush to ensure envelope is sent before closing
+				// Final flush to ensure task is sent before closing
 				flusher.Flush()
 				return
 			}
@@ -302,48 +302,48 @@ func (h *Handler) HandleEnvelopeStream(w http.ResponseWriter, r *http.Request) {
 }
 
 // isFinalStatus checks if a status is final (Succeeded or Failed)
-func isFinalStatus(status types.EnvelopeStatus) bool {
-	return status == types.EnvelopeStatusSucceeded ||
-		status == types.EnvelopeStatusFailed
+func isFinalStatus(status types.TaskStatus) bool {
+	return status == types.TaskStatusSucceeded ||
+		status == types.TaskStatusFailed
 }
 
-// HandleJobActive handles GET /envelopes/{id}/active (for actors to check if envelope is still valid)
-func (h *Handler) HandleEnvelopeActive(w http.ResponseWriter, r *http.Request) {
+// HandleTaskActive handles GET /tasks/{id}/active (for actors to check if task is still valid)
+func (h *Handler) HandleTaskActive(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	matches := envelopeActivePathRegex.FindStringSubmatch(r.URL.Path)
+	matches := taskActivePathRegex.FindStringSubmatch(r.URL.Path)
 	if matches == nil {
-		http.Error(w, "Invalid envelope active path", http.StatusBadRequest)
+		http.Error(w, "Invalid task active path", http.StatusBadRequest)
 		return
 	}
-	envelopeID := matches[1]
+	taskID := matches[1]
 
-	// Check if envelope is active
-	if h.jobStore.IsActive(envelopeID) {
+	// Check if task is active
+	if h.taskStore.IsActive(taskID) {
 		w.WriteHeader(http.StatusOK)
 		_ = json.NewEncoder(w).Encode(map[string]bool{"active": true})
 	} else {
-		w.WriteHeader(http.StatusGone) // 410 Gone - envelope timed out or completed
+		w.WriteHeader(http.StatusGone) // 410 Gone - task timed out or completed
 		_ = json.NewEncoder(w).Encode(map[string]bool{"active": false})
 	}
 }
 
-// HandleJobProgress handles POST /envelopes/{id}/progress (for actors to report progress)
-func (h *Handler) HandleEnvelopeProgress(w http.ResponseWriter, r *http.Request) {
+// HandleTaskProgress handles POST /tasks/{id}/progress (for actors to report progress)
+func (h *Handler) HandleTaskProgress(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	matches := envelopeProgressPathRegex.FindStringSubmatch(r.URL.Path)
+	matches := taskProgressPathRegex.FindStringSubmatch(r.URL.Path)
 	if matches == nil {
-		http.Error(w, "Invalid envelope progress path", http.StatusBadRequest)
+		http.Error(w, "Invalid task progress path", http.StatusBadRequest)
 		return
 	}
-	envelopeID := matches[1]
+	taskID := matches[1]
 
 	// Parse progress update
 	var progress types.ProgressUpdate
@@ -352,10 +352,10 @@ func (h *Handler) HandleEnvelopeProgress(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	progress.ID = envelopeID
+	progress.ID = taskID
 
 	slog.Debug("Received progress update from actor",
-		"envelope_id", envelopeID,
+		"task_id", taskID,
 		"status", progress.Status,
 		"current_actor_idx", progress.CurrentActorIdx,
 		"actors_count", len(progress.Actors))
@@ -375,43 +375,43 @@ func (h *Handler) HandleEnvelopeProgress(w http.ResponseWriter, r *http.Request)
 		statusWeight = 0
 	}
 
-	// Always fetch envelope to get authoritative actors list and total_actors
+	// Always fetch task to get authoritative actors list and total_actors
 	// This ensures progress calculation is consistent even if sidecar sends partial/empty actors list
-	envelope, err := h.jobStore.Get(envelopeID)
+	task, err := h.taskStore.Get(taskID)
 	if err != nil {
-		slog.Error("Failed to get envelope for progress calculation", "id", envelopeID, "error", err)
-		http.Error(w, "Failed to get envelope", http.StatusInternalServerError)
+		slog.Error("Failed to get task for progress calculation", "id", taskID, "error", err)
+		http.Error(w, "Failed to get task", http.StatusInternalServerError)
 		return
 	}
 
-	// Use envelope's actors list as the source of truth
-	actors := envelope.Route.Actors
+	// Use task's actors list as the source of truth
+	actors := task.Route.Actors
 	if len(progress.Actors) > 0 && len(progress.Actors) > len(actors) {
 		// If progress update has more actors (route was extended), use that instead
 		actors = progress.Actors
-		slog.Debug("Progress update has extended route", "id", envelopeID, "envelope_actors", len(envelope.Route.Actors), "progress_actors", len(progress.Actors))
+		slog.Debug("Progress update has extended route", "id", taskID, "task_actors", len(task.Route.Actors), "progress_actors", len(progress.Actors))
 	}
 	progress.Actors = actors
 
 	totalActors := len(actors)
 	if totalActors == 0 {
-		slog.Warn("No actors in route for progress calculation", "id", envelopeID)
+		slog.Warn("No actors in route for progress calculation", "id", taskID)
 		progress.ProgressPercent = 0
 	} else {
 		newProgress := (float64(progress.CurrentActorIdx)*100 + statusWeight) / float64(totalActors)
 
 		// Enforce monotonic progress: never decrease
-		if newProgress < envelope.ProgressPercent {
+		if newProgress < task.ProgressPercent {
 			slog.Debug("Skipping non-monotonic progress update",
-				"id", envelopeID,
-				"current", envelope.ProgressPercent,
+				"id", taskID,
+				"current", task.ProgressPercent,
 				"new", newProgress,
 				"actor_idx", progress.CurrentActorIdx,
 				"status", progress.Status)
-			progress.ProgressPercent = envelope.ProgressPercent
+			progress.ProgressPercent = task.ProgressPercent
 		} else {
 			progress.ProgressPercent = newProgress
-			slog.Debug("Calculated progress", "id", envelopeID, "actor_idx", progress.CurrentActorIdx, "status", progress.Status, "percent", progress.ProgressPercent, "total_actors", totalActors)
+			slog.Debug("Calculated progress", "id", taskID, "actor_idx", progress.CurrentActorIdx, "status", progress.Status, "percent", progress.ProgressPercent, "total_actors", totalActors)
 		}
 	}
 
@@ -420,33 +420,33 @@ func (h *Handler) HandleEnvelopeProgress(w http.ResponseWriter, r *http.Request)
 		progress.ProgressPercent = 100
 	}
 
-	// Transform ProgressUpdate (external API from sidecar) into EnvelopeUpdate (internal event).
+	// Transform ProgressUpdate (external API from sidecar) into TaskUpdate (internal event).
 	// This transformation:
-	// - Sets envelope-level status to Running
-	// - Copies envelope processing state ("received", "processing", "completed")
+	// - Sets task-level status to Running
+	// - Copies task processing state ("received", "processing", "completed")
 	// - Copies route information (Actors and CurrentActorIdx) to persist modifications
 	// - Adds calculated progress percentage and timestamp
-	envelopeState := string(progress.Status)
-	update := types.EnvelopeUpdate{
-		ID:              envelopeID,
-		Status:          types.EnvelopeStatusRunning,
+	taskState := string(progress.Status)
+	update := types.TaskUpdate{
+		ID:              taskID,
+		Status:          types.TaskStatusRunning,
 		Message:         progress.Message,
 		ProgressPercent: &progress.ProgressPercent,
 		Actors:          progress.Actors,
 		CurrentActorIdx: &progress.CurrentActorIdx,
-		EnvelopeState:   &envelopeState,
+		TaskState:       &taskState,
 		Timestamp:       time.Now(),
 	}
 
-	// Update envelope store (using UpdateProgress for lighter weight update)
-	if err := h.jobStore.UpdateProgress(update); err != nil {
-		slog.Error("Failed to update envelope progress", "error", err)
+	// Update task store (using UpdateProgress for lighter weight update)
+	if err := h.taskStore.UpdateProgress(update); err != nil {
+		slog.Error("Failed to update task progress", "error", err)
 		http.Error(w, "Failed to update progress", http.StatusInternalServerError)
 		return
 	}
 
 	slog.Debug("Progress update stored in postgres",
-		"envelope_id", envelopeID,
+		"task_id", taskID,
 		"status", progress.Status,
 		"current_actor_idx", progress.CurrentActorIdx,
 		"progress_percent", progress.ProgressPercent)
@@ -458,20 +458,20 @@ func (h *Handler) HandleEnvelopeProgress(w http.ResponseWriter, r *http.Request)
 	})
 }
 
-// HandleJobFinal handles POST /envelopes/{id}/final (for end actors to report final status)
-// This is called by happy-end and error-end actors to report envelope completion
-func (h *Handler) HandleEnvelopeFinal(w http.ResponseWriter, r *http.Request) {
+// HandleTaskFinal handles POST /tasks/{id}/final (for end actors to report final status)
+// This is called by happy-end and error-end actors to report task completion
+func (h *Handler) HandleTaskFinal(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	matches := envelopeFinalPathRegex.FindStringSubmatch(r.URL.Path)
+	matches := taskFinalPathRegex.FindStringSubmatch(r.URL.Path)
 	if matches == nil {
-		http.Error(w, "Invalid envelope final path", http.StatusBadRequest)
+		http.Error(w, "Invalid task final path", http.StatusBadRequest)
 		return
 	}
-	envelopeID := matches[1]
+	taskID := matches[1]
 
 	// Parse final status update
 	var finalUpdate struct {
@@ -493,31 +493,31 @@ func (h *Handler) HandleEnvelopeFinal(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Determine envelope status from final update
-	var envelopeStatus types.EnvelopeStatus
+	// Determine task status from final update
+	var taskStatus types.TaskStatus
 	switch finalUpdate.Status {
 	case "succeeded":
-		envelopeStatus = types.EnvelopeStatusSucceeded
+		taskStatus = types.TaskStatusSucceeded
 	case "failed":
-		envelopeStatus = types.EnvelopeStatusFailed
+		taskStatus = types.TaskStatusFailed
 	default:
-		slog.Error("Invalid final status", "id", envelopeID, "status", finalUpdate.Status)
+		slog.Error("Invalid final status", "id", taskID, "status", finalUpdate.Status)
 		http.Error(w, "Invalid status: must be 'succeeded' or 'failed'", http.StatusBadRequest)
 		return
 	}
 
 	slog.Info("Received final status from end actor",
-		"id", envelopeID,
-		"status", envelopeStatus,
+		"id", taskID,
+		"status", taskStatus,
 		"hasResult", finalUpdate.Result != nil,
 		"hasError", finalUpdate.Error != "",
 		"currentActor", finalUpdate.CurrentActorName)
 
-	// Create envelope update
+	// Create task update
 	progressPercent := 100.0
-	update := types.EnvelopeUpdate{
-		ID:              envelopeID,
-		Status:          envelopeStatus,
+	update := types.TaskUpdate{
+		ID:              taskID,
+		Status:          taskStatus,
 		Result:          finalUpdate.Result,
 		ProgressPercent: &progressPercent,
 		Timestamp:       time.Now(),
@@ -535,21 +535,21 @@ func (h *Handler) HandleEnvelopeFinal(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Set message and error based on status
-	if envelopeStatus == types.EnvelopeStatusSucceeded {
-		update.Message = "Envelope completed successfully"
+	if taskStatus == types.TaskStatusSucceeded {
+		update.Message = "Task completed successfully"
 		if finalUpdate.Metadata != nil {
 			if s3URI, ok := finalUpdate.Metadata["s3_uri"].(string); ok {
-				update.Message = fmt.Sprintf("Envelope completed successfully, results stored at %s", s3URI)
+				update.Message = fmt.Sprintf("Task completed successfully, results stored at %s", s3URI)
 			}
 		}
 	} else {
-		update.Message = "Envelope failed"
+		update.Message = "Task failed"
 		if finalUpdate.Error != "" {
 			update.Error = finalUpdate.Error
 			if finalUpdate.CurrentActorName != "" {
-				update.Message = fmt.Sprintf("Envelope failed at actor '%s': %s", finalUpdate.CurrentActorName, finalUpdate.Error)
+				update.Message = fmt.Sprintf("Task failed at actor '%s': %s", finalUpdate.CurrentActorName, finalUpdate.Error)
 			} else {
-				update.Message = fmt.Sprintf("Envelope failed: %s", finalUpdate.Error)
+				update.Message = fmt.Sprintf("Task failed: %s", finalUpdate.Error)
 			}
 		}
 		// Include error details in the result field for queryability
@@ -571,21 +571,21 @@ func (h *Handler) HandleEnvelopeFinal(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	slog.Debug("Updating envelope with final status",
-		"id", envelopeID,
-		"status", envelopeStatus,
+	slog.Debug("Updating task with final status",
+		"id", taskID,
+		"status", taskStatus,
 		"message", update.Message)
 
-	// Update envelope store
-	if err := h.jobStore.Update(update); err != nil {
-		slog.Error("Failed to update envelope with final status", "id", envelopeID, "error", err)
-		http.Error(w, "Failed to update envelope", http.StatusInternalServerError)
+	// Update task store
+	if err := h.taskStore.Update(update); err != nil {
+		slog.Error("Failed to update task with final status", "id", taskID, "error", err)
+		http.Error(w, "Failed to update task", http.StatusInternalServerError)
 		return
 	}
 
-	slog.Info("Envelope final status updated successfully",
-		"id", envelopeID,
-		"status", envelopeStatus)
+	slog.Info("Task final status updated successfully",
+		"id", taskID,
+		"status", taskStatus)
 
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok"})

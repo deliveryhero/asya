@@ -378,7 +378,7 @@ Asya🎭 uses namespace separation to distinguish infrastructure from business l
 
 **Business namespaces** (e.g., default, production):
 - Gateway (routes messages to actors in same namespace)
-- Gateway PostgreSQL (gateway's envelope tracking database)
+- Gateway PostgreSQL (gateway's task tracking database)
 - Async actors and flows (your ML/AI workloads)
 - Crew actors (happy-end, error-end - part of the pipelines)
 
@@ -388,7 +388,7 @@ Gateway is part of the business logic layer - it exposes your actors as MCP tool
 
 ## Add Gateway (Optional)
 
-**What you get**: HTTP API, MCP tools, SSE streaming, envelope tracking
+**What you get**: HTTP API, MCP tools, SSE streaming, task tracking
 
 ### 1. Install PostgreSQL
 
@@ -606,7 +606,7 @@ Call the hello actor through the gateway:
 asya mcp call hello --name=Asya
 ```
 
-Expected output will show the envelope ID and completion status.
+Expected output will show the task ID and completion status.
 
 Stream real-time progress using Server-Sent Events (SSE):
 
@@ -616,16 +616,16 @@ asya mcp call hello --name=Asya --stream
 
 This will show progress updates as the message flows through the pipeline until completion.
 
-Check envelope status by ID:
+Check task status by ID:
 
 ```bash
-asya mcp status <envelope-id>
+asya mcp status <task-id>
 ```
 
 The gateway now provides:
-- **MCP HTTP API** for submitting envelopes to actor pipelines
+- **MCP HTTP API** for submitting tasks to actor pipelines
 - **SSE streaming** for real-time progress updates
-- **Envelope tracking** in PostgreSQL for status queries
+- **Task tracking** in PostgreSQL for status queries
 - **Tool configuration** for data science teams to call actors
 
 ---
@@ -702,7 +702,7 @@ The dashboard shows:
 - Message throughput and active messages
 - Processing and runtime execution duration
 - Error rates by reason and type
-- Envelope size distribution
+- Message size distribution
 - Operator health metrics
 
 ### 5. Verify Metrics Collection
@@ -805,7 +805,7 @@ See [AWS EKS Installation](../install/aws-eks.md) for full production guide.
 
 ## Learn More
 
-- [Core Concepts](../concepts.md) - Actors, envelopes, sidecars, routing
+- [Core Concepts](../concepts.md) - Actors, messages, sidecars, routing
 - [Motivation](../motivation.md) - Why Asya🎭 exists, when to use it
 - [Architecture](../architecture/README.md) - Deep dive into system design
 - [Examples](https://github.com/deliveryhero/asya/tree/main/examples) - Sample actors and flows

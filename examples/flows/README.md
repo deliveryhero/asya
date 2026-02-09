@@ -168,11 +168,11 @@ Run handlers in local Docker Compose (future).
 
 ### Kubernetes Mode
 
-Deploy as AsyncActor CRDs. Send envelope to gateway with:
+Deploy as AsyncActor CRDs. Send message to gateway with:
 
 ```python
 {
-  "id": "envelope-123",
+  "id": "msg-123",
   "route": {"actors": ["if_router_1"], "current": 0},
   "payload": {"type": "A", "data": "..."}
 }

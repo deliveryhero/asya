@@ -9,7 +9,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/deliveryhero/asya/asya-sidecar/pkg/envelopes"
+	"github.com/deliveryhero/asya/asya-sidecar/pkg/messages"
 )
 
 // ErrorDetails represents additional information on error occurred in runtime
@@ -22,7 +22,7 @@ type ErrorDetails struct {
 // RuntimeResponse represents the response from the actor runtime
 type RuntimeResponse struct {
 	Payload json.RawMessage `json:"payload,omitempty"` // payload output from handler
-	Route   envelopes.Route `json:"route,omitempty"`   // route output from handler
+	Route   messages.Route  `json:"route,omitempty"`   // route output from handler
 	Error   string          `json:"error,omitempty"`
 	Details ErrorDetails    `json:"details,omitempty"`
 }

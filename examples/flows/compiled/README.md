@@ -474,22 +474,22 @@ os.environ['ASYA_HANDLER_TYPE_B'] = "handlers.type_b.process"
 os.environ['ASYA_HANDLER_FINALIZE'] = "handlers.finalize.process"
 
 def test_router_type_a():
-    envelope = {
+    message = {
         'payload': {'type': 'A'},
         'route': {'actors': [], 'current': 0}
     }
-    result = router_if_else_simple_flow_line_10_if(envelope)
+    result = router_if_else_simple_flow_line_10_if(message)
 
     # Verify routing to type_a handler
     assert 'handler-type-a' in result['route']['actors']
     assert 'handler-finalize' in result['route']['actors']
 
 def test_router_type_b():
-    envelope = {
+    message = {
         'payload': {'type': 'B'},
         'route': {'actors': [], 'current': 0}
     }
-    result = router_if_else_simple_flow_line_10_if(envelope)
+    result = router_if_else_simple_flow_line_10_if(message)
 
     # Verify routing to type_b handler
     assert 'handler-type-b' in result['route']['actors']
@@ -571,7 +571,7 @@ def progressive_enhancement_flow(p: dict) -> dict:
 1. **Check line numbers**: Router names reference source flow line numbers
 2. **Visualize flows**: Use `--plot` to generate flow diagrams
 3. **Test routers independently**: Unit test router logic before deployment
-4. **Trace envelope flow**: Use envelope IDs to track routing through routers
+4. **Trace message flow**: Use message IDs to track routing through routers
 
 ## Limitations
 

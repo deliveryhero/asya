@@ -97,7 +97,7 @@ def test_asya_mcp_status_help():
     )
     assert result.returncode == 0
     assert "status" in result.stdout.lower()
-    assert "envelope" in result.stdout.lower()
+    assert "task" in result.stdout.lower()
 
 
 def test_asya_mcp_stream_help():
@@ -110,7 +110,7 @@ def test_asya_mcp_stream_help():
     )
     assert result.returncode == 0
     assert "stream" in result.stdout.lower()
-    assert "envelope" in result.stdout.lower()
+    assert "task" in result.stdout.lower()
 
 
 def test_asya_mcp_port_forward_help():

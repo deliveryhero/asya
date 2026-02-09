@@ -7,11 +7,11 @@ System actors with reserved roles for framework-level tasks.
 Crew actors are **end actors** that run in special sidecar mode (`ASYA_IS_END_ACTOR=true`). They:
 
 - Run in envelope mode (`ASYA_HANDLER_MODE=envelope`)
-- Disable envelope validation (`ASYA_ENABLE_VALIDATION=false`)
-- Accept envelopes with ANY route state (no route validation)
+- Disable message validation (`ASYA_ENABLE_VALIDATION=false`)
+- Accept messages with ANY route state (no route validation)
 - Do NOT route responses to any queue (terminal processing)
 - Persist results to S3/MinIO (optional)
-- Sidecar reports final status to gateway (not the runtime)
+- Sidecar reports final task status to gateway (not the runtime)
 
 ## Current Crew Actors
 
@@ -19,8 +19,8 @@ Crew actors are **end actors** that run in special sidecar mode (`ASYA_IS_END_AC
 
 **Responsibilities**:
 
-- Persist successfully completed envelopes to S3/MinIO (optional)
-- Sidecar reports success to gateway with result payload
+- Persist successfully completed messages to S3/MinIO (optional)
+- Sidecar reports task success to gateway with result payload
 
 **Queue**: `asya-{namespace}-happy-end` (automatically routed by sidecar when pipeline completes)
 
@@ -53,26 +53,26 @@ Crew actors are **end actors** that run in special sidecar mode (`ASYA_IS_END_AC
 
 **S3 Key Structure**:
 ```
-{prefix}{timestamp}/{last_actor}/{envelope_id}.json
+{prefix}{timestamp}/{last_actor}/{message_id}.json
 
 Example:
 happy-asya/2025-11-18T14:30:45.123456Z/text-processor/abc-123.json
 ```
 
 **Flow**:
-1. Sidecar receives envelope from `asya-{namespace}-happy-end` queue
-2. Sidecar forwards envelope to runtime via Unix socket
-3. Runtime persists complete envelope to S3 (if configured)
+1. Sidecar receives message from `asya-{namespace}-happy-end` queue
+2. Sidecar forwards message to runtime via Unix socket
+3. Runtime persists complete message to S3 (if configured)
 4. Runtime returns empty dict `{}`
-5. Sidecar reports final status `succeeded` to gateway with result payload
+5. Sidecar reports final task status `succeeded` to gateway with result payload
 6. Sidecar acks message (does NOT route anywhere)
 
 ### error-end
 
 **Responsibilities**:
 
-- Persist failed envelopes to S3/MinIO (optional)
-- Sidecar reports failure to gateway with error details and actor info
+- Persist failed messages to S3/MinIO (optional)
+- Sidecar reports task failure to gateway with error details and actor info
 
 **Queue**: `asya-{namespace}-error-end` (automatically routed by sidecar when runtime/sidecar errors occur)
 
@@ -105,14 +105,14 @@ happy-asya/2025-11-18T14:30:45.123456Z/text-processor/abc-123.json
 
 **S3 Key Structure**:
 ```
-{prefix}{timestamp}/{last_actor}/{envelope_id}.json
+{prefix}{timestamp}/{last_actor}/{message_id}.json
 
 Example:
 error-asya/2025-11-18T14:30:45.123456Z/failing-actor/abc-123.json
 ```
 
-**Error Envelope Structure**:
-Envelopes routed to `error-end` contain error information in the payload:
+**Error Message Structure**:
+Messages routed to `error-end` contain error information in the payload:
 ```json
 {
   "id": "abc-123",
@@ -133,12 +133,12 @@ Envelopes routed to `error-end` contain error information in the payload:
 ```
 
 **Flow**:
-1. Sidecar receives error envelope from `asya-{namespace}-error-end` queue
-2. Sidecar forwards envelope to runtime via Unix socket
-3. Runtime persists complete envelope (with error details) to S3 (if configured)
+1. Sidecar receives error message from `asya-{namespace}-error-end` queue
+2. Sidecar forwards message to runtime via Unix socket
+3. Runtime persists complete message (with error details) to S3 (if configured)
 4. Runtime returns empty dict `{}`
-5. Sidecar extracts error info from envelope payload
-6. Sidecar reports final status `failed` to gateway with error details and actor information
+5. Sidecar extracts error info from message payload
+6. Sidecar reports final task status `failed` to gateway with error details and actor information
 7. Sidecar acks message (does NOT route anywhere)
 
 ## Deployment
@@ -286,20 +286,20 @@ These are automatically configured by Helm templates and operator injection.
 - `{prefix}`: Configurable prefix (default: `happy-asya/` or `error-asya/`)
 - `{timestamp}`: ISO 8601 UTC timestamp (`2025-11-18T14:30:45.123456Z`)
 - `{last_actor}`: Last non-end actor from route (extracted from `route.actors[current]`)
-- `{envelope_id}`: Envelope ID
+- `{message_id}`: Message ID
 
 **Example key generation**:
 ```python
 prefix = "happy-asya/"
 timestamp = "2025-11-18T14:30:45.123456Z"
 last_actor = "text-processor"  # from route.actors[1] if current=1
-envelope_id = "abc-123"
+message_id = "abc-123"
 
-key = f"{prefix}{timestamp}/{last_actor}/{envelope_id}.json"
+key = f"{prefix}{timestamp}/{last_actor}/{message_id}.json"
 # Result: happy-asya/2025-11-18T14:30:45.123456Z/text-processor/abc-123.json
 ```
 
-**Persisted content**: Complete envelope (including id, route, headers, payload) as formatted JSON.
+**Persisted content**: Complete message (including id, route, headers, payload) as formatted JSON.
 
 **Error handling**: S3 upload failures are logged but do NOT fail the handler. Handler returns empty dict `{}` regardless of S3 success/failure.
 
@@ -308,19 +308,19 @@ key = f"{prefix}{timestamp}/{last_actor}/{envelope_id}.json"
 End handlers MUST return empty dict `{}`:
 
 - Sidecar ignores the response (end actor mode)
-- Sidecar uses original envelope payload as result for gateway reporting
+- Sidecar uses original message payload as result for gateway reporting
 - Any non-empty response is ignored
 
 ### Sidecar Integration
 
 When `ASYA_IS_END_ACTOR=true`, sidecar:
-1. Accepts envelopes with any route state (no validation)
-2. Sends envelope to runtime without route checking
+1. Accepts messages with any route state (no validation)
+2. Sends message to runtime without route checking
 3. Receives empty dict `{}` from runtime (ignored)
-4. Extracts result/error from original envelope payload
-5. Reports final status to gateway:
-   - `happy-end`: Status `succeeded` with result payload
-   - `error-end`: Status `failed` with error details, actor info, route
+4. Extracts result/error from original message payload
+5. Reports final task status to gateway:
+   - `happy-end`: Task status `succeeded` with result payload
+   - `error-end`: Task status `failed` with error details, actor info, route
 6. Does NOT route to any queue (terminal)
 7. Acks message
 
@@ -337,8 +337,8 @@ When `ASYA_IS_END_ACTOR=true`, sidecar:
 
 - Implement exponential backoff
 - Classify errors as retriable vs permanent
-- Track retry count in envelope headers
-- Re-queue retriable envelopes with backoff delay
+- Track retry count in message headers
+- Re-queue retriable messages with backoff delay
 - Move to DLQ after max retries exceeded
 
 **Custom monitoring**:
@@ -346,4 +346,4 @@ When `ASYA_IS_END_ACTOR=true`, sidecar:
 - Track SLA violations per actor
 - Alert on error rates and patterns
 - Generate pipeline execution reports
-- Aggregate metrics across envelopes
+- Aggregate metrics across messages

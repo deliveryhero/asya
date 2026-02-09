@@ -218,7 +218,7 @@ asya mcp call text-processor --text="hello world"
 
 Output:
 ```
-[.] Envelope ID: abc-123
+[.] Task ID: abc-123
 Processing: 100% |████████████████| , succeeded
 {
   "result": {
@@ -780,7 +780,7 @@ Envelope mode gives you full control over the routing structure:
 env:
 
 - name: ASYA_HANDLER_MODE
-  value: "envelope"  # Receive full envelope, not just payload
+  value: "envelope"  # Receive full message, not just payload
 ```
 
 ```python
@@ -844,7 +844,7 @@ def process(payload: dict) -> dict:
 ```
 
 **When exception occurs**:
-1. Runtime catches exception and creates error envelope with traceback
+1. Runtime catches exception and creates error message with traceback
 2. Sidecar routes to `asya-{namespace}-error-end` queue
 3. Error-end actor persists error details to S3
 4. Gateway receives final failure status
@@ -881,4 +881,4 @@ kubectl logs -f deploy/text-processor -c asya-sidecar
 - Read [Core Concepts](../concepts.md)
 - See [Architecture Overview](../architecture/README.md)
 - Explore [Example Actors](https://github.com/deliveryhero/asya/tree/main/examples)
-- Learn about [Envelope Protocol](../architecture/protocols/actor-actor.md)
+- Learn about [Message Protocol](../architecture/protocols/actor-actor.md)

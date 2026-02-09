@@ -8,7 +8,7 @@ Asya🎭 is an Actor Mesh framework for deploying AI workloads on Kubernetes usi
 - **CRD-based operator** for declarative actor deployment
 - **Sidecar pattern** (Go) for message routing with pluggable transports
 - **KEDA autoscaling** for event-driven, scale-to-zero workloads
-- **MCP gateway** (optional) for envelope tracking and API integration
+- **MCP gateway** (optional) for task tracking and API integration
 - **Choreography (decentralized)** instead of centralized orchestration
 - **Message passing** each message contains "route" which allows actors send messages each other
 - **Synchronous MCP-compliant HTTP gateway** for exposing async actors routes (pipelines) via sync HTTP
@@ -65,12 +65,12 @@ asya/
 All components are in `src/`. See [docs/architecture/](docs/architecture/) for detailed documentation.
 
 ### asya-gateway (Go)
-MCP gateway with JSON-RPC 2.0, envelope tracking, and SSE streaming. Tools configurable via YAML (`src/asya-gateway/config/README.md`). Optional component for API integration.
+MCP gateway with JSON-RPC 2.0, task tracking, and SSE streaming. Tools configurable via YAML (`src/asya-gateway/config/README.md`). Optional component for API integration.
 
 ### asya-sidecar (Go)
-Envelope router injected into actor pods. Consumes from RabbitMQ/SQS, forwards to runtime via Unix socket, routes responses. Pluggable transport layer.
+Message router injected into actor pods. Consumes from RabbitMQ/SQS, forwards to runtime via Unix socket, routes responses. Pluggable transport layer.
 
-**Envelope Flow**: Queue → Sidecar → Runtime (Unix socket) → Sidecar → Next Queue
+**Message Flow**: Queue → Sidecar → Runtime (Unix socket) → Sidecar → Next Queue
 
 ### asya-runtime (Python)
 Lightweight socket server injected via ConfigMap. Loads user function, executes handler logic, returns results or errors.
@@ -108,7 +108,7 @@ Lightweight socket server injected via ConfigMap. Loads user function, executes 
           return {"result": self.model.predict(payload)}
   ```
 
-- **`envelope`**: Handler receives full envelope structure `{id, route, headers, payload}`
+- **`envelope`**: Handler receives full message structure `{id, route, headers, payload}`
   ```python
   # Function handler: ASYA_HANDLER=my_module.process
   def process(envelope: dict) -> dict:
@@ -140,8 +140,8 @@ Command-line tools for debugging and operating the Asya🎭 framework:
 - **asya mcp call**: Call MCP tools on asya-gateway
 - **asya mcp list**: List available tools
 - **asya mcp show**: Show tool configuration
-- **asya mcp status**: Check envelope status
-- **asya mcp stream**: Stream envelope updates
+- **asya mcp status**: Check task status
+- **asya mcp stream**: Stream task updates
 - **asya mcp port-forward**: Quick kubectl port-forward helper for accessing asya-gateway
 
 **Flow DSL Commands**:
@@ -154,7 +154,7 @@ Command-line tools for debugging and operating the Asya🎭 framework:
 
 ### Overview
 
-The Flow DSL compiler transforms Python-based workflow descriptions into router-based actor networks. Instead of manually managing envelope routes and creating router actors, you write familiar Python code with conditionals, and the compiler generates optimized router actors automatically.
+The Flow DSL compiler transforms Python-based workflow descriptions into router-based actor networks. Instead of manually managing message routes and creating router actors, you write familiar Python code with conditionals, and the compiler generates optimized router actors automatically.
 
 **Key Benefits**:
 - Write actor pipelines in familiar Python syntax
@@ -475,12 +475,12 @@ services:
 
 See CONTRIBUTING.md for complete testing documentation.
 
-## Envelope Protocol
+## Message Protocol
 
 ```json
 {
-  "id": "<envelope-id>",
-  "parent_id": "<original-envelope-id>",  // optional, for fanout tracking
+  "id": "<message-id>",
+  "parent_id": "<original-message-id>",  // optional, for fanout tracking
   "route": {"actors": ["q1", "q2"], "current": 0},
   "headers": {"trace_id": "...", "priority": "high"},  // optional routing metadata
   "payload": <arbitrary JSON>
@@ -488,8 +488,8 @@ See CONTRIBUTING.md for complete testing documentation.
 ```
 
 **Fields**:
-- `id`: Unique envelope identifier
-- `parent_id` (optional): Original envelope ID for fanout children (see docs/architecture/protocols/actor-actor.md)
+- `id`: Unique message identifier
+- `parent_id` (optional): Original message ID for fanout children (see docs/architecture/protocols/actor-actor.md)
 - `route`: Routing information with actor names and current index
 - `headers` (optional): Routing-specific metadata (trace IDs, priorities, etc.)
 - `payload`: Arbitrary JSON data processed by actors

@@ -13,18 +13,18 @@ Regenerate by running: asya flow compile ../../sequential_with_class.py
 # Generated Routers (for kubernetes deployment)
 # ======================================================================
 
-def start_class_instantiation_flow(envelope: dict) -> dict:
+def start_class_instantiation_flow(message: dict) -> dict:
     """Entrypoint for flow 'class_instantiation_flow'"""
-    r = envelope['route']
+    r = message['route']
     c = r['current']
 
     r['actors'][c+1:c+1] = [resolve("sequential_with_class.DataPreprocessor.clean"), resolve("transformation"), resolve("sequential_with_class.MLModel.predict")]
     r['current'] = c + 1
-    return envelope
+    return message
 
-def end_class_instantiation_flow(envelope: dict) -> dict:
+def end_class_instantiation_flow(message: dict) -> dict:
     """Exitpoint for flow 'class_instantiation_flow'"""
-    return envelope
+    return message
 
 
 # ======================================================================

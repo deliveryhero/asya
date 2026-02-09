@@ -151,7 +151,7 @@ Asya uses a **sidecar pattern** for message routing:
 - **Operator** watches AsyncActor CRDs, injects sidecars, configures KEDA
 - **Sidecar** handles queue consumption, routing, retries (Go)
 - **Runtime** executes your Python handler via Unix socket
-- **Gateway** (optional) provides MCP HTTP API for envelope submission and SSE streaming
+- **Gateway** (optional) provides MCP HTTP API for task submission and SSE streaming
 - **KEDA** monitors queue depth, scales actors 0→N
 
 **Message flow**: `Queue → Sidecar → Your Code → Sidecar → Next Queue`

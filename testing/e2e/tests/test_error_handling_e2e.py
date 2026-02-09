@@ -50,20 +50,20 @@ def test_error_goes_to_error_end_when_available(e2e_helper, kubectl, chaos_queue
 
     Scenario (Application-level error handling):
     1. error-end is running normally with KEDA autoscaling
-    2. Send envelope to test-error actor with should_fail=True
+    2. Send message to test-error actor with should_fail=True
     3. Actor fails → sidecar sends error to error-end queue
     4. error-end consumes and processes the error
     5. error-end persists error to S3 errors bucket
     6. Gateway receives final status from error-end
 
     Expected:
-    - Envelope status becomes "failed" (error was handled)
+    - Task status becomes "failed" (error was handled)
     - Error persisted to S3 errors bucket
     - DLQ remains empty (error-end handled it, no fallback needed)
 
     This is the NORMAL case - application handles its own errors.
     """
-    from asya_testing.utils.s3 import wait_for_envelope_in_s3
+    from asya_testing.utils.s3 import wait_for_message_in_s3
 
     transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
     transport_client = _get_transport_client(transport)
@@ -78,30 +78,30 @@ def test_error_goes_to_error_end_when_available(e2e_helper, kubectl, chaos_queue
     logger.info("Purging DLQ before test")
     transport_client.purge(dlq_name)
 
-    # Send failing envelope
-    logger.info("Sending failing envelope to test-error actor")
+    # Send failing message
+    logger.info("Sending failing message to test-error actor")
     response = e2e_helper.call_mcp_tool(
         tool_name="test_error",
         arguments={"should_fail": True},
     )
 
-    envelope_id = response["result"]["envelope_id"]
-    logger.info(f"Envelope ID: {envelope_id}")
+    task_id = response["result"]["task_id"]
+    logger.info(f"Task ID: {task_id}")
 
-    # Wait for envelope to reach final status
-    logger.info("Waiting for envelope to complete (error-end should process it)...")
-    final_envelope = e2e_helper.wait_for_envelope_completion(envelope_id, timeout=30)
+    # Wait for task to reach final status
+    logger.info("Waiting for task to complete (error-end should process it)...")
+    final_task = e2e_helper.wait_for_task_completion(task_id, timeout=30)
 
-    # Verify envelope failed (error was handled by error-end)
-    assert final_envelope["status"] == "failed", \
-        "Envelope should be marked as 'failed' after error-end processes it"
-    logger.info("[+] Envelope marked as failed - error was processed")
+    # Verify task failed (error was handled by error-end)
+    assert final_task["status"] == "failed", \
+        "Task should be marked as 'failed' after error-end processes it"
+    logger.info("[+] Task marked as failed - error was processed")
 
     # Verify error persisted to S3
     logger.info("Waiting for error to appear in S3 errors bucket...")
-    s3_object = wait_for_envelope_in_s3(
+    s3_object = wait_for_message_in_s3(
         bucket_name=errors_bucket,
-        envelope_id=envelope_id,
+        message_id=task_id,
         timeout=30
     )
 
@@ -132,7 +132,7 @@ def test_error_goes_to_dlq_when_error_end_unavailable(e2e_helper, kubectl, chaos
 
     Scenario (Transport-level fallback):
     1. Scale error-end to 0 replicas (make it unavailable)
-    2. Send envelope to test-error actor with should_fail=True
+    2. Send message to test-error actor with should_fail=True
     3. Actor fails → sidecar tries to send to error-end
     4. Sending to error-end fails → sidecar NACKs message
     5. Message retried 3 times (maxReceiveCount=3)
@@ -140,7 +140,7 @@ def test_error_goes_to_dlq_when_error_end_unavailable(e2e_helper, kubectl, chaos
 
     Expected:
     - Message appears in DLQ after retries (NOT in error-end)
-    - Envelope metadata preserved in DLQ
+    - Message metadata preserved in DLQ
     - error-end queue remains empty
 
     This is the FALLBACK case - transport handles errors when app can't.
@@ -175,15 +175,15 @@ def test_error_goes_to_dlq_when_error_end_unavailable(e2e_helper, kubectl, chaos
         transport_client.purge(dlq_name)
         transport_client.purge(error_end_queue)
 
-        # Send failing envelope
-        logger.info("Sending failing envelope to test-error actor")
+        # Send failing message
+        logger.info("Sending failing message to test-error actor")
         response = e2e_helper.call_mcp_tool(
             tool_name="test_error",
             arguments={"should_fail": True},
         )
 
-        envelope_id = response["result"]["envelope_id"]
-        logger.info(f"Envelope ID: {envelope_id}")
+        task_id = response["result"]["task_id"]
+        logger.info(f"Task ID: {task_id}")
 
         # Wait for retries to exhaust
         logger.info("Waiting for retries to exhaust (maxRetryCount=3)")
@@ -208,11 +208,11 @@ def test_error_goes_to_dlq_when_error_end_unavailable(e2e_helper, kubectl, chaos
             f"Message should be in DLQ {dlq_name} when error-end is unavailable"
         logger.info(f"[+] Message found in DLQ: {dlq_message.get('id')}")
 
-        # Verify envelope ID matches
-        assert dlq_message.get("id") == envelope_id, \
-            "DLQ message ID should match original envelope ID"
+        # Verify task ID matches
+        assert dlq_message.get("id") == task_id, \
+            "DLQ message ID should match original task ID"
 
-        # Verify envelope structure is preserved
+        # Verify message structure is preserved
         assert "route" in dlq_message, "DLQ message should preserve route"
         assert "payload" in dlq_message, "DLQ message should preserve payload"
         logger.info("[+] DLQ message structure preserved")

@@ -50,9 +50,9 @@ func TestRabbitMQQueueNaming(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Create envelope
-			envelope := &types.Envelope{
-				ID: "test-envelope-1",
+			// Create task
+			task := &types.Task{
+				ID: "test-task-1",
 				Route: types.Route{
 					Actors:  []string{tt.actorName}, // Actor name without prefix
 					Current: 0,
@@ -62,11 +62,11 @@ func TestRabbitMQQueueNaming(t *testing.T) {
 			}
 
 			// Marshal expected message to compare
-			expectedMsg := ActorEnvelope{
-				ID:       envelope.ID,
-				Route:    envelope.Route,
-				Payload:  envelope.Payload,
-				Deadline: envelope.Deadline.Format("2006-01-02T15:04:05Z07:00"),
+			expectedMsg := ActorMessage{
+				ID:       task.ID,
+				Route:    task.Route,
+				Payload:  task.Payload,
+				Deadline: task.Deadline.Format("2006-01-02T15:04:05Z07:00"),
 			}
 			expectedBody, _ := json.Marshal(expectedMsg)
 
@@ -93,7 +93,7 @@ func TestRabbitMQQueueNaming(t *testing.T) {
 
 			// Since we can't easily inject the mock channel without refactoring,
 			// let's at least verify the routing key construction logic
-			actorName := envelope.Route.Actors[0]
+			actorName := task.Route.Actors[0]
 			actualRoutingKey := actorName
 
 			assert.Equal(t, tt.expectedRoutingKey, actualRoutingKey,

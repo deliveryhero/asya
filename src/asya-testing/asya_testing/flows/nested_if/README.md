@@ -84,7 +84,7 @@ make trigger-tests PROFILE=sqs-s3 PYTEST_OPTS="-vv -x -k flow"
 2. **Parallel execution test**: Send all 4 routes simultaneously to verify no crosstalk
 
 Each test:
-- Sends envelope to start-test-nested-flow queue via SQS
+- Sends message to start-test-nested-flow queue via SQS
 - Waits for result in S3 results bucket
 - Validates payload transformations through entire flow
 - Verifies correct route was taken based on input conditions

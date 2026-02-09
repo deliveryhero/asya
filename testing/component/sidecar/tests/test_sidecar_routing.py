@@ -33,17 +33,17 @@ def test_sidecar_basic_routing(transport):
     # Route: test-echo → test-verify → test-timeout
     # After test-echo processes (current 0→1), sidecar routes to test-verify
     # test-verify has no consumer, so we can read the message there
-    envelope = {
+    message = {
         "id": "test-basic-001",
         "route": {"actors": ["test-echo", "test-verify", "test-timeout"], "current": 0},
         "payload": {"message": "hello"},
     }
 
-    transport.publish("test-echo", envelope)
+    transport.publish("test-echo", message)
     result = transport.consume("test-verify", timeout=10)
 
     assert result is not None, "Message should reach test-verify queue"
-    assert result["id"] == envelope["id"]
+    assert result["id"] == message["id"]
     # Echo handler transforms payload: {"message": X} → {"echoed": X}
     assert result["payload"] == {"echoed": "hello"}
     assert result["route"]["current"] == 1
@@ -54,18 +54,18 @@ def test_sidecar_multi_actor_routing(transport):
     transport.purge("test-echo")
     transport.purge("test-verify")
 
-    envelope = {
+    message = {
         "id": "test-multi-001",
         "route": {"actors": ["test-echo", "test-echo", "test-verify"], "current": 0},
         "payload": {"message": "multi-hop"},
     }
 
-    transport.publish("test-echo", envelope)
+    transport.publish("test-echo", message)
 
     # First hop: test-echo (current=0) → test-echo (current=1)
     # Second hop: test-echo (current=1) → test-verify (current=2)
     result = transport.consume("test-verify", timeout=15)
 
     assert result is not None, "Message should complete multi-actor route"
-    assert result["id"] == envelope["id"]
+    assert result["id"] == message["id"]
     assert result["route"]["current"] == 2

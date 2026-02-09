@@ -152,8 +152,8 @@ class AsyaGatewayClient:
 
         return result
 
-    def _extract_envelope_id(self, mcp_result: dict[str, Any]) -> str | None:
-        """Extract envelope_id from MCP CallToolResult format."""
+    def _extract_task_id(self, mcp_result: dict[str, Any]) -> str | None:
+        """Extract task_id from MCP CallToolResult format."""
         content = mcp_result.get("content", [])
 
         if content:
@@ -162,13 +162,13 @@ class AsyaGatewayClient:
                     text = item.get("text", "")
                     try:
                         data = json.loads(text)
-                        envelope_id = data.get("envelope_id")
-                        if envelope_id:
-                            return envelope_id
+                        task_id = data.get("task_id")
+                        if task_id:
+                            return task_id
                     except (json.JSONDecodeError, AttributeError):
                         continue
 
-        return mcp_result.get("envelope_id")
+        return mcp_result.get("task_id")
 
     def call_tool(
         self, tool_name: str, arguments: dict[str, Any], stream: bool = True, debug: bool = False
@@ -179,12 +179,12 @@ class AsyaGatewayClient:
         Args:
             tool_name: Name of the tool to call
             arguments: Tool arguments as dict
-            stream: If True, stream via SSE. If False, return envelope ID immediately.
+            stream: If True, stream via SSE. If False, return task ID immediately.
             debug: If True, print each SSE event as one-line JSON to stderr
 
         Returns:
             If stream=True: final result (with progress bar if tool reports progress)
-            If stream=False: envelope creation response
+            If stream=False: task creation response
         """
         payload = {"name": tool_name, "arguments": arguments}
         result = self._post("/tools/call", payload)
@@ -192,24 +192,24 @@ class AsyaGatewayClient:
         if not stream:
             return result
 
-        envelope_id = self._extract_envelope_id(result)
-        if not envelope_id:
+        task_id = self._extract_task_id(result)
+        if not task_id:
             return result
 
-        print(f"[.] Envelope ID: {envelope_id}", file=sys.stderr)
-        return self._stream_with_progress(envelope_id, debug=debug)
+        print(f"[.] Task ID: {task_id}", file=sys.stderr)
+        return self._stream_with_progress(task_id, debug=debug)
 
-    def get_status(self, envelope_id: str) -> dict[str, Any]:
-        """Get envelope status."""
-        return self._get(f"/envelopes/{envelope_id}")
+    def get_status(self, task_id: str) -> dict[str, Any]:
+        """Get task status."""
+        return self._get(f"/tasks/{task_id}")
 
-    def stream_updates(self, envelope_id: str) -> None:
-        """Stream envelope updates via SSE."""
-        url = urljoin(self.base_url + "/", f"envelopes/{envelope_id}/stream")
+    def stream_updates(self, task_id: str) -> None:
+        """Stream task updates via SSE."""
+        url = urljoin(self.base_url + "/", f"tasks/{task_id}/stream")
         try:
             with requests.get(url, stream=True, timeout=300) as resp:
                 resp.raise_for_status()
-                print(f"[.] Streaming updates for envelope {envelope_id}", file=sys.stderr)
+                print(f"[.] Streaming updates for task {task_id}", file=sys.stderr)
                 print("-" * 60, file=sys.stderr)
 
                 for line in resp.iter_lines():
@@ -228,17 +228,17 @@ class AsyaGatewayClient:
             print(f"[-] Stream failed: {e}", file=sys.stderr)
             sys.exit(1)
 
-    def _stream_with_progress(self, envelope_id: str, debug: bool = False) -> dict[str, Any]:
+    def _stream_with_progress(self, task_id: str, debug: bool = False) -> dict[str, Any]:
         """
-        Stream envelope updates via SSE. Shows progress bar only if tool reports progress_percent.
+        Stream task updates via SSE. Shows progress bar only if tool reports progress_percent.
 
         Args:
-            envelope_id: Envelope ID to stream
+            task_id: Task ID to stream
             debug: If True, print each SSE event as one-line JSON to stderr
 
-        Returns final envelope state as dict.
+        Returns final task state as dict.
         """
-        url = urljoin(self.base_url + "/", f"envelopes/{envelope_id}/stream")
+        url = urljoin(self.base_url + "/", f"tasks/{task_id}/stream")
 
         final_result = None
         progress_bar = None
@@ -275,15 +275,15 @@ class AsyaGatewayClient:
                                 )
 
                             if progress_bar:
-                                envelope_state = event.get("envelope_state", "")
+                                task_state = event.get("task_state", "")
                                 actor = event.get("actor", "")
                                 progress_bar.n = int(progress_percent) if progress_percent else 0
 
                                 postfix_parts = []
                                 if actor:
                                     postfix_parts.append(actor)
-                                if envelope_state:
-                                    postfix_parts.append(envelope_state)
+                                if task_state:
+                                    postfix_parts.append(task_state)
                                 elif status:
                                     postfix_parts.append(status)
 
@@ -307,7 +307,7 @@ class AsyaGatewayClient:
             if final_result:
                 return final_result
 
-            status = self.get_status(envelope_id)
+            status = self.get_status(task_id)
             return status
 
         except requests.exceptions.RequestException as e:

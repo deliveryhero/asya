@@ -55,7 +55,7 @@ class TestCodeStructure:
 
         for func in router_funcs:
             assert len(func.args.args) == 1
-            assert func.args.args[0].arg == "envelope"
+            assert func.args.args[0].arg == "message"
 
     def test_resolve_function_exists(self):
         routers = [Router(name="start_flow", lineno=0), Router(name="end_flow", lineno=999)]
@@ -114,11 +114,11 @@ class TestEndRouter:
         assert "Exitpoint" in code
         assert "my_flow" in code
 
-    def test_end_router_returns_envelope_unchanged(self):
+    def test_end_router_returns_message_unchanged(self):
         routers = [Router(name="end_flow", lineno=999)]
         code = CodeGenerator("flow", routers, "test.py")._generate_end_router(routers[0])
 
-        assert "return envelope" in code
+        assert "return message" in code
         assert "resolve(" not in code
 
 
@@ -436,7 +436,7 @@ class TestEdgeCases:
         routers = [Router(name="router_flow_line_10_if", lineno=10)]
         code = CodeGenerator("flow", routers, "test.py")._generate_router(routers[0])
 
-        assert "def router_flow_line_10_if(envelope: dict) -> dict:" in code
+        assert "def router_flow_line_10_if(message: dict) -> dict:" in code
 
     def test_very_long_actor_list(self):
         actors = [f"handler_{i}" for i in range(50)]

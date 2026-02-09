@@ -79,7 +79,7 @@ env:
 | `ASYA_HANDLER_MODE` | `payload` | Handler mode: `payload` (simple) or `envelope` (full access) |
 | `ASYA_INCLUDE_METADATA` | `false` | Include route and other metadata in msg dict (`true`/`1`/`yes` to enable) |
 | `ASYA_CHUNK_SIZE` | `4096` | Socket receive buffer size in bytes |
-| `ASYA_ENABLE_VALIDATION` | `true` | Enable envelope validation (disable for performance) |
+| `ASYA_ENABLE_VALIDATION` | `true` | Enable message validation (disable for performance) |
 
 Note: Socket path is hardcoded to `{ASYA_SOCKET_DIR}/asya-runtime.sock`
 
@@ -162,13 +162,13 @@ def your_function(envelope: dict) -> dict:
 
 ### Validation
 
-The runtime validates all output envelopes (when `ASYA_ENABLE_VALIDATION=true`):
+The runtime validates all output messages (when `ASYA_ENABLE_VALIDATION=true`):
 
 - All actors from position `0` to `current` must remain unchanged
 - The actor at `route.actors[current]` must match the input
 - Future actors (after `current`) can be freely modified
 
-**Violations result in `processing_error` and the envelope is sent to `error-end` queue.**
+**Violations result in `processing_error` and the message is sent to `error-end` queue.**
 
 ## Response Format
 

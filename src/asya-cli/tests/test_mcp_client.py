@@ -55,32 +55,32 @@ def test_tool_to_dict_with_parameters():
     assert result["parameters"]["count"]["default"] == 1
 
 
-def test_extract_envelope_id():
-    """Test extracting envelope ID from MCP result."""
+def test_extract_task_id():
+    """Test extracting task ID from MCP result."""
     client = AsyaGatewayClient()
     mcp_result = {
         "content": [
-            {"type": "text", "text": '{"envelope_id": "abc-123", "status": "pending"}'},
+            {"type": "text", "text": '{"task_id": "abc-123", "status": "pending"}'},
         ]
     }
-    envelope_id = client._extract_envelope_id(mcp_result)
-    assert envelope_id == "abc-123"
+    task_id = client._extract_task_id(mcp_result)
+    assert task_id == "abc-123"
 
 
-def test_extract_envelope_id_direct():
-    """Test extracting envelope ID from result with direct field."""
+def test_extract_task_id_direct():
+    """Test extracting task ID from result with direct field."""
     client = AsyaGatewayClient()
-    mcp_result = {"envelope_id": "xyz-789"}
-    envelope_id = client._extract_envelope_id(mcp_result)
-    assert envelope_id == "xyz-789"
+    mcp_result = {"task_id": "xyz-789"}
+    task_id = client._extract_task_id(mcp_result)
+    assert task_id == "xyz-789"
 
 
-def test_extract_envelope_id_none():
-    """Test extracting envelope ID when not present."""
+def test_extract_task_id_none():
+    """Test extracting task ID when not present."""
     client = AsyaGatewayClient()
-    mcp_result = {"content": [{"type": "text", "text": "no envelope here"}]}
-    envelope_id = client._extract_envelope_id(mcp_result)
-    assert envelope_id is None
+    mcp_result = {"content": [{"type": "text", "text": "no task here"}]}
+    task_id = client._extract_task_id(mcp_result)
+    assert task_id is None
 
 
 @patch("asya_cli.mcp.client.requests.Session.post")

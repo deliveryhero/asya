@@ -25,7 +25,7 @@ graph LR
     end
 
     Client -->|HTTP| Gateway
-    Gateway -->|envelope| MQ
+    Gateway -->|task| MQ
     MQ -->|messages| A1
     A1 -->|results| MQ
     MQ -->|messages| A2
@@ -51,7 +51,7 @@ graph LR
 ### Framework Components
 
 - **[Operator](asya-operator.md)**: Kubernetes controller that watches AsyncActor CRDs, injects sidecars, configures KEDA autoscaling
-- **[Gateway](asya-gateway.md)**: Optional MCP HTTP API for envelope submission, SSE streaming, and status tracking
+- **[Gateway](asya-gateway.md)**: Optional MCP HTTP API for task submission, SSE streaming, and status tracking
 - **[CLI](asya-cli.md)**: Command-line tool for interacting with the gateway (MCP client)
 
 ### Actor Components
@@ -74,9 +74,9 @@ Each actor pod contains two containers:
 ## Message Flow
 
 1. **Client** sends request to Gateway (or directly to queue)
-2. **Gateway** creates envelope, routes to first actor's queue
+2. **Gateway** creates task, routes to first actor's queue
 3. **Sidecar** consumes message from queue
-4. **Sidecar** forwards envelope to Runtime via Unix socket
+4. **Sidecar** forwards message to Runtime via Unix socket
 5. **Runtime** executes your Python handler, returns result
 6. **Sidecar** routes result to next actor's queue (or `happy-end`/`error-end`)
 7. Repeat steps 3-6 for each actor in the route
@@ -99,7 +99,7 @@ Each actor pod contains two containers:
 
 ## Protocols
 
-- **[Actor-to-Actor](protocols/actor-actor.md)**: Envelope structure, routing, status tracking
+- **[Actor-to-Actor](protocols/actor-actor.md)**: Message structure, routing, status tracking
 - **[Sidecar-Runtime](protocols/sidecar-runtime.md)**: Unix socket communication, framing protocol, error handling
 
 ## Component Details

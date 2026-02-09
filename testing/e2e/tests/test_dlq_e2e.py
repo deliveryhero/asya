@@ -11,7 +11,7 @@ DLQ Configuration (in operator values.yaml):
 
 Test Scenarios:
 - test_poison_message_moves_to_dlq_e2e: Error-end queue missing → DLQ
-- test_dlq_preserves_envelope_metadata_e2e: DLQ messages retain envelope ID and route info
+- test_dlq_preserves_message_metadata_e2e: DLQ messages retain task ID and route info
 
 Transport Support:
 - ✅ RabbitMQ: Full support with Management API
@@ -78,13 +78,13 @@ def test_poison_message_moves_to_dlq_e2e(e2e_helper, kubectl, chaos_queues, name
     5. Message redelivered, fails again (retry 1)
     6. Repeat for maxReceiveCount (3) times
     7. After 3rd NACK, transport moves message to asya-dlq
-    8. Verify message in DLQ with correct envelope data
+    8. Verify message in DLQ with correct message data
     9. Recreate error-end queue for cleanup
 
     Expected:
     - Message appears in DLQ after 3 failed attempts
     - No infinite retry loop
-    - Envelope metadata preserved in DLQ
+    - Message metadata preserved in DLQ
 
     Transport Support: Both RabbitMQ and SQS
 
@@ -105,14 +105,14 @@ def test_poison_message_moves_to_dlq_e2e(e2e_helper, kubectl, chaos_queues, name
         transport_client.delete_queue(error_end_queue)
         logger.info(f"[+] error-end queue deleted: {error_end_queue}")
 
-        logger.info("Sending failing envelope to test-error actor")
+        logger.info("Sending failing message to test-error actor")
         response = e2e_helper.call_mcp_tool(
             tool_name="test_error",
             arguments={"should_fail": True},
         )
 
-        envelope_id = response["result"]["envelope_id"]
-        logger.info(f"Envelope ID: {envelope_id}")
+        task_id = response["result"]["task_id"]
+        logger.info(f"Task ID: {task_id}")
 
         # wait a bit
         time.sleep(30)
@@ -131,8 +131,8 @@ def test_poison_message_moves_to_dlq_e2e(e2e_helper, kubectl, chaos_queues, name
 
         logger.info(f"[+] Message found in DLQ: {dlq_message.get('id')}")
 
-        assert dlq_message.get("id") == envelope_id, \
-            "DLQ message ID should match original envelope ID"
+        assert dlq_message.get("id") == task_id, \
+            "DLQ message ID should match original task ID"
 
         assert "payload" in dlq_message, \
             "DLQ message should contain payload"
@@ -148,23 +148,23 @@ def test_poison_message_moves_to_dlq_e2e(e2e_helper, kubectl, chaos_queues, name
 @pytest.mark.slow
 @pytest.mark.dlq
 @pytest.mark.skip(reason="Crossplane Composition does not configure SQS RedrivePolicy/DLQ yet (asya-bija)")
-def test_dlq_preserves_envelope_metadata_e2e(e2e_helper, kubectl, chaos_queues, namespace):
+def test_dlq_preserves_message_metadata_e2e(e2e_helper, kubectl, chaos_queues, namespace):
     """
-    E2E: Test DLQ preserves envelope metadata.
+    E2E: Test DLQ preserves message metadata.
 
     Scenario:
     1. Delete asya-error-end queue (force DLQ fallback)
-    2. Send envelope with specific payload to test-error actor
+    2. Send message with specific payload to test-error actor
     3. Actor fails repeatedly (3 times)
     4. After retries, message goes to DLQ
     5. Verify DLQ message contains:
-       - Envelope ID
+       - Task ID
        - Original route information
        - Original payload structure
     6. Recreate error-end queue for cleanup
 
     Expected:
-    - All envelope metadata preserved in DLQ
+    - All message metadata preserved in DLQ
     - Payload structure intact in DLQ
 
     Transport Support: Both RabbitMQ and SQS
@@ -194,14 +194,14 @@ def test_dlq_preserves_envelope_metadata_e2e(e2e_helper, kubectl, chaos_queues, 
             }
         }
 
-        logger.info("Sending envelope with specific payload")
+        logger.info("Sending message with specific payload")
         response = e2e_helper.call_mcp_tool(
             tool_name="test_error",
             arguments=test_payload,
         )
 
-        envelope_id = response["result"]["envelope_id"]
-        logger.info(f"Envelope ID: {envelope_id}")
+        task_id = response["result"]["task_id"]
+        logger.info(f"Task ID: {task_id}")
 
         logger.info("Waiting for message to move to DLQ after retries")
         if transport == "sqs":
@@ -221,8 +221,8 @@ def test_dlq_preserves_envelope_metadata_e2e(e2e_helper, kubectl, chaos_queues, 
         assert dlq_message is not None, "Message should be in DLQ"
         logger.info(f"DLQ message: {dlq_message}")
 
-        assert dlq_message.get("id") == envelope_id, \
-            "DLQ message ID should match original envelope ID"
+        assert dlq_message.get("id") == task_id, \
+            "DLQ message ID should match original task ID"
         assert "route" in dlq_message, \
             "DLQ message should preserve route information"
         assert "payload" in dlq_message, \
@@ -234,7 +234,7 @@ def test_dlq_preserves_envelope_metadata_e2e(e2e_helper, kubectl, chaos_queues, 
         assert "metadata" in payload, \
             "DLQ payload should preserve metadata field"
 
-        logger.info("[+] DLQ preserves envelope metadata correctly")
+        logger.info("[+] DLQ preserves message metadata correctly")
 
     finally:
         logger.info(f"[.] Recreating error-end queue for cleanup: {error_end_queue}")

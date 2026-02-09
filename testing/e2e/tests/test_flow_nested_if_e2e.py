@@ -33,7 +33,7 @@ def flow_helper(gateway_helper, transport_timeouts, s3_endpoint, results_bucket,
             self.test_config = test_config
 
         def send_to_flow(self, level1: str, level2: str) -> str:
-            """Send test payload to flow start queue and return envelope_id."""
+            """Send test payload to flow start queue and return task_id."""
 
             sqs = boto3.client("sqs", endpoint_url=self.test_config.sqs_endpoint)
 
@@ -42,21 +42,21 @@ def flow_helper(gateway_helper, transport_timeouts, s3_endpoint, results_bucket,
 
             payload = {"level1": level1, "level2": level2}
 
-            envelope = {
+            message = {
                 "route": {"actors": ["start-test-nested-flow"], "current": 0},
                 "payload": payload,
             }
 
 
-            envelope_id = str(uuid.uuid4())
-            envelope["id"] = envelope_id
+            task_id = str(uuid.uuid4())
+            message["id"] = task_id
 
-            sqs.send_message(QueueUrl=queue_url, MessageBody=json.dumps(envelope))
+            sqs.send_message(QueueUrl=queue_url, MessageBody=json.dumps(message))
 
-            logger.info(f"Sent envelope {envelope_id} to flow with level1={level1}, level2={level2}")
-            return envelope_id
+            logger.info(f"Sent message {task_id} to flow with level1={level1}, level2={level2}")
+            return task_id
 
-        def wait_for_result(self, envelope_id: str, timeout: int = 120) -> dict:
+        def wait_for_result(self, task_id: str, timeout: int = 120) -> dict:
             """Wait for flow completion and retrieve result from S3."""
 
             s3 = boto3.client("s3", endpoint_url=self.s3_endpoint)
@@ -67,15 +67,15 @@ def flow_helper(gateway_helper, transport_timeouts, s3_endpoint, results_bucket,
 
                 if "Contents" in response:
                     for obj in response["Contents"]:
-                        if envelope_id in obj["Key"]:
+                        if task_id in obj["Key"]:
                             result_obj = s3.get_object(Bucket=self.results_bucket, Key=obj["Key"])
                             result = json.loads(result_obj["Body"].read())
-                            logger.info(f"Retrieved result for envelope {envelope_id} from {obj['Key']}")
+                            logger.info(f"Retrieved result for task {task_id} from {obj['Key']}")
                             return result
 
                 time.sleep(2)
 
-            raise TimeoutError(f"Flow result not found after {timeout}s for envelope {envelope_id}")
+            raise TimeoutError(f"Flow result not found after {timeout}s for task {task_id}")
 
     return FlowHelper()
 
@@ -86,8 +86,8 @@ def test_route_a_x(flow_helper):
     """Test route A-X: level1=A, level2=X."""
     logger.info("Testing route A-X")
 
-    envelope_id = flow_helper.send_to_flow(level1="A", level2="X")
-    result = flow_helper.wait_for_result(envelope_id)
+    task_id = flow_helper.send_to_flow(level1="A", level2="X")
+    result = flow_helper.wait_for_result(task_id)
 
     assert result["payload"]["validated"] is True
     assert result["payload"]["path"] == "A"
@@ -106,8 +106,8 @@ def test_route_a_y(flow_helper):
     """Test route A-Y: level1=A, level2=Y."""
     logger.info("Testing route A-Y")
 
-    envelope_id = flow_helper.send_to_flow(level1="A", level2="Y")
-    result = flow_helper.wait_for_result(envelope_id)
+    task_id = flow_helper.send_to_flow(level1="A", level2="Y")
+    result = flow_helper.wait_for_result(task_id)
 
     assert result["payload"]["validated"] is True
     assert result["payload"]["path"] == "A"
@@ -126,8 +126,8 @@ def test_route_b_x(flow_helper):
     """Test route B-X: level1=B, level2=X."""
     logger.info("Testing route B-X")
 
-    envelope_id = flow_helper.send_to_flow(level1="B", level2="X")
-    result = flow_helper.wait_for_result(envelope_id)
+    task_id = flow_helper.send_to_flow(level1="B", level2="X")
+    result = flow_helper.wait_for_result(task_id)
 
     assert result["payload"]["validated"] is True
     assert result["payload"]["path"] == "B"
@@ -146,8 +146,8 @@ def test_route_b_y(flow_helper):
     """Test route B-Y: level1=B, level2=Y."""
     logger.info("Testing route B-Y")
 
-    envelope_id = flow_helper.send_to_flow(level1="B", level2="Y")
-    result = flow_helper.wait_for_result(envelope_id)
+    task_id = flow_helper.send_to_flow(level1="B", level2="Y")
+    result = flow_helper.wait_for_result(task_id)
 
     assert result["payload"]["validated"] is True
     assert result["payload"]["path"] == "B"
@@ -173,26 +173,26 @@ def test_all_routes_parallel(flow_helper):
         ("B", "Y", "route_b_y", "B-Y complete"),
     ]
 
-    envelope_ids = []
+    task_ids = []
     for level1, level2, _, _ in test_cases:
-        envelope_id = flow_helper.send_to_flow(level1=level1, level2=level2)
-        envelope_ids.append((envelope_id, level1, level2))
+        task_id = flow_helper.send_to_flow(level1=level1, level2=level2)
+        task_ids.append((task_id, level1, level2))
 
-    logger.info(f"Sent {len(envelope_ids)} envelopes in parallel")
+    logger.info(f"Sent {len(task_ids)} messages in parallel")
 
-    for envelope_id, level1, level2 in envelope_ids:
-        result = flow_helper.wait_for_result(envelope_id)
+    for task_id, level1, level2 in task_ids:
+        result = flow_helper.wait_for_result(task_id)
 
         expected_route = f"{level1}-{level2}"
         expected_handler = next(h for l1, l2, h, _ in test_cases if l1 == level1 and l2 == level2)
         expected_result = next(r for l1, l2, _, r in test_cases if l1 == level1 and l2 == level2)
 
-        assert result["payload"]["route"] == expected_route, f"Wrong route for {envelope_id}"
-        assert result["payload"]["processed_by"] == expected_handler, f"Wrong handler for {envelope_id}"
-        assert result["payload"]["result"] == expected_result, f"Wrong result for {envelope_id}"
-        assert result["payload"]["status"] == "completed", f"Not completed for {envelope_id}"
+        assert result["payload"]["route"] == expected_route, f"Wrong route for {task_id}"
+        assert result["payload"]["processed_by"] == expected_handler, f"Wrong handler for {task_id}"
+        assert result["payload"]["result"] == expected_result, f"Wrong result for {task_id}"
+        assert result["payload"]["status"] == "completed", f"Not completed for {task_id}"
 
-        logger.info(f"[+] Envelope {envelope_id} ({level1}-{level2}): verified")
+        logger.info(f"[+] Task {task_id} ({level1}-{level2}): verified")
 
     logger.info("[+] All routes completed successfully in parallel without crosstalk")
 
@@ -208,15 +208,15 @@ def test_route_a_x_via_mcp_tool(e2e_helper):
         arguments={"level1": "A", "level2": "X"},
     )
 
-    envelope_id = response["result"]["envelope_id"]
-    logger.info(f"Envelope ID: {envelope_id}")
+    task_id = response["result"]["task_id"]
+    logger.info(f"Task ID: {task_id}")
 
-    final_envelope = e2e_helper.wait_for_envelope_completion(envelope_id, timeout=60)
+    final_task = e2e_helper.wait_for_task_completion(task_id, timeout=60)
 
-    assert final_envelope["status"] == "succeeded", \
-        f"Envelope should succeed, got {final_envelope['status']}"
+    assert final_task["status"] == "succeeded", \
+        f"Task should succeed, got {final_task['status']}"
 
-    result_payload = final_envelope.get("result", {})
+    result_payload = final_task.get("result", {})
     assert result_payload.get("validated") is True
     assert result_payload.get("path") == "A"
     assert result_payload.get("route") == "A-X"

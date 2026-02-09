@@ -279,7 +279,7 @@ import json
 connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
 channel = connection.channel()
 
-envelope = {
+message = {
     "id": "test-1",
     "route": {"actors": ["hello-actor"], "current": 0},
     "payload": {"who": "Local"}
@@ -288,7 +288,7 @@ envelope = {
 channel.basic_publish(
     exchange='',
     routing_key='asya-hello-actor',
-    body=json.dumps(envelope)
+    body=json.dumps(message)
 )
 connection.close()
 EOF

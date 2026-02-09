@@ -101,8 +101,8 @@ All flow tests follow this pattern:
 ```python
 @pytest.mark.flow
 def test_route_name(flow_helper):
-    envelope_id = flow_helper.send_to_flow(param1=value1, param2=value2)
-    result = flow_helper.wait_for_result(envelope_id, timeout=120)
+    task_id = flow_helper.send_to_flow(param1=value1, param2=value2)
+    result = flow_helper.wait_for_result(task_id, timeout=120)
 
     # Validate payload transformations
     assert result["payload"]["field"] == expected_value
@@ -110,7 +110,7 @@ def test_route_name(flow_helper):
 ```
 
 Key components:
-- **flow_helper.send_to_flow()**: Creates envelope, sends to flow start queue
+- **flow_helper.send_to_flow()**: Creates message, sends to flow start queue
 - **flow_helper.wait_for_result()**: Polls S3 for result with timeout
 - **Assertions**: Verify payload fields at each stage of flow
 
@@ -120,14 +120,14 @@ Flow tests validate the complete compilation → deployment → execution pipeli
 
 1. **Compilation**: `asya flow compile` generates routers from DSL
 2. **Deployment**: AsyncActor CRDs create queues and workloads
-3. **Execution**: Envelopes route through decision tree
+3. **Execution**: Messages route through decision tree
 4. **Validation**: Results persisted to S3 and verified
 
 This is the most comprehensive test type, covering:
 - Flow compiler correctness
 - Router logic correctness
 - Operator queue/workload creation
-- Sidecar envelope routing
+- Sidecar message routing
 - Runtime payload/envelope handling
 - Multi-actor coordination
 - End-to-end latency and reliability

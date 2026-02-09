@@ -108,25 +108,25 @@ class E2ETestHelper(GatewayTestHelper):
             logger.warning(f"Failed to get queue length: {e}")
             return 0
 
-    def wait_for_envelope_completion(
+    def wait_for_task_completion(
         self,
-        envelope_id: str,
+        task_id: str,
         timeout: int = 20,
         interval: float = 0.5,
     ) -> dict:
         """
-        Poll envelope status until it reaches end state.
+        Poll task status until it reaches end state.
 
         This E2E version handles connection errors by automatically restarting
         port-forward when needed (useful in chaos tests).
 
-        Returns the final envelope object when status is succeeded, failed, or unknown.
+        Returns the final task object when status is succeeded, failed, or unknown.
 
         Raises:
-            TimeoutError: If envelope doesn't complete within timeout
+            TimeoutError: If task doesn't complete within timeout
             ConnectionError: If gateway becomes unreachable after retries
         """
-        logger.debug(f"Waiting for envelope completion: {envelope_id} (timeout={timeout}s)")
+        logger.debug(f"Waiting for task completion: {task_id} (timeout={timeout}s)")
         start_time = time.time()
         consecutive_failures = 0
         max_consecutive_failures = 3
@@ -134,25 +134,25 @@ class E2ETestHelper(GatewayTestHelper):
         i = 0
         while time.time() - start_time < timeout:
             try:
-                envelope = self.get_envelope_status(envelope_id)
+                task = self.get_task_status(task_id)
                 consecutive_failures = 0
 
                 elapsed = time.time() - start_time
 
-                if envelope["status"] in ["succeeded", "failed", "unknown"]:
-                    logger.info(f"Envelope completed after {elapsed:.2f}s with status: {envelope['status']}")
-                    return envelope
+                if task["status"] in ["succeeded", "failed", "unknown"]:
+                    logger.info(f"Task completed after {elapsed:.2f}s with status: {task['status']}")
+                    return task
 
                 i += 1
                 if i % int(5 / interval) == 0:
-                    logger.debug(f"Envelope still {envelope['status']} after {elapsed:.2f}s, waiting...")
+                    logger.debug(f"Task still {task['status']} after {elapsed:.2f}s, waiting...")
 
                 time.sleep(interval)
 
             except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
                 consecutive_failures += 1
                 logger.warning(
-                    f"Connection error while checking envelope status (attempt {consecutive_failures}/{max_consecutive_failures}): {e}"
+                    f"Connection error while checking task status (attempt {consecutive_failures}/{max_consecutive_failures}): {e}"
                 )
 
                 if consecutive_failures >= max_consecutive_failures:
@@ -160,15 +160,15 @@ class E2ETestHelper(GatewayTestHelper):
                     try:
                         self.ensure_gateway_connectivity(max_retries=2)
                         consecutive_failures = 0
-                        logger.info("Gateway connectivity restored, resuming envelope wait")
+                        logger.info("Gateway connectivity restored, resuming task wait")
                     except ConnectionError as ce:
                         raise ConnectionError(
-                            f"Gateway unreachable after port-forward restart while waiting for envelope {envelope_id}"
+                            f"Gateway unreachable after port-forward restart while waiting for task {task_id}"
                         ) from ce
 
                 time.sleep(interval)
 
-        raise TimeoutError(f"Envelope {envelope_id} did not complete within {timeout}s")
+        raise TimeoutError(f"Task {task_id} did not complete within {timeout}s")
 
     def ensure_gateway_connectivity(self, max_retries: int = 3) -> bool:
         """

@@ -25,7 +25,7 @@ Environment Variables:
     ASYA_HANDLER_MODE: Handler argument type ("payload" or "envelope", default: "payload")
     ASYA_SOCKET_CHMOD: Socket permissions in octal (default: "0o666", empty = skip chmod)
     ASYA_CHUNK_SIZE: Socket read chunk size in bytes (default: 65536)
-    ASYA_ENABLE_VALIDATION: Enable envelope validation ("true" or "false", default: "true")
+    ASYA_ENABLE_VALIDATION: Enable message validation ("true" or "false", default: "true")
     ASYA_LOG_LEVEL: Logging level (DEBUG, INFO, WARNING, ERROR, default: INFO)
 
 Socket Configuration:
@@ -230,8 +230,8 @@ def _recv_exact(sock, n: int) -> bytes:
     return b"".join(chunks)
 
 
-def _send_envelope(sock, data: bytes):
-    """Send envelope with length-prefix (4-byte big-endian uint32)."""
+def _send_message(sock, data: bytes):
+    """Send message with length-prefix (4-byte big-endian uint32)."""
     length = struct.pack(">I", len(data))
     sock.sendall(length + data)
 
@@ -259,20 +259,20 @@ def _setup_socket(socket_path):
     return sock
 
 
-def _parse_envelope_json(data: bytes) -> dict[str, Any]:
-    """Parse received envelope from bytes to dict."""
+def _parse_message_json(data: bytes) -> dict[str, Any]:
+    """Parse received message from bytes to dict."""
     return json.loads(data.decode("utf-8"))
 
 
-def _validate_envelope(
+def _validate_message(
     e: dict,
     expected_current_actor: str | None = None,
     input_route: dict | None = None,
 ) -> dict:
     if "payload" not in e:
-        raise ValueError("Missing required field 'payload' in envelope")
+        raise ValueError("Missing required field 'payload' in message")
     if "route" not in e:
-        raise ValueError("Missing required field 'route' in envelope")
+        raise ValueError("Missing required field 'route' in message")
 
     # Validate route structure
     route = e["route"]
@@ -358,9 +358,9 @@ def _validate_envelope(
     return result
 
 
-def _get_current_actor(e: dict) -> str:
-    actors = e["route"]["actors"]
-    current = e["route"]["current"]
+def _get_current_actor(message: dict) -> str:
+    actors = message["route"]["actors"]
+    current = message["route"]["current"]
     return actors[current]
 
 
@@ -378,7 +378,7 @@ def _error_response(code: str, exc: Exception | None = None) -> list[dict[str, A
 
 def _handle_request(conn: socket.socket, user_func: Any) -> list[dict[str, Any]]:
     """Handle a single request with length-prefix framing."""
-    # Read envelope from socket
+    # Read message from socket
     try:
         length_bytes = _recv_exact(conn, 4)
         length = struct.unpack(">I", length_bytes)[0]
@@ -390,27 +390,27 @@ def _handle_request(conn: socket.socket, user_func: Any) -> list[dict[str, Any]]
         logger.error(f"ERROR: Connection handling failed:\n{error_trace}")
         return _error_response("connection_error", exc)
 
-    # Parse envelope
+    # Parse message
     try:
-        e: dict[str, Any] = _parse_envelope_json(data)
+        message: dict[str, Any] = _parse_message_json(data)
         if ASYA_ENABLE_VALIDATION:
-            e = _validate_envelope(e)
-        logger.debug(f"Received envelope: {len(data)} bytes")
+            message = _validate_message(message)
+        logger.debug(f"Received message: {len(data)} bytes")
     except (json.JSONDecodeError, UnicodeDecodeError, KeyError, ValueError) as exc:
         return _error_response("msg_parsing_error", exc)
 
     # Call user function and process output
     try:
         logger.info(
-            f"[DIAG] Starting handler execution, mode={ASYA_HANDLER_MODE}, envelope_id={e.get('id', 'unknown')}"
+            f"[DIAG] Starting handler execution, mode={ASYA_HANDLER_MODE}, message_id={message.get('id', 'unknown')}"
         )
         out_list: list[dict[str, Any]]
         if ASYA_HANDLER_MODE == "payload":
             # Simple processor: user function expects and returns payload only
             # Runtime auto-increments route.current for normal actors
             # NOTE: End actors should NOT use payload mode - they run in envelope mode
-            logger.info(f"[DIAG] Calling user_func with payload: {e['payload']}")
-            payload = user_func(e["payload"])  # user function
+            logger.info(f"[DIAG] Calling user_func with payload: {message['payload']}")
+            payload = user_func(message["payload"])  # user function
             logger.info(f"[DIAG] user_func returned: {payload}")
             payload_list: list[Any]
             if payload is None:
@@ -421,22 +421,22 @@ def _handle_request(conn: socket.socket, user_func: Any) -> list[dict[str, Any]]
                 payload_list = [payload]
 
             # Build output route with incremented current (runtime handles routing in payload mode)
-            output_route = e["route"].copy()
-            output_route["current"] = e["route"]["current"] + 1
+            output_route = message["route"].copy()
+            output_route["current"] = message["route"]["current"] + 1
 
-            # Build output envelopes with updated route
+            # Build output messages with updated route
             out_list = []
             for p in payload_list:
                 out: dict[str, Any] = {"payload": p, "route": output_route}
-                if "headers" in e:
-                    out["headers"] = e["headers"]
+                if "headers" in message:
+                    out["headers"] = message["headers"]
                 out_list.append(out)
 
         elif ASYA_HANDLER_MODE == "envelope":
-            # Full envelope mode: user function gets complete envelope structure
+            # Full envelope mode: user function gets complete message structure
             # Handler is responsible for route management (including incrementing current)
             # End actors use this mode and return empty dict {} (no routing)
-            out = user_func(e)  # user function
+            out = user_func(message)  # user function
             if out is None:
                 out_list = []
             elif isinstance(out, (list, tuple)):
@@ -448,13 +448,13 @@ def _handle_request(conn: socket.socket, user_func: Any) -> list[dict[str, Any]]
             if ASYA_ENABLE_VALIDATION:
                 for i, out in enumerate(out_list):
                     try:
-                        out_list[i] = _validate_envelope(
+                        out_list[i] = _validate_message(
                             out,
-                            expected_current_actor=_get_current_actor(e),
-                            input_route=e["route"],
+                            expected_current_actor=_get_current_actor(message),
+                            input_route=message["route"],
                         )
                     except ValueError as exc:
-                        raise ValueError(f"Invalid output envelope[{i}/{len(out_list)}]: {exc}") from exc
+                        raise ValueError(f"Invalid output message[{i}/{len(out_list)}]: {exc}") from exc
 
         else:
             raise ValueError(f"Invalid ASYA_HANDLER_MODE={ASYA_HANDLER_MODE}: not in {VALID_ASYA_HANDLER_MODES}")
@@ -463,7 +463,7 @@ def _handle_request(conn: socket.socket, user_func: Any) -> list[dict[str, Any]]
 
     except Exception as exc:
         logger.error(f"[DIAG] Exception caught in handler: type={type(exc).__name__}, msg={exc}")
-        logger.exception("Fatal error on processing input envelope")
+        logger.exception("Fatal error on processing input message")
         return _error_response("processing_error", exc)
 
 
@@ -523,7 +523,7 @@ def handle_requests():
             try:
                 responses: list[dict] = _handle_request(conn, func)
                 response_data = json.dumps(responses).encode("utf-8")
-                _send_envelope(conn, response_data)
+                _send_message(conn, response_data)
 
             except BrokenPipeError:
                 logger.warning("Client disconnected")

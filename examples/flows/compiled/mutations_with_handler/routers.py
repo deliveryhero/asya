@@ -13,19 +13,19 @@ Regenerate by running: asya flow compile ../../mutations_with_handler.py
 # Generated Routers (for kubernetes deployment)
 # ======================================================================
 
-def start_mutations_with_handler_flow(envelope: dict) -> dict:
+def start_mutations_with_handler_flow(message: dict) -> dict:
     """Entrypoint for flow 'mutations_with_handler_flow'"""
-    r = envelope['route']
+    r = message['route']
     c = r['current']
 
     r['actors'][c+1:c+1] = [resolve("router_mutations_with_handler_flow_line_9_seq")]
     r['current'] = c + 1
-    return envelope
+    return message
 
-def router_mutations_with_handler_flow_line_13_seq(envelope: dict) -> dict:
+def router_mutations_with_handler_flow_line_13_seq(message: dict) -> dict:
     """Router for control flow and payload mutations"""
-    p = envelope['payload']
-    r = envelope['route']
+    p = message['payload']
+    r = message['route']
     c = r['current']
     _next = []
 
@@ -33,12 +33,12 @@ def router_mutations_with_handler_flow_line_13_seq(envelope: dict) -> dict:
 
     r['actors'][c+1:c+1] = _next
     r['current'] = c + 1
-    return envelope
+    return message
 
-def router_mutations_with_handler_flow_line_9_seq(envelope: dict) -> dict:
+def router_mutations_with_handler_flow_line_9_seq(message: dict) -> dict:
     """Router for control flow and payload mutations"""
-    p = envelope['payload']
-    r = envelope['route']
+    p = message['payload']
+    r = message['route']
     c = r['current']
     _next = []
 
@@ -50,11 +50,11 @@ def router_mutations_with_handler_flow_line_9_seq(envelope: dict) -> dict:
 
     r['actors'][c+1:c+1] = _next
     r['current'] = c + 1
-    return envelope
+    return message
 
-def end_mutations_with_handler_flow(envelope: dict) -> dict:
+def end_mutations_with_handler_flow(message: dict) -> dict:
     """Exitpoint for flow 'mutations_with_handler_flow'"""
-    return envelope
+    return message
 
 
 # ======================================================================

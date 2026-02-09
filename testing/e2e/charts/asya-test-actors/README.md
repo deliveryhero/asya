@@ -116,7 +116,7 @@ Actor names are resolved to actual queue names based on the transport type (see 
 - Unknown transport types use the actor name directly
 - No transformation applied
 
-**Important:** This resolution is stateless and happens at the sidecar routing layer. The same actor name in envelope routes is consistently resolved to the same queue across all actors in the system.
+**Important:** This resolution is stateless and happens at the sidecar routing layer. The same actor name in message routes is consistently resolved to the same queue across all actors in the system.
 
 ### Scaling Configuration (KEDA)
 

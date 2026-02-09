@@ -5,15 +5,15 @@ import (
 	"testing"
 
 	"github.com/deliveryhero/asya/asya-gateway/internal/config"
-	"github.com/deliveryhero/asya/asya-gateway/internal/envelopestore"
 	"github.com/deliveryhero/asya/asya-gateway/internal/queue"
+	"github.com/deliveryhero/asya/asya-gateway/internal/taskstore"
 	"github.com/deliveryhero/asya/asya-gateway/pkg/types"
 )
 
 // MockQueueClient implements queue.Client for testing
 type MockQueueClient struct{}
 
-func (m *MockQueueClient) SendEnvelope(ctx context.Context, envelope *types.Envelope) error {
+func (m *MockQueueClient) SendMessage(ctx context.Context, task *types.Task) error {
 	return nil
 }
 
@@ -31,10 +31,10 @@ func (m *MockQueueClient) Close() error {
 
 func TestNewServer_WithoutConfig(t *testing.T) {
 	// Test server creation with nil config (uses hardcoded tools)
-	jobStore := envelopestore.NewStore()
+	taskStore := taskstore.NewStore()
 	queueClient := &MockQueueClient{}
 
-	server := NewServer(jobStore, queueClient, nil)
+	server := NewServer(taskStore, queueClient, nil)
 
 	if server == nil {
 		t.Fatal("NewServer returned nil")
@@ -89,10 +89,10 @@ func TestNewServer_WithConfig(t *testing.T) {
 		t.Fatalf("Config validation failed: %v", err)
 	}
 
-	jobStore := envelopestore.NewStore()
+	taskStore := taskstore.NewStore()
 	queueClient := &MockQueueClient{}
 
-	server := NewServer(jobStore, queueClient, cfg)
+	server := NewServer(taskStore, queueClient, cfg)
 
 	if server == nil {
 		t.Fatal("NewServer returned nil")
@@ -154,10 +154,10 @@ func TestNewServer_WithMultipleTools(t *testing.T) {
 		t.Fatalf("Config validation failed: %v", err)
 	}
 
-	jobStore := envelopestore.NewStore()
+	taskStore := taskstore.NewStore()
 	queueClient := &MockQueueClient{}
 
-	server := NewServer(jobStore, queueClient, cfg)
+	server := NewServer(taskStore, queueClient, cfg)
 
 	mcpServer := server.GetMCPServer()
 	tools := mcpServer.ListTools()
@@ -204,10 +204,10 @@ func TestNewServer_WithRouteTemplates(t *testing.T) {
 		t.Fatalf("Config validation failed: %v", err)
 	}
 
-	jobStore := envelopestore.NewStore()
+	taskStore := taskstore.NewStore()
 	queueClient := &MockQueueClient{}
 
-	server := NewServer(jobStore, queueClient, cfg)
+	server := NewServer(taskStore, queueClient, cfg)
 
 	if server.registry == nil {
 		t.Fatal("Registry should not be nil")
@@ -261,10 +261,10 @@ func TestNewServer_WithDefaults(t *testing.T) {
 		t.Fatalf("Config validation failed: %v", err)
 	}
 
-	jobStore := envelopestore.NewStore()
+	taskStore := taskstore.NewStore()
 	queueClient := &MockQueueClient{}
 
-	server := NewServer(jobStore, queueClient, cfg)
+	server := NewServer(taskStore, queueClient, cfg)
 
 	if server.registry == nil {
 		t.Fatal("Registry should not be nil")

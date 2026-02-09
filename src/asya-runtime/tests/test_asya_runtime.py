@@ -94,12 +94,12 @@ class TestHandlerReturnTypeValidation:
         def string_handler(payload):
             return "this is a string, not a dict"
 
-        envelope = {
+        message = {
             "payload": {"test": "data"},
             "route": {"actors": ["a"], "current": 0},
         }
-        envelope_data = json.dumps(envelope).encode("utf-8")
-        asya_runtime._send_envelope(client_sock, envelope_data)
+        message_data = json.dumps(message).encode("utf-8")
+        asya_runtime._send_message(client_sock, message_data)
 
         responses = asya_runtime._handle_request(server_sock, string_handler)
 
@@ -114,12 +114,12 @@ class TestHandlerReturnTypeValidation:
         def number_handler(payload):
             return 42
 
-        envelope = {
+        message = {
             "payload": {"test": "data"},
             "route": {"actors": ["a"], "current": 0},
         }
-        envelope_data = json.dumps(envelope).encode("utf-8")
-        asya_runtime._send_envelope(client_sock, envelope_data)
+        message_data = json.dumps(message).encode("utf-8")
+        asya_runtime._send_message(client_sock, message_data)
 
         responses = asya_runtime._handle_request(server_sock, number_handler)
 
@@ -133,12 +133,12 @@ class TestHandlerReturnTypeValidation:
         def none_handler(payload):
             return None
 
-        envelope = {
+        message = {
             "payload": {"test": "data"},
             "route": {"actors": ["a"], "current": 0},
         }
-        envelope_data = json.dumps(envelope).encode("utf-8")
-        asya_runtime._send_envelope(client_sock, envelope_data)
+        message_data = json.dumps(message).encode("utf-8")
+        asya_runtime._send_message(client_sock, message_data)
 
         responses = asya_runtime._handle_request(server_sock, none_handler)
 
@@ -151,16 +151,16 @@ class TestHandlerReturnTypeValidation:
         def empty_list_handler(payload):
             return []
 
-        envelope = {
+        message = {
             "payload": {"test": "data"},
             "route": {"actors": ["a"], "current": 0},
         }
-        envelope_data = json.dumps(envelope).encode("utf-8")
-        asya_runtime._send_envelope(client_sock, envelope_data)
+        message_data = json.dumps(message).encode("utf-8")
+        asya_runtime._send_message(client_sock, message_data)
 
         responses = asya_runtime._handle_request(server_sock, empty_list_handler)
 
-        # Empty list means no output envelopes
+        # Empty list means no output messages
         assert len(responses) == 0
 
 
@@ -170,8 +170,8 @@ class TestRouteValidation:
     def test_parse_msg_route_current_missing_defaults_to_zero(self):
         """Test route without current field - should default to 0."""
         data = json.dumps({"payload": {"test": "data"}, "route": {"actors": ["a", "b"]}}).encode("utf-8")
-        msg = asya_runtime._parse_envelope_json(data)
-        validated = asya_runtime._validate_envelope(msg)
+        msg = asya_runtime._parse_message_json(data)
+        validated = asya_runtime._validate_message(msg)
 
         assert validated["route"]["current"] == 0
         assert validated["route"]["actors"] == ["a", "b"]
@@ -180,22 +180,22 @@ class TestRouteValidation:
         """Test route as string instead of dict - should fail validation."""
         with pytest.raises(ValueError, match="Field 'route' must be a dict"):
             data = json.dumps({"payload": {"test": "data"}, "route": "not a dict"}).encode("utf-8")
-            msg = asya_runtime._parse_envelope_json(data)
-            asya_runtime._validate_envelope(msg)
+            msg = asya_runtime._parse_message_json(data)
+            asya_runtime._validate_message(msg)
 
     def test_parse_msg_route_missing_actors(self):
         """Test route without actors field - should fail validation."""
         with pytest.raises(ValueError, match="Missing required field 'actors' in route"):
             data = json.dumps({"payload": {"test": "data"}, "route": {"current": 0}}).encode("utf-8")
-            msg = asya_runtime._parse_envelope_json(data)
-            asya_runtime._validate_envelope(msg)
+            msg = asya_runtime._parse_message_json(data)
+            asya_runtime._validate_message(msg)
 
     def test_parse_msg_route_actors_not_list(self):
         """Test route with actors as non-list - should fail validation."""
         with pytest.raises(ValueError, match="Field 'route.actors' must be a list"):
             data = json.dumps({"payload": {"test": "data"}, "route": {"actors": "not a list"}}).encode("utf-8")
-            msg = asya_runtime._parse_envelope_json(data)
-            asya_runtime._validate_envelope(msg)
+            msg = asya_runtime._parse_message_json(data)
+            asya_runtime._validate_message(msg)
 
     def test_parse_msg_route_current_not_int(self):
         """Test route with current as non-integer - should fail validation."""
@@ -206,15 +206,15 @@ class TestRouteValidation:
                     "route": {"actors": ["a", "b"], "current": "0"},
                 }
             ).encode("utf-8")
-            msg = asya_runtime._parse_envelope_json(data)
-            asya_runtime._validate_envelope(msg)
+            msg = asya_runtime._parse_message_json(data)
+            asya_runtime._validate_message(msg)
 
     def test_parse_msg_route_current_negative(self):
         """Test route with negative current index - should fail validation."""
         with pytest.raises(ValueError, match="Invalid route.current=-1"):
             data = json.dumps({"payload": {"test": "data"}, "route": {"actors": ["a"], "current": -1}}).encode("utf-8")
-            msg = asya_runtime._parse_envelope_json(data)
-            asya_runtime._validate_envelope(msg)
+            msg = asya_runtime._parse_message_json(data)
+            asya_runtime._validate_message(msg)
 
     def test_parse_msg_route_current_out_of_bounds(self):
         """Test route with current index beyond actors length - should fail validation."""
@@ -225,57 +225,57 @@ class TestRouteValidation:
                     "route": {"actors": ["a", "b"], "current": 10},
                 }
             ).encode("utf-8")
-            msg = asya_runtime._parse_envelope_json(data)
-            asya_runtime._validate_envelope(msg)
+            msg = asya_runtime._parse_message_json(data)
+            asya_runtime._validate_message(msg)
 
     def test_parse_msg_route_empty_actors_current_zero(self):
         """Test route with empty actors array and current=0 - should fail validation."""
         with pytest.raises(ValueError, match="Field 'route.actors' cannot be empty"):
             data = json.dumps({"payload": {"test": "data"}, "route": {"actors": [], "current": 0}}).encode("utf-8")
-            msg = asya_runtime._parse_envelope_json(data)
-            asya_runtime._validate_envelope(msg)
+            msg = asya_runtime._parse_message_json(data)
+            asya_runtime._validate_message(msg)
 
 
-class TestEnvelopeFieldPreservation:
-    """Test that envelope fields are properly preserved through validation."""
+class TestMessageFieldPreservation:
+    """Test that message fields are properly preserved through validation."""
 
-    def test_validate_envelope_preserves_id_field(self):
+    def test_validate_message_preserves_id_field(self):
         """Test that id field is preserved through validation."""
-        envelope = {
+        message = {
             "id": "envelope-123",
             "payload": {"test": "data"},
             "route": {"actors": ["a"], "current": 0},
         }
-        validated = asya_runtime._validate_envelope(envelope)
+        validated = asya_runtime._validate_message(message)
 
         assert validated["id"] == "envelope-123"
         assert validated["payload"] == {"test": "data"}
         assert validated["route"] == {"actors": ["a"], "current": 0}
 
-    def test_validate_envelope_preserves_parent_id_field(self):
+    def test_validate_message_preserves_parent_id_field(self):
         """Test that parent_id field is preserved through validation."""
-        envelope = {
+        message = {
             "id": "envelope-456",
             "parent_id": "parent-envelope-123",
             "payload": {"test": "data"},
             "route": {"actors": ["a"], "current": 0},
         }
-        validated = asya_runtime._validate_envelope(envelope)
+        validated = asya_runtime._validate_message(message)
 
         assert validated["id"] == "envelope-456"
         assert validated["parent_id"] == "parent-envelope-123"
         assert validated["payload"] == {"test": "data"}
 
-    def test_validate_envelope_preserves_all_fields(self):
-        """Test that all envelope fields are preserved together."""
-        envelope = {
+    def test_validate_message_preserves_all_fields(self):
+        """Test that all message fields are preserved together."""
+        message = {
             "id": "envelope-789",
             "parent_id": "parent-envelope-456",
             "payload": {"test": "data"},
             "route": {"actors": ["a", "b"], "current": 0},
             "headers": {"trace_id": "trace-123", "priority": "high"},
         }
-        validated = asya_runtime._validate_envelope(envelope)
+        validated = asya_runtime._validate_message(message)
 
         assert validated["id"] == "envelope-789"
         assert validated["parent_id"] == "parent-envelope-456"
@@ -283,73 +283,73 @@ class TestEnvelopeFieldPreservation:
         assert validated["route"] == {"actors": ["a", "b"], "current": 0}
         assert validated["headers"] == {"trace_id": "trace-123", "priority": "high"}
 
-    def test_validate_envelope_without_id_field(self):
-        """Test that envelope without id field still validates (id is optional)."""
-        envelope = {
+    def test_validate_message_without_id_field(self):
+        """Test that message without id field still validates (id is optional)."""
+        message = {
             "payload": {"test": "data"},
             "route": {"actors": ["a"], "current": 0},
         }
-        validated = asya_runtime._validate_envelope(envelope)
+        validated = asya_runtime._validate_message(message)
 
         assert "id" not in validated
         assert validated["payload"] == {"test": "data"}
 
-    def test_validate_envelope_id_field_invalid_type(self):
+    def test_validate_message_id_field_invalid_type(self):
         """Test that id field with non-string type fails validation."""
-        envelope = {
+        message = {
             "id": 12345,
             "payload": {"test": "data"},
             "route": {"actors": ["a"], "current": 0},
         }
         with pytest.raises(ValueError, match="Field 'id' must be a string"):
-            asya_runtime._validate_envelope(envelope)
+            asya_runtime._validate_message(message)
 
     def test_envelope_mode_handler_accesses_id_field(self, socket_pair, mock_env):
-        """Test that envelope mode handlers can access envelope id field."""
+        """Test that envelope mode handlers can access message id field."""
         with mock_env(ASYA_HANDLER_MODE="envelope"):
             server_sock, client_sock = socket_pair
 
-            def envelope_handler(envelope):
-                envelope_id = envelope["id"]
+            def envelope_handler(msg):
+                message_id = msg["id"]
                 return {
-                    "id": envelope_id,
-                    "payload": {"envelope_id": envelope_id, "data": envelope["payload"]},
-                    "route": envelope["route"],
+                    "id": message_id,
+                    "payload": {"message_id": message_id, "data": msg["payload"]},
+                    "route": msg["route"],
                 }
 
-            envelope = {
+            message = {
                 "id": "test-envelope-123",
                 "payload": {"value": 42},
                 "route": {"actors": ["a"], "current": 0},
             }
-            envelope_data = json.dumps(envelope).encode("utf-8")
-            asya_runtime._send_envelope(client_sock, envelope_data)
+            message_data = json.dumps(message).encode("utf-8")
+            asya_runtime._send_message(client_sock, message_data)
 
             responses = asya_runtime._handle_request(server_sock, envelope_handler)
 
             assert len(responses) == 1
             assert responses[0]["id"] == "test-envelope-123"
-            assert responses[0]["payload"]["envelope_id"] == "test-envelope-123"
+            assert responses[0]["payload"]["message_id"] == "test-envelope-123"
 
 
 class TestEnvelopeModeValidation:
     """Test envelope mode validation edge cases."""
 
-    def test_handler_returns_invalid_payload_type_in_envelope(self, socket_pair, mock_env):
-        """Test handler returns envelope with payload as string instead of dict."""
+    def test_handler_returns_invalid_payload_type_in_message(self, socket_pair, mock_env):
+        """Test handler returns message with payload as string instead of dict."""
         with mock_env(ASYA_HANDLER_MODE="envelope"):
             server_sock, client_sock = socket_pair
 
             def invalid_handler(msg):
-                # Return envelope with payload as string
+                # Return message with payload as string
                 return {"payload": "not a dict", "route": msg["route"]}
 
-            envelope = {
+            message = {
                 "payload": {"test": "data"},
                 "route": {"actors": ["a"], "current": 0},
             }
-            envelope_data = json.dumps(envelope).encode("utf-8")
-            asya_runtime._send_envelope(client_sock, envelope_data)
+            message_data = json.dumps(message).encode("utf-8")
+            asya_runtime._send_message(client_sock, message_data)
 
             responses = asya_runtime._handle_request(server_sock, invalid_handler)
 
@@ -357,21 +357,21 @@ class TestEnvelopeModeValidation:
             assert len(responses) == 1
             assert responses[0]["payload"] == "not a dict"
 
-    def test_handler_returns_invalid_route_type_in_envelope(self, socket_pair, mock_env):
-        """Test handler returns envelope with route as wrong type."""
+    def test_handler_returns_invalid_route_type_in_message(self, socket_pair, mock_env):
+        """Test handler returns message with route as wrong type."""
         with mock_env(ASYA_HANDLER_MODE="envelope"):
             server_sock, client_sock = socket_pair
 
             def invalid_handler(msg):
-                # Return envelope with route as string
+                # Return message with route as string
                 return {"payload": {"ok": True}, "route": "invalid"}
 
-            envelope = {
+            message = {
                 "payload": {"test": "data"},
                 "route": {"actors": ["a"], "current": 0},
             }
-            envelope_data = json.dumps(envelope).encode("utf-8")
-            asya_runtime._send_envelope(client_sock, envelope_data)
+            message_data = json.dumps(message).encode("utf-8")
+            asya_runtime._send_message(client_sock, message_data)
 
             responses = asya_runtime._handle_request(server_sock, invalid_handler)
 
@@ -380,8 +380,8 @@ class TestEnvelopeModeValidation:
             assert responses[0]["error"] == "processing_error"
             assert "Field 'route' must be a dict" in responses[0]["details"]["message"]
 
-    def test_handler_returns_list_with_invalid_envelope(self, socket_pair, mock_env):
-        """Test handler returns list with one valid and one invalid envelope."""
+    def test_handler_returns_list_with_invalid_message(self, socket_pair, mock_env):
+        """Test handler returns list with one valid and one invalid message."""
         with mock_env(ASYA_HANDLER_MODE="envelope"):
             server_sock, client_sock = socket_pair
 
@@ -391,19 +391,19 @@ class TestEnvelopeModeValidation:
                     {"payload": {"id": 2}},  # Missing 'route'
                 ]
 
-            envelope = {
+            message = {
                 "payload": {"test": "data"},
                 "route": {"actors": ["a"], "current": 0},
             }
-            envelope_data = json.dumps(envelope).encode("utf-8")
-            asya_runtime._send_envelope(client_sock, envelope_data)
+            message_data = json.dumps(message).encode("utf-8")
+            asya_runtime._send_message(client_sock, message_data)
 
             responses = asya_runtime._handle_request(server_sock, mixed_handler)
 
-            # Should return error because second envelope is invalid
+            # Should return error because second message is invalid
             assert len(responses) == 1
             assert responses[0]["error"] == "processing_error"
-            assert "envelope[1/2]" in responses[0]["details"]["message"]
+            assert "message[1/2]" in responses[0]["details"]["message"]
 
     def test_handler_changes_current_actor(self, socket_pair, mock_env):
         """Test that handler cannot change actor name at the current position."""
@@ -417,12 +417,12 @@ class TestEnvelopeModeValidation:
                     "route": {"actors": ["x", "b", "c"], "current": 0},
                 }
 
-            envelope = {
+            message = {
                 "payload": {"test": "data"},
                 "route": {"actors": ["a", "b", "c"], "current": 0},
             }
-            envelope_data = json.dumps(envelope).encode("utf-8")
-            asya_runtime._send_envelope(client_sock, envelope_data)
+            message_data = json.dumps(message).encode("utf-8")
+            asya_runtime._send_message(client_sock, message_data)
 
             responses = asya_runtime._handle_request(server_sock, actor_changing_handler)
 
@@ -448,12 +448,12 @@ class TestEnvelopeModeValidation:
                     "route": {"actors": ["a", "b", "c", "d"], "current": 0},
                 }
 
-            envelope = {
+            message = {
                 "payload": {"test": "data"},
                 "route": {"actors": ["a", "b"], "current": 0},
             }
-            envelope_data = json.dumps(envelope).encode("utf-8")
-            asya_runtime._send_envelope(client_sock, envelope_data)
+            message_data = json.dumps(message).encode("utf-8")
+            asya_runtime._send_message(client_sock, message_data)
 
             responses = asya_runtime._handle_request(server_sock, route_modifying_handler)
 
@@ -463,12 +463,12 @@ class TestEnvelopeModeValidation:
             assert responses[0]["route"]["current"] == 0
 
     def test_handler_fanout_with_actor_validation(self, socket_pair, mock_env):
-        """Test fan-out where all output envelopes maintain correct current actor."""
+        """Test fan-out where all output messages maintain correct current actor."""
         with mock_env(ASYA_HANDLER_MODE="envelope"):
             server_sock, client_sock = socket_pair
 
             def fanout_handler(msg):
-                # Return multiple envelopes, all pointing to same current actor
+                # Return multiple messages, all pointing to same current actor
                 return [
                     {
                         "payload": {"id": 1},
@@ -484,23 +484,23 @@ class TestEnvelopeModeValidation:
                     },
                 ]
 
-            envelope = {
+            message = {
                 "payload": {"test": "data"},
                 "route": {"actors": ["a", "b"], "current": 0},
             }
-            envelope_data = json.dumps(envelope).encode("utf-8")
-            asya_runtime._send_envelope(client_sock, envelope_data)
+            message_data = json.dumps(message).encode("utf-8")
+            asya_runtime._send_message(client_sock, message_data)
 
             responses = asya_runtime._handle_request(server_sock, fanout_handler)
 
-            # Should work - all output envelopes point to 'a' at index 0
+            # Should work - all output messages point to 'a' at index 0
             assert len(responses) == 3
             assert responses[0]["payload"] == {"id": 1}
             assert responses[1]["payload"] == {"id": 2}
             assert responses[2]["payload"] == {"id": 3}
 
     def test_handler_fanout_with_invalid_actor_name(self, socket_pair, mock_env):
-        """Test fan-out where one envelope has changed actor name at current position."""
+        """Test fan-out where one message has changed actor name at current position."""
         with mock_env(ASYA_HANDLER_MODE="envelope"):
             server_sock, client_sock = socket_pair
 
@@ -516,19 +516,19 @@ class TestEnvelopeModeValidation:
                     },  # Wrong actor - changed "a" to "x" at position 0
                 ]
 
-            envelope = {
+            message = {
                 "payload": {"test": "data"},
                 "route": {"actors": ["a", "b"], "current": 0},
             }
-            envelope_data = json.dumps(envelope).encode("utf-8")
-            asya_runtime._send_envelope(client_sock, envelope_data)
+            message_data = json.dumps(message).encode("utf-8")
+            asya_runtime._send_message(client_sock, message_data)
 
             responses = asya_runtime._handle_request(server_sock, invalid_fanout_handler)
 
-            # Should return error for envelope[1]
+            # Should return error for message[1]
             assert len(responses) == 1
             assert responses[0]["error"] == "processing_error"
-            assert "envelope[1/2]" in responses[0]["details"]["message"]
+            assert "message[1/2]" in responses[0]["details"]["message"]
             # Can be caught by either "Route modification error" or "Route mismatch" validation
             assert "Route" in responses[0]["details"]["message"] and (
                 "modification" in responses[0]["details"]["message"] or "mismatch" in responses[0]["details"]["message"]
@@ -548,12 +548,12 @@ class TestEnvelopeModeValidation:
                     "route": {"actors": ["x", "a", "b"], "current": 1},
                 }
 
-            envelope = {
+            message = {
                 "payload": {"test": "data"},
                 "route": {"actors": ["a", "b", "c"], "current": 0},
             }
-            envelope_data = json.dumps(envelope).encode("utf-8")
-            asya_runtime._send_envelope(client_sock, envelope_data)
+            message_data = json.dumps(message).encode("utf-8")
+            asya_runtime._send_message(client_sock, message_data)
 
             responses = asya_runtime._handle_request(server_sock, erasing_handler)
 
@@ -576,12 +576,12 @@ class TestEnvelopeModeValidation:
                     "route": {"actors": ["a", "c", "d"], "current": 2},
                 }
 
-            envelope = {
+            message = {
                 "payload": {"test": "data"},
                 "route": {"actors": ["a", "b", "c"], "current": 2},
             }
-            envelope_data = json.dumps(envelope).encode("utf-8")
-            asya_runtime._send_envelope(client_sock, envelope_data)
+            message_data = json.dumps(message).encode("utf-8")
+            asya_runtime._send_message(client_sock, message_data)
 
             responses = asya_runtime._handle_request(server_sock, erasing_handler)
 
@@ -604,12 +604,12 @@ class TestEnvelopeModeValidation:
                     "route": {"actors": ["a-modified", "b", "c", "d"], "current": 1},
                 }
 
-            envelope = {
+            message = {
                 "payload": {"test": "data"},
                 "route": {"actors": ["a", "b", "c"], "current": 1},
             }
-            envelope_data = json.dumps(envelope).encode("utf-8")
-            asya_runtime._send_envelope(client_sock, envelope_data)
+            message_data = json.dumps(message).encode("utf-8")
+            asya_runtime._send_message(client_sock, message_data)
 
             responses = asya_runtime._handle_request(server_sock, modifying_handler)
 
@@ -631,12 +631,12 @@ class TestEnvelopeModeValidation:
                     "route": {"actors": ["a", "b", "c", "d", "e"], "current": 1},
                 }
 
-            envelope = {
+            message = {
                 "payload": {"test": "data"},
                 "route": {"actors": ["a", "b", "c"], "current": 1},
             }
-            envelope_data = json.dumps(envelope).encode("utf-8")
-            asya_runtime._send_envelope(client_sock, envelope_data)
+            message_data = json.dumps(message).encode("utf-8")
+            asya_runtime._send_message(client_sock, message_data)
 
             responses = asya_runtime._handle_request(server_sock, extending_handler)
 
@@ -658,12 +658,12 @@ class TestEnvelopeModeValidation:
                     "route": {"actors": ["a", "b", "x", "y"], "current": 1},
                 }
 
-            envelope = {
+            message = {
                 "payload": {"test": "data"},
                 "route": {"actors": ["a", "b", "c", "d"], "current": 1},
             }
-            envelope_data = json.dumps(envelope).encode("utf-8")
-            asya_runtime._send_envelope(client_sock, envelope_data)
+            message_data = json.dumps(message).encode("utf-8")
+            asya_runtime._send_message(client_sock, message_data)
 
             responses = asya_runtime._handle_request(server_sock, replacing_handler)
 
@@ -688,16 +688,16 @@ class TestLargePayloads:
 
         # Create payload of specified size
         large_data = "X" * (size_kb * 1024)
-        envelope = {
+        message = {
             "payload": {"data": large_data},
             "route": {"actors": ["a"], "current": 0},
         }
-        envelope_data = json.dumps(envelope).encode("utf-8")
+        message_data = json.dumps(message).encode("utf-8")
 
         responses_container = []
 
         def sender():
-            asya_runtime._send_envelope(client_sock, envelope_data)
+            asya_runtime._send_message(client_sock, message_data)
 
         def receiver():
             resp = asya_runtime._handle_request(server_sock, echo_handler)
@@ -718,15 +718,15 @@ class TestLargePayloads:
         assert len(responses) == 1
         assert len(responses[0]["payload"]["data"]) == size_kb * 1024
 
-    def test_zero_length_envelope(self, socket_pair):
-        """Test zero-length envelope."""
+    def test_zero_length_message(self, socket_pair):
+        """Test zero-length message."""
         server_sock, client_sock = socket_pair
 
         def simple_handler(payload):
             return payload
 
-        # Send zero-length envelope (just length prefix = 0)
-        asya_runtime._send_envelope(client_sock, b"")
+        # Send zero-length message (just length prefix = 0)
+        asya_runtime._send_message(client_sock, b"")
 
         responses = asya_runtime._handle_request(server_sock, simple_handler)
 
@@ -755,7 +755,7 @@ class TestConnectionEdgeCases:
         assert responses[0]["error"] == "connection_error"
 
     def test_connection_closed_during_data_read(self, socket_pair):
-        """Test connection closed while reading envelope data."""
+        """Test connection closed while reading message data."""
         server_sock, client_sock = socket_pair
 
         def simple_handler(payload):
@@ -829,12 +829,12 @@ class TestSocketProtocol:
         with pytest.raises(ConnectionError, match="Connection closed while reading"):
             asya_runtime._recv_exact(server_sock, 10)
 
-    def test_send_envelope(self, socket_pair):
+    def test_send_message(self, socket_pair):
         """Test send_msg function."""
         server_sock, client_sock = socket_pair
 
-        test_data = b"Test envelope with length prefix"
-        asya_runtime._send_envelope(client_sock, test_data)
+        test_data = b"Test message with length prefix"
+        asya_runtime._send_message(client_sock, test_data)
 
         length_bytes = asya_runtime._recv_exact(server_sock, 4)
         length = struct.unpack(">I", length_bytes)[0]
@@ -844,14 +844,14 @@ class TestSocketProtocol:
         assert received == test_data
 
     @pytest.mark.parametrize("size_kb", [10, 1024, 10 * 1024, 100 * 1024])
-    def test_send_recv_large_envelope(self, socket_pair, size_kb):
-        """Test send/recv with large envelope."""
+    def test_send_recv_large_message(self, socket_pair, size_kb):
+        """Test send/recv with large message."""
         server_sock, client_sock = socket_pair
 
         test_data = b"X" * (size_kb * 1024)
 
         def sender():
-            asya_runtime._send_envelope(client_sock, test_data)
+            asya_runtime._send_message(client_sock, test_data)
 
         sender_thread = threading.Thread(target=sender)
         sender_thread.start()
@@ -934,39 +934,39 @@ class TestSocketSetup:
 
 
 class TestParseMsg:
-    """Test _parse_envelope_json and _validate_envelope functions."""
+    """Test _parse_message_json and _validate_message functions."""
 
     def test_parse_msg_with_payload_and_route(self):
-        """Test parsing envelope with both payload and route."""
+        """Test parsing message with both payload and route."""
         data = json.dumps({"payload": {"test": "data"}, "route": {"actors": ["a", "b"], "current": 0}}).encode("utf-8")
 
-        msg = asya_runtime._parse_envelope_json(data)
-        msg = asya_runtime._validate_envelope(msg)
+        msg = asya_runtime._parse_message_json(data)
+        msg = asya_runtime._validate_message(msg)
 
         assert msg["payload"] == {"test": "data"}
         assert msg["route"] == {"actors": ["a", "b"], "current": 0}
 
     def test_parse_msg_missing_payload(self):
-        """Test parsing envelope without payload field."""
+        """Test parsing message without payload field."""
         with pytest.raises(ValueError, match="Missing required .*payload"):
             data = json.dumps({"route": {"actors": ["a"], "current": 0}}).encode("utf-8")
-            msg = asya_runtime._parse_envelope_json(data)
-            asya_runtime._validate_envelope(msg)
+            msg = asya_runtime._parse_message_json(data)
+            asya_runtime._validate_message(msg)
 
     def test_parse_msg_missing_route(self):
-        """Test parsing envelope without route field."""
+        """Test parsing message without route field."""
         with pytest.raises(ValueError, match="Missing required .*route"):
             data = json.dumps({"payload": {"test": "data"}}).encode("utf-8")
-            msg = asya_runtime._parse_envelope_json(data)
-            asya_runtime._validate_envelope(msg)
+            msg = asya_runtime._parse_message_json(data)
+            asya_runtime._validate_message(msg)
 
     @pytest.mark.parametrize("payload", [None, {}])
     def test_parse_msg_empty_payload(self, payload):
-        """Test parsing envelope with null/empty payload."""
+        """Test parsing message with null/empty payload."""
         data = json.dumps({"payload": payload, "route": {"actors": ["a"], "current": 0}}).encode("utf-8")
 
-        msg = asya_runtime._parse_envelope_json(data)
-        msg = asya_runtime._validate_envelope(msg)
+        msg = asya_runtime._parse_message_json(data)
+        msg = asya_runtime._validate_message(msg)
 
         assert msg["payload"] == payload
         assert msg["route"] == {"actors": ["a"], "current": 0}
@@ -974,12 +974,12 @@ class TestParseMsg:
     def test_parse_msg_invalid_json(self):
         """Test parsing invalid JSON."""
         with pytest.raises(json.JSONDecodeError):
-            asya_runtime._parse_envelope_json(b"not json{")
+            asya_runtime._parse_message_json(b"not json{")
 
     def test_parse_msg_invalid_utf8(self):
         """Test parsing invalid UTF-8."""
         with pytest.raises(UnicodeDecodeError):
-            asya_runtime._parse_envelope_json(b"\xff\xfe invalid utf8")
+            asya_runtime._parse_message_json(b"\xff\xfe invalid utf8")
 
 
 class TestErrorDict:
@@ -1016,12 +1016,12 @@ class TestHandleRequestPayloadMode:
             def simple_handler(payload):
                 return {"result": payload["value"] * 2}
 
-            envelope = {
+            message = {
                 "route": {"actors": ["actor1"], "current": 0},
                 "payload": {"value": 42},
             }
-            envelope_data = json.dumps(envelope).encode("utf-8")
-            asya_runtime._send_envelope(client_sock, envelope_data)
+            message_data = json.dumps(message).encode("utf-8")
+            asya_runtime._send_message(client_sock, message_data)
 
             responses = asya_runtime._handle_request(server_sock, simple_handler)
 
@@ -1039,12 +1039,12 @@ class TestHandleRequestPayloadMode:
                 return {"doubled": payload["value"] * 2}
 
             # Envelope for actor at index 0 in a 3-actor pipeline
-            envelope = {
+            message = {
                 "route": {"actors": ["doubler", "incrementer", "finalizer"], "current": 0},
                 "payload": {"value": 21},
             }
-            envelope_data = json.dumps(envelope).encode("utf-8")
-            asya_runtime._send_envelope(client_sock, envelope_data)
+            message_data = json.dumps(message).encode("utf-8")
+            asya_runtime._send_message(client_sock, message_data)
 
             responses = asya_runtime._handle_request(server_sock, pipeline_handler)
 
@@ -1063,12 +1063,12 @@ class TestHandleRequestPayloadMode:
                 # Return a list of payloads
                 return [{"id": 1}, {"id": 2}, {"id": 3}]
 
-            envelope = {
+            message = {
                 "route": {"actors": ["fan"], "current": 0},
                 "payload": {"test": "data"},
             }
-            envelope_data = json.dumps(envelope).encode("utf-8")
-            asya_runtime._send_envelope(client_sock, envelope_data)
+            message_data = json.dumps(message).encode("utf-8")
+            asya_runtime._send_message(client_sock, message_data)
 
             responses = asya_runtime._handle_request(server_sock, fanout_handler)
 
@@ -1095,12 +1095,12 @@ class TestHandleRequestEnvelopeMode:
                     "route": msg["route"],
                 }
 
-            envelope = {
+            message = {
                 "route": {"actors": ["actor1"], "current": 0},
                 "payload": {"value": 42},
             }
-            envelope_data = json.dumps(envelope).encode("utf-8")
-            asya_runtime._send_envelope(client_sock, envelope_data)
+            message_data = json.dumps(message).encode("utf-8")
+            asya_runtime._send_message(client_sock, message_data)
 
             responses = asya_runtime._handle_request(server_sock, envelope_handler)
 
@@ -1119,12 +1119,12 @@ class TestHandleRequestEnvelopeMode:
                 new_route["current"] = 0  # Must keep current pointing to same actor
                 return {"payload": msg["payload"], "route": new_route}
 
-            envelope = {
+            message = {
                 "route": {"actors": ["actor1"], "current": 0},
                 "payload": {"data": "test"},
             }
-            envelope_data = json.dumps(envelope).encode("utf-8")
-            asya_runtime._send_envelope(client_sock, envelope_data)
+            message_data = json.dumps(message).encode("utf-8")
+            asya_runtime._send_message(client_sock, message_data)
 
             responses = asya_runtime._handle_request(server_sock, route_modifying_handler)
 
@@ -1144,12 +1144,12 @@ class TestHandleRequestEnvelopeMode:
                     {"payload": {"id": 3}, "route": msg["route"]},
                 ]
 
-            envelope = {
+            message = {
                 "route": {"actors": ["fan"], "current": 0},
                 "payload": {"test": "data"},
             }
-            envelope_data = json.dumps(envelope).encode("utf-8")
-            asya_runtime._send_envelope(client_sock, envelope_data)
+            message_data = json.dumps(message).encode("utf-8")
+            asya_runtime._send_message(client_sock, message_data)
 
             responses = asya_runtime._handle_request(server_sock, fanout_handler)
 
@@ -1167,12 +1167,12 @@ class TestHandleRequestEnvelopeMode:
                 # Missing 'route' key
                 return {"payload": {"test": "data"}}
 
-            envelope = {
+            message = {
                 "route": {"actors": ["actor1"], "current": 0},
                 "payload": {"test": "data"},
             }
-            envelope_data = json.dumps(envelope).encode("utf-8")
-            asya_runtime._send_envelope(client_sock, envelope_data)
+            message_data = json.dumps(message).encode("utf-8")
+            asya_runtime._send_message(client_sock, message_data)
 
             responses = asya_runtime._handle_request(server_sock, invalid_handler)
 
@@ -1191,18 +1191,18 @@ class TestHandleRequestEnvelopeMode:
                     {"payload": {"id": 2}},  # Missing 'route'
                 ]
 
-            envelope = {
+            message = {
                 "route": {"actors": ["actor1"], "current": 0},
                 "payload": {"test": "data"},
             }
-            envelope_data = json.dumps(envelope).encode("utf-8")
-            asya_runtime._send_envelope(client_sock, envelope_data)
+            message_data = json.dumps(message).encode("utf-8")
+            asya_runtime._send_message(client_sock, message_data)
 
             responses = asya_runtime._handle_request(server_sock, invalid_fanout_handler)
 
             assert len(responses) == 1
             assert responses[0]["error"] == "processing_error"
-            assert "envelope[1/2]" in responses[0]["details"]["message"]
+            assert "message[1/2]" in responses[0]["details"]["message"]
 
 
 class TestHandleRequestErrorCases:
@@ -1216,7 +1216,7 @@ class TestHandleRequestErrorCases:
             return payload
 
         invalid_data = b"not valid json{"
-        asya_runtime._send_envelope(client_sock, invalid_data)
+        asya_runtime._send_message(client_sock, invalid_data)
 
         responses = asya_runtime._handle_request(server_sock, simple_handler)
 
@@ -1231,12 +1231,12 @@ class TestHandleRequestErrorCases:
         def failing_handler(payload):
             raise ValueError("Handler failed")
 
-        envelope = {
+        message = {
             "payload": {"test": "data"},
             "route": {"actors": ["a"], "current": 0},
         }
-        envelope_data = json.dumps(envelope).encode("utf-8")
-        asya_runtime._send_envelope(client_sock, envelope_data)
+        message_data = json.dumps(message).encode("utf-8")
+        asya_runtime._send_message(client_sock, message_data)
 
         responses = asya_runtime._handle_request(server_sock, failing_handler)
 
@@ -1266,12 +1266,12 @@ class TestHandleRequestErrorCases:
         def simple_handler(payload):
             return payload
 
-        envelope = {
+        message = {
             "route": {"actors": ["actor1"], "current": 0},
             "payload": {"test": "data"},
         }
-        envelope_data = json.dumps(envelope).encode("utf-8")
-        asya_runtime._send_envelope(client_sock, envelope_data)
+        message_data = json.dumps(message).encode("utf-8")
+        asya_runtime._send_message(client_sock, message_data)
 
         with mock_env(ASYA_HANDLER_MODE="unexpected-value"):
             responses = asya_runtime._handle_request(server_sock, simple_handler)
@@ -1331,11 +1331,11 @@ class TestClassBasedHandlers:
                 handler = asya_runtime._load_function()
 
                 # First call
-                envelope1 = {
+                message1 = {
                     "payload": {"value": 10},
                     "route": {"actors": ["a"], "current": 0},
                 }
-                asya_runtime._send_envelope(client_sock, json.dumps(envelope1).encode())
+                asya_runtime._send_message(client_sock, json.dumps(message1).encode())
                 responses1 = asya_runtime._handle_request(server_sock, handler)
 
                 assert len(responses1) == 1
@@ -1343,11 +1343,11 @@ class TestClassBasedHandlers:
                 assert responses1[0]["payload"]["total"] == 10
 
                 # Second call
-                envelope2 = {
+                message2 = {
                     "payload": {"value": 20},
                     "route": {"actors": ["a"], "current": 0},
                 }
-                asya_runtime._send_envelope(client_sock, json.dumps(envelope2).encode())
+                asya_runtime._send_message(client_sock, json.dumps(message2).encode())
                 responses2 = asya_runtime._handle_request(server_sock, handler)
 
                 assert len(responses2) == 1
@@ -1377,11 +1377,11 @@ class TestClassBasedHandlers:
                 server_sock, client_sock = socket_pair
                 handler = asya_runtime._load_function()
 
-                envelope = {
+                message = {
                     "payload": {"value": 21},
                     "route": {"actors": ["a"], "current": 0},
                 }
-                asya_runtime._send_envelope(client_sock, json.dumps(envelope).encode())
+                asya_runtime._send_message(client_sock, json.dumps(message).encode())
                 responses = asya_runtime._handle_request(server_sock, handler)
 
                 assert len(responses) == 1
@@ -1399,11 +1399,11 @@ class TestClassBasedHandlers:
                 def __init__(self):
                     self.prefix = "processed"
 
-                def process(self, envelope):
+                def process(self, msg):
                     return {
-                        "payload": {"prefix": self.prefix, "data": envelope["payload"]},
-                        "route": envelope["route"],
-                        "headers": envelope.get("headers", {}),
+                        "payload": {"prefix": self.prefix, "data": msg["payload"]},
+                        "route": msg["route"],
+                        "headers": msg.get("headers", {}),
                     }
             """)
         )
@@ -1414,12 +1414,12 @@ class TestClassBasedHandlers:
                 server_sock, client_sock = socket_pair
                 handler = asya_runtime._load_function()
 
-                envelope = {
+                message = {
                     "payload": {"value": 100},
                     "route": {"actors": ["a"], "current": 0},
                     "headers": {"trace_id": "123"},
                 }
-                asya_runtime._send_envelope(client_sock, json.dumps(envelope).encode())
+                asya_runtime._send_message(client_sock, json.dumps(message).encode())
                 responses = asya_runtime._handle_request(server_sock, handler)
 
                 assert len(responses) == 1
@@ -1562,11 +1562,11 @@ class TestClassBasedHandlers:
                 server_sock, client_sock = socket_pair
                 handler = asya_runtime._load_function()
 
-                envelope = {
+                message = {
                     "payload": {"value": 42},
                     "route": {"actors": ["fan"], "current": 0},
                 }
-                asya_runtime._send_envelope(client_sock, json.dumps(envelope).encode())
+                asya_runtime._send_message(client_sock, json.dumps(message).encode())
                 responses = asya_runtime._handle_request(server_sock, handler)
 
                 assert len(responses) == 3
@@ -1597,11 +1597,11 @@ class TestClassBasedHandlers:
                 server_sock, client_sock = socket_pair
                 handler = asya_runtime._load_function()
 
-                envelope = {
+                message = {
                     "payload": {"value": 42},
                     "route": {"actors": ["a"], "current": 0},
                 }
-                asya_runtime._send_envelope(client_sock, json.dumps(envelope).encode())
+                asya_runtime._send_message(client_sock, json.dumps(message).encode())
                 responses = asya_runtime._handle_request(server_sock, handler)
 
                 assert len(responses) == 0
@@ -1629,11 +1629,11 @@ class TestClassBasedHandlers:
                 server_sock, client_sock = socket_pair
                 handler = asya_runtime._load_function()
 
-                envelope = {
+                message = {
                     "payload": {"value": 23},
                     "route": {"actors": ["a"], "current": 0},
                 }
-                asya_runtime._send_envelope(client_sock, json.dumps(envelope).encode())
+                asya_runtime._send_message(client_sock, json.dumps(message).encode())
                 responses = asya_runtime._handle_request(server_sock, handler)
 
                 assert len(responses) == 1
@@ -1679,11 +1679,11 @@ class TestClassBasedHandlers:
                 handler = asya_runtime._load_function()
 
                 # First call
-                envelope1 = {
+                message1 = {
                     "payload": {"value": 100},
                     "route": {"actors": ["a"], "current": 0},
                 }
-                asya_runtime._send_envelope(client_sock, json.dumps(envelope1).encode())
+                asya_runtime._send_message(client_sock, json.dumps(message1).encode())
                 responses1 = asya_runtime._handle_request(server_sock, handler)
 
                 assert responses1[0]["payload"]["stats"]["calls"] == 1
@@ -1691,11 +1691,11 @@ class TestClassBasedHandlers:
                 assert responses1[0]["payload"]["in_cache"]
 
                 # Second call with same value
-                envelope2 = {
+                message2 = {
                     "payload": {"value": 100},
                     "route": {"actors": ["a"], "current": 0},
                 }
-                asya_runtime._send_envelope(client_sock, json.dumps(envelope2).encode())
+                asya_runtime._send_message(client_sock, json.dumps(message2).encode())
                 responses2 = asya_runtime._handle_request(server_sock, handler)
 
                 assert responses2[0]["payload"]["stats"]["calls"] == 2
@@ -1727,11 +1727,11 @@ class TestClassBasedHandlers:
                 server_sock, client_sock = socket_pair
                 handler = asya_runtime._load_function()
 
-                envelope = {
+                message = {
                     "payload": {"value": 7},
                     "route": {"actors": ["a"], "current": 0},
                 }
-                asya_runtime._send_envelope(client_sock, json.dumps(envelope).encode())
+                asya_runtime._send_message(client_sock, json.dumps(message).encode())
                 responses = asya_runtime._handle_request(server_sock, handler)
 
                 assert len(responses) == 1
@@ -1828,11 +1828,11 @@ class TestEdgeCases:
 
         sender_thread.join()
 
-    def test_send_envelope_empty_data(self, socket_pair):
+    def test_send_message_empty_data(self, socket_pair):
         """Test send_msg with empty data."""
         server_sock, client_sock = socket_pair
 
-        asya_runtime._send_envelope(client_sock, b"")
+        asya_runtime._send_message(client_sock, b"")
 
         length_bytes = asya_runtime._recv_exact(server_sock, 4)
         length = struct.unpack(">I", length_bytes)[0]
@@ -1845,12 +1845,12 @@ class TestEdgeCases:
         def simple_handler(payload):
             return payload
 
-        envelope = {
+        message = {
             "payload": {"text": "Hello 世界 こんにちは"},
             "route": {"actors": ["a"], "current": 0},
         }
-        envelope_data = json.dumps(envelope, ensure_ascii=False).encode("utf-8")
-        asya_runtime._send_envelope(client_sock, envelope_data)
+        message_data = json.dumps(message, ensure_ascii=False).encode("utf-8")
+        asya_runtime._send_message(client_sock, message_data)
 
         responses = asya_runtime._handle_request(server_sock, simple_handler)
 
@@ -1870,9 +1870,9 @@ class TestEdgeCases:
             current["next"] = {"level": i}
             current = current["next"]
 
-        envelope = {"payload": nested, "route": {"actors": ["a"], "current": 0}}
-        envelope_data = json.dumps(envelope).encode("utf-8")
-        asya_runtime._send_envelope(client_sock, envelope_data)
+        message = {"payload": nested, "route": {"actors": ["a"], "current": 0}}
+        message_data = json.dumps(message).encode("utf-8")
+        asya_runtime._send_message(client_sock, message_data)
 
         responses = asya_runtime._handle_request(server_sock, simple_handler)
 
@@ -1886,9 +1886,9 @@ class TestEdgeCases:
         def simple_handler(payload):
             return payload if payload is not None else {"default": True}
 
-        envelope = {"payload": None, "route": {"actors": ["a"], "current": 0}}
-        envelope_data = json.dumps(envelope).encode("utf-8")
-        asya_runtime._send_envelope(client_sock, envelope_data)
+        message = {"payload": None, "route": {"actors": ["a"], "current": 0}}
+        message_data = json.dumps(message).encode("utf-8")
+        asya_runtime._send_message(client_sock, message_data)
 
         responses = asya_runtime._handle_request(server_sock, simple_handler)
 
@@ -1902,12 +1902,12 @@ class TestEdgeCases:
         def error_handler(payload):
             raise RuntimeError("Something went wrong")
 
-        envelope = {
+        message = {
             "payload": {"test": "data"},
             "route": {"actors": ["a"], "current": 0},
         }
-        envelope_data = json.dumps(envelope).encode("utf-8")
-        asya_runtime._send_envelope(client_sock, envelope_data)
+        message_data = json.dumps(message).encode("utf-8")
+        asya_runtime._send_message(client_sock, message_data)
 
         responses = asya_runtime._handle_request(server_sock, error_handler)
 
@@ -1933,12 +1933,12 @@ class TestEdgeCases:
                 "nested": {"a": {"b": {"c": "deep"}}},
             }
 
-        envelope = {
+        message = {
             "payload": {"test": "data"},
             "route": {"actors": ["a"], "current": 0},
         }
-        envelope_data = json.dumps(envelope).encode("utf-8")
-        asya_runtime._send_envelope(client_sock, envelope_data)
+        message_data = json.dumps(message).encode("utf-8")
+        asya_runtime._send_message(client_sock, message_data)
 
         responses = asya_runtime._handle_request(server_sock, complex_handler)
 
@@ -1956,12 +1956,12 @@ class TestEdgeCases:
             return {"data": "X" * (1024 * 1024)}
 
         def sender():
-            envelope = {
+            message = {
                 "payload": {"test": "data"},
                 "route": {"actors": ["a"], "current": 0},
             }
-            envelope_data = json.dumps(envelope).encode("utf-8")
-            asya_runtime._send_envelope(client_sock, envelope_data)
+            message_data = json.dumps(message).encode("utf-8")
+            asya_runtime._send_message(client_sock, message_data)
 
         sender_thread = threading.Thread(target=sender)
         sender_thread.start()
@@ -1973,19 +1973,19 @@ class TestEdgeCases:
 
         sender_thread.join()
 
-    def test_envelope_with_special_characters(self, socket_pair):
-        """Test envelopes with special JSON characters."""
+    def test_message_with_special_characters(self, socket_pair):
+        """Test messages with special JSON characters."""
         server_sock, client_sock = socket_pair
 
         def simple_handler(payload):
             return payload
 
-        envelope = {
+        message = {
             "payload": {"text": 'Test "quotes" and \\backslashes\\ and \n newlines \t tabs'},
             "route": {"actors": ["a"], "current": 0},
         }
-        envelope_data = json.dumps(envelope).encode("utf-8")
-        asya_runtime._send_envelope(client_sock, envelope_data)
+        message_data = json.dumps(message).encode("utf-8")
+        asya_runtime._send_message(client_sock, message_data)
 
         responses = asya_runtime._handle_request(server_sock, simple_handler)
 
@@ -1994,7 +1994,7 @@ class TestEdgeCases:
 
 
 class TestHeadersPreservation:
-    """Test that headers field is properly preserved through envelope processing."""
+    """Test that headers field is properly preserved through message processing."""
 
     def test_headers_preserved_in_payload_mode(self, socket_pair):
         """Test that headers are preserved when using payload mode."""
@@ -2003,13 +2003,13 @@ class TestHeadersPreservation:
         def simple_handler(payload):
             return {"result": payload["value"] * 2}
 
-        envelope = {
+        message = {
             "payload": {"value": 42},
             "route": {"actors": ["doubler"], "current": 0},
             "headers": {"trace_id": "abc-123", "priority": "high"},
         }
-        envelope_data = json.dumps(envelope).encode("utf-8")
-        asya_runtime._send_envelope(client_sock, envelope_data)
+        message_data = json.dumps(message).encode("utf-8")
+        asya_runtime._send_message(client_sock, message_data)
 
         responses = asya_runtime._handle_request(server_sock, simple_handler)
 
@@ -2026,13 +2026,13 @@ class TestHeadersPreservation:
         def fanout_handler(payload):
             return [{"id": 1}, {"id": 2}]
 
-        envelope = {
+        message = {
             "payload": {"test": "data"},
             "route": {"actors": ["fan"], "current": 0},
             "headers": {"correlation_id": "xyz-789"},
         }
-        envelope_data = json.dumps(envelope).encode("utf-8")
-        asya_runtime._send_envelope(client_sock, envelope_data)
+        message_data = json.dumps(message).encode("utf-8")
+        asya_runtime._send_message(client_sock, message_data)
 
         responses = asya_runtime._handle_request(server_sock, fanout_handler)
 
@@ -2049,12 +2049,12 @@ class TestHeadersPreservation:
         def simple_handler(payload):
             return payload
 
-        envelope = {
+        message = {
             "payload": {"test": "data"},
             "route": {"actors": ["echo"], "current": 0},
         }
-        envelope_data = json.dumps(envelope).encode("utf-8")
-        asya_runtime._send_envelope(client_sock, envelope_data)
+        message_data = json.dumps(message).encode("utf-8")
+        asya_runtime._send_message(client_sock, message_data)
 
         responses = asya_runtime._handle_request(server_sock, simple_handler)
 
@@ -2070,13 +2070,13 @@ class TestHeadersPreservation:
             def envelope_handler(msg):
                 return msg
 
-            envelope = {
+            message = {
                 "payload": {"value": 100},
                 "route": {"actors": ["passthrough"], "current": 0},
                 "headers": {"request_id": "req-456"},
             }
-            envelope_data = json.dumps(envelope).encode("utf-8")
-            asya_runtime._send_envelope(client_sock, envelope_data)
+            message_data = json.dumps(message).encode("utf-8")
+            asya_runtime._send_message(client_sock, message_data)
 
             responses = asya_runtime._handle_request(server_sock, envelope_handler)
 
@@ -2091,13 +2091,13 @@ class TestHeadersPreservation:
         def simple_handler(payload):
             return payload
 
-        envelope = {
+        message = {
             "payload": {"test": "data"},
             "route": {"actors": ["echo"], "current": 0},
             "headers": "this should be a dict, not a string",
         }
-        envelope_data = json.dumps(envelope).encode("utf-8")
-        asya_runtime._send_envelope(client_sock, envelope_data)
+        message_data = json.dumps(message).encode("utf-8")
+        asya_runtime._send_message(client_sock, message_data)
 
         responses = asya_runtime._handle_request(server_sock, simple_handler)
 
@@ -2114,16 +2114,16 @@ class TestEnvelopeMode:
         with mock_env(ASYA_HANDLER_MODE="envelope"):
             server_sock, client_sock = socket_pair
 
-            def envelope_handler(envelope):
-                return envelope
+            def envelope_handler(msg):
+                return msg
 
-            envelope = {
+            message = {
                 "payload": {"value": 123},
                 "route": {"actors": ["passthrough"], "current": 0},
                 "headers": {"trace_id": "test-123"},
             }
-            envelope_data = json.dumps(envelope).encode("utf-8")
-            asya_runtime._send_envelope(client_sock, envelope_data)
+            message_data = json.dumps(message).encode("utf-8")
+            asya_runtime._send_message(client_sock, message_data)
 
             responses = asya_runtime._handle_request(server_sock, envelope_handler)
 
@@ -2137,24 +2137,24 @@ class TestEnvelopeMode:
         with mock_env(ASYA_HANDLER_MODE="envelope"):
             server_sock, client_sock = socket_pair
 
-            def headers_reader(envelope):
-                priority = envelope.get("headers", {}).get("priority", "low")
+            def headers_reader(msg):
+                priority = msg.get("headers", {}).get("priority", "low")
                 return {
                     "payload": {
                         "priority": priority,
-                        "value": envelope["payload"]["value"],
+                        "value": msg["payload"]["value"],
                     },
-                    "route": envelope["route"],
-                    "headers": envelope.get("headers", {}),
+                    "route": msg["route"],
+                    "headers": msg.get("headers", {}),
                 }
 
-            envelope = {
+            message = {
                 "payload": {"value": 42},
                 "route": {"actors": ["processor"], "current": 0},
                 "headers": {"priority": "high", "trace_id": "xyz"},
             }
-            envelope_data = json.dumps(envelope).encode("utf-8")
-            asya_runtime._send_envelope(client_sock, envelope_data)
+            message_data = json.dumps(message).encode("utf-8")
+            asya_runtime._send_message(client_sock, message_data)
 
             responses = asya_runtime._handle_request(server_sock, headers_reader)
 
@@ -2167,27 +2167,27 @@ class TestEnvelopeMode:
         with mock_env(ASYA_HANDLER_MODE="envelope"):
             server_sock, client_sock = socket_pair
 
-            def fanout_handler(envelope):
+            def fanout_handler(msg):
                 return [
                     {
                         "payload": {"id": 1},
-                        "route": envelope["route"],
-                        "headers": envelope.get("headers", {}),
+                        "route": msg["route"],
+                        "headers": msg.get("headers", {}),
                     },
                     {
                         "payload": {"id": 2},
-                        "route": envelope["route"],
-                        "headers": envelope.get("headers", {}),
+                        "route": msg["route"],
+                        "headers": msg.get("headers", {}),
                     },
                 ]
 
-            envelope = {
+            message = {
                 "payload": {"test": "data"},
                 "route": {"actors": ["fan"], "current": 0},
                 "headers": {"correlation_id": "abc"},
             }
-            envelope_data = json.dumps(envelope).encode("utf-8")
-            asya_runtime._send_envelope(client_sock, envelope_data)
+            message_data = json.dumps(message).encode("utf-8")
+            asya_runtime._send_message(client_sock, message_data)
 
             responses = asya_runtime._handle_request(server_sock, fanout_handler)
 
@@ -2202,15 +2202,15 @@ class TestEnvelopeMode:
         with mock_env(ASYA_HANDLER_MODE="envelope"):
             server_sock, client_sock = socket_pair
 
-            def invalid_handler(envelope):
+            def invalid_handler(msg):
                 return {"payload": {"result": "ok"}}  # Missing route
 
-            envelope = {
+            message = {
                 "payload": {"test": "data"},
                 "route": {"actors": ["processor"], "current": 0},
             }
-            envelope_data = json.dumps(envelope).encode("utf-8")
-            asya_runtime._send_envelope(client_sock, envelope_data)
+            message_data = json.dumps(message).encode("utf-8")
+            asya_runtime._send_message(client_sock, message_data)
 
             responses = asya_runtime._handle_request(server_sock, invalid_handler)
 
@@ -2223,15 +2223,15 @@ class TestEnvelopeMode:
         with mock_env(ASYA_HANDLER_MODE="envelope"):
             server_sock, client_sock = socket_pair
 
-            def none_handler(envelope):
+            def none_handler(msg):
                 return None
 
-            envelope = {
+            message = {
                 "payload": {"test": "data"},
                 "route": {"actors": ["processor"], "current": 0},
             }
-            envelope_data = json.dumps(envelope).encode("utf-8")
-            asya_runtime._send_envelope(client_sock, envelope_data)
+            message_data = json.dumps(message).encode("utf-8")
+            asya_runtime._send_message(client_sock, message_data)
 
             responses = asya_runtime._handle_request(server_sock, none_handler)
 
