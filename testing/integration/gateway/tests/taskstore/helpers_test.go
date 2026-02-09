@@ -1,6 +1,6 @@
 //go:build integration
 
-package envelopestore
+package taskstore
 
 import (
 	"context"
@@ -29,6 +29,6 @@ func truncateTestTables(ctx context.Context) error {
 	}
 	defer db.Close()
 
-	_, err = db.ExecContext(ctx, "TRUNCATE TABLE envelope_updates, envelopes CASCADE")
+	_, err = db.ExecContext(ctx, "TRUNCATE TABLE task_updates, tasks CASCADE")
 	return err
 }
