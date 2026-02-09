@@ -189,6 +189,10 @@ spec:
                           type: integer
                           description: Number of ready replicas
       additionalPrinterColumns:
+        - name: Actor
+          type: string
+          jsonPath: .metadata.labels['asya\.sh/actor']
+          priority: 0
         - name: Status
           type: string
           jsonPath: .status.phase
