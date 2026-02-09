@@ -27,6 +27,13 @@ from asya_testing.utils.kubectl import (
 
 logger = logging.getLogger(__name__)
 
+# All tests skipped: manifests have invalid YAML and assertions assume operator-managed
+# ScaledObjects (ownerReferences, status.desiredReplicas) that don't exist in Crossplane model.
+# Needs full rewrite for Crossplane Composition-managed resources.
+pytestmark = pytest.mark.skip(
+    reason="KEDA scaling tests need rewrite for Crossplane architecture (asya-zpz2)"
+)
+
 
 @pytest.fixture(scope="module")
 def ensure_keda_installed(namespace):
