@@ -54,11 +54,13 @@ comment:
 
     **Legend:** `+` increase | `-` decrease | `~` no change
 
-# Diff comparison for PRs
-# Note: Manual baseline persistence via git means octocov doesn't see previous reports
-# We manage baseline via workflow step (fetching from octocov branch) for future enhancement
+# Diff comparison for PRs - read baseline from octocov branch
+# Shows per-file coverage changes compared to main branch baseline
 diff:
   if: is_pull_request
+  datastores:
+  - github://deliveryhero/asya@octocov
+  path: report.json
 
 summary:
   if: is_default_branch
