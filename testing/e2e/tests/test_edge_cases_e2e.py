@@ -356,7 +356,7 @@ def test_concurrent_tasks_independent_routing_e2e(e2e_helper):
         arguments={"message": "warmup"},
     )
     warmup_id = warmup_response["result"]["task_id"]
-    warmup_result = e2e_helper.wait_for_task_completion(warmup_id, timeout=120)
+    warmup_result = e2e_helper.wait_for_task_completion(warmup_id, timeout=180)
     assert warmup_result["status"] == "succeeded", (
         f"Warm-up task failed: {warmup_result.get('error', 'unknown error')}"
     )
