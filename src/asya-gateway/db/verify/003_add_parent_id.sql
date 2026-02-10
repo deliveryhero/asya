@@ -4,7 +4,7 @@ BEGIN;
 
 -- Verify parent_id column exists
 SELECT parent_id
-FROM envelopes
+FROM tasks
 WHERE FALSE;
 
 ROLLBACK;

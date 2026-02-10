@@ -13,18 +13,18 @@ Regenerate by running: asya flow compile ../../minimal.py
 # Generated Routers (for kubernetes deployment)
 # ======================================================================
 
-def start_minimal_flow(envelope: dict) -> dict:
+def start_minimal_flow(message: dict) -> dict:
     """Entrypoint for flow 'minimal_flow'"""
-    r = envelope['route']
+    r = message['route']
     c = r['current']
 
     r['actors'][c+1:c+1] = [resolve("handler_a")]
     r['current'] = c + 1
-    return envelope
+    return message
 
-def end_minimal_flow(envelope: dict) -> dict:
+def end_minimal_flow(message: dict) -> dict:
     """Exitpoint for flow 'minimal_flow'"""
-    return envelope
+    return message
 
 
 # ======================================================================

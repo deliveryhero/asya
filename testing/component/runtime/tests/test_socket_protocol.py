@@ -45,12 +45,12 @@ class SocketClient:
             data += chunk
         return data
 
-    def send_envelope(self, envelope: dict, timeout: int = 5) -> list:
-        """Send envelope to runtime and receive response list.
+    def send_message(self, message: dict, timeout: int = 5) -> list:
+        """Send message to runtime and receive response list.
 
         Protocol:
         - Send: 4-byte length prefix (big-endian) + JSON data
-        - Receive: 4-byte length prefix (big-endian) + JSON data (list of envelopes)
+        - Receive: 4-byte length prefix (big-endian) + JSON data (list of messages)
         """
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         sock.settimeout(timeout)
@@ -58,8 +58,8 @@ class SocketClient:
         try:
             sock.connect(self.socket_path)
 
-            # Send envelope with length prefix
-            data = json.dumps(envelope).encode()
+            # Send message with length prefix
+            data = json.dumps(message).encode()
             length_prefix = struct.pack(">I", len(data))
             sock.sendall(length_prefix + data)
 
@@ -93,13 +93,13 @@ def timeout_client():
 
 def test_echo_handler(echo_client):
     """Test echo handler processes payload correctly."""
-    envelope = {
+    message = {
         "id": "test-001",
         "route": {"actors": ["echo"], "current": 0},
         "payload": {"message": "hello"}
     }
 
-    response = echo_client.send_envelope(envelope)
+    response = echo_client.send_message(message)
 
     # Runtime returns list of results (fan-out protocol)
     assert isinstance(response, list)
@@ -114,15 +114,15 @@ def test_echo_handler(echo_client):
 
 def test_error_handler(error_client):
     """Test error handler returns error in response."""
-    envelope = {
+    message = {
         "id": "test-002",
         "route": {"actors": ["error"], "current": 0},
         "payload": {"message": "trigger error"}
     }
 
-    response = error_client.send_envelope(envelope)
+    response = error_client.send_message(message)
 
-    # Should return list with error envelope
+    # Should return list with error message
     assert isinstance(response, list)
     assert len(response) == 1
 
@@ -135,13 +135,13 @@ def test_error_handler(error_client):
 
 def test_timeout_handler_fast(timeout_client):
     """Test timeout handler responds for small sleep."""
-    envelope = {
+    message = {
         "id": "test-003",
         "route": {"actors": ["timeout"], "current": 0},
         "payload": {"sleep_seconds": 0.1}
     }
 
-    response = timeout_client.send_envelope(envelope)
+    response = timeout_client.send_message(message)
 
     # Should complete successfully
     assert isinstance(response, list)
@@ -154,13 +154,13 @@ def test_timeout_handler_fast(timeout_client):
 
 def test_unicode_payload(echo_client):
     """Test runtime handles Unicode correctly."""
-    envelope = {
+    message = {
         "id": "test-004",
         "route": {"actors": ["echo"], "current": 0},
         "payload": {"message": "Hello 世界 🌍"}
     }
 
-    response = echo_client.send_envelope(envelope)
+    response = echo_client.send_message(message)
 
     assert isinstance(response, list)
     assert len(response) == 1
@@ -169,13 +169,13 @@ def test_unicode_payload(echo_client):
 
 def test_empty_payload(echo_client):
     """Test runtime handles empty payload."""
-    envelope = {
+    message = {
         "id": "test-005",
         "route": {"actors": ["echo"], "current": 0},
         "payload": {}
     }
 
-    response = echo_client.send_envelope(envelope)
+    response = echo_client.send_message(message)
 
     # Should still process and return result
     assert isinstance(response, list)
@@ -185,7 +185,7 @@ def test_empty_payload(echo_client):
 
 def test_complex_payload(echo_client):
     """Test runtime handles nested/complex payloads."""
-    envelope = {
+    message = {
         "id": "test-006",
         "route": {"actors": ["echo"], "current": 0},
         "payload": {
@@ -198,7 +198,7 @@ def test_complex_payload(echo_client):
         }
     }
 
-    response = echo_client.send_envelope(envelope)
+    response = echo_client.send_message(message)
 
     assert isinstance(response, list)
     assert len(response) == 1

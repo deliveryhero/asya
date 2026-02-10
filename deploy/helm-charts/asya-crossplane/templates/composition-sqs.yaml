@@ -24,8 +24,7 @@ spec:
           template: |
             {{`{{- $xr := .observed.composite.resource -}}`}}
             {{`{{- $namespace := index $xr.metadata.labels "crossplane.io/claim-namespace" -}}`}}
-            {{`{{- $claimName := index $xr.metadata.labels "crossplane.io/claim-name" -}}`}}
-            {{`{{- $actorName := (index $xr.metadata.labels "asya.sh/actor") | default $claimName -}}`}}
+            {{`{{- $actorName := $xr.spec.actor -}}`}}
             {{`{{- $region := $xr.spec.region | default "us-east-1" -}}`}}
             {{`{{- $providerConfigRef := $xr.spec.providerConfigRef | default "`}}{{ .Values.awsProviderConfig.name }}{{`" -}}`}}
             apiVersion: sqs.aws.upbound.io/v1beta1
@@ -104,8 +103,7 @@ spec:
           template: |
             {{`{{- $xr := .observed.composite.resource -}}`}}
             {{`{{- $namespace := index $xr.metadata.labels "crossplane.io/claim-namespace" -}}`}}
-            {{`{{- $claimName := index $xr.metadata.labels "crossplane.io/claim-name" -}}`}}
-            {{`{{- $actorName := (index $xr.metadata.labels "asya.sh/actor") | default $claimName -}}`}}
+            {{`{{- $actorName := $xr.spec.actor -}}`}}
             {{`{{- $scalingEnabled := true -}}`}}
             {{`{{- if hasKey $xr.spec "scaling" -}}`}}
               {{`{{- if hasKey $xr.spec.scaling "enabled" -}}`}}
@@ -162,8 +160,7 @@ spec:
           template: |
             {{`{{- $xr := .observed.composite.resource -}}`}}
             {{`{{- $namespace := index $xr.metadata.labels "crossplane.io/claim-namespace" -}}`}}
-            {{`{{- $claimName := index $xr.metadata.labels "crossplane.io/claim-name" -}}`}}
-            {{`{{- $actorName := (index $xr.metadata.labels "asya.sh/actor") | default $claimName -}}`}}
+            {{`{{- $actorName := $xr.spec.actor -}}`}}
             {{`{{- $region := $xr.spec.region | default "us-east-1" -}}`}}
             {{`{{- $queueURL := "" -}}`}}
             {{`{{- if .observed.resources -}}`}}
@@ -270,8 +267,7 @@ spec:
           template: |
             {{`{{- $xr := .observed.composite.resource -}}`}}
             {{`{{- $namespace := index $xr.metadata.labels "crossplane.io/claim-namespace" -}}`}}
-            {{`{{- $claimName := index $xr.metadata.labels "crossplane.io/claim-name" -}}`}}
-            {{`{{- $actorName := (index $xr.metadata.labels "asya.sh/actor") | default $claimName -}}`}}
+            {{`{{- $actorName := $xr.spec.actor -}}`}}
             {{`{{- /* Create Deployment from workload spec */ -}}`}}
             {{`{{- if hasKey $xr.spec "workload" -}}`}}
             {{`{{- $workloadKind := "Deployment" -}}`}}
@@ -347,8 +343,7 @@ spec:
         inline:
           template: |
             {{`{{- $xr := .observed.composite.resource -}}`}}
-            {{`{{- $claimName := index $xr.metadata.labels "crossplane.io/claim-name" -}}`}}
-            {{`{{- $actorName := (index $xr.metadata.labels "asya.sh/actor") | default $claimName -}}`}}
+            {{`{{- $actorName := $xr.spec.actor -}}`}}
             {{`{{- $queueUrl := "" -}}`}}
             {{`{{- $queueIdentifier := "" -}}`}}
             {{`{{- $queueReady := false -}}`}}

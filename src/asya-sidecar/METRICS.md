@@ -6,7 +6,7 @@ The sidecar exposes Prometheus-compatible metrics for monitoring actor performan
 
 ## Standard Metrics
 
-### Envelope Flow
+### Message Flow
 
 | Metric | Type | Labels | Description |
 |--------|------|--------|-------------|
@@ -24,7 +24,7 @@ The sidecar exposes Prometheus-compatible metrics for monitoring actor performan
 | `asya_actor_runtime_execution_duration_seconds` | Histogram | `queue` | Runtime execution time |
 | `asya_actor_queue_receive_duration_seconds` | Histogram | `queue`, `transport` | Queue receive time |
 | `asya_actor_queue_send_duration_seconds` | Histogram | `destination_queue`, `transport` | Queue send time |
-| `asya_actor_envelope_size_bytes` | Histogram | `direction` | Envelope size (direction: received, sent) |
+| `asya_actor_envelope_size_bytes` | Histogram | `direction` | Message size (direction: received, sent) |
 
 ### Errors
 
@@ -132,7 +132,7 @@ spec:
 ## Example Queries
 
 ```promql
-# Envelope throughput
+# Message throughput
 rate(asya_actor_messages_processed_total[5m])
 
 # Success rate

@@ -7,6 +7,7 @@ metadata:
   name: cached-actor
   namespace: default
 spec:
+  actor: cached-actor
   transport: rabbitmq
 
   scaling:

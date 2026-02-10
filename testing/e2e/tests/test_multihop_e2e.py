@@ -2,10 +2,10 @@
 """
 Multi-hop E2E test for Asya framework.
 
-Tests envelope processing through a chain of 15 actors with progress reporting.
+Tests message processing through a chain of 15 actors with progress reporting.
 Validates that:
-1. Envelope is correctly routed through all actors in sequence
-2. Each actor processes the envelope and passes it forward
+1. Message is correctly routed through all actors in sequence
+2. Each actor processes the message and passes it forward
 3. Progress is tracked and reported correctly
 4. Final result contains all processing steps
 """
@@ -19,21 +19,21 @@ logger = logging.getLogger(__name__)
 
 @pytest.mark.fast
 def test_multihop_chain(gateway_helper):
-    """Test envelope processing through 15-actor chain with progress tracking."""
-    logger.info("Testing multi-hop envelope processing through 15 actors")
+    """Test message processing through 15-actor chain with progress tracking."""
+    logger.info("Testing multi-hop message processing through 15 actors")
 
     result = gateway_helper.call_mcp_tool(
         tool_name="test_multihop",
         arguments={"message": "Multi-hop test"}
     )
 
-    envelope_id = result["result"]["envelope_id"]
-    assert envelope_id is not None, "Should have envelope ID"
-    logger.info(f"[+] Created envelope: {envelope_id}")
+    task_id = result["result"]["task_id"]
+    assert task_id is not None, "Should have task ID"
+    logger.info(f"[+] Created task: {task_id}")
 
     logger.info("Streaming progress updates...")
-    updates = gateway_helper.stream_envelope_progress(
-        envelope_id=envelope_id,
+    updates = gateway_helper.stream_task_progress(
+        task_id=task_id,
         timeout=30
     )
 
@@ -51,7 +51,7 @@ def test_multihop_chain(gateway_helper):
     assert final_update.get("status") == "succeeded", f"Final status should be succeeded, got {final_update.get('status')}"
     assert final_update.get("progress_percent") == 100, "Final progress should be 100%"
 
-    logger.info(f"[+] Envelope completed successfully with {len(updates)} progress updates")
+    logger.info(f"[+] Task completed successfully with {len(updates)} progress updates")
     logger.info("[+] Multi-hop test completed successfully")
 
 
@@ -65,11 +65,11 @@ def test_multihop_progress_percentage(gateway_helper):
         arguments={"message": "Progress percentage test"}
     )
 
-    envelope_id = result["result"]["envelope_id"]
-    logger.info(f"[+] Created envelope: {envelope_id}")
+    task_id = result["result"]["task_id"]
+    logger.info(f"[+] Created task: {task_id}")
 
-    updates = gateway_helper.stream_envelope_progress(
-        envelope_id=envelope_id,
+    updates = gateway_helper.stream_task_progress(
+        task_id=task_id,
         timeout=30
     )
 
@@ -84,6 +84,6 @@ def test_multihop_progress_percentage(gateway_helper):
         assert progress_values[i] <= progress_values[i + 1] + 0.01, f"Progress should be monotonic (with 0.01 tolerance), but {progress_values[i]} > {progress_values[i+1]} at index {i}"
 
     final_update = updates[-1]
-    assert final_update.get("status") == "succeeded", "Envelope should succeed"
+    assert final_update.get("status") == "succeeded", "Task should succeed"
 
     logger.info("[+] Progress percentage tracking validated successfully")

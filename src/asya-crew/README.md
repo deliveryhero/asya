@@ -119,7 +119,7 @@ cd error-end && uv run pytest tests/
 End actors follow strict separation of concerns:
 
 - **Runtime (Python)**: Persists to S3, returns metadata
-- **Sidecar (Go)**: Reports final status to gateway via `POST /envelopes/{id}/final`
+- **Sidecar (Go)**: Reports final status to gateway via `POST /tasks/{id}/final`
 
 The runtime never communicates directly with the gateway. All network communication is handled by the sidecar, maintaining clean architectural boundaries.
 

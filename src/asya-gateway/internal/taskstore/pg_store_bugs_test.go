@@ -1,4 +1,4 @@
-package envelopestore
+package taskstore
 
 import (
 	"testing"
@@ -128,65 +128,65 @@ func TestRouteActors_UpdateLogic(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Simulate the update logic from store.go UpdateProgress
-			envelope := &types.Envelope{
+			task := &types.Task{
 				Route: types.Route{
 					Actors: tt.initialRoute,
 				},
 				TotalActors: len(tt.initialRoute),
 			}
 
-			update := types.EnvelopeUpdate{
+			update := types.TaskUpdate{
 				Actors: tt.updateActors,
 			}
 
 			// Apply update logic
 			if len(update.Actors) > 0 {
-				envelope.Route.Actors = update.Actors
-				envelope.TotalActors = len(update.Actors)
+				task.Route.Actors = update.Actors
+				task.TotalActors = len(update.Actors)
 			}
 
-			assert.Equal(t, tt.expectRoute, envelope.Route.Actors)
-			assert.Equal(t, tt.expectTotal, envelope.TotalActors)
+			assert.Equal(t, tt.expectRoute, task.Route.Actors)
+			assert.Equal(t, tt.expectTotal, task.TotalActors)
 		})
 	}
 }
 
-// TestEnvelopeUpdate_FieldMapping tests that EnvelopeUpdate fields correctly map to database columns
+// TestTaskUpdate_FieldMapping tests that TaskUpdate fields correctly map to database columns
 //
 // Bug: If field names don't match between Go struct and SQL queries, we get runtime errors
-func TestEnvelopeUpdate_FieldMapping(t *testing.T) {
-	update := types.EnvelopeUpdate{
+func TestTaskUpdate_FieldMapping(t *testing.T) {
+	update := types.TaskUpdate{
 		ID:              "test-id",
-		Status:          types.EnvelopeStatusRunning,
+		Status:          types.TaskStatusRunning,
 		Message:         "test message",
 		Result:          nil,
 		Error:           "",
 		ProgressPercent: floatPtr(50.0),
 		Actors:          []string{"actor1", "actor2"},
 		CurrentActorIdx: intPtr(1),
-		EnvelopeState:   strPtr("processing"),
+		TaskState:       strPtr("processing"),
 	}
 
 	// Verify all fields are accessible
 	assert.Equal(t, "test-id", update.ID)
-	assert.Equal(t, types.EnvelopeStatusRunning, update.Status)
+	assert.Equal(t, types.TaskStatusRunning, update.Status)
 	assert.Equal(t, "test message", update.Message)
 	assert.NotNil(t, update.ProgressPercent)
 	assert.Equal(t, 50.0, *update.ProgressPercent)
 	assert.Equal(t, []string{"actor1", "actor2"}, update.Actors)
 	assert.NotNil(t, update.CurrentActorIdx)
 	assert.Equal(t, 1, *update.CurrentActorIdx)
-	assert.NotNil(t, update.EnvelopeState)
-	assert.Equal(t, "processing", *update.EnvelopeState)
+	assert.NotNil(t, update.TaskState)
+	assert.Equal(t, "processing", *update.TaskState)
 }
 
-// TestProgressUpdate_TransformToEnvelopeUpdate tests the transformation logic
-// from ProgressUpdate (external) to EnvelopeUpdate (internal)
+// TestProgressUpdate_TransformToTaskUpdate tests the transformation logic
+// from ProgressUpdate (external) to TaskUpdate (internal)
 //
 // Bug: If transformation doesn't copy all fields, we lose data
-func TestProgressUpdate_TransformToEnvelopeUpdate(t *testing.T) {
+func TestProgressUpdate_TransformToTaskUpdate(t *testing.T) {
 	progress := types.ProgressUpdate{
-		ID:              "test-envelope-1",
+		ID:              "test-task-1",
 		Actors:          []string{"step1", "step2", "step3"},
 		CurrentActorIdx: 1,
 		Status:          "processing",
@@ -196,27 +196,27 @@ func TestProgressUpdate_TransformToEnvelopeUpdate(t *testing.T) {
 
 	// Simulate transformation from handlers.go
 	progressPercent := progress.ProgressPercent
-	update := types.EnvelopeUpdate{
+	update := types.TaskUpdate{
 		ID:              progress.ID,
-		Status:          types.EnvelopeStatusRunning,
+		Status:          types.TaskStatusRunning,
 		Message:         progress.Message,
 		ProgressPercent: &progressPercent,
 		Actors:          progress.Actors,
 		CurrentActorIdx: &progress.CurrentActorIdx,
-		EnvelopeState:   strPtr(progress.Status),
+		TaskState:       strPtr(progress.Status),
 	}
 
 	// Verify transformation preserved all data
-	assert.Equal(t, "test-envelope-1", update.ID)
-	assert.Equal(t, types.EnvelopeStatusRunning, update.Status)
+	assert.Equal(t, "test-task-1", update.ID)
+	assert.Equal(t, types.TaskStatusRunning, update.Status)
 	assert.Equal(t, "Processing at step2", update.Message)
 	assert.NotNil(t, update.ProgressPercent)
 	assert.Equal(t, 50.0, *update.ProgressPercent)
 	assert.Equal(t, []string{"step1", "step2", "step3"}, update.Actors)
 	assert.NotNil(t, update.CurrentActorIdx)
 	assert.Equal(t, 1, *update.CurrentActorIdx)
-	assert.NotNil(t, update.EnvelopeState)
-	assert.Equal(t, "processing", *update.EnvelopeState)
+	assert.NotNil(t, update.TaskState)
+	assert.Equal(t, "processing", *update.TaskState)
 }
 
 func strPtr(s string) *string {

@@ -13,7 +13,7 @@ GitHub repo: [https://github.com/deliveryhero/asya](https://github.com/deliveryh
 
 ### Getting Started
 - **[Motivation](motivation.md)** - Why Asya exists, problems it solves, when to use it
-- **[Core Concepts](concepts.md)** - Actors, envelopes, sidecars, runtime, and system components
+- **[Core Concepts](concepts.md)** - Actors, messages, sidecars, runtime, and system components
 
 ### Architecture
 - **[Architecture Overview](architecture/README.md)** - Deep dive into system design and components

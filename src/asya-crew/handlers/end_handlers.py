@@ -1,9 +1,9 @@
 """
 End actor handlers.
 
-This module provides end handlers for envelope completion:
-- happy_end_handler: Processes successfully completed envelopes
-- error_end_handler: Processes failed envelopes
+This module provides end handlers for message completion:
+- happy_end_handler: Processes successfully completed messages
+- error_end_handler: Processes failed messages
 
 Both handlers:
 1. Persist results/errors to S3/MinIO (if configured)
@@ -123,25 +123,25 @@ def ensure_bucket_exists(bucket: str) -> None:
             logger.warning(f"Could not verify bucket {bucket}: {e}")
 
 
-def persist_to_s3(envelope: dict[str, Any], s3_prefix: str) -> dict[str, str]:
+def persist_to_s3(message: dict[str, Any], s3_prefix: str) -> dict[str, str]:
     """
-    Persist complete envelope to S3/MinIO with structured key path.
+    Persist complete message to S3/MinIO with structured key path.
 
     Key structure: {prefix}{date}/{hour}/{last_actor}/{id}.json
     Example: asya-results/2025-10-16/17/echo-actor/abc-123.json
 
     Args:
-        envelope: Complete envelope to persist
+        message: Complete message to persist
         s3_prefix: S3 key prefix (results or errors)
-        error: Error description (for failed envelopes)
+        error: Error description (for failed messages)
 
     Returns:
         Dict with S3 location info
     """
-    envelope_id = envelope.get("id", "unknown")
+    message_id = message.get("id", "unknown")
 
     if not s3_client or not ASYA_S3_BUCKET:
-        logger.debug(f"S3 persistence skipped for envelope {envelope_id}")
+        logger.debug(f"S3 persistence skipped for message {message_id}")
         return {}
 
     try:
@@ -153,7 +153,7 @@ def persist_to_s3(envelope: dict[str, Any], s3_prefix: str) -> dict[str, str]:
         now_str = now.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
 
         # Find last non-end actor
-        route = envelope.get("route", {})
+        route = message.get("route", {})
         route_actors = route.get("actors", [])
         current_index = route.get("current")
 
@@ -165,13 +165,13 @@ def persist_to_s3(envelope: dict[str, Any], s3_prefix: str) -> dict[str, str]:
             else:
                 last_actor = route_actors[-1]
 
-        key = f"{s3_prefix}{now_str}/{last_actor}/{envelope_id}.json"
+        key = f"{s3_prefix}{now_str}/{last_actor}/{message_id}.json"
 
         # Serialize to JSON with safe handling of non-serializable types
         try:
-            body = json.dumps(envelope, indent=2, default=str)
+            body = json.dumps(message, indent=2, default=str)
         except (TypeError, ValueError) as e:
-            logger.error(f"Failed to serialize envelope {envelope_id}: {e}")
+            logger.error(f"Failed to serialize message {message_id}: {e}")
             raise
 
         s3_client.put_object(
@@ -182,28 +182,28 @@ def persist_to_s3(envelope: dict[str, Any], s3_prefix: str) -> dict[str, str]:
         )
 
         s3_uri = f"s3://{ASYA_S3_BUCKET}/{key}"
-        logger.info(f"Persisted envelope {envelope_id} to {s3_uri}")
+        logger.info(f"Persisted message {message_id} to {s3_uri}")
 
         return {"s3_bucket": ASYA_S3_BUCKET, "s3_key": key, "s3_uri": s3_uri}
     except Exception as e:
-        logger.error(f"Failed to persist envelope {envelope_id} to S3: {e}", exc_info=True)
+        logger.error(f"Failed to persist message {message_id} to S3: {e}", exc_info=True)
         return {"error": str(e)}
 
 
-def _end_handler(envelope: dict[str, Any], s3_prefix: str, handler_type: str) -> dict[str, Any]:
+def _end_handler(message: dict[str, Any], s3_prefix: str, handler_type: str) -> dict[str, Any]:
     """
-    Base handler for envelope completion (success or error).
+    Base handler for message completion (success or error).
 
-    Saves the complete envelope to S3 without parsing.
-    Returns empty dict - the sidecar will use the original envelope payload as the result.
+    Saves the complete message to S3 without parsing.
+    Returns empty dict - the sidecar will use the original message payload as the result.
 
     IMPORTANT: End actors are terminal - they do NOT route to any queue and do NOT
-    increment route.current. They only persist the envelope and report final status.
-    The sidecar's processEndActorEnvelope ignores the route in the response and
+    increment route.current. They only persist the message and report final status.
+    The sidecar's processEndActorMessage ignores the route in the response and
     does not send any messages to other queues.
 
     Args:
-        envelope: Complete envelope with id, route, payload
+        message: Complete message with id, route, payload
         s3_prefix: S3 prefix for persistence (happy-asya/ or error-asya/)
         handler_type: Handler type for logging ("happy-end" or "error-end")
 
@@ -212,21 +212,21 @@ def _end_handler(envelope: dict[str, Any], s3_prefix: str, handler_type: str) ->
 
     Raises:
         RuntimeError: If ASYA_HANDLER_MODE is not "envelope"
-        ValueError: If envelope is missing required fields
+        ValueError: If message is missing required fields
     """
-    if not isinstance(envelope, dict):
-        raise ValueError(f"Envelope must be a dict, got {type(envelope).__name__}")
+    if not isinstance(message, dict):
+        raise ValueError(f"Message must be a dict, got {type(message).__name__}")
 
-    if "id" not in envelope:
-        raise ValueError("Envelope missing required field: id")
+    if "id" not in message:
+        raise ValueError("Message missing required field: id")
 
-    envelope_id = envelope["id"]
-    logger.info(f"Processing {handler_type} for envelope {envelope_id}")
+    message_id = message["id"]
+    logger.info(f"Processing {handler_type} for message {message_id}")
 
-    s3_info = persist_to_s3(envelope=envelope, s3_prefix=s3_prefix)
+    s3_info = persist_to_s3(message=message, s3_prefix=s3_prefix)
 
     logger.info(
-        f"{handler_type} processing complete for envelope {envelope_id}, S3 persisted: {bool(s3_info and 's3_uri' in s3_info)}"
+        f"{handler_type} processing complete for message {message_id}, S3 persisted: {bool(s3_info and 's3_uri' in s3_info)}"
     )
 
     return {}

@@ -20,15 +20,15 @@ class TransportTimeouts:
 
     Attributes:
         crash_detection: Timeout for detecting pod crashes after timeout
-        envelope_completion_short: Short envelope completion timeout (simple operations)
-        envelope_completion_medium: Medium envelope completion timeout (multi-actor pipelines)
-        envelope_completion_long: Long envelope completion timeout (complex processing)
+        task_completion_short: Short task completion timeout (simple operations)
+        task_completion_medium: Medium task completion timeout (multi-actor pipelines)
+        task_completion_long: Long task completion timeout (complex processing)
     """
 
     crash_detection: int
-    envelope_completion_short: int
-    envelope_completion_medium: int
-    envelope_completion_long: int
+    task_completion_short: int
+    task_completion_medium: int
+    task_completion_long: int
 
 
 @pytest.fixture
@@ -105,9 +105,9 @@ def transport_timeouts() -> TransportTimeouts:
 
     Example:
         def test_something(transport_timeouts):
-            envelope = wait_for_completion(
-                envelope_id,
-                timeout=transport_timeouts.envelope_completion_short
+            result = wait_for_completion(
+                task_id,
+                timeout=transport_timeouts.task_completion_short
             )
     """
     transport = os.getenv("ASYA_TRANSPORT", "rabbitmq").lower()
@@ -115,14 +115,14 @@ def transport_timeouts() -> TransportTimeouts:
     if transport == "sqs":
         return TransportTimeouts(
             crash_detection=60,
-            envelope_completion_short=60,
-            envelope_completion_medium=120,
-            envelope_completion_long=180,
+            task_completion_short=60,
+            task_completion_medium=120,
+            task_completion_long=180,
         )
     else:
         return TransportTimeouts(
             crash_detection=20,
-            envelope_completion_short=30,
-            envelope_completion_medium=90,
-            envelope_completion_long=120,
+            task_completion_short=30,
+            task_completion_medium=90,
+            task_completion_long=120,
         )

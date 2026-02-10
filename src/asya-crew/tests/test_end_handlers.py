@@ -31,7 +31,7 @@ def setup_test_env():
 
     # Ensure ASYA_HANDLER_MODE is set to envelope for tests
     os.environ["ASYA_HANDLER_MODE"] = "envelope"
-    # Disable validation for end handlers (they work directly with envelopes)
+    # Disable validation for end handlers (they work directly with messages)
     os.environ["ASYA_ENABLE_VALIDATION"] = "false"
 
     yield
@@ -43,7 +43,7 @@ def setup_test_env():
 
 
 # ============================================================================
-# Envelope Mode Validation Tests
+# Handler Mode Validation Tests
 # ============================================================================
 
 
@@ -136,19 +136,19 @@ def test_import_succeeds_with_validation_disabled():
 # ============================================================================
 
 
-def test_happy_end_with_valid_envelope():
-    """Test happy_end handler with valid envelope returns empty dict."""
-    logger.info("=== test_happy_end_with_valid_envelope ===")
+def test_happy_end_with_valid_message():
+    """Test happy_end handler with valid message returns empty dict."""
+    logger.info("=== test_happy_end_with_valid_message ===")
 
     from handlers.end_handlers import happy_end_handler
 
-    envelope = {"id": "test-envelope-123", "payload": {"value": 42}}
+    message = {"id": "test-message-123", "payload": {"value": 42}}
 
-    result = happy_end_handler(envelope)
+    result = happy_end_handler(message)
 
     assert result == {}
 
-    logger.info("=== test_happy_end_with_valid_envelope: PASSED ===")
+    logger.info("=== test_happy_end_with_valid_message: PASSED ===")
 
 
 def test_happy_end_with_empty_payload():
@@ -157,9 +157,9 @@ def test_happy_end_with_empty_payload():
 
     from handlers.end_handlers import happy_end_handler
 
-    envelope = {"id": "test-envelope-456", "payload": {}}
+    message = {"id": "test-message-456", "payload": {}}
 
-    result = happy_end_handler(envelope)
+    result = happy_end_handler(message)
     assert result == {}
 
     logger.info("=== test_happy_end_with_empty_payload: PASSED ===")
@@ -171,13 +171,13 @@ def test_happy_end_with_route_metadata():
 
     from handlers.end_handlers import happy_end_handler
 
-    envelope = {
-        "id": "test-envelope-route",
+    message = {
+        "id": "test-message-route",
         "route": {"actors": ["queue1", "queue2"], "current": 2},
         "payload": {"value": 100},
     }
 
-    result = happy_end_handler(envelope)
+    result = happy_end_handler(message)
     assert result == {}
 
     logger.info("=== test_happy_end_with_route_metadata: PASSED ===")
@@ -189,23 +189,23 @@ def test_happy_end_missing_id():
 
     from handlers.end_handlers import happy_end_handler
 
-    envelope = {"payload": {"result": "test"}}
+    message = {"payload": {"result": "test"}}
 
     with pytest.raises(ValueError, match="id"):
-        happy_end_handler(envelope)
+        happy_end_handler(message)
 
     logger.info("=== test_happy_end_missing_id: PASSED ===")
 
 
 def test_happy_end_returns_metadata():
-    """Test happy_end handler returns empty dict (sidecar extracts result from envelope)."""
+    """Test happy_end handler returns empty dict (sidecar extracts result from message)."""
     logger.info("=== test_happy_end_returns_metadata ===")
 
     from handlers.end_handlers import happy_end_handler
 
-    envelope = {"id": "test-envelope-metadata", "payload": {"value": 42}}
+    message = {"id": "test-message-metadata", "payload": {"value": 42}}
 
-    result = happy_end_handler(envelope)
+    result = happy_end_handler(message)
     assert result == {}
 
     logger.info("=== test_happy_end_returns_metadata: PASSED ===")
@@ -217,19 +217,19 @@ def test_happy_end_returns_metadata():
 
 
 def test_error_end_returns_error_metadata():
-    """Test error_end handler returns empty dict (sidecar extracts error from envelope)."""
+    """Test error_end handler returns empty dict (sidecar extracts error from message)."""
     logger.info("=== test_error_end_returns_error_metadata ===")
 
     from handlers.end_handlers import error_end_handler
 
-    envelope = {
-        "id": "test-envelope-001",
+    message = {
+        "id": "test-message-001",
         "error": "Processing failed",
         "route": {},
         "payload": {},
     }
 
-    result = error_end_handler(envelope)
+    result = error_end_handler(message)
 
     assert result == {}
 
@@ -242,10 +242,10 @@ def test_error_end_missing_id():
 
     from handlers.end_handlers import error_end_handler
 
-    envelope = {"error": "Test error"}
+    message = {"error": "Test error"}
 
     with pytest.raises(ValueError, match="id"):
-        error_end_handler(envelope)
+        error_end_handler(message)
 
     logger.info("=== test_error_end_missing_id: PASSED ===")
 
@@ -261,13 +261,13 @@ def test_happy_end_without_s3():
 
     from handlers.end_handlers import happy_end_handler
 
-    envelope = {
+    message = {
         "id": "test-no-s3",
         "route": {"actors": ["queue1", "queue2"], "current": 2},
         "payload": {"value": 42},
     }
 
-    result = happy_end_handler(envelope)
+    result = happy_end_handler(message)
     assert result == {}
 
     logger.info("=== test_happy_end_without_s3: PASSED ===")
@@ -279,14 +279,14 @@ def test_error_end_without_s3():
 
     from handlers.end_handlers import error_end_handler
 
-    envelope = {
+    message = {
         "id": "test-error-no-s3",
         "error": "Test failure",
         "route": {"actors": ["queue1"], "current": 1},
         "payload": {"data": "test"},
     }
 
-    result = error_end_handler(envelope)
+    result = error_end_handler(message)
     assert result == {}
 
     logger.info("=== test_error_end_without_s3: PASSED ===")
@@ -295,5 +295,5 @@ def test_error_end_without_s3():
 # ============================================================================
 # Error Parsing Tests (integrated into error_end_handler)
 # ============================================================================
-# Note: parse_error_envelope was removed - error_end_handler now handles
+# Note: parse_error_message was removed - error_end_handler now handles
 # unwrapping directly without a separate parsing function

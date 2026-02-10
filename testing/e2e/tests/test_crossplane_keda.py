@@ -11,8 +11,10 @@ Actual scaling behavior is tested in test_keda_scaling.py (operator-based).
 
 import subprocess
 from pathlib import Path
-import yaml
+
 import pytest
+import yaml
+
 
 # Path to the Helm chart (relative to repo root)
 REPO_ROOT = Path(__file__).parent.parent.parent.parent
@@ -53,6 +55,17 @@ def get_pipeline_step(composition: dict, step_name: str) -> dict | None:
     return None
 
 
+def find_xrd(docs: list[dict], name: str) -> dict | None:
+    """Find a CompositeResourceDefinition by name in the rendered documents."""
+    for doc in docs:
+        if (
+            doc.get("kind") == "CompositeResourceDefinition"
+            and doc.get("metadata", {}).get("name") == name
+        ):
+            return doc
+    return None
+
+
 class TestCrossplaneHelmTemplateValidation:
     """Test that Helm templates render correctly."""
 
@@ -70,6 +83,94 @@ class TestCrossplaneHelmTemplateValidation:
         """Test helm template renders with LocalStack values."""
         docs = helm_template(CHART_PATH / "values-localstack.yaml")
         assert len(docs) > 0, "Should render with LocalStack values"
+
+
+class TestXrdActorField:
+    """Test the XRD schema has spec.actor as a required field."""
+
+    @pytest.fixture
+    def xrd(self) -> dict:
+        """Get the XAsyncActor XRD."""
+        docs = helm_template()
+        xrd = find_xrd(docs, "xasyncactors.asya.sh")
+        assert xrd is not None, "xasyncactors.asya.sh XRD should exist"
+        return xrd
+
+    @pytest.fixture
+    def v1alpha1_version(self, xrd: dict) -> dict:
+        """Get the v1alpha1 version definition from the XRD."""
+        versions = xrd["spec"]["versions"]
+        return next(v for v in versions if v["name"] == "v1alpha1")
+
+    @pytest.fixture
+    def spec_schema(self, v1alpha1_version: dict) -> dict:
+        """Extract spec schema from the v1alpha1 version."""
+        return v1alpha1_version["schema"]["openAPIV3Schema"]["properties"]["spec"]
+
+    def test_actor_is_required(self, spec_schema):
+        """Test that actor is listed in required fields."""
+        required = spec_schema.get("required", [])
+        assert "actor" in required, "spec.actor should be a required field"
+
+    def test_actor_field_properties(self, spec_schema):
+        """Test that actor field has correct validation constraints."""
+        actor = spec_schema["properties"]["actor"]
+
+        assert actor["type"] == "string"
+        assert actor["minLength"] == 1
+        assert actor["maxLength"] == 63
+
+    def test_actor_field_pattern(self, spec_schema):
+        """Test that actor field enforces DNS-compatible naming."""
+        actor = spec_schema["properties"]["actor"]
+
+        assert "pattern" in actor, "actor field should have a regex pattern"
+        assert actor["pattern"] == "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$"
+
+    def test_actor_printer_column(self, v1alpha1_version):
+        """Test that Actor printer column exists for kubectl output."""
+        columns = v1alpha1_version.get("additionalPrinterColumns", [])
+        column_names = [c["name"] for c in columns]
+
+        assert "Actor" in column_names, "Should have Actor printer column"
+        actor_col = next(c for c in columns if c["name"] == "Actor")
+        assert actor_col["jsonPath"] == ".spec.actor"
+
+
+class TestCompositionUsesSpecActor:
+    """Test that the composition reads actor name from spec.actor."""
+
+    @pytest.fixture
+    def composition(self) -> dict:
+        """Get the SQS composition."""
+        docs = helm_template()
+        comp = find_composition(docs, "asyncactor-sqs")
+        assert comp is not None, "asyncactor-sqs Composition should exist"
+        return comp
+
+    def test_all_steps_use_spec_actor(self, composition):
+        """Test that all pipeline steps resolve actor name from spec.actor."""
+        pipeline = composition.get("spec", {}).get("pipeline", [])
+        steps_with_templates = [
+            step for step in pipeline
+            if step.get("input", {}).get("inline", {}).get("template")
+        ]
+
+        for step in steps_with_templates:
+            template = step["input"]["inline"]["template"]
+            if "$actorName" in template:
+                assert "$xr.spec.actor" in template, \
+                    f"Step '{step['step']}' should use $xr.spec.actor"
+                assert 'asya.sh/actor") | default' not in template, \
+                    f"Step '{step['step']}' should not fall back to label"
+
+    def test_status_step_sets_actor_label(self, composition):
+        """Test that patch-status step still sets asya.sh/actor label on XR."""
+        step = get_pipeline_step(composition, "patch-status-and-derive-phase")
+        template = step["input"]["inline"]["template"]
+
+        assert "asya.sh/actor:" in template, \
+            "Status step should set asya.sh/actor label for discoverability"
 
 
 class TestCompositionSqsKedaSteps:

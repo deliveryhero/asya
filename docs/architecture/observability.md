@@ -24,7 +24,7 @@ Default namespace: `asya_actor` (configurable via `ASYA_METRICS_NAMESPACE`)
 
 **Size Metrics**:
 
-- `{namespace}_envelope_size_bytes{direction}` - Envelope size in bytes (direction: received, sent)
+- `{namespace}_message_size_bytes{direction}` - Message size in bytes (direction: received, sent)
 
 **Other**:
 
@@ -107,8 +107,8 @@ spec:
 ```json
 {
   "level": "info",
-  "msg": "Processing envelope",
-  "envelope_id": "5e6fdb2d-1d6b-4e91-baef-73e825434e7b",
+  "msg": "Processing message",
+  "message_id": "5e6fdb2d-1d6b-4e91-baef-73e825434e7b",
   "actor": "text-processor",
   "timestamp": "2025-11-18T12:00:00Z"
 }
@@ -120,7 +120,7 @@ spec:
 
 **OpenTelemetry tracing** for distributed request tracing:
 
-- Trace envelopes across actors
+- Trace messages across actors
 - Visualize pipeline execution
 - Identify bottlenecks
 

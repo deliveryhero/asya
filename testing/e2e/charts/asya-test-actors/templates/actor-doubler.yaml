@@ -6,6 +6,7 @@ metadata:
   labels:
     {{- include "asya-test-actors.labels" . | nindent 4 }}
 spec:
+  actor: test-doubler
   transport: {{ .Values.transport }}
 
   scaling:

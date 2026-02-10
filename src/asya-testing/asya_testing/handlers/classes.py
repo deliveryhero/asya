@@ -105,28 +105,28 @@ class CounterHandler:
 
 
 # Envelope mode handler
-class EnvelopeHandler:
-    """Handler that processes full envelopes."""
+class MessageHandler:
+    """Handler that processes full messages in envelope mode."""
 
     def __init__(self):
         self.prefix = "processed"
-        self.envelope_count = 0
+        self.message_count = 0
 
-    def process(self, envelope: dict[str, Any]) -> dict[str, Any]:
-        self.envelope_count += 1
+    def process(self, message: dict[str, Any]) -> dict[str, Any]:
+        self.message_count += 1
 
         # Access headers
-        trace_id = envelope.get("headers", {}).get("trace_id", "unknown")
+        trace_id = message.get("headers", {}).get("trace_id", "unknown")
 
         return {
             "payload": {
                 "prefix": self.prefix,
                 "trace_id": trace_id,
-                "data": envelope["payload"],
-                "envelope_count": self.envelope_count,
+                "data": message["payload"],
+                "message_count": self.message_count,
             },
-            "route": envelope["route"],
-            "headers": envelope.get("headers", {}),
+            "route": message["route"],
+            "headers": message.get("headers", {}),
         }
 
 

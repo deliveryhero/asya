@@ -29,9 +29,9 @@ def test_rabbitmq_restart_during_processing(e2e_helper):
     E2E: Test system handles RabbitMQ restart gracefully.
 
     Scenario:
-    1. Send envelopes to actors
+    1. Send messages to actors
     2. Restart RabbitMQ while processing
-    3. Verify envelopes are redelivered and complete
+    3. Verify messages are redelivered and complete
 
     Expected: At-least-once delivery guarantees maintained
     """
@@ -40,14 +40,14 @@ def test_rabbitmq_restart_during_processing(e2e_helper):
     if transport != "rabbitmq":
         pytest.skip("This test requires RabbitMQ transport")
 
-    logger.info("Sending envelopes...")
-    envelope_ids = []
+    logger.info("Sending messages...")
+    task_ids = []
     for i in range(10):
         response = e2e_helper.call_mcp_tool(
             tool_name="test_slow_boundary",
             arguments={"first_call": True},
         )
-        envelope_ids.append(response["result"]["envelope_id"])
+        task_ids.append(response["result"]["task_id"])
 
     time.sleep(2)
 
@@ -70,17 +70,17 @@ def test_rabbitmq_restart_during_processing(e2e_helper):
                 assert e2e_helper.wait_for_pod_ready("app.kubernetes.io/name=rabbitmq", timeout=60)
                 time.sleep(10)
 
-        logger.info("Waiting for envelopes to complete after RabbitMQ restart...")
+        logger.info("Waiting for tasks to complete after RabbitMQ restart...")
         completed = 0
-        for envelope_id in envelope_ids:
+        for task_id in task_ids:
             try:
-                final = e2e_helper.wait_for_envelope_completion(envelope_id, timeout=120)
+                final = e2e_helper.wait_for_task_completion(task_id, timeout=120)
                 if final["status"] in ["succeeded", "failed"]:
                     completed += 1
             except Exception as e:
-                logger.warning(f"Envelope failed: {e}")
+                logger.warning(f"Task failed: {e}")
 
-        logger.info(f"Completed {completed}/{len(envelope_ids)} envelopes")
+        logger.info(f"Completed {completed}/{len(task_ids)} tasks")
         assert completed >= 7, f"At least 7/10 should complete, got {completed}"
 
         logger.info("[+] System recovered from RabbitMQ restart")
@@ -97,7 +97,7 @@ def test_actor_pod_crash_loop(e2e_helper):
 
     Scenario:
     1. Deploy actor with broken image that crashes
-    2. Send envelope to that actor
+    2. Send message to that actor
     3. Verify error handling and retry logic
     4. Fix actor deployment
     5. Verify message eventually processed
@@ -106,19 +106,19 @@ def test_actor_pod_crash_loop(e2e_helper):
     """
     logger.info("This test verifies crash loop handling via test-error actor")
 
-    logger.info("Sending envelope to error actor...")
+    logger.info("Sending message to error actor...")
     response = e2e_helper.call_mcp_tool(
         tool_name="test_error",
         arguments={"should_fail": True},
     )
 
-    envelope_id = response["result"]["envelope_id"]
+    task_id = response["result"]["task_id"]
 
-    logger.info("Waiting for envelope to complete (expect failure)...")
-    final_envelope = e2e_helper.wait_for_envelope_completion(envelope_id, timeout=60)
+    logger.info("Waiting for task to complete (expect failure)...")
+    final_task = e2e_helper.wait_for_task_completion(task_id, timeout=60)
 
-    assert final_envelope["status"] == "failed", \
-        "Envelope should fail when actor crashes"
+    assert final_task["status"] == "failed", \
+        "Task should fail when actor crashes"
 
     logger.info("[+] Crash loop handled gracefully")
 
@@ -130,7 +130,7 @@ def test_multiple_component_failures(e2e_helper):
     E2E: Test system handles multiple simultaneous component failures.
 
     Scenario:
-    1. Send envelope
+    1. Send message
     2. Kill gateway pod
     3. Kill actor pod
     4. Kill RabbitMQ pod
@@ -139,13 +139,13 @@ def test_multiple_component_failures(e2e_helper):
 
     Expected: System eventually reaches consistent state
     """
-    logger.info("Sending initial envelope...")
+    logger.info("Sending initial message...")
     response = e2e_helper.call_mcp_tool(
         tool_name="test_echo",
         arguments={"message": "multi-failure-test"},
     )
 
-    envelope_id = response["result"]["envelope_id"]
+    task_id = response["result"]["task_id"]
     time.sleep(1)
 
     logger.info("Simulating cascading failures...")
@@ -186,22 +186,22 @@ def test_multiple_component_failures(e2e_helper):
 
         logger.info("Checking if system recovered...")
         try:
-            envelope_status = e2e_helper.get_envelope_status(envelope_id)
-            logger.info(f"Envelope status after recovery: {envelope_status['status']}")
+            task_status = e2e_helper.get_task_status(task_id)
+            logger.info(f"Task status after recovery: {task_status['status']}")
         except Exception as e:
-            logger.info(f"Envelope query failed (expected during recovery): {e}")
+            logger.info(f"Task query failed (expected during recovery): {e}")
 
-        logger.info("Sending new envelope after recovery...")
+        logger.info("Sending new message after recovery...")
         response_after = e2e_helper.call_mcp_tool(
             tool_name="test_echo",
             arguments={"message": "after-multi-failure"},
         )
 
-        envelope_id_after = response_after["result"]["envelope_id"]
-        final_after = e2e_helper.wait_for_envelope_completion(envelope_id_after, timeout=60)
+        task_id_after = response_after["result"]["task_id"]
+        final_after = e2e_helper.wait_for_task_completion(task_id_after, timeout=60)
 
         assert final_after["status"] == "succeeded", \
-            "System should recover and process new envelopes"
+            "System should recover and process new messages"
 
         logger.info("[+] System recovered from multiple component failures")
 
@@ -218,8 +218,8 @@ def test_resource_exhaustion_handling(e2e_helper):
     Scenario:
     1. Send many large payloads to exhaust resources
     2. Verify system doesn't crash
-    3. Verify some envelopes succeed despite pressure
-    4. Verify error handling for failed envelopes
+    3. Verify some tasks succeed despite pressure
+    4. Verify error handling for failed tasks
 
     Expected: Graceful degradation, no complete outage
     """
@@ -229,7 +229,7 @@ def test_resource_exhaustion_handling(e2e_helper):
         pytest.skip("Large payload test not supported with SQS (256KB limit)")
 
     logger.info("Sending resource-intensive workload...")
-    envelope_ids = []
+    task_ids = []
 
     for i in range(20):
         try:
@@ -237,25 +237,25 @@ def test_resource_exhaustion_handling(e2e_helper):
                 tool_name="test_large_payload",
                 arguments={"size_kb": 5120},
             )
-            envelope_ids.append(response["result"]["envelope_id"])
+            task_ids.append(response["result"]["task_id"])
         except Exception as e:
-            logger.warning(f"Failed to create envelope {i}: {e}")
+            logger.warning(f"Failed to create task {i}: {e}")
 
-    logger.info(f"Created {len(envelope_ids)} resource-intensive envelopes")
+    logger.info(f"Created {len(task_ids)} resource-intensive tasks")
 
     logger.info("Waiting for some to complete...")
     completed = 0
     failed = 0
 
-    for envelope_id in envelope_ids[:10]:
+    for task_id in task_ids[:10]:
         try:
-            final = e2e_helper.wait_for_envelope_completion(envelope_id, timeout=120)
+            final = e2e_helper.wait_for_task_completion(task_id, timeout=120)
             if final["status"] == "succeeded":
                 completed += 1
             elif final["status"] == "failed":
                 failed += 1
         except Exception as e:
-            logger.warning(f"Envelope timeout: {e}")
+            logger.warning(f"Task timeout: {e}")
             failed += 1
 
     logger.info(f"Results: {completed} succeeded, {failed} failed")
@@ -271,19 +271,19 @@ def test_network_partition_simulation(e2e_helper):
     E2E: Test system handles network issues.
 
     Scenario:
-    1. Send envelope
+    1. Send message
     2. Introduce delays by restarting network components
     3. Verify eventual consistency
 
     Expected: Messages eventually delivered despite delays
     """
-    logger.info("Sending envelope...")
+    logger.info("Sending message...")
     response = e2e_helper.call_mcp_tool(
         tool_name="test_echo",
         arguments={"message": "network-partition-test"},
     )
 
-    envelope_id = response["result"]["envelope_id"]
+    task_id = response["result"]["task_id"]
 
     time.sleep(1)
 
@@ -303,11 +303,11 @@ def test_network_partition_simulation(e2e_helper):
         logger.info("Waiting for pod to restart...")
         assert e2e_helper.wait_for_pod_ready("asya.sh/actor=test-echo", timeout=60)
 
-        logger.info("Waiting for envelope to complete (with network issues)...")
-        final_envelope = e2e_helper.wait_for_envelope_completion(envelope_id, timeout=120)
+        logger.info("Waiting for task to complete (with network issues)...")
+        final_task = e2e_helper.wait_for_task_completion(task_id, timeout=120)
 
-        assert final_envelope["status"] in ["succeeded", "failed"], \
-            "Envelope should eventually complete"
+        assert final_task["status"] in ["succeeded", "failed"], \
+            "Task should eventually complete"
 
         logger.info("[+] Network partition handled gracefully")
 
@@ -323,24 +323,24 @@ def test_operator_restart_during_scaling(e2e_helper):
     E2E: Test operator restart doesn't break autoscaling.
 
     Scenario:
-    1. Send burst of envelopes to trigger scaling
+    1. Send burst of messages to trigger scaling
     2. Restart operator pod
     3. Verify KEDA continues scaling
-    4. Verify envelopes still process
+    4. Verify messages still process
 
     Expected: Scaling continues, operator restart transparent
     """
     logger.info("Sending burst to trigger scaling...")
-    envelope_ids = []
+    task_ids = []
     for i in range(30):
         try:
             response = e2e_helper.call_mcp_tool(
                 tool_name="test_echo",
                 arguments={"message": f"operator-restart-{i}"},
             )
-            envelope_ids.append(response["result"]["envelope_id"])
+            task_ids.append(response["result"]["task_id"])
         except Exception as e:
-            logger.warning(f"Failed to create envelope {i}: {e}")
+            logger.warning(f"Failed to create task {i}: {e}")
 
     time.sleep(2)
 
@@ -361,17 +361,17 @@ def test_operator_restart_during_scaling(e2e_helper):
             assert e2e_helper.wait_for_pod_ready("app.kubernetes.io/name=asya-injector", timeout=60)
             time.sleep(5)
 
-        logger.info("Waiting for sample envelopes to complete...")
+        logger.info("Waiting for sample tasks to complete...")
         completed = 0
-        for envelope_id in envelope_ids[:10]:
+        for task_id in task_ids[:10]:
             try:
-                final = e2e_helper.wait_for_envelope_completion(envelope_id, timeout=60)
+                final = e2e_helper.wait_for_task_completion(task_id, timeout=60)
                 if final["status"] == "succeeded":
                     completed += 1
             except Exception as e:
-                logger.warning(f"Envelope failed: {e}")
+                logger.warning(f"Task failed: {e}")
 
-        logger.info(f"Completed {completed}/10 sample envelopes")
+        logger.info(f"Completed {completed}/10 sample tasks")
         assert completed >= 7, f"At least 7/10 should complete, got {completed}"
 
         logger.info("[+] Injector restart handled gracefully")
@@ -390,7 +390,7 @@ def test_keda_restart_preserves_scaling(e2e_helper):
     Scenario:
     1. Verify ScaledObject exists
     2. Restart KEDA operator
-    3. Send envelopes
+    3. Send messages
     4. Verify scaling still works
 
     Expected: KEDA recovers and continues autoscaling
@@ -419,29 +419,29 @@ def test_keda_restart_preserves_scaling(e2e_helper):
             logger.info("Waiting for KEDA to restart...")
             time.sleep(15)
 
-        logger.info("Sending envelopes after KEDA restart...")
-        envelope_ids = []
+        logger.info("Sending messages after KEDA restart...")
+        task_ids = []
         for i in range(10):
             try:
                 response = e2e_helper.call_mcp_tool(
                     tool_name="test_echo",
                     arguments={"message": f"keda-restart-{i}"},
                 )
-                envelope_ids.append(response["result"]["envelope_id"])
+                task_ids.append(response["result"]["task_id"])
             except Exception as e:
-                logger.warning(f"Failed to create envelope {i}: {e}")
+                logger.warning(f"Failed to create task {i}: {e}")
 
-        logger.info("Waiting for envelopes to complete...")
+        logger.info("Waiting for tasks to complete...")
         completed = 0
-        for envelope_id in envelope_ids:
+        for task_id in task_ids:
             try:
-                final = e2e_helper.wait_for_envelope_completion(envelope_id, timeout=60)
+                final = e2e_helper.wait_for_task_completion(task_id, timeout=60)
                 if final["status"] == "succeeded":
                     completed += 1
             except Exception as e:
-                logger.warning(f"Envelope failed: {e}")
+                logger.warning(f"Task failed: {e}")
 
-        logger.info(f"Completed {completed}/{len(envelope_ids)} envelopes")
+        logger.info(f"Completed {completed}/{len(task_ids)} tasks")
         assert completed >= 7, f"At least 7/10 should complete, got {completed}"
 
         logger.info("[+] KEDA restart preserved scaling functionality")
@@ -460,24 +460,24 @@ def test_full_cluster_restart_simulation(e2e_helper):
     E2E: Test system recovers from cluster-wide restart.
 
     Scenario:
-    1. Send envelope and verify success
+    1. Send message and verify success
     2. Restart all major components
     3. Verify system comes back online
-    4. Send new envelope
+    4. Send new message
     5. Verify it processes correctly
 
     Expected: Full system recovery after widespread restart
 
     NOTE: Skipped due to operator pod restart timing variability (120-200s).
     """
-    logger.info("Sending baseline envelope...")
+    logger.info("Sending baseline message...")
     response = e2e_helper.call_mcp_tool(
         tool_name="test_echo",
         arguments={"message": "pre-cluster-restart"},
     )
 
-    envelope_id_before = response["result"]["envelope_id"]
-    final_before = e2e_helper.wait_for_envelope_completion(envelope_id_before, timeout=30)
+    task_id_before = response["result"]["task_id"]
+    final_before = e2e_helper.wait_for_task_completion(task_id_before, timeout=30)
     assert final_before["status"] == "succeeded"
 
     logger.info("Simulating cluster-wide restart...")
@@ -514,14 +514,14 @@ def test_full_cluster_restart_simulation(e2e_helper):
 
         time.sleep(10)
 
-        logger.info("Sending envelope after cluster restart...")
+        logger.info("Sending message after cluster restart...")
         response_after = e2e_helper.call_mcp_tool(
             tool_name="test_echo",
             arguments={"message": "post-cluster-restart"},
         )
 
-        envelope_id_after = response_after["result"]["envelope_id"]
-        final_after = e2e_helper.wait_for_envelope_completion(envelope_id_after, timeout=60)
+        task_id_after = response_after["result"]["task_id"]
+        final_after = e2e_helper.wait_for_task_completion(task_id_after, timeout=60)
 
         assert final_after["status"] == "succeeded", \
             "System should fully recover after cluster-wide restart"

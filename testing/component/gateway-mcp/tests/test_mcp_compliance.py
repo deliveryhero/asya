@@ -258,14 +258,14 @@ class TestMCPProtocolVersions:
         assert "protocolVersion" in result["result"]
 
 
-class TestMCPEnvelopeIntegration:
-    """Test MCP integration with Asya envelope system."""
+class TestMCPTaskIntegration:
+    """Test MCP integration with Asya task system."""
 
-    def test_envelope_creation_from_tool_call(self, gateway_url, session):
-        """Test that tool calls create envelopes correctly."""
+    def test_task_creation_from_tool_call(self, gateway_url, session):
+        """Test that tool calls create tasks correctly."""
         request = {
             "name": "echo",
-            "arguments": {"message": "envelope test"}
+            "arguments": {"message": "task test"}
         }
 
         resp = session.post(f"{gateway_url}/tools/call", json=request)
@@ -276,12 +276,12 @@ class TestMCPEnvelopeIntegration:
 
         # Parse the JSON response
         data = json.loads(content_text)
-        assert "envelope_id" in data
+        assert "task_id" in data
         assert "status_url" in data
 
-        # Verify envelope exists
-        envelope_id = data["envelope_id"]
-        status_resp = session.get(f"{gateway_url}/envelopes/{envelope_id}")
+        # Verify task exists
+        task_id = data["task_id"]
+        status_resp = session.get(f"{gateway_url}/tasks/{task_id}")
         assert status_resp.status_code == 200
 
     def test_streaming_url_in_response(self, gateway_url, session):
@@ -299,7 +299,7 @@ class TestMCPEnvelopeIntegration:
             content_text = result["content"][0]["text"]
             data = json.loads(content_text)
 
-            assert "envelope_id" in data, f"Echo call {i} should return envelope_id"
+            assert "task_id" in data, f"Echo call {i} should return task_id"
             assert "status_url" in data, f"Echo call {i} should return status_url"
 
 

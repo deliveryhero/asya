@@ -13,7 +13,7 @@ import time
 import pytest
 import requests
 
-from asya_testing.utils.s3 import delete_all_objects_in_bucket, find_envelope_in_s3, wait_for_envelope_in_s3
+from asya_testing.utils.s3 import delete_all_objects_in_bucket, find_message_in_s3, wait_for_message_in_s3
 from asya_testing.config import require_env
 
 logger = logging.getLogger(__name__)
@@ -34,7 +34,7 @@ def cleanup_s3():
 
 
 def call_mcp_tool(tool_name: str, arguments: dict, timeout: int = 60) -> str:
-    """Call MCP tool and return envelope ID."""
+    """Call MCP tool and return task ID."""
     payload = {
         "name": tool_name,
         "arguments": arguments,
@@ -52,28 +52,28 @@ def call_mcp_tool(tool_name: str, arguments: dict, timeout: int = 60) -> str:
     # Parse response following the pattern from test_progress_standalone.py (which works)
     text_content = mcp_result["content"][0].get("text", "")
     response_data = json.loads(text_content)
-    envelope_id = response_data.get("envelope_id")
-    if not envelope_id:
-        raise ValueError(f"Could not extract envelope_id from response: {mcp_result}")
-    return envelope_id
+    task_id = response_data.get("task_id")
+    if not task_id:
+        raise ValueError(f"Could not extract task_id from response: {mcp_result}")
+    return task_id
 
 
-def get_envelope_status(envelope_id: str) -> dict:
-    """Get envelope status from gateway."""
-    response = requests.get(f"{ASYA_GATEWAY_URL}/envelopes/{envelope_id}", timeout=5)
+def get_task_status(task_id: str) -> dict:
+    """Get task status from gateway."""
+    response = requests.get(f"{ASYA_GATEWAY_URL}/tasks/{task_id}", timeout=5)
     response.raise_for_status()
     return response.json()
 
 
-def wait_for_completion(envelope_id: str, timeout: int = 60) -> dict:
-    """Wait for envelope to complete."""
+def wait_for_completion(task_id: str, timeout: int = 60) -> dict:
+    """Wait for task to complete."""
     start_time = time.time()
     while time.time() - start_time < timeout:
-        envelope = get_envelope_status(envelope_id)
-        if envelope["status"] in ["succeeded", "failed", "unknown"]:
-            return envelope
+        task = get_task_status(task_id)
+        if task["status"] in ["succeeded", "failed", "unknown"]:
+            return task
         time.sleep(0.5)
-    raise TimeoutError(f"Envelope {envelope_id} did not complete within {timeout}s")
+    raise TimeoutError(f"Task {task_id} did not complete within {timeout}s")
 
 
 def test_happy_end_persists_to_s3():
@@ -88,25 +88,25 @@ def test_happy_end_persists_to_s3():
     """
     logger.info("=== test_happy_end_persists_to_s3 ===")
 
-    envelope_id = call_mcp_tool("test_echo", {"message": "test s3 persistence"})
-    logger.info(f"Created envelope {envelope_id}")
+    task_id = call_mcp_tool("test_echo", {"message": "test s3 persistence"})
+    logger.info(f"Created task {task_id}")
 
-    final_envelope = wait_for_completion(envelope_id, timeout=60)
-    assert final_envelope["status"] == "succeeded", f"Envelope failed: {final_envelope}"
+    final_task = wait_for_completion(task_id, timeout=60)
+    assert final_task["status"] == "succeeded", f"Task failed: {final_task}"
 
-    logger.info(f"Envelope {envelope_id} completed successfully")
+    logger.info(f"Task {task_id} completed successfully")
 
-    s3_object = wait_for_envelope_in_s3(RESULTS_BUCKET, envelope_id, timeout=10)
+    s3_object = wait_for_message_in_s3(RESULTS_BUCKET, task_id, timeout=10)
 
-    assert s3_object is not None, f"Envelope {envelope_id} not found in {RESULTS_BUCKET}"
-    assert s3_object["id"] == envelope_id
+    assert s3_object is not None, f"Message {task_id} not found in {RESULTS_BUCKET}"
+    assert s3_object["id"] == task_id
     assert "route" in s3_object
     assert "payload" in s3_object
     assert isinstance(s3_object["route"], dict)
     assert "actors" in s3_object["route"]
     assert "current" in s3_object["route"]
 
-    logger.info(f"S3 envelope validated (saved as-is): {s3_object}")
+    logger.info(f"S3 message validated (saved as-is): {s3_object}")
     logger.info("=== test_happy_end_persists_to_s3: PASSED ===")
 
 
@@ -122,25 +122,25 @@ def test_error_end_persists_to_s3():
     """
     logger.info("=== test_error_end_persists_to_s3 ===")
 
-    envelope_id = call_mcp_tool("test_error", {"should_fail": True})
-    logger.info(f"Created envelope {envelope_id}")
+    task_id = call_mcp_tool("test_error", {"should_fail": True})
+    logger.info(f"Created task {task_id}")
 
-    final_envelope = wait_for_completion(envelope_id, timeout=60)
-    assert final_envelope["status"] == "failed", f"Expected failure but got: {final_envelope}"
+    final_task = wait_for_completion(task_id, timeout=60)
+    assert final_task["status"] == "failed", f"Expected failure but got: {final_task}"
 
-    logger.info(f"Envelope {envelope_id} failed as expected")
+    logger.info(f"Task {task_id} failed as expected")
 
-    s3_object = wait_for_envelope_in_s3(ERRORS_BUCKET, envelope_id, timeout=10)
+    s3_object = wait_for_message_in_s3(ERRORS_BUCKET, task_id, timeout=10)
 
-    assert s3_object is not None, f"Envelope {envelope_id} not found in {ERRORS_BUCKET}"
-    assert s3_object["id"] == envelope_id
+    assert s3_object is not None, f"Message {task_id} not found in {ERRORS_BUCKET}"
+    assert s3_object["id"] == task_id
     assert "route" in s3_object
     assert "payload" in s3_object
     assert isinstance(s3_object["route"], dict)
     assert "actors" in s3_object["route"]
     assert "current" in s3_object["route"]
 
-    logger.info(f"S3 error envelope validated (saved as-is): {s3_object}")
+    logger.info(f"S3 error message validated (saved as-is): {s3_object}")
     logger.info("=== test_error_end_persists_to_s3: PASSED ===")
 
 
@@ -156,18 +156,18 @@ def test_pipeline_result_persists_to_s3():
     """
     logger.info("=== test_pipeline_result_persists_to_s3 ===")
 
-    envelope_id = call_mcp_tool("test_pipeline", {"value": 10})
-    logger.info(f"Created pipeline envelope {envelope_id}")
+    task_id = call_mcp_tool("test_pipeline", {"value": 10})
+    logger.info(f"Created pipeline task {task_id}")
 
-    final_envelope = wait_for_completion(envelope_id, timeout=60)
-    assert final_envelope["status"] == "succeeded", f"Pipeline failed: {final_envelope}"
+    final_task = wait_for_completion(task_id, timeout=60)
+    assert final_task["status"] == "succeeded", f"Pipeline failed: {final_task}"
 
-    logger.info(f"Pipeline envelope {envelope_id} completed successfully")
+    logger.info(f"Pipeline task {task_id} completed successfully")
 
-    s3_object = wait_for_envelope_in_s3(RESULTS_BUCKET, envelope_id, timeout=10)
+    s3_object = wait_for_message_in_s3(RESULTS_BUCKET, task_id, timeout=10)
 
-    assert s3_object is not None, f"Envelope {envelope_id} not found in {RESULTS_BUCKET}"
-    assert s3_object["id"] == envelope_id
+    assert s3_object is not None, f"Message {task_id} not found in {RESULTS_BUCKET}"
+    assert s3_object["id"] == task_id
     assert "route" in s3_object
     assert "payload" in s3_object
     assert isinstance(s3_object["route"], dict)
@@ -176,5 +176,5 @@ def test_pipeline_result_persists_to_s3():
     # Verify route actors list contains the pipeline actors
     assert "test-doubler" in s3_object["route"]["actors"] or "test-incrementer" in s3_object["route"]["actors"]
 
-    logger.info(f"Pipeline S3 envelope validated (saved as-is): {s3_object}")
+    logger.info(f"Pipeline S3 message validated (saved as-is): {s3_object}")
     logger.info("=== test_pipeline_result_persists_to_s3: PASSED ===")

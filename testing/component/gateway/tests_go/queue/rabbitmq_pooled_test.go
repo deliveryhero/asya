@@ -23,20 +23,20 @@ func TestRabbitMQClientPooled_SendMessage(t *testing.T) {
 
 	ctx := context.Background()
 
-	job := &types.Envelope{
+	task := &types.Task{
 		ID: "test-job-1",
 		Route: types.Route{
 			Actors:  []string{"test-queue"},
 			Current: 0,
 		},
 		Payload: map[string]interface{}{
-			"envelope": "test",
+			"message": "test",
 		},
 	}
 
-	err = client.SendEnvelope(ctx, job)
+	err = client.SendMessage(ctx, task)
 	if err != nil {
-		t.Fatalf("Failed to send envelope: %v", err)
+		t.Fatalf("Failed to send message: %v", err)
 	}
 }
 
@@ -56,14 +56,14 @@ func TestRabbitMQClientPooled_ConcurrentSend(t *testing.T) {
 	var wg sync.WaitGroup
 	errors := make(chan error, numGoroutines*numMessages)
 
-	// Send many envelopes concurrently
+	// Send many messages concurrently
 	for i := 0; i < numGoroutines; i++ {
 		wg.Add(1)
 		go func(id int) {
 			defer wg.Done()
 
 			for j := 0; j < numMessages; j++ {
-				job := &types.Envelope{
+				task := &types.Task{
 					ID: fmt.Sprintf("job-%d-%d", id, j),
 					Route: types.Route{
 						Actors:  []string{"test-queue"},
@@ -71,11 +71,11 @@ func TestRabbitMQClientPooled_ConcurrentSend(t *testing.T) {
 					},
 					Payload: map[string]interface{}{
 						"goroutine": id,
-						"envelope":  j,
+						"message":   j,
 					},
 				}
 
-				if err := client.SendEnvelope(ctx, job); err != nil {
+				if err := client.SendMessage(ctx, task); err != nil {
 					errors <- err
 					return
 				}
@@ -109,21 +109,21 @@ func TestRabbitMQClientPooled_SendWithDeadline(t *testing.T) {
 	ctx := context.Background()
 
 	deadline := time.Now().Add(5 * time.Minute)
-	job := &types.Envelope{
+	task := &types.Task{
 		ID: "test-job-deadline",
 		Route: types.Route{
 			Actors:  []string{"test-queue"},
 			Current: 0,
 		},
 		Payload: map[string]interface{}{
-			"envelope": "test with deadline",
+			"message": "test with deadline",
 		},
 		Deadline: deadline,
 	}
 
-	err = client.SendEnvelope(ctx, job)
+	err = client.SendMessage(ctx, task)
 	if err != nil {
-		t.Fatalf("Failed to send envelope with deadline: %v", err)
+		t.Fatalf("Failed to send message with deadline: %v", err)
 	}
 }
 
@@ -137,7 +137,7 @@ func TestRabbitMQClientPooled_SendEmptyRoute(t *testing.T) {
 
 	ctx := context.Background()
 
-	job := &types.Envelope{
+	task := &types.Task{
 		ID: "test-job-empty-route",
 		Route: types.Route{
 			Actors:  []string{}, // Empty route
@@ -146,7 +146,7 @@ func TestRabbitMQClientPooled_SendEmptyRoute(t *testing.T) {
 		Payload: map[string]interface{}{},
 	}
 
-	err = client.SendEnvelope(ctx, job)
+	err = client.SendMessage(ctx, task)
 	if err == nil {
 		t.Error("Expected error for empty route, got nil")
 	}
@@ -164,7 +164,7 @@ func TestRabbitMQClientPooled_ContextCancellation(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	job := &types.Envelope{
+	task := &types.Task{
 		ID: "test-job-cancel",
 		Route: types.Route{
 			Actors:  []string{"test-queue"},
@@ -173,7 +173,7 @@ func TestRabbitMQClientPooled_ContextCancellation(t *testing.T) {
 		Payload: map[string]interface{}{},
 	}
 
-	err = client.SendEnvelope(ctx, job)
+	err = client.SendMessage(ctx, task)
 	if err == nil {
 		t.Error("Expected error with cancelled context")
 	}
@@ -194,7 +194,7 @@ func BenchmarkRabbitMQClientPooled_Send(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		i := 0
 		for pb.Next() {
-			job := &types.Envelope{
+			task := &types.Task{
 				ID: fmt.Sprintf("bench-job-%d", i),
 				Route: types.Route{
 					Actors:  []string{"bench-queue"},
@@ -205,7 +205,7 @@ func BenchmarkRabbitMQClientPooled_Send(b *testing.B) {
 				},
 			}
 
-			if err := client.SendEnvelope(ctx, job); err != nil {
+			if err := client.SendMessage(ctx, task); err != nil {
 				b.Fatal(err)
 			}
 			i++
@@ -227,7 +227,7 @@ func BenchmarkRabbitMQClient_SendWithMutex(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		i := 0
 		for pb.Next() {
-			job := &types.Envelope{
+			task := &types.Task{
 				ID: fmt.Sprintf("bench-job-%d", i),
 				Route: types.Route{
 					Actors:  []string{"bench-queue"},
@@ -238,7 +238,7 @@ func BenchmarkRabbitMQClient_SendWithMutex(b *testing.B) {
 				},
 			}
 
-			if err := client.SendEnvelope(ctx, job); err != nil {
+			if err := client.SendMessage(ctx, task); err != nil {
 				b.Fatal(err)
 			}
 			i++

@@ -7,6 +7,7 @@ metadata:
   name: llm-actor
   namespace: default
 spec:
+  actor: llm-actor
   transport: rabbitmq
 
   scaling:

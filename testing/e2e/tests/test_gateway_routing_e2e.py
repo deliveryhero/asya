@@ -9,7 +9,7 @@ Tests gateway functionality in a real Kubernetes environment:
 - MCP SSE streaming robustness
 - Gateway restart resilience
 - Tool parameter validation
-- Envelope lifecycle tracking
+- Task lifecycle tracking
 
 These tests verify the gateway handles real-world routing scenarios correctly.
 """
@@ -27,27 +27,27 @@ logger = logging.getLogger(__name__)
 
 @pytest.mark.chaos
 @pytest.mark.xdist_group(name="chaos")
-@pytest.mark.skip(reason="Gateway restart causes envelope timeout - timing issue in test environment")
+@pytest.mark.skip(reason="Gateway restart causes task timeout - timing issue in test environment")
 def test_gateway_restart_during_processing(e2e_helper):
     """
-    E2E: Test gateway restart while envelopes are being processed.
+    E2E: Test gateway restart while messages are being processed.
 
     Scenario:
-    1. Send envelope to slow actor (1.5s processing)
+    1. Send message to slow actor (1.5s processing)
     2. Restart gateway pod immediately
-    3. Envelope continues processing
-    4. Can still query envelope status after restart
+    3. Message continues processing
+    4. Can still query task status after restart
 
-    Expected: Gateway stateless, envelope processing continues
+    Expected: Gateway stateless, message processing continues
     """
-    logger.info("Sending envelope to slow actor...")
+    logger.info("Sending message to slow actor...")
     response = e2e_helper.call_mcp_tool(
         tool_name="test_slow_boundary",
         arguments={"first_call": True},
     )
 
-    envelope_id = response["result"]["envelope_id"]
-    logger.info(f"Envelope ID: {envelope_id}")
+    task_id = response["result"]["task_id"]
+    logger.info(f"Task ID: {task_id}")
 
     time.sleep(0.5)
 
@@ -74,13 +74,13 @@ def test_gateway_restart_during_processing(e2e_helper):
 
             time.sleep(2)
 
-    logger.info("Checking if envelope status is still accessible...")
-    envelope = e2e_helper.get_envelope_status(envelope_id)
-    logger.info(f"Envelope status after restart: {envelope['status']}")
+    logger.info("Checking if task status is still accessible...")
+    task = e2e_helper.get_task_status(task_id)
+    logger.info(f"Task status after restart: {task['status']}")
 
-    final_envelope = e2e_helper.wait_for_envelope_completion(envelope_id, timeout=120)
-    assert final_envelope["status"] == "succeeded", \
-        "Envelope should complete successfully despite gateway restart"
+    final_task = e2e_helper.wait_for_task_completion(task_id, timeout=120)
+    assert final_task["status"] == "succeeded", \
+        "Task should complete successfully despite gateway restart"
 
     logger.info("[+] Gateway restart handled gracefully")
 
@@ -91,9 +91,9 @@ def test_concurrent_different_routes(e2e_helper):
     E2E: Test concurrent requests to different routes.
 
     Scenario:
-    1. Send 5 envelopes to test-echo concurrently
-    2. Send 5 envelopes to test-pipeline concurrently
-    3. Send 5 envelopes to test-fanout concurrently
+    1. Send 5 messages to test-echo concurrently
+    2. Send 5 messages to test-pipeline concurrently
+    3. Send 5 messages to test-fanout concurrently
     4. All should complete independently
 
     Expected: No route cross-contamination
@@ -109,8 +109,8 @@ def test_concurrent_different_routes(e2e_helper):
                 tool_name="test_echo",
                 arguments={"message": f"echo-{index}"},
             )
-            envelope_id = response["result"]["envelope_id"]
-            final = e2e_helper.wait_for_envelope_completion(envelope_id, timeout=60)
+            task_id = response["result"]["task_id"]
+            final = e2e_helper.wait_for_task_completion(task_id, timeout=60)
             with locks["echo"]:
                 results["echo"].append((index, final))
         except Exception as e:
@@ -122,8 +122,8 @@ def test_concurrent_different_routes(e2e_helper):
                 tool_name="test_pipeline",
                 arguments={"value": index},
             )
-            envelope_id = response["result"]["envelope_id"]
-            final = e2e_helper.wait_for_envelope_completion(envelope_id, timeout=60)
+            task_id = response["result"]["task_id"]
+            final = e2e_helper.wait_for_task_completion(task_id, timeout=60)
             with locks["pipeline"]:
                 results["pipeline"].append((index, final))
         except Exception as e:
@@ -135,8 +135,8 @@ def test_concurrent_different_routes(e2e_helper):
                 tool_name="test_fanout",
                 arguments={"count": 3},
             )
-            envelope_id = response["result"]["envelope_id"]
-            final = e2e_helper.wait_for_envelope_completion(envelope_id, timeout=90)
+            task_id = response["result"]["task_id"]
+            final = e2e_helper.wait_for_task_completion(task_id, timeout=90)
             with locks["fanout"]:
                 results["fanout"].append((index, final))
         except Exception as e:
@@ -159,14 +159,14 @@ def test_concurrent_different_routes(e2e_helper):
     assert len(results["pipeline"]) == 5, f"Should have 5 pipeline results, got {len(results['pipeline'])}"
     assert len(results["fanout"]) == 5, f"Should have 5 fanout results, got {len(results['fanout'])}"
 
-    for idx, envelope in results["echo"]:
-        assert envelope["status"] == "succeeded", f"Echo {idx} should succeed"
+    for idx, task in results["echo"]:
+        assert task["status"] == "succeeded", f"Echo {idx} should succeed"
 
-    for idx, envelope in results["pipeline"]:
-        assert envelope["status"] == "succeeded", f"Pipeline {idx} should succeed"
+    for idx, task in results["pipeline"]:
+        assert task["status"] == "succeeded", f"Pipeline {idx} should succeed"
 
-    for idx, envelope in results["fanout"]:
-        assert envelope["status"] == "succeeded", f"Fanout {idx} should succeed"
+    for idx, task in results["fanout"]:
+        assert task["status"] == "succeeded", f"Fanout {idx} should succeed"
 
     logger.info("[+] All concurrent routes processed independently")
 
@@ -196,31 +196,31 @@ def test_mcp_tool_parameter_validation(e2e_helper):
 
 
 @pytest.mark.fast
-def test_envelope_status_history(e2e_helper):
+def test_task_status_history(e2e_helper):
     """
-    E2E: Test envelope status tracking through lifecycle.
+    E2E: Test task status tracking through lifecycle.
 
     Scenario:
-    1. Send envelope through multi-hop route
+    1. Send message through multi-hop route
     2. Poll status at different stages
     3. Verify status progression: pending → processing → succeeded
 
     Expected: Status accurately reflects current state
     """
-    logger.info("Sending multi-hop envelope...")
+    logger.info("Sending multi-hop message...")
     response = e2e_helper.call_mcp_tool(
         tool_name="test_pipeline",
         arguments={"value": 10},
     )
 
-    envelope_id = response["result"]["envelope_id"]
+    task_id = response["result"]["task_id"]
     statuses_seen = set()
 
-    logger.info("Polling envelope status during processing...")
+    logger.info("Polling task status during processing...")
     start_time = time.time()
     while time.time() - start_time < 45:
-        envelope = e2e_helper.get_envelope_status(envelope_id)
-        status = envelope["status"]
+        task = e2e_helper.get_task_status(task_id)
+        status = task["status"]
         statuses_seen.add(status)
 
         logger.debug(f"Current status: {status}")
@@ -235,7 +235,7 @@ def test_envelope_status_history(e2e_helper):
     assert "succeeded" in statuses_seen or "failed" in statuses_seen, \
         "Should reach terminal status"
 
-    logger.info("[+] Envelope status tracking verified")
+    logger.info("[+] Task status tracking verified")
 
 
 @pytest.mark.fast
@@ -244,23 +244,23 @@ def test_sse_streaming_with_slow_actor(e2e_helper):
     E2E: Test SSE streaming with slow actor processing.
 
     Scenario:
-    1. Send envelope to slow actor
+    1. Send message to slow actor
     2. Stream progress updates via SSE
     3. Verify updates received in real-time
     4. Verify final status in stream
 
     Expected: SSE provides real-time updates
     """
-    logger.info("Sending envelope to slow actor...")
+    logger.info("Sending message to slow actor...")
     response = e2e_helper.call_mcp_tool(
         tool_name="test_slow_boundary",
         arguments={"first_call": True},
     )
 
-    envelope_id = response["result"]["envelope_id"]
+    task_id = response["result"]["task_id"]
 
     logger.info("Starting SSE stream...")
-    updates = e2e_helper.stream_envelope_progress(envelope_id, timeout=120)
+    updates = e2e_helper.stream_task_progress(task_id, timeout=120)
 
     logger.info(f"Received {len(updates)} SSE updates")
 
@@ -279,32 +279,32 @@ def test_http_polling_vs_sse_consistency(e2e_helper):
     E2E: Test HTTP polling and SSE give consistent results.
 
     Scenario:
-    1. Send two identical envelopes
+    1. Send two identical messages
     2. Monitor one via HTTP polling
     3. Monitor one via SSE streaming
     4. Compare final results
 
     Expected: Both methods give same final state
     """
-    logger.info("Sending two identical envelopes...")
+    logger.info("Sending two identical messages...")
 
     response1 = e2e_helper.call_mcp_tool(
         tool_name="test_echo",
         arguments={"message": "consistency-test-1"},
     )
-    envelope_id_1 = response1["result"]["envelope_id"]
+    task_id_1 = response1["result"]["task_id"]
 
     response2 = e2e_helper.call_mcp_tool(
         tool_name="test_echo",
         arguments={"message": "consistency-test-2"},
     )
-    envelope_id_2 = response2["result"]["envelope_id"]
+    task_id_2 = response2["result"]["task_id"]
 
-    logger.info("Monitoring envelope 1 via HTTP polling...")
-    http_updates = e2e_helper.poll_envelope_progress(envelope_id_1, timeout=30)
+    logger.info("Monitoring task 1 via HTTP polling...")
+    http_updates = e2e_helper.poll_task_progress(task_id_1, timeout=30)
 
-    logger.info("Monitoring envelope 2 via SSE streaming...")
-    sse_updates = e2e_helper.stream_envelope_progress(envelope_id_2, timeout=30)
+    logger.info("Monitoring task 2 via SSE streaming...")
+    sse_updates = e2e_helper.stream_task_progress(task_id_2, timeout=30)
 
     logger.info(f"HTTP updates: {len(http_updates)}, SSE updates: {len(sse_updates)}")
 
@@ -321,32 +321,32 @@ def test_http_polling_vs_sse_consistency(e2e_helper):
 
 
 @pytest.mark.fast
-def test_envelope_timeout_tracking(e2e_helper):
+def test_task_timeout_tracking(e2e_helper):
     """
-    E2E: Test envelope timeout is properly tracked.
+    E2E: Test task timeout is properly tracked.
 
     Scenario:
-    1. Send envelope with short timeout to slow actor
+    1. Send message with short timeout to slow actor
     2. Monitor status
     3. Verify timeout is detected and handled
 
-    Expected: Envelope status reflects timeout
+    Expected: Task status reflects timeout
     """
-    logger.info("Sending envelope with timeout...")
+    logger.info("Sending message with timeout...")
     response = e2e_helper.call_mcp_tool(
         tool_name="test_timeout",
         arguments={"sleep_seconds": 60},
     )
 
-    envelope_id = response["result"]["envelope_id"]
+    task_id = response["result"]["task_id"]
 
-    logger.info("Waiting for envelope to process (should timeout)...")
-    final_envelope = e2e_helper.wait_for_envelope_completion(envelope_id, timeout=180)
+    logger.info("Waiting for task to process (should timeout)...")
+    final_task = e2e_helper.wait_for_task_completion(task_id, timeout=180)
 
-    logger.info(f"Final status: {final_envelope['status']}")
+    logger.info(f"Final status: {final_task['status']}")
 
-    assert final_envelope["status"] in ["failed", "succeeded"], \
-        "Envelope should complete (timeout or success after retry)"
+    assert final_task["status"] in ["failed", "succeeded"], \
+        "Task should complete (timeout or success after retry)"
 
     logger.info("[+] Timeout handling verified")
 
@@ -372,19 +372,19 @@ def test_gateway_health_check(e2e_helper, gateway_url):
 
 
 @pytest.mark.fast
-def test_envelope_creation_rate_limit(e2e_helper):
+def test_task_creation_rate_limit(e2e_helper):
     """
-    E2E: Test rapid envelope creation doesn't overwhelm gateway.
+    E2E: Test rapid task creation doesn't overwhelm gateway.
 
     Scenario:
-    1. Create 50 envelopes as fast as possible
+    1. Create 50 tasks as fast as possible
     2. All should be accepted
     3. All should eventually complete
 
     Expected: Gateway handles burst creation
     """
-    logger.info("Creating 50 envelopes rapidly...")
-    envelope_ids = []
+    logger.info("Creating 50 tasks rapidly...")
+    task_ids = []
 
     for i in range(50):
         try:
@@ -392,24 +392,24 @@ def test_envelope_creation_rate_limit(e2e_helper):
                 tool_name="test_echo",
                 arguments={"message": f"burst-{i}"},
             )
-            envelope_ids.append(response["result"]["envelope_id"])
+            task_ids.append(response["result"]["task_id"])
         except Exception as e:
-            logger.warning(f"Failed to create envelope {i}: {e}")
+            logger.warning(f"Failed to create task {i}: {e}")
 
-    logger.info(f"Created {len(envelope_ids)} envelopes")
-    assert len(envelope_ids) >= 45, f"Should create at least 45/50 envelopes, got {len(envelope_ids)}"
+    logger.info(f"Created {len(task_ids)} tasks")
+    assert len(task_ids) >= 45, f"Should create at least 45/50 tasks, got {len(task_ids)}"
 
-    logger.info("Waiting for sample envelopes to complete...")
+    logger.info("Waiting for sample tasks to complete...")
     completed = 0
-    for envelope_id in envelope_ids[:10]:
+    for task_id in task_ids[:10]:
         try:
-            final = e2e_helper.wait_for_envelope_completion(envelope_id, timeout=30)
+            final = e2e_helper.wait_for_task_completion(task_id, timeout=30)
             if final["status"] == "succeeded":
                 completed += 1
         except Exception as e:
-            logger.warning(f"Envelope failed: {e}")
+            logger.warning(f"Task failed: {e}")
 
-    assert completed >= 8, f"At least 8/10 sample envelopes should complete, got {completed}"
+    assert completed >= 8, f"At least 8/10 sample tasks should complete, got {completed}"
 
     logger.info("[+] Gateway handled burst creation")
 

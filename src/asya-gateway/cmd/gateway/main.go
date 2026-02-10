@@ -15,9 +15,9 @@ import (
 	mcpserver "github.com/mark3labs/mcp-go/server"
 
 	"github.com/deliveryhero/asya/asya-gateway/internal/config"
-	"github.com/deliveryhero/asya/asya-gateway/internal/envelopestore"
 	"github.com/deliveryhero/asya/asya-gateway/internal/mcp"
 	"github.com/deliveryhero/asya/asya-gateway/internal/queue"
+	"github.com/deliveryhero/asya/asya-gateway/internal/taskstore"
 )
 
 func main() {
@@ -52,20 +52,20 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// Initialize envelope store (PostgreSQL or in-memory)
-	var envelopeStore envelopestore.EnvelopeStore
+	// Initialize task store (PostgreSQL or in-memory)
+	var taskStore taskstore.TaskStore
 	if dbURL != "" {
-		slog.Info("Using PostgreSQL envelope store")
-		pgStore, err := envelopestore.NewPgStore(ctx, dbURL)
+		slog.Info("Using PostgreSQL task store")
+		pgStore, err := taskstore.NewPgStore(ctx, dbURL)
 		if err != nil {
 			slog.Error("Failed to create PostgreSQL store", "error", err)
 			os.Exit(1)
 		}
 		defer pgStore.Close()
-		envelopeStore = pgStore
+		taskStore = pgStore
 	} else {
-		slog.Info("Using in-memory envelope store (not recommended for production)")
-		envelopeStore = envelopestore.NewStore()
+		slog.Info("Using in-memory task store (not recommended for production)")
+		taskStore = taskstore.NewStore()
 	}
 
 	// Initialize queue client (RabbitMQ or SQS)
@@ -131,11 +131,11 @@ func main() {
 	}
 
 	// Create MCP server with mark3labs/mcp-go (minimal boilerplate!)
-	mcpServer := mcp.NewServer(envelopeStore, queueClient, toolConfig)
+	mcpServer := mcp.NewServer(taskStore, queueClient, toolConfig)
 
-	// Create envelope handler for custom endpoints
-	envelopeHandler := mcp.NewHandler(envelopeStore)
-	envelopeHandler.SetServer(mcpServer) // For REST tool calls
+	// Create task handler for custom endpoints
+	taskHandler := mcp.NewHandler(taskStore)
+	taskHandler.SetServer(mcpServer) // For REST tool calls
 
 	// Setup routes
 	mux := http.NewServeMux()
@@ -147,25 +147,25 @@ func main() {
 	mux.Handle("/mcp/sse", mcpserver.NewSSEServer(mcpServer.GetMCPServer()))
 
 	// REST endpoint for tool calls (simpler alternative to SSE-based MCP)
-	mux.HandleFunc("/tools/call", envelopeHandler.HandleToolCall)
+	mux.HandleFunc("/tools/call", taskHandler.HandleToolCall)
 
-	// Envelope status endpoints (custom functionality)
-	mux.HandleFunc("/envelopes/", func(w http.ResponseWriter, r *http.Request) {
+	// Task status endpoints (custom functionality)
+	mux.HandleFunc("/tasks/", func(w http.ResponseWriter, r *http.Request) {
 		if strings.HasSuffix(r.URL.Path, "/stream") {
-			envelopeHandler.HandleEnvelopeStream(w, r)
+			taskHandler.HandleTaskStream(w, r)
 		} else if strings.HasSuffix(r.URL.Path, "/active") {
-			envelopeHandler.HandleEnvelopeActive(w, r)
+			taskHandler.HandleTaskActive(w, r)
 		} else if strings.HasSuffix(r.URL.Path, "/progress") {
-			envelopeHandler.HandleEnvelopeProgress(w, r)
+			taskHandler.HandleTaskProgress(w, r)
 		} else if strings.HasSuffix(r.URL.Path, "/final") {
-			envelopeHandler.HandleEnvelopeFinal(w, r)
+			taskHandler.HandleTaskFinal(w, r)
 		} else {
-			envelopeHandler.HandleEnvelopeStatus(w, r)
+			taskHandler.HandleTaskStatus(w, r)
 		}
 	})
 
-	// Envelope creation endpoint (for fanout child envelopes from sidecar)
-	mux.HandleFunc("/envelopes", envelopeHandler.HandleEnvelopeCreate)
+	// Task creation endpoint (for fanout child tasks from sidecar)
+	mux.HandleFunc("/tasks", taskHandler.HandleTaskCreate)
 
 	// Health check
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
@@ -188,11 +188,11 @@ func main() {
 		slog.Info("MCP endpoint (streamable HTTP): POST /mcp (recommended)")
 		slog.Info("MCP endpoint (SSE): /mcp/sse (deprecated, for backward compatibility)")
 		slog.Info("REST tool endpoint: POST /tools/call (simple JSON API)")
-		slog.Info("Envelope status: GET /envelopes/{id}")
-		slog.Info("Envelope stream: GET /envelopes/{id}/stream (SSE)")
-		slog.Info("Envelope active check: GET /envelopes/{id}/active (for actors)")
-		slog.Info("Envelope progress: POST /envelopes/{id}/progress (from sidecar)")
-		slog.Info("Envelope final status: POST /envelopes/{id}/final (for end actors)")
+		slog.Info("Task status: GET /tasks/{id}")
+		slog.Info("Task stream: GET /tasks/{id}/stream (SSE)")
+		slog.Info("Task active check: GET /tasks/{id}/active (for actors)")
+		slog.Info("Task progress: POST /tasks/{id}/progress (from sidecar)")
+		slog.Info("Task final status: POST /tasks/{id}/final (for end actors)")
 
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			slog.Error("Server failed", "error", err)

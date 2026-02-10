@@ -117,12 +117,12 @@ def test_operator_recreates_deleted_actor_queue_e2e(e2e_helper, chaos_queues, na
         tool_name="test_echo",
         arguments={"message": "chaos-test-recovery"},
     )
-    envelope_id = response["result"]["envelope_id"]
-    logger.info(f"Envelope ID: {envelope_id}")
+    task_id = response["result"]["task_id"]
+    logger.info(f"Task ID: {task_id}")
 
-    final_envelope = e2e_helper.wait_for_envelope_completion(envelope_id, timeout=60)
-    assert final_envelope["status"] == "succeeded", "Actor should process messages after queue recreation"
-    assert final_envelope["payload"]["message"] == "chaos-test-recovery", \
+    final_task = e2e_helper.wait_for_task_completion(task_id, timeout=60)
+    assert final_task["status"] == "succeeded", "Actor should process messages after queue recreation"
+    assert final_task["payload"]["message"] == "chaos-test-recovery", \
         "Actor should return correct payload after recovery"
 
     logger.info("[+] Chaos test passed - operator recreated queue and actor recovered")
@@ -193,12 +193,12 @@ def test_operator_recreates_deleted_system_queue_e2e(e2e_helper, chaos_queues, n
         tool_name="test_queue_health",
         arguments={"data": "chaos-test-recovery"},
     )
-    envelope_id = response["result"]["envelope_id"]
-    logger.info(f"Envelope ID: {envelope_id}")
+    task_id = response["result"]["task_id"]
+    logger.info(f"Task ID: {task_id}")
 
-    final_envelope = e2e_helper.wait_for_envelope_completion(envelope_id, timeout=60)
-    assert final_envelope["status"] == "succeeded", "Actor should work after queue recreation"
-    assert final_envelope["payload"]["data"] == "chaos-test-recovery", \
+    final_task = e2e_helper.wait_for_task_completion(task_id, timeout=60)
+    assert final_task["status"] == "succeeded", "Actor should work after queue recreation"
+    assert final_task["payload"]["data"] == "chaos-test-recovery", \
         "Actor should return correct payload after recovery"
 
     logger.info("[+] Queue chaos test passed - queue recreated and actor functional")
@@ -281,11 +281,11 @@ def test_multiple_queue_deletions_e2e(e2e_helper, chaos_queues, namespace):
         tool_name="test_echo",
         arguments={"message": "mass-recovery-test"},
     )
-    envelope_id = response["result"]["envelope_id"]
-    logger.info(f"Envelope ID: {envelope_id}")
+    task_id = response["result"]["task_id"]
+    logger.info(f"Task ID: {task_id}")
 
-    final_envelope = e2e_helper.wait_for_envelope_completion(envelope_id, timeout=60)
-    assert final_envelope["status"] == "succeeded", "Actors should work after mass queue recreation"
+    final_task = e2e_helper.wait_for_task_completion(task_id, timeout=60)
+    assert final_task["status"] == "succeeded", "Actors should work after mass queue recreation"
     logger.info("[+] Mass deletion chaos test passed - all queues recreated, actors functional")
 
 
@@ -329,8 +329,8 @@ def test_queue_deletion_during_processing_e2e(e2e_helper, chaos_queues, namespac
         tool_name="test_echo",
         arguments={"message": "processing-chaos-test"},
     )
-    envelope_id = response["result"]["envelope_id"]
-    logger.info(f"[+] Message sent, envelope ID: {envelope_id}")
+    task_id = response["result"]["task_id"]
+    logger.info(f"[+] Message sent, task ID: {task_id}")
 
     logger.info("[2/4] Deleting queue during/after processing")
     transport_client.delete_queue(queue_name)
@@ -359,10 +359,10 @@ def test_queue_deletion_during_processing_e2e(e2e_helper, chaos_queues, namespac
         tool_name="test_echo",
         arguments={"message": "post-chaos-test"},
     )
-    envelope_id = response["result"]["envelope_id"]
-    logger.info(f"Envelope ID: {envelope_id}")
+    task_id = response["result"]["task_id"]
+    logger.info(f"Task ID: {task_id}")
 
-    final_envelope = e2e_helper.wait_for_envelope_completion(envelope_id, timeout=60)
-    assert final_envelope["status"] == "succeeded", "Actor should process messages after queue recreation"
+    final_task = e2e_helper.wait_for_task_completion(task_id, timeout=60)
+    assert final_task["status"] == "succeeded", "Actor should process messages after queue recreation"
 
     logger.info("[+] Processing chaos test passed - queue recreated, actor functional")

@@ -10,12 +10,12 @@ import (
 	mcpserver "github.com/mark3labs/mcp-go/server"
 
 	"github.com/deliveryhero/asya/asya-gateway/internal/config"
-	"github.com/deliveryhero/asya/asya-gateway/internal/envelopestore"
+	"github.com/deliveryhero/asya/asya-gateway/internal/taskstore"
 )
 
 // TestTransport_StreamableHTTP_Initialize tests streamable HTTP transport initialization
 func TestTransport_StreamableHTTP_Initialize(t *testing.T) {
-	jobStore := envelopestore.NewStore()
+	taskStore := taskstore.NewStore()
 	queueClient := &MockQueueClient{}
 
 	cfg := &config.Config{
@@ -31,7 +31,7 @@ func TestTransport_StreamableHTTP_Initialize(t *testing.T) {
 		},
 	}
 
-	mcpSrv := NewServer(jobStore, queueClient, cfg)
+	mcpSrv := NewServer(taskStore, queueClient, cfg)
 	handler := mcpserver.NewStreamableHTTPServer(mcpSrv.GetMCPServer())
 
 	server := httptest.NewServer(handler)
@@ -92,7 +92,7 @@ func TestTransport_StreamableHTTP_Initialize(t *testing.T) {
 
 // TestTransport_SSE_ServerCreation tests SSE server can be created and mounted
 func TestTransport_SSE_ServerCreation(t *testing.T) {
-	jobStore := envelopestore.NewStore()
+	taskStore := taskstore.NewStore()
 	queueClient := &MockQueueClient{}
 
 	cfg := &config.Config{
@@ -108,7 +108,7 @@ func TestTransport_SSE_ServerCreation(t *testing.T) {
 		},
 	}
 
-	mcpSrv := NewServer(jobStore, queueClient, cfg)
+	mcpSrv := NewServer(taskStore, queueClient, cfg)
 	sseServer := mcpserver.NewSSEServer(mcpSrv.GetMCPServer())
 
 	if sseServer == nil {
@@ -125,7 +125,7 @@ func TestTransport_SSE_ServerCreation(t *testing.T) {
 
 // TestTransport_DualEndpoints tests both transports can coexist
 func TestTransport_DualEndpoints(t *testing.T) {
-	jobStore := envelopestore.NewStore()
+	taskStore := taskstore.NewStore()
 	queueClient := &MockQueueClient{}
 
 	cfg := &config.Config{
@@ -141,7 +141,7 @@ func TestTransport_DualEndpoints(t *testing.T) {
 		},
 	}
 
-	mcpSrv := NewServer(jobStore, queueClient, cfg)
+	mcpSrv := NewServer(taskStore, queueClient, cfg)
 
 	// Create both transport handlers
 	streamableHandler := mcpserver.NewStreamableHTTPServer(mcpSrv.GetMCPServer())
@@ -183,7 +183,7 @@ func TestTransport_DualEndpoints(t *testing.T) {
 
 // TestTransport_StreamableHTTP_ToolsList tests tools/list via streamable HTTP
 func TestTransport_StreamableHTTP_ToolsList(t *testing.T) {
-	jobStore := envelopestore.NewStore()
+	taskStore := taskstore.NewStore()
 	queueClient := &MockQueueClient{}
 
 	cfg := &config.Config{
@@ -207,7 +207,7 @@ func TestTransport_StreamableHTTP_ToolsList(t *testing.T) {
 		},
 	}
 
-	mcpSrv := NewServer(jobStore, queueClient, cfg)
+	mcpSrv := NewServer(taskStore, queueClient, cfg)
 
 	// Verify tools are registered in the server
 	tools := mcpSrv.GetMCPServer().ListTools()
@@ -229,7 +229,7 @@ func TestTransport_StreamableHTTP_ToolsList(t *testing.T) {
 
 // TestTransport_ContentTypes tests correct content-type handling
 func TestTransport_ContentTypes(t *testing.T) {
-	jobStore := envelopestore.NewStore()
+	taskStore := taskstore.NewStore()
 	queueClient := &MockQueueClient{}
 
 	cfg := &config.Config{
@@ -245,7 +245,7 @@ func TestTransport_ContentTypes(t *testing.T) {
 		},
 	}
 
-	mcpSrv := NewServer(jobStore, queueClient, cfg)
+	mcpSrv := NewServer(taskStore, queueClient, cfg)
 	handler := mcpserver.NewStreamableHTTPServer(mcpSrv.GetMCPServer())
 
 	server := httptest.NewServer(handler)

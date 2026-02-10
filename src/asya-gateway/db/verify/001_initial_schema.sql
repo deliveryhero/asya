@@ -4,18 +4,18 @@ BEGIN;
 
 -- Verify tables exist
 SELECT id, status, route_actors, route_current, payload, result, error, timeout_sec, deadline, created_at, updated_at
-FROM envelopes WHERE FALSE;
+FROM tasks WHERE FALSE;
 
-SELECT id, envelope_id, status, message, result, error, timestamp
-FROM envelope_updates WHERE FALSE;
+SELECT id, task_id, status, message, result, error, timestamp
+FROM task_updates WHERE FALSE;
 
 -- Verify indexes exist
-SELECT 1/COUNT(*) FROM pg_indexes WHERE tablename = 'envelopes' AND indexname = 'idx_envelopes_status';
-SELECT 1/COUNT(*) FROM pg_indexes WHERE tablename = 'envelopes' AND indexname = 'idx_envelopes_created_at';
-SELECT 1/COUNT(*) FROM pg_indexes WHERE tablename = 'envelopes' AND indexname = 'idx_envelopes_updated_at';
-SELECT 1/COUNT(*) FROM pg_indexes WHERE tablename = 'envelopes' AND indexname = 'idx_envelopes_deadline';
-SELECT 1/COUNT(*) FROM pg_indexes WHERE tablename = 'envelope_updates' AND indexname = 'idx_envelope_updates_envelope_id';
-SELECT 1/COUNT(*) FROM pg_indexes WHERE tablename = 'envelope_updates' AND indexname = 'idx_envelope_updates_timestamp';
+SELECT 1/COUNT(*) FROM pg_indexes WHERE tablename = 'tasks' AND indexname = 'idx_tasks_status';
+SELECT 1/COUNT(*) FROM pg_indexes WHERE tablename = 'tasks' AND indexname = 'idx_tasks_created_at';
+SELECT 1/COUNT(*) FROM pg_indexes WHERE tablename = 'tasks' AND indexname = 'idx_tasks_updated_at';
+SELECT 1/COUNT(*) FROM pg_indexes WHERE tablename = 'tasks' AND indexname = 'idx_tasks_deadline';
+SELECT 1/COUNT(*) FROM pg_indexes WHERE tablename = 'task_updates' AND indexname = 'idx_task_updates_task_id';
+SELECT 1/COUNT(*) FROM pg_indexes WHERE tablename = 'task_updates' AND indexname = 'idx_task_updates_timestamp';
 
 -- Verify function exists
 SELECT 1/COUNT(*) FROM pg_proc WHERE proname = 'update_updated_at_column';

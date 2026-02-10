@@ -28,50 +28,50 @@ spec:
       done
       echo "[+] Database is reachable"
 
-      # Check if envelopes table exists with correct schema
-      echo "[.] Verifying envelopes table..."
-      ENVELOPES_EXISTS=$(psql -h {{ include "asya-gateway.databaseHost" . }} \
-                              -p {{ include "asya-gateway.databasePort" . }} \
-                              -U {{ include "asya-gateway.databaseUsername" . }} \
-                              -d {{ include "asya-gateway.databaseName" . }} \
-                              -tAc "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='public' AND table_name='envelopes'")
+      # Check if tasks table exists with correct schema
+      echo "[.] Verifying tasks table..."
+      TASKS_EXISTS=$(psql -h {{ include "asya-gateway.databaseHost" . }} \
+                          -p {{ include "asya-gateway.databasePort" . }} \
+                          -U {{ include "asya-gateway.databaseUsername" . }} \
+                          -d {{ include "asya-gateway.databaseName" . }} \
+                          -tAc "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='public' AND table_name='tasks'")
 
-      if [ "$ENVELOPES_EXISTS" -ne 1 ]; then
-        echo "[-] envelopes table does not exist!"
+      if [ "$TASKS_EXISTS" -ne 1 ]; then
+        echo "[-] tasks table does not exist!"
         exit 1
       fi
-      echo "[+] envelopes table exists"
+      echo "[+] tasks table exists"
 
-      # Check if envelope_updates table exists
-      echo "[.] Verifying envelope_updates table..."
+      # Check if task_updates table exists
+      echo "[.] Verifying task_updates table..."
       UPDATES_EXISTS=$(psql -h {{ include "asya-gateway.databaseHost" . }} \
                             -p {{ include "asya-gateway.databasePort" . }} \
                             -U {{ include "asya-gateway.databaseUsername" . }} \
                             -d {{ include "asya-gateway.databaseName" . }} \
-                            -tAc "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='public' AND table_name='envelope_updates'")
+                            -tAc "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='public' AND table_name='task_updates'")
 
       if [ "$UPDATES_EXISTS" -ne 1 ]; then
-        echo "[-] envelope_updates table does not exist!"
+        echo "[-] task_updates table does not exist!"
         exit 1
       fi
-      echo "[+] envelope_updates table exists"
+      echo "[+] task_updates table exists"
 
-      # Verify critical columns in envelopes table
-      echo "[.] Verifying envelopes table schema..."
+      # Verify critical columns in tasks table
+      echo "[.] Verifying tasks table schema..."
       REQUIRED_COLUMNS="id status route_actors route_current created_at updated_at"
       for col in $REQUIRED_COLUMNS; do
         COL_EXISTS=$(psql -h {{ include "asya-gateway.databaseHost" . }} \
                           -p {{ include "asya-gateway.databasePort" . }} \
                           -U {{ include "asya-gateway.databaseUsername" . }} \
                           -d {{ include "asya-gateway.databaseName" . }} \
-                          -tAc "SELECT COUNT(*) FROM information_schema.columns WHERE table_schema='public' AND table_name='envelopes' AND column_name='$col'")
+                          -tAc "SELECT COUNT(*) FROM information_schema.columns WHERE table_schema='public' AND table_name='tasks' AND column_name='$col'")
 
         if [ "$COL_EXISTS" -ne 1 ]; then
-          echo "[-] Required column '$col' does not exist in envelopes table!"
+          echo "[-] Required column '$col' does not exist in tasks table!"
           exit 1
         fi
       done
-      echo "[+] All required columns exist in envelopes table"
+      echo "[+] All required columns exist in tasks table"
 
       # Test that we can insert and query (basic sanity check)
       echo "[.] Testing database write/read..."
@@ -79,13 +79,13 @@ spec:
            -p {{ include "asya-gateway.databasePort" . }} \
            -U {{ include "asya-gateway.databaseUsername" . }} \
            -d {{ include "asya-gateway.databaseName" . }} \
-           -c "INSERT INTO envelopes (id, status, route_actors, route_current) VALUES ('test-schema-validation', 'pending', ARRAY['test'], 0) ON CONFLICT (id) DO NOTHING;"
+           -c "INSERT INTO tasks (id, status, route_actors, route_current) VALUES ('test-schema-validation', 'pending', ARRAY['test'], 0) ON CONFLICT (id) DO NOTHING;"
 
       RESULT=$(psql -h {{ include "asya-gateway.databaseHost" . }} \
                     -p {{ include "asya-gateway.databasePort" . }} \
                     -U {{ include "asya-gateway.databaseUsername" . }} \
                     -d {{ include "asya-gateway.databaseName" . }} \
-                    -tAc "SELECT status FROM envelopes WHERE id='test-schema-validation'")
+                    -tAc "SELECT status FROM tasks WHERE id='test-schema-validation'")
 
       if [ "$RESULT" != "pending" ]; then
         echo "[-] Database write/read test failed!"
@@ -98,7 +98,7 @@ spec:
            -p {{ include "asya-gateway.databasePort" . }} \
            -U {{ include "asya-gateway.databaseUsername" . }} \
            -d {{ include "asya-gateway.databaseName" . }} \
-           -c "DELETE FROM envelopes WHERE id='test-schema-validation';"
+           -c "DELETE FROM tasks WHERE id='test-schema-validation';"
 
       echo "[+] Database schema validation completed successfully"
     env:

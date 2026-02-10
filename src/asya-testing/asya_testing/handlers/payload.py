@@ -519,9 +519,9 @@ def param_flow_actor_2(payload: dict[str, Any]) -> dict[str, Any]:
 
 def multihop_handler(payload: dict[str, Any]) -> dict[str, Any]:
     """
-    Multi-hop handler: Passes envelope through chain of actors.
+    Multi-hop handler: Passes message through chain of actors.
 
-    Tracks which actors have processed the envelope by appending to a list.
+    Tracks which actors have processed the message by appending to a list.
     Used for testing long actor chains (10-20 actors).
 
     Args:

@@ -172,6 +172,7 @@ kind: AsyncActor
 metadata:
   name: my-actor
 spec:
+  actor: my-actor
   transport: sqs
   workload:
     kind: Deployment

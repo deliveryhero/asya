@@ -29,9 +29,17 @@ spec:
             spec:
               type: object
               required:
+                - actor
                 - transport
                 - workload
               properties:
+                actor:
+                  type: string
+                  description: Logical actor identity used for queue naming and message routing
+                  minLength: 1
+                  maxLength: 63
+                  pattern: '^[a-z0-9]([a-z0-9-]*[a-z0-9])?$'
+
                 transport:
                   type: string
                   description: Transport type for message queue
@@ -191,8 +199,7 @@ spec:
       additionalPrinterColumns:
         - name: Actor
           type: string
-          jsonPath: .metadata.labels['asya\.sh/actor']
-          priority: 0
+          jsonPath: .spec.actor
         - name: Status
           type: string
           jsonPath: .status.phase

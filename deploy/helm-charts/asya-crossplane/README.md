@@ -116,6 +116,7 @@ metadata:
   name: text-processor
   namespace: asya
 spec:
+  actor: text-processor
   transport: sqs
   region: us-east-1
 

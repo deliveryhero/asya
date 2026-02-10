@@ -25,7 +25,7 @@ func TestSQS_NewClient(t *testing.T) {
 	defer client.Close()
 }
 
-func TestSQS_SendEnvelope(t *testing.T) {
+func TestSQS_SendMessage(t *testing.T) {
 	ctx := context.Background()
 	cfg := getSQSConfig()
 
@@ -33,7 +33,7 @@ func TestSQS_SendEnvelope(t *testing.T) {
 	require.NoError(t, err, "Failed to create SQS client")
 	defer client.Close()
 
-	envelope := &types.Envelope{
+	task := &types.Task{
 		ID: "test-send-1",
 		Route: types.Route{
 			Actors:  []string{"test-queue"},
@@ -45,8 +45,8 @@ func TestSQS_SendEnvelope(t *testing.T) {
 		},
 	}
 
-	err = client.SendEnvelope(ctx, envelope)
-	require.NoError(t, err, "Failed to send envelope")
+	err = client.SendMessage(ctx, task)
+	require.NoError(t, err, "Failed to send message")
 }
 
 func TestSQS_SendAndReceive(t *testing.T) {
@@ -60,7 +60,7 @@ func TestSQS_SendAndReceive(t *testing.T) {
 	testActorName := "test-send-receive"
 	testQueueName := "asya-default-test-send-receive"
 
-	envelope := &types.Envelope{
+	task := &types.Task{
 		ID: "test-send-receive-1",
 		Route: types.Route{
 			Actors:  []string{testActorName},
@@ -71,8 +71,8 @@ func TestSQS_SendAndReceive(t *testing.T) {
 		},
 	}
 
-	err = client.SendEnvelope(ctx, envelope)
-	require.NoError(t, err, "Failed to send envelope")
+	err = client.SendMessage(ctx, task)
+	require.NoError(t, err, "Failed to send message")
 
 	receiveCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
@@ -81,13 +81,13 @@ func TestSQS_SendAndReceive(t *testing.T) {
 	require.NoError(t, err, "Failed to receive message")
 	require.NotNil(t, msg)
 
-	var received queue.ActorEnvelope
+	var received queue.ActorMessage
 	err = json.Unmarshal(msg.Body(), &received)
 	require.NoError(t, err, "Failed to unmarshal message")
 
-	assert.Equal(t, envelope.ID, received.ID)
-	assert.Equal(t, envelope.Route.Actors, received.Route.Actors)
-	assert.Equal(t, envelope.Route.Current, received.Route.Current)
+	assert.Equal(t, task.ID, received.ID)
+	assert.Equal(t, task.Route.Actors, received.Route.Actors)
+	assert.Equal(t, task.Route.Current, received.Route.Current)
 
 	err = client.Ack(ctx, msg)
 	require.NoError(t, err, "Failed to ack message")
@@ -106,7 +106,7 @@ func TestSQS_MultipleMessages(t *testing.T) {
 
 	numMessages := 5
 	for i := 0; i < numMessages; i++ {
-		envelope := &types.Envelope{
+		task := &types.Task{
 			ID: "test-multiple-" + string(rune('a'+i)),
 			Route: types.Route{
 				Actors:  []string{testActorName},
@@ -117,8 +117,8 @@ func TestSQS_MultipleMessages(t *testing.T) {
 			},
 		}
 
-		err = client.SendEnvelope(ctx, envelope)
-		require.NoError(t, err, "Failed to send envelope %d", i)
+		err = client.SendMessage(ctx, task)
+		require.NoError(t, err, "Failed to send message %d", i)
 	}
 
 	receiveCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
@@ -130,7 +130,7 @@ func TestSQS_MultipleMessages(t *testing.T) {
 		msg, err := client.Receive(receiveCtx, testQueueName)
 		require.NoError(t, err, "Failed to receive message %d", i)
 
-		var received queue.ActorEnvelope
+		var received queue.ActorMessage
 		err = json.Unmarshal(msg.Body(), &received)
 		require.NoError(t, err, "Failed to unmarshal message %d", i)
 
@@ -163,7 +163,7 @@ func TestSQS_ContextCancellation(t *testing.T) {
 	assert.Less(t, elapsed, 3*time.Second, "Should respect context timeout")
 }
 
-func TestSQS_EnvelopeWithDeadline(t *testing.T) {
+func TestSQS_TaskWithDeadline(t *testing.T) {
 	ctx := context.Background()
 	cfg := getSQSConfig()
 
@@ -175,7 +175,7 @@ func TestSQS_EnvelopeWithDeadline(t *testing.T) {
 	testQueueName := "asya-default-test-deadline"
 
 	deadline := time.Now().Add(1 * time.Hour)
-	envelope := &types.Envelope{
+	task := &types.Task{
 		ID: "test-deadline-1",
 		Route: types.Route{
 			Actors:  []string{testActorName},
@@ -187,8 +187,8 @@ func TestSQS_EnvelopeWithDeadline(t *testing.T) {
 		Deadline: deadline,
 	}
 
-	err = client.SendEnvelope(ctx, envelope)
-	require.NoError(t, err, "Failed to send envelope")
+	err = client.SendMessage(ctx, task)
+	require.NoError(t, err, "Failed to send message")
 
 	receiveCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
@@ -196,7 +196,7 @@ func TestSQS_EnvelopeWithDeadline(t *testing.T) {
 	msg, err := client.Receive(receiveCtx, testQueueName)
 	require.NoError(t, err, "Failed to receive message")
 
-	var received queue.ActorEnvelope
+	var received queue.ActorMessage
 	err = json.Unmarshal(msg.Body(), &received)
 	require.NoError(t, err, "Failed to unmarshal message")
 
@@ -219,7 +219,7 @@ func TestSQS_EmptyRoute(t *testing.T) {
 	require.NoError(t, err, "Failed to create SQS client")
 	defer client.Close()
 
-	envelope := &types.Envelope{
+	task := &types.Task{
 		ID: "test-empty-route",
 		Route: types.Route{
 			Actors:  []string{},
@@ -228,7 +228,7 @@ func TestSQS_EmptyRoute(t *testing.T) {
 		Payload: map[string]interface{}{},
 	}
 
-	err = client.SendEnvelope(ctx, envelope)
+	err = client.SendMessage(ctx, task)
 	require.Error(t, err, "Should fail with empty route")
 	assert.Contains(t, err.Error(), "no actors", "Error should mention no actors")
 }
@@ -249,7 +249,7 @@ func TestSQS_LargePayload(t *testing.T) {
 		largeData[i] = byte(i % 256)
 	}
 
-	envelope := &types.Envelope{
+	task := &types.Task{
 		ID: "test-large-1",
 		Route: types.Route{
 			Actors:  []string{testActorName},
@@ -260,8 +260,8 @@ func TestSQS_LargePayload(t *testing.T) {
 		},
 	}
 
-	err = client.SendEnvelope(ctx, envelope)
-	require.NoError(t, err, "Failed to send large envelope")
+	err = client.SendMessage(ctx, task)
+	require.NoError(t, err, "Failed to send large message")
 
 	receiveCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
@@ -269,11 +269,11 @@ func TestSQS_LargePayload(t *testing.T) {
 	msg, err := client.Receive(receiveCtx, testQueueName)
 	require.NoError(t, err, "Failed to receive large message")
 
-	var received queue.ActorEnvelope
+	var received queue.ActorMessage
 	err = json.Unmarshal(msg.Body(), &received)
 	require.NoError(t, err, "Failed to unmarshal large message")
 
-	assert.Equal(t, envelope.ID, received.ID)
+	assert.Equal(t, task.ID, received.ID)
 
 	err = client.Ack(ctx, msg)
 	require.NoError(t, err, "Failed to ack large message")
@@ -292,7 +292,7 @@ func TestSQS_MultipleQueues(t *testing.T) {
 	queue1 := "asya-default-test-multi-q1"
 	queue2 := "asya-default-test-multi-q2"
 
-	envelope1 := &types.Envelope{
+	task1 := &types.Task{
 		ID: "test-multi-q-1",
 		Route: types.Route{
 			Actors:  []string{actor1},
@@ -301,7 +301,7 @@ func TestSQS_MultipleQueues(t *testing.T) {
 		Payload: map[string]interface{}{"queue": "q1"},
 	}
 
-	envelope2 := &types.Envelope{
+	task2 := &types.Task{
 		ID: "test-multi-q-2",
 		Route: types.Route{
 			Actors:  []string{actor2},
@@ -310,10 +310,10 @@ func TestSQS_MultipleQueues(t *testing.T) {
 		Payload: map[string]interface{}{"queue": "q2"},
 	}
 
-	err = client.SendEnvelope(ctx, envelope1)
+	err = client.SendMessage(ctx, task1)
 	require.NoError(t, err, "Failed to send to queue1")
 
-	err = client.SendEnvelope(ctx, envelope2)
+	err = client.SendMessage(ctx, task2)
 	require.NoError(t, err, "Failed to send to queue2")
 
 	receiveCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
@@ -325,12 +325,12 @@ func TestSQS_MultipleQueues(t *testing.T) {
 	msg2, err := client.Receive(receiveCtx, queue2)
 	require.NoError(t, err, "Failed to receive from queue2")
 
-	var received1, received2 queue.ActorEnvelope
+	var received1, received2 queue.ActorMessage
 	json.Unmarshal(msg1.Body(), &received1)
 	json.Unmarshal(msg2.Body(), &received2)
 
-	assert.Equal(t, envelope1.ID, received1.ID)
-	assert.Equal(t, envelope2.ID, received2.ID)
+	assert.Equal(t, task1.ID, received1.ID)
+	assert.Equal(t, task2.ID, received2.ID)
 
 	client.Ack(ctx, msg1)
 	client.Ack(ctx, msg2)

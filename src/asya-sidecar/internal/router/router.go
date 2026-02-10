@@ -16,7 +16,7 @@ import (
 	"github.com/deliveryhero/asya/asya-sidecar/internal/progress"
 	"github.com/deliveryhero/asya/asya-sidecar/internal/runtime"
 	"github.com/deliveryhero/asya/asya-sidecar/internal/transport"
-	"github.com/deliveryhero/asya/asya-sidecar/pkg/envelopes"
+	"github.com/deliveryhero/asya/asya-sidecar/pkg/messages"
 )
 
 const (
@@ -57,20 +57,20 @@ func NewRouter(cfg *config.Config, transport transport.Transport, runtimeClient 
 	}
 }
 
-// processEndActorEnvelope handles envelope processing for end actors (happy-end, error-end)
+// processEndActorMessage handles message processing for end actors (happy-end, error-end)
 // End actors are terminal nodes that:
-// - Accept envelopes with ANY route state (no validation)
-// - Process the envelope through runtime
+// - Accept messages with ANY route state (no validation)
+// - Process the message through runtime
 // - Do NOT route responses anywhere (terminal processing)
 // - Report final status to gateway
-func (r *Router) processEndActorEnvelope(ctx context.Context, envelope envelopes.Envelope, msgBody []byte, startTime time.Time) error {
-	slog.Debug("End actor processing envelope", "id", envelope.ID, "actor", r.actorName)
+func (r *Router) processEndActorMessage(ctx context.Context, msg messages.Message, msgBody []byte, startTime time.Time) error {
+	slog.Debug("End actor processing message", "id", msg.ID, "actor", r.actorName)
 
 	// IMPORTANT: End actors are terminal - they do NOT route to any queue
 	// and do NOT increment route.current. They only:
-	// 1. Process the envelope via runtime
+	// 1. Process the message via runtime
 	// 2. Report final status to gateway
-	// End actors run in envelope mode with validation disabled.
+	// End actors run in message mode with validation disabled.
 	// They typically return empty dict {}, which is ignored by the sidecar.
 
 	// Send to runtime without route validation
@@ -83,7 +83,7 @@ func (r *Router) processEndActorEnvelope(ctx context.Context, envelope envelopes
 	}
 
 	if err != nil {
-		slog.Error("End actor runtime error", "id", envelope.ID, "error", err)
+		slog.Error("End actor runtime error", "id", msg.ID, "error", err)
 		if r.metrics != nil {
 			r.metrics.RecordMessageProcessed(r.actorName, "error")
 			r.metrics.RecordMessageFailed(r.actorName, "runtime_error")
@@ -93,12 +93,12 @@ func (r *Router) processEndActorEnvelope(ctx context.Context, envelope envelopes
 
 		if errors.Is(err, context.DeadlineExceeded) {
 			slog.Error("End actor runtime timeout exceeded - crashing pod to recover",
-				"timeout", r.cfg.Timeout, "envelope", envelope.ID)
+				"timeout", r.cfg.Timeout, "message", msg.ID)
 
 			if r.progressReporter != nil {
 				errorCtx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 				defer cancel()
-				_ = r.progressReporter.ReportFinalError(errorCtx, envelope.ID, "Runtime timeout exceeded")
+				_ = r.progressReporter.ReportFinalError(errorCtx, msg.ID, "Runtime timeout exceeded")
 			}
 
 			slog.Error("Exiting to prevent zombie processing (runtime may still be working)")
@@ -115,32 +115,32 @@ func (r *Router) processEndActorEnvelope(ctx context.Context, envelope envelopes
 	}
 
 	// Extract result payload from runtime response
-	// End handlers should return empty dict, so we use the original envelope payload as result
+	// End handlers should return empty dict, so we use the original message payload as result
 	var resultPayload json.RawMessage
 	if len(responses) > 0 && len(responses[0].Payload) > 0 {
 		// Runtime returned a payload, use it
 		resultPayload = responses[0].Payload
 	} else {
-		// Runtime returned empty/null, use original envelope payload as result
-		resultPayload = envelope.Payload
+		// Runtime returned empty/null, use original message payload as result
+		resultPayload = msg.Payload
 	}
 
 	// Report final status to gateway if configured
 	if r.progressReporter != nil {
-		if err := r.reportFinalStatusWithEnvelope(ctx, &envelope, resultPayload, runtimeDuration); err != nil {
-			slog.Warn("Failed to report final status to gateway", "id", envelope.ID, "error", err)
+		if err := r.reportFinalStatusWithMessage(ctx, &msg, resultPayload, runtimeDuration); err != nil {
+			slog.Warn("Failed to report final status to gateway", "id", msg.ID, "error", err)
 		}
 	}
 
-	slog.Debug("End actor completed processing", "id", envelope.ID, "actor", r.actorName)
+	slog.Debug("End actor completed processing", "id", msg.ID, "actor", r.actorName)
 	return nil
 }
 
-// parseAndValidateEnvelope parses and validates the envelope from message body
-func (r *Router) parseAndValidateEnvelope(ctx context.Context, msgBody []byte, startTime time.Time) (*envelopes.Envelope, error) {
-	var envelope envelopes.Envelope
-	if err := json.Unmarshal(msgBody, &envelope); err != nil {
-		slog.Error("Failed to parse envelope", "error", err)
+// parseAndValidateMessage parses and validates the message from message body
+func (r *Router) parseAndValidateMessage(ctx context.Context, msgBody []byte, startTime time.Time) (*messages.Message, error) {
+	var msg messages.Message
+	if err := json.Unmarshal(msgBody, &msg); err != nil {
+		slog.Error("Failed to parse message", "error", err)
 
 		if r.metrics != nil {
 			r.metrics.RecordMessageProcessed(r.actorName, "error")
@@ -152,8 +152,8 @@ func (r *Router) parseAndValidateEnvelope(ctx context.Context, msgBody []byte, s
 		return nil, err
 	}
 
-	if envelope.ID == "" {
-		slog.Error("Envelope missing required ID field")
+	if msg.ID == "" {
+		slog.Error("Message missing required ID field")
 
 		if r.metrics != nil {
 			r.metrics.RecordMessageProcessed(r.actorName, "error")
@@ -161,25 +161,25 @@ func (r *Router) parseAndValidateEnvelope(ctx context.Context, msgBody []byte, s
 			r.metrics.RecordProcessingDuration(r.actorName, time.Since(startTime))
 		}
 
-		_ = r.sendToErrorQueue(ctx, msgBody, "Envelope missing required 'id' field")
-		return nil, fmt.Errorf("envelope missing required 'id' field")
+		_ = r.sendToErrorQueue(ctx, msgBody, "Message missing required 'id' field")
+		return nil, fmt.Errorf("message missing required 'id' field")
 	}
 
-	slog.Info("Envelope parsed and validated", "id", envelope.ID, "route", envelope.Route)
-	return &envelope, nil
+	slog.Info("Message parsed and validated", "id", msg.ID, "route", msg.Route)
+	return &msg, nil
 }
 
 // handleRuntimeResponses processes runtime responses and routes them to appropriate destinations
-func (r *Router) handleRuntimeResponses(ctx context.Context, envelope *envelopes.Envelope, responses []runtime.RuntimeResponse, msgBody []byte, runtimeDuration time.Duration, startTime time.Time) error {
+func (r *Router) handleRuntimeResponses(ctx context.Context, msg *messages.Message, responses []runtime.RuntimeResponse, msgBody []byte, runtimeDuration time.Duration, startTime time.Time) error {
 	if len(responses) == 0 {
-		slog.Info("Empty response from runtime, routing to happy-end", "id", envelope.ID)
+		slog.Info("Empty response from runtime, routing to happy-end", "id", msg.ID)
 
 		if r.metrics != nil {
 			r.metrics.RecordMessageProcessed(r.actorName, "empty_response")
 			r.metrics.RecordProcessingDuration(r.actorName, time.Since(startTime))
 		}
 
-		return r.sendToHappyQueue(ctx, *envelope)
+		return r.sendToHappyQueue(ctx, *msg)
 	}
 
 	for i, response := range responses {
@@ -189,7 +189,7 @@ func (r *Router) handleRuntimeResponses(ctx context.Context, envelope *envelopes
 			return r.handleErrorResponse(ctx, msgBody, response, startTime)
 		}
 
-		if err := r.handleSuccessResponse(ctx, envelope, response, i, len(responses), runtimeDuration); err != nil {
+		if err := r.handleSuccessResponse(ctx, msg, response, i, len(responses), runtimeDuration); err != nil {
 			if r.metrics != nil {
 				r.metrics.RecordMessageFailed(r.actorName, "routing_error")
 				r.metrics.RecordProcessingDuration(r.actorName, time.Since(startTime))
@@ -225,7 +225,7 @@ func (r *Router) handleErrorResponse(ctx context.Context, msgBody []byte, respon
 }
 
 // handleSuccessResponse handles successful responses from runtime
-func (r *Router) handleSuccessResponse(ctx context.Context, envelope *envelopes.Envelope, response runtime.RuntimeResponse, index, totalResponses int, runtimeDuration time.Duration) error {
+func (r *Router) handleSuccessResponse(ctx context.Context, msg *messages.Message, response runtime.RuntimeResponse, index, totalResponses int, runtimeDuration time.Duration) error {
 	// Runtime is responsible for incrementing route.current:
 	// - In payload mode: runtime auto-increments
 	// - In envelope mode: user handler manually increments
@@ -233,7 +233,7 @@ func (r *Router) handleSuccessResponse(ctx context.Context, envelope *envelopes.
 
 	if index == 0 && r.progressReporter != nil {
 		durationMs := runtimeDuration.Milliseconds()
-		_ = r.progressReporter.ReportProgress(ctx, envelope.ID, progress.ProgressUpdate{
+		_ = r.progressReporter.ReportProgress(ctx, msg.ID, progress.ProgressUpdate{
 			Actors:          outputRoute.Actors,
 			CurrentActorIdx: outputRoute.Current,
 			Status:          progress.StatusCompleted,
@@ -242,61 +242,61 @@ func (r *Router) handleSuccessResponse(ctx context.Context, envelope *envelopes.
 		})
 	}
 
-	envelopeID := envelope.ID
+	msgID := msg.ID
 	var parentID *string
 	if totalResponses > 1 && index > 0 {
-		envelopeID = fmt.Sprintf("%s-%d", envelope.ID, index)
-		parentID = &envelope.ID
-		slog.Debug("Fan-out: generated unique envelope ID", "original", envelope.ID, "fanout", envelopeID, "index", index)
+		msgID = fmt.Sprintf("%s-%d", msg.ID, index)
+		parentID = &msg.ID
+		slog.Debug("Fan-out: generated unique message ID", "original", msg.ID, "fanout", msgID, "index", index)
 
 		if r.progressReporter != nil {
-			if err := r.createFanoutEnvelope(ctx, envelopeID, *parentID, outputRoute); err != nil {
-				slog.Warn("Failed to create fanout envelope in gateway", "id", envelopeID, "error", err)
+			if err := r.createFanoutMessage(ctx, msgID, *parentID, outputRoute); err != nil {
+				slog.Warn("Failed to create fanout message in gateway", "id", msgID, "error", err)
 			}
 		}
 	}
 
-	return r.routeResponse(ctx, envelopeID, parentID, outputRoute, response.Payload)
+	return r.routeResponse(ctx, msgID, parentID, outputRoute, response.Payload)
 }
 
-// ProcessEnvelope handles a single envelope from the queue
-func (r *Router) ProcessEnvelope(ctx context.Context, msg transport.QueueMessage) error {
+// ProcessMessage handles a single message from the queue
+func (r *Router) ProcessMessage(ctx context.Context, queueMsg transport.QueueMessage) error {
 	startTime := time.Now()
 
 	if r.metrics != nil {
-		r.metrics.IncrementActiveEnvelopes()
-		defer r.metrics.DecrementActiveEnvelopes()
+		r.metrics.IncrementActiveMessages()
+		defer r.metrics.DecrementActiveMessages()
 	}
 
 	if r.metrics != nil {
-		r.metrics.RecordMessageSize("received", len(msg.Body))
+		r.metrics.RecordMessageSize("received", len(queueMsg.Body))
 	}
 
-	envelope, err := r.parseAndValidateEnvelope(ctx, msg.Body, startTime)
+	msg, err := r.parseAndValidateMessage(ctx, queueMsg.Body, startTime)
 	if err != nil {
-		slog.Error("Failed to parse/validate envelope, sent to error queue", "error", err)
+		slog.Error("Failed to parse/validate message, sent to error queue", "error", err)
 		return nil
 	}
 
 	if r.cfg.IsEndActor {
-		return r.processEndActorEnvelope(ctx, *envelope, msg.Body, startTime)
+		return r.processEndActorMessage(ctx, *msg, queueMsg.Body, startTime)
 	}
 
 	if r.progressReporter != nil {
-		envelopeSizeKB := float64(len(msg.Body)) / 1024.0
-		_ = r.progressReporter.ReportProgress(ctx, envelope.ID, progress.ProgressUpdate{
-			Actors:          envelope.Route.Actors,
-			CurrentActorIdx: envelope.Route.Current,
+		msgSizeKB := float64(len(queueMsg.Body)) / 1024.0
+		_ = r.progressReporter.ReportProgress(ctx, msg.ID, progress.ProgressUpdate{
+			Actors:          msg.Route.Actors,
+			CurrentActorIdx: msg.Route.Current,
 			Status:          progress.StatusReceived,
-			Message:         fmt.Sprintf("Received message (%.2f KB)", envelopeSizeKB),
-			MessageSizeKB:   &envelopeSizeKB,
+			Message:         fmt.Sprintf("Received message (%.2f KB)", msgSizeKB),
+			MessageSizeKB:   &msgSizeKB,
 		})
 	}
 
-	currentActor := envelope.Route.GetCurrentActor()
+	currentActor := msg.Route.GetCurrentActor()
 	if currentActor != r.cfg.ActorName {
 		slog.Warn("Route mismatch: message routed to wrong actor",
-			"expected", r.cfg.ActorName, "actual", currentActor, "id", envelope.ID)
+			"expected", r.cfg.ActorName, "actual", currentActor, "id", msg.ID)
 
 		if r.metrics != nil {
 			r.metrics.RecordMessageProcessed(r.actorName, "error")
@@ -306,28 +306,28 @@ func (r *Router) ProcessEnvelope(ctx context.Context, msg transport.QueueMessage
 
 		errorMsg := fmt.Sprintf("Route mismatch: message routed to wrong actor (expected: %s, actual: %s)",
 			r.cfg.ActorName, currentActor)
-		_ = r.sendToErrorQueue(ctx, msg.Body, errorMsg)
+		_ = r.sendToErrorQueue(ctx, queueMsg.Body, errorMsg)
 		return nil
 	}
 
 	if r.progressReporter != nil {
-		_ = r.progressReporter.ReportProgress(ctx, envelope.ID, progress.ProgressUpdate{
-			Actors:          envelope.Route.Actors,
-			CurrentActorIdx: envelope.Route.Current,
+		_ = r.progressReporter.ReportProgress(ctx, msg.ID, progress.ProgressUpdate{
+			Actors:          msg.Route.Actors,
+			CurrentActorIdx: msg.Route.Current,
 			Status:          progress.StatusProcessing,
 			Message:         fmt.Sprintf("Processing in %s", r.cfg.ActorName),
 		})
 	}
 
-	slog.Info("Calling runtime", "id", envelope.ID, "actor", r.cfg.ActorName)
+	slog.Info("Calling runtime", "id", msg.ID, "actor", r.cfg.ActorName)
 	runtimeStart := time.Now()
-	responses, err := r.runtimeClient.CallRuntime(ctx, msg.Body)
+	responses, err := r.runtimeClient.CallRuntime(ctx, queueMsg.Body)
 	runtimeDuration := time.Since(runtimeStart)
 
 	if err != nil {
-		slog.Info("Runtime call failed", "id", envelope.ID, "duration", runtimeDuration, "error", err)
+		slog.Info("Runtime call failed", "id", msg.ID, "duration", runtimeDuration, "error", err)
 	} else {
-		slog.Info("Runtime call completed", "id", envelope.ID, "duration", runtimeDuration, "responses", len(responses))
+		slog.Info("Runtime call completed", "id", msg.ID, "duration", runtimeDuration, "responses", len(responses))
 	}
 
 	if r.metrics != nil {
@@ -349,10 +349,10 @@ func (r *Router) ProcessEnvelope(ctx context.Context, msg transport.QueueMessage
 		errorMsg := err.Error()
 		if isTimeout {
 			slog.Error("Runtime timeout exceeded - crashing pod to recover",
-				"timeout", r.cfg.Timeout, "envelope", envelope.ID)
+				"timeout", r.cfg.Timeout, "message", msg.ID)
 			errorMsg = fmt.Sprintf("Runtime timeout exceeded after %s", r.cfg.Timeout)
 
-			if err := r.sendToErrorQueue(ctx, msg.Body, errorMsg); err != nil {
+			if err := r.sendToErrorQueue(ctx, queueMsg.Body, errorMsg); err != nil {
 				slog.Error("Failed to send timeout error to error queue - exiting anyway", "error", err)
 			}
 
@@ -360,38 +360,38 @@ func (r *Router) ProcessEnvelope(ctx context.Context, msg transport.QueueMessage
 			os.Exit(1)
 		}
 
-		if err := r.sendToErrorQueue(ctx, msg.Body, errorMsg); err != nil {
+		if err := r.sendToErrorQueue(ctx, queueMsg.Body, errorMsg); err != nil {
 			slog.Error("Failed to send runtime error to error queue - will NACK for DLQ handling", "error", err)
 			return fmt.Errorf("failed to send runtime error to error queue: %w", err)
 		}
 		return nil
 	}
 
-	return r.handleRuntimeResponses(ctx, envelope, responses, msg.Body, runtimeDuration, startTime)
+	return r.handleRuntimeResponses(ctx, msg, responses, queueMsg.Body, runtimeDuration, startTime)
 }
 
 // routeResponse routes a single response to the appropriate queue
 // The route parameter should already have its Current index incremented by the caller
 // parentID should be set for fanout children (when index > 0 in fanout scenario)
-func (r *Router) routeResponse(ctx context.Context, id string, parentID *string, route envelopes.Route, payload json.RawMessage) error {
+func (r *Router) routeResponse(ctx context.Context, id string, parentID *string, route messages.Route, payload json.RawMessage) error {
 	// Determine destination queue
 	var destinationQueue string
-	var envelopeType string
+	var msgType string
 
 	actorToSend := route.GetCurrentActor()
 
 	if actorToSend != "" {
 		// There's a next actor in the route
 		destinationQueue = r.resolveQueueName(actorToSend)
-		envelopeType = "routing"
+		msgType = "routing"
 	} else {
 		// No more actors, route to happy-end automatically
 		destinationQueue = r.resolveQueueName(r.happyEndQueue)
-		envelopeType = "happy_end"
+		msgType = "happy_end"
 	}
 
 	// Create new message with the route as-is
-	newEnvelope := envelopes.Envelope{
+	newMsg := messages.Message{
 		ID:       id,
 		ParentID: parentID,
 		Route:    route,
@@ -399,34 +399,34 @@ func (r *Router) routeResponse(ctx context.Context, id string, parentID *string,
 	}
 
 	// Marshal message
-	envelopeBody, err := json.Marshal(newEnvelope)
+	msgBody, err := json.Marshal(newMsg)
 	if err != nil {
-		slog.Error("Failed to marshal envelope for routing", "id", id, "error", err)
-		return fmt.Errorf("failed to marshal envelope: %w", err)
+		slog.Error("Failed to marshal message for routing", "id", id, "error", err)
+		return fmt.Errorf("failed to marshal message: %w", err)
 	}
 
-	// Record envelope size
+	// Record message size
 	if r.metrics != nil {
-		r.metrics.RecordMessageSize("sent", len(envelopeBody))
+		r.metrics.RecordMessageSize("sent", len(msgBody))
 	}
 
 	// Send to destination queue
 	sendStart := time.Now()
-	slog.Info("Sending envelope to queue", "id", id, "queue", destinationQueue, "type", envelopeType)
-	err = r.transport.Send(ctx, destinationQueue, envelopeBody)
+	slog.Info("Sending message to queue", "id", id, "queue", destinationQueue, "type", msgType)
+	err = r.transport.Send(ctx, destinationQueue, msgBody)
 	sendDuration := time.Since(sendStart)
 
 	if err != nil {
-		slog.Error("Failed to send envelope to queue", "id", id, "queue", destinationQueue, "error", err)
+		slog.Error("Failed to send message to queue", "id", id, "queue", destinationQueue, "error", err)
 	} else {
-		slog.Info("Successfully sent envelope to queue", "id", id, "queue", destinationQueue, "duration", sendDuration)
+		slog.Info("Successfully sent message to queue", "id", id, "queue", destinationQueue, "duration", sendDuration)
 	}
 
 	// Record metrics
 	if r.metrics != nil {
 		r.metrics.RecordQueueSendDuration(destinationQueue, r.cfg.TransportType, sendDuration)
 		if err == nil {
-			r.metrics.RecordMessageSent(destinationQueue, envelopeType)
+			r.metrics.RecordMessageSent(destinationQueue, msgType)
 		}
 	}
 
@@ -434,21 +434,21 @@ func (r *Router) routeResponse(ctx context.Context, id string, parentID *string,
 }
 
 // sendToHappyQueue sends the original message to the happy-end queue
-func (r *Router) sendToHappyQueue(ctx context.Context, message envelopes.Envelope) error {
-	envelopeBody, err := json.Marshal(message)
+func (r *Router) sendToHappyQueue(ctx context.Context, message messages.Message) error {
+	msgBody, err := json.Marshal(message)
 	if err != nil {
-		return fmt.Errorf("failed to marshal envelope for happy-end: %w", err)
+		return fmt.Errorf("failed to marshal message for happy-end: %w", err)
 	}
 
-	// Record envelope size
+	// Record message size
 	if r.metrics != nil {
-		r.metrics.RecordMessageSize("sent", len(envelopeBody))
+		r.metrics.RecordMessageSize("sent", len(msgBody))
 	}
 
 	// Send to happy-end queue
 	sendStart := time.Now()
 	happyQueueName := r.resolveQueueName(r.happyEndQueue)
-	err = r.transport.Send(ctx, happyQueueName, envelopeBody)
+	err = r.transport.Send(ctx, happyQueueName, msgBody)
 	sendDuration := time.Since(sendStart)
 
 	// Record metrics
@@ -465,7 +465,7 @@ func (r *Router) sendToHappyQueue(ctx context.Context, message envelopes.Envelop
 // sendToErrorQueue sends an error message to the error-end queue
 func (r *Router) sendToErrorQueue(ctx context.Context, originalBody []byte, errorMsg string, errorDetails ...runtime.ErrorDetails) error {
 	// Parse original message to extract id, parent_id, and route
-	var originalMsg envelopes.Envelope
+	var originalMsg messages.Message
 	id := ""
 	var parentID *string
 	route := map[string]any{
@@ -482,7 +482,7 @@ func (r *Router) sendToErrorQueue(ctx context.Context, originalBody []byte, erro
 		}
 	}
 
-	// Build proper envelope structure with error in payload
+	// Build proper message structure with error in payload
 	errorPayload := map[string]any{
 		"error": errorMsg,
 	}
@@ -510,20 +510,20 @@ func (r *Router) sendToErrorQueue(ctx context.Context, originalBody []byte, erro
 		errorMessage["parent_id"] = *parentID
 	}
 
-	envelopeBody, err := json.Marshal(errorMessage)
+	msgBody, err := json.Marshal(errorMessage)
 	if err != nil {
 		return fmt.Errorf("failed to marshal error message: %w", err)
 	}
 
-	// Record envelope size
+	// Record message size
 	if r.metrics != nil {
-		r.metrics.RecordMessageSize("sent", len(envelopeBody))
+		r.metrics.RecordMessageSize("sent", len(msgBody))
 	}
 
 	// Send to error queue
 	sendStart := time.Now()
 	errorQueueName := r.resolveQueueName(r.errorEndQueue)
-	err = r.transport.Send(ctx, errorQueueName, envelopeBody)
+	err = r.transport.Send(ctx, errorQueueName, msgBody)
 	sendDuration := time.Since(sendStart)
 
 	// Record metrics
@@ -537,10 +537,10 @@ func (r *Router) sendToErrorQueue(ctx context.Context, originalBody []byte, erro
 	return err
 }
 
-// reportFinalStatusWithEnvelope reports final envelope status to gateway with full envelope context
+// reportFinalStatusWithMessage reports final message status to gateway with full message context
 // This is called by end actors (happy-end, error-end) after processing
-// It has access to both the envelope (with route) and the result payload
-func (r *Router) reportFinalStatusWithEnvelope(ctx context.Context, envelope *envelopes.Envelope, resultPayload json.RawMessage, duration time.Duration) error {
+// It has access to both the message (with route) and the result payload
+func (r *Router) reportFinalStatusWithMessage(ctx context.Context, msg *messages.Message, resultPayload json.RawMessage, duration time.Duration) error {
 	if r.progressReporter == nil {
 		return nil
 	}
@@ -566,11 +566,11 @@ func (r *Router) reportFinalStatusWithEnvelope(ctx context.Context, envelope *en
 		status = statusSucceeded
 	case r.errorEndQueue:
 		status = statusFailed
-		// For error-end, extract error info from envelope.Payload (not result)
-		// The envelope.Payload contains error details set by sendToErrorQueue
-		var envelopePayload interface{}
-		if err := json.Unmarshal(envelope.Payload, &envelopePayload); err == nil {
-			if payloadMap, ok := envelopePayload.(map[string]interface{}); ok {
+		// For error-end, extract error info from msg.Payload (not result)
+		// The msg.Payload contains error details set by sendToErrorQueue
+		var msgPayload interface{}
+		if err := json.Unmarshal(msg.Payload, &msgPayload); err == nil {
+			if payloadMap, ok := msgPayload.(map[string]interface{}); ok {
 				if err, ok := payloadMap["error"].(string); ok {
 					errorMsg = err
 				}
@@ -579,30 +579,30 @@ func (r *Router) reportFinalStatusWithEnvelope(ctx context.Context, envelope *en
 				}
 			}
 		}
-		// Use route from envelope to identify where the error occurred
-		if len(envelope.Route.Actors) > 0 {
-			currentIdx := envelope.Route.Current
+		// Use route from message to identify where the error occurred
+		if len(msg.Route.Actors) > 0 {
+			currentIdx := msg.Route.Current
 			currentActorIdx = &currentIdx
 			// Get the actor name where the error occurred
-			if currentIdx >= 0 && currentIdx < len(envelope.Route.Actors) {
-				currentActorName = envelope.Route.Actors[currentIdx]
+			if currentIdx >= 0 && currentIdx < len(msg.Route.Actors) {
+				currentActorName = msg.Route.Actors[currentIdx]
 			}
 		}
 	default:
-		slog.Warn("reportFinalStatusWithEnvelope called on non-end actor", "queue", r.actorName)
+		slog.Warn("reportFinalStatusWithMessage called on non-end actor", "queue", r.actorName)
 		return nil
 	}
 
 	// Build final status payload
 	finalPayload := map[string]interface{}{
-		"id":        envelope.ID,
+		"id":        msg.ID,
 		"status":    status,
 		"timestamp": time.Now().Format(time.RFC3339),
 	}
 
 	if status == statusSucceeded {
 		finalPayload["progress"] = 1.0
-		// Use the envelope payload as the result
+		// Use the message payload as the result
 		if result != nil {
 			finalPayload["result"] = result
 		}
@@ -613,8 +613,8 @@ func (r *Router) reportFinalStatusWithEnvelope(ctx context.Context, envelope *en
 		if errorDetails != nil {
 			finalPayload["error_details"] = errorDetails
 		}
-		if len(envelope.Route.Actors) > 0 {
-			finalPayload["actors"] = envelope.Route.Actors
+		if len(msg.Route.Actors) > 0 {
+			finalPayload["actors"] = msg.Route.Actors
 		}
 		if currentActorIdx != nil {
 			finalPayload["current_actor_idx"] = *currentActorIdx
@@ -630,7 +630,7 @@ func (r *Router) reportFinalStatusWithEnvelope(ctx context.Context, envelope *en
 		return fmt.Errorf("failed to marshal final status: %w", err)
 	}
 
-	url := fmt.Sprintf("%s/envelopes/%s/final", r.gatewayURL, envelope.ID)
+	url := fmt.Sprintf("%s/tasks/%s/final", r.gatewayURL, msg.ID)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(payloadBytes))
 	if err != nil {
@@ -653,14 +653,14 @@ func (r *Router) reportFinalStatusWithEnvelope(ctx context.Context, envelope *en
 		return fmt.Errorf("gateway returned non-success status: %d", resp.StatusCode)
 	}
 
-	slog.Info("Reported final status to gateway", "id", envelope.ID, "status", status,
+	slog.Info("Reported final status to gateway", "id", msg.ID, "status", status,
 		"actor", currentActorName, "actor_idx", currentActorIdx)
 	return nil
 }
 
-// reportFinalStatus reports final envelope status to gateway (legacy version without envelope context)
-// Deprecated: Use reportFinalStatusWithEnvelope instead
-func (r *Router) reportFinalStatus(ctx context.Context, envelopeID string, resultPayload json.RawMessage, duration time.Duration) error {
+// reportFinalStatus reports final message status to gateway (legacy version without message context)
+// Deprecated: Use reportFinalStatusWithMessage instead
+func (r *Router) reportFinalStatus(ctx context.Context, msgID string, resultPayload json.RawMessage, duration time.Duration) error {
 	if r.progressReporter == nil {
 		return nil
 	}
@@ -678,7 +678,7 @@ func (r *Router) reportFinalStatus(ctx context.Context, envelopeID string, resul
 	var status string
 	var errorMsg string
 	var errorDetails interface{}
-	var route envelopes.Route
+	var route messages.Route
 	var currentActorIdx *int
 	var currentActorName string
 
@@ -725,14 +725,14 @@ func (r *Router) reportFinalStatus(ctx context.Context, envelopeID string, resul
 
 	// Build final status payload
 	finalPayload := map[string]interface{}{
-		"id":        envelopeID,
+		"id":        msgID,
 		"status":    status,
 		"timestamp": time.Now().Format(time.RFC3339),
 	}
 
 	if status == statusSucceeded {
 		finalPayload["progress"] = 1.0
-		// Use the envelope payload as the result
+		// Use the message payload as the result
 		if result != nil {
 			finalPayload["result"] = result
 		}
@@ -760,7 +760,7 @@ func (r *Router) reportFinalStatus(ctx context.Context, envelopeID string, resul
 		return fmt.Errorf("failed to marshal final status: %w", err)
 	}
 
-	url := fmt.Sprintf("%s/envelopes/%s/final", r.gatewayURL, envelopeID)
+	url := fmt.Sprintf("%s/tasks/%s/final", r.gatewayURL, msgID)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(payloadBytes))
 	if err != nil {
@@ -783,7 +783,7 @@ func (r *Router) reportFinalStatus(ctx context.Context, envelopeID string, resul
 		return fmt.Errorf("gateway returned non-success status: %d", resp.StatusCode)
 	}
 
-	slog.Info("Reported final status to gateway", "id", envelopeID, "status", status,
+	slog.Info("Reported final status to gateway", "id", msgID, "status", status,
 		"actor", currentActorName, "actor_idx", currentActorIdx)
 	return nil
 }
@@ -799,10 +799,10 @@ func (r *Router) resolveQueueName(actorName string) string {
 	}
 }
 
-// createFanoutEnvelope creates a fanout child envelope in the gateway
+// createFanoutMessage creates a fanout child message in the gateway
 // Fanout children use the same route state as the parent after runtime processing
-func (r *Router) createFanoutEnvelope(ctx context.Context, id, parentID string, route envelopes.Route) error {
-	return r.progressReporter.CreateEnvelope(ctx, id, parentID, route.Actors, route.Current)
+func (r *Router) createFanoutMessage(ctx context.Context, id, parentID string, route messages.Route) error {
+	return r.progressReporter.CreateTask(ctx, id, parentID, route.Actors, route.Current)
 }
 
 // CheckGatewayHealth verifies the gateway is reachable if gateway URL is configured
@@ -832,7 +832,7 @@ func (r *Router) Run(ctx context.Context) error {
 			// Receive message from queue
 			receiveStart := time.Now()
 			queueName := r.resolveQueueName(r.actorName)
-			msg, err := r.transport.Receive(ctx, queueName)
+			queueMsg, err := r.transport.Receive(ctx, queueName)
 			receiveDuration := time.Since(receiveStart)
 
 			if err != nil {
@@ -865,7 +865,7 @@ func (r *Router) Run(ctx context.Context) error {
 
 			consecutiveFailures = 0
 
-			slog.Info("Message received from queue", "msgID", msg.ID, "receiveDuration", receiveDuration)
+			slog.Info("Message received from queue", "msgID", queueMsg.ID, "receiveDuration", receiveDuration)
 
 			// Record receive metrics
 			if r.metrics != nil {
@@ -873,20 +873,20 @@ func (r *Router) Run(ctx context.Context) error {
 				r.metrics.RecordQueueReceiveDuration(r.actorName, r.cfg.TransportType, receiveDuration)
 			}
 
-			// Process envelope
-			slog.Info("Processing envelope", "msgID", msg.ID)
-			if err := r.ProcessEnvelope(ctx, msg); err != nil {
-				slog.Error("Envelope processing failed", "msgID", msg.ID, "error", err)
-				// NACK the envelope for retry
-				if nackErr := r.transport.Nack(ctx, msg); nackErr != nil {
-					slog.Error("Failed to NACK envelope", "msgID", msg.ID, "error", nackErr)
+			// Process message
+			slog.Info("Processing message", "msgID", queueMsg.ID)
+			if err := r.ProcessMessage(ctx, queueMsg); err != nil {
+				slog.Error("Message processing failed", "msgID", queueMsg.ID, "error", err)
+				// NACK the message for retry
+				if nackErr := r.transport.Nack(ctx, queueMsg); nackErr != nil {
+					slog.Error("Failed to NACK message", "msgID", queueMsg.ID, "error", nackErr)
 				}
 				continue
 			}
 
-			// ACK the envelope on success
-			if err := r.transport.Ack(ctx, msg); err != nil {
-				slog.Error("Failed to ACK envelope", "msgID", msg.ID, "error", err)
+			// ACK the message on success
+			if err := r.transport.Ack(ctx, queueMsg); err != nil {
+				slog.Error("Failed to ACK message", "msgID", queueMsg.ID, "error", err)
 			}
 		}
 	}

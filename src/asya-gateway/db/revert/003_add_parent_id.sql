@@ -2,8 +2,8 @@
 
 BEGIN;
 
--- Drop parent_id column from envelopes table
-DROP INDEX IF EXISTS idx_envelopes_parent_id;
-ALTER TABLE envelopes DROP COLUMN IF EXISTS parent_id;
+-- Drop parent_id column from tasks table
+DROP INDEX IF EXISTS idx_tasks_parent_id;
+ALTER TABLE tasks DROP COLUMN IF EXISTS parent_id;
 
 COMMIT;

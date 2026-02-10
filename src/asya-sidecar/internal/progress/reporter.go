@@ -59,10 +59,10 @@ func (r *Reporter) ReportProgress(ctx context.Context, id string, update Progres
 		return fmt.Errorf("failed to marshal progress update: %w", err)
 	}
 
-	url := fmt.Sprintf("%s/envelopes/%s/progress", r.gatewayURL, id)
+	url := fmt.Sprintf("%s/tasks/%s/progress", r.gatewayURL, id)
 
 	slog.Info("Sending progress update to gateway",
-		"envelope_id", id,
+		"task_id", id,
 		"status", update.Status,
 		"current_actor_idx", update.CurrentActorIdx,
 		"total_actors", len(update.Actors),
@@ -106,7 +106,7 @@ func (r *Reporter) ReportProgress(ctx context.Context, id string, update Progres
 		}
 
 		slog.Debug("Progress update sent successfully",
-			"envelope_id", id,
+			"task_id", id,
 			"status", update.Status,
 			"current_actor_idx", update.CurrentActorIdx)
 
@@ -145,18 +145,18 @@ func (r *Reporter) CheckHealth(ctx context.Context) error {
 	return nil
 }
 
-// CreateEnvelopePayload represents the payload for creating a fanout envelope
-type CreateEnvelopePayload struct {
+// CreateTaskPayload represents the payload for creating a fanout task
+type CreateTaskPayload struct {
 	ID       string   `json:"id"`
 	ParentID string   `json:"parent_id"`
 	Actors   []string `json:"actors"`
 	Current  int      `json:"current"`
 }
 
-// CreateEnvelope creates a fanout child envelope in the gateway
+// CreateTask creates a fanout child task in the gateway
 // This is called when the sidecar detects multiple responses from runtime (fanout scenario)
-func (r *Reporter) CreateEnvelope(ctx context.Context, id, parentID string, actors []string, current int) error {
-	payload := CreateEnvelopePayload{
+func (r *Reporter) CreateTask(ctx context.Context, id, parentID string, actors []string, current int) error {
+	payload := CreateTaskPayload{
 		ID:       id,
 		ParentID: parentID,
 		Actors:   actors,
@@ -165,10 +165,10 @@ func (r *Reporter) CreateEnvelope(ctx context.Context, id, parentID string, acto
 
 	payloadBytes, err := json.Marshal(payload)
 	if err != nil {
-		return fmt.Errorf("failed to marshal create envelope payload: %w", err)
+		return fmt.Errorf("failed to marshal create task payload: %w", err)
 	}
 
-	url := fmt.Sprintf("%s/envelopes", r.gatewayURL)
+	url := fmt.Sprintf("%s/tasks", r.gatewayURL)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(payloadBytes))
 	if err != nil {
@@ -179,23 +179,23 @@ func (r *Reporter) CreateEnvelope(ctx context.Context, id, parentID string, acto
 
 	resp, err := r.httpClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("failed to send create envelope request: %w", err)
+		return fmt.Errorf("failed to send create task request: %w", err)
 	}
 	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
-		return fmt.Errorf("create envelope returned status %d", resp.StatusCode)
+		return fmt.Errorf("create task returned status %d", resp.StatusCode)
 	}
 
-	slog.Debug("Created fanout envelope in gateway", "id", id, "parent_id", parentID)
+	slog.Debug("Created fanout task in gateway", "id", id, "parent_id", parentID)
 	return nil
 }
 
 // ReportFinalError reports a final error status to the gateway
 // Used by end actors when they encounter unrecoverable errors (e.g., timeout)
-func (r *Reporter) ReportFinalError(ctx context.Context, envelopeID, errorMsg string) error {
+func (r *Reporter) ReportFinalError(ctx context.Context, taskID, errorMsg string) error {
 	finalPayload := map[string]interface{}{
-		"id":        envelopeID,
+		"id":        taskID,
 		"status":    "failed",
 		"error":     errorMsg,
 		"timestamp": time.Now().Format(time.RFC3339),
@@ -206,7 +206,7 @@ func (r *Reporter) ReportFinalError(ctx context.Context, envelopeID, errorMsg st
 		return fmt.Errorf("failed to marshal final error: %w", err)
 	}
 
-	url := fmt.Sprintf("%s/envelopes/%s/final", r.gatewayURL, envelopeID)
+	url := fmt.Sprintf("%s/tasks/%s/final", r.gatewayURL, taskID)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(payloadBytes))
 	if err != nil {
@@ -228,6 +228,6 @@ func (r *Reporter) ReportFinalError(ctx context.Context, envelopeID, errorMsg st
 		return fmt.Errorf("gateway returned non-success status: %d", resp.StatusCode)
 	}
 
-	slog.Info("Reported final error to gateway", "id", envelopeID, "error", errorMsg)
+	slog.Info("Reported final error to gateway", "id", taskID, "error", errorMsg)
 	return nil
 }

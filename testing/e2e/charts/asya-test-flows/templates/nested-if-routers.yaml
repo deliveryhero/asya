@@ -9,6 +9,7 @@ metadata:
     asya.sh/flow: nested-if
     asya.sh/actor-type: router
 spec:
+  actor: start-test-nested-flow
   transport: {{ .Values.transport }}
 
   scaling:
@@ -42,6 +43,7 @@ metadata:
     asya.sh/flow: nested-if
     asya.sh/actor-type: router
 spec:
+  actor: router-test-nested-flow-line-4-if
   transport: {{ .Values.transport }}
   scaling:
     enabled: {{ .Values.scaling.enabled }}
@@ -73,6 +75,7 @@ metadata:
     asya.sh/flow: nested-if
     asya.sh/actor-type: router
 spec:
+  actor: router-test-nested-flow-line-6-if
   transport: {{ .Values.transport }}
   scaling:
     enabled: {{ .Values.scaling.enabled }}
@@ -104,6 +107,7 @@ metadata:
     asya.sh/flow: nested-if
     asya.sh/actor-type: router
 spec:
+  actor: router-test-nested-flow-line-14-if
   transport: {{ .Values.transport }}
   scaling:
     enabled: {{ .Values.scaling.enabled }}
@@ -135,6 +139,7 @@ metadata:
     asya.sh/flow: nested-if
     asya.sh/actor-type: router
 spec:
+  actor: router-test-nested-flow-line-7-seq
   transport: {{ .Values.transport }}
   scaling:
     enabled: {{ .Values.scaling.enabled }}
@@ -166,6 +171,7 @@ metadata:
     asya.sh/flow: nested-if
     asya.sh/actor-type: router
 spec:
+  actor: router-test-nested-flow-line-10-seq
   transport: {{ .Values.transport }}
   scaling:
     enabled: {{ .Values.scaling.enabled }}
@@ -197,6 +203,7 @@ metadata:
     asya.sh/flow: nested-if
     asya.sh/actor-type: router
 spec:
+  actor: router-test-nested-flow-line-15-seq
   transport: {{ .Values.transport }}
   scaling:
     enabled: {{ .Values.scaling.enabled }}
@@ -228,6 +235,7 @@ metadata:
     asya.sh/flow: nested-if
     asya.sh/actor-type: router
 spec:
+  actor: router-test-nested-flow-line-18-seq
   transport: {{ .Values.transport }}
   scaling:
     enabled: {{ .Values.scaling.enabled }}
@@ -259,6 +267,7 @@ metadata:
     asya.sh/flow: nested-if
     asya.sh/actor-type: router
 spec:
+  actor: end-test-nested-flow
   transport: {{ .Values.transport }}
   scaling:
     enabled: {{ .Values.scaling.enabled }}

@@ -17,7 +17,7 @@ type consumerInfo struct {
 	deliveries <-chan amqp.Delivery
 }
 
-// RabbitMQClientPooled sends envelopes to RabbitMQ using a channel pool
+// RabbitMQClientPooled sends messages to RabbitMQ using a channel pool
 // for high-concurrency scenarios without mutex contention
 type RabbitMQClientPooled struct {
 	pool        *ChannelPool
@@ -38,31 +38,31 @@ func NewRabbitMQClientPooled(url, exchange string, poolSize int) (*RabbitMQClien
 	}, nil
 }
 
-// SendEnvelope sends an envelope to the current actor's queue in the route
-func (c *RabbitMQClientPooled) SendEnvelope(ctx context.Context, envelope *types.Envelope) error {
-	if len(envelope.Route.Actors) == 0 {
+// SendMessage sends a message to the current actor's queue in the route
+func (c *RabbitMQClientPooled) SendMessage(ctx context.Context, task *types.Task) error {
+	if len(task.Route.Actors) == 0 {
 		return fmt.Errorf("route has no actors")
 	}
-	if envelope.Route.Current < 0 || envelope.Route.Current >= len(envelope.Route.Actors) {
-		return fmt.Errorf("invalid route.current=%d for actors length %d", envelope.Route.Current, len(envelope.Route.Actors))
+	if task.Route.Current < 0 || task.Route.Current >= len(task.Route.Actors) {
+		return fmt.Errorf("invalid route.current=%d for actors length %d", task.Route.Current, len(task.Route.Actors))
 	}
 
-	// Create actor envelope
-	msg := ActorEnvelope{
-		ID:      envelope.ID,
-		Route:   envelope.Route,
-		Payload: envelope.Payload,
+	// Create actor message
+	msg := ActorMessage{
+		ID:      task.ID,
+		Route:   task.Route,
+		Payload: task.Payload,
 	}
 
-	// Add deadline if envelope has timeout
-	if !envelope.Deadline.IsZero() {
-		msg.Deadline = envelope.Deadline.Format("2006-01-02T15:04:05Z07:00")
+	// Add deadline if task has timeout
+	if !task.Deadline.IsZero() {
+		msg.Deadline = task.Deadline.Format("2006-01-02T15:04:05Z07:00")
 	}
 
 	// Marshal to JSON
 	body, err := json.Marshal(msg)
 	if err != nil {
-		return fmt.Errorf("failed to marshal envelope: %w", err)
+		return fmt.Errorf("failed to marshal message: %w", err)
 	}
 
 	// Get channel from pool
@@ -72,9 +72,9 @@ func (c *RabbitMQClientPooled) SendEnvelope(ctx context.Context, envelope *types
 	}
 	defer c.pool.Return(ch)
 
-	// Send envelope to current actor's queue
+	// Send message to current actor's queue
 	// Use actor name as routing key (sidecar binds queue with actor name, not "asya-" prefixed name)
-	actorName := envelope.Route.Actors[envelope.Route.Current]
+	actorName := task.Route.Actors[task.Route.Current]
 	routingKey := actorName
 	err = ch.PublishWithContext(ctx,
 		c.pool.exchange, // exchange
@@ -94,7 +94,7 @@ func (c *RabbitMQClientPooled) SendEnvelope(ctx context.Context, envelope *types
 }
 
 // pooledRabbitMQMessage wraps amqp.Delivery and channel for pooled operations
-// The channel must be kept with the envelope to properly acknowledge it later
+// The channel must be kept with the message to properly acknowledge it later
 type pooledRabbitMQMessage struct {
 	delivery amqp.Delivery
 	channel  *amqp.Channel
@@ -109,7 +109,7 @@ func (m *pooledRabbitMQMessage) DeliveryTag() uint64 {
 	return m.delivery.DeliveryTag
 }
 
-// Receive receives a envelope from the specified queue using a persistent consumer
+// Receive receives a message from the specified queue using a persistent consumer
 // This creates ONE consumer per queue (not per Receive call) to avoid consumer leaks
 func (c *RabbitMQClientPooled) Receive(ctx context.Context, queueName string) (QueueMessage, error) {
 	// Check if we already have a persistent consumer for this queue
@@ -153,7 +153,7 @@ func (c *RabbitMQClientPooled) Receive(ctx context.Context, queueName string) (Q
 			return nil, fmt.Errorf("failed to bind queue: %w", err)
 		}
 
-		// Set QoS to fetch one envelope at a time
+		// Set QoS to fetch one message at a time
 		err = ch.Qos(1, 0, false)
 		if err != nil {
 			c.pool.Return(ch)
@@ -161,7 +161,7 @@ func (c *RabbitMQClientPooled) Receive(ctx context.Context, queueName string) (Q
 			return nil, fmt.Errorf("failed to set QoS: %w", err)
 		}
 
-		// Start persistent consumer (NOT cancelled after each envelope)
+		// Start persistent consumer (NOT cancelled after each message)
 		deliveries, err := ch.Consume(
 			queueName, // queue
 			"",        // consumer tag (auto-generated)
@@ -186,7 +186,7 @@ func (c *RabbitMQClientPooled) Receive(ctx context.Context, queueName string) (Q
 	}
 	c.consumersMu.Unlock()
 
-	// Wait for envelope from persistent consumer
+	// Wait for message from persistent consumer
 	select {
 	case delivery, ok := <-consumer.deliveries:
 		if !ok {
@@ -197,7 +197,7 @@ func (c *RabbitMQClientPooled) Receive(ctx context.Context, queueName string) (Q
 			return nil, fmt.Errorf("delivery channel closed")
 		}
 
-		// Return envelope with the consumer's dedicated channel
+		// Return message with the consumer's dedicated channel
 		return &pooledRabbitMQMessage{
 			delivery: delivery,
 			channel:  consumer.channel,
@@ -209,18 +209,18 @@ func (c *RabbitMQClientPooled) Receive(ctx context.Context, queueName string) (Q
 	}
 }
 
-// Ack acknowledges a envelope
+// Ack acknowledges a message
 // Note: Channel is NOT returned to pool since it's a persistent consumer channel
 func (c *RabbitMQClientPooled) Ack(ctx context.Context, msg QueueMessage) error {
 	pooledMsg, ok := msg.(*pooledRabbitMQMessage)
 	if !ok {
-		return fmt.Errorf("invalid envelope type: expected *pooledRabbitMQMessage")
+		return fmt.Errorf("invalid message type: expected *pooledRabbitMQMessage")
 	}
 
-	// Acknowledge on the same channel that received the envelope
+	// Acknowledge on the same channel that received the message
 	err := pooledMsg.channel.Ack(pooledMsg.delivery.DeliveryTag, false)
 	if err != nil {
-		return fmt.Errorf("failed to ack envelope: %w", err)
+		return fmt.Errorf("failed to ack message: %w", err)
 	}
 
 	return nil

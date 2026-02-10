@@ -25,7 +25,7 @@ import (
 //   - Actor "happy-end" in namespace "default"       → Queue "asya-default-happy-end"
 //
 // The prefix is added by:
-// - Gateway queue clients (rabbitmq.go and this file) when sending envelopes
+// - Gateway queue clients (rabbitmq.go and this file) when sending messages
 // - Sidecar (router.go) when creating/consuming from queues
 //
 // This maintains consistent queue naming across all transport implementations and
@@ -166,43 +166,43 @@ func (m *sqsMessage) DeliveryTag() uint64 {
 	return m.deliveryTag
 }
 
-// SendEnvelope sends an envelope to the current actor's queue in the route
-func (c *SQSClient) SendEnvelope(ctx context.Context, envelope *types.Envelope) error {
-	if len(envelope.Route.Actors) == 0 {
+// SendMessage sends a message to the current actor's queue in the route
+func (c *SQSClient) SendMessage(ctx context.Context, task *types.Task) error {
+	if len(task.Route.Actors) == 0 {
 		return fmt.Errorf("route has no actors")
 	}
-	if envelope.Route.Current < 0 || envelope.Route.Current >= len(envelope.Route.Actors) {
-		return fmt.Errorf("invalid route.current=%d for actors length %d", envelope.Route.Current, len(envelope.Route.Actors))
+	if task.Route.Current < 0 || task.Route.Current >= len(task.Route.Actors) {
+		return fmt.Errorf("invalid route.current=%d for actors length %d", task.Route.Current, len(task.Route.Actors))
 	}
 
-	// Create actor envelope
-	msg := ActorEnvelope{
-		ID:      envelope.ID,
-		Route:   envelope.Route,
-		Payload: envelope.Payload,
+	// Create actor message
+	actorMsg := ActorMessage{
+		ID:      task.ID,
+		Route:   task.Route,
+		Payload: task.Payload,
 	}
 
-	// Add deadline if envelope has timeout
-	if !envelope.Deadline.IsZero() {
-		msg.Deadline = envelope.Deadline.Format("2006-01-02T15:04:05Z07:00")
+	// Add deadline if task has timeout
+	if !task.Deadline.IsZero() {
+		actorMsg.Deadline = task.Deadline.Format("2006-01-02T15:04:05Z07:00")
 	}
 
 	// Marshal to JSON
-	body, err := json.Marshal(msg)
+	body, err := json.Marshal(actorMsg)
 	if err != nil {
-		return fmt.Errorf("failed to marshal envelope: %w", err)
+		return fmt.Errorf("failed to marshal message: %w", err)
 	}
 
 	// Get queue URL for current actor
 	// Add "asya-{namespace}-" prefix to convert actor name to queue name
-	actorName := envelope.Route.Actors[envelope.Route.Current]
+	actorName := task.Route.Actors[task.Route.Current]
 	queueName := fmt.Sprintf("asya-%s-%s", c.namespace, actorName)
 	queueURL, err := c.resolveQueueURL(ctx, queueName)
 	if err != nil {
 		return fmt.Errorf("failed to resolve queue URL: %w", err)
 	}
 
-	slog.Info("Sending envelope to SQS", "envelopeID", envelope.ID, "queue", queueName, "queueURL", queueURL)
+	slog.Info("Sending message to SQS", "taskID", task.ID, "queue", queueName, "queueURL", queueURL)
 
 	// Send message to SQS
 	_, err = c.client.SendMessage(ctx, &sqs.SendMessageInput{
@@ -210,11 +210,11 @@ func (c *SQSClient) SendEnvelope(ctx context.Context, envelope *types.Envelope) 
 		MessageBody: aws.String(string(body)),
 	})
 	if err != nil {
-		slog.Error("Failed to send to SQS", "envelopeID", envelope.ID, "queue", queueName, "queueURL", queueURL, "error", err)
+		slog.Error("Failed to send to SQS", "taskID", task.ID, "queue", queueName, "queueURL", queueURL, "error", err)
 		return fmt.Errorf("failed to send to SQS: %w", err)
 	}
 
-	slog.Info("Successfully sent envelope to SQS", "envelopeID", envelope.ID, "queue", queueName)
+	slog.Info("Successfully sent message to SQS", "taskID", task.ID, "queue", queueName)
 	return nil
 }
 

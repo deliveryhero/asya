@@ -13,19 +13,19 @@ Regenerate by running: asya flow compile ../../nested_if.py
 # Generated Routers (for kubernetes deployment)
 # ======================================================================
 
-def start_nested_if_flow(envelope: dict) -> dict:
+def start_nested_if_flow(message: dict) -> dict:
     """Entrypoint for flow 'nested_if_flow'"""
-    r = envelope['route']
+    r = message['route']
     c = r['current']
 
     r['actors'][c+1:c+1] = [resolve("handler_validate"), resolve("router_nested_if_flow_line_10_if")]
     r['current'] = c + 1
-    return envelope
+    return message
 
-def router_nested_if_flow_line_13_seq(envelope: dict) -> dict:
+def router_nested_if_flow_line_13_seq(message: dict) -> dict:
     """Router for control flow and payload mutations"""
-    p = envelope['payload']
-    r = envelope['route']
+    p = message['payload']
+    r = message['route']
     c = r['current']
     _next = []
 
@@ -35,12 +35,12 @@ def router_nested_if_flow_line_13_seq(envelope: dict) -> dict:
 
     r['actors'][c+1:c+1] = _next
     r['current'] = c + 1
-    return envelope
+    return message
 
-def router_nested_if_flow_line_16_seq(envelope: dict) -> dict:
+def router_nested_if_flow_line_16_seq(message: dict) -> dict:
     """Router for control flow and payload mutations"""
-    p = envelope['payload']
-    r = envelope['route']
+    p = message['payload']
+    r = message['route']
     c = r['current']
     _next = []
 
@@ -50,12 +50,12 @@ def router_nested_if_flow_line_16_seq(envelope: dict) -> dict:
 
     r['actors'][c+1:c+1] = _next
     r['current'] = c + 1
-    return envelope
+    return message
 
-def router_nested_if_flow_line_12_if(envelope: dict) -> dict:
+def router_nested_if_flow_line_12_if(message: dict) -> dict:
     """Router for control flow and payload mutations"""
-    p = envelope['payload']
-    r = envelope['route']
+    p = message['payload']
+    r = message['route']
     c = r['current']
     _next = []
 
@@ -67,12 +67,12 @@ def router_nested_if_flow_line_12_if(envelope: dict) -> dict:
 
     r['actors'][c+1:c+1] = _next
     r['current'] = c + 1
-    return envelope
+    return message
 
-def router_nested_if_flow_line_21_seq(envelope: dict) -> dict:
+def router_nested_if_flow_line_21_seq(message: dict) -> dict:
     """Router for control flow and payload mutations"""
-    p = envelope['payload']
-    r = envelope['route']
+    p = message['payload']
+    r = message['route']
     c = r['current']
     _next = []
 
@@ -82,12 +82,12 @@ def router_nested_if_flow_line_21_seq(envelope: dict) -> dict:
 
     r['actors'][c+1:c+1] = _next
     r['current'] = c + 1
-    return envelope
+    return message
 
-def router_nested_if_flow_line_24_seq(envelope: dict) -> dict:
+def router_nested_if_flow_line_24_seq(message: dict) -> dict:
     """Router for control flow and payload mutations"""
-    p = envelope['payload']
-    r = envelope['route']
+    p = message['payload']
+    r = message['route']
     c = r['current']
     _next = []
 
@@ -97,12 +97,12 @@ def router_nested_if_flow_line_24_seq(envelope: dict) -> dict:
 
     r['actors'][c+1:c+1] = _next
     r['current'] = c + 1
-    return envelope
+    return message
 
-def router_nested_if_flow_line_20_if(envelope: dict) -> dict:
+def router_nested_if_flow_line_20_if(message: dict) -> dict:
     """Router for control flow and payload mutations"""
-    p = envelope['payload']
-    r = envelope['route']
+    p = message['payload']
+    r = message['route']
     c = r['current']
     _next = []
 
@@ -114,12 +114,12 @@ def router_nested_if_flow_line_20_if(envelope: dict) -> dict:
 
     r['actors'][c+1:c+1] = _next
     r['current'] = c + 1
-    return envelope
+    return message
 
-def router_nested_if_flow_line_10_if(envelope: dict) -> dict:
+def router_nested_if_flow_line_10_if(message: dict) -> dict:
     """Router for control flow and payload mutations"""
-    p = envelope['payload']
-    r = envelope['route']
+    p = message['payload']
+    r = message['route']
     c = r['current']
     _next = []
 
@@ -130,11 +130,11 @@ def router_nested_if_flow_line_10_if(envelope: dict) -> dict:
 
     r['actors'][c+1:c+1] = _next
     r['current'] = c + 1
-    return envelope
+    return message
 
-def end_nested_if_flow(envelope: dict) -> dict:
+def end_nested_if_flow(message: dict) -> dict:
     """Exitpoint for flow 'nested_if_flow'"""
-    return envelope
+    return message
 
 
 # ======================================================================

@@ -1,7 +1,7 @@
 # Multi-Region Actor Deployment Example
 #
-# This example demonstrates using the asya.sh/actor label to deploy the same
-# logical actor across multiple regions/clusters with different resource names.
+# This example demonstrates using spec.actor to deploy the same logical actor
+# across multiple regions/clusters with different resource names.
 #
 # Use case: Deploy "text-processor" actor in EU and US regions, both consuming
 # from the same queue (asya-production-text-processor) but with region-specific
@@ -9,10 +9,8 @@
 #
 # Key concepts:
 # - metadata.name: Kubernetes resource name (must be unique in namespace)
-# - asya.sh/actor label: Logical actor name for routing (can be same across resources)
-# - Queue name format: asya-{namespace}-{actor-label-value}
-#
-# Without the label, actor name defaults to metadata.name
+# - spec.actor: Logical actor identity for queue naming and routing (can be same across resources)
+# - Queue name format: asya-{namespace}-{spec.actor}
 
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
@@ -20,14 +18,14 @@ metadata:
   name: text-processor-eu
   namespace: production
   labels:
-    # Logical actor name - used for queue naming and routing
-    # Queue: asya-production-text-processor
-    asya.sh/actor: text-processor
     # Flow label for grouping related actors
     asya.sh/flow: document-processing
     # Custom labels for filtering
     region: eu-central-1
 spec:
+  # Logical actor name - used for queue naming and routing
+  # Queue: asya-production-text-processor
+  actor: text-processor
   transport: sqs
 
   scaling:
@@ -68,11 +66,11 @@ metadata:
   name: text-processor-us
   namespace: production
   labels:
-    # Same logical actor name - both regions consume from same queue
-    asya.sh/actor: text-processor
     asya.sh/flow: document-processing
     region: us-east-1
 spec:
+  # Same logical actor name - both regions consume from same queue
+  actor: text-processor
   transport: sqs
 
   scaling:
@@ -107,7 +105,6 @@ spec:
               memory: "4Gi"
 
 # kubectl commands:
-# kubectl get asya                                    # Shows ACTOR column
-# kubectl get asya -l asya.sh/actor=text-processor    # Filter by actor name
+# kubectl get asya                                     # Shows ACTOR column (from spec.actor)
 # kubectl get asya -l asya.sh/flow=document-processing # Filter by flow
-# kubectl get asya -l region=eu-central-1             # Filter by region
+# kubectl get asya -l region=eu-central-1              # Filter by region

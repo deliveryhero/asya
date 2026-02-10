@@ -12,6 +12,7 @@ metadata:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
+  actor: {{ $errorEnd.name }}
   transport: {{ $errorEnd.transport }}
 
   {{- if $errorEnd.scaling.enabled }}

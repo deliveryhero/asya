@@ -2,8 +2,8 @@
 
 BEGIN;
 
--- Envelopes table
-CREATE TABLE IF NOT EXISTS envelopes (
+-- Tasks table
+CREATE TABLE IF NOT EXISTS tasks (
     id TEXT PRIMARY KEY,
     status TEXT NOT NULL CHECK (status IN ('pending', 'running', 'succeeded', 'failed', 'unknown')),
     route_actors TEXT[] NOT NULL,
@@ -18,15 +18,15 @@ CREATE TABLE IF NOT EXISTS envelopes (
 );
 
 -- Indexes for common queries
-CREATE INDEX IF NOT EXISTS idx_envelopes_status ON envelopes(status);
-CREATE INDEX IF NOT EXISTS idx_envelopes_created_at ON envelopes(created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_envelopes_updated_at ON envelopes(updated_at DESC);
-CREATE INDEX IF NOT EXISTS idx_envelopes_deadline ON envelopes(deadline) WHERE deadline IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
+CREATE INDEX IF NOT EXISTS idx_tasks_created_at ON tasks(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_tasks_updated_at ON tasks(updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_tasks_deadline ON tasks(deadline) WHERE deadline IS NOT NULL;
 
--- Envelope updates table for SSE streaming
-CREATE TABLE IF NOT EXISTS envelope_updates (
+-- Task updates table for SSE streaming
+CREATE TABLE IF NOT EXISTS task_updates (
     id BIGSERIAL PRIMARY KEY,
-    envelope_id TEXT NOT NULL REFERENCES envelopes(id) ON DELETE CASCADE,
+    task_id TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
     status TEXT NOT NULL,
     message TEXT,
     result JSONB,
@@ -34,9 +34,9 @@ CREATE TABLE IF NOT EXISTS envelope_updates (
     timestamp TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
--- Indexes for envelope_updates
-CREATE INDEX IF NOT EXISTS idx_envelope_updates_envelope_id ON envelope_updates(envelope_id, timestamp DESC);
-CREATE INDEX IF NOT EXISTS idx_envelope_updates_timestamp ON envelope_updates(timestamp DESC);
+-- Indexes for task_updates
+CREATE INDEX IF NOT EXISTS idx_task_updates_task_id ON task_updates(task_id, timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_task_updates_timestamp ON task_updates(timestamp DESC);
 
 -- Function to auto-update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -47,10 +47,10 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
--- Trigger for envelopes table
-DROP TRIGGER IF EXISTS update_envelopes_updated_at ON envelopes;
-CREATE TRIGGER update_envelopes_updated_at
-    BEFORE UPDATE ON envelopes
+-- Trigger for tasks table
+DROP TRIGGER IF EXISTS update_tasks_updated_at ON tasks;
+CREATE TRIGGER update_tasks_updated_at
+    BEFORE UPDATE ON tasks
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 

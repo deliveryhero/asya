@@ -5,16 +5,16 @@ All framework components and build scripts.
 ## Components
 
 ### asya-gateway (Go)
-MCP gateway with JSON-RPC 2.0, PostgreSQL envelope storage, and SSE streaming.
+MCP gateway with JSON-RPC 2.0, PostgreSQL task storage, and SSE streaming.
 
-**Purpose**: API integration, envelope tracking, SSE streaming for long-running envelopes
+**Purpose**: API integration, task tracking, SSE streaming for long-running tasks
 
 **See**: [Architecture docs](../docs/architecture/asya-gateway.md) | [Component README](asya-gateway/README.md)
 
 ### asya-sidecar (Go)
-Actor sidecar for envelope routing between queues and runtimes.
+Actor sidecar for message routing between queues and runtimes.
 
-**Purpose**: Consume from queues, route envelopes, forward to runtime via Unix socket
+**Purpose**: Consume from queues, route messages, forward to runtime via Unix socket
 
 **See**: [Architecture docs](../docs/architecture/asya-sidecar.md) | [Component README](asya-sidecar/README.md)
 

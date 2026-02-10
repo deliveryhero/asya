@@ -11,13 +11,13 @@ import (
 	"github.com/deliveryhero/asya/asya-sidecar/pkg/transport"
 )
 
-// EnvelopeProcessor is the interface for processing envelopes
-type EnvelopeProcessor interface {
-	ProcessEnvelope(ctx context.Context, msg transport.QueueMessage) error
+// MessageProcessor is the interface for processing messages
+type MessageProcessor interface {
+	ProcessMessage(ctx context.Context, msg transport.QueueMessage) error
 }
 
 // NewTestRouter creates a router for testing with the given configuration
-func NewTestRouter(socketPath string, timeout time.Duration, mockTransport *MockTransport) EnvelopeProcessor {
+func NewTestRouter(socketPath string, timeout time.Duration, mockTransport *MockTransport) MessageProcessor {
 	runtimeClient := runtime.NewClient(socketPath, timeout)
 
 	cfg := &config.Config{
@@ -30,22 +30,22 @@ func NewTestRouter(socketPath string, timeout time.Duration, mockTransport *Mock
 
 	adapter := &mockTransportAdapter{mock: mockTransport}
 	r := router.NewRouter(cfg, adapter, runtimeClient, nil)
-	return &envelopeProcessor{router: r}
+	return &messageProcessor{router: r}
 }
 
-// envelopeProcessor adapts the internal router to the public EnvelopeProcessor interface
-type envelopeProcessor struct {
+// messageProcessor adapts the internal router to the public MessageProcessor interface
+type messageProcessor struct {
 	router *router.Router
 }
 
-func (ep *envelopeProcessor) ProcessEnvelope(ctx context.Context, msg transport.QueueMessage) error {
+func (ep *messageProcessor) ProcessMessage(ctx context.Context, msg transport.QueueMessage) error {
 	internalMsg := internaltransport.QueueMessage{
 		ID:            msg.ID,
 		Body:          msg.Body,
 		ReceiptHandle: msg.ReceiptHandle,
 		Headers:       msg.Headers,
 	}
-	return ep.router.ProcessEnvelope(ctx, internalMsg)
+	return ep.router.ProcessMessage(ctx, internalMsg)
 }
 
 // mockTransportAdapter adapts the public MockTransport to internal transport.Transport

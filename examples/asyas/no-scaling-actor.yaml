@@ -7,6 +7,7 @@ metadata:
   name: fixed-replicas-actor
   namespace: default
 spec:
+  actor: fixed-replicas-actor
   transport: rabbitmq
 
   # Disable KEDA autoscaling

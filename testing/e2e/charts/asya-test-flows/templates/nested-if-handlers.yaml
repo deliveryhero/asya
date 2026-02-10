@@ -9,6 +9,7 @@ metadata:
     asya.sh/flow: nested-if
     asya.sh/actor-type: handler
 spec:
+  actor: validate-input
   transport: {{ .Values.transport }}
   scaling:
     enabled: {{ .Values.scaling.enabled }}
@@ -39,6 +40,7 @@ metadata:
     asya.sh/flow: nested-if
     asya.sh/actor-type: handler
 spec:
+  actor: route-a-x
   transport: {{ .Values.transport }}
   scaling:
     enabled: {{ .Values.scaling.enabled }}
@@ -69,6 +71,7 @@ metadata:
     asya.sh/flow: nested-if
     asya.sh/actor-type: handler
 spec:
+  actor: route-a-y
   transport: {{ .Values.transport }}
   scaling:
     enabled: {{ .Values.scaling.enabled }}
@@ -99,6 +102,7 @@ metadata:
     asya.sh/flow: nested-if
     asya.sh/actor-type: handler
 spec:
+  actor: route-b-x
   transport: {{ .Values.transport }}
   scaling:
     enabled: {{ .Values.scaling.enabled }}
@@ -129,6 +133,7 @@ metadata:
     asya.sh/flow: nested-if
     asya.sh/actor-type: handler
 spec:
+  actor: route-b-y
   transport: {{ .Values.transport }}
   scaling:
     enabled: {{ .Values.scaling.enabled }}
@@ -159,6 +164,7 @@ metadata:
     asya.sh/flow: nested-if
     asya.sh/actor-type: handler
 spec:
+  actor: finalize-result
   transport: {{ .Values.transport }}
   scaling:
     enabled: {{ .Values.scaling.enabled }}

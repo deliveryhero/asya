@@ -13,19 +13,19 @@ Regenerate by running: asya flow compile ../../sample_flow.py
 # Generated Routers (for kubernetes deployment)
 # ======================================================================
 
-def start_sample_flow(envelope: dict) -> dict:
+def start_sample_flow(message: dict) -> dict:
     """Entrypoint for flow 'sample_flow'"""
-    r = envelope['route']
+    r = message['route']
     c = r['current']
 
     r['actors'][c+1:c+1] = [resolve("handler_setup"), resolve("router_sample_flow_line_3_if")]
     r['current'] = c + 1
-    return envelope
+    return message
 
-def router_sample_flow_line_4_seq(envelope: dict) -> dict:
+def router_sample_flow_line_4_seq(message: dict) -> dict:
     """Router for control flow and payload mutations"""
-    p = envelope['payload']
-    r = envelope['route']
+    p = message['payload']
+    r = message['route']
     c = r['current']
     _next = []
 
@@ -35,12 +35,12 @@ def router_sample_flow_line_4_seq(envelope: dict) -> dict:
 
     r['actors'][c+1:c+1] = _next
     r['current'] = c + 1
-    return envelope
+    return message
 
-def router_sample_flow_line_8_seq(envelope: dict) -> dict:
+def router_sample_flow_line_8_seq(message: dict) -> dict:
     """Router for control flow and payload mutations"""
-    p = envelope['payload']
-    r = envelope['route']
+    p = message['payload']
+    r = message['route']
     c = r['current']
     _next = []
 
@@ -49,12 +49,12 @@ def router_sample_flow_line_8_seq(envelope: dict) -> dict:
 
     r['actors'][c+1:c+1] = _next
     r['current'] = c + 1
-    return envelope
+    return message
 
-def router_sample_flow_line_3_if(envelope: dict) -> dict:
+def router_sample_flow_line_3_if(message: dict) -> dict:
     """Router for control flow and payload mutations"""
-    p = envelope['payload']
-    r = envelope['route']
+    p = message['payload']
+    r = message['route']
     c = r['current']
     _next = []
 
@@ -66,11 +66,11 @@ def router_sample_flow_line_3_if(envelope: dict) -> dict:
 
     r['actors'][c+1:c+1] = _next
     r['current'] = c + 1
-    return envelope
+    return message
 
-def end_sample_flow(envelope: dict) -> dict:
+def end_sample_flow(message: dict) -> dict:
     """Exitpoint for flow 'sample_flow'"""
-    return envelope
+    return message
 
 
 # ======================================================================

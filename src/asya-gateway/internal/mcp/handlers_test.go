@@ -12,39 +12,39 @@ import (
 	"time"
 
 	"github.com/deliveryhero/asya/asya-gateway/internal/config"
-	"github.com/deliveryhero/asya/asya-gateway/internal/envelopestore"
+	"github.com/deliveryhero/asya/asya-gateway/internal/taskstore"
 	"github.com/deliveryhero/asya/asya-gateway/pkg/types"
 )
 
-func TestHandleEnvelopeProgress(t *testing.T) {
+func TestHandleTaskProgress(t *testing.T) {
 	tests := []struct {
 		name           string
 		method         string
-		envelopeID     string
+		taskID         string
 		jobExists      bool
 		progressUpdate types.ProgressUpdate
 		wantStatus     int
 		wantProgress   float64
 	}{
 		{
-			name:       "valid progress update - received",
-			method:     http.MethodPost,
-			envelopeID: "test-envelope-1",
-			jobExists:  true,
+			name:      "valid progress update - received",
+			method:    http.MethodPost,
+			taskID:    "test-task-1",
+			jobExists: true,
 			progressUpdate: types.ProgressUpdate{
 				Actors:          []string{"parser", "processor", "finalizer"},
 				CurrentActorIdx: 0,
 				Status:          "received",
-				Message:         "Envelope received",
+				Message:         "Task received",
 			},
 			wantStatus:   http.StatusOK,
 			wantProgress: 3.33,
 		},
 		{
-			name:       "valid progress update - processing",
-			method:     http.MethodPost,
-			envelopeID: "test-envelope-2",
-			jobExists:  true,
+			name:      "valid progress update - processing",
+			method:    http.MethodPost,
+			taskID:    "test-task-2",
+			jobExists: true,
 			progressUpdate: types.ProgressUpdate{
 				Actors:          []string{"parser", "processor", "finalizer"},
 				CurrentActorIdx: 1,
@@ -55,10 +55,10 @@ func TestHandleEnvelopeProgress(t *testing.T) {
 			wantProgress: 50.0,
 		},
 		{
-			name:       "valid progress update - completed",
-			method:     http.MethodPost,
-			envelopeID: "test-envelope-3",
-			jobExists:  true,
+			name:      "valid progress update - completed",
+			method:    http.MethodPost,
+			taskID:    "test-task-3",
+			jobExists: true,
 			progressUpdate: types.ProgressUpdate{
 				Actors:          []string{"parser", "processor", "finalizer"},
 				CurrentActorIdx: 2,
@@ -71,14 +71,14 @@ func TestHandleEnvelopeProgress(t *testing.T) {
 		{
 			name:       "invalid method",
 			method:     http.MethodGet,
-			envelopeID: "test-envelope-4",
+			taskID:     "test-task-4",
 			jobExists:  true,
 			wantStatus: http.StatusMethodNotAllowed,
 		},
 		{
-			name:       "missing envelope ID",
+			name:       "missing task ID",
 			method:     http.MethodPost,
-			envelopeID: "",
+			taskID:     "",
 			jobExists:  false,
 			wantStatus: http.StatusBadRequest,
 		},
@@ -86,21 +86,21 @@ func TestHandleEnvelopeProgress(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Create in-memory job store
-			store := envelopestore.NewStore()
+			// Create in-memory task store
+			store := taskstore.NewStore()
 
-			// Create test envelope if needed
+			// Create test task if needed
 			if tt.jobExists {
-				job := &types.Envelope{
-					ID: tt.envelopeID,
+				task := &types.Task{
+					ID: tt.taskID,
 					Route: types.Route{
 						Actors:  []string{"parser", "processor", "finalizer"},
 						Current: 0,
 					},
-					Status: types.EnvelopeStatusPending,
+					Status: types.TaskStatusPending,
 				}
-				if err := store.Create(job); err != nil {
-					t.Fatalf("Failed to create test envelope: %v", err)
+				if err := store.Create(task); err != nil {
+					t.Fatalf("Failed to create test task: %v", err)
 				}
 			}
 
@@ -109,23 +109,23 @@ func TestHandleEnvelopeProgress(t *testing.T) {
 
 			// Create request
 			var req *http.Request
-			if tt.method == http.MethodPost && tt.envelopeID != "" {
+			if tt.method == http.MethodPost && tt.taskID != "" {
 				body, _ := json.Marshal(tt.progressUpdate)
-				req = httptest.NewRequest(tt.method, "/envelopes/"+tt.envelopeID+"/progress", bytes.NewReader(body))
+				req = httptest.NewRequest(tt.method, "/tasks/"+tt.taskID+"/progress", bytes.NewReader(body))
 				req.Header.Set("Content-Type", "application/json")
 			} else {
-				req = httptest.NewRequest(tt.method, "/envelopes/"+tt.envelopeID+"/progress", nil)
+				req = httptest.NewRequest(tt.method, "/tasks/"+tt.taskID+"/progress", nil)
 			}
 
 			// Create response recorder
 			rr := httptest.NewRecorder()
 
 			// Call handler
-			handler.HandleEnvelopeProgress(rr, req)
+			handler.HandleTaskProgress(rr, req)
 
 			// Check status code
 			if rr.Code != tt.wantStatus {
-				t.Errorf("HandleEnvelopeProgress() status = %v, want %v", rr.Code, tt.wantStatus)
+				t.Errorf("HandleTaskProgress() status = %v, want %v", rr.Code, tt.wantStatus)
 			}
 
 			// Check response for successful cases
@@ -144,21 +144,21 @@ func TestHandleEnvelopeProgress(t *testing.T) {
 					t.Errorf("Progress percent = %v, want ~%v", progressPercent, tt.wantProgress)
 				}
 
-				// Verify envelope was updated in store
-				envelope, err := store.Get(tt.envelopeID)
+				// Verify task was updated in store
+				task, err := store.Get(tt.taskID)
 				if err != nil {
-					t.Fatalf("Failed to get updated envelope: %v", err)
+					t.Fatalf("Failed to get updated task: %v", err)
 				}
 
-				if envelope.ProgressPercent < tt.wantProgress-0.5 || envelope.ProgressPercent > tt.wantProgress+0.5 {
-					t.Errorf("Stored progress = %v, want ~%v", envelope.ProgressPercent, tt.wantProgress)
+				if task.ProgressPercent < tt.wantProgress-0.5 || task.ProgressPercent > tt.wantProgress+0.5 {
+					t.Errorf("Stored progress = %v, want ~%v", task.ProgressPercent, tt.wantProgress)
 				}
 
 				// Verify current actor matches the one at CurrentActorIdx
 				if len(tt.progressUpdate.Actors) > 0 && tt.progressUpdate.CurrentActorIdx < len(tt.progressUpdate.Actors) {
 					expectedActor := tt.progressUpdate.Actors[tt.progressUpdate.CurrentActorIdx]
-					if envelope.CurrentActorName != expectedActor {
-						t.Errorf("Current actor = %v, want %v", envelope.CurrentActorName, expectedActor)
+					if task.CurrentActorName != expectedActor {
+						t.Errorf("Current actor = %v, want %v", task.CurrentActorName, expectedActor)
 					}
 				}
 			}
@@ -166,7 +166,7 @@ func TestHandleEnvelopeProgress(t *testing.T) {
 	}
 }
 
-func TestHandleEnvelopeProgress_ProgressCalculation(t *testing.T) {
+func TestHandleTaskProgress_ProgressCalculation(t *testing.T) {
 	tests := []struct {
 		name         string
 		actorIndex   int
@@ -202,20 +202,20 @@ func TestHandleEnvelopeProgress_ProgressCalculation(t *testing.T) {
 
 	for i, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			store := envelopestore.NewStore()
+			store := taskstore.NewStore()
 			handler := NewHandler(store)
 
-			envelopeID := fmt.Sprintf("test-envelope-%d", i)
-			job := &types.Envelope{
-				ID: envelopeID,
+			taskID := fmt.Sprintf("test-task-%d", i)
+			task := &types.Task{
+				ID: taskID,
 				Route: types.Route{
 					Actors:  make([]string, tt.totalActors),
 					Current: 0,
 				},
-				Status: types.EnvelopeStatusPending,
+				Status: types.TaskStatusPending,
 			}
-			if err := store.Create(job); err != nil {
-				t.Fatalf("Failed to create test envelope: %v", err)
+			if err := store.Create(task); err != nil {
+				t.Fatalf("Failed to create test task: %v", err)
 			}
 
 			// Create actors array based on totalActors
@@ -231,11 +231,11 @@ func TestHandleEnvelopeProgress_ProgressCalculation(t *testing.T) {
 			}
 
 			body, _ := json.Marshal(progressUpdate)
-			req := httptest.NewRequest(http.MethodPost, "/envelopes/"+envelopeID+"/progress", bytes.NewReader(body))
+			req := httptest.NewRequest(http.MethodPost, "/tasks/"+taskID+"/progress", bytes.NewReader(body))
 			req.Header.Set("Content-Type", "application/json")
 			rr := httptest.NewRecorder()
 
-			handler.HandleEnvelopeProgress(rr, req)
+			handler.HandleTaskProgress(rr, req)
 
 			if rr.Code != http.StatusOK {
 				t.Fatalf("Expected status 200, got %v", rr.Code)
@@ -255,26 +255,26 @@ func TestHandleEnvelopeProgress_ProgressCalculation(t *testing.T) {
 	}
 }
 
-func TestHandleEnvelopeProgress_SSENotification(t *testing.T) {
-	store := envelopestore.NewStore()
+func TestHandleTaskProgress_SSENotification(t *testing.T) {
+	store := taskstore.NewStore()
 	handler := NewHandler(store)
 
-	envelopeID := "test-envelope-sse"
-	job := &types.Envelope{
-		ID: envelopeID,
+	taskID := "test-task-sse"
+	task := &types.Task{
+		ID: taskID,
 		Route: types.Route{
 			Actors:  []string{"actor1", "actor2"},
 			Current: 0,
 		},
-		Status: types.EnvelopeStatusPending,
+		Status: types.TaskStatusPending,
 	}
-	if err := store.Create(job); err != nil {
-		t.Fatalf("Failed to create test envelope: %v", err)
+	if err := store.Create(task); err != nil {
+		t.Fatalf("Failed to create test task: %v", err)
 	}
 
-	// Subscribe to envelope updates
-	updateChan := store.Subscribe(envelopeID)
-	defer store.Unsubscribe(envelopeID, updateChan)
+	// Subscribe to task updates
+	updateChan := store.Subscribe(taskID)
+	defer store.Unsubscribe(taskID, updateChan)
 
 	// Send progress update
 	progressUpdate := types.ProgressUpdate{
@@ -285,11 +285,11 @@ func TestHandleEnvelopeProgress_SSENotification(t *testing.T) {
 	}
 
 	body, _ := json.Marshal(progressUpdate)
-	req := httptest.NewRequest(http.MethodPost, "/envelopes/"+envelopeID+"/progress", bytes.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/tasks/"+taskID+"/progress", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	rr := httptest.NewRecorder()
 
-	handler.HandleEnvelopeProgress(rr, req)
+	handler.HandleTaskProgress(rr, req)
 
 	if rr.Code != http.StatusOK {
 		t.Fatalf("Expected status 200, got %v", rr.Code)
@@ -298,8 +298,8 @@ func TestHandleEnvelopeProgress_SSENotification(t *testing.T) {
 	// Wait for SSE notification
 	select {
 	case update := <-updateChan:
-		if update.ID != envelopeID {
-			t.Errorf("Update envelope ID = %v, want %v", update.ID, envelopeID)
+		if update.ID != taskID {
+			t.Errorf("Update task ID = %v, want %v", update.ID, taskID)
 		}
 		if update.CurrentActorIdx == nil || *update.CurrentActorIdx != 0 {
 			t.Errorf("Update current actor idx = %v, want 0", update.CurrentActorIdx)
@@ -307,8 +307,8 @@ func TestHandleEnvelopeProgress_SSENotification(t *testing.T) {
 		if len(update.Actors) < 1 || update.Actors[0] != "actor1" {
 			t.Errorf("Update actors = %v, want [actor1, ...]", update.Actors)
 		}
-		if update.EnvelopeState == nil || *update.EnvelopeState != "processing" {
-			t.Errorf("Update envelope state = %v, want processing", update.EnvelopeState)
+		if update.TaskState == nil || *update.TaskState != "processing" {
+			t.Errorf("Update task state = %v, want processing", update.TaskState)
 		}
 		if update.ProgressPercent == nil || *update.ProgressPercent < 24.5 || *update.ProgressPercent > 25.5 {
 			t.Errorf("Update progress = %v, want ~25.0", update.ProgressPercent)
@@ -415,7 +415,7 @@ func TestHandleToolCall(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			store := envelopestore.NewStore()
+			store := taskstore.NewStore()
 			handler := NewHandler(store)
 
 			if tt.setupMCP {
@@ -461,204 +461,204 @@ func TestHandleToolCall(t *testing.T) {
 	}
 }
 
-// TestHandleEnvelopeStatus tests the GET /envelopes/{id} endpoint
-func TestHandleEnvelopeStatus(t *testing.T) {
+// TestHandleTaskStatus tests the GET /tasks/{id} endpoint
+func TestHandleTaskStatus(t *testing.T) {
 	tests := []struct {
 		name        string
 		method      string
-		envelopeID  string
-		setupEnv    bool
-		envStatus   types.EnvelopeStatus
+		taskID      string
+		setupTask   bool
+		taskStatus  types.TaskStatus
 		wantStatus  int
 		checkFields bool
 	}{
 		{
-			name:        "valid GET - pending envelope",
+			name:        "valid GET - pending task",
 			method:      http.MethodGet,
-			envelopeID:  "test-env-1",
-			setupEnv:    true,
-			envStatus:   types.EnvelopeStatusPending,
+			taskID:      "test-task-1",
+			setupTask:   true,
+			taskStatus:  types.TaskStatusPending,
 			wantStatus:  http.StatusOK,
 			checkFields: true,
 		},
 		{
-			name:        "valid GET - running envelope",
+			name:        "valid GET - running task",
 			method:      http.MethodGet,
-			envelopeID:  "test-env-2",
-			setupEnv:    true,
-			envStatus:   types.EnvelopeStatusRunning,
+			taskID:      "test-task-2",
+			setupTask:   true,
+			taskStatus:  types.TaskStatusRunning,
 			wantStatus:  http.StatusOK,
 			checkFields: true,
 		},
 		{
-			name:        "valid GET - succeeded envelope",
+			name:        "valid GET - succeeded task",
 			method:      http.MethodGet,
-			envelopeID:  "test-env-3",
-			setupEnv:    true,
-			envStatus:   types.EnvelopeStatusSucceeded,
+			taskID:      "test-task-3",
+			setupTask:   true,
+			taskStatus:  types.TaskStatusSucceeded,
 			wantStatus:  http.StatusOK,
 			checkFields: true,
 		},
 		{
 			name:       "invalid method - POST not allowed",
 			method:     http.MethodPost,
-			envelopeID: "test-env-4",
-			setupEnv:   true,
+			taskID:     "test-task-4",
+			setupTask:  true,
 			wantStatus: http.StatusMethodNotAllowed,
 		},
 		{
 			name:       "invalid method - PUT not allowed",
 			method:     http.MethodPut,
-			envelopeID: "test-env-5",
-			setupEnv:   true,
+			taskID:     "test-task-5",
+			setupTask:  true,
 			wantStatus: http.StatusMethodNotAllowed,
 		},
 		{
 			name:       "invalid method - DELETE not allowed",
 			method:     http.MethodDelete,
-			envelopeID: "test-env-6",
-			setupEnv:   true,
+			taskID:     "test-task-6",
+			setupTask:  true,
 			wantStatus: http.StatusMethodNotAllowed,
 		},
 		{
-			name:       "missing envelope ID",
+			name:       "missing task ID",
 			method:     http.MethodGet,
-			envelopeID: "",
-			setupEnv:   false,
+			taskID:     "",
+			setupTask:  false,
 			wantStatus: http.StatusBadRequest,
 		},
 		{
-			name:       "envelope not found",
+			name:       "task not found",
 			method:     http.MethodGet,
-			envelopeID: "nonexistent-envelope",
-			setupEnv:   false,
+			taskID:     "nonexistent-task",
+			setupTask:  false,
 			wantStatus: http.StatusNotFound,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			store := envelopestore.NewStore()
+			store := taskstore.NewStore()
 			handler := NewHandler(store)
 
-			if tt.setupEnv {
-				env := &types.Envelope{
-					ID: tt.envelopeID,
+			if tt.setupTask {
+				task := &types.Task{
+					ID: tt.taskID,
 					Route: types.Route{
 						Actors:  []string{"actor1", "actor2"},
 						Current: 0,
 					},
 					TotalActors: 2,
 				}
-				if err := store.Create(env); err != nil {
-					t.Fatalf("Failed to create test envelope: %v", err)
+				if err := store.Create(task); err != nil {
+					t.Fatalf("Failed to create test task: %v", err)
 				}
 
-				if tt.envStatus != types.EnvelopeStatusPending {
-					update := types.EnvelopeUpdate{
-						ID:        tt.envelopeID,
-						Status:    tt.envStatus,
+				if tt.taskStatus != types.TaskStatusPending {
+					update := types.TaskUpdate{
+						ID:        tt.taskID,
+						Status:    tt.taskStatus,
 						Timestamp: time.Now(),
 					}
 					if err := store.Update(update); err != nil {
-						t.Fatalf("Failed to update envelope status: %v", err)
+						t.Fatalf("Failed to update task status: %v", err)
 					}
 				}
 			}
 
-			req := httptest.NewRequest(tt.method, "/envelopes/"+tt.envelopeID, nil)
+			req := httptest.NewRequest(tt.method, "/tasks/"+tt.taskID, nil)
 			rr := httptest.NewRecorder()
 
-			handler.HandleEnvelopeStatus(rr, req)
+			handler.HandleTaskStatus(rr, req)
 
 			if rr.Code != tt.wantStatus {
-				t.Errorf("HandleEnvelopeStatus() status = %v, want %v", rr.Code, tt.wantStatus)
+				t.Errorf("HandleTaskStatus() status = %v, want %v", rr.Code, tt.wantStatus)
 			}
 
 			if tt.checkFields && tt.wantStatus == http.StatusOK {
-				var envelope types.Envelope
-				if err := json.NewDecoder(rr.Body).Decode(&envelope); err != nil {
+				var task types.Task
+				if err := json.NewDecoder(rr.Body).Decode(&task); err != nil {
 					t.Fatalf("Failed to decode response: %v", err)
 				}
 
-				if envelope.ID != tt.envelopeID {
-					t.Errorf("Envelope ID = %v, want %v", envelope.ID, tt.envelopeID)
+				if task.ID != tt.taskID {
+					t.Errorf("Task ID = %v, want %v", task.ID, tt.taskID)
 				}
-				if envelope.Status != tt.envStatus {
-					t.Errorf("Envelope status = %v, want %v", envelope.Status, tt.envStatus)
+				if task.Status != tt.taskStatus {
+					t.Errorf("Task status = %v, want %v", task.Status, tt.taskStatus)
 				}
 			}
 		})
 	}
 }
 
-// TestHandleEnvelopeActive tests the GET /envelopes/{id}/active endpoint
-func TestHandleEnvelopeActive(t *testing.T) {
+// TestHandleTaskActive tests the GET /tasks/{id}/active endpoint
+func TestHandleTaskActive(t *testing.T) {
 	tests := []struct {
 		name       string
 		method     string
-		envelopeID string
-		setupEnv   bool
-		envStatus  types.EnvelopeStatus
+		taskID     string
+		setupTask  bool
+		taskStatus types.TaskStatus
 		wantStatus int
 		wantActive bool
 	}{
 		{
-			name:       "active envelope - pending",
+			name:       "active task - pending",
 			method:     http.MethodGet,
-			envelopeID: "test-active-1",
-			setupEnv:   true,
-			envStatus:  types.EnvelopeStatusPending,
+			taskID:     "test-active-1",
+			setupTask:  true,
+			taskStatus: types.TaskStatusPending,
 			wantStatus: http.StatusOK,
 			wantActive: true,
 		},
 		{
-			name:       "active envelope - running",
+			name:       "active task - running",
 			method:     http.MethodGet,
-			envelopeID: "test-active-2",
-			setupEnv:   true,
-			envStatus:  types.EnvelopeStatusRunning,
+			taskID:     "test-active-2",
+			setupTask:  true,
+			taskStatus: types.TaskStatusRunning,
 			wantStatus: http.StatusOK,
 			wantActive: true,
 		},
 		{
-			name:       "inactive envelope - succeeded",
+			name:       "inactive task - succeeded",
 			method:     http.MethodGet,
-			envelopeID: "test-active-3",
-			setupEnv:   true,
-			envStatus:  types.EnvelopeStatusSucceeded,
+			taskID:     "test-active-3",
+			setupTask:  true,
+			taskStatus: types.TaskStatusSucceeded,
 			wantStatus: http.StatusGone,
 			wantActive: false,
 		},
 		{
-			name:       "inactive envelope - failed",
+			name:       "inactive task - failed",
 			method:     http.MethodGet,
-			envelopeID: "test-active-4",
-			setupEnv:   true,
-			envStatus:  types.EnvelopeStatusFailed,
+			taskID:     "test-active-4",
+			setupTask:  true,
+			taskStatus: types.TaskStatusFailed,
 			wantStatus: http.StatusGone,
 			wantActive: false,
 		},
 		{
 			name:       "invalid method - POST not allowed",
 			method:     http.MethodPost,
-			envelopeID: "test-active-5",
-			setupEnv:   true,
-			envStatus:  types.EnvelopeStatusPending,
+			taskID:     "test-active-5",
+			setupTask:  true,
+			taskStatus: types.TaskStatusPending,
 			wantStatus: http.StatusMethodNotAllowed,
 		},
 		{
-			name:       "empty envelope ID path",
+			name:       "empty task ID path",
 			method:     http.MethodGet,
-			envelopeID: "",
-			setupEnv:   false,
+			taskID:     "",
+			setupTask:  false,
 			wantStatus: http.StatusBadRequest,
 		},
 		{
-			name:       "envelope not found - inactive",
+			name:       "task not found - inactive",
 			method:     http.MethodGet,
-			envelopeID: "nonexistent",
-			setupEnv:   false,
+			taskID:     "nonexistent",
+			setupTask:  false,
 			wantStatus: http.StatusGone,
 			wantActive: false,
 		},
@@ -666,45 +666,45 @@ func TestHandleEnvelopeActive(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			store := envelopestore.NewStore()
+			store := taskstore.NewStore()
 			handler := NewHandler(store)
 
-			if tt.setupEnv {
-				env := &types.Envelope{
-					ID: tt.envelopeID,
+			if tt.setupTask {
+				task := &types.Task{
+					ID: tt.taskID,
 					Route: types.Route{
 						Actors:  []string{"actor1"},
 						Current: 0,
 					},
 				}
-				if err := store.Create(env); err != nil {
-					t.Fatalf("Failed to create test envelope: %v", err)
+				if err := store.Create(task); err != nil {
+					t.Fatalf("Failed to create test task: %v", err)
 				}
 
-				if tt.envStatus != types.EnvelopeStatusPending {
-					update := types.EnvelopeUpdate{
-						ID:        tt.envelopeID,
-						Status:    tt.envStatus,
+				if tt.taskStatus != types.TaskStatusPending {
+					update := types.TaskUpdate{
+						ID:        tt.taskID,
+						Status:    tt.taskStatus,
 						Timestamp: time.Now(),
 					}
 					if err := store.Update(update); err != nil {
-						t.Fatalf("Failed to update envelope status: %v", err)
+						t.Fatalf("Failed to update task status: %v", err)
 					}
 				}
 			}
 
 			var req *http.Request
-			if tt.envelopeID == "" {
-				req = httptest.NewRequest(tt.method, "/envelopes//active", nil)
+			if tt.taskID == "" {
+				req = httptest.NewRequest(tt.method, "/tasks//active", nil)
 			} else {
-				req = httptest.NewRequest(tt.method, "/envelopes/"+tt.envelopeID+"/active", nil)
+				req = httptest.NewRequest(tt.method, "/tasks/"+tt.taskID+"/active", nil)
 			}
 			rr := httptest.NewRecorder()
 
-			handler.HandleEnvelopeActive(rr, req)
+			handler.HandleTaskActive(rr, req)
 
 			if rr.Code != tt.wantStatus {
-				t.Errorf("HandleEnvelopeActive() status = %v, want %v", rr.Code, tt.wantStatus)
+				t.Errorf("HandleTaskActive() status = %v, want %v", rr.Code, tt.wantStatus)
 			}
 
 			if tt.wantStatus == http.StatusOK || tt.wantStatus == http.StatusGone {
@@ -723,37 +723,37 @@ func TestHandleEnvelopeActive(t *testing.T) {
 	}
 }
 
-// TestHandleEnvelopeFinal tests the POST /envelopes/{id}/final endpoint
-func TestHandleEnvelopeFinal(t *testing.T) {
+// TestHandleTaskFinal tests the POST /tasks/{id}/final endpoint
+func TestHandleTaskFinal(t *testing.T) {
 	tests := []struct {
-		name        string
-		method      string
-		envelopeID  string
-		setupEnv    bool
-		finalUpdate interface{}
-		wantStatus  int
-		wantEnvStat types.EnvelopeStatus
-		checkUpdate bool
+		name           string
+		method         string
+		taskID         string
+		setupTask      bool
+		finalUpdate    interface{}
+		wantStatus     int
+		wantTaskStatus types.TaskStatus
+		checkUpdate    bool
 	}{
 		{
-			name:       "valid success - basic",
-			method:     http.MethodPost,
-			envelopeID: "test-final-1",
-			setupEnv:   true,
+			name:      "valid success - basic",
+			method:    http.MethodPost,
+			taskID:    "test-final-1",
+			setupTask: true,
 			finalUpdate: map[string]interface{}{
 				"id":     "test-final-1",
 				"status": "succeeded",
 				"result": map[string]interface{}{"output": "success"},
 			},
-			wantStatus:  http.StatusOK,
-			wantEnvStat: types.EnvelopeStatusSucceeded,
-			checkUpdate: true,
+			wantStatus:     http.StatusOK,
+			wantTaskStatus: types.TaskStatusSucceeded,
+			checkUpdate:    true,
 		},
 		{
-			name:       "valid success - with S3 URI",
-			method:     http.MethodPost,
-			envelopeID: "test-final-2",
-			setupEnv:   true,
+			name:      "valid success - with S3 URI",
+			method:    http.MethodPost,
+			taskID:    "test-final-2",
+			setupTask: true,
 			finalUpdate: map[string]interface{}{
 				"id":     "test-final-2",
 				"status": "succeeded",
@@ -762,74 +762,74 @@ func TestHandleEnvelopeFinal(t *testing.T) {
 					"s3_uri": "s3://bucket/key",
 				},
 			},
-			wantStatus:  http.StatusOK,
-			wantEnvStat: types.EnvelopeStatusSucceeded,
-			checkUpdate: true,
+			wantStatus:     http.StatusOK,
+			wantTaskStatus: types.TaskStatusSucceeded,
+			checkUpdate:    true,
 		},
 		{
-			name:       "valid failure - with error message",
-			method:     http.MethodPost,
-			envelopeID: "test-final-3",
-			setupEnv:   true,
+			name:      "valid failure - with error message",
+			method:    http.MethodPost,
+			taskID:    "test-final-3",
+			setupTask: true,
 			finalUpdate: map[string]interface{}{
 				"id":     "test-final-3",
 				"status": "failed",
 				"error":  "Processing error occurred",
 			},
-			wantStatus:  http.StatusOK,
-			wantEnvStat: types.EnvelopeStatusFailed,
-			checkUpdate: true,
+			wantStatus:     http.StatusOK,
+			wantTaskStatus: types.TaskStatusFailed,
+			checkUpdate:    true,
 		},
 		{
-			name:       "valid failure - without error message",
-			method:     http.MethodPost,
-			envelopeID: "test-final-4",
-			setupEnv:   true,
+			name:      "valid failure - without error message",
+			method:    http.MethodPost,
+			taskID:    "test-final-4",
+			setupTask: true,
 			finalUpdate: map[string]interface{}{
 				"id":     "test-final-4",
 				"status": "failed",
 			},
-			wantStatus:  http.StatusOK,
-			wantEnvStat: types.EnvelopeStatusFailed,
-			checkUpdate: true,
+			wantStatus:     http.StatusOK,
+			wantTaskStatus: types.TaskStatusFailed,
+			checkUpdate:    true,
 		},
 		{
 			name:       "invalid method - GET not allowed",
 			method:     http.MethodGet,
-			envelopeID: "test-final-5",
-			setupEnv:   true,
+			taskID:     "test-final-5",
+			setupTask:  true,
 			wantStatus: http.StatusMethodNotAllowed,
 		},
 		{
-			name:       "invalid method - PUT not allowed",
-			method:     http.MethodPut,
-			envelopeID: "test-final-6",
-			setupEnv:   true,
+			name:      "invalid method - PUT not allowed",
+			method:    http.MethodPut,
+			taskID:    "test-final-6",
+			setupTask: true,
 			finalUpdate: map[string]interface{}{
 				"status": "succeeded",
 			},
 			wantStatus: http.StatusMethodNotAllowed,
 		},
 		{
-			name:       "missing envelope ID",
+			name:       "missing task ID",
 			method:     http.MethodPost,
-			envelopeID: "",
-			setupEnv:   false,
+			taskID:     "",
+			setupTask:  false,
 			wantStatus: http.StatusBadRequest,
 		},
 		{
 			name:        "invalid JSON body",
 			method:      http.MethodPost,
-			envelopeID:  "test-final-7",
-			setupEnv:    true,
+			taskID:      "test-final-7",
+			setupTask:   true,
 			finalUpdate: "not valid json",
 			wantStatus:  http.StatusBadRequest,
 		},
 		{
-			name:       "invalid status - unknown value",
-			method:     http.MethodPost,
-			envelopeID: "test-final-8",
-			setupEnv:   true,
+			name:      "invalid status - unknown value",
+			method:    http.MethodPost,
+			taskID:    "test-final-8",
+			setupTask: true,
 			finalUpdate: map[string]interface{}{
 				"job_id": "test-final-8",
 				"status": "unknown_status",
@@ -837,10 +837,10 @@ func TestHandleEnvelopeFinal(t *testing.T) {
 			wantStatus: http.StatusBadRequest,
 		},
 		{
-			name:       "invalid status - empty string",
-			method:     http.MethodPost,
-			envelopeID: "test-final-9",
-			setupEnv:   true,
+			name:      "invalid status - empty string",
+			method:    http.MethodPost,
+			taskID:    "test-final-9",
+			setupTask: true,
 			finalUpdate: map[string]interface{}{
 				"job_id": "test-final-9",
 				"status": "",
@@ -848,10 +848,10 @@ func TestHandleEnvelopeFinal(t *testing.T) {
 			wantStatus: http.StatusBadRequest,
 		},
 		{
-			name:       "envelope not found",
-			method:     http.MethodPost,
-			envelopeID: "nonexistent",
-			setupEnv:   false,
+			name:      "task not found",
+			method:    http.MethodPost,
+			taskID:    "nonexistent",
+			setupTask: false,
 			finalUpdate: map[string]interface{}{
 				"job_id": "nonexistent",
 				"status": "succeeded",
@@ -862,62 +862,62 @@ func TestHandleEnvelopeFinal(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			store := envelopestore.NewStore()
+			store := taskstore.NewStore()
 			handler := NewHandler(store)
 
-			if tt.setupEnv {
-				env := &types.Envelope{
-					ID: tt.envelopeID,
+			if tt.setupTask {
+				task := &types.Task{
+					ID: tt.taskID,
 					Route: types.Route{
 						Actors:  []string{"actor1"},
 						Current: 0,
 					},
-					Status: types.EnvelopeStatusRunning,
+					Status: types.TaskStatusRunning,
 				}
-				if err := store.Create(env); err != nil {
-					t.Fatalf("Failed to create test envelope: %v", err)
+				if err := store.Create(task); err != nil {
+					t.Fatalf("Failed to create test task: %v", err)
 				}
 			}
 
 			var req *http.Request
 			if tt.finalUpdate == nil {
-				req = httptest.NewRequest(tt.method, "/envelopes/"+tt.envelopeID+"/final", nil)
+				req = httptest.NewRequest(tt.method, "/tasks/"+tt.taskID+"/final", nil)
 			} else if bodyStr, ok := tt.finalUpdate.(string); ok {
-				req = httptest.NewRequest(tt.method, "/envelopes/"+tt.envelopeID+"/final", bytes.NewReader([]byte(bodyStr)))
+				req = httptest.NewRequest(tt.method, "/tasks/"+tt.taskID+"/final", bytes.NewReader([]byte(bodyStr)))
 			} else {
 				body, _ := json.Marshal(tt.finalUpdate)
-				req = httptest.NewRequest(tt.method, "/envelopes/"+tt.envelopeID+"/final", bytes.NewReader(body))
+				req = httptest.NewRequest(tt.method, "/tasks/"+tt.taskID+"/final", bytes.NewReader(body))
 			}
 			req.Header.Set("Content-Type", "application/json")
 
 			rr := httptest.NewRecorder()
-			handler.HandleEnvelopeFinal(rr, req)
+			handler.HandleTaskFinal(rr, req)
 
 			if rr.Code != tt.wantStatus {
-				t.Errorf("HandleEnvelopeFinal() status = %v, want %v, body = %s", rr.Code, tt.wantStatus, rr.Body.String())
+				t.Errorf("HandleTaskFinal() status = %v, want %v, body = %s", rr.Code, tt.wantStatus, rr.Body.String())
 			}
 
 			if tt.checkUpdate && tt.wantStatus == http.StatusOK {
-				envelope, err := store.Get(tt.envelopeID)
+				task, err := store.Get(tt.taskID)
 				if err != nil {
-					t.Fatalf("Failed to get updated envelope: %v", err)
+					t.Fatalf("Failed to get updated task: %v", err)
 				}
 
-				if envelope.Status != tt.wantEnvStat {
-					t.Errorf("Envelope status = %v, want %v", envelope.Status, tt.wantEnvStat)
+				if task.Status != tt.wantTaskStatus {
+					t.Errorf("Task status = %v, want %v", task.Status, tt.wantTaskStatus)
 				}
 
-				if tt.wantEnvStat == types.EnvelopeStatusSucceeded && envelope.Result == nil {
+				if tt.wantTaskStatus == types.TaskStatusSucceeded && task.Result == nil {
 					updateMap := tt.finalUpdate.(map[string]interface{})
 					if _, hasResult := updateMap["result"]; hasResult {
-						t.Error("Expected result to be set for succeeded envelope")
+						t.Error("Expected result to be set for succeeded task")
 					}
 				}
 
-				if tt.wantEnvStat == types.EnvelopeStatusFailed {
+				if tt.wantTaskStatus == types.TaskStatusFailed {
 					updateMap := tt.finalUpdate.(map[string]interface{})
 					if errMsg, hasError := updateMap["error"].(string); hasError && errMsg != "" {
-						if envelope.Error == "" {
+						if task.Error == "" {
 							t.Error("Expected error message to be set")
 						}
 					}
@@ -927,7 +927,7 @@ func TestHandleEnvelopeFinal(t *testing.T) {
 	}
 }
 
-func TestEnvelopePathRegex(t *testing.T) {
+func TestTaskPathRegex(t *testing.T) {
 	tests := []struct {
 		name        string
 		path        string
@@ -937,98 +937,98 @@ func TestEnvelopePathRegex(t *testing.T) {
 		description string
 	}{
 		{
-			name:        "valid envelope status path",
-			path:        "/envelopes/abc-123",
+			name:        "valid task status path",
+			path:        "/tasks/abc-123",
 			regex:       "status",
 			wantMatch:   true,
 			wantID:      "abc-123",
-			description: "Should match /envelopes/{id}",
+			description: "Should match /tasks/{id}",
 		},
 		{
-			name:        "valid envelope stream path",
-			path:        "/envelopes/test-id-456/stream",
+			name:        "valid task stream path",
+			path:        "/tasks/test-id-456/stream",
 			regex:       "stream",
 			wantMatch:   true,
 			wantID:      "test-id-456",
-			description: "Should match /envelopes/{id}/stream",
+			description: "Should match /tasks/{id}/stream",
 		},
 		{
-			name:        "valid envelope active path",
-			path:        "/envelopes/uuid-789/active",
+			name:        "valid task active path",
+			path:        "/tasks/uuid-789/active",
 			regex:       "active",
 			wantMatch:   true,
 			wantID:      "uuid-789",
-			description: "Should match /envelopes/{id}/active",
+			description: "Should match /tasks/{id}/active",
 		},
 		{
-			name:        "valid envelope progress path",
-			path:        "/envelopes/env-001/progress",
+			name:        "valid task progress path",
+			path:        "/tasks/task-001/progress",
 			regex:       "progress",
 			wantMatch:   true,
-			wantID:      "env-001",
-			description: "Should match /envelopes/{id}/progress",
+			wantID:      "task-001",
+			description: "Should match /tasks/{id}/progress",
 		},
 		{
-			name:        "valid envelope final path",
-			path:        "/envelopes/final-test/final",
+			name:        "valid task final path",
+			path:        "/tasks/final-test/final",
 			regex:       "final",
 			wantMatch:   true,
 			wantID:      "final-test",
-			description: "Should match /envelopes/{id}/final",
+			description: "Should match /tasks/{id}/final",
 		},
 		{
-			name:        "UUID format envelope ID",
-			path:        "/envelopes/550e8400-e29b-41d4-a716-446655440000",
+			name:        "UUID format task ID",
+			path:        "/tasks/550e8400-e29b-41d4-a716-446655440000",
 			regex:       "status",
 			wantMatch:   true,
 			wantID:      "550e8400-e29b-41d4-a716-446655440000",
 			description: "Should match UUID format IDs",
 		},
 		{
-			name:        "empty envelope ID",
-			path:        "/envelopes//stream",
+			name:        "empty task ID",
+			path:        "/tasks//stream",
 			regex:       "stream",
 			wantMatch:   false,
-			description: "Should reject empty envelope ID",
+			description: "Should reject empty task ID",
 		},
 		{
-			name:        "missing envelope ID",
-			path:        "/envelopes/",
+			name:        "missing task ID",
+			path:        "/tasks/",
 			regex:       "status",
 			wantMatch:   false,
-			description: "Should reject missing envelope ID",
+			description: "Should reject missing task ID",
 		},
 		{
 			name:        "wrong suffix",
-			path:        "/envelopes/test-id/wrong",
+			path:        "/tasks/test-id/wrong",
 			regex:       "stream",
 			wantMatch:   false,
 			description: "Should reject wrong suffix",
 		},
 		{
 			name:        "extra path segments",
-			path:        "/envelopes/test-id/stream/extra",
+			path:        "/tasks/test-id/stream/extra",
 			regex:       "stream",
 			wantMatch:   false,
 			description: "Should reject extra path segments",
 		},
 		{
-			name:        "envelope ID with slashes",
-			path:        "/envelopes/id/with/slashes/stream",
+			name:        "task ID with slashes",
+			path:        "/tasks/id/with/slashes/stream",
 			regex:       "stream",
 			wantMatch:   false,
-			description: "Should reject envelope ID containing slashes",
+			description: "Should reject task ID containing slashes",
 		},
 		{
 			name:        "status path with trailing slash",
-			path:        "/envelopes/test-id/",
+			path:        "/tasks/test-id/",
 			regex:       "status",
 			wantMatch:   false,
 			description: "Should reject trailing slash",
 		},
 		{
 			name:        "stream path without trailing slash",
-			path:        "/envelopes/test-id/stream",
+			path:        "/tasks/test-id/stream",
 			regex:       "stream",
 			wantMatch:   true,
 			wantID:      "test-id",
@@ -1036,7 +1036,7 @@ func TestEnvelopePathRegex(t *testing.T) {
 		},
 		{
 			name:        "alphanumeric with hyphens and underscores",
-			path:        "/envelopes/test_id-123_abc/progress",
+			path:        "/tasks/test_id-123_abc/progress",
 			regex:       "progress",
 			wantMatch:   true,
 			wantID:      "test_id-123_abc",
@@ -1044,7 +1044,7 @@ func TestEnvelopePathRegex(t *testing.T) {
 		},
 		{
 			name:        "numeric only ID",
-			path:        "/envelopes/123456/final",
+			path:        "/tasks/123456/final",
 			regex:       "final",
 			wantMatch:   true,
 			wantID:      "123456",
@@ -1053,11 +1053,11 @@ func TestEnvelopePathRegex(t *testing.T) {
 	}
 
 	regexMap := map[string]*regexp.Regexp{
-		"status":   envelopePathRegex,
-		"stream":   envelopeStreamPathRegex,
-		"active":   envelopeActivePathRegex,
-		"progress": envelopeProgressPathRegex,
-		"final":    envelopeFinalPathRegex,
+		"status":   taskPathRegex,
+		"stream":   taskStreamPathRegex,
+		"active":   taskActivePathRegex,
+		"progress": taskProgressPathRegex,
+		"final":    taskFinalPathRegex,
 	}
 
 	for _, tt := range tests {
@@ -1075,12 +1075,12 @@ func TestEnvelopePathRegex(t *testing.T) {
 					return
 				}
 				if len(matches) < 2 {
-					t.Errorf("Expected regex to capture envelope ID, but got %d matches", len(matches))
+					t.Errorf("Expected regex to capture task ID, but got %d matches", len(matches))
 					return
 				}
 				gotID := matches[1]
 				if gotID != tt.wantID {
-					t.Errorf("Expected envelope ID %q, got %q", tt.wantID, gotID)
+					t.Errorf("Expected task ID %q, got %q", tt.wantID, gotID)
 				}
 			} else {
 				if matches != nil {
@@ -1091,8 +1091,8 @@ func TestEnvelopePathRegex(t *testing.T) {
 	}
 }
 
-func TestEnvelopePathRegex_EdgeCases(t *testing.T) {
-	store := envelopestore.NewStore()
+func TestTaskPathRegex_EdgeCases(t *testing.T) {
+	store := taskstore.NewStore()
 	handler := NewHandler(store)
 
 	tests := []struct {
@@ -1105,9 +1105,9 @@ func TestEnvelopePathRegex_EdgeCases(t *testing.T) {
 	}{
 		{
 			name:        "double slashes in path",
-			path:        "/envelopes//active",
+			path:        "/tasks//active",
 			method:      http.MethodGet,
-			handlerFunc: handler.HandleEnvelopeActive,
+			handlerFunc: handler.HandleTaskActive,
 			wantStatus:  http.StatusBadRequest,
 			description: "Regex should reject double slashes",
 		},
@@ -1115,23 +1115,23 @@ func TestEnvelopePathRegex_EdgeCases(t *testing.T) {
 			name:        "malformed path missing prefix",
 			path:        "/wrong/test-id/stream",
 			method:      http.MethodGet,
-			handlerFunc: handler.HandleEnvelopeStream,
+			handlerFunc: handler.HandleTaskStream,
 			wantStatus:  http.StatusBadRequest,
 			description: "Regex should reject wrong prefix",
 		},
 		{
 			name:        "path with query parameters",
-			path:        "/envelopes/test-id?foo=bar",
+			path:        "/tasks/test-id?foo=bar",
 			method:      http.MethodGet,
-			handlerFunc: handler.HandleEnvelopeStatus,
+			handlerFunc: handler.HandleTaskStatus,
 			wantStatus:  http.StatusNotFound,
-			description: "Query parameters are stripped by URL.Path, envelope not found",
+			description: "Query parameters are stripped by URL.Path, task not found",
 		},
 		{
-			name:        "extremely long envelope ID",
-			path:        "/envelopes/" + strings.Repeat("a", 1000) + "/progress",
+			name:        "extremely long task ID",
+			path:        "/tasks/" + strings.Repeat("a", 1000) + "/progress",
 			method:      http.MethodPost,
-			handlerFunc: handler.HandleEnvelopeProgress,
+			handlerFunc: handler.HandleTaskProgress,
 			wantStatus:  http.StatusBadRequest,
 			description: "Should handle extremely long IDs gracefully",
 		},
@@ -1151,16 +1151,16 @@ func TestEnvelopePathRegex_EdgeCases(t *testing.T) {
 	}
 }
 
-func TestHandleEnvelopeCreate(t *testing.T) {
+func TestHandleTaskCreate(t *testing.T) {
 	tests := []struct {
-		name         string
-		method       string
-		requestBody  map[string]interface{}
-		wantStatus   int
-		wantEnvelope bool
+		name        string
+		method      string
+		requestBody map[string]interface{}
+		wantStatus  int
+		wantTask    bool
 	}{
 		{
-			name:   "valid fanout envelope creation",
+			name:   "valid fanout task creation",
 			method: http.MethodPost,
 			requestBody: map[string]interface{}{
 				"id":        "abc-123-1",
@@ -1168,8 +1168,8 @@ func TestHandleEnvelopeCreate(t *testing.T) {
 				"actors":    []string{"actor1", "actor2"},
 				"current":   1,
 			},
-			wantStatus:   http.StatusCreated,
-			wantEnvelope: true,
+			wantStatus: http.StatusCreated,
+			wantTask:   true,
 		},
 		{
 			name:   "missing id field",
@@ -1179,35 +1179,35 @@ func TestHandleEnvelopeCreate(t *testing.T) {
 				"actors":    []string{"actor1"},
 				"current":   1,
 			},
-			wantStatus:   http.StatusBadRequest,
-			wantEnvelope: false,
+			wantStatus: http.StatusBadRequest,
+			wantTask:   false,
 		},
 		{
-			name:         "invalid json",
-			method:       http.MethodPost,
-			requestBody:  nil,
-			wantStatus:   http.StatusBadRequest,
-			wantEnvelope: false,
+			name:        "invalid json",
+			method:      http.MethodPost,
+			requestBody: nil,
+			wantStatus:  http.StatusBadRequest,
+			wantTask:    false,
 		},
 		{
-			name:         "wrong method GET",
-			method:       http.MethodGet,
-			requestBody:  nil,
-			wantStatus:   http.StatusMethodNotAllowed,
-			wantEnvelope: false,
+			name:        "wrong method GET",
+			method:      http.MethodGet,
+			requestBody: nil,
+			wantStatus:  http.StatusMethodNotAllowed,
+			wantTask:    false,
 		},
 		{
-			name:         "wrong method PUT",
-			method:       http.MethodPut,
-			requestBody:  nil,
-			wantStatus:   http.StatusMethodNotAllowed,
-			wantEnvelope: false,
+			name:        "wrong method PUT",
+			method:      http.MethodPut,
+			requestBody: nil,
+			wantStatus:  http.StatusMethodNotAllowed,
+			wantTask:    false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			store := envelopestore.NewStore()
+			store := taskstore.NewStore()
 			handler := NewHandler(store)
 
 			var body []byte
@@ -1221,35 +1221,35 @@ func TestHandleEnvelopeCreate(t *testing.T) {
 				body = []byte("invalid json{")
 			}
 
-			req := httptest.NewRequest(tt.method, "/envelopes", bytes.NewReader(body))
+			req := httptest.NewRequest(tt.method, "/tasks", bytes.NewReader(body))
 			req.Header.Set("Content-Type", "application/json")
 			rr := httptest.NewRecorder()
 
-			handler.HandleEnvelopeCreate(rr, req)
+			handler.HandleTaskCreate(rr, req)
 
 			if rr.Code != tt.wantStatus {
 				t.Errorf("got status %d, want %d", rr.Code, tt.wantStatus)
 			}
 
-			// Verify envelope was created if expected
-			if tt.wantEnvelope {
-				envelopeID := tt.requestBody["id"].(string)
-				envelope, err := store.Get(envelopeID)
+			// Verify task was created if expected
+			if tt.wantTask {
+				taskID := tt.requestBody["id"].(string)
+				task, err := store.Get(taskID)
 				if err != nil {
-					t.Errorf("Envelope not found: %v", err)
+					t.Errorf("Task not found: %v", err)
 				}
-				if envelope == nil {
-					t.Error("Envelope is nil")
+				if task == nil {
+					t.Error("Task is nil")
 				} else {
-					if envelope.ID != envelopeID {
-						t.Errorf("Envelope ID = %v, want %v", envelope.ID, envelopeID)
+					if task.ID != taskID {
+						t.Errorf("Task ID = %v, want %v", task.ID, taskID)
 					}
 					parentID := tt.requestBody["parent_id"].(string)
-					if envelope.ParentID == nil || *envelope.ParentID != parentID {
-						t.Errorf("Envelope ParentID = %v, want %v", envelope.ParentID, parentID)
+					if task.ParentID == nil || *task.ParentID != parentID {
+						t.Errorf("Task ParentID = %v, want %v", task.ParentID, parentID)
 					}
-					if envelope.Status != types.EnvelopeStatusPending {
-						t.Errorf("Envelope Status = %v, want Pending", envelope.Status)
+					if task.Status != types.TaskStatusPending {
+						t.Errorf("Task Status = %v, want Pending", task.Status)
 					}
 				}
 			}
@@ -1257,18 +1257,18 @@ func TestHandleEnvelopeCreate(t *testing.T) {
 	}
 }
 
-func TestHandleEnvelopeCreate_DuplicateID(t *testing.T) {
-	store := envelopestore.NewStore()
+func TestHandleTaskCreate_DuplicateID(t *testing.T) {
+	store := taskstore.NewStore()
 	handler := NewHandler(store)
 
-	// Create first envelope
-	envelope := &types.Envelope{
+	// Create first task
+	task := &types.Task{
 		ID:     "abc-123-1",
-		Status: types.EnvelopeStatusPending,
+		Status: types.TaskStatusPending,
 		Route:  types.Route{Actors: []string{"actor1"}, Current: 0},
 	}
-	if err := store.Create(envelope); err != nil {
-		t.Fatalf("Failed to create envelope: %v", err)
+	if err := store.Create(task); err != nil {
+		t.Fatalf("Failed to create task: %v", err)
 	}
 
 	// Try to create duplicate
@@ -1280,14 +1280,14 @@ func TestHandleEnvelopeCreate_DuplicateID(t *testing.T) {
 	}
 
 	body, _ := json.Marshal(requestBody)
-	req := httptest.NewRequest(http.MethodPost, "/envelopes", bytes.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/tasks", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	rr := httptest.NewRecorder()
 
-	handler.HandleEnvelopeCreate(rr, req)
+	handler.HandleTaskCreate(rr, req)
 
 	// Should return error
 	if rr.Code == http.StatusCreated {
-		t.Error("Should not allow duplicate envelope ID")
+		t.Error("Should not allow duplicate task ID")
 	}
 }

@@ -1,6 +1,6 @@
 //go:build integration
 
-package envelopestore
+package taskstore
 
 import "os"
 

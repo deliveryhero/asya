@@ -9,7 +9,7 @@ Tests scaling behavior in a real Kubernetes environment:
 - Queue backlog handling
 - Multiple actors scaling simultaneously
 - Resource limit handling
-- Concurrent envelope processing
+- Concurrent message processing
 
 These tests verify the system performs well under various load conditions.
 """
@@ -30,8 +30,8 @@ def test_cold_start_latency(e2e_helper):
 
     Scenario:
     1. Verify actor is scaled to 0
-    2. Send envelope
-    3. Measure time until envelope starts processing
+    2. Send message
+    3. Measure time until processing starts
     4. Measure total completion time
 
     Expected: Cold start < 30s, total completion reasonable
@@ -44,7 +44,7 @@ def test_cold_start_latency(e2e_helper):
     pod_count = e2e_helper.get_pod_count("asya.sh/actor=test-echo")
     logger.info(f"Initial pod count: {pod_count}")
 
-    logger.info("Sending envelope to trigger scale-up...")
+    logger.info("Sending message to trigger scale-up...")
     start_time = time.time()
 
     response = e2e_helper.call_mcp_tool(
@@ -52,7 +52,7 @@ def test_cold_start_latency(e2e_helper):
         arguments={"message": "cold-start-test"},
     )
 
-    envelope_id = response["result"]["envelope_id"]
+    task_id = response["result"]["task_id"]
 
     logger.info("Waiting for KEDA to scale up...")
     pod_ready = e2e_helper.wait_for_pod_ready("asya.sh/actor=test-echo", timeout=30)
@@ -61,10 +61,10 @@ def test_cold_start_latency(e2e_helper):
     assert pod_ready, "Pod should scale up within 30s"
     logger.info(f"Pod scaled up in {scale_up_time:.2f}s")
 
-    final_envelope = e2e_helper.wait_for_envelope_completion(envelope_id, timeout=60)
+    final_task = e2e_helper.wait_for_task_completion(task_id, timeout=60)
     total_time = time.time() - start_time
 
-    assert final_envelope["status"] == "succeeded", "Cold start envelope should succeed"
+    assert final_task["status"] == "succeeded", "Cold start task should succeed"
 
     logger.info(f"[+] Cold start completed in {total_time:.2f}s (scale-up: {scale_up_time:.2f}s)")
 
@@ -77,7 +77,7 @@ def test_scale_up_under_burst_load(e2e_helper):
     E2E: Test KEDA scales up quickly under burst load.
 
     Scenario:
-    1. Send 100 envelopes rapidly
+    1. Send 100 messages rapidly
     2. Monitor pod count over time
     3. Verify scale-up occurs
     4. Verify messages are processed
@@ -88,19 +88,19 @@ def test_scale_up_under_burst_load(e2e_helper):
     initial_pods = e2e_helper.get_pod_count("asya.sh/actor=test-echo")
     logger.info(f"Initial pods: {initial_pods}")
 
-    logger.info("Sending burst of 100 envelopes...")
-    envelope_ids = []
+    logger.info("Sending burst of 100 messages...")
+    task_ids = []
     for i in range(100):
         try:
             response = e2e_helper.call_mcp_tool(
                 tool_name="test_echo",
                 arguments={"message": f"burst-{i}"},
             )
-            envelope_ids.append(response["result"]["envelope_id"])
+            task_ids.append(response["result"]["task_id"])
         except Exception as e:
-            logger.warning(f"Failed to create envelope {i}: {e}")
+            logger.warning(f"Failed to create task {i}: {e}")
 
-    logger.info(f"Created {len(envelope_ids)} envelopes")
+    logger.info(f"Created {len(task_ids)} tasks")
 
     logger.info("Monitoring pod count during processing...")
     max_pods = initial_pods
@@ -116,17 +116,17 @@ def test_scale_up_under_burst_load(e2e_helper):
 
     logger.info(f"Max pods observed: {max_pods}")
 
-    logger.info("Waiting for sample envelopes to complete...")
+    logger.info("Waiting for sample tasks to complete...")
     completed = 0
-    for envelope_id in envelope_ids[:10]:
+    for task_id in task_ids[:10]:
         try:
-            final = e2e_helper.wait_for_envelope_completion(envelope_id, timeout=120)
+            final = e2e_helper.wait_for_task_completion(task_id, timeout=120)
             if final["status"] == "succeeded":
                 completed += 1
         except Exception as e:
-            logger.warning(f"Envelope {envelope_id} failed: {e}")
+            logger.warning(f"Task {task_id} failed: {e}")
 
-    logger.info(f"Completed {completed}/10 sample envelopes")
+    logger.info(f"Completed {completed}/10 sample tasks")
     assert completed >= 8, f"At least 8/10 should complete, got {completed}"
 
     logger.info(f"[+] Burst load handled (max_pods={max_pods}, initial={initial_pods})")
@@ -138,14 +138,14 @@ def test_scale_down_after_idle(e2e_helper):
     E2E: Test KEDA scales down after idle period.
 
     Scenario:
-    1. Send envelopes to trigger scale-up
+    1. Send messages to trigger scale-up
     2. Wait for processing to complete
     3. Monitor pod count over cooldown period
     4. Verify scale-down occurs
 
     Expected: Pods scale down to minReplicas after cooldown
     """
-    logger.info("Sending envelopes to trigger scale-up...")
+    logger.info("Sending messages to trigger scale-up...")
     for i in range(10):
         e2e_helper.call_mcp_tool(
             tool_name="test_echo",
@@ -186,9 +186,9 @@ def test_queue_backlog_processing(e2e_helper):
 
     Scenario:
     1. Scale actor to 0
-    2. Send 50 envelopes (queue backlog)
+    2. Send 50 messages (queue backlog)
     3. Scale actor back up
-    4. Verify all envelopes processed
+    4. Verify all messages processed
 
     Expected: All queued messages eventually processed
     """
@@ -196,19 +196,19 @@ def test_queue_backlog_processing(e2e_helper):
     e2e_helper.kubectl("scale", "deployment", "test-echo", "--replicas=0")
     time.sleep(5)
 
-    logger.info("Creating queue backlog (50 envelopes)...")
-    envelope_ids = []
+    logger.info("Creating queue backlog (50 messages)...")
+    task_ids = []
     for i in range(50):
         try:
             response = e2e_helper.call_mcp_tool(
                 tool_name="test_echo",
                 arguments={"message": f"backlog-{i}"},
             )
-            envelope_ids.append(response["result"]["envelope_id"])
+            task_ids.append(response["result"]["task_id"])
         except Exception as e:
-            logger.warning(f"Failed to create envelope {i}: {e}")
+            logger.warning(f"Failed to create task {i}: {e}")
 
-    logger.info(f"Created {len(envelope_ids)} envelopes in backlog")
+    logger.info(f"Created {len(task_ids)} messages in backlog")
 
     logger.info("Triggering scale-up (KEDA should detect queue length)...")
 
@@ -218,15 +218,15 @@ def test_queue_backlog_processing(e2e_helper):
 
     logger.info("Waiting for backlog to be processed...")
     completed = 0
-    for envelope_id in envelope_ids[:20]:
+    for task_id in task_ids[:20]:
         try:
-            final = e2e_helper.wait_for_envelope_completion(envelope_id, timeout=120)
+            final = e2e_helper.wait_for_task_completion(task_id, timeout=120)
             if final["status"] == "succeeded":
                 completed += 1
         except Exception as e:
-            logger.warning(f"Envelope failed: {e}")
+            logger.warning(f"Task failed: {e}")
 
-    logger.info(f"Completed {completed}/20 sample envelopes from backlog")
+    logger.info(f"Completed {completed}/20 sample tasks from backlog")
     assert completed >= 16, f"At least 16/20 should complete, got {completed}"
 
     logger.info("[+] Queue backlog processed successfully")
@@ -238,9 +238,9 @@ def test_multiple_actors_scaling_simultaneously(e2e_helper):
     E2E: Test multiple actors can scale simultaneously without interference.
 
     Scenario:
-    1. Send load to test-echo (20 envelopes)
-    2. Send load to test-doubler (20 envelopes)
-    3. Send load to test-incrementer (20 envelopes)
+    1. Send load to test-echo (20 messages)
+    2. Send load to test-doubler (20 messages)
+    3. Send load to test-incrementer (20 messages)
     4. Monitor all actors scale independently
     5. Verify all complete
 
@@ -258,9 +258,9 @@ def test_multiple_actors_scaling_simultaneously(e2e_helper):
                     tool_name="test_echo",
                     arguments={"message": f"multi-echo-{i}"},
                 )
-                envelope_id = response["result"]["envelope_id"]
+                task_id = response["result"]["task_id"]
                 with locks["echo"]:
-                    results["echo"].append(envelope_id)
+                    results["echo"].append(task_id)
             except Exception as e:
                 logger.warning(f"Echo {i} failed: {e}")
 
@@ -271,9 +271,9 @@ def test_multiple_actors_scaling_simultaneously(e2e_helper):
                     tool_name="test_pipeline",
                     arguments={"value": i},
                 )
-                envelope_id = response["result"]["envelope_id"]
+                task_id = response["result"]["task_id"]
                 with locks["doubler"]:
-                    results["doubler"].append(envelope_id)
+                    results["doubler"].append(task_id)
             except Exception as e:
                 logger.warning(f"Pipeline {i} failed: {e}")
 
@@ -289,8 +289,8 @@ def test_multiple_actors_scaling_simultaneously(e2e_helper):
     for t in threads:
         t.join(timeout=60)
 
-    logger.info(f"Echo envelopes: {len(results['echo'])}")
-    logger.info(f"Pipeline envelopes: {len(results['doubler'])}")
+    logger.info(f"Echo tasks: {len(results['echo'])}")
+    logger.info(f"Pipeline tasks: {len(results['doubler'])}")
 
     time.sleep(5)
 
@@ -299,22 +299,22 @@ def test_multiple_actors_scaling_simultaneously(e2e_helper):
 
     logger.info("Waiting for sample completions...")
     echo_completed = 0
-    for envelope_id in results["echo"][:10]:
+    for task_id in results["echo"][:10]:
         try:
-            final = e2e_helper.wait_for_envelope_completion(envelope_id, timeout=30)
+            final = e2e_helper.wait_for_task_completion(task_id, timeout=30)
             if final["status"] == "succeeded":
                 echo_completed += 1
         except Exception as e:
-            logger.warning(f"Echo envelope failed: {e}")
+            logger.warning(f"Echo task failed: {e}")
 
     pipeline_completed = 0
-    for envelope_id in results["doubler"][:10]:
+    for task_id in results["doubler"][:10]:
         try:
-            final = e2e_helper.wait_for_envelope_completion(envelope_id, timeout=45)
+            final = e2e_helper.wait_for_task_completion(task_id, timeout=45)
             if final["status"] == "succeeded":
                 pipeline_completed += 1
         except Exception as e:
-            logger.warning(f"Pipeline envelope failed: {e}")
+            logger.warning(f"Pipeline task failed: {e}")
 
     logger.info(f"Echo completed: {echo_completed}/10")
     logger.info(f"Pipeline completed: {pipeline_completed}/10")
@@ -331,15 +331,15 @@ def test_processing_throughput(e2e_helper):
     E2E: Measure processing throughput.
 
     Scenario:
-    1. Send 100 envelopes to fast actor (echo)
+    1. Send 100 messages to fast actor (echo)
     2. Measure total time to process all
     3. Calculate throughput
 
-    Expected: Reasonable throughput (>10 envelopes/sec with scaling)
+    Expected: Reasonable throughput (>10 messages/sec with scaling)
     """
-    logger.info("Sending 100 envelopes...")
+    logger.info("Sending 100 messages...")
     start_time = time.time()
-    envelope_ids = []
+    task_ids = []
 
     for i in range(100):
         try:
@@ -347,24 +347,24 @@ def test_processing_throughput(e2e_helper):
                 tool_name="test_echo",
                 arguments={"message": f"throughput-{i}"},
             )
-            envelope_ids.append(response["result"]["envelope_id"])
+            task_ids.append(response["result"]["task_id"])
         except Exception as e:
-            logger.warning(f"Failed to create envelope {i}: {e}")
+            logger.warning(f"Failed to create task {i}: {e}")
 
     creation_time = time.time() - start_time
-    logger.info(f"Created {len(envelope_ids)} envelopes in {creation_time:.2f}s")
+    logger.info(f"Created {len(task_ids)} tasks in {creation_time:.2f}s")
 
     logger.info("Waiting for all to complete...")
     completed = 0
     completion_start = time.time()
 
-    for envelope_id in envelope_ids:
+    for task_id in task_ids:
         try:
-            final = e2e_helper.wait_for_envelope_completion(envelope_id, timeout=120)
+            final = e2e_helper.wait_for_task_completion(task_id, timeout=120)
             if final["status"] == "succeeded":
                 completed += 1
         except Exception as e:
-            logger.warning(f"Envelope failed: {e}")
+            logger.warning(f"Task failed: {e}")
 
     total_time = time.time() - start_time
     processing_time = time.time() - completion_start
@@ -372,7 +372,7 @@ def test_processing_throughput(e2e_helper):
     throughput = completed / total_time if total_time > 0 else 0
 
     logger.info(f"[+] Processed {completed}/100 in {total_time:.2f}s")
-    logger.info(f"Throughput: {throughput:.2f} envelopes/sec")
+    logger.info(f"Throughput: {throughput:.2f} messages/sec")
 
     assert completed >= 90, f"At least 90% should complete, got {completed}"
 
@@ -383,7 +383,7 @@ def test_keda_pollingInterval_effectiveness(e2e_helper):
     E2E: Test KEDA pollingInterval affects scale-up responsiveness.
 
     Scenario:
-    1. Send burst of envelopes
+    1. Send burst of messages
     2. Measure time to first scale-up event
     3. Compare with pollingInterval setting
 

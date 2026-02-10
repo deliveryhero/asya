@@ -2,11 +2,11 @@
 
 BEGIN;
 
--- Add parent_id column to envelopes table for fanout traceability
-ALTER TABLE envelopes
+-- Add parent_id column to tasks table for fanout traceability
+ALTER TABLE tasks
 ADD COLUMN parent_id TEXT;
 
--- Index for finding all fanout children of a parent envelope
-CREATE INDEX idx_envelopes_parent_id ON envelopes(parent_id) WHERE parent_id IS NOT NULL;
+-- Index for finding all fanout children of a parent task
+CREATE INDEX idx_tasks_parent_id ON tasks(parent_id) WHERE parent_id IS NOT NULL;
 
 COMMIT;

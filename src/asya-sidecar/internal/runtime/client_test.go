@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/deliveryhero/asya/asya-sidecar/pkg/envelopes"
+	"github.com/deliveryhero/asya/asya-sidecar/pkg/messages"
 	"golang.org/x/net/nettest"
 )
 
@@ -44,7 +44,7 @@ func TestClient_CallRuntime_Success(t *testing.T) {
 		responses := []RuntimeResponse{
 			{
 				Payload: json.RawMessage(`{"processed": true}`),
-				Route: envelopes.Route{
+				Route: messages.Route{
 					Actors:  []string{"test", "next"},
 					Current: 1,
 				},
@@ -186,21 +186,21 @@ func TestClient_CallRuntime_FanOut(t *testing.T) {
 		responses := []RuntimeResponse{
 			{
 				Payload: json.RawMessage(`{"id": 1}`),
-				Route: envelopes.Route{
+				Route: messages.Route{
 					Actors:  []string{"fan"},
 					Current: 1,
 				},
 			},
 			{
 				Payload: json.RawMessage(`{"id": 2}`),
-				Route: envelopes.Route{
+				Route: messages.Route{
 					Actors:  []string{"fan"},
 					Current: 1,
 				},
 			},
 			{
 				Payload: json.RawMessage(`{"id": 3}`),
-				Route: envelopes.Route{
+				Route: messages.Route{
 					Actors:  []string{"fan"},
 					Current: 1,
 				},

@@ -34,15 +34,15 @@ go run cmd/gateway/main.go
 | `POST /mcp` | Streamable HTTP | MCP JSON-RPC 2.0 endpoint (recommended) |
 | `/mcp/sse` | SSE | MCP endpoint via SSE transport (deprecated, for backward compatibility) |
 
-### Envelope Management Endpoints
+### Task Management Endpoints
 
 | Endpoint | Description |
 |----------|-------------|
 | `POST /tools/call` | REST tool invocation (simple JSON API) |
-| `GET /envelopes/{id}` | Envelope status |
-| `GET /envelopes/{id}/stream` | SSE envelope updates |
-| `POST /envelopes/{id}/progress` | Sidecar progress update |
-| `POST /envelopes/{id}/final` | End actor final status |
+| `GET /tasks/{id}` | Task status |
+| `GET /tasks/{id}/stream` | SSE task updates |
+| `POST /tasks/{id}/progress` | Sidecar progress update |
+| `POST /tasks/{id}/final` | End actor final status |
 | `GET /health` | Health check |
 
 ## Configurable Tools

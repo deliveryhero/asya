@@ -29,7 +29,7 @@ Comprehensive overview dashboard showing:
 - Runtime errors by type
 
 **Message Sizes**
-- Envelope size distribution (received/sent)
+- Message size distribution (received/sent)
 
 **Operator Health**
 - Reconciliation rate and errors

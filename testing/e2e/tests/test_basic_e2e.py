@@ -4,10 +4,10 @@ Basic E2E tests for Asya framework on Kind cluster.
 
 Tests the complete flow:
 1. Gateway receives MCP tool call
-2. Creates envelope and routes to actor queue
-3. Actor (sidecar + runtime) processes envelope
+2. Creates message and routes to actor queue
+3. Actor (sidecar + runtime) processes message
 4. Result delivered to end queue (happy-end/error-end)
-5. Envelope status available via REST API
+5. Task status available via REST API
 
 These tests verify the framework works end-to-end in a Kubernetes environment.
 """
@@ -39,8 +39,8 @@ def test_echo_tool_basic(gateway_helper):
         arguments={"message": "Hello from E2E test"}
     )
 
-    assert result["result"]["envelope_id"] is not None, "Should have envelope ID"
-    assert "Envelope created successfully" in result["result"]["message"]
+    assert result["result"]["task_id"] is not None, "Should have task ID"
+    assert "Task created successfully" in result["result"]["message"]
 
     logger.info("[+] Echo tool call succeeded")
 
@@ -55,8 +55,8 @@ def test_doubler_pipeline(gateway_helper):
         arguments={"value": 5}
     )
 
-    assert result["result"]["envelope_id"] is not None, "Should have envelope ID"
-    assert "Envelope created successfully" in result["result"]["message"]
+    assert result["result"]["task_id"] is not None, "Should have task ID"
+    assert "Task created successfully" in result["result"]["message"]
 
     logger.info("[+] Pipeline processing succeeded")
 
@@ -71,8 +71,8 @@ def test_error_handling(gateway_helper):
         arguments={"should_fail": True}
     )
 
-    assert result["result"]["envelope_id"] is not None, "Should have envelope ID"
-    assert "Envelope created successfully" in result["result"]["message"]
+    assert result["result"]["task_id"] is not None, "Should have task ID"
+    assert "Task created successfully" in result["result"]["message"]
 
     logger.info("[+] Error handling test completed")
 
@@ -87,7 +87,7 @@ def test_timeout_handling(gateway_helper):
         arguments={"sleep_seconds": 2}
     )
 
-    assert result["result"]["envelope_id"] is not None, "Should have envelope ID"
-    assert "Envelope created successfully" in result["result"]["message"]
+    assert result["result"]["task_id"] is not None, "Should have task ID"
+    assert "Task created successfully" in result["result"]["message"]
 
     logger.info("[+] Timeout handling test completed")

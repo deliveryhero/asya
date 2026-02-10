@@ -1,4 +1,4 @@
-package envelopes
+package messages
 
 import (
 	"encoding/json"
@@ -129,8 +129,8 @@ func TestRoute_IncrementCurrent(t *testing.T) {
 	}
 }
 
-func TestEnvelope_JSONSerialization(t *testing.T) {
-	original := Envelope{
+func TestMessage_JSONSerialization(t *testing.T) {
+	original := Message{
 		Route: Route{
 			Actors:  []string{"actor1", "actor2", "actor3"},
 			Current: 1,
@@ -145,7 +145,7 @@ func TestEnvelope_JSONSerialization(t *testing.T) {
 	}
 
 	// Unmarshal
-	var decoded Envelope
+	var decoded Message
 	if err := json.Unmarshal(data, &decoded); err != nil {
 		t.Fatalf("Failed to unmarshal: %v", err)
 	}
@@ -172,15 +172,15 @@ func TestEnvelope_JSONSerialization(t *testing.T) {
 	}
 }
 
-func TestEnvelope_ParentID_Serialization(t *testing.T) {
+func TestMessage_ParentID_Serialization(t *testing.T) {
 	tests := []struct {
 		name     string
-		envelope Envelope
+		msg      Message
 		wantJSON string
 	}{
 		{
-			name: "envelope without parent_id",
-			envelope: Envelope{
+			name: "message without parent_id",
+			msg: Message{
 				ID: "abc-123",
 				Route: Route{
 					Actors:  []string{"actor1"},
@@ -192,7 +192,7 @@ func TestEnvelope_ParentID_Serialization(t *testing.T) {
 		},
 		{
 			name: "fanout child with parent_id",
-			envelope: Envelope{
+			msg: Message{
 				ID:       "abc-123-1",
 				ParentID: stringPtr("abc-123"),
 				Route: Route{
@@ -207,7 +207,7 @@ func TestEnvelope_ParentID_Serialization(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			data, err := json.Marshal(tt.envelope)
+			data, err := json.Marshal(tt.msg)
 			if err != nil {
 				t.Fatalf("Failed to marshal: %v", err)
 			}
@@ -218,7 +218,7 @@ func TestEnvelope_ParentID_Serialization(t *testing.T) {
 				t.Fatalf("Failed to unmarshal to map: %v", err)
 			}
 
-			if tt.envelope.ParentID == nil {
+			if tt.msg.ParentID == nil {
 				if _, exists := decoded["parent_id"]; exists {
 					t.Errorf("parent_id should be omitted when nil, but found in JSON")
 				}
@@ -226,25 +226,25 @@ func TestEnvelope_ParentID_Serialization(t *testing.T) {
 				parentID, exists := decoded["parent_id"].(string)
 				if !exists {
 					t.Errorf("parent_id should exist in JSON")
-				} else if parentID != *tt.envelope.ParentID {
-					t.Errorf("parent_id = %q, want %q", parentID, *tt.envelope.ParentID)
+				} else if parentID != *tt.msg.ParentID {
+					t.Errorf("parent_id = %q, want %q", parentID, *tt.msg.ParentID)
 				}
 			}
 
 			// Verify round-trip
-			var roundtrip Envelope
+			var roundtrip Message
 			if err := json.Unmarshal(data, &roundtrip); err != nil {
 				t.Fatalf("Failed to unmarshal: %v", err)
 			}
 
-			if roundtrip.ID != tt.envelope.ID {
-				t.Errorf("ID = %q, want %q", roundtrip.ID, tt.envelope.ID)
+			if roundtrip.ID != tt.msg.ID {
+				t.Errorf("ID = %q, want %q", roundtrip.ID, tt.msg.ID)
 			}
 
-			if (roundtrip.ParentID == nil) != (tt.envelope.ParentID == nil) {
-				t.Errorf("ParentID nil mismatch: got %v, want %v", roundtrip.ParentID == nil, tt.envelope.ParentID == nil)
-			} else if roundtrip.ParentID != nil && *roundtrip.ParentID != *tt.envelope.ParentID {
-				t.Errorf("ParentID = %q, want %q", *roundtrip.ParentID, *tt.envelope.ParentID)
+			if (roundtrip.ParentID == nil) != (tt.msg.ParentID == nil) {
+				t.Errorf("ParentID nil mismatch: got %v, want %v", roundtrip.ParentID == nil, tt.msg.ParentID == nil)
+			} else if roundtrip.ParentID != nil && *roundtrip.ParentID != *tt.msg.ParentID {
+				t.Errorf("ParentID = %q, want %q", *roundtrip.ParentID, *tt.msg.ParentID)
 			}
 		})
 	}
@@ -254,10 +254,10 @@ func stringPtr(s string) *string {
 	return &s
 }
 
-// TestEnvelope_RawMessagePreservesPayloadBytes verifies that json.RawMessage
+// TestMessage_RawMessagePreservesPayloadBytes verifies that json.RawMessage
 // keeps payload as raw bytes without parsing into Go objects.
 // This is a regression test for the optimization in asya-866.
-func TestEnvelope_RawMessagePreservesPayloadBytes(t *testing.T) {
+func TestMessage_RawMessagePreservesPayloadBytes(t *testing.T) {
 	// Large nested payload that would be expensive to parse
 	rawJSON := `{
 		"id": "test-123",
@@ -265,8 +265,8 @@ func TestEnvelope_RawMessagePreservesPayloadBytes(t *testing.T) {
 		"payload": {"deeply": {"nested": {"structure": {"with": {"many": {"levels": "value"}}}}}, "array": [1,2,3,4,5]}
 	}`
 
-	var envelope Envelope
-	if err := json.Unmarshal([]byte(rawJSON), &envelope); err != nil {
+	var msg Message
+	if err := json.Unmarshal([]byte(rawJSON), &msg); err != nil {
 		t.Fatalf("Failed to unmarshal: %v", err)
 	}
 
@@ -278,7 +278,7 @@ func TestEnvelope_RawMessagePreservesPayloadBytes(t *testing.T) {
 	if err := json.Unmarshal([]byte(expectedPayload), &expected); err != nil {
 		t.Fatalf("Failed to parse expected: %v", err)
 	}
-	if err := json.Unmarshal(envelope.Payload, &actual); err != nil {
+	if err := json.Unmarshal(msg.Payload, &actual); err != nil {
 		t.Fatalf("Failed to parse actual: %v", err)
 	}
 
@@ -289,12 +289,12 @@ func TestEnvelope_RawMessagePreservesPayloadBytes(t *testing.T) {
 	}
 
 	// Verify that re-marshaling preserves the structure (semantically, not byte-for-byte)
-	remarshaled, err := json.Marshal(envelope)
+	remarshaled, err := json.Marshal(msg)
 	if err != nil {
 		t.Fatalf("Failed to re-marshal: %v", err)
 	}
 
-	var roundtrip Envelope
+	var roundtrip Message
 	if err := json.Unmarshal(remarshaled, &roundtrip); err != nil {
 		t.Fatalf("Failed to unmarshal roundtrip: %v", err)
 	}
@@ -302,7 +302,7 @@ func TestEnvelope_RawMessagePreservesPayloadBytes(t *testing.T) {
 	// Payload should be semantically equivalent after roundtrip
 	// (whitespace may differ due to JSON normalization, but content must match)
 	var originalPayload, roundtripPayload interface{}
-	if err := json.Unmarshal(envelope.Payload, &originalPayload); err != nil {
+	if err := json.Unmarshal(msg.Payload, &originalPayload); err != nil {
 		t.Fatalf("Failed to parse original payload: %v", err)
 	}
 	if err := json.Unmarshal(roundtrip.Payload, &roundtripPayload); err != nil {
@@ -316,19 +316,19 @@ func TestEnvelope_RawMessagePreservesPayloadBytes(t *testing.T) {
 	}
 }
 
-// TestEnvelope_RawMessageForwardsUnchanged verifies that payload bytes
+// TestMessage_RawMessageForwardsUnchanged verifies that payload bytes
 // can be extracted and forwarded without modification.
-func TestEnvelope_RawMessageForwardsUnchanged(t *testing.T) {
+func TestMessage_RawMessageForwardsUnchanged(t *testing.T) {
 	// Simulate receiving a message from queue
 	queueMessage := []byte(`{"id":"msg-1","route":{"actors":["actor1"],"current":0},"payload":{"key":"value","number":42}}`)
 
-	var envelope Envelope
-	if err := json.Unmarshal(queueMessage, &envelope); err != nil {
+	var msg Message
+	if err := json.Unmarshal(queueMessage, &msg); err != nil {
 		t.Fatalf("Failed to unmarshal: %v", err)
 	}
 
 	// The payload should be extractable as raw bytes
-	payloadBytes := []byte(envelope.Payload)
+	payloadBytes := []byte(msg.Payload)
 
 	// Verify it's valid JSON that can be parsed independently
 	var payload map[string]interface{}

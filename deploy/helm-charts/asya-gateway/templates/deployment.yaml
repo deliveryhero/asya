@@ -56,13 +56,13 @@ spec:
                               -p {{ include "asya-gateway.databasePort" . }} \
                               -U {{ include "asya-gateway.databaseUsername" . }} \
                               -d {{ include "asya-gateway.databaseName" . }} \
-                              -tAc "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='public' AND table_name IN ('envelopes', 'envelope_updates')")
+                              -tAc "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='public' AND table_name IN ('tasks', 'task_updates')")
 
           if [ "$TABLES_EXIST" -eq 2 ]; then
-            echo "[+] Database schema validated (envelopes and envelope_updates tables exist)"
+            echo "[+] Database schema validated (tasks and task_updates tables exist)"
           else
             echo "[-] Database schema validation failed!"
-            echo "[-] Expected tables: envelopes, envelope_updates"
+            echo "[-] Expected tables: tasks, task_updates"
             echo "[-] Found $TABLES_EXIST table(s)"
             echo "[-] Please ensure database migrations have been run successfully"
             exit 1

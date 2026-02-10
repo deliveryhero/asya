@@ -86,6 +86,7 @@ metadata:
   name: {name}
   namespace: {namespace}
 spec:
+  actor: {name}
   transport: {transport}
 {scaling_block}
   workload:
@@ -194,6 +195,7 @@ metadata:
   name: test-lifecycle
   namespace: {e2e_helper.namespace}
 spec:
+  actor: test-lifecycle
   transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
   scaling:
     enabled: true
@@ -289,6 +291,7 @@ metadata:
   name: test-update
   namespace: {e2e_helper.namespace}
 spec:
+  actor: test-update
   transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
   scaling:
     enabled: true
@@ -315,6 +318,7 @@ metadata:
   name: test-update
   namespace: {e2e_helper.namespace}
 spec:
+  actor: test-update
   transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
   scaling:
     enabled: true
@@ -399,6 +403,7 @@ metadata:
   name: test-invalid-transport
   namespace: {e2e_helper.namespace}
 spec:
+  actor: test-invalid-transport
   transport: nonexistent-transport
   workload:
     kind: Deployment
@@ -449,6 +454,7 @@ metadata:
   name: test-statefulset
   namespace: {e2e_helper.namespace}
 spec:
+  actor: test-statefulset
   transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
   scaling:
     enabled: false
@@ -511,6 +517,7 @@ metadata:
   name: test-status
   namespace: {e2e_helper.namespace}
 spec:
+  actor: test-status
   transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
   scaling:
     enabled: true
@@ -583,6 +590,7 @@ metadata:
   name: test-broken-image
   namespace: {e2e_helper.namespace}
 spec:
+  actor: test-broken-image
   transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
   scaling:
     enabled: false
@@ -657,6 +665,7 @@ metadata:
   name: test-sidecar-env
   namespace: {e2e_helper.namespace}
 spec:
+  actor: test-sidecar-env
   transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
   scaling:
     enabled: true
@@ -758,6 +767,7 @@ metadata:
     team: ml-platform
     env: test
 spec:
+  actor: test-labels
   transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
   scaling:
     enabled: true
@@ -951,6 +961,7 @@ metadata:
   labels:
     app.kubernetes.io/custom: forbidden
 spec:
+  actor: test-invalid-labels
   transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
   workload:
     kind: Deployment

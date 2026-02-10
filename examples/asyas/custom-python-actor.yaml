@@ -7,6 +7,7 @@ metadata:
   name: conda-ml-actor
   namespace: default
 spec:
+  actor: conda-ml-actor
   transport: rabbitmq
 
   scaling:

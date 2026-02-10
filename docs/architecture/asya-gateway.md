@@ -3,19 +3,19 @@
 ## Responsibilities
 
 - Expose MCP-compliant HTTP API
-- Create envelopes from HTTP requests
-- Track envelope status in PostgreSQL
+- Create tasks from HTTP requests
+- Track task status in PostgreSQL
 - Stream progress updates via Server-Sent Events (SSE)
 - Receive status reports from crew actors
 
 ## How It Works
 
 1. Client calls MCP tool via HTTP POST
-2. Gateway creates envelope with unique ID
-3. Gateway stores envelope in PostgreSQL (status: `pending`)
-4. Gateway sends envelope to first actor's queue
-5. Crew actors (`happy-end`, `error-end`) report final status
-6. Client polls or streams status updates via SSE
+2. Gateway creates task with unique ID
+3. Gateway stores task in PostgreSQL (status: `pending`)
+4. Gateway sends message to first actor's queue
+5. Crew actors (`happy-end`, `error-end`) report final task status
+6. Client polls or streams task status updates via SSE
 
 ## Deployment
 
@@ -25,7 +25,7 @@ Deployed as separate Deployment in actor namespace:
 helm install asya-gateway deploy/helm-charts/asya-gateway/ -f gateway-values.yaml
 ```
 
-**Gateway is stateful**: Requires PostgreSQL database for envelope tracking.
+**Gateway is stateful**: Requires PostgreSQL database for task tracking.
 
 ## Configuration
 
@@ -100,19 +100,19 @@ Response (MCP CallToolResult):
   "content": [
     {
       "type": "text",
-      "text": "{\"envelope_id\":\"5e6fdb2d...\",\"message\":\"Envelope created successfully\",\"status_url\":\"/envelopes/5e6fdb2d...\",\"stream_url\":\"/envelopes/5e6fdb2d.../stream\"}"
+      "text": "{\"task_id\":\"5e6fdb2d...\",\"message\":\"Task created successfully\",\"status_url\":\"/tasks/5e6fdb2d...\",\"stream_url\":\"/tasks/5e6fdb2d.../stream\"}"
     }
   ],
   "isError": false
 }
 ```
 
-See [Actor-Actor Protocol](protocols/actor-actor.md#envelope-status-tracking) for more details on envelope statuses.
+See [Actor-Actor Protocol](protocols/actor-actor.md#task-status-tracking) for more details on task statuses.
 
-#### Get Envelope Status
+#### Get Task Status
 
 ```bash
-GET /envelopes/{id}
+GET /tasks/{id}
 ```
 
 Response:
@@ -120,7 +120,7 @@ Response:
 {
   "id": "5e6fdb2d-1d6b-4e91-baef-73e825434e7b",
   "status": "succeeded",
-  "message": "Envelope completed successfully",
+  "message": "Task completed successfully",
   "result": {"response": "Processed: Hello world"},
   "progress_percent": 100,
   "current_actor_idx": 2,
@@ -132,10 +132,10 @@ Response:
 }
 ```
 
-#### Stream Envelope Updates (SSE)
+#### Stream Task Updates (SSE)
 
 ```bash
-GET /envelopes/{id}/stream
+GET /tasks/{id}/stream
 Accept: text/event-stream
 ```
 
@@ -146,28 +146,28 @@ Accept: text/event-stream
 - Keepalive comments every 15 seconds
 - Auto-closes on final status (`succeeded` or `failed`)
 
-Stream events (EnvelopeUpdate):
+Stream events (TaskUpdate):
 ```
 event: update
-data: {"id":"env-123","status":"running","progress_percent":10,"current_actor_idx":0,"envelope_state":"received","actor":"preprocess","actors":["preprocess","infer","post"],"message":"Actor preprocess: received","timestamp":"2025-11-18T12:00:15Z"}
+data: {"id":"task-123","status":"running","progress_percent":10,"current_actor_idx":0,"actor_state":"received","actor":"preprocess","actors":["preprocess","infer","post"],"message":"Actor preprocess: received","timestamp":"2025-11-18T12:00:15Z"}
 
 event: update
-data: {"id":"env-123","status":"running","progress_percent":33,"current_actor_idx":0,"envelope_state":"completed","actor":"preprocess","actors":["preprocess","infer","post"],"message":"Actor preprocess: completed","timestamp":"2025-11-18T12:00:20Z"}
+data: {"id":"task-123","status":"running","progress_percent":33,"current_actor_idx":0,"actor_state":"completed","actor":"preprocess","actors":["preprocess","infer","post"],"message":"Actor preprocess: completed","timestamp":"2025-11-18T12:00:20Z"}
 
 event: update
-data: {"id":"env-123","status":"running","progress_percent":66,"current_actor_idx":1,"envelope_state":"completed","actor":"infer","actors":["preprocess","infer","post"],"message":"Actor infer: completed","timestamp":"2025-11-18T12:01:00Z"}
+data: {"id":"task-123","status":"running","progress_percent":66,"current_actor_idx":1,"actor_state":"completed","actor":"infer","actors":["preprocess","infer","post"],"message":"Actor infer: completed","timestamp":"2025-11-18T12:01:00Z"}
 
 event: update
-data: {"id":"env-123","status":"succeeded","progress_percent":100,"result":{...},"message":"Envelope completed successfully","timestamp":"2025-11-18T12:01:30Z"}
+data: {"id":"task-123","status":"succeeded","progress_percent":100,"result":{...},"message":"Task completed successfully","timestamp":"2025-11-18T12:01:30Z"}
 ```
 
-**EnvelopeUpdate fields**:
+**TaskUpdate fields**:
 
-- `id`: Envelope ID
-- `status`: Envelope status (`pending`, `running`, `succeeded`, `failed`)
+- `id`: Task ID
+- `status`: Task status (`pending`, `running`, `succeeded`, `failed`)
 - `progress_percent`: Progress 0-100 (omitted if not a progress update)
 - `current_actor_idx`: Current actor index (0-based, omitted for final states)
-- `envelope_state`: Actor processing state (`received`, `processing`, `completed`)
+- `actor_state`: Actor processing state (`received`, `processing`, `completed`)
 - `actor`: Current actor name (omitted for final states)
 - `actors`: Full route (may be modified by envelope-mode actors)
 - `message`: Human-readable status message
@@ -175,13 +175,13 @@ data: {"id":"env-123","status":"succeeded","progress_percent":100,"result":{...}
 - `error`: Error message (only for `failed` status)
 - `timestamp`: When this update occurred
 
-#### Check Envelope Active
+#### Check Task Active
 
 ```bash
-GET /envelopes/{id}/active
+GET /tasks/{id}/active
 ```
 
-**Used by**: Actors to verify envelope hasn't timed out
+**Used by**: Actors to verify task hasn't timed out
 
 Response (active):
 ```json
@@ -198,7 +198,7 @@ Response (inactive - HTTP 410 Gone):
 #### Report Progress
 
 ```bash
-POST /envelopes/{id}/progress
+POST /tasks/{id}/progress
 Content-Type: application/json
 
 {
@@ -221,11 +221,11 @@ Response:
 #### Report Final Status
 
 ```bash
-POST /envelopes/{id}/final
+POST /tasks/{id}/final
 Content-Type: application/json
 
 {
-  "id": "envelope-123",
+  "id": "task-123",
   "status": "succeeded",
   "result": {...}
 }
@@ -233,15 +233,15 @@ Content-Type: application/json
 
 **Called by**: `happy-end` (success) or `error-end` (failure) crew actors
 
-#### Create Fanout Envelope
+#### Create Fanout Task
 
 ```bash
-POST /envelopes
+POST /tasks
 Content-Type: application/json
 
 {
-  "id": "envelope-123-1",
-  "parent_id": "envelope-123",
+  "id": "task-123-1",
+  "parent_id": "task-123",
   "actors": ["prep", "infer"],
   "current": 1
 }
@@ -251,8 +251,8 @@ Content-Type: application/json
 
 **Fanout ID semantics**:
 
-- Index 0: Original ID (`envelope-123`)
-- Index 1+: Suffixed (`envelope-123-1`, `envelope-123-2`)
+- Index 0: Original ID (`task-123`)
+- Index 1+: Suffixed (`task-123-1`, `task-123-2`)
 - All children have `parent_id` for traceability
 
 ### Health Check
