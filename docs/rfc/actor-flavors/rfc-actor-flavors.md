@@ -61,15 +61,14 @@ A **flavor** is a partial AsyncActor spec stored as a Crossplane EnvironmentConf
 
 ```yaml
 # Platform engineer creates a flavor (once)
-apiVersion: apiextensions.crossplane.io/v1alpha1
+apiVersion: apiextensions.crossplane.io/v1beta1
 kind: EnvironmentConfig
 metadata:
   name: gpu-t4
   labels:
     asya.sh/flavor: gpu-t4
-spec:
-  data:
-    scaling:
+data:                                  # top-level, mirrors AsyncActor spec
+  scaling:
       minReplicas: 1
       maxReplicas: 4
       cooldownPeriod: 600
@@ -193,15 +192,14 @@ Any actor can immediately reference the new flavor. No Composition changes, no X
 **Example — platform engineer creates a router flavor for all Flow-generated actors:**
 
 ```yaml
-apiVersion: apiextensions.crossplane.io/v1alpha1
+apiVersion: apiextensions.crossplane.io/v1beta1
 kind: EnvironmentConfig
 metadata:
   name: flow-router
   labels:
     asya.sh/flavor: flow-router
-spec:
-  data:
-    scaling:
+data:
+  scaling:
       minReplicas: 0
       maxReplicas: 20
       pollingInterval: 5
@@ -289,28 +287,26 @@ Each flavor's `data` field is a **partial AsyncActor spec** — same schema, sam
 
 ```yaml
 # EnvironmentConfig gpu-t4
-spec:
-  data:
-    scaling:
-      minReplicas: 1
-    workload:
-      template:
-        spec:
-          containers:
-          - name: asya-runtime
-            env:
-            - name: CUDA_VISIBLE_DEVICES
-              value: "0"
-            resources:
-              limits:
-                nvidia.com/gpu: "1"
-          nodeSelector:
-            accelerator: nvidia-tesla-t4
+data:
+  scaling:
+    minReplicas: 1
+  workload:
+    template:
+      spec:
+        containers:
+        - name: asya-runtime
+          env:
+          - name: CUDA_VISIBLE_DEVICES
+            value: "0"
+          resources:
+            limits:
+              nvidia.com/gpu: "1"
+        nodeSelector:
+          accelerator: nvidia-tesla-t4
 
 # EnvironmentConfig openai-keys
-spec:
-  data:
-    workload:
+data:
+  workload:
       template:
         spec:
           containers:
