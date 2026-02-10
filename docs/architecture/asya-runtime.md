@@ -106,13 +106,32 @@ Runtime uses backward-compatible type hints:
 from typing import Dict, List  # Not dict, list
 ```
 
+## Async Support
+
+The runtime transparently supports `async def` handlers via `asyncio.run()`. Async is the preferred pattern for AI workloads where handlers make long-running async calls (LLM APIs, HTTP clients, database queries).
+
+- Async handlers (`async def`) are executed via `asyncio.run()` automatically
+- Sync handlers (`def`) continue to work unchanged with zero overhead
+- Detection uses `inspect.iscoroutinefunction()` at call time
+- No configuration needed — the runtime auto-detects async vs sync
+
+Sync handlers remain fully supported for backward compatibility.
+
 ## Handler Types
 
 ### Function Handler
 
 **Configuration**: `ASYA_HANDLER=module.function`
 
-**Example**:
+**Example** (async, preferred for AI workloads):
+```python
+# handler.py
+async def process(payload: dict) -> dict:
+    result = await llm.generate(payload["prompt"])
+    return {"result": result}
+```
+
+**Example** (sync, still fully supported):
 ```python
 # handler.py
 def process(payload: dict) -> dict:
@@ -128,15 +147,15 @@ def process(payload: dict) -> dict:
 # handler.py
 class Processor:
     def __init__(self, model_path: str = "/models/default"):
-        self.model = load_model(model_path)  # Init once
+        self.model = load_model(model_path)  # Init once, always sync
 
-    def process(self, payload: dict) -> dict:
-        return {"result": self.model.predict(payload)}
+    async def process(self, payload: dict) -> dict:
+        return {"result": await self.model.predict(payload)}
 ```
 
 **Benefits**: Stateful initialization (model loading, preprocessing setup)
 
-**Important**: All `__init__` parameters must have default values for zero-arg instantiation.
+**Important**: All `__init__` parameters must have default values for zero-arg instantiation. `__init__` is always synchronous — only the handler method can be async.
 
 ```python
 # ✅ Correct - all params have defaults
@@ -159,7 +178,7 @@ class Processor:
 Handler receives only payload, headers/route preserved automatically:
 
 ```python
-def process(payload: dict) -> dict:
+async def process(payload: dict) -> dict:
     return {"result": ...}  # Single value or list for fan-out
 ```
 
@@ -176,7 +195,7 @@ Runtime automatically:
 Handler receives full message structure:
 
 ```python
-def process(envelope: dict) -> dict:
+async def process(envelope: dict) -> dict:
     # Modify route dynamically
     envelope["route"]["actors"].append("extra-step")
     envelope["route"]["current"] += 1
@@ -294,27 +313,27 @@ Runtime creates `/var/run/asya/runtime-ready` file after handler initialization.
 
 ## Examples
 
-**Data processing**:
+**Data processing** (async):
 ```python
-def process(payload: dict) -> dict:
-    data = fetch_data(payload["id"])
+async def process(payload: dict) -> dict:
+    data = await fetch_data(payload["id"])
     return {**payload, "data": data}
 ```
 
-**AI inference**:
+**AI inference** (async class handler):
 ```python
 class LLMInference:
     def __init__(self):
-        self.model = load_llm("/models/llama3")
+        self.model = load_llm("/models/llama3")  # Init is always sync
 
-    def process(self, payload: dict) -> dict:
-        response = self.model.generate(payload["prompt"])
+    async def process(self, payload: dict) -> dict:
+        response = await self.model.generate(payload["prompt"])
         return {**payload, "response": response}
 ```
 
-**Dynamic routing**:
+**Dynamic routing** (async envelope mode):
 ```python
-def process(envelope: dict) -> dict:
+async def process(envelope: dict) -> dict:
     if envelope["payload"]["priority"] == "high":
         envelope["route"]["actors"].insert(
             envelope["route"]["current"] + 1,
@@ -322,4 +341,10 @@ def process(envelope: dict) -> dict:
         )
     envelope["route"]["current"] += 1
     return envelope
+```
+
+**Simple sync handler** (still supported):
+```python
+def process(payload: dict) -> dict:
+    return {"result": payload["value"] * 2}
 ```

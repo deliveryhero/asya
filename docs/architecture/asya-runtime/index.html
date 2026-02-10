@@ -1013,10 +1013,25 @@
 <p>Runtime uses backward-compatible type hints:
 <div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span>  <span class="c1"># Not dict, list</span>
 </code></pre></div></p>
+<h2 id="async-support">Async Support<a class="headerlink" href="#async-support" title="Permanent link">&para;</a></h2>
+<p>The runtime transparently supports <code>async def</code> handlers via <code>asyncio.run()</code>. Async is the preferred pattern for AI workloads where handlers make long-running async calls (LLM APIs, HTTP clients, database queries).</p>
+<ul>
+<li>Async handlers (<code>async def</code>) are executed via <code>asyncio.run()</code> automatically</li>
+<li>Sync handlers (<code>def</code>) continue to work unchanged with zero overhead</li>
+<li>Detection uses <code>inspect.iscoroutinefunction()</code> at call time</li>
+<li>No configuration needed — the runtime auto-detects async vs sync</li>
+</ul>
+<p>Sync handlers remain fully supported for backward compatibility.</p>
 <h2 id="handler-types">Handler Types<a class="headerlink" href="#handler-types" title="Permanent link">&para;</a></h2>
 <h3 id="function-handler">Function Handler<a class="headerlink" href="#function-handler" title="Permanent link">&para;</a></h3>
 <p><strong>Configuration</strong>: <code>ASYA_HANDLER=module.function</code></p>
-<p><strong>Example</strong>:
+<p><strong>Example</strong> (async, preferred for AI workloads):
+<div class="highlight"><pre><span></span><code><span class="c1"># handler.py</span>
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">process</span><span class="p">(</span><span class="n">payload</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">llm</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span><span class="n">payload</span><span class="p">[</span><span class="s2">&quot;prompt&quot;</span><span class="p">])</span>
+    <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;result&quot;</span><span class="p">:</span> <span class="n">result</span><span class="p">}</span>
+</code></pre></div></p>
+<p><strong>Example</strong> (sync, still fully supported):
 <div class="highlight"><pre><span></span><code><span class="c1"># handler.py</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">process</span><span class="p">(</span><span class="n">payload</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
     <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;result&quot;</span><span class="p">:</span> <span class="n">payload</span><span class="p">[</span><span class="s2">&quot;value&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="mi">2</span><span class="p">}</span>
@@ -1027,13 +1042,13 @@
 <div class="highlight"><pre><span></span><code><span class="c1"># handler.py</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">Processor</span><span class="p">:</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;/models/default&quot;</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">load_model</span><span class="p">(</span><span class="n">model_path</span><span class="p">)</span>  <span class="c1"># Init once</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">load_model</span><span class="p">(</span><span class="n">model_path</span><span class="p">)</span>  <span class="c1"># Init once, always sync</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">process</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">payload</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
-        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;result&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">payload</span><span class="p">)}</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">process</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">payload</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;result&quot;</span><span class="p">:</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">payload</span><span class="p">)}</span>
 </code></pre></div></p>
 <p><strong>Benefits</strong>: Stateful initialization (model loading, preprocessing setup)</p>
-<p><strong>Important</strong>: All <code>__init__</code> parameters must have default values for zero-arg instantiation.</p>
+<p><strong>Important</strong>: All <code>__init__</code> parameters must have default values for zero-arg instantiation. <code>__init__</code> is always synchronous — only the handler method can be async.</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># ✅ Correct - all params have defaults</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">Processor</span><span class="p">:</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;/models/default&quot;</span><span class="p">):</span>
@@ -1048,7 +1063,7 @@
 <h3 id="payload-mode-default">Payload Mode (Default)<a class="headerlink" href="#payload-mode-default" title="Permanent link">&para;</a></h3>
 <p><strong>Configuration</strong>: <code>ASYA_HANDLER_MODE=payload</code></p>
 <p>Handler receives only payload, headers/route preserved automatically:</p>
-<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">process</span><span class="p">(</span><span class="n">payload</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<div class="highlight"><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">process</span><span class="p">(</span><span class="n">payload</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
     <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;result&quot;</span><span class="p">:</span> <span class="o">...</span><span class="p">}</span>  <span class="c1"># Single value or list for fan-out</span>
 </code></pre></div>
 <p>Runtime automatically:</p>
@@ -1060,7 +1075,7 @@
 <h3 id="envelope-mode">Envelope Mode<a class="headerlink" href="#envelope-mode" title="Permanent link">&para;</a></h3>
 <p><strong>Configuration</strong>: <code>ASYA_HANDLER_MODE=envelope</code></p>
 <p>Handler receives full message structure:</p>
-<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">process</span><span class="p">(</span><span class="n">envelope</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<div class="highlight"><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">process</span><span class="p">(</span><span class="n">envelope</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
     <span class="c1"># Modify route dynamically</span>
     <span class="n">envelope</span><span class="p">[</span><span class="s2">&quot;route&quot;</span><span class="p">][</span><span class="s2">&quot;actors&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;extra-step&quot;</span><span class="p">)</span>
     <span class="n">envelope</span><span class="p">[</span><span class="s2">&quot;route&quot;</span><span class="p">][</span><span class="s2">&quot;current&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
@@ -1186,22 +1201,22 @@
 </table></div>
 <p><strong>Note</strong>: <code>ASYA_SOCKET_DIR</code> and <code>ASYA_SOCKET_NAME</code> are for internal testing only. DO NOT set in production - socket path is managed by the injector webhook.</p>
 <h2 id="examples">Examples<a class="headerlink" href="#examples" title="Permanent link">&para;</a></h2>
-<p><strong>Data processing</strong>:
-<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">process</span><span class="p">(</span><span class="n">payload</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
-    <span class="n">data</span> <span class="o">=</span> <span class="n">fetch_data</span><span class="p">(</span><span class="n">payload</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">])</span>
+<p><strong>Data processing</strong> (async):
+<div class="highlight"><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">process</span><span class="p">(</span><span class="n">payload</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="k">await</span> <span class="n">fetch_data</span><span class="p">(</span><span class="n">payload</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">])</span>
     <span class="k">return</span> <span class="p">{</span><span class="o">**</span><span class="n">payload</span><span class="p">,</span> <span class="s2">&quot;data&quot;</span><span class="p">:</span> <span class="n">data</span><span class="p">}</span>
 </code></pre></div></p>
-<p><strong>AI inference</strong>:
+<p><strong>AI inference</strong> (async class handler):
 <div class="highlight"><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">LLMInference</span><span class="p">:</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">load_llm</span><span class="p">(</span><span class="s2">&quot;/models/llama3&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">load_llm</span><span class="p">(</span><span class="s2">&quot;/models/llama3&quot;</span><span class="p">)</span>  <span class="c1"># Init is always sync</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">process</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">payload</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
-        <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span><span class="n">payload</span><span class="p">[</span><span class="s2">&quot;prompt&quot;</span><span class="p">])</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">process</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">payload</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span><span class="n">payload</span><span class="p">[</span><span class="s2">&quot;prompt&quot;</span><span class="p">])</span>
         <span class="k">return</span> <span class="p">{</span><span class="o">**</span><span class="n">payload</span><span class="p">,</span> <span class="s2">&quot;response&quot;</span><span class="p">:</span> <span class="n">response</span><span class="p">}</span>
 </code></pre></div></p>
-<p><strong>Dynamic routing</strong>:
-<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">process</span><span class="p">(</span><span class="n">envelope</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<p><strong>Dynamic routing</strong> (async envelope mode):
+<div class="highlight"><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">process</span><span class="p">(</span><span class="n">envelope</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
     <span class="k">if</span> <span class="n">envelope</span><span class="p">[</span><span class="s2">&quot;payload&quot;</span><span class="p">][</span><span class="s2">&quot;priority&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;high&quot;</span><span class="p">:</span>
         <span class="n">envelope</span><span class="p">[</span><span class="s2">&quot;route&quot;</span><span class="p">][</span><span class="s2">&quot;actors&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span>
             <span class="n">envelope</span><span class="p">[</span><span class="s2">&quot;route&quot;</span><span class="p">][</span><span class="s2">&quot;current&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
@@ -1209,6 +1224,10 @@
         <span class="p">)</span>
     <span class="n">envelope</span><span class="p">[</span><span class="s2">&quot;route&quot;</span><span class="p">][</span><span class="s2">&quot;current&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
     <span class="k">return</span> <span class="n">envelope</span>
+</code></pre></div></p>
+<p><strong>Simple sync handler</strong> (still supported):
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">process</span><span class="p">(</span><span class="n">payload</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;result&quot;</span><span class="p">:</span> <span class="n">payload</span><span class="p">[</span><span class="s2">&quot;value&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="mi">2</span><span class="p">}</span>
 </code></pre></div></p>
   </div>
 </article>
@@ -1543,6 +1562,14 @@
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
             Python Compatibility
+        </a>
+        
+
+        
+        <a href="#async-support"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Async Support
         </a>
         
 
