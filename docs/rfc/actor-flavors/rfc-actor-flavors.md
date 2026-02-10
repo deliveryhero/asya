@@ -66,30 +66,32 @@ kind: EnvironmentConfig
 metadata:
   name: gpu-t4
   labels:
-    asya.sh/flavor: gpu-t4
+    asya.sh/flavor: gpu-t4             # required: used by function-asya-flavors
+    asya.sh/flavor-dimension: compute  # optional: for discovery (kubectl -l ...)
+    asya.sh/flavor-owner: platform     # optional: who manages this flavor
 data:                                  # top-level, mirrors AsyncActor spec
   scaling:
-      minReplicas: 1
-      maxReplicas: 4
-      cooldownPeriod: 600
-    workload:
-      template:
-        spec:
-          containers:
-          - name: asya-runtime
-            resources:
-              limits:
-                nvidia.com/gpu: "1"
-                memory: "16Gi"
-            env:
-            - name: CUDA_VISIBLE_DEVICES
-              value: "0"
-          nodeSelector:
-            accelerator: nvidia-tesla-t4
-          tolerations:
-          - key: nvidia.com/gpu
-            operator: Exists
-            effect: NoSchedule
+    minReplicas: 1
+    maxReplicas: 4
+    cooldownPeriod: 600
+  workload:
+    template:
+      spec:
+        containers:
+        - name: asya-runtime
+          resources:
+            limits:
+              nvidia.com/gpu: "1"
+              memory: "16Gi"
+          env:
+          - name: CUDA_VISIBLE_DEVICES
+            value: "0"
+        nodeSelector:
+          accelerator: nvidia-tesla-t4
+        tolerations:
+        - key: nvidia.com/gpu
+          operator: Exists
+          effect: NoSchedule
 ```
 
 ```yaml
@@ -189,6 +191,23 @@ Creating a new flavor requires zero code changes:
 
 Any actor can immediately reference the new flavor. No Composition changes, no XRD changes, no function updates.
 
+**Optional labels for discoverability:**
+
+Platform engineers can add optional labels to organize and discover flavors:
+
+| Label | Purpose | Example values |
+|-------|---------|---------------|
+| `asya.sh/flavor` | Flavor name (required, used by function) | `gpu-t4`, `openai-keys` |
+| `asya.sh/flavor-dimension` | Categorize by concern (optional) | `compute`, `scaling`, `runtime`, `retry`, `scheduling` |
+| `asya.sh/flavor-owner` | Who manages this flavor (optional) | `platform`, `ml-team`, `developer` |
+
+These labels enable filtering via `kubectl` or future CLI tooling:
+
+```bash
+kubectl get environmentconfig -l asya.sh/flavor-dimension=compute
+kubectl get environmentconfig -l asya.sh/flavor-owner=platform
+```
+
 **Example — platform engineer creates a router flavor for all Flow-generated actors:**
 
 ```yaml
@@ -198,24 +217,25 @@ metadata:
   name: flow-router
   labels:
     asya.sh/flavor: flow-router
+    asya.sh/flavor-dimension: runtime
 data:
   scaling:
-      minReplicas: 0
-      maxReplicas: 20
-      pollingInterval: 5
-      cooldownPeriod: 30
-    workload:
-      template:
-        spec:
-          containers:
-          - name: asya-runtime
-            image: python:3.13-slim
-            resources:
-              requests: { cpu: "50m", memory: "64Mi" }
-              limits:   { cpu: "200m", memory: "128Mi" }
-            env:
-            - name: ASYA_HANDLER_MODE
-              value: "envelope"
+    minReplicas: 0
+    maxReplicas: 20
+    pollingInterval: 5
+    cooldownPeriod: 30
+  workload:
+    template:
+      spec:
+        containers:
+        - name: asya-runtime
+          image: python:3.13-slim
+          resources:
+            requests: { cpu: "50m", memory: "64Mi" }
+            limits:   { cpu: "200m", memory: "128Mi" }
+          env:
+          - name: ASYA_HANDLER_MODE
+            value: "envelope"
 ```
 
 ### 3.6 workloadRef Compatibility
