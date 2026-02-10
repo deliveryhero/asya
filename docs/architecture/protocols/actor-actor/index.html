@@ -928,28 +928,28 @@ Namespace: <code>example-ecommerce</code>
 <div class="highlight"><pre><span></span><code><span class="p">{</span><span class="nt">&quot;processed&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;timestamp&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2025-11-18T12:00:00Z&quot;</span><span class="p">}</span>
 </code></pre></div></p>
 <p><strong>Action</strong>: Sidecar creates message → Increments current → Routes to next actor</p>
-<h3 id="fan-out-array">Fan-Out (Array)<a class="headerlink" href="#fan-out-array" title="Permanent link">&para;</a></h3>
-<p>Runtime returns array:
-<div class="highlight"><pre><span></span><code><span class="p">[</span>
-<span class="w">  </span><span class="p">{</span><span class="nt">&quot;chunk&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;text&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Hello&quot;</span><span class="p">},</span>
-<span class="w">  </span><span class="p">{</span><span class="nt">&quot;chunk&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;text&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;world&quot;</span><span class="p">}</span>
-<span class="p">]</span>
-</code></pre></div></p>
-<p><strong>Action</strong>: Sidecar creates multiple messages (one per item) → Routes to next actor</p>
+<h3 id="fan-out-generatoryield">Fan-Out (Generator/Yield)<a class="headerlink" href="#fan-out-generatoryield" title="Permanent link">&para;</a></h3>
+<p>Handlers use <code>yield</code> to produce multiple outputs. Each <code>yield</code> sends a frame immediately to the sidecar over the Unix socket, and the sidecar creates a separate message for routing.</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">process</span><span class="p">(</span><span class="n">payload</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">payload</span><span class="p">[</span><span class="s2">&quot;items&quot;</span><span class="p">]:</span>
+        <span class="k">yield</span> <span class="p">{</span><span class="s2">&quot;processed&quot;</span><span class="p">:</span> <span class="n">item</span><span class="p">}</span>
+</code></pre></div>
+<p><strong>Action</strong>: Sidecar reads each yielded frame and routes it as a separate message to the next actor.</p>
 <p><strong>Fanout ID semantics</strong>:</p>
 <ul>
-<li>First message retains original ID (for SSE streaming compatibility)</li>
-<li>Subsequent messages receive suffixed IDs: <code>{original_id}-{index}</code></li>
+<li>First yielded message retains original ID (for SSE streaming compatibility)</li>
+<li>Subsequent yielded messages receive suffixed IDs: <code>{original_id}-{index}</code></li>
 <li>All fanout children have <code>parent_id</code> set to original message ID</li>
 </ul>
-<p><strong>Example</strong>: Message <code>abc-123</code> returns 3 items:</p>
+<p><strong>Example</strong>: Message <code>abc-123</code> yields 3 items:</p>
 <ul>
 <li>Index 0: <code>id="abc-123"</code>, <code>parent_id=null</code> (original ID preserved)</li>
 <li>Index 1: <code>id="abc-123-1"</code>, <code>parent_id="abc-123"</code> (fanout child)</li>
 <li>Index 2: <code>id="abc-123-2"</code>, <code>parent_id="abc-123"</code> (fanout child)</li>
 </ul>
+<p><strong>Note</strong>: Returning a list from a handler does NOT trigger fan-out. A returned list is treated as a single payload value.</p>
 <h3 id="empty-response">Empty Response<a class="headerlink" href="#empty-response" title="Permanent link">&para;</a></h3>
-<p>Runtime returns <code>null</code> or <code>[]</code>:</p>
+<p>Runtime returns <code>None</code> (<code>null</code>):</p>
 <p><strong>Action</strong>: Sidecar routes message to <code>happy-end</code> (no increment)</p>
 <h3 id="error-response">Error Response<a class="headerlink" href="#error-response" title="Permanent link">&para;</a></h3>
 <p>Runtime returns error object:
@@ -1412,10 +1412,10 @@ Namespace: <code>example-ecommerce</code>
             Single Response
         </a>
         
-        <a href="#fan-out-array"
+        <a href="#fan-out-generatoryield"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="3">
-            Fan-Out (Array)
+            Fan-Out (Generator/Yield)
         </a>
         
         <a href="#empty-response"

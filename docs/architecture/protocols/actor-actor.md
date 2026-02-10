@@ -83,33 +83,35 @@ Runtime returns mutated payload:
 
 **Action**: Sidecar creates message → Increments current → Routes to next actor
 
-### Fan-Out (Array)
+### Fan-Out (Generator/Yield)
 
-Runtime returns array:
-```json
-[
-  {"chunk": 1, "text": "Hello"},
-  {"chunk": 2, "text": "world"}
-]
+Handlers use `yield` to produce multiple outputs. Each `yield` sends a frame immediately to the sidecar over the Unix socket, and the sidecar creates a separate message for routing.
+
+```python
+def process(payload):
+    for item in payload["items"]:
+        yield {"processed": item}
 ```
 
-**Action**: Sidecar creates multiple messages (one per item) → Routes to next actor
+**Action**: Sidecar reads each yielded frame and routes it as a separate message to the next actor.
 
 **Fanout ID semantics**:
 
-- First message retains original ID (for SSE streaming compatibility)
-- Subsequent messages receive suffixed IDs: `{original_id}-{index}`
+- First yielded message retains original ID (for SSE streaming compatibility)
+- Subsequent yielded messages receive suffixed IDs: `{original_id}-{index}`
 - All fanout children have `parent_id` set to original message ID
 
-**Example**: Message `abc-123` returns 3 items:
+**Example**: Message `abc-123` yields 3 items:
 
 - Index 0: `id="abc-123"`, `parent_id=null` (original ID preserved)
 - Index 1: `id="abc-123-1"`, `parent_id="abc-123"` (fanout child)
 - Index 2: `id="abc-123-2"`, `parent_id="abc-123"` (fanout child)
 
+**Note**: Returning a list from a handler does NOT trigger fan-out. A returned list is treated as a single payload value.
+
 ### Empty Response
 
-Runtime returns `null` or `[]`:
+Runtime returns `None` (`null`):
 
 **Action**: Sidecar routes message to `happy-end` (no increment)
 
