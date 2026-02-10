@@ -914,7 +914,7 @@ The gateway then pushes these to connected SSE/WebSocket clients.
 - Free variable analysis and auto-serialization
 - ADK declarative syntax recognition (Level 3 compilation)
 - Typed handler signatures (`def get_weather(city: str) -> str`)
-- Parallel await (`asyncio.gather` equivalent)
+- Parallel fan-out (`asyncio.gather`, list comprehension fan-out) — see [Fan-In/Fan-Out RFC](../fan-in/asya-fan-in-fan-out.md)
 - Try-catch error routing
 
 ---
