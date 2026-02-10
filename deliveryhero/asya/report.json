@@ -1,7 +1,7 @@
 {
   "repository": "deliveryhero/asya",
   "ref": "refs/heads/main",
-  "commit": "e5cfb4ea3e1084ce240b236303d98c61554dd812",
+  "commit": "547fdac2feec695d7015c09a6d298fdd9475a15a",
   "coverage": {
     "type": "merged",
     "format": "Go coverage",
@@ -14747,13 +14747,13 @@
     ]
   },
   "code_to_test_ratio": {
-    "code": 16265,
+    "code": 16284,
     "test": 13565,
     "code_files": [
       {
-        "code": 349,
-        "comment": 95,
-        "blank": 101,
+        "code": 354,
+        "comment": 105,
+        "blank": 105,
         "path": "deploy/helm-charts/asya-crossplane/files/asya_runtime.py",
         "language": "Python"
       },
@@ -15514,9 +15514,9 @@
         "language": "Go"
       },
       {
-        "code": 349,
-        "comment": 95,
-        "blank": 101,
+        "code": 354,
+        "comment": 105,
+        "blank": 105,
         "path": "src/asya-runtime/asya_runtime.py",
         "language": "Python"
       },
@@ -15753,22 +15753,22 @@
       },
       {
         "code": 83,
-        "comment": 25,
-        "blank": 35,
+        "comment": 27,
+        "blank": 36,
         "path": "src/asya-testing/asya_testing/handlers/classes.py",
         "language": "Python"
       },
       {
-        "code": 47,
-        "comment": 33,
-        "blank": 24,
+        "code": 55,
+        "comment": 35,
+        "blank": 27,
         "path": "src/asya-testing/asya_testing/handlers/envelope.py",
         "language": "Python"
       },
       {
-        "code": 200,
-        "comment": 201,
-        "blank": 144,
+        "code": 201,
+        "comment": 204,
+        "blank": 145,
         "path": "src/asya-testing/asya_testing/handlers/payload.py",
         "language": "Python"
       },
@@ -16105,6 +16105,6 @@
       }
     ]
   },
-  "test_execution_time": 211000000000,
-  "timestamp": "2026-02-10T13:28:06.730927139Z"
+  "test_execution_time": 202000000000,
+  "timestamp": "2026-02-10T14:25:23.278770284Z"
 }
