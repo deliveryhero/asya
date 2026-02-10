@@ -213,6 +213,7 @@ jobs:
           git commit -m "Publish asya-playground for ${{ github.event.release.tag_name }}"
           git push
           echo "[+] asya-playground published"
+        fi
 
     - name: Add Helm charts to release summary
       run: |
