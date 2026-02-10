@@ -4,21 +4,28 @@ Asya Actor Runtime - Unix Socket Server
 Supported Python versions: 3.7+
 
 Simplified runtime that calls a user-specified Python function or class method.
+Async handlers (async def) are transparently supported via asyncio.run().
 
 Handler Types:
-    Function handler: Direct function call
+    Function handler (async preferred for AI workloads):
+        async def process(payload: dict) -> dict:
+            result = await llm.generate(payload["prompt"])
+            return {"result": result}
+
+    Sync function handler (still fully supported):
         def process(payload: dict) -> dict:
             return {"result": ...}
 
     Class handler: Stateful handler with initialization
         class Processor:
             def __init__(self, config: str = "/default/path"):
-                self.model = load_model(config)  # Init once
+                self.model = load_model(config)  # Init once, always sync
 
-            def process(self, payload: dict) -> dict:
-                return self.model(payload)  # Called per request
+            async def process(self, payload: dict) -> dict:
+                return await self.model.predict(payload)
 
         Note: All __init__ parameters must have default values for zero-arg instantiation.
+        Note: __init__ is always synchronous. Only the handler method can be async.
 
 Environment Variables:
     ASYA_HANDLER: Full path to function or method (e.g., "foo.bar.process" or "foo.bar.Processor.process")
@@ -33,6 +40,7 @@ Socket Configuration:
     ASYA_SOCKET_DIR and ASYA_SOCKET_NAME are for internal testing only - DO NOT set in production.
 """
 
+import asyncio
 import contextlib
 import importlib
 import inspect
@@ -376,6 +384,17 @@ def _error_response(code: str, exc: Exception | None = None) -> list[dict[str, A
     return [error]
 
 
+def _call_handler(user_func, arg):
+    """Call user handler, transparently supporting both sync and async functions.
+
+    For async handlers (async def), uses asyncio.run() to execute the coroutine.
+    For sync handlers, calls directly with zero overhead (single if check).
+    """
+    if inspect.iscoroutinefunction(user_func):
+        return asyncio.run(user_func(arg))
+    return user_func(arg)
+
+
 def _handle_request(conn: socket.socket, user_func: Any) -> list[dict[str, Any]]:
     """Handle a single request with length-prefix framing."""
     # Read message from socket
@@ -410,7 +429,7 @@ def _handle_request(conn: socket.socket, user_func: Any) -> list[dict[str, Any]]
             # Runtime auto-increments route.current for normal actors
             # NOTE: End actors should NOT use payload mode - they run in envelope mode
             logger.info(f"[DIAG] Calling user_func with payload: {message['payload']}")
-            payload = user_func(message["payload"])  # user function
+            payload = _call_handler(user_func, message["payload"])  # user function
             logger.info(f"[DIAG] user_func returned: {payload}")
             payload_list: list[Any]
             if payload is None:
@@ -436,7 +455,7 @@ def _handle_request(conn: socket.socket, user_func: Any) -> list[dict[str, Any]]
             # Full envelope mode: user function gets complete message structure
             # Handler is responsible for route management (including incrementing current)
             # End actors use this mode and return empty dict {} (no routing)
-            out = user_func(message)  # user function
+            out = _call_handler(user_func, message)  # user function
             if out is None:
                 out_list = []
             elif isinstance(out, (list, tuple)):

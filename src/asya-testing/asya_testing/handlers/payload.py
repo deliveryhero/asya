@@ -2,8 +2,8 @@
 Mock runtime handlers for integration and E2E tests.
 
 This module provides test handlers covering various scenarios:
-- Happy path processing
-- Error handling (ValueError, MemoryError, CUDA OOM)
+- Happy path processing (async - the common AI-workload pattern)
+- Error handling (sync - error/edge-case handlers)
 - Timeouts and slow processing
 - Fan-out (returning multiple results)
 - Empty responses
@@ -12,18 +12,23 @@ This module provides test handlers covering various scenarios:
 
 These handlers are shared across all integration and E2E tests.
 Progress reporting is handled automatically by the Go sidecar.
+
+Async handlers (async def) represent the preferred pattern for AI workloads
+where long-running async calls (LLM APIs, HTTP clients) are common.
+Sync handlers remain for error/edge-case testing where async adds no value.
 """
 
+import asyncio
 import time
 from typing import Any
 
 
 # =============================================================================
-# Happy Path & Basic Handlers
+# Happy Path & Basic Handlers (async - common AI-workload patterns)
 # =============================================================================
 
 
-def echo_handler(payload: dict[str, Any]) -> dict[str, Any]:
+async def echo_handler(payload: dict[str, Any]) -> dict[str, Any]:
     """
     Echo handler: Returns exact payload or echoes a message.
 
@@ -37,7 +42,7 @@ def echo_handler(payload: dict[str, Any]) -> dict[str, Any]:
     """
     # If payload has a "message" field, echo it as "echoed"
     if "message" in payload:
-        time.sleep(0.5)  # Simulate processing time for SSE streaming testing
+        await asyncio.sleep(0.5)  # Simulate processing time for SSE streaming testing
         return {"echoed": payload["message"]}
 
     # Otherwise, return exact payload
@@ -45,7 +50,7 @@ def echo_handler(payload: dict[str, Any]) -> dict[str, Any]:
 
 
 # =============================================================================
-# Error Handling
+# Error Handling (sync - error/edge-case handlers)
 # =============================================================================
 
 
@@ -90,7 +95,7 @@ def cuda_oom_handler(payload: dict[str, Any]) -> dict[str, Any]:
 
 
 # =============================================================================
-# Timeout & Slow Processing
+# Timeout & Slow Processing (sync - uses blocking time.sleep)
 # =============================================================================
 
 
@@ -110,11 +115,11 @@ def timeout_handler(payload: dict[str, Any]) -> dict[str, Any]:
 
 
 # =============================================================================
-# Fan-out & Empty Responses
+# Fan-out & Empty Responses (async)
 # =============================================================================
 
 
-def fanout_handler(payload: dict[str, Any]) -> list[dict[str, Any]]:
+async def fanout_handler(payload: dict[str, Any]) -> list[dict[str, Any]]:
     """
     Fan-out handler: Returns multiple results.
 
@@ -145,22 +150,22 @@ def none_response_handler(payload: dict[str, Any]) -> list[Any]:
 
 
 # =============================================================================
-# Pipeline Processing
+# Pipeline Processing (async)
 # =============================================================================
 
 
-def pipeline_doubler(payload: dict[str, Any]) -> dict[str, Any]:
+async def pipeline_doubler(payload: dict[str, Any]) -> dict[str, Any]:
     """
     Pipeline doubler: First actor in pipeline, doubles the input value.
 
     Part of multi-actor pipeline tests.
     """
     # Initial delay for SSE stream to connect (first actor in pipeline only)
-    time.sleep(0.2)
+    await asyncio.sleep(0.2)
 
     value = payload.get("value", 0)
 
-    time.sleep(0.3)  # Simulate processing time for pipeline testing
+    await asyncio.sleep(0.3)  # Simulate processing time for pipeline testing
 
     return {
         **payload,
@@ -169,7 +174,7 @@ def pipeline_doubler(payload: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def pipeline_incrementer(payload: dict[str, Any]) -> dict[str, Any]:
+async def pipeline_incrementer(payload: dict[str, Any]) -> dict[str, Any]:
     """
     Pipeline incrementer: Second actor in pipeline, adds 5 to the value.
 
@@ -177,7 +182,7 @@ def pipeline_incrementer(payload: dict[str, Any]) -> dict[str, Any]:
     """
     value = payload.get("value", 0)
 
-    time.sleep(0.3)  # Simulate processing time for pipeline testing
+    await asyncio.sleep(0.3)  # Simulate processing time for pipeline testing
 
     return {
         **payload,
@@ -187,11 +192,11 @@ def pipeline_incrementer(payload: dict[str, Any]) -> dict[str, Any]:
 
 
 # =============================================================================
-# Edge Cases & Data Handling
+# Edge Cases & Data Handling (async)
 # =============================================================================
 
 
-def large_payload_handler(payload: dict[str, Any]) -> dict[str, Any]:
+async def large_payload_handler(payload: dict[str, Any]) -> dict[str, Any]:
     """
     Large payload handler: Processes and returns large data.
 
@@ -210,7 +215,7 @@ def large_payload_handler(payload: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def unicode_handler(payload: dict[str, Any]) -> dict[str, Any]:
+async def unicode_handler(payload: dict[str, Any]) -> dict[str, Any]:
     """
     Unicode handler: Handles international characters.
 
@@ -230,7 +235,7 @@ def unicode_handler(payload: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def nested_data_handler(payload: dict[str, Any]) -> dict[str, Any]:
+async def nested_data_handler(payload: dict[str, Any]) -> dict[str, Any]:
     """
     Nested data handler: Returns deeply nested structures.
 
@@ -252,7 +257,7 @@ def nested_data_handler(payload: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def null_values_handler(payload: dict[str, Any]) -> dict[str, Any]:
+async def null_values_handler(payload: dict[str, Any]) -> dict[str, Any]:
     """
     Null values handler: Tests handling of None/null values.
 
@@ -275,7 +280,7 @@ def null_values_handler(payload: dict[str, Any]) -> dict[str, Any]:
 # =============================================================================
 
 
-def conditional_handler(payload: dict[str, Any]) -> dict[str, Any] | list[dict[str, Any]] | None:
+async def conditional_handler(payload: dict[str, Any]) -> dict[str, Any] | list[dict[str, Any]] | None:
     """
     Conditional handler: Behavior based on payload content.
 
@@ -289,7 +294,7 @@ def conditional_handler(payload: dict[str, Any]) -> dict[str, Any] | list[dict[s
     elif action == "oom":
         raise MemoryError("Conditional OOM")
     elif action == "slow":
-        time.sleep(payload.get("sleep", 2))  # Simulate slow processing for testing
+        await asyncio.sleep(payload.get("sleep", 2))  # Simulate slow processing for testing
         return {**payload, "status": "slow_processing_complete"}
     elif action == "fanout":
         count = payload.get("count", 2)
@@ -331,7 +336,7 @@ def metadata_handler(payload: dict[str, Any], route: dict[str, Any] | None = Non
 
 
 # =============================================================================
-# Route Edge Cases
+# Route Edge Cases (sync - error/edge-case handlers)
 # =============================================================================
 
 
@@ -383,7 +388,7 @@ def huge_payload_handler(payload: dict[str, Any]) -> dict[str, Any]:
 
 
 # =============================================================================
-# Retry & Transient Error Handlers
+# Retry & Transient Error Handlers (sync - error/edge-case handlers)
 # =============================================================================
 
 
@@ -435,11 +440,11 @@ def slow_then_fast_handler(payload: dict[str, Any]) -> dict[str, Any]:
 
 
 # =============================================================================
-# Database & State Handlers
+# Database & State Handlers (async)
 # =============================================================================
 
 
-def stateful_handler(payload: dict[str, Any]) -> dict[str, Any]:
+async def stateful_handler(payload: dict[str, Any]) -> dict[str, Any]:
     """
     Stateful handler: Tracks state across invocations.
 
@@ -461,11 +466,11 @@ def stateful_handler(payload: dict[str, Any]) -> dict[str, Any]:
 
 
 # =============================================================================
-# Parameter Flow Testing
+# Parameter Flow Testing (async)
 # =============================================================================
 
 
-def param_flow_actor_1(payload: dict[str, Any]) -> dict[str, Any]:
+async def param_flow_actor_1(payload: dict[str, Any]) -> dict[str, Any]:
     """
     First actor in parameter flow test pipeline.
 
@@ -488,7 +493,7 @@ def param_flow_actor_1(payload: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def param_flow_actor_2(payload: dict[str, Any]) -> dict[str, Any]:
+async def param_flow_actor_2(payload: dict[str, Any]) -> dict[str, Any]:
     """
     Second actor in parameter flow test pipeline.
 
@@ -513,11 +518,11 @@ def param_flow_actor_2(payload: dict[str, Any]) -> dict[str, Any]:
 
 
 # =============================================================================
-# Multi-Hop Testing
+# Multi-Hop Testing (async)
 # =============================================================================
 
 
-def multihop_handler(payload: dict[str, Any]) -> dict[str, Any]:
+async def multihop_handler(payload: dict[str, Any]) -> dict[str, Any]:
     """
     Multi-hop handler: Passes message through chain of actors.
 
@@ -535,7 +540,7 @@ def multihop_handler(payload: dict[str, Any]) -> dict[str, Any]:
 
     processed_by.append(f"hop-{hop_number}")
 
-    time.sleep(0.5)  # Delay to allow SSE to capture intermediate progress updates
+    await asyncio.sleep(0.5)  # Delay to allow SSE to capture intermediate progress updates
 
     return {
         **payload,

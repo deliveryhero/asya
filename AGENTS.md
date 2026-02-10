@@ -87,6 +87,8 @@ Lightweight socket server injected via ConfigMap. Loads user function, executes 
 
 **IMPORTANT**: When modifying `src/asya-runtime/asya_runtime.py`, the symlink automatically reflects changes. No manual sync needed.
 
+**Async Support**: Handlers can be `async def` — the runtime auto-detects and uses `asyncio.run()`. Async is preferred for AI workloads (LLM APIs, HTTP clients). Sync handlers remain fully supported.
+
 **Handler Types**:
 - **Function handler**: `ASYA_HANDLER=module.function` → Direct function call (simple, stateless handlers)
 - **Class handler**: `ASYA_HANDLER=module.Class.method` → Stateful handlers with initialization (model loading, preprocessing setup)
@@ -95,23 +97,23 @@ Lightweight socket server injected via ConfigMap. Loads user function, executes 
 - **`payload`** (default): Handler receives only payload, headers/route preserved automatically
   ```python
   # Function handler: ASYA_HANDLER=my_module.process
-  def process(payload: dict) -> dict:
+  async def process(payload: dict) -> dict:
       return {"result": ...}  # Single value or list for fan-out
 
   # Class handler: ASYA_HANDLER=my_module.Processor.process
   class Processor:
       def __init__(self, model_path: str = "/models/default"):
           # __init__ arguments must have default value
-          self.model = load_model(model_path)  # Init once
+          self.model = load_model(model_path)  # Init once, always sync
 
-      def process(self, payload: dict) -> dict:
-          return {"result": self.model.predict(payload)}
+      async def process(self, payload: dict) -> dict:
+          return {"result": await self.model.predict(payload)}
   ```
 
 - **`envelope`**: Handler receives full message structure `{id, route, headers, payload}`
   ```python
   # Function handler: ASYA_HANDLER=my_module.process
-  def process(envelope: dict) -> dict:
+  async def process(envelope: dict) -> dict:
       return {"payload": ..., "route": envelope["route"], "headers": envelope.get("headers", {})}
 
   # Class handler: ASYA_HANDLER=my_module.EnvelopeProcessor.process
@@ -119,8 +121,8 @@ Lightweight socket server injected via ConfigMap. Loads user function, executes 
       def __init__(self):
           self.preprocessor = load_preprocessor()
 
-      def process(self, envelope: dict) -> dict:
-          data = self.preprocessor(envelope["payload"])
+      async def process(self, envelope: dict) -> dict:
+          data = await self.preprocessor(envelope["payload"])
           return {"payload": data, "route": envelope["route"], "headers": envelope.get("headers", {})}
   ```
 

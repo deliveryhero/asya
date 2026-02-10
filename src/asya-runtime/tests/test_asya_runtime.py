@@ -2324,3 +2324,238 @@ class TestConnectionErrors:
         assert len(responses) == 1
         assert responses[0]["error"] == "connection_error"
         assert "Unexpected error in recv_exact" in str(responses[0]["details"])
+
+
+class TestCallHandler:
+    """Test _call_handler() dispatch for sync and async functions."""
+
+    def test_call_handler_sync_function(self):
+        """Sync function is called directly without asyncio."""
+
+        def sync_func(arg):
+            return {"value": arg["x"] * 2}
+
+        result = asya_runtime._call_handler(sync_func, {"x": 5})
+        assert result == {"value": 10}
+
+    def test_call_handler_async_function(self):
+        """Async function is dispatched via asyncio.run()."""
+
+        async def async_func(arg):
+            return {"value": arg["x"] * 3}
+
+        result = asya_runtime._call_handler(async_func, {"x": 5})
+        assert result == {"value": 15}
+
+    def test_call_handler_async_returning_none(self):
+        """Async function returning None."""
+
+        async def async_none(arg):
+            return None
+
+        result = asya_runtime._call_handler(async_none, {"x": 1})
+        assert result is None
+
+    def test_call_handler_async_returning_list(self):
+        """Async function returning a list (fan-out)."""
+
+        async def async_list(arg):
+            return [{"i": 0}, {"i": 1}]
+
+        result = asya_runtime._call_handler(async_list, {})
+        assert result == [{"i": 0}, {"i": 1}]
+
+    def test_call_handler_async_raising_exception(self):
+        """Async function that raises is propagated."""
+
+        async def async_error(arg):
+            raise ValueError("async boom")
+
+        with pytest.raises(ValueError, match="async boom"):
+            asya_runtime._call_handler(async_error, {})
+
+    def test_call_handler_sync_raising_exception(self):
+        """Sync function that raises is propagated."""
+
+        def sync_error(arg):
+            raise RuntimeError("sync boom")
+
+        with pytest.raises(RuntimeError, match="sync boom"):
+            asya_runtime._call_handler(sync_error, {})
+
+
+class TestAsyncHandlers:
+    """Test async handler execution through _handle_request."""
+
+    def test_async_payload_mode_basic(self, socket_pair):
+        """Async handler in payload mode returns correct result."""
+        server_sock, client_sock = socket_pair
+
+        async def async_echo(payload):
+            return {"echoed": payload["msg"]}
+
+        message = {
+            "payload": {"msg": "hello"},
+            "route": {"actors": ["a"], "current": 0},
+        }
+        message_data = json.dumps(message).encode("utf-8")
+        asya_runtime._send_message(client_sock, message_data)
+
+        responses = asya_runtime._handle_request(server_sock, async_echo)
+
+        assert len(responses) == 1
+        assert responses[0]["payload"] == {"echoed": "hello"}
+        assert responses[0]["route"]["current"] == 1
+
+    def test_async_payload_mode_fanout(self, socket_pair):
+        """Async handler returning list in payload mode produces fan-out."""
+        server_sock, client_sock = socket_pair
+
+        async def async_fanout(payload):
+            return [{"i": 0}, {"i": 1}, {"i": 2}]
+
+        message = {
+            "payload": {"test": True},
+            "route": {"actors": ["a", "b"], "current": 0},
+        }
+        message_data = json.dumps(message).encode("utf-8")
+        asya_runtime._send_message(client_sock, message_data)
+
+        responses = asya_runtime._handle_request(server_sock, async_fanout)
+
+        assert len(responses) == 3
+        for i, resp in enumerate(responses):
+            assert resp["payload"] == {"i": i}
+            assert resp["route"]["current"] == 1
+
+    def test_async_payload_mode_none_return(self, socket_pair):
+        """Async handler returning None in payload mode aborts pipeline."""
+        server_sock, client_sock = socket_pair
+
+        async def async_none(payload):
+            return None
+
+        message = {
+            "payload": {"test": True},
+            "route": {"actors": ["a"], "current": 0},
+        }
+        message_data = json.dumps(message).encode("utf-8")
+        asya_runtime._send_message(client_sock, message_data)
+
+        responses = asya_runtime._handle_request(server_sock, async_none)
+
+        assert len(responses) == 0
+
+    def test_async_envelope_mode(self, socket_pair, mock_env):
+        """Async handler in envelope mode receives full message."""
+        server_sock, client_sock = socket_pair
+
+        async def async_envelope(message):
+            return {
+                "payload": {"processed": message["payload"]["data"]},
+                "route": {**message["route"], "current": message["route"]["current"] + 1},
+                "headers": message.get("headers", {}),
+            }
+
+        message = {
+            "payload": {"data": "test"},
+            "route": {"actors": ["a", "b"], "current": 0},
+            "headers": {"trace_id": "t1"},
+        }
+        message_data = json.dumps(message).encode("utf-8")
+        asya_runtime._send_message(client_sock, message_data)
+
+        with mock_env(ASYA_HANDLER_MODE="envelope"):
+            responses = asya_runtime._handle_request(server_sock, async_envelope)
+
+        assert len(responses) == 1
+        assert responses[0]["payload"] == {"processed": "test"}
+        assert responses[0]["route"]["current"] == 1
+        assert responses[0]["headers"] == {"trace_id": "t1"}
+
+    def test_async_handler_exception_produces_processing_error(self, socket_pair):
+        """Async handler raising exception results in processing_error."""
+        server_sock, client_sock = socket_pair
+
+        async def async_error(payload):
+            raise ValueError("async handler failed")
+
+        message = {
+            "payload": {"test": True},
+            "route": {"actors": ["a"], "current": 0},
+        }
+        message_data = json.dumps(message).encode("utf-8")
+        asya_runtime._send_message(client_sock, message_data)
+
+        responses = asya_runtime._handle_request(server_sock, async_error)
+
+        assert len(responses) == 1
+        assert responses[0]["error"] == "processing_error"
+        assert "async handler failed" in responses[0]["details"]["message"]
+        assert responses[0]["details"]["type"] == "ValueError"
+
+    def test_sync_handler_still_works(self, socket_pair):
+        """Sync handlers continue to work unchanged (regression test)."""
+        server_sock, client_sock = socket_pair
+
+        def sync_handler(payload):
+            return {"result": payload["value"] + 1}
+
+        message = {
+            "payload": {"value": 41},
+            "route": {"actors": ["a"], "current": 0},
+        }
+        message_data = json.dumps(message).encode("utf-8")
+        asya_runtime._send_message(client_sock, message_data)
+
+        responses = asya_runtime._handle_request(server_sock, sync_handler)
+
+        assert len(responses) == 1
+        assert responses[0]["payload"] == {"result": 42}
+
+    def test_async_class_method_handler(self, socket_pair):
+        """Async class method handler works through _call_handler."""
+        server_sock, client_sock = socket_pair
+
+        class AsyncProcessor:
+            def __init__(self):
+                self.count = 0
+
+            async def process(self, payload):
+                self.count += 1
+                return {"count": self.count, "data": payload}
+
+        processor = AsyncProcessor()
+
+        message = {
+            "payload": {"test": "data"},
+            "route": {"actors": ["a"], "current": 0},
+        }
+        message_data = json.dumps(message).encode("utf-8")
+        asya_runtime._send_message(client_sock, message_data)
+
+        responses = asya_runtime._handle_request(server_sock, processor.process)
+
+        assert len(responses) == 1
+        assert responses[0]["payload"]["count"] == 1
+        assert responses[0]["payload"]["data"] == {"test": "data"}
+
+    def test_async_handler_preserves_headers(self, socket_pair):
+        """Async handler in payload mode preserves headers."""
+        server_sock, client_sock = socket_pair
+
+        async def async_handler(payload):
+            return {"result": "ok"}
+
+        message = {
+            "payload": {"test": True},
+            "route": {"actors": ["a", "b"], "current": 0},
+            "headers": {"trace_id": "abc", "priority": "high"},
+        }
+        message_data = json.dumps(message).encode("utf-8")
+        asya_runtime._send_message(client_sock, message_data)
+
+        responses = asya_runtime._handle_request(server_sock, async_handler)
+
+        assert len(responses) == 1
+        assert responses[0]["headers"] == {"trace_id": "abc", "priority": "high"}

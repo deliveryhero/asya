@@ -20,6 +20,7 @@ Wrapper pattern:
 4. Preserve route and headers (automatic behavior)
 """
 
+import inspect
 from typing import Any
 
 from . import payload as payload_handlers
@@ -29,19 +30,18 @@ def _wrap_payload_handler(handler_func):
     """
     Generic wrapper to convert payload handler to envelope handler.
 
+    Preserves async/sync nature: if the inner handler is async, the wrapper
+    is async too, so inspect.iscoroutinefunction() detection works correctly
+    in the runtime's _call_handler().
+
     Args:
-        handler_func: Payload-mode handler function
+        handler_func: Payload-mode handler function (sync or async)
 
     Returns:
-        Envelope-mode wrapper function
+        Envelope-mode wrapper function (matching sync/async of input)
     """
 
-    def envelope_wrapper(message: dict[str, Any]) -> dict[str, Any] | list[dict[str, Any]] | None:
-        payload = message["payload"]
-
-        result_payload = handler_func(payload)
-
-        # In envelope mode, handler must increment route.current
+    def _build_response(result_payload, message):
         output_route = message["route"].copy()
         output_route["current"] = message["route"]["current"] + 1
 
@@ -55,6 +55,19 @@ def _wrap_payload_handler(handler_func):
             return None
 
         return {"payload": result_payload, "route": output_route, "headers": message.get("headers", {})}
+
+    if inspect.iscoroutinefunction(handler_func):
+
+        async def async_envelope_wrapper(message: dict[str, Any]) -> dict[str, Any] | list[dict[str, Any]] | None:
+            result_payload = await handler_func(message["payload"])
+            return _build_response(result_payload, message)
+
+        async_envelope_wrapper.__doc__ = f"Envelope-mode wrapper for {handler_func.__name__}"
+        return async_envelope_wrapper
+
+    def envelope_wrapper(message: dict[str, Any]) -> dict[str, Any] | list[dict[str, Any]] | None:
+        result_payload = handler_func(message["payload"])
+        return _build_response(result_payload, message)
 
     envelope_wrapper.__doc__ = f"Envelope-mode wrapper for {handler_func.__name__}"
     return envelope_wrapper
