@@ -251,105 +251,83 @@ AsyncActor Claim
 ┌──────────────────────────────────────────┐
 │  Composition Pipeline                     │
 │                                           │
-│  1. function-environment-configs          │
-│     Select EnvironmentConfigs by labels:  │
-│     ┌─────────────────────────────────┐   │
-│     │ Slot 0: asya.sh/flavor =       │   │
-│     │   FromCompositeFieldPath:       │   │
-│     │   spec.flavors[0] → "gpu-t4"   │   │
-│     │ Slot 1: ... → "openai-keys"    │   │
-│     │ Slots 2-7: Optional (skip if   │   │
-│     │   spec.flavors[N] missing)     │   │
-│     └─────────────────────────────────┘   │
-│     Merged into in-memory environment     │
-│                                           │
-│  2. function-asya-flavors (custom)        │
-│     Reads merged EnvironmentConfig data   │
-│     + XR spec (actor inline overrides)    │
+│  1. function-asya-flavors (custom)        │
+│     Reads spec.flavors from XR            │
+│     Fetches each EnvironmentConfig by     │
+│     name via function-extra-resources     │
 │     Applies strategic merge patch:        │
 │     - Maps: deep merge                    │
 │     - Env vars: merge by name key         │
 │     - Tolerations: merge by key           │
-│     Writes resolved spec to environment   │
+│     Applies actor inline spec last (wins) │
+│     Writes resolved spec to context       │
 │                                           │
-│  3. function-go-templating (existing)     │
-│     Renders resolved spec into:           │
+│  2. function-go-templating (existing)     │
+│     Reads resolved spec from context      │
+│     Renders into K8s resources:           │
 │     - Deployment (or workloadRef patch)   │
 │     - SQS Queue                           │
 │     - KEDA ScaledObject                   │
 │     - ServiceAccount + IRSA               │
 │                                           │
-│  4. function-auto-ready (existing)        │
+│  3. function-auto-ready (existing)        │
 │     Marks composite as ready              │
 └──────────────────────────────────────────┘
 ```
 
-### 4.2 EnvironmentConfig Selection
+### 4.2 Flavor Fetching
 
-Each flavor slot uses `FromCompositeFieldPath` with `fromFieldPathPolicy: Optional`:
+`function-asya-flavors` fetches each EnvironmentConfig individually using `function-extra-resources`. It reads `spec.flavors` from the XR, then for each flavor name, fetches the EnvironmentConfig with label `asya.sh/flavor: <name>`.
 
-```yaml
-environment:
-  environmentConfigs:
-  # Slot 0
-  - type: Selector
-    selector:
-      matchLabels:
-      - key: asya.sh/flavor
-        type: FromCompositeFieldPath
-        valueFromFieldPath: spec.flavors[0]
-      fromFieldPathPolicy: Optional
-  # Slot 1
-  - type: Selector
-    selector:
-      matchLabels:
-      - key: asya.sh/flavor
-        type: FromCompositeFieldPath
-        valueFromFieldPath: spec.flavors[1]
-      fromFieldPathPolicy: Optional
-  # ... up to slot 7
-```
+This approach (individual fetch per flavor) avoids Crossplane's built-in EnvironmentConfig merge, which would clobber arrays. Each flavor's data is preserved intact for the function to apply strategic merge in the correct order.
 
-**Fixed max slots** (e.g., 8): This is an internal Composition detail, not user-facing. If `spec.flavors` has fewer entries, unused slots are silently skipped via `fromFieldPathPolicy: Optional`. Increasing the max is a Composition-only change.
+There is no fixed max slot limitation — the function iterates over `spec.flavors` dynamically. The XRD enforces `maxItems: 8` as a practical limit, adjustable without code changes.
 
 ### 4.3 EnvironmentConfig Data Structure
 
-Each flavor's data is stored under a key matching the flavor name. This prevents Crossplane's deep map merge from clobbering arrays across flavors:
+Each flavor's `data` field is a **partial AsyncActor spec** — same schema, same field names, same nesting. No wrapper keys, no custom format:
 
 ```yaml
 # EnvironmentConfig gpu-t4
 spec:
   data:
-    gpu-t4:                           # ← keyed by flavor name
-      scaling:
-        minReplicas: 1
-      workload:
-        template:
-          spec:
-            containers:
-            - name: asya-runtime
-              env:
-              - name: CUDA_VISIBLE_DEVICES
-                value: "0"
+    scaling:
+      minReplicas: 1
+    workload:
+      template:
+        spec:
+          containers:
+          - name: asya-runtime
+            env:
+            - name: CUDA_VISIBLE_DEVICES
+              value: "0"
+            resources:
+              limits:
+                nvidia.com/gpu: "1"
+          nodeSelector:
+            accelerator: nvidia-tesla-t4
 
 # EnvironmentConfig openai-keys
 spec:
   data:
-    openai-keys:                      # ← different key, preserved through merge
-      workload:
-        template:
-          spec:
-            containers:
-            - name: asya-runtime
-              env:
-              - name: OPENAI_API_KEY
-                valueFrom:
-                  secretKeyRef:
-                    name: openai-secrets
-                    key: api-key
+    workload:
+      template:
+        spec:
+          containers:
+          - name: asya-runtime
+            env:
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: openai-secrets
+                  key: api-key
+            - name: OPENAI_MODEL
+              value: "gpt-4"
 ```
 
-After Crossplane merges these EnvironmentConfigs, both keys exist in the environment. `function-asya-flavors` then iterates over the flavor keys in `spec.flavors` order and applies strategic merge.
+This means copy-paste between an AsyncActor `spec` and an EnvironmentConfig `data` works directly. Platform engineers don't need to learn a new schema.
+
+**Why this works without data loss:** `function-asya-flavors` fetches each EnvironmentConfig individually via `function-extra-resources` (by flavor name from `spec.flavors`). It does NOT rely on Crossplane's built-in EnvironmentConfig merge, which would clobber arrays. Each flavor's data is preserved intact, and the function applies strategic merge in `spec.flavors` order.
 
 ### 4.4 function-asya-flavors (Custom Composition Function)
 
@@ -357,8 +335,8 @@ A Go Composition Function using `function-sdk-go` and `k8s.io/apimachinery/pkg/u
 
 **Responsibilities:**
 1. Read `spec.flavors` from the XR (observed composite resource)
-2. Read merged EnvironmentConfig data from pipeline context
-3. For each flavor name in order, extract its data from the environment
+2. Fetch each EnvironmentConfig individually by label `asya.sh/flavor: <name>` via extra resources
+3. For each flavor in `spec.flavors` order, read its `data` (a partial AsyncActor spec)
 4. Apply strategic merge patch (env by `name`, tolerations by `key`, containers by `name`)
 5. Apply actor inline spec as final override (always wins)
 6. Write the fully resolved spec to a well-known context key for downstream functions
