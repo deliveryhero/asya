@@ -441,8 +441,9 @@ def _handle_request_streaming(conn: socket.socket, user_func: Any):
             message = _validate_message(message)
         logger.debug(f"Received message: {len(data)} bytes")
     except (json.JSONDecodeError, UnicodeDecodeError, KeyError, ValueError) as exc:
-        _send_frame(conn, _error_response("msg_parsing_error", exc))
-        _send_end_frame(conn)
+        with contextlib.suppress(BrokenPipeError, OSError):
+            _send_frame(conn, _error_response("msg_parsing_error", exc))
+            _send_end_frame(conn)
         return
 
     # Call handler and stream frames
@@ -459,9 +460,11 @@ def _handle_request_streaming(conn: socket.socket, user_func: Any):
     except Exception as exc:
         logger.error(f"[DIAG] Exception caught in handler: type={type(exc).__name__}, msg={exc}")
         logger.exception("Fatal error on processing input message")
-        _send_frame(conn, _error_response("processing_error", exc))
+        with contextlib.suppress(BrokenPipeError, OSError):
+            _send_frame(conn, _error_response("processing_error", exc))
 
-    _send_end_frame(conn)
+    with contextlib.suppress(BrokenPipeError, OSError):
+        _send_end_frame(conn)
 
 
 def _handle_payload_mode_streaming(conn: socket.socket, message: dict, user_func: Any):

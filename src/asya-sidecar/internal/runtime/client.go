@@ -21,6 +21,7 @@ type ErrorDetails struct {
 
 // RuntimeResponse represents the response from the actor runtime
 type RuntimeResponse struct {
+	Type    string          `json:"type,omitempty"`    // frame type: "end" for sentinel
 	Payload json.RawMessage `json:"payload,omitempty"` // payload output from handler
 	Route   messages.Route  `json:"route,omitempty"`   // route output from handler
 	Error   string          `json:"error,omitempty"`
@@ -123,24 +124,15 @@ func (c *Client) CallRuntime(ctx context.Context, data []byte) ([]RuntimeRespons
 			return nil, fmt.Errorf("failed to read frame from runtime: %w", err)
 		}
 
-		// Check for end sentinel {"type": "end"}
-		var raw map[string]json.RawMessage
-		if err := json.Unmarshal(frameData, &raw); err != nil {
-			return nil, fmt.Errorf("failed to parse frame: %w", err)
-		}
-
-		if typeField, ok := raw["type"]; ok {
-			var frameType string
-			if err := json.Unmarshal(typeField, &frameType); err == nil && frameType == "end" {
-				break
-			}
-		}
-
-		// Parse as RuntimeResponse
 		var response RuntimeResponse
 		if err := json.Unmarshal(frameData, &response); err != nil {
 			return nil, fmt.Errorf("failed to parse runtime response frame: %w", err)
 		}
+
+		if response.Type == "end" {
+			break
+		}
+
 		responses = append(responses, response)
 	}
 
