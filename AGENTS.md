@@ -98,7 +98,7 @@ Lightweight socket server injected via ConfigMap. Loads user function, executes 
   ```python
   # Function handler: ASYA_HANDLER=my_module.process
   async def process(payload: dict) -> dict:
-      return {"result": ...}  # Single value or list for fan-out
+      return {"result": ...}
 
   # Class handler: ASYA_HANDLER=my_module.Processor.process
   class Processor:
@@ -500,7 +500,7 @@ See CONTRIBUTING.md for complete testing documentation.
 Runtime (not sidecar!) increments `route.current` after processing.
 
 **Automatic end routing** (NEVER configure explicitly):
-- When `route.current` reaches end of `actors` array (or when runtime returned empty list) → sidecar routes to `happy-end` queue automatically
+- When `route.current` reaches end of `actors` array (or when runtime returned `None`) → sidecar routes to `happy-end` queue automatically
 - When errors occur in runtime → sidecar acks the message and routes to `error-end` queue automatically
 - When errors occur in sidecar → sidecar nacks the message and it's automatically sent to DLQ (configured by the queue)
 - **IMPORTANT**: Never include `happy-end` or `error-end` in route configurations - they are managed by the sidecar

@@ -372,8 +372,8 @@ def _get_current_actor(message: dict) -> str:
     return actors[current]
 
 
-def _error_response(code: str, exc: Exception | None = None) -> list[dict[str, Any]]:
-    """Returns standardized error response dict."""
+def _error_response(code: str, exc: Exception | None = None) -> dict[str, Any]:
+    """Returns standardized error response frame."""
     error: dict[str, Any] = {"error": code}
     if exc is not None:
         error["details"] = {
@@ -381,7 +381,7 @@ def _error_response(code: str, exc: Exception | None = None) -> list[dict[str, A
             "type": type(exc).__name__,
             "traceback": "".join(traceback.format_exception(type(exc), exc, exc.__traceback__)),
         }
-    return [error]
+    return error
 
 
 def _call_handler(user_func, arg):
@@ -395,19 +395,44 @@ def _call_handler(user_func, arg):
     return user_func(arg)
 
 
-def _handle_request(conn: socket.socket, user_func: Any) -> list[dict[str, Any]]:
-    """Handle a single request with length-prefix framing."""
+def _send_frame(conn: socket.socket, frame: dict[str, Any]):
+    """Send a single frame with length-prefix."""
+    data = json.dumps(frame).encode("utf-8")
+    _send_message(conn, data)
+
+
+def _send_end_frame(conn: socket.socket):
+    """Send the end sentinel frame."""
+    _send_frame(conn, {"type": "end"})
+
+
+def _handle_request_streaming(conn: socket.socket, user_func: Any):
+    """Handle a single request, sending response frames as they're produced.
+
+    Wire protocol (streaming):
+        Sidecar -> Runtime:  [4-byte length][request JSON]
+        Runtime -> Sidecar:  [4-byte length][response frame 1 JSON]
+        Runtime -> Sidecar:  [4-byte length][response frame 2 JSON]  (generators only)
+        ...
+        Runtime -> Sidecar:  [4-byte length][{"type": "end"} JSON]
+        Connection closes.
+    """
     # Read message from socket
     try:
         length_bytes = _recv_exact(conn, 4)
         length = struct.unpack(">I", length_bytes)[0]
         data = _recv_exact(conn, length)
     except ConnectionError as exc:
-        return _error_response("connection_error", exc)
+        with contextlib.suppress(BrokenPipeError, OSError):
+            _send_frame(conn, _error_response("connection_error", exc))
+            _send_end_frame(conn)
+        return
     except Exception as exc:
-        error_trace = traceback.format_exc()
-        logger.error(f"ERROR: Connection handling failed:\n{error_trace}")
-        return _error_response("connection_error", exc)
+        logger.error(f"ERROR: Connection handling failed:\n{traceback.format_exc()}")
+        with contextlib.suppress(BrokenPipeError, OSError):
+            _send_frame(conn, _error_response("connection_error", exc))
+            _send_end_frame(conn)
+        return
 
     # Parse message
     try:
@@ -416,74 +441,85 @@ def _handle_request(conn: socket.socket, user_func: Any) -> list[dict[str, Any]]
             message = _validate_message(message)
         logger.debug(f"Received message: {len(data)} bytes")
     except (json.JSONDecodeError, UnicodeDecodeError, KeyError, ValueError) as exc:
-        return _error_response("msg_parsing_error", exc)
+        with contextlib.suppress(BrokenPipeError, OSError):
+            _send_frame(conn, _error_response("msg_parsing_error", exc))
+            _send_end_frame(conn)
+        return
 
-    # Call user function and process output
+    # Call handler and stream frames
     try:
         logger.info(
             f"[DIAG] Starting handler execution, mode={ASYA_HANDLER_MODE}, message_id={message.get('id', 'unknown')}"
         )
-        out_list: list[dict[str, Any]]
         if ASYA_HANDLER_MODE == "payload":
-            # Simple processor: user function expects and returns payload only
-            # Runtime auto-increments route.current for normal actors
-            # NOTE: End actors should NOT use payload mode - they run in envelope mode
-            logger.info(f"[DIAG] Calling user_func with payload: {message['payload']}")
-            payload = _call_handler(user_func, message["payload"])  # user function
-            logger.info(f"[DIAG] user_func returned: {payload}")
-            payload_list: list[Any]
-            if payload is None:
-                payload_list = []
-            elif isinstance(payload, (list, tuple)):
-                payload_list = list(payload)
-            else:
-                payload_list = [payload]
-
-            # Build output route with incremented current (runtime handles routing in payload mode)
-            output_route = message["route"].copy()
-            output_route["current"] = message["route"]["current"] + 1
-
-            # Build output messages with updated route
-            out_list = []
-            for p in payload_list:
-                out: dict[str, Any] = {"payload": p, "route": output_route}
-                if "headers" in message:
-                    out["headers"] = message["headers"]
-                out_list.append(out)
-
+            _handle_payload_mode_streaming(conn, message, user_func)
         elif ASYA_HANDLER_MODE == "envelope":
-            # Full envelope mode: user function gets complete message structure
-            # Handler is responsible for route management (including incrementing current)
-            # End actors use this mode and return empty dict {} (no routing)
-            out = _call_handler(user_func, message)  # user function
-            if out is None:
-                out_list = []
-            elif isinstance(out, (list, tuple)):
-                out_list = list(out)
-            else:
-                out_list = [out]
-
-            # Output validation (only when enabled)
-            if ASYA_ENABLE_VALIDATION:
-                for i, out in enumerate(out_list):
-                    try:
-                        out_list[i] = _validate_message(
-                            out,
-                            expected_current_actor=_get_current_actor(message),
-                            input_route=message["route"],
-                        )
-                    except ValueError as exc:
-                        raise ValueError(f"Invalid output message[{i}/{len(out_list)}]: {exc}") from exc
-
+            _handle_envelope_mode_streaming(conn, message, user_func)
         else:
             raise ValueError(f"Invalid ASYA_HANDLER_MODE={ASYA_HANDLER_MODE}: not in {VALID_ASYA_HANDLER_MODES}")
-
-        return out_list
-
     except Exception as exc:
         logger.error(f"[DIAG] Exception caught in handler: type={type(exc).__name__}, msg={exc}")
         logger.exception("Fatal error on processing input message")
-        return _error_response("processing_error", exc)
+        with contextlib.suppress(BrokenPipeError, OSError):
+            _send_frame(conn, _error_response("processing_error", exc))
+
+    with contextlib.suppress(BrokenPipeError, OSError):
+        _send_end_frame(conn)
+
+
+def _handle_payload_mode_streaming(conn: socket.socket, message: dict, user_func: Any):
+    """Handle payload mode: send one frame per result.
+
+    - return handler: one frame (or zero for None)
+    - generator handler: one frame per yield
+    """
+    output_route = message["route"].copy()
+    output_route["current"] = message["route"]["current"] + 1
+    headers = message.get("headers")
+
+    def _build_payload_frame(payload_value: Any) -> dict[str, Any]:
+        frame: dict[str, Any] = {"payload": payload_value, "route": output_route}
+        if headers is not None:
+            frame["headers"] = headers
+        return frame
+
+    logger.info(f"[DIAG] Calling user_func with payload: {message['payload']}")
+
+    if inspect.isgeneratorfunction(user_func):
+        for p in user_func(message["payload"]):
+            _send_frame(conn, _build_payload_frame(p))
+    else:
+        result = _call_handler(user_func, message["payload"])
+        logger.info(f"[DIAG] user_func returned: {result}")
+        if result is not None:
+            _send_frame(conn, _build_payload_frame(result))
+
+
+def _handle_envelope_mode_streaming(conn: socket.socket, message: dict, user_func: Any):
+    """Handle envelope mode: send one frame per result.
+
+    - return handler: one frame (or zero for None)
+    - generator handler: one frame per yield
+    """
+    if inspect.isgeneratorfunction(user_func):
+        for out in user_func(message):
+            if ASYA_ENABLE_VALIDATION:
+                out = _validate_message(
+                    out,
+                    expected_current_actor=_get_current_actor(message),
+                    input_route=message["route"],
+                )
+            _send_frame(conn, out)
+    else:
+        result = _call_handler(user_func, message)
+        if result is not None:
+            if ASYA_ENABLE_VALIDATION:
+                result = _validate_message(
+                    result,
+                    expected_current_actor=_get_current_actor(message),
+                    input_route=message["route"],
+                )
+            _send_frame(conn, result)
 
 
 def _log_env_vars():
@@ -540,9 +576,7 @@ def handle_requests():
                 break
 
             try:
-                responses: list[dict] = _handle_request(conn, func)
-                response_data = json.dumps(responses).encode("utf-8")
-                _send_message(conn, response_data)
+                _handle_request_streaming(conn, func)
 
             except BrokenPipeError:
                 logger.warning("Client disconnected")

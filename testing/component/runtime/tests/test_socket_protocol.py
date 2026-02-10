@@ -46,11 +46,11 @@ class SocketClient:
         return data
 
     def send_message(self, message: dict, timeout: int = 5) -> list:
-        """Send message to runtime and receive response list.
+        """Send message to runtime and receive streaming response frames.
 
         Protocol:
         - Send: 4-byte length prefix (big-endian) + JSON data
-        - Receive: 4-byte length prefix (big-endian) + JSON data (list of messages)
+        - Receive: multiple length-prefixed frames, terminated by {"type": "end"}
         """
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         sock.settimeout(timeout)
@@ -63,12 +63,19 @@ class SocketClient:
             length_prefix = struct.pack(">I", len(data))
             sock.sendall(length_prefix + data)
 
-            # Receive response with length prefix
-            response_length_bytes = self._recv_exact(sock, 4)
-            response_length = struct.unpack(">I", response_length_bytes)[0]
-            response_data = self._recv_exact(sock, response_length)
+            # Read streaming frames until end sentinel
+            frames = []
+            while True:
+                frame_length_bytes = self._recv_exact(sock, 4)
+                frame_length = struct.unpack(">I", frame_length_bytes)[0]
+                frame_data = self._recv_exact(sock, frame_length)
+                frame = json.loads(frame_data.decode())
 
-            return json.loads(response_data.decode())
+                if isinstance(frame, dict) and frame.get("type") == "end":
+                    break
+                frames.append(frame)
+
+            return frames
         finally:
             sock.close()
 
@@ -101,7 +108,7 @@ def test_echo_handler(echo_client):
 
     response = echo_client.send_message(message)
 
-    # Runtime returns list of results (fan-out protocol)
+    # Runtime returns streaming frames collected into a list
     assert isinstance(response, list)
     assert len(response) == 1
 

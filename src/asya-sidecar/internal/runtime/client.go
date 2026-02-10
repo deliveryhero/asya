@@ -21,6 +21,7 @@ type ErrorDetails struct {
 
 // RuntimeResponse represents the response from the actor runtime
 type RuntimeResponse struct {
+	Type    string          `json:"type,omitempty"`    // frame type: "end" for sentinel
 	Payload json.RawMessage `json:"payload,omitempty"` // payload output from handler
 	Route   messages.Route  `json:"route,omitempty"`   // route output from handler
 	Error   string          `json:"error,omitempty"`
@@ -82,8 +83,17 @@ func RecvSocketData(conn net.Conn) ([]byte, error) {
 	return data, nil
 }
 
-// CallRuntime sends a full message (with route and payload) to the runtime and waits for response(s)
-// Returns multiple responses for fan-out, empty slice for abort, or error
+// CallRuntime sends a full message (with route and payload) to the runtime and reads streaming response frames.
+// Returns responses collected from all frames, empty slice for abort, or error.
+//
+// Wire protocol (streaming):
+//
+//	Sidecar -> Runtime:  [4-byte length][request JSON]
+//	Runtime -> Sidecar:  [4-byte length][response frame 1 JSON]
+//	Runtime -> Sidecar:  [4-byte length][response frame 2 JSON]  (generators only)
+//	...
+//	Runtime -> Sidecar:  [4-byte length][{"type": "end"} JSON]
+//	Connection closes.
 func (c *Client) CallRuntime(ctx context.Context, data []byte) ([]RuntimeResponse, error) {
 	// Apply timeout
 	ctx, cancel := context.WithTimeout(ctx, c.timeout)
@@ -106,16 +116,24 @@ func (c *Client) CallRuntime(ctx context.Context, data []byte) ([]RuntimeRespons
 		return nil, fmt.Errorf("failed to send message to runtime: %w", err)
 	}
 
-	// Read response with length-prefix
-	responseData, err := RecvSocketData(conn)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response from runtime: %w", err)
-	}
-
-	// Parse response - runtime always returns an array
+	// Read streaming frames until end sentinel
 	var responses []RuntimeResponse
-	if err := json.Unmarshal(responseData, &responses); err != nil {
-		return nil, fmt.Errorf("failed to parse runtime response: %w", err)
+	for {
+		frameData, err := RecvSocketData(conn)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read frame from runtime: %w", err)
+		}
+
+		var response RuntimeResponse
+		if err := json.Unmarshal(frameData, &response); err != nil {
+			return nil, fmt.Errorf("failed to parse runtime response frame: %w", err)
+		}
+
+		if response.Type == "end" {
+			break
+		}
+
+		responses = append(responses, response)
 	}
 
 	return responses, nil

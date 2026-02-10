@@ -30,44 +30,43 @@ def _wrap_payload_handler(handler_func):
     """
     Generic wrapper to convert payload handler to envelope handler.
 
-    Preserves async/sync nature: if the inner handler is async, the wrapper
-    is async too, so inspect.iscoroutinefunction() detection works correctly
-    in the runtime's _call_handler().
+    Detects handler type (generator, async, sync) and produces a matching
+    wrapper so that inspect.isgeneratorfunction() and
+    inspect.iscoroutinefunction() return the correct result for the runtime.
 
     Args:
-        handler_func: Payload-mode handler function (sync or async)
+        handler_func: Payload-mode handler function (sync, async, or generator)
 
     Returns:
-        Envelope-mode wrapper function (matching sync/async of input)
+        Envelope-mode wrapper function matching the handler type
     """
 
-    def _build_response(result_payload, message):
+    def _build_envelope(result_payload, message):
         output_route = message["route"].copy()
         output_route["current"] = message["route"]["current"] + 1
-
-        if isinstance(result_payload, list):
-            return [
-                {"payload": item, "route": output_route, "headers": message.get("headers", {})}
-                for item in result_payload
-            ]
-
-        if result_payload is None:
-            return None
-
         return {"payload": result_payload, "route": output_route, "headers": message.get("headers", {})}
 
-    if inspect.iscoroutinefunction(handler_func):
+    if inspect.isgeneratorfunction(handler_func):
 
-        async def async_envelope_wrapper(message: dict[str, Any]) -> dict[str, Any] | list[dict[str, Any]] | None:
+        def envelope_wrapper(message: dict[str, Any]):
+            for result_payload in handler_func(message["payload"]):
+                yield _build_envelope(result_payload, message)
+
+    elif inspect.iscoroutinefunction(handler_func):
+
+        async def envelope_wrapper(message: dict[str, Any]):  # type: ignore[misc]
             result_payload = await handler_func(message["payload"])
-            return _build_response(result_payload, message)
+            if result_payload is None:
+                return None
+            return _build_envelope(result_payload, message)
 
-        async_envelope_wrapper.__doc__ = f"Envelope-mode wrapper for {handler_func.__name__}"
-        return async_envelope_wrapper
+    else:
 
-    def envelope_wrapper(message: dict[str, Any]) -> dict[str, Any] | list[dict[str, Any]] | None:
-        result_payload = handler_func(message["payload"])
-        return _build_response(result_payload, message)
+        def envelope_wrapper(message: dict[str, Any]):
+            result_payload = handler_func(message["payload"])
+            if result_payload is None:
+                return None
+            return _build_envelope(result_payload, message)
 
     envelope_wrapper.__doc__ = f"Envelope-mode wrapper for {handler_func.__name__}"
     return envelope_wrapper
@@ -88,6 +87,7 @@ unicode_handler = _wrap_payload_handler(payload_handlers.unicode_handler)
 nested_data_handler = _wrap_payload_handler(payload_handlers.nested_data_handler)
 null_values_handler = _wrap_payload_handler(payload_handlers.null_values_handler)
 conditional_handler = _wrap_payload_handler(payload_handlers.conditional_handler)
+conditional_fanout_handler = _wrap_payload_handler(payload_handlers.conditional_fanout_handler)
 cyclic_route_detector = _wrap_payload_handler(payload_handlers.cyclic_route_detector)
 malformed_json_handler = _wrap_payload_handler(payload_handlers.malformed_json_handler)
 huge_payload_handler = _wrap_payload_handler(payload_handlers.huge_payload_handler)

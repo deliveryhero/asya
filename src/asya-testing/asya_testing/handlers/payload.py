@@ -5,8 +5,8 @@ This module provides test handlers covering various scenarios:
 - Happy path processing (async - the common AI-workload pattern)
 - Error handling (sync - error/edge-case handlers)
 - Timeouts and slow processing
-- Fan-out (returning multiple results)
-- Empty responses
+- Fan-out (generator/yield)
+- Empty responses (return None)
 - Large payloads and Unicode handling
 - Pipeline processing (doubler, incrementer)
 
@@ -20,6 +20,7 @@ Sync handlers remain for error/edge-case testing where async adds no value.
 
 import asyncio
 import time
+from collections.abc import Generator
 from typing import Any
 
 
@@ -119,34 +120,35 @@ def timeout_handler(payload: dict[str, Any]) -> dict[str, Any]:
 # =============================================================================
 
 
-async def fanout_handler(payload: dict[str, Any]) -> list[dict[str, Any]]:
+def fanout_handler(payload: dict[str, Any]) -> Generator[dict[str, Any], None, None]:
     """
-    Fan-out handler: Returns multiple results.
+    Fan-out handler: Yields multiple results via generator.
 
-    Tests that sidecar properly handles list responses and routes
-    each result to the next actor.
+    Tests that sidecar properly handles streaming fan-out responses
+    and routes each result to the next actor.
     """
     count = payload.get("count", 3)
 
-    return [{**payload, "index": i, "message": f"Fan-out message {i}"} for i in range(count)]
+    for i in range(count):
+        yield {**payload, "index": i, "message": f"Fan-out message {i}"}
 
 
-def empty_response_handler(payload: dict[str, Any]) -> list:
+def empty_response_handler(payload: dict[str, Any]) -> None:
     """
-    Empty response handler: Returns empty list to abort pipeline.
+    Empty response handler: Returns None to abort pipeline.
 
     This should send the original message to happy-end queue.
     """
-    return []
+    return None
 
 
-def none_response_handler(payload: dict[str, Any]) -> list[Any]:
+def none_response_handler(payload: dict[str, Any]) -> None:
     """
-    None response handler: Returns empty list to abort pipeline.
+    None response handler: Returns None to abort pipeline.
 
     This should send the original message to happy-end queue.
     """
-    return []
+    return None
 
 
 # =============================================================================
@@ -280,12 +282,12 @@ async def null_values_handler(payload: dict[str, Any]) -> dict[str, Any]:
 # =============================================================================
 
 
-async def conditional_handler(payload: dict[str, Any]) -> dict[str, Any] | list[dict[str, Any]] | None:
+def conditional_handler(payload: dict[str, Any]) -> dict[str, Any] | None:
     """
     Conditional handler: Behavior based on payload content.
 
     Used for testing specific conditions from test suite.
-    Supports actions: success, error, oom, slow, fanout, empty
+    Supports actions: success, error, oom, slow, empty
     """
     action = payload.get("action", "success")
 
@@ -294,15 +296,21 @@ async def conditional_handler(payload: dict[str, Any]) -> dict[str, Any] | list[
     elif action == "oom":
         raise MemoryError("Conditional OOM")
     elif action == "slow":
-        await asyncio.sleep(payload.get("sleep", 2))  # Simulate slow processing for testing
+        time.sleep(payload.get("sleep", 2))  # Simulate slow processing for testing
         return {**payload, "status": "slow_processing_complete"}
-    elif action == "fanout":
-        count = payload.get("count", 2)
-        return [{"index": i, "action": "fanout"} for i in range(count)]
     elif action == "empty":
         return None
     else:
         return {**payload, "status": "success", "action": action}
+
+
+def conditional_fanout_handler(payload: dict[str, Any]) -> Generator[dict[str, Any], None, None]:
+    """
+    Fan-out variant of conditional_handler. Yields multiple results.
+    """
+    count = payload.get("count", 2)
+    for i in range(count):
+        yield {"index": i, "action": "fanout"}
 
 
 def metadata_handler(payload: dict[str, Any], route: dict[str, Any] | None = None) -> dict[str, Any]:

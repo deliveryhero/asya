@@ -121,6 +121,18 @@ func (m *mockTransport) Close() error {
 	return nil
 }
 
+// sendStreamingResponse sends individual response frames followed by an end sentinel.
+// This matches the streaming wire protocol: each response is a separate length-prefixed
+// frame, terminated by {"type": "end"}.
+func sendStreamingResponse(conn net.Conn, responses []runtime.RuntimeResponse) {
+	for _, resp := range responses {
+		data, _ := json.Marshal(resp)
+		_ = runtime.SendSocketData(conn, data)
+	}
+	endFrame, _ := json.Marshal(map[string]string{"type": "end"})
+	_ = runtime.SendSocketData(conn, endFrame)
+}
+
 func TestRouter_RouteValidation(t *testing.T) {
 	tests := []struct {
 		name                 string
@@ -200,7 +212,7 @@ func TestRouter_RouteValidation(t *testing.T) {
 					return
 				}
 
-				responses := []runtime.RuntimeResponse{
+				sendStreamingResponse(conn, []runtime.RuntimeResponse{
 					{
 						Payload: json.RawMessage(`{"result": "processed"}`),
 						Route: messages.Route{
@@ -208,9 +220,7 @@ func TestRouter_RouteValidation(t *testing.T) {
 							Current: tt.inputRoute.Current + 1,
 						},
 					},
-				}
-				data, _ := json.Marshal(responses)
-				_ = runtime.SendSocketData(conn, data)
+				})
 			}()
 
 			cfg := &config.Config{
@@ -451,7 +461,7 @@ func TestRouter_DynamicRouteModification(t *testing.T) {
 				}
 
 				// Send response with route where current is already incremented by runtime
-				responses := []runtime.RuntimeResponse{
+				sendStreamingResponse(conn, []runtime.RuntimeResponse{
 					{
 						Payload: json.RawMessage(`{"result": "processed"}`),
 						Route: messages.Route{
@@ -459,10 +469,7 @@ func TestRouter_DynamicRouteModification(t *testing.T) {
 							Current: 1, // Runtime increments current in payload mode
 						},
 					},
-				}
-
-				data, _ := json.Marshal(responses)
-				_ = runtime.SendSocketData(conn, data)
+				})
 			}()
 
 			// Setup test components
@@ -617,7 +624,7 @@ func TestRouter_ResolveQueueName_Integration(t *testing.T) {
 				}
 
 				// Send mock response with incremented current (runtime responsibility)
-				responses := []runtime.RuntimeResponse{
+				sendStreamingResponse(conn, []runtime.RuntimeResponse{
 					{
 						Payload: json.RawMessage(`{"result": "processed"}`),
 						Route: messages.Route{
@@ -625,10 +632,7 @@ func TestRouter_ResolveQueueName_Integration(t *testing.T) {
 							Current: 1, // Runtime increments current in payload mode
 						},
 					},
-				}
-
-				data, _ := json.Marshal(responses)
-				_ = runtime.SendSocketData(conn, data)
+				})
 			}()
 
 			// Setup test components
@@ -1109,9 +1113,7 @@ func TestRouter_ProcessMessage_EmptyResponse(t *testing.T) {
 			return
 		}
 
-		emptyResponse := []runtime.RuntimeResponse{}
-		data, _ := json.Marshal(emptyResponse)
-		_ = runtime.SendSocketData(conn, data)
+		sendStreamingResponse(conn, []runtime.RuntimeResponse{})
 	}()
 
 	cfg := &config.Config{
@@ -1188,7 +1190,7 @@ func TestRouter_ProcessMessage_EndActor(t *testing.T) {
 			return
 		}
 
-		responses := []runtime.RuntimeResponse{
+		sendStreamingResponse(conn, []runtime.RuntimeResponse{
 			{
 				Payload: json.RawMessage(`{"status": "logged"}`),
 				Route: messages.Route{
@@ -1196,9 +1198,7 @@ func TestRouter_ProcessMessage_EndActor(t *testing.T) {
 					Current: 0,
 				},
 			},
-		}
-		data, _ := json.Marshal(responses)
-		_ = runtime.SendSocketData(conn, data)
+		})
 	}()
 
 	cfg := &config.Config{
@@ -1313,13 +1313,11 @@ func TestRouter_EndActor_WithInvalidRoute(t *testing.T) {
 					return
 				}
 
-				responses := []runtime.RuntimeResponse{
+				sendStreamingResponse(conn, []runtime.RuntimeResponse{
 					{
 						Payload: json.RawMessage(`{"status": "processed"}`),
 					},
-				}
-				data, _ := json.Marshal(responses)
-				_ = runtime.SendSocketData(conn, data)
+				})
 			}()
 
 			cfg := &config.Config{
@@ -1396,13 +1394,11 @@ func TestRouter_EndActor_WithGatewayReporting(t *testing.T) {
 			return
 		}
 
-		responses := []runtime.RuntimeResponse{
+		sendStreamingResponse(conn, []runtime.RuntimeResponse{
 			{
 				Payload: json.RawMessage(`{"result": {"value": 42}, "s3_info": {"s3_uri": "s3://test/result"}}`),
 			},
-		}
-		data, _ := json.Marshal(responses)
-		_ = runtime.SendSocketData(conn, data)
+		})
 	}()
 
 	cfg := &config.Config{
@@ -1560,7 +1556,7 @@ func TestRouter_EndActor_DoesNotIncrementCurrent(t *testing.T) {
 		}
 
 		// Runtime tries to return a route with incremented current
-		responses := []runtime.RuntimeResponse{
+		sendStreamingResponse(conn, []runtime.RuntimeResponse{
 			{
 				Payload: json.RawMessage(`{"status": "logged"}`),
 				Route: messages.Route{
@@ -1568,9 +1564,7 @@ func TestRouter_EndActor_DoesNotIncrementCurrent(t *testing.T) {
 					Current: 3, // Try to increment current
 				},
 			},
-		}
-		data, _ := json.Marshal(responses)
-		_ = runtime.SendSocketData(conn, data)
+		})
 	}()
 
 	cfg := &config.Config{
@@ -1715,7 +1709,7 @@ func TestRouter_ProcessMessage_ErrorResponse(t *testing.T) {
 			return
 		}
 
-		errorResponse := []runtime.RuntimeResponse{
+		sendStreamingResponse(conn, []runtime.RuntimeResponse{
 			{
 				Error: "Processing failed",
 				Details: runtime.ErrorDetails{
@@ -1723,9 +1717,7 @@ func TestRouter_ProcessMessage_ErrorResponse(t *testing.T) {
 					Message: "Invalid input",
 				},
 			},
-		}
-		data, _ := json.Marshal(errorResponse)
-		_ = runtime.SendSocketData(conn, data)
+		})
 	}()
 
 	cfg := &config.Config{
@@ -1936,13 +1928,11 @@ func TestRouter_ReportFinalStatusWithMessage_ErrorEnd_ExtractsErrorDetails(t *te
 			return
 		}
 
-		responses := []runtime.RuntimeResponse{
+		sendStreamingResponse(conn, []runtime.RuntimeResponse{
 			{
 				Payload: json.RawMessage(`{"status": "processed"}`),
 			},
-		}
-		data, _ := json.Marshal(responses)
-		_ = runtime.SendSocketData(conn, data)
+		})
 	}()
 
 	cfg := &config.Config{
@@ -2066,13 +2056,11 @@ func TestRouter_ReportFinalStatusWithMessage_ErrorEnd_NoErrorDetails(t *testing.
 			return
 		}
 
-		responses := []runtime.RuntimeResponse{
+		sendStreamingResponse(conn, []runtime.RuntimeResponse{
 			{
 				Payload: json.RawMessage(`{"status": "processed"}`),
 			},
-		}
-		data, _ := json.Marshal(responses)
-		_ = runtime.SendSocketData(conn, data)
+		})
 	}()
 
 	cfg := &config.Config{
@@ -2183,7 +2171,7 @@ func TestRouter_ProcessMessage_FanOut(t *testing.T) {
 			return
 		}
 
-		fanoutResponses := []runtime.RuntimeResponse{
+		sendStreamingResponse(conn, []runtime.RuntimeResponse{
 			{
 				Route:   messages.Route{Actors: []string{"test-actor", "next-actor"}, Current: 1},
 				Payload: json.RawMessage(`{"index": 0, "message": "Fan-out message 0"}`),
@@ -2196,9 +2184,7 @@ func TestRouter_ProcessMessage_FanOut(t *testing.T) {
 				Route:   messages.Route{Actors: []string{"test-actor", "next-actor"}, Current: 1},
 				Payload: json.RawMessage(`{"index": 2, "message": "Fan-out message 2"}`),
 			},
-		}
-		data, _ := json.Marshal(fanoutResponses)
-		_ = runtime.SendSocketData(conn, data)
+		})
 	}()
 
 	cfg := &config.Config{
@@ -2321,7 +2307,7 @@ func TestRouter_ProcessMessage_FanOut_CreatesGatewayTasks(t *testing.T) {
 			return
 		}
 
-		fanoutResponses := []runtime.RuntimeResponse{
+		sendStreamingResponse(conn, []runtime.RuntimeResponse{
 			{
 				Route:   messages.Route{Actors: []string{"test-actor", "next-actor"}, Current: 0},
 				Payload: json.RawMessage(`{"index": 0}`),
@@ -2334,9 +2320,7 @@ func TestRouter_ProcessMessage_FanOut_CreatesGatewayTasks(t *testing.T) {
 				Route:   messages.Route{Actors: []string{"test-actor", "next-actor"}, Current: 0},
 				Payload: json.RawMessage(`{"index": 2}`),
 			},
-		}
-		data, _ := json.Marshal(fanoutResponses)
-		_ = runtime.SendSocketData(conn, data)
+		})
 	}()
 
 	// Track task creation calls

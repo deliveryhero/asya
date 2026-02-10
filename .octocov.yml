@@ -58,7 +58,7 @@ comment:
 diff:
   if: is_pull_request
   datastores:
-  - github://${GITHUB_REPOSITORY}@octocov
+  - github://${GITHUB_REPOSITORY}@octocov/.
   path: report.json
 
 summary:
@@ -70,7 +70,7 @@ summary:
 report:
   if: is_default_branch
   datastores:
-  - github://${GITHUB_REPOSITORY}@octocov
+  - github://${GITHUB_REPOSITORY}@octocov/.
   path: report.json
 
 codeToTestRatio:

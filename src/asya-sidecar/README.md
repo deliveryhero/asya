@@ -44,8 +44,8 @@ go build -o bin/sidecar ./cmd/sidecar
 
 Runtime returns mutated payload directly:
 - Single value: `{"processed": true, "data": "..."}`
-- Array (fan-out): `[{"item": 1}, {"item": 2}]`
-- Empty: `null` or `[]`
+- Generator (fan-out): Multiple frames yielded over the socket, one per output
+- Empty: `null`
 
 **Error response:**
 ```json
@@ -57,8 +57,8 @@ Runtime returns mutated payload directly:
 | Response | Action |
 |----------|--------|
 | Single value | Route to next actor |
-| Array (fan-out) | Route each to next actor |
-| Empty | Send to happy-end |
+| Generator (fan-out) | Route each yielded frame to next actor |
+| Empty (`null`) | Send to happy-end |
 | Error | Send to error-end |
 | Timeout | Send to error-end |
 | End of route | Send to happy-end |
