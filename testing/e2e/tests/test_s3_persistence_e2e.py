@@ -36,7 +36,7 @@ def cleanup_s3():
 
 
 @pytest.mark.fast
-def test_happy_end_persists_to_s3_e2e(e2e_helper):
+def test_happy_end_persists_to_s3_e2e(e2e_helper, transport_timeouts):
     """
     Test that happy-end actor persists successful results to S3 in e2e environment.
 
@@ -52,7 +52,7 @@ def test_happy_end_persists_to_s3_e2e(e2e_helper):
     task_id = result["result"]["task_id"]
     logger.info(f"Created task {task_id}")
 
-    final_task = e2e_helper.wait_for_task_completion(task_id, timeout=20)
+    final_task = e2e_helper.wait_for_task_completion(task_id, timeout=transport_timeouts.task_completion_short)
     assert final_task["status"] == "succeeded", f"Task failed: {final_task}"
 
     logger.info(f"Task {task_id} completed successfully")
@@ -72,7 +72,7 @@ def test_happy_end_persists_to_s3_e2e(e2e_helper):
 
 
 @pytest.mark.fast
-def test_error_end_persists_to_s3_e2e(e2e_helper):
+def test_error_end_persists_to_s3_e2e(e2e_helper, transport_timeouts):
     """
     Test that error-end actor persists errors to S3 in e2e environment.
 
@@ -88,7 +88,7 @@ def test_error_end_persists_to_s3_e2e(e2e_helper):
     task_id = result["result"]["task_id"]
     logger.info(f"Created task {task_id}")
 
-    final_task = e2e_helper.wait_for_task_completion(task_id, timeout=20)
+    final_task = e2e_helper.wait_for_task_completion(task_id, timeout=transport_timeouts.task_completion_short)
     assert final_task["status"] == "failed", f"Expected failure but got: {final_task}"
 
     logger.info(f"Task {task_id} failed as expected")
