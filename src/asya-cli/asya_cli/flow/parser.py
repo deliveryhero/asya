@@ -5,7 +5,7 @@ from __future__ import annotations
 import ast
 
 from asya_cli.flow.errors import FlowCompileError
-from asya_cli.flow.ir import ActorCall, Condition, IROperation, Mutation, Return
+from asya_cli.flow.ir import ActorCall, Break, Condition, Continue, IROperation, Mutation, Return, WhileLoop
 
 
 class FlowParser:
@@ -16,6 +16,7 @@ class FlowParser:
         self.flow_name: str | None = None
         self.instances: dict[str, str] = {}  # Map instance variable to class name
         self.class_methods: set[str] = set()  # Track class method handlers
+        self._loop_depth: int = 0  # Track nesting depth for break/continue validation
 
     def parse(self) -> tuple[str, list[IROperation]]:
         try:
@@ -63,10 +64,24 @@ class FlowParser:
             return self._parse_augassign(stmt)
         elif isinstance(stmt, ast.If):
             return self._parse_if(stmt)
+        elif isinstance(stmt, ast.While):
+            return self._parse_while(stmt)
+        elif isinstance(stmt, ast.For):
+            raise FlowCompileError(
+                f"{self.filename}:{stmt.lineno}: 'for' loops are not supported. Use 'while' loops instead"
+            )
         elif isinstance(stmt, ast.Return):
             return [Return(lineno=stmt.lineno)]
         elif isinstance(stmt, ast.Pass):
             return []
+        elif isinstance(stmt, ast.Break):
+            if self._loop_depth == 0:
+                raise FlowCompileError(f"{self.filename}:{stmt.lineno}: 'break' outside loop")
+            return [Break(lineno=stmt.lineno)]
+        elif isinstance(stmt, ast.Continue):
+            if self._loop_depth == 0:
+                raise FlowCompileError(f"{self.filename}:{stmt.lineno}: 'continue' outside loop")
+            return [Continue(lineno=stmt.lineno)]
         else:
             raise FlowCompileError(f"{self.filename}:{stmt.lineno}: Unsupported statement type: {type(stmt).__name__}")
 
@@ -162,6 +177,23 @@ class FlowParser:
         false_branch = self._parse_body(stmt.orelse) if stmt.orelse else []
 
         return [Condition(lineno=stmt.lineno, test=test, true_branch=true_branch, false_branch=false_branch)]
+
+    def _parse_while(self, stmt: ast.While) -> list[IROperation]:
+        if stmt.orelse:
+            raise FlowCompileError(f"{self.filename}:{stmt.lineno}: 'else' clause on 'while' loops is not supported")
+
+        # Determine loop condition: `while True` → None, otherwise the test expression
+        test: str | None = None
+        if not (isinstance(stmt.test, ast.Constant) and stmt.test.value is True):
+            test = ast.unparse(stmt.test)
+
+        self._loop_depth += 1
+        try:
+            body = self._parse_body(stmt.body)
+        finally:
+            self._loop_depth -= 1
+
+        return [WhileLoop(lineno=stmt.lineno, test=test, body=body)]
 
     def _validate_class_instantiation(self, stmt: ast.Assign) -> None:
         """Validate that class instantiation uses only default arguments."""

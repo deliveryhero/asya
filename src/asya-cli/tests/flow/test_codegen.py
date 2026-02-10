@@ -476,3 +476,232 @@ class TestEdgeCases:
         code = CodeGenerator("flow", routers, "test.py")._generate_router(routers[0])
 
         assert 'if p["x"] > 10 and p["y"] < 20 or p["z"] == "special":' in code
+
+
+class TestLoopBackRouter:
+    """Test loop-back router generation."""
+
+    def test_loop_back_router_has_correct_docstring(self):
+        routers = [
+            Router(
+                name="router_flow_line_3_loop_back_0",
+                lineno=3,
+                true_branch_actors=["router_flow_line_3_while_0"],
+                is_loop_back=True,
+            )
+        ]
+        code = CodeGenerator("flow", routers, "test.py")._generate_loop_back_router(routers[0])
+
+        assert "Loop-back router" in code
+        assert "re-inserts loop actors" in code
+
+    def test_loop_back_router_is_valid_python(self):
+        routers = [
+            Router(
+                name="router_flow_line_3_loop_back_0",
+                lineno=3,
+                true_branch_actors=["handler", "router_flow_line_3_loop_back_0"],
+                is_loop_back=True,
+            )
+        ]
+        code = CodeGenerator("flow", routers, "test.py")._generate_loop_back_router(routers[0])
+
+        try:
+            ast.parse(code)
+        except SyntaxError as e:
+            pytest.fail(f"Generated loop-back code is not valid Python: {e}")
+
+    def test_loop_back_router_appends_actors(self):
+        routers = [
+            Router(
+                name="router_flow_line_3_loop_back_0",
+                lineno=3,
+                true_branch_actors=["handler_a", "handler_b", "router_flow_line_3_loop_back_0"],
+                is_loop_back=True,
+            )
+        ]
+        code = CodeGenerator("flow", routers, "test.py")._generate_loop_back_router(routers[0])
+
+        assert '_next.append(resolve("handler_a"))' in code
+        assert '_next.append(resolve("handler_b"))' in code
+        assert '_next.append(resolve("router_flow_line_3_loop_back_0"))' in code
+
+    def test_loop_back_router_inserts_into_route(self):
+        routers = [
+            Router(
+                name="router_flow_line_3_loop_back_0",
+                lineno=3,
+                true_branch_actors=["router_flow_line_3_while_0"],
+                is_loop_back=True,
+            )
+        ]
+        code = CodeGenerator("flow", routers, "test.py")._generate_loop_back_router(routers[0])
+
+        assert "r['actors'][c+1:c+1] = _next" in code
+        assert "r['current'] = c + 1" in code
+
+    def test_loop_back_router_with_mutations(self):
+        routers = [
+            Router(
+                name="router_flow_line_3_loop_back_0",
+                lineno=3,
+                mutations=[Mutation(lineno=2, code='p["i"] = 0')],
+                true_branch_actors=["handler", "router_flow_line_3_loop_back_0"],
+                is_loop_back=True,
+            )
+        ]
+        code = CodeGenerator("flow", routers, "test.py")._generate_loop_back_router(routers[0])
+
+        assert 'p["i"] = 0' in code
+
+    def test_loop_back_router_filters_end_actors(self):
+        routers = [
+            Router(
+                name="router_flow_line_3_loop_back_0",
+                lineno=3,
+                true_branch_actors=["handler", "end_flow", "router_flow_line_3_loop_back_0"],
+                is_loop_back=True,
+            )
+        ]
+        code = CodeGenerator("flow", routers, "test.py")._generate_loop_back_router(routers[0])
+
+        assert 'resolve("handler")' in code
+        assert 'resolve("end_flow")' not in code
+        assert 'resolve("router_flow_line_3_loop_back_0")' in code
+
+    def test_loop_back_dispatched_by_generate(self):
+        """Verify that generate() uses _generate_loop_back_router for loop-back routers."""
+        routers = [
+            Router(name="start_flow", lineno=0, true_branch_actors=["router_flow_line_3_loop_back_0"]),
+            Router(
+                name="router_flow_line_3_loop_back_0",
+                lineno=3,
+                true_branch_actors=["handler", "router_flow_line_3_loop_back_0"],
+                is_loop_back=True,
+            ),
+            Router(name="end_flow", lineno=999),
+        ]
+        code = CodeGenerator("flow", routers, "test.py").generate()
+
+        assert "Loop-back router" in code
+        tree = ast.parse(code)
+        func_names = [n.name for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)]
+        assert "router_flow_line_3_loop_back_0" in func_names
+
+
+class TestWhileLoopEndToEndCodeGen:
+    """End-to-end tests: while loops through the full compilation pipeline produce valid code."""
+
+    def test_simple_while_generates_valid_code(self):
+        from asya_cli.flow.compiler import FlowCompiler
+
+        source = """
+def flow(p: dict) -> dict:
+    while p["i"] < 10:
+        p["i"] += 1
+        p = handler(p)
+    return p
+"""
+        compiler = FlowCompiler()
+        code = compiler.compile(source, "test.py")
+        tree = ast.parse(code)
+        func_names = [n.name for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)]
+
+        assert "start_flow" in func_names
+        assert "end_flow" in func_names
+        assert "resolve" in func_names
+        # Must have at least one while/loop_back router
+        assert any("loop_back" in name for name in func_names)
+
+    def test_while_true_generates_valid_code(self):
+        from asya_cli.flow.compiler import FlowCompiler
+
+        source = """
+def flow(p: dict) -> dict:
+    while True:
+        p = handler(p)
+        if p["done"]:
+            break
+    return p
+"""
+        compiler = FlowCompiler()
+        code = compiler.compile(source, "test.py")
+        tree = ast.parse(code)
+        func_names = [n.name for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)]
+
+        assert any("loop_back" in name for name in func_names)
+        # while True should NOT have a while condition router
+        assert not any("_while_" in name for name in func_names)
+
+    def test_complex_while_generates_valid_code(self):
+        from asya_cli.flow.compiler import FlowCompiler
+
+        source = """
+def flow(p: dict) -> dict:
+    p = handler_init(p)
+    p["i"] = 0
+    while p["i"] < p["max"]:
+        p["i"] += 1
+        p = handler_check(p)
+        if p["skip"]:
+            continue
+        p = handler_process(p)
+        if p["stop"]:
+            break
+    p = handler_finalize(p)
+    return p
+"""
+        compiler = FlowCompiler()
+        code = compiler.compile(source, "test.py")
+
+        try:
+            ast.parse(code)
+        except SyntaxError as e:
+            pytest.fail(f"Generated code for complex while is not valid Python: {e}")
+
+    def test_nested_while_generates_valid_code(self):
+        from asya_cli.flow.compiler import FlowCompiler
+
+        source = """
+def flow(p: dict) -> dict:
+    p["i"] = 0
+    while p["i"] < 10:
+        p["i"] += 1
+        p["j"] = 0
+        while p["j"] < 5:
+            p["j"] += 1
+            p = handler(p)
+    return p
+"""
+        compiler = FlowCompiler()
+        code = compiler.compile(source, "test.py")
+
+        try:
+            tree = ast.parse(code)
+        except SyntaxError as e:
+            pytest.fail(f"Generated code for nested while is not valid Python: {e}")
+
+        func_names = [n.name for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)]
+        # Should have two loop_back and two while condition routers
+        loop_backs = [n for n in func_names if "loop_back" in n]
+        assert len(loop_backs) == 2
+
+    def test_while_inside_if_generates_valid_code(self):
+        from asya_cli.flow.compiler import FlowCompiler
+
+        source = """
+def flow(p: dict) -> dict:
+    if p["should_loop"]:
+        while p["i"] < 10:
+            p = handler(p)
+    else:
+        p = handler_b(p)
+    return p
+"""
+        compiler = FlowCompiler()
+        code = compiler.compile(source, "test.py")
+
+        try:
+            ast.parse(code)
+        except SyntaxError as e:
+            pytest.fail(f"Generated code for while-inside-if is not valid Python: {e}")

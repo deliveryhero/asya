@@ -4,7 +4,7 @@ import textwrap
 
 import pytest
 from asya_cli.flow.errors import FlowCompileError
-from asya_cli.flow.ir import ActorCall, Condition, Mutation, Return
+from asya_cli.flow.ir import ActorCall, Break, Condition, Continue, Mutation, Return, WhileLoop
 from asya_cli.flow.parser import FlowParser
 
 from .test_helpers import contains_with_either_quotes
@@ -598,7 +598,7 @@ class TestEdgeCases:
         with pytest.raises(FlowCompileError, match="Unsupported assignment target"):
             parser.parse()
 
-    def test_rejects_unsupported_statement(self):
+    def test_rejects_for_loop(self):
         source = textwrap.dedent("""
             def flow(p: dict) -> dict:
                 for item in items:
@@ -606,7 +606,7 @@ class TestEdgeCases:
                 return p
         """)
         parser = FlowParser(source, "test.py")
-        with pytest.raises(FlowCompileError, match="Unsupported statement type"):
+        with pytest.raises(FlowCompileError, match="'for' loops are not supported"):
             parser.parse()
 
     def test_handles_syntax_error_gracefully(self):
@@ -720,3 +720,450 @@ class TestComplexFlows:
         cond = ops[0]
         assert len(cond.true_branch) == 0
         assert len(cond.false_branch) == 0
+
+
+class TestWhileLoopParsing:
+    """Test parsing of while loop statements."""
+
+    def test_simple_while_with_condition(self):
+        source = textwrap.dedent("""
+            def flow(p: dict) -> dict:
+                while p["i"] < 10:
+                    p = handler(p)
+                return p
+        """)
+        parser = FlowParser(source, "test.py")
+        _, ops = parser.parse()
+
+        assert len(ops) == 2
+        assert isinstance(ops[0], WhileLoop)
+        loop = ops[0]
+        assert loop.test is not None
+        assert contains_with_either_quotes(loop.test, 'p["i"] < 10')
+        assert len(loop.body) == 1
+        assert isinstance(loop.body[0], ActorCall)
+        assert isinstance(ops[1], Return)
+
+    def test_while_true(self):
+        source = textwrap.dedent("""
+            def flow(p: dict) -> dict:
+                while True:
+                    p = handler(p)
+                    if p["done"]:
+                        break
+                return p
+        """)
+        parser = FlowParser(source, "test.py")
+        _, ops = parser.parse()
+
+        assert isinstance(ops[0], WhileLoop)
+        loop = ops[0]
+        assert loop.test is None
+        assert len(loop.body) == 2
+        assert isinstance(loop.body[0], ActorCall)
+        assert isinstance(loop.body[1], Condition)
+        assert isinstance(loop.body[1].true_branch[0], Break)
+
+    def test_while_with_break(self):
+        source = textwrap.dedent("""
+            def flow(p: dict) -> dict:
+                while p["i"] < 10:
+                    p = handler(p)
+                    if p["stop"]:
+                        break
+                return p
+        """)
+        parser = FlowParser(source, "test.py")
+        _, ops = parser.parse()
+
+        assert isinstance(ops[0], WhileLoop)
+        loop = ops[0]
+        cond = loop.body[1]
+        assert isinstance(cond, Condition)
+        assert isinstance(cond.true_branch[0], Break)
+
+    def test_while_with_continue(self):
+        source = textwrap.dedent("""
+            def flow(p: dict) -> dict:
+                while p["i"] < 10:
+                    p["i"] += 1
+                    if p["skip"]:
+                        continue
+                    p = handler(p)
+                return p
+        """)
+        parser = FlowParser(source, "test.py")
+        _, ops = parser.parse()
+
+        assert isinstance(ops[0], WhileLoop)
+        loop = ops[0]
+        assert isinstance(loop.body[0], Mutation)
+        assert isinstance(loop.body[1], Condition)
+        assert isinstance(loop.body[1].true_branch[0], Continue)
+        assert isinstance(loop.body[2], ActorCall)
+
+    def test_while_with_both_break_and_continue(self):
+        source = textwrap.dedent("""
+            def flow(p: dict) -> dict:
+                while p["i"] < 10:
+                    p["i"] += 1
+                    if p["skip"]:
+                        continue
+                    p = handler(p)
+                    if p["stop"]:
+                        break
+                return p
+        """)
+        parser = FlowParser(source, "test.py")
+        _, ops = parser.parse()
+
+        loop = ops[0]
+        assert isinstance(loop, WhileLoop)
+        assert len(loop.body) == 4
+        assert isinstance(loop.body[0], Mutation)
+        assert isinstance(loop.body[1], Condition)
+        assert isinstance(loop.body[1].true_branch[0], Continue)
+        assert isinstance(loop.body[2], ActorCall)
+        assert isinstance(loop.body[3], Condition)
+        assert isinstance(loop.body[3].true_branch[0], Break)
+
+    def test_while_with_mutations_in_body(self):
+        source = textwrap.dedent("""
+            def flow(p: dict) -> dict:
+                while p["i"] < 10:
+                    p["i"] += 1
+                    p["sum"] += p["i"]
+                    p = handler(p)
+                    p["processed"] = True
+                return p
+        """)
+        parser = FlowParser(source, "test.py")
+        _, ops = parser.parse()
+
+        loop = ops[0]
+        assert isinstance(loop, WhileLoop)
+        assert isinstance(loop.body[0], Mutation)
+        assert isinstance(loop.body[1], Mutation)
+        assert isinstance(loop.body[2], ActorCall)
+        assert isinstance(loop.body[3], Mutation)
+
+    def test_while_with_if_in_body(self):
+        source = textwrap.dedent("""
+            def flow(p: dict) -> dict:
+                while p["i"] < 10:
+                    if p["type"] == "A":
+                        p = handler_a(p)
+                    else:
+                        p = handler_b(p)
+                return p
+        """)
+        parser = FlowParser(source, "test.py")
+        _, ops = parser.parse()
+
+        loop = ops[0]
+        assert isinstance(loop, WhileLoop)
+        assert len(loop.body) == 1
+        assert isinstance(loop.body[0], Condition)
+        assert isinstance(loop.body[0].true_branch[0], ActorCall)
+        assert isinstance(loop.body[0].false_branch[0], ActorCall)
+
+    def test_nested_while_loops(self):
+        source = textwrap.dedent("""
+            def flow(p: dict) -> dict:
+                while p["i"] < 10:
+                    while p["j"] < 5:
+                        p = handler(p)
+                return p
+        """)
+        parser = FlowParser(source, "test.py")
+        _, ops = parser.parse()
+
+        outer = ops[0]
+        assert isinstance(outer, WhileLoop)
+        inner = outer.body[0]
+        assert isinstance(inner, WhileLoop)
+        assert isinstance(inner.body[0], ActorCall)
+
+    def test_while_with_code_before_and_after(self):
+        source = textwrap.dedent("""
+            def flow(p: dict) -> dict:
+                p = handler_init(p)
+                p["i"] = 0
+                while p["i"] < 10:
+                    p["i"] += 1
+                    p = handler_process(p)
+                p = handler_finalize(p)
+                return p
+        """)
+        parser = FlowParser(source, "test.py")
+        _, ops = parser.parse()
+
+        assert isinstance(ops[0], ActorCall)
+        assert ops[0].name == "handler_init"
+        assert isinstance(ops[1], Mutation)
+        assert isinstance(ops[2], WhileLoop)
+        assert isinstance(ops[3], ActorCall)
+        assert ops[3].name == "handler_finalize"
+        assert isinstance(ops[4], Return)
+
+    def test_while_preserves_lineno(self):
+        source = textwrap.dedent("""
+            def flow(p: dict) -> dict:
+                while p["i"] < 10:
+                    p = handler(p)
+                return p
+        """)
+        parser = FlowParser(source, "test.py")
+        _, ops = parser.parse()
+
+        assert isinstance(ops[0], WhileLoop)
+        assert ops[0].lineno == 3
+
+    def test_break_preserves_lineno(self):
+        source = textwrap.dedent("""
+            def flow(p: dict) -> dict:
+                while True:
+                    if p["stop"]:
+                        break
+                return p
+        """)
+        parser = FlowParser(source, "test.py")
+        _, ops = parser.parse()
+
+        assert isinstance(ops[0], WhileLoop)
+        loop = ops[0]
+        assert isinstance(loop.body[0], Condition)
+        brk = loop.body[0].true_branch[0]
+        assert isinstance(brk, Break)
+        assert brk.lineno == 5
+
+    def test_continue_preserves_lineno(self):
+        source = textwrap.dedent("""
+            def flow(p: dict) -> dict:
+                while True:
+                    if p["skip"]:
+                        continue
+                return p
+        """)
+        parser = FlowParser(source, "test.py")
+        _, ops = parser.parse()
+
+        assert isinstance(ops[0], WhileLoop)
+        loop = ops[0]
+        assert isinstance(loop.body[0], Condition)
+        cont = loop.body[0].true_branch[0]
+        assert isinstance(cont, Continue)
+        assert cont.lineno == 5
+
+    def test_while_empty_body(self):
+        source = textwrap.dedent("""
+            def flow(p: dict) -> dict:
+                while p["i"] < 10:
+                    pass
+                return p
+        """)
+        parser = FlowParser(source, "test.py")
+        _, ops = parser.parse()
+
+        loop = ops[0]
+        assert isinstance(loop, WhileLoop)
+        assert len(loop.body) == 0
+
+    def test_while_with_complex_condition(self):
+        source = textwrap.dedent("""
+            def flow(p: dict) -> dict:
+                while p["i"] < 10 and p["status"] != "done":
+                    p = handler(p)
+                return p
+        """)
+        parser = FlowParser(source, "test.py")
+        _, ops = parser.parse()
+
+        loop = ops[0]
+        assert isinstance(loop, WhileLoop)
+        assert loop.test is not None
+        assert "and" in loop.test
+        assert "10" in loop.test
+
+    def test_while_with_not_condition(self):
+        source = textwrap.dedent("""
+            def flow(p: dict) -> dict:
+                while not p.get("done", False):
+                    p = handler(p)
+                return p
+        """)
+        parser = FlowParser(source, "test.py")
+        _, ops = parser.parse()
+
+        loop = ops[0]
+        assert isinstance(loop, WhileLoop)
+        assert loop.test is not None
+        assert "not" in loop.test
+
+    def test_while_with_method_call_condition(self):
+        source = textwrap.dedent("""
+            def flow(p: dict) -> dict:
+                while p.get("continue_flag", True):
+                    p = handler(p)
+                return p
+        """)
+        parser = FlowParser(source, "test.py")
+        _, ops = parser.parse()
+
+        loop = ops[0]
+        assert isinstance(loop, WhileLoop)
+        assert loop.test is not None
+        assert "get" in loop.test
+
+    def test_while_with_return_in_body(self):
+        source = textwrap.dedent("""
+            def flow(p: dict) -> dict:
+                while True:
+                    p = handler(p)
+                    if p["final"]:
+                        return p
+                return p
+        """)
+        parser = FlowParser(source, "test.py")
+        _, ops = parser.parse()
+
+        loop = ops[0]
+        assert isinstance(loop, WhileLoop)
+        cond = loop.body[1]
+        assert isinstance(cond, Condition)
+        assert isinstance(cond.true_branch[0], Return)
+
+
+class TestWhileLoopErrors:
+    """Test error handling for while loop parsing."""
+
+    def test_break_outside_loop_rejected(self):
+        source = textwrap.dedent("""
+            def flow(p: dict) -> dict:
+                break
+                return p
+        """)
+        parser = FlowParser(source, "test.py")
+        with pytest.raises(FlowCompileError, match="'break' outside loop"):
+            parser.parse()
+
+    def test_continue_outside_loop_rejected(self):
+        source = textwrap.dedent("""
+            def flow(p: dict) -> dict:
+                continue
+                return p
+        """)
+        parser = FlowParser(source, "test.py")
+        with pytest.raises(FlowCompileError, match="'continue' outside loop"):
+            parser.parse()
+
+    def test_break_in_if_outside_loop_rejected(self):
+        source = textwrap.dedent("""
+            def flow(p: dict) -> dict:
+                if p["x"]:
+                    break
+                return p
+        """)
+        parser = FlowParser(source, "test.py")
+        with pytest.raises(FlowCompileError, match="'break' outside loop"):
+            parser.parse()
+
+    def test_continue_in_if_outside_loop_rejected(self):
+        source = textwrap.dedent("""
+            def flow(p: dict) -> dict:
+                if p["x"]:
+                    continue
+                return p
+        """)
+        parser = FlowParser(source, "test.py")
+        with pytest.raises(FlowCompileError, match="'continue' outside loop"):
+            parser.parse()
+
+    def test_while_else_rejected(self):
+        source = textwrap.dedent("""
+            def flow(p: dict) -> dict:
+                while p["i"] < 10:
+                    p = handler(p)
+                else:
+                    p = fallback(p)
+                return p
+        """)
+        parser = FlowParser(source, "test.py")
+        with pytest.raises(FlowCompileError, match="'else' clause on 'while' loops is not supported"):
+            parser.parse()
+
+    def test_for_loop_rejected_with_helpful_message(self):
+        source = textwrap.dedent("""
+            def flow(p: dict) -> dict:
+                for i in range(10):
+                    p = handler(p)
+                return p
+        """)
+        parser = FlowParser(source, "test.py")
+        with pytest.raises(FlowCompileError, match="'for' loops are not supported"):
+            parser.parse()
+
+    def test_break_ok_inside_nested_loop(self):
+        """break inside a while loop nested inside an if is valid."""
+        source = textwrap.dedent("""
+            def flow(p: dict) -> dict:
+                while True:
+                    if p["x"]:
+                        break
+                return p
+        """)
+        parser = FlowParser(source, "test.py")
+        _, ops = parser.parse()
+        assert isinstance(ops[0], WhileLoop)
+        loop = ops[0]
+        assert isinstance(loop.body[0], Condition)
+        cond = loop.body[0]
+        assert isinstance(cond.true_branch[0], Break)
+
+    def test_continue_ok_inside_nested_if_in_loop(self):
+        """continue inside an if inside a while is valid."""
+        source = textwrap.dedent("""
+            def flow(p: dict) -> dict:
+                while p["i"] < 10:
+                    if p["skip"]:
+                        continue
+                    p = handler(p)
+                return p
+        """)
+        parser = FlowParser(source, "test.py")
+        _, ops = parser.parse()
+        assert isinstance(ops[0], WhileLoop)
+        loop = ops[0]
+        assert isinstance(loop.body[0], Condition)
+        assert isinstance(loop.body[0].true_branch[0], Continue)
+
+    def test_while_only_mutations_in_body(self):
+        source = textwrap.dedent("""
+            def flow(p: dict) -> dict:
+                while p["i"] < 10:
+                    p["i"] += 1
+                return p
+        """)
+        parser = FlowParser(source, "test.py")
+        _, ops = parser.parse()
+
+        loop = ops[0]
+        assert isinstance(loop, WhileLoop)
+        assert len(loop.body) == 1
+        assert isinstance(loop.body[0], Mutation)
+
+    def test_while_with_class_method_in_body(self):
+        source = textwrap.dedent("""
+            def flow(p: dict) -> dict:
+                processor = Processor()
+                while p["i"] < 10:
+                    p = processor.run(p)
+                return p
+        """)
+        parser = FlowParser(source, "test.py")
+        _, ops = parser.parse()
+
+        assert isinstance(ops[0], WhileLoop)
+        loop = ops[0]
+        assert isinstance(loop.body[0], ActorCall)
+        assert "Processor.run" in loop.body[0].name

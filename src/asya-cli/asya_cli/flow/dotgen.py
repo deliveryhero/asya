@@ -99,7 +99,12 @@ class DotGenerator:
                     self.user_actors.add(actor)
 
     def _generate_actor_node(self, router: Router) -> str:
-        color = "lightgreen" if router.name.startswith("start_") or router.name.startswith("end_") else "wheat"
+        if router.name.startswith("start_") or router.name.startswith("end_"):
+            color = "lightgreen"
+        elif router.is_loop_back:
+            color = "lightsalmon"
+        else:
+            color = "wheat"
 
         rows = []
         display_name = self._get_display_name(router.name)
@@ -144,7 +149,17 @@ class DotGenerator:
     def _generate_edges(self, router: Router) -> set[str]:
         lines = set()
 
-        if router.condition:
+        if router.is_loop_back:
+            # Loop-back routers use dashed back-edges
+            actors = router.true_branch_actors
+            if actors:
+                lines.add(
+                    f"  {self._node_id(router.name)} -> {self._node_id(actors[0])} "
+                    f"[style=dashed, color=darkorange, constraint=false];"
+                )
+                for i in range(len(actors) - 1):
+                    lines.add(f"  {self._node_id(actors[i])} -> {self._node_id(actors[i + 1])};")
+        elif router.condition:
             true_actors = router.true_branch_actors
             false_actors = router.false_branch_actors
 
