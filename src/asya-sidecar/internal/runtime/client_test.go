@@ -12,6 +12,18 @@ import (
 	"golang.org/x/net/nettest"
 )
 
+// sendStreamingResponse sends individual response frames followed by an end sentinel.
+// This matches the streaming wire protocol: each response is a separate length-prefixed
+// frame, terminated by {"type": "end"}.
+func sendStreamingResponse(conn net.Conn, responses []RuntimeResponse) {
+	for _, resp := range responses {
+		data, _ := json.Marshal(resp)
+		_ = SendSocketData(conn, data)
+	}
+	endFrame, _ := json.Marshal(map[string]string{"type": "end"})
+	_ = SendSocketData(conn, endFrame)
+}
+
 func TestClient_CallRuntime_Success(t *testing.T) {
 	socketPath, err := nettest.LocalPath()
 	if err != nil {
@@ -40,8 +52,7 @@ func TestClient_CallRuntime_Success(t *testing.T) {
 			return
 		}
 
-		// Python runtime always returns array
-		responses := []RuntimeResponse{
+		sendStreamingResponse(conn, []RuntimeResponse{
 			{
 				Payload: json.RawMessage(`{"processed": true}`),
 				Route: messages.Route{
@@ -49,9 +60,7 @@ func TestClient_CallRuntime_Success(t *testing.T) {
 					Current: 1,
 				},
 			},
-		}
-		data, _ := json.Marshal(responses)
-		_ = SendSocketData(conn, data)
+		})
 		serverDone <- true
 	}()
 
@@ -99,8 +108,7 @@ func TestClient_CallRuntime_Error(t *testing.T) {
 
 		_, _ = RecvSocketData(conn)
 
-		// Python runtime returns array with error
-		responses := []RuntimeResponse{
+		sendStreamingResponse(conn, []RuntimeResponse{
 			{
 				Error: "processing_error",
 				Details: ErrorDetails{
@@ -109,9 +117,7 @@ func TestClient_CallRuntime_Error(t *testing.T) {
 					Traceback: "ValueError: Test error message\n",
 				},
 			},
-		}
-		data, _ := json.Marshal(responses)
-		_ = SendSocketData(conn, data)
+		})
 	}()
 
 	client := NewClient(socketPath, 5*time.Second)
@@ -151,7 +157,7 @@ func TestClient_CallRuntime_Timeout(t *testing.T) {
 	go func() {
 		conn, _ := listener.Accept()
 		defer func() { _ = conn.Close() }()
-		time.Sleep(2 * time.Second)
+		time.Sleep(2 * time.Second) // Hold connection without sending end frame
 	}()
 
 	client := NewClient(socketPath, 100*time.Millisecond)
@@ -182,8 +188,7 @@ func TestClient_CallRuntime_FanOut(t *testing.T) {
 
 		_, _ = RecvSocketData(conn)
 
-		// Python runtime returns array with multiple responses
-		responses := []RuntimeResponse{
+		sendStreamingResponse(conn, []RuntimeResponse{
 			{
 				Payload: json.RawMessage(`{"id": 1}`),
 				Route: messages.Route{
@@ -205,9 +210,7 @@ func TestClient_CallRuntime_FanOut(t *testing.T) {
 					Current: 1,
 				},
 			},
-		}
-		data, _ := json.Marshal(responses)
-		_ = SendSocketData(conn, data)
+		})
 	}()
 
 	client := NewClient(socketPath, 5*time.Second)
@@ -229,7 +232,7 @@ func TestClient_CallRuntime_FanOut(t *testing.T) {
 	}
 }
 
-func TestClient_CallRuntime_EmptyArray(t *testing.T) {
+func TestClient_CallRuntime_EmptyResponse(t *testing.T) {
 	socketPath, err := nettest.LocalPath()
 	if err != nil {
 		t.Fatalf("Failed to get local path: %v", err)
@@ -248,10 +251,8 @@ func TestClient_CallRuntime_EmptyArray(t *testing.T) {
 
 		_, _ = RecvSocketData(conn)
 
-		// Python runtime returns empty array
-		responses := []RuntimeResponse{}
-		data, _ := json.Marshal(responses)
-		_ = SendSocketData(conn, data)
+		// Only end frame, no response frames (handler returned None)
+		sendStreamingResponse(conn, []RuntimeResponse{})
 	}()
 
 	client := NewClient(socketPath, 5*time.Second)
@@ -286,8 +287,7 @@ func TestClient_CallRuntime_ParsingError(t *testing.T) {
 
 		_, _ = RecvSocketData(conn)
 
-		// Python runtime returns error for invalid JSON
-		responses := []RuntimeResponse{
+		sendStreamingResponse(conn, []RuntimeResponse{
 			{
 				Error: "msg_parsing_error",
 				Details: ErrorDetails{
@@ -296,9 +296,7 @@ func TestClient_CallRuntime_ParsingError(t *testing.T) {
 					Traceback: "ValueError: Missing required field 'payload' in message\n",
 				},
 			},
-		}
-		data, _ := json.Marshal(responses)
-		_ = SendSocketData(conn, data)
+		})
 	}()
 
 	client := NewClient(socketPath, 5*time.Second)
@@ -341,8 +339,7 @@ func TestClient_CallRuntime_ConnectionError(t *testing.T) {
 
 		_, _ = RecvSocketData(conn)
 
-		// Python runtime returns error for connection issues
-		responses := []RuntimeResponse{
+		sendStreamingResponse(conn, []RuntimeResponse{
 			{
 				Error: "connection_error",
 				Details: ErrorDetails{
@@ -351,9 +348,7 @@ func TestClient_CallRuntime_ConnectionError(t *testing.T) {
 					Traceback: "ConnectionError: Connection closed while reading\n",
 				},
 			},
-		}
-		data, _ := json.Marshal(responses)
-		_ = SendSocketData(conn, data)
+		})
 	}()
 
 	client := NewClient(socketPath, 5*time.Second)
