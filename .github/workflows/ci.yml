@@ -384,7 +384,6 @@ jobs:
     needs: [unit-tests, component-tests, integration-tests, e2e-tests]
     permissions:
       contents: write
-      actions: write
       pull-requests: write
 
     steps:
@@ -439,71 +438,8 @@ jobs:
           echo "[!] .coverage directory not found"
         fi
 
-    - name: Fetch baseline coverage report from octocov branch for PR comparison
-      run: |
-        echo "[.] Fetching baseline coverage report from octocov branch..."
-        if git fetch origin octocov 2>/dev/null; then
-          OCTOCOV_CONTENT=$(git show origin/octocov:report.json 2>/dev/null)
-          if [ -n "$OCTOCOV_CONTENT" ]; then
-            echo "$OCTOCOV_CONTENT" > .octocov-baseline.json
-            echo "[+] Baseline report fetched"
-            ls -lh .octocov-baseline.json
-            echo "[.] Baseline content (first 500 chars):"
-            head -c 500 .octocov-baseline.json
-          else
-            echo "[!] report.json not found on octocov branch"
-          fi
-        else
-          echo "[!] octocov branch not found (first run)"
-        fi
-
     - name: Generate coverage report and comment on PR
       uses: k1LoW/octocov-action@v1
       with:
         github-token: ${{ github.token }}
         config: .octocov.yml
-      env:
-        GITHUB_REPOSITORY: ${{ github.repository }}
-
-    - name: Push coverage report to octocov branch for persistence
-      if: github.ref == 'refs/heads/main' && success()
-      run: |
-        if [ ! -f report.json ]; then
-          echo "[!] report.json not found, skipping persistence"
-          exit 0
-        fi
-
-        echo "[.] Persisting coverage report to octocov branch..."
-
-        git config user.name "github-actions[bot]"
-        git config user.email "github-actions[bot]@users.noreply.github.com"
-
-        # Create/update octocov branch with report.json
-        COMMIT_MSG="chore: Update coverage report from main (${{ github.sha }})"
-
-        # Save report.json before switching branches
-        cp report.json /tmp/report.json.tmp
-        rm report.json
-
-        # Try to fetch existing octocov branch
-        if git fetch origin octocov; then
-          # Branch exists - clean and update it
-          git checkout octocov
-          # Remove all files to keep octocov branch clean (only report.json)
-          git rm -rf . 2>/dev/null || true
-          cp /tmp/report.json.tmp report.json
-          git add report.json
-          git commit -m "$COMMIT_MSG" || echo "[!] No changes to report"
-          git push origin octocov
-        else
-          # New branch - create it
-          git checkout --orphan octocov
-          git rm -rf . 2>/dev/null || true
-          cp /tmp/report.json.tmp report.json
-          git add report.json
-          git commit -m "$COMMIT_MSG"
-          git push -u origin octocov
-        fi
-
-        git checkout main
-        echo "[+] Coverage report persisted to octocov branch"

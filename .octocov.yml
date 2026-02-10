@@ -65,13 +65,12 @@ summary:
   if: is_default_branch
   path: report.json
 
-# Store reports for main branch - uses artifact datastore
-# Note: Artifact datastore doesn't persist across runs, but manual git push
-# in CI workflow persists reports to octocov branch for future comparisons
+# Store reports on the 'octocov' branch via GitHub API on main branch merges
+# octocov reads baseline from the same branch for PR diff comparisons
 report:
   if: is_default_branch
   datastores:
-  - artifact://${GITHUB_REPOSITORY}
+  - github://deliveryhero/asya@octocov
   path: report.json
 
 codeToTestRatio:
@@ -101,7 +100,6 @@ acceptable:
   coverage: current >= 50%
   codeToTestRatio: 1:1.2
 
-# Push metrics and badges to artifact storage
-# Disabled: Using artifact datastore instead of git push
+# Push metrics and badges disabled
 # push:
 #   if: is_default_branch
