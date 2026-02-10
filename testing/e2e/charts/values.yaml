@@ -1,60 +1,39 @@
-operator:
+crossplane:
+  awsProviderConfig:
+    name: default
+    credentialsSource: Secret
+    secretRef:
+      namespace: crossplane-system
+      name: aws-creds
+      key: credentials
+    endpoint:
+      enabled: false
+      url: ""
+      hostnameImmutable: true
+    skipCredentialsValidation: false
+    skipMetadataApiCheck: false
+    skipRequestingAccountId: false
+    skipRegionValidation: false
+    s3UsePathStyle: false
+  awsRegion: us-east-1
+  awsAccountId: "000000000000"
+  actorNamespace: asya-e2e
+  irsa:
+    enabled: false
+  keda:
+    authProvider: podIdentity
+    secretRef:
+      name: ""
+      accessKeyIdKey: AWS_ACCESS_KEY_ID
+      secretAccessKeyKey: AWS_SECRET_ACCESS_KEY
+
+injector:
   image:
-    repository: ghcr.io/deliveryhero/asya-operator
     tag: latest
     pullPolicy: Never
-
-  replicaCount: 1
-
-  logLevel: debug
-
-  controller:
-    queueHealthCheckInterval: "30s"
-
-  sidecar:
-    image: ghcr.io/deliveryhero/asya-sidecar
-    tag: latest
-
-  transports:
-    rabbitmq:
-      enabled: false
-      type: rabbitmq
-      config:
-        host: asya-rabbitmq.asya-e2e.svc.cluster.local
-        port: 5672
-        username: guest
-        passwordSecretRef:
-          name: rabbitmq-secret
-          key: password
-        queues:
-          autoCreate: true
-    sqs:
-      enabled: false
-      type: sqs
-      config:
-        region: us-east-1
-        accountId: "000000000000"
-        endpoint: http://localstack.asya-e2e.svc.cluster.local:4566
-        actorRoleArn: ""
-        visibilityTimeout: 300
-        waitTimeSeconds: 20
-        queues:
-          autoCreate: true
-        credentials:
-          accessKeyIdSecretRef:
-            name: localstack-secret
-            key: access-key-id
-          secretAccessKeySecretRef:
-            name: localstack-secret
-            key: secret-access-key
-
-  resources:
-    requests:
-      cpu: 50m
-      memory: 64Mi
-    limits:
-      cpu: 100m
-      memory: 128Mi
+  config:
+    sidecarImage: ghcr.io/deliveryhero/asya-sidecar:latest
+    sidecarImagePullPolicy: Never
 
 gateway:
   image:
@@ -105,6 +84,7 @@ gateway:
           description: Message to echo
           required: true
       route: [test-echo]
+      timeout: 120
     - name: test_queue_health
       description: Test queue health monitoring with small retry values
       parameters:

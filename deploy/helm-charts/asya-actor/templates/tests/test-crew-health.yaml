@@ -56,7 +56,7 @@ spec:
                 echo "  [!] WARNING: Deployment not fully ready: $READY/$DESIRED replicas"
               fi
             else
-              echo "  [!] WARNING: Deployment not found yet (operator may be reconciling)"
+              echo "  [!] WARNING: Deployment not found yet (Crossplane may be reconciling)"
             fi
           elif [ "$WORKLOAD_KIND" = "StatefulSet" ]; then
             if kubectl get statefulset {{ . }} -n {{ $.Values.namespace }} >/dev/null 2>&1; then
@@ -68,7 +68,7 @@ spec:
                 echo "  [!] WARNING: StatefulSet not fully ready: $READY/$DESIRED replicas"
               fi
             else
-              echo "  [!] WARNING: StatefulSet not found yet (operator may be reconciling)"
+              echo "  [!] WARNING: StatefulSet not found yet (Crossplane may be reconciling)"
             fi
           fi
         fi

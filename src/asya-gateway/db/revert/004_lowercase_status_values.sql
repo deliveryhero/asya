@@ -3,21 +3,21 @@
 BEGIN;
 
 -- Revert to title case status values
-UPDATE envelopes SET status = 'Pending' WHERE status = 'pending';
-UPDATE envelopes SET status = 'Running' WHERE status = 'running';
-UPDATE envelopes SET status = 'Succeeded' WHERE status = 'succeeded';
-UPDATE envelopes SET status = 'Failed' WHERE status = 'failed';
-UPDATE envelopes SET status = 'Unknown' WHERE status = 'unknown';
+UPDATE tasks SET status = 'Pending' WHERE status = 'pending';
+UPDATE tasks SET status = 'Running' WHERE status = 'running';
+UPDATE tasks SET status = 'Succeeded' WHERE status = 'succeeded';
+UPDATE tasks SET status = 'Failed' WHERE status = 'failed';
+UPDATE tasks SET status = 'Unknown' WHERE status = 'unknown';
 
-UPDATE envelope_updates SET status = 'Pending' WHERE status = 'pending';
-UPDATE envelope_updates SET status = 'Running' WHERE status = 'running';
-UPDATE envelope_updates SET status = 'Succeeded' WHERE status = 'succeeded';
-UPDATE envelope_updates SET status = 'Failed' WHERE status = 'failed';
-UPDATE envelope_updates SET status = 'Unknown' WHERE status = 'unknown';
+UPDATE task_updates SET status = 'Pending' WHERE status = 'pending';
+UPDATE task_updates SET status = 'Running' WHERE status = 'running';
+UPDATE task_updates SET status = 'Succeeded' WHERE status = 'succeeded';
+UPDATE task_updates SET status = 'Failed' WHERE status = 'failed';
+UPDATE task_updates SET status = 'Unknown' WHERE status = 'unknown';
 
 -- Restore title case constraint
-ALTER TABLE envelopes DROP CONSTRAINT IF EXISTS envelopes_status_check;
-ALTER TABLE envelopes ADD CONSTRAINT envelopes_status_check
+ALTER TABLE tasks DROP CONSTRAINT IF EXISTS tasks_status_check;
+ALTER TABLE tasks ADD CONSTRAINT tasks_status_check
     CHECK (status IN ('Pending', 'Running', 'Succeeded', 'Failed', 'Unknown'));
 
 COMMIT;

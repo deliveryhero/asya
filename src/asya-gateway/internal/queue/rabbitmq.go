@@ -22,12 +22,12 @@ import (
 //   - Actor "happy-end"       → Queue "asya-happy-end"
 //
 // The prefix is added by:
-// - Gateway queue clients (this file and sqs.go) when sending envelopes
+// - Gateway queue clients (this file and sqs.go) when sending messages
 // - Sidecar (router.go) when creating/consuming from queues
 //
 // This maintains consistent queue naming across all transport implementations.
 
-// RabbitMQClient sends envelopes to RabbitMQ
+// RabbitMQClient sends messages to RabbitMQ
 type RabbitMQClient struct {
 	conn     *amqp.Connection
 	ch       *amqp.Channel
@@ -71,36 +71,36 @@ func NewRabbitMQClient(url, exchange string) (*RabbitMQClient, error) {
 	}, nil
 }
 
-// SendEnvelope sends an envelope to the current actor's queue in the route
-func (c *RabbitMQClient) SendEnvelope(ctx context.Context, envelope *types.Envelope) error {
-	if len(envelope.Route.Actors) == 0 {
+// SendMessage sends a message to the current actor's queue in the route
+func (c *RabbitMQClient) SendMessage(ctx context.Context, task *types.Task) error {
+	if len(task.Route.Actors) == 0 {
 		return fmt.Errorf("route has no actors")
 	}
-	if envelope.Route.Current < 0 || envelope.Route.Current >= len(envelope.Route.Actors) {
-		return fmt.Errorf("invalid route.current=%d for actors length %d", envelope.Route.Current, len(envelope.Route.Actors))
+	if task.Route.Current < 0 || task.Route.Current >= len(task.Route.Actors) {
+		return fmt.Errorf("invalid route.current=%d for actors length %d", task.Route.Current, len(task.Route.Actors))
 	}
 
-	// Create actor envelope
-	msg := ActorEnvelope{
-		ID:      envelope.ID,
-		Route:   envelope.Route,
-		Payload: envelope.Payload,
+	// Create actor message
+	actorMsg := ActorMessage{
+		ID:      task.ID,
+		Route:   task.Route,
+		Payload: task.Payload,
 	}
 
-	// Add deadline if envelope has timeout
-	if !envelope.Deadline.IsZero() {
-		msg.Deadline = envelope.Deadline.Format("2006-01-02T15:04:05Z07:00")
+	// Add deadline if task has timeout
+	if !task.Deadline.IsZero() {
+		actorMsg.Deadline = task.Deadline.Format("2006-01-02T15:04:05Z07:00")
 	}
 
 	// Marshal to JSON
-	body, err := json.Marshal(msg)
+	body, err := json.Marshal(actorMsg)
 	if err != nil {
-		return fmt.Errorf("failed to marshal envelope: %w", err)
+		return fmt.Errorf("failed to marshal message: %w", err)
 	}
 
-	// Send envelope to current actor's queue
+	// Send message to current actor's queue
 	// Use actor name as routing key (sidecar binds queue with actor name, not "asya-" prefixed name)
-	actorName := envelope.Route.Actors[envelope.Route.Current]
+	actorName := task.Route.Actors[task.Route.Current]
 	routingKey := actorName
 
 	// Protect channel access with mutex for thread-safety
@@ -137,7 +137,7 @@ func (m *rabbitMQMessage) DeliveryTag() uint64 {
 	return m.delivery.DeliveryTag
 }
 
-// Receive receives a envelope from the specified queue
+// Receive receives a message from the specified queue
 func (c *RabbitMQClient) Receive(ctx context.Context, queueName string) (QueueMessage, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -167,25 +167,25 @@ func (c *RabbitMQClient) Receive(ctx context.Context, queueName string) (QueueMe
 		return nil, fmt.Errorf("failed to bind queue: %w", err)
 	}
 
-	// Get a single envelope
+	// Get a single message
 	delivery, ok, err := c.ch.Get(queueName, false) // autoAck=false
 	if err != nil {
-		return nil, fmt.Errorf("failed to get envelope: %w", err)
+		return nil, fmt.Errorf("failed to get message: %w", err)
 	}
 
 	if !ok {
-		// No envelope available
-		return nil, fmt.Errorf("no envelope available")
+		// No message available
+		return nil, fmt.Errorf("no message available")
 	}
 
 	return &rabbitMQMessage{delivery: delivery}, nil
 }
 
-// Ack acknowledges a envelope
+// Ack acknowledges a message
 func (c *RabbitMQClient) Ack(ctx context.Context, msg QueueMessage) error {
 	rmqMsg, ok := msg.(*rabbitMQMessage)
 	if !ok {
-		return fmt.Errorf("invalid envelope type")
+		return fmt.Errorf("invalid message type")
 	}
 
 	c.mu.Lock()

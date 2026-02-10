@@ -19,6 +19,8 @@ environments:
 repositories:
   - name: kedacore
     url: https://kedacore.github.io/charts
+  - name: crossplane-stable
+    url: https://charts.crossplane.io/stable
   # Disabled: prometheus and grafana not used in e2e
   # - name: prometheus-community
   #   url: https://prometheus-community.github.io/helm-charts
@@ -139,13 +141,40 @@ releases:
         command: "sh"
         args: ["-c", "echo \"[+] MinIO deployed in $(($(date +%s) - $(cat /tmp/helm-minio-start)))s\""]
 
-  - name: asya-operator
+  - name: asya-crossplane
     namespace: asya-system
-    chart: ../../../deploy/helm-charts/asya-operator
+    chart: ../../../deploy/helm-charts/asya-crossplane
+    needs:
+      - sqs
+      - s3
     values:
-      - {{- .Values.operator | toYaml | nindent 8 }}
+      - {{- .Values.crossplane | toYaml | nindent 8 }}
     labels:
       layer: infra
+    hooks:
+      - events: ["presync"]
+        command: "sh"
+        args: ["-c", "echo '[.] Deploying asya-crossplane...' && date +%s > /tmp/helm-crossplane-start"]
+      - events: ["postsync"]
+        command: "sh"
+        args: ["-c", "echo \"[+] asya-crossplane deployed in $(($(date +%s) - $(cat /tmp/helm-crossplane-start)))s\""]
+
+  - name: asya-injector
+    namespace: asya-system
+    chart: ../../../deploy/helm-charts/asya-injector
+    needs:
+      - asya-crossplane
+    values:
+      - {{- .Values.injector | toYaml | nindent 8 }}
+    labels:
+      layer: infra
+    hooks:
+      - events: ["presync"]
+        command: "sh"
+        args: ["-c", "echo '[.] Deploying asya-injector...' && date +%s > /tmp/helm-injector-start"]
+      - events: ["postsync"]
+        command: "sh"
+        args: ["-c", "echo \"[+] asya-injector deployed in $(($(date +%s) - $(cat /tmp/helm-injector-start)))s\""]
 
   - name: asya-gateway
     namespace: {{ .Values.namespace | default "asya-e2e" }}

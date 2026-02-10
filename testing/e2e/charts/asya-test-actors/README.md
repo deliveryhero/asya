@@ -23,7 +23,7 @@ This chart creates an AsyncActor CRD resource. The 🎭 operator will automatica
 
 - Kubernetes 1.19+
 - Helm 3.x
-- AsyncActor CRDs installed (`kubectl apply -f src/asya-operator/config/crd/`)
+- Crossplane XRDs installed via asya-crossplane Helm chart
 - 🎭 operator running in the cluster
 - KEDA installed (if using autoscaling)
 
@@ -116,7 +116,7 @@ Actor names are resolved to actual queue names based on the transport type (see 
 - Unknown transport types use the actor name directly
 - No transformation applied
 
-**Important:** This resolution is stateless and happens at the sidecar routing layer. The same actor name in envelope routes is consistently resolved to the same queue across all actors in the system.
+**Important:** This resolution is stateless and happens at the sidecar routing layer. The same actor name in message routes is consistently resolved to the same queue across all actors in the system.
 
 ### Scaling Configuration (KEDA)
 
@@ -569,7 +569,7 @@ When you create an AsyncActor resource using this chart, the operator will:
 Check if the operator is running:
 ```bash
 kubectl get pods -n asya-system
-kubectl logs -n asya-system -l app=asya-operator
+kubectl logs -n crossplane-system -l pkg.crossplane.io/revision
 ```
 
 ### KEDA not scaling

@@ -4,27 +4,27 @@ AWS-managed message queue service.
 
 ## Configuration
 
-**Operator config** (`deploy/helm-charts/asya-operator/values.yaml`):
+**Crossplane Composition Config** (XRD for transport configuration):
 ```yaml
-transports:
-  sqs:
-    enabled: true
-    type: sqs
-    config:
-      region: us-east-1
-      endpoint: ""  # Optional, for LocalStack or custom SQS endpoints
-      visibilityTimeout: 300  # Optional, seconds, defaults to 300 (5 minutes)
-      waitTimeSeconds: 20  # Optional, long polling, defaults to 20
-      queues:
-        autoCreate: true  # Optional, defaults to true
-        forceRecreate: false  # Optional, defaults to false
-        dlq:
-          enabled: true  # Optional
-          maxRetryCount: 3  # Optional, defaults to 3
-          retentionDays: 14  # Optional, defaults to 14
-      tags:  # Optional, tags applied to created queues
-        Environment: production
-        Team: ml-platform
+apiVersion: asya.dev/v1alpha1
+kind: SQSTransport
+metadata:
+  name: sqs-default
+spec:
+  region: us-east-1
+  endpoint: ""  # Optional, for LocalStack or custom SQS endpoints
+  visibilityTimeout: 300  # Optional, seconds, defaults to 300 (5 minutes)
+  waitTimeSeconds: 20  # Optional, long polling, defaults to 20
+  queues:
+    autoCreate: true  # Optional, defaults to true
+    forceRecreate: false  # Optional, defaults to false
+    dlq:
+      enabled: true  # Optional
+      maxRetryCount: 3  # Optional, defaults to 3
+      retentionDays: 14  # Optional, defaults to 14
+  tags:  # Optional, tags applied to created queues
+    Environment: production
+    Team: ml-platform
 ```
 
 **AsyncActor reference**:
@@ -33,7 +33,7 @@ spec:
   transport: sqs
 ```
 
-**Sidecar environment variables** (injected by operator):
+**Sidecar environment variables** (injected by injector webhook):
 
 - `ASYA_TRANSPORT=sqs`
 - `ASYA_AWS_REGION` → from `config.region`
@@ -43,7 +43,7 @@ spec:
 
 ## Queue Creation
 
-Operator creates SQS queues automatically when AsyncActor is reconciled:
+Crossplane Composition creates SQS queues automatically when AsyncActor is reconciled:
 
 **Queue name**: `asya-{namespace}-{actor_name}`
 
@@ -74,7 +74,7 @@ Operator creates SQS queues automatically when AsyncActor is reconciled:
 }
 ```
 
-**Operator permissions**:
+**Crossplane Provider permissions**:
 ```json
 {
   "Effect": "Allow",
@@ -117,7 +117,7 @@ triggers:
 
 ## DLQ Configuration
 
-When `queues.dlq.enabled: true`, operator creates DLQ for each queue:
+When `queues.dlq.enabled: true`, Crossplane creates DLQ for each queue:
 
 **DLQ name**: `asya-{namespace}-{actor_name}-dlq`
 

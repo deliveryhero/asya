@@ -16,6 +16,7 @@ metadata:
   labels:
     {{- include "asya-actor.labels" $ | nindent 4 }}
 spec:
+  actor: {{ $actor.name }}
   transport: {{ $transport }}
 
   {{- if $scaling }}

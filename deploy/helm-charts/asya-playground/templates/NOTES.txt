@@ -1,7 +1,8 @@
 Asya Quickstart installed successfully
 
 Components installed:
-  - Asya Operator ({{ .Release.Namespace }} namespace)
+  - Asya Crossplane (XRDs, Compositions, Providers)
+  - Asya Injector (sidecar injection webhook)
 {{- if .Values.enableAsyaCrew }}
   - Asya Crew actors (happy-end, error-end)
 {{- end }}

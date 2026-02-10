@@ -12,8 +12,8 @@ import (
 	"github.com/mark3labs/mcp-go/server"
 
 	"github.com/deliveryhero/asya/asya-gateway/internal/config"
-	"github.com/deliveryhero/asya/asya-gateway/internal/envelopestore"
 	"github.com/deliveryhero/asya/asya-gateway/internal/queue"
+	"github.com/deliveryhero/asya/asya-gateway/internal/taskstore"
 	"github.com/deliveryhero/asya/asya-gateway/pkg/types"
 )
 
@@ -23,17 +23,17 @@ type ToolHandler func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult
 // Registry manages dynamic MCP tool registration from configuration
 type Registry struct {
 	config      *config.Config
-	jobStore    envelopestore.EnvelopeStore
+	taskStore   taskstore.TaskStore
 	queueClient queue.Client
 	mcpServer   *server.MCPServer
 	handlers    map[string]ToolHandler // Map of tool name -> handler
 }
 
 // NewRegistry creates a new tool registry
-func NewRegistry(cfg *config.Config, jobStore envelopestore.EnvelopeStore, queueClient queue.Client) *Registry {
+func NewRegistry(cfg *config.Config, taskStore taskstore.TaskStore, queueClient queue.Client) *Registry {
 	return &Registry{
 		config:      cfg,
-		jobStore:    jobStore,
+		taskStore:   taskStore,
 		queueClient: queueClient,
 		handlers:    make(map[string]ToolHandler),
 	}
@@ -166,16 +166,16 @@ func (r *Registry) createToolHandler(toolDef config.Tool) func(context.Context, 
 			}
 		}
 
-		// Create envelope
-		envelopeID := uuid.New().String()
-		envelope := &types.Envelope{
-			ID:     envelopeID,
-			Status: types.EnvelopeStatusPending,
+		// Create task
+		taskID := uuid.New().String()
+		task := &types.Task{
+			ID:     taskID,
+			Status: types.TaskStatusPending,
 			Route: types.Route{
 				Actors:  actors,
 				Current: 0,
 				Metadata: map[string]interface{}{
-					"job_id": envelopeID, // For end queue tracking
+					"job_id": taskID, // For end queue tracking
 				},
 			},
 			Payload:    arguments,
@@ -184,34 +184,34 @@ func (r *Registry) createToolHandler(toolDef config.Tool) func(context.Context, 
 
 		// Set deadline if timeout is configured
 		if opts.Timeout > 0 {
-			envelope.Deadline = time.Now().Add(opts.Timeout)
+			task.Deadline = time.Now().Add(opts.Timeout)
 		}
 
-		// Store envelope
-		if err := r.jobStore.Create(envelope); err != nil {
-			log.Printf("Failed to create envelope: %v", err)
-			return mcp.NewToolResultError(fmt.Sprintf("failed to create envelope: %v", err)), nil
+		// Store task
+		if err := r.taskStore.Create(task); err != nil {
+			log.Printf("Failed to create task: %v", err)
+			return mcp.NewToolResultError(fmt.Sprintf("failed to create task: %v", err)), nil
 		}
 
 		// Send to queue (async)
 		go func() {
 			// Update status to Running
-			_ = r.jobStore.Update(types.EnvelopeUpdate{
-				ID:        envelopeID,
-				Status:    types.EnvelopeStatusRunning,
-				Message:   "Sending envelope to first actor",
+			_ = r.taskStore.Update(types.TaskUpdate{
+				ID:        taskID,
+				Status:    types.TaskStatusRunning,
+				Message:   "Sending task to first actor",
 				Timestamp: time.Now(),
 			})
 
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
 
-			if err := r.queueClient.SendEnvelope(ctx, envelope); err != nil {
-				log.Printf("Failed to send envelope to queue: %v", err)
-				_ = r.jobStore.Update(types.EnvelopeUpdate{
-					ID:        envelopeID,
-					Status:    types.EnvelopeStatusFailed,
-					Error:     fmt.Sprintf("failed to send envelope: %v", err),
+			if err := r.queueClient.SendMessage(ctx, task); err != nil {
+				log.Printf("Failed to send task to queue: %v", err)
+				_ = r.taskStore.Update(types.TaskUpdate{
+					ID:        taskID,
+					Status:    types.TaskStatusFailed,
+					Error:     fmt.Sprintf("failed to send task: %v", err),
 					Timestamp: time.Now(),
 				})
 				return
@@ -220,14 +220,14 @@ func (r *Registry) createToolHandler(toolDef config.Tool) func(context.Context, 
 
 		// Build MCP-compliant structured response
 		responseData := map[string]interface{}{
-			"envelope_id": envelopeID,
-			"message":     "Envelope created successfully",
-			"status_url":  fmt.Sprintf("/envelopes/%s", envelopeID),
+			"task_id":    taskID,
+			"message":    "Task created successfully",
+			"status_url": fmt.Sprintf("/tasks/%s", taskID),
 		}
 
 		// Add stream endpoint if progress is enabled
 		if opts.Progress {
-			responseData["stream_url"] = fmt.Sprintf("/envelopes/%s/stream", envelopeID)
+			responseData["stream_url"] = fmt.Sprintf("/tasks/%s/stream", taskID)
 		}
 
 		// Add metadata to response if present

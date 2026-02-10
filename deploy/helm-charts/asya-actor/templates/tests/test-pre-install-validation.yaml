@@ -29,8 +29,7 @@ spec:
           echo "[-] CRITICAL: AsyncActor CRD not found"
           echo ""
           echo "The AsyncActor CRD must be installed before deploying actors."
-          echo "Install it with:"
-          echo "  kubectl apply -f src/asya-operator/config/crd/"
+          echo "Install Crossplane Compositions and Configuration first"
           echo ""
           exit 1
         fi
@@ -63,27 +62,50 @@ spec:
         echo ""
         {{- end }}
 
-        # Check if operator is running
-        echo "Checking for Asya operator..."
-        OPERATOR_NS="{{ .Values.infrastructure.operatorNamespace | default "asya-system" }}"
-        if kubectl get deployment asya-operator -n "$OPERATOR_NS" >/dev/null 2>&1; then
-          READY=$(kubectl get deployment asya-operator -n "$OPERATOR_NS" -o jsonpath='{.status.readyReplicas}' 2>/dev/null || echo "0")
-          DESIRED=$(kubectl get deployment asya-operator -n "$OPERATOR_NS" -o jsonpath='{.spec.replicas}' 2>/dev/null || echo "1")
+        # Check if Crossplane is running
+        echo "Checking for Crossplane..."
+        if kubectl get deployment crossplane -n crossplane-system >/dev/null 2>&1; then
+          READY=$(kubectl get deployment crossplane -n crossplane-system -o jsonpath='{.status.readyReplicas}' 2>/dev/null || echo "0")
+          DESIRED=$(kubectl get deployment crossplane -n crossplane-system -o jsonpath='{.spec.replicas}' 2>/dev/null || echo "1")
           if [ "$READY" = "$DESIRED" ] && [ "$READY" != "0" ]; then
-            echo "[+] Operator is running and ready ($READY/$DESIRED replicas)"
+            echo "[+] Crossplane is running and ready ($READY/$DESIRED replicas)"
           else
-            echo "[-] CRITICAL: Operator exists but not ready ($READY/$DESIRED replicas)"
+            echo "[-] CRITICAL: Crossplane exists but not ready ($READY/$DESIRED replicas)"
             echo ""
-            echo "The operator must be ready to reconcile AsyncActor resources"
-            echo "Check operator logs:"
-            echo "  kubectl logs -n $OPERATOR_NS deployment/asya-operator"
+            echo "Crossplane must be ready to reconcile AsyncActor resources"
+            echo "Check Crossplane logs:"
+            echo "  kubectl logs -n crossplane-system deployment/crossplane"
             exit 1
           fi
         else
-          echo "[-] CRITICAL: Operator deployment not found in $OPERATOR_NS namespace"
+          echo "[-] CRITICAL: Crossplane deployment not found in crossplane-system namespace"
+          echo ""
+          echo "Install Crossplane first"
+          exit 1
+        fi
+        echo ""
+
+        # Check if asya-injector is running
+        echo "Checking for asya-injector..."
+        INJECTOR_NS="{{ .Values.infrastructure.operatorNamespace | default "asya-system" }}"
+        if kubectl get deployment asya-injector -n "$INJECTOR_NS" >/dev/null 2>&1; then
+          READY=$(kubectl get deployment asya-injector -n "$INJECTOR_NS" -o jsonpath='{.status.readyReplicas}' 2>/dev/null || echo "0")
+          DESIRED=$(kubectl get deployment asya-injector -n "$INJECTOR_NS" -o jsonpath='{.spec.replicas}' 2>/dev/null || echo "1")
+          if [ "$READY" = "$DESIRED" ] && [ "$READY" != "0" ]; then
+            echo "[+] asya-injector is running and ready ($READY/$DESIRED replicas)"
+          else
+            echo "[-] CRITICAL: asya-injector exists but not ready ($READY/$DESIRED replicas)"
+            echo ""
+            echo "asya-injector must be ready to inject sidecars into AsyncActor pods"
+            echo "Check asya-injector logs:"
+            echo "  kubectl logs -n $INJECTOR_NS deployment/asya-injector"
+            exit 1
+          fi
+        else
+          echo "[-] CRITICAL: asya-injector deployment not found in $INJECTOR_NS namespace"
           echo ""
           echo "Install it with:"
-          echo "  helm install asya-operator deploy/helm-charts/asya-operator -n $OPERATOR_NS --create-namespace"
+          echo "  helm install asya-injector deploy/helm-charts/asya-injector -n $INJECTOR_NS --create-namespace"
           exit 1
         fi
         echo ""

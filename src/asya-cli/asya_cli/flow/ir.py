@@ -33,5 +33,21 @@ class Convergence(IROperation):
 
 
 @dataclass
+class WhileLoop(IROperation):
+    test: str | None  # None means `while True`
+    body: list[IROperation]
+
+
+@dataclass
+class Break(IROperation):
+    pass
+
+
+@dataclass
+class Continue(IROperation):
+    pass
+
+
+@dataclass
 class Return(IROperation):
     pass

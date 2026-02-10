@@ -1,19 +1,15 @@
 # Actor-to-Actor Protocol
 
-## Message vs Envelope
+## Message Structure
 
-**Message**: Raw bytes transmitted through message queue (RabbitMQ, SQS).
+**Message**: Structured JSON object transmitted through message queues (RabbitMQ, SQS), containing routing information and application data.
 
-**Envelope**: Structured JSON object parsed from queue bytes, containing routing information and application data.
-
-**Payload**: Application-specific data within envelope, processed by actors.
-
-## Envelope Structure
+**Payload**: Application-specific data within message, processed by actors.
 
 ```json
 {
-  "id": "unique-envelope-id",
-  "parent_id": "original-envelope-id",
+  "id": "unique-message-id",
+  "parent_id": "original-message-id",
   "route": {
     "actors": ["prep", "infer", "post"],
     "current": 0
@@ -30,8 +26,8 @@
 
 **Fields**:
 
-- `id` (required): Unique envelope identifier
-- `parent_id` (optional): Parent envelope ID for fanout children (see Fan-Out section)
+- `id` (required): Unique message identifier
+- `parent_id` (optional): Parent message ID for fanout children (see Fan-Out section)
 - `route` (required): Actor list and current position
   - `actors`: Pipeline definition
   - `current`: Current actor index (0-based, incremented by runtime)
@@ -85,7 +81,7 @@ Runtime returns mutated payload:
 {"processed": true, "timestamp": "2025-11-18T12:00:00Z"}
 ```
 
-**Action**: Sidecar creates envelope → Increments current → Routes to next actor
+**Action**: Sidecar creates message → Increments current → Routes to next actor
 
 ### Fan-Out (Array)
 
@@ -97,15 +93,15 @@ Runtime returns array:
 ]
 ```
 
-**Action**: Sidecar creates multiple envelopes (one per item) → Routes to next actor
+**Action**: Sidecar creates multiple messages (one per item) → Routes to next actor
 
 **Fanout ID semantics**:
 
-- First envelope retains original ID (for SSE streaming compatibility)
-- Subsequent envelopes receive suffixed IDs: `{original_id}-{index}`
-- All fanout children have `parent_id` set to original envelope ID
+- First message retains original ID (for SSE streaming compatibility)
+- Subsequent messages receive suffixed IDs: `{original_id}-{index}`
+- All fanout children have `parent_id` set to original message ID
 
-**Example**: Envelope `abc-123` returns 3 items:
+**Example**: Message `abc-123` returns 3 items:
 
 - Index 0: `id="abc-123"`, `parent_id=null` (original ID preserved)
 - Index 1: `id="abc-123-1"`, `parent_id="abc-123"` (fanout child)
@@ -115,7 +111,7 @@ Runtime returns array:
 
 Runtime returns `null` or `[]`:
 
-**Action**: Sidecar routes envelope to `happy-end` (no increment)
+**Action**: Sidecar routes message to `happy-end` (no increment)
 
 ### Error Response
 
@@ -169,16 +165,16 @@ Runtime returns error object:
 - Routing flexibility - later actors can access earlier results
 - Monotonic computation - much easier to reason about and integrate with
 
-## Envelope Status Tracking
+## Task Status Tracking
 
-When gateway is enabled, envelopes have lifecycle statuses tracked throughout processing:
+When gateway is enabled, tasks have lifecycle statuses tracked throughout processing:
 
 ### Status Values
 
 | Status | Description | When Set |
 |--------|-------------|----------|
-| `pending` | Envelope created, not yet processing | Gateway creates envelope from MCP tool call |
-| `running` | Envelope is being processed by actors | Sidecar sends first progress update |
+| `pending` | Task created, not yet processing | Gateway creates task from MCP tool call |
+| `running` | Task is being processed by actors | Sidecar sends first progress update |
 | `succeeded` | Pipeline completed successfully | `happy-end` crew actor reports success |
 | `failed` | Pipeline failed with error | `error-end` crew actor reports failure |
 | `unknown` | Status cannot be determined | Edge cases, missing updates |
@@ -218,18 +214,18 @@ progress_percent = (actors_completed / total_actors) * 100
 Sidecar                    Gateway                    Client
 -------                    -------                    ------
 1. Receive from queue
-   └─> POST /envelopes/{id}/progress
+   └─> POST /tasks/{id}/progress
        {status: "received", current_actor_idx: 0}
                            └─> Update DB: running
                            └─> SSE: progress 10%
 
 2. Send to runtime
-   └─> POST /envelopes/{id}/progress
+   └─> POST /tasks/{id}/progress
        {status: "processing", current_actor_idx: 0}
                            └─> SSE: progress 15%
 
 3. Runtime returns
-   └─> POST /envelopes/{id}/progress
+   └─> POST /tasks/{id}/progress
        {status: "completed", current_actor_idx: 0}
                            └─> SSE: progress 33%
 
@@ -242,7 +238,7 @@ Sidecar                    Gateway                    Client
 ```
 Actor N completes → Sidecar routes to happy-end
   → happy-end persists to S3
-  → happy-end reports: POST /envelopes/{id}/final
+  → happy-end reports: POST /tasks/{id}/final
      {status: "succeeded", result: {...}}
   → Gateway updates: status=succeeded, progress=100%
   → SSE: final success event
@@ -252,7 +248,7 @@ Actor N completes → Sidecar routes to happy-end
 ```
 Runtime error → Sidecar routes to error-end
   → error-end persists to S3
-  → error-end reports: POST /envelopes/{id}/final
+  → error-end reports: POST /tasks/{id}/final
      {status: "failed", error: "..."}
   → Gateway updates: status=failed
   → SSE: final error event

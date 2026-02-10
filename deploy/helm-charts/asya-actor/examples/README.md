@@ -55,11 +55,14 @@ helm test sqs-processor -n production
 ### 1. Install Prerequisites
 
 ```bash
-# Install AsyncActor CRD
-kubectl apply -f https://github.com/deliveryhero/asya/releases/latest/download/asya-crds.yaml
+# Install Crossplane
+helm repo add crossplane-stable https://charts.crossplane.io/stable
+helm install crossplane crossplane-stable/crossplane \
+  --namespace crossplane-system --create-namespace
 
-# Install 🎭 operator
-helm install asya-operator deploy/helm-charts/asya-operator \
+# Install Asya compositions and injector
+kubectl apply -f https://github.com/deliveryhero/asya/releases/latest/download/asya-crossplane.yaml
+helm install asya-injector deploy/helm-charts/asya-injector \
   -n asya-system --create-namespace
 
 # Install KEDA (for autoscaling)
@@ -230,12 +233,16 @@ scaling:
 ### Pre-install validation fails
 
 ```bash
-# Check CRD
-kubectl get crd asyncactors.asya.sh
+# Check XRD
+kubectl get xrd asyncactors.asya.sh
 
-# Check operator
-kubectl get deployment asya-operator -n asya-system
-kubectl logs -n asya-system deployment/asya-operator
+# Check Crossplane
+kubectl get deployment crossplane -n crossplane-system
+kubectl logs -n crossplane-system deployment/crossplane
+
+# Check injector
+kubectl get deployment asya-injector -n asya-system
+kubectl logs -n asya-system deployment/asya-injector
 
 # Check KEDA
 kubectl get crd scaledobjects.keda.sh
@@ -250,8 +257,8 @@ kubectl exec asya-rabbitmq-0 -- rabbitmqctl list_queues
 # For SQS
 aws sqs list-queues --region us-east-1
 
-# Check operator logs
-kubectl logs -n asya-system deployment/asya-operator
+# Check Crossplane logs
+kubectl logs -n crossplane-system deployment/crossplane
 ```
 
 ### Deployment readiness fails
@@ -276,8 +283,11 @@ helm uninstall my-echo
 # Uninstall crew
 helm uninstall asya-crew
 
-# Uninstall operator
-helm uninstall asya-operator -n asya-system
+# Uninstall injector
+helm uninstall asya-injector -n asya-system
+
+# Uninstall Crossplane
+helm uninstall crossplane -n crossplane-system
 
 # Uninstall KEDA
 helm uninstall keda -n keda-system

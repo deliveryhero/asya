@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/deliveryhero/asya/asya-sidecar/pkg/envelopes"
+	"github.com/deliveryhero/asya/asya-sidecar/pkg/messages"
 	sidecartesting "github.com/deliveryhero/asya/asya-sidecar/pkg/testing"
 	"github.com/deliveryhero/asya/asya-sidecar/pkg/transport"
 	"golang.org/x/net/nettest"
@@ -126,7 +126,7 @@ func getProjectRoot(t *testing.T) string {
 }
 
 // createTestRouter creates a router for testing with mock transport
-func createTestRouter(t *testing.T, socketPath string, timeout time.Duration) (sidecartesting.EnvelopeProcessor, *sidecartesting.MockTransport) {
+func createTestRouter(t *testing.T, socketPath string, timeout time.Duration) (sidecartesting.MessageProcessor, *sidecartesting.MockTransport) {
 	t.Helper()
 
 	mockTransport := sidecartesting.NewMockTransport()
@@ -136,14 +136,14 @@ func createTestRouter(t *testing.T, socketPath string, timeout time.Duration) (s
 
 // createTestMessage creates a test message with the given payload
 func createTestMessage(payload map[string]interface{}) transport.QueueMessage {
-	route := envelopes.Route{
+	route := messages.Route{
 		Actors:  []string{"test-actor"},
 		Current: 0,
 	}
 
 	payloadBytes, _ := json.Marshal(payload)
 
-	msg := envelopes.Envelope{
+	msg := messages.Message{
 		ID:      "test-envelope-1",
 		Route:   route,
 		Payload: json.RawMessage(payloadBytes),
@@ -183,7 +183,7 @@ func TestSocketIntegration_HappyPath(t *testing.T) {
 	})
 
 	ctx := context.Background()
-	err = r.ProcessEnvelope(ctx, testMsg)
+	err = r.ProcessMessage(ctx, testMsg)
 	if err != nil {
 		t.Fatalf("ProcessMessage failed: %v", err)
 	}
@@ -195,7 +195,7 @@ func TestSocketIntegration_HappyPath(t *testing.T) {
 	}
 
 	// Verify payload contains expected fields
-	var sentMsg envelopes.Envelope
+	var sentMsg messages.Message
 	if err := json.Unmarshal(sentMessages[0].Body, &sentMsg); err != nil {
 		t.Fatalf("Failed to unmarshal sent message: %v", err)
 	}
@@ -232,7 +232,7 @@ func TestSocketIntegration_Error(t *testing.T) {
 	})
 
 	ctx := context.Background()
-	err = r.ProcessEnvelope(ctx, testMsg)
+	err = r.ProcessMessage(ctx, testMsg)
 	if err != nil {
 		t.Fatalf("ProcessMessage failed: %v", err)
 	}
@@ -284,7 +284,7 @@ func TestSocketIntegration_Timeout(t *testing.T) {
 	})
 
 	ctx := context.Background()
-	err = r.ProcessEnvelope(ctx, testMsg)
+	err = r.ProcessMessage(ctx, testMsg)
 	if err != nil {
 		t.Fatalf("ProcessMessage failed: %v", err)
 	}
@@ -336,7 +336,7 @@ func TestSocketIntegration_Fanout(t *testing.T) {
 	})
 
 	ctx := context.Background()
-	err = r.ProcessEnvelope(ctx, testMsg)
+	err = r.ProcessMessage(ctx, testMsg)
 	if err != nil {
 		t.Fatalf("ProcessMessage failed: %v", err)
 	}
@@ -349,7 +349,7 @@ func TestSocketIntegration_Fanout(t *testing.T) {
 
 	// Verify each message has the correct index
 	for i := 0; i < 3; i++ {
-		var sentMsg envelopes.Envelope
+		var sentMsg messages.Message
 		if err := json.Unmarshal(sentMessages[i].Body, &sentMsg); err != nil {
 			t.Fatalf("Failed to unmarshal message %d: %v", i, err)
 		}
@@ -387,7 +387,7 @@ func TestSocketIntegration_EmptyResponse(t *testing.T) {
 	})
 
 	ctx := context.Background()
-	err = r.ProcessEnvelope(ctx, testMsg)
+	err = r.ProcessMessage(ctx, testMsg)
 	if err != nil {
 		t.Fatalf("ProcessMessage failed: %v", err)
 	}
@@ -422,7 +422,7 @@ func TestSocketIntegration_LargePayload(t *testing.T) {
 	})
 
 	ctx := context.Background()
-	err = r.ProcessEnvelope(ctx, testMsg)
+	err = r.ProcessMessage(ctx, testMsg)
 	if err != nil {
 		t.Fatalf("ProcessMessage failed: %v", err)
 	}
@@ -434,7 +434,7 @@ func TestSocketIntegration_LargePayload(t *testing.T) {
 	}
 
 	// Verify payload contains large data
-	var sentMsg envelopes.Envelope
+	var sentMsg messages.Message
 	if err := json.Unmarshal(sentMessages[0].Body, &sentMsg); err != nil {
 		t.Fatalf("Failed to unmarshal sent message: %v", err)
 	}
@@ -472,7 +472,7 @@ func TestSocketIntegration_Unicode(t *testing.T) {
 	})
 
 	ctx := context.Background()
-	err = r.ProcessEnvelope(ctx, testMsg)
+	err = r.ProcessMessage(ctx, testMsg)
 	if err != nil {
 		t.Fatalf("ProcessMessage failed: %v", err)
 	}
@@ -484,7 +484,7 @@ func TestSocketIntegration_Unicode(t *testing.T) {
 	}
 
 	// Verify payload contains unicode data
-	var sentMsg envelopes.Envelope
+	var sentMsg messages.Message
 	if err := json.Unmarshal(sentMessages[0].Body, &sentMsg); err != nil {
 		t.Fatalf("Failed to unmarshal sent message: %v", err)
 	}

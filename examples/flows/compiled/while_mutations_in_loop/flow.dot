@@ -1,0 +1,26 @@
+digraph flow {
+  rankdir=TB;
+  graph [fontname="Courier", fontsize=10];
+  node [fontname="Courier", fontsize=10, shape=box, style="filled,rounded", margin="0.2"];
+  edge [fontname="Courier", fontsize=10];
+
+  start_while_mutations_in_loop_flow [fillcolor="lightgreen", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = start_while_mutations_in_loop_flow(p)</i></td></tr></table>>];
+  router_while_mutations_in_loop_flow_line_17_seq [fillcolor="wheat", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_while_mutations_in_loop_flow_line_1…(p)</i></td></tr><tr><td bgcolor="white" align="left">p['processed'] = True</td></tr></table>>];
+  router_while_mutations_in_loop_flow_line_13_seq [fillcolor="wheat", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_while_mutations_in_loop_flow_line_1…(p)</i></td></tr><tr><td bgcolor="white" align="left">p['i'] += 1</td></tr><tr><td bgcolor="white" align="left">p['sum'] += p['i']</td></tr><tr><td bgcolor="white" align="left">p['step'] = p['i']</td></tr></table>>];
+  router_while_mutations_in_loop_flow_line_12_loop_back_0 [fillcolor="wheat", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_while_mutations_in_loop_flow_line_1…(p)</i></td></tr></table>>];
+  router_while_mutations_in_loop_flow_line_12_while_0 [fillcolor="wheat", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_while_mutations_in_loop_flow_line_1…(p)</i></td></tr><tr><td bgcolor="white" align="left">p['i'] = 0</td></tr><tr><td bgcolor="white" align="left">p['sum'] = 0</td></tr><tr><td bgcolor="lightyellow"><b>if</b> p['i'] &lt; p['max_iterations']</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkgreen"><font color="white"><b>TRUE</b></font></td><td bgcolor="darkred"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
+  end_while_mutations_in_loop_flow [fillcolor="lightgreen", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = end_while_mutations_in_loop_flow(p)</i></td></tr></table>>];
+  handler_finalize [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = handler_finalize(p)</i></td></tr></table>>];
+  handler_init [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = handler_init(p)</i></td></tr></table>>];
+  handler_process [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = handler_process(p)</i></td></tr></table>>];
+
+  handler_finalize -> end_while_mutations_in_loop_flow;
+  handler_init -> router_while_mutations_in_loop_flow_line_12_while_0;
+  handler_process -> router_while_mutations_in_loop_flow_line_17_seq;
+  router_while_mutations_in_loop_flow_line_12_loop_back_0 -> router_while_mutations_in_loop_flow_line_12_while_0 [constraint=false];
+  router_while_mutations_in_loop_flow_line_12_while_0 -> handler_finalize [color=darkred];
+  router_while_mutations_in_loop_flow_line_12_while_0 -> router_while_mutations_in_loop_flow_line_13_seq [color=darkgreen];
+  router_while_mutations_in_loop_flow_line_13_seq -> handler_process;
+  router_while_mutations_in_loop_flow_line_13_seq -> router_while_mutations_in_loop_flow_line_12_loop_back_0;
+  start_while_mutations_in_loop_flow -> handler_init;
+}

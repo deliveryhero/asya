@@ -1,0 +1,46 @@
+digraph flow {
+  rankdir=TB;
+  graph [fontname="Courier", fontsize=10];
+  node [fontname="Courier", fontsize=10, shape=box, style="filled,rounded", margin="0.2"];
+  edge [fontname="Courier", fontsize=10];
+
+  start_complex_flow [fillcolor="lightgreen", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = start_complex_flow(p)</i></td></tr></table>>];
+  router_complex_flow_line_26_if [fillcolor="wheat", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_complex_flow_line_26_if(p)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> p['quality_score'] &gt;= 50</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkgreen"><font color="white"><b>TRUE</b></font></td><td bgcolor="darkred"><font color="white"><b>pass</b></font></td></tr></table></td></tr></table>>];
+  router_complex_flow_line_23_if [fillcolor="wheat", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_complex_flow_line_23_if(p)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> p['quality_score'] &lt; 20</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkgreen"><font color="white"><b>TRUE</b></font></td><td bgcolor="darkred"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
+  router_complex_flow_line_19_loop_back_0 [fillcolor="wheat", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_complex_flow_line_19_loop_back_0(p)</i></td></tr></table>>];
+  router_complex_flow_line_19_while_0 [fillcolor="wheat", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_complex_flow_line_19_while_0(p)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> p.get('batch_count', 0) &lt; p.get('max_batches', 3)</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkgreen"><font color="white"><b>TRUE</b></font></td><td bgcolor="darkred"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
+  router_complex_flow_line_29_if [fillcolor="wheat", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_complex_flow_line_29_if(p)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> p.get('requires_retry')</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkgreen"><font color="white"><b>TRUE</b></font></td><td bgcolor="darkred"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
+  router_complex_flow_line_16_if [fillcolor="wheat", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_complex_flow_line_16_if(p)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> p.get('needs_enrichment')</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkgreen"><font color="white"><b>TRUE</b></font></td><td bgcolor="darkred"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
+  router_complex_flow_line_12_if [fillcolor="wheat", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_complex_flow_line_12_if(p)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> not p['valid']</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkgreen"><font color="white"><b>TRUE</b></font></td><td bgcolor="darkred"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
+  end_complex_flow [fillcolor="lightgreen", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = end_complex_flow(p)</i></td></tr></table>>];
+  handler_check_quality [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = handler_check_quality(p)</i></td></tr></table>>];
+  handler_enrich_data [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = handler_enrich_data(p)</i></td></tr></table>>];
+  handler_error [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = handler_error(p)</i></td></tr></table>>];
+  handler_finalize [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = handler_finalize(p)</i></td></tr></table>>];
+  handler_preprocess [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = handler_preprocess(p)</i></td></tr></table>>];
+  handler_retry_handler [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = handler_retry_handler(p)</i></td></tr></table>>];
+  handler_transform_batch [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = handler_transform_batch(p)</i></td></tr></table>>];
+  handler_validate [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = handler_validate(p)</i></td></tr></table>>];
+
+  handler_check_quality -> router_complex_flow_line_23_if;
+  handler_enrich_data -> router_complex_flow_line_19_while_0;
+  handler_error -> end_complex_flow;
+  handler_finalize -> end_complex_flow;
+  handler_preprocess -> handler_validate;
+  handler_retry_handler -> handler_finalize;
+  handler_transform_batch -> handler_check_quality;
+  handler_validate -> router_complex_flow_line_12_if;
+  router_complex_flow_line_12_if -> handler_error [color=darkgreen];
+  router_complex_flow_line_12_if -> router_complex_flow_line_16_if [color=darkred];
+  router_complex_flow_line_16_if -> handler_enrich_data [color=darkgreen];
+  router_complex_flow_line_16_if -> router_complex_flow_line_29_if [color=darkred];
+  router_complex_flow_line_19_loop_back_0 -> router_complex_flow_line_19_while_0 [constraint=false];
+  router_complex_flow_line_19_while_0 -> handler_finalize [color=darkred];
+  router_complex_flow_line_19_while_0 -> handler_transform_batch [color=darkgreen];
+  router_complex_flow_line_23_if -> router_complex_flow_line_19_loop_back_0 [color=darkgreen];
+  router_complex_flow_line_23_if -> router_complex_flow_line_26_if [color=darkred];
+  router_complex_flow_line_26_if -> handler_finalize [color=darkgreen];
+  router_complex_flow_line_29_if -> handler_finalize [color=darkred];
+  router_complex_flow_line_29_if -> handler_retry_handler [color=darkgreen];
+  start_complex_flow -> handler_preprocess;
+}

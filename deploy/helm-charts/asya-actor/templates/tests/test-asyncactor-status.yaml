@@ -73,12 +73,12 @@ spec:
 
         echo ""
 
-        # Check status fields (if operator has set them)
+        # Check status fields (if Crossplane has set them)
         echo "AsyncActor status:"
         STATUS=$(kubectl get asyncactor "$ACTOR_NAME" -n {{ .Values.namespace }} -o jsonpath='{.status}' 2>/dev/null || echo "{}")
 
         if [ "$STATUS" = "{}" ] || [ -z "$STATUS" ]; then
-          echo "[!] WARNING: No status fields set yet (operator may still be reconciling)"
+          echo "[!] WARNING: No status fields set yet (Crossplane may still be reconciling)"
         else
           echo "$STATUS" | jq '.' || echo "$STATUS"
 

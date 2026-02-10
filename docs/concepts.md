@@ -29,7 +29,7 @@ An actor is a stateless (by default) workload that:
 - Observability (metrics, logs)
 - Reliability (retries, error handling)
 
-**How it works**: Injected as a container into actor pods. Consumes messages from queues, validates envelopes, forwards to runtime via Unix socket, routes responses to next queue.
+**How it works**: Injected as a container into actor pods. Consumes messages from queues, validates message structure, forwards to runtime via Unix socket, routes responses to next queue.
 
 **See**: [architecture/asya-sidecar.md](architecture/asya-sidecar.md) for details.
 
@@ -43,7 +43,7 @@ An actor is a stateless (by default) workload that:
 
 **How it works**: Receives messages from sidecar via Unix socket, loads user handler (function or class), executes it, returns results back to sidecar.
 
-**Deployment**: User defines container image with Python code. Asya operator injects `asya_runtime.py` entrypoint script via ConfigMap.
+**Deployment**: User defines container image with Python code. Asya injector webhook injects `asya_runtime.py` entrypoint script via ConfigMap.
 
 **See**: [architecture/asya-runtime.md](architecture/asya-runtime.md) for details.
 
@@ -75,14 +75,14 @@ An actor is a stateless (by default) workload that:
 
 **See**: [architecture/transports/README.md](architecture/transports/README.md) for details.
 
-## Envelope
+## Message
 
 **Definition**: JSON object passed between actors via message queues.
 
 **Structure**:
 ```json
 {
-  "id": "unique-envelope-id",
+  "id": "unique-message-id",
   "route": {
     "actors": ["preprocess", "inference", "postprocess"],
     "current": 0
@@ -104,25 +104,34 @@ An actor is a stateless (by default) workload that:
 - `payload` (required): User data processed by actors
 - `headers` (optional): Routing metadata (traces, priorities)
 
-**Envelope vs Message**: At queue level, messages are bytes. Envelopes are JSON objects with pre-defined structure.
-
-**Stateful routing**: `route.current` increments after each actor processes the envelope. Note once again, this is a unique feature of 🎭: pipelines are stateless, but envelopes are stateful (they represent different pipeline executions).
+**Stateful routing**: `route.current` increments after each actor processes the message. Note once again, this is a unique feature of 🎭: pipelines are stateless, but messages are stateful (they represent different pipeline executions).
 
 **See**: [architecture/protocols/actor-actor.md](architecture/protocols/actor-actor.md) for details.
 
-## Operator
+## Crossplane Compositions
 
 **Responsibilities**:
 
 - Manages lifecycle of AsyncActor CRDs
-- Injects sidecars into actor pods
 - Creates Kubernetes Deployments/StatefulSets
 - Configures KEDA autoscaling
-- Creates and manages message queues
+- Creates and manages message queues via cloud providers
 
-**How it works**: Watches AsyncActor custom resources, reconciles desired state with actual cluster state, injects infrastructure components.
+**How it works**: Watches AsyncActor custom resources, reconciles desired state via Crossplane Compositions and cloud provider APIs.
 
-**See**: [architecture/asya-operator.md](architecture/asya-operator.md) for details.
+**See**: [architecture/asya-crossplane.md](architecture/asya-crossplane.md) for details.
+
+## Injector Webhook
+
+**Responsibilities**:
+
+- Injects asya-sidecar container into actor pods
+- Injects asya-runtime entrypoint and ConfigMap
+- Configures shared volumes and socket paths
+
+**How it works**: Mutating admission webhook intercepts pod creation, modifies spec to add sidecar and runtime components.
+
+**See**: [architecture/asya-injector.md](architecture/asya-injector.md) for details.
 
 ## KEDA (Autoscaling)
 
@@ -132,7 +141,7 @@ An actor is a stateless (by default) workload that:
 - Scale to zero - eliminate idle resource costs
 - Handle bursty workloads efficiently
 
-**Integration**: Asya operator creates KEDA ScaledObjects for each AsyncActor. KEDA monitors queue depth and scales actor deployments from 0 to maxReplicas.
+**Integration**: Asya Crossplane Composition creates KEDA ScaledObjects for each AsyncActor. KEDA monitors queue depth and scales actor deployments from 0 to maxReplicas.
 
 **Example**: Queue has 100 messages, queueLength=5 configured → KEDA scales to 20 replicas (100/5).
 
@@ -145,11 +154,11 @@ As an optional component, 🎭 offers an MCP-compliant HTTP gateway, which allow
 **Responsibilities**:
 
 - Exposes MCP-compliant HTTP API
-- Receives HTTP requests, creates envelopes
-- Tracks envelope status in PostgreSQL
+- Receives HTTP requests, creates tasks
+- Tracks task status in PostgreSQL
 - Streams progress updates via Server-Sent Events (SSE)
 
-**How it works**: Client calls tool → Gateway creates envelope → Sends to first actor's queue → Crew actors report status back → Gateway streams updates to client.
+**How it works**: Client calls tool → Gateway creates task → Sends to first actor's queue → Crew actors report status back → Gateway streams updates to client.
 
 **Use case**: Easy integration for external systems or user-facing APIs.
 

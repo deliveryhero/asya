@@ -1,0 +1,34 @@
+# LocalStack configuration for E2E testing
+awsProviderConfig:
+  name: localstack
+  credentialsSource: Secret
+  secretRef:
+    namespace: crossplane-system
+    name: aws-creds
+    key: credentials
+  endpoint:
+    enabled: true
+    url: http://localstack.localstack.svc.cluster.local:4566
+    hostnameImmutable: true
+  skipCredentialsValidation: true
+  skipMetadataApiCheck: true
+  skipRequestingAccountId: true
+  skipRegionValidation: true
+  s3UsePathStyle: true
+
+awsRegion: us-east-1
+
+# LocalStack uses a fixed account ID
+awsAccountId: "000000000000"
+
+# IRSA disabled for LocalStack (no IAM integration)
+irsa:
+  enabled: false
+
+# KEDA uses secret-based auth for LocalStack
+keda:
+  authProvider: secret
+  secretRef:
+    name: aws-creds
+    accessKeyIdKey: AWS_ACCESS_KEY_ID
+    secretAccessKeyKey: AWS_SECRET_ACCESS_KEY

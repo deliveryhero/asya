@@ -7,7 +7,6 @@ test:
 	@$(MAKE) -C gateway test
 	@$(MAKE) -C sidecar-runtime test
 	@$(MAKE) -C gateway-actors test
-	@$(MAKE) -C operator test
 	@echo "[+] All integration tests succeeded."
 
 cov:
@@ -15,11 +14,9 @@ cov:
 	@$(MAKE) -C gateway cov
 	@$(MAKE) -C sidecar-runtime cov
 	@$(MAKE) -C gateway-actors cov
-	@$(MAKE) -C operator cov
 
 clean:
 	@$(MAKE) -C sidecar clean
 	@$(MAKE) -C gateway clean
 	@$(MAKE) -C sidecar-runtime clean
 	@$(MAKE) -C gateway-actors clean
-	@$(MAKE) -C operator clean

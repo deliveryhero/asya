@@ -6,6 +6,9 @@ These handlers test stateful class handler functionality:
 - State preservation across requests (caching, counters)
 - Large payload handling with stateful processing
 - Deep module structures
+
+Async class methods (async def process) represent the preferred pattern
+for AI workloads. __init__ is always synchronous.
 """
 
 import time
@@ -21,7 +24,7 @@ class SlowModelHandler:
         self.init_time = time.time()
         self.call_count = 0
 
-    def process(self, payload: dict[str, Any]) -> dict[str, Any]:
+    async def process(self, payload: dict[str, Any]) -> dict[str, Any]:
         self.call_count += 1
         return {
             "init_time": self.init_time,
@@ -39,7 +42,7 @@ class CachingHandler:
         self.cache_hits = 0
         self.cache_misses = 0
 
-    def process(self, payload: dict[str, Any]) -> dict[str, Any]:
+    async def process(self, payload: dict[str, Any]) -> dict[str, Any]:
         key = payload.get("key", "default")
 
         if key in self.cache:
@@ -105,28 +108,28 @@ class CounterHandler:
 
 
 # Envelope mode handler
-class EnvelopeHandler:
-    """Handler that processes full envelopes."""
+class MessageHandler:
+    """Handler that processes full messages in envelope mode."""
 
     def __init__(self):
         self.prefix = "processed"
-        self.envelope_count = 0
+        self.message_count = 0
 
-    def process(self, envelope: dict[str, Any]) -> dict[str, Any]:
-        self.envelope_count += 1
+    async def process(self, message: dict[str, Any]) -> dict[str, Any]:
+        self.message_count += 1
 
         # Access headers
-        trace_id = envelope.get("headers", {}).get("trace_id", "unknown")
+        trace_id = message.get("headers", {}).get("trace_id", "unknown")
 
         return {
             "payload": {
                 "prefix": self.prefix,
                 "trace_id": trace_id,
-                "data": envelope["payload"],
-                "envelope_count": self.envelope_count,
+                "data": message["payload"],
+                "message_count": self.message_count,
             },
-            "route": envelope["route"],
-            "headers": envelope.get("headers", {}),
+            "route": message["route"],
+            "headers": message.get("headers", {}),
         }
 
 

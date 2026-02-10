@@ -4,6 +4,7 @@ metadata:
   name: start-test-nested-flow
   namespace: asya-e2e
 spec:
+  actor: start-test-nested-flow
   transport: TRANSPORT_PLACEHOLDER
 
   scaling:
@@ -32,6 +33,7 @@ metadata:
   name: router-test-nested-flow-line-4-if
   namespace: asya-e2e
 spec:
+  actor: router-test-nested-flow-line-4-if
   transport: TRANSPORT_PLACEHOLDER
 
   scaling:
@@ -60,6 +62,7 @@ metadata:
   name: router-test-nested-flow-line-6-if
   namespace: asya-e2e
 spec:
+  actor: router-test-nested-flow-line-6-if
   transport: TRANSPORT_PLACEHOLDER
 
   scaling:
@@ -88,6 +91,7 @@ metadata:
   name: router-test-nested-flow-line-14-if
   namespace: asya-e2e
 spec:
+  actor: router-test-nested-flow-line-14-if
   transport: TRANSPORT_PLACEHOLDER
 
   scaling:
@@ -116,6 +120,7 @@ metadata:
   name: router-test-nested-flow-line-7-seq
   namespace: asya-e2e
 spec:
+  actor: router-test-nested-flow-line-7-seq
   transport: TRANSPORT_PLACEHOLDER
 
   scaling:
@@ -144,6 +149,7 @@ metadata:
   name: router-test-nested-flow-line-10-seq
   namespace: asya-e2e
 spec:
+  actor: router-test-nested-flow-line-10-seq
   transport: TRANSPORT_PLACEHOLDER
 
   scaling:
@@ -172,6 +178,7 @@ metadata:
   name: router-test-nested-flow-line-15-seq
   namespace: asya-e2e
 spec:
+  actor: router-test-nested-flow-line-15-seq
   transport: TRANSPORT_PLACEHOLDER
 
   scaling:
@@ -200,6 +207,7 @@ metadata:
   name: router-test-nested-flow-line-18-seq
   namespace: asya-e2e
 spec:
+  actor: router-test-nested-flow-line-18-seq
   transport: TRANSPORT_PLACEHOLDER
 
   scaling:
@@ -228,6 +236,7 @@ metadata:
   name: end-test-nested-flow
   namespace: asya-e2e
 spec:
+  actor: end-test-nested-flow
   transport: TRANSPORT_PLACEHOLDER
 
   scaling:
@@ -256,6 +265,7 @@ metadata:
   name: validate-input
   namespace: asya-e2e
 spec:
+  actor: validate-input
   transport: TRANSPORT_PLACEHOLDER
 
   scaling:
@@ -284,6 +294,7 @@ metadata:
   name: route-a-x
   namespace: asya-e2e
 spec:
+  actor: route-a-x
   transport: TRANSPORT_PLACEHOLDER
 
   scaling:
@@ -312,6 +323,7 @@ metadata:
   name: route-a-y
   namespace: asya-e2e
 spec:
+  actor: route-a-y
   transport: TRANSPORT_PLACEHOLDER
 
   scaling:
@@ -340,6 +352,7 @@ metadata:
   name: route-b-x
   namespace: asya-e2e
 spec:
+  actor: route-b-x
   transport: TRANSPORT_PLACEHOLDER
 
   scaling:
@@ -368,6 +381,7 @@ metadata:
   name: route-b-y
   namespace: asya-e2e
 spec:
+  actor: route-b-y
   transport: TRANSPORT_PLACEHOLDER
 
   scaling:
@@ -396,6 +410,7 @@ metadata:
   name: finalize-result
   namespace: asya-e2e
 spec:
+  actor: finalize-result
   transport: TRANSPORT_PLACEHOLDER
 
   scaling:

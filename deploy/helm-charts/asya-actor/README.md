@@ -16,13 +16,16 @@ Generic Helm chart for deploying AsyncActor resources with comprehensive health 
 ## Prerequisites
 
 - Kubernetes cluster (1.24+)
-- AsyncActor CRD installed:
+- Crossplane installed:
   ```bash
-  kubectl apply -f https://github.com/deliveryhero/asya/releases/latest/download/asya-crds.yaml
+  helm repo add crossplane-stable https://charts.crossplane.io/stable
+  helm install crossplane crossplane-stable/crossplane \
+    --namespace crossplane-system --create-namespace
   ```
-- 🎭 operator running:
+- Asya compositions and injector installed:
   ```bash
-  helm install asya-operator deploy/helm-charts/asya-operator \
+  kubectl apply -f https://github.com/deliveryhero/asya/releases/latest/download/asya-crossplane.yaml
+  helm install asya-injector deploy/helm-charts/asya-injector \
     -n asya-system --create-namespace
   ```
 - KEDA installed (if scaling is enabled):
@@ -92,7 +95,7 @@ helm install text-processor deploy/helm-charts/asya-actor \
 |-----------|-------------|---------|
 | `name` | Actor name (must be unique) | `my-actor` |
 | `namespace` | Deployment namespace | `default` |
-| `transport` | Transport name (must exist in operator config) | `rabbitmq` |
+| `transport` | Transport name (rabbitmq or sqs) | `rabbitmq` |
 
 ### Scaling Parameters
 
@@ -229,16 +232,17 @@ healthChecks:
 
 Check dependencies:
 ```bash
-kubectl get crd asyncactors.asya.sh
-kubectl get deployment asya-operator -n asya-system
+kubectl get xrd asyncactors.asya.sh
+kubectl get deployment asya-injector -n asya-system
+kubectl get deployment crossplane -n crossplane-system
 kubectl get crd scaledobjects.keda.sh
 ```
 
 ### Queue health check fails
 
-Check operator logs and queue status:
+Check Crossplane logs and queue status:
 ```bash
-kubectl logs -n asya-system deployment/asya-operator
+kubectl logs -n crossplane-system deployment/crossplane
 
 # For RabbitMQ (adjust pod name if using different RabbitMQ deployment)
 kubectl exec -n <namespace> <rabbitmq-pod-name> -- rabbitmqctl list_queues
@@ -287,4 +291,4 @@ healthChecks:
 helm uninstall my-actor
 ```
 
-Note: This removes the AsyncActor resource. The operator will clean up associated workloads and queues.
+Note: This removes the AsyncActor resource. Crossplane will clean up associated workloads and queues.

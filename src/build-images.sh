@@ -4,8 +4,8 @@
 # Usage: ./src/build-images.sh [OPTIONS] [IMAGE:TAG ...]
 # Examples:
 #   ./src/build-images.sh                                    # Build all images
-#   ./src/build-images.sh asya-operator:latest               # Build only operator
-#   ./src/build-images.sh asya-operator asya-sidecar         # Build operator and sidecar (with default tag)
+#   ./src/build-images.sh asya-gateway:latest               # Build only gateway
+#   ./src/build-images.sh asya-gateway asya-sidecar         # Build gateway and sidecar (with default tag)
 
 set -euo pipefail
 
@@ -60,11 +60,10 @@ while [[ $# -gt 0 ]]; do
       echo "  Format: IMAGE[:TAG] or IMAGE (uses --tag value)"
       echo "  Examples:"
       echo "    $0                              # Build all images"
-      echo "    $0 asya-operator:v1.0.0         # Build operator with specific tag"
-      echo "    $0 asya-operator asya-sidecar   # Build operator and sidecar with default tag"
+      echo "    $0 asya-gateway:v1.0.0           # Build gateway with specific tag"
+      echo "    $0 asya-gateway asya-sidecar     # Build gateway and sidecar with default tag"
       echo ""
       echo "Available images:"
-      echo "  - asya-operator"
       echo "  - asya-gateway"
       echo "  - asya-sidecar"
       echo "  - asya-crew"
@@ -189,7 +188,6 @@ echo ""
 
 # Discover available images from src/ directory
 declare -a ALL_IMAGES=(
-  "asya-operator"
   "asya-gateway"
   "asya-sidecar"
   "asya-crew"
@@ -226,12 +224,7 @@ time {
     name="${IMAGES[$i]}"
     index=$((i + 1))
 
-    # Operator needs src/ as context to access asya-runtime symlink target
-    if [[ "$name" == "asya-operator" ]]; then
-      build_image "$name" "src" "$name/Dockerfile" "$index" "$TOTAL_IMAGES" &
-    else
-      build_image "$name" "src/$name" "Dockerfile" "$index" "$TOTAL_IMAGES" &
-    fi
+    build_image "$name" "src/$name" "Dockerfile" "$index" "$TOTAL_IMAGES" &
 
     BUILD_PIDS+=($!)
   done

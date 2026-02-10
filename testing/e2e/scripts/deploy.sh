@@ -29,12 +29,17 @@ if [[ "${1:-}" == "--recreate" ]]; then
   RECREATE_CLUSTER=true
 fi
 
-# Validate profile
+# Validate profile (Crossplane deploy only supports sqs-s3)
 case "$PROFILE" in
-  rabbitmq-minio | sqs-s3) ;;
+  sqs-s3) ;;
+  rabbitmq-minio)
+    echo "[!] Profile rabbitmq-minio is not supported by Crossplane deploy."
+    echo "    Use deploy_old.sh for rabbitmq-minio profile."
+    exit 1
+    ;;
   *)
     echo "[!] Unknown profile: $PROFILE"
-    echo "    Valid profiles: rabbitmq-minio, sqs-s3"
+    echo "    Valid profiles: sqs-s3"
     exit 1
     ;;
 esac
@@ -45,7 +50,7 @@ NAMESPACE="${NAMESPACE:-asya-e2e}"
 
 export HELMFILE_LOG_LEVEL="${HELMFILE_LOG_LEVEL:-error}"
 
-echo "=== Asya Kind E2e Deployment Script ==="
+echo "=== Asya Kind E2E Deployment Script (Crossplane) ==="
 echo "Root directory: $ROOT_DIR"
 echo "Charts directory: $CHARTS_DIR"
 echo "Profile: $PROFILE"
@@ -79,8 +84,8 @@ command -v docker > /dev/null 2>&1 || {
 echo "[+] All prerequisites installed"
 echo
 
-# Create Kind cluster and regenerate manifests in parallel
-echo "[.] Setting up cluster and building components..."
+# Phase 1: Create Kind cluster and build images in parallel
+echo "[.] Phase 1: Setting up cluster and building components..."
 time {
   # Start cluster creation
   CLUSTER_PID=""
@@ -101,22 +106,28 @@ time {
     CLUSTER_PID=$!
   fi
 
-  # Start manifest generation in parallel
-  echo "[.] Regenerating operator manifests..."
-  make -C "$ROOT_DIR/src/asya-operator" manifests &
-  MANIFEST_PID=$!
-
-  # Start image building in parallel
-  echo "[.] Building Docker images..."
-  "$ROOT_DIR/src/build-images.sh" &
+  # Build framework images (no operator needed)
+  echo "[.] Building Docker images (gateway, sidecar, crew, testing)..."
+  "$ROOT_DIR/src/build-images.sh" asya-gateway asya-sidecar asya-crew asya-testing &
   BUILD_PID=$!
 
-  # Wait for image builds first (usually faster than cluster)
+  # Build injector image separately (not in build-images.sh registry)
+  echo "[.] Building asya-injector image..."
+  docker build -t "${IMAGE_PREFIX}asya-injector:latest" "$ROOT_DIR/src/asya-injector/" > /dev/null 2>&1 &
+  INJECTOR_BUILD_PID=$!
+
+  # Wait for image builds
   if ! wait "$BUILD_PID"; then
     echo "[-] Docker image build failed"
     exit 1
   fi
-  echo "[+] Docker images built"
+  echo "[+] Framework Docker images built"
+
+  if ! wait "$INJECTOR_BUILD_PID"; then
+    echo "[-] Injector image build failed"
+    exit 1
+  fi
+  echo "[+] Injector image built"
 
   # Wait for cluster creation
   if [ -n "$CLUSTER_PID" ]; then
@@ -127,15 +138,43 @@ time {
     kubectl config use-context "kind-${CLUSTER_NAME}"
     echo "[+] Kind cluster ready (context: kind-${CLUSTER_NAME})"
   fi
+}
+echo
 
-  # Load Docker images into Kind cluster
-  echo "[.] Loading images into Kind cluster..."
+# Phase 2: Install cluster-level infrastructure (cert-manager + Crossplane core)
+echo "[.] Phase 2: Installing cluster-level infrastructure..."
+time {
+  echo "[.] Installing cert-manager..."
+  kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.14.5/cert-manager.yaml > /dev/null 2>&1
+
+  echo "[.] Installing Crossplane core..."
+  helm repo add crossplane-stable https://charts.crossplane.io/stable --force-update > /dev/null 2>&1
+  helm repo update crossplane-stable > /dev/null 2>&1
+  helm upgrade --install crossplane crossplane-stable/crossplane \
+    --namespace crossplane-system --create-namespace \
+    --wait --timeout 120s > /dev/null 2>&1
+
+  echo "[.] Waiting for cert-manager webhooks..."
+  kubectl wait --for=condition=available deployment/cert-manager-webhook \
+    -n cert-manager --timeout=120s > /dev/null 2>&1
+
+  echo "[.] Waiting for Crossplane pods..."
+  kubectl wait --for=condition=available deployment/crossplane \
+    -n crossplane-system --timeout=120s > /dev/null 2>&1
+
+  echo "[+] cert-manager and Crossplane core installed"
+}
+echo
+
+# Phase 3: Load images into Kind cluster
+echo "[.] Phase 3: Loading images into Kind cluster..."
+time {
   IMAGES_TO_LOAD=(
-    "asya-operator:latest"
     "asya-gateway:latest"
     "asya-sidecar:latest"
     "asya-crew:latest"
     "asya-testing:latest"
+    "asya-injector:latest"
   )
 
   LOAD_PIDS=()
@@ -143,13 +182,6 @@ time {
     kind load docker-image "${IMAGE_PREFIX}$img" --name "$CLUSTER_NAME" &
     LOAD_PIDS+=($!)
   done
-
-  # Wait for manifest generation (runs in parallel with image loading)
-  if ! wait "$MANIFEST_PID"; then
-    echo "[-] Operator manifest generation failed"
-    exit 1
-  fi
-  echo "[+] Operator manifests regenerated"
 
   # Wait for all loads to complete
   LOAD_FAILED=false
@@ -165,12 +197,41 @@ time {
   fi
 
   echo "[+] Images loaded into Kind cluster"
-  echo
 }
+echo
 
-# Deploy infrastructure layer with Helmfile
-# (KEDA, Postgres, Operator, Gateway, Transports, Storages)
-echo "[.] Deploying infrastructure layer..."
+# Phase 4: Create prerequisite secrets
+echo "[.] Phase 4: Creating prerequisite secrets..."
+time {
+  # Create namespaces if they don't exist
+  kubectl create namespace "$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f - > /dev/null 2>&1
+  kubectl create namespace "$SYSTEM_NAMESPACE" --dry-run=client -o yaml | kubectl apply -f - > /dev/null 2>&1
+
+  # AWS credentials for Crossplane provider (credentials file format)
+  kubectl create secret generic aws-creds \
+    -n crossplane-system \
+    --from-literal=credentials="[default]
+aws_access_key_id = test
+aws_secret_access_key = test
+" \
+    --dry-run=client -o yaml | kubectl apply -f - > /dev/null 2>&1
+  echo "[+] Created aws-creds secret in crossplane-system"
+
+  # AWS credentials for KEDA TriggerAuthentication (key/value format)
+  kubectl create secret generic aws-creds \
+    -n "$NAMESPACE" \
+    --from-literal=AWS_ACCESS_KEY_ID=test \
+    --from-literal=AWS_SECRET_ACCESS_KEY=test \
+    --dry-run=client -o yaml | kubectl apply -f - > /dev/null 2>&1
+  echo "[+] Created aws-creds secret in $NAMESPACE"
+
+  # sqs-secret in asya-system is created by the SQS Helm chart (testing/e2e/charts/sqs/)
+  # Do NOT create it here — Helm requires ownership metadata on managed resources
+}
+echo
+
+# Phase 5: Deploy infrastructure layer with Helmfile
+echo "[.] Phase 5: Deploying infrastructure layer..."
 time {
   cd "$CHARTS_DIR"
   if ! helmfile -f helmfile.yaml.gotmpl -e "$PROFILE" sync --concurrency "$CONCURRENCY" --selector 'layer=infra'; then
@@ -179,6 +240,7 @@ time {
     echo "=== Pod Status ==="
     kubectl get pods -n "$NAMESPACE" -o wide || true
     kubectl get pods -n "$SYSTEM_NAMESPACE" -o wide || true
+    kubectl get pods -n crossplane-system -o wide || true
     kubectl get pods -n keda -o wide || true
     echo ""
     echo "=== Gateway Pod Events ==="
@@ -190,22 +252,54 @@ time {
     echo "=== Gateway Current Logs ==="
     kubectl logs -n "$NAMESPACE" -l app.kubernetes.io/name=asya-gateway --tail=100 --all-containers=true || true
     echo ""
-    echo "=== Gateway Previous Logs (if crashed) ==="
-    kubectl logs -n "$NAMESPACE" -l app.kubernetes.io/name=asya-gateway --tail=100 --all-containers=true --previous || true
+    echo "=== Crossplane Provider Logs ==="
+    kubectl logs -n crossplane-system -l pkg.crossplane.io/revision --tail=50 --all-containers=true || true
     echo ""
-    echo "=== Operator Logs ==="
-    kubectl logs -n "$SYSTEM_NAMESPACE" -l app.kubernetes.io/name=asya-operator --tail=50 || true
+    echo "=== Injector Logs ==="
+    kubectl logs -n "$SYSTEM_NAMESPACE" -l app.kubernetes.io/name=asya-injector --tail=50 || true
     echo ""
     echo "=== Migration Job Logs ==="
     kubectl logs -n "$NAMESPACE" -l app.kubernetes.io/component=migration --tail=50 || true
     exit 1
   fi
   echo "[+] Infrastructure layer deployed"
-  echo
 }
+echo
 
-# Deploy application layer with Helmfile (test actors + system actors)
-echo "[.] Deploying application layer (actors)..."
+# Phase 6: Wait for Crossplane providers to become healthy
+echo "[.] Phase 6: Waiting for Crossplane providers to become healthy..."
+time {
+  echo "[.] Waiting for Crossplane providers..."
+  if ! kubectl wait --for=condition=healthy providers.pkg.crossplane.io --all --timeout=300s 2> /dev/null; then
+    echo "[!] Warning: Some Crossplane providers may not be healthy"
+    kubectl get providers.pkg.crossplane.io || true
+  else
+    echo "[+] All Crossplane providers healthy"
+  fi
+
+  echo "[.] Waiting for Crossplane functions..."
+  if ! kubectl wait --for=condition=healthy functions.pkg.crossplane.io --all --timeout=300s 2> /dev/null; then
+    echo "[!] Warning: Some Crossplane functions may not be healthy"
+    kubectl get functions.pkg.crossplane.io || true
+  else
+    echo "[+] All Crossplane functions healthy"
+  fi
+}
+echo
+
+# Phase 6b: Install ProviderConfigs (CRDs now available after providers are healthy)
+echo "[.] Phase 6b: Installing Crossplane ProviderConfigs..."
+time {
+  cd "$CHARTS_DIR"
+  helm upgrade asya-crossplane ../../../deploy/helm-charts/asya-crossplane \
+    -n asya-system --reuse-values --set providerConfigs.install=true \
+    --wait --timeout 120s > /dev/null 2>&1
+  echo "[+] ProviderConfigs installed"
+}
+echo
+
+# Phase 7: Deploy application layer with Helmfile (test actors + system actors)
+echo "[.] Phase 7: Deploying application layer (actors)..."
 time {
   cd "$CHARTS_DIR"
   if ! helmfile -f helmfile.yaml.gotmpl -e "$PROFILE" sync --concurrency "$CONCURRENCY" --selector 'layer=app'; then
@@ -217,16 +311,19 @@ time {
     echo "=== Actor Pod Status ==="
     kubectl get pods -n "$NAMESPACE" -l app.kubernetes.io/component=actor -o wide || true
     echo ""
-    echo "=== Operator Logs ==="
-    kubectl logs -n "$SYSTEM_NAMESPACE" -l app.kubernetes.io/name=asya-operator --tail=100 || true
+    echo "=== Crossplane Provider Logs ==="
+    kubectl logs -n crossplane-system -l pkg.crossplane.io/revision --tail=100 --all-containers=true || true
+    echo ""
+    echo "=== Injector Logs ==="
+    kubectl logs -n "$SYSTEM_NAMESPACE" -l app.kubernetes.io/name=asya-injector --tail=100 || true
     echo ""
     echo "=== Failed Actor Pods (if any) ==="
     kubectl describe pods -n "$NAMESPACE" -l app.kubernetes.io/component=actor | grep -A 20 "State.*Waiting\|State.*Terminated" || true
     exit 1
   fi
   echo "[+] Application layer deployed"
-  echo
 }
+echo
 
 # Run Helm tests (can be disabled with SKIP_HELM_TESTS=true)
 if [ "${SKIP_HELM_TESTS:-false}" = "true" ]; then
@@ -301,55 +398,23 @@ else
   }
 fi
 
-# Wait for operator to reconcile all AsyncActor CRDs
-echo "[.] Waiting for operator to reconcile AsyncActor CRDs..."
+# Phase 8: Wait for Crossplane to reconcile all AsyncActor claims
+echo "[.] Phase 8: Waiting for Crossplane to reconcile AsyncActor claims..."
 time {
-  MAX_RETRIES=60
-  RETRY_INTERVAL=2
-  ATTEMPT=0
-
-  while [ $ATTEMPT -lt $MAX_RETRIES ]; do
-    ATTEMPT=$((ATTEMPT + 1))
-
-    # Get total number of AsyncActors
-    TOTAL_ACTORS=$(kubectl get asyncactors -n "$NAMESPACE" --no-headers 2> /dev/null | wc -l)
-
-    if [ "$TOTAL_ACTORS" -eq 0 ]; then
-      echo "[!] No AsyncActor CRDs found in namespace $NAMESPACE"
-      exit 1
-    fi
-
-    # Count actors with transportStatus=Ready
-    READY_TRANSPORT=$(kubectl get asyncactors -n "$NAMESPACE" -o jsonpath='{range .items[*]}{.status.transportStatus}{"\n"}{end}' 2> /dev/null | grep -c "^Ready$" || true)
-
-    # Count actors with workloads created (check if deployment/statefulset ref exists)
-    WORKLOADS_CREATED=$(kubectl get asyncactors -n "$NAMESPACE" -o jsonpath='{range .items[*]}{.status.workloadRef.name}{"\n"}{end}' 2> /dev/null | grep -c "." || true)
-
-    # Count actors with ScaledObjects created (check if scaledObjectRef exists)
-    SCALEDOBJECTS_CREATED=$(kubectl get asyncactors -n "$NAMESPACE" -o jsonpath='{range .items[*]}{.status.scaledObjectRef.name}{"\n"}{end}' 2> /dev/null | grep -c "." || true)
-
-    if [ "$READY_TRANSPORT" -eq "$TOTAL_ACTORS" ] && [ "$WORKLOADS_CREATED" -eq "$TOTAL_ACTORS" ] && [ "$SCALEDOBJECTS_CREATED" -eq "$TOTAL_ACTORS" ]; then
-      echo "[+] All $TOTAL_ACTORS AsyncActors reconciled (transport + workloads + ScaledObjects ready)"
-      break
-    fi
-
-    if [ $((ATTEMPT % 10)) -eq 0 ]; then
-      echo "[.] Waiting for AsyncActors: $READY_TRANSPORT/$TOTAL_ACTORS transport, $WORKLOADS_CREATED/$TOTAL_ACTORS workloads, $SCALEDOBJECTS_CREATED/$TOTAL_ACTORS ScaledObjects (attempt $ATTEMPT/$MAX_RETRIES)"
-    fi
-
-    sleep "$RETRY_INTERVAL"
-  done
-
-  if [ $ATTEMPT -eq $MAX_RETRIES ]; then
-    echo "[!] Warning: Not all AsyncActors reconciled after ${MAX_RETRIES} attempts"
+  if ! kubectl wait --for=condition=Ready asyncactor --all \
+    -n "$NAMESPACE" --timeout=120s; then
+    echo "[!] Warning: Not all AsyncActors reconciled"
     echo "[.] Current AsyncActor status:"
     kubectl get asyncactors -n "$NAMESPACE"
+  else
+    TOTAL_ACTORS=$(kubectl get asyncactors -n "$NAMESPACE" --no-headers 2> /dev/null | wc -l)
+    echo "[+] All $TOTAL_ACTORS AsyncActors reconciled (condition=Ready)"
   fi
 }
 echo
 
-# Wait for actor pods to scale up and be ready
-echo "[.] Waiting for actor pods to be ready..."
+# Phase 9: Wait for actor pods to scale up and be ready
+echo "[.] Phase 9: Waiting for actor pods to be ready..."
 time {
   # Give KEDA time to create HPAs and scale up pods
   sleep 5
@@ -367,24 +432,31 @@ time {
 }
 echo
 
-# Print detailed component status
-echo "[.] Running diagnostics..."
+# Phase 10: Print detailed component status and save logs
+echo "[.] Phase 10: Running diagnostics..."
 time {
   "$SCRIPT_DIR/debug.sh" diagnostics
 }
 echo
 
-# Save operator logs to file for debugging
+# Save logs to file for debugging
 LOGS_DIR="$SCRIPT_DIR/../.logs"
 mkdir -p "$LOGS_DIR"
-OPERATOR_LOGS="$LOGS_DIR/operator-$(date +%Y%m%d-%H%M%S).log"
-echo "[.] Saving operator logs to: $OPERATOR_LOGS"
-kubectl logs -n "$SYSTEM_NAMESPACE" -l app.kubernetes.io/name=asya-operator --tail=1000 > "$OPERATOR_LOGS" 2>&1 || true
-echo "[+] Operator logs saved"
+
+INJECTOR_LOGS="$LOGS_DIR/injector-$(date +%Y%m%d-%H%M%S).log"
+echo "[.] Saving injector logs to: $INJECTOR_LOGS"
+kubectl logs -n "$SYSTEM_NAMESPACE" -l app.kubernetes.io/name=asya-injector --tail=1000 > "$INJECTOR_LOGS" 2>&1 || true
+
+CROSSPLANE_LOGS="$LOGS_DIR/crossplane-$(date +%Y%m%d-%H%M%S).log"
+echo "[.] Saving Crossplane provider logs to: $CROSSPLANE_LOGS"
+kubectl logs -n crossplane-system -l pkg.crossplane.io/revision --tail=1000 --all-containers=true > "$CROSSPLANE_LOGS" 2>&1 || true
+
+echo "[+] Logs saved"
 echo
 
-echo "=== Deployment Complete ==="
-echo "Operator logs saved to: $OPERATOR_LOGS"
+echo "=== Deployment Complete (Crossplane) ==="
+echo "Injector logs saved to: $INJECTOR_LOGS"
+echo "Crossplane logs saved to: $CROSSPLANE_LOGS"
 echo ""
 echo "Next steps (from the current directory):"
 echo "$ make trigger-tests"

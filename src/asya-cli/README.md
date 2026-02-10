@@ -68,11 +68,11 @@ asya mcp --no-stream call long-running-task --input=data
 asya mcp --debug call test_progress --value 10
 asya mcp --url http://gateway.example.com:8080 list
 
-# Check envelope status
-asya mcp status <envelope-id>
+# Check task status
+asya mcp status <task-id>
 
-# Stream live updates for an envelope
-asya mcp stream <envelope-id>
+# Stream live updates for a task
+asya mcp stream <task-id>
 ```
 
 Alternatively, use as a Python module:
@@ -82,8 +82,8 @@ python -m asya_cli.mcp list
 ```
 
 **Call modes:**
-- **Default** (no flags): Streams real-time SSE updates with tqdm progress bar (percentage + envelope state) → returns final result as JSON to stdout
-- **`--no-stream`** or **`--no_stream`**: Returns envelope ID immediately without waiting. Use `status` or `stream` commands to check progress later.
+- **Default** (no flags): Streams real-time SSE updates with tqdm progress bar (percentage + task state) → returns final result as JSON to stdout
+- **`--no-stream`** or **`--no_stream`**: Returns task ID immediately without waiting. Use `status` or `stream` commands to check progress later.
 
 **Environment Variables:**
 - `ASYA_CLI_URL` - Default gateway URL (default: `http://localhost:8089`)
@@ -95,8 +95,8 @@ python -m asya_cli.mcp list
 - List available tools with parameters
 - Call tools directly via REST endpoint (`/tools/call`)
 - Progress display with tqdm during tool execution
-- Real-time SSE streaming of envelope updates
-- Envelope status checking
+- Real-time SSE streaming of task updates
+- Task status checking
 - Simple JSON input/output
 
 #### Examples
@@ -208,7 +208,7 @@ Minimal Python CLI specifically for asya gateway debugging.
 - No AI/LLM required
 - Direct REST API calls
 - Built-in progress display (tqdm)
-- Asya🎭-specific features (envelope tracking)
+- Asya🎭-specific features (task tracking)
 - Super simple, single file
 
 **Cons**:

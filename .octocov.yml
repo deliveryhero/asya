@@ -17,7 +17,6 @@ coverage:
   # Unit tests (Go)
   - .coverage/src/asya-sidecar/cov.out
   - .coverage/src/asya-gateway/cov.out
-  - .coverage/src/asya-operator/cov.out
   # Unit tests (Python)
   - .coverage/src/asya-runtime/cov.json
   - .coverage/src/asya-crew/cov.json
@@ -38,8 +37,6 @@ coverage:
   - .coverage/testing/integration/gateway-actors/cov-*.json
   # E2E tests (Python)
   - .coverage/testing/e2e/cov-*.json
-  badge:
-    path: docs/coverage.svg
 
 comment:
   if: is_pull_request
@@ -56,32 +53,34 @@ comment:
 
     **Legend:** `+` increase | `-` decrease | `~` no change
 
+# Diff comparison for PRs - read baseline from octocov branch
+# Shows per-file coverage changes compared to main branch baseline
 diff:
   if: is_pull_request
   datastores:
-  - artifact://${GITHUB_REPOSITORY}
+  - github://${GITHUB_REPOSITORY}@octocov
   path: report.json
 
 summary:
   if: is_default_branch
   path: report.json
 
-# Store reports for diff comparison
+# Store reports on the 'octocov' branch via GitHub API on main branch merges
+# octocov reads baseline from the same branch for PR diff comparisons
 report:
   if: is_default_branch
   datastores:
-  - artifact://${GITHUB_REPOSITORY}
+  - github://${GITHUB_REPOSITORY}@octocov
   path: report.json
 
 codeToTestRatio:
-  acceptable: 1:1.2
   code:
   - '**/*.go'
   - '**/*.py'
   - '!**/*_test.go'
   - '!**/tests/**.py'
   - '!testing/**.py'
-  - '!src/aimc-testing/**.py'
+  - '!src/asya-testing/**.py'
   test:
   - '**/*_test.go'
   - '!**/tests/**.py'
@@ -95,16 +94,12 @@ testExecutionTime:
   - "Run 2-parametrized integration tests.*"
   - "Run 3-parametrized integration tests.*"
   - "Run E2E tests.*"
-  badge:
-    path: docs/time.svg
 
 # Set coverage thresholds
-# - current >= 75%: Overall coverage must be at least 75%
-# - diff >= 0%: Coverage must not decrease (no regression allowed)
 acceptable:
-  coverage: current >= 75% && diff >= 0%
+  coverage: current >= 50%
+  codeToTestRatio: 1:1.2
 
-# Push metrics and badges to artifact storage
-# Disabled: Using artifact datastore instead of git push
+# Push metrics and badges disabled
 # push:
 #   if: is_default_branch

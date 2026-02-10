@@ -19,7 +19,7 @@ as these are managed by the operator and added to child resources.
 */}}
 {{- define "asya-test-flows.labels" -}}
 helm.sh/chart: {{ include "asya-test-flows.chart" . }}
-test-type: flow
+asya.sh/test-type: flow
 {{- end }}
 
 {{/*

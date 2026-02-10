@@ -1,7 +1,7 @@
 """Unit tests for operation grouper."""
 
 from asya_cli.flow.grouper import OperationGrouper
-from asya_cli.flow.ir import ActorCall, Condition, IROperation, Mutation, Return
+from asya_cli.flow.ir import ActorCall, Break, Condition, Continue, IROperation, Mutation, Return, WhileLoop
 
 
 class TestRouterStructure:
@@ -655,3 +655,432 @@ class TestEdgeCases:
 
         assert true_final_count == 1
         assert false_final_count == 1
+
+
+class TestWhileLoopGrouping:
+    """Test while loop router generation."""
+
+    def test_simple_while_creates_condition_and_loop_back_routers(self):
+        ops = [
+            WhileLoop(
+                lineno=3,
+                test='p["i"] < 10',
+                body=[ActorCall(lineno=4, name="handler")],
+            ),
+            Return(lineno=5),
+        ]
+        grouper = OperationGrouper("flow", ops)
+        routers = grouper.group()
+
+        # Should have: start, while_condition, loop_back, end
+        loop_back_routers = [r for r in routers if r.is_loop_back]
+        assert len(loop_back_routers) == 1
+
+        cond_routers = [r for r in routers if r.condition is not None and "while" in r.name]
+        assert len(cond_routers) == 1
+
+        cond_router = cond_routers[0]
+        assert cond_router.condition is not None
+        assert cond_router.condition.test == 'p["i"] < 10'
+        assert "handler" in cond_router.true_branch_actors
+        assert loop_back_routers[0].name in cond_router.true_branch_actors
+
+    def test_while_true_no_condition_router(self):
+        ops = [
+            WhileLoop(
+                lineno=3,
+                test=None,
+                body=[
+                    ActorCall(lineno=4, name="handler"),
+                    Condition(
+                        lineno=5,
+                        test='p["done"]',
+                        true_branch=[Break(lineno=6)],
+                        false_branch=[],
+                    ),
+                ],
+            ),
+            Return(lineno=7),
+        ]
+        grouper = OperationGrouper("flow", ops)
+        routers = grouper.group()
+
+        # while True should NOT create a condition router
+        while_cond_routers = [r for r in routers if r.condition is not None and "while" in r.name]
+        assert len(while_cond_routers) == 0
+
+        # But should create a loop-back router
+        loop_back_routers = [r for r in routers if r.is_loop_back]
+        assert len(loop_back_routers) == 1
+
+        # Loop-back re-inserts body actors + itself
+        lb = loop_back_routers[0]
+        assert lb.name in lb.true_branch_actors
+
+    def test_while_condition_false_goes_to_continuation(self):
+        ops = [
+            WhileLoop(
+                lineno=3,
+                test='p["i"] < 10',
+                body=[ActorCall(lineno=4, name="handler")],
+            ),
+            ActorCall(lineno=5, name="finalize"),
+            Return(lineno=6),
+        ]
+        grouper = OperationGrouper("flow", ops)
+        routers = grouper.group()
+
+        cond_router = next(r for r in routers if r.condition is not None and "while" in r.name)
+        # False branch should contain finalize + end
+        assert "finalize" in cond_router.false_branch_actors
+
+    def test_while_loop_back_re_inserts_condition(self):
+        ops = [
+            WhileLoop(
+                lineno=3,
+                test='p["i"] < 10',
+                body=[ActorCall(lineno=4, name="handler")],
+            ),
+            Return(lineno=5),
+        ]
+        grouper = OperationGrouper("flow", ops)
+        routers = grouper.group()
+
+        loop_back = next(r for r in routers if r.is_loop_back)
+        cond_router = next(r for r in routers if r.condition is not None and "while" in r.name)
+
+        # Loop-back should re-insert the condition router
+        assert cond_router.name in loop_back.true_branch_actors
+
+    def test_while_with_break_goes_to_continuation(self):
+        ops = [
+            WhileLoop(
+                lineno=3,
+                test='p["i"] < 10',
+                body=[
+                    ActorCall(lineno=4, name="handler"),
+                    Condition(
+                        lineno=5,
+                        test='p["stop"]',
+                        true_branch=[Break(lineno=6)],
+                        false_branch=[],
+                    ),
+                ],
+            ),
+            ActorCall(lineno=7, name="finalize"),
+            Return(lineno=8),
+        ]
+        grouper = OperationGrouper("flow", ops)
+        routers = grouper.group()
+
+        # The break's if-condition router should route to finalize on the true branch
+        break_cond = next(r for r in routers if r.condition is not None and r.condition.test == 'p["stop"]')
+        assert "finalize" in break_cond.true_branch_actors
+
+    def test_while_with_continue_goes_to_loop_back(self):
+        ops = [
+            WhileLoop(
+                lineno=3,
+                test='p["i"] < 10',
+                body=[
+                    Mutation(lineno=4, code='p["i"] += 1'),
+                    Condition(
+                        lineno=5,
+                        test='p["skip"]',
+                        true_branch=[Continue(lineno=6)],
+                        false_branch=[],
+                    ),
+                    ActorCall(lineno=7, name="handler"),
+                ],
+            ),
+            Return(lineno=8),
+        ]
+        grouper = OperationGrouper("flow", ops)
+        routers = grouper.group()
+
+        loop_back = next(r for r in routers if r.is_loop_back)
+
+        # Continue's if-condition should route to loop_back on the true branch
+        skip_cond = next(r for r in routers if r.condition is not None and r.condition.test == 'p["skip"]')
+        assert loop_back.name in skip_cond.true_branch_actors
+
+    def test_while_with_mutations_before_loop(self):
+        ops = [
+            Mutation(lineno=2, code='p["i"] = 0'),
+            WhileLoop(
+                lineno=3,
+                test='p["i"] < 10',
+                body=[
+                    Mutation(lineno=4, code='p["i"] += 1'),
+                    ActorCall(lineno=5, name="handler"),
+                ],
+            ),
+            Return(lineno=6),
+        ]
+        grouper = OperationGrouper("flow", ops)
+        routers = grouper.group()
+
+        # Mutation before while should be in the while condition router's mutations
+        cond_router = next(r for r in routers if r.condition is not None and "while" in r.name)
+        assert len(cond_router.mutations) == 1
+        assert cond_router.mutations[0].code == 'p["i"] = 0'
+
+    def test_while_body_mutations_grouped(self):
+        ops = [
+            WhileLoop(
+                lineno=3,
+                test='p["i"] < 10',
+                body=[
+                    Mutation(lineno=4, code='p["i"] += 1'),
+                    Mutation(lineno=5, code='p["sum"] += p["i"]'),
+                    ActorCall(lineno=6, name="handler"),
+                ],
+            ),
+            Return(lineno=7),
+        ]
+        grouper = OperationGrouper("flow", ops)
+        routers = grouper.group()
+
+        # There should be a seq router inside the body with the grouped mutations
+        seq_routers = [r for r in routers if "_seq" in r.name]
+        assert len(seq_routers) >= 1
+        body_seq = seq_routers[0]
+        assert len(body_seq.mutations) == 2
+
+    def test_while_with_handler_before_and_after(self):
+        ops = [
+            ActorCall(lineno=1, name="init"),
+            WhileLoop(
+                lineno=3,
+                test='p["i"] < 10',
+                body=[ActorCall(lineno=4, name="process")],
+            ),
+            ActorCall(lineno=5, name="finalize"),
+            Return(lineno=6),
+        ]
+        grouper = OperationGrouper("flow", ops)
+        routers = grouper.group()
+
+        start = routers[0]
+        assert "init" in start.true_branch_actors
+
+        cond = next(r for r in routers if r.condition is not None and "while" in r.name)
+        assert "process" in cond.true_branch_actors
+        assert "finalize" in cond.false_branch_actors
+
+    def test_nested_while_loops(self):
+        ops = [
+            WhileLoop(
+                lineno=3,
+                test='p["i"] < 10',
+                body=[
+                    WhileLoop(
+                        lineno=5,
+                        test='p["j"] < 5',
+                        body=[ActorCall(lineno=6, name="handler")],
+                    ),
+                ],
+            ),
+            Return(lineno=7),
+        ]
+        grouper = OperationGrouper("flow", ops)
+        routers = grouper.group()
+
+        # Should have two condition routers and two loop-back routers
+        cond_routers = [r for r in routers if r.condition is not None and "while" in r.name]
+        loop_back_routers = [r for r in routers if r.is_loop_back]
+        assert len(cond_routers) == 2
+        assert len(loop_back_routers) == 2
+
+    def test_while_loop_counter_increments(self):
+        ops = [
+            WhileLoop(
+                lineno=3,
+                test='p["i"] < 10',
+                body=[ActorCall(lineno=4, name="handler_a")],
+            ),
+            WhileLoop(
+                lineno=6,
+                test='p["j"] < 5',
+                body=[ActorCall(lineno=7, name="handler_b")],
+            ),
+            Return(lineno=8),
+        ]
+        grouper = OperationGrouper("flow", ops)
+        routers = grouper.group()
+
+        loop_back_routers = [r for r in routers if r.is_loop_back]
+        assert len(loop_back_routers) == 2
+        assert loop_back_routers[0].name != loop_back_routers[1].name
+
+    def test_while_with_if_inside_body(self):
+        ops = [
+            WhileLoop(
+                lineno=3,
+                test='p["i"] < 10',
+                body=[
+                    Condition(
+                        lineno=4,
+                        test='p["type"] == "A"',
+                        true_branch=[ActorCall(lineno=5, name="handler_a")],
+                        false_branch=[ActorCall(lineno=6, name="handler_b")],
+                    ),
+                ],
+            ),
+            Return(lineno=7),
+        ]
+        grouper = OperationGrouper("flow", ops)
+        routers = grouper.group()
+
+        # Should have while condition + if condition + loop_back
+        if_routers = [r for r in routers if r.condition is not None and "_if" in r.name]
+        assert len(if_routers) == 1
+        if_router = if_routers[0]
+        assert "handler_a" in if_router.true_branch_actors
+        assert "handler_b" in if_router.false_branch_actors
+
+    def test_while_true_with_only_break(self):
+        ops = [
+            WhileLoop(
+                lineno=3,
+                test=None,
+                body=[
+                    Condition(
+                        lineno=4,
+                        test='p["done"]',
+                        true_branch=[Break(lineno=5)],
+                        false_branch=[],
+                    ),
+                ],
+            ),
+            Return(lineno=6),
+        ]
+        grouper = OperationGrouper("flow", ops)
+        routers = grouper.group()
+
+        done_cond = next(r for r in routers if r.condition is not None and r.condition.test == 'p["done"]')
+        # True branch (break) should go to end_flow
+        assert "end_flow" in done_cond.true_branch_actors
+
+    def test_while_with_return_in_body(self):
+        ops = [
+            WhileLoop(
+                lineno=3,
+                test=None,
+                body=[
+                    ActorCall(lineno=4, name="handler"),
+                    Condition(
+                        lineno=5,
+                        test='p["final"]',
+                        true_branch=[Return(lineno=6)],
+                        false_branch=[],
+                    ),
+                ],
+            ),
+            Return(lineno=7),
+        ]
+        grouper = OperationGrouper("flow", ops)
+        routers = grouper.group()
+
+        final_cond = next(r for r in routers if r.condition is not None and r.condition.test == 'p["final"]')
+        assert "end_flow" in final_cond.true_branch_actors
+
+    def test_while_inside_if(self):
+        ops = [
+            Condition(
+                lineno=2,
+                test='p["should_loop"]',
+                true_branch=[
+                    WhileLoop(
+                        lineno=3,
+                        test='p["i"] < 10',
+                        body=[ActorCall(lineno=4, name="handler")],
+                    ),
+                ],
+                false_branch=[ActorCall(lineno=6, name="handler_b")],
+            ),
+            Return(lineno=7),
+        ]
+        grouper = OperationGrouper("flow", ops)
+        routers = grouper.group()
+
+        while_conds = [r for r in routers if r.condition is not None and "while" in r.name]
+        assert len(while_conds) == 1
+
+    def test_while_empty_body_produces_loop_back(self):
+        ops = [
+            WhileLoop(
+                lineno=3,
+                test='p["i"] < 10',
+                body=[],
+            ),
+            Return(lineno=5),
+        ]
+        grouper = OperationGrouper("flow", ops)
+        routers = grouper.group()
+
+        loop_backs = [r for r in routers if r.is_loop_back]
+        assert len(loop_backs) == 1
+
+    def test_sequential_while_loops(self):
+        ops = [
+            WhileLoop(
+                lineno=3,
+                test='p["i"] < 10',
+                body=[ActorCall(lineno=4, name="handler_a")],
+            ),
+            WhileLoop(
+                lineno=6,
+                test='p["j"] < 5',
+                body=[ActorCall(lineno=7, name="handler_b")],
+            ),
+            Return(lineno=8),
+        ]
+        grouper = OperationGrouper("flow", ops)
+        routers = grouper.group()
+
+        while_conds = [r for r in routers if r.condition is not None and "while" in r.name]
+        assert len(while_conds) == 2
+
+        # Find first and second while by their condition test
+        first_while = next(r for r in while_conds if r.condition is not None and 'p["i"]' in r.condition.test)
+        second_while = next(r for r in while_conds if r.condition is not None and 'p["j"]' in r.condition.test)
+
+        # First while's exit (false branch) should lead to second while
+        assert second_while.name in first_while.false_branch_actors
+
+    def test_while_with_break_and_continue_combined(self):
+        ops = [
+            WhileLoop(
+                lineno=3,
+                test='p["i"] < 10',
+                body=[
+                    Mutation(lineno=4, code='p["i"] += 1'),
+                    Condition(
+                        lineno=5,
+                        test='p["skip"]',
+                        true_branch=[Continue(lineno=6)],
+                        false_branch=[],
+                    ),
+                    ActorCall(lineno=7, name="handler"),
+                    Condition(
+                        lineno=8,
+                        test='p["stop"]',
+                        true_branch=[Break(lineno=9)],
+                        false_branch=[],
+                    ),
+                ],
+            ),
+            ActorCall(lineno=10, name="finalize"),
+            Return(lineno=11),
+        ]
+        grouper = OperationGrouper("flow", ops)
+        routers = grouper.group()
+
+        loop_back = next(r for r in routers if r.is_loop_back)
+
+        skip_cond = next(r for r in routers if r.condition is not None and r.condition.test == 'p["skip"]')
+        assert loop_back.name in skip_cond.true_branch_actors
+
+        stop_cond = next(r for r in routers if r.condition is not None and r.condition.test == 'p["stop"]')
+        assert "finalize" in stop_cond.true_branch_actors

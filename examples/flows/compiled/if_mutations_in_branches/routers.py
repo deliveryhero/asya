@@ -13,19 +13,19 @@ Regenerate by running: asya flow compile ../../if_mutations_in_branches.py
 # Generated Routers (for kubernetes deployment)
 # ======================================================================
 
-def start_if_mutations_in_branches_flow(envelope: dict) -> dict:
+def start_if_mutations_in_branches_flow(message: dict) -> dict:
     """Entrypoint for flow 'if_mutations_in_branches_flow'"""
-    r = envelope['route']
+    r = message['route']
     c = r['current']
 
     r['actors'][c+1:c+1] = [resolve("handler_setup"), resolve("router_if_mutations_in_branches_flow_line_10_if")]
     r['current'] = c + 1
-    return envelope
+    return message
 
-def router_if_mutations_in_branches_flow_line_11_seq(envelope: dict) -> dict:
+def router_if_mutations_in_branches_flow_line_11_seq(message: dict) -> dict:
     """Router for control flow and payload mutations"""
-    p = envelope['payload']
-    r = envelope['route']
+    p = message['payload']
+    r = message['route']
     c = r['current']
     _next = []
 
@@ -36,12 +36,12 @@ def router_if_mutations_in_branches_flow_line_11_seq(envelope: dict) -> dict:
 
     r['actors'][c+1:c+1] = _next
     r['current'] = c + 1
-    return envelope
+    return message
 
-def router_if_mutations_in_branches_flow_line_16_seq(envelope: dict) -> dict:
+def router_if_mutations_in_branches_flow_line_16_seq(message: dict) -> dict:
     """Router for control flow and payload mutations"""
-    p = envelope['payload']
-    r = envelope['route']
+    p = message['payload']
+    r = message['route']
     c = r['current']
     _next = []
 
@@ -51,12 +51,12 @@ def router_if_mutations_in_branches_flow_line_16_seq(envelope: dict) -> dict:
 
     r['actors'][c+1:c+1] = _next
     r['current'] = c + 1
-    return envelope
+    return message
 
-def router_if_mutations_in_branches_flow_line_10_if(envelope: dict) -> dict:
+def router_if_mutations_in_branches_flow_line_10_if(message: dict) -> dict:
     """Router for control flow and payload mutations"""
-    p = envelope['payload']
-    r = envelope['route']
+    p = message['payload']
+    r = message['route']
     c = r['current']
     _next = []
 
@@ -68,11 +68,11 @@ def router_if_mutations_in_branches_flow_line_10_if(envelope: dict) -> dict:
 
     r['actors'][c+1:c+1] = _next
     r['current'] = c + 1
-    return envelope
+    return message
 
-def end_if_mutations_in_branches_flow(envelope: dict) -> dict:
+def end_if_mutations_in_branches_flow(message: dict) -> dict:
     """Exitpoint for flow 'if_mutations_in_branches_flow'"""
-    return envelope
+    return message
 
 
 # ======================================================================

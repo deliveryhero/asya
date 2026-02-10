@@ -9,7 +9,7 @@ from asya_cli.flow import FlowCompiler
 
 
 class TestRouterExecution:
-    """Test that compiled routers correctly modify envelopes."""
+    """Test that compiled routers correctly modify messages."""
 
     def setup_method(self):
         os.environ.clear()
@@ -34,9 +34,9 @@ class TestRouterExecution:
         os.environ["ASYA_HANDLER_END_FLOW"] = "end_flow"
         os.environ["ASYA_HANDLER_START_FLOW"] = "start_flow"
 
-        envelope = {"route": {"actors": ["start_flow"], "current": 0}, "payload": {}}
+        message = {"route": {"actors": ["start_flow"], "current": 0}, "payload": {}}
         start_func = namespace["start_flow"]
-        result = start_func(envelope)
+        result = start_func(message)
 
         assert len(result["route"]["actors"]) == 3
         assert result["route"]["actors"][1] == "handler-a"
@@ -70,9 +70,9 @@ class TestRouterExecution:
         os.environ["ASYA_HANDLER_END_FLOW"] = "end_flow"
         os.environ["ASYA_HANDLER_START_FLOW"] = "start_flow"
 
-        envelope = {"route": {"actors": ["start_flow"], "current": 0}, "payload": {}}
+        message = {"route": {"actors": ["start_flow"], "current": 0}, "payload": {}}
         start_func = namespace["start_flow"]
-        result = start_func(envelope)
+        result = start_func(message)
 
         assert "handler-a" in result["route"]["actors"]
         assert "handler-b" in result["route"]["actors"]
@@ -114,11 +114,11 @@ class TestConditionalRouting:
         cond_router_name = [name for name in namespace if name.startswith("router_") and "_if" in name][0]
         cond_func = namespace[cond_router_name]
 
-        envelope_true = {
+        message_true = {
             "route": {"actors": [cond_router_name], "current": 0},
             "payload": {"go_left": True}
         }
-        result_true = cond_func(envelope_true)
+        result_true = cond_func(message_true)
 
         assert "left-handler" in result_true["route"]["actors"]
         assert "right-handler" not in result_true["route"]["actors"]
@@ -151,11 +151,11 @@ class TestConditionalRouting:
         cond_router_name = [name for name in namespace if name.startswith("router_") and "_if" in name][0]
         cond_func = namespace[cond_router_name]
 
-        envelope_false = {
+        message_false = {
             "route": {"actors": [cond_router_name], "current": 0},
             "payload": {"go_left": False}
         }
-        result_false = cond_func(envelope_false)
+        result_false = cond_func(message_false)
 
         assert "right-handler" in result_false["route"]["actors"]
         assert "left-handler" not in result_false["route"]["actors"]
@@ -188,18 +188,18 @@ class TestConditionalRouting:
         cond_router_name = [name for name in namespace if name.startswith("router_") and "_if" in name][0]
         cond_func = namespace[cond_router_name]
 
-        envelope_match = {
+        message_match = {
             "route": {"actors": [cond_router_name], "current": 0},
             "payload": {"x": 15, "y": 10}
         }
-        result_match = cond_func(envelope_match)
+        result_match = cond_func(message_match)
         assert "handler-match" in result_match["route"]["actors"]
 
-        envelope_no_match = {
+        message_no_match = {
             "route": {"actors": [cond_router_name], "current": 0},
             "payload": {"x": 5, "y": 25}
         }
-        result_no_match = cond_func(envelope_no_match)
+        result_no_match = cond_func(message_no_match)
         assert "handler-no-match" in result_no_match["route"]["actors"]
 
 
@@ -232,11 +232,11 @@ class TestMutationRouting:
         mutation_router_name = [name for name in namespace if name.startswith("router_") and "_seq" in name][0]
         mutation_func = namespace[mutation_router_name]
 
-        envelope = {
+        message = {
             "route": {"actors": [mutation_router_name], "current": 0},
             "payload": {}
         }
-        result = mutation_func(envelope)
+        result = mutation_func(message)
 
         assert result["payload"]["key"] == "value"
         assert "handler" in result["route"]["actors"]
@@ -261,11 +261,11 @@ class TestMutationRouting:
         mutation_router_name = [name for name in namespace if name.startswith("router_") and "_seq" in name][0]
         mutation_func = namespace[mutation_router_name]
 
-        envelope = {
+        message = {
             "route": {"actors": [mutation_router_name], "current": 0},
             "payload": {}
         }
-        result = mutation_func(envelope)
+        result = mutation_func(message)
 
         assert result["payload"]["x"] == 1
         assert result["payload"]["y"] == 2
@@ -296,14 +296,14 @@ class TestMutationRouting:
 
         mutation_routers = [name for name in namespace if name.startswith("router_") and "_seq" in name]
 
-        envelope_a = {
+        message_a = {
             "route": {"actors": ["router"], "current": 0},
             "payload": {"type": "A"}
         }
 
         cond_router_name = [name for name in namespace if name.startswith("router_") and "_if" in name][0]
         cond_func = namespace[cond_router_name]
-        result_a = cond_func(envelope_a)
+        result_a = cond_func(message_a)
 
         if mutation_routers:
             mutation_router = namespace[mutation_routers[0]]
@@ -349,19 +349,19 @@ class TestConvergenceRouting:
         cond_router_name = [name for name in namespace if name.startswith("router_") and "_if" in name][0]
         cond_func = namespace[cond_router_name]
 
-        envelope_true = {
+        message_true = {
             "route": {"actors": [cond_router_name], "current": 0},
             "payload": {"condition": True}
         }
-        result_true = cond_func(envelope_true)
+        result_true = cond_func(message_true)
         assert "handler-a" in result_true["route"]["actors"]
         assert "final-handler" in result_true["route"]["actors"]
 
-        envelope_false = {
+        message_false = {
             "route": {"actors": [cond_router_name], "current": 0},
             "payload": {"condition": False}
         }
-        result_false = cond_func(envelope_false)
+        result_false = cond_func(message_false)
         assert "handler-b" in result_false["route"]["actors"]
         assert "final-handler" in result_false["route"]["actors"]
 
@@ -369,7 +369,7 @@ class TestConvergenceRouting:
 class TestEndRouter:
     """Test end router behavior."""
 
-    def test_end_router_returns_envelope_unchanged(self):
+    def test_end_router_returns_message_unchanged(self):
         source = textwrap.dedent("""
             def flow(p: dict) -> dict:
                 return p
@@ -381,14 +381,14 @@ class TestEndRouter:
         namespace = {}
         exec(code, namespace)
 
-        envelope = {
+        message = {
             "route": {"actors": ["end_flow"], "current": 0},
             "payload": {"test": "data"}
         }
         end_func = namespace["end_flow"]
-        result = end_func(envelope)
+        result = end_func(message)
 
-        assert result == envelope
+        assert result == message
         assert result["payload"]["test"] == "data"
 
 
@@ -495,11 +495,11 @@ class TestRouteInsertion:
         router_name = [name for name in namespace if name.startswith("router_")][0]
         router_func = namespace[router_name]
 
-        envelope = {
+        message = {
             "route": {"actors": ["router_before", router_name, "router_after"], "current": 1},
             "payload": {}
         }
-        result = router_func(envelope)
+        result = router_func(message)
 
         assert result["route"]["actors"][0] == "router_before"
         assert "handler" in result["route"]["actors"]
@@ -528,10 +528,10 @@ class TestRouteInsertion:
 
         start_func = namespace["start_flow"]
 
-        envelope = {
+        message = {
             "route": {"actors": ["start_flow"], "current": 0},
             "payload": {}
         }
-        result = start_func(envelope)
+        result = start_func(message)
 
         assert result["route"]["actors"][0] == "start_flow"

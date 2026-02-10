@@ -9,7 +9,7 @@ Behavioral validation tests for 🎭 Gateway's MCP (Model Context Protocol) impl
 ✅ Error handling (isError flag instead of protocol-level errors)
 ✅ Parameter validation (required/optional parameters)
 ✅ Multiple protocol versions (2024-11-05, 2025-03-26)
-✅ Integration with envelope system
+✅ Integration with task system
 
 ## Running Tests
 
@@ -47,7 +47,7 @@ All tests validate that the gateway:
 - Uses valid content types (text/image/audio/resource)
 - Reports tool errors with `isError=true` in the result
 - Validates parameters correctly
-- Creates envelopes from tool calls
+- Creates tasks from tool calls
 
 ## See Also
 

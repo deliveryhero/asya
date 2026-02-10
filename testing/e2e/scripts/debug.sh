@@ -15,13 +15,14 @@
 #
 # Environment Variables:
 #   NAMESPACE         - K8s namespace for Asya components (default: e2e)
-#   SYSTEM_NAMESPACE  - K8s namespace for operator (default: asya-system)
+#   SYSTEM_NAMESPACE  - K8s namespace for injector (default: asya-system)
 #   CLUSTER_NAME      - Kind cluster name (default: asya-e2e-{profile})
 #   TAIL              - Number of log lines for main components (default: 50)
 #   ACTOR_TAIL        - Number of log lines for actors (default: 20)
 #
 # Components monitored:
-#   - Asya Operator (deployment and pods)
+#   - Asya Injector (deployment and pods)
+#   - Crossplane Providers (pods in crossplane-system)
 #   - Asya Gateway (deployment and pods)
 #   - RabbitMQ (statefulset and pods)
 #   - PostgreSQL (statefulset and pods)
@@ -84,7 +85,7 @@ done
 # =============================================================================
 
 show_diagnostics() {
-  echo "=== Asya E2E Diagnostics ==="
+  echo "=== Asya E2E Diagnostics (Crossplane) ==="
   echo "Cluster: $CLUSTER_NAME"
   echo "Namespace: $NAMESPACE"
   echo "System Namespace: $SYSTEM_NAMESPACE"
@@ -99,10 +100,17 @@ show_diagnostics() {
   echo "[+] Cluster '$CLUSTER_NAME' exists"
   echo
 
-  # Operator status
-  echo "=== Operator Status ==="
-  kubectl get deployment -n "$SYSTEM_NAMESPACE" -l app.kubernetes.io/name=asya-operator -o wide 2> /dev/null || echo "[!] Operator deployment not found"
-  kubectl get pods -n "$SYSTEM_NAMESPACE" -l app.kubernetes.io/name=asya-operator -o wide 2> /dev/null || echo "[!] Operator pods not found"
+  # Injector status
+  echo "=== Injector Status ==="
+  kubectl get deployment -n "$SYSTEM_NAMESPACE" -l app.kubernetes.io/name=asya-injector -o wide 2> /dev/null || echo "[!] Injector deployment not found"
+  kubectl get pods -n "$SYSTEM_NAMESPACE" -l app.kubernetes.io/name=asya-injector -o wide 2> /dev/null || echo "[!] Injector pods not found"
+  echo
+
+  # Crossplane status
+  echo "=== Crossplane Status ==="
+  kubectl get providers.pkg.crossplane.io 2> /dev/null || echo "[!] No Crossplane providers found"
+  kubectl get functions.pkg.crossplane.io 2> /dev/null || echo "[!] No Crossplane functions found"
+  kubectl get pods -n crossplane-system -l pkg.crossplane.io/revision -o wide 2> /dev/null || echo "[!] No Crossplane provider pods found"
   echo
 
   # Gateway status
@@ -166,9 +174,14 @@ show_logs() {
   echo "=== Asya Component Logs ==="
   echo
 
-  # Operator logs
-  echo "=== Operator Logs (tail=$TAIL) ==="
-  kubectl logs -n "$SYSTEM_NAMESPACE" -l app.kubernetes.io/name=asya-operator --tail="$TAIL" 2> /dev/null || echo "[!] No operator logs"
+  # Injector logs
+  echo "=== Injector Logs (tail=$TAIL) ==="
+  kubectl logs -n "$SYSTEM_NAMESPACE" -l app.kubernetes.io/name=asya-injector --tail="$TAIL" 2> /dev/null || echo "[!] No injector logs"
+  echo
+
+  # Crossplane provider logs
+  echo "=== Crossplane Provider Logs (tail=$TAIL) ==="
+  kubectl logs -n crossplane-system -l pkg.crossplane.io/revision --tail="$TAIL" --all-containers=true 2> /dev/null || echo "[!] No Crossplane provider logs"
   echo
 
   # Gateway logs

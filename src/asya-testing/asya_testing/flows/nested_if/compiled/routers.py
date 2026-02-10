@@ -13,19 +13,19 @@ Regenerate by running: asya flow compile ../flow.py
 # Generated Routers (for kubernetes deployment)
 # ======================================================================
 
-def start_test_nested_flow(envelope: dict) -> dict:
+def start_test_nested_flow(message: dict) -> dict:
     """Entrypoint for flow 'test_nested_flow'"""
-    r = envelope['route']
+    r = message['route']
     c = r['current']
 
     r['actors'][c+1:c+1] = [resolve("validate_input"), resolve("router_test_nested_flow_line_4_if")]
     r['current'] = c + 1
-    return envelope
+    return message
 
-def router_test_nested_flow_line_7_seq(envelope: dict) -> dict:
+def router_test_nested_flow_line_7_seq(message: dict) -> dict:
     """Router for control flow and payload mutations"""
-    p = envelope['payload']
-    r = envelope['route']
+    p = message['payload']
+    r = message['route']
     c = r['current']
     _next = []
 
@@ -35,12 +35,12 @@ def router_test_nested_flow_line_7_seq(envelope: dict) -> dict:
 
     r['actors'][c+1:c+1] = _next
     r['current'] = c + 1
-    return envelope
+    return message
 
-def router_test_nested_flow_line_10_seq(envelope: dict) -> dict:
+def router_test_nested_flow_line_10_seq(message: dict) -> dict:
     """Router for control flow and payload mutations"""
-    p = envelope['payload']
-    r = envelope['route']
+    p = message['payload']
+    r = message['route']
     c = r['current']
     _next = []
 
@@ -50,12 +50,12 @@ def router_test_nested_flow_line_10_seq(envelope: dict) -> dict:
 
     r['actors'][c+1:c+1] = _next
     r['current'] = c + 1
-    return envelope
+    return message
 
-def router_test_nested_flow_line_6_if(envelope: dict) -> dict:
+def router_test_nested_flow_line_6_if(message: dict) -> dict:
     """Router for control flow and payload mutations"""
-    p = envelope['payload']
-    r = envelope['route']
+    p = message['payload']
+    r = message['route']
     c = r['current']
     _next = []
 
@@ -67,12 +67,12 @@ def router_test_nested_flow_line_6_if(envelope: dict) -> dict:
 
     r['actors'][c+1:c+1] = _next
     r['current'] = c + 1
-    return envelope
+    return message
 
-def router_test_nested_flow_line_15_seq(envelope: dict) -> dict:
+def router_test_nested_flow_line_15_seq(message: dict) -> dict:
     """Router for control flow and payload mutations"""
-    p = envelope['payload']
-    r = envelope['route']
+    p = message['payload']
+    r = message['route']
     c = r['current']
     _next = []
 
@@ -82,12 +82,12 @@ def router_test_nested_flow_line_15_seq(envelope: dict) -> dict:
 
     r['actors'][c+1:c+1] = _next
     r['current'] = c + 1
-    return envelope
+    return message
 
-def router_test_nested_flow_line_18_seq(envelope: dict) -> dict:
+def router_test_nested_flow_line_18_seq(message: dict) -> dict:
     """Router for control flow and payload mutations"""
-    p = envelope['payload']
-    r = envelope['route']
+    p = message['payload']
+    r = message['route']
     c = r['current']
     _next = []
 
@@ -97,12 +97,12 @@ def router_test_nested_flow_line_18_seq(envelope: dict) -> dict:
 
     r['actors'][c+1:c+1] = _next
     r['current'] = c + 1
-    return envelope
+    return message
 
-def router_test_nested_flow_line_14_if(envelope: dict) -> dict:
+def router_test_nested_flow_line_14_if(message: dict) -> dict:
     """Router for control flow and payload mutations"""
-    p = envelope['payload']
-    r = envelope['route']
+    p = message['payload']
+    r = message['route']
     c = r['current']
     _next = []
 
@@ -114,12 +114,12 @@ def router_test_nested_flow_line_14_if(envelope: dict) -> dict:
 
     r['actors'][c+1:c+1] = _next
     r['current'] = c + 1
-    return envelope
+    return message
 
-def router_test_nested_flow_line_4_if(envelope: dict) -> dict:
+def router_test_nested_flow_line_4_if(message: dict) -> dict:
     """Router for control flow and payload mutations"""
-    p = envelope['payload']
-    r = envelope['route']
+    p = message['payload']
+    r = message['route']
     c = r['current']
     _next = []
 
@@ -130,11 +130,11 @@ def router_test_nested_flow_line_4_if(envelope: dict) -> dict:
 
     r['actors'][c+1:c+1] = _next
     r['current'] = c + 1
-    return envelope
+    return message
 
-def end_test_nested_flow(envelope: dict) -> dict:
+def end_test_nested_flow(message: dict) -> dict:
     """Exitpoint for flow 'test_nested_flow'"""
-    return envelope
+    return message
 
 
 # ======================================================================

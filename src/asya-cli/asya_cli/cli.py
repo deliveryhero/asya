@@ -6,8 +6,8 @@ Usage:
     asya mcp call <tool-name> [args]
     asya mcp list
     asya mcp show <tool-name>
-    asya mcp status <envelope-id>
-    asya mcp stream <envelope-id>
+    asya mcp status <task-id>
+    asya mcp stream <task-id>
     asya mcp port-forward [options]
     asya flow <subcommand> [args]
 """

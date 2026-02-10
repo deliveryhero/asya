@@ -13,14 +13,15 @@ GitHub repo: [https://github.com/deliveryhero/asya](https://github.com/deliveryh
 
 ### Getting Started
 - **[Motivation](motivation.md)** - Why Asya exists, problems it solves, when to use it
-- **[Core Concepts](concepts.md)** - Actors, envelopes, sidecars, runtime, and system components
+- **[Core Concepts](concepts.md)** - Actors, messages, sidecars, runtime, and system components
 
 ### Architecture
 - **[Architecture Overview](architecture/README.md)** - Deep dive into system design and components
   - [Actors](architecture/asya-actor.md) - Stateless workloads with message-based communication
   - [Sidecar](architecture/asya-sidecar.md) - Message routing and transport management
   - [Runtime](architecture/asya-runtime.md) - User code execution environment
-  - [Operator](architecture/asya-operator.md) - Kubernetes CRD controller
+  - [Crossplane Compositions](architecture/asya-crossplane.md) - Declarative resource management
+  - [Injector Webhook](architecture/asya-injector.md) - Sidecar injection
   - [Gateway](architecture/asya-gateway.md) - Optional MCP HTTP API
   - [Crew](architecture/asya-crew.md) - System actors for flow maintenance
   - [Autoscaling](architecture/autoscaling.md) - KEDA integration details

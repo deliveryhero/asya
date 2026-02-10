@@ -4,7 +4,7 @@ Deploy and manage Asya🎭 infrastructure.
 
 ## What You'll Learn
 
-- Install and configure Asya operator with transports (SQS/RabbitMQ)
+- Install and configure Crossplane with Asya compositions and injector webhook
 - Deploy gateway and crew actors for pipeline completion
 - Support data science teams with templates and IAM configuration
 - Set up monitoring with Prometheus and troubleshoot common issues
@@ -14,7 +14,7 @@ Deploy and manage Asya🎭 infrastructure.
 
 As platform engineer, you:
 
-- Deploy Asya operator and gateway
+- Deploy Crossplane compositions and asya-injector webhook
 - Configure transports (SQS, RabbitMQ)
 - Manage IAM roles and permissions
 - Monitor system health
@@ -36,52 +36,31 @@ helm repo add kedacore https://kedacore.github.io/charts
 helm install keda kedacore/keda --namespace keda --create-namespace
 ```
 
-### 2. Install CRDs
+### 2. Install Crossplane
 
 ```bash
-kubectl apply -f https://github.com/deliveryhero/asya/releases/latest/download/asya-crds.yaml
+helm repo add crossplane-stable https://charts.crossplane.io/stable
+helm install crossplane crossplane-stable/crossplane \
+  --namespace crossplane-system --create-namespace
 ```
 
-### 3. Configure Transports
-
-**For AWS (SQS)**:
-```yaml
-# operator-values.yaml
-transports:
-  sqs:
-    enabled: true
-    type: sqs
-    config:
-      region: us-east-1
-
-serviceAccount:
-  annotations:
-    eks.amazonaws.com/role-arn: arn:aws:iam::ACCOUNT:role/asya-operator-role
-```
-
-**For self-hosted (RabbitMQ)**:
-```yaml
-# operator-values.yaml
-transports:
-  rabbitmq:
-    enabled: true
-    type: rabbitmq
-    config:
-      host: rabbitmq.default.svc.cluster.local
-      port: 5672
-      username: guest
-      passwordSecretRef:
-        name: rabbitmq-secret
-        key: password
-```
-
-### 4. Install Operator
+### 3. Install Asya Compositions and Injector
 
 ```bash
-helm install asya-operator deploy/helm-charts/asya-operator/ \
-  -n asya-system --create-namespace \
-  -f operator-values.yaml
+# Install Asya XRDs and Compositions
+kubectl apply -f https://github.com/deliveryhero/asya/releases/latest/download/asya-crossplane.yaml
+
+# Install asya-injector webhook
+helm install asya-injector deploy/helm-charts/asya-injector/ \
+  -n asya-system --create-namespace
 ```
+
+### 4. Configure Transports
+
+**For AWS (SQS)**: Configure transport in AsyncActor resources
+**For self-hosted (RabbitMQ)**: Configure transport in AsyncActor resources
+
+Transport configuration is now managed per-actor in AsyncActor CRs, not centrally.
 
 ### 5. Install Gateway (Optional)
 
@@ -154,17 +133,20 @@ helm install asya-crew deploy/helm-charts/asya-crew/ -f crew-values.yaml
 ### 7. Verify Installation
 
 ```bash
-# Check operator
+# Check Crossplane
+kubectl get pods -n crossplane-system
+
+# Check injector webhook
 kubectl get pods -n asya-system
 
 # Check KEDA
 kubectl get pods -n keda
 
-# Check CRDs
-kubectl get crd | grep asya
+# Check XRDs
+kubectl get xrd | grep asya
 
 # Check crew actors
-kubectl get asya
+kubectl get asyncactor
 ```
 
 ## Supporting Data Science Teams
@@ -261,7 +243,7 @@ kubectl create secret generic rabbitmq-secret \
 
 ### Prometheus Metrics
 
-**Important**: Operator does NOT automatically create ServiceMonitors. You must configure Prometheus scraping.
+**Important**: The injector webhook does NOT automatically create ServiceMonitors. You must configure Prometheus scraping.
 
 **Key sidecar metrics** (namespace: `asya_actor`):
 
@@ -270,10 +252,10 @@ kubectl create secret generic rabbitmq-secret \
 - `asya_actor_messages_failed_total{queue, reason}` - Failed messages
 - `asya_actor_runtime_errors_total{queue, error_type}` - Runtime errors
 
-**Key operator metrics**:
+**Key Crossplane metrics**:
 
-- `controller_runtime_reconcile_total{controller="asyncactor"}` - Reconciliations
-- `controller_runtime_reconcile_errors_total{controller="asyncactor"}` - Errors
+- `crossplane_composition_reconcile_total` - Composition reconciliations
+- `crossplane_composition_reconcile_errors_total` - Composition errors
 
 **KEDA metrics**:
 
@@ -346,9 +328,14 @@ histogram_quantile(0.95, rate(asya_actor_processing_duration_seconds_bucket{queu
 
 ### Logging
 
-**View operator logs**:
+**View Crossplane logs**:
 ```bash
-kubectl logs -n asya-system deploy/asya-operator -f
+kubectl logs -n crossplane-system deploy/crossplane -f
+```
+
+**View injector webhook logs**:
+```bash
+kubectl logs -n asya-system deploy/asya-injector -f
 ```
 
 **View actor logs**:
@@ -365,18 +352,18 @@ kubectl logs -l asya.sh/actor=my-actor -c asya-sidecar -f
 ### Queue Not Created
 
 ```bash
-# Check operator logs
-kubectl logs -n asya-system deploy/asya-operator
+# Check Crossplane logs
+kubectl logs -n crossplane-system deploy/crossplane
 
 # Check AsyncActor status
-kubectl describe asya my-actor
+kubectl describe asyncactor my-actor
 
 # Check conditions
-kubectl get asya my-actor -o jsonpath='{.status.conditions}'
+kubectl get asyncactor my-actor -o jsonpath='{.status.conditions}'
 ```
 
 **Common causes**:
-- Transport not enabled in operator config
+- Transport not configured in AsyncActor spec
 - Missing IAM permissions (SQS)
 - RabbitMQ connection failure
 - AWS SQS 60-second cooldown after queue deletion
@@ -412,7 +399,7 @@ kubectl get asya my-actor -o jsonpath='{.spec.transport}'
 ```
 
 **Common issues**:
-- Wrong transport configured (`sqs` vs `rabbitmq`)
+- Wrong transport configured in AsyncActor spec
 - Missing IAM permissions (SQS)
 - RabbitMQ credentials incorrect
 - Queue doesn't exist
@@ -554,10 +541,16 @@ eksctl create nodegroup \
 ## Upgrades
 
 ```bash
-# Upgrade operator
-helm upgrade asya-operator deploy/helm-charts/asya-operator/ \
-  -n asya-system \
-  -f operator-values.yaml
+# Upgrade Crossplane
+helm upgrade crossplane crossplane-stable/crossplane \
+  -n crossplane-system
+
+# Upgrade Asya compositions
+kubectl apply -f https://github.com/deliveryhero/asya/releases/latest/download/asya-crossplane.yaml
+
+# Upgrade injector webhook
+helm upgrade asya-injector deploy/helm-charts/asya-injector/ \
+  -n asya-system
 
 # Upgrade gateway
 helm upgrade asya-gateway deploy/helm-charts/asya-gateway/ \
@@ -568,7 +561,7 @@ helm upgrade asya-crew deploy/helm-charts/asya-crew/ \
   -f crew-values.yaml
 ```
 
-**Important**: Always upgrade operator before upgrading actors. AsyncActors may need to be reconciled after operator upgrade.
+**Important**: Always upgrade Crossplane and compositions before upgrading actors. AsyncActors may need to be reconciled after composition upgrade.
 
 ## Next Steps
 

@@ -12,24 +12,24 @@ import (
 	"github.com/mark3labs/mcp-go/server"
 
 	"github.com/deliveryhero/asya/asya-gateway/internal/config"
-	"github.com/deliveryhero/asya/asya-gateway/internal/envelopestore"
 	"github.com/deliveryhero/asya/asya-gateway/internal/queue"
+	"github.com/deliveryhero/asya/asya-gateway/internal/taskstore"
 	"github.com/deliveryhero/asya/asya-gateway/pkg/types"
 )
 
 // Server wraps the mark3labs MCP server
 type Server struct {
 	mcpServer   *server.MCPServer
-	jobStore    envelopestore.EnvelopeStore
+	taskStore   taskstore.TaskStore
 	queueClient queue.Client
 	registry    *Registry
 }
 
 // NewServer creates a new MCP server using mark3labs/mcp-go
 // If cfg is nil, uses default hardcoded tools for backward compatibility
-func NewServer(jobStore envelopestore.EnvelopeStore, queueClient queue.Client, cfg *config.Config) *Server {
+func NewServer(taskStore taskstore.TaskStore, queueClient queue.Client, cfg *config.Config) *Server {
 	s := &Server{
-		jobStore:    jobStore,
+		taskStore:   taskStore,
 		queueClient: queueClient,
 	}
 
@@ -43,7 +43,7 @@ func NewServer(jobStore envelopestore.EnvelopeStore, queueClient queue.Client, c
 	// Always create registry for /tools/call REST endpoint support
 	if cfg != nil {
 		// Use registry for dynamic tool registration
-		s.registry = NewRegistry(cfg, jobStore, queueClient)
+		s.registry = NewRegistry(cfg, taskStore, queueClient)
 		if err := s.registry.RegisterAll(s.mcpServer); err != nil {
 			log.Fatalf("Failed to register tools from config: %v", err)
 		}
@@ -51,7 +51,7 @@ func NewServer(jobStore envelopestore.EnvelopeStore, queueClient queue.Client, c
 		// Fallback to hardcoded tools for backward compatibility
 		log.Println("No config provided, using default empty list of tools")
 		// Create empty registry to support REST API
-		s.registry = NewRegistry(&config.Config{Tools: []config.Tool{}}, jobStore, queueClient)
+		s.registry = NewRegistry(&config.Config{Tools: []config.Tool{}}, taskStore, queueClient)
 		s.registry.mcpServer = s.mcpServer
 		s.registerToolsWithRegistry()
 	}
@@ -108,10 +108,10 @@ func (s *Server) handleProcessImageWorkflow(ctx context.Context, request mcp.Cal
 	count := request.GetFloat("count", 5.0)
 	timeout := request.GetFloat("timeout", 0.0)
 
-	// Create envelope
-	envelopeID := uuid.New().String()
-	envelope := &types.Envelope{
-		ID: envelopeID,
+	// Create task
+	taskID := uuid.New().String()
+	task := &types.Task{
+		ID: taskID,
 		Route: types.Route{
 			Actors:  route,
 			Current: 0,
@@ -123,31 +123,31 @@ func (s *Server) handleProcessImageWorkflow(ctx context.Context, request mcp.Cal
 		TimeoutSec: int(timeout),
 	}
 
-	// Store envelope
-	if err := s.jobStore.Create(envelope); err != nil {
-		log.Printf("Failed to create envelope: %v", err)
-		return mcp.NewToolResultError(fmt.Sprintf("failed to create envelope: %v", err)), nil
+	// Store task
+	if err := s.taskStore.Create(task); err != nil {
+		log.Printf("Failed to create task: %v", err)
+		return mcp.NewToolResultError(fmt.Sprintf("failed to create task: %v", err)), nil
 	}
 
 	// Send to queue (async)
 	go func() {
 		// Update status to Running
-		_ = s.jobStore.Update(types.EnvelopeUpdate{
-			ID:        envelopeID,
-			Status:    types.EnvelopeStatusRunning,
-			Message:   "Sending envelope to first actor",
+		_ = s.taskStore.Update(types.TaskUpdate{
+			ID:        taskID,
+			Status:    types.TaskStatusRunning,
+			Message:   "Sending task to first actor",
 			Timestamp: time.Now(),
 		})
 
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 
-		if err := s.queueClient.SendEnvelope(ctx, envelope); err != nil {
-			log.Printf("Failed to send envelope to queue: %v", err)
-			_ = s.jobStore.Update(types.EnvelopeUpdate{
-				ID:        envelopeID,
-				Status:    types.EnvelopeStatusFailed,
-				Error:     fmt.Sprintf("failed to send envelope: %v", err),
+		if err := s.queueClient.SendMessage(ctx, task); err != nil {
+			log.Printf("Failed to send task to queue: %v", err)
+			_ = s.taskStore.Update(types.TaskUpdate{
+				ID:        taskID,
+				Status:    types.TaskStatusFailed,
+				Error:     fmt.Sprintf("failed to send task: %v", err),
 				Timestamp: time.Now(),
 			})
 			return
@@ -156,10 +156,10 @@ func (s *Server) handleProcessImageWorkflow(ctx context.Context, request mcp.Cal
 
 	// Build MCP-compliant structured response
 	responseData := map[string]interface{}{
-		"envelope_id": envelopeID,
-		"message":     "Envelope created successfully",
-		"status_url":  fmt.Sprintf("/envelopes/%s", envelopeID),
-		"stream_url":  fmt.Sprintf("/envelopes/%s/stream", envelopeID),
+		"task_id":    taskID,
+		"message":    "Task created successfully",
+		"status_url": fmt.Sprintf("/tasks/%s", taskID),
+		"stream_url": fmt.Sprintf("/tasks/%s/stream", taskID),
 	}
 
 	// Convert to JSON string for text content

@@ -1,0 +1,221 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: CompositeResourceDefinition
+metadata:
+  name: xasyncactors.asya.sh
+  labels:
+    {{- include "asya-crossplane.labels" . | nindent 4 }}
+spec:
+  group: asya.sh
+  names:
+    kind: XAsyncActor
+    plural: xasyncactors
+    shortNames:
+      - xasya
+      - xasyas
+  claimNames:
+    kind: AsyncActor
+    plural: asyncactors
+    shortNames:
+      - asya
+      - asyas
+  versions:
+    - name: v1alpha1
+      served: true
+      referenceable: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              required:
+                - actor
+                - transport
+                - workload
+              properties:
+                actor:
+                  type: string
+                  description: Logical actor identity used for queue naming and message routing
+                  minLength: 1
+                  maxLength: 63
+                  pattern: '^[a-z0-9]([a-z0-9-]*[a-z0-9])?$'
+
+                transport:
+                  type: string
+                  description: Transport type for message queue
+                  enum:
+                    - sqs
+                    - rabbitmq
+                  default: sqs
+
+                region:
+                  type: string
+                  description: AWS region for SQS queue
+                  default: us-east-1
+
+                scaling:
+                  type: object
+                  description: KEDA autoscaling configuration
+                  properties:
+                    enabled:
+                      type: boolean
+                      default: true
+                    minReplicas:
+                      type: integer
+                      default: 0
+                    maxReplicas:
+                      type: integer
+                      default: 10
+                    pollingInterval:
+                      type: integer
+                      description: Interval in seconds to poll for messages
+                      default: 30
+                    cooldownPeriod:
+                      type: integer
+                      description: Seconds to wait before scaling down
+                      default: 300
+                    queueLength:
+                      type: integer
+                      description: Target queue length per replica
+                      default: 5
+
+                workload:
+                  type: object
+                  description: |
+                    Workload template (Crossplane manages the Deployment).
+                    Must contain exactly one container named 'asya-runtime' without 'command' defined.
+                  properties:
+                    kind:
+                      type: string
+                      enum:
+                        - Deployment
+                        - StatefulSet
+                      default: Deployment
+                    replicas:
+                      type: integer
+                      description: Number of replicas (only used when scaling is disabled)
+                    template:
+                      type: object
+                      description: Pod template specification
+                      x-kubernetes-preserve-unknown-fields: true
+
+                sidecar:
+                  type: object
+                  description: Sidecar configuration overrides
+                  properties:
+                    image:
+                      type: string
+                      default: ghcr.io/deliveryhero/asya-sidecar:latest
+                    imagePullPolicy:
+                      type: string
+                      description: Image pull policy for the sidecar container
+                      enum:
+                        - Always
+                        - IfNotPresent
+                        - Never
+                    env:
+                      type: array
+                      description: Additional environment variables for the sidecar container
+                      items:
+                        type: object
+                        required:
+                          - name
+                          - value
+                        properties:
+                          name:
+                            type: string
+                          value:
+                            type: string
+                    resources:
+                      type: object
+                      x-kubernetes-preserve-unknown-fields: true
+
+                providerConfigRef:
+                  type: string
+                  description: Name of the AWS ProviderConfig to use
+                  default: {{ .Values.awsProviderConfig.name }}
+
+                irsa:
+                  type: object
+                  description: IRSA (IAM Roles for Service Accounts) configuration
+                  properties:
+                    enabled:
+                      type: boolean
+                      description: Enable ServiceAccount with IRSA annotation
+                      default: true
+                    roleArn:
+                      type: string
+                      description: IAM role ARN for the ServiceAccount (overrides default pattern)
+
+            status:
+              type: object
+              properties:
+                phase:
+                  type: string
+                  description: |
+                    Current phase of the AsyncActor.
+                    Values: Creating, Ready, Napping
+                queueUrl:
+                  type: string
+                  description: Connection URL for the queue
+                queueIdentifier:
+                  type: string
+                  description: Unique identifier for the queue resource
+                infrastructure:
+                  type: object
+                  description: Status of infrastructure components
+                  properties:
+                    queue:
+                      type: object
+                      description: Queue status
+                      properties:
+                        ready:
+                          type: boolean
+                          description: Whether the queue is ready
+                        message:
+                          type: string
+                    keda:
+                      type: object
+                      description: KEDA ScaledObject status
+                      properties:
+                        ready:
+                          type: boolean
+                          description: Whether the ScaledObject is ready
+                        message:
+                          type: string
+                    workload:
+                      type: object
+                      description: Deployment/StatefulSet status
+                      properties:
+                        ready:
+                          type: boolean
+                          description: Whether the workload is ready
+                        replicas:
+                          type: integer
+                          description: Total desired replicas
+                        readyReplicas:
+                          type: integer
+                          description: Number of ready replicas
+      additionalPrinterColumns:
+        - name: Actor
+          type: string
+          jsonPath: .spec.actor
+        - name: Status
+          type: string
+          jsonPath: .status.phase
+        - name: Ready
+          type: integer
+          jsonPath: .status.infrastructure.workload.readyReplicas
+        - name: Replicas
+          type: integer
+          jsonPath: .status.infrastructure.workload.replicas
+        - name: Transport
+          type: string
+          jsonPath: .spec.transport
+        - name: Queue
+          type: string
+          jsonPath: .status.queueUrl
+          priority: 1
+        - name: Age
+          type: date
+          jsonPath: .metadata.creationTimestamp

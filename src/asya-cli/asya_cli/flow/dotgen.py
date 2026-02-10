@@ -99,7 +99,12 @@ class DotGenerator:
                     self.user_actors.add(actor)
 
     def _generate_actor_node(self, router: Router) -> str:
-        color = "lightgreen" if router.name.startswith("start_") or router.name.startswith("end_") else "wheat"
+        if router.name.startswith("start_") or router.name.startswith("end_"):
+            color = "lightgreen"
+        elif router.is_loop_back:
+            color = "wheat"  # for now, same color as regular router
+        else:
+            color = "wheat"
 
         rows = []
         display_name = self._get_display_name(router.name)
@@ -144,27 +149,45 @@ class DotGenerator:
     def _generate_edges(self, router: Router) -> set[str]:
         lines = set()
 
-        if router.condition:
+        if router.is_loop_back:
+            # Loop-back routers use dashed back-edges
+            actors = router.true_branch_actors
+            if actors:
+                lines.add(f"  {self._node_id(router.name)} -> {self._node_id(actors[0])} [constraint=false];")
+                self._add_sequential_edges(actors, lines)
+        elif router.condition:
             true_actors = router.true_branch_actors
             false_actors = router.false_branch_actors
 
             if true_actors:
                 lines.add(f"  {self._node_id(router.name)} -> {self._node_id(true_actors[0])} [color=darkgreen];")
-                for i in range(len(true_actors) - 1):
-                    lines.add(f"  {self._node_id(true_actors[i])} -> {self._node_id(true_actors[i + 1])};")
+                self._add_sequential_edges(true_actors, lines)
 
             if false_actors:
                 lines.add(f"  {self._node_id(router.name)} -> {self._node_id(false_actors[0])} [color=darkred];")
-                for i in range(len(false_actors) - 1):
-                    lines.add(f"  {self._node_id(false_actors[i])} -> {self._node_id(false_actors[i + 1])};")
+                self._add_sequential_edges(false_actors, lines)
         else:
             actors = router.true_branch_actors
             if actors:
                 lines.add(f"  {self._node_id(router.name)} -> {self._node_id(actors[0])};")
-                for i in range(len(actors) - 1):
-                    lines.add(f"  {self._node_id(actors[i])} -> {self._node_id(actors[i + 1])};")
+                self._add_sequential_edges(actors, lines)
 
         return lines
+
+    def _add_sequential_edges(self, actors: list[str], lines: set[str]) -> None:
+        """Add sequential edges between consecutive actors in a branch.
+
+        Stops the chain when an actor is a router that generates its own
+        outgoing edges (conditional or loop-back routers), preventing
+        duplicate edges in the graph.
+        """
+        for i in range(len(actors) - 1):
+            source = actors[i]
+            # If the source is a router that owns its own outgoing edges, stop the chain
+            source_router = self.router_map.get(source)
+            if source_router and (source_router.condition or source_router.is_loop_back):
+                break
+            lines.add(f"  {self._node_id(source)} -> {self._node_id(actors[i + 1])};")
 
     def _node_id(self, name: str) -> str:
         return name.replace("-", "_").replace(".", "_")

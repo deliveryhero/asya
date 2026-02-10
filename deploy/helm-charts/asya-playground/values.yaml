@@ -30,7 +30,7 @@ global:
 #     --set kube-prometheus-stack.namespaceOverride=monitoring
 #
 # This deploys:
-#   - asya-demo: Operator, Gateway, Crew, Actors, KEDA
+#   - asya-demo: Crossplane, Injector, Gateway, Crew, Actors, KEDA
 #   - monitoring: Prometheus, Grafana, dashboards, PodMonitors
 #   - asya-infra: LocalStack SQS, S3, MinIO, PostgreSQL
 namespaces:
@@ -73,13 +73,13 @@ helloActor:
 # 1. Set sampleTransport.*.enabled: false (disable sample deployments)
 # 2. Set sampleStorage.*.enabled: false (disable sample deployments)
 # 3. Set sampleGatewayDb.postgresql.enabled: false (disable sample PostgreSQL)
-# 4. Configure external endpoints in asya-operator.transports.*.config
+# 4. Configure external endpoints in asya-crossplane.awsProviderConfig
 # 5. Configure external endpoints in asya-crew.storage.*
 # 6. Configure external database in asya-gateway.externalDatabase
 #
 sampleTransport:
   # LocalStack for SQS (demo only)
-  # For production: Set enabled: false and configure asya-operator.transports.sqs.config below
+  # For production: Set enabled: false and configure asya-crossplane.awsProviderConfig below
   sqsLocalstack:
     enabled: true
     image:
@@ -100,7 +100,7 @@ sampleTransport:
         memory: 512Mi
 
   # RabbitMQ (demo only)
-  # For production: Set enabled: false and configure asya-operator.transports.rabbitmq.config below
+  # For production: Set enabled: false and configure transport settings below
   rabbitmq:
     enabled: false
     image:
@@ -197,68 +197,47 @@ sampleGatewayDb:
         cpu: 250m
         memory: 256Mi
 
-# Operator configuration (passed to asya-operator chart)
-# Uncomment and modify values below to override chart defaults
-asya-operator:
-  # replicaCount: 1
-  # image:
-  #   repository: ghcr.io/deliveryhero/asya-operator
-  #   tag: "latest"
-  # logLevel: info
-  # controller:
-  #   maxConcurrentReconciles: 50
-  #   queueHealthCheckInterval: "5m"
-  # sidecar:
-  #   image: ghcr.io/deliveryhero/asya-sidecar
-  #   tag: "latest"
-
-  # AWS credentials for LocalStack (for local profile only)
-  # In production, use IRSA (IAM Roles for Service Accounts) instead
-  extraEnv:
-  - name: AWS_ACCESS_KEY_ID
-    value: "test"
-  - name: AWS_SECRET_ACCESS_KEY
-    value: "test"
-  - name: AWS_REGION
-    value: "us-east-1"
-
-  # Transport configurations (ACTIVELY USED - configure for your environment)
-  # These will be enabled/disabled based on global.transport
-  transports:
-    # RabbitMQ transport configuration
-    # For external RabbitMQ: Update host/port/credentials, disable sampleTransport.rabbitmq
-    rabbitmq:
-      enabled: false
-      type: rabbitmq
-      config:
-        host: rabbitmq
-        port: 5672
-        username: guest
-        passwordSecretRef:
-          name: rabbitmq-secret
-          key: password
-
-    # SQS transport configuration
-    # For AWS SQS: Set endpoint: "", update accountId, disable sampleTransport.sqsLocalstack
-    # For production with IRSA: Remove credentials section entirely
-    sqs:
+# Crossplane configuration (passed to asya-crossplane chart)
+# Manages AsyncActor CRDs, Compositions, and Crossplane providers
+asya-crossplane:
+  providerConfigs:
+    install: false # Set to true after Crossplane providers are healthy (two-step install)
+  awsProviderConfig:
+    name: localstack
+    credentialsSource: Secret
+    secretRef:
+      namespace: crossplane-system
+      name: aws-creds
+      key: credentials
+    endpoint:
       enabled: true
-      type: sqs
-      config:
-        region: us-east-1
-        accountId: "000000000000"
-        endpoint: http://localstack-sqs:4566
-        visibilityTimeout: 300
-        waitTimeSeconds: 20
-        # Credentials for KEDA autoscaling (required for LocalStack)
-        # For production with IRSA: Remove this entire credentials section
-        credentials:
-          accessKeyIdSecretRef:
-            name: sqs-credentials
-            key: access-key-id
-          secretAccessKeySecretRef:
-            name: sqs-credentials
-            key: secret-access-key
+      url: "" # Set dynamically via helpers
+      hostnameImmutable: true
+    skipCredentialsValidation: true
+    skipMetadataApiCheck: true
+    skipRequestingAccountId: true
+    skipRegionValidation: true
+    s3UsePathStyle: true
+  awsRegion: us-east-1
+  awsAccountId: "000000000000"
+  actorNamespace: "" # defaults to release namespace
+  irsa:
+    enabled: false
+  keda:
+    authProvider: secret
+    secretRef:
+      name: aws-creds
+      accessKeyIdKey: AWS_ACCESS_KEY_ID
+      secretAccessKeyKey: AWS_SECRET_ACCESS_KEY
+
+# Injector configuration (passed to asya-injector chart)
+# Mutating webhook that injects asya-sidecar into actor pods
+asya-injector:
+  config:
+    sidecarImage: ghcr.io/deliveryhero/asya-sidecar:latest
+    sqsEndpoint: "" # Set dynamically via helpers
+    gatewayURL: "" # Set dynamically via helpers
+    awsCredsSecret: aws-creds
 
 # Crew configuration (passed to asya-crew chart)
 # Uncomment and modify values below to override chart defaults

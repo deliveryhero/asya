@@ -13,7 +13,6 @@ categories:
   labels:
   - 'asya-crew'
   - 'asya-gateway'
-  - 'asya-operator'
   - 'asya-runtime'
   - 'asya-sidecar'
   - 'build'
@@ -42,7 +41,6 @@ include-labels:
 # other changes:
 - 'asya-crew'
 - 'asya-gateway'
-- 'asya-operator'
 - 'asya-runtime'
 - 'asya-sidecar'
 - 'build'
@@ -143,9 +141,6 @@ autolabeler:
   - 'go.sum'
   - '**/requirements*.txt'
   - '**/pyproject.toml'
-- label: 'asya-operator'
-  files:
-  - 'src/asya-operator/**/*'
 - label: 'asya-gateway'
   files:
   - 'src/asya-gateway/**/*'
@@ -164,13 +159,6 @@ template: |
 
   ## Installation
 
-  ### CRDs
-
-  Install or upgrade AsyncActor CRDs:
-  ```bash
-  kubectl apply -f https://github.com/$OWNER/$REPOSITORY/releases/download/$RESOLVED_VERSION/asya-crds.yaml
-  ```
-
   ### Helm Charts
 
   Add the Helm repository:
@@ -179,19 +167,21 @@ template: |
   helm repo update
   ```
 
-  Install the operator:
+  Install the Crossplane compositions and gateway:
   ```bash
-  helm install asya-operator asya/asya-operator \
+  helm install asya-crossplane asya/asya-crossplane \
     --version $RESOLVED_VERSION \
     --namespace asya-system \
     --create-namespace
+  helm install asya-gateway asya/asya-gateway \
+    --version $RESOLVED_VERSION \
+    --namespace asya
   ```
 
   ## Docker Images
 
   All images are published to GitHub Container Registry:
 
-  - `ghcr.io/$OWNER/asya-operator:$RESOLVED_VERSION`
   - `ghcr.io/$OWNER/asya-gateway:$RESOLVED_VERSION`
   - `ghcr.io/$OWNER/asya-sidecar:$RESOLVED_VERSION`
   - `ghcr.io/$OWNER/asya-crew:$RESOLVED_VERSION`

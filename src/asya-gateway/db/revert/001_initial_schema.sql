@@ -2,9 +2,9 @@
 
 BEGIN;
 
-DROP TRIGGER IF EXISTS update_envelopes_updated_at ON envelopes;
+DROP TRIGGER IF EXISTS update_tasks_updated_at ON tasks;
 DROP FUNCTION IF EXISTS update_updated_at_column();
-DROP TABLE IF EXISTS envelope_updates;
-DROP TABLE IF EXISTS envelopes;
+DROP TABLE IF EXISTS task_updates;
+DROP TABLE IF EXISTS tasks;
 
 COMMIT;

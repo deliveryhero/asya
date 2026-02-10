@@ -10,13 +10,13 @@ Commands:
     show <tool-name>                               # Show tool configuration
     call <tool-name> [json-args]                   # Call a tool (streams results by default)
     call <tool-name> --param=value                 # Call with --param=value flags
-    status <envelope-id>                           # Check envelope status
-    stream <envelope-id>                           # Stream envelope updates
+    status <task-id>                               # Check task status
+    stream <task-id>                               # Stream task updates
     port-forward [options]                         # Start kubectl port-forward
 
 Global Options:
     --url URL                                      # Gateway URL (env: ASYA_CLI_MCP_URL, default: http://localhost:8089)
-    --no-stream, --no_stream                       # Disable streaming, return envelope ID immediately
+    --no-stream, --no_stream                       # Disable streaming, return task ID immediately
     --debug                                        # Print SSE events as JSON (env: ASYA_CLI_MCP_DEBUG)
 
 Examples:
@@ -27,7 +27,7 @@ Examples:
     asya mcp call echo '{"message": "hello"}'      # With JSON arguments
     asya mcp call echo --message=hello             # With --param flags
     asya mcp call echo --message hello
-    asya mcp --no-stream call long-task --data=x   # Return envelope ID immediately
+    asya mcp --no-stream call long-task --data=x   # Return task ID immediately
     asya mcp --debug call test_timeout --sleep_seconds 5
     asya mcp --url http://other:8080 list
     asya mcp status abc-123
@@ -65,7 +65,7 @@ def main() -> None:
         "--no_stream",
         action="store_true",
         default=False,
-        help="Disable streaming and return envelope ID immediately (streaming is enabled by default)",
+        help="Disable streaming and return task ID immediately (streaming is enabled by default)",
     )
     parser.add_argument(
         "--debug",
@@ -85,11 +85,11 @@ def main() -> None:
     call_parser.add_argument("tool", help="Tool name")
     call_parser.add_argument("params", nargs=argparse.REMAINDER, help="Tool parameters as JSON or --param flags")
 
-    status_parser = subparsers.add_parser("status", help="Get envelope status")
-    status_parser.add_argument("envelope_id", help="Envelope ID")
+    status_parser = subparsers.add_parser("status", help="Get task status")
+    status_parser.add_argument("task_id", help="Task ID")
 
-    stream_parser = subparsers.add_parser("stream", help="Stream envelope updates")
-    stream_parser.add_argument("envelope_id", help="Envelope ID")
+    stream_parser = subparsers.add_parser("stream", help="Stream task updates")
+    stream_parser.add_argument("task_id", help="Task ID")
 
     pf_parser = subparsers.add_parser("port-forward", help="Start kubectl port-forward to gateway")
     pf_parser.add_argument("--namespace", "-n", default="asya-e2e", help="Kubernetes namespace (default: asya-e2e)")
@@ -211,11 +211,11 @@ def main() -> None:
         print(json.dumps(result, indent=2))
 
     elif args.command == "status":
-        status = client.get_status(args.envelope_id)
+        status = client.get_status(args.task_id)
         print(json.dumps(status, indent=2))
 
     elif args.command == "stream":
-        client.stream_updates(args.envelope_id)
+        client.stream_updates(args.task_id)
 
 
 if __name__ == "__main__":

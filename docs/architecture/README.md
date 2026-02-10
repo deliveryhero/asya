@@ -10,7 +10,8 @@ graph LR
 
     subgraph "Asya Framework"
         Gateway[Gateway<br/>MCP API]
-        Operator[Operator<br/>CRD controller]
+        Crossplane[Crossplane<br/>Compositions]
+        Injector[Injector<br/>Webhook]
     end
 
     subgraph "Your Actors"
@@ -25,22 +26,26 @@ graph LR
     end
 
     Client -->|HTTP| Gateway
-    Gateway -->|envelope| MQ
+    Gateway -->|task| MQ
     MQ -->|messages| A1
     A1 -->|results| MQ
     MQ -->|messages| A2
     A2 -->|results| MQ
     MQ -->|messages| A3
 
-    Operator -.->|deploys| A1
-    Operator -.->|deploys| A2
-    Operator -.->|deploys| A3
+    Crossplane -.->|deploys| A1
+    Crossplane -.->|deploys| A2
+    Crossplane -.->|deploys| A3
+    Injector -.->|injects sidecar| A1
+    Injector -.->|injects sidecar| A2
+    Injector -.->|injects sidecar| A3
     KEDA -.->|scales| A1
     KEDA -.->|scales| A2
     KEDA -.->|scales| A3
 
     style Gateway fill:#e1f5ff
-    style Operator fill:#fff3cd
+    style Crossplane fill:#fff3cd
+    style Injector fill:#fff3cd
     style A1 fill:#d4edda
     style A2 fill:#d4edda
     style A3 fill:#d4edda
@@ -50,8 +55,9 @@ graph LR
 
 ### Framework Components
 
-- **[Operator](asya-operator.md)**: Kubernetes controller that watches AsyncActor CRDs, injects sidecars, configures KEDA autoscaling
-- **[Gateway](asya-gateway.md)**: Optional MCP HTTP API for envelope submission, SSE streaming, and status tracking
+- **[Crossplane Compositions](asya-crossplane.md)**: Declarative infrastructure compositions that create AsyncActor workloads, queues, and KEDA autoscaling
+- **[Injector](asya-injector.md)**: Mutating webhook that injects asya-sidecar and asya-runtime into actor pods
+- **[Gateway](asya-gateway.md)**: Optional MCP HTTP API for task submission, SSE streaming, and status tracking
 - **[CLI](asya-cli.md)**: Command-line tool for interacting with the gateway (MCP client)
 
 ### Actor Components
@@ -74,9 +80,9 @@ Each actor pod contains two containers:
 ## Message Flow
 
 1. **Client** sends request to Gateway (or directly to queue)
-2. **Gateway** creates envelope, routes to first actor's queue
+2. **Gateway** creates task, routes to first actor's queue
 3. **Sidecar** consumes message from queue
-4. **Sidecar** forwards envelope to Runtime via Unix socket
+4. **Sidecar** forwards message to Runtime via Unix socket
 5. **Runtime** executes your Python handler, returns result
 6. **Sidecar** routes result to next actor's queue (or `happy-end`/`error-end`)
 7. Repeat steps 3-6 for each actor in the route
@@ -87,19 +93,21 @@ Each actor pod contains two containers:
 ## Actor Lifecycle
 
 1. User creates AsyncActor CRD
-2. Operator reconciles:
+2. Crossplane Composition reconciles:
    - Creates queue (`asya-{namespace}-{actor_name}`)
-   - Injects sidecar container
-   - Injects runtime entrypoint
+   - Creates Deployment/StatefulSet
    - Creates KEDA ScaledObject (if scaling enabled)
-3. KEDA monitors queue depth, scales pods 0→N
-4. Sidecar consumes messages, routes to runtime
-5. Runtime executes handler, returns results
-6. Sidecar routes results to next queue
+3. Injector webhook mutates pod spec:
+   - Injects sidecar container
+   - Injects runtime entrypoint and ConfigMap
+4. KEDA monitors queue depth, scales pods 0→N
+5. Sidecar consumes messages, routes to runtime
+6. Runtime executes handler, returns results
+7. Sidecar routes results to next queue
 
 ## Protocols
 
-- **[Actor-to-Actor](protocols/actor-actor.md)**: Envelope structure, routing, status tracking
+- **[Actor-to-Actor](protocols/actor-actor.md)**: Message structure, routing, status tracking
 - **[Sidecar-Runtime](protocols/sidecar-runtime.md)**: Unix socket communication, framing protocol, error handling
 
 ## Component Details
@@ -112,14 +120,14 @@ Each actor pod contains two containers:
 
 **AWS (SQS + S3)**:
 
-- Operator creates SQS queues
+- Crossplane creates SQS queues via AWS Provider
 - Actors use IAM roles (IRSA/Pod Identity) for queue access
 - Results stored in S3
 - KEDA uses CloudWatch metrics
 
 **Self-hosted (RabbitMQ + MinIO)**:
 
-- Operator creates RabbitMQ queues via Management API
+- Crossplane creates RabbitMQ queues via custom provider
 - Actors use username/password from secrets
 - Results stored in MinIO (S3-compatible)
 - KEDA uses RabbitMQ API

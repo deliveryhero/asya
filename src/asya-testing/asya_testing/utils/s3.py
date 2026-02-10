@@ -121,70 +121,70 @@ def get_object_from_s3(bucket_name: str, key: str) -> dict[str, Any] | None:
         return None
 
 
-def find_envelope_in_s3(bucket_name: str, envelope_id: str, prefix: str = "") -> dict[str, Any] | None:
+def find_message_in_s3(bucket_name: str, message_id: str, prefix: str = "") -> dict[str, Any] | None:
     """
-    Find an envelope in S3 by ID.
+    Find a message in S3 by ID.
 
     Searches through all objects in bucket matching prefix and returns
-    the first object whose filename matches the envelope ID.
+    the first object whose filename matches the message ID.
 
     Args:
         bucket_name: Bucket name
-        envelope_id: Envelope ID to search for
+        message_id: Message ID to search for
         prefix: Optional prefix to narrow search
 
     Returns:
-        Parsed envelope content or None if not found
+        Parsed message content or None if not found
     """
     objects = list_objects_in_bucket(bucket_name, prefix)
     for obj in objects:
         key = obj["Key"]
-        if envelope_id in key:
-            logger.info(f"Found envelope {envelope_id} at s3://{bucket_name}/{key}")
+        if message_id in key:
+            logger.info(f"Found message {message_id} at s3://{bucket_name}/{key}")
             return get_object_from_s3(bucket_name, key)
 
-    logger.warning(f"Envelope {envelope_id} not found in bucket {bucket_name}")
+    logger.warning(f"Message {message_id} not found in bucket {bucket_name}")
     return None
 
 
-def wait_for_envelope_in_s3(
+def wait_for_message_in_s3(
     bucket_name: str,
-    envelope_id: str,
+    message_id: str,
     prefix: str = "",
     timeout: int = 5,
     poll_interval: float = 0.2,
 ) -> dict[str, Any] | None:
     """
-    Wait for an envelope to appear in S3 with retry logic.
+    Wait for a message to appear in S3 with retry logic.
 
-    Polls S3 bucket until envelope is found or timeout is reached.
+    Polls S3 bucket until message is found or timeout is reached.
     Avoids flaky tests by properly waiting for async S3 persistence.
 
     Args:
         bucket_name: Bucket name
-        envelope_id: Envelope ID to search for
+        message_id: Message ID to search for
         prefix: Optional prefix to narrow search
         timeout: Maximum time to wait in seconds
         poll_interval: Polling interval in seconds
 
     Returns:
-        Parsed envelope content or None if not found within timeout
+        Parsed message content or None if not found within timeout
     """
     start_time = time.time()
     attempt = 0
 
     while time.time() - start_time < timeout:
         attempt += 1
-        envelope = find_envelope_in_s3(bucket_name, envelope_id, prefix)
+        message = find_message_in_s3(bucket_name, message_id, prefix)
 
-        if envelope is not None:
+        if message is not None:
             elapsed = time.time() - start_time
-            logger.info(f"Found envelope {envelope_id} in S3 after {elapsed:.2f}s ({attempt} attempts)")
-            return envelope
+            logger.info(f"Found message {message_id} in S3 after {elapsed:.2f}s ({attempt} attempts)")
+            return message
 
-        time.sleep(poll_interval)  # Polling interval for S3 envelope check
+        time.sleep(poll_interval)  # Polling interval for S3 message check
 
-    logger.warning(f"Envelope {envelope_id} not found in S3 after {timeout}s ({attempt} attempts)")
+    logger.warning(f"Message {message_id} not found in S3 after {timeout}s ({attempt} attempts)")
     return None
 
 

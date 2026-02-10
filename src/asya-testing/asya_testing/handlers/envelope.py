@@ -3,23 +3,24 @@ Envelope-mode wrapper handlers for integration and E2E tests.
 
 This module wraps all payload-mode handlers from mock_payload_handlers.py
 to work in envelope mode. All business logic is reused - these wrappers only
-handle envelope extraction and reconstruction.
+handle message extraction and reconstruction.
 
-Envelope structure:
+Message wire format:
 {
-  "id": "<envelope-id>",
+  "id": "<message-id>",
   "route": {"actors": ["q1", "q2"], "current": 0},
   "headers": {"trace_id": "...", "priority": "high"},
   "payload": <arbitrary JSON>
 }
 
 Wrapper pattern:
-1. Extract payload from envelope
+1. Extract payload from message
 2. Call original payload handler
-3. Reconstruct envelope with handler result as new payload
+3. Reconstruct message with handler result as new payload
 4. Preserve route and headers (automatic behavior)
 """
 
+import inspect
 from typing import Any
 
 from . import payload as payload_handlers
@@ -29,32 +30,44 @@ def _wrap_payload_handler(handler_func):
     """
     Generic wrapper to convert payload handler to envelope handler.
 
+    Preserves async/sync nature: if the inner handler is async, the wrapper
+    is async too, so inspect.iscoroutinefunction() detection works correctly
+    in the runtime's _call_handler().
+
     Args:
-        handler_func: Payload-mode handler function
+        handler_func: Payload-mode handler function (sync or async)
 
     Returns:
-        Envelope-mode wrapper function
+        Envelope-mode wrapper function (matching sync/async of input)
     """
 
-    def envelope_wrapper(envelope: dict[str, Any]) -> dict[str, Any] | list[dict[str, Any]] | None:
-        payload = envelope["payload"]
-
-        result_payload = handler_func(payload)
-
-        # In envelope mode, handler must increment route.current
-        output_route = envelope["route"].copy()
-        output_route["current"] = envelope["route"]["current"] + 1
+    def _build_response(result_payload, message):
+        output_route = message["route"].copy()
+        output_route["current"] = message["route"]["current"] + 1
 
         if isinstance(result_payload, list):
             return [
-                {"payload": item, "route": output_route, "headers": envelope.get("headers", {})}
+                {"payload": item, "route": output_route, "headers": message.get("headers", {})}
                 for item in result_payload
             ]
 
         if result_payload is None:
             return None
 
-        return {"payload": result_payload, "route": output_route, "headers": envelope.get("headers", {})}
+        return {"payload": result_payload, "route": output_route, "headers": message.get("headers", {})}
+
+    if inspect.iscoroutinefunction(handler_func):
+
+        async def async_envelope_wrapper(message: dict[str, Any]) -> dict[str, Any] | list[dict[str, Any]] | None:
+            result_payload = await handler_func(message["payload"])
+            return _build_response(result_payload, message)
+
+        async_envelope_wrapper.__doc__ = f"Envelope-mode wrapper for {handler_func.__name__}"
+        return async_envelope_wrapper
+
+    def envelope_wrapper(message: dict[str, Any]) -> dict[str, Any] | list[dict[str, Any]] | None:
+        result_payload = handler_func(message["payload"])
+        return _build_response(result_payload, message)
 
     envelope_wrapper.__doc__ = f"Envelope-mode wrapper for {handler_func.__name__}"
     return envelope_wrapper
@@ -85,7 +98,7 @@ param_flow_actor_1 = _wrap_payload_handler(payload_handlers.param_flow_actor_1)
 param_flow_actor_2 = _wrap_payload_handler(payload_handlers.param_flow_actor_2)
 
 
-def invalid_route_current_handler(envelope: dict[str, Any]) -> dict[str, Any]:
+def invalid_route_current_handler(message: dict[str, Any]) -> dict[str, Any]:
     """
     Handler that returns route.current out of range.
 
@@ -94,11 +107,11 @@ def invalid_route_current_handler(envelope: dict[str, Any]) -> dict[str, Any]:
 
     The sidecar should handle this gracefully by routing to happy-end.
     """
-    payload = envelope["payload"]
-    output_route = envelope["route"].copy()
+    payload = message["payload"]
+    output_route = message["route"].copy()
 
     # Set current to an invalid index (beyond actors array)
     actors_length = len(output_route["actors"])
     output_route["current"] = actors_length + 5
 
-    return {"payload": payload, "route": output_route, "headers": envelope.get("headers", {})}
+    return {"payload": payload, "route": output_route, "headers": message.get("headers", {})}

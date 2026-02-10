@@ -16,7 +16,8 @@ appVersion: "0.0.0"
 keywords:
 - asya
 - actor
-- operator
+- crossplane
+- injector
 - gateway
 - demo
 - quickstart
@@ -29,16 +30,19 @@ dependencies:
 - name: keda
   version: ">=2.16.0"
   repository: "https://kedacore.github.io/charts"
-# locally, versions are always 0.0.0
-- name: asya-operator
-  version: "0.0.0"
-  repository: "file://../asya-operator"
+# locally, use >=0.0.0 to match any version from local charts
+- name: asya-crossplane
+  version: ">=0.0.0"
+  repository: "file://../asya-crossplane"
+- name: asya-injector
+  version: ">=0.0.0"
+  repository: "file://../asya-injector"
 - name: asya-crew
-  version: "0.0.0"
+  version: ">=0.0.0"
   repository: "file://../asya-crew"
-  condition: asya-crew.enabled
+  condition: enableAsyaCrew
 - name: asya-gateway
-  version: "0.0.0"
+  version: ">=0.0.0"
   repository: "file://../asya-gateway"
   condition: enableAsyaGateway
 # Optional: Prometheus + Grafana monitoring stack

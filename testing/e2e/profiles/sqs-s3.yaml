@@ -84,32 +84,44 @@ gateway:
   - name: AWS_REGION
     value: "us-east-1"
 
-operator:
-  gatewayURL: http://asya-gateway.asya-e2e.svc.cluster.local:8080
-  transports:
-    rabbitmq:
-      enabled: false
-      type: rabbitmq
-    sqs:
+crossplane:
+  providerConfigs:
+    install: false
+  awsProviderConfig:
+    name: localstack
+    credentialsSource: Secret
+    secretRef:
+      namespace: crossplane-system
+      name: aws-creds
+      key: credentials
+    endpoint:
       enabled: true
-      type: sqs
-      config:
-        region: us-east-1
-        accountId: "000000000000"
-        endpoint: http://localstack-sqs.asya-system.svc.cluster.local:4566
-        actorRoleArn: ""
-        visibilityTimeout: 300
-        waitTimeSeconds: 1
-        queues:
-          autoCreate: true
-          dlq:
-            enabled: true
-            maxRetryCount: 3
-            retentionDays: 14
-        credentials:
-          accessKeyIdSecretRef:
-            name: sqs-secret
-            key: access-key-id
-          secretAccessKeySecretRef:
-            name: sqs-secret
-            key: secret-access-key
+      url: http://localstack-sqs.asya-system.svc.cluster.local:4566
+      hostnameImmutable: true
+    skipCredentialsValidation: true
+    skipMetadataApiCheck: true
+    skipRequestingAccountId: true
+    skipRegionValidation: true
+    s3UsePathStyle: true
+  awsRegion: us-east-1
+  awsAccountId: "000000000000"
+  actorNamespace: asya-e2e
+  irsa:
+    enabled: false
+  keda:
+    authProvider: secret
+    secretRef:
+      name: aws-creds
+      accessKeyIdKey: AWS_ACCESS_KEY_ID
+      secretAccessKeyKey: AWS_SECRET_ACCESS_KEY
+
+injector:
+  image:
+    tag: latest
+    pullPolicy: Never
+  config:
+    sidecarImage: ghcr.io/deliveryhero/asya-sidecar:latest
+    sidecarImagePullPolicy: Never
+    sqsEndpoint: http://localstack-sqs.asya-system.svc.cluster.local:4566
+    gatewayURL: http://asya-gateway.asya-e2e.svc.cluster.local:8080
+    awsCredsSecret: aws-creds

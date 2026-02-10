@@ -35,7 +35,7 @@ type Config struct {
 	// End actor mode
 	// When true, the sidecar will NOT route responses from the runtime.
 	// This is used for end actors (happy-end, error-end) that consume
-	// envelopes but don't produce new ones to route.
+	// messages but don't produce new ones to route.
 	IsEndActor bool
 
 	// Gateway integration for progress reporting

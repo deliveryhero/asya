@@ -25,9 +25,9 @@ export ASYA_RABBITMQ_URL=amqp://user:pass@localhost:5672/
 | `ASYA_RABBITMQ_EXCHANGE` | `asya` | Exchange name |
 | `ASYA_RABBITMQ_PREFETCH` | `1` | Prefetch count |
 
-## Envelope Format
+## Message Format
 
-See [docs/architecture/protocols/actor-actor.md](../../docs/architecture/protocols/actor-actor.md) for complete envelope structure and routing details
+See [docs/architecture/protocols/actor-actor.md](../../docs/architecture/protocols/actor-actor.md) for complete message structure and routing details
 
 ## Building
 
@@ -67,7 +67,7 @@ Runtime returns mutated payload directly:
 
 When `ASYA_GATEWAY_URL` is set, the sidecar automatically reports progress to the gateway:
 
-- **Received**: When envelope is received from queue
+- **Received**: When message is received from queue
 - **Processing**: Before forwarding to runtime
 - **Completed**: After successful runtime response
 

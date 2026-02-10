@@ -73,6 +73,8 @@ class CodeGenerator:
                 lines.append(self._generate_start_router(router))
             elif router.name.startswith("end_"):
                 lines.append(self._generate_end_router(router))
+            elif router.is_loop_back:
+                lines.append(self._generate_loop_back_router(router))
             else:
                 lines.append(self._generate_router(router))
 
@@ -80,9 +82,9 @@ class CodeGenerator:
 
     def _generate_start_router(self, router: Router) -> str:
         lines = []
-        lines.append(f"def {router.name}(envelope: dict) -> dict:")
+        lines.append(f"def {router.name}(message: dict) -> dict:")
         lines.append(f'    """Entrypoint for flow \'{self.flow_name}\'"""')
-        lines.append("    r = envelope['route']")
+        lines.append("    r = message['route']")
         lines.append("    c = r['current']")
         lines.append("")
 
@@ -92,26 +94,26 @@ class CodeGenerator:
                 next_list = ", ".join([f'resolve("{name}")' for name in filtered_actors])
                 lines.append(f"    r['actors'][c+1:c+1] = [{next_list}]")
         lines.append("    r['current'] = c + 1")
-        lines.append("    return envelope")
+        lines.append("    return message")
         lines.append("")
 
         return "\n".join(lines)
 
     def _generate_end_router(self, router: Router) -> str:
         lines = []
-        lines.append(f"def {router.name}(envelope: dict) -> dict:")
+        lines.append(f"def {router.name}(message: dict) -> dict:")
         lines.append(f'    """Exitpoint for flow \'{self.flow_name}\'"""')
-        lines.append("    return envelope")
+        lines.append("    return message")
         lines.append("")
 
         return "\n".join(lines)
 
     def _generate_router(self, router: Router) -> str:
         lines = []
-        lines.append(f"def {router.name}(envelope: dict) -> dict:")
+        lines.append(f"def {router.name}(message: dict) -> dict:")
         lines.append('    """Router for control flow and payload mutations"""')
-        lines.append("    p = envelope['payload']")
-        lines.append("    r = envelope['route']")
+        lines.append("    p = message['payload']")
+        lines.append("    r = message['route']")
         lines.append("    c = r['current']")
         lines.append("    _next = []")
         lines.append("")
@@ -146,7 +148,32 @@ class CodeGenerator:
         lines.append("")
         lines.append("    r['actors'][c+1:c+1] = _next")
         lines.append("    r['current'] = c + 1")
-        lines.append("    return envelope")
+        lines.append("    return message")
+        lines.append("")
+
+        return "\n".join(lines)
+
+    def _generate_loop_back_router(self, router: Router) -> str:
+        lines = []
+        lines.append(f"def {router.name}(message: dict) -> dict:")
+        lines.append('    """Loop-back router: re-inserts loop actors into route"""')
+        lines.append("    p = message['payload']")
+        lines.append("    r = message['route']")
+        lines.append("    c = r['current']")
+        lines.append("    _next = []")
+        lines.append("")
+
+        for mutation in router.mutations:
+            lines.append(f"    {mutation.code}")
+
+        filtered_actors = [actor for actor in router.true_branch_actors if not actor.startswith("end_")]
+        for actor in filtered_actors:
+            lines.append(f'    _next.append(resolve("{actor}"))')
+
+        lines.append("")
+        lines.append("    r['actors'][c+1:c+1] = _next")
+        lines.append("    r['current'] = c + 1")
+        lines.append("    return message")
         lines.append("")
 
         return "\n".join(lines)

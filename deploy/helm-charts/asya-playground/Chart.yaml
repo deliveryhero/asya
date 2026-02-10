@@ -8,7 +8,8 @@ appVersion: "0.0.0"
 keywords:
 - asya
 - actor
-- operator
+- crossplane
+- injector
 - gateway
 - demo
 - quickstart
@@ -21,8 +22,11 @@ dependencies:
 - name: keda
   version: ">=2.16.0"
   repository: "https://kedacore.github.io/charts"
-- name: asya-operator
-  version: ">=0.4.0"
+- name: asya-crossplane
+  version: ">=0.1.0"
+  repository: "https://asya.sh/charts"
+- name: asya-injector
+  version: ">=0.1.0"
   repository: "https://asya.sh/charts"
 - name: asya-crew
   version: ">=0.4.0"

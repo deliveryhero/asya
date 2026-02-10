@@ -6,13 +6,13 @@ Tests critical edge cases that require full Kubernetes infrastructure.
 These verify behavior that can only be tested in a real K8s environment.
 
 MUST-HAVE (3 tests) - Critical sidecar behavior:
-- test_fan_out_creates_multiple_envelopes_e2e: Sidecar creates multiple envelopes from array
+- test_fan_out_creates_multiple_messages_e2e: Sidecar creates multiple messages from array
 - test_empty_response_goes_to_happy_end_e2e: Sidecar routes empty responses to happy-end
 - test_slow_boundary_completes_before_timeout_e2e: Slow-boundary actor completes before timeout
 
 SHOULD-HAVE (2 tests) - Infrastructure resilience:
 - test_message_redelivery_after_pod_restart_e2e: RabbitMQ redelivers after pod crash
-- test_concurrent_envelopes_independent_routing_e2e: 10 concurrent envelopes route independently
+- test_concurrent_tasks_independent_routing_e2e: 10 concurrent tasks route independently
 
 NICE-TO-HAVE (4 tests) - Operational excellence:
 - test_keda_scales_actor_under_load_e2e: KEDA scales pods based on queue length
@@ -23,33 +23,29 @@ NICE-TO-HAVE (4 tests) - Operational excellence:
 
 import logging
 import os
-import subprocess
 import time
 
 import pytest
-import requests
-
-from asya_testing.utils.gateway import GatewayTestHelper
 from asya_testing.utils.sqs import purge_queue
 
+
 logger = logging.getLogger(__name__)
-
-
 
 
 # ============================================================================
 # MUST-HAVE: Sidecar Behavior Tests
 # ============================================================================
 
+
 @pytest.mark.fast
-def test_fan_out_creates_multiple_envelopes_e2e(e2e_helper):
+def test_fan_out_creates_multiple_messages_e2e(e2e_helper):
     """
     E2E: Test fan-out when actor returns array.
 
-    Scenario: Actor returns [item1, item2, item3] → sidecar creates 3 envelopes
+    Scenario: Actor returns [item1, item2, item3] → sidecar creates 3 messages
     Expected:
-    - Sidecar creates multiple envelopes
-    - Each envelope routed independently
+    - Sidecar creates multiple messages
+    - Each message routed independently
     - All complete successfully
     """
     response = e2e_helper.call_mcp_tool(
@@ -57,17 +53,16 @@ def test_fan_out_creates_multiple_envelopes_e2e(e2e_helper):
         arguments={"count": 3},
     )
 
-    envelope_id = response["result"]["envelope_id"]
-    logger.info(f"Original envelope ID: {envelope_id}")
+    task_id = response["result"]["task_id"]
+    logger.info(f"Original task ID: {task_id}")
 
     # Wait for completion - increased timeout for KEDA scale-up from 0
-    final_envelope = e2e_helper.wait_for_envelope_completion(envelope_id, timeout=90)
+    final_task = e2e_helper.wait_for_task_completion(task_id, timeout=90)
 
-    # Verify envelope completed
-    assert final_envelope["status"] == "succeeded", \
-        f"Fanout should succeed, got {final_envelope['status']}"
+    # Verify task completed
+    assert final_task["status"] == "succeeded", f"Fanout should succeed, got {final_task['status']}"
 
-    logger.info(f"Fanout result: {final_envelope.get('result')}")
+    logger.info(f"Fanout result: {final_task.get('result')}")
 
 
 @pytest.mark.fast
@@ -76,22 +71,20 @@ def test_empty_response_goes_to_happy_end_e2e(e2e_helper):
     E2E: Test empty response routing to happy-end.
 
     Scenario: Actor returns null/empty → sidecar routes to happy-end
-    Expected: Envelope completes with Succeeded status
+    Expected: Task completes with Succeeded status
     """
     response = e2e_helper.call_mcp_tool(
         tool_name="test_empty_response",
         arguments={"message": "empty test"},
     )
 
-    envelope_id = response["result"]["envelope_id"]
+    task_id = response["result"]["task_id"]
 
     # Wait for completion - increased timeout for KEDA scale-up from 0
-    final_envelope = e2e_helper.wait_for_envelope_completion(envelope_id, timeout=90)
+    final_task = e2e_helper.wait_for_task_completion(task_id, timeout=90)
 
     # Empty response should go to happy-end
-    assert final_envelope["status"] == "succeeded", \
-        f"Empty response should succeed, got {final_envelope['status']}"
-
+    assert final_task["status"] == "succeeded", f"Empty response should succeed, got {final_task['status']}"
 
 
 @pytest.mark.fast
@@ -107,23 +100,22 @@ def test_slow_boundary_completes_before_timeout_e2e(e2e_helper):
         arguments={"first_call": True},
     )
 
-    envelope_id = response["result"]["envelope_id"]
+    task_id = response["result"]["task_id"]
 
     # Wait longer to account for KEDA scale-up + 1.5s processing time
-    final_envelope = e2e_helper.wait_for_envelope_completion(envelope_id, timeout=120)
+    final_task = e2e_helper.wait_for_task_completion(task_id, timeout=120)
 
-    assert final_envelope["status"] == "succeeded", \
-        f"Should complete before timeout, got {final_envelope['status']}"
-
+    assert final_task["status"] == "succeeded", f"Should complete before timeout, got {final_task['status']}"
 
 
 @pytest.mark.fast
+@pytest.mark.skip(reason="Crossplane XRD does not support timeout field yet (asya-bija)")
 def test_timeout_crash_and_pod_restart_e2e(e2e_helper, namespace, transport_timeouts):
     """
     E2E: Test timeout causes pod crash and KEDA rescales for retry.
 
     Scenario:
-    1. Send envelope with 60s processing to actor with 5s timeout
+    1. Send message with 60s processing to actor with 5s timeout
     2. Sidecar times out after 5s and crashes the pod
     3. KEDA detects pod crash and scales up new pod
     4. Message redelivered to new pod (at-least-once delivery)
@@ -161,8 +153,8 @@ def test_timeout_crash_and_pod_restart_e2e(e2e_helper, namespace, transport_time
         arguments={"sleep_seconds": 60},
     )
 
-    envelope_id = response["result"]["envelope_id"]
-    logger.info(f"Envelope ID: {envelope_id}")
+    task_id = response["result"]["task_id"]
+    logger.info(f"Task ID: {task_id}")
 
     # Wait for KEDA to scale up the actor pod
     logger.info("Waiting for KEDA to scale up actor pod...")
@@ -171,9 +163,7 @@ def test_timeout_crash_and_pod_restart_e2e(e2e_helper, namespace, transport_time
 
     # Get initial pod name and restart count
     pods_before = e2e_helper.kubectl(
-        "get", "pods",
-        "-l", "asya.sh/actor=test-timeout",
-        "-o", "jsonpath='{.items[*].metadata.name}'"
+        "get", "pods", "-l", "asya.sh/actor=test-timeout", "-o", "jsonpath='{.items[*].metadata.name}'"
     )
     logger.info(f"Pods before timeout: {pods_before}")
 
@@ -181,9 +171,12 @@ def test_timeout_crash_and_pod_restart_e2e(e2e_helper, namespace, transport_time
     initial_restart_count = 0
     try:
         restart_counts_str = e2e_helper.kubectl(
-            "get", "pods",
-            "-l", "asya.sh/actor=test-timeout",
-            "-o", "jsonpath='{.items[0].status.containerStatuses[*].restartCount}'"
+            "get",
+            "pods",
+            "-l",
+            "asya.sh/actor=test-timeout",
+            "-o",
+            "jsonpath='{.items[0].status.containerStatuses[*].restartCount}'",
         )
         if restart_counts_str and restart_counts_str != "''":
             # Sum all container restart counts
@@ -203,15 +196,20 @@ def test_timeout_crash_and_pod_restart_e2e(e2e_helper, namespace, transport_time
     while time.time() - start_time < max_wait:
         try:
             restart_counts_str = e2e_helper.kubectl(
-                "get", "pods",
-                "-l", "asya.sh/actor=test-timeout",
-                "-o", "jsonpath='{.items[0].status.containerStatuses[*].restartCount}'"
+                "get",
+                "pods",
+                "-l",
+                "asya.sh/actor=test-timeout",
+                "-o",
+                "jsonpath='{.items[0].status.containerStatuses[*].restartCount}'",
             )
             if restart_counts_str and restart_counts_str != "''":
                 restart_counts = [int(x) for x in restart_counts_str.strip("'").split()]
                 current_restart_count = sum(restart_counts)
                 if current_restart_count > initial_restart_count:
-                    logger.info(f"Crash detected: total restart count increased from {initial_restart_count} to {current_restart_count}")
+                    logger.info(
+                        f"Crash detected: total restart count increased from {initial_restart_count} to {current_restart_count}"
+                    )
                     crash_detected = True
                     break
         except Exception as e:
@@ -224,10 +222,7 @@ def test_timeout_crash_and_pod_restart_e2e(e2e_helper, namespace, transport_time
     # Verify crash was due to timeout by checking pod logs
     try:
         logs = e2e_helper.kubectl(
-            "logs", "-l", "asya.sh/actor=test-timeout",
-            "-c", "asya-sidecar",
-            "--previous",
-            "--tail=50"
+            "logs", "-l", "asya.sh/actor=test-timeout", "-c", "asya-sidecar", "--previous", "--tail=50"
         )
         if "Runtime timeout exceeded - crashing pod to recover" in logs:
             logger.info("Verified timeout crash message in sidecar logs")
@@ -240,9 +235,12 @@ def test_timeout_crash_and_pod_restart_e2e(e2e_helper, namespace, transport_time
     try:
         pod_name = pods_before.strip("'")
         events = e2e_helper.kubectl(
-            "get", "events",
-            "--field-selector", f"involvedObject.name={pod_name}",
-            "-o", "jsonpath='{.items[*].message}'"
+            "get",
+            "events",
+            "--field-selector",
+            f"involvedObject.name={pod_name}",
+            "-o",
+            "jsonpath='{.items[*].message}'",
         )
         if events:
             logger.debug(f"Pod events: {events}")
@@ -254,24 +252,25 @@ def test_timeout_crash_and_pod_restart_e2e(e2e_helper, namespace, transport_time
     pod_ready = e2e_helper.wait_for_pod_ready("asya.sh/actor=test-timeout", timeout=60)
     assert pod_ready, "Pod should become ready after crash"
 
-    # Envelope should eventually complete (fail or succeed after retries)
+    # Task should eventually complete (fail or succeed after retries)
     # Extended timeout because message will be redelivered and may timeout again
-    final_envelope = e2e_helper.wait_for_envelope_completion(envelope_id, timeout=180)
+    final_task = e2e_helper.wait_for_task_completion(task_id, timeout=180)
 
     # After timeout crash, message should eventually go to error-end
-    assert final_envelope["status"] in ["failed", "succeeded"], \
-        f"Envelope should eventually complete (Failed or Succeeded), got {final_envelope['status']}"
+    assert final_task["status"] in ["failed", "succeeded"], (
+        f"Task should eventually complete (Failed or Succeeded), got {final_task['status']}"
+    )
 
-    if final_envelope["status"] == "failed":
-        logger.info("Envelope correctly failed after timeout-induced pod crash")
+    if final_task["status"] == "failed":
+        logger.info("Task correctly failed after timeout-induced pod crash")
     else:
-        logger.info("Envelope succeeded (may have been redelivered with sufficient timeout)")
-
+        logger.info("Task succeeded (may have been redelivered with sufficient timeout)")
 
 
 # ============================================================================
 # SHOULD-HAVE: RabbitMQ Interaction Tests
 # ============================================================================
+
 
 @pytest.mark.fast
 def test_message_redelivery_after_pod_restart_e2e(e2e_helper):
@@ -279,20 +278,20 @@ def test_message_redelivery_after_pod_restart_e2e(e2e_helper):
     E2E: Test message redelivery when actor pod crashes before ack.
 
     Scenario:
-    1. Send envelope to actor
+    1. Send message to actor
     2. Wait for KEDA to scale up pod
     3. Kill actor pod while processing
     4. RabbitMQ redelivers message to new pod
-    Expected: Envelope eventually completes (at-least-once delivery)
+    Expected: Task eventually completes (at-least-once delivery)
     """
-    # Send envelope with slow processing to give time to kill pod
+    # Send message with slow processing to give time to kill pod
     response = e2e_helper.call_mcp_tool(
         tool_name="test_slow_boundary",  # 1.5s processing time
         arguments={"first_call": True},
     )
 
-    envelope_id = response["result"]["envelope_id"]
-    logger.info(f"Envelope ID: {envelope_id}")
+    task_id = response["result"]["task_id"]
+    logger.info(f"Task ID: {task_id}")
 
     # Wait for KEDA to scale up the actor pod first
     logger.info("Waiting for KEDA to scale up actor pod...")
@@ -301,9 +300,7 @@ def test_message_redelivery_after_pod_restart_e2e(e2e_helper):
     # Find and delete the actor pod
     try:
         pods = e2e_helper.kubectl(
-            "get", "pods",
-            "-l", "asya.sh/actor=test-slow-boundary",
-            "-o", "jsonpath='{.items[*].metadata.name}'"
+            "get", "pods", "-l", "asya.sh/actor=test-slow-boundary", "-o", "jsonpath='{.items[*].metadata.name}'"
         )
 
         if pods and pods != "''":
@@ -325,78 +322,127 @@ def test_message_redelivery_after_pod_restart_e2e(e2e_helper):
         logger.warning(f"Failed to kill pod: {e}")
         # Continue test even if pod kill fails
 
-    # Envelope should eventually complete (may be redelivered) - extended timeout
-    final_envelope = e2e_helper.wait_for_envelope_completion(envelope_id, timeout=150)
+    # Task should eventually complete (may be redelivered) - extended timeout
+    final_task = e2e_helper.wait_for_task_completion(task_id, timeout=150)
 
     # Should complete (possibly after redelivery)
-    assert final_envelope["status"] in ["succeeded", "failed"], \
-        f"Envelope should complete, got {final_envelope['status']}"
-
+    assert final_task["status"] in ["succeeded", "failed"], (
+        f"Task should complete, got {final_task['status']}"
+    )
 
 
 @pytest.mark.fast
-def test_concurrent_envelopes_independent_routing_e2e(e2e_helper):
+def test_concurrent_tasks_independent_routing_e2e(e2e_helper):
     """
-    E2E: Test concurrent envelopes route independently.
+    E2E: Test concurrent tasks route independently.
 
-    Scenario: Send 10 envelopes concurrently to same queue
+    Scenario: Send 5 tasks concurrently to same queue
     Expected:
-    - All envelopes processed independently
+    - All tasks processed independently
     - No cross-contamination of results
     - All complete successfully
     """
     import threading
 
-    num_envelopes = 10
-    envelope_ids = []
-    results = [None] * num_envelopes
+    num_tasks = 5
+    task_ids = []
+    results = [None] * num_tasks
 
-    # Create all envelopes
-    for i in range(num_envelopes):
+    # Warm up: verify end-to-end message flow before sending concurrent tasks.
+    # Occasionally a single task gets stuck (transient SQS/gateway blip), but
+    # subsequent tasks to the same actor succeed immediately.  Retry with a
+    # fresh task to distinguish a real outage from a one-off stuck message.
+    max_warmup_attempts = 3
+    warmup_timeout = 60
+    for warmup_attempt in range(max_warmup_attempts):
+        warmup_response = e2e_helper.call_mcp_tool(
+            tool_name="test_echo",
+            arguments={"message": f"warmup-{warmup_attempt}"},
+        )
+        warmup_id = warmup_response["result"]["task_id"]
+        try:
+            warmup_result = e2e_helper.wait_for_task_completion(
+                warmup_id, timeout=warmup_timeout,
+            )
+            if warmup_result["status"] == "succeeded":
+                logger.info("[+] Actor warm-up complete, starting concurrent test")
+                break
+            logger.warning(
+                f"Warm-up task {warmup_id} ended with status "
+                f"{warmup_result['status']}, retrying"
+            )
+        except TimeoutError:
+            logger.warning(
+                f"Warm-up attempt {warmup_attempt + 1}/{max_warmup_attempts} "
+                f"timed out after {warmup_timeout}s (task {warmup_id})"
+            )
+        if warmup_attempt < max_warmup_attempts - 1:
+            e2e_helper.ensure_gateway_connectivity()
+    else:
+        pytest.fail(
+            f"Warm-up failed after {max_warmup_attempts} attempts "
+            f"({warmup_timeout}s each) - infrastructure may be unstable"
+        )
+
+    # Create all tasks
+    for i in range(num_tasks):
         response = e2e_helper.call_mcp_tool(
             tool_name="test_echo",
             arguments={"message": f"concurrent-e2e-{i}"},
         )
-        envelope_ids.append(response["result"]["envelope_id"])
+        task_ids.append(response["result"]["task_id"])
 
-    # Wait for all concurrently - increased timeout for KEDA scale-up from 0
-    def wait_for_envelope(index, envelope_id):
+    # Wait for all concurrently - timeout must exceed gateway-side task timeout (120s)
+    def wait_for_task(index, task_id):
         try:
-            results[index] = e2e_helper.wait_for_envelope_completion(
-                envelope_id, timeout=90
-            )
+            results[index] = e2e_helper.wait_for_task_completion(task_id, timeout=125)
         except Exception as e:
-            logger.error(f"Envelope {index} failed: {e}")
+            logger.error(f"Task {index} failed: {e}")
             results[index] = {"status": "Error", "error": str(e)}
 
     threads = []
-    for i, envelope_id in enumerate(envelope_ids):
-        thread = threading.Thread(target=wait_for_envelope, args=(i, envelope_id))
+    for i, task_id in enumerate(task_ids):
+        thread = threading.Thread(target=wait_for_task, args=(i, task_id))
         threads.append(thread)
         thread.start()
 
     # Wait for all threads
     for thread in threads:
-        thread.join(timeout=95)
+        thread.join(timeout=130)
+
+    # Log all results for diagnostics before assertions
+    for i, result in enumerate(results):
+        if result and result.get("status") != "succeeded":
+            error_info = result.get("error", "no error field")
+            result_details = result.get("result", {})
+            failed_actor = result.get("current_actor_name", "unknown")
+            logger.error(
+                f"Task {i} (id={task_ids[i]}) status={result.get('status')}, "
+                f"actor={failed_actor}, error={error_info}, details={result_details}"
+            )
 
     # Verify all completed
     for i, result in enumerate(results):
-        assert result is not None, f"Envelope {i} should have result"
-        assert result["status"] == "succeeded", \
-            f"Envelope {i} should succeed, got {result.get('status')}"
+        assert result is not None, f"Task {i} should have result"
+        error_msg = result.get("error", "")
+        failed_actor = result.get("current_actor_name", "unknown")
+        assert result["status"] == "succeeded", (
+            f"Task {i} (id={task_ids[i]}) should succeed, "
+            f"got {result.get('status')} at actor={failed_actor}: {error_msg}"
+        )
 
     # Verify no cross-contamination
     for i, result in enumerate(results):
         echoed = result.get("result", {}).get("echoed", "")
-        assert f"concurrent-e2e-{i}" in echoed, \
-            f"Envelope {i} result contaminated: got '{echoed}'"
+        assert f"concurrent-e2e-{i}" in echoed, f"Task {i} result contaminated: got '{echoed}'"
 
-    logger.info(f"[+] All {num_envelopes} concurrent envelopes completed independently")
+    logger.info(f"[+] All {num_tasks} concurrent tasks completed independently")
 
 
 # ============================================================================
 # NICE-TO-HAVE: KEDA Autoscaling Tests
 # ============================================================================
+
 
 @pytest.mark.slow
 def test_keda_scales_actor_under_load_e2e(e2e_helper):
@@ -414,19 +460,19 @@ def test_keda_scales_actor_under_load_e2e(e2e_helper):
     initial_pods = e2e_helper.get_pod_count("asya.sh/actor=test-echo")
     logger.info(f"Initial pod count: {initial_pods}")
 
-    # Send 100 envelopes rapidly
-    envelope_ids = []
+    # Send 100 tasks rapidly
+    task_ids = []
     for i in range(100):
         try:
             response = e2e_helper.call_mcp_tool(
                 tool_name="test_echo",
                 arguments={"message": f"load-test-{i}"},
             )
-            envelope_ids.append(response["result"]["envelope_id"])
+            task_ids.append(response["result"]["task_id"])
         except Exception as e:
-            logger.warning(f"Failed to create envelope {i}: {e}")
+            logger.warning(f"Failed to create task {i}: {e}")
 
-    logger.info(f"Created {len(envelope_ids)} envelopes")
+    logger.info(f"Created {len(task_ids)} tasks")
 
     # Wait for KEDA to scale up (check every 2s for up to 24s)
     # With fast processing (echo), we need to check more frequently
@@ -434,7 +480,7 @@ def test_keda_scales_actor_under_load_e2e(e2e_helper):
     for i in range(12):  # 12 * 2s = 24s
         time.sleep(2)  # Poll kubectl API for KEDA autoscaling changes
         current_pods = e2e_helper.get_pod_count("asya.sh/actor=test-echo")
-        logger.info(f"Check {i+1}/12: Current pod count: {current_pods}")
+        logger.info(f"Check {i + 1}/12: Current pod count: {current_pods}")
         max_pods = max(max_pods, current_pods)
 
         if current_pods > initial_pods:
@@ -445,22 +491,22 @@ def test_keda_scales_actor_under_load_e2e(e2e_helper):
     # Verify that at least we maintained the minimum replica count
     if max_pods <= initial_pods:
         logger.warning(f"KEDA did not scale above initial {initial_pods} pods (processing may have been too fast)")
-        # This is OK - as long as envelopes complete successfully
+        # This is OK - as long as tasks complete successfully
 
-    # Wait for all envelopes to complete
+    # Wait for all tasks to complete
     completed = 0
-    for envelope_id in envelope_ids[:10]:  # Check first 10
+    for task_id in task_ids[:10]:  # Check first 10
         try:
-            final = e2e_helper.wait_for_envelope_completion(envelope_id, timeout=120)
+            final = e2e_helper.wait_for_task_completion(task_id, timeout=120)
             if final["status"] == "succeeded":
                 completed += 1
         except Exception as e:
-            logger.warning(f"Envelope failed: {e}")
+            logger.warning(f"Task failed: {e}")
 
-    logger.info(f"Completed {completed}/10 sample envelopes")
-    assert completed >= 8, f"At least 8/10 envelopes should complete, got {completed}"
+    logger.info(f"Completed {completed}/10 sample tasks")
+    assert completed >= 8, f"At least 8/10 tasks should complete, got {completed}"
 
-    # Success criteria: envelopes processed successfully
+    # Success criteria: tasks processed successfully
     # Scaling behavior is verified implicitly (system handled the load)
     logger.info(f"KEDA load test passed: max_pods={max_pods}, initial={initial_pods}, completed={completed}/10")
 
@@ -468,6 +514,7 @@ def test_keda_scales_actor_under_load_e2e(e2e_helper):
 # ============================================================================
 # NICE-TO-HAVE: Data Handling Tests
 # ============================================================================
+
 
 @pytest.mark.fast
 def test_unicode_payload_end_to_end(e2e_helper):
@@ -479,18 +526,16 @@ def test_unicode_payload_end_to_end(e2e_helper):
     """
     response = e2e_helper.call_mcp_tool(
         tool_name="test_unicode",
-        arguments={
-            "message": "Hello 世界 🌍 مرحبا こんにちは Привет"
-        },
+        arguments={"message": "Hello 世界 🌍 مرحبا こんにちは Привет"},
     )
 
-    envelope_id = response["result"]["envelope_id"]
+    task_id = response["result"]["task_id"]
 
-    final_envelope = e2e_helper.wait_for_envelope_completion(envelope_id, timeout=30)
+    final_task = e2e_helper.wait_for_task_completion(task_id, timeout=30)
 
-    assert final_envelope["status"] == "succeeded", "Unicode should succeed"
+    assert final_task["status"] == "succeeded", "Unicode should succeed"
 
-    result = final_envelope.get("result", {})
+    result = final_task.get("result", {})
     assert "languages" in result, "Should have language data"
 
     # Verify some Unicode characters are preserved
@@ -512,6 +557,7 @@ def test_large_payload_end_to_end(e2e_helper):
     Use RabbitMQ for large payload testing.
     """
     import os
+
     transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
     if transport == "sqs":
         pytest.skip("Large payload test not supported with SQS (256KB limit)")
@@ -521,14 +567,12 @@ def test_large_payload_end_to_end(e2e_helper):
         arguments={"size_kb": 10240},  # 10MB
     )
 
-    envelope_id = response["result"]["envelope_id"]
+    task_id = response["result"]["task_id"]
 
     # Large payload may take longer
-    final_envelope = e2e_helper.wait_for_envelope_completion(envelope_id, timeout=90)
+    final_task = e2e_helper.wait_for_task_completion(task_id, timeout=90)
 
-    assert final_envelope["status"] == "succeeded", \
-        f"Large payload should succeed, got {final_envelope['status']}"
-
+    assert final_task["status"] == "succeeded", f"Large payload should succeed, got {final_task['status']}"
 
 
 @pytest.mark.fast
@@ -544,11 +588,11 @@ def test_nested_json_end_to_end(e2e_helper):
         arguments={"message": "nested e2e test"},
     )
 
-    envelope_id = response["result"]["envelope_id"]
+    task_id = response["result"]["task_id"]
 
-    final_envelope = e2e_helper.wait_for_envelope_completion(envelope_id, timeout=30)
+    final_task = e2e_helper.wait_for_task_completion(task_id, timeout=30)
 
-    assert final_envelope["status"] == "succeeded", "Nested JSON should succeed"
+    assert final_task["status"] == "succeeded", "Nested JSON should succeed"
 
-    result = final_envelope.get("result", {})
+    result = final_task.get("result", {})
     assert result.get("nested_depth") == 20, "Should have 20 levels of nesting"

@@ -65,7 +65,7 @@ make test-unit
 make -C src/asya-sidecar test-unit    # Go sidecar unit tests only
 make -C src/asya-gateway test-unit    # Go gateway unit tests only
 make -C src/asya-runtime test-unit    # Python runtime unit tests only
-make -C src/asya-operator test-unit   # Go operator unit tests only
+make -C src/asya-injector test-unit   # Go injector webhook unit tests only
 make -C src/asya-crew test-unit       # Python crew unit tests only
 make -C src/asya-cli test-unit        # Python CLI unit tests only
 
@@ -107,7 +107,7 @@ make cov
 # Run coverage for specific components
 make -C src/asya-sidecar cov-unit   # Sidecar (Go)
 make -C src/asya-gateway cov-unit   # Gateway (Go)
-make -C src/asya-operator cov-unit  # Operator (Go)
+make -C src/asya-injector cov-unit  # Injector webhook (Go)
 make -C src/asya-runtime cov-unit   # Runtime (Python)
 make -C src/asya-crew cov-unit      # System actors (Python)
 make -C src/asya-cli cov-unit       # CLI (Python)
@@ -144,14 +144,11 @@ The `make cov` command:
 ### Building
 
 ```bash
-# Build all Go components (sidecar, gateway, operator)
+# Build all Go components (sidecar, gateway, injector)
 make build-go
 
 # Build all Docker images
 make build-images
-
-# Regenerate operator CRDs and manifests (after modifying CRD types)
-make manifests
 ```
 
 ### Linting and Formatting
@@ -252,7 +249,7 @@ Asya uses automated workflows for releases and changelog management:
 2. **Publish the release**:
    - Click "Publish release"
    - This triggers the release workflow which:
-     - Builds all Docker images (asya-operator, asya-gateway, asya-sidecar, asya-crew, asya-testing)
+     - Builds all Docker images (asya-injector, asya-gateway, asya-sidecar, asya-crew, asya-testing)
      - Pushes images to `ghcr.io/deliveryhero/asya-*:VERSION`
      - Tags images as `latest` (for non-prerelease versions)
 

@@ -49,8 +49,8 @@ func TestReportProgress_Success(t *testing.T) {
 			t.Errorf("Method = %v, want POST", r.Method)
 		}
 
-		if r.URL.Path != "/envelopes/test-message-123/progress" {
-			t.Errorf("Path = %v, want /envelopes/test-message-123/progress", r.URL.Path)
+		if r.URL.Path != "/tasks/test-message-123/progress" {
+			t.Errorf("Path = %v, want /tasks/test-message-123/progress", r.URL.Path)
 		}
 
 		// Verify content type
@@ -513,8 +513,8 @@ func TestReportProgress_SucceedsOnFirstAttempt(t *testing.T) {
 	}
 }
 
-func TestCreateEnvelope_Success(t *testing.T) {
-	var receivedPayload CreateEnvelopePayload
+func TestCreateTask_Success(t *testing.T) {
+	var receivedPayload CreateTaskPayload
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Verify request method and path
@@ -522,8 +522,8 @@ func TestCreateEnvelope_Success(t *testing.T) {
 			t.Errorf("Method = %v, want POST", r.Method)
 		}
 
-		if r.URL.Path != "/envelopes" {
-			t.Errorf("Path = %v, want /envelopes", r.URL.Path)
+		if r.URL.Path != "/tasks" {
+			t.Errorf("Path = %v, want /tasks", r.URL.Path)
 		}
 
 		// Verify content type
@@ -545,10 +545,10 @@ func TestCreateEnvelope_Success(t *testing.T) {
 	reporter := NewReporter(server.URL, "test-actor")
 
 	ctx := context.Background()
-	err := reporter.CreateEnvelope(ctx, "abc-123-1", "abc-123", []string{"actor1", "actor2"}, 1)
+	err := reporter.CreateTask(ctx, "abc-123-1", "abc-123", []string{"actor1", "actor2"}, 1)
 
 	if err != nil {
-		t.Errorf("CreateEnvelope returned error: %v", err)
+		t.Errorf("CreateTask returned error: %v", err)
 	}
 
 	// Verify received payload
@@ -569,7 +569,7 @@ func TestCreateEnvelope_Success(t *testing.T) {
 	}
 }
 
-func TestCreateEnvelope_ServerError(t *testing.T) {
+func TestCreateTask_ServerError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		_, _ = w.Write([]byte("Internal server error"))
@@ -579,11 +579,11 @@ func TestCreateEnvelope_ServerError(t *testing.T) {
 	reporter := NewReporter(server.URL, "test-actor")
 
 	ctx := context.Background()
-	err := reporter.CreateEnvelope(ctx, "abc-123-1", "abc-123", []string{"actor1"}, 1)
+	err := reporter.CreateTask(ctx, "abc-123-1", "abc-123", []string{"actor1"}, 1)
 
 	// Should return error
 	if err == nil {
-		t.Error("CreateEnvelope should return error for server error")
+		t.Error("CreateTask should return error for server error")
 	}
 
 	if err != nil && !contains(err.Error(), "status 500") {
@@ -591,20 +591,20 @@ func TestCreateEnvelope_ServerError(t *testing.T) {
 	}
 }
 
-func TestCreateEnvelope_NetworkError(t *testing.T) {
+func TestCreateTask_NetworkError(t *testing.T) {
 	// Use invalid URL to simulate network error
 	reporter := NewReporter("http://invalid-host-that-does-not-exist:99999", "test-actor")
 
 	ctx := context.Background()
-	err := reporter.CreateEnvelope(ctx, "abc-123-1", "abc-123", []string{"actor1"}, 1)
+	err := reporter.CreateTask(ctx, "abc-123-1", "abc-123", []string{"actor1"}, 1)
 
 	// Should return error
 	if err == nil {
-		t.Error("CreateEnvelope should return error for network error")
+		t.Error("CreateTask should return error for network error")
 	}
 }
 
-func TestCreateEnvelope_ContextCancellation(t *testing.T) {
+func TestCreateTask_ContextCancellation(t *testing.T) {
 	// Create slow server
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		time.Sleep(2 * time.Second)
@@ -618,11 +618,11 @@ func TestCreateEnvelope_ContextCancellation(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 	defer cancel()
 
-	err := reporter.CreateEnvelope(ctx, "abc-123-1", "abc-123", []string{"actor1"}, 1)
+	err := reporter.CreateTask(ctx, "abc-123-1", "abc-123", []string{"actor1"}, 1)
 
 	// Should return error due to timeout
 	if err == nil {
-		t.Error("CreateEnvelope should return error for context cancellation")
+		t.Error("CreateTask should return error for context cancellation")
 	}
 }
 

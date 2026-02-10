@@ -1,0 +1,106 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "asya-injector.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "asya-injector.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "asya-injector.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "asya-injector.labels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "asya-injector.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+      - name: injector
+        securityContext:
+          {{- toYaml .Values.securityContext | nindent 12 }}
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        args:
+        - --port={{ .Values.webhook.port }}
+        - --cert-file=/etc/webhook/certs/tls.crt
+        - --key-file=/etc/webhook/certs/tls.key
+        ports:
+        - name: https
+          containerPort: {{ .Values.webhook.port }}
+          protocol: TCP
+        env:
+        - name: ASYA_LOG_LEVEL
+          value: {{ .Values.config.logLevel | quote }}
+        - name: ASYA_SIDECAR_IMAGE
+          value: {{ .Values.config.sidecarImage | quote }}
+        - name: ASYA_RUNTIME_CONFIGMAP
+          value: {{ .Values.config.runtimeConfigMap | quote }}
+        - name: ASYA_SIDECAR_IMAGE_PULL_POLICY
+          value: {{ .Values.config.sidecarImagePullPolicy | quote }}
+        - name: ASYA_SOCKET_DIR
+          value: {{ .Values.config.socketDir | quote }}
+        - name: ASYA_RUNTIME_MOUNT_PATH
+          value: {{ .Values.config.runtimeMountPath | quote }}
+        {{- if .Values.config.gatewayURL }}
+        - name: ASYA_GATEWAY_URL
+          value: {{ .Values.config.gatewayURL | quote }}
+        {{- end }}
+        {{- if .Values.config.sqsEndpoint }}
+        - name: ASYA_SQS_ENDPOINT
+          value: {{ .Values.config.sqsEndpoint | quote }}
+        {{- end }}
+        {{- if .Values.config.awsCredsSecret }}
+        - name: ASYA_AWS_CREDS_SECRET
+          value: {{ .Values.config.awsCredsSecret | quote }}
+        {{- end }}
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: https
+            scheme: HTTPS
+          initialDelaySeconds: 10
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: https
+            scheme: HTTPS
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          {{- toYaml .Values.resources | nindent 12 }}
+        volumeMounts:
+        - name: tls-certs
+          mountPath: /etc/webhook/certs
+          readOnly: true
+      volumes:
+      - name: tls-certs
+        secret:
+          secretName: {{ include "asya-injector.tlsSecretName" . }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

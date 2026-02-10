@@ -95,8 +95,8 @@ func TestSQSQueueNaming(t *testing.T) {
 				queueURLCache: make(map[string]string),
 			}
 
-			envelope := &types.Envelope{
-				ID: "test-envelope-1",
+			task := &types.Task{
+				ID: "test-task-1",
 				Route: types.Route{
 					Actors:  []string{tt.actorName}, // Actor name without prefix
 					Current: 0,
@@ -105,7 +105,7 @@ func TestSQSQueueNaming(t *testing.T) {
 				Deadline: time.Now().Add(30 * time.Second),
 			}
 
-			err := sqsClient.SendEnvelope(context.Background(), envelope)
+			err := sqsClient.SendMessage(context.Background(), task)
 			assert.NoError(t, err)
 
 			// Verify GetQueueUrl was called with the prefixed queue name

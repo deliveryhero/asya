@@ -10,26 +10,26 @@ import (
 	"testing"
 	"time"
 
-	"github.com/deliveryhero/asya/asya-gateway/internal/envelopestore"
+	"github.com/deliveryhero/asya/asya-gateway/internal/taskstore"
 	"github.com/deliveryhero/asya/asya-gateway/pkg/types"
 )
 
 // TestProgressTracking_EndToEnd simulates the complete progress tracking flow
 func TestProgressTracking_EndToEnd(t *testing.T) {
-	// Setup: Create job store and handler
+	// Setup: Create task store and handler
 	_ = context.Background()
-	store := envelopestore.NewStore()
+	store := taskstore.NewStore()
 	handler := NewHandler(store)
 
 	// Create a test job with 3 actors
-	job := &types.Envelope{
+	job := &types.Task{
 		ID: "integration-test-job-1",
 		Route: types.Route{
 			Actors:  []string{"parser", "processor", "finalizer"},
 			Current: 0,
 		},
 		Payload:    map[string]interface{}{"data": "test"},
-		Status:     types.EnvelopeStatusPending,
+		Status:     types.TaskStatusPending,
 		TimeoutSec: 300,
 	}
 
@@ -42,7 +42,7 @@ func TestProgressTracking_EndToEnd(t *testing.T) {
 	defer store.Unsubscribe(job.ID, updateChan)
 
 	// Collect all updates
-	updates := make([]types.EnvelopeUpdate, 0)
+	updates := make([]types.TaskUpdate, 0)
 	done := make(chan bool)
 
 	go func() {
@@ -96,11 +96,11 @@ func TestProgressTracking_EndToEnd(t *testing.T) {
 		}
 
 		body, _ := json.Marshal(progressUpdate)
-		req := httptest.NewRequest(http.MethodPost, "/envelopes/"+job.ID+"/progress", bytes.NewReader(body))
+		req := httptest.NewRequest(http.MethodPost, "/tasks/"+job.ID+"/progress", bytes.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 		rr := httptest.NewRecorder()
 
-		handler.HandleEnvelopeProgress(rr, req)
+		handler.HandleTaskProgress(rr, req)
 
 		if rr.Code != http.StatusOK {
 			t.Fatalf("Progress update failed for %s/%s: status=%d", report.actor, report.status, rr.Code)
@@ -155,27 +155,27 @@ func TestProgressTracking_EndToEnd(t *testing.T) {
 
 // TestProgressTracking_SSEStream tests the SSE streaming of progress updates
 func TestProgressTracking_SSEStream(t *testing.T) {
-	store := envelopestore.NewStore()
+	store := taskstore.NewStore()
 	handler := NewHandler(store)
 
 	// Create job
-	job := &types.Envelope{
+	job := &types.Task{
 		ID: "sse-test-job",
 		Route: types.Route{
 			Actors:  []string{"actor1", "actor2"},
 			Current: 0,
 		},
-		Status: types.EnvelopeStatusPending,
+		Status: types.TaskStatusPending,
 	}
 	_ = store.Create(job)
 
 	// Start SSE stream in goroutine
-	req := httptest.NewRequest(http.MethodGet, "/envelopes/"+job.ID+"/stream", nil)
+	req := httptest.NewRequest(http.MethodGet, "/tasks/"+job.ID+"/stream", nil)
 	rr := httptest.NewRecorder()
 
 	// Stream in background
 	go func() {
-		handler.HandleEnvelopeStream(rr, req)
+		handler.HandleTaskStream(rr, req)
 	}()
 
 	// Give stream time to start
@@ -190,11 +190,11 @@ func TestProgressTracking_SSEStream(t *testing.T) {
 		}
 
 		body, _ := json.Marshal(progressUpdate)
-		progressReq := httptest.NewRequest(http.MethodPost, "/envelopes/"+job.ID+"/progress", bytes.NewReader(body))
+		progressReq := httptest.NewRequest(http.MethodPost, "/tasks/"+job.ID+"/progress", bytes.NewReader(body))
 		progressReq.Header.Set("Content-Type", "application/json")
 		progressRr := httptest.NewRecorder()
 
-		handler.HandleEnvelopeProgress(progressRr, progressReq)
+		handler.HandleTaskProgress(progressRr, progressReq)
 
 		if progressRr.Code != http.StatusOK {
 			t.Fatalf("Progress update %d failed: %v", i, progressRr.Code)
@@ -225,33 +225,33 @@ func TestProgressTracking_SSEKeepalive(t *testing.T) {
 		t.Skip("Skipping keepalive test in short mode")
 	}
 
-	store := envelopestore.NewStore()
+	store := taskstore.NewStore()
 	handler := NewHandler(store)
 
-	job := &types.Envelope{
+	job := &types.Task{
 		ID: "keepalive-test-job",
 		Route: types.Route{
 			Actors:  []string{"long-running-actor"},
 			Current: 0,
 		},
-		Status: types.EnvelopeStatusRunning,
+		Status: types.TaskStatusRunning,
 	}
 	_ = store.Create(job)
 
-	req := httptest.NewRequest(http.MethodGet, "/envelopes/"+job.ID+"/stream", nil)
+	req := httptest.NewRequest(http.MethodGet, "/tasks/"+job.ID+"/stream", nil)
 	rr := httptest.NewRecorder()
 
 	done := make(chan bool)
 	go func() {
-		handler.HandleEnvelopeStream(rr, req)
+		handler.HandleTaskStream(rr, req)
 		done <- true
 	}()
 
 	time.Sleep(16 * time.Second)
 
-	_ = store.Update(types.EnvelopeUpdate{
+	_ = store.Update(types.TaskUpdate{
 		ID:        job.ID,
-		Status:    types.EnvelopeStatusSucceeded,
+		Status:    types.TaskStatusSucceeded,
 		Timestamp: time.Now(),
 	})
 
@@ -273,17 +273,17 @@ func TestProgressTracking_SSEKeepalive(t *testing.T) {
 
 // TestProgressTracking_ConcurrentUpdates tests handling of concurrent progress updates
 func TestProgressTracking_ConcurrentUpdates(t *testing.T) {
-	store := envelopestore.NewStore()
+	store := taskstore.NewStore()
 	handler := NewHandler(store)
 
-	envelopeID := "concurrent-test-envelope"
-	job := &types.Envelope{
-		ID: envelopeID,
+	taskID := "concurrent-test-task"
+	job := &types.Task{
+		ID: taskID,
 		Route: types.Route{
 			Actors:  []string{"actor1", "actor2", "actor3"},
 			Current: 0,
 		},
-		Status: types.EnvelopeStatusPending,
+		Status: types.TaskStatusPending,
 	}
 	_ = store.Create(job)
 
@@ -300,11 +300,11 @@ func TestProgressTracking_ConcurrentUpdates(t *testing.T) {
 			}
 
 			body, _ := json.Marshal(progressUpdate)
-			req := httptest.NewRequest(http.MethodPost, "/envelopes/"+envelopeID+"/progress", bytes.NewReader(body))
+			req := httptest.NewRequest(http.MethodPost, "/tasks/"+taskID+"/progress", bytes.NewReader(body))
 			req.Header.Set("Content-Type", "application/json")
 			rr := httptest.NewRecorder()
 
-			handler.HandleEnvelopeProgress(rr, req)
+			handler.HandleTaskProgress(rr, req)
 
 			if rr.Code != http.StatusOK {
 				t.Errorf("Update %d failed: status=%d", idx, rr.Code)
@@ -318,21 +318,21 @@ func TestProgressTracking_ConcurrentUpdates(t *testing.T) {
 		<-done
 	}
 
-	// Verify envelope state is consistent
-	finalEnvelope, err := store.Get(envelopeID)
+	// Verify task state is consistent
+	finalTask, err := store.Get(taskID)
 	if err != nil {
-		t.Fatalf("Failed to get envelope: %v", err)
+		t.Fatalf("Failed to get task: %v", err)
 	}
 
 	// Should have some progress (exact value doesn't matter due to concurrency)
-	if finalEnvelope.ProgressPercent <= 0 {
+	if finalTask.ProgressPercent <= 0 {
 		t.Error("Progress should be > 0 after updates")
 	}
 }
 
-// TestProgressTracking_InvalidEnvelopeID tests behavior with non-existent envelope
-func TestProgressTracking_InvalidEnvelopeID(t *testing.T) {
-	store := envelopestore.NewStore()
+// TestProgressTracking_InvalidTaskID tests behavior with non-existent task
+func TestProgressTracking_InvalidTaskID(t *testing.T) {
+	store := taskstore.NewStore()
 	handler := NewHandler(store)
 
 	progressUpdate := types.ProgressUpdate{
@@ -342,42 +342,42 @@ func TestProgressTracking_InvalidEnvelopeID(t *testing.T) {
 	}
 
 	body, _ := json.Marshal(progressUpdate)
-	req := httptest.NewRequest(http.MethodPost, "/envelopes/non-existent-envelope/progress", bytes.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/tasks/non-existent-task/progress", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	rr := httptest.NewRecorder()
 
-	handler.HandleEnvelopeProgress(rr, req)
+	handler.HandleTaskProgress(rr, req)
 
-	// Should return error for non-existent envelope
+	// Should return error for non-existent task
 	if rr.Code == http.StatusOK {
-		t.Error("Expected error for non-existent envelope, got success")
+		t.Error("Expected error for non-existent task, got success")
 	}
 }
 
 // TestProgressTracking_RouteActorsUpdate tests that route_actors field is updated on each progress report
 func TestProgressTracking_RouteActorsUpdate(t *testing.T) {
-	store := envelopestore.NewStore()
+	store := taskstore.NewStore()
 	handler := NewHandler(store)
 
-	// Create envelope with initial route
-	envelopeID := "route-update-test"
-	envelope := &types.Envelope{
-		ID: envelopeID,
+	// Create task with initial route
+	taskID := "route-update-test"
+	task := &types.Task{
+		ID: taskID,
 		Route: types.Route{
 			Actors:  []string{"actor-a", "actor-b"},
 			Current: 0,
 		},
-		Status: types.EnvelopeStatusPending,
+		Status: types.TaskStatusPending,
 	}
-	if err := store.Create(envelope); err != nil {
-		t.Fatalf("Failed to create envelope: %v", err)
+	if err := store.Create(task); err != nil {
+		t.Fatalf("Failed to create task: %v", err)
 	}
 
 	// Simulate actor modifying route (adding new actors to the end)
 	modifiedRoute := []string{"actor-a", "actor-b", "actor-c", "actor-d"}
 
 	progressUpdate := types.ProgressUpdate{
-		ID:              envelopeID,
+		ID:              taskID,
 		Actors:          modifiedRoute,
 		CurrentActorIdx: 0,
 		Status:          "processing",
@@ -385,70 +385,70 @@ func TestProgressTracking_RouteActorsUpdate(t *testing.T) {
 	}
 
 	body, _ := json.Marshal(progressUpdate)
-	req := httptest.NewRequest(http.MethodPost, "/envelopes/"+envelopeID+"/progress", bytes.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/tasks/"+taskID+"/progress", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	rr := httptest.NewRecorder()
 
-	handler.HandleEnvelopeProgress(rr, req)
+	handler.HandleTaskProgress(rr, req)
 
 	if rr.Code != http.StatusOK {
 		t.Fatalf("Progress update failed: status=%d", rr.Code)
 	}
 
-	// Retrieve envelope and verify route_actors was updated
-	updatedEnvelope, err := store.Get(envelopeID)
+	// Retrieve task and verify route_actors was updated
+	updatedTask, err := store.Get(taskID)
 	if err != nil {
-		t.Fatalf("Failed to get envelope: %v", err)
+		t.Fatalf("Failed to get task: %v", err)
 	}
 
 	// Verify route_actors field was updated with modified route
-	if len(updatedEnvelope.Route.Actors) != len(modifiedRoute) {
-		t.Errorf("Route actors length = %d, want %d", len(updatedEnvelope.Route.Actors), len(modifiedRoute))
+	if len(updatedTask.Route.Actors) != len(modifiedRoute) {
+		t.Errorf("Route actors length = %d, want %d", len(updatedTask.Route.Actors), len(modifiedRoute))
 	}
 
 	for i, actor := range modifiedRoute {
-		if i >= len(updatedEnvelope.Route.Actors) {
+		if i >= len(updatedTask.Route.Actors) {
 			t.Errorf("Missing actor at index %d: want %s", i, actor)
 			continue
 		}
-		if updatedEnvelope.Route.Actors[i] != actor {
-			t.Errorf("Route actor[%d] = %s, want %s", i, updatedEnvelope.Route.Actors[i], actor)
+		if updatedTask.Route.Actors[i] != actor {
+			t.Errorf("Route actor[%d] = %s, want %s", i, updatedTask.Route.Actors[i], actor)
 		}
 	}
 }
 
 // TestProgressTracking_RouteActorsMultipleUpdates tests route updates across multiple progress reports
 func TestProgressTracking_RouteActorsMultipleUpdates(t *testing.T) {
-	store := envelopestore.NewStore()
+	store := taskstore.NewStore()
 	handler := NewHandler(store)
 
-	envelopeID := "route-multi-update-test"
-	envelope := &types.Envelope{
-		ID: envelopeID,
+	taskID := "route-multi-update-test"
+	task := &types.Task{
+		ID: taskID,
 		Route: types.Route{
 			Actors:  []string{"step1", "step2"},
 			Current: 0,
 		},
-		Status: types.EnvelopeStatusPending,
+		Status: types.TaskStatusPending,
 	}
-	if err := store.Create(envelope); err != nil {
-		t.Fatalf("Failed to create envelope: %v", err)
+	if err := store.Create(task); err != nil {
+		t.Fatalf("Failed to create task: %v", err)
 	}
 
 	// First progress update with extended route
 	firstRoute := []string{"step1", "step2", "step3"}
-	sendProgressUpdate(t, handler, envelopeID, firstRoute, 0, "received")
+	sendProgressUpdate(t, handler, taskID, firstRoute, 0, "received")
 
-	env, _ := store.Get(envelopeID)
+	env, _ := store.Get(taskID)
 	if len(env.Route.Actors) != 3 {
 		t.Errorf("After first update: route length = %d, want 3", len(env.Route.Actors))
 	}
 
 	// Second progress update with further extended route
 	secondRoute := []string{"step1", "step2", "step3", "step4", "step5"}
-	sendProgressUpdate(t, handler, envelopeID, secondRoute, 1, "processing")
+	sendProgressUpdate(t, handler, taskID, secondRoute, 1, "processing")
 
-	env, _ = store.Get(envelopeID)
+	env, _ = store.Get(taskID)
 	if len(env.Route.Actors) != 5 {
 		t.Errorf("After second update: route length = %d, want 5", len(env.Route.Actors))
 	}
@@ -464,30 +464,30 @@ func TestProgressTracking_RouteActorsMultipleUpdates(t *testing.T) {
 // TestProgressTracking_EmptyActorsList tests progress calculation when Actors list is empty
 // This is a regression test for the bug where empty Actors list caused progress_percent = 0
 func TestProgressTracking_EmptyActorsList(t *testing.T) {
-	store := envelopestore.NewStore()
+	store := taskstore.NewStore()
 	handler := NewHandler(store)
 
-	// Create an envelope with 3 actors
-	envelopeID := "test-empty-actors-" + time.Now().Format("20060102150405")
+	// Create a task with 3 actors
+	taskID := "test-empty-actors-" + time.Now().Format("20060102150405")
 	initialRoute := []string{"actor1", "actor2", "actor3"}
 
-	envelope := &types.Envelope{
-		ID: envelopeID,
+	task := &types.Task{
+		ID: taskID,
 		Route: types.Route{
 			Actors:  initialRoute,
 			Current: 0,
 		},
-		Status:     types.EnvelopeStatusPending,
+		Status:     types.TaskStatusPending,
 		TimeoutSec: 300,
 	}
 
-	if err := store.Create(envelope); err != nil {
-		t.Fatalf("Failed to create envelope: %v", err)
+	if err := store.Create(task); err != nil {
+		t.Fatalf("Failed to create task: %v", err)
 	}
 
 	// Send progress update with EMPTY actors list (simulating bug scenario)
 	progressUpdate := types.ProgressUpdate{
-		ID:              envelopeID,
+		ID:              taskID,
 		Actors:          []string{}, // Empty actors list
 		CurrentActorIdx: 1,
 		Status:          "processing",
@@ -495,11 +495,11 @@ func TestProgressTracking_EmptyActorsList(t *testing.T) {
 	}
 
 	body, _ := json.Marshal(progressUpdate)
-	req := httptest.NewRequest(http.MethodPost, "/envelopes/"+envelopeID+"/progress", bytes.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/tasks/"+taskID+"/progress", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	rr := httptest.NewRecorder()
 
-	handler.HandleEnvelopeProgress(rr, req)
+	handler.HandleTaskProgress(rr, req)
 
 	if rr.Code != http.StatusOK {
 		t.Fatalf("Progress update failed: status=%d, body=%s", rr.Code, rr.Body.String())
@@ -516,33 +516,33 @@ func TestProgressTracking_EmptyActorsList(t *testing.T) {
 	expectedMax := 51.0
 
 	if progressPercent < expectedMin || progressPercent > expectedMax {
-		t.Errorf("Progress = %.2f%%, want %.2f-%.2f%% (should use envelope's route when Actors is empty)",
+		t.Errorf("Progress = %.2f%%, want %.2f-%.2f%% (should use task's route when Actors is empty)",
 			progressPercent, expectedMin, expectedMax)
 	}
 
-	// Verify envelope was updated correctly
-	env, err := store.Get(envelopeID)
+	// Verify task was updated correctly
+	env, err := store.Get(taskID)
 	if err != nil {
-		t.Fatalf("Failed to get envelope: %v", err)
+		t.Fatalf("Failed to get task: %v", err)
 	}
 
 	if env.ProgressPercent < expectedMin || env.ProgressPercent > expectedMax {
-		t.Errorf("Envelope progress = %.2f%%, want %.2f-%.2f%%",
+		t.Errorf("Task progress = %.2f%%, want %.2f-%.2f%%",
 			env.ProgressPercent, expectedMin, expectedMax)
 	}
 
 	// Verify route was preserved (should still have 3 actors)
 	if len(env.Route.Actors) != 3 {
-		t.Errorf("Route actors count = %d, want 3 (route should be preserved from original envelope)",
+		t.Errorf("Route actors count = %d, want 3 (route should be preserved from original task)",
 			len(env.Route.Actors))
 	}
 }
 
-func sendProgressUpdate(t *testing.T, handler *Handler, envelopeID string, actors []string, currentIdx int, status string) {
+func sendProgressUpdate(t *testing.T, handler *Handler, taskID string, actors []string, currentIdx int, status string) {
 	t.Helper()
 
 	progressUpdate := types.ProgressUpdate{
-		ID:              envelopeID,
+		ID:              taskID,
 		Actors:          actors,
 		CurrentActorIdx: currentIdx,
 		Status:          status,
@@ -550,11 +550,11 @@ func sendProgressUpdate(t *testing.T, handler *Handler, envelopeID string, actor
 	}
 
 	body, _ := json.Marshal(progressUpdate)
-	req := httptest.NewRequest(http.MethodPost, "/envelopes/"+envelopeID+"/progress", bytes.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/tasks/"+taskID+"/progress", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	rr := httptest.NewRecorder()
 
-	handler.HandleEnvelopeProgress(rr, req)
+	handler.HandleTaskProgress(rr, req)
 
 	if rr.Code != http.StatusOK {
 		t.Fatalf("Progress update failed: status=%d", rr.Code)

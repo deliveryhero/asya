@@ -7,6 +7,7 @@ metadata:
   name: custom-sidecar-actor
   namespace: default
 spec:
+  actor: custom-sidecar-actor
   transport: rabbitmq
 
   # Custom sidecar configuration

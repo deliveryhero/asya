@@ -54,7 +54,7 @@ Tests Go sidecar ↔ Python runtime Unix socket communication without RabbitMQ:
 
 Tests the interaction between sidecars and runtimes with real RabbitMQ:
 
-- Envelope routing through queues
+- Message routing through queues
 - Error handling (exceptions, OOM, CUDA OOM, timeouts)
 - Fanout patterns
 - Multi-actor pipelines

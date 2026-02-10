@@ -193,22 +193,22 @@ func TestMetrics_RecordMessageSize(t *testing.T) {
 	}
 }
 
-func TestMetrics_ActiveEnvelopes(t *testing.T) {
+func TestMetrics_ActiveMessages(t *testing.T) {
 	m := NewMetrics("test", []config.CustomMetricConfig{})
 
-	m.IncrementActiveEnvelopes()
+	m.IncrementActiveMessages()
 	value := testutil.ToFloat64(m.activeMessages)
 	if value != 1.0 {
 		t.Errorf("Expected active messages 1.0, got %f", value)
 	}
 
-	m.IncrementActiveEnvelopes()
+	m.IncrementActiveMessages()
 	value = testutil.ToFloat64(m.activeMessages)
 	if value != 2.0 {
 		t.Errorf("Expected active messages 2.0, got %f", value)
 	}
 
-	m.DecrementActiveEnvelopes()
+	m.DecrementActiveMessages()
 	value = testutil.ToFloat64(m.activeMessages)
 	if value != 1.0 {
 		t.Errorf("Expected active messages 1.0 after decrement, got %f", value)

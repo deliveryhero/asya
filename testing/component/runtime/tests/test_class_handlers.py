@@ -6,7 +6,7 @@ Tests class-based stateful handlers with realistic scenarios:
 - Slow model initialization (simulates AI model loading)
 - State preservation across requests (caching, counters)
 - Large payload handling
-- Envelope mode with class handlers
+- Message mode (envelope handler mode) with class handlers
 """
 
 import json
@@ -43,16 +43,16 @@ class SocketClient:
             data += chunk
         return data
 
-    def send_envelope(self, envelope: dict, timeout: int = 10) -> list:
-        """Send envelope to runtime and receive response list."""
+    def send_message(self, message: dict, timeout: int = 10) -> list:
+        """Send message to runtime and receive response list."""
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         sock.settimeout(timeout)
 
         try:
             sock.connect(self.socket_path)
 
-            # Send envelope with length prefix
-            data = json.dumps(envelope).encode()
+            # Send message with length prefix
+            data = json.dumps(message).encode()
             length_prefix = struct.pack(">I", len(data))
             sock.sendall(length_prefix + data)
 
@@ -91,7 +91,7 @@ def counter_client():
 
 
 @pytest.fixture
-def envelope_class_client():
+def message_class_client():
     """Socket client for envelope mode class runtime."""
     return SocketClient("/var/run/asya/envelope-class.sock")
 
@@ -99,14 +99,14 @@ def envelope_class_client():
 def test_slow_model_init_once(slow_model_client):
     """Test that slow model initialization happens only once."""
     # First request - should complete after ~2s init
-    envelope1 = {
+    message1 = {
         "id": "test-001",
         "route": {"actors": ["slow-model"], "current": 0},
         "payload": {"test": "first"}
     }
 
     start = time.time()
-    response1 = slow_model_client.send_envelope(envelope1)
+    response1 = slow_model_client.send_message(message1)
     duration1 = time.time() - start
 
     assert isinstance(response1, list)
@@ -121,14 +121,14 @@ def test_slow_model_init_once(slow_model_client):
     logger.info(f"First request took {duration1:.2f}s")
 
     # Second request - should be fast (no re-init)
-    envelope2 = {
+    message2 = {
         "id": "test-002",
         "route": {"actors": ["slow-model"], "current": 0},
         "payload": {"test": "second"}
     }
 
     start = time.time()
-    response2 = slow_model_client.send_envelope(envelope2)
+    response2 = slow_model_client.send_message(message2)
     duration2 = time.time() - start
 
     assert isinstance(response2, list)
@@ -153,13 +153,13 @@ def test_caching_state_preserved(caching_client):
     results = []
 
     for idx, key in enumerate(keys):
-        envelope = {
+        message = {
             "id": f"test-{idx:03d}",
             "route": {"actors": ["caching"], "current": 0},
             "payload": {"key": key}
         }
 
-        response = caching_client.send_envelope(envelope)
+        response = caching_client.send_message(message)
         assert len(response) == 1
         results.append(response[0]["payload"])
 
@@ -181,13 +181,13 @@ def test_caching_state_preserved(caching_client):
 def test_large_payload_stateful(large_payload_class_client):
     """Test large payload handling with stateful counter."""
     # Request 10MB payload
-    envelope = {
+    message = {
         "id": "test-large-001",
         "route": {"actors": ["large-payload"], "current": 0},
         "payload": {"size_mb": 10}
     }
 
-    response = large_payload_class_client.send_envelope(envelope, timeout=30)
+    response = large_payload_class_client.send_message(message, timeout=30)
 
     assert isinstance(response, list)
     assert len(response) == 1
@@ -203,13 +203,13 @@ def test_large_payload_stateful(large_payload_class_client):
     assert result["request_count"] == 1
 
     # Second request to verify state
-    envelope2 = {
+    message2 = {
         "id": "test-large-002",
         "route": {"actors": ["large-payload"], "current": 0},
         "payload": {"size_mb": 1}
     }
 
-    response2 = large_payload_class_client.send_envelope(envelope2, timeout=30)
+    response2 = large_payload_class_client.send_message(message2, timeout=30)
     result2 = response2[0]["payload"]
 
     # Counter should increment
@@ -223,13 +223,13 @@ def test_counter_sequential_requests(counter_client):
     num_requests = 10
 
     for i in range(num_requests):
-        envelope = {
+        message = {
             "id": f"test-counter-{i:03d}",
             "route": {"actors": ["counter"], "current": 0},
             "payload": {"request_id": i}
         }
 
-        response = counter_client.send_envelope(envelope)
+        response = counter_client.send_message(message)
         assert len(response) == 1
 
         result = response[0]["payload"]
@@ -242,16 +242,16 @@ def test_counter_sequential_requests(counter_client):
     logger.info(f"Counter test: {num_requests} sequential requests, final count: {num_requests}")
 
 
-def test_envelope_mode_class_handler(envelope_class_client):
+def test_message_mode_class_handler(message_class_client):
     """Test class handler in envelope mode."""
-    envelope = {
+    message = {
         "id": "test-env-001",
         "route": {"actors": ["envelope-class"], "current": 0},
         "headers": {"trace_id": "test-trace-123"},
         "payload": {"value": 42}
     }
 
-    response = envelope_class_client.send_envelope(envelope)
+    response = message_class_client.send_message(message)
 
     assert isinstance(response, list)
     assert len(response) == 1
@@ -263,38 +263,38 @@ def test_envelope_mode_class_handler(envelope_class_client):
     assert result["payload"]["prefix"] == "processed"
     assert result["payload"]["trace_id"] == "test-trace-123"
     assert result["payload"]["data"]["value"] == 42
-    assert result["payload"]["envelope_count"] == 1
+    assert result["payload"]["message_count"] == 1
 
     # Verify headers preserved
     assert result["headers"]["trace_id"] == "test-trace-123"
 
-    # Second request to verify envelope counter increments
-    envelope2 = {
+    # Second request to verify message counter increments
+    message2 = {
         "id": "test-env-002",
         "route": {"actors": ["envelope-class"], "current": 0},
         "headers": {"trace_id": "test-trace-456"},
         "payload": {"value": 100}
     }
 
-    response2 = envelope_class_client.send_envelope(envelope2)
+    response2 = message_class_client.send_message(message2)
     result2 = response2[0]
 
-    assert result2["payload"]["envelope_count"] == 2, "Envelope counter should increment"
+    assert result2["payload"]["message_count"] == 2, "Message counter should increment"
     assert result2["payload"]["trace_id"] == "test-trace-456"
 
-    logger.info(f"Envelope mode test: processed {result2['payload']['envelope_count']} envelopes")
+    logger.info(f"Message mode test: processed {result2['payload']['message_count']} messages")
 
 
 def test_class_handler_error_handling(caching_client):
     """Test that class handlers handle errors correctly."""
     # Send request with empty payload (will use default key)
-    envelope = {
+    message = {
         "id": "test-error-001",
         "route": {"actors": ["caching"], "current": 0},
         "payload": {}
     }
 
-    response = caching_client.send_envelope(envelope)
+    response = caching_client.send_message(message)
 
     assert isinstance(response, list)
     assert len(response) == 1

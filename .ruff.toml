@@ -54,14 +54,6 @@ exclude = [
   "UP038",
   "SIM105",
 ] # Allow typing.Dict/List for 3.7 compat, isinstance tuples, try-except-pass
-# Operator embeds asya_runtime.py (copy of src/asya-runtime/asya_runtime.py)
-"src/asya-operator/internal/controller/runtime_symlink/**/*.py" = [
-  "UP006",
-  "UP007",
-  "UP035",
-  "UP038",
-  "SIM105",
-] # Allow typing.Dict/List for 3.7 compat, isinstance tuples, try-except-pass
 # end_handlers.py uses 'id' as variable name for envelope identifiers (common pattern in message handling)
 "src/asya-crew/handlers/end_handlers.py" = [
   "A001",

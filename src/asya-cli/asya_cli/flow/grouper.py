@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from asya_cli.flow.ir import ActorCall, Condition, IROperation, Mutation, Return
+from asya_cli.flow.ir import ActorCall, Break, Condition, Continue, IROperation, Mutation, Return, WhileLoop
 
 
 @dataclass
@@ -15,6 +15,7 @@ class Router:
     condition: Condition | None = None
     true_branch_actors: list[str] = field(default_factory=list)
     false_branch_actors: list[str] = field(default_factory=list)
+    is_loop_back: bool = False
 
 
 class OperationGrouper:
@@ -24,11 +25,13 @@ class OperationGrouper:
         self.routers: list[Router] = []
         self.convergence_counter = 0
         self.convergence_map: dict[str, list[str]] = {}
+        self._loop_counter = 0
 
     def group(self) -> list[Router]:
         self.routers = []
         self.convergence_counter = 0
         self.convergence_map = {}
+        self._loop_counter = 0
 
         start_actors = self._process_operations(self.operations, [], is_top_level=True)
 
@@ -43,7 +46,12 @@ class OperationGrouper:
         return self.routers
 
     def _process_operations(
-        self, operations: list[IROperation], convergence_stack: list[str], is_top_level: bool = False
+        self,
+        operations: list[IROperation],
+        convergence_stack: list[str],
+        is_top_level: bool = False,
+        loop_back_label: str | None = None,
+        loop_exit_label: str | None = None,
     ) -> list[str]:
         if not operations:
             if convergence_stack:
@@ -76,7 +84,11 @@ class OperationGrouper:
                         i += 1
 
                         continuation = self._process_operations(
-                            operations[i:], convergence_stack, is_top_level=is_top_level
+                            operations[i:],
+                            convergence_stack,
+                            is_top_level=is_top_level,
+                            loop_back_label=loop_back_label,
+                            loop_exit_label=loop_exit_label,
                         )
 
                         router = Router(
@@ -96,11 +108,25 @@ class OperationGrouper:
 
                         new_stack = [*convergence_stack, convergence_label]
 
-                        true_actors = self._process_operations(next_op.true_branch, new_stack)
-                        false_actors = self._process_operations(next_op.false_branch, new_stack)
+                        true_actors = self._process_operations(
+                            next_op.true_branch,
+                            new_stack,
+                            loop_back_label=loop_back_label,
+                            loop_exit_label=loop_exit_label,
+                        )
+                        false_actors = self._process_operations(
+                            next_op.false_branch,
+                            new_stack,
+                            loop_back_label=loop_back_label,
+                            loop_exit_label=loop_exit_label,
+                        )
 
                         continuation_actors = self._process_operations(
-                            operations[i:], convergence_stack, is_top_level=is_top_level
+                            operations[i:],
+                            convergence_stack,
+                            is_top_level=is_top_level,
+                            loop_back_label=loop_back_label,
+                            loop_exit_label=loop_exit_label,
                         )
 
                         self.convergence_map[convergence_label] = continuation_actors
@@ -116,7 +142,27 @@ class OperationGrouper:
                         self.routers.append(router)
                         return [*result, router.name]
 
-                continuation = self._process_operations(operations[i:], convergence_stack, is_top_level=is_top_level)
+                    elif isinstance(next_op, WhileLoop):
+                        i += 1
+
+                        continuation = self._process_operations(
+                            operations[i:],
+                            convergence_stack,
+                            is_top_level=is_top_level,
+                            loop_back_label=loop_back_label,
+                            loop_exit_label=loop_exit_label,
+                        )
+
+                        loop_actors = self._process_while_loop(next_op, mutations, continuation)
+                        return [*result, *loop_actors]
+
+                continuation = self._process_operations(
+                    operations[i:],
+                    convergence_stack,
+                    is_top_level=is_top_level,
+                    loop_back_label=loop_back_label,
+                    loop_exit_label=loop_exit_label,
+                )
                 router = Router(
                     name=f"router_{self.flow_name}_line_{mutations[0].lineno}_seq",
                     lineno=mutations[0].lineno,
@@ -136,11 +182,25 @@ class OperationGrouper:
 
                 new_stack = [*convergence_stack, convergence_label]
 
-                true_actors = self._process_operations(op.true_branch, new_stack)
-                false_actors = self._process_operations(op.false_branch, new_stack)
+                true_actors = self._process_operations(
+                    op.true_branch,
+                    new_stack,
+                    loop_back_label=loop_back_label,
+                    loop_exit_label=loop_exit_label,
+                )
+                false_actors = self._process_operations(
+                    op.false_branch,
+                    new_stack,
+                    loop_back_label=loop_back_label,
+                    loop_exit_label=loop_exit_label,
+                )
 
                 continuation_actors = self._process_operations(
-                    operations[i + 1 :], convergence_stack, is_top_level=is_top_level
+                    operations[i + 1 :],
+                    convergence_stack,
+                    is_top_level=is_top_level,
+                    loop_back_label=loop_back_label,
+                    loop_exit_label=loop_exit_label,
                 )
 
                 self.convergence_map[convergence_label] = continuation_actors
@@ -155,6 +215,30 @@ class OperationGrouper:
                 self.routers.append(router)
                 return [*result, router.name]
 
+            elif isinstance(op, WhileLoop):
+                i += 1
+
+                continuation = self._process_operations(
+                    operations[i:],
+                    convergence_stack,
+                    is_top_level=is_top_level,
+                    loop_back_label=loop_back_label,
+                    loop_exit_label=loop_exit_label,
+                )
+
+                loop_actors = self._process_while_loop(op, [], continuation)
+                return [*result, *loop_actors]
+
+            elif isinstance(op, Break):
+                if loop_exit_label:
+                    return [*result, loop_exit_label]
+                return [*result, f"end_{self.flow_name}"]
+
+            elif isinstance(op, Continue):
+                if loop_back_label:
+                    return [*result, loop_back_label]
+                return result
+
             elif isinstance(op, Return):
                 return [*result, f"end_{self.flow_name}"]
 
@@ -162,7 +246,13 @@ class OperationGrouper:
                 i += 1
 
         if result:
-            continuation = self._process_operations(operations[i:], convergence_stack, is_top_level=is_top_level)
+            continuation = self._process_operations(
+                operations[i:],
+                convergence_stack,
+                is_top_level=is_top_level,
+                loop_back_label=loop_back_label,
+                loop_exit_label=loop_exit_label,
+            )
             return result + continuation
 
         if convergence_stack:
@@ -172,6 +262,103 @@ class OperationGrouper:
             return [f"end_{self.flow_name}"]
 
         return []
+
+    def _process_while_loop(
+        self,
+        loop: WhileLoop,
+        pre_mutations: list[Mutation],
+        continuation: list[str],
+    ) -> list[str]:
+        """Process a WhileLoop IR node into router(s).
+
+        For `while True:` (no condition):
+            loop_back_router (re-inserts loop body into route)
+            Body is processed with loop_back pointing to loop_back_router
+
+        For `while condition:` (conditional):
+            loop_condition_router (checks condition, true -> body, false -> continuation)
+            loop_back_router (re-inserts condition_router into route)
+        """
+        loop_id = self._loop_counter
+        self._loop_counter += 1
+
+        loop_back_name = f"router_{self.flow_name}_line_{loop.lineno}_loop_back_{loop_id}"
+        loop_exit_label = f"LOOP_EXIT_{loop_id}"
+        loop_back_label = f"LOOP_BACK_{loop_id}"
+
+        # Register the exit label so break can reference it
+        self.convergence_map[loop_exit_label] = continuation
+
+        if loop.test is None:
+            # `while True:` — no condition router needed
+            # The loop-back router re-inserts the body actors
+
+            # Process loop body with loop context
+            body_actors = self._process_operations(
+                loop.body,
+                [],
+                loop_back_label=loop_back_label,
+                loop_exit_label=loop_exit_label,
+            )
+
+            # Create loop-back router: re-inserts body actors + itself
+            loop_back_router = Router(
+                name=loop_back_name,
+                lineno=loop.lineno,
+                mutations=pre_mutations,
+                true_branch_actors=[*body_actors, loop_back_name],
+                is_loop_back=True,
+            )
+            self.routers.append(loop_back_router)
+
+            # Register the loop_back_label so continue resolves to loop_back_router
+            self.convergence_map[loop_back_label] = [loop_back_name]
+
+            return [loop_back_name]
+
+        else:
+            # `while condition:` — need a condition router
+            condition_name = f"router_{self.flow_name}_line_{loop.lineno}_while_{loop_id}"
+
+            # Process loop body with loop context
+            body_actors = self._process_operations(
+                loop.body,
+                [],
+                loop_back_label=loop_back_label,
+                loop_exit_label=loop_exit_label,
+            )
+
+            # Create loop-back router: re-inserts condition_router into route
+            loop_back_router = Router(
+                name=loop_back_name,
+                lineno=loop.lineno,
+                true_branch_actors=[condition_name],
+                is_loop_back=True,
+            )
+            self.routers.append(loop_back_router)
+
+            # Register the loop_back_label so continue resolves to loop_back_router
+            self.convergence_map[loop_back_label] = [loop_back_name]
+
+            # Create the condition-check router
+            condition_ir = Condition(
+                lineno=loop.lineno,
+                test=loop.test,
+                true_branch=[],
+                false_branch=[],
+            )
+
+            condition_router = Router(
+                name=condition_name,
+                lineno=loop.lineno,
+                mutations=pre_mutations,
+                condition=condition_ir,
+                true_branch_actors=[*body_actors, loop_back_name],
+                false_branch_actors=[loop_exit_label],
+            )
+            self.routers.append(condition_router)
+
+            return [condition_name]
 
     def _process_branch(self, branch: list[IROperation], convergence_stack: list[str]) -> list[str]:
         return self._process_operations(branch, convergence_stack)
@@ -184,7 +371,7 @@ class OperationGrouper:
     def _resolve_actors(self, actors: list[str]) -> list[str]:
         resolved = []
         for actor in actors:
-            if actor.startswith("CONVERGENCE_"):
+            if actor.startswith("CONVERGENCE_") or actor.startswith("LOOP_EXIT_") or actor.startswith("LOOP_BACK_"):
                 replacement = self.convergence_map.get(actor, [])
                 if replacement:
                     resolved.extend(self._resolve_actors(replacement))
