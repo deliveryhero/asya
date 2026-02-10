@@ -296,7 +296,7 @@ def conditional_handler(payload: dict[str, Any]) -> dict[str, Any] | None:
     elif action == "oom":
         raise MemoryError("Conditional OOM")
     elif action == "slow":
-        await asyncio.sleep(payload.get("sleep", 2))  # Simulate slow processing for testing
+        time.sleep(payload.get("sleep", 2))  # Simulate slow processing for testing
         return {**payload, "status": "slow_processing_complete"}
     elif action == "empty":
         return None

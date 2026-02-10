@@ -54,7 +54,7 @@ def _wrap_payload_handler(handler_func):
 
     elif inspect.iscoroutinefunction(handler_func):
 
-        async def envelope_wrapper(message: dict[str, Any]):
+        async def envelope_wrapper(message: dict[str, Any]):  # type: ignore[misc]
             result_payload = await handler_func(message["payload"])
             if result_payload is None:
                 return None
