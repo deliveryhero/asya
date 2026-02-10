@@ -19,11 +19,11 @@ Beads (12 total under the epic)
 ┌───────────┬──────────┬─────────────────────────────────────────────────┬────────────────┐
 │    ID     │ Priority │                      Title                      │   Blocked by   │
 ├───────────┼──────────┼─────────────────────────────────────────────────┼────────────────┤
-│ asya-pec  │ P1       │ Flow DSL: async/await handlers (updated)        │ -              │
+│ asya-pec  │ WIP       │ Flow DSL: async/await handlers (updated)        │ -              │
 ├───────────┼──────────┼─────────────────────────────────────────────────┼────────────────┤
-│ asya-bp6  │ P1       │ Flow DSL: for/while loops (updated)             │ -              │
+│ asya-bp6  │ DONE - PR163 │ Flow DSL: for/while loops (updated)             │ -              │
 ├───────────┼──────────┼─────────────────────────────────────────────────┼────────────────┤
-│ asya-ajeq │ P1       │ Runtime: async handler execution (asyncio.run)  │ -              │
+│ asya-ajeq │ WIP       │ Runtime: async handler execution (asyncio.run)  │ -              │
 ├───────────┼──────────┼─────────────────────────────────────────────────┼────────────────┤
 │ asya-qrsp │ P1       │ Sidecar: multi-frame streaming protocol         │ -              │
 ├───────────┼──────────┼─────────────────────────────────────────────────┼────────────────┤

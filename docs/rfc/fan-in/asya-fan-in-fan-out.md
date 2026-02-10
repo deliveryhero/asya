@@ -44,6 +44,13 @@ Agentic workflows often require parallel execution of sub-tasks:
 p["sub_agents_results"] = [research_agent(p["tasks"][i]) for i in range(len(p["tasks"]))]
 ```
 
+For async handlers, the syntax would be:
+```python
+p["sub_agents_results"] = asyncio.gather(*[
+    research_agent(p["tasks"][i]) for i in range(len(p["tasks"]))
+])
+```
+
 This pattern requires:
 1. **Fan-out**: Split payload into N slices, send to N sub-agents in parallel
 2. **Fan-in**: Collect N results, merge back into parent payload
