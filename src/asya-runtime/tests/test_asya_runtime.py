@@ -2406,17 +2406,17 @@ class TestAsyncHandlers:
         message_data = json.dumps(message).encode("utf-8")
         asya_runtime._send_message(client_sock, message_data)
 
-        responses = asya_runtime._handle_request(server_sock, async_echo)
+        responses = handle_and_receive_frames(server_sock, client_sock, async_echo)
 
         assert len(responses) == 1
         assert responses[0]["payload"] == {"echoed": "hello"}
         assert responses[0]["route"]["current"] == 1
 
-    def test_async_payload_mode_fanout(self, socket_pair):
-        """Async handler returning list in payload mode produces fan-out."""
+    def test_async_payload_mode_list_return(self, socket_pair):
+        """Async handler returning list is treated as single payload (not fan-out)."""
         server_sock, client_sock = socket_pair
 
-        async def async_fanout(payload):
+        async def async_list_return(payload):
             return [{"i": 0}, {"i": 1}, {"i": 2}]
 
         message = {
@@ -2426,12 +2426,11 @@ class TestAsyncHandlers:
         message_data = json.dumps(message).encode("utf-8")
         asya_runtime._send_message(client_sock, message_data)
 
-        responses = asya_runtime._handle_request(server_sock, async_fanout)
+        responses = handle_and_receive_frames(server_sock, client_sock, async_list_return)
 
-        assert len(responses) == 3
-        for i, resp in enumerate(responses):
-            assert resp["payload"] == {"i": i}
-            assert resp["route"]["current"] == 1
+        assert len(responses) == 1
+        assert responses[0]["payload"] == [{"i": 0}, {"i": 1}, {"i": 2}]
+        assert responses[0]["route"]["current"] == 1
 
     def test_async_payload_mode_none_return(self, socket_pair):
         """Async handler returning None in payload mode aborts pipeline."""
@@ -2447,7 +2446,7 @@ class TestAsyncHandlers:
         message_data = json.dumps(message).encode("utf-8")
         asya_runtime._send_message(client_sock, message_data)
 
-        responses = asya_runtime._handle_request(server_sock, async_none)
+        responses = handle_and_receive_frames(server_sock, client_sock, async_none)
 
         assert len(responses) == 0
 
@@ -2471,7 +2470,7 @@ class TestAsyncHandlers:
         asya_runtime._send_message(client_sock, message_data)
 
         with mock_env(ASYA_HANDLER_MODE="envelope"):
-            responses = asya_runtime._handle_request(server_sock, async_envelope)
+            responses = handle_and_receive_frames(server_sock, client_sock, async_envelope)
 
         assert len(responses) == 1
         assert responses[0]["payload"] == {"processed": "test"}
@@ -2492,7 +2491,7 @@ class TestAsyncHandlers:
         message_data = json.dumps(message).encode("utf-8")
         asya_runtime._send_message(client_sock, message_data)
 
-        responses = asya_runtime._handle_request(server_sock, async_error)
+        responses = handle_and_receive_frames(server_sock, client_sock, async_error)
 
         assert len(responses) == 1
         assert responses[0]["error"] == "processing_error"
@@ -2513,7 +2512,7 @@ class TestAsyncHandlers:
         message_data = json.dumps(message).encode("utf-8")
         asya_runtime._send_message(client_sock, message_data)
 
-        responses = asya_runtime._handle_request(server_sock, sync_handler)
+        responses = handle_and_receive_frames(server_sock, client_sock, sync_handler)
 
         assert len(responses) == 1
         assert responses[0]["payload"] == {"result": 42}
@@ -2539,7 +2538,7 @@ class TestAsyncHandlers:
         message_data = json.dumps(message).encode("utf-8")
         asya_runtime._send_message(client_sock, message_data)
 
-        responses = asya_runtime._handle_request(server_sock, processor.process)
+        responses = handle_and_receive_frames(server_sock, client_sock, processor.process)
 
         assert len(responses) == 1
         assert responses[0]["payload"]["count"] == 1
@@ -2560,7 +2559,7 @@ class TestAsyncHandlers:
         message_data = json.dumps(message).encode("utf-8")
         asya_runtime._send_message(client_sock, message_data)
 
-        responses = asya_runtime._handle_request(server_sock, async_handler)
+        responses = handle_and_receive_frames(server_sock, client_sock, async_handler)
 
         assert len(responses) == 1
         assert responses[0]["headers"] == {"trace_id": "abc", "priority": "high"}
