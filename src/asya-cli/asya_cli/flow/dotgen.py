@@ -102,7 +102,7 @@ class DotGenerator:
         if router.name.startswith("start_") or router.name.startswith("end_"):
             color = "lightgreen"
         elif router.is_loop_back:
-            color = "khaki"
+            color = "wheat"  # for now, same color as regular router
         else:
             color = "wheat"
 
@@ -153,10 +153,7 @@ class DotGenerator:
             # Loop-back routers use dashed back-edges
             actors = router.true_branch_actors
             if actors:
-                lines.add(
-                    f"  {self._node_id(router.name)} -> {self._node_id(actors[0])} "
-                    f"[style=dashed, color=darkorange, constraint=false];"
-                )
+                lines.add(f"  {self._node_id(router.name)} -> {self._node_id(actors[0])} [constraint=false];")
                 self._add_sequential_edges(actors, lines)
         elif router.condition:
             true_actors = router.true_branch_actors
