@@ -373,6 +373,6 @@ The sidecar exposes Prometheus metrics for monitoring. See [Metrics Reference](o
 
 ## Next Steps
 
-- [Envelope Flow](protocols/actor-actor.md) - Detailed envelope routing
+- [Message Flow](protocols/actor-actor.md) - Detailed message routing
 - [Runtime Component](asya-runtime.md) - Actor runtime
 - [Metrics Reference](observability.md) - Monitoring

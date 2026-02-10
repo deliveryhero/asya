@@ -1154,13 +1154,13 @@ helm<span class="w"> </span>install<span class="w"> </span>asya-crew<span class=
 - Prometheus / Grafana (when installed)</p>
 <p><strong>Business namespaces</strong> (e.g., default, production):
 - Gateway (routes messages to actors in same namespace)
-- Gateway PostgreSQL (gateway's envelope tracking database)
+- Gateway PostgreSQL (gateway's task tracking database)
 - Async actors and flows (your ML/AI workloads)
 - Crew actors (happy-end, error-end - part of the pipelines)</p>
 <p><strong>Why this separation?</strong></p>
 <p>Gateway is part of the business logic layer - it exposes your actors as MCP tools and routes messages to actor queues. In multi-tenant deployments, each namespace can have its own gateway instance served by a single operator in asya-system.</p>
 <h2 id="add-gateway-optional">Add Gateway (Optional)<a class="headerlink" href="#add-gateway-optional" title="Permanent link">&para;</a></h2>
-<p><strong>What you get</strong>: HTTP API, MCP tools, SSE streaming, envelope tracking</p>
+<p><strong>What you get</strong>: HTTP API, MCP tools, SSE streaming, task tracking</p>
 <h3 id="1-install-postgresql">1. Install PostgreSQL<a class="headerlink" href="#1-install-postgresql" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>apply<span class="w"> </span>-f<span class="w"> </span>-<span class="w"> </span><span class="s">&lt;&lt;EOF</span>
 <span class="s">apiVersion: v1</span>
@@ -1339,18 +1339,18 @@ kubectl<span class="w"> </span><span class="nb">wait</span><span class="w"> </sp
 <p>Call the hello actor through the gateway:</p>
 <div class="highlight"><pre><span></span><code>asya<span class="w"> </span>mcp<span class="w"> </span>call<span class="w"> </span>hello<span class="w"> </span>--name<span class="o">=</span>Asya
 </code></pre></div>
-<p>Expected output will show the envelope ID and completion status.</p>
+<p>Expected output will show the task ID and completion status.</p>
 <p>Stream real-time progress using Server-Sent Events (SSE):</p>
 <div class="highlight"><pre><span></span><code>asya<span class="w"> </span>mcp<span class="w"> </span>call<span class="w"> </span>hello<span class="w"> </span>--name<span class="o">=</span>Asya<span class="w"> </span>--stream
 </code></pre></div>
 <p>This will show progress updates as the message flows through the pipeline until completion.</p>
-<p>Check envelope status by ID:</p>
-<div class="highlight"><pre><span></span><code>asya<span class="w"> </span>mcp<span class="w"> </span>status<span class="w"> </span>&lt;envelope-id&gt;
+<p>Check task status by ID:</p>
+<div class="highlight"><pre><span></span><code>asya<span class="w"> </span>mcp<span class="w"> </span>status<span class="w"> </span>&lt;task-id&gt;
 </code></pre></div>
 <p>The gateway now provides:
-- <strong>MCP HTTP API</strong> for submitting envelopes to actor pipelines
+- <strong>MCP HTTP API</strong> for submitting tasks to actor pipelines
 - <strong>SSE streaming</strong> for real-time progress updates
-- <strong>Envelope tracking</strong> in PostgreSQL for status queries
+- <strong>Task tracking</strong> in PostgreSQL for status queries
 - <strong>Tool configuration</strong> for data science teams to call actors</p>
 <hr />
 <h2 id="add-prometheus-optional">Add Prometheus (Optional)<a class="headerlink" href="#add-prometheus-optional" title="Permanent link">&para;</a></h2>
@@ -1402,7 +1402,7 @@ kubectl<span class="w"> </span>label<span class="w"> </span>configmap<span class
 - Message throughput and active messages
 - Processing and runtime execution duration
 - Error rates by reason and type
-- Envelope size distribution
+- Message size distribution
 - Operator health metrics</p>
 <h3 id="5-verify-metrics-collection">5. Verify Metrics Collection<a class="headerlink" href="#5-verify-metrics-collection" title="Permanent link">&para;</a></h3>
 <p>Send messages to generate metrics:</p>
@@ -1480,7 +1480,7 @@ make<span class="w"> </span>up<span class="w"> </span><span class="nv">PROFILE</
 </ul>
 <h2 id="learn-more">Learn More<a class="headerlink" href="#learn-more" title="Permanent link">&para;</a></h2>
 <ul>
-<li><a href="../concepts/">Core Concepts</a> - Actors, envelopes, sidecars, routing</li>
+<li><a href="../concepts/">Core Concepts</a> - Actors, messages, sidecars, routing</li>
 <li><a href="../motivation/">Motivation</a> - Why Asya🎭 exists, when to use it</li>
 <li><a href="../architecture/">Architecture</a> - Deep dive into system design</li>
 <li><a href="https://github.com/deliveryhero/asya/tree/main/examples">Examples</a> - Sample actors and flows</li>

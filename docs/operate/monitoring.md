@@ -24,7 +24,7 @@ All sidecar metrics use namespace `asya_actor` (configurable via `ASYA_METRICS_N
 
 - `asya_actor_queue_receive_duration_seconds{queue, transport}` - Time to receive from queue
 - `asya_actor_queue_send_duration_seconds{destination_queue, transport}` - Time to send to queue
-- `asya_actor_envelope_size_bytes{direction}` - Envelope size in bytes
+- `asya_actor_message_size_bytes{direction}` - Message size in bytes
 
 ### Queue Depth (from KEDA)
 

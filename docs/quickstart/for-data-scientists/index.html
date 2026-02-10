@@ -1017,7 +1017,7 @@ asya<span class="w"> </span>mcp<span class="w"> </span>list
 asya<span class="w"> </span>mcp<span class="w"> </span>call<span class="w"> </span>text-processor<span class="w"> </span>--text<span class="o">=</span><span class="s2">&quot;hello world&quot;</span>
 </code></pre></div>
 <p>Output:
-<div class="highlight"><pre><span></span><code>[.] Envelope ID: abc-123
+<div class="highlight"><pre><span></span><code>[.] Task ID: abc-123
 Processing: 100% |████████████████| , succeeded
 {
   &quot;result&quot;: {
@@ -1483,7 +1483,7 @@ resolve<span class="o">(</span><span class="s2">&quot;SpanishSentiment.process&q
 <div class="highlight"><pre><span></span><code><span class="nt">env</span><span class="p">:</span>
 
 <span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_HANDLER_MODE</span>
-<span class="w">  </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;envelope&quot;</span><span class="w">  </span><span class="c1"># Receive full envelope, not just payload</span>
+<span class="w">  </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;envelope&quot;</span><span class="w">  </span><span class="c1"># Receive full message, not just payload</span>
 </code></pre></div>
 <div class="highlight"><pre><span></span><code><span class="c1"># llm_judge.py</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">LLMJudge</span><span class="p">:</span>
@@ -1540,7 +1540,7 @@ resolve<span class="o">(</span><span class="s2">&quot;SpanishSentiment.process&q
     <span class="k">return</span> <span class="p">{</span><span class="o">**</span><span class="n">payload</span><span class="p">,</span> <span class="s2">&quot;result&quot;</span><span class="p">:</span> <span class="n">result</span><span class="p">}</span>
 </code></pre></div>
 <p><strong>When exception occurs</strong>:
-1. Runtime catches exception and creates error envelope with traceback
+1. Runtime catches exception and creates error message with traceback
 2. Sidecar routes to <code>asya-{namespace}-error-end</code> queue
 3. Error-end actor persists error details to S3
 4. Gateway receives final failure status</p>
@@ -1571,7 +1571,7 @@ kubectl<span class="w"> </span>logs<span class="w"> </span>-f<span class="w"> </
 <li>Read <a href="../../concepts/">Core Concepts</a></li>
 <li>See <a href="../../architecture/">Architecture Overview</a></li>
 <li>Explore <a href="https://github.com/deliveryhero/asya/tree/main/examples">Example Actors</a></li>
-<li>Learn about <a href="../../architecture/protocols/actor-actor/">Envelope Protocol</a></li>
+<li>Learn about <a href="../../architecture/protocols/actor-actor/">Message Protocol</a></li>
 </ul>
   </div>
 </article>

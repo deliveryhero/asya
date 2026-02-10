@@ -879,7 +879,7 @@
 </code></pre></div></p>
 <h2 id="message-format">Message Format<a class="headerlink" href="#message-format" title="Permanent link">&para;</a></h2>
 <h3 id="request-sidecar-runtime">Request (Sidecar → Runtime)<a class="headerlink" href="#request-sidecar-runtime" title="Permanent link">&para;</a></h3>
-<p>Full envelope from queue:
+<p>Full message from queue:
 <div class="highlight"><pre><span></span><code><span class="p">{</span>
 <span class="w">  </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;123&quot;</span><span class="p">,</span>
 <span class="w">  </span><span class="nt">&quot;route&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
@@ -979,7 +979,7 @@
 <span class="nx">conn</span><span class="p">.</span><span class="nx">SetDeadline</span><span class="p">(</span><span class="nx">deadline</span><span class="p">)</span>
 </code></pre></div></p>
 <p><strong>On timeout</strong> (<code>context.DeadlineExceeded</code>):
-1. Sidecar sends envelope to <code>error-end</code> queue with timeout error
+1. Sidecar sends message to <code>error-end</code> queue with timeout error
 2. Sidecar logs error and <strong>crashes pod</strong> (exits with status code 1)
 3. Kubernetes restarts pod to recover clean state</p>
 <p><strong>Rationale</strong>: Prevents zombie processing where runtime may still be working after timeout</p>

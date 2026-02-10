@@ -604,7 +604,7 @@
     end
 
     Client --&gt;|HTTP| Gateway
-    Gateway --&gt;|envelope| MQ
+    Gateway --&gt;|task| MQ
     MQ --&gt;|messages| A1
     A1 --&gt;|results| MQ
     MQ --&gt;|messages| A2
@@ -628,7 +628,7 @@
 <h3 id="framework-components">Framework Components<a class="headerlink" href="#framework-components" title="Permanent link">¶</a></h3>
 <ul>
 <li><strong><a href="asya-operator/">Operator</a></strong>: Kubernetes controller that watches AsyncActor CRDs, injects sidecars, configures KEDA autoscaling</li>
-<li><strong><a href="asya-gateway/">Gateway</a></strong>: Optional MCP HTTP API for envelope submission, SSE streaming, and status tracking</li>
+<li><strong><a href="asya-gateway/">Gateway</a></strong>: Optional MCP HTTP API for task submission, SSE streaming, and status tracking</li>
 <li><strong><a href="asya-cli/">CLI</a></strong>: Command-line tool for interacting with the gateway (MCP client)</li>
 </ul>
 <h3 id="actor-components">Actor Components<a class="headerlink" href="#actor-components" title="Permanent link">¶</a></h3>
@@ -650,9 +650,9 @@
 <h2 id="message-flow">Message Flow<a class="headerlink" href="#message-flow" title="Permanent link">¶</a></h2>
 <ol>
 <li><strong>Client</strong> sends request to Gateway (or directly to queue)</li>
-<li><strong>Gateway</strong> creates envelope, routes to first actor's queue</li>
+<li><strong>Gateway</strong> creates task, routes to first actor's queue</li>
 <li><strong>Sidecar</strong> consumes message from queue</li>
-<li><strong>Sidecar</strong> forwards envelope to Runtime via Unix socket</li>
+<li><strong>Sidecar</strong> forwards message to Runtime via Unix socket</li>
 <li><strong>Runtime</strong> executes your Python handler, returns result</li>
 <li><strong>Sidecar</strong> routes result to next actor's queue (or <code>happy-end</code>/<code>error-end</code>)</li>
 <li>Repeat steps 3-6 for each actor in the route</li>
@@ -674,7 +674,7 @@
 </ol>
 <h2 id="protocols">Protocols<a class="headerlink" href="#protocols" title="Permanent link">¶</a></h2>
 <ul>
-<li><strong><a href="protocols/actor-actor/">Actor-to-Actor</a></strong>: Envelope structure, routing, status tracking</li>
+<li><strong><a href="protocols/actor-actor/">Actor-to-Actor</a></strong>: Message structure, routing, status tracking</li>
 <li><strong><a href="protocols/sidecar-runtime/">Sidecar-Runtime</a></strong>: Unix socket communication, framing protocol, error handling</li>
 </ul>
 <h2 id="component-details">Component Details<a class="headerlink" href="#component-details" title="Permanent link">¶</a></h2>

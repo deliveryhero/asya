@@ -43,7 +43,7 @@ io.ReadFull(conn, data)
 
 ### Request (Sidecar → Runtime)
 
-Full envelope from queue:
+Full message from queue:
 ```json
 {
   "id": "123",
@@ -130,7 +130,7 @@ conn.SetDeadline(deadline)
 ```
 
 **On timeout** (`context.DeadlineExceeded`):
-1. Sidecar sends envelope to `error-end` queue with timeout error
+1. Sidecar sends message to `error-end` queue with timeout error
 2. Sidecar logs error and **crashes pod** (exits with status code 1)
 3. Kubernetes restarts pod to recover clean state
 

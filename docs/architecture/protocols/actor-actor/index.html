@@ -848,14 +848,12 @@
     </div>
   </div>
   <div class="typography w-full flex-1 *:data-[slot=alert]:first:mt-0">
-    <h2 id="message-vs-envelope">Message vs Envelope<a class="headerlink" href="#message-vs-envelope" title="Permanent link">&para;</a></h2>
-<p><strong>Message</strong>: Raw bytes transmitted through message queue (RabbitMQ, SQS).</p>
-<p><strong>Envelope</strong>: Structured JSON object parsed from queue bytes, containing routing information and application data.</p>
-<p><strong>Payload</strong>: Application-specific data within envelope, processed by actors.</p>
-<h2 id="envelope-structure">Envelope Structure<a class="headerlink" href="#envelope-structure" title="Permanent link">&para;</a></h2>
+    <h2 id="message-structure">Message Structure<a class="headerlink" href="#message-structure" title="Permanent link">&para;</a></h2>
+<p><strong>Message</strong>: Structured JSON object transmitted through message queues (RabbitMQ, SQS), containing routing information and application data.</p>
+<p><strong>Payload</strong>: Application-specific data within message, processed by actors.</p>
 <div class="highlight"><pre><span></span><code><span class="p">{</span>
-<span class="w">  </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;unique-envelope-id&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;parent_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;original-envelope-id&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;unique-message-id&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;parent_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;original-message-id&quot;</span><span class="p">,</span>
 <span class="w">  </span><span class="nt">&quot;route&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="nt">&quot;actors&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;prep&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;infer&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;post&quot;</span><span class="p">],</span>
 <span class="w">    </span><span class="nt">&quot;current&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span>
@@ -871,8 +869,8 @@
 </code></pre></div>
 <p><strong>Fields</strong>:</p>
 <ul>
-<li><code>id</code> (required): Unique envelope identifier</li>
-<li><code>parent_id</code> (optional): Parent envelope ID for fanout children (see Fan-Out section)</li>
+<li><code>id</code> (required): Unique message identifier</li>
+<li><code>parent_id</code> (optional): Parent message ID for fanout children (see Fan-Out section)</li>
 <li><code>route</code> (required): Actor list and current position</li>
 <li><code>actors</code>: Pipeline definition</li>
 <li><code>current</code>: Current actor index (0-based, incremented by runtime)</li>
@@ -912,7 +910,7 @@ Namespace: <code>example-ecommerce</code>
 <p>Runtime returns mutated payload:
 <div class="highlight"><pre><span></span><code><span class="p">{</span><span class="nt">&quot;processed&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;timestamp&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2025-11-18T12:00:00Z&quot;</span><span class="p">}</span>
 </code></pre></div></p>
-<p><strong>Action</strong>: Sidecar creates envelope → Increments current → Routes to next actor</p>
+<p><strong>Action</strong>: Sidecar creates message → Increments current → Routes to next actor</p>
 <h3 id="fan-out-array">Fan-Out (Array)<a class="headerlink" href="#fan-out-array" title="Permanent link">&para;</a></h3>
 <p>Runtime returns array:
 <div class="highlight"><pre><span></span><code><span class="p">[</span>
@@ -920,14 +918,14 @@ Namespace: <code>example-ecommerce</code>
 <span class="w">  </span><span class="p">{</span><span class="nt">&quot;chunk&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;text&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;world&quot;</span><span class="p">}</span>
 <span class="p">]</span>
 </code></pre></div></p>
-<p><strong>Action</strong>: Sidecar creates multiple envelopes (one per item) → Routes to next actor</p>
+<p><strong>Action</strong>: Sidecar creates multiple messages (one per item) → Routes to next actor</p>
 <p><strong>Fanout ID semantics</strong>:</p>
 <ul>
-<li>First envelope retains original ID (for SSE streaming compatibility)</li>
-<li>Subsequent envelopes receive suffixed IDs: <code>{original_id}-{index}</code></li>
-<li>All fanout children have <code>parent_id</code> set to original envelope ID</li>
+<li>First message retains original ID (for SSE streaming compatibility)</li>
+<li>Subsequent messages receive suffixed IDs: <code>{original_id}-{index}</code></li>
+<li>All fanout children have <code>parent_id</code> set to original message ID</li>
 </ul>
-<p><strong>Example</strong>: Envelope <code>abc-123</code> returns 3 items:</p>
+<p><strong>Example</strong>: Message <code>abc-123</code> returns 3 items:</p>
 <ul>
 <li>Index 0: <code>id="abc-123"</code>, <code>parent_id=null</code> (original ID preserved)</li>
 <li>Index 1: <code>id="abc-123-1"</code>, <code>parent_id="abc-123"</code> (fanout child)</li>
@@ -935,7 +933,7 @@ Namespace: <code>example-ecommerce</code>
 </ul>
 <h3 id="empty-response">Empty Response<a class="headerlink" href="#empty-response" title="Permanent link">&para;</a></h3>
 <p>Runtime returns <code>null</code> or <code>[]</code>:</p>
-<p><strong>Action</strong>: Sidecar routes envelope to <code>happy-end</code> (no increment)</p>
+<p><strong>Action</strong>: Sidecar routes message to <code>happy-end</code> (no increment)</p>
 <h3 id="error-response">Error Response<a class="headerlink" href="#error-response" title="Permanent link">&para;</a></h3>
 <p>Runtime returns error object:
 <div class="highlight"><pre><span></span><code><span class="p">{</span>
@@ -979,8 +977,8 @@ Namespace: <code>example-ecommerce</code>
 <li>Routing flexibility - later actors can access earlier results</li>
 <li>Monotonic computation - much easier to reason about and integrate with</li>
 </ul>
-<h2 id="envelope-status-tracking">Envelope Status Tracking<a class="headerlink" href="#envelope-status-tracking" title="Permanent link">&para;</a></h2>
-<p>When gateway is enabled, envelopes have lifecycle statuses tracked throughout processing:</p>
+<h2 id="task-status-tracking">Task Status Tracking<a class="headerlink" href="#task-status-tracking" title="Permanent link">&para;</a></h2>
+<p>When gateway is enabled, tasks have lifecycle statuses tracked throughout processing:</p>
 <h3 id="status-values">Status Values<a class="headerlink" href="#status-values" title="Permanent link">&para;</a></h3>
 <div class="table-wrapper"><table>
 <thead>
@@ -993,12 +991,12 @@ Namespace: <code>example-ecommerce</code>
 <tbody>
 <tr>
 <td><code>pending</code></td>
-<td>Envelope created, not yet processing</td>
-<td>Gateway creates envelope from MCP tool call</td>
+<td>Task created, not yet processing</td>
+<td>Gateway creates task from MCP tool call</td>
 </tr>
 <tr>
 <td><code>running</code></td>
-<td>Envelope is being processed by actors</td>
+<td>Task is being processed by actors</td>
 <td>Sidecar sends first progress update</td>
 </tr>
 <tr>
@@ -1046,18 +1044,18 @@ Namespace: <code>example-ecommerce</code>
 <div class="highlight"><pre><span></span><code>Sidecar                    Gateway                    Client
 -------                    -------                    ------
 1. Receive from queue
-   └─&gt; POST /envelopes/{id}/progress
+   └─&gt; POST /tasks/{id}/progress
        {status: &quot;received&quot;, current_actor_idx: 0}
                            └─&gt; Update DB: running
                            └─&gt; SSE: progress 10%
 
 2. Send to runtime
-   └─&gt; POST /envelopes/{id}/progress
+   └─&gt; POST /tasks/{id}/progress
        {status: &quot;processing&quot;, current_actor_idx: 0}
                            └─&gt; SSE: progress 15%
 
 3. Runtime returns
-   └─&gt; POST /envelopes/{id}/progress
+   └─&gt; POST /tasks/{id}/progress
        {status: &quot;completed&quot;, current_actor_idx: 0}
                            └─&gt; SSE: progress 33%
 
@@ -1067,7 +1065,7 @@ Namespace: <code>example-ecommerce</code>
 <p><strong>Success path</strong>:
 <div class="highlight"><pre><span></span><code>Actor N completes → Sidecar routes to happy-end
   → happy-end persists to S3
-  → happy-end reports: POST /envelopes/{id}/final
+  → happy-end reports: POST /tasks/{id}/final
      {status: &quot;succeeded&quot;, result: {...}}
   → Gateway updates: status=succeeded, progress=100%
   → SSE: final success event
@@ -1075,7 +1073,7 @@ Namespace: <code>example-ecommerce</code>
 <p><strong>Error path</strong>:
 <div class="highlight"><pre><span></span><code>Runtime error → Sidecar routes to error-end
   → error-end persists to S3
-  → error-end reports: POST /envelopes/{id}/final
+  → error-end reports: POST /tasks/{id}/final
      {status: &quot;failed&quot;, error: &quot;...&quot;}
   → Gateway updates: status=failed
   → SSE: final error event
@@ -1346,18 +1344,10 @@ Namespace: <code>example-ecommerce</code>
         
         
         
-        <a href="#message-vs-envelope"
+        <a href="#message-structure"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
-            Message vs Envelope
-        </a>
-        
-
-        
-        <a href="#envelope-structure"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="2">
-            Envelope Structure
+            Message Structure
         </a>
         
 
@@ -1428,10 +1418,10 @@ Namespace: <code>example-ecommerce</code>
         
 
         
-        <a href="#envelope-status-tracking"
+        <a href="#task-status-tracking"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
-            Envelope Status Tracking
+            Task Status Tracking
         </a>
         
         

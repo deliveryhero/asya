@@ -868,7 +868,7 @@
 </ul>
 <p><strong>Size Metrics</strong>:</p>
 <ul>
-<li><code>{namespace}_envelope_size_bytes{direction}</code> - Envelope size in bytes (direction: received, sent)</li>
+<li><code>{namespace}_message_size_bytes{direction}</code> - Message size in bytes (direction: received, sent)</li>
 </ul>
 <p><strong>Other</strong>:</p>
 <ul>
@@ -935,8 +935,8 @@
 <p><strong>Structured logging</strong> with JSON format:</p>
 <div class="highlight"><pre><span></span><code><span class="p">{</span>
 <span class="w">  </span><span class="nt">&quot;level&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;info&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;msg&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Processing envelope&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;envelope_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;5e6fdb2d-1d6b-4e91-baef-73e825434e7b&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;msg&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Processing message&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;message_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;5e6fdb2d-1d6b-4e91-baef-73e825434e7b&quot;</span><span class="p">,</span>
 <span class="w">  </span><span class="nt">&quot;actor&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;text-processor&quot;</span><span class="p">,</span>
 <span class="w">  </span><span class="nt">&quot;timestamp&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2025-11-18T12:00:00Z&quot;</span>
 <span class="p">}</span>
@@ -945,7 +945,7 @@
 <h2 id="tracing-future">Tracing (Future)<a class="headerlink" href="#tracing-future" title="Permanent link">&para;</a></h2>
 <p><strong>OpenTelemetry tracing</strong> for distributed request tracing:</p>
 <ul>
-<li>Trace envelopes across actors</li>
+<li>Trace messages across actors</li>
 <li>Visualize pipeline execution</li>
 <li>Identify bottlenecks</li>
 </ul>

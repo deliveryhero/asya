@@ -853,18 +853,18 @@
 <p>Crew actors are <strong>end actors</strong> that run in special sidecar mode (<code>ASYA_IS_END_ACTOR=true</code>). They:</p>
 <ul>
 <li>Run in envelope mode (<code>ASYA_HANDLER_MODE=envelope</code>)</li>
-<li>Disable envelope validation (<code>ASYA_ENABLE_VALIDATION=false</code>)</li>
-<li>Accept envelopes with ANY route state (no route validation)</li>
+<li>Disable message validation (<code>ASYA_ENABLE_VALIDATION=false</code>)</li>
+<li>Accept messages with ANY route state (no route validation)</li>
 <li>Do NOT route responses to any queue (terminal processing)</li>
 <li>Persist results to S3/MinIO (optional)</li>
-<li>Sidecar reports final status to gateway (not the runtime)</li>
+<li>Sidecar reports final task status to gateway (not the runtime)</li>
 </ul>
 <h2 id="current-crew-actors">Current Crew Actors<a class="headerlink" href="#current-crew-actors" title="Permanent link">&para;</a></h2>
 <h3 id="happy-end">happy-end<a class="headerlink" href="#happy-end" title="Permanent link">&para;</a></h3>
 <p><strong>Responsibilities</strong>:</p>
 <ul>
-<li>Persist successfully completed envelopes to S3/MinIO (optional)</li>
-<li>Sidecar reports success to gateway with result payload</li>
+<li>Persist successfully completed messages to S3/MinIO (optional)</li>
+<li>Sidecar reports task success to gateway with result payload</li>
 </ul>
 <p><strong>Queue</strong>: <code>asya-{namespace}-happy-end</code> (automatically routed by sidecar when pipeline completes)</p>
 <p><strong>Handler</strong>: <code>handlers.end_handlers.happy_end_handler</code></p>
@@ -892,23 +892,23 @@
 <span class="w">  </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">us-east-1</span><span class="w">  </span><span class="c1"># For AWS S3 only</span>
 </code></pre></div></p>
 <p><strong>S3 Key Structure</strong>:
-<div class="highlight"><pre><span></span><code>{prefix}{timestamp}/{last_actor}/{envelope_id}.json
+<div class="highlight"><pre><span></span><code>{prefix}{timestamp}/{last_actor}/{message_id}.json
 
 Example:
 happy-asya/2025-11-18T14:30:45.123456Z/text-processor/abc-123.json
 </code></pre></div></p>
 <p><strong>Flow</strong>:
-1. Sidecar receives envelope from <code>asya-{namespace}-happy-end</code> queue
-2. Sidecar forwards envelope to runtime via Unix socket
-3. Runtime persists complete envelope to S3 (if configured)
+1. Sidecar receives message from <code>asya-{namespace}-happy-end</code> queue
+2. Sidecar forwards message to runtime via Unix socket
+3. Runtime persists complete message to S3 (if configured)
 4. Runtime returns empty dict <code>{}</code>
-5. Sidecar reports final status <code>succeeded</code> to gateway with result payload
+5. Sidecar reports final task status <code>succeeded</code> to gateway with result payload
 6. Sidecar acks message (does NOT route anywhere)</p>
 <h3 id="error-end">error-end<a class="headerlink" href="#error-end" title="Permanent link">&para;</a></h3>
 <p><strong>Responsibilities</strong>:</p>
 <ul>
-<li>Persist failed envelopes to S3/MinIO (optional)</li>
-<li>Sidecar reports failure to gateway with error details and actor info</li>
+<li>Persist failed messages to S3/MinIO (optional)</li>
+<li>Sidecar reports task failure to gateway with error details and actor info</li>
 </ul>
 <p><strong>Queue</strong>: <code>asya-{namespace}-error-end</code> (automatically routed by sidecar when runtime/sidecar errors occur)</p>
 <p><strong>Handler</strong>: <code>handlers.end_handlers.error_end_handler</code></p>
@@ -936,13 +936,13 @@ happy-asya/2025-11-18T14:30:45.123456Z/text-processor/abc-123.json
 <span class="w">  </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">us-east-1</span><span class="w">  </span><span class="c1"># For AWS S3 only</span>
 </code></pre></div></p>
 <p><strong>S3 Key Structure</strong>:
-<div class="highlight"><pre><span></span><code>{prefix}{timestamp}/{last_actor}/{envelope_id}.json
+<div class="highlight"><pre><span></span><code>{prefix}{timestamp}/{last_actor}/{message_id}.json
 
 Example:
 error-asya/2025-11-18T14:30:45.123456Z/failing-actor/abc-123.json
 </code></pre></div></p>
-<p><strong>Error Envelope Structure</strong>:
-Envelopes routed to <code>error-end</code> contain error information in the payload:
+<p><strong>Error Message Structure</strong>:
+Messages routed to <code>error-end</code> contain error information in the payload:
 <div class="highlight"><pre><span></span><code><span class="p">{</span>
 <span class="w">  </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;abc-123&quot;</span><span class="p">,</span>
 <span class="w">  </span><span class="nt">&quot;route&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
@@ -961,12 +961,12 @@ Envelopes routed to <code>error-end</code> contain error information in the payl
 <span class="p">}</span>
 </code></pre></div></p>
 <p><strong>Flow</strong>:
-1. Sidecar receives error envelope from <code>asya-{namespace}-error-end</code> queue
-2. Sidecar forwards envelope to runtime via Unix socket
-3. Runtime persists complete envelope (with error details) to S3 (if configured)
+1. Sidecar receives error message from <code>asya-{namespace}-error-end</code> queue
+2. Sidecar forwards message to runtime via Unix socket
+3. Runtime persists complete message (with error details) to S3 (if configured)
 4. Runtime returns empty dict <code>{}</code>
-5. Sidecar extracts error info from envelope payload
-6. Sidecar reports final status <code>failed</code> to gateway with error details and actor information
+5. Sidecar extracts error info from message payload
+6. Sidecar reports final task status <code>failed</code> to gateway with error details and actor information
 7. Sidecar acks message (does NOT route anywhere)</p>
 <h2 id="deployment">Deployment<a class="headerlink" href="#deployment" title="Permanent link">&para;</a></h2>
 <p>Crew actors deployed via Helm chart that creates AsyncActor CRDs:</p>
@@ -1098,35 +1098,35 @@ Envelopes routed to <code>error-end</code> contain error information in the payl
 <li><code>{prefix}</code>: Configurable prefix (default: <code>happy-asya/</code> or <code>error-asya/</code>)</li>
 <li><code>{timestamp}</code>: ISO 8601 UTC timestamp (<code>2025-11-18T14:30:45.123456Z</code>)</li>
 <li><code>{last_actor}</code>: Last non-end actor from route (extracted from <code>route.actors[current]</code>)</li>
-<li><code>{envelope_id}</code>: Envelope ID</li>
+<li><code>{message_id}</code>: Message ID</li>
 </ul>
 <p><strong>Example key generation</strong>:
 <div class="highlight"><pre><span></span><code><span class="n">prefix</span> <span class="o">=</span> <span class="s2">&quot;happy-asya/&quot;</span>
 <span class="n">timestamp</span> <span class="o">=</span> <span class="s2">&quot;2025-11-18T14:30:45.123456Z&quot;</span>
 <span class="n">last_actor</span> <span class="o">=</span> <span class="s2">&quot;text-processor&quot;</span>  <span class="c1"># from route.actors[1] if current=1</span>
-<span class="n">envelope_id</span> <span class="o">=</span> <span class="s2">&quot;abc-123&quot;</span>
+<span class="n">message_id</span> <span class="o">=</span> <span class="s2">&quot;abc-123&quot;</span>
 
-<span class="n">key</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">prefix</span><span class="si">}{</span><span class="n">timestamp</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">last_actor</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">envelope_id</span><span class="si">}</span><span class="s2">.json&quot;</span>
+<span class="n">key</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">prefix</span><span class="si">}{</span><span class="n">timestamp</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">last_actor</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">message_id</span><span class="si">}</span><span class="s2">.json&quot;</span>
 <span class="c1"># Result: happy-asya/2025-11-18T14:30:45.123456Z/text-processor/abc-123.json</span>
 </code></pre></div></p>
-<p><strong>Persisted content</strong>: Complete envelope (including id, route, headers, payload) as formatted JSON.</p>
+<p><strong>Persisted content</strong>: Complete message (including id, route, headers, payload) as formatted JSON.</p>
 <p><strong>Error handling</strong>: S3 upload failures are logged but do NOT fail the handler. Handler returns empty dict <code>{}</code> regardless of S3 success/failure.</p>
 <h3 id="handler-return-value">Handler Return Value<a class="headerlink" href="#handler-return-value" title="Permanent link">&para;</a></h3>
 <p>End handlers MUST return empty dict <code>{}</code>:</p>
 <ul>
 <li>Sidecar ignores the response (end actor mode)</li>
-<li>Sidecar uses original envelope payload as result for gateway reporting</li>
+<li>Sidecar uses original message payload as result for gateway reporting</li>
 <li>Any non-empty response is ignored</li>
 </ul>
 <h3 id="sidecar-integration">Sidecar Integration<a class="headerlink" href="#sidecar-integration" title="Permanent link">&para;</a></h3>
 <p>When <code>ASYA_IS_END_ACTOR=true</code>, sidecar:
-1. Accepts envelopes with any route state (no validation)
-2. Sends envelope to runtime without route checking
+1. Accepts messages with any route state (no validation)
+2. Sends message to runtime without route checking
 3. Receives empty dict <code>{}</code> from runtime (ignored)
-4. Extracts result/error from original envelope payload
-5. Reports final status to gateway:
-   - <code>happy-end</code>: Status <code>succeeded</code> with result payload
-   - <code>error-end</code>: Status <code>failed</code> with error details, actor info, route
+4. Extracts result/error from original message payload
+5. Reports final task status to gateway:
+   - <code>happy-end</code>: Task status <code>succeeded</code> with result payload
+   - <code>error-end</code>: Task status <code>failed</code> with error details, actor info, route
 6. Does NOT route to any queue (terminal)
 7. Acks message</p>
 <h2 id="future-crew-actors">Future Crew Actors<a class="headerlink" href="#future-crew-actors" title="Permanent link">&para;</a></h2>
@@ -1141,8 +1141,8 @@ Envelopes routed to <code>error-end</code> contain error information in the payl
 <ul>
 <li>Implement exponential backoff</li>
 <li>Classify errors as retriable vs permanent</li>
-<li>Track retry count in envelope headers</li>
-<li>Re-queue retriable envelopes with backoff delay</li>
+<li>Track retry count in message headers</li>
+<li>Re-queue retriable messages with backoff delay</li>
 <li>Move to DLQ after max retries exceeded</li>
 </ul>
 <p><strong>Custom monitoring</strong>:</p>
@@ -1150,7 +1150,7 @@ Envelopes routed to <code>error-end</code> contain error information in the payl
 <li>Track SLA violations per actor</li>
 <li>Alert on error rates and patterns</li>
 <li>Generate pipeline execution reports</li>
-<li>Aggregate metrics across envelopes</li>
+<li>Aggregate metrics across messages</li>
 </ul>
   </div>
 </article>

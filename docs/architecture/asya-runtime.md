@@ -3,16 +3,16 @@
 ## Responsibilities
 
 - Load and execute user-defined handler
-- Process envelopes received from sidecar
+- Process messages received from sidecar
 - Return results to sidecar
 - Handle errors gracefully
 
 ## How It Works
 
 1. Listen on Unix socket at `/var/run/asya/asya-runtime.sock`
-2. Receive envelope from sidecar
+2. Receive message from sidecar
 3. Load user handler (function or class)
-4. Execute handler with payload (or full envelope)
+4. Execute handler with payload (or full message)
 5. Return result to sidecar
 
 ## Deployment
@@ -167,13 +167,13 @@ Runtime automatically:
 
 - Increments `route.current`
 - Preserves `headers`
-- Creates new envelope with mutated payload
+- Creates new message with mutated payload
 
 ### Envelope Mode
 
 **Configuration**: `ASYA_HANDLER_MODE=envelope`
 
-Handler receives full envelope structure:
+Handler receives full message structure:
 
 ```python
 def process(envelope: dict) -> dict:
@@ -194,7 +194,7 @@ def process(envelope: dict) -> dict:
 return {"processed": True}
 ```
 
-Sidecar creates one envelope, routes to next actor.
+Sidecar creates one message, routes to next actor.
 
 ### Fan-Out
 
@@ -202,7 +202,7 @@ Sidecar creates one envelope, routes to next actor.
 return [{"chunk": 1}, {"chunk": 2}, {"chunk": 3}]
 ```
 
-Sidecar creates multiple envelopes (one per item).
+Sidecar creates multiple messages (one per item).
 
 ### Abort
 
@@ -210,7 +210,7 @@ Sidecar creates multiple envelopes (one per item).
 return None  # or []
 ```
 
-Sidecar routes envelope to `happy-end` (no more processing).
+Sidecar routes message to `happy-end` (no more processing).
 
 ### Error
 
@@ -234,10 +234,10 @@ Runtime catches exception, creates error response with detailed traceback:
 **Error codes**:
 
 - `processing_error`: Handler exception (any unhandled error)
-- `msg_parsing_error`: Invalid JSON or envelope structure
+- `msg_parsing_error`: Invalid JSON or message structure
 - `connection_error`: Socket/network issues
 
-Sidecar receives error response and routes envelope to `error-end`.
+Sidecar receives error response and routes message to `error-end`.
 
 ## Route Modification Rules
 
@@ -294,7 +294,7 @@ Runtime creates `/var/run/asya/runtime-ready` file after handler initialization.
 | `ASYA_SOCKET_NAME` | `asya-runtime.sock` | Socket filename (internal testing only) |
 | `ASYA_SOCKET_CHMOD` | `0o666` | Socket permissions in octal (empty = skip chmod) |
 | `ASYA_CHUNK_SIZE` | `65536` | Socket read chunk size in bytes |
-| `ASYA_ENABLE_VALIDATION` | `true` | Enable envelope validation |
+| `ASYA_ENABLE_VALIDATION` | `true` | Enable message validation |
 | `ASYA_LOG_LEVEL` | `INFO` | Logging level (DEBUG, INFO, WARNING, ERROR) |
 
 **Note**: `ASYA_SOCKET_DIR` and `ASYA_SOCKET_NAME` are for internal testing only. DO NOT set in production - socket path is managed by operator.
