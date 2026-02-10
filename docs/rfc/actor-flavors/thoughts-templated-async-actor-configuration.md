@@ -1,8 +1,14 @@
 # Thoughts: Templated AsyncActor Configuration (Flavors)
 
-> **Status**: Future exploration
+> **Status**: Superseded by [rfc-actor-flavors.md](rfc-actor-flavors.md)
 > **Date**: 2025-02-05
+> **Superseded**: 2026-02-10
 > **Related**: rfc-crossplane.md
+>
+> This document explored early ideas for actor flavors. The design evolved significantly:
+> single flavor enum became composable flavor lists, Composition Selector was replaced
+> by EnvironmentConfigs + custom Composition Function, and a custom schema was rejected
+> in favor of K8s-native syntax. See the RFC for the accepted design.
 
 ## Problem Statement
 

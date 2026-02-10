@@ -367,20 +367,22 @@ A Go Composition Function using `function-sdk-go` and `k8s.io/apimachinery/pkg/u
 
 **Size estimate:** ~100-150 lines of Go (merge logic). The `strategicpatch` package handles the heavy lifting.
 
-### 4.5 Asya-Shipped Default Flavors
+### 4.5 Flavor Catalog Ownership
 
-Asya ships a set of default EnvironmentConfigs in the `asya-crossplane` Helm chart:
+The Asya framework does **not** ship default flavors in the `asya-crossplane` chart. Flavor definitions are the responsibility of **platform engineers** — they know their infrastructure (GPU node pools, scaling policies, secret providers) better than the framework can prescribe.
+
+A future `asya-quickstart` Helm chart may provide example flavors for common patterns, but strictly as starting-point examples, not production defaults.
+
+**Example flavors a platform team might define:**
 
 | Flavor | Key settings |
 |--------|-------------|
-| `default` | 0-10 replicas, 256Mi memory, 100m CPU |
-| `flow-router` | 0-20 replicas, envelope mode, python:3.13-slim, 128Mi memory |
 | `gpu-t4` | 1-4 replicas, 16Gi memory, 1x T4 GPU, nodeSelector + toleration |
 | `always-on` | minReplicas: 1, cooldown: 600s |
 | `scale-to-zero` | minReplicas: 0, cooldown: 300s, polling: 30s |
 | `burst` | 0-100 replicas, polling: 5s, cooldown: 30s |
-
-Platform engineers can override these (create an EnvironmentConfig with the same name and label) or add new ones.
+| `flow-router` | 0-20 replicas, envelope mode, python:3.13-slim, 128Mi |
+| `openai-keys` | OPENAI_API_KEY from secretKeyRef, OPENAI_MODEL |
 
 ---
 
@@ -513,6 +515,33 @@ Three approaches to handle env var merging across flavors:
 - Platform engineers can adopt naming conventions voluntarily (e.g., `compute-gpu-t4`, `scaling-burst`) without framework enforcement
 - No RBAC boundary between "infra" and "app" flavors (can be added later via Kyverno policies if needed)
 
+### ADR-7: Composition Over Inheritance
+
+**Status**: Accepted
+
+**Context**: Flavor inheritance was considered (e.g., `gpu-a100` extends `gpu-t4` with overrides, via a `parent` field). This would reduce duplication between similar flavors but adds abstraction complexity (inheritance chains, diamond problems, harder to reason about resolved values).
+
+**Decision**: No inheritance. Flavors compose structurally via the `spec.flavors` list. If `gpu-a100` needs most of `gpu-t4`'s config plus overrides, the user lists both: `flavors: [gpu-t4, gpu-a100-overrides]`. Later flavors override earlier ones via strategic merge.
+
+**Consequences**:
+- Simpler mental model: each flavor is a standalone partial spec, no hidden parent chain
+- Slightly more duplication between similar flavors (acceptable tradeoff)
+- Users control merge order explicitly via list ordering
+- No framework concept of flavor relationships — just ordered merge
+
+### ADR-8: Inline Configuration Always Wins
+
+**Status**: Accepted
+
+**Context**: When a user specifies `flavors: [gpu-t4]` but inline sets `nvidia.com/gpu: "0"`, should the system warn, error, or silently allow?
+
+**Decision**: Inline configuration always wins, silently. No validation warnings for contradictions between flavors and inline overrides.
+
+**Consequences**:
+- Predictable behavior: actor spec is the final authority
+- No surprising rejections or warnings when debugging
+- Platform engineers cannot enforce "mandatory" flavor settings (acceptable for v1; Kyverno policies can add enforcement later if needed)
+
 ---
 
 ## 7. Migration and Compatibility
@@ -532,8 +561,9 @@ The `flavors` field is optional. Existing AsyncActors without `flavors` work exa
 ## 8. Future Extensions
 
 - **Hierarchical overrides**: Namespace-scoped flavors via Kyverno mutation policies or enhanced Composition Function
-- **Flavor validation**: Webhook that validates flavor references exist before accepting AsyncActor
+- **Flavor validation**: Webhook that validates flavor references exist before accepting AsyncActor; Kyverno policies for enforcing mandatory flavor settings
 - **Flavor catalog**: CLI command (`asya flavor list`) to discover available flavors and their contents
+- **Example flavors**: `asya-quickstart` Helm chart with common flavor examples (GPU, burst, always-on) as starting points
 - **Flow DSL integration**: `asya flow compile --flavor flow-router` to auto-inject flavor reference into generated actors
 - **Additional dimensions**: storage, networking, cost/scheduling as the framework matures
 
