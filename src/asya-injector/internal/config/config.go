@@ -29,6 +29,12 @@ type Config struct {
 
 	// AWSCredsSecret is the name of the secret containing AWS credentials to inject into the sidecar
 	AWSCredsSecret string
+
+	// RabbitMQURL is the AMQP connection URL for RabbitMQ transport
+	RabbitMQURL string
+
+	// RabbitMQCredsSecret is the name of the secret containing RabbitMQ credentials to inject into the sidecar
+	RabbitMQCredsSecret string
 }
 
 // LoadFromEnv loads configuration from environment variables
@@ -42,6 +48,8 @@ func LoadFromEnv() *Config {
 		GatewayURL:             getEnv("ASYA_GATEWAY_URL", ""),
 		SQSEndpoint:            getEnv("ASYA_SQS_ENDPOINT", ""),
 		AWSCredsSecret:         getEnv("ASYA_AWS_CREDS_SECRET", ""),
+		RabbitMQURL:            getEnv("ASYA_RABBITMQ_URL", ""),
+		RabbitMQCredsSecret:    getEnv("ASYA_RABBITMQ_CREDS_SECRET", ""),
 	}
 }
 

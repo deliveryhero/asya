@@ -145,8 +145,18 @@ releases:
     namespace: asya-system
     chart: ../../../deploy/helm-charts/asya-crossplane
     needs:
+      {{- if .Values.transport.sqs.enabled }}
       - sqs
+      {{- end }}
+      {{- if .Values.storage.s3.enabled }}
       - s3
+      {{- end }}
+      {{- if .Values.transport.rabbitmq.enabled }}
+      - rabbitmq
+      {{- end }}
+      {{- if .Values.storage.minio.enabled }}
+      - minio
+      {{- end }}
     values:
       - {{- .Values.crossplane | toYaml | nindent 8 }}
     labels:

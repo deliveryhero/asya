@@ -1,0 +1,322 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: asyncactor-rabbitmq
+  labels:
+    {{- include "asya-crossplane.labels" . | nindent 4 }}
+    crossplane.io/xrd: xasyncactors.asya.sh
+    asya.sh/transport: rabbitmq
+spec:
+  compositeTypeRef:
+    apiVersion: asya.sh/v1alpha1
+    kind: XAsyncActor
+  mode: Pipeline
+  pipeline:
+    # Step 1: Create KEDA TriggerAuthentication for RabbitMQ scaling
+    - step: render-triggerauthentication
+      functionRef:
+        name: function-go-templating
+      input:
+        apiVersion: gotemplating.fn.crossplane.io/v1beta1
+        kind: GoTemplate
+        source: Inline
+        inline:
+          template: |
+            {{`{{- $xr := .observed.composite.resource -}}`}}
+            {{`{{- $namespace := index $xr.metadata.labels "crossplane.io/claim-namespace" -}}`}}
+            {{`{{- $claimName := index $xr.metadata.labels "crossplane.io/claim-name" -}}`}}
+            {{`{{- $actorName := (index $xr.metadata.labels "asya.sh/actor") | default $claimName -}}`}}
+            {{`{{- $scalingEnabled := true -}}`}}
+            {{`{{- if hasKey $xr.spec "scaling" -}}`}}
+              {{`{{- if hasKey $xr.spec.scaling "enabled" -}}`}}
+                {{`{{- $scalingEnabled = $xr.spec.scaling.enabled -}}`}}
+              {{`{{- end -}}`}}
+            {{`{{- end -}}`}}
+            {{`{{- if $scalingEnabled -}}`}}
+            apiVersion: kubernetes.crossplane.io/v1alpha2
+            kind: Object
+            metadata:
+              annotations:
+                gotemplating.fn.crossplane.io/composition-resource-name: triggerauthentication
+            spec:
+              watch: true
+              forProvider:
+                manifest:
+                  apiVersion: keda.sh/v1alpha1
+                  kind: TriggerAuthentication
+                  metadata:
+                    name: {{`{{ $actorName }}`}}-trigger-auth
+                    namespace: {{`{{ $namespace }}`}}
+                    labels:
+                      app.kubernetes.io/name: {{`{{ $actorName }}`}}
+                      app.kubernetes.io/component: triggerauthentication
+                      app.kubernetes.io/part-of: asya
+                      app.kubernetes.io/managed-by: crossplane
+                  spec:
+                    secretTargetRef:
+                      - parameter: host
+                        name: {{ .Values.rabbitmq.keda.secretRef.name }}
+                        key: {{ .Values.rabbitmq.keda.secretRef.hostKey }}
+              providerConfigRef:
+                name: {{ .Values.kubernetesProviderConfig.name }}
+            {{`{{- end }}`}}
+
+    # Step 2: Create KEDA ScaledObject for autoscaling based on RabbitMQ queue length
+    - step: render-scaledobject
+      functionRef:
+        name: function-go-templating
+      input:
+        apiVersion: gotemplating.fn.crossplane.io/v1beta1
+        kind: GoTemplate
+        source: Inline
+        inline:
+          template: |
+            {{`{{- $xr := .observed.composite.resource -}}`}}
+            {{`{{- $namespace := index $xr.metadata.labels "crossplane.io/claim-namespace" -}}`}}
+            {{`{{- $claimName := index $xr.metadata.labels "crossplane.io/claim-name" -}}`}}
+            {{`{{- $actorName := (index $xr.metadata.labels "asya.sh/actor") | default $claimName -}}`}}
+            {{`{{- $scalingEnabled := true -}}`}}
+            {{`{{- if hasKey $xr.spec "scaling" -}}`}}
+              {{`{{- if hasKey $xr.spec.scaling "enabled" -}}`}}
+                {{`{{- $scalingEnabled = $xr.spec.scaling.enabled -}}`}}
+              {{`{{- end -}}`}}
+            {{`{{- end -}}`}}
+            {{`{{- if $scalingEnabled -}}`}}
+            {{`{{- $minReplicas := 0 -}}`}}
+            {{`{{- $maxReplicas := 10 -}}`}}
+            {{`{{- $pollingInterval := 30 -}}`}}
+            {{`{{- $cooldownPeriod := 300 -}}`}}
+            {{`{{- $queueLength := 5 -}}`}}
+            {{`{{- if hasKey $xr.spec "scaling" -}}`}}
+              {{`{{- if hasKey $xr.spec.scaling "minReplicas" }}{{ $minReplicas = $xr.spec.scaling.minReplicas }}{{ end -}}`}}
+              {{`{{- if hasKey $xr.spec.scaling "maxReplicas" }}{{ $maxReplicas = $xr.spec.scaling.maxReplicas }}{{ end -}}`}}
+              {{`{{- if hasKey $xr.spec.scaling "pollingInterval" }}{{ $pollingInterval = $xr.spec.scaling.pollingInterval }}{{ end -}}`}}
+              {{`{{- if hasKey $xr.spec.scaling "cooldownPeriod" }}{{ $cooldownPeriod = $xr.spec.scaling.cooldownPeriod }}{{ end -}}`}}
+              {{`{{- if hasKey $xr.spec.scaling "queueLength" }}{{ $queueLength = $xr.spec.scaling.queueLength }}{{ end -}}`}}
+            {{`{{- end -}}`}}
+            {{`{{- $workloadName := $actorName -}}`}}
+            {{`{{- $workloadKind := "Deployment" -}}`}}
+            {{`{{- if hasKey $xr.spec.workload "kind" -}}`}}
+              {{`{{- $workloadKind = $xr.spec.workload.kind -}}`}}
+            {{`{{- end -}}`}}
+            apiVersion: kubernetes.crossplane.io/v1alpha2
+            kind: Object
+            metadata:
+              annotations:
+                gotemplating.fn.crossplane.io/composition-resource-name: scaledobject
+            spec:
+              watch: true
+              forProvider:
+                manifest:
+                  apiVersion: keda.sh/v1alpha1
+                  kind: ScaledObject
+                  metadata:
+                    name: {{`{{ $actorName }}`}}
+                    namespace: {{`{{ $namespace }}`}}
+                    labels:
+                      app.kubernetes.io/name: {{`{{ $actorName }}`}}
+                      app.kubernetes.io/component: scaledobject
+                      app.kubernetes.io/part-of: asya
+                      app.kubernetes.io/managed-by: crossplane
+                  spec:
+                    scaleTargetRef:
+                      name: {{`{{ $workloadName }}`}}
+                      kind: {{`{{ $workloadKind }}`}}
+                    minReplicaCount: {{`{{ $minReplicas }}`}}
+                    maxReplicaCount: {{`{{ $maxReplicas }}`}}
+                    pollingInterval: {{`{{ $pollingInterval }}`}}
+                    cooldownPeriod: {{`{{ $cooldownPeriod }}`}}
+                    triggers:
+                      - type: rabbitmq
+                        authenticationRef:
+                          name: {{`{{ $actorName }}`}}-trigger-auth
+                        metadata:
+                          queueName: asya-{{`{{ $namespace }}`}}-{{`{{ $actorName }}`}}
+                          mode: QueueLength
+                          value: "{{`{{ $queueLength }}`}}"
+                          protocol: amqp
+                    advanced:
+                      horizontalPodAutoscalerConfig:
+                        behavior:
+                          scaleDown:
+                            stabilizationWindowSeconds: 300
+                            policies:
+                              - type: Pods
+                                value: 1
+                                periodSeconds: 60
+                          scaleUp:
+                            stabilizationWindowSeconds: 0
+                            policies:
+                              - type: Pods
+                                value: 10
+                                periodSeconds: 60
+                              - type: Percent
+                                value: 100
+                                periodSeconds: 60
+              providerConfigRef:
+                name: {{ .Values.kubernetesProviderConfig.name }}
+            {{`{{- end }}`}}
+
+    # Step 3: Create Deployment from workload template
+    - step: render-deployment
+      functionRef:
+        name: function-go-templating
+      input:
+        apiVersion: gotemplating.fn.crossplane.io/v1beta1
+        kind: GoTemplate
+        source: Inline
+        inline:
+          template: |
+            {{`{{- $xr := .observed.composite.resource -}}`}}
+            {{`{{- $namespace := index $xr.metadata.labels "crossplane.io/claim-namespace" -}}`}}
+            {{`{{- $claimName := index $xr.metadata.labels "crossplane.io/claim-name" -}}`}}
+            {{`{{- $actorName := (index $xr.metadata.labels "asya.sh/actor") | default $claimName -}}`}}
+            {{`{{- /* Create Deployment from workload spec */ -}}`}}
+            {{`{{- if hasKey $xr.spec "workload" -}}`}}
+            {{`{{- $workloadKind := "Deployment" -}}`}}
+            {{`{{- if hasKey $xr.spec.workload "kind" -}}`}}
+              {{`{{- $workloadKind = $xr.spec.workload.kind -}}`}}
+            {{`{{- end -}}`}}
+            {{`{{- $scalingEnabled := true -}}`}}
+            {{`{{- if hasKey $xr.spec "scaling" -}}`}}
+              {{`{{- if hasKey $xr.spec.scaling "enabled" -}}`}}
+                {{`{{- $scalingEnabled = $xr.spec.scaling.enabled -}}`}}
+              {{`{{- end -}}`}}
+            {{`{{- end -}}`}}
+            {{`{{- $replicas := 1 -}}`}}
+            {{`{{- if not $scalingEnabled -}}`}}
+              {{`{{- if hasKey $xr.spec.workload "replicas" -}}`}}
+                {{`{{- $replicas = $xr.spec.workload.replicas -}}`}}
+              {{`{{- end -}}`}}
+            {{`{{- end -}}`}}
+            apiVersion: kubernetes.crossplane.io/v1alpha2
+            kind: Object
+            metadata:
+              annotations:
+                gotemplating.fn.crossplane.io/composition-resource-name: deployment
+            spec:
+              watch: true
+              forProvider:
+                manifest:
+                  apiVersion: apps/v1
+                  kind: {{`{{ $workloadKind }}`}}
+                  metadata:
+                    name: {{`{{ $actorName }}`}}
+                    namespace: {{`{{ $namespace }}`}}
+                    labels:
+                      app.kubernetes.io/name: {{`{{ $actorName }}`}}
+                      app.kubernetes.io/component: actor
+                      app.kubernetes.io/part-of: asya
+                      app.kubernetes.io/managed-by: crossplane
+                      asya.sh/actor: {{`{{ $actorName }}`}}
+                      asya.sh/inject: "true"
+                  spec:
+                    replicas: {{`{{ $replicas }}`}}
+                    selector:
+                      matchLabels:
+                        app.kubernetes.io/name: {{`{{ $actorName }}`}}
+                    template:
+                      metadata:
+                        labels:
+                          app.kubernetes.io/name: {{`{{ $actorName }}`}}
+                          app.kubernetes.io/component: actor
+                          asya.sh/actor: {{`{{ $actorName }}`}}
+                          asya.sh/inject: "true"
+                      spec:
+                        {{`{{- if hasKey $xr.spec.workload "template" }}`}}
+                        {{`{{- if hasKey $xr.spec.workload.template "spec" }}`}}
+                        {{`{{- $xr.spec.workload.template.spec | toYaml | nindent 24 }}`}}
+                        {{`{{- end }}`}}
+                        {{`{{- end }}`}}
+              providerConfigRef:
+                name: {{ .Values.kubernetesProviderConfig.name }}
+            {{`{{- end }}`}}
+
+    # Step 4: Patch status and derive phase
+    - step: patch-status-and-derive-phase
+      functionRef:
+        name: function-go-templating
+      input:
+        apiVersion: gotemplating.fn.crossplane.io/v1beta1
+        kind: GoTemplate
+        source: Inline
+        inline:
+          template: |
+            {{`{{- $xr := .observed.composite.resource -}}`}}
+            {{`{{- $claimName := index $xr.metadata.labels "crossplane.io/claim-name" -}}`}}
+            {{`{{- $actorName := (index $xr.metadata.labels "asya.sh/actor") | default $claimName -}}`}}
+            {{`{{- $namespace := index $xr.metadata.labels "crossplane.io/claim-namespace" -}}`}}
+            {{`{{- $queueIdentifier := printf "asya-%s-%s" $namespace $actorName -}}`}}
+            {{`{{- /* Queue is always ready for RabbitMQ: sidecar declares it via AMQP at runtime */ -}}`}}
+            {{`{{- $queueReady := true -}}`}}
+            {{`{{- $kedaReady := false -}}`}}
+            {{`{{- $scalingEnabled := true -}}`}}
+            {{`{{- if hasKey $xr.spec "scaling" -}}`}}
+              {{`{{- if hasKey $xr.spec.scaling "enabled" -}}`}}
+                {{`{{- $scalingEnabled = $xr.spec.scaling.enabled -}}`}}
+              {{`{{- end -}}`}}
+            {{`{{- end -}}`}}
+            {{`{{- if not $scalingEnabled -}}`}}
+              {{`{{- $kedaReady = true -}}`}}
+            {{`{{- end -}}`}}
+            {{`{{- $workloadReplicas := 0 -}}`}}
+            {{`{{- $workloadReadyReplicas := 0 -}}`}}
+            {{`{{- if .observed.resources -}}`}}
+              {{`{{- if index .observed.resources "scaledobject" -}}`}}
+                {{`{{- $so := (index .observed.resources "scaledobject").resource -}}`}}
+                {{`{{- if and (hasKey $so "status") (hasKey $so.status "atProvider") (hasKey $so.status.atProvider "manifest") (hasKey $so.status.atProvider.manifest "status") -}}`}}
+                  {{`{{- range $so.status.atProvider.manifest.status.conditions | default list -}}`}}
+                    {{`{{- if and (eq .type "Ready") (eq .status "True") -}}`}}
+                      {{`{{- $kedaReady = true -}}`}}
+                    {{`{{- end -}}`}}
+                  {{`{{- end -}}`}}
+                {{`{{- end -}}`}}
+              {{`{{- end -}}`}}
+              {{`{{- if index .observed.resources "deployment" -}}`}}
+                {{`{{- $dep := (index .observed.resources "deployment").resource -}}`}}
+                {{`{{- if and (hasKey $dep "status") (hasKey $dep.status "atProvider") (hasKey $dep.status.atProvider "manifest") (hasKey $dep.status.atProvider.manifest "status") -}}`}}
+                  {{`{{- $workloadReplicas = $dep.status.atProvider.manifest.status.replicas | default 0 -}}`}}
+                  {{`{{- $workloadReadyReplicas = $dep.status.atProvider.manifest.status.readyReplicas | default 0 -}}`}}
+                {{`{{- end -}}`}}
+              {{`{{- end -}}`}}
+            {{`{{- end -}}`}}
+            {{`{{- $workloadReady := false -}}`}}
+            {{`{{- if and .observed.resources (index .observed.resources "deployment") -}}`}}
+              {{`{{- $dep := (index .observed.resources "deployment").resource -}}`}}
+              {{`{{- if and (hasKey $dep "status") (hasKey $dep.status "atProvider") (hasKey $dep.status.atProvider "manifest") (hasKey $dep.status.atProvider.manifest "status") -}}`}}
+                {{`{{- range $dep.status.atProvider.manifest.status.conditions | default list -}}`}}
+                  {{`{{- if and (eq .type "Available") (eq .status "True") -}}`}}
+                    {{`{{- $workloadReady = true -}}`}}
+                  {{`{{- end -}}`}}
+                {{`{{- end -}}`}}
+              {{`{{- end -}}`}}
+            {{`{{- end -}}`}}
+            {{`{{- $phase := "Creating" -}}`}}
+            {{`{{- if and $queueReady $kedaReady $workloadReady -}}`}}
+              {{`{{- $phase = "Ready" -}}`}}
+              {{`{{- if eq (int $workloadReplicas) 0 -}}`}}
+                {{`{{- $phase = "Napping" -}}`}}
+              {{`{{- end -}}`}}
+            {{`{{- end -}}`}}
+            apiVersion: asya.sh/v1alpha1
+            kind: XAsyncActor
+            metadata:
+              labels:
+                asya.sh/actor: {{`{{ $actorName }}`}}
+            status:
+              phase: {{`{{ $phase }}`}}
+              queueIdentifier: {{`{{ $queueIdentifier }}`}}
+              infrastructure:
+                queue:
+                  ready: {{`{{ $queueReady }}`}}
+                keda:
+                  ready: {{`{{ $kedaReady }}`}}
+                workload:
+                  ready: {{`{{ $workloadReady }}`}}
+                  replicas: {{`{{ $workloadReplicas }}`}}
+                  readyReplicas: {{`{{ $workloadReadyReplicas }}`}}
+
+    # Automatically detect readiness from all composed resources
+    - step: automatically-detect-ready-composed-resources
+      functionRef:
+        name: function-auto-ready

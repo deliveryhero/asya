@@ -5,6 +5,8 @@ providerConfigs:
 # Crossplane provider configuration
 providers:
   aws:
+    # Enable AWS SQS provider (set to false for RabbitMQ-only deployments)
+    enabled: true
     # SQS provider version
     sqsVersion: "v1.19.0"
   kubernetes:
@@ -70,7 +72,7 @@ runtime:
   # Create asya-runtime ConfigMap in actor namespace
   enabled: true
 
-# KEDA authentication configuration
+# KEDA authentication configuration (SQS)
 keda:
   # TriggerAuthentication provider type: "podIdentity" or "secret"
   authProvider: podIdentity
@@ -79,3 +81,12 @@ keda:
     name: ""
     accessKeyIdKey: AWS_ACCESS_KEY_ID
     secretAccessKeyKey: AWS_SECRET_ACCESS_KEY
+
+# RabbitMQ configuration (used by composition-rabbitmq)
+rabbitmq:
+  host: "rabbitmq.default.svc.cluster.local"
+  port: 5672
+  keda:
+    secretRef:
+      name: "rabbitmq-keda-secret"
+      hostKey: "host"

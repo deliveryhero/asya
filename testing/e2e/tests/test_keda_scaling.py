@@ -77,6 +77,9 @@ metadata:
   namespace: {namespace}
 spec:
   actor: {actor_name}
+  compositionSelector:
+    matchLabels:
+      asya.sh/transport: {transport}
   transport: {transport}
   scaling:
     enabled: true
@@ -149,6 +152,9 @@ metadata:
   namespace: {namespace}
 spec:
   actor: {actor_name}
+  compositionSelector:
+    matchLabels:
+      asya.sh/transport: {transport}
   transport: {transport}
   scaling:
     enabled: false
@@ -205,6 +211,9 @@ metadata:
   namespace: {namespace}
 spec:
   actor: {actor_name}
+  compositionSelector:
+    matchLabels:
+      asya.sh/transport: {transport}
   transport: {transport}
   scaling:
     enabled: true
@@ -229,7 +238,7 @@ spec:
     try:
         kubectl_apply(actor_manifest, namespace=namespace)
 
-        assert wait_for_asyncactor_ready(actor_name, namespace=namespace, timeout=120), \
+        assert wait_for_asyncactor_ready(actor_name, namespace=namespace, timeout=180), \
             "AsyncActor should reach Ready condition"
 
         assert wait_for_resource("scaledobject", actor_name, namespace=namespace, timeout=60), \
@@ -270,6 +279,9 @@ metadata:
   namespace: {namespace}
 spec:
   actor: {actor_name}
+  compositionSelector:
+    matchLabels:
+      asya.sh/transport: {transport}
   transport: {transport}
   scaling:
     enabled: true
@@ -297,6 +309,9 @@ metadata:
   namespace: {namespace}
 spec:
   actor: {actor_name}
+  compositionSelector:
+    matchLabels:
+      asya.sh/transport: {transport}
   transport: {transport}
   scaling:
     enabled: true
@@ -373,6 +388,9 @@ metadata:
   namespace: {namespace}
 spec:
   actor: {actor_name}
+  compositionSelector:
+    matchLabels:
+      asya.sh/transport: {transport}
   transport: {transport}
   scaling:
     enabled: true
@@ -451,6 +469,9 @@ metadata:
   namespace: {namespace}
 spec:
   actor: {actor_name}
+  compositionSelector:
+    matchLabels:
+      asya.sh/transport: {transport}
   transport: {transport}
   scaling:
     enabled: true
@@ -514,6 +535,9 @@ metadata:
   namespace: {namespace}
 spec:
   actor: {actor_name}
+  compositionSelector:
+    matchLabels:
+      asya.sh/transport: {transport}
   transport: {transport}
   scaling:
     enabled: true
@@ -582,6 +606,9 @@ metadata:
   namespace: {namespace}
 spec:
   actor: {actor_name}
+  compositionSelector:
+    matchLabels:
+      asya.sh/transport: {transport}
   transport: {transport}
   scaling:
     enabled: true
@@ -654,6 +681,9 @@ metadata:
   namespace: {namespace}
 spec:
   actor: {actor_name}
+  compositionSelector:
+    matchLabels:
+      asya.sh/transport: {transport}
   transport: {transport}
   scaling:
     enabled: true

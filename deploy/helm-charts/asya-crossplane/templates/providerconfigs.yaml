@@ -1,4 +1,5 @@
 {{- if .Values.providerConfigs.install }}
+{{- if .Values.providers.aws.enabled }}
 ---
 apiVersion: aws.upbound.io/v1beta1
 kind: ProviderConfig
@@ -41,6 +42,7 @@ spec:
   {{- if .Values.awsProviderConfig.s3UsePathStyle }}
   s3_use_path_style: true
   {{- end }}
+{{- end }}
 ---
 apiVersion: kubernetes.crossplane.io/v1alpha1
 kind: ProviderConfig

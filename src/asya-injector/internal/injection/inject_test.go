@@ -608,6 +608,205 @@ func TestInjector_SidecarEnvMerge(t *testing.T) {
 	}
 }
 
+func TestInjector_InjectRabbitMQ(t *testing.T) {
+	cfg := &config.Config{
+		SidecarImage:           "ghcr.io/deliveryhero/asya-sidecar:test",
+		RuntimeConfigMap:       "asya-runtime",
+		SidecarImagePullPolicy: "IfNotPresent",
+		SocketDir:              "/var/run/asya",
+		RuntimeMountPath:       "/opt/asya/asya_runtime.py",
+		GatewayURL:             "http://gateway.default.svc:8080",
+		RabbitMQURL:            "amqp://guest:guest@rabbitmq.default.svc:5672/",
+	}
+
+	injector := NewInjector(cfg)
+
+	pod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-pod",
+			Namespace: "default",
+		},
+		Spec: corev1.PodSpec{
+			Containers: []corev1.Container{
+				{
+					Name:  "asya-runtime",
+					Image: "my-app:v1",
+				},
+			},
+		},
+	}
+
+	actorConfig := &ActorConfig{
+		ActorName:   "my-actor",
+		Namespace:   "default",
+		Transport:   "rabbitmq",
+		Handler:     "my_module.process",
+		HandlerMode: "payload",
+	}
+
+	mutated, err := injector.Inject(pod, actorConfig)
+	if err != nil {
+		t.Fatalf("Inject failed: %v", err)
+	}
+
+	var sidecar *corev1.Container
+	for i := range mutated.Spec.Containers {
+		if mutated.Spec.Containers[i].Name == "asya-sidecar" {
+			sidecar = &mutated.Spec.Containers[i]
+			break
+		}
+	}
+	if sidecar == nil {
+		t.Fatal("sidecar container was not added")
+	}
+
+	sidecarEnv := make(map[string]string)
+	for _, e := range sidecar.Env {
+		sidecarEnv[e.Name] = e.Value
+	}
+
+	expectedEnv := map[string]string{
+		"ASYA_SOCKET_DIR":      "/var/run/asya",
+		"ASYA_ACTOR_NAME":      "my-actor",
+		"ASYA_NAMESPACE":       "default",
+		"ASYA_TRANSPORT":       "rabbitmq",
+		"ASYA_GATEWAY_URL":     "http://gateway.default.svc:8080",
+		"ASYA_RABBITMQ_URL":    "amqp://guest:guest@rabbitmq.default.svc:5672/",
+		"ASYA_ACTOR_HAPPY_END": "happy-end",
+		"ASYA_ACTOR_ERROR_END": "error-end",
+	}
+
+	for key, expected := range expectedEnv {
+		if actual, ok := sidecarEnv[key]; !ok {
+			t.Errorf("missing env var %s", key)
+		} else if actual != expected {
+			t.Errorf("env var %s: expected %q, got %q", key, expected, actual)
+		}
+	}
+
+	// SQS-specific env vars should NOT be present
+	sqsVars := []string{"ASYA_AWS_REGION", "ASYA_SQS_ENDPOINT", "ASYA_QUEUE_URL"}
+	for _, key := range sqsVars {
+		if _, ok := sidecarEnv[key]; ok {
+			t.Errorf("SQS env var %s should not be present for rabbitmq transport", key)
+		}
+	}
+}
+
+func TestInjector_InjectRabbitMQCredentials(t *testing.T) {
+	cfg := &config.Config{
+		SidecarImage:           "ghcr.io/deliveryhero/asya-sidecar:test",
+		RuntimeConfigMap:       "asya-runtime",
+		SidecarImagePullPolicy: "IfNotPresent",
+		SocketDir:              "/var/run/asya",
+		RuntimeMountPath:       "/opt/asya/asya_runtime.py",
+		RabbitMQURL:            "amqp://guest:guest@rabbitmq.default.svc:5672/",
+		RabbitMQCredsSecret:    "rabbitmq-creds",
+	}
+
+	injector := NewInjector(cfg)
+
+	pod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-pod",
+			Namespace: "default",
+		},
+		Spec: corev1.PodSpec{
+			Containers: []corev1.Container{
+				{Name: "asya-runtime", Image: "my-app:v1"},
+			},
+		},
+	}
+
+	actorConfig := &ActorConfig{
+		ActorName: "my-actor",
+		Namespace: "default",
+		Transport: "rabbitmq",
+	}
+
+	mutated, err := injector.Inject(pod, actorConfig)
+	if err != nil {
+		t.Fatalf("Inject failed: %v", err)
+	}
+
+	var sidecar *corev1.Container
+	for i := range mutated.Spec.Containers {
+		if mutated.Spec.Containers[i].Name == "asya-sidecar" {
+			sidecar = &mutated.Spec.Containers[i]
+			break
+		}
+	}
+	if sidecar == nil {
+		t.Fatal("sidecar container was not added")
+	}
+
+	found := false
+	for _, ef := range sidecar.EnvFrom {
+		if ef.SecretRef != nil && ef.SecretRef.Name == "rabbitmq-creds" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("expected envFrom with secretRef 'rabbitmq-creds', not found")
+	}
+}
+
+func TestInjector_InjectRabbitMQNoCredsForSQS(t *testing.T) {
+	cfg := &config.Config{
+		SidecarImage:           "ghcr.io/deliveryhero/asya-sidecar:test",
+		RuntimeConfigMap:       "asya-runtime",
+		SidecarImagePullPolicy: "IfNotPresent",
+		SocketDir:              "/var/run/asya",
+		RuntimeMountPath:       "/opt/asya/asya_runtime.py",
+		RabbitMQCredsSecret:    "rabbitmq-creds",
+	}
+
+	injector := NewInjector(cfg)
+
+	pod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-pod",
+			Namespace: "default",
+		},
+		Spec: corev1.PodSpec{
+			Containers: []corev1.Container{
+				{Name: "asya-runtime", Image: "my-app:v1"},
+			},
+		},
+	}
+
+	actorConfig := &ActorConfig{
+		ActorName: "my-actor",
+		Namespace: "default",
+		Transport: "sqs",
+		Region:    "us-east-1",
+	}
+
+	mutated, err := injector.Inject(pod, actorConfig)
+	if err != nil {
+		t.Fatalf("Inject failed: %v", err)
+	}
+
+	var sidecar *corev1.Container
+	for i := range mutated.Spec.Containers {
+		if mutated.Spec.Containers[i].Name == "asya-sidecar" {
+			sidecar = &mutated.Spec.Containers[i]
+			break
+		}
+	}
+	if sidecar == nil {
+		t.Fatal("sidecar container was not added")
+	}
+
+	// RabbitMQ creds should NOT be injected for SQS transport
+	for _, ef := range sidecar.EnvFrom {
+		if ef.SecretRef != nil && ef.SecretRef.Name == "rabbitmq-creds" {
+			t.Error("rabbitmq-creds secret should not be injected for SQS transport")
+		}
+	}
+}
+
 func TestInjector_SidecarImageOverride(t *testing.T) {
 	cfg := &config.Config{
 		SidecarImage:     "ghcr.io/deliveryhero/asya-sidecar:default",
