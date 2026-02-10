@@ -1,7 +1,7 @@
 {
   "repository": "deliveryhero/asya",
   "ref": "refs/heads/main",
-  "commit": "50232ee67551910c1fe022dc11e4e65d0681e6fa",
+  "commit": "ea437c5e7ae73dad417d4bd0eb46dd615ee4f281",
   "coverage": {
     "type": "merged",
     "format": "Go coverage",
@@ -31977,7 +31977,7 @@
     ]
   },
   "code_to_test_ratio": {
-    "code": 18475,
+    "code": 18472,
     "test": 25146,
     "code_files": [
       {
@@ -33010,7 +33010,7 @@
         "language": "Python"
       },
       {
-        "code": 172,
+        "code": 176,
         "comment": 56,
         "blank": 53,
         "path": "src/asya-testing/asya_testing/helpers/e2e.py",
@@ -33045,9 +33045,9 @@
         "language": "Python"
       },
       {
-        "code": 235,
-        "comment": 119,
-        "blank": 82,
+        "code": 228,
+        "comment": 118,
+        "blank": 76,
         "path": "src/asya-testing/asya_testing/utils/kubectl.py",
         "language": "Python"
       },
@@ -33517,6 +33517,6 @@
       }
     ]
   },
-  "test_execution_time": 219000000000,
-  "timestamp": "2026-02-10T11:01:23.16045117Z"
+  "test_execution_time": 210000000000,
+  "timestamp": "2026-02-10T12:39:09.047992765Z"
 }
