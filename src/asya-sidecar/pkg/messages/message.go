@@ -12,7 +12,9 @@ type Route struct {
 // Message represents the full message structure with routing metadata.
 //
 // Fanout ID Semantics:
-// When an actor returns an array response, the sidecar creates multiple messages (fanout).
+// When an actor handler uses yield (generator), the runtime sends multiple response
+// frames over the Unix socket. The sidecar reads each frame and creates a separate
+// message for routing.
 // The first fanout message retains the original ID to preserve SSE streaming compatibility.
 // Subsequent fanout messages receive suffixed IDs following the pattern: {original_id}-{index}
 //

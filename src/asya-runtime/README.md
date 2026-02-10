@@ -93,7 +93,7 @@ Simple mode where handlers work only with payloads. Routes and headers are prese
 def your_function(payload: dict) -> dict:
     """Process payload and return result."""
     result = process(payload)
-    return {"result": result}  # Single value or list for fan-out
+    return {"result": result}
 ```
 
 ### Envelope Mode (Advanced)
@@ -172,7 +172,7 @@ The runtime validates all output messages (when `ASYA_ENABLE_VALIDATION=true`):
 
 ## Response Format
 
-**Success:** `{"status": "ok", "result": <value or list>}`
+**Success:** `{"status": "ok", "result": <value>}`
 
 **Error:** `{"status": "error", "error": "code", "message": "..."}`
 
@@ -192,15 +192,15 @@ def predict(payload):
     return {"generated_text": result}
 ```
 
-**Fan-out:**
+**Fan-out (yield):**
 ```python
 def process(payload):
-    # Return list for fan-out
-    return [
-        {"task": "analyze", "data": payload["text"]},
-        {"task": "summarize", "data": payload["text"]}
-    ]
+    # Yield multiple outputs for fan-out
+    for item in payload["items"]:
+        yield {"processed": item}
 ```
+
+**Note**: Returning a list does NOT trigger fan-out. A returned list is treated as a single payload value.
 
 ### Envelope Mode Examples
 
