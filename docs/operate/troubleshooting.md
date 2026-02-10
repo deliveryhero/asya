@@ -25,15 +25,16 @@ kubectl logs <pod-name>
 
 **Check**:
 ```bash
-kubectl logs -n asya-system deploy/asya-operator
-kubectl describe asya <actor-name>
+kubectl describe asyncactor <actor-name>
+kubectl get sqsqueue <queue-name> -o yaml
+kubectl logs -n crossplane-system -l pkg.crossplane.io/provider=provider-aws
 ```
 
 **Common causes**:
 
-- Transport not configured in operator
-- Missing IAM permissions (SQS)
-- RabbitMQ not accessible
+- Missing IAM permissions for Crossplane AWS provider
+- AWS provider not configured correctly
+- Network issues accessing AWS API
 
 ## Actor Not Scaling
 
@@ -44,6 +45,7 @@ kubectl describe asya <actor-name>
 kubectl get scaledobject <actor-name> -o yaml
 kubectl describe scaledobject <actor-name>
 kubectl get hpa
+kubectl describe asyncactor <actor-name>
 ```
 
 **Common causes**:
@@ -51,6 +53,7 @@ kubectl get hpa
 - KEDA not installed
 - Wrong queueLength configuration
 - IAM permissions missing for KEDA
+- Crossplane composition not creating ScaledObject correctly
 
 ## Sidecar Connection Errors
 

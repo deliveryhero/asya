@@ -36,11 +36,11 @@
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>README CROSSPLANE - Asya🎭</title>
+    <title>Injector - Asya🎭</title>
     
 
 
-<title>README CROSSPLANE</title>
+<title>Injector</title>
 
 
 
@@ -50,18 +50,18 @@
 
 
 
-<link rel="canonical" href="https://asya.sh/docs/quickstart/README_CROSSPLANE/">
+<link rel="canonical" href="https://asya.sh/docs/architecture/asya-injector/">
 
 
 <!-- Open Graph (Facebook, LinkedIn) -->
 
-<meta property="og:title" content="README CROSSPLANE">
+<meta property="og:title" content="Injector">
 
 
 
 
 
-<meta property="og:url" content="https://asya.sh/docs/quickstart/README_CROSSPLANE/">
+<meta property="og:url" content="https://asya.sh/docs/architecture/asya-injector/">
 
 
 
@@ -70,7 +70,7 @@
 
 <!-- Twitter Card -->
 
-<meta name="twitter:title" content="README CROSSPLANE">
+<meta name="twitter:title" content="Injector">
 
 
 
@@ -537,11 +537,28 @@
                 
                 <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
     <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
-        data-size="default" href="/docs/architecture/asya-operator/"
+        data-size="default" href="/docs/architecture/asya-crossplane/"
         class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
 
         
-        Operator
+        Crossplane
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+                
+                <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="true" data-sidebar="menu-button"
+        data-size="default" href="/docs/architecture/asya-injector/"
+        class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
+
+        
+        Injector
         
 
         
@@ -774,12 +791,12 @@
         <h1
           class="scroll-m-20 text-4xl font-semibold tracking-tight sm:text-3xl xl:text-4xl"
         >
-          README CROSSPLANE
+          Injector
         </h1>
 
         <div class="flex items-center gap-2 pt-1.5">
           
-<button onclick="fetch(`https://asya.sh/docs/quickstart/README_CROSSPLANE.md`).then((r) => r.blob()).then((blob) => navigator.clipboard.write([new ClipboardItem({ 'text/plain': blob })]))" 
+<button onclick="fetch(`https://asya.sh/docs/architecture/asya-injector.md`).then((r) => r.blob()).then((blob) => navigator.clipboard.write([new ClipboardItem({ 'text/plain': blob })]))" 
         data-slot="button" 
         class="cursor-pointer inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-secondary text-secondary-foreground hover:bg-secondary/80 rounded-md gap-1.5 px-3 has-[&>svg]:px-2.5 h-8 shadow-none md:h-7 md:text-[0.8rem]">
 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="tabler-icon tabler-icon-copy ">
@@ -787,7 +804,57 @@
 </svg>
 <span class="max-md:hidden">Copy Page</span>
 </button> 
+          
+          <a
+            data-slot="button"
+            id="previous-button"
+            class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-secondary text-secondary-foreground hover:bg-secondary/80 extend-touch-target size-8 shadow-none md:size-7"
+            href="/docs/architecture/asya-crossplane/"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="tabler-icon tabler-icon-arrow-left"
+            >
+              <path d="M5 12l14 0"></path>
+              <path d="M5 12l6 6"></path>
+              <path d="M5 12l6 -6"></path>
+            </svg>
+            <span class="sr-only">Previous</span>
+          </a>
            
+          
+          <a
+            data-slot="button"
+            id="next-button"
+            class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-secondary text-secondary-foreground hover:bg-secondary/80 extend-touch-target size-8 shadow-none md:size-7"
+            href="/docs/architecture/asya-gateway/"
+          >
+            <span class="sr-only">Next</span>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="tabler-icon tabler-icon-arrow-right"
+            >
+              <path d="M5 12l14 0"></path>
+              <path d="M13 18l6 -6"></path>
+              <path d="M13 6l6 6"></path>
+            </svg>
+          </a>
           
         </div>
       </div>
@@ -798,417 +865,467 @@
     </div>
   </div>
   <div class="typography w-full flex-1 *:data-[slot=alert]:first:mt-0">
-    <p>This quickstart deploys Asya using <strong>Crossplane Compositions</strong> for infrastructure management
-and the <strong>asya-injector webhook</strong> for sidecar injection, replacing the monolithic asya-operator.</p>
-<h2 id="what-youll-learn">What You'll Learn<a class="headerlink" href="#what-youll-learn" title="Permanent link">&para;</a></h2>
+    <h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
+<p>The asya-injector is a Kubernetes mutating admission webhook that automatically injects the asya-sidecar container and related configuration into actor pods. It runs as a standalone service and integrates with the Crossplane-based AsyncActor deployment model.</p>
+<h2 id="architecture">Architecture<a class="headerlink" href="#architecture" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code>Pod CREATE Request
+         │
+         ▼
+    API Server
+         │
+         ▼
+Mutating Webhook (asya-injector)
+         │
+    ┌────┼─────────────┐
+    │    ▼             ▼
+    │  Query      Perform
+    │  AsyncActor  Injection
+    │  XR         (JSON Patch)
+    │    │             │
+    │    ▼             ▼
+    │  Extract    Add Sidecar
+    │  Config     Add Volumes
+    │             Modify Runtime
+    │
+    ▼
+JSON Patch Response
+         │
+         ▼
+    API Server (applies patch)
+</code></pre></div>
+<h2 id="how-it-works">How It Works<a class="headerlink" href="#how-it-works" title="Permanent link">&para;</a></h2>
+<p><strong>Trigger</strong>: Pod with labels <code>asya.sh/inject=true</code> and <code>asya.sh/actor={name}</code></p>
+<p><strong>Webhook flow</strong>:</p>
+<ol>
+<li><strong>Admission request received</strong> - API server sends Pod CREATE request</li>
+<li><strong>Label check</strong> - Webhook checks for <code>asya.sh/inject=true</code> label</li>
+<li><strong>Actor name extraction</strong> - Reads actor name from <code>asya.sh/actor</code> label</li>
+<li><strong>AsyncActor query</strong> - Queries AsyncActor XR in pod's namespace via dynamic client</li>
+<li><strong>Readiness check</strong> - Validates AsyncActor has <code>Ready=True</code> or <code>Synced=True</code> condition</li>
+<li><strong>Config extraction</strong> - Extracts transport, queueURL, region, sidecar overrides from AsyncActor spec/status</li>
+<li><strong>Injection</strong> - Mutates pod to add sidecar, volumes, and modify runtime container</li>
+<li><strong>JSON patch</strong> - Creates RFC 6902 JSON Patch describing the mutation</li>
+<li><strong>Response</strong> - Returns patch to API server, which applies it before persisting pod</li>
+</ol>
+<p><strong>Rejection scenarios</strong>:
+- Pod missing <code>asya.sh/actor</code> label
+- AsyncActor not found in namespace
+- AsyncActor infrastructure not ready (Crossplane still provisioning)
+- Runtime container <code>asya-runtime</code> not found in pod spec</p>
+<h2 id="what-gets-injected">What Gets Injected<a class="headerlink" href="#what-gets-injected" title="Permanent link">&para;</a></h2>
+<h3 id="sidecar-container">Sidecar Container<a class="headerlink" href="#sidecar-container" title="Permanent link">&para;</a></h3>
+<p>The webhook adds <code>asya-sidecar</code> container to the pod:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">containers</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya-sidecar</span>
+<span class="w">    </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ghcr.io/deliveryhero/asya-sidecar:latest</span>
+<span class="w">    </span><span class="nt">imagePullPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">IfNotPresent</span>
+<span class="w">    </span><span class="nt">env</span><span class="p">:</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_LOG_LEVEL</span>
+<span class="w">        </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">info</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_SOCKET_DIR</span>
+<span class="w">        </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/var/run/asya</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_ACTOR_NAME</span>
+<span class="w">        </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">text-processor</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_NAMESPACE</span>
+<span class="w">        </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya-e2e</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_ACTOR_HAPPY_END</span>
+<span class="w">        </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">happy-end</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_ACTOR_ERROR_END</span>
+<span class="w">        </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">error-end</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_TRANSPORT</span>
+<span class="w">        </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">sqs</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_AWS_REGION</span>
+<span class="w">        </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">us-east-1</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_QUEUE_URL</span>
+<span class="w">        </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://sqs.us-east-1.amazonaws.com/.../asya-asya-e2e-text-processor</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_IS_END_ACTOR</span>
+<span class="w">        </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;true&quot;</span><span class="w">  </span><span class="c1"># Only for happy-end and error-end actors</span>
+<span class="w">    </span><span class="nt">envFrom</span><span class="p">:</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretRef</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">aws-creds</span><span class="w">  </span><span class="c1"># Optional, only if config.awsCredsSecret set</span>
+<span class="w">    </span><span class="nt">volumeMounts</span><span class="p">:</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">socket-dir</span>
+<span class="w">        </span><span class="nt">mountPath</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/var/run/asya</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">tmp</span>
+<span class="w">        </span><span class="nt">mountPath</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/tmp</span>
+</code></pre></div>
+<p><strong>Sidecar image override</strong>:
+- Global: <code>config.sidecarImage</code> (injector Helm values)
+- Per-actor: <code>spec.sidecar.image</code> (AsyncActor spec)</p>
+<p><strong>Additional sidecar env vars</strong>:
+- Custom env from <code>spec.sidecar.env</code> merged into sidecar container
+- Gateway URL from <code>config.gatewayURL</code> (if configured)
+- SQS endpoint override from <code>config.sqsEndpoint</code> (for LocalStack)</p>
+<h3 id="environment-variables">Environment Variables<a class="headerlink" href="#environment-variables" title="Permanent link">&para;</a></h3>
+<p><strong>Transport-specific</strong> (SQS):
+- <code>ASYA_AWS_REGION</code>: From <code>spec.region</code> or extracted AsyncActor config
+- <code>ASYA_QUEUE_URL</code>: From AsyncActor status (set by Crossplane)
+- <code>ASYA_SQS_ENDPOINT</code>: Custom endpoint for LocalStack (optional)</p>
+<p><strong>End actor detection</strong>:
+- <code>ASYA_IS_END_ACTOR=true</code>: Automatically set for <code>happy-end</code> and <code>error-end</code> actors</p>
+<h3 id="volumes">Volumes<a class="headerlink" href="#volumes" title="Permanent link">&para;</a></h3>
+<p>The webhook adds three volumes to the pod:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">volumes</span><span class="p">:</span>
+<span class="w">  </span><span class="c1"># Unix socket for sidecar-runtime communication</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">socket-dir</span>
+<span class="w">    </span><span class="nt">emptyDir</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{}</span>
+
+<span class="w">  </span><span class="c1"># Temporary directory</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">tmp</span>
+<span class="w">    </span><span class="nt">emptyDir</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{}</span>
+
+<span class="w">  </span><span class="c1"># Runtime script ConfigMap</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya-runtime</span>
+<span class="w">    </span><span class="nt">configMap</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya-runtime</span>
+<span class="w">      </span><span class="nt">defaultMode</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0755</span>
+</code></pre></div>
+<p><strong>ConfigMap source</strong>: The <code>asya-runtime</code> ConfigMap must exist in the actor's namespace, containing <code>asya_runtime.py</code>. This is typically created by the Crossplane composition or manually deployed.</p>
+<h2 id="runtime-container-modification">Runtime Container Modification<a class="headerlink" href="#runtime-container-modification" title="Permanent link">&para;</a></h2>
+<p>The webhook modifies the existing <code>asya-runtime</code> container in the pod:</p>
+<h3 id="command-override">Command Override<a class="headerlink" href="#command-override" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="nt">containers</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya-runtime</span>
+<span class="w">    </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-handler:latest</span>
+<span class="w">    </span><span class="nt">command</span><span class="p">:</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">python3</span><span class="w">  </span><span class="c1"># Or from ASYA_PYTHONEXECUTABLE env var</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/opt/asya/asya_runtime.py</span>
+</code></pre></div>
+<p><strong>Python executable detection</strong>:
+- Checks for <code>ASYA_PYTHONEXECUTABLE</code> env var in runtime container
+- Falls back to <code>python3</code> if not set
+- Allows custom Python paths (e.g., <code>/opt/conda/bin/python</code>)</p>
+<h3 id="environment-variables_1">Environment Variables<a class="headerlink" href="#environment-variables_1" title="Permanent link">&para;</a></h3>
+<p>Added to runtime container:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">env</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_SOCKET_DIR</span>
+<span class="w">    </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/var/run/asya</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_ENABLE_VALIDATION</span>
+<span class="w">    </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;false&quot;</span><span class="w">  </span><span class="c1"># Only for happy-end and error-end actors</span>
+</code></pre></div>
+<p><strong>Validation disable</strong>: End actors (<code>happy-end</code>, <code>error-end</code>) have validation disabled to allow arbitrary payloads without route validation.</p>
+<h3 id="volume-mounts">Volume Mounts<a class="headerlink" href="#volume-mounts" title="Permanent link">&para;</a></h3>
+<p>Added to runtime container:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">volumeMounts</span><span class="p">:</span>
+<span class="w">  </span><span class="c1"># Socket directory for sidecar communication</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">socket-dir</span>
+<span class="w">    </span><span class="nt">mountPath</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/var/run/asya</span>
+
+<span class="w">  </span><span class="c1"># Temporary directory</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">tmp</span>
+<span class="w">    </span><span class="nt">mountPath</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/tmp</span>
+
+<span class="w">  </span><span class="c1"># Runtime script</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya-runtime</span>
+<span class="w">    </span><span class="nt">mountPath</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/opt/asya/asya_runtime.py</span>
+<span class="w">    </span><span class="nt">subPath</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya_runtime.py</span>
+<span class="w">    </span><span class="nt">readOnly</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+</code></pre></div>
+<h3 id="probes">Probes<a class="headerlink" href="#probes" title="Permanent link">&para;</a></h3>
+<p>The webhook adds startup, liveness, and readiness probes to the runtime container (if not already defined):</p>
+<p><strong>Probe command</strong>:
+<div class="highlight"><pre><span></span><code>sh<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;test -S /var/run/asya/asya-runtime.sock &amp;&amp; test -f /var/run/asya/runtime-ready&quot;</span>
+</code></pre></div></p>
+<p><strong>Probe configuration</strong>:</p>
 <ul>
-<li>Deploy Crossplane providers and compositions for SQS + KEDA + Kubernetes resources</li>
-<li>Deploy the asya-injector mutating webhook for automatic sidecar injection</li>
-<li>Create your first AsyncActor using a Crossplane claim</li>
-<li>Test autoscaling: scale-from-zero, process messages, scale-to-zero</li>
-<li>Delete an actor and verify all resources are cleaned up</li>
+<li><strong>Startup probe</strong>:</li>
+<li>Initial delay: 3 seconds</li>
+<li>Period: 2 seconds</li>
+<li>Timeout: 3 seconds</li>
+<li>
+<p>Failure threshold: 150 (allows 5 minutes for startup)</p>
+</li>
+<li>
+<p><strong>Liveness probe</strong>:</p>
+</li>
+<li>Initial delay: 0 seconds</li>
+<li>Period: 30 seconds</li>
+<li>Timeout: 5 seconds</li>
+<li>
+<p>Failure threshold: 3</p>
+</li>
+<li>
+<p><strong>Readiness probe</strong>:</p>
+</li>
+<li>Initial delay: 0 seconds</li>
+<li>Period: 10 seconds</li>
+<li>Timeout: 3 seconds</li>
+<li>Failure threshold: 3</li>
 </ul>
-<h2 id="prerequisites">Prerequisites<a class="headerlink" href="#prerequisites" title="Permanent link">&para;</a></h2>
-<ul>
-<li><a href="https://www.docker.com/get-started/">Docker</a> 24+</li>
-<li><a href="https://kubernetes.io/docs/tasks/tools/">kubectl</a> 1.28+</li>
-<li><a href="https://helm.sh/docs/intro/install/">Helm</a> 3.12+</li>
-<li><a href="https://kind.sigs.k8s.io/docs/user/quick-start/#installation">Kind</a> 0.20+</li>
-<li><a href="https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html">AWS CLI</a> (for sending test messages)</li>
-</ul>
-<h2 id="1-create-kind-cluster">1. Create Kind Cluster<a class="headerlink" href="#1-create-kind-cluster" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code>kind<span class="w"> </span>create<span class="w"> </span>cluster<span class="w"> </span>--name<span class="w"> </span>asya-crossplane<span class="w"> </span>--wait<span class="w"> </span>60s
-</code></pre></div>
-<h2 id="2-build-and-load-images">2. Build and Load Images<a class="headerlink" href="#2-build-and-load-images" title="Permanent link">&para;</a></h2>
-<p>From the repository root:</p>
-<div class="highlight"><pre><span></span><code><span class="c1"># Build sidecar</span>
-docker<span class="w"> </span>build<span class="w"> </span>-t<span class="w"> </span>asya-sidecar:latest<span class="w"> </span>-f<span class="w"> </span>src/asya-sidecar/Dockerfile<span class="w"> </span>src/asya-sidecar/
+<p><strong>Probe logic</strong>: Checks for Unix socket existence and runtime ready marker file, ensuring both runtime server and sidecar are operational.</p>
+<h2 id="asyncactor-readiness-gating">AsyncActor Readiness Gating<a class="headerlink" href="#asyncactor-readiness-gating" title="Permanent link">&para;</a></h2>
+<p>The webhook queries the AsyncActor XR to validate infrastructure readiness before injection.</p>
+<p><strong>Readiness conditions checked</strong>:
+- ✅ <code>Ready=True</code>: Crossplane standard Ready condition
+- ✅ <code>Synced=True</code>: Crossplane Synced condition (alternative)</p>
+<p><strong>Why gating matters</strong>:
+- Prevents pod creation before queue exists
+- Ensures sidecar has valid queue URL
+- Avoids pod CrashLoopBackOff during infrastructure provisioning</p>
+<p><strong>Failure behavior</strong>: If AsyncActor not ready, webhook rejects pod creation with error:
+<div class="highlight"><pre><span></span><code>failed to get AsyncActor text-processor: AsyncActor text-processor is not ready (infrastructure provisioning may be in progress)
+</code></pre></div></p>
+<p>Deployment controller retries pod creation until AsyncActor becomes ready.</p>
+<h2 id="configuration-via-helm-values">Configuration via Helm Values<a class="headerlink" href="#configuration-via-helm-values" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><span class="nt">config</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">logLevel</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;info&quot;</span>
 
-<span class="c1"># Build injector</span>
-docker<span class="w"> </span>build<span class="w"> </span>-t<span class="w"> </span>asya-injector:latest<span class="w"> </span>-f<span class="w"> </span>src/asya-injector/Dockerfile<span class="w"> </span>src/asya-injector/
-</code></pre></div>
-<p>Create a test actor handler:</p>
-<div class="highlight"><pre><span></span><code>mkdir<span class="w"> </span>-p<span class="w"> </span>/tmp/test-actor
+<span class="w">  </span><span class="c1"># Sidecar image to inject</span>
+<span class="w">  </span><span class="nt">sidecarImage</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;ghcr.io/deliveryhero/asya-sidecar:latest&quot;</span>
+<span class="w">  </span><span class="nt">sidecarImagePullPolicy</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;IfNotPresent&quot;</span>
 
-cat<span class="w"> </span>&gt;<span class="w"> </span>/tmp/test-actor/handler.py<span class="w"> </span><span class="s">&lt;&lt;&#39;PYEOF&#39;</span>
-<span class="s">def greet(payload):</span>
-<span class="s">    name = payload.get(&quot;name&quot;, &quot;World&quot;)</span>
-<span class="s">    return {&quot;greeting&quot;: f&quot;Hello, {name}!&quot;}</span>
-<span class="s">PYEOF</span>
+<span class="w">  </span><span class="c1"># Runtime ConfigMap name</span>
+<span class="w">  </span><span class="nt">runtimeConfigMap</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;asya-runtime&quot;</span>
 
-cat<span class="w"> </span>&gt;<span class="w"> </span>/tmp/test-actor/Dockerfile<span class="w"> </span><span class="s">&lt;&lt;&#39;DEOF&#39;</span>
-<span class="s">FROM python:3.12-slim</span>
-<span class="s">WORKDIR /app</span>
-<span class="s">COPY handler.py /app/handler.py</span>
-<span class="s">ENV ASYA_HANDLER=handler.greet</span>
-<span class="s">DEOF</span>
+<span class="w">  </span><span class="c1"># Socket directory path</span>
+<span class="w">  </span><span class="nt">socketDir</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;/var/run/asya&quot;</span>
 
-docker<span class="w"> </span>build<span class="w"> </span>-t<span class="w"> </span>test-actor:latest<span class="w"> </span>/tmp/test-actor/
-</code></pre></div>
-<p>Load all images into Kind:</p>
-<div class="highlight"><pre><span></span><code>kind<span class="w"> </span>load<span class="w"> </span>docker-image<span class="w"> </span>asya-sidecar:latest<span class="w"> </span>asya-injector:latest<span class="w"> </span>test-actor:latest<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--name<span class="w"> </span>asya-crossplane
-</code></pre></div>
-<h2 id="3-install-infrastructure">3. Install Infrastructure<a class="headerlink" href="#3-install-infrastructure" title="Permanent link">&para;</a></h2>
-<h3 id="cert-manager-for-webhook-tls">cert-manager (for webhook TLS)<a class="headerlink" href="#cert-manager-for-webhook-tls" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>cluster-info<span class="w"> </span>--context<span class="w"> </span>kind-asya-crossplane
-kubectl<span class="w"> </span>apply<span class="w"> </span>-f<span class="w"> </span>https://github.com/cert-manager/cert-manager/releases/download/v1.17.1/cert-manager.yaml
-kubectl<span class="w"> </span><span class="nb">wait</span><span class="w"> </span>--for<span class="o">=</span><span class="nv">condition</span><span class="o">=</span>Available<span class="w"> </span>deployment/cert-manager-webhook<span class="w"> </span>-n<span class="w"> </span>cert-manager<span class="w"> </span>--timeout<span class="o">=</span>120s
-</code></pre></div>
-<h3 id="crossplane">Crossplane<a class="headerlink" href="#crossplane" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code>helm<span class="w"> </span>repo<span class="w"> </span>add<span class="w"> </span>crossplane-stable<span class="w"> </span>https://charts.crossplane.io/stable
-helm<span class="w"> </span>install<span class="w"> </span>crossplane<span class="w"> </span>crossplane-stable/crossplane<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--namespace<span class="w"> </span>crossplane-system<span class="w"> </span>--create-namespace<span class="w"> </span>--wait<span class="w"> </span>--timeout<span class="w"> </span>120s
-</code></pre></div>
-<h3 id="keda">KEDA<a class="headerlink" href="#keda" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code>helm<span class="w"> </span>repo<span class="w"> </span>add<span class="w"> </span>kedacore<span class="w"> </span>https://kedacore.github.io/charts
-helm<span class="w"> </span>install<span class="w"> </span>keda<span class="w"> </span>kedacore/keda<span class="w"> </span>--namespace<span class="w"> </span>keda<span class="w"> </span>--create-namespace<span class="w"> </span>--wait<span class="w"> </span>--timeout<span class="w"> </span>120s
-</code></pre></div>
-<h3 id="localstack-sqs-emulator">LocalStack (SQS emulator)<a class="headerlink" href="#localstack-sqs-emulator" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>create<span class="w"> </span>namespace<span class="w"> </span>localstack
+<span class="w">  </span><span class="c1"># Runtime script mount path</span>
+<span class="w">  </span><span class="nt">runtimeMountPath</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;/opt/asya/asya_runtime.py&quot;</span>
 
-kubectl<span class="w"> </span>apply<span class="w"> </span>-f<span class="w"> </span>-<span class="w"> </span><span class="s">&lt;&lt;&#39;EOF&#39;</span>
-<span class="s">apiVersion: apps/v1</span>
-<span class="s">kind: Deployment</span>
-<span class="s">metadata:</span>
-<span class="s">  name: localstack</span>
-<span class="s">  namespace: localstack</span>
-<span class="s">spec:</span>
-<span class="s">  replicas: 1</span>
-<span class="s">  selector:</span>
-<span class="s">    matchLabels:</span>
-<span class="s">      app: localstack</span>
-<span class="s">  template:</span>
-<span class="s">    metadata:</span>
-<span class="s">      labels:</span>
-<span class="s">        app: localstack</span>
-<span class="s">    spec:</span>
-<span class="s">      containers:</span>
-<span class="s">      - name: localstack</span>
-<span class="s">        image: localstack/localstack:latest</span>
-<span class="s">        ports:</span>
-<span class="s">        - containerPort: 4566</span>
-<span class="s">        env:</span>
-<span class="s">        - name: SERVICES</span>
-<span class="s">          value: &quot;sqs&quot;</span>
-<span class="s">        - name: DEFAULT_REGION</span>
-<span class="s">          value: &quot;us-east-1&quot;</span>
-<span class="s">---</span>
-<span class="s">apiVersion: v1</span>
-<span class="s">kind: Service</span>
-<span class="s">metadata:</span>
-<span class="s">  name: localstack</span>
-<span class="s">  namespace: localstack</span>
-<span class="s">spec:</span>
-<span class="s">  selector:</span>
-<span class="s">    app: localstack</span>
-<span class="s">  ports:</span>
-<span class="s">  - port: 4566</span>
-<span class="s">    targetPort: 4566</span>
-<span class="s">EOF</span>
+<span class="w">  </span><span class="c1"># Gateway URL for progress reporting</span>
+<span class="w">  </span><span class="nt">gatewayURL</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&quot;</span>
 
-kubectl<span class="w"> </span><span class="nb">wait</span><span class="w"> </span>--for<span class="o">=</span><span class="nv">condition</span><span class="o">=</span>Available<span class="w"> </span>deployment/localstack<span class="w"> </span>-n<span class="w"> </span>localstack<span class="w"> </span>--timeout<span class="o">=</span>120s
-</code></pre></div>
-<h2 id="4-install-crossplane-providers">4. Install Crossplane Providers<a class="headerlink" href="#4-install-crossplane-providers" title="Permanent link">&para;</a></h2>
-<p>Providers must be installed first so their CRDs are available for the chart:</p>
-<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>apply<span class="w"> </span>-f<span class="w"> </span>-<span class="w"> </span><span class="s">&lt;&lt;&#39;EOF&#39;</span>
-<span class="s">apiVersion: pkg.crossplane.io/v1beta1</span>
-<span class="s">kind: DeploymentRuntimeConfig</span>
-<span class="s">metadata:</span>
-<span class="s">  name: provider-kubernetes-watches</span>
-<span class="s">  labels:</span>
-<span class="s">    app.kubernetes.io/managed-by: Helm</span>
-<span class="s">  annotations:</span>
-<span class="s">    meta.helm.sh/release-name: asya-crossplane</span>
-<span class="s">    meta.helm.sh/release-namespace: default</span>
-<span class="s">spec:</span>
-<span class="s">  deploymentTemplate:</span>
-<span class="s">    spec:</span>
-<span class="s">      template:</span>
-<span class="s">        spec:</span>
-<span class="s">          containers:</span>
-<span class="s">            - name: package-runtime</span>
-<span class="s">              args:</span>
-<span class="s">                - --enable-watches</span>
-<span class="s">---</span>
-<span class="s">apiVersion: pkg.crossplane.io/v1</span>
-<span class="s">kind: Provider</span>
-<span class="s">metadata:</span>
-<span class="s">  name: provider-aws-sqs</span>
-<span class="s">  labels:</span>
-<span class="s">    app.kubernetes.io/managed-by: Helm</span>
-<span class="s">  annotations:</span>
-<span class="s">    meta.helm.sh/release-name: asya-crossplane</span>
-<span class="s">    meta.helm.sh/release-namespace: default</span>
-<span class="s">spec:</span>
-<span class="s">  package: xpkg.upbound.io/upbound/provider-aws-sqs:v1.19.0</span>
-<span class="s">---</span>
-<span class="s">apiVersion: pkg.crossplane.io/v1</span>
-<span class="s">kind: Provider</span>
-<span class="s">metadata:</span>
-<span class="s">  name: provider-kubernetes</span>
-<span class="s">  labels:</span>
-<span class="s">    app.kubernetes.io/managed-by: Helm</span>
-<span class="s">  annotations:</span>
-<span class="s">    meta.helm.sh/release-name: asya-crossplane</span>
-<span class="s">    meta.helm.sh/release-namespace: default</span>
-<span class="s">spec:</span>
-<span class="s">  package: xpkg.upbound.io/crossplane-contrib/provider-kubernetes:v0.17.0</span>
-<span class="s">  runtimeConfigRef:</span>
-<span class="s">    name: provider-kubernetes-watches</span>
-<span class="s">---</span>
-<span class="s">apiVersion: pkg.crossplane.io/v1</span>
-<span class="s">kind: Function</span>
-<span class="s">metadata:</span>
-<span class="s">  name: function-go-templating</span>
-<span class="s">  labels:</span>
-<span class="s">    app.kubernetes.io/managed-by: Helm</span>
-<span class="s">  annotations:</span>
-<span class="s">    meta.helm.sh/release-name: asya-crossplane</span>
-<span class="s">    meta.helm.sh/release-namespace: default</span>
-<span class="s">spec:</span>
-<span class="s">  package: xpkg.upbound.io/crossplane-contrib/function-go-templating:v0.11.3</span>
-<span class="s">---</span>
-<span class="s">apiVersion: pkg.crossplane.io/v1</span>
-<span class="s">kind: Function</span>
-<span class="s">metadata:</span>
-<span class="s">  name: function-patch-and-transform</span>
-<span class="s">  labels:</span>
-<span class="s">    app.kubernetes.io/managed-by: Helm</span>
-<span class="s">  annotations:</span>
-<span class="s">    meta.helm.sh/release-name: asya-crossplane</span>
-<span class="s">    meta.helm.sh/release-namespace: default</span>
-<span class="s">spec:</span>
-<span class="s">  package: xpkg.crossplane.io/crossplane-contrib/function-patch-and-transform:v0.8.2</span>
-<span class="s">EOF</span>
-</code></pre></div>
-<p>Wait for all providers and functions to become healthy:</p>
-<div class="highlight"><pre><span></span><code><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Waiting for providers...&quot;</span>
-<span class="k">until</span><span class="w"> </span>kubectl<span class="w"> </span>get<span class="w"> </span>providers,functions<span class="w"> </span>-o<span class="w"> </span><span class="nv">jsonpath</span><span class="o">=</span><span class="s1">&#39;{range .items[*]}{.status.conditions[?(@.type==&quot;Healthy&quot;)].status}{&quot; &quot;}{end}&#39;</span><span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-q<span class="w"> </span><span class="s2">&quot;True True True True&quot;</span><span class="p">;</span><span class="w"> </span><span class="k">do</span>
-<span class="w">  </span>sleep<span class="w"> </span><span class="m">5</span>
-<span class="k">done</span>
-<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;All providers healthy&quot;</span>
-</code></pre></div>
-<p>Grant the Kubernetes provider cluster-admin permissions:</p>
-<div class="highlight"><pre><span></span><code><span class="nv">K8S_SA</span><span class="o">=</span><span class="k">$(</span>kubectl<span class="w"> </span>get<span class="w"> </span>providers<span class="w"> </span>provider-kubernetes<span class="w"> </span>-o<span class="w"> </span><span class="nv">jsonpath</span><span class="o">=</span><span class="s1">&#39;{.status.currentRevision}&#39;</span><span class="k">)</span>
-kubectl<span class="w"> </span>create<span class="w"> </span>clusterrolebinding<span class="w"> </span>provider-kubernetes-admin<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--clusterrole<span class="o">=</span>cluster-admin<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--serviceaccount<span class="o">=</span><span class="s2">&quot;crossplane-system:</span><span class="si">${</span><span class="nv">K8S_SA</span><span class="si">}</span><span class="s2">&quot;</span>
-</code></pre></div>
-<h2 id="5-create-secrets-and-configmaps">5. Create Secrets and ConfigMaps<a class="headerlink" href="#5-create-secrets-and-configmaps" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><span class="c1"># Crossplane AWS credentials (INI format for Upbound providers)</span>
-kubectl<span class="w"> </span>apply<span class="w"> </span>-f<span class="w"> </span>-<span class="w"> </span><span class="s">&lt;&lt;&#39;EOF&#39;</span>
-<span class="s">apiVersion: v1</span>
-<span class="s">kind: Secret</span>
-<span class="s">metadata:</span>
-<span class="s">  name: aws-creds</span>
-<span class="s">  namespace: crossplane-system</span>
-<span class="s">type: Opaque</span>
-<span class="s">stringData:</span>
-<span class="s">  credentials: |</span>
-<span class="s">    [default]</span>
-<span class="s">    aws_access_key_id = test</span>
-<span class="s">    aws_secret_access_key = test</span>
-<span class="s">EOF</span>
+<span class="w">  </span><span class="c1"># Custom SQS endpoint (for LocalStack)</span>
+<span class="w">  </span><span class="nt">sqsEndpoint</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&quot;</span>
 
-<span class="c1"># KEDA SQS trigger credentials</span>
-kubectl<span class="w"> </span>create<span class="w"> </span>secret<span class="w"> </span>generic<span class="w"> </span>aws-creds<span class="w"> </span>-n<span class="w"> </span>default<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--from-literal<span class="o">=</span><span class="nv">AWS_ACCESS_KEY_ID</span><span class="o">=</span><span class="nb">test</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--from-literal<span class="o">=</span><span class="nv">AWS_SECRET_ACCESS_KEY</span><span class="o">=</span><span class="nb">test</span>
+<span class="w">  </span><span class="c1"># AWS credentials secret name (for non-IRSA environments)</span>
+<span class="w">  </span><span class="nt">awsCredsSecret</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&quot;</span>
+</code></pre></div>
+<p><strong>Per-actor overrides</strong>: AsyncActor spec can override:
+- <code>spec.sidecar.image</code>: Custom sidecar image
+- <code>spec.sidecar.imagePullPolicy</code>: Custom pull policy
+- <code>spec.sidecar.env</code>: Additional environment variables</p>
+<h2 id="webhook-configuration">Webhook Configuration<a class="headerlink" href="#webhook-configuration" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><span class="nt">webhook</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">port</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">8443</span>
 
-<span class="c1"># asya-runtime script (mounted into actor pods)</span>
-kubectl<span class="w"> </span>create<span class="w"> </span>configmap<span class="w"> </span>asya-runtime<span class="w"> </span>-n<span class="w"> </span>default<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--from-file<span class="o">=</span>asya_runtime.py<span class="o">=</span>src/asya-runtime/asya_runtime.py
+<span class="w">  </span><span class="c1"># Namespaces to target for injection</span>
+<span class="w">  </span><span class="nt">namespaceSelector</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">matchExpressions</span><span class="p">:</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kubernetes.io/metadata.name</span>
+<span class="w">        </span><span class="nt">operator</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">NotIn</span>
+<span class="w">        </span><span class="nt">values</span><span class="p">:</span>
+<span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kube-system</span>
+<span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kube-public</span>
+<span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kube-node-lease</span>
+<span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya-system</span>
 
-<span class="c1"># Create happy-end and error-end queues (normally managed by crew actors)</span>
-kubectl<span class="w"> </span>port-forward<span class="w"> </span>-n<span class="w"> </span>localstack<span class="w"> </span>svc/localstack<span class="w"> </span><span class="m">4566</span>:4566<span class="w"> </span><span class="p">&amp;</span>
-sleep<span class="w"> </span><span class="m">3</span>
-<span class="nv">AWS_ACCESS_KEY_ID</span><span class="o">=</span><span class="nb">test</span><span class="w"> </span><span class="nv">AWS_SECRET_ACCESS_KEY</span><span class="o">=</span><span class="nb">test</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>aws<span class="w"> </span>--endpoint-url<span class="o">=</span>http://localhost:4566<span class="w"> </span>--region<span class="w"> </span>us-east-1<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>sqs<span class="w"> </span>create-queue<span class="w"> </span>--queue-name<span class="w"> </span>asya-default-happy-end
-<span class="nv">AWS_ACCESS_KEY_ID</span><span class="o">=</span><span class="nb">test</span><span class="w"> </span><span class="nv">AWS_SECRET_ACCESS_KEY</span><span class="o">=</span><span class="nb">test</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>aws<span class="w"> </span>--endpoint-url<span class="o">=</span>http://localhost:4566<span class="w"> </span>--region<span class="w"> </span>us-east-1<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>sqs<span class="w"> </span>create-queue<span class="w"> </span>--queue-name<span class="w"> </span>asya-default-error-end
-<span class="nb">kill</span><span class="w"> </span>%1<span class="w"> </span><span class="m">2</span>&gt;/dev/null
+<span class="w">  </span><span class="c1"># Pod label that triggers injection</span>
+<span class="w">  </span><span class="nt">objectSelector</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">matchLabels</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">asya.sh/inject</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;true&quot;</span>
+
+<span class="w">  </span><span class="c1"># Failure policy</span>
+<span class="w">  </span><span class="nt">failurePolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Fail</span>
+
+<span class="w">  </span><span class="c1"># Timeout for webhook calls</span>
+<span class="w">  </span><span class="nt">timeoutSeconds</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10</span>
 </code></pre></div>
-<h2 id="6-install-asya-crossplane-chart">6. Install Asya Crossplane Chart<a class="headerlink" href="#6-install-asya-crossplane-chart" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code>helm<span class="w"> </span>install<span class="w"> </span>asya-crossplane<span class="w"> </span>deploy/helm-charts/asya-crossplane/<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>-f<span class="w"> </span>deploy/helm-charts/asya-crossplane/values-localstack.yaml<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--set<span class="w"> </span><span class="nv">actorNamespace</span><span class="o">=</span>default
+<p><strong>Failure policy</strong>: <code>Fail</code> ensures pods without sidecar are never created (safer than <code>Ignore</code>).</p>
+<p><strong>Namespace exclusions</strong>: System namespaces excluded to prevent accidental injection into cluster components.</p>
+<h2 id="cert-manager-tls-certificate-management">cert-manager TLS Certificate Management<a class="headerlink" href="#cert-manager-tls-certificate-management" title="Permanent link">&para;</a></h2>
+<p>The webhook requires TLS certificates for secure communication with the API server. cert-manager automates certificate lifecycle.</p>
+<p><strong>Certificate configuration</strong>:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">certManager</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">  </span><span class="nt">duration</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">8760h</span><span class="w">  </span><span class="c1"># 1 year</span>
+<span class="w">  </span><span class="nt">renewBefore</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">720h</span><span class="w">  </span><span class="c1"># 30 days</span>
+<span class="w">  </span><span class="nt">issuer</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">create</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w">  </span><span class="c1"># Creates self-signed issuer</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&quot;</span>
+<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Issuer</span>
 </code></pre></div>
-<p>Verify the XRD is established:</p>
-<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>get<span class="w"> </span>xrd<span class="w"> </span>xasyncactors.asya.sh
-<span class="c1"># Should show ESTABLISHED=True, OFFERED=True</span>
-</code></pre></div>
-<h2 id="7-install-asya-injector">7. Install Asya Injector<a class="headerlink" href="#7-install-asya-injector" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code>helm<span class="w"> </span>install<span class="w"> </span>asya-injector<span class="w"> </span>deploy/helm-charts/asya-injector/<span class="w"> </span><span class="se">\</span>
+<p><strong>How it works</strong>:
+1. Helm chart creates <code>Issuer</code> (self-signed) in injector namespace
+2. Helm chart creates <code>Certificate</code> resource
+3. cert-manager generates TLS certificate and stores in Secret
+4. Injector deployment mounts Secret as TLS cert/key
+5. MutatingWebhookConfiguration references CA bundle
+6. cert-manager auto-renews before expiration</p>
+<p><strong>Manual certificate</strong>: If <code>certManager.enabled=false</code>, provide your own TLS secret and configure webhook CA bundle manually.</p>
+<h2 id="deployment">Deployment<a class="headerlink" href="#deployment" title="Permanent link">&para;</a></h2>
+<p><strong>Prerequisites</strong>:
+- Kubernetes 1.19+
+- cert-manager installed
+- AsyncActor XRD installed (for querying AsyncActor resources)</p>
+<p><strong>Installation</strong>:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Install injector webhook</span>
+helm<span class="w"> </span>install<span class="w"> </span>asya-injector<span class="w"> </span>deploy/helm-charts/asya-injector/<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--namespace<span class="w"> </span>asya-system<span class="w"> </span>--create-namespace<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--set<span class="w"> </span>config.sidecarImage<span class="o">=</span>asya-sidecar:latest<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--set<span class="w"> </span>config.sidecarImagePullPolicy<span class="o">=</span>Never<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--set<span class="w"> </span>config.sqsEndpoint<span class="o">=</span>http://localstack.localstack.svc.cluster.local:4566<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--set<span class="w"> </span>config.awsCredsSecret<span class="o">=</span>aws-creds<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--set<span class="w"> </span>image.repository<span class="o">=</span>asya-injector<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--set<span class="w"> </span>image.tag<span class="o">=</span>latest<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--set<span class="w"> </span>image.pullPolicy<span class="o">=</span>Never<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--wait<span class="w"> </span>--timeout<span class="w"> </span>180s
+<span class="w">  </span>--set<span class="w"> </span>config.sidecarImage<span class="o">=</span>ghcr.io/deliveryhero/asya-sidecar:latest<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--set<span class="w"> </span>config.gatewayURL<span class="o">=</span>http://asya-gateway.asya-system.svc.cluster.local
 </code></pre></div>
-<p>Verify the webhook is registered:</p>
-<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>get<span class="w"> </span>mutatingwebhookconfigurations
-<span class="c1"># Should show asya-injector</span>
-</code></pre></div>
-<h2 id="8-deploy-your-first-actor">8. Deploy Your First Actor<a class="headerlink" href="#8-deploy-your-first-actor" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>apply<span class="w"> </span>-f<span class="w"> </span>-<span class="w"> </span><span class="s">&lt;&lt;&#39;EOF&#39;</span>
-<span class="s">apiVersion: asya.sh/v1alpha1</span>
-<span class="s">kind: AsyncActor</span>
-<span class="s">metadata:</span>
-<span class="s">  name: hello</span>
-<span class="s">  namespace: default</span>
-<span class="s">spec:</span>
-<span class="s">  actor: hello</span>
-<span class="s">  transport: sqs</span>
-<span class="s">  region: us-east-1</span>
-<span class="s">  providerConfigRef: localstack</span>
-<span class="s">  scaling:</span>
-<span class="s">    enabled: true</span>
-<span class="s">    minReplicas: 0</span>
-<span class="s">    maxReplicas: 10</span>
-<span class="s">    pollingInterval: 10</span>
-<span class="s">    cooldownPeriod: 30</span>
-<span class="s">    queueLength: 5</span>
-<span class="s">  workload:</span>
-<span class="s">    template:</span>
-<span class="s">      spec:</span>
-<span class="s">        containers:</span>
-<span class="s">        - name: asya-runtime</span>
-<span class="s">          image: test-actor:latest</span>
-<span class="s">          imagePullPolicy: Never</span>
-<span class="s">          env:</span>
-<span class="s">          - name: ASYA_HANDLER</span>
-<span class="s">            value: handler.greet</span>
-<span class="s">          - name: ASYA_HANDLER_MODE</span>
-<span class="s">            value: payload</span>
-<span class="s">          - name: PYTHONPATH</span>
-<span class="s">            value: /app</span>
-<span class="s">EOF</span>
-</code></pre></div>
-<p>Wait for resources:</p>
-<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>get<span class="w"> </span>asyncactors<span class="w"> </span>-n<span class="w"> </span>default
-<span class="c1"># STATUS should become &quot;Ready&quot; or &quot;Napping&quot;</span>
+<p><strong>Verification</strong>:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Check webhook is running</span>
+kubectl<span class="w"> </span>get<span class="w"> </span>pods<span class="w"> </span>-n<span class="w"> </span>asya-system<span class="w"> </span>-l<span class="w"> </span>app.kubernetes.io/name<span class="o">=</span>asya-injector
 
-kubectl<span class="w"> </span>get<span class="w"> </span>queue.sqs.aws.upbound.io
-<span class="c1"># SQS queue should show READY=True</span>
+<span class="c1"># Check webhook configuration</span>
+kubectl<span class="w"> </span>get<span class="w"> </span>mutatingwebhookconfigurations<span class="w"> </span>asya-injector
 
-kubectl<span class="w"> </span>get<span class="w"> </span>scaledobject<span class="w"> </span>-n<span class="w"> </span>default
-<span class="c1"># ScaledObject should show READY=True</span>
+<span class="c1"># Check certificate</span>
+kubectl<span class="w"> </span>get<span class="w"> </span>certificate<span class="w"> </span>-n<span class="w"> </span>asya-system<span class="w"> </span>asya-injector-webhook-cert
 </code></pre></div>
-<h2 id="9-test-scaling">9. Test Scaling<a class="headerlink" href="#9-test-scaling" title="Permanent link">&para;</a></h2>
-<p>Send a message to trigger scale-from-zero:</p>
-<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>port-forward<span class="w"> </span>-n<span class="w"> </span>localstack<span class="w"> </span>svc/localstack<span class="w"> </span><span class="m">4566</span>:4566<span class="w"> </span><span class="p">&amp;</span>
-sleep<span class="w"> </span><span class="m">3</span>
+<h2 id="example-pod-mutation">Example Pod Mutation<a class="headerlink" href="#example-pod-mutation" title="Permanent link">&para;</a></h2>
+<p><strong>Before injection</strong> (pod created by Crossplane Deployment):</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Pod</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">labels</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">asya.sh/inject</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;true&quot;</span>
+<span class="w">    </span><span class="nt">asya.sh/actor</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">text-processor</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">containers</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya-runtime</span>
+<span class="w">      </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-handler:v1</span>
+<span class="w">      </span><span class="nt">env</span><span class="p">:</span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_HANDLER</span>
+<span class="w">          </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">processor.TextProcessor.process</span>
+</code></pre></div>
+<p><strong>After injection</strong> (pod created by API server with webhook patch):</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Pod</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">labels</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">asya.sh/inject</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;true&quot;</span>
+<span class="w">    </span><span class="nt">asya.sh/actor</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">text-processor</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">terminationGracePeriodSeconds</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">30</span>
+<span class="w">  </span><span class="nt">containers</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya-runtime</span>
+<span class="w">      </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-handler:v1</span>
+<span class="w">      </span><span class="nt">command</span><span class="p">:</span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">python3</span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/opt/asya/asya_runtime.py</span>
+<span class="w">      </span><span class="nt">env</span><span class="p">:</span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_HANDLER</span>
+<span class="w">          </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">processor.TextProcessor.process</span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_SOCKET_DIR</span>
+<span class="w">          </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/var/run/asya</span>
+<span class="w">      </span><span class="nt">volumeMounts</span><span class="p">:</span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">socket-dir</span>
+<span class="w">          </span><span class="nt">mountPath</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/var/run/asya</span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">tmp</span>
+<span class="w">          </span><span class="nt">mountPath</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/tmp</span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya-runtime</span>
+<span class="w">          </span><span class="nt">mountPath</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/opt/asya/asya_runtime.py</span>
+<span class="w">          </span><span class="nt">subPath</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya_runtime.py</span>
+<span class="w">          </span><span class="nt">readOnly</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">      </span><span class="nt">startupProbe</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">exec</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">command</span><span class="p">:</span>
+<span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">sh</span>
+<span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">-c</span>
+<span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">test -S /var/run/asya/asya-runtime.sock &amp;&amp; test -f /var/run/asya/runtime-ready</span>
+<span class="w">        </span><span class="nt">initialDelaySeconds</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3</span>
+<span class="w">        </span><span class="nt">periodSeconds</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2</span>
+<span class="w">        </span><span class="nt">timeoutSeconds</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3</span>
+<span class="w">        </span><span class="nt">failureThreshold</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">150</span>
+<span class="w">      </span><span class="nt">livenessProbe</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">exec</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">command</span><span class="p">:</span>
+<span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">sh</span>
+<span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">-c</span>
+<span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">test -S /var/run/asya/asya-runtime.sock &amp;&amp; test -f /var/run/asya/runtime-ready</span>
+<span class="w">        </span><span class="nt">periodSeconds</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">30</span>
+<span class="w">        </span><span class="nt">timeoutSeconds</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5</span>
+<span class="w">        </span><span class="nt">failureThreshold</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3</span>
+<span class="w">      </span><span class="nt">readinessProbe</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">exec</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">command</span><span class="p">:</span>
+<span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">sh</span>
+<span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">-c</span>
+<span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">test -S /var/run/asya/asya-runtime.sock &amp;&amp; test -f /var/run/asya/runtime-ready</span>
+<span class="w">        </span><span class="nt">periodSeconds</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10</span>
+<span class="w">        </span><span class="nt">timeoutSeconds</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3</span>
+<span class="w">        </span><span class="nt">failureThreshold</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3</span>
 
-<span class="nv">AWS_ACCESS_KEY_ID</span><span class="o">=</span><span class="nb">test</span><span class="w"> </span><span class="nv">AWS_SECRET_ACCESS_KEY</span><span class="o">=</span><span class="nb">test</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>aws<span class="w"> </span>--endpoint-url<span class="o">=</span>http://localhost:4566<span class="w"> </span>--region<span class="w"> </span>us-east-1<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>sqs<span class="w"> </span>send-message<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--queue-url<span class="w"> </span>http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/asya-default-hello<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--message-body<span class="w"> </span><span class="s1">&#39;{&quot;id&quot;:&quot;test-1&quot;,&quot;route&quot;:{&quot;actors&quot;:[&quot;hello&quot;],&quot;current&quot;:0},&quot;headers&quot;:{},&quot;payload&quot;:{&quot;name&quot;:&quot;Crossplane&quot;}}&#39;</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya-sidecar</span>
+<span class="w">      </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ghcr.io/deliveryhero/asya-sidecar:latest</span>
+<span class="w">      </span><span class="nt">imagePullPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">IfNotPresent</span>
+<span class="w">      </span><span class="nt">env</span><span class="p">:</span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_LOG_LEVEL</span>
+<span class="w">          </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">info</span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_SOCKET_DIR</span>
+<span class="w">          </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/var/run/asya</span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_ACTOR_NAME</span>
+<span class="w">          </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">text-processor</span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_NAMESPACE</span>
+<span class="w">          </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya-e2e</span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_ACTOR_HAPPY_END</span>
+<span class="w">          </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">happy-end</span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_ACTOR_ERROR_END</span>
+<span class="w">          </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">error-end</span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_TRANSPORT</span>
+<span class="w">          </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">sqs</span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_AWS_REGION</span>
+<span class="w">          </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">us-east-1</span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_QUEUE_URL</span>
+<span class="w">          </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://sqs.us-east-1.amazonaws.com/.../asya-asya-e2e-text-processor</span>
+<span class="w">      </span><span class="nt">volumeMounts</span><span class="p">:</span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">socket-dir</span>
+<span class="w">          </span><span class="nt">mountPath</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/var/run/asya</span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">tmp</span>
+<span class="w">          </span><span class="nt">mountPath</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/tmp</span>
 
-<span class="nb">kill</span><span class="w"> </span>%1<span class="w"> </span><span class="m">2</span>&gt;/dev/null
+<span class="w">  </span><span class="nt">volumes</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">socket-dir</span>
+<span class="w">      </span><span class="nt">emptyDir</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{}</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">tmp</span>
+<span class="w">      </span><span class="nt">emptyDir</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{}</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya-runtime</span>
+<span class="w">      </span><span class="nt">configMap</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya-runtime</span>
+<span class="w">        </span><span class="nt">defaultMode</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0755</span>
 </code></pre></div>
-<p>Watch the pod scale up:</p>
-<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>get<span class="w"> </span>pods<span class="w"> </span>-n<span class="w"> </span>default<span class="w"> </span>-w
-<span class="c1"># Pod should appear with 2/2 containers (runtime + injected sidecar)</span>
-</code></pre></div>
-<p>Check the sidecar logs:</p>
-<div class="highlight"><pre><span></span><code><span class="nv">POD</span><span class="o">=</span><span class="k">$(</span>kubectl<span class="w"> </span>get<span class="w"> </span>pods<span class="w"> </span>-n<span class="w"> </span>default<span class="w"> </span>-l<span class="w"> </span>app.kubernetes.io/name<span class="o">=</span>hello<span class="w"> </span>-o<span class="w"> </span><span class="nv">jsonpath</span><span class="o">=</span><span class="s1">&#39;{.items[0].metadata.name}&#39;</span><span class="k">)</span>
-kubectl<span class="w"> </span>logs<span class="w"> </span>-n<span class="w"> </span>default<span class="w"> </span><span class="nv">$POD</span><span class="w"> </span>-c<span class="w"> </span>asya-sidecar<span class="w"> </span>--tail<span class="o">=</span><span class="m">10</span>
-<span class="c1"># Should show: &quot;Runtime call completed&quot; and &quot;SQS message sent successfully&quot;</span>
-</code></pre></div>
-<p>After the cooldown period (30s + HPA stabilization), the pod scales back to zero:</p>
-<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>get<span class="w"> </span>deployment<span class="w"> </span>hello<span class="w"> </span>-n<span class="w"> </span>default
-<span class="c1"># READY should show 0/0</span>
-</code></pre></div>
-<h2 id="10-test-scale-to-n">10. Test Scale-to-N<a class="headerlink" href="#10-test-scale-to-n" title="Permanent link">&para;</a></h2>
-<p>Send a batch of messages with proper message format to trigger multiple replicas:</p>
-<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>port-forward<span class="w"> </span>-n<span class="w"> </span>localstack<span class="w"> </span>svc/localstack<span class="w"> </span><span class="m">4566</span>:4566<span class="w"> </span><span class="p">&amp;</span>
-sleep<span class="w"> </span><span class="m">3</span>
+<h2 id="observability">Observability<a class="headerlink" href="#observability" title="Permanent link">&para;</a></h2>
+<p><strong>Logs</strong>:
+<div class="highlight"><pre><span></span><code><span class="c1"># View injector logs</span>
+kubectl<span class="w"> </span>logs<span class="w"> </span>-n<span class="w"> </span>asya-system<span class="w"> </span>deployment/asya-injector
 
-<span class="nv">QUEUE_URL</span><span class="o">=</span>http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/asya-default-hello
-
-<span class="k">for</span><span class="w"> </span>i<span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="k">$(</span>seq<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="m">100</span><span class="k">)</span><span class="p">;</span><span class="w"> </span><span class="k">do</span>
-<span class="w">  </span><span class="nv">AWS_ACCESS_KEY_ID</span><span class="o">=</span><span class="nb">test</span><span class="w"> </span><span class="nv">AWS_SECRET_ACCESS_KEY</span><span class="o">=</span><span class="nb">test</span><span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>aws<span class="w"> </span>--endpoint-url<span class="o">=</span>http://localhost:4566<span class="w"> </span>--region<span class="w"> </span>us-east-1<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>sqs<span class="w"> </span>send-message<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--queue-url<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$QUEUE_URL</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--message-body<span class="w"> </span><span class="s2">&quot;{\&quot;id\&quot;:\&quot;batch-</span><span class="nv">$i</span><span class="s2">\&quot;,\&quot;route\&quot;:{\&quot;actors\&quot;:[\&quot;hello\&quot;],\&quot;current\&quot;:0},\&quot;headers\&quot;:{},\&quot;payload\&quot;:{\&quot;name\&quot;:\&quot;User-</span><span class="nv">$i</span><span class="s2">\&quot;}}&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--no-cli-pager<span class="w"> </span>&gt;<span class="w"> </span>/dev/null
-<span class="k">done</span>
-
-<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Sent 100 messages&quot;</span>
-<span class="nb">kill</span><span class="w"> </span>%1<span class="w"> </span><span class="m">2</span>&gt;/dev/null
-</code></pre></div>
-<p>Watch replicas scale up:</p>
-<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>get<span class="w"> </span>deployment<span class="w"> </span>hello<span class="w"> </span>-n<span class="w"> </span>default<span class="w"> </span>-w
-<span class="c1"># READY should increase beyond 1 (up to maxReplicas=10)</span>
-</code></pre></div>
-<p>After all messages are processed and the cooldown period passes, replicas scale back to zero.</p>
-<h2 id="11-test-resilience">11. Test Resilience<a class="headerlink" href="#11-test-resilience" title="Permanent link">&para;</a></h2>
-<p>Verify that Crossplane re-creates deleted resources:</p>
-<div class="highlight"><pre><span></span><code><span class="c1"># Delete the deployment</span>
-kubectl<span class="w"> </span>delete<span class="w"> </span>deployment<span class="w"> </span>hello<span class="w"> </span>-n<span class="w"> </span>default
-
-<span class="c1"># Wait for Crossplane to re-create it (should take a few seconds with watch enabled)</span>
-sleep<span class="w"> </span><span class="m">10</span>
-kubectl<span class="w"> </span>get<span class="w"> </span>deployment<span class="w"> </span>hello<span class="w"> </span>-n<span class="w"> </span>default
-<span class="c1"># Deployment should exist again</span>
-
-<span class="c1"># Delete the ScaledObject</span>
-kubectl<span class="w"> </span>delete<span class="w"> </span>scaledobject<span class="w"> </span>hello<span class="w"> </span>-n<span class="w"> </span>default
-sleep<span class="w"> </span><span class="m">10</span>
-kubectl<span class="w"> </span>get<span class="w"> </span>scaledobject<span class="w"> </span>hello<span class="w"> </span>-n<span class="w"> </span>default
-<span class="c1"># ScaledObject should exist again</span>
-</code></pre></div>
-<h2 id="12-test-deletion">12. Test Deletion<a class="headerlink" href="#12-test-deletion" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>delete<span class="w"> </span>asyncactor<span class="w"> </span>hello<span class="w"> </span>-n<span class="w"> </span>default
-</code></pre></div>
-<p>Verify all resources are cleaned up:</p>
-<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>get<span class="w"> </span>queue.sqs.aws.upbound.io<span class="w">           </span><span class="c1"># No resources</span>
-kubectl<span class="w"> </span>get<span class="w"> </span>object.kubernetes.crossplane.io<span class="w">     </span><span class="c1"># No resources</span>
-kubectl<span class="w"> </span>get<span class="w"> </span>deployment<span class="w"> </span>-n<span class="w"> </span>default<span class="w">               </span><span class="c1"># No resources</span>
-kubectl<span class="w"> </span>get<span class="w"> </span>scaledobject<span class="w"> </span>-n<span class="w"> </span>default<span class="w">             </span><span class="c1"># No resources</span>
-</code></pre></div>
-<h2 id="13-clean-up">13. Clean Up<a class="headerlink" href="#13-clean-up" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code>kind<span class="w"> </span>delete<span class="w"> </span>cluster<span class="w"> </span>--name<span class="w"> </span>asya-crossplane
-</code></pre></div>
-<h2 id="architecture-summary">Architecture Summary<a class="headerlink" href="#architecture-summary" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code>                    AsyncActor Claim
-                         |
-                    XAsyncActor (Composite)
-                         |
-              +----------+----------+----------+
-              |          |          |          |
-           SQS Queue  Deployment  ScaledObj  TriggerAuth
-           (Crossplane  (Crossplane  (Crossplane  (Crossplane
-            AWS)         K8s)         K8s)         K8s)
-                         |
-                    Pod Creation
-                         |
-                    Webhook Injection
-                         |
-              +----------+----------+
-              |                     |
-         asya-runtime          asya-sidecar
-         (user handler)        (message router)
-</code></pre></div>
-<ul>
-<li><strong>Crossplane Compositions</strong> manage infrastructure: SQS queues, Deployments, KEDA ScaledObjects</li>
-<li><strong>asya-injector webhook</strong> injects the sidecar at pod creation time</li>
-<li><strong>KEDA</strong> handles autoscaling based on SQS queue depth</li>
-<li>Deletion of the AsyncActor claim cascades to all managed resources</li>
-</ul>
+<span class="c1"># Watch injection events</span>
+kubectl<span class="w"> </span>logs<span class="w"> </span>-n<span class="w"> </span>asya-system<span class="w"> </span>deployment/asya-injector<span class="w"> </span>-f<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span><span class="s2">&quot;Injecting sidecar&quot;</span>
+</code></pre></div></p>
+<p><strong>Metrics</strong>: The injector exposes Prometheus metrics (if configured):
+- <code>asya_injector_requests_total</code> - Total webhook requests
+- <code>asya_injector_errors_total</code> - Failed injections
+- <code>asya_injector_duration_seconds</code> - Injection duration</p>
+<p><strong>Debugging injection failures</strong>:
+1. Check injector logs for errors
+2. Verify AsyncActor exists and is Ready
+3. Verify pod has <code>asya.sh/inject=true</code> and <code>asya.sh/actor</code> labels
+4. Check runtime ConfigMap exists in namespace
+5. Verify webhook certificate is valid</p>
   </div>
 </article>
                                 <div class="mx-auto flex flex-wrap h-16 w-full max-w-2xl items-center gap-2 px-4 md:px-0">
     
+    <a data-slot="button"
+        class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-secondary text-secondary-foreground hover:bg-secondary/80 h-8 rounded-md gap-1.5 px-3 has-[&gt;svg]:px-2.5 shadow-none"
+        href="/docs/architecture/asya-crossplane/">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+            class="tabler-icon tabler-icon-arrow-left ">
+            <path d="M5 12l14 0"></path>
+            <path d="M5 12l6 6"></path>
+            <path d="M5 12l6 -6"></path>
+        </svg>
+        <span class="max-[500px]:hidden">Crossplane</span>
+    </a>
+    
+    
+    <a data-slot="button"
+        class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-secondary text-secondary-foreground hover:bg-secondary/80 h-8 rounded-md gap-1.5 px-3 has-[&gt;svg]:px-2.5 ml-auto shadow-none"
+        href="/docs/architecture/asya-gateway/">
+        <span class="max-[500px]:hidden">Gateway</span>
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+            class="tabler-icon tabler-icon-arrow-right ">
+            <path d="M5 12l14 0"></path>
+            <path d="M13 18l6 -6"></path>
+            <path d="M13 6l6 6"></path>
+        </svg>
+    </a>
     
 </div>
                                 <dialog id="bottom-sidebar" onclick="onBottomSidebarDialogClick(event)" class="bg-transparent"
@@ -1257,19 +1374,19 @@ kubectl<span class="w"> </span>get<span class="w"> </span>scaledobject<span clas
                             
                         </a>
                         
-                        <a class="text-2xl font-medium" href="../">
+                        <a class="text-2xl font-medium" href="../../quickstart/">
                             
                             Getting Started
                             
                         </a>
                         
-                        <a class="text-2xl font-medium" href="../for-data-scientists/">
+                        <a class="text-2xl font-medium" href="../../quickstart/for-data-scientists/">
                             
                             For Data Scientists 🧑‍🔬
                             
                         </a>
                         
-                        <a class="text-2xl font-medium" href="../for-platform-engineers/">
+                        <a class="text-2xl font-medium" href="../../quickstart/for-platform-engineers/">
                             
                             For Platform Engineers ⚙️
                             
@@ -1311,79 +1428,85 @@ kubectl<span class="w"> </span>get<span class="w"> </span>scaledobject<span clas
                     
                     <div class="flex flex-col gap-3">
                         
-                        <a class="text-2xl font-medium" href="../../architecture/">
+                        <a class="text-2xl font-medium" href="../">
                             
                             Overview
                             
                         </a>
                         
-                        <a class="text-2xl font-medium" href="../../architecture/asya-actor/">
+                        <a class="text-2xl font-medium" href="../asya-actor/">
                             
                             Actors
                             
                         </a>
                         
-                        <a class="text-2xl font-medium" href="../../architecture/asya-sidecar/">
+                        <a class="text-2xl font-medium" href="../asya-sidecar/">
                             
                             Sidecar
                             
                         </a>
                         
-                        <a class="text-2xl font-medium" href="../../architecture/asya-runtime/">
+                        <a class="text-2xl font-medium" href="../asya-runtime/">
                             
                             Runtime
                             
                         </a>
                         
-                        <a class="text-2xl font-medium" href="../../architecture/asya-operator/">
+                        <a class="text-2xl font-medium" href="../asya-crossplane/">
                             
-                            Operator
+                            Crossplane
                             
                         </a>
                         
-                        <a class="text-2xl font-medium" href="../../architecture/asya-gateway/">
+                        <a class="text-2xl font-medium" href="./">
+                            
+                            Injector
+                            
+                        </a>
+                        
+                        <a class="text-2xl font-medium" href="../asya-gateway/">
                             
                             Gateway
                             
                         </a>
                         
-                        <a class="text-2xl font-medium" href="../../architecture/asya-crew/">
+                        <a class="text-2xl font-medium" href="../asya-crew/">
                             
                             Crew
                             
                         </a>
                         
-                        <a class="text-2xl font-medium" href="../../architecture/asya-cli/">
+                        <a class="text-2xl font-medium" href="../asya-cli/">
                             
                             CLI Tools
                             
                         </a>
                         
-                        <a class="text-2xl font-medium" href="../../architecture/autoscaling/">
+                        <a class="text-2xl font-medium" href="../autoscaling/">
                             
                             Autoscaling
                             
                         </a>
                         
-                        <a class="text-2xl font-medium" href="../../architecture/observability/">
+                        <a class="text-2xl font-medium" href="../observability/">
                             
                             Observability
                             
                         </a>
                         
-                        <a class="text-2xl font-medium" href="../../architecture/protocols/actor-actor/">
+                        <a class="text-2xl font-medium" href="../protocols/actor-actor/">
                             
                             Actor-Actor Protocol
                             
                         </a>
                         
-                        <a class="text-2xl font-medium" href="../../architecture/protocols/sidecar-runtime/">
+                        <a class="text-2xl font-medium" href="../protocols/sidecar-runtime/">
                             
                             Sidecar-Runtime Protocol
                             
                         </a>
                         
-                        <a class="text-2xl font-medium" href="../../architecture/transports/">
+                        <a class="text-2xl font-medium" href="../transports/">
                             
                             Transports
                             
@@ -1438,156 +1561,144 @@ kubectl<span class="w"> </span>get<span class="w"> </span>scaledobject<span clas
         
         
         
-        <a href="#what-youll-learn"
+        <a href="#overview"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
-            What You'll Learn
+            Overview
         </a>
         
 
         
-        <a href="#prerequisites"
+        <a href="#architecture"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
-            Prerequisites
+            Architecture
         </a>
         
 
         
-        <a href="#1-create-kind-cluster"
+        <a href="#how-it-works"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
-            1. Create Kind Cluster
+            How It Works
         </a>
         
 
         
-        <a href="#2-build-and-load-images"
+        <a href="#what-gets-injected"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
-            2. Build and Load Images
-        </a>
-        
-
-        
-        <a href="#3-install-infrastructure"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="2">
-            3. Install Infrastructure
+            What Gets Injected
         </a>
         
         
-        <a href="#cert-manager-for-webhook-tls"
+        <a href="#sidecar-container"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="3">
-            cert-manager (for webhook TLS)
+            Sidecar Container
         </a>
         
-        <a href="#crossplane"
+        <a href="#environment-variables"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="3">
-            Crossplane
+            Environment Variables
         </a>
         
-        <a href="#keda"
+        <a href="#volumes"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="3">
-            KEDA
+            Volumes
         </a>
         
-        <a href="#localstack-sqs-emulator"
+        
+
+        
+        <a href="#runtime-container-modification"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Runtime Container Modification
+        </a>
+        
+        
+        <a href="#command-override"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="3">
-            LocalStack (SQS emulator)
+            Command Override
+        </a>
+        
+        <a href="#environment-variables_1"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Environment Variables
+        </a>
+        
+        <a href="#volume-mounts"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Volume Mounts
+        </a>
+        
+        <a href="#probes"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Probes
         </a>
         
         
 
         
-        <a href="#4-install-crossplane-providers"
+        <a href="#asyncactor-readiness-gating"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
-            4. Install Crossplane Providers
+            AsyncActor Readiness Gating
         </a>
         
 
         
-        <a href="#5-create-secrets-and-configmaps"
+        <a href="#configuration-via-helm-values"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
-            5. Create Secrets and ConfigMaps
+            Configuration via Helm Values
         </a>
         
 
         
-        <a href="#6-install-asya-crossplane-chart"
+        <a href="#webhook-configuration"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
-            6. Install Asya Crossplane Chart
+            Webhook Configuration
         </a>
         
 
         
-        <a href="#7-install-asya-injector"
+        <a href="#cert-manager-tls-certificate-management"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
-            7. Install Asya Injector
+            cert-manager TLS Certificate Management
         </a>
         
 
         
-        <a href="#8-deploy-your-first-actor"
+        <a href="#deployment"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
-            8. Deploy Your First Actor
+            Deployment
         </a>
         
 
         
-        <a href="#9-test-scaling"
+        <a href="#example-pod-mutation"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
-            9. Test Scaling
+            Example Pod Mutation
         </a>
         
 
         
-        <a href="#10-test-scale-to-n"
+        <a href="#observability"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
-            10. Test Scale-to-N
-        </a>
-        
-
-        
-        <a href="#11-test-resilience"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="2">
-            11. Test Resilience
-        </a>
-        
-
-        
-        <a href="#12-test-deletion"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="2">
-            12. Test Deletion
-        </a>
-        
-
-        
-        <a href="#13-clean-up"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="2">
-            13. Clean Up
-        </a>
-        
-
-        
-        <a href="#architecture-summary"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="2">
-            Architecture Summary
+            Observability
         </a>
         
 

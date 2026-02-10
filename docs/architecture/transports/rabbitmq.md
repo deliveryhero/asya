@@ -17,26 +17,26 @@ Self-hosted open-source message broker.
 
 ## Configuration
 
-**Operator config** (`deploy/helm-charts/asya-operator/values.yaml`):
+**Crossplane Composition Config** (XRD for transport configuration):
 ```yaml
-transports:
-  rabbitmq:
-    enabled: true
-    type: rabbitmq
-    config:
-      host: rabbitmq.default.svc.cluster.local
-      port: 5672
-      username: guest
-      passwordSecretRef:
-        name: rabbitmq-secret
-        key: password
-      exchange: asya  # Optional, defaults to "asya"
-      queues:
-        autoCreate: true  # Optional, defaults to true
-        forceRecreate: false  # Optional, defaults to false
-        dlq:
-          enabled: true  # Optional
-          maxRetryCount: 3  # Optional, defaults to 3
+apiVersion: asya.dev/v1alpha1
+kind: RabbitMQTransport
+metadata:
+  name: rabbitmq-default
+spec:
+  host: rabbitmq.default.svc.cluster.local
+  port: 5672
+  username: guest
+  passwordSecretRef:
+    name: rabbitmq-secret
+    key: password
+  exchange: asya  # Optional, defaults to "asya"
+  queues:
+    autoCreate: true  # Optional, defaults to true
+    forceRecreate: false  # Optional, defaults to false
+    dlq:
+      enabled: true  # Optional
+      maxRetryCount: 3  # Optional, defaults to 3
 ```
 
 **AsyncActor reference**:
@@ -45,7 +45,7 @@ spec:
   transport: rabbitmq
 ```
 
-**Sidecar environment variables** (injected by operator):
+**Sidecar environment variables** (injected by injector webhook):
 
 - `ASYA_TRANSPORT=rabbitmq`
 - `ASYA_RABBITMQ_HOST` → from `config.host`
@@ -64,7 +64,7 @@ amqp://{username}:{password}@{host}:{port}/
 
 **Two modes**:
 
-1. **Operator creates queues** (default): Operator uses RabbitMQ Management API to create durable queues when AsyncActor is reconciled
+1. **Crossplane creates queues** (default): Crossplane Composition uses RabbitMQ Management API to create durable queues when AsyncActor is reconciled
 
 2. **Sidecar auto-creates queues**: If `queues.autoCreate: true`, sidecar declares queues on first use
 
@@ -97,7 +97,7 @@ data:
   password: <base64-encoded-password>
 ```
 
-**Operator injects** secret reference into sidecar environment via `SecretKeyRef`.
+**Injector webhook injects** secret reference into sidecar environment via `SecretKeyRef`.
 
 ## KEDA Scaler
 

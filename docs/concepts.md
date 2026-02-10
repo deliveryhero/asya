@@ -43,7 +43,7 @@ An actor is a stateless (by default) workload that:
 
 **How it works**: Receives messages from sidecar via Unix socket, loads user handler (function or class), executes it, returns results back to sidecar.
 
-**Deployment**: User defines container image with Python code. Asya operator injects `asya_runtime.py` entrypoint script via ConfigMap.
+**Deployment**: User defines container image with Python code. Asya injector webhook injects `asya_runtime.py` entrypoint script via ConfigMap.
 
 **See**: [architecture/asya-runtime.md](architecture/asya-runtime.md) for details.
 
@@ -108,19 +108,30 @@ An actor is a stateless (by default) workload that:
 
 **See**: [architecture/protocols/actor-actor.md](architecture/protocols/actor-actor.md) for details.
 
-## Operator
+## Crossplane Compositions
 
 **Responsibilities**:
 
 - Manages lifecycle of AsyncActor CRDs
-- Injects sidecars into actor pods
 - Creates Kubernetes Deployments/StatefulSets
 - Configures KEDA autoscaling
-- Creates and manages message queues
+- Creates and manages message queues via cloud providers
 
-**How it works**: Watches AsyncActor custom resources, reconciles desired state with actual cluster state, injects infrastructure components.
+**How it works**: Watches AsyncActor custom resources, reconciles desired state via Crossplane Compositions and cloud provider APIs.
 
-**See**: [architecture/asya-operator.md](architecture/asya-operator.md) for details.
+**See**: [architecture/asya-crossplane.md](architecture/asya-crossplane.md) for details.
+
+## Injector Webhook
+
+**Responsibilities**:
+
+- Injects asya-sidecar container into actor pods
+- Injects asya-runtime entrypoint and ConfigMap
+- Configures shared volumes and socket paths
+
+**How it works**: Mutating admission webhook intercepts pod creation, modifies spec to add sidecar and runtime components.
+
+**See**: [architecture/asya-injector.md](architecture/asya-injector.md) for details.
 
 ## KEDA (Autoscaling)
 
@@ -130,7 +141,7 @@ An actor is a stateless (by default) workload that:
 - Scale to zero - eliminate idle resource costs
 - Handle bursty workloads efficiently
 
-**Integration**: Asya operator creates KEDA ScaledObjects for each AsyncActor. KEDA monitors queue depth and scales actor deployments from 0 to maxReplicas.
+**Integration**: Asya Crossplane Composition creates KEDA ScaledObjects for each AsyncActor. KEDA monitors queue depth and scales actor deployments from 0 to maxReplicas.
 
 **Example**: Queue has 100 messages, queueLength=5 configured → KEDA scales to 20 replicas (100/5).
 

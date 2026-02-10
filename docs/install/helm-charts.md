@@ -4,45 +4,27 @@ Asya🎭 provides Helm charts for deploying framework components.
 
 ## Available Charts
 
-### asya-operator
+### asya-injector
 
-Deploys Asya operator (CRD controller).
+Deploys Asya webhook for sidecar injection.
 
-**Location**: `deploy/helm-charts/asya-operator/`
+**Location**: `deploy/helm-charts/asya-injector/`
 
 **Installation**:
 ```bash
-kubectl apply -f https://github.com/deliveryhero/asya/releases/latest/download/asya-crds.yaml
-helm install asya-operator deploy/helm-charts/asya-operator/ -n asya-system --create-namespace -f values.yaml
+helm install asya-injector deploy/helm-charts/asya-injector/ -n asya-system --create-namespace -f values.yaml
 ```
 
 **Key values**:
 ```yaml
-transports:
-  sqs:
-    enabled: true
-    type: sqs
-    config:
-      region: us-east-1
-  rabbitmq:
-    enabled: true
-    type: rabbitmq
-    config:
-      host: rabbitmq.default.svc.cluster.local
-      port: 5672
-      username: guest
-      passwordSecretRef:
-        name: rabbitmq-secret
-        key: password
-
 image:
-  repository: ghcr.io/deliveryhero/asya-operator
+  repository: ghcr.io/deliveryhero/asya-injector
   tag: latest
 
 serviceAccount:
   create: true
   annotations:
-    eks.amazonaws.com/role-arn: arn:aws:iam::ACCOUNT:role/operator-role
+    eks.amazonaws.com/role-arn: arn:aws:iam::ACCOUNT:role/injector-role
 ```
 
 ### asya-gateway
@@ -151,7 +133,7 @@ error-end:
 
 ### asya-crossplane
 
-Deploys Crossplane XRDs and Compositions for AsyncActor management (alternative to asya-operator).
+Deploys Crossplane XRDs and Compositions for AsyncActor management.
 
 **Location**: `deploy/helm-charts/asya-crossplane/`
 
@@ -257,14 +239,16 @@ serviceAccount:
 
 ### AWS with SQS + S3
 
-**Operator** (`operator-values.yaml`):
+**Crossplane** (`crossplane-values.yaml`):
 ```yaml
-transports:
-  sqs:
-    enabled: true
-    type: sqs
-    config:
-      region: us-east-1
+awsRegion: us-east-1
+awsProviderConfig:
+  name: default
+  credentialsSource: Secret
+  secretRef:
+    namespace: crossplane-system
+    name: aws-creds
+    key: credentials
 ```
 
 **Crew** (`crew-values.yaml`):
@@ -303,19 +287,11 @@ spec:
 
 ### Local with RabbitMQ + MinIO
 
-**Operator** (`operator-values.yaml`):
+**Crossplane** (`crossplane-values.yaml`):
 ```yaml
-transports:
-  rabbitmq:
-    enabled: true
-    type: rabbitmq
-    config:
-      host: rabbitmq.default.svc.cluster.local
-      port: 5672
-      username: guest
-      passwordSecretRef:
-        name: rabbitmq-secret
-        key: password
+awsRegion: us-east-1
+actorNamespace: asya
+# Use LocalStack or RabbitMQ for local development
 ```
 
 **Crew** (`crew-values.yaml`):
@@ -366,8 +342,11 @@ spec:
 ## Upgrading Charts
 
 ```bash
-# Upgrade operator
-helm upgrade asya-operator deploy/helm-charts/asya-operator/ -n asya-system -f values.yaml
+# Upgrade injector
+helm upgrade asya-injector deploy/helm-charts/asya-injector/ -n asya-system -f values.yaml
+
+# Upgrade crossplane
+helm upgrade asya-crossplane deploy/helm-charts/asya-crossplane/ -n crossplane-system -f values.yaml
 
 # Upgrade gateway
 helm upgrade asya-gateway deploy/helm-charts/asya-gateway/ -f values.yaml
@@ -382,8 +361,9 @@ helm upgrade asya-crew deploy/helm-charts/asya-crew/ -f values.yaml
 # Uninstall components
 helm uninstall asya-gateway
 helm uninstall asya-crew
-helm uninstall asya-operator -n asya-system
+helm uninstall asya-crossplane -n crossplane-system
+helm uninstall asya-injector -n asya-system
 
-# Remove CRDs (will delete all AsyncActors)
-kubectl delete -f https://github.com/deliveryhero/asya/releases/latest/download/asya-crds.yaml
+# Remove XRDs (will delete all AsyncActors)
+kubectl delete xrd asyncactors.asya.sh
 ```

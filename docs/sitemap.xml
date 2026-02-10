@@ -29,6 +29,10 @@
          <lastmod>2026-02-10</lastmod>
     </url>
     <url>
+         <loc>https://asya.sh/docs/architecture/asya-crossplane/</loc>
+         <lastmod>2026-02-10</lastmod>
+    </url>
+    <url>
          <loc>https://asya.sh/docs/architecture/asya-flow/</loc>
          <lastmod>2026-02-10</lastmod>
     </url>
@@ -37,7 +41,7 @@
          <lastmod>2026-02-10</lastmod>
     </url>
     <url>
-         <loc>https://asya.sh/docs/architecture/asya-operator/</loc>
+         <loc>https://asya.sh/docs/architecture/asya-injector/</loc>
          <lastmod>2026-02-10</lastmod>
     </url>
     <url>
@@ -110,10 +114,6 @@
     </url>
     <url>
          <loc>https://asya.sh/docs/quickstart/</loc>
-         <lastmod>2026-02-10</lastmod>
-    </url>
-    <url>
-         <loc>https://asya.sh/docs/quickstart/README_CROSSPLANE/</loc>
          <lastmod>2026-02-10</lastmod>
     </url>
     <url>

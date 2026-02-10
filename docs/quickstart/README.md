@@ -1,293 +1,509 @@
-<!--
-IMPORTANT: All ```bash commands in this file are tested as part of e2e test suite: /testing/e2e/tests/test_quickstart_readme.py
--->
-# Getting Started with Asya🎭 Locally
+# Getting Started with Asya🎭 (Crossplane Architecture)
 
-**Core idea**: Build multi-step AI/ML pipelines where each step deployed as an [actor](https://en.wikipedia.org/wiki/Actor_model) and scales independently. No infrastructure code in your code - just pure Python.
+This quickstart deploys Asya using **Crossplane Compositions** for infrastructure management
+and the **asya-injector webhook** for sidecar injection, replacing the monolithic asya-operator.
 
 ## What You'll Learn
 
-- Create a Kind cluster to run Kubernetes locally in Docker, and install KEDA for autoscaling
-- Deploy the Asya operator with SQS transport (running via LocalStack)
-- Build and deploy your first actor with scale-to-zero capability
-- Test autoscaling by sending messages to actor queues
-- Optionally add S3 storage, MCP gateway, Prometheus monitoring, and Grafana dashboards
+- Deploy Crossplane providers and compositions for SQS + KEDA + Kubernetes resources
+- Deploy the asya-injector mutating webhook for automatic sidecar injection
+- Create your first AsyncActor using a Crossplane claim
+- Test autoscaling: scale-from-zero, process messages, scale-to-zero
+- Delete an actor and verify all resources are cleaned up
 
 ## Prerequisites
-
-Before you begin, install:
 
 - [Docker](https://www.docker.com/get-started/) 24+
 - [kubectl](https://kubernetes.io/docs/tasks/tools/) 1.28+
 - [Helm](https://helm.sh/docs/intro/install/) 3.12+
 - [Kind](https://kind.sigs.k8s.io/docs/user/quick-start/#installation) 0.20+
+- [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html) (for sending test messages)
 
-## Setup Options
-
-Choose your setup based on your needs:
-
-- **[Minimal Setup](#minimal-setup)** - KEDA + SQS + Asya Operator (core functionality only)
-- **[+ S3 Storage](#add-s3-storage-optional)** - Add persistence of the result message
-- **[+ Asya Gateway](#add-gateway-optional)** - Add MCP HTTP API with PostgreSQL
-- **[+ Prometheus](#add-prometheus-optional)** - Add metrics collection and Grafana dashboards
-
-## Initial Setup
-
-### 1. Create Kind Cluster
+## 1. Create Kind Cluster
 
 ```bash
-cat > kind-config.yaml <<EOF
-kind: Cluster
-apiVersion: kind.x-k8s.io/v1alpha4
-nodes:
-- role: control-plane
-  extraPortMappings:
-  - containerPort: 30080
-    hostPort: 8080
-    protocol: TCP
-EOF
-
-kind create cluster --name asya-local --config kind-config.yaml
-kubectl config use-context kind-asya-local
+kind create cluster --name asya-crossplane --wait 60s
 ```
 
-## Minimal Setup
+## 2. Build and Load Images
 
-**What you get**: Core actor framework with SQS transport and autoscaling
+From the repository root:
 
-### 1. Install KEDA
+```bash
+# Build sidecar
+docker build -t asya-sidecar:latest -f src/asya-sidecar/Dockerfile src/asya-sidecar/
+
+# Build injector
+docker build -t asya-injector:latest -f src/asya-injector/Dockerfile src/asya-injector/
+```
+
+Create a test actor handler:
+
+```bash
+mkdir -p /tmp/test-actor
+
+cat > /tmp/test-actor/handler.py <<'PYEOF'
+def greet(payload):
+    name = payload.get("name", "World")
+    return {"greeting": f"Hello, {name}!"}
+PYEOF
+
+cat > /tmp/test-actor/Dockerfile <<'DEOF'
+FROM python:3.12-slim
+WORKDIR /app
+COPY handler.py /app/handler.py
+ENV ASYA_HANDLER=handler.greet
+DEOF
+
+docker build -t test-actor:latest /tmp/test-actor/
+```
+
+Load all images into Kind:
+
+```bash
+kind load docker-image asya-sidecar:latest asya-injector:latest test-actor:latest \
+  --name asya-crossplane
+```
+
+## 3. Install Infrastructure
+
+### cert-manager (for webhook TLS)
+
+```bash
+kubectl cluster-info --context kind-asya-crossplane
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.17.1/cert-manager.yaml
+kubectl wait --for=condition=Available deployment/cert-manager-webhook -n cert-manager --timeout=120s
+```
+
+### Crossplane
+
+```bash
+helm repo add crossplane-stable https://charts.crossplane.io/stable
+helm install crossplane crossplane-stable/crossplane \
+  --namespace crossplane-system --create-namespace --wait --timeout 120s
+```
+
+### KEDA
 
 ```bash
 helm repo add kedacore https://kedacore.github.io/charts
-helm install keda kedacore/keda --namespace keda-system --create-namespace
+helm install keda kedacore/keda --namespace keda --create-namespace --wait --timeout 120s
 ```
 
-### 2. Install LocalStack (SQS)
-
-LocalStack provides local AWS SQS emulation:
+### LocalStack (SQS emulator)
 
 ```bash
-helm repo add localstack https://helm.localstack.cloud
-helm install localstack localstack/localstack \
-  --namespace asya-system \
-  --create-namespace \
-  --set image.tag=latest
+kubectl create namespace localstack
 
-kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=localstack \
-  -n asya-system --timeout=300s
-```
-
-### 3. Install Asya🎭 Operator
-
-Install `AsyncActor` CRD:
-
-<!-- TODO: fix CRD release instead:
-kubectl apply -f https://github.com/deliveryhero/asya/releases/latest/download/asya-crds.yaml
--->
-```bash
-kubectl apply -f https://raw.githubusercontent.com/deliveryhero/asya/refs/heads/main/src/asya-operator/config/crd/asya.sh_asyncactors.yaml
-```
-
-Add Helm repository:
-
-```bash
-helm repo add asya https://asya.sh/charts
-#helm repo update  # to re-download repos
-```
-
-Create AWS credentials secret:
-
-```bash
-kubectl create secret generic sqs-secret \
-  --namespace asya-system \
-  --from-literal=access-key-id=test \
-  --from-literal=secret-access-key=test
-```
-
-Install operator:
-
-```bash
-# TODO: remove image.repository overload for 0.4.0+
-cat > operator-values.yaml <<EOF
-image:
-  repository: ghcr.io/deliveryhero/asya-operator
-transports:
-  sqs:
-    enabled: true
-    config:
-      region: us-east-1
-      accountId: "000000000000"
-      endpoint: http://localstack.asya-system.svc.cluster.local:4566
-      credentials:
-        accessKeyIdSecretRef:
-          name: sqs-secret
-          key: access-key-id
-        secretAccessKeySecretRef:
-          name: sqs-secret
-          key: secret-access-key
+kubectl apply -f - <<'EOF'
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: localstack
+  namespace: localstack
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: localstack
+  template:
+    metadata:
+      labels:
+        app: localstack
+    spec:
+      containers:
+      - name: localstack
+        image: localstack/localstack:latest
+        ports:
+        - containerPort: 4566
+        env:
+        - name: SERVICES
+          value: "sqs"
+        - name: DEFAULT_REGION
+          value: "us-east-1"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: localstack
+  namespace: localstack
+spec:
+  selector:
+    app: localstack
+  ports:
+  - port: 4566
+    targetPort: 4566
 EOF
 
-helm install asya-operator asya/asya-operator \
-  -n asya-system \
-  --create-namespace \
-  -f operator-values.yaml
-
-kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=asya-operator \
-  -n asya-system --timeout=300s
-
-# check manually:
-kubectl -n asya-system get po -l app.kubernetes.io/name=asya-operator
-# NAME                             READY   STATUS    RESTARTS   AGE
-# asya-operator-7c8cdc4ff4-4qj2f   1/1     Running   0          40s
+kubectl wait --for=condition=Available deployment/localstack -n localstack --timeout=120s
 ```
 
-In order to debug 🎭 behavior (e.g. if scaling doesn't work), it's good to check operator logs:
-```bash
-kubectl -n asya-system logs -l app.kubernetes.io/name=asya-operator
-```
+## 4. Install Crossplane Providers
 
-### 4. Deploy Your First Actor
-
-Write a handler:
+Providers must be installed first so their CRDs are available for the chart:
 
 ```bash
-cat > handler.py <<EOF
-import time
-
-def process(payload: dict) -> dict:
-    time.sleep(1)  # simulate workload
-    return {
-        **payload,
-        "greeting": f"Hello, {payload.get('name', 'World')}!"
-    }
+kubectl apply -f - <<'EOF'
+apiVersion: pkg.crossplane.io/v1beta1
+kind: DeploymentRuntimeConfig
+metadata:
+  name: provider-kubernetes-watches
+  labels:
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    meta.helm.sh/release-name: asya-crossplane
+    meta.helm.sh/release-namespace: default
+spec:
+  deploymentTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: package-runtime
+              args:
+                - --enable-watches
+---
+apiVersion: pkg.crossplane.io/v1
+kind: Provider
+metadata:
+  name: provider-aws-sqs
+  labels:
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    meta.helm.sh/release-name: asya-crossplane
+    meta.helm.sh/release-namespace: default
+spec:
+  package: xpkg.upbound.io/upbound/provider-aws-sqs:v1.19.0
+---
+apiVersion: pkg.crossplane.io/v1
+kind: Provider
+metadata:
+  name: provider-kubernetes
+  labels:
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    meta.helm.sh/release-name: asya-crossplane
+    meta.helm.sh/release-namespace: default
+spec:
+  package: xpkg.upbound.io/crossplane-contrib/provider-kubernetes:v0.17.0
+  runtimeConfigRef:
+    name: provider-kubernetes-watches
+---
+apiVersion: pkg.crossplane.io/v1
+kind: Function
+metadata:
+  name: function-go-templating
+  labels:
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    meta.helm.sh/release-name: asya-crossplane
+    meta.helm.sh/release-namespace: default
+spec:
+  package: xpkg.upbound.io/crossplane-contrib/function-go-templating:v0.11.3
+---
+apiVersion: pkg.crossplane.io/v1
+kind: Function
+metadata:
+  name: function-patch-and-transform
+  labels:
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    meta.helm.sh/release-name: asya-crossplane
+    meta.helm.sh/release-namespace: default
+spec:
+  package: xpkg.crossplane.io/crossplane-contrib/function-patch-and-transform:v0.8.2
 EOF
 ```
 
-Build a docker image and load it to kind context (in real world, use CI to build and push packages automatically):
+Wait for all providers and functions to become healthy:
 
 ```bash
-cat > Dockerfile <<EOF
-FROM python:3.13-slim
-WORKDIR /app
-COPY handler.py .
-EOF
-
-docker build -t my-hello-actor:latest .
-kind load docker-image my-hello-actor:latest --name asya-local
+echo "Waiting for providers..."
+until kubectl get providers,functions -o jsonpath='{range .items[*]}{.status.conditions[?(@.type=="Healthy")].status}{" "}{end}' 2>/dev/null | grep -q "True True True True"; do
+  sleep 5
+done
+echo "All providers healthy"
 ```
 
-Deploy the actor:
+Grant the Kubernetes provider cluster-admin permissions:
 
 ```bash
-cat > hello-actor.yaml <<EOF
+K8S_SA=$(kubectl get providers provider-kubernetes -o jsonpath='{.status.currentRevision}')
+kubectl create clusterrolebinding provider-kubernetes-admin \
+  --clusterrole=cluster-admin \
+  --serviceaccount="crossplane-system:${K8S_SA}"
+```
+
+## 5. Create Secrets and ConfigMaps
+
+```bash
+# Crossplane AWS credentials (INI format for Upbound providers)
+kubectl apply -f - <<'EOF'
+apiVersion: v1
+kind: Secret
+metadata:
+  name: aws-creds
+  namespace: crossplane-system
+type: Opaque
+stringData:
+  credentials: |
+    [default]
+    aws_access_key_id = test
+    aws_secret_access_key = test
+EOF
+
+# KEDA SQS trigger credentials
+kubectl create secret generic aws-creds -n default \
+  --from-literal=AWS_ACCESS_KEY_ID=test \
+  --from-literal=AWS_SECRET_ACCESS_KEY=test
+
+# asya-runtime script (mounted into actor pods)
+kubectl create configmap asya-runtime -n default \
+  --from-file=asya_runtime.py=src/asya-runtime/asya_runtime.py
+
+# Create happy-end and error-end queues (normally managed by crew actors)
+kubectl port-forward -n localstack svc/localstack 4566:4566 &
+sleep 3
+AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test \
+  aws --endpoint-url=http://localhost:4566 --region us-east-1 \
+  sqs create-queue --queue-name asya-default-happy-end
+AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test \
+  aws --endpoint-url=http://localhost:4566 --region us-east-1 \
+  sqs create-queue --queue-name asya-default-error-end
+kill %1 2>/dev/null
+```
+
+## 6. Install Asya Crossplane Chart
+
+```bash
+helm install asya-crossplane deploy/helm-charts/asya-crossplane/ \
+  -f deploy/helm-charts/asya-crossplane/values-localstack.yaml \
+  --set actorNamespace=default
+```
+
+Verify the XRD is established:
+
+```bash
+kubectl get xrd xasyncactors.asya.sh
+# Should show ESTABLISHED=True, OFFERED=True
+```
+
+## 7. Install Asya Injector
+
+```bash
+helm install asya-injector deploy/helm-charts/asya-injector/ \
+  --namespace asya-system --create-namespace \
+  --set config.sidecarImage=asya-sidecar:latest \
+  --set config.sidecarImagePullPolicy=Never \
+  --set config.sqsEndpoint=http://localstack.localstack.svc.cluster.local:4566 \
+  --set config.awsCredsSecret=aws-creds \
+  --set image.repository=asya-injector \
+  --set image.tag=latest \
+  --set image.pullPolicy=Never \
+  --wait --timeout 180s
+```
+
+Verify the webhook is registered:
+
+```bash
+kubectl get mutatingwebhookconfigurations
+# Should show asya-injector
+```
+
+## 8. Deploy Your First Actor
+
+```bash
+kubectl apply -f - <<'EOF'
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 metadata:
   name: hello
   namespace: default
+  labels:
+    asya.sh/actor: hello
 spec:
   transport: sqs
+  region: us-east-1
+  providerConfigRef: localstack
   scaling:
     enabled: true
     minReplicas: 0
     maxReplicas: 10
-    queueLength: 5  # for each 5 messages in queue create 1 new pod
+    pollingInterval: 10
+    cooldownPeriod: 30
+    queueLength: 5
   workload:
-    kind: Deployment
     template:
       spec:
         containers:
         - name: asya-runtime
-          image: my-hello-actor:latest
-          imagePullPolicy: IfNotPresent
+          image: test-actor:latest
+          imagePullPolicy: Never
           env:
           - name: ASYA_HANDLER
-            value: "handler.process"
+            value: handler.greet
+          - name: ASYA_HANDLER_MODE
+            value: payload
           - name: PYTHONPATH
             value: /app
-          - name: AWS_ACCESS_KEY_ID
-            value: "test"
-          - name: AWS_SECRET_ACCESS_KEY
-            value: "test"
-          - name: AWS_REGION
-            value: "us-east-1"
 EOF
-
-kubectl apply -f hello-actor.yaml
-
-kubectl get asya -l asya.sh/asya=hello
-# NAME    STATUS    RUNNING   FAILING   TOTAL   DESIRED   MIN   MAX   LAST-SCALE   AGE
-# hello   Napping   0         0         0       0         0     10    -            18s
 ```
-<!-- # kubectl get deployment -l asya.sh/actor=hello -->
 
-The actor is in `Napping` state with 0 replicas, demonstrating scale-to-zero capability. It will automatically scale up when messages arrive in the queue.
-See more on actor states [here](/docs/architecture/asya-operator.md#status-values).
-
-### 5. Test the Actor
-
-Send a message to the actor's SQS queue:
+Wait for resources:
 
 ```bash
-MSG='{"id":"test-123","route":{"actors":["hello"],"current":0},"payload":{"name":"Asya"}}'
+kubectl get asyncactors -n default
+# STATUS should become "Ready" or "Napping"
 
-kubectl run aws-cli --rm -i --restart=Never --image=amazon/aws-cli \
-  --namespace default \
-  --env="AWS_ACCESS_KEY_ID=test" \
-  --env="AWS_SECRET_ACCESS_KEY=test" \
-  --env="AWS_DEFAULT_REGION=us-east-1" \
-  --command -- sh -c "
-    aws sqs send-message \
-      --endpoint-url=http://localstack.asya-system.svc.cluster.local:4566 \
-      --queue-url http://localstack.asya-system.svc.cluster.local:4566/000000000000/asya-default-hello \
-      --message-body '$MSG'
-  "
+kubectl get queue.sqs.aws.upbound.io
+# SQS queue should show READY=True
+
+kubectl get scaledobject -n default
+# ScaledObject should show READY=True
 ```
 
-Watch the actor scale up and process the message (timeout after 60s):
+## 9. Test Scaling
 
-
-Read the logs using `kubectl logs` and find the greeting message (with timeout):
+Send a message to trigger scale-from-zero:
 
 ```bash
-timeout 30s sh -c '
-  until kubectl logs -l asya.sh/actor=hello -c asya-runtime 2>&1 | tee /dev/stderr | grep -q "greeting"; do
-    sleep 1
-  done
-' && echo "[+] Found expected greeting in logs"
+kubectl port-forward -n localstack svc/localstack 4566:4566 &
+sleep 3
+
+AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test \
+  aws --endpoint-url=http://localhost:4566 --region us-east-1 \
+  sqs send-message \
+  --queue-url http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/asya-default-hello \
+  --message-body '{"id":"test-1","route":{"actors":["hello"],"current":0},"headers":{},"payload":{"name":"Crossplane"}}'
+
+kill %1 2>/dev/null
 ```
 
-Expected output should contain:
-```py
-user_func returned: {'name': 'Asya', 'greeting': 'Hello, Asya!'}
-```
-
-Watch horizontal autoscaling by sending 25 messages to trigger multiple pods:
+Watch the pod scale up:
 
 ```bash
-MSG='{"id":"test-123","route":{"actors":["hello"],"current":0},"payload":{"name":"Asya"}}'
-
-kubectl run send-many-messages --rm -i --restart=Never --image=amazon/aws-cli \
-  --namespace default \
-  --env="AWS_ACCESS_KEY_ID=test" \
-  --env="AWS_SECRET_ACCESS_KEY=test" \
-  --env="AWS_DEFAULT_REGION=us-east-1" \
-  --command -- sh -c "
-    for i in {1..25}; do
-      aws sqs send-message \
-        --endpoint-url=http://localstack.asya-system.svc.cluster.local:4566 \
-        --queue-url http://localstack.asya-system.svc.cluster.local:4566/000000000000/asya-default-hello \
-        --message-body '$MSG' &
-    done
-    wait
-    echo '[+] All 25 messages sent'
-  "
+kubectl get pods -n default -w
+# Pod should appear with 2/2 containers (runtime + injected sidecar)
 ```
 
-Watch the actor scale up to 5 pods (25 messages / 5 messages per pod) using `kubectl get asya hello -w`.
+Check the sidecar logs:
 
-Press `Ctrl+C` to stop watching for pods.
+```bash
+POD=$(kubectl get pods -n default -l app.kubernetes.io/name=hello -o jsonpath='{.items[0].metadata.name}')
+kubectl logs -n default $POD -c asya-sidecar --tail=10
+# Should show: "Runtime call completed" and "SQS message sent successfully"
+```
 
+After the cooldown period (30s + HPA stabilization), the pod scales back to zero:
+
+```bash
+kubectl get deployment hello -n default
+# READY should show 0/0
+```
+
+## 10. Test Scale-to-N
+
+Send a batch of messages with proper envelope format to trigger multiple replicas:
+
+```bash
+kubectl port-forward -n localstack svc/localstack 4566:4566 &
+sleep 3
+
+QUEUE_URL=http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/asya-default-hello
+
+for i in $(seq 1 100); do
+  AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test \
+    aws --endpoint-url=http://localhost:4566 --region us-east-1 \
+    sqs send-message \
+    --queue-url "$QUEUE_URL" \
+    --message-body "{\"id\":\"batch-$i\",\"route\":{\"actors\":[\"hello\"],\"current\":0},\"headers\":{},\"payload\":{\"name\":\"User-$i\"}}" \
+    --no-cli-pager > /dev/null
+done
+
+echo "Sent 100 messages"
+kill %1 2>/dev/null
+```
+
+Watch replicas scale up:
+
+```bash
+kubectl get deployment hello -n default -w
+# READY should increase beyond 1 (up to maxReplicas=10)
+```
+
+After all messages are processed and the cooldown period passes, replicas scale back to zero.
+
+## 11. Test Resilience
+
+Verify that Crossplane re-creates deleted resources:
+
+```bash
+# Delete the deployment
+kubectl delete deployment hello -n default
+
+# Wait for Crossplane to re-create it (should take a few seconds with watch enabled)
+sleep 10
+kubectl get deployment hello -n default
+# Deployment should exist again
+
+# Delete the ScaledObject
+kubectl delete scaledobject hello -n default
+sleep 10
+kubectl get scaledobject hello -n default
+# ScaledObject should exist again
+```
+
+## 12. Test Deletion
+
+```bash
+kubectl delete asyncactor hello -n default
+```
+
+Verify all resources are cleaned up:
+
+```bash
+kubectl get queue.sqs.aws.upbound.io           # No resources
+kubectl get object.kubernetes.crossplane.io     # No resources
+kubectl get deployment -n default               # No resources
+kubectl get scaledobject -n default             # No resources
+```
+
+## 13. Clean Up
+
+To remove components individually:
+
+```bash
+# Remove actors
+kubectl delete asyncactor --all -n default
+
+# Remove crew (if installed)
+helm uninstall asya-crew -n default
+
+# Remove gateway (if installed)
+helm uninstall asya-gateway -n default
+kubectl delete secret asya-gateway-postgresql -n default
+kubectl delete deployment asya-gateway-postgresql -n default
+kubectl delete service asya-gateway-postgresql -n default
+
+# Remove Crossplane and Injector
+helm uninstall asya-crossplane
+helm uninstall asya-injector -n asya-system
+
+# Remove KEDA
+helm uninstall keda -n keda
+
+# Remove LocalStack
+kubectl delete namespace localstack
+
+# Remove Prometheus (if installed)
+helm uninstall prometheus -n monitoring
+```
+
+To remove everything including the cluster:
+
+```bash
+kind delete cluster --name asya-crossplane
+```
 
 ## Add S3 Storage (Optional)
 
@@ -363,15 +579,14 @@ helm install asya-crew asya/asya-crew \
   -f crew-values.yaml
 ```
 
-Your pipeline results are now automatically persisted to S3: whenever an actor finishes processing the last message in the route, 🎭 automatically sends it to `happy-end` actor to persist it on S3. Similarly, error messages will be sent to `error-end`.
-
+Your pipeline results are now automatically persisted to S3: whenever an actor finishes processing the last message in the route, Asya automatically sends it to `happy-end` actor to persist it on S3. Similarly, error messages will be sent to `error-end`.
 
 ## Namespace Architecture
 
-Asya🎭 uses namespace separation to distinguish infrastructure from business logic:
+Asya uses namespace separation to distinguish infrastructure from business logic:
 
 **asya-system namespace** (infrastructure layer):
-- Asya🎭 Operator (watches AsyncActors across all namespaces)
+- Crossplane + asya-injector (watches AsyncActors across all namespaces)
 - LocalStack / infrastructure services
 - KEDA (monitors queues across all namespaces)
 - Prometheus / Grafana (when installed)
@@ -384,7 +599,7 @@ Asya🎭 uses namespace separation to distinguish infrastructure from business l
 
 **Why this separation?**
 
-Gateway is part of the business logic layer - it exposes your actors as MCP tools and routes messages to actor queues. In multi-tenant deployments, each namespace can have its own gateway instance served by a single operator in asya-system.
+Gateway is part of the business logic layer - it exposes your actors as MCP tools and routes messages to actor queues. In multi-tenant deployments, each namespace can have its own gateway instance served by a single injector in asya-system.
 
 ## Add Gateway (Optional)
 
@@ -470,18 +685,6 @@ helm install asya-gateway asya/asya-gateway \
 
 kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=asya-gateway \
   -n default --timeout=300s
-```
-
-### 4. Update Operator for Gateway Integration
-
-```bash
-cat >> operator-values.yaml <<EOF
-gatewayURL: "http://asya-gateway.default.svc.cluster.local:8080"
-EOF
-
-helm upgrade asya-operator asya/asya-operator \
-  -n asya-system \
-  -f operator-values.yaml
 ```
 
 ### 5. Update Crew for Gateway Reporting
@@ -628,8 +831,6 @@ The gateway now provides:
 - **Task tracking** in PostgreSQL for status queries
 - **Tool configuration** for data science teams to call actors
 
----
-
 ## Add Prometheus (Optional)
 
 **What you get**: Metrics collection and observability
@@ -641,27 +842,6 @@ helm repo add prometheus-community https://prometheus-community.github.io/helm-c
 helm install prometheus prometheus-community/kube-prometheus-stack \
   --namespace monitoring \
   --create-namespace
-```
-
-### 2. Configure ServiceMonitors
-
-The Asya operator exposes metrics at `:8080/metrics`. Create a ServiceMonitor:
-
-```bash
-kubectl apply -f - <<EOF
-apiVersion: monitoring.coreos.com/v1
-kind: ServiceMonitor
-metadata:
-  name: asya-operator
-  namespace: asya-system
-spec:
-  selector:
-    matchLabels:
-      app.kubernetes.io/name: asya-operator
-  endpoints:
-  - port: metrics
-    interval: 30s
-EOF
 ```
 
 ### 3. Configure Asya Dashboard
@@ -703,7 +883,6 @@ The dashboard shows:
 - Processing and runtime execution duration
 - Error rates by reason and type
 - Message size distribution
-- Operator health metrics
 
 ### 5. Verify Metrics Collection
 
@@ -725,7 +904,6 @@ You can also query metrics directly in Grafana Explore:
 - `asya_actor_processing_duration_seconds{queue="asya-default-hello"}`
 - `asya_actor_messages_processed_total{queue="asya-default-hello"}`
 - `asya_actor_active_messages`
-- `controller_runtime_reconcile_total{controller="asyncactor"}`
 
 ## Testing Your Setup
 
@@ -755,34 +933,11 @@ make up PROFILE=sqs-s3
 
 This deploys everything in one command but uses test configurations.
 
----
-
 ## Production Deployment
 
-For production on AWS, replace LocalStack with real AWS services:
-
-```yaml
-# operator-values.yaml for production
-transports:
-  sqs:
-    enabled: true
-    type: sqs
-    config:
-      region: us-east-1
-      accountId: "123456789012"
-      # Remove endpoint for production AWS
-      actorRoleArn: "arn:aws:iam::123456789012:role/asya-actor-role"
-      queues:
-        autoCreate: true
-        dlq:
-          enabled: true
-          maxRetryCount: 3
-      # Use IRSA instead of static credentials
-```
+For production on AWS, use Crossplane ProviderConfig with IRSA for AWS credentials instead of static credentials. This allows fine-grained IAM permissions for queue management and message operations.
 
 See [AWS EKS Installation](../install/aws-eks.md) for full production guide.
-
----
 
 ## What's Next?
 
@@ -810,45 +965,30 @@ See [AWS EKS Installation](../install/aws-eks.md) for full production guide.
 - [Architecture](../architecture/README.md) - Deep dive into system design
 - [Examples](https://github.com/deliveryhero/asya/tree/main/examples) - Sample actors and flows
 
----
+## Architecture Summary
 
-## Clean Up
-
-To remove components individually:
-
-```bash
-# Remove actors
-kubectl delete asya --all
-
-# Remove crew
-helm uninstall asya-crew -n default
-
-# Remove gateway
-helm uninstall asya-gateway -n default
-kubectl delete secret asya-gateway-postgresql -n default
-kubectl delete deployment asya-gateway-postgresql -n default
-kubectl delete service asya-gateway-postgresql -n default
-
-# Remove operator
-helm uninstall asya-operator -n asya-system
-kubectl delete secret sqs-secret -n asya-system
-
-# Remove KEDA
-helm uninstall keda -n keda-system
-
-# Remove LocalStack
-helm uninstall localstack -n asya-system
-
-# Remove Prometheus (if installed)
-helm uninstall prometheus -n monitoring
+```
+                    AsyncActor Claim
+                         |
+                    XAsyncActor (Composite)
+                         |
+              +----------+----------+----------+
+              |          |          |          |
+           SQS Queue  Deployment  ScaledObj  TriggerAuth
+           (Crossplane  (Crossplane  (Crossplane  (Crossplane
+            AWS)         K8s)         K8s)         K8s)
+                         |
+                    Pod Creation
+                         |
+                    Webhook Injection
+                         |
+              +----------+----------+
+              |                     |
+         asya-runtime          asya-sidecar
+         (user handler)        (message router)
 ```
 
-To remove everything including the cluster:
-
-```bash
-kind delete cluster --name asya-local
-```
-
----
-
-**Next**: Choose your path - [Data Scientists](for-data-scientists.md) or [Platform Engineers](for-platform-engineers.md)
+- **Crossplane Compositions** manage infrastructure: SQS queues, Deployments, KEDA ScaledObjects
+- **asya-injector webhook** injects the sidecar at pod creation time
+- **KEDA** handles autoscaling based on SQS queue depth
+- Deletion of the AsyncActor claim cascades to all managed resources

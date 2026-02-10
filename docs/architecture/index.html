@@ -360,10 +360,24 @@
     </a>
 </li>
 <li class="group/menu-item relative" data-sidebar="menu-item" data-slot="sidebar-menu-item">
-<a class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&amp;&gt;span:last-child]:truncate [&amp;&gt;svg]:size-4 [&amp;&gt;svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md" data-active="false" data-sidebar="menu-button" data-size="default" data-slot="sidebar-menu-button" href="/docs/architecture/asya-operator/">
+<a class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&amp;&gt;span:last-child]:truncate [&amp;&gt;svg]:size-4 [&amp;&gt;svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md" data-active="false" data-sidebar="menu-button" data-size="default" data-slot="sidebar-menu-button" href="/docs/architecture/asya-crossplane/">
 
         
-        Operator
+        Crossplane
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+<li class="group/menu-item relative" data-sidebar="menu-item" data-slot="sidebar-menu-item">
+<a class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&amp;&gt;span:last-child]:truncate [&amp;&gt;svg]:size-4 [&amp;&gt;svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md" data-active="false" data-sidebar="menu-button" data-size="default" data-slot="sidebar-menu-button" href="/docs/architecture/asya-injector/">
+
+        
+        Injector
         
 
         
@@ -589,7 +603,8 @@
 
     subgraph "Asya Framework"
         Gateway[Gateway<br/>MCP API]
-        Operator[Operator<br/>CRD controller]
+        Crossplane[Crossplane<br/>Compositions]
+        Injector[Injector<br/>Webhook]
     end
 
     subgraph "Your Actors"
@@ -611,15 +626,19 @@
     A2 --&gt;|results| MQ
     MQ --&gt;|messages| A3
 
-    Operator -.-&gt;|deploys| A1
-    Operator -.-&gt;|deploys| A2
-    Operator -.-&gt;|deploys| A3
+    Crossplane -.-&gt;|deploys| A1
+    Crossplane -.-&gt;|deploys| A2
+    Crossplane -.-&gt;|deploys| A3
+    Injector -.-&gt;|injects sidecar| A1
+    Injector -.-&gt;|injects sidecar| A2
+    Injector -.-&gt;|injects sidecar| A3
     KEDA -.-&gt;|scales| A1
     KEDA -.-&gt;|scales| A2
     KEDA -.-&gt;|scales| A3
 
     style Gateway fill:#e1f5ff
-    style Operator fill:#fff3cd
+    style Crossplane fill:#fff3cd
+    style Injector fill:#fff3cd
     style A1 fill:#d4edda
     style A2 fill:#d4edda
     style A3 fill:#d4edda
@@ -627,7 +646,8 @@
 <h2 id="core-components">Core Components<a class="headerlink" href="#core-components" title="Permanent link">¶</a></h2>
 <h3 id="framework-components">Framework Components<a class="headerlink" href="#framework-components" title="Permanent link">¶</a></h3>
 <ul>
-<li><strong><a href="asya-operator/">Operator</a></strong>: Kubernetes controller that watches AsyncActor CRDs, injects sidecars, configures KEDA autoscaling</li>
+<li><strong><a href="asya-crossplane/">Crossplane Compositions</a></strong>: Declarative infrastructure compositions that create AsyncActor workloads, queues, and KEDA autoscaling</li>
+<li><strong><a href="asya-injector/">Injector</a></strong>: Mutating webhook that injects asya-sidecar and asya-runtime into actor pods</li>
 <li><strong><a href="asya-gateway/">Gateway</a></strong>: Optional MCP HTTP API for task submission, SSE streaming, and status tracking</li>
 <li><strong><a href="asya-cli/">CLI</a></strong>: Command-line tool for interacting with the gateway (MCP client)</li>
 </ul>
@@ -662,11 +682,13 @@
 <h2 id="actor-lifecycle">Actor Lifecycle<a class="headerlink" href="#actor-lifecycle" title="Permanent link">¶</a></h2>
 <ol>
 <li>User creates AsyncActor CRD</li>
-<li>Operator reconciles:</li>
+<li>Crossplane Composition reconciles:</li>
 <li>Creates queue (<code>asya-{namespace}-{actor_name}</code>)</li>
-<li>Injects sidecar container</li>
-<li>Injects runtime entrypoint</li>
+<li>Creates Deployment/StatefulSet</li>
 <li>Creates KEDA ScaledObject (if scaling enabled)</li>
+<li>Injector webhook mutates pod spec:</li>
+<li>Injects sidecar container</li>
+<li>Injects runtime entrypoint and ConfigMap</li>
 <li>KEDA monitors queue depth, scales pods 0→N</li>
 <li>Sidecar consumes messages, routes to runtime</li>
 <li>Runtime executes handler, returns results</li>
@@ -686,14 +708,14 @@
 <h2 id="deployment-patterns">Deployment Patterns<a class="headerlink" href="#deployment-patterns" title="Permanent link">¶</a></h2>
 <p><strong>AWS (SQS + S3)</strong>:</p>
 <ul>
-<li>Operator creates SQS queues</li>
+<li>Crossplane creates SQS queues via AWS Provider</li>
 <li>Actors use IAM roles (IRSA/Pod Identity) for queue access</li>
 <li>Results stored in S3</li>
 <li>KEDA uses CloudWatch metrics</li>
 </ul>
 <p><strong>Self-hosted (RabbitMQ + MinIO)</strong>:</p>
 <ul>
-<li>Operator creates RabbitMQ queues via Management API</li>
+<li>Crossplane creates RabbitMQ queues via custom provider</li>
 <li>Actors use username/password from secrets</li>
 <li>Results stored in MinIO (S3-compatible)</li>
 <li>KEDA uses RabbitMQ API</li>
@@ -806,9 +828,14 @@
                             Runtime
                             
                         </a>
-<a class="text-2xl font-medium" href="asya-operator/">
+<a class="text-2xl font-medium" href="asya-crossplane/">
                             
-                            Operator
+                            Crossplane
+                            
+                        </a>
+<a class="text-2xl font-medium" href="asya-injector/">
+                            
+                            Injector
                             
                         </a>
 <a class="text-2xl font-medium" href="asya-gateway/">

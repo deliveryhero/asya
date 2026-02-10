@@ -537,11 +537,28 @@
                 
                 <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
     <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
-        data-size="default" href="/docs/architecture/asya-operator/"
+        data-size="default" href="/docs/architecture/asya-crossplane/"
         class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
 
         
-        Operator
+        Crossplane
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+                
+                <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="/docs/architecture/asya-injector/"
+        class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
+
+        
+        Injector
         
 
         
@@ -882,7 +899,7 @@
 <li>Generating output messages</li>
 </ul>
 <p><strong>How it works</strong>: Receives messages from sidecar via Unix socket, loads user handler (function or class), executes it, returns results back to sidecar.</p>
-<p><strong>Deployment</strong>: User defines container image with Python code. Asya operator injects <code>asya_runtime.py</code> entrypoint script via ConfigMap.</p>
+<p><strong>Deployment</strong>: User defines container image with Python code. Asya injector webhook injects <code>asya_runtime.py</code> entrypoint script via ConfigMap.</p>
 <p><strong>See</strong>: <a href="../architecture/asya-runtime/">architecture/asya-runtime.md</a> for details.</p>
 <h2 id="crew-actors">Crew Actors<a class="headerlink" href="#crew-actors" title="Permanent link">&para;</a></h2>
 <p><strong>Special system actors</strong> for framework-level tasks:</p>
@@ -933,17 +950,25 @@
 </ul>
 <p><strong>Stateful routing</strong>: <code>route.current</code> increments after each actor processes the message. Note once again, this is a unique feature of 🎭: pipelines are stateless, but messages are stateful (they represent different pipeline executions).</p>
 <p><strong>See</strong>: <a href="../architecture/protocols/actor-actor/">architecture/protocols/actor-actor.md</a> for details.</p>
-<h2 id="operator">Operator<a class="headerlink" href="#operator" title="Permanent link">&para;</a></h2>
+<h2 id="crossplane-compositions">Crossplane Compositions<a class="headerlink" href="#crossplane-compositions" title="Permanent link">&para;</a></h2>
 <p><strong>Responsibilities</strong>:</p>
 <ul>
 <li>Manages lifecycle of AsyncActor CRDs</li>
-<li>Injects sidecars into actor pods</li>
 <li>Creates Kubernetes Deployments/StatefulSets</li>
 <li>Configures KEDA autoscaling</li>
-<li>Creates and manages message queues</li>
+<li>Creates and manages message queues via cloud providers</li>
 </ul>
-<p><strong>How it works</strong>: Watches AsyncActor custom resources, reconciles desired state with actual cluster state, injects infrastructure components.</p>
-<p><strong>See</strong>: <a href="../architecture/asya-operator/">architecture/asya-operator.md</a> for details.</p>
+<p><strong>How it works</strong>: Watches AsyncActor custom resources, reconciles desired state via Crossplane Compositions and cloud provider APIs.</p>
+<p><strong>See</strong>: <a href="../architecture/asya-crossplane/">architecture/asya-crossplane.md</a> for details.</p>
+<h2 id="injector-webhook">Injector Webhook<a class="headerlink" href="#injector-webhook" title="Permanent link">&para;</a></h2>
+<p><strong>Responsibilities</strong>:</p>
+<ul>
+<li>Injects asya-sidecar container into actor pods</li>
+<li>Injects asya-runtime entrypoint and ConfigMap</li>
+<li>Configures shared volumes and socket paths</li>
+</ul>
+<p><strong>How it works</strong>: Mutating admission webhook intercepts pod creation, modifies spec to add sidecar and runtime components.</p>
+<p><strong>See</strong>: <a href="../architecture/asya-injector/">architecture/asya-injector.md</a> for details.</p>
 <h2 id="keda-autoscaling">KEDA (Autoscaling)<a class="headerlink" href="#keda-autoscaling" title="Permanent link">&para;</a></h2>
 <p><strong>Benefits</strong>:</p>
 <ul>
@@ -951,7 +976,7 @@
 <li>Scale to zero - eliminate idle resource costs</li>
 <li>Handle bursty workloads efficiently</li>
 </ul>
-<p><strong>Integration</strong>: Asya operator creates KEDA ScaledObjects for each AsyncActor. KEDA monitors queue depth and scales actor deployments from 0 to maxReplicas.</p>
+<p><strong>Integration</strong>: Asya Crossplane Composition creates KEDA ScaledObjects for each AsyncActor. KEDA monitors queue depth and scales actor deployments from 0 to maxReplicas.</p>
 <p><strong>Example</strong>: Queue has 100 messages, queueLength=5 configured → KEDA scales to 20 replicas (100/5).</p>
 <p><strong>See</strong>: <a href="../architecture/autoscaling/">architecture/autoscaling.md</a> for details.</p>
 <h2 id="mcp-gateway-optional">MCP Gateway (Optional)<a class="headerlink" href="#mcp-gateway-optional" title="Permanent link">&para;</a></h2>
@@ -1132,9 +1157,15 @@
                             
                         </a>
                         
-                        <a class="text-2xl font-medium" href="../architecture/asya-operator/">
+                        <a class="text-2xl font-medium" href="../architecture/asya-crossplane/">
                             
-                            Operator
+                            Crossplane
+                            
+                        </a>
+                        
+                        <a class="text-2xl font-medium" href="../architecture/asya-injector/">
+                            
+                            Injector
                             
                         </a>
                         
@@ -1283,10 +1314,18 @@
         
 
         
-        <a href="#operator"
+        <a href="#crossplane-compositions"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
-            Operator
+            Crossplane Compositions
+        </a>
+        
+
+        
+        <a href="#injector-webhook"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Injector Webhook
         </a>
         
 

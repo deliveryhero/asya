@@ -537,11 +537,28 @@
                 
                 <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
     <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
-        data-size="default" href="/docs/architecture/asya-operator/"
+        data-size="default" href="/docs/architecture/asya-crossplane/"
         class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
 
         
-        Operator
+        Crossplane
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+                
+                <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="/docs/architecture/asya-injector/"
+        class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
+
+        
+        Injector
         
 
         
@@ -850,32 +867,32 @@
   <div class="typography w-full flex-1 *:data-[slot=alert]:first:mt-0">
     <p>AWS-managed message queue service.</p>
 <h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
-<p><strong>Operator config</strong> (<code>deploy/helm-charts/asya-operator/values.yaml</code>):
-<div class="highlight"><pre><span></span><code><span class="nt">transports</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">sqs</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
-<span class="w">    </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">sqs</span>
-<span class="w">    </span><span class="nt">config</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">region</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">us-east-1</span>
-<span class="w">      </span><span class="nt">endpoint</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="w">  </span><span class="c1"># Optional, for LocalStack or custom SQS endpoints</span>
-<span class="w">      </span><span class="nt">visibilityTimeout</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">300</span><span class="w">  </span><span class="c1"># Optional, seconds, defaults to 300 (5 minutes)</span>
-<span class="w">      </span><span class="nt">waitTimeSeconds</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">20</span><span class="w">  </span><span class="c1"># Optional, long polling, defaults to 20</span>
-<span class="w">      </span><span class="nt">queues</span><span class="p">:</span>
-<span class="w">        </span><span class="nt">autoCreate</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w">  </span><span class="c1"># Optional, defaults to true</span>
-<span class="w">        </span><span class="nt">forceRecreate</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span><span class="w">  </span><span class="c1"># Optional, defaults to false</span>
-<span class="w">        </span><span class="nt">dlq</span><span class="p">:</span>
-<span class="w">          </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w">  </span><span class="c1"># Optional</span>
-<span class="w">          </span><span class="nt">maxRetryCount</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3</span><span class="w">  </span><span class="c1"># Optional, defaults to 3</span>
-<span class="w">          </span><span class="nt">retentionDays</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">14</span><span class="w">  </span><span class="c1"># Optional, defaults to 14</span>
-<span class="w">      </span><span class="nt">tags</span><span class="p">:</span><span class="w">  </span><span class="c1"># Optional, tags applied to created queues</span>
-<span class="w">        </span><span class="nt">Environment</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">production</span>
-<span class="w">        </span><span class="nt">Team</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ml-platform</span>
+<p><strong>Crossplane Composition Config</strong> (XRD for transport configuration):
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya.dev/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SQSTransport</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">sqs-default</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">region</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">us-east-1</span>
+<span class="w">  </span><span class="nt">endpoint</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="w">  </span><span class="c1"># Optional, for LocalStack or custom SQS endpoints</span>
+<span class="w">  </span><span class="nt">visibilityTimeout</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">300</span><span class="w">  </span><span class="c1"># Optional, seconds, defaults to 300 (5 minutes)</span>
+<span class="w">  </span><span class="nt">waitTimeSeconds</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">20</span><span class="w">  </span><span class="c1"># Optional, long polling, defaults to 20</span>
+<span class="w">  </span><span class="nt">queues</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">autoCreate</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w">  </span><span class="c1"># Optional, defaults to true</span>
+<span class="w">    </span><span class="nt">forceRecreate</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span><span class="w">  </span><span class="c1"># Optional, defaults to false</span>
+<span class="w">    </span><span class="nt">dlq</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w">  </span><span class="c1"># Optional</span>
+<span class="w">      </span><span class="nt">maxRetryCount</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3</span><span class="w">  </span><span class="c1"># Optional, defaults to 3</span>
+<span class="w">      </span><span class="nt">retentionDays</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">14</span><span class="w">  </span><span class="c1"># Optional, defaults to 14</span>
+<span class="w">  </span><span class="nt">tags</span><span class="p">:</span><span class="w">  </span><span class="c1"># Optional, tags applied to created queues</span>
+<span class="w">    </span><span class="nt">Environment</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">production</span>
+<span class="w">    </span><span class="nt">Team</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ml-platform</span>
 </code></pre></div></p>
 <p><strong>AsyncActor reference</strong>:
 <div class="highlight"><pre><span></span><code><span class="nt">spec</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">transport</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">sqs</span>
 </code></pre></div></p>
-<p><strong>Sidecar environment variables</strong> (injected by operator):</p>
+<p><strong>Sidecar environment variables</strong> (injected by injector webhook):</p>
 <ul>
 <li><code>ASYA_TRANSPORT=sqs</code></li>
 <li><code>ASYA_AWS_REGION</code> → from <code>config.region</code></li>
@@ -884,7 +901,7 @@
 <li><code>ASYA_SQS_WAIT_TIME_SECONDS</code> → from <code>config.waitTimeSeconds</code> (optional)</li>
 </ul>
 <h2 id="queue-creation">Queue Creation<a class="headerlink" href="#queue-creation" title="Permanent link">&para;</a></h2>
-<p>Operator creates SQS queues automatically when AsyncActor is reconciled:</p>
+<p>Crossplane Composition creates SQS queues automatically when AsyncActor is reconciled:</p>
 <p><strong>Queue name</strong>: <code>asya-{namespace}-{actor_name}</code></p>
 <p><strong>Example</strong>: Actor <code>text-processor</code> in namespace <code>default</code> → Queue <code>asya-default-text-processor</code></p>
 <p><strong>Queue URL</strong>: <code>https://sqs.{region}.amazonaws.com/{account}/asya-{namespace}-{actor_name}</code></p>
@@ -908,7 +925,7 @@
 <span class="w">  </span><span class="p">]</span>
 <span class="p">}</span>
 </code></pre></div></p>
-<p><strong>Operator permissions</strong>:
+<p><strong>Crossplane Provider permissions</strong>:
 <div class="highlight"><pre><span></span><code><span class="p">{</span>
 <span class="w">  </span><span class="nt">&quot;Effect&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Allow&quot;</span><span class="p">,</span>
 <span class="w">  </span><span class="nt">&quot;Action&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
@@ -943,7 +960,7 @@
 <span class="w">    </span><span class="nt">awsRegion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">us-east-1</span>
 </code></pre></div>
 <h2 id="dlq-configuration">DLQ Configuration<a class="headerlink" href="#dlq-configuration" title="Permanent link">&para;</a></h2>
-<p>When <code>queues.dlq.enabled: true</code>, operator creates DLQ for each queue:</p>
+<p>When <code>queues.dlq.enabled: true</code>, Crossplane creates DLQ for each queue:</p>
 <p><strong>DLQ name</strong>: <code>asya-{namespace}-{actor_name}-dlq</code></p>
 <p><strong>Max receive count</strong>: Configured via <code>queues.dlq.maxRetryCount</code> (default: 3)</p>
 <p><strong>Retention</strong>: Configured via <code>queues.dlq.retentionDays</code> (default: 14 days)</p>
@@ -1127,9 +1144,15 @@
                             
                         </a>
                         
-                        <a class="text-2xl font-medium" href="../../asya-operator/">
+                        <a class="text-2xl font-medium" href="../../asya-crossplane/">
                             
-                            Operator
+                            Crossplane
+                            
+                        </a>
+                        
+                        <a class="text-2xl font-medium" href="../../asya-injector/">
+                            
+                            Injector
                             
                         </a>
                         

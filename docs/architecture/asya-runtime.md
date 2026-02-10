@@ -17,7 +17,7 @@
 
 ## Deployment
 
-User defines container with Python code. Operator injects `asya_runtime.py`:
+User defines container with Python code. Injector webhook injects `asya_runtime.py`:
 
 ```yaml
 containers:
@@ -260,16 +260,9 @@ Handlers in envelope mode can modify routes but **MUST preserve already-processe
 **Source**: `src/asya-runtime/asya_runtime.py` (single file, no dependencies)
 
 **Deployment**:
-1. Operator reads `asya_runtime.py` at runtime (via `ASYA_RUNTIME_SCRIPT_PATH` or default)
+1. Injector webhook reads `asya_runtime.py` at runtime (via `ASYA_RUNTIME_SCRIPT_PATH` or default)
 2. Stores content in ConfigMap
 3. Mounts ConfigMap into actor pods at `/opt/asya/asya_runtime.py`
-
-**Symlinks** (for testing):
-
-- `src/asya-operator/internal/controller/runtime_symlink/asya_runtime.py` → Operator reads
-- `testing/integration/operator/testdata/runtime_symlink/asya_runtime.py` → Tests use
-
-**IMPORTANT**: Symlinks automatically reflect changes to source file. No manual sync needed.
 
 ## Readiness Probe
 
@@ -297,7 +290,7 @@ Runtime creates `/var/run/asya/runtime-ready` file after handler initialization.
 | `ASYA_ENABLE_VALIDATION` | `true` | Enable message validation |
 | `ASYA_LOG_LEVEL` | `INFO` | Logging level (DEBUG, INFO, WARNING, ERROR) |
 
-**Note**: `ASYA_SOCKET_DIR` and `ASYA_SOCKET_NAME` are for internal testing only. DO NOT set in production - socket path is managed by operator.
+**Note**: `ASYA_SOCKET_DIR` and `ASYA_SOCKET_NAME` are for internal testing only. DO NOT set in production - socket path is managed by the injector webhook.
 
 ## Examples
 
