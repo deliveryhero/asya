@@ -2557,3 +2557,381 @@ func TestRouter_CheckGatewayHealth_NetworkError(t *testing.T) {
 		t.Error("CheckGatewayHealth should return error for network failure")
 	}
 }
+
+// --- Status lifecycle tests ---
+
+func TestRouter_EnsureAndUpdateStatus_NewMessage(t *testing.T) {
+	router := &Router{actorName: "test-actor"}
+	msg := &messages.Message{
+		ID:      "msg-1",
+		Route:   messages.Route{Actors: []string{"test-actor"}, Current: 0},
+		Payload: json.RawMessage(`{}`),
+	}
+
+	router.ensureAndUpdateStatus(msg)
+
+	if msg.Status == nil {
+		t.Fatal("Status should not be nil after ensureAndUpdateStatus")
+	}
+	if msg.Status.Phase != messages.PhaseProcessing {
+		t.Errorf("Phase = %q, want %q", msg.Status.Phase, messages.PhaseProcessing)
+	}
+	if msg.Status.Actor != "test-actor" {
+		t.Errorf("Actor = %q, want %q", msg.Status.Actor, "test-actor")
+	}
+	if msg.Status.Attempt != 1 {
+		t.Errorf("Attempt = %d, want 1", msg.Status.Attempt)
+	}
+	if msg.Status.CreatedAt == "" {
+		t.Error("CreatedAt should not be empty")
+	}
+}
+
+func TestRouter_EnsureAndUpdateStatus_ExistingStatus(t *testing.T) {
+	router := &Router{actorName: "actor-b"}
+	msg := &messages.Message{
+		ID:      "msg-1",
+		Route:   messages.Route{Actors: []string{"actor-a", "actor-b"}, Current: 1},
+		Payload: json.RawMessage(`{}`),
+		Status: &messages.Status{
+			Phase:     messages.PhasePending,
+			Reason:    "some-reason",
+			Actor:     "actor-a",
+			Attempt:   1,
+			CreatedAt: "2025-01-01T00:00:00Z",
+			UpdatedAt: "2025-01-01T00:00:00Z",
+			Error:     &messages.StatusError{Message: "old error"},
+		},
+	}
+
+	router.ensureAndUpdateStatus(msg)
+
+	if msg.Status.Phase != messages.PhaseProcessing {
+		t.Errorf("Phase = %q, want %q", msg.Status.Phase, messages.PhaseProcessing)
+	}
+	if msg.Status.Reason != "" {
+		t.Errorf("Reason should be cleared, got %q", msg.Status.Reason)
+	}
+	if msg.Status.Actor != "actor-b" {
+		t.Errorf("Actor = %q, want %q", msg.Status.Actor, "actor-b")
+	}
+	if msg.Status.CreatedAt != "2025-01-01T00:00:00Z" {
+		t.Errorf("CreatedAt should be preserved, got %q", msg.Status.CreatedAt)
+	}
+	if msg.Status.UpdatedAt == "2025-01-01T00:00:00Z" {
+		t.Error("UpdatedAt should be updated to current time")
+	}
+	if msg.Status.Error != nil {
+		t.Error("Error should be cleared")
+	}
+}
+
+func TestRouter_EnsureAndUpdateStatus_ActorTransition(t *testing.T) {
+	router := &Router{actorName: "actor-b"}
+	msg := &messages.Message{
+		ID:      "msg-1",
+		Route:   messages.Route{Actors: []string{"actor-a", "actor-b"}, Current: 1},
+		Payload: json.RawMessage(`{}`),
+		Status: &messages.Status{
+			Phase:   messages.PhasePending,
+			Actor:   "actor-a",
+			Attempt: 3,
+		},
+	}
+
+	router.ensureAndUpdateStatus(msg)
+
+	if msg.Status.Attempt != 1 {
+		t.Errorf("Attempt should reset to 1 on actor change, got %d", msg.Status.Attempt)
+	}
+	if msg.Status.Actor != "actor-b" {
+		t.Errorf("Actor = %q, want %q", msg.Status.Actor, "actor-b")
+	}
+}
+
+func TestRouter_EnsureAndUpdateStatus_SameActorRetry(t *testing.T) {
+	router := &Router{actorName: "actor-a"}
+	msg := &messages.Message{
+		ID:      "msg-1",
+		Route:   messages.Route{Actors: []string{"actor-a"}, Current: 0},
+		Payload: json.RawMessage(`{}`),
+		Status: &messages.Status{
+			Phase:   messages.PhasePending,
+			Actor:   "actor-a",
+			Attempt: 3,
+		},
+	}
+
+	router.ensureAndUpdateStatus(msg)
+
+	if msg.Status.Attempt != 3 {
+		t.Errorf("Attempt should be preserved for same actor, got %d", msg.Status.Attempt)
+	}
+}
+
+func TestRouter_RouteResponse_NextActor_HasStatus(t *testing.T) {
+	socketPath := fmt.Sprintf("/tmp/test-route-status-%d.sock", time.Now().UnixNano())
+	defer func() { _ = os.Remove(socketPath) }()
+
+	listener, err := net.Listen("unix", socketPath)
+	if err != nil {
+		t.Fatalf("Failed to create socket: %v", err)
+	}
+	defer func() { _ = listener.Close() }()
+
+	go func() {
+		conn, err := listener.Accept()
+		if err != nil {
+			return
+		}
+		defer func() { _ = conn.Close() }()
+		_, _ = runtime.RecvSocketData(conn)
+		sendStreamingResponse(conn, []runtime.RuntimeResponse{
+			{
+				Payload: json.RawMessage(`{"result": "ok"}`),
+				Route:   messages.Route{Actors: []string{"actor1", "actor2"}, Current: 1},
+			},
+		})
+	}()
+
+	cfg := &config.Config{
+		ActorName:     "actor1",
+		Namespace:     "default",
+		HappyEndQueue: "happy-end",
+		ErrorEndQueue: "error-end",
+		TransportType: "rabbitmq",
+	}
+	mockTransport := &mockTransport{}
+	runtimeClient := runtime.NewClient(socketPath, 2*time.Second)
+
+	router := &Router{
+		cfg:           cfg,
+		transport:     mockTransport,
+		runtimeClient: runtimeClient,
+		actorName:     cfg.ActorName,
+		happyEndQueue: cfg.HappyEndQueue,
+		errorEndQueue: cfg.ErrorEndQueue,
+		metrics:       metrics.NewMetrics("test", []config.CustomMetricConfig{}),
+	}
+
+	inputMsg := messages.Message{
+		ID:      "test-status-next",
+		Route:   messages.Route{Actors: []string{"actor1", "actor2"}, Current: 0},
+		Payload: json.RawMessage(`{"input": "test"}`),
+	}
+	msgBody, _ := json.Marshal(inputMsg)
+
+	ctx := context.Background()
+	err = router.ProcessMessage(ctx, transport.QueueMessage{ID: "msg-1", Body: msgBody})
+	if err != nil {
+		t.Fatalf("ProcessMessage failed: %v", err)
+	}
+
+	if len(mockTransport.sentMessages) != 1 {
+		t.Fatalf("Expected 1 message sent, got %d", len(mockTransport.sentMessages))
+	}
+
+	var sentMsg messages.Message
+	if err := json.Unmarshal(mockTransport.sentMessages[0].body, &sentMsg); err != nil {
+		t.Fatalf("Failed to unmarshal sent message: %v", err)
+	}
+
+	if sentMsg.Status == nil {
+		t.Fatal("Status should be present on routed message")
+	}
+	if sentMsg.Status.Phase != messages.PhasePending {
+		t.Errorf("Status.Phase = %q, want %q", sentMsg.Status.Phase, messages.PhasePending)
+	}
+	if sentMsg.Status.Actor != "actor2" {
+		t.Errorf("Status.Actor = %q, want %q", sentMsg.Status.Actor, "actor2")
+	}
+}
+
+func TestRouter_RouteResponse_HappyEnd_HasStatus(t *testing.T) {
+	socketPath := fmt.Sprintf("/tmp/test-happy-status-%d.sock", time.Now().UnixNano())
+	defer func() { _ = os.Remove(socketPath) }()
+
+	listener, err := net.Listen("unix", socketPath)
+	if err != nil {
+		t.Fatalf("Failed to create socket: %v", err)
+	}
+	defer func() { _ = listener.Close() }()
+
+	go func() {
+		conn, err := listener.Accept()
+		if err != nil {
+			return
+		}
+		defer func() { _ = conn.Close() }()
+		_, _ = runtime.RecvSocketData(conn)
+		// Runtime returns route with current=1, which is past the end of a single-actor route
+		sendStreamingResponse(conn, []runtime.RuntimeResponse{
+			{
+				Payload: json.RawMessage(`{"result": "done"}`),
+				Route:   messages.Route{Actors: []string{"actor1"}, Current: 1},
+			},
+		})
+	}()
+
+	cfg := &config.Config{
+		ActorName:     "actor1",
+		Namespace:     "default",
+		HappyEndQueue: "happy-end",
+		ErrorEndQueue: "error-end",
+		TransportType: "rabbitmq",
+	}
+	mockTransport := &mockTransport{}
+	runtimeClient := runtime.NewClient(socketPath, 2*time.Second)
+
+	router := &Router{
+		cfg:           cfg,
+		transport:     mockTransport,
+		runtimeClient: runtimeClient,
+		actorName:     cfg.ActorName,
+		happyEndQueue: cfg.HappyEndQueue,
+		errorEndQueue: cfg.ErrorEndQueue,
+		metrics:       metrics.NewMetrics("test", []config.CustomMetricConfig{}),
+	}
+
+	inputMsg := messages.Message{
+		ID:      "test-happy-status",
+		Route:   messages.Route{Actors: []string{"actor1"}, Current: 0},
+		Payload: json.RawMessage(`{"input": "test"}`),
+	}
+	msgBody, _ := json.Marshal(inputMsg)
+
+	ctx := context.Background()
+	err = router.ProcessMessage(ctx, transport.QueueMessage{ID: "msg-1", Body: msgBody})
+	if err != nil {
+		t.Fatalf("ProcessMessage failed: %v", err)
+	}
+
+	if len(mockTransport.sentMessages) != 1 {
+		t.Fatalf("Expected 1 message sent to happy-end, got %d", len(mockTransport.sentMessages))
+	}
+
+	var sentMsg messages.Message
+	if err := json.Unmarshal(mockTransport.sentMessages[0].body, &sentMsg); err != nil {
+		t.Fatalf("Failed to unmarshal sent message: %v", err)
+	}
+
+	if sentMsg.Status == nil {
+		t.Fatal("Status should be present on happy-end message")
+	}
+	if sentMsg.Status.Phase != messages.PhaseSucceeded {
+		t.Errorf("Status.Phase = %q, want %q", sentMsg.Status.Phase, messages.PhaseSucceeded)
+	}
+	if sentMsg.Status.Reason != messages.ReasonCompleted {
+		t.Errorf("Status.Reason = %q, want %q", sentMsg.Status.Reason, messages.ReasonCompleted)
+	}
+}
+
+func TestRouter_SendToErrorQueue_HasStatus(t *testing.T) {
+	cfg := &config.Config{
+		ActorName:     "test-actor",
+		Namespace:     "default",
+		HappyEndQueue: "happy-end",
+		ErrorEndQueue: "error-end",
+		TransportType: "rabbitmq",
+	}
+	mockTransport := &mockTransport{}
+	m := metrics.NewMetrics("test", []config.CustomMetricConfig{})
+
+	router := &Router{
+		cfg:           cfg,
+		transport:     mockTransport,
+		actorName:     cfg.ActorName,
+		happyEndQueue: cfg.HappyEndQueue,
+		errorEndQueue: cfg.ErrorEndQueue,
+		metrics:       m,
+	}
+
+	originalMsg := messages.Message{
+		ID:      "test-error-status",
+		Route:   messages.Route{Actors: []string{"test-actor"}, Current: 0},
+		Payload: json.RawMessage(`{"data": "test"}`),
+		Status: &messages.Status{
+			Phase:     messages.PhaseProcessing,
+			Actor:     "test-actor",
+			CreatedAt: "2025-01-01T00:00:00Z",
+		},
+	}
+	originalBody, _ := json.Marshal(originalMsg)
+
+	ctx := context.Background()
+	err := router.sendToErrorQueue(ctx, originalBody, "Runtime processing failed")
+	if err != nil {
+		t.Fatalf("sendToErrorQueue failed: %v", err)
+	}
+
+	if len(mockTransport.sentMessages) != 1 {
+		t.Fatalf("Expected 1 message sent, got %d", len(mockTransport.sentMessages))
+	}
+
+	var errorMsg map[string]any
+	if err := json.Unmarshal(mockTransport.sentMessages[0].body, &errorMsg); err != nil {
+		t.Fatalf("Failed to unmarshal error message: %v", err)
+	}
+
+	status, ok := errorMsg["status"].(map[string]any)
+	if !ok {
+		t.Fatal("Status should be present in error message")
+	}
+	if status["phase"] != messages.PhaseFailed {
+		t.Errorf("Status.phase = %q, want %q", status["phase"], messages.PhaseFailed)
+	}
+	if status["actor"] != "test-actor" {
+		t.Errorf("Status.actor = %q, want %q", status["actor"], "test-actor")
+	}
+	if status["created_at"] != "2025-01-01T00:00:00Z" {
+		t.Errorf("Status.created_at = %q, want preserved value", status["created_at"])
+	}
+}
+
+func TestRouter_SendToHappyQueue_HasStatus(t *testing.T) {
+	cfg := &config.Config{
+		ActorName:     "test-actor",
+		Namespace:     "default",
+		HappyEndQueue: "happy-end",
+		ErrorEndQueue: "error-end",
+		TransportType: "rabbitmq",
+	}
+	mockTransport := &mockTransport{}
+	m := metrics.NewMetrics("test", []config.CustomMetricConfig{})
+
+	router := &Router{
+		cfg:           cfg,
+		transport:     mockTransport,
+		actorName:     cfg.ActorName,
+		happyEndQueue: cfg.HappyEndQueue,
+		errorEndQueue: cfg.ErrorEndQueue,
+		metrics:       m,
+	}
+
+	msg := messages.Message{
+		ID:      "test-happy-queue-status",
+		Route:   messages.Route{Actors: []string{"actor1"}, Current: 1},
+		Payload: json.RawMessage(`{"result": "success"}`),
+	}
+
+	ctx := context.Background()
+	err := router.sendToHappyQueue(ctx, msg)
+	if err != nil {
+		t.Fatalf("sendToHappyQueue failed: %v", err)
+	}
+
+	var sentMsg messages.Message
+	if err := json.Unmarshal(mockTransport.sentMessages[0].body, &sentMsg); err != nil {
+		t.Fatalf("Failed to unmarshal: %v", err)
+	}
+
+	if sentMsg.Status == nil {
+		t.Fatal("Status should be present")
+	}
+	if sentMsg.Status.Phase != messages.PhaseSucceeded {
+		t.Errorf("Status.Phase = %q, want %q", sentMsg.Status.Phase, messages.PhaseSucceeded)
+	}
+	if sentMsg.Status.Reason != messages.ReasonCompleted {
+		t.Errorf("Status.Reason = %q, want %q", sentMsg.Status.Reason, messages.ReasonCompleted)
+	}
+}

@@ -1,6 +1,58 @@
 package messages
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"time"
+)
+
+// Status phase constants
+const (
+	PhasePending    = "pending"
+	PhaseProcessing = "processing"
+	PhaseSucceeded  = "succeeded"
+	PhaseFailed     = "failed"
+)
+
+// Status reason constants
+const (
+	ReasonCompleted     = "Completed"
+	ReasonRuntimeError  = "RuntimeError"
+	ReasonTimeout       = "Timeout"
+	ReasonParseError    = "ParseError"
+	ReasonRouteMismatch = "RouteMismatch"
+)
+
+// StatusError captures error details within a status
+type StatusError struct {
+	Message   string `json:"message"`
+	Type      string `json:"type,omitempty"`
+	Traceback string `json:"traceback,omitempty"`
+}
+
+// Status tracks the lifecycle phase of a message as it moves through actors
+type Status struct {
+	Phase       string       `json:"phase"`
+	Reason      string       `json:"reason,omitempty"`
+	Actor       string       `json:"actor"`
+	Attempt     int          `json:"attempt"`
+	MaxAttempts int          `json:"max_attempts"`
+	CreatedAt   string       `json:"created_at"`
+	UpdatedAt   string       `json:"updated_at"`
+	Error       *StatusError `json:"error,omitempty"`
+}
+
+// NewDefaultStatus creates a status with phase=pending for the given actor
+func NewDefaultStatus(actor string) *Status {
+	now := time.Now().UTC().Format(time.RFC3339)
+	return &Status{
+		Phase:       PhasePending,
+		Actor:       actor,
+		Attempt:     1,
+		MaxAttempts: 1,
+		CreatedAt:   now,
+		UpdatedAt:   now,
+	}
+}
 
 // Route represents the routing information for a message
 type Route struct {
@@ -30,6 +82,7 @@ type Message struct {
 	Route    Route                  `json:"route"`
 	Headers  map[string]interface{} `json:"headers,omitempty"`
 	Payload  json.RawMessage        `json:"payload"`
+	Status   *Status                `json:"status,omitempty"`
 }
 
 // GetCurrentActor returns the current actor name from the route

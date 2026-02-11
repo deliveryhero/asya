@@ -21,11 +21,12 @@ type ErrorDetails struct {
 
 // RuntimeResponse represents the response from the actor runtime
 type RuntimeResponse struct {
-	Type    string          `json:"type,omitempty"`    // frame type: "end" for sentinel
-	Payload json.RawMessage `json:"payload,omitempty"` // payload output from handler
-	Route   messages.Route  `json:"route,omitempty"`   // route output from handler
-	Error   string          `json:"error,omitempty"`
-	Details ErrorDetails    `json:"details,omitempty"`
+	Type    string           `json:"type,omitempty"`    // frame type: "end" for sentinel
+	Payload json.RawMessage  `json:"payload,omitempty"` // payload output from handler
+	Route   messages.Route   `json:"route,omitempty"`   // route output from handler
+	Status  *messages.Status `json:"status,omitempty"`  // status from runtime (passed through)
+	Error   string           `json:"error,omitempty"`
+	Details ErrorDetails     `json:"details,omitempty"`
 }
 
 // IsError returns true if the response indicates an error

@@ -57,6 +57,36 @@ func NewRouter(cfg *config.Config, transport transport.Transport, runtimeClient 
 	}
 }
 
+// ensureAndUpdateStatus initializes or updates the status on a message before processing.
+// If status is nil, creates a default with phase=processing.
+// If status exists, transitions to processing phase and updates actor/timestamps.
+func (r *Router) ensureAndUpdateStatus(msg *messages.Message) {
+	now := time.Now().UTC().Format(time.RFC3339)
+
+	if msg.Status == nil {
+		msg.Status = &messages.Status{
+			Phase:       messages.PhaseProcessing,
+			Actor:       r.actorName,
+			Attempt:     1,
+			MaxAttempts: 1,
+			CreatedAt:   now,
+			UpdatedAt:   now,
+		}
+		return
+	}
+
+	// Reset attempt counter when transitioning between actors
+	if msg.Status.Actor != r.actorName {
+		msg.Status.Attempt = 1
+	}
+
+	msg.Status.Phase = messages.PhaseProcessing
+	msg.Status.Reason = ""
+	msg.Status.Actor = r.actorName
+	msg.Status.UpdatedAt = now
+	msg.Status.Error = nil
+}
+
 // processEndActorMessage handles message processing for end actors (happy-end, error-end)
 // End actors are terminal nodes that:
 // - Accept messages with ANY route state (no validation)
@@ -256,7 +286,7 @@ func (r *Router) handleSuccessResponse(ctx context.Context, msg *messages.Messag
 		}
 	}
 
-	return r.routeResponse(ctx, msgID, parentID, outputRoute, response.Payload)
+	return r.routeResponse(ctx, msgID, parentID, outputRoute, response.Payload, msg.Status)
 }
 
 // ProcessMessage handles a single message from the queue
@@ -319,9 +349,17 @@ func (r *Router) ProcessMessage(ctx context.Context, queueMsg transport.QueueMes
 		})
 	}
 
+	// Initialize or update status before calling runtime
+	r.ensureAndUpdateStatus(msg)
+	updatedBody, err := json.Marshal(msg)
+	if err != nil {
+		slog.Error("Failed to marshal message with status", "id", msg.ID, "error", err)
+		return fmt.Errorf("failed to marshal message with status: %w", err)
+	}
+
 	slog.Info("Calling runtime", "id", msg.ID, "actor", r.cfg.ActorName)
 	runtimeStart := time.Now()
-	responses, err := r.runtimeClient.CallRuntime(ctx, queueMsg.Body)
+	responses, err := r.runtimeClient.CallRuntime(ctx, updatedBody)
 	runtimeDuration := time.Since(runtimeStart)
 
 	if err != nil {
@@ -373,7 +411,7 @@ func (r *Router) ProcessMessage(ctx context.Context, queueMsg transport.QueueMes
 // routeResponse routes a single response to the appropriate queue
 // The route parameter should already have its Current index incremented by the caller
 // parentID should be set for fanout children (when index > 0 in fanout scenario)
-func (r *Router) routeResponse(ctx context.Context, id string, parentID *string, route messages.Route, payload json.RawMessage) error {
+func (r *Router) routeResponse(ctx context.Context, id string, parentID *string, route messages.Route, payload json.RawMessage, inStatus *messages.Status) error {
 	// Determine destination queue
 	var destinationQueue string
 	var msgType string
@@ -390,12 +428,46 @@ func (r *Router) routeResponse(ctx context.Context, id string, parentID *string,
 		msgType = "happy_end"
 	}
 
+	// Build outbound status
+	var outStatus *messages.Status
+	now := time.Now().UTC().Format(time.RFC3339)
+	if actorToSend != "" {
+		outStatus = &messages.Status{
+			Phase:       messages.PhasePending,
+			Actor:       actorToSend,
+			Attempt:     1,
+			MaxAttempts: 1,
+			UpdatedAt:   now,
+		}
+		if inStatus != nil {
+			outStatus.CreatedAt = inStatus.CreatedAt
+		} else {
+			outStatus.CreatedAt = now
+		}
+	} else {
+		outStatus = &messages.Status{
+			Phase:       messages.PhaseSucceeded,
+			Reason:      messages.ReasonCompleted,
+			Attempt:     1,
+			MaxAttempts: 1,
+			UpdatedAt:   now,
+		}
+		if inStatus != nil {
+			outStatus.Actor = inStatus.Actor
+			outStatus.CreatedAt = inStatus.CreatedAt
+		} else {
+			outStatus.Actor = r.actorName
+			outStatus.CreatedAt = now
+		}
+	}
+
 	// Create new message with the route as-is
 	newMsg := messages.Message{
 		ID:       id,
 		ParentID: parentID,
 		Route:    route,
 		Payload:  payload,
+		Status:   outStatus,
 	}
 
 	// Marshal message
@@ -435,6 +507,23 @@ func (r *Router) routeResponse(ctx context.Context, id string, parentID *string,
 
 // sendToHappyQueue sends the original message to the happy-end queue
 func (r *Router) sendToHappyQueue(ctx context.Context, message messages.Message) error {
+	now := time.Now().UTC().Format(time.RFC3339)
+	createdAt := now
+	actor := r.actorName
+	if message.Status != nil {
+		createdAt = message.Status.CreatedAt
+		actor = message.Status.Actor
+	}
+	message.Status = &messages.Status{
+		Phase:       messages.PhaseSucceeded,
+		Reason:      messages.ReasonCompleted,
+		Actor:       actor,
+		Attempt:     1,
+		MaxAttempts: 1,
+		CreatedAt:   createdAt,
+		UpdatedAt:   now,
+	}
+
 	msgBody, err := json.Marshal(message)
 	if err != nil {
 		return fmt.Errorf("failed to marshal message for happy-end: %w", err)
@@ -501,10 +590,30 @@ func (r *Router) sendToErrorQueue(ctx context.Context, originalBody []byte, erro
 		}
 	}
 
+	// Build error status
+	now := time.Now().UTC().Format(time.RFC3339)
+	createdAt := now
+	actor := r.actorName
+	if originalMsg.Status != nil {
+		createdAt = originalMsg.Status.CreatedAt
+		if originalMsg.Status.Actor != "" {
+			actor = originalMsg.Status.Actor
+		}
+	}
+	errorStatus := map[string]any{
+		"phase":        messages.PhaseFailed,
+		"actor":        actor,
+		"attempt":      1,
+		"max_attempts": 1,
+		"created_at":   createdAt,
+		"updated_at":   now,
+	}
+
 	errorMessage := map[string]any{
 		"id":      id,
 		"route":   route,
 		"payload": errorPayload,
+		"status":  errorStatus,
 	}
 	if parentID != nil {
 		errorMessage["parent_id"] = *parentID

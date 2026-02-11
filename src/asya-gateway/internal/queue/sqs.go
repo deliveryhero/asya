@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -176,10 +177,21 @@ func (c *SQSClient) SendMessage(ctx context.Context, task *types.Task) error {
 	}
 
 	// Create actor message
+	actorName := task.Route.Actors[task.Route.Current]
+	now := time.Now().UTC().Format(time.RFC3339)
+
 	actorMsg := ActorMessage{
 		ID:      task.ID,
 		Route:   task.Route,
 		Payload: task.Payload,
+		Status: &ActorMessageStatus{
+			Phase:       "pending",
+			Actor:       actorName,
+			Attempt:     1,
+			MaxAttempts: 1,
+			CreatedAt:   now,
+			UpdatedAt:   now,
+		},
 	}
 
 	// Add deadline if task has timeout
@@ -195,7 +207,6 @@ func (c *SQSClient) SendMessage(ctx context.Context, task *types.Task) error {
 
 	// Get queue URL for current actor
 	// Add "asya-{namespace}-" prefix to convert actor name to queue name
-	actorName := task.Route.Actors[task.Route.Current]
 	queueName := fmt.Sprintf("asya-%s-%s", c.namespace, actorName)
 	queueURL, err := c.resolveQueueURL(ctx, queueName)
 	if err != nil {
