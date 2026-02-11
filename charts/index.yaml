@@ -1,0 +1,82 @@
+apiVersion: v1
+entries:
+  asya-actor:
+  - apiVersion: v2
+    appVersion: 0.5.0
+    created: "2026-02-11T10:45:38.200897059Z"
+    description: Generic Helm chart for deploying AsyncActor resources with health
+      validation
+    digest: 0595d87afe79d6b4b34b597c44e64ba2eade3826e59b1f369773c1995e4a66c4
+    keywords:
+    - asya
+    - actor
+    - async
+    - kubernetes
+    maintainers:
+    - name: Asya Team
+    name: asya-actor
+    type: application
+    urls:
+    - https://asya.sh/charts/asya-actor-0.5.0.tgz
+    version: 0.5.0
+  asya-crew:
+  - apiVersion: v2
+    appVersion: 0.5.0
+    created: "2026-02-11T10:45:38.201233468Z"
+    description: System AsyncActors with reserved roles (happy-end, error-end, ...)
+      for Asya framework
+    digest: d6a0a071fc4145094bc58666a0faa5ae40ad8a022f3ea8a092e73ecbdbb05a0d
+    keywords:
+    - asya
+    - actor
+    - system
+    - crew
+    maintainers:
+    - name: Asya Team
+    name: asya-crew
+    type: application
+    urls:
+    - https://asya.sh/charts/asya-crew-0.5.0.tgz
+    version: 0.5.0
+  asya-crossplane:
+  - apiVersion: v2
+    appVersion: 0.5.0
+    created: "2026-02-11T10:45:38.201886159Z"
+    description: Crossplane XRDs and Compositions for Asya AsyncActor
+    digest: 9eee22503ae48a86174fb3e04daab0a667990a3d88a3d95cb180d9f6dd32ff19
+    home: https://github.com/deliveryhero/asya
+    keywords:
+    - asya
+    - crossplane
+    - asyncactor
+    - sqs
+    maintainers:
+    - name: Asya Team
+    name: asya-crossplane
+    type: application
+    urls:
+    - https://asya.sh/charts/asya-crossplane-0.5.0.tgz
+    version: 0.5.0
+  asya-gateway:
+  - apiVersion: v2
+    appVersion: 0.5.0
+    created: "2026-02-11T10:45:38.202517069Z"
+    description: Asya MCP Gateway with PostgreSQL backend
+    digest: 80d77b77bbb70568ef47af6e7311bc53cd482ba7c55a82afb36212444b1792ac
+    name: asya-gateway
+    type: application
+    urls:
+    - https://asya.sh/charts/asya-gateway-0.5.0.tgz
+    version: 0.5.0
+  asya-injector:
+  - apiVersion: v2
+    appVersion: 0.5.0
+    created: "2026-02-11T10:45:38.202915906Z"
+    description: Asya Mutating Webhook for sidecar injection
+    digest: 9b9c4050158a16fca15075a55c958fa84e447820071c83a8a727b10fc48f8d96
+    name: asya-injector
+    type: application
+    urls:
+    - https://asya.sh/charts/asya-injector-0.5.0.tgz
+    version: 0.5.0
+generated: "2026-02-11T10:45:38.200201007Z"
