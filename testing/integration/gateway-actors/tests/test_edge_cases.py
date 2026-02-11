@@ -569,7 +569,12 @@ def test_multi_actor_parameter_flow(gateway_helper):
 
     assert s3_object["id"] == task_id, "S3 object should have correct message ID"
     if "status" in s3_object:
-        assert s3_object["status"] == "succeeded", "S3 object should have succeeded status"
+        status = s3_object["status"]
+        if isinstance(status, dict):
+            assert status.get("phase") == "succeeded", \
+                f"S3 object should have succeeded phase, got: {status}"
+        else:
+            assert status == "succeeded", "S3 object should have succeeded status"
     assert "payload" in s3_object, "S3 object should contain payload field"
 
     s3_result = s3_object["payload"]
