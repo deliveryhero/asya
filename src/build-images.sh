@@ -66,6 +66,7 @@ while [[ $# -gt 0 ]]; do
       echo "Available images:"
       echo "  - asya-gateway"
       echo "  - asya-sidecar"
+      echo "  - asya-injector"
       echo "  - asya-crew"
       echo "  - asya-testing"
       echo ""
@@ -190,6 +191,7 @@ echo ""
 declare -a ALL_IMAGES=(
   "asya-gateway"
   "asya-sidecar"
+  "asya-injector"
   "asya-crew"
   "asya-testing"
 )
