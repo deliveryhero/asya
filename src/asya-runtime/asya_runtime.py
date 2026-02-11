@@ -377,17 +377,14 @@ def _error_response(code: str, exc: Exception | None = None) -> dict[str, Any]:
     error: dict[str, Any] = {"error": code}
     if exc is not None:
         exc_type = type(exc)
-        module = exc_type.__module__
-        qualname = exc_type.__qualname__
-        fqn = f"{module}.{qualname}" if module != "builtins" else qualname
 
-        mro = []
-        for cls in exc_type.__mro__[1:]:
-            if cls in (object, BaseException):
-                continue
-            m = cls.__module__
-            n = cls.__qualname__
-            mro.append(f"{m}.{n}" if m != "builtins" else n)
+        def _fqn(cls: type) -> str:
+            module = cls.__module__
+            qualname = cls.__qualname__
+            return f"{module}.{qualname}" if module != "builtins" else qualname
+
+        fqn = _fqn(exc_type)
+        mro = [_fqn(cls) for cls in exc_type.__mro__[1:] if cls not in (object, BaseException)]
 
         error["details"] = {
             "message": str(exc),
