@@ -286,7 +286,11 @@ func (r *Router) handleSuccessResponse(ctx context.Context, msg *messages.Messag
 		}
 	}
 
-	return r.routeResponse(ctx, msgID, parentID, outputRoute, response.Payload, msg.Status)
+	statusFromRuntime := response.Status
+	if statusFromRuntime == nil {
+		statusFromRuntime = msg.Status
+	}
+	return r.routeResponse(ctx, msgID, parentID, outputRoute, response.Payload, statusFromRuntime)
 }
 
 // ProcessMessage handles a single message from the queue
@@ -509,15 +513,13 @@ func (r *Router) routeResponse(ctx context.Context, id string, parentID *string,
 func (r *Router) sendToHappyQueue(ctx context.Context, message messages.Message) error {
 	now := time.Now().UTC().Format(time.RFC3339)
 	createdAt := now
-	actor := r.actorName
 	if message.Status != nil {
 		createdAt = message.Status.CreatedAt
-		actor = message.Status.Actor
 	}
 	message.Status = &messages.Status{
 		Phase:       messages.PhaseSucceeded,
 		Reason:      messages.ReasonCompleted,
-		Actor:       actor,
+		Actor:       r.actorName,
 		Attempt:     1,
 		MaxAttempts: 1,
 		CreatedAt:   createdAt,

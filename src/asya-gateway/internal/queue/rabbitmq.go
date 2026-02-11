@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"sync"
-	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 
@@ -74,34 +73,9 @@ func NewRabbitMQClient(url, exchange string) (*RabbitMQClient, error) {
 
 // SendMessage sends a message to the current actor's queue in the route
 func (c *RabbitMQClient) SendMessage(ctx context.Context, task *types.Task) error {
-	if len(task.Route.Actors) == 0 {
-		return fmt.Errorf("route has no actors")
-	}
-	if task.Route.Current < 0 || task.Route.Current >= len(task.Route.Actors) {
-		return fmt.Errorf("invalid route.current=%d for actors length %d", task.Route.Current, len(task.Route.Actors))
-	}
-
-	// Create actor message
-	actorName := task.Route.Actors[task.Route.Current]
-	now := time.Now().UTC().Format(time.RFC3339)
-
-	actorMsg := ActorMessage{
-		ID:      task.ID,
-		Route:   task.Route,
-		Payload: task.Payload,
-		Status: &ActorMessageStatus{
-			Phase:       "pending",
-			Actor:       actorName,
-			Attempt:     1,
-			MaxAttempts: 1,
-			CreatedAt:   now,
-			UpdatedAt:   now,
-		},
-	}
-
-	// Add deadline if task has timeout
-	if !task.Deadline.IsZero() {
-		actorMsg.Deadline = task.Deadline.Format("2006-01-02T15:04:05Z07:00")
+	actorMsg, err := NewActorMessage(task)
+	if err != nil {
+		return err
 	}
 
 	// Marshal to JSON
@@ -112,7 +86,7 @@ func (c *RabbitMQClient) SendMessage(ctx context.Context, task *types.Task) erro
 
 	// Send message to current actor's queue
 	// Use actor name as routing key (sidecar binds queue with actor name, not "asya-" prefixed name)
-	routingKey := actorName
+	routingKey := task.Route.Actors[task.Route.Current]
 
 	// Protect channel access with mutex for thread-safety
 	c.mu.Lock()
