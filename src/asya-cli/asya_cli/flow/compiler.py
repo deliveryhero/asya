@@ -7,7 +7,7 @@ from pathlib import Path
 
 from asya_cli.flow.codegen import CodeGenerator
 from asya_cli.flow.dotgen import DotGenerator
-from asya_cli.flow.grouper import OperationGrouper, Router
+from asya_cli.flow.grouper import DEFAULT_MAX_LOOP_ITERATIONS, OperationGrouper, Router
 from asya_cli.flow.parser import FlowParser
 
 
@@ -38,8 +38,9 @@ def _calculate_module_path(filename: str) -> str:
 
 
 class FlowCompiler:
-    def __init__(self, verbose: bool = False):
+    def __init__(self, verbose: bool = False, max_iterations: int = DEFAULT_MAX_LOOP_ITERATIONS):
         self.verbose = verbose
+        self.max_iterations = max_iterations
         self.warnings: list[str] = []
         self.flow_name: str | None = None
         self.routers: list[Router] = []
@@ -133,7 +134,7 @@ class FlowCompiler:
         return flow_name, operations
 
     def _group(self, flow_name: str, operations):
-        grouper = OperationGrouper(flow_name, operations)
+        grouper = OperationGrouper(flow_name, operations, max_iterations=self.max_iterations)
         return grouper.group()
 
     def _generate(self, flow_name: str, units, filename: str, output_file: str | None = None):

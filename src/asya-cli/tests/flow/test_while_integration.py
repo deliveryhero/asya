@@ -512,3 +512,141 @@ class TestExampleFlowsCompile:
 
     def test_complex(self):
         self._compile_example("complex_with_while.py")
+
+
+class TestMaxIterationsGuardIntegration:
+    """Test max_iterations guard through the full compilation pipeline."""
+
+    def test_while_true_generates_guard_code(self):
+        source = """
+def flow(p: dict) -> dict:
+    while True:
+        p = handler(p)
+        if p["done"]:
+            break
+    return p
+"""
+        compiler = FlowCompiler()
+        code = compiler.compile(source, "test.py")
+
+        assert "_ASYA_MAX_LOOP_ITERATIONS" in code
+        assert "__loop_0_iter" in code
+        assert "RuntimeError" in code
+
+        tree = ast.parse(code)
+        assert tree is not None
+
+    def test_while_condition_no_guard_code(self):
+        source = """
+def flow(p: dict) -> dict:
+    while p["i"] < 10:
+        p["i"] += 1
+        p = handler(p)
+    return p
+"""
+        compiler = FlowCompiler()
+        code = compiler.compile(source, "test.py")
+
+        assert "_ASYA_MAX_LOOP_ITERATIONS" not in code
+        assert "__loop_" not in code
+
+    def test_custom_max_iterations_via_compiler(self):
+        source = """
+def flow(p: dict) -> dict:
+    while True:
+        p = handler(p)
+        if p["done"]:
+            break
+    return p
+"""
+        compiler = FlowCompiler(max_iterations=10)
+        code = compiler.compile(source, "test.py")
+
+        assert '"10"' in code
+
+    def test_react_loop_gets_guard(self):
+        source = """
+def agent(p: dict) -> dict:
+    while True:
+        p = llm_call(p)
+        if p.get("tool_calls"):
+            p = execute_tool(p)
+        else:
+            return p
+    return p
+"""
+        compiler = FlowCompiler()
+        code = compiler.compile(source, "test.py")
+
+        assert "_ASYA_MAX_LOOP_ITERATIONS" in code
+        assert "RuntimeError" in code
+
+        tree = ast.parse(code)
+        assert tree is not None
+
+    def test_guard_execution_raises_at_limit(self, compile_and_import, monkeypatch):
+        source = """
+def flow(p: dict) -> dict:
+    while True:
+        p = handler(p)
+        if p.get("done"):
+            break
+    return p
+"""
+        monkeypatch.setenv("ASYA_HANDLER_HANDLER", "handler")
+        monkeypatch.setenv("ASYA_MAX_LOOP_ITERATIONS", "3")
+
+        mod = compile_and_import(source)
+        # Bypass handler resolution for internal routers
+        monkeypatch.setattr(mod, "resolve", lambda name: name)
+
+        loop_back_fn = None
+        for name in dir(mod):
+            if "loop_back" in name:
+                loop_back_fn = getattr(mod, name)
+                break
+        assert loop_back_fn is not None
+
+        msg = make_message({"value": 1}, actors=["test"], current=0)
+
+        # Iterations 0, 1, 2 should succeed
+        for _ in range(3):
+            msg = loop_back_fn(msg)
+            msg["route"]["current"] = len(msg["route"]["actors"]) - 1
+
+        # Iteration 3 should raise
+        import pytest as pt
+
+        with pt.raises(RuntimeError, match="Max loop iterations"):
+            loop_back_fn(msg)
+
+    def test_guard_execution_succeeds_under_limit(self, compile_and_import, monkeypatch):
+        source = """
+def flow(p: dict) -> dict:
+    while True:
+        p = handler(p)
+        if p.get("done"):
+            break
+    return p
+"""
+        monkeypatch.setenv("ASYA_HANDLER_HANDLER", "handler")
+        monkeypatch.setenv("ASYA_MAX_LOOP_ITERATIONS", "5")
+
+        mod = compile_and_import(source)
+        # Bypass handler resolution for internal routers
+        monkeypatch.setattr(mod, "resolve", lambda name: name)
+
+        loop_back_fn = None
+        for name in dir(mod):
+            if "loop_back" in name:
+                loop_back_fn = getattr(mod, name)
+                break
+        assert loop_back_fn is not None
+
+        msg = make_message({"value": 1}, actors=["test"], current=0)
+
+        for _ in range(5):
+            msg = loop_back_fn(msg)
+            msg["route"]["current"] = len(msg["route"]["actors"]) - 1
+
+        assert msg["payload"]["__loop_0_iter"] == 5

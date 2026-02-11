@@ -7,6 +7,9 @@ from dataclasses import dataclass, field
 from asya_cli.flow.ir import ActorCall, Break, Condition, Continue, IROperation, Mutation, Return, WhileLoop
 
 
+DEFAULT_MAX_LOOP_ITERATIONS = 25
+
+
 @dataclass
 class Router:
     name: str
@@ -16,12 +19,17 @@ class Router:
     true_branch_actors: list[str] = field(default_factory=list)
     false_branch_actors: list[str] = field(default_factory=list)
     is_loop_back: bool = False
+    guard_iter_key: str | None = None
+    guard_max_iter: int | None = None
 
 
 class OperationGrouper:
-    def __init__(self, flow_name: str, operations: list[IROperation]):
+    def __init__(
+        self, flow_name: str, operations: list[IROperation], *, max_iterations: int = DEFAULT_MAX_LOOP_ITERATIONS
+    ):
         self.flow_name = flow_name
         self.operations = operations
+        self.max_iterations = max_iterations
         self.routers: list[Router] = []
         self.convergence_counter = 0
         self.convergence_map: dict[str, list[str]] = {}
@@ -292,6 +300,7 @@ class OperationGrouper:
         if loop.test is None:
             # `while True:` — no condition router needed
             # The loop-back router re-inserts the body actors
+            # with an iteration guard to prevent infinite loops
 
             # Process loop body with loop context
             body_actors = self._process_operations(
@@ -302,12 +311,15 @@ class OperationGrouper:
             )
 
             # Create loop-back router: re-inserts body actors + itself
+            # with max_iterations guard for while True loops
             loop_back_router = Router(
                 name=loop_back_name,
                 lineno=loop.lineno,
                 mutations=pre_mutations,
                 true_branch_actors=[*body_actors, loop_back_name],
                 is_loop_back=True,
+                guard_iter_key=f"__loop_{loop_id}_iter",
+                guard_max_iter=self.max_iterations,
             )
             self.routers.append(loop_back_router)
 

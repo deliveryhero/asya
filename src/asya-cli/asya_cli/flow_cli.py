@@ -16,6 +16,7 @@ import sys
 from pathlib import Path
 
 from asya_cli.flow import FlowCompileError, FlowCompiler
+from asya_cli.flow.grouper import DEFAULT_MAX_LOOP_ITERATIONS
 
 
 def cmd_compile(args):
@@ -27,6 +28,7 @@ def cmd_compile(args):
 
         compiler = FlowCompiler(
             verbose=args.verbose,
+            max_iterations=args.max_iterations,
         )
 
         compiled_file = compiler.compile_file(args.flow_file, args.output_dir, overwrite=args.overwrite)
@@ -122,6 +124,13 @@ def main(argv=None):
         "-o",
         required=True,
         help="Output directory for compiled files (must not exist or be empty)",
+    )
+    compile_parser.add_argument(
+        "--max-iterations",
+        type=int,
+        default=DEFAULT_MAX_LOOP_ITERATIONS,
+        help=f"Maximum iterations for while-True loops before raising RuntimeError (default: {DEFAULT_MAX_LOOP_ITERATIONS}). "
+        "Can be overridden at deploy time via ASYA_MAX_LOOP_ITERATIONS env var on router actors.",
     )
     compile_parser.add_argument(
         "--disable-infinite-loop-check",

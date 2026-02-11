@@ -35,10 +35,22 @@ class CodeGenerator:
 
         parts = []
         parts.append(self._generate_header())
+        if self._has_loop_guards():
+            parts.append(self._generate_max_iter_constant())
         parts.append(self._generate_routers())
         parts.append(self._generate_resolve_function())
 
         return "\n".join(parts)
+
+    def _has_loop_guards(self) -> bool:
+        return any(r.guard_max_iter is not None for r in self.routers)
+
+    def _generate_max_iter_constant(self) -> str:
+        default = next(r.guard_max_iter for r in self.routers if r.guard_max_iter is not None)
+        return dedent(f'''\
+            import os as _os
+            _ASYA_MAX_LOOP_ITERATIONS = int(_os.environ.get("ASYA_MAX_LOOP_ITERATIONS", "{default}"))
+            ''')
 
     def _collect_handlers(self) -> None:
         for router in self.routers:
@@ -156,7 +168,10 @@ class CodeGenerator:
     def _generate_loop_back_router(self, router: Router) -> str:
         lines = []
         lines.append(f"def {router.name}(message: dict) -> dict:")
-        lines.append('    """Loop-back router: re-inserts loop actors into route"""')
+        if router.guard_iter_key:
+            lines.append('    """Loop-back router: re-inserts loop actors into route (guarded)"""')
+        else:
+            lines.append('    """Loop-back router: re-inserts loop actors into route"""')
         lines.append("    p = message['payload']")
         lines.append("    r = message['route']")
         lines.append("    c = r['current']")
@@ -165,6 +180,16 @@ class CodeGenerator:
 
         for mutation in router.mutations:
             lines.append(f"    {mutation.code}")
+
+        if router.guard_iter_key:
+            key = router.guard_iter_key
+            lines.append(f'    _iter = p.get("{key}", 0)')
+            lines.append("    if _iter >= _ASYA_MAX_LOOP_ITERATIONS:")
+            lines.append(
+                f'        raise RuntimeError(f"Max loop iterations ({{_ASYA_MAX_LOOP_ITERATIONS}}) exceeded for while-loop at line {router.lineno}")'
+            )
+            lines.append(f'    p["{key}"] = _iter + 1')
+            lines.append("")
 
         filtered_actors = [actor for actor in router.true_branch_actors if not actor.startswith("end_")]
         for actor in filtered_actors:
