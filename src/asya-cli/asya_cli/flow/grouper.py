@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from asya_cli.flow.ir import ActorCall, Break, Condition, Continue, IROperation, Mutation, Return, WhileLoop
 
 
-DEFAULT_MAX_LOOP_ITERATIONS = 25
+DEFAULT_MAX_LOOP_ITERATIONS = 100
 
 
 @dataclass

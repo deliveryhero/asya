@@ -1103,7 +1103,7 @@ class TestMaxIterationsGuard:
 
         loop_back = next(r for r in routers if r.is_loop_back)
         assert loop_back.guard_iter_key == "__loop_0_iter"
-        assert loop_back.guard_max_iter == 25
+        assert loop_back.guard_max_iter == 100
 
     def test_while_condition_no_guard(self):
         ops = [

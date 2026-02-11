@@ -683,13 +683,13 @@ class TestLoopBackGuard:
                 true_branch_actors=["handler", "router_flow_line_3_loop_back_0"],
                 is_loop_back=True,
                 guard_iter_key="__loop_0_iter",
-                guard_max_iter=25,
+                guard_max_iter=100,
             ),
             Router(name="end_flow", lineno=999),
         ]
         code = CodeGenerator("flow", routers, "test.py").generate()
 
-        assert '_ASYA_MAX_LOOP_ITERATIONS = int(_os.environ.get("ASYA_MAX_LOOP_ITERATIONS", "25"))' in code
+        assert '_ASYA_MAX_LOOP_ITERATIONS = int(_os.environ.get("ASYA_MAX_LOOP_ITERATIONS", "100"))' in code
 
     def test_max_iter_constant_not_generated_without_guard(self):
         routers = [

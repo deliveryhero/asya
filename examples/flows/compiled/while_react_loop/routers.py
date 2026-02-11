@@ -9,7 +9,7 @@ Regenerate by running: asya flow compile ../../while_react_loop.py
 """
 
 import os as _os
-_ASYA_MAX_LOOP_ITERATIONS = int(_os.environ.get("ASYA_MAX_LOOP_ITERATIONS", "25"))
+_ASYA_MAX_LOOP_ITERATIONS = int(_os.environ.get("ASYA_MAX_LOOP_ITERATIONS", "100"))
 
 
 # ======================================================================
