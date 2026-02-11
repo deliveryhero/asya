@@ -54,7 +54,11 @@ func (m *mockTransport) Ack(ctx context.Context, msg transport.QueueMessage) err
 	return nil
 }
 
-func (m *mockTransport) Nack(ctx context.Context, msg transport.QueueMessage) error {
+func (m *mockTransport) Requeue(ctx context.Context, msg transport.QueueMessage) error {
+	return nil
+}
+
+func (m *mockTransport) SendWithDelay(ctx context.Context, queueName string, body []byte, delay time.Duration) error {
 	return nil
 }
 

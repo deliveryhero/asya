@@ -420,18 +420,25 @@ func (t *RabbitMQTransport) Ack(ctx context.Context, msg QueueMessage) error {
 	return nil
 }
 
-// Nack negatively acknowledges a message (requeue)
-func (t *RabbitMQTransport) Nack(ctx context.Context, msg QueueMessage) error {
+// Requeue returns a message to the queue for immediate redelivery.
+// Best-effort last-resort infrastructure signal before crashing.
+func (t *RabbitMQTransport) Requeue(ctx context.Context, msg QueueMessage) error {
 	deliveryTag, ok := msg.ReceiptHandle.(uint64)
 	if !ok {
 		return fmt.Errorf("invalid receipt handle type for RabbitMQ")
 	}
 
 	if err := t.channel.Nack(deliveryTag, false, true); err != nil {
-		return fmt.Errorf("failed to nack message: %w", err)
+		return fmt.Errorf("failed to requeue message: %w", err)
 	}
 
 	return nil
+}
+
+// SendWithDelay is not supported by RabbitMQ without the x-delayed-message plugin.
+// Returns ErrDelayNotSupported.
+func (t *RabbitMQTransport) SendWithDelay(ctx context.Context, queueName string, body []byte, delay time.Duration) error {
+	return ErrDelayNotSupported
 }
 
 // Close closes the RabbitMQ connection

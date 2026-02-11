@@ -215,7 +215,7 @@ func (r *Router) handleErrorResponse(ctx context.Context, msgBody []byte, respon
 	}
 
 	if err := r.sendToErrorQueue(ctx, msgBody, response.Error, response.Details); err != nil {
-		slog.Error("Failed to send error to error queue - will NACK for DLQ handling", "error", err)
+		slog.Error("Failed to send error to error queue - will requeue for DLQ handling", "error", err)
 		if r.metrics != nil {
 			r.metrics.RecordMessageFailed(r.actorName, "error_queue_send_failed")
 		}
@@ -361,7 +361,7 @@ func (r *Router) ProcessMessage(ctx context.Context, queueMsg transport.QueueMes
 		}
 
 		if err := r.sendToErrorQueue(ctx, queueMsg.Body, errorMsg); err != nil {
-			slog.Error("Failed to send runtime error to error queue - will NACK for DLQ handling", "error", err)
+			slog.Error("Failed to send runtime error to error queue - will requeue for DLQ handling", "error", err)
 			return fmt.Errorf("failed to send runtime error to error queue: %w", err)
 		}
 		return nil
@@ -877,9 +877,9 @@ func (r *Router) Run(ctx context.Context) error {
 			slog.Info("Processing message", "msgID", queueMsg.ID)
 			if err := r.ProcessMessage(ctx, queueMsg); err != nil {
 				slog.Error("Message processing failed", "msgID", queueMsg.ID, "error", err)
-				// NACK the message for retry
-				if nackErr := r.transport.Nack(ctx, queueMsg); nackErr != nil {
-					slog.Error("Failed to NACK message", "msgID", queueMsg.ID, "error", nackErr)
+				// Requeue the message for retry
+				if requeueErr := r.transport.Requeue(ctx, queueMsg); requeueErr != nil {
+					slog.Error("Failed to requeue message", "msgID", queueMsg.ID, "error", requeueErr)
 				}
 				continue
 			}
