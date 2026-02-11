@@ -443,3 +443,5 @@ jobs:
       with:
         github-token: ${{ github.token }}
         config: .octocov.yml
+      env:
+        DEBUG: "1"
