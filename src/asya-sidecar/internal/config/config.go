@@ -61,6 +61,30 @@ const (
 	RetryPolicyExponential RetryPolicy = "exponential"
 )
 
+// Resiliency environment variable keys.
+const (
+	envResiliencyRetryPolicy      = "ASYA_RESILIENCY_RETRY_POLICY"
+	envResiliencyRetryMaxAttempts = "ASYA_RESILIENCY_RETRY_MAX_ATTEMPTS"
+	envResiliencyRetryInitial     = "ASYA_RESILIENCY_RETRY_INITIAL_INTERVAL"
+	envResiliencyRetryMax         = "ASYA_RESILIENCY_RETRY_MAX_INTERVAL"
+	envResiliencyRetryCoefficient = "ASYA_RESILIENCY_RETRY_BACKOFF_COEFFICIENT"
+	envResiliencyRetryJitter      = "ASYA_RESILIENCY_RETRY_JITTER"
+	envResiliencyNonRetryable     = "ASYA_RESILIENCY_NON_RETRYABLE_ERRORS"
+	envResiliencySLATimeout       = "ASYA_RESILIENCY_SLA_TIMEOUT"
+)
+
+// resiliencyEnvKeys lists all ASYA_RESILIENCY_* env var keys for activation detection.
+var resiliencyEnvKeys = []string{
+	envResiliencyRetryPolicy,
+	envResiliencyRetryMaxAttempts,
+	envResiliencyRetryInitial,
+	envResiliencyRetryMax,
+	envResiliencyRetryCoefficient,
+	envResiliencyRetryJitter,
+	envResiliencyNonRetryable,
+	envResiliencySLATimeout,
+}
+
 // ResiliencyConfig holds optional retry and timeout configuration for an actor.
 // When nil, the actor does not retry (single attempt).
 type ResiliencyConfig struct {
@@ -164,35 +188,35 @@ func loadResiliencyConfig() (*ResiliencyConfig, error) {
 		return nil, nil
 	}
 
-	policy := RetryPolicy(getEnv("ASYA_RESILIENCY_RETRY_POLICY", "exponential"))
+	policy := RetryPolicy(getEnv(envResiliencyRetryPolicy, "exponential"))
 	if policy != RetryPolicyConstant && policy != RetryPolicyExponential {
-		return nil, fmt.Errorf("ASYA_RESILIENCY_RETRY_POLICY must be 'constant' or 'exponential', got %q", policy)
+		return nil, fmt.Errorf("%s must be 'constant' or 'exponential', got %q", envResiliencyRetryPolicy, policy)
 	}
 
-	maxAttempts := getEnvInt("ASYA_RESILIENCY_RETRY_MAX_ATTEMPTS", 3)
+	maxAttempts := getEnvInt(envResiliencyRetryMaxAttempts, 3)
 	if maxAttempts < 0 {
-		return nil, fmt.Errorf("ASYA_RESILIENCY_RETRY_MAX_ATTEMPTS must be >= 0, got %d", maxAttempts)
+		return nil, fmt.Errorf("%s must be >= 0, got %d", envResiliencyRetryMaxAttempts, maxAttempts)
 	}
 
-	initialInterval := getEnvDuration("ASYA_RESILIENCY_RETRY_INITIAL_INTERVAL", time.Second)
+	initialInterval := getEnvDuration(envResiliencyRetryInitial, time.Second)
 	if initialInterval <= 0 {
-		return nil, fmt.Errorf("ASYA_RESILIENCY_RETRY_INITIAL_INTERVAL must be > 0, got %v", initialInterval)
+		return nil, fmt.Errorf("%s must be > 0, got %v", envResiliencyRetryInitial, initialInterval)
 	}
 
-	maxInterval := getEnvDuration("ASYA_RESILIENCY_RETRY_MAX_INTERVAL", 300*time.Second)
+	maxInterval := getEnvDuration(envResiliencyRetryMax, 300*time.Second)
 	if maxInterval <= 0 {
-		return nil, fmt.Errorf("ASYA_RESILIENCY_RETRY_MAX_INTERVAL must be > 0, got %v", maxInterval)
+		return nil, fmt.Errorf("%s must be > 0, got %v", envResiliencyRetryMax, maxInterval)
 	}
 
-	coefficient := getEnvFloat64("ASYA_RESILIENCY_RETRY_BACKOFF_COEFFICIENT", 2.0)
+	coefficient := getEnvFloat64(envResiliencyRetryCoefficient, 2.0)
 	if coefficient < 1.0 {
-		return nil, fmt.Errorf("ASYA_RESILIENCY_RETRY_BACKOFF_COEFFICIENT must be >= 1.0, got %v", coefficient)
+		return nil, fmt.Errorf("%s must be >= 1.0, got %v", envResiliencyRetryCoefficient, coefficient)
 	}
 
-	jitter := getEnvBool("ASYA_RESILIENCY_RETRY_JITTER", true)
+	jitter := getEnvBool(envResiliencyRetryJitter, true)
 
 	var nonRetryable []string
-	if raw := os.Getenv("ASYA_RESILIENCY_NON_RETRYABLE_ERRORS"); raw != "" {
+	if raw := os.Getenv(envResiliencyNonRetryable); raw != "" {
 		for _, s := range strings.Split(raw, ",") {
 			if trimmed := strings.TrimSpace(s); trimmed != "" {
 				nonRetryable = append(nonRetryable, trimmed)
@@ -200,9 +224,9 @@ func loadResiliencyConfig() (*ResiliencyConfig, error) {
 		}
 	}
 
-	slaTimeout := getEnvDuration("ASYA_RESILIENCY_SLA_TIMEOUT", 0)
+	slaTimeout := getEnvDuration(envResiliencySLATimeout, 0)
 	if slaTimeout < 0 {
-		return nil, fmt.Errorf("ASYA_RESILIENCY_SLA_TIMEOUT must be >= 0, got %v", slaTimeout)
+		return nil, fmt.Errorf("%s must be >= 0, got %v", envResiliencySLATimeout, slaTimeout)
 	}
 
 	return &ResiliencyConfig{
@@ -221,17 +245,7 @@ func loadResiliencyConfig() (*ResiliencyConfig, error) {
 
 // hasResiliencyConfig checks if any ASYA_RESILIENCY_* env var is set.
 func hasResiliencyConfig() bool {
-	prefixes := []string{
-		"ASYA_RESILIENCY_RETRY_POLICY",
-		"ASYA_RESILIENCY_RETRY_MAX_ATTEMPTS",
-		"ASYA_RESILIENCY_RETRY_INITIAL_INTERVAL",
-		"ASYA_RESILIENCY_RETRY_MAX_INTERVAL",
-		"ASYA_RESILIENCY_RETRY_BACKOFF_COEFFICIENT",
-		"ASYA_RESILIENCY_RETRY_JITTER",
-		"ASYA_RESILIENCY_NON_RETRYABLE_ERRORS",
-		"ASYA_RESILIENCY_SLA_TIMEOUT",
-	}
-	for _, key := range prefixes {
+	for _, key := range resiliencyEnvKeys {
 		if os.Getenv(key) != "" {
 			return true
 		}
