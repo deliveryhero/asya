@@ -470,6 +470,31 @@ func TestSQSTransport_SendWithDelay(t *testing.T) {
 		}
 	})
 
+	t.Run("fractional seconds rounded", func(t *testing.T) {
+		mockClient := &mockSQSClient{
+			getQueueUrlFunc: func(ctx context.Context, params *sqs.GetQueueUrlInput, optFns ...func(*sqs.Options)) (*sqs.GetQueueUrlOutput, error) {
+				return &sqs.GetQueueUrlOutput{
+					QueueUrl: aws.String(queueURL),
+				}, nil
+			},
+			sendMessageFunc: func(ctx context.Context, params *sqs.SendMessageInput, optFns ...func(*sqs.Options)) (*sqs.SendMessageOutput, error) {
+				if params.DelaySeconds != 3 {
+					t.Errorf("DelaySeconds = %v, want 3 (2.9s rounded)", params.DelaySeconds)
+				}
+				return &sqs.SendMessageOutput{
+					MessageId: aws.String("msg-rounded"),
+				}, nil
+			},
+		}
+
+		transport := createMockSQSTransport(mockClient)
+
+		err := transport.SendWithDelay(ctx, queueName, messageBody, 2900*time.Millisecond)
+		if err != nil {
+			t.Errorf("SendWithDelay() error = %v, want nil", err)
+		}
+	})
+
 	t.Run("zero delay", func(t *testing.T) {
 		mockClient := &mockSQSClient{
 			getQueueUrlFunc: func(ctx context.Context, params *sqs.GetQueueUrlInput, optFns ...func(*sqs.Options)) (*sqs.GetQueueUrlOutput, error) {

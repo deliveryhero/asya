@@ -286,7 +286,7 @@ func (t *SQSTransport) SendWithDelay(ctx context.Context, queueName string, body
 		return fmt.Errorf("failed to resolve queue URL for %s: %w", queueName, err)
 	}
 
-	delaySec := int32(delay.Seconds())
+	delaySec := int32(delay.Round(time.Second).Seconds())
 	if delaySec > 900 {
 		slog.Warn("Requested delay exceeds SQS maximum of 900s, clamping", "requested", delaySec, "clamped", 900)
 		delaySec = 900
