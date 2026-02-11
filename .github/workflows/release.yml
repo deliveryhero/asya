@@ -191,7 +191,7 @@ jobs:
         # from asya.sh (GitHub Pages hasn't deployed the push yet)
         python3 -m http.server 8879 --directory gh-pages/charts &
         SERVER_PID=$!
-        trap "kill $SERVER_PID 2>/dev/null" EXIT
+        trap 'kill $SERVER_PID 2>/dev/null' EXIT
         sleep 1
         curl -sf http://localhost:8879/index.yaml > /dev/null || { echo "[-] Local chart server failed to start"; exit 1; }
 
