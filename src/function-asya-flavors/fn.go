@@ -47,16 +47,25 @@ func (f *Function) RunFunction(_ context.Context, req *fnv1.RunFunctionRequest) 
 
 	rsp := response.To(req, response.DefaultTTL)
 
+	if err := f.run(req, rsp); err != nil {
+		response.Fatal(rsp, err)
+	}
+
+	return rsp, nil
+}
+
+// run contains the core flavor resolution logic. Errors are returned to
+// RunFunction which handles them uniformly via response.Fatal.
+func (f *Function) run(req *fnv1.RunFunctionRequest, rsp *fnv1.RunFunctionResponse) error {
 	oxr, err := request.GetObservedCompositeResource(req)
 	if err != nil {
-		response.Fatal(rsp, errors.Wrapf(err, "cannot get observed composite resource"))
-		return rsp, nil
+		return errors.Wrapf(err, "cannot get observed composite resource")
 	}
 
 	flavors := getFlavors(oxr)
 	if len(flavors) == 0 {
 		f.log.Debug("No flavors specified, skipping")
-		return rsp, nil
+		return nil
 	}
 
 	f.log.Info("Processing flavors", "flavors", flavors)
@@ -66,44 +75,40 @@ func (f *Function) RunFunction(_ context.Context, req *fnv1.RunFunctionRequest) 
 
 	required, err := request.GetRequiredResources(req)
 	if err != nil {
-		response.Fatal(rsp, errors.Wrapf(err, "cannot get required resources"))
-		return rsp, nil
+		return errors.Wrapf(err, "cannot get required resources")
 	}
 
 	if !allFlavorsAvailable(required, flavors) {
 		f.log.Info("Waiting for flavor EnvironmentConfigs")
 		response.Normalf(rsp, "Waiting for %d flavor EnvironmentConfigs", len(flavors))
-		return rsp, nil
+		return nil
 	}
 
 	flavorData := extractFlavorData(required, flavors, f.log)
 
 	merged, err := MergeFlavors(flavorData)
 	if err != nil {
-		response.Fatal(rsp, errors.Wrapf(err, "cannot merge flavors"))
-		return rsp, nil
+		return errors.Wrapf(err, "cannot merge flavors")
 	}
 
 	actorSpec := extractActorInlineSpec(oxr)
 	if actorSpec != nil {
 		merged, err = ApplyStrategicMerge(merged, actorSpec)
 		if err != nil {
-			response.Fatal(rsp, errors.Wrapf(err, "cannot apply actor inline spec override"))
-			return rsp, nil
+			return errors.Wrapf(err, "cannot apply actor inline spec override")
 		}
 	}
 
 	value, err := structpb.NewValue(merged)
 	if err != nil {
-		response.Fatal(rsp, errors.Wrapf(err, "cannot convert resolved spec to context value"))
-		return rsp, nil
+		return errors.Wrapf(err, "cannot convert resolved spec to context value")
 	}
 
 	response.SetContextKey(rsp, ContextKeyResolvedSpec, value)
 	response.Normalf(rsp, "Applied %d flavors: %v", len(flavors), flavors)
 	f.log.Info("Flavors applied", "count", len(flavors))
 
-	return rsp, nil
+	return nil
 }
 
 // getFlavors reads spec.flavors from the observed composite resource.

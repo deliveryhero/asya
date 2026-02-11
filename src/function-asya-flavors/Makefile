@@ -4,13 +4,13 @@ MAKEFLAGS += --no-print-directory
 
 PROJECT_ROOT := $(shell git rev-parse --show-toplevel 2>/dev/null || echo $(CURDIR)/../..)
 COVERAGE_DIR := $(PROJECT_ROOT)/.coverage/$(subst $(PROJECT_ROOT)/,,$(CURDIR))
-$(shell mkdir -p $(COVERAGE_DIR))
 export UID := $(shell id -u)
 export GID := $(shell id -g)
 
 GOTEST_OPTS ?= -v
 
 test-unit:
+	@mkdir -p $(COVERAGE_DIR)
 	go test -coverprofile=$(COVERAGE_DIR)/cov.out -covermode=set $(GOTEST_OPTS) ./...
 	@test -f $(COVERAGE_DIR)/cov.out && echo "[+] Coverage: $(COVERAGE_DIR)/cov.out" || echo "[-] Coverage not generated"
 	@echo "[+] Success: function-asya-flavors unit tests"
