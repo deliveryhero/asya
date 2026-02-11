@@ -70,7 +70,7 @@ const (
 	envResiliencyRetryCoefficient = "ASYA_RESILIENCY_RETRY_BACKOFF_COEFFICIENT"
 	envResiliencyRetryJitter      = "ASYA_RESILIENCY_RETRY_JITTER"
 	envResiliencyNonRetryable     = "ASYA_RESILIENCY_NON_RETRYABLE_ERRORS"
-	envResiliencySLATimeout       = "ASYA_RESILIENCY_SLA_TIMEOUT"
+	envResiliencyActorTimeout     = "ASYA_RESILIENCY_ACTOR_TIMEOUT"
 )
 
 // resiliencyEnvKeys lists all ASYA_RESILIENCY_* env var keys for activation detection.
@@ -82,7 +82,7 @@ var resiliencyEnvKeys = []string{
 	envResiliencyRetryCoefficient,
 	envResiliencyRetryJitter,
 	envResiliencyNonRetryable,
-	envResiliencySLATimeout,
+	envResiliencyActorTimeout,
 }
 
 // ResiliencyConfig holds optional retry and timeout configuration for an actor.
@@ -90,7 +90,7 @@ var resiliencyEnvKeys = []string{
 type ResiliencyConfig struct {
 	Retry              RetryConfig
 	NonRetryableErrors []string
-	SLATimeout         time.Duration // 0 means no timeout
+	ActorTimeout       time.Duration // 0 means no timeout
 }
 
 // RetryConfig holds retry-specific parameters.
@@ -224,9 +224,9 @@ func loadResiliencyConfig() (*ResiliencyConfig, error) {
 		}
 	}
 
-	slaTimeout := getEnvDuration(envResiliencySLATimeout, 0)
-	if slaTimeout < 0 {
-		return nil, fmt.Errorf("%s must be >= 0, got %v", envResiliencySLATimeout, slaTimeout)
+	actorTimeout := getEnvDuration(envResiliencyActorTimeout, 0)
+	if actorTimeout < 0 {
+		return nil, fmt.Errorf("%s must be >= 0, got %v", envResiliencyActorTimeout, actorTimeout)
 	}
 
 	return &ResiliencyConfig{
@@ -239,7 +239,7 @@ func loadResiliencyConfig() (*ResiliencyConfig, error) {
 			Jitter:             jitter,
 		},
 		NonRetryableErrors: nonRetryable,
-		SLATimeout:         slaTimeout,
+		ActorTimeout:       actorTimeout,
 	}, nil
 }
 

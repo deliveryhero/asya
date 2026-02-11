@@ -276,8 +276,8 @@ func TestLoadFromEnv(t *testing.T) {
 				if len(r.NonRetryableErrors) != 0 {
 					t.Errorf("NonRetryableErrors = %v, want empty", r.NonRetryableErrors)
 				}
-				if r.SLATimeout != 0 {
-					t.Errorf("SLATimeout = %v, want 0", r.SLATimeout)
+				if r.ActorTimeout != 0 {
+					t.Errorf("ActorTimeout = %v, want 0", r.ActorTimeout)
 				}
 			},
 		},
@@ -293,7 +293,7 @@ func TestLoadFromEnv(t *testing.T) {
 				"ASYA_RESILIENCY_RETRY_BACKOFF_COEFFICIENT": "3.5",
 				"ASYA_RESILIENCY_RETRY_JITTER":              "false",
 				"ASYA_RESILIENCY_NON_RETRYABLE_ERRORS":      "ValueError,KeyError,json.decoder.JSONDecodeError",
-				"ASYA_RESILIENCY_SLA_TIMEOUT":               "5m",
+				"ASYA_RESILIENCY_ACTOR_TIMEOUT":             "5m",
 			},
 			validate: func(t *testing.T, cfg *Config) {
 				if cfg.Resiliency == nil {
@@ -327,8 +327,8 @@ func TestLoadFromEnv(t *testing.T) {
 						t.Errorf("NonRetryableErrors[%d] = %v, want %v", i, r.NonRetryableErrors[i], e)
 					}
 				}
-				if r.SLATimeout != 5*time.Minute {
-					t.Errorf("SLATimeout = %v, want 5m0s", r.SLATimeout)
+				if r.ActorTimeout != 5*time.Minute {
+					t.Errorf("ActorTimeout = %v, want 5m0s", r.ActorTimeout)
 				}
 			},
 		},
@@ -416,18 +416,18 @@ func TestLoadFromEnv(t *testing.T) {
 			},
 		},
 		{
-			name: "resiliency config triggered by only SLA timeout",
+			name: "resiliency config triggered by only actor timeout",
 			env: map[string]string{
-				"ASYA_ACTOR_NAME":             "test-actor",
-				"ASYA_NAMESPACE":              "default",
-				"ASYA_RESILIENCY_SLA_TIMEOUT": "30s",
+				"ASYA_ACTOR_NAME":               "test-actor",
+				"ASYA_NAMESPACE":                "default",
+				"ASYA_RESILIENCY_ACTOR_TIMEOUT": "30s",
 			},
 			validate: func(t *testing.T, cfg *Config) {
 				if cfg.Resiliency == nil {
 					t.Fatal("Resiliency should not be nil")
 				}
-				if cfg.Resiliency.SLATimeout != 30*time.Second {
-					t.Errorf("SLATimeout = %v, want 30s", cfg.Resiliency.SLATimeout)
+				if cfg.Resiliency.ActorTimeout != 30*time.Second {
+					t.Errorf("ActorTimeout = %v, want 30s", cfg.Resiliency.ActorTimeout)
 				}
 				if cfg.Resiliency.Retry.Policy != RetryPolicyExponential {
 					t.Errorf("Policy should default to exponential, got %v", cfg.Resiliency.Retry.Policy)
