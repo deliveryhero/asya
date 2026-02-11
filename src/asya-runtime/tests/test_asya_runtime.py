@@ -1016,8 +1016,50 @@ class TestErrorDict:
             assert err["error"] == "processing_error"
             assert err["details"]["message"] == "Test exception envelope"
             assert err["details"]["type"] == "ValueError"
+            assert err["details"]["mro"] == ["Exception"]
             assert "traceback" in err["details"]
             assert "ValueError" in err["details"]["traceback"]
+
+    def test_error_dict_stdlib_subclass_fqn_and_mro(self):
+        """Test that stdlib subclass gets fully qualified type and MRO chain."""
+        import json as json_mod
+
+        try:
+            json_mod.loads("{invalid")
+        except json_mod.JSONDecodeError as e:
+            err = asya_runtime._error_response("processing_error", e)
+            assert err["details"]["type"] == "json.decoder.JSONDecodeError"
+            assert err["details"]["mro"] == ["ValueError", "Exception"]
+
+    def test_error_dict_user_defined_subclass(self):
+        """Test that user-defined exception subclass gets correct FQN and MRO."""
+
+        class MyAppError(RuntimeError):
+            pass
+
+        class MySpecificError(MyAppError):
+            pass
+
+        try:
+            raise MySpecificError("custom error")
+        except MySpecificError as e:
+            err = asya_runtime._error_response("processing_error", e)
+            # User-defined classes have module set to test module
+            assert "MySpecificError" in err["details"]["type"]
+            mro = err["details"]["mro"]
+            assert "MyAppError" in mro[0]
+            assert "RuntimeError" in mro[1]
+            assert "Exception" in mro[2]
+            assert len(mro) == 3
+
+    def test_error_dict_builtin_exception_no_module_prefix(self):
+        """Test that builtin exceptions have no module prefix."""
+        try:
+            raise KeyError("missing key")
+        except KeyError as e:
+            err = asya_runtime._error_response("processing_error", e)
+            assert err["details"]["type"] == "KeyError"
+            assert err["details"]["mro"] == ["LookupError", "Exception"]
 
 
 class TestHandleRequestPayloadMode:
