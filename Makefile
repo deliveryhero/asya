@@ -29,6 +29,7 @@ setup: ## Set up development environment (install deps, pre-commit hooks)
 	cd src/asya-gateway && go mod download && go mod tidy
 	cd src/asya-sidecar && go mod download && go mod tidy
 	cd src/asya-injector && go mod download && go mod tidy
+	cd src/function-asya-flavors && go mod download && go mod tidy
 	@echo "[++] Setup complete! Ready for development."
 
 setup-dev: setup ## Alias for setup (backwards compatibility)
@@ -55,6 +56,7 @@ test-unit: ## Run unit tests (go + python)
 	$(MAKE) -C src/asya-crew test-unit
 	$(MAKE) -C src/asya-cli test-unit
 	$(MAKE) -C src/asya-injector test-unit
+	$(MAKE) -C src/function-asya-flavors test-unit
 	@echo "$(GREEN_START)[++] Success: All unit tests completed successfully!$(GREEN_END)"
 
 # =============================================================================
@@ -101,6 +103,7 @@ cov: ## Run all tests with coverage and display summary
 	$(MAKE) -C src/asya-runtime cov-unit
 	$(MAKE) -C src/asya-crew cov-unit
 	$(MAKE) -C src/asya-cli cov-unit
+	$(MAKE) -C src/function-asya-flavors cov-unit
 	$(MAKE) -C testing/integration cov
 	$(MAKE) -C testing/component cov
 	$(MAKE) -C testing/e2e cov-e2e
@@ -113,12 +116,14 @@ build-go: ## Build all Go components
 	$(MAKE) -C src/asya-gateway build
 	$(MAKE) -C src/asya-sidecar build
 	$(MAKE) -C src/asya-injector build
+	$(MAKE) -C src/function-asya-flavors build
 	@echo "$(GREEN_START)[++] Success: All Go components built successfully!$(GREEN_END)"
 
 build-images: ## Build all Docker images for the framework
 	./src/build-images.sh
 
 clean: clean-integration ## Clean build artifacts
+	$(MAKE) -C src/function-asya-flavors clean
 	$(MAKE) -C src/asya-crew clean
 	$(MAKE) -C src/asya-sidecar clean
 	$(MAKE) -C src/asya-runtime clean
