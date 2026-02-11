@@ -423,11 +423,11 @@ func TestRabbitMQTransport_Ack(t *testing.T) {
 	})
 }
 
-func TestRabbitMQTransport_Nack(t *testing.T) {
+func TestRabbitMQTransport_Requeue(t *testing.T) {
 	ctx := context.Background()
 	deliveryTag := uint64(42)
 
-	t.Run("successful nack with requeue", func(t *testing.T) {
+	t.Run("successful requeue", func(t *testing.T) {
 		nackCalled := false
 
 		mockChannel := &mockRabbitMQChannel{
@@ -452,12 +452,12 @@ func TestRabbitMQTransport_Nack(t *testing.T) {
 			ReceiptHandle: deliveryTag,
 		}
 
-		err := transport.Nack(ctx, msg)
+		err := transport.Requeue(ctx, msg)
 		if err != nil {
-			t.Errorf("Nack() error = %v, want nil", err)
+			t.Errorf("Requeue() error = %v, want nil", err)
 		}
 		if !nackCalled {
-			t.Error("Nack was not called")
+			t.Error("Channel Nack was not called")
 		}
 	})
 
@@ -468,16 +468,16 @@ func TestRabbitMQTransport_Nack(t *testing.T) {
 			ReceiptHandle: "invalid-type",
 		}
 
-		err := transport.Nack(ctx, msg)
+		err := transport.Requeue(ctx, msg)
 		if err == nil {
-			t.Error("Nack() error = nil, want type error")
+			t.Error("Requeue() error = nil, want type error")
 		}
 	})
 
-	t.Run("nack failure", func(t *testing.T) {
+	t.Run("requeue failure", func(t *testing.T) {
 		mockChannel := &mockRabbitMQChannel{
 			nackFunc: func(tag uint64, multiple, requeue bool) error {
-				return errors.New("nack failed")
+				return errors.New("requeue failed")
 			},
 		}
 
@@ -487,9 +487,22 @@ func TestRabbitMQTransport_Nack(t *testing.T) {
 			ReceiptHandle: deliveryTag,
 		}
 
-		err := transport.Nack(ctx, msg)
+		err := transport.Requeue(ctx, msg)
 		if err == nil {
-			t.Error("Nack() error = nil, want error")
+			t.Error("Requeue() error = nil, want error")
+		}
+	})
+}
+
+func TestRabbitMQTransport_SendWithDelay(t *testing.T) {
+	t.Run("returns ErrDelayNotSupported", func(t *testing.T) {
+		mockChannel := &mockRabbitMQChannel{}
+		transport := createMockRabbitMQTransport(nil, mockChannel)
+
+		ctx := context.Background()
+		err := transport.SendWithDelay(ctx, testQueueName, []byte(`{"test":"delayed"}`), 30*time.Second)
+		if !errors.Is(err, ErrDelayNotSupported) {
+			t.Errorf("SendWithDelay() error = %v, want ErrDelayNotSupported", err)
 		}
 	})
 }

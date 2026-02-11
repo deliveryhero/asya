@@ -55,11 +55,14 @@ comment:
 
 # Diff comparison for PRs - read baseline from octocov branch
 # Shows per-file coverage changes compared to main branch baseline
+# NOTE: Do NOT add 'path:' here. In octocov's diff section, 'path' specifies a LOCAL
+# coverage file as an alternative baseline, NOT the remote report filename. If set,
+# octocov creates an empty Report with time.Now() timestamp, which overwrites the
+# correctly-loaded baseline from the datastore (because it's always "newer").
 diff:
   if: is_pull_request
   datastores:
   - github://${GITHUB_REPOSITORY}@octocov/.
-  path: report.json
 
 summary:
   if: is_default_branch

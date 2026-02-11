@@ -257,9 +257,9 @@ func (t *SQSTransport) Ack(ctx context.Context, msg QueueMessage) error {
 	return nil
 }
 
-// Nack negatively acknowledges a message by setting visibility timeout to 0
-// This makes the message immediately available for redelivery
-func (t *SQSTransport) Nack(ctx context.Context, msg QueueMessage) error {
+// Requeue returns a message to the queue for immediate redelivery by setting
+// visibility timeout to 0. Best-effort last-resort infrastructure signal.
+func (t *SQSTransport) Requeue(ctx context.Context, msg QueueMessage) error {
 	queueURL, receiptHandle, err := splitReceiptHandle(msg.ReceiptHandle)
 	if err != nil {
 		return err
@@ -271,9 +271,38 @@ func (t *SQSTransport) Nack(ctx context.Context, msg QueueMessage) error {
 		VisibilityTimeout: 0,
 	})
 	if err != nil {
-		return fmt.Errorf("failed to nack message: %w", err)
+		return fmt.Errorf("failed to requeue message: %w", err)
 	}
 
+	return nil
+}
+
+// SendWithDelay sends a message to the specified queue with a delivery delay.
+// SQS supports up to 900 seconds (15 minutes) of delay; values above that are clamped.
+func (t *SQSTransport) SendWithDelay(ctx context.Context, queueName string, body []byte, delay time.Duration) error {
+	queueURL, err := t.resolveQueueURL(ctx, queueName)
+	if err != nil {
+		slog.Error("Failed to resolve queue URL", "queueName", queueName, "error", err)
+		return fmt.Errorf("failed to resolve queue URL for %s: %w", queueName, err)
+	}
+
+	delaySec := int32(delay.Round(time.Second).Seconds())
+	if delaySec > 900 {
+		slog.Warn("Requested delay exceeds SQS maximum of 900s, clamping", "requested", delaySec, "clamped", 900)
+		delaySec = 900
+	}
+
+	result, err := t.client.SendMessage(ctx, &sqs.SendMessageInput{
+		QueueUrl:     aws.String(queueURL),
+		MessageBody:  aws.String(string(body)),
+		DelaySeconds: delaySec,
+	})
+	if err != nil {
+		slog.Error("SQS SendMessage with delay failed", "queueName", queueName, "queueURL", queueURL, "delay", delaySec, "error", err)
+		return fmt.Errorf("failed to send to SQS with delay: %w", err)
+	}
+
+	slog.Info("SQS message sent with delay", "queueName", queueName, "messageId", aws.ToString(result.MessageId), "delaySeconds", delaySec)
 	return nil
 }
 

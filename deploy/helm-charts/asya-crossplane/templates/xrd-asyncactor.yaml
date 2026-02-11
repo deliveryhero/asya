@@ -48,6 +48,17 @@ spec:
                     - rabbitmq
                   default: sqs
 
+                flavors:
+                  type: array
+                  maxItems: 8
+                  items:
+                    type: string
+                    minLength: 3
+                  description: >-
+                    List of flavor names (EnvironmentConfigs) to compose.
+                    Applied left-to-right; later flavors override earlier ones.
+                    Actor inline spec is applied last and always wins.
+
                 region:
                   type: string
                   description: AWS region for SQS queue

@@ -60,6 +60,7 @@ jobs:
         IMAGES=(
           "asya-gateway"
           "asya-sidecar"
+          "asya-injector"
           "asya-crew"
           "asya-testing"
         )
@@ -82,6 +83,7 @@ jobs:
 
         - \`ghcr.io/${{ github.repository_owner }}/asya-gateway:${{ steps.version.outputs.version }}\`
         - \`ghcr.io/${{ github.repository_owner }}/asya-sidecar:${{ steps.version.outputs.version }}\`
+        - \`ghcr.io/${{ github.repository_owner }}/asya-injector:${{ steps.version.outputs.version }}\`
         - \`ghcr.io/${{ github.repository_owner }}/asya-crew:${{ steps.version.outputs.version }}\`
         - \`ghcr.io/${{ github.repository_owner }}/asya-testing:${{ steps.version.outputs.version }}\`
         EOF
@@ -183,19 +185,32 @@ jobs:
           echo "[+] Published charts to gh-pages"
         fi
 
-    - name: Package asya-playground with published dependencies
+    - name: Package asya-playground with local dependencies
       run: |
-        # Add the freshly published repo
-        helm repo add asya https://asya.sh/charts
+        # Serve the already-indexed gh-pages/charts locally instead of fetching
+        # from asya.sh (GitHub Pages hasn't deployed the push yet)
+        python3 -m http.server 8879 --directory gh-pages/charts &
+        SERVER_PID=$!
+        trap "kill $SERVER_PID 2>/dev/null" EXIT
+        sleep 1
+        curl -sf http://localhost:8879/index.yaml > /dev/null || { echo "[-] Local chart server failed to start"; exit 1; }
+
+        # Temporarily redirect asya chart deps to local server
+        sed -i 's|https://asya.sh/charts|http://localhost:8879|g' deploy/helm-charts/asya-playground/Chart.yaml
+        helm repo add asya-local http://localhost:8879
         helm repo update
 
-        # Build dependencies for asya-playground (now available from remote)
         echo "[.] Building asya-playground dependencies..."
         helm dependency build deploy/helm-charts/asya-playground
 
-        # Package asya-playground
+        # Restore Chart.yaml with production URLs before packaging
+        git checkout deploy/helm-charts/asya-playground/Chart.yaml
+        rm -f deploy/helm-charts/asya-playground/Chart.lock
+
         echo "[.] Packaging asya-playground..."
         helm package deploy/helm-charts/asya-playground -d .deploy/charts
+
+        kill $SERVER_PID 2>/dev/null || true
 
         # Copy to gh-pages and update index
         cp .deploy/charts/asya-playground-*.tgz gh-pages/charts/

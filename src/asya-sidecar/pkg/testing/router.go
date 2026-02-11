@@ -80,14 +80,18 @@ func (mta *mockTransportAdapter) Ack(ctx context.Context, msg internaltransport.
 	return mta.mock.Ack(ctx, publicMsg)
 }
 
-func (mta *mockTransportAdapter) Nack(ctx context.Context, msg internaltransport.QueueMessage) error {
+func (mta *mockTransportAdapter) Requeue(ctx context.Context, msg internaltransport.QueueMessage) error {
 	publicMsg := transport.QueueMessage{
 		ID:            msg.ID,
 		Body:          msg.Body,
 		ReceiptHandle: msg.ReceiptHandle,
 		Headers:       msg.Headers,
 	}
-	return mta.mock.Nack(ctx, publicMsg)
+	return mta.mock.Requeue(ctx, publicMsg)
+}
+
+func (mta *mockTransportAdapter) SendWithDelay(ctx context.Context, queueName string, body []byte, delay time.Duration) error {
+	return mta.mock.SendWithDelay(ctx, queueName, body, delay)
 }
 
 func (mta *mockTransportAdapter) Close() error {

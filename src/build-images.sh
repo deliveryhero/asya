@@ -64,9 +64,10 @@ while [[ $# -gt 0 ]]; do
       echo "    $0 asya-gateway asya-sidecar     # Build gateway and sidecar with default tag"
       echo ""
       echo "Available images:"
-      echo "  - asya-gateway"
-      echo "  - asya-sidecar"
       echo "  - asya-crew"
+      echo "  - asya-gateway"
+      echo "  - asya-injector"
+      echo "  - asya-sidecar"
       echo "  - asya-testing"
       echo ""
       echo "Environment variables:"
@@ -188,9 +189,10 @@ echo ""
 
 # Discover available images from src/ directory
 declare -a ALL_IMAGES=(
-  "asya-gateway"
-  "asya-sidecar"
   "asya-crew"
+  "asya-gateway"
+  "asya-injector"
+  "asya-sidecar"
   "asya-testing"
 )
 
