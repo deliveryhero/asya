@@ -6,6 +6,114 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.5.0] - 2026-02-11
+
+## Major Changes
+
+* feat: Add `asya-playground` umbrella Helm chart for quickstart (#122) @atemate
+* feat!: yield-only fan-out with streaming wire protocol (#166) @atemate
+* fix(ci): Add root prefix to octocov github:// datastore URL (#167) @atemate
+* feat(crossplane): Add RabbitMQ Crossplane composition (#161) @atemate
+* feat(runtime): add async handler support (#165) @atemate
+* feat(flow): add while loop support to Flow DSL compiler (#163) @atemate
+* fix(ci): Use github:// datastore for octocov coverage reports (#164) @atemate
+* fix(crossplane): Add function-auto-ready to fix XR Ready=False (#156) @atemate
+* feat(crossplane): Add required spec.actor field to AsyncActor XRD (#159) @atemate
+* feat(crossplane): Add ACTOR printer column to AsyncActor XRD (#158) @atemate
+* fix(e2e): Add warm-up to concurrent envelope test to prevent flaky timeout (#155) @atemate
+* feat(e2e): Migrate E2E tests to Crossplane architecture (#149) @atemate
+* fix(charts): Fix labels: `actor` to `asya.sh/actor` (#153) @atemate
+* feat(injector): Support custom Python executable via ASYA\_PYTHONEXECUTABLE env var (#152) @atemate
+* fix(crossplane): Remove workloadRef from XRD schema (#154) @atemate
+* feat(crossplane): Add transport-agnostic status fields to XRD (#151) @atemate
+* feat(crossplane): Add sidecar imagePullPolicy and env to XRD (#150) @atemate
+* fix(crossplane): Remove actorName field, use asya.sh/actor label (#148) @atemate
+* fix(crossplane): Add credential tests, DRC selector, and workloadReady nil guard (#147) @atemate
+* feat(crossplane): Add runtime ConfigMap to crossplane Helm chart (#146) @atemate
+* feat(crossplane): Add Deployment and ScaledObject status patching (#140) @atemate
+* fix(crossplane): Fix chart bugs and add Crossplane quickstart (#141) @atemate
+* feat(injector): Add asya-injector mutating webhook for sidecar injection (#142) @atemate
+* feat(crossplane): Add status patching to SQS Composition (#139) @atemate
+* feat(crossplane): Add KEDA TriggerAuthentication to SQS Composition (#138) @atemate
+* feat(crossplane): Add Deployment and ScaledObject to SQS Composition (#137) @atemate
+* feat(crossplane): Add Phase 3 IRSA, KEDA, and Deployment support (#136) @atemate
+* fix(crossplane): Address PR #134 review comments (#135) @atemate
+* feat(crossplane): Add asya-crossplane Helm chart for Phase 1 Foundation (#134) @atemate
+
+## Other Changes
+
+* feat: Add `asya-playground` umbrella Helm chart for quickstart (#122) @atemate
+* feat!: yield-only fan-out with streaming wire protocol (#166) @atemate
+* feat(crossplane): Add RabbitMQ Crossplane composition (#161) @atemate
+* feat(runtime): add async handler support (#165) @atemate
+* feat(flow): add while loop support to Flow DSL compiler (#163) @atemate
+* fix(ci): Use github:// datastore for octocov coverage reports (#164) @atemate
+* refactor: Remove asya-operator, replace with Crossplane + injector (#160) @atemate
+* fix(crossplane): Add function-auto-ready to fix XR Ready=False (#156) @atemate
+* feat(crossplane): Add required spec.actor field to AsyncActor XRD (#159) @atemate
+* refactor: rename Envelope to Message/Task across codebase (#162) @atemate
+* feat(crossplane): Add ACTOR printer column to AsyncActor XRD (#158) @atemate
+* fix(e2e): Add warm-up to concurrent envelope test to prevent flaky timeout (#155) @atemate
+* feat(e2e): Migrate E2E tests to Crossplane architecture (#149) @atemate
+* fix(charts): Fix labels: `actor` to `asya.sh/actor` (#153) @atemate
+* feat(injector): Support custom Python executable via ASYA\_PYTHONEXECUTABLE env var (#152) @atemate
+* fix(crossplane): Remove workloadRef from XRD schema (#154) @atemate
+* feat(crossplane): Add transport-agnostic status fields to XRD (#151) @atemate
+* feat(crossplane): Add sidecar imagePullPolicy and env to XRD (#150) @atemate
+* fix(crossplane): Remove actorName field, use asya.sh/actor label (#148) @atemate
+* fix(crossplane): Add credential tests, DRC selector, and workloadReady nil guard (#147) @atemate
+* feat(crossplane): Add runtime ConfigMap to crossplane Helm chart (#146) @atemate
+* feat(crossplane): Add Deployment and ScaledObject status patching (#140) @atemate
+* fix(crossplane): Fix chart bugs and add Crossplane quickstart (#141) @atemate
+* build(deps): Bump golang.org/x/oauth2 from 0.12.0 to 0.27.0 in /src/asya-injector (#145) @[dependabot[bot]](https://github.com/apps/dependabot)
+* build(deps): Bump golang.org/x/net from 0.19.0 to 0.38.0 in /src/asya-injector (#144) @[dependabot[bot]](https://github.com/apps/dependabot)
+* build(deps): Bump google.golang.org/protobuf from 1.31.0 to 1.33.0 in /src/asya-injector (#143) @[dependabot[bot]](https://github.com/apps/dependabot)
+* feat(injector): Add asya-injector mutating webhook for sidecar injection (#142) @atemate
+* feat(crossplane): Add status patching to SQS Composition (#139) @atemate
+* feat(crossplane): Add KEDA TriggerAuthentication to SQS Composition (#138) @atemate
+* feat(crossplane): Add Deployment and ScaledObject to SQS Composition (#137) @atemate
+* feat(crossplane): Add Phase 3 IRSA, KEDA, and Deployment support (#136) @atemate
+* fix(crossplane): Address PR #134 review comments (#135) @atemate
+* feat(crossplane): Add asya-crossplane Helm chart for Phase 1 Foundation (#134) @atemate
+* test(sidecar): Add regression tests for json.RawMessage payload optimization (#133) @atemate
+
+## Installation
+
+### Helm Charts
+
+Add the Helm repository:
+```bash
+helm repo add asya https://asya.sh/charts
+helm repo update
+```
+
+Install the Crossplane compositions and gateway:
+```bash
+helm install asya-crossplane asya/asya-crossplane \
+  --version 0.5.0 \
+  --namespace asya-system \
+  --create-namespace
+helm install asya-gateway asya/asya-gateway \
+  --version 0.5.0 \
+  --namespace asya
+```
+
+## Docker Images
+
+All images are published to GitHub Container Registry:
+
+- `ghcr.io/deliveryhero/asya-gateway:0.5.0`
+- `ghcr.io/deliveryhero/asya-sidecar:0.5.0`
+- `ghcr.io/deliveryhero/asya-crew:0.5.0`
+- `ghcr.io/deliveryhero/asya-testing:0.5.0`
+
+## Contributors
+
+@atemate, @dependabot[bot], @github-actions[bot], [dependabot[bot]](https://github.com/apps/dependabot) and [github-actions[bot]](https://github.com/apps/github-actions)
+
+
+
+
 ## [0.4.2] - 2026-02-03
 
 ## Major Changes
@@ -685,6 +793,9 @@ All images are published to GitHub Container Registry:
 [0.4.1]: https://github.com/deliveryhero/asya/releases/tag/v0.4.1
 
 
-[Unreleased]: https://github.com/deliveryhero/asya/compare/v0.4.2...HEAD
 [0.4.2]: https://github.com/deliveryhero/asya/releases/tag/v0.4.2
+
+
+[Unreleased]: https://github.com/deliveryhero/asya/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/deliveryhero/asya/releases/tag/v0.5.0
 
