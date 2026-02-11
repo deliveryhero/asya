@@ -41,7 +41,7 @@ repos:
     entry: bash -c 'bash .pre-commit-hooks/compile-flows.sh'
     language: system
     files: (src/asya-testing/asya_testing/flows/.*/flow\.py$|examples/flows/.*\.py$)
-    exclude: (^|/)(__init__|compiled/)
+    exclude: (^|/)(__init__|compiled/)|examples/flows/(async_|react_)
     pass_filenames: false
 
 # JSON formatting (auto-fix)

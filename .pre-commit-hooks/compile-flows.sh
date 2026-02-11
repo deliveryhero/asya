@@ -22,6 +22,8 @@ for flow_file in "$REPO_ROOT"/src/asya-testing/asya_testing/flows/*/flow.py \
     # Flat structure: nested_if.py -> compile to examples/flows/compiled/nested_if/
     flow_name="$(basename "$flow_file" .py)"
     [[ "$flow_name" == "__init__" ]] && continue
+    # Skip async flow fixtures (for future agentic compiler)
+    [[ "$flow_name" == async_* || "$flow_name" == react_* ]] && continue
     output_dir="$flow_dir/compiled/$flow_name"
   fi
 
