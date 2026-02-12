@@ -48,7 +48,6 @@ def router_resource_pipeline_line_3_try_enter_0(message: dict) -> dict:
     _next.append(resolve("acquire_resource"))
     _next.append(resolve("process_with_resource"))
     _next.append(resolve("router_resource_pipeline_line_3_try_exit_0"))
-    _next.append(resolve("router_resource_pipeline_line_3_try_exit_0"))
 
     r['actors'][c+1:c+1] = _next
     r['current'] = c + 1

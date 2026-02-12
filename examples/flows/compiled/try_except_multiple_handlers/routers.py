@@ -76,7 +76,6 @@ def router_data_pipeline_line_2_try_enter_0(message: dict) -> dict:
     _next.append(resolve("parse_input"))
     _next.append(resolve("transform_data"))
     _next.append(resolve("router_data_pipeline_line_2_try_exit_0"))
-    _next.append(resolve("router_data_pipeline_line_2_try_exit_0"))
 
     r['actors'][c+1:c+1] = _next
     r['current'] = c + 1

@@ -47,7 +47,6 @@ def router_order_processing_line_2_try_enter_0(message: dict) -> dict:
 
     _next.append(resolve("validate_order"))
     _next.append(resolve("router_order_processing_line_2_try_exit_0"))
-    _next.append(resolve("router_order_processing_line_2_try_exit_0"))
 
     r['actors'][c+1:c+1] = _next
     r['current'] = c + 1
