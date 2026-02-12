@@ -13,6 +13,12 @@ asya-default-test-unicode
 asya-default-test-null
 asya-default-test-conditional-queue
 asya-default-test-nested
+asya-default-test-invalid-route
+
+# Retry test actor queues
+asya-default-test-retry-fail
+asya-default-test-retry-nonretryable
+asya-default-test-retry-mro
 
 # System actor queues
 asya-default-happy-end

@@ -73,7 +73,16 @@
       "auto_delete": false,
       "arguments": {}
     },
-    { "vhost": "/", "name": "asya-default-test-invalid-route", "durable": true, "auto_delete": false, "arguments": {} }
+    { "vhost": "/", "name": "asya-default-test-invalid-route", "durable": true, "auto_delete": false, "arguments": {} },
+    { "vhost": "/", "name": "asya-default-test-retry-fail", "durable": true, "auto_delete": false, "arguments": {} },
+    {
+      "vhost": "/",
+      "name": "asya-default-test-retry-nonretryable",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    },
+    { "vhost": "/", "name": "asya-default-test-retry-mro", "durable": true, "auto_delete": false, "arguments": {} }
   ],
   "bindings": [
     {
@@ -298,6 +307,30 @@
       "destination": "asya-default-test-invalid-route",
       "destination_type": "queue",
       "routing_key": "test-invalid-route",
+      "arguments": {}
+    },
+    {
+      "source": "asya",
+      "vhost": "/",
+      "destination": "asya-default-test-retry-fail",
+      "destination_type": "queue",
+      "routing_key": "test-retry-fail",
+      "arguments": {}
+    },
+    {
+      "source": "asya",
+      "vhost": "/",
+      "destination": "asya-default-test-retry-nonretryable",
+      "destination_type": "queue",
+      "routing_key": "test-retry-nonretryable",
+      "arguments": {}
+    },
+    {
+      "source": "asya",
+      "vhost": "/",
+      "destination": "asya-default-test-retry-mro",
+      "destination_type": "queue",
+      "routing_key": "test-retry-mro",
       "arguments": {}
     },
     {
