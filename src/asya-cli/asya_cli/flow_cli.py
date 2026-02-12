@@ -19,6 +19,14 @@ from asya_cli.flow import FlowCompileError, FlowCompiler
 from asya_cli.flow.grouper import DEFAULT_MAX_LOOP_ITERATIONS
 
 
+def _check_positive_int(value: str) -> int:
+    """Argparse type checker for positive integers."""
+    ivalue = int(value)
+    if ivalue <= 0:
+        raise argparse.ArgumentTypeError(f"must be a positive integer, but got {value}")
+    return ivalue
+
+
 def cmd_compile(args):
     """Compile flow file."""
     try:
@@ -127,7 +135,7 @@ def main(argv=None):
     )
     compile_parser.add_argument(
         "--max-iterations",
-        type=int,
+        type=_check_positive_int,
         default=DEFAULT_MAX_LOOP_ITERATIONS,
         help=f"Maximum iterations for while-True loops before raising RuntimeError (default: {DEFAULT_MAX_LOOP_ITERATIONS}). "
         "Can be overridden at deploy time via ASYA_MAX_LOOP_ITERATIONS env var on router actors.",

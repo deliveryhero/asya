@@ -620,9 +620,7 @@ def flow(p: dict) -> dict:
             msg["route"]["current"] = len(msg["route"]["actors"]) - 1
 
         # 4th iteration should raise (3 past visits in route)
-        import pytest as pt
-
-        with pt.raises(RuntimeError, match="Max loop iterations"):
+        with pytest.raises(RuntimeError, match="Max loop iterations"):
             loop_back_fn(msg)
 
     def test_guard_execution_succeeds_under_limit(self, compile_and_import, monkeypatch):
