@@ -340,34 +340,97 @@ This enables polymorphic matching: configuring `ValueError` catches all 20+ stdl
 
 ## System Actors
 
-### Naming Convention: `_` Prefix
+### Naming Convention: `asya-` Prefix
 
-System/crew actors use `_` prefix — sorts last in listings, visually distinct, Python-convention "protected":
+System/crew actors use `asya-` prefix — clearly identifies framework-managed actors, distinguishes from user actors:
 
-| Actor | Queue | Role |
-|-------|-------|------|
-| `_sink` | `asya-{ns}-_sink` | Terminal: persists messages + gateway reports status |
-| `_dlq` | Transport DLQ | Infrastructure: standalone worker for transport-level failures |
+| Actor | Queue | Sidecar Role | Purpose |
+|-------|-------|:---:|---------|
+| `asya-sink` | `asya-{ns}-asya-sink` | `sink` | Reports final status to gateway, routes to hooks |
+| `asya-sump` | `asya-{ns}-asya-sump` | `sump` | Final terminal: emits metrics, logs errors |
+| `asya-dlq` | Transport DLQ | N/A | Standalone worker for transport-level failures |
 
-### `_sink` (replaces `happy-end` + `error-end`)
+### Sidecar Actor Roles
 
-Single terminal queue for both successful and failed messages. The `_sink` actor:
-1. Persists the complete message to storage (S3/GCS/PostgreSQL)
-2. Returns empty response (terminal — no further routing)
-3. Sidecar (with `ASYA_IS_END_ACTOR=true`) reports final status to gateway
+The sidecar's `ASYA_IS_END_ACTOR` boolean is replaced by a three-state `ASYA_ACTOR_ROLE`:
 
-The `status.phase` field (`succeeded` or `failed`) determines:
-- Storage prefix: `succeeded/` or `failed/` (replaces `happy-asya/` and `error-asya/`)
-- Gateway status: `succeeded` or `failed`
+| Role | Gateway reporting | Routes responses | Env var |
+|------|:-:|:-:|---------|
+| `regular` (default) | Intermediate progress | ✅ to next actor | `ASYA_ACTOR_ROLE=regular` |
+| `sink` | Final status (succeeded/failed) | ✅ to configured hooks | `ASYA_ACTOR_ROLE=sink` |
+| `sump` | ❌ (Prometheus metrics only) | ❌ terminal | `ASYA_ACTOR_ROLE=sump` |
 
-### `_dlq` Worker (Standalone)
+The separate `ASYA_ACTOR_HAPPY_END` and `ASYA_ACTOR_ERROR_END` are unified into a single `ASYA_ACTOR_SINK` (default: `asya-sink`). All sidecars (except sink/sump actors themselves) point to the same sink.
+
+### Two-Layer Flow Termination
+
+```
+User pipeline (a -> b -> c)
+    | route exhausted (succeeded or failed)
+    v
+asya-sink  [role=sink, ASYA_ACTOR_SINK=asya-sump]
+    |-- Reports final status to gateway        [hardcoded, stable]
+    |-- Routes to configured hooks             [sequential, deploy-time config]
+    |     |
+    |     v
+    |   asya-checkpoint-s3  [role=regular, ASYA_ACTOR_SINK=asya-sump]
+    |     |
+    |     v
+    |   asya-notify-slack   [role=regular, ASYA_ACTOR_SINK=asya-sump]
+    |     |
+    |     v chain completes or hook fails after retries
+    |
+    v
+asya-sump  [role=sump]
+    |-- Emits Prometheus metrics (hook_success / hook_failure)
+    |-- On error: logs full message JSON to stdout
+    |-- ACK. Terminal. Nothing below.
+```
+
+**Layer 1 (asya-sink)**: Graceful termination. Reports pipeline result to gateway, then dispatches message through configured hooks for finalization (S3 persistence, notifications, etc.).
+
+**Layer 2 (asya-sump)**: Hard termination. Catches the output of completed hooks and failed hooks alike. Emits metrics for alerting. On error, logs the full message JSON to stdout as a last-resort persistence mechanism.
+
+**No circularity**: User actors point to `asya-sink`, hooks point to `asya-sump`. Two distinct layers, no cycles.
+
+### `asya-sink` (replaces `happy-end` + `error-end`)
+
+The sink actor receives both succeeded and failed messages (distinguished by `status.phase`). It:
+1. Validates `status.phase` is `succeeded` or `failed`
+2. Constructs a hook route from deploy-time configuration (`ASYA_SINK_HOOKS=asya-checkpoint-s3,asya-notify-slack`)
+3. Returns the message with the hook route for the sidecar to route
+4. Sidecar (with `ASYA_ACTOR_ROLE=sink`) reports final status to gateway before routing
+
+### `asya-sump` (final terminal)
+
+The sump actor is the absolute bottom of the message flow:
+1. Emits Prometheus metrics (counters for hook success/failure)
+2. On error (`status.phase=failed`): logs the complete message JSON to stdout
+3. Returns `None` (terminal — sidecar emits metrics, ACKs, done)
+
+### Crew Actors as Dual-Purpose Integrations
+
+Crew actors in `asya-crew` are general-purpose, reusable actors — not just finalizers. The same actor can serve different roles depending on its position in the pipeline:
+
+| Actor | As hook (after asya-sink) | As mid-pipeline actor |
+|-------|---------------------------|----------------------|
+| `asya-checkpoint-s3` | Persists final message to S3 | Checkpoints intermediate state for recovery |
+| `asya-notify-slack` | Sends completion notification | Sends progress notification |
+
+**Package structure** (`src/asya-crew/asya_crew/`):
+- `sink.py` — sink handler
+- `sump.py` — sump handler
+- `message_persistence/s3.py` — S3/GCS message persistence
+- `notifications/slack.py` — Slack integration (future)
+
+### `asya-dlq` Worker (Standalone)
 
 A minimal Go binary (NOT an actor — no sidecar) that processes transport-level DLQ messages:
 
 1. Polls DLQ queue using native transport SDK (not Asya's transport abstraction)
 2. Parses message to extract `id`
 3. POSTs failure status to gateway (`/tasks/{id}/final`)
-4. Forwards complete message to `_sink` queue for persistence
+4. Forwards complete message to `asya-sink` queue for persistence
 5. ACKs from DLQ
 
 **Design principle**: Different failure domain from sidecar. Uses native transport SDK directly to avoid sharing bugs with the component whose failure caused the DLQ event.
@@ -489,11 +552,13 @@ See `docs/rfc/actor-flavors/temp.md` for full ADR.
 
 **Prerequisite**: All target transports must support `SendWithDelay`. For transports that don't, return `ErrDelayNotSupported` (future CronJob scheduler handles these — asya-013s).
 
-## ADR-004: `_sink` Replaces `happy-end` + `error-end`
+## ADR-004: Two-Layer Termination (`asya-sink` + `asya-sump`)
 
-**Decision**: Single terminal queue `_sink` for both success and failure.
+**Decision**: Replace `happy-end` + `error-end` with a two-layer termination scheme: `asya-sink` (reports to gateway, routes to hooks) and `asya-sump` (final terminal, metrics only).
 
-**Reasoning**: Both end actors did the same thing (persist to S3). The message's `status.phase` (succeeded/failed) determines the storage prefix and gateway status. One queue, one actor, one code path.
+**Reasoning**: The original `_sink` design bundled gateway reporting with S3 persistence. Separating these concerns enables extensibility — users can configure arbitrary hooks (S3, Slack, email) without modifying the sink. The two-layer design prevents circular routing: user actors terminate at `asya-sink`, hooks terminate at `asya-sump`. Crew actors (like `asya-checkpoint-s3`) are dual-purpose — usable as post-sink hooks AND as mid-pipeline checkpointing actors.
+
+**Sidecar changes**: `ASYA_IS_END_ACTOR` (boolean) replaced by `ASYA_ACTOR_ROLE` (regular/sink/sump). `ASYA_ACTOR_HAPPY_END` + `ASYA_ACTOR_ERROR_END` unified into `ASYA_ACTOR_SINK`. System actors prefixed with `asya-` instead of `_`.
 
 ## ADR-005: `_dlq` as Standalone Worker (Not Actor)
 
@@ -521,12 +586,11 @@ See `docs/rfc/actor-flavors/temp.md` for full ADR.
 
 1. **Runtime**: Add `mro` field to `_error_response()` (backward compatible — sidecar ignores unknown fields)
 2. **Transport**: Add `SendWithDelay()` and rename `Nack()` → `Requeue()` (breaking change for transport implementations, internal only)
-3. **Sidecar**: Add retry logic, status management, resiliency config parsing
-4. **Crew**: Create `_sink` actor, keep `happy-end`/`error-end` during migration
-5. **Gateway**: Update `ResultConsumer` to listen on `_sink` queue
-6. **Crossplane**: Update compositions to create `_sink` queue, add resiliency fields to XRD
-7. **Injector**: Pass `ASYA_RESILIENCY_*` env vars to sidecar
-8. **Deprecate**: `happy-end`, `error-end`, `ASYA_ACTOR_HAPPY_END`, `ASYA_ACTOR_ERROR_END`
+3. **Sidecar**: Add retry logic, status management, resiliency config parsing, `ASYA_ACTOR_ROLE` (regular/sink/sump), unified `ASYA_ACTOR_SINK`
+4. **Crew**: Create `asya-sink`, `asya-sump`, `asya-checkpoint-s3` actors. Remove `happy-end`/`error-end`
+5. **Gateway**: Update `ResultConsumer` to listen on `asya-sink` queue (sink sidecar reports final status)
+6. **Crossplane/Injector**: Set `ASYA_ACTOR_ROLE` based on actor name, create `asya-sink`/`asya-sump` queues, add resiliency fields to XRD, pass `ASYA_RESILIENCY_*` env vars
+7. **Remove**: `happy-end`, `error-end`, `ASYA_ACTOR_HAPPY_END`, `ASYA_ACTOR_ERROR_END`, `ASYA_IS_END_ACTOR`
 
 ## Competitive Analysis
 
