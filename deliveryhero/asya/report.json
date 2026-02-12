@@ -1,18 +1,18 @@
 {
   "repository": "deliveryhero/asya",
   "ref": "refs/heads/main",
-  "commit": "bce3bf618a7df7435d499a2cf4045462856edba7",
+  "commit": "19c2c2594ec7838c2a530a7b274a50e81e799ab0",
   "coverage": {
     "type": "merged",
     "format": "Go coverage",
     "total": 4784,
-    "covered": 2631,
+    "covered": 2633,
     "files": [
       {
         "type": "statement",
         "file": "github.com/deliveryhero/asya/asya-sidecar/cmd/sidecar/main.go",
         "total": 191,
-        "covered": 49,
+        "covered": 51,
         "blocks": [
           {
             "type": "statement",
@@ -102,7 +102,7 @@
             "end_line": 61,
             "end_col": 20,
             "num_stmt": 1,
-            "count": 0
+            "count": 1
           },
           {
             "type": "statement",
@@ -15061,8 +15061,8 @@
     ]
   },
   "code_to_test_ratio": {
-    "code": 16574,
-    "test": 14327,
+    "code": 16828,
+    "test": 15169,
     "code_files": [
       {
         "code": 384,
@@ -16155,6 +16155,27 @@
         "blank": 13,
         "path": "src/asya-testing/asya_testing/utils/transport.py",
         "language": "Python"
+      },
+      {
+        "code": 166,
+        "comment": 29,
+        "blank": 44,
+        "path": "src/function-asya-flavors/fn.go",
+        "language": "Go"
+      },
+      {
+        "code": 28,
+        "comment": 4,
+        "blank": 6,
+        "path": "src/function-asya-flavors/main.go",
+        "language": "Go"
+      },
+      {
+        "code": 60,
+        "comment": 20,
+        "blank": 14,
+        "path": "src/function-asya-flavors/merge.go",
+        "language": "Go"
       }
     ],
     "test_files": [
@@ -16334,6 +16355,20 @@
         "language": "Go"
       },
       {
+        "code": 341,
+        "comment": 16,
+        "blank": 58,
+        "path": "src/function-asya-flavors/fn_test.go",
+        "language": "Go"
+      },
+      {
+        "code": 501,
+        "comment": 12,
+        "blank": 51,
+        "path": "src/function-asya-flavors/merge_test.go",
+        "language": "Go"
+      },
+      {
         "code": 227,
         "comment": 26,
         "blank": 59,
@@ -16419,6 +16454,6 @@
       }
     ]
   },
-  "test_execution_time": 187000000000,
-  "timestamp": "2026-02-11T23:14:13.783094323Z"
+  "test_execution_time": 202000000000,
+  "timestamp": "2026-02-12T00:02:57.548239886Z"
 }
