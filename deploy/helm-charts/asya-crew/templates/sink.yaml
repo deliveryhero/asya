@@ -1,0 +1,56 @@
+{{- $sink := index .Values "_sink" }}
+{{- if $sink.enabled }}
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: {{ $sink.name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "asya-crew._sink.labels" . | nindent 4 }}
+  {{- with $sink.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  actor: {{ $sink.name }}
+  compositionSelector:
+    matchLabels:
+      asya.sh/transport: {{ $sink.transport }}
+  transport: {{ $sink.transport }}
+
+  {{- with $sink.sidecar }}
+  sidecar:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+
+  {{- if $sink.scaling.enabled }}
+  scaling:
+    {{- toYaml $sink.scaling | nindent 4 }}
+  {{- end }}
+
+  workload:
+    kind: {{ $sink.workload.kind }}
+    template:
+      spec:
+        containers:
+        - name: asya-runtime
+          image: {{ include "asya-crew._sink.image" . }}
+          imagePullPolicy: {{ include "asya-crew._sink.imagePullPolicy" . }}
+          env:
+          {{- range $key, $value := $sink.env }}
+          {{- if ne $value "" }}
+          - name: {{ $key }}
+            value: {{ $value | quote }}
+          {{- end }}
+          {{- end }}
+          - name: ASYA_HANDLER
+            value: handlers.sink_handler.sink_handler
+          - name: ASYA_HANDLER_MODE
+            value: envelope
+          - name: ASYA_ENABLE_VALIDATION
+            value: "false"
+          {{- with $sink.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+{{- end }}

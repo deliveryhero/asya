@@ -83,3 +83,27 @@ Resolve image pull policy for error-end actor (convenience wrapper)
 {{- define "asya-crew.error-end.imagePullPolicy" -}}
 {{- include "asya-crew.actor.imagePullPolicy" (dict "root" . "actorName" "error-end") }}
 {{- end }}
+
+{{/*
+Common labels for _sink actor
+Labels for AsyncActor CRs should NOT include reserved prefixes (app.kubernetes.io/, etc.)
+as these are managed by the operator and added to child resources.
+*/}}
+{{- define "asya-crew._sink.labels" -}}
+helm.sh/chart: {{ include "asya-crew.chart" . }}
+asya.sh/actor: _sink
+{{- end }}
+
+{{/*
+Resolve image for _sink actor (convenience wrapper)
+*/}}
+{{- define "asya-crew._sink.image" -}}
+{{- include "asya-crew.actor.image" (dict "root" . "actorName" "_sink") }}
+{{- end }}
+
+{{/*
+Resolve image pull policy for _sink actor (convenience wrapper)
+*/}}
+{{- define "asya-crew._sink.imagePullPolicy" -}}
+{{- include "asya-crew.actor.imagePullPolicy" (dict "root" . "actorName" "_sink") }}
+{{- end }}
