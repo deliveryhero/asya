@@ -32,8 +32,8 @@ type Router struct {
 	transport        transport.Transport
 	runtimeClient    *runtime.Client
 	actorName        string
-	happyEndQueue    string
-	errorEndQueue    string
+	sinkQueue        string
+	sumpQueue        string
 	metrics          *metrics.Metrics
 	progressReporter *progress.Reporter
 	gatewayURL       string
@@ -51,8 +51,8 @@ func NewRouter(cfg *config.Config, transport transport.Transport, runtimeClient 
 		transport:        transport,
 		runtimeClient:    runtimeClient,
 		actorName:        cfg.ActorName,
-		happyEndQueue:    cfg.HappyEndQueue,
-		errorEndQueue:    cfg.ErrorEndQueue,
+		sinkQueue:        cfg.SinkQueue,
+		sumpQueue:        cfg.SumpQueue,
 		metrics:          m,
 		progressReporter: progressReporter,
 		gatewayURL:       cfg.GatewayURL,
@@ -100,7 +100,7 @@ func (r *Router) maxAttempts() int {
 	return 1
 }
 
-// processEndActorMessage handles message processing for end actors (happy-end, error-end)
+// processEndActorMessage handles message processing for end actors (x-sink, x-sump)
 // End actors are terminal nodes that:
 // - Accept messages with ANY route state (no validation)
 // - Process the message through runtime
@@ -191,7 +191,7 @@ func (r *Router) parseAndValidateMessage(ctx context.Context, msgBody []byte, st
 			r.metrics.RecordProcessingDuration(r.actorName, time.Since(startTime))
 		}
 
-		_ = r.sendToErrorQueue(ctx, msgBody, fmt.Sprintf("Failed to parse message: %v", err))
+		_ = r.sendToSumpQueue(ctx, msgBody, fmt.Sprintf("Failed to parse message: %v", err))
 		return nil, err
 	}
 
@@ -204,7 +204,7 @@ func (r *Router) parseAndValidateMessage(ctx context.Context, msgBody []byte, st
 			r.metrics.RecordProcessingDuration(r.actorName, time.Since(startTime))
 		}
 
-		_ = r.sendToErrorQueue(ctx, msgBody, "Message missing required 'id' field")
+		_ = r.sendToSumpQueue(ctx, msgBody, "Message missing required 'id' field")
 		return nil, fmt.Errorf("message missing required 'id' field")
 	}
 
@@ -215,14 +215,14 @@ func (r *Router) parseAndValidateMessage(ctx context.Context, msgBody []byte, st
 // handleRuntimeResponses processes runtime responses and routes them to appropriate destinations
 func (r *Router) handleRuntimeResponses(ctx context.Context, msg *messages.Message, responses []runtime.RuntimeResponse, _ []byte, runtimeDuration time.Duration, startTime time.Time) error {
 	if len(responses) == 0 {
-		slog.Info("Empty response from runtime, routing to happy-end", "id", msg.ID)
+		slog.Info("Empty response from runtime, routing to x-sink", "id", msg.ID)
 
 		if r.metrics != nil {
 			r.metrics.RecordMessageProcessed(r.actorName, "empty_response")
 			r.metrics.RecordProcessingDuration(r.actorName, time.Since(startTime))
 		}
 
-		return r.sendToHappyQueue(ctx, *msg)
+		return r.sendToSinkQueue(ctx, *msg)
 	}
 
 	for i, response := range responses {
@@ -265,7 +265,7 @@ func (r *Router) handleErrorResponse(ctx context.Context, msg *messages.Message,
 
 	// Check MRO-based non-retryable error classification
 	if r.isNonRetryableError(response.Details.Type, response.Details.MRO) {
-		slog.Info("Non-retryable error detected, routing to error-end",
+		slog.Info("Non-retryable error detected, routing to x-sump",
 			"id", msg.ID, "type", response.Details.Type,
 			"attempt", msg.Status.Attempt, "max_attempts", msg.Status.MaxAttempts)
 
@@ -279,7 +279,7 @@ func (r *Router) handleErrorResponse(ctx context.Context, msg *messages.Message,
 
 	// Check if max attempts exhausted
 	if msg.Status.Attempt >= r.cfg.Resiliency.Retry.MaxAttempts {
-		slog.Info("Max retry attempts exhausted, routing to error-end",
+		slog.Info("Max retry attempts exhausted, routing to x-sump",
 			"id", msg.ID, "attempt", msg.Status.Attempt,
 			"max_attempts", r.cfg.Resiliency.Retry.MaxAttempts)
 
@@ -301,7 +301,7 @@ func (r *Router) handleErrorResponse(ctx context.Context, msg *messages.Message,
 		"error_type", response.Details.Type)
 
 	if err := r.retryMessage(ctx, msg, response.Details, delay); err != nil {
-		slog.Error("Failed to send retry message, routing to error-end",
+		slog.Error("Failed to send retry message, routing to x-sump",
 			"id", msg.ID, "error", err)
 		if r.metrics != nil {
 			r.metrics.RecordMessageProcessed(r.actorName, "error")
@@ -398,12 +398,12 @@ func (r *Router) retryMessage(ctx context.Context, msg *messages.Message, detail
 	return r.transport.SendWithDelay(ctx, queueName, body, delay)
 }
 
-// sendRetryFailure sends a failed message to the error-end queue with proper
+// sendRetryFailure sends a failed message to the x-sump queue with proper
 // retry status information (attempt count, reason, error details).
 func (r *Router) sendRetryFailure(ctx context.Context, msg *messages.Message, response runtime.RuntimeResponse, reason string) error {
 	now := time.Now().UTC().Format(time.RFC3339)
 
-	// Build error payload (backward compatible with error-end actor)
+	// Build error payload (backward compatible with x-sump actor)
 	errorPayload := map[string]any{
 		"error": response.Error,
 	}
@@ -464,14 +464,14 @@ func (r *Router) sendRetryFailure(ctx context.Context, msg *messages.Message, re
 	}
 
 	sendStart := time.Now()
-	errorQueueName := r.resolveQueueName(r.errorEndQueue)
-	err = r.transport.Send(ctx, errorQueueName, body)
+	sumpQueueName := r.resolveQueueName(r.sumpQueue)
+	err = r.transport.Send(ctx, sumpQueueName, body)
 	sendDuration := time.Since(sendStart)
 
 	if r.metrics != nil {
-		r.metrics.RecordQueueSendDuration(r.errorEndQueue, r.cfg.TransportType, sendDuration)
+		r.metrics.RecordQueueSendDuration(r.sumpQueue, r.cfg.TransportType, sendDuration)
 		if err == nil {
-			r.metrics.RecordMessageSent(r.errorEndQueue, "error_end")
+			r.metrics.RecordMessageSent(r.sumpQueue, "sump")
 		}
 	}
 
@@ -571,7 +571,7 @@ func (r *Router) ProcessMessage(ctx context.Context, queueMsg transport.QueueMes
 
 		errorMsg := fmt.Sprintf("Route mismatch: message routed to wrong actor (expected: %s, actual: %s)",
 			r.cfg.ActorName, currentActor)
-		_ = r.sendToErrorQueue(ctx, queueMsg.Body, errorMsg)
+		_ = r.sendToSumpQueue(ctx, queueMsg.Body, errorMsg)
 		return nil
 	}
 
@@ -625,7 +625,7 @@ func (r *Router) ProcessMessage(ctx context.Context, queueMsg transport.QueueMes
 				"timeout", r.cfg.Timeout, "message", msg.ID)
 			errorMsg = fmt.Sprintf("Runtime timeout exceeded after %s", r.cfg.Timeout)
 
-			if err := r.sendToErrorQueue(ctx, queueMsg.Body, errorMsg); err != nil {
+			if err := r.sendToSumpQueue(ctx, queueMsg.Body, errorMsg); err != nil {
 				slog.Error("Failed to send timeout error to error queue - exiting anyway", "error", err)
 			}
 
@@ -633,7 +633,7 @@ func (r *Router) ProcessMessage(ctx context.Context, queueMsg transport.QueueMes
 			os.Exit(1)
 		}
 
-		if err := r.sendToErrorQueue(ctx, queueMsg.Body, errorMsg); err != nil {
+		if err := r.sendToSumpQueue(ctx, queueMsg.Body, errorMsg); err != nil {
 			slog.Error("Failed to send runtime error to error queue - will requeue for DLQ handling", "error", err)
 			return fmt.Errorf("failed to send runtime error to error queue: %w", err)
 		}
@@ -658,9 +658,9 @@ func (r *Router) routeResponse(ctx context.Context, id string, parentID *string,
 		destinationQueue = r.resolveQueueName(actorToSend)
 		msgType = "routing"
 	} else {
-		// No more actors, route to happy-end automatically
-		destinationQueue = r.resolveQueueName(r.happyEndQueue)
-		msgType = "happy_end"
+		// No more actors, route to x-sink automatically
+		destinationQueue = r.resolveQueueName(r.sinkQueue)
+		msgType = "sink"
 	}
 
 	// Build outbound status
@@ -740,8 +740,8 @@ func (r *Router) routeResponse(ctx context.Context, id string, parentID *string,
 	return err
 }
 
-// sendToHappyQueue sends the original message to the happy-end queue
-func (r *Router) sendToHappyQueue(ctx context.Context, message messages.Message) error {
+// sendToSinkQueue sends the original message to the x-sink queue
+func (r *Router) sendToSinkQueue(ctx context.Context, message messages.Message) error {
 	now := time.Now().UTC().Format(time.RFC3339)
 	createdAt := now
 	if message.Status != nil {
@@ -759,7 +759,7 @@ func (r *Router) sendToHappyQueue(ctx context.Context, message messages.Message)
 
 	msgBody, err := json.Marshal(message)
 	if err != nil {
-		return fmt.Errorf("failed to marshal message for happy-end: %w", err)
+		return fmt.Errorf("failed to marshal message for x-sink: %w", err)
 	}
 
 	// Record message size
@@ -767,31 +767,31 @@ func (r *Router) sendToHappyQueue(ctx context.Context, message messages.Message)
 		r.metrics.RecordMessageSize("sent", len(msgBody))
 	}
 
-	// Send to happy-end queue
+	// Send to x-sink queue
 	sendStart := time.Now()
-	happyQueueName := r.resolveQueueName(r.happyEndQueue)
-	err = r.transport.Send(ctx, happyQueueName, msgBody)
+	sinkQueueName := r.resolveQueueName(r.sinkQueue)
+	err = r.transport.Send(ctx, sinkQueueName, msgBody)
 	sendDuration := time.Since(sendStart)
 
 	// Record metrics
 	if r.metrics != nil {
-		r.metrics.RecordQueueSendDuration(r.happyEndQueue, r.cfg.TransportType, sendDuration)
+		r.metrics.RecordQueueSendDuration(r.sinkQueue, r.cfg.TransportType, sendDuration)
 		if err == nil {
-			r.metrics.RecordMessageSent(r.happyEndQueue, "happy_end")
+			r.metrics.RecordMessageSent(r.sinkQueue, "sink")
 		}
 	}
 
 	return err
 }
 
-// sendToErrorQueue sends an error message to the error-end queue
-func (r *Router) sendToErrorQueue(ctx context.Context, originalBody []byte, errorMsg string, errorDetails ...runtime.ErrorDetails) error {
+// sendToSumpQueue sends an error message to the x-sump queue
+func (r *Router) sendToSumpQueue(ctx context.Context, originalBody []byte, errorMsg string, errorDetails ...runtime.ErrorDetails) error {
 	// Parse original message to extract id, parent_id, and route
 	var originalMsg messages.Message
 	id := ""
 	var parentID *string
 	route := map[string]any{
-		"actors":  []string{"error-end"},
+		"actors":  []string{"x-sump"},
 		"current": 0,
 	}
 	if err := json.Unmarshal(originalBody, &originalMsg); err == nil {
@@ -864,15 +864,15 @@ func (r *Router) sendToErrorQueue(ctx context.Context, originalBody []byte, erro
 
 	// Send to error queue
 	sendStart := time.Now()
-	errorQueueName := r.resolveQueueName(r.errorEndQueue)
-	err = r.transport.Send(ctx, errorQueueName, msgBody)
+	sumpQueueName := r.resolveQueueName(r.sumpQueue)
+	err = r.transport.Send(ctx, sumpQueueName, msgBody)
 	sendDuration := time.Since(sendStart)
 
 	// Record metrics
 	if r.metrics != nil {
-		r.metrics.RecordQueueSendDuration(r.errorEndQueue, r.cfg.TransportType, sendDuration)
+		r.metrics.RecordQueueSendDuration(r.sumpQueue, r.cfg.TransportType, sendDuration)
 		if err == nil {
-			r.metrics.RecordMessageSent(r.errorEndQueue, "error_end")
+			r.metrics.RecordMessageSent(r.sumpQueue, "sump")
 		}
 	}
 
@@ -880,7 +880,7 @@ func (r *Router) sendToErrorQueue(ctx context.Context, originalBody []byte, erro
 }
 
 // reportFinalStatusWithMessage reports final message status to gateway with full message context
-// This is called by end actors (happy-end, error-end) after processing
+// This is called by end actors (x-sink, x-sump) after processing
 // It has access to both the message (with route) and the result payload
 func (r *Router) reportFinalStatusWithMessage(ctx context.Context, msg *messages.Message, resultPayload json.RawMessage, duration time.Duration) error {
 	if r.progressReporter == nil {
@@ -904,12 +904,12 @@ func (r *Router) reportFinalStatusWithMessage(ctx context.Context, msg *messages
 	var currentActorName string
 
 	switch r.actorName {
-	case r.happyEndQueue:
+	case r.sinkQueue:
 		status = statusSucceeded
-	case r.errorEndQueue:
+	case r.sumpQueue:
 		status = statusFailed
-		// For error-end, extract error info from msg.Payload (not result)
-		// The msg.Payload contains error details set by sendToErrorQueue
+		// For x-sump, extract error info from msg.Payload (not result)
+		// The msg.Payload contains error details set by sendToSumpQueue
 		var msgPayload interface{}
 		if err := json.Unmarshal(msg.Payload, &msgPayload); err == nil {
 			if payloadMap, ok := msgPayload.(map[string]interface{}); ok {
@@ -1025,11 +1025,11 @@ func (r *Router) reportFinalStatus(ctx context.Context, msgID string, resultPayl
 	var currentActorName string
 
 	switch r.actorName {
-	case r.happyEndQueue:
+	case r.sinkQueue:
 		status = statusSucceeded
-	case r.errorEndQueue:
+	case r.sumpQueue:
 		status = statusFailed
-		// For error-end, extract error info and route from payload
+		// For x-sump, extract error info and route from payload
 		type errorPayload struct {
 			Error   string      `json:"error"`
 			Details interface{} `json:"details"`

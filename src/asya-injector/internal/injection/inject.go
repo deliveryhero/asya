@@ -141,6 +141,7 @@ func (i *Injector) buildSidecarEnv(actorConfig *ActorConfig) []corev1.EnvVar {
 		{Name: "ASYA_ACTOR_NAME", Value: actorConfig.ActorName},
 		{Name: "ASYA_NAMESPACE", Value: actorConfig.Namespace},
 		{Name: "ASYA_ACTOR_SINK", Value: defaultSinkActor},
+		{Name: "ASYA_ACTOR_SUMP", Value: actorNameSump},
 		{Name: "ASYA_ACTOR_HAPPY_END", Value: actorNameHappyEnd},
 		{Name: "ASYA_ACTOR_ERROR_END", Value: actorNameErrorEnd},
 		{Name: "ASYA_TRANSPORT", Value: actorConfig.Transport},

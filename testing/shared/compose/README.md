@@ -14,7 +14,7 @@ testing/
 │   ├── asya/                          # 🎭 components
 │   │   ├── gateway.yml                # MCP gateway service
 │   │   ├── testing-actors.yml         # Test actor workloads
-│   │   └── crew-actors.yml            # System actors (happy-end, error-end)
+│   │   └── crew-actors.yml            # System actors (x-sink, x-sump)
 │   └── envs/                          # Environment files
 │       ├── .env.tester                # Tester service config
 │       ├── .env.rabbitmq              # RabbitMQ connection config

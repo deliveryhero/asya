@@ -68,5 +68,5 @@ volumes:
   asya-cycle-sockets:
   asya-param-flow-1-sockets:
   asya-param-flow-2-sockets:
-  asya-happy-end-sockets:
-  asya-error-end-sockets:
+  asya-x-sink-sockets:
+  asya-x-sump-sockets:

@@ -6,7 +6,7 @@ Generic Helm chart for deploying AsyncActor resources with comprehensive health 
 
 - Flexible AsyncActor CRD deployment
 - Pre-install validation (CRD, KEDA, operator readiness)
-- Crew actors health checks (happy-end, error-end)
+- Crew actors health checks (x-sink, x-sump)
 - Queue health validation (RabbitMQ/SQS)
 - Deployment readiness checks
 - AsyncActor status validation
@@ -121,7 +121,7 @@ helm install text-processor deploy/helm-charts/asya-actor \
 |-----------|-------------|---------|
 | `healthChecks.preInstall.enabled` | Enable pre-install validation | `true` |
 | `healthChecks.crew.enabled` | Enable crew actors check | `true` |
-| `healthChecks.crew.requiredActors` | List of required crew actors | `[happy-end, error-end]` |
+| `healthChecks.crew.requiredActors` | List of required crew actors | `[x-sink, x-sump]` |
 | `healthChecks.queue.enabled` | Enable queue health check | `true` |
 | `healthChecks.queue.timeoutSeconds` | Queue creation timeout | `300` |
 | `healthChecks.deployment.enabled` | Enable deployment readiness check | `true` |
@@ -220,8 +220,8 @@ healthChecks:
   crew:
     enabled: true
     requiredActors:
-    - happy-end
-    - error-end
+    - x-sink
+    - x-sump
     - custom-logger
     - custom-metrics
 ```

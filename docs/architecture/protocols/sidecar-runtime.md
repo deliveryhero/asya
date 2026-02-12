@@ -111,15 +111,15 @@ Runtime returns errors in this format:
 
 | Error Code | Cause | Action |
 |------------|-------|--------|
-| `processing_error` | Handler exception (any unhandled Python exception) | Route to `error-end` |
-| `connection_error` | Socket failure or connection handling error | Route to `error-end` |
+| `processing_error` | Handler exception (any unhandled Python exception) | Route to `x-sump` |
+| `connection_error` | Socket failure or connection handling error | Route to `x-sump` |
 
 **Sidecar-side errors** (not from runtime):
 
 | Error | Cause | Action |
 |-------|-------|--------|
 | Timeout (`context.DeadlineExceeded`) | Runtime execution exceeded timeout | Crash pod to prevent zombie processing |
-| Parse error | Malformed JSON from runtime | Route to `error-end` |
+| Parse error | Malformed JSON from runtime | Route to `x-sump` |
 
 ## Timeout Strategy
 
@@ -130,7 +130,7 @@ conn.SetDeadline(deadline)
 ```
 
 **On timeout** (`context.DeadlineExceeded`):
-1. Sidecar sends message to `error-end` queue with timeout error
+1. Sidecar sends message to `x-sump` queue with timeout error
 2. Sidecar logs error and **crashes pod** (exits with status code 1)
 3. Kubernetes restarts pod to recover clean state
 

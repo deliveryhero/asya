@@ -260,13 +260,13 @@ helm install asya-gateway deploy/helm-charts/asya-gateway/ \
 ### 6. Install Crew Actors
 
 Crew actors are pre-defined system actors for handling common scenarios.
-For example, actors `happy-end` and `error-end` are the common flow finalizers and can persist messages to S3-compatible storage.
+For example, actors `x-sink` and `x-sump` are the common flow finalizers and can persist messages to S3-compatible storage.
 
 Suppose, we want to save all messages to the bucket `s3://asya-results-bucket`. Note that the bucket name should be globally unique.
 
 ```yaml
 # crew-values.yaml
-happy-end:
+x-sink:
   enabled: true
   transport: sqs
   workload:
@@ -276,12 +276,12 @@ happy-end:
         - name: asya-runtime
           env:
           - name: ASYA_HANDLER
-            value: handlers.end_handlers.happy_end_handler
+            value: asya_crew.message_persistence.s3.checkpoint_handler
           - name: ASYA_S3_BUCKET
             value: asya-results-bucket
           # AWS_REGION from IRSA
 
-error-end:
+x-sump:
   enabled: true
   transport: sqs
   workload:
@@ -291,7 +291,7 @@ error-end:
         - name: asya-runtime
           env:
           - name: ASYA_HANDLER
-            value: handlers.end_handlers.error_end_handler
+            value: asya_crew.message_persistence.s3.checkpoint_handler
           - name: ASYA_S3_BUCKET
             value: asya-results-bucket
 ```

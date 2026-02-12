@@ -3,12 +3,12 @@
 E2E Error Handling Tests for Asya Framework.
 
 Tests the two-tier error handling strategy:
-1. Application-level: error-end queue (when available)
-2. Transport-level: DLQ fallback (when error-end unavailable)
+1. Application-level: x-sump queue (when available)
+2. Transport-level: DLQ fallback (when x-sump unavailable)
 
 Test Scenarios:
-- test_error_goes_to_error_end_when_available: Normal case - error-end handles errors
-- test_error_goes_to_dlq_when_error_end_unavailable: Fallback - DLQ handles errors (RabbitMQ only)
+- test_error_goes_to_sump_when_available: Normal case - x-sump handles errors
+- test_error_goes_to_dlq_when_sump_unavailable: Fallback - DLQ handles errors (RabbitMQ only)
 
 Transport Support:
 - ✅ RabbitMQ: Full support (both tests)
@@ -44,22 +44,22 @@ def _get_transport_client(transport: str):
 
 
 @pytest.mark.slow
-def test_error_goes_to_error_end_when_available(e2e_helper, kubectl, chaos_queues, namespace, errors_bucket):
+def test_error_goes_to_sump_when_available(e2e_helper, kubectl, chaos_queues, namespace, errors_bucket):
     """
-    E2E: Test errors are processed by error-end when error-end is available.
+    E2E: Test errors are processed by x-sump when x-sump is available.
 
     Scenario (Application-level error handling):
-    1. error-end is running normally with KEDA autoscaling
+    1. x-sump is running normally with KEDA autoscaling
     2. Send message to test-error actor with should_fail=True
-    3. Actor fails → sidecar sends error to error-end queue
-    4. error-end consumes and processes the error
-    5. error-end persists error to S3 errors bucket
-    6. Gateway receives final status from error-end
+    3. Actor fails → sidecar sends error to x-sump queue
+    4. x-sump consumes and processes the error
+    5. x-sump persists error to S3 errors bucket
+    6. Gateway receives final status from x-sump
 
     Expected:
     - Task status becomes "failed" (error was handled)
     - Error persisted to S3 errors bucket
-    - DLQ remains empty (error-end handled it, no fallback needed)
+    - DLQ remains empty (x-sump handled it, no fallback needed)
 
     This is the NORMAL case - application handles its own errors.
     """
@@ -72,7 +72,7 @@ def test_error_goes_to_error_end_when_available(e2e_helper, kubectl, chaos_queue
     dlq_name = f"{actor_queue}-dlq"
 
     logger.info(f"Transport: {transport}")
-    logger.info("Scenario: error-end available (normal application-level handling)")
+    logger.info("Scenario: x-sump available (normal application-level handling)")
 
     # Purge DLQ before test
     logger.info("Purging DLQ before test")
@@ -89,12 +89,12 @@ def test_error_goes_to_error_end_when_available(e2e_helper, kubectl, chaos_queue
     logger.info(f"Task ID: {task_id}")
 
     # Wait for task to reach final status
-    logger.info("Waiting for task to complete (error-end should process it)...")
+    logger.info("Waiting for task to complete (x-sump should process it)...")
     final_task = e2e_helper.wait_for_task_completion(task_id, timeout=30)
 
-    # Verify task failed (error was handled by error-end)
+    # Verify task failed (error was handled by x-sump)
     assert final_task["status"] == "failed", \
-        "Task should be marked as 'failed' after error-end processes it"
+        "Task should be marked as 'failed' after x-sump processes it"
     logger.info("[+] Task marked as failed - error was processed")
 
     # Verify error persisted to S3
@@ -106,15 +106,15 @@ def test_error_goes_to_error_end_when_available(e2e_helper, kubectl, chaos_queue
     )
 
     assert s3_object is not None, \
-        f"Error should be persisted to S3 errors bucket by error-end"
-    logger.info("[+] Error persisted to S3 by error-end")
+        f"Error should be persisted to S3 errors bucket by x-sump"
+    logger.info("[+] Error persisted to S3 by x-sump")
 
-    # Verify DLQ is EMPTY (error-end handled the error, no fallback needed)
+    # Verify DLQ is EMPTY (x-sump handled the error, no fallback needed)
     logger.info(f"Verifying DLQ {dlq_name} is empty")
     dlq_message = transport_client.consume(dlq_name, timeout=2)
     assert dlq_message is None, \
-        f"DLQ {dlq_name} should be empty when error-end handles the error"
-    logger.info("[+] DLQ is empty - error was handled by error-end")
+        f"DLQ {dlq_name} should be empty when x-sump handles the error"
+    logger.info("[+] DLQ is empty - error was handled by x-sump")
 
     logger.info("[+] Test passed - application-level error handling working")
 
@@ -123,57 +123,57 @@ def test_error_goes_to_error_end_when_available(e2e_helper, kubectl, chaos_queue
 @pytest.mark.skipif(
     os.getenv("ASYA_TRANSPORT") == "sqs",
     reason="SQS accepts messages even when consumers are unavailable (store-and-forward). "
-           "Message goes to error-end queue instead of DLQ when error-end deployment is scaled to 0. "
+           "Message goes to x-sump queue instead of DLQ when x-sump deployment is scaled to 0. "
            "This test only works for RabbitMQ where publishing can fail when consumers are unavailable."
 )
-def test_error_goes_to_dlq_when_error_end_unavailable(e2e_helper, kubectl, chaos_queues, namespace):
+def test_error_goes_to_dlq_when_sump_unavailable(e2e_helper, kubectl, chaos_queues, namespace):
     """
-    E2E: Test errors go to DLQ when error-end is unavailable.
+    E2E: Test errors go to DLQ when x-sump is unavailable.
 
     Scenario (Transport-level fallback):
-    1. Scale error-end to 0 replicas (make it unavailable)
+    1. Scale x-sump to 0 replicas (make it unavailable)
     2. Send message to test-error actor with should_fail=True
-    3. Actor fails → sidecar tries to send to error-end
-    4. Sending to error-end fails → sidecar NACKs message
+    3. Actor fails → sidecar tries to send to x-sump
+    4. Sending to x-sump fails → sidecar NACKs message
     5. Message retried 3 times (maxReceiveCount=3)
     6. Transport moves message to DLQ automatically
 
     Expected:
-    - Message appears in DLQ after retries (NOT in error-end)
+    - Message appears in DLQ after retries (NOT in x-sump)
     - Message metadata preserved in DLQ
-    - error-end queue remains empty
+    - x-sump queue remains empty
 
     This is the FALLBACK case - transport handles errors when app can't.
 
     NOTE: Only works with RabbitMQ. SQS is store-and-forward - messages are accepted
-    even when no consumers are available, so errors go to error-end queue, not DLQ.
+    even when no consumers are available, so errors go to x-sump queue, not DLQ.
     """
     transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
     transport_client = _get_transport_client(transport)
 
     actor_queue = f"asya-{namespace}-test-error"
     dlq_name = f"{actor_queue}-dlq"
-    error_end_queue = f"asya-{namespace}-error-end"
+    sump_queue = f"asya-{namespace}-x-sump"
 
     logger.info(f"Transport: {transport}")
-    logger.info("Scenario: error-end unavailable (transport-level DLQ fallback)")
+    logger.info("Scenario: x-sump unavailable (transport-level DLQ fallback)")
 
-    # Disable KEDA scaling and scale error-end to 0
-    logger.info("Disabling KEDA scaling for error-end")
-    kubectl.run("patch asyncactor error-end -n asya-e2e --type=json -p '[{\"op\":\"replace\",\"path\":\"/spec/scaling/enabled\",\"value\":false},{\"op\":\"replace\",\"path\":\"/spec/workload/replicas\",\"value\":0}]'")
+    # Disable KEDA scaling and scale x-sump to 0
+    logger.info("Disabling KEDA scaling for x-sump")
+    kubectl.run("patch asyncactor x-sump -n asya-e2e --type=json -p '[{\"op\":\"replace\",\"path\":\"/spec/scaling/enabled\",\"value\":false},{\"op\":\"replace\",\"path\":\"/spec/workload/replicas\",\"value\":0}]'")
 
     logger.info("Waiting for ScaledObject to be deleted")
-    kubectl.run("wait --for=delete scaledobject/error-end -n asya-e2e --timeout=60s", check=False)
+    kubectl.run("wait --for=delete scaledobject/x-sump -n asya-e2e --timeout=60s", check=False)
 
     logger.info("Waiting for deployment to scale to 0")
-    kubectl.wait_for_replicas("error-end", "asya-e2e", 0, timeout=60)
-    logger.info("[+] error-end scaled to 0")
+    kubectl.wait_for_replicas("x-sump", "asya-e2e", 0, timeout=60)
+    logger.info("[+] x-sump scaled to 0")
 
     try:
         # Purge queues before test
         logger.info("Purging queues before test")
         transport_client.purge(dlq_name)
-        transport_client.purge(error_end_queue)
+        transport_client.purge(sump_queue)
 
         # Send failing message
         logger.info("Sending failing message to test-error actor")
@@ -205,7 +205,7 @@ def test_error_goes_to_dlq_when_error_end_unavailable(e2e_helper, kubectl, chaos
             time.sleep(2)
 
         assert dlq_message is not None, \
-            f"Message should be in DLQ {dlq_name} when error-end is unavailable"
+            f"Message should be in DLQ {dlq_name} when x-sump is unavailable"
         logger.info(f"[+] Message found in DLQ: {dlq_message.get('id')}")
 
         # Verify task ID matches
@@ -217,20 +217,20 @@ def test_error_goes_to_dlq_when_error_end_unavailable(e2e_helper, kubectl, chaos
         assert "payload" in dlq_message, "DLQ message should preserve payload"
         logger.info("[+] DLQ message structure preserved")
 
-        # Verify error-end queue is EMPTY (message should NOT go there when unavailable)
-        logger.info(f"Verifying error-end queue {error_end_queue} is empty")
-        error_end_message = transport_client.consume(error_end_queue, timeout=2)
-        assert error_end_message is None, \
-            "error-end queue should be empty when error-end is unavailable"
-        logger.info("[+] error-end queue is empty - message went to DLQ instead")
+        # Verify x-sump queue is EMPTY (message should NOT go there when unavailable)
+        logger.info(f"Verifying x-sump queue {sump_queue} is empty")
+        sump_message = transport_client.consume(sump_queue, timeout=2)
+        assert sump_message is None, \
+            "x-sump queue should be empty when x-sump is unavailable"
+        logger.info("[+] x-sump queue is empty - message went to DLQ instead")
 
         logger.info("[+] Test passed - transport-level DLQ fallback working")
 
     finally:
-        # Re-enable KEDA scaling for error-end
-        logger.info("Re-enabling KEDA scaling for error-end")
-        kubectl.run("patch asyncactor error-end -n asya-e2e --type=json -p '[{\"op\":\"replace\",\"path\":\"/spec/scaling/enabled\",\"value\":true}]'")
-        logger.info("[+] KEDA scaling re-enabled for error-end")
+        # Re-enable KEDA scaling for x-sump
+        logger.info("Re-enabling KEDA scaling for x-sump")
+        kubectl.run("patch asyncactor x-sump -n asya-e2e --type=json -p '[{\"op\":\"replace\",\"path\":\"/spec/scaling/enabled\",\"value\":true}]'")
+        logger.info("[+] KEDA scaling re-enabled for x-sump")
 
 
 @pytest.mark.slow
@@ -255,7 +255,7 @@ def test_error_handling_comparison_summary(e2e_helper, kubectl):
           ▼                       ▼
     ┌──────────────┐      ┌──────────────┐
     │ Send Success │      │ Send Failure │
-    │ (error-end   │      │ (error-end   │
+    │ (x-sump   │      │ (x-sump   │
     │  available)  │      │  unavailable)│
     └──────┬───────┘      └──────┬───────┘
            │                     │
@@ -279,8 +279,8 @@ def test_error_handling_comparison_summary(e2e_helper, kubectl):
                           └──────────────┘
 
     Expected behaviors verified:
-    1. error-end available → application-level handling
-    2. error-end unavailable → transport-level DLQ fallback
+    1. x-sump available → application-level handling
+    2. x-sump unavailable → transport-level DLQ fallback
     """
     transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
     logger.info(f"Transport: {transport}")
@@ -289,20 +289,20 @@ def test_error_handling_comparison_summary(e2e_helper, kubectl):
     logger.info("Error Handling Strategy Comparison")
     logger.info("=" * 80)
     logger.info("")
-    logger.info("Scenario 1: error-end AVAILABLE (normal operation)")
+    logger.info("Scenario 1: x-sump AVAILABLE (normal operation)")
     logger.info("  - Runtime error occurs")
-    logger.info("  - Sidecar sends to error-end queue [+]")
+    logger.info("  - Sidecar sends to x-sump queue [+]")
     logger.info("  - Original message ACK'd [+]")
-    logger.info("  - error-end persists to S3 [+]")
+    logger.info("  - x-sump persists to S3 [+]")
     logger.info("  - DLQ remains empty [+]")
     logger.info("")
-    logger.info("Scenario 2: error-end UNAVAILABLE (fallback)")
+    logger.info("Scenario 2: x-sump UNAVAILABLE (fallback)")
     logger.info("  - Runtime error occurs")
-    logger.info("  - Sidecar fails to send to error-end [-]")
+    logger.info("  - Sidecar fails to send to x-sump [-]")
     logger.info("  - Original message NACK'd [+]")
     logger.info("  - Transport retries 3 times [+]")
     logger.info("  - Message moved to DLQ [+]")
-    logger.info("  - error-end queue empty [+]")
+    logger.info("  - x-sump queue empty [+]")
     logger.info("")
     logger.info("=" * 80)
     logger.info("")

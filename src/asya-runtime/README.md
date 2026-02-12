@@ -168,7 +168,7 @@ The runtime validates all output messages (when `ASYA_ENABLE_VALIDATION=true`):
 - The actor at `route.actors[current]` must match the input
 - Future actors (after `current`) can be freely modified
 
-**Violations result in `processing_error` and the message is sent to `error-end` queue.**
+**Violations result in `processing_error` and the message is sent to `x-sump` queue.**
 
 ## Response Format
 

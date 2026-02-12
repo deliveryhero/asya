@@ -487,7 +487,7 @@ Compiled routers integrate seamlessly with asya-runtime:
 1. **Envelope Mode**: Routers always run in envelope mode
 2. **Handler Resolution**: `resolve()` function maps handler names to actor queues
 3. **Route Modification**: Routers insert actors dynamically into route array
-4. **Automatic Termination**: When route completes, sidecar routes to `happy-end`
+4. **Automatic Termination**: When route completes, sidecar routes to `x-sink`
 
 ## Testing
 

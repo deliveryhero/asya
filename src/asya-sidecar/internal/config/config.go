@@ -29,12 +29,12 @@ type Config struct {
 	Timeout    time.Duration
 
 	// End queues
-	HappyEndQueue string
-	ErrorEndQueue string
+	SinkQueue string
+	SumpQueue string
 
 	// End actor mode
 	// When true, the sidecar will NOT route responses from the runtime.
-	// This is used for end actors (happy-end, error-end) that consume
+	// This is used for end actors (x-sink, x-sump) that consume
 	// messages but don't produce new ones to route.
 	IsEndActor bool
 
@@ -134,9 +134,9 @@ func LoadFromEnv() (*Config, error) {
 		Timeout:    getEnvDuration("ASYA_RUNTIME_TIMEOUT", 5*time.Minute),
 
 		// End queues
-		HappyEndQueue: getEnv("ASYA_ACTOR_HAPPY_END", "happy-end"),
-		ErrorEndQueue: getEnv("ASYA_ACTOR_ERROR_END", "error-end"),
-		IsEndActor:    getEnvBool("ASYA_IS_END_ACTOR", false),
+		SinkQueue:  getEnv("ASYA_ACTOR_SINK", "x-sink"),
+		SumpQueue:  getEnv("ASYA_ACTOR_SUMP", "x-sump"),
+		IsEndActor: getEnvBool("ASYA_IS_END_ACTOR", false),
 
 		// Progress reporting
 		GatewayURL: getEnv("ASYA_GATEWAY_URL", ""),

@@ -69,7 +69,7 @@ Each actor pod contains two containers:
 
 ### System Actors
 
-- **[Crew Actors](asya-crew.md)**: Special actors with reserved roles (`happy-end`, `error-end`) for result persistence and error handling
+- **[Crew Actors](asya-crew.md)**: Special actors with reserved roles (`x-sink`, `x-sump`) for result persistence and error handling
 
 ### Infrastructure
 
@@ -84,9 +84,9 @@ Each actor pod contains two containers:
 3. **Sidecar** consumes message from queue
 4. **Sidecar** forwards message to Runtime via Unix socket
 5. **Runtime** executes your Python handler, returns result
-6. **Sidecar** routes result to next actor's queue (or `happy-end`/`error-end`)
+6. **Sidecar** routes result to next actor's queue (or `x-sink`/`x-sump`)
 7. Repeat steps 3-6 for each actor in the route
-8. **Crew actor** (`happy-end` or `error-end`) persists final result, reports status to gateway
+8. **Crew actor** (`x-sink` or `x-sump`) persists final result, reports status to gateway
 
 **Key insight**: `Queue → Sidecar → Your Code → Sidecar → Next Queue`
 

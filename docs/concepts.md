@@ -51,8 +51,8 @@ An actor is a stateless (by default) workload that:
 
 **Special system actors** for framework-level tasks:
 
-- **`happy-end`**: Persists successful results to S3/MinIO, reports success to gateway
-- **`error-end`**: Handles failures (coming soon), implements retry logic, reports errors to gateway
+- **`x-sink`**: Persists successful results to S3/MinIO, reports success to gateway
+- **`x-sump`**: Handles failures (coming soon), implements retry logic, reports errors to gateway
 - more crew actors coming soon
 
 **Future crew actors**:

@@ -48,8 +48,8 @@
     { "vhost": "/", "name": "asya-default-test-cycle", "durable": true, "auto_delete": false, "arguments": {} },
     { "vhost": "/", "name": "asya-default-test-param-flow-1", "durable": true, "auto_delete": false, "arguments": {} },
     { "vhost": "/", "name": "asya-default-test-param-flow-2", "durable": true, "auto_delete": false, "arguments": {} },
-    { "vhost": "/", "name": "asya-default-happy-end", "durable": true, "auto_delete": false, "arguments": {} },
-    { "vhost": "/", "name": "asya-default-error-end", "durable": true, "auto_delete": false, "arguments": {} },
+    { "vhost": "/", "name": "asya-default-x-sink", "durable": true, "auto_delete": false, "arguments": {} },
+    { "vhost": "/", "name": "asya-default-x-sump", "durable": true, "auto_delete": false, "arguments": {} },
     { "vhost": "/", "name": "asya-default-test-queue", "durable": true, "auto_delete": false, "arguments": {} },
     { "vhost": "/", "name": "asya-default-test-send-receive", "durable": true, "auto_delete": false, "arguments": {} },
     { "vhost": "/", "name": "asya-default-test-multiple", "durable": true, "auto_delete": false, "arguments": {} },
@@ -336,17 +336,17 @@
     {
       "source": "asya",
       "vhost": "/",
-      "destination": "asya-default-happy-end",
+      "destination": "asya-default-x-sink",
       "destination_type": "queue",
-      "routing_key": "happy-end",
+      "routing_key": "x-sink",
       "arguments": {}
     },
     {
       "source": "asya",
       "vhost": "/",
-      "destination": "asya-default-error-end",
+      "destination": "asya-default-x-sump",
       "destination_type": "queue",
-      "routing_key": "error-end",
+      "routing_key": "x-sump",
       "arguments": {}
     }
   ]

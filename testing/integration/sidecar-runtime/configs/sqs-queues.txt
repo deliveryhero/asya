@@ -21,5 +21,5 @@ asya-default-test-retry-nonretryable
 asya-default-test-retry-mro
 
 # System actor queues
-asya-default-happy-end
-asya-default-error-end
+asya-default-x-sink
+asya-default-x-sump

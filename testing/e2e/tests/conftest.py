@@ -29,7 +29,7 @@ from asya_testing.fixtures import (
 logger = logging.getLogger(__name__)
 
 
-CHAOS_ACTOR_NAMES = ["test-echo", "test-error", "test-queue-health", "error-end"]
+CHAOS_ACTOR_NAMES = ["test-echo", "test-error", "test-queue-health", "x-sump"]
 
 
 @pytest.fixture(scope="function", autouse=True)
@@ -67,7 +67,7 @@ def chaos_actors(kubectl, namespace):
     - test-echo: For basic queue recreation tests
     - test-error: For error handling tests
     - test-queue-health: For queue health monitoring tests
-    - error-end: System actor for error handling
+    - x-sump: System actor for error handling
 
     Raises:
         AssertionError: If any required actor is not deployed after waiting

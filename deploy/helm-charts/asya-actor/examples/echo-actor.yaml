@@ -42,8 +42,8 @@ default:
     crew:
       enabled: true
       requiredActors:
-      - happy-end
-      - error-end
+      - x-sink
+      - x-sump
     queue:
       enabled: true
       timeoutSeconds: 300

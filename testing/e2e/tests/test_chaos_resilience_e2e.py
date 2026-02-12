@@ -176,7 +176,7 @@ def test_multiple_component_failures(e2e_helper):
         assert e2e_helper.wait_for_pod_ready("app.kubernetes.io/name=asya-gateway", timeout=60)
         assert e2e_helper.wait_for_pod_ready("asya.sh/actor=test-echo", timeout=60)
 
-        # Crew actors (happy-end, error-end) may be scaled to 0 by KEDA if queues are empty
+        # Crew actors (x-sink, x-sump) may be scaled to 0 by KEDA if queues are empty
         # They will scale up automatically when needed, so we don't check them here
         logger.info("Note: Crew actors not checked - they scale based on queue depth")
 

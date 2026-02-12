@@ -1,12 +1,12 @@
 # Crew Actors
 
-Crew actors with pre-defined roles for 🎭 pipelines: `happy-end` (successful completion) and `error-end` (error handling).
+Crew actors with pre-defined roles for 🎭 pipelines: `x-sink` (successful completion) and `x-sump` (error handling).
 
 ## Overview
 
 End actors finish the processing pipeline by persisting results to S3 and returning metadata to the sidecar. The sidecar reports final status to the gateway.
 
-## happy-end
+## x-sink
 
 Persists successful results to S3 and returns metadata for sidecar to report to gateway.
 
@@ -21,7 +21,7 @@ Persists successful results to S3 and returns metadata for sidecar to report to 
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `ASYA_HANDLER` | ✅ | Set to `handlers.end_handlers.happy_end_handler` |
+| `ASYA_HANDLER` | ✅ | Set to `asya_crew.message_persistence.s3.checkpoint_handler` |
 | `ASYA_S3_BUCKET` | ❌ | S3/MinIO bucket for storing results |
 | `ASYA_S3_ENDPOINT` | ❌ | MinIO endpoint (omit for AWS S3) |
 | `ASYA_S3_ACCESS_KEY` | ❌ | S3/MinIO credentials |
@@ -36,7 +36,7 @@ Persists successful results to S3 and returns metadata for sidecar to report to 
 }
 ```
 
-## error-end
+## x-sump
 
 Persists errors to S3 and returns error metadata for sidecar to report to gateway.
 
@@ -51,7 +51,7 @@ Persists errors to S3 and returns error metadata for sidecar to report to gatewa
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `ASYA_HANDLER` | - | Set to `handlers.end_handlers.error_end_handler` |
+| `ASYA_HANDLER` | - | Set to `asya_crew.message_persistence.s3.checkpoint_handler` |
 | `ASYA_S3_BUCKET` | - | S3/MinIO bucket for errors |
 | `ASYA_S3_ENDPOINT` | - | MinIO endpoint (omit for AWS) |
 | `ASYA_S3_ACCESS_KEY` | - | S3/MinIO credentials |
@@ -71,10 +71,10 @@ Persists errors to S3 and returns error metadata for sidecar to report to gatewa
 
 Both handlers use the same key structure:
 
-- **Results** (happy-end): `{prefix}{timestamp}/{last_actor}/{id}.json`
-- **Errors** (error-end): `{prefix}{timestamp}/{last_actor}/{id}.json`
+- **Results** (x-sink): `{prefix}{timestamp}/{last_actor}/{id}.json`
+- **Errors** (x-sump): `{prefix}{timestamp}/{last_actor}/{id}.json`
 
-Example: `happy-asya/2025-11-11T10:30:45.123456Z/text-analyzer/abc-123.json`
+Example: `sink-asya/2025-11-11T10:30:45.123456Z/text-analyzer/abc-123.json`
 
 ## Deployment
 
@@ -84,7 +84,7 @@ Deploy using AsyncActor CRD (operator handles sidecar injection):
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 metadata:
-  name: happy-end
+  name: x-sink
 spec:
   transport: rabbitmq
   workload:
@@ -96,7 +96,7 @@ spec:
           image: my-actor:latest
           env:
           - name: ASYA_HANDLER
-            value: "handlers.end_handlers.happy_end_handler"
+            value: "asya_crew.message_persistence.s3.checkpoint_handler"
           - name: ASYA_S3_BUCKET
             value: "asya-results"
 ```
@@ -110,8 +110,8 @@ See [Crossplane README](../../deploy/helm-charts/asya-crossplane/README.md) for 
 make test
 
 # Individual
-cd happy-end && uv run pytest tests/
-cd error-end && uv run pytest tests/
+cd x-sink && uv run pytest tests/
+cd x-sump && uv run pytest tests/
 ```
 
 ## Architecture
@@ -138,10 +138,10 @@ tools:
 ```
 
 **Automatic routing** (handled by sidecar):
-- When route completes successfully → `happy-end` queue
-- When errors occur → `error-end` queue
+- When route completes successfully → `x-sink` queue
+- When errors occur → `x-sump` queue
 
-**Never configure `happy-end` or `error-end` in routes** - the sidecar automatically routes to these end queues based on processing results.
+**Never configure `x-sink` or `x-sump` in routes** - the sidecar automatically routes to these end queues based on processing results.
 
 ## See Also
 

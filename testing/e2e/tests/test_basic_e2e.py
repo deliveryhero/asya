@@ -6,7 +6,7 @@ Tests the complete flow:
 1. Gateway receives MCP tool call
 2. Creates message and routes to actor queue
 3. Actor (sidecar + runtime) processes message
-4. Result delivered to end queue (happy-end/error-end)
+4. Result delivered to end queue (x-sink/x-sump)
 5. Task status available via REST API
 
 These tests verify the framework works end-to-end in a Kubernetes environment.
@@ -47,7 +47,7 @@ def test_echo_tool_basic(gateway_helper):
 
 @pytest.mark.fast
 def test_doubler_pipeline(gateway_helper):
-    """Test multi-actor pipeline (doubler -> incrementer -> happy-end)."""
+    """Test multi-actor pipeline (doubler -> incrementer -> x-sink)."""
     logger.info("Testing pipeline processing with doubler")
 
     result = gateway_helper.call_mcp_tool(
@@ -63,7 +63,7 @@ def test_doubler_pipeline(gateway_helper):
 
 @pytest.mark.fast
 def test_error_handling(gateway_helper):
-    """Test error handling and routing to error-end queue."""
+    """Test error handling and routing to x-sump queue."""
     logger.info("Testing error handling")
 
     result = gateway_helper.call_mcp_tool(

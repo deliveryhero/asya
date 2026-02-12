@@ -286,8 +286,8 @@ def test_all_actors_healthy():
 @pytest.mark.parametrize("actor_name", [
     "test-echo",
     "test-error",
-    "happy-end",
-    "error-end",
+    "x-sink",
+    "x-sump",
 ])
 def test_critical_actors_exist(actor_name: str):
     """
@@ -296,8 +296,8 @@ def test_critical_actors_exist(actor_name: str):
     These actors are required for basic E2E test functionality:
     - test-echo: Basic message routing tests
     - test-error: Error handling tests
-    - happy-end: Success path completion
-    - error-end: Error path completion
+    - x-sink: Success path completion
+    - x-sump: Error path completion
     """
     namespace = require_env("NAMESPACE")
     actors = get_all_actors(namespace)

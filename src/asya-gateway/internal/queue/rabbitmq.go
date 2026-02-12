@@ -19,7 +19,7 @@ import (
 // Examples:
 //   - Actor "data-processor"  → Queue "asya-data-processor"
 //   - Actor "test-echo"       → Queue "asya-test-echo"
-//   - Actor "happy-end"       → Queue "asya-happy-end"
+//   - Actor "x-sink"          → Queue "asya-x-sink"
 //
 // The prefix is added by:
 // - Gateway queue clients (this file and sqs.go) when sending messages

@@ -248,7 +248,7 @@ asya-crew:
 
   # Crew actors need transport configuration
   # These MUST match the global.transport setting
-  happy-end:
+  x-sink:
     transport: sqs
     sidecar:
       env:
@@ -259,7 +259,7 @@ asya-crew:
       - name: AWS_REGION
         value: "us-east-1"
 
-  error-end:
+  x-sump:
     transport: sqs
     sidecar:
       env:

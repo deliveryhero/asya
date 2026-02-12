@@ -12,7 +12,7 @@ infrastructure failures, or chaos engineering scenarios.
 
 Test Scenarios:
 - test_operator_recreates_deleted_actor_queue_e2e: Delete actor queue, verify auto-recreation
-- test_operator_recreates_deleted_system_queue_e2e: Delete error-end queue, verify auto-recreation
+- test_operator_recreates_deleted_system_queue_e2e: Delete x-sump queue, verify auto-recreation
 - test_multiple_queue_deletions_e2e: Delete multiple queues simultaneously
 
 Transport Support:

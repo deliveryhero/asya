@@ -22,7 +22,7 @@ import (
 // Examples:
 //   - Actor "data-processor" in namespace "default"  → Queue "asya-default-data-processor"
 //   - Actor "test-echo" in namespace "staging"       → Queue "asya-staging-test-echo"
-//   - Actor "happy-end" in namespace "default"       → Queue "asya-default-happy-end"
+//   - Actor "x-sink" in namespace "default"            → Queue "asya-default-x-sink"
 //
 // The prefix is added by:
 // - Gateway queue clients (rabbitmq.go and this file) when sending messages

@@ -118,10 +118,10 @@ default:
     # Enable crew actors health check
     crew:
       enabled: true
-      # List of required crew actors (defaults to happy-end and error-end)
+      # List of required crew actors (defaults to x-sink and x-sump)
       requiredActors:
-      - happy-end
-      - error-end
+      - x-sink
+      - x-sump
 
     # Enable queue health check
     queue:

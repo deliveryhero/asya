@@ -21,11 +21,11 @@ func NewTestRouter(socketPath string, timeout time.Duration, mockTransport *Mock
 	runtimeClient := runtime.NewClient(socketPath, timeout)
 
 	cfg := &config.Config{
-		ActorName:     "test-actor",
-		HappyEndQueue: "happy-end",
-		ErrorEndQueue: "error-end",
-		SocketPath:    socketPath,
-		Timeout:       timeout,
+		ActorName:  "test-actor",
+		SinkQueue:  "x-sink",
+		SumpQueue:  "x-sump",
+		SocketPath: socketPath,
+		Timeout:    timeout,
 	}
 
 	adapter := &mockTransportAdapter{mock: mockTransport}
