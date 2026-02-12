@@ -21,13 +21,18 @@ func setRequiredEnv(t *testing.T) {
 	t.Helper()
 	t.Setenv("DLQ_QUEUE_URL", "https://sqs.us-east-1.amazonaws.com/123456789/my-dlq")
 	t.Setenv("DLQ_TRANSPORT", "sqs")
-	t.Setenv("S3_BUCKET", "my-bucket")
 	t.Setenv("AWS_REGION", "us-east-1")
+}
+
+func setRequiredEnvWithS3(t *testing.T) {
+	t.Helper()
+	setRequiredEnv(t)
+	t.Setenv("S3_BUCKET", "my-bucket")
 }
 
 func TestLoadFromEnv_AllRequired(t *testing.T) {
 	clearEnv(t)
-	setRequiredEnv(t)
+	setRequiredEnvWithS3(t)
 
 	cfg, err := LoadFromEnv()
 	if err != nil {
@@ -51,9 +56,37 @@ func TestLoadFromEnv_AllRequired(t *testing.T) {
 	}
 }
 
-func TestLoadFromEnv_Defaults(t *testing.T) {
+func TestLoadFromEnv_NoS3Bucket_StdoutMode(t *testing.T) {
 	clearEnv(t)
 	setRequiredEnv(t)
+
+	cfg, err := LoadFromEnv()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if cfg.S3Bucket != "" {
+		t.Errorf("S3Bucket should be empty, got %q", cfg.S3Bucket)
+	}
+}
+
+func TestLoadFromEnv_S3BucketWithoutRegion(t *testing.T) {
+	clearEnv(t)
+	t.Setenv("DLQ_QUEUE_URL", "https://sqs/dlq")
+	t.Setenv("DLQ_TRANSPORT", "sqs")
+	t.Setenv("SQS_REGION", "us-east-1")
+	t.Setenv("S3_BUCKET", "my-bucket")
+	// No S3_REGION or AWS_REGION
+
+	_, err := LoadFromEnv()
+	if err == nil {
+		t.Fatal("expected error when S3_BUCKET is set without S3_REGION")
+	}
+}
+
+func TestLoadFromEnv_Defaults(t *testing.T) {
+	clearEnv(t)
+	setRequiredEnvWithS3(t)
 
 	cfg, err := LoadFromEnv()
 	if err != nil {
@@ -88,7 +121,7 @@ func TestLoadFromEnv_MissingRequired(t *testing.T) {
 
 func TestLoadFromEnv_UnsupportedTransport(t *testing.T) {
 	clearEnv(t)
-	setRequiredEnv(t)
+	setRequiredEnvWithS3(t)
 	t.Setenv("DLQ_TRANSPORT", "kafka")
 
 	_, err := LoadFromEnv()
@@ -99,7 +132,7 @@ func TestLoadFromEnv_UnsupportedTransport(t *testing.T) {
 
 func TestLoadFromEnv_CustomValues(t *testing.T) {
 	clearEnv(t)
-	setRequiredEnv(t)
+	setRequiredEnvWithS3(t)
 	t.Setenv("S3_PREFIX", "custom-prefix/")
 	t.Setenv("S3_ENDPOINT", "http://minio:9000")
 	t.Setenv("GATEWAY_URL", "http://gateway:8080")
@@ -134,7 +167,7 @@ func TestLoadFromEnv_CustomValues(t *testing.T) {
 
 func TestLoadFromEnv_InvalidVisibilityTimeout(t *testing.T) {
 	clearEnv(t)
-	setRequiredEnv(t)
+	setRequiredEnvWithS3(t)
 	t.Setenv("VISIBILITY_TIMEOUT", "abc")
 
 	_, err := LoadFromEnv()
@@ -145,7 +178,7 @@ func TestLoadFromEnv_InvalidVisibilityTimeout(t *testing.T) {
 
 func TestLoadFromEnv_SeparateRegions(t *testing.T) {
 	clearEnv(t)
-	setRequiredEnv(t)
+	setRequiredEnvWithS3(t)
 	t.Setenv("SQS_REGION", "eu-west-1")
 	t.Setenv("S3_REGION", "ap-southeast-1")
 

@@ -94,21 +94,27 @@ func main() {
 		slog.Info("No gateway URL configured, status reporting disabled")
 	}
 
-	// Create S3 storage
-	storage, err := NewS3Storage(ctx, S3StorageConfig{
-		Region:   cfg.S3Region,
-		Endpoint: cfg.S3Endpoint,
-		Bucket:   cfg.S3Bucket,
-		Prefix:   cfg.S3Prefix,
-	})
-	if err != nil {
-		slog.Error("Failed to create S3 storage", "error", err)
-		os.Exit(1)
+	// Create storage backend
+	var storage Storage
+	if cfg.S3Bucket != "" {
+		storage, err = NewS3Storage(ctx, S3StorageConfig{
+			Region:   cfg.S3Region,
+			Endpoint: cfg.S3Endpoint,
+			Bucket:   cfg.S3Bucket,
+			Prefix:   cfg.S3Prefix,
+		})
+		if err != nil {
+			slog.Error("Failed to create S3 storage", "error", err)
+			os.Exit(1)
+		}
+		slog.Info("S3 storage initialized",
+			"bucket", cfg.S3Bucket,
+			"prefix", cfg.S3Prefix,
+			"endpoint", cfg.S3Endpoint)
+	} else {
+		storage = &stdoutStorage{}
+		slog.Info("S3 not configured, DLQ messages will be written to stdout")
 	}
-	slog.Info("S3 storage initialized",
-		"bucket", cfg.S3Bucket,
-		"prefix", cfg.S3Prefix,
-		"endpoint", cfg.S3Endpoint)
 
 	// Create and run worker
 	worker := NewWorker(consumer, gateway, storage)

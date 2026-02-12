@@ -121,3 +121,64 @@ error-end:
   env:
     # Gateway URL for result reporting (set to enable)
     ASYA_GATEWAY_URL: ""
+
+# DLQ Worker configuration
+# Standalone Go binary for processing transport-level Dead Letter Queue messages.
+# NOT an AsyncActor - deployed as a regular Kubernetes Deployment.
+# See src/asya-crew/cmd/dlq-worker/README.md for architecture and rationale.
+dlq-worker:
+  enabled: true
+
+  # Image configuration (separate from crew actor images)
+  image:
+    repository: ghcr.io/deliveryhero/asya-dlq-worker
+    tag: "" # defaults to Chart.appVersion
+    pullPolicy: IfNotPresent
+
+  # DLQ worker configuration (all mapped to environment variables)
+  config:
+    # Full SQS queue URL for the DLQ (required to activate deployment)
+    # When empty, the Deployment is not rendered even if enabled: true
+    queueURL: ""
+    # Transport type (currently only "sqs" supported)
+    transport: sqs
+    # AWS region for SQS
+    region: us-east-1
+    # Gateway URL for reporting failure status (optional, empty = disabled)
+    gatewayURL: ""
+    # S3 bucket for message persistence (optional, empty = stdout mode)
+    s3Bucket: ""
+    # Custom S3 endpoint for MinIO or LocalStack (optional)
+    s3Endpoint: ""
+    # S3 key prefix for stored messages (optional, default: dlq/)
+    s3Prefix: ""
+    # Log level: DEBUG, INFO, WARN, ERROR (optional, default: INFO)
+    logLevel: ""
+
+  # Extra environment variables (e.g. AWS credentials for development)
+  env: {}
+  # Example:
+  #   AWS_ACCESS_KEY_ID: "test"
+  #   AWS_SECRET_ACCESS_KEY: "test"
+
+  # Resource limits and requests
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
+  # Additional annotations for the Deployment
+  annotations: {}
+
+  # Image pull secrets
+  imagePullSecrets: []
+
+  # Service account configuration (for IRSA in production)
+  serviceAccount:
+    create: false
+    annotations: {}
+    # Example for IRSA:
+    #   eks.amazonaws.com/role-arn: "arn:aws:iam::123456789:role/dlq-worker-role"

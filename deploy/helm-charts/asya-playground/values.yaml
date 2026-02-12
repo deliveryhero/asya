@@ -270,6 +270,24 @@ asya-crew:
       - name: AWS_REGION
         value: "us-east-1"
 
+  # DLQ Worker - processes transport-level Dead Letter Queue messages
+  # Enabled by default in stdout mode (no S3 persistence)
+  # Set config.queueURL to activate the deployment
+  dlq-worker:
+    enabled: true
+    config:
+      # Set this to the DLQ queue URL when DLQ redrive policies are configured
+      # Example for LocalStack: http://localstack-sqs:4566/000000000000/asya-{namespace}-x-dlq
+      queueURL: ""
+      transport: sqs
+      region: us-east-1
+      # stdout mode by default (no S3 bucket configured)
+      s3Bucket: ""
+      s3Endpoint: ""
+    env:
+      AWS_ACCESS_KEY_ID: "test"
+      AWS_SECRET_ACCESS_KEY: "test"
+
   # Storage configurations (ACTIVELY USED - configure for your environment)
   # These will be enabled/disabled based on global.storage
   storage:

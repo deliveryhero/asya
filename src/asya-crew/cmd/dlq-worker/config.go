@@ -80,14 +80,13 @@ func LoadFromEnv() (*Config, error) {
 	if cfg.Transport == "" {
 		missing = append(missing, "DLQ_TRANSPORT")
 	}
-	if cfg.S3Bucket == "" {
-		missing = append(missing, "S3_BUCKET")
-	}
 	if cfg.SQSRegion == "" {
 		missing = append(missing, "SQS_REGION or AWS_REGION")
 	}
-	if cfg.S3Region == "" {
-		missing = append(missing, "S3_REGION or AWS_REGION")
+	// S3_BUCKET is optional: when unset, messages are written to stdout
+	// S3_REGION is only required when S3_BUCKET is set
+	if cfg.S3Bucket != "" && cfg.S3Region == "" {
+		missing = append(missing, "S3_REGION or AWS_REGION (required when S3_BUCKET is set)")
 	}
 
 	if len(missing) > 0 {

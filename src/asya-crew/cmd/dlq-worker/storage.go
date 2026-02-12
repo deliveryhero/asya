@@ -91,3 +91,13 @@ func (s *s3Storage) Persist(ctx context.Context, messageID string, body []byte) 
 	slog.Info("Persisted DLQ message to S3", "bucket", s.bucket, "key", key)
 	return nil
 }
+
+// stdoutStorage writes DLQ messages to stdout as structured log lines.
+// Used when S3_BUCKET is not configured (development/debugging mode).
+type stdoutStorage struct{}
+
+// Persist writes the full message body to stdout via structured logging.
+func (s *stdoutStorage) Persist(_ context.Context, messageID string, body []byte) error {
+	slog.Info("DLQ message persisted to stdout", "message_id", messageID, "body", string(body))
+	return nil
+}
