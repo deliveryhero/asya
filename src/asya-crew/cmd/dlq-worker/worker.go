@@ -31,6 +31,8 @@ func NewWorker(consumer Consumer, gateway GatewayReporter, storage Storage) *Wor
 }
 
 // Run starts the DLQ processing loop. Blocks until context is cancelled.
+// Returns nil on graceful shutdown (context.Canceled) and only returns
+// an error for unexpected conditions (e.g. context.DeadlineExceeded).
 func (w *Worker) Run(ctx context.Context) error {
 	slog.Info("DLQ worker started, polling for messages")
 
@@ -38,12 +40,18 @@ func (w *Worker) Run(ctx context.Context) error {
 		select {
 		case <-ctx.Done():
 			slog.Info("DLQ worker shutting down")
+			if errors.Is(ctx.Err(), context.Canceled) {
+				return nil
+			}
 			return ctx.Err()
 		default:
 		}
 
 		if err := w.processOne(ctx); err != nil {
-			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+			if errors.Is(err, context.Canceled) {
+				return nil
+			}
+			if errors.Is(err, context.DeadlineExceeded) {
 				return err
 			}
 			slog.Error("Failed to process DLQ message", "error", err)

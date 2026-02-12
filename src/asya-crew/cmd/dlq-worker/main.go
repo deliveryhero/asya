@@ -118,7 +118,7 @@ func main() {
 
 	// Create and run worker
 	worker := NewWorker(consumer, gateway, storage)
-	if err := worker.Run(ctx); err != nil && err != context.Canceled {
+	if err := worker.Run(ctx); err != nil {
 		slog.Error("Worker error", "error", err)
 		os.Exit(1)
 	}
