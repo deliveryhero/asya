@@ -65,6 +65,7 @@ while [[ $# -gt 0 ]]; do
       echo ""
       echo "Available images:"
       echo "  - asya-crew"
+      echo "  - asya-dlq-worker"
       echo "  - asya-gateway"
       echo "  - asya-injector"
       echo "  - asya-sidecar"
@@ -190,11 +191,22 @@ echo ""
 # Discover available images from src/ directory
 declare -a ALL_IMAGES=(
   "asya-crew"
+  "asya-dlq-worker"
   "asya-gateway"
   "asya-injector"
   "asya-sidecar"
   "asya-testing"
 )
+
+# Resolve build context for an image name.
+# Most images live at src/{name}/, but some have non-standard paths.
+get_build_context() {
+  local name=$1
+  case "$name" in
+    asya-dlq-worker) echo "src/asya-crew/cmd/dlq-worker" ;;
+    *) echo "src/$name" ;;
+  esac
+}
 
 # Filter images if specific ones are requested
 declare -a IMAGES=()
@@ -226,7 +238,8 @@ time {
     name="${IMAGES[$i]}"
     index=$((i + 1))
 
-    build_image "$name" "src/$name" "Dockerfile" "$index" "$TOTAL_IMAGES" &
+    context=$(get_build_context "$name")
+    build_image "$name" "$context" "Dockerfile" "$index" "$TOTAL_IMAGES" &
 
     BUILD_PIDS+=($!)
   done
