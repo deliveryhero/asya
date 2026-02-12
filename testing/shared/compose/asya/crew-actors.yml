@@ -23,9 +23,9 @@ services:
     - ../envs/.env.${ASYA_TRANSPORT}
     - ../envs/.env.${ASYA_STORAGE}
     environment:
-    - ASYA_HANDLER=handlers.end_handlers.happy_end_handler
+    - ASYA_HANDLER=asya_crew.message_persistence.s3.checkpoint_handler
     - ASYA_HANDLER_MODE=envelope
-    - ASYA_ENABLE_VALIDATION=false # happy end doesn't validate
+    - ASYA_ENABLE_VALIDATION=false
     - ASYA_S3_BUCKET=asya-results
     volumes:
     - asya-happy-end-sockets:/var/run/asya
@@ -76,9 +76,9 @@ services:
     - ../envs/.env.${ASYA_TRANSPORT}
     - ../envs/.env.${ASYA_STORAGE}
     environment:
-    - ASYA_HANDLER=handlers.end_handlers.error_end_handler
+    - ASYA_HANDLER=asya_crew.message_persistence.s3.checkpoint_handler
     - ASYA_HANDLER_MODE=envelope
-    - ASYA_ENABLE_VALIDATION=false # error end doesn't validate
+    - ASYA_ENABLE_VALIDATION=false
     - ASYA_S3_BUCKET=asya-errors
     volumes:
     - asya-error-end-sockets:/var/run/asya
