@@ -325,16 +325,18 @@ func (r *Router) isNonRetryableError(errorType string, mro []string) bool {
 		return false
 	}
 
+	typesToCheck := make(map[string]struct{}, len(mro)+1)
+	typesToCheck[errorType] = struct{}{}
+	for _, ancestor := range mro {
+		typesToCheck[ancestor] = struct{}{}
+	}
+
 	for _, nonRetryable := range r.cfg.Resiliency.NonRetryableErrors {
-		if errorType == nonRetryable {
+		if _, ok := typesToCheck[nonRetryable]; ok {
 			return true
 		}
-		for _, ancestor := range mro {
-			if ancestor == nonRetryable {
-				return true
-			}
-		}
 	}
+
 	return false
 }
 
