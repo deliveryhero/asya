@@ -292,37 +292,22 @@ class CodeGenerator:
                         lines.append("    if True:")
                     else:
                         lines.append("    else:")
-                    first = False
-
-                    # Clear error status on match
-                    lines.append("        message.get('status', {}).pop('error', None)")
-                    # Apply inline mutations
-                    for mutation in handler.mutations:
-                        lines.append(f"        {mutation.code}")
-                    # Add handler actors
-                    filtered = [a for a in handler.actors if not a.startswith("end_")]
-                    for actor in filtered:
-                        lines.append(f'        _next.append(resolve("{actor}"))')
-                    if not filtered and not handler.mutations:
-                        lines.append("        pass")
                 else:
                     # Typed except: check error type and MRO
                     type_checks = " or ".join(f'"{t}" in _all_types' for t in handler.error_types)
                     keyword = "if" if first else "elif"
                     lines.append(f"    {keyword} {type_checks}:")
-                    first = False
+                first = False
 
-                    # Clear error status on match
-                    lines.append("        message.get('status', {}).pop('error', None)")
-                    # Apply inline mutations
-                    for mutation in handler.mutations:
-                        lines.append(f"        {mutation.code}")
-                    # Add handler actors
-                    filtered = [a for a in handler.actors if not a.startswith("end_")]
-                    for actor in filtered:
-                        lines.append(f'        _next.append(resolve("{actor}"))')
-                    if not filtered and not handler.mutations:
-                        lines.append("        pass")
+                # Handler body: clear error, apply mutations, add actors
+                lines.append("        message.get('status', {}).pop('error', None)")
+                for mutation in handler.mutations:
+                    lines.append(f"        {mutation.code}")
+                filtered = [a for a in handler.actors if not a.startswith("end_")]
+                for actor in filtered:
+                    lines.append(f'        _next.append(resolve("{actor}"))')
+                if not filtered and not handler.mutations:
+                    lines.append("        pass")
 
             # If no bare except, add else clause that routes to reraise
             if router.reraise_name:

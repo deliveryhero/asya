@@ -154,6 +154,8 @@ class TestTryEnterRouter:
         assert "step_one" in try_enter.true_branch_actors
         assert "step_two" in try_enter.true_branch_actors
         assert try_exit.name in try_enter.true_branch_actors
+        # Regression: try_exit must appear exactly once (not duplicated by convergence label + explicit append)
+        assert try_enter.true_branch_actors.count(try_exit.name) == 1
 
 
 class TestTryExitRouter:

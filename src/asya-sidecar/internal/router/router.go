@@ -507,7 +507,7 @@ func (r *Router) routeToFlowErrorHandler(ctx context.Context, msg *messages.Mess
 	// Set error details in status
 	now := time.Now().UTC().Format(time.RFC3339)
 	createdAt := now
-	if msg.Status != nil {
+	if msg.Status != nil && msg.Status.CreatedAt != "" {
 		createdAt = msg.Status.CreatedAt
 	}
 	msg.Status = &messages.Status{

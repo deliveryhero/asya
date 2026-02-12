@@ -490,19 +490,10 @@ class OperationGrouper:
                 [],
             )
 
-            # Separate inline mutations from actor calls
-            inline_mutations: list[Mutation] = []
-            for h_op in handler.body:
-                if isinstance(h_op, Mutation):
-                    inline_mutations.append(h_op)
-                elif isinstance(h_op, ActorCall | Condition | TryExcept | WhileLoop):
-                    break
-
             handler_infos.append(
                 ExceptionHandlerInfo(
                     error_types=handler.error_types,
                     actors=handler_actors,
-                    mutations=inline_mutations if not handler_actors else [],
                 )
             )
 
@@ -512,7 +503,7 @@ class OperationGrouper:
             lineno=try_except.lineno,
             is_try_enter=True,
             except_dispatch_name=except_dispatch_name,
-            true_branch_actors=[*body_actors, try_exit_name],
+            true_branch_actors=body_actors,
         )
         self.routers.append(try_enter_router)
 
