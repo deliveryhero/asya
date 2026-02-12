@@ -8,6 +8,7 @@ Tests the checkpoint-s3 actor which persists messages to S3/MinIO.
 import logging
 import os
 import sys
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -107,17 +108,33 @@ def test_succeeded_phase_uses_succeeded_prefix():
     """Test checkpoint handler uses succeeded/ prefix for succeeded phase."""
     logger.info("=== test_succeeded_phase_uses_succeeded_prefix ===")
 
-    from asya_crew.message_persistence.s3 import checkpoint_handler
+    os.environ["ASYA_S3_BUCKET"] = "test-bucket"
+    if "asya_crew.message_persistence.s3" in sys.modules:
+        del sys.modules["asya_crew.message_persistence.s3"]
 
-    message = {
-        "id": "test-message-123",
-        "status": {"phase": "succeeded", "actor": "test-actor"},
-        "payload": {"result": 42},
-    }
+    mock_s3 = MagicMock()
+    with patch.dict("sys.modules", {"boto3": MagicMock()}):
+        import asya_crew.message_persistence.s3 as s3_mod
 
-    result = checkpoint_handler(message)
+        s3_mod.s3_client = mock_s3
 
-    assert result == {}
+        message = {
+            "id": "test-message-123",
+            "status": {"phase": "succeeded", "actor": "test-actor"},
+            "payload": {"result": 42},
+        }
+
+        result = s3_mod.checkpoint_handler(message)
+
+        assert result == {}
+        mock_s3.put_object.assert_called_once()
+        call_kwargs = mock_s3.put_object.call_args.kwargs
+        assert call_kwargs["Bucket"] == "test-bucket"
+        assert call_kwargs["Key"].startswith("succeeded/")
+
+    del os.environ["ASYA_S3_BUCKET"]
+    if "asya_crew.message_persistence.s3" in sys.modules:
+        del sys.modules["asya_crew.message_persistence.s3"]
 
     logger.info("=== test_succeeded_phase_uses_succeeded_prefix: PASSED ===")
 
@@ -126,17 +143,33 @@ def test_failed_phase_uses_failed_prefix():
     """Test checkpoint handler uses failed/ prefix for failed phase."""
     logger.info("=== test_failed_phase_uses_failed_prefix ===")
 
-    from asya_crew.message_persistence.s3 import checkpoint_handler
+    os.environ["ASYA_S3_BUCKET"] = "test-bucket"
+    if "asya_crew.message_persistence.s3" in sys.modules:
+        del sys.modules["asya_crew.message_persistence.s3"]
 
-    message = {
-        "id": "test-message-456",
-        "status": {"phase": "failed", "actor": "test-actor"},
-        "error": "Processing failed",
-    }
+    mock_s3 = MagicMock()
+    with patch.dict("sys.modules", {"boto3": MagicMock()}):
+        import asya_crew.message_persistence.s3 as s3_mod
 
-    result = checkpoint_handler(message)
+        s3_mod.s3_client = mock_s3
 
-    assert result == {}
+        message = {
+            "id": "test-message-456",
+            "status": {"phase": "failed", "actor": "test-actor"},
+            "error": "Processing failed",
+        }
+
+        result = s3_mod.checkpoint_handler(message)
+
+        assert result == {}
+        mock_s3.put_object.assert_called_once()
+        call_kwargs = mock_s3.put_object.call_args.kwargs
+        assert call_kwargs["Bucket"] == "test-bucket"
+        assert call_kwargs["Key"].startswith("failed/")
+
+    del os.environ["ASYA_S3_BUCKET"]
+    if "asya_crew.message_persistence.s3" in sys.modules:
+        del sys.modules["asya_crew.message_persistence.s3"]
 
     logger.info("=== test_failed_phase_uses_failed_prefix: PASSED ===")
 
@@ -145,13 +178,29 @@ def test_missing_phase_uses_checkpoint_prefix():
     """Test checkpoint handler uses checkpoint/ prefix when status.phase is missing."""
     logger.info("=== test_missing_phase_uses_checkpoint_prefix ===")
 
-    from asya_crew.message_persistence.s3 import checkpoint_handler
+    os.environ["ASYA_S3_BUCKET"] = "test-bucket"
+    if "asya_crew.message_persistence.s3" in sys.modules:
+        del sys.modules["asya_crew.message_persistence.s3"]
 
-    message = {"id": "test-message-789", "status": {"actor": "test-actor"}, "payload": {"data": "test"}}
+    mock_s3 = MagicMock()
+    with patch.dict("sys.modules", {"boto3": MagicMock()}):
+        import asya_crew.message_persistence.s3 as s3_mod
 
-    result = checkpoint_handler(message)
+        s3_mod.s3_client = mock_s3
 
-    assert result == {}
+        message = {"id": "test-message-789", "status": {"actor": "test-actor"}, "payload": {"data": "test"}}
+
+        result = s3_mod.checkpoint_handler(message)
+
+        assert result == {}
+        mock_s3.put_object.assert_called_once()
+        call_kwargs = mock_s3.put_object.call_args.kwargs
+        assert call_kwargs["Bucket"] == "test-bucket"
+        assert call_kwargs["Key"].startswith("checkpoint/")
+
+    del os.environ["ASYA_S3_BUCKET"]
+    if "asya_crew.message_persistence.s3" in sys.modules:
+        del sys.modules["asya_crew.message_persistence.s3"]
 
     logger.info("=== test_missing_phase_uses_checkpoint_prefix: PASSED ===")
 
