@@ -168,7 +168,7 @@ class CodeGenerator:
     def _generate_loop_back_router(self, router: Router) -> str:
         lines = []
         lines.append(f"def {router.name}(message: dict) -> dict:")
-        if router.guard_iter_key:
+        if router.guard_max_iter is not None:
             lines.append('    """Loop-back router: re-inserts loop actors into route (guarded)"""')
         else:
             lines.append('    """Loop-back router: re-inserts loop actors into route"""')
@@ -181,14 +181,12 @@ class CodeGenerator:
         for mutation in router.mutations:
             lines.append(f"    {mutation.code}")
 
-        if router.guard_iter_key:
-            key = router.guard_iter_key
-            lines.append(f'    _iter = p.get("{key}", 0)')
-            lines.append("    if _iter >= _ASYA_MAX_LOOP_ITERATIONS:")
+        if router.guard_max_iter is not None:
+            lines.append(f'    _self = resolve("{router.name}")')
+            lines.append("    if r['actors'][:c].count(_self) >= _ASYA_MAX_LOOP_ITERATIONS:")
             lines.append(
                 f'        raise RuntimeError(f"Max loop iterations ({{_ASYA_MAX_LOOP_ITERATIONS}}) exceeded for while-loop at line {router.lineno}")'
             )
-            lines.append(f'    p["{key}"] = _iter + 1')
             lines.append("")
 
         filtered_actors = [actor for actor in router.true_branch_actors if not actor.startswith("end_")]

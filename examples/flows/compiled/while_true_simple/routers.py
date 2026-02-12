@@ -48,10 +48,9 @@ def router_while_true_flow_line_10_loop_back_0(message: dict) -> dict:
     c = r['current']
     _next = []
 
-    _iter = p.get("__loop_0_iter", 0)
-    if _iter >= _ASYA_MAX_LOOP_ITERATIONS:
+    _self = resolve("router_while_true_flow_line_10_loop_back_0")
+    if r['actors'][:c].count(_self) >= _ASYA_MAX_LOOP_ITERATIONS:
         raise RuntimeError(f"Max loop iterations ({_ASYA_MAX_LOOP_ITERATIONS}) exceeded for while-loop at line 10")
-    p["__loop_0_iter"] = _iter + 1
 
     _next.append(resolve("handler_process"))
     _next.append(resolve("router_while_true_flow_line_12_if"))

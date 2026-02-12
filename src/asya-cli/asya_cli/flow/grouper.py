@@ -19,7 +19,6 @@ class Router:
     true_branch_actors: list[str] = field(default_factory=list)
     false_branch_actors: list[str] = field(default_factory=list)
     is_loop_back: bool = False
-    guard_iter_key: str | None = None
     guard_max_iter: int | None = None
 
 
@@ -318,7 +317,6 @@ class OperationGrouper:
                 mutations=pre_mutations,
                 true_branch_actors=[*body_actors, loop_back_name],
                 is_loop_back=True,
-                guard_iter_key=f"__loop_{loop_id}_iter",
                 guard_max_iter=self.max_iterations,
             )
             self.routers.append(loop_back_router)

@@ -530,8 +530,10 @@ def flow(p: dict) -> dict:
         code = compiler.compile(source, "test.py")
 
         assert "_ASYA_MAX_LOOP_ITERATIONS" in code
-        assert "__loop_0_iter" in code
+        assert "r['actors'][:c].count(_self)" in code
         assert "RuntimeError" in code
+        # No payload pollution
+        assert "__loop_" not in code
 
         tree = ast.parse(code)
         assert tree is not None
@@ -548,7 +550,6 @@ def flow(p: dict) -> dict:
         code = compiler.compile(source, "test.py")
 
         assert "_ASYA_MAX_LOOP_ITERATIONS" not in code
-        assert "__loop_" not in code
 
     def test_custom_max_iterations_via_compiler(self):
         source = """
@@ -597,24 +598,28 @@ def flow(p: dict) -> dict:
         monkeypatch.setenv("ASYA_MAX_LOOP_ITERATIONS", "3")
 
         mod = compile_and_import(source)
-        # Bypass handler resolution for internal routers
+        # resolve() returns name as-is so route history can be counted
         monkeypatch.setattr(mod, "resolve", lambda name: name)
 
+        loop_back_name = None
         loop_back_fn = None
         for name in dir(mod):
             if "loop_back" in name:
+                loop_back_name = name
                 loop_back_fn = getattr(mod, name)
                 break
+        assert loop_back_name is not None
         assert loop_back_fn is not None
 
-        msg = make_message({"value": 1}, actors=["test"], current=0)
+        # Realistic initial route: start router placed loop_back into actors
+        msg = make_message({"value": 1}, actors=["start_flow", loop_back_name], current=1)
 
-        # Iterations 0, 1, 2 should succeed
+        # 3 iterations should succeed (route accumulates loop_back visits)
         for _ in range(3):
             msg = loop_back_fn(msg)
             msg["route"]["current"] = len(msg["route"]["actors"]) - 1
 
-        # Iteration 3 should raise
+        # 4th iteration should raise (3 past visits in route)
         import pytest as pt
 
         with pt.raises(RuntimeError, match="Max loop iterations"):
@@ -633,20 +638,25 @@ def flow(p: dict) -> dict:
         monkeypatch.setenv("ASYA_MAX_LOOP_ITERATIONS", "5")
 
         mod = compile_and_import(source)
-        # Bypass handler resolution for internal routers
+        # resolve() returns name as-is so route history can be counted
         monkeypatch.setattr(mod, "resolve", lambda name: name)
 
+        loop_back_name = None
         loop_back_fn = None
         for name in dir(mod):
             if "loop_back" in name:
+                loop_back_name = name
                 loop_back_fn = getattr(mod, name)
                 break
+        assert loop_back_name is not None
         assert loop_back_fn is not None
 
-        msg = make_message({"value": 1}, actors=["test"], current=0)
+        # Realistic initial route: start router placed loop_back into actors
+        msg = make_message({"value": 1}, actors=["start_flow", loop_back_name], current=1)
 
         for _ in range(5):
             msg = loop_back_fn(msg)
             msg["route"]["current"] = len(msg["route"]["actors"]) - 1
 
-        assert msg["payload"]["__loop_0_iter"] == 5
+        # Payload stays clean (no __loop_ keys injected)
+        assert not any(k.startswith("__loop_") for k in msg["payload"])

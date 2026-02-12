@@ -599,8 +599,7 @@ class TestLoopBackGuard:
                 lineno=3,
                 true_branch_actors=["handler", "router_flow_line_3_loop_back_0"],
                 is_loop_back=True,
-                guard_iter_key="__loop_0_iter",
-                guard_max_iter=25,
+                guard_max_iter=100,
             )
         ]
         code = CodeGenerator("flow", routers, "test.py")._generate_loop_back_router(routers[0])
@@ -617,31 +616,30 @@ class TestLoopBackGuard:
                 lineno=3,
                 true_branch_actors=["handler", "router_flow_line_3_loop_back_0"],
                 is_loop_back=True,
-                guard_iter_key="__loop_0_iter",
-                guard_max_iter=25,
+                guard_max_iter=100,
             )
         ]
         code = CodeGenerator("flow", routers, "test.py")._generate_loop_back_router(routers[0])
 
         assert "(guarded)" in code
 
-    def test_guarded_loop_back_checks_counter(self):
+    def test_guarded_loop_back_counts_route_visits(self):
         routers = [
             Router(
                 name="router_flow_line_3_loop_back_0",
                 lineno=3,
                 true_branch_actors=["handler", "router_flow_line_3_loop_back_0"],
                 is_loop_back=True,
-                guard_iter_key="__loop_0_iter",
-                guard_max_iter=25,
+                guard_max_iter=100,
             )
         ]
         code = CodeGenerator("flow", routers, "test.py")._generate_loop_back_router(routers[0])
 
-        assert '_iter = p.get("__loop_0_iter", 0)' in code
-        assert "if _iter >= _ASYA_MAX_LOOP_ITERATIONS:" in code
+        assert '_self = resolve("router_flow_line_3_loop_back_0")' in code
+        assert "r['actors'][:c].count(_self) >= _ASYA_MAX_LOOP_ITERATIONS" in code
         assert "RuntimeError" in code
-        assert 'p["__loop_0_iter"] = _iter + 1' in code
+        # No payload mutation
+        assert "__loop_" not in code
 
     def test_guarded_loop_back_error_includes_lineno(self):
         routers = [
@@ -650,8 +648,7 @@ class TestLoopBackGuard:
                 lineno=42,
                 true_branch_actors=["handler", "router_flow_line_42_loop_back_0"],
                 is_loop_back=True,
-                guard_iter_key="__loop_0_iter",
-                guard_max_iter=25,
+                guard_max_iter=100,
             )
         ]
         code = CodeGenerator("flow", routers, "test.py")._generate_loop_back_router(routers[0])
@@ -669,7 +666,7 @@ class TestLoopBackGuard:
         ]
         code = CodeGenerator("flow", routers, "test.py")._generate_loop_back_router(routers[0])
 
-        assert "_iter" not in code
+        assert "_self" not in code
         assert "_ASYA_MAX_LOOP_ITERATIONS" not in code
         assert "RuntimeError" not in code
         assert "(guarded)" not in code
@@ -682,7 +679,6 @@ class TestLoopBackGuard:
                 lineno=3,
                 true_branch_actors=["handler", "router_flow_line_3_loop_back_0"],
                 is_loop_back=True,
-                guard_iter_key="__loop_0_iter",
                 guard_max_iter=100,
             ),
             Router(name="end_flow", lineno=999),
@@ -714,7 +710,6 @@ class TestLoopBackGuard:
                 lineno=3,
                 true_branch_actors=["handler", "router_flow_line_3_loop_back_0"],
                 is_loop_back=True,
-                guard_iter_key="__loop_0_iter",
                 guard_max_iter=50,
             ),
             Router(name="end_flow", lineno=999),

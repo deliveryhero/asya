@@ -1102,7 +1102,6 @@ class TestMaxIterationsGuard:
         routers = grouper.group()
 
         loop_back = next(r for r in routers if r.is_loop_back)
-        assert loop_back.guard_iter_key == "__loop_0_iter"
         assert loop_back.guard_max_iter == 100
 
     def test_while_condition_no_guard(self):
@@ -1118,7 +1117,6 @@ class TestMaxIterationsGuard:
         routers = grouper.group()
 
         loop_back = next(r for r in routers if r.is_loop_back)
-        assert loop_back.guard_iter_key is None
         assert loop_back.guard_max_iter is None
 
     def test_custom_max_iterations(self):
@@ -1136,7 +1134,7 @@ class TestMaxIterationsGuard:
         loop_back = next(r for r in routers if r.is_loop_back)
         assert loop_back.guard_max_iter == 10
 
-    def test_nested_while_true_loops_get_unique_guards(self):
+    def test_nested_while_true_loops_both_guarded(self):
         ops = [
             WhileLoop(
                 lineno=3,
@@ -1168,11 +1166,8 @@ class TestMaxIterationsGuard:
         grouper = OperationGrouper("flow", ops)
         routers = grouper.group()
 
-        guarded = [r for r in routers if r.guard_iter_key is not None]
+        guarded = [r for r in routers if r.guard_max_iter is not None]
         assert len(guarded) == 2
-        keys = {r.guard_iter_key for r in guarded}
-        assert "__loop_0_iter" in keys
-        assert "__loop_1_iter" in keys
 
     def test_mixed_while_true_and_condition_only_true_gets_guard(self):
         ops = [
@@ -1202,7 +1197,7 @@ class TestMaxIterationsGuard:
         loop_backs = [r for r in routers if r.is_loop_back]
         assert len(loop_backs) == 2
 
-        guarded = [r for r in loop_backs if r.guard_iter_key is not None]
-        unguarded = [r for r in loop_backs if r.guard_iter_key is None]
+        guarded = [r for r in loop_backs if r.guard_max_iter is not None]
+        unguarded = [r for r in loop_backs if r.guard_max_iter is None]
         assert len(guarded) == 1
         assert len(unguarded) == 1
