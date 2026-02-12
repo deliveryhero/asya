@@ -3,6 +3,7 @@ package webhook
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -153,5 +154,56 @@ func extractActorConfig(asyncActor *unstructured.Unstructured) (*injection.Actor
 		config.Region = "us-east-1"
 	}
 
+	// Extract resiliency configuration
+	config.Resiliency = extractResiliencyConfig(spec)
+
 	return config, nil
+}
+
+// extractResiliencyConfig extracts resiliency configuration from the AsyncActor spec.
+// Returns nil if no resiliency section is present.
+func extractResiliencyConfig(spec map[string]interface{}) *injection.ResiliencyConfig {
+	resiliency, found, _ := unstructured.NestedMap(spec, "resiliency")
+	if !found {
+		return nil
+	}
+
+	cfg := &injection.ResiliencyConfig{}
+
+	// Extract retry config
+	retry, retryFound, _ := unstructured.NestedMap(resiliency, "retry")
+	if retryFound {
+		cfg.Retry = &injection.RetryConfig{}
+		if v, ok, _ := unstructured.NestedString(retry, "policy"); ok {
+			cfg.Retry.Policy = v
+		}
+		if v, ok, _ := unstructured.NestedFieldNoCopy(retry, "maxAttempts"); ok {
+			cfg.Retry.MaxAttempts = fmt.Sprintf("%v", v)
+		}
+		if v, ok, _ := unstructured.NestedString(retry, "initialInterval"); ok {
+			cfg.Retry.InitialInterval = v
+		}
+		if v, ok, _ := unstructured.NestedString(retry, "maxInterval"); ok {
+			cfg.Retry.MaxInterval = v
+		}
+		if v, ok, _ := unstructured.NestedFieldNoCopy(retry, "backoffCoefficient"); ok {
+			cfg.Retry.BackoffCoefficient = fmt.Sprintf("%v", v)
+		}
+		if v, ok, _ := unstructured.NestedFieldNoCopy(retry, "jitter"); ok {
+			cfg.Retry.Jitter = fmt.Sprintf("%v", v)
+		}
+	}
+
+	// Extract nonRetryableErrors as comma-separated string
+	errSlice, errFound, _ := unstructured.NestedStringSlice(resiliency, "nonRetryableErrors")
+	if errFound && len(errSlice) > 0 {
+		cfg.NonRetryableErrors = strings.Join(errSlice, ",")
+	}
+
+	// Extract actorTimeout
+	if v, ok, _ := unstructured.NestedString(resiliency, "actorTimeout"); ok {
+		cfg.ActorTimeout = v
+	}
+
+	return cfg
 }
