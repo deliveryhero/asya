@@ -59,6 +59,14 @@ class CodeGenerator:
                 self.all_handlers.add(actor_name)
             for actor_name in router.false_branch_actors:
                 self.all_handlers.add(actor_name)
+            for actor_name in router.finally_actors:
+                self.all_handlers.add(actor_name)
+            for actor_name in router.continuation_actors:
+                self.all_handlers.add(actor_name)
+            if router.exception_handlers:
+                for handler in router.exception_handlers:
+                    for actor_name in handler.actors:
+                        self.all_handlers.add(actor_name)
 
     def _generate_header(self) -> str:
         return dedent(f'''\
@@ -87,6 +95,14 @@ class CodeGenerator:
                 lines.append(self._generate_end_router(router))
             elif router.is_loop_back:
                 lines.append(self._generate_loop_back_router(router))
+            elif router.is_try_enter:
+                lines.append(self._generate_try_enter_router(router))
+            elif router.is_try_exit:
+                lines.append(self._generate_try_exit_router(router))
+            elif router.is_except_dispatch:
+                lines.append(self._generate_except_dispatch_router(router))
+            elif router.is_reraise:
+                lines.append(self._generate_reraise_router(router))
             else:
                 lines.append(self._generate_router(router))
 
@@ -197,6 +213,147 @@ class CodeGenerator:
         lines.append("    r['actors'][c+1:c+1] = _next")
         lines.append("    r['current'] = c + 1")
         lines.append("    return message")
+        lines.append("")
+
+        return "\n".join(lines)
+
+    def _generate_try_enter_router(self, router: Router) -> str:
+        lines = []
+        lines.append(f"def {router.name}(message: dict) -> dict:")
+        lines.append('    """Try-enter router: sets _on_error header and inserts try body"""')
+        lines.append("    r = message['route']")
+        lines.append("    c = r['current']")
+        lines.append("    _next = []")
+        lines.append("")
+        lines.append("    message.setdefault('headers', {})")
+        lines.append(f"    message['headers']['_on_error'] = resolve(\"{router.except_dispatch_name}\")")
+        lines.append("")
+
+        filtered_actors = [a for a in router.true_branch_actors if not a.startswith("end_")]
+        for actor in filtered_actors:
+            lines.append(f'    _next.append(resolve("{actor}"))')
+
+        lines.append("")
+        lines.append("    r['actors'][c+1:c+1] = _next")
+        lines.append("    r['current'] = c + 1")
+        lines.append("    return message")
+        lines.append("")
+
+        return "\n".join(lines)
+
+    def _generate_try_exit_router(self, router: Router) -> str:
+        lines = []
+        lines.append(f"def {router.name}(message: dict) -> dict:")
+        lines.append('    """Try-exit router: clears _on_error header (success path)"""')
+        lines.append("    r = message['route']")
+        lines.append("    c = r['current']")
+        lines.append("    _next = []")
+        lines.append("")
+        lines.append("    message.get('headers', {}).pop('_on_error', None)")
+        lines.append("")
+
+        filtered_finally = [a for a in router.finally_actors if not a.startswith("end_")]
+        for actor in filtered_finally:
+            lines.append(f'    _next.append(resolve("{actor}"))')
+
+        filtered_cont = [a for a in router.continuation_actors if not a.startswith("end_")]
+        for actor in filtered_cont:
+            lines.append(f'    _next.append(resolve("{actor}"))')
+
+        lines.append("")
+        lines.append("    r['actors'][c+1:c+1] = _next")
+        lines.append("    r['current'] = c + 1")
+        lines.append("    return message")
+        lines.append("")
+
+        return "\n".join(lines)
+
+    def _generate_except_dispatch_router(self, router: Router) -> str:
+        lines = []
+        lines.append(f"def {router.name}(message: dict) -> dict:")
+        lines.append('    """Except-dispatch router: matches error type and routes to handler"""')
+        lines.append("    p = message['payload']")
+        lines.append("    r = message['route']")
+        lines.append("    c = r['current']")
+        lines.append("    _next = []")
+        lines.append("")
+        lines.append("    _error = message.get('status', {}).get('error', {})")
+        lines.append("    _error_type = _error.get('type', '')")
+        lines.append("    _error_mro = _error.get('mro', [])")
+        lines.append("    _all_types = [_error_type] + _error_mro")
+        lines.append("")
+
+        if router.exception_handlers:
+            first = True
+            for handler in router.exception_handlers:
+                if handler.error_types is None:
+                    # Bare except: catch-all
+                    if first:
+                        lines.append("    if True:")
+                    else:
+                        lines.append("    else:")
+                    first = False
+
+                    # Clear error status on match
+                    lines.append("        message.get('status', {}).pop('error', None)")
+                    # Apply inline mutations
+                    for mutation in handler.mutations:
+                        lines.append(f"        {mutation.code}")
+                    # Add handler actors
+                    filtered = [a for a in handler.actors if not a.startswith("end_")]
+                    for actor in filtered:
+                        lines.append(f'        _next.append(resolve("{actor}"))')
+                    if not filtered and not handler.mutations:
+                        lines.append("        pass")
+                else:
+                    # Typed except: check error type and MRO
+                    type_checks = " or ".join(f'"{t}" in _all_types' for t in handler.error_types)
+                    keyword = "if" if first else "elif"
+                    lines.append(f"    {keyword} {type_checks}:")
+                    first = False
+
+                    # Clear error status on match
+                    lines.append("        message.get('status', {}).pop('error', None)")
+                    # Apply inline mutations
+                    for mutation in handler.mutations:
+                        lines.append(f"        {mutation.code}")
+                    # Add handler actors
+                    filtered = [a for a in handler.actors if not a.startswith("end_")]
+                    for actor in filtered:
+                        lines.append(f'        _next.append(resolve("{actor}"))')
+                    if not filtered and not handler.mutations:
+                        lines.append("        pass")
+
+            # If no bare except, add else clause that routes to reraise
+            if router.reraise_name:
+                lines.append("    else:")
+                lines.append(f'        _next.append(resolve("{router.reraise_name}"))')
+
+        # Add finally and continuation actors
+        filtered_finally = [a for a in router.finally_actors if not a.startswith("end_")]
+        for actor in filtered_finally:
+            lines.append(f'    _next.append(resolve("{actor}"))')
+
+        filtered_cont = [a for a in router.continuation_actors if not a.startswith("end_")]
+        for actor in filtered_cont:
+            lines.append(f'    _next.append(resolve("{actor}"))')
+
+        lines.append("")
+        lines.append("    r['actors'][c+1:c+1] = _next")
+        lines.append("    r['current'] = c + 1")
+        lines.append("    return message")
+        lines.append("")
+
+        return "\n".join(lines)
+
+    def _generate_reraise_router(self, router: Router) -> str:
+        lines = []
+        lines.append(f"def {router.name}(message: dict) -> dict:")
+        lines.append('    """Reraise router: raises RuntimeError for unhandled exceptions"""')
+        lines.append("    _error = message.get('status', {}).get('error', {})")
+        lines.append("    _error_type = _error.get('type', 'unknown')")
+        lines.append("    _error_msg = _error.get('message', 'unknown error')")
+        lines.append('    raise RuntimeError(f"Unhandled exception {_error_type}: {_error_msg}")')
         lines.append("")
 
         return "\n".join(lines)

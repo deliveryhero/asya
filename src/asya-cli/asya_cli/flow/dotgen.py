@@ -97,12 +97,29 @@ class DotGenerator:
             for actor in router.false_branch_actors:
                 if actor not in self.router_map:
                     self.user_actors.add(actor)
+            for actor in router.finally_actors:
+                if actor not in self.router_map:
+                    self.user_actors.add(actor)
+            for actor in router.continuation_actors:
+                if actor not in self.router_map:
+                    self.user_actors.add(actor)
+            if router.exception_handlers:
+                for handler in router.exception_handlers:
+                    for actor in handler.actors:
+                        if actor not in self.router_map:
+                            self.user_actors.add(actor)
 
     def _generate_actor_node(self, router: Router) -> str:
         if router.name.startswith("start_") or router.name.startswith("end_"):
             color = "lightgreen"
+        elif router.is_try_enter or router.is_try_exit:
+            color = "lightcyan"
+        elif router.is_except_dispatch:
+            color = "lightyellow"
+        elif router.is_reraise:
+            color = "salmon"
         elif router.is_loop_back:
-            color = "wheat"  # for now, same color as regular router
+            color = "wheat"
         else:
             color = "wheat"
 
@@ -115,6 +132,20 @@ class DotGenerator:
             for mutation in router.mutations:
                 truncated_code = self._truncate_text(mutation.code)
                 rows.append(f'<tr><td bgcolor="white" align="left">{self._escape_html(truncated_code)}</td></tr>')
+
+        if router.is_try_enter:
+            rows.append('<tr><td bgcolor="lightcyan"><b>try</b></td></tr>')
+        elif router.is_try_exit:
+            rows.append('<tr><td bgcolor="lightcyan"><b>try-exit</b> (success)</td></tr>')
+        elif router.is_except_dispatch and router.exception_handlers:
+            for handler in router.exception_handlers:
+                if handler.error_types is None:
+                    label = "except (catch-all)"
+                else:
+                    label = f"except {', '.join(handler.error_types)}"
+                rows.append(f'<tr><td bgcolor="lightyellow"><b>{self._escape_html(label)}</b></td></tr>')
+        elif router.is_reraise:
+            rows.append('<tr><td bgcolor="salmon"><b>reraise</b></td></tr>')
 
         if router.condition:
             truncated_test = self._truncate_text(router.condition.test)
@@ -155,6 +186,46 @@ class DotGenerator:
             if actors:
                 lines.add(f"  {self._node_id(router.name)} -> {self._node_id(actors[0])} [constraint=false];")
                 self._add_sequential_edges(actors, lines)
+        elif router.is_try_enter:
+            # Try-enter connects to body actors
+            actors = router.true_branch_actors
+            if actors:
+                lines.add(f"  {self._node_id(router.name)} -> {self._node_id(actors[0])};")
+                self._add_sequential_edges(actors, lines)
+            # Error path to except_dispatch (orange)
+            if router.except_dispatch_name:
+                lines.add(
+                    f"  {self._node_id(router.name)} -> {self._node_id(router.except_dispatch_name)}"
+                    f' [color=orange, style=dashed, label="error"];'
+                )
+        elif router.is_try_exit:
+            # Connect to finally + continuation
+            all_actors = [*router.finally_actors, *router.continuation_actors]
+            if all_actors:
+                lines.add(f"  {self._node_id(router.name)} -> {self._node_id(all_actors[0])};")
+                self._add_sequential_edges(all_actors, lines)
+        elif router.is_except_dispatch:
+            # Connect to each handler's actors
+            if router.exception_handlers:
+                for handler in router.exception_handlers:
+                    if handler.actors:
+                        label = "catch-all" if handler.error_types is None else ", ".join(handler.error_types)
+                        lines.add(
+                            f"  {self._node_id(router.name)} -> {self._node_id(handler.actors[0])}"
+                            f' [color=orange, label="{self._escape_html(label)}"];'
+                        )
+                        self._add_sequential_edges(handler.actors, lines)
+            # Reraise path
+            if router.reraise_name:
+                lines.add(
+                    f"  {self._node_id(router.name)} -> {self._node_id(router.reraise_name)}"
+                    f' [color=red, label="unhandled"];'
+                )
+            # Finally + continuation
+            all_actors = [*router.finally_actors, *router.continuation_actors]
+            if all_actors:
+                # Each handler branch eventually reaches finally
+                pass  # finally edges come from handler actor chains
         elif router.condition:
             true_actors = router.true_branch_actors
             false_actors = router.false_branch_actors
@@ -178,14 +249,20 @@ class DotGenerator:
         """Add sequential edges between consecutive actors in a branch.
 
         Stops the chain when an actor is a router that generates its own
-        outgoing edges (conditional or loop-back routers), preventing
-        duplicate edges in the graph.
+        outgoing edges (conditional, loop-back, or try-except routers),
+        preventing duplicate edges in the graph.
         """
         for i in range(len(actors) - 1):
             source = actors[i]
             # If the source is a router that owns its own outgoing edges, stop the chain
             source_router = self.router_map.get(source)
-            if source_router and (source_router.condition or source_router.is_loop_back):
+            if source_router and (
+                source_router.condition
+                or source_router.is_loop_back
+                or source_router.is_try_enter
+                or source_router.is_try_exit
+                or source_router.is_except_dispatch
+            ):
                 break
             lines.add(f"  {self._node_id(source)} -> {self._node_id(actors[i + 1])};")
 

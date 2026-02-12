@@ -253,6 +253,11 @@ func (r *Router) handleRuntimeResponses(ctx context.Context, msg *messages.Messa
 // When resiliency is configured, it checks whether the error is retryable and
 // whether retry attempts remain before deciding to retry or fail permanently.
 func (r *Router) handleErrorResponse(ctx context.Context, msg *messages.Message, response runtime.RuntimeResponse, startTime time.Time) error {
+	// Check for flow-level _on_error header — bypasses retry logic
+	if onError, ok := msg.Headers["_on_error"].(string); ok && onError != "" {
+		return r.routeToFlowErrorHandler(ctx, msg, onError, response, startTime)
+	}
+
 	// No resiliency configured — fail immediately (legacy behavior)
 	if r.cfg.Resiliency == nil || r.cfg.Resiliency.Retry.MaxAttempts <= 1 {
 		if r.metrics != nil {
@@ -482,6 +487,72 @@ func (r *Router) sendRetryFailure(ctx context.Context, msg *messages.Message, re
 		}
 		return fmt.Errorf("failed to send to error queue: %w", err)
 	}
+	return nil
+}
+
+// routeToFlowErrorHandler routes an error to a flow-level error handler (except_dispatch router)
+// instead of the error-end queue. This preserves the original payload and sets error details
+// in status.error for the except_dispatch router to inspect.
+func (r *Router) routeToFlowErrorHandler(ctx context.Context, msg *messages.Message, onError string, response runtime.RuntimeResponse, startTime time.Time) error {
+	slog.Info("Routing error to flow error handler", "id", msg.ID, "handler", onError, "error", response.Error)
+
+	// Clear _on_error to prevent infinite error routing loops
+	delete(msg.Headers, "_on_error")
+
+	// Update route: truncate after current position and insert error handler
+	current := msg.Route.Current
+	msg.Route.Actors = append(msg.Route.Actors[:current+1], onError)
+	msg.Route.Current = current + 1
+
+	// Set error details in status
+	now := time.Now().UTC().Format(time.RFC3339)
+	createdAt := now
+	if msg.Status != nil {
+		createdAt = msg.Status.CreatedAt
+	}
+	msg.Status = &messages.Status{
+		Phase:       messages.PhaseFailed,
+		Actor:       r.actorName,
+		Attempt:     1,
+		MaxAttempts: 1,
+		CreatedAt:   createdAt,
+		UpdatedAt:   now,
+		Error: &messages.StatusError{
+			Message:   response.Details.Message,
+			Type:      response.Details.Type,
+			Traceback: response.Details.Traceback,
+			MRO:       response.Details.MRO,
+		},
+	}
+
+	// Marshal and send
+	msgBody, err := json.Marshal(msg)
+	if err != nil {
+		return fmt.Errorf("failed to marshal message for flow error handler: %w", err)
+	}
+
+	if r.metrics != nil {
+		r.metrics.RecordMessageSize("sent", len(msgBody))
+	}
+
+	sendStart := time.Now()
+	queueName := r.resolveQueueName(onError)
+	err = r.transport.Send(ctx, queueName, msgBody)
+	sendDuration := time.Since(sendStart)
+
+	if r.metrics != nil {
+		r.metrics.RecordQueueSendDuration(onError, r.cfg.TransportType, sendDuration)
+		if err == nil {
+			r.metrics.RecordMessageSent(onError, "flow_error_handler")
+		}
+	}
+
+	if err != nil {
+		slog.Error("Failed to send to flow error handler", "id", msg.ID, "handler", onError, "error", err)
+		return fmt.Errorf("failed to send to flow error handler: %w", err)
+	}
+
+	slog.Info("Routed error to flow error handler", "id", msg.ID, "handler", onError, "queue", queueName)
 	return nil
 }
 
