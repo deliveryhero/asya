@@ -141,6 +141,7 @@ spec:
                         backoffCoefficient:
                           type: number
                           description: Multiplier for exponential backoff (must be >= 1.0)
+                          minimum: 1.0
                           default: 2.0
                         jitter:
                           type: boolean
