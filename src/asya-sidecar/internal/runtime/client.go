@@ -14,9 +14,10 @@ import (
 
 // ErrorDetails represents additional information on error occurred in runtime
 type ErrorDetails struct {
-	Message   string `json:"message,omitempty"`
-	Type      string `json:"type,omitempty"`
-	Traceback string `json:"traceback,omitempty"`
+	Message   string   `json:"message,omitempty"`
+	Type      string   `json:"type,omitempty"`
+	MRO       []string `json:"mro,omitempty"`
+	Traceback string   `json:"traceback,omitempty"`
 }
 
 // RuntimeResponse represents the response from the actor runtime

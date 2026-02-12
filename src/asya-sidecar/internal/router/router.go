@@ -7,6 +7,8 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"math"
+	"math/rand/v2"
 	"net/http"
 	"os"
 	"time"
@@ -60,15 +62,17 @@ func NewRouter(cfg *config.Config, transport transport.Transport, runtimeClient 
 // ensureAndUpdateStatus initializes or updates the status on a message before processing.
 // If status is nil, creates a default with phase=processing.
 // If status exists, transitions to processing phase and updates actor/timestamps.
+// MaxAttempts is set from the resiliency config when available.
 func (r *Router) ensureAndUpdateStatus(msg *messages.Message) {
 	now := time.Now().UTC().Format(time.RFC3339)
+	maxAttempts := r.maxAttempts()
 
 	if msg.Status == nil {
 		msg.Status = &messages.Status{
 			Phase:       messages.PhaseProcessing,
 			Actor:       r.actorName,
 			Attempt:     1,
-			MaxAttempts: 1,
+			MaxAttempts: maxAttempts,
 			CreatedAt:   now,
 			UpdatedAt:   now,
 		}
@@ -83,8 +87,17 @@ func (r *Router) ensureAndUpdateStatus(msg *messages.Message) {
 	msg.Status.Phase = messages.PhaseProcessing
 	msg.Status.Reason = ""
 	msg.Status.Actor = r.actorName
+	msg.Status.MaxAttempts = maxAttempts
 	msg.Status.UpdatedAt = now
 	msg.Status.Error = nil
+}
+
+// maxAttempts returns the max retry attempts from resiliency config, or 1 if not configured.
+func (r *Router) maxAttempts() int {
+	if r.cfg != nil && r.cfg.Resiliency != nil {
+		return r.cfg.Resiliency.Retry.MaxAttempts
+	}
+	return 1
 }
 
 // processEndActorMessage handles message processing for end actors (happy-end, error-end)
@@ -200,7 +213,7 @@ func (r *Router) parseAndValidateMessage(ctx context.Context, msgBody []byte, st
 }
 
 // handleRuntimeResponses processes runtime responses and routes them to appropriate destinations
-func (r *Router) handleRuntimeResponses(ctx context.Context, msg *messages.Message, responses []runtime.RuntimeResponse, msgBody []byte, runtimeDuration time.Duration, startTime time.Time) error {
+func (r *Router) handleRuntimeResponses(ctx context.Context, msg *messages.Message, responses []runtime.RuntimeResponse, _ []byte, runtimeDuration time.Duration, startTime time.Time) error {
 	if len(responses) == 0 {
 		slog.Info("Empty response from runtime, routing to happy-end", "id", msg.ID)
 
@@ -216,7 +229,7 @@ func (r *Router) handleRuntimeResponses(ctx context.Context, msg *messages.Messa
 		slog.Debug("Processing response", "index", i+1, "total", len(responses))
 
 		if response.IsError() {
-			return r.handleErrorResponse(ctx, msgBody, response, startTime)
+			return r.handleErrorResponse(ctx, msg, response, startTime)
 		}
 
 		if err := r.handleSuccessResponse(ctx, msg, response, i, len(responses), runtimeDuration); err != nil {
@@ -236,16 +249,232 @@ func (r *Router) handleRuntimeResponses(ctx context.Context, msg *messages.Messa
 	return nil
 }
 
-// handleErrorResponse handles error responses from runtime
-func (r *Router) handleErrorResponse(ctx context.Context, msgBody []byte, response runtime.RuntimeResponse, startTime time.Time) error {
-	if r.metrics != nil {
-		r.metrics.RecordMessageProcessed(r.actorName, "error")
-		r.metrics.RecordMessageFailed(r.actorName, "runtime_error")
-		r.metrics.RecordProcessingDuration(r.actorName, time.Since(startTime))
+// handleErrorResponse handles error responses from runtime with retry logic.
+// When resiliency is configured, it checks whether the error is retryable and
+// whether retry attempts remain before deciding to retry or fail permanently.
+func (r *Router) handleErrorResponse(ctx context.Context, msg *messages.Message, response runtime.RuntimeResponse, startTime time.Time) error {
+	// No resiliency configured — fail immediately (legacy behavior)
+	if r.cfg.Resiliency == nil || r.cfg.Resiliency.Retry.MaxAttempts <= 1 {
+		if r.metrics != nil {
+			r.metrics.RecordMessageProcessed(r.actorName, "error")
+			r.metrics.RecordMessageFailed(r.actorName, "runtime_error")
+			r.metrics.RecordProcessingDuration(r.actorName, time.Since(startTime))
+		}
+		return r.sendRetryFailure(ctx, msg, response, messages.ReasonRuntimeError)
 	}
 
-	if err := r.sendToErrorQueue(ctx, msgBody, response.Error, response.Details); err != nil {
-		slog.Error("Failed to send error to error queue - will requeue for DLQ handling", "error", err)
+	// Check MRO-based non-retryable error classification
+	if r.isNonRetryableError(response.Details.Type, response.Details.MRO) {
+		slog.Info("Non-retryable error detected, routing to error-end",
+			"id", msg.ID, "type", response.Details.Type,
+			"attempt", msg.Status.Attempt, "max_attempts", msg.Status.MaxAttempts)
+
+		if r.metrics != nil {
+			r.metrics.RecordMessageProcessed(r.actorName, "error")
+			r.metrics.RecordMessageFailed(r.actorName, "non_retryable_error")
+			r.metrics.RecordProcessingDuration(r.actorName, time.Since(startTime))
+		}
+		return r.sendRetryFailure(ctx, msg, response, messages.ReasonNonRetryableFailure)
+	}
+
+	// Check if max attempts exhausted
+	if msg.Status.Attempt >= r.cfg.Resiliency.Retry.MaxAttempts {
+		slog.Info("Max retry attempts exhausted, routing to error-end",
+			"id", msg.ID, "attempt", msg.Status.Attempt,
+			"max_attempts", r.cfg.Resiliency.Retry.MaxAttempts)
+
+		if r.metrics != nil {
+			r.metrics.RecordMessageProcessed(r.actorName, "error")
+			r.metrics.RecordMessageFailed(r.actorName, "max_retries_exhausted")
+			r.metrics.RecordProcessingDuration(r.actorName, time.Since(startTime))
+		}
+		return r.sendRetryFailure(ctx, msg, response, messages.ReasonMaxRetriesExhausted)
+	}
+
+	// Retry: compute delay, update status, send with delay to own queue
+	delay := r.computeRetryDelay(msg.Status.Attempt)
+	slog.Info("Retrying message with backoff",
+		"id", msg.ID,
+		"attempt", msg.Status.Attempt,
+		"max_attempts", r.cfg.Resiliency.Retry.MaxAttempts,
+		"delay", delay,
+		"error_type", response.Details.Type)
+
+	if err := r.retryMessage(ctx, msg, response.Details, delay); err != nil {
+		slog.Error("Failed to send retry message, routing to error-end",
+			"id", msg.ID, "error", err)
+		if r.metrics != nil {
+			r.metrics.RecordMessageProcessed(r.actorName, "error")
+			r.metrics.RecordMessageFailed(r.actorName, "retry_send_failed")
+			r.metrics.RecordProcessingDuration(r.actorName, time.Since(startTime))
+		}
+		return r.sendRetryFailure(ctx, msg, response, messages.ReasonRuntimeError)
+	}
+
+	if r.metrics != nil {
+		r.metrics.RecordMessageProcessed(r.actorName, "retried")
+		r.metrics.RecordProcessingDuration(r.actorName, time.Since(startTime))
+	}
+	return nil
+}
+
+// isNonRetryableError checks if the error type or any of its MRO ancestors
+// matches the configured nonRetryableErrors blacklist.
+func (r *Router) isNonRetryableError(errorType string, mro []string) bool {
+	if r.cfg.Resiliency == nil || len(r.cfg.Resiliency.NonRetryableErrors) == 0 {
+		return false
+	}
+
+	for _, nonRetryable := range r.cfg.Resiliency.NonRetryableErrors {
+		if errorType == nonRetryable {
+			return true
+		}
+		for _, ancestor := range mro {
+			if ancestor == nonRetryable {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// computeRetryDelay calculates the backoff delay for the given failed attempt.
+// Formula: delay = min(initialInterval * backoffCoefficient^(attempt-1), maxInterval)
+// If jitter is enabled: delay *= random(0.5, 1.5)
+func (r *Router) computeRetryDelay(failedAttempt int) time.Duration {
+	retryCfg := r.cfg.Resiliency.Retry
+
+	var delay time.Duration
+	switch retryCfg.Policy {
+	case config.RetryPolicyConstant:
+		delay = retryCfg.InitialInterval
+	case config.RetryPolicyExponential:
+		exponent := failedAttempt - 1
+		multiplier := math.Pow(retryCfg.BackoffCoefficient, float64(exponent))
+		delay = time.Duration(float64(retryCfg.InitialInterval) * multiplier)
+	default:
+		delay = retryCfg.InitialInterval
+	}
+
+	if delay > retryCfg.MaxInterval {
+		delay = retryCfg.MaxInterval
+	}
+
+	if retryCfg.Jitter {
+		jitterFactor := 0.5 + rand.Float64() // [0.5, 1.5)
+		delay = time.Duration(float64(delay) * jitterFactor)
+	}
+
+	return delay
+}
+
+// retryMessage sends the message back to the actor's own queue with a delay.
+// Updates the message status to reflect the retry state.
+func (r *Router) retryMessage(ctx context.Context, msg *messages.Message, details runtime.ErrorDetails, delay time.Duration) error {
+	now := time.Now().UTC().Format(time.RFC3339)
+	msg.Status.Phase = messages.PhaseRetrying
+	msg.Status.UpdatedAt = now
+	msg.Status.Error = &messages.StatusError{
+		Type:      details.Type,
+		MRO:       details.MRO,
+		Message:   details.Message,
+		Traceback: details.Traceback,
+	}
+	// Increment attempt for the next processing cycle
+	msg.Status.Attempt++
+
+	body, err := json.Marshal(msg)
+	if err != nil {
+		return fmt.Errorf("failed to marshal retry message: %w", err)
+	}
+
+	if r.metrics != nil {
+		r.metrics.RecordMessageSize("sent", len(body))
+	}
+
+	queueName := r.resolveQueueName(r.actorName)
+	return r.transport.SendWithDelay(ctx, queueName, body, delay)
+}
+
+// sendRetryFailure sends a failed message to the error-end queue with proper
+// retry status information (attempt count, reason, error details).
+func (r *Router) sendRetryFailure(ctx context.Context, msg *messages.Message, response runtime.RuntimeResponse, reason string) error {
+	now := time.Now().UTC().Format(time.RFC3339)
+
+	// Build error payload (backward compatible with error-end actor)
+	errorPayload := map[string]any{
+		"error": response.Error,
+	}
+	if response.Details.Message != "" || response.Details.Type != "" {
+		errorPayload["details"] = response.Details
+	}
+	if msg.Payload != nil {
+		var original any
+		if err := json.Unmarshal(msg.Payload, &original); err == nil {
+			errorPayload["original_payload"] = original
+		}
+	}
+
+	payloadBytes, err := json.Marshal(errorPayload)
+	if err != nil {
+		return fmt.Errorf("failed to marshal error payload: %w", err)
+	}
+
+	createdAt := now
+	if msg.Status != nil && msg.Status.CreatedAt != "" {
+		createdAt = msg.Status.CreatedAt
+	}
+
+	attempt := 1
+	if msg.Status != nil {
+		attempt = msg.Status.Attempt
+	}
+
+	failedMsg := messages.Message{
+		ID:       msg.ID,
+		ParentID: msg.ParentID,
+		Route:    msg.Route,
+		Payload:  payloadBytes,
+		Status: &messages.Status{
+			Phase:       messages.PhaseFailed,
+			Reason:      reason,
+			Actor:       r.actorName,
+			Attempt:     attempt,
+			MaxAttempts: r.maxAttempts(),
+			CreatedAt:   createdAt,
+			UpdatedAt:   now,
+			Error: &messages.StatusError{
+				Type:      response.Details.Type,
+				MRO:       response.Details.MRO,
+				Message:   response.Details.Message,
+				Traceback: response.Details.Traceback,
+			},
+		},
+	}
+
+	body, err := json.Marshal(failedMsg)
+	if err != nil {
+		return fmt.Errorf("failed to marshal failed message: %w", err)
+	}
+
+	if r.metrics != nil {
+		r.metrics.RecordMessageSize("sent", len(body))
+	}
+
+	sendStart := time.Now()
+	errorQueueName := r.resolveQueueName(r.errorEndQueue)
+	err = r.transport.Send(ctx, errorQueueName, body)
+	sendDuration := time.Since(sendStart)
+
+	if r.metrics != nil {
+		r.metrics.RecordQueueSendDuration(r.errorEndQueue, r.cfg.TransportType, sendDuration)
+		if err == nil {
+			r.metrics.RecordMessageSent(r.errorEndQueue, "error_end")
+		}
+	}
+
+	if err != nil {
+		slog.Error("Failed to send to error queue - will requeue for DLQ handling", "error", err)
 		if r.metrics != nil {
 			r.metrics.RecordMessageFailed(r.actorName, "error_queue_send_failed")
 		}

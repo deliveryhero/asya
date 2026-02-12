@@ -9,24 +9,28 @@ import (
 const (
 	PhasePending    = "pending"
 	PhaseProcessing = "processing"
+	PhaseRetrying   = "retrying"
 	PhaseSucceeded  = "succeeded"
 	PhaseFailed     = "failed"
 )
 
 // Status reason constants
 const (
-	ReasonCompleted     = "Completed"
-	ReasonRuntimeError  = "RuntimeError"
-	ReasonTimeout       = "Timeout"
-	ReasonParseError    = "ParseError"
-	ReasonRouteMismatch = "RouteMismatch"
+	ReasonCompleted           = "Completed"
+	ReasonRuntimeError        = "RuntimeError"
+	ReasonTimeout             = "Timeout"
+	ReasonParseError          = "ParseError"
+	ReasonRouteMismatch       = "RouteMismatch"
+	ReasonMaxRetriesExhausted = "MaxRetriesExhausted"
+	ReasonNonRetryableFailure = "NonRetryableFailure"
 )
 
 // StatusError captures error details within a status
 type StatusError struct {
-	Message   string `json:"message"`
-	Type      string `json:"type,omitempty"`
-	Traceback string `json:"traceback,omitempty"`
+	Message   string   `json:"message"`
+	Type      string   `json:"type,omitempty"`
+	MRO       []string `json:"mro,omitempty"`
+	Traceback string   `json:"traceback,omitempty"`
 }
 
 // Status tracks the lifecycle phase of a message as it moves through actors
