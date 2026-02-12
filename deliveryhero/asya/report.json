@@ -1,7 +1,7 @@
 {
   "repository": "deliveryhero/asya",
   "ref": "refs/heads/main",
-  "commit": "7531701bcd9f0d9010c5541a534cd1a4a71f156c",
+  "commit": "7506fa71c9dfb0c01d0616e338eb2f495542017d",
   "coverage": {
     "type": "merged",
     "format": "Go coverage",
@@ -15322,7 +15322,7 @@
     ]
   },
   "code_to_test_ratio": {
-    "code": 16938,
+    "code": 17272,
     "test": 15372,
     "code_files": [
       {
@@ -15515,9 +15515,9 @@
         "language": "Python"
       },
       {
-        "code": 62,
+        "code": 67,
         "comment": 44,
-        "blank": 30,
+        "blank": 32,
         "path": "examples/flows/compiled/while_react_loop/routers.py",
         "language": "Python"
       },
@@ -15529,9 +15529,9 @@
         "language": "Python"
       },
       {
-        "code": 62,
+        "code": 67,
         "comment": 44,
-        "blank": 30,
+        "blank": 32,
         "path": "examples/flows/compiled/while_true_simple/routers.py",
         "language": "Python"
       },
@@ -15774,14 +15774,14 @@
         "language": "Python"
       },
       {
-        "code": 170,
+        "code": 190,
         "comment": 41,
-        "blank": 48,
+        "blank": 51,
         "path": "src/asya-cli/asya_cli/flow/codegen.py",
         "language": "Python"
       },
       {
-        "code": 95,
+        "code": 96,
         "comment": 11,
         "blank": 35,
         "path": "src/asya-cli/asya_cli/flow/compiler.py",
@@ -15802,9 +15802,9 @@
         "language": "Python"
       },
       {
-        "code": 290,
-        "comment": 20,
-        "blank": 70,
+        "code": 296,
+        "comment": 22,
+        "blank": 72,
         "path": "src/asya-cli/asya_cli/flow/grouper.py",
         "language": "Python"
       },
@@ -15823,9 +15823,9 @@
         "language": "Python"
       },
       {
-        "code": 124,
-        "comment": 15,
-        "blank": 29,
+        "code": 138,
+        "comment": 16,
+        "blank": 31,
         "path": "src/asya-cli/asya_cli/flow_cli.py",
         "language": "Python"
       },
@@ -15865,16 +15865,16 @@
         "language": "Python"
       },
       {
-        "code": 514,
-        "comment": 61,
-        "blank": 132,
+        "code": 624,
+        "comment": 63,
+        "blank": 150,
         "path": "src/asya-cli/tests/flow/test_codegen.py",
         "language": "Python"
       },
       {
-        "code": 917,
-        "comment": 26,
-        "blank": 143,
+        "code": 1020,
+        "comment": 27,
+        "blank": 156,
         "path": "src/asya-cli/tests/flow/test_grouper.py",
         "language": "Python"
       },
@@ -15900,9 +15900,9 @@
         "language": "Python"
       },
       {
-        "code": 218,
-        "comment": 186,
-        "blank": 110,
+        "code": 288,
+        "comment": 238,
+        "blank": 134,
         "path": "src/asya-cli/tests/flow/test_while_integration.py",
         "language": "Python"
       },
@@ -16715,6 +16715,6 @@
       }
     ]
   },
-  "test_execution_time": 178000000000,
-  "timestamp": "2026-02-12T11:29:45.589832573Z"
+  "test_execution_time": 204000000000,
+  "timestamp": "2026-02-12T15:51:37.497266076Z"
 }
