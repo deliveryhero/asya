@@ -117,7 +117,8 @@ def ensure_bucket_exists(bucket: str) -> None:
         s3_client.head_bucket(Bucket=bucket)
     except Exception as e:
         error_code = e.response.get("Error", {}).get("Code") if hasattr(e, "response") else None
-        if error_code in ("404", "NoSuchBucket"):
+        http_status = e.response.get("ResponseMetadata", {}).get("HTTPStatusCode") if hasattr(e, "response") else None
+        if error_code in ("404", "NoSuchBucket") or http_status == 404:
             logger.info(f"Bucket {bucket} does not exist, creating it")
             try:
                 s3_client.create_bucket(Bucket=bucket)
