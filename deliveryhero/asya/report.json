@@ -1,7 +1,7 @@
 {
   "repository": "deliveryhero/asya",
   "ref": "refs/heads/main",
-  "commit": "a192fdaffb8dceefb70b106e7f86881df387b009",
+  "commit": "c76f2bdd4b9f58e1a48785255c06f7776fa1063e",
   "coverage": {
     "type": "merged",
     "format": "Go coverage",
@@ -15862,8 +15862,8 @@
     ]
   },
   "code_to_test_ratio": {
-    "code": 17458,
-    "test": 16313,
+    "code": 17990,
+    "test": 16961,
     "code_files": [
       {
         "code": 384,
@@ -16447,6 +16447,55 @@
         "language": "Python"
       },
       {
+        "code": 83,
+        "comment": 9,
+        "blank": 10,
+        "path": "src/asya-crew/cmd/dlq-worker/config.go",
+        "language": "Go"
+      },
+      {
+        "code": 11,
+        "comment": 8,
+        "blank": 5,
+        "path": "src/asya-crew/cmd/dlq-worker/consumer.go",
+        "language": "Go"
+      },
+      {
+        "code": 96,
+        "comment": 9,
+        "blank": 15,
+        "path": "src/asya-crew/cmd/dlq-worker/consumer_sqs.go",
+        "language": "Go"
+      },
+      {
+        "code": 72,
+        "comment": 8,
+        "blank": 16,
+        "path": "src/asya-crew/cmd/dlq-worker/gateway.go",
+        "language": "Go"
+      },
+      {
+        "code": 106,
+        "comment": 7,
+        "blank": 14,
+        "path": "src/asya-crew/cmd/dlq-worker/main.go",
+        "language": "Go"
+      },
+      {
+        "code": 77,
+        "comment": 11,
+        "blank": 15,
+        "path": "src/asya-crew/cmd/dlq-worker/storage.go",
+        "language": "Go"
+      },
+      {
+        "code": 87,
+        "comment": 19,
+        "blank": 18,
+        "path": "src/asya-crew/cmd/dlq-worker/worker.go",
+        "language": "Go"
+      },
+      {
         "code": 0,
         "comment": 0,
         "blank": 0,
@@ -16981,6 +17030,41 @@
     ],
     "test_files": [
       {
+        "code": 168,
+        "comment": 1,
+        "blank": 27,
+        "path": "src/asya-crew/cmd/dlq-worker/config_test.go",
+        "language": "Go"
+      },
+      {
+        "code": 115,
+        "comment": 1,
+        "blank": 17,
+        "path": "src/asya-crew/cmd/dlq-worker/consumer_sqs_test.go",
+        "language": "Go"
+      },
+      {
+        "code": 83,
+        "comment": 0,
+        "blank": 10,
+        "path": "src/asya-crew/cmd/dlq-worker/gateway_test.go",
+        "language": "Go"
+      },
+      {
+        "code": 72,
+        "comment": 2,
+        "blank": 17,
+        "path": "src/asya-crew/cmd/dlq-worker/storage_test.go",
+        "language": "Go"
+      },
+      {
+        "code": 210,
+        "comment": 15,
+        "blank": 43,
+        "path": "src/asya-crew/cmd/dlq-worker/worker_test.go",
+        "language": "Go"
+      },
+      {
         "code": 40,
         "comment": 2,
         "blank": 5,
@@ -17262,6 +17346,6 @@
       }
     ]
   },
-  "test_execution_time": 215000000000,
-  "timestamp": "2026-02-12T17:00:40.48401077Z"
+  "test_execution_time": 191000000000,
+  "timestamp": "2026-02-13T14:36:58.257983827Z"
 }
