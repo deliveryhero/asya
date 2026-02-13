@@ -35,9 +35,10 @@ Supported constructs:
 - ✅ Payload mutations: `p["key"] = value`
 - ✅ Conditionals: `if/elif/else`
 - ✅ Early returns: `return p`
-- ❌ Loops (`for`, `while`)
-- ❌ Async/await
-- ❌ Generators/yield
+- ✅ Loops (`for`, `while`)
+- ✅ Generators/yield
+- ✅ Async/await
+- ❌ `async for` and `yield` (for partial and full events)
 - ❌ Free variables across actor boundaries
 
 ### What We Need
@@ -63,7 +64,7 @@ async def critic(state: dict) -> AsyncGenerator[dict, None]:
 This is the **ReAct loop pattern** -- the most common agentic workflow. The compiler must:
 1. Split at each `await` into separate actors
 2. Generate loop-back routers for `while True`
-3. Classify `yield` events as streaming vs control
+3. Support streaming event composition across nested flows
 4. Ensure all state travels in payload (no sticky sessions)
 
 ---
@@ -75,19 +76,18 @@ This is the **ReAct loop pattern** -- the most common agentic workflow. The comp
 **Core idea**: Each `await` in the user's async function becomes a continuation boundary. The compiler transforms:
 
 ```python
-x = await A(state)
-y = await B(x)
-return y
+state = await A(state)
+state = await B(state)
+return state
 ```
 
 Into a network of actors and routers:
 
 ```
 [Router-1: prepare state, route to A]
-    -> [Actor A: process, return result]
-        -> [Router-2: receive A's result, route to B]
-            -> [Actor B: process, return result]
-                -> [Router-3: receive B's result, return]
+    -> [Actor A: process, return result, route to B]
+        -> [Actor B: process, return result]
+            -> [Router-3: receive B's result, return]
 ```
 
 Each router is a generated envelope-mode handler that manipulates `route.actors` to insert the next steps.
@@ -135,6 +135,56 @@ async def flow(state: dict) -> dict:
 
 All actors receive and return `dict` (or TypedDict/Pydantic). The typed handler signatures (`def get_weather(city: str) -> str`) are a separate, future concern. This RFC focuses on control flow compilation.
 
+### 2.5 Streaming Event Composition
+
+**Problem**: In the current asya design, streaming (non-end) events from any actor are sent directly to asya-gateway via HTTP, bypassing intermediate actors. This makes flow composition of streaming events impossible — a parent flow cannot intercept, transform, or filter events yielded by a child flow.
+
+**Solution**: Events follow the ADK Event model with a `partial` field that determines routing:
+
+- **`partial=True`**: Streaming/display events (text deltas, progress - results to be routed backwards, back to the http handler). Routed via `ASYA_PARTIAL_EVENTS_ROUTE`.
+- **`partial=False`**: Control events (results to be routed forward, down the route). Routed via `route.actors` to the next actor in the pipeline.
+
+Each actor may have a compiler-set environment variable **`ASYA_PARTIAL_EVENTS_ROUTE`** (default to "") that controls where partial events go:
+
+| Value | Meaning | When |
+|-------|---------|------|
+| `""` (empty, default) | HTTP direct to gateway | No parent transforms partial events |
+| `"mutation-router-xyz"` | Queue to mutation router | Parent flow transforms partial events |
+
+**Dual routing paths**:
+
+```
+                    yield event
+                        |
+                  partial field?
+                   /         \
+              partial=True    partial=False
+                  |               |
+       ASYA_PARTIAL_EVENTS_ROUTE  route.actors[current+1]
+           /           \              |
+        empty        non-empty        v
+          |              |        next actor
+          v              v        (or happy-end)
+       gateway  ASYA_PARTIAL_EVENTS_ROUTE[0]
+                        |
+                        v
+                ASYA_PARTIAL_EVENTS_ROUTE[1]
+                        |
+                        v
+                   (re-enters routing)
+```
+
+**Terminal behavior** (route exhausted):
+- `partial=True` + route exhausted → forward to gateway (streaming display)
+- `partial=False` + route exhausted → forward to `happy-end` (normal completion)
+
+**Compiler optimization**: The compiler statically analyzes each `async for event in sub_flow(p): ... yield event` body:
+
+- **Identity yield** (no code between `async for` and `yield`, or only non-await local operations): set `ASYA_PARTIAL_EVENTS_ROUTE=""` → events stream directly to gateway with zero added latency
+- **Mutation yield** (any transformation, await, or conditional in the yield body): generate a mutation router actor, set `ASYA_PARTIAL_EVENTS_ROUTE="<generated-router-name>"` → events pass through the router for processing
+
+This preserves ADK-like composability while optimizing the common identity-passthrough case to match direct-to-gateway performance.
+
 ---
 
 ## 3. New IR Node Types
@@ -176,12 +226,15 @@ class WhileLoop(IROperation):
 class YieldEvent(IROperation):
     """A yield expression inside an async generator.
 
-    Yields are classified as:
-    - streaming: intermediate events (text deltas, progress) -> HTTP side-channel
-    - control: last yield with type="result" -> queue -> next actor
+    Each yield produces an event that becomes the payload of a new message.
+    The event follows the ADK Event schema with a 'partial' field:
+    - partial=True  -> routed via ASYA_PARTIAL_EVENTS_ROUTE (streaming)
+    - partial=False -> routed via route.actors (control flow)
+
+    The compiler does NOT classify yields as streaming vs control —
+    that distinction is made at runtime based on the event's partial field.
     """
     code: str           # The yielded expression source code
-    is_final: bool      # True if this is the last yield before return
 
 @dataclass
 class AsyncFlowFunction(IROperation):
@@ -224,13 +277,14 @@ New `_parse_await()` method:
 # Recognizes:
 # state = await actor(state)         -> AwaitCall(name="actor", assign_to="state")
 # response = await llm_call(state)   -> AwaitCall(name="llm_call", assign_to="response")
-# await fire_and_forget(state)       -> AwaitCall(name="fire_and_forget", assign_to=None)
+# await fire_and_forget(state)       -> COMPILER ERROR (unsupported)
 ```
 
 Key rules:
 - The awaited call must be a function/method call (not arbitrary expressions)
 - The argument must be `state`/`p`/`payload` (the flow parameter)
 - Assignment target is tracked for the continuation router
+- Fire-and-forget `await` (no assignment) is not supported — the compiler emits an error
 
 ### 4.3 While Loop Parsing
 
@@ -253,14 +307,32 @@ New `_parse_yield()` method:
 
 ```python
 # Recognizes:
-# yield {"type": "progress", ...}    -> YieldEvent(code='...', is_final=False)
-# yield {"type": "result", ...}      -> YieldEvent(code='...', is_final=True)
+# yield event                        -> YieldEvent(code='event')
+# yield {"partial": True, ...}       -> YieldEvent(code='{"partial": True, ...}')
+# yield p                            -> YieldEvent(code='p')
 ```
 
 Key rules:
-- `is_final` is determined by static analysis: if the yield is followed by `return`, it's final
-- Inside `while True`, the yield before `return` in the else branch is final
-- Intermediate yields are streaming events routed to HTTP gateway
+- The compiler does **not** classify yields as streaming vs control — no `is_final` analysis
+- The yielded expression becomes the payload of a new message at runtime
+- The `partial` field in the yielded event is a **runtime concern**, not a compile-time one
+- Multiple yields = fan-out (each yield produces an independent message)
+
+### 4.5 CPS Split Annotation
+
+The `# asya: no-split` annotation prevents CPS splitting at an `await`:
+
+```python
+async def flow(p: dict):
+    # to run await call in-process, no actor boundary
+    result = await some_local_helper(p)  # asya: no-split
+    yield result
+```
+
+Key rules:
+- Annotation must appear on the line immediately preceding the `await`
+- The annotated `await` runs in the same actor process (no message boundary)
+- Use for lightweight local helpers that don't need actor isolation
 
 ---
 
@@ -339,15 +411,96 @@ For `WhileLoop`, the grouper generates:
 
 For `while True`, the condition router is optimized away (always enters loop body).
 
-### 5.4 Yield Event Handling
+### 5.4 Yield Event Handling and Streaming Composition
 
-Yield nodes don't create routers. Instead:
-- Intermediate yields are compiled as streaming event emissions (handled by runtime/sidecar)
-- The final yield is treated as the actor's return value
+Yield events in async generators follow CPS semantics. The compiler analyzes `async for ... yield` patterns to determine whether streaming events need transformation.
 
-In the generated router code:
-- Intermediate yields -> sidecar HTTP side-channel
-- Final yield -> sidecar queue channel (to next actor)
+#### 5.4.1 CPS for Async Generator Iteration
+
+When a flow iterates over a sub-flow's events:
+
+```python
+async def parent_flow(p: dict):
+    async for event in child_flow(p):
+        event["annotated"] = True   # transformation
+        yield event
+```
+
+The compiler splits this into:
+1. **Actor call**: `child_flow` becomes an actor that yields events
+2. **Mutation router**: Generated router that applies `event["annotated"] = True` to each event from `child_flow`
+3. **ASYA_PARTIAL_EVENTS_ROUTE**: Set on `child_flow`'s actor to route partial events through the mutation router
+
+#### 5.4.2 Identity Yield Optimization
+
+The compiler performs static analysis on the yield body (the code between `async for event` and `yield event`):
+
+**Identity yield** — no transformation needed:
+```python
+# Case 1: bare passthrough
+async for event in child_flow(p):
+    yield event
+
+# Case 2: only non-await local operations (comments, logging)
+async for event in child_flow(p):
+    # just passing through
+    yield event
+```
+
+**Optimization**: Set `ASYA_PARTIAL_EVENTS_ROUTE=""` on the child actor. Events stream directly to gateway (or the parent's own partial route), skipping the mutation router entirely.
+
+**Mutation yield** — transformation required:
+```python
+# Case 1: payload mutation
+async for event in child_flow(p):
+    event["source"] = "parent"
+    yield event
+
+# Case 2: await in yield body
+async for event in child_flow(p):
+    event = await enrich(event)
+    yield event
+
+# Case 3: conditional in yield body
+async for event in child_flow(p):
+    if event.get("important"):
+        yield event
+```
+
+**Action**: Generate a mutation router actor. Set `ASYA_PARTIAL_EVENTS_ROUTE="<mutation-router-name>"` on the child actor.
+
+#### 5.4.3 Mutation Router Generation
+
+For non-identity yield bodies, the compiler generates a lightweight router:
+
+```python
+# Generated mutation router for parent_flow's yield body
+def parent_flow_yield_router(envelope: dict) -> dict:
+    event = envelope['payload']
+
+    # User's yield body code (transformed)
+    event["annotated"] = True
+
+    return envelope  # payload modified in-place
+```
+
+The same mutation router handles both `partial=True` and `partial=False` events — the transformation is the same regardless of the event's partial flag. After processing, the sidecar routes the event based on its `partial` field:
+- `partial=True` → next `ASYA_PARTIAL_EVENTS_ROUTE` (or gateway if empty)
+- `partial=False` → next actor in `route.actors` (or `happy-end` if exhausted)
+
+#### 5.4.4 Free Variables Across Yield Boundaries
+
+If an `await` appears in the yield body, CPS splitting creates a new actor boundary. Free variables that cross this boundary are a **compiler error**:
+
+```python
+async def flow(p: dict):
+    async for event in child(p):
+        result = await transform(event)  # CPS split here
+        result["extra"] = event["id"]    # ERROR: 'event' crosses await boundary
+        yield result
+```
+
+The user must restructure to pass all needed state through the payload.
 
 ---
 
@@ -408,16 +561,66 @@ def loop_back_to_llm_call(envelope: dict) -> dict:
     return envelope
 ```
 
-### 6.3 Streaming Event Code
+### 6.3 Streaming Event Composition Code
 
-Streaming is handled by the runtime and sidecar, not by generated router code. Routers only see the final result from each actor.
+When the compiler detects a non-identity yield body, it generates a mutation router and sets `ASYA_PARTIAL_EVENTS_ROUTE` on the child actor.
+
+**Example — flow with transformation:**
 
 ```python
-# Generated documentation in routers.py header:
-# NOTE: Actors 'llm_call' and 'reviser' are streaming actors.
-# They yield intermediate events to the HTTP side-channel.
-# The sidecar handles event classification and routing.
-# No special router code needed -- streaming is transparent to routers.
+# User code:
+async def outer(p: dict):
+    async for event in inner(p):
+        event["reviewed"] = True
+        yield event
+```
+
+**Generated mutation router** (`routers.py`):
+
+```python
+def outer_yield_router(envelope: dict) -> dict:
+    """Mutation router for outer flow's yield body.
+
+    Applies transformation to each event from 'inner' actor.
+    Handles both partial and non-partial events identically.
+    """
+    event = envelope['payload']
+    event['reviewed'] = True
+    return envelope
+```
+
+**Generated deployment configuration:**
+
+```yaml
+# inner actor: partial events route through mutation router
+- name: inner
+  env:
+    - name: ASYA_PARTIAL_EVENTS_ROUTE
+      value: "outer-yield-router"
+
+# mutation router: its own partial events go direct to gateway
+- name: outer-yield-router
+  env:
+    - name: ASYA_PARTIAL_EVENTS_ROUTE
+      value: ""  # optimized: identity after transformation
+```
+
+**Example — identity passthrough (optimized):**
+
+```python
+# User code:
+async def outer(p: dict):
+    async for event in inner(p):
+        yield event  # no transformation
+```
+
+**No mutation router generated.** Deployment:
+
+```yaml
+- name: inner
+  env:
+    - name: ASYA_PARTIAL_EVENTS_ROUTE
+      value: ""  # direct to gateway, zero overhead
 ```
 
 ---
@@ -728,6 +931,39 @@ async def research_agent(state: dict) -> AsyncGenerator[dict, None]:
 
 Expected: dispatch router with multi-branch tool routing + loop back-edge.
 
+#### Test Case 6: Streaming Event Composition
+
+Nested flows with yield body transformation:
+
+```python
+# test fixture: examples/flows/streaming_composition.py
+async def outer(p: dict):
+    async for event in inner(p):
+        event["source"] = "outer"
+        yield event
+
+async def passthrough(p: dict):
+    async for event in inner(p):
+        yield event  # identity — should be optimized
+```
+
+Expected compilation:
+- `outer`: generates mutation router `outer_yield_router`, sets `ASYA_PARTIAL_EVENTS_ROUTE="outer-yield-router"` on `inner`
+- `passthrough`: no mutation router, sets `ASYA_PARTIAL_EVENTS_ROUTE=""` on `inner` (identity optimization)
+
+#### Test Case 7: CPS Split Annotation
+
+```python
+# test fixture: examples/flows/no_split.py
+async def flow(p: dict):
+    # asya: no-split
+    enriched = await local_enrich(p)  # NOT a CPS split
+    p = await remote_actor(enriched)  # IS a CPS split
+    return p
+```
+
+Expected: `local_enrich` call stays in-process (no actor boundary). Only `remote_actor` becomes a separate actor.
+
 ### 9.3 Test Structure
 
 ```
@@ -736,16 +972,20 @@ testing/component/flow-compiler/
     test_async_parser.py        # Async flow parsing
     test_await_splitting.py     # CPS transformation
     test_loop_compilation.py    # While loop -> back-edge routers
-    test_yield_handling.py      # Yield event classification
+    test_yield_handling.py      # Yield event parsing and composition
     test_react_loop.py          # Full ReAct loop compilation + execution
     test_adk_llm_auditor.py     # Real ADK example validation
     test_free_variables.py      # Free variable detection (errors)
+    test_streaming_composition.py  # Identity/mutation yield optimization
+    test_no_split_annotation.py    # # asya: no-split handling
 examples/flows/
     async_sequential.py         # Simple sequential async flow
     react_loop.py               # ReAct loop pattern
     react_multi_tool.py         # ReAct with multiple tools
     async_conditional.py        # Conditional with await
     async_nested.py             # Nested await in branches
+    streaming_composition.py    # Nested flow yield composition
+    no_split.py                 # CPS split annotation
     compiled/                   # Expected compilation output (golden files)
 ```
 
@@ -771,36 +1011,41 @@ else:
 
 ### 10.2 AsyncGenerator Handler Support
 
-For streaming handlers, the runtime iterates the generator:
+For generator handlers, the runtime iterates and emits each yielded event as a separate frame:
 
 ```python
 if inspect.isasyncgenfunction(handler):
-    last_event = None
     async for event in handler(payload):
-        if is_streaming_event(event):
-            send_to_streaming_channel(event)  # HTTP -> gateway
-        last_event = event
-    result = last_event  # Last yield = control event -> queue
+        send_frame(event)  # Each yield -> one frame to sidecar
 else:
     result = handler(payload)
+    if result is not None:
+        send_frame(result)  # Single result -> one frame
 ```
+
+Each yielded event becomes the `payload` of a new message. The event follows the ADK Event schema — the `partial` field determines how the sidecar routes it.
 
 ### 10.3 Streaming Protocol (Runtime <-> Sidecar)
 
 Current protocol: single JSON frame per handler invocation.
 
-New protocol: multiple frames per invocation for streaming handlers:
+New protocol: multiple frames per invocation for generator handlers:
 
 ```
-Frame 1: {"type": "stream", "data": {"type": "text_delta", "delta": "The "}}
-Frame 2: {"type": "stream", "data": {"type": "text_delta", "delta": "capital"}}
-Frame 3: {"type": "stream", "data": {"type": "text_delta", "delta": " is..."}}
-Frame 4: {"type": "result", "data": {"text": "The capital is Paris", "messages": [...]}}
+Frame 1: {"partial": true, "type": "text_delta", "delta": "The "}
+Frame 2: {"partial": true, "type": "text_delta", "delta": "capital"}
+Frame 3: {"partial": true, "type": "text_delta", "delta": " is..."}
+Frame 4: {"partial": false, "text": "The capital is Paris", "messages": [...]}
 ```
 
-The sidecar:
-- `type: "stream"` -> HTTP POST to gateway with `envelope_id` for correlation
-- `type: "result"` -> normal envelope routing to next actor in queue
+Each frame is a complete event (no wrapper types like `"type": "stream"`). The sidecar reads the `partial` field from the event payload to determine routing:
+
+- `partial=true` → route via `ASYA_PARTIAL_EVENTS_ROUTE` (env var on the actor)
+  - If `ASYA_PARTIAL_EVENTS_ROUTE=""` → HTTP POST directly to gateway
+  - If `ASYA_PARTIAL_EVENTS_ROUTE="router-name"` → send to that actor's queue
+- `partial=false` → route via `route.actors` to the next actor (normal envelope routing)
+
+If the `partial` field is absent, the event is treated as `partial=false` (backward-compatible with non-streaming handlers).
 
 ---
 
@@ -808,38 +1053,69 @@ The sidecar:
 
 ### 11.1 Multi-Frame Protocol
 
-Extend the Unix socket protocol to support multiple response frames:
+Extend the Unix socket protocol to support multiple response frames from generator handlers:
 
 ```go
 // Current: read one frame, route to next queue
 frame := readFrame(conn)
 routeToNextActor(frame)
 
-// New: read frames until "result" frame
+// New: read frames until connection closes (generator exhausted)
 for {
-    frame := readFrame(conn)
-    switch frame.Type {
-    case "stream":
-        forwardToGateway(frame.Data, envelopeID)  // HTTP side-channel
-    case "result":
-        routeToNextActor(frame.Data)  // Queue routing
-        return
+    frame, err := readFrame(conn)
+    if err == io.EOF {
+        return  // Generator exhausted
+    }
+
+    partial := frame.Payload["partial"]
+    if partial == true {
+        routePartialEvent(frame, envelopeID)
+    } else {
+        routeToNextActor(frame)  // Normal envelope routing
     }
 }
 ```
 
-### 11.2 HTTP Streaming Route
+### 11.2 Partial Event Routing
 
-The sidecar forwards streaming events to the gateway via HTTP:
+The sidecar reads `ASYA_PARTIAL_EVENTS_ROUTE` from its environment to determine where partial events go:
+
+```go
+func routePartialEvent(frame Frame, envelopeID string) {
+    route := os.Getenv("ASYA_PARTIAL_EVENTS_ROUTE")
+    if route == "" {
+        // Direct to gateway — zero-hop streaming
+        forwardToGateway(frame.Payload, envelopeID)
+    } else {
+        // Route through mutation router queue
+        sendToQueue(route, frame.Payload, envelopeID)
+    }
+}
+```
+
+**Direct-to-gateway path** (`ASYA_PARTIAL_EVENTS_ROUTE=""`):
 
 ```
 POST /api/v1/envelopes/{envelope_id}/events
 Content-Type: application/json
 
-{"type": "text_delta", "delta": "The capital", "timestamp": "..."}
+{"partial": true, "type": "text_delta", "delta": "The capital"}
 ```
 
-The gateway then pushes these to connected SSE/WebSocket clients.
+The gateway pushes these to connected SSE/WebSocket clients.
+
+**Mutation router path** (`ASYA_PARTIAL_EVENTS_ROUTE="router-name"`):
+
+The partial event is wrapped in a new envelope and sent to the mutation router's queue. The mutation router transforms it, and its sidecar then re-evaluates routing based on the (possibly modified) `partial` field and its own `ASYA_PARTIAL_EVENTS_ROUTE` setting. This enables chained transformations across nested flows.
+
+### 11.3 Non-Partial Event Routing
+
+Non-partial events (`partial=false` or absent) follow the existing `route.actors` routing:
+
+- If `route.current < len(route.actors)` → send to next actor's queue
+- If route exhausted → send to `happy-end` queue
+
+This is unchanged from the current sidecar behavior.
 
 ---
 
@@ -896,13 +1172,15 @@ The gateway then pushes these to connected SSE/WebSocket clients.
 - CodeGen: Loop router code generation
 - **Test**: Compilation of all reference test cases, execution against mock envelopes
 
-### Phase 3: Streaming Support
-- CodeGen: Streaming event classification
-- Runtime: Async handler execution (`asyncio.run`)
-- Runtime: AsyncGenerator multi-frame response
-- Sidecar: Multi-frame protocol extension
-- Sidecar: HTTP streaming forwarding to gateway
-- **Test**: Streaming event routing tests
+### Phase 3: Streaming Event Composition
+- Compiler: Identity yield optimization (static analysis of yield bodies)
+- Compiler: Mutation router generation for non-identity yields
+- Compiler: `ASYA_PARTIAL_EVENTS_ROUTE` configuration in deployment output
+- Runtime: AsyncGenerator multi-frame response (each yield = one frame)
+- Sidecar: Multi-frame protocol (read frames until EOF)
+- Sidecar: `partial` field routing (`ASYA_PARTIAL_EVENTS_ROUTE` or `route.actors`)
+- Sidecar: Direct-to-gateway HTTP for `ASYA_PARTIAL_EVENTS_ROUTE=""`
+- **Test**: Streaming composition tests (identity passthrough, mutation routers, nested flows)
 
 ### Phase 4: Integration and Validation
 - Full ADK LLM Auditor example: compile + deploy + test
@@ -911,11 +1189,13 @@ The gateway then pushes these to connected SSE/WebSocket clients.
 - Documentation and examples
 
 ### Future (Out of Scope)
-- Free variable analysis and auto-serialization
+- Free variable analysis and auto-serialization (across `await` boundaries and in yield bodies)
 - ADK declarative syntax recognition (Level 3 compilation)
 - Typed handler signatures (`def get_weather(city: str) -> str`)
 - Parallel fan-out (`asyncio.gather`, list comprehension fan-out) — see [Fan-In/Fan-Out RFC](../fan-in/asya-fan-in-fan-out.md)
 - Try-catch error routing
+- Fire-and-forget `await` (side-effect-only actor calls)
+- Partial event ordering guarantees across queue-routed mutation chains
 
 ---
 
@@ -933,6 +1213,14 @@ The gateway then pushes these to connected SSE/WebSocket clients.
 4. **Loop termination**: What happens if the LLM never stops calling tools? Need `max_iterations` equivalent. The `while True` loop should have a compiler-enforced or runtime-enforced iteration limit.
 
 5. **Error in tool actor**: If a tool actor fails, should the loop retry, break, or route to error-end? Currently, errors always go to error-end. Should the dispatch router support error recovery?
+
+6. **`ASYA_PARTIAL_EVENTS_ROUTE` and multi-namespace**: Queue names include namespace prefix (`asya-{namespace}-{actor}`). How does `ASYA_PARTIAL_EVENTS_ROUTE` resolve across namespaces? Should it use fully qualified names, or should the sidecar resolve relative names within its own namespace?
+
+7. **Fire-and-forget `await`**: Currently unsupported — `await actor(p)` where the result is discarded (not assigned) is a compiler error. Should this be supported in the future as a side-effect-only actor call?
+
+8. **Free variable auto-serialization in yield bodies**: When an `await` in a yield body creates a CPS split, free variables crossing the boundary are currently a compiler error. Future: should the compiler auto-serialize them into the event payload (similar to Section 2.3)?
+
+9. **Partial event ordering guarantees**: When partial events flow through mutation routers (queue-based), ordering is not guaranteed by queue semantics. Should the runtime attach sequence numbers? Or is ordering only guaranteed for direct-to-gateway (HTTP) streaming?
 
 ---
 

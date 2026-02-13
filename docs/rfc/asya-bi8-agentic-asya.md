@@ -1188,7 +1188,7 @@ workflow = SequentialAgent(
 )
 ```
 
-**Asya Compilation**: Linear chain of actors
+**Asya Compilation**: Linear chain of actors, as a pre-defined pre-compiled flow.
 
 ```
 ┌─────────┐    ┌─────────┐    ┌─────────┐
@@ -1198,21 +1198,8 @@ workflow = SequentialAgent(
 
 **Routing logic**:
 ```python
-# Agent A finishes
 return {
-    "route": ["agent_b"],
-    "payload": {"session": updated_session}
-}
-
-# Agent B finishes
-return {
-    "route": ["agent_c"],
-    "payload": {"session": updated_session}
-}
-
-# Agent C finishes
-return {
-    "route": ["gateway"],
+    "route": ["agent_a", "agent_b", "agent_c"],
     "payload": {"session": updated_session}
 }
 ```
@@ -1340,7 +1327,7 @@ async def handle_agent_b(message: dict):
 
 ### Unsupported: Custom Agents
 
-**Not supported initially**: Agents with custom `_run_async_impl()` logic
+Agents with custom `_run_async_impl()` logic - supported with compilation as asya flow:
 
 ```python
 class MyCustomAgent(BaseAgent):
@@ -1353,10 +1340,6 @@ class MyCustomAgent(BaseAgent):
             async for event in sub_agent_b.run_async(ctx):
                 yield event
 ```
-
-**Reason**: Requires AST analysis or runtime interpretation, too complex for initial implementation.
-
-**Workaround**: Treat as single actor (no distribution), or refactor to use built-in agents.
 
 ---
 

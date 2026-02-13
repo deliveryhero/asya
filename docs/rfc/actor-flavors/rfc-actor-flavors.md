@@ -86,7 +86,7 @@ data:                                  # top-level, mirrors AsyncActor spec
           env:
           - name: CUDA_VISIBLE_DEVICES
             value: "0"
-        nodeSelector:
+        nodeSelector:1
           accelerator: nvidia-tesla-t4
         tolerations:
         - key: nvidia.com/gpu
