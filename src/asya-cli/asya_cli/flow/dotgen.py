@@ -33,6 +33,7 @@ class DotGenerator:
         self._redirect_map: dict[str, str] = {}
         self._try_clusters: list[_TryCluster] = []
         self._cluster_membership: dict[str, str] = {}
+        self._color_error_control_flow = "orange4"
 
     @staticmethod
     def _sanitize_node_id(name: str) -> str:
@@ -238,7 +239,10 @@ class DotGenerator:
     # ── Node generation ──────────────────────────────────────────────
 
     def _generate_actor_node(self, router: Router) -> str:
-        color = "lightgreen" if router.name.startswith("start_") or router.name.startswith("end_") else "wheat"
+        if router.name.startswith("start_") or router.name.startswith("end_"):
+            color = "lightgreen"
+        else:
+            color = "wheat"
 
         rows = []
         display_name = self._get_display_name(router.name)
@@ -293,7 +297,7 @@ class DotGenerator:
         parts = []
         parts.append(f"  subgraph {cluster.cluster_name} {{")
         parts.append("    style=dashed;")
-        parts.append('    color="red";')
+        parts.append(f'    color="{self._color_error_control_flow}";')
         parts.append('    fontname="Courier";')
         parts.append("    fontsize=10;")
         parts.append('    label="try";')
@@ -337,7 +341,7 @@ class DotGenerator:
                         label = self._format_except_label(handler.error_types)
                         lines.add(
                             f"  {self._node_id(anchor)} -> {self._node_id(handler.actors[0])}"
-                            f" [ltail={cluster.cluster_name}, color=red, style=dashed,"
+                            f" [ltail={cluster.cluster_name}, color={self._color_error_control_flow}, style=dashed,"
                             f' label="{self._escape_html(label)}"];'
                         )
                         self._add_sequential_edges(handler.actors, lines)
@@ -352,7 +356,7 @@ class DotGenerator:
                 if cluster.except_dispatch.reraise_name:
                     lines.add(
                         f"  {self._node_id(anchor)} -> {self._node_id(cluster.except_dispatch.reraise_name)}"
-                        f' [ltail={cluster.cluster_name}, color=red, style=dashed, label="unhandled"];'
+                        f' [ltail={cluster.cluster_name}, color={self._color_error_control_flow}, style=dashed, label="unhandled"];'
                     )
 
         return lines
