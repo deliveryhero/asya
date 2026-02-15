@@ -638,9 +638,150 @@ A/B testing and fan-in sharding can coexist in the same pipeline. For example, a
 
 ---
 
+## Observability
+
+Fan-out/fan-in introduces distributed state (RocksDB) and multi-message coordination that require dedicated metrics. All metrics are exported via OpenTelemetry (OTel) using the `opentelemetry-api` Python SDK, following the [OTel semantic conventions](https://opentelemetry.io/docs/specs/semconv/) naming style (`dotted.lowercase`).
+
+### Fan-Out Router Metrics
+
+Emitted by the generated fan-out router. Since the router is generated code, the code generator emits OTel instrumentation alongside the routing logic.
+
+| Metric | Type | Description |
+|---|---|---|
+| `asya.fanout.operations` | Counter | Fan-out operations initiated (one per incoming message) |
+| `asya.fanout.slices` | Histogram | Number of sub-agent slices per fan-out operation. Detects unexpectedly large fan-outs (e.g., iterating over a 10k-element list). |
+
+**Labels**: `flow` (flow name), `aggregator` (target aggregator actor name).
+
+**Backpressure signal**: A fan-out emitting thousands of slices can overwhelm sub-agent queues and the aggregator. The `asya.fanout.slices` histogram provides visibility into fan-out cardinality. Alerting on p99 > threshold catches runaway fan-outs before they saturate infrastructure.
+
+### Aggregator Metrics
+
+Emitted by the aggregator crew actor. A background thread periodically samples RocksDB stats and updates gauges.
+
+**Fan-in coordination metrics**:
+
+| Metric | Type | Description |
+|---|---|---|
+| `asya.fanin.active` | UpDownCounter | In-flight aggregations (incremented on first message for a new `origin_id`, decremented on completion or TTL cleanup) |
+| `asya.fanin.messages.received` | Counter | Total messages received (parent payloads + sub-agent slices) |
+| `asya.fanin.completions` | Counter | Completed aggregations (all slices arrived, merged envelope emitted) |
+| `asya.fanin.duration_seconds` | Histogram | Wall-clock time from first message arrival to completion. Requires storing a `created_at` timestamp in aggregation state. |
+| `asya.fanin.stale_cleanups` | Counter | Aggregation entries expired by TTL (partial fan-out failures) |
+
+**Labels**: `aggregator` (actor name), `shard` (shard index, e.g., `"2"`).
+
+**RocksDB storage metrics** (sampled every 10s by a background thread):
+
+| Metric | Type | Description |
+|---|---|---|
+| `asya.fanin.rocksdb.size_bytes` | Gauge | Total on-disk DB size. Primary backpressure signal — alert when approaching PVC capacity. |
+| `asya.fanin.rocksdb.keys` | Gauge | Approximate number of live keys (`rocksdb.estimate-num-keys` property). Correlates with `asya.fanin.active`. |
+| `asya.fanin.rocksdb.pending_compaction_bytes` | Gauge | Bytes pending compaction. Sustained high values indicate write pressure exceeding compaction throughput. |
+| `asya.fanin.rocksdb.block_cache_usage_bytes` | Gauge | Block cache memory usage. Useful for tuning `block_cache_size`. |
+
+**Labels**: `aggregator` (actor name), `shard` (shard index).
+
+### Backpressure and Alerting
+
+The primary risk is PVC exhaustion on aggregator shards. RocksDB will crash (write stall, then I/O error) if the volume fills up. Recommended alerts:
+
+| Alert | Condition | Severity |
+|---|---|---|
+| AggregatorDiskHigh | `asya.fanin.rocksdb.size_bytes / pvc_capacity > 0.8` | Warning |
+| AggregatorDiskCritical | `asya.fanin.rocksdb.size_bytes / pvc_capacity > 0.95` | Critical |
+| AggregatorStaleFanouts | `asya.fanin.active` growing without `asya.fanin.completions` increasing | Warning |
+| FanoutCardinalityHigh | `asya.fanout.slices` p99 > 1000 | Warning |
+
+PVC capacity is known at deployment time (`volumeClaimTemplates.resources.requests.storage`). It can be injected as an env var (`ASYA_FANIN_PVC_CAPACITY_BYTES`) for the aggregator to compute utilization ratios locally, or the alert can be computed externally by joining the metric with PVC metadata.
+
+### OTel Integration
+
+The aggregator initializes the OTel metrics SDK at startup. The exporter is configured via standard OTel environment variables (`OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_SERVICE_NAME`, etc.), which are set on the AsyncActor spec.
+
+```python
+from opentelemetry import metrics
+from opentelemetry.sdk.metrics import MeterProvider
+from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
+from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
+
+_reader = PeriodicExportingMetricReader(OTLPMetricExporter(), export_interval_millis=10000)
+metrics.set_meter_provider(MeterProvider(metric_readers=[_reader]))
+_meter = metrics.get_meter("asya.fanin")
+
+fanin_active = _meter.create_up_down_counter("asya.fanin.active")
+fanin_completions = _meter.create_counter("asya.fanin.completions")
+fanin_messages = _meter.create_counter("asya.fanin.messages.received")
+fanin_duration = _meter.create_histogram("asya.fanin.duration_seconds")
+fanin_stale = _meter.create_counter("asya.fanin.stale_cleanups")
+
+rocksdb_size = _meter.create_gauge("asya.fanin.rocksdb.size_bytes")
+rocksdb_keys = _meter.create_gauge("asya.fanin.rocksdb.keys")
+rocksdb_pending = _meter.create_gauge("asya.fanin.rocksdb.pending_compaction_bytes")
+rocksdb_cache = _meter.create_gauge("asya.fanin.rocksdb.block_cache_usage_bytes")
+```
+
+The background thread for RocksDB stats:
+
+```python
+import threading
+
+def _rocksdb_stats_loop(db, labels, interval=10):
+    while True:
+        rocksdb_size.set(int(db.get_property(b"rocksdb.estimate-live-data-size")), labels)
+        rocksdb_keys.set(int(db.get_property(b"rocksdb.estimate-num-keys")), labels)
+        rocksdb_pending.set(int(db.get_property(b"rocksdb.compaction-pending")), labels)
+        rocksdb_cache.set(int(db.get_property(b"rocksdb.block-cache-usage")), labels)
+        threading.Event().wait(interval)
+
+threading.Thread(target=_rocksdb_stats_loop, args=(_db, {"aggregator": _ACTOR_NAME, "shard": _SHARD}),
+                 daemon=True).start()
+```
+
+For the generated fan-out router, the code generator emits OTel counter increments in the router function. The OTel SDK is initialized once at module level in the generated `routers.py`.
+
+---
+
 ## Flow DSL Examples and Code Generation
 
 The Flow DSL supports fan-out via list comprehensions (homogeneous — same actor, different data) and list literals (heterogeneous — different actors). Both compile to the same N+1 message protocol using a single code generation strategy.
+
+### Three Syntax Levels
+
+The DSL supports three syntax levels for fan-out. All compile to the **same** distributed fan-out/fan-in — the difference is only in local execution semantics:
+
+| Syntax | Local Execution | Compiled (Asya) | Flow Type |
+|---|---|---|---|
+| `[actor(x) for x in items]` | Sequential (sync) | Parallel fan-out (compiler optimization) | `def` |
+| `[await actor(x) for x in items]` | Sequential (async, one at a time) | Parallel fan-out (compiler optimization) | `async def` |
+| `await asyncio.gather(*(actor(x) for x in items))` | Parallel (async, concurrent) | Parallel fan-out | `async def` |
+
+**Compiler optimization**: List comprehensions with actor calls have no data dependencies between iterations. The compiler automatically promotes them to parallel fan-out on Asya — even though they run sequentially locally. This is analogous to how a C compiler can auto-vectorize a loop.
+
+The user chooses syntax based on local execution needs. If local parallelism matters (e.g., testing I/O-bound actors), use `asyncio.gather`. Otherwise, the simpler list comprehension still gets distributed parallelism on Asya.
+
+**Examples**:
+
+```python
+# Level 1: Sync comprehension (simplest)
+def research_flow(p: dict) -> dict:
+    p["results"] = [research_agent(t) for t in p["topics"]]
+    return p
+
+# Level 2: Async comprehension (sequential locally, parallel on Asya)
+async def research_flow(p: dict) -> dict:
+    p["results"] = [await research_agent(t) for t in p["topics"]]
+    return p
+
+# Level 3: asyncio.gather (parallel locally AND on Asya)
+async def research_flow(p: dict) -> dict:
+    p["results"] = await asyncio.gather(
+        *(research_agent(t) for t in p["topics"])
+    )
+    return p
+```
+
+All three compile to the same generated fan-out router. The async variants require the agentic compiler (separate RFC) but produce the same `FanOutCall` IR node and the same N+1 message protocol.
 
 ### Code Generation Strategy
 
@@ -660,6 +801,8 @@ The only part that varies per fan-out is how `_slices` is built. The emission bo
 | `[f(p["topics"][i]) for i in range(len(p["topics"]))]` | `for i in range(len(p["topics"])): _slices.append(...)` | `len(p["topics"]) + 1` |
 | `[f(p["query"]) for _ in range(10)]` | `for _ in range(10): _slices.append(...)` | `11` |
 | `[a(p["text"]), b(p["text"]), c(p["text"])]` | `_slices = [(resolve("a"), p["text"]), ...]` | `4` |
+| `await asyncio.gather(*(f(t) for t in items))` | Same as comprehension | `len(items) + 1` |
+| `await asyncio.gather(a(x), b(y), c(z))` | Same as list literal | `4` |
 
 ### Homogeneous Fan-Out (List Comprehension)
 
@@ -795,17 +938,7 @@ Aggregation state for incomplete fan-outs (partial failures) should be cleaned u
 
 The background thread approach is simplest and keeps the cleanup self-contained within the aggregator.
 
-### 4. Monitoring and Observability
-
-Per-replica metrics needed:
-
-- `asya_aggregator_active_fanouts` (gauge): Number of in-flight aggregations
-- `asya_aggregator_slices_received_total` (counter): Total slices received
-- `asya_aggregator_completions_total` (counter): Total completed aggregations
-- `asya_aggregator_stale_cleanups_total` (counter): Stale entries cleaned up
-- `asya_aggregator_rocksdb_size_bytes` (gauge): RocksDB on-disk size
-
-### 5. Header Syntax Constraints for Transport Compatibility
+### 4. Header Syntax Constraints for Transport Compatibility
 
 Asya headers (`x-asya-*`) currently live inside the envelope JSON's `headers` field. If headers are promoted to transport-level metadata (for routing decisions without full message deserialization), they must respect the lowest common denominator across transports:
 
@@ -840,7 +973,7 @@ This leaves 3 slots for user-defined headers (`trace_id`, `priority`, etc.).
 
 **Broader question**: A dedicated RFC should define the general header contract -- naming conventions, size budgets, transport promotion rules, and reserved vs user-defined header namespaces. This is out of scope for the fan-in RFC but noted here as a dependency.
 
-### 6. Nested Fan-Out
+### 5. Nested Fan-Out
 
 Can a sub-agent itself fan-out? This creates a tree of aggregations. The current design supports this because:
 
@@ -850,7 +983,23 @@ Can a sub-agent itself fan-out? This creates a tree of aggregations. The current
 
 However, the continuation route for a nested fan-out must correctly point back to the outer aggregator. This requires the inner fan-out router to preserve the outer route context. Design deferred until the use case is validated.
 
-### 7. Gateway Tracking Headers
+### 6. Partial Failure Semantics
+
+What happens when some sub-agent slices succeed and others fail (routed to x-sump)?
+
+- **All-or-nothing**: Aggregator waits for all N slices. If any fail, TTL cleanup eventually expires the incomplete aggregation. The entire fan-out is treated as failed.
+- **Best-effort**: Aggregator emits partial results after TTL, filling failed slots with `null` or an error marker. The continuation receives a partially-populated results list.
+- **`return_exceptions` mode** (inspired by `asyncio.gather(return_exceptions=True)`): Failed slices are represented as error objects in the results list instead of aborting the aggregation.
+
+Current design is effectively all-or-nothing (TTL cleanup deletes stale state). Best-effort and `return_exceptions` modes would require the aggregator to track per-slice failure status and a mechanism for x-sump to notify the aggregator that a slice has permanently failed (rather than being retried). Design deferred until failure patterns are observed in practice.
+
+### 7. Payload Size and S3 Offloading
+
+For fan-outs with large parent payloads, the index-0 message carries the full original payload through the aggregator queue. This is likely not a problem in practice — message size limits (SQS: 256KB, RabbitMQ: configurable) apply uniformly to all actor messages, and fan-out doesn't amplify the parent payload size (slices carry only their extracted data).
+
+If payload size becomes a concern, a future optimization could offload large payloads to S3/artifact storage and replace them with references. This is orthogonal to fan-in and would benefit all actors, not just fan-out.
+
+### 8. Gateway Tracking Headers
 
 For A2A and MCP use-cases, the gateway needs to track the status of user-initiated requests across the actor mesh. Currently it tracks using `message["id"]` but it's becoming incorrect for fan-out use-cases. The gateway sets a tracking header on the initial message:
 
@@ -865,8 +1014,6 @@ The broader protocol change --- moving `parent_id` from a top-level envelope fie
 
 ## References
 
-- [Fan-Out RFC](asya-fan-in-fan-out.md) -- Fan-out architecture, N+1 message pattern
-- [Yield-Only Fan-Out Plan](2026-02-10-yield-only-fanout.md) -- Streaming wire protocol for generators
 - [A/B Routing RFC](../a-b-testing/rfc-a-b-routing.md) -- `x-asya-route-override` header mechanism
 - [JSON Pointer (RFC 6901)](https://www.rfc-editor.org/rfc/rfc6901) -- Standard for addressing values within JSON documents
 - [python-json-pointer](https://github.com/stefankoegl/python-json-pointer) -- Python implementation of JSON Pointer (zero dependencies)
