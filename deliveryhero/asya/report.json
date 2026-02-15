@@ -1,7 +1,7 @@
 {
   "repository": "deliveryhero/asya",
   "ref": "refs/heads/main",
-  "commit": "5a1d02300b4907f8e5890e72f3a1267b6fe7f20d",
+  "commit": "ada68287275feafe52392233cbeced7f199e3f9f",
   "coverage": {
     "type": "merged",
     "format": "Go coverage",
@@ -2571,7 +2571,7 @@
             "start_line": 225,
             "start_col": 3,
             "end_line": 225,
-            "end_col": 39,
+            "end_col": 38,
             "num_stmt": 1,
             "count": 1
           },
@@ -3570,14 +3570,14 @@
             "start_line": 623,
             "start_col": 16,
             "end_line": 628,
-            "end_col": 75,
+            "end_col": 74,
             "num_stmt": 3,
             "count": 0
           },
           {
             "type": "statement",
             "start_line": 628,
-            "start_col": 75,
+            "start_col": 74,
             "end_line": 630,
             "end_col": 5,
             "num_stmt": 1,
@@ -3597,14 +3597,14 @@
             "start_line": 636,
             "start_col": 3,
             "end_line": 636,
-            "end_col": 74,
+            "end_col": 73,
             "num_stmt": 1,
             "count": 1
           },
           {
             "type": "statement",
             "start_line": 636,
-            "start_col": 74,
+            "start_col": 73,
             "end_line": 639,
             "end_col": 4,
             "num_stmt": 2,
@@ -3820,7 +3820,7 @@
           {
             "type": "statement",
             "start_line": 744,
-            "start_col": 88,
+            "start_col": 87,
             "end_line": 747,
             "end_col": 27,
             "num_stmt": 3,
@@ -3910,7 +3910,7 @@
           {
             "type": "statement",
             "start_line": 788,
-            "start_col": 138,
+            "start_col": 137,
             "end_line": 797,
             "end_col": 67,
             "num_stmt": 5,
@@ -4153,7 +4153,7 @@
           {
             "type": "statement",
             "start_line": 907,
-            "start_col": 23,
+            "start_col": 19,
             "end_line": 908,
             "end_col": 27,
             "num_stmt": 1,
@@ -4162,7 +4162,7 @@
           {
             "type": "statement",
             "start_line": 909,
-            "start_col": 23,
+            "start_col": 19,
             "end_line": 914,
             "end_col": 66,
             "num_stmt": 3,
@@ -4531,7 +4531,7 @@
           {
             "type": "statement",
             "start_line": 1028,
-            "start_col": 23,
+            "start_col": 19,
             "end_line": 1029,
             "end_col": 27,
             "num_stmt": 1,
@@ -4540,7 +4540,7 @@
           {
             "type": "statement",
             "start_line": 1030,
-            "start_col": 23,
+            "start_col": 19,
             "end_line": 1042,
             "end_col": 59,
             "num_stmt": 3,
@@ -15862,8 +15862,8 @@
     ]
   },
   "code_to_test_ratio": {
-    "code": 18100,
-    "test": 17308,
+    "code": 18182,
+    "test": 17310,
     "code_files": [
       {
         "code": 384,
@@ -16447,6 +16447,41 @@
         "language": "Python"
       },
       {
+        "code": 0,
+        "comment": 0,
+        "blank": 0,
+        "path": "src/asya-crew/asya_crew/__init__.py",
+        "language": "Python"
+      },
+      {
+        "code": 0,
+        "comment": 0,
+        "blank": 0,
+        "path": "src/asya-crew/asya_crew/message_persistence/__init__.py",
+        "language": "Python"
+      },
+      {
+        "code": 106,
+        "comment": 58,
+        "blank": 41,
+        "path": "src/asya-crew/asya_crew/message_persistence/s3.py",
+        "language": "Python"
+      },
+      {
+        "code": 47,
+        "comment": 52,
+        "blank": 27,
+        "path": "src/asya-crew/asya_crew/sink.py",
+        "language": "Python"
+      },
+      {
+        "code": 41,
+        "comment": 45,
+        "blank": 26,
+        "path": "src/asya-crew/asya_crew/sump.py",
+        "language": "Python"
+      },
+      {
         "code": 83,
         "comment": 9,
         "blank": 10,
@@ -16494,20 +16529,6 @@
         "blank": 18,
         "path": "src/asya-crew/cmd/dlq-worker/worker.go",
         "language": "Go"
-      },
-      {
-        "code": 0,
-        "comment": 0,
-        "blank": 0,
-        "path": "src/asya-crew/handlers/__init__.py",
-        "language": "Python"
-      },
-      {
-        "code": 113,
-        "comment": 73,
-        "blank": 51,
-        "path": "src/asya-crew/handlers/end_handlers.py",
-        "language": "Python"
       },
       {
         "code": 173,
@@ -16650,7 +16671,7 @@
         "language": "Go"
       },
       {
-        "code": 355,
+        "code": 356,
         "comment": 41,
         "blank": 55,
         "path": "src/asya-injector/internal/injection/inject.go",
@@ -17156,7 +17177,7 @@
         "language": "Go"
       },
       {
-        "code": 977,
+        "code": 979,
         "comment": 21,
         "blank": 148,
         "path": "src/asya-injector/internal/injection/inject_test.go",
@@ -17346,6 +17367,6 @@
       }
     ]
   },
-  "test_execution_time": 204000000000,
-  "timestamp": "2026-02-15T18:49:35.122480341Z"
+  "test_execution_time": 201000000000,
+  "timestamp": "2026-02-15T19:49:28.631803062Z"
 }
