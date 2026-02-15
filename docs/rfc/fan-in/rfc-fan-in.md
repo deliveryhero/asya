@@ -61,8 +61,8 @@ Fan-out router (generated code)
 
 - **Route stays abstract**: Compiled routes say `"aggregator"`, not `"aggregator-2"`. Shard resolution happens via `x-asya-route-override` headers at emission time.
 - **Sidecar stays simple**: The sidecar performs a dictionary lookup on the override header (as defined in the [A/B routing RFC](../a-b-testing/rfc-a-b-routing.md)). No sharding logic in the sidecar.
-- **Fan-out router resolves shards**: The pre-built fan-out crew actor computes the shard via rendezvous hashing and stamps the override header on every emitted message (setup + all slices).
-- **Number of shards known to fan-out router at deployment time**: `N` is passed to fan-out router as env variable at deployment time.
+- **Fan-out router resolves shards**: The compiler-generated fan-out router computes the shard via inline rendezvous hashing and stamps the override header on every emitted message (setup + all slices).
+- **Number of shards known to fan-out router at deployment time**: `N` is passed to fan-out router as `ASYA_FANIN_SHARDS` env variable at deployment time.
 
 ---
 
@@ -98,44 +98,75 @@ Fan-out router (generated code)
 - No cross-replica queries (cannot query all in-flight aggregations globally). Monitoring must aggregate per-replica metrics.
 - RocksDB tuning (write buffer size, compaction) may be needed under high load, but defaults are reasonable for most workloads.
 
-### ADR-2: Pre-Built Crew Actor for Fan-Out Shard Resolution
+### ADR-2: Generated Fan-Out Router with Inline Sharding
 
-**Context**: The compiled route says `"aggregator"` but messages must reach a specific shard (`"aggregator-2"`). Something must resolve the abstract name to the concrete shard. Options:
+**Context**: The compiled route says `"aggregator"` but messages must reach a specific shard (`"aggregator-2"`). Something must resolve the abstract name to the concrete shard. Additionally, the fan-out router must split the input into N slices — determining which actor receives which payload. Options:
 
 | Option | Pros | Cons |
 |--------|------|------|
 | Standalone shard-resolver actor (separate from fan-out) | Separation of concerns | Extra queue hop per slice (N additional hops per fan-out) |
 | Sidecar resolves shards | No extra hop, efficient | Adds specialized logic to the sidecar, violates simplicity principle |
-| Compiler-generated inline code | No extra hop, deterministic | Sharding logic coupled to code generation, algorithm changes require recompilation |
-| **Pre-built crew actor as fan-out router** | **Reusable, configurable algorithm via env vars, no extra hop** | **Fan-out router is a crew dependency** |
+| Pre-built crew actor configured via env vars | Reusable, no extra hop | Slicing logic can't be expressed in env vars for all patterns (see below) |
+| **Compiler-generated router with inline sharding** | **No extra hop, handles all patterns, no crew dependency** | **Sharding utility generated per-flow (trivial — ~10 lines)** |
 
-**Decision**: The fan-out router is a **pre-built actor in `asya-crew`** (similar to the experiment `weighted_router` from the [A/B routing RFC](../a-b-testing/rfc-a-b-routing.md)). The Flow DSL compiler generates the route and configuration (env vars), but the fan-out + sharding logic lives in `asya-crew` as a reusable handler.
+**Decision**: The fan-out router is a **compiler-generated router** (like existing conditional/mutation routers). The Flow DSL compiler generates both the slicing logic and the sharding utility inline in the router file. No `asya-crew` dependency.
 
-The fan-out crew actor is configured via environment variables at deployment time:
+**Why not a pre-built crew actor**: The crew actor approach requires encoding slicing logic in environment variables. This works for simple homogeneous fan-out (`ASYA_FANIN_ITERATOR=topics`) but breaks down for the full range of DSL patterns:
 
-```yaml
-apiVersion: asya.dev/v1alpha1
-kind: AsyncActor
-metadata:
-  name: fan-out-research-router
-spec:
-  image: asya-crew:latest
-  handler: asya_crew.fanout.shard_router
-  handlerMode: envelope
-  env:
-    - name: ASYA_FANIN_ITERATOR
-      value: "tasks"                    # payload field to iterate over
-    - name: ASYA_FANIN_AGGREGATION_KEY
-      value: "/results"                 # JSON Pointer (RFC 6901): where to place the results list
-    - name: ASYA_FANIN_TARGET
-      value: "aggregator"              # logical actor name to shard
-    - name: ASYA_FANIN_SHARDS
-      value: "3"                        # number of aggregator shards
-    - name: ASYA_FANIN_ALGORITHM
-      value: "rendezvous"              # sharding algorithm (rendezvous only for now)
+```python
+# These patterns can't be expressed as env var configuration:
+[research_agent(t) for t in p["topics"]]              # direct iteration
+[research_agent(p["query"]) for _ in range(10)]        # fixed count
+[sentiment_analyzer(p["text"]), topic_extractor(p["text"])]  # heterogeneous
 ```
 
-The compiler's job is to detect list comprehensions in the Flow DSL, determine the iterator field and result field, and generate the AsyncActor manifest with the correct env vars. The actual fan-out logic (N+1 message emission, shard computation, header stamping) is generic and lives in `asya-crew`.
+Encoding these as `ASYA_FANIN_MAPPINGS` JSON blobs or `ASYA_FANIN_ITERATOR` field names trades code clarity for configuration complexity. Since the slicing logic IS code (it comes from the DSL), it should remain code in the generated router.
+
+**How it works**: The compiler takes the DSL loop/list as-is, runs it to accumulate `(actor_name, payload)` pairs, then yields all envelopes. The sharding utility (`_rendezvous_shard`) is generated as a module-level function in the routers file (~10 lines), reading `ASYA_FANIN_SHARDS` from an env var at import time.
+
+**Generated router structure** (for `p["results"] = [research_agent(t) for t in p["topics"]]`):
+
+```python
+def fanout_research_flow_L5(message):
+    p = message["payload"]
+    r = message["route"]
+    c = r["current"]
+    origin_id = message["id"]
+    _agg = r["actors"][c + 1]
+    _shard = _rendezvous_shard(origin_id, _agg)
+    _hdrs = message.get("headers", {})
+
+    # --- Accumulate: DSL loop as-is, actor call -> (name, payload) ---
+    _slices = []
+    for t in p["topics"]:
+        _slices.append((resolve("research_agent"), t))
+    # ---
+
+    _n = len(_slices)
+
+    # Setup (first yield -> keeps original message.id)
+    yield {
+        "route": {"actors": list(r["actors"]), "current": c + 1},
+        "headers": {**_hdrs, "x-asya-route-override": {_agg: _shard},
+                    "x-asya-fan-in": {"actor": _agg, "type": "setup",
+                                      "origin_id": origin_id, "slice_count": _n,
+                                      "aggregation_key": "/results"}},
+        "payload": dict(p),
+    }
+
+    # Slices
+    for _i, (_actor, _payload) in enumerate(_slices):
+        yield {
+            "route": {"actors": [_actor, _shard], "current": 0},
+            "headers": {**_hdrs, "x-asya-route-override": {_agg: _shard},
+                        "x-asya-fan-in": {"actor": _agg, "type": "slice",
+                                          "origin_id": origin_id,
+                                          "slice_index": _i, "slice_count": _n}},
+            "payload": _payload,
+        }
+```
+
+The only part that varies per fan-out is how `_slices` is built. Everything below it is identical boilerplate emitted by the code generator.
 
 **Available algorithms** (configured via `ASYA_FANIN_ALGORITHM`):
 
@@ -144,26 +175,25 @@ The compiler's job is to detect list comprehensions in the Flow DSL, determine t
 | `rendezvous` | Available | Rendezvous (HRW): `argmax_i(hash(origin_id, shard_i))`. Minimal redistribution on scale change (~1/N keys move). |
 | `consistent` | Planned | Consistent hashing with virtual nodes. Same redistribution properties, different implementation trade-offs. |
 
-Rendezvous is the default and only option for now. It was chosen over simple modulo because the pre-built actor pattern makes algorithm selection a deployment-time concern (env var), and rendezvous provides better scaling properties at negligible implementation cost.
+Rendezvous is the default and only option for now.
 
 **Rationale**:
 
 - **No extra hop**: The fan-out router IS the sharding actor. It emits N+1 messages with shard-resolved `x-asya-route-override` headers. No separate shard-resolver needed.
-- **Reusable**: One crew actor handles all fan-out flows. Different flows configure different iterator fields and shard counts via env vars. No per-flow code generation for the sharding logic.
-- **Algorithm is a deployment choice**: Data Scientists write the flow, DevOps/platform team configures the sharding algorithm and shard count at deployment time. No recompilation needed to change algorithms.
+- **Handles all patterns**: The DSL loop/list is copied verbatim into the generated code. Comprehensions, direct iteration, fixed count, heterogeneous lists — all produce the same `_slices` list of `(actor, payload)` tuples.
+- **No crew dependency**: The sharding utility is ~10 lines of generated code. No import from `asya-crew`, no runtime library dependency.
+- **Algorithm is still a deployment choice**: The generated `_rendezvous_shard` reads `ASYA_FANIN_SHARDS` from an env var. Shard count changes require redeployment of the router actor (env var change), not recompilation. Algorithm changes require regenerating the router (the ~10-line utility), but this is a rare operation.
 - **Leverages existing infrastructure**: The `x-asya-route-override` header from the [A/B routing RFC](../a-b-testing/rfc-a-b-routing.md) provides the resolution mechanism. No new sidecar features needed.
-- **Consistent with A/B routing pattern**: Just as A/B testing uses a pre-built `weighted_router` crew actor, fan-out uses a pre-built `shard_router` crew actor. Same pattern, same deployment model.
 - **Scale-up safe**: When scaling from N to M shards (M > N), old messages continue to route correctly because the target shard name is baked into the `x-asya-route-override` header at emission time. Old shards still exist. New fan-outs use new shard count.
 
 **Consequences**:
 
-- `asya-crew` becomes a dependency for fan-out flows. This is acceptable since crew actors (happy-end, error-end) are already required infrastructure.
-- Adding new sharding algorithms requires updating `asya-crew`, not the compiler or sidecar.
+- Adding new sharding algorithms requires updating the code generator (not `asya-crew`). Since the utility is ~10 lines, this is trivial.
 - **Scale-down requires draining**: When reducing shard count, old shards must finish processing in-flight aggregations before removal. See [Open Questions](#open-questions).
 
 ### ADR-3: Rendezvous Hashing as Default Algorithm
 
-**Context**: The pre-built fan-out crew actor needs a deterministic function mapping `origin_id` to a shard index. Since the algorithm is now a deployment-time env var (not compiled-in), the choice should favor correctness under scaling over raw simplicity. Three algorithms were considered:
+**Context**: The generated fan-out router needs a deterministic function mapping `origin_id` to a shard index. Three algorithms were considered:
 
 | Algorithm | How it works | Redistribution on scale (N to N+1) | Complexity |
 |-----------|-------------|-------------------------------------|------------|
@@ -182,7 +212,7 @@ Both consistent hashing and rendezvous solve the same problem: minimizing key re
 - **Uniform distribution without tuning**: Modulo depends on the hash function's lower bits; consistent hashing needs vnodes for balance. Rendezvous is naturally uniform.
 - **O(N) is fine**: N is the shard count (typically 3-20), not the message count. Evaluating `hash(origin_id, shard_i)` for 20 shards is sub-microsecond.
 
-**Why not modulo**: Modulo is simpler but redistributes all keys on scale change. Since algorithm selection is a deployment-time env var (not compiled-in), there is no reason to default to the weaker option. The pre-built actor absorbs the implementation complexity.
+**Why not modulo**: Modulo is simpler but redistributes all keys on scale change. Rendezvous provides better scaling properties at negligible implementation cost (~10 lines of generated code).
 
 **Why not consistent hashing (yet)**: Rendezvous achieves the same redistribution properties with less code and no tuning (vnodes). Consistent hashing will be added as a second option if use cases emerge that benefit from O(log N) lookup (very high shard counts).
 
@@ -212,33 +242,21 @@ Both consistent hashing and rendezvous solve the same problem: minimizing key re
 - `hashlib.sha256`: Slowest option, no benefit.
 - FNV-1a: Good alternative but xxHash has better distribution and speed.
 
-**Usage in pre-built crew actor**:
+**Usage in generated router code** (emitted at the top of `routers.py` by the code generator):
 
 ```python
 import os
 
 import xxhash
 
-_SHARD_COUNT = int(os.environ["ASYA_FANIN_SHARDS"])
-_TARGET = os.environ["ASYA_FANIN_TARGET"]
+_FANIN_SHARDS = int(os.environ.get("ASYA_FANIN_SHARDS", "1"))
 
 
-def _rendezvous_shard(origin_id: str) -> str:
+def _rendezvous_shard(origin_id, target):
     """Rendezvous (HRW): pick shard with highest hash score."""
-    best_shard = 0
-    best_score = -1
-    for i in range(_SHARD_COUNT):
-        score = xxhash.xxh64_intdigest(f"{origin_id}:{i}".encode())
-        if score > best_score:
-            best_score = score
-            best_shard = i
-    return f"{_TARGET}-{best_shard}"
-
-
-# In the shard_router handler:
-# origin_id = envelope["id"]  # original message ID
-# shard_queue = _rendezvous_shard(origin_id)
-# Stamp origin_id into x-asya-fan-in header on all emitted messages
+    best = max(range(_FANIN_SHARDS),
+               key=lambda i: xxhash.xxh64_intdigest(f"{origin_id}:{i}".encode()))
+    return f"{target}-{best}"
 ```
 
 ### ADR-5: `origin_id` as Aggregation Key
@@ -284,7 +302,7 @@ Other identity headers that may be present on messages are **orthogonal** to fan
 
 ### Yield Order and ID Assignment
 
-The fan-out crew actor yields messages via the sidecar's generator mechanism. The sidecar assigns IDs based on yield position:
+The generated fan-out router yields messages via the sidecar's generator mechanism. The sidecar assigns IDs based on yield position:
 
 1. **First yield** (`partial=False`): `message.id` is kept unchanged. No `x-asya-parent-id` header.
 2. **Each subsequent yield** (`partial=False`): `message.id = uuid4()`. Sidecar sets `headers.x-asya-parent-id = original_message.id`.
@@ -444,7 +462,7 @@ def aggregator(envelope: dict) -> dict | None:
             "payload": envelope["payload"],
         }
     else:
-        state["results"][fan_in["slice_index"]] = envelope["payload"]
+        state["results"][fan_ain["slice_index"]] = envelope["payload"]
 
     state["received_count"] += 1
 
@@ -455,7 +473,7 @@ def aggregator(envelope: dict) -> dict | None:
         return msg
 
     _save(key, state)
-    return None
+    return {"status": "incomplete"}
 
 
 def _load(key: bytes) -> dict | None:
@@ -469,10 +487,26 @@ def _save(key: bytes, state: dict):
 
 ### Behavior
 
-- **Completeness**: Every message increments `received_count`. The last arrival (whichever it is) finds `received_count == slice_count + 1` and emits. All others return `None` (ack, no routing).
+- **Completeness**: Every message increments `received_count`. The last arrival (whichever it is) finds `received_count == slice_count + 1` and emits. All others return `None` (ack, routed to x-sink with incomplete status).
 - **Slice before setup**: The initial state has `"message": None`. Slices fill `results[slice_index]` into the partial state. When setup arrives, it fills `state["message"]`. Completeness check still works — emission requires both.
 - **Ordering**: Results are placed at `results[slice_index]`, preserving DSL order regardless of arrival order.
 - **Multiple fan-ins**: Each fan-out uses a different `origin_id` (unique `message.id`). Sequential fan-outs don't collide because the key is deleted after emitting.
+
+### Incomplete Status on `None` Returns
+
+When the aggregator returns `None` (still accumulating slices), the message is acked and routed to x-sink via the standard sidecar flow. To prevent x-sink from reporting a false "finished" status to the gateway, the aggregator's runtime must ensure that the `setup` message (the one whose `id` matches `headers.x-asya-fan-in.orign_id`) is an **incomplete status**  (`status` field in message) on the returned message, so that x-sink would not report this message as "done". At the same time, `slice` messages have different message ID so they should have a terminated status.
+
+The aggregator signals this by yielding `SET` command to `asya_runtime.py`:
+
+```python
+    _save(key, state)
+    yield "SET" "/status/phase" "processing"  # updates message's status
+    yield  # yields None signalling to sidecar to abort execution and send message to x-sink
+```
+
+The sidecar forwards this to x-sink. x-sink inspects the payload: if it contains `{"status": {"phase": "processing"}}`, it acks without reporting final status to the gateway. The message is silently consumed — no S3 persistence, no gateway callback.
+
+This is intentionally a **generic mechanism**, not aggregator-specific. The same incomplete-status pattern enables future "human in the loop" workflows where an actor needs to **pause** pipeline execution until an external signal arrives (e.g., a human approval via asya-gateway). The actor stores its state, returns `{"status": {"phase": "processing"}}`, and resumes when a new message arrives with the continuation signal. x-sink treats all incomplete messages the same way: ack and discard.
 
 ---
 
@@ -520,30 +554,24 @@ Each StatefulSet replica gets its own queue following the pattern:
 
 This requires the Crossplane composition (or operator) to create N queues when `workloadType: StatefulSet` and `replicas: N`. Each pod's sidecar consumes from its own queue, identified by the pod's ordinal index.
 
-### Fan-Out Router Configuration
+### Fan-Out Router Deployment
 
-The fan-out router uses the pre-built `asya_crew.fanout.shard_router` handler, configured via environment variables:
+The fan-out router is a compiler-generated actor. It uses the generated `routers.py` module (same as conditional/mutation routers) and requires only `ASYA_FANIN_SHARDS` as deployment-time configuration:
 
 ```yaml
 apiVersion: asya.dev/v1alpha1
 kind: AsyncActor
 metadata:
-  name: fan-out-research-router
+  name: fanout-research-flow-l5
 spec:
-  image: asya-crew:latest
-  handler: asya_crew.fanout.shard_router
+  image: my-flow-routers:latest
+  handler: routers.fanout_research_flow_L5
   handlerMode: envelope
   env:
-    - name: ASYA_FANIN_ITERATOR
-      value: "tasks"
-    - name: ASYA_FANIN_AGGREGATION_KEY
-      value: "/results"
-    - name: ASYA_FANIN_TARGET
-      value: "aggregator"
     - name: ASYA_FANIN_SHARDS
-      value: "3"
-    - name: ASYA_FANIN_ALGORITHM
-      value: "rendezvous"
+      value: "3"                        # number of aggregator shards
+    - name: ASYA_HANDLER_RESEARCH_AGENT
+      value: "research-agent"           # actor name resolution (same as other routers)
 ```
 
 ---
@@ -604,31 +632,92 @@ A/B testing and fan-in sharding can coexist in the same pipeline. For example, a
 
 ---
 
-## Flow DSL Examples
+## Flow DSL Examples and Code Generation
 
-The Flow DSL supports two fan-out patterns: **homogeneous** (same actor on different data) and **heterogeneous** (different actors on different data). Both compile to the same N+1 message protocol.
+The Flow DSL supports fan-out via list comprehensions (homogeneous — same actor, different data) and list literals (heterogeneous — different actors). Both compile to the same N+1 message protocol using a single code generation strategy.
+
+### Code Generation Strategy
+
+The compiler takes the DSL loop/list **as-is** and generates a router that:
+
+1. Runs the loop to **accumulate** `(actor_name, payload)` tuples into a `_slices` list
+2. Yields the **setup message** (first yield keeps original `message.id`)
+3. Yields all **slice messages** via `yield from`
+
+The only part that varies per fan-out is how `_slices` is built. The setup + slice emission is identical boilerplate.
+
+### All Supported Patterns
+
+| DSL syntax | Generated `_slices` accumulation | `_n` |
+|---|---|---|
+| `[f(t) for t in p["topics"]]` | `for t in p["topics"]: _slices.append(...)` | `len(p["topics"])` |
+| `[f(p["topics"][i]) for i in range(len(p["topics"]))]` | `for i in range(len(p["topics"])): _slices.append(...)` | `len(p["topics"])` |
+| `[f(p["query"]) for _ in range(10)]` | `for _ in range(10): _slices.append(...)` | `10` |
+| `[a(p["text"]), b(p["text"]), c(p["text"])]` | `_slices = [(resolve("a"), p["text"]), ...]` | `3` |
 
 ### Homogeneous Fan-Out (List Comprehension)
 
-All slices go to the same sub-agent actor with different input data:
+**DSL**:
 
 ```python
 def research_flow(p: dict) -> dict:
-    # Each topic is processed by the same research_agent actor
-    p["results"] = [research_agent(p["topics"][i]) for i in range(len(p["topics"]))]
+    p["results"] = [research_agent(t) for t in p["topics"]]
     p = post_processor(p)
     return p
 ```
 
-**Compiled to**: One fan-out router (`ASYA_FANIN_ITERATOR=topics`), one sub-agent actor (`research_agent`), one aggregator. All slices share the same route through `research_agent`.
+**Generated router**:
+
+```python
+def fanout_research_flow_L2(message):
+    p = message["payload"]
+    r = message["route"]
+    c = r["current"]
+    origin_id = message["id"]
+    _agg = r["actors"][c + 1]
+    _shard = _rendezvous_shard(origin_id, _agg)
+    _hdrs = message.get("headers", {})
+
+    # --- Accumulate: DSL loop as-is, actor call -> (name, payload) ---
+    _slices = []
+    for t in p["topics"]:
+        _slices.append((resolve("research_agent"), t))
+    # ---
+
+    _n = len(_slices)
+
+    # Setup (first yield -> keeps original message.id)
+    yield {
+        "route": {"actors": list(r["actors"]), "current": c + 1},
+        "headers": {**_hdrs, "x-asya-route-override": {_agg: _shard},
+                    "x-asya-fan-in": {"actor": _agg, "type": "setup",
+                                      "origin_id": origin_id, "slice_count": _n,
+                                      "aggregation_key": "/results"}},
+        "payload": dict(p),
+    }
+
+    # Slices
+    yield from [
+        {
+            "route": {"actors": [_actor, _shard], "current": 0},
+            "headers": {**_hdrs, "x-asya-route-override": {_agg: _shard},
+                        "x-asya-fan-in": {"actor": _agg, "type": "slice",
+                                          "origin_id": origin_id,
+                                          "slice_index": _i, "slice_count": _n}},
+            "payload": _payload,
+        }
+        for _i, (_actor, _payload) in enumerate(_slices)
+    ]
+```
+
+**Compiled to**: One fan-out router, one sub-agent actor (`research_agent`), one aggregator. All slices share the same route through `research_agent`.
 
 ### Heterogeneous Fan-Out (List Literal)
 
-Different slices go to different actors with different input data:
+**DSL**:
 
 ```python
 def analysis_flow(p: dict) -> dict:
-    # Each actor processes a different aspect of the payload
     p["result"] = [
         sentiment_analyzer(p["text"]),
         topic_extractor(p["text"]),
@@ -638,58 +727,37 @@ def analysis_flow(p: dict) -> dict:
     return p
 ```
 
-**Compiled to**: One fan-out router with per-slice actor mappings (instead of `ASYA_FANIN_ITERATOR`, uses `ASYA_FANIN_MAPPINGS`). Each slice has a different route to its respective actor. The aggregator is the same.
-
-**Env var configuration for heterogeneous fan-out**:
-
-```yaml
-env:
-  - name: ASYA_FANIN_MAPPINGS
-    value: '[{"actor":"sentiment_analyzer","aggregation_key":"/text"},{"actor":"topic_extractor","aggregation_key":"/text"},{"actor":"entity_recognizer","aggregation_key":"/text"}]'
-  - name: ASYA_FANIN_AGGREGATION_KEY
-    value: "/result"
-  - name: ASYA_FANIN_TARGET
-    value: "aggregator"
-  - name: ASYA_FANIN_SHARDS
-    value: "3"
-```
-
-### Async Fan-Out (`asyncio.gather`)
-
-The DSL also supports `async`/`await` and `asyncio.gather` syntax. These are semantically equivalent to the sync versions (the actor mesh is inherently async), but provide familiar syntax for Python developers:
+**Generated `_slices` block** (only this part differs from the homogeneous case):
 
 ```python
-import asyncio
-
-async def parallel_analysis(p: dict) -> dict:
-    # Explicit gather syntax - compiles identically to list literal
-    p["result"] = await asyncio.gather(
-        sentiment_analyzer(p["text"]),
-        topic_extractor(p["text"]),
-        entity_recognizer(p["text"]),
-    )
-    p = merge_analysis(p)
-    return p
-```
-
-```python
-async def sequential_with_fanout(p: dict) -> dict:
-    # Await each actor individually - still compiles to parallel fan-out
-    # (order of results is preserved by slice_index, not execution order)
-    p["result"] = [
-        await sentiment_analyzer(p["text"]),
-        await topic_extractor(p["text"]),
+    # --- Accumulate: DSL list literal, each actor call -> (name, payload) ---
+    _slices = [
+        (resolve("sentiment_analyzer"), p["text"]),
+        (resolve("topic_extractor"),    p["text"]),
+        (resolve("entity_recognizer"),  p["text"]),
     ]
-    return p
+    # ---
 ```
 
-All three syntaxes (list comprehension, list literal, `asyncio.gather`) compile to the same N+1 message protocol. The difference is purely in how the compiler determines the sub-agent mapping:
+The setup + slice emission boilerplate is identical. Each slice routes to a different actor but all converge on the same aggregator.
 
-| Syntax | Fan-out type | Sub-agent resolution |
-|--------|-------------|---------------------|
-| `[f(items[i]) for i in range(n)]` | Homogeneous | Single actor, iterated over payload field |
-| `[a(x), b(y), c(z)]` | Heterogeneous | Per-slice actor mapping |
-| `await asyncio.gather(a(x), b(y))` | Heterogeneous | Per-slice actor mapping |
+### Other Patterns
+
+**Index-based iteration** (`p["results"] = [research_agent(p["topics"][i]) for i in range(len(p["topics"]))]`):
+
+```python
+    _slices = []
+    for i in range(len(p["topics"])):
+        _slices.append((resolve("research_agent"), p["topics"][i]))
+```
+
+**Fixed count / redundancy** (`p["results"] = [research_agent(p["query"]) for _ in range(10)]`):
+
+```python
+    _slices = []
+    for _ in range(10):
+        _slices.append((resolve("research_agent"), p["query"]))
+```
 
 ---
 
@@ -699,11 +767,11 @@ All three syntaxes (list comprehension, list literal, `asyncio.gather`) compile 
 
 How does the fan-out router learn `ASYA_FANIN_SHARDS`? Options:
 
-- **Simple env var**: Set on the fan-out router's AsyncActor spec. Requires redeployment to change.
+- **Simple env var**: Set on the fan-out router's AsyncActor spec. Requires redeployment to change. This is the current approach — the generated `_rendezvous_shard` reads it at import time.
 - **ConfigMap**: Fan-out router reads from a ConfigMap. Can be updated without redeployment (if router watches for changes).
-- **Crossplane EnvironmentConfig**: Crossplane injects shard count from the aggregator's replica count into the fan-out router's environment. Declarative, but couples Crossplane resources.
+- **Operator injection**: Operator injects shard count from the aggregator's replica count into the fan-out router's environment. Declarative, but couples operator resources.
 
-Decision deferred until the Crossplane/operator deployment model for StatefulSet actors is finalized (depends on asya-altb).
+Decision deferred until the operator deployment model for StatefulSet actors is finalized.
 
 ### 2. Draining Workflow for Scale-Down
 
@@ -790,16 +858,6 @@ For A2A and MCP use-cases, the gateway needs to track the status of user-initiat
 These headers are **orthogonal to fan-in**. The aggregator preserves them on the merged envelope (they are not stripped), so status reporting continues correctly after fan-out/fan-in.
 
 The broader protocol change --- moving `parent_id` from a top-level envelope field to the `x-asya-parent-id` header (tracing only) and establishing `message.id` as an internal identifier not used in logic --- is out of scope for this RFC. It affects sidecar, runtime, and gateway and should be tracked as a separate protocol evolution bead.
-
-### 8. Heterogeneous Fan-Out Configuration
-
-The `ASYA_FANIN_MAPPINGS` env var for heterogeneous fan-out (section "Flow DSL Examples") needs a formal schema. Questions:
-
-- Should each mapping entry support different `aggregation_key` values (each actor gets different data) or should all actors receive the same payload?
-- Should the compiler generate per-slice routes (each slice has a different actor chain) or a single shared route with a per-slice override?
-- How does the fan-out router handle slices that go through sub-agents of different depths (e.g., actor A has 3 steps, actor B has 1 step)?
-
-Decision deferred until the Flow DSL compiler supports heterogeneous fan-out syntax.
 
 ---
 
