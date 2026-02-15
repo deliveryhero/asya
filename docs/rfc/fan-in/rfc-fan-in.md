@@ -477,7 +477,7 @@ def aggregator(envelope: dict) -> dict | None:
         return msg
 
     _save(key, state)
-    return {"status": "incomplete"}
+    return None
 
 
 def _load(key: bytes) -> dict | None:
@@ -491,18 +491,28 @@ def _save(key: bytes, state: dict):
 
 ### Behavior
 
-- **Completeness**: Every message increments `received_count`. The last arrival (whichever it is) finds `received_count == slice_count` and emits. All others return `{"status": "incomplete"}` (ack, routed to x-sink with incomplete status).
+- **Completeness**: Every message increments `received_count`. The last arrival (whichever it is) finds `received_count == slice_count` and emits. All others return `None` (ack, routed to x-sink).
 - **Index 0 before slices**: If sub-agent slices arrive before the parent payload (index 0), they fill `results[idx]` into partial state. When index 0 arrives, it fills `state["message"]` (route + headers). Completeness check still works — emission requires all indices filled.
 - **Ordering**: Results are placed at `results[slice_index]`, preserving DSL order regardless of arrival order. On emission, `results[0]` becomes the base payload and `results[1:]` is placed at `aggregation_key`.
 - **Multiple fan-ins**: Each fan-out uses a different `origin_id` (unique `message.id`). Sequential fan-outs don't collide because the key is deleted after emitting.
 
-### Incomplete Status on Partial Returns
+### Fan-In Awareness in x-sink and x-sump
 
-When the aggregator is still accumulating (not all slices arrived), it returns `{"status": "incomplete"}`. The message is acked and routed to x-sink via the standard sidecar flow. To prevent x-sink from reporting a false "finished" status to the gateway, x-sink must check the `status` field: if it contains `"incomplete"`, it acks without reporting final status to the gateway (no S3 persistence, no gateway callback).
+When the aggregator returns `None` (still accumulating), the sidecar acks the message and routes it to x-sink with `status.phase = "succeeded"` (the sidecar always overwrites the phase). Without special handling, x-sink would report a false "finished" status to the gateway.
 
-For the parent payload message (index 0, which has the original `message.id` matching `origin_id`), the incomplete status ensures the gateway doesn't see a premature "done" for that message ID. Sub-agent slice messages have different message IDs (assigned by the sidecar), so their x-sink arrivals don't affect the original message's gateway status.
+The solution is simple: **x-sink and x-sump check for the `x-asya-fan-in` header**. If present, the message is part of a fan-in operation — x-sink/x-sump ack it silently without reporting final status to the gateway (no S3 persistence, no gateway callback). The `x-asya-fan-in` header is already on the message because it was stamped by the fan-out router and preserved through the aggregator.
 
-This is intentionally a **generic mechanism**, not aggregator-specific. The same incomplete-status pattern enables future "human in the loop" workflows where an actor needs to **pause** pipeline execution until an external signal arrives (e.g., a human approval via asya-gateway). The actor stores its state, returns `{"status": "incomplete"}`, and resumes when a new message arrives with the continuation signal. x-sink treats all incomplete-status messages the same way: ack and discard.
+This requires no sidecar changes. The sidecar's phase lifecycle (pending → processing → succeeded) is correct — it's x-sink/x-sump that need to be aware of fan-in semantics.
+
+**x-sink behavior**:
+- Message has `x-asya-fan-in` header → ack and discard. Do not report status to gateway, do not persist to S3.
+- Message has no `x-asya-fan-in` header → normal terminal processing (report "succeeded" to gateway, persist to S3).
+
+**x-sump behavior**:
+- Message has `x-asya-fan-in` header → log the error, ack and discard. Do not report "failed" to gateway. The aggregator will detect the incomplete fan-out via TTL cleanup (see [Open Questions](#open-questions)).
+- Message has no `x-asya-fan-in` header → normal error processing (report "failed" to gateway, persist error to S3).
+
+**Note on future "human in the loop" pattern**: This fan-in-specific mechanism uses header detection, which only works because the `x-asya-fan-in` header is already present. A future "pause/freeze" pattern for human-in-the-loop workflows will need a separate, generic mechanism (e.g., a custom phase that survives sidecar routing) to signal x-sink that a message is not truly terminal. That design is out of scope for this RFC.
 
 ---
 
