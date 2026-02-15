@@ -117,6 +117,104 @@ The `x-asya-route-override` header is a flat map of `{logical-actor-name: target
 }
 ```
 
+### Fanout ID and Lineage Tracking
+
+The current fanout convention generates child IDs using `{parent_id}-{index}` suffixes. This causes ID collisions in nested fanout (actor A fans out `msg-1` into `msg-1-1`, then actor B fans out `msg-1` again and also produces `msg-1-1`). This RFC replaces the suffix convention with UUID-based child IDs and adds a `root_id` field for OTel trace correlation.
+
+#### Current Behavior (replaced)
+
+```
+msg-1 -> Actor A (yields 3):
+  Index 0: id = "msg-1"      parent_id = nil       (keeps original)
+  Index 1: id = "msg-1-1"    parent_id = "msg-1"   (suffix convention)
+  Index 2: id = "msg-1-2"    parent_id = "msg-1"   (suffix convention)
+```
+
+Nested fanout of `msg-1` at Actor B would produce `msg-1-1` again -- an ID collision.
+
+#### New Behavior
+
+Fanout children (index > 0) receive UUID-based IDs. The index-0 child still retains the original ID for SSE streaming compatibility:
+
+```
+msg-1 -> Actor A (yields 3):
+  Index 0: id = "msg-1"              parent_id = nil
+  Index 1: id = "f47ac10b-58cc"      parent_id = "msg-1"
+  Index 2: id = "a8b3c2d1-99ee"      parent_id = "msg-1"
+```
+
+Nested fanout is now collision-free:
+
+```
+msg-1 -> Actor B (yields 2):
+  Index 0: id = "msg-1"              parent_id = nil        (keeps original)
+  Index 1: id = "c3d4e5f6-1122"      parent_id = "msg-1"   (unique UUID)
+```
+
+#### Lineage Fields
+
+The message gains an optional `root_id` field:
+
+```go
+type Message struct {
+    ID       string  `json:"id"`
+    ParentID *string `json:"parent_id,omitempty"`
+    RootID   *string `json:"root_id,omitempty"`
+    Route    Route   `json:"route"`
+    Headers  map[string]interface{} `json:"headers,omitempty"`
+    Payload  json.RawMessage        `json:"payload"`
+    Status   *Status                `json:"status,omitempty"`
+}
+```
+
+`root_id` is optional and only set on fanout children. The derivation rule:
+
+| Fanout depth | Fields present | OTel `trace_id` derivation |
+|-------------|---------------|---------------------------|
+| Root (no fanout) | `id` | `id` |
+| Level 1 child | `id`, `parent_id` | `parent_id` |
+| Level 2+ child | `id`, `parent_id`, `root_id` | `root_id` |
+
+The sidecar derives `trace_id` as: `root_id ?? parent_id ?? id`.
+
+When creating fanout children, the sidecar propagates `root_id` from the parent message. If the parent has no `root_id`, the sidecar uses the parent's `id` as the child's `root_id` (but only for level 2+; level-1 children omit `root_id` since `parent_id` is sufficient).
+
+#### OTel Mapping
+
+These fields map directly to OTel's distributed tracing model:
+
+| Asya field | OTel equivalent | Notes |
+|-----------|----------------|-------|
+| `root_id ?? parent_id ?? id` | `trace_id` | Groups all messages from the same original |
+| `id` | `span_id` | Unique per message |
+| `parent_id` | `parent_span_id` | Immediate parent for tree reconstruction |
+
+The tracing backend (Jaeger, Tempo) collects all spans with the same `trace_id` and reconstructs the full fanout tree from `parent_span_id` pointers. No ancestry list is needed in the message -- the backend builds the tree from the flat parent pointers, which is the standard OTel approach.
+
+#### Example: Two-Level Nested Fanout
+
+```
+Original: {id: "abc"}
+
+Actor A fans out (3 results):
+  {id: "abc",              parent_id: nil,    root_id: nil}
+  {id: "uuid-1",           parent_id: "abc",  root_id: nil}
+  {id: "uuid-2",           parent_id: "abc",  root_id: nil}
+
+Actor B fans out "uuid-1" (2 results):
+  {id: "uuid-1",           parent_id: "abc",  root_id: nil}
+  {id: "uuid-3",           parent_id: "uuid-1", root_id: "abc"}
+
+OTel trace_id for all messages: "abc"
+Tree reconstruction by backend:
+  abc
+  ├── uuid-1
+  │   └── uuid-3
+  └── uuid-2
+```
+
+Other functionality (gateway task tracking, fan-in correlation) uses its own custom headers and is not affected by these lineage fields.
+
 ### Layer 1: Sidecar Changes
 
 The change is confined to one function: `resolveQueueName()` in `src/asya-sidecar/internal/router/router.go`.
@@ -564,7 +662,31 @@ This use case requires a custom router actor (not the pre-built weighted router)
 
 - If the pipeline contains the same actor name at multiple positions, the override applies to all of them. This is usually desired (same experiment applies consistently) but could surprise users who want per-position overrides. Per-position overrides can be achieved with distinct logical actor names.
 
-### ADR-5: No CEL or Expression Language in the Sidecar
+### ADR-5: UUID-Based Fanout IDs with Optional root_id
+
+**Context**: The current fanout ID convention (`{parent_id}-{index}`) produces collisions in nested fanout scenarios. Additionally, OTel tracing requires a `trace_id` to group all messages from the same original, and a `parent_span_id` for tree reconstruction.
+
+**Decision**: Replace the `{id}-{index}` suffix convention with UUID-based IDs for fanout children. Add an optional `root_id` field that is only present on level-2+ fanout children.
+
+**Alternatives considered**:
+
+- **`parent_id` as a list (full ancestry chain)**: Every message carries its complete lineage. Provides O(1) path reconstruction from a single message, but grows with depth, is non-standard for OTel (which uses flat `parent_span_id`), and the full tree still cannot be reconstructed from one message alone (siblings are invisible).
+- **Actor-scoped suffixes** (`msg-1:prep.1:infer.1`): Encodes lineage in the ID itself. Avoids collisions but produces long, fragile IDs that require parsing for structure.
+- **Dedicated `root_id` on every message**: Simpler derivation (`trace_id = root_id`) but wastes space on the 99% of messages that are not fanout children.
+
+**Rationale**:
+
+- UUIDs eliminate ID collisions entirely without encoding structure into IDs.
+- The `root_id ?? parent_id ?? id` derivation keeps the common case (no fanout) zero-overhead -- no extra fields in the JSON.
+- Flat `parent_id` + `root_id` maps directly to OTel's `parent_span_id` + `trace_id` model. Every tracing backend (Jaeger, Tempo) reconstructs trees from this pattern.
+- Level-1 fanout children (the common case) omit `root_id` since `parent_id` already equals the root. Only level-2+ children (rare) carry `root_id`.
+
+**Consequences**:
+
+- Fanout child IDs are no longer human-readable sequences. Debugging relies on `parent_id` pointers and tracing UIs rather than reading ID suffixes.
+- Index-0 children still retain the original ID for SSE streaming compatibility (unchanged).
+
+### ADR-6: No CEL or Expression Language in the Sidecar
 
 **Context**: Adding condition evaluation (CEL, Rego, JSONPath) to the sidecar would eliminate the extra hop for conditional routing. Should the sidecar support inline expressions?
 
@@ -617,6 +739,11 @@ This proposal is fully backward compatible:
 - Override does not modify `route.actors` or `route.current`
 - `x-asya-route-resolved` header stamped correctly on override application
 - Actor identity validation skipped when override matches `ASYA_ACTOR_NAME`
+- Fanout children (index > 0) receive UUID-based IDs, not `{id}-{index}` suffixes
+- Fanout index-0 child retains original ID (SSE compatibility)
+- `parent_id` set correctly on fanout children
+- `root_id` propagated from parent on level-2+ fanout; omitted on level-1
+- OTel `trace_id` derivation: `root_id ?? parent_id ?? id`
 
 ### Unit Tests (Router Actor)
 
