@@ -1383,3 +1383,60 @@ class TestStateParameterNormalization:
 
         assert isinstance(ops[0], Mutation)
         assert contains_with_either_quotes(ops[0].code, 'p["key"]')
+
+
+class TestIsAsyncFlag:
+    """Test that parser tracks whether the flow is async."""
+
+    def test_sync_flow_not_async(self):
+        source = textwrap.dedent("""
+            def flow(p: dict) -> dict:
+                return p
+        """)
+        parser = FlowParser(source, "test.py")
+        parser.parse()
+        assert parser.is_async is False
+
+    def test_async_flow_is_async(self):
+        source = textwrap.dedent("""
+            async def flow(p: dict) -> dict:
+                return p
+        """)
+        parser = FlowParser(source, "test.py")
+        parser.parse()
+        assert parser.is_async is True
+
+
+class TestExprStatementErrors:
+    """Test descriptive errors for unsupported expression statements."""
+
+    def test_yield_gives_descriptive_error(self):
+        source = textwrap.dedent("""
+            async def flow(p: dict) -> dict:
+                while True:
+                    yield p
+                return p
+        """)
+        parser = FlowParser(source, "test.py")
+        with pytest.raises(FlowCompileError, match="'yield' is not supported in flow definitions"):
+            parser.parse()
+
+    def test_standalone_await_gives_descriptive_error(self):
+        source = textwrap.dedent("""
+            async def flow(p: dict) -> dict:
+                await handler(p)
+                return p
+        """)
+        parser = FlowParser(source, "test.py")
+        with pytest.raises(FlowCompileError, match="standalone 'await' is not supported"):
+            parser.parse()
+
+    def test_standalone_call_gives_descriptive_error(self):
+        source = textwrap.dedent("""
+            def flow(p: dict) -> dict:
+                print(p)
+                return p
+        """)
+        parser = FlowParser(source, "test.py")
+        with pytest.raises(FlowCompileError, match="standalone function call is not supported"):
+            parser.parse()

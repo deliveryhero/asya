@@ -45,6 +45,7 @@ class FlowCompiler:
         self.flow_name: str | None = None
         self.routers: list[Router] = []
         self.class_methods: set[str] = set()
+        self.is_async: bool = False
 
     def compile_file(self, source_file: str, output_dir: str, overwrite: bool = False) -> str:
         source_path = Path(source_file)
@@ -85,7 +86,13 @@ class FlowCompiler:
         if not self.flow_name or not self.routers:
             raise RuntimeError("Must compile flow before generating plot")
 
-        generator = DotGenerator(self.flow_name, self.routers, step_width=plot_width, class_methods=self.class_methods)
+        generator = DotGenerator(
+            self.flow_name,
+            self.routers,
+            step_width=plot_width,
+            class_methods=self.class_methods,
+            is_async=self.is_async,
+        )
         dot_content = generator.generate()
 
         output_path = Path(output_dir)
@@ -129,8 +136,9 @@ class FlowCompiler:
         module_path = _calculate_module_path(filename)
         parser = FlowParser(source_code, filename, module_path)
         flow_name, operations = parser.parse()
-        # Store class methods info for later use by DotGenerator
+        # Store metadata for later use by DotGenerator
         self.class_methods = parser.get_class_methods()
+        self.is_async = parser.is_async
         return flow_name, operations
 
     def _group(self, flow_name: str, operations):

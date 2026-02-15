@@ -22,7 +22,12 @@ class _TryCluster:
 
 class DotGenerator:
     def __init__(
-        self, flow_name: str, routers: list[Router], step_width: int = 50, class_methods: set[str] | None = None
+        self,
+        flow_name: str,
+        routers: list[Router],
+        step_width: int = 50,
+        class_methods: set[str] | None = None,
+        is_async: bool = False,
     ):
         self.flow_name = flow_name
         self.routers = routers
@@ -30,6 +35,7 @@ class DotGenerator:
         self.user_actors: set[str] = set()
         self.router_map: dict[str, Router] = {}
         self.class_methods = class_methods or set()
+        self.is_async = is_async
         self._hidden_routers: set[str] = set()
         self._redirect_map: dict[str, str] = {}
         self._try_clusters: list[_TryCluster] = []
@@ -68,14 +74,15 @@ class DotGenerator:
 
     def _truncate_display_name(self, display_name: str) -> str:
         """Truncate display name if it exceeds step_width."""
-        full_text = f"p = {display_name}(p)"
+        prefix = "p = await " if self.is_async else "p = "
+        full_text = f"{prefix}{display_name}(p)"
         if len(full_text) <= self.step_width:
             return full_text
         # Truncate with ellipsis
         cut = "…"
-        max_len = self.step_width - len("p = (p)") - len(cut)
+        max_len = self.step_width - len(prefix) - len("(p)") - len(cut)
         if max_len > 0:
-            return f"p = {display_name[:max_len]}{cut}(p)"
+            return f"{prefix}{display_name[:max_len]}{cut}(p)"
         return full_text
 
     def generate(self) -> str:

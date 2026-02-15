@@ -51,6 +51,7 @@ class FlowParser:
         self.filename = filename
         self.module_path = module_path
         self.flow_name: str | None = None
+        self.is_async: bool = False  # Whether flow function is async def
         self.instances: dict[str, str] = {}  # Map instance variable to class name
         self.class_methods: set[str] = set()  # Track class method handlers
         self._loop_depth: int = 0  # Track nesting depth for break/continue validation
@@ -68,6 +69,7 @@ class FlowParser:
             raise FlowCompileError("No flow function found (signature: def name(p: dict) -> dict)")
 
         self.flow_name = flow_func.name
+        self.is_async = isinstance(flow_func, ast.AsyncFunctionDef)
 
         # Normalize parameter name to "p" so generated code is consistent
         param_name = flow_func.args.args[0].arg
@@ -134,6 +136,8 @@ class FlowParser:
             return [Continue(lineno=stmt.lineno)]
         elif isinstance(stmt, ast.Raise):
             return self._parse_raise(stmt)
+        elif isinstance(stmt, ast.Expr):
+            return self._parse_expr(stmt)
         else:
             raise FlowCompileError(f"{self.filename}:{stmt.lineno}: Unsupported statement type: {type(stmt).__name__}")
 
@@ -319,6 +323,23 @@ class FlowParser:
                 f"{self.filename}:{stmt.lineno}: 'raise' with arguments is not supported (use bare 'raise' to re-raise)"
             )
         return [Raise(lineno=stmt.lineno)]
+
+    def _parse_expr(self, stmt: ast.Expr) -> list[IROperation]:
+        """Handle bare expression statements with descriptive errors."""
+        value = stmt.value
+        if isinstance(value, ast.Yield | ast.YieldFrom):
+            raise FlowCompileError(f"{self.filename}:{stmt.lineno}: 'yield' is not supported in flow definitions")
+        if isinstance(value, ast.Await):
+            raise FlowCompileError(
+                f"{self.filename}:{stmt.lineno}: standalone 'await' is not supported; "
+                f"assign the result to 'p' (e.g. p = await handler(p))"
+            )
+        if isinstance(value, ast.Call):
+            raise FlowCompileError(
+                f"{self.filename}:{stmt.lineno}: standalone function call is not supported; "
+                f"assign the result to 'p' (e.g. p = handler(p))"
+            )
+        raise FlowCompileError(f"{self.filename}:{stmt.lineno}: expression statements are not supported")
 
     def _validate_class_instantiation(self, stmt: ast.Assign) -> None:
         """Validate that class instantiation uses only default arguments."""
