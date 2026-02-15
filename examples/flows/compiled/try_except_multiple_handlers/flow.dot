@@ -15,7 +15,7 @@ digraph flow {
   handle_validation_error [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = handle_validation_error(p)</i></td></tr></table>>];
   subgraph cluster_try_0 {
     style=dashed;
-    color="orange4";
+    color="snow4";
     fontname="Courier";
     fontsize=10;
     label="try";
@@ -32,7 +32,7 @@ digraph flow {
   router_data_pipeline_line_9_seq -> handle_type_error;
   start_data_pipeline -> parse_input;
   transform_data -> end_data_pipeline;
-  transform_data -> router_data_pipeline_line_12_seq [ltail=cluster_try_0, color=orange4, style=dashed, label="except RuntimeError"];
-  transform_data -> router_data_pipeline_line_6_seq [ltail=cluster_try_0, color=orange4, style=dashed, label="except ValueError"];
-  transform_data -> router_data_pipeline_line_9_seq [ltail=cluster_try_0, color=orange4, style=dashed, label="except TypeError"];
+  transform_data -> router_data_pipeline_line_12_seq [ltail=cluster_try_0, color=snow4, style=dashed, label="except RuntimeError"];
+  transform_data -> router_data_pipeline_line_6_seq [ltail=cluster_try_0, color=snow4, style=dashed, label="except ValueError"];
+  transform_data -> router_data_pipeline_line_9_seq [ltail=cluster_try_0, color=snow4, style=dashed, label="except TypeError"];
 }
