@@ -93,10 +93,7 @@ class DotGenerator:
                 continue
             if router.name in self._cluster_membership:
                 continue
-            if router.is_reraise:
-                parts.append(self._generate_reraise_node(router))
-            else:
-                parts.append(self._generate_actor_node(router))
+            parts.append(self._generate_actor_node(router))
 
         # Non-cluster user actor nodes
         for actor in sorted(self.user_actors):
@@ -194,11 +191,13 @@ class DotGenerator:
             )
             cluster_id += 1
 
-            # Mark infrastructure routers as hidden (reraise stays visible)
+            # Mark infrastructure routers as hidden
             self._hidden_routers.add(router.name)
             self._hidden_routers.add(try_exit_name)
             if except_dispatch_name:
                 self._hidden_routers.add(except_dispatch_name)
+            if reraise_name:
+                self._hidden_routers.add(reraise_name)
 
             # Redirect map: try_enter → first body actor
             if router.true_branch_actors:
@@ -212,6 +211,11 @@ class DotGenerator:
                 continuation = [*try_exit_router.finally_actors, *try_exit_router.continuation_actors]
                 if continuation:
                     self._redirect_map[try_exit_name] = continuation[0]
+                else:
+                    # Fallback: find the actor after the try block in its parent chain
+                    post_try = self._find_post_try_actor(router.name)
+                    if post_try:
+                        self._redirect_map[try_exit_name] = post_try
 
     def _collect_cluster_actors(self, body_actors: list[str], exclude: set[str]) -> set[str]:
         """Recursively collect all actors inside a try body cluster."""
@@ -231,6 +235,30 @@ class DotGenerator:
                     if a not in result and a not in exclude:
                         to_visit.append(a)
         return result
+
+    def _find_post_try_actor(self, try_enter_name: str) -> str | None:
+        """Find the actor that follows the try block in its parent router's actor list.
+
+        When a try-except is the last operation in a while loop body, the try-except's
+        continuation is empty, but the loop_back router follows in the parent while
+        condition's true_branch_actors. This method traces through wrapper routers
+        (seq routers that contain the try_enter) to find that next actor.
+        """
+        for router in self.routers:
+            for i, actor in enumerate(router.true_branch_actors):
+                # Direct reference to try_enter
+                if actor == try_enter_name and i + 1 < len(router.true_branch_actors):
+                    return router.true_branch_actors[i + 1]
+                # Through a wrapping seq_router (mutations before try create a wrapper)
+                sub_router = self.router_map.get(actor)
+                if (
+                    sub_router
+                    and not sub_router.condition
+                    and try_enter_name in sub_router.true_branch_actors
+                    and i + 1 < len(router.true_branch_actors)
+                ):
+                    return router.true_branch_actors[i + 1]
+        return None
 
     def _resolve(self, name: str) -> str:
         """Resolve an actor name, replacing hidden try infrastructure routers."""
@@ -284,14 +312,6 @@ class DotGenerator:
 
         return f'  {self._node_id(actor_name)} [fillcolor="lightblue", label={label}];'
 
-    def _generate_reraise_node(self, router: Router) -> str:
-        label = (
-            '<<table border="0" cellspacing="0" cellpadding="6" cellborder="1">'
-            '<tr><td bgcolor="salmon"><b>reraise</b></td></tr>'
-            "</table>>"
-        )
-        return f'  {self._node_id(router.name)} [fillcolor="salmon", label={label}];'
-
     def _generate_try_cluster(self, cluster: _TryCluster) -> list[str]:
         """Generate DOT subgraph cluster for a try block."""
         parts = []
@@ -336,6 +356,12 @@ class DotGenerator:
                     *cluster.except_dispatch.continuation_actors,
                 ]
 
+                # Fallback: if handler continuation is empty, use post-try actor
+                if not handler_continuation:
+                    post_try = self._find_post_try_actor(try_enter.name)
+                    if post_try:
+                        handler_continuation = [post_try]
+
                 for handler in cluster.except_dispatch.exception_handlers:
                     if handler.actors:
                         label = self._format_except_label(handler.error_types)
@@ -349,15 +375,11 @@ class DotGenerator:
                         # Connect handler terminals → continuation (finally + post-try)
                         if handler_continuation:
                             for terminal in self._find_chain_terminals(handler.actors):
-                                lines.add(f"  {self._node_id(terminal)} -> {self._node_id(handler_continuation[0])};")
+                                if not terminal.startswith("end_"):
+                                    lines.add(
+                                        f"  {self._node_id(terminal)} -> {self._node_id(handler_continuation[0])};"
+                                    )
                             self._add_sequential_edges(handler_continuation, lines)
-
-                # Reraise edge (unhandled exceptions)
-                if cluster.except_dispatch.reraise_name:
-                    lines.add(
-                        f"  {self._node_id(anchor)} -> {self._node_id(cluster.except_dispatch.reraise_name)}"
-                        f' [ltail={cluster.cluster_name}, color={self._color_error_control_flow}, style=dashed, label="unhandled"];'
-                    )
 
         return lines
 
