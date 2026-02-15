@@ -11,7 +11,6 @@ digraph flow {
   end_resource_pipeline [fillcolor="lightgreen", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = end_resource_pipeline(p)</i></td></tr></table>>];
   finalize [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = finalize(p)</i></td></tr></table>>];
   handle_failure [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = handle_failure(p)</i></td></tr></table>>];
-  release_resource [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = release_resource(p)</i></td></tr></table>>];
   subgraph cluster_try_0 {
     style=dashed;
     color="snow4";
@@ -20,6 +19,14 @@ digraph flow {
     label="try";
     acquire_resource [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = acquire_resource(p)</i></td></tr></table>>];
     process_with_resource [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = process_with_resource(p)</i></td></tr></table>>];
+  }
+  subgraph cluster_finally_0 {
+    style=dashed;
+    color="gray50";
+    fontname="Courier";
+    fontsize=10;
+    label="finally";
+    release_resource [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = release_resource(p)</i></td></tr></table>>];
   }
 
   acquire_resource -> process_with_resource;

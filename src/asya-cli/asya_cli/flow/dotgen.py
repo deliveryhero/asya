@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from asya_cli.flow.grouper import Router
 
@@ -17,6 +17,7 @@ class _TryCluster:
     anchor_node: str | None
     try_exit_name: str
     except_dispatch: Router | None
+    finally_actors: list[str] = field(default_factory=list)
 
 
 class DotGenerator:
@@ -37,6 +38,7 @@ class DotGenerator:
         self._color_true_branch = "darkseagreen4"
         self._color_false_branch = "indianred4"
         self._color_raise = "crimson"
+        self._color_finally = "gray50"
 
     @staticmethod
     def _sanitize_node_id(name: str) -> str:
@@ -182,6 +184,14 @@ class DotGenerator:
                     anchor = a
                     break
 
+            # Collect finally actors for cluster visualization
+            try_exit_router = self.router_map.get(try_exit_name)
+            finally_actors_list = try_exit_router.finally_actors if try_exit_router else []
+            if finally_actors_list:
+                finally_cluster_name = f"cluster_finally_{cluster_id}"
+                for actor in finally_actors_list:
+                    self._cluster_membership[actor] = finally_cluster_name
+
             self._try_clusters.append(
                 _TryCluster(
                     cluster_name=cluster_name,
@@ -190,6 +200,7 @@ class DotGenerator:
                     anchor_node=anchor,
                     try_exit_name=try_exit_name,
                     except_dispatch=except_dispatch,
+                    finally_actors=finally_actors_list,
                 )
             )
             cluster_id += 1
@@ -316,7 +327,7 @@ class DotGenerator:
         return f'  {self._node_id(actor_name)} [fillcolor="lightblue", label={label}];'
 
     def _generate_try_cluster(self, cluster: _TryCluster) -> list[str]:
-        """Generate DOT subgraph cluster for a try block."""
+        """Generate DOT subgraph clusters for a try block and its finally block."""
         parts = []
         parts.append(f"  subgraph {cluster.cluster_name} {{")
         parts.append("    style=dashed;")
@@ -330,6 +341,22 @@ class DotGenerator:
             elif actor in self.user_actors:
                 parts.append(f"  {self._generate_user_actor_node(actor)}")
         parts.append("  }")
+
+        if cluster.finally_actors:
+            finally_cluster_name = cluster.cluster_name.replace("cluster_try_", "cluster_finally_")
+            parts.append(f"  subgraph {finally_cluster_name} {{")
+            parts.append("    style=dashed;")
+            parts.append(f'    color="{self._color_finally}";')
+            parts.append('    fontname="Courier";')
+            parts.append("    fontsize=10;")
+            parts.append('    label="finally";')
+            for actor in cluster.finally_actors:
+                if actor in self.router_map:
+                    parts.append(f"  {self._generate_actor_node(self.router_map[actor])}")
+                elif actor in self.user_actors:
+                    parts.append(f"  {self._generate_user_actor_node(actor)}")
+            parts.append("  }")
+
         return parts
 
     # ── Edge generation ──────────────────────────────────────────────
