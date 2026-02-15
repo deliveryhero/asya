@@ -66,8 +66,8 @@ func newTestRouterWithRetry(t *testing.T, transport transport.Transport, resilie
 	cfg := &config.Config{
 		ActorName:     "test-actor",
 		Namespace:     "default",
-		HappyEndQueue: "happy-end",
-		ErrorEndQueue: "error-end",
+		SinkQueue:     "x-sink",
+		SumpQueue:     "x-sump",
 		TransportType: "sqs",
 		Timeout:       5 * time.Second,
 		Resiliency:    resiliency,
@@ -81,8 +81,8 @@ func newTestRouterWithRetry(t *testing.T, transport transport.Transport, resilie
 		transport:     transport,
 		runtimeClient: runtimeClient,
 		actorName:     cfg.ActorName,
-		happyEndQueue: cfg.HappyEndQueue,
-		errorEndQueue: cfg.ErrorEndQueue,
+		sinkQueue:     cfg.SinkQueue,
+		sumpQueue:     cfg.SumpQueue,
 		metrics:       m,
 	}
 
@@ -450,8 +450,8 @@ func TestRouter_ProcessMessage_RetryOnRetriableError(t *testing.T) {
 	cfg := &config.Config{
 		ActorName:     "test-actor",
 		Namespace:     "default",
-		HappyEndQueue: "happy-end",
-		ErrorEndQueue: "error-end",
+		SinkQueue:     "x-sink",
+		SumpQueue:     "x-sump",
 		TransportType: "sqs",
 		Timeout:       5 * time.Second,
 		Resiliency:    newRetryConfig(3, nil),
@@ -465,8 +465,8 @@ func TestRouter_ProcessMessage_RetryOnRetriableError(t *testing.T) {
 		transport:     mt,
 		runtimeClient: runtimeClient,
 		actorName:     cfg.ActorName,
-		happyEndQueue: cfg.HappyEndQueue,
-		errorEndQueue: cfg.ErrorEndQueue,
+		sinkQueue:     cfg.SinkQueue,
+		sumpQueue:     cfg.SumpQueue,
 		metrics:       m,
 	}
 
@@ -485,9 +485,9 @@ func TestRouter_ProcessMessage_RetryOnRetriableError(t *testing.T) {
 		t.Fatalf("ProcessMessage should return nil on retry: %v", err)
 	}
 
-	// Should have sent via SendWithDelay, NOT to error-end
+	// Should have sent via SendWithDelay, NOT to x-sump
 	if len(mt.sentMessages) != 0 {
-		t.Errorf("Expected no regular sends (to error-end), got %d", len(mt.sentMessages))
+		t.Errorf("Expected no regular sends (to x-sump), got %d", len(mt.sentMessages))
 	}
 
 	if len(mt.delayedMessages) != 1 {
@@ -549,8 +549,8 @@ func TestRouter_ProcessMessage_NonRetryableError(t *testing.T) {
 	cfg := &config.Config{
 		ActorName:     "test-actor",
 		Namespace:     "default",
-		HappyEndQueue: "happy-end",
-		ErrorEndQueue: "error-end",
+		SinkQueue:     "x-sink",
+		SumpQueue:     "x-sump",
 		TransportType: "sqs",
 		Timeout:       5 * time.Second,
 		Resiliency:    newRetryConfig(5, []string{"ValueError"}),
@@ -563,8 +563,8 @@ func TestRouter_ProcessMessage_NonRetryableError(t *testing.T) {
 		transport:     mt,
 		runtimeClient: runtimeClient,
 		actorName:     cfg.ActorName,
-		happyEndQueue: cfg.HappyEndQueue,
-		errorEndQueue: cfg.ErrorEndQueue,
+		sinkQueue:     cfg.SinkQueue,
+		sumpQueue:     cfg.SumpQueue,
 		metrics:       metrics.NewMetrics("test", []config.CustomMetricConfig{}),
 	}
 
@@ -583,17 +583,17 @@ func TestRouter_ProcessMessage_NonRetryableError(t *testing.T) {
 		t.Fatalf("ProcessMessage should return nil: %v", err)
 	}
 
-	// Should NOT retry — should send directly to error-end
+	// Should NOT retry — should send directly to x-sump
 	if len(mt.delayedMessages) != 0 {
 		t.Errorf("Expected no delayed messages (no retry), got %d", len(mt.delayedMessages))
 	}
 
 	if len(mt.sentMessages) != 1 {
-		t.Fatalf("Expected 1 message to error-end, got %d", len(mt.sentMessages))
+		t.Fatalf("Expected 1 message to x-sump, got %d", len(mt.sentMessages))
 	}
 
-	if mt.sentMessages[0].queue != "asya-default-error-end" {
-		t.Errorf("Expected error-end queue, got %s", mt.sentMessages[0].queue)
+	if mt.sentMessages[0].queue != "asya-default-x-sump" {
+		t.Errorf("Expected x-sump queue, got %s", mt.sentMessages[0].queue)
 	}
 
 	var errorMsg messages.Message
@@ -649,8 +649,8 @@ func TestRouter_ProcessMessage_MaxRetriesExhausted(t *testing.T) {
 	cfg := &config.Config{
 		ActorName:     "test-actor",
 		Namespace:     "default",
-		HappyEndQueue: "happy-end",
-		ErrorEndQueue: "error-end",
+		SinkQueue:     "x-sink",
+		SumpQueue:     "x-sump",
 		TransportType: "sqs",
 		Timeout:       5 * time.Second,
 		Resiliency:    newRetryConfig(3, nil),
@@ -663,8 +663,8 @@ func TestRouter_ProcessMessage_MaxRetriesExhausted(t *testing.T) {
 		transport:     mt,
 		runtimeClient: runtimeClient,
 		actorName:     cfg.ActorName,
-		happyEndQueue: cfg.HappyEndQueue,
-		errorEndQueue: cfg.ErrorEndQueue,
+		sinkQueue:     cfg.SinkQueue,
+		sumpQueue:     cfg.SumpQueue,
 		metrics:       metrics.NewMetrics("test", []config.CustomMetricConfig{}),
 	}
 
@@ -692,13 +692,13 @@ func TestRouter_ProcessMessage_MaxRetriesExhausted(t *testing.T) {
 		t.Fatalf("ProcessMessage should return nil: %v", err)
 	}
 
-	// Should NOT retry — should send to error-end
+	// Should NOT retry — should send to x-sump
 	if len(mt.delayedMessages) != 0 {
 		t.Errorf("Expected no delayed messages, got %d", len(mt.delayedMessages))
 	}
 
 	if len(mt.sentMessages) != 1 {
-		t.Fatalf("Expected 1 message to error-end, got %d", len(mt.sentMessages))
+		t.Fatalf("Expected 1 message to x-sump, got %d", len(mt.sentMessages))
 	}
 
 	var errorMsg messages.Message
@@ -753,8 +753,8 @@ func TestRouter_ProcessMessage_NoResiliency_LegacyBehavior(t *testing.T) {
 	cfg := &config.Config{
 		ActorName:     "test-actor",
 		Namespace:     "default",
-		HappyEndQueue: "happy-end",
-		ErrorEndQueue: "error-end",
+		SinkQueue:     "x-sink",
+		SumpQueue:     "x-sump",
 		TransportType: "sqs",
 		Timeout:       5 * time.Second,
 		Resiliency:    nil, // No resiliency
@@ -767,8 +767,8 @@ func TestRouter_ProcessMessage_NoResiliency_LegacyBehavior(t *testing.T) {
 		transport:     mt,
 		runtimeClient: runtimeClient,
 		actorName:     cfg.ActorName,
-		happyEndQueue: cfg.HappyEndQueue,
-		errorEndQueue: cfg.ErrorEndQueue,
+		sinkQueue:     cfg.SinkQueue,
+		sumpQueue:     cfg.SumpQueue,
 		metrics:       metrics.NewMetrics("test", []config.CustomMetricConfig{}),
 	}
 
@@ -787,21 +787,21 @@ func TestRouter_ProcessMessage_NoResiliency_LegacyBehavior(t *testing.T) {
 		t.Fatalf("ProcessMessage should return nil: %v", err)
 	}
 
-	// Without resiliency, should go directly to error-end
+	// Without resiliency, should go directly to x-sump
 	if len(mt.delayedMessages) != 0 {
 		t.Errorf("Expected no delayed messages, got %d", len(mt.delayedMessages))
 	}
 
 	if len(mt.sentMessages) != 1 {
-		t.Fatalf("Expected 1 message to error-end, got %d", len(mt.sentMessages))
+		t.Fatalf("Expected 1 message to x-sump, got %d", len(mt.sentMessages))
 	}
 
-	if mt.sentMessages[0].queue != "asya-default-error-end" {
-		t.Errorf("Expected error-end queue, got %s", mt.sentMessages[0].queue)
+	if mt.sentMessages[0].queue != "asya-default-x-sump" {
+		t.Errorf("Expected x-sump queue, got %s", mt.sentMessages[0].queue)
 	}
 }
 
-func TestRouter_ProcessMessage_SendWithDelayFails_FallsBackToErrorEnd(t *testing.T) {
+func TestRouter_ProcessMessage_SendWithDelayFails_FallsBackToSump(t *testing.T) {
 	socketPath := fmt.Sprintf("/tmp/test-delay-fail-%d.sock", time.Now().UnixNano())
 	defer func() { _ = os.Remove(socketPath) }()
 
@@ -839,8 +839,8 @@ func TestRouter_ProcessMessage_SendWithDelayFails_FallsBackToErrorEnd(t *testing
 	cfg := &config.Config{
 		ActorName:     "test-actor",
 		Namespace:     "default",
-		HappyEndQueue: "happy-end",
-		ErrorEndQueue: "error-end",
+		SinkQueue:     "x-sink",
+		SumpQueue:     "x-sump",
 		TransportType: "rabbitmq",
 		Timeout:       5 * time.Second,
 		Resiliency:    newRetryConfig(5, nil),
@@ -853,8 +853,8 @@ func TestRouter_ProcessMessage_SendWithDelayFails_FallsBackToErrorEnd(t *testing
 		transport:     mt,
 		runtimeClient: runtimeClient,
 		actorName:     cfg.ActorName,
-		happyEndQueue: cfg.HappyEndQueue,
-		errorEndQueue: cfg.ErrorEndQueue,
+		sinkQueue:     cfg.SinkQueue,
+		sumpQueue:     cfg.SumpQueue,
 		metrics:       metrics.NewMetrics("test", []config.CustomMetricConfig{}),
 	}
 
@@ -873,13 +873,13 @@ func TestRouter_ProcessMessage_SendWithDelayFails_FallsBackToErrorEnd(t *testing
 		t.Fatalf("ProcessMessage should return nil on fallback: %v", err)
 	}
 
-	// SendWithDelay failed, should fall back to error-end
+	// SendWithDelay failed, should fall back to x-sump
 	if len(mt.sentMessages) != 1 {
-		t.Fatalf("Expected 1 message to error-end (fallback), got %d", len(mt.sentMessages))
+		t.Fatalf("Expected 1 message to x-sump (fallback), got %d", len(mt.sentMessages))
 	}
 
-	if mt.sentMessages[0].queue != "asya-default-error-end" {
-		t.Errorf("Expected error-end queue, got %s", mt.sentMessages[0].queue)
+	if mt.sentMessages[0].queue != "asya-default-x-sump" {
+		t.Errorf("Expected x-sump queue, got %s", mt.sentMessages[0].queue)
 	}
 }
 
@@ -916,8 +916,8 @@ func TestRouter_ProcessMessage_RetryPreservesPayloadAndRoute(t *testing.T) {
 	cfg := &config.Config{
 		ActorName:     "test-actor",
 		Namespace:     "default",
-		HappyEndQueue: "happy-end",
-		ErrorEndQueue: "error-end",
+		SinkQueue:     "x-sink",
+		SumpQueue:     "x-sump",
 		TransportType: "sqs",
 		Timeout:       5 * time.Second,
 		Resiliency:    newRetryConfig(5, nil),
@@ -930,8 +930,8 @@ func TestRouter_ProcessMessage_RetryPreservesPayloadAndRoute(t *testing.T) {
 		transport:     mt,
 		runtimeClient: runtimeClient,
 		actorName:     cfg.ActorName,
-		happyEndQueue: cfg.HappyEndQueue,
-		errorEndQueue: cfg.ErrorEndQueue,
+		sinkQueue:     cfg.SinkQueue,
+		sumpQueue:     cfg.SumpQueue,
 		metrics:       metrics.NewMetrics("test", []config.CustomMetricConfig{}),
 	}
 
@@ -1041,7 +1041,7 @@ func TestRouter_SendRetryFailure_PreservesErrorDetailsInPayload(t *testing.T) {
 		t.Errorf("Expected MRO [Exception], got %v", failedMsg.Status.Error.MRO)
 	}
 
-	// Verify payload has error details (backward compat with error-end actor)
+	// Verify payload has error details (backward compat with x-sump actor)
 	var payload map[string]any
 	if err := json.Unmarshal(failedMsg.Payload, &payload); err != nil {
 		t.Fatalf("Failed to unmarshal payload: %v", err)
@@ -1087,8 +1087,8 @@ func TestRouter_ProcessMessage_MaxAttemptsOne_NoRetry(t *testing.T) {
 	cfg := &config.Config{
 		ActorName:     "test-actor",
 		Namespace:     "default",
-		HappyEndQueue: "happy-end",
-		ErrorEndQueue: "error-end",
+		SinkQueue:     "x-sink",
+		SumpQueue:     "x-sump",
 		TransportType: "sqs",
 		Timeout:       5 * time.Second,
 		Resiliency:    newRetryConfig(1, nil), // MaxAttempts=1 means no retry
@@ -1101,8 +1101,8 @@ func TestRouter_ProcessMessage_MaxAttemptsOne_NoRetry(t *testing.T) {
 		transport:     mt,
 		runtimeClient: runtimeClient,
 		actorName:     cfg.ActorName,
-		happyEndQueue: cfg.HappyEndQueue,
-		errorEndQueue: cfg.ErrorEndQueue,
+		sinkQueue:     cfg.SinkQueue,
+		sumpQueue:     cfg.SumpQueue,
 		metrics:       metrics.NewMetrics("test", []config.CustomMetricConfig{}),
 	}
 
@@ -1126,6 +1126,6 @@ func TestRouter_ProcessMessage_MaxAttemptsOne_NoRetry(t *testing.T) {
 		t.Errorf("Expected no delayed messages with MaxAttempts=1, got %d", len(mt.delayedMessages))
 	}
 	if len(mt.sentMessages) != 1 {
-		t.Fatalf("Expected 1 message to error-end, got %d", len(mt.sentMessages))
+		t.Fatalf("Expected 1 message to x-sump, got %d", len(mt.sentMessages))
 	}
 }

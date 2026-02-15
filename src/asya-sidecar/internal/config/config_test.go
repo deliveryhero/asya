@@ -63,11 +63,11 @@ func TestLoadFromEnv(t *testing.T) {
 				if cfg.RabbitMQExchange != "asya" {
 					t.Errorf("Default RabbitMQExchange = %v, want asya", cfg.RabbitMQExchange)
 				}
-				if cfg.HappyEndQueue != "happy-end" {
-					t.Errorf("Default HappyEndQueue = %v, want happy-end", cfg.HappyEndQueue)
+				if cfg.SinkQueue != "x-sink" {
+					t.Errorf("Default SinkQueue = %v, want x-sink", cfg.SinkQueue)
 				}
-				if cfg.ErrorEndQueue != "error-end" {
-					t.Errorf("Default ErrorEndQueue = %v, want error-end", cfg.ErrorEndQueue)
+				if cfg.SumpQueue != "x-sump" {
+					t.Errorf("Default SumpQueue = %v, want x-sump", cfg.SumpQueue)
 				}
 			},
 		},
@@ -99,7 +99,7 @@ func TestLoadFromEnv(t *testing.T) {
 		{
 			name: "end actor configuration",
 			env: map[string]string{
-				"ASYA_ACTOR_NAME":   "happy-end",
+				"ASYA_ACTOR_NAME":   "x-sink",
 				"ASYA_NAMESPACE":    "default",
 				"ASYA_IS_END_ACTOR": "true",
 			},
@@ -161,22 +161,22 @@ func TestLoadFromEnv(t *testing.T) {
 		{
 			name: "custom sockets dir and custom queues",
 			env: map[string]string{
-				"ASYA_ACTOR_NAME":      "test-actor",
-				"ASYA_NAMESPACE":       "default",
-				"ASYA_SOCKET_DIR":      "/custom/path",
-				"ASYA_ACTOR_HAPPY_END": "custom-happy",
-				"ASYA_ACTOR_ERROR_END": "custom-error",
+				"ASYA_ACTOR_NAME": "test-actor",
+				"ASYA_NAMESPACE":  "default",
+				"ASYA_SOCKET_DIR": "/custom/path",
+				"ASYA_ACTOR_SINK": "custom-happy",
+				"ASYA_ACTOR_SUMP": "custom-error",
 			},
 			expectError: false,
 			validate: func(t *testing.T, cfg *Config) {
 				if cfg.SocketPath != "/custom/path/asya-runtime.sock" {
 					t.Errorf("SocketPath = %v, want /custom/path/asya-runtime.sock", cfg.SocketPath)
 				}
-				if cfg.HappyEndQueue != "custom-happy" {
-					t.Errorf("HappyEndQueue = %v, want custom-happy", cfg.HappyEndQueue)
+				if cfg.SinkQueue != "custom-happy" {
+					t.Errorf("SinkQueue = %v, want custom-happy", cfg.SinkQueue)
 				}
-				if cfg.ErrorEndQueue != "custom-error" {
-					t.Errorf("ErrorEndQueue = %v, want custom-error", cfg.ErrorEndQueue)
+				if cfg.SumpQueue != "custom-error" {
+					t.Errorf("SumpQueue = %v, want custom-error", cfg.SumpQueue)
 				}
 			},
 		},

@@ -188,10 +188,10 @@ func TestSocketIntegration_HappyPath(t *testing.T) {
 		t.Fatalf("ProcessMessage failed: %v", err)
 	}
 
-	// Verify message was sent to happy-end queue
-	sentMessages := mockTransport.GetMessages("happy-end")
+	// Verify message was sent to x-sink queue
+	sentMessages := mockTransport.GetMessages("x-sink")
 	if len(sentMessages) != 1 {
-		t.Errorf("Expected 1 message in happy-end, got %d", len(sentMessages))
+		t.Errorf("Expected 1 message in x-sink, got %d", len(sentMessages))
 	}
 
 	// Verify payload contains expected fields
@@ -237,10 +237,10 @@ func TestSocketIntegration_Error(t *testing.T) {
 		t.Fatalf("ProcessMessage failed: %v", err)
 	}
 
-	// Verify message was sent to error-end queue
-	sentMessages := mockTransport.GetMessages("error-end")
+	// Verify message was sent to x-sump queue
+	sentMessages := mockTransport.GetMessages("x-sump")
 	if len(sentMessages) != 1 {
-		t.Errorf("Expected 1 message in error-end, got %d", len(sentMessages))
+		t.Errorf("Expected 1 message in x-sump, got %d", len(sentMessages))
 	}
 
 	// Verify error message contains error details
@@ -289,10 +289,10 @@ func TestSocketIntegration_Timeout(t *testing.T) {
 		t.Fatalf("ProcessMessage failed: %v", err)
 	}
 
-	// Verify message was sent to error-end queue due to timeout
-	sentMessages := mockTransport.GetMessages("error-end")
+	// Verify message was sent to x-sump queue due to timeout
+	sentMessages := mockTransport.GetMessages("x-sump")
 	if len(sentMessages) != 1 {
-		t.Errorf("Expected 1 message in error-end, got %d", len(sentMessages))
+		t.Errorf("Expected 1 message in x-sump, got %d", len(sentMessages))
 	}
 
 	// Verify error message mentions timeout
@@ -341,10 +341,10 @@ func TestSocketIntegration_Fanout(t *testing.T) {
 		t.Fatalf("ProcessMessage failed: %v", err)
 	}
 
-	// Verify 3 messages were sent to happy-end queue
-	sentMessages := mockTransport.GetMessages("happy-end")
+	// Verify 3 messages were sent to x-sink queue
+	sentMessages := mockTransport.GetMessages("x-sink")
 	if len(sentMessages) != 3 {
-		t.Errorf("Expected 3 fan-out messages in happy-end, got %d", len(sentMessages))
+		t.Errorf("Expected 3 fan-out messages in x-sink, got %d", len(sentMessages))
 	}
 
 	// Verify each message has the correct index
@@ -392,10 +392,10 @@ func TestSocketIntegration_EmptyResponse(t *testing.T) {
 		t.Fatalf("ProcessMessage failed: %v", err)
 	}
 
-	// Verify message was sent to happy-end queue (empty response aborts pipeline)
-	sentMessages := mockTransport.GetMessages("happy-end")
+	// Verify message was sent to x-sink queue (empty response aborts pipeline)
+	sentMessages := mockTransport.GetMessages("x-sink")
 	if len(sentMessages) != 1 {
-		t.Errorf("Expected 1 message in happy-end, got %d", len(sentMessages))
+		t.Errorf("Expected 1 message in x-sink, got %d", len(sentMessages))
 	}
 }
 
@@ -427,10 +427,10 @@ func TestSocketIntegration_LargePayload(t *testing.T) {
 		t.Fatalf("ProcessMessage failed: %v", err)
 	}
 
-	// Verify message was sent to happy-end queue
-	sentMessages := mockTransport.GetMessages("happy-end")
+	// Verify message was sent to x-sink queue
+	sentMessages := mockTransport.GetMessages("x-sink")
 	if len(sentMessages) != 1 {
-		t.Errorf("Expected 1 message in happy-end, got %d", len(sentMessages))
+		t.Errorf("Expected 1 message in x-sink, got %d", len(sentMessages))
 	}
 
 	// Verify payload contains large data
@@ -477,10 +477,10 @@ func TestSocketIntegration_Unicode(t *testing.T) {
 		t.Fatalf("ProcessMessage failed: %v", err)
 	}
 
-	// Verify message was sent to happy-end queue
-	sentMessages := mockTransport.GetMessages("happy-end")
+	// Verify message was sent to x-sink queue
+	sentMessages := mockTransport.GetMessages("x-sink")
 	if len(sentMessages) != 1 {
-		t.Errorf("Expected 1 message in happy-end, got %d", len(sentMessages))
+		t.Errorf("Expected 1 message in x-sink, got %d", len(sentMessages))
 	}
 
 	// Verify payload contains unicode data

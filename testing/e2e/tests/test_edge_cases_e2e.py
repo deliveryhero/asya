@@ -7,7 +7,7 @@ These verify behavior that can only be tested in a real K8s environment.
 
 MUST-HAVE (3 tests) - Critical sidecar behavior:
 - test_fan_out_creates_multiple_messages_e2e: Sidecar creates multiple messages from array
-- test_empty_response_goes_to_happy_end_e2e: Sidecar routes empty responses to happy-end
+- test_empty_response_goes_to_sink_e2e: Sidecar routes empty responses to x-sink
 - test_slow_boundary_completes_before_timeout_e2e: Slow-boundary actor completes before timeout
 
 SHOULD-HAVE (2 tests) - Infrastructure resilience:
@@ -66,11 +66,11 @@ def test_fan_out_creates_multiple_messages_e2e(e2e_helper):
 
 
 @pytest.mark.fast
-def test_empty_response_goes_to_happy_end_e2e(e2e_helper):
+def test_empty_response_goes_to_sink_e2e(e2e_helper):
     """
-    E2E: Test empty response routing to happy-end.
+    E2E: Test empty response routing to x-sink.
 
-    Scenario: Actor returns null/empty → sidecar routes to happy-end
+    Scenario: Actor returns null/empty → sidecar routes to x-sink
     Expected: Task completes with Succeeded status
     """
     response = e2e_helper.call_mcp_tool(
@@ -83,7 +83,7 @@ def test_empty_response_goes_to_happy_end_e2e(e2e_helper):
     # Wait for completion - increased timeout for KEDA scale-up from 0
     final_task = e2e_helper.wait_for_task_completion(task_id, timeout=90)
 
-    # Empty response should go to happy-end
+    # Empty response should go to x-sink
     assert final_task["status"] == "succeeded", f"Empty response should succeed, got {final_task['status']}"
 
 
@@ -256,7 +256,7 @@ def test_timeout_crash_and_pod_restart_e2e(e2e_helper, namespace, transport_time
     # Extended timeout because message will be redelivered and may timeout again
     final_task = e2e_helper.wait_for_task_completion(task_id, timeout=180)
 
-    # After timeout crash, message should eventually go to error-end
+    # After timeout crash, message should eventually go to x-sump
     assert final_task["status"] in ["failed", "succeeded"], (
         f"Task should eventually complete (Failed or Succeeded), got {final_task['status']}"
     )
@@ -521,7 +521,7 @@ def test_unicode_payload_end_to_end(e2e_helper):
     """
     E2E: Test Unicode characters preserved through full pipeline.
 
-    Scenario: Send Unicode payload through gateway → queue → actor → happy-end
+    Scenario: Send Unicode payload through gateway → queue → actor → x-sink
     Expected: Characters preserved correctly
     """
     response = e2e_helper.call_mcp_tool(

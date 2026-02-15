@@ -1,7 +1,7 @@
 """
 S3/MinIO helper functions for integration and E2E tests.
 
-Provides utilities to validate that happy-end and error-end actors
+Provides utilities to validate that x-sink and x-sump actors
 properly persist results and errors to S3-compatible storage (MinIO).
 
 FAIL-FAST: Required environment variables must be set by docker-compose.

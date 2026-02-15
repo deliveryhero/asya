@@ -459,7 +459,7 @@ func (h *Handler) HandleTaskProgress(w http.ResponseWriter, r *http.Request) {
 }
 
 // HandleTaskFinal handles POST /tasks/{id}/final (for end actors to report final status)
-// This is called by happy-end and error-end actors to report task completion
+// This is called by x-sink and x-sump actors to report task completion
 func (h *Handler) HandleTaskFinal(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)

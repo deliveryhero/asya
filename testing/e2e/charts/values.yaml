@@ -230,9 +230,9 @@ crew:
     tag: latest
     pullPolicy: Never
 
-  happy-end:
+  x-sink:
     enabled: true
-    name: happy-end
+    name: x-sink
     transport: rabbitmq
     env:
       ASYA_GATEWAY_URL: "http://asya-gateway.asya-e2e.svc.cluster.local:8080"
@@ -258,9 +258,9 @@ crew:
     workload:
       kind: Deployment
 
-  error-end:
+  x-sump:
     enabled: true
-    name: error-end
+    name: x-sump
     transport: rabbitmq
     env:
       ASYA_GATEWAY_URL: "http://asya-gateway.asya-e2e.svc.cluster.local:8080"

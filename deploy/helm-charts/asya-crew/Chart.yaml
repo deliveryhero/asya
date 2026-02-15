@@ -1,6 +1,6 @@
 apiVersion: v2
 name: asya-crew
-description: System AsyncActors with reserved roles (happy-end, error-end, ...) for Asya framework
+description: System AsyncActors with reserved roles (x-sink, x-sump, checkpoint-s3, ...) for Asya framework
 type: application
 # versions are replaced by automatically .github/workflows/release.yml
 version: 0.0.0

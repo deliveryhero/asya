@@ -9,7 +9,7 @@ and sample infrastructure (LocalStack for SQS/S3) into a single Helm release.
 - **KEDA** for autoscaling actors based on SQS queue depth
 - **Crossplane providers** + XRDs + Compositions for AsyncActor lifecycle management
 - **asya-injector webhook** for automatic sidecar injection
-- **Crew actors** (happy-end, error-end) for pipeline completion
+- **Crew actors** (x-sink, x-sump) for pipeline completion
 - **LocalStack** for SQS and S3 emulation
 - **Hello-world actor** to verify the installation
 
@@ -147,10 +147,10 @@ helm upgrade asya . -n asya-demo \
   --set helloActor.enabled=true \
   --set asya-crew.image.tag=latest \
   --set asya-crew.image.pullPolicy=Never \
-  --set asya-crew.happy-end.sidecar.image=ghcr.io/deliveryhero/asya-sidecar:latest \
-  --set asya-crew.happy-end.sidecar.imagePullPolicy=Never \
-  --set asya-crew.error-end.sidecar.image=ghcr.io/deliveryhero/asya-sidecar:latest \
-  --set asya-crew.error-end.sidecar.imagePullPolicy=Never \
+  --set asya-crew.x-sink.sidecar.image=ghcr.io/deliveryhero/asya-sidecar:latest \
+  --set asya-crew.x-sink.sidecar.imagePullPolicy=Never \
+  --set asya-crew.x-sump.sidecar.image=ghcr.io/deliveryhero/asya-sidecar:latest \
+  --set asya-crew.x-sump.sidecar.imagePullPolicy=Never \
   --timeout 300s --wait
 ```
 
@@ -162,8 +162,8 @@ kubectl get pods -n asya-demo
 
 # Expected output:
 # asya-asya-injector-...   1/1     Running
-# error-end-...            2/2     Running
-# happy-end-...            2/2     Running
+# x-sump-...               2/2     Running
+# x-sink-...               2/2     Running
 # hello-...                 0/0    (scaled to zero by KEDA)
 # keda-operator-...        1/1     Running
 # localstack-sqs-...       1/1     Running
@@ -174,12 +174,12 @@ kubectl get asyncactors -n asya-demo
 
 # Expected:
 # hello       Napping    (scaled to 0, waiting for messages)
-# happy-end   Creating   (running with minReplicas=1)
-# error-end   Creating   (running with minReplicas=1)
+# x-sink      Creating   (running with minReplicas=1)
+# x-sump      Creating   (running with minReplicas=1)
 
 # Check SQS queues were created
 kubectl get queue.sqs.aws.upbound.io
-# Should show 3 queues: hello, happy-end, error-end
+# Should show 3 queues: hello, x-sink, x-sump
 
 # Check KEDA ScaledObjects
 kubectl get scaledobject -n asya-demo

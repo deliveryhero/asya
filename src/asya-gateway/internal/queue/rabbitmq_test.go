@@ -43,8 +43,8 @@ func TestRabbitMQQueueNaming(t *testing.T) {
 		},
 		{
 			name:               "crew actor name",
-			actorName:          "happy-end",
-			expectedRoutingKey: "happy-end",
+			actorName:          "x-sink",
+			expectedRoutingKey: "x-sink",
 		},
 	}
 

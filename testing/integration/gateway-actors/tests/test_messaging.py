@@ -56,9 +56,9 @@ def test_simple_tool_execution(gateway_helper):
     assert task_result.get("echoed") == "Hello, World!", "Should echo the input"
 
     s3_object = wait_for_message_in_s3(bucket_name="asya-results", message_id=task_id, timeout=10)
-    assert s3_object is not None, f"Happy-end should persist message {task_id} to S3"
+    assert s3_object is not None, f"x-sink should persist message {task_id} to S3"
     assert s3_object["payload"] == task_result, "S3 result should match gateway result"
-    logger.info(" S3 verification: Happy-end persisted result correctly")
+    logger.info(" S3 verification: x-sink persisted result correctly")
 
 
 def test_multi_actor_pipeline(gateway_helper):
@@ -110,11 +110,11 @@ def test_multi_actor_pipeline(gateway_helper):
     assert result.get("value") == 25, f"Expected 25, got {result.get('value')}"
 
     s3_object = wait_for_message_in_s3(bucket_name="asya-results", message_id=task_id, timeout=10)
-    assert s3_object is not None, f"Happy-end should persist pipeline message {task_id} to S3"
+    assert s3_object is not None, f"x-sink should persist pipeline message {task_id} to S3"
     assert s3_object["payload"] == result, "S3 result should match gateway result"
     if "last_actor" in s3_object:
         assert s3_object["last_actor"] == "test-incrementer", "S3 should track last actor in pipeline"
-    logger.info(" S3 verification: Happy-end persisted pipeline result correctly")
+    logger.info(" S3 verification: x-sink persisted pipeline result correctly")
 
 
 def test_error_handling(gateway_helper):

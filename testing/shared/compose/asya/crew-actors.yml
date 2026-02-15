@@ -7,8 +7,8 @@ x-logging: &default-logging
 # Note: Volumes must be defined in the compose file that includes this file
 
 services:
-  # Happy end actor (success handler)
-  asya-happy-end-runtime:
+  # x-sink actor (success handler)
+  asya-x-sink-runtime:
     build:
       context: ../../../../src/asya-crew
       dockerfile: Dockerfile
@@ -23,12 +23,12 @@ services:
     - ../envs/.env.${ASYA_TRANSPORT}
     - ../envs/.env.${ASYA_STORAGE}
     environment:
-    - ASYA_HANDLER=handlers.end_handlers.happy_end_handler
+    - ASYA_HANDLER=asya_crew.message_persistence.s3.checkpoint_handler
     - ASYA_HANDLER_MODE=envelope
-    - ASYA_ENABLE_VALIDATION=false # happy end doesn't validate
+    - ASYA_ENABLE_VALIDATION=false
     - ASYA_S3_BUCKET=asya-results
     volumes:
-    - asya-happy-end-sockets:/var/run/asya
+    - asya-x-sink-sockets:/var/run/asya
     - ../../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro
     healthcheck:
       test: ["CMD", "test", "-S", "/var/run/asya/asya-runtime.sock"]
@@ -36,14 +36,14 @@ services:
       timeout: 1s
       retries: 15
 
-  asya-happy-end-sidecar:
-    network_mode: "service:asya-happy-end-runtime"
+  asya-x-sink-sidecar:
+    network_mode: "service:asya-x-sink-runtime"
     build:
       context: ../../../../src/asya-sidecar
       dockerfile: Dockerfile
     logging: *default-logging
     depends_on:
-      asya-happy-end-runtime:
+      asya-x-sink-runtime:
         condition: service_healthy
       gateway:
         condition: service_healthy
@@ -55,13 +55,13 @@ services:
     environment:
       ASYA_RUNTIME_TIMEOUT: 5s
       ASYA_IS_END_ACTOR: "true"
-      ASYA_ACTOR_NAME: happy-end
+      ASYA_ACTOR_NAME: x-sink
       ASYA_GATEWAY_URL: http://gateway:8080
     volumes:
-    - asya-happy-end-sockets:/var/run/asya
+    - asya-x-sink-sockets:/var/run/asya
 
-  # Error end actor (failure handler)
-  asya-error-end-runtime:
+  # x-sump actor (failure handler)
+  asya-x-sump-runtime:
     build:
       context: ../../../../src/asya-crew
       dockerfile: Dockerfile
@@ -76,12 +76,12 @@ services:
     - ../envs/.env.${ASYA_TRANSPORT}
     - ../envs/.env.${ASYA_STORAGE}
     environment:
-    - ASYA_HANDLER=handlers.end_handlers.error_end_handler
+    - ASYA_HANDLER=asya_crew.message_persistence.s3.checkpoint_handler
     - ASYA_HANDLER_MODE=envelope
-    - ASYA_ENABLE_VALIDATION=false # error end doesn't validate
+    - ASYA_ENABLE_VALIDATION=false
     - ASYA_S3_BUCKET=asya-errors
     volumes:
-    - asya-error-end-sockets:/var/run/asya
+    - asya-x-sump-sockets:/var/run/asya
     - ../../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro
     healthcheck:
       test: ["CMD", "test", "-S", "/var/run/asya/asya-runtime.sock"]
@@ -89,14 +89,14 @@ services:
       timeout: 1s
       retries: 15
 
-  asya-error-end-sidecar:
-    network_mode: "service:asya-error-end-runtime"
+  asya-x-sump-sidecar:
+    network_mode: "service:asya-x-sump-runtime"
     build:
       context: ../../../../src/asya-sidecar
       dockerfile: Dockerfile
     logging: *default-logging
     depends_on:
-      asya-error-end-runtime:
+      asya-x-sump-runtime:
         condition: service_healthy
       gateway:
         condition: service_healthy
@@ -108,17 +108,17 @@ services:
     environment:
       ASYA_RUNTIME_TIMEOUT: 5s
       ASYA_IS_END_ACTOR: "true"
-      ASYA_ACTOR_NAME: error-end
+      ASYA_ACTOR_NAME: x-sump
       ASYA_GATEWAY_URL: http://gateway:8080
     volumes:
-    - asya-error-end-sockets:/var/run/asya
+    - asya-x-sump-sockets:/var/run/asya
 
   # Waiter service for system actors dependency subgraph
   crew-actors-waiter:
     image: busybox:latest
     command: ["sh", "-c", "echo 'System actors ready'"]
     depends_on:
-      asya-happy-end-sidecar:
+      asya-x-sink-sidecar:
         condition: service_started
-      asya-error-end-sidecar:
+      asya-x-sump-sidecar:
         condition: service_started

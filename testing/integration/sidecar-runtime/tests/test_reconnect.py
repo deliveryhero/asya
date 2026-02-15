@@ -163,7 +163,7 @@ def test_runtime_restart_reconnects(transport_helper, docker_helper):
     }
     transport_helper.publish_message("asya-default-test-echo", message_before)
 
-    result_before = transport_helper.assert_message_in_queue("asya-default-happy-end", timeout=10)
+    result_before = transport_helper.assert_message_in_queue("asya-default-x-sink", timeout=10)
     assert result_before is not None, "Initial message failed before runtime restart"
     logger.info("[+] Message processed successfully before restart")
 
@@ -184,7 +184,7 @@ def test_runtime_restart_reconnects(transport_helper, docker_helper):
     }
     transport_helper.publish_message("asya-default-test-echo", message_after)
 
-    result_after = transport_helper.assert_message_in_queue("asya-default-happy-end", timeout=15)
+    result_after = transport_helper.assert_message_in_queue("asya-default-x-sink", timeout=15)
     assert result_after is not None, "Message failed after runtime restart - sidecar did not reconnect"
 
     payload = result_after.get("payload", {})
@@ -214,7 +214,7 @@ def test_sidecar_restart_reconnects(transport_helper, docker_helper):
     }
     transport_helper.publish_message("asya-default-test-echo", message_before)
 
-    result_before = transport_helper.assert_message_in_queue("asya-default-happy-end", timeout=10)
+    result_before = transport_helper.assert_message_in_queue("asya-default-x-sink", timeout=10)
     assert result_before is not None, "Initial message failed before sidecar restart"
     logger.info("[+] Message processed successfully before restart")
 
@@ -232,7 +232,7 @@ def test_sidecar_restart_reconnects(transport_helper, docker_helper):
     }
     transport_helper.publish_message("asya-default-test-echo", message_after)
 
-    result_after = transport_helper.assert_message_in_queue("asya-default-happy-end", timeout=15)
+    result_after = transport_helper.assert_message_in_queue("asya-default-x-sink", timeout=15)
     assert result_after is not None, "Message failed after sidecar restart - sidecar did not reconnect"
 
     payload = result_after.get("payload", {})
@@ -280,7 +280,7 @@ def test_runtime_crash_during_processing(transport_helper, docker_helper):
     }
     transport_helper.publish_message("asya-default-test-timeout", message_new)
 
-    result = transport_helper.assert_message_in_queue("asya-default-happy-end", timeout=15)
+    result = transport_helper.assert_message_in_queue("asya-default-x-sink", timeout=15)
     assert result is not None, "Message failed after runtime crash recovery"
 
     payload = result.get("payload", {})
@@ -310,7 +310,7 @@ def test_both_restart_reconnects(transport_helper, docker_helper):
     }
     transport_helper.publish_message("asya-default-test-echo", message_before)
 
-    result_before = transport_helper.assert_message_in_queue("asya-default-happy-end", timeout=10)
+    result_before = transport_helper.assert_message_in_queue("asya-default-x-sink", timeout=10)
     assert result_before is not None, "Initial message failed"
     logger.info("[+] Message processed successfully before restart")
 
@@ -332,7 +332,7 @@ def test_both_restart_reconnects(transport_helper, docker_helper):
     }
     transport_helper.publish_message("asya-default-test-echo", message_after)
 
-    result_after = transport_helper.assert_message_in_queue("asya-default-happy-end", timeout=15)
+    result_after = transport_helper.assert_message_in_queue("asya-default-x-sink", timeout=15)
     assert result_after is not None, "Message failed after both components restart"
 
     payload = result_after.get("payload", {})

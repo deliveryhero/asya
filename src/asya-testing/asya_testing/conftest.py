@@ -105,8 +105,8 @@ def _extract_actors_from_test(request) -> list[str]:
         "test-unicode",
         "test-large-payload",
         "test-slow-boundary",
-        "happy-end",
-        "error-end",
+        "x-sink",
+        "x-sump",
     ]
 
     # Check test name for actor references

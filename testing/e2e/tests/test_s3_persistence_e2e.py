@@ -1,5 +1,5 @@
 """
-E2E tests for S3 persistence in happy-end and error-end actors.
+E2E tests for S3 persistence in x-sink and x-sump actors.
 
 Tests that end actors properly persist results and errors to MinIO
 in a full Kubernetes deployment.
@@ -36,9 +36,9 @@ def cleanup_s3():
 
 
 @pytest.mark.fast
-def test_happy_end_persists_to_s3_e2e(e2e_helper, transport_timeouts):
+def test_x_sink_persists_to_s3_e2e(e2e_helper, transport_timeouts):
     """
-    Test that happy-end actor persists successful results to S3 in e2e environment.
+    Test that x-sink actor persists successful results to S3 in e2e environment.
 
     Inventory:
     - Submit echo request via gateway
@@ -46,7 +46,7 @@ def test_happy_end_persists_to_s3_e2e(e2e_helper, transport_timeouts):
     - Verify result saved to asya-results bucket
     - Verify S3 object structure matches expected schema
     """
-    logger.info("=== test_happy_end_persists_to_s3_e2e ===")
+    logger.info("=== test_x_sink_persists_to_s3_e2e ===")
 
     result = e2e_helper.call_mcp_tool("test_echo", {"message": "test s3 persistence e2e"})
     task_id = result["result"]["task_id"]
@@ -68,13 +68,13 @@ def test_happy_end_persists_to_s3_e2e(e2e_helper, transport_timeouts):
     assert "current" in s3_object["route"]
 
     logger.info(f"S3 message validated (saved as-is): {s3_object}")
-    logger.info("=== test_happy_end_persists_to_s3_e2e: PASSED ===")
+    logger.info("=== test_x_sink_persists_to_s3_e2e: PASSED ===")
 
 
 @pytest.mark.fast
-def test_error_end_persists_to_s3_e2e(e2e_helper, transport_timeouts):
+def test_x_sump_persists_to_s3_e2e(e2e_helper, transport_timeouts):
     """
-    Test that error-end actor persists errors to S3 in e2e environment.
+    Test that x-sump actor persists errors to S3 in e2e environment.
 
     Inventory:
     - Submit request that triggers error
@@ -82,7 +82,7 @@ def test_error_end_persists_to_s3_e2e(e2e_helper, transport_timeouts):
     - Verify error saved to asya-errors bucket
     - Verify S3 object structure includes error details
     """
-    logger.info("=== test_error_end_persists_to_s3_e2e ===")
+    logger.info("=== test_x_sump_persists_to_s3_e2e ===")
 
     result = e2e_helper.call_mcp_tool("test_error", {"should_fail": True})
     task_id = result["result"]["task_id"]
@@ -104,4 +104,4 @@ def test_error_end_persists_to_s3_e2e(e2e_helper, transport_timeouts):
     assert "current" in s3_object["route"]
 
     logger.info(f"S3 error message validated (saved as-is): {s3_object}")
-    logger.info("=== test_error_end_persists_to_s3_e2e: PASSED ===")
+    logger.info("=== test_x_sump_persists_to_s3_e2e: PASSED ===")

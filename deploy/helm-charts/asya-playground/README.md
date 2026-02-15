@@ -6,7 +6,7 @@ Full demo package showing Asya🎭 in action with sample actors, flows, and infr
 
 The `asya-playground` chart is a complete demonstration package that bundles:
 - **Crossplane + Injector** - XRDs, Compositions, and sidecar injection webhook for AsyncActor resources
-- **Crew Actors** - System actors (happy-end, error-end)
+- **Crew Actors** - System actors (x-sink, x-sump)
 - **Gateway** - MCP gateway with PostgreSQL backend
 - **Sample Actors** - Hello-world actor for validation and testing
 - **Sample Infrastructure** - LocalStack (SQS/S3), RabbitMQ, MinIO for demos
@@ -293,7 +293,7 @@ kubectl delete pvc minio-data -n asya-playground
 │ - asya-crossplane (XRDs, Compositions, Providers)    │
 │ - asya-injector (sidecar injection webhook)          │
 │ - asya-gateway + PostgreSQL                          │
-│ - asya-crew (happy-end, error-end)                   │
+│ - asya-crew (x-sink, x-sump)                         │
 │ - hello-world actor                                  │
 │                                                       │
 │ Sample Infrastructure (demo only):                   │

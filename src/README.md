@@ -29,8 +29,8 @@ Lightweight Unix socket server for actor-sidecar communication.
 System actors with reserved roles for pipelines.
 
 **Actors**:
-- `happy-end`: Persist successful results to S3, report status to gateway
-- `error-end`: Retry with exponential backoff, DLQ handling, error reporting
+- `x-sink`: Persist successful results to S3, report status to gateway
+- `x-sump`: Retry with exponential backoff, DLQ handling, error reporting
 
 **See**: [Architecture docs](../docs/architecture/asya-crew.md) | [Component README](asya-crew/README.md)
 

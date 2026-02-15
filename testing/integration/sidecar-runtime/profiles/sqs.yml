@@ -54,8 +54,8 @@ services:
       - sh
       - -c
       - |
-        awslocal sqs list-queues --endpoint-url http://sqs:4566 | grep -q asya-happy-end &&
-        awslocal sqs list-queues --endpoint-url http://sqs:4566 | grep -q asya-error-end
+        awslocal sqs list-queues --endpoint-url http://sqs:4566 | grep -q asya-x-sink &&
+        awslocal sqs list-queues --endpoint-url http://sqs:4566 | grep -q asya-x-sump
       interval: 2s
       timeout: 5s
       retries: 30

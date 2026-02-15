@@ -9,7 +9,7 @@ Three test actors are deployed:
   Tests retry exhaustion and status field propagation.
 
 - test-retry-nonretryable: error_handler + non_retryable_errors=ValueError
-  Tests that ValueError is classified as non-retryable and goes to error-end immediately.
+  Tests that ValueError is classified as non-retryable and goes to x-sump immediately.
 
 - test-retry-mro: oom_handler + non_retryable_errors=Exception
   Tests MRO-based error classification (MemoryError matches via Exception ancestor).
@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 RETRY_FAIL_QUEUE = "asya-default-test-retry-fail"
 RETRY_NONRETRYABLE_QUEUE = "asya-default-test-retry-nonretryable"
 RETRY_MRO_QUEUE = "asya-default-test-retry-mro"
-ERROR_END_QUEUE = "asya-default-error-end"
+SUMP_QUEUE = "asya-default-x-sump"
 
 
 # ============================================================================
@@ -38,17 +38,17 @@ ERROR_END_QUEUE = "asya-default-error-end"
 
 
 def test_retry_max_attempts_exhausted(transport_helper):
-    """Test that after max retry attempts, message goes to error-end with MaxRetriesExhausted.
+    """Test that after max retry attempts, message goes to x-sump with MaxRetriesExhausted.
 
     The actor is configured with max_attempts=3 and constant 1s delay.
     The handler always raises ValueError, so the sidecar retries 3 times
-    then sends to error-end with reason=MaxRetriesExhausted.
+    then sends to x-sump with reason=MaxRetriesExhausted.
     """
     transport = get_env("ASYA_TRANSPORT", "rabbitmq")
     if transport != "sqs":
         pytest.skip("Retry with delay requires SQS transport (RabbitMQ lacks SendWithDelay)")
 
-    transport_helper.purge_queue(ERROR_END_QUEUE)
+    transport_helper.purge_queue(SUMP_QUEUE)
     message = {
         "id": "test-retry-exhausted-1",
         "route": {"actors": ["test-retry-fail"], "current": 0},
@@ -59,9 +59,9 @@ def test_retry_max_attempts_exhausted(transport_helper):
     transport_helper.publish_message(RETRY_FAIL_QUEUE, message)
 
     # 3 attempts with 1s delay between each = ~3-5s total processing
-    result = transport_helper.get_message(ERROR_END_QUEUE, timeout=30)
-    logger.info(f"Result from error-end: {json.dumps(result, indent=2) if result else 'None'}")
-    assert result is not None, "No message in error-end after retry exhaustion"
+    result = transport_helper.get_message(SUMP_QUEUE, timeout=30)
+    logger.info(f"Result from x-sump: {json.dumps(result, indent=2) if result else 'None'}")
+    assert result is not None, "No message in x-sump after retry exhaustion"
 
     # Verify status fields
     status = result.get("status", {})
@@ -89,7 +89,7 @@ def test_retry_status_timestamps(transport_helper):
     if transport != "sqs":
         pytest.skip("Retry with delay requires SQS transport (RabbitMQ lacks SendWithDelay)")
 
-    transport_helper.purge_queue(ERROR_END_QUEUE)
+    transport_helper.purge_queue(SUMP_QUEUE)
     message = {
         "id": "test-retry-timestamps-1",
         "route": {"actors": ["test-retry-fail"], "current": 0},
@@ -98,8 +98,8 @@ def test_retry_status_timestamps(transport_helper):
 
     transport_helper.publish_message(RETRY_FAIL_QUEUE, message)
 
-    result = transport_helper.get_message(ERROR_END_QUEUE, timeout=30)
-    assert result is not None, "No message in error-end after retry"
+    result = transport_helper.get_message(SUMP_QUEUE, timeout=30)
+    assert result is not None, "No message in x-sump after retry"
 
     status = result.get("status", {})
     assert "created_at" in status, "Missing created_at timestamp"
@@ -119,13 +119,13 @@ def test_retry_status_timestamps(transport_helper):
 
 
 def test_retry_non_retryable_error(transport_helper):
-    """Test that non-retryable errors go to error-end immediately without retry.
+    """Test that non-retryable errors go to x-sump immediately without retry.
 
     The actor has non_retryable_errors=ValueError configured, so ValueError
     from error_handler is classified as non-retryable and sent directly
-    to error-end with reason=NonRetryableFailure.
+    to x-sump with reason=NonRetryableFailure.
     """
-    transport_helper.purge_queue(ERROR_END_QUEUE)
+    transport_helper.purge_queue(SUMP_QUEUE)
     message = {
         "id": "test-nonretryable-1",
         "route": {"actors": ["test-retry-nonretryable"], "current": 0},
@@ -135,9 +135,9 @@ def test_retry_non_retryable_error(transport_helper):
 
     transport_helper.publish_message(RETRY_NONRETRYABLE_QUEUE, message)
 
-    result = transport_helper.get_message(ERROR_END_QUEUE, timeout=10)
-    logger.info(f"Result from error-end: {json.dumps(result, indent=2) if result else 'None'}")
-    assert result is not None, "Non-retryable error not routed to error-end"
+    result = transport_helper.get_message(SUMP_QUEUE, timeout=10)
+    logger.info(f"Result from x-sump: {json.dumps(result, indent=2) if result else 'None'}")
+    assert result is not None, "Non-retryable error not routed to x-sump"
 
     status = result.get("status", {})
     assert status.get("phase") == "failed", f"Expected phase=failed, got {status.get('phase')}"
@@ -156,9 +156,9 @@ def test_retry_non_retryable_via_mro(transport_helper):
 
     The actor has non_retryable_errors=Exception configured and the handler
     raises MemoryError. MemoryError's MRO includes Exception, so the sidecar
-    classifies it as non-retryable via ancestor match and sends directly to error-end.
+    classifies it as non-retryable via ancestor match and sends directly to x-sump.
     """
-    transport_helper.purge_queue(ERROR_END_QUEUE)
+    transport_helper.purge_queue(SUMP_QUEUE)
     message = {
         "id": "test-mro-nonretryable-1",
         "route": {"actors": ["test-retry-mro"], "current": 0},
@@ -168,9 +168,9 @@ def test_retry_non_retryable_via_mro(transport_helper):
 
     transport_helper.publish_message(RETRY_MRO_QUEUE, message)
 
-    result = transport_helper.get_message(ERROR_END_QUEUE, timeout=10)
-    logger.info(f"Result from error-end: {json.dumps(result, indent=2) if result else 'None'}")
-    assert result is not None, "MRO-classified non-retryable error not in error-end"
+    result = transport_helper.get_message(SUMP_QUEUE, timeout=10)
+    logger.info(f"Result from x-sump: {json.dumps(result, indent=2) if result else 'None'}")
+    assert result is not None, "MRO-classified non-retryable error not in x-sump"
 
     status = result.get("status", {})
     assert status.get("phase") == "failed", f"Expected phase=failed, got {status.get('phase')}"
@@ -193,16 +193,16 @@ def test_retry_non_retryable_via_mro(transport_helper):
 
 
 def test_retry_delay_not_supported_fallback(transport_helper):
-    """Test that when SendWithDelay is not supported, message goes to error-end.
+    """Test that when SendWithDelay is not supported, message goes to x-sump.
 
     RabbitMQ transport returns ErrDelayNotSupported for SendWithDelay.
-    The sidecar falls back to sending the message to error-end immediately.
+    The sidecar falls back to sending the message to x-sump immediately.
     """
     transport = get_env("ASYA_TRANSPORT", "rabbitmq")
     if transport != "rabbitmq":
         pytest.skip("This test verifies RabbitMQ fallback for unsupported delay")
 
-    transport_helper.purge_queue(ERROR_END_QUEUE)
+    transport_helper.purge_queue(SUMP_QUEUE)
     message = {
         "id": "test-delay-fallback-1",
         "route": {"actors": ["test-retry-fail"], "current": 0},
@@ -212,9 +212,9 @@ def test_retry_delay_not_supported_fallback(transport_helper):
 
     transport_helper.publish_message(RETRY_FAIL_QUEUE, message)
 
-    result = transport_helper.get_message(ERROR_END_QUEUE, timeout=10)
-    logger.info(f"Result from error-end: {json.dumps(result, indent=2) if result else 'None'}")
-    assert result is not None, "RabbitMQ fallback not routed to error-end"
+    result = transport_helper.get_message(SUMP_QUEUE, timeout=10)
+    logger.info(f"Result from x-sump: {json.dumps(result, indent=2) if result else 'None'}")
+    assert result is not None, "RabbitMQ fallback not routed to x-sump"
 
     status = result.get("status", {})
     assert status.get("phase") == "failed", f"Expected phase=failed, got {status.get('phase')}"

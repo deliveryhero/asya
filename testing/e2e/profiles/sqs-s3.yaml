@@ -34,7 +34,7 @@ crew:
   image:
     tag: latest
     pullPolicy: Never
-  happy-end:
+  x-sink:
     transport: sqs
     env:
       ASYA_GATEWAY_URL: "http://asya-gateway.asya-e2e.svc.cluster.local:8080"
@@ -49,7 +49,7 @@ crew:
     scaling:
       enabled: true
       minReplicas: 1
-  error-end:
+  x-sump:
     transport: sqs
     env:
       ASYA_GATEWAY_URL: "http://asya-gateway.asya-e2e.svc.cluster.local:8080"

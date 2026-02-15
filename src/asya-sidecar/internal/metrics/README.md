@@ -15,7 +15,7 @@ Prometheus metrics implementation for the 🎭 sidecar.
 |--------|--------|-------------|
 | `messages_received_total` | `queue`, `transport` | Total messages received from queue |
 | `messages_processed_total` | `queue`, `status` | Total messages successfully processed<br/>Status: `success`, `error`, `empty_response` |
-| `messages_sent_total` | `destination_queue`, `message_type` | Total messages sent to queues<br/>Type: `routing`, `happy_end`, `error_end` |
+| `messages_sent_total` | `destination_queue`, `message_type` | Total messages sent to queues<br/>Type: `routing`, `sink`, `sump` |
 | `messages_failed_total` | `queue`, `reason` | Total failed messages<br/>Reason: `parse_error`, `runtime_error`, `transport_error` |
 | `runtime_errors_total` | `queue`, `error_type` | Total runtime errors by type |
 

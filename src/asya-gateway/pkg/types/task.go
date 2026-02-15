@@ -71,7 +71,7 @@ type Route struct {
 // final status reports, or internal events like timeouts.
 //
 // Created by: Gateway handlers when processing ProgressUpdate (from sidecars) or
-// final status updates (from end actors like happy-end/error-end).
+// final status updates (from end actors like x-sink/x-sump).
 type TaskUpdate struct {
 	ID              string     `json:"id"`
 	Status          TaskStatus `json:"status"`                      // Task status (pending/running/succeeded/failed)

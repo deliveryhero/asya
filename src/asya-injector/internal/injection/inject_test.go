@@ -85,6 +85,7 @@ func TestInjector_Inject(t *testing.T) {
 		"ASYA_SQS_ENDPOINT":    "http://localstack:4566",
 		"ASYA_QUEUE_URL":       "http://sqs.localhost:4566/000000000000/asya-default-my-actor",
 		"ASYA_ACTOR_SINK":      "x-sink",
+		"ASYA_ACTOR_SUMP":      "x-sump",
 		"ASYA_ACTOR_HAPPY_END": "happy-end",
 		"ASYA_ACTOR_ERROR_END": "error-end",
 	}
@@ -259,7 +260,7 @@ func TestInjector_InjectEndActor(t *testing.T) {
 	}
 
 	actorConfig := &ActorConfig{
-		ActorName: "happy-end",
+		ActorName: "x-sink",
 		Namespace: "default",
 		Transport: "sqs",
 	}
@@ -286,7 +287,7 @@ func TestInjector_InjectEndActor(t *testing.T) {
 		}
 	}
 	if !found {
-		t.Error("ASYA_IS_END_ACTOR not set on sidecar for happy-end actor")
+		t.Error("ASYA_IS_END_ACTOR not set on sidecar for x-sink actor")
 	}
 
 	// Verify ASYA_ENABLE_VALIDATION is false on runtime
@@ -688,6 +689,7 @@ func TestInjector_InjectRabbitMQ(t *testing.T) {
 		"ASYA_GATEWAY_URL":     "http://gateway.default.svc:8080",
 		"ASYA_RABBITMQ_URL":    "amqp://guest:guest@rabbitmq.default.svc:5672/",
 		"ASYA_ACTOR_SINK":      "x-sink",
+		"ASYA_ACTOR_SUMP":      "x-sump",
 		"ASYA_ACTOR_HAPPY_END": "happy-end",
 		"ASYA_ACTOR_ERROR_END": "error-end",
 	}
