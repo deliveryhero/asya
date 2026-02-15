@@ -35,10 +35,10 @@ The aggregator must:
 ```
 Fan-out router (generated code)
     │
-    │  Generates: fanout_id = uuid4()
-    │  Computes:  shard = rendezvous(fanout_id, N)
-    │  Stamps:    headers["x-asya-route-override"]["aggregator"] = "aggregator-{shard}"
-    │  Stamps:    headers["x-asya-fanin"]["fanout_id"] = fanout_id
+    │  Reads:    origin_id = message.id
+    │  Computes: shard = rendezvous(origin_id, N)
+    │  Stamps:   headers["x-asya-route-override"]["aggregator"] = "aggregator-{shard}"
+    │  Stamps:   headers["x-asya-fanin"]["origin_id"] = origin_id
     │
     ├──► Setup message  ──► aggregator-{shard} queue
     ├──► Slice 0        ──► sub-agent queue ──► aggregator-{shard} queue
@@ -141,7 +141,7 @@ The compiler's job is to detect list comprehensions in the Flow DSL, determine t
 
 | Algorithm | Status | Description |
 |-----------|--------|-------------|
-| `rendezvous` | Available | Rendezvous (HRW): `argmax_i(hash(fanout_id, shard_i))`. Minimal redistribution on scale change (~1/N keys move). |
+| `rendezvous` | Available | Rendezvous (HRW): `argmax_i(hash(origin_id, shard_i))`. Minimal redistribution on scale change (~1/N keys move). |
 | `consistent` | Planned | Consistent hashing with virtual nodes. Same redistribution properties, different implementation trade-offs. |
 
 Rendezvous is the default and only option for now. It was chosen over simple modulo because the pre-built actor pattern makes algorithm selection a deployment-time concern (env var), and rendezvous provides better scaling properties at negligible implementation cost.
@@ -163,7 +163,7 @@ Rendezvous is the default and only option for now. It was chosen over simple mod
 
 ### ADR-3: Rendezvous Hashing as Default Algorithm
 
-**Context**: The pre-built fan-out crew actor needs a deterministic function mapping `fanout_id` to a shard index. Since the algorithm is now a deployment-time env var (not compiled-in), the choice should favor correctness under scaling over raw simplicity. Three algorithms were considered:
+**Context**: The pre-built fan-out crew actor needs a deterministic function mapping `origin_id` to a shard index. Since the algorithm is now a deployment-time env var (not compiled-in), the choice should favor correctness under scaling over raw simplicity. Three algorithms were considered:
 
 | Algorithm | How it works | Redistribution on scale (N to N+1) | Complexity |
 |-----------|-------------|-------------------------------------|------------|
@@ -180,7 +180,7 @@ Both consistent hashing and rendezvous solve the same problem: minimizing key re
 - **Negligible implementation cost**: Rendezvous is ~10 lines of Python (`argmax(hash(key, shard_i) for i in range(N))`). No ring, no vnodes, no state.
 - **Better scaling properties**: When N changes, only ~1/N keys move vs ~100% for modulo. While shard targets are baked into messages at emission time (in-flight fan-outs are unaffected regardless), rendezvous provides smoother behavior for long-running workloads during shard count transitions.
 - **Uniform distribution without tuning**: Modulo depends on the hash function's lower bits; consistent hashing needs vnodes for balance. Rendezvous is naturally uniform.
-- **O(N) is fine**: N is the shard count (typically 3-20), not the message count. Evaluating `hash(fanout_id, shard_i)` for 20 shards is sub-microsecond.
+- **O(N) is fine**: N is the shard count (typically 3-20), not the message count. Evaluating `hash(origin_id, shard_i)` for 20 shards is sub-microsecond.
 
 **Why not modulo**: Modulo is simpler but redistributes all keys on scale change. Since algorithm selection is a deployment-time env var (not compiled-in), there is no reason to default to the weaker option. The pre-built actor absorbs the implementation complexity.
 
@@ -193,13 +193,13 @@ Both consistent hashing and rendezvous solve the same problem: minimizing key re
 
 ### ADR-4: Hashing Algorithm Selection
 
-**Context**: The sharding algorithms require a hash function that produces uniform distribution over `fanout_id` strings.
+**Context**: The sharding algorithms require a hash function that produces uniform distribution over `origin_id` strings (UUIDs).
 
 **Decision**: Use `xxhash` (xxHash64) via the `xxhash` Python package.
 
 **Rationale**:
 
-- **Speed**: xxHash64 is one of the fastest non-cryptographic hash functions (~30 GB/s on modern CPUs). For a single `fanout_id` string, hashing is effectively free.
+- **Speed**: xxHash64 is one of the fastest non-cryptographic hash functions (~30 GB/s on modern CPUs). For a single `origin_id` string, hashing is effectively free.
 - **Uniform distribution**: xxHash64 has excellent avalanche properties and produces uniform distribution across the output space.
 - **Deterministic**: Same input always produces the same output. No salt or seed needed for this use case.
 - **No cryptographic overhead**: Cryptographic hashes (SHA-256, MD5) are unnecessarily slow. The aggregator does not need collision resistance -- it needs uniform distribution for load balancing.
@@ -216,7 +216,6 @@ Both consistent hashing and rendezvous solve the same problem: minimizing key re
 
 ```python
 import os
-import uuid
 
 import xxhash
 
@@ -224,12 +223,12 @@ _SHARD_COUNT = int(os.environ["ASYA_FANOUT_SHARDS"])
 _TARGET = os.environ["ASYA_FANOUT_TARGET"]
 
 
-def _rendezvous_shard(fanout_id: str) -> str:
+def _rendezvous_shard(origin_id: str) -> str:
     """Rendezvous (HRW): pick shard with highest hash score."""
     best_shard = 0
     best_score = -1
     for i in range(_SHARD_COUNT):
-        score = xxhash.xxh64_intdigest(f"{fanout_id}:{i}".encode())
+        score = xxhash.xxh64_intdigest(f"{origin_id}:{i}".encode())
         if score > best_score:
             best_score = score
             best_shard = i
@@ -237,39 +236,33 @@ def _rendezvous_shard(fanout_id: str) -> str:
 
 
 # In the shard_router handler:
-# fanout_id = str(uuid.uuid4())
-# shard_queue = _rendezvous_shard(fanout_id)
-# Stamp fanout_id into x-asya-fanin header on all emitted messages
+# origin_id = envelope["id"]  # original message ID
+# shard_queue = _rendezvous_shard(origin_id)
+# Stamp origin_id into x-asya-fanin header on all emitted messages
 ```
 
-### ADR-5: `fanout_id` as Aggregation Key (Not `parent_id`)
+### ADR-5: `origin_id` as Aggregation Key
 
-**Context**: The aggregator needs a stable key to group all messages belonging to the same fan-out operation. The initial design used `parent_id` (set by the sidecar's generator fanout mechanism). Investigation of the codebase revealed two problems:
+**Context**: The aggregator needs a stable key to group all messages belonging to the same fan-out operation, and it needs to know what `id` to assign to the merged envelope. Using `parent_id` (set by the sidecar's generator fanout mechanism) was rejected because it is fragile through envelope-mode sub-agent hops and couples fan-in to sidecar internals.
 
-1. **`parent_id` is fragile through sub-agent hops**: The sidecar sets `parent_id` only for generator fanout children (yield index > 0). The runtime preserves `parent_id` if present in payload-mode handlers, but envelope-mode handlers construct the output envelope manually and may omit it. Any envelope-mode intermediate actor between fan-out and aggregator silently drops `parent_id`.
+**Decision**: The fan-out router reads the incoming `message.id`, stores it as `origin_id` in the `x-asya-fanin` header on all emitted messages (setup + slices), and uses it for three purposes:
 
-2. **`parent_id` couples fan-in to sidecar internals**: The meaning of `parent_id` is defined by the sidecar's generator mechanism, not by the fan-in protocol. Changing sidecar ID semantics (e.g., using message's `id` as task ID for A2A compliance) would break the aggregation key.
-
-| Option | Pros | Cons |
-|--------|------|------|
-| `parent_id` from envelope | Already exists, no new fields | Fragile through envelope-mode hops, couples to sidecar ID logic |
-| `id` (gateway-level) | Stable across entire pipeline | Same `id` (task ID) for sequential fan-outs in one flow → key collision |
-| **`fanout_id` in `x-asya-fanin` header** | **Generated by fan-out router, carried in header, decoupled from envelope IDs** | **New field in header** |
-
-**Decision**: The fan-out router generates a UUID `fanout_id` per fan-out operation and stamps it into every `x-asya-fanin` header (setup + all slices). The aggregation key is `fanout_id` alone. The fan-out router also stamps `origin_id` (the original `message.id`) into the setup header so the aggregator can restore message identity on the merged envelope.
+1. **Aggregation key** in RocksDB
+2. **Rendezvous hash input** for shard selection
+3. **Merged envelope ID** — restored on the merged envelope so downstream actors see the same message identity
 
 **Rationale**:
 
-- **`message.id` is internal**: The `message.id` field is a unique identifier of the message object itself. It is managed by the sidecar (kept on first yield, new UUID on subsequent yields) and is not used in any aggregation, routing, or tracking logic. Gateway tracking uses separate headers (`x-asya-task-id`, `x-asya-request-id`). Fan-in uses `fanout_id`. The `message.id` field exists solely for message-level deduplication and debugging.
-- **Decoupled from all ID semantics**: The aggregator does not inspect `message.id`, `x-asya-parent-id`, or any envelope-level identity field for grouping. It only reads `x-asya-fanin.fanout_id`. Sidecar ID assignment rules have zero impact on fan-in.
-- **Survives arbitrary sub-agent hops**: The `x-asya-fanin` header is part of `headers`, which is preserved by the runtime in both payload and envelope modes (envelope-mode handlers receive and return `headers`). Even if an intermediate actor is envelope-mode, it must propagate headers for routing (e.g., `x-asya-route-override`), so `x-asya-fanin` is preserved too.
-- **Unique per fan-out**: A UUID is globally unique. Sequential fan-outs in the same flow, nested fan-outs, and concurrent fan-outs all get different `fanout_id` values. No collision possible.
-- **`origin_id` restores identity**: The setup message's `x-asya-fanin.origin_id` carries the original `message.id` from before fan-out. The aggregator assigns this to the merged envelope's `id`, so downstream actors see the same message identity as if the fan-out/fan-in never happened.
+- **`message.id` is internal**: The `message.id` field is a unique identifier of the message object itself. It is managed by the sidecar (kept on first yield, new UUID on subsequent yields) and is not used in any aggregation, routing, or tracking logic. Gateway tracking uses separate headers (`x-asya-task-id`, `x-asya-request-id`). The `message.id` field exists solely for message-level deduplication and debugging.
+- **Decoupled from sidecar ID assignment**: The aggregator reads `origin_id` from `x-asya-fanin`, not from `message.id` or `x-asya-parent-id`. Sidecar ID assignment rules have zero impact on fan-in.
+- **Survives arbitrary sub-agent hops**: The `x-asya-fanin` header is part of `headers`, which is preserved by the runtime in both payload and envelope modes. Even envelope-mode intermediate actors must propagate headers for routing (e.g., `x-asya-route-override`), so `x-asya-fanin` is preserved too.
+- **Unique per fan-out**: Each incoming message has a unique `message.id` (UUID). Sequential fan-outs don't collide because the aggregator deletes the key after emitting the merged envelope, and the next fan-out cannot start until it receives that merged output.
+- **Retry-idempotent**: If the fan-out router crashes and the message is redelivered (same `message.id`), the same `origin_id` routes to the same shard and same aggregation key — no orphaned state.
 
 **Consequences**:
 
-- The `x-asya-fanin` header has two UUID fields (`fanout_id` + `origin_id`, ~72 bytes combined). This is within transport metadata budgets (see Open Question 5).
-- The aggregator code is simple: `key = fanout["fanout_id"]`, merged envelope gets `id = state["origin_id"]`.
+- Single UUID field in the header (~36 bytes).
+- The aggregator code is simple: `key = fanin["origin_id"]`, merged envelope gets `id = state["origin_id"]`.
 - The broader protocol changes (moving `parent_id` to `x-asya-parent-id` header, gateway tracking headers) are out of scope for this RFC and can proceed independently.
 
 ---
@@ -282,8 +275,7 @@ Fan-in is **fully abstract from message identity**. The aggregator never inspect
 
 The fan-in protocol carries all needed identifiers in its own `x-asya-fanin` header:
 
-- **`fanout_id`**: Aggregation key. Groups all messages belonging to the same fan-out operation. Generated by the fan-out router (see ADR-5).
-- **`origin_id`**: The original message's ID before fan-out. The aggregator assigns this as the `id` of the merged envelope, preserving message identity through the fan-out/fan-in cycle. Set by the fan-out router (it reads `message.id` before yielding).
+- **`origin_id`**: The original `message.id` before fan-out. Serves three roles: aggregation key, rendezvous hash input, and the `id` restored on the merged envelope. Set by the fan-out router (it reads `message.id` before yielding). See ADR-5.
 
 Other identity headers that may be present on messages are **orthogonal** to fan-in:
 
@@ -306,22 +298,23 @@ The `x-asya-fanin` header is **transient**: it exists only on messages between t
 
 The header includes an `actor` field that identifies the target aggregator actor. The aggregator checks `x-asya-fanin.actor == ASYA_ACTOR_NAME` to confirm the header is addressed to it.
 
-Each fan-out operation generates a unique `fanout_id` (UUID), which serves as the aggregation key. The `fanout_id` is stamped into every `x-asya-fanin` header (setup + all slices) and is used as the RocksDB storage key. This decouples aggregation from envelope ID semantics entirely (see ADR-5).
+The `origin_id` (original `message.id`) serves as the aggregation key. It is stamped into every `x-asya-fanin` header (setup + all slices) and is used as the RocksDB storage key. This decouples aggregation from sidecar ID assignment entirely (see ADR-5).
 
-For sequential fan-outs in the same flow, each fan-out generates a different `fanout_id`, so the same aggregator actor can serve both:
+For sequential fan-outs in the same flow, each fan-out has a different `origin_id` because the aggregator deletes the key after emitting, and the next fan-out receives a merged envelope (with the restored `origin_id` as its `message.id`):
 
 ```python
 def multi_fanout(p: dict) -> dict:
-    # Fan-out 1: fanout_id = uuid-A (generated by first fan-out router)
+    # Fan-out 1: origin_id = message.id of incoming envelope
     p["research"] = [research_agent(p["topics"][i]) for i in range(len(p["topics"]))]
-    # Fan-out 2: fanout_id = uuid-B (generated by second fan-out router)
+    # Fan-out 2: origin_id = message.id of merged envelope from fan-out 1
+    #            (same value, but key was deleted after fan-out 1 completed)
     p["reviews"] = [review_agent(p["research"][i]) for i in range(len(p["research"]))]
     return p
 ```
 
 ### Setup Message
 
-The fan-out router yields the setup message **first** (so it keeps the original `message.id`). It carries the full parent payload, the slice count, the result path, the `origin_id` for the merged envelope, and the continuation route (pre-incremented past the aggregator).
+The fan-out router yields the setup message **first** (so it keeps the original `message.id`). It carries the full parent payload, the slice count, the result path, the `origin_id`, and the continuation route (pre-incremented past the aggregator).
 
 ```json
 {
@@ -335,7 +328,6 @@ The fan-out router yields the setup message **first** (so it keeps the original 
     "x-asya-fanin": {
       "actor": "aggregator",
       "type": "setup",
-      "fanout_id": "550e8400-e29b-41d4-a716-446655440000",
       "origin_id": "msg-original-abc",
       "slice_count": 5,
       "result_path": "/results"
@@ -364,7 +356,7 @@ Each slice message is yielded **after** the setup, so it gets a new `message.id`
     "x-asya-fanin": {
       "actor": "aggregator",
       "type": "slice",
-      "fanout_id": "550e8400-e29b-41d4-a716-446655440000",
+      "origin_id": "msg-original-abc",
       "slice_index": 0,
       "slice_count": 5
     }
@@ -383,8 +375,7 @@ Fan-in coordination uses `x-asya-fanin` header (separate from `x-asya-route-over
 |-------|-------|-------|-------------|
 | `actor` | actor name | actor name | Target aggregator actor. Aggregator checks this matches its `ASYA_ACTOR_NAME`. |
 | `type` | `"setup"` | `"slice"` | Discriminator |
-| `fanout_id` | UUID | UUID | Unique identifier for this fan-out operation. Generated by the fan-out router. Used as aggregation key (see ADR-5). |
-| `origin_id` | message ID | - | Original `message.id` before fan-out. Assigned as `id` of the merged envelope to preserve message identity through fan-out/fan-in. |
+| `origin_id` | message ID | message ID | Original `message.id` before fan-out. Used as aggregation key, rendezvous hash input, and `id` of the merged envelope (see ADR-5). |
 | `slice_count` | N | N | Total number of slices |
 | `result_path` | JSON Pointer | - | RFC 6901 path where merged results are placed (e.g., `/results`) |
 | `slice_index` | - | 0..N-1 | Position of this slice in the result array (mirrors `route.current` naming) |
@@ -410,7 +401,7 @@ _db = plyvel.DB(_DB_PATH, create_if_missing=True)
 
 def aggregator(envelope: dict) -> dict | None:
     fanin = envelope["headers"]["x-asya-fanin"]
-    key = fanin["fanout_id"].encode("utf-8")
+    key = fanin["origin_id"].encode("utf-8")
 
     if fanin["type"] == "setup":
         _handle_setup(key, envelope, fanin)
@@ -505,7 +496,7 @@ No CDC process needed. No polling. No LISTEN/NOTIFY. The aggregator itself is th
 
 **Why this works**: Every message (setup or slice) triggers a completeness check. The last message to arrive (whichever it is) will find `received_count == slice_count + 1` and emit. All other messages return `None` (ack, no routing).
 
-**Multiple fan-ins**: Each fan-out operation generates a unique `fanout_id`, so multiple fan-in operations are tracked independently. Sequential fan-outs in the same flow, nested fan-outs, and concurrent fan-outs all produce different `fanout_id` values, even when targeting the same aggregator actor.
+**Multiple fan-ins**: Each fan-out operation uses the incoming `message.id` as `origin_id`, which is unique per message. Sequential fan-outs don't collide because the aggregator deletes the key after emitting. Nested fan-outs receive different `message.id` values (sidecar assigns new UUIDs to yielded messages). Concurrent fan-outs from different pipelines have different `message.id` values by construction.
 
 ### Race Condition: Slice Before Setup
 
@@ -797,7 +788,7 @@ Asya headers (`x-asya-*`) currently live inside the envelope JSON's `headers` fi
 |---|---|---|
 | `x-asya-route-override` | Router actors | Small dict: `{"model": "model-v2"}` (~50 bytes) |
 | `x-asya-route-resolved` | Sidecar | Audit trail dict (~100 bytes) |
-| `x-asya-fanin` | Fan-out router | `{"actor":"...","type":"...","fanout_id":"uuid","origin_id":"..."}` (~200 bytes) |
+| `x-asya-fanin` | Fan-out router | `{"actor":"...","type":"...","origin_id":"uuid",...}` (~150 bytes) |
 | `x-asya-parent-id` | Sidecar (yield) | UUID string (~36 bytes). Tracing only. |
 | `x-asya-task-id` | Gateway | UUID string (~36 bytes). A2A/MCP tracking. |
 | `x-asya-experiment` | Experiment router | String (~30 bytes) |
@@ -818,8 +809,8 @@ This leaves 3 slots for user-defined headers (`trace_id`, `priority`, etc.).
 
 Can a sub-agent itself fan-out? This creates a tree of aggregations. The current design supports this because:
 
-- Each fan-out generates a unique `fanout_id`
-- Nested fan-outs produce different `fanout_id` values
+- Each fan-out uses the incoming `message.id` as `origin_id`
+- Nested fan-outs receive different `message.id` values (sidecar assigns new UUIDs to yielded slices)
 - Each aggregation is independent
 
 However, the continuation route for a nested fan-out must correctly point back to the outer aggregator. This requires the inner fan-out router to preserve the outer route context. Design deferred until the use case is validated.
