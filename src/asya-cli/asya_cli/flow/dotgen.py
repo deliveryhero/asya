@@ -33,10 +33,10 @@ class DotGenerator:
         self._redirect_map: dict[str, str] = {}
         self._try_clusters: list[_TryCluster] = []
         self._cluster_membership: dict[str, str] = {}
-        self._color_error_control_flow = "orange4"
-        self._color_true_branch = "darkgreen"
-        self._color_false_branch = "gray40"
-        self._color_raise = "darkred"
+        self._color_error_control_flow = "snow4"
+        self._color_true_branch = "darkseagreen4"
+        self._color_false_branch = "indianred4"
+        self._color_raise = "crimson"
 
     @staticmethod
     def _sanitize_node_id(name: str) -> str:

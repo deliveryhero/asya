@@ -32,6 +32,7 @@ def router_retry_pipeline_line_14_try_enter_0(message: dict) -> dict:
     message['headers']['_on_error'] = resolve("router_retry_pipeline_line_14_except_dispatch_0")
 
     _next.append(resolve("call_external_api"))
+    _next.append(resolve("call_another_api"))
     _next.append(resolve("router_retry_pipeline_line_14_try_exit_0"))
 
     r['actors'][c+1:c+1] = _next

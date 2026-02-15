@@ -13,11 +13,12 @@ def retry_pipeline(p: dict) -> dict:
         p["attempt"] += 1
         try:
             p = call_external_api(p)
+            p = call_another_api(p)
         except ConnectionError:
             p = log_retry(p)
         except ValueError:
             raise
-    p = notify_complete(p)
+    # p = notify_complete(p)
     return p
 
 
@@ -28,6 +29,11 @@ def prepare_request(p: dict) -> dict:
 
 def call_external_api(p: dict) -> dict:
     """Call an external API that may fail."""
+    return p
+
+
+def call_another_api(p: dict) -> dict:
+    """Call another API that may fail."""
     return p
 
 
