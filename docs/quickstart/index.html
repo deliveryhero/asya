@@ -1087,15 +1087,15 @@ kubectl<span class="w"> </span>create<span class="w"> </span>secret<span class="
 kubectl<span class="w"> </span>create<span class="w"> </span>configmap<span class="w"> </span>asya-runtime<span class="w"> </span>-n<span class="w"> </span>default<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--from-file<span class="o">=</span>asya_runtime.py<span class="o">=</span>src/asya-runtime/asya_runtime.py
 
-<span class="c1"># Create happy-end and error-end queues (normally managed by crew actors)</span>
+<span class="c1"># Create x-sink and x-sump queues (normally managed by crew actors)</span>
 kubectl<span class="w"> </span>port-forward<span class="w"> </span>-n<span class="w"> </span>localstack<span class="w"> </span>svc/localstack<span class="w"> </span><span class="m">4566</span>:4566<span class="w"> </span><span class="p">&amp;</span>
 sleep<span class="w"> </span><span class="m">3</span>
 <span class="nv">AWS_ACCESS_KEY_ID</span><span class="o">=</span><span class="nb">test</span><span class="w"> </span><span class="nv">AWS_SECRET_ACCESS_KEY</span><span class="o">=</span><span class="nb">test</span><span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>aws<span class="w"> </span>--endpoint-url<span class="o">=</span>http://localhost:4566<span class="w"> </span>--region<span class="w"> </span>us-east-1<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>sqs<span class="w"> </span>create-queue<span class="w"> </span>--queue-name<span class="w"> </span>asya-default-happy-end
+<span class="w">  </span>sqs<span class="w"> </span>create-queue<span class="w"> </span>--queue-name<span class="w"> </span>asya-default-x-sink
 <span class="nv">AWS_ACCESS_KEY_ID</span><span class="o">=</span><span class="nb">test</span><span class="w"> </span><span class="nv">AWS_SECRET_ACCESS_KEY</span><span class="o">=</span><span class="nb">test</span><span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>aws<span class="w"> </span>--endpoint-url<span class="o">=</span>http://localhost:4566<span class="w"> </span>--region<span class="w"> </span>us-east-1<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>sqs<span class="w"> </span>create-queue<span class="w"> </span>--queue-name<span class="w"> </span>asya-default-error-end
+<span class="w">  </span>sqs<span class="w"> </span>create-queue<span class="w"> </span>--queue-name<span class="w"> </span>asya-default-x-sump
 <span class="nb">kill</span><span class="w"> </span>%1<span class="w"> </span><span class="m">2</span>&gt;/dev/null
 </code></pre></div>
 <h2 id="6-install-asya-crossplane-chart">6. Install Asya Crossplane Chart<a class="headerlink" href="#6-install-asya-crossplane-chart" title="Permanent link">&para;</a></h2>
@@ -1291,7 +1291,7 @@ helm<span class="w"> </span>uninstall<span class="w"> </span>prometheus<span cla
 <h3 id="2-install-crew-actors">2. Install Crew Actors<a class="headerlink" href="#2-install-crew-actors" title="Permanent link">&para;</a></h3>
 <p>Crew actors handle pipeline completion:</p>
 <div class="highlight"><pre><span></span><code>cat<span class="w"> </span>&gt;<span class="w"> </span>crew-values.yaml<span class="w"> </span><span class="s">&lt;&lt;EOF</span>
-<span class="s">happy-end:</span>
+<span class="s">x-sink:</span>
 <span class="s">  transport: sqs</span>
 <span class="s">  workload:</span>
 <span class="s">    template:</span>
@@ -1312,7 +1312,7 @@ helm<span class="w"> </span>uninstall<span class="w"> </span>prometheus<span cla
 <span class="s">          - name: AWS_SECRET_ACCESS_KEY</span>
 <span class="s">            value: &quot;test&quot;</span>
 
-<span class="s">error-end:</span>
+<span class="s">x-sump:</span>
 <span class="s">  transport: sqs</span>
 <span class="s">  workload:</span>
 <span class="s">    template:</span>
@@ -1338,7 +1338,7 @@ helm<span class="w"> </span>install<span class="w"> </span>asya-crew<span class=
 <span class="w">  </span>-n<span class="w"> </span>default<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-f<span class="w"> </span>crew-values.yaml
 </code></pre></div>
-<p>Your pipeline results are now automatically persisted to S3: whenever an actor finishes processing the last message in the route, Asya automatically sends it to <code>happy-end</code> actor to persist it on S3. Similarly, error messages will be sent to <code>error-end</code>.</p>
+<p>Your pipeline results are now automatically persisted to S3: whenever an actor finishes processing the last message in the route, Asya automatically sends it to <code>x-sink</code> actor to persist it on S3. Similarly, error messages will be sent to <code>x-sump</code>.</p>
 <h2 id="namespace-architecture">Namespace Architecture<a class="headerlink" href="#namespace-architecture" title="Permanent link">&para;</a></h2>
 <p>Asya uses namespace separation to distinguish infrastructure from business logic:</p>
 <p><strong>asya-system namespace</strong> (infrastructure layer):
@@ -1350,7 +1350,7 @@ helm<span class="w"> </span>install<span class="w"> </span>asya-crew<span class=
 - Gateway (routes messages to actors in same namespace)
 - Gateway PostgreSQL (gateway's task tracking database)
 - Async actors and flows (your ML/AI workloads)
-- Crew actors (happy-end, error-end - part of the pipelines)</p>
+- Crew actors (x-sink, x-sump - part of the pipelines)</p>
 <p><strong>Why this separation?</strong></p>
 <p>Gateway is part of the business logic layer - it exposes your actors as MCP tools and routes messages to actor queues. In multi-tenant deployments, each namespace can have its own gateway instance served by a single injector in asya-system.</p>
 <h2 id="add-gateway-optional">Add Gateway (Optional)<a class="headerlink" href="#add-gateway-optional" title="Permanent link">&para;</a></h2>
@@ -1430,7 +1430,7 @@ kubectl<span class="w"> </span><span class="nb">wait</span><span class="w"> </sp
 </code></pre></div>
 <h3 id="5-update-crew-for-gateway-reporting">5. Update Crew for Gateway Reporting<a class="headerlink" href="#5-update-crew-for-gateway-reporting" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code>cat<span class="w"> </span>&gt;<span class="w"> </span>crew-values.yaml<span class="w"> </span><span class="s">&lt;&lt;EOF</span>
-<span class="s">happy-end:</span>
+<span class="s">x-sink:</span>
 <span class="s">  transport: sqs</span>
 <span class="s">  workload:</span>
 <span class="s">    template:</span>
@@ -1451,7 +1451,7 @@ kubectl<span class="w"> </span><span class="nb">wait</span><span class="w"> </sp
 <span class="s">          - name: AWS_SECRET_ACCESS_KEY</span>
 <span class="s">            value: &quot;test&quot;</span>
 
-<span class="s">error-end:</span>
+<span class="s">x-sump:</span>
 <span class="s">  transport: sqs</span>
 <span class="s">  workload:</span>
 <span class="s">    template:</span>

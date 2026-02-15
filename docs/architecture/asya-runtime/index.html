@@ -1095,7 +1095,7 @@
 <h3 id="abort">Abort<a class="headerlink" href="#abort" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><span class="k">return</span> <span class="kc">None</span>  <span class="c1"># or []</span>
 </code></pre></div>
-<p>Sidecar routes message to <code>happy-end</code> (no more processing).</p>
+<p>Sidecar routes message to <code>x-sink</code> (no more processing).</p>
 <h3 id="error">Error<a class="headerlink" href="#error" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Invalid input&quot;</span><span class="p">)</span>
 </code></pre></div>
@@ -1115,7 +1115,7 @@
 <li><code>msg_parsing_error</code>: Invalid JSON or message structure</li>
 <li><code>connection_error</code>: Socket/network issues</li>
 </ul>
-<p>Sidecar receives error response and routes message to <code>error-end</code>.</p>
+<p>Sidecar receives error response and routes message to <code>x-sump</code>.</p>
 <h2 id="route-modification-rules">Route Modification Rules<a class="headerlink" href="#route-modification-rules" title="Permanent link">&para;</a></h2>
 <p>Handlers in envelope mode can modify routes but <strong>MUST preserve already-processed steps</strong>:</p>
 <p>✅ <strong>Allowed</strong>:</p>

@@ -41,7 +41,7 @@ All sidecar metrics use namespace `asya_actor` (configurable via `ASYA_METRICS_N
 - `asya_actor_messages_failed_total{queue, reason}` - Failed messages by reason
   - Reasons: `parse_error`, `runtime_error`, `transport_error`, `validation_error`, `route_mismatch`, `error_queue_send_failed`
 - `asya_actor_runtime_errors_total{queue, error_type}` - Runtime errors by type
-- `asya_actor_messages_sent_total{destination_queue, message_type}` - Messages sent (includes `error_end` type)
+- `asya_actor_messages_sent_total{destination_queue, message_type}` - Messages sent (includes `sump` type)
 
 ## Prometheus Configuration
 

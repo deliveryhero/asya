@@ -900,7 +900,7 @@
 Namespace: <code>example-ecommerce</code>
 - Actor <code>text-analyzer</code> → Queue <code>asya-example-ecommerce-text-analyzer</code>
 - Actor <code>image-processor</code> → Queue <code>asya-example-ecommerce-image-processor</code>
-- System actors: <code>asya-{namespace}-happy-end</code>, <code>asya-{namespace}-error-end</code></p>
+- System actors: <code>asya-{namespace}-x-sink</code>, <code>asya-{namespace}-x-sump</code></p>
 <p><strong>Benefits</strong>:</p>
 <ul>
 <li>Fine-grained IAM policies: <code>arn:aws:sqs:*:*:asya-*</code></li>
@@ -915,13 +915,13 @@ Namespace: <code>example-ecommerce</code>
 - Sidecar crashes before processing
 - Queue automatically sends to DLQ after max retries</p>
 <h2 id="end-queues">End Queues<a class="headerlink" href="#end-queues" title="Permanent link">&para;</a></h2>
-<p><strong><code>happy-end</code></strong>: Pipeline completed or aborted successfully
+<p><strong><code>x-sink</code></strong>: Pipeline completed or aborted successfully
 - Automatically routed by sidecar when no more actors in route
 - Automatically routed when runtime returns empty response</p>
-<p><strong><code>error-end</code></strong>: Processing error occurred
+<p><strong><code>x-sump</code></strong>: Processing error occurred
 - Automatically routed when runtime returns error
 - Automatically routed on timeout</p>
-<p><strong>Important</strong>: Do not include <code>happy-end</code> or <code>error-end</code> in route configurations - managed by sidecar.</p>
+<p><strong>Important</strong>: Do not include <code>x-sink</code> or <code>x-sump</code> in route configurations - managed by sidecar.</p>
 <h2 id="response-patterns">Response Patterns<a class="headerlink" href="#response-patterns" title="Permanent link">&para;</a></h2>
 <h3 id="single-response">Single Response<a class="headerlink" href="#single-response" title="Permanent link">&para;</a></h3>
 <p>Runtime returns mutated payload:
@@ -950,7 +950,7 @@ Namespace: <code>example-ecommerce</code>
 <p><strong>Note</strong>: Returning a list from a handler does NOT trigger fan-out. A returned list is treated as a single payload value.</p>
 <h3 id="empty-response">Empty Response<a class="headerlink" href="#empty-response" title="Permanent link">&para;</a></h3>
 <p>Runtime returns <code>None</code> (<code>null</code>):</p>
-<p><strong>Action</strong>: Sidecar routes message to <code>happy-end</code> (no increment)</p>
+<p><strong>Action</strong>: Sidecar routes message to <code>x-sink</code> (no increment)</p>
 <h3 id="error-response">Error Response<a class="headerlink" href="#error-response" title="Permanent link">&para;</a></h3>
 <p>Runtime returns error object:
 <div class="highlight"><pre><span></span><code><span class="p">{</span>
@@ -958,7 +958,7 @@ Namespace: <code>example-ecommerce</code>
 <span class="w">  </span><span class="nt">&quot;message&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Invalid input format&quot;</span>
 <span class="p">}</span>
 </code></pre></div></p>
-<p><strong>Action</strong>: Sidecar routes to <code>error-end</code> (no increment)</p>
+<p><strong>Action</strong>: Sidecar routes to <code>x-sump</code> (no increment)</p>
 <h2 id="payload-enrichment-pattern">Payload Enrichment Pattern<a class="headerlink" href="#payload-enrichment-pattern" title="Permanent link">&para;</a></h2>
 <p><strong>Recommended</strong>: Actors append results to payload instead of replacing it.</p>
 <p><strong>Example pipeline</strong>: <code>["data-loader", "recipe-generator", "llm-judge"]</code></p>
@@ -1019,12 +1019,12 @@ Namespace: <code>example-ecommerce</code>
 <tr>
 <td><code>succeeded</code></td>
 <td>Pipeline completed successfully</td>
-<td><code>happy-end</code> crew actor reports success</td>
+<td><code>x-sink</code> crew actor reports success</td>
 </tr>
 <tr>
 <td><code>failed</code></td>
 <td>Pipeline failed with error</td>
-<td><code>error-end</code> crew actor reports failure</td>
+<td><code>x-sump</code> crew actor reports failure</td>
 </tr>
 <tr>
 <td><code>unknown</code></td>
@@ -1056,7 +1056,7 @@ Namespace: <code>example-ecommerce</code>
 <p><strong>Example</strong>: Route <code>["prep", "infer", "post"]</code> (3 actors)
 - Actor <code>prep</code> completed → 33%
 - Actor <code>infer</code> completed → 66%
-- Actor <code>post</code> completed → 100% (final status from <code>happy-end</code>)</p>
+- Actor <code>post</code> completed → 100% (final status from <code>x-sink</code>)</p>
 <h3 id="progress-update-flow">Progress Update Flow<a class="headerlink" href="#progress-update-flow" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code>Sidecar                    Gateway                    Client
 -------                    -------                    ------
@@ -1080,17 +1080,17 @@ Namespace: <code>example-ecommerce</code>
 </code></pre></div>
 <h3 id="final-status-reporting">Final Status Reporting<a class="headerlink" href="#final-status-reporting" title="Permanent link">&para;</a></h3>
 <p><strong>Success path</strong>:
-<div class="highlight"><pre><span></span><code>Actor N completes → Sidecar routes to happy-end
-  → happy-end persists to S3
-  → happy-end reports: POST /tasks/{id}/final
+<div class="highlight"><pre><span></span><code>Actor N completes → Sidecar routes to x-sink
+  → x-sink persists to S3
+  → x-sink reports: POST /tasks/{id}/final
      {status: &quot;succeeded&quot;, result: {...}}
   → Gateway updates: status=succeeded, progress=100%
   → SSE: final success event
 </code></pre></div></p>
 <p><strong>Error path</strong>:
-<div class="highlight"><pre><span></span><code>Runtime error → Sidecar routes to error-end
-  → error-end persists to S3
-  → error-end reports: POST /tasks/{id}/final
+<div class="highlight"><pre><span></span><code>Runtime error → Sidecar routes to x-sump
+  → x-sump persists to S3
+  → x-sump reports: POST /tasks/{id}/final
      {status: &quot;failed&quot;, error: &quot;...&quot;}
   → Gateway updates: status=failed
   → SSE: final error event
@@ -1099,7 +1099,7 @@ Namespace: <code>example-ecommerce</code>
 <ul>
 <li><strong>Small payloads</strong>: Use object storage (S3, MinIO) for large data, pass references</li>
 <li><strong>Clear names</strong>: Use descriptive actor names (<code>preprocess-text</code> not <code>actor1</code>)</li>
-<li><strong>Monitor errors</strong>: Alert on <code>error-end</code> queue depth</li>
+<li><strong>Monitor errors</strong>: Alert on <code>x-sump</code> queue depth</li>
 <li><strong>Version schema</strong>: Include version in payload for breaking changes</li>
 </ul>
   </div>

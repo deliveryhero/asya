@@ -986,7 +986,7 @@
 <p><strong>Queue naming</strong>: <code>asya-{namespace}-{actor_name}</code>
 - Example: Actor <code>text-analyzer</code> in namespace <code>prod</code> → Queue <code>asya-prod-text-analyzer</code>
 - Example: Actor <code>image-processor</code> in namespace <code>dev</code> → Queue <code>asya-dev-image-processor</code>
-- System actors: <code>asya-{namespace}-happy-end</code>, <code>asya-{namespace}-error-end</code></p>
+- System actors: <code>asya-{namespace}-x-sink</code>, <code>asya-{namespace}-x-sump</code></p>
 <p><strong>Queue lifecycle</strong>:
 - ✅ Created when AsyncActor claim reconciled by Crossplane
 - ✅ Deleted when AsyncActor claim deleted (cascade via Crossplane)

@@ -919,13 +919,13 @@
 <span class="w">  </span><span class="nt">port</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">80</span>
 </code></pre></div></p>
 <h3 id="asya-crew">asya-crew<a class="headerlink" href="#asya-crew" title="Permanent link">&para;</a></h3>
-<p>Deploys crew actors (<code>happy-end</code>, <code>error-end</code>) as AsyncActor CRDs.</p>
+<p>Deploys crew actors (<code>x-sink</code>, <code>x-sump</code>) as AsyncActor CRDs.</p>
 <p><strong>Location</strong>: <code>deploy/helm-charts/asya-crew/</code></p>
 <p><strong>Installation</strong>:
 <div class="highlight"><pre><span></span><code>helm<span class="w"> </span>install<span class="w"> </span>asya-crew<span class="w"> </span>deploy/helm-charts/asya-crew/<span class="w"> </span>--namespace<span class="w"> </span>asya-e2e<span class="w"> </span>-f<span class="w"> </span>values.yaml
 </code></pre></div></p>
 <p><strong>Key values</strong>:
-<div class="highlight"><pre><span></span><code><span class="nt">happy-end</span><span class="p">:</span>
+<div class="highlight"><pre><span></span><code><span class="nt">x-sink</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
 <span class="w">  </span><span class="nt">transport</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">rabbitmq</span>
 <span class="w">  </span><span class="nt">scaling</span><span class="p">:</span>
@@ -940,7 +940,7 @@
 <span class="w">          </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ghcr.io/deliveryhero/asya-crew:latest</span>
 <span class="w">          </span><span class="nt">env</span><span class="p">:</span>
 <span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_HANDLER</span>
-<span class="w">            </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">handlers.end_handlers.happy_end_handler</span>
+<span class="w">            </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya_crew.message_persistence.s3.checkpoint_handler</span>
 <span class="w">          </span><span class="c1"># Optional S3/MinIO persistence</span>
 <span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_S3_BUCKET</span>
 <span class="w">            </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya-results</span>
@@ -951,7 +951,7 @@
 <span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_S3_SECRET_KEY</span>
 <span class="w">            </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">minioadmin</span>
 
-<span class="nt">error-end</span><span class="p">:</span>
+<span class="nt">x-sump</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
 <span class="w">  </span><span class="nt">transport</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">rabbitmq</span>
 <span class="w">  </span><span class="nt">scaling</span><span class="p">:</span>
@@ -966,7 +966,7 @@
 <span class="w">          </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ghcr.io/deliveryhero/asya-crew:latest</span>
 <span class="w">          </span><span class="nt">env</span><span class="p">:</span>
 <span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_HANDLER</span>
-<span class="w">            </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">handlers.end_handlers.error_end_handler</span>
+<span class="w">            </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya_crew.message_persistence.s3.checkpoint_handler</span>
 <span class="w">          </span><span class="c1"># Optional S3/MinIO persistence</span>
 <span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_S3_BUCKET</span>
 <span class="w">            </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya-results</span>
@@ -1070,7 +1070,7 @@
 <span class="w">    </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">credentials</span>
 </code></pre></div></p>
 <p><strong>Crew</strong> (<code>crew-values.yaml</code>):
-<div class="highlight"><pre><span></span><code><span class="nt">happy-end</span><span class="p">:</span>
+<div class="highlight"><pre><span></span><code><span class="nt">x-sink</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">transport</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">sqs</span>
 <span class="w">  </span><span class="nt">workload</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">template</span><span class="p">:</span>
@@ -1082,7 +1082,7 @@
 <span class="w">            </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya-results</span>
 <span class="w">          </span><span class="c1"># AWS_REGION from IRSA or instance metadata</span>
 
-<span class="nt">error-end</span><span class="p">:</span>
+<span class="nt">x-sump</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">transport</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">sqs</span>
 <span class="w">  </span><span class="nt">workload</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">template</span><span class="p">:</span>
@@ -1106,7 +1106,7 @@
 <span class="c1"># Use LocalStack or RabbitMQ for local development</span>
 </code></pre></div></p>
 <p><strong>Crew</strong> (<code>crew-values.yaml</code>):
-<div class="highlight"><pre><span></span><code><span class="nt">happy-end</span><span class="p">:</span>
+<div class="highlight"><pre><span></span><code><span class="nt">x-sink</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">transport</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">rabbitmq</span>
 <span class="w">  </span><span class="nt">workload</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">template</span><span class="p">:</span>
@@ -1123,7 +1123,7 @@
 <span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_S3_SECRET_KEY</span>
 <span class="w">            </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">minioadmin</span>
 
-<span class="nt">error-end</span><span class="p">:</span>
+<span class="nt">x-sump</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">transport</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">rabbitmq</span>
 <span class="w">  </span><span class="nt">workload</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">template</span><span class="p">:</span>

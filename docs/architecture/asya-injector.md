@@ -75,10 +75,10 @@ containers:
         value: text-processor
       - name: ASYA_NAMESPACE
         value: asya-e2e
-      - name: ASYA_ACTOR_HAPPY_END
-        value: happy-end
-      - name: ASYA_ACTOR_ERROR_END
-        value: error-end
+      - name: ASYA_ACTOR_SINK
+        value: x-sink
+      - name: ASYA_ACTOR_SUMP
+        value: x-sump
       - name: ASYA_TRANSPORT
         value: sqs
       - name: ASYA_AWS_REGION
@@ -86,7 +86,7 @@ containers:
       - name: ASYA_QUEUE_URL
         value: https://sqs.us-east-1.amazonaws.com/.../asya-asya-e2e-text-processor
       - name: ASYA_IS_END_ACTOR
-        value: "true"  # Only for happy-end and error-end actors
+        value: "true"  # Only for x-sink and x-sump actors
     envFrom:
       - secretRef:
           name: aws-creds  # Optional, only if config.awsCredsSecret set
@@ -114,7 +114,7 @@ containers:
 - `ASYA_SQS_ENDPOINT`: Custom endpoint for LocalStack (optional)
 
 **End actor detection**:
-- `ASYA_IS_END_ACTOR=true`: Automatically set for `happy-end` and `error-end` actors
+- `ASYA_IS_END_ACTOR=true`: Automatically set for `x-sink` and `x-sump` actors
 
 ### Volumes
 
@@ -168,10 +168,10 @@ env:
   - name: ASYA_SOCKET_DIR
     value: /var/run/asya
   - name: ASYA_ENABLE_VALIDATION
-    value: "false"  # Only for happy-end and error-end actors
+    value: "false"  # Only for x-sink and x-sump actors
 ```
 
-**Validation disable**: End actors (`happy-end`, `error-end`) have validation disabled to allow arbitrary payloads without route validation.
+**Validation disable**: End actors (`x-sink`, `x-sump`) have validation disabled to allow arbitrary payloads without route validation.
 
 ### Volume Mounts
 
@@ -461,10 +461,10 @@ spec:
           value: text-processor
         - name: ASYA_NAMESPACE
           value: asya-e2e
-        - name: ASYA_ACTOR_HAPPY_END
-          value: happy-end
-        - name: ASYA_ACTOR_ERROR_END
-          value: error-end
+        - name: ASYA_ACTOR_SINK
+          value: x-sink
+        - name: ASYA_ACTOR_SUMP
+          value: x-sump
         - name: ASYA_TRANSPORT
           value: sqs
         - name: ASYA_AWS_REGION

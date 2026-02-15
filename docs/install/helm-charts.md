@@ -71,7 +71,7 @@ service:
 
 ### asya-crew
 
-Deploys crew actors (`happy-end`, `error-end`) as AsyncActor CRDs.
+Deploys crew actors (`x-sink`, `x-sump`) as AsyncActor CRDs.
 
 **Location**: `deploy/helm-charts/asya-crew/`
 
@@ -82,7 +82,7 @@ helm install asya-crew deploy/helm-charts/asya-crew/ --namespace asya-e2e -f val
 
 **Key values**:
 ```yaml
-happy-end:
+x-sink:
   enabled: true
   transport: rabbitmq
   scaling:
@@ -97,7 +97,7 @@ happy-end:
           image: ghcr.io/deliveryhero/asya-crew:latest
           env:
           - name: ASYA_HANDLER
-            value: handlers.end_handlers.happy_end_handler
+            value: asya_crew.message_persistence.s3.checkpoint_handler
           # Optional S3/MinIO persistence
           - name: ASYA_S3_BUCKET
             value: asya-results
@@ -108,7 +108,7 @@ happy-end:
           - name: ASYA_S3_SECRET_KEY
             value: minioadmin
 
-error-end:
+x-sump:
   enabled: true
   transport: rabbitmq
   scaling:
@@ -123,7 +123,7 @@ error-end:
           image: ghcr.io/deliveryhero/asya-crew:latest
           env:
           - name: ASYA_HANDLER
-            value: handlers.end_handlers.error_end_handler
+            value: asya_crew.message_persistence.s3.checkpoint_handler
           # Optional S3/MinIO persistence
           - name: ASYA_S3_BUCKET
             value: asya-results
@@ -253,7 +253,7 @@ awsProviderConfig:
 
 **Crew** (`crew-values.yaml`):
 ```yaml
-happy-end:
+x-sink:
   transport: sqs
   workload:
     template:
@@ -265,7 +265,7 @@ happy-end:
             value: asya-results
           # AWS_REGION from IRSA or instance metadata
 
-error-end:
+x-sump:
   transport: sqs
   workload:
     template:
@@ -296,7 +296,7 @@ actorNamespace: asya
 
 **Crew** (`crew-values.yaml`):
 ```yaml
-happy-end:
+x-sink:
   transport: rabbitmq
   workload:
     template:
@@ -313,7 +313,7 @@ happy-end:
           - name: ASYA_S3_SECRET_KEY
             value: minioadmin
 
-error-end:
+x-sump:
   transport: rabbitmq
   workload:
     template:

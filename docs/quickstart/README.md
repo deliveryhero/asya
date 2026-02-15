@@ -261,15 +261,15 @@ kubectl create secret generic aws-creds -n default \
 kubectl create configmap asya-runtime -n default \
   --from-file=asya_runtime.py=src/asya-runtime/asya_runtime.py
 
-# Create happy-end and error-end queues (normally managed by crew actors)
+# Create x-sink and x-sump queues (normally managed by crew actors)
 kubectl port-forward -n localstack svc/localstack 4566:4566 &
 sleep 3
 AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test \
   aws --endpoint-url=http://localhost:4566 --region us-east-1 \
-  sqs create-queue --queue-name asya-default-happy-end
+  sqs create-queue --queue-name asya-default-x-sink
 AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test \
   aws --endpoint-url=http://localhost:4566 --region us-east-1 \
-  sqs create-queue --queue-name asya-default-error-end
+  sqs create-queue --queue-name asya-default-x-sump
 kill %1 2>/dev/null
 ```
 
@@ -531,7 +531,7 @@ Crew actors handle pipeline completion:
 
 ```bash
 cat > crew-values.yaml <<EOF
-happy-end:
+x-sink:
   transport: sqs
   workload:
     template:
@@ -552,7 +552,7 @@ happy-end:
           - name: AWS_SECRET_ACCESS_KEY
             value: "test"
 
-error-end:
+x-sump:
   transport: sqs
   workload:
     template:
@@ -579,7 +579,7 @@ helm install asya-crew asya/asya-crew \
   -f crew-values.yaml
 ```
 
-Your pipeline results are now automatically persisted to S3: whenever an actor finishes processing the last message in the route, Asya automatically sends it to `happy-end` actor to persist it on S3. Similarly, error messages will be sent to `error-end`.
+Your pipeline results are now automatically persisted to S3: whenever an actor finishes processing the last message in the route, Asya automatically sends it to `x-sink` actor to persist it on S3. Similarly, error messages will be sent to `x-sump`.
 
 ## Namespace Architecture
 
@@ -595,7 +595,7 @@ Asya uses namespace separation to distinguish infrastructure from business logic
 - Gateway (routes messages to actors in same namespace)
 - Gateway PostgreSQL (gateway's task tracking database)
 - Async actors and flows (your ML/AI workloads)
-- Crew actors (happy-end, error-end - part of the pipelines)
+- Crew actors (x-sink, x-sump - part of the pipelines)
 
 **Why this separation?**
 
@@ -691,7 +691,7 @@ kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=asya-gateway \
 
 ```bash
 cat > crew-values.yaml <<EOF
-happy-end:
+x-sink:
   transport: sqs
   workload:
     template:
@@ -712,7 +712,7 @@ happy-end:
           - name: AWS_SECRET_ACCESS_KEY
             value: "test"
 
-error-end:
+x-sump:
   transport: sqs
   workload:
     template:

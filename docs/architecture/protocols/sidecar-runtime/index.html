@@ -959,12 +959,12 @@
 <tr>
 <td><code>processing_error</code></td>
 <td>Handler exception (any unhandled Python exception)</td>
-<td>Route to <code>error-end</code></td>
+<td>Route to <code>x-sump</code></td>
 </tr>
 <tr>
 <td><code>connection_error</code></td>
 <td>Socket failure or connection handling error</td>
-<td>Route to <code>error-end</code></td>
+<td>Route to <code>x-sump</code></td>
 </tr>
 </tbody>
 </table></div>
@@ -986,7 +986,7 @@
 <tr>
 <td>Parse error</td>
 <td>Malformed JSON from runtime</td>
-<td>Route to <code>error-end</code></td>
+<td>Route to <code>x-sump</code></td>
 </tr>
 </tbody>
 </table></div>
@@ -996,7 +996,7 @@
 <span class="nx">conn</span><span class="p">.</span><span class="nx">SetDeadline</span><span class="p">(</span><span class="nx">deadline</span><span class="p">)</span>
 </code></pre></div></p>
 <p><strong>On timeout</strong> (<code>context.DeadlineExceeded</code>):
-1. Sidecar sends message to <code>error-end</code> queue with timeout error
+1. Sidecar sends message to <code>x-sump</code> queue with timeout error
 2. Sidecar logs error and <strong>crashes pod</strong> (exits with status code 1)
 3. Kubernetes restarts pod to recover clean state</p>
 <p><strong>Rationale</strong>: Prevents zombie processing where runtime may still be working after timeout</p>

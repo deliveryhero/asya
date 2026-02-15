@@ -975,19 +975,19 @@
 </tr>
 <tr>
 <td>Empty</td>
-<td>Send to happy-end</td>
+<td>Send to x-sink</td>
 </tr>
 <tr>
 <td>Error</td>
-<td>Send to error-end</td>
+<td>Send to x-sump</td>
 </tr>
 <tr>
 <td>Timeout</td>
-<td>Send to error-end</td>
+<td>Send to x-sump</td>
 </tr>
 <tr>
 <td>End of route</td>
-<td>Send to happy-end</td>
+<td>Send to x-sink</td>
 </tr>
 </tbody>
 </table></div>
@@ -1037,8 +1037,8 @@ or
 <span class="p">}</span>
 </code></pre></div>
 <h2 id="end-actor-mode">End Actor Mode<a class="headerlink" href="#end-actor-mode" title="Permanent link">&para;</a></h2>
-<p>For end actors (happy-end, error-end), set <code>ASYA_IS_END_ACTOR=true</code> to disable response routing.</p>
-<div class="highlight"><pre><span></span><code><span class="nb">export</span><span class="w"> </span><span class="nv">ASYA_ACTOR_NAME</span><span class="o">=</span>happy-end
+<p>For end actors (x-sink, x-sump), set <code>ASYA_IS_END_ACTOR=true</code> to disable response routing.</p>
+<div class="highlight"><pre><span></span><code><span class="nb">export</span><span class="w"> </span><span class="nv">ASYA_ACTOR_NAME</span><span class="o">=</span>x-sink
 <span class="nb">export</span><span class="w"> </span><span class="nv">ASYA_IS_END_ACTOR</span><span class="o">=</span><span class="nb">true</span>
 ./bin/sidecar
 </code></pre></div>
@@ -1080,22 +1080,22 @@ or
 <tr>
 <td>Parse error</td>
 <td>Log + send error</td>
-<td>error-end</td>
+<td>x-sump</td>
 </tr>
 <tr>
 <td>Runtime error</td>
 <td>Log + send error</td>
-<td>error-end</td>
+<td>x-sump</td>
 </tr>
 <tr>
 <td>Timeout</td>
 <td>Log + construct error</td>
-<td>error-end</td>
+<td>x-sump</td>
 </tr>
 <tr>
 <td>Empty response</td>
 <td>Log + send original</td>
-<td>happy-end</td>
+<td>x-sink</td>
 </tr>
 <tr>
 <td>Transport error</td>
@@ -1136,13 +1136,13 @@ or
 <td>Response timeout</td>
 </tr>
 <tr>
-<td><code>ASYA_STEP_HAPPY_END</code></td>
-<td><code>happy-end</code></td>
+<td><code>ASYA_ACTOR_SINK</code></td>
+<td><code>x-sink</code></td>
 <td>Success queue</td>
 </tr>
 <tr>
-<td><code>ASYA_STEP_ERROR_END</code></td>
-<td><code>error-end</code></td>
+<td><code>ASYA_ACTOR_SUMP</code></td>
+<td><code>x-sump</code></td>
 <td>Error queue</td>
 </tr>
 <tr>
@@ -1203,26 +1203,26 @@ or
 <h4 id="crashoom-kill">Crash/OOM Kill<a class="headerlink" href="#crashoom-kill" title="Permanent link">&para;</a></h4>
 <p><strong>Detection:</strong> Sidecar fails to connect to Unix socket (<code>failed to connect to runtime socket</code>)</p>
 <p><strong>Recovery:</strong>
-1. Sidecar routes message to <code>error-end</code> queue with connection error
+1. Sidecar routes message to <code>x-sump</code> queue with connection error
 2. Kubernetes restarts runtime container automatically
 3. Socket recreated on shared emptyDir volume
 4. Next message attempt succeeds</p>
-<p><strong>Message fate:</strong> Sent to error-end for retry logic (not automatically retried)</p>
+<p><strong>Message fate:</strong> Sent to x-sump for retry logic (not automatically retried)</p>
 <h4 id="timeout-hung-process">Timeout (Hung Process)<a class="headerlink" href="#timeout-hung-process" title="Permanent link">&para;</a></h4>
 <p><strong>Detection:</strong> No response within <code>ASYA_RUNTIME_TIMEOUT</code> (default: 5m)</p>
 <p><strong>Recovery:</strong>
 1. Socket read returns <code>context.DeadlineExceeded</code>
-2. Message sent to error-end with timeout error
+2. Message sent to x-sump with timeout error
 3. ⚠️ <strong>Container NOT restarted</strong> (no liveness probe configured)
 4. Runtime becomes a zombie, failing all subsequent messages</p>
 <p><strong>Operational impact:</strong> Requires manual pod restart or liveness probe configuration.</p>
 <h4 id="user-code-exception">User Code Exception<a class="headerlink" href="#user-code-exception" title="Permanent link">&para;</a></h4>
 <p><strong>Detection:</strong> Runtime returns error response with traceback</p>
 <p><strong>Recovery:</strong>
-1. Error routed to error-end with full exception details
+1. Error routed to x-sump with full exception details
 2. Runtime container remains healthy (exception was caught)
 3. Ready to process next message</p>
-<p><strong>Message fate:</strong> Sent to error-end with detailed error context for debugging</p>
+<p><strong>Message fate:</strong> Sent to x-sump with detailed error context for debugging</p>
 <h3 id="message-delivery-guarantees">Message Delivery Guarantees<a class="headerlink" href="#message-delivery-guarantees" title="Permanent link">&para;</a></h3>
 <div class="table-wrapper"><table>
 <thead>
@@ -1244,19 +1244,19 @@ or
 <td>Runtime crash</td>
 <td>❌ No</td>
 <td>✅ Yes</td>
-<td>Via error-end queue</td>
+<td>Via x-sump queue</td>
 </tr>
 <tr>
 <td>Runtime OOM</td>
 <td>❌ No</td>
 <td>✅ Yes (may CrashLoopBackoff)</td>
-<td>Via error-end queue</td>
+<td>Via x-sump queue</td>
 </tr>
 <tr>
 <td>Runtime timeout</td>
 <td>❌ No</td>
 <td>⚠️ No (zombie pod)</td>
-<td>Via error-end, needs manual restart</td>
+<td>Via x-sump, needs manual restart</td>
 </tr>
 <tr>
 <td>Pod eviction</td>
@@ -1293,7 +1293,7 @@ or
 </code></pre></div></p>
 </li>
 <li>
-<p><strong>Implement retry logic</strong> in error-end actor (exponential backoff, max attempts)</p>
+<p><strong>Implement retry logic</strong> in x-sump actor (exponential backoff, max attempts)</p>
 </li>
 <li>
 <p><strong>Monitor timeout metrics</strong> (<code>asya_actor_runtime_errors_total{error_type="timeout"}</code>)</p>

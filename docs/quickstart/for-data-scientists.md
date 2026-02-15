@@ -92,7 +92,7 @@ If an actor needs to stop processing of current payload, it should return `None`
 def process(payload: dict) -> dict | None:
     # Skip processing if already done
     if payload.get("already_processed"):
-        return None  # Routes to happy-end, no further processing
+        return None  # Routes to x-sink, no further processing
 
     # Normal processing - sent to the next actor
     return {**payload, "result": "..."}
@@ -845,8 +845,8 @@ def process(payload: dict) -> dict:
 
 **When exception occurs**:
 1. Runtime catches exception and creates error message with traceback
-2. Sidecar routes to `asya-{namespace}-error-end` queue
-3. Error-end actor persists error details to S3
+2. Sidecar routes to `asya-{namespace}-x-sump` queue
+3. Sump actor persists error details to S3
 4. Gateway receives final failure status
 
 **No manual error handling needed** - framework handles everything.

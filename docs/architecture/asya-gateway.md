@@ -14,7 +14,7 @@
 2. Gateway creates task with unique ID
 3. Gateway stores task in PostgreSQL (status: `pending`)
 4. Gateway sends message to first actor's queue
-5. Crew actors (`happy-end`, `error-end`) report final task status
+5. Crew actors (`x-sink`, `x-sump`) report final task status
 6. Client polls or streams task status updates via SSE
 
 ## Deployment
@@ -231,7 +231,7 @@ Content-Type: application/json
 }
 ```
 
-**Called by**: `happy-end` (success) or `error-end` (failure) crew actors
+**Called by**: `x-sink` (success) or `x-sump` (failure) crew actors
 
 #### Create Fanout Task
 

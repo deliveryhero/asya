@@ -123,7 +123,7 @@ All message queues are automatically managed by Crossplane AWS Provider.
 **Queue naming**: `asya-{namespace}-{actor_name}`
 - Example: Actor `text-analyzer` in namespace `prod` → Queue `asya-prod-text-analyzer`
 - Example: Actor `image-processor` in namespace `dev` → Queue `asya-dev-image-processor`
-- System actors: `asya-{namespace}-happy-end`, `asya-{namespace}-error-end`
+- System actors: `asya-{namespace}-x-sink`, `asya-{namespace}-x-sump`
 
 **Queue lifecycle**:
 - ✅ Created when AsyncActor claim reconciled by Crossplane

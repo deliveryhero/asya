@@ -879,7 +879,7 @@
 <li>Gateway creates task with unique ID</li>
 <li>Gateway stores task in PostgreSQL (status: <code>pending</code>)</li>
 <li>Gateway sends message to first actor's queue</li>
-<li>Crew actors (<code>happy-end</code>, <code>error-end</code>) report final task status</li>
+<li>Crew actors (<code>x-sink</code>, <code>x-sump</code>) report final task status</li>
 <li>Client polls or streams task status updates via SSE</li>
 </ol>
 <h2 id="deployment">Deployment<a class="headerlink" href="#deployment" title="Permanent link">&para;</a></h2>
@@ -1042,7 +1042,7 @@ Content-Type:<span class="w"> </span>application/json
 <span class="w">  </span><span class="s2">&quot;result&quot;</span>:<span class="w"> </span><span class="o">{</span>...<span class="o">}</span>
 <span class="o">}</span>
 </code></pre></div>
-<p><strong>Called by</strong>: <code>happy-end</code> (success) or <code>error-end</code> (failure) crew actors</p>
+<p><strong>Called by</strong>: <code>x-sink</code> (success) or <code>x-sump</code> (failure) crew actors</p>
 <h4 id="create-fanout-task">Create Fanout Task<a class="headerlink" href="#create-fanout-task" title="Permanent link">&para;</a></h4>
 <div class="highlight"><pre><span></span><code>POST<span class="w"> </span>/tasks
 Content-Type:<span class="w"> </span>application/json

@@ -659,7 +659,7 @@
 </ul>
 <h3 id="system-actors">System Actors<a class="headerlink" href="#system-actors" title="Permanent link">¶</a></h3>
 <ul>
-<li><strong><a href="asya-crew/">Crew Actors</a></strong>: Special actors with reserved roles (<code>happy-end</code>, <code>error-end</code>) for result persistence and error handling</li>
+<li><strong><a href="asya-crew/">Crew Actors</a></strong>: Special actors with reserved roles (<code>x-sink</code>, <code>x-sump</code>) for result persistence and error handling</li>
 </ul>
 <h3 id="infrastructure">Infrastructure<a class="headerlink" href="#infrastructure" title="Permanent link">¶</a></h3>
 <ul>
@@ -674,9 +674,9 @@
 <li><strong>Sidecar</strong> consumes message from queue</li>
 <li><strong>Sidecar</strong> forwards message to Runtime via Unix socket</li>
 <li><strong>Runtime</strong> executes your Python handler, returns result</li>
-<li><strong>Sidecar</strong> routes result to next actor's queue (or <code>happy-end</code>/<code>error-end</code>)</li>
+<li><strong>Sidecar</strong> routes result to next actor's queue (or <code>x-sink</code>/<code>x-sump</code>)</li>
 <li>Repeat steps 3-6 for each actor in the route</li>
-<li><strong>Crew actor</strong> (<code>happy-end</code> or <code>error-end</code>) persists final result, reports status to gateway</li>
+<li><strong>Crew actor</strong> (<code>x-sink</code> or <code>x-sump</code>) persists final result, reports status to gateway</li>
 </ol>
 <p><strong>Key insight</strong>: <code>Queue → Sidecar → Your Code → Sidecar → Next Queue</code></p>
 <h2 id="actor-lifecycle">Actor Lifecycle<a class="headerlink" href="#actor-lifecycle" title="Permanent link">¶</a></h2>

@@ -823,7 +823,7 @@ and sample infrastructure (LocalStack for SQS/S3) into a single Helm release.</p
 <li><strong>KEDA</strong> for autoscaling actors based on SQS queue depth</li>
 <li><strong>Crossplane providers</strong> + XRDs + Compositions for AsyncActor lifecycle management</li>
 <li><strong>asya-injector webhook</strong> for automatic sidecar injection</li>
-<li><strong>Crew actors</strong> (happy-end, error-end) for pipeline completion</li>
+<li><strong>Crew actors</strong> (x-sink, x-sump) for pipeline completion</li>
 <li><strong>LocalStack</strong> for SQS and S3 emulation</li>
 <li><strong>Hello-world actor</strong> to verify the installation</li>
 </ul>
@@ -933,10 +933,10 @@ helm<span class="w"> </span>upgrade<span class="w"> </span>asya<span class="w"> 
 <span class="w">  </span>--set<span class="w"> </span>helloActor.enabled<span class="o">=</span><span class="nb">true</span><span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--set<span class="w"> </span>asya-crew.image.tag<span class="o">=</span>latest<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--set<span class="w"> </span>asya-crew.image.pullPolicy<span class="o">=</span>Never<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--set<span class="w"> </span>asya-crew.happy-end.sidecar.image<span class="o">=</span>ghcr.io/deliveryhero/asya-sidecar:latest<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--set<span class="w"> </span>asya-crew.happy-end.sidecar.imagePullPolicy<span class="o">=</span>Never<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--set<span class="w"> </span>asya-crew.error-end.sidecar.image<span class="o">=</span>ghcr.io/deliveryhero/asya-sidecar:latest<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--set<span class="w"> </span>asya-crew.error-end.sidecar.imagePullPolicy<span class="o">=</span>Never<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--set<span class="w"> </span>asya-crew.x-sink.sidecar.image<span class="o">=</span>ghcr.io/deliveryhero/asya-sidecar:latest<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--set<span class="w"> </span>asya-crew.x-sink.sidecar.imagePullPolicy<span class="o">=</span>Never<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--set<span class="w"> </span>asya-crew.x-sump.sidecar.image<span class="o">=</span>ghcr.io/deliveryhero/asya-sidecar:latest<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--set<span class="w"> </span>asya-crew.x-sump.sidecar.imagePullPolicy<span class="o">=</span>Never<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--timeout<span class="w"> </span>300s<span class="w"> </span>--wait
 </code></pre></div>
 <h2 id="7-verify-installation">7. Verify Installation<a class="headerlink" href="#7-verify-installation" title="Permanent link">&para;</a></h2>
@@ -945,8 +945,8 @@ kubectl<span class="w"> </span>get<span class="w"> </span>pods<span class="w"> <
 
 <span class="c1"># Expected output:</span>
 <span class="c1"># asya-asya-injector-...   1/1     Running</span>
-<span class="c1"># error-end-...            2/2     Running</span>
-<span class="c1"># happy-end-...            2/2     Running</span>
+<span class="c1"># x-sump-...               2/2     Running</span>
+<span class="c1"># x-sink-...               2/2     Running</span>
 <span class="c1"># hello-...                 0/0    (scaled to zero by KEDA)</span>
 <span class="c1"># keda-operator-...        1/1     Running</span>
 <span class="c1"># localstack-sqs-...       1/1     Running</span>
@@ -957,12 +957,12 @@ kubectl<span class="w"> </span>get<span class="w"> </span>asyncactors<span class
 
 <span class="c1"># Expected:</span>
 <span class="c1"># hello       Napping    (scaled to 0, waiting for messages)</span>
-<span class="c1"># happy-end   Creating   (running with minReplicas=1)</span>
-<span class="c1"># error-end   Creating   (running with minReplicas=1)</span>
+<span class="c1"># x-sink      Creating   (running with minReplicas=1)</span>
+<span class="c1"># x-sump      Creating   (running with minReplicas=1)</span>
 
 <span class="c1"># Check SQS queues were created</span>
 kubectl<span class="w"> </span>get<span class="w"> </span>queue.sqs.aws.upbound.io
-<span class="c1"># Should show 3 queues: hello, happy-end, error-end</span>
+<span class="c1"># Should show 3 queues: hello, x-sink, x-sump</span>
 
 <span class="c1"># Check KEDA ScaledObjects</span>
 kubectl<span class="w"> </span>get<span class="w"> </span>scaledobject<span class="w"> </span>-n<span class="w"> </span>asya-demo

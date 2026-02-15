@@ -900,7 +900,7 @@
 <li><code>asya_actor_messages_failed_total{queue, reason}</code> - Failed messages by reason</li>
 <li>Reasons: <code>parse_error</code>, <code>runtime_error</code>, <code>transport_error</code>, <code>validation_error</code>, <code>route_mismatch</code>, <code>error_queue_send_failed</code></li>
 <li><code>asya_actor_runtime_errors_total{queue, error_type}</code> - Runtime errors by type</li>
-<li><code>asya_actor_messages_sent_total{destination_queue, message_type}</code> - Messages sent (includes <code>error_end</code> type)</li>
+<li><code>asya_actor_messages_sent_total{destination_queue, message_type}</code> - Messages sent (includes <code>sump</code> type)</li>
 </ul>
 <h2 id="prometheus-configuration">Prometheus Configuration<a class="headerlink" href="#prometheus-configuration" title="Permanent link">&para;</a></h2>
 <p>Sidecar exposes metrics on <code>:8080/metrics</code> (configurable via <code>ASYA_METRICS_ADDR</code>).</p>

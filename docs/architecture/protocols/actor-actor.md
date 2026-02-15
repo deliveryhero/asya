@@ -42,7 +42,7 @@ All actor queues follow pattern: `asya-{namespace}-{actor_name}`
 Namespace: `example-ecommerce`
 - Actor `text-analyzer` → Queue `asya-example-ecommerce-text-analyzer`
 - Actor `image-processor` → Queue `asya-example-ecommerce-image-processor`
-- System actors: `asya-{namespace}-happy-end`, `asya-{namespace}-error-end`
+- System actors: `asya-{namespace}-x-sink`, `asya-{namespace}-x-sump`
 
 **Benefits**:
 
@@ -62,15 +62,15 @@ Namespace: `example-ecommerce`
 
 ## End Queues
 
-**`happy-end`**: Pipeline completed or aborted successfully
+**`x-sink`**: Pipeline completed or aborted successfully
 - Automatically routed by sidecar when no more actors in route
 - Automatically routed when runtime returns empty response
 
-**`error-end`**: Processing error occurred
+**`x-sump`**: Processing error occurred
 - Automatically routed when runtime returns error
 - Automatically routed on timeout
 
-**Important**: Do not include `happy-end` or `error-end` in route configurations - managed by sidecar.
+**Important**: Do not include `x-sink` or `x-sump` in route configurations - managed by sidecar.
 
 ## Response Patterns
 
@@ -113,7 +113,7 @@ def process(payload):
 
 Runtime returns `None` (`null`):
 
-**Action**: Sidecar routes message to `happy-end` (no increment)
+**Action**: Sidecar routes message to `x-sink` (no increment)
 
 ### Error Response
 
@@ -125,7 +125,7 @@ Runtime returns error object:
 }
 ```
 
-**Action**: Sidecar routes to `error-end` (no increment)
+**Action**: Sidecar routes to `x-sump` (no increment)
 
 ## Payload Enrichment Pattern
 
@@ -177,8 +177,8 @@ When gateway is enabled, tasks have lifecycle statuses tracked throughout proces
 |--------|-------------|----------|
 | `pending` | Task created, not yet processing | Gateway creates task from MCP tool call |
 | `running` | Task is being processed by actors | Sidecar sends first progress update |
-| `succeeded` | Pipeline completed successfully | `happy-end` crew actor reports success |
-| `failed` | Pipeline failed with error | `error-end` crew actor reports failure |
+| `succeeded` | Pipeline completed successfully | `x-sink` crew actor reports success |
+| `failed` | Pipeline failed with error | `x-sump` crew actor reports failure |
 | `unknown` | Status cannot be determined | Edge cases, missing updates |
 
 ### Progress Reporting
@@ -208,7 +208,7 @@ progress_percent = (actors_completed / total_actors) * 100
 **Example**: Route `["prep", "infer", "post"]` (3 actors)
 - Actor `prep` completed → 33%
 - Actor `infer` completed → 66%
-- Actor `post` completed → 100% (final status from `happy-end`)
+- Actor `post` completed → 100% (final status from `x-sink`)
 
 ### Progress Update Flow
 
@@ -238,9 +238,9 @@ Sidecar                    Gateway                    Client
 
 **Success path**:
 ```
-Actor N completes → Sidecar routes to happy-end
-  → happy-end persists to S3
-  → happy-end reports: POST /tasks/{id}/final
+Actor N completes → Sidecar routes to x-sink
+  → x-sink persists to S3
+  → x-sink reports: POST /tasks/{id}/final
      {status: "succeeded", result: {...}}
   → Gateway updates: status=succeeded, progress=100%
   → SSE: final success event
@@ -248,9 +248,9 @@ Actor N completes → Sidecar routes to happy-end
 
 **Error path**:
 ```
-Runtime error → Sidecar routes to error-end
-  → error-end persists to S3
-  → error-end reports: POST /tasks/{id}/final
+Runtime error → Sidecar routes to x-sump
+  → x-sump persists to S3
+  → x-sump reports: POST /tasks/{id}/final
      {status: "failed", error: "..."}
   → Gateway updates: status=failed
   → SSE: final error event
@@ -260,5 +260,5 @@ Runtime error → Sidecar routes to error-end
 
 - **Small payloads**: Use object storage (S3, MinIO) for large data, pass references
 - **Clear names**: Use descriptive actor names (`preprocess-text` not `actor1`)
-- **Monitor errors**: Alert on `error-end` queue depth
+- **Monitor errors**: Alert on `x-sump` queue depth
 - **Version schema**: Include version in payload for breaking changes

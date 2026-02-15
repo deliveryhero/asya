@@ -15,16 +15,16 @@ Crew actors are **end actors** that run in special sidecar mode (`ASYA_IS_END_AC
 
 ## Current Crew Actors
 
-### happy-end
+### x-sink
 
 **Responsibilities**:
 
 - Persist successfully completed messages to S3/MinIO (optional)
 - Sidecar reports task success to gateway with result payload
 
-**Queue**: `asya-{namespace}-happy-end` (automatically routed by sidecar when pipeline completes)
+**Queue**: `asya-{namespace}-x-sink` (automatically routed by sidecar when pipeline completes)
 
-**Handler**: `handlers.end_handlers.happy_end_handler`
+**Handler**: `asya_crew.message_persistence.s3.checkpoint_handler`
 
 **Environment Variables**:
 ```yaml
@@ -34,7 +34,7 @@ Crew actors are **end actors** that run in special sidecar mode (`ASYA_IS_END_AC
 - name: ASYA_ENABLE_VALIDATION
   value: "false"
 - name: ASYA_HANDLER
-  value: handlers.end_handlers.happy_end_handler
+  value: asya_crew.message_persistence.s3.checkpoint_handler
 
 # Optional S3/MinIO persistence
 - name: ASYA_S3_BUCKET
@@ -46,7 +46,7 @@ Crew actors are **end actors** that run in special sidecar mode (`ASYA_IS_END_AC
 - name: ASYA_S3_SECRET_KEY
   value: minioadmin  # Optional for MinIO
 - name: ASYA_S3_RESULTS_PREFIX
-  value: happy-asya/  # Default prefix
+  value: sink-asya/  # Default prefix
 - name: AWS_REGION
   value: us-east-1  # For AWS S3 only
 ```
@@ -56,27 +56,27 @@ Crew actors are **end actors** that run in special sidecar mode (`ASYA_IS_END_AC
 {prefix}{timestamp}/{last_actor}/{message_id}.json
 
 Example:
-happy-asya/2025-11-18T14:30:45.123456Z/text-processor/abc-123.json
+sink-asya/2025-11-18T14:30:45.123456Z/text-processor/abc-123.json
 ```
 
 **Flow**:
-1. Sidecar receives message from `asya-{namespace}-happy-end` queue
+1. Sidecar receives message from `asya-{namespace}-x-sink` queue
 2. Sidecar forwards message to runtime via Unix socket
 3. Runtime persists complete message to S3 (if configured)
 4. Runtime returns empty dict `{}`
 5. Sidecar reports final task status `succeeded` to gateway with result payload
 6. Sidecar acks message (does NOT route anywhere)
 
-### error-end
+### x-sump
 
 **Responsibilities**:
 
 - Persist failed messages to S3/MinIO (optional)
 - Sidecar reports task failure to gateway with error details and actor info
 
-**Queue**: `asya-{namespace}-error-end` (automatically routed by sidecar when runtime/sidecar errors occur)
+**Queue**: `asya-{namespace}-x-sump` (automatically routed by sidecar when runtime/sidecar errors occur)
 
-**Handler**: `handlers.end_handlers.error_end_handler`
+**Handler**: `asya_crew.message_persistence.s3.checkpoint_handler`
 
 **Environment Variables**:
 ```yaml
@@ -86,7 +86,7 @@ happy-asya/2025-11-18T14:30:45.123456Z/text-processor/abc-123.json
 - name: ASYA_ENABLE_VALIDATION
   value: "false"
 - name: ASYA_HANDLER
-  value: handlers.end_handlers.error_end_handler
+  value: asya_crew.message_persistence.s3.checkpoint_handler
 
 # Optional S3/MinIO persistence
 - name: ASYA_S3_BUCKET
@@ -112,7 +112,7 @@ error-asya/2025-11-18T14:30:45.123456Z/failing-actor/abc-123.json
 ```
 
 **Error Message Structure**:
-Messages routed to `error-end` contain error information in the payload:
+Messages routed to `x-sump` contain error information in the payload:
 ```json
 {
   "id": "abc-123",
@@ -133,7 +133,7 @@ Messages routed to `error-end` contain error information in the payload:
 ```
 
 **Flow**:
-1. Sidecar receives error message from `asya-{namespace}-error-end` queue
+1. Sidecar receives error message from `asya-{namespace}-x-sump` queue
 2. Sidecar forwards message to runtime via Unix socket
 3. Runtime persists complete message (with error details) to S3 (if configured)
 4. Runtime returns empty dict `{}`
@@ -152,13 +152,13 @@ helm install asya-crew deploy/helm-charts/asya-crew/ \
 
 **Chart structure**:
 
-- Creates two AsyncActor resources: `happy-end` and `error-end`
+- Creates two AsyncActor resources: `x-sink` and `x-sump`
 - Helm templates inject required environment variables (`ASYA_HANDLER_MODE=envelope`, `ASYA_ENABLE_VALIDATION=false`)
 - Operator handles sidecar injection and `ASYA_IS_END_ACTOR=true` flag
 
 **Default configuration** (from `values.yaml`):
 ```yaml
-happy-end:
+x-sink:
   enabled: true
   transport: rabbitmq
   scaling:
@@ -175,7 +175,7 @@ happy-end:
           image: ghcr.io/deliveryhero/asya-crew:latest
           env:
           - name: ASYA_HANDLER
-            value: handlers.end_handlers.happy_end_handler
+            value: asya_crew.message_persistence.s3.checkpoint_handler
           # Optional S3 configuration (uncomment to enable)
           resources:
             requests:
@@ -185,7 +185,7 @@ happy-end:
               cpu: 200m
               memory: 128Mi
 
-error-end:
+x-sump:
   enabled: true
   transport: rabbitmq
   scaling:
@@ -202,7 +202,7 @@ error-end:
           image: ghcr.io/deliveryhero/asya-crew:latest
           env:
           - name: ASYA_HANDLER
-            value: handlers.end_handlers.error_end_handler
+            value: asya_crew.message_persistence.s3.checkpoint_handler
           resources:
             requests:
               cpu: 50m
@@ -217,7 +217,7 @@ error-end:
 **Custom values example**:
 ```yaml
 # custom-values.yaml
-happy-end:
+x-sink:
   workload:
     template:
       spec:
@@ -225,7 +225,7 @@ happy-end:
         - name: asya-runtime
           env:
           - name: ASYA_HANDLER
-            value: handlers.end_handlers.happy_end_handler
+            value: asya_crew.message_persistence.s3.checkpoint_handler
           - name: ASYA_S3_BUCKET
             value: my-results-bucket
           - name: ASYA_S3_ENDPOINT
@@ -235,7 +235,7 @@ happy-end:
           - name: ASYA_S3_SECRET_KEY
             value: minioadmin
 
-error-end:
+x-sump:
   workload:
     template:
       spec:
@@ -243,7 +243,7 @@ error-end:
         - name: asya-runtime
           env:
           - name: ASYA_HANDLER
-            value: handlers.end_handlers.error_end_handler
+            value: asya_crew.message_persistence.s3.checkpoint_handler
           - name: ASYA_S3_BUCKET
             value: my-results-bucket
           - name: ASYA_S3_ENDPOINT
@@ -283,20 +283,20 @@ These are automatically configured by Helm templates and operator injection.
 
 **Key structure breakdown**:
 
-- `{prefix}`: Configurable prefix (default: `happy-asya/` or `error-asya/`)
+- `{prefix}`: Configurable prefix (default: `sink-asya/` or `error-asya/`)
 - `{timestamp}`: ISO 8601 UTC timestamp (`2025-11-18T14:30:45.123456Z`)
 - `{last_actor}`: Last non-end actor from route (extracted from `route.actors[current]`)
 - `{message_id}`: Message ID
 
 **Example key generation**:
 ```python
-prefix = "happy-asya/"
+prefix = "sink-asya/"
 timestamp = "2025-11-18T14:30:45.123456Z"
 last_actor = "text-processor"  # from route.actors[1] if current=1
 message_id = "abc-123"
 
 key = f"{prefix}{timestamp}/{last_actor}/{message_id}.json"
-# Result: happy-asya/2025-11-18T14:30:45.123456Z/text-processor/abc-123.json
+# Result: sink-asya/2025-11-18T14:30:45.123456Z/text-processor/abc-123.json
 ```
 
 **Persisted content**: Complete message (including id, route, headers, payload) as formatted JSON.
@@ -319,8 +319,8 @@ When `ASYA_IS_END_ACTOR=true`, sidecar:
 3. Receives empty dict `{}` from runtime (ignored)
 4. Extracts result/error from original message payload
 5. Reports final task status to gateway:
-   - `happy-end`: Task status `succeeded` with result payload
-   - `error-end`: Task status `failed` with error details, actor info, route
+   - `x-sink`: Task status `succeeded` with result payload
+   - `x-sump`: Task status `failed` with error details, actor info, route
 6. Does NOT route to any queue (terminal)
 7. Acks message
 
@@ -333,7 +333,7 @@ When `ASYA_IS_END_ACTOR=true`, sidecar:
 - Merge results and continue pipeline
 - Track parent-child relationships via `parent_id`
 
-**Auto-retry** functionality by `error-end`:
+**Auto-retry** functionality by `x-sump`:
 
 - Implement exponential backoff
 - Classify errors as retriable vs permanent
