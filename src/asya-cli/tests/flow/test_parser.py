@@ -5,7 +5,7 @@ import textwrap
 import pytest
 from asya_cli.flow.errors import FlowCompileError
 from asya_cli.flow.ir import ActorCall, Break, Condition, Continue, Mutation, Return, WhileLoop
-from asya_cli.flow.parser import FlowParser
+from asya_cli.flow.parser import VALID_PARAM_NAMES, FlowParser
 
 from .test_helpers import contains_with_either_quotes
 
@@ -1167,3 +1167,219 @@ class TestWhileLoopErrors:
         loop = ops[0]
         assert isinstance(loop.body[0], ActorCall)
         assert "Processor.run" in loop.body[0].name
+
+
+class TestAsyncFlowDetection:
+    """Test detection of async flow functions."""
+
+    def test_detects_async_flow_function(self):
+        source = textwrap.dedent("""
+            async def my_flow(p: dict) -> dict:
+                return p
+        """)
+        parser = FlowParser(source, "test.py")
+        flow_name, _ = parser.parse()
+        assert flow_name == "my_flow"
+
+    def test_detects_async_flow_with_payload_parameter(self):
+        source = textwrap.dedent("""
+            async def my_flow(payload: dict) -> dict:
+                return payload
+        """)
+        parser = FlowParser(source, "test.py")
+        flow_name, _ = parser.parse()
+        assert flow_name == "my_flow"
+
+    def test_detects_async_flow_with_state_parameter(self):
+        source = textwrap.dedent("""
+            async def my_flow(state: dict) -> dict:
+                return state
+        """)
+        parser = FlowParser(source, "test.py")
+        flow_name, _ = parser.parse()
+        assert flow_name == "my_flow"
+
+    def test_async_flow_skips_non_matching_functions(self):
+        source = textwrap.dedent("""
+            async def helper(x: int) -> int:
+                return x
+
+            async def my_flow(p: dict) -> dict:
+                return p
+        """)
+        parser = FlowParser(source, "test.py")
+        flow_name, _ = parser.parse()
+        assert flow_name == "my_flow"
+
+    def test_prefers_first_valid_function_sync_or_async(self):
+        source = textwrap.dedent("""
+            def sync_flow(p: dict) -> dict:
+                return p
+
+            async def async_flow(p: dict) -> dict:
+                return p
+        """)
+        parser = FlowParser(source, "test.py")
+        flow_name, _ = parser.parse()
+        assert flow_name == "sync_flow"
+
+
+class TestAwaitActorCallParsing:
+    """Test parsing of await expressions as actor calls."""
+
+    def test_parse_single_await_call(self):
+        source = textwrap.dedent("""
+            async def flow(p: dict) -> dict:
+                p = await handler(p)
+                return p
+        """)
+        parser = FlowParser(source, "test.py")
+        _, ops = parser.parse()
+
+        assert len(ops) == 2
+        assert isinstance(ops[0], ActorCall)
+        assert ops[0].name == "handler"
+        assert isinstance(ops[1], Return)
+
+    def test_parse_sequential_await_calls(self):
+        source = textwrap.dedent("""
+            async def flow(p: dict) -> dict:
+                p = await handler_a(p)
+                p = await handler_b(p)
+                p = await handler_c(p)
+                return p
+        """)
+        parser = FlowParser(source, "test.py")
+        _, ops = parser.parse()
+
+        assert len(ops) == 4
+        assert isinstance(ops[0], ActorCall) and ops[0].name == "handler_a"
+        assert isinstance(ops[1], ActorCall) and ops[1].name == "handler_b"
+        assert isinstance(ops[2], ActorCall) and ops[2].name == "handler_c"
+        assert isinstance(ops[3], Return)
+
+    def test_parse_await_with_conditionals(self):
+        source = textwrap.dedent("""
+            async def flow(p: dict) -> dict:
+                p = await classifier(p)
+                if p["type"] == "text":
+                    p = await text_handler(p)
+                else:
+                    p = await fallback(p)
+                return p
+        """)
+        parser = FlowParser(source, "test.py")
+        _, ops = parser.parse()
+
+        assert isinstance(ops[0], ActorCall)
+        assert ops[0].name == "classifier"
+        assert isinstance(ops[1], Condition)
+        assert isinstance(ops[1].true_branch[0], ActorCall)
+        assert ops[1].true_branch[0].name == "text_handler"
+        assert isinstance(ops[1].false_branch[0], ActorCall)
+        assert ops[1].false_branch[0].name == "fallback"
+
+    def test_parse_mixed_sync_and_await_calls(self):
+        source = textwrap.dedent("""
+            async def flow(p: dict) -> dict:
+                p = sync_handler(p)
+                p = await async_handler(p)
+                return p
+        """)
+        parser = FlowParser(source, "test.py")
+        _, ops = parser.parse()
+
+        assert len(ops) == 3
+        assert isinstance(ops[0], ActorCall) and ops[0].name == "sync_handler"
+        assert isinstance(ops[1], ActorCall) and ops[1].name == "async_handler"
+
+    def test_rejects_await_without_argument(self):
+        source = textwrap.dedent("""
+            async def flow(p: dict) -> dict:
+                p = await handler()
+                return p
+        """)
+        parser = FlowParser(source, "test.py")
+        with pytest.raises(FlowCompileError, match="must have exactly one argument"):
+            parser.parse()
+
+
+class TestStateParameterNormalization:
+    """Test that 'state' parameter is normalized to 'p' for code generation."""
+
+    def test_state_parameter_accepted(self):
+        assert "state" in VALID_PARAM_NAMES
+
+    def test_state_mutations_normalized_to_p(self):
+        source = textwrap.dedent("""
+            def flow(state: dict) -> dict:
+                state["key"] = "value"
+                return state
+        """)
+        parser = FlowParser(source, "test.py")
+        _, ops = parser.parse()
+
+        assert isinstance(ops[0], Mutation)
+        assert contains_with_either_quotes(ops[0].code, 'p["key"]')
+
+    def test_state_conditions_normalized_to_p(self):
+        source = textwrap.dedent("""
+            def flow(state: dict) -> dict:
+                if state["type"] == "A":
+                    state = handler_a(state)
+                else:
+                    state = handler_b(state)
+                return state
+        """)
+        parser = FlowParser(source, "test.py")
+        _, ops = parser.parse()
+
+        assert isinstance(ops[0], Condition)
+        assert contains_with_either_quotes(ops[0].test, 'p["type"]')
+
+    def test_state_augmented_assignment_normalized(self):
+        source = textwrap.dedent("""
+            def flow(state: dict) -> dict:
+                state["counter"] += 1
+                return state
+        """)
+        parser = FlowParser(source, "test.py")
+        _, ops = parser.parse()
+
+        assert isinstance(ops[0], Mutation)
+        assert contains_with_either_quotes(ops[0].code, 'p["counter"]')
+
+    def test_async_state_flow_fully_normalized(self):
+        source = textwrap.dedent("""
+            async def my_flow(state: dict) -> dict:
+                state = await classifier(state)
+                if state["content_type"] == "text":
+                    state = await text_processor(state)
+                else:
+                    state = await generic_processor(state)
+                return state
+        """)
+        parser = FlowParser(source, "test.py")
+        flow_name, ops = parser.parse()
+
+        assert flow_name == "my_flow"
+        assert isinstance(ops[0], ActorCall)
+        assert ops[0].name == "classifier"
+        assert isinstance(ops[1], Condition)
+        assert contains_with_either_quotes(ops[1].test, 'p["content_type"]')
+        assert isinstance(ops[1].true_branch[0], ActorCall)
+        assert ops[1].true_branch[0].name == "text_processor"
+        assert isinstance(ops[1].false_branch[0], ActorCall)
+        assert ops[1].false_branch[0].name == "generic_processor"
+
+    def test_payload_parameter_not_renamed(self):
+        source = textwrap.dedent("""
+            def flow(payload: dict) -> dict:
+                payload["key"] = "value"
+                return payload
+        """)
+        parser = FlowParser(source, "test.py")
+        _, ops = parser.parse()
+
+        assert isinstance(ops[0], Mutation)
+        assert contains_with_either_quotes(ops[0].code, 'p["key"]')

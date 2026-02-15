@@ -9,7 +9,7 @@ Reference: https://github.com/google/adk-samples/tree/main/python/agents/llm-aud
 """
 
 
-async def llm_auditor(state: dict) -> dict:
+async def llm_auditor_flow(state: dict) -> dict:
     state = await critic(state)
     state = await reviser(state)
     return state

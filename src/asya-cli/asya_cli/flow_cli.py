@@ -62,7 +62,7 @@ def cmd_compile(args):
                 print(f"\n{warning}", file=sys.stderr)
 
     except FlowCompileError as e:
-        print("[-] Compilation failed:\n", file=sys.stderr)
+        print(f"[-] Compilation failed for {args.flow_file}\n", file=sys.stderr)
         print(str(e), file=sys.stderr)
         sys.exit(1)
     except (FileNotFoundError, ValueError) as e:

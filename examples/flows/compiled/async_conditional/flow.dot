@@ -1,0 +1,27 @@
+digraph flow {
+  rankdir=TB;
+  graph [fontname="Courier", fontsize=10];
+  node [fontname="Courier", fontsize=10, shape=box, style="filled,rounded", margin="0.2"];
+  edge [fontname="Courier", fontsize=10];
+
+  start_content_pipeline_flow [fillcolor="lightgreen", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = start_content_pipeline_flow(p)</i></td></tr></table>>];
+  router_content_pipeline_flow_line_14_if [fillcolor="wheat", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_content_pipeline_flow_line_14_if(p)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> p['content_type'] == 'image'</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkseagreen4"><font color="white"><b>TRUE</b></font></td><td bgcolor="indianred4"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
+  router_content_pipeline_flow_line_12_if [fillcolor="wheat", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_content_pipeline_flow_line_12_if(p)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> p['content_type'] == 'text'</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkseagreen4"><font color="white"><b>TRUE</b></font></td><td bgcolor="indianred4"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
+  end_content_pipeline_flow [fillcolor="lightgreen", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = end_content_pipeline_flow(p)</i></td></tr></table>>];
+  classifier [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = classifier(p)</i></td></tr></table>>];
+  generic_processor [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = generic_processor(p)</i></td></tr></table>>];
+  image_processor [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = image_processor(p)</i></td></tr></table>>];
+  quality_check [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = quality_check(p)</i></td></tr></table>>];
+  text_processor [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = text_processor(p)</i></td></tr></table>>];
+
+  classifier -> router_content_pipeline_flow_line_12_if;
+  generic_processor -> quality_check;
+  image_processor -> quality_check;
+  quality_check -> end_content_pipeline_flow;
+  router_content_pipeline_flow_line_12_if -> router_content_pipeline_flow_line_14_if [color=indianred4];
+  router_content_pipeline_flow_line_12_if -> text_processor [color=darkseagreen4];
+  router_content_pipeline_flow_line_14_if -> generic_processor [color=indianred4];
+  router_content_pipeline_flow_line_14_if -> image_processor [color=darkseagreen4];
+  start_content_pipeline_flow -> classifier;
+  text_processor -> quality_check;
+}

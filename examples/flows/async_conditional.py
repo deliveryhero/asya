@@ -7,7 +7,7 @@ Demonstrates async/await with if/elif/else branching.
 """
 
 
-async def content_pipeline(state: dict) -> dict:
+async def content_pipeline_flow(state: dict) -> dict:
     state = await classifier(state)
     if state["content_type"] == "text":
         state = await text_processor(state)

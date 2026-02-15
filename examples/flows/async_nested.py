@@ -8,7 +8,7 @@ inside conditional branches.
 """
 
 
-async def review_pipeline(state: dict) -> dict:
+async def review_pipeline_flow(state: dict) -> dict:
     state = await initial_review(state)
     if state["score"] < 0.5:
         state = await detailed_review(state)
