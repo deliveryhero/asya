@@ -1,55 +1,55 @@
-{{- $happyEnd := index .Values "happy-end" }}
-{{- if $happyEnd.enabled }}
+{{- $sink := index .Values "x-sink" }}
+{{- if $sink.enabled }}
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 metadata:
-  name: {{ $happyEnd.name }}
+  name: {{ $sink.name }}
   namespace: {{ .Release.Namespace }}
   labels:
-    {{- include "asya-crew.happy-end.labels" . | nindent 4 }}
-  {{- with $happyEnd.annotations }}
+    {{- include "asya-crew.x-sink.labels" . | nindent 4 }}
+  {{- with $sink.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
-  actor: {{ $happyEnd.name }}
+  actor: {{ $sink.name }}
   compositionSelector:
     matchLabels:
-      asya.sh/transport: {{ $happyEnd.transport }}
-  transport: {{ $happyEnd.transport }}
+      asya.sh/transport: {{ $sink.transport }}
+  transport: {{ $sink.transport }}
 
-  {{- with $happyEnd.sidecar }}
+  {{- with $sink.sidecar }}
   sidecar:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 
-  {{- if $happyEnd.scaling.enabled }}
+  {{- if $sink.scaling.enabled }}
   scaling:
-    {{- toYaml $happyEnd.scaling | nindent 4 }}
+    {{- toYaml $sink.scaling | nindent 4 }}
   {{- end }}
 
   workload:
-    kind: {{ $happyEnd.workload.kind }}
+    kind: {{ $sink.workload.kind }}
     template:
       spec:
         containers:
         - name: asya-runtime
-          image: {{ include "asya-crew.happy-end.image" . }}
-          imagePullPolicy: {{ include "asya-crew.happy-end.imagePullPolicy" . }}
+          image: {{ include "asya-crew.x-sink.image" . }}
+          imagePullPolicy: {{ include "asya-crew.x-sink.imagePullPolicy" . }}
           env:
-          {{- range $key, $value := $happyEnd.env }}
+          {{- range $key, $value := $sink.env }}
           {{- if ne $value "" }}
           - name: {{ $key }}
             value: {{ $value | quote }}
           {{- end }}
           {{- end }}
           - name: ASYA_HANDLER
-            value: handlers.end_handlers.happy_end_handler
+            value: asya_crew.sink.sink_handler
           - name: ASYA_HANDLER_MODE
             value: envelope
           - name: ASYA_ENABLE_VALIDATION
             value: "false"
-          {{- with $happyEnd.resources }}
+          {{- with $sink.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}

@@ -589,6 +589,136 @@ class TestLoopBackRouter:
         assert "router_flow_line_3_loop_back_0" in func_names
 
 
+class TestLoopBackGuard:
+    """Test max_iterations guard code generation in loop-back routers."""
+
+    def test_guarded_loop_back_is_valid_python(self):
+        routers = [
+            Router(
+                name="router_flow_line_3_loop_back_0",
+                lineno=3,
+                true_branch_actors=["handler", "router_flow_line_3_loop_back_0"],
+                is_loop_back=True,
+                guard_max_iter=100,
+            )
+        ]
+        code = CodeGenerator("flow", routers, "test.py")._generate_loop_back_router(routers[0])
+
+        try:
+            ast.parse(code)
+        except SyntaxError as e:
+            pytest.fail(f"Guarded loop-back code is not valid Python: {e}")
+
+    def test_guarded_loop_back_has_guard_docstring(self):
+        routers = [
+            Router(
+                name="router_flow_line_3_loop_back_0",
+                lineno=3,
+                true_branch_actors=["handler", "router_flow_line_3_loop_back_0"],
+                is_loop_back=True,
+                guard_max_iter=100,
+            )
+        ]
+        code = CodeGenerator("flow", routers, "test.py")._generate_loop_back_router(routers[0])
+
+        assert "(guarded)" in code
+
+    def test_guarded_loop_back_counts_route_visits(self):
+        routers = [
+            Router(
+                name="router_flow_line_3_loop_back_0",
+                lineno=3,
+                true_branch_actors=["handler", "router_flow_line_3_loop_back_0"],
+                is_loop_back=True,
+                guard_max_iter=100,
+            )
+        ]
+        code = CodeGenerator("flow", routers, "test.py")._generate_loop_back_router(routers[0])
+
+        assert '_self = resolve("router_flow_line_3_loop_back_0")' in code
+        assert "r['actors'][:c].count(_self) >= _ASYA_MAX_LOOP_ITERATIONS" in code
+        assert "RuntimeError" in code
+        # No payload mutation
+        assert "__loop_" not in code
+
+    def test_guarded_loop_back_error_includes_lineno(self):
+        routers = [
+            Router(
+                name="router_flow_line_42_loop_back_0",
+                lineno=42,
+                true_branch_actors=["handler", "router_flow_line_42_loop_back_0"],
+                is_loop_back=True,
+                guard_max_iter=100,
+            )
+        ]
+        code = CodeGenerator("flow", routers, "test.py")._generate_loop_back_router(routers[0])
+
+        assert "line 42" in code
+
+    def test_unguarded_loop_back_no_guard_code(self):
+        routers = [
+            Router(
+                name="router_flow_line_3_loop_back_0",
+                lineno=3,
+                true_branch_actors=["router_flow_line_3_while_0"],
+                is_loop_back=True,
+            )
+        ]
+        code = CodeGenerator("flow", routers, "test.py")._generate_loop_back_router(routers[0])
+
+        assert "_self" not in code
+        assert "_ASYA_MAX_LOOP_ITERATIONS" not in code
+        assert "RuntimeError" not in code
+        assert "(guarded)" not in code
+
+    def test_max_iter_constant_generated_when_guard_present(self):
+        routers = [
+            Router(name="start_flow", lineno=0, true_branch_actors=["router_flow_line_3_loop_back_0"]),
+            Router(
+                name="router_flow_line_3_loop_back_0",
+                lineno=3,
+                true_branch_actors=["handler", "router_flow_line_3_loop_back_0"],
+                is_loop_back=True,
+                guard_max_iter=100,
+            ),
+            Router(name="end_flow", lineno=999),
+        ]
+        code = CodeGenerator("flow", routers, "test.py").generate()
+
+        assert '_ASYA_MAX_LOOP_ITERATIONS = int(_os.environ.get("ASYA_MAX_LOOP_ITERATIONS", "100"))' in code
+
+    def test_max_iter_constant_not_generated_without_guard(self):
+        routers = [
+            Router(name="start_flow", lineno=0, true_branch_actors=["router_flow_line_3_loop_back_0"]),
+            Router(
+                name="router_flow_line_3_loop_back_0",
+                lineno=3,
+                true_branch_actors=["router_flow_line_3_while_0"],
+                is_loop_back=True,
+            ),
+            Router(name="end_flow", lineno=999),
+        ]
+        code = CodeGenerator("flow", routers, "test.py").generate()
+
+        assert "_ASYA_MAX_LOOP_ITERATIONS" not in code
+
+    def test_custom_max_iter_value_in_constant(self):
+        routers = [
+            Router(name="start_flow", lineno=0),
+            Router(
+                name="router_flow_line_3_loop_back_0",
+                lineno=3,
+                true_branch_actors=["handler", "router_flow_line_3_loop_back_0"],
+                is_loop_back=True,
+                guard_max_iter=50,
+            ),
+            Router(name="end_flow", lineno=999),
+        ]
+        code = CodeGenerator("flow", routers, "test.py").generate()
+
+        assert '"50"' in code
+
+
 class TestWhileLoopEndToEndCodeGen:
     """End-to-end tests: while loops through the full compilation pipeline produce valid code."""
 

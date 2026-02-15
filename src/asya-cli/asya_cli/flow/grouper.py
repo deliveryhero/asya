@@ -4,7 +4,29 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from asya_cli.flow.ir import ActorCall, Break, Condition, Continue, IROperation, Mutation, Return, WhileLoop
+from asya_cli.flow.ir import (
+    ActorCall,
+    Break,
+    Condition,
+    Continue,
+    IROperation,
+    Mutation,
+    Raise,
+    Return,
+    TryExcept,
+    WhileLoop,
+)
+
+
+DEFAULT_MAX_LOOP_ITERATIONS = 100
+
+
+@dataclass
+class ExceptionHandlerInfo:
+    error_types: list[str] | None  # None = bare except (catch-all)
+    actors: list[str]
+    mutations: list[Mutation] = field(default_factory=list)
+    is_raise: bool = False  # True when handler body is a re-raise
 
 
 @dataclass
@@ -16,22 +38,37 @@ class Router:
     true_branch_actors: list[str] = field(default_factory=list)
     false_branch_actors: list[str] = field(default_factory=list)
     is_loop_back: bool = False
+    guard_max_iter: int | None = None
+    is_try_enter: bool = False
+    is_try_exit: bool = False
+    is_except_dispatch: bool = False
+    is_reraise: bool = False
+    except_dispatch_name: str | None = None  # try_enter: name of except_dispatch router
+    exception_handlers: list[ExceptionHandlerInfo] | None = None  # except_dispatch
+    finally_actors: list[str] = field(default_factory=list)
+    continuation_actors: list[str] = field(default_factory=list)
+    reraise_name: str | None = None  # except_dispatch: name of reraise router
 
 
 class OperationGrouper:
-    def __init__(self, flow_name: str, operations: list[IROperation]):
+    def __init__(
+        self, flow_name: str, operations: list[IROperation], *, max_iterations: int = DEFAULT_MAX_LOOP_ITERATIONS
+    ):
         self.flow_name = flow_name
         self.operations = operations
+        self.max_iterations = max_iterations
         self.routers: list[Router] = []
         self.convergence_counter = 0
         self.convergence_map: dict[str, list[str]] = {}
         self._loop_counter = 0
+        self._try_counter = 0
 
     def group(self) -> list[Router]:
         self.routers = []
         self.convergence_counter = 0
         self.convergence_map = {}
         self._loop_counter = 0
+        self._try_counter = 0
 
         start_actors = self._process_operations(self.operations, [], is_top_level=True)
 
@@ -156,6 +193,28 @@ class OperationGrouper:
                         loop_actors = self._process_while_loop(next_op, mutations, continuation)
                         return [*result, *loop_actors]
 
+                    elif isinstance(next_op, TryExcept):
+                        i += 1
+
+                        continuation = self._process_operations(
+                            operations[i:],
+                            convergence_stack,
+                            is_top_level=is_top_level,
+                            loop_back_label=loop_back_label,
+                            loop_exit_label=loop_exit_label,
+                        )
+
+                        # Create a mutation router before the try block
+                        try_actors = self._process_try_except(next_op, continuation)
+                        router = Router(
+                            name=f"router_{self.flow_name}_line_{mutations[0].lineno}_seq",
+                            lineno=mutations[0].lineno,
+                            mutations=mutations,
+                            true_branch_actors=try_actors,
+                        )
+                        self.routers.append(router)
+                        return [*result, router.name]
+
                 continuation = self._process_operations(
                     operations[i:],
                     convergence_stack,
@@ -229,6 +288,24 @@ class OperationGrouper:
                 loop_actors = self._process_while_loop(op, [], continuation)
                 return [*result, *loop_actors]
 
+            elif isinstance(op, TryExcept):
+                i += 1
+
+                continuation = self._process_operations(
+                    operations[i:],
+                    convergence_stack,
+                    is_top_level=is_top_level,
+                    loop_back_label=loop_back_label,
+                    loop_exit_label=loop_exit_label,
+                )
+
+                try_actors = self._process_try_except(op, continuation)
+                return [*result, *try_actors]
+
+            elif isinstance(op, Raise):
+                # Re-raise: route to end (reraise router handles the actual raise)
+                return [*result, f"end_{self.flow_name}"]
+
             elif isinstance(op, Break):
                 if loop_exit_label:
                     return [*result, loop_exit_label]
@@ -292,6 +369,7 @@ class OperationGrouper:
         if loop.test is None:
             # `while True:` — no condition router needed
             # The loop-back router re-inserts the body actors
+            # with an iteration guard to prevent infinite loops
 
             # Process loop body with loop context
             body_actors = self._process_operations(
@@ -302,12 +380,14 @@ class OperationGrouper:
             )
 
             # Create loop-back router: re-inserts body actors + itself
+            # with max_iterations guard for while True loops
             loop_back_router = Router(
                 name=loop_back_name,
                 lineno=loop.lineno,
                 mutations=pre_mutations,
                 true_branch_actors=[*body_actors, loop_back_name],
                 is_loop_back=True,
+                guard_max_iter=self.max_iterations,
             )
             self.routers.append(loop_back_router)
 
@@ -360,6 +440,108 @@ class OperationGrouper:
 
             return [condition_name]
 
+    def _process_try_except(
+        self,
+        try_except: TryExcept,
+        continuation: list[str],
+    ) -> list[str]:
+        """Process a TryExcept IR node into routers.
+
+        Generates 4 router types:
+        - try_enter: Sets _on_error header, inserts try body + try_exit
+        - try_exit: Clears _on_error header (success path), inserts finally + continuation
+        - except_dispatch: Receives error, matches type via MRO, routes to handler
+        - reraise: Raises RuntimeError for unhandled exceptions
+        """
+        try_id = self._try_counter
+        self._try_counter += 1
+
+        try_enter_name = f"router_{self.flow_name}_line_{try_except.lineno}_try_enter_{try_id}"
+        try_exit_name = f"router_{self.flow_name}_line_{try_except.lineno}_try_exit_{try_id}"
+        except_dispatch_name = f"router_{self.flow_name}_line_{try_except.lineno}_except_dispatch_{try_id}"
+        reraise_name = f"router_{self.flow_name}_line_{try_except.lineno}_reraise_{try_id}"
+
+        try_exit_label = f"TRY_EXIT_{try_id}"
+
+        # Process try body — converges to try_exit on success
+        self.convergence_map[try_exit_label] = [try_exit_name]
+        body_actors = self._process_operations(
+            try_except.body,
+            [try_exit_label],
+        )
+
+        # Process finally body
+        finally_actors: list[str] = []
+        if try_except.finally_body:
+            finally_actors = self._process_operations(
+                try_except.finally_body,
+                [],
+            )
+
+        # Process exception handlers
+        has_bare_except = False
+        handler_infos: list[ExceptionHandlerInfo] = []
+        for handler in try_except.handlers:
+            if handler.error_types is None:
+                has_bare_except = True
+
+            # Process handler body to get actors
+            handler_actors = self._process_operations(
+                handler.body,
+                [],
+            )
+
+            handler_infos.append(
+                ExceptionHandlerInfo(
+                    error_types=handler.error_types,
+                    actors=handler_actors,
+                    is_raise=any(isinstance(op, Raise) for op in handler.body),
+                )
+            )
+
+        # Create try_enter router
+        try_enter_router = Router(
+            name=try_enter_name,
+            lineno=try_except.lineno,
+            is_try_enter=True,
+            except_dispatch_name=except_dispatch_name,
+            true_branch_actors=body_actors,
+        )
+        self.routers.append(try_enter_router)
+
+        # Create try_exit router (success path)
+        try_exit_router = Router(
+            name=try_exit_name,
+            lineno=try_except.lineno,
+            is_try_exit=True,
+            finally_actors=finally_actors,
+            continuation_actors=continuation,
+        )
+        self.routers.append(try_exit_router)
+
+        # Create except_dispatch router
+        except_dispatch_router = Router(
+            name=except_dispatch_name,
+            lineno=try_except.lineno,
+            is_except_dispatch=True,
+            exception_handlers=handler_infos,
+            finally_actors=finally_actors,
+            continuation_actors=continuation,
+            reraise_name=reraise_name if not has_bare_except else None,
+        )
+        self.routers.append(except_dispatch_router)
+
+        # Create reraise router (only if no bare except catch-all)
+        if not has_bare_except:
+            reraise_router = Router(
+                name=reraise_name,
+                lineno=try_except.lineno,
+                is_reraise=True,
+            )
+            self.routers.append(reraise_router)
+
+        return [try_enter_name]
+
     def _process_branch(self, branch: list[IROperation], convergence_stack: list[str]) -> list[str]:
         return self._process_operations(branch, convergence_stack)
 
@@ -367,11 +549,21 @@ class OperationGrouper:
         for router in self.routers:
             router.true_branch_actors = self._resolve_actors(router.true_branch_actors)
             router.false_branch_actors = self._resolve_actors(router.false_branch_actors)
+            router.finally_actors = self._resolve_actors(router.finally_actors)
+            router.continuation_actors = self._resolve_actors(router.continuation_actors)
+            if router.exception_handlers:
+                for handler in router.exception_handlers:
+                    handler.actors = self._resolve_actors(handler.actors)
 
     def _resolve_actors(self, actors: list[str]) -> list[str]:
         resolved = []
         for actor in actors:
-            if actor.startswith("CONVERGENCE_") or actor.startswith("LOOP_EXIT_") or actor.startswith("LOOP_BACK_"):
+            if (
+                actor.startswith("CONVERGENCE_")
+                or actor.startswith("LOOP_EXIT_")
+                or actor.startswith("LOOP_BACK_")
+                or actor.startswith("TRY_EXIT_")
+            ):
                 replacement = self.convergence_map.get(actor, [])
                 if replacement:
                     resolved.extend(self._resolve_actors(replacement))

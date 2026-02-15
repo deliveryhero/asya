@@ -5,7 +5,19 @@ from __future__ import annotations
 import ast
 
 from asya_cli.flow.errors import FlowCompileError
-from asya_cli.flow.ir import ActorCall, Break, Condition, Continue, IROperation, Mutation, Return, WhileLoop
+from asya_cli.flow.ir import (
+    ActorCall,
+    Break,
+    Condition,
+    Continue,
+    ExceptHandler,
+    IROperation,
+    Mutation,
+    Raise,
+    Return,
+    TryExcept,
+    WhileLoop,
+)
 
 
 class FlowParser:
@@ -17,6 +29,8 @@ class FlowParser:
         self.instances: dict[str, str] = {}  # Map instance variable to class name
         self.class_methods: set[str] = set()  # Track class method handlers
         self._loop_depth: int = 0  # Track nesting depth for break/continue validation
+        self._try_depth: int = 0  # Track nesting depth for nested try rejection
+        self._except_depth: int = 0  # Track nesting depth for raise validation
 
     def parse(self) -> tuple[str, list[IROperation]]:
         try:
@@ -66,6 +80,8 @@ class FlowParser:
             return self._parse_if(stmt)
         elif isinstance(stmt, ast.While):
             return self._parse_while(stmt)
+        elif isinstance(stmt, ast.Try):
+            return self._parse_try(stmt)
         elif isinstance(stmt, ast.For):
             raise FlowCompileError(
                 f"{self.filename}:{stmt.lineno}: 'for' loops are not supported. Use 'while' loops instead"
@@ -82,6 +98,8 @@ class FlowParser:
             if self._loop_depth == 0:
                 raise FlowCompileError(f"{self.filename}:{stmt.lineno}: 'continue' outside loop")
             return [Continue(lineno=stmt.lineno)]
+        elif isinstance(stmt, ast.Raise):
+            return self._parse_raise(stmt)
         else:
             raise FlowCompileError(f"{self.filename}:{stmt.lineno}: Unsupported statement type: {type(stmt).__name__}")
 
@@ -194,6 +212,73 @@ class FlowParser:
             self._loop_depth -= 1
 
         return [WhileLoop(lineno=stmt.lineno, test=test, body=body)]
+
+    def _parse_try(self, stmt: ast.Try) -> list[IROperation]:
+        # Reject nested try-except
+        if self._try_depth > 0:
+            raise FlowCompileError(f"{self.filename}:{stmt.lineno}: Nested try-except is not supported")
+
+        # Reject try-else
+        if stmt.orelse:
+            raise FlowCompileError(f"{self.filename}:{stmt.lineno}: 'else' clause on 'try' is not supported")
+
+        # Must have at least one except handler
+        if not stmt.handlers:
+            raise FlowCompileError(f"{self.filename}:{stmt.lineno}: 'try' must have at least one 'except' handler")
+
+        # Parse except handlers
+        handlers = []
+        for handler in stmt.handlers:
+            # Reject `except ... as e:` binding
+            if handler.name is not None:
+                raise FlowCompileError(
+                    f"{self.filename}:{handler.lineno}: 'except ... as {handler.name}' binding is not supported"
+                )
+
+            # Parse exception types
+            error_types: list[str] | None = None
+            if handler.type is not None:
+                if isinstance(handler.type, ast.Tuple):
+                    error_types = []
+                    for elt in handler.type.elts:
+                        if isinstance(elt, ast.Name):
+                            error_types.append(elt.id)
+                        else:
+                            raise FlowCompileError(
+                                f"{self.filename}:{handler.lineno}: Unsupported exception type expression"
+                            )
+                elif isinstance(handler.type, ast.Name):
+                    error_types = [handler.type.id]
+                else:
+                    raise FlowCompileError(f"{self.filename}:{handler.lineno}: Unsupported exception type expression")
+
+            # Parse handler body within except depth tracking
+            self._except_depth += 1
+            try:
+                handler_body = self._parse_body(handler.body)
+            finally:
+                self._except_depth -= 1
+
+            handlers.append(ExceptHandler(lineno=handler.lineno, error_types=error_types, body=handler_body))
+
+        # Parse try body and finally body within try depth tracking
+        self._try_depth += 1
+        try:
+            body = self._parse_body(stmt.body)
+            finally_body = self._parse_body(stmt.finalbody) if stmt.finalbody else []
+        finally:
+            self._try_depth -= 1
+
+        return [TryExcept(lineno=stmt.lineno, body=body, handlers=handlers, finally_body=finally_body)]
+
+    def _parse_raise(self, stmt: ast.Raise) -> list[IROperation]:
+        if self._except_depth == 0:
+            raise FlowCompileError(f"{self.filename}:{stmt.lineno}: 'raise' outside except handler")
+        if stmt.exc is not None:
+            raise FlowCompileError(
+                f"{self.filename}:{stmt.lineno}: 'raise' with arguments is not supported (use bare 'raise' to re-raise)"
+            )
+        return [Raise(lineno=stmt.lineno)]
 
     def _validate_class_instantiation(self, stmt: ast.Assign) -> None:
         """Validate that class instantiation uses only default arguments."""

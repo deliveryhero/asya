@@ -62,7 +62,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        component: [asya-crew, asya-cli, asya-gateway, asya-runtime, asya-sidecar]
+        component: [asya-crew, asya-cli, asya-gateway, asya-injector, asya-runtime, asya-sidecar]
 
     steps:
     - uses: actions/checkout@v4
@@ -223,7 +223,7 @@ jobs:
       run: make build-images
 
     - name: Run simple integration tests
-      if: matrix.target == 'gateway' || matrix.target == 'operator' || matrix.target == 'sidecar'
+      if: matrix.target == 'gateway' || matrix.target == 'sidecar'
       run: |
         source .venv/bin/activate
         make -C testing/integration/${{ matrix.target }} test
@@ -273,7 +273,7 @@ jobs:
           # - name: rabbitmq-minio
           #   profile: rabbitmq-minio
           #   run_pipeline: true
-          #   run_operator: false
+          #   run_crossplane: true
 
     steps:
     - uses: actions/checkout@v4

@@ -90,7 +90,7 @@ helm install asya-gateway deploy/helm-charts/asya-gateway/ -f gateway-values.yam
 
 ```yaml
 # crew-values.yaml
-happy-end:
+x-sink:
   enabled: true
   transport: sqs  # or rabbitmq
   workload:
@@ -100,7 +100,7 @@ happy-end:
         - name: asya-runtime
           env:
           - name: ASYA_HANDLER
-            value: handlers.end_handlers.happy_end_handler
+            value: asya_crew.message_persistence.s3.checkpoint_handler
           - name: ASYA_S3_BUCKET
             value: asya-results
           # For MinIO:
@@ -111,7 +111,7 @@ happy-end:
           # - name: ASYA_S3_SECRET_KEY
           #   value: minioadmin
 
-error-end:
+x-sump:
   enabled: true
   transport: sqs  # or rabbitmq
   workload:
@@ -121,7 +121,7 @@ error-end:
         - name: asya-runtime
           env:
           - name: ASYA_HANDLER
-            value: handlers.end_handlers.error_end_handler
+            value: asya_crew.message_persistence.s3.checkpoint_handler
           - name: ASYA_S3_BUCKET
             value: asya-results
 ```

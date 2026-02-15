@@ -214,3 +214,7 @@ marimo/_lsp/
 __marimo__/
 .logs
 .worktrees
+
+# Go build artifacts
+bin/
+*/bin/

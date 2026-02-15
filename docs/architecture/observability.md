@@ -12,7 +12,7 @@ Default namespace: `asya_actor` (configurable via `ASYA_METRICS_NAMESPACE`)
 
 - `{namespace}_messages_received_total{queue, transport}` - Messages received from queue
 - `{namespace}_messages_processed_total{queue, status}` - Successfully processed (status: success, empty_response, end_consumed)
-- `{namespace}_messages_sent_total{destination_queue, message_type}` - Messages sent to queues (message_type: routing, happy_end, error_end)
+- `{namespace}_messages_sent_total{destination_queue, message_type}` - Messages sent to queues (message_type: routing, sink, sump)
 - `{namespace}_messages_failed_total{queue, reason}` - Failed messages (reason: parse_error, runtime_error, transport_error, validation_error, route_mismatch, error_queue_send_failed)
 
 **Duration Histograms**:

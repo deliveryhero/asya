@@ -512,3 +512,149 @@ class TestExampleFlowsCompile:
 
     def test_complex(self):
         self._compile_example("complex_with_while.py")
+
+
+class TestMaxIterationsGuardIntegration:
+    """Test max_iterations guard through the full compilation pipeline."""
+
+    def test_while_true_generates_guard_code(self):
+        source = """
+def flow(p: dict) -> dict:
+    while True:
+        p = handler(p)
+        if p["done"]:
+            break
+    return p
+"""
+        compiler = FlowCompiler()
+        code = compiler.compile(source, "test.py")
+
+        assert "_ASYA_MAX_LOOP_ITERATIONS" in code
+        assert "r['actors'][:c].count(_self)" in code
+        assert "RuntimeError" in code
+        # No payload pollution
+        assert "__loop_" not in code
+
+        tree = ast.parse(code)
+        assert tree is not None
+
+    def test_while_condition_no_guard_code(self):
+        source = """
+def flow(p: dict) -> dict:
+    while p["i"] < 10:
+        p["i"] += 1
+        p = handler(p)
+    return p
+"""
+        compiler = FlowCompiler()
+        code = compiler.compile(source, "test.py")
+
+        assert "_ASYA_MAX_LOOP_ITERATIONS" not in code
+
+    def test_custom_max_iterations_via_compiler(self):
+        source = """
+def flow(p: dict) -> dict:
+    while True:
+        p = handler(p)
+        if p["done"]:
+            break
+    return p
+"""
+        compiler = FlowCompiler(max_iterations=10)
+        code = compiler.compile(source, "test.py")
+
+        assert '"10"' in code
+
+    def test_react_loop_gets_guard(self):
+        source = """
+def agent(p: dict) -> dict:
+    while True:
+        p = llm_call(p)
+        if p.get("tool_calls"):
+            p = execute_tool(p)
+        else:
+            return p
+    return p
+"""
+        compiler = FlowCompiler()
+        code = compiler.compile(source, "test.py")
+
+        assert "_ASYA_MAX_LOOP_ITERATIONS" in code
+        assert "RuntimeError" in code
+
+        tree = ast.parse(code)
+        assert tree is not None
+
+    def test_guard_execution_raises_at_limit(self, compile_and_import, monkeypatch):
+        source = """
+def flow(p: dict) -> dict:
+    while True:
+        p = handler(p)
+        if p.get("done"):
+            break
+    return p
+"""
+        monkeypatch.setenv("ASYA_HANDLER_HANDLER", "handler")
+        monkeypatch.setenv("ASYA_MAX_LOOP_ITERATIONS", "3")
+
+        mod = compile_and_import(source)
+        # resolve() returns name as-is so route history can be counted
+        monkeypatch.setattr(mod, "resolve", lambda name: name)
+
+        loop_back_name = None
+        loop_back_fn = None
+        for name in dir(mod):
+            if "loop_back" in name:
+                loop_back_name = name
+                loop_back_fn = getattr(mod, name)
+                break
+        assert loop_back_name is not None
+        assert loop_back_fn is not None
+
+        # Realistic initial route: start router placed loop_back into actors
+        msg = make_message({"value": 1}, actors=["start_flow", loop_back_name], current=1)
+
+        # 3 iterations should succeed (route accumulates loop_back visits)
+        for _ in range(3):
+            msg = loop_back_fn(msg)
+            msg["route"]["current"] = len(msg["route"]["actors"]) - 1
+
+        # 4th iteration should raise (3 past visits in route)
+        with pytest.raises(RuntimeError, match="Max loop iterations"):
+            loop_back_fn(msg)
+
+    def test_guard_execution_succeeds_under_limit(self, compile_and_import, monkeypatch):
+        source = """
+def flow(p: dict) -> dict:
+    while True:
+        p = handler(p)
+        if p.get("done"):
+            break
+    return p
+"""
+        monkeypatch.setenv("ASYA_HANDLER_HANDLER", "handler")
+        monkeypatch.setenv("ASYA_MAX_LOOP_ITERATIONS", "5")
+
+        mod = compile_and_import(source)
+        # resolve() returns name as-is so route history can be counted
+        monkeypatch.setattr(mod, "resolve", lambda name: name)
+
+        loop_back_name = None
+        loop_back_fn = None
+        for name in dir(mod):
+            if "loop_back" in name:
+                loop_back_name = name
+                loop_back_fn = getattr(mod, name)
+                break
+        assert loop_back_name is not None
+        assert loop_back_fn is not None
+
+        # Realistic initial route: start router placed loop_back into actors
+        msg = make_message({"value": 1}, actors=["start_flow", loop_back_name], current=1)
+
+        for _ in range(5):
+            msg = loop_back_fn(msg)
+            msg["route"]["current"] = len(msg["route"]["actors"]) - 1
+
+        # Payload stays clean (no __loop_ keys injected)
+        assert not any(k.startswith("__loop_") for k in msg["payload"])

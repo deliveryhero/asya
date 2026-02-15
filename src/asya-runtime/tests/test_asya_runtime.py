@@ -327,6 +327,38 @@ class TestMessageFieldPreservation:
         assert validated["route"] == {"actors": ["a", "b"], "current": 0}
         assert validated["headers"] == {"trace_id": "trace-123", "priority": "high"}
 
+    def test_validate_message_preserves_status(self):
+        """Test that status field is preserved through validation."""
+        status = {
+            "phase": "processing",
+            "actor": "actor-a",
+            "attempt": 1,
+            "max_attempts": 1,
+            "created_at": "2025-01-01T00:00:00Z",
+            "updated_at": "2025-01-01T00:01:00Z",
+        }
+        message = {
+            "id": "status-msg-1",
+            "payload": {"test": "data"},
+            "route": {"actors": ["a", "b"], "current": 0},
+            "status": status,
+        }
+        validated = asya_runtime._validate_message(message)
+
+        assert validated["status"] == status
+        assert validated["status"]["phase"] == "processing"
+        assert validated["status"]["actor"] == "actor-a"
+
+    def test_validate_message_without_status(self):
+        """Test that messages without status field still validate (backward compat)."""
+        message = {
+            "payload": {"test": "data"},
+            "route": {"actors": ["a"], "current": 0},
+        }
+        validated = asya_runtime._validate_message(message)
+
+        assert "status" not in validated
+
     def test_validate_message_without_id_field(self):
         """Test that message without id field still validates (id is optional)."""
         message = {
@@ -1016,8 +1048,50 @@ class TestErrorDict:
             assert err["error"] == "processing_error"
             assert err["details"]["message"] == "Test exception envelope"
             assert err["details"]["type"] == "ValueError"
+            assert err["details"]["mro"] == ["Exception"]
             assert "traceback" in err["details"]
             assert "ValueError" in err["details"]["traceback"]
+
+    def test_error_dict_stdlib_subclass_fqn_and_mro(self):
+        """Test that stdlib subclass gets fully qualified type and MRO chain."""
+        import json as json_mod
+
+        try:
+            json_mod.loads("{invalid")
+        except json_mod.JSONDecodeError as e:
+            err = asya_runtime._error_response("processing_error", e)
+            assert err["details"]["type"] == "json.decoder.JSONDecodeError"
+            assert err["details"]["mro"] == ["ValueError", "Exception"]
+
+    def test_error_dict_user_defined_subclass(self):
+        """Test that user-defined exception subclass gets correct FQN and MRO."""
+
+        class MyAppError(RuntimeError):
+            pass
+
+        class MySpecificError(MyAppError):
+            pass
+
+        try:
+            raise MySpecificError("custom error")
+        except MySpecificError as e:
+            err = asya_runtime._error_response("processing_error", e)
+            # User-defined classes have module set to test module
+            assert "MySpecificError" in err["details"]["type"]
+            mro = err["details"]["mro"]
+            assert "MyAppError" in mro[0]
+            assert "RuntimeError" in mro[1]
+            assert "Exception" in mro[2]
+            assert len(mro) == 3
+
+    def test_error_dict_builtin_exception_no_module_prefix(self):
+        """Test that builtin exceptions have no module prefix."""
+        try:
+            raise KeyError("missing key")
+        except KeyError as e:
+            err = asya_runtime._error_response("processing_error", e)
+            assert err["details"]["type"] == "KeyError"
+            assert err["details"]["mro"] == ["LookupError", "Exception"]
 
 
 class TestHandleRequestPayloadMode:
@@ -2004,6 +2078,94 @@ class TestEdgeCases:
 
         assert len(responses) == 1
         assert responses[0]["payload"]["text"] == 'Test "quotes" and \\backslashes\\ and \n newlines \t tabs'
+
+
+class TestStatusPreservation:
+    """Test that status field is properly preserved through message processing."""
+
+    def test_payload_mode_preserves_status_in_frame(self, socket_pair):
+        """Test that status is included in response frame in payload mode."""
+        server_sock, client_sock = socket_pair
+
+        def simple_handler(payload):
+            return {"result": payload["value"] * 2}
+
+        status = {
+            "phase": "processing",
+            "actor": "doubler",
+            "attempt": 1,
+            "max_attempts": 1,
+            "created_at": "2025-01-01T00:00:00Z",
+            "updated_at": "2025-01-01T00:01:00Z",
+        }
+        message = {
+            "payload": {"value": 21},
+            "route": {"actors": ["doubler", "next"], "current": 0},
+            "status": status,
+        }
+        message_data = json.dumps(message).encode("utf-8")
+        asya_runtime._send_message(client_sock, message_data)
+
+        responses = handle_and_receive_frames(server_sock, client_sock, simple_handler)
+
+        assert len(responses) == 1
+        assert responses[0]["payload"] == {"result": 42}
+        assert responses[0]["status"] == status
+        assert responses[0]["route"]["current"] == 1
+
+    def test_payload_mode_no_status_backward_compat(self, socket_pair):
+        """Test that payload mode works without status (backward compat)."""
+        server_sock, client_sock = socket_pair
+
+        def simple_handler(payload):
+            return {"result": "ok"}
+
+        message = {
+            "payload": {"test": True},
+            "route": {"actors": ["a"], "current": 0},
+        }
+        message_data = json.dumps(message).encode("utf-8")
+        asya_runtime._send_message(client_sock, message_data)
+
+        responses = handle_and_receive_frames(server_sock, client_sock, simple_handler)
+
+        assert len(responses) == 1
+        assert responses[0]["payload"] == {"result": "ok"}
+        assert "status" not in responses[0]
+
+    def test_envelope_mode_preserves_status(self, socket_pair, mock_env):
+        """Test that status flows through envelope mode via _validate_message."""
+        server_sock, client_sock = socket_pair
+
+        status = {
+            "phase": "processing",
+            "actor": "processor",
+            "attempt": 1,
+            "max_attempts": 1,
+            "created_at": "2025-01-01T00:00:00Z",
+            "updated_at": "2025-01-01T00:01:00Z",
+        }
+
+        def envelope_handler(msg):
+            return {
+                "payload": {"processed": True},
+                "route": {**msg["route"], "current": msg["route"]["current"] + 1},
+                "status": msg.get("status"),
+            }
+
+        message = {
+            "payload": {"data": "test"},
+            "route": {"actors": ["processor", "next"], "current": 0},
+            "status": status,
+        }
+        message_data = json.dumps(message).encode("utf-8")
+        asya_runtime._send_message(client_sock, message_data)
+
+        with mock_env(ASYA_HANDLER_MODE="envelope"):
+            responses = handle_and_receive_frames(server_sock, client_sock, envelope_handler)
+
+        assert len(responses) == 1
+        assert responses[0]["status"] == status
 
 
 class TestHeadersPreservation:

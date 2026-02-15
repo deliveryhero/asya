@@ -13,6 +13,7 @@ categories:
   labels:
   - 'asya-crew'
   - 'asya-gateway'
+  - 'asya-injector'
   - 'asya-runtime'
   - 'asya-sidecar'
   - 'build'
@@ -41,6 +42,7 @@ include-labels:
 # other changes:
 - 'asya-crew'
 - 'asya-gateway'
+- 'asya-injector'
 - 'asya-runtime'
 - 'asya-sidecar'
 - 'build'
@@ -141,18 +143,21 @@ autolabeler:
   - 'go.sum'
   - '**/requirements*.txt'
   - '**/pyproject.toml'
-- label: 'asya-gateway'
-  files:
-  - 'src/asya-gateway/**/*'
-- label: 'asya-sidecar'
-  files:
-  - 'src/asya-sidecar/**/*'
-- label: 'asya-runtime'
-  files:
-  - 'src/asya-runtime/**/*'
 - label: 'asya-crew'
   files:
   - 'src/asya-crew/**/*'
+- label: 'asya-gateway'
+  files:
+  - 'src/asya-gateway/**/*'
+- label: 'asya-injector'
+  files:
+  - 'src/asya-injector/**/*'
+- label: 'asya-runtime'
+  files:
+  - 'src/asya-runtime/**/*'
+- label: 'asya-sidecar'
+  files:
+  - 'src/asya-sidecar/**/*'
 
 template: |
   $CHANGES
@@ -182,9 +187,10 @@ template: |
 
   All images are published to GitHub Container Registry:
 
-  - `ghcr.io/$OWNER/asya-gateway:$RESOLVED_VERSION`
-  - `ghcr.io/$OWNER/asya-sidecar:$RESOLVED_VERSION`
   - `ghcr.io/$OWNER/asya-crew:$RESOLVED_VERSION`
+  - `ghcr.io/$OWNER/asya-gateway:$RESOLVED_VERSION`
+  - `ghcr.io/$OWNER/asya-injector:$RESOLVED_VERSION`
+  - `ghcr.io/$OWNER/asya-sidecar:$RESOLVED_VERSION`
   - `ghcr.io/$OWNER/asya-testing:$RESOLVED_VERSION`
 
   ## Contributors

@@ -1084,3 +1084,120 @@ class TestWhileLoopGrouping:
 
         stop_cond = next(r for r in routers if r.condition is not None and r.condition.test == 'p["stop"]')
         assert "finalize" in stop_cond.true_branch_actors
+
+
+class TestMaxIterationsGuard:
+    """Test max_iterations guard injection for while True loops."""
+
+    def test_while_true_gets_guard(self):
+        ops = [
+            WhileLoop(
+                lineno=3,
+                test=None,
+                body=[ActorCall(lineno=4, name="handler")],
+            ),
+            Return(lineno=5),
+        ]
+        grouper = OperationGrouper("flow", ops)
+        routers = grouper.group()
+
+        loop_back = next(r for r in routers if r.is_loop_back)
+        assert loop_back.guard_max_iter == 100
+
+    def test_while_condition_no_guard(self):
+        ops = [
+            WhileLoop(
+                lineno=3,
+                test='p["i"] < 10',
+                body=[ActorCall(lineno=4, name="handler")],
+            ),
+            Return(lineno=5),
+        ]
+        grouper = OperationGrouper("flow", ops)
+        routers = grouper.group()
+
+        loop_back = next(r for r in routers if r.is_loop_back)
+        assert loop_back.guard_max_iter is None
+
+    def test_custom_max_iterations(self):
+        ops = [
+            WhileLoop(
+                lineno=3,
+                test=None,
+                body=[ActorCall(lineno=4, name="handler")],
+            ),
+            Return(lineno=5),
+        ]
+        grouper = OperationGrouper("flow", ops, max_iterations=10)
+        routers = grouper.group()
+
+        loop_back = next(r for r in routers if r.is_loop_back)
+        assert loop_back.guard_max_iter == 10
+
+    def test_nested_while_true_loops_both_guarded(self):
+        ops = [
+            WhileLoop(
+                lineno=3,
+                test=None,
+                body=[
+                    WhileLoop(
+                        lineno=5,
+                        test=None,
+                        body=[
+                            ActorCall(lineno=6, name="handler"),
+                            Condition(
+                                lineno=7,
+                                test='p["inner_done"]',
+                                true_branch=[Break(lineno=8)],
+                                false_branch=[],
+                            ),
+                        ],
+                    ),
+                    Condition(
+                        lineno=9,
+                        test='p["outer_done"]',
+                        true_branch=[Break(lineno=10)],
+                        false_branch=[],
+                    ),
+                ],
+            ),
+            Return(lineno=11),
+        ]
+        grouper = OperationGrouper("flow", ops)
+        routers = grouper.group()
+
+        guarded = [r for r in routers if r.guard_max_iter is not None]
+        assert len(guarded) == 2
+
+    def test_mixed_while_true_and_condition_only_true_gets_guard(self):
+        ops = [
+            WhileLoop(
+                lineno=3,
+                test=None,
+                body=[
+                    ActorCall(lineno=4, name="handler_a"),
+                    Condition(
+                        lineno=5,
+                        test='p["done"]',
+                        true_branch=[Break(lineno=6)],
+                        false_branch=[],
+                    ),
+                ],
+            ),
+            WhileLoop(
+                lineno=8,
+                test='p["i"] < 10',
+                body=[ActorCall(lineno=9, name="handler_b")],
+            ),
+            Return(lineno=10),
+        ]
+        grouper = OperationGrouper("flow", ops)
+        routers = grouper.group()
+
+        loop_backs = [r for r in routers if r.is_loop_back]
+        assert len(loop_backs) == 2
+
+        guarded = [r for r in loop_backs if r.guard_max_iter is not None]
+        unguarded = [r for r in loop_backs if r.guard_max_iter is None]
+        assert len(guarded) == 1
+        assert len(unguarded) == 1

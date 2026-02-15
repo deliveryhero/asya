@@ -1,0 +1,39 @@
+digraph flow {
+  rankdir=TB;
+  compound=true;
+  graph [fontname="Courier", fontsize=10];
+  node [fontname="Courier", fontsize=10, shape=box, style="filled,rounded", margin="0.2"];
+  edge [fontname="Courier", fontsize=10];
+
+  start_retry_pipeline [fillcolor="lightgreen", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = start_retry_pipeline(p)</i></td></tr></table>>];
+  router_retry_pipeline_line_13_seq [fillcolor="wheat", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_retry_pipeline_line_13_seq(p)</i></td></tr><tr><td bgcolor="white" align="left">p['attempt'] += 1</td></tr></table>>];
+  router_retry_pipeline_line_12_loop_back_0 [fillcolor="wheat", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_retry_pipeline_line_12_loop_back_0(p)</i></td></tr></table>>];
+  router_retry_pipeline_line_12_while_0 [fillcolor="wheat", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_retry_pipeline_line_12_while_0(p)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> p['attempt'] &lt; 3</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkseagreen4"><font color="white"><b>TRUE</b></font></td><td bgcolor="indianred4"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
+  router_retry_pipeline_line_10_seq [fillcolor="wheat", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_retry_pipeline_line_10_seq(p)</i></td></tr><tr><td bgcolor="white" align="left">p['attempt'] = 0</td></tr></table>>];
+  end_retry_pipeline [fillcolor="lightgreen", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = end_retry_pipeline(p)</i></td></tr></table>>];
+  log_retry [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = log_retry(p)</i></td></tr></table>>];
+  prepare_request [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = prepare_request(p)</i></td></tr></table>>];
+  subgraph cluster_try_0 {
+    style=dashed;
+    color="snow4";
+    fontname="Courier";
+    fontsize=10;
+    label="try";
+    call_another_api [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = call_another_api(p)</i></td></tr></table>>];
+    call_external_api [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = call_external_api(p)</i></td></tr></table>>];
+  }
+
+  call_another_api -> end_retry_pipeline [ltail=cluster_try_0, color=crimson, style=dashed, label="raise ValueError"];
+  call_another_api -> log_retry [ltail=cluster_try_0, color=snow4, style=dashed, label="except ConnectionError"];
+  call_another_api -> router_retry_pipeline_line_12_loop_back_0;
+  call_external_api -> call_another_api;
+  log_retry -> router_retry_pipeline_line_12_loop_back_0;
+  prepare_request -> router_retry_pipeline_line_12_while_0;
+  router_retry_pipeline_line_10_seq -> prepare_request;
+  router_retry_pipeline_line_12_loop_back_0 -> router_retry_pipeline_line_12_while_0 [constraint=false];
+  router_retry_pipeline_line_12_while_0 -> end_retry_pipeline [color=indianred4];
+  router_retry_pipeline_line_12_while_0 -> router_retry_pipeline_line_13_seq [color=darkseagreen4];
+  router_retry_pipeline_line_13_seq -> call_external_api;
+  router_retry_pipeline_line_13_seq -> router_retry_pipeline_line_12_loop_back_0;
+  start_retry_pipeline -> router_retry_pipeline_line_10_seq;
+}

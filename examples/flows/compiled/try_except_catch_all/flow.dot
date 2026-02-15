@@ -1,0 +1,31 @@
+digraph flow {
+  rankdir=TB;
+  compound=true;
+  graph [fontname="Courier", fontsize=10];
+  node [fontname="Courier", fontsize=10, shape=box, style="filled,rounded", margin="0.2"];
+  edge [fontname="Courier", fontsize=10];
+
+  start_resilient_pipeline [fillcolor="lightgreen", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = start_resilient_pipeline(p)</i></td></tr></table>>];
+  router_resilient_pipeline_line_5_seq [fillcolor="wheat", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_resilient_pipeline_line_5_seq(p)</i></td></tr><tr><td bgcolor="white" align="left">p['error_type'] = 'known'</td></tr></table>>];
+  router_resilient_pipeline_line_8_seq [fillcolor="wheat", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_resilient_pipeline_line_8_seq(p)</i></td></tr><tr><td bgcolor="white" align="left">p['error_type'] = 'unknown'</td></tr></table>>];
+  end_resilient_pipeline [fillcolor="lightgreen", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = end_resilient_pipeline(p)</i></td></tr></table>>];
+  handle_known_error [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = handle_known_error(p)</i></td></tr></table>>];
+  handle_unknown_error [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = handle_unknown_error(p)</i></td></tr></table>>];
+  subgraph cluster_try_0 {
+    style=dashed;
+    color="snow4";
+    fontname="Courier";
+    fontsize=10;
+    label="try";
+    risky_operation [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = risky_operation(p)</i></td></tr></table>>];
+  }
+
+  handle_known_error -> end_resilient_pipeline;
+  handle_unknown_error -> end_resilient_pipeline;
+  risky_operation -> end_resilient_pipeline;
+  risky_operation -> router_resilient_pipeline_line_5_seq [ltail=cluster_try_0, color=snow4, style=dashed, label="except ValueError"];
+  risky_operation -> router_resilient_pipeline_line_8_seq [ltail=cluster_try_0, color=snow4, style=dashed, label="except"];
+  router_resilient_pipeline_line_5_seq -> handle_known_error;
+  router_resilient_pipeline_line_8_seq -> handle_unknown_error;
+  start_resilient_pipeline -> risky_operation;
+}

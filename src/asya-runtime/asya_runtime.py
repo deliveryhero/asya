@@ -362,6 +362,8 @@ def _validate_message(
         result["parent_id"] = e["parent_id"]
     if "headers" in e:
         result["headers"] = e["headers"]
+    if "status" in e:
+        result["status"] = e["status"]
 
     return result
 
@@ -376,9 +378,20 @@ def _error_response(code: str, exc: Exception | None = None) -> dict[str, Any]:
     """Returns standardized error response frame."""
     error: dict[str, Any] = {"error": code}
     if exc is not None:
+        exc_type = type(exc)
+
+        def _fqn(cls: type) -> str:
+            module = cls.__module__
+            qualname = cls.__qualname__
+            return f"{module}.{qualname}" if module != "builtins" else qualname
+
+        fqn = _fqn(exc_type)
+        mro = [_fqn(cls) for cls in exc_type.__mro__[1:] if cls not in (object, BaseException)]
+
         error["details"] = {
             "message": str(exc),
-            "type": type(exc).__name__,
+            "type": fqn,
+            "mro": mro,
             "traceback": "".join(traceback.format_exception(type(exc), exc, exc.__traceback__)),
         }
     return error
@@ -476,11 +489,14 @@ def _handle_payload_mode_streaming(conn: socket.socket, message: dict, user_func
     output_route = message["route"].copy()
     output_route["current"] = message["route"]["current"] + 1
     headers = message.get("headers")
+    status = message.get("status")
 
     def _build_payload_frame(payload_value: Any) -> dict[str, Any]:
         frame: dict[str, Any] = {"payload": payload_value, "route": output_route}
         if headers is not None:
             frame["headers"] = headers
+        if status is not None:
+            frame["status"] = status
         return frame
 
     logger.info(f"[DIAG] Calling user_func with payload: {message['payload']}")

@@ -72,7 +72,7 @@ func NewMetrics(namespace string, customMetricsConfig []config.CustomMetricConfi
 			Name:      "messages_sent_total",
 			Help:      "Total number of messages sent to queues",
 		},
-		[]string{"destination_queue", "message_type"}, // message_type: routing, happy_end, error_end
+		[]string{"destination_queue", "message_type"}, // message_type: routing, sink, sump
 	)
 
 	m.messagesFailed = prometheus.NewCounterVec(

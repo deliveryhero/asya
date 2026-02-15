@@ -64,7 +64,7 @@ def gateway_helper(request):
         else:
             logger.info("No specific queues detected, waiting for common actors")
             wait_for_rabbitmq_consumers(
-                required_queues=["asya-default-test-echo", "asya-default-happy-end", "asya-default-error-end"],
+                required_queues=["asya-default-test-echo", "asya-default-x-sink", "asya-default-x-sump"],
                 timeout=60,
             )
     else:
@@ -104,10 +104,10 @@ def _get_required_queues_for_test(request) -> list[str]:
             queues.append(queue_name)
 
     # Always include end actors as they're used in all tests
-    if "happy" in test_name.lower() or "s3" in test_name.lower() or "persist" in test_name.lower():
-        queues.append("asya-default-happy-end")
-    if "error" in test_name.lower():
-        queues.append("asya-default-error-end")
+    if "sink" in test_name.lower() or "s3" in test_name.lower() or "persist" in test_name.lower():
+        queues.append("asya-default-x-sink")
+    if "sump" in test_name.lower() or "error" in test_name.lower():
+        queues.append("asya-default-x-sump")
 
     # Multihop tests
     if "multihop" in test_name.lower():
@@ -163,7 +163,7 @@ def gateway_helper_parametrized(request):
         else:
             logger.info("No specific queues detected, waiting for common actors")
             wait_for_rabbitmq_consumers(
-                required_queues=["asya-default-test-echo", "asya-default-happy-end", "asya-default-error-end"],
+                required_queues=["asya-default-test-echo", "asya-default-x-sink", "asya-default-x-sump"],
                 timeout=60,
             )
     else:

@@ -254,6 +254,193 @@ func stringPtr(s string) *string {
 	return &s
 }
 
+func TestNewDefaultStatus(t *testing.T) {
+	status := NewDefaultStatus("my-actor")
+
+	if status.Phase != PhasePending {
+		t.Errorf("Phase = %q, want %q", status.Phase, PhasePending)
+	}
+	if status.Actor != "my-actor" {
+		t.Errorf("Actor = %q, want %q", status.Actor, "my-actor")
+	}
+	if status.Attempt != 1 {
+		t.Errorf("Attempt = %d, want 1", status.Attempt)
+	}
+	if status.MaxAttempts != 1 {
+		t.Errorf("MaxAttempts = %d, want 1", status.MaxAttempts)
+	}
+	if status.CreatedAt == "" {
+		t.Error("CreatedAt should not be empty")
+	}
+	if status.UpdatedAt == "" {
+		t.Error("UpdatedAt should not be empty")
+	}
+	if status.Reason != "" {
+		t.Errorf("Reason should be empty, got %q", status.Reason)
+	}
+	if status.Error != nil {
+		t.Error("Error should be nil")
+	}
+}
+
+func TestStatus_JSONSerialization(t *testing.T) {
+	status := &Status{
+		Phase:       PhaseProcessing,
+		Reason:      "test-reason",
+		Actor:       "test-actor",
+		Attempt:     2,
+		MaxAttempts: 3,
+		CreatedAt:   "2025-01-01T00:00:00Z",
+		UpdatedAt:   "2025-01-01T00:01:00Z",
+		Error: &StatusError{
+			Message:   "something went wrong",
+			Type:      "ValueError",
+			Traceback: "line 42",
+		},
+	}
+
+	data, err := json.Marshal(status)
+	if err != nil {
+		t.Fatalf("Failed to marshal: %v", err)
+	}
+
+	var decoded Status
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		t.Fatalf("Failed to unmarshal: %v", err)
+	}
+
+	if decoded.Phase != status.Phase {
+		t.Errorf("Phase = %q, want %q", decoded.Phase, status.Phase)
+	}
+	if decoded.Reason != status.Reason {
+		t.Errorf("Reason = %q, want %q", decoded.Reason, status.Reason)
+	}
+	if decoded.Actor != status.Actor {
+		t.Errorf("Actor = %q, want %q", decoded.Actor, status.Actor)
+	}
+	if decoded.Attempt != status.Attempt {
+		t.Errorf("Attempt = %d, want %d", decoded.Attempt, status.Attempt)
+	}
+	if decoded.MaxAttempts != status.MaxAttempts {
+		t.Errorf("MaxAttempts = %d, want %d", decoded.MaxAttempts, status.MaxAttempts)
+	}
+	if decoded.CreatedAt != status.CreatedAt {
+		t.Errorf("CreatedAt = %q, want %q", decoded.CreatedAt, status.CreatedAt)
+	}
+	if decoded.UpdatedAt != status.UpdatedAt {
+		t.Errorf("UpdatedAt = %q, want %q", decoded.UpdatedAt, status.UpdatedAt)
+	}
+	if decoded.Error == nil {
+		t.Fatal("Error should not be nil")
+	}
+	if decoded.Error.Message != "something went wrong" {
+		t.Errorf("Error.Message = %q, want %q", decoded.Error.Message, "something went wrong")
+	}
+	if decoded.Error.Type != "ValueError" {
+		t.Errorf("Error.Type = %q, want %q", decoded.Error.Type, "ValueError")
+	}
+}
+
+func TestStatus_JSONSerialization_OmitsEmptyFields(t *testing.T) {
+	status := &Status{
+		Phase:     PhasePending,
+		Actor:     "actor1",
+		Attempt:   1,
+		CreatedAt: "2025-01-01T00:00:00Z",
+		UpdatedAt: "2025-01-01T00:00:00Z",
+	}
+
+	data, err := json.Marshal(status)
+	if err != nil {
+		t.Fatalf("Failed to marshal: %v", err)
+	}
+
+	var decoded map[string]interface{}
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		t.Fatalf("Failed to unmarshal to map: %v", err)
+	}
+
+	if _, exists := decoded["reason"]; exists {
+		t.Error("reason should be omitted when empty")
+	}
+	if _, exists := decoded["error"]; exists {
+		t.Error("error should be omitted when nil")
+	}
+}
+
+func TestMessage_WithStatus_Serialization(t *testing.T) {
+	msg := Message{
+		ID: "test-123",
+		Route: Route{
+			Actors:  []string{"actor1", "actor2"},
+			Current: 0,
+		},
+		Payload: json.RawMessage(`{"data":"test"}`),
+		Status: &Status{
+			Phase:       PhasePending,
+			Actor:       "actor1",
+			Attempt:     1,
+			MaxAttempts: 1,
+			CreatedAt:   "2025-01-01T00:00:00Z",
+			UpdatedAt:   "2025-01-01T00:00:00Z",
+		},
+	}
+
+	data, err := json.Marshal(msg)
+	if err != nil {
+		t.Fatalf("Failed to marshal: %v", err)
+	}
+
+	var decoded Message
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		t.Fatalf("Failed to unmarshal: %v", err)
+	}
+
+	if decoded.Status == nil {
+		t.Fatal("Status should not be nil after round-trip")
+	}
+	if decoded.Status.Phase != PhasePending {
+		t.Errorf("Status.Phase = %q, want %q", decoded.Status.Phase, PhasePending)
+	}
+	if decoded.Status.Actor != "actor1" {
+		t.Errorf("Status.Actor = %q, want %q", decoded.Status.Actor, "actor1")
+	}
+}
+
+func TestMessage_WithoutStatus_BackwardCompat(t *testing.T) {
+	rawJSON := `{"id":"test-123","route":{"actors":["a","b"],"current":0},"payload":{"data":"test"}}`
+
+	var msg Message
+	if err := json.Unmarshal([]byte(rawJSON), &msg); err != nil {
+		t.Fatalf("Failed to unmarshal: %v", err)
+	}
+
+	if msg.Status != nil {
+		t.Error("Status should be nil for messages without status field")
+	}
+	if msg.ID != "test-123" {
+		t.Errorf("ID = %q, want %q", msg.ID, "test-123")
+	}
+	if len(msg.Route.Actors) != 2 {
+		t.Errorf("Route.Actors length = %d, want 2", len(msg.Route.Actors))
+	}
+
+	// Re-marshal should omit status
+	data, err := json.Marshal(msg)
+	if err != nil {
+		t.Fatalf("Failed to re-marshal: %v", err)
+	}
+
+	var decoded map[string]interface{}
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		t.Fatalf("Failed to unmarshal to map: %v", err)
+	}
+
+	if _, exists := decoded["status"]; exists {
+		t.Error("status should be omitted when nil")
+	}
+}
+
 // TestMessage_RawMessagePreservesPayloadBytes verifies that json.RawMessage
 // keeps payload as raw bytes without parsing into Go objects.
 // This is a regression test for the optimization in asya-866.

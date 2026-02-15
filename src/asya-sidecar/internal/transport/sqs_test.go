@@ -3,6 +3,7 @@ package transport
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
@@ -360,12 +361,12 @@ func TestSQSTransport_Ack(t *testing.T) {
 	})
 }
 
-func TestSQSTransport_Nack(t *testing.T) {
+func TestSQSTransport_Requeue(t *testing.T) {
 	ctx := context.Background()
 	queueURL := testQueueURL
 	receiptHandle := "receipt-handle-123"
 
-	t.Run("successful nack with visibility timeout 0", func(t *testing.T) {
+	t.Run("successful requeue with visibility timeout 0", func(t *testing.T) {
 		mockClient := &mockSQSClient{
 			changeMessageVisibilityFunc: func(ctx context.Context, params *sqs.ChangeMessageVisibilityInput, optFns ...func(*sqs.Options)) (*sqs.ChangeMessageVisibilityOutput, error) {
 				if *params.QueueUrl != queueURL {
@@ -387,9 +388,9 @@ func TestSQSTransport_Nack(t *testing.T) {
 			ReceiptHandle: queueURL + "|" + receiptHandle,
 		}
 
-		err := transport.Nack(ctx, msg)
+		err := transport.Requeue(ctx, msg)
 		if err != nil {
-			t.Errorf("Nack() error = %v, want nil", err)
+			t.Errorf("Requeue() error = %v, want nil", err)
 		}
 	})
 
@@ -400,9 +401,122 @@ func TestSQSTransport_Nack(t *testing.T) {
 			ReceiptHandle: "no-separator",
 		}
 
-		err := transport.Nack(ctx, msg)
+		err := transport.Requeue(ctx, msg)
 		if err == nil {
-			t.Error("Nack() error = nil, want error")
+			t.Error("Requeue() error = nil, want error")
+		}
+	})
+}
+
+func TestSQSTransport_SendWithDelay(t *testing.T) {
+	ctx := context.Background()
+	queueName := testQueueName
+	queueURL := testQueueURL
+	messageBody := []byte(`{"test":"delayed"}`)
+
+	t.Run("successful send with delay", func(t *testing.T) {
+		mockClient := &mockSQSClient{
+			getQueueUrlFunc: func(ctx context.Context, params *sqs.GetQueueUrlInput, optFns ...func(*sqs.Options)) (*sqs.GetQueueUrlOutput, error) {
+				return &sqs.GetQueueUrlOutput{
+					QueueUrl: aws.String(queueURL),
+				}, nil
+			},
+			sendMessageFunc: func(ctx context.Context, params *sqs.SendMessageInput, optFns ...func(*sqs.Options)) (*sqs.SendMessageOutput, error) {
+				if *params.QueueUrl != queueURL {
+					t.Errorf("QueueUrl = %v, want %v", *params.QueueUrl, queueURL)
+				}
+				if *params.MessageBody != string(messageBody) {
+					t.Errorf("MessageBody = %v, want %v", *params.MessageBody, string(messageBody))
+				}
+				if params.DelaySeconds != 30 {
+					t.Errorf("DelaySeconds = %v, want 30", params.DelaySeconds)
+				}
+				return &sqs.SendMessageOutput{
+					MessageId: aws.String("msg-delayed-123"),
+				}, nil
+			},
+		}
+
+		transport := createMockSQSTransport(mockClient)
+
+		err := transport.SendWithDelay(ctx, queueName, messageBody, 30*time.Second)
+		if err != nil {
+			t.Errorf("SendWithDelay() error = %v, want nil", err)
+		}
+	})
+
+	t.Run("delay clamped to 900s", func(t *testing.T) {
+		mockClient := &mockSQSClient{
+			getQueueUrlFunc: func(ctx context.Context, params *sqs.GetQueueUrlInput, optFns ...func(*sqs.Options)) (*sqs.GetQueueUrlOutput, error) {
+				return &sqs.GetQueueUrlOutput{
+					QueueUrl: aws.String(queueURL),
+				}, nil
+			},
+			sendMessageFunc: func(ctx context.Context, params *sqs.SendMessageInput, optFns ...func(*sqs.Options)) (*sqs.SendMessageOutput, error) {
+				if params.DelaySeconds != 900 {
+					t.Errorf("DelaySeconds = %v, want 900 (clamped)", params.DelaySeconds)
+				}
+				return &sqs.SendMessageOutput{
+					MessageId: aws.String("msg-clamped"),
+				}, nil
+			},
+		}
+
+		transport := createMockSQSTransport(mockClient)
+
+		err := transport.SendWithDelay(ctx, queueName, messageBody, 30*time.Minute)
+		if err != nil {
+			t.Errorf("SendWithDelay() error = %v, want nil", err)
+		}
+	})
+
+	t.Run("fractional seconds rounded", func(t *testing.T) {
+		mockClient := &mockSQSClient{
+			getQueueUrlFunc: func(ctx context.Context, params *sqs.GetQueueUrlInput, optFns ...func(*sqs.Options)) (*sqs.GetQueueUrlOutput, error) {
+				return &sqs.GetQueueUrlOutput{
+					QueueUrl: aws.String(queueURL),
+				}, nil
+			},
+			sendMessageFunc: func(ctx context.Context, params *sqs.SendMessageInput, optFns ...func(*sqs.Options)) (*sqs.SendMessageOutput, error) {
+				if params.DelaySeconds != 3 {
+					t.Errorf("DelaySeconds = %v, want 3 (2.9s rounded)", params.DelaySeconds)
+				}
+				return &sqs.SendMessageOutput{
+					MessageId: aws.String("msg-rounded"),
+				}, nil
+			},
+		}
+
+		transport := createMockSQSTransport(mockClient)
+
+		err := transport.SendWithDelay(ctx, queueName, messageBody, 2900*time.Millisecond)
+		if err != nil {
+			t.Errorf("SendWithDelay() error = %v, want nil", err)
+		}
+	})
+
+	t.Run("zero delay", func(t *testing.T) {
+		mockClient := &mockSQSClient{
+			getQueueUrlFunc: func(ctx context.Context, params *sqs.GetQueueUrlInput, optFns ...func(*sqs.Options)) (*sqs.GetQueueUrlOutput, error) {
+				return &sqs.GetQueueUrlOutput{
+					QueueUrl: aws.String(queueURL),
+				}, nil
+			},
+			sendMessageFunc: func(ctx context.Context, params *sqs.SendMessageInput, optFns ...func(*sqs.Options)) (*sqs.SendMessageOutput, error) {
+				if params.DelaySeconds != 0 {
+					t.Errorf("DelaySeconds = %v, want 0", params.DelaySeconds)
+				}
+				return &sqs.SendMessageOutput{
+					MessageId: aws.String("msg-zero-delay"),
+				}, nil
+			},
+		}
+
+		transport := createMockSQSTransport(mockClient)
+
+		err := transport.SendWithDelay(ctx, queueName, messageBody, 0)
+		if err != nil {
+			t.Errorf("SendWithDelay() error = %v, want nil", err)
 		}
 	})
 }

@@ -35,10 +35,22 @@ class CodeGenerator:
 
         parts = []
         parts.append(self._generate_header())
+        if self._has_loop_guards():
+            parts.append(self._generate_max_iter_constant())
         parts.append(self._generate_routers())
         parts.append(self._generate_resolve_function())
 
         return "\n".join(parts)
+
+    def _has_loop_guards(self) -> bool:
+        return any(r.guard_max_iter is not None for r in self.routers)
+
+    def _generate_max_iter_constant(self) -> str:
+        default = next(r.guard_max_iter for r in self.routers if r.guard_max_iter is not None)
+        return dedent(f'''\
+            import os as _os
+            _ASYA_MAX_LOOP_ITERATIONS = int(_os.environ.get("ASYA_MAX_LOOP_ITERATIONS", "{default}"))
+            ''')
 
     def _collect_handlers(self) -> None:
         for router in self.routers:
@@ -47,6 +59,14 @@ class CodeGenerator:
                 self.all_handlers.add(actor_name)
             for actor_name in router.false_branch_actors:
                 self.all_handlers.add(actor_name)
+            for actor_name in router.finally_actors:
+                self.all_handlers.add(actor_name)
+            for actor_name in router.continuation_actors:
+                self.all_handlers.add(actor_name)
+            if router.exception_handlers:
+                for handler in router.exception_handlers:
+                    for actor_name in handler.actors:
+                        self.all_handlers.add(actor_name)
 
     def _generate_header(self) -> str:
         return dedent(f'''\
@@ -75,6 +95,14 @@ class CodeGenerator:
                 lines.append(self._generate_end_router(router))
             elif router.is_loop_back:
                 lines.append(self._generate_loop_back_router(router))
+            elif router.is_try_enter:
+                lines.append(self._generate_try_enter_router(router))
+            elif router.is_try_exit:
+                lines.append(self._generate_try_exit_router(router))
+            elif router.is_except_dispatch:
+                lines.append(self._generate_except_dispatch_router(router))
+            elif router.is_reraise:
+                lines.append(self._generate_reraise_router(router))
             else:
                 lines.append(self._generate_router(router))
 
@@ -156,7 +184,10 @@ class CodeGenerator:
     def _generate_loop_back_router(self, router: Router) -> str:
         lines = []
         lines.append(f"def {router.name}(message: dict) -> dict:")
-        lines.append('    """Loop-back router: re-inserts loop actors into route"""')
+        if router.guard_max_iter is not None:
+            lines.append('    """Loop-back router: re-inserts loop actors into route (guarded)"""')
+        else:
+            lines.append('    """Loop-back router: re-inserts loop actors into route"""')
         lines.append("    p = message['payload']")
         lines.append("    r = message['route']")
         lines.append("    c = r['current']")
@@ -166,6 +197,14 @@ class CodeGenerator:
         for mutation in router.mutations:
             lines.append(f"    {mutation.code}")
 
+        if router.guard_max_iter is not None:
+            lines.append(f'    _self = resolve("{router.name}")')
+            lines.append("    if r['actors'][:c].count(_self) >= _ASYA_MAX_LOOP_ITERATIONS:")
+            lines.append(
+                f'        raise RuntimeError(f"Max loop iterations ({{_ASYA_MAX_LOOP_ITERATIONS}}) exceeded for while-loop at line {router.lineno}")'
+            )
+            lines.append("")
+
         filtered_actors = [actor for actor in router.true_branch_actors if not actor.startswith("end_")]
         for actor in filtered_actors:
             lines.append(f'    _next.append(resolve("{actor}"))')
@@ -174,6 +213,132 @@ class CodeGenerator:
         lines.append("    r['actors'][c+1:c+1] = _next")
         lines.append("    r['current'] = c + 1")
         lines.append("    return message")
+        lines.append("")
+
+        return "\n".join(lines)
+
+    def _generate_try_enter_router(self, router: Router) -> str:
+        lines = []
+        lines.append(f"def {router.name}(message: dict) -> dict:")
+        lines.append('    """Try-enter router: sets _on_error header and inserts try body"""')
+        lines.append("    r = message['route']")
+        lines.append("    c = r['current']")
+        lines.append("    _next = []")
+        lines.append("")
+        lines.append("    message.setdefault('headers', {})")
+        lines.append(f"    message['headers']['_on_error'] = resolve(\"{router.except_dispatch_name}\")")
+        lines.append("")
+
+        filtered_actors = [a for a in router.true_branch_actors if not a.startswith("end_")]
+        for actor in filtered_actors:
+            lines.append(f'    _next.append(resolve("{actor}"))')
+
+        lines.append("")
+        lines.append("    r['actors'][c+1:c+1] = _next")
+        lines.append("    r['current'] = c + 1")
+        lines.append("    return message")
+        lines.append("")
+
+        return "\n".join(lines)
+
+    def _generate_try_exit_router(self, router: Router) -> str:
+        lines = []
+        lines.append(f"def {router.name}(message: dict) -> dict:")
+        lines.append('    """Try-exit router: clears _on_error header (success path)"""')
+        lines.append("    r = message['route']")
+        lines.append("    c = r['current']")
+        lines.append("    _next = []")
+        lines.append("")
+        lines.append("    message.get('headers', {}).pop('_on_error', None)")
+        lines.append("")
+
+        filtered_finally = [a for a in router.finally_actors if not a.startswith("end_")]
+        for actor in filtered_finally:
+            lines.append(f'    _next.append(resolve("{actor}"))')
+
+        filtered_cont = [a for a in router.continuation_actors if not a.startswith("end_")]
+        for actor in filtered_cont:
+            lines.append(f'    _next.append(resolve("{actor}"))')
+
+        lines.append("")
+        lines.append("    r['actors'][c+1:c+1] = _next")
+        lines.append("    r['current'] = c + 1")
+        lines.append("    return message")
+        lines.append("")
+
+        return "\n".join(lines)
+
+    def _generate_except_dispatch_router(self, router: Router) -> str:
+        lines = []
+        lines.append(f"def {router.name}(message: dict) -> dict:")
+        lines.append('    """Except-dispatch router: matches error type and routes to handler"""')
+        lines.append("    p = message['payload']")
+        lines.append("    r = message['route']")
+        lines.append("    c = r['current']")
+        lines.append("    _next = []")
+        lines.append("")
+        lines.append("    _error = message.get('status', {}).get('error', {})")
+        lines.append("    _error_type = _error.get('type', '')")
+        lines.append("    _error_mro = _error.get('mro', [])")
+        lines.append("    _all_types = [_error_type] + _error_mro")
+        lines.append("")
+
+        if router.exception_handlers:
+            first = True
+            for handler in router.exception_handlers:
+                if handler.error_types is None:
+                    # Bare except: catch-all
+                    if first:
+                        lines.append("    if True:")
+                    else:
+                        lines.append("    else:")
+                else:
+                    # Typed except: check error type and MRO
+                    type_checks = " or ".join(f'"{t}" in _all_types' for t in handler.error_types)
+                    keyword = "if" if first else "elif"
+                    lines.append(f"    {keyword} {type_checks}:")
+                first = False
+
+                # Handler body: clear error, apply mutations, add actors
+                lines.append("        message.get('status', {}).pop('error', None)")
+                for mutation in handler.mutations:
+                    lines.append(f"        {mutation.code}")
+                filtered = [a for a in handler.actors if not a.startswith("end_")]
+                for actor in filtered:
+                    lines.append(f'        _next.append(resolve("{actor}"))')
+                if not filtered and not handler.mutations:
+                    lines.append("        pass")
+
+            # If no bare except, add else clause that routes to reraise
+            if router.reraise_name:
+                lines.append("    else:")
+                lines.append(f'        _next.append(resolve("{router.reraise_name}"))')
+
+        # Add finally and continuation actors
+        filtered_finally = [a for a in router.finally_actors if not a.startswith("end_")]
+        for actor in filtered_finally:
+            lines.append(f'    _next.append(resolve("{actor}"))')
+
+        filtered_cont = [a for a in router.continuation_actors if not a.startswith("end_")]
+        for actor in filtered_cont:
+            lines.append(f'    _next.append(resolve("{actor}"))')
+
+        lines.append("")
+        lines.append("    r['actors'][c+1:c+1] = _next")
+        lines.append("    r['current'] = c + 1")
+        lines.append("    return message")
+        lines.append("")
+
+        return "\n".join(lines)
+
+    def _generate_reraise_router(self, router: Router) -> str:
+        lines = []
+        lines.append(f"def {router.name}(message: dict) -> dict:")
+        lines.append('    """Reraise router: raises RuntimeError for unhandled exceptions"""')
+        lines.append("    _error = message.get('status', {}).get('error', {})")
+        lines.append("    _error_type = _error.get('type', 'unknown')")
+        lines.append("    _error_msg = _error.get('message', 'unknown error')")
+        lines.append('    raise RuntimeError(f"Unhandled exception {_error_type}: {_error_msg}")')
         lines.append("")
 
         return "\n".join(lines)

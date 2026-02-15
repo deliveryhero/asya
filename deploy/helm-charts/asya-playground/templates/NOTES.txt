@@ -4,7 +4,7 @@ Components installed:
   - Asya Crossplane (XRDs, Compositions, Providers)
   - Asya Injector (sidecar injection webhook)
 {{- if .Values.enableAsyaCrew }}
-  - Asya Crew actors (happy-end, error-end)
+  - Asya Crew actors (x-sink, x-sump)
 {{- end }}
 {{- if .Values.enableAsyaGateway }}
   - Asya Gateway (http://asya-gateway.{{ .Release.Namespace }}:80)

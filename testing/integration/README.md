@@ -77,7 +77,7 @@ Tests the full pipeline including gateway, actors, and end handlers:
 
 - Gateway MCP API (JSON-RPC 2.0, SSE streaming)
 - Multi-actor pipelines with progress tracking
-- S3 persistence (happy-end, error-end actors)
+- S3 persistence (x-sink, x-sump actors)
 - Handler modes (payload vs envelope)
 
 **Technology**: Python tests with Docker Compose (PostgreSQL + MinIO + RabbitMQ + gateway + actors)

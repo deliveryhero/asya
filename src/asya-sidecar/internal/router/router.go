@@ -7,6 +7,8 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"math"
+	"math/rand/v2"
 	"net/http"
 	"os"
 	"time"
@@ -30,8 +32,8 @@ type Router struct {
 	transport        transport.Transport
 	runtimeClient    *runtime.Client
 	actorName        string
-	happyEndQueue    string
-	errorEndQueue    string
+	sinkQueue        string
+	sumpQueue        string
 	metrics          *metrics.Metrics
 	progressReporter *progress.Reporter
 	gatewayURL       string
@@ -49,15 +51,56 @@ func NewRouter(cfg *config.Config, transport transport.Transport, runtimeClient 
 		transport:        transport,
 		runtimeClient:    runtimeClient,
 		actorName:        cfg.ActorName,
-		happyEndQueue:    cfg.HappyEndQueue,
-		errorEndQueue:    cfg.ErrorEndQueue,
+		sinkQueue:        cfg.SinkQueue,
+		sumpQueue:        cfg.SumpQueue,
 		metrics:          m,
 		progressReporter: progressReporter,
 		gatewayURL:       cfg.GatewayURL,
 	}
 }
 
-// processEndActorMessage handles message processing for end actors (happy-end, error-end)
+// ensureAndUpdateStatus initializes or updates the status on a message before processing.
+// If status is nil, creates a default with phase=processing.
+// If status exists, transitions to processing phase and updates actor/timestamps.
+// MaxAttempts is set from the resiliency config when available.
+func (r *Router) ensureAndUpdateStatus(msg *messages.Message) {
+	now := time.Now().UTC().Format(time.RFC3339)
+	maxAttempts := r.maxAttempts()
+
+	if msg.Status == nil {
+		msg.Status = &messages.Status{
+			Phase:       messages.PhaseProcessing,
+			Actor:       r.actorName,
+			Attempt:     1,
+			MaxAttempts: maxAttempts,
+			CreatedAt:   now,
+			UpdatedAt:   now,
+		}
+		return
+	}
+
+	// Reset attempt counter when transitioning between actors
+	if msg.Status.Actor != r.actorName {
+		msg.Status.Attempt = 1
+	}
+
+	msg.Status.Phase = messages.PhaseProcessing
+	msg.Status.Reason = ""
+	msg.Status.Actor = r.actorName
+	msg.Status.MaxAttempts = maxAttempts
+	msg.Status.UpdatedAt = now
+	msg.Status.Error = nil
+}
+
+// maxAttempts returns the max retry attempts from resiliency config, or 1 if not configured.
+func (r *Router) maxAttempts() int {
+	if r.cfg != nil && r.cfg.Resiliency != nil {
+		return r.cfg.Resiliency.Retry.MaxAttempts
+	}
+	return 1
+}
+
+// processEndActorMessage handles message processing for end actors (x-sink, x-sump)
 // End actors are terminal nodes that:
 // - Accept messages with ANY route state (no validation)
 // - Process the message through runtime
@@ -148,7 +191,7 @@ func (r *Router) parseAndValidateMessage(ctx context.Context, msgBody []byte, st
 			r.metrics.RecordProcessingDuration(r.actorName, time.Since(startTime))
 		}
 
-		_ = r.sendToErrorQueue(ctx, msgBody, fmt.Sprintf("Failed to parse message: %v", err))
+		_ = r.sendToSumpQueue(ctx, msgBody, fmt.Sprintf("Failed to parse message: %v", err))
 		return nil, err
 	}
 
@@ -161,7 +204,7 @@ func (r *Router) parseAndValidateMessage(ctx context.Context, msgBody []byte, st
 			r.metrics.RecordProcessingDuration(r.actorName, time.Since(startTime))
 		}
 
-		_ = r.sendToErrorQueue(ctx, msgBody, "Message missing required 'id' field")
+		_ = r.sendToSumpQueue(ctx, msgBody, "Message missing required 'id' field")
 		return nil, fmt.Errorf("message missing required 'id' field")
 	}
 
@@ -170,23 +213,23 @@ func (r *Router) parseAndValidateMessage(ctx context.Context, msgBody []byte, st
 }
 
 // handleRuntimeResponses processes runtime responses and routes them to appropriate destinations
-func (r *Router) handleRuntimeResponses(ctx context.Context, msg *messages.Message, responses []runtime.RuntimeResponse, msgBody []byte, runtimeDuration time.Duration, startTime time.Time) error {
+func (r *Router) handleRuntimeResponses(ctx context.Context, msg *messages.Message, responses []runtime.RuntimeResponse, _ []byte, runtimeDuration time.Duration, startTime time.Time) error {
 	if len(responses) == 0 {
-		slog.Info("Empty response from runtime, routing to happy-end", "id", msg.ID)
+		slog.Info("Empty response from runtime, routing to x-sink", "id", msg.ID)
 
 		if r.metrics != nil {
 			r.metrics.RecordMessageProcessed(r.actorName, "empty_response")
 			r.metrics.RecordProcessingDuration(r.actorName, time.Since(startTime))
 		}
 
-		return r.sendToHappyQueue(ctx, *msg)
+		return r.sendToSinkQueue(ctx, *msg)
 	}
 
 	for i, response := range responses {
 		slog.Debug("Processing response", "index", i+1, "total", len(responses))
 
 		if response.IsError() {
-			return r.handleErrorResponse(ctx, msgBody, response, startTime)
+			return r.handleErrorResponse(ctx, msg, response, startTime)
 		}
 
 		if err := r.handleSuccessResponse(ctx, msg, response, i, len(responses), runtimeDuration); err != nil {
@@ -206,21 +249,310 @@ func (r *Router) handleRuntimeResponses(ctx context.Context, msg *messages.Messa
 	return nil
 }
 
-// handleErrorResponse handles error responses from runtime
-func (r *Router) handleErrorResponse(ctx context.Context, msgBody []byte, response runtime.RuntimeResponse, startTime time.Time) error {
-	if r.metrics != nil {
-		r.metrics.RecordMessageProcessed(r.actorName, "error")
-		r.metrics.RecordMessageFailed(r.actorName, "runtime_error")
-		r.metrics.RecordProcessingDuration(r.actorName, time.Since(startTime))
+// handleErrorResponse handles error responses from runtime with retry logic.
+// When resiliency is configured, it checks whether the error is retryable and
+// whether retry attempts remain before deciding to retry or fail permanently.
+func (r *Router) handleErrorResponse(ctx context.Context, msg *messages.Message, response runtime.RuntimeResponse, startTime time.Time) error {
+	// Check for flow-level _on_error header — bypasses retry logic
+	if onError, ok := msg.Headers["_on_error"].(string); ok && onError != "" {
+		return r.routeToFlowErrorHandler(ctx, msg, onError, response, startTime)
 	}
 
-	if err := r.sendToErrorQueue(ctx, msgBody, response.Error, response.Details); err != nil {
-		slog.Error("Failed to send error to error queue - will NACK for DLQ handling", "error", err)
+	// No resiliency configured — fail immediately (legacy behavior)
+	if r.cfg.Resiliency == nil || r.cfg.Resiliency.Retry.MaxAttempts <= 1 {
+		if r.metrics != nil {
+			r.metrics.RecordMessageProcessed(r.actorName, "error")
+			r.metrics.RecordMessageFailed(r.actorName, "runtime_error")
+			r.metrics.RecordProcessingDuration(r.actorName, time.Since(startTime))
+		}
+		return r.sendRetryFailure(ctx, msg, response, messages.ReasonRuntimeError)
+	}
+
+	// Check MRO-based non-retryable error classification
+	if r.isNonRetryableError(response.Details.Type, response.Details.MRO) {
+		slog.Info("Non-retryable error detected, routing to x-sump",
+			"id", msg.ID, "type", response.Details.Type,
+			"attempt", msg.Status.Attempt, "max_attempts", msg.Status.MaxAttempts)
+
+		if r.metrics != nil {
+			r.metrics.RecordMessageProcessed(r.actorName, "error")
+			r.metrics.RecordMessageFailed(r.actorName, "non_retryable_error")
+			r.metrics.RecordProcessingDuration(r.actorName, time.Since(startTime))
+		}
+		return r.sendRetryFailure(ctx, msg, response, messages.ReasonNonRetryableFailure)
+	}
+
+	// Check if max attempts exhausted
+	if msg.Status.Attempt >= r.cfg.Resiliency.Retry.MaxAttempts {
+		slog.Info("Max retry attempts exhausted, routing to x-sump",
+			"id", msg.ID, "attempt", msg.Status.Attempt,
+			"max_attempts", r.cfg.Resiliency.Retry.MaxAttempts)
+
+		if r.metrics != nil {
+			r.metrics.RecordMessageProcessed(r.actorName, "error")
+			r.metrics.RecordMessageFailed(r.actorName, "max_retries_exhausted")
+			r.metrics.RecordProcessingDuration(r.actorName, time.Since(startTime))
+		}
+		return r.sendRetryFailure(ctx, msg, response, messages.ReasonMaxRetriesExhausted)
+	}
+
+	// Retry: compute delay, update status, send with delay to own queue
+	delay := r.computeRetryDelay(msg.Status.Attempt)
+	slog.Info("Retrying message with backoff",
+		"id", msg.ID,
+		"attempt", msg.Status.Attempt,
+		"max_attempts", r.cfg.Resiliency.Retry.MaxAttempts,
+		"delay", delay,
+		"error_type", response.Details.Type)
+
+	if err := r.retryMessage(ctx, msg, response.Details, delay); err != nil {
+		slog.Error("Failed to send retry message, routing to x-sump",
+			"id", msg.ID, "error", err)
+		if r.metrics != nil {
+			r.metrics.RecordMessageProcessed(r.actorName, "error")
+			r.metrics.RecordMessageFailed(r.actorName, "retry_send_failed")
+			r.metrics.RecordProcessingDuration(r.actorName, time.Since(startTime))
+		}
+		return r.sendRetryFailure(ctx, msg, response, messages.ReasonRuntimeError)
+	}
+
+	if r.metrics != nil {
+		r.metrics.RecordMessageProcessed(r.actorName, "retried")
+		r.metrics.RecordProcessingDuration(r.actorName, time.Since(startTime))
+	}
+	return nil
+}
+
+// isNonRetryableError checks if the error type or any of its MRO ancestors
+// matches the configured nonRetryableErrors blacklist.
+func (r *Router) isNonRetryableError(errorType string, mro []string) bool {
+	if r.cfg.Resiliency == nil || len(r.cfg.Resiliency.NonRetryableErrors) == 0 {
+		return false
+	}
+
+	typesToCheck := make(map[string]struct{}, len(mro)+1)
+	typesToCheck[errorType] = struct{}{}
+	for _, ancestor := range mro {
+		typesToCheck[ancestor] = struct{}{}
+	}
+
+	for _, nonRetryable := range r.cfg.Resiliency.NonRetryableErrors {
+		if _, ok := typesToCheck[nonRetryable]; ok {
+			return true
+		}
+	}
+
+	return false
+}
+
+// computeRetryDelay calculates the backoff delay for the given failed attempt.
+// Formula: delay = min(initialInterval * backoffCoefficient^(attempt-1), maxInterval)
+// If jitter is enabled: delay *= random(0.5, 1.5)
+func (r *Router) computeRetryDelay(failedAttempt int) time.Duration {
+	retryCfg := r.cfg.Resiliency.Retry
+
+	var delay time.Duration
+	switch retryCfg.Policy {
+	case config.RetryPolicyConstant:
+		delay = retryCfg.InitialInterval
+	case config.RetryPolicyExponential:
+		exponent := failedAttempt - 1
+		multiplier := math.Pow(retryCfg.BackoffCoefficient, float64(exponent))
+		delay = time.Duration(float64(retryCfg.InitialInterval) * multiplier)
+	default:
+		delay = retryCfg.InitialInterval
+	}
+
+	if delay > retryCfg.MaxInterval {
+		delay = retryCfg.MaxInterval
+	}
+
+	if retryCfg.Jitter {
+		jitterFactor := 0.5 + rand.Float64() // [0.5, 1.5)
+		delay = time.Duration(float64(delay) * jitterFactor)
+	}
+
+	return delay
+}
+
+// retryMessage sends the message back to the actor's own queue with a delay.
+// Updates the message status to reflect the retry state.
+func (r *Router) retryMessage(ctx context.Context, msg *messages.Message, details runtime.ErrorDetails, delay time.Duration) error {
+	now := time.Now().UTC().Format(time.RFC3339)
+	msg.Status.Phase = messages.PhaseRetrying
+	msg.Status.UpdatedAt = now
+	msg.Status.Error = &messages.StatusError{
+		Type:      details.Type,
+		MRO:       details.MRO,
+		Message:   details.Message,
+		Traceback: details.Traceback,
+	}
+	// Increment attempt for the next processing cycle
+	msg.Status.Attempt++
+
+	body, err := json.Marshal(msg)
+	if err != nil {
+		return fmt.Errorf("failed to marshal retry message: %w", err)
+	}
+
+	if r.metrics != nil {
+		r.metrics.RecordMessageSize("sent", len(body))
+	}
+
+	queueName := r.resolveQueueName(r.actorName)
+	return r.transport.SendWithDelay(ctx, queueName, body, delay)
+}
+
+// sendRetryFailure sends a failed message to the x-sump queue with proper
+// retry status information (attempt count, reason, error details).
+func (r *Router) sendRetryFailure(ctx context.Context, msg *messages.Message, response runtime.RuntimeResponse, reason string) error {
+	now := time.Now().UTC().Format(time.RFC3339)
+
+	// Build error payload (backward compatible with x-sump actor)
+	errorPayload := map[string]any{
+		"error": response.Error,
+	}
+	if response.Details.Message != "" || response.Details.Type != "" {
+		errorPayload["details"] = response.Details
+	}
+	if msg.Payload != nil {
+		var original any
+		if err := json.Unmarshal(msg.Payload, &original); err == nil {
+			errorPayload["original_payload"] = original
+		}
+	}
+
+	payloadBytes, err := json.Marshal(errorPayload)
+	if err != nil {
+		return fmt.Errorf("failed to marshal error payload: %w", err)
+	}
+
+	createdAt := now
+	if msg.Status != nil && msg.Status.CreatedAt != "" {
+		createdAt = msg.Status.CreatedAt
+	}
+
+	attempt := 1
+	if msg.Status != nil {
+		attempt = msg.Status.Attempt
+	}
+
+	failedMsg := messages.Message{
+		ID:       msg.ID,
+		ParentID: msg.ParentID,
+		Route:    msg.Route,
+		Payload:  payloadBytes,
+		Status: &messages.Status{
+			Phase:       messages.PhaseFailed,
+			Reason:      reason,
+			Actor:       r.actorName,
+			Attempt:     attempt,
+			MaxAttempts: r.maxAttempts(),
+			CreatedAt:   createdAt,
+			UpdatedAt:   now,
+			Error: &messages.StatusError{
+				Type:      response.Details.Type,
+				MRO:       response.Details.MRO,
+				Message:   response.Details.Message,
+				Traceback: response.Details.Traceback,
+			},
+		},
+	}
+
+	body, err := json.Marshal(failedMsg)
+	if err != nil {
+		return fmt.Errorf("failed to marshal failed message: %w", err)
+	}
+
+	if r.metrics != nil {
+		r.metrics.RecordMessageSize("sent", len(body))
+	}
+
+	sendStart := time.Now()
+	sumpQueueName := r.resolveQueueName(r.sumpQueue)
+	err = r.transport.Send(ctx, sumpQueueName, body)
+	sendDuration := time.Since(sendStart)
+
+	if r.metrics != nil {
+		r.metrics.RecordQueueSendDuration(r.sumpQueue, r.cfg.TransportType, sendDuration)
+		if err == nil {
+			r.metrics.RecordMessageSent(r.sumpQueue, "sump")
+		}
+	}
+
+	if err != nil {
+		slog.Error("Failed to send to error queue - will requeue for DLQ handling", "error", err)
 		if r.metrics != nil {
 			r.metrics.RecordMessageFailed(r.actorName, "error_queue_send_failed")
 		}
 		return fmt.Errorf("failed to send to error queue: %w", err)
 	}
+	return nil
+}
+
+// routeToFlowErrorHandler routes an error to a flow-level error handler (except_dispatch router)
+// instead of the error-end queue. This preserves the original payload and sets error details
+// in status.error for the except_dispatch router to inspect.
+func (r *Router) routeToFlowErrorHandler(ctx context.Context, msg *messages.Message, onError string, response runtime.RuntimeResponse, startTime time.Time) error {
+	slog.Info("Routing error to flow error handler", "id", msg.ID, "handler", onError, "error", response.Error)
+
+	// Clear _on_error to prevent infinite error routing loops
+	delete(msg.Headers, "_on_error")
+
+	// Update route: truncate after current position and insert error handler
+	current := msg.Route.Current
+	msg.Route.Actors = append(msg.Route.Actors[:current+1], onError)
+	msg.Route.Current = current + 1
+
+	// Set error details in status
+	now := time.Now().UTC().Format(time.RFC3339)
+	createdAt := now
+	if msg.Status != nil && msg.Status.CreatedAt != "" {
+		createdAt = msg.Status.CreatedAt
+	}
+	msg.Status = &messages.Status{
+		Phase:       messages.PhaseFailed,
+		Actor:       r.actorName,
+		Attempt:     1,
+		MaxAttempts: 1,
+		CreatedAt:   createdAt,
+		UpdatedAt:   now,
+		Error: &messages.StatusError{
+			Message:   response.Details.Message,
+			Type:      response.Details.Type,
+			Traceback: response.Details.Traceback,
+			MRO:       response.Details.MRO,
+		},
+	}
+
+	// Marshal and send
+	msgBody, err := json.Marshal(msg)
+	if err != nil {
+		return fmt.Errorf("failed to marshal message for flow error handler: %w", err)
+	}
+
+	if r.metrics != nil {
+		r.metrics.RecordMessageSize("sent", len(msgBody))
+	}
+
+	sendStart := time.Now()
+	queueName := r.resolveQueueName(onError)
+	err = r.transport.Send(ctx, queueName, msgBody)
+	sendDuration := time.Since(sendStart)
+
+	if r.metrics != nil {
+		r.metrics.RecordQueueSendDuration(onError, r.cfg.TransportType, sendDuration)
+		if err == nil {
+			r.metrics.RecordMessageSent(onError, "flow_error_handler")
+		}
+	}
+
+	if err != nil {
+		slog.Error("Failed to send to flow error handler", "id", msg.ID, "handler", onError, "error", err)
+		return fmt.Errorf("failed to send to flow error handler: %w", err)
+	}
+
+	slog.Info("Routed error to flow error handler", "id", msg.ID, "handler", onError, "queue", queueName)
 	return nil
 }
 
@@ -256,7 +588,11 @@ func (r *Router) handleSuccessResponse(ctx context.Context, msg *messages.Messag
 		}
 	}
 
-	return r.routeResponse(ctx, msgID, parentID, outputRoute, response.Payload)
+	statusFromRuntime := response.Status
+	if statusFromRuntime == nil {
+		statusFromRuntime = msg.Status
+	}
+	return r.routeResponse(ctx, msgID, parentID, outputRoute, response.Payload, statusFromRuntime)
 }
 
 // ProcessMessage handles a single message from the queue
@@ -306,7 +642,7 @@ func (r *Router) ProcessMessage(ctx context.Context, queueMsg transport.QueueMes
 
 		errorMsg := fmt.Sprintf("Route mismatch: message routed to wrong actor (expected: %s, actual: %s)",
 			r.cfg.ActorName, currentActor)
-		_ = r.sendToErrorQueue(ctx, queueMsg.Body, errorMsg)
+		_ = r.sendToSumpQueue(ctx, queueMsg.Body, errorMsg)
 		return nil
 	}
 
@@ -319,9 +655,17 @@ func (r *Router) ProcessMessage(ctx context.Context, queueMsg transport.QueueMes
 		})
 	}
 
+	// Initialize or update status before calling runtime
+	r.ensureAndUpdateStatus(msg)
+	updatedBody, err := json.Marshal(msg)
+	if err != nil {
+		slog.Error("Failed to marshal message with status", "id", msg.ID, "error", err)
+		return fmt.Errorf("failed to marshal message with status: %w", err)
+	}
+
 	slog.Info("Calling runtime", "id", msg.ID, "actor", r.cfg.ActorName)
 	runtimeStart := time.Now()
-	responses, err := r.runtimeClient.CallRuntime(ctx, queueMsg.Body)
+	responses, err := r.runtimeClient.CallRuntime(ctx, updatedBody)
 	runtimeDuration := time.Since(runtimeStart)
 
 	if err != nil {
@@ -352,7 +696,7 @@ func (r *Router) ProcessMessage(ctx context.Context, queueMsg transport.QueueMes
 				"timeout", r.cfg.Timeout, "message", msg.ID)
 			errorMsg = fmt.Sprintf("Runtime timeout exceeded after %s", r.cfg.Timeout)
 
-			if err := r.sendToErrorQueue(ctx, queueMsg.Body, errorMsg); err != nil {
+			if err := r.sendToSumpQueue(ctx, queueMsg.Body, errorMsg); err != nil {
 				slog.Error("Failed to send timeout error to error queue - exiting anyway", "error", err)
 			}
 
@@ -360,8 +704,8 @@ func (r *Router) ProcessMessage(ctx context.Context, queueMsg transport.QueueMes
 			os.Exit(1)
 		}
 
-		if err := r.sendToErrorQueue(ctx, queueMsg.Body, errorMsg); err != nil {
-			slog.Error("Failed to send runtime error to error queue - will NACK for DLQ handling", "error", err)
+		if err := r.sendToSumpQueue(ctx, queueMsg.Body, errorMsg); err != nil {
+			slog.Error("Failed to send runtime error to error queue - will requeue for DLQ handling", "error", err)
 			return fmt.Errorf("failed to send runtime error to error queue: %w", err)
 		}
 		return nil
@@ -373,7 +717,7 @@ func (r *Router) ProcessMessage(ctx context.Context, queueMsg transport.QueueMes
 // routeResponse routes a single response to the appropriate queue
 // The route parameter should already have its Current index incremented by the caller
 // parentID should be set for fanout children (when index > 0 in fanout scenario)
-func (r *Router) routeResponse(ctx context.Context, id string, parentID *string, route messages.Route, payload json.RawMessage) error {
+func (r *Router) routeResponse(ctx context.Context, id string, parentID *string, route messages.Route, payload json.RawMessage, inStatus *messages.Status) error {
 	// Determine destination queue
 	var destinationQueue string
 	var msgType string
@@ -385,9 +729,42 @@ func (r *Router) routeResponse(ctx context.Context, id string, parentID *string,
 		destinationQueue = r.resolveQueueName(actorToSend)
 		msgType = "routing"
 	} else {
-		// No more actors, route to happy-end automatically
-		destinationQueue = r.resolveQueueName(r.happyEndQueue)
-		msgType = "happy_end"
+		// No more actors, route to x-sink automatically
+		destinationQueue = r.resolveQueueName(r.sinkQueue)
+		msgType = "sink"
+	}
+
+	// Build outbound status
+	var outStatus *messages.Status
+	now := time.Now().UTC().Format(time.RFC3339)
+	if actorToSend != "" {
+		outStatus = &messages.Status{
+			Phase:       messages.PhasePending,
+			Actor:       actorToSend,
+			Attempt:     1,
+			MaxAttempts: 1,
+			UpdatedAt:   now,
+		}
+		if inStatus != nil {
+			outStatus.CreatedAt = inStatus.CreatedAt
+		} else {
+			outStatus.CreatedAt = now
+		}
+	} else {
+		outStatus = &messages.Status{
+			Phase:       messages.PhaseSucceeded,
+			Reason:      messages.ReasonCompleted,
+			Attempt:     1,
+			MaxAttempts: 1,
+			UpdatedAt:   now,
+		}
+		if inStatus != nil {
+			outStatus.Actor = inStatus.Actor
+			outStatus.CreatedAt = inStatus.CreatedAt
+		} else {
+			outStatus.Actor = r.actorName
+			outStatus.CreatedAt = now
+		}
 	}
 
 	// Create new message with the route as-is
@@ -396,6 +773,7 @@ func (r *Router) routeResponse(ctx context.Context, id string, parentID *string,
 		ParentID: parentID,
 		Route:    route,
 		Payload:  payload,
+		Status:   outStatus,
 	}
 
 	// Marshal message
@@ -433,11 +811,26 @@ func (r *Router) routeResponse(ctx context.Context, id string, parentID *string,
 	return err
 }
 
-// sendToHappyQueue sends the original message to the happy-end queue
-func (r *Router) sendToHappyQueue(ctx context.Context, message messages.Message) error {
+// sendToSinkQueue sends the original message to the x-sink queue
+func (r *Router) sendToSinkQueue(ctx context.Context, message messages.Message) error {
+	now := time.Now().UTC().Format(time.RFC3339)
+	createdAt := now
+	if message.Status != nil {
+		createdAt = message.Status.CreatedAt
+	}
+	message.Status = &messages.Status{
+		Phase:       messages.PhaseSucceeded,
+		Reason:      messages.ReasonCompleted,
+		Actor:       r.actorName,
+		Attempt:     1,
+		MaxAttempts: 1,
+		CreatedAt:   createdAt,
+		UpdatedAt:   now,
+	}
+
 	msgBody, err := json.Marshal(message)
 	if err != nil {
-		return fmt.Errorf("failed to marshal message for happy-end: %w", err)
+		return fmt.Errorf("failed to marshal message for x-sink: %w", err)
 	}
 
 	// Record message size
@@ -445,31 +838,31 @@ func (r *Router) sendToHappyQueue(ctx context.Context, message messages.Message)
 		r.metrics.RecordMessageSize("sent", len(msgBody))
 	}
 
-	// Send to happy-end queue
+	// Send to x-sink queue
 	sendStart := time.Now()
-	happyQueueName := r.resolveQueueName(r.happyEndQueue)
-	err = r.transport.Send(ctx, happyQueueName, msgBody)
+	sinkQueueName := r.resolveQueueName(r.sinkQueue)
+	err = r.transport.Send(ctx, sinkQueueName, msgBody)
 	sendDuration := time.Since(sendStart)
 
 	// Record metrics
 	if r.metrics != nil {
-		r.metrics.RecordQueueSendDuration(r.happyEndQueue, r.cfg.TransportType, sendDuration)
+		r.metrics.RecordQueueSendDuration(r.sinkQueue, r.cfg.TransportType, sendDuration)
 		if err == nil {
-			r.metrics.RecordMessageSent(r.happyEndQueue, "happy_end")
+			r.metrics.RecordMessageSent(r.sinkQueue, "sink")
 		}
 	}
 
 	return err
 }
 
-// sendToErrorQueue sends an error message to the error-end queue
-func (r *Router) sendToErrorQueue(ctx context.Context, originalBody []byte, errorMsg string, errorDetails ...runtime.ErrorDetails) error {
+// sendToSumpQueue sends an error message to the x-sump queue
+func (r *Router) sendToSumpQueue(ctx context.Context, originalBody []byte, errorMsg string, errorDetails ...runtime.ErrorDetails) error {
 	// Parse original message to extract id, parent_id, and route
 	var originalMsg messages.Message
 	id := ""
 	var parentID *string
 	route := map[string]any{
-		"actors":  []string{"error-end"},
+		"actors":  []string{"x-sump"},
 		"current": 0,
 	}
 	if err := json.Unmarshal(originalBody, &originalMsg); err == nil {
@@ -501,10 +894,30 @@ func (r *Router) sendToErrorQueue(ctx context.Context, originalBody []byte, erro
 		}
 	}
 
+	// Build error status
+	now := time.Now().UTC().Format(time.RFC3339)
+	createdAt := now
+	actor := r.actorName
+	if originalMsg.Status != nil {
+		createdAt = originalMsg.Status.CreatedAt
+		if originalMsg.Status.Actor != "" {
+			actor = originalMsg.Status.Actor
+		}
+	}
+	errorStatus := map[string]any{
+		"phase":        messages.PhaseFailed,
+		"actor":        actor,
+		"attempt":      1,
+		"max_attempts": 1,
+		"created_at":   createdAt,
+		"updated_at":   now,
+	}
+
 	errorMessage := map[string]any{
 		"id":      id,
 		"route":   route,
 		"payload": errorPayload,
+		"status":  errorStatus,
 	}
 	if parentID != nil {
 		errorMessage["parent_id"] = *parentID
@@ -522,15 +935,15 @@ func (r *Router) sendToErrorQueue(ctx context.Context, originalBody []byte, erro
 
 	// Send to error queue
 	sendStart := time.Now()
-	errorQueueName := r.resolveQueueName(r.errorEndQueue)
-	err = r.transport.Send(ctx, errorQueueName, msgBody)
+	sumpQueueName := r.resolveQueueName(r.sumpQueue)
+	err = r.transport.Send(ctx, sumpQueueName, msgBody)
 	sendDuration := time.Since(sendStart)
 
 	// Record metrics
 	if r.metrics != nil {
-		r.metrics.RecordQueueSendDuration(r.errorEndQueue, r.cfg.TransportType, sendDuration)
+		r.metrics.RecordQueueSendDuration(r.sumpQueue, r.cfg.TransportType, sendDuration)
 		if err == nil {
-			r.metrics.RecordMessageSent(r.errorEndQueue, "error_end")
+			r.metrics.RecordMessageSent(r.sumpQueue, "sump")
 		}
 	}
 
@@ -538,7 +951,7 @@ func (r *Router) sendToErrorQueue(ctx context.Context, originalBody []byte, erro
 }
 
 // reportFinalStatusWithMessage reports final message status to gateway with full message context
-// This is called by end actors (happy-end, error-end) after processing
+// This is called by end actors (x-sink, x-sump) after processing
 // It has access to both the message (with route) and the result payload
 func (r *Router) reportFinalStatusWithMessage(ctx context.Context, msg *messages.Message, resultPayload json.RawMessage, duration time.Duration) error {
 	if r.progressReporter == nil {
@@ -562,12 +975,12 @@ func (r *Router) reportFinalStatusWithMessage(ctx context.Context, msg *messages
 	var currentActorName string
 
 	switch r.actorName {
-	case r.happyEndQueue:
+	case r.sinkQueue:
 		status = statusSucceeded
-	case r.errorEndQueue:
+	case r.sumpQueue:
 		status = statusFailed
-		// For error-end, extract error info from msg.Payload (not result)
-		// The msg.Payload contains error details set by sendToErrorQueue
+		// For x-sump, extract error info from msg.Payload (not result)
+		// The msg.Payload contains error details set by sendToSumpQueue
 		var msgPayload interface{}
 		if err := json.Unmarshal(msg.Payload, &msgPayload); err == nil {
 			if payloadMap, ok := msgPayload.(map[string]interface{}); ok {
@@ -683,11 +1096,11 @@ func (r *Router) reportFinalStatus(ctx context.Context, msgID string, resultPayl
 	var currentActorName string
 
 	switch r.actorName {
-	case r.happyEndQueue:
+	case r.sinkQueue:
 		status = statusSucceeded
-	case r.errorEndQueue:
+	case r.sumpQueue:
 		status = statusFailed
-		// For error-end, extract error info and route from payload
+		// For x-sump, extract error info and route from payload
 		type errorPayload struct {
 			Error   string      `json:"error"`
 			Details interface{} `json:"details"`
@@ -877,9 +1290,9 @@ func (r *Router) Run(ctx context.Context) error {
 			slog.Info("Processing message", "msgID", queueMsg.ID)
 			if err := r.ProcessMessage(ctx, queueMsg); err != nil {
 				slog.Error("Message processing failed", "msgID", queueMsg.ID, "error", err)
-				// NACK the message for retry
-				if nackErr := r.transport.Nack(ctx, queueMsg); nackErr != nil {
-					slog.Error("Failed to NACK message", "msgID", queueMsg.ID, "error", nackErr)
+				// Requeue the message for retry
+				if requeueErr := r.transport.Requeue(ctx, queueMsg); requeueErr != nil {
+					slog.Error("Failed to requeue message", "msgID", queueMsg.ID, "error", requeueErr)
 				}
 				continue
 			}

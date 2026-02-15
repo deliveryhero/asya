@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/deliveryhero/asya/asya-sidecar/pkg/transport"
 )
@@ -68,8 +69,13 @@ func (m *MockTransport) Ack(ctx context.Context, msg transport.QueueMessage) err
 	return nil
 }
 
-// Nack negatively acknowledges a message (no-op for mock)
-func (m *MockTransport) Nack(ctx context.Context, msg transport.QueueMessage) error {
+// Requeue returns a message to the queue for immediate redelivery (no-op for mock)
+func (m *MockTransport) Requeue(ctx context.Context, msg transport.QueueMessage) error {
+	return nil
+}
+
+// SendWithDelay sends a message with a delivery delay (no-op for mock)
+func (m *MockTransport) SendWithDelay(ctx context.Context, queueName string, body []byte, delay time.Duration) error {
 	return nil
 }
 

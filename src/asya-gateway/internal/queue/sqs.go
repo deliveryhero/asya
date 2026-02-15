@@ -22,7 +22,7 @@ import (
 // Examples:
 //   - Actor "data-processor" in namespace "default"  → Queue "asya-default-data-processor"
 //   - Actor "test-echo" in namespace "staging"       → Queue "asya-staging-test-echo"
-//   - Actor "happy-end" in namespace "default"       → Queue "asya-default-happy-end"
+//   - Actor "x-sink" in namespace "default"            → Queue "asya-default-x-sink"
 //
 // The prefix is added by:
 // - Gateway queue clients (rabbitmq.go and this file) when sending messages
@@ -168,23 +168,9 @@ func (m *sqsMessage) DeliveryTag() uint64 {
 
 // SendMessage sends a message to the current actor's queue in the route
 func (c *SQSClient) SendMessage(ctx context.Context, task *types.Task) error {
-	if len(task.Route.Actors) == 0 {
-		return fmt.Errorf("route has no actors")
-	}
-	if task.Route.Current < 0 || task.Route.Current >= len(task.Route.Actors) {
-		return fmt.Errorf("invalid route.current=%d for actors length %d", task.Route.Current, len(task.Route.Actors))
-	}
-
-	// Create actor message
-	actorMsg := ActorMessage{
-		ID:      task.ID,
-		Route:   task.Route,
-		Payload: task.Payload,
-	}
-
-	// Add deadline if task has timeout
-	if !task.Deadline.IsZero() {
-		actorMsg.Deadline = task.Deadline.Format("2006-01-02T15:04:05Z07:00")
+	actorMsg, err := NewActorMessage(task)
+	if err != nil {
+		return err
 	}
 
 	// Marshal to JSON

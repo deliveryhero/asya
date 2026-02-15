@@ -1,55 +1,55 @@
-{{- $errorEnd := index .Values "error-end" }}
-{{- if $errorEnd.enabled }}
+{{- $sump := index .Values "x-sump" }}
+{{- if $sump.enabled }}
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 metadata:
-  name: {{ $errorEnd.name }}
+  name: {{ $sump.name }}
   namespace: {{ .Release.Namespace }}
   labels:
-    {{- include "asya-crew.error-end.labels" . | nindent 4 }}
-  {{- with $errorEnd.annotations }}
+    {{- include "asya-crew.x-sump.labels" . | nindent 4 }}
+  {{- with $sump.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
-  actor: {{ $errorEnd.name }}
+  actor: {{ $sump.name }}
   compositionSelector:
     matchLabels:
-      asya.sh/transport: {{ $errorEnd.transport }}
-  transport: {{ $errorEnd.transport }}
+      asya.sh/transport: {{ $sump.transport }}
+  transport: {{ $sump.transport }}
 
-  {{- with $errorEnd.sidecar }}
+  {{- with $sump.sidecar }}
   sidecar:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 
-  {{- if $errorEnd.scaling.enabled }}
+  {{- if $sump.scaling.enabled }}
   scaling:
-    {{- toYaml $errorEnd.scaling | nindent 4 }}
+    {{- toYaml $sump.scaling | nindent 4 }}
   {{- end }}
 
   workload:
-    kind: {{ $errorEnd.workload.kind }}
+    kind: {{ $sump.workload.kind }}
     template:
       spec:
         containers:
         - name: asya-runtime
-          image: {{ include "asya-crew.error-end.image" . }}
-          imagePullPolicy: {{ include "asya-crew.error-end.imagePullPolicy" . }}
+          image: {{ include "asya-crew.x-sump.image" . }}
+          imagePullPolicy: {{ include "asya-crew.x-sump.imagePullPolicy" . }}
           env:
-          {{- range $key, $value := $errorEnd.env }}
+          {{- range $key, $value := $sump.env }}
           {{- if ne $value "" }}
           - name: {{ $key }}
             value: {{ $value | quote }}
           {{- end }}
           {{- end }}
           - name: ASYA_HANDLER
-            value: handlers.end_handlers.error_end_handler
+            value: asya_crew.sump.sump_handler
           - name: ASYA_HANDLER_MODE
             value: envelope
           - name: ASYA_ENABLE_VALIDATION
             value: "false"
-          {{- with $errorEnd.resources }}
+          {{- with $sump.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}

@@ -17,8 +17,8 @@ export ASYA_RABBITMQ_URL=amqp://user:pass@localhost:5672/
 | `ASYA_ACTOR_NAME` | _(required)_ | Actor name (used as queue name) |
 | `ASYA_SOCKET_DIR` | `/var/run/asya` | Directory for Unix socket (socket is `asya-runtime.sock`) |
 | `ASYA_RUNTIME_TIMEOUT` | `5m` | Runtime response timeout |
-| `ASYA_STEP_HAPPY_END` | `happy-end` | Success end queue |
-| `ASYA_STEP_ERROR_END` | `error-end` | Error end queue |
+| `ASYA_ACTOR_SINK` | `x-sink` | Success end queue |
+| `ASYA_ACTOR_SUMP` | `x-sump` | Error end queue |
 | `ASYA_IS_END_ACTOR` | `false` | End actor mode (no routing) |
 | `ASYA_GATEWAY_URL` | `""` | Gateway URL for progress reporting (optional) |
 | `ASYA_RABBITMQ_URL` | `amqp://guest:guest@localhost:5672/` | RabbitMQ connection |
@@ -58,10 +58,10 @@ Runtime returns mutated payload directly:
 |----------|--------|
 | Single value | Route to next actor |
 | Generator (fan-out) | Route each yielded frame to next actor |
-| Empty (`null`) | Send to happy-end |
-| Error | Send to error-end |
-| Timeout | Send to error-end |
-| End of route | Send to happy-end |
+| Empty (`null`) | Send to x-sink |
+| Error | Send to x-sump |
+| Timeout | Send to x-sump |
+| End of route | Send to x-sink |
 
 ## Progress Reporting
 
@@ -80,10 +80,10 @@ progress = (current * 100 + statusWeight) / totalSteps
 
 ## End Actor Mode
 
-Set `ASYA_IS_END_ACTOR=true` for end actors (happy-end, error-end) to disable response routing:
+Set `ASYA_IS_END_ACTOR=true` for end actors (x-sink, x-sump) to disable response routing:
 
 ```bash
-export ASYA_ACTOR_NAME=happy-end
+export ASYA_ACTOR_NAME=x-sink
 export ASYA_IS_END_ACTOR=true
 ./bin/sidecar
 ```

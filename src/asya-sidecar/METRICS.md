@@ -12,7 +12,7 @@ The sidecar exposes Prometheus-compatible metrics for monitoring actor performan
 |--------|------|--------|-------------|
 | `asya_actor_messages_received_total` | Counter | `queue`, `transport` | Messages received from queue |
 | `asya_actor_messages_processed_total` | Counter | `queue`, `status` | Messages processed (status: success, error, empty_response) |
-| `asya_actor_messages_sent_total` | Counter | `destination_queue`, `message_type` | Messages sent (type: routing, happy_end, error_end) |
+| `asya_actor_messages_sent_total` | Counter | `destination_queue`, `message_type` | Messages sent (type: routing, sink, sump) |
 | `asya_actor_messages_failed_total` | Counter | `queue`, `reason` | Failed messages (reason: parse_error, runtime_error, routing_error) |
 | `asya_actor_active_messages` | Gauge | - | Messages currently being processed |
 

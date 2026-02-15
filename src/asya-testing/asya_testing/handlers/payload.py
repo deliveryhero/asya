@@ -137,7 +137,7 @@ def empty_response_handler(payload: dict[str, Any]) -> None:
     """
     Empty response handler: Returns None to abort pipeline.
 
-    This should send the original message to happy-end queue.
+    This should send the original message to x-sink queue.
     """
     return None
 
@@ -146,7 +146,7 @@ def none_response_handler(payload: dict[str, Any]) -> None:
     """
     None response handler: Returns None to abort pipeline.
 
-    This should send the original message to happy-end queue.
+    This should send the original message to x-sink queue.
     """
     return None
 
@@ -404,7 +404,7 @@ def transient_error_handler(payload: dict[str, Any]) -> dict[str, Any]:
     """
     Transient error handler: Fails N times then succeeds.
 
-    Used to test retry logic in error-end actor.
+    Used to test retry logic in x-sump actor.
     Tracks attempt_count in payload.
     """
     attempt_count = payload.get("attempt_count", 0) + 1

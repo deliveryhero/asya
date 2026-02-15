@@ -5,7 +5,7 @@ digraph flow {
   edge [fontname="Courier", fontsize=10];
 
   start_if_else_simple_flow [fillcolor="lightgreen", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = start_if_else_simple_flow(p)</i></td></tr></table>>];
-  router_if_else_simple_flow_line_10_if [fillcolor="wheat", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_if_else_simple_flow_line_10_if(p)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> p['type'] == 'A'</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkgreen"><font color="white"><b>TRUE</b></font></td><td bgcolor="darkred"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
+  router_if_else_simple_flow_line_10_if [fillcolor="wheat", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_if_else_simple_flow_line_10_if(p)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> p['type'] == 'A'</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkseagreen4"><font color="white"><b>TRUE</b></font></td><td bgcolor="indianred4"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
   end_if_else_simple_flow [fillcolor="lightgreen", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = end_if_else_simple_flow(p)</i></td></tr></table>>];
   handler_finalize [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = handler_finalize(p)</i></td></tr></table>>];
   handler_setup [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = handler_setup(p)</i></td></tr></table>>];
@@ -16,7 +16,7 @@ digraph flow {
   handler_setup -> router_if_else_simple_flow_line_10_if;
   handler_type_a -> handler_finalize;
   handler_type_b -> handler_finalize;
-  router_if_else_simple_flow_line_10_if -> handler_type_a [color=darkgreen];
-  router_if_else_simple_flow_line_10_if -> handler_type_b [color=darkred];
+  router_if_else_simple_flow_line_10_if -> handler_type_a [color=darkseagreen4];
+  router_if_else_simple_flow_line_10_if -> handler_type_b [color=indianred4];
   start_if_else_simple_flow -> handler_setup;
 }

@@ -1,5 +1,5 @@
 """
-Integration tests for S3 persistence in happy-end and error-end actors.
+Integration tests for S3 persistence in x-sink and x-sump actors.
 
 Tests that end actors properly persist results and errors to MinIO.
 """
@@ -76,9 +76,9 @@ def wait_for_completion(task_id: str, timeout: int = 60) -> dict:
     raise TimeoutError(f"Task {task_id} did not complete within {timeout}s")
 
 
-def test_happy_end_persists_to_s3():
+def test_x_sink_persists_to_s3():
     """
-    Test that happy-end actor persists successful results to S3.
+    Test that x-sink actor persists successful results to S3.
 
     Inventory:
     - Submit echo request via gateway
@@ -86,7 +86,7 @@ def test_happy_end_persists_to_s3():
     - Verify result saved to asya-results bucket
     - Verify S3 object structure matches expected schema
     """
-    logger.info("=== test_happy_end_persists_to_s3 ===")
+    logger.info("=== test_x_sink_persists_to_s3 ===")
 
     task_id = call_mcp_tool("test_echo", {"message": "test s3 persistence"})
     logger.info(f"Created task {task_id}")
@@ -107,12 +107,12 @@ def test_happy_end_persists_to_s3():
     assert "current" in s3_object["route"]
 
     logger.info(f"S3 message validated (saved as-is): {s3_object}")
-    logger.info("=== test_happy_end_persists_to_s3: PASSED ===")
+    logger.info("=== test_x_sink_persists_to_s3: PASSED ===")
 
 
-def test_error_end_persists_to_s3():
+def test_x_sump_persists_to_s3():
     """
-    Test that error-end actor persists errors to S3.
+    Test that x-sump actor persists errors to S3.
 
     Inventory:
     - Submit request that triggers error
@@ -120,7 +120,7 @@ def test_error_end_persists_to_s3():
     - Verify error saved to asya-errors bucket
     - Verify S3 object structure includes error details
     """
-    logger.info("=== test_error_end_persists_to_s3 ===")
+    logger.info("=== test_x_sump_persists_to_s3 ===")
 
     task_id = call_mcp_tool("test_error", {"should_fail": True})
     logger.info(f"Created task {task_id}")
@@ -141,7 +141,7 @@ def test_error_end_persists_to_s3():
     assert "current" in s3_object["route"]
 
     logger.info(f"S3 error message validated (saved as-is): {s3_object}")
-    logger.info("=== test_error_end_persists_to_s3: PASSED ===")
+    logger.info("=== test_x_sump_persists_to_s3: PASSED ===")
 
 
 def test_pipeline_result_persists_to_s3():

@@ -127,7 +127,7 @@ Lightweight socket server injected via ConfigMap. Loads user function, executes 
   ```
 
 ### asya-crew (Python)
-System actors with reserved roles: `happy-end` (persist results to S3), `error-end` (retry with exponential backoff - not yet implemented, DLQ handling). Both report final status to gateway (`happy-end` - because it's route's `current` index is larger than `len(route["actors"])`, `error-end` - because the handler had an error), see this logic in `src/asya-sidecar/internal/progress/reporter.go`.
+System actors with reserved roles: `x-sink` (persist results to S3), `x-sump` (retry with exponential backoff - not yet implemented, DLQ handling). Both report final status to gateway (`x-sink` - because it's route's `current` index is larger than `len(route["actors"])`, `x-sump` - because the handler had an error), see this logic in `src/asya-sidecar/internal/progress/reporter.go`.
 
 ### asya-injector (Go)
 Mutating admission webhook that intercepts Pod creation for AsyncActor workloads. Injects the asya-sidecar container, configures volumes (socket-dir, tmp, asya-runtime ConfigMap), sets environment variables (ASYA_TRANSPORT, ASYA_ACTOR_NAME), and overrides the runtime container command to run `asya_runtime.py`. Uses cert-manager for TLS certificate management.
@@ -500,10 +500,10 @@ See CONTRIBUTING.md for complete testing documentation.
 Runtime (not sidecar!) increments `route.current` after processing.
 
 **Automatic end routing** (NEVER configure explicitly):
-- When `route.current` reaches end of `actors` array (or when runtime returned `None`) → sidecar routes to `happy-end` queue automatically
-- When errors occur in runtime → sidecar acks the message and routes to `error-end` queue automatically
+- When `route.current` reaches end of `actors` array (or when runtime returned `None`) → sidecar routes to `x-sink` queue automatically
+- When errors occur in runtime → sidecar acks the message and routes to `x-sump` queue automatically
 - When errors occur in sidecar → sidecar nacks the message and it's automatically sent to DLQ (configured by the queue)
-- **IMPORTANT**: Never include `happy-end` or `error-end` in route configurations - they are managed by the sidecar
+- **IMPORTANT**: Never include `x-sink` or `x-sump` in route configurations - they are managed by the sidecar
 
 **Route Modification Rules** (for envelope mode handlers):
 
@@ -537,7 +537,7 @@ spec:
 **Queue naming convention**: `asya-{namespace}-{actor_name}`
 - Example: Actor `text-analyzer` in namespace `prod` → Queue `asya-prod-text-analyzer`
 - Example: Actor `image-processor` in namespace `dev` → Queue `asya-dev-image-processor`
-- System actors: `asya-{namespace}-happy-end`, `asya-{namespace}-error-end`
+- System actors: `asya-{namespace}-x-sink`, `asya-{namespace}-x-sump`
 - Enables multi-namespace deployments with actors of the same name in different namespaces
 
 **IAM granularity**: The `asya-` prefix enables fine-grained IAM policies:

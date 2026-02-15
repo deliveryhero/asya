@@ -19,20 +19,20 @@ Transport Support:
 
 DLQ Trigger Mechanism:
 When runtime fails:
-1. Sidecar tries to route error to asya-error-end queue
-2. If error-end queue exists → application-level error handling (NOT DLQ)
-3. If error-end queue missing → routing fails → sidecar NACK's message
+1. Sidecar tries to route error to asya-x-sump queue
+2. If x-sump queue exists → application-level error handling (NOT DLQ)
+3. If x-sump queue missing → routing fails → sidecar NACK's message
 4. After maxReceiveCount (3) NACKs → transport moves message to DLQ
 
 Queue Health Monitoring:
 The operator monitors queue health every 5 minutes and automatically recreates
-missing queues. When we delete error-end queue for testing, the operator will
+missing queues. When we delete x-sump queue for testing, the operator will
 eventually recreate it. These tests work by creating a temporary window where
 the queue is missing long enough to trigger DLQ behavior.
 
 Note: These tests verify transport-level DLQ behavior (queue missing → DLQ),
 while test_error_handling_e2e.py verifies application-level error handling
-(error-end processes errors when queue exists).
+(x-sump processes errors when queue exists).
 """
 
 import logging
@@ -71,15 +71,15 @@ def test_poison_message_moves_to_dlq_e2e(e2e_helper, kubectl, chaos_queues, name
     E2E: Test poison message (fails repeatedly) moves to DLQ.
 
     Scenario:
-    1. Delete asya-error-end queue (force transport-level DLQ fallback)
+    1. Delete asya-x-sump queue (force transport-level DLQ fallback)
     2. Send failing message to test-error actor
-    3. Actor fails → sidecar tries to route to asya-error-end
+    3. Actor fails → sidecar tries to route to asya-x-sump
     4. Routing fails (queue missing) → sidecar NACK's message
     5. Message redelivered, fails again (retry 1)
     6. Repeat for maxReceiveCount (3) times
     7. After 3rd NACK, transport moves message to asya-dlq
     8. Verify message in DLQ with correct message data
-    9. Recreate error-end queue for cleanup
+    9. Recreate x-sump queue for cleanup
 
     Expected:
     - Message appears in DLQ after 3 failed attempts
@@ -94,16 +94,16 @@ def test_poison_message_moves_to_dlq_e2e(e2e_helper, kubectl, chaos_queues, name
     transport_client = _get_transport_client(transport)
 
     dlq_name = f"asya-{namespace}-dlq"
-    error_end_queue = f"asya-{namespace}-error-end"
+    sump_queue = f"asya-{namespace}-x-sump"
 
     logger.info(f"Transport: {transport}, DLQ: {dlq_name}")
     logger.info("Purging DLQ before test")
     transport_client.purge(dlq_name)
 
     try:
-        logger.info(f"[.] Deleting error-end queue to trigger DLQ fallback: {error_end_queue}")
-        transport_client.delete_queue(error_end_queue)
-        logger.info(f"[+] error-end queue deleted: {error_end_queue}")
+        logger.info(f"[.] Deleting x-sump queue to trigger DLQ fallback: {sump_queue}")
+        transport_client.delete_queue(sump_queue)
+        logger.info(f"[+] x-sump queue deleted: {sump_queue}")
 
         logger.info("Sending failing message to test-error actor")
         response = e2e_helper.call_mcp_tool(
@@ -140,9 +140,9 @@ def test_poison_message_moves_to_dlq_e2e(e2e_helper, kubectl, chaos_queues, name
         logger.info("[+] DLQ test passed - poison message moved to DLQ after retries")
 
     finally:
-        logger.info(f"[.] Recreating error-end queue for cleanup: {error_end_queue}")
-        transport_client.create_queue(error_end_queue)
-        logger.info(f"[+] error-end queue recreated: {error_end_queue}")
+        logger.info(f"[.] Recreating x-sump queue for cleanup: {sump_queue}")
+        transport_client.create_queue(sump_queue)
+        logger.info(f"[+] x-sump queue recreated: {sump_queue}")
 
 
 @pytest.mark.slow
@@ -153,7 +153,7 @@ def test_dlq_preserves_message_metadata_e2e(e2e_helper, kubectl, chaos_queues, n
     E2E: Test DLQ preserves message metadata.
 
     Scenario:
-    1. Delete asya-error-end queue (force DLQ fallback)
+    1. Delete asya-x-sump queue (force DLQ fallback)
     2. Send message with specific payload to test-error actor
     3. Actor fails repeatedly (3 times)
     4. After retries, message goes to DLQ
@@ -161,7 +161,7 @@ def test_dlq_preserves_message_metadata_e2e(e2e_helper, kubectl, chaos_queues, n
        - Task ID
        - Original route information
        - Original payload structure
-    6. Recreate error-end queue for cleanup
+    6. Recreate x-sump queue for cleanup
 
     Expected:
     - All message metadata preserved in DLQ
@@ -174,16 +174,16 @@ def test_dlq_preserves_message_metadata_e2e(e2e_helper, kubectl, chaos_queues, n
 
     actor_queue = f"asya-{namespace}-test-error"
     dlq_name = f"asya-{namespace}-dlq"
-    error_end_queue = f"asya-{namespace}-error-end"
+    sump_queue = f"asya-{namespace}-x-sump"
 
     logger.info(f"Transport: {transport}, DLQ: {dlq_name}")
     logger.info("Purging DLQ before test")
     transport_client.purge(dlq_name)
 
     try:
-        logger.info(f"[.] Deleting error-end queue to trigger DLQ fallback: {error_end_queue}")
-        transport_client.delete_queue(error_end_queue)
-        logger.info(f"[+] error-end queue deleted: {error_end_queue}")
+        logger.info(f"[.] Deleting x-sump queue to trigger DLQ fallback: {sump_queue}")
+        transport_client.delete_queue(sump_queue)
+        logger.info(f"[+] x-sump queue deleted: {sump_queue}")
 
         test_payload = {
             "should_fail": True,
@@ -237,6 +237,6 @@ def test_dlq_preserves_message_metadata_e2e(e2e_helper, kubectl, chaos_queues, n
         logger.info("[+] DLQ preserves message metadata correctly")
 
     finally:
-        logger.info(f"[.] Recreating error-end queue for cleanup: {error_end_queue}")
-        transport_client.create_queue(error_end_queue)
-        logger.info(f"[+] error-end queue recreated: {error_end_queue}")
+        logger.info(f"[.] Recreating x-sump queue for cleanup: {sump_queue}")
+        transport_client.create_queue(sump_queue)
+        logger.info(f"[+] x-sump queue recreated: {sump_queue}")

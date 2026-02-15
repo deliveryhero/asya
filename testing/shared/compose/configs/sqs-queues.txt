@@ -35,5 +35,5 @@ asya-default-test-large-queue
 asya-default-test-conditional-queue
 
 # System actor queues (with asya-{namespace}- prefix for namespace isolation)
-asya-default-happy-end
-asya-default-error-end
+asya-default-x-sink
+asya-default-x-sump

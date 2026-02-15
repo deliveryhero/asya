@@ -229,7 +229,7 @@ Sidecar creates multiple messages (one per item).
 return None  # or []
 ```
 
-Sidecar routes message to `happy-end` (no more processing).
+Sidecar routes message to `x-sink` (no more processing).
 
 ### Error
 
@@ -256,7 +256,7 @@ Runtime catches exception, creates error response with detailed traceback:
 - `msg_parsing_error`: Invalid JSON or message structure
 - `connection_error`: Socket/network issues
 
-Sidecar receives error response and routes message to `error-end`.
+Sidecar receives error response and routes message to `x-sump`.
 
 ## Route Modification Rules
 

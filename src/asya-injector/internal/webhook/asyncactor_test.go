@@ -370,3 +370,107 @@ func TestExtractActorConfig(t *testing.T) {
 		})
 	}
 }
+
+func TestExtractResiliencyConfig(t *testing.T) {
+	t.Run("no resiliency section", func(t *testing.T) {
+		asyncActor := &unstructured.Unstructured{
+			Object: map[string]interface{}{
+				"spec": map[string]interface{}{
+					"transport": "sqs",
+				},
+			},
+		}
+
+		cfg, err := extractActorConfig(asyncActor)
+		if err != nil {
+			t.Fatalf("extractActorConfig() error: %v", err)
+		}
+		if cfg.Resiliency != nil {
+			t.Error("expected nil Resiliency when section is absent")
+		}
+	})
+
+	t.Run("full resiliency config", func(t *testing.T) {
+		asyncActor := &unstructured.Unstructured{
+			Object: map[string]interface{}{
+				"spec": map[string]interface{}{
+					"transport": "sqs",
+					"resiliency": map[string]interface{}{
+						"retry": map[string]interface{}{
+							"policy":             "exponential",
+							"maxAttempts":        int64(5),
+							"initialInterval":    "1s",
+							"maxInterval":        "300s",
+							"backoffCoefficient": float64(2.0),
+							"jitter":             true,
+						},
+						"nonRetryableErrors": []interface{}{"ValueError", "KeyError"},
+						"actorTimeout":       "30s",
+					},
+				},
+			},
+		}
+
+		cfg, err := extractActorConfig(asyncActor)
+		if err != nil {
+			t.Fatalf("extractActorConfig() error: %v", err)
+		}
+		if cfg.Resiliency == nil {
+			t.Fatal("expected non-nil Resiliency")
+		}
+		if cfg.Resiliency.Retry == nil {
+			t.Fatal("expected non-nil Retry config")
+		}
+		if cfg.Resiliency.Retry.Policy != "exponential" {
+			t.Errorf("expected policy 'exponential', got '%s'", cfg.Resiliency.Retry.Policy)
+		}
+		if cfg.Resiliency.Retry.MaxAttempts != "5" {
+			t.Errorf("expected maxAttempts '5', got '%s'", cfg.Resiliency.Retry.MaxAttempts)
+		}
+		if cfg.Resiliency.Retry.InitialInterval != "1s" {
+			t.Errorf("expected initialInterval '1s', got '%s'", cfg.Resiliency.Retry.InitialInterval)
+		}
+		if cfg.Resiliency.Retry.MaxInterval != "300s" {
+			t.Errorf("expected maxInterval '300s', got '%s'", cfg.Resiliency.Retry.MaxInterval)
+		}
+		if cfg.Resiliency.Retry.BackoffCoefficient != "2" {
+			t.Errorf("expected backoffCoefficient '2', got '%s'", cfg.Resiliency.Retry.BackoffCoefficient)
+		}
+		if cfg.Resiliency.Retry.Jitter != "true" {
+			t.Errorf("expected jitter 'true', got '%s'", cfg.Resiliency.Retry.Jitter)
+		}
+		if cfg.Resiliency.NonRetryableErrors != "ValueError,KeyError" {
+			t.Errorf("expected nonRetryableErrors 'ValueError,KeyError', got '%s'", cfg.Resiliency.NonRetryableErrors)
+		}
+		if cfg.Resiliency.ActorTimeout != "30s" {
+			t.Errorf("expected actorTimeout '30s', got '%s'", cfg.Resiliency.ActorTimeout)
+		}
+	})
+
+	t.Run("resiliency with only actorTimeout", func(t *testing.T) {
+		asyncActor := &unstructured.Unstructured{
+			Object: map[string]interface{}{
+				"spec": map[string]interface{}{
+					"transport": "sqs",
+					"resiliency": map[string]interface{}{
+						"actorTimeout": "60s",
+					},
+				},
+			},
+		}
+
+		cfg, err := extractActorConfig(asyncActor)
+		if err != nil {
+			t.Fatalf("extractActorConfig() error: %v", err)
+		}
+		if cfg.Resiliency == nil {
+			t.Fatal("expected non-nil Resiliency")
+		}
+		if cfg.Resiliency.Retry != nil {
+			t.Error("expected nil Retry when not specified")
+		}
+		if cfg.Resiliency.ActorTimeout != "60s" {
+			t.Errorf("expected actorTimeout '60s', got '%s'", cfg.Resiliency.ActorTimeout)
+		}
+	})
+}

@@ -29,12 +29,12 @@ type Config struct {
 	Timeout    time.Duration
 
 	// End queues
-	HappyEndQueue string
-	ErrorEndQueue string
+	SinkQueue string
+	SumpQueue string
 
 	// End actor mode
 	// When true, the sidecar will NOT route responses from the runtime.
-	// This is used for end actors (happy-end, error-end) that consume
+	// This is used for end actors (x-sink, x-sump) that consume
 	// messages but don't produce new ones to route.
 	IsEndActor bool
 
@@ -48,6 +48,59 @@ type Config struct {
 	MetricsAddr      string
 	MetricsNamespace string
 	CustomMetrics    []CustomMetricConfig
+
+	// Resiliency configuration (optional, nil means no retry)
+	Resiliency *ResiliencyConfig
+}
+
+// RetryPolicy defines the retry backoff strategy.
+type RetryPolicy string
+
+const (
+	RetryPolicyConstant    RetryPolicy = "constant"
+	RetryPolicyExponential RetryPolicy = "exponential"
+)
+
+// Resiliency environment variable keys.
+const (
+	envResiliencyRetryPolicy      = "ASYA_RESILIENCY_RETRY_POLICY"
+	envResiliencyRetryMaxAttempts = "ASYA_RESILIENCY_RETRY_MAX_ATTEMPTS"
+	envResiliencyRetryInitial     = "ASYA_RESILIENCY_RETRY_INITIAL_INTERVAL"
+	envResiliencyRetryMax         = "ASYA_RESILIENCY_RETRY_MAX_INTERVAL"
+	envResiliencyRetryCoefficient = "ASYA_RESILIENCY_RETRY_BACKOFF_COEFFICIENT"
+	envResiliencyRetryJitter      = "ASYA_RESILIENCY_RETRY_JITTER"
+	envResiliencyNonRetryable     = "ASYA_RESILIENCY_NON_RETRYABLE_ERRORS"
+	envResiliencyActorTimeout     = "ASYA_RESILIENCY_ACTOR_TIMEOUT"
+)
+
+// resiliencyEnvKeys lists all ASYA_RESILIENCY_* env var keys for activation detection.
+var resiliencyEnvKeys = []string{
+	envResiliencyRetryPolicy,
+	envResiliencyRetryMaxAttempts,
+	envResiliencyRetryInitial,
+	envResiliencyRetryMax,
+	envResiliencyRetryCoefficient,
+	envResiliencyRetryJitter,
+	envResiliencyNonRetryable,
+	envResiliencyActorTimeout,
+}
+
+// ResiliencyConfig holds optional retry and timeout configuration for an actor.
+// When nil, the actor does not retry (single attempt).
+type ResiliencyConfig struct {
+	Retry              RetryConfig
+	NonRetryableErrors []string
+	ActorTimeout       time.Duration // 0 means no timeout
+}
+
+// RetryConfig holds retry-specific parameters.
+type RetryConfig struct {
+	Policy             RetryPolicy
+	MaxAttempts        int
+	InitialInterval    time.Duration
+	MaxInterval        time.Duration
+	BackoffCoefficient float64
+	Jitter             bool
 }
 
 // CustomMetricConfig defines configuration for a custom metric
@@ -81,9 +134,9 @@ func LoadFromEnv() (*Config, error) {
 		Timeout:    getEnvDuration("ASYA_RUNTIME_TIMEOUT", 5*time.Minute),
 
 		// End queues
-		HappyEndQueue: getEnv("ASYA_ACTOR_HAPPY_END", "happy-end"),
-		ErrorEndQueue: getEnv("ASYA_ACTOR_ERROR_END", "error-end"),
-		IsEndActor:    getEnvBool("ASYA_IS_END_ACTOR", false),
+		SinkQueue:  getEnv("ASYA_ACTOR_SINK", "x-sink"),
+		SumpQueue:  getEnv("ASYA_ACTOR_SUMP", "x-sump"),
+		IsEndActor: getEnvBool("ASYA_IS_END_ACTOR", false),
 
 		// Progress reporting
 		GatewayURL: getEnv("ASYA_GATEWAY_URL", ""),
@@ -109,6 +162,13 @@ func LoadFromEnv() (*Config, error) {
 		cfg.CustomMetrics = customMetrics
 	}
 
+	// Load resiliency configuration (optional)
+	resiliency, err := loadResiliencyConfig()
+	if err != nil {
+		return nil, err
+	}
+	cfg.Resiliency = resiliency
+
 	// Validate
 	if cfg.ActorName == "" {
 		return nil, fmt.Errorf("ASYA_ACTOR_NAME is required")
@@ -118,6 +178,79 @@ func LoadFromEnv() (*Config, error) {
 	}
 
 	return cfg, nil
+}
+
+// loadResiliencyConfig parses ASYA_RESILIENCY_* env vars into a ResiliencyConfig.
+// Returns nil if no resiliency env vars are set (actor does not retry).
+func loadResiliencyConfig() (*ResiliencyConfig, error) {
+	// Check if any resiliency env var is set
+	if !hasResiliencyConfig() {
+		return nil, nil
+	}
+
+	policy := RetryPolicy(getEnv(envResiliencyRetryPolicy, "exponential"))
+	if policy != RetryPolicyConstant && policy != RetryPolicyExponential {
+		return nil, fmt.Errorf("%s must be 'constant' or 'exponential', got %q", envResiliencyRetryPolicy, policy)
+	}
+
+	maxAttempts := getEnvInt(envResiliencyRetryMaxAttempts, 3)
+	if maxAttempts < 0 {
+		return nil, fmt.Errorf("%s must be >= 0, got %d", envResiliencyRetryMaxAttempts, maxAttempts)
+	}
+
+	initialInterval := getEnvDuration(envResiliencyRetryInitial, time.Second)
+	if initialInterval <= 0 {
+		return nil, fmt.Errorf("%s must be > 0, got %v", envResiliencyRetryInitial, initialInterval)
+	}
+
+	maxInterval := getEnvDuration(envResiliencyRetryMax, 300*time.Second)
+	if maxInterval <= 0 {
+		return nil, fmt.Errorf("%s must be > 0, got %v", envResiliencyRetryMax, maxInterval)
+	}
+
+	coefficient := getEnvFloat64(envResiliencyRetryCoefficient, 2.0)
+	if coefficient < 1.0 {
+		return nil, fmt.Errorf("%s must be >= 1.0, got %v", envResiliencyRetryCoefficient, coefficient)
+	}
+
+	jitter := getEnvBool(envResiliencyRetryJitter, true)
+
+	var nonRetryable []string
+	if raw := os.Getenv(envResiliencyNonRetryable); raw != "" {
+		for _, s := range strings.Split(raw, ",") {
+			if trimmed := strings.TrimSpace(s); trimmed != "" {
+				nonRetryable = append(nonRetryable, trimmed)
+			}
+		}
+	}
+
+	actorTimeout := getEnvDuration(envResiliencyActorTimeout, 0)
+	if actorTimeout < 0 {
+		return nil, fmt.Errorf("%s must be >= 0, got %v", envResiliencyActorTimeout, actorTimeout)
+	}
+
+	return &ResiliencyConfig{
+		Retry: RetryConfig{
+			Policy:             policy,
+			MaxAttempts:        maxAttempts,
+			InitialInterval:    initialInterval,
+			MaxInterval:        maxInterval,
+			BackoffCoefficient: coefficient,
+			Jitter:             jitter,
+		},
+		NonRetryableErrors: nonRetryable,
+		ActorTimeout:       actorTimeout,
+	}, nil
+}
+
+// hasResiliencyConfig checks if any ASYA_RESILIENCY_* env var is set.
+func hasResiliencyConfig() bool {
+	for _, key := range resiliencyEnvKeys {
+		if os.Getenv(key) != "" {
+			return true
+		}
+	}
+	return false
 }
 
 func getEnv(key, defaultValue string) string {
@@ -149,6 +282,15 @@ func getEnvDuration(key string, defaultValue time.Duration) time.Duration {
 	if value := os.Getenv(key); value != "" {
 		if d, err := time.ParseDuration(value); err == nil {
 			return d
+		}
+	}
+	return defaultValue
+}
+
+func getEnvFloat64(key string, defaultValue float64) float64 {
+	if value := os.Getenv(key); value != "" {
+		if f, err := strconv.ParseFloat(value, 64); err == nil {
+			return f
 		}
 	}
 	return defaultValue

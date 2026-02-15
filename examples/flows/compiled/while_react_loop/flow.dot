@@ -5,7 +5,7 @@ digraph flow {
   edge [fontname="Courier", fontsize=10];
 
   start_react_agent [fillcolor="lightgreen", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = start_react_agent(p)</i></td></tr></table>>];
-  router_react_agent_line_12_if [fillcolor="wheat", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_react_agent_line_12_if(p)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> p.get('tool_calls')</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkgreen"><font color="white"><b>TRUE</b></font></td><td bgcolor="darkred"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
+  router_react_agent_line_12_if [fillcolor="wheat", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_react_agent_line_12_if(p)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> p.get('tool_calls')</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkseagreen4"><font color="white"><b>TRUE</b></font></td><td bgcolor="indianred4"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
   router_react_agent_line_10_loop_back_0 [fillcolor="wheat", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_react_agent_line_10_loop_back_0(p)</i></td></tr></table>>];
   end_react_agent [fillcolor="lightgreen", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = end_react_agent(p)</i></td></tr></table>>];
   execute_tool [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = execute_tool(p)</i></td></tr></table>>];
@@ -13,7 +13,7 @@ digraph flow {
 
   llm_call -> router_react_agent_line_12_if;
   router_react_agent_line_10_loop_back_0 -> llm_call [constraint=false];
-  router_react_agent_line_12_if -> end_react_agent [color=darkred];
-  router_react_agent_line_12_if -> execute_tool [color=darkgreen];
+  router_react_agent_line_12_if -> end_react_agent [color=indianred4];
+  router_react_agent_line_12_if -> execute_tool [color=darkseagreen4];
   start_react_agent -> router_react_agent_line_10_loop_back_0;
 }

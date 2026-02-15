@@ -13,23 +13,33 @@ Create chart name and version as used by the chart label.
 {{- end }}
 
 {{/*
-Common labels for happy-end actor
+Common labels for x-sink actor
 Labels for AsyncActor CRs should NOT include reserved prefixes (app.kubernetes.io/, etc.)
 as these are managed by the operator and added to child resources.
 */}}
-{{- define "asya-crew.happy-end.labels" -}}
+{{- define "asya-crew.x-sink.labels" -}}
 helm.sh/chart: {{ include "asya-crew.chart" . }}
-asya.sh/actor: happy-end
+asya.sh/actor: x-sink
 {{- end }}
 
 {{/*
-Common labels for error-end actor
+Common labels for x-sump actor
 Labels for AsyncActor CRs should NOT include reserved prefixes (app.kubernetes.io/, etc.)
 as these are managed by the operator and added to child resources.
 */}}
-{{- define "asya-crew.error-end.labels" -}}
+{{- define "asya-crew.x-sump.labels" -}}
 helm.sh/chart: {{ include "asya-crew.chart" . }}
-asya.sh/actor: error-end
+asya.sh/actor: x-sump
+{{- end }}
+
+{{/*
+Common labels for checkpoint-s3 actor
+Labels for AsyncActor CRs should NOT include reserved prefixes (app.kubernetes.io/, etc.)
+as these are managed by the operator and added to child resources.
+*/}}
+{{- define "asya-crew.checkpoint-s3.labels" -}}
+helm.sh/chart: {{ include "asya-crew.chart" . }}
+asya.sh/actor: checkpoint-s3
 {{- end }}
 
 {{/*
@@ -57,29 +67,96 @@ Returns image pull policy
 {{- end }}
 
 {{/*
-Resolve image for happy-end actor (convenience wrapper)
+Resolve image for x-sink actor (convenience wrapper)
 */}}
-{{- define "asya-crew.happy-end.image" -}}
-{{- include "asya-crew.actor.image" (dict "root" . "actorName" "happy-end") }}
+{{- define "asya-crew.x-sink.image" -}}
+{{- include "asya-crew.actor.image" (dict "root" . "actorName" "x-sink") }}
 {{- end }}
 
 {{/*
-Resolve image pull policy for happy-end actor (convenience wrapper)
+Resolve image pull policy for x-sink actor (convenience wrapper)
 */}}
-{{- define "asya-crew.happy-end.imagePullPolicy" -}}
-{{- include "asya-crew.actor.imagePullPolicy" (dict "root" . "actorName" "happy-end") }}
+{{- define "asya-crew.x-sink.imagePullPolicy" -}}
+{{- include "asya-crew.actor.imagePullPolicy" (dict "root" . "actorName" "x-sink") }}
 {{- end }}
 
 {{/*
-Resolve image for error-end actor (convenience wrapper)
+Resolve image for x-sump actor (convenience wrapper)
 */}}
-{{- define "asya-crew.error-end.image" -}}
-{{- include "asya-crew.actor.image" (dict "root" . "actorName" "error-end") }}
+{{- define "asya-crew.x-sump.image" -}}
+{{- include "asya-crew.actor.image" (dict "root" . "actorName" "x-sump") }}
 {{- end }}
 
 {{/*
-Resolve image pull policy for error-end actor (convenience wrapper)
+Resolve image pull policy for x-sump actor (convenience wrapper)
 */}}
-{{- define "asya-crew.error-end.imagePullPolicy" -}}
-{{- include "asya-crew.actor.imagePullPolicy" (dict "root" . "actorName" "error-end") }}
+{{- define "asya-crew.x-sump.imagePullPolicy" -}}
+{{- include "asya-crew.actor.imagePullPolicy" (dict "root" . "actorName" "x-sump") }}
+{{- end }}
+
+{{/*
+Resolve image for checkpoint-s3 actor (convenience wrapper)
+*/}}
+{{- define "asya-crew.checkpoint-s3.image" -}}
+{{- include "asya-crew.actor.image" (dict "root" . "actorName" "checkpoint-s3") }}
+{{- end }}
+
+{{/*
+Resolve image pull policy for checkpoint-s3 actor (convenience wrapper)
+*/}}
+{{- define "asya-crew.checkpoint-s3.imagePullPolicy" -}}
+{{- include "asya-crew.actor.imagePullPolicy" (dict "root" . "actorName" "checkpoint-s3") }}
+{{- end }}
+
+{{/*
+DLQ Worker helpers
+The DLQ worker is a standalone Go binary (NOT an AsyncActor).
+It uses a separate image (asya-dlq-worker) with its own image config.
+*/}}
+
+{{/*
+Full name for the DLQ worker deployment
+*/}}
+{{- define "asya-crew.dlq-worker.fullname" -}}
+{{- printf "%s-dlq-worker" .Release.Name | trunc 63 | trimSuffix "-" }}
+{{- end }}
+
+{{/*
+Labels for DLQ worker
+*/}}
+{{- define "asya-crew.dlq-worker.labels" -}}
+helm.sh/chart: {{ include "asya-crew.chart" . }}
+{{ include "asya-crew.dlq-worker.selectorLabels" . }}
+{{- if .Chart.AppVersion }}
+app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+{{- end }}
+app.kubernetes.io/managed-by: {{ .Release.Service }}
+{{- end }}
+
+{{/*
+Selector labels for DLQ worker
+*/}}
+{{- define "asya-crew.dlq-worker.selectorLabels" -}}
+app.kubernetes.io/name: dlq-worker
+app.kubernetes.io/instance: {{ .Release.Name }}
+app.kubernetes.io/component: crew
+{{- end }}
+
+{{/*
+Resolve image for DLQ worker
+Uses dlq-worker.image config (separate from the crew actor images)
+*/}}
+{{- define "asya-crew.dlq-worker.image" -}}
+{{- $dlq := index .Values "dlq-worker" }}
+{{- $repository := $dlq.image.repository | default "ghcr.io/deliveryhero/asya-dlq-worker" }}
+{{- $tag := $dlq.image.tag | default .Chart.AppVersion }}
+{{- printf "%s:%s" $repository $tag }}
+{{- end }}
+
+{{/*
+Resolve image pull policy for DLQ worker
+*/}}
+{{- define "asya-crew.dlq-worker.imagePullPolicy" -}}
+{{- $dlq := index .Values "dlq-worker" }}
+{{- $dlq.image.pullPolicy | default "IfNotPresent" }}
 {{- end }}

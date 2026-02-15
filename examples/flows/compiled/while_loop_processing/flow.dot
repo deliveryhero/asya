@@ -7,11 +7,11 @@ digraph flow {
   start_loop_flow [fillcolor="lightgreen", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = start_loop_flow(p)</i></td></tr></table>>];
   router_loop_flow_line_19_seq [fillcolor="wheat", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_loop_flow_line_19_seq(p)</i></td></tr><tr><td bgcolor="white" align="left">p['abort'] = 2</td></tr></table>>];
   router_loop_flow_line_17_seq [fillcolor="wheat", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_loop_flow_line_17_seq(p)</i></td></tr><tr><td bgcolor="white" align="left">p['abort'] = 1</td></tr></table>>];
-  router_loop_flow_line_23_if [fillcolor="wheat", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_loop_flow_line_23_if(p)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> p['threshold_met']</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkgreen"><font color="white"><b>TRUE</b></font></td><td bgcolor="darkred"><font color="white"><b>pass</b></font></td></tr></table></td></tr></table>>];
-  router_loop_flow_line_16_if [fillcolor="wheat", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_loop_flow_line_16_if(p)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> p.get('skip_threshold_check')</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkgreen"><font color="white"><b>TRUE</b></font></td><td bgcolor="darkred"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
+  router_loop_flow_line_23_if [fillcolor="wheat", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_loop_flow_line_23_if(p)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> p['threshold_met']</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkseagreen4"><font color="white"><b>TRUE</b></font></td><td bgcolor="indianred4"><font color="white"><b>pass</b></font></td></tr></table></td></tr></table>>];
+  router_loop_flow_line_16_if [fillcolor="wheat", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_loop_flow_line_16_if(p)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> p.get('skip_threshold_check')</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkseagreen4"><font color="white"><b>TRUE</b></font></td><td bgcolor="indianred4"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
   router_loop_flow_line_13_seq [fillcolor="wheat", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_loop_flow_line_13_seq(p)</i></td></tr><tr><td bgcolor="white" align="left">p['iteration'] += 1</td></tr></table>>];
   router_loop_flow_line_12_loop_back_0 [fillcolor="wheat", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_loop_flow_line_12_loop_back_0(p)</i></td></tr></table>>];
-  router_loop_flow_line_12_while_0 [fillcolor="wheat", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_loop_flow_line_12_while_0(p)</i></td></tr><tr><td bgcolor="white" align="left">p['iteration'] = 0</td></tr><tr><td bgcolor="lightyellow"><b>if</b> p['iteration'] &lt; p['max_iterations']</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkgreen"><font color="white"><b>TRUE</b></font></td><td bgcolor="darkred"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
+  router_loop_flow_line_12_while_0 [fillcolor="wheat", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_loop_flow_line_12_while_0(p)</i></td></tr><tr><td bgcolor="white" align="left">p['iteration'] = 0</td></tr><tr><td bgcolor="lightyellow"><b>if</b> p['iteration'] &lt; p['max_iterations']</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkseagreen4"><font color="white"><b>TRUE</b></font></td><td bgcolor="indianred4"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
   end_loop_flow [fillcolor="lightgreen", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = end_loop_flow(p)</i></td></tr></table>>];
   check_threshold [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = check_threshold(p)</i></td></tr></table>>];
   finalize_loop [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = finalize_loop(p)</i></td></tr></table>>];
@@ -25,14 +25,14 @@ digraph flow {
   process_abort -> router_loop_flow_line_19_seq;
   process_item -> router_loop_flow_line_16_if;
   router_loop_flow_line_12_loop_back_0 -> router_loop_flow_line_12_while_0 [constraint=false];
-  router_loop_flow_line_12_while_0 -> finalize_loop [color=darkred];
-  router_loop_flow_line_12_while_0 -> router_loop_flow_line_13_seq [color=darkgreen];
+  router_loop_flow_line_12_while_0 -> finalize_loop [color=indianred4];
+  router_loop_flow_line_12_while_0 -> router_loop_flow_line_13_seq [color=darkseagreen4];
   router_loop_flow_line_13_seq -> process_item;
   router_loop_flow_line_13_seq -> router_loop_flow_line_12_loop_back_0;
-  router_loop_flow_line_16_if -> check_threshold [color=darkred];
-  router_loop_flow_line_16_if -> router_loop_flow_line_17_seq [color=darkgreen];
+  router_loop_flow_line_16_if -> check_threshold [color=indianred4];
+  router_loop_flow_line_16_if -> router_loop_flow_line_17_seq [color=darkseagreen4];
   router_loop_flow_line_17_seq -> process_abort;
   router_loop_flow_line_19_seq -> router_loop_flow_line_12_loop_back_0;
-  router_loop_flow_line_23_if -> finalize_loop [color=darkgreen];
+  router_loop_flow_line_23_if -> finalize_loop [color=darkseagreen4];
   start_loop_flow -> initialize;
 }

@@ -2,7 +2,13 @@ package transport
 
 import (
 	"context"
+	"errors"
+	"time"
 )
+
+// ErrDelayNotSupported is returned by SendWithDelay when the transport does not
+// support delayed delivery natively (e.g. RabbitMQ without the delayed-message plugin).
+var ErrDelayNotSupported = errors.New("transport does not support delayed delivery")
 
 // QueueMessage represents a message received from a queue
 type QueueMessage struct {
@@ -20,16 +26,16 @@ type Transport interface {
 	// Send sends a message to the specified queue
 	Send(ctx context.Context, queueName string, body []byte) error
 
+	// SendWithDelay sends a message to the specified queue with a delivery delay.
+	// Returns ErrDelayNotSupported if the transport lacks native delayed delivery.
+	SendWithDelay(ctx context.Context, queueName string, body []byte, delay time.Duration) error
+
 	// Ack acknowledges successful processing of a message
 	Ack(ctx context.Context, msg QueueMessage) error
 
-	// Nack negatively acknowledges a message (for retry)
-	Nack(ctx context.Context, msg QueueMessage) error
-
-	// TODO: Add Requeue method for message redelivery behavior
-	// Requeue(ctx context.Context, msg QueueMessage, visibilityTimeout time.Duration) error
-	// This would allow explicit control over message redelivery timing instead of
-	// relying on queue visibility timeout after pod crash
+	// Requeue returns a message to the queue for immediate redelivery.
+	// Best-effort last-resort infrastructure signal before crashing.
+	Requeue(ctx context.Context, msg QueueMessage) error
 
 	// Close closes the transport connection
 	Close() error

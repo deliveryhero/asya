@@ -156,8 +156,8 @@ healthChecks:
   crew:
     enabled: true
     requiredActors:
-    - happy-end
-    - error-end
+    - x-sink
+    - x-sump
     - custom-logger      # Your custom crew actor
     - custom-metrics     # Another custom crew actor
 ```

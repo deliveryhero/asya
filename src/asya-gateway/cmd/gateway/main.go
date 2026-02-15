@@ -111,9 +111,9 @@ func main() {
 	defer func() { _ = queueClient.Close() }()
 
 	// End queue consumers removed - use standalone end actors instead
-	// Deploy happy-end and error-end actors to handle end queue processing
+	// Deploy x-sink and x-sump actors to handle end queue processing
 	slog.Info("Gateway uses standalone end actors for final status reporting",
-		"info", "Deploy happy-end and error-end actors to handle end queues")
+		"info", "Deploy x-sink and x-sump actors to handle end queues")
 
 	// Load tool configuration if provided
 	var toolConfig *config.Config

@@ -115,10 +115,10 @@ Router → Transport.Ack/Nack()
 |----------|--------|
 | Single value | Route to next actor |
 | Array (fan-out) | Route each to next actor |
-| Empty | Send to happy-end |
-| Error | Send to error-end |
-| Timeout | Send to error-end |
-| End of route | Send to happy-end |
+| Empty | Send to x-sink |
+| Error | Send to x-sump |
+| Timeout | Send to x-sump |
+| End of route | Send to x-sink |
 
 ## Transport Interface
 
@@ -188,10 +188,10 @@ or
 
 ## End Actor Mode
 
-For end actors (happy-end, error-end), set `ASYA_IS_END_ACTOR=true` to disable response routing.
+For end actors (x-sink, x-sump), set `ASYA_IS_END_ACTOR=true` to disable response routing.
 
 ```bash
-export ASYA_ACTOR_NAME=happy-end
+export ASYA_ACTOR_NAME=x-sink
 export ASYA_IS_END_ACTOR=true
 ./bin/sidecar
 ```
@@ -232,10 +232,10 @@ volumes:
 
 | Error Type | Action | Destination |
 |------------|--------|-------------|
-| Parse error | Log + send error | error-end |
-| Runtime error | Log + send error | error-end |
-| Timeout | Log + construct error | error-end |
-| Empty response | Log + send original | happy-end |
+| Parse error | Log + send error | x-sump |
+| Runtime error | Log + send error | x-sump |
+| Timeout | Log + construct error | x-sump |
+| Empty response | Log + send original | x-sink |
 | Transport error | Log + NACK | retry queue |
 | Shutdown signal | Graceful NACK | retry queue |
 
@@ -248,8 +248,8 @@ All configuration via environment variables:
 | `ASYA_ACTOR_NAME` | _(required)_ | Queue to consume |
 | `ASYA_SOCKET_PATH` | `/tmp/sockets/app.sock` | Unix socket path |
 | `ASYA_RUNTIME_TIMEOUT` | `5m` | Response timeout |
-| `ASYA_STEP_HAPPY_END` | `happy-end` | Success queue |
-| `ASYA_STEP_ERROR_END` | `error-end` | Error queue |
+| `ASYA_ACTOR_SINK` | `x-sink` | Success queue |
+| `ASYA_ACTOR_SUMP` | `x-sump` | Error queue |
 | `ASYA_IS_END_ACTOR` | `false` | End actor mode |
 | `ASYA_GATEWAY_URL` | `""` | Gateway URL for progress reporting (optional) |
 | `ASYA_RABBITMQ_URL` | `amqp://guest:guest@localhost:5672/` | RabbitMQ connection |
@@ -298,19 +298,19 @@ All configuration via environment variables:
 **Detection:** Sidecar fails to connect to Unix socket (`failed to connect to runtime socket`)
 
 **Recovery:**
-1. Sidecar routes message to `error-end` queue with connection error
+1. Sidecar routes message to `x-sump` queue with connection error
 2. Kubernetes restarts runtime container automatically
 3. Socket recreated on shared emptyDir volume
 4. Next message attempt succeeds
 
-**Message fate:** Sent to error-end for retry logic (not automatically retried)
+**Message fate:** Sent to x-sump for retry logic (not automatically retried)
 
 #### Timeout (Hung Process)
 **Detection:** No response within `ASYA_RUNTIME_TIMEOUT` (default: 5m)
 
 **Recovery:**
 1. Socket read returns `context.DeadlineExceeded`
-2. Message sent to error-end with timeout error
+2. Message sent to x-sump with timeout error
 3. ⚠️ **Container NOT restarted** (no liveness probe configured)
 4. Runtime becomes a zombie, failing all subsequent messages
 
@@ -320,20 +320,20 @@ All configuration via environment variables:
 **Detection:** Runtime returns error response with traceback
 
 **Recovery:**
-1. Error routed to error-end with full exception details
+1. Error routed to x-sump with full exception details
 2. Runtime container remains healthy (exception was caught)
 3. Ready to process next message
 
-**Message fate:** Sent to error-end with detailed error context for debugging
+**Message fate:** Sent to x-sump with detailed error context for debugging
 
 ### Message Delivery Guarantees
 
 | Failure Scenario | Message Lost? | Auto Recovery | Notes |
 |------------------|---------------|---------------|-------|
 | Sidecar crash | ❌ No | ✅ Yes (fast) | NACK → redelivery |
-| Runtime crash | ❌ No | ✅ Yes | Via error-end queue |
-| Runtime OOM | ❌ No | ✅ Yes (may CrashLoopBackoff) | Via error-end queue |
-| Runtime timeout | ❌ No | ⚠️ No (zombie pod) | Via error-end, needs manual restart |
+| Runtime crash | ❌ No | ✅ Yes | Via x-sump queue |
+| Runtime OOM | ❌ No | ✅ Yes (may CrashLoopBackoff) | Via x-sump queue |
+| Runtime timeout | ❌ No | ⚠️ No (zombie pod) | Via x-sump, needs manual restart |
 | Pod eviction | ❌ No | ✅ Yes | Full pod restart |
 | Socket corruption | ❌ No | ✅ Yes | Transient, usually recovers |
 
@@ -359,7 +359,7 @@ The sidecar implements **at-least-once delivery**, not exactly-once:
      failureThreshold: 3
    ```
 
-2. **Implement retry logic** in error-end actor (exponential backoff, max attempts)
+2. **Implement retry logic** in x-sump actor (exponential backoff, max attempts)
 
 3. **Monitor timeout metrics** (`asya_actor_runtime_errors_total{error_type="timeout"}`)
 

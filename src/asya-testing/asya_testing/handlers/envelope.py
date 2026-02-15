@@ -105,7 +105,7 @@ def invalid_route_current_handler(message: dict[str, Any]) -> dict[str, Any]:
     This tests sidecar behavior when ASYA_ENABLE_VALIDATION=false in runtime
     and the handler incorrectly sets route.current beyond the actors array length.
 
-    The sidecar should handle this gracefully by routing to happy-end.
+    The sidecar should handle this gracefully by routing to x-sink.
     """
     payload = message["payload"]
     output_route = message["route"].copy()

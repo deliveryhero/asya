@@ -1,0 +1,56 @@
+{{- $checkpointS3 := index .Values "checkpoint-s3" }}
+{{- if $checkpointS3.enabled }}
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: {{ $checkpointS3.name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "asya-crew.checkpoint-s3.labels" . | nindent 4 }}
+  {{- with $checkpointS3.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  actor: {{ $checkpointS3.name }}
+  compositionSelector:
+    matchLabels:
+      asya.sh/transport: {{ $checkpointS3.transport }}
+  transport: {{ $checkpointS3.transport }}
+
+  {{- with $checkpointS3.sidecar }}
+  sidecar:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+
+  {{- if $checkpointS3.scaling.enabled }}
+  scaling:
+    {{- toYaml $checkpointS3.scaling | nindent 4 }}
+  {{- end }}
+
+  workload:
+    kind: {{ $checkpointS3.workload.kind }}
+    template:
+      spec:
+        containers:
+        - name: asya-runtime
+          image: {{ include "asya-crew.checkpoint-s3.image" . }}
+          imagePullPolicy: {{ include "asya-crew.checkpoint-s3.imagePullPolicy" . }}
+          env:
+          {{- range $key, $value := $checkpointS3.env }}
+          {{- if ne $value "" }}
+          - name: {{ $key }}
+            value: {{ $value | quote }}
+          {{- end }}
+          {{- end }}
+          - name: ASYA_HANDLER
+            value: asya_crew.message_persistence.s3.checkpoint_handler
+          - name: ASYA_HANDLER_MODE
+            value: envelope
+          - name: ASYA_ENABLE_VALIDATION
+            value: "false"
+          {{- with $checkpointS3.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+{{- end }}

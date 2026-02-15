@@ -14,18 +14,20 @@ import (
 
 // ErrorDetails represents additional information on error occurred in runtime
 type ErrorDetails struct {
-	Message   string `json:"message,omitempty"`
-	Type      string `json:"type,omitempty"`
-	Traceback string `json:"traceback,omitempty"`
+	Message   string   `json:"message,omitempty"`
+	Type      string   `json:"type,omitempty"`
+	MRO       []string `json:"mro,omitempty"`
+	Traceback string   `json:"traceback,omitempty"`
 }
 
 // RuntimeResponse represents the response from the actor runtime
 type RuntimeResponse struct {
-	Type    string          `json:"type,omitempty"`    // frame type: "end" for sentinel
-	Payload json.RawMessage `json:"payload,omitempty"` // payload output from handler
-	Route   messages.Route  `json:"route,omitempty"`   // route output from handler
-	Error   string          `json:"error,omitempty"`
-	Details ErrorDetails    `json:"details,omitempty"`
+	Type    string           `json:"type,omitempty"`    // frame type: "end" for sentinel
+	Payload json.RawMessage  `json:"payload,omitempty"` // payload output from handler
+	Route   messages.Route   `json:"route,omitempty"`   // route output from handler
+	Status  *messages.Status `json:"status,omitempty"`  // status from runtime (passed through)
+	Error   string           `json:"error,omitempty"`
+	Details ErrorDetails     `json:"details,omitempty"`
 }
 
 // IsError returns true if the response indicates an error

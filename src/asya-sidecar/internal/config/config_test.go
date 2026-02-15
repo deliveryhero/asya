@@ -63,11 +63,11 @@ func TestLoadFromEnv(t *testing.T) {
 				if cfg.RabbitMQExchange != "asya" {
 					t.Errorf("Default RabbitMQExchange = %v, want asya", cfg.RabbitMQExchange)
 				}
-				if cfg.HappyEndQueue != "happy-end" {
-					t.Errorf("Default HappyEndQueue = %v, want happy-end", cfg.HappyEndQueue)
+				if cfg.SinkQueue != "x-sink" {
+					t.Errorf("Default SinkQueue = %v, want x-sink", cfg.SinkQueue)
 				}
-				if cfg.ErrorEndQueue != "error-end" {
-					t.Errorf("Default ErrorEndQueue = %v, want error-end", cfg.ErrorEndQueue)
+				if cfg.SumpQueue != "x-sump" {
+					t.Errorf("Default SumpQueue = %v, want x-sump", cfg.SumpQueue)
 				}
 			},
 		},
@@ -99,7 +99,7 @@ func TestLoadFromEnv(t *testing.T) {
 		{
 			name: "end actor configuration",
 			env: map[string]string{
-				"ASYA_ACTOR_NAME":   "happy-end",
+				"ASYA_ACTOR_NAME":   "x-sink",
 				"ASYA_NAMESPACE":    "default",
 				"ASYA_IS_END_ACTOR": "true",
 			},
@@ -161,22 +161,22 @@ func TestLoadFromEnv(t *testing.T) {
 		{
 			name: "custom sockets dir and custom queues",
 			env: map[string]string{
-				"ASYA_ACTOR_NAME":      "test-actor",
-				"ASYA_NAMESPACE":       "default",
-				"ASYA_SOCKET_DIR":      "/custom/path",
-				"ASYA_ACTOR_HAPPY_END": "custom-happy",
-				"ASYA_ACTOR_ERROR_END": "custom-error",
+				"ASYA_ACTOR_NAME": "test-actor",
+				"ASYA_NAMESPACE":  "default",
+				"ASYA_SOCKET_DIR": "/custom/path",
+				"ASYA_ACTOR_SINK": "custom-happy",
+				"ASYA_ACTOR_SUMP": "custom-error",
 			},
 			expectError: false,
 			validate: func(t *testing.T, cfg *Config) {
 				if cfg.SocketPath != "/custom/path/asya-runtime.sock" {
 					t.Errorf("SocketPath = %v, want /custom/path/asya-runtime.sock", cfg.SocketPath)
 				}
-				if cfg.HappyEndQueue != "custom-happy" {
-					t.Errorf("HappyEndQueue = %v, want custom-happy", cfg.HappyEndQueue)
+				if cfg.SinkQueue != "custom-happy" {
+					t.Errorf("SinkQueue = %v, want custom-happy", cfg.SinkQueue)
 				}
-				if cfg.ErrorEndQueue != "custom-error" {
-					t.Errorf("ErrorEndQueue = %v, want custom-error", cfg.ErrorEndQueue)
+				if cfg.SumpQueue != "custom-error" {
+					t.Errorf("SumpQueue = %v, want custom-error", cfg.SumpQueue)
 				}
 			},
 		},
@@ -228,6 +228,209 @@ func TestLoadFromEnv(t *testing.T) {
 				expected := "amqp://override:override@override:5672/"
 				if cfg.RabbitMQURL != expected {
 					t.Errorf("RabbitMQURL = %v, want %v", cfg.RabbitMQURL, expected)
+				}
+			},
+		},
+		{
+			name: "no resiliency config when env vars absent",
+			env: map[string]string{
+				"ASYA_ACTOR_NAME": "test-actor",
+				"ASYA_NAMESPACE":  "default",
+			},
+			validate: func(t *testing.T, cfg *Config) {
+				if cfg.Resiliency != nil {
+					t.Error("Resiliency should be nil when no ASYA_RESILIENCY_* vars set")
+				}
+			},
+		},
+		{
+			name: "resiliency config with defaults",
+			env: map[string]string{
+				"ASYA_ACTOR_NAME":              "test-actor",
+				"ASYA_NAMESPACE":               "default",
+				"ASYA_RESILIENCY_RETRY_POLICY": "exponential",
+			},
+			validate: func(t *testing.T, cfg *Config) {
+				if cfg.Resiliency == nil {
+					t.Fatal("Resiliency should not be nil")
+				}
+				r := cfg.Resiliency
+				if r.Retry.Policy != RetryPolicyExponential {
+					t.Errorf("Policy = %v, want exponential", r.Retry.Policy)
+				}
+				if r.Retry.MaxAttempts != 3 {
+					t.Errorf("MaxAttempts = %v, want 3", r.Retry.MaxAttempts)
+				}
+				if r.Retry.InitialInterval != time.Second {
+					t.Errorf("InitialInterval = %v, want 1s", r.Retry.InitialInterval)
+				}
+				if r.Retry.MaxInterval != 300*time.Second {
+					t.Errorf("MaxInterval = %v, want 5m0s", r.Retry.MaxInterval)
+				}
+				if r.Retry.BackoffCoefficient != 2.0 {
+					t.Errorf("BackoffCoefficient = %v, want 2.0", r.Retry.BackoffCoefficient)
+				}
+				if !r.Retry.Jitter {
+					t.Error("Jitter should default to true")
+				}
+				if len(r.NonRetryableErrors) != 0 {
+					t.Errorf("NonRetryableErrors = %v, want empty", r.NonRetryableErrors)
+				}
+				if r.ActorTimeout != 0 {
+					t.Errorf("ActorTimeout = %v, want 0", r.ActorTimeout)
+				}
+			},
+		},
+		{
+			name: "resiliency config fully customized",
+			env: map[string]string{
+				"ASYA_ACTOR_NAME":                           "test-actor",
+				"ASYA_NAMESPACE":                            "default",
+				"ASYA_RESILIENCY_RETRY_POLICY":              "constant",
+				"ASYA_RESILIENCY_RETRY_MAX_ATTEMPTS":        "5",
+				"ASYA_RESILIENCY_RETRY_INITIAL_INTERVAL":    "2s",
+				"ASYA_RESILIENCY_RETRY_MAX_INTERVAL":        "60s",
+				"ASYA_RESILIENCY_RETRY_BACKOFF_COEFFICIENT": "3.5",
+				"ASYA_RESILIENCY_RETRY_JITTER":              "false",
+				"ASYA_RESILIENCY_NON_RETRYABLE_ERRORS":      "ValueError,KeyError,json.decoder.JSONDecodeError",
+				"ASYA_RESILIENCY_ACTOR_TIMEOUT":             "5m",
+			},
+			validate: func(t *testing.T, cfg *Config) {
+				if cfg.Resiliency == nil {
+					t.Fatal("Resiliency should not be nil")
+				}
+				r := cfg.Resiliency
+				if r.Retry.Policy != RetryPolicyConstant {
+					t.Errorf("Policy = %v, want constant", r.Retry.Policy)
+				}
+				if r.Retry.MaxAttempts != 5 {
+					t.Errorf("MaxAttempts = %v, want 5", r.Retry.MaxAttempts)
+				}
+				if r.Retry.InitialInterval != 2*time.Second {
+					t.Errorf("InitialInterval = %v, want 2s", r.Retry.InitialInterval)
+				}
+				if r.Retry.MaxInterval != 60*time.Second {
+					t.Errorf("MaxInterval = %v, want 1m0s", r.Retry.MaxInterval)
+				}
+				if r.Retry.BackoffCoefficient != 3.5 {
+					t.Errorf("BackoffCoefficient = %v, want 3.5", r.Retry.BackoffCoefficient)
+				}
+				if r.Retry.Jitter {
+					t.Error("Jitter should be false")
+				}
+				expectedErrors := []string{"ValueError", "KeyError", "json.decoder.JSONDecodeError"}
+				if len(r.NonRetryableErrors) != len(expectedErrors) {
+					t.Fatalf("NonRetryableErrors length = %v, want %v", len(r.NonRetryableErrors), len(expectedErrors))
+				}
+				for i, e := range expectedErrors {
+					if r.NonRetryableErrors[i] != e {
+						t.Errorf("NonRetryableErrors[%d] = %v, want %v", i, r.NonRetryableErrors[i], e)
+					}
+				}
+				if r.ActorTimeout != 5*time.Minute {
+					t.Errorf("ActorTimeout = %v, want 5m0s", r.ActorTimeout)
+				}
+			},
+		},
+		{
+			name: "resiliency config with max attempts zero disables retry",
+			env: map[string]string{
+				"ASYA_ACTOR_NAME":                    "test-actor",
+				"ASYA_NAMESPACE":                     "default",
+				"ASYA_RESILIENCY_RETRY_MAX_ATTEMPTS": "0",
+			},
+			validate: func(t *testing.T, cfg *Config) {
+				if cfg.Resiliency == nil {
+					t.Fatal("Resiliency should not be nil")
+				}
+				if cfg.Resiliency.Retry.MaxAttempts != 0 {
+					t.Errorf("MaxAttempts = %v, want 0", cfg.Resiliency.Retry.MaxAttempts)
+				}
+			},
+		},
+		{
+			name: "resiliency config invalid policy",
+			env: map[string]string{
+				"ASYA_ACTOR_NAME":              "test-actor",
+				"ASYA_NAMESPACE":               "default",
+				"ASYA_RESILIENCY_RETRY_POLICY": "linear",
+			},
+			expectError: true,
+		},
+		{
+			name: "resiliency config negative max attempts",
+			env: map[string]string{
+				"ASYA_ACTOR_NAME":                    "test-actor",
+				"ASYA_NAMESPACE":                     "default",
+				"ASYA_RESILIENCY_RETRY_MAX_ATTEMPTS": "-1",
+			},
+			expectError: true,
+		},
+		{
+			name: "resiliency config backoff coefficient below 1",
+			env: map[string]string{
+				"ASYA_ACTOR_NAME": "test-actor",
+				"ASYA_NAMESPACE":  "default",
+				"ASYA_RESILIENCY_RETRY_BACKOFF_COEFFICIENT": "0.5",
+			},
+			expectError: true,
+		},
+		{
+			name: "resiliency config zero initial interval",
+			env: map[string]string{
+				"ASYA_ACTOR_NAME":                        "test-actor",
+				"ASYA_NAMESPACE":                         "default",
+				"ASYA_RESILIENCY_RETRY_INITIAL_INTERVAL": "0s",
+			},
+			expectError: true,
+		},
+		{
+			name: "resiliency config zero max interval",
+			env: map[string]string{
+				"ASYA_ACTOR_NAME":                    "test-actor",
+				"ASYA_NAMESPACE":                     "default",
+				"ASYA_RESILIENCY_RETRY_MAX_INTERVAL": "0s",
+			},
+			expectError: true,
+		},
+		{
+			name: "resiliency config non-retryable errors with spaces trimmed",
+			env: map[string]string{
+				"ASYA_ACTOR_NAME":                      "test-actor",
+				"ASYA_NAMESPACE":                       "default",
+				"ASYA_RESILIENCY_NON_RETRYABLE_ERRORS": " ValueError , KeyError , ",
+			},
+			validate: func(t *testing.T, cfg *Config) {
+				if cfg.Resiliency == nil {
+					t.Fatal("Resiliency should not be nil")
+				}
+				expected := []string{"ValueError", "KeyError"}
+				if len(cfg.Resiliency.NonRetryableErrors) != len(expected) {
+					t.Fatalf("NonRetryableErrors length = %v, want %v", len(cfg.Resiliency.NonRetryableErrors), len(expected))
+				}
+				for i, e := range expected {
+					if cfg.Resiliency.NonRetryableErrors[i] != e {
+						t.Errorf("NonRetryableErrors[%d] = %v, want %v", i, cfg.Resiliency.NonRetryableErrors[i], e)
+					}
+				}
+			},
+		},
+		{
+			name: "resiliency config triggered by only actor timeout",
+			env: map[string]string{
+				"ASYA_ACTOR_NAME":               "test-actor",
+				"ASYA_NAMESPACE":                "default",
+				"ASYA_RESILIENCY_ACTOR_TIMEOUT": "30s",
+			},
+			validate: func(t *testing.T, cfg *Config) {
+				if cfg.Resiliency == nil {
+					t.Fatal("Resiliency should not be nil")
+				}
+				if cfg.Resiliency.ActorTimeout != 30*time.Second {
+					t.Errorf("ActorTimeout = %v, want 30s", cfg.Resiliency.ActorTimeout)
+				}
+				if cfg.Resiliency.Retry.Policy != RetryPolicyExponential {
+					t.Errorf("Policy should default to exponential, got %v", cfg.Resiliency.Retry.Policy)
 				}
 			},
 		},

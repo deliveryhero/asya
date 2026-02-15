@@ -5,11 +5,11 @@ digraph flow {
   edge [fontname="Courier", fontsize=10];
 
   start_while_break_continue_flow [fillcolor="lightgreen", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = start_while_break_continue_flow(p)</i></td></tr></table>>];
-  router_while_break_continue_flow_line_17_if [fillcolor="wheat", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_while_break_continue_flow_line_17_if(p)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> p['stop']</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkgreen"><font color="white"><b>TRUE</b></font></td><td bgcolor="darkred"><font color="white"><b>pass</b></font></td></tr></table></td></tr></table>>];
-  router_while_break_continue_flow_line_14_if [fillcolor="wheat", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_while_break_continue_flow_line_14_if(p)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> p['skip']</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkgreen"><font color="white"><b>TRUE</b></font></td><td bgcolor="darkred"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
+  router_while_break_continue_flow_line_17_if [fillcolor="wheat", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_while_break_continue_flow_line_17_if(p)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> p['stop']</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkseagreen4"><font color="white"><b>TRUE</b></font></td><td bgcolor="indianred4"><font color="white"><b>pass</b></font></td></tr></table></td></tr></table>>];
+  router_while_break_continue_flow_line_14_if [fillcolor="wheat", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_while_break_continue_flow_line_14_if(p)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> p['skip']</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkseagreen4"><font color="white"><b>TRUE</b></font></td><td bgcolor="indianred4"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
   router_while_break_continue_flow_line_12_seq [fillcolor="wheat", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_while_break_continue_flow_line_12_s…(p)</i></td></tr><tr><td bgcolor="white" align="left">p['i'] += 1</td></tr></table>>];
   router_while_break_continue_flow_line_11_loop_back_0 [fillcolor="wheat", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_while_break_continue_flow_line_11_l…(p)</i></td></tr></table>>];
-  router_while_break_continue_flow_line_11_while_0 [fillcolor="wheat", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_while_break_continue_flow_line_11_w…(p)</i></td></tr><tr><td bgcolor="white" align="left">p['i'] = 0</td></tr><tr><td bgcolor="lightyellow"><b>if</b> p['i'] &lt; p['max_iterations']</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkgreen"><font color="white"><b>TRUE</b></font></td><td bgcolor="darkred"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
+  router_while_break_continue_flow_line_11_while_0 [fillcolor="wheat", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_while_break_continue_flow_line_11_w…(p)</i></td></tr><tr><td bgcolor="white" align="left">p['i'] = 0</td></tr><tr><td bgcolor="lightyellow"><b>if</b> p['i'] &lt; p['max_iterations']</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkseagreen4"><font color="white"><b>TRUE</b></font></td><td bgcolor="indianred4"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
   end_while_break_continue_flow [fillcolor="lightgreen", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = end_while_break_continue_flow(p)</i></td></tr></table>>];
   handler_check [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = handler_check(p)</i></td></tr></table>>];
   handler_finalize [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = handler_finalize(p)</i></td></tr></table>>];
@@ -21,12 +21,12 @@ digraph flow {
   handler_init -> router_while_break_continue_flow_line_11_while_0;
   handler_process -> router_while_break_continue_flow_line_17_if;
   router_while_break_continue_flow_line_11_loop_back_0 -> router_while_break_continue_flow_line_11_while_0 [constraint=false];
-  router_while_break_continue_flow_line_11_while_0 -> handler_finalize [color=darkred];
-  router_while_break_continue_flow_line_11_while_0 -> router_while_break_continue_flow_line_12_seq [color=darkgreen];
+  router_while_break_continue_flow_line_11_while_0 -> handler_finalize [color=indianred4];
+  router_while_break_continue_flow_line_11_while_0 -> router_while_break_continue_flow_line_12_seq [color=darkseagreen4];
   router_while_break_continue_flow_line_12_seq -> handler_check;
   router_while_break_continue_flow_line_12_seq -> router_while_break_continue_flow_line_11_loop_back_0;
-  router_while_break_continue_flow_line_14_if -> handler_process [color=darkred];
-  router_while_break_continue_flow_line_14_if -> router_while_break_continue_flow_line_11_loop_back_0 [color=darkgreen];
-  router_while_break_continue_flow_line_17_if -> handler_finalize [color=darkgreen];
+  router_while_break_continue_flow_line_14_if -> handler_process [color=indianred4];
+  router_while_break_continue_flow_line_14_if -> router_while_break_continue_flow_line_11_loop_back_0 [color=darkseagreen4];
+  router_while_break_continue_flow_line_17_if -> handler_finalize [color=darkseagreen4];
   start_while_break_continue_flow -> handler_init;
 }

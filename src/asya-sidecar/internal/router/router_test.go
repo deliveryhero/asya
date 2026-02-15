@@ -26,8 +26,8 @@ import (
 )
 
 const (
-	testQueueHappyEnd = "happy-end"
-	testQueueErrorEnd = "error-end"
+	testQueueSink = "x-sink"
+	testQueueSump = "x-sump"
 )
 
 // mockTransport implements transport.Transport for testing
@@ -54,7 +54,11 @@ func (m *mockTransport) Ack(ctx context.Context, msg transport.QueueMessage) err
 	return nil
 }
 
-func (m *mockTransport) Nack(ctx context.Context, msg transport.QueueMessage) error {
+func (m *mockTransport) Requeue(ctx context.Context, msg transport.QueueMessage) error {
+	return nil
+}
+
+func (m *mockTransport) SendWithDelay(ctx context.Context, queueName string, body []byte, delay time.Duration) error {
 	return nil
 }
 
@@ -164,7 +168,7 @@ func TestRouter_RouteValidation(t *testing.T) {
 			expectedWarnContains: "Route mismatch: message routed to wrong actor",
 			shouldRejectAndError: true,
 			shouldCallRuntime:    false,
-			expectedDestQueue:    "asya-default-error-end",
+			expectedDestQueue:    "asya-default-x-sump",
 		},
 		{
 			name:      "route current index out of sync - sends to error queue",
@@ -176,7 +180,7 @@ func TestRouter_RouteValidation(t *testing.T) {
 			expectedWarnContains: "Route mismatch: message routed to wrong actor",
 			shouldRejectAndError: true,
 			shouldCallRuntime:    false,
-			expectedDestQueue:    "asya-default-error-end",
+			expectedDestQueue:    "asya-default-x-sump",
 		},
 	}
 
@@ -226,8 +230,8 @@ func TestRouter_RouteValidation(t *testing.T) {
 			cfg := &config.Config{
 				ActorName:     tt.actorName,
 				Namespace:     "default",
-				HappyEndQueue: "happy-end",
-				ErrorEndQueue: "error-end",
+				SinkQueue:     "x-sink",
+				SumpQueue:     "x-sump",
 				TransportType: "rabbitmq",
 			}
 
@@ -239,8 +243,8 @@ func TestRouter_RouteValidation(t *testing.T) {
 				transport:     mockTransport,
 				runtimeClient: runtimeClient,
 				actorName:     cfg.ActorName,
-				happyEndQueue: cfg.HappyEndQueue,
-				errorEndQueue: cfg.ErrorEndQueue,
+				sinkQueue:     cfg.SinkQueue,
+				sumpQueue:     cfg.SumpQueue,
 				metrics:       metrics.NewMetrics("test", []config.CustomMetricConfig{}),
 			}
 
@@ -372,25 +376,25 @@ func TestRouter_ResolveQueueName(t *testing.T) {
 			expected:  "some-actor",
 		},
 		{
-			name:          "end queue - happy-end",
+			name:          "end queue - x-sink",
 			transportType: "rabbitmq",
 			config: &config.Config{
 				TransportType: "rabbitmq",
 				Namespace:     "default",
 			},
-			actorName: "happy-end",
-			expected:  "asya-default-happy-end",
+			actorName: "x-sink",
+			expected:  "asya-default-x-sink",
 		},
 		{
-			name:          "end queue - error-end with SQS",
+			name:          "end queue - x-sump with SQS",
 			transportType: "sqs",
 			config: &config.Config{
 				TransportType: "sqs",
 				Namespace:     "default",
 				SQSBaseURL:    "https://sqs.us-west-2.amazonaws.com/987654321",
 			},
-			actorName: "error-end",
-			expected:  "asya-default-error-end",
+			actorName: "x-sump",
+			expected:  "asya-default-x-sump",
 		},
 	}
 
@@ -474,10 +478,10 @@ func TestRouter_DynamicRouteModification(t *testing.T) {
 
 			// Setup test components
 			cfg := &config.Config{
-				ActorName:     tt.initialActors[0],
-				Namespace:     "default",
-				HappyEndQueue: "happy-end",
-				ErrorEndQueue: "error-end",
+				ActorName: tt.initialActors[0],
+				Namespace: "default",
+				SinkQueue: "x-sink",
+				SumpQueue: "x-sump",
 			}
 
 			mockTransport := &mockTransport{}
@@ -488,8 +492,8 @@ func TestRouter_DynamicRouteModification(t *testing.T) {
 				transport:     mockTransport,
 				runtimeClient: runtimeClient,
 				actorName:     cfg.ActorName,
-				happyEndQueue: cfg.HappyEndQueue,
-				errorEndQueue: cfg.ErrorEndQueue,
+				sinkQueue:     cfg.SinkQueue,
+				sumpQueue:     cfg.SumpQueue,
 				metrics:       metrics.NewMetrics("test", []config.CustomMetricConfig{}),
 			}
 
@@ -571,8 +575,8 @@ func TestRouter_ResolveQueueName_Integration(t *testing.T) {
 				TransportType: "rabbitmq",
 				Namespace:     "default",
 				ActorName:     "actor1",
-				HappyEndQueue: "happy-end",
-				ErrorEndQueue: "error-end",
+				SinkQueue:     "x-sink",
+				SumpQueue:     "x-sump",
 			},
 			inputActors:      []string{"actor1", "actor2", "actor3"},
 			expectedQueues:   []string{"asya-default-actor2"},
@@ -586,8 +590,8 @@ func TestRouter_ResolveQueueName_Integration(t *testing.T) {
 				Namespace:     "default",
 				SQSBaseURL:    "https://sqs.us-east-1.amazonaws.com/123",
 				ActorName:     "processor",
-				HappyEndQueue: "happy-end",
-				ErrorEndQueue: "error-end",
+				SinkQueue:     "x-sink",
+				SumpQueue:     "x-sump",
 			},
 			inputActors:      []string{"processor", "validator"},
 			expectedQueues:   []string{"asya-default-validator"},
@@ -644,8 +648,8 @@ func TestRouter_ResolveQueueName_Integration(t *testing.T) {
 				transport:     mockTransport,
 				runtimeClient: runtimeClient,
 				actorName:     tt.config.ActorName,
-				happyEndQueue: tt.config.HappyEndQueue,
-				errorEndQueue: tt.config.ErrorEndQueue,
+				sinkQueue:     tt.config.SinkQueue,
+				sumpQueue:     tt.config.SumpQueue,
 				metrics:       metrics.NewMetrics("test", []config.CustomMetricConfig{}),
 			}
 
@@ -712,11 +716,11 @@ func TestNewRouter(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cfg := &config.Config{
-				ActorName:     "test-actor",
-				Namespace:     "default",
-				HappyEndQueue: "happy-end",
-				ErrorEndQueue: "error-end",
-				GatewayURL:    tt.gatewayURL,
+				ActorName:  "test-actor",
+				Namespace:  "default",
+				SinkQueue:  "x-sink",
+				SumpQueue:  "x-sump",
+				GatewayURL: tt.gatewayURL,
 			}
 
 			mockTransport := &mockTransport{}
@@ -733,12 +737,12 @@ func TestNewRouter(t *testing.T) {
 				t.Errorf("Expected actorName to be 'test-actor', got %q", router.actorName)
 			}
 
-			if router.happyEndQueue != testQueueHappyEnd {
-				t.Errorf("Expected happyEndQueue to be %q, got %q", testQueueHappyEnd, router.happyEndQueue)
+			if router.sinkQueue != testQueueSink {
+				t.Errorf("Expected sinkQueue to be %q, got %q", testQueueSink, router.sinkQueue)
 			}
 
-			if router.errorEndQueue != testQueueErrorEnd {
-				t.Errorf("Expected errorEndQueue to be %q, got %q", testQueueErrorEnd, router.errorEndQueue)
+			if router.sumpQueue != testQueueSump {
+				t.Errorf("Expected sumpQueue to be %q, got %q", testQueueSump, router.sumpQueue)
 			}
 
 			if tt.expectProgress && router.progressReporter == nil {
@@ -752,12 +756,12 @@ func TestNewRouter(t *testing.T) {
 	}
 }
 
-func TestRouter_SendToHappyQueue(t *testing.T) {
+func TestRouter_SendToSinkQueue(t *testing.T) {
 	cfg := &config.Config{
 		ActorName:     "test-actor",
 		Namespace:     "default",
-		HappyEndQueue: "happy-end",
-		ErrorEndQueue: "error-end",
+		SinkQueue:     "x-sink",
+		SumpQueue:     "x-sump",
 		TransportType: "rabbitmq",
 	}
 
@@ -765,12 +769,12 @@ func TestRouter_SendToHappyQueue(t *testing.T) {
 	m := metrics.NewMetrics("test", []config.CustomMetricConfig{})
 
 	router := &Router{
-		cfg:           cfg,
-		transport:     mockTransport,
-		actorName:     cfg.ActorName,
-		happyEndQueue: cfg.HappyEndQueue,
-		errorEndQueue: cfg.ErrorEndQueue,
-		metrics:       m,
+		cfg:       cfg,
+		transport: mockTransport,
+		actorName: cfg.ActorName,
+		sinkQueue: cfg.SinkQueue,
+		sumpQueue: cfg.SumpQueue,
+		metrics:   m,
 	}
 
 	msg := messages.Message{
@@ -783,17 +787,17 @@ func TestRouter_SendToHappyQueue(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	err := router.sendToHappyQueue(ctx, msg)
+	err := router.sendToSinkQueue(ctx, msg)
 	if err != nil {
-		t.Fatalf("sendToHappyQueue failed: %v", err)
+		t.Fatalf("sendToSinkQueue failed: %v", err)
 	}
 
 	if len(mockTransport.sentMessages) != 1 {
 		t.Fatalf("Expected 1 message sent, got %d", len(mockTransport.sentMessages))
 	}
 
-	if mockTransport.sentMessages[0].queue != "asya-default-"+testQueueHappyEnd {
-		t.Errorf("Message sent to queue %q, expected %q", mockTransport.sentMessages[0].queue, "asya-default-"+testQueueHappyEnd)
+	if mockTransport.sentMessages[0].queue != "asya-default-"+testQueueSink {
+		t.Errorf("Message sent to queue %q, expected %q", mockTransport.sentMessages[0].queue, "asya-default-"+testQueueSink)
 	}
 
 	var sentMsg messages.Message
@@ -807,12 +811,12 @@ func TestRouter_SendToHappyQueue(t *testing.T) {
 	}
 }
 
-func TestRouter_SendToErrorQueue(t *testing.T) {
+func TestRouter_SendToSumpQueue(t *testing.T) {
 	cfg := &config.Config{
 		ActorName:     "test-actor",
 		Namespace:     "default",
-		HappyEndQueue: "happy-end",
-		ErrorEndQueue: "error-end",
+		SinkQueue:     "x-sink",
+		SumpQueue:     "x-sump",
 		TransportType: "rabbitmq",
 	}
 
@@ -820,12 +824,12 @@ func TestRouter_SendToErrorQueue(t *testing.T) {
 	m := metrics.NewMetrics("test", []config.CustomMetricConfig{})
 
 	router := &Router{
-		cfg:           cfg,
-		transport:     mockTransport,
-		actorName:     cfg.ActorName,
-		happyEndQueue: cfg.HappyEndQueue,
-		errorEndQueue: cfg.ErrorEndQueue,
-		metrics:       m,
+		cfg:       cfg,
+		transport: mockTransport,
+		actorName: cfg.ActorName,
+		sinkQueue: cfg.SinkQueue,
+		sumpQueue: cfg.SumpQueue,
+		metrics:   m,
 	}
 
 	originalMsg := messages.Message{
@@ -840,17 +844,17 @@ func TestRouter_SendToErrorQueue(t *testing.T) {
 	originalBody, _ := json.Marshal(originalMsg)
 
 	ctx := context.Background()
-	err := router.sendToErrorQueue(ctx, originalBody, "Runtime processing failed")
+	err := router.sendToSumpQueue(ctx, originalBody, "Runtime processing failed")
 	if err != nil {
-		t.Fatalf("sendToErrorQueue failed: %v", err)
+		t.Fatalf("sendToSumpQueue failed: %v", err)
 	}
 
 	if len(mockTransport.sentMessages) != 1 {
 		t.Fatalf("Expected 1 message sent, got %d", len(mockTransport.sentMessages))
 	}
 
-	if mockTransport.sentMessages[0].queue != "asya-default-"+testQueueErrorEnd {
-		t.Errorf("Message sent to queue %q, expected %q", mockTransport.sentMessages[0].queue, "asya-default-"+testQueueErrorEnd)
+	if mockTransport.sentMessages[0].queue != "asya-default-"+testQueueSump {
+		t.Errorf("Message sent to queue %q, expected %q", mockTransport.sentMessages[0].queue, "asya-default-"+testQueueSump)
 	}
 
 	var errorMsg map[string]any
@@ -889,12 +893,12 @@ func TestRouter_SendToErrorQueue(t *testing.T) {
 	}
 }
 
-func TestRouter_SendToErrorQueue_WithInvalidOriginalMessage(t *testing.T) {
+func TestRouter_SendToSumpQueue_WithInvalidOriginalMessage(t *testing.T) {
 	cfg := &config.Config{
 		ActorName:     "test-actor",
 		Namespace:     "default",
-		HappyEndQueue: "happy-end",
-		ErrorEndQueue: "error-end",
+		SinkQueue:     "x-sink",
+		SumpQueue:     "x-sump",
 		TransportType: "rabbitmq",
 	}
 
@@ -902,20 +906,20 @@ func TestRouter_SendToErrorQueue_WithInvalidOriginalMessage(t *testing.T) {
 	m := metrics.NewMetrics("test", []config.CustomMetricConfig{})
 
 	router := &Router{
-		cfg:           cfg,
-		transport:     mockTransport,
-		actorName:     cfg.ActorName,
-		happyEndQueue: cfg.HappyEndQueue,
-		errorEndQueue: cfg.ErrorEndQueue,
-		metrics:       m,
+		cfg:       cfg,
+		transport: mockTransport,
+		actorName: cfg.ActorName,
+		sinkQueue: cfg.SinkQueue,
+		sumpQueue: cfg.SumpQueue,
+		metrics:   m,
 	}
 
 	invalidJSON := []byte(`{invalid json`)
 
 	ctx := context.Background()
-	err := router.sendToErrorQueue(ctx, invalidJSON, "Parse error")
+	err := router.sendToSumpQueue(ctx, invalidJSON, "Parse error")
 	if err != nil {
-		t.Fatalf("sendToErrorQueue failed: %v", err)
+		t.Fatalf("sendToSumpQueue failed: %v", err)
 	}
 
 	if len(mockTransport.sentMessages) != 1 {
@@ -954,8 +958,8 @@ func TestRouter_Run(t *testing.T) {
 	cfg := &config.Config{
 		ActorName:     "test-actor",
 		Namespace:     "default",
-		HappyEndQueue: "happy-end",
-		ErrorEndQueue: "error-end",
+		SinkQueue:     "x-sink",
+		SumpQueue:     "x-sump",
 		TransportType: "rabbitmq",
 	}
 
@@ -977,8 +981,8 @@ func TestRouter_Run(t *testing.T) {
 		transport:     mockTransport,
 		runtimeClient: runtimeClient,
 		actorName:     cfg.ActorName,
-		happyEndQueue: cfg.HappyEndQueue,
-		errorEndQueue: cfg.ErrorEndQueue,
+		sinkQueue:     cfg.SinkQueue,
+		sumpQueue:     cfg.SumpQueue,
 		metrics:       m,
 	}
 
@@ -996,8 +1000,8 @@ func TestRouter_ProcessMessage_ParseError(t *testing.T) {
 	cfg := &config.Config{
 		ActorName:     "test-actor",
 		Namespace:     "default",
-		HappyEndQueue: "happy-end",
-		ErrorEndQueue: "error-end",
+		SinkQueue:     "x-sink",
+		SumpQueue:     "x-sump",
 		TransportType: "rabbitmq",
 	}
 
@@ -1005,12 +1009,12 @@ func TestRouter_ProcessMessage_ParseError(t *testing.T) {
 	m := metrics.NewMetrics("test", []config.CustomMetricConfig{})
 
 	router := &Router{
-		cfg:           cfg,
-		transport:     mockTransport,
-		actorName:     cfg.ActorName,
-		happyEndQueue: cfg.HappyEndQueue,
-		errorEndQueue: cfg.ErrorEndQueue,
-		metrics:       m,
+		cfg:       cfg,
+		transport: mockTransport,
+		actorName: cfg.ActorName,
+		sinkQueue: cfg.SinkQueue,
+		sumpQueue: cfg.SumpQueue,
+		metrics:   m,
 	}
 
 	invalidJSON := []byte(`{invalid json`)
@@ -1029,8 +1033,8 @@ func TestRouter_ProcessMessage_ParseError(t *testing.T) {
 		t.Fatalf("Expected 1 message sent to error queue, got %d", len(mockTransport.sentMessages))
 	}
 
-	if mockTransport.sentMessages[0].queue != "asya-default-"+testQueueErrorEnd {
-		t.Errorf("Message sent to %q, expected %q", mockTransport.sentMessages[0].queue, "asya-default-"+testQueueErrorEnd)
+	if mockTransport.sentMessages[0].queue != "asya-default-"+testQueueSump {
+		t.Errorf("Message sent to %q, expected %q", mockTransport.sentMessages[0].queue, "asya-default-"+testQueueSump)
 	}
 }
 
@@ -1038,8 +1042,8 @@ func TestRouter_ProcessMessage_MissingMessageID(t *testing.T) {
 	cfg := &config.Config{
 		ActorName:     "test-actor",
 		Namespace:     "default",
-		HappyEndQueue: "happy-end",
-		ErrorEndQueue: "error-end",
+		SinkQueue:     "x-sink",
+		SumpQueue:     "x-sump",
 		TransportType: "rabbitmq",
 	}
 
@@ -1047,12 +1051,12 @@ func TestRouter_ProcessMessage_MissingMessageID(t *testing.T) {
 	m := metrics.NewMetrics("test", []config.CustomMetricConfig{})
 
 	router := &Router{
-		cfg:           cfg,
-		transport:     mockTransport,
-		actorName:     cfg.ActorName,
-		happyEndQueue: cfg.HappyEndQueue,
-		errorEndQueue: cfg.ErrorEndQueue,
-		metrics:       m,
+		cfg:       cfg,
+		transport: mockTransport,
+		actorName: cfg.ActorName,
+		sinkQueue: cfg.SinkQueue,
+		sumpQueue: cfg.SumpQueue,
+		metrics:   m,
 	}
 
 	msgWithoutID := []byte(`{"route": {"actors": ["test-actor"], "current": 0}, "payload": {"test": "data"}}`)
@@ -1071,8 +1075,8 @@ func TestRouter_ProcessMessage_MissingMessageID(t *testing.T) {
 		t.Fatalf("Expected 1 message sent to error queue, got %d", len(mockTransport.sentMessages))
 	}
 
-	if mockTransport.sentMessages[0].queue != "asya-default-"+testQueueErrorEnd {
-		t.Errorf("Message sent to %q, expected %q", mockTransport.sentMessages[0].queue, "asya-default-"+testQueueErrorEnd)
+	if mockTransport.sentMessages[0].queue != "asya-default-"+testQueueSump {
+		t.Errorf("Message sent to %q, expected %q", mockTransport.sentMessages[0].queue, "asya-default-"+testQueueSump)
 	}
 
 	var errorMsg map[string]interface{}
@@ -1119,8 +1123,8 @@ func TestRouter_ProcessMessage_EmptyResponse(t *testing.T) {
 	cfg := &config.Config{
 		ActorName:     "test-actor",
 		Namespace:     "default",
-		HappyEndQueue: "happy-end",
-		ErrorEndQueue: "error-end",
+		SinkQueue:     "x-sink",
+		SumpQueue:     "x-sump",
 		TransportType: "rabbitmq",
 	}
 
@@ -1133,8 +1137,8 @@ func TestRouter_ProcessMessage_EmptyResponse(t *testing.T) {
 		transport:     mockTransport,
 		runtimeClient: runtimeClient,
 		actorName:     cfg.ActorName,
-		happyEndQueue: cfg.HappyEndQueue,
-		errorEndQueue: cfg.ErrorEndQueue,
+		sinkQueue:     cfg.SinkQueue,
+		sumpQueue:     cfg.SumpQueue,
 		metrics:       m,
 	}
 
@@ -1160,11 +1164,11 @@ func TestRouter_ProcessMessage_EmptyResponse(t *testing.T) {
 	}
 
 	if len(mockTransport.sentMessages) != 1 {
-		t.Fatalf("Expected 1 message sent to happy-end, got %d", len(mockTransport.sentMessages))
+		t.Fatalf("Expected 1 message sent to x-sink, got %d", len(mockTransport.sentMessages))
 	}
 
-	if mockTransport.sentMessages[0].queue != "asya-default-"+testQueueHappyEnd {
-		t.Errorf("Message sent to %q, expected %q", mockTransport.sentMessages[0].queue, "asya-default-"+testQueueHappyEnd)
+	if mockTransport.sentMessages[0].queue != "asya-default-"+testQueueSink {
+		t.Errorf("Message sent to %q, expected %q", mockTransport.sentMessages[0].queue, "asya-default-"+testQueueSink)
 	}
 }
 
@@ -1194,7 +1198,7 @@ func TestRouter_ProcessMessage_EndActor(t *testing.T) {
 			{
 				Payload: json.RawMessage(`{"status": "logged"}`),
 				Route: messages.Route{
-					Actors:  []string{"happy-end"},
+					Actors:  []string{"x-sink"},
 					Current: 0,
 				},
 			},
@@ -1202,10 +1206,10 @@ func TestRouter_ProcessMessage_EndActor(t *testing.T) {
 	}()
 
 	cfg := &config.Config{
-		ActorName:     "happy-end",
+		ActorName:     "x-sink",
 		Namespace:     "default",
-		HappyEndQueue: "happy-end",
-		ErrorEndQueue: "error-end",
+		SinkQueue:     "x-sink",
+		SumpQueue:     "x-sump",
 		TransportType: "rabbitmq",
 		IsEndActor:    true,
 	}
@@ -1219,15 +1223,15 @@ func TestRouter_ProcessMessage_EndActor(t *testing.T) {
 		transport:     mockTransport,
 		runtimeClient: runtimeClient,
 		actorName:     cfg.ActorName,
-		happyEndQueue: cfg.HappyEndQueue,
-		errorEndQueue: cfg.ErrorEndQueue,
+		sinkQueue:     cfg.SinkQueue,
+		sumpQueue:     cfg.SumpQueue,
 		metrics:       m,
 	}
 
 	inputMsg := messages.Message{
 		ID: "test-123",
 		Route: messages.Route{
-			Actors:  []string{"happy-end"},
+			Actors:  []string{"x-sink"},
 			Current: 0,
 		},
 		Payload: json.RawMessage(`{"result": "success"}`),
@@ -1262,7 +1266,7 @@ func TestRouter_EndActor_WithInvalidRoute(t *testing.T) {
 				Actors:  []string{"test-echo"},
 				Current: 0,
 			},
-			desc: "Route points to test-echo but end actor is happy-end",
+			desc: "Route points to test-echo but end actor is x-sink",
 		},
 		{
 			name: "current out of bounds",
@@ -1286,7 +1290,7 @@ func TestRouter_EndActor_WithInvalidRoute(t *testing.T) {
 				Actors:  []string{"actor1", "actor2", "actor3"},
 				Current: 1,
 			},
-			desc: "Route points to actor2 but end actor is happy-end",
+			desc: "Route points to actor2 but end actor is x-sink",
 		},
 	}
 
@@ -1321,10 +1325,10 @@ func TestRouter_EndActor_WithInvalidRoute(t *testing.T) {
 			}()
 
 			cfg := &config.Config{
-				ActorName:     "happy-end",
+				ActorName:     "x-sink",
 				Namespace:     "default",
-				HappyEndQueue: "happy-end",
-				ErrorEndQueue: "error-end",
+				SinkQueue:     "x-sink",
+				SumpQueue:     "x-sump",
 				TransportType: "rabbitmq",
 				IsEndActor:    true,
 			}
@@ -1338,8 +1342,8 @@ func TestRouter_EndActor_WithInvalidRoute(t *testing.T) {
 				transport:     mockTransport,
 				runtimeClient: runtimeClient,
 				actorName:     cfg.ActorName,
-				happyEndQueue: cfg.HappyEndQueue,
-				errorEndQueue: cfg.ErrorEndQueue,
+				sinkQueue:     cfg.SinkQueue,
+				sumpQueue:     cfg.SumpQueue,
 				metrics:       m,
 			}
 
@@ -1402,10 +1406,10 @@ func TestRouter_EndActor_WithGatewayReporting(t *testing.T) {
 	}()
 
 	cfg := &config.Config{
-		ActorName:     "happy-end",
+		ActorName:     "x-sink",
 		Namespace:     "default",
-		HappyEndQueue: "happy-end",
-		ErrorEndQueue: "error-end",
+		SinkQueue:     "x-sink",
+		SumpQueue:     "x-sump",
 		TransportType: "rabbitmq",
 		IsEndActor:    true,
 		GatewayURL:    mockServer.URL,
@@ -1481,10 +1485,10 @@ func TestRouter_EndActor_RuntimeError(t *testing.T) {
 	}()
 
 	cfg := &config.Config{
-		ActorName:     "error-end",
+		ActorName:     "x-sump",
 		Namespace:     "default",
-		HappyEndQueue: "happy-end",
-		ErrorEndQueue: "error-end",
+		SinkQueue:     "x-sink",
+		SumpQueue:     "x-sump",
 		TransportType: "rabbitmq",
 		IsEndActor:    true,
 	}
@@ -1498,8 +1502,8 @@ func TestRouter_EndActor_RuntimeError(t *testing.T) {
 		transport:     mockTransport,
 		runtimeClient: runtimeClient,
 		actorName:     cfg.ActorName,
-		happyEndQueue: cfg.HappyEndQueue,
-		errorEndQueue: cfg.ErrorEndQueue,
+		sinkQueue:     cfg.SinkQueue,
+		sumpQueue:     cfg.SumpQueue,
 		metrics:       m,
 	}
 
@@ -1560,7 +1564,7 @@ func TestRouter_EndActor_DoesNotIncrementCurrent(t *testing.T) {
 			{
 				Payload: json.RawMessage(`{"status": "logged"}`),
 				Route: messages.Route{
-					Actors:  []string{"actor1", "actor2", "happy-end"},
+					Actors:  []string{"actor1", "actor2", "x-sink"},
 					Current: 3, // Try to increment current
 				},
 			},
@@ -1568,10 +1572,10 @@ func TestRouter_EndActor_DoesNotIncrementCurrent(t *testing.T) {
 	}()
 
 	cfg := &config.Config{
-		ActorName:     "happy-end",
+		ActorName:     "x-sink",
 		Namespace:     "default",
-		HappyEndQueue: "happy-end",
-		ErrorEndQueue: "error-end",
+		SinkQueue:     "x-sink",
+		SumpQueue:     "x-sump",
 		TransportType: "rabbitmq",
 		IsEndActor:    true,
 	}
@@ -1585,16 +1589,16 @@ func TestRouter_EndActor_DoesNotIncrementCurrent(t *testing.T) {
 		transport:     mockTransport,
 		runtimeClient: runtimeClient,
 		actorName:     cfg.ActorName,
-		happyEndQueue: cfg.HappyEndQueue,
-		errorEndQueue: cfg.ErrorEndQueue,
+		sinkQueue:     cfg.SinkQueue,
+		sumpQueue:     cfg.SumpQueue,
 		metrics:       m,
 	}
 
 	inputMsg := messages.Message{
 		ID: "test-no-increment",
 		Route: messages.Route{
-			Actors:  []string{"actor1", "actor2", "happy-end"},
-			Current: 2, // Current points to happy-end
+			Actors:  []string{"actor1", "actor2", "x-sink"},
+			Current: 2, // Current points to x-sink
 		},
 		Payload: json.RawMessage(`{"result": "success"}`),
 	}
@@ -1638,8 +1642,8 @@ func TestRouter_ProcessMessage_RuntimeError(t *testing.T) {
 	cfg := &config.Config{
 		ActorName:     "test-actor",
 		Namespace:     "default",
-		HappyEndQueue: "happy-end",
-		ErrorEndQueue: "error-end",
+		SinkQueue:     "x-sink",
+		SumpQueue:     "x-sump",
 		TransportType: "rabbitmq",
 	}
 
@@ -1652,8 +1656,8 @@ func TestRouter_ProcessMessage_RuntimeError(t *testing.T) {
 		transport:     mockTransport,
 		runtimeClient: runtimeClient,
 		actorName:     cfg.ActorName,
-		happyEndQueue: cfg.HappyEndQueue,
-		errorEndQueue: cfg.ErrorEndQueue,
+		sinkQueue:     cfg.SinkQueue,
+		sumpQueue:     cfg.SumpQueue,
 		metrics:       m,
 	}
 
@@ -1682,8 +1686,8 @@ func TestRouter_ProcessMessage_RuntimeError(t *testing.T) {
 		t.Fatalf("Expected 1 message sent to error queue, got %d", len(mockTransport.sentMessages))
 	}
 
-	if mockTransport.sentMessages[0].queue != "asya-default-"+testQueueErrorEnd {
-		t.Errorf("Message sent to %q, expected %q", mockTransport.sentMessages[0].queue, "asya-default-"+testQueueErrorEnd)
+	if mockTransport.sentMessages[0].queue != "asya-default-"+testQueueSump {
+		t.Errorf("Message sent to %q, expected %q", mockTransport.sentMessages[0].queue, "asya-default-"+testQueueSump)
 	}
 }
 
@@ -1723,8 +1727,8 @@ func TestRouter_ProcessMessage_ErrorResponse(t *testing.T) {
 	cfg := &config.Config{
 		ActorName:     "test-actor",
 		Namespace:     "default",
-		HappyEndQueue: "happy-end",
-		ErrorEndQueue: "error-end",
+		SinkQueue:     "x-sink",
+		SumpQueue:     "x-sump",
 		TransportType: "rabbitmq",
 	}
 
@@ -1737,8 +1741,8 @@ func TestRouter_ProcessMessage_ErrorResponse(t *testing.T) {
 		transport:     mockTransport,
 		runtimeClient: runtimeClient,
 		actorName:     cfg.ActorName,
-		happyEndQueue: cfg.HappyEndQueue,
-		errorEndQueue: cfg.ErrorEndQueue,
+		sinkQueue:     cfg.SinkQueue,
+		sumpQueue:     cfg.SumpQueue,
 		metrics:       m,
 	}
 
@@ -1767,8 +1771,8 @@ func TestRouter_ProcessMessage_ErrorResponse(t *testing.T) {
 		t.Fatalf("Expected 1 message sent to error queue, got %d", len(mockTransport.sentMessages))
 	}
 
-	if mockTransport.sentMessages[0].queue != "asya-default-"+testQueueErrorEnd {
-		t.Errorf("Message sent to %q, expected %q", mockTransport.sentMessages[0].queue, "asya-default-"+testQueueErrorEnd)
+	if mockTransport.sentMessages[0].queue != "asya-default-"+testQueueSump {
+		t.Errorf("Message sent to %q, expected %q", mockTransport.sentMessages[0].queue, "asya-default-"+testQueueSump)
 	}
 
 	var errorMsg map[string]any
@@ -1806,17 +1810,17 @@ func TestRouter_ProcessMessage_ErrorResponse(t *testing.T) {
 	}
 }
 
-func TestRouter_ReportFinalStatus_HappyEnd(t *testing.T) {
+func TestRouter_ReportFinalStatus_Sink(t *testing.T) {
 	mockServer := &mockHTTPServer{responses: make(map[string]mockHTTPResponse)}
 	mockServer.Start(t)
 	defer mockServer.Close()
 
 	cfg := &config.Config{
-		ActorName:     "happy-end",
-		Namespace:     "default",
-		HappyEndQueue: "happy-end",
-		ErrorEndQueue: "error-end",
-		GatewayURL:    mockServer.URL,
+		ActorName:  "x-sink",
+		Namespace:  "default",
+		SinkQueue:  "x-sink",
+		SumpQueue:  "x-sump",
+		GatewayURL: mockServer.URL,
 	}
 
 	mockTransport := &mockTransport{}
@@ -1858,17 +1862,17 @@ func TestRouter_ReportFinalStatus_HappyEnd(t *testing.T) {
 	}
 }
 
-func TestRouter_ReportFinalStatus_ErrorEnd(t *testing.T) {
+func TestRouter_ReportFinalStatus_Sump(t *testing.T) {
 	mockServer := &mockHTTPServer{responses: make(map[string]mockHTTPResponse)}
 	mockServer.Start(t)
 	defer mockServer.Close()
 
 	cfg := &config.Config{
-		ActorName:     "error-end",
-		Namespace:     "default",
-		HappyEndQueue: "happy-end",
-		ErrorEndQueue: "error-end",
-		GatewayURL:    mockServer.URL,
+		ActorName:  "x-sump",
+		Namespace:  "default",
+		SinkQueue:  "x-sink",
+		SumpQueue:  "x-sump",
+		GatewayURL: mockServer.URL,
 	}
 
 	mockTransport := &mockTransport{}
@@ -1902,7 +1906,7 @@ func TestRouter_ReportFinalStatus_ErrorEnd(t *testing.T) {
 	}
 }
 
-func TestRouter_ReportFinalStatusWithMessage_ErrorEnd_ExtractsErrorDetails(t *testing.T) {
+func TestRouter_ReportFinalStatusWithMessage_Sump_ExtractsErrorDetails(t *testing.T) {
 	mockServer := &mockHTTPServer{responses: make(map[string]mockHTTPResponse)}
 	mockServer.Start(t)
 	defer mockServer.Close()
@@ -1936,10 +1940,10 @@ func TestRouter_ReportFinalStatusWithMessage_ErrorEnd_ExtractsErrorDetails(t *te
 	}()
 
 	cfg := &config.Config{
-		ActorName:     "error-end",
+		ActorName:     "x-sump",
 		Namespace:     "default",
-		HappyEndQueue: "happy-end",
-		ErrorEndQueue: "error-end",
+		SinkQueue:     "x-sink",
+		SumpQueue:     "x-sump",
 		TransportType: "rabbitmq",
 		IsEndActor:    true,
 		GatewayURL:    mockServer.URL,
@@ -2030,7 +2034,7 @@ func TestRouter_ReportFinalStatusWithMessage_ErrorEnd_ExtractsErrorDetails(t *te
 	}
 }
 
-func TestRouter_ReportFinalStatusWithMessage_ErrorEnd_NoErrorDetails(t *testing.T) {
+func TestRouter_ReportFinalStatusWithMessage_Sump_NoErrorDetails(t *testing.T) {
 	mockServer := &mockHTTPServer{responses: make(map[string]mockHTTPResponse)}
 	mockServer.Start(t)
 	defer mockServer.Close()
@@ -2064,10 +2068,10 @@ func TestRouter_ReportFinalStatusWithMessage_ErrorEnd_NoErrorDetails(t *testing.
 	}()
 
 	cfg := &config.Config{
-		ActorName:     "error-end",
+		ActorName:     "x-sump",
 		Namespace:     "default",
-		HappyEndQueue: "happy-end",
-		ErrorEndQueue: "error-end",
+		SinkQueue:     "x-sink",
+		SumpQueue:     "x-sump",
 		TransportType: "rabbitmq",
 		IsEndActor:    true,
 		GatewayURL:    mockServer.URL,
@@ -2126,11 +2130,11 @@ func TestRouter_ReportFinalStatusWithMessage_ErrorEnd_NoErrorDetails(t *testing.
 
 func TestRouter_ReportFinalStatus_NoGateway(t *testing.T) {
 	cfg := &config.Config{
-		ActorName:     "happy-end",
-		Namespace:     "default",
-		HappyEndQueue: "happy-end",
-		ErrorEndQueue: "error-end",
-		GatewayURL:    "",
+		ActorName:  "x-sink",
+		Namespace:  "default",
+		SinkQueue:  "x-sink",
+		SumpQueue:  "x-sump",
+		GatewayURL: "",
 	}
 
 	mockTransport := &mockTransport{}
@@ -2190,8 +2194,8 @@ func TestRouter_ProcessMessage_FanOut(t *testing.T) {
 	cfg := &config.Config{
 		ActorName:     "test-actor",
 		Namespace:     "default",
-		HappyEndQueue: "happy-end",
-		ErrorEndQueue: "error-end",
+		SinkQueue:     "x-sink",
+		SumpQueue:     "x-sump",
 		TransportType: "rabbitmq",
 	}
 
@@ -2204,8 +2208,8 @@ func TestRouter_ProcessMessage_FanOut(t *testing.T) {
 		transport:     mockTransport,
 		runtimeClient: runtimeClient,
 		actorName:     cfg.ActorName,
-		happyEndQueue: cfg.HappyEndQueue,
-		errorEndQueue: cfg.ErrorEndQueue,
+		sinkQueue:     cfg.SinkQueue,
+		sumpQueue:     cfg.SumpQueue,
 		metrics:       m,
 	}
 
@@ -2362,8 +2366,8 @@ func TestRouter_ProcessMessage_FanOut_CreatesGatewayTasks(t *testing.T) {
 	cfg := &config.Config{
 		ActorName:     "test-actor",
 		Namespace:     "default",
-		HappyEndQueue: "happy-end",
-		ErrorEndQueue: "error-end",
+		SinkQueue:     "x-sink",
+		SumpQueue:     "x-sump",
 		TransportType: "rabbitmq",
 		GatewayURL:    gatewayServer.URL,
 	}
@@ -2378,8 +2382,8 @@ func TestRouter_ProcessMessage_FanOut_CreatesGatewayTasks(t *testing.T) {
 		transport:        mockTransport,
 		runtimeClient:    runtimeClient,
 		actorName:        cfg.ActorName,
-		happyEndQueue:    cfg.HappyEndQueue,
-		errorEndQueue:    cfg.ErrorEndQueue,
+		sinkQueue:        cfg.SinkQueue,
+		sumpQueue:        cfg.SumpQueue,
 		gatewayURL:       cfg.GatewayURL,
 		progressReporter: progressReporter,
 		metrics:          m,
@@ -2452,8 +2456,8 @@ func TestRouter_CheckGatewayHealth_Success(t *testing.T) {
 	cfg := &config.Config{
 		ActorName:     "test-actor",
 		Namespace:     "default",
-		HappyEndQueue: "happy-end",
-		ErrorEndQueue: "error-end",
+		SinkQueue:     "x-sink",
+		SumpQueue:     "x-sump",
 		TransportType: "rabbitmq",
 		GatewayURL:    gatewayServer.URL,
 	}
@@ -2487,8 +2491,8 @@ func TestRouter_CheckGatewayHealth_Failure(t *testing.T) {
 	cfg := &config.Config{
 		ActorName:     "test-actor",
 		Namespace:     "default",
-		HappyEndQueue: "happy-end",
-		ErrorEndQueue: "error-end",
+		SinkQueue:     "x-sink",
+		SumpQueue:     "x-sump",
 		TransportType: "rabbitmq",
 		GatewayURL:    gatewayServer.URL,
 	}
@@ -2512,8 +2516,8 @@ func TestRouter_CheckGatewayHealth_NoGatewayConfigured(t *testing.T) {
 	cfg := &config.Config{
 		ActorName:     "test-actor",
 		Namespace:     "default",
-		HappyEndQueue: "happy-end",
-		ErrorEndQueue: "error-end",
+		SinkQueue:     "x-sink",
+		SumpQueue:     "x-sump",
 		TransportType: "rabbitmq",
 		GatewayURL:    "", // No gateway configured
 	}
@@ -2537,8 +2541,8 @@ func TestRouter_CheckGatewayHealth_NetworkError(t *testing.T) {
 	cfg := &config.Config{
 		ActorName:     "test-actor",
 		Namespace:     "default",
-		HappyEndQueue: "happy-end",
-		ErrorEndQueue: "error-end",
+		SinkQueue:     "x-sink",
+		SumpQueue:     "x-sump",
 		TransportType: "rabbitmq",
 		GatewayURL:    "http://invalid-host-that-does-not-exist:99999",
 	}
@@ -2555,5 +2559,383 @@ func TestRouter_CheckGatewayHealth_NetworkError(t *testing.T) {
 	// Should return error for network failure
 	if err == nil {
 		t.Error("CheckGatewayHealth should return error for network failure")
+	}
+}
+
+// --- Status lifecycle tests ---
+
+func TestRouter_EnsureAndUpdateStatus_NewMessage(t *testing.T) {
+	router := &Router{actorName: "test-actor"}
+	msg := &messages.Message{
+		ID:      "msg-1",
+		Route:   messages.Route{Actors: []string{"test-actor"}, Current: 0},
+		Payload: json.RawMessage(`{}`),
+	}
+
+	router.ensureAndUpdateStatus(msg)
+
+	if msg.Status == nil {
+		t.Fatal("Status should not be nil after ensureAndUpdateStatus")
+	}
+	if msg.Status.Phase != messages.PhaseProcessing {
+		t.Errorf("Phase = %q, want %q", msg.Status.Phase, messages.PhaseProcessing)
+	}
+	if msg.Status.Actor != "test-actor" {
+		t.Errorf("Actor = %q, want %q", msg.Status.Actor, "test-actor")
+	}
+	if msg.Status.Attempt != 1 {
+		t.Errorf("Attempt = %d, want 1", msg.Status.Attempt)
+	}
+	if msg.Status.CreatedAt == "" {
+		t.Error("CreatedAt should not be empty")
+	}
+}
+
+func TestRouter_EnsureAndUpdateStatus_ExistingStatus(t *testing.T) {
+	router := &Router{actorName: "actor-b"}
+	msg := &messages.Message{
+		ID:      "msg-1",
+		Route:   messages.Route{Actors: []string{"actor-a", "actor-b"}, Current: 1},
+		Payload: json.RawMessage(`{}`),
+		Status: &messages.Status{
+			Phase:     messages.PhasePending,
+			Reason:    "some-reason",
+			Actor:     "actor-a",
+			Attempt:   1,
+			CreatedAt: "2025-01-01T00:00:00Z",
+			UpdatedAt: "2025-01-01T00:00:00Z",
+			Error:     &messages.StatusError{Message: "old error"},
+		},
+	}
+
+	router.ensureAndUpdateStatus(msg)
+
+	if msg.Status.Phase != messages.PhaseProcessing {
+		t.Errorf("Phase = %q, want %q", msg.Status.Phase, messages.PhaseProcessing)
+	}
+	if msg.Status.Reason != "" {
+		t.Errorf("Reason should be cleared, got %q", msg.Status.Reason)
+	}
+	if msg.Status.Actor != "actor-b" {
+		t.Errorf("Actor = %q, want %q", msg.Status.Actor, "actor-b")
+	}
+	if msg.Status.CreatedAt != "2025-01-01T00:00:00Z" {
+		t.Errorf("CreatedAt should be preserved, got %q", msg.Status.CreatedAt)
+	}
+	if msg.Status.UpdatedAt == "2025-01-01T00:00:00Z" {
+		t.Error("UpdatedAt should be updated to current time")
+	}
+	if msg.Status.Error != nil {
+		t.Error("Error should be cleared")
+	}
+}
+
+func TestRouter_EnsureAndUpdateStatus_ActorTransition(t *testing.T) {
+	router := &Router{actorName: "actor-b"}
+	msg := &messages.Message{
+		ID:      "msg-1",
+		Route:   messages.Route{Actors: []string{"actor-a", "actor-b"}, Current: 1},
+		Payload: json.RawMessage(`{}`),
+		Status: &messages.Status{
+			Phase:   messages.PhasePending,
+			Actor:   "actor-a",
+			Attempt: 3,
+		},
+	}
+
+	router.ensureAndUpdateStatus(msg)
+
+	if msg.Status.Attempt != 1 {
+		t.Errorf("Attempt should reset to 1 on actor change, got %d", msg.Status.Attempt)
+	}
+	if msg.Status.Actor != "actor-b" {
+		t.Errorf("Actor = %q, want %q", msg.Status.Actor, "actor-b")
+	}
+}
+
+func TestRouter_EnsureAndUpdateStatus_SameActorRetry(t *testing.T) {
+	router := &Router{actorName: "actor-a"}
+	msg := &messages.Message{
+		ID:      "msg-1",
+		Route:   messages.Route{Actors: []string{"actor-a"}, Current: 0},
+		Payload: json.RawMessage(`{}`),
+		Status: &messages.Status{
+			Phase:   messages.PhasePending,
+			Actor:   "actor-a",
+			Attempt: 3,
+		},
+	}
+
+	router.ensureAndUpdateStatus(msg)
+
+	if msg.Status.Attempt != 3 {
+		t.Errorf("Attempt should be preserved for same actor, got %d", msg.Status.Attempt)
+	}
+}
+
+func TestRouter_RouteResponse_NextActor_HasStatus(t *testing.T) {
+	socketPath := fmt.Sprintf("/tmp/test-route-status-%d.sock", time.Now().UnixNano())
+	defer func() { _ = os.Remove(socketPath) }()
+
+	listener, err := net.Listen("unix", socketPath)
+	if err != nil {
+		t.Fatalf("Failed to create socket: %v", err)
+	}
+	defer func() { _ = listener.Close() }()
+
+	go func() {
+		conn, err := listener.Accept()
+		if err != nil {
+			return
+		}
+		defer func() { _ = conn.Close() }()
+		_, _ = runtime.RecvSocketData(conn)
+		sendStreamingResponse(conn, []runtime.RuntimeResponse{
+			{
+				Payload: json.RawMessage(`{"result": "ok"}`),
+				Route:   messages.Route{Actors: []string{"actor1", "actor2"}, Current: 1},
+			},
+		})
+	}()
+
+	cfg := &config.Config{
+		ActorName:     "actor1",
+		Namespace:     "default",
+		SinkQueue:     "x-sink",
+		SumpQueue:     "x-sump",
+		TransportType: "rabbitmq",
+	}
+	mockTransport := &mockTransport{}
+	runtimeClient := runtime.NewClient(socketPath, 2*time.Second)
+
+	router := &Router{
+		cfg:           cfg,
+		transport:     mockTransport,
+		runtimeClient: runtimeClient,
+		actorName:     cfg.ActorName,
+		sinkQueue:     cfg.SinkQueue,
+		sumpQueue:     cfg.SumpQueue,
+		metrics:       metrics.NewMetrics("test", []config.CustomMetricConfig{}),
+	}
+
+	inputMsg := messages.Message{
+		ID:      "test-status-next",
+		Route:   messages.Route{Actors: []string{"actor1", "actor2"}, Current: 0},
+		Payload: json.RawMessage(`{"input": "test"}`),
+	}
+	msgBody, _ := json.Marshal(inputMsg)
+
+	ctx := context.Background()
+	err = router.ProcessMessage(ctx, transport.QueueMessage{ID: "msg-1", Body: msgBody})
+	if err != nil {
+		t.Fatalf("ProcessMessage failed: %v", err)
+	}
+
+	if len(mockTransport.sentMessages) != 1 {
+		t.Fatalf("Expected 1 message sent, got %d", len(mockTransport.sentMessages))
+	}
+
+	var sentMsg messages.Message
+	if err := json.Unmarshal(mockTransport.sentMessages[0].body, &sentMsg); err != nil {
+		t.Fatalf("Failed to unmarshal sent message: %v", err)
+	}
+
+	if sentMsg.Status == nil {
+		t.Fatal("Status should be present on routed message")
+	}
+	if sentMsg.Status.Phase != messages.PhasePending {
+		t.Errorf("Status.Phase = %q, want %q", sentMsg.Status.Phase, messages.PhasePending)
+	}
+	if sentMsg.Status.Actor != "actor2" {
+		t.Errorf("Status.Actor = %q, want %q", sentMsg.Status.Actor, "actor2")
+	}
+}
+
+func TestRouter_RouteResponse_Sink_HasStatus(t *testing.T) {
+	socketPath := fmt.Sprintf("/tmp/test-sink-status-%d.sock", time.Now().UnixNano())
+	defer func() { _ = os.Remove(socketPath) }()
+
+	listener, err := net.Listen("unix", socketPath)
+	if err != nil {
+		t.Fatalf("Failed to create socket: %v", err)
+	}
+	defer func() { _ = listener.Close() }()
+
+	go func() {
+		conn, err := listener.Accept()
+		if err != nil {
+			return
+		}
+		defer func() { _ = conn.Close() }()
+		_, _ = runtime.RecvSocketData(conn)
+		// Runtime returns route with current=1, which is past the end of a single-actor route
+		sendStreamingResponse(conn, []runtime.RuntimeResponse{
+			{
+				Payload: json.RawMessage(`{"result": "done"}`),
+				Route:   messages.Route{Actors: []string{"actor1"}, Current: 1},
+			},
+		})
+	}()
+
+	cfg := &config.Config{
+		ActorName:     "actor1",
+		Namespace:     "default",
+		SinkQueue:     "x-sink",
+		SumpQueue:     "x-sump",
+		TransportType: "rabbitmq",
+	}
+	mockTransport := &mockTransport{}
+	runtimeClient := runtime.NewClient(socketPath, 2*time.Second)
+
+	router := &Router{
+		cfg:           cfg,
+		transport:     mockTransport,
+		runtimeClient: runtimeClient,
+		actorName:     cfg.ActorName,
+		sinkQueue:     cfg.SinkQueue,
+		sumpQueue:     cfg.SumpQueue,
+		metrics:       metrics.NewMetrics("test", []config.CustomMetricConfig{}),
+	}
+
+	inputMsg := messages.Message{
+		ID:      "test-sink-status",
+		Route:   messages.Route{Actors: []string{"actor1"}, Current: 0},
+		Payload: json.RawMessage(`{"input": "test"}`),
+	}
+	msgBody, _ := json.Marshal(inputMsg)
+
+	ctx := context.Background()
+	err = router.ProcessMessage(ctx, transport.QueueMessage{ID: "msg-1", Body: msgBody})
+	if err != nil {
+		t.Fatalf("ProcessMessage failed: %v", err)
+	}
+
+	if len(mockTransport.sentMessages) != 1 {
+		t.Fatalf("Expected 1 message sent to x-sink, got %d", len(mockTransport.sentMessages))
+	}
+
+	var sentMsg messages.Message
+	if err := json.Unmarshal(mockTransport.sentMessages[0].body, &sentMsg); err != nil {
+		t.Fatalf("Failed to unmarshal sent message: %v", err)
+	}
+
+	if sentMsg.Status == nil {
+		t.Fatal("Status should be present on x-sink message")
+	}
+	if sentMsg.Status.Phase != messages.PhaseSucceeded {
+		t.Errorf("Status.Phase = %q, want %q", sentMsg.Status.Phase, messages.PhaseSucceeded)
+	}
+	if sentMsg.Status.Reason != messages.ReasonCompleted {
+		t.Errorf("Status.Reason = %q, want %q", sentMsg.Status.Reason, messages.ReasonCompleted)
+	}
+}
+
+func TestRouter_SendToSumpQueue_HasStatus(t *testing.T) {
+	cfg := &config.Config{
+		ActorName:     "test-actor",
+		Namespace:     "default",
+		SinkQueue:     "x-sink",
+		SumpQueue:     "x-sump",
+		TransportType: "rabbitmq",
+	}
+	mockTransport := &mockTransport{}
+	m := metrics.NewMetrics("test", []config.CustomMetricConfig{})
+
+	router := &Router{
+		cfg:       cfg,
+		transport: mockTransport,
+		actorName: cfg.ActorName,
+		sinkQueue: cfg.SinkQueue,
+		sumpQueue: cfg.SumpQueue,
+		metrics:   m,
+	}
+
+	originalMsg := messages.Message{
+		ID:      "test-error-status",
+		Route:   messages.Route{Actors: []string{"test-actor"}, Current: 0},
+		Payload: json.RawMessage(`{"data": "test"}`),
+		Status: &messages.Status{
+			Phase:     messages.PhaseProcessing,
+			Actor:     "test-actor",
+			CreatedAt: "2025-01-01T00:00:00Z",
+		},
+	}
+	originalBody, _ := json.Marshal(originalMsg)
+
+	ctx := context.Background()
+	err := router.sendToSumpQueue(ctx, originalBody, "Runtime processing failed")
+	if err != nil {
+		t.Fatalf("sendToSumpQueue failed: %v", err)
+	}
+
+	if len(mockTransport.sentMessages) != 1 {
+		t.Fatalf("Expected 1 message sent, got %d", len(mockTransport.sentMessages))
+	}
+
+	var errorMsg map[string]any
+	if err := json.Unmarshal(mockTransport.sentMessages[0].body, &errorMsg); err != nil {
+		t.Fatalf("Failed to unmarshal error message: %v", err)
+	}
+
+	status, ok := errorMsg["status"].(map[string]any)
+	if !ok {
+		t.Fatal("Status should be present in error message")
+	}
+	if status["phase"] != messages.PhaseFailed {
+		t.Errorf("Status.phase = %q, want %q", status["phase"], messages.PhaseFailed)
+	}
+	if status["actor"] != "test-actor" {
+		t.Errorf("Status.actor = %q, want %q", status["actor"], "test-actor")
+	}
+	if status["created_at"] != "2025-01-01T00:00:00Z" {
+		t.Errorf("Status.created_at = %q, want preserved value", status["created_at"])
+	}
+}
+
+func TestRouter_SendToSinkQueue_HasStatus(t *testing.T) {
+	cfg := &config.Config{
+		ActorName:     "test-actor",
+		Namespace:     "default",
+		SinkQueue:     "x-sink",
+		SumpQueue:     "x-sump",
+		TransportType: "rabbitmq",
+	}
+	mockTransport := &mockTransport{}
+	m := metrics.NewMetrics("test", []config.CustomMetricConfig{})
+
+	router := &Router{
+		cfg:       cfg,
+		transport: mockTransport,
+		actorName: cfg.ActorName,
+		sinkQueue: cfg.SinkQueue,
+		sumpQueue: cfg.SumpQueue,
+		metrics:   m,
+	}
+
+	msg := messages.Message{
+		ID:      "test-sink-queue-status",
+		Route:   messages.Route{Actors: []string{"actor1"}, Current: 1},
+		Payload: json.RawMessage(`{"result": "success"}`),
+	}
+
+	ctx := context.Background()
+	err := router.sendToSinkQueue(ctx, msg)
+	if err != nil {
+		t.Fatalf("sendToSinkQueue failed: %v", err)
+	}
+
+	var sentMsg messages.Message
+	if err := json.Unmarshal(mockTransport.sentMessages[0].body, &sentMsg); err != nil {
+		t.Fatalf("Failed to unmarshal: %v", err)
+	}
+
+	if sentMsg.Status == nil {
+		t.Fatal("Status should be present")
+	}
+	if sentMsg.Status.Phase != messages.PhaseSucceeded {
+		t.Errorf("Status.Phase = %q, want %q", sentMsg.Status.Phase, messages.PhaseSucceeded)
+	}
+	if sentMsg.Status.Reason != messages.ReasonCompleted {
+		t.Errorf("Status.Reason = %q, want %q", sentMsg.Status.Reason, messages.ReasonCompleted)
 	}
 }

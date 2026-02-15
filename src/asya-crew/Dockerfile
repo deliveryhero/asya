@@ -8,5 +8,5 @@ COPY requirements.txt .
 RUN --mount=type=cache,target=/root/.cache/pip \
     pip install -q -r requirements.txt
 
-# Copy handlers code into ./handlers/ directory
-COPY handlers/ handlers/
+# Copy crew code into ./asya_crew/ directory
+COPY asya_crew/ asya_crew/

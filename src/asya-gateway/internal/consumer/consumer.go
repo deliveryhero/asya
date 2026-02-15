@@ -12,7 +12,7 @@ import (
 	"github.com/deliveryhero/asya/asya-gateway/pkg/types"
 )
 
-// ResultConsumer consumes tasks from happy-end and error-end queues
+// ResultConsumer consumes tasks from x-sink and x-sump queues
 // and updates task status accordingly
 type ResultConsumer struct {
 	queueClient queue.Client
@@ -27,15 +27,15 @@ func NewResultConsumer(queueClient queue.Client, taskStore taskstore.TaskStore) 
 	}
 }
 
-// Start starts consuming from happy-end and error-end queues
+// Start starts consuming from x-sink and x-sump queues
 func (c *ResultConsumer) Start(ctx context.Context) error {
 	slog.Info("Starting result consumer for end queues")
 
-	// Start consumer for happy-end queue
-	go c.consumeQueue(ctx, "happy-end", types.TaskStatusSucceeded)
+	// Start consumer for x-sink queue
+	go c.consumeQueue(ctx, "x-sink", types.TaskStatusSucceeded)
 
-	// Start consumer for error-end queue
-	go c.consumeQueue(ctx, "error-end", types.TaskStatusFailed)
+	// Start consumer for x-sump queue
+	go c.consumeQueue(ctx, "x-sump", types.TaskStatusFailed)
 
 	return nil
 }
