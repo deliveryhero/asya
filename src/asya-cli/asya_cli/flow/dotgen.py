@@ -34,6 +34,9 @@ class DotGenerator:
         self._try_clusters: list[_TryCluster] = []
         self._cluster_membership: dict[str, str] = {}
         self._color_error_control_flow = "orange4"
+        self._color_true_branch = "darkgreen"
+        self._color_false_branch = "gray40"
+        self._color_raise = "darkred"
 
     @staticmethod
     def _sanitize_node_id(name: str) -> str:
@@ -291,8 +294,8 @@ class DotGenerator:
 
             rows.append(
                 f'<tr><td><table border="0" cellspacing="0" cellpadding="4"><tr>'
-                f'<td bgcolor="darkgreen"><font color="white"><b>{true_label}</b></font></td>'
-                f'<td bgcolor="darkred"><font color="white"><b>{false_label}</b></font></td>'
+                f'<td bgcolor="{self._color_true_branch}"><font color="white"><b>{true_label}</b></font></td>'
+                f'<td bgcolor="{self._color_false_branch}"><font color="white"><b>{false_label}</b></font></td>'
                 f"</tr></table></td></tr>"
             )
 
@@ -364,10 +367,15 @@ class DotGenerator:
 
                 for handler in cluster.except_dispatch.exception_handlers:
                     if handler.actors:
-                        label = self._format_except_label(handler.error_types)
+                        if handler.is_raise:
+                            label = self._format_raise_label(handler.error_types)
+                            edge_color = self._color_raise
+                        else:
+                            label = self._format_except_label(handler.error_types)
+                            edge_color = self._color_error_control_flow
                         lines.add(
                             f"  {self._node_id(anchor)} -> {self._node_id(handler.actors[0])}"
-                            f" [ltail={cluster.cluster_name}, color={self._color_error_control_flow}, style=dashed,"
+                            f" [ltail={cluster.cluster_name}, color={edge_color}, style=dashed,"
                             f' label="{self._escape_html(label)}"];'
                         )
                         self._add_sequential_edges(handler.actors, lines)
@@ -397,11 +405,17 @@ class DotGenerator:
             false_actors = [self._resolve(a) for a in router.false_branch_actors]
 
             if true_actors:
-                lines.add(f"  {self._node_id(router.name)} -> {self._node_id(true_actors[0])} [color=darkgreen];")
+                lines.add(
+                    f"  {self._node_id(router.name)} -> {self._node_id(true_actors[0])}"
+                    f" [color={self._color_true_branch}];"
+                )
                 self._add_sequential_edges(true_actors, lines)
 
             if false_actors:
-                lines.add(f"  {self._node_id(router.name)} -> {self._node_id(false_actors[0])} [color=darkred];")
+                lines.add(
+                    f"  {self._node_id(router.name)} -> {self._node_id(false_actors[0])}"
+                    f" [color={self._color_false_branch}];"
+                )
                 self._add_sequential_edges(false_actors, lines)
         else:
             actors = [self._resolve(a) for a in router.true_branch_actors]
@@ -438,12 +452,20 @@ class DotGenerator:
     # ── Helpers ──────────────────────────────────────────────────────
 
     def _format_except_label(self, error_types: list[str] | None) -> str:
-        """Format exception types for edge labels."""
+        """Format exception types for handled-exception edge labels."""
         if error_types is None:
             return "except"
         if len(error_types) == 1:
             return f"except {error_types[0]}"
         return f"except ({', '.join(error_types)})"
+
+    def _format_raise_label(self, error_types: list[str] | None) -> str:
+        """Format exception types for re-raise edge labels."""
+        if error_types is None:
+            return "raise"
+        if len(error_types) == 1:
+            return f"raise {error_types[0]}"
+        return f"raise ({', '.join(error_types)})"
 
     def _find_chain_terminals(self, actors: list[str]) -> list[str]:
         """Find all terminal actors in a sequential chain (actors with no further routing)."""

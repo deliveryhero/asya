@@ -26,6 +26,7 @@ class ExceptionHandlerInfo:
     error_types: list[str] | None  # None = bare except (catch-all)
     actors: list[str]
     mutations: list[Mutation] = field(default_factory=list)
+    is_raise: bool = False  # True when handler body is a re-raise
 
 
 @dataclass
@@ -494,6 +495,7 @@ class OperationGrouper:
                 ExceptionHandlerInfo(
                     error_types=handler.error_types,
                     actors=handler_actors,
+                    is_raise=any(isinstance(op, Raise) for op in handler.body),
                 )
             )
 

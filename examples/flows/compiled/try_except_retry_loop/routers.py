@@ -121,7 +121,7 @@ def router_retry_pipeline_line_12_while_0(message: dict) -> dict:
         _next.append(resolve("router_retry_pipeline_line_13_seq"))
         _next.append(resolve("router_retry_pipeline_line_12_loop_back_0"))
     else:
-        _next.append(resolve("notify_complete"))
+        pass
 
     r['actors'][c+1:c+1] = _next
     r['current'] = c + 1
