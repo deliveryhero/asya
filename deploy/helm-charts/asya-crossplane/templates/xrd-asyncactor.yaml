@@ -110,6 +110,52 @@ spec:
                       description: Pod template specification
                       x-kubernetes-preserve-unknown-fields: true
 
+                resiliency:
+                  type: object
+                  description: Resiliency configuration for automatic retry and error handling
+                  properties:
+                    retry:
+                      type: object
+                      description: Retry policy configuration
+                      properties:
+                        policy:
+                          type: string
+                          description: Retry backoff policy
+                          enum:
+                            - constant
+                            - exponential
+                          default: exponential
+                        maxAttempts:
+                          type: integer
+                          description: Maximum retry attempts (0 disables retry)
+                          minimum: 0
+                          default: 3
+                        initialInterval:
+                          type: string
+                          description: Initial retry delay (e.g. "1s", "500ms")
+                          default: 1s
+                        maxInterval:
+                          type: string
+                          description: Maximum retry delay cap (e.g. "300s", "5m")
+                          default: 300s
+                        backoffCoefficient:
+                          type: number
+                          description: Multiplier for exponential backoff (must be >= 1.0)
+                          minimum: 1.0
+                          default: 2.0
+                        jitter:
+                          type: boolean
+                          description: Add randomness to prevent thundering herd
+                          default: true
+                    nonRetryableErrors:
+                      type: array
+                      description: Error types that skip retry (supports MRO matching)
+                      items:
+                        type: string
+                    actorTimeout:
+                      type: string
+                      description: Per-actor processing timeout (e.g. "30s", "5m")
+
                 sidecar:
                   type: object
                   description: Sidecar configuration overrides

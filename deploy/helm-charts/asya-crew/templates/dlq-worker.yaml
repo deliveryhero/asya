@@ -1,0 +1,95 @@
+{{- $dlq := index .Values "dlq-worker" }}
+{{- if and $dlq.enabled (ne $dlq.config.queueURL "") }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "asya-crew.dlq-worker.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "asya-crew.dlq-worker.labels" . | nindent 4 }}
+  {{- with $dlq.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "asya-crew.dlq-worker.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "asya-crew.dlq-worker.labels" . | nindent 8 }}
+    spec:
+      {{- with $dlq.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if $dlq.serviceAccount.create }}
+      serviceAccountName: {{ include "asya-crew.dlq-worker.fullname" . }}
+      {{- end }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+      - name: dlq-worker
+        image: {{ include "asya-crew.dlq-worker.image" . }}
+        imagePullPolicy: {{ include "asya-crew.dlq-worker.imagePullPolicy" . }}
+        securityContext:
+          readOnlyRootFilesystem: true
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+        env:
+        - name: DLQ_QUEUE_URL
+          value: {{ $dlq.config.queueURL | quote }}
+        - name: DLQ_TRANSPORT
+          value: {{ $dlq.config.transport | quote }}
+        - name: AWS_REGION
+          value: {{ $dlq.config.region | quote }}
+        {{- if $dlq.config.gatewayURL }}
+        - name: GATEWAY_URL
+          value: {{ $dlq.config.gatewayURL | quote }}
+        {{- end }}
+        {{- if $dlq.config.s3Bucket }}
+        - name: S3_BUCKET
+          value: {{ $dlq.config.s3Bucket | quote }}
+        {{- end }}
+        {{- if $dlq.config.s3Endpoint }}
+        - name: S3_ENDPOINT
+          value: {{ $dlq.config.s3Endpoint | quote }}
+        {{- end }}
+        {{- if $dlq.config.s3Prefix }}
+        - name: S3_PREFIX
+          value: {{ $dlq.config.s3Prefix | quote }}
+        {{- end }}
+        {{- if $dlq.config.logLevel }}
+        - name: LOG_LEVEL
+          value: {{ $dlq.config.logLevel | quote }}
+        {{- end }}
+        {{- range $key, $value := $dlq.env }}
+        - name: {{ $key }}
+          value: {{ $value | quote }}
+        {{- end }}
+        {{- with $dlq.resources }}
+        resources:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+---
+{{- if $dlq.serviceAccount.create }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "asya-crew.dlq-worker.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "asya-crew.dlq-worker.labels" . | nindent 4 }}
+  {{- with $dlq.serviceAccount.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+automountServiceAccountToken: true
+{{- end }}
+{{- end }}

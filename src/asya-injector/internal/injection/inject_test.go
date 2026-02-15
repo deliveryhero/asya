@@ -84,6 +84,7 @@ func TestInjector_Inject(t *testing.T) {
 		"ASYA_AWS_REGION":      "us-east-1",
 		"ASYA_SQS_ENDPOINT":    "http://localstack:4566",
 		"ASYA_QUEUE_URL":       "http://sqs.localhost:4566/000000000000/asya-default-my-actor",
+		"ASYA_ACTOR_SINK":      "x-sink",
 		"ASYA_ACTOR_HAPPY_END": "happy-end",
 		"ASYA_ACTOR_ERROR_END": "error-end",
 	}
@@ -93,6 +94,20 @@ func TestInjector_Inject(t *testing.T) {
 			t.Errorf("missing env var %s", key)
 		} else if actual != expected {
 			t.Errorf("env var %s: expected %q, got %q", key, expected, actual)
+		}
+	}
+
+	// Verify no resiliency env vars when not configured
+	resiliencyVars := []string{
+		"ASYA_RESILIENCY_RETRY_POLICY",
+		"ASYA_RESILIENCY_RETRY_MAX_ATTEMPTS",
+		"ASYA_RESILIENCY_RETRY_INITIAL_INTERVAL",
+		"ASYA_RESILIENCY_NON_RETRYABLE_ERRORS",
+		"ASYA_RESILIENCY_ACTOR_TIMEOUT",
+	}
+	for _, key := range resiliencyVars {
+		if _, ok := sidecarEnv[key]; ok {
+			t.Errorf("resiliency env var %s should not be present when not configured", key)
 		}
 	}
 
@@ -672,6 +687,7 @@ func TestInjector_InjectRabbitMQ(t *testing.T) {
 		"ASYA_TRANSPORT":       "rabbitmq",
 		"ASYA_GATEWAY_URL":     "http://gateway.default.svc:8080",
 		"ASYA_RABBITMQ_URL":    "amqp://guest:guest@rabbitmq.default.svc:5672/",
+		"ASYA_ACTOR_SINK":      "x-sink",
 		"ASYA_ACTOR_HAPPY_END": "happy-end",
 		"ASYA_ACTOR_ERROR_END": "error-end",
 	}
@@ -850,5 +866,281 @@ func TestInjector_SidecarImageOverride(t *testing.T) {
 
 	if sidecar.Image != "custom-sidecar:v2" {
 		t.Errorf("expected custom sidecar image, got %q", sidecar.Image)
+	}
+}
+
+func TestInjector_InjectResiliencyEnvVars(t *testing.T) {
+	cfg := &config.Config{
+		SidecarImage:           "ghcr.io/deliveryhero/asya-sidecar:test",
+		RuntimeConfigMap:       "asya-runtime",
+		SidecarImagePullPolicy: "IfNotPresent",
+		SocketDir:              "/var/run/asya",
+		RuntimeMountPath:       "/opt/asya/asya_runtime.py",
+	}
+
+	injector := NewInjector(cfg)
+
+	pod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test-pod",
+		},
+		Spec: corev1.PodSpec{
+			Containers: []corev1.Container{
+				{Name: "asya-runtime", Image: "my-app:v1"},
+			},
+		},
+	}
+
+	actorConfig := &ActorConfig{
+		ActorName: "my-actor",
+		Namespace: "default",
+		Transport: "sqs",
+		Region:    "us-east-1",
+		Resiliency: &ResiliencyConfig{
+			Retry: &RetryConfig{
+				Policy:             "exponential",
+				MaxAttempts:        "5",
+				InitialInterval:    "1s",
+				MaxInterval:        "300s",
+				BackoffCoefficient: "2",
+				Jitter:             "true",
+			},
+			NonRetryableErrors: "ValueError,KeyError",
+			ActorTimeout:       "30s",
+		},
+	}
+
+	mutated, err := injector.Inject(pod, actorConfig)
+	if err != nil {
+		t.Fatalf("Inject failed: %v", err)
+	}
+
+	var sidecar *corev1.Container
+	for i := range mutated.Spec.Containers {
+		if mutated.Spec.Containers[i].Name == "asya-sidecar" {
+			sidecar = &mutated.Spec.Containers[i]
+			break
+		}
+	}
+	if sidecar == nil {
+		t.Fatal("sidecar container was not added")
+	}
+
+	envMap := make(map[string]string)
+	for _, e := range sidecar.Env {
+		envMap[e.Name] = e.Value
+	}
+
+	expectedResiliency := map[string]string{
+		"ASYA_RESILIENCY_RETRY_POLICY":             "exponential",
+		"ASYA_RESILIENCY_RETRY_MAX_ATTEMPTS":        "5",
+		"ASYA_RESILIENCY_RETRY_INITIAL_INTERVAL":    "1s",
+		"ASYA_RESILIENCY_RETRY_MAX_INTERVAL":        "300s",
+		"ASYA_RESILIENCY_RETRY_BACKOFF_COEFFICIENT": "2",
+		"ASYA_RESILIENCY_RETRY_JITTER":              "true",
+		"ASYA_RESILIENCY_NON_RETRYABLE_ERRORS":      "ValueError,KeyError",
+		"ASYA_RESILIENCY_ACTOR_TIMEOUT":             "30s",
+	}
+
+	for key, expected := range expectedResiliency {
+		if actual, ok := envMap[key]; !ok {
+			t.Errorf("missing resiliency env var %s", key)
+		} else if actual != expected {
+			t.Errorf("resiliency env var %s: expected %q, got %q", key, expected, actual)
+		}
+	}
+}
+
+func TestInjector_InjectResiliencyPartial(t *testing.T) {
+	cfg := &config.Config{
+		SidecarImage:           "ghcr.io/deliveryhero/asya-sidecar:test",
+		RuntimeConfigMap:       "asya-runtime",
+		SidecarImagePullPolicy: "IfNotPresent",
+		SocketDir:              "/var/run/asya",
+		RuntimeMountPath:       "/opt/asya/asya_runtime.py",
+	}
+
+	injector := NewInjector(cfg)
+
+	pod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test-pod",
+		},
+		Spec: corev1.PodSpec{
+			Containers: []corev1.Container{
+				{Name: "asya-runtime", Image: "my-app:v1"},
+			},
+		},
+	}
+
+	actorConfig := &ActorConfig{
+		ActorName: "my-actor",
+		Namespace: "default",
+		Transport: "sqs",
+		Region:    "us-east-1",
+		Resiliency: &ResiliencyConfig{
+			Retry: &RetryConfig{
+				MaxAttempts: "3",
+			},
+			ActorTimeout: "60s",
+		},
+	}
+
+	mutated, err := injector.Inject(pod, actorConfig)
+	if err != nil {
+		t.Fatalf("Inject failed: %v", err)
+	}
+
+	var sidecar *corev1.Container
+	for i := range mutated.Spec.Containers {
+		if mutated.Spec.Containers[i].Name == "asya-sidecar" {
+			sidecar = &mutated.Spec.Containers[i]
+			break
+		}
+	}
+
+	envMap := make(map[string]string)
+	for _, e := range sidecar.Env {
+		envMap[e.Name] = e.Value
+	}
+
+	// Only maxAttempts and actorTimeout should be set
+	if envMap["ASYA_RESILIENCY_RETRY_MAX_ATTEMPTS"] != "3" {
+		t.Errorf("expected ASYA_RESILIENCY_RETRY_MAX_ATTEMPTS=3, got %q", envMap["ASYA_RESILIENCY_RETRY_MAX_ATTEMPTS"])
+	}
+	if envMap["ASYA_RESILIENCY_ACTOR_TIMEOUT"] != "60s" {
+		t.Errorf("expected ASYA_RESILIENCY_ACTOR_TIMEOUT=60s, got %q", envMap["ASYA_RESILIENCY_ACTOR_TIMEOUT"])
+	}
+
+	// Empty fields should not produce env vars
+	if _, ok := envMap["ASYA_RESILIENCY_RETRY_POLICY"]; ok {
+		t.Error("ASYA_RESILIENCY_RETRY_POLICY should not be set when empty")
+	}
+	if _, ok := envMap["ASYA_RESILIENCY_NON_RETRYABLE_ERRORS"]; ok {
+		t.Error("ASYA_RESILIENCY_NON_RETRYABLE_ERRORS should not be set when empty")
+	}
+}
+
+func TestInjector_InjectSystemActors(t *testing.T) {
+	cfg := &config.Config{
+		SidecarImage:           "ghcr.io/deliveryhero/asya-sidecar:test",
+		RuntimeConfigMap:       "asya-runtime",
+		SidecarImagePullPolicy: "IfNotPresent",
+		SocketDir:              "/var/run/asya",
+		RuntimeMountPath:       "/opt/asya/asya_runtime.py",
+	}
+
+	injector := NewInjector(cfg)
+
+	systemActors := []string{"happy-end", "error-end", "x-sink", "x-sump"}
+
+	for _, actorName := range systemActors {
+		t.Run(actorName, func(t *testing.T) {
+			pod := &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-pod",
+				},
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{Name: "asya-runtime", Image: "my-app:v1"},
+					},
+				},
+			}
+
+			actorConfig := &ActorConfig{
+				ActorName: actorName,
+				Namespace: "default",
+				Transport: "sqs",
+			}
+
+			mutated, err := injector.Inject(pod, actorConfig)
+			if err != nil {
+				t.Fatalf("Inject failed: %v", err)
+			}
+
+			// Verify ASYA_IS_END_ACTOR is set on sidecar
+			var sidecar *corev1.Container
+			for i := range mutated.Spec.Containers {
+				if mutated.Spec.Containers[i].Name == "asya-sidecar" {
+					sidecar = &mutated.Spec.Containers[i]
+					break
+				}
+			}
+
+			sidecarEnv := make(map[string]string)
+			for _, e := range sidecar.Env {
+				sidecarEnv[e.Name] = e.Value
+			}
+
+			if sidecarEnv["ASYA_IS_END_ACTOR"] != "true" {
+				t.Errorf("ASYA_IS_END_ACTOR not set for system actor %s", actorName)
+			}
+
+			// Verify ASYA_ENABLE_VALIDATION=false on runtime
+			var runtime *corev1.Container
+			for i := range mutated.Spec.Containers {
+				if mutated.Spec.Containers[i].Name == "asya-runtime" {
+					runtime = &mutated.Spec.Containers[i]
+					break
+				}
+			}
+
+			runtimeEnv := make(map[string]string)
+			for _, e := range runtime.Env {
+				runtimeEnv[e.Name] = e.Value
+			}
+
+			if runtimeEnv["ASYA_ENABLE_VALIDATION"] != "false" {
+				t.Errorf("ASYA_ENABLE_VALIDATION not set to false for system actor %s", actorName)
+			}
+		})
+	}
+}
+
+func TestInjector_RegularActorNotSystemActor(t *testing.T) {
+	cfg := &config.Config{
+		SidecarImage:           "ghcr.io/deliveryhero/asya-sidecar:test",
+		RuntimeConfigMap:       "asya-runtime",
+		SidecarImagePullPolicy: "IfNotPresent",
+		SocketDir:              "/var/run/asya",
+		RuntimeMountPath:       "/opt/asya/asya_runtime.py",
+	}
+
+	injector := NewInjector(cfg)
+
+	pod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test-pod",
+		},
+		Spec: corev1.PodSpec{
+			Containers: []corev1.Container{
+				{Name: "asya-runtime", Image: "my-app:v1"},
+			},
+		},
+	}
+
+	actorConfig := &ActorConfig{
+		ActorName: "my-actor",
+		Namespace: "default",
+		Transport: "sqs",
+	}
+
+	mutated, err := injector.Inject(pod, actorConfig)
+	if err != nil {
+		t.Fatalf("Inject failed: %v", err)
+	}
+
+	var sidecar *corev1.Container
+	for i := range mutated.Spec.Containers {
+		if mutated.Spec.Containers[i].Name == "asya-sidecar" {
+			sidecar = &mutated.Spec.Containers[i]
+			break
+		}
+	}
+
+	for _, e := range sidecar.Env {
+		if e.Name == "ASYA_IS_END_ACTOR" {
+			t.Error("ASYA_IS_END_ACTOR should not be set for regular actors")
+		}
 	}
 }

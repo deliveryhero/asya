@@ -2,6 +2,23 @@ package injection
 
 import corev1 "k8s.io/api/core/v1"
 
+// RetryConfig holds retry policy configuration
+type RetryConfig struct {
+	Policy             string
+	MaxAttempts        string
+	InitialInterval    string
+	MaxInterval        string
+	BackoffCoefficient string
+	Jitter             string
+}
+
+// ResiliencyConfig holds resiliency configuration extracted from AsyncActor spec
+type ResiliencyConfig struct {
+	Retry              *RetryConfig
+	NonRetryableErrors string
+	ActorTimeout       string
+}
+
 // ActorConfig holds the configuration extracted from an AsyncActor resource
 type ActorConfig struct {
 	// ActorName is the name of the actor
@@ -33,4 +50,7 @@ type ActorConfig struct {
 
 	// Region is the AWS region for SQS
 	Region string
+
+	// Resiliency is the resiliency configuration (nil means no resiliency config)
+	Resiliency *ResiliencyConfig
 }

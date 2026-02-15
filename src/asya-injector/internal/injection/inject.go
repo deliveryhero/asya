@@ -18,6 +18,10 @@ const (
 
 	actorNameHappyEnd = "happy-end"
 	actorNameErrorEnd = "error-end"
+	actorNameSink     = "x-sink"
+	actorNameSump     = "x-sump"
+
+	defaultSinkActor = "x-sink"
 )
 
 // Injector handles sidecar injection into pods
@@ -123,6 +127,12 @@ func (i *Injector) Inject(pod *corev1.Pod, actorConfig *ActorConfig) (*corev1.Po
 	return mutated, nil
 }
 
+// isSystemActor returns true if the actor is a framework system actor
+func isSystemActor(name string) bool {
+	return name == actorNameHappyEnd || name == actorNameErrorEnd ||
+		name == actorNameSink || name == actorNameSump
+}
+
 // buildSidecarEnv builds environment variables for the sidecar container
 func (i *Injector) buildSidecarEnv(actorConfig *ActorConfig) []corev1.EnvVar {
 	env := []corev1.EnvVar{
@@ -130,6 +140,7 @@ func (i *Injector) buildSidecarEnv(actorConfig *ActorConfig) []corev1.EnvVar {
 		{Name: "ASYA_SOCKET_DIR", Value: i.config.SocketDir},
 		{Name: "ASYA_ACTOR_NAME", Value: actorConfig.ActorName},
 		{Name: "ASYA_NAMESPACE", Value: actorConfig.Namespace},
+		{Name: "ASYA_ACTOR_SINK", Value: defaultSinkActor},
 		{Name: "ASYA_ACTOR_HAPPY_END", Value: actorNameHappyEnd},
 		{Name: "ASYA_ACTOR_ERROR_END", Value: actorNameErrorEnd},
 		{Name: "ASYA_TRANSPORT", Value: actorConfig.Transport},
@@ -170,11 +181,68 @@ func (i *Injector) buildSidecarEnv(actorConfig *ActorConfig) []corev1.EnvVar {
 		}
 	}
 
-	// Set ASYA_IS_END_ACTOR for end actors
-	if actorConfig.ActorName == actorNameHappyEnd || actorConfig.ActorName == actorNameErrorEnd {
+	// Set ASYA_IS_END_ACTOR for system termination actors
+	if isSystemActor(actorConfig.ActorName) {
 		env = append(env, corev1.EnvVar{
 			Name:  "ASYA_IS_END_ACTOR",
 			Value: "true",
+		})
+	}
+
+	// Add resiliency env vars when configured
+	env = appendResiliencyEnv(env, actorConfig.Resiliency)
+
+	return env
+}
+
+// appendResiliencyEnv flattens ResiliencyConfig into ASYA_RESILIENCY_* env vars
+func appendResiliencyEnv(env []corev1.EnvVar, cfg *ResiliencyConfig) []corev1.EnvVar {
+	if cfg == nil {
+		return env
+	}
+
+	if cfg.Retry != nil {
+		if cfg.Retry.Policy != "" {
+			env = append(env, corev1.EnvVar{
+				Name: "ASYA_RESILIENCY_RETRY_POLICY", Value: cfg.Retry.Policy,
+			})
+		}
+		if cfg.Retry.MaxAttempts != "" {
+			env = append(env, corev1.EnvVar{
+				Name: "ASYA_RESILIENCY_RETRY_MAX_ATTEMPTS", Value: cfg.Retry.MaxAttempts,
+			})
+		}
+		if cfg.Retry.InitialInterval != "" {
+			env = append(env, corev1.EnvVar{
+				Name: "ASYA_RESILIENCY_RETRY_INITIAL_INTERVAL", Value: cfg.Retry.InitialInterval,
+			})
+		}
+		if cfg.Retry.MaxInterval != "" {
+			env = append(env, corev1.EnvVar{
+				Name: "ASYA_RESILIENCY_RETRY_MAX_INTERVAL", Value: cfg.Retry.MaxInterval,
+			})
+		}
+		if cfg.Retry.BackoffCoefficient != "" {
+			env = append(env, corev1.EnvVar{
+				Name: "ASYA_RESILIENCY_RETRY_BACKOFF_COEFFICIENT", Value: cfg.Retry.BackoffCoefficient,
+			})
+		}
+		if cfg.Retry.Jitter != "" {
+			env = append(env, corev1.EnvVar{
+				Name: "ASYA_RESILIENCY_RETRY_JITTER", Value: cfg.Retry.Jitter,
+			})
+		}
+	}
+
+	if cfg.NonRetryableErrors != "" {
+		env = append(env, corev1.EnvVar{
+			Name: "ASYA_RESILIENCY_NON_RETRYABLE_ERRORS", Value: cfg.NonRetryableErrors,
+		})
+	}
+
+	if cfg.ActorTimeout != "" {
+		env = append(env, corev1.EnvVar{
+			Name: "ASYA_RESILIENCY_ACTOR_TIMEOUT", Value: cfg.ActorTimeout,
 		})
 	}
 
@@ -212,8 +280,8 @@ func (i *Injector) modifyRuntimeContainer(pod *corev1.Pod, actorConfig *ActorCon
 		Value: i.config.SocketDir,
 	})
 
-	// Disable validation for end actors
-	if actorConfig.ActorName == actorNameHappyEnd || actorConfig.ActorName == actorNameErrorEnd {
+	// Disable validation for system termination actors
+	if isSystemActor(actorConfig.ActorName) {
 		runtime.Env = appendEnvIfNotExists(runtime.Env, corev1.EnvVar{
 			Name:  "ASYA_ENABLE_VALIDATION",
 			Value: "false",
