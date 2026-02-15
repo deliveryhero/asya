@@ -12,13 +12,13 @@ This RFC defines the aggregation (fan-in) side of Asya's fan-out/fan-in architec
 
 ## Motivation
 
-The [fan-out RFC](asya-fan-in-fan-out.md) defines how a fan-out router emits N+1 messages (1 setup + N slices). This RFC answers the question: how does the system collect those N slices back into a single envelope?
+The [fan-out RFC](asya-fan-in-fan-out.md) defines how a fan-out router emits N+1 messages (1 parent payload + N sub-agent slices). This RFC answers the question: how does the system collect those N+1 messages back into a single envelope?
 
 The aggregator must:
 
-1. **Accept setup messages** that define expected slice count, result field, and continuation route
-2. **Accept slice messages** that carry individual sub-agent results
-3. **Detect completeness** when all slices have arrived
+1. **Accept the parent payload** (index 0) that carries the original payload and continuation route
+2. **Accept sub-agent slices** (indices 1..N) that carry individual sub-agent results
+3. **Detect completeness** when all N+1 messages have arrived
 4. **Emit a merged envelope** with all results assembled and route pointing to the next actor
 
 ### Requirements
@@ -40,10 +40,10 @@ Fan-out router (generated code)
     │  Stamps:   headers["x-asya-route-override"]["aggregator"] = "aggregator-{shard}"
     │  Stamps:   headers["x-asya-fan-in"]["origin_id"] = origin_id
     │
-    ├──► Setup message  ──► aggregator-{shard} queue
-    ├──► Slice 0        ──► sub-agent queue ──► aggregator-{shard} queue
-    ├──► Slice 1        ──► sub-agent queue ──► aggregator-{shard} queue
-    └──► Slice 2        ──► sub-agent queue ──► aggregator-{shard} queue
+    ├──► Index 0 (parent payload)  ──► aggregator-{shard} queue
+    ├──► Index 1 (slice)          ──► sub-agent queue ──► aggregator-{shard} queue
+    ├──► Index 2 (slice)          ──► sub-agent queue ──► aggregator-{shard} queue
+    └──► Index 3 (slice)          ──► sub-agent queue ──► aggregator-{shard} queue
                                                        │
                                                        ▼
                                               aggregator-{shard}
@@ -61,7 +61,7 @@ Fan-out router (generated code)
 
 - **Route stays abstract**: Compiled routes say `"aggregator"`, not `"aggregator-2"`. Shard resolution happens via `x-asya-route-override` headers at emission time.
 - **Sidecar stays simple**: The sidecar performs a dictionary lookup on the override header (as defined in the [A/B routing RFC](../a-b-testing/rfc-a-b-routing.md)). No sharding logic in the sidecar.
-- **Fan-out router resolves shards**: The compiler-generated fan-out router computes the shard via inline rendezvous hashing and stamps the override header on every emitted message (setup + all slices).
+- **Fan-out router resolves shards**: The compiler-generated fan-out router computes the shard via inline rendezvous hashing and stamps the override header on every emitted message (parent payload + all slices).
 - **Number of shards known to fan-out router at deployment time**: `N` is passed to fan-out router as `ASYA_FANIN_SHARDS` env variable at deployment time.
 
 ---
@@ -142,31 +142,29 @@ def fanout_research_flow_L5(message):
         _slices.append((resolve("research_agent"), t))
     # ---
 
-    _n = len(_slices)
+    _n = len(_slices) + 1  # +1 for parent payload at index 0
+    _fan_in = {"actor": _agg, "origin_id": origin_id,
+               "slice_count": _n, "aggregation_key": "/results"}
 
-    # Setup (first yield -> keeps original message.id)
+    # Index 0: parent payload (first yield -> keeps original message.id)
     yield {
         "route": {"actors": list(r["actors"]), "current": c + 1},
         "headers": {**_hdrs, "x-asya-route-override": {_agg: _shard},
-                    "x-asya-fan-in": {"actor": _agg, "type": "setup",
-                                      "origin_id": origin_id, "slice_count": _n,
-                                      "aggregation_key": "/results"}},
+                    "x-asya-fan-in": {**_fan_in, "slice_index": 0}},
         "payload": dict(p),
     }
 
-    # Slices
+    # Indices 1..N: sub-agent slices
     for _i, (_actor, _payload) in enumerate(_slices):
         yield {
             "route": {"actors": [_actor, _shard], "current": 0},
             "headers": {**_hdrs, "x-asya-route-override": {_agg: _shard},
-                        "x-asya-fan-in": {"actor": _agg, "type": "slice",
-                                          "origin_id": origin_id,
-                                          "slice_index": _i, "slice_count": _n}},
+                        "x-asya-fan-in": {**_fan_in, "slice_index": _i + 1}},
             "payload": _payload,
         }
 ```
 
-The only part that varies per fan-out is how `_slices` is built. Everything below it is identical boilerplate emitted by the code generator.
+The only part that varies per fan-out is how `_slices` is built. Everything below it is identical boilerplate emitted by the code generator. The `x-asya-fan-in` header is the same schema for all messages — only `slice_index` differs.
 
 **Available algorithms** (configured via `ASYA_FANIN_ALGORITHM`):
 
@@ -263,7 +261,7 @@ def _rendezvous_shard(origin_id, target):
 
 **Context**: The aggregator needs a stable key to group all messages belonging to the same fan-out operation, and it needs to know what `id` to assign to the merged envelope. Using `parent_id` (set by the sidecar's generator fanout mechanism) was rejected because it is fragile through envelope-mode sub-agent hops and couples fan-in to sidecar internals.
 
-**Decision**: The fan-out router reads the incoming `message.id`, stores it as `origin_id` in the `x-asya-fan-in` header on all emitted messages (setup + slices), and uses it for three purposes:
+**Decision**: The fan-out router reads the incoming `message.id`, stores it as `origin_id` in the `x-asya-fan-in` header on all emitted messages (parent payload + slices), and uses it for three purposes:
 
 1. **Aggregation key** in RocksDB
 2. **Rendezvous hash input** for shard selection
@@ -308,15 +306,15 @@ The generated fan-out router yields messages via the sidecar's generator mechani
 2. **Each subsequent yield** (`partial=False`): `message.id = uuid4()`. Sidecar sets `headers.x-asya-parent-id = original_message.id`.
 3. **Streaming events** (`partial=True`): Each event gets a new `message.id = uuid4()`. Sidecar sets `headers.x-asya-parent-id = original_message.id`.
 
-The fan-out router **yields setup first, then slices**. This is an optimization: the setup message keeps the original `message.id` (yielded first), while each slice message gets a new UUID (yielded 2nd, 3rd, ...).
+The fan-out router **yields the parent payload first (slice index 0), then sub-agent slices (indices 1..N)**. This is an optimization: the first yield keeps the original `message.id`, while each subsequent yield gets a new UUID.
 
 ### Addressed Fan-In
 
-The `x-asya-fan-in` header is **transient**: it exists only on messages between the fan-out router and the aggregator (setup and slice messages). The fan-out router stamps it at emission time; the aggregator reads it and strips it from the merged envelope before emitting to the continuation actor. Outside of the fan-out/fan-in segment of the pipeline, this header is not present.
+The `x-asya-fan-in` header is **transient**: it exists only on messages between the fan-out router and the aggregator. The fan-out router stamps it at emission time; the aggregator reads it and strips it from the merged envelope before emitting to the continuation actor. Outside of the fan-out/fan-in segment of the pipeline, this header is not present.
 
 The header includes an `actor` field that identifies the target aggregator actor. The aggregator checks `x-asya-fan-in.actor == ASYA_ACTOR_NAME` to confirm the header is addressed to it.
 
-The `origin_id` (original `message.id`) serves as the aggregation key. It is stamped into every `x-asya-fan-in` header (setup + all slices) and is used as the RocksDB storage key. This decouples aggregation from sidecar ID assignment entirely (see ADR-5).
+The `origin_id` (original `message.id`) serves as the aggregation key. It is stamped into every `x-asya-fan-in` header and is used as the RocksDB storage key. This decouples aggregation from sidecar ID assignment entirely (see ADR-5).
 
 For sequential fan-outs in the same flow, each fan-out has a different `origin_id` because the aggregator deletes the key after emitting, and the next fan-out receives a merged envelope (with the restored `origin_id` as its `message.id`):
 
@@ -330,9 +328,15 @@ def multi_fanout(p: dict) -> dict:
     return p
 ```
 
-### Setup Message
+### Unified Message Schema
 
-The fan-out router yields the setup message **first** (so it keeps the original `message.id`). It carries the full parent payload, the slice count, the result path, the `origin_id`, and the continuation route (pre-incremented past the aggregator).
+All fan-in messages (parent payload and sub-agent slices) share the same `x-asya-fan-in` header schema. There is no `type` discriminator — the aggregator distinguishes the parent payload by `slice_index == 0`.
+
+The fan-out router yields N+1 messages total:
+- **Index 0** (parent payload): Carries the original payload and continuation route. Yielded first, so it keeps the original `message.id`.
+- **Indices 1..N** (sub-agent slices): Each carries a sub-agent's input payload and a route through the sub-agent to the aggregator. Yielded 2nd+, so each gets a new UUID from the sidecar.
+
+**Index 0 message** (parent payload, yielded first):
 
 ```json
 {
@@ -345,9 +349,9 @@ The fan-out router yields the setup message **first** (so it keeps the original 
     "x-asya-route-override": {"aggregator": "aggregator-2"},
     "x-asya-fan-in": {
       "actor": "aggregator",
-      "type": "setup",
       "origin_id": "msg-original-abc",
-      "slice_count": 5,
+      "slice_index": 0,
+      "slice_count": 6,
       "aggregation_key": "/results"
     }
   },
@@ -357,46 +361,45 @@ The fan-out router yields the setup message **first** (so it keeps the original 
 }
 ```
 
-### Slice Message
-
-Each slice message is yielded **after** the setup, so it gets a new `message.id` from the sidecar. The sidecar also sets `x-asya-parent-id` for tracing. After the slice passes through the sub-agent, the sub-agent's result becomes the payload.
+**Index 1..N message** (sub-agent slice, yielded after index 0):
 
 ```json
 {
   "id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
   "route": {
     "actors": ["sub_agent", "aggregator"],
-    "current": 1
+    "current": 0
   },
   "headers": {
     "x-asya-parent-id": "msg-original-abc",
     "x-asya-route-override": {"aggregator": "aggregator-2"},
     "x-asya-fan-in": {
       "actor": "aggregator",
-      "type": "slice",
       "origin_id": "msg-original-abc",
-      "slice_index": 0,
-      "slice_count": 5
+      "slice_index": 1,
+      "slice_count": 6,
+      "aggregation_key": "/results"
     }
   },
   "payload": {
-    "result": "sub-agent output for slice 0"
+    "input_for_sub_agent": "topic 0"
   }
 }
 ```
 
+Note: `slice_count` is N+1 (5 sub-agent slices + 1 parent payload = 6). After the sub-agent processes the slice, the sub-agent's result replaces the payload before reaching the aggregator.
+
 ### Fan-In Metadata Header
 
-Fan-in coordination uses `x-asya-fan-in` header (separate from `x-asya-route-override`):
+Fan-in coordination uses `x-asya-fan-in` header (separate from `x-asya-route-override`). All messages share the same schema:
 
-| Field | Setup | Slice | Description |
-|-------|-------|-------|-------------|
-| `actor` | actor name | actor name | Target aggregator actor. Aggregator checks this matches its `ASYA_ACTOR_NAME`. |
-| `type` | `"setup"` | `"slice"` | Discriminator |
-| `origin_id` | message ID | message ID | Original `message.id` before fan-out. Used as aggregation key, rendezvous hash input, and `id` of the merged envelope (see ADR-5). |
-| `slice_count` | N | N | Total number of slices |
-| `aggregation_key` | JSON Pointer | - | RFC 6901 pointer into the payload where the results list is placed (e.g., `/results`) |
-| `slice_index` | - | 0..N-1 | Position of this slice in the result array (mirrors `route.current` naming) |
+| Field | Description |
+|-------|-------------|
+| `actor` | Target aggregator actor. Aggregator checks this matches its `ASYA_ACTOR_NAME`. |
+| `origin_id` | Original `message.id` before fan-out. Used as aggregation key, rendezvous hash input, and `id` of the merged envelope (see ADR-5). |
+| `slice_index` | Position in the results array. `0` = parent payload (original payload + continuation route), `1..N` = sub-agent results. |
+| `slice_count` | Total messages expected: N sub-agent slices + 1 parent payload. |
+| `aggregation_key` | RFC 6901 JSON Pointer into the parent payload where the sub-agent results list is placed (e.g., `/results`). Present on all messages for schema uniformity. |
 
 ---
 
@@ -406,19 +409,18 @@ Fan-in coordination uses `x-asya-fan-in` header (separate from `x-asya-route-ove
 
 The aggregator is a crew actor running in envelope mode. It persists state to a local RocksDB instance.
 
-State structure separates aggregation metadata (root level) from the message being reconstructed (nested under `"message"`):
+State structure stores all payloads in a single `results` array. Index 0 holds the parent payload (from the fan-out router), indices 1..N hold sub-agent results. The `message` field stores the envelope metadata (route, headers) needed to reconstruct the merged envelope:
 
 ```json
 {
-  "slice_count": 5,
+  "slice_count": 6,
   "aggregation_key": "/results",
-  "results": [null, "slice-0-payload", null, null, null],
+  "results": [{"original_field": "preserved"}, "slice-1-result", null, null, null, null],
   "received_count": 2,
   "message": {
     "id": "msg-original-abc",
     "route": {"actors": ["fan_out", "aggregator", "post_process"], "current": 2},
-    "headers": {"x-asya-task-id": "task-xyz"},
-    "payload": {"original_field": "preserved"}
+    "headers": {"x-asya-task-id": "task-xyz"}
   }
 }
 ```
@@ -442,6 +444,7 @@ _TRANSIENT_HEADERS = {
 def aggregator(envelope: dict) -> dict | None:
     fan_in = envelope["headers"]["x-asya-fan-in"]
     key = fan_in["origin_id"].encode("utf-8")
+    idx = fan_in["slice_index"]
 
     state = _load(key) or {
         "slice_count": fan_in["slice_count"],
@@ -451,7 +454,9 @@ def aggregator(envelope: dict) -> dict | None:
         "message": None,
     }
 
-    if fan_in["type"] == "setup":
+    state["results"][idx] = envelope["payload"]
+
+    if idx == 0:
         route = envelope["route"].copy()
         route["current"] += 1
         state["message"] = {
@@ -459,16 +464,15 @@ def aggregator(envelope: dict) -> dict | None:
             "route": route,
             "headers": {k: v for k, v in envelope.get("headers", {}).items()
                         if k not in _TRANSIENT_HEADERS},
-            "payload": envelope["payload"],
         }
-    else:
-        state["results"][fan_ain["slice_index"]] = envelope["payload"]
 
     state["received_count"] += 1
 
-    if state["received_count"] == state["slice_count"] + 1:
+    if state["received_count"] == state["slice_count"]:
         msg = state["message"]
-        jsonpointer.set_pointer(msg["payload"], state["aggregation_key"], state["results"])
+        msg["payload"] = state["results"][0]
+        jsonpointer.set_pointer(msg["payload"], state["aggregation_key"],
+                                state["results"][1:])
         _db.delete(key)
         return msg
 
@@ -487,26 +491,18 @@ def _save(key: bytes, state: dict):
 
 ### Behavior
 
-- **Completeness**: Every message increments `received_count`. The last arrival (whichever it is) finds `received_count == slice_count + 1` and emits. All others return `None` (ack, routed to x-sink with incomplete status).
-- **Slice before setup**: The initial state has `"message": None`. Slices fill `results[slice_index]` into the partial state. When setup arrives, it fills `state["message"]`. Completeness check still works — emission requires both.
-- **Ordering**: Results are placed at `results[slice_index]`, preserving DSL order regardless of arrival order.
+- **Completeness**: Every message increments `received_count`. The last arrival (whichever it is) finds `received_count == slice_count` and emits. All others return `{"status": "incomplete"}` (ack, routed to x-sink with incomplete status).
+- **Index 0 before slices**: If sub-agent slices arrive before the parent payload (index 0), they fill `results[idx]` into partial state. When index 0 arrives, it fills `state["message"]` (route + headers). Completeness check still works — emission requires all indices filled.
+- **Ordering**: Results are placed at `results[slice_index]`, preserving DSL order regardless of arrival order. On emission, `results[0]` becomes the base payload and `results[1:]` is placed at `aggregation_key`.
 - **Multiple fan-ins**: Each fan-out uses a different `origin_id` (unique `message.id`). Sequential fan-outs don't collide because the key is deleted after emitting.
 
-### Incomplete Status on `None` Returns
+### Incomplete Status on Partial Returns
 
-When the aggregator returns `None` (still accumulating slices), the message is acked and routed to x-sink via the standard sidecar flow. To prevent x-sink from reporting a false "finished" status to the gateway, the aggregator's runtime must ensure that the `setup` message (the one whose `id` matches `headers.x-asya-fan-in.orign_id`) is an **incomplete status**  (`status` field in message) on the returned message, so that x-sink would not report this message as "done". At the same time, `slice` messages have different message ID so they should have a terminated status.
+When the aggregator is still accumulating (not all slices arrived), it returns `{"status": "incomplete"}`. The message is acked and routed to x-sink via the standard sidecar flow. To prevent x-sink from reporting a false "finished" status to the gateway, x-sink must check the `status` field: if it contains `"incomplete"`, it acks without reporting final status to the gateway (no S3 persistence, no gateway callback).
 
-The aggregator signals this by yielding `SET` command to `asya_runtime.py`:
+For the parent payload message (index 0, which has the original `message.id` matching `origin_id`), the incomplete status ensures the gateway doesn't see a premature "done" for that message ID. Sub-agent slice messages have different message IDs (assigned by the sidecar), so their x-sink arrivals don't affect the original message's gateway status.
 
-```python
-    _save(key, state)
-    yield "SET" "/status/phase" "processing"  # updates message's status
-    yield  # yields None signalling to sidecar to abort execution and send message to x-sink
-```
-
-The sidecar forwards this to x-sink. x-sink inspects the payload: if it contains `{"status": {"phase": "processing"}}`, it acks without reporting final status to the gateway. The message is silently consumed — no S3 persistence, no gateway callback.
-
-This is intentionally a **generic mechanism**, not aggregator-specific. The same incomplete-status pattern enables future "human in the loop" workflows where an actor needs to **pause** pipeline execution until an external signal arrives (e.g., a human approval via asya-gateway). The actor stores its state, returns `{"status": {"phase": "processing"}}`, and resumes when a new message arrives with the continuation signal. x-sink treats all incomplete messages the same way: ack and discard.
+This is intentionally a **generic mechanism**, not aggregator-specific. The same incomplete-status pattern enables future "human in the loop" workflows where an actor needs to **pause** pipeline execution until an external signal arrives (e.g., a human approval via asya-gateway). The actor stores its state, returns `{"status": "incomplete"}`, and resumes when a new message arrives with the continuation signal. x-sink treats all incomplete-status messages the same way: ack and discard.
 
 ---
 
@@ -641,19 +637,19 @@ The Flow DSL supports fan-out via list comprehensions (homogeneous — same acto
 The compiler takes the DSL loop/list **as-is** and generates a router that:
 
 1. Runs the loop to **accumulate** `(actor_name, payload)` tuples into a `_slices` list
-2. Yields the **setup message** (first yield keeps original `message.id`)
-3. Yields all **slice messages** via `yield from`
+2. Yields the **parent payload** at index 0 (first yield keeps original `message.id`)
+3. Yields all **sub-agent slices** at indices 1..N
 
-The only part that varies per fan-out is how `_slices` is built. The setup + slice emission is identical boilerplate.
+The only part that varies per fan-out is how `_slices` is built. The emission boilerplate is identical.
 
 ### All Supported Patterns
 
-| DSL syntax | Generated `_slices` accumulation | `_n` |
+| DSL syntax | Generated `_slices` accumulation | `_n` (slice_count) |
 |---|---|---|
-| `[f(t) for t in p["topics"]]` | `for t in p["topics"]: _slices.append(...)` | `len(p["topics"])` |
-| `[f(p["topics"][i]) for i in range(len(p["topics"]))]` | `for i in range(len(p["topics"])): _slices.append(...)` | `len(p["topics"])` |
-| `[f(p["query"]) for _ in range(10)]` | `for _ in range(10): _slices.append(...)` | `10` |
-| `[a(p["text"]), b(p["text"]), c(p["text"])]` | `_slices = [(resolve("a"), p["text"]), ...]` | `3` |
+| `[f(t) for t in p["topics"]]` | `for t in p["topics"]: _slices.append(...)` | `len(p["topics"]) + 1` |
+| `[f(p["topics"][i]) for i in range(len(p["topics"]))]` | `for i in range(len(p["topics"])): _slices.append(...)` | `len(p["topics"]) + 1` |
+| `[f(p["query"]) for _ in range(10)]` | `for _ in range(10): _slices.append(...)` | `11` |
+| `[a(p["text"]), b(p["text"]), c(p["text"])]` | `_slices = [(resolve("a"), p["text"]), ...]` | `4` |
 
 ### Homogeneous Fan-Out (List Comprehension)
 
@@ -684,30 +680,26 @@ def fanout_research_flow_L2(message):
         _slices.append((resolve("research_agent"), t))
     # ---
 
-    _n = len(_slices)
+    _n = len(_slices) + 1
+    _fan_in = {"actor": _agg, "origin_id": origin_id,
+               "slice_count": _n, "aggregation_key": "/results"}
 
-    # Setup (first yield -> keeps original message.id)
+    # Index 0: parent payload (first yield -> keeps original message.id)
     yield {
         "route": {"actors": list(r["actors"]), "current": c + 1},
         "headers": {**_hdrs, "x-asya-route-override": {_agg: _shard},
-                    "x-asya-fan-in": {"actor": _agg, "type": "setup",
-                                      "origin_id": origin_id, "slice_count": _n,
-                                      "aggregation_key": "/results"}},
+                    "x-asya-fan-in": {**_fan_in, "slice_index": 0}},
         "payload": dict(p),
     }
 
-    # Slices
-    yield from [
-        {
+    # Indices 1..N: sub-agent slices
+    for _i, (_actor, _payload) in enumerate(_slices):
+        yield {
             "route": {"actors": [_actor, _shard], "current": 0},
             "headers": {**_hdrs, "x-asya-route-override": {_agg: _shard},
-                        "x-asya-fan-in": {"actor": _agg, "type": "slice",
-                                          "origin_id": origin_id,
-                                          "slice_index": _i, "slice_count": _n}},
+                        "x-asya-fan-in": {**_fan_in, "slice_index": _i + 1}},
             "payload": _payload,
         }
-        for _i, (_actor, _payload) in enumerate(_slices)
-    ]
 ```
 
 **Compiled to**: One fan-out router, one sub-agent actor (`research_agent`), one aggregator. All slices share the same route through `research_agent`.
@@ -739,7 +731,7 @@ def analysis_flow(p: dict) -> dict:
     # ---
 ```
 
-The setup + slice emission boilerplate is identical. Each slice routes to a different actor but all converge on the same aggregator.
+The emission boilerplate is identical. Each slice routes to a different actor but all converge on the same aggregator.
 
 ### Other Patterns
 
