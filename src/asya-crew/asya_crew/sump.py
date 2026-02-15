@@ -21,6 +21,7 @@ This module will raise RuntimeError at import time if these conditions are not m
 Environment Variables:
 - ASYA_HANDLER_MODE: Handler mode (MUST be "envelope")
 - ASYA_ENABLE_VALIDATION: Validation flag (MUST be "false")
+- ASYA_S3_BUCKET: S3/MinIO bucket for persistence (optional, enables inline S3 persistence)
 
 Message Structure:
     {
@@ -50,6 +51,7 @@ logger = logging.getLogger(__name__)
 
 ASYA_HANDLER_MODE = (os.getenv("ASYA_HANDLER_MODE") or "payload").lower()
 ASYA_ENABLE_VALIDATION = os.getenv("ASYA_ENABLE_VALIDATION", "true").lower() == "true"
+ASYA_S3_BUCKET = os.getenv("ASYA_S3_BUCKET", "")
 
 if ASYA_HANDLER_MODE != "envelope":
     raise RuntimeError(
@@ -98,5 +100,13 @@ def sump_handler(message: dict[str, Any]) -> None:
         logger.error(f"Terminal failure for message {message_id}: {json.dumps(message, indent=2, default=str)}")
     else:
         logger.debug(f"Terminal success for message {message_id}")
+
+    if ASYA_S3_BUCKET:
+        try:
+            from asya_crew.message_persistence.s3 import checkpoint_handler
+
+            checkpoint_handler(message)
+        except Exception as e:
+            logger.error(f"S3 persistence failed for message {message_id}: {e}")
 
     return None

@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 @pytest.fixture(autouse=True)
 def setup_test_env():
     """Set up test environment before each test."""
-    for key in ["ASYA_SINK_HOOKS"]:
+    for key in ["ASYA_SINK_HOOKS", "ASYA_S3_BUCKET"]:
         if key in os.environ:
             del os.environ[key]
 
@@ -31,7 +31,7 @@ def setup_test_env():
 
     yield
 
-    for key in ["ASYA_SINK_HOOKS"]:
+    for key in ["ASYA_SINK_HOOKS", "ASYA_S3_BUCKET"]:
         if key in os.environ:
             del os.environ[key]
 

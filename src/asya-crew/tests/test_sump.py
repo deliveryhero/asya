@@ -22,10 +22,18 @@ logger = logging.getLogger(__name__)
 @pytest.fixture(autouse=True)
 def setup_test_env():
     """Set up test environment before each test."""
+    for key in ["ASYA_S3_BUCKET"]:
+        if key in os.environ:
+            del os.environ[key]
+
     os.environ["ASYA_HANDLER_MODE"] = "envelope"
     os.environ["ASYA_ENABLE_VALIDATION"] = "false"
 
     yield
+
+    for key in ["ASYA_S3_BUCKET"]:
+        if key in os.environ:
+            del os.environ[key]
 
 
 def test_import_raises_with_payload_mode():
