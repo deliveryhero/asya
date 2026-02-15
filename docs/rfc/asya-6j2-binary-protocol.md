@@ -407,3 +407,33 @@ While `marshal` is incredibly fast, it is **not secure** against untrusted data.
 ### Final Memo Summary Recommendation
 
 The **Length-Prefixed Framing** is the best technical choice for `asya.sh`. It is the only way to achieve true **O(1) routing** without double-serialization. The risks are engineering challenges (buffer limits and CLI tools) rather than architectural flaws.
+
+---
+  The "existing protocol" requirement conflicts with "zero pip"
+  ┌─────────────┬───────────────────┬───────────────────┬───────────────────────────────┐
+  │  Protocol   │  Python stdlib?   │    Go support     │        Maintainability        │
+  ├─────────────┼───────────────────┼───────────────────┼───────────────────────────────┤
+  │ JSON        │ ✅ Yes            │ ✅ Native         │ ✅ Trivial                    │
+  ├─────────────┼───────────────────┼───────────────────┼───────────────────────────────┤
+  │ Marshal     │ ✅ Yes            │ ❌ Custom encoder │ ❌ Must track Python versions │
+  ├─────────────┼───────────────────┼───────────────────┼───────────────────────────────┤
+  │ MessagePack │ ❌ No (needs pip) │ ✅ Native         │ ✅ Well-documented            │
+  ├─────────────┼───────────────────┼───────────────────┼───────────────────────────────┤
+  │ CBOR        │ ❌ No (needs pip) │ ✅ Native         │ ✅ RFC-standardized           │
+  └─────────────┴───────────────────┴───────────────────┴───────────────────────────────┘
+
+
+  The core use case for binary protocol is compression, specifically for agentic workloads where session state grows large. With SQS's 256KB limit (1MB with extended client), you want to maximize effective capacity.
+
+  Given this, let me reframe the options:
+  ┌───────────────────────┬─────────────┬──────────────────┬───────────────────┬─────────────────────┐
+  │       Approach        │ Compression │  Python stdlib   │      Go impl      │   Maintainability   │
+  │ A) JSON + zlib        │ ~60-70%     │ ✅ zlib built-in │ ✅ compress/zlib  │ ✅ Trivial          │
+  ├───────────────────────┼─────────────┼──────────────────┼───────────────────┼─────────────────────┤
+  │ B) JSON + zstd        │ ~70-80%     │ ❌ needs pip     │ ✅ Native         │ ❌ Pip required     │
+  ├───────────────────────┼─────────────┼──────────────────┼───────────────────┼─────────────────────┤
+  │ C) MessagePack + zlib │ ~50-60%     │ ❌ needs pip     │ ✅ Native         │ ❌ Pip required     │
+  ├───────────────────────┼─────────────┼──────────────────┼───────────────────┼─────────────────────┤
+  │ D) Marshal + zlib     │ ~65-75%     │ ✅ Built-in      │ ❌ Custom encoder │ ❌ Version tracking │
+  └───────────────────────┴─────────────┴──────────────────┴───────────────────┴─────────────────────┘
+  Observation: If compression is the goal, zlib on top of JSON might give you 80% of the benefit with zero pip dependencies and zero custom protocol maintenance.
