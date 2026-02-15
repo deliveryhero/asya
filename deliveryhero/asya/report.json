@@ -1,7 +1,7 @@
 {
   "repository": "deliveryhero/asya",
   "ref": "refs/heads/main",
-  "commit": "ce8c467d66a67177f476902eb2fb61f8caf0a207",
+  "commit": "0dcb0556ae6ffe8c7d9b7cddcc83efa0635c7d89",
   "coverage": {
     "type": "merged",
     "format": "Go coverage",
@@ -15988,7 +15988,7 @@
     ]
   },
   "code_to_test_ratio": {
-    "code": 20751,
+    "code": 21177,
     "test": 17886,
     "code_files": [
       {
@@ -16024,6 +16024,48 @@
         "comment": 5,
         "blank": 9,
         "path": "docs/img/for-data-scientists-flows/text_analysis_flow.py",
+        "language": "Python"
+      },
+      {
+        "code": 20,
+        "comment": 11,
+        "blank": 13,
+        "path": "examples/flows/async_conditional.py",
+        "language": "Python"
+      },
+      {
+        "code": 16,
+        "comment": 11,
+        "blank": 11,
+        "path": "examples/flows/async_nested.py",
+        "language": "Python"
+      },
+      {
+        "code": 8,
+        "comment": 9,
+        "blank": 8,
+        "path": "examples/flows/async_sequential.py",
+        "language": "Python"
+      },
+      {
+        "code": 66,
+        "comment": 44,
+        "blank": 30,
+        "path": "examples/flows/compiled/async_conditional/routers.py",
+        "language": "Python"
+      },
+      {
+        "code": 52,
+        "comment": 43,
+        "blank": 27,
+        "path": "examples/flows/compiled/async_nested/routers.py",
+        "language": "Python"
+      },
+      {
+        "code": 39,
+        "comment": 42,
+        "blank": 24,
+        "path": "examples/flows/compiled/async_sequential/routers.py",
         "language": "Python"
       },
       {
@@ -16363,6 +16405,20 @@
         "language": "Python"
       },
       {
+        "code": 14,
+        "comment": 9,
+        "blank": 9,
+        "path": "examples/flows/react_loop.py",
+        "language": "Python"
+      },
+      {
+        "code": 23,
+        "comment": 10,
+        "blank": 12,
+        "path": "examples/flows/react_multi_tool.py",
+        "language": "Python"
+      },
+      {
         "code": 11,
         "comment": 7,
         "blank": 9,
@@ -16517,14 +16573,14 @@
         "language": "Python"
       },
       {
-        "code": 96,
+        "code": 104,
         "comment": 11,
         "blank": 35,
         "path": "src/asya-cli/asya_cli/flow/compiler.py",
         "language": "Python"
       },
       {
-        "code": 393,
+        "code": 400,
         "comment": 59,
         "blank": 75,
         "path": "src/asya-cli/asya_cli/flow/dotgen.py",
@@ -16552,9 +16608,9 @@
         "language": "Python"
       },
       {
-        "code": 230,
-        "comment": 28,
-        "blank": 43,
+        "code": 269,
+        "comment": 39,
+        "blank": 54,
         "path": "src/asya-cli/asya_cli/flow/parser.py",
         "language": "Python"
       },
@@ -16629,9 +16685,9 @@
         "language": "Python"
       },
       {
-        "code": 575,
-        "comment": 440,
-        "blank": 154,
+        "code": 709,
+        "comment": 537,
+        "blank": 196,
         "path": "src/asya-cli/tests/flow/test_parser.py",
         "language": "Python"
       },
@@ -17605,6 +17661,6 @@
       }
     ]
   },
-  "test_execution_time": 192000000000,
-  "timestamp": "2026-02-15T21:24:02.003271891Z"
+  "test_execution_time": 209000000000,
+  "timestamp": "2026-02-15T23:44:41.620684437Z"
 }
