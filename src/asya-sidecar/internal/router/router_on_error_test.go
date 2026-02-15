@@ -162,8 +162,8 @@ func TestRouter_RouteToFlowErrorHandler(t *testing.T) {
 			cfg := &config.Config{
 				ActorName:     tt.msg.Route.Actors[tt.msg.Route.Current],
 				Namespace:     "default",
-				HappyEndQueue: "happy-end",
-				ErrorEndQueue: "error-end",
+				SinkQueue:     "x-sink",
+				SumpQueue:     "x-sump",
 				TransportType: "rabbitmq",
 			}
 
@@ -171,12 +171,12 @@ func TestRouter_RouteToFlowErrorHandler(t *testing.T) {
 			m := metrics.NewMetrics("test", []config.CustomMetricConfig{})
 
 			router := &Router{
-				cfg:           cfg,
-				transport:     mt,
-				actorName:     cfg.ActorName,
-				happyEndQueue: cfg.HappyEndQueue,
-				errorEndQueue: cfg.ErrorEndQueue,
-				metrics:       m,
+				cfg:       cfg,
+				transport: mt,
+				actorName: cfg.ActorName,
+				sinkQueue: cfg.SinkQueue,
+				sumpQueue: cfg.SumpQueue,
+				metrics:   m,
 			}
 
 			ctx := context.Background()
@@ -286,8 +286,8 @@ func TestRouter_HandleErrorResponse_WithOnErrorHeader(t *testing.T) {
 	cfg := &config.Config{
 		ActorName:     "test-actor",
 		Namespace:     "default",
-		HappyEndQueue: "happy-end",
-		ErrorEndQueue: "error-end",
+		SinkQueue:     "x-sink",
+		SumpQueue:     "x-sump",
 		TransportType: "rabbitmq",
 	}
 
@@ -295,12 +295,12 @@ func TestRouter_HandleErrorResponse_WithOnErrorHeader(t *testing.T) {
 	m := metrics.NewMetrics("test", []config.CustomMetricConfig{})
 
 	router := &Router{
-		cfg:           cfg,
-		transport:     mt,
-		actorName:     cfg.ActorName,
-		happyEndQueue: cfg.HappyEndQueue,
-		errorEndQueue: cfg.ErrorEndQueue,
-		metrics:       m,
+		cfg:       cfg,
+		transport: mt,
+		actorName: cfg.ActorName,
+		sinkQueue: cfg.SinkQueue,
+		sumpQueue: cfg.SumpQueue,
+		metrics:   m,
 	}
 
 	// Build a message with _on_error header
@@ -331,7 +331,7 @@ func TestRouter_HandleErrorResponse_WithOnErrorHeader(t *testing.T) {
 		t.Fatalf("handleErrorResponse returned error: %v", err)
 	}
 
-	// Should route to flow error handler, not error-end
+	// Should route to flow error handler, not x-sump
 	if len(mt.sentMessages) != 1 {
 		t.Fatalf("Expected 1 message sent, got %d", len(mt.sentMessages))
 	}
@@ -341,10 +341,10 @@ func TestRouter_HandleErrorResponse_WithOnErrorHeader(t *testing.T) {
 			mt.sentMessages[0].queue, "asya-default-my-error-handler")
 	}
 
-	// Verify it did NOT go to error-end
+	// Verify it did NOT go to x-sump
 	for _, sent := range mt.sentMessages {
-		if sent.queue == "asya-default-error-end" {
-			t.Error("Message should NOT be sent to error-end when _on_error header is set")
+		if sent.queue == "asya-default-x-sump" {
+			t.Error("Message should NOT be sent to x-sump when _on_error header is set")
 		}
 	}
 }
@@ -353,8 +353,8 @@ func TestRouter_HandleErrorResponse_WithoutOnErrorHeader(t *testing.T) {
 	cfg := &config.Config{
 		ActorName:     "test-actor",
 		Namespace:     "default",
-		HappyEndQueue: "happy-end",
-		ErrorEndQueue: "error-end",
+		SinkQueue:     "x-sink",
+		SumpQueue:     "x-sump",
 		TransportType: "rabbitmq",
 	}
 
@@ -362,12 +362,12 @@ func TestRouter_HandleErrorResponse_WithoutOnErrorHeader(t *testing.T) {
 	m := metrics.NewMetrics("test", []config.CustomMetricConfig{})
 
 	router := &Router{
-		cfg:           cfg,
-		transport:     mt,
-		actorName:     cfg.ActorName,
-		happyEndQueue: cfg.HappyEndQueue,
-		errorEndQueue: cfg.ErrorEndQueue,
-		metrics:       m,
+		cfg:       cfg,
+		transport: mt,
+		actorName: cfg.ActorName,
+		sinkQueue: cfg.SinkQueue,
+		sumpQueue: cfg.SumpQueue,
+		metrics:   m,
 	}
 
 	// Build a message WITHOUT _on_error header
@@ -395,14 +395,14 @@ func TestRouter_HandleErrorResponse_WithoutOnErrorHeader(t *testing.T) {
 		t.Fatalf("handleErrorResponse returned error: %v", err)
 	}
 
-	// Should route to error-end (backward compatible)
+	// Should route to x-sump (backward compatible)
 	if len(mt.sentMessages) != 1 {
 		t.Fatalf("Expected 1 message sent, got %d", len(mt.sentMessages))
 	}
 
-	if mt.sentMessages[0].queue != "asya-default-error-end" {
+	if mt.sentMessages[0].queue != "asya-default-x-sump" {
 		t.Errorf("Message sent to queue %q, expected %q",
-			mt.sentMessages[0].queue, "asya-default-error-end")
+			mt.sentMessages[0].queue, "asya-default-x-sump")
 	}
 }
 
@@ -410,8 +410,8 @@ func TestRouter_HandleErrorResponse_EmptyOnErrorHeader(t *testing.T) {
 	cfg := &config.Config{
 		ActorName:     "test-actor",
 		Namespace:     "default",
-		HappyEndQueue: "happy-end",
-		ErrorEndQueue: "error-end",
+		SinkQueue:     "x-sink",
+		SumpQueue:     "x-sump",
 		TransportType: "rabbitmq",
 	}
 
@@ -419,12 +419,12 @@ func TestRouter_HandleErrorResponse_EmptyOnErrorHeader(t *testing.T) {
 	m := metrics.NewMetrics("test", []config.CustomMetricConfig{})
 
 	router := &Router{
-		cfg:           cfg,
-		transport:     mt,
-		actorName:     cfg.ActorName,
-		happyEndQueue: cfg.HappyEndQueue,
-		errorEndQueue: cfg.ErrorEndQueue,
-		metrics:       m,
+		cfg:       cfg,
+		transport: mt,
+		actorName: cfg.ActorName,
+		sinkQueue: cfg.SinkQueue,
+		sumpQueue: cfg.SumpQueue,
+		metrics:   m,
 	}
 
 	// Build a message with empty _on_error header
@@ -455,14 +455,14 @@ func TestRouter_HandleErrorResponse_EmptyOnErrorHeader(t *testing.T) {
 		t.Fatalf("handleErrorResponse returned error: %v", err)
 	}
 
-	// Empty _on_error should fall through to error-end
+	// Empty _on_error should fall through to x-sump
 	if len(mt.sentMessages) != 1 {
 		t.Fatalf("Expected 1 message sent, got %d", len(mt.sentMessages))
 	}
 
-	if mt.sentMessages[0].queue != "asya-default-error-end" {
+	if mt.sentMessages[0].queue != "asya-default-x-sump" {
 		t.Errorf("Message sent to queue %q, expected %q",
-			mt.sentMessages[0].queue, "asya-default-error-end")
+			mt.sentMessages[0].queue, "asya-default-x-sump")
 	}
 }
 
@@ -470,8 +470,8 @@ func TestRouter_RouteToFlowErrorHandler_PreservesCreatedAt(t *testing.T) {
 	cfg := &config.Config{
 		ActorName:     "my-actor",
 		Namespace:     "default",
-		HappyEndQueue: "happy-end",
-		ErrorEndQueue: "error-end",
+		SinkQueue:     "x-sink",
+		SumpQueue:     "x-sump",
 		TransportType: "rabbitmq",
 	}
 
@@ -479,12 +479,12 @@ func TestRouter_RouteToFlowErrorHandler_PreservesCreatedAt(t *testing.T) {
 	m := metrics.NewMetrics("test", []config.CustomMetricConfig{})
 
 	router := &Router{
-		cfg:           cfg,
-		transport:     mt,
-		actorName:     cfg.ActorName,
-		happyEndQueue: cfg.HappyEndQueue,
-		errorEndQueue: cfg.ErrorEndQueue,
-		metrics:       m,
+		cfg:       cfg,
+		transport: mt,
+		actorName: cfg.ActorName,
+		sinkQueue: cfg.SinkQueue,
+		sumpQueue: cfg.SumpQueue,
+		metrics:   m,
 	}
 
 	originalCreatedAt := "2025-03-15T10:30:00Z"
@@ -537,8 +537,8 @@ func TestRouter_RouteToFlowErrorHandler_SetsActorName(t *testing.T) {
 	cfg := &config.Config{
 		ActorName:     "failing-actor",
 		Namespace:     "default",
-		HappyEndQueue: "happy-end",
-		ErrorEndQueue: "error-end",
+		SinkQueue:     "x-sink",
+		SumpQueue:     "x-sump",
 		TransportType: "rabbitmq",
 	}
 
@@ -546,12 +546,12 @@ func TestRouter_RouteToFlowErrorHandler_SetsActorName(t *testing.T) {
 	m := metrics.NewMetrics("test", []config.CustomMetricConfig{})
 
 	router := &Router{
-		cfg:           cfg,
-		transport:     mt,
-		actorName:     cfg.ActorName,
-		happyEndQueue: cfg.HappyEndQueue,
-		errorEndQueue: cfg.ErrorEndQueue,
-		metrics:       m,
+		cfg:       cfg,
+		transport: mt,
+		actorName: cfg.ActorName,
+		sinkQueue: cfg.SinkQueue,
+		sumpQueue: cfg.SumpQueue,
+		metrics:   m,
 	}
 
 	msg := &messages.Message{
@@ -596,8 +596,8 @@ func TestRouter_RouteToFlowErrorHandler_ErrorTraceback(t *testing.T) {
 	cfg := &config.Config{
 		ActorName:     "actor-x",
 		Namespace:     "default",
-		HappyEndQueue: "happy-end",
-		ErrorEndQueue: "error-end",
+		SinkQueue:     "x-sink",
+		SumpQueue:     "x-sump",
 		TransportType: "rabbitmq",
 	}
 
@@ -605,12 +605,12 @@ func TestRouter_RouteToFlowErrorHandler_ErrorTraceback(t *testing.T) {
 	m := metrics.NewMetrics("test", []config.CustomMetricConfig{})
 
 	router := &Router{
-		cfg:           cfg,
-		transport:     mt,
-		actorName:     cfg.ActorName,
-		happyEndQueue: cfg.HappyEndQueue,
-		errorEndQueue: cfg.ErrorEndQueue,
-		metrics:       m,
+		cfg:       cfg,
+		transport: mt,
+		actorName: cfg.ActorName,
+		sinkQueue: cfg.SinkQueue,
+		sumpQueue: cfg.SumpQueue,
+		metrics:   m,
 	}
 
 	traceback := "Traceback (most recent call last):\n  File \"handler.py\", line 10, in process\n    raise ValueError(\"bad input\")\nValueError: bad input"
