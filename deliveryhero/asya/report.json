@@ -1,7 +1,7 @@
 {
   "repository": "deliveryhero/asya",
   "ref": "refs/heads/main",
-  "commit": "c76f2bdd4b9f58e1a48785255c06f7776fa1063e",
+  "commit": "5a1d02300b4907f8e5890e72f3a1267b6fe7f20d",
   "coverage": {
     "type": "merged",
     "format": "Go coverage",
@@ -15862,8 +15862,8 @@
     ]
   },
   "code_to_test_ratio": {
-    "code": 17990,
-    "test": 16961,
+    "code": 18100,
+    "test": 17308,
     "code_files": [
       {
         "code": 384,
@@ -16643,23 +16643,23 @@
         "language": "Go"
       },
       {
-        "code": 14,
-        "comment": 11,
-        "blank": 11,
+        "code": 28,
+        "comment": 14,
+        "blank": 14,
         "path": "src/asya-injector/internal/injection/config.go",
         "language": "Go"
       },
       {
-        "code": 298,
-        "comment": 38,
-        "blank": 47,
+        "code": 355,
+        "comment": 41,
+        "blank": 55,
         "path": "src/asya-injector/internal/injection/inject.go",
         "language": "Go"
       },
       {
-        "code": 115,
-        "comment": 15,
-        "blank": 27,
+        "code": 154,
+        "comment": 21,
+        "blank": 34,
         "path": "src/asya-injector/internal/webhook/asyncactor.go",
         "language": "Go"
       },
@@ -17156,16 +17156,16 @@
         "language": "Go"
       },
       {
-        "code": 728,
-        "comment": 16,
-        "blank": 110,
+        "code": 977,
+        "comment": 21,
+        "blank": 148,
         "path": "src/asya-injector/internal/injection/inject_test.go",
         "language": "Go"
       },
       {
-        "code": 359,
+        "code": 457,
         "comment": 2,
-        "blank": 11,
+        "blank": 17,
         "path": "src/asya-injector/internal/webhook/asyncactor_test.go",
         "language": "Go"
       },
@@ -17346,6 +17346,6 @@
       }
     ]
   },
-  "test_execution_time": 191000000000,
-  "timestamp": "2026-02-13T14:36:58.257983827Z"
+  "test_execution_time": 204000000000,
+  "timestamp": "2026-02-15T18:49:35.122480341Z"
 }
