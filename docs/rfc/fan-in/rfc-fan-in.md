@@ -388,6 +388,23 @@ Fan-in coordination uses `x-asya-fan-in` header (separate from `x-asya-route-ove
 
 The aggregator is a crew actor running in envelope mode. It persists state to a local RocksDB instance.
 
+State structure separates aggregation metadata (root level) from the message being reconstructed (nested under `"message"`):
+
+```json
+{
+  "slice_count": 5,
+  "aggregation_key": "/results",
+  "results": [null, "slice-0-payload", null, null, null],
+  "received_count": 2,
+  "message": {
+    "id": "msg-original-abc",
+    "route": {"actors": ["fan_out", "aggregator", "post_process"], "current": 2},
+    "headers": {"x-asya-task-id": "task-xyz"},
+    "payload": {"original_field": "preserved"}
+  }
+}
+```
+
 ```python
 import json
 import os
@@ -395,119 +412,67 @@ import os
 import jsonpointer
 import plyvel
 
-_DB_PATH = os.environ.get("ASYA_AGGREGATOR_DB_PATH", "/data/aggregator")
+_DB_PATH = os.environ.get("ASYA_FANIN_DB_PATH", "/data/aggregator")
 _db = plyvel.DB(_DB_PATH, create_if_missing=True)
+
+_TRANSIENT_HEADERS = {
+    "x-asya-fan-in", "x-asya-route-override",
+    "x-asya-route-resolved", "x-asya-parent-id",
+}
 
 
 def aggregator(envelope: dict) -> dict | None:
     fan_in = envelope["headers"]["x-asya-fan-in"]
     key = fan_in["origin_id"].encode("utf-8")
 
-    if fan_in["type"] == "setup":
-        _handle_setup(key, envelope, fan_in)
-    elif fan_in["type"] == "slice":
-        _handle_slice(key, envelope, fan_in)
-
-    # Check completeness: slice_count slices + 1 setup
-    state = _load_state(key)
-    if state and state["received_count"] == state["slice_count"] + 1:
-        merged = _build_merged_envelope(state)
-        _db.delete(key)
-        return merged
-
-    return None  # Not complete yet, ack and wait
-
-
-def _handle_setup(key: bytes, envelope: dict, fan_in: dict):
-    route = envelope["route"].copy()
-    route["current"] += 1  # Pre-increment for continuation
-
-    state = _load_state(key) or {
-        "origin_id": fan_in["origin_id"],
-        "route": route,
-        "payload": envelope["payload"],
-        "headers": {k: v for k, v in envelope.get("headers", {}).items()
-                    if k not in ("x-asya-fan-in", "x-asya-route-override",
-                                 "x-asya-route-resolved", "x-asya-parent-id")},
+    state = _load(key) or {
         "slice_count": fan_in["slice_count"],
         "aggregation_key": fan_in["aggregation_key"],
         "results": [None] * fan_in["slice_count"],
         "received_count": 0,
+        "message": None,
     }
-    state["received_count"] += 1
-    _save_state(key, state)
 
-
-def _handle_slice(key: bytes, envelope: dict, fan_in: dict):
-    state = _load_state(key)
-    if state is None:
-        # Slice arrived before setup (race condition)
-        # Create partial state, setup will fill in the rest
-        state = {
-            "origin_id": None,
-            "route": None,
-            "payload": None,
-            "headers": None,
-            "slice_count": fan_in["slice_count"],
-            "aggregation_key": None,
-            "results": [None] * fan_in["slice_count"],
-            "received_count": 0,
+    if fan_in["type"] == "setup":
+        route = envelope["route"].copy()
+        route["current"] += 1
+        state["message"] = {
+            "id": fan_in["origin_id"],
+            "route": route,
+            "headers": {k: v for k, v in envelope.get("headers", {}).items()
+                        if k not in _TRANSIENT_HEADERS},
+            "payload": envelope["payload"],
         }
+    else:
+        state["results"][fan_in["slice_index"]] = envelope["payload"]
 
-    state["results"][fan_in["slice_index"]] = envelope["payload"]
     state["received_count"] += 1
-    _save_state(key, state)
+
+    if state["received_count"] == state["slice_count"] + 1:
+        msg = state["message"]
+        jsonpointer.set_pointer(msg["payload"], state["aggregation_key"], state["results"])
+        _db.delete(key)
+        return msg
+
+    _save(key, state)
+    return None
 
 
-def _build_merged_envelope(state: dict) -> dict:
-    payload = state["payload"].copy()
-    jsonpointer.set_pointer(payload, state["aggregation_key"], state["results"])
-
-    envelope = {
-        "id": state["origin_id"],
-        "route": state["route"],
-        "payload": payload,
-    }
-    if state["headers"]:
-        envelope["headers"] = state["headers"]
-    return envelope
-
-
-def _load_state(key: bytes) -> dict | None:
+def _load(key: bytes) -> dict | None:
     data = _db.get(key)
-    if data is None:
-        return None
-    return json.loads(data)
+    return json.loads(data) if data else None
 
 
-def _save_state(key: bytes, state: dict):
+def _save(key: bytes, state: dict):
     _db.put(key, json.dumps(state).encode("utf-8"))
 ```
 
-### Completeness Detection
+### Behavior
 
-The aggregator checks completeness **synchronously after every write** (both setup and slice). When `received_count == slice_count + 1` (N slices + 1 setup), the aggregator:
-
-1. Builds the merged envelope from stored state
-2. Deletes the state from RocksDB
-3. Returns the merged envelope (sidecar routes to continuation actor)
-
-No CDC process needed. No polling. No LISTEN/NOTIFY. The aggregator itself is the completeness detector.
-
-**Why this works**: Every message (setup or slice) triggers a completeness check. The last message to arrive (whichever it is) will find `received_count == slice_count + 1` and emit. All other messages return `None` (ack, no routing).
-
-**Multiple fan-ins**: Each fan-out operation uses the incoming `message.id` as `origin_id`, which is unique per message. Sequential fan-outs don't collide because the aggregator deletes the key after emitting. Nested fan-outs receive different `message.id` values (sidecar assigns new UUIDs to yielded messages). Concurrent fan-outs from different pipelines have different `message.id` values by construction.
-
-### Race Condition: Slice Before Setup
-
-Slices can arrive before the setup message (sub-agents may complete before the setup message traverses the queue). The aggregator handles this by creating a partial state entry on first slice arrival. When the setup message eventually arrives, it fills in the missing fields (route, payload, aggregation_key).
-
-The completeness condition (`received_count == slice_count + 1`) ensures that emission only happens after both setup AND all slices have been processed.
-
-### Ordering Guarantees
-
-- Slice results are placed at `results[slice_index]`, maintaining order regardless of arrival order.
-- The `slice_index` is assigned by the fan-out router at emission time and carried in the `x-asya-fan-in` header.
+- **Completeness**: Every message increments `received_count`. The last arrival (whichever it is) finds `received_count == slice_count + 1` and emits. All others return `None` (ack, no routing).
+- **Slice before setup**: The initial state has `"message": None`. Slices fill `results[slice_index]` into the partial state. When setup arrives, it fills `state["message"]`. Completeness check still works — emission requires both.
+- **Ordering**: Results are placed at `results[slice_index]`, preserving DSL order regardless of arrival order.
+- **Multiple fan-ins**: Each fan-out uses a different `origin_id` (unique `message.id`). Sequential fan-outs don't collide because the key is deleted after emitting.
 
 ---
 
@@ -538,7 +503,7 @@ spec:
           requests:
             storage: 10Gi
   env:
-    - name: ASYA_AGGREGATOR_DB_PATH
+    - name: ASYA_FANIN_DB_PATH
       value: /data/aggregator/db
   volumeMounts:
     - name: aggregator-data
@@ -680,7 +645,7 @@ def analysis_flow(p: dict) -> dict:
 ```yaml
 env:
   - name: ASYA_FANIN_MAPPINGS
-    value: '[{"actor":"sentiment_analyzer","payload_path":"/text"},{"actor":"topic_extractor","payload_path":"/text"},{"actor":"entity_recognizer","payload_path":"/text"}]'
+    value: '[{"actor":"sentiment_analyzer","aggregation_key":"/text"},{"actor":"topic_extractor","aggregation_key":"/text"},{"actor":"entity_recognizer","aggregation_key":"/text"}]'
   - name: ASYA_FANIN_AGGREGATION_KEY
     value: "/result"
   - name: ASYA_FANIN_TARGET
@@ -830,7 +795,7 @@ The broader protocol change --- moving `parent_id` from a top-level envelope fie
 
 The `ASYA_FANIN_MAPPINGS` env var for heterogeneous fan-out (section "Flow DSL Examples") needs a formal schema. Questions:
 
-- Should each mapping entry support different `payload_path` values (each actor gets different data) or should all actors receive the same payload?
+- Should each mapping entry support different `aggregation_key` values (each actor gets different data) or should all actors receive the same payload?
 - Should the compiler generate per-slice routes (each slice has a different actor chain) or a single shared route with a per-slice override?
 - How does the fan-out router handle slices that go through sub-agents of different depths (e.g., actor A has 3 steps, actor B has 1 step)?
 
