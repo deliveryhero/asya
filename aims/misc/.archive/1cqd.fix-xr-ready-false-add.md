@@ -3,7 +3,10 @@ title: "Fix XR Ready=False: add function-auto-ready to Composition pipeline"
 status: done
 priority: 2 # medium
 type: task
+tags:
+  - type:bug
 ---
+
 
 
 ## Problem
