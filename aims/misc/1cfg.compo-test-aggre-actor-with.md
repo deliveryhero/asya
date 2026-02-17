@@ -3,6 +3,8 @@ title: "Component test: aggregator actor with RocksDB"
 status: open
 priority: 2 # medium
 type: task
+dependencies:
+  - misc/1c9i
 ---
 
 ## Summary

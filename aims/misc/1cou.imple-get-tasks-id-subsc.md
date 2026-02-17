@@ -3,6 +3,8 @@ title: "Implement GET /tasks/{id}:subscribe SSE endpoint"
 status: open
 priority: 2 # medium
 type: task
+dependencies:
+  - misc/1cql
 ---
 
 Add A2A-compliant task subscription endpoint for real-time updates.

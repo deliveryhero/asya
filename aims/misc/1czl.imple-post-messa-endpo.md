@@ -3,6 +3,8 @@ title: Implement POST /messages endpoint
 status: open
 priority: 2 # medium
 type: task
+dependencies:
+  - misc/1cql
 ---
 
 Add A2A-compliant message endpoint to create or continue tasks.

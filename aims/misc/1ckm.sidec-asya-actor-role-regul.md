@@ -3,6 +3,8 @@ title: "Sidecar: ASYA_ACTOR_ROLE (regular|sink|sump) and ASYA_ACTOR_SINK unifica
 status: open
 priority: 2 # medium
 type: task
+dependencies:
+  - 1c46/1cr1
 ---
 
 Refactor sidecar config to support the two-layer termination scheme:

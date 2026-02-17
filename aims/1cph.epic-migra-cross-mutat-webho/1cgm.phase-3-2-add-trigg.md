@@ -3,6 +3,8 @@ title: "Phase 3.2: Add TriggerAuthentication for KEDA"
 status: open
 priority: 2 # medium
 type: task
+dependencies:
+  - 1cph/1ck5
 ---
 
 Configure KEDA TriggerAuthentication for AWS authentication.

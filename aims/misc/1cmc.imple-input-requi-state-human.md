@@ -3,6 +3,8 @@ title: Implement input_required state for human-in-the-loop
 status: open
 priority: 2 # medium
 type: task
+dependencies:
+  - misc/1czl
 ---
 
 Add support for A2A input_required task state.

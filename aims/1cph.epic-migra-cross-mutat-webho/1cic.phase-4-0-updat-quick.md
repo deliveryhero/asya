@@ -3,6 +3,8 @@ title: "Phase 4.0: Update quickstart docs for Crossplane setup"
 status: open
 priority: 2 # medium
 type: task
+dependencies:
+  - 1cph/1cbq
 ---
 
 Update the quickstart documentation to reflect the new Crossplane + Webhook architecture.

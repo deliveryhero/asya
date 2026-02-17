@@ -3,6 +3,8 @@ title: Rename Envelope→Message in Python code (runtime, crew, cli)
 status: open
 priority: 2 # medium
 type: task
+dependencies:
+  - misc/1ca1
 ---
 
 Rename all envelope references to message in Python components:

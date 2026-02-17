@@ -3,6 +3,8 @@ title: Test Prometheus + Grafana setup in local Kind cluster
 status: open
 priority: 2 # medium
 type: task
+dependencies:
+  - misc/1cf3
 ---
 
 Manually test the complete observability setup following the quickstart README:

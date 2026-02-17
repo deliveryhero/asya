@@ -3,6 +3,12 @@ title: "Integration tests: retry flow with exponential backoff"
 status: open
 priority: 2 # medium
 type: task
+dependencies:
+  - 1c46/1c79
+  - 1c46/1cr1
+  - 1c46/1c8o
+  - 1c46/1cyg
+  - 1c46/1c9e
 ---
 
 Add integration tests for the retry flow in testing/integration/ or testing/component/.

@@ -3,6 +3,14 @@ title: "Phase 3.5: Manually test full actor lifecycle (create, scale, delete)"
 status: open
 priority: 2 # medium
 type: task
+dependencies:
+  - 1cph/1cf7
+  - 1cph/1cpa
+  - 1cph/1cgm
+  - 1cph/1c01
+  - 1cph/1cfr
+  - misc/1cvi
+  - misc/1cfy
 ---
 
 Comprehensive integration test for AsyncActor lifecycle.

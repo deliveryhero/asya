@@ -3,6 +3,10 @@ title: Implement derived phase calculation from infrastructure statuses
 status: open
 priority: 2 # medium
 type: task
+dependencies:
+  - 1cph/1cfr
+  - 1cph/1ca8
+  - 1cph/1crt
 ---
 
 Implement complex phase derivation logic that computes AsyncActor phase from multiple infrastructure component statuses.

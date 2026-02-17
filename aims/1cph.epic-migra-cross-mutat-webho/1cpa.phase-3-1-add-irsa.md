@@ -3,6 +3,8 @@ title: "Phase 3.1: Add IRSA ServiceAccount to Composition"
 status: open
 priority: 2 # medium
 type: task
+dependencies:
+  - 1cph/1ck5
 ---
 
 Configure ServiceAccount with IAM Roles for Service Accounts (IRSA) in the Crossplane Composition.

@@ -3,6 +3,8 @@ title: "Sidecar: HTTP streaming events to gateway"
 status: open
 priority: 2 # medium
 type: task
+dependencies:
+  - misc/1cax
 ---
 
 Forward streaming events from runtime to the gateway via HTTP for real-time user delivery.

@@ -3,6 +3,9 @@ title: Update Go templates to consume resolved flavor data
 status: open
 priority: 2 # medium
 type: task
+dependencies:
+  - misc/1c7z
+  - misc/1ctj
 ---
 
 Update the existing function-go-templating templates in the Composition to read flavor-resolved spec from the context set by function-asya-flavors.

@@ -3,6 +3,8 @@ title: Auto-detect runtime container instead of requiring asya-runtime name
 status: open
 priority: 2 # medium
 type: task
+dependencies:
+  - 1cph/1cto
 ---
 
 ## Problem

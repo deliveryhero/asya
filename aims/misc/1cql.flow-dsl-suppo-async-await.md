@@ -3,6 +3,8 @@ title: "Flow DSL: Support async/await handlers"
 status: open
 priority: 1 # high
 type: task
+dependencies:
+  - misc/1c1q
 ---
 
 Extend Flow DSL compiler to support async/await syntax with CPS (Continuation-Passing Style) transformation.

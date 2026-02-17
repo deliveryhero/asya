@@ -3,6 +3,13 @@ title: "E2E test: compiled flow with fan-out/fan-in on Kind cluster"
 status: open
 priority: 2 # medium
 type: task
+dependencies:
+  - misc/1ci2
+  - misc/1cbe
+  - misc/1c9i
+  - misc/1cir
+  - misc/1cpu
+  - 1c46/1ct3
 ---
 
 ## Summary

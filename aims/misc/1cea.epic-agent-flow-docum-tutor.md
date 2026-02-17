@@ -3,6 +3,9 @@ title: (EPIC) Agentic Flow Documentation & Tutorials
 status: open
 priority: 2 # medium
 type: task
+dependencies:
+  - misc/1c17
+  - misc/1cb2
 ---
 
 Umbrella epic for documenting agentic features in the Flow DSL compiler.

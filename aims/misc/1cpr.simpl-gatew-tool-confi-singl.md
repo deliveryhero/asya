@@ -3,6 +3,10 @@ title: Simplify gateway tool config to singleton ConfigMap + fsnotify
 status: open
 priority: 2 # medium
 type: task
+dependencies:
+  - misc/1cmp
+  - misc/1c55
+  - misc/1c4e
 ---
 
 Replace the GatewayConfig XRD design with a simpler approach: a singleton ConfigMap (gateway-tools) updated by asya-cli, mounted into gateway pod, with fsnotify detecting changes.

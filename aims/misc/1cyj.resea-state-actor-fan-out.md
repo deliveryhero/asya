@@ -3,6 +3,8 @@ title: "Research: Stateful actor for fan-out/fan-in coordination"
 status: open
 priority: 2 # medium
 type: task
+dependencies:
+  - 1c46/1ct3
 ---
 
 Design stateful actor for parallel agent coordination (fan-out/fan-in pattern).

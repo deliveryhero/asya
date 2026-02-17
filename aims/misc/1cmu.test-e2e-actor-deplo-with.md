@@ -3,6 +3,9 @@ title: "Test: E2E actor deployment with flavors"
 status: open
 priority: 2 # medium
 type: task
+dependencies:
+  - misc/1cm3
+  - misc/1ckq
 ---
 
 Add end-to-end test for deploying actors with flavors in a Kind cluster.

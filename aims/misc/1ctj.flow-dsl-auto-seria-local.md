@@ -3,6 +3,8 @@ title: "Flow DSL: auto-serialize local variables across await boundaries"
 status: open
 priority: 2 # medium
 type: task
+dependencies:
+  - misc/1ccv
 ---
 
 Allow local variables to cross await boundaries by automatically serializing them into the payload.

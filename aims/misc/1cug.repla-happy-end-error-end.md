@@ -3,6 +3,11 @@ title: Replace happy-end/error-end with x-sink/x-sump across code, tests, and do
 status: open
 priority: 3 # low
 type: task
+dependencies:
+  - misc/1cir
+  - misc/1cpu
+  - misc/1c9i
+  - 1c46/1ct3
 ---
 
 Remove legacy happy-end and error-end actor names in favor of x-sink and x-sump. This includes:

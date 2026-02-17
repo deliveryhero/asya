@@ -3,6 +3,8 @@ title: Document example flavor EnvironmentConfigs for asya-quickstart
 status: open
 priority: 2 # medium
 type: task
+dependencies:
+  - misc/1cw3
 ---
 
 Create example flavor EnvironmentConfigs as documentation and future asya-quickstart chart content.
