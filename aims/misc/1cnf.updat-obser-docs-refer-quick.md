@@ -3,9 +3,12 @@ title: Update observability docs to reference quickstart setup
 status: open
 priority: 2 # medium
 type: task
+tags:
+  - beads:epic:asya-ln2
 dependencies:
   - misc/1ctl
 ---
+
 
 Update docs/architecture/observability.md to reference the quickstart Prometheus setup:
 
