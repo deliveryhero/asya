@@ -1,9 +1,10 @@
 ---
 title: Add RabbitMQ Crossplane composition
-status: open
+status: done
 priority: 2 # medium
 type: task
 ---
+
 
 Add composition-rabbitmq.yaml for Crossplane. The operator already supports RabbitMQ via the pluggable transport layer (internal/transports/), and code+tests already work with RabbitMQ. Only the Crossplane composition is missing — currently only composition-sqs.yaml exists. This is a known gap: RabbitMQ transport is not yet supported in the Crossplane model. Deliverables: composition-rabbitmq.yaml, update XRD if needed, E2E test profile for rabbitmq.
 
