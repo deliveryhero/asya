@@ -1,9 +1,10 @@
 ---
-title: Analyze and fix E2E tests + operator integration in PR #74 (expr 1.17.7 bump)
-status: open
+title: Analyze and fix E2E tests + operator integration in PR
+status: done
 priority: 2 # medium
 type: task
 ---
+
 
 ## PR #74: Analyze E2E tests + operator integration failures (expr 1.17.7 bump)
 
