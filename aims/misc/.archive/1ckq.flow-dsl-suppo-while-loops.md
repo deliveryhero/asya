@@ -3,7 +3,10 @@ title: "Flow DSL: Support while loops (back-edge routers)"
 status: done
 priority: 1 # high
 type: task
+tags:
+  - type:feature
 ---
+
 
 
 Extend Flow DSL compiler to support while loops via back-edge router generation.
