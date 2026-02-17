@@ -3,7 +3,10 @@ title: "Sidecar: multi-frame streaming protocol (runtime <-> sidecar)"
 status: open
 priority: 1 # high
 type: task
+tags:
+  - type:feature
 ---
+
 
 Extend the sidecar's Unix socket protocol to support multiple response frames from the runtime per handler invocation.
 
