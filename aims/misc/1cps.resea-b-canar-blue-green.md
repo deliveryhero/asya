@@ -3,7 +3,10 @@ title: "Research: A/B, canary, blue/green routing strategies for Asya"
 status: open
 priority: 2 # medium
 type: task
+tags:
+  - type:feature
 ---
+
 
 ## Research Objective
 
