@@ -3,7 +3,10 @@ title: "Compiler: max_iterations guard for while loops"
 status: open
 priority: 2 # medium
 type: task
+tags:
+  - type:feature
 ---
+
 
 Add compiler-enforced loop termination to prevent infinite ReAct loops.
 
