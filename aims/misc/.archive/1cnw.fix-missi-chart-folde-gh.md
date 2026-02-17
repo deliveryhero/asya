@@ -3,7 +3,10 @@ title: Fix missing charts/ folder on gh-pages branch
 status: done
 priority: 1 # high
 type: task
+tags:
+  - type:bug
 ---
+
 
 
 ## Problem
