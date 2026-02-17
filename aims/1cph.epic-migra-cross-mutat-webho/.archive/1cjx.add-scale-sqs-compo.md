@@ -1,11 +1,12 @@
 ---
 title: Add ScaledObject to SQS Composition
-status: open
+status: done
 priority: 2 # medium
 type: task
 dependencies:
   - 1cph/1c02
 ---
+
 
 Add KEDA ScaledObject resource to the SQS Composition to enable autoscaling.
 
