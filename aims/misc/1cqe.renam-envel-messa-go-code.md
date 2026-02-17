@@ -3,7 +3,10 @@ title: Rename Envelope→Message in Go code (sidecar, gateway, operator)
 status: open
 priority: 2 # medium
 type: task
+dependencies:
+  - misc/1c14
 ---
+
 
 Rename all Envelope structs, variables, functions, and types to Message in Go components:
 - asya-sidecar: envelope.go, envelope types, handler functions
