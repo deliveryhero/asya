@@ -1,9 +1,10 @@
 ---
 title: "Fix injector: wrong SQS region env var + missing SQS endpoint"
-status: open
+status: done
 priority: 1 # high
 type: task
 ---
+
 
 Two bugs in asya-injector (crossplane-phase2 worktree) discovered during Phase 3.5 lifecycle testing:
 
