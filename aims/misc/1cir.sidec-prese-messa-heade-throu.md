@@ -3,7 +3,10 @@ title: "Sidecar: preserve message headers through routing"
 status: open
 priority: 1 # high
 type: task
+tags:
+  - type:feature
 ---
+
 
 ## Summary
 
