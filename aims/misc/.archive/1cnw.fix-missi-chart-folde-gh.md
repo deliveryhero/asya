@@ -1,9 +1,10 @@
 ---
 title: Fix missing charts/ folder on gh-pages branch
-status: open
+status: done
 priority: 1 # high
 type: task
 ---
+
 
 ## Problem
   The gh-pages branch exists but has no charts/ folder, causing https://asya.sh/charts/index.yaml to return 404.
