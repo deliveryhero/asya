@@ -1,5 +1,5 @@
 ---
-title: [Umbrella] E2E Test Failures Analysis and Fixes
+title: "[Umbrella] E2E Test Failures Analysis and Fixes"
 status: open
 priority: 1 # high
 type: epic
