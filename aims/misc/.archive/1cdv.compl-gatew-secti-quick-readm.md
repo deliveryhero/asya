@@ -1,9 +1,10 @@
 ---
 title: Complete Gateway section in quickstart README
-status: open
+status: done
 priority: 2 # medium
 type: task
 ---
+
 
 The Gateway section (starting line 369) is marked TODO. Complete it with:
 - Install gateway with Helm
