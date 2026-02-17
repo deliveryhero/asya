@@ -1,11 +1,12 @@
 ---
 title: "Phase 2.2: Implement pod mutation logic (sidecar injection)"
-status: open
+status: done
 priority: 1 # high
 type: task
 dependencies:
   - 1cph/1c5n
 ---
+
 
 Implement the core sidecar injection logic that mutates pods.
 
