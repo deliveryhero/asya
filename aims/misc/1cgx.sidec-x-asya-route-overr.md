@@ -3,7 +3,10 @@ title: "Sidecar: x-asya-route-override header resolution"
 status: open
 priority: 2 # medium
 type: task
+dependencies:
+  - misc/1cyn
 ---
+
 
 ## Summary
 
