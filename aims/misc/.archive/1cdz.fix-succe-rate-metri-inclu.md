@@ -3,7 +3,10 @@ title: Fix success rate metric to include error status
 status: done
 priority: 2 # medium
 type: task
+tags:
+  - type:bug
 ---
+
 
 
 The asya_actor_messages_processed_total metric only tracks successful processing (status=success|empty_response|end_consumed) but never increments for errors. This causes Grafana's Success Rate by Actor dashboard to show 100% even when errors occur.
