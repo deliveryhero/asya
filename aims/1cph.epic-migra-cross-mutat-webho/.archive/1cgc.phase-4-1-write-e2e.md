@@ -1,12 +1,13 @@
 ---
 title: "Phase 4.1: Write E2E tests for Crossplane-based deployment"
-status: open
+status: done
 priority: 2 # medium
 type: task
 dependencies:
   - 1cph/1cbq
   - 1cph/1c7x
 ---
+
 
 Create comprehensive E2E test suite for the new Crossplane architecture.
 
