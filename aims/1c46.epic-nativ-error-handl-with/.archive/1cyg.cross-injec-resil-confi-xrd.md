@@ -1,12 +1,13 @@
 ---
 title: "Crossplane + Injector: resiliency config in XRD and ASYA_RESILIENCY_* env injection"
-status: open
+status: done
 priority: 2 # medium
 type: task
 dependencies:
   - 1c46/1cyn
   - 1c46/1cr1
 ---
+
 
 Update Crossplane XRD and compositions + injector to support resiliency configuration.
 
