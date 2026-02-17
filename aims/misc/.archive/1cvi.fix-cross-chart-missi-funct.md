@@ -3,7 +3,10 @@ title: "Fix Crossplane chart: missing function-go-templating + hardcoded service
 status: done
 priority: 1 # high
 type: task
+tags:
+  - type:bug
 ---
+
 
 
 Two bugs discovered during Phase 3.5 lifecycle testing:
