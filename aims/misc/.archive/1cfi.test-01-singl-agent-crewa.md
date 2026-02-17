@@ -1,9 +1,10 @@
 ---
 title: "Test 01-single-agent: CrewAI"
-status: open
+status: done
 priority: 2 # medium
 type: task
 ---
+
 
 Verify CrewAI example runs: install deps, check imports, run with mock or API
 
