@@ -3,7 +3,10 @@ title: "Research: Message queue size limits across transports"
 status: open
 priority: 2 # medium
 type: task
+tags:
+  - beads:needs-spec
 ---
+
 
 Research and document maximum message sizes for all supported and potential transports:
 - SQS: 1,048,576 bytes (1 MiB) - confirmed
