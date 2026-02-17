@@ -3,7 +3,10 @@ title: Remove list-return fan-out, use yield exclusively
 status: done
 priority: 2 # medium
 type: task
+tags:
+  - type:feature
 ---
+
 
 
 ## Summary
