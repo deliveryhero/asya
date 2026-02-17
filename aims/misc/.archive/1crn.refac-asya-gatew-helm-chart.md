@@ -1,9 +1,10 @@
 ---
 title: Refactor asya-gateway Helm chart to operator's transport pattern
-status: open
+status: done
 priority: 2 # medium
 type: task
 ---
+
 
 Refactor asya-gateway Helm chart to match operator's transport configuration pattern.
 
