@@ -3,7 +3,10 @@ title: Dynamic tool configuration loading for asya-gateway
 status: open
 priority: 2 # medium
 type: task
+tags:
+  - type:feature
 ---
+
 
 ## Problem
 
