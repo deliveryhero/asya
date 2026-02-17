@@ -1,9 +1,10 @@
 ---
 title: Add Helm chart version constraint validation
-status: open
+status: done
 priority: 2 # medium
 type: task
 ---
+
 
 ## Problem
 
