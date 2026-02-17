@@ -3,7 +3,10 @@ title: Runtime 'Client disconnected' warnings in crew actors
 status: open
 priority: 2 # medium
 type: task
+tags:
+  - type:bug
 ---
+
 
 ## Symptoms
 Crew actors (happy-end, error-end) showing repeated "Client disconnected" warnings in runtime logs:
