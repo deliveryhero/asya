@@ -1,9 +1,10 @@
 ---
 title: "Implement 01-single-agent: LangGraph"
-status: open
+status: done
 priority: 2 # medium
 type: task
 ---
+
 
 Create minimal working single-agent example using LangGraph.
 
