@@ -3,7 +3,10 @@ title: Refactor documentation structure and consolidate quickstart
 status: open
 priority: 2 # medium
 type: task
+tags:
+  - type:bug
 ---
+
 
 Refactor the documentation structure to improve clarity and maintainability:
 
