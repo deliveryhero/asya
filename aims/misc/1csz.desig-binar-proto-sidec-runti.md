@@ -3,7 +3,10 @@ title: "Design: Binary protocol for sidecar-runtime communication"
 status: open
 priority: 2 # medium
 type: task
+tags:
+  - beads:needs-spec
 ---
+
 
 Design binary messaging protocol between Go sidecar and Python runtime.
 
