@@ -3,7 +3,10 @@ title: Explore single central asya-gateway vs per-namespace gateways
 status: open
 priority: 3 # low
 type: task
+tags:
+  - type:feature
 ---
+
 
 ## Problem Statement
 
