@@ -3,7 +3,10 @@ title: Fix operator ↔ KEDA race condition in deployment reconciliation
 status: done
 priority: 2 # medium
 type: task
+tags:
+  - type:bug
 ---
+
 
 
 
