@@ -1,11 +1,12 @@
 ---
 title: "Phase 4.2: Create Helm charts for new architecture"
-status: open
+status: done
 priority: 2 # medium
 type: task
 dependencies:
   - 1cph/1cbq
 ---
+
 
 Create Helm charts for deploying the Crossplane-based Asya system.
 
