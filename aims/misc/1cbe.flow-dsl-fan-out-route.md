@@ -3,9 +3,12 @@ title: "Flow DSL: fan-out router code generator"
 status: open
 priority: 2 # medium
 type: task
+tags:
+  - type:feature
 dependencies:
   - misc/1cqj
 ---
+
 
 ## Summary
 
