@@ -1,9 +1,11 @@
 ---
 title: "AI-Driven Development Workflow: Superpowers + Parallel Worktrees"
-status: open
+status: wont_do
 priority: 2 # medium
 type: epic
 ---
+
+Implemented with git-aint
 
 # AI-Driven Development Workflow with Superpowers & Parallel Worktrees
 
