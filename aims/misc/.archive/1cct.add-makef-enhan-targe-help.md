@@ -1,9 +1,10 @@
 ---
 title: Add Makefile enhancement targets (help, dev, watch, docs-watch)
-status: open
+status: done
 priority: 2 # medium
 type: task
 ---
+
 
 # Add Makefile Enhancement Targets
 
