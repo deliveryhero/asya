@@ -3,7 +3,10 @@ title: "Research: SigNoz as alternative to Prometheus/Grafana for observability"
 status: open
 priority: 3 # low
 type: task
+tags:
+  - type:feature
 ---
+
 
 ## Research Objective
 
