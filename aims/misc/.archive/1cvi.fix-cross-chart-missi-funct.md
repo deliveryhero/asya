@@ -1,9 +1,10 @@
 ---
 title: "Fix Crossplane chart: missing function-go-templating + hardcoded serviceAccountName"
-status: open
+status: done
 priority: 1 # high
 type: task
 ---
+
 
 Two bugs discovered during Phase 3.5 lifecycle testing:
 
