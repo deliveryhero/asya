@@ -1,11 +1,12 @@
 ---
 title: Add Deployment status patching to Composition
-status: open
+status: done
 priority: 2 # medium
 type: task
 dependencies:
   - 1cph/1c02
 ---
+
 
 Patch Deployment status back to AsyncActor composite resource.
 
