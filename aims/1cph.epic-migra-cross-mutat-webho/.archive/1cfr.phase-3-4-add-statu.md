@@ -1,11 +1,12 @@
 ---
 title: "Phase 3.4: Add status patching to Composition"
-status: open
+status: done
 priority: 2 # medium
 type: task
 dependencies:
   - 1cph/1ck5
 ---
+
 
 Configure Crossplane to patch AsyncActor status with composed resource status.
 
