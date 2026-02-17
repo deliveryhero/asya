@@ -3,7 +3,10 @@ title: Implement function-asya-flavors Composition Function
 status: open
 priority: 2 # medium
 type: task
+tags:
+  - type:feature
 ---
+
 
 Create a Crossplane Composition Function that fetches flavor EnvironmentConfigs individually and applies strategic merge patch to resolve a unified AsyncActor spec.
 
