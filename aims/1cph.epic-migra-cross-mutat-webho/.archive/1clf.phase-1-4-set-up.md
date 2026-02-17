@@ -1,11 +1,12 @@
 ---
 title: "Phase 1.4: Set up provider credentials (AWS/LocalStack)"
-status: open
+status: done
 priority: 1 # high
 type: task
 dependencies:
   - 1cph/1ci6
 ---
+
 
 Configure Crossplane provider credentials for AWS (LocalStack in testing, real AWS in production).
 
