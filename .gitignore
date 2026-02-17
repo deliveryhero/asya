@@ -1,0 +1,9 @@
+# On aim-sync branch: only track aims/ and config
+# Everything else (source code, docs, etc.) lives on main branch
+*
+!README.md
+!AGENTS.md
+!.gitignore
+!.aim-config.yaml
+!aims/
+!aims/**
