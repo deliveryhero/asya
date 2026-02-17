@@ -1,12 +1,13 @@
 ---
 title: "Phase 4.3: Update documentation for new architecture"
-status: open
+status: done
 priority: 3 # low
 type: task
 dependencies:
   - 1cph/1cgc
   - 1cph/1cgd
 ---
+
 
 Update all documentation to reflect the new Crossplane architecture.
 
