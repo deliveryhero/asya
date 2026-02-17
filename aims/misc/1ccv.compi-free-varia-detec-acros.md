@@ -3,9 +3,12 @@ title: "Compiler: free variable detection across await boundaries"
 status: open
 priority: 3 # low
 type: task
+tags:
+  - type:feature
 dependencies:
   - misc/1cql
 ---
+
 
 Add static analysis to detect local variables that cross await boundaries and emit compiler errors.
 
