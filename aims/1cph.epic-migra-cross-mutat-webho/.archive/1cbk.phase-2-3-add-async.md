@@ -1,12 +1,13 @@
 ---
 title: "Phase 2.3: Add AsyncActor XR querying for configuration"
-status: open
+status: done
 priority: 1 # high
 type: task
 dependencies:
   - 1cph/1coz
   - 1cph/1ccp
 ---
+
 
 Enhance the webhook to query AsyncActor XR for injection configuration.
 
