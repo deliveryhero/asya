@@ -1,9 +1,10 @@
 ---
 title: "Runtime: add fully qualified error type + MRO to error responses"
-status: open
+status: done
 priority: 1 # high
 type: task
 ---
+
 
 Modify _error_response() in src/asya-runtime/asya_runtime.py to include fully qualified exception type and MRO chain.
 
