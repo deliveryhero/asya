@@ -3,7 +3,10 @@ title: "(EPIC) Enable workloadRef: Bring Your Own Deployment"
 status: open
 priority: 3 # low
 type: task
+tags:
+  - type:feature
 ---
+
 
 ## Overview
 
