@@ -3,9 +3,12 @@ title: "Phase 1: Passive AsyncFlow XRD with mixed ownership model"
 status: open
 priority: 1 # high
 type: task
+tags:
+  - type:feature
 dependencies:
   - 1cph/1cq9
 ---
+
 
 Design and implement AsyncFlow as a Crossplane XRD that:
 
