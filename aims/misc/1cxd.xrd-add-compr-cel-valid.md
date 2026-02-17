@@ -3,7 +3,10 @@ title: "XRD: Add comprehensive CEL validation for workload schema"
 status: open
 priority: 3 # low
 type: task
+tags:
+  - type:feature
 ---
+
 
 ## Summary
 
