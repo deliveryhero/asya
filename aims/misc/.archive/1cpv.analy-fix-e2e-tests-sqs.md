@@ -1,9 +1,10 @@
 ---
 title: "Analyze and fix E2E tests: sqs-s3 failure in PR #92 (keda 2.17.3 bump)"
-status: open
+status: done
 priority: 2 # medium
 type: task
 ---
+
 
 E2E test failure: test_operator_recreates_deleted_actor_queue_e2e timeout on sqs-s3 profile after KEDA 2.17.3 upgrade
 
