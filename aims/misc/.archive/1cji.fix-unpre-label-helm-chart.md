@@ -1,9 +1,10 @@
 ---
 title: Fix unprefixed labels in Helm charts to use asya.sh/ domain
-status: open
+status: done
 priority: 2 # medium
 type: task
 ---
+
 
 Several Helm charts use unprefixed labels (actor, actor-type, flow, test-type, hop-index) on AsyncActor CRs instead of domain-scoped asya.sh/ labels. The operator and Crossplane composition correctly use asya.sh/actor, but the crew chart and test charts are inconsistent.
 
