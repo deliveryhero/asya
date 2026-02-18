@@ -1,5 +1,5 @@
 ---
-title: Implement Stateful Actors
+title: Implement Stateful Actors (without auto-scaler)
 status: open
 priority: 2 # medium
 type: epic
@@ -20,13 +20,13 @@ This RFC introduces **stateful actors** as a general-purpose primitive in Asya. 
 
 Fan-in aggregation is the first use case but the primitive supports any workload requiring message affinity, in future we'll support more use-cases:
 
-|Use case|Sharding key|State|
-|-|-|-|
-|Fan-in aggregation|`origin_id`|Partial results in RocksDB|
-|Session/conversation memory|`user_id` or `session_id`|Chat history, context|
-|Deduplication|`message_id`|Seen IDs with TTL|
-|Time-window batching|`batch_key`|Accumulated events|
-|Per-key rate limiting|`client_id`|Request counters|
+|Use case|Sharding key|State|Needs to pause for reshuffling?|
+|-|-|-|-|
+|Fan-in aggregation|`origin_id`|Partial results in RocksDB|No|
+|Session/conversation memory|`user_id` or `session_id`|Chat history, context|Yes|
+|Deduplication|`message_id`|Seen IDs with TTL|Yes|
+|Time-window batching|`batch_key`|Accumulated events|Yes|
+|Per-key rate limiting|`client_id`|Request counters|Yes|
 
 
 ## Motivation

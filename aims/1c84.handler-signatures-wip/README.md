@@ -424,7 +424,7 @@ def enrich(payload):
 
 ---
 
-#### 5.9 Class-based stateful handler (async, yield + partial)
+#### 5.9 Class-based handler (async, yield + partial)
 
 Model loaded once at init, used for every message. Streams predictions upstream.
 
