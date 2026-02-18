@@ -110,7 +110,7 @@ Fan-out router (generated code)
 ### Key Properties
 
 - **Route stays abstract**: Compiled routes say `"aggregator"`, not `"aggregator-2"`. Shard resolution happens via `x-asya-route-override` headers at emission time.
-- **Sidecar stays simple**: The sidecar performs a dictionary lookup on the override header (as defined in the [A/B routing RFC](../a-b-testing/rfc-a-b-routing.md)). No sharding logic in the sidecar.
+- **Sidecar stays simple**: The sidecar performs a dictionary lookup on the override header (as defined in the A/B Routing RFC (epic 1crb)). No sharding logic in the sidecar.
 - **Fan-out router resolves shards**: The compiler-generated fan-out router computes the shard via inline rendezvous hashing and stamps the override header on every emitted message (parent payload + all slices).
 - **Number of shards known to fan-out router at deployment time**: `N` is passed to fan-out router as `ASYA_FANIN_SHARDS` env variable at deployment time.
 
@@ -132,7 +132,7 @@ Fan-out router (generated code)
 | DuckDB per replica | Excellent JSONB-like operations, analytical queries, Python-native | Analytical (OLAP) engine, heavier than needed for OLTP point lookups and atomic updates |
 | **Embedded RocksDB per replica** | **Fast writes, durable via PVC, no coordination** | **Manual serialization, no SQL** |
 
-**Decision**: Embedded RocksDB (via `plyvel` Python bindings) per aggregator replica.
+**Decision**: Embedded RocksDB (via `python-rocksdb` bindings) per aggregator replica.
 
 **Rationale**:
 
@@ -201,7 +201,7 @@ def fanout_research_flow_L5(message):
         "route": {"actors": list(r["actors"]), "current": c + 1},
         "headers": {**_hdrs, "x-asya-route-override": {_agg: _shard},
                     "x-asya-fan-in": {**_fan_in, "slice_index": 0}},
-        "payload": dict(p),
+        "payload": json.loads(json.dumps(p)),
     }
 
     # Indices 1..N: sub-agent slices
@@ -231,7 +231,7 @@ Rendezvous is the default and only option for now.
 - **Handles all patterns**: The DSL loop/list is copied verbatim into the generated code. Comprehensions, direct iteration, fixed count, heterogeneous lists — all produce the same `_slices` list of `(actor, payload)` tuples.
 - **No crew dependency**: The sharding utility is ~10 lines of generated code. No import from `asya-crew`, no runtime library dependency.
 - **Algorithm is still a deployment choice**: The generated `_rendezvous_shard` reads `ASYA_FANIN_SHARDS` from an env var. Shard count changes require redeployment of the router actor (env var change), not recompilation. Algorithm changes require regenerating the router (the ~10-line utility), but this is a rare operation.
-- **Leverages existing infrastructure**: The `x-asya-route-override` header from the [A/B routing RFC](../a-b-testing/rfc-a-b-routing.md) provides the resolution mechanism. No new sidecar features needed.
+- **Leverages existing infrastructure**: The `x-asya-route-override` header from the A/B Routing RFC (epic 1crb) provides the resolution mechanism. No new sidecar features needed.
 - **Scale-up safe**: When scaling from N to M shards (M > N), old messages continue to route correctly because the target shard name is baked into the `x-asya-route-override` header at emission time. Old shards still exist. New fan-outs use new shard count.
 
 **Consequences**:
@@ -297,7 +297,7 @@ import os
 
 import xxhash
 
-_FANIN_SHARDS = int(os.environ.get("ASYA_FANIN_SHARDS", "1"))
+_FANIN_SHARDS = int(os.environ["ASYA_FANIN_SHARDS"])
 
 
 def _rendezvous_shard(origin_id, target):
@@ -371,7 +371,7 @@ With `uuid4()`, each fan-out generates globally unique IDs. No collision possibl
 
 **Fire-and-forget semantics**: Yield-only fan-out (without fan-in) is fire-and-forget. Only the first message (index 0) is tracked by the gateway — it keeps the original `message.id`, so SSE streaming and task tracking continue to work. Subsequent yields (index > 0, `parent_id` set) are side effects that proceed independently. When they reach x-sink, they are acked silently without gateway reporting (see [Non-Reporting Mechanisms](#non-reporting-mechanisms-in-x-sink-and-x-sump)).
 
-**Nested fan-out tracing**: When a fan-out child itself fans out, `parent_id` only links to the immediate parent. To trace back to the ultimate root across arbitrary depth, use `root_id = root_id or parent_id` — if a `root_id` already exists (from a prior fan-out), preserve it; otherwise derive it from `parent_id`. This should live in a header (`x-asya-root-id`). See [rfc-actor-states.md](../rfc-actor-states.md) for full analysis.
+**Nested fan-out tracing**: When a fan-out child itself fans out, `parent_id` only links to the immediate parent. To trace back to the ultimate root across arbitrary depth, use `root_id = root_id or parent_id` — if a `root_id` already exists (from a prior fan-out), preserve it; otherwise derive it from `parent_id`. This should live in a header (`x-asya-root-id`). See rfc-actor-states.md (rfc0 branch) for full analysis.
 
 ### Addressed Fan-In
 
@@ -482,6 +482,7 @@ State structure stores all payloads in a single `results` array. Index 0 holds t
   "aggregation_key": "/results",
   "results": [{"original_field": "preserved"}, "slice-1-result", null, null, null, null],
   "received_count": 2,
+  "created_at": 1707000000.0,
   "message": {
     "id": "msg-original-abc",
     "route": {"actors": ["fan_out", "aggregator", "post_process"], "current": 2},
@@ -493,17 +494,23 @@ State structure stores all payloads in a single `results` array. Index 0 holds t
 ```python
 import json
 import os
+import time
 
 import jsonpointer
-import plyvel
+import rocksdb
 
-_DB_PATH = os.environ.get("ASYA_FANIN_DB_PATH", "/data/aggregator")
-_db = plyvel.DB(_DB_PATH, create_if_missing=True)
+_DB_PATH = os.environ["ASYA_FANIN_DB_PATH"]
+_opts = rocksdb.Options(create_if_missing=True)
+_db = rocksdb.DB(_DB_PATH, _opts)
 
 _TRANSIENT_HEADERS = {
     "x-asya-fan-in", "x-asya-route-override",
     "x-asya-route-resolved", "x-asya-parent-id",
 }
+
+_ACTOR_NAME = os.environ["ASYA_ACTOR_NAME"]
+_SHARD = os.environ.get("ASYA_POD_INDEX", "0")
+_LABELS = {"aggregator": _ACTOR_NAME, "shard": _SHARD}
 
 
 def aggregator(envelope: dict) -> dict | None:
@@ -511,13 +518,19 @@ def aggregator(envelope: dict) -> dict | None:
     key = fan_in["origin_id"].encode("utf-8")
     idx = fan_in["slice_index"]
 
-    state = _load(key) or {
-        "slice_count": fan_in["slice_count"],
-        "aggregation_key": fan_in["aggregation_key"],
-        "results": [None] * fan_in["slice_count"],
-        "received_count": 0,
-        "message": None,
-    }
+    existing = _load(key)
+    if existing is None:
+        state = {
+            "slice_count": fan_in["slice_count"],
+            "aggregation_key": fan_in["aggregation_key"],
+            "results": [None] * fan_in["slice_count"],
+            "received_count": 0,
+            "created_at": time.time(),
+            "message": None,
+        }
+        fanin_active.add(1, _LABELS)
+    else:
+        state = existing
 
     state["results"][idx] = envelope["payload"]
 
@@ -532,6 +545,7 @@ def aggregator(envelope: dict) -> dict | None:
         }
 
     state["received_count"] += 1
+    fanin_messages.add(1, _LABELS)
 
     if state["received_count"] == state["slice_count"]:
         msg = state["message"]
@@ -539,6 +553,9 @@ def aggregator(envelope: dict) -> dict | None:
         jsonpointer.set_pointer(msg["payload"], state["aggregation_key"],
                                 state["results"][1:])
         _db.delete(key)
+        fanin_completions.add(1, _LABELS)
+        fanin_active.add(-1, _LABELS)
+        fanin_duration.record(time.time() - state["created_at"], _LABELS)
         return msg
 
     _save(key, state)
@@ -605,7 +622,7 @@ All three mechanisms persist to S3. Gateway reporting is always suppressed. Hook
 
 `ASYA_SINK_FANOUT_HOOKS` (default: `false`) — when `false`, hooks are skipped for messages with `parent_id` set (fire-and-forget children). Set to `true` to run hooks on every fan-out child.
 
-Mechanisms 1 and 2 work today (signals are already set by the fan-out router and sidecar). Mechanism 3 requires sidecar changes (asya-0bvg). See [rfc-actor-states.md](../rfc-actor-states.md) for the full phase lifecycle analysis.
+Mechanisms 1 and 2 work today (signals are already set by the fan-out router and sidecar). Mechanism 3 requires sidecar changes (asya-0bvg). See rfc-actor-states.md (rfc0 branch) for the full phase lifecycle analysis.
 
 ---
 
@@ -709,7 +726,7 @@ This is an orthogonal concern to sharding and applies regardless of the number o
 
 ## Integration with A/B Routing
 
-The fan-in sharding mechanism reuses the `x-asya-route-override` header from the [A/B routing RFC](../a-b-testing/rfc-a-b-routing.md). This is explicitly listed as Use Case 4 in that RFC.
+The fan-in sharding mechanism reuses the `x-asya-route-override` header from the A/B Routing RFC (epic 1crb). This is explicitly listed as Use Case 4 in that RFC.
 
 The integration is clean:
 
@@ -935,7 +952,7 @@ def fanout_research_flow_L2(message):
         "route": {"actors": list(r["actors"]), "current": c + 1},
         "headers": {**_hdrs, "x-asya-route-override": {_agg: _shard},
                     "x-asya-fan-in": {**_fan_in, "slice_index": 0}},
-        "payload": dict(p),
+        "payload": json.loads(json.dumps(p)),
     }
 
     # Indices 1..N: sub-agent slices
@@ -1107,11 +1124,11 @@ The broader protocol change --- moving `parent_id` from a top-level envelope fie
 
 ## RFC References
 
-- [A/B Routing RFC](../a-b-testing/rfc-a-b-routing.md) -- `x-asya-route-override` header mechanism
+- A/B Routing RFC (epic 1crb) -- `x-asya-route-override` header mechanism
 - [JSON Pointer (RFC 6901)](https://www.rfc-editor.org/rfc/rfc6901) -- Standard for addressing values within JSON documents
 - [python-json-pointer](https://github.com/stefankoegl/python-json-pointer) -- Python implementation of JSON Pointer (zero dependencies)
 - [RocksDB](https://rocksdb.org/) -- Embedded key-value store
-- [plyvel](https://plyvel.readthedocs.io/) -- Python bindings for LevelDB (RocksDB-compatible API)
+- [python-rocksdb](https://python-rocksdb.readthedocs.io/) -- Python bindings for RocksDB
 - [xxHash](https://xxhash.com/) -- Non-cryptographic hash function
 
 ## References
