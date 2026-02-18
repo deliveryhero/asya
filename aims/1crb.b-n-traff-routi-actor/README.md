@@ -40,7 +40,9 @@ No CNCF project or major open-source tool supports A/B testing on message queues
 
 The entire progressive delivery ecosystem assumes HTTP traffic flowing through service meshes or ingress controllers. Message queues use consumer-pull, not proxy-intercept. No "proxy" exists to insert traffic splitting logic. This is genuinely unoccupied space in the cloud-native ecosystem.
 
-The closest native mechanism is RabbitMQ's Consistent Hash Exchange plugin, which provides coarse-grained weighted distribution across queues. It was designed for load balancing, not controlled experimentation: the hash ring is in-memory only, distribution depends on routing key entropy, and it provides no experiment management, sticky sessions, or metrics.
+The closest native mechanism is RabbitMQ's **Consistent Hash Exchange plugin**, which provides coarse-grained weighted distribution across queues. It was designed for load balancing, not controlled experimentation: the hash ring is in-memory only, distribution depends on routing key entropy, and it provides no experiment management, sticky sessions, or metrics.
+
+(TODO: think more on whether similar design would be useful on asya-level, transport-agnostic)
 
 ### Design Principles
 
@@ -52,7 +54,7 @@ The closest native mechanism is RabbitMQ's Consistent Hash Exchange plugin, whic
 
 4. **Two tools, not one leaky abstraction.** Static override (deterministic, zero hops) and router actor (programmatic, one hop) serve different needs cleanly. No middle-ground "probability in headers" that is too limited for real experiments but too complex for simple overrides.
 
-5. **Debuggability over latency.** For complex experiments, one extra queue hop is acceptable because Data Scientists need to see and understand what happened. The override header provides a clear audit trail.
+5. **Debuggability over latency.** For complex experiments, one extra queue hop is acceptable because Data Scientists need to see and understand what happened. The override header provides a clear audit trail. Hops are cheap - this is at a core of asya's design (if need less latency - use faster transport).
 
 ### Architecture
 
@@ -110,7 +112,7 @@ With route override:
 }
 ```
 
-The `x-asya-route-override` header is a flat map of `{logical-actor-name: target-actor-name}`. Multiple actors can be overridden simultaneously:
+The `x-asya-route-override` header is a flat map of `{logical-actor-name: target-logical-actor-name}`. Multiple actors can be overridden simultaneously:
 
 ```json
 {
