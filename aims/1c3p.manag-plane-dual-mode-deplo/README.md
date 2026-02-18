@@ -1,6 +1,6 @@
 ---
 title: "Management Plane — Dual-Mode Deployment (Stagedoor)"
-status: open
+status: done
 priority: 4
 type: epic
 ---
