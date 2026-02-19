@@ -1,5 +1,5 @@
 ---
-title: State-Backed Actors
+title: Stateful Actors — Transparent State Access
 status: open
 priority: 2 # medium
 type: epic
@@ -7,422 +7,836 @@ type: epic
 
 ## Summary
 
-This RFC defines how Asya actors access shared state across messages. All Asya actors remain **stateless Deployments** -- there are no StatefulSets, no per-pod queues, no shard affinity. Actors that need state across messages use an **external state store** (a pluggable backing service such as Redis, DynamoDB, or NATS KV). This pattern is called **state-backed actors**.
+Asya actors access persistent state through **transparent filesystem emulation**. Actors read and write files under designated mount paths (e.g., `./cache/`, `./s3data/`), and `asya_runtime.py` intercepts these operations, translating them to requests against a **connector sidecar** that implements the actual storage backend (S3, GCS, Redis, NATS KV, etc.).
 
-Fan-in aggregation is the primary use case. Other potential use cases (deduplication, rate limiting, session memory) are addressed by other layers of the architecture or deferred.
+All actors remain **stateless Deployments** — there are no StatefulSets, no per-pod storage, no shard affinity. The state is always external, accessed through a uniform filesystem interface.
 
 ---
 
 ## Motivation
 
-Asya's current actor model is stateless: each message is processed independently, and no state is shared between messages. This works for single-request processing but breaks for **fan-in aggregation**, where partial results from a fan-out must converge and be assembled into a single output.
+Asya actors are stateless: each message is processed independently. This works for single-request pipelines but breaks for use cases that need persistent cross-message or cross-actor data:
 
-The naive solution -- shard affinity via StatefulSets and per-pod queues -- introduces significant complexity: placement directories, shard routing, rebalancing on scale events, and custom controllers. This RFC argues that a simpler approach (externalized state) solves the fan-in problem without any of that complexity.
+- **Agentic per-user context storage**: An AI agent accumulates context across a conversation; each message must read prior context and write updated state
+- **Media file storage**: Actors produce or consume images, audio, video that must be stored durably
+- **Fan-in stateful aggregation**: Partial results from fan-out converge into shared state (see [ADR-9](#adr-9-fan-in-as-crew-actor-using-state-mounts))
+- **Session files**: Intermediate artifacts (model checkpoints, temp data) that persist across messages
+
+Today, actors that need state must directly import and manage database clients (boto3 for S3, redis-py for Redis, etc.). This creates boilerplate, ties handler code to specific backends, and breaks local development (handlers don't work without a live database).
 
 ### Requirements
 
-- **Correctness**: Messages with the same aggregation key must update the same state, regardless of which pod processes them
-- **No local state**: Actors remain stateless Deployments with standard KEDA autoscaling
-- **No framework changes**: No sidecar, injector, or XRD changes required
-- **Pluggable state store**: Users bring their own database (Redis, DynamoDB, NATS KV, etc.)
-- **Transport-agnostic**: Works identically with SQS, RabbitMQ, and future transports
+- **Transparent access**: Handlers use standard Python file I/O (`open()`, `os.path.exists()`, `pathlib`) — no special imports, no SDK knowledge
+- **Backend-agnostic**: The same handler code works with S3, GCS, Redis, NATS KV, or a local directory
+- **Local dev parity**: Without configuration, mount paths are real directories — handlers work locally with zero setup
+- **Modular backends**: Each storage backend is a separate connector sidecar — no backend logic in `asya_runtime.py` or `asya-sidecar`
+- **Streaming support**: Large files (media, model weights) are streamed, not buffered entirely in memory
+- **No framework bloat**: `asya_runtime.py` remains a single file with zero dependencies
 
 ---
 
-## Use-Case Analysis
+## Architecture
 
-Before designing the solution, we analyzed all potential use cases for cross-message state. Most do not belong in the actor layer.
+```
+User container                          Connector sidecar(s)
++-----------------------------+
+| Handler code                |
+|   open("./s3data/key", "w") |
+|   os.path.exists("./cache/k") |
++----------+------------------+
+           |
+           v
++----------+------------------+
+| asya_runtime.py             |
+|   - patches builtins.open,  |    Unix socket          +------------------------+
+|     os.stat, os.listdir,    |---(/var/run/asya/state/--| asya-connector-s3      |---> S3
+|     os.scandir, os.unlink   |    s3data.sock)         +------------------------+
+|   - translates path ops to  |
+|     HTTP over Unix socket   |    Unix socket          +------------------------+
+|   - thin protocol client    |---(/var/run/asya/state/--| asya-connector-redis   |---> Redis
+|     (~80-100 lines)         |    cache.sock)          +------------------------+
++-----------------------------+
 
-| Use case | Sharding key | Belongs in | Rationale |
-|----------|-------------|------------|-----------|
-| **Fan-in aggregation** | `origin_id` | **Actor layer (this RFC)** | Only use case requiring cross-message state in the pipeline |
-| Deduplication | `message_id` | Gateway | Gateway already tracks task state; dedup is a gateway concern (idempotency) |
-| Per-key rate limiting | `client_id` | Gateway | Rate limiting is an ingress concern, not a pipeline concern |
-| Session/conversation memory | `session_id` | External database directly (partially this RFC) | Sessions require unbounded, elastic storage -- far beyond what Asya should manage |
-| Time-window batching | `batch_key` | Out of scope | Complex windowing semantics (Flink territory); not an Asya concern |
++-----------------------------+
+| asya-sidecar (Go)           |   (unchanged — message routing only)
++-----------------------------+
+```
 
-### Why Fan-In Is the Only Actor-Layer Use Case
+### Component responsibilities
 
-**Deduplication and rate limiting** are request-level concerns handled at ingress. The asya-gateway already maintains task state and is the natural place for idempotency checks and rate limits. Moving these into the pipeline would duplicate responsibility.
+| Component | Responsibility |
+|-----------|---------------|
+| `asya_runtime.py` | Patches Python file I/O for configured mount paths; translates operations to HTTP requests over Unix socket. ~80-100 lines added, zero new dependencies. |
+| `asya-connector-*` | Separate container image per backend (`asya-connector-s3`, `asya-connector-redis`, `asya-connector-nats`, etc.). Implements a standard HTTP-over-Unix-socket protocol. Owns all backend-specific logic, SDKs, and credentials. |
+| `asya-sidecar` | Unchanged. Message routing only. |
+| `asya-injector` | Adds connector sidecar containers and Unix socket volumes based on the actor's `state` spec. |
+| Crossplane XRD | New optional `state` field defining mount configurations. |
 
-**Session memory** requires storing unbounded conversation histories (potentially megabytes per session) across millions of concurrent sessions. This needs an elastic, HA database (DynamoDB, PostgreSQL, Redis Cluster) that the application team manages directly. It is not Asya's job to abstract session storage -- the handler simply connects to whatever database the team already uses.
+### Why separate connector sidecars?
 
-**Time-window batching** requires timer-based triggers, window semantics, and late-arrival handling. This is stream processing (Apache Flink, Spark Streaming), not message passing. Asya should not reinvent stream processing primitives.
-
-**Fan-in aggregation** is different: it has bounded state (finite number of partial results per origin), bounded lifetime (seconds to minutes), and a clear completion condition (all partials received). It is a natural fit for a lightweight crew actor with pluggable state.
+- **Modularity**: Each connector is a focused, single-purpose container. Adding a new backend means building a new image, not modifying the sidecar.
+- **Independent lifecycle**: Connectors can be versioned and updated independently of the sidecar and runtime.
+- **Credential isolation**: Each connector manages its own credentials (IAM roles, Redis auth, etc.) without exposing them to the runtime or sidecar.
+- **User-extensible**: Users can build custom connectors implementing the same protocol for proprietary storage systems.
 
 ---
 
-## Proposed Solution: State-Backed Actors
+## Protocol: HTTP over Unix Socket
 
-### Core Concept
-
-A state-backed actor is a **standard stateless Deployment** that reads and writes shared state via an **external state store**. Any pod can process any message because state is not local -- it lives in the backing service.
+Each connector listens on a Unix socket at `/var/run/asya/state/{mount-name}.sock` and implements a RESTful API:
 
 ```
-        aggregator queue (single shared queue)
-                |
-    +-----------+-----------+
-    |           |           |
-  Pod-0      Pod-1       Pod-2      (stateless Deployment, KEDA-scaled)
-    |           |           |
-    +-----+-----+-----+----+
-          |
-    External State Store
-    (Redis / DynamoDB / NATS KV / ...)
+GET    /keys/{key}                              -> 200 + body stream (read)
+PUT    /keys/{key}                              -> stream request body (write)
+HEAD   /keys/{key}                              -> 204 exists / 404 not found
+DELETE /keys/{key}                              -> 204 deleted
+GET    /keys/?prefix={p}                        -> 200 + JSON array of keys
+GET    /keys/?prefix={p}&delimiter=/            -> 200 + JSON {keys: [], prefixes: []}
+GET    /keys/?prefix={p}&delimiter=/&limit={n}  -> 200 + limited listing
 ```
 
-### Properties
+Response headers for `GET /keys/{key}`:
+- `Content-Length`: object size (when known)
+- `Content-Type`: `application/octet-stream`
 
-- **No StatefulSet**: Plain Deployment with competing consumers
-- **No per-pod queues**: Single shared queue per actor
-- **No shard affinity**: Any pod handles any message
-- **No placement directory**: No routing logic needed
-- **Standard autoscaling**: KEDA scales on queue depth, same as any stateless actor
-- **No sidecar changes**: The sidecar is unaware of state -- the handler manages it
-- **No XRD changes**: State store connection is configured via env vars
-- **No composition changes**: The actor deploys like any other stateless actor
+Response headers for `HEAD /keys/{key}`:
+- `Content-Length`: object size
+- `X-Exists`: `true`
 
-### Concurrency Model
+This protocol is intentionally simple — any language can implement a connector. No custom serialization, no RPC frameworks. Standard HTTP semantics.
 
-Multiple pods may process messages for the same aggregation key simultaneously. The state store provides atomicity via **compare-and-swap (CAS)**:
+---
 
-1. Pod reads current state for key (gets value + revision)
-2. Pod merges its partial result into the state
-3. Pod writes updated state with revision check (CAS)
-4. If another pod updated first (revision mismatch), retry from step 1
+## Configuration
 
-This is the standard optimistic concurrency pattern used by every distributed database.
-
-### State Store Interface
-
-The fan-in crew actor uses a pluggable `StateStore` interface. The backend is selected via environment variables.
-
-```python
-class StateStore(ABC):
-    """Interface for fan-in state storage backends."""
-
-    @abstractmethod
-    async def get(self, key: str) -> Optional[tuple[bytes, Any]]:
-        """Read state for key. Returns (value, revision) or None."""
-
-    @abstractmethod
-    async def create(self, key: str, value: bytes, ttl: Optional[int] = None) -> bool:
-        """Atomically create key if not exists. Returns True on success."""
-
-    @abstractmethod
-    async def update(self, key: str, value: bytes, revision: Any) -> bool:
-        """CAS update: write value only if revision matches. Returns True on success."""
-
-    @abstractmethod
-    async def delete(self, key: str) -> None:
-        """Delete key (cleanup after completion)."""
-```
-
-Implementations: `RedisStateStore`, `DynamoDBStateStore`, `NatsKvStateStore`, etc.
-
-### Configuration
-
-The state store is configured via env vars on the actor (or via flavor defaults):
+### AsyncActor spec
 
 ```yaml
-env:
-  - name: ASYA_FANIN_STORE
-    value: "redis"  # or: dynamodb, nats, ...
-  - name: ASYA_FANIN_STORE_URL
-    value: "redis://redis:6379"
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: my-agent
+spec:
+  actor: my-agent
+  transport: sqs
+  state:
+    - backend: s3
+      config:
+        bucket: my-bucket
+        prefix: artifacts/
+        region: us-east-1
+      mount: ./s3data
+
+    - backend: redis
+      config:
+        endpoint: redis://cache:6379/0
+      mount: ./cache
+  workload:
+    template:
+      spec:
+        containers:
+          - name: asya-runtime
+            image: my-agent:latest
+            env:
+              - name: ASYA_HANDLER
+                value: "agent.handle"
 ```
 
-### Fan-In as a Crew Actor
+### Injected environment variables
 
-Fan-in is implemented as a new `x-fanin` crew actor in `asya-crew`, alongside `x-sink` and `x-sump`. The fan-in handler, state store interface, and backend implementations all live in `asya-crew`.
+The injector translates `state` spec into environment variables for the runtime:
 
-The fan-in protocol (message format, completeness detection, merge strategy) is defined in a separate RFC. This RFC only establishes the architectural pattern.
+```
+ASYA_STATE_MOUNTS=./s3data,./cache
+ASYA_STATE_MOUNT_s3data_SOCKET=/var/run/asya/state/s3data.sock
+ASYA_STATE_MOUNT_cache_SOCKET=/var/run/asya/state/cache.sock
+```
+
+The runtime only needs mount paths and socket paths. It does not know or care about backends, buckets, or credentials.
+
+### Injected connector sidecars
+
+The injector adds connector containers based on the `state` spec:
+
+```yaml
+# Auto-injected by asya-injector
+- name: state-s3data
+  image: asya-connector-s3:latest
+  env:
+    - name: STATE_BUCKET
+      value: "my-bucket"
+    - name: STATE_PREFIX
+      value: "artifacts/"
+    - name: AWS_REGION
+      value: "us-east-1"
+  volumeMounts:
+    - name: state-sockets
+      mountPath: /var/run/asya/state
+
+- name: state-cache
+  image: asya-connector-redis:latest
+  env:
+    - name: STATE_ENDPOINT
+      value: "redis://cache:6379/0"
+  volumeMounts:
+    - name: state-sockets
+      mountPath: /var/run/asya/state
+```
+
+---
+
+## Python Interception Layer
+
+### Activation
+
+At startup, before loading the handler:
+
+```python
+# In asya_runtime.py, during initialization
+state_mounts = os.environ.get("ASYA_STATE_MOUNTS")
+if state_mounts:
+    _install_state_hooks(state_mounts)
+```
+
+When `ASYA_STATE_MOUNTS` is unset, no patching occurs. Mount paths are real directories. Handlers work locally with zero configuration.
+
+### What gets patched
+
+Six functions, covering all standard Python file I/O entry points:
+
+| Python API | Patch target | State operation |
+|------------|-------------|-----------------|
+| `open(path, "r"/"rb")`, `pathlib.Path.read_text/read_bytes` | `builtins.open` | `GET /keys/{key}` — returns streaming file-like object |
+| `open(path, "w"/"wb")`, `pathlib.Path.write_text/write_bytes` | `builtins.open` | Buffered write, `PUT /keys/{key}` on `close()` |
+| `os.path.exists(path)`, `pathlib.Path.exists()` | `os.stat` | `HEAD /keys/{key}` — 204/404 |
+| `os.listdir(path)` | `os.listdir` | `GET /keys/?prefix=...&delimiter=/` |
+| `pathlib.Path.iterdir()`, `os.scandir(path)` | `os.scandir` | `GET /keys/?prefix=...&delimiter=/` |
+| `os.remove(path)`, `pathlib.Path.unlink()` | `os.unlink` | `DELETE /keys/{key}` |
+| `os.makedirs(path)` | `os.makedirs` | No-op for state paths (prefixes are implicit) |
+
+The key to catching `pathlib` operations: `pathlib.Path.open()` delegates to `builtins.open`, and `pathlib.Path.exists()` delegates to `os.stat`. Patching the low-level functions catches all high-level wrappers.
+
+`os.fspath()` is used to normalize all path arguments (`str`, `bytes`, `os.PathLike`) before mount matching.
+
+### Streaming reads
+
+`http.client.HTTPResponse` natively supports `read(size)` for chunked reading. The patched `open()` returns a file-like wrapper around the HTTP response:
+
+```python
+class _StateReadFile:
+    """File-like object backed by streaming GET from connector."""
+
+    def __init__(self, response):
+        self._resp = response  # http.client.HTTPResponse
+
+    def read(self, size=-1):
+        return self._resp.read(size)
+
+    def readline(self):
+        return self._resp.readline()
+
+    def readlines(self):
+        return self._resp.readlines()
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        line = self._resp.readline()
+        if not line:
+            raise StopIteration
+        return line
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        self.close()
+
+    def close(self):
+        self._resp.close()
+
+    @property
+    def closed(self):
+        return self._resp.closed
+```
+
+User code — completely standard Python, including chunked reads for large files:
+
+```python
+# Small file — read all at once
+with open("./s3data/config.json") as f:
+    config = json.load(f)
+
+# Large file — chunked streaming
+with open("./s3data/media/video.mp4", "rb") as f:
+    while chunk := f.read(8192):
+        process_chunk(chunk)
+
+# Line-by-line iteration
+with open("./s3data/logs/events.jsonl") as f:
+    for line in f:
+        event = json.loads(line)
+```
+
+### Streaming writes
+
+Writes buffer to a `SpooledTemporaryFile` (in-memory up to a threshold, then spills to disk) and flush to the connector on `close()`:
+
+```python
+class _StateWriteFile:
+    """File-like object that buffers writes, flushes to connector on close."""
+
+    def __init__(self, sock_path, key, mode):
+        self._sock_path = sock_path
+        self._key = key
+        self._buf = io.SpooledTemporaryFile(
+            max_size=4 * 1024 * 1024,  # 4MB in-memory, then spill to disk
+            mode=mode,
+        )
+
+    def write(self, data):
+        return self._buf.write(data)
+
+    def writelines(self, lines):
+        self._buf.writelines(lines)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        self.close()
+
+    def close(self):
+        self._buf.seek(0)
+        conn = _unix_http_connection(self._sock_path)
+        size = self._buf.seek(0, 2)  # seek to end for size
+        self._buf.seek(0)
+        conn.request("PUT", f"/keys/{self._key}", body=self._buf,
+                      headers={"Content-Length": str(size)})
+        resp = conn.getresponse()
+        if resp.status >= 400:
+            raise IOError(f"State write failed: {resp.status} {resp.reason}")
+        self._buf.close()
+```
+
+The connector receives the body stream and uploads to the backend. For S3, the connector can use multipart upload for large objects.
+
+User code:
+
+```python
+# Small write
+with open("./s3data/results/output.json", "w") as f:
+    json.dump(result, f)
+
+# Large write — data streams through SpooledTemporaryFile
+with open("./s3data/media/generated.png", "wb") as f:
+    for chunk in generate_image_chunks():
+        f.write(chunk)
+```
+
+### Unix socket HTTP client
+
+The runtime connects to connectors using `http.client` over Unix sockets. Python stdlib supports this via a custom connection class (~20 lines):
+
+```python
+class _UnixHTTPConnection(http.client.HTTPConnection):
+    def __init__(self, sock_path):
+        super().__init__("localhost")
+        self._sock_path = sock_path
+
+    def connect(self):
+        self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        self.sock.connect(self._sock_path)
+```
+
+### Directories
+
+Directories are virtual. They correspond to key prefixes in the backend (S3 prefixes, Redis key prefixes with `SCAN MATCH`).
+
+| Operation | Behavior |
+|-----------|----------|
+| `os.makedirs("./cache/users/123/")` | No-op (prefixes are implicit) |
+| `os.listdir("./cache/users/")` | Prefix scan with delimiter: returns immediate children |
+| `os.path.isdir("./cache/users/")` | `GET /keys/?prefix=users/&delimiter=/&limit=1` — true if any keys/prefixes exist |
+| `os.path.isfile("./cache/users/123")` | `HEAD /keys/users/123` — true if key exists |
+| `os.rmdir("./cache/users/")` | No-op or error (directories don't exist as objects) |
+
+Example — listing and iterating:
+
+```python
+# List immediate children of a "directory"
+entries = os.listdir("./s3data/users/")
+# -> ["alice", "bob", "carol"]  (could be files or "subdirectories")
+
+# Walk a tree (os.walk delegates to listdir + isdir)
+for root, dirs, files in os.walk("./s3data/users/"):
+    for f in files:
+        path = os.path.join(root, f)
+        with open(path) as fh:
+            process(fh.read())
+```
+
+For S3, `GET /keys/?prefix=users/&delimiter=/` returns:
+```json
+{"keys": ["users/alice.json"], "prefixes": ["users/bob/", "users/carol/"]}
+```
+
+The runtime translates `prefixes` into directory entries and `keys` into file entries.
+
+For Redis, `SCAN MATCH users:*` with key-part parsing achieves the same semantics.
+
+---
+
+## Latency Characteristics
+
+| Operation | Unix socket overhead | Backend latency (typical) | Total |
+|-----------|---------------------|--------------------------|-------|
+| `open() + read()` (small) | ~0.05ms | Redis: <1ms, S3: 5-50ms | <1ms (Redis), 5-50ms (S3) |
+| `open() + read()` (stream) | ~0.05ms | Dominated by transfer time | Backend-dependent |
+| `open() + write() + close()` | ~0.05ms | Redis: <1ms, S3: 10-100ms | <1ms (Redis), 10-100ms (S3) |
+| `os.path.exists()` | ~0.05ms | Redis: <1ms, S3: 5-20ms | <1ms (Redis), 5-20ms (S3) |
+| `os.listdir()` | ~0.05ms | Redis: 1-10ms, S3: 10-100ms | 1-10ms (Redis), 10-100ms (S3) |
+
+For actor workloads (LLM inference takes 500-5000ms per call), these latencies are negligible.
+
+---
+
+## Limitations
+
+### Write-on-close semantics
+
+Data is sent to the connector (and ultimately to the backend) when the file is closed, not on each `write()` call. A crash mid-write loses uncommitted data. This is acceptable for the target use cases (context storage, media, session data) where messages are processed atomically.
+
+### No filesystem metadata
+
+`os.stat()` returns synthetic values:
+- `st_size`: from backend (`Content-Length` header)
+- `st_mode`: fixed (`S_IFREG | 0644` for files, `S_IFDIR | 0755` for directories)
+- `st_mtime`, `st_atime`, `st_ctime`: not meaningful (zero or backend-provided if available)
+- `st_uid`, `st_gid`: fixed (current user)
+
+### No file locking
+
+Concurrent writes from multiple actor replicas to the same key are last-write-wins. This is inherent to KV/object stores. Actors are designed to be single-threaded per message, so this is only relevant for multi-replica actors writing to the same key — which is the fan-in case, handled by CAS (see [ADR-9](#adr-9-fan-in-as-crew-actor-using-state-mounts)).
+
+### No seek on reads (object stores)
+
+For object store backends (S3, GCS), `seek()` on read files is not supported — objects are streamed sequentially. For KV backends (Redis, NATS), the full value is fetched into a `BytesIO`, so seek works.
+
+If seek is needed on S3 objects, the handler should read into a local buffer:
+
+```python
+import io
+
+with open("./s3data/model.bin", "rb") as f:
+    buf = io.BytesIO(f.read())  # fetch once, seek freely
+    buf.seek(1024)
+    header = buf.read(256)
+```
+
+### C extensions that bypass Python file I/O
+
+The Python-level patching catches all code that goes through `builtins.open` — which includes `pathlib`, `io.open`, and any library that accepts file objects. The following table documents library compatibility:
+
+| Library | Common operations | Uses Python `open()`? | Status |
+|---------|------------------|----------------------|--------|
+| `json` | `json.load(f)`, `json.dump(obj, f)` | yes (accepts file objects) | **works** |
+| `pickle` | `pickle.load(f)`, `pickle.dump(obj, f)` | yes (accepts file objects) | **works** |
+| `numpy` | `np.load()`, `np.save()` | yes | **works** |
+| `numpy` | `np.fromfile()` | no (C `fread`) | **gap** — use `np.frombuffer(f.read())` instead |
+| `numpy` | `np.memmap()` | no (C `mmap`) | **gap** — incompatible with remote storage by design |
+| `torch` | `torch.save()`, `torch.load()` | yes (Python `open` + pickle) | **works** |
+| `torch` | `torch.jit.load()` | no (C++) | **gap** — load into `BytesIO` first: `torch.jit.load(io.BytesIO(f.read()))` |
+| PIL/Pillow | `Image.open(path)` | yes (Python `open`) | **works** |
+| OpenCV | `cv2.imread()`, `cv2.imwrite()` | no (C++) | **gap** — use: `cv2.imdecode(np.frombuffer(f.read(), np.uint8), ...)` |
+| pandas | `pd.read_csv()`, `pd.read_json()` | yes | **works** |
+| pandas | `pd.read_parquet()` | no (pyarrow C++) | **gap** — pass file object: `pd.read_parquet(f)` |
+| HuggingFace | `from_pretrained()`, `save_pretrained()` | yes (Python `open` + `torch.save`) | **works** |
+| TensorFlow | `tf.io.read_file()`, `model.save()` | no (C++) | **gap** — TF has native `tf.io.gfile` with S3/GCS support; use that directly |
+
+**Workaround pattern for all gaps**: Read into a file object first, then pass the file object (not the path) to the library.
+
+```python
+# General workaround: read state file into memory, pass to library
+with open("./s3data/model.pt", "rb") as f:
+    data = f.read()  # intercepted, streamed from S3
+
+# Then use library with in-memory data
+img = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)
+arr = np.frombuffer(data, dtype=np.float32)
+model = torch.jit.load(io.BytesIO(data))
+df = pd.read_parquet(io.BytesIO(data))
+```
+
+This is documented behavior, not a bug. The Python-level interception is a deliberate design choice: it covers the vast majority of use cases without requiring elevated container privileges (FUSE/SYS_ADMIN), kernel modules, or LD_PRELOAD tricks.
+
+---
+
+## Local Development
+
+When `ASYA_STATE_MOUNTS` is unset (local development, testing), no patching occurs. Mount paths resolve to real directories on disk:
+
+```python
+# This code works identically in both environments:
+with open("./cache/user/123", "w") as f:
+    json.dump(context, f)
+
+# Local: writes to ./cache/user/123 on disk
+# Deployed: intercepted, PUT to connector -> Redis
+```
+
+No conditional imports, no environment detection, no mock objects. The same handler code runs locally and in production.
+
+---
+
+## Examples
+
+### Agentic per-user context storage
+
+```python
+import json, os
+
+async def handle(payload):
+    user_id = payload["user_id"]
+    context_path = f"./cache/context/{user_id}"
+
+    # Load existing context (or start fresh)
+    if os.path.exists(context_path):
+        with open(context_path) as f:
+            context = json.load(f)
+    else:
+        context = {"history": [], "preferences": {}}
+
+    # Process message, update context
+    context["history"].append(payload["message"])
+    response = await call_llm(context)
+    context["preferences"].update(response.get("learned_prefs", {}))
+
+    # Save updated context
+    with open(context_path, "w") as f:
+        json.dump(context, f)
+
+    return {"reply": response["text"]}
+```
+
+```yaml
+spec:
+  state:
+    - backend: redis
+      config:
+        endpoint: redis://context-store:6379/0
+      mount: ./cache
+```
+
+### Media file storage
+
+```python
+from PIL import Image
+import io
+
+async def handle(payload):
+    # Read input image from object store
+    with open(f"./s3data/uploads/{payload['image_id']}.jpg", "rb") as f:
+        img = Image.open(f)
+
+    # Process
+    result = transform(img)
+
+    # Write result back to object store
+    buf = io.BytesIO()
+    result.save(buf, format="PNG")
+    with open(f"./s3data/results/{payload['image_id']}.png", "wb") as f:
+        f.write(buf.getvalue())
+
+    return {"status": "processed", "output_key": f"results/{payload['image_id']}.png"}
+```
+
+```yaml
+spec:
+  state:
+    - backend: s3
+      config:
+        bucket: media-pipeline
+        prefix: v1/
+        region: us-east-1
+      mount: ./s3data
+```
+
+### Session files with multiple stores
+
+```python
+import json, os, pickle
+
+async def handle(payload):
+    session_id = payload["session_id"]
+
+    # Fast KV for session metadata (Redis)
+    meta_path = f"./cache/sessions/{session_id}"
+    if os.path.exists(meta_path):
+        with open(meta_path) as f:
+            meta = json.load(f)
+    else:
+        meta = {"step": 0, "created": payload["timestamp"]}
+
+    # Object store for large artifacts (S3)
+    artifact_dir = f"./s3data/sessions/{session_id}"
+    existing = os.listdir(artifact_dir) if os.path.isdir(artifact_dir) else []
+
+    # Process
+    result, artifact = await process_step(payload, meta, existing)
+
+    # Write artifact to S3
+    with open(f"{artifact_dir}/step-{meta['step']}.pkl", "wb") as f:
+        pickle.dump(artifact, f)
+
+    # Update session metadata in Redis
+    meta["step"] += 1
+    with open(meta_path, "w") as f:
+        json.dump(meta, f)
+
+    return result
+```
+
+```yaml
+spec:
+  state:
+    - backend: redis
+      config:
+        endpoint: redis://sessions:6379/0
+      mount: ./cache
+    - backend: s3
+      config:
+        bucket: session-artifacts
+        prefix: prod/
+      mount: ./s3data
+```
+
+---
+
+## Implementation Plan
+
+### Phase 1: Protocol and connector framework
+
+- Define HTTP-over-Unix-socket protocol (finalized above)
+- Build connector base/framework (Go) with shared socket listener, health checks, graceful shutdown
+- Implement `asya-connector-s3` (first backend)
+- Implement `asya-connector-redis` (second backend)
+
+### Phase 2: Runtime interception
+
+- Add state hook installation to `asya_runtime.py` (~80-100 lines)
+- Implement `_StateReadFile` and `_StateWriteFile` wrappers
+- Implement Unix socket HTTP client
+- Implement mount resolution and function patching
+- Unit tests for interception layer
+
+### Phase 3: Injector and XRD integration
+
+- Add `state` field to AsyncActor XRD
+- Update injector to add connector sidecars, socket volumes, and env vars
+- Update Crossplane compositions
+
+### Phase 4: Testing and documentation
+
+- Component tests: runtime <-> connector over Unix socket
+- Integration tests: full pipeline with state access
+- Document C extension workarounds (table above)
+- Document local development workflow
 
 ---
 
 ## Architecture Decision Records
 
-### ADR-1: Stateless Deployment + External State vs. StatefulSet + Local State
+### ADR-1: Transparent filesystem emulation vs. client library
 
-**Context**: Actors that need cross-message state (e.g., fan-in aggregation) could either maintain state locally (StatefulSet with per-pod storage) or externalize state to a shared database.
+**Context**: Actors need to access persistent state. Two approaches: (a) provide a client library (`from asya import kv; kv.get("key")`), or (b) intercept standard Python file I/O so handlers use `open()`, `os.path.exists()`, etc.
+
+| Approach | UX | Local dev | Special imports | C extension support |
+|----------|-----|-----------|----------------|-------------------|
+| Client library | Explicit API | Needs mock or local adapter | Yes (`from asya import kv`) | N/A (explicit calls) |
+| **FS emulation** | **Standard Python I/O** | **Works with real files, zero setup** | **None** | **Documented gaps with workarounds** |
+
+**Decision**: Filesystem emulation.
+
+**Rationale**: The strongest argument is local development parity. With FS emulation, the handler code `open("./cache/key", "w")` works identically on a developer's laptop (real files) and in production (intercepted, routed to Redis/S3). No mocks, no conditional imports, no environment detection. The handler author does not need to know Asya exists.
+
+The documented gaps (C extensions that bypass Python's `open()`) are narrow, have standard workarounds (pass file objects instead of paths), and affect edge cases rather than the primary use cases.
+
+### ADR-2: Python-level patching vs. FUSE vs. LD_PRELOAD vs. seccomp
+
+**Context**: Multiple approaches exist for intercepting file operations.
+
+| Approach | Coverage | Privileges | Complexity | K8s compatibility |
+|----------|----------|-----------|------------|-------------------|
+| **Python patching** | **builtins.open, os.*, pathlib** | **None** | **~100 lines** | **Any cluster** |
+| FUSE | All operations (kernel-level) | SYS_ADMIN, /dev/fuse, mountPropagation: Bidirectional | ~1000 lines + kernel interaction | Requires privileged pods |
+| LD_PRELOAD | All libc calls | None | ~400 lines C | Any cluster |
+| seccomp_unotify | All syscalls | CAP_SYS_ADMIN or pre-installed profile | ~800 lines C | Requires security policy changes |
+
+**Decision**: Python-level patching.
+
+**Rationale**: The target workloads are Python actor handlers. For the documented use cases (JSON, pickle, torch, PIL, pandas CSV, HuggingFace), all operations go through `builtins.open`. The few gaps (OpenCV, numpy.fromfile, pyarrow internals) have simple workarounds. Python patching requires zero privileges, works in any Kubernetes cluster (including hardened multi-tenant clusters with PodSecurityStandards), and adds minimal code to the runtime.
+
+FUSE provides complete coverage but requires privileged pods — unacceptable for multi-tenant production clusters. LD_PRELOAD is a reasonable middle ground but requires a compiled C shared library, adding build and maintenance complexity. seccomp_unotify requires security policy changes.
+
+If a future use case requires complete syscall interception (e.g., Go-based actor runtimes), LD_PRELOAD or FUSE can be revisited for that specific runtime. The connector protocol is transport-agnostic — the same connectors work regardless of interception method.
+
+### ADR-3: Connector sidecar vs. extending asya-sidecar
+
+**Context**: Backend-specific state proxy logic (S3 SDK calls, Redis commands) must run somewhere. Two options: (a) extend `asya-sidecar` with state proxy endpoints, or (b) deploy separate connector sidecar containers.
+
+| Approach | Modularity | Sidecar complexity | Independent versioning | User-extensible |
+|----------|-----------|-------------------|----------------------|----------------|
+| Extend asya-sidecar | Low (monolith) | High (message routing + state proxy + N backends) | No (coupled releases) | No |
+| **Connector sidecars** | **High (one container per backend)** | **Unchanged** | **Yes** | **Yes (custom connectors)** |
+
+**Decision**: Separate connector sidecars.
+
+**Rationale**: `asya-sidecar` has a focused responsibility: message routing between queues and the runtime. Adding state proxy logic with pluggable backends (S3, GCS, Redis, NATS, DynamoDB) would significantly increase its complexity, binary size, dependency tree, and attack surface. Separate connectors keep each component focused and independently deployable. Users can build custom connectors for proprietary storage systems by implementing the HTTP-over-Unix-socket protocol.
+
+### ADR-4: HTTP over Unix socket vs. custom protocol
+
+**Context**: The runtime needs to communicate with connectors. Options: custom JSON-RPC protocol, gRPC, or HTTP over Unix socket.
+
+**Decision**: HTTP over Unix socket.
+
+**Rationale**: HTTP gives streaming for free (chunked transfer encoding), uses Python stdlib (`http.client`), and is universally understood. The RESTful interface (`GET /keys/{key}`, `PUT /keys/{key}`, `HEAD /keys/{key}`) maps naturally to KV/object store semantics. Any language can implement a connector with an HTTP server library. No custom serialization, no protobuf compilation, no RPC framework dependencies.
+
+### ADR-5: Write-on-close vs. write-through
+
+**Context**: When the handler calls `f.write(data)`, should the data be sent to the connector immediately (write-through) or buffered and sent on `f.close()` (write-on-close)?
+
+**Decision**: Write-on-close.
+
+**Rationale**: For KV and object store backends, the natural unit of storage is a complete value, not a byte stream. S3 PutObject requires knowing the content upfront (or using multipart upload). Redis SET stores a complete value. Buffering writes and flushing on close matches these semantics. The `SpooledTemporaryFile` buffer handles memory efficiently (in-memory up to 4MB, disk-spill for larger writes).
+
+Write-through would be more durable (data persists before close) but requires streaming upload protocols on every backend, adds complexity to the file-like wrapper, and doesn't match how handlers typically use files (write all data, then close).
+
+### ADR-6: Stateless Deployment + external state vs. StatefulSet + local state
+
+**Context**: Actors that need cross-message state could either maintain state locally (StatefulSet with per-pod storage) or externalize state to a shared database.
 
 | Approach | Scaling | Complexity | Access latency | Failure mode |
 |----------|---------|------------|----------------|--------------|
-| **StatefulSet + local RocksDB** | Complex (shard rebalancing, placement directory, N per-pod queues) | High (sidecar changes, injector changes, XRD changes, new composition logic) | Sub-ms (local disk) | Pod failure = state locked on PVC until pod restarts |
-| **Deployment + external state store** | Standard KEDA (no rebalancing) | Low (no framework changes, handler-level concern) | ~1ms (Redis), ~5ms (DynamoDB) | Pod failure = message returns to queue, another pod continues |
+| StatefulSet + local RocksDB | Complex (shard rebalancing, placement directory, N per-pod queues) | High (sidecar changes, injector changes, XRD changes, new composition logic) | Sub-ms (local disk) | Pod failure = state locked on PVC until pod restarts |
+| **Deployment + external state** | **Standard KEDA (no rebalancing)** | **Low (no framework changes)** | **~1ms (Redis), ~5ms (S3)** | **Pod failure = message returns to queue, another pod continues** |
 
 **Decision**: Stateless Deployment with external state store.
 
-**Rationale**: For Asya's primary workload (AI pipelines), each sub-agent takes seconds to process a message. The ~1-5ms overhead of an external state store is negligible compared to seconds of LLM inference. The architectural simplicity is worth far more than sub-millisecond local access:
+**Rationale**: For Asya's primary workload (AI pipelines), each actor takes seconds to process a message. The ~1-5ms overhead of an external state store is negligible compared to seconds of LLM inference. The architectural simplicity is worth far more than sub-millisecond local access:
 
-- No sidecar changes
-- No injector changes
-- No XRD changes
-- No composition changes
-- No StatefulSet controller interactions
 - No shard routing or placement logic
+- No StatefulSet controller interactions
 - Standard KEDA autoscaling
 - Graceful failure handling (message returns to queue, any pod retries)
 
-**Consequence**: Actors that genuinely need local disk state (e.g., high-throughput streaming with sub-ms latency requirements) cannot use this pattern. Such workloads are out of scope for Asya's actor model and should use purpose-built stream processing tools (Kafka Streams, Flink).
+**Consequence**: Actors that genuinely need local disk state (e.g., high-throughput streaming with sub-ms latency requirements) cannot use this pattern. Such workloads are out of scope for Asya's actor model.
 
-### ADR-2: Against Shard Affinity for Fan-In
+### ADR-7: Against shard affinity for fan-in
 
 **Context**: The original design used shard affinity (StatefulSet with per-pod queues) so that all partial results for a given key would land on the same pod. This required a placement directory to map keys to shards.
 
-We explored multiple shard routing approaches:
+Multiple shard routing approaches were explored:
 
 | Approach | How it works | Problem |
 |----------|-------------|---------|
-| **Static hashing** (rendezvous / consistent hash) | Sender computes `hash(key) % N` | Scale events (N changes) remap keys -- partial results split across old and new shards |
-| **Stamped-N** (sender stamps shard count into message) | Gateway stamps N at send time | Gateway must know N reliably; ConfigMap sync lag makes this unreliable |
-| **Virtual shards** (fixed V virtual, variable N physical) | `hash(key) % V`, V mapped to N | Scale events require reassigning virtual shards and migrating state |
-| **Semi-stateful router** (placement directory in embedded KV) | Router stores `key -> shard` in RocksDB | Router is SPOF; HA requires Raft consensus (building a mini-database) |
+| Static hashing (rendezvous / consistent hash) | Sender computes `hash(key) % N` | Scale events remap keys — partial results split across old and new shards |
+| Stamped-N | Gateway stamps shard count into message | Gateway must know N reliably; ConfigMap sync lag makes this unreliable |
+| Virtual shards | `hash(key) % V`, V mapped to N | Scale events require reassigning virtual shards and migrating state |
+| Semi-stateful router | Placement directory in embedded KV | Router is SPOF; HA requires Raft consensus |
 
-All shard affinity approaches suffer from the same fundamental problem: **scale events require coordinated state migration or routing reconfiguration**. This is the core challenge of any sharded stateful system (Kafka, Vitess, CockroachDB, Akka Cluster Sharding all solve it, but with significant infrastructure complexity).
+All shard affinity approaches suffer from the same fundamental problem: scale events require coordinated state migration or routing reconfiguration.
 
 **Decision**: No shard affinity. Use external state store with CAS concurrency instead.
 
-**Rationale**: The external state store eliminates the routing problem entirely. Any pod can process any message. Scale events require no coordination. The CAS concurrency model handles concurrent access correctly without shard boundaries.
+**Rationale**: The external state store eliminates the routing problem entirely. Any pod can process any message. Scale events require no coordination.
 
-### ADR-3: Against Building a Placement Directory
+### ADR-8: Against building a placement directory
 
-**Context**: To make shard affinity work with dynamic scaling, we explored building a placement directory (a mapping from key to shard index) that persists across scale events. This is the pattern used by Dapr (Placement Service), Vitess (Lookup VIndex), and Akka (Shard Coordinator).
+**Context**: To make shard affinity work with dynamic scaling, we explored building a placement directory. This is the pattern used by Dapr (Placement Service), Vitess (Lookup VIndex), and Akka (Shard Coordinator).
 
-We evaluated multiple placement store options:
+Multiple placement store options were evaluated:
 
-| Store | CNCF Status | Embeddable? | Consistency | Min Pods | Verdict |
-|-------|-------------|-------------|-------------|----------|---------|
-| Embedded Badger (single-node) | None | Yes (Go) | CP (single writer) | 0 | SPOF -- placement data lost on pod failure |
-| Embedded Badger + hashicorp/raft | None | Yes (Go) | CP (Raft) | 0 (embedded) | ~300-500 LoC of custom consensus code |
-| NATS JetStream KV | Incubating | Yes (Go) | CP (Raft) | 1-3 | Raft-limited throughput (~1-5K writes/sec) |
-| Olric (distributed Go KV) | None | Yes (Go) | AP (best-effort) | 0 (embedded) | AP semantics break placement correctness |
-| Redis/Valkey | None (LF) | No | AP (async replication) | 1-4 | Adds infra dependency; SETNX provides CAS |
-| etcd | Graduated | Yes (heavy) | CP (Raft) | 3 | Overkill for routing table; heavy binary |
-| TiKV | Graduated | No | CP (Raft) | 6 | Massive overkill (petabyte-scale system) |
+| Store | Consistency | Verdict |
+|-------|-------------|---------|
+| Embedded Badger (single-node) | CP (single writer) | SPOF |
+| Embedded Badger + hashicorp/raft | CP (Raft) | ~300-500 LoC of custom consensus code |
+| NATS JetStream KV | CP (Raft) | Raft-limited throughput |
+| Redis/Valkey | AP (async replication) | AP semantics break placement correctness |
+| etcd | CP (Raft) | Overkill for routing table |
 
 **Decision**: Do not build a placement directory. The external state store approach eliminates the need for one.
 
-**Rationale**: A placement directory adds a distributed consensus system (Raft or equivalent) to the architecture. Whether embedded (hashicorp/raft) or external (NATS KV, etcd), it introduces operational complexity and failure modes. Since the external state store approach avoids shard affinity entirely, no placement directory is needed.
+### ADR-9: Fan-in as crew actor using state mounts
 
-**Consequence**: If a future workload genuinely requires shard affinity (e.g., per-pod GPU state that cannot be externalized), this decision can be revisited. But fan-in aggregation does not require it.
+**Context**: Fan-in aggregation requires cross-message state (partial results from fan-out converge). This was originally proposed as a separate `StateStore` interface in the crew actor. With the filesystem emulation approach, fan-in can use state mounts instead.
 
-### ADR-4: Against Embedding Consensus in Actors
+**Decision**: Fan-in crew actor (`x-fanin`) uses state mounts with CAS-capable backends.
 
-**Context**: For HA placement directories, we considered embedding Raft consensus (via hashicorp/raft) directly in the router actor. This would give CP consistency with zero external dependencies.
+**Rationale**: The state mount provides the storage interface. The fan-in handler reads/writes partial aggregation state through `open()` and `os.path.exists()` like any other actor. CAS semantics (needed for concurrent fan-in from multiple pods) are handled at the connector level — the connector exposes CAS via conditional headers:
 
-**Decision**: Do not embed consensus protocols in actors.
+```
+PUT /keys/{key}
+If-Match: {revision}    -> 200 (updated) or 409 (conflict, retry)
 
-**Rationale**: Embedding Raft in an actor means building and maintaining a distributed database inside a message handler. This is:
+GET /keys/{key}
+-> 200 + ETag: {revision}  (used for subsequent conditional PUT)
+```
 
-- **Wrong abstraction level**: Actors process messages; they should not be databases
-- **Hard to operate**: Raft requires stable pod identity, peer discovery, and careful failure handling
-- **Hard to test**: Consensus protocols need partition testing, leader election testing, and log compaction testing
-- **Duplicative**: Proven distributed KV stores (Redis, DynamoDB, NATS) already solve this problem
+This keeps the runtime simple (no CAS awareness) and pushes concurrency control to the connector, where it belongs.
 
-If an actor needs consistent shared state, it should use an external database purpose-built for that job.
+The fan-in protocol (message format, completeness detection, merge strategy) remains defined in a separate RFC.
 
-### ADR-5: Pluggable State Store, Not a Prescribed Database
+### ADR-10: Use cases routed to appropriate layers
 
-**Context**: Should Asya prescribe a specific state store (e.g., NATS KV) or let users bring their own?
-
-| Option | Pros | Cons |
-|--------|------|------|
-| Prescribe NATS KV | One default, CNCF-backed | Raft-limited throughput (~1-5K writes/sec); overkill for small workloads; not enough for large ones |
-| Prescribe Redis | Universal, fast (~100K ops/sec) | Not CNCF; adds infra dependency |
-| **Pluggable interface** | **Users bring existing infra; scales from dev to production** | **Multiple backends to maintain** |
-
-**Decision**: Pluggable `StateStore` interface with multiple backend implementations.
-
-**Rationale**: Different deployments have different infrastructure. AWS-native teams have DynamoDB. Teams with existing Redis can reuse it. Small deployments can use NATS KV. The fan-in crew actor should not force an infrastructure choice.
-
-The `StateStore` interface is minimal (get, create, update, delete) and maps naturally to any KV store or database that supports atomic operations.
-
-**Scaling characteristics of evaluated backends:**
-
-| Backend | Write throughput | Horizontal scaling | Best for |
-|---------|-----------------|-------------------|----------|
-| NATS KV | ~1-5K ops/s (Raft-limited, single leader) | Not horizontally shardable | Small scale (< 1K concurrent fan-ins) |
-| Redis/Valkey | ~100K ops/s (single thread) | Redis Cluster (auto-sharding) | Medium to large scale |
-| DynamoDB | Virtually unlimited (on-demand) | Automatic (managed) | Large scale, AWS-native |
-
-### ADR-6: Fan-In as Crew Actor, Not Framework Primitive
-
-**Context**: Should fan-in be a framework-level primitive (with XRD fields, composition logic, and sidecar support) or an application-level crew actor?
-
-| Option | Framework changes | Flexibility |
-|--------|------------------|-------------|
-| Framework primitive (`spec.stateful`) | Sidecar, injector, XRD, composition changes | Locked to framework's opinionated design |
-| **Crew actor (`x-fanin`)** | **None** | **Pluggable state store, customizable merge logic** |
-
-**Decision**: Implement fan-in as a crew actor in `asya-crew`.
-
-**Rationale**: A crew actor requires zero framework changes. The fan-in handler, state store interface, and backend implementations all live in `asya-crew` as application code. Users configure the state store via env vars or flavors. The sidecar, injector, XRD, and composition remain unchanged.
-
-This also means fan-in can evolve independently of the framework release cycle.
-
-### ADR-7: All Actors Remain Stateless Deployments
-
-**Context**: The original RFC proposed adding StatefulSet support to the AsyncActor XRD. This would require conditional logic in compositions, injector changes for pod-index detection, sidecar changes for per-pod queue names, and KEDA configuration for StatefulSet scaling.
-
-**Decision**: Do not add StatefulSet support. All actors remain stateless Deployments.
-
-**Rationale**: The state-backed actor pattern eliminates the need for StatefulSets. With externalized state:
-
-- No pod needs stable identity
-- No pod needs persistent local storage
-- No pod needs a dedicated queue
-- Scaling is standard (add/remove pods, no rebalancing)
-- Pod failure is graceful (message returns to queue, any pod retries)
-
-This keeps the framework simple: one workload type (Deployment), one queue model (shared queue with competing consumers), one scaling model (KEDA on queue depth).
-
-**Consequence**: The `spec.stateful` XRD field from the original RFC is not needed. The `volumeClaimTemplates`, `preCreateQueues`, and pod-index injection features are also not needed.
-
-### ADR-8: Use Cases Routed to Appropriate Layers
-
-**Context**: The original RFC listed five stateful use cases (fan-in, session memory, deduplication, rate limiting, time-window batching) as motivations for a general-purpose stateful actor primitive.
-
-**Decision**: Route each use case to the most appropriate layer.
+**Context**: Multiple stateful use cases were analyzed. Most do not belong in the actor layer.
 
 | Use case | Layer | Rationale |
 |----------|-------|-----------|
-| Fan-in aggregation | Actor (`x-fanin` crew actor) | Bounded state, bounded lifetime, clear completion condition |
-| Deduplication | Gateway | Already tracks task state; idempotency is an ingress concern |
-| Rate limiting | Gateway | Rate limiting is an ingress/API concern, not a pipeline concern |
-| Session memory | Application database (user-managed) | Unbounded state, requires elastic storage; not an Asya concern |
+| **Agentic context storage** | **State mounts (this design)** | Bounded state per user, natural fit for KV/object store |
+| **Media file storage** | **State mounts (this design)** | Object store is the natural backend |
+| **Fan-in aggregation** | **State mounts + crew actor** | Bounded state, bounded lifetime, CAS for concurrency |
+| **Session files** | **State mounts (this design)** | Intermediate artifacts, bounded per session |
+| Deduplication | Gateway | Gateway already tracks task state |
+| Per-key rate limiting | Gateway | Rate limiting is an ingress concern |
 | Time-window batching | Out of scope | Stream processing semantics (Flink territory) |
 
-**Rationale**: A general-purpose stateful actor primitive would be over-engineering. Fan-in is the only use case that fits naturally in the actor pipeline. The others are either gateway concerns, application-level database concerns, or stream processing concerns that Asya should not attempt to solve.
-
----
-
-## Impact on Existing Architecture
-
-### No Changes Required
-
-| Component | Change |
-|-----------|--------|
-| asya-sidecar | None |
-| asya-injector | None |
-| asya-runtime | None |
-| asya-gateway | None (dedup/rate-limiting are future gateway features) |
-| Crossplane XRD | None |
-| Crossplane Compositions | None |
-| Helm charts | None |
-| KEDA configuration | None |
-
-### New Components
-
-| Component | Description |
-|-----------|-------------|
-| `asya-crew/x-fanin` | Fan-in aggregation handler with pluggable state store |
-| `asya-crew/state_store/` | `StateStore` interface and backend implementations |
-| `fan-in` flavor | Preconfigured flavor for fan-in actors |
-
----
-
-## Example: Fan-In Pipeline (Conceptual)
-
-The fan-in protocol (message format, completeness detection, merge strategy) is defined in a separate RFC. This example shows only the deployment topology.
-
-```yaml
-# 1. Fan-out router (stateless, splits work)
-apiVersion: asya.sh/v1alpha1
-kind: AsyncActor
-metadata:
-  name: fanout-research
-spec:
-  actor: fanout-research
-  transport: sqs
-  workload:
-    template:
-      spec:
-        containers:
-          - name: asya-runtime
-            image: my-flow-routers:latest
-            env:
-              - name: ASYA_HANDLER
-                value: "routers.fanout_research"
-              - name: ASYA_HANDLER_MODE
-                value: "envelope"
----
-# 2. Sub-agent (stateless, does the work)
-apiVersion: asya.sh/v1alpha1
-kind: AsyncActor
-metadata:
-  name: research-agent
-spec:
-  actor: research-agent
-  transport: sqs
-  workload:
-    replicas: 5
-    template:
-      spec:
-        containers:
-          - name: asya-runtime
-            image: my-agents:latest
-            env:
-              - name: ASYA_HANDLER
-                value: "agents.research"
----
-# 3. Aggregator (state-backed, assembles results)
-apiVersion: asya.sh/v1alpha1
-kind: AsyncActor
-metadata:
-  name: aggregator
-spec:
-  actor: aggregator
-  transport: sqs
-  flavors: [fan-in]
-  workload:
-    template:
-      spec:
-        containers:
-          - name: asya-runtime
-            image: asya-crew:latest
-            env:
-              - name: ASYA_HANDLER
-                value: "asya_crew.fanin.handle"
-              - name: ASYA_HANDLER_MODE
-                value: "envelope"
-              - name: ASYA_FANIN_STORE
-                value: "redis"
-              - name: ASYA_FANIN_STORE_URL
-                value: "redis://redis:6379"
-```
-
-**Message flow:**
-1. Request arrives at `fanout-research` queue
-2. Fan-out router splits into N sub-tasks, stamps each with `origin_id` and `expected_count`
-3. Sub-agents process independently (competing consumers, 5 pods)
-4. Sub-agent results route to `aggregator` queue
-5. Any aggregator pod reads partial state from Redis, merges new result, CAS-writes back
-6. When all partials received, aggregator emits merged result to next step (or x-sink)
-
-Key difference from the original RFC: the aggregator is a **standard Deployment** with a single shared queue. No StatefulSet, no per-pod queues, no shard routing. Redis (or DynamoDB, NATS KV, etc.) provides the shared state.
+**Decision**: State mounts serve the four actor-layer use cases. Gateway concerns and stream processing remain out of scope.
 
 ---
 
 ## Open Questions
 
-1. **Fan-in protocol**: How does the fan-out router stamp messages with `origin_id` and `expected_count`? How does the aggregator detect completeness? How is the merge performed? Defined in a separate RFC.
+1. **Connector health checks**: How does the runtime know if a connector is ready before the handler starts? Options: readiness probe on the connector socket, or the runtime retries connection on first state access.
 
-2. **State store lifecycle**: Who provisions the state store (Redis, DynamoDB, etc.)? Options: user-managed (BYO), Crossplane-managed (auto-provision), or Helm-chart-managed (deploy alongside Asya).
+2. **State store lifecycle**: Who provisions the backend (Redis, S3 bucket, etc.)? Options: user-managed (BYO), Crossplane-managed (auto-provision with the actor), or Helm-chart-managed.
 
-3. **TTL and cleanup**: What happens if a fan-in never completes (sub-agent failure, message loss)? The state store should have TTL-based cleanup to prevent unbounded growth. The TTL value depends on the workload.
+3. **TTL and cleanup**: For KV backends (Redis, NATS), should keys have automatic TTL? Configurable per mount? This prevents unbounded growth from orphaned state.
 
-4. **Large payloads**: If partial results exceed the state store's value size limit (e.g., 1MB for NATS KV, 512MB for Redis), payloads should be stored in S3/MinIO with pointers in the state store. The `StateStore` interface may need a companion `PayloadStore` for this pattern.
+4. **CAS protocol details**: The conditional PUT (`If-Match` / `ETag`) protocol for fan-in needs formal specification. Should the runtime expose CAS semantics to handlers, or keep it hidden in the connector?
 
-5. **Retry semantics**: When a CAS update fails due to contention (multiple pods updating the same key), the handler retries internally. When the state store is unavailable (e.g., Redis down), the handler returns an error, triggering the sidecar's retry logic (exponential backoff per the resiliency RFC). If all retries exhaust, the message routes to x-sump.
+5. **Mount path conventions**: Should mount paths be relative to workdir (`./cache/`) or absolute (`/asya/state/cache/`)? Relative is more natural for handlers, absolute is more predictable for the interception layer.
+
+6. **Binary vs. text mode**: Should `open(path, "r")` (text mode) perform encoding/decoding, or should the connector always return raw bytes? Text mode with UTF-8 is the expected default for most use cases.
+
+---
+
+## Rejected Alternative: StatefulSet-Based Approach
+
+The original design proposed StatefulSets with per-pod queues and shard affinity. See ADRs 6-8 for the detailed analysis and rejection rationale. The core issues:
+
+- Scale events require coordinated state migration
+- Placement directories add distributed consensus complexity
+- StatefulSets break standard KEDA autoscaling
+- Pod failure locks state on PVC until restart
+
+The stateless Deployment + external state approach eliminates all of these problems with negligible latency overhead for AI workloads.
 
 ---
 
 ## References
 
-- Fan-In Protocol RFC (TBD) -- Message format, completeness detection, merge strategy
-- A/B Routing RFC (epic 1crb) -- `x-asya-route-override` header mechanism (not needed for state-backed approach but remains available for other use cases)
-- Resiliency RFC (#181) -- Sidecar retry logic with exponential backoff
-- Actor Flavors RFC -- `fan-in` flavor, composable presets
-- Design discussion transcript (archived) -- Full exploration of shard affinity, placement directories, NATS KV, and the decision to use externalized state
+- Fan-In Protocol RFC (TBD) — Message format, completeness detection, merge strategy
+- Resiliency RFC (#181) — Sidecar retry logic with exponential backoff
+- Actor Flavors RFC — composable presets including state backends
