@@ -1,5 +1,5 @@
 ---
-title: Implement Stateful Actors (without auto-scaler)
+title: State-Backed Actors
 status: open
 priority: 2 # medium
 type: epic
@@ -7,371 +7,328 @@ type: epic
 
 ## Summary
 
-Stateful actors introduce per-pod queue affinity with persistent storage to Asya. A stateful actor runs as a Kubernetes StatefulSet where each pod consumes from its own dedicated queue, enabling shard-affine message routing. This is the foundational primitive for fan-in aggregation, session memory, deduplication, and other workloads requiring message affinity.
+This RFC defines how Asya actors access shared state across messages. All Asya actors remain **stateless Deployments** -- there are no StatefulSets, no per-pod queues, no shard affinity. Actors that need state across messages use an **external state store** (a pluggable backing service such as Redis, DynamoDB, or NATS KV). This pattern is called **state-backed actors**.
+
+Fan-in aggregation is the primary use case. Other potential use cases (deduplication, rate limiting, session memory) are addressed by other layers of the architecture or deferred.
 
 ---
-
-## Abstract
-
-This RFC introduces **stateful actors** as a general-purpose primitive in Asya. A stateful actor runs as a Kubernetes StatefulSet where each pod consumes from its own dedicated queue, enabling shard-affine message routing. Persistent storage is provided via standard K8s `volumeClaimTemplates`. Shard resolution is handled externally by the sender (via `x-asya-route-override` headers), keeping the sidecar and stateful actor itself unaware of sharding mechanics.
-
-
-## Future use-cases
-
-Fan-in aggregation is the first use case but the primitive supports any workload requiring message affinity, in future we'll support more use-cases:
-
-|Use case|Sharding key|State|Needs to pause for reshuffling?|
-|-|-|-|-|
-|Fan-in aggregation|`origin_id`|Partial results in RocksDB|No|
-|Session/conversation memory|`user_id` or `session_id`|Chat history, context|Yes|
-|Deduplication|`message_id`|Seen IDs with TTL|Yes|
-|Time-window batching|`batch_key`|Accumulated events|Yes|
-|Per-key rate limiting|`client_id`|Request counters|Yes|
-
 
 ## Motivation
 
-Asya's current actor model is stateless: all pods of an actor compete for messages from a single shared queue. This works for independent request processing but breaks when messages must reach a **specific pod** -- for example, all slices of a fan-out operation must converge on the same aggregator replica to detect completeness.
+Asya's current actor model is stateless: each message is processed independently, and no state is shared between messages. This works for single-request processing but breaks for **fan-in aggregation**, where partial results from a fan-out must converge and be assembled into a single output.
+
+The naive solution -- shard affinity via StatefulSets and per-pod queues -- introduces significant complexity: placement directories, shard routing, rebalancing on scale events, and custom controllers. This RFC argues that a simpler approach (externalized state) solves the fan-in problem without any of that complexity.
 
 ### Requirements
 
-- **Shard affinity**: Messages with the same key reach the same pod deterministically
-- **Durability**: State survives pod restarts (PVC-backed storage)
-- **Transport-agnostic**: Works with SQS, RabbitMQ, and future transports
-- **Minimal sidecar changes**: The sidecar should not need sharding logic
-- **K8s-native**: Leverage StatefulSet, volumeClaimTemplates, downward API (?), existing integration with Crossplane, KEDA
-- **Explicit configuration and composition**: XRD `AsyncActor` should define stateful set configuration explicitly, and we'll leverage existing mechanism of *flavors* and *asya-crew* pre-built actors to make it less verbose and offer re-usable actors.
+- **Correctness**: Messages with the same aggregation key must update the same state, regardless of which pod processes them
+- **No local state**: Actors remain stateless Deployments with standard KEDA autoscaling
+- **No framework changes**: No sidecar, injector, or XRD changes required
+- **Pluggable state store**: Users bring their own database (Redis, DynamoDB, NATS KV, etc.)
+- **Transport-agnostic**: Works identically with SQS, RabbitMQ, and future transports
 
 ---
 
-## Design
+## Use-Case Analysis
 
-### Queue Model
+Before designing the solution, we analyzed all potential use cases for cross-message state. Most do not belong in the actor layer.
 
-Stateless actors: **1 queue, M competing pods** (Deployment).
-Stateful actors: **N queues, N dedicated pods** (StatefulSet). Each pod consumes exclusively from its own queue (however, on the asya level, in `message.route`, this queue looks still like the same: `asya-{ns}-{actor}` as it's the same actor).
+| Use case | Sharding key | Belongs in | Rationale |
+|----------|-------------|------------|-----------|
+| **Fan-in aggregation** | `origin_id` | **Actor layer (this RFC)** | Only use case requiring cross-message state in the pipeline |
+| Deduplication | `message_id` | Gateway | Gateway already tracks task state; dedup is a gateway concern (idempotency) |
+| Per-key rate limiting | `client_id` | Gateway | Rate limiting is an ingress concern, not a pipeline concern |
+| Session/conversation memory | `session_id` | External database directly (partially this RFC) | Sessions require unbounded, elastic storage -- far beyond what Asya should manage |
+| Time-window batching | `batch_key` | Out of scope | Complex windowing semantics (Flink territory); not an Asya concern |
 
-```
-Stateless: asya-{ns}-{actor}        <- all pods compete
-Stateful:  asya-{ns}-{actor}-0      <- pod 0 only
-           asya-{ns}-{actor}-1      <- pod 1 only
-           asya-{ns}-{actor}-2      <- pod 2 only
-```
+### Why Fan-In Is the Only Actor-Layer Use Case
 
-This is the only mechanism that provides **hard shard affinity** across all transports without introducing pod-to-pod communication. Transport-level alternatives (SQS FIFO message groups, RabbitMQ consistent-hash exchange) either lack hard guarantees or hide N queues behind an exchange -- and each is transport-specific.
+**Deduplication and rate limiting** are request-level concerns handled at ingress. The asya-gateway already maintains task state and is the natural place for idempotency checks and rate limits. Moving these into the pipeline would duplicate responsibility.
 
-### XRD Schema Extension
+**Session memory** requires storing unbounded conversation histories (potentially megabytes per session) across millions of concurrent sessions. This needs an elastic, HA database (DynamoDB, PostgreSQL, Redis Cluster) that the application team manages directly. It is not Asya's job to abstract session storage -- the handler simply connects to whatever database the team already uses.
 
-Add an optional `stateful` object to the AsyncActor spec. Its presence switches the composition to StatefulSet mode with per-pod queues.
+**Time-window batching** requires timer-based triggers, window semantics, and late-arrival handling. This is stream processing (Apache Flink, Spark Streaming), not message passing. Asya should not reinvent stream processing primitives.
 
-```yaml
-# New fields in the AsyncActor XRD under spec
-stateful:
-  type: object
-  description: |
-    Enables stateful actor mode: StatefulSet workload, per-pod queues
-    with shard-affine routing, and optional persistent storage.
-    When present, overrides workload kind to StatefulSet.
-  properties:
-    preCreateQueues:
-      type: integer
-      minimum: 1
-      description: |
-        Number of queues to pre-provision at deploy time (indices 0 to
-        preCreateQueues-1). Should be >= scaling.maxReplicas if autoscaling
-        is enabled. Defaults to scaling.maxReplicas (if scaling configured)
-        or workload.replicas (if not).
-    volumeClaimTemplates:
-      type: array
-      description: |
-        K8s-native volumeClaimTemplates, passed directly to the StatefulSet
-        spec. Each template creates one PVC per pod.
-      items:
-        type: object
-        x-kubernetes-preserve-unknown-fields: true
-```
+**Fan-in aggregation** is different: it has bounded state (finite number of partial results per origin), bounded lifetime (seconds to minutes), and a clear completion condition (all partials received). It is a natural fit for a lightweight crew actor with pluggable state.
 
-**Key properties:**
+---
 
-- `stateful` is optional. Absence = stateless (current behavior, no breaking changes)
-- **No `replicas` field** -- uses existing `workload.replicas` (no scaling) or `scaling.minReplicas/maxReplicas` (with KEDA)
-- `preCreateQueues` controls headroom for scale-up without queue-creation races
-- `volumeClaimTemplates` is optional (a stateful actor might only need queue affinity, not storage)
-- `volumeClaimTemplates` uses the standard K8s schema -- users get full PVC control (access modes, storage classes, selectors for binding to pre-provisioned PVs)
+## Proposed Solution: State-Backed Actors
 
-### Queue Pre-Provisioning
+### Core Concept
 
-Queues are pre-provisioned at deploy time to eliminate race conditions on scale-up. Unlike PVCs, idle queues are free (SQS) or negligible (RabbitMQ).
-
-| Resource | Pre-provisioned? | Rationale |
-|----------|-----------------|-----------|
-| Queues   | ✅ Up to `preCreateQueues` | Free when idle, eliminates scale-up races |
-| PVCs     | ❌ On-demand by StatefulSet controller | Cost real storage, dynamic provisioning is fast |
-
-**Default formula** for `preCreateQueues` when not explicitly set:
+A state-backed actor is a **standard stateless Deployment** that reads and writes shared state via an **external state store**. Any pod can process any message because state is not local -- it lives in the backing service.
 
 ```
-if spec.scaling is present:
-    preCreateQueues = scaling.maxReplicas
-else:
-    preCreateQueues = workload.replicas  (default: 1)
+        aggregator queue (single shared queue)
+                |
+    +-----------+-----------+
+    |           |           |
+  Pod-0      Pod-1       Pod-2      (stateless Deployment, KEDA-scaled)
+    |           |           |
+    +-----+-----+-----+----+
+          |
+    External State Store
+    (Redis / DynamoDB / NATS KV / ...)
 ```
 
-### Pod Identity and Queue Resolution
+### Properties
 
-Each StatefulSet pod determines its queue name at startup via K8s-native mechanisms:
+- **No StatefulSet**: Plain Deployment with competing consumers
+- **No per-pod queues**: Single shared queue per actor
+- **No shard affinity**: Any pod handles any message
+- **No placement directory**: No routing logic needed
+- **Standard autoscaling**: KEDA scales on queue depth, same as any stateless actor
+- **No sidecar changes**: The sidecar is unaware of state -- the handler manages it
+- **No XRD changes**: State store connection is configured via env vars
+- **No composition changes**: The actor deploys like any other stateless actor
 
-```yaml
-# Injected into the sidecar container by the operator/injector
-env:
-  - name: ASYA_NAMESPACE
-    valueFrom:
-      fieldRef:
-        fieldPath: metadata.namespace
-  - name: ASYA_ACTOR_NAME
-    value: "my-aggregator"
-  - name: ASYA_POD_INDEX
-    valueFrom:
-      fieldRef:
-        fieldPath: metadata.labels['apps.kubernetes.io/pod-index']
-  - name: ASYA_QUEUE_NAME
-    value: "asya-$(ASYA_NAMESPACE)-$(ASYA_ACTOR_NAME)-$(ASYA_POD_INDEX)"
-```
+### Concurrency Model
 
-For stateless actors, `ASYA_QUEUE_NAME` omits the pod index:
+Multiple pods may process messages for the same aggregation key simultaneously. The state store provides atomicity via **compare-and-swap (CAS)**:
 
-```yaml
-  - name: ASYA_QUEUE_NAME
-    value: "asya-$(ASYA_NAMESPACE)-$(ASYA_ACTOR_NAME)"
-```
+1. Pod reads current state for key (gets value + revision)
+2. Pod merges its partial result into the state
+3. Pod writes updated state with revision check (CAS)
+4. If another pod updated first (revision mismatch), retry from step 1
 
-The sidecar reads `ASYA_QUEUE_NAME` and consumes from it. **No sharding logic in the sidecar.** The sidecar does not know whether it is stateful or stateless -- it just consumes from the queue it is told to consume from.
+This is the standard optimistic concurrency pattern used by every distributed database.
 
-**`apps.kubernetes.io/pod-index`** is a stable K8s label (GA since K8s 1.29) automatically added by the StatefulSet controller to every pod. It is reliable -- every major stateful system on K8s (Kafka, Cassandra, etcd) relies on this convention.
+### State Store Interface
 
-### Shard Routing
-
-Shard routing uses the existing `x-asya-route-override` mechanism from the A/B Routing RFC (epic 1crb). **No new headers or sidecar logic required.**
-
-The sender (e.g., fan-out router) computes the target shard and stamps the override:
+The fan-in crew actor uses a pluggable `StateStore` interface. The backend is selected via environment variables.
 
 ```python
-shard = rendezvous_hash(origin_id, num_shards)
-headers["x-asya-route-override"] = {"aggregator": f"aggregator-{shard}"}
+class StateStore(ABC):
+    """Interface for fan-in state storage backends."""
+
+    @abstractmethod
+    async def get(self, key: str) -> Optional[tuple[bytes, Any]]:
+        """Read state for key. Returns (value, revision) or None."""
+
+    @abstractmethod
+    async def create(self, key: str, value: bytes, ttl: Optional[int] = None) -> bool:
+        """Atomically create key if not exists. Returns True on success."""
+
+    @abstractmethod
+    async def update(self, key: str, value: bytes, revision: Any) -> bool:
+        """CAS update: write value only if revision matches. Returns True on success."""
+
+    @abstractmethod
+    async def delete(self, key: str) -> None:
+        """Delete key (cleanup after completion)."""
 ```
 
-The sidecar's existing route-override lookup resolves `"aggregator"` to `"aggregator-2"`, constructs the queue name `asya-{ns}-aggregator-2`, and sends the message. No sidecar changes needed for the routing path.
+Implementations: `RedisStateStore`, `DynamoDBStateStore`, `NatsKvStateStore`, etc.
 
-**Shard count propagation**: The sender learns the shard count via an environment variable (e.g., `ASYA_FANIN_SHARDS`). When the aggregator scales, this env var is updated on the sender's AsyncActor, triggering a rolling restart. This is acceptable because the sender is a stateless actor with fast restarts.
+### Configuration
 
-### Composition Changes
-
-The existing composition gains conditional logic when `spec.stateful` is present:
-
-| Concern | Stateless (current) | Stateful (new) |
-|---------|---------------------|----------------|
-| Workload | Deployment | StatefulSet with volumeClaimTemplates |
-| Queues | 1: `asya-{ns}-{actor}` | N: `asya-{ns}-{actor}-0` .. `asya-{ns}-{actor}-{N-1}` |
-| Sidecar env | `ASYA_QUEUE_NAME` = `asya-{ns}-{actor}` | `ASYA_QUEUE_NAME` = `asya-{ns}-{actor}-{pod_index}` |
-| KEDA target | `scaleTargetRef.kind: Deployment` | `scaleTargetRef.kind: StatefulSet` |
-| Status | `queueUrl`: single URL | `queuePattern`: `asya-{ns}-{actor}-{0..N-1}` |
-
-**Queue rendering** (Go template pseudo-logic):
-
-```go
-{{ if $xr.spec.stateful }}
-  {{ $n := $xr.spec.stateful.preCreateQueues | default $maxReplicas | default $replicas }}
-  {{ range $i := until $n }}
-    - kind: Queue
-      metadata:
-        name: {{ $actorName }}-{{ $i }}
-      spec:
-        forProvider:
-          name: asya-{{ $namespace }}-{{ $actorName }}-{{ $i }}
-  {{ end }}
-{{ else }}
-  - kind: Queue
-    metadata:
-      name: {{ $actorName }}
-    spec:
-      forProvider:
-        name: asya-{{ $namespace }}-{{ $actorName }}
-{{ end }}
-```
-
-### Status Reporting
-
-Stateful actors report a queue pattern instead of a single URL:
+The state store is configured via env vars on the actor (or via flavor defaults):
 
 ```yaml
-status:
-  phase: Ready
-  queuePattern: "asya-prod-my-aggregator-{0..9}"
-  infrastructure:
-    queue: "Ready"
-    workload: "Ready"
+env:
+  - name: ASYA_FANIN_STORE
+    value: "redis"  # or: dynamodb, nats, ...
+  - name: ASYA_FANIN_STORE_URL
+    value: "redis://redis:6379"
 ```
 
-### Autoscaling (Phased)
+### Fan-In as a Crew Actor
 
-Stateful actor autoscaling is delivered in three phases:
+Fan-in is implemented as a new `x-fanin` crew actor in `asya-crew`, alongside `x-sink` and `x-sump`. The fan-in handler, state store interface, and backend implementations all live in `asya-crew`.
 
-**Phase 1 -- Semi-automatic (foundation)**
-
-- Manual scaling: user updates `workload.replicas` or `scaling.minReplicas`
-- Operator adjusts StatefulSet replicas
-- Pre-provisioned queues ensure no races
-- User updates `ASYA_FANIN_SHARDS` on the sender and triggers rolling restart
-
-**Phase 2 -- Auto scale-up**
-
-- KEDA ScaledObject with `scaleDown.selectPolicy: Disabled`
-- Prometheus trigger on PVC utilization or custom metrics
-- Operator watches StatefulSet replica changes, propagates shard count to senders (e.g., via ConfigMap or env var update)
-- Fan-out sidecars hot-reload N or sender pods rolling-restart
-
-```yaml
-scaling:
-  minReplicas: 3
-  maxReplicas: 10
-  triggers:
-    - type: prometheus
-      metadata:
-        query: |
-          max(asya_fanin_rocksdb_size_bytes{actor="aggregator"})
-          / on() group_left() asya_fanin_pvc_capacity_bytes
-        threshold: "0.7"
-```
-
-```yaml
-# KEDA behavior: scale-up only
-advanced:
-  horizontalPodAutoscalerConfig:
-    behavior:
-      scaleDown:
-        selectPolicy: Disabled
-```
-
-**Phase 3 -- Auto scale-down (separate RFC if needed)**
-
-Scale-down is hard for stateful actors. KEDA removes pods from the tail (highest ordinal first), but that pod has in-flight state in its storage.
-
-Requirements for safe scale-down:
-1. Stop routing new messages to the condemned shard (update shard count before pod removal)
-2. Drain in-flight state (pre-stop hook or finalizer blocks termination until storage is empty)
-3. Timeout for drain completion
-
-This requires a stateful-actor-aware controller sitting between KEDA's scaling decision and the actual pod removal. Deferred to a future RFC.
+The fan-in protocol (message format, completeness detection, merge strategy) is defined in a separate RFC. This RFC only establishes the architectural pattern.
 
 ---
 
-## Examples
+## Architecture Decision Records
 
-### Example 1: Minimal Stateful Actor (Queue Affinity Only)
+### ADR-1: Stateless Deployment + External State vs. StatefulSet + Local State
 
-A stateful actor that needs message affinity but no persistent storage (e.g., in-memory session cache):
+**Context**: Actors that need cross-message state (e.g., fan-in aggregation) could either maintain state locally (StatefulSet with per-pod storage) or externalize state to a shared database.
+
+| Approach | Scaling | Complexity | Access latency | Failure mode |
+|----------|---------|------------|----------------|--------------|
+| **StatefulSet + local RocksDB** | Complex (shard rebalancing, placement directory, N per-pod queues) | High (sidecar changes, injector changes, XRD changes, new composition logic) | Sub-ms (local disk) | Pod failure = state locked on PVC until pod restarts |
+| **Deployment + external state store** | Standard KEDA (no rebalancing) | Low (no framework changes, handler-level concern) | ~1ms (Redis), ~5ms (DynamoDB) | Pod failure = message returns to queue, another pod continues |
+
+**Decision**: Stateless Deployment with external state store.
+
+**Rationale**: For Asya's primary workload (AI pipelines), each sub-agent takes seconds to process a message. The ~1-5ms overhead of an external state store is negligible compared to seconds of LLM inference. The architectural simplicity is worth far more than sub-millisecond local access:
+
+- No sidecar changes
+- No injector changes
+- No XRD changes
+- No composition changes
+- No StatefulSet controller interactions
+- No shard routing or placement logic
+- Standard KEDA autoscaling
+- Graceful failure handling (message returns to queue, any pod retries)
+
+**Consequence**: Actors that genuinely need local disk state (e.g., high-throughput streaming with sub-ms latency requirements) cannot use this pattern. Such workloads are out of scope for Asya's actor model and should use purpose-built stream processing tools (Kafka Streams, Flink).
+
+### ADR-2: Against Shard Affinity for Fan-In
+
+**Context**: The original design used shard affinity (StatefulSet with per-pod queues) so that all partial results for a given key would land on the same pod. This required a placement directory to map keys to shards.
+
+We explored multiple shard routing approaches:
+
+| Approach | How it works | Problem |
+|----------|-------------|---------|
+| **Static hashing** (rendezvous / consistent hash) | Sender computes `hash(key) % N` | Scale events (N changes) remap keys -- partial results split across old and new shards |
+| **Stamped-N** (sender stamps shard count into message) | Gateway stamps N at send time | Gateway must know N reliably; ConfigMap sync lag makes this unreliable |
+| **Virtual shards** (fixed V virtual, variable N physical) | `hash(key) % V`, V mapped to N | Scale events require reassigning virtual shards and migrating state |
+| **Semi-stateful router** (placement directory in embedded KV) | Router stores `key -> shard` in RocksDB | Router is SPOF; HA requires Raft consensus (building a mini-database) |
+
+All shard affinity approaches suffer from the same fundamental problem: **scale events require coordinated state migration or routing reconfiguration**. This is the core challenge of any sharded stateful system (Kafka, Vitess, CockroachDB, Akka Cluster Sharding all solve it, but with significant infrastructure complexity).
+
+**Decision**: No shard affinity. Use external state store with CAS concurrency instead.
+
+**Rationale**: The external state store eliminates the routing problem entirely. Any pod can process any message. Scale events require no coordination. The CAS concurrency model handles concurrent access correctly without shard boundaries.
+
+### ADR-3: Against Building a Placement Directory
+
+**Context**: To make shard affinity work with dynamic scaling, we explored building a placement directory (a mapping from key to shard index) that persists across scale events. This is the pattern used by Dapr (Placement Service), Vitess (Lookup VIndex), and Akka (Shard Coordinator).
+
+We evaluated multiple placement store options:
+
+| Store | CNCF Status | Embeddable? | Consistency | Min Pods | Verdict |
+|-------|-------------|-------------|-------------|----------|---------|
+| Embedded Badger (single-node) | None | Yes (Go) | CP (single writer) | 0 | SPOF -- placement data lost on pod failure |
+| Embedded Badger + hashicorp/raft | None | Yes (Go) | CP (Raft) | 0 (embedded) | ~300-500 LoC of custom consensus code |
+| NATS JetStream KV | Incubating | Yes (Go) | CP (Raft) | 1-3 | Raft-limited throughput (~1-5K writes/sec) |
+| Olric (distributed Go KV) | None | Yes (Go) | AP (best-effort) | 0 (embedded) | AP semantics break placement correctness |
+| Redis/Valkey | None (LF) | No | AP (async replication) | 1-4 | Adds infra dependency; SETNX provides CAS |
+| etcd | Graduated | Yes (heavy) | CP (Raft) | 3 | Overkill for routing table; heavy binary |
+| TiKV | Graduated | No | CP (Raft) | 6 | Massive overkill (petabyte-scale system) |
+
+**Decision**: Do not build a placement directory. The external state store approach eliminates the need for one.
+
+**Rationale**: A placement directory adds a distributed consensus system (Raft or equivalent) to the architecture. Whether embedded (hashicorp/raft) or external (NATS KV, etcd), it introduces operational complexity and failure modes. Since the external state store approach avoids shard affinity entirely, no placement directory is needed.
+
+**Consequence**: If a future workload genuinely requires shard affinity (e.g., per-pod GPU state that cannot be externalized), this decision can be revisited. But fan-in aggregation does not require it.
+
+### ADR-4: Against Embedding Consensus in Actors
+
+**Context**: For HA placement directories, we considered embedding Raft consensus (via hashicorp/raft) directly in the router actor. This would give CP consistency with zero external dependencies.
+
+**Decision**: Do not embed consensus protocols in actors.
+
+**Rationale**: Embedding Raft in an actor means building and maintaining a distributed database inside a message handler. This is:
+
+- **Wrong abstraction level**: Actors process messages; they should not be databases
+- **Hard to operate**: Raft requires stable pod identity, peer discovery, and careful failure handling
+- **Hard to test**: Consensus protocols need partition testing, leader election testing, and log compaction testing
+- **Duplicative**: Proven distributed KV stores (Redis, DynamoDB, NATS) already solve this problem
+
+If an actor needs consistent shared state, it should use an external database purpose-built for that job.
+
+### ADR-5: Pluggable State Store, Not a Prescribed Database
+
+**Context**: Should Asya prescribe a specific state store (e.g., NATS KV) or let users bring their own?
+
+| Option | Pros | Cons |
+|--------|------|------|
+| Prescribe NATS KV | One default, CNCF-backed | Raft-limited throughput (~1-5K writes/sec); overkill for small workloads; not enough for large ones |
+| Prescribe Redis | Universal, fast (~100K ops/sec) | Not CNCF; adds infra dependency |
+| **Pluggable interface** | **Users bring existing infra; scales from dev to production** | **Multiple backends to maintain** |
+
+**Decision**: Pluggable `StateStore` interface with multiple backend implementations.
+
+**Rationale**: Different deployments have different infrastructure. AWS-native teams have DynamoDB. Teams with existing Redis can reuse it. Small deployments can use NATS KV. The fan-in crew actor should not force an infrastructure choice.
+
+The `StateStore` interface is minimal (get, create, update, delete) and maps naturally to any KV store or database that supports atomic operations.
+
+**Scaling characteristics of evaluated backends:**
+
+| Backend | Write throughput | Horizontal scaling | Best for |
+|---------|-----------------|-------------------|----------|
+| NATS KV | ~1-5K ops/s (Raft-limited, single leader) | Not horizontally shardable | Small scale (< 1K concurrent fan-ins) |
+| Redis/Valkey | ~100K ops/s (single thread) | Redis Cluster (auto-sharding) | Medium to large scale |
+| DynamoDB | Virtually unlimited (on-demand) | Automatic (managed) | Large scale, AWS-native |
+
+### ADR-6: Fan-In as Crew Actor, Not Framework Primitive
+
+**Context**: Should fan-in be a framework-level primitive (with XRD fields, composition logic, and sidecar support) or an application-level crew actor?
+
+| Option | Framework changes | Flexibility |
+|--------|------------------|-------------|
+| Framework primitive (`spec.stateful`) | Sidecar, injector, XRD, composition changes | Locked to framework's opinionated design |
+| **Crew actor (`x-fanin`)** | **None** | **Pluggable state store, customizable merge logic** |
+
+**Decision**: Implement fan-in as a crew actor in `asya-crew`.
+
+**Rationale**: A crew actor requires zero framework changes. The fan-in handler, state store interface, and backend implementations all live in `asya-crew` as application code. Users configure the state store via env vars or flavors. The sidecar, injector, XRD, and composition remain unchanged.
+
+This also means fan-in can evolve independently of the framework release cycle.
+
+### ADR-7: All Actors Remain Stateless Deployments
+
+**Context**: The original RFC proposed adding StatefulSet support to the AsyncActor XRD. This would require conditional logic in compositions, injector changes for pod-index detection, sidecar changes for per-pod queue names, and KEDA configuration for StatefulSet scaling.
+
+**Decision**: Do not add StatefulSet support. All actors remain stateless Deployments.
+
+**Rationale**: The state-backed actor pattern eliminates the need for StatefulSets. With externalized state:
+
+- No pod needs stable identity
+- No pod needs persistent local storage
+- No pod needs a dedicated queue
+- Scaling is standard (add/remove pods, no rebalancing)
+- Pod failure is graceful (message returns to queue, any pod retries)
+
+This keeps the framework simple: one workload type (Deployment), one queue model (shared queue with competing consumers), one scaling model (KEDA on queue depth).
+
+**Consequence**: The `spec.stateful` XRD field from the original RFC is not needed. The `volumeClaimTemplates`, `preCreateQueues`, and pod-index injection features are also not needed.
+
+### ADR-8: Use Cases Routed to Appropriate Layers
+
+**Context**: The original RFC listed five stateful use cases (fan-in, session memory, deduplication, rate limiting, time-window batching) as motivations for a general-purpose stateful actor primitive.
+
+**Decision**: Route each use case to the most appropriate layer.
+
+| Use case | Layer | Rationale |
+|----------|-------|-----------|
+| Fan-in aggregation | Actor (`x-fanin` crew actor) | Bounded state, bounded lifetime, clear completion condition |
+| Deduplication | Gateway | Already tracks task state; idempotency is an ingress concern |
+| Rate limiting | Gateway | Rate limiting is an ingress/API concern, not a pipeline concern |
+| Session memory | Application database (user-managed) | Unbounded state, requires elastic storage; not an Asya concern |
+| Time-window batching | Out of scope | Stream processing semantics (Flink territory) |
+
+**Rationale**: A general-purpose stateful actor primitive would be over-engineering. Fan-in is the only use case that fits naturally in the actor pipeline. The others are either gateway concerns, application-level database concerns, or stream processing concerns that Asya should not attempt to solve.
+
+---
+
+## Impact on Existing Architecture
+
+### No Changes Required
+
+| Component | Change |
+|-----------|--------|
+| asya-sidecar | None |
+| asya-injector | None |
+| asya-runtime | None |
+| asya-gateway | None (dedup/rate-limiting are future gateway features) |
+| Crossplane XRD | None |
+| Crossplane Compositions | None |
+| Helm charts | None |
+| KEDA configuration | None |
+
+### New Components
+
+| Component | Description |
+|-----------|-------------|
+| `asya-crew/x-fanin` | Fan-in aggregation handler with pluggable state store |
+| `asya-crew/state_store/` | `StateStore` interface and backend implementations |
+| `fan-in` flavor | Preconfigured flavor for fan-in actors |
+
+---
+
+## Example: Fan-In Pipeline (Conceptual)
+
+The fan-in protocol (message format, completeness detection, merge strategy) is defined in a separate RFC. This example shows only the deployment topology.
 
 ```yaml
-apiVersion: asya.sh/v1alpha1
-kind: AsyncActor
-metadata:
-  name: session-cache
-  namespace: prod
-spec:
-  actor: session-cache
-  transport: sqs
-  workload:
-    replicas: 3
-    template:
-      spec:
-        containers:
-          - name: asya-runtime
-            image: my-app:latest
-            env:
-              - name: ASYA_HANDLER
-                value: "session.handle_request"
-  stateful: {}
-```
-
-**Result**: 3-pod StatefulSet, 3 queues (`session-cache-0`, `session-cache-1`, `session-cache-2`), no PVCs.
-
-### Example 2: Fan-In Aggregator with RocksDB Storage
-
-```yaml
-apiVersion: asya.sh/v1alpha1
-kind: AsyncActor
-metadata:
-  name: aggregator
-  namespace: prod
-spec:
-  actor: aggregator
-  transport: sqs
-  flavors: [fan-in-rocksdb]
-  stateful:
-    preCreateQueues: 10
-    volumeClaimTemplates:
-      - metadata:
-          name: data
-        spec:
-          accessModes: ["ReadWriteOnce"]
-          storageClassName: gp3
-          resources:
-            requests:
-              storage: 10Gi
-  workload:
-    template:
-      spec:
-        containers:
-          - name: asya-runtime
-            image: asya-crew:latest
-            env:
-              - name: ASYA_HANDLER
-                value: "asya_crew.aggregator.handle"
-              - name: ASYA_HANDLER_MODE
-                value: "envelope"
-            volumeMounts:
-              - name: data
-                mountPath: /data/aggregator
-  scaling:
-    minReplicas: 3
-    maxReplicas: 10
-```
-
-**Result**: StatefulSet with 3 replicas, 10 pre-provisioned queues, per-pod 10Gi PVC at `/data/aggregator`, KEDA watches queue depth with scale-down disabled.
-
-### Example 3: Fan-In Aggregator with Flavor (Minimal User Config)
-
-The `fan-in-rocksdb` flavor provides sensible defaults for image, handler, resources, volumeMounts, and scaling:
-
-```yaml
-apiVersion: asya.sh/v1alpha1
-kind: AsyncActor
-metadata:
-  name: aggregator
-  namespace: prod
-spec:
-  actor: aggregator
-  transport: sqs
-  flavors: [fan-in-rocksdb]
-  stateful:
-    volumeClaimTemplates:
-      - metadata:
-          name: data
-        spec:
-          accessModes: ["ReadWriteOnce"]
-          resources:
-            requests:
-              storage: 10Gi
-```
-
-The flavor fills in `image`, `handler`, `handlerMode`, `resources`, `volumeMounts`, and `scaling.minReplicas: 1`. The user only specifies transport, storage size, and the flavor name.
-
-### Example 4: Complete Fan-Out/Fan-In Pipeline
-
-Three independent AsyncActor deployments form a fan-out/fan-in pipeline:
-
-```yaml
-# 1. Fan-out router (stateless, compiler-generated)
+# 1. Fan-out router (stateless, splits work)
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 metadata:
@@ -390,10 +347,8 @@ spec:
                 value: "routers.fanout_research"
               - name: ASYA_HANDLER_MODE
                 value: "envelope"
-              - name: ASYA_FANIN_SHARDS
-                value: "3"
 ---
-# 2. Sub-agent (stateless, user-provided)
+# 2. Sub-agent (stateless, does the work)
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 metadata:
@@ -412,7 +367,7 @@ spec:
               - name: ASYA_HANDLER
                 value: "agents.research"
 ---
-# 3. Aggregator (stateful)
+# 3. Aggregator (state-backed, assembles results)
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 metadata:
@@ -420,228 +375,54 @@ metadata:
 spec:
   actor: aggregator
   transport: sqs
-  flavors: [fan-in-rocksdb]
-  stateful:
-    preCreateQueues: 6
-    volumeClaimTemplates:
-      - metadata:
-          name: data
-        spec:
-          accessModes: ["ReadWriteOnce"]
-          resources:
-            requests:
-              storage: 10Gi
-  scaling:
-    minReplicas: 3
-    maxReplicas: 6
+  flavors: [fan-in]
+  workload:
+    template:
+      spec:
+        containers:
+          - name: asya-runtime
+            image: asya-crew:latest
+            env:
+              - name: ASYA_HANDLER
+                value: "asya_crew.fanin.handle"
+              - name: ASYA_HANDLER_MODE
+                value: "envelope"
+              - name: ASYA_FANIN_STORE
+                value: "redis"
+              - name: ASYA_FANIN_STORE_URL
+                value: "redis://redis:6379"
 ```
 
-**Message flow**:
-1. Envelope arrives at `fanout-research` queue
-2. Fan-out router computes `shard = rendezvous(origin_id, 3)`, stamps `x-asya-route-override: {"aggregator": "aggregator-{shard}"}` on all emitted messages
-3. Sub-agent slices route through `research-agent` queue (competing consumers, 5 pods)
-4. Sub-agent results carry the override header, sidecar routes to `aggregator-{shard}` queue
-5. Aggregator pod `{shard}` accumulates slices in RocksDB, emits merged envelope on completeness
-
----
-
-## Architecture Decision Records
-
-### ADR-1: N Queues Per Stateful Actor (Not Shared Queue)
-
-**Context**: Stateful actors need shard affinity -- messages with the same key must reach the same pod. With a single shared queue, competing consumers distribute messages non-deterministically across pods.
-
-| Option | Hard affinity? | Transport-agnostic? | Overhead |
-|--------|---------------|---------------------|----------|
-| Single queue, client-side filter (requeue non-matching) | ❌ O(N) wasted reads | ✅ | High (requeue storms, SQS cost) |
-| SQS FIFO message groups | ❌ Soft guarantee | ❌ SQS-only | Low |
-| RabbitMQ consistent-hash exchange | ❌ Hides N queues | ❌ RabbitMQ-only | Low |
-| **N dedicated queues, one per pod** | **✅ Hard** | **✅** | **Negligible (idle queues are free)** |
-
-**Decision**: One queue per pod. Queue name: `asya-{ns}-{actor}-{ordinal}`.
-
-**Rationale**: Only option providing hard affinity across all transports. Idle queues cost nothing (SQS) or negligible memory (RabbitMQ). The queue is the routing mechanism in Asya -- there is no concept of "send to queue X but only pod Y should get it."
-
-### ADR-2: Pod Queue Identity via Downward API and Env Var Interpolation
-
-**Context**: In a StatefulSet, all pods share the same pod template. Per-pod env vars (like `ASYA_QUEUE_NAME=aggregator-0` for pod 0) cannot be set statically. The sidecar needs to determine its queue name at startup.
-
-| Option | Pros | Cons |
-|--------|------|------|
-| Hostname parsing (`aggregator-2` -> ordinal 2) | Simple | Couples to StatefulSet/pod naming |
-| K8s API query for pod metadata | Flexible | Adds K8s API dependency to sidecar |
-| **Downward API: `apps.kubernetes.io/pod-index` label** | **K8s-native, label-based, reliable** | **Requires K8s 1.28+** |
-
-**Decision**: Use `ASYA_POD_INDEX` env var populated via downward API from the `apps.kubernetes.io/pod-index` label (GA since K8s 1.29). Construct `ASYA_QUEUE_NAME` via K8s env var interpolation:
-
-```yaml
-- name: ASYA_QUEUE_NAME
-  value: "asya-$(ASYA_NAMESPACE)-$(ASYA_ACTOR_NAME)-$(ASYA_POD_INDEX)"
-```
-
-**Rationale**: Label-based identity is consistent with Asya's existing design (actor identity from `asya.sh/actor` label, not pod name). No hostname parsing, no K8s API access, no init containers. The sidecar sees a fully-constructed `ASYA_QUEUE_NAME` -- zero knowledge of statefulness required.
-
-**Consequence**: `ASYA_QUEUE_NAME` is set for **all** actors (stateful and stateless). The sidecar always reads it. This unifies the queue name interface and removes the sidecar's internal `resolveQueueName` derivation for the consumption path.
-
-### ADR-3: Shard Routing via x-asya-route-override (No New Header)
-
-**Context**: Messages targeting a stateful actor need to reach the correct shard. Two approaches were considered:
-
-| Option | Sidecar changes | Complexity |
-|--------|----------------|------------|
-| New `x-asya-shard-key` header, sidecar computes shard | Sidecar needs ConfigMap awareness, rendezvous hash, shard lookup | High |
-| **`x-asya-route-override` (existing A/B routing mechanism)** | **None** | **None** |
-
-**Decision**: The sender (fan-out router) computes the shard and stamps `x-asya-route-override: {"aggregator": "aggregator-2"}`. The sidecar's existing override lookup handles routing. No new sidecar logic.
-
-**Rationale**: The `x-asya-route-override` mechanism from the A/B Routing RFC (epic 1crb) already solves "resolve abstract actor name to concrete queue." Reusing it for shard resolution means zero sidecar changes on the routing path. The fan-out router is the natural place for shard computation -- it already knows the shard count (via `ASYA_FANIN_SHARDS` env var) and the origin ID.
-
-**Consequence**: Only the sender needs shard awareness. The stateful actor itself, sub-agents, and their sidecars are all unaware of sharding. This keeps the system simple but means shard count changes require updating the sender's env var (see ADR-6).
-
-### ADR-4: Queue Pre-Provisioning with Configurable Headroom
-
-**Context**: When KEDA scales a StatefulSet from 3 to 4 replicas, pod `aggregator-3` starts and its sidecar tries to consume from `asya-{ns}-aggregator-3`. If that queue doesn't exist yet, the sidecar fails on startup.
-
-| Option | Race-free? | Cost |
-|--------|-----------|------|
-| Create queue on scale-up (operator watches replica changes) | ❌ Race between pod start and queue creation | Free |
-| **Pre-provision queues up to a configurable limit** | **✅** | **Free (SQS idle queues cost nothing)** |
-
-**Decision**: Pre-provision queues at deploy time. The `preCreateQueues` field controls how many. Default: `scaling.maxReplicas` if scaling is configured, else `workload.replicas`.
-
-**Rationale**: Idle queues are free on SQS and negligible on RabbitMQ. Pre-provisioning eliminates the race condition entirely -- the queue always exists before the pod starts. The configurable field gives users explicit control over headroom.
-
-### ADR-5: Extend Existing AsyncActor (Not Separate CRD)
-
-**Context**: Stateful actors need StatefulSet, per-pod queues, and optional PVCs. Should this be a new CRD (`StatefulActor`) or an extension of `AsyncActor`?
-
-| Option | Pros | Cons |
-|--------|------|------|
-| New `StatefulActor` CRD | Clean separation, independent evolution | Two CRDs to learn, duplicated composition logic, flavors need dual support |
-| **`spec.stateful` section on existing AsyncActor** | **One CRD, one composition, flavors work as-is** | **Composition gains conditional logic** |
-
-**Decision**: Add `spec.stateful` to AsyncActor. Its presence implies StatefulSet + per-pod queues.
-
-**Rationale**: A stateful actor IS an async actor with additional infrastructure concerns. Sharing the CRD means the entire flavor system, scaling configuration, resiliency settings, and transport configuration work unchanged. The composition's conditional logic is straightforward (`{{ if .spec.stateful }}`).
-
-### ADR-6: Env Var for Shard Count Propagation
-
-**Context**: The fan-out router needs to know the aggregator's shard count to compute rendezvous hashes. This value must be available at runtime.
-
-| Option | Dynamic? | Complexity |
-|--------|----------|------------|
-| Compile-time constant in generated code | ❌ Requires recompilation | Low |
-| **Env var (`ASYA_FANIN_SHARDS`) on sender** | **❌ Requires rolling restart** | **Low** |
-| ConfigMap mounted as volume, sidecar watches | ✅ Hot-reload in ~60s | Medium |
-| Sidecar queries K8s API for StatefulSet replicas | ✅ Real-time | High (K8s API dependency) |
-
-**Decision**: Env var on the sender's AsyncActor. Shard count changes trigger a rolling restart of the sender.
-
-**Rationale**: Simplest option. The sender (fan-out router) is a stateless actor -- rolling restarts are fast and safe. The two-step manual process (scale aggregator, then update sender's env var) is acceptable for phase 1. Phase 2 (auto scale-up) can introduce operator-managed propagation.
-
-**Downsides** (acceptable):
-- Two-step coordination: scale aggregator, then update sender env var
-- Brief window during rolling restart where some sender pods use old N and some use new N (harmless -- each fan-out is internally consistent)
-- Multiple aggregators require multiple env vars (`ASYA_FANIN_SHARDS_AGG_A=3`, `ASYA_FANIN_SHARDS_AGG_B=5`)
-
-### ADR-7: K8s-Native volumeClaimTemplates Pass-Through
-
-**Context**: Stateful actors need persistent storage. Should the XRD define a custom storage abstraction or pass through K8s-native volumeClaimTemplates?
-
-| Option | Pros | Cons |
-|--------|------|------|
-| Custom `storage: {size, mountPath, storageClass}` | Simple for common case | Loses K8s flexibility (access modes, selectors, labels) |
-| **K8s-native volumeClaimTemplates** | **Full PVC control, composable with K8s tools** | **More verbose** |
-
-**Decision**: Pass `volumeClaimTemplates` verbatim to the StatefulSet spec. Mount points are defined in `workload.template.spec.containers[].volumeMounts` (standard K8s).
-
-**Rationale**: K8s users already know volumeClaimTemplates. Custom abstractions hide capabilities (access modes, label selectors for binding to pre-provisioned PVs, storage class selection). The `fan-in-rocksdb` flavor can provide sensible defaults, reducing verbosity for the common case while preserving full flexibility.
-
-**Consequence**: The volume mount path is defined separately in `workload.template`, not in `stateful`. This follows K8s separation of "what storage" (volumeClaimTemplates) from "where to mount" (volumeMounts).
-
-### ADR-8: Reuse Existing Replica Count Fields
-
-**Context**: The XRD already has `workload.replicas` (no scaling) and `scaling.minReplicas/maxReplicas` (with KEDA). Should `stateful` define its own replica count?
-
-| Option | Pros | Cons |
-|--------|------|------|
-| `stateful.replicas` | Explicit | Third place to set replica count, contradicts existing fields |
-| **Reuse existing fields** | **No contradiction, one mental model** | **None** |
-
-**Decision**: No replica count in `stateful`. The composition uses:
-- `workload.replicas` if no scaling section (for fixed-size stateful actors)
-- `scaling.minReplicas` as initial replica count (when KEDA is configured)
-
-**Rationale**: Adding `stateful.replicas` alongside `workload.replicas` and `scaling.minReplicas` creates ambiguity about which one wins. Reusing existing fields keeps the mental model simple: "stateful changes HOW pods are deployed, not HOW MANY."
-
-The `fan-in-rocksdb` flavor sets `scaling.minReplicas: 1` as a sensible default (stateful actors should not scale to zero by default since PVC creation adds latency on cold start).
-
-### ADR-9: Single Composition with Conditional Logic
-
-**Context**: The stateful actor behavior could be implemented as a separate composition or as conditional logic in the existing one.
-
-| Option | Pros | Cons |
-|--------|------|------|
-| Separate compositions (`composition-sqs-stateful.yaml`) | Simpler per-file | 4 compositions (2 transports x 2 modes), duplicated shared logic |
-| Custom Composition Function | Base composition untouched | Another function to build/deploy/maintain |
-| **Conditional logic in existing composition** | **No duplication, shared pipeline steps** | **Larger template files** |
-
-**Decision**: Add `{{ if .spec.stateful }}` conditionals to existing compositions.
-
-**Rationale**: The composition already handles workload rendering, KEDA configuration, and status aggregation. Adding conditional branches for queue loops and StatefulSet rendering avoids duplicating these shared steps. The conditionals are standard Go template patterns.
-
----
-
-## Sidecar Changes Summary
-
-| Change | Scope | Description |
-|--------|-------|-------------|
-| Read `ASYA_QUEUE_NAME` for consumption | Consumption path | Use env var instead of deriving queue name internally |
-| No routing changes | Routing path | `x-asya-route-override` lookup is unchanged |
-
-The sidecar currently derives its consumption queue name internally via `fmt.Sprintf("asya-%s-%s", namespace, actorName)`. The change is: read `ASYA_QUEUE_NAME` from env (set by the injector for all actors, stateful and stateless). This is a ~5-line change in the sidecar's startup code.
-
----
-
-## Injector Changes Summary
-
-The injector detects `spec.stateful` on the AsyncActor CRD and adjusts sidecar env vars:
-
-| Actor type | `ASYA_QUEUE_NAME` | `ASYA_POD_INDEX` |
-|------------|-------------------|------------------|
-| Stateless  | `asya-$(ASYA_NAMESPACE)-$(ASYA_ACTOR_NAME)` | Not set |
-| Stateful   | `asya-$(ASYA_NAMESPACE)-$(ASYA_ACTOR_NAME)-$(ASYA_POD_INDEX)` | Downward API: `metadata.labels['apps.kubernetes.io/pod-index']` |
-
----
-
-## Use Cases Beyond Fan-In
-
-| Use case | Shard key | State | Storage |
-|----------|-----------|-------|---------|
-| Fan-in aggregation | `origin_id` | Partial results | RocksDB (PVC) |
-| Session/conversation memory | `user_id` or `session_id` | Chat history, context | RocksDB or SQLite (PVC) |
-| Deduplication | `message_id` | Seen IDs with TTL | RocksDB (PVC) |
-| Time-window batching | `batch_key` | Accumulated events | In-memory or PVC |
-| Per-key rate limiting | `client_id` | Request counters | In-memory |
-
-All use cases share the same infrastructure (StatefulSet, per-pod queues, optional PVC). The sender stamps `x-asya-route-override` with the concrete shard based on its chosen key. The stateful actor's handler implements the application-level logic.
+**Message flow:**
+1. Request arrives at `fanout-research` queue
+2. Fan-out router splits into N sub-tasks, stamps each with `origin_id` and `expected_count`
+3. Sub-agents process independently (competing consumers, 5 pods)
+4. Sub-agent results route to `aggregator` queue
+5. Any aggregator pod reads partial state from Redis, merges new result, CAS-writes back
+6. When all partials received, aggregator emits merged result to next step (or x-sink)
+
+Key difference from the original RFC: the aggregator is a **standard Deployment** with a single shared queue. No StatefulSet, no per-pod queues, no shard routing. Redis (or DynamoDB, NATS KV, etc.) provides the shared state.
 
 ---
 
 ## Open Questions
 
-1. **KEDA trigger for StatefulSet**: When autoscaling a stateful actor, which queue(s) does KEDA monitor? Options: sum of all shard queue depths, max across shards, or a Prometheus metric (PVC utilization, RocksDB size). Queue-depth triggers may not be meaningful for stateful actors since work distribution depends on hash distribution, not queue backlog.
+1. **Fan-in protocol**: How does the fan-out router stamp messages with `origin_id` and `expected_count`? How does the aggregator detect completeness? How is the merge performed? Defined in a separate RFC.
 
-2. **DLQ configuration for shard queues**: Each shard queue needs its own DLQ. The composition should auto-configure DLQs for all pre-provisioned queues. Naming convention: `asya-{ns}-{actor}-{ordinal}-dlq`.
+2. **State store lifecycle**: Who provisions the state store (Redis, DynamoDB, etc.)? Options: user-managed (BYO), Crossplane-managed (auto-provision), or Helm-chart-managed (deploy alongside Asya).
 
-3. **Rolling update strategy**: StatefulSet supports `RollingUpdate` (default, reverse ordinal order) and `OnDelete` (manual). For stateful actors with in-flight state, `OnDelete` may be safer to prevent state loss during upgrades. This should be configurable or have a sensible default.
+3. **TTL and cleanup**: What happens if a fan-in never completes (sub-agent failure, message loss)? The state store should have TTL-based cleanup to prevent unbounded growth. The TTL value depends on the workload.
+
+4. **Large payloads**: If partial results exceed the state store's value size limit (e.g., 1MB for NATS KV, 512MB for Redis), payloads should be stored in S3/MinIO with pointers in the state store. The `StateStore` interface may need a companion `PayloadStore` for this pattern.
+
+5. **Retry semantics**: When a CAS update fails due to contention (multiple pods updating the same key), the handler retries internally. When the state store is unavailable (e.g., Redis down), the handler returns an error, triggering the sidecar's retry logic (exponential backoff per the resiliency RFC). If all retries exhaust, the message routes to x-sump.
 
 ---
 
 ## References
 
-- Fan-In RFC (epic 1c7i) -- Aggregation protocol, RocksDB handler, completeness detection (builds on this RFC)
-- A/B Routing RFC (epic 1crb) -- `x-asya-route-override` header mechanism
-- Actor Flavors RFC -- `fan-in-rocksdb` flavor, composable presets
-- [K8s StatefulSet pod-index](https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#stable-network-id) -- `apps.kubernetes.io/pod-index` label
-- Design discussion transcript (archived in rfc0 branch) -- Full design discussion transcript
+- Fan-In Protocol RFC (TBD) -- Message format, completeness detection, merge strategy
+- A/B Routing RFC (epic 1crb) -- `x-asya-route-override` header mechanism (not needed for state-backed approach but remains available for other use cases)
+- Resiliency RFC (#181) -- Sidecar retry logic with exponential backoff
+- Actor Flavors RFC -- `fan-in` flavor, composable presets
+- Design discussion transcript (archived) -- Full exploration of shard affinity, placement directories, NATS KV, and the decision to use externalized state
