@@ -22,7 +22,7 @@ Move beyond the current dict-only handler signatures to support:
 - No typed params, no output key, no async, no streaming
 
 ## Key RFCs
-- docs/rfc/agentic-compiler/agentic-compiler-rfc.md (CPS transformation, async/await)
+- .aim/aims/1cnt.epic-agent-flow-compi/README.md (CPS transformation, async/await)
 - docs/rfc/agentic-signatures/asya-handler-signatures.md (typed signatures research)
 - docs/rfc/agentic-signatures/asya-handler-syntax-comparisons.md (14-framework survey)
 
@@ -245,8 +245,8 @@ The dict is wrapped into a message frame with the current route/headers snapshot
 #### 4.2 Upstream emission (partial / streaming)
 
 ```python
-yield {"token": "hel"}, True
-yield {"token": "hello"}, True
+yield {"partial": True, "token": "hel"}
+yield {"partial": True, "token": "hello"}
 yield {"response": "hello world"}      # final downstream frame
 ```
 
