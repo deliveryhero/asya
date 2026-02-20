@@ -5,9 +5,10 @@ priority: 2 # medium
 type: epic
 ---
 
-Redesign Asya's handler signatures to support typed parameters, output key naming, local variable serialization, and framework-compatible tool definitions.
+Redesign Asya's handler signatures to support typed parameters, output key naming, local variable serialization, and framework-compatible tool definitions. Replace the yield-based ABI for metadata access with a virtual filesystem at `/tmp/msg/`.
 
 ## Vision
+
 Move beyond the current dict-only handler signatures to support:
 1. Typed parameters: `def get_weather(city: str) -> str`
 2. Output key naming: where does the result go in the payload?
@@ -15,6 +16,7 @@ Move beyond the current dict-only handler signatures to support:
 4. Framework decorator detection: @tool from ADK, LangChain, etc.
 5. Magic parameter injection: context, stream_writer, tool_context (auto-excluded from schema)
 6. Local variable serialization: auto-save/restore across await boundaries
+7. **Message metadata as virtual filesystem**: `/tmp/msg/` replaces yield GET/SET/DEL
 
 ## Current State
 - payload mode: `def handler(p: dict) -> dict` — single dict in, single dict out
@@ -23,8 +25,10 @@ Move beyond the current dict-only handler signatures to support:
 
 ## Key RFCs
 - .aim/aims/1cnt.epic-agent-flow-compi/README.md (CPS transformation, async/await)
-- docs/rfc/agentic-signatures/asya-handler-signatures.md (typed signatures research)
-- docs/rfc/agentic-signatures/asya-handler-syntax-comparisons.md (14-framework survey)
+- .aim/aims/1dmf.ready-stateful-actors/README.md (transparent filesystem emulation for persistent state — same `open()` interception pattern)
+- .aim/aims/1fbe.redesign-protocol-sidecar-runtime/README.md (HTTP over Unix socket protocol — replaces current binary framing)
+- docs/rfc/agentic-signatures/rfc-handler-contract.md (original yield-based ABI — superseded by this RFC)
+- docs/rfc/agentic-signatures/survey-agentic-frameworks.md (14-framework survey)
 
 ## Champion Framework: Google ADK
 ADK is the closest architectural match for Asya. Key patterns to adopt:
@@ -34,23 +38,57 @@ ADK is the closest architectural match for Asya. Key patterns to adopt:
 - Event-based async generators
 
 ## Design Decisions (from RFC discussions)
+
 - Last yield = control event (Option B), emit callback rejected
 - Enrichment is custom reducer (payload in -> payload out), not append-only
 - Free variables across await boundaries: initially error, later auto-serialize
 - LangGraph reducer pattern (Annotated[list, add]) — NOT adopted (confusing, scales poorly)
+- **Yield GET/SET/DEL ABI — SUPERSEDED by `/tmp/msg/` virtual filesystem** (see rationale below)
+- **No asya pip package** — handler signatures must be pure Python
+- **No context object injection** — handlers must not have asya-specific parameters
+- **File-based metadata access** — follows Linux `/proc` philosophy
 
+---
 
 ## RFC: Handler Contract Redesign
 
-This RFC defines the contract between **user handler code** and **asya_runtime.py**, including the message schema, handler signatures, yield protocol, and access control.
+This RFC defines the contract between **user handler code** and **asya_runtime.py**, including the message schema, handler signatures, and metadata access via the `/tmp/msg/` virtual filesystem.
 
-Companion document: [abi-protocol.md](abi-protocol.md) (low-level yield dispatch specification).
+### Why `/tmp/msg/` replaces yield GET/SET/DEL
+
+The original yield-based ABI required handlers to use a custom protocol:
+
+```python
+# OLD — yield ABI (superseded)
+def router(payload):
+    yield "SET", "/route/next", ["express_handler", "payment"]
+    yield payload
+```
+
+Feedback from data science practitioners: this looks "too hacky." Magic strings (`"SET"`, `"GET"`), JSON pointer paths, generator `send()` protocol — all require learning a custom system.
+
+**Design constraints** for the replacement:
+1. Handler signatures must be **pure working Python** — no asya imports, no magic parameters
+2. Mechanism must be **"foreign" enough** not to look like business logic
+3. Must be **"innocent"** — work with real entities when run/tested locally
+4. Must work **without an asya pip package**
+
+The `/tmp/msg/` virtual filesystem satisfies all four: handlers read/write plain files, which work with real directories locally and are intercepted by the runtime when deployed. This follows the Linux `/proc` philosophy — `/proc` reflects process state as a filesystem, `/tmp/msg/` reflects message state as a filesystem.
+
+**Related design**: The [stateful actors RFC](.aim/aims/1dmf.ready-stateful-actors/README.md) uses the same `open()` interception pattern for persistent state at `/state/...` paths. The runtime's patched `open()` becomes a path-prefix router:
+
+| Path prefix | Backend (deployed) | Backend (local) | Lifecycle |
+|---|---|---|---|
+| `/state/meta/...` | State proxy sidecar → Redis | Real files | Persistent across messages |
+| `/state/media/...` | State proxy sidecar → S3 | Real files | Persistent across messages |
+| `/tmp/msg/...` | In-memory message object | Real files | Fresh per handler invocation |
+| Other paths | Real filesystem | Real filesystem | — |
 
 ---
 
 ### 1. Message schema
 
-#### 1.1 Route schema (new)
+#### 1.1 Route schema
 
 The route is split into three temporal fields:
 
@@ -108,42 +146,126 @@ When `next` is empty after the shift, the sidecar routes to `x-sink` (completion
 | `headers`   | `dict` | no       | Routing metadata (trace, priority)   |
 | `payload`   | `any`  | yes      | Arbitrary JSON data for the handler  |
 
-#### 1.3 Path resolution
-
-Paths use JSON Pointer syntax (RFC 6901) relative to the message root:
-
-```
-/id                    → "msg-uuid-001"
-/route                 → {"prev": [...], "curr": "...", "next": [...]}
-/route/next            → ["postprocessor"]
-/route/prev            → ["preprocessor"]
-/route/curr            → "analyzer"
-/headers               → {"trace_id": "...", "priority": "high"}
-/headers/trace_id      → "trace-abc-123"
-/headers/priority      → "high"
-/payload               → {"text": "Hello, world"}
-```
-
-All paths refer to **real fields** in the message JSON. There are no virtual or computed paths.
-
 ---
 
-### 2. Access control
+### 2. `/tmp/msg/` virtual filesystem
 
-The runtime enforces field-level permissions on SET and DEL operations:
+Message metadata is exposed as a virtual filesystem at `/tmp/msg/` (configurable via `ASYA_MSG_ROOT` env var). Handlers access it via standard Python `open()`.
 
-| Path              | GET | SET | DEL | Rationale                              |
-| ----------------- | --- | --- | --- | -------------------------------------- |
-| `/id`             | ✅  | ❌  | ❌  | Immutable message identity             |
-| `/parent_id`      | ✅  | ❌  | ❌  | Immutable lineage                      |
-| `/route/prev`     | ✅  | ❌  | ❌  | History is append-only by runtime      |
-| `/route/curr`     | ✅  | ❌  | ❌  | Set by runtime, not handler            |
-| `/route/next`     | ✅  | ✅  | ✅  | Handler controls future routing        |
-| `/headers`        | ✅  | ✅  | ✅  | Handler can modify routing metadata    |
-| `/headers/<key>`  | ✅  | ✅  | ✅  | Handler can modify individual headers  |
-| `/payload`        | ✅  | ✅  | ❌  | Readable; SET allowed for transforms   |
+#### 2.1 Filesystem layout
 
-If a handler attempts SET or DEL on a read-only path, the runtime MUST raise a protocol error.
+```
+/tmp/msg/                          # per-invocation, like /proc/self/
+├── id                             # read-only: msg-uuid-001
+├── parent_id                      # read-only: msg-uuid-000
+├── route/
+│   ├── prev                       # read-only: actor_a\nactor_b
+│   ├── curr                       # read-only: analyzer
+│   └── next                       # read-write: postprocessor
+└── headers/
+    ├── trace_id                   # read-write: trace-abc-123
+    └── priority                   # read-write: high
+```
+
+#### 2.2 File formats
+
+**Plain text, no JSON.** Values follow the simplest format for each type:
+
+| Path | Type | Format | Example content |
+|---|---|---|---|
+| `/tmp/msg/id` | scalar | raw UTF-8 | `msg-uuid-001` |
+| `/tmp/msg/parent_id` | scalar | raw UTF-8 | `msg-uuid-000` |
+| `/tmp/msg/route/prev` | list | one per line | `actor_a\nactor_b` |
+| `/tmp/msg/route/curr` | scalar | raw UTF-8 | `analyzer` |
+| `/tmp/msg/route/next` | list | one per line | `postprocessor` |
+| `/tmp/msg/headers/{key}` | scalar | raw UTF-8 | `high` |
+
+**No trailing newlines.** Empty list = empty file (0 bytes).
+
+Reading patterns:
+```python
+# Scalar
+with open("/tmp/msg/id") as f:
+    msg_id = f.read()                      # "msg-uuid-001"
+
+# List
+with open("/tmp/msg/route/next") as f:
+    actors = f.read().splitlines()         # ["postprocessor"]
+
+# Header
+with open("/tmp/msg/headers/priority") as f:
+    priority = f.read()                    # "high"
+
+# List headers
+import os
+headers = os.listdir("/tmp/msg/headers/")  # ["trace_id", "priority"]
+```
+
+Writing patterns:
+```python
+# Set route/next
+with open("/tmp/msg/route/next", "w") as f:
+    f.write("\n".join(["express_handler", "payment"]))
+
+# Set header
+with open("/tmp/msg/headers/priority", "w") as f:
+    f.write("high")
+
+# Create new header
+with open("/tmp/msg/headers/processed_by", "w") as f:
+    f.write("enricher-v2")
+
+# Delete header
+import os
+os.remove("/tmp/msg/headers/internal_debug")
+```
+
+#### 2.3 Access control
+
+| Path | read | write | delete | Rationale |
+|---|---|---|---|---|
+| `/tmp/msg/id` | ✅ | ❌ | ❌ | Immutable message identity |
+| `/tmp/msg/parent_id` | ✅ | ❌ | ❌ | Immutable lineage |
+| `/tmp/msg/route/prev` | ✅ | ❌ | ❌ | History is append-only by runtime |
+| `/tmp/msg/route/curr` | ✅ | ❌ | ❌ | Set by runtime, not handler |
+| `/tmp/msg/route/next` | ✅ | ✅ | ✅ | Handler controls future routing |
+| `/tmp/msg/headers/` | ✅ | — | — | Directory listing |
+| `/tmp/msg/headers/{key}` | ✅ | ✅ | ✅ | Handler can modify routing metadata |
+
+Write to a read-only path raises `PermissionError`. In local development (no interception), no enforcement — same as state proxies having no CAS enforcement locally.
+
+#### 2.4 No `/tmp/msg/payload`
+
+The payload is the function argument and return value. It is NOT accessible via `/tmp/msg/payload`. This avoids two-sources-of-truth confusion (return value vs file content).
+
+#### 2.5 Runtime lifecycle per message
+
+1. Runtime receives message from sidecar via HTTP over Unix socket (see [protocol RFC](.aim/aims/1fbe.redesign-protocol-sidecar-runtime/README.md))
+2. Runtime populates `/tmp/msg/` virtual filesystem from message fields
+3. Runtime calls handler with `payload` only
+4. For generators: at each `yield`, runtime snapshots `/tmp/msg/` state into the emitted frame
+5. After handler returns: runtime reads `/tmp/msg/route/next` and `/tmp/msg/headers/` for the final frame
+6. Runtime shifts route (`prev.append(curr)`, `curr = next[0]`, `next = next[1:]`)
+7. Runtime sends response to sidecar
+8. Runtime clears `/tmp/msg/` virtual filesystem
+
+#### 2.6 Implementation
+
+The runtime patches `builtins.open` and routes by path prefix:
+
+```python
+def _patched_open(path, mode="r", *args, **kwargs):
+    if path.startswith(_msg_root):          # /tmp/msg/...
+        return MessageVirtualFile(_current_message, path, mode)
+    elif path.startswith(_state_root):      # /state/...
+        return StateProxyFile(path, mode)   # Unix socket to sidecar
+    else:
+        return _original_open(path, mode, *args, **kwargs)
+```
+
+The `MessageVirtualFile` is backed by an in-memory dict — no disk I/O, no sidecar, no network. Reads and writes operate directly on the message object.
+
+For `os.listdir`, `os.path.exists`, `os.path.isdir`, `os.remove` — similar patching for `/tmp/msg/` paths.
 
 ---
 
@@ -158,11 +280,9 @@ def process(payload):
     return {"result": payload["text"].upper()}
 ```
 
-* Returns `dict` → one downstream frame
-* Returns `None` (or bare `return`) → no frame emitted (abort)
-* No ABI interaction possible
-
----
+- Returns `dict` → one downstream frame
+- Returns `None` (or bare `return`) → no frame emitted (abort)
+- Simplest form — pure Python, no file I/O needed
 
 #### 3.2 Async function (return)
 
@@ -172,11 +292,10 @@ async def process(payload):
     return {"response": result}
 ```
 
-* Same semantics as sync, but supports `await` for I/O
-* Returns `dict` → one downstream frame
-* Returns `None` → abort
-
----
+- Same semantics as sync, but supports `await` for I/O
+- Returns `dict` → one downstream frame
+- Returns `None` → abort
+- **Recommended** for handlers that call external APIs
 
 #### 3.3 Sync generator (yield)
 
@@ -186,13 +305,11 @@ def process(payload):
     yield {"chunk": "part 2"}
 ```
 
-* Each `yield dict` → one downstream frame
-* Supports ABI commands (GET/SET/DEL) between yields
-* `yield dict, True` → upstream partial frame
-* Generator exhaustion → normal termination
-* Bare `return` → abort (no more frames)
-
----
+- Each `yield dict` → one downstream frame
+- `yield dict, True` → upstream partial frame (for streaming to gateway)
+- Generator exhaustion → normal termination
+- Bare `return` → abort (no more frames)
+- Can read/write `/tmp/msg/` between yields
 
 #### 3.4 Async generator (yield)
 
@@ -203,11 +320,9 @@ async def process(payload):
     yield {"response": full_text}
 ```
 
-* Same yield semantics as sync generator
-* Supports `await` within the generator body
-* Each `yield` is an ABI instruction (see dispatch table in [abi-protocol.md](abi-protocol.md))
-
----
+- Same yield semantics as sync generator
+- Supports `await` within the generator body
+- **Recommended** for LLM streaming handlers
 
 #### 3.5 Class-based handlers
 
@@ -222,58 +337,50 @@ class Processor:
         return {"result": self.model.predict(payload)}
 ```
 
-* `__init__` is called once at startup (must have default args)
-* The method follows the same signature rules as function handlers
-* Configure via `ASYA_HANDLER=module.Processor.process`
+- `__init__` is called once at startup (must have default args)
+- The method follows the same signature rules as function handlers
+- Configure via `ASYA_HANDLER=module.Processor.process`
 
 ---
 
-### 4. Yield protocol
+### 4. Yield protocol (simplified)
 
-Generator handlers (sync and async) communicate with the runtime through `yield`. The yielded value determines the instruction.
+Generator handlers communicate with the runtime through `yield`. With `/tmp/msg/`, the yield instruction space is reduced to **frame emission only**:
 
-#### 4.1 Downstream emission
+| Yielded value | Type | Instruction |
+|---|---|---|
+| `{"key": "val"}` | `dict` | EMIT downstream frame |
+| `({"key": "val"}, True)` | `(dict, True)` | EMIT upstream partial |
+| `({"key": "val"}, False)` | `(dict, False)` | EMIT downstream frame |
+| (bare yield) | `None` | NOOP (suspension point) |
+| anything else | — | protocol error |
 
-```python
-yield {"result": "processed data"}
-```
+**No more GET/SET/DEL yields.** Metadata access goes through `/tmp/msg/` files.
 
-The dict is wrapped into a message frame with the current route/headers snapshot and delivered to the sidecar for routing to the next actor.
-
----
-
-#### 4.2 Upstream emission (partial / streaming)
-
-```python
-yield {"partial": True, "token": "hel"}
-yield {"partial": True, "token": "hello"}
-yield {"response": "hello world"}      # final downstream frame
-```
-
-Frames yielded with `True` as the second element are sent upstream to the caller (e.g., gateway SSE stream). They are NOT routed to the next actor.
-
-This enables token-by-token LLM streaming while still sending a complete result downstream.
-
----
-
-#### 4.3 Metadata access (GET / SET / DEL)
+#### Generator driving loop (pseudocode)
 
 ```python
-# Read a field (GET returns a deep copy via generator send)
-route = yield "GET", "/route"
-headers = yield "GET", "/headers"
-msg_id = yield "GET", "/id"
-priority = yield "GET", "/headers/priority"
+gen = handler(payload)
+result = next(gen)                              # or __anext__ for async
 
-# Write a field (fire-and-forget, resumes with None)
-yield "SET", "/route/next", ["step_a", "step_b"]
-yield "SET", "/headers/priority", "high"
+while True:
+    if result is a dict:                        # EMIT downstream
+        snapshot_msg_state()                    # capture /tmp/msg/ state
+        emit_frame(result, partial=False)
+        result = gen.send(None)
 
-# Delete a field (fire-and-forget, resumes with None)
-yield "DEL", "/headers/trace_id"
+    elif result is (dict, True):                # EMIT upstream
+        emit_frame(result[0], partial=True)
+        result = gen.send(None)
+
+    elif result is None:                        # NOOP
+        result = gen.send(None)
+
+    else:
+        raise ProtocolError(f"invalid yield: {result!r}")
 ```
 
-**Three verbs. Real paths only.** GET/SET/DEL are structural JSON operations that work on any node type. See [abi-protocol.md](abi-protocol.md) for the full dispatch specification.
+The `snapshot_msg_state()` call captures the current `/tmp/msg/route/next` and `/tmp/msg/headers/` state, attaching it to the emitted frame. This allows different frames from the same generator to have different routes.
 
 ---
 
@@ -281,7 +388,7 @@ yield "DEL", "/headers/trace_id"
 
 #### 5.1 Simple payload processor (sync, return)
 
-The simplest handler. No ABI interaction. Pure Python, testable anywhere.
+The simplest handler. No `/tmp/msg/` interaction. Pure Python, testable anywhere.
 
 ```python
 def process(payload):
@@ -311,46 +418,60 @@ async def process(payload):
 
 ---
 
-#### 5.3 Conditional router (sync, yield + SET)
+#### 5.3 Conditional router (sync, /tmp/msg/ write)
 
-A router that directs messages based on payload content. Uses GET/SET to modify the route.
+A router that directs messages based on payload content. Writes to `/tmp/msg/route/next`.
 
 ```python
 def router(payload):
     if payload.get("type") == "express":
-        yield "SET", "/route/next", ["express_handler", "payment"]
+        route = ["express_handler", "payment"]
     elif payload.get("type") == "bulk":
-        yield "SET", "/route/next", ["batch_collector", "bulk_handler", "payment"]
+        route = ["batch_collector", "bulk_handler", "payment"]
     else:
-        yield "SET", "/route/next", ["standard_handler", "payment"]
-    yield payload
+        route = ["standard_handler", "payment"]
+
+    with open("/tmp/msg/route/next", "w") as f:
+        f.write("\n".join(route))
+
+    return payload
 ```
 
-**Test with a driver harness**:
+**Test with real files — no mocks**:
 
 ```python
-def test_express_routing():
-    gen = router({"type": "express"})
-    # First yield: SET command
-    instruction = next(gen)
-    assert instruction == ("SET", "/route/next", ["express_handler", "payment"])
-    # Second yield: payload frame
-    frame = gen.send(None)
-    assert frame == {"type": "express"}
+import os
+
+def test_express_routing(tmp_path):
+    # Create /tmp/msg/ structure
+    route_dir = tmp_path / "msg" / "route"
+    route_dir.mkdir(parents=True)
+    (route_dir / "next").write_text("postprocessor")
+
+    # Monkeypatch /tmp/msg → tmp_path/msg
+    with monkeypatch_msg_root(tmp_path / "msg"):
+        result = router({"type": "express"})
+
+    actors = (route_dir / "next").read_text().splitlines()
+    assert actors == ["express_handler", "payment"]
+    assert result == {"type": "express"}
 ```
 
 ---
 
-#### 5.4 Middleware injector (sync, yield + GET/SET prepend)
+#### 5.4 Middleware injector (sync, read + write)
 
-Injects preprocessing steps before the existing planned route. Uses GET + list concatenation + SET (two lines for prepend).
+Injects preprocessing steps before the existing planned route.
 
 ```python
 def middleware(payload):
     if payload.get("needs_validation"):
-        future = yield "GET", "/route/next"
-        yield "SET", "/route/next", ["validator", "sanitizer"] + future
-    yield payload
+        with open("/tmp/msg/route/next") as f:
+            future = f.read().splitlines()
+        with open("/tmp/msg/route/next", "w") as f:
+            f.write("\n".join(["validator", "sanitizer"] + future))
+
+    return payload
 ```
 
 ---
@@ -371,6 +492,8 @@ async def llm_handler(payload):
     yield {"response": full_response}              # downstream: to next actor
 ```
 
+No `/tmp/msg/` access needed — pure streaming, no routing decisions.
+
 ---
 
 #### 5.6 Fan-out handler (sync, yield multiple frames)
@@ -387,39 +510,50 @@ Each yielded dict becomes a separate message with its own copy of the current ro
 
 ---
 
-#### 5.7 Fan-out with different routes (sync, yield + SET between emissions)
+#### 5.7 Fan-out with different routes (sync, /tmp/msg/ + yield)
 
-Each fan-out frame can have a different route by SET-ing `/route/next` before each emission.
+Each fan-out frame can have a different route by writing `/tmp/msg/route/next` before each emission.
 
 ```python
 def smart_splitter(payload):
     for item in payload["items"]:
         if item["priority"] == "high":
-            yield "SET", "/route/next", ["fast_track", "notify"]
+            route = ["fast_track", "notify"]
         else:
-            yield "SET", "/route/next", ["standard_queue"]
+            route = ["standard_queue"]
+
+        with open("/tmp/msg/route/next", "w") as f:
+            f.write("\n".join(route))
+
         yield {"item": item}
 ```
 
+Runtime snapshots `/tmp/msg/` state at each `yield`, so each frame gets its own route.
+
 ---
 
-#### 5.8 Header manipulation (sync, yield + GET/SET/DEL)
+#### 5.8 Header manipulation (sync, /tmp/msg/ read/write/delete)
 
 Reading, setting, and deleting headers.
 
 ```python
+import os
+
 def enrich(payload):
     # Read existing header
-    trace_id = yield "GET", "/headers/trace_id"
+    with open("/tmp/msg/headers/trace_id") as f:
+        trace_id = f.read()
 
     # Set new headers
-    yield "SET", "/headers/processed_by", "enrich-v2"
-    yield "SET", "/headers/trace_id", trace_id + "-enriched"
+    with open("/tmp/msg/headers/processed_by", "w") as f:
+        f.write("enrich-v2")
+    with open("/tmp/msg/headers/trace_id", "w") as f:
+        f.write(trace_id + "-enriched")
 
     # Delete a header
-    yield "DEL", "/headers/internal_debug"
+    os.remove("/tmp/msg/headers/internal_debug")
 
-    yield {"enriched": True, **payload}
+    return {"enriched": True, **payload}
 ```
 
 ---
@@ -444,22 +578,32 @@ class Predictor:
 
 ---
 
-#### 5.10 Read-only introspection (sync, yield + GET)
+#### 5.10 Read-only introspection (sync, /tmp/msg/ read)
 
 Handler that reads message metadata for logging/decisions without modifying anything.
 
 ```python
-def inspector(payload):
-    route = yield "GET", "/route"
-    msg_id = yield "GET", "/id"
-    headers = yield "GET", "/headers"
+import os
 
-    yield {
-        "payload": payload,
+def inspector(payload):
+    with open("/tmp/msg/id") as f:
+        msg_id = f.read()
+    with open("/tmp/msg/route/curr") as f:
+        curr = f.read()
+    with open("/tmp/msg/route/next") as f:
+        remaining = f.read().splitlines()
+
+    headers = {}
+    for key in os.listdir("/tmp/msg/headers/"):
+        with open(f"/tmp/msg/headers/{key}") as f:
+            headers[key] = f.read()
+
+    return {
+        **payload,
         "meta": {
             "msg_id": msg_id,
-            "actor": route["curr"],
-            "remaining_steps": len(route["next"]),
+            "actor": curr,
+            "remaining_steps": len(remaining),
             "trace_id": headers.get("trace_id"),
         },
     }
@@ -467,43 +611,54 @@ def inspector(payload):
 
 ---
 
-#### 5.11 Skip to completion (sync, yield + SET empty next)
+#### 5.11 Skip to completion (sync, empty route/next)
 
 Handler that conditionally short-circuits the pipeline.
 
 ```python
 def gate(payload):
     if not payload.get("approved", False):
-        yield "SET", "/route/next", []                 # empty next → x-sink
-        yield {"status": "rejected", "reason": "not approved"}
-        return                                          # stop generator
+        # Empty route/next → x-sink
+        with open("/tmp/msg/route/next", "w") as f:
+            pass  # write empty file = empty actor list
 
-    yield payload                                       # continue pipeline
+        return {"status": "rejected", "reason": "not approved"}
+
+    return payload  # continue pipeline
 ```
 
 ---
 
-#### 5.12 Combined routing + streaming (async, full ABI usage)
+#### 5.12 Combined routing + streaming (async, full usage)
 
 An advanced handler combining route manipulation, header access, upstream streaming, and downstream emission.
 
 ```python
+import os
+
 async def orchestrator(payload):
     # Read current route context
-    route = yield "GET", "/route"
-    headers = yield "GET", "/headers"
+    with open("/tmp/msg/route/next") as f:
+        current_next = f.read().splitlines()
+
+    with open("/tmp/msg/headers/priority") as f:
+        priority = f.read()
 
     # Set trace header
-    yield "SET", "/headers/orchestrator_version", "v3"
+    with open("/tmp/msg/headers/orchestrator_version", "w") as f:
+        f.write("v3")
 
     # Decide route based on payload + headers
-    if headers.get("priority") == "critical":
-        yield "SET", "/route/next", ["fast_track", "alert", "persist"]
+    if priority == "critical":
+        route = ["fast_track", "alert", "persist"]
     else:
-        yield "SET", "/route/next", ["standard_pipeline", "persist"]
+        route = ["standard_pipeline", "persist"]
+
+    with open("/tmp/msg/route/next", "w") as f:
+        f.write("\n".join(route))
 
     # Stream progress upstream
-    yield {"status": "routing_decided", "path": route["next"]}, True
+    yield {"status": "routing_decided", "path": route}, True
 
     # Process and emit downstream
     result = await heavy_computation(payload)
@@ -512,124 +667,30 @@ async def orchestrator(payload):
 
 ---
 
-#### 5.13 Streaming with conditional downstream (async, yield + partial)
+#### 5.13 Retry-after header override
 
-An actor that streams partial results upstream, then conditionally decides whether to forward a result downstream. If the generator exhausts without emitting a downstream frame, the pipeline terminates at this actor (sidecar routes to x-sink).
+When an LLM API returns 429 with Retry-After, the handler writes a custom header before re-raising:
 
 ```python
-async def conditional_streamer(payload):
-    yield {"text": "processing..."}, True      # upstream partial
-    yield {"text": "almost done..."}, True     # upstream partial
-
-    if payload.get("forward"):
-        payload["processed"] = True
-        yield payload                           # downstream: continue pipeline
-    # else: generator exhausts → no downstream frame → routes to x-sink
+async def handler(payload):
+    try:
+        result = await llm.call(payload)
+        return {"result": result}
+    except RateLimitError as e:
+        with open("/tmp/msg/headers/_error_retry_after_ms", "w") as f:
+            f.write(str(int(e.retry_after * 1000)))
+        raise  # re-raise so runtime treats it as error → x-sump
 ```
+
+The `x-sump` crew actor checks for `_error_retry_after_ms` in headers and uses `max(computed_backoff, retry_after_ms)` as the delay.
 
 ---
 
-#### 5.14 Generator composition with enrichment (async, delegation)
-
-An async generator that delegates to a helper generator, enriching each event before re-yielding upstream. Uses explicit iteration since async generators do not support `yield from` (see [abi-protocol.md](abi-protocol.md) section 6.2).
-
-```python
-async def enriching_proxy(payload):
-    # Consume helper's stream, enrich each event, re-yield upstream
-    async for event in stream_processor(payload):
-        event["enriched_by"] = "proxy"
-        yield event, True                      # upstream: enriched partial
-
-    await notify_completion(payload)
-    yield {"status": "complete", **payload}    # downstream
-```
-
-The helper generator follows the same ABI:
-
-```python
-async def stream_processor(payload):
-    async for token in llm_client.stream(payload["prompt"]):
-        yield {"token": token}, True           # upstream partial
-```
-
----
-
-#### 5.15 Fan-out with mid-stream reroute (sync, yield + GET/SET between emissions)
-
-An actor that emits a frame on the current route, then modifies the route so all remaining frames are delivered to a different set of actors. Unlike example 5.7 (which sets the route before each individual frame), this pattern sets the route once mid-stream, affecting all subsequent emissions.
-
-```python
-def rerouting_fan_out(payload):
-    # First frame goes to the current route
-    yield {**payload, "batch_index": 0}
-
-    # Read current route and prepend an interceptor
-    next_actors = yield "GET", "/route/next"
-    yield "SET", "/route/next", ["interceptor"] + next_actors
-
-    # Remaining frames go to the modified route
-    yield {**payload, "batch_index": 1}
-    yield {**payload, "batch_index": 2}
-    yield {**payload, "batch_index": 3}
-```
-
----
-
-### 6. Runtime behavior summary
-
-#### 6.1 Handler invocation
-
-1. Runtime receives message from sidecar via Unix socket
-2. Runtime validates message structure
-3. Runtime extracts `payload` from message
-4. Runtime calls handler with `payload`
-5. For generators: runtime drives the generator, processing each yielded instruction
-6. After handler completes: runtime shifts the route (`prev.append(curr)`, `curr = next.pop(0)`)
-7. Runtime sends all emitted frames to sidecar
-
-#### 6.2 Generator driving loop (pseudocode)
-
-```python
-gen = handler(payload)
-result = next(gen)                              # or __anext__ for async
-
-while True:
-    if result is a dict:                        # EMIT downstream
-        emit_frame(result, partial=False)
-        result = gen.send(None)
-
-    elif result is (dict, True):                # EMIT upstream
-        emit_frame(result[0], partial=True)
-        result = gen.send(None)
-
-    elif result is ("GET", path):               # GET
-        value = deep_copy(resolve(message, path))
-        result = gen.send(value)
-
-    elif result is ("SET", path, value):        # SET
-        assert_writable(path)
-        set_field(message, path, deep_copy(value))
-        result = gen.send(None)
-
-    elif result is ("DEL", path):               # DEL
-        assert_writable(path)
-        delete_field(message, path)
-        result = gen.send(None)
-
-    elif result is None:                        # NOOP
-        result = gen.send(None)
-
-    else:
-        raise ProtocolError(f"invalid yield: {result!r}")
-```
-
----
-
-### 7. Migration from payload/envelope modes
+### 6. Migration from payload/envelope modes
 
 This contract replaces `ASYA_HANDLER_MODE=payload|envelope`.
 
-#### 7.1 Payload mode handlers (no changes needed)
+#### 6.1 Payload mode handlers (no changes needed)
 
 ```python
 # Before (payload mode)
@@ -641,7 +702,7 @@ def process(payload):
     return {"result": payload["text"].upper()}
 ```
 
-#### 7.2 Envelope mode handlers (migrate to yield + GET/SET)
+#### 6.2 Envelope mode handlers (migrate to /tmp/msg/)
 
 ```python
 # Before (envelope mode)
@@ -655,42 +716,37 @@ def router(envelope):
         "headers": envelope.get("headers", {}),
     }
 
-# After (yield protocol with new route schema)
+# After (/tmp/msg/ filesystem)
 def router(payload):
-    yield "SET", "/route/next", ["a", "b"]
-    yield payload
+    with open("/tmp/msg/route/next", "w") as f:
+        f.write("\n".join(["a", "b"]))
+    return payload
 ```
 
-#### 7.3 Summary of changes
+#### 6.3 Summary of changes
 
-| Aspect            | Before                                      | After                                |
-| ----------------- | ------------------------------------------- | ------------------------------------ |
-| Mode selection    | `ASYA_HANDLER_MODE=payload\|envelope`       | Removed (always payload)             |
-| Handler input     | payload (payload mode) or envelope (envelope mode) | Always `payload`              |
-| Route access      | Direct dict manipulation (envelope mode)    | `yield "GET"/"SET", "/route/..."`    |
-| Header access     | Direct dict manipulation (envelope mode)    | `yield "GET"/"SET", "/headers/..."`  |
+| Aspect            | Before (envelope mode)                      | After (/tmp/msg/)                     |
+| ----------------- | ------------------------------------------- | ------------------------------------- |
+| Mode selection    | `ASYA_HANDLER_MODE=payload\|envelope`       | Removed (always payload)              |
+| Handler input     | payload or full envelope                    | Always `payload`                      |
+| Route access      | Direct dict manipulation                    | `open("/tmp/msg/route/next")`         |
+| Header access     | Direct dict manipulation                    | `open("/tmp/msg/headers/{key}")`      |
 | Route schema      | `{"actors": [...], "current": int}`         | `{"prev": [...], "curr": str, "next": [...]}` |
-| Streaming         | Generator yields dicts                      | `yield dict` (downstream) or `yield dict, True` (upstream) |
-| Route validation  | Complex: check `actors[0:current+1]` unchanged | Simple: `prev` and `curr` are read-only |
-
+| Streaming         | Generator yields dicts                      | `yield dict` / `yield dict, True`     |
+| Route validation  | Complex: check `actors[0:current+1]`        | Simple: `prev`/`curr` are read-only files |
+| Metadata access   | `yield "GET"/"SET"`, "/path"`               | Standard `open()`/`os.remove()`       |
+| Testing           | Custom generator driver harness             | Real files, zero mocks                |
+| Dependencies      | None                                        | None (standard library only)          |
 
 ---
-## Notes
 
-[Error Handling RFC context] The handler signature redesign must support optional headers access for retry_after override. Example use case: when an LLM API returns 429 with Retry-After header, the handler should be able to signal a custom retry delay:
+### 7. Configuration
 
-```python
-async def handler(payload: dict, headers: dict):
-    try:
-        result = await llm.call(payload)
-        return {"result": result}
-    except RateLimitError as e:
-        headers["_error"] = {"retry_after_ms": e.retry_after * 1000}
-        raise  # re-raise so runtime treats it as error
-```
+| Variable | Default | Description |
+|---|---|---|
+| `ASYA_MSG_ROOT` | `/tmp/msg` | Root path for message virtual filesystem |
 
-This connects to the error handling RFC (asya-y4kr): the _error crew actor checks for retry_after_ms in headers and uses max(computed_backoff, retry_after_ms) as the delay. Requires the new handler signature where headers are optionally injectable.
-
+When `ASYA_MSG_ROOT` is unset or set to default, the runtime intercepts `open()` calls to `/tmp/msg/...` paths. For local development, handlers work against real files at that path.
 
 ---
 _Migrated from beads `asya-0gsw`_
