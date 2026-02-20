@@ -4,8 +4,8 @@ status: done
 priority: 2 # medium
 type: task
 dependencies:
-  - misc/1cm3
-  - misc/1ckq
+  - misc/1fjp99
+  - misc/1fzs3s
 ---
 
 
