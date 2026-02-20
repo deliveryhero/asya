@@ -483,7 +483,7 @@ spec:
         path: /state/meta
         # mode: rw             # future: ro | rw
       connector:
-        image: asya-crew/state-proxies/redis-buffered-cas:latest
+        image: asya-bridges/state-proxy/redis-buffered-cas:latest
         env:
           - name: STATE_ENDPOINT
             value: "redis://context-store:6379/0"
@@ -501,7 +501,7 @@ spec:
       mount:
         path: /state/media
       connector:
-        image: asya-crew/state-proxies/s3-passthrough:latest
+        image: asya-bridges/state-proxy/s3-passthrough:latest
         env:
           - name: STATE_BUCKET
             value: "media-pipeline"
@@ -528,7 +528,7 @@ spec:
 |-------|----------|-------------|
 | `name` | yes | Unique mount identifier. Used for socket path (`{name}.sock`), container name (`asya-state-proxy-{name}`), and env var generation. Must be DNS-compatible. |
 | `mount.path` | yes | Absolute path where the mount appears inside the runtime container. Must start with `/`. |
-| `connector.image` | yes | Absolute container image reference for the connector (e.g., `asya-crew/state-proxies/redis-buffered-cas:latest`). No short-name resolution — always the full image. |
+| `connector.image` | yes | Absolute container image reference for the connector (e.g., `asya-bridges/state-proxy/redis-buffered-cas:latest`, where `asya-bridges` - official images, `asya-bridges-community/state-proxy/...` - community-contributed images). No short-name resolution — always the full image. |
 | `connector.env` | no | Backend-specific and retry configuration. Passed as env vars to the connector container. Opaque to the runtime and injector. |
 | `connector.resources` | no | Optional Kubernetes resource requests/limits for the connector container. |
 
@@ -575,7 +575,7 @@ volumes:
 # State proxy containers
 containers:
   - name: asya-state-proxy-meta
-    image: asya-crew/state-proxies/redis-buffered-cas:latest
+    image: asya-bridges/state-proxy/redis-buffered-cas:latest
     env:
       - name: CONNECTOR_SOCKET
         value: /var/run/asya/state/meta.sock
@@ -590,7 +590,7 @@ containers:
         mountPath: /var/run/asya/state
 
   - name: asya-state-proxy-media
-    image: asya-crew/state-proxies/s3-passthrough:latest
+    image: asya-bridges/state-proxy/s3-passthrough:latest
     env:
       - name: CONNECTOR_SOCKET
         value: /var/run/asya/state/media.sock
@@ -798,10 +798,13 @@ entries = os.listdir("/state/media/users/")
 
 # Walk a tree (os.walk delegates to listdir + isdir)
 for root, dirs, files in os.walk("/state/media/users/"):
-    for f in files:
-        path = os.path.join(root, f)
-        with open(path) as fh:
-            process(fh.read())
+    for fname in files:
+        path = os.path.join(root, fname)
+        async with aiofiles.open(path) as f:
+            process(await f.read())
+        # or sync:
+        # with open(path) as f:
+        #     process(f.read())
 ```
 
 For S3, `GET /keys/?prefix=users/&delimiter=/` returns:
@@ -851,21 +854,24 @@ Buffered writes use `SpooledTemporaryFile` (4MB in-memory, then disk spill). Pra
 
 ### No file locking
 
-Concurrent writes from multiple actor replicas to the same key are last-write-wins unless the connector supports CAS. Actors are designed to be single-threaded per message, so this is only relevant for multi-replica actors writing to the same key — which is the fan-in case, handled by CAS connectors (see [ADR-9](#adr-9-fan-in-as-crew-actor-using-state-mounts)).
+Concurrent writes from multiple actor replicas to the same key are last-write-wins unless the connector supports CAS. Even though actors are designed to be single-threaded per message, this is very relevant for multi-replica actors writing to the same key — which is the fan-in case, handled by CAS connectors (see [ADR-9](#adr-9-fan-in-as-crew-actor-using-state-mounts)).
 
 ### No seek on passthrough reads
 
-For `passthrough` connectors, `seek()` on read files is not supported — data is streamed sequentially. For `buffered` connectors, the full value is fetched into a `SpooledTemporaryFile`, so seek works.
+For `passthrough` connectors, `seek()` on read files is not supported — data is streamed sequentially. Calling `seek()` on a passthrough file object raises `io.UnsupportedOperation("seek")`, the same exception Python raises for non-seekable streams. For `buffered` connectors, the full value is fetched into a `SpooledTemporaryFile`, so seek works.
 
 If seek is needed on a passthrough mount, the handler should read into a local buffer:
 
 ```python
-import io
+import aiofiles, io
 
-with open("/state/media/model.bin", "rb") as f:
-    buf = io.BytesIO(f.read())  # fetch once, seek freely
+async with aiofiles.open("/state/media/model.bin", "rb") as f:
+    buf = io.BytesIO(await f.read())  # fetch once, seek freely
     buf.seek(1024)
     header = buf.read(256)
+# or sync:
+# with open("/state/media/model.bin", "rb") as f:
+#     buf = io.BytesIO(f.read())
 ```
 
 ### C extensions that bypass Python file I/O
@@ -888,12 +894,17 @@ The Python-level patching catches all code that goes through `builtins.open` —
 | HuggingFace | `from_pretrained()`, `save_pretrained()` | yes (Python `open` + `torch.save`) | **works** |
 | TensorFlow | `tf.io.read_file()`, `model.save()` | no (C++) | **gap** — TF has native `tf.io.gfile` with S3/GCS support; use that directly |
 
-**Workaround pattern for all gaps**: Read into a file object first, then pass the file object (not the path) to the library.
+**Workaround pattern for all gaps**: Read into a file object first, then pass the file object (not the path) to the library. This has to be clearly documented on asya side.
 
 ```python
+import aiofiles
+
 # General workaround: read state file into memory, pass to library
-with open("/state/media/model.pt", "rb") as f:
-    data = f.read()  # intercepted, streamed from proxy
+async with aiofiles.open("/state/media/model.pt", "rb") as f:
+    data = await f.read()  # intercepted, streamed from proxy
+# or sync:
+# with open("/state/media/model.pt", "rb") as f:
+#     data = f.read()
 
 # Then use library with in-memory data
 img = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)
@@ -912,8 +923,11 @@ When `ASYA_STATE_PROXY_MOUNTS` is unset (local development, testing), no patchin
 
 ```python
 # This code works identically in both environments:
-with open("/state/meta/user/123", "w") as f:
-    json.dump(context, f)
+async with aiofiles.open("/state/meta/user/123", "w") as f:
+    await f.write(json.dumps(context))
+# or sync:
+# with open("/state/meta/user/123", "w") as f:
+#     json.dump(context, f)
 
 # Local: writes to /state/meta/user/123 on disk (create the directory first)
 # Deployed: intercepted, PUT to proxy -> Redis
@@ -939,7 +953,7 @@ No conditional imports, no environment detection, no mock objects. The same hand
 ### Agentic per-user context storage
 
 ```python
-import json, os
+import aiofiles, json, os
 
 async def handle(payload):
     user_id = payload["user_id"]
@@ -947,8 +961,8 @@ async def handle(payload):
 
     # Load existing context (or start fresh)
     try:
-        with open(context_path) as f:
-            context = json.load(f)
+        async with aiofiles.open(context_path) as f:
+            context = json.loads(await f.read())
     except FileNotFoundError:
         context = {"history": [], "preferences": {}}
 
@@ -958,10 +972,18 @@ async def handle(payload):
     context["preferences"].update(response.get("learned_prefs", {}))
 
     # Save updated context
-    with open(context_path, "w") as f:
-        json.dump(context, f)
+    async with aiofiles.open(context_path, "w") as f:
+        await f.write(json.dumps(context))
 
     return {"reply": response["text"]}
+```
+
+Sync equivalent:
+```python
+# with open(context_path) as f:
+#     context = json.load(f)
+# with open(context_path, "w") as f:
+#     json.dump(context, f)
 ```
 
 ```yaml
@@ -971,7 +993,7 @@ spec:
       mount:
         path: /state/meta
       connector:
-        image: asya-crew/state-proxies/redis-buffered-cas:latest
+        image: asya-bridges/state-proxy/redis-buffered-cas:latest
         env:
           - name: STATE_ENDPOINT
             value: "redis://context-store:6379/0"
@@ -980,13 +1002,14 @@ spec:
 ### Media file storage
 
 ```python
+import aiofiles
 from PIL import Image
 import io
 
 async def handle(payload):
     # Read input image from object store
-    with open(f"/state/media/uploads/{payload['image_id']}.jpg", "rb") as f:
-        img = Image.open(f)
+    async with aiofiles.open(f"/state/media/uploads/{payload['image_id']}.jpg", "rb") as f:
+        img = Image.open(io.BytesIO(await f.read()))
 
     # Process
     result = transform(img)
@@ -994,8 +1017,8 @@ async def handle(payload):
     # Write result back to object store
     buf = io.BytesIO()
     result.save(buf, format="PNG")
-    with open(f"/state/media/results/{payload['image_id']}.png", "wb") as f:
-        f.write(buf.getvalue())
+    async with aiofiles.open(f"/state/media/results/{payload['image_id']}.png", "wb") as f:
+        await f.write(buf.getvalue())
 
     return {"status": "processed", "output_key": f"results/{payload['image_id']}.png"}
 ```
@@ -1007,7 +1030,7 @@ spec:
       mount:
         path: /state/media
       connector:
-        image: asya-crew/state-proxies/s3-buffered-lww:latest
+        image: asya-bridges/state-proxy/s3-buffered-lww:latest
         env:
           - name: STATE_BUCKET
             value: "media-pipeline"
@@ -1020,18 +1043,20 @@ spec:
 ### Streaming video processing (passthrough)
 
 ```python
+import aiofiles
+
 async def handle(payload):
     video_id = payload["video_id"]
 
     # Stream large video file — not buffered in memory
-    with open(f"/state/video/raw/{video_id}.mp4", "rb") as f:
-        while chunk := f.read(8192):
-            process_chunk(chunk)
+    async with aiofiles.open(f"/s3/video/raw/{video_id}.mp4", "rb") as f:
+        while chunk := await f.read(8192):
+            await process_chunk(chunk)
 
     # Write processed output — streams directly to S3 via multipart upload
-    with open(f"/state/video/processed/{video_id}.mp4", "wb") as f:
+    async with aiofiles.open(f"/s3/video/processed/{video_id}.mp4", "wb") as f:
         for chunk in generate_processed_chunks():
-            f.write(chunk)
+            await f.write(chunk)
 
     return {"status": "processed"}
 ```
@@ -1041,9 +1066,9 @@ spec:
   stateProxy:
     - name: video
       mount:
-        path: /state/video
+        path: /states3
       connector:
-        image: asya-crew/state-proxies/s3-passthrough:latest
+        image: asya-bridges/state-proxy/s3-passthrough:latest
         env:
           - name: STATE_BUCKET
             value: "video-pipeline"
@@ -1056,7 +1081,7 @@ spec:
 ### Session files with multiple stores
 
 ```python
-import json, os, pickle
+import aiofiles, json, os, pickle
 
 async def handle(payload):
     session_id = payload["session_id"]
@@ -1064,8 +1089,8 @@ async def handle(payload):
     # Fast KV for session metadata (Redis, buffered + CAS)
     meta_path = f"/state/meta/sessions/{session_id}"
     try:
-        with open(meta_path) as f:
-            meta = json.load(f)
+        async with aiofiles.open(meta_path) as f:
+            meta = json.loads(await f.read())
     except FileNotFoundError:
         meta = {"step": 0, "created": payload["timestamp"]}
 
@@ -1077,13 +1102,13 @@ async def handle(payload):
     result, artifact = await process_step(payload, meta, existing)
 
     # Write artifact to S3
-    with open(f"{artifact_dir}/step-{meta['step']}.pkl", "wb") as f:
-        pickle.dump(artifact, f)
+    async with aiofiles.open(f"{artifact_dir}/step-{meta['step']}.pkl", "wb") as f:
+        await f.write(pickle.dumps(artifact))
 
     # Update session metadata in Redis
     meta["step"] += 1
-    with open(meta_path, "w") as f:
-        json.dump(meta, f)
+    async with aiofiles.open(meta_path, "w") as f:
+        await f.write(json.dumps(meta))
 
     return result
 ```
@@ -1095,7 +1120,7 @@ spec:
       mount:
         path: /state/meta
       connector:
-        image: asya-crew/state-proxies/redis-buffered-cas:latest
+        image: asya-bridges/state-proxy/redis-buffered-cas:latest
         env:
           - name: STATE_ENDPOINT
             value: "redis://sessions:6379/0"
@@ -1103,7 +1128,7 @@ spec:
       mount:
         path: /state/media
       connector:
-        image: asya-crew/state-proxies/s3-buffered-lww:latest
+        image: asya-bridges/state-proxy/s3-buffered-lww:latest
         env:
           - name: STATE_BUCKET
             value: "session-artifacts"
