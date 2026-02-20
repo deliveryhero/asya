@@ -5,6 +5,7 @@
 !.gitignore
 !epics/
 !epics/**
+!scripts/
 
 # Tmux session logs (local only) — must come AFTER !epics/** to override it
 epics/**/.tmux-logs/
