@@ -483,7 +483,7 @@ spec:
         path: /state/meta
         # mode: rw             # future: ro | rw
       connector:
-        image: redis-buffered-cas    # resolves to asya-connector-redis-buffered-cas:latest
+        image: asya-crew/state-proxies/redis-buffered-cas:latest
         env:
           - name: STATE_ENDPOINT
             value: "redis://context-store:6379/0"
@@ -501,7 +501,7 @@ spec:
       mount:
         path: /state/media
       connector:
-        image: s3-passthrough
+        image: asya-crew/state-proxies/s3-passthrough:latest
         env:
           - name: STATE_BUCKET
             value: "media-pipeline"
@@ -528,7 +528,7 @@ spec:
 |-------|----------|-------------|
 | `name` | yes | Unique mount identifier. Used for socket path (`{name}.sock`), container name (`asya-state-proxy-{name}`), and env var generation. Must be DNS-compatible. |
 | `mount.path` | yes | Absolute path where the mount appears inside the runtime container. Must start with `/`. |
-| `connector.image` | yes | Connector implementation image. Resolves to `asya-connector-{image}:latest` or used as-is if it contains `/` or `:`. |
+| `connector.image` | yes | Absolute container image reference for the connector (e.g., `asya-crew/state-proxies/redis-buffered-cas:latest`). No short-name resolution — always the full image. |
 | `connector.env` | no | Backend-specific and retry configuration. Passed as env vars to the connector container. Opaque to the runtime and injector. |
 | `connector.resources` | no | Optional Kubernetes resource requests/limits for the connector container. |
 
@@ -575,7 +575,7 @@ volumes:
 # State proxy containers
 containers:
   - name: asya-state-proxy-meta
-    image: asya-connector-redis-buffered-cas:latest
+    image: asya-crew/state-proxies/redis-buffered-cas:latest
     env:
       - name: CONNECTOR_SOCKET
         value: /var/run/asya/state/meta.sock
@@ -590,7 +590,7 @@ containers:
         mountPath: /var/run/asya/state
 
   - name: asya-state-proxy-media
-    image: asya-connector-s3-passthrough:latest
+    image: asya-crew/state-proxies/s3-passthrough:latest
     env:
       - name: CONNECTOR_SOCKET
         value: /var/run/asya/state/media.sock
@@ -971,7 +971,7 @@ spec:
       mount:
         path: /state/meta
       connector:
-        image: redis-buffered-cas
+        image: asya-crew/state-proxies/redis-buffered-cas:latest
         env:
           - name: STATE_ENDPOINT
             value: "redis://context-store:6379/0"
@@ -1007,7 +1007,7 @@ spec:
       mount:
         path: /state/media
       connector:
-        image: s3-buffered-lww
+        image: asya-crew/state-proxies/s3-buffered-lww:latest
         env:
           - name: STATE_BUCKET
             value: "media-pipeline"
@@ -1043,7 +1043,7 @@ spec:
       mount:
         path: /state/video
       connector:
-        image: s3-passthrough
+        image: asya-crew/state-proxies/s3-passthrough:latest
         env:
           - name: STATE_BUCKET
             value: "video-pipeline"
@@ -1095,7 +1095,7 @@ spec:
       mount:
         path: /state/meta
       connector:
-        image: redis-buffered-cas
+        image: asya-crew/state-proxies/redis-buffered-cas:latest
         env:
           - name: STATE_ENDPOINT
             value: "redis://sessions:6379/0"
@@ -1103,7 +1103,7 @@ spec:
       mount:
         path: /state/media
       connector:
-        image: s3-buffered-lww
+        image: asya-crew/state-proxies/s3-buffered-lww:latest
         env:
           - name: STATE_BUCKET
             value: "session-artifacts"
