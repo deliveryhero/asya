@@ -5,7 +5,7 @@ priority: 2 # medium
 type: epic
 ---
 
-Redesign Asya's handler signatures to support typed parameters, output key naming, local variable serialization, and framework-compatible tool definitions. Replace the yield-based ABI for metadata access with a virtual filesystem at `/tmp/msg/`.
+Redesign Asya's handler signatures to support typed parameters, output key naming, local variable serialization, and framework-compatible tool definitions. Message metadata access via a virtual filesystem at `/tmp/msg/`.
 
 ## Vision
 
@@ -16,7 +16,7 @@ Move beyond the current dict-only handler signatures to support:
 4. Framework decorator detection: @tool from ADK, LangChain, etc.
 5. Magic parameter injection: context, stream_writer, tool_context (auto-excluded from schema)
 6. Local variable serialization: auto-save/restore across await boundaries
-7. **Message metadata as virtual filesystem**: `/tmp/msg/` replaces yield GET/SET/DEL
+7. **Message metadata as virtual filesystem**: `/tmp/msg/` for route/header access
 
 ## Current State
 - payload mode: `def handler(p: dict) -> dict` — single dict in, single dict out
@@ -27,7 +27,6 @@ Move beyond the current dict-only handler signatures to support:
 - .aim/aims/1cnt.epic-agent-flow-compi/README.md (CPS transformation, async/await)
 - .aim/aims/1dmf.ready-stateful-actors/README.md (transparent filesystem emulation for persistent state — same `open()` interception pattern)
 - .aim/aims/1fbe.redesign-protocol-sidecar-runtime/README.md (HTTP over Unix socket protocol — replaces current binary framing)
-- docs/rfc/agentic-signatures/rfc-handler-contract.md (original yield-based ABI — superseded by this RFC)
 - docs/rfc/agentic-signatures/survey-agentic-frameworks.md (14-framework survey)
 
 ## Champion Framework: Google ADK
@@ -43,7 +42,6 @@ ADK is the closest architectural match for Asya. Key patterns to adopt:
 - Enrichment is custom reducer (payload in -> payload out), not append-only
 - Free variables across await boundaries: initially error, later auto-serialize
 - LangGraph reducer pattern (Annotated[list, add]) — NOT adopted (confusing, scales poorly)
-- **Yield GET/SET/DEL ABI — SUPERSEDED by `/tmp/msg/` virtual filesystem** (see rationale below)
 - **No asya pip package** — handler signatures must be pure Python
 - **No context object injection** — handlers must not have asya-specific parameters
 - **File-based metadata access** — follows Linux `/proc` philosophy
@@ -54,20 +52,9 @@ ADK is the closest architectural match for Asya. Key patterns to adopt:
 
 This RFC defines the contract between **user handler code** and **asya_runtime.py**, including the message schema, handler signatures, and metadata access via the `/tmp/msg/` virtual filesystem.
 
-### Why `/tmp/msg/` replaces yield GET/SET/DEL
+### Design rationale for `/tmp/msg/`
 
-The original yield-based ABI required handlers to use a custom protocol:
-
-```python
-# OLD — yield ABI (superseded)
-def router(payload):
-    yield "SET", "/route/next", ["express_handler", "payment"]
-    yield payload
-```
-
-Feedback from data science practitioners: this looks "too hacky." Magic strings (`"SET"`, `"GET"`), JSON pointer paths, generator `send()` protocol — all require learning a custom system.
-
-**Design constraints** for the replacement:
+**Design constraints**:
 1. Handler signatures must be **pure working Python** — no asya imports, no magic parameters
 2. Mechanism must be **"foreign" enough** not to look like business logic
 3. Must be **"innocent"** — work with real entities when run/tested locally
@@ -343,9 +330,9 @@ class Processor:
 
 ---
 
-### 4. Yield protocol (simplified)
+### 4. Yield protocol
 
-Generator handlers communicate with the runtime through `yield`. With `/tmp/msg/`, the yield instruction space is reduced to **frame emission only**:
+Generator handlers communicate with the runtime through `yield`. Yields are **frame emission only** — metadata access goes through `/tmp/msg/` files.
 
 | Yielded value | Type | Instruction |
 |---|---|---|
@@ -354,8 +341,6 @@ Generator handlers communicate with the runtime through `yield`. With `/tmp/msg/
 | `({"key": "val"}, False)` | `(dict, False)` | EMIT downstream frame |
 | (bare yield) | `None` | NOOP (suspension point) |
 | anything else | — | protocol error |
-
-**No more GET/SET/DEL yields.** Metadata access goes through `/tmp/msg/` files.
 
 #### Generator driving loop (pseudocode)
 
@@ -734,8 +719,8 @@ def router(payload):
 | Route schema      | `{"actors": [...], "current": int}`         | `{"prev": [...], "curr": str, "next": [...]}` |
 | Streaming         | Generator yields dicts                      | `yield dict` / `yield dict, True`     |
 | Route validation  | Complex: check `actors[0:current+1]`        | Simple: `prev`/`curr` are read-only files |
-| Metadata access   | `yield "GET"/"SET"`, "/path"`               | Standard `open()`/`os.remove()`       |
-| Testing           | Custom generator driver harness             | Real files, zero mocks                |
+| Metadata access   | Direct dict manipulation                    | Standard `open()`/`os.remove()`       |
+| Testing           | Direct dict assertions                      | Real files, zero mocks                |
 | Dependencies      | None                                        | None (standard library only)          |
 
 ---
