@@ -1,0 +1,58 @@
+---
+title: "E2E test: compiled flow with fan-out/fan-in on Kind cluster"
+status: open
+priority: 2 # medium
+type: task
+dependencies:
+  - misc/1cbe
+  - misc/1fo5pp
+  - misc/1fci1o
+  - misc/1cpu
+  - 1c46/1ct3
+---
+
+
+
+
+
+## Summary
+
+End-to-end test for a compiled Flow DSL program that includes fan-out/fan-in, deployed on a Kind cluster with StatefulSet aggregator.
+
+## Test Flow
+
+```python
+def research_flow(p: dict) -> dict:
+    p["results"] = [research_agent(t) for t in p["topics"]]
+    p = summarizer(p)
+    return p
+```
+
+Compiled to:
+- start router (mutation)
+- fan-out router (generated, with rendezvous sharding)
+- research_agent actor (simple handler)
+- aggregator (StatefulSet, 2 replicas, RocksDB PVC)
+- summarizer actor (simple handler)
+
+## Test Scenarios
+
+1. **Happy path**: Submit message with 3 topics, verify aggregated results arrive at x-sink
+2. **Gateway tracking**: Verify gateway SSE stream shows correct status updates (not false positives from partials)
+3. **Scale**: Submit message with 10 topics, verify all 10 results aggregated
+4. **Persistence**: Restart aggregator pod mid-aggregation, verify fan-in completes after restart
+
+## Dependencies
+- DEPENDS ON: StatefulSet workload support (asya-altb)
+- DEPENDS ON: Fan-out router code generator (asya-q2kp)
+- DEPENDS ON: Aggregator crew actor (asya-fi6u)
+- DEPENDS ON: Sidecar header preservation (asya-nduw)
+- DEPENDS ON: Sidecar route-override (asya-2ozv)
+- DEPENDS ON: asya-0bvg (sink non-reporting)
+
+## References
+- RFC: docs/rfc/fan-in/rfc-fan-in.md (Deployment)
+
+
+---
+_Migrated from beads `asya-1mqw`_
