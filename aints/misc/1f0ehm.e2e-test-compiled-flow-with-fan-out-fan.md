@@ -4,12 +4,10 @@ status: open
 priority: 2 # medium
 type: task
 dependencies:
-  - misc/1cbe
   - misc/1fo5pp
   - misc/1fci1o
-  - misc/1cpu
-  - 1c46/1ct3
 ---
+
 
 
 

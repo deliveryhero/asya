@@ -3,8 +3,6 @@ title: Stateful Fan-In/Fan-Out
 status: open
 priority: 2 # medium
 type: epic
-dependencies:
-  - 1c87
 ---
 
 ## Summary

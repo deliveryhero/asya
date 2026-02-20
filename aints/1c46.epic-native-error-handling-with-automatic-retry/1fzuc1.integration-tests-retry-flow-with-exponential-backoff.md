@@ -3,9 +3,8 @@ title: "Integration tests: retry flow with exponential backoff"
 status: open
 priority: 2 # medium
 type: task
-dependencies:
-  - 1c46/1c9e
 ---
+
 
 
 

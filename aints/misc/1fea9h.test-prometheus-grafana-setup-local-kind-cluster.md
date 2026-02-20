@@ -5,9 +5,8 @@ priority: 2 # medium
 type: task
 tags:
   - beads:epic:asya-ln2
-dependencies:
-  - misc/1cf3
 ---
+
 
 
 
