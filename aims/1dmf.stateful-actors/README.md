@@ -42,7 +42,7 @@ User container                          Connector sidecar(s)
 +-----------------------------+
 | Handler code                |
 |   open("./s3data/key", "w") |
-|   os.path.exists("./cache/k") |
+|   os.path.exists("./cache/k")|
 +----------+------------------+
            |
            v
@@ -126,12 +126,12 @@ spec:
         prefix: artifacts/
         region: us-east-1
       mount: ./s3data
-
     - backend: redis
       config:
         endpoint: redis://cache:6379/0
       mount: ./cache
   workload:
+    kind: Deployment
     template:
       spec:
         containers:
@@ -600,7 +600,7 @@ async def handle(payload):
 
 ```yaml
 spec:
-  state:
+  stateProxy:
     - backend: redis
       config:
         endpoint: redis://sessions:6379/0
@@ -633,7 +633,7 @@ spec:
 
 ### Phase 3: Injector and XRD integration
 
-- Add `state` field to AsyncActor XRD
+- Add `stateProxy` field to AsyncActor XRD
 - Update injector to add connector sidecars, socket volumes, and env vars
 - Update Crossplane compositions
 
