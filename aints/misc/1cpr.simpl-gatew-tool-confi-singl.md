@@ -1,0 +1,30 @@
+---
+title: Simplify gateway tool config to singleton ConfigMap + fsnotify
+status: open
+priority: 2 # medium
+type: task
+tags:
+  - type:feature
+dependencies:
+  - misc/1cmp
+  - misc/1c55
+  - misc/1c4e
+---
+
+
+Replace the GatewayConfig XRD design with a simpler approach: a singleton ConfigMap (gateway-tools) updated by asya-cli, mounted into gateway pod, with fsnotify detecting changes.
+
+Flow:
+1. DS runs 'asya expose order-processing'
+2. CLI finds entrypoint actor, reads annotations, detects parameters from flow.py
+3. CLI patches gateway-tools ConfigMap (kubectl patch configmap)
+4. Kubelet syncs ConfigMap to mounted volume
+5. Gateway fsnotify detects file change, reloads tool config
+
+No XRD, no function-extra-resources, no composition pipeline needed.
+
+Still depends on asya-j2vk (fsnotify in gateway) and asya-yh1c (CLI commands that update the ConfigMap).
+
+
+---
+_Migrated from beads `asya-33qf`_
