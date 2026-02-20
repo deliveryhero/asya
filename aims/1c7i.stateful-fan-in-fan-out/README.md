@@ -1,5 +1,5 @@
 ---
-title: Stateful Fan-In/Fan-Out for Agentic Workflows
+title: Stateful Fan-In/Fan-Out
 status: open
 priority: 2 # medium
 type: epic
