@@ -6,47 +6,46 @@ type: epic
 
 
 ## Summary
-Implement dynamic fan-out and CDC-based fan-in for parallel sub-agent execution.
+Implement dynamic fan-out and fan-in for parallel sub-agent execution.
 
 Enable list comprehension syntax in Flow DSL that compiles to parallel execution with result aggregation:
 ```python
 p["results"] = [agent(p["items"][i]) for i in range(len(p["items"]))]
 ```
 
+Fan-in uses a **split-key pattern on S3** via the state proxy sidecar (epic 1dmf). Each slice writes its own S3 object (zero contention), completeness is detected by listing, exactly-once emission uses atomic create-if-not-exists. No sharding, no CAS, no embedded databases. Aggregator handler is pluggable for future flavors (Redis CAS, sharded RocksDB).
+
 ## Implementation Plan (by layer)
 
 ### Layer 1: Sidecar Infrastructure
-- `asya-nduw` [P1] Preserve message headers through routing (CRITICAL)
-- `asya-g69n` [P2] uuid4() for fan-out child message IDs
-- `asya-2ozv` [P2] x-asya-route-override header resolution (depends on asya-nduw)
-- `asya-9n0r` [P3] x-asya-root-id header for nested fan-out tracing (depends on asya-nduw)
+- `1fci1o` [P1] Preserve message headers through routing (CRITICAL)
+- `1f0rar` [P2] uuid4() for fan-out child message IDs
 
 ### Layer 2: Sink/Sump Non-Reporting
-- `asya-0bvg` [P2] Allow any status.phase in sink/sump; suppress gateway reporting (parent: asya-y4kr)
+- (external) Allow any status.phase in sink/sump; suppress gateway reporting
 
 ### Layer 3: Flow DSL Compiler
-- `asya-pmor` [P2] Fan-out list comprehension and list literal parser
-- `asya-q2kp` [P2] Fan-out router code generator (depends on asya-pmor)
-- `asya-dulv` [P3] Fan-out/fan-in dot diagram visualization (depends on asya-pmor)
+- (external) Fan-out list comprehension and list literal parser
+- `1fr7i0` [P2] Fan-out router code generator (simplified: no sharding by default)
+- `1froou` [P3] Fan-out/fan-in dot diagram visualization
 
 ### Layer 4: Aggregator Crew Actor
-- `asya-fi6u` [P2] Aggregator crew actor with RocksDB (depends on asya-0bvg)
+- [P2] Aggregator crew actor with S3 split-key pattern (depends on state proxy, epic 1dmf)
 
-### Layer 5: Testing
-- `asya-8g3x` [P2] Component test: aggregator actor (depends on asya-fi6u)
-- `asya-brq4` [P2] Integration test: fan-out/fan-in pipeline (depends on asya-nduw, asya-2ozv, asya-fi6u, asya-0bvg)
-- `asya-1mqw` [P2] E2E test: compiled flow on Kind cluster (depends on asya-altb, asya-q2kp, asya-fi6u, asya-nduw, asya-2ozv, asya-0bvg)
+### Layer 5: Runtime Enhancement
+- [P2] Add `open(path, "x")` exclusive create mode to `asya_runtime.py`
 
-### Infrastructure Dependencies (external)
-- `asya-zpl` [P2] Research: stateful fan-in actor (blocked by asya-0bvg)
+### Layer 6: Testing
+- [P2] Integration test: fan-out/fan-in pipeline
+- `1f0ehm` [P2] E2E test: compiled flow with fan-out/fan-in on Kind cluster
 
 ## Critical Path
 ```
-asya-nduw (headers) → asya-2ozv (route-override) ─┐
-                                                    ├─→ asya-brq4 (integration)
-asya-0bvg (sink) → asya-fi6u (aggregator) ────────┘
+1fci1o (headers) ──────────────────────────┐
+                                            ├─→ integration test
+sink non-reporting → aggregator (S3) ──────┘
 
-asya-pmor (parser) → asya-q2kp (codegen) ──────┐
-                                                ├──→ asya-1mqw (E2E)
-asya-nduw + asya-2ozv + asya-fi6u + asya-0bvg ─┘
+parser → 1fr7i0 (codegen, simplified) ────┐
+                                           ├──→ 1f0ehm (E2E)
+1fci1o + aggregator + sink ───────────────┘
 ```
