@@ -45,5 +45,3 @@ ADK is the closest architectural match for Asya. Key patterns to adopt:
 - **No asya pip package** — handler signatures must be pure Python
 - **No context object injection** — handlers must not have asya-specific parameters
 - **File-based metadata access** — follows Linux `/proc` philosophy
-
----
