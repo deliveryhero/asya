@@ -12,6 +12,7 @@ tags:
 
 
 
+
 Extend asya-injector with a second webhook entry that intercepts AsyncActor claim CREATE/UPDATE operations and copies spec.actor value to metadata.labels["asya.sh/actor"]. This ensures the label is always present and consistent with the spec field, enabling kubectl label queries without requiring users to set both.
 
 Implementation:
