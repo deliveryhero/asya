@@ -11,6 +11,7 @@ import (
 	admissionv1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/client-go/dynamic"
@@ -241,4 +242,140 @@ func createPatch(original, mutated *corev1.Pod) ([]byte, error) {
 
 	// Use strategic merge patch to create JSON patch
 	return createJSONPatch(origBytes, mutatedBytes)
+}
+
+// HandleMutateAsyncActor handles the mutating admission webhook request for AsyncActor resources.
+// It copies spec.actor to metadata.labels["asya.sh/actor"] on CREATE and UPDATE operations.
+func (h *Handler) HandleMutateAsyncActor(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		slog.Error("Failed to read request body", "error", err)
+		http.Error(w, "failed to read request body", http.StatusBadRequest)
+		return
+	}
+
+	if len(body) == 0 {
+		slog.Error("Empty request body")
+		http.Error(w, "empty request body", http.StatusBadRequest)
+		return
+	}
+
+	var admissionReview admissionv1.AdmissionReview
+	if _, _, err := deserializer.Decode(body, nil, &admissionReview); err != nil {
+		slog.Error("Failed to decode admission review", "error", err)
+		http.Error(w, "failed to decode admission review", http.StatusBadRequest)
+		return
+	}
+
+	response := h.mutateAsyncActor(r.Context(), admissionReview.Request)
+
+	admissionReview.Response = response
+	admissionReview.Response.UID = admissionReview.Request.UID
+
+	respBytes, err := json.Marshal(admissionReview)
+	if err != nil {
+		slog.Error("Failed to marshal response", "error", err)
+		http.Error(w, "failed to marshal response", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_, _ = w.Write(respBytes)
+}
+
+// mutateAsyncActor copies spec.actor to metadata.labels["asya.sh/actor"]
+func (h *Handler) mutateAsyncActor(_ context.Context, req *admissionv1.AdmissionRequest) *admissionv1.AdmissionResponse {
+	if req == nil {
+		return &admissionv1.AdmissionResponse{
+			Allowed: false,
+			Result: &metav1.Status{
+				Code:    http.StatusBadRequest,
+				Message: "empty admission request",
+			},
+		}
+	}
+
+	slog.Debug("Processing AsyncActor admission request",
+		"name", req.Name,
+		"namespace", req.Namespace,
+		"operation", req.Operation,
+	)
+
+	// Decode the object as unstructured
+	var obj unstructured.Unstructured
+	if err := json.Unmarshal(req.Object.Raw, &obj.Object); err != nil {
+		slog.Error("Failed to decode AsyncActor", "error", err)
+		return &admissionv1.AdmissionResponse{
+			Allowed: false,
+			Result: &metav1.Status{
+				Code:    http.StatusBadRequest,
+				Message: fmt.Sprintf("failed to decode object: %v", err),
+			},
+		}
+	}
+
+	// Extract spec.actor
+	actorName, found, err := unstructured.NestedString(obj.Object, "spec", "actor")
+	if err != nil || !found || actorName == "" {
+		slog.Error("spec.actor is required", "name", req.Name)
+		return &admissionv1.AdmissionResponse{
+			Allowed: false,
+			Result: &metav1.Status{
+				Code:    http.StatusBadRequest,
+				Message: "spec.actor is required",
+			},
+		}
+	}
+
+	// Build JSON patch to set metadata.labels["asya.sh/actor"]
+	patch, err := buildActorLabelPatch(obj.GetLabels(), actorName)
+	if err != nil {
+		slog.Error("Failed to build patch", "error", err)
+		return &admissionv1.AdmissionResponse{
+			Allowed: false,
+			Result: &metav1.Status{
+				Code:    http.StatusInternalServerError,
+				Message: fmt.Sprintf("failed to build patch: %v", err),
+			},
+		}
+	}
+
+	slog.Info("Setting actor label on AsyncActor",
+		"name", req.Name,
+		"namespace", req.Namespace,
+		"actor", actorName,
+	)
+
+	patchType := admissionv1.PatchTypeJSONPatch
+	return &admissionv1.AdmissionResponse{
+		Allowed:   true,
+		Patch:     patch,
+		PatchType: &patchType,
+	}
+}
+
+// buildActorLabelPatch creates an RFC 6902 JSON Patch to set the asya.sh/actor label.
+// Handles both cases: labels map missing entirely, or label needs add/replace.
+func buildActorLabelPatch(existingLabels map[string]string, actorName string) ([]byte, error) {
+	valueBytes, err := json.Marshal(actorName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal actor name: %w", err)
+	}
+	value := string(valueBytes)
+
+	if existingLabels == nil {
+		return fmt.Appendf(nil, `[{"op":"add","path":"/metadata/labels","value":{"asya.sh/actor":%s}}]`, value), nil
+	}
+
+	// RFC 6902: "/" in JSON Pointer path is escaped as "~1"
+	op := "add"
+	if _, exists := existingLabels[LabelActor]; exists {
+		op = "replace"
+	}
+	return fmt.Appendf(nil, `[{"op":"%s","path":"/metadata/labels/asya.sh~1actor","value":%s}]`, op, value), nil
 }

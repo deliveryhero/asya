@@ -44,3 +44,34 @@ webhooks:
   - v1
   timeoutSeconds: {{ .Values.webhook.timeoutSeconds }}
   reinvocationPolicy: Never
+- name: label.asyncactor.asya.sh
+  clientConfig:
+    service:
+      name: {{ include "asya-injector.fullname" . }}
+      namespace: {{ .Release.Namespace }}
+      path: /mutate-asyncactor
+      port: {{ .Values.service.port }}
+    {{- if not .Values.certManager.enabled }}
+    caBundle: ""
+    {{- end }}
+  rules:
+  - operations:
+    - CREATE
+    - UPDATE
+    apiGroups:
+    - asya.sh
+    apiVersions:
+    - v1alpha1
+    resources:
+    - asyncactors
+    scope: Namespaced
+  {{- with .Values.webhook.namespaceSelector }}
+  namespaceSelector:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  failurePolicy: {{ .Values.webhook.failurePolicy }}
+  sideEffects: None
+  admissionReviewVersions:
+  - v1
+  timeoutSeconds: {{ .Values.webhook.timeoutSeconds }}
+  reinvocationPolicy: IfNeeded

@@ -88,6 +88,7 @@ func main() {
 	// Setup HTTP routes
 	mux := http.NewServeMux()
 	mux.HandleFunc("/mutate", handler.HandleMutate)
+	mux.HandleFunc("/mutate-asyncactor", handler.HandleMutateAsyncActor)
 	mux.HandleFunc("/healthz", handleHealthz)
 	mux.HandleFunc("/readyz", handleReadyz(restConfig))
 

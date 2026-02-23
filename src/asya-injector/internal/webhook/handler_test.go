@@ -248,6 +248,292 @@ func TestShouldInject(t *testing.T) {
 	}
 }
 
+func TestHandler_mutateAsyncActor_NilRequest(t *testing.T) {
+	cfg := &config.Config{
+		SidecarImage:     "test:latest",
+		RuntimeConfigMap: "asya-runtime",
+		SocketDir:        "/var/run/asya",
+		RuntimeMountPath: "/opt/asya/asya_runtime.py",
+	}
+	handler := NewHandler(nil, nil, cfg)
+
+	resp := handler.mutateAsyncActor(context.Background(), nil)
+
+	if resp.Allowed {
+		t.Error("expected nil request to be rejected")
+	}
+	if resp.Result == nil || resp.Result.Code != http.StatusBadRequest {
+		t.Error("expected BadRequest status")
+	}
+}
+
+func TestHandler_mutateAsyncActor_SetsLabel(t *testing.T) {
+	cfg := &config.Config{
+		SidecarImage:     "test:latest",
+		RuntimeConfigMap: "asya-runtime",
+		SocketDir:        "/var/run/asya",
+		RuntimeMountPath: "/opt/asya/asya_runtime.py",
+	}
+	handler := NewHandler(nil, nil, cfg)
+
+	obj := map[string]any{
+		"apiVersion": "asya.sh/v1alpha1",
+		"kind":       "AsyncActor",
+		"metadata": map[string]any{
+			"name":      "test-actor",
+			"namespace": "default",
+			"labels":    map[string]any{},
+		},
+		"spec": map[string]any{
+			"actor":     "text-analyzer",
+			"transport": "sqs",
+		},
+	}
+	objBytes, _ := json.Marshal(obj)
+
+	req := &admissionv1.AdmissionRequest{
+		Name:      "test-actor",
+		Namespace: "default",
+		Operation: admissionv1.Create,
+		Object:    runtime.RawExtension{Raw: objBytes},
+	}
+
+	resp := handler.mutateAsyncActor(context.Background(), req)
+
+	if !resp.Allowed {
+		t.Errorf("expected request to be allowed, got rejected: %v", resp.Result)
+	}
+	if resp.Patch == nil {
+		t.Fatal("expected patch to be set")
+	}
+	if resp.PatchType == nil || *resp.PatchType != admissionv1.PatchTypeJSONPatch {
+		t.Error("expected JSON patch type")
+	}
+
+	var patches []map[string]any
+	if err := json.Unmarshal(resp.Patch, &patches); err != nil {
+		t.Fatalf("failed to unmarshal patch: %v", err)
+	}
+	if len(patches) != 1 {
+		t.Fatalf("expected 1 patch operation, got %d", len(patches))
+	}
+	if patches[0]["op"] != "add" {
+		t.Errorf("expected op 'add', got %v", patches[0]["op"])
+	}
+	if patches[0]["value"] != "text-analyzer" {
+		t.Errorf("expected value 'text-analyzer', got %v", patches[0]["value"])
+	}
+}
+
+func TestHandler_mutateAsyncActor_ReplacesExistingLabel(t *testing.T) {
+	cfg := &config.Config{
+		SidecarImage:     "test:latest",
+		RuntimeConfigMap: "asya-runtime",
+		SocketDir:        "/var/run/asya",
+		RuntimeMountPath: "/opt/asya/asya_runtime.py",
+	}
+	handler := NewHandler(nil, nil, cfg)
+
+	obj := map[string]any{
+		"apiVersion": "asya.sh/v1alpha1",
+		"kind":       "AsyncActor",
+		"metadata": map[string]any{
+			"name":      "test-actor",
+			"namespace": "default",
+			"labels": map[string]any{
+				"asya.sh/actor": "old-name",
+			},
+		},
+		"spec": map[string]any{
+			"actor":     "new-name",
+			"transport": "sqs",
+		},
+	}
+	objBytes, _ := json.Marshal(obj)
+
+	req := &admissionv1.AdmissionRequest{
+		Name:      "test-actor",
+		Namespace: "default",
+		Operation: admissionv1.Update,
+		Object:    runtime.RawExtension{Raw: objBytes},
+	}
+
+	resp := handler.mutateAsyncActor(context.Background(), req)
+
+	if !resp.Allowed {
+		t.Errorf("expected request to be allowed, got rejected: %v", resp.Result)
+	}
+
+	var patches []map[string]any
+	if err := json.Unmarshal(resp.Patch, &patches); err != nil {
+		t.Fatalf("failed to unmarshal patch: %v", err)
+	}
+	if patches[0]["op"] != "replace" {
+		t.Errorf("expected op 'replace', got %v", patches[0]["op"])
+	}
+	if patches[0]["value"] != "new-name" {
+		t.Errorf("expected value 'new-name', got %v", patches[0]["value"])
+	}
+}
+
+func TestHandler_mutateAsyncActor_MissingSpecActor(t *testing.T) {
+	cfg := &config.Config{
+		SidecarImage:     "test:latest",
+		RuntimeConfigMap: "asya-runtime",
+		SocketDir:        "/var/run/asya",
+		RuntimeMountPath: "/opt/asya/asya_runtime.py",
+	}
+	handler := NewHandler(nil, nil, cfg)
+
+	obj := map[string]any{
+		"apiVersion": "asya.sh/v1alpha1",
+		"kind":       "AsyncActor",
+		"metadata": map[string]any{
+			"name":      "test-actor",
+			"namespace": "default",
+		},
+		"spec": map[string]any{
+			"transport": "sqs",
+		},
+	}
+	objBytes, _ := json.Marshal(obj)
+
+	req := &admissionv1.AdmissionRequest{
+		Name:      "test-actor",
+		Namespace: "default",
+		Operation: admissionv1.Create,
+		Object:    runtime.RawExtension{Raw: objBytes},
+	}
+
+	resp := handler.mutateAsyncActor(context.Background(), req)
+
+	if resp.Allowed {
+		t.Error("expected request without spec.actor to be rejected")
+	}
+	if resp.Result == nil || resp.Result.Code != http.StatusBadRequest {
+		t.Error("expected BadRequest status")
+	}
+}
+
+func TestHandler_mutateAsyncActor_NoLabelsMap(t *testing.T) {
+	cfg := &config.Config{
+		SidecarImage:     "test:latest",
+		RuntimeConfigMap: "asya-runtime",
+		SocketDir:        "/var/run/asya",
+		RuntimeMountPath: "/opt/asya/asya_runtime.py",
+	}
+	handler := NewHandler(nil, nil, cfg)
+
+	obj := map[string]any{
+		"apiVersion": "asya.sh/v1alpha1",
+		"kind":       "AsyncActor",
+		"metadata": map[string]any{
+			"name":      "test-actor",
+			"namespace": "default",
+		},
+		"spec": map[string]any{
+			"actor":     "my-actor",
+			"transport": "sqs",
+		},
+	}
+	objBytes, _ := json.Marshal(obj)
+
+	req := &admissionv1.AdmissionRequest{
+		Name:      "test-actor",
+		Namespace: "default",
+		Operation: admissionv1.Create,
+		Object:    runtime.RawExtension{Raw: objBytes},
+	}
+
+	resp := handler.mutateAsyncActor(context.Background(), req)
+
+	if !resp.Allowed {
+		t.Errorf("expected request to be allowed, got rejected: %v", resp.Result)
+	}
+
+	var patches []map[string]any
+	if err := json.Unmarshal(resp.Patch, &patches); err != nil {
+		t.Fatalf("failed to unmarshal patch: %v", err)
+	}
+	// When no labels map exists, the patch creates the entire labels object
+	if patches[0]["op"] != "add" {
+		t.Errorf("expected op 'add', got %v", patches[0]["op"])
+	}
+	if patches[0]["path"] != "/metadata/labels" {
+		t.Errorf("expected path '/metadata/labels', got %v", patches[0]["path"])
+	}
+	valueMap, ok := patches[0]["value"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected value to be a map, got %T", patches[0]["value"])
+	}
+	if valueMap["asya.sh/actor"] != "my-actor" {
+		t.Errorf("expected actor label 'my-actor', got %v", valueMap["asya.sh/actor"])
+	}
+}
+
+func TestBuildActorLabelPatch(t *testing.T) {
+	tests := []struct {
+		name           string
+		existingLabels map[string]string
+		actorName      string
+		wantOp         string
+		wantPath       string
+	}{
+		{
+			name:           "nil labels - creates labels map",
+			existingLabels: nil,
+			actorName:      "my-actor",
+			wantOp:         "add",
+			wantPath:       "/metadata/labels",
+		},
+		{
+			name:           "empty labels - adds label",
+			existingLabels: map[string]string{},
+			actorName:      "my-actor",
+			wantOp:         "add",
+			wantPath:       "/metadata/labels/asya.sh~1actor",
+		},
+		{
+			name:           "existing other labels - adds label",
+			existingLabels: map[string]string{"app": "test"},
+			actorName:      "my-actor",
+			wantOp:         "add",
+			wantPath:       "/metadata/labels/asya.sh~1actor",
+		},
+		{
+			name:           "existing actor label - replaces",
+			existingLabels: map[string]string{"asya.sh/actor": "old-name"},
+			actorName:      "new-name",
+			wantOp:         "replace",
+			wantPath:       "/metadata/labels/asya.sh~1actor",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			patch, err := buildActorLabelPatch(tt.existingLabels, tt.actorName)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			var ops []map[string]any
+			if err := json.Unmarshal(patch, &ops); err != nil {
+				t.Fatalf("failed to unmarshal patch: %v", err)
+			}
+
+			if len(ops) != 1 {
+				t.Fatalf("expected 1 operation, got %d", len(ops))
+			}
+			if ops[0]["op"] != tt.wantOp {
+				t.Errorf("expected op %q, got %v", tt.wantOp, ops[0]["op"])
+			}
+			if ops[0]["path"] != tt.wantPath {
+				t.Errorf("expected path %q, got %v", tt.wantPath, ops[0]["path"])
+			}
+		})
+	}
+}
+
 func TestHandler_HandleMutate_FullFlow(t *testing.T) {
 	cfg := &config.Config{
 		SidecarImage:     "test:latest",
