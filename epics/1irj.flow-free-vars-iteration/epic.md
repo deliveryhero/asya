@@ -1,6 +1,6 @@
 ---
 title: Flow DSL Free Variables and Iteration
-status: ideated
+status: slopped
 priority: 2 # medium
 type: epic
 ---

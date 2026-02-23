@@ -1,6 +1,6 @@
 ---
 title: Message Metadata Virtual Filesystem
-status: ideated
+status: slopped
 priority: 2 # medium
 type: epic
 ---

@@ -1,6 +1,6 @@
 ---
 title: "Streaming Protocol: Multi-Frame and Partial Event Routing"
-status: ideated
+status: slopped
 priority: 2 # medium
 type: epic
 ---
