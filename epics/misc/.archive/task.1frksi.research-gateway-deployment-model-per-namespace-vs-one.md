@@ -1,11 +1,13 @@
 ---
 title: "Research: Gateway deployment model — per-namespace vs one-per-cluster"
-status: open
+status: done
 priority: 4 # backlog
 type: task
 tags:
   - type:feature
+reason: "Decided: per-namespace gateway for simplicity, security isolation, and throughput guarantees. ADR added to 1fc44c."
 ---
+
 
 
 
