@@ -1,6 +1,5 @@
 ---
 title: Redesign Protocol Sidecar-Runtime
-status: ready
 priority: 2 # medium
 type: epic
 ---

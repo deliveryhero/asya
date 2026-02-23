@@ -1,6 +1,5 @@
 ---
 title: A2A Protocol Compliance for Gateway
-status: ideated
 priority: 1 # high
 type: epic
 ---

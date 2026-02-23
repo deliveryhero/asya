@@ -1,6 +1,5 @@
 ---
 title: Stateful Actors — Per-Pod Queue Affinity with Persistent Storage
-status: yeeted
 priority: 2 # medium
 type: epic
 ---

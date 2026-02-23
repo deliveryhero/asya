@@ -1,6 +1,5 @@
 ---
 title: Design workflow with flow
-status: ideated
 priority: 2 # medium
 type: epic
 ---

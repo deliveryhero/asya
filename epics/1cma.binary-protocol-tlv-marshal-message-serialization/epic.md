@@ -1,6 +1,5 @@
 ---
 title: Binary Protocol (TLV + Marshal) for Message Serialization
-status: ideated
 priority: 3 # low
 type: epic
 ---

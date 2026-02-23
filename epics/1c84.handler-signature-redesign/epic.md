@@ -1,6 +1,5 @@
 ---
 title: Handler Signature Redesign
-status: ideated
 priority: 2 # medium
 type: epic
 ---

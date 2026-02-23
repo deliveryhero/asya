@@ -1,6 +1,5 @@
 ---
 title: Error Handling with Automatic Retry
-status: ideated
 priority: 1 # high
 type: epic
 ---

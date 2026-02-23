@@ -1,6 +1,5 @@
 ---
 title: Actor Warm-Up Pattern for Scale-to-Zero Validation
-status: ideated
 priority: 4 # backlog
 type: epic
 ---

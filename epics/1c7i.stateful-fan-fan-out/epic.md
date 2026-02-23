@@ -1,6 +1,5 @@
 ---
 title: Stateful Fan-In/Fan-Out
-status: ideated
 priority: 2 # medium
 type: epic
 ---

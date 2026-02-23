@@ -1,6 +1,5 @@
 ---
 title: Management Plane — Dual-Mode Deployment (Stagedoor)
-status: yeeted
 priority: 4 # backlog
 type: epic
 ---

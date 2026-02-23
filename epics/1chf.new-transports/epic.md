@@ -1,6 +1,5 @@
 ---
 title: New transports
-status: ideated
 priority: 3 # low
 type: epic
 ---

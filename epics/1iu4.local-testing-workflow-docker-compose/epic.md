@@ -1,6 +1,5 @@
 ---
 title: Local testing workflow in docker-compose
-status: ideated
 priority: 2 # medium
 type: epic
 ---

@@ -1,6 +1,5 @@
 ---
 title: "Epic: Migrate to Crossplane + Mutating Webhook Architecture"
-status: ideated
 priority: 1 # high
 type: epic
 ---

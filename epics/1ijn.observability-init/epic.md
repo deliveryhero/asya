@@ -1,6 +1,5 @@
 ---
 title: Observability init
-status: ideated
 priority: 2 # medium
 type: epic
 ---

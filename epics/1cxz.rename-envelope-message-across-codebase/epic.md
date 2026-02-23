@@ -1,6 +1,5 @@
 ---
 title: Rename Envelope to Message across codebase
-status: ideated
 priority: 2 # medium
 type: epic
 ---

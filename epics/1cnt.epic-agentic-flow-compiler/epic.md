@@ -1,6 +1,5 @@
 ---
 title: "Epic: Agentic Flow Compiler"
-status: ideated
 priority: 1 # high
 type: epic
 ---

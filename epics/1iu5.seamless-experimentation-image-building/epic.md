@@ -1,6 +1,5 @@
 ---
 title: Seamless experimentation image building
-status: ideated
 priority: 2 # medium
 type: epic
 ---

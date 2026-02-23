@@ -1,6 +1,5 @@
 ---
 title: Agentic - Umbrella
-status: ideated
 priority: 2 # medium
 type: epic
 ---

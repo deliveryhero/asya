@@ -1,6 +1,5 @@
 ---
 title: "Timeouts: per-actor and per-flow"
-status: ideated
 priority: 2 # medium
 type: epic
 ---
