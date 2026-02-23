@@ -1,0 +1,2 @@
+# Allow IDE file indexing to include aint files
+!.aint

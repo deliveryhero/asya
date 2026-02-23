@@ -218,3 +218,6 @@ __marimo__/
 # Go build artifacts
 bin/
 */bin/
+
+# git-aint
+/.aint/
