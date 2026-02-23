@@ -8,6 +8,7 @@ type: task
 
 
 
+
 Delete the old asya-operator source code and Helm chart after all functionality has been migrated to Crossplane + asya-injector.
 
 ## Prerequisites (must be complete before starting)
