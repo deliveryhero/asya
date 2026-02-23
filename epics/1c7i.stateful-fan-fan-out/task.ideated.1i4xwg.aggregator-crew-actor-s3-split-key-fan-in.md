@@ -2,6 +2,8 @@
 title: "Aggregator crew actor: S3 split-key fan-in handler"
 priority: 2 # medium
 type: task
+dependencies:
+  - 1c7i/1i9og1
 ---
 
 ## Summary

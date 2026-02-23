@@ -4,6 +4,8 @@ priority: 2 # medium
 type: task
 tags:
   - type:feature
+dependencies:
+  - 1c7i/1ih5oo
 ---
 
 
