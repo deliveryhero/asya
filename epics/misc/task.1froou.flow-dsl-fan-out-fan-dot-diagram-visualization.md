@@ -5,9 +5,8 @@ priority: 3 # low
 type: task
 tags:
   - type:feature
-dependencies:
-  - misc/1fx6tb
 ---
+
 
 
 
