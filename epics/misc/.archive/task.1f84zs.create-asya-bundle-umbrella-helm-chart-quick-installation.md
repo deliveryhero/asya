@@ -1,6 +1,6 @@
 ---
 title: Create asya-bundle umbrella Helm chart for quick installation
-status: in_progress
+status: done
 priority: 2 # medium
 type: task
 tags:

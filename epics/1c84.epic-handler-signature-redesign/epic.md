@@ -1,5 +1,5 @@
 ---
-title: "Epic: Handler Signature Redesign"
+title: "Handler Signature Redesign"
 status: open
 priority: 2 # medium
 type: epic

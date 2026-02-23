@@ -1,6 +1,7 @@
 ---
 title: Research ANP/OASF decentralized protocols for Asya Gateway
-status: open
+status: wont_do
+reason: low fit
 priority: 4 # backlog
 type: task
 ---
