@@ -1,6 +1,7 @@
 ---
 title: Fix transient WorkloadError state during actor scale-up
-status: open
+status: wont_do
+reason: Not present after migration to Crossplane
 priority: 2 # medium
 type: task
 ---
