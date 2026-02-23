@@ -3,7 +3,7 @@ ref="$1"
 
 # 1. reject closed tasks
 status=$(git aint get "$ref" --format "{status}") || exit 1
-if [ "$status" = done ] || [ "$status" = wont_do ]; then
+if [ "$status" = vibed ] || [ "$status" = yeeted ]; then
   echo "error: [$ref] is already $status" >&2; exit 1
 fi
 
@@ -34,12 +34,12 @@ tmux set-hook -t "$task_id" after-new-window "pipe-pane -o \"cat >> $logdir/$ts.
 tmux set-hook -t "$task_id" after-split-window "pipe-pane -o \"cat >> $logdir/$ts.w#{window_index}p#{pane_index}.log.ansi\"" || true
 
 # 6. update aint
-git aint update "$ref" --status in_progress --add-tag "worktree:$branch" || exit 1
+git aint update "$ref" --status active --add-tag "worktree:$branch" || exit 1
 
 # 7. summary
 echo ""
 echo "Picked up [$ref] in $wt_dir/$branch"
 echo "  attach:  $ tmux attach -t $task_id"
 echo "  exec:    $ git aint exec $ref -- git status"
-echo "  finish:  $ git aint update $ref --status done"
+echo "  finish:  $ git aint update $ref --status vibed"
 echo "  cleanup: $ git aint cleanup $ref"
