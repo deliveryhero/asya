@@ -24,6 +24,8 @@ for flow_file in "$REPO_ROOT"/src/asya-testing/asya_testing/flows/*/flow.py \
     [[ "$flow_name" == "__init__" ]] && continue
     # TODO: uncomment react_ once asya-cx34 is done
     [[ "$flow_name" == react_* ]] && continue
+    # TODO: uncomment fanout_ once fan-out codegen is done (1fr7i0)
+    [[ "$flow_name" == fanout_* ]] && continue
     output_dir="$flow_dir/compiled/$flow_name"
   fi
 
