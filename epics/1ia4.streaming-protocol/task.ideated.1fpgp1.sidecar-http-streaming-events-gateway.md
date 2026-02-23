@@ -10,6 +10,7 @@ tags:
 
 
 
+
 Forward streaming events from runtime to the gateway via HTTP for real-time user delivery.
 
 ## Changes
