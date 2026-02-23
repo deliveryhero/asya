@@ -3,9 +3,10 @@ title: Sidecar SSE parser for generator responses
 priority: 2 # medium
 type: task
 dependencies:
-  - 1fbe/1i6yzk
+  - 1ia4/1i6yzk
   - 1fbe/1ikczz
 ---
+
 
 Add SSE stream parser to sidecar HTTP client for generator handler responses.
 
