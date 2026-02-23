@@ -2,11 +2,11 @@
 
 > Extracted from epic [[1c84.handler-signature-redesign]]. See also: [[1ixz]] (typed handler signatures), [[1irj]] (flow free vars & iteration).
 
-This RFC defines the `/tmp/msg/` virtual filesystem for accessing message metadata, the updated message schema with `prev/curr/next` routing, and the handler contract (signatures and yield protocol).
+This RFC defines the `/proc/asya/msg/` virtual filesystem for accessing message metadata, the updated message schema with `prev/curr/next` routing, and the handler contract (signatures and yield protocol).
 
 **Dependencies**: 1fbe (redesign-protocol-sidecar-runtime)
 
-### Design rationale for `/tmp/msg/`
+### Design rationale for `/proc/asya/msg/`
 
 **Design constraints**:
 1. Handler signatures must be **pure working Python** — no asya imports, no magic parameters
@@ -14,7 +14,7 @@ This RFC defines the `/tmp/msg/` virtual filesystem for accessing message metada
 3. Must be **"innocent"** — work with real entities when run/tested locally
 4. Must work **without an asya pip package**
 
-The `/tmp/msg/` virtual filesystem satisfies all four: handlers read/write plain files, which work with real directories locally and are intercepted by the runtime when deployed. This follows the Linux `/proc` philosophy — `/proc` reflects process state as a filesystem, `/tmp/msg/` reflects message state as a filesystem.
+The `/proc/asya/msg/` virtual filesystem satisfies all four: handlers read/write plain files, which work with real directories locally and are intercepted by the runtime when deployed. This follows the Linux `/proc` philosophy — `/proc` reflects process state as a filesystem, `/proc/asya/msg/` reflects message state as a filesystem.
 
 **Related design**: The [stateful actors RFC](.aim/aims/1dmf.ready-stateful-actors/README.md) uses the same `open()` interception pattern for persistent state at `/state/...` paths. The runtime's patched `open()` becomes a path-prefix router:
 
@@ -22,7 +22,7 @@ The `/tmp/msg/` virtual filesystem satisfies all four: handlers read/write plain
 |---|---|---|---|
 | `/state/meta/...` | State proxy sidecar → Redis | Real files | Persistent across messages |
 | `/state/media/...` | State proxy sidecar → S3 | Real files | Persistent across messages |
-| `/tmp/msg/...` | In-memory message object | Real files | Fresh per handler invocation |
+| `/proc/asya/msg/...` | In-memory message object | Real files | Fresh per handler invocation |
 | Other paths | Real filesystem | Real filesystem | — |
 
 ---
@@ -89,14 +89,14 @@ When `next` is empty after the shift, the sidecar routes to `x-sink` (completion
 
 ---
 
-### 2. `/tmp/msg/` virtual filesystem
+### 2. `/proc/asya/msg/` virtual filesystem
 
-Message metadata is exposed as a virtual filesystem at `/tmp/msg/` (configurable via `ASYA_MSG_ROOT` env var). Handlers access it via standard Python `open()`.
+Message metadata is exposed as a virtual filesystem at `/proc/asya/msg/` (configurable via `ASYA_MSG_ROOT` env var). Handlers access it via standard Python `open()`.
 
 #### 2.1 Filesystem layout
 
 ```
-/tmp/msg/                          # per-invocation, like /proc/self/
+/proc/asya/msg/                    # per-invocation, like /proc/self/
 ├── id                             # read-only: msg-uuid-001
 ├── parent_id                      # read-only: msg-uuid-000
 ├── route/
@@ -114,81 +114,81 @@ Message metadata is exposed as a virtual filesystem at `/tmp/msg/` (configurable
 
 | Path | Type | Format | Example content |
 |---|---|---|---|
-| `/tmp/msg/id` | scalar | raw UTF-8 | `msg-uuid-001` |
-| `/tmp/msg/parent_id` | scalar | raw UTF-8 | `msg-uuid-000` |
-| `/tmp/msg/route/prev` | list | one per line | `actor_a\nactor_b` |
-| `/tmp/msg/route/curr` | scalar | raw UTF-8 | `analyzer` |
-| `/tmp/msg/route/next` | list | one per line | `postprocessor` |
-| `/tmp/msg/headers/{key}` | scalar | raw UTF-8 | `high` |
+| `/proc/asya/msg/id` | scalar | raw UTF-8 | `msg-uuid-001` |
+| `/proc/asya/msg/parent_id` | scalar | raw UTF-8 | `msg-uuid-000` |
+| `/proc/asya/msg/route/prev` | list | one per line | `actor_a\nactor_b` |
+| `/proc/asya/msg/route/curr` | scalar | raw UTF-8 | `analyzer` |
+| `/proc/asya/msg/route/next` | list | one per line | `postprocessor` |
+| `/proc/asya/msg/headers/{key}` | scalar | raw UTF-8 | `high` |
 
 **No trailing newlines.** Empty list = empty file (0 bytes).
 
 Reading patterns:
 ```python
 # Scalar
-with open("/tmp/msg/id") as f:
+with open("/proc/asya/msg/id") as f:
     msg_id = f.read()                      # "msg-uuid-001"
 
 # List
-with open("/tmp/msg/route/next") as f:
+with open("/proc/asya/msg/route/next") as f:
     actors = f.read().splitlines()         # ["postprocessor"]
 
 # Header
-with open("/tmp/msg/headers/priority") as f:
+with open("/proc/asya/msg/headers/priority") as f:
     priority = f.read()                    # "high"
 
 # List headers
 import os
-headers = os.listdir("/tmp/msg/headers/")  # ["trace_id", "priority"]
+headers = os.listdir("/proc/asya/msg/headers/")  # ["trace_id", "priority"]
 ```
 
 Writing patterns:
 ```python
 # Set route/next
-with open("/tmp/msg/route/next", "w") as f:
+with open("/proc/asya/msg/route/next", "w") as f:
     f.write("\n".join(["express_handler", "payment"]))
 
 # Set header
-with open("/tmp/msg/headers/priority", "w") as f:
+with open("/proc/asya/msg/headers/priority", "w") as f:
     f.write("high")
 
 # Create new header
-with open("/tmp/msg/headers/processed_by", "w") as f:
+with open("/proc/asya/msg/headers/processed_by", "w") as f:
     f.write("enricher-v2")
 
 # Delete header
 import os
-os.remove("/tmp/msg/headers/internal_debug")
+os.remove("/proc/asya/msg/headers/internal_debug")
 ```
 
 #### 2.3 Access control
 
 | Path | read | write | delete | Rationale |
 |---|---|---|---|---|
-| `/tmp/msg/id` | ✅ | ❌ | ❌ | Immutable message identity |
-| `/tmp/msg/parent_id` | ✅ | ❌ | ❌ | Immutable lineage |
-| `/tmp/msg/route/prev` | ✅ | ❌ | ❌ | History is append-only by runtime |
-| `/tmp/msg/route/curr` | ✅ | ❌ | ❌ | Set by runtime, not handler |
-| `/tmp/msg/route/next` | ✅ | ✅ | ✅ | Handler controls future routing |
-| `/tmp/msg/headers/` | ✅ | — | — | Directory listing |
-| `/tmp/msg/headers/{key}` | ✅ | ✅ | ✅ | Handler can modify routing metadata |
+| `/proc/asya/msg/id` | ✅ | ❌ | ❌ | Immutable message identity |
+| `/proc/asya/msg/parent_id` | ✅ | ❌ | ❌ | Immutable lineage |
+| `/proc/asya/msg/route/prev` | ✅ | ❌ | ❌ | History is append-only by runtime |
+| `/proc/asya/msg/route/curr` | ✅ | ❌ | ❌ | Set by runtime, not handler |
+| `/proc/asya/msg/route/next` | ✅ | ✅ | ✅ | Handler controls future routing |
+| `/proc/asya/msg/headers/` | ✅ | — | — | Directory listing |
+| `/proc/asya/msg/headers/{key}` | ✅ | ✅ | ✅ | Handler can modify routing metadata |
 
 Write to a read-only path raises `PermissionError`. In local development (no interception), no enforcement — same as state proxies having no CAS enforcement locally.
 
-#### 2.4 No `/tmp/msg/payload`
+#### 2.4 No `/proc/asya/msg/payload`
 
-The payload is the function argument and return value. It is NOT accessible via `/tmp/msg/payload`. This avoids two-sources-of-truth confusion (return value vs file content).
+The payload is the function argument and return value. It is NOT accessible via `/proc/asya/msg/payload`. This avoids two-sources-of-truth confusion (return value vs file content).
 
 #### 2.5 Runtime lifecycle per message
 
 1. Runtime receives message from sidecar via HTTP over Unix socket (see protocol RFC, epic 1fbe)
-2. Runtime populates `/tmp/msg/` virtual filesystem from message fields
+2. Runtime populates `/proc/asya/msg/` virtual filesystem from message fields
 3. Runtime calls handler with `payload` only
-4. For generators: at each `yield`, runtime snapshots `/tmp/msg/` state into the emitted frame
-5. After handler returns: runtime reads `/tmp/msg/route/next` and `/tmp/msg/headers/` for the final frame
+4. For generators: at each `yield`, runtime snapshots `/proc/asya/msg/` state into the emitted frame
+5. After handler returns: runtime reads `/proc/asya/msg/route/next` and `/proc/asya/msg/headers/` for the final frame
 6. Runtime shifts route (`prev.append(curr)`, `curr = next[0]`, `next = next[1:]`)
 7. Runtime sends response to sidecar
-8. Runtime clears `/tmp/msg/` virtual filesystem
+8. Runtime clears `/proc/asya/msg/` virtual filesystem
 
 #### 2.6 Implementation
 
@@ -196,7 +196,7 @@ The runtime patches `builtins.open` and routes by path prefix:
 
 ```python
 def _patched_open(path, mode="r", *args, **kwargs):
-    if path.startswith(_msg_root):          # /tmp/msg/...
+    if path.startswith(_msg_root):          # /proc/asya/msg/...
         return MessageVirtualFile(_current_message, path, mode)
     elif path.startswith(_state_root):      # /state/...
         return StateProxyFile(path, mode)   # Unix socket to sidecar
@@ -206,7 +206,7 @@ def _patched_open(path, mode="r", *args, **kwargs):
 
 The `MessageVirtualFile` is backed by an in-memory dict — no disk I/O, no sidecar, no network. Reads and writes operate directly on the message object.
 
-For `os.listdir`, `os.path.exists`, `os.path.isdir`, `os.remove` — similar patching for `/tmp/msg/` paths.
+For `os.listdir`, `os.path.exists`, `os.path.isdir`, `os.remove` — similar patching for `/proc/asya/msg/` paths.
 
 ---
 
@@ -250,7 +250,7 @@ def process(payload):
 - `yield dict, True` → upstream partial frame (for streaming to gateway)
 - Generator exhaustion → normal termination
 - Bare `return` → abort (no more frames)
-- Can read/write `/tmp/msg/` between yields
+- Can read/write `/proc/asya/msg/` between yields
 
 #### 3.4 Async generator (yield)
 
@@ -286,7 +286,7 @@ class Processor:
 
 ### 4. Yield protocol
 
-Generator handlers communicate with the runtime through `yield`. Yields are **frame emission only** — metadata access goes through `/tmp/msg/` files.
+Generator handlers communicate with the runtime through `yield`. Yields are **frame emission only** — metadata access goes through `/proc/asya/msg/` files.
 
 | Yielded value | Type | Instruction |
 |---|---|---|
@@ -304,7 +304,7 @@ result = next(gen)                              # or __anext__ for async
 
 while True:
     if result is a dict:                        # EMIT downstream
-        snapshot_msg_state()                    # capture /tmp/msg/ state
+        snapshot_msg_state()                    # capture /proc/asya/msg/ state
         emit_frame(result, partial=False)
         result = gen.send(None)
 
@@ -319,7 +319,7 @@ while True:
         raise ProtocolError(f"invalid yield: {result!r}")
 ```
 
-The `snapshot_msg_state()` call captures the current `/tmp/msg/route/next` and `/tmp/msg/headers/` state, attaching it to the emitted frame. This allows different frames from the same generator to have different routes.
+The `snapshot_msg_state()` call captures the current `/proc/asya/msg/route/next` and `/proc/asya/msg/headers/` state, attaching it to the emitted frame. This allows different frames from the same generator to have different routes.
 
 ---
 
@@ -327,7 +327,7 @@ The `snapshot_msg_state()` call captures the current `/tmp/msg/route/next` and `
 
 #### 5.1 Simple payload processor (sync, return)
 
-The simplest handler. No `/tmp/msg/` interaction. Pure Python, testable anywhere.
+The simplest handler. No `/proc/asya/msg/` interaction. Pure Python, testable anywhere.
 
 ```python
 def process(payload):
@@ -357,9 +357,9 @@ async def process(payload):
 
 ---
 
-#### 5.3 Conditional router (sync, /tmp/msg/ write)
+#### 5.3 Conditional router (sync, /proc/asya/msg/ write)
 
-A router that directs messages based on payload content. Writes to `/tmp/msg/route/next`.
+A router that directs messages based on payload content. Writes to `/proc/asya/msg/route/next`.
 
 ```python
 def router(payload):
@@ -370,7 +370,7 @@ def router(payload):
     else:
         route = ["standard_handler", "payment"]
 
-    with open("/tmp/msg/route/next", "w") as f:
+    with open("/proc/asya/msg/route/next", "w") as f:
         f.write("\n".join(route))
 
     return payload
@@ -382,12 +382,12 @@ def router(payload):
 import os
 
 def test_express_routing(tmp_path):
-    # Create /tmp/msg/ structure
+    # Create /proc/asya/msg/ structure
     route_dir = tmp_path / "msg" / "route"
     route_dir.mkdir(parents=True)
     (route_dir / "next").write_text("postprocessor")
 
-    # Monkeypatch /tmp/msg → tmp_path/msg
+    # Monkeypatch /proc/asya/msg → tmp_path/msg
     with monkeypatch_msg_root(tmp_path / "msg"):
         result = router({"type": "express"})
 
@@ -405,9 +405,9 @@ Injects preprocessing steps before the existing planned route.
 ```python
 def middleware(payload):
     if payload.get("needs_validation"):
-        with open("/tmp/msg/route/next") as f:
+        with open("/proc/asya/msg/route/next") as f:
             future = f.read().splitlines()
-        with open("/tmp/msg/route/next", "w") as f:
+        with open("/proc/asya/msg/route/next", "w") as f:
             f.write("\n".join(["validator", "sanitizer"] + future))
 
     return payload
@@ -431,7 +431,7 @@ async def llm_handler(payload):
     yield {"response": full_response}              # downstream: to next actor
 ```
 
-No `/tmp/msg/` access needed — pure streaming, no routing decisions.
+No `/proc/asya/msg/` access needed — pure streaming, no routing decisions.
 
 ---
 
@@ -449,9 +449,9 @@ Each yielded dict becomes a separate message with its own copy of the current ro
 
 ---
 
-#### 5.7 Fan-out with different routes (sync, /tmp/msg/ + yield)
+#### 5.7 Fan-out with different routes (sync, /proc/asya/msg/ + yield)
 
-Each fan-out frame can have a different route by writing `/tmp/msg/route/next` before each emission.
+Each fan-out frame can have a different route by writing `/proc/asya/msg/route/next` before each emission.
 
 ```python
 def smart_splitter(payload):
@@ -461,17 +461,17 @@ def smart_splitter(payload):
         else:
             route = ["standard_queue"]
 
-        with open("/tmp/msg/route/next", "w") as f:
+        with open("/proc/asya/msg/route/next", "w") as f:
             f.write("\n".join(route))
 
         yield {"item": item}
 ```
 
-Runtime snapshots `/tmp/msg/` state at each `yield`, so each frame gets its own route.
+Runtime snapshots `/proc/asya/msg/` state at each `yield`, so each frame gets its own route.
 
 ---
 
-#### 5.8 Header manipulation (sync, /tmp/msg/ read/write/delete)
+#### 5.8 Header manipulation (sync, /proc/asya/msg/ read/write/delete)
 
 Reading, setting, and deleting headers.
 
@@ -480,17 +480,17 @@ import os
 
 def enrich(payload):
     # Read existing header
-    with open("/tmp/msg/headers/trace_id") as f:
+    with open("/proc/asya/msg/headers/trace_id") as f:
         trace_id = f.read()
 
     # Set new headers
-    with open("/tmp/msg/headers/processed_by", "w") as f:
+    with open("/proc/asya/msg/headers/processed_by", "w") as f:
         f.write("enrich-v2")
-    with open("/tmp/msg/headers/trace_id", "w") as f:
+    with open("/proc/asya/msg/headers/trace_id", "w") as f:
         f.write(trace_id + "-enriched")
 
     # Delete a header
-    os.remove("/tmp/msg/headers/internal_debug")
+    os.remove("/proc/asya/msg/headers/internal_debug")
 
     return {"enriched": True, **payload}
 ```
@@ -517,7 +517,7 @@ class Predictor:
 
 ---
 
-#### 5.10 Read-only introspection (sync, /tmp/msg/ read)
+#### 5.10 Read-only introspection (sync, /proc/asya/msg/ read)
 
 Handler that reads message metadata for logging/decisions without modifying anything.
 
@@ -525,16 +525,16 @@ Handler that reads message metadata for logging/decisions without modifying anyt
 import os
 
 def inspector(payload):
-    with open("/tmp/msg/id") as f:
+    with open("/proc/asya/msg/id") as f:
         msg_id = f.read()
-    with open("/tmp/msg/route/curr") as f:
+    with open("/proc/asya/msg/route/curr") as f:
         curr = f.read()
-    with open("/tmp/msg/route/next") as f:
+    with open("/proc/asya/msg/route/next") as f:
         remaining = f.read().splitlines()
 
     headers = {}
-    for key in os.listdir("/tmp/msg/headers/"):
-        with open(f"/tmp/msg/headers/{key}") as f:
+    for key in os.listdir("/proc/asya/msg/headers/"):
+        with open(f"/proc/asya/msg/headers/{key}") as f:
             headers[key] = f.read()
 
     return {
@@ -558,7 +558,7 @@ Handler that conditionally short-circuits the pipeline.
 def gate(payload):
     if not payload.get("approved", False):
         # Empty route/next → x-sink
-        with open("/tmp/msg/route/next", "w") as f:
+        with open("/proc/asya/msg/route/next", "w") as f:
             pass  # write empty file = empty actor list
 
         return {"status": "rejected", "reason": "not approved"}
@@ -577,14 +577,14 @@ import os
 
 async def orchestrator(payload):
     # Read current route context
-    with open("/tmp/msg/route/next") as f:
+    with open("/proc/asya/msg/route/next") as f:
         current_next = f.read().splitlines()
 
-    with open("/tmp/msg/headers/priority") as f:
+    with open("/proc/asya/msg/headers/priority") as f:
         priority = f.read()
 
     # Set trace header
-    with open("/tmp/msg/headers/orchestrator_version", "w") as f:
+    with open("/proc/asya/msg/headers/orchestrator_version", "w") as f:
         f.write("v3")
 
     # Decide route based on payload + headers
@@ -593,7 +593,7 @@ async def orchestrator(payload):
     else:
         route = ["standard_pipeline", "persist"]
 
-    with open("/tmp/msg/route/next", "w") as f:
+    with open("/proc/asya/msg/route/next", "w") as f:
         f.write("\n".join(route))
 
     # Stream progress upstream
@@ -616,7 +616,7 @@ async def handler(payload):
         result = await llm.call(payload)
         return {"result": result}
     except RateLimitError as e:
-        with open("/tmp/msg/headers/_error_retry_after_ms", "w") as f:
+        with open("/proc/asya/msg/headers/_error_retry_after_ms", "w") as f:
             f.write(str(int(e.retry_after * 1000)))
         raise  # re-raise so runtime treats it as error → x-sump
 ```
@@ -641,7 +641,7 @@ def process(payload):
     return {"result": payload["text"].upper()}
 ```
 
-#### 6.2 Envelope mode handlers (migrate to /tmp/msg/)
+#### 6.2 Envelope mode handlers (migrate to /proc/asya/msg/)
 
 ```python
 # Before (envelope mode)
@@ -655,21 +655,21 @@ def router(envelope):
         "headers": envelope.get("headers", {}),
     }
 
-# After (/tmp/msg/ filesystem)
+# After (/proc/asya/msg/ filesystem)
 def router(payload):
-    with open("/tmp/msg/route/next", "w") as f:
+    with open("/proc/asya/msg/route/next", "w") as f:
         f.write("\n".join(["a", "b"]))
     return payload
 ```
 
 #### 6.3 Summary of changes
 
-| Aspect            | Before (envelope mode)                      | After (/tmp/msg/)                     |
+| Aspect            | Before (envelope mode)                      | After (/proc/asya/msg/)                     |
 | ----------------- | ------------------------------------------- | ------------------------------------- |
 | Mode selection    | `ASYA_HANDLER_MODE=payload\|envelope`       | Removed (always payload)              |
 | Handler input     | payload or full envelope                    | Always `payload`                      |
-| Route access      | Direct dict manipulation                    | `open("/tmp/msg/route/next")`         |
-| Header access     | Direct dict manipulation                    | `open("/tmp/msg/headers/{key}")`      |
+| Route access      | Direct dict manipulation                    | `open("/proc/asya/msg/route/next")`         |
+| Header access     | Direct dict manipulation                    | `open("/proc/asya/msg/headers/{key}")`      |
 | Route schema      | `{"actors": [...], "current": int}`         | `{"prev": [...], "curr": str, "next": [...]}` |
 | Streaming         | Generator yields dicts                      | `yield dict` / `yield dict, True`     |
 | Route validation  | Complex: check `actors[0:current+1]`        | Simple: `prev`/`curr` are read-only files |
@@ -683,6 +683,6 @@ def router(payload):
 
 | Variable | Default | Description |
 |---|---|---|
-| `ASYA_MSG_ROOT` | `/tmp/msg` | Root path for message virtual filesystem |
+| `ASYA_MSG_ROOT` | `/proc/asya/msg` | Root path for message virtual filesystem |
 
-When `ASYA_MSG_ROOT` is unset or set to default, the runtime intercepts `open()` calls to `/tmp/msg/...` paths. For local development, handlers work against real files at that path.
+When `ASYA_MSG_ROOT` is unset or set to default, the runtime intercepts `open()` calls to `/proc/asya/msg/...` paths. For local development, handlers work against real files at that path.
