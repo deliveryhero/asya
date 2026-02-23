@@ -1,5 +1,5 @@
 ---
-title: "Epic: Actor Flavors — Composable Configuration Presets"
+title: "Actor Flavors"
 status: open
 priority: 2 # medium
 type: epic
