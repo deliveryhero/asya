@@ -1,9 +1,10 @@
 ---
-title: "Management Plane — Dual-Mode Deployment (Stagedoor)"
-status: wont_do
-priority: 4
+title: Management Plane — Dual-Mode Deployment (Stagedoor)
+status: yeeted
+priority: 4 # backlog
 type: epic
 ---
+
 
 This epic explored the design of an in-cluster management service (Stagedoor) for bridging imperative experimentation and GitOps production deployments. After evaluation, this approach was **decided against** in favor of CLI-based local tooling (asya-cli + VSCode extension + local MCP server), which avoids the complexity of in-cluster state management while providing equivalent capabilities. This epic is being closed.
 
