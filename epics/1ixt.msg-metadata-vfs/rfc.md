@@ -1,6 +1,6 @@
 ## RFC: Message Metadata Virtual Filesystem
 
-> Extracted from epic 1c84.handler-signature-redesign. See also: 1ixz (typed handler signatures), 1irj (flow free vars & iteration).
+> Extracted from epic [[1c84.handler-signature-redesign]]. See also: [[1ixz]] (typed handler signatures), [[1irj]] (flow free vars & iteration).
 
 This RFC defines the `/tmp/msg/` virtual filesystem for accessing message metadata, the updated message schema with `prev/curr/next` routing, and the handler contract (signatures and yield protocol).
 

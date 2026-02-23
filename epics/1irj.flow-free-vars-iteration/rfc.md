@@ -1,6 +1,6 @@
 ## RFC: Flow DSL Free Variables and Iteration
 
-> Extracted from epic 1c84.handler-signature-redesign. See also: 1ixt (message metadata vfs), 1ixz (typed handler signatures).
+> Extracted from epic [[1c84.handler-signature-redesign]]. See also: [[1ixt]] (message metadata vfs), [[1ixz]] (typed handler signatures).
 
 ---
 
