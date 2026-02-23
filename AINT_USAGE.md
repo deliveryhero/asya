@@ -41,7 +41,8 @@ All commands support `-o json`. Run `git aint <cmd> --help` for full options.
 
 - Epic: `init` — base-36 generated ID (default 6 chars, configurable via `git config aint.id-length`)
 - Task: `init/1bm2cd` — epic/task, IDs are base-36
-- Status: `active` | `ideated` | `ready` | `vibed` | `yeeted`
+- Task status: `active` | `ideated` | `ready` | `vibed` | `yeeted`
+- Epic state: open (in `epics/`) or closed (in `epics/.closed/`) — no status field
 - Priority: `0` critical, `1` high, `2` medium, `3` low, `4` backlog
 
 ## Workflow
@@ -63,23 +64,29 @@ All work should be done in a git worktree. `git aint pickup <ref>` automates thi
 
 ```
 .aint/epics/
-├── 1b0.init/                    # epic directory (<id>.<slug>)
-│   ├── epic.md                  # epic metadata (YAML frontmatter)
+├── .closed/                     # closed epics (moved here when done)
+│   └── 1iv.rework-status/
+│       └── epic.md
+├── 1b0.init/                    # open epic directory (<id>.<slug>)
+│   ├── epic.md                  # epic metadata (YAML frontmatter, no status)
 │   ├── rfc.md                   # optional RFC/design doc
 │   ├── adr.chose-yaml.md        # optional ADR
-│   ├── task.1bm2.implmnt-auth.md  # task file (task.<id>.<slug>.md)
-│   └── task.1bt9.fix-store.md   # each task ≈ 1 PR, ~2 min AI task
+│   ├── .closed/                 # closed tasks within the epic
+│   │   └── task.vibed.1bt9.fix-store.md
+│   └── task.ideated.1bm2.implmnt-auth.md  # task.<status>.<id>.<slug>.md
 ├── 1bp.publish/
 │   └── ...
 └── misc/                        # default epic for uncategorized tasks
 ```
 
-- **epic.md**: epic metadata (YAML frontmatter + brief description)
+- **epic.md**: epic metadata (YAML frontmatter + brief description). No status
+  field — epics are open (in `epics/`) or closed (moved to `epics/.closed/`)
 - **rfc.md**: optional RFC/design doc, typically created collaboratively
   by brainstorming with the user
 - **adr.*.md**: optional architecture decision records
-- **Task files**: YAML frontmatter (status, priority, deps, tags) + markdown
-  body. File naming (`task.<id>.<slug>.md`) is parsed by git-aint — don't rename
+- **Task files**: YAML frontmatter (priority, deps, tags) + markdown body.
+  Status is encoded in the filename (`task.<status>.<id>.<slug>.md`). Closed
+  tasks are moved to `.closed/` within the epic directory
 - **Conflicts**: since `.aint/` is a git worktree, resolve conflicts with
   `git -C .aint/ ...` (e.g. `git -C .aint/ merge --abort`)
 
