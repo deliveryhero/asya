@@ -138,7 +138,7 @@ spec:
 
   # Workload definition (one of workload or workloadRef required)
   workload:  # Crossplane creates and owns the Deployment
-    kind: Deployment  # or StatefulSet
+    kind: Deployment
     replicas: 1
     template:
       spec:

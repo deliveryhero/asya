@@ -38,7 +38,6 @@ p["results"] = [agent(p["items"][i]) for i in range(len(p["items"]))]
 - `asya-1mqw` [P2] E2E test: compiled flow on Kind cluster (depends on asya-altb, asya-q2kp, asya-fi6u, asya-nduw, asya-2ozv, asya-0bvg)
 
 ### Infrastructure Dependencies (external)
-- `asya-altb` [P3] StatefulSet workload support (needed for aggregator deployment)
 - `asya-zpl` [P2] Research: stateful fan-in actor (blocked by asya-0bvg)
 
 ## Critical Path
@@ -48,7 +47,7 @@ asya-nduw (headers) → asya-2ozv (route-override) ─┐
 asya-0bvg (sink) → asya-fi6u (aggregator) ────────┘
 
 asya-pmor (parser) → asya-q2kp (codegen) ──────┐
-asya-altb (StatefulSet) ────────────────────────┼──→ asya-1mqw (E2E)
+                                                ├──→ asya-1mqw (E2E)
 asya-nduw + asya-2ozv + asya-fi6u + asya-0bvg ─┘
 ```
 
@@ -95,8 +94,8 @@ Fan-out router (generated code)
                                                        │
                                                        ▼
                                               aggregator-{shard}
-                                              (StatefulSet replica)
-                                              RocksDB local store
+                                              (Deployment replica)
+                                              external state store
                                                        │
                                               Completeness detected
                                                        │
@@ -626,47 +625,40 @@ Mechanisms 1 and 2 work today (signals are already set by the fan-out router and
 
 ## Deployment
 
-### StatefulSet Configuration
+### Aggregator Deployment
 
-Each aggregator shard is a StatefulSet replica with a PVC for RocksDB storage (TODO: need to support `StatefulSet` workload type):
+Each aggregator shard is deployed as a separate Deployment with its own queue. Aggregation state is stored in an external state store (e.g., Redis with CAS) via state proxy sidecars (see epic 1dmf):
 
 ```yaml
 apiVersion: asya.dev/v1alpha1
 kind: AsyncActor
 metadata:
-  name: aggregator
+  name: aggregator-0
 spec:
   image: asya-crew:latest
   handler: asya_crew.aggregator.aggregator
   handlerMode: envelope
   transport: sqs
-  workloadType: StatefulSet
-  replicas: 3
-  volumeClaimTemplates:
-    - metadata:
-        name: aggregator-data
-      spec:
-        accessModes: ["ReadWriteOnce"]
-        resources:
-          requests:
-            storage: 10Gi
-  env:
-    - name: ASYA_FANIN_DB_PATH
-      value: /data/aggregator/db
-  volumeMounts:
-    - name: aggregator-data
-      mountPath: /data/aggregator
+  stateProxy:
+    - name: fanin
+      mount:
+        path: /state/fanin
+      connector:
+        image: asya-bridges/state-proxy/redis-buffered-cas:latest
+        env:
+          - name: STATE_ENDPOINT
+            value: "redis://fanin-store:6379/0"
 ```
 
 ### Queue Naming
 
-Each StatefulSet replica gets its own queue following the pattern:
+Each aggregator shard gets its own queue following the pattern:
 
 - `asya-{namespace}-aggregator-0`
 - `asya-{namespace}-aggregator-1`
 - `asya-{namespace}-aggregator-2`
 
-This requires the Crossplane composition (or operator) to create N queues when `workloadType: StatefulSet` and `replicas: N`. Each pod's sidecar consumes from its own queue, identified by the pod's ordinal index.
+Each shard is a separate AsyncActor Deployment with its own queue.
 
 ### Fan-Out Router Deployment
 
@@ -708,7 +700,7 @@ Scaling down requires draining shards M..(N-1) before removal:
 1. Redeploy fan-out router with `ASYA_FANIN_SHARDS=M` (new fan-outs only target shards 0..(M-1))
 2. Wait for shards M..(N-1) to complete all in-flight aggregations
 3. Verify queues for shards M..(N-1) are empty
-4. Remove StatefulSet replicas M..(N-1) and their PVCs
+4. Remove aggregator Deployments M..(N-1) and their queues
 
 **Requires draining**: See [Open Questions](#open-questions) for tooling.
 
@@ -1024,14 +1016,14 @@ How does the fan-out router learn `ASYA_FANIN_SHARDS`? Options:
 - **ConfigMap**: Fan-out router reads from a ConfigMap. Can be updated without redeployment (if router watches for changes).
 - **Operator injection**: Operator injects shard count from the aggregator's replica count into the fan-out router's environment. Declarative, but couples operator resources.
 
-Decision deferred until the operator deployment model for StatefulSet actors is finalized.
+Decision deferred until the aggregator deployment model is finalized.
 
 ### 2. Draining Workflow for Scale-Down
 
 When scaling down, old shards must complete in-flight work. Tooling options:
 
 - **CLI command**: `asya aggregator drain --shard 3 --timeout 10m` -- waits for shard to empty, then reports ready for removal.
-- **Operator-managed**: Operator watches StatefulSet replica count changes and automatically drains before removing pods.
+- **Operator-managed**: Operator watches aggregator shard count changes and automatically drains before removing shards.
 - **Manual**: User monitors queue depth and RocksDB key count, removes shards when both are zero.
 
 Decision deferred. The first implementation should document the manual process.
@@ -1132,7 +1124,7 @@ The broader protocol change --- moving `parent_id` from a top-level envelope fie
 ## References
 - RFC: docs/rfc/rfc-actor-states.md
 - Related: docs/rfc/asya-bi8-agentic-asya.md
-- Dependency: Stateful Actors epic (`1c87`)
+- Dependency: Stateful Actors — Transparent State Access epic (`1dmf`)
 
 
 ---

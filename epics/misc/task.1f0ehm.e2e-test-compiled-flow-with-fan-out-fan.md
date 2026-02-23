@@ -15,7 +15,7 @@ dependencies:
 
 ## Summary
 
-End-to-end test for a compiled Flow DSL program that includes fan-out/fan-in, deployed on a Kind cluster with StatefulSet aggregator.
+End-to-end test for a compiled Flow DSL program that includes fan-out/fan-in, deployed on a Kind cluster with aggregator using external state.
 
 ## Test Flow
 
@@ -30,7 +30,7 @@ Compiled to:
 - start router (mutation)
 - fan-out router (generated, with rendezvous sharding)
 - research_agent actor (simple handler)
-- aggregator (StatefulSet, 2 replicas, RocksDB PVC)
+- aggregator (Deployment, external state via state proxy sidecar)
 - summarizer actor (simple handler)
 
 ## Test Scenarios
@@ -41,7 +41,6 @@ Compiled to:
 4. **Persistence**: Restart aggregator pod mid-aggregation, verify fan-in completes after restart
 
 ## Dependencies
-- DEPENDS ON: StatefulSet workload support (asya-altb)
 - DEPENDS ON: Fan-out router code generator (asya-q2kp)
 - DEPENDS ON: Aggregator crew actor (asya-fi6u)
 - DEPENDS ON: Sidecar header preservation (asya-nduw)

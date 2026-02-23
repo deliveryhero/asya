@@ -11,7 +11,7 @@ tags:
 
 ## Overview
 
-Enable users to reference an existing Deployment/StatefulSet instead of having Asya create one. The user provides their own workload (via workloadRef in AsyncActor spec), and Asya's injector handles sidecar injection and runtime configuration at pod admission time.
+Enable users to reference an existing Deployment instead of having Asya create one. The user provides their own workload (via workloadRef in AsyncActor spec), and Asya's injector handles sidecar injection and runtime configuration at pod admission time.
 
 This is the "bring your own workload" model — essential for teams with existing ML inference services, custom Helm charts, or complex pod templates that don't fit the current AsyncActor template model.
 

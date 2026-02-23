@@ -17,8 +17,10 @@ Once Crossplane Composition supports these features, remove skip/xfail markers f
 
 ## Operator feature parity xfails:
 - tests/test_operator_e2e.py::test_asyncactor_invalid_transport (XRD validation)
-- tests/test_operator_e2e.py::test_asyncactor_with_statefulset (StatefulSet support)
 - tests/test_operator_e2e.py::test_asyncactor_label_propagation (label propagation)
+
+NOTE: test_asyncactor_with_statefulset was removed - StatefulSet workload type
+is no longer supported. Only Deployment workloads are supported.
 
 NOTE: test_asyncactor_status_conditions was previously listed here but now
 PASSES after switching to status.phase-based readiness check (commit 961e562).
