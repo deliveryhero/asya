@@ -12,11 +12,27 @@ from pathlib import Path
 
 AINT_DIR = Path(__file__).resolve().parent / ".aint" / "epics"
 
-# Known all-letter epic names that should be treated as aint references.
-KNOWN_ALPHA_EPICS = {"misc", "init"}
+def _discover_alpha_epics(aint_dir: Path) -> set[str]:
+    """Discover epic slugs that are all-alphabetical (no digits).
+
+    Epic directories follow the naming convention "<id>.<slug>" (e.g. "1b0.init")
+    or bare names for special epics (e.g. "misc"). Slugs with no digits need
+    special handling since the digit_id regex pattern won't match them.
+    """
+    alpha_epics: set[str] = set()
+    if not aint_dir.exists():
+        return alpha_epics
+    for entry in aint_dir.iterdir():
+        if not entry.is_dir():
+            continue
+        name = entry.name
+        slug = name.split(".", 1)[1] if "." in name else name
+        if slug.isalpha():
+            alpha_epics.add(slug)
+    return alpha_epics
 
 
-def _build_ref_pattern() -> re.Pattern:
+def _build_ref_pattern(alpha_epics: set[str]) -> re.Pattern:
     """Build regex matching [ref] where ref looks like an aint reference.
 
     Matches:
@@ -31,23 +47,25 @@ def _build_ref_pattern() -> re.Pattern:
       [text](url)       markdown link
       [some text]       no digits, not a known epic
     """
-    alpha_alt = "|".join(re.escape(e) for e in sorted(KNOWN_ALPHA_EPICS))
-    id_pat = r"[a-z0-9]{2,10}"
-
     # A "digit ID" is a base-36 ID containing at least one digit
     digit_id = r"(?=[a-z0-9]*[0-9])[a-z0-9]{2,10}"
 
     # Build alternatives for what can appear inside [...]
-    ref_alternatives = "|".join([
+    alternatives = [
         # epic/task where epic has a digit
         digit_id + r"/" + digit_id,
-        # alpha_epic/task
-        r"(?:" + alpha_alt + r")/" + digit_id,
         # bare digit ID
         digit_id,
+    ]
+
+    if alpha_epics:
+        alpha_alt = "|".join(re.escape(e) for e in sorted(alpha_epics))
+        # alpha_epic/task
+        alternatives.insert(1, r"(?:" + alpha_alt + r")/" + digit_id)
         # bare alpha epic
-        r"(?:" + alpha_alt + r")",
-    ])
+        alternatives.append(r"(?:" + alpha_alt + r")")
+
+    ref_alternatives = "|".join(alternatives)
 
     pattern = (
         r"(?<!\[)"          # not preceded by [
@@ -56,9 +74,6 @@ def _build_ref_pattern() -> re.Pattern:
         r"(?!\])"           # not followed by ]
     )
     return re.compile(pattern)
-
-
-REF_PATTERN = _build_ref_pattern()
 
 
 def split_frontmatter(text: str) -> tuple[str | None, str]:
@@ -107,7 +122,7 @@ def replace_refs_in_body(body: str, pattern: re.Pattern) -> str:
 
 def process_file(filepath: Path, pattern: re.Pattern, dry_run: bool) -> bool:
     """Process a single aint markdown file. Returns True if changes were made."""
-    text = filepath.read_text()
+    text = filepath.read_text(encoding="utf-8")
     frontmatter, body = split_frontmatter(text)
 
     new_body = replace_refs_in_body(body, pattern)
@@ -124,7 +139,7 @@ def process_file(filepath: Path, pattern: re.Pattern, dry_run: bool) -> bool:
         return True
 
     new_text = (frontmatter or "") + new_body
-    filepath.write_text(new_text)
+    filepath.write_text(new_text, encoding="utf-8")
     print(f"  Changed: {filepath.relative_to(AINT_DIR)}")
     return True
 
@@ -136,7 +151,10 @@ def main():
         print(f"Error: {AINT_DIR} does not exist", file=sys.stderr)
         sys.exit(1)
 
-    pattern = REF_PATTERN
+    alpha_epics = _discover_alpha_epics(AINT_DIR)
+    if alpha_epics:
+        print(f"Discovered alpha epics: {sorted(alpha_epics)}")
+    pattern = _build_ref_pattern(alpha_epics)
     print(f"Pattern: {pattern.pattern}\n")
 
     if dry_run:
