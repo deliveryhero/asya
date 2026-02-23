@@ -94,9 +94,6 @@ Set `fallback.replicas=1` so if scaling fails, KEDA keeps 1 replica running.
    - Custom readiness gate that blocks pod ready until warm-up complete
    - Might interact poorly with KEDA's replica counting
 
-5. **What about StatefulSets?**
-   - StatefulSets have ordered startup - does this interact with warm-up?
-
 ### Research Links
 
 - KEDA Fallback: https://keda.sh/docs/2.12/concepts/scaling-deployments/#fallback
