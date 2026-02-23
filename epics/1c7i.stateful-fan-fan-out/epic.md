@@ -49,4 +49,4 @@ Fan-in uses a **split-key pattern on S3** via the state proxy sidecar (epic 1dmf
 1ih5oo (parser) ─→ 1fr7i0 (codegen) ────────────────┼─→ 1f0ehm (E2E)
                                                      │
 1f0rar (uuid4) ─────────────────────────────────────┘
-``` 
+```
