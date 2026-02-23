@@ -4,8 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net"
-	"os"
+	"net/http"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -60,8 +60,7 @@ func newRetryConfig(maxAttempts int, nonRetryable []string) *config.ResiliencyCo
 // newTestRouterWithRetry creates a router with retry config for tests
 func newTestRouterWithRetry(t *testing.T, transport transport.Transport, resiliency *config.ResiliencyConfig) (*Router, string) {
 	t.Helper()
-	socketPath := fmt.Sprintf("/tmp/test-retry-%d.sock", time.Now().UnixNano())
-	t.Cleanup(func() { _ = os.Remove(socketPath) })
+	socketPath := filepath.Join(t.TempDir(), "runtime.sock")
 
 	cfg := &config.Config{
 		ActorName:     "test-actor",
@@ -417,24 +416,8 @@ func TestRouter_RetryMessage_SendsToOwnQueue(t *testing.T) {
 // --- Full ProcessMessage retry flow tests ---
 
 func TestRouter_ProcessMessage_RetryOnRetriableError(t *testing.T) {
-	socketPath := fmt.Sprintf("/tmp/test-retry-flow-%d.sock", time.Now().UnixNano())
-	defer func() { _ = os.Remove(socketPath) }()
-
-	listener, err := net.Listen("unix", socketPath)
-	if err != nil {
-		t.Fatalf("Failed to create socket: %v", err)
-	}
-	defer func() { _ = listener.Close() }()
-
-	go func() {
-		conn, err := listener.Accept()
-		if err != nil {
-			return
-		}
-		defer func() { _ = conn.Close() }()
-		_, _ = runtime.RecvSocketData(conn)
-
-		sendStreamingResponse(conn, []runtime.RuntimeResponse{
+	socketPath := startMockRuntime(t, func(body []byte) ([]runtime.RuntimeResponse, int) {
+		return []runtime.RuntimeResponse{
 			{
 				Error: "processing_error",
 				Details: runtime.ErrorDetails{
@@ -443,8 +426,8 @@ func TestRouter_ProcessMessage_RetryOnRetriableError(t *testing.T) {
 					Message: "Connection refused",
 				},
 			},
-		})
-	}()
+		}, http.StatusInternalServerError
+	})
 
 	mt := &retryMockTransport{}
 	cfg := &config.Config{
@@ -477,7 +460,7 @@ func TestRouter_ProcessMessage_RetryOnRetriableError(t *testing.T) {
 	}
 	msgBody, _ := json.Marshal(inputMsg)
 
-	err = router.ProcessMessage(context.Background(), transport.QueueMessage{
+	err := router.ProcessMessage(context.Background(), transport.QueueMessage{
 		ID:   "queue-msg-1",
 		Body: msgBody,
 	})
@@ -516,24 +499,8 @@ func TestRouter_ProcessMessage_RetryOnRetriableError(t *testing.T) {
 }
 
 func TestRouter_ProcessMessage_NonRetryableError(t *testing.T) {
-	socketPath := fmt.Sprintf("/tmp/test-nonretryable-%d.sock", time.Now().UnixNano())
-	defer func() { _ = os.Remove(socketPath) }()
-
-	listener, err := net.Listen("unix", socketPath)
-	if err != nil {
-		t.Fatalf("Failed to create socket: %v", err)
-	}
-	defer func() { _ = listener.Close() }()
-
-	go func() {
-		conn, err := listener.Accept()
-		if err != nil {
-			return
-		}
-		defer func() { _ = conn.Close() }()
-		_, _ = runtime.RecvSocketData(conn)
-
-		sendStreamingResponse(conn, []runtime.RuntimeResponse{
+	socketPath := startMockRuntime(t, func(body []byte) ([]runtime.RuntimeResponse, int) {
+		return []runtime.RuntimeResponse{
 			{
 				Error: "processing_error",
 				Details: runtime.ErrorDetails{
@@ -542,8 +509,8 @@ func TestRouter_ProcessMessage_NonRetryableError(t *testing.T) {
 					Message: "Expecting value: line 1 column 1",
 				},
 			},
-		})
-	}()
+		}, http.StatusInternalServerError
+	})
 
 	mt := &retryMockTransport{}
 	cfg := &config.Config{
@@ -575,7 +542,7 @@ func TestRouter_ProcessMessage_NonRetryableError(t *testing.T) {
 	}
 	msgBody, _ := json.Marshal(inputMsg)
 
-	err = router.ProcessMessage(context.Background(), transport.QueueMessage{
+	err := router.ProcessMessage(context.Background(), transport.QueueMessage{
 		ID:   "queue-msg-1",
 		Body: msgBody,
 	})
@@ -616,24 +583,8 @@ func TestRouter_ProcessMessage_NonRetryableError(t *testing.T) {
 }
 
 func TestRouter_ProcessMessage_MaxRetriesExhausted(t *testing.T) {
-	socketPath := fmt.Sprintf("/tmp/test-maxretries-%d.sock", time.Now().UnixNano())
-	defer func() { _ = os.Remove(socketPath) }()
-
-	listener, err := net.Listen("unix", socketPath)
-	if err != nil {
-		t.Fatalf("Failed to create socket: %v", err)
-	}
-	defer func() { _ = listener.Close() }()
-
-	go func() {
-		conn, err := listener.Accept()
-		if err != nil {
-			return
-		}
-		defer func() { _ = conn.Close() }()
-		_, _ = runtime.RecvSocketData(conn)
-
-		sendStreamingResponse(conn, []runtime.RuntimeResponse{
+	socketPath := startMockRuntime(t, func(body []byte) ([]runtime.RuntimeResponse, int) {
+		return []runtime.RuntimeResponse{
 			{
 				Error: "processing_error",
 				Details: runtime.ErrorDetails{
@@ -642,8 +593,8 @@ func TestRouter_ProcessMessage_MaxRetriesExhausted(t *testing.T) {
 					Message: "Connection timed out",
 				},
 			},
-		})
-	}()
+		}, http.StatusInternalServerError
+	})
 
 	mt := &retryMockTransport{}
 	cfg := &config.Config{
@@ -684,7 +635,7 @@ func TestRouter_ProcessMessage_MaxRetriesExhausted(t *testing.T) {
 	}
 	msgBody, _ := json.Marshal(inputMsg)
 
-	err = router.ProcessMessage(context.Background(), transport.QueueMessage{
+	err := router.ProcessMessage(context.Background(), transport.QueueMessage{
 		ID:   "queue-msg-1",
 		Body: msgBody,
 	})
@@ -721,24 +672,8 @@ func TestRouter_ProcessMessage_MaxRetriesExhausted(t *testing.T) {
 }
 
 func TestRouter_ProcessMessage_NoResiliency_LegacyBehavior(t *testing.T) {
-	socketPath := fmt.Sprintf("/tmp/test-legacy-%d.sock", time.Now().UnixNano())
-	defer func() { _ = os.Remove(socketPath) }()
-
-	listener, err := net.Listen("unix", socketPath)
-	if err != nil {
-		t.Fatalf("Failed to create socket: %v", err)
-	}
-	defer func() { _ = listener.Close() }()
-
-	go func() {
-		conn, err := listener.Accept()
-		if err != nil {
-			return
-		}
-		defer func() { _ = conn.Close() }()
-		_, _ = runtime.RecvSocketData(conn)
-
-		sendStreamingResponse(conn, []runtime.RuntimeResponse{
+	socketPath := startMockRuntime(t, func(body []byte) ([]runtime.RuntimeResponse, int) {
+		return []runtime.RuntimeResponse{
 			{
 				Error: "processing_error",
 				Details: runtime.ErrorDetails{
@@ -746,8 +681,8 @@ func TestRouter_ProcessMessage_NoResiliency_LegacyBehavior(t *testing.T) {
 					Message: "Something failed",
 				},
 			},
-		})
-	}()
+		}, http.StatusInternalServerError
+	})
 
 	mt := &retryMockTransport{}
 	cfg := &config.Config{
@@ -779,7 +714,7 @@ func TestRouter_ProcessMessage_NoResiliency_LegacyBehavior(t *testing.T) {
 	}
 	msgBody, _ := json.Marshal(inputMsg)
 
-	err = router.ProcessMessage(context.Background(), transport.QueueMessage{
+	err := router.ProcessMessage(context.Background(), transport.QueueMessage{
 		ID:   "queue-msg-1",
 		Body: msgBody,
 	})
@@ -802,24 +737,8 @@ func TestRouter_ProcessMessage_NoResiliency_LegacyBehavior(t *testing.T) {
 }
 
 func TestRouter_ProcessMessage_SendWithDelayFails_FallsBackToSump(t *testing.T) {
-	socketPath := fmt.Sprintf("/tmp/test-delay-fail-%d.sock", time.Now().UnixNano())
-	defer func() { _ = os.Remove(socketPath) }()
-
-	listener, err := net.Listen("unix", socketPath)
-	if err != nil {
-		t.Fatalf("Failed to create socket: %v", err)
-	}
-	defer func() { _ = listener.Close() }()
-
-	go func() {
-		conn, err := listener.Accept()
-		if err != nil {
-			return
-		}
-		defer func() { _ = conn.Close() }()
-		_, _ = runtime.RecvSocketData(conn)
-
-		sendStreamingResponse(conn, []runtime.RuntimeResponse{
+	socketPath := startMockRuntime(t, func(body []byte) ([]runtime.RuntimeResponse, int) {
+		return []runtime.RuntimeResponse{
 			{
 				Error: "processing_error",
 				Details: runtime.ErrorDetails{
@@ -827,8 +746,8 @@ func TestRouter_ProcessMessage_SendWithDelayFails_FallsBackToSump(t *testing.T) 
 					Message: "Remote host unreachable",
 				},
 			},
-		})
-	}()
+		}, http.StatusInternalServerError
+	})
 
 	mt := &retryMockTransport{
 		sendWithDelayFn: func(_ context.Context, _ string, _ []byte, _ time.Duration) error {
@@ -865,7 +784,7 @@ func TestRouter_ProcessMessage_SendWithDelayFails_FallsBackToSump(t *testing.T) 
 	}
 	msgBody, _ := json.Marshal(inputMsg)
 
-	err = router.ProcessMessage(context.Background(), transport.QueueMessage{
+	err := router.ProcessMessage(context.Background(), transport.QueueMessage{
 		ID:   "queue-msg-1",
 		Body: msgBody,
 	})
@@ -884,24 +803,8 @@ func TestRouter_ProcessMessage_SendWithDelayFails_FallsBackToSump(t *testing.T) 
 }
 
 func TestRouter_ProcessMessage_RetryPreservesPayloadAndRoute(t *testing.T) {
-	socketPath := fmt.Sprintf("/tmp/test-retry-preserve-%d.sock", time.Now().UnixNano())
-	defer func() { _ = os.Remove(socketPath) }()
-
-	listener, err := net.Listen("unix", socketPath)
-	if err != nil {
-		t.Fatalf("Failed to create socket: %v", err)
-	}
-	defer func() { _ = listener.Close() }()
-
-	go func() {
-		conn, err := listener.Accept()
-		if err != nil {
-			return
-		}
-		defer func() { _ = conn.Close() }()
-		_, _ = runtime.RecvSocketData(conn)
-
-		sendStreamingResponse(conn, []runtime.RuntimeResponse{
+	socketPath := startMockRuntime(t, func(body []byte) ([]runtime.RuntimeResponse, int) {
+		return []runtime.RuntimeResponse{
 			{
 				Error: "processing_error",
 				Details: runtime.ErrorDetails{
@@ -909,8 +812,8 @@ func TestRouter_ProcessMessage_RetryPreservesPayloadAndRoute(t *testing.T) {
 					Message: "API timeout",
 				},
 			},
-		})
-	}()
+		}, http.StatusInternalServerError
+	})
 
 	mt := &retryMockTransport{}
 	cfg := &config.Config{
@@ -943,7 +846,7 @@ func TestRouter_ProcessMessage_RetryPreservesPayloadAndRoute(t *testing.T) {
 	}
 	msgBody, _ := json.Marshal(inputMsg)
 
-	err = router.ProcessMessage(context.Background(), transport.QueueMessage{
+	err := router.ProcessMessage(context.Background(), transport.QueueMessage{
 		ID:   "queue-msg-1",
 		Body: msgBody,
 	})
@@ -1055,24 +958,8 @@ func TestRouter_SendRetryFailure_PreservesErrorDetailsInPayload(t *testing.T) {
 }
 
 func TestRouter_ProcessMessage_MaxAttemptsOne_NoRetry(t *testing.T) {
-	socketPath := fmt.Sprintf("/tmp/test-maxone-%d.sock", time.Now().UnixNano())
-	defer func() { _ = os.Remove(socketPath) }()
-
-	listener, err := net.Listen("unix", socketPath)
-	if err != nil {
-		t.Fatalf("Failed to create socket: %v", err)
-	}
-	defer func() { _ = listener.Close() }()
-
-	go func() {
-		conn, err := listener.Accept()
-		if err != nil {
-			return
-		}
-		defer func() { _ = conn.Close() }()
-		_, _ = runtime.RecvSocketData(conn)
-
-		sendStreamingResponse(conn, []runtime.RuntimeResponse{
+	socketPath := startMockRuntime(t, func(body []byte) ([]runtime.RuntimeResponse, int) {
+		return []runtime.RuntimeResponse{
 			{
 				Error: "processing_error",
 				Details: runtime.ErrorDetails{
@@ -1080,8 +967,8 @@ func TestRouter_ProcessMessage_MaxAttemptsOne_NoRetry(t *testing.T) {
 					Message: "Something failed",
 				},
 			},
-		})
-	}()
+		}, http.StatusInternalServerError
+	})
 
 	mt := &retryMockTransport{}
 	cfg := &config.Config{
@@ -1113,7 +1000,7 @@ func TestRouter_ProcessMessage_MaxAttemptsOne_NoRetry(t *testing.T) {
 	}
 	msgBody, _ := json.Marshal(inputMsg)
 
-	err = router.ProcessMessage(context.Background(), transport.QueueMessage{
+	err := router.ProcessMessage(context.Background(), transport.QueueMessage{
 		ID:   "queue-msg-1",
 		Body: msgBody,
 	})

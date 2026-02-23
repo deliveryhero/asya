@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 """
-Runtime component tests - Unix socket protocol.
+Runtime component tests - HTTP protocol over Unix socket.
 
-Tests the runtime socket server with mock sidecar client:
-- Socket communication with length-prefix protocol
+Tests the runtime HTTP server with mock sidecar client:
+- HTTP communication over Unix socket (POST /invoke)
 - Handler invocation and response format
 - Error responses
 """
 
+import http.client as http_client
 import json
 import logging
 import socket
-import struct
 
 import pytest
 from asya_testing.fixtures import configure_logging
@@ -21,13 +21,25 @@ configure_logging()
 logger = logging.getLogger(__name__)
 
 
-class SocketClient:
-    """
-    Mock sidecar client for testing runtime socket protocol.
+class _UnixHTTPConnection(http_client.HTTPConnection):
+    """HTTP connection over Unix socket."""
 
-    This is a component-specific test utility for validating the low-level
-    Unix socket protocol between sidecar and runtime. It tests the wire format
-    (length-prefixed JSON) rather than handler business logic.
+    def __init__(self, socket_path):
+        super().__init__("localhost")
+        self._socket_path = socket_path
+
+    def connect(self):
+        self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        self.sock.connect(self._socket_path)
+
+
+class HTTPClient:
+    """
+    Mock sidecar client for testing runtime HTTP protocol.
+
+    This is a component-specific test utility for validating the HTTP
+    protocol between sidecar and runtime over Unix socket. It tests
+    POST /invoke requests rather than handler business logic.
 
     NOT FOR GENERAL USE - Use asya_testing.handlers for testing handler logic.
     """
@@ -35,67 +47,64 @@ class SocketClient:
     def __init__(self, socket_path: str):
         self.socket_path = socket_path
 
-    def _recv_exact(self, sock, n: int) -> bytes:
-        """Receive exactly n bytes from socket."""
-        data = b""
-        while len(data) < n:
-            chunk = sock.recv(n - len(data))
-            if not chunk:
-                raise ConnectionError("Socket closed before receiving all data")
-            data += chunk
-        return data
-
     def send_message(self, message: dict, timeout: int = 5) -> list:
-        """Send message to runtime and receive streaming response frames.
+        """Send message to runtime via HTTP POST /invoke and return response frames.
 
         Protocol:
-        - Send: 4-byte length prefix (big-endian) + JSON data
-        - Receive: multiple length-prefixed frames, terminated by {"type": "end"}
+        - Send: POST /invoke with JSON body
+        - Response 200: {"frames": [...]} - success
+        - Response 204: empty body - abort (handler returned None)
+        - Response 400: {"error": ..., "details": ...} - bad request
+        - Response 500: {"error": ..., "details": ...} - handler error
         """
-        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        sock.settimeout(timeout)
+        conn = _UnixHTTPConnection(self.socket_path)
+        conn.timeout = timeout
 
         try:
-            sock.connect(self.socket_path)
+            body = json.dumps(message).encode("utf-8")
+            conn.request(
+                "POST",
+                "/invoke",
+                body=body,
+                headers={"Content-Type": "application/json"},
+            )
+            resp = conn.getresponse()
+            status = resp.status
+            raw = resp.read()
 
-            # Send message with length prefix
-            data = json.dumps(message).encode()
-            length_prefix = struct.pack(">I", len(data))
-            sock.sendall(length_prefix + data)
+            if status == 204:
+                return []
 
-            # Read streaming frames until end sentinel
-            frames = []
-            while True:
-                frame_length_bytes = self._recv_exact(sock, 4)
-                frame_length = struct.unpack(">I", frame_length_bytes)[0]
-                frame_data = self._recv_exact(sock, frame_length)
-                frame = json.loads(frame_data.decode())
+            if not raw:
+                return []
 
-                if isinstance(frame, dict) and frame.get("type") == "end":
-                    break
-                frames.append(frame)
+            data = json.loads(raw)
 
-            return frames
+            if status == 200:
+                return data["frames"]
+
+            # 400 or 500: return error as single-element list
+            return [data]
         finally:
-            sock.close()
+            conn.close()
 
 
 @pytest.fixture
 def echo_client():
-    """Socket client for echo runtime."""
-    return SocketClient("/var/run/asya/echo.sock")
+    """HTTP client for echo runtime."""
+    return HTTPClient("/var/run/asya/echo.sock")
 
 
 @pytest.fixture
 def error_client():
-    """Socket client for error runtime."""
-    return SocketClient("/var/run/asya/error.sock")
+    """HTTP client for error runtime."""
+    return HTTPClient("/var/run/asya/error.sock")
 
 
 @pytest.fixture
 def timeout_client():
-    """Socket client for timeout runtime."""
-    return SocketClient("/var/run/asya/timeout.sock")
+    """HTTP client for timeout runtime."""
+    return HTTPClient("/var/run/asya/timeout.sock")
 
 
 def test_echo_handler(echo_client):
@@ -115,7 +124,7 @@ def test_echo_handler(echo_client):
     result = response[0]
     assert "payload" in result
     assert "route" in result
-    # Echo handler transforms: {"message": X} → {"echoed": X}
+    # Echo handler transforms: {"message": X} -> {"echoed": X}
     assert result["payload"] == {"echoed": "hello"}
 
 

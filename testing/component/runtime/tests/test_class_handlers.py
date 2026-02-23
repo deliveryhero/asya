@@ -9,10 +9,10 @@ Tests class-based stateful handlers with realistic scenarios:
 - Message mode (envelope handler mode) with class handlers
 """
 
+import http.client as http_client
 import json
 import logging
 import socket
-import struct
 import time
 
 import pytest
@@ -23,9 +23,21 @@ configure_logging()
 logger = logging.getLogger(__name__)
 
 
-class SocketClient:
+class _UnixHTTPConnection(http_client.HTTPConnection):
+    """HTTP connection over Unix socket."""
+
+    def __init__(self, socket_path):
+        super().__init__("localhost")
+        self._socket_path = socket_path
+
+    def connect(self):
+        self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        self.sock.connect(self._socket_path)
+
+
+class HTTPClient:
     """
-    Mock sidecar client for testing runtime socket protocol.
+    Mock sidecar client for testing runtime HTTP protocol.
 
     Reused from test_socket_protocol.py for consistency.
     """
@@ -33,74 +45,68 @@ class SocketClient:
     def __init__(self, socket_path: str):
         self.socket_path = socket_path
 
-    def _recv_exact(self, sock, n: int) -> bytes:
-        """Receive exactly n bytes from socket."""
-        data = b""
-        while len(data) < n:
-            chunk = sock.recv(n - len(data))
-            if not chunk:
-                raise ConnectionError("Socket closed before receiving all data")
-            data += chunk
-        return data
-
     def send_message(self, message: dict, timeout: int = 10) -> list:
-        """Send message to runtime and receive streaming response frames."""
-        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        sock.settimeout(timeout)
+        """Send message to runtime via HTTP POST /invoke and return response frames."""
+        conn = _UnixHTTPConnection(self.socket_path)
+        conn.timeout = timeout
 
         try:
-            sock.connect(self.socket_path)
+            body = json.dumps(message).encode("utf-8")
+            conn.request(
+                "POST",
+                "/invoke",
+                body=body,
+                headers={"Content-Type": "application/json"},
+            )
+            resp = conn.getresponse()
+            status = resp.status
+            raw = resp.read()
 
-            # Send message with length prefix
-            data = json.dumps(message).encode()
-            length_prefix = struct.pack(">I", len(data))
-            sock.sendall(length_prefix + data)
+            if status == 204:
+                return []
 
-            # Read streaming frames until end sentinel
-            frames = []
-            while True:
-                frame_length_bytes = self._recv_exact(sock, 4)
-                frame_length = struct.unpack(">I", frame_length_bytes)[0]
-                frame_data = self._recv_exact(sock, frame_length)
-                frame = json.loads(frame_data.decode())
+            if not raw:
+                return []
 
-                if isinstance(frame, dict) and frame.get("type") == "end":
-                    break
-                frames.append(frame)
+            data = json.loads(raw)
 
-            return frames
+            if status == 200:
+                return data["frames"]
+
+            # 400 or 500: return error as single-element list
+            return [data]
         finally:
-            sock.close()
+            conn.close()
 
 
 @pytest.fixture
 def slow_model_client():
-    """Socket client for slow model runtime."""
-    return SocketClient("/var/run/asya/slow-model.sock")
+    """HTTP client for slow model runtime."""
+    return HTTPClient("/var/run/asya/slow-model.sock")
 
 
 @pytest.fixture
 def caching_client():
-    """Socket client for caching runtime."""
-    return SocketClient("/var/run/asya/caching.sock")
+    """HTTP client for caching runtime."""
+    return HTTPClient("/var/run/asya/caching.sock")
 
 
 @pytest.fixture
 def large_payload_class_client():
-    """Socket client for large payload class runtime."""
-    return SocketClient("/var/run/asya/large-payload-class.sock")
+    """HTTP client for large payload class runtime."""
+    return HTTPClient("/var/run/asya/large-payload-class.sock")
 
 
 @pytest.fixture
 def counter_client():
-    """Socket client for counter runtime."""
-    return SocketClient("/var/run/asya/counter.sock")
+    """HTTP client for counter runtime."""
+    return HTTPClient("/var/run/asya/counter.sock")
 
 
 @pytest.fixture
 def message_class_client():
-    """Socket client for envelope mode class runtime."""
-    return SocketClient("/var/run/asya/envelope-class.sock")
+    """HTTP client for envelope mode class runtime."""
+    return HTTPClient("/var/run/asya/envelope-class.sock")
 
 
 def test_slow_model_init_once(slow_model_client):

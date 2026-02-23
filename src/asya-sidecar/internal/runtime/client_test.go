@@ -3,56 +3,83 @@ package runtime
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"net"
-	"os"
+	"net/http"
+	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/deliveryhero/asya/asya-sidecar/pkg/messages"
-	"golang.org/x/net/nettest"
 )
 
-// sendStreamingResponse sends individual response frames followed by an end sentinel.
-// This matches the streaming wire protocol: each response is a separate length-prefixed
-// frame, terminated by {"type": "end"}.
-func sendStreamingResponse(conn net.Conn, responses []RuntimeResponse) {
-	for _, resp := range responses {
-		data, _ := json.Marshal(resp)
-		_ = SendSocketData(conn, data)
-	}
-	endFrame, _ := json.Marshal(map[string]string{"type": "end"})
-	_ = SendSocketData(conn, endFrame)
-}
+// startMockHTTPRuntime starts an HTTP server on a Unix socket that handles POST /invoke.
+// The handler function receives the request body and returns (frames, statusCode).
+// For status 200, frames are wrapped in {"frames": [...]}.
+// For status 204, no body is sent.
+// For error statuses (400, 500), the first frame is marshaled directly as the response body.
+func startMockHTTPRuntime(t *testing.T, handler func(body []byte) ([]RuntimeResponse, int)) string {
+	t.Helper()
 
-func TestClient_CallRuntime_Success(t *testing.T) {
-	socketPath, err := nettest.LocalPath()
-	if err != nil {
-		t.Fatalf("Failed to get local path: %v", err)
-	}
-	defer func() { _ = os.Remove(socketPath) }()
+	socketPath := filepath.Join(t.TempDir(), "runtime.sock")
 
 	listener, err := net.Listen("unix", socketPath)
 	if err != nil {
-		t.Fatalf("Failed to create socket: %v", err)
+		t.Fatalf("Failed to create Unix socket listener: %v", err)
 	}
-	defer func() { _ = listener.Close() }()
 
-	serverReady := make(chan bool, 1)
-	serverDone := make(chan bool, 1)
+	mux := http.NewServeMux()
+	mux.HandleFunc("/invoke", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		frames, statusCode := handler(body)
+
+		switch statusCode {
+		case http.StatusNoContent:
+			w.WriteHeader(http.StatusNoContent)
+
+		case http.StatusOK:
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			resp := httpInvokeResponse{Frames: frames}
+			data, _ := json.Marshal(resp)
+			_, _ = w.Write(data)
+
+		default:
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(statusCode)
+			if len(frames) > 0 {
+				data, _ := json.Marshal(frames[0])
+				_, _ = w.Write(data)
+			}
+		}
+	})
+
+	server := &http.Server{Handler: mux}
+
 	go func() {
-		serverReady <- true
-		conn, err := listener.Accept()
-		if err != nil {
-			return
-		}
-		defer func() { _ = conn.Close() }()
+		_ = server.Serve(listener)
+	}()
 
-		_, err = RecvSocketData(conn)
-		if err != nil {
-			return
-		}
+	t.Cleanup(func() {
+		_ = server.Close()
+	})
 
-		sendStreamingResponse(conn, []RuntimeResponse{
+	return socketPath
+}
+
+func TestClient_CallRuntime_Success(t *testing.T) {
+	socketPath := startMockHTTPRuntime(t, func(body []byte) ([]RuntimeResponse, int) {
+		return []RuntimeResponse{
 			{
 				Payload: json.RawMessage(`{"processed": true}`),
 				Route: messages.Route{
@@ -60,11 +87,8 @@ func TestClient_CallRuntime_Success(t *testing.T) {
 					Current: 1,
 				},
 			},
-		})
-		serverDone <- true
-	}()
-
-	<-serverReady
+		}, http.StatusOK
+	})
 
 	client := NewClient(socketPath, 2*time.Second)
 	messageData := []byte(`{"route":{"actors":["test","next"],"current":0},"payload":{"data":"test"}}`)
@@ -81,34 +105,11 @@ func TestClient_CallRuntime_Success(t *testing.T) {
 	if results[0].IsError() {
 		t.Errorf("Expected success, got error: %s", results[0].Error)
 	}
-
-	select {
-	case <-serverDone:
-	case <-time.After(1 * time.Second):
-		t.Error("Server didn't complete in time")
-	}
 }
 
 func TestClient_CallRuntime_Error(t *testing.T) {
-	socketPath, err := nettest.LocalPath()
-	if err != nil {
-		t.Fatalf("Failed to get local path: %v", err)
-	}
-	defer func() { _ = os.Remove(socketPath) }()
-
-	listener, err := net.Listen("unix", socketPath)
-	if err != nil {
-		t.Fatalf("Failed to create socket: %v", err)
-	}
-	defer func() { _ = listener.Close() }()
-
-	go func() {
-		conn, _ := listener.Accept()
-		defer func() { _ = conn.Close() }()
-
-		_, _ = RecvSocketData(conn)
-
-		sendStreamingResponse(conn, []RuntimeResponse{
+	socketPath := startMockHTTPRuntime(t, func(body []byte) ([]RuntimeResponse, int) {
+		return []RuntimeResponse{
 			{
 				Error: "processing_error",
 				Details: ErrorDetails{
@@ -117,8 +118,8 @@ func TestClient_CallRuntime_Error(t *testing.T) {
 					Traceback: "ValueError: Test error message\n",
 				},
 			},
-		})
-	}()
+		}, http.StatusInternalServerError
+	})
 
 	client := NewClient(socketPath, 5*time.Second)
 	messageData := []byte(`{"route":{"actors":["test"],"current":0},"payload":{"data":"test"}}`)
@@ -142,53 +143,23 @@ func TestClient_CallRuntime_Error(t *testing.T) {
 }
 
 func TestClient_CallRuntime_Timeout(t *testing.T) {
-	socketPath, err := nettest.LocalPath()
-	if err != nil {
-		t.Fatalf("Failed to get local path: %v", err)
-	}
-	defer func() { _ = os.Remove(socketPath) }()
-
-	listener, err := net.Listen("unix", socketPath)
-	if err != nil {
-		t.Fatalf("Failed to create socket: %v", err)
-	}
-	defer func() { _ = listener.Close() }()
-
-	go func() {
-		conn, _ := listener.Accept()
-		defer func() { _ = conn.Close() }()
-		time.Sleep(2 * time.Second) // Hold connection without sending end frame
-	}()
+	socketPath := startMockHTTPRuntime(t, func(body []byte) ([]RuntimeResponse, int) {
+		time.Sleep(2 * time.Second) // Hold request without responding
+		return []RuntimeResponse{}, http.StatusOK
+	})
 
 	client := NewClient(socketPath, 100*time.Millisecond)
 	messageData := []byte(`{"route":{"actors":["test"],"current":0},"payload":{"data":"test"}}`)
 
-	_, err = client.CallRuntime(context.Background(), messageData)
+	_, err := client.CallRuntime(context.Background(), messageData)
 	if err == nil {
 		t.Error("Expected timeout error but got nil")
 	}
 }
 
 func TestClient_CallRuntime_FanOut(t *testing.T) {
-	socketPath, err := nettest.LocalPath()
-	if err != nil {
-		t.Fatalf("Failed to get local path: %v", err)
-	}
-	defer func() { _ = os.Remove(socketPath) }()
-
-	listener, err := net.Listen("unix", socketPath)
-	if err != nil {
-		t.Fatalf("Failed to create socket: %v", err)
-	}
-	defer func() { _ = listener.Close() }()
-
-	go func() {
-		conn, _ := listener.Accept()
-		defer func() { _ = conn.Close() }()
-
-		_, _ = RecvSocketData(conn)
-
-		sendStreamingResponse(conn, []RuntimeResponse{
+	socketPath := startMockHTTPRuntime(t, func(body []byte) ([]RuntimeResponse, int) {
+		return []RuntimeResponse{
 			{
 				Payload: json.RawMessage(`{"id": 1}`),
 				Route: messages.Route{
@@ -210,8 +181,8 @@ func TestClient_CallRuntime_FanOut(t *testing.T) {
 					Current: 1,
 				},
 			},
-		})
-	}()
+		}, http.StatusOK
+	})
 
 	client := NewClient(socketPath, 5*time.Second)
 	messageData := []byte(`{"route":{"actors":["fan"],"current":0},"payload":{"data":"test"}}`)
@@ -233,27 +204,9 @@ func TestClient_CallRuntime_FanOut(t *testing.T) {
 }
 
 func TestClient_CallRuntime_EmptyResponse(t *testing.T) {
-	socketPath, err := nettest.LocalPath()
-	if err != nil {
-		t.Fatalf("Failed to get local path: %v", err)
-	}
-	defer func() { _ = os.Remove(socketPath) }()
-
-	listener, err := net.Listen("unix", socketPath)
-	if err != nil {
-		t.Fatalf("Failed to create socket: %v", err)
-	}
-	defer func() { _ = listener.Close() }()
-
-	go func() {
-		conn, _ := listener.Accept()
-		defer func() { _ = conn.Close() }()
-
-		_, _ = RecvSocketData(conn)
-
-		// Only end frame, no response frames (handler returned None)
-		sendStreamingResponse(conn, []RuntimeResponse{})
-	}()
+	socketPath := startMockHTTPRuntime(t, func(body []byte) ([]RuntimeResponse, int) {
+		return nil, http.StatusNoContent
+	})
 
 	client := NewClient(socketPath, 5*time.Second)
 	messageData := []byte(`{"route":{"actors":["test"],"current":0},"payload":{"data":"test"}}`)
@@ -269,25 +222,8 @@ func TestClient_CallRuntime_EmptyResponse(t *testing.T) {
 }
 
 func TestClient_CallRuntime_ParsingError(t *testing.T) {
-	socketPath, err := nettest.LocalPath()
-	if err != nil {
-		t.Fatalf("Failed to get local path: %v", err)
-	}
-	defer func() { _ = os.Remove(socketPath) }()
-
-	listener, err := net.Listen("unix", socketPath)
-	if err != nil {
-		t.Fatalf("Failed to create socket: %v", err)
-	}
-	defer func() { _ = listener.Close() }()
-
-	go func() {
-		conn, _ := listener.Accept()
-		defer func() { _ = conn.Close() }()
-
-		_, _ = RecvSocketData(conn)
-
-		sendStreamingResponse(conn, []RuntimeResponse{
+	socketPath := startMockHTTPRuntime(t, func(body []byte) ([]RuntimeResponse, int) {
+		return []RuntimeResponse{
 			{
 				Error: "msg_parsing_error",
 				Details: ErrorDetails{
@@ -296,8 +232,8 @@ func TestClient_CallRuntime_ParsingError(t *testing.T) {
 					Traceback: "ValueError: Missing required field 'payload' in message\n",
 				},
 			},
-		})
-	}()
+		}, http.StatusBadRequest
+	})
 
 	client := NewClient(socketPath, 5*time.Second)
 	messageData := []byte(`{"route":{"actors":["test"],"current":0}}`)
@@ -321,25 +257,8 @@ func TestClient_CallRuntime_ParsingError(t *testing.T) {
 }
 
 func TestClient_CallRuntime_ConnectionError(t *testing.T) {
-	socketPath, err := nettest.LocalPath()
-	if err != nil {
-		t.Fatalf("Failed to get local path: %v", err)
-	}
-	defer func() { _ = os.Remove(socketPath) }()
-
-	listener, err := net.Listen("unix", socketPath)
-	if err != nil {
-		t.Fatalf("Failed to create socket: %v", err)
-	}
-	defer func() { _ = listener.Close() }()
-
-	go func() {
-		conn, _ := listener.Accept()
-		defer func() { _ = conn.Close() }()
-
-		_, _ = RecvSocketData(conn)
-
-		sendStreamingResponse(conn, []RuntimeResponse{
+	socketPath := startMockHTTPRuntime(t, func(body []byte) ([]RuntimeResponse, int) {
+		return []RuntimeResponse{
 			{
 				Error: "connection_error",
 				Details: ErrorDetails{
@@ -348,8 +267,8 @@ func TestClient_CallRuntime_ConnectionError(t *testing.T) {
 					Traceback: "ConnectionError: Connection closed while reading\n",
 				},
 			},
-		})
-	}()
+		}, http.StatusInternalServerError
+	})
 
 	client := NewClient(socketPath, 5*time.Second)
 	messageData := []byte(`{"route":{"actors":["test"],"current":0},"payload":{"data":"test"}}`)

@@ -7,10 +7,8 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
-	"net"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"strings"
 	"sync"
 	"testing"
@@ -22,7 +20,6 @@ import (
 	"github.com/deliveryhero/asya/asya-sidecar/internal/runtime"
 	"github.com/deliveryhero/asya/asya-sidecar/internal/transport"
 	"github.com/deliveryhero/asya/asya-sidecar/pkg/messages"
-	"golang.org/x/net/nettest"
 )
 
 const (
@@ -125,18 +122,6 @@ func (m *mockTransport) Close() error {
 	return nil
 }
 
-// sendStreamingResponse sends individual response frames followed by an end sentinel.
-// This matches the streaming wire protocol: each response is a separate length-prefixed
-// frame, terminated by {"type": "end"}.
-func sendStreamingResponse(conn net.Conn, responses []runtime.RuntimeResponse) {
-	for _, resp := range responses {
-		data, _ := json.Marshal(resp)
-		_ = runtime.SendSocketData(conn, data)
-	}
-	endFrame, _ := json.Marshal(map[string]string{"type": "end"})
-	_ = runtime.SendSocketData(conn, endFrame)
-}
-
 func TestRouter_RouteValidation(t *testing.T) {
 	tests := []struct {
 		name                 string
@@ -192,31 +177,10 @@ func TestRouter_RouteValidation(t *testing.T) {
 			}))
 			slog.SetDefault(logger)
 
-			socketPath := fmt.Sprintf("/tmp/test-router-%d.sock", time.Now().UnixNano())
-			defer func() { _ = os.Remove(socketPath) }()
-
-			listener, err := net.Listen("unix", socketPath)
-			if err != nil {
-				t.Fatalf("Failed to create socket: %v", err)
-			}
-			defer func() { _ = listener.Close() }()
-
 			runtimeCalled := false
-			go func() {
-				conn, err := listener.Accept()
-				if err != nil {
-					return
-				}
-				defer func() { _ = conn.Close() }()
-
+			socketPath := startMockRuntime(t, func(body []byte) ([]runtime.RuntimeResponse, int) {
 				runtimeCalled = true
-
-				_, err = runtime.RecvSocketData(conn)
-				if err != nil {
-					return
-				}
-
-				sendStreamingResponse(conn, []runtime.RuntimeResponse{
+				return []runtime.RuntimeResponse{
 					{
 						Payload: json.RawMessage(`{"result": "processed"}`),
 						Route: messages.Route{
@@ -224,8 +188,8 @@ func TestRouter_RouteValidation(t *testing.T) {
 							Current: tt.inputRoute.Current + 1,
 						},
 					},
-				})
-			}()
+				}, http.StatusOK
+			})
 
 			cfg := &config.Config{
 				ActorName:     tt.actorName,
@@ -437,35 +401,10 @@ func TestRouter_DynamicRouteModification(t *testing.T) {
 		},
 	}
 
-	for i, tt := range tests {
+	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Setup Unix socket server to mock runtime
-			socketPath := fmt.Sprintf("/tmp/test-dyn-route-%d.sock", i)
-			_ = os.Remove(socketPath)
-			defer func() { _ = os.Remove(socketPath) }()
-
-			listener, err := net.Listen("unix", socketPath)
-			if err != nil {
-				t.Fatalf("Failed to create socket: %v", err)
-			}
-			defer func() { _ = listener.Close() }()
-
-			// Start mock runtime server that returns modified route
-			go func() {
-				conn, err := listener.Accept()
-				if err != nil {
-					return
-				}
-				defer func() { _ = conn.Close() }()
-
-				// Receive request
-				_, err = runtime.RecvSocketData(conn)
-				if err != nil {
-					return
-				}
-
-				// Send response with route where current is already incremented by runtime
-				sendStreamingResponse(conn, []runtime.RuntimeResponse{
+			socketPath := startMockRuntime(t, func(body []byte) ([]runtime.RuntimeResponse, int) {
+				return []runtime.RuntimeResponse{
 					{
 						Payload: json.RawMessage(`{"result": "processed"}`),
 						Route: messages.Route{
@@ -473,8 +412,8 @@ func TestRouter_DynamicRouteModification(t *testing.T) {
 							Current: 1, // Runtime increments current in payload mode
 						},
 					},
-				})
-			}()
+				}, http.StatusOK
+			})
 
 			// Setup test components
 			cfg := &config.Config{
@@ -601,34 +540,8 @@ func TestRouter_ResolveQueueName_Integration(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Setup Unix socket server to mock runtime
-			socketPath, err := nettest.LocalPath()
-			if err != nil {
-				t.Fatalf("Failed to get local path: %v", err)
-			}
-
-			listener, err := net.Listen("unix", socketPath)
-			if err != nil {
-				t.Fatalf("Failed to create socket: %v", err)
-			}
-			defer func() { _ = listener.Close() }()
-
-			// Start mock runtime server
-			go func() {
-				conn, err := listener.Accept()
-				if err != nil {
-					return
-				}
-				defer func() { _ = conn.Close() }()
-
-				// Receive request
-				_, err = runtime.RecvSocketData(conn)
-				if err != nil {
-					return
-				}
-
-				// Send mock response with incremented current (runtime responsibility)
-				sendStreamingResponse(conn, []runtime.RuntimeResponse{
+			socketPath := startMockRuntime(t, func(body []byte) ([]runtime.RuntimeResponse, int) {
+				return []runtime.RuntimeResponse{
 					{
 						Payload: json.RawMessage(`{"result": "processed"}`),
 						Route: messages.Route{
@@ -636,8 +549,8 @@ func TestRouter_ResolveQueueName_Integration(t *testing.T) {
 							Current: 1, // Runtime increments current in payload mode
 						},
 					},
-				})
-			}()
+				}, http.StatusOK
+			})
 
 			// Setup test components
 			mockTransport := &mockTransport{}
@@ -965,14 +878,9 @@ func TestRouter_Run(t *testing.T) {
 
 	m := metrics.NewMetrics("test", []config.CustomMetricConfig{})
 
-	socketPath := fmt.Sprintf("/tmp/test-router-run-%d.sock", time.Now().UnixNano())
-	defer func() { _ = os.Remove(socketPath) }()
-
-	listener, err := net.Listen("unix", socketPath)
-	if err != nil {
-		t.Fatalf("Failed to create socket: %v", err)
-	}
-	defer func() { _ = listener.Close() }()
+	socketPath := startMockRuntime(t, func(body []byte) ([]runtime.RuntimeResponse, int) {
+		return nil, http.StatusNoContent
+	})
 
 	runtimeClient := runtime.NewClient(socketPath, 2*time.Second)
 
@@ -990,7 +898,7 @@ func TestRouter_Run(t *testing.T) {
 
 	cancel()
 
-	err = router.Run(ctx)
+	err := router.Run(ctx)
 	if err != context.Canceled {
 		t.Errorf("Expected context.Canceled error, got: %v", err)
 	}
@@ -1096,29 +1004,9 @@ func TestRouter_ProcessMessage_MissingMessageID(t *testing.T) {
 }
 
 func TestRouter_ProcessMessage_EmptyResponse(t *testing.T) {
-	socketPath := fmt.Sprintf("/tmp/test-empty-response-%d.sock", time.Now().UnixNano())
-	defer func() { _ = os.Remove(socketPath) }()
-
-	listener, err := net.Listen("unix", socketPath)
-	if err != nil {
-		t.Fatalf("Failed to create socket: %v", err)
-	}
-	defer func() { _ = listener.Close() }()
-
-	go func() {
-		conn, err := listener.Accept()
-		if err != nil {
-			return
-		}
-		defer func() { _ = conn.Close() }()
-
-		_, err = runtime.RecvSocketData(conn)
-		if err != nil {
-			return
-		}
-
-		sendStreamingResponse(conn, []runtime.RuntimeResponse{})
-	}()
+	socketPath := startMockRuntime(t, func(body []byte) ([]runtime.RuntimeResponse, int) {
+		return nil, http.StatusNoContent
+	})
 
 	cfg := &config.Config{
 		ActorName:     "test-actor",
@@ -1158,7 +1046,7 @@ func TestRouter_ProcessMessage_EmptyResponse(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	err = router.ProcessMessage(ctx, queueMsg)
+	err := router.ProcessMessage(ctx, queueMsg)
 	if err != nil {
 		t.Fatalf("ProcessMessage failed: %v", err)
 	}
@@ -1173,28 +1061,8 @@ func TestRouter_ProcessMessage_EmptyResponse(t *testing.T) {
 }
 
 func TestRouter_ProcessMessage_EndActor(t *testing.T) {
-	socketPath := fmt.Sprintf("/tmp/test-end-%d.sock", time.Now().UnixNano())
-	defer func() { _ = os.Remove(socketPath) }()
-
-	listener, err := net.Listen("unix", socketPath)
-	if err != nil {
-		t.Fatalf("Failed to create socket: %v", err)
-	}
-	defer func() { _ = listener.Close() }()
-
-	go func() {
-		conn, err := listener.Accept()
-		if err != nil {
-			return
-		}
-		defer func() { _ = conn.Close() }()
-
-		_, err = runtime.RecvSocketData(conn)
-		if err != nil {
-			return
-		}
-
-		sendStreamingResponse(conn, []runtime.RuntimeResponse{
+	socketPath := startMockRuntime(t, func(body []byte) ([]runtime.RuntimeResponse, int) {
+		return []runtime.RuntimeResponse{
 			{
 				Payload: json.RawMessage(`{"status": "logged"}`),
 				Route: messages.Route{
@@ -1202,8 +1070,8 @@ func TestRouter_ProcessMessage_EndActor(t *testing.T) {
 					Current: 0,
 				},
 			},
-		})
-	}()
+		}, http.StatusOK
+	})
 
 	cfg := &config.Config{
 		ActorName:     "x-sink",
@@ -1244,7 +1112,7 @@ func TestRouter_ProcessMessage_EndActor(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	err = router.ProcessMessage(ctx, queueMsg)
+	err := router.ProcessMessage(ctx, queueMsg)
 	if err != nil {
 		t.Fatalf("ProcessMessage failed: %v", err)
 	}
@@ -1296,33 +1164,13 @@ func TestRouter_EndActor_WithInvalidRoute(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			socketPath := fmt.Sprintf("/tmp/test-end-invalid-%d.sock", time.Now().UnixNano())
-			defer func() { _ = os.Remove(socketPath) }()
-
-			listener, err := net.Listen("unix", socketPath)
-			if err != nil {
-				t.Fatalf("Failed to create socket: %v", err)
-			}
-			defer func() { _ = listener.Close() }()
-
-			go func() {
-				conn, err := listener.Accept()
-				if err != nil {
-					return
-				}
-				defer func() { _ = conn.Close() }()
-
-				_, err = runtime.RecvSocketData(conn)
-				if err != nil {
-					return
-				}
-
-				sendStreamingResponse(conn, []runtime.RuntimeResponse{
+			socketPath := startMockRuntime(t, func(body []byte) ([]runtime.RuntimeResponse, int) {
+				return []runtime.RuntimeResponse{
 					{
 						Payload: json.RawMessage(`{"status": "processed"}`),
 					},
-				})
-			}()
+				}, http.StatusOK
+			})
 
 			cfg := &config.Config{
 				ActorName:     "x-sink",
@@ -1360,7 +1208,7 @@ func TestRouter_EndActor_WithInvalidRoute(t *testing.T) {
 			}
 
 			ctx := context.Background()
-			err = router.ProcessMessage(ctx, queueMsg)
+			err := router.ProcessMessage(ctx, queueMsg)
 			if err != nil {
 				t.Fatalf("ProcessMessage failed for %s: %v", tt.desc, err)
 			}
@@ -1377,33 +1225,13 @@ func TestRouter_EndActor_WithGatewayReporting(t *testing.T) {
 	mockServer.Start(t)
 	defer mockServer.Close()
 
-	socketPath := fmt.Sprintf("/tmp/test-end-gateway-%d.sock", time.Now().UnixNano())
-	defer func() { _ = os.Remove(socketPath) }()
-
-	listener, err := net.Listen("unix", socketPath)
-	if err != nil {
-		t.Fatalf("Failed to create socket: %v", err)
-	}
-	defer func() { _ = listener.Close() }()
-
-	go func() {
-		conn, err := listener.Accept()
-		if err != nil {
-			return
-		}
-		defer func() { _ = conn.Close() }()
-
-		_, err = runtime.RecvSocketData(conn)
-		if err != nil {
-			return
-		}
-
-		sendStreamingResponse(conn, []runtime.RuntimeResponse{
+	socketPath := startMockRuntime(t, func(body []byte) ([]runtime.RuntimeResponse, int) {
+		return []runtime.RuntimeResponse{
 			{
 				Payload: json.RawMessage(`{"result": {"value": 42}, "s3_info": {"s3_uri": "s3://test/result"}}`),
 			},
-		})
-	}()
+		}, http.StatusOK
+	})
 
 	cfg := &config.Config{
 		ActorName:     "x-sink",
@@ -1437,7 +1265,7 @@ func TestRouter_EndActor_WithGatewayReporting(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	err = router.ProcessMessage(ctx, queueMsg)
+	err := router.ProcessMessage(ctx, queueMsg)
 	if err != nil {
 		t.Fatalf("ProcessMessage failed: %v", err)
 	}
@@ -1467,22 +1295,8 @@ func TestRouter_EndActor_WithGatewayReporting(t *testing.T) {
 }
 
 func TestRouter_EndActor_RuntimeError(t *testing.T) {
-	socketPath := fmt.Sprintf("/tmp/test-end-error-%d.sock", time.Now().UnixNano())
-	defer func() { _ = os.Remove(socketPath) }()
-
-	listener, err := net.Listen("unix", socketPath)
-	if err != nil {
-		t.Fatalf("Failed to create socket: %v", err)
-	}
-	defer func() { _ = listener.Close() }()
-
-	go func() {
-		conn, err := listener.Accept()
-		if err != nil {
-			return
-		}
-		_ = conn.Close()
-	}()
+	// Use a non-existent socket path to simulate runtime connection failure
+	socketPath := fmt.Sprintf("/tmp/rt-noexist-%d.sock", time.Now().UnixNano())
 
 	cfg := &config.Config{
 		ActorName:     "x-sump",
@@ -1523,7 +1337,7 @@ func TestRouter_EndActor_RuntimeError(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	err = router.ProcessMessage(ctx, queueMsg)
+	err := router.ProcessMessage(ctx, queueMsg)
 	if err == nil {
 		t.Fatal("Expected error from end actor runtime failure")
 	}
@@ -1538,29 +1352,9 @@ func TestRouter_EndActor_RuntimeError(t *testing.T) {
 }
 
 func TestRouter_EndActor_DoesNotIncrementCurrent(t *testing.T) {
-	socketPath := fmt.Sprintf("/tmp/test-end-no-increment-%d.sock", time.Now().UnixNano())
-	defer func() { _ = os.Remove(socketPath) }()
-
-	listener, err := net.Listen("unix", socketPath)
-	if err != nil {
-		t.Fatalf("Failed to create socket: %v", err)
-	}
-	defer func() { _ = listener.Close() }()
-
-	go func() {
-		conn, err := listener.Accept()
-		if err != nil {
-			return
-		}
-		defer func() { _ = conn.Close() }()
-
-		_, err = runtime.RecvSocketData(conn)
-		if err != nil {
-			return
-		}
-
+	socketPath := startMockRuntime(t, func(body []byte) ([]runtime.RuntimeResponse, int) {
 		// Runtime tries to return a route with incremented current
-		sendStreamingResponse(conn, []runtime.RuntimeResponse{
+		return []runtime.RuntimeResponse{
 			{
 				Payload: json.RawMessage(`{"status": "logged"}`),
 				Route: messages.Route{
@@ -1568,8 +1362,8 @@ func TestRouter_EndActor_DoesNotIncrementCurrent(t *testing.T) {
 					Current: 3, // Try to increment current
 				},
 			},
-		})
-	}()
+		}, http.StatusOK
+	})
 
 	cfg := &config.Config{
 		ActorName:     "x-sink",
@@ -1610,7 +1404,7 @@ func TestRouter_EndActor_DoesNotIncrementCurrent(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	err = router.ProcessMessage(ctx, queueMsg)
+	err := router.ProcessMessage(ctx, queueMsg)
 	if err != nil {
 		t.Fatalf("ProcessMessage failed: %v", err)
 	}
@@ -1622,22 +1416,8 @@ func TestRouter_EndActor_DoesNotIncrementCurrent(t *testing.T) {
 }
 
 func TestRouter_ProcessMessage_RuntimeError(t *testing.T) {
-	socketPath := fmt.Sprintf("/tmp/test-runtime-error-%d.sock", time.Now().UnixNano())
-	defer func() { _ = os.Remove(socketPath) }()
-
-	listener, err := net.Listen("unix", socketPath)
-	if err != nil {
-		t.Fatalf("Failed to create socket: %v", err)
-	}
-	defer func() { _ = listener.Close() }()
-
-	go func() {
-		conn, err := listener.Accept()
-		if err != nil {
-			return
-		}
-		_ = conn.Close()
-	}()
+	// Use a non-existent socket path to simulate runtime connection failure
+	socketPath := fmt.Sprintf("/tmp/rt-noexist-%d.sock", time.Now().UnixNano())
 
 	cfg := &config.Config{
 		ActorName:     "test-actor",
@@ -1677,7 +1457,7 @@ func TestRouter_ProcessMessage_RuntimeError(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	err = router.ProcessMessage(ctx, queueMsg)
+	err := router.ProcessMessage(ctx, queueMsg)
 	if err != nil {
 		t.Fatalf("ProcessMessage should not return error (sends to error queue): %v", err)
 	}
@@ -1692,28 +1472,8 @@ func TestRouter_ProcessMessage_RuntimeError(t *testing.T) {
 }
 
 func TestRouter_ProcessMessage_ErrorResponse(t *testing.T) {
-	socketPath := fmt.Sprintf("/tmp/test-error-response-%d.sock", time.Now().UnixNano())
-	defer func() { _ = os.Remove(socketPath) }()
-
-	listener, err := net.Listen("unix", socketPath)
-	if err != nil {
-		t.Fatalf("Failed to create socket: %v", err)
-	}
-	defer func() { _ = listener.Close() }()
-
-	go func() {
-		conn, err := listener.Accept()
-		if err != nil {
-			return
-		}
-		defer func() { _ = conn.Close() }()
-
-		_, err = runtime.RecvSocketData(conn)
-		if err != nil {
-			return
-		}
-
-		sendStreamingResponse(conn, []runtime.RuntimeResponse{
+	socketPath := startMockRuntime(t, func(body []byte) ([]runtime.RuntimeResponse, int) {
+		return []runtime.RuntimeResponse{
 			{
 				Error: "Processing failed",
 				Details: runtime.ErrorDetails{
@@ -1721,8 +1481,8 @@ func TestRouter_ProcessMessage_ErrorResponse(t *testing.T) {
 					Message: "Invalid input",
 				},
 			},
-		})
-	}()
+		}, http.StatusInternalServerError
+	})
 
 	cfg := &config.Config{
 		ActorName:     "test-actor",
@@ -1762,7 +1522,7 @@ func TestRouter_ProcessMessage_ErrorResponse(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	err = router.ProcessMessage(ctx, queueMsg)
+	err := router.ProcessMessage(ctx, queueMsg)
 	if err != nil {
 		t.Fatalf("ProcessMessage failed: %v", err)
 	}
@@ -1911,33 +1671,13 @@ func TestRouter_ReportFinalStatusWithMessage_Sump_ExtractsErrorDetails(t *testin
 	mockServer.Start(t)
 	defer mockServer.Close()
 
-	socketPath := fmt.Sprintf("/tmp/test-error-details-%d.sock", time.Now().UnixNano())
-	defer func() { _ = os.Remove(socketPath) }()
-
-	listener, err := net.Listen("unix", socketPath)
-	if err != nil {
-		t.Fatalf("Failed to create socket: %v", err)
-	}
-	defer func() { _ = listener.Close() }()
-
-	go func() {
-		conn, err := listener.Accept()
-		if err != nil {
-			return
-		}
-		defer func() { _ = conn.Close() }()
-
-		_, err = runtime.RecvSocketData(conn)
-		if err != nil {
-			return
-		}
-
-		sendStreamingResponse(conn, []runtime.RuntimeResponse{
+	socketPath := startMockRuntime(t, func(body []byte) ([]runtime.RuntimeResponse, int) {
+		return []runtime.RuntimeResponse{
 			{
 				Payload: json.RawMessage(`{"status": "processed"}`),
 			},
-		})
-	}()
+		}, http.StatusOK
+	})
 
 	cfg := &config.Config{
 		ActorName:     "x-sump",
@@ -1984,7 +1724,7 @@ func TestRouter_ReportFinalStatusWithMessage_Sump_ExtractsErrorDetails(t *testin
 	}
 
 	ctx := context.Background()
-	err = router.ProcessMessage(ctx, queueMsg)
+	err := router.ProcessMessage(ctx, queueMsg)
 	if err != nil {
 		t.Fatalf("ProcessMessage failed: %v", err)
 	}
@@ -2039,33 +1779,13 @@ func TestRouter_ReportFinalStatusWithMessage_Sump_NoErrorDetails(t *testing.T) {
 	mockServer.Start(t)
 	defer mockServer.Close()
 
-	socketPath := fmt.Sprintf("/tmp/test-no-error-details-%d.sock", time.Now().UnixNano())
-	defer func() { _ = os.Remove(socketPath) }()
-
-	listener, err := net.Listen("unix", socketPath)
-	if err != nil {
-		t.Fatalf("Failed to create socket: %v", err)
-	}
-	defer func() { _ = listener.Close() }()
-
-	go func() {
-		conn, err := listener.Accept()
-		if err != nil {
-			return
-		}
-		defer func() { _ = conn.Close() }()
-
-		_, err = runtime.RecvSocketData(conn)
-		if err != nil {
-			return
-		}
-
-		sendStreamingResponse(conn, []runtime.RuntimeResponse{
+	socketPath := startMockRuntime(t, func(body []byte) ([]runtime.RuntimeResponse, int) {
+		return []runtime.RuntimeResponse{
 			{
 				Payload: json.RawMessage(`{"status": "processed"}`),
 			},
-		})
-	}()
+		}, http.StatusOK
+	})
 
 	cfg := &config.Config{
 		ActorName:     "x-sump",
@@ -2099,7 +1819,7 @@ func TestRouter_ReportFinalStatusWithMessage_Sump_NoErrorDetails(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	err = router.ProcessMessage(ctx, queueMsg)
+	err := router.ProcessMessage(ctx, queueMsg)
 	if err != nil {
 		t.Fatalf("ProcessMessage failed: %v", err)
 	}
@@ -2154,28 +1874,8 @@ func TestRouter_ReportFinalStatus_NoGateway(t *testing.T) {
 }
 
 func TestRouter_ProcessMessage_FanOut(t *testing.T) {
-	socketPath := fmt.Sprintf("/tmp/test-fanout-%d.sock", time.Now().UnixNano())
-	defer func() { _ = os.Remove(socketPath) }()
-
-	listener, err := net.Listen("unix", socketPath)
-	if err != nil {
-		t.Fatalf("Failed to create socket: %v", err)
-	}
-	defer func() { _ = listener.Close() }()
-
-	go func() {
-		conn, err := listener.Accept()
-		if err != nil {
-			return
-		}
-		defer func() { _ = conn.Close() }()
-
-		_, err = runtime.RecvSocketData(conn)
-		if err != nil {
-			return
-		}
-
-		sendStreamingResponse(conn, []runtime.RuntimeResponse{
+	socketPath := startMockRuntime(t, func(body []byte) ([]runtime.RuntimeResponse, int) {
+		return []runtime.RuntimeResponse{
 			{
 				Route:   messages.Route{Actors: []string{"test-actor", "next-actor"}, Current: 1},
 				Payload: json.RawMessage(`{"index": 0, "message": "Fan-out message 0"}`),
@@ -2188,8 +1888,8 @@ func TestRouter_ProcessMessage_FanOut(t *testing.T) {
 				Route:   messages.Route{Actors: []string{"test-actor", "next-actor"}, Current: 1},
 				Payload: json.RawMessage(`{"index": 2, "message": "Fan-out message 2"}`),
 			},
-		})
-	}()
+		}, http.StatusOK
+	})
 
 	cfg := &config.Config{
 		ActorName:     "test-actor",
@@ -2229,7 +1929,7 @@ func TestRouter_ProcessMessage_FanOut(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	err = router.ProcessMessage(ctx, queueMsg)
+	err := router.ProcessMessage(ctx, queueMsg)
 	if err != nil {
 		t.Fatalf("ProcessMessage failed: %v", err)
 	}
@@ -2290,28 +1990,8 @@ func TestRouter_ProcessMessage_FanOut(t *testing.T) {
 }
 
 func TestRouter_ProcessMessage_FanOut_CreatesGatewayTasks(t *testing.T) {
-	socketPath := fmt.Sprintf("/tmp/test-fanout-gateway-%d.sock", time.Now().UnixNano())
-	defer func() { _ = os.Remove(socketPath) }()
-
-	listener, err := net.Listen("unix", socketPath)
-	if err != nil {
-		t.Fatalf("Failed to create socket: %v", err)
-	}
-	defer func() { _ = listener.Close() }()
-
-	go func() {
-		conn, err := listener.Accept()
-		if err != nil {
-			return
-		}
-		defer func() { _ = conn.Close() }()
-
-		_, err = runtime.RecvSocketData(conn)
-		if err != nil {
-			return
-		}
-
-		sendStreamingResponse(conn, []runtime.RuntimeResponse{
+	socketPath := startMockRuntime(t, func(body []byte) ([]runtime.RuntimeResponse, int) {
+		return []runtime.RuntimeResponse{
 			{
 				Route:   messages.Route{Actors: []string{"test-actor", "next-actor"}, Current: 0},
 				Payload: json.RawMessage(`{"index": 0}`),
@@ -2324,8 +2004,8 @@ func TestRouter_ProcessMessage_FanOut_CreatesGatewayTasks(t *testing.T) {
 				Route:   messages.Route{Actors: []string{"test-actor", "next-actor"}, Current: 0},
 				Payload: json.RawMessage(`{"index": 2}`),
 			},
-		})
-	}()
+		}, http.StatusOK
+	})
 
 	// Track task creation calls
 	var createdTasks []struct {
@@ -2405,7 +2085,7 @@ func TestRouter_ProcessMessage_FanOut_CreatesGatewayTasks(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	err = router.ProcessMessage(ctx, queueMsg)
+	err := router.ProcessMessage(ctx, queueMsg)
 	if err != nil {
 		t.Fatalf("ProcessMessage failed: %v", err)
 	}
@@ -2674,29 +2354,14 @@ func TestRouter_EnsureAndUpdateStatus_SameActorRetry(t *testing.T) {
 }
 
 func TestRouter_RouteResponse_NextActor_HasStatus(t *testing.T) {
-	socketPath := fmt.Sprintf("/tmp/test-route-status-%d.sock", time.Now().UnixNano())
-	defer func() { _ = os.Remove(socketPath) }()
-
-	listener, err := net.Listen("unix", socketPath)
-	if err != nil {
-		t.Fatalf("Failed to create socket: %v", err)
-	}
-	defer func() { _ = listener.Close() }()
-
-	go func() {
-		conn, err := listener.Accept()
-		if err != nil {
-			return
-		}
-		defer func() { _ = conn.Close() }()
-		_, _ = runtime.RecvSocketData(conn)
-		sendStreamingResponse(conn, []runtime.RuntimeResponse{
+	socketPath := startMockRuntime(t, func(body []byte) ([]runtime.RuntimeResponse, int) {
+		return []runtime.RuntimeResponse{
 			{
 				Payload: json.RawMessage(`{"result": "ok"}`),
 				Route:   messages.Route{Actors: []string{"actor1", "actor2"}, Current: 1},
 			},
-		})
-	}()
+		}, http.StatusOK
+	})
 
 	cfg := &config.Config{
 		ActorName:     "actor1",
@@ -2726,7 +2391,7 @@ func TestRouter_RouteResponse_NextActor_HasStatus(t *testing.T) {
 	msgBody, _ := json.Marshal(inputMsg)
 
 	ctx := context.Background()
-	err = router.ProcessMessage(ctx, transport.QueueMessage{ID: "msg-1", Body: msgBody})
+	err := router.ProcessMessage(ctx, transport.QueueMessage{ID: "msg-1", Body: msgBody})
 	if err != nil {
 		t.Fatalf("ProcessMessage failed: %v", err)
 	}
@@ -2752,30 +2417,15 @@ func TestRouter_RouteResponse_NextActor_HasStatus(t *testing.T) {
 }
 
 func TestRouter_RouteResponse_Sink_HasStatus(t *testing.T) {
-	socketPath := fmt.Sprintf("/tmp/test-sink-status-%d.sock", time.Now().UnixNano())
-	defer func() { _ = os.Remove(socketPath) }()
-
-	listener, err := net.Listen("unix", socketPath)
-	if err != nil {
-		t.Fatalf("Failed to create socket: %v", err)
-	}
-	defer func() { _ = listener.Close() }()
-
-	go func() {
-		conn, err := listener.Accept()
-		if err != nil {
-			return
-		}
-		defer func() { _ = conn.Close() }()
-		_, _ = runtime.RecvSocketData(conn)
+	socketPath := startMockRuntime(t, func(body []byte) ([]runtime.RuntimeResponse, int) {
 		// Runtime returns route with current=1, which is past the end of a single-actor route
-		sendStreamingResponse(conn, []runtime.RuntimeResponse{
+		return []runtime.RuntimeResponse{
 			{
 				Payload: json.RawMessage(`{"result": "done"}`),
 				Route:   messages.Route{Actors: []string{"actor1"}, Current: 1},
 			},
-		})
-	}()
+		}, http.StatusOK
+	})
 
 	cfg := &config.Config{
 		ActorName:     "actor1",
@@ -2805,7 +2455,7 @@ func TestRouter_RouteResponse_Sink_HasStatus(t *testing.T) {
 	msgBody, _ := json.Marshal(inputMsg)
 
 	ctx := context.Background()
-	err = router.ProcessMessage(ctx, transport.QueueMessage{ID: "msg-1", Body: msgBody})
+	err := router.ProcessMessage(ctx, transport.QueueMessage{ID: "msg-1", Body: msgBody})
 	if err != nil {
 		t.Fatalf("ProcessMessage failed: %v", err)
 	}

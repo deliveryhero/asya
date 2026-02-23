@@ -1,12 +1,13 @@
 package runtime
 
 import (
+	"bytes"
 	"context"
-	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net"
+	"net/http"
 	"time"
 
 	"github.com/deliveryhero/asya/asya-sidecar/pkg/messages"
@@ -22,7 +23,6 @@ type ErrorDetails struct {
 
 // RuntimeResponse represents the response from the actor runtime
 type RuntimeResponse struct {
-	Type    string           `json:"type,omitempty"`    // frame type: "end" for sentinel
 	Payload json.RawMessage  `json:"payload,omitempty"` // payload output from handler
 	Route   messages.Route   `json:"route,omitempty"`   // route output from handler
 	Status  *messages.Status `json:"status,omitempty"`  // status from runtime (passed through)
@@ -30,113 +30,88 @@ type RuntimeResponse struct {
 	Details ErrorDetails     `json:"details,omitempty"`
 }
 
+// httpInvokeResponse is the wire format for a successful POST /invoke response.
+type httpInvokeResponse struct {
+	Frames []RuntimeResponse `json:"frames"`
+}
+
 // IsError returns true if the response indicates an error
 func (r *RuntimeResponse) IsError() bool {
 	return r.Error != ""
 }
 
-// Client handles communication with the actor runtime via Unix socket
+// Client handles communication with the actor runtime via HTTP over Unix socket
 type Client struct {
 	socketPath string
 	timeout    time.Duration
+	httpClient *http.Client
 }
 
 // NewClient creates a new runtime client
 func NewClient(socketPath string, timeout time.Duration) *Client {
+	transport := &http.Transport{
+		DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
+			var dialer net.Dialer
+			return dialer.DialContext(ctx, "unix", socketPath)
+		},
+	}
+
 	return &Client{
 		socketPath: socketPath,
 		timeout:    timeout,
+		httpClient: &http.Client{
+			Transport: transport,
+		},
 	}
 }
 
-// SendSocketData sends a message with length-prefix (4-byte big-endian uint32)
-func SendSocketData(conn net.Conn, data []byte) error {
-	// Send length prefix
-	length := make([]byte, 4)
-
-	binary.BigEndian.PutUint32(length, uint32(len(data)))
-	if _, err := conn.Write(length); err != nil {
-		return fmt.Errorf("failed to write length prefix: %w", err)
-	}
-
-	// Send data
-	if _, err := conn.Write(data); err != nil {
-		return fmt.Errorf("failed to write data: %w", err)
-	}
-
-	return nil
-}
-
-// RecvSocketData receives a message with length-prefix (4-byte big-endian uint32)
-func RecvSocketData(conn net.Conn) ([]byte, error) {
-	// Read length prefix
-	length := make([]byte, 4)
-	if _, err := io.ReadFull(conn, length); err != nil {
-		return nil, fmt.Errorf("failed to read length prefix: %w", err)
-	}
-
-	// Read data
-	size := binary.BigEndian.Uint32(length)
-	data := make([]byte, size)
-	if _, err := io.ReadFull(conn, data); err != nil {
-		return nil, fmt.Errorf("failed to read data: %w", err)
-	}
-
-	return data, nil
-}
-
-// CallRuntime sends a full message (with route and payload) to the runtime and reads streaming response frames.
-// Returns responses collected from all frames, empty slice for abort, or error.
+// CallRuntime sends a message to the runtime via HTTP POST /invoke and returns response frames.
+// Returns responses collected from the response body, empty slice for abort (204), or error.
 //
-// Wire protocol (streaming):
+// HTTP protocol:
 //
-//	Sidecar -> Runtime:  [4-byte length][request JSON]
-//	Runtime -> Sidecar:  [4-byte length][response frame 1 JSON]
-//	Runtime -> Sidecar:  [4-byte length][response frame 2 JSON]  (generators only)
-//	...
-//	Runtime -> Sidecar:  [4-byte length][{"type": "end"} JSON]
-//	Connection closes.
+//	Sidecar -> Runtime:  POST /invoke with JSON body
+//	Runtime -> Sidecar:  200 {"frames": [...]}       (success)
+//	Runtime -> Sidecar:  204 (empty)                 (abort / handler returned None)
+//	Runtime -> Sidecar:  400 {"error": "...", ...}   (bad request)
+//	Runtime -> Sidecar:  500 {"error": "...", ...}   (handler error)
 func (c *Client) CallRuntime(ctx context.Context, data []byte) ([]RuntimeResponse, error) {
-	// Apply timeout
 	ctx, cancel := context.WithTimeout(ctx, c.timeout)
 	defer cancel()
 
-	// Connect to Unix socket
-	var dialer net.Dialer
-	conn, err := dialer.DialContext(ctx, "unix", c.socketPath)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "http://localhost/invoke", bytes.NewReader(data))
 	if err != nil {
-		return nil, fmt.Errorf("failed to connect to runtime socket: %w", err)
+		return nil, fmt.Errorf("failed to create HTTP request: %w", err)
 	}
-	defer func() { _ = conn.Close() }()
+	req.Header.Set("Content-Type", "application/json")
 
-	// Set deadline for the entire operation
-	deadline, _ := ctx.Deadline()
-	_ = conn.SetDeadline(deadline)
-
-	// Send message with length-prefix
-	if err := SendSocketData(conn, data); err != nil {
-		return nil, fmt.Errorf("failed to send message to runtime: %w", err)
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to send request to runtime: %w", err)
 	}
+	defer func() { _ = resp.Body.Close() }()
 
-	// Read streaming frames until end sentinel
-	var responses []RuntimeResponse
-	for {
-		frameData, err := RecvSocketData(conn)
-		if err != nil {
-			return nil, fmt.Errorf("failed to read frame from runtime: %w", err)
-		}
-
-		var response RuntimeResponse
-		if err := json.Unmarshal(frameData, &response); err != nil {
-			return nil, fmt.Errorf("failed to parse runtime response frame: %w", err)
-		}
-
-		if response.Type == "end" {
-			break
-		}
-
-		responses = append(responses, response)
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read runtime response body: %w", err)
 	}
 
-	return responses, nil
+	switch resp.StatusCode {
+	case http.StatusNoContent:
+		return nil, nil
+
+	case http.StatusOK:
+		var invokeResp httpInvokeResponse
+		if err := json.Unmarshal(body, &invokeResp); err != nil {
+			return nil, fmt.Errorf("failed to parse runtime success response: %w", err)
+		}
+		return invokeResp.Frames, nil
+
+	default:
+		var errResp RuntimeResponse
+		if err := json.Unmarshal(body, &errResp); err != nil {
+			return nil, fmt.Errorf("runtime returned HTTP %d with unparseable body: %s", resp.StatusCode, string(body))
+		}
+		return []RuntimeResponse{errResp}, nil
+	}
 }

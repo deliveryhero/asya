@@ -380,8 +380,6 @@ def _collect_payload_frames(message, user_func):
         return frame
 
     if inspect.isgeneratorfunction(user_func):
-        # Materialize all yielded payloads: the HTTP protocol sends a single
-        # JSON response with all frames, so streaming is not possible here.
         return [_build_frame(p) for p in user_func(message["payload"])]
 
     result = _call_handler(user_func, message["payload"])
@@ -393,8 +391,6 @@ def _collect_payload_frames(message, user_func):
 def _collect_envelope_frames(message, user_func):
     """Collect response frames for envelope mode handlers."""
     if inspect.isgeneratorfunction(user_func):
-        # Materialize all yielded envelopes: the HTTP protocol sends a single
-        # JSON response with all frames, so streaming is not possible here.
         frames = []
         for out in user_func(message):
             if ASYA_ENABLE_VALIDATION:
@@ -534,9 +530,6 @@ def handle_requests():
 
     def _shutdown(signum, _frame):
         logger.warning(f"Received signal {signum}, shutting down...")
-        # Use the name-mangled internal flag instead of server.shutdown()
-        # because shutdown() tries to join the server thread, which deadlocks
-        # when called from a signal handler running in the same thread.
         server._BaseServer__shutdown_request = True
 
     try:
