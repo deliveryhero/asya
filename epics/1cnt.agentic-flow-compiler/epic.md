@@ -1,5 +1,5 @@
 ---
-title: "Epic: Agentic Flow Compiler"
+title: "Agentic Flow Compiler"
 priority: 1 # high
 type: epic
 ---
