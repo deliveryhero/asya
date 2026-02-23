@@ -67,5 +67,14 @@ class Raise(IROperation):
 
 
 @dataclass
+class FanOutCall(IROperation):
+    target_key: str  # JSON Pointer, e.g. "/results"
+    pattern: str  # "comprehension" | "literal" | "gather"
+    actor_calls: list[tuple[str, str]]  # (actor_name, payload_expr) pairs
+    iter_var: str | None = None  # Loop variable for comprehension/gather-generator
+    iterable: str | None = None  # Iterable expression for comprehension/gather-generator
+
+
+@dataclass
 class Return(IROperation):
     pass

@@ -11,6 +11,7 @@ from asya_cli.flow.ir import (
     Condition,
     Continue,
     ExceptHandler,
+    FanOutCall,
     IROperation,
     Mutation,
     Raise,
@@ -157,6 +158,17 @@ class FlowParser:
             else:
                 raise FlowCompileError(f"{self.filename}:{stmt.lineno}: Invalid assignment to 'p'")
         elif isinstance(target, ast.Subscript):
+            # Check for fan-out patterns before treating as mutation
+            value = stmt.value
+            # Unwrap await for asyncio.gather detection
+            if isinstance(value, ast.Await):
+                value = value.value
+            if isinstance(value, ast.ListComp):
+                return [self._parse_fanout_comprehension(stmt, target, value)]
+            elif isinstance(value, ast.List):
+                return [self._parse_fanout_literal(stmt, target, value)]
+            elif isinstance(value, ast.Call) and self._is_asyncio_gather(value):
+                return [self._parse_fanout_gather(stmt, target, value)]
             # Subscript assignment: payload mutation
             code = ast.unparse(stmt)
             return [Mutation(lineno=stmt.lineno, code=code)]
@@ -340,6 +352,130 @@ class FlowParser:
                 f"assign the result to 'p' (e.g. p = handler(p))"
             )
         raise FlowCompileError(f"{self.filename}:{stmt.lineno}: expression statements are not supported")
+
+    # -- Fan-out parsing helpers --------------------------------------------------
+
+    def _extract_target_key(self, target: ast.Subscript) -> str:
+        """Extract a JSON Pointer from a payload subscript chain.
+
+        ``p["results"]``         → ``"/results"``
+        ``p["output"]["results"]`` → ``"/output/results"``
+        """
+        parts: list[str] = []
+        node: ast.expr = target
+        while isinstance(node, ast.Subscript):
+            if not isinstance(node.slice, ast.Constant) or not isinstance(node.slice.value, str):
+                raise FlowCompileError(f"{self.filename}:{target.lineno}: Fan-out target key must be a string constant")
+            parts.append(node.slice.value)
+            node = node.value
+        parts.reverse()
+        return "/" + "/".join(parts)
+
+    def _extract_fanout_actor_call(self, node: ast.expr) -> tuple[str, str]:
+        """Extract (actor_name, payload_expr) from a single call node.
+
+        Unwraps ``await`` if present. Validates that the call has exactly one argument.
+        """
+        if isinstance(node, ast.Await):
+            node = node.value
+        if not isinstance(node, ast.Call):
+            raise FlowCompileError(
+                f"{self.filename}:{node.lineno}: Fan-out element must be an actor call, got {type(node).__name__}"
+            )
+        call = node
+        if isinstance(call.func, ast.Name):
+            actor_name = call.func.id
+        elif isinstance(call.func, ast.Attribute):
+            actor_name = ast.unparse(call.func)
+        else:
+            raise FlowCompileError(f"{self.filename}:{call.lineno}: Unsupported call type in fan-out")
+        if len(call.args) != 1:
+            raise FlowCompileError(f"{self.filename}:{call.lineno}: Fan-out actor call must have exactly one argument")
+        payload_expr = ast.unparse(call.args[0])
+        return (actor_name, payload_expr)
+
+    def _parse_fanout_comprehension(
+        self, stmt: ast.Assign, target: ast.Subscript, listcomp: ast.ListComp
+    ) -> FanOutCall:
+        """Parse ``p["key"] = [actor(x) for x in iterable]``."""
+        if len(listcomp.generators) != 1:
+            raise FlowCompileError(f"{self.filename}:{stmt.lineno}: Nested comprehensions are not supported in fan-out")
+        gen = listcomp.generators[0]
+        if gen.ifs:
+            raise FlowCompileError(
+                f"{self.filename}:{stmt.lineno}: Filter conditions in fan-out comprehensions are not supported"
+            )
+        actor_name, payload_expr = self._extract_fanout_actor_call(listcomp.elt)
+        iter_var = ast.unparse(gen.target)
+        iterable = ast.unparse(gen.iter)
+        return FanOutCall(
+            lineno=stmt.lineno,
+            target_key=self._extract_target_key(target),
+            pattern="comprehension",
+            actor_calls=[(actor_name, payload_expr)],
+            iter_var=iter_var,
+            iterable=iterable,
+        )
+
+    def _parse_fanout_literal(self, stmt: ast.Assign, target: ast.Subscript, lst: ast.List) -> FanOutCall:
+        """Parse ``p["key"] = [actor_a(x), actor_b(y), ...]``."""
+        if not lst.elts:
+            raise FlowCompileError(f"{self.filename}:{stmt.lineno}: Empty list literal is not valid for fan-out")
+        actor_calls = [self._extract_fanout_actor_call(elt) for elt in lst.elts]
+        return FanOutCall(
+            lineno=stmt.lineno,
+            target_key=self._extract_target_key(target),
+            pattern="literal",
+            actor_calls=actor_calls,
+        )
+
+    def _is_asyncio_gather(self, call: ast.Call) -> bool:
+        """Check if a call node is ``asyncio.gather(...)``."""
+        return (
+            isinstance(call.func, ast.Attribute)
+            and call.func.attr == "gather"
+            and isinstance(call.func.value, ast.Name)
+            and call.func.value.id == "asyncio"
+        )
+
+    def _parse_fanout_gather(self, stmt: ast.Assign, target: ast.Subscript, call: ast.Call) -> FanOutCall:
+        """Parse ``p["key"] = await asyncio.gather(...)``."""
+        target_key = self._extract_target_key(target)
+        # Case 1: asyncio.gather(*(actor(x) for x in iterable))
+        if (
+            len(call.args) == 1
+            and isinstance(call.args[0], ast.Starred)
+            and isinstance(call.args[0].value, ast.GeneratorExp)
+        ):
+            genexp = call.args[0].value
+            if len(genexp.generators) != 1:
+                raise FlowCompileError(
+                    f"{self.filename}:{stmt.lineno}: Nested comprehensions are not supported in asyncio.gather fan-out"
+                )
+            gen = genexp.generators[0]
+            if gen.ifs:
+                raise FlowCompileError(
+                    f"{self.filename}:{stmt.lineno}: Filter conditions in asyncio.gather fan-out are not supported"
+                )
+            actor_name, payload_expr = self._extract_fanout_actor_call(genexp.elt)
+            iter_var = ast.unparse(gen.target)
+            iterable = ast.unparse(gen.iter)
+            return FanOutCall(
+                lineno=stmt.lineno,
+                target_key=target_key,
+                pattern="gather",
+                actor_calls=[(actor_name, payload_expr)],
+                iter_var=iter_var,
+                iterable=iterable,
+            )
+        # Case 2: asyncio.gather(actor_a(x), actor_b(y), ...)
+        actor_calls = [self._extract_fanout_actor_call(arg) for arg in call.args]
+        return FanOutCall(
+            lineno=stmt.lineno,
+            target_key=target_key,
+            pattern="gather",
+            actor_calls=actor_calls,
+        )
 
     def _validate_class_instantiation(self, stmt: ast.Assign) -> None:
         """Validate that class instantiation uses only default arguments."""
