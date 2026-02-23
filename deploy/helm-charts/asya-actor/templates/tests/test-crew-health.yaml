@@ -41,35 +41,17 @@ spec:
         else
           echo "[+] Crew actor '{{ . }}' exists"
 
-          # Check if actor has a deployment/statefulset
-          WORKLOAD_KIND=$(kubectl get asyncactor {{ . }} -n {{ $.Values.namespace }} -o jsonpath='{.spec.workload.kind}' 2>/dev/null || echo "unknown")
-          echo "  Workload kind: $WORKLOAD_KIND"
-
-          # Check workload readiness
-          if [ "$WORKLOAD_KIND" = "Deployment" ]; then
-            if kubectl get deployment {{ . }} -n {{ $.Values.namespace }} >/dev/null 2>&1; then
-              READY=$(kubectl get deployment {{ . }} -n {{ $.Values.namespace }} -o jsonpath='{.status.readyReplicas}' 2>/dev/null || echo "0")
-              DESIRED=$(kubectl get deployment {{ . }} -n {{ $.Values.namespace }} -o jsonpath='{.spec.replicas}' 2>/dev/null || echo "1")
-              if [ "$READY" = "$DESIRED" ] && [ "$READY" != "0" ]; then
-                echo "  [+] Deployment ready: $READY/$DESIRED replicas"
-              else
-                echo "  [!] WARNING: Deployment not fully ready: $READY/$DESIRED replicas"
-              fi
+          # Check deployment readiness
+          if kubectl get deployment {{ . }} -n {{ $.Values.namespace }} >/dev/null 2>&1; then
+            READY=$(kubectl get deployment {{ . }} -n {{ $.Values.namespace }} -o jsonpath='{.status.readyReplicas}' 2>/dev/null || echo "0")
+            DESIRED=$(kubectl get deployment {{ . }} -n {{ $.Values.namespace }} -o jsonpath='{.spec.replicas}' 2>/dev/null || echo "1")
+            if [ "$READY" = "$DESIRED" ] && [ "$READY" != "0" ]; then
+              echo "  [+] Deployment ready: $READY/$DESIRED replicas"
             else
-              echo "  [!] WARNING: Deployment not found yet (Crossplane may be reconciling)"
+              echo "  [!] WARNING: Deployment not fully ready: $READY/$DESIRED replicas"
             fi
-          elif [ "$WORKLOAD_KIND" = "StatefulSet" ]; then
-            if kubectl get statefulset {{ . }} -n {{ $.Values.namespace }} >/dev/null 2>&1; then
-              READY=$(kubectl get statefulset {{ . }} -n {{ $.Values.namespace }} -o jsonpath='{.status.readyReplicas}' 2>/dev/null || echo "0")
-              DESIRED=$(kubectl get statefulset {{ . }} -n {{ $.Values.namespace }} -o jsonpath='{.spec.replicas}' 2>/dev/null || echo "1")
-              if [ "$READY" = "$DESIRED" ] && [ "$READY" != "0" ]; then
-                echo "  [+] StatefulSet ready: $READY/$DESIRED replicas"
-              else
-                echo "  [!] WARNING: StatefulSet not fully ready: $READY/$DESIRED replicas"
-              fi
-            else
-              echo "  [!] WARNING: StatefulSet not found yet (Crossplane may be reconciling)"
-            fi
+          else
+            echo "  [!] WARNING: Deployment not found yet (Crossplane may be reconciling)"
           fi
         fi
         echo ""

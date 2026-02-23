@@ -10,7 +10,6 @@ Generic Helm chart for deploying AsyncActor resources with comprehensive health 
 - Queue health validation (RabbitMQ/SQS)
 - Deployment readiness checks
 - AsyncActor status validation
-- Support for both Deployment and StatefulSet workloads
 - KEDA autoscaling integration
 
 ## Prerequisites
@@ -112,7 +111,7 @@ helm install text-processor deploy/helm-charts/asya-actor \
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `workload.kind` | Workload type (Deployment or StatefulSet) | `Deployment` |
+| `workload.kind` | Workload type | `Deployment` |
 | `workload.template` | Pod template spec | See values.yaml |
 
 ### Health Check Parameters
@@ -179,35 +178,6 @@ workload:
           value: handlers.modify_route
         - name: ASYA_HANDLER_MODE
           value: envelope
-```
-
-### StatefulSet with Advanced Scaling
-
-```yaml
-name: stateful-processor
-transport: sqs
-workload:
-  kind: StatefulSet
-  template:
-    spec:
-      containers:
-      - name: asya-runtime
-        image: my-processor:latest
-        env:
-        - name: ASYA_HANDLER
-          value: handlers.stateful_handler
-
-scaling:
-  enabled: true
-  minReplicas: 1
-  maxReplicas: 50
-  advanced:
-    triggers:
-    - type: aws-sqs-queue
-      metadata:
-        queueURL: "https://sqs.us-east-1.amazonaws.com/123456789/asya-stateful-processor"
-        queueLength: "10"
-        awsRegion: "us-east-1"
 ```
 
 ### Custom Crew Actors

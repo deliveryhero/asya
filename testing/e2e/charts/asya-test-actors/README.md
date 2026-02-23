@@ -166,7 +166,7 @@ The activation threshold determines when to scale from 0 to 1 replica. For examp
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `workload.kind` | Workload kind (`Deployment` or `StatefulSet`) | `Deployment` |
+| `workload.kind` | Workload kind | `Deployment` |
 | `workload.replicas` | Number of replicas (ignored if scaling enabled) | `1` |
 | `workload.pythonExecutable` | Python executable path for runtime | `python3` |
 | `workload.template.spec.containers` | Container definitions | See examples |
@@ -209,9 +209,7 @@ env:
 
 The 🎭 operator supports two Kubernetes workload kinds for AsyncActor resources. Choose the kind based on your actor's characteristics:
 
-**Note:** Only workload kinds with KEDA scaling support (Deployment and StatefulSet) are supported. Pod workload kind is NOT supported because it lacks the `/scale` subresource required for KEDA autoscaling.
-
-##### 1. Deployment (Default)
+##### Deployment
 
 **Use when:** Your actor is stateless and handles messages independently
 
@@ -242,65 +240,6 @@ workload:
           - name: ASYA_HANDLER
             value: "handlers.process"
 ```
-
-##### 2. StatefulSet
-
-**Use when:** Your actor needs persistent storage or stable network identity
-
-**Characteristics:**
-- ✅ Stable, unique network identity (pod-0, pod-1, etc.)
-- ✅ Persistent volume claims per pod
-- ✅ Ordered deployment and scaling
-- ✅ Sticky pod identity on rescheduling
-- ⚠️ Slower scaling (sequential)
-- ⚠️ Requires storage provisioner
-
-**Example use cases:**
-- Actors maintaining local state/cache
-- Actors with large model files (persistent volume)
-- Actors requiring consistent identity
-- Database-backed actors with local cache
-
-**Configuration:**
-```yaml
-workload:
-  kind: StatefulSet
-  template:
-    spec:
-      containers:
-      - name: asya-runtime
-        image: my-registry.io/stateful-actor:v1
-        env:
-          - name: ASYA_HANDLER
-            value: "handlers.stateful_process"
-        volumeMounts:
-        - name: data
-          mountPath: /data
-  volumeClaimTemplates:
-  - metadata:
-      name: data
-    spec:
-      accessModes: ["ReadWriteOnce"]
-      resources:
-        requests:
-          storage: 10Gi
-```
-
-#### Choosing the Right Workload Type
-
-| Requirement | Recommended Type |
-|------------|------------------|
-| Stateless, continuous message processing | **Deployment** |
-| Scale-to-zero capability needed | **Deployment** |
-| Fast horizontal scaling required | **Deployment** |
-| Batch processing | **Deployment** |
-| Need persistent storage per replica | **StatefulSet** |
-| Need stable network identity | **StatefulSet** |
-| Large models loaded from persistent volume | **StatefulSet** |
-
-#### Default Behavior
-
-If `workload.kind` is not specified, the operator defaults to **Deployment**, which is suitable for 95% of use cases.
 
 ## Examples
 
@@ -433,53 +372,7 @@ workload:
             memory: 2Gi
 ```
 
-### Example 5: StatefulSet with Persistent Storage
-
-```yaml
-name: model-cache-actor
-namespace: asya
-# Actor name automatically used as queue name
-
-transport: rabbitmq
-
-scaling:
-  enabled: true
-  minReplicas: 1  # Keep at least 1 replica for model caching
-  maxReplicas: 3
-  queueLength: 10
-
-workload:
-  kind: StatefulSet
-  template:
-    spec:
-      containers:
-      - name: asya-runtime
-        image: my-registry.io/llm-inference:v2
-        env:
-          - name: ASYA_HANDLER
-            value: "handlers.inference"
-          - name: MODEL_CACHE_DIR
-            value: "/models"
-        volumeMounts:
-        - name: model-cache
-          mountPath: /models
-        resources:
-          limits:
-            cpu: 8000m
-            memory: 32Gi
-            nvidia.com/gpu: 1
-  volumeClaimTemplates:
-  - metadata:
-      name: model-cache
-    spec:
-      accessModes: ["ReadWriteOnce"]
-      storageClassName: fast-ssd
-      resources:
-        requests:
-          storage: 100Gi
-```
-
-### Example 6: SQS Transport
+### Example 5: SQS Transport
 
 ```yaml
 name: sqs-actor
@@ -558,7 +451,7 @@ When you create an AsyncActor resource using this chart, the operator will:
    - Mounts asya_runtime.py from ConfigMap
 
 3. **Create supporting resources**:
-   - Deployment or StatefulSet based on `workload.kind`
+   - Deployment based on `workload.kind`
    - KEDA ScaledObject (if scaling enabled)
    - Required volumes and volume mounts
 

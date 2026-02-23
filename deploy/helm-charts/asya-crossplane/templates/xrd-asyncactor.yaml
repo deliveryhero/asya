@@ -100,7 +100,6 @@ spec:
                       type: string
                       enum:
                         - Deployment
-                        - StatefulSet
                       default: Deployment
                     replicas:
                       type: integer
@@ -242,7 +241,7 @@ spec:
                           type: string
                     workload:
                       type: object
-                      description: Deployment/StatefulSet status
+                      description: Deployment status
                       properties:
                         ready:
                           type: boolean

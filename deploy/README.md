@@ -9,7 +9,7 @@ The Asya framework uses **Crossplane Compositions** to manage AsyncActor lifecyc
 When installed, it:
 - Uses Crossplane to watch AsyncActor XRs (Composite Resources)
 - Automatically injects sidecar containers via asya-injector webhook
-- Manages Deployments or StatefulSets based on AsyncActor specs
+- Manages Deployments based on AsyncActor specs
 - Configures KEDA autoscaling
 - Sets up RBAC and secrets
 

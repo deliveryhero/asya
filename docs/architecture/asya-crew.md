@@ -326,7 +326,7 @@ When `ASYA_IS_END_ACTOR=true`, sidecar:
 
 ## Future Crew Actors
 
-**Stateful fan-in**:
+**Fan-in**:
 
 - Aggregate fan-out results
 - Wait for all chunks to complete

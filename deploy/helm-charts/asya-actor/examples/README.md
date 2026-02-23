@@ -164,32 +164,6 @@ healthChecks:
 
 ## Common Patterns
 
-### StatefulSet Workload
-
-```yaml
-workload:
-  kind: StatefulSet
-  template:
-    spec:
-      containers:
-      - name: asya-runtime
-        image: my-stateful-processor:latest
-        env:
-        - name: ASYA_HANDLER
-          value: processors.stateful_handler
-        volumeMounts:
-        - name: data
-          mountPath: /data
-  volumeClaimTemplates:
-  - metadata:
-      name: data
-    spec:
-      accessModes: [ "ReadWriteOnce" ]
-      resources:
-        requests:
-          storage: 10Gi
-```
-
 ### Envelope Mode Handler
 
 ```yaml
