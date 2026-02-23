@@ -1,11 +1,13 @@
 ---
 title: Add StatefulSet workload support (operator + Crossplane)
-status: done
+status: wont_do
 priority: 3 # low
 type: task
 tags:
   - type:feature
+reason: virtual actors only
 ---
+
 
 
 
