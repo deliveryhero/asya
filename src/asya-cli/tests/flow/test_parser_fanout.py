@@ -287,6 +287,16 @@ class TestAsyncioGatherFanOut:
         assert fanout.iter_var is None
         assert fanout.iterable is None
 
+    def test_reject_empty_gather(self):
+        source = textwrap.dedent("""
+            async def flow(p: dict) -> dict:
+                p["results"] = await asyncio.gather()
+                return p
+        """)
+        parser = FlowParser(source, "test.py")
+        with pytest.raises(FlowCompileError, match="at least one argument"):
+            parser.parse()
+
     def test_gather_preserves_lineno(self):
         source = textwrap.dedent("""
             async def flow(p: dict) -> dict:
@@ -339,6 +349,38 @@ class TestFanOutTargetKey:
 
         assert isinstance(ops[0], FanOutCall)
         assert ops[0].target_key == "/analysis"
+
+
+class TestNonPayloadSubscriptNotFanOut:
+    """Test that list comp/literal on non-payload subscripts stays a Mutation."""
+
+    def test_non_payload_subscript_is_mutation(self):
+        source = textwrap.dedent("""
+            def flow(p: dict) -> dict:
+                cache = Cache()
+                cache["items"] = [agent(t) for t in p["topics"]]
+                return p
+        """)
+        parser = FlowParser(source, "test.py")
+        _, ops = parser.parse()
+
+        from asya_cli.flow.ir import Mutation
+
+        # cache["items"] roots at cache, not p - should be a Mutation
+        assert isinstance(ops[0], Mutation)
+
+    def test_nested_payload_subscript_is_fanout(self):
+        source = textwrap.dedent("""
+            def flow(p: dict) -> dict:
+                p["config"]["items"] = [agent(t) for t in p["topics"]]
+                return p
+        """)
+        parser = FlowParser(source, "test.py")
+        _, ops = parser.parse()
+
+        # p["config"]["items"] roots at p - IS a fan-out
+        assert isinstance(ops[0], FanOutCall)
+        assert ops[0].target_key == "/config/items"
 
 
 class TestFanOutWithOtherOperations:

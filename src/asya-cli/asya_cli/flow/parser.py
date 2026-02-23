@@ -158,17 +158,21 @@ class FlowParser:
             else:
                 raise FlowCompileError(f"{self.filename}:{stmt.lineno}: Invalid assignment to 'p'")
         elif isinstance(target, ast.Subscript):
-            # Check for fan-out patterns before treating as mutation
-            value = stmt.value
-            # Unwrap await for asyncio.gather detection
-            if isinstance(value, ast.Await):
-                value = value.value
-            if isinstance(value, ast.ListComp):
-                return [self._parse_fanout_comprehension(stmt, target, value)]
-            elif isinstance(value, ast.List):
-                return [self._parse_fanout_literal(stmt, target, value)]
-            elif isinstance(value, ast.Call) and self._is_asyncio_gather(value):
-                return [self._parse_fanout_gather(stmt, target, value)]
+            # Check for fan-out patterns only on payload subscripts (p["key"])
+            base: ast.expr = target
+            while isinstance(base, ast.Subscript):
+                base = base.value
+            if isinstance(base, ast.Name) and base.id == "p":
+                value = stmt.value
+                # Unwrap await for asyncio.gather detection
+                if isinstance(value, ast.Await):
+                    value = value.value
+                if isinstance(value, ast.ListComp):
+                    return [self._parse_fanout_comprehension(stmt, target, value)]
+                elif isinstance(value, ast.List):
+                    return [self._parse_fanout_literal(stmt, target, value)]
+                elif isinstance(value, ast.Call) and self._is_asyncio_gather(value):
+                    return [self._parse_fanout_gather(stmt, target, value)]
             # Subscript assignment: payload mutation
             code = ast.unparse(stmt)
             return [Mutation(lineno=stmt.lineno, code=code)]
@@ -469,6 +473,8 @@ class FlowParser:
                 iterable=iterable,
             )
         # Case 2: asyncio.gather(actor_a(x), actor_b(y), ...)
+        if not call.args:
+            raise FlowCompileError(f"{self.filename}:{stmt.lineno}: asyncio.gather must have at least one argument")
         actor_calls = [self._extract_fanout_actor_call(arg) for arg in call.args]
         return FanOutCall(
             lineno=stmt.lineno,
