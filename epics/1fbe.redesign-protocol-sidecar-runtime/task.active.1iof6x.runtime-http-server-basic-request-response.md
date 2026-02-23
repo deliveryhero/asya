@@ -2,7 +2,10 @@
 title: Runtime HTTP server — basic request/response
 priority: 2 # medium
 type: task
+tags:
+  - worktree:1fbe.redesign-protocol-sidecar-runtime/1iof6x.1iof6x.runtime-http-server-basic-request-response
 ---
+
 
 Replace binary socket listener in asya_runtime.py with HTTP server on Unix socket.
 
