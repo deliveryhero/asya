@@ -34,8 +34,7 @@ Actor C fans out 2:  msg, msg-1   <-- COLLISION
 - Verify `parent_id` is still set correctly on index > 0 messages
 
 ## References
-- RFC: docs/rfc/fan-in/rfc-fan-in.md (Yield Order and ID Assignment)
-- RFC: docs/rfc/rfc-actor-states.md (Fan-Out ID Semantics)
+- Fan-in RFC: `.aint/epics/1c7i.stateful-fan-fan-out/rfc.md` (Yield Order and ID Assignment)
 
 
 ---

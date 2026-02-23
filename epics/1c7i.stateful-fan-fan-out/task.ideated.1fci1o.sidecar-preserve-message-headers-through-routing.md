@@ -65,13 +65,12 @@ Two gaps prevent headers from surviving the routing pipeline:
 ## Why P1
 
 Without this, NO header-based feature works:
-- `x-asya-route-override` (A/B routing, fan-in shard resolution)
-- `x-asya-fan-in` (fan-in coordination)
+- `x-asya-fan-in` (fan-in coordination — all flavors depend on this header)
+- `x-asya-route-override` (A/B routing, fan-in shard resolution for sharded flavors)
 - Any future custom headers set by envelope-mode handlers
 
 ## References
-- RFC: docs/rfc/fan-in/rfc-fan-in.md (entire protocol depends on headers)
-- RFC: docs/rfc/rfc-actor-states.md (Key Observations)
+- Fan-in RFC: `.aint/epics/1c7i.stateful-fan-fan-out/rfc.md` (entire protocol depends on headers)
 
 
 ---
