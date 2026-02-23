@@ -5,9 +5,8 @@ priority: 1 # high
 type: task
 tags:
   - type:feature
-dependencies:
-  - misc/1fw7nd
 ---
+
 
 
 
