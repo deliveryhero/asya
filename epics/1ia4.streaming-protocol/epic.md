@@ -1,8 +1,9 @@
 ---
-title: "Streaming Protocol: Multi-Frame and Partial Event Routing"
-status: slopped
+title: "Streaming Protocol: Upstream Partial Events to Gateway"
 priority: 2 # medium
 type: epic
 ---
 
-Implement sidecar multi-frame protocol for generator handlers, ASYA_PARTIAL_EVENTS_ROUTE routing for partial events, and runtime AsyncGenerator support. Enables streaming composition across actor boundaries. Extracted from closed epic 1cnt.agentic-flow-compiler (sections 10-11).
+Implement upstream partial event streaming from generator handlers to the gateway for real-time UI updates (LLM token streaming, progress indicators). Upstream events are transport-level — they flow directly from sidecar to gateway via HTTP, never entering message queues.
+
+Depends on epic 1fbe (HTTP-over-Unix-socket protocol between sidecar and runtime). See `rfc.md` for design rationale and the explicit rejection of queue-based partial event routing.
