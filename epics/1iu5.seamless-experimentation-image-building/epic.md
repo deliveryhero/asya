@@ -23,7 +23,7 @@ Data scientists experimenting with actors and flows face a significant gap betwe
    - Security scanning and vulnerability checks
    - GitOps-managed deployments
 
-This is the same fundamental tension identified in the GitOps dev flow RFC (`.worktrees/rfc0/docs/rfc/thoughts-gitops-dev-flow.md`), but focused specifically on the **image building** aspect rather than deployment.
+This is the same fundamental tension identified in the GitOps dev flow [1is3], but focused specifically on the **image building** aspect rather than deployment.
 
 
 ## What to Explore
