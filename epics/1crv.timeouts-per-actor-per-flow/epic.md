@@ -12,7 +12,7 @@ Design and implement a comprehensive timeout system that supports: (1) per-actor
 ---
 ## Notes
 
-[Error Handling RFC context] [1c46] The per-message SLA timeout connects directly to error retry flow:
+[Error Handling RFC context] [[1c46]] The per-message SLA timeout connects directly to error retry flow:
 
 1. Every message carries status.created_at (set by gateway/first actor, never reset)
 2. Every sidecar checks: now - status.created_at > SLA_TIMEOUT before processing
