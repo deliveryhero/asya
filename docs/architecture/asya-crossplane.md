@@ -20,7 +20,7 @@ AsyncActor Claim (asya.sh/v1alpha1)
     ┌────┼────────────────────────┐
     ▼    ▼            ▼           ▼
   SQS  Service-  ScaledObject  Deployment
- Queue Account   (KEDA)        (or StatefulSet)
+ Queue Account   (KEDA)
  (AWS)  (IRSA)
 ```
 
@@ -39,7 +39,7 @@ AsyncActor Claim (asya.sh/v1alpha1)
    - Creates KEDA TriggerAuthentication for queue metrics
    - Waits for queue URL from SQS status
    - Creates KEDA ScaledObject with queue URL
-   - Creates Deployment/StatefulSet with pod labels for injection
+   - Creates Deployment with pod labels for injection
 4. **Crossplane providers reconcile** each managed resource
 5. **Status aggregation**: Composition patches XR status with infrastructure state
 
@@ -72,7 +72,7 @@ The `asyncactor-sqs` composition uses function-go-templating to render resources
    - Max replicas: `spec.scaling.maxReplicas` (default: 10)
    - Queue length target: `spec.scaling.queueLength` (default: 5 messages/replica)
 
-5. **render-deployment**: Creates Deployment/StatefulSet
+5. **render-deployment**: Creates Deployment
    - Workload template from `spec.workload.template`
    - Injects labels: `asya.sh/inject=true`, `asya.sh/actor={name}`
    - ServiceAccount: Uses IRSA ServiceAccount if enabled
@@ -167,7 +167,7 @@ Crossplane manages all resources via composite resource ownership:
 - ✅ **ServiceAccount**: IRSA-annotated ServiceAccount (if enabled)
 - ✅ **TriggerAuthentication**: KEDA auth for queue metrics
 - ✅ **ScaledObject**: KEDA autoscaling configuration (if scaling enabled)
-- ✅ **Deployment/StatefulSet**: Actor workload
+- ✅ **Deployment**: Actor workload
 
 **Deletion behavior**:
 - Deleting AsyncActor claim triggers cascade deletion of XR

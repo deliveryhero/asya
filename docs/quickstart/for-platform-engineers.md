@@ -192,7 +192,7 @@ spec:
 - `spec.scaling.minReplicas`: Minimum pods (0 for scale-to-zero)
 - `spec.scaling.maxReplicas`: Maximum pods
 - `spec.scaling.queueLength`: Messages per replica target
-- `spec.workload.kind`: Deployment or StatefulSet
+- `spec.workload.kind`: Deployment
 - `env.ASYA_HANDLER`: Handler path (`module.function` or `module.Class.method`)
 
 ### Configure Gateway Tools
@@ -479,29 +479,6 @@ spec:
 ```
 
 **Note**: Ensure GPU node group exists and NVIDIA device plugin is installed.
-
-### StatefulSet (for stateful workloads)
-
-```yaml
-spec:
-  workload:
-    kind: StatefulSet
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          volumeMounts:
-          - name: data
-            mountPath: /data
-    volumeClaimTemplates:
-    - metadata:
-        name: data
-      spec:
-        accessModes: ["ReadWriteOnce"]
-        resources:
-          requests:
-            storage: 10Gi
-```
 
 ## Cost Optimization
 

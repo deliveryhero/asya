@@ -57,7 +57,7 @@ An actor is a stateless (by default) workload that:
 
 **Future crew actors**:
 
-- Stateful fan-in aggregation
+- Fan-in aggregation
 - Custom monitoring and alerting
 
 **See**: [architecture/asya-crew.md](architecture/asya-crew.md) for details.
@@ -113,7 +113,7 @@ An actor is a stateless (by default) workload that:
 **Responsibilities**:
 
 - Manages lifecycle of AsyncActor CRDs
-- Creates Kubernetes Deployments/StatefulSets
+- Creates Kubernetes Deployments
 - Configures KEDA autoscaling
 - Creates and manages message queues via cloud providers
 

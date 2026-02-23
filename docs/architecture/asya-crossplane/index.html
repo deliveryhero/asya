@@ -880,7 +880,7 @@
     ┌────┼────────────────────────┐
     ▼    ▼            ▼           ▼
   SQS  Service-  ScaledObject  Deployment
- Queue Account   (KEDA)        (or StatefulSet)
+ Queue Account   (KEDA)
  (AWS)  (IRSA)
 </code></pre></div>
 <p><strong>Key components</strong>:
@@ -897,7 +897,7 @@
 <li>Creates KEDA TriggerAuthentication for queue metrics</li>
 <li>Waits for queue URL from SQS status</li>
 <li>Creates KEDA ScaledObject with queue URL</li>
-<li>Creates Deployment/StatefulSet with pod labels for injection</li>
+<li>Creates Deployment with pod labels for injection</li>
 <li><strong>Crossplane providers reconcile</strong> each managed resource</li>
 <li><strong>Status aggregation</strong>: Composition patches XR status with infrastructure state</li>
 </ol>
@@ -939,7 +939,7 @@
 <p>Queue length target: <code>spec.scaling.queueLength</code> (default: 5 messages/replica)</p>
 </li>
 <li>
-<p><strong>render-deployment</strong>: Creates Deployment/StatefulSet</p>
+<p><strong>render-deployment</strong>: Creates Deployment</p>
 </li>
 <li>Workload template from <code>spec.workload.template</code></li>
 <li>Injects labels: <code>asya.sh/inject=true</code>, <code>asya.sh/actor={name}</code></li>
@@ -1020,7 +1020,7 @@
 - ✅ <strong>ServiceAccount</strong>: IRSA-annotated ServiceAccount (if enabled)
 - ✅ <strong>TriggerAuthentication</strong>: KEDA auth for queue metrics
 - ✅ <strong>ScaledObject</strong>: KEDA autoscaling configuration (if scaling enabled)
-- ✅ <strong>Deployment/StatefulSet</strong>: Actor workload</p>
+- ✅ <strong>Deployment</strong>: Actor workload</p>
 <p><strong>Deletion behavior</strong>:
 - Deleting AsyncActor claim triggers cascade deletion of XR
 - Crossplane deletes all managed resources automatically

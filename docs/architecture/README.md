@@ -95,7 +95,7 @@ Each actor pod contains two containers:
 1. User creates AsyncActor CRD
 2. Crossplane Composition reconciles:
    - Creates queue (`asya-{namespace}-{actor_name}`)
-   - Creates Deployment/StatefulSet
+   - Creates Deployment
    - Creates KEDA ScaledObject (if scaling enabled)
 3. Injector webhook mutates pod spec:
    - Injects sidecar container
