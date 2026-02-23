@@ -1,5 +1,5 @@
 ---
-title: "Epic: A2A Protocol Compliance for Gateway"
+title: "A2A Protocol Compliance for Gateway"
 status: open
 priority: 1 # high
 type: epic
