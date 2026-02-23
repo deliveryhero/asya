@@ -78,7 +78,6 @@ env:
 | `ASYA_HANDLER` | _(required)_ | Full function path (format: `module.path.function_name`) |
 | `ASYA_HANDLER_MODE` | `payload` | Handler mode: `payload` (simple) or `envelope` (full access) |
 | `ASYA_INCLUDE_METADATA` | `false` | Include route and other metadata in msg dict (`true`/`1`/`yes` to enable) |
-| `ASYA_CHUNK_SIZE` | `4096` | Socket receive buffer size in bytes |
 | `ASYA_ENABLE_VALIDATION` | `true` | Enable message validation (disable for performance) |
 
 Note: Socket path is hardcoded to `{ASYA_SOCKET_DIR}/asya-runtime.sock`
