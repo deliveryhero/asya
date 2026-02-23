@@ -403,12 +403,15 @@ def test_express_routing(tmp_path):
 Injects preprocessing steps before the existing planned route.
 
 ```python
+from pathlib import Path
+
 def middleware(payload):
     if payload.get("needs_validation"):
-        with open("/proc/asya/msg/route/next") as f:
-            future = f.read().splitlines()
-        with open("/proc/asya/msg/route/next", "w") as f:
-            f.write("\n".join(["validator", "sanitizer"] + future))
+        path = Path("/proc/asya/msg/route/next")
+        
+        # Read, prepend, and write back
+        old_next = path.read_text()
+        path.write_text("\n".join(["validator", "sanitizer", old_next]))
 
     return payload
 ```
