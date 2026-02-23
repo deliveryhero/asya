@@ -1,8 +1,11 @@
 ---
 title: Handler Signature Redesign
+status: vibed
 priority: 2 # medium
 type: epic
+reason: "Superseded: split into 3 epics: 1ixt (msg metadata vfs), 1ixz (typed handler signatures), 1irj (flow free vars & iteration)"
 ---
+
 
 
 Redesign Asya's handler signatures to support typed parameters, output key naming, local variable serialization, and framework-compatible tool definitions. Message metadata access via a virtual filesystem at `/tmp/msg/`.

@@ -585,24 +585,49 @@ This is an orthogonal concern that applies regardless of the aggregator backend.
 
 ## Extensibility
 
-The fan-in architecture has two extension points: the **aggregator handler** and the **fan-out router's sharding behavior**. Both are deployment-time choices.
+The fan-in architecture separates **protocol** from **implementation**. The protocol (headers, message format, yield order) is fixed. The implementation (how state is stored, how completeness is detected) is a **flavor** — a pluggable handler module within `asya-crew`.
+
+### Two Flavor Categories
+
+Flavors fall into two categories based on whether they need shard affinity:
+
+**Non-sharded flavors** (stateless Deployment, standard KEDA):
+- State lives in an external store accessed via state proxy sidecar
+- Any pod handles any message — no routing constraints
+- `ASYA_FANIN_SHARDS=1` (default) — fan-out router does not stamp `x-asya-route-override`
+
+**Sharded flavors** (StatefulSet or per-shard Deployments, per-shard queues):
+- State lives locally on the pod (embedded DB + PVC) or in a sharded external store
+- All messages for the same `origin_id` must reach the same shard
+- `ASYA_FANIN_SHARDS > 1` — fan-out router computes rendezvous hash, stamps `x-asya-route-override`
+- Requires scale-down draining (see `adr.rejected.rendezvous-sharding-rocksdb.md`)
 
 ### Extension Point 1: Aggregator Handler Flavors
 
-The aggregator handler is specified via `ASYA_HANDLER` on the AsyncActor spec. Different backend implementations plug in as different handler modules within `asya-crew`:
+Each flavor is a handler module in `src/asya-crew/asya_crew/fanin/`. The handler is specified via `ASYA_HANDLER` on the AsyncActor spec.
 
-| Flavor | Handler | Backend | When to use |
-|--------|---------|---------|-------------|
-| **S3 split-key** (v0) | `asya_crew.fanin.s3_split_key.aggregator` | S3 via state proxy | Default. Zero contention, handles large payloads. |
-| Redis CAS (planned) | `asya_crew.fanin.redis_cas.aggregator` | Redis via state proxy | Low-latency fan-in with small payloads. Uses CAS counter + Layer 2 retries. |
-| RocksDB local (planned) | `asya_crew.fanin.rocksdb_local.aggregator` | Embedded RocksDB on PVC | Maximum throughput, zero network latency. Requires sharding + PVCs. |
+**Non-sharded flavors** (external state, no affinity):
+
+| Flavor | Handler | Backend | Completeness | When to use |
+|--------|---------|---------|-------------|-------------|
+| **fanin-s3** (v0) | `asya_crew.fanin.s3_split_key.aggregator` | S3 via state proxy (`s3-buffered-lww`) | `listdir` + sentinel | Default. Zero contention, handles large payloads, S3 lifecycle for TTL. |
+| fanin-redis (planned) | `asya_crew.fanin.redis_split_key.aggregator` | Redis via state proxy (`redis-buffered-lww`) | `listdir` + sentinel | Low-latency fan-in. Same split-key pattern but sub-ms reads. |
+| fanin-postgres (planned) | `asya_crew.fanin.postgres.aggregator` | PostgreSQL via state proxy | SQL count query | When PostgreSQL is already in the stack. ACID transactions for completeness. |
+
+**Sharded flavors** (local state, shard affinity):
+
+| Flavor | Handler | Backend | Completeness | When to use |
+|--------|---------|---------|-------------|-------------|
+| fanin-rocksdb-sharded (planned) | `asya_crew.fanin.rocksdb_sharded.aggregator` | Embedded RocksDB on PVC | In-memory counter | Ultra-high throughput, zero network latency. Requires PVCs + `ASYA_FANIN_SHARDS > 1`. |
+| fanin-natskv-sharded (planned) | `asya_crew.fanin.natskv_sharded.aggregator` | NATS KV (local to shard) | KV revision counter | When NATS is the transport. Revision-based CAS for concurrency within shard. |
 
 All flavors:
 - Receive the same envelope with the same `x-asya-fan-in` header
 - Return the same merged envelope format (or `None` when accumulating)
 - Use the same fan-in protocol
+- Live in `asya-crew` as a module under `asya_crew.fanin.<flavor>`
 
-The fan-out router does not know which flavor the aggregator uses. It just stamps the fan-in headers and emits messages.
+The fan-out router does not know which flavor the aggregator uses. It stamps fan-in headers and emits messages. Sharding (if needed) is the only deployment-time coupling between the router and the aggregator.
 
 ### Extension Point 2: Fan-Out Router Sharding
 
@@ -610,27 +635,43 @@ Sharding is controlled by the `ASYA_FANIN_SHARDS` env var on the fan-out router:
 
 | Value | Behavior | Used with |
 |-------|----------|-----------|
-| `1` (default) | No sharding. Messages route to `"aggregator"` directly. | S3 split-key, Redis CAS |
-| `> 1` | Rendezvous hashing. Stamps `x-asya-route-override`. | RocksDB local (each shard has its own queue + PVC) |
+| `1` (default) | No sharding. Messages route to `"aggregator"` directly. | All non-sharded flavors |
+| `> 1` | Rendezvous hashing. Stamps `x-asya-route-override`. | Sharded flavors (each shard has own queue) |
 
 Sharding is an opt-in deployment decision. The code generator always emits the `_resolve_aggregator()` function, which is a no-op when `ASYA_FANIN_SHARDS=1`.
 
+When `ASYA_FANIN_SHARDS > 1`:
+- Requires `xxhash` dependency for rendezvous hashing
+- Each shard is a separate AsyncActor deployment: `aggregator-0`, `aggregator-1`, etc.
+- Scale-down requires draining (see `adr.rejected.rendezvous-sharding-rocksdb.md`)
+
 ### Flavor Compatibility Matrix
 
-| Flavor | Sharding | State proxy | PVC | CAS needed |
-|--------|----------|-------------|-----|------------|
-| S3 split-key | No (SHARDS=1) | `s3-buffered-lww` | No | No |
-| Redis CAS | No (SHARDS=1) | `redis-buffered-cas` | No | Yes (counter only) |
-| RocksDB local | Yes (SHARDS>1) | None (embedded) | Yes | No (shard affinity) |
+| Flavor | Category | Sharding | State proxy | PVC | CAS |
+|--------|----------|----------|-------------|-----|-----|
+| fanin-s3 (v0) | Non-sharded | `SHARDS=1` | `s3-buffered-lww` | No | No |
+| fanin-redis | Non-sharded | `SHARDS=1` | `redis-buffered-lww` | No | No |
+| fanin-postgres | Non-sharded | `SHARDS=1` | postgres connector | No | No (ACID) |
+| fanin-rocksdb-sharded | Sharded | `SHARDS>1` | None (embedded) | Yes | No (affinity) |
+| fanin-natskv-sharded | Sharded | `SHARDS>1` | None (embedded) | Yes | No (affinity) |
 
 ### Adding a New Flavor
 
-1. Implement a handler module in `src/asya-crew/asya_crew/fanin/`
+1. Implement a handler module in `src/asya-crew/asya_crew/fanin/<flavor>/`
 2. The handler receives envelopes with `x-asya-fan-in` header
-3. The handler returns a merged envelope (or `None`)
-4. Deploy with the appropriate `ASYA_HANDLER`, `stateProxy`, and `ASYA_FANIN_SHARDS` configuration
+3. The handler returns a merged envelope (or `None` when accumulating)
+4. Deploy with the appropriate `ASYA_HANDLER`, `stateProxy` (if non-sharded), and `ASYA_FANIN_SHARDS` (if sharded)
 
 No changes to the fan-out router, the fan-in protocol, or the sidecar.
+
+### Historical Context
+
+The sharded RocksDB approach was the original design before the Semi-Stateful
+Actors RFC (epic 1dmf) established the state proxy pattern. The full design
+exploration and rejection rationale are preserved in:
+- `adr.rejected.rendezvous-sharding-rocksdb.md` — Sharded RocksDB with rendezvous hashing
+- `adr.rejected.placement-directory.md` — Placement directory for shard affinity
+- `adr.rejected.single-key-cas.md` — Single-key CAS counter approach
 
 ---
 
