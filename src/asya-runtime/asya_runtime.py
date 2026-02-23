@@ -31,7 +31,6 @@ Environment Variables:
     ASYA_HANDLER: Full path to function or method (e.g., "foo.bar.process" or "foo.bar.Processor.process")
     ASYA_HANDLER_MODE: Handler argument type ("payload" or "envelope", default: "payload")
     ASYA_SOCKET_CHMOD: Socket permissions in octal (default: "0o666", empty = skip chmod)
-    ASYA_CHUNK_SIZE: Socket read chunk size in bytes (default: 65536)
     ASYA_ENABLE_VALIDATION: Enable message validation ("true" or "false", default: "true")
     ASYA_LOG_LEVEL: Logging level (DEBUG, INFO, WARNING, ERROR, default: INFO)
 
@@ -75,7 +74,6 @@ logger = logging.getLogger("asya.runtime")
 ASYA_HANDLER = os.getenv("ASYA_HANDLER", "")
 ASYA_HANDLER_MODE = (os.getenv("ASYA_HANDLER_MODE") or "payload").lower()
 ASYA_SOCKET_CHMOD = os.getenv("ASYA_SOCKET_CHMOD", "0o666")
-ASYA_CHUNK_SIZE = int(os.getenv("ASYA_CHUNK_SIZE", 65536))
 ASYA_ENABLE_VALIDATION = os.getenv("ASYA_ENABLE_VALIDATION", "true").lower() == "true"
 
 # Socket configuration - hard-coded, managed by operator

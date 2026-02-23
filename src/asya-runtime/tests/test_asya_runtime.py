@@ -1,15 +1,12 @@
 #!/usr/bin/env python3
-"""Tests for asya_runtime.py Unix socket server."""
+"""Tests for asya_runtime.py HTTP server."""
 
 import http.client as http_client
 import importlib
 import json
 import os
 import socket
-import stat
-import struct
 import sys
-import tempfile
 import textwrap
 import threading
 from contextlib import contextmanager
@@ -82,22 +79,6 @@ def mock_env():
 
 
 @pytest.fixture
-def socket_pair():
-    """
-    Create a connected socket pair for testing.
-
-    Yields:
-        tuple: (server_sock, client_sock) - A pair of connected sockets
-    """
-    server_sock, client_sock = socket.socketpair(socket.AF_UNIX, socket.SOCK_STREAM)
-    try:
-        yield server_sock, client_sock
-    finally:
-        server_sock.close()
-        client_sock.close()
-
-
-@pytest.fixture
 def runtime_invoke(tmp_path):
     """Invoke a handler via HTTP runtime server and return (frames_or_error, status_code).
 
@@ -144,56 +125,11 @@ def runtime_invoke(tmp_path):
     return _invoke
 
 
-def _test_recv_exact(sock, n: int) -> bytes:
-    """Read exactly n bytes from socket (test helper, independent of runtime module)."""
-    chunks = []
-    remaining = n
-    while remaining > 0:
-        chunk = sock.recv(min(remaining, 65536))
-        if not chunk:
-            raise ConnectionError("Connection closed while reading")
-        chunks.append(chunk)
-        remaining -= len(chunk)
-    return b"".join(chunks)
-
-
-def receive_frames(sock) -> list[dict]:
-    """Read streaming frames from socket until end sentinel."""
-    frames = []
-    while True:
-        length_bytes = _test_recv_exact(sock, 4)
-        length = struct.unpack(">I", length_bytes)[0]
-        data = _test_recv_exact(sock, length)
-        frame = json.loads(data.decode("utf-8"))
-        if frame.get("type") == "end":
-            break
-        frames.append(frame)
-    return frames
-
-
-def handle_and_receive_frames(server_sock, client_sock, user_func) -> list[dict]:
-    """Run streaming handler and collect response frames.
-
-    Uses a thread for the handler to prevent socket buffer deadlock
-    on large payloads (handler writes to server_sock while main thread
-    reads from client_sock concurrently).
-    """
-    handler_thread = threading.Thread(
-        target=asya_runtime._handle_request_streaming,
-        args=(server_sock, user_func),
-    )
-    handler_thread.start()
-    frames = receive_frames(client_sock)
-    handler_thread.join(timeout=5)
-    return frames
-
-
 class TestHandlerReturnTypeValidation:
     """Test handler return type validation in payload mode."""
 
-    def test_handler_returns_string_payload_mode(self, socket_pair):
+    def test_handler_returns_string_payload_mode(self, runtime_invoke):
         """Test handler returning string instead of dict in payload mode."""
-        server_sock, client_sock = socket_pair
 
         def string_handler(payload):
             return "this is a string, not a dict"
@@ -202,18 +138,14 @@ class TestHandlerReturnTypeValidation:
             "payload": {"test": "data"},
             "route": {"actors": ["a"], "current": 0},
         }
-        message_data = json.dumps(message).encode("utf-8")
-        asya_runtime._send_message(client_sock, message_data)
+        frames, status = runtime_invoke(string_handler, message)
 
-        responses = handle_and_receive_frames(server_sock, client_sock, string_handler)
+        assert status == 200
+        assert len(frames) == 1
+        assert frames[0]["payload"] == "this is a string, not a dict"
 
-        # String is a valid payload type
-        assert len(responses) == 1
-        assert responses[0]["payload"] == "this is a string, not a dict"
-
-    def test_handler_returns_number_payload_mode(self, socket_pair):
+    def test_handler_returns_number_payload_mode(self, runtime_invoke):
         """Test handler returning number in payload mode."""
-        server_sock, client_sock = socket_pair
 
         def number_handler(payload):
             return 42
@@ -222,17 +154,14 @@ class TestHandlerReturnTypeValidation:
             "payload": {"test": "data"},
             "route": {"actors": ["a"], "current": 0},
         }
-        message_data = json.dumps(message).encode("utf-8")
-        asya_runtime._send_message(client_sock, message_data)
+        frames, status = runtime_invoke(number_handler, message)
 
-        responses = handle_and_receive_frames(server_sock, client_sock, number_handler)
+        assert status == 200
+        assert len(frames) == 1
+        assert frames[0]["payload"] == 42
 
-        assert len(responses) == 1
-        assert responses[0]["payload"] == 42
-
-    def test_handler_returns_none_payload_mode(self, socket_pair):
+    def test_handler_returns_none_payload_mode(self, runtime_invoke):
         """Test handler returning None in payload mode (abort execution)."""
-        server_sock, client_sock = socket_pair
 
         def none_handler(payload):
             return None
@@ -241,16 +170,13 @@ class TestHandlerReturnTypeValidation:
             "payload": {"test": "data"},
             "route": {"actors": ["a"], "current": 0},
         }
-        message_data = json.dumps(message).encode("utf-8")
-        asya_runtime._send_message(client_sock, message_data)
+        frames, status = runtime_invoke(none_handler, message)
 
-        responses = handle_and_receive_frames(server_sock, client_sock, none_handler)
+        assert status == 204
+        assert frames == []
 
-        assert len(responses) == 0
-
-    def test_handler_returns_empty_list(self, socket_pair):
+    def test_handler_returns_empty_list(self, runtime_invoke):
         """Test handler returning empty list (returns list as single payload)."""
-        server_sock, client_sock = socket_pair
 
         def empty_list_handler(payload):
             return []
@@ -259,13 +185,11 @@ class TestHandlerReturnTypeValidation:
             "payload": {"test": "data"},
             "route": {"actors": ["a"], "current": 0},
         }
-        message_data = json.dumps(message).encode("utf-8")
-        asya_runtime._send_message(client_sock, message_data)
+        frames, status = runtime_invoke(empty_list_handler, message)
 
-        responses = handle_and_receive_frames(server_sock, client_sock, empty_list_handler)
-
-        assert len(responses) == 1
-        assert responses[0]["payload"] == []
+        assert status == 200
+        assert len(frames) == 1
+        assert frames[0]["payload"] == []
 
 
 class TestRouteValidation:
@@ -440,10 +364,9 @@ class TestMessageFieldPreservation:
         with pytest.raises(ValueError, match="Field 'id' must be a string"):
             asya_runtime._validate_message(message)
 
-    def test_envelope_mode_handler_accesses_id_field(self, socket_pair, mock_env):
+    def test_envelope_mode_handler_accesses_id_field(self, runtime_invoke, mock_env):
         """Test that envelope mode handlers can access message id field."""
         with mock_env(ASYA_HANDLER_MODE="envelope"):
-            server_sock, client_sock = socket_pair
 
             def envelope_handler(msg):
                 message_id = msg["id"]
@@ -458,68 +381,58 @@ class TestMessageFieldPreservation:
                 "payload": {"value": 42},
                 "route": {"actors": ["a"], "current": 0},
             }
-            message_data = json.dumps(message).encode("utf-8")
-            asya_runtime._send_message(client_sock, message_data)
+            frames, status = runtime_invoke(envelope_handler, message)
 
-            responses = handle_and_receive_frames(server_sock, client_sock, envelope_handler)
-
-            assert len(responses) == 1
-            assert responses[0]["id"] == "test-envelope-123"
-            assert responses[0]["payload"]["message_id"] == "test-envelope-123"
+            assert status == 200
+            assert len(frames) == 1
+            assert frames[0]["id"] == "test-envelope-123"
+            assert frames[0]["payload"]["message_id"] == "test-envelope-123"
 
 
 class TestEnvelopeModeValidation:
     """Test envelope mode validation edge cases."""
 
-    def test_handler_returns_invalid_payload_type_in_message(self, socket_pair, mock_env):
+    def test_handler_returns_invalid_payload_type_in_message(self, runtime_invoke, mock_env):
         """Test handler returns message with payload as string instead of dict."""
         with mock_env(ASYA_HANDLER_MODE="envelope"):
-            server_sock, client_sock = socket_pair
 
             def invalid_handler(msg):
-                # Return message with payload as string
                 return {"payload": "not a dict", "route": msg["route"]}
 
             message = {
                 "payload": {"test": "data"},
                 "route": {"actors": ["a"], "current": 0},
             }
-            message_data = json.dumps(message).encode("utf-8")
-            asya_runtime._send_message(client_sock, message_data)
+            frames, status = runtime_invoke(invalid_handler, message)
 
-            responses = handle_and_receive_frames(server_sock, client_sock, invalid_handler)
+            assert status == 200
+            assert len(frames) == 1
+            assert frames[0]["payload"] == "not a dict"
 
-            # Should work - payload can be any JSON type
-            assert len(responses) == 1
-            assert responses[0]["payload"] == "not a dict"
-
-    def test_handler_returns_invalid_route_type_in_message(self, socket_pair, mock_env):
+    def test_handler_returns_invalid_route_type_in_message(self, runtime_invoke, mock_env):
         """Test handler returns message with route as wrong type."""
         with mock_env(ASYA_HANDLER_MODE="envelope"):
-            server_sock, client_sock = socket_pair
 
             def invalid_handler(msg):
-                # Return message with route as string
                 return {"payload": {"ok": True}, "route": "invalid"}
 
             message = {
                 "payload": {"test": "data"},
                 "route": {"actors": ["a"], "current": 0},
             }
-            message_data = json.dumps(message).encode("utf-8")
-            asya_runtime._send_message(client_sock, message_data)
+            error, status = runtime_invoke(invalid_handler, message)
 
-            responses = handle_and_receive_frames(server_sock, client_sock, invalid_handler)
+            assert status == 500
+            assert error["error"] == "processing_error"
+            assert "Field 'route' must be a dict" in error["details"]["message"]
 
-            # Should return error - route validation will fail
-            assert len(responses) == 1
-            assert responses[0]["error"] == "processing_error"
-            assert "Field 'route' must be a dict" in responses[0]["details"]["message"]
+    def test_handler_yields_valid_then_invalid_message(self, runtime_invoke, mock_env):
+        """Test generator handler yields one valid and one invalid envelope.
 
-    def test_handler_yields_valid_then_invalid_message(self, socket_pair, mock_env):
-        """Test generator handler yields one valid and one invalid envelope."""
+        With HTTP, frames are collected before responding, so the validation
+        error on the second yield causes the entire request to fail with 500.
+        """
         with mock_env(ASYA_HANDLER_MODE="envelope"):
-            server_sock, client_sock = socket_pair
 
             def mixed_handler(msg):
                 yield {"payload": {"id": 1}, "route": msg["route"]}
@@ -529,24 +442,17 @@ class TestEnvelopeModeValidation:
                 "payload": {"test": "data"},
                 "route": {"actors": ["a"], "current": 0},
             }
-            message_data = json.dumps(message).encode("utf-8")
-            asya_runtime._send_message(client_sock, message_data)
+            error, status = runtime_invoke(mixed_handler, message)
 
-            responses = handle_and_receive_frames(server_sock, client_sock, mixed_handler)
+            assert status == 500
+            assert error["error"] == "processing_error"
+            assert "Missing required field 'route'" in error["details"]["message"]
 
-            # First yield succeeds, second yield fails validation
-            assert len(responses) == 2
-            assert responses[0]["payload"] == {"id": 1}
-            assert responses[1]["error"] == "processing_error"
-            assert "Missing required field 'route'" in responses[1]["details"]["message"]
-
-    def test_handler_changes_current_actor(self, socket_pair, mock_env):
+    def test_handler_changes_current_actor(self, runtime_invoke, mock_env):
         """Test that handler cannot change actor name at the current position."""
         with mock_env(ASYA_HANDLER_MODE="envelope"):
-            server_sock, client_sock = socket_pair
 
             def actor_changing_handler(msg):
-                # Try to change the actor name at position 0 from "a" to "x"
                 return {
                     "payload": msg["payload"],
                     "route": {"actors": ["x", "b", "c"], "current": 0},
@@ -556,28 +462,21 @@ class TestEnvelopeModeValidation:
                 "payload": {"test": "data"},
                 "route": {"actors": ["a", "b", "c"], "current": 0},
             }
-            message_data = json.dumps(message).encode("utf-8")
-            asya_runtime._send_message(client_sock, message_data)
+            error, status = runtime_invoke(actor_changing_handler, message)
 
-            responses = handle_and_receive_frames(server_sock, client_sock, actor_changing_handler)
-
-            # Should return error - actor at position 0 changed from 'a' to 'x'
-            assert len(responses) == 1
-            assert responses[0]["error"] == "processing_error"
-            # Can be caught by either "Route modification error" or "Route mismatch" validation
-            assert "Route" in responses[0]["details"]["message"] and (
-                "modification" in responses[0]["details"]["message"] or "mismatch" in responses[0]["details"]["message"]
+            assert status == 500
+            assert error["error"] == "processing_error"
+            assert "Route" in error["details"]["message"] and (
+                "modification" in error["details"]["message"] or "mismatch" in error["details"]["message"]
             )
-            assert "'a'" in responses[0]["details"]["message"]
-            assert "'x'" in responses[0]["details"]["message"] or "['x']" in responses[0]["details"]["message"]
+            assert "'a'" in error["details"]["message"]
+            assert "'x'" in error["details"]["message"] or "['x']" in error["details"]["message"]
 
-    def test_handler_modifies_route_but_keeps_current_actor(self, socket_pair, mock_env):
+    def test_handler_modifies_route_but_keeps_current_actor(self, runtime_invoke, mock_env):
         """Test that handler can modify route actors as long as current actor stays same."""
         with mock_env(ASYA_HANDLER_MODE="envelope"):
-            server_sock, client_sock = socket_pair
 
             def route_modifying_handler(msg):
-                # Add more actors but keep current pointing to same actor
                 return {
                     "payload": msg["payload"],
                     "route": {"actors": ["a", "b", "c", "d"], "current": 0},
@@ -587,20 +486,16 @@ class TestEnvelopeModeValidation:
                 "payload": {"test": "data"},
                 "route": {"actors": ["a", "b"], "current": 0},
             }
-            message_data = json.dumps(message).encode("utf-8")
-            asya_runtime._send_message(client_sock, message_data)
+            frames, status = runtime_invoke(route_modifying_handler, message)
 
-            responses = handle_and_receive_frames(server_sock, client_sock, route_modifying_handler)
+            assert status == 200
+            assert len(frames) == 1
+            assert frames[0]["route"]["actors"] == ["a", "b", "c", "d"]
+            assert frames[0]["route"]["current"] == 0
 
-            # Should work - current still points to 'a'
-            assert len(responses) == 1
-            assert responses[0]["route"]["actors"] == ["a", "b", "c", "d"]
-            assert responses[0]["route"]["current"] == 0
-
-    def test_handler_fanout_with_actor_validation(self, socket_pair, mock_env):
+    def test_handler_fanout_with_actor_validation(self, runtime_invoke, mock_env):
         """Test fan-out where all output messages maintain correct current actor."""
         with mock_env(ASYA_HANDLER_MODE="envelope"):
-            server_sock, client_sock = socket_pair
 
             def fanout_handler(msg):
                 yield {"payload": {"id": 1}, "route": {"actors": ["a", "b"], "current": 0}}
@@ -611,21 +506,21 @@ class TestEnvelopeModeValidation:
                 "payload": {"test": "data"},
                 "route": {"actors": ["a", "b"], "current": 0},
             }
-            message_data = json.dumps(message).encode("utf-8")
-            asya_runtime._send_message(client_sock, message_data)
+            frames, status = runtime_invoke(fanout_handler, message)
 
-            responses = handle_and_receive_frames(server_sock, client_sock, fanout_handler)
+            assert status == 200
+            assert len(frames) == 3
+            assert frames[0]["payload"] == {"id": 1}
+            assert frames[1]["payload"] == {"id": 2}
+            assert frames[2]["payload"] == {"id": 3}
 
-            # Should work - all output messages point to 'a' at index 0
-            assert len(responses) == 3
-            assert responses[0]["payload"] == {"id": 1}
-            assert responses[1]["payload"] == {"id": 2}
-            assert responses[2]["payload"] == {"id": 3}
+    def test_handler_fanout_with_invalid_actor_name(self, runtime_invoke, mock_env):
+        """Test fan-out where one message has changed actor name at current position.
 
-    def test_handler_fanout_with_invalid_actor_name(self, socket_pair, mock_env):
-        """Test fan-out where one message has changed actor name at current position."""
+        With HTTP, the validation error on the second yield causes the
+        entire request to fail with 500.
+        """
         with mock_env(ASYA_HANDLER_MODE="envelope"):
-            server_sock, client_sock = socket_pair
 
             def invalid_fanout_handler(msg):
                 yield {"payload": {"id": 1}, "route": {"actors": ["a", "b"], "current": 0}}
@@ -635,25 +530,16 @@ class TestEnvelopeModeValidation:
                 "payload": {"test": "data"},
                 "route": {"actors": ["a", "b"], "current": 0},
             }
-            message_data = json.dumps(message).encode("utf-8")
-            asya_runtime._send_message(client_sock, message_data)
+            error, status = runtime_invoke(invalid_fanout_handler, message)
 
-            responses = handle_and_receive_frames(server_sock, client_sock, invalid_fanout_handler)
+            assert status == 500
+            assert error["error"] == "processing_error"
 
-            # First yield succeeds, second yield fails validation
-            assert len(responses) == 2
-            assert responses[0]["payload"] == {"id": 1}
-            assert responses[1]["error"] == "processing_error"
-
-    def test_handler_erases_processed_actors_first_actor(self, socket_pair, mock_env):
+    def test_handler_erases_processed_actors_first_actor(self, runtime_invoke, mock_env):
         """Test that handler cannot erase already-processed actors at first actor."""
         with mock_env(ASYA_HANDLER_MODE="envelope"):
-            server_sock, client_sock = socket_pair
 
             def erasing_handler(msg):
-                # Try to return route that keeps current actor but erases it from position 0
-                # Input: ["a", "b", "c"], current=0
-                # Output: ["x", "a", "b"], current=1 - "a" is still current but moved
                 return {
                     "payload": msg["payload"],
                     "route": {"actors": ["x", "a", "b"], "current": 1},
@@ -663,25 +549,18 @@ class TestEnvelopeModeValidation:
                 "payload": {"test": "data"},
                 "route": {"actors": ["a", "b", "c"], "current": 0},
             }
-            message_data = json.dumps(message).encode("utf-8")
-            asya_runtime._send_message(client_sock, message_data)
+            error, status = runtime_invoke(erasing_handler, message)
 
-            responses = handle_and_receive_frames(server_sock, client_sock, erasing_handler)
+            assert status == 500
+            assert error["error"] == "processing_error"
+            assert "Route modification error" in error["details"]["message"]
+            assert "already-processed actors cannot be erased" in error["details"]["message"]
 
-            # Should return error
-            assert len(responses) == 1
-            assert responses[0]["error"] == "processing_error"
-            assert "Route modification error" in responses[0]["details"]["message"]
-            assert "already-processed actors cannot be erased" in responses[0]["details"]["message"]
-
-    def test_handler_erases_processed_actors_middle(self, socket_pair, mock_env):
+    def test_handler_erases_processed_actors_middle(self, runtime_invoke, mock_env):
         """Test that handler cannot erase already-processed actors in the middle."""
         with mock_env(ASYA_HANDLER_MODE="envelope"):
-            server_sock, client_sock = socket_pair
 
             def erasing_handler(msg):
-                # Input: ["a", "b", "c"], current=2
-                # Output: ["a", "c", "d"] - erases "b" which was already processed
                 return {
                     "payload": msg["payload"],
                     "route": {"actors": ["a", "c", "d"], "current": 2},
@@ -691,25 +570,18 @@ class TestEnvelopeModeValidation:
                 "payload": {"test": "data"},
                 "route": {"actors": ["a", "b", "c"], "current": 2},
             }
-            message_data = json.dumps(message).encode("utf-8")
-            asya_runtime._send_message(client_sock, message_data)
+            error, status = runtime_invoke(erasing_handler, message)
 
-            responses = handle_and_receive_frames(server_sock, client_sock, erasing_handler)
+            assert status == 500
+            assert error["error"] == "processing_error"
+            assert "Route modification error" in error["details"]["message"]
+            assert "['a', 'b', 'c']" in error["details"]["message"]
 
-            # Should return error
-            assert len(responses) == 1
-            assert responses[0]["error"] == "processing_error"
-            assert "Route modification error" in responses[0]["details"]["message"]
-            assert "['a', 'b', 'c']" in responses[0]["details"]["message"]
-
-    def test_handler_modifies_one_processed_actor(self, socket_pair, mock_env):
+    def test_handler_modifies_one_processed_actor(self, runtime_invoke, mock_env):
         """Test that handler cannot modify an already-processed actor name."""
         with mock_env(ASYA_HANDLER_MODE="envelope"):
-            server_sock, client_sock = socket_pair
 
             def modifying_handler(msg):
-                # Input: ["a", "b", "c"], current=1
-                # Try to return ["a-modified", "b", "c", "d"]
                 return {
                     "payload": msg["payload"],
                     "route": {"actors": ["a-modified", "b", "c", "d"], "current": 1},
@@ -719,24 +591,17 @@ class TestEnvelopeModeValidation:
                 "payload": {"test": "data"},
                 "route": {"actors": ["a", "b", "c"], "current": 1},
             }
-            message_data = json.dumps(message).encode("utf-8")
-            asya_runtime._send_message(client_sock, message_data)
+            error, status = runtime_invoke(modifying_handler, message)
 
-            responses = handle_and_receive_frames(server_sock, client_sock, modifying_handler)
+            assert status == 500
+            assert error["error"] == "processing_error"
+            assert "Route modification error" in error["details"]["message"]
 
-            # Should return error - cannot modify actor "a"
-            assert len(responses) == 1
-            assert responses[0]["error"] == "processing_error"
-            assert "Route modification error" in responses[0]["details"]["message"]
-
-    def test_handler_adds_future_actors_preserves_prefix(self, socket_pair, mock_env):
+    def test_handler_adds_future_actors_preserves_prefix(self, runtime_invoke, mock_env):
         """Test that handler CAN add future actors if prefix is preserved."""
         with mock_env(ASYA_HANDLER_MODE="envelope"):
-            server_sock, client_sock = socket_pair
 
             def extending_handler(msg):
-                # Input: ["a", "b", "c"], current=1
-                # Return: ["a", "b", "c", "d", "e"] - adds "d" and "e"
                 return {
                     "payload": msg["payload"],
                     "route": {"actors": ["a", "b", "c", "d", "e"], "current": 1},
@@ -746,24 +611,18 @@ class TestEnvelopeModeValidation:
                 "payload": {"test": "data"},
                 "route": {"actors": ["a", "b", "c"], "current": 1},
             }
-            message_data = json.dumps(message).encode("utf-8")
-            asya_runtime._send_message(client_sock, message_data)
+            frames, status = runtime_invoke(extending_handler, message)
 
-            responses = handle_and_receive_frames(server_sock, client_sock, extending_handler)
+            assert status == 200
+            assert len(frames) == 1
+            assert frames[0]["route"]["actors"] == ["a", "b", "c", "d", "e"]
+            assert frames[0]["route"]["current"] == 1
 
-            # Should succeed
-            assert len(responses) == 1
-            assert responses[0]["route"]["actors"] == ["a", "b", "c", "d", "e"]
-            assert responses[0]["route"]["current"] == 1
-
-    def test_handler_replaces_future_actors(self, socket_pair, mock_env):
+    def test_handler_replaces_future_actors(self, runtime_invoke, mock_env):
         """Test that handler CAN replace future actors (after current)."""
         with mock_env(ASYA_HANDLER_MODE="envelope"):
-            server_sock, client_sock = socket_pair
 
             def replacing_handler(msg):
-                # Input: ["a", "b", "c", "d"], current=1
-                # Return: ["a", "b", "x", "y"] - replaces "c", "d" with "x", "y"
                 return {
                     "payload": msg["payload"],
                     "route": {"actors": ["a", "b", "x", "y"], "current": 1},
@@ -773,116 +632,55 @@ class TestEnvelopeModeValidation:
                 "payload": {"test": "data"},
                 "route": {"actors": ["a", "b", "c", "d"], "current": 1},
             }
-            message_data = json.dumps(message).encode("utf-8")
-            asya_runtime._send_message(client_sock, message_data)
+            frames, status = runtime_invoke(replacing_handler, message)
 
-            responses = handle_and_receive_frames(server_sock, client_sock, replacing_handler)
-
-            # Should succeed - can replace future actors
-            assert len(responses) == 1
-            assert responses[0]["route"]["actors"] == ["a", "b", "x", "y"]
-            assert responses[0]["route"]["current"] == 1
+            assert status == 200
+            assert len(frames) == 1
+            assert frames[0]["route"]["actors"] == ["a", "b", "x", "y"]
+            assert frames[0]["route"]["current"] == 1
 
 
 class TestLargePayloads:
     """Test handling of large payloads."""
 
     @pytest.mark.parametrize("size_kb", [10, 100, 500, 1024, 5 * 1024, 10 * 1024])
-    def test_large_payloads(self, socket_pair, size_kb):
-        """Test various payload sizes from KB to MB using threading."""
-        import threading
-
-        server_sock, client_sock = socket_pair
+    def test_large_payloads(self, runtime_invoke, size_kb):
+        """Test various payload sizes from KB to MB."""
 
         def echo_handler(payload):
             return payload
 
-        # Create payload of specified size
         large_data = "X" * (size_kb * 1024)
         message = {
             "payload": {"data": large_data},
             "route": {"actors": ["a"], "current": 0},
         }
-        message_data = json.dumps(message).encode("utf-8")
+        frames, status = runtime_invoke(echo_handler, message)
 
-        responses_container = []
+        assert status == 200
+        assert len(frames) == 1
+        assert len(frames[0]["payload"]["data"]) == size_kb * 1024
 
-        def sender():
-            asya_runtime._send_message(client_sock, message_data)
+    def test_empty_body_returns_400(self, tmp_path):
+        """Test empty HTTP body returns 400."""
+        socket_path = str(tmp_path / "test.sock")
+        server = asya_runtime._UnixHTTPServer(socket_path, asya_runtime._InvokeHandler)
+        server.user_func = lambda p: p
+        thread = threading.Thread(target=server.handle_request)
+        thread.start()
 
-        def receiver():
-            resp = handle_and_receive_frames(server_sock, client_sock, echo_handler)
-            responses_container.append(resp)
+        conn = _UnixHTTPConnection(socket_path)
+        conn.request("POST", "/invoke", body=b"", headers={"Content-Type": "application/json"})
+        resp = conn.getresponse()
+        status = resp.status
+        raw = resp.read()
+        conn.close()
+        thread.join(timeout=5)
+        server.server_close()
 
-        # Use threading to avoid socket buffer deadlock
-        recv_thread = threading.Thread(target=receiver)
-        send_thread = threading.Thread(target=sender)
-
-        recv_thread.start()
-        send_thread.start()
-
-        send_thread.join(timeout=30)
-        recv_thread.join(timeout=30)
-
-        assert len(responses_container) == 1
-        responses = responses_container[0]
-        assert len(responses) == 1
-        assert len(responses[0]["payload"]["data"]) == size_kb * 1024
-
-    def test_zero_length_message(self, socket_pair):
-        """Test zero-length message."""
-        server_sock, client_sock = socket_pair
-
-        def simple_handler(payload):
-            return payload
-
-        # Send zero-length message (just length prefix = 0)
-        asya_runtime._send_message(client_sock, b"")
-
-        responses = handle_and_receive_frames(server_sock, client_sock, simple_handler)
-
-        # Should return parsing error
-        assert len(responses) == 1
-        assert responses[0]["error"] == "msg_parsing_error"
-
-
-class TestConnectionEdgeCases:
-    """Test socket and connection edge cases."""
-
-    def test_connection_closed_during_length_read(self, socket_pair):
-        """Test connection closed while reading length prefix."""
-        server_sock, client_sock = socket_pair
-
-        def simple_handler(payload):
-            return payload
-
-        # Send partial length prefix (only 2 bytes instead of 4)
-        client_sock.send(b"\x00\x00")
-        client_sock.close()
-
-        # Peer is closed, so error frames can't be sent back.
-        # Verify the handler doesn't crash.
-        asya_runtime._handle_request_streaming(server_sock, simple_handler)
-
-    def test_connection_closed_during_data_read(self, socket_pair):
-        """Test connection closed while reading message data."""
-        server_sock, client_sock = socket_pair
-
-        def simple_handler(payload):
-            return payload
-
-        # Send length prefix indicating 100 bytes
-        import struct
-
-        length_prefix = struct.pack(">I", 100)
-        client_sock.send(length_prefix)
-        # Send only 10 bytes then close
-        client_sock.send(b"X" * 10)
-        client_sock.close()
-
-        # Peer is closed, so error frames can't be sent back.
-        # Verify the handler doesn't crash.
-        asya_runtime._handle_request_streaming(server_sock, simple_handler)
+        assert status == 400
+        data = json.loads(raw)
+        assert data["error"] == "msg_parsing_error"
 
 
 class TestConfigFixtures:
@@ -903,143 +701,9 @@ class TestConfigFixtures:
         with mock_env(
             ASYA_HANDLER_MODE="envelope",
             ASYA_SOCKET_CHMOD="0o600",
-            ASYA_CHUNK_SIZE="8192",
         ):
             assert asya_runtime.ASYA_HANDLER_MODE == "envelope"
             assert asya_runtime.ASYA_SOCKET_CHMOD == "0o600"
-            assert asya_runtime.ASYA_CHUNK_SIZE == 8192
-
-
-class TestSocketProtocol:
-    """Test the socket protocol functions."""
-
-    def test_recv_exact(self, socket_pair):
-        """Test recv_exact function."""
-        server_sock, client_sock = socket_pair
-
-        test_data = b"Hello, World!"
-        client_sock.sendall(test_data)
-
-        received = asya_runtime._recv_exact(server_sock, len(test_data))
-        assert received == test_data
-
-        client_sock.sendall(b"1234567890")
-        part1 = asya_runtime._recv_exact(server_sock, 5)
-        part2 = asya_runtime._recv_exact(server_sock, 5)
-        assert part1 == b"12345"
-        assert part2 == b"67890"
-
-    def test_recv_exact_connection_closed(self, socket_pair):
-        """Test recv_exact when connection is closed."""
-        server_sock, client_sock = socket_pair
-
-        client_sock.close()
-
-        with pytest.raises(ConnectionError, match="Connection closed while reading"):
-            asya_runtime._recv_exact(server_sock, 10)
-
-    def test_send_message(self, socket_pair):
-        """Test send_msg function."""
-        server_sock, client_sock = socket_pair
-
-        test_data = b"Test message with length prefix"
-        asya_runtime._send_message(client_sock, test_data)
-
-        length_bytes = asya_runtime._recv_exact(server_sock, 4)
-        length = struct.unpack(">I", length_bytes)[0]
-        assert length == len(test_data)
-
-        received = asya_runtime._recv_exact(server_sock, length)
-        assert received == test_data
-
-    @pytest.mark.parametrize("size_kb", [10, 1024, 10 * 1024, 100 * 1024])
-    def test_send_recv_large_message(self, socket_pair, size_kb):
-        """Test send/recv with large message."""
-        server_sock, client_sock = socket_pair
-
-        test_data = b"X" * (size_kb * 1024)
-
-        def sender():
-            asya_runtime._send_message(client_sock, test_data)
-
-        sender_thread = threading.Thread(target=sender)
-        sender_thread.start()
-
-        length_bytes = asya_runtime._recv_exact(server_sock, 4)
-        length = struct.unpack(">I", length_bytes)[0]
-        assert length == len(test_data)
-
-        received = asya_runtime._recv_exact(server_sock, length)
-        assert received == test_data
-
-        sender_thread.join()
-
-
-class TestSocketSetup:
-    """Test socket setup and cleanup."""
-
-    def test_socket_setup_cleanup(self):
-        """Test socket setup with default chmod."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            socket_path = os.path.join(tmpdir, "test.sock")
-
-            sock = asya_runtime._setup_socket(socket_path)
-            assert os.path.exists(socket_path)
-
-            stat_info = os.stat(socket_path)
-            permissions = oct(stat_info.st_mode)[-3:]
-            assert permissions == "666"
-
-            sock.close()
-            os.unlink(socket_path)
-            assert not os.path.exists(socket_path)
-
-    def test_socket_setup_custom_chmod(self, monkeypatch):
-        """Test socket setup with custom chmod."""
-        monkeypatch.setattr(asya_runtime, "ASYA_SOCKET_CHMOD", "0o600")
-
-        with tempfile.TemporaryDirectory() as tmpdir:
-            socket_path = os.path.join(tmpdir, "test.sock")
-
-            sock = asya_runtime._setup_socket(socket_path)
-            assert os.path.exists(socket_path)
-
-            stat_info = os.stat(socket_path)
-            permissions = oct(stat_info.st_mode)[-3:]
-            assert permissions == "600"
-
-            sock.close()
-            os.unlink(socket_path)
-
-    def test_socket_setup_no_chmod(self, monkeypatch):
-        """Test socket setup with chmod disabled."""
-        monkeypatch.setattr(asya_runtime, "ASYA_SOCKET_CHMOD", "")
-
-        with tempfile.TemporaryDirectory() as tmpdir:
-            socket_path = os.path.join(tmpdir, "test.sock")
-
-            sock = asya_runtime._setup_socket(socket_path)
-            assert os.path.exists(socket_path)
-
-            stat_info = os.stat(socket_path)
-            assert stat.S_ISSOCK(stat_info.st_mode)
-
-            sock.close()
-            os.unlink(socket_path)
-
-    def test_socket_setup_removes_existing(self):
-        """Test that setup removes existing socket file."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            socket_path = os.path.join(tmpdir, "test.sock")
-
-            sock1 = asya_runtime._setup_socket(socket_path)
-            sock1.close()
-
-            sock2 = asya_runtime._setup_socket(socket_path)
-            assert os.path.exists(socket_path)
-
-            sock2.close()
-            os.unlink(socket_path)
 
 
 class TestParseMsg:
@@ -1155,12 +819,11 @@ class TestErrorDict:
 
 
 class TestHandleRequestPayloadMode:
-    """Test _handle_request_streaming in payload mode (ASYA_HANDLER_MODE=payload)."""
+    """Test POST /invoke in payload mode (ASYA_HANDLER_MODE=payload)."""
 
-    def test_handle_request_success_single_output(self, socket_pair, mock_env):
+    def test_handle_request_success_single_output(self, runtime_invoke, mock_env):
         """Test successful request with single output."""
         with mock_env(ASYA_HANDLER_MODE="payload"):
-            server_sock, client_sock = socket_pair
 
             def simple_handler(payload):
                 return {"result": payload["value"] * 2}
@@ -1169,44 +832,35 @@ class TestHandleRequestPayloadMode:
                 "route": {"actors": ["actor1"], "current": 0},
                 "payload": {"value": 42},
             }
-            message_data = json.dumps(message).encode("utf-8")
-            asya_runtime._send_message(client_sock, message_data)
+            frames, status = runtime_invoke(simple_handler, message)
 
-            responses = handle_and_receive_frames(server_sock, client_sock, simple_handler)
+            assert status == 200
+            assert len(frames) == 1
+            assert frames[0]["payload"] == {"result": 84}
+            assert frames[0]["route"] == {"actors": ["actor1"], "current": 1}
 
-            assert len(responses) == 1
-            assert responses[0]["payload"] == {"result": 84}
-            # Payload mode auto-increments current
-            assert responses[0]["route"] == {"actors": ["actor1"], "current": 1}
-
-    def test_handle_request_multi_actor_route(self, socket_pair, mock_env):
+    def test_handle_request_multi_actor_route(self, runtime_invoke, mock_env):
         """Test that payload mode increments current for multi-actor pipelines."""
         with mock_env(ASYA_HANDLER_MODE="payload"):
-            server_sock, client_sock = socket_pair
 
             def pipeline_handler(payload):
                 return {"doubled": payload["value"] * 2}
 
-            # Envelope for actor at index 0 in a 3-actor pipeline
             message = {
                 "route": {"actors": ["doubler", "incrementer", "finalizer"], "current": 0},
                 "payload": {"value": 21},
             }
-            message_data = json.dumps(message).encode("utf-8")
-            asya_runtime._send_message(client_sock, message_data)
+            frames, status = runtime_invoke(pipeline_handler, message)
 
-            responses = handle_and_receive_frames(server_sock, client_sock, pipeline_handler)
+            assert status == 200
+            assert len(frames) == 1
+            assert frames[0]["payload"] == {"doubled": 42}
+            assert frames[0]["route"]["current"] == 1
+            assert frames[0]["route"]["actors"] == ["doubler", "incrementer", "finalizer"]
 
-            assert len(responses) == 1
-            assert responses[0]["payload"] == {"doubled": 42}
-            # Current should be incremented to point to next actor
-            assert responses[0]["route"]["current"] == 1
-            assert responses[0]["route"]["actors"] == ["doubler", "incrementer", "finalizer"]
-
-    def test_handle_request_fanout_list_output(self, socket_pair, mock_env):
+    def test_handle_request_fanout_list_output(self, runtime_invoke, mock_env):
         """Test fan-out with list output in payload mode."""
         with mock_env(ASYA_HANDLER_MODE="payload"):
-            server_sock, client_sock = socket_pair
 
             def fanout_handler(payload):
                 yield {"id": 1}
@@ -1217,27 +871,23 @@ class TestHandleRequestPayloadMode:
                 "route": {"actors": ["fan"], "current": 0},
                 "payload": {"test": "data"},
             }
-            message_data = json.dumps(message).encode("utf-8")
-            asya_runtime._send_message(client_sock, message_data)
+            frames, status = runtime_invoke(fanout_handler, message)
 
-            responses = handle_and_receive_frames(server_sock, client_sock, fanout_handler)
-
-            assert len(responses) == 3
-            assert responses[0]["payload"] == {"id": 1}
-            assert responses[1]["payload"] == {"id": 2}
-            assert responses[2]["payload"] == {"id": 3}
-            # All should have incremented current (payload mode auto-increments)
-            for resp in responses:
-                assert resp["route"] == {"actors": ["fan"], "current": 1}
+            assert status == 200
+            assert len(frames) == 3
+            assert frames[0]["payload"] == {"id": 1}
+            assert frames[1]["payload"] == {"id": 2}
+            assert frames[2]["payload"] == {"id": 3}
+            for frame in frames:
+                assert frame["route"] == {"actors": ["fan"], "current": 1}
 
 
 class TestHandleRequestEnvelopeMode:
-    """Test _handle_request_streaming in envelope mode (ASYA_HANDLER_MODE=envelope)."""
+    """Test POST /invoke in envelope mode (ASYA_HANDLER_MODE=envelope)."""
 
-    def test_handle_request_success_single_output(self, socket_pair, mock_env):
+    def test_handle_request_success_single_output(self, runtime_invoke, mock_env):
         """Test successful request with single output in envelope mode."""
         with mock_env(ASYA_HANDLER_MODE="envelope"):
-            server_sock, client_sock = socket_pair
 
             def envelope_handler(msg):
                 return {
@@ -1249,43 +899,37 @@ class TestHandleRequestEnvelopeMode:
                 "route": {"actors": ["actor1"], "current": 0},
                 "payload": {"value": 42},
             }
-            message_data = json.dumps(message).encode("utf-8")
-            asya_runtime._send_message(client_sock, message_data)
+            frames, status = runtime_invoke(envelope_handler, message)
 
-            responses = handle_and_receive_frames(server_sock, client_sock, envelope_handler)
+            assert status == 200
+            assert len(frames) == 1
+            assert frames[0]["payload"] == {"result": 84}
+            assert frames[0]["route"] == {"actors": ["actor1"], "current": 0}
 
-            assert len(responses) == 1
-            assert responses[0]["payload"] == {"result": 84}
-            assert responses[0]["route"] == {"actors": ["actor1"], "current": 0}
-
-    def test_handle_request_route_modification(self, socket_pair, mock_env):
+    def test_handle_request_route_modification(self, runtime_invoke, mock_env):
         """Test that handler can modify route in envelope mode."""
         with mock_env(ASYA_HANDLER_MODE="envelope"):
-            server_sock, client_sock = socket_pair
 
             def route_modifying_handler(msg):
                 new_route = msg["route"].copy()
                 new_route["actors"] = msg["route"]["actors"] + ["modified"]
-                new_route["current"] = 0  # Must keep current pointing to same actor
+                new_route["current"] = 0
                 return {"payload": msg["payload"], "route": new_route}
 
             message = {
                 "route": {"actors": ["actor1"], "current": 0},
                 "payload": {"data": "test"},
             }
-            message_data = json.dumps(message).encode("utf-8")
-            asya_runtime._send_message(client_sock, message_data)
+            frames, status = runtime_invoke(route_modifying_handler, message)
 
-            responses = handle_and_receive_frames(server_sock, client_sock, route_modifying_handler)
+            assert status == 200
+            assert len(frames) == 1
+            assert frames[0]["route"]["actors"] == ["actor1", "modified"]
+            assert frames[0]["route"]["current"] == 0
 
-            assert len(responses) == 1
-            assert responses[0]["route"]["actors"] == ["actor1", "modified"]
-            assert responses[0]["route"]["current"] == 0
-
-    def test_handle_request_fanout_list_output(self, socket_pair, mock_env):
+    def test_handle_request_fanout_list_output(self, runtime_invoke, mock_env):
         """Test fan-out with list output in envelope mode."""
         with mock_env(ASYA_HANDLER_MODE="envelope"):
-            server_sock, client_sock = socket_pair
 
             def fanout_handler(msg):
                 yield {"payload": {"id": 1}, "route": msg["route"]}
@@ -1296,42 +940,38 @@ class TestHandleRequestEnvelopeMode:
                 "route": {"actors": ["fan"], "current": 0},
                 "payload": {"test": "data"},
             }
-            message_data = json.dumps(message).encode("utf-8")
-            asya_runtime._send_message(client_sock, message_data)
+            frames, status = runtime_invoke(fanout_handler, message)
 
-            responses = handle_and_receive_frames(server_sock, client_sock, fanout_handler)
+            assert status == 200
+            assert len(frames) == 3
+            assert frames[0]["payload"] == {"id": 1}
+            assert frames[1]["payload"] == {"id": 2}
+            assert frames[2]["payload"] == {"id": 3}
 
-            assert len(responses) == 3
-            assert responses[0]["payload"] == {"id": 1}
-            assert responses[1]["payload"] == {"id": 2}
-            assert responses[2]["payload"] == {"id": 3}
-
-    def test_handle_request_invalid_output_missing_keys(self, socket_pair, mock_env):
+    def test_handle_request_invalid_output_missing_keys(self, runtime_invoke, mock_env):
         """Test that handler output is validated for required keys."""
         with mock_env(ASYA_HANDLER_MODE="envelope"):
-            server_sock, client_sock = socket_pair
 
             def invalid_handler(msg):
-                # Missing 'route' key
                 return {"payload": {"test": "data"}}
 
             message = {
                 "route": {"actors": ["actor1"], "current": 0},
                 "payload": {"test": "data"},
             }
-            message_data = json.dumps(message).encode("utf-8")
-            asya_runtime._send_message(client_sock, message_data)
+            error, status = runtime_invoke(invalid_handler, message)
 
-            responses = handle_and_receive_frames(server_sock, client_sock, invalid_handler)
+            assert status == 500
+            assert error["error"] == "processing_error"
+            assert "Missing required field 'route'" in error["details"]["message"]
 
-            assert len(responses) == 1
-            assert responses[0]["error"] == "processing_error"
-            assert "Missing required field 'route'" in responses[0]["details"]["message"]
+    def test_handle_request_invalid_output_list_missing_keys(self, runtime_invoke, mock_env):
+        """Test that handler list output is validated for required keys.
 
-    def test_handle_request_invalid_output_list_missing_keys(self, socket_pair, mock_env):
-        """Test that handler list output is validated for required keys."""
+        With HTTP, the validation error on the second yield causes the
+        entire request to fail with 500.
+        """
         with mock_env(ASYA_HANDLER_MODE="envelope"):
-            server_sock, client_sock = socket_pair
 
             def invalid_fanout_handler(msg):
                 yield {"payload": {"id": 1}, "route": msg["route"]}
@@ -1341,40 +981,45 @@ class TestHandleRequestEnvelopeMode:
                 "route": {"actors": ["actor1"], "current": 0},
                 "payload": {"test": "data"},
             }
-            message_data = json.dumps(message).encode("utf-8")
-            asya_runtime._send_message(client_sock, message_data)
+            error, status = runtime_invoke(invalid_fanout_handler, message)
 
-            responses = handle_and_receive_frames(server_sock, client_sock, invalid_fanout_handler)
-
-            # First yield succeeds, second yield fails validation
-            assert len(responses) == 2
-            assert responses[0]["payload"] == {"id": 1}
-            assert responses[1]["error"] == "processing_error"
-            assert "Missing required field 'route'" in responses[1]["details"]["message"]
+            assert status == 500
+            assert error["error"] == "processing_error"
+            assert "Missing required field 'route'" in error["details"]["message"]
 
 
 class TestHandleRequestErrorCases:
-    """Test error handling in _handle_request_streaming."""
+    """Test error handling in POST /invoke."""
 
-    def test_handle_request_invalid_json(self, socket_pair):
+    def test_handle_request_invalid_json(self, tmp_path):
         """Test handling of invalid JSON."""
-        server_sock, client_sock = socket_pair
+        socket_path = str(tmp_path / "test.sock")
+        server = asya_runtime._UnixHTTPServer(socket_path, asya_runtime._InvokeHandler)
+        server.user_func = lambda p: p
+        thread = threading.Thread(target=server.handle_request)
+        thread.start()
 
-        def simple_handler(payload):
-            return payload
+        conn = _UnixHTTPConnection(socket_path)
+        conn.request(
+            "POST",
+            "/invoke",
+            body=b"not valid json{",
+            headers={"Content-Type": "application/json"},
+        )
+        resp = conn.getresponse()
+        status = resp.status
+        raw = resp.read()
+        conn.close()
+        thread.join(timeout=5)
+        server.server_close()
 
-        invalid_data = b"not valid json{"
-        asya_runtime._send_message(client_sock, invalid_data)
+        assert status == 400
+        data = json.loads(raw)
+        assert data["error"] == "msg_parsing_error"
+        assert "details" in data
 
-        responses = handle_and_receive_frames(server_sock, client_sock, simple_handler)
-
-        assert len(responses) == 1
-        assert responses[0]["error"] == "msg_parsing_error"
-        assert "details" in responses[0]
-
-    def test_handle_request_handler_exception(self, socket_pair):
+    def test_handle_request_handler_exception(self, runtime_invoke):
         """Test handling of handler exceptions."""
-        server_sock, client_sock = socket_pair
 
         def failing_handler(payload):
             raise ValueError("Handler failed")
@@ -1383,31 +1028,15 @@ class TestHandleRequestErrorCases:
             "payload": {"test": "data"},
             "route": {"actors": ["a"], "current": 0},
         }
-        message_data = json.dumps(message).encode("utf-8")
-        asya_runtime._send_message(client_sock, message_data)
+        error, status = runtime_invoke(failing_handler, message)
 
-        responses = handle_and_receive_frames(server_sock, client_sock, failing_handler)
+        assert status == 500
+        assert error["error"] == "processing_error"
+        assert error["details"]["message"] == "Handler failed"
+        assert error["details"]["type"] == "ValueError"
 
-        assert len(responses) == 1
-        assert responses[0]["error"] == "processing_error"
-        assert responses[0]["details"]["message"] == "Handler failed"
-        assert responses[0]["details"]["type"] == "ValueError"
-
-    def test_handle_request_connection_closed(self, socket_pair):
-        """Test handling when connection is closed."""
-        server_sock, client_sock = socket_pair
-
-        def simple_handler(payload):
-            return payload
-
-        client_sock.close()
-
-        # Should handle gracefully without crashing
-        asya_runtime._handle_request_streaming(server_sock, simple_handler)
-
-    def test_handle_request_generic_exception(self, socket_pair, mock_env):
-        """Test handling when an unexpected exception occurs during validation."""
-        server_sock, client_sock = socket_pair
+    def test_handle_request_invalid_handler_mode(self, runtime_invoke, mock_env):
+        """Test handling when ASYA_HANDLER_MODE is invalid."""
 
         def simple_handler(payload):
             return payload
@@ -1416,15 +1045,12 @@ class TestHandleRequestErrorCases:
             "route": {"actors": ["actor1"], "current": 0},
             "payload": {"test": "data"},
         }
-        message_data = json.dumps(message).encode("utf-8")
-        asya_runtime._send_message(client_sock, message_data)
 
         with mock_env(ASYA_HANDLER_MODE="unexpected-value"):
-            responses = handle_and_receive_frames(server_sock, client_sock, simple_handler)
+            error, status = runtime_invoke(simple_handler, message)
 
-            # Invalid ASYA_HANDLER_MODE causes parsing/validation error
-            assert len(responses) == 1
-            assert responses[0]["error"] in ("processing_error", "msg_parsing_error")
+            assert status == 500
+            assert error["error"] == "processing_error"
 
 
 class TestClassBasedHandlers:
@@ -1453,7 +1079,7 @@ class TestClassBasedHandlers:
         finally:
             sys.path.pop(0)
 
-    def test_class_handler_state_preserved_across_calls(self, socket_pair, mock_env, tmp_path):
+    def test_class_handler_state_preserved_across_calls(self, runtime_invoke, mock_env, tmp_path):
         """Test that class state is preserved between multiple calls."""
         test_module = tmp_path / "stateful_handler.py"
         test_module.write_text(
@@ -1473,37 +1099,34 @@ class TestClassBasedHandlers:
         sys.path.insert(0, str(tmp_path))
         try:
             with mock_env(ASYA_HANDLER="stateful_handler.StatefulProcessor.process"):
-                server_sock, client_sock = socket_pair
                 handler = asya_runtime._load_function()
 
-                # First call
                 message1 = {
                     "payload": {"value": 10},
                     "route": {"actors": ["a"], "current": 0},
                 }
-                asya_runtime._send_message(client_sock, json.dumps(message1).encode())
-                responses1 = handle_and_receive_frames(server_sock, client_sock, handler)
+                frames1, status1 = runtime_invoke(handler, message1)
 
-                assert len(responses1) == 1
-                assert responses1[0]["payload"]["calls"] == 1
-                assert responses1[0]["payload"]["total"] == 10
+                assert status1 == 200
+                assert len(frames1) == 1
+                assert frames1[0]["payload"]["calls"] == 1
+                assert frames1[0]["payload"]["total"] == 10
 
-                # Second call
                 message2 = {
                     "payload": {"value": 20},
                     "route": {"actors": ["a"], "current": 0},
                 }
-                asya_runtime._send_message(client_sock, json.dumps(message2).encode())
-                responses2 = handle_and_receive_frames(server_sock, client_sock, handler)
+                frames2, status2 = runtime_invoke(handler, message2)
 
-                assert len(responses2) == 1
-                assert responses2[0]["payload"]["calls"] == 2
-                assert responses2[0]["payload"]["total"] == 30
+                assert status2 == 200
+                assert len(frames2) == 1
+                assert frames2[0]["payload"]["calls"] == 2
+                assert frames2[0]["payload"]["total"] == 30
 
         finally:
             sys.path.pop(0)
 
-    def test_class_handler_payload_mode(self, socket_pair, mock_env, tmp_path):
+    def test_class_handler_payload_mode(self, runtime_invoke, mock_env, tmp_path):
         """Test class handler in payload mode."""
         test_module = tmp_path / "payload_class.py"
         test_module.write_text(
@@ -1520,23 +1143,22 @@ class TestClassBasedHandlers:
         sys.path.insert(0, str(tmp_path))
         try:
             with mock_env(ASYA_HANDLER="payload_class.PayloadProcessor.process", ASYA_HANDLER_MODE="payload"):
-                server_sock, client_sock = socket_pair
                 handler = asya_runtime._load_function()
 
                 message = {
                     "payload": {"value": 21},
                     "route": {"actors": ["a"], "current": 0},
                 }
-                asya_runtime._send_message(client_sock, json.dumps(message).encode())
-                responses = handle_and_receive_frames(server_sock, client_sock, handler)
+                frames, status = runtime_invoke(handler, message)
 
-                assert len(responses) == 1
-                assert responses[0]["payload"]["result"] == 42
+                assert status == 200
+                assert len(frames) == 1
+                assert frames[0]["payload"]["result"] == 42
 
         finally:
             sys.path.pop(0)
 
-    def test_class_handler_envelope_mode(self, socket_pair, mock_env, tmp_path):
+    def test_class_handler_envelope_mode(self, runtime_invoke, mock_env, tmp_path):
         """Test class handler in envelope mode."""
         test_module = tmp_path / "envelope_class.py"
         test_module.write_text(
@@ -1557,7 +1179,6 @@ class TestClassBasedHandlers:
         sys.path.insert(0, str(tmp_path))
         try:
             with mock_env(ASYA_HANDLER="envelope_class.EnvelopeProcessor.process", ASYA_HANDLER_MODE="envelope"):
-                server_sock, client_sock = socket_pair
                 handler = asya_runtime._load_function()
 
                 message = {
@@ -1565,13 +1186,13 @@ class TestClassBasedHandlers:
                     "route": {"actors": ["a"], "current": 0},
                     "headers": {"trace_id": "123"},
                 }
-                asya_runtime._send_message(client_sock, json.dumps(message).encode())
-                responses = handle_and_receive_frames(server_sock, client_sock, handler)
+                frames, status = runtime_invoke(handler, message)
 
-                assert len(responses) == 1
-                assert responses[0]["payload"]["prefix"] == "processed"
-                assert responses[0]["payload"]["data"]["value"] == 100
-                assert responses[0]["headers"]["trace_id"] == "123"
+                assert status == 200
+                assert len(frames) == 1
+                assert frames[0]["payload"]["prefix"] == "processed"
+                assert frames[0]["payload"]["data"]["value"] == 100
+                assert frames[0]["headers"]["trace_id"] == "123"
 
         finally:
             sys.path.pop(0)
@@ -1688,7 +1309,7 @@ class TestClassBasedHandlers:
         finally:
             sys.path.pop(0)
 
-    def test_class_handler_fanout_payload_mode(self, socket_pair, mock_env, tmp_path):
+    def test_class_handler_fanout_payload_mode(self, runtime_invoke, mock_env, tmp_path):
         """Test class handler returning list in payload mode."""
         test_module = tmp_path / "fanout_class.py"
         test_module.write_text(
@@ -1706,25 +1327,24 @@ class TestClassBasedHandlers:
         sys.path.insert(0, str(tmp_path))
         try:
             with mock_env(ASYA_HANDLER="fanout_class.FanoutProcessor.process"):
-                server_sock, client_sock = socket_pair
                 handler = asya_runtime._load_function()
 
                 message = {
                     "payload": {"value": 42},
                     "route": {"actors": ["fan"], "current": 0},
                 }
-                asya_runtime._send_message(client_sock, json.dumps(message).encode())
-                responses = handle_and_receive_frames(server_sock, client_sock, handler)
+                frames, status = runtime_invoke(handler, message)
 
-                assert len(responses) == 3
-                assert responses[0]["payload"]["id"] == 0
-                assert responses[1]["payload"]["id"] == 1
-                assert responses[2]["payload"]["id"] == 2
+                assert status == 200
+                assert len(frames) == 3
+                assert frames[0]["payload"]["id"] == 0
+                assert frames[1]["payload"]["id"] == 1
+                assert frames[2]["payload"]["id"] == 2
 
         finally:
             sys.path.pop(0)
 
-    def test_class_handler_returns_none(self, socket_pair, mock_env, tmp_path):
+    def test_class_handler_returns_none(self, runtime_invoke, mock_env, tmp_path):
         """Test class handler returning None (abort execution)."""
         test_module = tmp_path / "none_class.py"
         test_module.write_text(
@@ -1741,22 +1361,21 @@ class TestClassBasedHandlers:
         sys.path.insert(0, str(tmp_path))
         try:
             with mock_env(ASYA_HANDLER="none_class.NoneProcessor.process"):
-                server_sock, client_sock = socket_pair
                 handler = asya_runtime._load_function()
 
                 message = {
                     "payload": {"value": 42},
                     "route": {"actors": ["a"], "current": 0},
                 }
-                asya_runtime._send_message(client_sock, json.dumps(message).encode())
-                responses = handle_and_receive_frames(server_sock, client_sock, handler)
+                frames, status = runtime_invoke(handler, message)
 
-                assert len(responses) == 0
+                assert status == 204
+                assert frames == []
 
         finally:
             sys.path.pop(0)
 
-    def test_class_handler_validation_disabled(self, socket_pair, mock_env, tmp_path):
+    def test_class_handler_validation_disabled(self, runtime_invoke, mock_env, tmp_path):
         """Test class handler with validation disabled."""
         test_module = tmp_path / "no_validation.py"
         test_module.write_text(
@@ -1773,23 +1392,22 @@ class TestClassBasedHandlers:
         sys.path.insert(0, str(tmp_path))
         try:
             with mock_env(ASYA_HANDLER="no_validation.NoValidationProcessor.process", ASYA_ENABLE_VALIDATION="false"):
-                server_sock, client_sock = socket_pair
                 handler = asya_runtime._load_function()
 
                 message = {
                     "payload": {"value": 23},
                     "route": {"actors": ["a"], "current": 0},
                 }
-                asya_runtime._send_message(client_sock, json.dumps(message).encode())
-                responses = handle_and_receive_frames(server_sock, client_sock, handler)
+                frames, status = runtime_invoke(handler, message)
 
-                assert len(responses) == 1
-                assert responses[0]["payload"]["result"] == 123
+                assert status == 200
+                assert len(frames) == 1
+                assert frames[0]["payload"]["result"] == 123
 
         finally:
             sys.path.pop(0)
 
-    def test_class_handler_with_complex_state(self, socket_pair, mock_env, tmp_path):
+    def test_class_handler_with_complex_state(self, runtime_invoke, mock_env, tmp_path):
         """Test class handler with complex internal state."""
         test_module = tmp_path / "complex_state.py"
         test_module.write_text(
@@ -1822,36 +1440,33 @@ class TestClassBasedHandlers:
         sys.path.insert(0, str(tmp_path))
         try:
             with mock_env(ASYA_HANDLER="complex_state.ComplexStateProcessor.process"):
-                server_sock, client_sock = socket_pair
                 handler = asya_runtime._load_function()
 
-                # First call
                 message1 = {
                     "payload": {"value": 100},
                     "route": {"actors": ["a"], "current": 0},
                 }
-                asya_runtime._send_message(client_sock, json.dumps(message1).encode())
-                responses1 = handle_and_receive_frames(server_sock, client_sock, handler)
+                frames1, status1 = runtime_invoke(handler, message1)
 
-                assert responses1[0]["payload"]["stats"]["calls"] == 1
-                assert responses1[0]["payload"]["stats"]["cache_hits"] == 0
-                assert responses1[0]["payload"]["in_cache"]
+                assert status1 == 200
+                assert frames1[0]["payload"]["stats"]["calls"] == 1
+                assert frames1[0]["payload"]["stats"]["cache_hits"] == 0
+                assert frames1[0]["payload"]["in_cache"]
 
-                # Second call with same value
                 message2 = {
                     "payload": {"value": 100},
                     "route": {"actors": ["a"], "current": 0},
                 }
-                asya_runtime._send_message(client_sock, json.dumps(message2).encode())
-                responses2 = handle_and_receive_frames(server_sock, client_sock, handler)
+                frames2, status2 = runtime_invoke(handler, message2)
 
-                assert responses2[0]["payload"]["stats"]["calls"] == 2
-                assert responses2[0]["payload"]["stats"]["cache_hits"] == 1
+                assert status2 == 200
+                assert frames2[0]["payload"]["stats"]["calls"] == 2
+                assert frames2[0]["payload"]["stats"]["cache_hits"] == 1
 
         finally:
             sys.path.pop(0)
 
-    def test_class_handler_without_custom_init(self, socket_pair, mock_env, tmp_path):
+    def test_class_handler_without_custom_init(self, runtime_invoke, mock_env, tmp_path):
         """Test that class handlers without custom __init__ work correctly.
 
         This tests the fix for the bug where classes inheriting object.__init__
@@ -1871,18 +1486,17 @@ class TestClassBasedHandlers:
         sys.path.insert(0, str(tmp_path))
         try:
             with mock_env(ASYA_HANDLER="no_init_handler.ProcessorWithoutInit.process"):
-                server_sock, client_sock = socket_pair
                 handler = asya_runtime._load_function()
 
                 message = {
                     "payload": {"value": 7},
                     "route": {"actors": ["a"], "current": 0},
                 }
-                asya_runtime._send_message(client_sock, json.dumps(message).encode())
-                responses = handle_and_receive_frames(server_sock, client_sock, handler)
+                frames, status = runtime_invoke(handler, message)
 
-                assert len(responses) == 1
-                assert responses[0]["payload"]["result"] == 21
+                assert status == 200
+                assert len(frames) == 1
+                assert frames[0]["payload"]["result"] == 21
 
         finally:
             sys.path.pop(0)
@@ -1955,39 +1569,8 @@ class TestHandlerArgValidation:
 class TestEdgeCases:
     """Test edge cases and boundary conditions."""
 
-    def test_recv_exact_partial_data(self, socket_pair):
-        """Test recv_exact with data arriving in small chunks."""
-        import time
-
-        server_sock, client_sock = socket_pair
-
-        def slow_sender():
-            data = b"ABCDEFGHIJ"
-            for byte in data:
-                time.sleep(0.01)  # Simulate slow connection for buffering test
-                client_sock.send(bytes([byte]))
-
-        sender_thread = threading.Thread(target=slow_sender)
-        sender_thread.start()
-
-        received = asya_runtime._recv_exact(server_sock, 10)
-        assert received == b"ABCDEFGHIJ"
-
-        sender_thread.join()
-
-    def test_send_message_empty_data(self, socket_pair):
-        """Test send_msg with empty data."""
-        server_sock, client_sock = socket_pair
-
-        asya_runtime._send_message(client_sock, b"")
-
-        length_bytes = asya_runtime._recv_exact(server_sock, 4)
-        length = struct.unpack(">I", length_bytes)[0]
-        assert length == 0
-
-    def test_handle_request_unicode_content(self, socket_pair):
+    def test_handle_request_unicode_content(self, runtime_invoke):
         """Test handling of unicode content."""
-        server_sock, client_sock = socket_pair
 
         def simple_handler(payload):
             return payload
@@ -1996,17 +1579,14 @@ class TestEdgeCases:
             "payload": {"text": "Hello 世界 こんにちは"},
             "route": {"actors": ["a"], "current": 0},
         }
-        message_data = json.dumps(message, ensure_ascii=False).encode("utf-8")
-        asya_runtime._send_message(client_sock, message_data)
+        frames, status = runtime_invoke(simple_handler, message)
 
-        responses = handle_and_receive_frames(server_sock, client_sock, simple_handler)
+        assert status == 200
+        assert len(frames) == 1
+        assert frames[0]["payload"]["text"] == "Hello 世界 こんにちは"
 
-        assert len(responses) == 1
-        assert responses[0]["payload"]["text"] == "Hello 世界 こんにちは"
-
-    def test_handle_request_deeply_nested_json(self, socket_pair):
+    def test_handle_request_deeply_nested_json(self, runtime_invoke):
         """Test handling of deeply nested JSON."""
-        server_sock, client_sock = socket_pair
 
         def simple_handler(payload):
             return payload
@@ -2018,33 +1598,27 @@ class TestEdgeCases:
             current = current["next"]
 
         message = {"payload": nested, "route": {"actors": ["a"], "current": 0}}
-        message_data = json.dumps(message).encode("utf-8")
-        asya_runtime._send_message(client_sock, message_data)
+        frames, status = runtime_invoke(simple_handler, message)
 
-        responses = handle_and_receive_frames(server_sock, client_sock, simple_handler)
+        assert status == 200
+        assert len(frames) == 1
+        assert frames[0]["payload"]["level"] == 0
 
-        assert len(responses) == 1
-        assert responses[0]["payload"]["level"] == 0
-
-    def test_handle_request_null_payload(self, socket_pair):
+    def test_handle_request_null_payload(self, runtime_invoke):
         """Test handling of null payload."""
-        server_sock, client_sock = socket_pair
 
         def simple_handler(payload):
             return payload if payload is not None else {"default": True}
 
         message = {"payload": None, "route": {"actors": ["a"], "current": 0}}
-        message_data = json.dumps(message).encode("utf-8")
-        asya_runtime._send_message(client_sock, message_data)
+        frames, status = runtime_invoke(simple_handler, message)
 
-        responses = handle_and_receive_frames(server_sock, client_sock, simple_handler)
+        assert status == 200
+        assert len(frames) == 1
+        assert frames[0]["payload"] == {"default": True}
 
-        assert len(responses) == 1
-        assert responses[0]["payload"] == {"default": True}
-
-    def test_handler_raises_runtime_error(self, socket_pair):
+    def test_handler_raises_runtime_error(self, runtime_invoke):
         """Test handler that raises RuntimeError."""
-        server_sock, client_sock = socket_pair
 
         def error_handler(payload):
             raise RuntimeError("Something went wrong")
@@ -2053,21 +1627,15 @@ class TestEdgeCases:
             "payload": {"test": "data"},
             "route": {"actors": ["a"], "current": 0},
         }
-        message_data = json.dumps(message).encode("utf-8")
-        asya_runtime._send_message(client_sock, message_data)
+        error, status = runtime_invoke(error_handler, message)
 
-        responses = handle_and_receive_frames(server_sock, client_sock, error_handler)
+        assert status == 500
+        assert error["error"] == "processing_error"
+        assert error["details"]["type"] == "RuntimeError"
+        assert "Something went wrong" in error["details"]["message"]
 
-        assert len(responses) == 1
-        response_error: str | None = responses[0].get("error")
-        response_details: dict = responses[0].get("details", {})
-        assert response_error == "processing_error"
-        assert response_details.get("type") == "RuntimeError"
-        assert "Something went wrong" in str(response_details.get("message", ""))
-
-    def test_handler_returns_complex_types(self, socket_pair):
+    def test_handler_returns_complex_types(self, runtime_invoke):
         """Test handler that returns various Python types."""
-        server_sock, client_sock = socket_pair
 
         def complex_handler(payload):
             return {
@@ -2084,45 +1652,33 @@ class TestEdgeCases:
             "payload": {"test": "data"},
             "route": {"actors": ["a"], "current": 0},
         }
-        message_data = json.dumps(message).encode("utf-8")
-        asya_runtime._send_message(client_sock, message_data)
+        frames, status = runtime_invoke(complex_handler, message)
 
-        responses = handle_and_receive_frames(server_sock, client_sock, complex_handler)
+        assert status == 200
+        assert len(frames) == 1
+        assert frames[0]["payload"]["int"] == 42
+        assert frames[0]["payload"]["float"] == 3.14
+        assert frames[0]["payload"]["bool"] is True
+        assert frames[0]["payload"]["null"] is None
 
-        assert len(responses) == 1
-        assert responses[0]["payload"]["int"] == 42
-        assert responses[0]["payload"]["float"] == 3.14
-        assert responses[0]["payload"]["bool"] is True
-        assert responses[0]["payload"]["null"] is None
-
-    def test_handler_returns_large_response(self, socket_pair):
+    def test_handler_returns_large_response(self, runtime_invoke):
         """Test handler that returns a large response."""
-        server_sock, client_sock = socket_pair
 
         def large_handler(payload):
             return {"data": "X" * (1024 * 1024)}
 
-        def sender():
-            message = {
-                "payload": {"test": "data"},
-                "route": {"actors": ["a"], "current": 0},
-            }
-            message_data = json.dumps(message).encode("utf-8")
-            asya_runtime._send_message(client_sock, message_data)
+        message = {
+            "payload": {"test": "data"},
+            "route": {"actors": ["a"], "current": 0},
+        }
+        frames, status = runtime_invoke(large_handler, message)
 
-        sender_thread = threading.Thread(target=sender)
-        sender_thread.start()
+        assert status == 200
+        assert len(frames) == 1
+        assert len(frames[0]["payload"]["data"]) == 1024 * 1024
 
-        responses = handle_and_receive_frames(server_sock, client_sock, large_handler)
-
-        assert len(responses) == 1
-        assert len(responses[0]["payload"]["data"]) == 1024 * 1024
-
-        sender_thread.join()
-
-    def test_message_with_special_characters(self, socket_pair):
+    def test_message_with_special_characters(self, runtime_invoke):
         """Test messages with special JSON characters."""
-        server_sock, client_sock = socket_pair
 
         def simple_handler(payload):
             return payload
@@ -2131,21 +1687,18 @@ class TestEdgeCases:
             "payload": {"text": 'Test "quotes" and \\backslashes\\ and \n newlines \t tabs'},
             "route": {"actors": ["a"], "current": 0},
         }
-        message_data = json.dumps(message).encode("utf-8")
-        asya_runtime._send_message(client_sock, message_data)
+        frames, status = runtime_invoke(simple_handler, message)
 
-        responses = handle_and_receive_frames(server_sock, client_sock, simple_handler)
-
-        assert len(responses) == 1
-        assert responses[0]["payload"]["text"] == 'Test "quotes" and \\backslashes\\ and \n newlines \t tabs'
+        assert status == 200
+        assert len(frames) == 1
+        assert frames[0]["payload"]["text"] == 'Test "quotes" and \\backslashes\\ and \n newlines \t tabs'
 
 
 class TestStatusPreservation:
     """Test that status field is properly preserved through message processing."""
 
-    def test_payload_mode_preserves_status_in_frame(self, socket_pair):
+    def test_payload_mode_preserves_status_in_frame(self, runtime_invoke):
         """Test that status is included in response frame in payload mode."""
-        server_sock, client_sock = socket_pair
 
         def simple_handler(payload):
             return {"result": payload["value"] * 2}
@@ -2163,19 +1716,16 @@ class TestStatusPreservation:
             "route": {"actors": ["doubler", "next"], "current": 0},
             "status": status,
         }
-        message_data = json.dumps(message).encode("utf-8")
-        asya_runtime._send_message(client_sock, message_data)
+        frames, http_status = runtime_invoke(simple_handler, message)
 
-        responses = handle_and_receive_frames(server_sock, client_sock, simple_handler)
+        assert http_status == 200
+        assert len(frames) == 1
+        assert frames[0]["payload"] == {"result": 42}
+        assert frames[0]["status"] == status
+        assert frames[0]["route"]["current"] == 1
 
-        assert len(responses) == 1
-        assert responses[0]["payload"] == {"result": 42}
-        assert responses[0]["status"] == status
-        assert responses[0]["route"]["current"] == 1
-
-    def test_payload_mode_no_status_backward_compat(self, socket_pair):
+    def test_payload_mode_no_status_backward_compat(self, runtime_invoke):
         """Test that payload mode works without status (backward compat)."""
-        server_sock, client_sock = socket_pair
 
         def simple_handler(payload):
             return {"result": "ok"}
@@ -2184,20 +1734,16 @@ class TestStatusPreservation:
             "payload": {"test": True},
             "route": {"actors": ["a"], "current": 0},
         }
-        message_data = json.dumps(message).encode("utf-8")
-        asya_runtime._send_message(client_sock, message_data)
+        frames, status = runtime_invoke(simple_handler, message)
 
-        responses = handle_and_receive_frames(server_sock, client_sock, simple_handler)
+        assert status == 200
+        assert len(frames) == 1
+        assert frames[0]["payload"] == {"result": "ok"}
+        assert "status" not in frames[0]
 
-        assert len(responses) == 1
-        assert responses[0]["payload"] == {"result": "ok"}
-        assert "status" not in responses[0]
-
-    def test_envelope_mode_preserves_status(self, socket_pair, mock_env):
+    def test_envelope_mode_preserves_status(self, runtime_invoke, mock_env):
         """Test that status flows through envelope mode via _validate_message."""
-        server_sock, client_sock = socket_pair
-
-        status = {
+        msg_status = {
             "phase": "processing",
             "actor": "processor",
             "attempt": 1,
@@ -2216,24 +1762,22 @@ class TestStatusPreservation:
         message = {
             "payload": {"data": "test"},
             "route": {"actors": ["processor", "next"], "current": 0},
-            "status": status,
+            "status": msg_status,
         }
-        message_data = json.dumps(message).encode("utf-8")
-        asya_runtime._send_message(client_sock, message_data)
 
         with mock_env(ASYA_HANDLER_MODE="envelope"):
-            responses = handle_and_receive_frames(server_sock, client_sock, envelope_handler)
+            frames, status = runtime_invoke(envelope_handler, message)
 
-        assert len(responses) == 1
-        assert responses[0]["status"] == status
+        assert status == 200
+        assert len(frames) == 1
+        assert frames[0]["status"] == msg_status
 
 
 class TestHeadersPreservation:
     """Test that headers field is properly preserved through message processing."""
 
-    def test_headers_preserved_in_payload_mode(self, socket_pair):
+    def test_headers_preserved_in_payload_mode(self, runtime_invoke):
         """Test that headers are preserved when using payload mode."""
-        server_sock, client_sock = socket_pair
 
         def simple_handler(payload):
             return {"result": payload["value"] * 2}
@@ -2243,20 +1787,16 @@ class TestHeadersPreservation:
             "route": {"actors": ["doubler"], "current": 0},
             "headers": {"trace_id": "abc-123", "priority": "high"},
         }
-        message_data = json.dumps(message).encode("utf-8")
-        asya_runtime._send_message(client_sock, message_data)
+        frames, status = runtime_invoke(simple_handler, message)
 
-        responses = handle_and_receive_frames(server_sock, client_sock, simple_handler)
+        assert status == 200
+        assert len(frames) == 1
+        assert frames[0]["payload"] == {"result": 84}
+        assert frames[0]["headers"] == {"trace_id": "abc-123", "priority": "high"}
+        assert frames[0]["route"] == {"actors": ["doubler"], "current": 1}
 
-        assert len(responses) == 1
-        assert responses[0]["payload"] == {"result": 84}
-        assert responses[0]["headers"] == {"trace_id": "abc-123", "priority": "high"}
-        # Payload mode auto-increments current
-        assert responses[0]["route"] == {"actors": ["doubler"], "current": 1}
-
-    def test_headers_preserved_in_fanout_payload_mode(self, socket_pair):
+    def test_headers_preserved_in_fanout_payload_mode(self, runtime_invoke):
         """Test that headers are preserved in fanout with payload mode."""
-        server_sock, client_sock = socket_pair
 
         def fanout_handler(payload):
             yield {"id": 1}
@@ -2267,20 +1807,17 @@ class TestHeadersPreservation:
             "route": {"actors": ["fan"], "current": 0},
             "headers": {"correlation_id": "xyz-789"},
         }
-        message_data = json.dumps(message).encode("utf-8")
-        asya_runtime._send_message(client_sock, message_data)
+        frames, status = runtime_invoke(fanout_handler, message)
 
-        responses = handle_and_receive_frames(server_sock, client_sock, fanout_handler)
+        assert status == 200
+        assert len(frames) == 2
+        assert frames[0]["payload"] == {"id": 1}
+        assert frames[0]["headers"] == {"correlation_id": "xyz-789"}
+        assert frames[1]["payload"] == {"id": 2}
+        assert frames[1]["headers"] == {"correlation_id": "xyz-789"}
 
-        assert len(responses) == 2
-        assert responses[0]["payload"] == {"id": 1}
-        assert responses[0]["headers"] == {"correlation_id": "xyz-789"}
-        assert responses[1]["payload"] == {"id": 2}
-        assert responses[1]["headers"] == {"correlation_id": "xyz-789"}
-
-    def test_headers_optional_in_payload_mode(self, socket_pair):
+    def test_headers_optional_in_payload_mode(self, runtime_invoke):
         """Test that headers are optional and don't break processing."""
-        server_sock, client_sock = socket_pair
 
         def simple_handler(payload):
             return payload
@@ -2289,19 +1826,16 @@ class TestHeadersPreservation:
             "payload": {"test": "data"},
             "route": {"actors": ["echo"], "current": 0},
         }
-        message_data = json.dumps(message).encode("utf-8")
-        asya_runtime._send_message(client_sock, message_data)
+        frames, status = runtime_invoke(simple_handler, message)
 
-        responses = handle_and_receive_frames(server_sock, client_sock, simple_handler)
+        assert status == 200
+        assert len(frames) == 1
+        assert frames[0]["payload"] == {"test": "data"}
+        assert "headers" not in frames[0]
 
-        assert len(responses) == 1
-        assert responses[0]["payload"] == {"test": "data"}
-        assert "headers" not in responses[0]
-
-    def test_headers_preserved_in_envelope_mode(self, socket_pair, mock_env):
+    def test_headers_preserved_in_envelope_mode(self, runtime_invoke, mock_env):
         """Test that headers are preserved when using envelope mode."""
         with mock_env(ASYA_HANDLER_MODE="envelope"):
-            server_sock, client_sock = socket_pair
 
             def envelope_handler(msg):
                 return msg
@@ -2311,18 +1845,15 @@ class TestHeadersPreservation:
                 "route": {"actors": ["passthrough"], "current": 0},
                 "headers": {"request_id": "req-456"},
             }
-            message_data = json.dumps(message).encode("utf-8")
-            asya_runtime._send_message(client_sock, message_data)
+            frames, status = runtime_invoke(envelope_handler, message)
 
-            responses = handle_and_receive_frames(server_sock, client_sock, envelope_handler)
+            assert status == 200
+            assert len(frames) == 1
+            assert frames[0]["payload"] == {"value": 100}
+            assert frames[0]["headers"] == {"request_id": "req-456"}
 
-            assert len(responses) == 1
-            assert responses[0]["payload"] == {"value": 100}
-            assert responses[0]["headers"] == {"request_id": "req-456"}
-
-    def test_headers_validation_invalid_type(self, socket_pair):
+    def test_headers_validation_invalid_type(self, runtime_invoke):
         """Test that headers validation rejects non-dict types."""
-        server_sock, client_sock = socket_pair
 
         def simple_handler(payload):
             return payload
@@ -2332,23 +1863,19 @@ class TestHeadersPreservation:
             "route": {"actors": ["echo"], "current": 0},
             "headers": "this should be a dict, not a string",
         }
-        message_data = json.dumps(message).encode("utf-8")
-        asya_runtime._send_message(client_sock, message_data)
+        error, status = runtime_invoke(simple_handler, message)
 
-        responses = handle_and_receive_frames(server_sock, client_sock, simple_handler)
-
-        assert len(responses) == 1
-        assert responses[0]["error"] == "msg_parsing_error"
-        assert "Field 'headers' must be a dict" in responses[0]["details"]["message"]
+        assert status == 400
+        assert error["error"] == "msg_parsing_error"
+        assert "Field 'headers' must be a dict" in error["details"]["message"]
 
 
 class TestEnvelopeMode:
     """Test ASYA_HANDLER_MODE=envelope mode."""
 
-    def test_envelope_mode_basic(self, socket_pair, mock_env):
+    def test_envelope_mode_basic(self, runtime_invoke, mock_env):
         """Test envelope mode with basic handler."""
         with mock_env(ASYA_HANDLER_MODE="envelope"):
-            server_sock, client_sock = socket_pair
 
             def envelope_handler(msg):
                 return msg
@@ -2358,20 +1885,17 @@ class TestEnvelopeMode:
                 "route": {"actors": ["passthrough"], "current": 0},
                 "headers": {"trace_id": "test-123"},
             }
-            message_data = json.dumps(message).encode("utf-8")
-            asya_runtime._send_message(client_sock, message_data)
+            frames, status = runtime_invoke(envelope_handler, message)
 
-            responses = handle_and_receive_frames(server_sock, client_sock, envelope_handler)
+            assert status == 200
+            assert len(frames) == 1
+            assert frames[0]["payload"] == {"value": 123}
+            assert frames[0]["headers"] == {"trace_id": "test-123"}
+            assert frames[0]["route"] == {"actors": ["passthrough"], "current": 0}
 
-            assert len(responses) == 1
-            assert responses[0]["payload"] == {"value": 123}
-            assert responses[0]["headers"] == {"trace_id": "test-123"}
-            assert responses[0]["route"] == {"actors": ["passthrough"], "current": 0}
-
-    def test_envelope_mode_headers_access(self, socket_pair, mock_env):
+    def test_envelope_mode_headers_access(self, runtime_invoke, mock_env):
         """Test that envelope mode gives access to headers."""
         with mock_env(ASYA_HANDLER_MODE="envelope"):
-            server_sock, client_sock = socket_pair
 
             def headers_reader(msg):
                 priority = msg.get("headers", {}).get("priority", "low")
@@ -2389,19 +1913,16 @@ class TestEnvelopeMode:
                 "route": {"actors": ["processor"], "current": 0},
                 "headers": {"priority": "high", "trace_id": "xyz"},
             }
-            message_data = json.dumps(message).encode("utf-8")
-            asya_runtime._send_message(client_sock, message_data)
+            frames, status = runtime_invoke(headers_reader, message)
 
-            responses = handle_and_receive_frames(server_sock, client_sock, headers_reader)
+            assert status == 200
+            assert len(frames) == 1
+            assert frames[0]["payload"] == {"priority": "high", "value": 42}
+            assert frames[0]["headers"] == {"priority": "high", "trace_id": "xyz"}
 
-            assert len(responses) == 1
-            assert responses[0]["payload"] == {"priority": "high", "value": 42}
-            assert responses[0]["headers"] == {"priority": "high", "trace_id": "xyz"}
-
-    def test_envelope_mode_fanout(self, socket_pair, mock_env):
+    def test_envelope_mode_fanout(self, runtime_invoke, mock_env):
         """Test envelope mode with fanout."""
         with mock_env(ASYA_HANDLER_MODE="envelope"):
-            server_sock, client_sock = socket_pair
 
             def fanout_handler(msg):
                 yield {"payload": {"id": 1}, "route": msg["route"], "headers": msg.get("headers", {})}
@@ -2412,21 +1933,18 @@ class TestEnvelopeMode:
                 "route": {"actors": ["fan"], "current": 0},
                 "headers": {"correlation_id": "abc"},
             }
-            message_data = json.dumps(message).encode("utf-8")
-            asya_runtime._send_message(client_sock, message_data)
+            frames, status = runtime_invoke(fanout_handler, message)
 
-            responses = handle_and_receive_frames(server_sock, client_sock, fanout_handler)
+            assert status == 200
+            assert len(frames) == 2
+            assert frames[0]["payload"] == {"id": 1}
+            assert frames[0]["headers"] == {"correlation_id": "abc"}
+            assert frames[1]["payload"] == {"id": 2}
+            assert frames[1]["headers"] == {"correlation_id": "abc"}
 
-            assert len(responses) == 2
-            assert responses[0]["payload"] == {"id": 1}
-            assert responses[0]["headers"] == {"correlation_id": "abc"}
-            assert responses[1]["payload"] == {"id": 2}
-            assert responses[1]["headers"] == {"correlation_id": "abc"}
-
-    def test_envelope_mode_validation(self, socket_pair, mock_env):
+    def test_envelope_mode_validation(self, runtime_invoke, mock_env):
         """Test envelope mode output validation."""
         with mock_env(ASYA_HANDLER_MODE="envelope"):
-            server_sock, client_sock = socket_pair
 
             def invalid_handler(msg):
                 return {"payload": {"result": "ok"}}  # Missing route
@@ -2435,19 +1953,15 @@ class TestEnvelopeMode:
                 "payload": {"test": "data"},
                 "route": {"actors": ["processor"], "current": 0},
             }
-            message_data = json.dumps(message).encode("utf-8")
-            asya_runtime._send_message(client_sock, message_data)
+            error, status = runtime_invoke(invalid_handler, message)
 
-            responses = handle_and_receive_frames(server_sock, client_sock, invalid_handler)
+            assert status == 500
+            assert error["error"] == "processing_error"
+            assert "Missing required field 'route'" in error["details"]["message"]
 
-            assert len(responses) == 1
-            assert responses[0]["error"] == "processing_error"
-            assert "Missing required field 'route'" in responses[0]["details"]["message"]
-
-    def test_envelope_mode_returns_none(self, socket_pair, mock_env):
+    def test_envelope_mode_returns_none(self, runtime_invoke, mock_env):
         """Test envelope mode handler returning None."""
         with mock_env(ASYA_HANDLER_MODE="envelope"):
-            server_sock, client_sock = socket_pair
 
             def none_handler(msg):
                 return None
@@ -2456,12 +1970,10 @@ class TestEnvelopeMode:
                 "payload": {"test": "data"},
                 "route": {"actors": ["processor"], "current": 0},
             }
-            message_data = json.dumps(message).encode("utf-8")
-            asya_runtime._send_message(client_sock, message_data)
+            frames, status = runtime_invoke(none_handler, message)
 
-            responses = handle_and_receive_frames(server_sock, client_sock, none_handler)
-
-            assert len(responses) == 0
+            assert status == 204
+            assert frames == []
 
 
 class TestLoadFunctionErrors:
@@ -2516,41 +2028,6 @@ class TestLoadFunctionErrors:
                 assert exc_info.value.code == 1
         finally:
             sys.path.pop(0)
-
-
-class TestSocketSetupErrors:
-    """Test _setup_socket error handling."""
-
-    def test_setup_socket_file_exists_and_is_directory(self, tmp_path):
-        """Test socket setup when path exists as directory."""
-        socket_path = tmp_path / "socket"
-        socket_path.mkdir()
-
-        with pytest.raises(OSError):
-            asya_runtime._setup_socket(str(socket_path))
-
-
-class TestConnectionErrors:
-    """Test connection error handling in _handle_request_streaming."""
-
-    def test_handle_request_recv_exact_error_path(self, socket_pair, monkeypatch):
-        """Test error path when _recv_exact raises a generic exception."""
-        server_sock, client_sock = socket_pair
-
-        def mock_recv_exact(sock, n):
-            raise RuntimeError("Unexpected error in recv_exact")
-
-        monkeypatch.setattr(asya_runtime, "_recv_exact", mock_recv_exact)
-
-        def dummy_handler(payload):
-            return {"result": "ok"}
-
-        asya_runtime._handle_request_streaming(server_sock, dummy_handler)
-        responses = receive_frames(client_sock)
-
-        assert len(responses) == 1
-        assert responses[0]["error"] == "connection_error"
-        assert "Unexpected error in recv_exact" in str(responses[0]["details"])
 
 
 class TestCallHandler:
@@ -2612,11 +2089,10 @@ class TestCallHandler:
 
 
 class TestAsyncHandlers:
-    """Test async handler execution through _handle_request."""
+    """Test async handler execution through POST /invoke."""
 
-    def test_async_payload_mode_basic(self, socket_pair):
+    def test_async_payload_mode_basic(self, runtime_invoke):
         """Async handler in payload mode returns correct result."""
-        server_sock, client_sock = socket_pair
 
         async def async_echo(payload):
             return {"echoed": payload["msg"]}
@@ -2625,18 +2101,15 @@ class TestAsyncHandlers:
             "payload": {"msg": "hello"},
             "route": {"actors": ["a"], "current": 0},
         }
-        message_data = json.dumps(message).encode("utf-8")
-        asya_runtime._send_message(client_sock, message_data)
+        frames, status = runtime_invoke(async_echo, message)
 
-        responses = handle_and_receive_frames(server_sock, client_sock, async_echo)
+        assert status == 200
+        assert len(frames) == 1
+        assert frames[0]["payload"] == {"echoed": "hello"}
+        assert frames[0]["route"]["current"] == 1
 
-        assert len(responses) == 1
-        assert responses[0]["payload"] == {"echoed": "hello"}
-        assert responses[0]["route"]["current"] == 1
-
-    def test_async_payload_mode_list_return(self, socket_pair):
+    def test_async_payload_mode_list_return(self, runtime_invoke):
         """Async handler returning list is treated as single payload (not fan-out)."""
-        server_sock, client_sock = socket_pair
 
         async def async_list_return(payload):
             return [{"i": 0}, {"i": 1}, {"i": 2}]
@@ -2645,18 +2118,15 @@ class TestAsyncHandlers:
             "payload": {"test": True},
             "route": {"actors": ["a", "b"], "current": 0},
         }
-        message_data = json.dumps(message).encode("utf-8")
-        asya_runtime._send_message(client_sock, message_data)
+        frames, status = runtime_invoke(async_list_return, message)
 
-        responses = handle_and_receive_frames(server_sock, client_sock, async_list_return)
+        assert status == 200
+        assert len(frames) == 1
+        assert frames[0]["payload"] == [{"i": 0}, {"i": 1}, {"i": 2}]
+        assert frames[0]["route"]["current"] == 1
 
-        assert len(responses) == 1
-        assert responses[0]["payload"] == [{"i": 0}, {"i": 1}, {"i": 2}]
-        assert responses[0]["route"]["current"] == 1
-
-    def test_async_payload_mode_none_return(self, socket_pair):
+    def test_async_payload_mode_none_return(self, runtime_invoke):
         """Async handler returning None in payload mode aborts pipeline."""
-        server_sock, client_sock = socket_pair
 
         async def async_none(payload):
             return None
@@ -2665,16 +2135,13 @@ class TestAsyncHandlers:
             "payload": {"test": True},
             "route": {"actors": ["a"], "current": 0},
         }
-        message_data = json.dumps(message).encode("utf-8")
-        asya_runtime._send_message(client_sock, message_data)
+        frames, status = runtime_invoke(async_none, message)
 
-        responses = handle_and_receive_frames(server_sock, client_sock, async_none)
+        assert status == 204
+        assert frames == []
 
-        assert len(responses) == 0
-
-    def test_async_envelope_mode(self, socket_pair, mock_env):
+    def test_async_envelope_mode(self, runtime_invoke, mock_env):
         """Async handler in envelope mode receives full message."""
-        server_sock, client_sock = socket_pair
 
         async def async_envelope(message):
             return {
@@ -2688,20 +2155,18 @@ class TestAsyncHandlers:
             "route": {"actors": ["a", "b"], "current": 0},
             "headers": {"trace_id": "t1"},
         }
-        message_data = json.dumps(message).encode("utf-8")
-        asya_runtime._send_message(client_sock, message_data)
 
         with mock_env(ASYA_HANDLER_MODE="envelope"):
-            responses = handle_and_receive_frames(server_sock, client_sock, async_envelope)
+            frames, status = runtime_invoke(async_envelope, message)
 
-        assert len(responses) == 1
-        assert responses[0]["payload"] == {"processed": "test"}
-        assert responses[0]["route"]["current"] == 1
-        assert responses[0]["headers"] == {"trace_id": "t1"}
+        assert status == 200
+        assert len(frames) == 1
+        assert frames[0]["payload"] == {"processed": "test"}
+        assert frames[0]["route"]["current"] == 1
+        assert frames[0]["headers"] == {"trace_id": "t1"}
 
-    def test_async_handler_exception_produces_processing_error(self, socket_pair):
+    def test_async_handler_exception_produces_processing_error(self, runtime_invoke):
         """Async handler raising exception results in processing_error."""
-        server_sock, client_sock = socket_pair
 
         async def async_error(payload):
             raise ValueError("async handler failed")
@@ -2710,19 +2175,15 @@ class TestAsyncHandlers:
             "payload": {"test": True},
             "route": {"actors": ["a"], "current": 0},
         }
-        message_data = json.dumps(message).encode("utf-8")
-        asya_runtime._send_message(client_sock, message_data)
+        error, status = runtime_invoke(async_error, message)
 
-        responses = handle_and_receive_frames(server_sock, client_sock, async_error)
+        assert status == 500
+        assert error["error"] == "processing_error"
+        assert "async handler failed" in error["details"]["message"]
+        assert error["details"]["type"] == "ValueError"
 
-        assert len(responses) == 1
-        assert responses[0]["error"] == "processing_error"
-        assert "async handler failed" in responses[0]["details"]["message"]
-        assert responses[0]["details"]["type"] == "ValueError"
-
-    def test_sync_handler_still_works(self, socket_pair):
+    def test_sync_handler_still_works(self, runtime_invoke):
         """Sync handlers continue to work unchanged (regression test)."""
-        server_sock, client_sock = socket_pair
 
         def sync_handler(payload):
             return {"result": payload["value"] + 1}
@@ -2731,17 +2192,14 @@ class TestAsyncHandlers:
             "payload": {"value": 41},
             "route": {"actors": ["a"], "current": 0},
         }
-        message_data = json.dumps(message).encode("utf-8")
-        asya_runtime._send_message(client_sock, message_data)
+        frames, status = runtime_invoke(sync_handler, message)
 
-        responses = handle_and_receive_frames(server_sock, client_sock, sync_handler)
+        assert status == 200
+        assert len(frames) == 1
+        assert frames[0]["payload"] == {"result": 42}
 
-        assert len(responses) == 1
-        assert responses[0]["payload"] == {"result": 42}
-
-    def test_async_class_method_handler(self, socket_pair):
+    def test_async_class_method_handler(self, runtime_invoke):
         """Async class method handler works through _call_handler."""
-        server_sock, client_sock = socket_pair
 
         class AsyncProcessor:
             def __init__(self):
@@ -2757,18 +2215,15 @@ class TestAsyncHandlers:
             "payload": {"test": "data"},
             "route": {"actors": ["a"], "current": 0},
         }
-        message_data = json.dumps(message).encode("utf-8")
-        asya_runtime._send_message(client_sock, message_data)
+        frames, status = runtime_invoke(processor.process, message)
 
-        responses = handle_and_receive_frames(server_sock, client_sock, processor.process)
+        assert status == 200
+        assert len(frames) == 1
+        assert frames[0]["payload"]["count"] == 1
+        assert frames[0]["payload"]["data"] == {"test": "data"}
 
-        assert len(responses) == 1
-        assert responses[0]["payload"]["count"] == 1
-        assert responses[0]["payload"]["data"] == {"test": "data"}
-
-    def test_async_handler_preserves_headers(self, socket_pair):
+    def test_async_handler_preserves_headers(self, runtime_invoke):
         """Async handler in payload mode preserves headers."""
-        server_sock, client_sock = socket_pair
 
         async def async_handler(payload):
             return {"result": "ok"}
@@ -2778,13 +2233,11 @@ class TestAsyncHandlers:
             "route": {"actors": ["a", "b"], "current": 0},
             "headers": {"trace_id": "abc", "priority": "high"},
         }
-        message_data = json.dumps(message).encode("utf-8")
-        asya_runtime._send_message(client_sock, message_data)
+        frames, status = runtime_invoke(async_handler, message)
 
-        responses = handle_and_receive_frames(server_sock, client_sock, async_handler)
-
-        assert len(responses) == 1
-        assert responses[0]["headers"] == {"trace_id": "abc", "priority": "high"}
+        assert status == 200
+        assert len(frames) == 1
+        assert frames[0]["headers"] == {"trace_id": "abc", "priority": "high"}
 
 
 class TestHTTPServer:
