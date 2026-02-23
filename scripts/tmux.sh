@@ -3,7 +3,30 @@ subcmd="$1"; shift
 ref="$1"; shift 2>/dev/null
 
 if [ "$subcmd" = "list" ] || [ "$subcmd" = "ls" ]; then
-  git aint list --tag worktree --status all --columns task "$@"
+  # Query live tmux sessions (not the aint DB)
+  sessions=$(tmux list-sessions -F "#{session_name}" 2>/dev/null) || exit 0
+  [ -z "$sessions" ] && exit 0
+
+  found=false
+  echo "$sessions" | while IFS= read -r name; do
+    # Only consider sessions that look like aint IDs (3-10 lowercase alphanumeric)
+    printf '%s' "$name" | grep -qE '^[a-z0-9]{3,10}$' || continue
+
+    if ! $found; then
+      printf "%-10s  %-10s  %s\n" "SESSION" "STATUS" "TITLE"
+      found=true
+    fi
+
+    info=$(git aint get "$name" --format "{status}	{title}" 2>/dev/null)
+    if [ $? -eq 0 ] && [ -n "$info" ]; then
+      status=$(printf '%s' "$info" | cut -f1)
+      title=$(printf '%s' "$info" | cut -f2)
+    else
+      status="-"
+      title="(no matching aint)"
+    fi
+    printf "%-10s  %-10s  %s\n" "$name" "$status" "$title"
+  done
 
 elif [ "$subcmd" = "kill" ]; then
   task_id=$(git aint get "$ref" --format "{task}") || exit 1

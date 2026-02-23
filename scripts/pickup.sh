@@ -37,7 +37,7 @@ tmux set-hook -t "$task_id" after-new-window "pipe-pane -o \"cat >> $logdir/$ts.
 tmux set-hook -t "$task_id" after-split-window "pipe-pane -o \"cat >> $logdir/$ts.w#{window_index}p#{pane_index}.log.ansi\"" || true
 
 # 6. update aint
-git aint update "$ref" --status afoot --add-tag "worktree:$branch" || exit 1
+git aint update "$ref" --status afoot --add-tag "worktree:$wt_dir/$branch" --add-tag "branch:$branch" || exit 1
 
 # 7. summary
 echo ""
