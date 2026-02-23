@@ -1,52 +1,36 @@
 ---
-title: "Runtime: AsyncGenerator handler support (multi-frame response)"
+title: "Runtime: AsyncGenerator handler support"
 priority: 1 # high
 type: task
+dependencies:
+  - 1fbe/1iof6x
 tags:
   - type:feature
 ---
 
+Add `AsyncGenerator` handler detection to `asya_runtime.py`. The runtime already supports sync generators (`inspect.isgeneratorfunction`). This task adds the async counterpart.
 
-
-
-
-
-
-
-Add AsyncGenerator handler support to asya_runtime.py. When the handler is an async generator, iterate it and send multiple frames to the sidecar.
-
-## Changes
+## Scope
 
 ### asya_runtime.py
-- Detect async generator: inspect.isasyncgenfunction(handler)
-- Iterate generator: async for event in handler(payload)
-- For each intermediate yield: send streaming frame to sidecar
-- For final yield (last event): send result frame to sidecar
-- Convention: last yield = control event (goes to queue), all others = streaming events (go to HTTP)
+- Detect async generator: `inspect.isasyncgenfunction(handler)`
+- Iterate: `async for event in handler(payload)` (payload mode) / `async for event in handler(message)` (envelope mode)
+- Send each yielded event as a response frame (same as sync generators)
+- After the HTTP protocol migration (1fbe), async generators produce SSE streams with `downstream` and `upstream` event types
 
-### Wire Protocol
-Current: single JSON frame per invocation
-New: multiple frames per invocation
+## What This Is NOT
 
-Frame format:
-- Streaming: {"type": "stream", "data": <event_dict>}
-- Result: {"type": "result", "data": <payload_dict>}
-
-The sidecar reads frames until it receives a "result" frame.
+This task does NOT define the wire protocol or frame format. The wire protocol is defined by epic 1fbe (HTTP-over-Unix-socket with SSE). This task only adds async generator detection and iteration to the existing streaming handler infrastructure.
 
 ## Dependencies
-- Depends on: Runtime async handler execution (asyncio.run support)
-- Depends on: Sidecar multi-frame protocol support
+- Depends on: 1fbe/1iof6x (runtime HTTP server — vibed)
 
 ## Test Plan
-- Unit test: async generator yields 3 streaming events + 1 result
+- Unit test: async generator yields 3 events
 - Unit test: plain async handler still works (single frame)
-- Unit test: sync handler still works (single frame)
+- Unit test: sync generator still works (single frame)
+- Unit test: async generator with exception mid-stream
 
 ## References
-- RFC: docs/rfc/agentic-compiler/agentic-compiler-rfc.md Section 10.2-10.3
-- Option B convention (last yield = control event)
-
-
----
-_Migrated from beads `asya-cx34`_
+- RFC: 1ia4/rfc.md
+- Epic: 1fbe.redesign-protocol-sidecar-runtime
