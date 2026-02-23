@@ -9,6 +9,7 @@ dependencies:
 
 
 
+
 Clean up all references to the old asya-operator after its code and Helm chart have been deleted.
 
 ## Tasks
