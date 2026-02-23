@@ -27,7 +27,7 @@ Currently, asya-gateway loads tool configuration **once at startup** from YAML f
 
 ## Proposed Solution
 
-### Option A: Kubernetes CRD-based Configuration (Recommended)
+### Option A: Kubernetes CRD-based Configuration
 
 Create a new CRD `AsyncTool` that asya-gateway watches:
 

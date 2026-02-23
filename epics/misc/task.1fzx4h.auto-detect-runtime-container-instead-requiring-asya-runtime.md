@@ -38,7 +38,7 @@ Use annotations (not labels) because:
 - Annotations have no length/charset restrictions
 - Semantically, this is configuration metadata (annotation), not selection criteria (label)
 
-For explicit opt-in when auto-detection is ambiguous, a label `asya.sh/runtime: "true"` on the container could be supported — but containers don't have labels in k8s, so this would need to be an env var marker or annotation referencing the container name.
+For explicit opt-in when auto-detection is ambiguous, a label `asya.sh/runtime: "runtime-container-name"`.
 
 ## Validation Location
 
