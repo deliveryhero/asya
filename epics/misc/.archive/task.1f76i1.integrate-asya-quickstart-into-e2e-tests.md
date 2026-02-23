@@ -1,6 +1,7 @@
 ---
 title: Integrate asya-quickstart into E2E tests
-status: open
+status: wont_do
+reason: overkill
 priority: 2 # medium
 type: task
 ---
