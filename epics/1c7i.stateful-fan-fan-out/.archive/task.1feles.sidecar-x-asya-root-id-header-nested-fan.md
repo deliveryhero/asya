@@ -1,13 +1,15 @@
 ---
 title: "Sidecar: x-asya-root-id header for nested fan-out tracing"
-status: open
+status: wont_do
 priority: 3 # low
 type: task
 tags:
   - type:feature
 dependencies:
   - misc/1fci1o
+reason: Decided to go with virtual actors for simplicity
 ---
+
 
 
 
