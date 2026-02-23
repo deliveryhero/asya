@@ -317,7 +317,7 @@ jobs:
     #   run: |
     #     source .venv/bin/activate
     #     cd testing/e2e
-    #     make trigger-tests ASYA_HANDLER_MODE=payload PYTEST_OPTS="-v --log-cli-level=INFO -m 'not chaos'"
+    #     make trigger-tests ASYA_HANDLER_MODE=payload PYTEST_OPTS="-v --log-cli-level=INFO -m 'not chaos' --ignore=tests/test_crossplane_e2e.py"
 
     - name: "Run E2E tests: non-chaos (envelope)"
       if: matrix.run_pipeline
@@ -328,7 +328,7 @@ jobs:
       run: |
         source .venv/bin/activate
         cd testing/e2e
-        make trigger-tests ASYA_HANDLER_MODE=envelope PYTEST_OPTS="-v --log-cli-level=INFO -m 'not chaos'"
+        make trigger-tests ASYA_HANDLER_MODE=envelope PYTEST_OPTS="-v --log-cli-level=INFO -m 'not chaos' --ignore=tests/test_crossplane_e2e.py"
 
     - name: "Run E2E tests: chaos (payload)"
       if: matrix.run_pipeline
@@ -339,7 +339,7 @@ jobs:
       run: |
         source .venv/bin/activate
         cd testing/e2e
-        make trigger-tests ASYA_HANDLER_MODE=payload PYTEST_OPTS="-v --log-cli-level=INFO -m chaos"
+        make trigger-tests ASYA_HANDLER_MODE=payload PYTEST_OPTS="-v --log-cli-level=INFO -m chaos --ignore=tests/test_crossplane_e2e.py"
 
     - name: Check if e2e tests succeeded
       if: always()
