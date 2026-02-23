@@ -111,7 +111,7 @@ helm install text-processor deploy/helm-charts/asya-actor \
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `workload.kind` | Workload type | `Deployment` |
+| `workload.kind` | Workload type (must be `Deployment`) | `Deployment` |
 | `workload.template` | Pod template spec | See values.yaml |
 
 ### Health Check Parameters

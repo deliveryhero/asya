@@ -166,7 +166,7 @@ The activation threshold determines when to scale from 0 to 1 replica. For examp
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `workload.kind` | Workload kind | `Deployment` |
+| `workload.kind` | Workload kind (must be `Deployment`) | `Deployment` |
 | `workload.replicas` | Number of replicas (ignored if scaling enabled) | `1` |
 | `workload.pythonExecutable` | Python executable path for runtime | `python3` |
 | `workload.template.spec.containers` | Container definitions | See examples |
@@ -207,7 +207,7 @@ env:
 
 #### Workload Kinds
 
-The 🎭 operator supports two Kubernetes workload kinds for AsyncActor resources. Choose the kind based on your actor's characteristics:
+The 🎭 operator supports `Deployment` as the workload kind for AsyncActor resources:
 
 ##### Deployment
 
