@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Tests for asya_runtime.py Unix socket server."""
 
+import http.client as http_client
 import importlib
 import json
 import os
@@ -19,8 +20,6 @@ import pytest
 
 # Add parent directory to path to import asya_runtime functions
 sys.path.insert(0, str(Path(__file__).parent.parent))
-
-import http.client as http_client
 
 import asya_runtime
 
@@ -135,6 +134,8 @@ def runtime_invoke(tmp_path):
 
         if status == 204:
             return [], status
+        if not raw:
+            return {}, status
         data = json.loads(raw)
         if status == 200:
             return data["frames"], status
@@ -2810,3 +2811,180 @@ class TestHTTPServer:
             mode = os.stat(socket_path).st_mode & 0o777
             assert mode == 0o600
             server.server_close()
+
+
+class TestHTTPInvoke:
+    """Test POST /invoke endpoint via HTTP."""
+
+    # --- Success (200) ---
+
+    def test_payload_mode_success(self, runtime_invoke):
+        def handler(payload):
+            return {"result": payload["x"] + 1}
+
+        message = {
+            "payload": {"x": 10},
+            "route": {"actors": ["a", "b"], "current": 0},
+        }
+        frames, status = runtime_invoke(handler, message)
+        assert status == 200
+        assert len(frames) == 1
+        assert frames[0]["payload"] == {"result": 11}
+        assert frames[0]["route"]["current"] == 1
+        assert frames[0]["route"]["actors"] == ["a", "b"]
+
+    def test_payload_mode_preserves_headers(self, runtime_invoke):
+        message = {
+            "payload": {"x": 1},
+            "route": {"actors": ["a", "b"], "current": 0},
+            "headers": {"trace_id": "abc-123"},
+        }
+        frames, status = runtime_invoke(lambda p: {"ok": True}, message)
+        assert status == 200
+        assert frames[0]["headers"] == {"trace_id": "abc-123"}
+
+    def test_payload_mode_preserves_status(self, runtime_invoke):
+        message = {
+            "payload": {},
+            "route": {"actors": ["a"], "current": 0},
+            "status": {"phase": "working"},
+        }
+        frames, status = runtime_invoke(lambda p: {"ok": True}, message)
+        assert status == 200
+        assert frames[0]["status"] == {"phase": "working"}
+
+    def test_async_handler(self, runtime_invoke):
+        async def handler(payload):
+            return {"async": True}
+
+        message = {"payload": {}, "route": {"actors": ["a"], "current": 0}}
+        frames, status = runtime_invoke(handler, message)
+        assert status == 200
+        assert frames[0]["payload"] == {"async": True}
+
+    # --- Abort (204) ---
+
+    def test_handler_returns_none_204(self, runtime_invoke):
+        message = {"payload": {}, "route": {"actors": ["a"], "current": 0}}
+        frames, status = runtime_invoke(lambda p: None, message)
+        assert status == 204
+        assert frames == []
+
+    # --- Handler error (500) ---
+
+    def test_handler_exception_500(self, runtime_invoke):
+        def bad_handler(payload):
+            raise ValueError("something broke")
+
+        message = {"payload": {}, "route": {"actors": ["a"], "current": 0}}
+        error, status = runtime_invoke(bad_handler, message)
+        assert status == 500
+        assert error["error"] == "processing_error"
+        assert "something broke" in error["details"]["message"]
+        assert error["details"]["type"] == "ValueError"
+
+    # --- Parse error (400) ---
+
+    def test_missing_payload_400(self, runtime_invoke):
+        message = {"route": {"actors": ["a"], "current": 0}}
+        error, status = runtime_invoke(lambda p: p, message)
+        assert status == 400
+        assert error["error"] == "msg_parsing_error"
+
+    def test_missing_route_400(self, runtime_invoke):
+        message = {"payload": {"x": 1}}
+        error, status = runtime_invoke(lambda p: p, message)
+        assert status == 400
+        assert error["error"] == "msg_parsing_error"
+
+    # --- Generators (collected into frames array) ---
+
+    def test_generator_fanout(self, runtime_invoke):
+        def gen(payload):
+            yield {"id": 1}
+            yield {"id": 2}
+            yield {"id": 3}
+
+        message = {"payload": {}, "route": {"actors": ["a", "b"], "current": 0}}
+        frames, status = runtime_invoke(gen, message)
+        assert status == 200
+        assert len(frames) == 3
+        assert [f["payload"]["id"] for f in frames] == [1, 2, 3]
+        assert all(f["route"]["current"] == 1 for f in frames)
+
+    def test_generator_yields_nothing_204(self, runtime_invoke):
+        def empty_gen(payload):
+            return
+            yield  # noqa: unreachable
+
+        message = {"payload": {}, "route": {"actors": ["a"], "current": 0}}
+        frames, status = runtime_invoke(empty_gen, message)
+        assert status == 204
+
+    # --- Envelope mode ---
+
+    def test_envelope_mode_success(self, runtime_invoke, mock_env):
+        with mock_env(ASYA_HANDLER_MODE="envelope"):
+
+            def handler(msg):
+                return {
+                    "payload": {"processed": True},
+                    "route": msg["route"],
+                }
+
+            message = {"payload": {"x": 1}, "route": {"actors": ["a"], "current": 0}}
+            frames, status = runtime_invoke(handler, message)
+            assert status == 200
+            assert frames[0]["payload"] == {"processed": True}
+
+    def test_envelope_mode_returns_none(self, runtime_invoke, mock_env):
+        with mock_env(ASYA_HANDLER_MODE="envelope"):
+            message = {"payload": {}, "route": {"actors": ["a"], "current": 0}}
+            frames, status = runtime_invoke(lambda m: None, message)
+            assert status == 204
+
+    def test_envelope_mode_generator(self, runtime_invoke, mock_env):
+        with mock_env(ASYA_HANDLER_MODE="envelope"):
+
+            def gen(msg):
+                for i in range(2):
+                    yield {
+                        "payload": {"i": i},
+                        "route": msg["route"],
+                    }
+
+            message = {"payload": {}, "route": {"actors": ["a"], "current": 0}}
+            frames, status = runtime_invoke(gen, message)
+            assert status == 200
+            assert len(frames) == 2
+
+    # --- Large payloads ---
+
+    @pytest.mark.parametrize("size_kb", [10, 100, 500, 1024])
+    def test_large_payloads(self, runtime_invoke, size_kb):
+        large_data = "X" * (size_kb * 1024)
+        message = {
+            "payload": {"data": large_data},
+            "route": {"actors": ["a"], "current": 0},
+        }
+        frames, status = runtime_invoke(lambda p: p, message)
+        assert status == 200
+        assert len(frames[0]["payload"]["data"]) == size_kb * 1024
+
+    # --- 404 ---
+
+    def test_wrong_path_404(self, tmp_path):
+        socket_path = str(tmp_path / "test.sock")
+        server = asya_runtime._UnixHTTPServer(socket_path, asya_runtime._InvokeHandler)
+        server.user_func = lambda p: p
+        thread = threading.Thread(target=server.handle_request)
+        thread.start()
+
+        conn = _UnixHTTPConnection(socket_path)
+        conn.request("POST", "/health")
+        resp = conn.getresponse()
+        resp.read()
+        conn.close()
+        thread.join(timeout=5)
+        server.server_close()
+        assert resp.status == 404

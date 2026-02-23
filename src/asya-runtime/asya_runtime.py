@@ -420,6 +420,56 @@ def _send_end_frame(conn: socket.socket):
     _send_frame(conn, {"type": "end"})
 
 
+def _collect_payload_frames(message, user_func):
+    """Collect response frames for payload mode handlers."""
+    output_route = message["route"].copy()
+    output_route["current"] = message["route"]["current"] + 1
+    headers = message.get("headers")
+    status = message.get("status")
+
+    def _build_frame(payload_value):
+        frame = {"payload": payload_value, "route": output_route}
+        if headers is not None:
+            frame["headers"] = headers
+        if status is not None:
+            frame["status"] = status
+        return frame
+
+    if inspect.isgeneratorfunction(user_func):
+        return [_build_frame(p) for p in user_func(message["payload"])]
+
+    result = _call_handler(user_func, message["payload"])
+    if result is None:
+        return []
+    return [_build_frame(result)]
+
+
+def _collect_envelope_frames(message, user_func):
+    """Collect response frames for envelope mode handlers."""
+    if inspect.isgeneratorfunction(user_func):
+        frames = []
+        for out in user_func(message):
+            if ASYA_ENABLE_VALIDATION:
+                out = _validate_message(
+                    out,
+                    expected_current_actor=_get_current_actor(message),
+                    input_route=message["route"],
+                )
+            frames.append(out)
+        return frames
+
+    result = _call_handler(user_func, message)
+    if result is None:
+        return []
+    if ASYA_ENABLE_VALIDATION:
+        result = _validate_message(
+            result,
+            expected_current_actor=_get_current_actor(message),
+            input_route=message["route"],
+        )
+    return [result]
+
+
 def _handle_request_streaming(conn: socket.socket, user_func: Any):
     """Handle a single request, sending response frames as they're produced.
 
@@ -575,8 +625,54 @@ class _InvokeHandler(http.server.BaseHTTPRequestHandler):
         if self.path != "/invoke":
             self.send_error(404)
             return
-        self.send_response(501)
+
+        content_length = int(self.headers.get("Content-Length", 0))
+        if content_length == 0:
+            self._send_json(400, _error_response("msg_parsing_error", ValueError("Missing request body")))
+            return
+
+        body = self.rfile.read(content_length)
+
+        try:
+            message = _parse_message_json(body)
+            if ASYA_ENABLE_VALIDATION:
+                message = _validate_message(message)
+            logger.debug(f"Received message: {len(body)} bytes")
+        except (json.JSONDecodeError, UnicodeDecodeError, KeyError, ValueError) as exc:
+            self._send_json(400, _error_response("msg_parsing_error", exc))
+            return
+
+        try:
+            user_func = self.server.user_func
+            logger.info(
+                f"[DIAG] Starting handler execution, mode={ASYA_HANDLER_MODE}, "
+                f"message_id={message.get('id', 'unknown')}"
+            )
+            if ASYA_HANDLER_MODE == "payload":
+                frames = _collect_payload_frames(message, user_func)
+            elif ASYA_HANDLER_MODE == "envelope":
+                frames = _collect_envelope_frames(message, user_func)
+            else:
+                raise ValueError(f"Invalid ASYA_HANDLER_MODE={ASYA_HANDLER_MODE}: not in {VALID_ASYA_HANDLER_MODES}")
+        except Exception as exc:
+            logger.exception("Fatal error on processing input message")
+            self._send_json(500, _error_response("processing_error", exc))
+            return
+
+        if not frames:
+            self.send_response(204)
+            self.end_headers()
+        else:
+            self._send_json(200, {"frames": frames})
+
+    def _send_json(self, code, data):
+        """Send a JSON response with the given HTTP status code."""
+        body = json.dumps(data).encode("utf-8")
+        self.send_response(code)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
         self.end_headers()
+        self.wfile.write(body)
 
 
 def _log_env_vars():
