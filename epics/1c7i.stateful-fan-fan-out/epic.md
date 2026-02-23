@@ -36,17 +36,16 @@ Fan-in uses a **split-key pattern on S3** via the state proxy sidecar (epic 1dmf
 - [P2] Add `open(path, "x")` exclusive create mode to `asya_runtime.py`
 
 ### Layer 6: Testing
-- [P2] Integration test: fan-out/fan-in pipeline
+- `1feyz7` [P2] Integration test: fan-out/fan-in pipeline
 - `1f0ehm` [P2] E2E test: compiled flow with fan-out/fan-in on Kind cluster
 
 ## Critical Path
 ```
 1fci1o (headers) ──────────────────────────┐
-                                            ├─→ integration test
+                                            ├─→ 1feyz7 (integration)
 sink non-reporting → aggregator (S3) ──────┘
 
 parser → 1fr7i0 (codegen, simplified) ────┐
                                            ├──→ 1f0ehm (E2E)
 1fci1o + aggregator + sink ───────────────┘
-```
-now 
+``` 
