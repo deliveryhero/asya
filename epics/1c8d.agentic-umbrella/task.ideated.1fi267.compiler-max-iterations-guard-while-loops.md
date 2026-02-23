@@ -1,6 +1,6 @@
 ---
 title: "Compiler: max_iterations guard for while loops"
-priority: 2 # medium
+priority: 3 # medium
 type: task
 tags:
   - type:feature

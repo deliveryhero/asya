@@ -1,8 +1,11 @@
 ---
-title: "Agentic Flow Compiler"
+title: Agentic Flow Compiler
+status: vibed
 priority: 1 # high
 type: epic
+reason: "Superseded: compiler work done. Remaining items split to: 1irj (flow free vars & iteration), 1ia4 (streaming protocol). ADR preserved as historical reference."
 ---
+
 
 
 Extend the Asya flow compiler to support async functions with await split points, enabling compilation of agentic workflows (LLM + tools ReAct loops, sequential/parallel agent pipelines) into distributed stateless actor networks.

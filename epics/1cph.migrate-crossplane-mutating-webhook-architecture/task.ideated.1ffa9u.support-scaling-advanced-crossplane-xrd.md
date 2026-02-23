@@ -1,6 +1,6 @@
 ---
 title: Support scaling.advanced in Crossplane XRD
-priority: 2 # medium
+priority: 3 # medium
 type: task
 tags:
   - type:feature
