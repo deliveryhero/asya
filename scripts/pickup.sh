@@ -26,7 +26,7 @@ fi
 # 5. set up tmux session logging (best-effort)
 aint_path=$(git aint get "$ref" --format "{path}") &&
 epic_dir=$(dirname "$aint_path") &&
-logdir="$(pwd)/.aint/aints/$epic_dir/.tmux-logs/$task_id" &&
+logdir="$(pwd)/.aint/epics/$epic_dir/.tmux-logs/$task_id" &&
 mkdir -p "$logdir" &&
 ts=$(date -u +%Y-%m-%dT%H-%M-%S) &&
 tmux pipe-pane -o -t "$task_id" "cat >> $logdir/$ts.w0p0.log.ansi" &&
