@@ -1,6 +1,7 @@
 ---
 title: Aggregator crew actor with RocksDB
-status: open
+status: wont_do
+reason: virtual actors
 priority: 2 # medium
 type: task
 tags:
