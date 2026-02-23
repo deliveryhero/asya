@@ -1,5 +1,5 @@
 ---
-title: "Implement asya local: generate docker-compose from XRDs for local testing"
+title: "Local testing workflow in docker-compose"
 status: open
 priority: 4 # backlog
 type: task
