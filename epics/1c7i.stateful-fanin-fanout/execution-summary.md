@@ -4,7 +4,7 @@
   ┌────────┬─────┬────────────────────────────────────────────────────────────────────┬───────────────────┐
   │   ID   │  P  │                               Title                                │       Layer       │
   ├────────┼─────┼────────────────────────────────────────────────────────────────────┼───────────────────┤
-  │ 1ih5oo │ P2  │ Flow DSL: fan-out list comprehension and list literal parser       │ 3 (DSL Compiler)  │
+  │ 1ih5oo │ P2  │ Flow DSL: fan-out list comprehension and list literal parser       │ 3 (DSL Compiler)  │ - WIP
   ├────────┼─────┼────────────────────────────────────────────────────────────────────┼───────────────────┤
   │ 1isz5r │ P2  │ Sidecar: suppress gateway reporting for fan-in and fire-and-forget │ 2 (Non-Reporting) │
   ├────────┼─────┼────────────────────────────────────────────────────────────────────┼───────────────────┤

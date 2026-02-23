@@ -6,6 +6,9 @@ status=$(git aint get "$ref" --format "{status}") || exit 1
 if [ "$status" = vibed ] || [ "$status" = yeeted ]; then
   echo "error: [$ref] is already $status" >&2; exit 1
 fi
+if [ "$status" = slopped ]; then
+  echo "error: [$ref] is slopped — peep it first: git aint peep $ref" >&2; exit 1
+fi
 
 # 2. resolve branch + worktree dir + task id
 branch=$(git aint get "$ref" --format "{config:branch-pattern}") || exit 1
@@ -34,7 +37,7 @@ tmux set-hook -t "$task_id" after-new-window "pipe-pane -o \"cat >> $logdir/$ts.
 tmux set-hook -t "$task_id" after-split-window "pipe-pane -o \"cat >> $logdir/$ts.w#{window_index}p#{pane_index}.log.ansi\"" || true
 
 # 6. update aint
-git aint update "$ref" --status active --add-tag "worktree:$branch" || exit 1
+git aint update "$ref" --status afoot --add-tag "worktree:$branch" || exit 1
 
 # 7. summary
 echo ""
