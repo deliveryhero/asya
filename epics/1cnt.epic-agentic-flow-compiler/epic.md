@@ -1,9 +1,10 @@
 ---
 title: "Epic: Agentic Flow Compiler"
-status: open
+status: ideated
 priority: 1 # high
 type: epic
 ---
+
 
 Extend the Asya flow compiler to support async functions with await split points, enabling compilation of agentic workflows (LLM + tools ReAct loops, sequential/parallel agent pipelines) into distributed stateless actor networks.
 

@@ -1,9 +1,10 @@
 ---
 title: "Epic: Gateway Dynamic Tool Exposure via CLI"
-status: open
+status: ideated
 priority: 2 # medium
 type: epic
 ---
+
 
 Enable data scientists to expose compiled flows as MCP tools (and future A2A agents) via `asya expose`, with the gateway dynamically reloading tool configurations without restarts.
 

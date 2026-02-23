@@ -1,9 +1,10 @@
 ---
 title: Rename Envelope to Message across codebase
-status: open
+status: ideated
 priority: 2 # medium
 type: epic
 ---
+
 
 Rename all references from 'Envelope' to 'Message' terminology. The term 'envelope' is internal jargon - 'message' is more intuitive and aligns with industry standards. This includes code, docs, and API endpoints.
 

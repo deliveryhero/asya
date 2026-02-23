@@ -1,9 +1,10 @@
 ---
-title: "A2A Protocol Compliance for Gateway"
-status: open
+title: A2A Protocol Compliance for Gateway
+status: ideated
 priority: 1 # high
 type: epic
 ---
+
 
 Transform asya-gateway from current /envelopes/* routes to A2A-compliant /messages and /tasks/* endpoints. This enables external agents to interact with Asya actor networks using the standard Agent2Agent protocol.
 

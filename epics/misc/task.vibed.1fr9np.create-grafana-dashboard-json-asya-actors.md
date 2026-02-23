@@ -1,0 +1,61 @@
+---
+title: Create Grafana dashboard JSON for Asya actors
+priority: 2 # medium
+type: task
+tags:
+  - beads:epic:asya-ln2
+---
+
+
+
+
+
+Create pre-configured Grafana dashboard JSON files showing:
+- Actor metrics: message throughput, processing duration, active messages, error rates
+- Sidecar metrics: queue operations, runtime execution time, message sizes
+- Operator metrics: reconciliation stats
+- Gateway metrics: MCP tool calls, envelope tracking (if available)
+
+Store in deploy/grafana-dashboards/ directory. Dashboard should work with the metrics exposed by asya-sidecar at :8080/metrics.
+
+Reference existing metrics from src/asya-sidecar/internal/metrics/metrics.go and docs/architecture/observability.md.
+
+
+---
+## Notes
+
+## Work Completed
+- Created Grafana dashboard JSON: deploy/grafana-dashboards/asya-actors.json
+- Added dashboard README with installation instructions
+- Updated docs/quickstart/README.md with Grafana import steps
+- Created test cluster in /tmp/asya-grafana-test with full stack
+
+## Dashboard Features
+- Message throughput (received/processed/sent rates, active messages)
+- Performance (processing & runtime duration p50/p95/p99)
+- Errors (failures by reason, runtime errors by type)
+- Message sizes (envelope distribution)
+- Operator health (reconciliation rate/duration)
+
+## Test Setup Status
+- Kind cluster: asya-local
+- Grafana: http://localhost:3000 (admin / Ihhm0XZJyzohzN3JHGguqaa4alqAVITba0pUREaR)
+- Port-forward running (PID 166174)
+- Dashboard ready to import from worktree
+
+## Known Issues
+- Crew actors (happy-end, error-end) failing ImagePullBackOff - sidecar image not published
+- Hello actor same issue - needs ghcr.io/deliveryhero/asya-sidecar:1.0.0
+
+## PR Created
+- https://github.com/deliveryhero/asya/pull/116
+- Branch: grafana-dashboard
+- Commits: dashboard JSON + quickstart docs
+
+
+---
+**Close reason**: Closed
+
+
+---
+_Migrated from beads `asya-lwt`_

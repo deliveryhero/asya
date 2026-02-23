@@ -1,9 +1,10 @@
 ---
-title: "Handler Signature Redesign"
-status: open
+title: Handler Signature Redesign
+status: ideated
 priority: 2 # medium
 type: epic
 ---
+
 
 Redesign Asya's handler signatures to support typed parameters, output key naming, local variable serialization, and framework-compatible tool definitions. Message metadata access via a virtual filesystem at `/tmp/msg/`.
 

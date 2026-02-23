@@ -1,9 +1,10 @@
 ---
 title: Agentic - Umbrella
-status: open
+status: ideated
 priority: 2 # medium
 type: epic
 ---
+
 
 Enable Asya framework to natively support agentic use-cases, facilitating migration from orchestrator-based frameworks (Google ADK, CrewAI, DSPy, Agno, BeeAI, Strands SDK, OpenAI Agents) to choreography-based Asya.
 

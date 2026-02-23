@@ -1,9 +1,10 @@
 ---
 title: Redesign Protocol Sidecar-Runtime
-status: open
+status: ideated
 priority: 2 # medium
 type: epic
 ---
+
 
 Replace the custom binary framing protocol between sidecar (Go) and runtime (Python) with **HTTP over Unix socket**. This enables streaming responses for generator handlers, standard error semantics, debuggability with curl, and future TCP mode for local testing.
 

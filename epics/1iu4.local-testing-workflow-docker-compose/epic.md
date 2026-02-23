@@ -1,9 +1,10 @@
 ---
 title: Local testing workflow in docker-compose
-status: open
+status: ideated
 priority: 2 # medium
 type: epic
 ---
+
 
 Ideas:
 - use existing XRD + handlers code, generate docker compose, run runtime containers, maybe even run sidecar containers for routing (similar to integration tests setup)

@@ -1,10 +1,10 @@
 ---
 title: Seamless experimentation image building
-status: open
+status: ideated
 priority: 2 # medium
 type: epic
-dependencies: []
 ---
+
 
 
 ## Problem Statement

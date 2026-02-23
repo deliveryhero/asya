@@ -1,9 +1,10 @@
 ---
-title: "Binary Protocol (TLV + Marshal) for Message Serialization"
-status: open
-priority: 3
+title: Binary Protocol (TLV + Marshal) for Message Serialization
+status: ideated
+priority: 3 # low
 type: epic
 ---
+
 
 This epic covers the design and implementation of a binary messaging protocol between the Go sidecar and Python runtime, replacing JSON with a TLV (Type-Length-Value) framing scheme combined with Python's built-in `marshal` module. The goal is to eliminate double deserialization, achieve near-native Python object creation speeds, and maintain the "zero pip" constraint by relying solely on the Python standard library.
 

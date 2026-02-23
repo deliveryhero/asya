@@ -1,9 +1,10 @@
 ---
-title: "Actor Warm-Up Pattern for Scale-to-Zero Validation"
-status: open
-priority: 4
+title: Actor Warm-Up Pattern for Scale-to-Zero Validation
+status: ideated
+priority: 4 # backlog
 type: epic
 ---
+
 
 KEDA scale-to-zero can mask broken actors: a misconfigured AsyncActor scales down before it ever runs, appearing healthy until the first real message triggers a CrashLoopBackOff. This epic explores a warm-up pattern that forces at least one successful pod start (probes passing, sidecar connected) before allowing `minReplicas=0`, ensuring the "Napping" status genuinely reflects a working actor.
 

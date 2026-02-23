@@ -1,9 +1,10 @@
 ---
 title: Stateful Fan-In/Fan-Out
-status: open
+status: ideated
 priority: 2 # medium
 type: epic
 ---
+
 
 ## Summary
 Implement dynamic fan-out and CDC-based fan-in for parallel sub-agent execution.

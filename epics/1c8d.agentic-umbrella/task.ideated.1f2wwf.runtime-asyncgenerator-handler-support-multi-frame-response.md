@@ -1,0 +1,51 @@
+---
+title: "Runtime: AsyncGenerator handler support (multi-frame response)"
+priority: 1 # high
+type: task
+tags:
+  - type:feature
+---
+
+
+
+
+
+
+
+Add AsyncGenerator handler support to asya_runtime.py. When the handler is an async generator, iterate it and send multiple frames to the sidecar.
+
+## Changes
+
+### asya_runtime.py
+- Detect async generator: inspect.isasyncgenfunction(handler)
+- Iterate generator: async for event in handler(payload)
+- For each intermediate yield: send streaming frame to sidecar
+- For final yield (last event): send result frame to sidecar
+- Convention: last yield = control event (goes to queue), all others = streaming events (go to HTTP)
+
+### Wire Protocol
+Current: single JSON frame per invocation
+New: multiple frames per invocation
+
+Frame format:
+- Streaming: {"type": "stream", "data": <event_dict>}
+- Result: {"type": "result", "data": <payload_dict>}
+
+The sidecar reads frames until it receives a "result" frame.
+
+## Dependencies
+- Depends on: Runtime async handler execution (asyncio.run support)
+- Depends on: Sidecar multi-frame protocol support
+
+## Test Plan
+- Unit test: async generator yields 3 streaming events + 1 result
+- Unit test: plain async handler still works (single frame)
+- Unit test: sync handler still works (single frame)
+
+## References
+- RFC: docs/rfc/agentic-compiler/agentic-compiler-rfc.md Section 10.2-10.3
+- Option B convention (last yield = control event)
+
+
+---
+_Migrated from beads `asya-cx34`_

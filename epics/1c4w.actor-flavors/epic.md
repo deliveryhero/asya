@@ -1,9 +1,10 @@
 ---
-title: "Actor Flavors"
-status: open
+title: Actor Flavors
+status: ideated
 priority: 2 # medium
 type: epic
 ---
+
 
 Implement actor flavors as composable configuration presets using Crossplane EnvironmentConfigs and a custom Composition Function (function-asya-flavors). See RFC: docs/rfc/actor-flavors/rfc-actor-flavors.md
 

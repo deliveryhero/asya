@@ -1,9 +1,10 @@
 ---
 title: Stateful Actors — Transparent State Access
-status: open
+status: ideated
 priority: 2 # medium
 type: epic
 ---
+
 
 # Design doc
 
