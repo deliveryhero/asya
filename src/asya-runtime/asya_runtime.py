@@ -42,6 +42,7 @@ Socket Configuration:
 
 import asyncio
 import contextlib
+import http.server
 import importlib
 import inspect
 import json
@@ -536,6 +537,46 @@ def _handle_envelope_mode_streaming(conn: socket.socket, message: dict, user_fun
                     input_route=message["route"],
                 )
             _send_frame(conn, result)
+
+
+class _UnixHTTPServer(http.server.HTTPServer):
+    """HTTP server that listens on a Unix domain socket."""
+
+    address_family = socket.AF_UNIX
+
+    def server_bind(self):
+        with contextlib.suppress(OSError):
+            os.unlink(self.server_address)
+        self.socket.bind(self.server_address)
+        self.server_address = self.socket.getsockname()
+        self.server_name = "asya-runtime"
+        self.server_port = 0
+        if ASYA_SOCKET_CHMOD:
+            mode = int(ASYA_SOCKET_CHMOD, 8)
+            os.chmod(self.server_address, mode)
+        logger.info(f"HTTP server bound to {self.server_address}")
+
+    def server_close(self):
+        super().server_close()
+        with contextlib.suppress(OSError):
+            os.unlink(self.server_address)
+
+
+class _InvokeHandler(http.server.BaseHTTPRequestHandler):
+    """HTTP request handler for POST /invoke."""
+
+    def address_string(self):
+        return "unix-client"
+
+    def log_message(self, format, *args):  # noqa: A002
+        logger.debug(format, *args)
+
+    def do_POST(self):  # noqa: N802
+        if self.path != "/invoke":
+            self.send_error(404)
+            return
+        self.send_response(501)
+        self.end_headers()
 
 
 def _log_env_vars():

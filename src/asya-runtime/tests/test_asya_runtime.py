@@ -20,7 +20,21 @@ import pytest
 # Add parent directory to path to import asya_runtime functions
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+import http.client as http_client
+
 import asya_runtime
+
+
+class _UnixHTTPConnection(http_client.HTTPConnection):
+    """HTTP connection over Unix socket for testing."""
+
+    def __init__(self, socket_path):
+        super().__init__("localhost")
+        self._socket_path = socket_path
+
+    def connect(self):
+        self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        self.sock.connect(self._socket_path)
 
 
 @pytest.fixture
@@ -82,6 +96,51 @@ def socket_pair():
     finally:
         server_sock.close()
         client_sock.close()
+
+
+@pytest.fixture
+def runtime_invoke(tmp_path):
+    """Invoke a handler via HTTP runtime server and return (frames_or_error, status_code).
+
+    Returns:
+        For 200: (list[dict], 200) — list of response frames
+        For 204: ([], 204) — abort (handler returned None)
+        For 4xx/5xx: (dict, status) — error response body
+    """
+    call_count = [0]
+
+    def _invoke(user_func, message):
+        call_count[0] += 1
+        socket_path = str(tmp_path / f"rt-{call_count[0]}.sock")
+        server = asya_runtime._UnixHTTPServer(socket_path, asya_runtime._InvokeHandler)
+        server.user_func = user_func
+
+        thread = threading.Thread(target=server.handle_request)
+        thread.start()
+
+        conn = _UnixHTTPConnection(socket_path)
+        body = json.dumps(message).encode("utf-8")
+        conn.request(
+            "POST",
+            "/invoke",
+            body=body,
+            headers={"Content-Type": "application/json"},
+        )
+        resp = conn.getresponse()
+        status = resp.status
+        raw = resp.read()
+        conn.close()
+        thread.join(timeout=5)
+        server.server_close()
+
+        if status == 204:
+            return [], status
+        data = json.loads(raw)
+        if status == 200:
+            return data["frames"], status
+        return data, status
+
+    return _invoke
 
 
 def _test_recv_exact(sock, n: int) -> bytes:
@@ -2725,3 +2784,29 @@ class TestAsyncHandlers:
 
         assert len(responses) == 1
         assert responses[0]["headers"] == {"trace_id": "abc", "priority": "high"}
+
+
+class TestHTTPServer:
+    """Test HTTP server infrastructure."""
+
+    def test_server_binds_to_unix_socket(self, tmp_path):
+        socket_path = str(tmp_path / "test.sock")
+        server = asya_runtime._UnixHTTPServer(socket_path, asya_runtime._InvokeHandler)
+        assert os.path.exists(socket_path)
+        server.server_close()
+        assert not os.path.exists(socket_path)
+
+    def test_server_removes_existing_socket(self, tmp_path):
+        socket_path = str(tmp_path / "test.sock")
+        Path(socket_path).touch()
+        server = asya_runtime._UnixHTTPServer(socket_path, asya_runtime._InvokeHandler)
+        assert os.path.exists(socket_path)
+        server.server_close()
+
+    def test_server_chmod(self, tmp_path, mock_env):
+        with mock_env(ASYA_SOCKET_CHMOD="0o600"):
+            socket_path = str(tmp_path / "chmod.sock")
+            server = asya_runtime._UnixHTTPServer(socket_path, asya_runtime._InvokeHandler)
+            mode = os.stat(socket_path).st_mode & 0o777
+            assert mode == 0o600
+            server.server_close()
