@@ -38,12 +38,29 @@ class WeatherResult(BaseModel):
     temperature: float
     description: str
 
-async def get_weather(req: WeatherRequest) -> WeatherResult:
-    data = await weather_api.fetch(req.city, req.units)
+async def get_weather(request: WeatherRequest) -> WeatherResult:
+    data = await weather_api.fetch(request.city, request.units)
     return WeatherResult(temperature=data.temp, description=data.desc)
 ```
 
-Deployed with `ASYA_HANDLER_INPUT=/` and `ASYA_HANDLER_OUTPUT=/weather`, the runtime extracts `city` and `units` from payload root, calls the handler, and merges the result into `payload["weather"]`.
+Deployed with `ASYA_HANDLER_INPUT=/` and `ASYA_HANDLER_OUTPUT=/weather`, the runtime receives payload:
+```json
+{"request": {"city": "New York", "units": "metric"}}
+```
+extracts `request` from payload root (by parameter name), calls the handler, and merges the result into `payload["weather"]`:
+```json
+{"request": {"city": "New York", "units": "metric"}, "weather": {"temperature": 70, "description": "good weather"}}
+```
+
+
+Or even primitive types (same request/response when deployed with `ASYA_HANDLER_INPUT=/request` and `ASYA_HANDLER_OUTPUT=/weather`):
+
+```python
+async def get_weather(city: str, units: str = "metric") -> float:
+    data = await weather_api.fetch(city, units)
+    return data.temp
+```
+
 
 #### Non-goals
 
@@ -313,7 +330,9 @@ async def summarize(input: TextInput) -> TextOutput:
     return TextOutput(summary=result.text, token_count=result.tokens)
 ```
 
-- Single Pydantic parameter: runtime calls `TextInput.model_validate(subtree)` where `subtree` is the dict at the input path.
+- Parameter `input` is extracted by name from the input subtree: `subtree["input"]`, then deserialized via `TextInput.model_validate()`.
+- With `ASYA_HANDLER_INPUT=/`, payload must contain `{"input": {"text": "...", ...}}`.
+- With `ASYA_HANDLER_INPUT=/context`, payload must contain `{"context": {"input": {"text": "...", ...}}}`.
 - Pydantic validation errors are returned as `processing_error` with the validation detail.
 
 #### 6.5 Multiple typed parameters
@@ -366,7 +385,8 @@ def process(data: InputData) -> OutputData:
     return {"result": "ok", "score": 0.95}
 ```
 
-- TypedDicts are dicts at runtime -- no deserialization needed.
+- Parameter `data` extracted by name from input subtree: `subtree["data"]`.
+- TypedDicts are dicts at runtime -- no deserialization needed, direct pass-through.
 - Provides IDE autocompletion and type checker support without runtime overhead.
 
 #### 6.8 Class-based handler with typed method
@@ -452,11 +472,31 @@ Type annotations enable automatic JSON schema generation for gateway tool exposu
 At handler load time, the runtime can generate a JSON schema from the handler's input parameters and return type. This schema is made available to the gateway for MCP `tools/list` responses.
 
 ```python
-# Handler:
+# Handler with Pydantic model param:
+async def get_weather(request: WeatherRequest) -> WeatherResult:
+    ...
+
+# Generated input schema (from param "request" -> WeatherRequest):
+{
+  "type": "object",
+  "properties": {
+    "request": {
+      "type": "object",
+      "properties": {
+        "city": {"type": "string"},
+        "units": {"type": "string", "default": "metric"}
+      },
+      "required": ["city"]
+    }
+  },
+  "required": ["request"]
+}
+
+# Handler with primitive params:
 async def get_weather(city: str, units: str = "metric") -> WeatherResult:
     ...
 
-# Generated input schema:
+# Generated input schema (from individual params):
 {
   "type": "object",
   "properties": {
@@ -466,7 +506,7 @@ async def get_weather(city: str, units: str = "metric") -> WeatherResult:
   "required": ["city"]
 }
 
-# Generated output schema (from WeatherResult):
+# Generated output schema (from WeatherResult, same for both):
 {
   "type": "object",
   "properties": {
@@ -527,7 +567,9 @@ This is a future integration point -- the initial implementation focuses on the 
 - **Payload mode** (default): `ASYA_HANDLER_INPUT` / `ASYA_HANDLER_OUTPUT` apply to the payload dict.
 - **Envelope mode**: Not supported with typed signatures. If `ASYA_HANDLER_MODE=envelope` and the handler has typed parameters (not single `dict`), the runtime raises a startup error. Envelope mode is being phased out by epic 1ixt.
 
-#### Deployment example
+#### Deployment examples
+
+**Pydantic model parameter** (`ASYA_HANDLER_INPUT=/`, param name does the key lookup):
 
 ```yaml
 apiVersion: asya.dev/v1alpha1
@@ -537,7 +579,42 @@ metadata:
 spec:
   image: my-handlers:latest
   transport: sqs
-  handler: handlers.weather.get_weather
+  handler: handlers.weather.get_weather  # get_weather(request: WeatherRequest)
+  env:
+    - name: ASYA_HANDLER_OUTPUT
+      value: "/weather"
+    # ASYA_HANDLER_INPUT defaults to "/" -- param name "request" selects payload["request"]
+```
+
+Payload flow:
+```
+Input:  {"request": {"city": "Tokyo", "units": "metric"}, "session_id": "abc"}
+                          |
+                    extract param "request" from /
+                    -> payload["request"] = {"city": "Tokyo", "units": "metric"}
+                    -> WeatherRequest.model_validate({"city": "Tokyo", "units": "metric"})
+                          |
+               get_weather(request=WeatherRequest(city="Tokyo", units="metric"))
+                          |
+                    WeatherResult(temperature=22.5, description="Clear")
+                          |
+                    merge .model_dump() into /weather
+                          |
+Output: {"request": {"city": "Tokyo", "units": "metric"}, "session_id": "abc",
+         "weather": {"temperature": 22.5, "description": "Clear"}}
+```
+
+**Primitive parameters** (same payload, `ASYA_HANDLER_INPUT=/request` to navigate into the subtree):
+
+```yaml
+apiVersion: asya.dev/v1alpha1
+kind: AsyncActor
+metadata:
+  name: weather-actor
+spec:
+  image: my-handlers:latest
+  transport: sqs
+  handler: handlers.weather.get_weather  # get_weather(city: str, units: str = "metric")
   env:
     - name: ASYA_HANDLER_INPUT
       value: "/request"
@@ -549,16 +626,19 @@ Payload flow:
 ```
 Input:  {"request": {"city": "Tokyo", "units": "metric"}, "session_id": "abc"}
                           |
-                    extract from /request
+                    navigate to /request subtree
+                    -> {"city": "Tokyo", "units": "metric"}
+                    extract param "city" -> "Tokyo"
+                    extract param "units" -> "metric"
                           |
                get_weather(city="Tokyo", units="metric")
                           |
-                    WeatherResult(temperature=22.5, description="Clear")
+                    result: 22.5 (float)
                           |
-                    merge into /weather
+                    write scalar at /weather
                           |
 Output: {"request": {"city": "Tokyo", "units": "metric"}, "session_id": "abc",
-         "weather": {"temperature": 22.5, "description": "Clear"}}
+         "weather": 22.5}
 ```
 
 ---
@@ -573,8 +653,8 @@ Existing handlers with `payload: dict` signature continue to work without any mo
 |---|---|---|---|
 | `def f(payload: dict) -> dict` | ignored | ignored | Full payload in, full payload out (current behavior) |
 | `def f(payload: dict)` | ignored | ignored | Full payload in, None return = abort |
-| `def f(text: str) -> dict` | applied | applied | Extract `text`, merge return dict |
-| `def f(req: MyModel) -> MyModel` | applied | applied | Validate + extract, serialize + merge |
+| `def f(text: str) -> dict` | applied | applied | Extract `subtree["text"]` by param name, merge return dict |
+| `def f(req: MyModel) -> MyModel` | applied | applied | Extract `subtree["req"]`, validate via `model_validate()`, serialize + merge |
 
 #### Migration path
 
