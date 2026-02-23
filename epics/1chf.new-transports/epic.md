@@ -1,5 +1,5 @@
 ---
-title: Support new message transports
+title: New transports
 status: open
 priority: 3 # low
 type: epic

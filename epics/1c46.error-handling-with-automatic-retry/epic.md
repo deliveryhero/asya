@@ -1,5 +1,5 @@
 ---
-title: "Epic: Native Error Handling with Automatic Retry"
+title: "Error Handling with Automatic Retry"
 status: open
 priority: 1 # high
 type: epic
