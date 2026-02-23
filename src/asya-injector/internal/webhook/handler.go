@@ -359,17 +359,22 @@ func (h *Handler) mutateAsyncActor(_ context.Context, req *admissionv1.Admission
 	}
 }
 
+// jsonPatchOp represents a single RFC 6902 JSON Patch operation.
+type jsonPatchOp struct {
+	Op    string `json:"op"`
+	Path  string `json:"path"`
+	Value any    `json:"value"`
+}
+
 // buildActorLabelPatch creates an RFC 6902 JSON Patch to set the asya.sh/actor label.
 // Handles both cases: labels map missing entirely, or label needs add/replace.
 func buildActorLabelPatch(existingLabels map[string]string, actorName string) ([]byte, error) {
-	valueBytes, err := json.Marshal(actorName)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal actor name: %w", err)
-	}
-	value := string(valueBytes)
-
 	if existingLabels == nil {
-		return fmt.Appendf(nil, `[{"op":"add","path":"/metadata/labels","value":{"asya.sh/actor":%s}}]`, value), nil
+		return json.Marshal([]jsonPatchOp{{
+			Op:    "add",
+			Path:  "/metadata/labels",
+			Value: map[string]string{LabelActor: actorName},
+		}})
 	}
 
 	// RFC 6902: "/" in JSON Pointer path is escaped as "~1"
@@ -377,5 +382,9 @@ func buildActorLabelPatch(existingLabels map[string]string, actorName string) ([
 	if _, exists := existingLabels[LabelActor]; exists {
 		op = "replace"
 	}
-	return fmt.Appendf(nil, `[{"op":"%s","path":"/metadata/labels/asya.sh~1actor","value":%s}]`, op, value), nil
+	return json.Marshal([]jsonPatchOp{{
+		Op:    op,
+		Path:  "/metadata/labels/asya.sh~1actor",
+		Value: actorName,
+	}})
 }
