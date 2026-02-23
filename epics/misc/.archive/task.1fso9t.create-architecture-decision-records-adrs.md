@@ -1,6 +1,7 @@
 ---
 title: Create Architecture Decision Records (ADRs)
-status: open
+status: wont_do
+reason: ADRs are now embedded into epic aints
 priority: 3 # low
 type: task
 ---

@@ -1,6 +1,7 @@
 ---
 title: "Research: SigNoz as alternative to Prometheus/Grafana for observability"
-status: open
+status: wont_do
+reason: not cncf-native
 priority: 3 # low
 type: task
 tags:

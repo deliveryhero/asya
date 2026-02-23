@@ -1,5 +1,5 @@
 ---
-title: Agentic Asya
+title: Agentic - Umbrella
 status: open
 priority: 2 # medium
 type: epic

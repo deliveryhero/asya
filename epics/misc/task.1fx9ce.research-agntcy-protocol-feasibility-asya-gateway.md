@@ -1,7 +1,7 @@
 ---
 title: Research AGNTCY protocol feasibility for Asya Gateway
 status: open
-priority: 3 # low
+priority: 4
 type: task
 ---
 

@@ -1,6 +1,7 @@
 ---
 title: "Design: Binary protocol for sidecar-runtime communication"
-status: open
+status: wont_do
+reason: will better implement http over unix
 priority: 2 # medium
 type: task
 tags:

@@ -1,6 +1,6 @@
 ---
 title: Implement function-asya-flavors Composition Function
-status: open
+status: done
 priority: 2 # medium
 type: task
 tags:
