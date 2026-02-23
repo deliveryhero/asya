@@ -1,0 +1,9 @@
+---
+title: "Runtime: 503 readiness response during handler loading"
+priority: 2 # medium
+type: task
+dependencies:
+  - 1fbe/1iof6x
+---
+
+Implement HTTP 503 Service Unavailable response when the runtime HTTP server is up but the handler is not yet loaded. With binary framing, the runtime blocks on socket accept until ready. With HTTP, the server starts immediately and must signal not-ready to the sidecar. Sidecar retries with backoff on 503.
