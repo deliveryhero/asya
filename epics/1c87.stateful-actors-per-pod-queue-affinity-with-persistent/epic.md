@@ -1,9 +1,10 @@
 ---
-title: "Stateful Actors — Per-Pod Queue Affinity with Persistent Storage"
-status: open
-priority: 2
+title: Stateful Actors — Per-Pod Queue Affinity with Persistent Storage
+status: wont_do
+priority: 2 # medium
 type: epic
 ---
+
 
 Stateful actors are the foundation for fan-in aggregation and other shard-affine workloads in Asya. This epic introduces StatefulSet-based pods where each pod consumes from its own dedicated queue, enabling deterministic message routing via rendezvous hashing. Persistent storage is provided through standard K8s `volumeClaimTemplates`, and shard resolution is handled externally by the sender using existing `x-asya-route-override` headers.
 
