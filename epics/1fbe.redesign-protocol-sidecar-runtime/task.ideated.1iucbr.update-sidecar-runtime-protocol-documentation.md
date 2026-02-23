@@ -3,8 +3,9 @@ title: Update sidecar-runtime protocol documentation
 priority: 3 # low
 type: task
 dependencies:
-  - 1fbe/1in0hv
+  - 1ia4/1in0hv
 ---
+
 
 Update protocol documentation to reflect the new HTTP-over-Unix-socket design.
 

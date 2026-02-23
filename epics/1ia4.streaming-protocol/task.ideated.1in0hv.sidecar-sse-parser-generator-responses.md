@@ -8,6 +8,7 @@ dependencies:
 ---
 
 
+
 Add SSE stream parser to sidecar HTTP client for generator handler responses.
 
 Scope:
