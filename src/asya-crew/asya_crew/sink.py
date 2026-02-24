@@ -10,7 +10,6 @@ Architecture:
         | route exhausted
         v
     x-sink [role=sink]
-        |-- Reports final status to gateway
         |-- Routes to hooks: [checkpoint-s3, notify-slack, ...]
              |
              v
@@ -25,14 +24,19 @@ Environment Variables:
 - ASYA_ENABLE_VALIDATION: Validation flag (MUST be "false")
 - ASYA_SINK_HOOKS: Comma-separated list of hook actor names (optional)
                    Example: "checkpoint-s3,notify-slack"
+- ASYA_SINK_FANOUT_HOOKS: When "true", run hooks even for fire-and-forget fan-out children
+                           (messages with parent_id set but no x-asya-fan-in header).
+                           Default: "false" — fan-out children skip hooks silently.
 - ASYA_S3_BUCKET: S3/MinIO bucket for persistence (optional, enables inline S3 persistence)
 
 Message Structure:
     {
         "id": "<message-id>",
+        "parent_id": "<original-message-id>",  // optional, for fanout children
         "route": {"actors": [...], "current": N},
+        "headers": {"x-asya-fan-in": "aggregator", ...},  // optional
         "status": {
-            "phase": "succeeded" | "failed",
+            "phase": "<any phase>",  // any value accepted
             "actor": "<actor-name>",
             ...
         },
@@ -40,9 +44,12 @@ Message Structure:
     }
 
 Handler Behavior:
-- Validates status.phase is "succeeded" or "failed"
-- If ASYA_SINK_HOOKS is set: routes message to hooks by setting route.actors
-- If no hooks: returns empty dict (message passes to sump directly)
+- Accepts any status.phase value (no strict validation)
+- Fire-and-forget fan-out children (parent_id set, no x-asya-fan-in header): skip hooks by default
+  unless ASYA_SINK_FANOUT_HOOKS=true
+- Fan-in partials (x-asya-fan-in header): always run hooks (aggregation handled by caller)
+- If ASYA_SINK_HOOKS is set and hooks should run: routes message to hooks by setting route.actors
+- If no hooks (or hooks skipped): returns empty dict (message passes to sump directly)
 - The sidecar automatically routes to the configured sink actor (x-sump)
 """
 
@@ -57,6 +64,7 @@ logger = logging.getLogger(__name__)
 ASYA_HANDLER_MODE = (os.getenv("ASYA_HANDLER_MODE") or "payload").lower()
 ASYA_ENABLE_VALIDATION = os.getenv("ASYA_ENABLE_VALIDATION", "true").lower() == "true"
 ASYA_SINK_HOOKS = os.getenv("ASYA_SINK_HOOKS", "")
+ASYA_SINK_FANOUT_HOOKS = os.getenv("ASYA_SINK_FANOUT_HOOKS", "false").lower() == "true"
 ASYA_S3_BUCKET = os.getenv("ASYA_S3_BUCKET", "")
 
 if ASYA_HANDLER_MODE != "envelope":
@@ -75,17 +83,17 @@ def sink_handler(message: dict[str, Any]) -> dict[str, Any]:
     """
     Sink handler for message termination.
 
-    Processes messages that have completed their route (success or failure).
-    Reports final status to gateway and optionally routes to hooks.
+    Processes messages that have completed their route (any phase).
+    Optionally routes to hooks; suppresses hooks for fire-and-forget fan-out children.
 
     Args:
         message: Complete message with id, route, status, payload
 
     Returns:
-        Message with updated route if hooks configured, empty dict otherwise
+        Message with updated route if hooks configured and applicable, empty dict otherwise
 
     Raises:
-        ValueError: If message is missing required fields or has invalid status.phase
+        ValueError: If message is missing required fields
     """
     if not isinstance(message, dict):
         raise ValueError(f"Message must be a dict, got {type(message).__name__}")
@@ -101,11 +109,13 @@ def sink_handler(message: dict[str, Any]) -> dict[str, Any]:
         raise ValueError(f"Message status must be a dict, got {type(status).__name__}")
 
     phase = status.get("phase")
-    if phase not in ("succeeded", "failed"):
-        raise ValueError(f"Invalid status.phase: {phase!r}. Must be 'succeeded' or 'failed'")
+    has_fan_in = bool((message.get("headers") or {}).get("x-asya-fan-in"))
+    has_parent_id = message.get("parent_id") is not None
 
     message_id = message["id"]
-    logger.info(f"Processing sink for message {message_id}, phase={phase}")
+    logger.info(
+        f"Processing sink for message {message_id}, phase={phase}, fan_in={has_fan_in}, parent_id={has_parent_id}"
+    )
 
     if ASYA_S3_BUCKET:
         try:
@@ -114,6 +124,12 @@ def sink_handler(message: dict[str, Any]) -> dict[str, Any]:
             checkpoint_handler(message)
         except Exception as e:
             logger.error(f"S3 persistence failed for message {message_id}: {e}")
+
+    # Fire-and-forget fan-out children: skip hooks unless ASYA_SINK_FANOUT_HOOKS=true.
+    # Fan-in partials (x-asya-fan-in header) always run hooks.
+    if has_parent_id and not has_fan_in and not ASYA_SINK_FANOUT_HOOKS:
+        logger.info(f"Fan-out child (parent_id set), skipping hooks for message {message_id}")
+        return {}
 
     if ASYA_SINK_HOOKS:
         hooks = [h.strip() for h in ASYA_SINK_HOOKS.split(",") if h.strip()]

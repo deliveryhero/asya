@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 @pytest.fixture(autouse=True)
 def setup_test_env():
     """Set up test environment before each test."""
-    for key in ["ASYA_SINK_HOOKS", "ASYA_S3_BUCKET"]:
+    for key in ["ASYA_SINK_HOOKS", "ASYA_SINK_FANOUT_HOOKS", "ASYA_S3_BUCKET"]:
         if key in os.environ:
             del os.environ[key]
 
@@ -31,7 +31,7 @@ def setup_test_env():
 
     yield
 
-    for key in ["ASYA_SINK_HOOKS", "ASYA_S3_BUCKET"]:
+    for key in ["ASYA_SINK_HOOKS", "ASYA_SINK_FANOUT_HOOKS", "ASYA_S3_BUCKET"]:
         if key in os.environ:
             del os.environ[key]
 
@@ -239,15 +239,84 @@ def test_invalid_status_type():
     logger.info("=== test_invalid_status_type: PASSED ===")
 
 
-def test_invalid_phase():
-    """Test sink handler with invalid phase raises ValueError."""
-    logger.info("=== test_invalid_phase ===")
+def test_non_terminal_phase_accepted():
+    """Test sink handler accepts any status.phase (not just 'succeeded'/'failed')."""
+    logger.info("=== test_non_terminal_phase_accepted ===")
+
+    if "asya_crew.sink" in sys.modules:
+        del sys.modules["asya_crew.sink"]
 
     from asya_crew.sink import sink_handler
 
     message = {"id": "test-message", "status": {"phase": "processing"}}
 
-    with pytest.raises(ValueError, match="Invalid status.phase"):
-        sink_handler(message)
+    result = sink_handler(message)
+    # Non-terminal phase with no hooks: pass through to sump
+    assert result == {}
+    logger.info("=== test_non_terminal_phase_accepted: PASSED ===")
 
-    logger.info("=== test_invalid_phase: PASSED ===")
+
+def test_fan_out_child_skips_hooks():
+    """Fire-and-forget fan-out child: parent_id set → skip hooks, return {}."""
+    os.environ["ASYA_SINK_HOOKS"] = "checkpoint-s3"
+
+    if "asya_crew.sink" in sys.modules:
+        del sys.modules["asya_crew.sink"]
+
+    from asya_crew.sink import sink_handler
+
+    message = {
+        "id": "test-fanout-child",
+        "parent_id": "test-parent",
+        "status": {"phase": "succeeded"},
+        "payload": {"result": 1},
+    }
+
+    result = sink_handler(message)
+    assert result == {}  # hooks skipped for fan-out child
+    logger.info("=== test_fan_out_child_skips_hooks: PASSED ===")
+
+
+def test_fan_out_child_runs_hooks_when_enabled():
+    """Fire-and-forget fan-out child: ASYA_SINK_FANOUT_HOOKS=true → run hooks."""
+    os.environ["ASYA_SINK_HOOKS"] = "checkpoint-s3"
+    os.environ["ASYA_SINK_FANOUT_HOOKS"] = "true"
+
+    if "asya_crew.sink" in sys.modules:
+        del sys.modules["asya_crew.sink"]
+
+    from asya_crew.sink import sink_handler
+
+    message = {
+        "id": "test-fanout-hooks",
+        "parent_id": "test-parent",
+        "status": {"phase": "succeeded"},
+        "payload": {"result": 1},
+    }
+
+    result = sink_handler(message)
+    assert result["route"] == {"actors": ["checkpoint-s3"], "current": 0}
+    logger.info("=== test_fan_out_child_runs_hooks_when_enabled: PASSED ===")
+    os.environ.pop("ASYA_SINK_FANOUT_HOOKS", None)
+
+
+def test_fan_in_partial_runs_hooks():
+    """Fan-in partial: x-asya-fan-in header → always run hooks (sidecar suppresses gateway)."""
+    os.environ["ASYA_SINK_HOOKS"] = "checkpoint-s3"
+
+    if "asya_crew.sink" in sys.modules:
+        del sys.modules["asya_crew.sink"]
+
+    from asya_crew.sink import sink_handler
+
+    message = {
+        "id": "test-fanin",
+        "headers": {"x-asya-fan-in": "aggregator"},
+        "status": {"phase": "partial"},
+        "payload": {"shard": 1},
+    }
+
+    result = sink_handler(message)
+    # Fan-in with hooks: still routes to hooks
+    assert result["route"] == {"actors": ["checkpoint-s3"], "current": 0}
+    logger.info("=== test_fan_in_partial_runs_hooks: PASSED ===")
