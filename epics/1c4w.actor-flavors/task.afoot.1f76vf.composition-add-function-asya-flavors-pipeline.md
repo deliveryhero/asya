@@ -2,7 +2,11 @@
 title: "Composition: Add function-asya-flavors to pipeline"
 priority: 2 # medium
 type: task
+tags:
+  - worktree:.worktrees/1c4w/1f76vf.composition-add-function-asya-flavors-pipeline
+  - branch:1c4w/1f76vf.composition-add-function-asya-flavors-pipeline
 ---
+
 
 
 
