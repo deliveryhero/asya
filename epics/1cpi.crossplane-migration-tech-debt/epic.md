@@ -1,5 +1,5 @@
 ---
-title: "Migrate to Crossplane: migration tech debt"
+title: "Crossplane Migration: tech debt"
 priority: 1 # high
 type: epic
 ---
