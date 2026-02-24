@@ -156,3 +156,22 @@ curl --unix-socket /var/run/asya/asya-runtime.sock http://localhost/healthz
 |----------|---------|-------------|
 | `ASYA_RUNTIME_TIMEOUT` | `5m` | Processing timeout per message |
 | `ASYA_ACTOR_NAME` | (required) | Actor name for queue consumption |
+
+## Best Practices
+
+### For Handler Authors
+
+1. **Monitor processing time** — return early if approaching the timeout limit; the sidecar will crash the pod on `DeadlineExceeded`, so a graceful early return is preferable.
+2. **Use context managers** for resource cleanup (file handles, HTTP clients, DB connections) so teardown happens even when exceptions occur.
+3. **Return `None` to abort** — handlers returning `None` produce a `204` response, which routes the message to `x-sink` without an error. Use this for intentional pipeline exits, not errors.
+4. **Avoid global mutable state** that leaks across requests; class handlers share the instance, so thread-safety matters for concurrent runtimes.
+5. **Let exceptions propagate** — the runtime catches all unhandled exceptions and returns `processing_error` with a full traceback. Wrapping everything in a bare `except` hides bugs.
+6. **Use structured logging** — log at `DEBUG` during normal processing so `ASYA_LOG_LEVEL=DEBUG` gives full trace without changing code.
+
+### For Operators
+
+1. **Tune `ASYA_RUNTIME_TIMEOUT`** to balance task duration against responsiveness; short timeouts cause false crashes on slow model inference.
+2. **Monitor `x-sump` queue depth** — a growing sump queue signals systematic handler errors or timeout spikes.
+3. **Size container memory** for peak model/data size, not average; OOM kills look like pod crashes and are hard to distinguish from timeout crashes without metrics.
+4. **Use `GET /healthz`** as the Kubernetes readiness probe target — it becomes available only after the handler is fully loaded, so the pod never receives traffic while still initialising.
+5. **Test failure modes in staging** before production: inject bad payloads, simulate timeouts, and verify messages land in `x-sump` rather than disappearing silently.
