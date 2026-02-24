@@ -94,6 +94,19 @@ func (c *ResultConsumer) processMessage(ctx context.Context, msg queue.QueueMess
 			Metadata map[string]interface{} `json:"metadata"`
 		} `json:"route"`
 		Payload map[string]interface{} `json:"payload"` // Result payload
+		Status  struct {
+			Phase       string `json:"phase,omitempty"`
+			Reason      string `json:"reason,omitempty"`
+			Actor       string `json:"actor,omitempty"`
+			Attempt     int    `json:"attempt,omitempty"`
+			MaxAttempts int    `json:"max_attempts,omitempty"`
+			Error       *struct {
+				Type      string   `json:"type,omitempty"`
+				MRO       []string `json:"mro,omitempty"`
+				Message   string   `json:"message,omitempty"`
+				Traceback string   `json:"traceback,omitempty"`
+			} `json:"error,omitempty"`
+		} `json:"status,omitempty"`
 	}
 
 	if err := json.Unmarshal(msg.Body(), &parsedMsg); err != nil {
@@ -116,44 +129,73 @@ func (c *ResultConsumer) processMessage(ctx context.Context, msg queue.QueueMess
 
 	slog.Debug("Extracted task ID", "id", taskID)
 
+	// Determine final status using status.phase, falling back to queue-based status param
+	finalStatus := status // queue-name fallback (backward compat)
+	switch parsedMsg.Status.Phase {
+	case "succeeded":
+		finalStatus = types.TaskStatusSucceeded
+	case "failed":
+		finalStatus = types.TaskStatusFailed
+	case "":
+		// No status field: use queue-based determination (backward compat)
+	default:
+		// Non-terminal phase: silently ack without updating gateway
+		slog.Debug("Non-terminal phase in result queue, skipping task update",
+			"id", taskID, "phase", parsedMsg.Status.Phase)
+		return
+	}
+
 	// Extract result payload
 	var result interface{} = parsedMsg.Payload
 	if parsedMsg.Payload == nil {
 		result = map[string]interface{}{}
 	}
 
-	// Update task status
+	// Build the update with enriched error from status.error and status.reason
 	update := types.TaskUpdate{
 		ID:        taskID,
-		Status:    status,
+		Status:    finalStatus,
 		Result:    result,
 		Timestamp: time.Now(),
 	}
 
-	if status == types.TaskStatusSucceeded {
+	if finalStatus == types.TaskStatusSucceeded {
 		update.Message = "Task completed successfully"
 		slog.Debug("Marking task as Succeeded", "id", taskID)
 	} else {
-		update.Message = "Task failed"
-		// Extract error from top level (flat format)
-		if parsedMsg.Error != "" {
+		if parsedMsg.Status.Error != nil {
+			errType := parsedMsg.Status.Error.Type
+			errMsg := parsedMsg.Status.Error.Message
+			switch {
+			case errType != "" && errMsg != "":
+				update.Error = fmt.Sprintf("%s: %s", errType, errMsg)
+			case errMsg != "":
+				update.Error = errMsg
+			case errType != "":
+				update.Error = errType
+			}
+		} else if parsedMsg.Error != "" {
 			update.Error = parsedMsg.Error
-			// Include error details if available
 			if parsedMsg.Details.Message != "" {
 				update.Error = fmt.Sprintf("%s: %s", parsedMsg.Error, parsedMsg.Details.Message)
 			}
 		}
-		slog.Debug("Marking task as Failed", "id", taskID, "error", update.Error)
+		if parsedMsg.Status.Reason != "" {
+			update.Message = fmt.Sprintf("Task failed: %s", parsedMsg.Status.Reason)
+		} else {
+			update.Message = "Task failed"
+		}
+		slog.Debug("Marking task as Failed", "id", taskID, "error", update.Error, "reason", parsedMsg.Status.Reason)
 	}
 
-	slog.Debug("Updating task with final status", "id", taskID, "status", status, "result", result)
+	slog.Debug("Updating task with final status", "id", taskID, "status", finalStatus, "result", result)
 
 	if err := c.taskStore.Update(update); err != nil {
 		slog.Error("Failed to update task", "id", taskID, "error", err)
 		return
 	}
 
-	slog.Debug("Task successfully updated to final status", "id", taskID, "status", status)
+	slog.Debug("Task successfully updated to final status", "id", taskID, "status", finalStatus)
 
-	slog.Info("Task marked as final status", "id", taskID, "status", status)
+	slog.Info("Task marked as final status", "id", taskID, "status", finalStatus)
 }
