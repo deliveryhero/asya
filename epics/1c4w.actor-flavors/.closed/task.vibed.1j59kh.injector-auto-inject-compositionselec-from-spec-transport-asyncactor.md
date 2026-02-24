@@ -4,6 +4,7 @@ priority: 2 # medium
 type: task
 ---
 
+
 ## Problem
 
 Users must currently specify both `spec.transport` and `spec.compositionSelector.matchLabels.asya.sh/transport` on every AsyncActor manifest. These are redundant: the transport field already contains the information needed to select the right Composition. Having two fields creates a silent mismatch risk.
