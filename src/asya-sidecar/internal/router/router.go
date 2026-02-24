@@ -100,6 +100,32 @@ func (r *Router) maxAttempts() int {
 	return 1
 }
 
+// shouldReportFinalToGateway returns false for messages that must NOT trigger
+// a final-status report to the gateway:
+//  1. x-asya-fan-in header: fan-in partial batch (actor handles aggregation, not gateway)
+//  2. parent_id set: fire-and-forget fan-out child (only root message is tracked by gateway)
+//  3. non-terminal status.phase: human-in-the-loop or custom intermediate states
+func (r *Router) shouldReportFinalToGateway(msg *messages.Message) bool {
+	if msg.Headers != nil {
+		if _, ok := msg.Headers["x-asya-fan-in"]; ok {
+			slog.Debug("Skipping gateway report: x-asya-fan-in header", "id", msg.ID)
+			return false
+		}
+	}
+	if msg.ParentID != nil {
+		slog.Debug("Skipping gateway report: parent_id set (fan-out child)", "id", msg.ID)
+		return false
+	}
+	if msg.Status != nil {
+		phase := msg.Status.Phase
+		if phase != messages.PhaseSucceeded && phase != messages.PhaseFailed {
+			slog.Debug("Skipping gateway report: non-terminal phase", "id", msg.ID, "phase", phase)
+			return false
+		}
+	}
+	return true
+}
+
 // processEndActorMessage handles message processing for end actors (x-sink, x-sump)
 // End actors are terminal nodes that:
 // - Accept messages with ANY route state (no validation)
@@ -168,8 +194,8 @@ func (r *Router) processEndActorMessage(ctx context.Context, msg messages.Messag
 		resultPayload = msg.Payload
 	}
 
-	// Report final status to gateway if configured
-	if r.progressReporter != nil {
+	// Report final status to gateway if configured and message is terminal/not a fan-out child.
+	if r.progressReporter != nil && r.shouldReportFinalToGateway(&msg) {
 		if err := r.reportFinalStatusWithMessage(ctx, &msg, resultPayload, runtimeDuration); err != nil {
 			slog.Warn("Failed to report final status to gateway", "id", msg.ID, "error", err)
 		}
