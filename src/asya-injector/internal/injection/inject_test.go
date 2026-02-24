@@ -38,13 +38,12 @@ func TestInjector_Inject(t *testing.T) {
 	}
 
 	actorConfig := &ActorConfig{
-		ActorName:   "my-actor",
-		Namespace:   "default",
-		Transport:   "sqs",
-		QueueURL:    "http://sqs.localhost:4566/000000000000/asya-default-my-actor",
-		Handler:     "my_module.process",
-		HandlerMode: "payload",
-		Region:      "us-east-1",
+		ActorName: "my-actor",
+		Namespace: "default",
+		Transport: "sqs",
+		QueueURL:  "http://sqs.localhost:4566/000000000000/asya-default-my-actor",
+		Handler:   "my_module.process",
+		Region:    "us-east-1",
 	}
 
 	mutated, err := injector.Inject(pod, actorConfig)
@@ -653,11 +652,10 @@ func TestInjector_InjectRabbitMQ(t *testing.T) {
 	}
 
 	actorConfig := &ActorConfig{
-		ActorName:   "my-actor",
-		Namespace:   "default",
-		Transport:   "rabbitmq",
-		Handler:     "my_module.process",
-		HandlerMode: "payload",
+		ActorName: "my-actor",
+		Namespace: "default",
+		Transport: "rabbitmq",
+		Handler:   "my_module.process",
 	}
 
 	mutated, err := injector.Inject(pod, actorConfig)

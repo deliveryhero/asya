@@ -136,7 +136,6 @@ func TestExtractActorConfig(t *testing.T) {
 			Transport              string
 			QueueURL               string
 			Handler                string
-			HandlerMode            string
 			SidecarImage           string
 			SidecarImagePullPolicy string
 			SidecarEnvNames        []string
@@ -158,7 +157,6 @@ func TestExtractActorConfig(t *testing.T) {
 				Transport              string
 				QueueURL               string
 				Handler                string
-				HandlerMode            string
 				SidecarImage           string
 				SidecarImagePullPolicy string
 				SidecarEnvNames        []string
@@ -181,8 +179,7 @@ func TestExtractActorConfig(t *testing.T) {
 						"transport": "rabbitmq",
 						"region":    "eu-west-1",
 						"workload": map[string]interface{}{
-							"handler":     "my_module.process",
-							"handlerMode": "envelope",
+							"handler": "my_module.process",
 						},
 						"sidecar": map[string]interface{}{
 							"image": "custom-sidecar:v2",
@@ -200,7 +197,6 @@ func TestExtractActorConfig(t *testing.T) {
 				Transport              string
 				QueueURL               string
 				Handler                string
-				HandlerMode            string
 				SidecarImage           string
 				SidecarImagePullPolicy string
 				SidecarEnvNames        []string
@@ -215,9 +211,6 @@ func TestExtractActorConfig(t *testing.T) {
 				}
 				if cfg.Handler != "my_module.process" {
 					t.Errorf("expected handler 'my_module.process', got '%s'", cfg.Handler)
-				}
-				if cfg.HandlerMode != "envelope" {
-					t.Errorf("expected handlerMode 'envelope', got '%s'", cfg.HandlerMode)
 				}
 				if cfg.SidecarImage != "custom-sidecar:v2" {
 					t.Errorf("expected sidecarImage 'custom-sidecar:v2', got '%s'", cfg.SidecarImage)
@@ -257,7 +250,6 @@ func TestExtractActorConfig(t *testing.T) {
 				Transport              string
 				QueueURL               string
 				Handler                string
-				HandlerMode            string
 				SidecarImage           string
 				SidecarImagePullPolicy string
 				SidecarEnvNames        []string
@@ -300,7 +292,6 @@ func TestExtractActorConfig(t *testing.T) {
 				Transport              string
 				QueueURL               string
 				Handler                string
-				HandlerMode            string
 				SidecarImage           string
 				SidecarImagePullPolicy string
 				SidecarEnvNames        []string
@@ -348,7 +339,6 @@ func TestExtractActorConfig(t *testing.T) {
 					Transport              string
 					QueueURL               string
 					Handler                string
-					HandlerMode            string
 					SidecarImage           string
 					SidecarImagePullPolicy string
 					SidecarEnvNames        []string
@@ -358,7 +348,6 @@ func TestExtractActorConfig(t *testing.T) {
 					Transport:              cfg.Transport,
 					QueueURL:               cfg.QueueURL,
 					Handler:                cfg.Handler,
-					HandlerMode:            cfg.HandlerMode,
 					SidecarImage:           cfg.SidecarImage,
 					SidecarImagePullPolicy: cfg.SidecarImagePullPolicy,
 					SidecarEnvNames:        envNames,

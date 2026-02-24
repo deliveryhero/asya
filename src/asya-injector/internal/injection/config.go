@@ -46,9 +46,6 @@ type ActorConfig struct {
 	// Handler is the Python handler path (e.g., my_module.process)
 	Handler string
 
-	// HandlerMode is the handler mode (payload, envelope)
-	HandlerMode string
-
 	// SidecarImage is the sidecar container image (optional override)
 	SidecarImage string
 

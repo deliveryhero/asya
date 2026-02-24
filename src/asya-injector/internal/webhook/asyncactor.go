@@ -116,11 +116,6 @@ func extractActorConfig(asyncActor *unstructured.Unstructured) (*injection.Actor
 	workload, workloadFound, _ := unstructured.NestedMap(spec, "workload")
 	if workloadFound {
 		config.Handler, _, _ = unstructured.NestedString(workload, "handler")
-		config.HandlerMode, _, _ = unstructured.NestedString(workload, "handlerMode")
-
-		if config.HandlerMode == "" {
-			config.HandlerMode = "payload"
-		}
 	}
 
 	// Extract sidecar configuration
