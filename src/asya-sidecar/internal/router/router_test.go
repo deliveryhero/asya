@@ -972,7 +972,7 @@ func TestRouter_ProcessMessage_MissingMessageID(t *testing.T) {
 		metrics:   m,
 	}
 
-	msgWithoutID := []byte(`{"route": {"actors": ["test-actor"], "current": 0}, "payload": {"test": "data"}}`)
+	msgWithoutID := []byte(`{"route": {"prev": [], "curr": "test-actor", "next": []}, "payload": {"test": "data"}}`)
 	queueMsg := transport.QueueMessage{
 		ID:   "msg-1",
 		Body: msgWithoutID,

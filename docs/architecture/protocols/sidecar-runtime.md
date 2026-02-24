@@ -48,8 +48,9 @@ Full message from queue:
 {
   "id": "123",
   "route": {
-    "actors": ["step1", "step2"],
-    "current": 0
+    "prev": [],
+    "curr": "step1",
+    "next": ["step2"]
   },
   "payload": {"text": "Hello"},
   "headers": {"trace_id": "abc"}
@@ -63,8 +64,9 @@ Full message from queue:
 {
   "id": "123",
   "route": {
-    "actors": ["step1", "step2"],
-    "current": 1
+    "prev": ["step1"],
+    "curr": "step2",
+    "next": []
   },
   "payload": {"text": "Hello", "processed": true},
   "headers": {"trace_id": "abc"}

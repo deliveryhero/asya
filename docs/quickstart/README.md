@@ -374,7 +374,7 @@ AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test \
   aws --endpoint-url=http://localhost:4566 --region us-east-1 \
   sqs send-message \
   --queue-url http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/asya-default-hello \
-  --message-body '{"id":"test-1","route":{"actors":["hello"],"current":0},"headers":{},"payload":{"name":"Crossplane"}}'
+  --message-body '{"id":"test-1","route":{"prev":[],"curr":"hello","next":[]},"headers":{},"payload":{"name":"Crossplane"}}'
 
 kill %1 2>/dev/null
 ```
