@@ -9,7 +9,7 @@ type: task
 
 Add integration tests for actor flavor composition.
 
-RFC: docs/rfc/actor-flavors/rfc-actor-flavors.md
+RFC: ./rfc.md
 
 Test scenarios:
 1. Single flavor: Actor with one flavor gets correct config from EnvironmentConfig

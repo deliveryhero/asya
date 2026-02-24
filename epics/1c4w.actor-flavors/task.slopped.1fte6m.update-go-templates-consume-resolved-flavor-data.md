@@ -13,7 +13,7 @@ dependencies:
 
 Update the existing function-go-templating templates in the Composition to read flavor-resolved spec from the context set by function-asya-flavors.
 
-RFC: docs/rfc/actor-flavors/rfc-actor-flavors.md (Section 4.1)
+RFC: ./rfc.md (Section 4.1)
 
 Changes:
 - File: deploy/helm-charts/asya-crossplane/templates/composition-sqs.yaml (Go template section)
