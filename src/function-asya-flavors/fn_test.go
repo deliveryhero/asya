@@ -200,7 +200,7 @@ func TestRunFunction_MergesSingleFlavor(t *testing.T) {
 	})
 
 	envConfig := mustNewStruct(t, map[string]interface{}{
-		"apiVersion": "apiextensions.crossplane.io/v1alpha1",
+		"apiVersion": "apiextensions.crossplane.io/v1beta1",
 		"kind":       "EnvironmentConfig",
 		"metadata": map[string]interface{}{
 			"name": "gpu-t4",
@@ -302,7 +302,7 @@ func TestRunFunction_MissingFlavorData(t *testing.T) {
 
 	// EnvironmentConfig without a data field
 	envConfig := mustNewStruct(t, map[string]interface{}{
-		"apiVersion": "apiextensions.crossplane.io/v1alpha1",
+		"apiVersion": "apiextensions.crossplane.io/v1beta1",
 		"kind":       "EnvironmentConfig",
 		"metadata": map[string]interface{}{
 			"name": "empty-flavor",

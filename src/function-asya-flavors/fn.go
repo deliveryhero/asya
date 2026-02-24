@@ -19,7 +19,7 @@ const (
 	ContextKeyResolvedSpec = "asya.sh/resolved-spec"
 
 	// EnvConfigAPIVersion is the Crossplane EnvironmentConfig API version.
-	EnvConfigAPIVersion = "apiextensions.crossplane.io/v1alpha1"
+	EnvConfigAPIVersion = "apiextensions.crossplane.io/v1beta1"
 
 	// EnvConfigKind is the Kubernetes kind for EnvironmentConfig resources.
 	EnvConfigKind = "EnvironmentConfig"

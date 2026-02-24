@@ -5,7 +5,7 @@
 #
 # Both are cluster-scoped resources (EnvironmentConfig has no namespace).
 ---
-apiVersion: apiextensions.crossplane.io/v1alpha1
+apiVersion: apiextensions.crossplane.io/v1beta1
 kind: EnvironmentConfig
 metadata:
   name: asya-test-actor
@@ -29,7 +29,7 @@ data:
               cpu: 500m
               memory: 512Mi
 ---
-apiVersion: apiextensions.crossplane.io/v1alpha1
+apiVersion: apiextensions.crossplane.io/v1beta1
 kind: EnvironmentConfig
 metadata:
   name: asya-test-env-vars
