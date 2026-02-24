@@ -9,6 +9,8 @@ Regenerate by running: asya flow compile ../../while_true_simple.py
 """
 
 import os as _os
+_MSG_ROOT = _os.getenv("ASYA_MSG_ROOT", "/proc/asya/msg")
+
 _ASYA_MAX_LOOP_ITERATIONS = int(_os.environ.get("ASYA_MAX_LOOP_ITERATIONS", "100"))
 
 
@@ -16,17 +18,23 @@ _ASYA_MAX_LOOP_ITERATIONS = int(_os.environ.get("ASYA_MAX_LOOP_ITERATIONS", "100
 # Generated Routers (for kubernetes deployment)
 # ======================================================================
 
-def start_while_true_flow(message: dict) -> dict:
+def start_while_true_flow(payload: dict) -> dict:
     """Entrypoint for flow 'while_true_flow'"""
-    r = message['route']
+    with open(f"{_MSG_ROOT}/route/next") as _f:
+        _next_tail = _f.read().splitlines()
+    _next = []
 
-    r['next'] = [resolve("handler_init"), resolve("router_while_true_flow_line_10_loop_back_0")] + r['next']
-    return message
+    _next.append(resolve("handler_init"))
+    _next.append(resolve("router_while_true_flow_line_10_loop_back_0"))
+    with open(f"{_MSG_ROOT}/route/next", "w") as _f:
+        _f.write("\n".join(_next + _next_tail))
+    return payload
 
-def router_while_true_flow_line_12_if(message: dict) -> dict:
+def router_while_true_flow_line_12_if(payload: dict) -> dict:
     """Router for control flow and payload mutations"""
-    p = message['payload']
-    r = message['route']
+    p = payload
+    with open(f"{_MSG_ROOT}/route/next") as _f:
+        _next_tail = _f.read().splitlines()
     _next = []
 
     if p.get('done', False):
@@ -34,29 +42,36 @@ def router_while_true_flow_line_12_if(message: dict) -> dict:
     else:
         pass
 
-    r['next'] = _next + r['next']
-    return message
+    with open(f"{_MSG_ROOT}/route/next", "w") as _f:
+        _f.write("\n".join(_next + _next_tail))
+    return payload
 
-def router_while_true_flow_line_10_loop_back_0(message: dict) -> dict:
+def router_while_true_flow_line_10_loop_back_0(payload: dict) -> dict:
     """Loop-back router: re-inserts loop actors into route (guarded)"""
-    p = message['payload']
-    r = message['route']
+    p = payload
+    with open(f"{_MSG_ROOT}/route/next") as _f:
+        _next_tail = _f.read().splitlines()
     _next = []
 
     _self = resolve("router_while_true_flow_line_10_loop_back_0")
-    if r['prev'].count(_self) >= _ASYA_MAX_LOOP_ITERATIONS:
+    with open(f"{_MSG_ROOT}/route/prev") as _f:
+        _prev = _f.read().splitlines()
+    if _prev.count(_self) >= _ASYA_MAX_LOOP_ITERATIONS:
         raise RuntimeError(f"Max loop iterations ({_ASYA_MAX_LOOP_ITERATIONS}) exceeded for while-loop at line 10")
 
     _next.append(resolve("handler_process"))
     _next.append(resolve("router_while_true_flow_line_12_if"))
     _next.append(resolve("router_while_true_flow_line_10_loop_back_0"))
 
-    r['next'] = _next + r['next']
-    return message
+    with open(f"{_MSG_ROOT}/route/next", "w") as _f:
+        _f.write("\n".join(_next + _next_tail))
+    return payload
 
-def end_while_true_flow(message: dict) -> dict:
+def end_while_true_flow(payload: dict) -> dict:
     """Exitpoint for flow 'while_true_flow'"""
-    return message
+    with open(f"{_MSG_ROOT}/route/next", "w") as _f:
+        _f.write("")
+    return payload
 
 
 # ======================================================================
