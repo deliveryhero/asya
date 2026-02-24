@@ -6,6 +6,7 @@ type: task
 
 
 
+
 When adding a new Crossplane Composition for a new transport, ALL AsyncActor manifests (Helm templates AND dynamic test manifests) MUST include compositionSelector.matchLabels to select the correct Composition. Without it, Crossplane picks non-deterministically when multiple Compositions exist for the same XRD.
 
 Checklist for new transport additions:
