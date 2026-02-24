@@ -30,8 +30,6 @@ spec:
           env:
           - name: ASYA_HANDLER
             value: "chaos_handlers.slow_actor"
-          - name: ASYA_HANDLER_MODE
-            value: "payload"
           - name: PYTHONPATH
             value: /app
           - name: CHAOS_MIN_DELAY
@@ -84,8 +82,6 @@ spec:
           env:
           - name: ASYA_HANDLER
             value: "chaos_handlers.flaky_actor"
-          - name: ASYA_HANDLER_MODE
-            value: "payload"
           - name: PYTHONPATH
             value: /app
           - name: CHAOS_ERROR_RATE
@@ -136,8 +132,6 @@ spec:
           env:
           - name: ASYA_HANDLER
             value: "chaos_handlers.cpu_intensive"
-          - name: ASYA_HANDLER_MODE
-            value: "payload"
           - name: PYTHONPATH
             value: /app
           - name: CHAOS_CPU_ITERATIONS
@@ -188,8 +182,6 @@ spec:
           env:
           - name: ASYA_HANDLER
             value: "chaos_handlers.fanout_actor"
-          - name: ASYA_HANDLER_MODE
-            value: "payload"
           - name: PYTHONPATH
             value: /app
           - name: CHAOS_FANOUT_COUNT

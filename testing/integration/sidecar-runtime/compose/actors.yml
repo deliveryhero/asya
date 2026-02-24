@@ -23,7 +23,7 @@ services:
     command: ["python3", "/opt/asya/asya_runtime.py"]
     env_file: *runtime-env-files
     environment:
-      ASYA_HANDLER: asya_testing.handlers.${ASYA_HANDLER_MODE}.error_handler
+      ASYA_HANDLER: asya_testing.handlers.payload.error_handler
       ASYA_RUNTIME_TIMEOUT: 5s
     volumes:
     - asya-error-sockets:/var/run/asya
@@ -43,7 +43,7 @@ services:
     command: ["python3", "/opt/asya/asya_runtime.py"]
     env_file: *runtime-env-files
     environment:
-      ASYA_HANDLER: asya_testing.handlers.${ASYA_HANDLER_MODE}.oom_handler
+      ASYA_HANDLER: asya_testing.handlers.payload.oom_handler
       ASYA_RUNTIME_TIMEOUT: 5s
 
     volumes:
@@ -64,7 +64,7 @@ services:
     command: ["python3", "/opt/asya/asya_runtime.py"]
     env_file: *runtime-env-files
     environment:
-      ASYA_HANDLER: asya_testing.handlers.${ASYA_HANDLER_MODE}.cuda_oom_handler
+      ASYA_HANDLER: asya_testing.handlers.payload.cuda_oom_handler
       ASYA_RUNTIME_TIMEOUT: 5s
 
       ASYA_CUDA_CLEANUP_ON_OOM: true
@@ -86,7 +86,7 @@ services:
     command: ["python3", "/opt/asya/asya_runtime.py"]
     env_file: *runtime-env-files
     environment:
-      ASYA_HANDLER: asya_testing.handlers.${ASYA_HANDLER_MODE}.timeout_handler
+      ASYA_HANDLER: asya_testing.handlers.payload.timeout_handler
       ASYA_RUNTIME_TIMEOUT: 5s
 
 
@@ -108,7 +108,7 @@ services:
     command: ["python3", "/opt/asya/asya_runtime.py"]
     env_file: *runtime-env-files
     environment:
-      ASYA_HANDLER: asya_testing.handlers.${ASYA_HANDLER_MODE}.fanout_handler
+      ASYA_HANDLER: asya_testing.handlers.payload.fanout_handler
       ASYA_RUNTIME_TIMEOUT: 5s
 
 
@@ -130,7 +130,7 @@ services:
     command: ["python3", "/opt/asya/asya_runtime.py"]
     env_file: *runtime-env-files
     environment:
-      ASYA_HANDLER: asya_testing.handlers.${ASYA_HANDLER_MODE}.empty_response_handler
+      ASYA_HANDLER: asya_testing.handlers.payload.empty_response_handler
       ASYA_RUNTIME_TIMEOUT: 5s
 
 
@@ -152,7 +152,7 @@ services:
     command: ["python3", "/opt/asya/asya_runtime.py"]
     env_file: *runtime-env-files
     environment:
-      ASYA_HANDLER: asya_testing.handlers.${ASYA_HANDLER_MODE}.large_payload_handler
+      ASYA_HANDLER: asya_testing.handlers.payload.large_payload_handler
       ASYA_RUNTIME_TIMEOUT: 5s
 
 
@@ -174,7 +174,7 @@ services:
     command: ["python3", "/opt/asya/asya_runtime.py"]
     env_file: *runtime-env-files
     environment:
-      ASYA_HANDLER: asya_testing.handlers.${ASYA_HANDLER_MODE}.unicode_handler
+      ASYA_HANDLER: asya_testing.handlers.payload.unicode_handler
       ASYA_RUNTIME_TIMEOUT: 5s
 
 
@@ -196,7 +196,7 @@ services:
     command: ["python3", "/opt/asya/asya_runtime.py"]
     env_file: *runtime-env-files
     environment:
-      ASYA_HANDLER: asya_testing.handlers.${ASYA_HANDLER_MODE}.null_values_handler
+      ASYA_HANDLER: asya_testing.handlers.payload.null_values_handler
       ASYA_RUNTIME_TIMEOUT: 5s
 
 
@@ -218,7 +218,7 @@ services:
     command: ["python3", "/opt/asya/asya_runtime.py"]
     env_file: *runtime-env-files
     environment:
-      ASYA_HANDLER: asya_testing.handlers.${ASYA_HANDLER_MODE}.conditional_handler
+      ASYA_HANDLER: asya_testing.handlers.payload.conditional_handler
       ASYA_RUNTIME_TIMEOUT: 5s
 
 
@@ -240,7 +240,7 @@ services:
     command: ["python3", "/opt/asya/asya_runtime.py"]
     env_file: *runtime-env-files
     environment:
-      ASYA_HANDLER: asya_testing.handlers.${ASYA_HANDLER_MODE}.nested_data_handler
+      ASYA_HANDLER: asya_testing.handlers.payload.nested_data_handler
       ASYA_RUNTIME_TIMEOUT: 5s
 
 
@@ -262,7 +262,7 @@ services:
     command: ["python3", "/opt/asya/asya_runtime.py"]
     env_file: *runtime-env-files
     environment:
-      ASYA_HANDLER: asya_testing.handlers.${ASYA_HANDLER_MODE}.echo_handler
+      ASYA_HANDLER: asya_testing.handlers.payload.echo_handler
       ASYA_RUNTIME_TIMEOUT: 5s
 
 
@@ -512,11 +512,8 @@ services:
     command: ["python3", "/opt/asya/asya_runtime.py"]
     env_file: *runtime-env-files
     environment:
-      ASYA_HANDLER: asya_testing.handlers.envelope.invalid_route_current_handler
+      ASYA_HANDLER: asya_testing.handlers.payload.invalid_route_write_handler
       ASYA_RUNTIME_TIMEOUT: 5s
-
-
-      ASYA_ENABLE_VALIDATION: false
     volumes:
     - asya-invalid-route-sockets:/var/run/asya
     - ../../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro
@@ -559,7 +556,7 @@ services:
     command: ["python3", "/opt/asya/asya_runtime.py"]
     env_file: *runtime-env-files
     environment:
-      ASYA_HANDLER: asya_testing.handlers.${ASYA_HANDLER_MODE}.error_handler
+      ASYA_HANDLER: asya_testing.handlers.payload.error_handler
       ASYA_RUNTIME_TIMEOUT: 5s
     volumes:
     - asya-retry-fail-sockets:/var/run/asya
@@ -602,7 +599,7 @@ services:
     command: ["python3", "/opt/asya/asya_runtime.py"]
     env_file: *runtime-env-files
     environment:
-      ASYA_HANDLER: asya_testing.handlers.${ASYA_HANDLER_MODE}.error_handler
+      ASYA_HANDLER: asya_testing.handlers.payload.error_handler
       ASYA_RUNTIME_TIMEOUT: 5s
     volumes:
     - asya-retry-nonretryable-sockets:/var/run/asya
@@ -646,9 +643,7 @@ services:
     command: ["python3", "/opt/asya/asya_runtime.py"]
     env_file: *runtime-env-files
     environment:
-      ASYA_HANDLER: asya_testing.handlers.envelope.fail_once_envelope_handler
-      ASYA_HANDLER_MODE: envelope
-      ASYA_ENABLE_VALIDATION: "false"
+      ASYA_HANDLER: asya_testing.handlers.payload.fail_once_handler
       ASYA_RUNTIME_TIMEOUT: 5s
     volumes:
     - asya-retry-succeed-sockets:/var/run/asya
@@ -692,7 +687,7 @@ services:
     command: ["python3", "/opt/asya/asya_runtime.py"]
     env_file: *runtime-env-files
     environment:
-      ASYA_HANDLER: asya_testing.handlers.${ASYA_HANDLER_MODE}.oom_handler
+      ASYA_HANDLER: asya_testing.handlers.payload.oom_handler
       ASYA_RUNTIME_TIMEOUT: 5s
     volumes:
     - asya-retry-mro-sockets:/var/run/asya

@@ -45,10 +45,6 @@ spec:
           {{- end }}
           - name: ASYA_HANDLER
             value: asya_crew.sump.sump_handler
-          - name: ASYA_HANDLER_MODE
-            value: envelope
-          - name: ASYA_ENABLE_VALIDATION
-            value: "false"
           {{- with $sump.resources }}
           resources:
             {{- toYaml . | nindent 12 }}

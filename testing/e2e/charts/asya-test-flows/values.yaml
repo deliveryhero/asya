@@ -4,8 +4,6 @@ workload:
   image: localhost/asya-runtime:latest
   imagePullPolicy: Never
 
-handlerMode: payload
-
 scaling:
   enabled: true
   minReplicas: 1

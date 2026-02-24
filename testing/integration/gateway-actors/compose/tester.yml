@@ -31,4 +31,4 @@ services:
       set -ex
       pytest ${PYTEST_OPTS} \
         --cov --cov-report=term \
-        --cov-report=json:/app/.coverage/cov-${ASYA_HANDLER_MODE}-${ASYA_TRANSPORT}-${ASYA_STORAGE}.json
+        --cov-report=json:/app/.coverage/cov-${ASYA_TRANSPORT}-${ASYA_STORAGE}.json

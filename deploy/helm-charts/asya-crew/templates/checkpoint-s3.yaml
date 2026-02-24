@@ -45,10 +45,6 @@ spec:
           {{- end }}
           - name: ASYA_HANDLER
             value: asya_crew.message_persistence.s3.checkpoint_handler
-          - name: ASYA_HANDLER_MODE
-            value: envelope
-          - name: ASYA_ENABLE_VALIDATION
-            value: "false"
           {{- with $checkpointS3.resources }}
           resources:
             {{- toYaml . | nindent 12 }}

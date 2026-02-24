@@ -18,7 +18,7 @@ services:
     - ../envs/.env.asya-shared
     - ../envs/.env.asya-runtime
     environment:
-      ASYA_HANDLER: asya_testing.handlers.${ASYA_HANDLER_MODE}.echo_handler
+      ASYA_HANDLER: asya_testing.handlers.payload.echo_handler
 
 
     volumes:
@@ -64,7 +64,7 @@ services:
     - ../envs/.env.asya-shared
     - ../envs/.env.asya-runtime
     environment:
-      ASYA_HANDLER: asya_testing.handlers.${ASYA_HANDLER_MODE}.pipeline_doubler
+      ASYA_HANDLER: asya_testing.handlers.payload.pipeline_doubler
 
 
     volumes:
@@ -110,7 +110,7 @@ services:
     - ../envs/.env.asya-shared
     - ../envs/.env.asya-runtime
     environment:
-      ASYA_HANDLER: asya_testing.handlers.${ASYA_HANDLER_MODE}.pipeline_incrementer
+      ASYA_HANDLER: asya_testing.handlers.payload.pipeline_incrementer
 
 
     volumes:
@@ -156,7 +156,7 @@ services:
     - ../envs/.env.asya-shared
     - ../envs/.env.asya-runtime
     environment:
-      ASYA_HANDLER: asya_testing.handlers.${ASYA_HANDLER_MODE}.error_handler
+      ASYA_HANDLER: asya_testing.handlers.payload.error_handler
 
 
     volumes:
@@ -202,7 +202,7 @@ services:
     - ../envs/.env.asya-shared
     - ../envs/.env.asya-runtime
     environment:
-      ASYA_HANDLER: asya_testing.handlers.${ASYA_HANDLER_MODE}.timeout_handler
+      ASYA_HANDLER: asya_testing.handlers.payload.timeout_handler
 
 
     volumes:
@@ -248,7 +248,7 @@ services:
     - ../envs/.env.asya-shared
     - ../envs/.env.asya-runtime
     environment:
-      ASYA_HANDLER: asya_testing.handlers.${ASYA_HANDLER_MODE}.fanout_handler
+      ASYA_HANDLER: asya_testing.handlers.payload.fanout_handler
 
 
     volumes:
@@ -294,7 +294,7 @@ services:
     - ../envs/.env.asya-shared
     - ../envs/.env.asya-runtime
     environment:
-      ASYA_HANDLER: asya_testing.handlers.${ASYA_HANDLER_MODE}.empty_response_handler
+      ASYA_HANDLER: asya_testing.handlers.payload.empty_response_handler
 
 
     volumes:
@@ -340,7 +340,7 @@ services:
     - ../envs/.env.asya-shared
     - ../envs/.env.asya-runtime
     environment:
-      ASYA_HANDLER: asya_testing.handlers.${ASYA_HANDLER_MODE}.unicode_handler
+      ASYA_HANDLER: asya_testing.handlers.payload.unicode_handler
 
 
     volumes:
@@ -386,7 +386,7 @@ services:
     - ../envs/.env.asya-shared
     - ../envs/.env.asya-runtime
     environment:
-      ASYA_HANDLER: asya_testing.handlers.${ASYA_HANDLER_MODE}.large_payload_handler
+      ASYA_HANDLER: asya_testing.handlers.payload.large_payload_handler
 
 
     volumes:
@@ -432,7 +432,7 @@ services:
     - ../envs/.env.asya-shared
     - ../envs/.env.asya-runtime
     environment:
-      ASYA_HANDLER: asya_testing.handlers.${ASYA_HANDLER_MODE}.nested_data_handler
+      ASYA_HANDLER: asya_testing.handlers.payload.nested_data_handler
 
 
     volumes:
@@ -478,7 +478,7 @@ services:
     - ../envs/.env.asya-shared
     - ../envs/.env.asya-runtime
     environment:
-      ASYA_HANDLER: asya_testing.handlers.${ASYA_HANDLER_MODE}.null_values_handler
+      ASYA_HANDLER: asya_testing.handlers.payload.null_values_handler
 
 
     volumes:
@@ -524,7 +524,7 @@ services:
     - ../envs/.env.asya-shared
     - ../envs/.env.asya-runtime
     environment:
-      ASYA_HANDLER: asya_testing.handlers.${ASYA_HANDLER_MODE}.slow_then_fast_handler
+      ASYA_HANDLER: asya_testing.handlers.payload.slow_then_fast_handler
 
 
     volumes:
@@ -570,7 +570,7 @@ services:
     - ../envs/.env.asya-shared
     - ../envs/.env.asya-runtime
     environment:
-      ASYA_HANDLER: asya_testing.handlers.${ASYA_HANDLER_MODE}.cyclic_route_detector
+      ASYA_HANDLER: asya_testing.handlers.payload.cyclic_route_detector
 
 
     volumes:
@@ -616,7 +616,7 @@ services:
     - ../envs/.env.asya-shared
     - ../envs/.env.asya-runtime
     environment:
-      ASYA_HANDLER: asya_testing.handlers.${ASYA_HANDLER_MODE}.param_flow_actor_1
+      ASYA_HANDLER: asya_testing.handlers.payload.param_flow_actor_1
 
 
     volumes:
@@ -662,7 +662,7 @@ services:
     - ../envs/.env.asya-shared
     - ../envs/.env.asya-runtime
     environment:
-      ASYA_HANDLER: asya_testing.handlers.${ASYA_HANDLER_MODE}.param_flow_actor_2
+      ASYA_HANDLER: asya_testing.handlers.payload.param_flow_actor_2
 
 
     volumes:

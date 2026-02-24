@@ -21,8 +21,6 @@ DOCKER_COMPOSE_UP_OPTS := --exit-code-from tester --build
 export ASYA_LOG_LEVEL ?= INFO
 ASYA_TRANSPORT ?= sqs
 export ASYA_TRANSPORT
-ASYA_HANDLER_MODE ?= payload
-export ASYA_HANDLER_MODE
 ASYA_STORAGE ?= minio
 export ASYA_STORAGE
 export ASYA_S3_ENDPOINT ?= http://localhost:9000

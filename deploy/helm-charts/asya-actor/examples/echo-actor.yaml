@@ -24,8 +24,6 @@ default:
           env:
           - name: ASYA_HANDLER
             value: asya_testing.handlers.payload.echo_handler
-          - name: ASYA_HANDLER_MODE
-            value: payload
           - name: ASYA_INCLUDE_ROUTE_INFO
             value: 'true'
           resources:

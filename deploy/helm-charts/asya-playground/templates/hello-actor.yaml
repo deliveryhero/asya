@@ -52,8 +52,6 @@ spec:
           env:
           - name: ASYA_HANDLER
             value: {{ .Values.helloActor.handler | quote }}
-          - name: ASYA_HANDLER_MODE
-            value: {{ .Values.helloActor.handlerMode | quote }}
           - name: PYTHONPATH
             value: /app
           volumeMounts:

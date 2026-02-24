@@ -32,8 +32,6 @@ default:
           env:
           - name: ASYA_HANDLER
             value: processors.sqs_handler
-          - name: ASYA_HANDLER_MODE
-            value: payload
           - name: AWS_REGION
             value: us-east-1
           - name: AWS_ACCESS_KEY_ID

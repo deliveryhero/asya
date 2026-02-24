@@ -92,10 +92,6 @@ default:
           - name: ASYA_HANDLER
             value: my_module.my_handler
 
-          # Handler mode: payload (default) or envelope
-          # - name: ASYA_HANDLER_MODE
-          #   value: payload
-
           # Optional configuration
           # - name: ASYA_INCLUDE_ROUTE_INFO
           #   value: 'true'

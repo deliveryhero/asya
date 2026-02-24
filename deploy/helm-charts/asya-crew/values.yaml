@@ -1,8 +1,7 @@
 # Default values for asya-crew chart
 # Deploys system actors with reserved roles (x-sink, x-sump, checkpoint-s3)
 #
-# IMPORTANT: ASYA_HANDLER, ASYA_HANDLER_MODE, and ASYA_ENABLE_VALIDATION are
-# pre-configured by the Helm templates and MUST NOT be overridden in values.
+# IMPORTANT: ASYA_HANDLER is pre-configured by the Helm templates and MUST NOT be overridden in values.
 
 # Global image configuration
 image:
@@ -57,8 +56,7 @@ x-sink:
   annotations: {}
 
   # Environment variables
-  # DO NOT set ASYA_HANDLER, ASYA_HANDLER_MODE, or ASYA_ENABLE_VALIDATION
-  # These are pre-configured by the Helm template and cannot be overridden
+  # DO NOT set ASYA_HANDLER - it is pre-configured by the Helm template and cannot be overridden
   env:
     # Comma-separated list of hook actor names (optional)
     # Example: "checkpoint-s3,notify-slack"
@@ -111,8 +109,7 @@ x-sump:
   annotations: {}
 
   # Environment variables
-  # DO NOT set ASYA_HANDLER, ASYA_HANDLER_MODE, or ASYA_ENABLE_VALIDATION
-  # These are pre-configured by the Helm template and cannot be overridden
+  # DO NOT set ASYA_HANDLER - it is pre-configured by the Helm template and cannot be overridden
   env: {}
 
 # Checkpoint-s3 actor configuration
@@ -162,8 +159,7 @@ checkpoint-s3:
   annotations: {}
 
   # Environment variables
-  # DO NOT set ASYA_HANDLER, ASYA_HANDLER_MODE, or ASYA_ENABLE_VALIDATION
-  # These are pre-configured by the Helm template and cannot be overridden
+  # DO NOT set ASYA_HANDLER - it is pre-configured by the Helm template and cannot be overridden
   env:
     # S3/MinIO storage configuration (set to enable)
     ASYA_S3_BUCKET: ""

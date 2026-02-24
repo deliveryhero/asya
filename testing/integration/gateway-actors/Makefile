@@ -19,8 +19,6 @@ export BUILDKIT_PROGRESS ?= plain
 export COMPOSE_ANSI ?= never
 DOCKER_COMPOSE_UP_OPTS := --build --exit-code-from tester
 export ASYA_LOG_LEVEL ?= INFO
-ASYA_HANDLER_MODE ?= payload
-export ASYA_HANDLER_MODE
 ASYA_TRANSPORT ?= sqs
 export ASYA_TRANSPORT
 ASYA_STORAGE ?= minio
@@ -30,53 +28,50 @@ PYTEST_OPTS ?= -v -s
 export PYTEST_OPTS
 
 COMPOSE_FILES := -f profiles/$(ASYA_TRANSPORT)-$(ASYA_STORAGE).yml
-COMPOSE_PROJECT := int-gateway-actors-$(ASYA_HANDLER_MODE)-$(ASYA_TRANSPORT)-$(ASYA_STORAGE)
+COMPOSE_PROJECT := int-gateway-actors-$(ASYA_TRANSPORT)-$(ASYA_STORAGE)
 
 test: clean test-open test-aws
 
 test-open:
 	@echo "[.] Running open stack tests (RabbitMQ + MinIO)"
-	$(MAKE) test-one ASYA_HANDLER_MODE=payload ASYA_TRANSPORT=rabbitmq ASYA_STORAGE=minio
-	$(MAKE) test-one ASYA_HANDLER_MODE=envelope ASYA_TRANSPORT=rabbitmq ASYA_STORAGE=minio
+	$(MAKE) test-one ASYA_TRANSPORT=rabbitmq ASYA_STORAGE=minio
 
 test-aws:
 	@echo "[.] Running AWS stack tests (SQS + S3)"
-	$(MAKE) test-one ASYA_HANDLER_MODE=payload ASYA_TRANSPORT=sqs ASYA_STORAGE=s3
-	$(MAKE) test-one ASYA_HANDLER_MODE=envelope ASYA_TRANSPORT=sqs ASYA_STORAGE=s3
+	$(MAKE) test-one ASYA_TRANSPORT=sqs ASYA_STORAGE=s3
 
 
-test-one: require-ASYA_HANDLER_MODE validate-env
-	@echo "[.] Running integration tests for '$(ASYA_HANDLER_MODE)' mode with '$(ASYA_TRANSPORT)' transport and '$(ASYA_STORAGE)' storage"
+test-one: require-ASYA_TRANSPORT validate-env
+	@echo "[.] Running integration tests with '$(ASYA_TRANSPORT)' transport and '$(ASYA_STORAGE)' storage"
 	$(DOCKER_COMPOSE) $(COMPOSE_FILES) -p $(COMPOSE_PROJECT) up $(DOCKER_COMPOSE_UP_OPTS) tester
-	$(MAKE) down-one ASYA_HANDLER_MODE=$(ASYA_HANDLER_MODE)
-	$(MAKE) cov-one ASYA_HANDLER_MODE=$(ASYA_HANDLER_MODE)
-	@echo "[+] Success: $(ASYA_HANDLER_MODE)-$(ASYA_TRANSPORT)-$(ASYA_STORAGE) mode tests passed"
+	$(MAKE) down-one
+	$(MAKE) cov-one
+	@echo "[+] Success: $(ASYA_TRANSPORT)-$(ASYA_STORAGE) tests passed"
 
 cov:
-	$(MAKE) cov-one ASYA_HANDLER_MODE=payload
-	$(MAKE) cov-one ASYA_HANDLER_MODE=envelope
+	$(MAKE) cov-one
 
-cov-one: require-ASYA_HANDLER_MODE
-	@echo "Gateway-Actors $(ASYA_HANDLER_MODE) mode coverage:"
-	@test -f $(COVERAGE_DIR)/cov-$(ASYA_HANDLER_MODE)-$(ASYA_TRANSPORT)-$(ASYA_STORAGE).json && \
-		echo "  $(COVERAGE_DIR)/cov-$(ASYA_HANDLER_MODE)-$(ASYA_TRANSPORT)-$(ASYA_STORAGE).json" || \
+cov-one: require-ASYA_TRANSPORT
+	@echo "Gateway-Actors coverage:"
+	@test -f $(COVERAGE_DIR)/cov-$(ASYA_TRANSPORT)-$(ASYA_STORAGE).json && \
+		echo "  $(COVERAGE_DIR)/cov-$(ASYA_TRANSPORT)-$(ASYA_STORAGE).json" || \
 		echo "  [-] Coverage not generated"
 
 down:
-	$(MAKE) down-one ASYA_HANDLER_MODE=payload || true
-	$(MAKE) down-one ASYA_HANDLER_MODE=envelope || true
+	$(MAKE) down-one ASYA_TRANSPORT=rabbitmq ASYA_STORAGE=minio || true
+	$(MAKE) down-one ASYA_TRANSPORT=sqs ASYA_STORAGE=s3 || true
 
-down-one: require-ASYA_HANDLER_MODE
+down-one: require-ASYA_TRANSPORT
 	$(DOCKER_COMPOSE) $(COMPOSE_FILES) -p $(COMPOSE_PROJECT) down -v --remove-orphans || true
 	docker volume rm $(COMPOSE_PROJECT)_sockets $(COMPOSE_PROJECT)_default 2>/dev/null || true
 
 clean:
-	$(MAKE) clean-one ASYA_HANDLER_MODE=payload || true
-	$(MAKE) clean-one ASYA_HANDLER_MODE=envelope || true
+	$(MAKE) clean-one ASYA_TRANSPORT=rabbitmq ASYA_STORAGE=minio || true
+	$(MAKE) clean-one ASYA_TRANSPORT=sqs ASYA_STORAGE=s3 || true
 	rm -rf $(COVERAGE_DIR)
 
-clean-one: require-ASYA_HANDLER_MODE
-	$(MAKE) down-one ASYA_HANDLER_MODE=$(ASYA_HANDLER_MODE)
+clean-one: require-ASYA_TRANSPORT
+	$(MAKE) down-one ASYA_TRANSPORT=$(ASYA_TRANSPORT) ASYA_STORAGE=$(ASYA_STORAGE)
 
 require-%:
 	@test -n "$($*)" || (echo "[-] $* not defined. Use: make <target> $*=..." && exit 1)

@@ -19,61 +19,56 @@ export BUILDKIT_PROGRESS ?= plain
 export COMPOSE_ANSI ?= never
 DOCKER_COMPOSE_UP_OPTS := --exit-code-from tester --build
 export ASYA_LOG_LEVEL ?= INFO
-ASYA_HANDLER_MODE ?= payload
-export ASYA_HANDLER_MODE
 ASYA_TRANSPORT ?= rabbitmq
 export ASYA_TRANSPORT
 
 PYTEST_OPTS ?= -v -s
 export PYTEST_OPTS
 
-COMPOSE_PROJECT := int-sidecar-runtime-$(ASYA_HANDLER_MODE)-$(ASYA_TRANSPORT)
+COMPOSE_PROJECT := int-sidecar-runtime-$(ASYA_TRANSPORT)
 
 test: clean test-rabbitmq test-sqs
 
 test-rabbitmq:
 	@echo "[.] Running RabbitMQ transport tests"
-	$(MAKE) test-one ASYA_HANDLER_MODE=payload ASYA_TRANSPORT=rabbitmq
-	$(MAKE) test-one ASYA_HANDLER_MODE=envelope ASYA_TRANSPORT=rabbitmq
+	$(MAKE) test-one ASYA_TRANSPORT=rabbitmq
 
 test-sqs:
 	@echo "[.] Running SQS transport tests"
-	$(MAKE) test-one ASYA_HANDLER_MODE=payload ASYA_TRANSPORT=sqs
-	$(MAKE) test-one ASYA_HANDLER_MODE=envelope ASYA_TRANSPORT=sqs
+	$(MAKE) test-one ASYA_TRANSPORT=sqs
 
 
-test-one: require-ASYA_HANDLER_MODE validate-env
-	@echo "[.] Running integration tests for '$(ASYA_HANDLER_MODE)' mode with '$(ASYA_TRANSPORT)' transport"
+test-one: require-ASYA_TRANSPORT validate-env
+	@echo "[.] Running integration tests with '$(ASYA_TRANSPORT)' transport"
 	$(DOCKER_COMPOSE) -f profiles/$(ASYA_TRANSPORT).yml -p $(COMPOSE_PROJECT) up $(DOCKER_COMPOSE_UP_OPTS) tester
-	$(MAKE) down-one ASYA_HANDLER_MODE=$(ASYA_HANDLER_MODE)
-	$(MAKE) cov-one ASYA_HANDLER_MODE=$(ASYA_HANDLER_MODE)
-	@echo "[+] Success: $(ASYA_HANDLER_MODE)-$(ASYA_TRANSPORT) mode tests passed"
+	$(MAKE) down-one
+	$(MAKE) cov-one
+	@echo "[+] Success: $(ASYA_TRANSPORT) transport tests passed"
 
 cov:
-	$(MAKE) cov-one ASYA_HANDLER_MODE=payload
-	$(MAKE) cov-one ASYA_HANDLER_MODE=envelope
+	$(MAKE) cov-one
 
-cov-one: require-ASYA_HANDLER_MODE
-	@echo "Sidecar-Runtime $(ASYA_HANDLER_MODE) mode coverage:"
-	@test -f $(COVERAGE_DIR)/cov-$(ASYA_HANDLER_MODE)-$(ASYA_TRANSPORT).json && \
-		echo "  $(COVERAGE_DIR)/cov-$(ASYA_HANDLER_MODE)-$(ASYA_TRANSPORT).json" || \
+cov-one: require-ASYA_TRANSPORT
+	@echo "Sidecar-Runtime coverage:"
+	@test -f $(COVERAGE_DIR)/cov-$(ASYA_TRANSPORT).json && \
+		echo "  $(COVERAGE_DIR)/cov-$(ASYA_TRANSPORT).json" || \
 		echo "  [-] Coverage not generated"
 
 down:
-	$(MAKE) down-one ASYA_HANDLER_MODE=payload || true
-	$(MAKE) down-one ASYA_HANDLER_MODE=envelope || true
+	$(MAKE) down-one ASYA_TRANSPORT=rabbitmq || true
+	$(MAKE) down-one ASYA_TRANSPORT=sqs || true
 
-down-one: require-ASYA_HANDLER_MODE
+down-one: require-ASYA_TRANSPORT
 	$(DOCKER_COMPOSE) -f profiles/$(ASYA_TRANSPORT).yml -p $(COMPOSE_PROJECT) down -v --remove-orphans || true
 	docker volume rm $(COMPOSE_PROJECT)_sockets $(COMPOSE_PROJECT)_default 2>/dev/null || true
 
 clean:
-	$(MAKE) clean-one ASYA_HANDLER_MODE=payload || true
-	$(MAKE) clean-one ASYA_HANDLER_MODE=envelope || true
+	$(MAKE) clean-one ASYA_TRANSPORT=rabbitmq || true
+	$(MAKE) clean-one ASYA_TRANSPORT=sqs || true
 	rm -rf $(COVERAGE_DIR)
 
-clean-one: require-ASYA_HANDLER_MODE
-	$(MAKE) down-one ASYA_HANDLER_MODE=$(ASYA_HANDLER_MODE)
+clean-one: require-ASYA_TRANSPORT
+	$(MAKE) down-one ASYA_TRANSPORT=$(ASYA_TRANSPORT)
 
 require-%:
 	@test -n "$($*)" || (echo "[-] $* not defined. Use: make <target> $*=..." && exit 1)

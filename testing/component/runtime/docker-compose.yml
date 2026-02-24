@@ -8,8 +8,7 @@ services:
       file: ../../shared/compose/asya/testing-actors.yml
       service: asya-echo-runtime
     environment:
-    - ASYA_HANDLER=asya_testing.handlers.${ASYA_HANDLER_MODE}.echo_handler
-    - ASYA_HANDLER_MODE=${ASYA_HANDLER_MODE}
+    - ASYA_HANDLER=asya_testing.handlers.payload.echo_handler
     - ASYA_SOCKET_NAME=echo.sock
     volumes:
     - sockets:/var/run/asya
@@ -26,8 +25,7 @@ services:
       file: ../../shared/compose/asya/testing-actors.yml
       service: asya-error-runtime
     environment:
-    - ASYA_HANDLER=asya_testing.handlers.${ASYA_HANDLER_MODE}.error_handler
-    - ASYA_HANDLER_MODE=${ASYA_HANDLER_MODE}
+    - ASYA_HANDLER=asya_testing.handlers.payload.error_handler
     - ASYA_SOCKET_NAME=error.sock
     volumes:
     - sockets:/var/run/asya
@@ -44,8 +42,7 @@ services:
       file: ../../shared/compose/asya/testing-actors.yml
       service: asya-timeout-runtime
     environment:
-    - ASYA_HANDLER=asya_testing.handlers.${ASYA_HANDLER_MODE}.timeout_handler
-    - ASYA_HANDLER_MODE=${ASYA_HANDLER_MODE}
+    - ASYA_HANDLER=asya_testing.handlers.payload.timeout_handler
     - ASYA_SOCKET_NAME=timeout.sock
     volumes:
     - sockets:/var/run/asya
@@ -63,8 +60,7 @@ services:
       dockerfile: Dockerfile
     command: ["python3", "/opt/asya/asya_runtime.py"]
     environment:
-    - ASYA_HANDLER=asya_testing.handlers.${ASYA_HANDLER_MODE}.oom_handler
-    - ASYA_HANDLER_MODE=${ASYA_HANDLER_MODE}
+    - ASYA_HANDLER=asya_testing.handlers.payload.oom_handler
     - ASYA_SOCKET_NAME=oom.sock
     - ASYA_SOCKET_CHMOD=666
     - ASYA_LOG_LEVEL=${ASYA_LOG_LEVEL:-INFO}
@@ -85,7 +81,6 @@ services:
     command: ["python3", "/opt/asya/asya_runtime.py"]
     environment:
     - ASYA_HANDLER=asya_testing.handlers.classes.SlowModelHandler.process
-    - ASYA_HANDLER_MODE=payload
     - ASYA_SOCKET_NAME=slow-model.sock
 
 
@@ -107,7 +102,6 @@ services:
     command: ["python3", "/opt/asya/asya_runtime.py"]
     environment:
     - ASYA_HANDLER=asya_testing.handlers.classes.CachingHandler.process
-    - ASYA_HANDLER_MODE=payload
     - ASYA_SOCKET_NAME=caching.sock
 
 
@@ -129,7 +123,6 @@ services:
     command: ["python3", "/opt/asya/asya_runtime.py"]
     environment:
     - ASYA_HANDLER=asya_testing.handlers.classes.LargePayloadHandler.process
-    - ASYA_HANDLER_MODE=payload
     - ASYA_SOCKET_NAME=large-payload-class.sock
 
 
@@ -151,7 +144,6 @@ services:
     command: ["python3", "/opt/asya/asya_runtime.py"]
     environment:
     - ASYA_HANDLER=asya_testing.handlers.classes.CounterHandler.process
-    - ASYA_HANDLER_MODE=payload
     - ASYA_SOCKET_NAME=counter.sock
 
 
@@ -173,7 +165,6 @@ services:
     command: ["python3", "/opt/asya/asya_runtime.py"]
     environment:
     - ASYA_HANDLER=asya_testing.handlers.classes.MessageHandler.process
-    - ASYA_HANDLER_MODE=envelope
     - ASYA_SOCKET_NAME=envelope-class.sock
 
 
@@ -230,7 +221,7 @@ services:
     - |
       set -ex
       pytest tests/ ${PYTEST_OPTS} \
-        --cov --cov-config=/app/.coveragerc --cov-report=term --cov-report=json:/app/.coverage/cov-${ASYA_HANDLER_MODE}.json
+        --cov --cov-config=/app/.coveragerc --cov-report=term --cov-report=json:/app/.coverage/cov.json
 
 volumes:
   sockets:

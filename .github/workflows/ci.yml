@@ -106,15 +106,11 @@ jobs:
           component: gateway
           config_var: ASYA_TRANSPORT
           config_value: rabbitmq
-        # Runtime component tests - test both handler modes
-        - name: runtime (payload)
+        # Runtime component tests
+        - name: runtime
           component: runtime
-          config_var: ASYA_HANDLER_MODE
-          config_value: payload
-        - name: runtime (envelope)
-          component: runtime
-          config_var: ASYA_HANDLER_MODE
-          config_value: envelope
+          config_var: ASYA_TRANSPORT
+          config_value: sqs
         # Sidecar component tests - test both transports
         - name: sidecar (sqs)
           component: sidecar
@@ -161,7 +157,6 @@ jobs:
       contents: read
     env:
       ASYA_TRANSPORT: ${{ matrix.transport }}
-      ASYA_HANDLER_MODE: ${{ matrix.handler_mode }}
       ASYA_STORAGE: ${{ matrix.storage }}
     strategy:
       fail-fast: false
@@ -172,44 +167,22 @@ jobs:
           target: gateway
         - name: sidecar
           target: sidecar
-        # Sidecar-runtime tests (2 transports × 2 handler modes)
-        - name: sidecar-runtime (rabbitmq-payload)
+        # Sidecar-runtime tests (2 transports)
+        - name: sidecar-runtime (rabbitmq)
           target: sidecar-runtime
           transport: rabbitmq
-          handler_mode: payload
-        - name: sidecar-runtime (rabbitmq-envelope)
-          target: sidecar-runtime
-          transport: rabbitmq
-          handler_mode: envelope
-        - name: sidecar-runtime (sqs-payload)
+        - name: sidecar-runtime (sqs)
           target: sidecar-runtime
           transport: sqs
-          handler_mode: payload
-        - name: sidecar-runtime (sqs-envelope)
-          target: sidecar-runtime
-          transport: sqs
-          handler_mode: envelope
-        # Gateway-actors tests (2 transport-storage combos × 2 handler modes)
-        - name: gateway-actors (rabbitmq-minio-payload)
+        # Gateway-actors tests (2 transport-storage combos)
+        - name: gateway-actors (rabbitmq-minio)
           target: gateway-actors
           transport: rabbitmq
           storage: minio
-          handler_mode: payload
-        - name: gateway-actors (rabbitmq-minio-envelope)
-          target: gateway-actors
-          transport: rabbitmq
-          storage: minio
-          handler_mode: envelope
-        - name: gateway-actors (sqs-s3-payload)
+        - name: gateway-actors (sqs-s3)
           target: gateway-actors
           transport: sqs
           storage: s3
-          handler_mode: payload
-        - name: gateway-actors (sqs-s3-envelope)
-          target: gateway-actors
-          transport: sqs
-          storage: s3
-          handler_mode: envelope
 
     steps:
     - uses: actions/checkout@v4
@@ -244,8 +217,8 @@ jobs:
       uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: coverage-integration-${{ matrix.target }}-${{ matrix.transport || 'default' }}-${{ matrix.storage || 'none'}}-${{
-          matrix.handler_mode || 'all' }}
+        name: coverage-integration-${{ matrix.target }}-${{ matrix.transport || 'default' }}-${{ matrix.storage || 'none'
+          }}
         path: .coverage/
         retention-days: 1
         include-hidden-files: true
@@ -307,39 +280,27 @@ jobs:
         cd testing/e2e
         make test-crossplane
 
-    ##Ignoring temporarily to speedup iterations (might be affected by asya-vbc)
-    # - name: "Run E2E tests: non-chaos (payload)"
-    #   if: matrix.run_pipeline
-    #   continue-on-error: true
-    #   id: e2e-non-chaos-payload
-    #   env:
-    #     ASYA_LOG_LEVEL: INFO
-    #   run: |
-    #     source .venv/bin/activate
-    #     cd testing/e2e
-    #     make trigger-tests ASYA_HANDLER_MODE=payload PYTEST_OPTS="-v --log-cli-level=INFO -m 'not chaos' --ignore=tests/test_crossplane_e2e.py"
-
-    - name: "Run E2E tests: non-chaos (envelope)"
+    - name: "Run E2E tests: non-chaos"
       if: matrix.run_pipeline
       continue-on-error: true
-      id: e2e-non-chaos-envelope
+      id: e2e-non-chaos
       env:
         ASYA_LOG_LEVEL: INFO
       run: |
         source .venv/bin/activate
         cd testing/e2e
-        make trigger-tests ASYA_HANDLER_MODE=envelope PYTEST_OPTS="-v --log-cli-level=INFO -m 'not chaos' --ignore=tests/test_crossplane_e2e.py"
+        make trigger-tests PYTEST_OPTS="-v --log-cli-level=INFO -m 'not chaos' --ignore=tests/test_crossplane_e2e.py"
 
-    - name: "Run E2E tests: chaos (payload)"
+    - name: "Run E2E tests: chaos"
       if: matrix.run_pipeline
       continue-on-error: true
-      id: e2e-chaos-payload
+      id: e2e-chaos
       env:
         ASYA_LOG_LEVEL: INFO
       run: |
         source .venv/bin/activate
         cd testing/e2e
-        make trigger-tests ASYA_HANDLER_MODE=payload PYTEST_OPTS="-v --log-cli-level=INFO -m chaos --ignore=tests/test_crossplane_e2e.py"
+        make trigger-tests PYTEST_OPTS="-v --log-cli-level=INFO -m chaos --ignore=tests/test_crossplane_e2e.py"
 
     - name: Check if e2e tests succeeded
       if: always()
@@ -349,12 +310,12 @@ jobs:
           echo "[-] E2E test suite failed: crossplane"
           FAILED=1
         fi
-        if [[ "${{ steps.e2e-non-chaos-envelope.outcome }}" == "failure" ]]; then
-          echo "[-] E2E test suite failed: non-chaos (envelope)"
+        if [[ "${{ steps.e2e-non-chaos.outcome }}" == "failure" ]]; then
+          echo "[-] E2E test suite failed: non-chaos"
           FAILED=1
         fi
-        if [[ "${{ steps.e2e-chaos-payload.outcome }}" == "failure" ]]; then
-          echo "[-] E2E test suite failed: chaos (payload)"
+        if [[ "${{ steps.e2e-chaos.outcome }}" == "failure" ]]; then
+          echo "[-] E2E test suite failed: chaos"
           FAILED=1
         fi
         if [[ $FAILED -eq 1 ]]; then

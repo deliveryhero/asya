@@ -30,8 +30,7 @@ spec:
           env:
           - name: ASYA_HANDLER
             value: asya_testing.flows.nested_if.flow.validate_input
-          - name: ASYA_HANDLER_MODE
-            value: {{ .Values.handlerMode }}
+
 ---
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
@@ -64,8 +63,7 @@ spec:
           env:
           - name: ASYA_HANDLER
             value: asya_testing.flows.nested_if.flow.route_a_x
-          - name: ASYA_HANDLER_MODE
-            value: {{ .Values.handlerMode }}
+
 ---
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
@@ -98,8 +96,7 @@ spec:
           env:
           - name: ASYA_HANDLER
             value: asya_testing.flows.nested_if.flow.route_a_y
-          - name: ASYA_HANDLER_MODE
-            value: {{ .Values.handlerMode }}
+
 ---
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
@@ -132,8 +129,7 @@ spec:
           env:
           - name: ASYA_HANDLER
             value: asya_testing.flows.nested_if.flow.route_b_x
-          - name: ASYA_HANDLER_MODE
-            value: {{ .Values.handlerMode }}
+
 ---
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
@@ -166,8 +162,7 @@ spec:
           env:
           - name: ASYA_HANDLER
             value: asya_testing.flows.nested_if.flow.route_b_y
-          - name: ASYA_HANDLER_MODE
-            value: {{ .Values.handlerMode }}
+
 ---
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
@@ -200,5 +195,3 @@ spec:
           env:
           - name: ASYA_HANDLER
             value: asya_testing.flows.nested_if.flow.finalize_result
-          - name: ASYA_HANDLER_MODE
-            value: {{ .Values.handlerMode }}

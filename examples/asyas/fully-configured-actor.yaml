@@ -28,10 +28,6 @@ spec:
           - name: ASYA_HANDLER
             value: "my_module.MyClass.process"
 
-          # Handler mode (optional, default: "payload")
-          - name: ASYA_HANDLER_MODE
-            value: "payload" # "payload" or "envelope"
-
           # Logging configuration (optional, default: "INFO")
           - name: ASYA_LOG_LEVEL
             value: "DEBUG" # DEBUG, INFO, WARNING, ERROR, CRITICAL

@@ -22,23 +22,20 @@ export COMPOSE_ANSI ?= never
 DOCKER_COMPOSE_UP_OPTS := --exit-code-from tester --build
 export ASYA_LOG_LEVEL ?= INFO
 export PYTEST_OPTS ?= -v --cov --cov-report=term
-ASYA_HANDLER_MODE ?= payload
-export ASYA_HANDLER_MODE
-COMPOSE_PROJECT := comp-runtime-$(ASYA_HANDLER_MODE)
+COMPOSE_PROJECT := comp-runtime
 COMPOSE_FILES := -f docker-compose.yml
 
-test: clean ## Run runtime component tests with both handler modes
-	$(MAKE) test-one ASYA_HANDLER_MODE=payload
-	$(MAKE) test-one ASYA_HANDLER_MODE=envelope
+test: clean ## Run runtime component tests
+	$(MAKE) test-one
 
 
-test-one: validate-env ## Run runtime component tests with single handler mode
-	@echo "[.] Running runtime component tests with $(ASYA_HANDLER_MODE) handler mode"
+test-one: validate-env ## Run runtime component tests
+	@echo "[.] Running runtime component tests"
 	$(MAKE) ensure-coverage-dir
-	PYTEST_OPTS="$(PYTEST_OPTS)" ASYA_LOG_LEVEL="$(ASYA_LOG_LEVEL)" ASYA_HANDLER_MODE="$(ASYA_HANDLER_MODE)" $(DOCKER_COMPOSE) $(COMPOSE_FILES) -p $(COMPOSE_PROJECT) up $(DOCKER_COMPOSE_UP_OPTS) tester
-	$(MAKE) down ASYA_HANDLER_MODE=$(ASYA_HANDLER_MODE)
-	@test -f $(COVERAGE_DIR)/cov-$(ASYA_HANDLER_MODE).json && echo "[+] Coverage JSON: $(COVERAGE_DIR)/cov-$(ASYA_HANDLER_MODE).json" || echo "[-] Coverage not generated"
-	@echo "[+] Success: Runtime component tests passed with $(ASYA_HANDLER_MODE) handler mode!"
+	PYTEST_OPTS="$(PYTEST_OPTS)" ASYA_LOG_LEVEL="$(ASYA_LOG_LEVEL)" $(DOCKER_COMPOSE) $(COMPOSE_FILES) -p $(COMPOSE_PROJECT) up $(DOCKER_COMPOSE_UP_OPTS) tester
+	$(MAKE) down
+	@test -f $(COVERAGE_DIR)/cov.json && echo "[+] Coverage JSON: $(COVERAGE_DIR)/cov.json" || echo "[-] Coverage not generated"
+	@echo "[+] Success: Runtime component tests passed!"
 
 cov: ## Display component test coverage report
 	@echo "Runtime (component) coverage:"

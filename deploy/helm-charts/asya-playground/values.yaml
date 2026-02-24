@@ -52,7 +52,6 @@ helloActor:
     repository: python
     tag: "3.13-slim"
   handler: "hello_handler.process"
-  handlerMode: "payload"
   scaling:
     minReplicas: 0
     maxReplicas: 10
