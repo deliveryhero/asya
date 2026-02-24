@@ -58,11 +58,14 @@ func NewDefaultStatus(actor string) *Status {
 	}
 }
 
-// Route represents the routing information for a message
+// Route represents the routing state of a message through the actor pipeline.
+// prev: actors that have already processed this message (read-only to handlers).
+// curr: the actor currently processing this message (read-only to handlers).
+// next: actors remaining after curr (writable by envelope-mode handlers).
 type Route struct {
-	Actors   []string               `json:"actors"`
-	Current  int                    `json:"current"`
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Prev []string `json:"prev"`
+	Curr string   `json:"curr"`
+	Next []string `json:"next"`
 }
 
 // Message represents the full message structure with routing metadata.
@@ -91,31 +94,34 @@ type Message struct {
 
 // GetCurrentActor returns the current actor name from the route
 func (r *Route) GetCurrentActor() string {
-	if r.Current >= 0 && r.Current < len(r.Actors) {
-		return r.Actors[r.Current]
-	}
-	return ""
+	return r.Curr
 }
 
 // GetNextActor returns the next actor name, or empty if at the end
 func (r *Route) GetNextActor() string {
-	nextIndex := r.Current + 1
-	if nextIndex >= 0 && nextIndex < len(r.Actors) {
-		return r.Actors[nextIndex]
+	if len(r.Next) > 0 {
+		return r.Next[0]
 	}
 	return ""
 }
 
 // HasNextActor returns true if there are more actors after current
 func (r *Route) HasNextActor() bool {
-	return r.Current+1 < len(r.Actors)
+	return len(r.Next) > 0
 }
 
-// IncrementCurrent creates a new route with incremented current index
+// IncrementCurrent shifts the route forward: prev appends curr, curr becomes
+// next[0], next shrinks. If next is empty, curr becomes "" to signal end-of-route.
 func (r *Route) IncrementCurrent() Route {
+	newPrev := make([]string, len(r.Prev)+1)
+	copy(newPrev, r.Prev)
+	newPrev[len(r.Prev)] = r.Curr
+	if len(r.Next) == 0 {
+		return Route{Prev: newPrev, Curr: "", Next: []string{}}
+	}
 	return Route{
-		Actors:   r.Actors,
-		Current:  r.Current + 1,
-		Metadata: r.Metadata,
+		Prev: newPrev,
+		Curr: r.Next[0],
+		Next: r.Next[1:],
 	}
 }

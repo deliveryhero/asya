@@ -110,7 +110,7 @@ func (r *Router) processEndActorMessage(ctx context.Context, msg messages.Messag
 	slog.Debug("End actor processing message", "id", msg.ID, "actor", r.actorName)
 
 	// IMPORTANT: End actors are terminal - they do NOT route to any queue
-	// and do NOT increment route.current. They only:
+	// and do NOT shift the route. They only:
 	// 1. Process the message via runtime
 	// 2. Report final status to gateway
 	// End actors run in message mode with validation disabled.
@@ -499,10 +499,8 @@ func (r *Router) routeToFlowErrorHandler(ctx context.Context, msg *messages.Mess
 	// Clear _on_error to prevent infinite error routing loops
 	delete(msg.Headers, "_on_error")
 
-	// Update route: truncate after current position and insert error handler
-	current := msg.Route.Current
-	msg.Route.Actors = append(msg.Route.Actors[:current+1], onError)
-	msg.Route.Current = current + 1
+	// Replace next actors with the error handler (runtime will do the shift)
+	msg.Route.Next = []string{onError}
 
 	// Set error details in status
 	now := time.Now().UTC().Format(time.RFC3339)
@@ -558,7 +556,7 @@ func (r *Router) routeToFlowErrorHandler(ctx context.Context, msg *messages.Mess
 
 // handleSuccessResponse handles successful responses from runtime
 func (r *Router) handleSuccessResponse(ctx context.Context, msg *messages.Message, response runtime.RuntimeResponse, index, totalResponses int, runtimeDuration time.Duration) error {
-	// Runtime is responsible for incrementing route.current:
+	// Runtime is responsible for shifting the route (prev/curr/next):
 	// - In payload mode: runtime auto-increments
 	// - In envelope mode: user handler manually increments
 	outputRoute := response.Route
@@ -566,11 +564,12 @@ func (r *Router) handleSuccessResponse(ctx context.Context, msg *messages.Messag
 	if index == 0 && r.progressReporter != nil {
 		durationMs := runtimeDuration.Milliseconds()
 		_ = r.progressReporter.ReportProgress(ctx, msg.ID, progress.ProgressUpdate{
-			Actors:          outputRoute.Actors,
-			CurrentActorIdx: outputRoute.Current,
-			Status:          progress.StatusCompleted,
-			Message:         fmt.Sprintf("Completed processing in %dms", durationMs),
-			DurationMs:      &durationMs,
+			Prev:       outputRoute.Prev,
+			Curr:       outputRoute.Curr,
+			Next:       outputRoute.Next,
+			Status:     progress.StatusCompleted,
+			Message:    fmt.Sprintf("Completed processing in %dms", durationMs),
+			DurationMs: &durationMs,
 		})
 	}
 
@@ -621,11 +620,12 @@ func (r *Router) ProcessMessage(ctx context.Context, queueMsg transport.QueueMes
 	if r.progressReporter != nil {
 		msgSizeKB := float64(len(queueMsg.Body)) / 1024.0
 		_ = r.progressReporter.ReportProgress(ctx, msg.ID, progress.ProgressUpdate{
-			Actors:          msg.Route.Actors,
-			CurrentActorIdx: msg.Route.Current,
-			Status:          progress.StatusReceived,
-			Message:         fmt.Sprintf("Received message (%.2f KB)", msgSizeKB),
-			MessageSizeKB:   &msgSizeKB,
+			Prev:          msg.Route.Prev,
+			Curr:          msg.Route.Curr,
+			Next:          msg.Route.Next,
+			Status:        progress.StatusReceived,
+			Message:       fmt.Sprintf("Received message (%.2f KB)", msgSizeKB),
+			MessageSizeKB: &msgSizeKB,
 		})
 	}
 
@@ -648,10 +648,11 @@ func (r *Router) ProcessMessage(ctx context.Context, queueMsg transport.QueueMes
 
 	if r.progressReporter != nil {
 		_ = r.progressReporter.ReportProgress(ctx, msg.ID, progress.ProgressUpdate{
-			Actors:          msg.Route.Actors,
-			CurrentActorIdx: msg.Route.Current,
-			Status:          progress.StatusProcessing,
-			Message:         fmt.Sprintf("Processing in %s", r.cfg.ActorName),
+			Prev:    msg.Route.Prev,
+			Curr:    msg.Route.Curr,
+			Next:    msg.Route.Next,
+			Status:  progress.StatusProcessing,
+			Message: fmt.Sprintf("Processing in %s", r.cfg.ActorName),
 		})
 	}
 
@@ -862,16 +863,18 @@ func (r *Router) sendToSumpQueue(ctx context.Context, originalBody []byte, error
 	id := ""
 	var parentID *string
 	route := map[string]any{
-		"actors":  []string{"x-sump"},
-		"current": 0,
+		"prev": []string{},
+		"curr": "x-sump",
+		"next": []string{},
 	}
 	if err := json.Unmarshal(originalBody, &originalMsg); err == nil {
 		id = originalMsg.ID
 		parentID = originalMsg.ParentID
 		// Preserve original route for traceability
-		if originalMsg.Route.Actors != nil {
-			route["actors"] = originalMsg.Route.Actors
-			route["current"] = originalMsg.Route.Current
+		if originalMsg.Route.Curr != "" || len(originalMsg.Route.Prev) > 0 || len(originalMsg.Route.Next) > 0 {
+			route["prev"] = originalMsg.Route.Prev
+			route["curr"] = originalMsg.Route.Curr
+			route["next"] = originalMsg.Route.Next
 		}
 	}
 
@@ -993,13 +996,10 @@ func (r *Router) reportFinalStatusWithMessage(ctx context.Context, msg *messages
 			}
 		}
 		// Use route from message to identify where the error occurred
-		if len(msg.Route.Actors) > 0 {
-			currentIdx := msg.Route.Current
-			currentActorIdx = &currentIdx
-			// Get the actor name where the error occurred
-			if currentIdx >= 0 && currentIdx < len(msg.Route.Actors) {
-				currentActorName = msg.Route.Actors[currentIdx]
-			}
+		if msg.Route.Curr != "" {
+			currentActorName = msg.Route.Curr
+			idx := len(msg.Route.Prev)
+			currentActorIdx = &idx
 		}
 	default:
 		slog.Warn("reportFinalStatusWithMessage called on non-end actor", "queue", r.actorName)
@@ -1026,8 +1026,10 @@ func (r *Router) reportFinalStatusWithMessage(ctx context.Context, msg *messages
 		if errorDetails != nil {
 			finalPayload["error_details"] = errorDetails
 		}
-		if len(msg.Route.Actors) > 0 {
-			finalPayload["actors"] = msg.Route.Actors
+		if msg.Route.Curr != "" || len(msg.Route.Prev) > 0 {
+			finalPayload["prev"] = msg.Route.Prev
+			finalPayload["curr"] = msg.Route.Curr
+			finalPayload["next"] = msg.Route.Next
 		}
 		if currentActorIdx != nil {
 			finalPayload["current_actor_idx"] = *currentActorIdx
@@ -1105,8 +1107,9 @@ func (r *Router) reportFinalStatus(ctx context.Context, msgID string, resultPayl
 			Error   string      `json:"error"`
 			Details interface{} `json:"details"`
 			Route   struct {
-				Actors  []string `json:"actors"`
-				Current int      `json:"current"`
+				Prev []string `json:"prev"`
+				Curr string   `json:"curr"`
+				Next []string `json:"next"`
 			} `json:"route"`
 		}
 
@@ -1115,15 +1118,14 @@ func (r *Router) reportFinalStatus(ctx context.Context, msgID string, resultPayl
 			if err := json.Unmarshal(resultBytes, &payload); err == nil {
 				errorMsg = payload.Error
 				errorDetails = payload.Details
-				route.Actors = payload.Route.Actors
-				route.Current = payload.Route.Current
+				route.Prev = payload.Route.Prev
+				route.Curr = payload.Route.Curr
+				route.Next = payload.Route.Next
 
-				if len(route.Actors) > 0 && payload.Route.Current >= 0 {
-					currentIdx := payload.Route.Current
-					currentActorIdx = &currentIdx
-					if currentIdx < len(route.Actors) {
-						currentActorName = route.Actors[currentIdx]
-					}
+				if payload.Route.Curr != "" {
+					currentActorName = payload.Route.Curr
+					idx := len(payload.Route.Prev)
+					currentActorIdx = &idx
 				}
 			} else {
 				slog.Warn("Failed to unmarshal error payload", "error", err)
@@ -1156,8 +1158,10 @@ func (r *Router) reportFinalStatus(ctx context.Context, msgID string, resultPayl
 		if errorDetails != nil {
 			finalPayload["error_details"] = errorDetails
 		}
-		if len(route.Actors) > 0 {
-			finalPayload["actors"] = route.Actors
+		if route.Curr != "" || len(route.Prev) > 0 {
+			finalPayload["prev"] = route.Prev
+			finalPayload["curr"] = route.Curr
+			finalPayload["next"] = route.Next
 		}
 		if currentActorIdx != nil {
 			finalPayload["current_actor_idx"] = *currentActorIdx
@@ -1215,7 +1219,7 @@ func (r *Router) resolveQueueName(actorName string) string {
 // createFanoutMessage creates a fanout child message in the gateway
 // Fanout children use the same route state as the parent after runtime processing
 func (r *Router) createFanoutMessage(ctx context.Context, id, parentID string, route messages.Route) error {
-	return r.progressReporter.CreateTask(ctx, id, parentID, route.Actors, route.Current)
+	return r.progressReporter.CreateTask(ctx, id, parentID, route)
 }
 
 // CheckGatewayHealth verifies the gateway is reachable if gateway URL is configured
