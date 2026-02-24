@@ -27,6 +27,9 @@ spec:
   # Queue: asya-production-text-processor
   actor: text-processor
   transport: sqs
+  compositionSelector:
+    matchLabels:
+      asya.sh/transport: sqs
 
   scaling:
     enabled: true
@@ -72,6 +75,9 @@ spec:
   # Same logical actor name - both regions consume from same queue
   actor: text-processor
   transport: sqs
+  compositionSelector:
+    matchLabels:
+      asya.sh/transport: sqs
 
   scaling:
     enabled: true

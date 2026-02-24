@@ -9,6 +9,9 @@ metadata:
 spec:
   actor: conda-ml-actor
   transport: rabbitmq
+  compositionSelector:
+    matchLabels:
+      asya.sh/transport: rabbitmq
 
   scaling:
     enabled: true

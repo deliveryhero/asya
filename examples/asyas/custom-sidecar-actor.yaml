@@ -9,6 +9,9 @@ metadata:
 spec:
   actor: custom-sidecar-actor
   transport: rabbitmq
+  compositionSelector:
+    matchLabels:
+      asya.sh/transport: rabbitmq
 
   # Custom sidecar configuration
   sidecar:

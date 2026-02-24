@@ -14,6 +14,9 @@ spec:
   actor: hello-actor
   # Reference to operator-configured transport
   transport: rabbitmq
+  compositionSelector:
+    matchLabels:
+      asya.sh/transport: rabbitmq
 
   # Your runtime container
   workload:

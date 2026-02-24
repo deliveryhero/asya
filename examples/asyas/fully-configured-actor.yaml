@@ -9,6 +9,9 @@ metadata:
 spec:
   actor: fully-configured-actor
   transport: rabbitmq
+  compositionSelector:
+    matchLabels:
+      asya.sh/transport: rabbitmq
 
   scaling:
     enabled: true

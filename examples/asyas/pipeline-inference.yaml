@@ -9,6 +9,9 @@ metadata:
 spec:
   actor: inference
   transport: rabbitmq
+  compositionSelector:
+    matchLabels:
+      asya.sh/transport: rabbitmq
 
   scaling:
     enabled: true

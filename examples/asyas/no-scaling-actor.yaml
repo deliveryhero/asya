@@ -9,6 +9,9 @@ metadata:
 spec:
   actor: fixed-replicas-actor
   transport: rabbitmq
+  compositionSelector:
+    matchLabels:
+      asya.sh/transport: rabbitmq
 
   # Disable KEDA autoscaling
   scaling:
