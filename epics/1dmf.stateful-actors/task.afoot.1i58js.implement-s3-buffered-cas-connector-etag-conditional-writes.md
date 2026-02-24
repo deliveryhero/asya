@@ -2,9 +2,12 @@
 title: Implement s3-buffered-cas connector (ETag conditional writes)
 priority: 2 # medium
 type: task
+tags:
+  - pr:200
 dependencies:
   - 1dmf/1iph0b
 ---
+
 
 
 S3 connector with buffered writes and CAS via ETag/If-Match conditional PutObject.
