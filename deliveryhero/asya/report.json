@@ -1,7 +1,7 @@
 {
   "repository": "deliveryhero/asya",
   "ref": "refs/heads/main",
-  "commit": "3468bde90c9ee3a414097eceb29456d5de9fc84a",
+  "commit": "be342e69dfe8d8ae36d8a171e1e60631d0070bb7",
   "coverage": {
     "type": "merged",
     "format": "Go coverage",
@@ -16204,13 +16204,13 @@
     ]
   },
   "code_to_test_ratio": {
-    "code": 21567,
-    "test": 18082,
+    "code": 22624,
+    "test": 18370,
     "code_files": [
       {
-        "code": 382,
-        "comment": 104,
-        "blank": 115,
+        "code": 701,
+        "comment": 127,
+        "blank": 187,
         "path": "deploy/helm-charts/asya-crossplane/files/asya_runtime.py",
         "language": "Python"
       },
@@ -17209,23 +17209,30 @@
         "language": "Go"
       },
       {
-        "code": 28,
-        "comment": 14,
-        "blank": 14,
+        "code": 37,
+        "comment": 16,
+        "blank": 16,
         "path": "src/asya-injector/internal/injection/config.go",
         "language": "Go"
       },
       {
-        "code": 356,
-        "comment": 41,
-        "blank": 55,
+        "code": 357,
+        "comment": 42,
+        "blank": 56,
         "path": "src/asya-injector/internal/injection/inject.go",
         "language": "Go"
       },
       {
-        "code": 154,
-        "comment": 21,
-        "blank": 34,
+        "code": 68,
+        "comment": 10,
+        "blank": 10,
+        "path": "src/asya-injector/internal/injection/state_proxy.go",
+        "language": "Go"
+      },
+      {
+        "code": 197,
+        "comment": 24,
+        "blank": 39,
         "path": "src/asya-injector/internal/webhook/asyncactor.go",
         "language": "Go"
       },
@@ -17244,9 +17251,9 @@
         "language": "Go"
       },
       {
-        "code": 382,
-        "comment": 104,
-        "blank": 115,
+        "code": 701,
+        "comment": 127,
+        "blank": 187,
         "path": "src/asya-runtime/asya_runtime.py",
         "language": "Python"
       },
@@ -17347,6 +17354,55 @@
         "blank": 9,
         "path": "src/asya-sidecar/pkg/transport/transport.go",
         "language": "Go"
+      },
+      {
+        "code": 2,
+        "comment": 0,
+        "blank": 2,
+        "path": "src/asya-state-proxy/asya_state_proxy/__init__.py",
+        "language": "Python"
+      },
+      {
+        "code": 21,
+        "comment": 7,
+        "blank": 12,
+        "path": "src/asya-state-proxy/asya_state_proxy/interface.py",
+        "language": "Python"
+      },
+      {
+        "code": 174,
+        "comment": 7,
+        "blank": 40,
+        "path": "src/asya-state-proxy/asya_state_proxy/server.py",
+        "language": "Python"
+      },
+      {
+        "code": 0,
+        "comment": 0,
+        "blank": 0,
+        "path": "src/asya-state-proxy/connectors/__init__.py",
+        "language": "Python"
+      },
+      {
+        "code": 0,
+        "comment": 0,
+        "blank": 0,
+        "path": "src/asya-state-proxy/connectors/s3_buffered_lww/__init__.py",
+        "language": "Python"
+      },
+      {
+        "code": 5,
+        "comment": 1,
+        "blank": 7,
+        "path": "src/asya-state-proxy/connectors/s3_buffered_lww/__main__.py",
+        "language": "Python"
+      },
+      {
+        "code": 96,
+        "comment": 16,
+        "blank": 23,
+        "path": "src/asya-state-proxy/connectors/s3_buffered_lww/connector.py",
+        "language": "Python"
       },
       {
         "code": 24,
@@ -17736,6 +17792,13 @@
         "language": "Go"
       },
       {
+        "code": 288,
+        "comment": 20,
+        "blank": 47,
+        "path": "src/asya-injector/internal/injection/state_proxy_test.go",
+        "language": "Go"
+      },
+      {
         "code": 457,
         "comment": 2,
         "blank": 17,
@@ -17933,6 +17996,6 @@
       }
     ]
   },
-  "test_execution_time": 206000000000,
-  "timestamp": "2026-02-24T15:54:04.647167044Z"
+  "test_execution_time": 209000000000,
+  "timestamp": "2026-02-24T23:23:11.615289639Z"
 }
