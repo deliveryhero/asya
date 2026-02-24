@@ -4,6 +4,7 @@ priority: 1 # high
 type: task
 ---
 
+
 Second connector: Redis with buffered writes and CAS (compare-and-swap) semantics.
 
 - Implements all 6 StateProxyConnector methods against Redis
