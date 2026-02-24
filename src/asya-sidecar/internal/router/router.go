@@ -787,6 +787,8 @@ func (r *Router) routeResponse(ctx context.Context, id string, parentID *string,
 		if inStatus != nil {
 			outStatus.Actor = inStatus.Actor
 			outStatus.CreatedAt = inStatus.CreatedAt
+			outStatus.Attempt = inStatus.Attempt
+			outStatus.MaxAttempts = inStatus.MaxAttempts
 		} else {
 			outStatus.Actor = r.actorName
 			outStatus.CreatedAt = now
