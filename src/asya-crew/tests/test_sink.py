@@ -295,7 +295,7 @@ def test_fan_out_child_runs_hooks_when_enabled():
     }
 
     result = sink_handler(message)
-    assert result["route"] == {"actors": ["checkpoint-s3"], "current": 0}
+    assert result["route"] == {"prev": [], "curr": "checkpoint-s3", "next": []}
     logger.info("=== test_fan_out_child_runs_hooks_when_enabled: PASSED ===")
     os.environ.pop("ASYA_SINK_FANOUT_HOOKS", None)
 
@@ -318,5 +318,5 @@ def test_fan_in_partial_runs_hooks():
 
     result = sink_handler(message)
     # Fan-in with hooks: still routes to hooks
-    assert result["route"] == {"actors": ["checkpoint-s3"], "current": 0}
+    assert result["route"] == {"prev": [], "curr": "checkpoint-s3", "next": []}
     logger.info("=== test_fan_in_partial_runs_hooks: PASSED ===")
