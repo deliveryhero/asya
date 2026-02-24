@@ -1,52 +1,37 @@
 # Sidecar-Runtime Protocol
 
-Communication between Asya sidecar (Go) and runtime (Python) via Unix domain socket.
+Communication between Asya sidecar (Go) and runtime (Python) uses **HTTP/1.1 over a Unix domain socket**.
 
-## Connection Lifecycle
+## Transport
 
-1. Runtime creates Unix socket at `ASYA_SOCKET_PATH` (default: `/var/run/asya/asya-runtime.sock`)
-2. Sidecar connects to socket for each message
-3. Request-response cycle executes
-4. Connection closes
-5. Repeat for next message
+- **Socket path**: `/var/run/asya/asya-runtime.sock` (default; override with `ASYA_SOCKET_DIR` + `ASYA_SOCKET_NAME` for testing)
+- **Protocol**: HTTP/1.1 — standard `net/http` client (Go) and `http.server.HTTPServer` (Python)
+- **One connection per message** — no persistent pooling; clean state between requests
 
-**One connection per message** - no pooling to ensure clean state.
+## Startup Readiness
 
-## Framing Protocol
+The runtime uses **late binding**: the HTTP server starts _after_ `_load_function()` completes. This means:
 
-All messages use **4-byte big-endian length prefix**:
+1. Runtime loads and validates the user handler (may take seconds for model loading)
+2. HTTP server binds the Unix socket and starts listening
+3. Ready-file `runtime-ready` is written to `SOCKET_DIR`
+4. Sidecar polls the ready-file (500 ms interval), then verifies the socket connection
 
-```
-+-------------------+---------------------------+
-| Length (4 bytes)  | Payload (Length bytes)    |
-+-------------------+---------------------------+
-| Big-endian uint32 | JSON data                 |
-+-------------------+---------------------------+
-```
+Sidecar never sees a listening socket before the handler is fully loaded — no race condition at startup.
 
-**Python** (sending):
-```python
-length = struct.pack(">I", len(data))
-sock.sendall(length + data)
-```
+## Endpoints
 
-**Go** (receiving):
-```go
-length := make([]byte, 4)
-io.ReadFull(conn, length)
-size := binary.BigEndian.Uint32(length)
-data := make([]byte, size)
-io.ReadFull(conn, data)
-```
+### `POST /invoke` — Process a message
 
-## Message Format
+**Request** (sidecar → runtime):
 
-### Request (Sidecar → Runtime)
+```http
+POST /invoke HTTP/1.1
+Content-Type: application/json
+Content-Length: <n>
 
-Full message from queue:
-```json
 {
-  "id": "123",
+  "id": "msg-123",
   "route": {
     "prev": [],
     "curr": "step1",
@@ -57,91 +42,109 @@ Full message from queue:
 }
 ```
 
-### Response (Runtime → Sidecar)
+**Response codes**:
 
-**Success** (single result):
+| HTTP Status | Meaning | Body |
+|-------------|---------|------|
+| `200 OK` | Handler returned one or more frames | `{"frames": [...]}` |
+| `204 No Content` | Handler returned `None` — abort pipeline | empty |
+| `400 Bad Request` | Malformed JSON or validation error | `{"error": "msg_parsing_error", "details": {...}}` |
+| `500 Internal Server Error` | Unhandled handler exception | `{"error": "processing_error", "details": {...}}` |
+
+**Success response** (`200`):
+
 ```json
 {
-  "id": "123",
-  "route": {
-    "prev": ["step1"],
-    "curr": "step2",
-    "next": []
-  },
-  "payload": {"text": "Hello", "processed": true},
-  "headers": {"trace_id": "abc"}
+  "frames": [
+    {
+      "payload": {"text": "Hello", "processed": true},
+      "route": {
+        "prev": ["step1"],
+        "curr": "step2",
+        "next": []
+      },
+      "headers": {"trace_id": "abc"}
+    }
+  ]
 }
 ```
 
-**Fan-out** (multiple results):
-```json
-[
-  {"chunk": 1, "data": "..."},
-  {"chunk": 2, "data": "..."}
-]
-```
+Fan-out handlers (generators) produce multiple frames in the same `frames` array.
 
-**Empty** (abort):
-```json
-null
-```
+**Error response** (`400` / `500`):
 
-**Error**:
-```json
-{
-  "error": "processing_error",
-  "message": "Invalid input",
-  "type": "ValueError"
-}
-```
-
-## Error Categories
-
-Runtime returns errors in this format:
 ```json
 {
   "error": "processing_error",
   "details": {
-    "message": "Invalid input",
-    "type": "ValueError",
-    "traceback": "..."
+    "message": "division by zero",
+    "type": "builtins.ZeroDivisionError",
+    "mro": ["builtins.ArithmeticError", "builtins.Exception"],
+    "traceback": "Traceback (most recent call last):\n  ..."
   }
 }
 ```
 
-**Error codes** (returned by runtime):
+### `GET /healthz` — Kubernetes readiness probe
 
-| Error Code | Cause | Action |
-|------------|-------|--------|
-| `processing_error` | Handler exception (any unhandled Python exception) | Route to `x-sump` |
-| `connection_error` | Socket failure or connection handling error | Route to `x-sump` |
+Returns `200 OK` once the HTTP server is listening (i.e., after handler loading completes).
+
+```http
+GET /healthz HTTP/1.1
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"status": "ready"}
+```
+
+Any unknown path returns `404 Not Found`.
+
+## Error Categories
+
+**Runtime-returned error codes** (in `"error"` field of `400`/`500` responses):
+
+| Code | Cause | Sidecar action |
+|------|-------|----------------|
+| `msg_parsing_error` | Malformed JSON or missing required fields | Route to `x-sump` |
+| `processing_error` | Unhandled Python exception in handler | Route to `x-sump` |
 
 **Sidecar-side errors** (not from runtime):
 
 | Error | Cause | Action |
 |-------|-------|--------|
-| Timeout (`context.DeadlineExceeded`) | Runtime execution exceeded timeout | Crash pod to prevent zombie processing |
-| Parse error | Malformed JSON from runtime | Route to `x-sump` |
+| `context.DeadlineExceeded` | Runtime exceeded `ASYA_RUNTIME_TIMEOUT` | Send to `x-sump`, crash pod |
+| HTTP parse error | Unexpected non-HTTP response | Route to `x-sump` |
 
 ## Timeout Strategy
 
-Sidecar enforces overall timeout (default: 5 minutes):
-```go
-ctx, cancel := context.WithTimeout(ctx, c.timeout)
-conn.SetDeadline(deadline)
-```
+Sidecar enforces a per-message timeout (default: 5 minutes) via `context.WithTimeout`:
 
 **On timeout** (`context.DeadlineExceeded`):
-1. Sidecar sends message to `x-sump` queue with timeout error
-2. Sidecar logs error and **crashes pod** (exits with status code 1)
-3. Kubernetes restarts pod to recover clean state
+1. Sidecar sends the message to `x-sump` with a timeout error
+2. Sidecar **crashes the pod** (exits with status code 1)
+3. Kubernetes restarts the pod to recover clean state
 
-**Rationale**: Prevents zombie processing where runtime may still be working after timeout
+**Rationale**: prevents zombie processing where the runtime may still be executing after the sidecar gives up.
 
 **Configuration**: `ASYA_RUNTIME_TIMEOUT` (default: `5m`)
 
-**IMPORTANT**: Timeout crashes the pod for both end actors and regular actors to ensure clean state recovery.
+## Debugging with curl
 
+Inspect the runtime directly without a sidecar:
+
+```bash
+# Invoke handler
+curl --unix-socket /var/run/asya/asya-runtime.sock \
+  -X POST http://localhost/invoke \
+  -H "Content-Type: application/json" \
+  -d '{"id":"dbg-1","route":{"prev":[],"curr":"my-actor","next":[]},"payload":{"x":1}}'
+# → 200 {"frames":[{"payload":{"x":1},"route":{"prev":["my-actor"],"curr":"","next":[]}}]}
+
+# Check handler readiness
+curl --unix-socket /var/run/asya/asya-runtime.sock http://localhost/healthz
+# → 200 {"status":"ready"}
+```
 
 ## Configuration Reference
 
@@ -149,15 +152,16 @@ conn.SetDeadline(deadline)
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `ASYA_SOCKET_PATH` | `/var/run/asya/asya-runtime.sock` | Unix socket path |
-| `ASYA_HANDLER` | (required) | Handler path (`module.Class.method`) |
+| `ASYA_HANDLER` | (required) | Handler path (`module.function` or `module.Class.method`) |
 | `ASYA_HANDLER_MODE` | `payload` | Mode: `payload` or `envelope` |
+| `ASYA_SOCKET_CHMOD` | `0o666` | Socket file permissions (octal string) |
+| `ASYA_ENABLE_VALIDATION` | `true` | Enable message validation |
+| `ASYA_LOG_LEVEL` | `INFO` | Log level (`DEBUG`, `INFO`, `WARNING`, `ERROR`) |
 
 ### Sidecar Variables
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `ASYA_SOCKET_PATH` | `/var/run/asya/asya-runtime.sock` | Unix socket path |
 | `ASYA_RUNTIME_TIMEOUT` | `5m` | Processing timeout per message |
 | `ASYA_ACTOR_NAME` | (required) | Actor name for queue consumption |
 
@@ -165,17 +169,17 @@ conn.SetDeadline(deadline)
 
 ### For Handler Authors
 
-1. Monitor processing time, return early if approaching timeout limit
-2. Use context managers for resource cleanup
-3. Return `None` or `[]` to abort pipeline early
-4. Avoid global caches that leak memory across requests
-5. Use structured logging
-6. Handle exceptions gracefully - runtime will catch unhandled exceptions and return `processing_error`
+1. **Monitor processing time** — return early if approaching the timeout limit; the sidecar will crash the pod on `DeadlineExceeded`, so a graceful early return is preferable.
+2. **Use context managers** for resource cleanup (file handles, HTTP clients, DB connections) so teardown happens even when exceptions occur.
+3. **Return `None` to abort** — handlers returning `None` produce a `204` response, which routes the message to `x-sink` without an error. Use this for intentional pipeline exits, not errors.
+4. **Avoid global mutable state** that leaks across requests; class handlers share the instance, so thread-safety matters for concurrent runtimes.
+5. **Let exceptions propagate** — the runtime catches all unhandled exceptions and returns `processing_error` with a full traceback. Wrapping everything in a bare `except` hides bugs.
+6. **Use structured logging** — log at `DEBUG` during normal processing so `ASYA_LOG_LEVEL=DEBUG` gives full trace without changing code.
 
 ### For Operators
 
-1. Set appropriate timeout balancing task duration and responsiveness
-2. Monitor OOM and timeout frequencies
-3. Size resources adequately for workload
-4. Test failure modes in staging
-5. Set container memory limits as defense-in-depth
+1. **Tune `ASYA_RUNTIME_TIMEOUT`** to balance task duration against responsiveness; short timeouts cause false crashes on slow model inference.
+2. **Monitor `x-sump` queue depth** — a growing sump queue signals systematic handler errors or timeout spikes.
+3. **Size container memory** for peak model/data size, not average; OOM kills look like pod crashes and are hard to distinguish from timeout crashes without metrics.
+4. **Use `GET /healthz`** as the Kubernetes readiness probe target — it becomes available only after the handler is fully loaded, so the pod never receives traffic while still initialising.
+5. **Test failure modes in staging** before production: inject bad payloads, simulate timeouts, and verify messages land in `x-sump` rather than disappearing silently.

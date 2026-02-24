@@ -865,40 +865,31 @@
     </div>
   </div>
   <div class="typography w-full flex-1 *:data-[slot=alert]:first:mt-0">
-    <p>Communication between Asya sidecar (Go) and runtime (Python) via Unix domain socket.</p>
-<h2 id="connection-lifecycle">Connection Lifecycle<a class="headerlink" href="#connection-lifecycle" title="Permanent link">&para;</a></h2>
+    <p>Communication between Asya sidecar (Go) and runtime (Python) uses <strong>HTTP/1.1 over a Unix domain socket</strong>.</p>
+<h2 id="transport">Transport<a class="headerlink" href="#transport" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Socket path</strong>: <code>/var/run/asya/asya-runtime.sock</code> (default; override with <code>ASYA_SOCKET_DIR</code> + <code>ASYA_SOCKET_NAME</code> for testing)</li>
+<li><strong>Protocol</strong>: HTTP/1.1 — standard <code>net/http</code> client (Go) and <code>http.server.HTTPServer</code> (Python)</li>
+<li><strong>One connection per message</strong> — no persistent pooling; clean state between requests</li>
+</ul>
+<h2 id="startup-readiness">Startup Readiness<a class="headerlink" href="#startup-readiness" title="Permanent link">&para;</a></h2>
+<p>The runtime uses <strong>late binding</strong>: the HTTP server starts <em>after</em> <code>_load_function()</code> completes. This means:</p>
 <ol>
-<li>Runtime creates Unix socket at <code>ASYA_SOCKET_PATH</code> (default: <code>/var/run/asya/asya-runtime.sock</code>)</li>
-<li>Sidecar connects to socket for each message</li>
-<li>Request-response cycle executes</li>
-<li>Connection closes</li>
-<li>Repeat for next message</li>
+<li>Runtime loads and validates the user handler (may take seconds for model loading)</li>
+<li>HTTP server binds the Unix socket and starts listening</li>
+<li>Ready-file <code>runtime-ready</code> is written to <code>SOCKET_DIR</code></li>
+<li>Sidecar polls the ready-file (500 ms interval), then verifies the socket connection</li>
 </ol>
-<p><strong>One connection per message</strong> - no pooling to ensure clean state.</p>
-<h2 id="framing-protocol">Framing Protocol<a class="headerlink" href="#framing-protocol" title="Permanent link">&para;</a></h2>
-<p>All messages use <strong>4-byte big-endian length prefix</strong>:</p>
-<div class="highlight"><pre><span></span><code>+-------------------+---------------------------+
-| Length (4 bytes)  | Payload (Length bytes)    |
-+-------------------+---------------------------+
-| Big-endian uint32 | JSON data                 |
-+-------------------+---------------------------+
-</code></pre></div>
-<p><strong>Python</strong> (sending):
-<div class="highlight"><pre><span></span><code><span class="n">length</span> <span class="o">=</span> <span class="n">struct</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="s2">&quot;&gt;I&quot;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">))</span>
-<span class="n">sock</span><span class="o">.</span><span class="n">sendall</span><span class="p">(</span><span class="n">length</span> <span class="o">+</span> <span class="n">data</span><span class="p">)</span>
-</code></pre></div></p>
-<p><strong>Go</strong> (receiving):
-<div class="highlight"><pre><span></span><code><span class="nx">length</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nb">make</span><span class="p">([]</span><span class="kt">byte</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="p">)</span>
-<span class="nx">io</span><span class="p">.</span><span class="nx">ReadFull</span><span class="p">(</span><span class="nx">conn</span><span class="p">,</span><span class="w"> </span><span class="nx">length</span><span class="p">)</span>
-<span class="nx">size</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">binary</span><span class="p">.</span><span class="nx">BigEndian</span><span class="p">.</span><span class="nx">Uint32</span><span class="p">(</span><span class="nx">length</span><span class="p">)</span>
-<span class="nx">data</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nb">make</span><span class="p">([]</span><span class="kt">byte</span><span class="p">,</span><span class="w"> </span><span class="nx">size</span><span class="p">)</span>
-<span class="nx">io</span><span class="p">.</span><span class="nx">ReadFull</span><span class="p">(</span><span class="nx">conn</span><span class="p">,</span><span class="w"> </span><span class="nx">data</span><span class="p">)</span>
-</code></pre></div></p>
-<h2 id="message-format">Message Format<a class="headerlink" href="#message-format" title="Permanent link">&para;</a></h2>
-<h3 id="request-sidecar-runtime">Request (Sidecar → Runtime)<a class="headerlink" href="#request-sidecar-runtime" title="Permanent link">&para;</a></h3>
-<p>Full message from queue:
-<div class="highlight"><pre><span></span><code><span class="p">{</span>
-<span class="w">  </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;123&quot;</span><span class="p">,</span>
+<p>Sidecar never sees a listening socket before the handler is fully loaded — no race condition at startup.</p>
+<h2 id="endpoints">Endpoints<a class="headerlink" href="#endpoints" title="Permanent link">&para;</a></h2>
+<h3 id="post-invoke-process-a-message"><code>POST /invoke</code> — Process a message<a class="headerlink" href="#post-invoke-process-a-message" title="Permanent link">&para;</a></h3>
+<p><strong>Request</strong> (sidecar → runtime):</p>
+<div class="highlight"><pre><span></span><code><span class="nf">POST</span> <span class="nn">/invoke</span> <span class="kr">HTTP</span><span class="o">/</span><span class="m">1.1</span>
+<span class="na">Content-Type</span><span class="o">:</span> <span class="l">application/json</span>
+<span class="na">Content-Length</span><span class="o">:</span> <span class="l">&lt;n&gt;</span>
+
+<span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;msg-123&quot;</span><span class="p">,</span>
 <span class="w">  </span><span class="nt">&quot;route&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="nt">&quot;prev&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
 <span class="w">    </span><span class="nt">&quot;curr&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;step1&quot;</span><span class="p">,</span>
@@ -907,65 +898,95 @@
 <span class="w">  </span><span class="nt">&quot;payload&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;text&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Hello&quot;</span><span class="p">},</span>
 <span class="w">  </span><span class="nt">&quot;headers&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;trace_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;abc&quot;</span><span class="p">}</span>
 <span class="p">}</span>
-</code></pre></div></p>
-<h3 id="response-runtime-sidecar">Response (Runtime → Sidecar)<a class="headerlink" href="#response-runtime-sidecar" title="Permanent link">&para;</a></h3>
-<p><strong>Success</strong> (single result):
-<div class="highlight"><pre><span></span><code><span class="p">{</span>
-<span class="w">  </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;123&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;route&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;prev&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;step1&quot;</span><span class="p">],</span>
-<span class="w">    </span><span class="nt">&quot;curr&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;step2&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;next&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[]</span>
-<span class="w">  </span><span class="p">},</span>
-<span class="w">  </span><span class="nt">&quot;payload&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;text&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Hello&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;processed&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">},</span>
-<span class="w">  </span><span class="nt">&quot;headers&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;trace_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;abc&quot;</span><span class="p">}</span>
-<span class="p">}</span>
-</code></pre></div></p>
-<p><strong>Fan-out</strong> (multiple results):
-<div class="highlight"><pre><span></span><code><span class="p">[</span>
-<span class="w">  </span><span class="p">{</span><span class="nt">&quot;chunk&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;data&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;...&quot;</span><span class="p">},</span>
-<span class="w">  </span><span class="p">{</span><span class="nt">&quot;chunk&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;data&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;...&quot;</span><span class="p">}</span>
-<span class="p">]</span>
-</code></pre></div></p>
-<p><strong>Empty</strong> (abort):
-<div class="highlight"><pre><span></span><code><span class="kc">null</span>
-</code></pre></div></p>
-<p><strong>Error</strong>:
-<div class="highlight"><pre><span></span><code><span class="p">{</span>
-<span class="w">  </span><span class="nt">&quot;error&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;processing_error&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;message&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Invalid input&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ValueError&quot;</span>
-<span class="p">}</span>
-</code></pre></div></p>
-<h2 id="error-categories">Error Categories<a class="headerlink" href="#error-categories" title="Permanent link">&para;</a></h2>
-<p>Runtime returns errors in this format:
-<div class="highlight"><pre><span></span><code><span class="p">{</span>
-<span class="w">  </span><span class="nt">&quot;error&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;processing_error&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;details&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;message&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Invalid input&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ValueError&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;traceback&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;...&quot;</span>
-<span class="w">  </span><span class="p">}</span>
-<span class="p">}</span>
-</code></pre></div></p>
-<p><strong>Error codes</strong> (returned by runtime):</p>
+</code></pre></div>
+<p><strong>Response codes</strong>:</p>
 <div class="table-wrapper"><table>
 <thead>
 <tr>
-<th>Error Code</th>
-<th>Cause</th>
-<th>Action</th>
+<th>HTTP Status</th>
+<th>Meaning</th>
+<th>Body</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>processing_error</code></td>
-<td>Handler exception (any unhandled Python exception)</td>
+<td><code>200 OK</code></td>
+<td>Handler returned one or more frames</td>
+<td><code>{"frames": [...]}</code></td>
+</tr>
+<tr>
+<td><code>204 No Content</code></td>
+<td>Handler returned <code>None</code> — abort pipeline</td>
+<td>empty</td>
+</tr>
+<tr>
+<td><code>400 Bad Request</code></td>
+<td>Malformed JSON or validation error</td>
+<td><code>{"error": "msg_parsing_error", "details": {...}}</code></td>
+</tr>
+<tr>
+<td><code>500 Internal Server Error</code></td>
+<td>Unhandled handler exception</td>
+<td><code>{"error": "processing_error", "details": {...}}</code></td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Success response</strong> (<code>200</code>):</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;frames&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;payload&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;text&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Hello&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;processed&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">},</span>
+<span class="w">      </span><span class="nt">&quot;route&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;prev&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;step1&quot;</span><span class="p">],</span>
+<span class="w">        </span><span class="nt">&quot;curr&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;step2&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;next&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[]</span>
+<span class="w">      </span><span class="p">},</span>
+<span class="w">      </span><span class="nt">&quot;headers&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;trace_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;abc&quot;</span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">]</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>Fan-out handlers (generators) produce multiple frames in the same <code>frames</code> array.</p>
+<p><strong>Error response</strong> (<code>400</code> / <code>500</code>):</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;error&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;processing_error&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;details&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;message&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;division by zero&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;builtins.ZeroDivisionError&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;mro&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;builtins.ArithmeticError&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;builtins.Exception&quot;</span><span class="p">],</span>
+<span class="w">    </span><span class="nt">&quot;traceback&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Traceback (most recent call last):\n  ...&quot;</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<h3 id="get-healthz-kubernetes-readiness-probe"><code>GET /healthz</code> — Kubernetes readiness probe<a class="headerlink" href="#get-healthz-kubernetes-readiness-probe" title="Permanent link">&para;</a></h3>
+<p>Returns <code>200 OK</code> once the HTTP server is listening (i.e., after handler loading completes).</p>
+<div class="highlight"><pre><span></span><code><span class="nf">GET</span> <span class="nn">/healthz</span> <span class="kr">HTTP</span><span class="o">/</span><span class="m">1.1</span>
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{&quot;status&quot;: &quot;ready&quot;}
+</code></pre></div>
+<p>Any unknown path returns <code>404 Not Found</code>.</p>
+<h2 id="error-categories">Error Categories<a class="headerlink" href="#error-categories" title="Permanent link">&para;</a></h2>
+<p><strong>Runtime-returned error codes</strong> (in <code>"error"</code> field of <code>400</code>/<code>500</code> responses):</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Code</th>
+<th>Cause</th>
+<th>Sidecar action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>msg_parsing_error</code></td>
+<td>Malformed JSON or missing required fields</td>
 <td>Route to <code>x-sump</code></td>
 </tr>
 <tr>
-<td><code>connection_error</code></td>
-<td>Socket failure or connection handling error</td>
+<td><code>processing_error</code></td>
+<td>Unhandled Python exception in handler</td>
 <td>Route to <code>x-sump</code></td>
 </tr>
 </tbody>
@@ -981,29 +1002,38 @@
 </thead>
 <tbody>
 <tr>
-<td>Timeout (<code>context.DeadlineExceeded</code>)</td>
-<td>Runtime execution exceeded timeout</td>
-<td>Crash pod to prevent zombie processing</td>
+<td><code>context.DeadlineExceeded</code></td>
+<td>Runtime exceeded <code>ASYA_RUNTIME_TIMEOUT</code></td>
+<td>Send to <code>x-sump</code>, crash pod</td>
 </tr>
 <tr>
-<td>Parse error</td>
-<td>Malformed JSON from runtime</td>
+<td>HTTP parse error</td>
+<td>Unexpected non-HTTP response</td>
 <td>Route to <code>x-sump</code></td>
 </tr>
 </tbody>
 </table></div>
 <h2 id="timeout-strategy">Timeout Strategy<a class="headerlink" href="#timeout-strategy" title="Permanent link">&para;</a></h2>
-<p>Sidecar enforces overall timeout (default: 5 minutes):
-<div class="highlight"><pre><span></span><code><span class="nx">ctx</span><span class="p">,</span><span class="w"> </span><span class="nx">cancel</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">context</span><span class="p">.</span><span class="nx">WithTimeout</span><span class="p">(</span><span class="nx">ctx</span><span class="p">,</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">timeout</span><span class="p">)</span>
-<span class="nx">conn</span><span class="p">.</span><span class="nx">SetDeadline</span><span class="p">(</span><span class="nx">deadline</span><span class="p">)</span>
-</code></pre></div></p>
+<p>Sidecar enforces a per-message timeout (default: 5 minutes) via <code>context.WithTimeout</code>:</p>
 <p><strong>On timeout</strong> (<code>context.DeadlineExceeded</code>):
-1. Sidecar sends message to <code>x-sump</code> queue with timeout error
-2. Sidecar logs error and <strong>crashes pod</strong> (exits with status code 1)
-3. Kubernetes restarts pod to recover clean state</p>
-<p><strong>Rationale</strong>: Prevents zombie processing where runtime may still be working after timeout</p>
+1. Sidecar sends the message to <code>x-sump</code> with a timeout error
+2. Sidecar <strong>crashes the pod</strong> (exits with status code 1)
+3. Kubernetes restarts the pod to recover clean state</p>
+<p><strong>Rationale</strong>: prevents zombie processing where the runtime may still be executing after the sidecar gives up.</p>
 <p><strong>Configuration</strong>: <code>ASYA_RUNTIME_TIMEOUT</code> (default: <code>5m</code>)</p>
-<p><strong>IMPORTANT</strong>: Timeout crashes the pod for both end actors and regular actors to ensure clean state recovery.</p>
+<h2 id="debugging-with-curl">Debugging with curl<a class="headerlink" href="#debugging-with-curl" title="Permanent link">&para;</a></h2>
+<p>Inspect the runtime directly without a sidecar:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Invoke handler</span>
+curl<span class="w"> </span>--unix-socket<span class="w"> </span>/var/run/asya/asya-runtime.sock<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-X<span class="w"> </span>POST<span class="w"> </span>http://localhost/invoke<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Content-Type: application/json&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;id&quot;:&quot;dbg-1&quot;,&quot;route&quot;:{&quot;prev&quot;:[],&quot;curr&quot;:&quot;my-actor&quot;,&quot;next&quot;:[]},&quot;payload&quot;:{&quot;x&quot;:1}}&#39;</span>
+<span class="c1"># → 200 {&quot;frames&quot;:[{&quot;payload&quot;:{&quot;x&quot;:1},&quot;route&quot;:{&quot;prev&quot;:[&quot;my-actor&quot;],&quot;curr&quot;:&quot;&quot;,&quot;next&quot;:[]}}]}</span>
+
+<span class="c1"># Check handler readiness</span>
+curl<span class="w"> </span>--unix-socket<span class="w"> </span>/var/run/asya/asya-runtime.sock<span class="w"> </span>http://localhost/healthz
+<span class="c1"># → 200 {&quot;status&quot;:&quot;ready&quot;}</span>
+</code></pre></div>
 <h2 id="configuration-reference">Configuration Reference<a class="headerlink" href="#configuration-reference" title="Permanent link">&para;</a></h2>
 <h3 id="runtime-variables">Runtime Variables<a class="headerlink" href="#runtime-variables" title="Permanent link">&para;</a></h3>
 <div class="table-wrapper"><table>
@@ -1016,19 +1046,29 @@
 </thead>
 <tbody>
 <tr>
-<td><code>ASYA_SOCKET_PATH</code></td>
-<td><code>/var/run/asya/asya-runtime.sock</code></td>
-<td>Unix socket path</td>
-</tr>
-<tr>
 <td><code>ASYA_HANDLER</code></td>
 <td>(required)</td>
-<td>Handler path (<code>module.Class.method</code>)</td>
+<td>Handler path (<code>module.function</code> or <code>module.Class.method</code>)</td>
 </tr>
 <tr>
 <td><code>ASYA_HANDLER_MODE</code></td>
 <td><code>payload</code></td>
 <td>Mode: <code>payload</code> or <code>envelope</code></td>
+</tr>
+<tr>
+<td><code>ASYA_SOCKET_CHMOD</code></td>
+<td><code>0o666</code></td>
+<td>Socket file permissions (octal string)</td>
+</tr>
+<tr>
+<td><code>ASYA_ENABLE_VALIDATION</code></td>
+<td><code>true</code></td>
+<td>Enable message validation</td>
+</tr>
+<tr>
+<td><code>ASYA_LOG_LEVEL</code></td>
+<td><code>INFO</code></td>
+<td>Log level (<code>DEBUG</code>, <code>INFO</code>, <code>WARNING</code>, <code>ERROR</code>)</td>
 </tr>
 </tbody>
 </table></div>
@@ -1042,11 +1082,6 @@
 </tr>
 </thead>
 <tbody>
-<tr>
-<td><code>ASYA_SOCKET_PATH</code></td>
-<td><code>/var/run/asya/asya-runtime.sock</code></td>
-<td>Unix socket path</td>
-</tr>
 <tr>
 <td><code>ASYA_RUNTIME_TIMEOUT</code></td>
 <td><code>5m</code></td>
@@ -1062,20 +1097,20 @@
 <h2 id="best-practices">Best Practices<a class="headerlink" href="#best-practices" title="Permanent link">&para;</a></h2>
 <h3 id="for-handler-authors">For Handler Authors<a class="headerlink" href="#for-handler-authors" title="Permanent link">&para;</a></h3>
 <ol>
-<li>Monitor processing time, return early if approaching timeout limit</li>
-<li>Use context managers for resource cleanup</li>
-<li>Return <code>None</code> or <code>[]</code> to abort pipeline early</li>
-<li>Avoid global caches that leak memory across requests</li>
-<li>Use structured logging</li>
-<li>Handle exceptions gracefully - runtime will catch unhandled exceptions and return <code>processing_error</code></li>
+<li><strong>Monitor processing time</strong> — return early if approaching the timeout limit; the sidecar will crash the pod on <code>DeadlineExceeded</code>, so a graceful early return is preferable.</li>
+<li><strong>Use context managers</strong> for resource cleanup (file handles, HTTP clients, DB connections) so teardown happens even when exceptions occur.</li>
+<li><strong>Return <code>None</code> to abort</strong> — handlers returning <code>None</code> produce a <code>204</code> response, which routes the message to <code>x-sink</code> without an error. Use this for intentional pipeline exits, not errors.</li>
+<li><strong>Avoid global mutable state</strong> that leaks across requests; class handlers share the instance, so thread-safety matters for concurrent runtimes.</li>
+<li><strong>Let exceptions propagate</strong> — the runtime catches all unhandled exceptions and returns <code>processing_error</code> with a full traceback. Wrapping everything in a bare <code>except</code> hides bugs.</li>
+<li><strong>Use structured logging</strong> — log at <code>DEBUG</code> during normal processing so <code>ASYA_LOG_LEVEL=DEBUG</code> gives full trace without changing code.</li>
 </ol>
 <h3 id="for-operators">For Operators<a class="headerlink" href="#for-operators" title="Permanent link">&para;</a></h3>
 <ol>
-<li>Set appropriate timeout balancing task duration and responsiveness</li>
-<li>Monitor OOM and timeout frequencies</li>
-<li>Size resources adequately for workload</li>
-<li>Test failure modes in staging</li>
-<li>Set container memory limits as defense-in-depth</li>
+<li><strong>Tune <code>ASYA_RUNTIME_TIMEOUT</code></strong> to balance task duration against responsiveness; short timeouts cause false crashes on slow model inference.</li>
+<li><strong>Monitor <code>x-sump</code> queue depth</strong> — a growing sump queue signals systematic handler errors or timeout spikes.</li>
+<li><strong>Size container memory</strong> for peak model/data size, not average; OOM kills look like pod crashes and are hard to distinguish from timeout crashes without metrics.</li>
+<li><strong>Use <code>GET /healthz</code></strong> as the Kubernetes readiness probe target — it becomes available only after the handler is fully loaded, so the pod never receives traffic while still initialising.</li>
+<li><strong>Test failure modes in staging</strong> before production: inject bad payloads, simulate timeouts, and verify messages land in <code>x-sump</code> rather than disappearing silently.</li>
 </ol>
   </div>
 </article>
@@ -1342,39 +1377,39 @@
         
         
         
-        <a href="#connection-lifecycle"
+        <a href="#transport"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
-            Connection Lifecycle
+            Transport
         </a>
         
 
         
-        <a href="#framing-protocol"
+        <a href="#startup-readiness"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
-            Framing Protocol
+            Startup Readiness
         </a>
         
 
         
-        <a href="#message-format"
+        <a href="#endpoints"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
-            Message Format
+            Endpoints
         </a>
         
         
-        <a href="#request-sidecar-runtime"
+        <a href="#post-invoke-process-a-message"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="3">
-            Request (Sidecar → Runtime)
+            POST /invoke — Process a message
         </a>
         
-        <a href="#response-runtime-sidecar"
+        <a href="#get-healthz-kubernetes-readiness-probe"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="3">
-            Response (Runtime → Sidecar)
+            GET /healthz — Kubernetes readiness probe
         </a>
         
         
@@ -1392,6 +1427,14 @@
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
             Timeout Strategy
+        </a>
+        
+
+        
+        <a href="#debugging-with-curl"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Debugging with curl
         </a>
         
 
