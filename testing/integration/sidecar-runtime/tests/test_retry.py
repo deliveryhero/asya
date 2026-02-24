@@ -243,7 +243,7 @@ def test_retry_success_after_one_failure(transport_helper):
     transport_helper.purge_queue(SINK_QUEUE)
     message = {
         "id": "test-succeed-after-one-1",
-        "route": {"actors": ["test-retry-succeed"], "current": 0},
+        "route": {"prev": [], "curr": "test-retry-succeed", "next": []},
         "payload": {"test": "succeed_after_one"},
     }
     transport_helper.publish_message(RETRY_SUCCEED_QUEUE, message)
@@ -270,7 +270,7 @@ def test_retry_created_at_preserved(transport_helper):
     transport_helper.purge_queue(SUMP_QUEUE)
     message = {
         "id": "test-created-at-preserved-1",
-        "route": {"actors": ["test-retry-fail"], "current": 0},
+        "route": {"prev": [], "curr": "test-retry-fail", "next": []},
         "payload": {"test": "created_at_preserved"},
     }
     transport_helper.publish_message(RETRY_FAIL_QUEUE, message)
@@ -298,7 +298,7 @@ def test_retry_attempt_resets_on_actor_transition(transport_helper):
     transport_helper.purge_queue(SINK_QUEUE)
     message = {
         "id": "test-attempt-reset-1",
-        "route": {"actors": ["test-retry-succeed", "test-retry-succeed"], "current": 0},
+        "route": {"prev": [], "curr": "test-retry-succeed", "next": ["test-retry-succeed"]},
         "payload": {"test": "attempt_reset"},
     }
     transport_helper.publish_message(RETRY_SUCCEED_QUEUE, message)

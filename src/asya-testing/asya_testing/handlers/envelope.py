@@ -131,10 +131,8 @@ def fail_once_envelope_handler(message: dict[str, Any]) -> dict[str, Any]:
     attempt = (message.get("status") or {}).get("attempt", 1)
     if attempt <= 1:
         raise ValueError("Intentional first-attempt failure (attempt 1)")
-    output_route = message["route"].copy()
-    output_route["current"] = message["route"]["current"] + 1
     return {
         "payload": {**message["payload"], "succeeded_on_attempt": attempt},
-        "route": output_route,
+        "route": message["route"],
         "headers": message.get("headers", {}),
     }
