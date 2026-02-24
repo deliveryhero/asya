@@ -24,9 +24,3 @@ Test infrastructure:
 - Testing actors with configurable failure behavior (fail N times then succeed, always fail, throw specific error types)
 - Docker Compose with SQS (LocalStack) transport
 - Assertions on _sink messages in S3/MinIO
-
-RFC: .worktrees/rfc0/docs/rfc/error-handing/rfc-error-handing.md
-
-
----
-_Migrated from beads `asya-i1vw`_
