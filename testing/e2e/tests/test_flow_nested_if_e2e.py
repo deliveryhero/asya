@@ -43,7 +43,7 @@ def flow_helper(gateway_helper, transport_timeouts, s3_endpoint, results_bucket,
             payload = {"level1": level1, "level2": level2}
 
             message = {
-                "route": {"actors": ["start-test-nested-flow"], "current": 0},
+                "route": {"prev": [], "curr": "start-test-nested-flow", "next": []},
                 "payload": payload,
             }
 

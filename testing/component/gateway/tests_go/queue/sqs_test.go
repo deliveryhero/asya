@@ -36,8 +36,9 @@ func TestSQS_SendMessage(t *testing.T) {
 	task := &types.Task{
 		ID: "test-send-1",
 		Route: types.Route{
-			Actors:  []string{"test-queue"},
-			Current: 0,
+			Prev: []string{},
+			Curr: "test-queue",
+			Next: []string{},
 		},
 		Payload: map[string]interface{}{
 			"message": "test payload",
@@ -63,8 +64,9 @@ func TestSQS_SendAndReceive(t *testing.T) {
 	task := &types.Task{
 		ID: "test-send-receive-1",
 		Route: types.Route{
-			Actors:  []string{testActorName},
-			Current: 0,
+			Prev: []string{},
+			Curr: testActorName,
+			Next: []string{},
 		},
 		Payload: map[string]interface{}{
 			"data": "test message",
@@ -86,8 +88,9 @@ func TestSQS_SendAndReceive(t *testing.T) {
 	require.NoError(t, err, "Failed to unmarshal message")
 
 	assert.Equal(t, task.ID, received.ID)
-	assert.Equal(t, task.Route.Actors, received.Route.Actors)
-	assert.Equal(t, task.Route.Current, received.Route.Current)
+	assert.Equal(t, task.Route.Curr, received.Route.Curr)
+	assert.Equal(t, task.Route.Prev, received.Route.Prev)
+	assert.Equal(t, task.Route.Next, received.Route.Next)
 
 	err = client.Ack(ctx, msg)
 	require.NoError(t, err, "Failed to ack message")
@@ -109,8 +112,9 @@ func TestSQS_MultipleMessages(t *testing.T) {
 		task := &types.Task{
 			ID: "test-multiple-" + string(rune('a'+i)),
 			Route: types.Route{
-				Actors:  []string{testActorName},
-				Current: 0,
+				Prev: []string{},
+				Curr: testActorName,
+				Next: []string{},
 			},
 			Payload: map[string]interface{}{
 				"index": i,
@@ -178,8 +182,9 @@ func TestSQS_TaskWithDeadline(t *testing.T) {
 	task := &types.Task{
 		ID: "test-deadline-1",
 		Route: types.Route{
-			Actors:  []string{testActorName},
-			Current: 0,
+			Prev: []string{},
+			Curr: testActorName,
+			Next: []string{},
 		},
 		Payload: map[string]interface{}{
 			"data": "test with deadline",
@@ -222,15 +227,16 @@ func TestSQS_EmptyRoute(t *testing.T) {
 	task := &types.Task{
 		ID: "test-empty-route",
 		Route: types.Route{
-			Actors:  []string{},
-			Current: 0,
+			Prev: []string{},
+			Curr: "", // Empty curr to trigger empty route error
+			Next: []string{},
 		},
 		Payload: map[string]interface{}{},
 	}
 
 	err = client.SendMessage(ctx, task)
 	require.Error(t, err, "Should fail with empty route")
-	assert.Contains(t, err.Error(), "no actors", "Error should mention no actors")
+	assert.Contains(t, err.Error(), "no current actor", "Error should mention no current actor")
 }
 
 func TestSQS_LargePayload(t *testing.T) {
@@ -252,8 +258,9 @@ func TestSQS_LargePayload(t *testing.T) {
 	task := &types.Task{
 		ID: "test-large-1",
 		Route: types.Route{
-			Actors:  []string{testActorName},
-			Current: 0,
+			Prev: []string{},
+			Curr: testActorName,
+			Next: []string{},
 		},
 		Payload: map[string]interface{}{
 			"large_data": largeData,
@@ -295,8 +302,9 @@ func TestSQS_MultipleQueues(t *testing.T) {
 	task1 := &types.Task{
 		ID: "test-multi-q-1",
 		Route: types.Route{
-			Actors:  []string{actor1},
-			Current: 0,
+			Prev: []string{},
+			Curr: actor1,
+			Next: []string{},
 		},
 		Payload: map[string]interface{}{"queue": "q1"},
 	}
@@ -304,8 +312,9 @@ func TestSQS_MultipleQueues(t *testing.T) {
 	task2 := &types.Task{
 		ID: "test-multi-q-2",
 		Route: types.Route{
-			Actors:  []string{actor2},
-			Current: 0,
+			Prev: []string{},
+			Curr: actor2,
+			Next: []string{},
 		},
 		Payload: map[string]interface{}{"queue": "q2"},
 	}

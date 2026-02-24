@@ -158,7 +158,7 @@ def test_runtime_restart_reconnects(transport_helper, docker_helper):
     logger.info("Step 1: Send message before runtime restart")
     message_before = {
         "id": "test-reconnect-before-1",
-        "route": {"actors": ["test-echo"], "current": 0},
+        "route": {"prev": [], "curr": "test-echo", "next": []},
         "payload": {"test": "before_runtime_restart", "data": "initial"},
     }
     transport_helper.publish_message("asya-default-test-echo", message_before)
@@ -179,7 +179,7 @@ def test_runtime_restart_reconnects(transport_helper, docker_helper):
     logger.info("Step 4: Send message after runtime restart")
     message_after = {
         "id": "test-reconnect-after-1",
-        "route": {"actors": ["test-echo"], "current": 0},
+        "route": {"prev": [], "curr": "test-echo", "next": []},
         "payload": {"test": "after_runtime_restart", "data": "reconnected"},
     }
     transport_helper.publish_message("asya-default-test-echo", message_after)
@@ -209,7 +209,7 @@ def test_sidecar_restart_reconnects(transport_helper, docker_helper):
     logger.info("Step 1: Send message before sidecar restart")
     message_before = {
         "id": "test-sidecar-restart-before-1",
-        "route": {"actors": ["test-echo"], "current": 0},
+        "route": {"prev": [], "curr": "test-echo", "next": []},
         "payload": {"test": "before_sidecar_restart", "data": "initial"},
     }
     transport_helper.publish_message("asya-default-test-echo", message_before)
@@ -227,7 +227,7 @@ def test_sidecar_restart_reconnects(transport_helper, docker_helper):
     logger.info("Step 4: Send message after sidecar restart")
     message_after = {
         "id": "test-sidecar-restart-after-1",
-        "route": {"actors": ["test-echo"], "current": 0},
+        "route": {"prev": [], "curr": "test-echo", "next": []},
         "payload": {"test": "after_sidecar_restart", "data": "reconnected"},
     }
     transport_helper.publish_message("asya-default-test-echo", message_after)
@@ -257,7 +257,7 @@ def test_runtime_crash_during_processing(transport_helper, docker_helper):
     logger.info("Step 1: Send slow message (5s sleep)")
     message_slow = {
         "id": "test-crash-during-processing-1",
-        "route": {"actors": ["test-timeout"], "current": 0},
+        "route": {"prev": [], "curr": "test-timeout", "next": []},
         "payload": {"test": "slow_processing", "sleep": 2},
     }
     transport_helper.publish_message("asya-default-test-timeout", message_slow)
@@ -275,7 +275,7 @@ def test_runtime_crash_during_processing(transport_helper, docker_helper):
     logger.info("Step 4: Send new message after recovery")
     message_new = {
         "id": "test-after-crash-1",
-        "route": {"actors": ["test-timeout"], "current": 0},
+        "route": {"prev": [], "curr": "test-timeout", "next": []},
         "payload": {"test": "after_crash", "sleep": 0},
     }
     transport_helper.publish_message("asya-default-test-timeout", message_new)
@@ -305,7 +305,7 @@ def test_both_restart_reconnects(transport_helper, docker_helper):
     logger.info("Step 1: Send message before restart")
     message_before = {
         "id": "test-both-restart-before-1",
-        "route": {"actors": ["test-echo"], "current": 0},
+        "route": {"prev": [], "curr": "test-echo", "next": []},
         "payload": {"test": "before_both_restart"},
     }
     transport_helper.publish_message("asya-default-test-echo", message_before)
@@ -327,7 +327,7 @@ def test_both_restart_reconnects(transport_helper, docker_helper):
     logger.info("Step 4: Send message after both restart")
     message_after = {
         "id": "test-both-restart-after-1",
-        "route": {"actors": ["test-echo"], "current": 0},
+        "route": {"prev": [], "curr": "test-echo", "next": []},
         "payload": {"test": "after_both_restart"},
     }
     transport_helper.publish_message("asya-default-test-echo", message_after)

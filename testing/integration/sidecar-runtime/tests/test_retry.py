@@ -51,7 +51,7 @@ def test_retry_max_attempts_exhausted(transport_helper):
     transport_helper.purge_queue(SUMP_QUEUE)
     message = {
         "id": "test-retry-exhausted-1",
-        "route": {"actors": ["test-retry-fail"], "current": 0},
+        "route": {"prev": [], "curr": "test-retry-fail", "next": []},
         "payload": {"test": "retry_exhausted"},
     }
     logger.info(f"Publishing message: {json.dumps(message)}")
@@ -92,7 +92,7 @@ def test_retry_status_timestamps(transport_helper):
     transport_helper.purge_queue(SUMP_QUEUE)
     message = {
         "id": "test-retry-timestamps-1",
-        "route": {"actors": ["test-retry-fail"], "current": 0},
+        "route": {"prev": [], "curr": "test-retry-fail", "next": []},
         "payload": {"test": "retry_timestamps"},
     }
 
@@ -128,7 +128,7 @@ def test_retry_non_retryable_error(transport_helper):
     transport_helper.purge_queue(SUMP_QUEUE)
     message = {
         "id": "test-nonretryable-1",
-        "route": {"actors": ["test-retry-nonretryable"], "current": 0},
+        "route": {"prev": [], "curr": "test-retry-nonretryable", "next": []},
         "payload": {"test": "non_retryable"},
     }
     logger.info(f"Publishing message: {json.dumps(message)}")
@@ -161,7 +161,7 @@ def test_retry_non_retryable_via_mro(transport_helper):
     transport_helper.purge_queue(SUMP_QUEUE)
     message = {
         "id": "test-mro-nonretryable-1",
-        "route": {"actors": ["test-retry-mro"], "current": 0},
+        "route": {"prev": [], "curr": "test-retry-mro", "next": []},
         "payload": {"test": "mro_classification"},
     }
     logger.info(f"Publishing message: {json.dumps(message)}")
@@ -205,7 +205,7 @@ def test_retry_delay_not_supported_fallback(transport_helper):
     transport_helper.purge_queue(SUMP_QUEUE)
     message = {
         "id": "test-delay-fallback-1",
-        "route": {"actors": ["test-retry-fail"], "current": 0},
+        "route": {"prev": [], "curr": "test-retry-fail", "next": []},
         "payload": {"test": "delay_fallback"},
     }
     logger.info(f"Publishing message: {json.dumps(message)}")

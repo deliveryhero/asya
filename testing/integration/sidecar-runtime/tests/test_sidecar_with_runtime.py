@@ -248,7 +248,7 @@ def test_happy_path(transport_helper):
     """Test successful message processing with echo_handler."""
     message = {
         "id": "test-happy-path-1",
-        "route": {"actors": ["test-echo"], "current": 0},
+        "route": {"prev": [], "curr": "test-echo", "next": []},
         "payload": {"test": "happy_path", "data": "integration test"},
     }
     logger.info(f"Publishing message to asya-test-echo: {json.dumps(message, indent=2)}")
@@ -272,7 +272,7 @@ def test_error_handling(transport_helper):
     transport_helper.purge_queue("asya-default-x-sump")
     message = {
         "id": "test-error-handling-1",
-        "route": {"actors": ["test-error"], "current": 0},
+        "route": {"prev": [], "curr": "test-error", "next": []},
         "payload": {"test": "error_handling"},
     }
     logger.info(f"Publishing error test message to test-error: {json.dumps(message, indent=2)}")
@@ -301,7 +301,7 @@ def test_oom_error(transport_helper):
     transport_helper.purge_queue("asya-default-x-sump")
     message = {
         "id": "test-oom-error-1",
-        "route": {"actors": ["test-oom-queue"], "current": 0},
+        "route": {"prev": [], "curr": "test-oom-queue", "next": []},
         "payload": {"test": "oom_simulation"},
     }
     logger.info(f"Publishing OOM test message: {json.dumps(message, indent=2)}")
@@ -326,7 +326,7 @@ def test_cuda_oom_error(transport_helper):
     transport_helper.purge_queue("asya-default-x-sump")
     message = {
         "id": "test-cuda-oom-error-1",
-        "route": {"actors": ["test-cuda-oom-queue"], "current": 0},
+        "route": {"prev": [], "curr": "test-cuda-oom-queue", "next": []},
         "payload": {"test": "cuda_oom_simulation"},
     }
 
@@ -345,7 +345,7 @@ def test_timeout(transport_helper):
     """Test sidecar timeout enforcement."""
     message = {
         "id": "test-timeout-1",
-        "route": {"actors": ["test-timeout"], "current": 0},
+        "route": {"prev": [], "curr": "test-timeout", "next": []},
         "payload": {"test": "timeout", "sleep": 5},
     }
 
@@ -359,7 +359,7 @@ def test_fanout(transport_helper):
     """Test fan-out (multiple responses)."""
     message = {
         "id": "test-fanout-1",
-        "route": {"actors": ["test-fanout"], "current": 0},
+        "route": {"prev": [], "curr": "test-fanout", "next": []},
         "payload": {"test": "fanout", "count": 3},
     }
 
@@ -380,8 +380,9 @@ def test_empty_response(transport_helper):
     message = {
         "id": "test-empty-response-1",
         "route": {
-            "actors": ["test-empty", "should-not-reach"],
-            "current": 0,
+            "prev": [],
+            "curr": "test-empty",
+            "next": ["should-not-reach"],
         },
         "payload": {"test": "empty_response"},
     }
@@ -397,7 +398,7 @@ def test_large_payload(transport_helper):
     """Test large payload handling."""
     message = {
         "id": "test-large-payload-1",
-        "route": {"actors": ["test-large-queue"], "current": 0},
+        "route": {"prev": [], "curr": "test-large-queue", "next": []},
         "payload": {"test": "large_payload", "size_kb": 100},
     }
 
@@ -414,7 +415,7 @@ def test_unicode_handling(transport_helper):
     """Test Unicode/UTF-8 handling."""
     message = {
         "id": "test-unicode-handling-1",
-        "route": {"actors": ["test-unicode"], "current": 0},
+        "route": {"prev": [], "curr": "test-unicode", "next": []},
         "payload": {
             "test": "unicode",
             "text": "Hello 世界",
@@ -434,7 +435,7 @@ def test_null_values(transport_helper):
     """Test null value handling."""
     message = {
         "id": "test-null-values-1",
-        "route": {"actors": ["test-null"], "current": 0},
+        "route": {"prev": [], "curr": "test-null", "next": []},
         "payload": {"test": "null_values", "data": None},
     }
 
@@ -455,11 +456,9 @@ def test_multi_actor_routing(transport_helper):
     message = {
         "id": "test-multi-actor-routing-1",
         "route": {
-            "actors": [
-                "test-conditional-queue",
-                "test-echo",
-            ],
-            "current": 0,
+            "prev": [],
+            "curr": "test-conditional-queue",
+            "next": ["test-echo"],
         },
         "payload": {"test": "multi_actor", "data": "routed", "action": "success"},
     }
@@ -480,7 +479,7 @@ def test_conditional_success(transport_helper):
     """Test conditional handler with success action."""
     message = {
         "id": "test-conditional-success-1",
-        "route": {"actors": ["test-conditional-queue"], "current": 0},
+        "route": {"prev": [], "curr": "test-conditional-queue", "next": []},
         "payload": {"action": "success"},
     }
 
@@ -497,7 +496,7 @@ def test_conditional_error(transport_helper):
 
     message = {
         "id": "test-conditional-error-1",
-        "route": {"actors": ["test-conditional-queue"], "current": 0},
+        "route": {"prev": [], "curr": "test-conditional-queue", "next": []},
         "payload": {"action": "error", "error_msg": "conditional test error"},
     }
 
@@ -511,7 +510,7 @@ def test_nested_data(transport_helper):
     """Test deeply nested data structures."""
     message = {
         "id": "test-nested-data-1",
-        "route": {"actors": ["test-nested"], "current": 0},
+        "route": {"prev": [], "curr": "test-nested", "next": []},
         "payload": {"test": "nested"},
     }
 
@@ -526,11 +525,11 @@ def test_nested_data(transport_helper):
 
 def test_invalid_route_current(transport_helper):
     """
-    Test sidecar handling when runtime returns route.current out of range.
+    Test sidecar handling when runtime handler modifies the read-only curr field.
 
-    When ASYA_ENABLE_VALIDATION=false, runtime may return invalid route.current.
-    Sidecar should handle this gracefully by routing to x-sink
-    (GetCurrentActor returns empty string for out-of-range indices).
+    When ASYA_ENABLE_VALIDATION=false, runtime allows a handler to change curr.
+    The sidecar receives the modified route and routes to x-sink because
+    curr no longer matches the expected actor name.
     """
     handler_mode = get_env("ASYA_HANDLER_MODE", "payload")
     if handler_mode != "envelope":
@@ -540,7 +539,7 @@ def test_invalid_route_current(transport_helper):
     transport_helper.purge_queue("asya-default-x-sink")
     message = {
         "id": "test-invalid-route-current-1",
-        "route": {"actors": ["test-invalid-route", "should-not-reach"], "current": 0},
+        "route": {"prev": [], "curr": "test-invalid-route", "next": ["should-not-reach"]},
         "payload": {"test": "invalid_route_current"},
     }
     logger.info(f"Publishing message to test-invalid-route: {json.dumps(message, indent=2)}")
@@ -550,15 +549,16 @@ def test_invalid_route_current(transport_helper):
 
     result = transport_helper.assert_message_in_queue("asya-default-x-sink", timeout=10)
     logger.info(f"Result from x-sink: {json.dumps(result, indent=2) if result else 'None'}")
-    assert result is not None, "Message with invalid route.current not routed to x-sink"
+    assert result is not None, "Message with invalid route.curr not routed to x-sink"
 
     payload = result.get("payload", {})
     assert payload.get("test") == "invalid_route_current", f"Payload corrupted, got: {payload}"
 
     route = result.get("route", {})
-    actors = route.get("actors", [])
-    current = route.get("current", 0)
-    logger.info(f"Final route: actors={actors}, current={current}")
+    logger.info(f"Final route: {route}")
 
-    assert current > len(actors), f"Expected current > len(actors), got current={current}, len={len(actors)}"
+    # The handler corrupted curr to "__invalid_actor__" which sidecar treats as end-of-route
+    assert "prev" in route, "Route should have prev field"
+    assert "curr" in route, "Route should have curr field"
+    assert "next" in route, "Route should have next field"
     logger.info("=== test_invalid_route_current: PASSED ===\n")

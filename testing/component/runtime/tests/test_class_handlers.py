@@ -114,7 +114,7 @@ def test_slow_model_init_once(slow_model_client):
     # First request - should complete after ~2s init
     message1 = {
         "id": "test-001",
-        "route": {"actors": ["slow-model"], "current": 0},
+        "route": {"prev": [], "curr": "slow-model", "next": []},
         "payload": {"test": "first"}
     }
 
@@ -136,7 +136,7 @@ def test_slow_model_init_once(slow_model_client):
     # Second request - should be fast (no re-init)
     message2 = {
         "id": "test-002",
-        "route": {"actors": ["slow-model"], "current": 0},
+        "route": {"prev": [], "curr": "slow-model", "next": []},
         "payload": {"test": "second"}
     }
 
@@ -168,7 +168,7 @@ def test_caching_state_preserved(caching_client):
     for idx, key in enumerate(keys):
         message = {
             "id": f"test-{idx:03d}",
-            "route": {"actors": ["caching"], "current": 0},
+            "route": {"prev": [], "curr": "caching", "next": []},
             "payload": {"key": key}
         }
 
@@ -196,7 +196,7 @@ def test_large_payload_stateful(large_payload_class_client):
     # Request 10MB payload
     message = {
         "id": "test-large-001",
-        "route": {"actors": ["large-payload"], "current": 0},
+        "route": {"prev": [], "curr": "large-payload", "next": []},
         "payload": {"size_mb": 10}
     }
 
@@ -218,7 +218,7 @@ def test_large_payload_stateful(large_payload_class_client):
     # Second request to verify state
     message2 = {
         "id": "test-large-002",
-        "route": {"actors": ["large-payload"], "current": 0},
+        "route": {"prev": [], "curr": "large-payload", "next": []},
         "payload": {"size_mb": 1}
     }
 
@@ -238,7 +238,7 @@ def test_counter_sequential_requests(counter_client):
     for i in range(num_requests):
         message = {
             "id": f"test-counter-{i:03d}",
-            "route": {"actors": ["counter"], "current": 0},
+            "route": {"prev": [], "curr": "counter", "next": []},
             "payload": {"request_id": i}
         }
 
@@ -259,7 +259,7 @@ def test_message_mode_class_handler(message_class_client):
     """Test class handler in envelope mode."""
     message = {
         "id": "test-env-001",
-        "route": {"actors": ["envelope-class"], "current": 0},
+        "route": {"prev": [], "curr": "envelope-class", "next": []},
         "headers": {"trace_id": "test-trace-123"},
         "payload": {"value": 42}
     }
@@ -284,7 +284,7 @@ def test_message_mode_class_handler(message_class_client):
     # Second request to verify message counter increments
     message2 = {
         "id": "test-env-002",
-        "route": {"actors": ["envelope-class"], "current": 0},
+        "route": {"prev": [], "curr": "envelope-class", "next": []},
         "headers": {"trace_id": "test-trace-456"},
         "payload": {"value": 100}
     }
@@ -303,7 +303,7 @@ def test_class_handler_error_handling(caching_client):
     # Send request with empty payload (will use default key)
     message = {
         "id": "test-error-001",
-        "route": {"actors": ["caching"], "current": 0},
+        "route": {"prev": [], "curr": "caching", "next": []},
         "payload": {}
     }
 

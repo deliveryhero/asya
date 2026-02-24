@@ -111,7 +111,7 @@ def test_echo_handler(echo_client):
     """Test echo handler processes payload correctly."""
     message = {
         "id": "test-001",
-        "route": {"actors": ["echo"], "current": 0},
+        "route": {"prev": [], "curr": "echo", "next": []},
         "payload": {"message": "hello"}
     }
 
@@ -132,7 +132,7 @@ def test_error_handler(error_client):
     """Test error handler returns error in response."""
     message = {
         "id": "test-002",
-        "route": {"actors": ["error"], "current": 0},
+        "route": {"prev": [], "curr": "error", "next": []},
         "payload": {"message": "trigger error"}
     }
 
@@ -153,7 +153,7 @@ def test_timeout_handler_fast(timeout_client):
     """Test timeout handler responds for small sleep."""
     message = {
         "id": "test-003",
-        "route": {"actors": ["timeout"], "current": 0},
+        "route": {"prev": [], "curr": "timeout", "next": []},
         "payload": {"sleep_seconds": 0.1}
     }
 
@@ -172,7 +172,7 @@ def test_unicode_payload(echo_client):
     """Test runtime handles Unicode correctly."""
     message = {
         "id": "test-004",
-        "route": {"actors": ["echo"], "current": 0},
+        "route": {"prev": [], "curr": "echo", "next": []},
         "payload": {"message": "Hello 世界 🌍"}
     }
 
@@ -187,7 +187,7 @@ def test_empty_payload(echo_client):
     """Test runtime handles empty payload."""
     message = {
         "id": "test-005",
-        "route": {"actors": ["echo"], "current": 0},
+        "route": {"prev": [], "curr": "echo", "next": []},
         "payload": {}
     }
 
@@ -203,7 +203,7 @@ def test_complex_payload(echo_client):
     """Test runtime handles nested/complex payloads."""
     message = {
         "id": "test-006",
-        "route": {"actors": ["echo"], "current": 0},
+        "route": {"prev": [], "curr": "echo", "next": []},
         "payload": {
             "message": {
                 "nested": "data",

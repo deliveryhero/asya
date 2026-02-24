@@ -103,8 +103,9 @@ def test_x_sink_persists_to_s3():
     assert "route" in s3_object
     assert "payload" in s3_object
     assert isinstance(s3_object["route"], dict)
-    assert "actors" in s3_object["route"]
-    assert "current" in s3_object["route"]
+    assert "prev" in s3_object["route"]
+    assert "curr" in s3_object["route"]
+    assert "next" in s3_object["route"]
 
     logger.info(f"S3 message validated (saved as-is): {s3_object}")
     logger.info("=== test_x_sink_persists_to_s3: PASSED ===")
@@ -137,8 +138,9 @@ def test_x_sump_persists_to_s3():
     assert "route" in s3_object
     assert "payload" in s3_object
     assert isinstance(s3_object["route"], dict)
-    assert "actors" in s3_object["route"]
-    assert "current" in s3_object["route"]
+    assert "prev" in s3_object["route"]
+    assert "curr" in s3_object["route"]
+    assert "next" in s3_object["route"]
 
     logger.info(f"S3 error message validated (saved as-is): {s3_object}")
     logger.info("=== test_x_sump_persists_to_s3: PASSED ===")
@@ -171,10 +173,12 @@ def test_pipeline_result_persists_to_s3():
     assert "route" in s3_object
     assert "payload" in s3_object
     assert isinstance(s3_object["route"], dict)
-    assert "actors" in s3_object["route"]
+    assert "prev" in s3_object["route"]
+    assert "curr" in s3_object["route"]
+    assert "next" in s3_object["route"]
     assert s3_object["payload"]["value"] == 25
-    # Verify route actors list contains the pipeline actors
-    assert "test-doubler" in s3_object["route"]["actors"] or "test-incrementer" in s3_object["route"]["actors"]
+    # Verify route prev contains the pipeline actors (processed actors)
+    assert "test-doubler" in s3_object["route"]["prev"] or "test-incrementer" in s3_object["route"]["prev"]
 
     logger.info(f"Pipeline S3 message validated (saved as-is): {s3_object}")
     logger.info("=== test_pipeline_result_persists_to_s3: PASSED ===")
