@@ -340,8 +340,6 @@ spec:
           env:
           - name: ASYA_HANDLER
             value: "routers.start_if_else_simple_flow"
-          - name: ASYA_HANDLER_MODE
-            value: "envelope"
           # Handler mappings
           - name: ASYA_HANDLER_SETUP
             value: "handlers.setup.process"
@@ -371,8 +369,6 @@ spec:
           env:
           - name: ASYA_HANDLER
             value: "routers.router_if_else_simple_flow_line_10_if"
-          - name: ASYA_HANDLER_MODE
-            value: "envelope"
           # Same handler mappings as start router
           - name: ASYA_HANDLER_SETUP
             value: "handlers.setup.process"
@@ -402,8 +398,6 @@ spec:
           env:
           - name: ASYA_HANDLER
             value: "routers.end_if_else_simple_flow"
-          - name: ASYA_HANDLER_MODE
-            value: "envelope"
 ```
 
 ### 3. Deploy Handler Actors
@@ -584,7 +578,7 @@ Current Flow DSL supports basic control flow only:
 - Class instantiation (default args only)
 - Early returns
 
-**Not Supported** (use envelope mode):
+**Not Supported**:
 - Loops (`for`, `while`)
 - Dynamic routing based on runtime conditions
 - Multiple return values (`p, q = handler(p)`)

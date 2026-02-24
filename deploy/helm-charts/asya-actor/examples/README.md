@@ -164,22 +164,6 @@ healthChecks:
 
 ## Common Patterns
 
-### Envelope Mode Handler
-
-```yaml
-workload:
-  template:
-    spec:
-      containers:
-      - name: asya-runtime
-        image: my-envelope-processor:latest
-        env:
-        - name: ASYA_HANDLER
-          value: processors.envelope_handler
-        - name: ASYA_HANDLER_MODE
-          value: envelope  # Process full envelope, not just payload
-```
-
 ### Minimal Scaling (Development)
 
 ```yaml

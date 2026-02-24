@@ -144,7 +144,7 @@ This executes all enabled health check tests:
 
 ## Examples
 
-### Payload Mode Handler
+### Simple Handler
 
 ```yaml
 name: simple-processor
@@ -158,26 +158,6 @@ workload:
         env:
         - name: ASYA_HANDLER
           value: handlers.process_payload
-        - name: ASYA_HANDLER_MODE
-          value: payload
-```
-
-### Envelope Mode Handler
-
-```yaml
-name: route-modifier
-transport: rabbitmq
-workload:
-  template:
-    spec:
-      containers:
-      - name: asya-runtime
-        image: my-processor:latest
-        env:
-        - name: ASYA_HANDLER
-          value: handlers.modify_route
-        - name: ASYA_HANDLER_MODE
-          value: envelope
 ```
 
 ### Custom Crew Actors

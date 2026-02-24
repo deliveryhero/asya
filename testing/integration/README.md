@@ -78,7 +78,6 @@ Tests the full pipeline including gateway, actors, and end handlers:
 - Gateway MCP API (JSON-RPC 2.0, SSE streaming)
 - Multi-actor pipelines with progress tracking
 - S3 persistence (x-sink, x-sump actors)
-- Handler modes (payload vs envelope)
 
 **Technology**: Python tests with Docker Compose (PostgreSQL + MinIO + RabbitMQ + gateway + actors)
 
@@ -197,22 +196,6 @@ To avoid conflicts when running tests in parallel:
 
 - **sidecar-runtime**: RabbitMQ on `5673:5672`, Management UI on `15673:15672`
 - **gateway-actors**: RabbitMQ on `5674:5672`, Management UI on `15674:15672`, PostgreSQL on `5435:5432`, MinIO on `9005:9000`
-
-## Handler Modes (gateway-actors only)
-
-The gateway-actors tests run in **both handler modes** to ensure compatibility:
-
-1. **Payload mode** (`ASYA_HANDLER_MODE=payload`):
-   - Handlers receive only payload
-   - Headers/route preserved automatically by runtime
-   - Simplest programming model
-
-2. **Envelope mode** (`ASYA_HANDLER_MODE=envelope`):
-   - Handlers receive full envelope structure
-   - Can modify headers, routes
-   - Required for advanced routing logic
-
-See `HANDLER_MODE_TESTING.md` in the gateway-actors directory for details.
 
 ## Coverage
 

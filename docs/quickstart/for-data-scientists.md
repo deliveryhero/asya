@@ -8,7 +8,7 @@ Build and deploy your first Asya actor.
 - Test handlers locally and package them in Docker images
 - Deploy actors using AsyncActor CRDs with autoscaling
 - Use Flow DSL to build multi-step pipelines with conditional routing
-- Handle dynamic routing with envelope mode for AI agents
+- Handle dynamic routing with VFS-based route modification for AI agents
 
 ## Overview
 
@@ -586,8 +586,6 @@ spec:
           # This router's handler
           - name: ASYA_HANDLER
             value: "routers.start_text_analysis_flow"
-          - name: ASYA_HANDLER_MODE
-            value: "envelope"
 
           # Handler-to-actor mappings (for generated `resolve()` function)
           # User handlers - map function names to deployed actor names
@@ -627,8 +625,6 @@ spec:
           env:
           - name: ASYA_HANDLER
             value: "routers.router_text_analysis_flow_line_10_if"
-          - name: ASYA_HANDLER_MODE
-            value: "envelope"
           # Same handler mappings as above (both user handlers AND router functions)
           - name: ASYA_HANDLER_CLEAN_TEXT
             value: "text_handlers.clean_text"
@@ -685,7 +681,7 @@ See [flow examples](/examples/flows) and their [compiled code](/examples/flows/c
 - Complex expressions: `p["result"] = p["x"] + p["y"] * 2`
 - Class instantiation: `classifier = TextClassifier()` (default args only)
 
-**Not Supported** (use envelope mode instead):
+**Not Supported**:
 
 - Loops (`for`, `while`)
 - Custom routing logic
@@ -716,7 +712,7 @@ def my_flow(p: dict) -> dict:
 
 ❌ **Not suitable for**:
 
-- Dynamic routing based on state outside of `p` (need to implement branching inside your actor in envelope mode)
+- Dynamic routing based on state outside of `p`
 - Iterative processing (loops support coming soon)
 
 ### Complete Example: ML Pipeline
@@ -770,18 +766,11 @@ asya flow compile ml_pipeline_flow.py --output-dir ./compiled/ --plot
 
 See [Flow Compiler Architecture](../architecture/asya-flow.md) for complete documentation and `examples/flows/` for more flow examples.
 
-## Advanced: Envelope Mode (Dynamic Routing)
+## Advanced: Dynamic Routing
 
 **Use case**: AI agents, LLM judges, conditional routing based on model outputs.
 
-Envelope mode gives you full control over the routing structure:
-
-```yaml
-env:
-
-- name: ASYA_HANDLER_MODE
-  value: "envelope"  # Receive full message, not just payload
-```
+Handlers can modify the route by writing to `/proc/asya/msg/route/next` via the VFS:
 
 ```python
 # llm_judge.py
@@ -790,38 +779,30 @@ class LLMJudge:
         self.model = load_llm("/models/judge")
         self.threshold = float(threshold)
 
-    def process(self, envelope: dict) -> dict:
-        # Envelope structure:
-        # {
-        #   "id": "...",
-        #   "payload": {...},  # Your data
-        #   "route": {
-        #     "prev": ["preprocessor"],  # Already processed
-        #     "curr": "llm-judge",       # Current actor
-        #     "next": ["postprocessor"]  # Remaining actors
-        #   }
-        # }
-
-        payload = envelope["payload"]
-
+    def process(self, payload: dict) -> dict:
         # Run LLM judge
         score = self.model.judge(payload["llm_response"])
         payload["judge_score"] = score
 
-        # Dynamically modify route based on score
-        route = envelope["route"]
-        if score < self.threshold:
-            # Low quality response - add refinement step before remaining actors
-            route["next"] = ["llm-refiner"] + route["next"]
+        # Read current next actors from VFS
+        with open("/proc/asya/msg/route/next") as f:
+            import json
+            next_actors = json.load(f)
 
-        return envelope
+        if score < self.threshold:
+            # Low quality response - prepend refinement step
+            next_actors = ["llm-refiner"] + next_actors
+            with open("/proc/asya/msg/route/next", "w") as f:
+                json.dump(next_actors, f)
+
+        return payload
 ```
 
-**Important**: Route modification rules:
+**Route modification rules**:
 
-- ✅ Can add/replace future steps via `route["next"]`
-- ❌ Cannot modify already-processed steps (`route["prev"]` is read-only)
-- ❌ Cannot change the current actor (`route["curr"]` is read-only)
+- ✅ Can write to `/proc/asya/msg/route/next` to modify future actors
+- ❌ `/proc/asya/msg/route/prev` is read-only (already-processed actors)
+- ❌ `/proc/asya/msg/route/curr` is read-only (current actor name)
 
 ## Error Handling
 

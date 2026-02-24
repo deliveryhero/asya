@@ -29,11 +29,9 @@ make up
 make diagnostics
 make logs
 
-# 3. Trigger pytest suite (default ASYA_HANDLER_MODE=payload)
+# 3. Trigger pytest suite
 # Note: This target automatically manages port-forwarding for its duration.
 make trigger-tests
-# Run envelope mode explicitly if needed
-make trigger-tests ASYA_HANDLER_MODE=envelope
 
 # 4. Tear everything down
 make down
@@ -51,8 +49,8 @@ Each profile maps to `profiles/<name>.yaml` and wires all Helm charts plus `.env
 
 ## Common Targets
 
-- `make test PROFILE=...` – Full lifecycle (deploy → payload tests → envelope tests → operator scripts → cleanup).
-- `make trigger-tests PROFILE=... [ASYA_HANDLER_MODE=payload|envelope]` – Run pytest suite against an existing cluster.
+- `make test PROFILE=...` – Full lifecycle (deploy → tests → operator scripts → cleanup).
+- `make trigger-tests PROFILE=...` – Run pytest suite against an existing cluster.
 - `make diagnostics PROFILE=...` – Execute `scripts/debug.sh diagnostics` for the active cluster.
 - `make logs PROFILE=...` – Tail recent logs across Asya components.
 - `make port-forward-up|port-forward-down PROFILE=...` – Manage background port-forwards for gateway, RabbitMQ/SQS, etc.
