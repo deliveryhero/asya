@@ -93,44 +93,31 @@ Lightweight socket server injected via ConfigMap. Loads user function, executes 
 - **Function handler**: `ASYA_HANDLER=module.function` → Direct function call (simple, stateless handlers)
 - **Class handler**: `ASYA_HANDLER=module.Class.method` → Stateful handlers with initialization (model loading, preprocessing setup)
 
-**Handler Modes** (via `ASYA_HANDLER_MODE`):
-- **`payload`** (default): Handler receives only payload, headers/route preserved automatically
-  ```python
-  # Function handler: ASYA_HANDLER=my_module.process
-  async def process(payload: dict) -> dict:
-      return {"result": ...}
+**Handler signature**: Handlers receive only the payload and return a result dict:
+```python
+# Function handler: ASYA_HANDLER=my_module.process
+async def process(payload: dict) -> dict:
+    return {"result": ...}
 
-  # Class handler: ASYA_HANDLER=my_module.Processor.process
-  class Processor:
-      def __init__(self, model_path: str = "/models/default"):
-          # __init__ arguments must have default value
-          self.model = load_model(model_path)  # Init once, always sync
+# Class handler: ASYA_HANDLER=my_module.Processor.process
+class Processor:
+    def __init__(self, model_path: str = "/models/default"):
+        # __init__ arguments must have default value
+        self.model = load_model(model_path)  # Init once, always sync
 
-      async def process(self, payload: dict) -> dict:
-          return {"result": await self.model.predict(payload)}
-  ```
+    async def process(self, payload: dict) -> dict:
+        return {"result": await self.model.predict(payload)}
+```
 
-- **`envelope`**: Handler receives full message structure `{id, route, headers, payload}`
-  ```python
-  # Function handler: ASYA_HANDLER=my_module.process
-  async def process(envelope: dict) -> dict:
-      return {"payload": ..., "route": envelope["route"], "headers": envelope.get("headers", {})}
-
-  # Class handler: ASYA_HANDLER=my_module.EnvelopeProcessor.process
-  class EnvelopeProcessor:
-      def __init__(self):
-          self.preprocessor = load_preprocessor()
-
-      async def process(self, envelope: dict) -> dict:
-          data = await self.preprocessor(envelope["payload"])
-          return {"payload": data, "route": envelope["route"], "headers": envelope.get("headers", {})}
-  ```
+**Message Metadata**: Handlers access message metadata (route, headers, status) via the
+`/proc/asya/msg/` virtual filesystem using standard `open()` calls. See the RFC at
+`.aint/epics/1ixt.msg-metadata-vfs/rfc.md` for the full VFS layout and examples.
 
 ### asya-crew (Python)
 System actors with reserved roles: `x-sink` (persist results to S3), `x-sump` (retry with exponential backoff - not yet implemented, DLQ handling). Both report final status to gateway (`x-sink` - because `route.curr` is `""` meaning the route is exhausted, `x-sump` - because the handler had an error), see this logic in `src/asya-sidecar/internal/progress/reporter.go`.
 
 ### asya-injector (Go)
-Mutating admission webhook that intercepts Pod creation for AsyncActor workloads. Injects the asya-sidecar container, configures volumes (socket-dir, tmp, asya-runtime ConfigMap), sets environment variables (ASYA_TRANSPORT, ASYA_ACTOR_NAME), and overrides the runtime container command to run `asya_runtime.py`. Uses cert-manager for TLS certificate management.
+Mutating admission webhook that intercepts Pod creation for AsyncActor workloads. Injects the asya-sidecar container, configures volumes (socket-dir, tmp, asya-runtime ConfigMap), sets environment variables (ASYA_TRANSPORT, ASYA_ACTOR_NAME, ASYA_MSG_ROOT), and overrides the runtime container command to run `asya_runtime.py`. Uses cert-manager for TLS certificate management.
 
 ### asya-testing (Python)
 Shared testing utilities and fixtures used across component, integration, and e2e tests. Provides common assertions, mock helpers, and test data builders.
@@ -284,7 +271,7 @@ spec:
       value: "handlers.express_handler"
 ```
 
-**Generated routers always run in envelope mode** to dynamically modify routes.
+**Generated routers use the VFS (`/proc/asya/msg/`) to dynamically modify routes.**
 
 ### How It Works
 
@@ -449,7 +436,7 @@ testing/{level}/{suite}/
 
 **Makefile patterns:**
 - **Separate Docker Compose projects per transport**: `COMPOSE_PROJECT := {suite}-$(ASYA_TRANSPORT)`
-- **Required environment variables**: `ASYA_TRANSPORT`, `ASYA_HANDLER_MODE`, `ASYA_STORAGE`
+- **Required environment variables**: `ASYA_TRANSPORT`, `ASYA_STORAGE`
 - **Coverage directory**: `.coverage/{test-suite}/{transport}/cov.json`
 - **Standard targets**: `test`, `test-one`, `cov`, `down`, `clean`
 
@@ -459,7 +446,7 @@ testing/{level}/{suite}/
 make test-one ASYA_TRANSPORT=sqs
 
 # Integration test with multiple variables
-make test-one ASYA_TRANSPORT=rabbitmq ASYA_STORAGE=minio ASYA_HANDLER_MODE=envelope
+make test-one ASYA_TRANSPORT=rabbitmq ASYA_STORAGE=minio
 ```
 
 **Profile assembly** uses Docker Compose `include:` directive:
@@ -505,16 +492,9 @@ Runtime (not sidecar!) shifts the route after processing: `prev` grows, `curr` a
 - When errors occur in sidecar → sidecar nacks the message and it's automatically sent to DLQ (configured by the queue)
 - **IMPORTANT**: Never include `x-sink` or `x-sump` in route configurations - they are managed by the sidecar
 
-**Route Modification Rules** (for envelope mode handlers):
-
-Handlers can modify routes dynamically but **MUST NOT modify already-processed steps**:
-
-✅ **Allowed**:
-- Modify `next`: add, replace, or clear future actors freely
-
-❌ **Forbidden** (runtime will reject with `processing_error`):
-- Modify `prev`: processed actors are read-only
-- Modify `curr`: the current actor is read-only
+**Route Modification**: Handlers that need to modify routing do so by writing to
+`/proc/asya/msg/route/next` via the VFS. Only the `next` field may be modified;
+`prev` and `curr` are read-only and managed by the runtime.
 
 ## Transport Configuration
 
