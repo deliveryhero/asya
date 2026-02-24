@@ -13,6 +13,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/google/uuid"
+
 	"github.com/deliveryhero/asya/asya-sidecar/internal/config"
 	"github.com/deliveryhero/asya/asya-sidecar/internal/metrics"
 	"github.com/deliveryhero/asya/asya-sidecar/internal/progress"
@@ -602,7 +604,7 @@ func (r *Router) handleSuccessResponse(ctx context.Context, msg *messages.Messag
 	msgID := msg.ID
 	var parentID *string
 	if totalResponses > 1 && index > 0 {
-		msgID = fmt.Sprintf("%s-%d", msg.ID, index)
+		msgID = uuid.New().String()
 		parentID = &msg.ID
 		slog.Debug("Fan-out: generated unique message ID", "original", msg.ID, "fanout", msgID, "index", index)
 
@@ -617,7 +619,19 @@ func (r *Router) handleSuccessResponse(ctx context.Context, msg *messages.Messag
 	if statusFromRuntime == nil {
 		statusFromRuntime = msg.Status
 	}
-	return r.routeResponse(ctx, msgID, parentID, outputRoute, response.Payload, statusFromRuntime)
+
+	// Use headers from runtime response; fall back to original message headers
+	var outHeaders map[string]interface{}
+	if response.Headers != nil {
+		outHeaders = make(map[string]interface{}, len(response.Headers))
+		for k, v := range response.Headers {
+			outHeaders[k] = v
+		}
+	} else {
+		outHeaders = msg.Headers
+	}
+
+	return r.routeResponse(ctx, msgID, parentID, outputRoute, response.Payload, statusFromRuntime, outHeaders)
 }
 
 // ProcessMessage handles a single message from the queue
@@ -744,7 +758,7 @@ func (r *Router) ProcessMessage(ctx context.Context, queueMsg transport.QueueMes
 // routeResponse routes a single response to the appropriate queue
 // The route parameter should already have its Current index incremented by the caller
 // parentID should be set for fanout children (when index > 0 in fanout scenario)
-func (r *Router) routeResponse(ctx context.Context, id string, parentID *string, route messages.Route, payload json.RawMessage, inStatus *messages.Status) error {
+func (r *Router) routeResponse(ctx context.Context, id string, parentID *string, route messages.Route, payload json.RawMessage, inStatus *messages.Status, headers map[string]interface{}) error {
 	// Determine destination queue
 	var destinationQueue string
 	var msgType string
@@ -803,6 +817,7 @@ func (r *Router) routeResponse(ctx context.Context, id string, parentID *string,
 		Route:    route,
 		Payload:  payload,
 		Status:   outStatus,
+		Headers:  headers,
 	}
 
 	// Marshal message
