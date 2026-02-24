@@ -481,8 +481,8 @@ def _parse_state_proxy_mounts(mounts_str):
         entry = entry.strip()
         if not entry:
             continue
-        parts = entry.split(":")
-        if len(parts) < 3:
+        parts = entry.split(":", 2)
+        if len(parts) != 3:
             raise ValueError(f"Invalid mount format: {entry!r} (expected name:path:options)")
         name = parts[0]
         path = parts[1]
@@ -786,8 +786,11 @@ def _install_state_proxy_hooks(mounts_str):
 
     def _patched_open(file, mode="r", *args, **kwargs):
         mount, key = _resolve_mount(file, mounts)
-        if mount is None or not key:
+        if mount is None:
             return _original_open(file, mode, *args, **kwargs)
+        path_str = os.fspath(file) if hasattr(os, "fspath") else str(file)
+        if not key or path_str.endswith("/"):
+            raise IsADirectoryError(errno.EISDIR, os.strerror(errno.EISDIR), file)
         text_mode = "b" not in mode
         if "r" in mode:
             return _open_read(mount["socket"], key, text_mode)

@@ -26,6 +26,7 @@ type StateProxyMount struct {
 	ConnectorImage string
 	ConnectorEnv   []corev1.EnvVar
 	Resources      *corev1.ResourceRequirements
+	WriteMode      string
 }
 
 // ActorConfig holds the configuration extracted from an AsyncActor resource

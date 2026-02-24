@@ -228,6 +228,13 @@ spec:
                             type: string
                             description: Absolute path inside runtime container
                             pattern: '^/'
+                      writeMode:
+                        type: string
+                        description: Write buffering mode for the state proxy
+                        enum:
+                          - buffered
+                          - passthrough
+                        default: buffered
                       connector:
                         type: object
                         required:

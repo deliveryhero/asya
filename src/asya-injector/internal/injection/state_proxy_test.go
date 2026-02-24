@@ -202,7 +202,8 @@ func TestInjectStateProxy_MultipleMounts(t *testing.T) {
 		{
 			Name:           "store",
 			MountPath:      "/mnt/state/store",
-			ConnectorImage: "my-registry/s3-passthrough-connector:v1",
+			ConnectorImage: "my-registry/s3-connector:v1",
+			WriteMode:      "passthrough",
 		},
 	}
 

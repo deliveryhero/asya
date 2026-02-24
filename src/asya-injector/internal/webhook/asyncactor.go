@@ -8,6 +8,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"github.com/deliveryhero/asya/asya-injector/internal/injection"
@@ -170,6 +171,10 @@ func extractActorConfig(asyncActor *unstructured.Unstructured) (*injection.Actor
 			mount.MountPath, _, _ = unstructured.NestedString(spMap, "mount", "path")
 			mount.ConnectorImage, _, _ = unstructured.NestedString(spMap, "connector", "image")
 
+			if v, ok, _ := unstructured.NestedString(spMap, "writeMode"); ok {
+				mount.WriteMode = v
+			}
+
 			// Extract connector env vars
 			envSlice, envFound, _ := unstructured.NestedSlice(spMap, "connector", "env")
 			if envFound {
@@ -185,6 +190,15 @@ func extractActorConfig(asyncActor *unstructured.Unstructured) (*injection.Actor
 							Name: name, Value: value,
 						})
 					}
+				}
+			}
+
+			// Extract connector resources
+			resources, resourcesFound, _ := unstructured.NestedMap(spMap, "connector", "resources")
+			if resourcesFound {
+				res := &corev1.ResourceRequirements{}
+				if err := runtime.DefaultUnstructuredConverter.FromUnstructured(resources, res); err == nil {
+					mount.Resources = res
 				}
 			}
 

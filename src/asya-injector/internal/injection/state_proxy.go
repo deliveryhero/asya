@@ -34,7 +34,10 @@ func (i *Injector) injectStateProxy(pod *corev1.Pod, stateProxy []StateProxyMoun
 	// Build ASYA_STATE_PROXY_MOUNTS and inject connector containers
 	var mountParts []string
 	for _, sp := range stateProxy {
-		writeMode := inferWriteMode(sp.ConnectorImage)
+		writeMode := sp.WriteMode
+		if writeMode == "" {
+			writeMode = "buffered"
+		}
 		mountParts = append(mountParts, fmt.Sprintf("%s:%s:write=%s", sp.Name, sp.MountPath, writeMode))
 
 		env := []corev1.EnvVar{

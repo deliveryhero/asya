@@ -108,8 +108,28 @@ def _make_handler(connector: StateProxyConnector) -> type:
                 return
 
             key = path[len("/keys/") :]
-            content_length = int(self.headers.get("Content-Length", "0"))
-            body = self.rfile.read(content_length) if content_length > 0 else b""
+
+            # Handle both Content-Length and chunked transfer encoding
+            transfer_encoding = self.headers.get("Transfer-Encoding", "")
+            content_length = self.headers.get("Content-Length")
+
+            if "chunked" in transfer_encoding.lower():
+                # Read chunked body
+                chunks = []
+                while True:
+                    line = self.rfile.readline().strip()
+                    chunk_size = int(line, 16)
+                    if chunk_size == 0:
+                        self.rfile.readline()  # trailing CRLF
+                        break
+                    chunk_data = self.rfile.read(chunk_size)
+                    self.rfile.readline()  # trailing CRLF after chunk
+                    chunks.append(chunk_data)
+                body = b"".join(chunks)
+            elif content_length:
+                body = self.rfile.read(int(content_length))
+            else:
+                body = b""
 
             import io
 
