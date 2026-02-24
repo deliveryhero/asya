@@ -1,8 +1,11 @@
 ---
 title: Redesign Protocol Sidecar-Runtime
+status: vibed
 priority: 2 # medium
 type: epic
+reason: "All tasks done via PR #192. HTTP sidecar-runtime protocol complete: POST /invoke + GET /healthz + docs."
 ---
+
 
 
 
