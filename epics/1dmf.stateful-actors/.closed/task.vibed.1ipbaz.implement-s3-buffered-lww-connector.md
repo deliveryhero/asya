@@ -2,7 +2,10 @@
 title: Implement s3-buffered-lww connector
 priority: 1 # high
 type: task
+tags:
+  - pr:195
 ---
+
 
 First concrete connector: S3 with buffered writes and last-write-wins semantics.
 
