@@ -1,8 +1,10 @@
 ---
-title: "Migrate to Crossplane + Mutating Webhook Architecture"
+title: Migrate to Crossplane + Mutating Webhook Architecture
+status: vibed
 priority: 1 # high
 type: epic
 ---
+
 
 
 Replace the custom ~16K LOC asya-operator with a Crossplane-based declarative control plane and a lightweight mutating webhook for sidecar injection.
