@@ -58,6 +58,7 @@ def _actor_manifest(
     queue_length: int = 10,
     replicas: int | None = None,
     extra_containers: str = "",
+    extra_runtime_env: str = "",
     image: str = "ghcr.io/deliveryhero/asya-testing:latest",
     image_pull_policy: str = "IfNotPresent",
     transport: str | None = None,
@@ -82,8 +83,10 @@ def _actor_manifest(
 
     flavors_block = ""
     if flavors:
-        flavor_lines = "\n".join(f"  - {f}" for f in flavors)
+        flavor_lines = "\n".join(f"    - {f}" for f in flavors)
         flavors_block = f"\n  flavors:\n{flavor_lines}"
+
+    extra_env_block = f"\n{extra_runtime_env}" if extra_runtime_env else ""
 
     return f"""
 apiVersion: asya.sh/v1alpha1
@@ -105,7 +108,7 @@ spec:
           imagePullPolicy: {image_pull_policy}
           env:
           - name: ASYA_HANDLER
-            value: asya_testing.handlers.payload.echo_handler
+            value: asya_testing.handlers.payload.echo_handler{extra_env_block}
 {extra_containers}"""
 
 
@@ -1610,7 +1613,7 @@ def test_asyncactor_flavors_resolved(e2e_helper):
             actor_multi,
             e2e_helper.namespace,
             flavors=["asya-test-actor", "asya-test-env-vars"],
-            extra_containers=override_env,
+            extra_runtime_env=override_env,
         )
         kubectl_apply_raw(manifest, namespace=e2e_helper.namespace)
 
