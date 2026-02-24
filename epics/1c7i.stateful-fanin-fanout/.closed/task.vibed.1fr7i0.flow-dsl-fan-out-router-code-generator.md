@@ -12,6 +12,7 @@ dependencies:
 
 
 
+
 ## Summary
 
 Extend the Flow DSL code generator to produce fan-out router Python code from `FanOutCall` IR nodes. The generated router emits N+1 messages (1 parent payload + N sub-agent slices) with fan-in headers.
