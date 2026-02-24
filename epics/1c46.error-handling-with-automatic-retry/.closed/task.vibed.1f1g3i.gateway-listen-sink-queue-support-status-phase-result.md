@@ -2,9 +2,12 @@
 title: "Gateway: listen on _sink queue and support status.phase for result reporting"
 priority: 2 # medium
 type: task
+tags:
+  - pr:193
 dependencies:
   - 1c46/1ffmnb
 ---
+
 
 
 
