@@ -4,7 +4,9 @@ priority: 3 # low
 type: task
 dependencies:
   - 1ia4/1in0hv
+reason: docs/architecture/protocols/sidecar-runtime.md rewritten for HTTP POST /invoke + GET /healthz in this PR.
 ---
+
 
 
 Update protocol documentation to reflect the new HTTP-over-Unix-socket design.
