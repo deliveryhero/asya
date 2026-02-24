@@ -19,6 +19,7 @@ Sync handlers remain for error/edge-case testing where async adds no value.
 """
 
 import asyncio
+import os
 import time
 from collections.abc import Generator
 from typing import Any
@@ -557,3 +558,63 @@ async def multihop_handler(payload: dict[str, Any]) -> dict[str, Any]:
         "processed_by": processed_by,
         "timestamp": time.time(),
     }
+
+
+# --- VFS test handlers ---
+
+ASYA_MSG_ROOT = os.getenv("ASYA_MSG_ROOT", "/proc/asya/msg")
+
+
+def route_modifier_handler(payload):
+    """Handler that modifies route.next via VFS."""
+    with open(f"{ASYA_MSG_ROOT}/route/next", "w") as f:
+        f.write("\n".join(["injected_actor", "final_actor"]))
+    return payload
+
+
+def header_reader_handler(payload):
+    """Handler that reads headers via VFS."""
+    try:
+        with open(f"{ASYA_MSG_ROOT}/headers/trace_id") as f:
+            trace_id = f.read()
+    except FileNotFoundError:
+        trace_id = "none"
+    return {**payload, "trace_id": trace_id}
+
+
+def metadata_inspector_handler(payload):
+    """Handler that reads all metadata via VFS."""
+    with open(f"{ASYA_MSG_ROOT}/id") as f:
+        msg_id = f.read()
+    with open(f"{ASYA_MSG_ROOT}/route/curr") as f:
+        curr = f.read()
+    headers = {}
+    for key in os.listdir(f"{ASYA_MSG_ROOT}/headers"):
+        with open(f"{ASYA_MSG_ROOT}/headers/{key}") as f:
+            headers[key] = f.read()
+    return {**payload, "meta": {"msg_id": msg_id, "actor": curr, "headers": headers}}
+
+
+def fail_once_handler(payload):
+    """Fails on attempt 1, succeeds on attempt 2+.
+
+    Reads attempt from status via VFS.
+    """
+    try:
+        with open(f"{ASYA_MSG_ROOT}/status/attempt") as f:
+            attempt = int(f.read())
+    except (FileNotFoundError, ValueError):
+        attempt = 1
+    if attempt <= 1:
+        raise ValueError("Intentional first-attempt failure (attempt 1)")
+    return {**payload, "succeeded_on_attempt": attempt}
+
+
+def invalid_route_write_handler(payload):
+    """Handler that attempts to write to read-only route/curr.
+
+    Should raise PermissionError, which runtime catches as processing_error.
+    """
+    with open(f"{ASYA_MSG_ROOT}/route/curr", "w") as f:
+        f.write("__invalid_actor__")
+    return payload

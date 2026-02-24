@@ -6,13 +6,18 @@ These handlers test stateful class handler functionality:
 - State preservation across requests (caching, counters)
 - Large payload handling with stateful processing
 - Deep module structures
+- VFS metadata access via /proc/asya/msg/ paths
 
 Async class methods (async def process) represent the preferred pattern
 for AI workloads. __init__ is always synchronous.
 """
 
+import os
 import time
 from typing import Any
+
+
+ASYA_MSG_ROOT = os.getenv("ASYA_MSG_ROOT", "/proc/asya/msg")
 
 
 # Slow initialization handler
@@ -107,29 +112,28 @@ class CounterHandler:
         }
 
 
-# Envelope mode handler
+# VFS metadata handler
 class MessageHandler:
-    """Handler that processes full messages in envelope mode."""
+    """Handler that accesses message metadata via VFS."""
 
     def __init__(self):
         self.prefix = "processed"
         self.message_count = 0
 
-    async def process(self, message: dict[str, Any]) -> dict[str, Any]:
+    async def process(self, payload: dict[str, Any]) -> dict[str, Any]:
         self.message_count += 1
 
-        # Access headers
-        trace_id = message.get("headers", {}).get("trace_id", "unknown")
+        try:
+            with open(f"{ASYA_MSG_ROOT}/headers/trace_id") as f:
+                trace_id = f.read()
+        except FileNotFoundError:
+            trace_id = "unknown"
 
         return {
-            "payload": {
-                "prefix": self.prefix,
-                "trace_id": trace_id,
-                "data": message["payload"],
-                "message_count": self.message_count,
-            },
-            "route": message["route"],
-            "headers": message.get("headers", {}),
+            "prefix": self.prefix,
+            "trace_id": trace_id,
+            "data": payload,
+            "message_count": self.message_count,
         }
 
 

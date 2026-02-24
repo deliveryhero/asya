@@ -10,11 +10,10 @@ Provides handlers covering various test scenarios:
 - Large payloads and Unicode handling
 - Progress tracking
 - Edge cases (nested data, null values, cyclic routes)
-
-Both payload mode and envelope mode handlers are available.
+- VFS metadata access via /proc/asya/msg/ paths
 """
 
-from . import envelope, payload
+from . import payload
 
 
-__all__ = ["envelope", "payload"]
+__all__ = ["payload"]
