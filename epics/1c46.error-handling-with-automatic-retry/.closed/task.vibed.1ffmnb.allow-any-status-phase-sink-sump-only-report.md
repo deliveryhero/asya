@@ -12,6 +12,7 @@ tags:
 
 
 
+
 ## Context
 
 Currently, `x-sink` (sink.py) validates that `status.phase` is exactly `"succeeded"` or `"failed"` and always reports final state to the gateway. `x-sump` (sump.py) uses phase only for logging level decisions and always terminates the message.
