@@ -4,6 +4,7 @@ priority: 1 # high
 type: task
 ---
 
+
 Migrate the runtime's route validation, shift logic, and helper functions from `{actors, current}` to `{prev, curr, next}`.
 
 ## Validation rewrite
@@ -72,7 +73,7 @@ def _get_current_actor(message):
 
 # AFTER
 def _get_current_actor(message):
-    return message["route"]["curr"]
+    return message["route"]["curr"]  # may be be even inlined
 ```
 
 ## Route increment (shift)
@@ -98,7 +99,7 @@ output_route = {
 
 ## Testing helper updates
 
-**`src/asya-testing/asya_testing/handlers/envelope.py:45-46`**:
+**`src/asya-testing/asya_testing/handlers/envelope.py:45-46`** (to be deleted during epic [[1ixt]]):
 
 ```python
 # BEFORE

@@ -6,6 +6,7 @@ dependencies:
   - 1iah/1ikdzb
 ---
 
+
 Migrate gateway types, database schema, progress calculation, and task store queries from `{actors, current}` to `{prev, curr, next}`.
 
 ## Type changes
