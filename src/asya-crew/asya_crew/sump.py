@@ -14,28 +14,16 @@ Architecture:
              |-- Emits metrics, logs errors
              |-- ACK. Done.
 
-IMPORTANT: Sump handlers MUST run in envelope mode (ASYA_HANDLER_MODE=envelope)
-and with validation disabled (ASYA_ENABLE_VALIDATION=false).
-This module will raise RuntimeError at import time if these conditions are not met.
-
 Environment Variables:
-- ASYA_HANDLER_MODE: Handler mode (MUST be "envelope")
-- ASYA_ENABLE_VALIDATION: Validation flag (MUST be "false")
+- ASYA_MSG_ROOT: Path to virtual filesystem for message metadata (default: /proc/asya/msg)
 - ASYA_S3_BUCKET: S3/MinIO bucket for persistence (optional, enables inline S3 persistence)
 
-Message Structure:
-    {
-        "id": "<message-id>",
-        "status": {
-            "phase": "succeeded" | "failed",
-            ...
-        },
-        "payload": <arbitrary JSON>,
-        "error": "<error-message>" (optional, for failed messages)
-    }
+VFS Paths:
+- /proc/asya/msg/id — read-only: message UUID
+- /proc/asya/msg/status/{key} — read-only: status fields (e.g., phase, attempt)
 
 Handler Behavior:
-- On failed: logs complete message JSON at ERROR level
+- On failed: logs complete message summary JSON at ERROR level
 - On succeeded: debug-level log only
 - Returns None (terminal, no further routing)
 """
@@ -49,55 +37,24 @@ from typing import Any
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
-ASYA_HANDLER_MODE = (os.getenv("ASYA_HANDLER_MODE") or "payload").lower()
-ASYA_ENABLE_VALIDATION = os.getenv("ASYA_ENABLE_VALIDATION", "true").lower() == "true"
+ASYA_MSG_ROOT = os.getenv("ASYA_MSG_ROOT", "/proc/asya/msg")
 ASYA_S3_BUCKET = os.getenv("ASYA_S3_BUCKET", "")
 
-if ASYA_HANDLER_MODE != "envelope":
-    raise RuntimeError(
-        f"Sump handler must run in envelope mode. Current mode: '{ASYA_HANDLER_MODE}'. Set ASYA_HANDLER_MODE=envelope"
-    )
 
-if ASYA_ENABLE_VALIDATION:
-    raise RuntimeError(
-        "Sump handler must run with validation disabled. Current setting: ASYA_ENABLE_VALIDATION=true. "
-        "Set ASYA_ENABLE_VALIDATION=false"
-    )
+def sump_handler(payload: dict[str, Any]) -> None:
+    """Sump handler. Terminal actor, logs and acknowledges."""
+    with open(f"{ASYA_MSG_ROOT}/id") as f:
+        message_id = f.read()
 
-
-def sump_handler(message: dict[str, Any]) -> None:
-    """
-    Sump handler for terminal message processing.
-
-    Final terminal actor that logs errors and emits metrics.
-
-    Args:
-        message: Complete message with id, status, payload
-
-    Returns:
-        None (terminal, no further routing)
-
-    Raises:
-        ValueError: If message is missing required fields
-    """
-    if not isinstance(message, dict):
-        raise ValueError(f"Message must be a dict, got {type(message).__name__}")
-
-    if "id" not in message:
-        raise ValueError("Message missing required field: id")
-
-    if "status" not in message:
-        raise ValueError("Message missing required field: status")
-
-    status = message.get("status")
-    if not isinstance(status, dict):
-        raise ValueError(f"Message status must be a dict, got {type(status).__name__}")
-
-    message_id = message["id"]
-    phase = status.get("phase", "unknown")
+    try:
+        with open(f"{ASYA_MSG_ROOT}/status/phase") as f:
+            phase = f.read()
+    except FileNotFoundError:
+        phase = "unknown"
 
     if phase == "failed":
-        logger.error(f"Terminal failure for message {message_id}: {json.dumps(message, indent=2, default=str)}")
+        msg_info = {"id": message_id, "phase": phase, "payload": payload}
+        logger.error(f"Terminal failure for message {message_id}: {json.dumps(msg_info, indent=2, default=str)}")
     elif phase == "succeeded":
         logger.debug(f"Terminal success for message {message_id}")
     else:
@@ -107,7 +64,7 @@ def sump_handler(message: dict[str, Any]) -> None:
         try:
             from asya_crew.message_persistence.s3 import checkpoint_handler
 
-            checkpoint_handler(message)
+            checkpoint_handler(payload)
         except Exception as e:
             logger.error(f"S3 persistence failed for message {message_id}: {e}")
 
