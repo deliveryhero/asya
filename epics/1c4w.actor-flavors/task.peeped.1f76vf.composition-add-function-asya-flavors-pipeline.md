@@ -7,6 +7,7 @@ type: task
 
 
 
+
 Add function-asya-flavors as the first step in the SQS (and future transport) Composition pipeline, before function-go-templating.
 
 RFC: docs/rfc/actor-flavors/rfc-actor-flavors.md (Section 4.1)
