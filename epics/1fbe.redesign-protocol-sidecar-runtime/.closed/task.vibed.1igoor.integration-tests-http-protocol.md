@@ -2,11 +2,14 @@
 title: Integration tests for HTTP protocol
 priority: 2 # medium
 type: task
+tags:
+  - pr:192
 dependencies:
   - 1fbe/1ikczz
   - 1ia4/1in0hv
 reason: Integration tests verified passing with HTTP protocol - confirmed by PR CI.
 ---
+
 
 
 Validation of the HTTP-over-Unix-socket protocol at component, integration, and e2e levels.

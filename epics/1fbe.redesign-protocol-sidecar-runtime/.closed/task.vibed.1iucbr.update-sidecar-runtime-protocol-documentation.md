@@ -2,10 +2,13 @@
 title: Update sidecar-runtime protocol documentation
 priority: 3 # low
 type: task
+tags:
+  - pr:192
 dependencies:
   - 1ia4/1in0hv
 reason: docs/architecture/protocols/sidecar-runtime.md rewritten for HTTP POST /invoke + GET /healthz in this PR.
 ---
+
 
 
 

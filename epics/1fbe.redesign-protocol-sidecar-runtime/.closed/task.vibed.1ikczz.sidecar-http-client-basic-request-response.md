@@ -2,11 +2,14 @@
 title: Sidecar HTTP client — basic request/response
 priority: 2 # medium
 type: task
+tags:
+  - pr:192
 dependencies:
   - 1fbe/1iof6x
   - 1fbe/1ig1zh
 reason: "Sidecar HTTP client implemented in PR #189 (net/http over Unix socket, POST /invoke)."
 ---
+
 
 
 Replace binary framing client in sidecar with `net/http` over Unix socket. This task covers **non-streaming** (return-based) handlers only. SSE streaming is handled by 1ia4/1in0hv.
