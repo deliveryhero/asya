@@ -67,3 +67,12 @@ metadata:
     {{- include "asya-crossplane.labels" . | nindent 4 }}
 spec:
   package: xpkg.upbound.io/crossplane-contrib/function-auto-ready:{{ .Values.functions.autoReadyVersion }}
+---
+apiVersion: pkg.crossplane.io/v1
+kind: Function
+metadata:
+  name: function-asya-flavors
+  labels:
+    {{- include "asya-crossplane.labels" . | nindent 4 }}
+spec:
+  package: ghcr.io/deliveryhero/function-asya-flavors:{{ .Values.functions.flavorsVersion }}

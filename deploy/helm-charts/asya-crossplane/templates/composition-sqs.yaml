@@ -12,7 +12,14 @@ spec:
     kind: XAsyncActor
   mode: Pipeline
   pipeline:
-    # Step 1: Render SQS Queue (always created)
+    # Resolve actor flavors -- merges EnvironmentConfig flavor data into a resolved spec
+    # written to context key asya.sh/resolved-spec for downstream steps to consume.
+    # Actors without spec.flavors are passed through with no changes.
+    - step: resolve-flavors
+      functionRef:
+        name: function-asya-flavors
+
+    # Step 2: Render SQS Queue (always created)
     - step: render-sqs-queue
       functionRef:
         name: function-go-templating
@@ -171,11 +178,21 @@ spec:
                 {{`{{- end -}}`}}
               {{`{{- end -}}`}}
             {{`{{- end -}}`}}
+            {{`{{- $resolvedSpec := dict -}}`}}
+            {{`{{- if and .context (index .context "asya.sh/resolved-spec") -}}`}}
+            {{`{{- $resolvedSpec = index .context "asya.sh/resolved-spec" -}}`}}
+            {{`{{- end -}}`}}
+            {{`{{- $scaling := $xr.spec.scaling -}}`}}
+            {{`{{- if and $resolvedSpec (hasKey $resolvedSpec "scaling") -}}`}}
+            {{`{{- $scaling = $resolvedSpec.scaling -}}`}}
+            {{`{{- end -}}`}}
+            {{`{{- $workload := $xr.spec.workload -}}`}}
+            {{`{{- if and $resolvedSpec (hasKey $resolvedSpec "workload") -}}`}}
+            {{`{{- $workload = $resolvedSpec.workload -}}`}}
+            {{`{{- end -}}`}}
             {{`{{- $scalingEnabled := true -}}`}}
-            {{`{{- if hasKey $xr.spec "scaling" -}}`}}
-              {{`{{- if hasKey $xr.spec.scaling "enabled" -}}`}}
-                {{`{{- $scalingEnabled = $xr.spec.scaling.enabled -}}`}}
-              {{`{{- end -}}`}}
+            {{`{{- if and $scaling (hasKey $scaling "enabled") -}}`}}
+              {{`{{- $scalingEnabled = $scaling.enabled -}}`}}
             {{`{{- end -}}`}}
             {{`{{- if and $scalingEnabled (ne $queueURL "") -}}`}}
             {{`{{- $minReplicas := 0 -}}`}}
@@ -183,17 +200,17 @@ spec:
             {{`{{- $pollingInterval := 30 -}}`}}
             {{`{{- $cooldownPeriod := 300 -}}`}}
             {{`{{- $queueLength := 5 -}}`}}
-            {{`{{- if hasKey $xr.spec "scaling" -}}`}}
-              {{`{{- if hasKey $xr.spec.scaling "minReplicas" }}{{ $minReplicas = $xr.spec.scaling.minReplicas }}{{ end -}}`}}
-              {{`{{- if hasKey $xr.spec.scaling "maxReplicas" }}{{ $maxReplicas = $xr.spec.scaling.maxReplicas }}{{ end -}}`}}
-              {{`{{- if hasKey $xr.spec.scaling "pollingInterval" }}{{ $pollingInterval = $xr.spec.scaling.pollingInterval }}{{ end -}}`}}
-              {{`{{- if hasKey $xr.spec.scaling "cooldownPeriod" }}{{ $cooldownPeriod = $xr.spec.scaling.cooldownPeriod }}{{ end -}}`}}
-              {{`{{- if hasKey $xr.spec.scaling "queueLength" }}{{ $queueLength = $xr.spec.scaling.queueLength }}{{ end -}}`}}
+            {{`{{- if $scaling -}}`}}
+              {{`{{- if hasKey $scaling "minReplicas" }}{{ $minReplicas = $scaling.minReplicas }}{{ end -}}`}}
+              {{`{{- if hasKey $scaling "maxReplicas" }}{{ $maxReplicas = $scaling.maxReplicas }}{{ end -}}`}}
+              {{`{{- if hasKey $scaling "pollingInterval" }}{{ $pollingInterval = $scaling.pollingInterval }}{{ end -}}`}}
+              {{`{{- if hasKey $scaling "cooldownPeriod" }}{{ $cooldownPeriod = $scaling.cooldownPeriod }}{{ end -}}`}}
+              {{`{{- if hasKey $scaling "queueLength" }}{{ $queueLength = $scaling.queueLength }}{{ end -}}`}}
             {{`{{- end -}}`}}
             {{`{{- $workloadName := $actorName -}}`}}
             {{`{{- $workloadKind := "Deployment" -}}`}}
-            {{`{{- if hasKey $xr.spec.workload "kind" -}}`}}
-              {{`{{- $workloadKind = $xr.spec.workload.kind -}}`}}
+            {{`{{- if hasKey $workload "kind" -}}`}}
+              {{`{{- $workloadKind = $workload.kind -}}`}}
             {{`{{- end -}}`}}
             apiVersion: kubernetes.crossplane.io/v1alpha2
             kind: Object
@@ -268,22 +285,32 @@ spec:
             {{`{{- $xr := .observed.composite.resource -}}`}}
             {{`{{- $namespace := index $xr.metadata.labels "crossplane.io/claim-namespace" -}}`}}
             {{`{{- $actorName := $xr.spec.actor -}}`}}
+            {{`{{- $resolvedSpec := dict -}}`}}
+            {{`{{- if and .context (index .context "asya.sh/resolved-spec") -}}`}}
+            {{`{{- $resolvedSpec = index .context "asya.sh/resolved-spec" -}}`}}
+            {{`{{- end -}}`}}
+            {{`{{- $workload := $xr.spec.workload -}}`}}
+            {{`{{- if and $resolvedSpec (hasKey $resolvedSpec "workload") -}}`}}
+            {{`{{- $workload = $resolvedSpec.workload -}}`}}
+            {{`{{- end -}}`}}
+            {{`{{- $scaling := $xr.spec.scaling -}}`}}
+            {{`{{- if and $resolvedSpec (hasKey $resolvedSpec "scaling") -}}`}}
+            {{`{{- $scaling = $resolvedSpec.scaling -}}`}}
+            {{`{{- end -}}`}}
             {{`{{- /* Create Deployment from workload spec */ -}}`}}
             {{`{{- if hasKey $xr.spec "workload" -}}`}}
             {{`{{- $workloadKind := "Deployment" -}}`}}
-            {{`{{- if hasKey $xr.spec.workload "kind" -}}`}}
-              {{`{{- $workloadKind = $xr.spec.workload.kind -}}`}}
+            {{`{{- if hasKey $workload "kind" -}}`}}
+              {{`{{- $workloadKind = $workload.kind -}}`}}
             {{`{{- end -}}`}}
             {{`{{- $scalingEnabled := true -}}`}}
-            {{`{{- if hasKey $xr.spec "scaling" -}}`}}
-              {{`{{- if hasKey $xr.spec.scaling "enabled" -}}`}}
-                {{`{{- $scalingEnabled = $xr.spec.scaling.enabled -}}`}}
-              {{`{{- end -}}`}}
+            {{`{{- if and $scaling (hasKey $scaling "enabled") -}}`}}
+              {{`{{- $scalingEnabled = $scaling.enabled -}}`}}
             {{`{{- end -}}`}}
             {{`{{- $replicas := 1 -}}`}}
             {{`{{- if not $scalingEnabled -}}`}}
-              {{`{{- if hasKey $xr.spec.workload "replicas" -}}`}}
-                {{`{{- $replicas = $xr.spec.workload.replicas -}}`}}
+              {{`{{- if hasKey $workload "replicas" -}}`}}
+                {{`{{- $replicas = $workload.replicas -}}`}}
               {{`{{- end -}}`}}
             {{`{{- end -}}`}}
             apiVersion: kubernetes.crossplane.io/v1alpha2
@@ -323,9 +350,9 @@ spec:
                         {{- if .Values.irsa.enabled }}
                         serviceAccountName: {{ .Values.irsa.serviceAccountName }}
                         {{- end }}
-                        {{`{{- if hasKey $xr.spec.workload "template" }}`}}
-                        {{`{{- if hasKey $xr.spec.workload.template "spec" }}`}}
-                        {{`{{- $xr.spec.workload.template.spec | toYaml | nindent 24 }}`}}
+                        {{`{{- if hasKey $workload "template" }}`}}
+                        {{`{{- if hasKey $workload.template "spec" }}`}}
+                        {{`{{- $workload.template.spec | toYaml | nindent 24 }}`}}
                         {{`{{- end }}`}}
                         {{`{{- end }}`}}
               providerConfigRef:
