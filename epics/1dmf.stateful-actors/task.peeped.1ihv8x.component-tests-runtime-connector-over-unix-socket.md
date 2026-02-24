@@ -4,6 +4,7 @@ priority: 2 # medium
 type: task
 ---
 
+
 Component tests validating runtime interception layer communicates correctly with a connector over Unix socket.
 
 Test setup:
