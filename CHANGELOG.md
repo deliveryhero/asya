@@ -6,6 +6,98 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.5.1] - 2026-02-24
+
+## Major Changes
+
+* feat(1c4w): Actor Flavors — wire function-asya-flavors into Crossplane compositions (#194) @atemate
+* feat(1c46): flexible sink/sump phases, gateway status.phase parsing, retry integration tests (#193) @atemate
+* feat(runtime): add GET /healthz + rewrite sidecar-runtime protocol docs (epic 1fbe) (#192) @atemate
+* feat(route): migrate actor routing to prev/curr/next format (epic 1iah) (#191) @atemate
+* feat(runtime): replace binary framing with HTTP over Unix socket (#189) @atemate
+* feat(flow): add fan-out parsing for list comprehensions, list literals, and `asyncio.gather` (#190) @atemate
+* feat: Add mutating webhook to derive asya.sh/actor label from spec.actor (#188) @atemate
+* feat: Add async flow example fixtures (ADK-based) (#174) @atemate
+* feat(flow): add try-except-finally support to Flow DSL compiler (#185) @atemate
+* feat(crew): two-layer termination with x-sink, x-sump, and hooks (#182) @atemate
+* feat(crossplane,injector): resiliency config in XRD and ASYA\_RESILIENCY\_\* env injection (#183) @atemate
+* feat(crew): add x-dlq standalone Go worker for infrastructure DLQ (#184) @atemate
+* feat(sidecar): implement retry logic with exponential backoff (#181) @atemate
+* feat(flow): add max\_iterations guard for while-True loops (#176) @atemate
+* feat(sidecar): parse ASYA\_RESILIENCY\_\* env vars for retry configuration (#171) @atemate
+* feat: Add function-asya-flavors Composition Function (#177) @atemate
+* feat: Add status top-level field to message schema (#178) @atemate
+* feat(crossplane): add spec.flavors field to AsyncActor XRD (#175) @atemate
+* fix(ci): Remove diff.path that overwrites octocov baseline (#179) @atemate
+* fix(ci): Add asya-injector to release and fix chart publishing (#173) @atemate
+* feat(transport): add SendWithDelay() and rename Nack() to Requeue() (#172) @atemate
+* feat(runtime): add fully qualified error type and MRO to error responses (#168) @atemate
+* fix(ci): Enable DEBUG logging for octocov baseline diagnosis (#170) @atemate
+
+## Other Changes
+
+* feat(1c4w): Actor Flavors — wire function-asya-flavors into Crossplane compositions (#194) @atemate
+* feat(1c46): flexible sink/sump phases, gateway status.phase parsing, retry integration tests (#193) @atemate
+* feat(runtime): add GET /healthz + rewrite sidecar-runtime protocol docs (epic 1fbe) (#192) @atemate
+* feat(route): migrate actor routing to prev/curr/next format (epic 1iah) (#191) @atemate
+* feat(runtime): replace binary framing with HTTP over Unix socket (#189) @atemate
+* feat(flow): add fan-out parsing for list comprehensions, list literals, and `asyncio.gather` (#190) @atemate
+* feat: Add mutating webhook to derive asya.sh/actor label from spec.actor (#188) @atemate
+* chore: Remove StatefulSet actor workload support (#186) @atemate
+* feat: Add async flow example fixtures (ADK-based) (#174) @atemate
+* feat(flow): add try-except-finally support to Flow DSL compiler (#185) @atemate
+* feat(crew): two-layer termination with x-sink, x-sump, and hooks (#182) @atemate
+* feat(crossplane,injector): resiliency config in XRD and ASYA\_RESILIENCY\_\* env injection (#183) @atemate
+* feat(crew): add x-dlq standalone Go worker for infrastructure DLQ (#184) @atemate
+* feat(sidecar): implement retry logic with exponential backoff (#181) @atemate
+* feat(flow): add max\_iterations guard for while-True loops (#176) @atemate
+* feat(sidecar): parse ASYA\_RESILIENCY\_\* env vars for retry configuration (#171) @atemate
+* feat: Add function-asya-flavors Composition Function (#177) @atemate
+* feat: Add status top-level field to message schema (#178) @atemate
+* feat(crossplane): add spec.flavors field to AsyncActor XRD (#175) @atemate
+* fix(ci): Add asya-injector to release and fix chart publishing (#173) @atemate
+* feat(transport): add SendWithDelay() and rename Nack() to Requeue() (#172) @atemate
+* feat(runtime): add fully qualified error type and MRO to error responses (#168) @atemate
+* fix(ci): Enable DEBUG logging for octocov baseline diagnosis (#170) @atemate
+
+## Installation
+
+### Helm Charts
+
+Add the Helm repository:
+```bash
+helm repo add asya https://asya.sh/charts
+helm repo update
+```
+
+Install the Crossplane compositions and gateway:
+```bash
+helm install asya-crossplane asya/asya-crossplane \
+  --version 0.5.1 \
+  --namespace asya-system \
+  --create-namespace
+helm install asya-gateway asya/asya-gateway \
+  --version 0.5.1 \
+  --namespace asya
+```
+
+## Docker Images
+
+All images are published to GitHub Container Registry:
+
+- `ghcr.io/deliveryhero/asya-crew:0.5.1`
+- `ghcr.io/deliveryhero/asya-gateway:0.5.1`
+- `ghcr.io/deliveryhero/asya-injector:0.5.1`
+- `ghcr.io/deliveryhero/asya-sidecar:0.5.1`
+- `ghcr.io/deliveryhero/asya-testing:0.5.1`
+
+## Contributors
+
+@atemate, @github-actions[bot] and [github-actions[bot]](https://github.com/apps/github-actions)
+
+
+
+
 ## [0.5.0] - 2026-02-11
 
 ## Major Changes
@@ -796,6 +888,9 @@ All images are published to GitHub Container Registry:
 [0.4.2]: https://github.com/deliveryhero/asya/releases/tag/v0.4.2
 
 
-[Unreleased]: https://github.com/deliveryhero/asya/compare/v0.5.0...HEAD
 [0.5.0]: https://github.com/deliveryhero/asya/releases/tag/v0.5.0
+
+
+[Unreleased]: https://github.com/deliveryhero/asya/compare/v0.5.1...HEAD
+[0.5.1]: https://github.com/deliveryhero/asya/releases/tag/v0.5.1
 
