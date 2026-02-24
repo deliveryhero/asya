@@ -2,7 +2,10 @@
 title: "Build connector base framework (HTTP/Unix-socket server, health, shutdown)"
 priority: 1 # high
 type: task
+tags:
+  - pr:195
 ---
+
 
 Build the reusable base framework that all state proxy connectors will extend:
 
