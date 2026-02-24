@@ -20,23 +20,22 @@ Two gaps prevent headers from surviving the routing pipeline:
 1. **`RuntimeResponse` has no `Headers` field** (`src/asya-sidecar/internal/runtime/client.go`):
    ```go
    type RuntimeResponse struct {
-       Type    string           // present
-       Payload json.RawMessage  // present
-       Route   messages.Route   // present
-       Status  *messages.Status // present
-       Error   string           // present
-       Details ErrorDetails     // present
+       Payload json.RawMessage  `json:"payload,omitempty"`  // present
+       Route   messages.Route   `json:"route,omitempty"`    // present
+       Status  *messages.Status `json:"status,omitempty"`   // present
+       Error   string           `json:"error,omitempty"`    // present
+       Details ErrorDetails     `json:"details,omitempty"`  // present
        // Headers: MISSING
    }
    ```
 
-2. **`routeResponse()` constructs Message without Headers** (`router.go:770-777`):
+2. **`routeResponse()` constructs Message without Headers** (`router.go:771-778`):
    ```go
    newMsg := messages.Message{
        ID:       id,
        ParentID: parentID,
        Route:    route,
-       Payload:  resp.Payload,
+       Payload:  payload,
        Status:   outStatus,
        // Headers: NOT SET
    }
@@ -48,9 +47,9 @@ Two gaps prevent headers from surviving the routing pipeline:
 - Add `Headers map[string]json.RawMessage` (or `map[string]interface{}`) field to `RuntimeResponse` struct
 
 ### `src/asya-sidecar/internal/router/router.go`
-- `routeResponse()`: Propagate headers from runtime response (or from original message if runtime did not modify them) to outgoing message
-- `handleSuccessResponse()`: Same header propagation for fan-out children
-- `sendToSinkQueue()`: Preserve headers when routing to x-sink
+- `routeResponse()` (line ~721): Accept headers parameter, set `newMsg.Headers` when constructing the outbound Message
+- `handleSuccessResponse()` (line ~558): Pass headers from runtime response (or original message if runtime did not set them) into `routeResponse()`
+- `sendToSinkQueue()` (line ~816): Preserve headers when routing to x-sink
 
 ### `src/asya-sidecar/pkg/messages/message.go`
 - Verify `Message` struct already has `Headers` field (it should)

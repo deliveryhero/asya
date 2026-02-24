@@ -100,7 +100,7 @@ Fan-out router (generated code)
 
 **Rationale**:
 - **Aligns with epic 1dmf**: Stateless Deployment + external state via state proxy. No PVCs, no StatefulSets, no shard affinity. Same architecture as all other stateful actors.
-- **S3 latency is acceptable**: Sub-agents take seconds (LLM inference). S3 operations at ~5-50ms are negligible.
+- **S3 latency is acceptable for v0**: Sub-agents take seconds (LLM inference). S3 operations at ~5-50ms are negligible.
 - **Payload size is not a concern**: Each slice is its own S3 object. No aggregation until emission. S3 handles objects up to 5GB.
 - **S3 strong consistency**: Since December 2020, S3 provides strong read-after-write consistency. `listdir` after a successful write always sees the written object.
 - **TTL via S3 lifecycle policies**: Stale aggregation state (partial failures) is automatically cleaned up by S3 lifecycle rules. No background threads needed.
@@ -124,7 +124,7 @@ Fan-out router (generated code)
 - Router computes shard via rendezvous hashing: `aggregator-{shard}`.
 - Stamps `x-asya-route-override: {"aggregator": "aggregator-{shard}"}`.
 - Requires `xxhash` dependency.
-- Used with sharded aggregator flavors (see [Extensibility](#extensibility)).
+- Used with sharded aggregator flavors (see [Extensibility](#extensibility)) (a separate `asya-crew` aggregator implementation)
 
 **Generated router structure** (default, no sharding):
 
@@ -151,9 +151,8 @@ else:
 def fanout_research_flow_L2(message):
     p = message["payload"]
     r = message["route"]
-    c = r["current"]
     origin_id = message["id"]
-    _agg_abstract = r["actors"][c + 1]
+    _agg_abstract = r["next"][0]   # aggregator is first in next list
     _agg, _override = _resolve_aggregator(origin_id, _agg_abstract)
     _hdrs = message.get("headers", {})
 
@@ -168,17 +167,18 @@ def fanout_research_flow_L2(message):
                "slice_count": _n, "aggregation_key": "/results"}
 
     # Index 0: parent payload (first yield -> keeps original message.id)
+    # Fan-out generators must manually shift the route (runtime does not shift for generators).
     yield {
-        "route": {"actors": list(r["actors"]), "current": c + 1},
+        "route": {"prev": r["prev"] + [r["curr"]], "curr": r["next"][0], "next": r["next"][1:]},
         "headers": {**_hdrs, **_override,
                     "x-asya-fan-in": {**_fan_in, "slice_index": 0}},
         "payload": json.loads(json.dumps(p)),
     }
 
-    # Indices 1..N: sub-agent slices
+    # Indices 1..N: sub-agent slices (new independent routes)
     for _i, (_actor, _payload) in enumerate(_slices):
         yield {
-            "route": {"actors": [_actor, _agg], "current": 0},
+            "route": {"prev": [], "curr": _actor, "next": [_agg]},
             "headers": {**_hdrs, **_override,
                         "x-asya-fan-in": {**_fan_in, "slice_index": _i + 1}},
             "payload": _payload,
@@ -296,8 +296,9 @@ The fan-out router yields N+1 messages total:
 {
   "id": "msg-original-abc",
   "route": {
-    "actors": ["start", "fan_out", "aggregator", "post_process"],
-    "current": 2
+    "prev": ["start", "fan_out"],
+    "curr": "aggregator",
+    "next": ["post_process"]
   },
   "headers": {
     "x-asya-fan-in": {
@@ -320,8 +321,9 @@ The fan-out router yields N+1 messages total:
 {
   "id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
   "route": {
-    "actors": ["sub_agent", "aggregator"],
-    "current": 0
+    "prev": [],
+    "curr": "sub_agent",
+    "next": ["aggregator"]
   },
   "headers": {
     "x-asya-parent-id": "msg-original-abc",
@@ -400,11 +402,12 @@ def aggregator(envelope: dict) -> dict | None:
     if idx == 0:
         msg_path = f"{base}/message.json"
         if not os.path.exists(msg_path):
-            route = envelope["route"].copy()
-            route["current"] += 1
+            # Route is saved as-is: curr = "aggregator". When the aggregator
+            # returns the merged envelope, the runtime shifts it automatically
+            # (prev grows, curr advances to next[0], next shrinks).
             msg_meta = {
                 "id": origin_id,
-                "route": route,
+                "route": envelope["route"].copy(),
                 "headers": {k: v for k, v in
                             envelope.get("headers", {}).items()
                             if k not in _TRANSIENT_HEADERS},
@@ -613,6 +616,7 @@ Each flavor is a handler module in `src/asya-crew/asya_crew/fanin/`. The handler
 | **fanin-s3** (v0) | `asya_crew.fanin.s3_split_key.aggregator` | S3 via state proxy (`s3-buffered-lww`) | `listdir` + sentinel | Default. Zero contention, handles large payloads, S3 lifecycle for TTL. |
 | fanin-redis (planned) | `asya_crew.fanin.redis_split_key.aggregator` | Redis via state proxy (`redis-buffered-lww`) | `listdir` + sentinel | Low-latency fan-in. Same split-key pattern but sub-ms reads. |
 | fanin-postgres (planned) | `asya_crew.fanin.postgres.aggregator` | PostgreSQL via state proxy | SQL count query | When PostgreSQL is already in the stack. ACID transactions for completeness. |
+| fanin-natskv (planned) | `asya_crew.fanin.natskv.aggregator` | NATS KV via state proxy (not shared, payloads stored in it) | SQL count query | When NATS is already in the stack. CAD transactions for completeness. |
 
 **Sharded flavors** (local state, shard affinity):
 

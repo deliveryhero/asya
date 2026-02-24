@@ -45,9 +45,8 @@ else:
 def fanout_<flow>_L<line>(message):
     p = message["payload"]
     r = message["route"]
-    c = r["current"]
     origin_id = message["id"]
-    _agg_abstract = r["actors"][c + 1]
+    _agg_abstract = r["next"][0]   # aggregator is first in next list
     _agg, _override = _resolve_aggregator(origin_id, _agg_abstract)
     _hdrs = message.get("headers", {})
 
@@ -62,17 +61,18 @@ def fanout_<flow>_L<line>(message):
                "slice_count": _n, "aggregation_key": "/results"}
 
     # Index 0: parent payload
+    # Fan-out generators must manually shift the route (runtime does not shift for generators).
     yield {
-        "route": {"actors": list(r["actors"]), "current": c + 1},
+        "route": {"prev": r["prev"] + [r["curr"]], "curr": r["next"][0], "next": r["next"][1:]},
         "headers": {**_hdrs, **_override,
                     "x-asya-fan-in": {**_fan_in, "slice_index": 0}},
         "payload": json.loads(json.dumps(p)),
     }
 
-    # Indices 1..N: sub-agent slices
+    # Indices 1..N: sub-agent slices (new independent routes)
     for _i, (_actor, _payload) in enumerate(_slices):
         yield {
-            "route": {"actors": [_actor, _agg], "current": 0},
+            "route": {"prev": [], "curr": _actor, "next": [_agg]},
             "headers": {**_hdrs, **_override,
                         "x-asya-fan-in": {**_fan_in, "slice_index": _i + 1}},
             "payload": _payload,
