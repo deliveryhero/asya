@@ -18,6 +18,10 @@ functions:
   goTemplatingVersion: "v0.11.3"
   patchAndTransformVersion: "v0.8.2"
   autoReadyVersion: "v0.6.0"
+  flavorsVersion: "latest"
+  # Package pull policy for function-asya-flavors.
+  # Set to "Never" when the image is pre-loaded into Kind nodes for E2E testing.
+  flavorsPackagePullPolicy: "IfNotPresent"
 
 # AWS ProviderConfig settings
 awsProviderConfig:

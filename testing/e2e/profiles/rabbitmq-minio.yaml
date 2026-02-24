@@ -80,6 +80,8 @@ crossplane:
       enabled: false
   providerConfigs:
     install: false
+  functions:
+    flavorsPackagePullPolicy: "Never"
   kubernetesProviderConfig:
     name: in-cluster
     credentialsSource: InjectedIdentity

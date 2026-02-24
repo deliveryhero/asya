@@ -91,6 +91,8 @@ gateway:
 crossplane:
   providerConfigs:
     install: false
+  functions:
+    flavorsPackagePullPolicy: "Never"
   awsProviderConfig:
     name: localstack
     credentialsSource: Secret
