@@ -9,6 +9,7 @@ from asya_cli.flow.ir import (
     Break,
     Condition,
     Continue,
+    FanOutCall,
     IROperation,
     Mutation,
     Raise,
@@ -48,6 +49,8 @@ class Router:
     finally_actors: list[str] = field(default_factory=list)
     continuation_actors: list[str] = field(default_factory=list)
     reraise_name: str | None = None  # except_dispatch: name of reraise router
+    fan_out_op: FanOutCall | None = None  # set when is_fan_out == True
+    is_fan_out: bool = False
 
 
 class OperationGrouper:
@@ -62,6 +65,7 @@ class OperationGrouper:
         self.convergence_map: dict[str, list[str]] = {}
         self._loop_counter = 0
         self._try_counter = 0
+        self._fanout_counter = 0
 
     def group(self) -> list[Router]:
         self.routers = []
@@ -69,6 +73,7 @@ class OperationGrouper:
         self.convergence_map = {}
         self._loop_counter = 0
         self._try_counter = 0
+        self._fanout_counter = 0
 
         start_actors = self._process_operations(self.operations, [], is_top_level=True)
 
@@ -215,6 +220,28 @@ class OperationGrouper:
                         self.routers.append(router)
                         return [*result, router.name]
 
+                    elif isinstance(next_op, FanOutCall):
+                        i += 1
+
+                        continuation = self._process_operations(
+                            operations[i:],
+                            convergence_stack,
+                            is_top_level=is_top_level,
+                            loop_back_label=loop_back_label,
+                            loop_exit_label=loop_exit_label,
+                        )
+
+                        # Create a mutation router before the fan-out
+                        fanout_actors = self._process_fan_out(next_op, continuation)
+                        router = Router(
+                            name=f"router_{self.flow_name}_line_{mutations[0].lineno}_seq",
+                            lineno=mutations[0].lineno,
+                            mutations=mutations,
+                            true_branch_actors=fanout_actors,
+                        )
+                        self.routers.append(router)
+                        return [*result, router.name]
+
                 continuation = self._process_operations(
                     operations[i:],
                     convergence_stack,
@@ -302,6 +329,20 @@ class OperationGrouper:
                 try_actors = self._process_try_except(op, continuation)
                 return [*result, *try_actors]
 
+            elif isinstance(op, FanOutCall):
+                i += 1
+
+                continuation = self._process_operations(
+                    operations[i:],
+                    convergence_stack,
+                    is_top_level=is_top_level,
+                    loop_back_label=loop_back_label,
+                    loop_exit_label=loop_exit_label,
+                )
+
+                fanout_actors = self._process_fan_out(op, continuation)
+                return [*result, *fanout_actors]
+
             elif isinstance(op, Raise):
                 # Re-raise: route to end (reraise router handles the actual raise)
                 return [*result, f"end_{self.flow_name}"]
@@ -339,6 +380,48 @@ class OperationGrouper:
             return [f"end_{self.flow_name}"]
 
         return []
+
+    def _process_fan_out(
+        self,
+        fan_out: FanOutCall,
+        continuation: list[str],
+    ) -> list[str]:
+        """Process a FanOutCall IR node into a fan-out router.
+
+        The fan-out router is a generator that yields N+1 messages:
+        - Index 0: parent payload forwarded to the aggregator (first in continuation)
+        - Indices 1..N: sub-agent slices for each actor_call
+
+        The aggregator (fan-in actor) is the first actor in continuation.
+        It receives all N+1 messages and merges them.
+        """
+        self._fanout_counter += 1
+
+        router_name = f"fanout_{self.flow_name}_L{fan_out.lineno}"
+
+        # The aggregator is the first actor in the continuation chain.
+        # If no continuation exists (end of flow), there's no aggregator — unusual
+        # but we still need to build a meaningful route. We use the end router.
+        if continuation and not continuation[0].startswith("end_"):
+            aggregator = continuation[0]
+            after_aggregator = continuation[1:]
+        else:
+            # No explicit aggregator: parent payload goes to end
+            aggregator = f"end_{self.flow_name}"
+            after_aggregator = []
+
+        # true_branch_actors represents the route continuation after fan-out router:
+        # [aggregator, ...after_aggregator] — the path the parent message takes
+        router = Router(
+            name=router_name,
+            lineno=fan_out.lineno,
+            is_fan_out=True,
+            fan_out_op=fan_out,
+            true_branch_actors=[aggregator, *after_aggregator],
+        )
+        self.routers.append(router)
+
+        return [router_name]
 
     def _process_while_loop(
         self,
