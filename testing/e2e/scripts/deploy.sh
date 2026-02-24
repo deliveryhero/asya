@@ -112,16 +112,6 @@ time {
   docker build -t "${IMAGE_PREFIX}asya-injector:latest" "$ROOT_DIR/src/asya-injector/" > /dev/null 2>&1 &
   INJECTOR_BUILD_PID=$!
 
-  # Build function-asya-flavors if source is present (pre-load into Kind to avoid
-  # registry pull failures when the composition pipeline references this function)
-  FLAVORS_BUILD_PID=""
-  if [[ -d "$ROOT_DIR/src/function-asya-flavors" ]]; then
-    echo "[.] Building function-asya-flavors image..."
-    docker build -t "${IMAGE_PREFIX}function-asya-flavors:latest" \
-      "$ROOT_DIR/src/function-asya-flavors/" > /dev/null 2>&1 &
-    FLAVORS_BUILD_PID=$!
-  fi
-
   # Wait for image builds
   if ! wait "$BUILD_PID"; then
     echo "[-] Docker image build failed"
@@ -134,15 +124,6 @@ time {
     exit 1
   fi
   echo "[+] Injector image built"
-
-  if [[ -n "$FLAVORS_BUILD_PID" ]]; then
-    if ! wait "$FLAVORS_BUILD_PID"; then
-      echo "[!] Warning: function-asya-flavors image build failed (continuing without it)"
-      FLAVORS_BUILD_PID=""
-    else
-      echo "[+] function-asya-flavors image built"
-    fi
-  fi
 
   # Wait for cluster creation
   if [ -n "$CLUSTER_PID" ]; then
@@ -182,6 +163,14 @@ time {
 echo
 
 # Phase 3: Load images into Kind cluster
+#
+# NOTE on image loading mechanisms:
+# - Container images (sidecar, gateway, crew, etc.) are loaded via `kind load docker-image`
+#   into containerd's image store. Kubelet uses these with `imagePullPolicy: Never`.
+# - Crossplane Function packages (function-asya-flavors) use Crossplane's own OCI puller,
+#   NOT containerd. `kind load` does NOT work for Functions — they must be pullable from
+#   an OCI registry (ghcr.io). When the Function image is not publicly accessible,
+#   set functions.flavorsEnabled=false in the e2e profile to skip it.
 echo "[.] Phase 3: Loading images into Kind cluster..."
 time {
   IMAGES_TO_LOAD=(
@@ -191,11 +180,6 @@ time {
     "asya-testing:latest"
     "asya-injector:latest"
   )
-
-  # Load function-asya-flavors if it was built successfully
-  if docker image inspect "${IMAGE_PREFIX}function-asya-flavors:latest" > /dev/null 2>&1; then
-    IMAGES_TO_LOAD+=("function-asya-flavors:latest")
-  fi
 
   LOAD_PIDS=()
   for img in "${IMAGES_TO_LOAD[@]}"; do
@@ -287,18 +271,6 @@ time {
     exit 1
   fi
   echo "[+] Infrastructure layer deployed"
-
-  # Patch function-asya-flavors to use locally-loaded image (if present in cluster)
-  # This prevents Crossplane from trying to pull an image that may not yet exist
-  # in the remote registry. The image is pre-loaded into Kind in Phase 3.
-  if kubectl get function function-asya-flavors > /dev/null 2>&1; then
-    if docker image inspect "${IMAGE_PREFIX}function-asya-flavors:latest" > /dev/null 2>&1; then
-      kubectl patch function function-asya-flavors \
-        --type=merge \
-        -p '{"spec":{"packagePullPolicy":"Never"}}' > /dev/null 2>&1 || true
-      echo "[+] Patched function-asya-flavors to use local image (packagePullPolicy: Never)"
-    fi
-  fi
 }
 echo
 

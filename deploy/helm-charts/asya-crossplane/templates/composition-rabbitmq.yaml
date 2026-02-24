@@ -12,12 +12,14 @@ spec:
     kind: XAsyncActor
   mode: Pipeline
   pipeline:
+    {{- if .Values.functions.flavorsEnabled }}
     # Resolve actor flavors — merges EnvironmentConfig flavor data into a resolved spec
     # written to context key asya.sh/resolved-spec for downstream steps to consume.
     # Actors without spec.flavors are passed through with no changes.
     - step: resolve-flavors
       functionRef:
         name: function-asya-flavors
+    {{- end }}
 
     # Step 2: Create KEDA TriggerAuthentication for RabbitMQ scaling
     - step: render-triggerauthentication

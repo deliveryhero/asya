@@ -41,7 +41,7 @@ spec:
 
         # Wait for operator to create Deployment (with retry logic)
         echo "[.] Waiting for operator to create Deployment..."
-        MAX_RETRIES=90
+        MAX_RETRIES=30
         RETRY_INTERVAL=2
         DEPLOYMENT_EXISTS=false
         for i in $(seq 1 $MAX_RETRIES); do
