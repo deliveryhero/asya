@@ -175,6 +175,29 @@ def test_missing_status():
     logger.info("=== test_missing_status: PASSED ===")
 
 
+def test_non_terminal_phase_logs_info(caplog):
+    """Non-terminal phase (not succeeded/failed) is logged at INFO level."""
+    logger.info("=== test_non_terminal_phase_logs_info ===")
+
+    if "asya_crew.sump" in sys.modules:
+        del sys.modules["asya_crew.sump"]
+
+    from asya_crew.sump import sump_handler
+
+    message = {
+        "id": "test-nonterminal",
+        "status": {"phase": "awaiting_approval"},
+        "payload": {"data": "test"},
+    }
+
+    with caplog.at_level(logging.INFO):
+        sump_handler(message)
+
+    assert "non-final phase" in caplog.text
+    assert "awaiting_approval" in caplog.text
+    logger.info("=== test_non_terminal_phase_logs_info: PASSED ===")
+
+
 def test_invalid_status_type():
     """Test sump handler with invalid status type raises ValueError."""
     logger.info("=== test_invalid_status_type ===")

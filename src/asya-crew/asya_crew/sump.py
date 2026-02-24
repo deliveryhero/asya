@@ -98,8 +98,10 @@ def sump_handler(message: dict[str, Any]) -> None:
 
     if phase == "failed":
         logger.error(f"Terminal failure for message {message_id}: {json.dumps(message, indent=2, default=str)}")
-    else:
+    elif phase == "succeeded":
         logger.debug(f"Terminal success for message {message_id}")
+    else:
+        logger.info(f"Terminal non-final phase '{phase}' for message {message_id}")
 
     if ASYA_S3_BUCKET:
         try:
