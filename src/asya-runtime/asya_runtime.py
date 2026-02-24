@@ -490,6 +490,12 @@ class _InvokeHandler(http.server.BaseHTTPRequestHandler):
         else:
             self._send_json(200, {"frames": frames})
 
+    def do_GET(self):  # noqa: N802
+        if self.path == "/healthz":
+            self._send_json(200, {"status": "ready"})
+        else:
+            self.send_error(404)
+
     def _send_json(self, code, data):
         """Send a JSON response with the given HTTP status code."""
         body = json.dumps(data).encode("utf-8")

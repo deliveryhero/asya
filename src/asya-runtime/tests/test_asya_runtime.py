@@ -2441,3 +2441,33 @@ class TestHTTPInvoke:
         thread.join(timeout=5)
         server.server_close()
         assert resp.status == 404
+
+
+class TestHTTPHealthz:
+    """Test GET /healthz endpoint."""
+
+    def _make_get_request(self, tmp_path, path):
+        socket_path = str(tmp_path / "healthz.sock")
+        server = asya_runtime._UnixHTTPServer(socket_path, asya_runtime._InvokeHandler)
+        server.user_func = lambda p: p
+        thread = threading.Thread(target=server.handle_request)
+        thread.start()
+
+        conn = _UnixHTTPConnection(socket_path)
+        conn.request("GET", path)
+        resp = conn.getresponse()
+        raw = resp.read()
+        conn.close()
+        thread.join(timeout=5)
+        server.server_close()
+        return resp.status, raw
+
+    def test_healthz_returns_200_with_ready_status(self, tmp_path):
+        status, raw = self._make_get_request(tmp_path, "/healthz")
+        assert status == 200
+        data = json.loads(raw)
+        assert data == {"status": "ready"}
+
+    def test_healthz_unknown_path_returns_404(self, tmp_path):
+        status, _ = self._make_get_request(tmp_path, "/unknown")
+        assert status == 404
