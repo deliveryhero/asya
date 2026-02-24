@@ -1,8 +1,10 @@
 ---
 title: "Redesign route structure: actors/current to prev/curr/next"
+status: peeped
 priority: 1 # high
 type: epic
 ---
+
 
 Migrate the message route schema from `{actors: [...], current: int}` to `{prev: [...], curr: str, next: [...]}`. Big-bang migration — all components switch at once (no dual-format support). See `rfc.md` for the full migration plan with exact file:line mappings across 40+ locations in 6 components.
 
