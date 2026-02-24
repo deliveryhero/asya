@@ -23,7 +23,7 @@ services:
     - ../envs/.env.${ASYA_TRANSPORT}
     - ../envs/.env.${ASYA_STORAGE}
     environment:
-    - ASYA_HANDLER=asya_crew.message_persistence.s3.checkpoint_handler
+    - ASYA_HANDLER=asya_crew.sink.sink_handler
     - ASYA_S3_BUCKET=asya-results
     volumes:
     - asya-x-sink-sockets:/var/run/asya
@@ -74,7 +74,7 @@ services:
     - ../envs/.env.${ASYA_TRANSPORT}
     - ../envs/.env.${ASYA_STORAGE}
     environment:
-    - ASYA_HANDLER=asya_crew.message_persistence.s3.checkpoint_handler
+    - ASYA_HANDLER=asya_crew.sump.sump_handler
     - ASYA_S3_BUCKET=asya-errors
     volumes:
     - asya-x-sump-sockets:/var/run/asya

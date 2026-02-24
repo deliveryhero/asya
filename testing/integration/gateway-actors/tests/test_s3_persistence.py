@@ -99,15 +99,11 @@ def test_x_sink_persists_to_s3():
     s3_object = wait_for_message_in_s3(RESULTS_BUCKET, task_id, timeout=10)
 
     assert s3_object is not None, f"Message {task_id} not found in {RESULTS_BUCKET}"
-    assert s3_object["id"] == task_id
-    assert "route" in s3_object
-    assert "payload" in s3_object
-    assert isinstance(s3_object["route"], dict)
-    assert "prev" in s3_object["route"]
-    assert "curr" in s3_object["route"]
-    assert "next" in s3_object["route"]
+    # S3 stores just the payload dict (not the full message envelope)
+    assert isinstance(s3_object, dict), f"S3 object should be a dict, got {type(s3_object)}"
+    assert s3_object.get("echoed") == "test s3 persistence", f"S3 payload should contain echoed message, got {s3_object}"
 
-    logger.info(f"S3 message validated (saved as-is): {s3_object}")
+    logger.info(f"S3 payload validated: {s3_object}")
     logger.info("=== test_x_sink_persists_to_s3: PASSED ===")
 
 
@@ -134,15 +130,10 @@ def test_x_sump_persists_to_s3():
     s3_object = wait_for_message_in_s3(ERRORS_BUCKET, task_id, timeout=10)
 
     assert s3_object is not None, f"Message {task_id} not found in {ERRORS_BUCKET}"
-    assert s3_object["id"] == task_id
-    assert "route" in s3_object
-    assert "payload" in s3_object
-    assert isinstance(s3_object["route"], dict)
-    assert "prev" in s3_object["route"]
-    assert "curr" in s3_object["route"]
-    assert "next" in s3_object["route"]
+    # S3 stores just the payload dict (not the full message envelope)
+    assert isinstance(s3_object, dict), f"S3 object should be a dict, got {type(s3_object)}"
 
-    logger.info(f"S3 error message validated (saved as-is): {s3_object}")
+    logger.info(f"S3 error payload validated: {s3_object}")
     logger.info("=== test_x_sump_persists_to_s3: PASSED ===")
 
 
@@ -169,16 +160,9 @@ def test_pipeline_result_persists_to_s3():
     s3_object = wait_for_message_in_s3(RESULTS_BUCKET, task_id, timeout=10)
 
     assert s3_object is not None, f"Message {task_id} not found in {RESULTS_BUCKET}"
-    assert s3_object["id"] == task_id
-    assert "route" in s3_object
-    assert "payload" in s3_object
-    assert isinstance(s3_object["route"], dict)
-    assert "prev" in s3_object["route"]
-    assert "curr" in s3_object["route"]
-    assert "next" in s3_object["route"]
-    assert s3_object["payload"]["value"] == 25
-    # Verify route prev contains the pipeline actors (processed actors)
-    assert "test-doubler" in s3_object["route"]["prev"] or "test-incrementer" in s3_object["route"]["prev"]
+    # S3 stores just the payload dict (not the full message envelope)
+    assert isinstance(s3_object, dict), f"S3 object should be a dict, got {type(s3_object)}"
+    assert s3_object["value"] == 25, f"Expected pipeline result value 25, got {s3_object.get('value')}"
 
-    logger.info(f"Pipeline S3 message validated (saved as-is): {s3_object}")
+    logger.info(f"Pipeline S3 payload validated: {s3_object}")
     logger.info("=== test_pipeline_result_persists_to_s3: PASSED ===")

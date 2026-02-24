@@ -86,12 +86,11 @@ def test_fan_out_array_response(gateway_helper):
 
     s3_object = wait_for_message_in_s3(bucket_name="asya-results", message_id=task_id, timeout=10)
     assert s3_object is not None, f"x-sink should persist fan-out message {task_id} to S3"
-    # For fanout, S3 contains the fanned-out item payload, not the original
-    s3_payload = s3_object.get("payload", {})
-    assert "index" in s3_payload, "S3 fanout payload should have index field"
-    assert "message" in s3_payload, "S3 fanout payload should have message field"
-    assert s3_payload.get("count") == payload.get("count"), "S3 should preserve original count param"
-    logger.info(f"S3 verification: Fan-out item persisted correctly with index={s3_payload['index']}")
+    # S3 stores just the payload dict; for fanout, it's the fanned-out item payload
+    assert "index" in s3_object, "S3 fanout payload should have index field"
+    assert "message" in s3_object, "S3 fanout payload should have message field"
+    assert s3_object.get("count") == payload.get("count"), "S3 should preserve original count param"
+    logger.info(f"S3 verification: Fan-out item persisted correctly with index={s3_object['index']}")
 
 
 def test_empty_payload_handling(gateway_helper):
@@ -380,7 +379,7 @@ def test_unicode_payload_handling(gateway_helper):
 
     s3_object = wait_for_message_in_s3(bucket_name="asya-results", message_id=task_id, timeout=10)
     assert s3_object is not None, f"x-sink should persist unicode message {task_id} to S3"
-    assert s3_object["payload"] == result, "S3 should preserve unicode characters correctly"
+    assert s3_object == result, "S3 payload should preserve unicode characters correctly"
     logger.info("S3 verification: x-sink persisted unicode payload correctly")
 
 
@@ -440,7 +439,7 @@ def test_nested_json_payload(gateway_helper):
 
     s3_object = wait_for_message_in_s3(bucket_name="asya-results", message_id=task_id, timeout=10)
     assert s3_object is not None, f"x-sink should persist nested payload message {task_id} to S3"
-    assert s3_object["payload"] == result, "S3 should preserve nested JSON correctly"
+    assert s3_object == result, "S3 payload should preserve nested JSON correctly"
     logger.info("S3 verification: x-sink persisted nested payload correctly")
 
 
@@ -469,7 +468,7 @@ def test_null_values_in_payload(gateway_helper):
 
     s3_object = wait_for_message_in_s3(bucket_name="asya-results", message_id=task_id, timeout=10)
     assert s3_object is not None, f"x-sink should persist null values message {task_id} to S3"
-    assert s3_object["payload"] == result, "S3 should preserve null values correctly"
+    assert s3_object == result, "S3 payload should preserve null values correctly"
     logger.info("S3 verification: x-sink persisted null values correctly")
 
 
@@ -567,26 +566,16 @@ def test_multi_actor_parameter_flow(gateway_helper):
     assert s3_object is not None, \
         f"Message {task_id} should be persisted to S3 by x-sink"
 
-    assert s3_object["id"] == task_id, "S3 object should have correct message ID"
-    if "status" in s3_object:
-        status = s3_object["status"]
-        if isinstance(status, dict):
-            assert status.get("phase") == "succeeded", \
-                f"S3 object should have succeeded phase, got: {status}"
-        else:
-            assert status == "succeeded", "S3 object should have succeeded status"
-    assert "payload" in s3_object, "S3 object should contain payload field"
+    # S3 stores just the payload dict (not the full message envelope)
+    logger.info(f"x-sink persisted result: {json.dumps(s3_object, indent=2)}")
 
-    s3_result = s3_object["payload"]
-    logger.info(f"x-sink persisted result: {json.dumps(s3_result, indent=2)}")
-
-    assert s3_result == result, \
+    assert s3_object == result, \
         "x-sink should persist exactly what the final actor (actor 2) returned"
 
-    assert s3_result.get("processed_by") == "actor_2", \
+    assert s3_object.get("processed_by") == "actor_2", \
         "x-sink should receive the final actor's output (processed by actor_2)"
 
-    assert "actor_2_received" in s3_result, \
+    assert "actor_2_received" in s3_object, \
         "x-sink should receive actor 2's complete output including what it received"
 
     logger.info("S3 verification PASSED: x-sink received and persisted final actor output correctly")

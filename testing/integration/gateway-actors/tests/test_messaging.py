@@ -57,7 +57,7 @@ def test_simple_tool_execution(gateway_helper):
 
     s3_object = wait_for_message_in_s3(bucket_name="asya-results", message_id=task_id, timeout=10)
     assert s3_object is not None, f"x-sink should persist message {task_id} to S3"
-    assert s3_object["payload"] == task_result, "S3 result should match gateway result"
+    assert s3_object == task_result, "S3 payload should match gateway result"
     logger.info(" S3 verification: x-sink persisted result correctly")
 
 
@@ -111,9 +111,7 @@ def test_multi_actor_pipeline(gateway_helper):
 
     s3_object = wait_for_message_in_s3(bucket_name="asya-results", message_id=task_id, timeout=10)
     assert s3_object is not None, f"x-sink should persist pipeline message {task_id} to S3"
-    assert s3_object["payload"] == result, "S3 result should match gateway result"
-    if "last_actor" in s3_object:
-        assert s3_object["last_actor"] == "test-incrementer", "S3 should track last actor in pipeline"
+    assert s3_object == result, "S3 payload should match gateway result"
     logger.info(" S3 verification: x-sink persisted pipeline result correctly")
 
 
