@@ -2,7 +2,10 @@
 title: Define StateProxyConnector Python interface and HTTP protocol spec
 priority: 1 # high
 type: task
+tags:
+  - pr:195
 ---
+
 
 Define the core `StateProxyConnector` ABC with `KeyMeta`, `ListResult` data types, and the 6 interface methods: `read()`, `write()`, `exists()`, `stat()`, `list()`, `delete()`.
 
