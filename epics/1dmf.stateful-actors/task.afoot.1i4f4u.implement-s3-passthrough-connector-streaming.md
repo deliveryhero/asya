@@ -2,9 +2,12 @@
 title: Implement s3-passthrough connector (streaming)
 priority: 2 # medium
 type: task
+tags:
+  - pr:200
 dependencies:
   - 1dmf/1iph0b
 ---
+
 
 
 Streaming S3 connector with passthrough writes (non-atomic, last-write-wins).
