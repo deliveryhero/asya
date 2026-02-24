@@ -1,8 +1,10 @@
 ---
 title: Error Handling with Automatic Retry
+status: vibed
 priority: 1 # high
 type: epic
 ---
+
 
 
 Implement native automatic error recovery for Asya. RFC: .worktrees/rfc0/docs/rfc/error-handing/rfc-error-handing.md
