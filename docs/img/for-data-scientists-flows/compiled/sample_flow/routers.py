@@ -16,46 +16,39 @@ Regenerate by running: asya flow compile ../../sample_flow.py
 def start_sample_flow(message: dict) -> dict:
     """Entrypoint for flow 'sample_flow'"""
     r = message['route']
-    c = r['current']
 
-    r['actors'][c+1:c+1] = [resolve("handler_setup"), resolve("router_sample_flow_line_3_if")]
-    r['current'] = c + 1
+    r['next'] = [resolve("handler_setup"), resolve("router_sample_flow_line_3_if")] + r['next']
     return message
 
 def router_sample_flow_line_4_seq(message: dict) -> dict:
     """Router for control flow and payload mutations"""
     p = message['payload']
     r = message['route']
-    c = r['current']
     _next = []
 
     p['branch'] = 'A'
     _next.append(resolve("handler_type_a"))
     _next.append(resolve("handler_finalize"))
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def router_sample_flow_line_8_seq(message: dict) -> dict:
     """Router for control flow and payload mutations"""
     p = message['payload']
     r = message['route']
-    c = r['current']
     _next = []
 
     p['branch'] = 'B'
     _next.append(resolve("handler_finalize"))
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def router_sample_flow_line_3_if(message: dict) -> dict:
     """Router for control flow and payload mutations"""
     p = message['payload']
     r = message['route']
-    c = r['current']
     _next = []
 
     if p['type'] == 'A':
@@ -64,8 +57,7 @@ def router_sample_flow_line_3_if(message: dict) -> dict:
         _next.append(resolve("handler_type_b"))
         _next.append(resolve("router_sample_flow_line_8_seq"))
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def end_sample_flow(message: dict) -> dict:

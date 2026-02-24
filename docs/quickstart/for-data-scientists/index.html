@@ -1514,8 +1514,9 @@ resolve<span class="o">(</span><span class="s2">&quot;SpanishSentiment.process&q
         <span class="c1">#   &quot;id&quot;: &quot;...&quot;,</span>
         <span class="c1">#   &quot;payload&quot;: {...},  # Your data</span>
         <span class="c1">#   &quot;route&quot;: {</span>
-        <span class="c1">#     &quot;actors&quot;: [&quot;preprocessor&quot;, &quot;llm-judge&quot;, &quot;postprocessor&quot;],</span>
-        <span class="c1">#     &quot;current&quot;: 1  # Points to current actor (llm-judge)</span>
+        <span class="c1">#     &quot;prev&quot;: [&quot;preprocessor&quot;],  # Already processed</span>
+        <span class="c1">#     &quot;curr&quot;: &quot;llm-judge&quot;,       # Current actor</span>
+        <span class="c1">#     &quot;next&quot;: [&quot;postprocessor&quot;]  # Remaining actors</span>
         <span class="c1">#   }</span>
         <span class="c1"># }</span>
 
@@ -1528,23 +1529,16 @@ resolve<span class="o">(</span><span class="s2">&quot;SpanishSentiment.process&q
         <span class="c1"># Dynamically modify route based on score</span>
         <span class="n">route</span> <span class="o">=</span> <span class="n">envelope</span><span class="p">[</span><span class="s2">&quot;route&quot;</span><span class="p">]</span>
         <span class="k">if</span> <span class="n">score</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">threshold</span><span class="p">:</span>
-            <span class="c1"># Low quality response - add refinement step</span>
-            <span class="n">route</span><span class="p">[</span><span class="s2">&quot;actors&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span>
-                <span class="n">route</span><span class="p">[</span><span class="s2">&quot;current&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>  <span class="c1"># After current position</span>
-                <span class="s2">&quot;llm-refiner&quot;</span>  <span class="c1"># Extra step</span>
-            <span class="p">)</span>
-
-        <span class="c1"># Increment current pointer</span>
-        <span class="n">route</span><span class="p">[</span><span class="s2">&quot;current&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="c1"># Low quality response - add refinement step before remaining actors</span>
+            <span class="n">route</span><span class="p">[</span><span class="s2">&quot;next&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;llm-refiner&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="n">route</span><span class="p">[</span><span class="s2">&quot;next&quot;</span><span class="p">]</span>
 
         <span class="k">return</span> <span class="n">envelope</span>
 </code></pre></div>
 <p><strong>Important</strong>: Route modification rules:</p>
 <ul>
-<li>✅ Can add/replace future steps</li>
-<li>✅ Can insert actors after current position</li>
-<li>❌ Cannot modify already-processed steps</li>
-<li>❌ Cannot change which actor <code>route.current</code> points to</li>
+<li>✅ Can add/replace future steps via <code>route["next"]</code></li>
+<li>❌ Cannot modify already-processed steps (<code>route["prev"]</code> is read-only)</li>
+<li>❌ Cannot change the current actor (<code>route["curr"]</code> is read-only)</li>
 </ul>
 <h2 id="error-handling">Error Handling<a class="headerlink" href="#error-handling" title="Permanent link">&para;</a></h2>
 <p>Asya automatically handles exceptions:</p>

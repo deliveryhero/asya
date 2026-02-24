@@ -1178,7 +1178,7 @@ sleep<span class="w"> </span><span class="m">3</span>
 <span class="w">  </span>aws<span class="w"> </span>--endpoint-url<span class="o">=</span>http://localhost:4566<span class="w"> </span>--region<span class="w"> </span>us-east-1<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>sqs<span class="w"> </span>send-message<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--queue-url<span class="w"> </span>http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/asya-default-hello<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--message-body<span class="w"> </span><span class="s1">&#39;{&quot;id&quot;:&quot;test-1&quot;,&quot;route&quot;:{&quot;actors&quot;:[&quot;hello&quot;],&quot;current&quot;:0},&quot;headers&quot;:{},&quot;payload&quot;:{&quot;name&quot;:&quot;Crossplane&quot;}}&#39;</span>
+<span class="w">  </span>--message-body<span class="w"> </span><span class="s1">&#39;{&quot;id&quot;:&quot;test-1&quot;,&quot;route&quot;:{&quot;prev&quot;:[],&quot;curr&quot;:&quot;hello&quot;,&quot;next&quot;:[]},&quot;headers&quot;:{},&quot;payload&quot;:{&quot;name&quot;:&quot;Crossplane&quot;}}&#39;</span>
 
 <span class="nb">kill</span><span class="w"> </span>%1<span class="w"> </span><span class="m">2</span>&gt;/dev/null
 </code></pre></div>

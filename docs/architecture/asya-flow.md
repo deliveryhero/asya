@@ -260,7 +260,6 @@ ASYA_HANDLER_HANDLER_B="my_module.handler_b"
 def start_my_flow(envelope: dict) -> dict:
     """Entrypoint for flow 'my_flow'"""
     r = envelope['route']
-    c = r['current']
 
     # Mutations
     p = envelope['payload']
@@ -268,13 +267,12 @@ def start_my_flow(envelope: dict) -> dict:
     envelope['payload'] = p
 
     # Routing
-    r['actors'][c+1:c+1] = [resolve("handler_a"), resolve("handler_b")]
+    r['next'] = [resolve("handler_a"), resolve("handler_b")] + r['next']
     return envelope
 
 def router_my_flow_line_10_if(envelope: dict) -> dict:
     """Router at line 10"""
     r = envelope['route']
-    c = r['current']
     p = envelope['payload']
 
     _next = []
@@ -283,7 +281,7 @@ def router_my_flow_line_10_if(envelope: dict) -> dict:
     else:
         _next.append(resolve("handler_false"))
 
-    r['actors'][c+1:c+1] = _next
+    r['next'] = _next + r['next']
     return envelope
 
 def end_my_flow(envelope: dict) -> dict:
@@ -440,11 +438,12 @@ p = handler(p)
 # Generates single router with all mutations
 def router_mutations(envelope: dict) -> dict:
     p = envelope['payload']
+    r = envelope['route']
     p["a"] = 1
     p["b"] = 2
     p["c"] = 3
     envelope['payload'] = p
-    r['actors'][c+1:c+1] = [resolve("handler")]
+    r['next'] = [resolve("handler")] + r['next']
     return envelope
 ```
 
@@ -486,8 +485,8 @@ Compiled routers integrate seamlessly with asya-runtime:
 
 1. **Envelope Mode**: Routers always run in envelope mode
 2. **Handler Resolution**: `resolve()` function maps handler names to actor queues
-3. **Route Modification**: Routers insert actors dynamically into route array
-4. **Automatic Termination**: When route completes, sidecar routes to `x-sink`
+3. **Route Modification**: Routers prepend actors to `route.next` to control flow
+4. **Automatic Termination**: When `route.curr` is `""` (route exhausted), sidecar routes to `x-sink`
 
 ## Testing
 
@@ -504,7 +503,7 @@ See `src/asya-cli/tests/flow/` for unit tests and `testing/component/flow-compil
 
 - **Compile Time**: O(n) where n is number of operations
 - **Router Count**: Minimized through operation batching
-- **Runtime Overhead**: Minimal - routers just modify route array
+- **Runtime Overhead**: Minimal - routers just prepend to `route.next`
 - **Memory**: Constant per router execution
 
 ## Troubleshooting
