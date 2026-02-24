@@ -4,6 +4,7 @@ priority: 2 # medium
 type: task
 ---
 
+
 Update Crossplane compositions to propagate stateProxy configuration:
 
 - Pass stateProxy array from AsyncActor claim through to the workload pod spec
