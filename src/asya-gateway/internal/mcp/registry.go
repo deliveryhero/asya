@@ -167,16 +167,21 @@ func (r *Registry) createToolHandler(toolDef config.Tool) func(context.Context, 
 		}
 
 		// Create task
+		// actors is the full actor list: first actor goes to Curr, rest go to Next
 		taskID := uuid.New().String()
+		var routeCurr string
+		var routeNext []string
+		if len(actors) > 0 {
+			routeCurr = actors[0]
+			routeNext = actors[1:]
+		}
 		task := &types.Task{
 			ID:     taskID,
 			Status: types.TaskStatusPending,
 			Route: types.Route{
-				Actors:  actors,
-				Current: 0,
-				Metadata: map[string]interface{}{
-					"job_id": taskID, // For end queue tracking
-				},
+				Prev: []string{},
+				Curr: routeCurr,
+				Next: routeNext,
 			},
 			Payload:    arguments,
 			TimeoutSec: int(opts.Timeout.Seconds()),

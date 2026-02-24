@@ -89,9 +89,9 @@ func (c *ResultConsumer) processMessage(ctx context.Context, msg queue.QueueMess
 			Traceback string `json:"traceback,omitempty"`
 		} `json:"details,omitempty"`
 		Route struct {
-			Actors   []string               `json:"actors"`
-			Current  int                    `json:"current"`
-			Metadata map[string]interface{} `json:"metadata"`
+			Prev []string `json:"prev"`
+			Curr string   `json:"curr"`
+			Next []string `json:"next"`
 		} `json:"route"`
 		Payload map[string]interface{} `json:"payload"` // Result payload
 	}
@@ -101,13 +101,8 @@ func (c *ResultConsumer) processMessage(ctx context.Context, msg queue.QueueMess
 		return
 	}
 
-	// Extract task ID - try top-level first, then route metadata
+	// Extract task ID from top-level field
 	taskID := parsedMsg.ID
-	if taskID == "" && parsedMsg.Route.Metadata != nil {
-		if id, ok := parsedMsg.Route.Metadata["job_id"].(string); ok {
-			taskID = id
-		}
-	}
 
 	if taskID == "" {
 		slog.Error("No task ID found, skipping", "body", string(msg.Body()[:min(len(msg.Body()), 200)]))

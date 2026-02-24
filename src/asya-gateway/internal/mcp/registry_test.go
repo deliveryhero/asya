@@ -547,12 +547,19 @@ func TestCreateToolHandler(t *testing.T) {
 
 			for _, task := range taskStore.tasks {
 				expectedActors, _ := tt.toolDef.Route.GetActors(cfg.Routes)
-				if len(task.Route.Actors) != len(expectedActors) {
-					t.Errorf("Expected %d actors, got %d", len(expectedActors), len(task.Route.Actors))
+				// Total actors = len(prev) + 1 (curr) + len(next)
+				taskTotalActors := len(task.Route.Prev) + len(task.Route.Next)
+				if task.Route.Curr != "" {
+					taskTotalActors++
+				}
+				if taskTotalActors != len(expectedActors) {
+					t.Errorf("Expected %d total actors, got %d (prev=%v, curr=%q, next=%v)",
+						len(expectedActors), taskTotalActors, task.Route.Prev, task.Route.Curr, task.Route.Next)
 				}
 
-				if task.Route.Current != 0 {
-					t.Errorf("Expected current=0, got %d", task.Route.Current)
+				// Initially prev is empty (no actors have processed yet)
+				if len(task.Route.Prev) != 0 {
+					t.Errorf("Expected empty prev at task creation, got %v", task.Route.Prev)
 				}
 
 				if tt.toolDef.Timeout != nil {
@@ -741,18 +748,9 @@ func TestTaskCreation(t *testing.T) {
 					}
 				}
 
-				if tt.expectMetadata {
-					if task.Route.Metadata == nil {
-						t.Fatal("Expected metadata to be set")
-					}
-					for key, expectedVal := range tt.metadataContains {
-						if val, ok := task.Route.Metadata[key]; !ok {
-							t.Errorf("Expected metadata key %q to exist", key)
-						} else if expectedVal != "should_be_set" && val != expectedVal {
-							t.Errorf("Expected metadata[%q]=%v, got %v", key, expectedVal, val)
-						}
-					}
-				}
+				// Route metadata was removed from Route struct; skip metadata checks
+				_ = tt.expectMetadata
+				_ = tt.metadataContains
 			}
 		})
 	}

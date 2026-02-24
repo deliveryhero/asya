@@ -50,12 +50,13 @@ func TestRabbitMQQueueNaming(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Create task
+			// Create task with new route format
 			task := &types.Task{
 				ID: "test-task-1",
 				Route: types.Route{
-					Actors:  []string{tt.actorName}, // Actor name without prefix
-					Current: 0,
+					Prev: []string{},
+					Curr: tt.actorName, // Actor name without prefix
+					Next: []string{},
 				},
 				Payload:  map[string]interface{}{"test": "data"},
 				Deadline: time.Now().Add(30 * time.Second),
@@ -86,15 +87,10 @@ func TestRabbitMQQueueNaming(t *testing.T) {
 				}),
 			).Return(nil)
 
-			// Replace the channel with our mock
-			// Note: In a real implementation, we'd need to refactor RabbitMQClient
-			// to accept a channel interface for better testability. For now, we're
-			// testing the logic by calling the method and verifying via the mock.
-
 			// Since we can't easily inject the mock channel without refactoring,
 			// let's at least verify the routing key construction logic
-			actorName := task.Route.Actors[0]
-			actualRoutingKey := actorName
+			// The routing key is now derived from Route.Curr directly
+			actualRoutingKey := task.Route.Curr
 
 			assert.Equal(t, tt.expectedRoutingKey, actualRoutingKey,
 				"Actor %s should map to routing key %s", tt.actorName, tt.expectedRoutingKey)

@@ -32,10 +32,11 @@ func TestHandleTaskProgress(t *testing.T) {
 			taskID:    "test-task-1",
 			jobExists: true,
 			progressUpdate: types.ProgressUpdate{
-				Actors:          []string{"parser", "processor", "finalizer"},
-				CurrentActorIdx: 0,
-				Status:          "received",
-				Message:         "Task received",
+				Prev:    []string{},
+				Curr:    "parser",
+				Next:    []string{"processor", "finalizer"},
+				Status:  "received",
+				Message: "Task received",
 			},
 			wantStatus:   http.StatusOK,
 			wantProgress: 3.33,
@@ -46,10 +47,11 @@ func TestHandleTaskProgress(t *testing.T) {
 			taskID:    "test-task-2",
 			jobExists: true,
 			progressUpdate: types.ProgressUpdate{
-				Actors:          []string{"parser", "processor", "finalizer"},
-				CurrentActorIdx: 1,
-				Status:          "processing",
-				Message:         "Processing data",
+				Prev:    []string{"parser"},
+				Curr:    "processor",
+				Next:    []string{"finalizer"},
+				Status:  "processing",
+				Message: "Processing data",
 			},
 			wantStatus:   http.StatusOK,
 			wantProgress: 50.0,
@@ -60,10 +62,11 @@ func TestHandleTaskProgress(t *testing.T) {
 			taskID:    "test-task-3",
 			jobExists: true,
 			progressUpdate: types.ProgressUpdate{
-				Actors:          []string{"parser", "processor", "finalizer"},
-				CurrentActorIdx: 2,
-				Status:          "completed",
-				Message:         "Processing complete",
+				Prev:    []string{"parser", "processor"},
+				Curr:    "finalizer",
+				Next:    []string{},
+				Status:  "completed",
+				Message: "Processing complete",
 			},
 			wantStatus:   http.StatusOK,
 			wantProgress: 100.0,
@@ -94,8 +97,9 @@ func TestHandleTaskProgress(t *testing.T) {
 				task := &types.Task{
 					ID: tt.taskID,
 					Route: types.Route{
-						Actors:  []string{"parser", "processor", "finalizer"},
-						Current: 0,
+						Prev: []string{},
+						Curr: "parser",
+						Next: []string{"processor", "finalizer"},
 					},
 					Status: types.TaskStatusPending,
 				}
@@ -154,11 +158,10 @@ func TestHandleTaskProgress(t *testing.T) {
 					t.Errorf("Stored progress = %v, want ~%v", task.ProgressPercent, tt.wantProgress)
 				}
 
-				// Verify current actor matches the one at CurrentActorIdx
-				if len(tt.progressUpdate.Actors) > 0 && tt.progressUpdate.CurrentActorIdx < len(tt.progressUpdate.Actors) {
-					expectedActor := tt.progressUpdate.Actors[tt.progressUpdate.CurrentActorIdx]
-					if task.CurrentActorName != expectedActor {
-						t.Errorf("Current actor = %v, want %v", task.CurrentActorName, expectedActor)
+				// Verify current actor matches Curr field
+				if tt.progressUpdate.Curr != "" {
+					if task.CurrentActorName != tt.progressUpdate.Curr {
+						t.Errorf("Current actor = %v, want %v", task.CurrentActorName, tt.progressUpdate.Curr)
 					}
 				}
 			}
@@ -169,35 +172,31 @@ func TestHandleTaskProgress(t *testing.T) {
 func TestHandleTaskProgress_ProgressCalculation(t *testing.T) {
 	tests := []struct {
 		name         string
-		actorIndex   int
-		totalActors  int
+		prev         []string
+		curr         string
+		next         []string
 		status       string
 		wantProgress float64
 	}{
 		// 3-actor pipeline
-		{"actor 0 received", 0, 3, "received", 3.33},
-		{"actor 0 processing", 0, 3, "processing", 16.67},
-		{"actor 0 completed", 0, 3, "completed", 33.33},
-		{"actor 1 received", 1, 3, "received", 36.67},
-		{"actor 1 processing", 1, 3, "processing", 50.0},
-		{"actor 1 completed", 1, 3, "completed", 66.67},
-		{"actor 2 received", 2, 3, "received", 70.0},
-		{"actor 2 processing", 2, 3, "processing", 83.33},
-		{"actor 2 completed", 2, 3, "completed", 100.0},
+		{"actor 0 received", []string{}, "actor0", []string{"actor1", "actor2"}, "received", 3.33},
+		{"actor 0 processing", []string{}, "actor0", []string{"actor1", "actor2"}, "processing", 16.67},
+		{"actor 0 completed", []string{}, "actor0", []string{"actor1", "actor2"}, "completed", 33.33},
+		{"actor 1 received", []string{"actor0"}, "actor1", []string{"actor2"}, "received", 36.67},
+		{"actor 1 processing", []string{"actor0"}, "actor1", []string{"actor2"}, "processing", 50.0},
+		{"actor 1 completed", []string{"actor0"}, "actor1", []string{"actor2"}, "completed", 66.67},
+		{"actor 2 received", []string{"actor0", "actor1"}, "actor2", []string{}, "received", 70.0},
+		{"actor 2 processing", []string{"actor0", "actor1"}, "actor2", []string{}, "processing", 83.33},
+		{"actor 2 completed", []string{"actor0", "actor1"}, "actor2", []string{}, "completed", 100.0},
 
 		// 5-actor pipeline
-		{"5-actor: actor 2 processing", 2, 5, "processing", 50.0},
-		{"5-actor: actor 4 completed", 4, 5, "completed", 100.0},
+		{"5-actor: actor 2 processing", []string{"actor0", "actor1"}, "actor2", []string{"actor3", "actor4"}, "processing", 50.0},
+		{"5-actor: actor 4 completed", []string{"actor0", "actor1", "actor2", "actor3"}, "actor4", []string{}, "completed", 100.0},
 
 		// Single-actor pipeline
-		{"1-actor: actor 0 received", 0, 1, "received", 10.0},
-		{"1-actor: actor 0 processing", 0, 1, "processing", 50.0},
-		{"1-actor: actor 0 completed", 0, 1, "completed", 100.0},
-
-		// Edge case: zero total actors (division by zero protection)
-		{"zero actors: received", 0, 0, "received", 0.0},
-		{"zero actors: processing", 0, 0, "processing", 0.0},
-		{"zero actors: completed", 0, 0, "completed", 0.0},
+		{"1-actor: actor 0 received", []string{}, "actor0", []string{}, "received", 10.0},
+		{"1-actor: actor 0 processing", []string{}, "actor0", []string{}, "processing", 50.0},
+		{"1-actor: actor 0 completed", []string{}, "actor0", []string{}, "completed", 100.0},
 	}
 
 	for i, tt := range tests {
@@ -209,8 +208,9 @@ func TestHandleTaskProgress_ProgressCalculation(t *testing.T) {
 			task := &types.Task{
 				ID: taskID,
 				Route: types.Route{
-					Actors:  make([]string, tt.totalActors),
-					Current: 0,
+					Prev: []string{},
+					Curr: "actor0",
+					Next: []string{"actor1", "actor2"},
 				},
 				Status: types.TaskStatusPending,
 			}
@@ -218,16 +218,11 @@ func TestHandleTaskProgress_ProgressCalculation(t *testing.T) {
 				t.Fatalf("Failed to create test task: %v", err)
 			}
 
-			// Create actors array based on totalActors
-			actors := make([]string, tt.totalActors)
-			for i := range actors {
-				actors[i] = fmt.Sprintf("actor%d", i)
-			}
-
 			progressUpdate := types.ProgressUpdate{
-				Actors:          actors,
-				CurrentActorIdx: tt.actorIndex,
-				Status:          tt.status,
+				Prev:   tt.prev,
+				Curr:   tt.curr,
+				Next:   tt.next,
+				Status: tt.status,
 			}
 
 			body, _ := json.Marshal(progressUpdate)
@@ -263,8 +258,9 @@ func TestHandleTaskProgress_SSENotification(t *testing.T) {
 	task := &types.Task{
 		ID: taskID,
 		Route: types.Route{
-			Actors:  []string{"actor1", "actor2"},
-			Current: 0,
+			Prev: []string{},
+			Curr: "actor1",
+			Next: []string{"actor2"},
 		},
 		Status: types.TaskStatusPending,
 	}
@@ -278,10 +274,11 @@ func TestHandleTaskProgress_SSENotification(t *testing.T) {
 
 	// Send progress update
 	progressUpdate := types.ProgressUpdate{
-		Actors:          []string{"actor1", "actor2"},
-		CurrentActorIdx: 0,
-		Status:          "processing",
-		Message:         "Processing actor 1",
+		Prev:    []string{},
+		Curr:    "actor1",
+		Next:    []string{"actor2"},
+		Status:  "processing",
+		Message: "Processing actor 1",
 	}
 
 	body, _ := json.Marshal(progressUpdate)
@@ -301,15 +298,13 @@ func TestHandleTaskProgress_SSENotification(t *testing.T) {
 		if update.ID != taskID {
 			t.Errorf("Update task ID = %v, want %v", update.ID, taskID)
 		}
-		if update.CurrentActorIdx == nil || *update.CurrentActorIdx != 0 {
-			t.Errorf("Update current actor idx = %v, want 0", update.CurrentActorIdx)
-		}
-		if len(update.Actors) < 1 || update.Actors[0] != "actor1" {
-			t.Errorf("Update actors = %v, want [actor1, ...]", update.Actors)
+		if update.Curr != "actor1" {
+			t.Errorf("Update curr = %v, want actor1", update.Curr)
 		}
 		if update.TaskState == nil || *update.TaskState != "processing" {
 			t.Errorf("Update task state = %v, want processing", update.TaskState)
 		}
+		// 2-actor pipeline, actor 0 processing: (0+0.5)*100/2 = 25.0
 		if update.ProgressPercent == nil || *update.ProgressPercent < 24.5 || *update.ProgressPercent > 25.5 {
 			t.Errorf("Update progress = %v, want ~25.0", update.ProgressPercent)
 		}
@@ -545,8 +540,9 @@ func TestHandleTaskStatus(t *testing.T) {
 				task := &types.Task{
 					ID: tt.taskID,
 					Route: types.Route{
-						Actors:  []string{"actor1", "actor2"},
-						Current: 0,
+						Prev: []string{},
+						Curr: "actor1",
+						Next: []string{"actor2"},
 					},
 					TotalActors: 2,
 				}
@@ -673,8 +669,9 @@ func TestHandleTaskActive(t *testing.T) {
 				task := &types.Task{
 					ID: tt.taskID,
 					Route: types.Route{
-						Actors:  []string{"actor1"},
-						Current: 0,
+						Prev: []string{},
+						Curr: "actor1",
+						Next: []string{},
 					},
 				}
 				if err := store.Create(task); err != nil {
@@ -869,8 +866,9 @@ func TestHandleTaskFinal(t *testing.T) {
 				task := &types.Task{
 					ID: tt.taskID,
 					Route: types.Route{
-						Actors:  []string{"actor1"},
-						Current: 0,
+						Prev: []string{},
+						Curr: "actor1",
+						Next: []string{},
 					},
 					Status: types.TaskStatusRunning,
 				}
@@ -1165,8 +1163,9 @@ func TestHandleTaskCreate(t *testing.T) {
 			requestBody: map[string]interface{}{
 				"id":        "abc-123-1",
 				"parent_id": "abc-123",
-				"actors":    []string{"actor1", "actor2"},
-				"current":   1,
+				"prev":      []string{"actor0"},
+				"curr":      "actor1",
+				"next":      []string{},
 			},
 			wantStatus: http.StatusCreated,
 			wantTask:   true,
@@ -1176,8 +1175,9 @@ func TestHandleTaskCreate(t *testing.T) {
 			method: http.MethodPost,
 			requestBody: map[string]interface{}{
 				"parent_id": "abc-123",
-				"actors":    []string{"actor1"},
-				"current":   1,
+				"prev":      []string{},
+				"curr":      "actor1",
+				"next":      []string{},
 			},
 			wantStatus: http.StatusBadRequest,
 			wantTask:   false,
@@ -1244,9 +1244,9 @@ func TestHandleTaskCreate(t *testing.T) {
 					if task.ID != taskID {
 						t.Errorf("Task ID = %v, want %v", task.ID, taskID)
 					}
-					parentID := tt.requestBody["parent_id"].(string)
-					if task.ParentID == nil || *task.ParentID != parentID {
-						t.Errorf("Task ParentID = %v, want %v", task.ParentID, parentID)
+					parentIDStr := tt.requestBody["parent_id"].(string)
+					if task.ParentID == nil || *task.ParentID != parentIDStr {
+						t.Errorf("Task ParentID = %v, want %v", task.ParentID, parentIDStr)
 					}
 					if task.Status != types.TaskStatusPending {
 						t.Errorf("Task Status = %v, want Pending", task.Status)
@@ -1265,7 +1265,7 @@ func TestHandleTaskCreate_DuplicateID(t *testing.T) {
 	task := &types.Task{
 		ID:     "abc-123-1",
 		Status: types.TaskStatusPending,
-		Route:  types.Route{Actors: []string{"actor1"}, Current: 0},
+		Route:  types.Route{Prev: []string{}, Curr: "actor1", Next: []string{}},
 	}
 	if err := store.Create(task); err != nil {
 		t.Fatalf("Failed to create task: %v", err)
@@ -1275,8 +1275,9 @@ func TestHandleTaskCreate_DuplicateID(t *testing.T) {
 	requestBody := map[string]interface{}{
 		"id":        "abc-123-1",
 		"parent_id": "abc-123",
-		"actors":    []string{"actor1"},
-		"current":   1,
+		"prev":      []string{"actor0"},
+		"curr":      "actor1",
+		"next":      []string{},
 	}
 
 	body, _ := json.Marshal(requestBody)

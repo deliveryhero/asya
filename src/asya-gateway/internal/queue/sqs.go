@@ -181,7 +181,7 @@ func (c *SQSClient) SendMessage(ctx context.Context, task *types.Task) error {
 
 	// Get queue URL for current actor
 	// Add "asya-{namespace}-" prefix to convert actor name to queue name
-	actorName := task.Route.Actors[task.Route.Current]
+	actorName := task.Route.Curr
 	queueName := fmt.Sprintf("asya-%s-%s", c.namespace, actorName)
 	queueURL, err := c.resolveQueueURL(ctx, queueName)
 	if err != nil {
