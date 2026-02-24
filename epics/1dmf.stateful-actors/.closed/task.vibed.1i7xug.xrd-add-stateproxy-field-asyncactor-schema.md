@@ -2,9 +2,12 @@
 title: "XRD: Add stateProxy field to AsyncActor schema"
 priority: 1 # high
 type: task
+tags:
+  - pr:195
 dependencies:
   - 1dmf/1ipgpc
 ---
+
 
 Add the optional stateProxy field to the AsyncActor XRD (CompositeResourceDefinition):
 
