@@ -99,6 +99,8 @@ crossplane:
       secretRef:
         name: rabbitmq-secret
         hostKey: host
+  functions:
+    flavorsPackagePullPolicy: Never
 
 injector:
   image:

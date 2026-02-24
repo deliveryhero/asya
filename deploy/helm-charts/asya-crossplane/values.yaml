@@ -18,13 +18,8 @@ functions:
   goTemplatingVersion: "v0.11.3"
   patchAndTransformVersion: "v0.8.2"
   autoReadyVersion: "v0.6.0"
-  # function-asya-flavors: resolves actor flavor compositions.
-  # NOTE: Crossplane Functions use their own OCI puller (not containerd).
-  # `kind load docker-image` does NOT work — the image must be pullable from
-  # an OCI registry. Set flavorsEnabled=false in e2e until the image is public.
-  flavorsEnabled: true
-  flavorsVersion: "0.5.1"
-  flavorsPackagePullPolicy: "IfNotPresent"
+  flavorsVersion: "latest"
+  flavorsPackagePullPolicy: IfNotPresent
 
 # AWS ProviderConfig settings
 awsProviderConfig:

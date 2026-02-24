@@ -124,6 +124,8 @@ crossplane:
       name: aws-creds
       accessKeyIdKey: AWS_ACCESS_KEY_ID
       secretAccessKeyKey: AWS_SECRET_ACCESS_KEY
+  functions:
+    flavorsPackagePullPolicy: Never
 
 injector:
   image:
