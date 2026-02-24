@@ -16,17 +16,14 @@ Regenerate by running: asya flow compile ../../async_nested.py
 def start_review_pipeline_flow(message: dict) -> dict:
     """Entrypoint for flow 'review_pipeline_flow'"""
     r = message['route']
-    c = r['current']
 
-    r['actors'][c+1:c+1] = [resolve("initial_review"), resolve("router_review_pipeline_flow_line_13_if")]
-    r['current'] = c + 1
+    r['next'] = [resolve("initial_review"), resolve("router_review_pipeline_flow_line_13_if")] + r['next']
     return message
 
 def router_review_pipeline_flow_line_13_if(message: dict) -> dict:
     """Router for control flow and payload mutations"""
     p = message['payload']
     r = message['route']
-    c = r['current']
     _next = []
 
     if p['score'] < 0.5:
@@ -35,8 +32,7 @@ def router_review_pipeline_flow_line_13_if(message: dict) -> dict:
     else:
         _next.append(resolve("auto_approve"))
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def end_review_pipeline_flow(message: dict) -> dict:

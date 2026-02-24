@@ -16,44 +16,37 @@ Regenerate by running: asya flow compile ../../try_except_catch_all.py
 def start_resilient_pipeline(message: dict) -> dict:
     """Entrypoint for flow 'resilient_pipeline'"""
     r = message['route']
-    c = r['current']
 
-    r['actors'][c+1:c+1] = [resolve("router_resilient_pipeline_line_2_try_enter_0")]
-    r['current'] = c + 1
+    r['next'] = [resolve("router_resilient_pipeline_line_2_try_enter_0")] + r['next']
     return message
 
 def router_resilient_pipeline_line_5_seq(message: dict) -> dict:
     """Router for control flow and payload mutations"""
     p = message['payload']
     r = message['route']
-    c = r['current']
     _next = []
 
     p['error_type'] = 'known'
     _next.append(resolve("handle_known_error"))
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def router_resilient_pipeline_line_8_seq(message: dict) -> dict:
     """Router for control flow and payload mutations"""
     p = message['payload']
     r = message['route']
-    c = r['current']
     _next = []
 
     p['error_type'] = 'unknown'
     _next.append(resolve("handle_unknown_error"))
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def router_resilient_pipeline_line_2_try_enter_0(message: dict) -> dict:
     """Try-enter router: sets _on_error header and inserts try body"""
     r = message['route']
-    c = r['current']
     _next = []
 
     message.setdefault('headers', {})
@@ -62,28 +55,24 @@ def router_resilient_pipeline_line_2_try_enter_0(message: dict) -> dict:
     _next.append(resolve("risky_operation"))
     _next.append(resolve("router_resilient_pipeline_line_2_try_exit_0"))
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def router_resilient_pipeline_line_2_try_exit_0(message: dict) -> dict:
     """Try-exit router: clears _on_error header (success path)"""
     r = message['route']
-    c = r['current']
     _next = []
 
     message.get('headers', {}).pop('_on_error', None)
 
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def router_resilient_pipeline_line_2_except_dispatch_0(message: dict) -> dict:
     """Except-dispatch router: matches error type and routes to handler"""
     p = message['payload']
     r = message['route']
-    c = r['current']
     _next = []
 
     _error = message.get('status', {}).get('error', {})
@@ -98,8 +87,7 @@ def router_resilient_pipeline_line_2_except_dispatch_0(message: dict) -> dict:
         message.get('status', {}).pop('error', None)
         _next.append(resolve("router_resilient_pipeline_line_8_seq"))
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def end_resilient_pipeline(message: dict) -> dict:

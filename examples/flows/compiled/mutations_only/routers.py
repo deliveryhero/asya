@@ -16,17 +16,14 @@ Regenerate by running: asya flow compile ../../mutations_only.py
 def start_mutations_only_flow(message: dict) -> dict:
     """Entrypoint for flow 'mutations_only_flow'"""
     r = message['route']
-    c = r['current']
 
-    r['actors'][c+1:c+1] = [resolve("router_mutations_only_flow_line_10_seq")]
-    r['current'] = c + 1
+    r['next'] = [resolve("router_mutations_only_flow_line_10_seq")] + r['next']
     return message
 
 def router_mutations_only_flow_line_10_seq(message: dict) -> dict:
     """Router for control flow and payload mutations"""
     p = message['payload']
     r = message['route']
-    c = r['current']
     _next = []
 
     p['step'] = 1
@@ -34,8 +31,7 @@ def router_mutations_only_flow_line_10_seq(message: dict) -> dict:
     p['y'] = 20
     p['x'] += p['y']
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def end_mutations_only_flow(message: dict) -> dict:

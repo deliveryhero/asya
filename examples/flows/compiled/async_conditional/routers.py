@@ -16,17 +16,14 @@ Regenerate by running: asya flow compile ../../async_conditional.py
 def start_content_pipeline_flow(message: dict) -> dict:
     """Entrypoint for flow 'content_pipeline_flow'"""
     r = message['route']
-    c = r['current']
 
-    r['actors'][c+1:c+1] = [resolve("classifier"), resolve("router_content_pipeline_flow_line_12_if")]
-    r['current'] = c + 1
+    r['next'] = [resolve("classifier"), resolve("router_content_pipeline_flow_line_12_if")] + r['next']
     return message
 
 def router_content_pipeline_flow_line_14_if(message: dict) -> dict:
     """Router for control flow and payload mutations"""
     p = message['payload']
     r = message['route']
-    c = r['current']
     _next = []
 
     if p['content_type'] == 'image':
@@ -36,15 +33,13 @@ def router_content_pipeline_flow_line_14_if(message: dict) -> dict:
         _next.append(resolve("generic_processor"))
         _next.append(resolve("quality_check"))
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def router_content_pipeline_flow_line_12_if(message: dict) -> dict:
     """Router for control flow and payload mutations"""
     p = message['payload']
     r = message['route']
-    c = r['current']
     _next = []
 
     if p['content_type'] == 'text':
@@ -53,8 +48,7 @@ def router_content_pipeline_flow_line_12_if(message: dict) -> dict:
     else:
         _next.append(resolve("router_content_pipeline_flow_line_14_if"))
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def end_content_pipeline_flow(message: dict) -> dict:

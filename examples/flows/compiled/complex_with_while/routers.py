@@ -16,17 +16,14 @@ Regenerate by running: asya flow compile ../../complex_with_while.py
 def start_complex_flow(message: dict) -> dict:
     """Entrypoint for flow 'complex_flow'"""
     r = message['route']
-    c = r['current']
 
-    r['actors'][c+1:c+1] = [resolve("handler_preprocess"), resolve("handler_validate"), resolve("router_complex_flow_line_12_if")]
-    r['current'] = c + 1
+    r['next'] = [resolve("handler_preprocess"), resolve("handler_validate"), resolve("router_complex_flow_line_12_if")] + r['next']
     return message
 
 def router_complex_flow_line_26_if(message: dict) -> dict:
     """Router for control flow and payload mutations"""
     p = message['payload']
     r = message['route']
-    c = r['current']
     _next = []
 
     if p['quality_score'] >= 50:
@@ -34,15 +31,13 @@ def router_complex_flow_line_26_if(message: dict) -> dict:
     else:
         pass
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def router_complex_flow_line_23_if(message: dict) -> dict:
     """Router for control flow and payload mutations"""
     p = message['payload']
     r = message['route']
-    c = r['current']
     _next = []
 
     if p['quality_score'] < 20:
@@ -50,28 +45,24 @@ def router_complex_flow_line_23_if(message: dict) -> dict:
     else:
         _next.append(resolve("router_complex_flow_line_26_if"))
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def router_complex_flow_line_19_loop_back_0(message: dict) -> dict:
     """Loop-back router: re-inserts loop actors into route"""
     p = message['payload']
     r = message['route']
-    c = r['current']
     _next = []
 
     _next.append(resolve("router_complex_flow_line_19_while_0"))
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def router_complex_flow_line_19_while_0(message: dict) -> dict:
     """Router for control flow and payload mutations"""
     p = message['payload']
     r = message['route']
-    c = r['current']
     _next = []
 
     if p.get('batch_count', 0) < p.get('max_batches', 3):
@@ -82,15 +73,13 @@ def router_complex_flow_line_19_while_0(message: dict) -> dict:
     else:
         _next.append(resolve("handler_finalize"))
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def router_complex_flow_line_29_if(message: dict) -> dict:
     """Router for control flow and payload mutations"""
     p = message['payload']
     r = message['route']
-    c = r['current']
     _next = []
 
     if p.get('requires_retry'):
@@ -99,15 +88,13 @@ def router_complex_flow_line_29_if(message: dict) -> dict:
     else:
         _next.append(resolve("handler_finalize"))
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def router_complex_flow_line_16_if(message: dict) -> dict:
     """Router for control flow and payload mutations"""
     p = message['payload']
     r = message['route']
-    c = r['current']
     _next = []
 
     if p.get('needs_enrichment'):
@@ -116,15 +103,13 @@ def router_complex_flow_line_16_if(message: dict) -> dict:
     else:
         _next.append(resolve("router_complex_flow_line_29_if"))
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def router_complex_flow_line_12_if(message: dict) -> dict:
     """Router for control flow and payload mutations"""
     p = message['payload']
     r = message['route']
-    c = r['current']
     _next = []
 
     if not p['valid']:
@@ -132,8 +117,7 @@ def router_complex_flow_line_12_if(message: dict) -> dict:
     else:
         _next.append(resolve("router_complex_flow_line_16_if"))
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def end_complex_flow(message: dict) -> dict:

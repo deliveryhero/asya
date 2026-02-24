@@ -58,8 +58,9 @@ def compile_and_import():
 
 def make_message(
     payload: dict,
-    actors: list[str] | None = None,
-    current: int = 0,
+    prev: list[str] | None = None,
+    curr: str = "",
+    next_actors: list[str] | None = None,
     headers: dict | None = None,
     status: dict | None = None,
 ) -> dict:
@@ -67,8 +68,9 @@ def make_message(
     msg: dict = {
         "id": "test-msg",
         "route": {
-            "actors": actors or [],
-            "current": current,
+            "prev": prev or [],
+            "curr": curr,
+            "next": next_actors or [],
         },
         "payload": payload,
     }
@@ -144,8 +146,9 @@ def flow(p: dict) -> dict:
 
         msg = make_message(
             {"data": "test"},
-            actors=["start_flow", try_enter_name],
-            current=1,
+            prev=["start_flow"],
+            curr=try_enter_name,
+            next_actors=[],
         )
 
         result = try_enter_fn(msg)
@@ -155,14 +158,11 @@ def flow(p: dict) -> dict:
         assert "_on_error" in result["headers"]
         assert result["headers"]["_on_error"] == except_dispatch_name
 
-        # Body actors (handler_a, handler_b) and try_exit should be inserted into route
-        inserted = result["route"]["actors"][2:]  # everything after try_enter
+        # Body actors (handler_a, handler_b) and try_exit should be prepended to next
+        inserted = result["route"]["next"]
         assert "handler_a" in inserted
         assert "handler_b" in inserted
         assert try_exit_name in inserted
-
-        # current should have advanced past try_enter
-        assert result["route"]["current"] == 2
 
     # -- Test: try_exit clears _on_error -----------------------------------
 
@@ -189,8 +189,9 @@ def flow(p: dict) -> dict:
         # Simulate a message arriving at try_exit (success path)
         msg = make_message(
             {"data": "test"},
-            actors=["start_flow", "try_enter", "handler_a", try_exit_name],
-            current=3,
+            prev=["start_flow", "try_enter", "handler_a"],
+            curr=try_exit_name,
+            next_actors=[],
             headers={"_on_error": "some-except-dispatch", "trace_id": "abc"},
         )
 
@@ -201,12 +202,9 @@ def flow(p: dict) -> dict:
         # Other headers should be preserved
         assert result["headers"]["trace_id"] == "abc"
 
-        # Continuation actors (finalize) should be inserted
-        inserted = result["route"]["actors"][4:]
+        # Continuation actors (finalize) should be prepended to next
+        inserted = result["route"]["next"]
         assert "finalize" in inserted
-
-        # current should have advanced
-        assert result["route"]["current"] == 4
 
     # -- Test: except_dispatch matches error type --------------------------
 
@@ -232,8 +230,9 @@ def flow(p: dict) -> dict:
 
         msg = make_message(
             {"data": "test"},
-            actors=[dispatch_name, "placeholder"],
-            current=0,
+            prev=[],
+            curr=dispatch_name,
+            next_actors=["placeholder"],
             status={
                 "error": {
                     "type": "ValueError",
@@ -246,14 +245,14 @@ def flow(p: dict) -> dict:
         result = dispatch_fn(msg)
 
         # Should route to the ValueError handler
-        inserted = result["route"]["actors"][1:]
+        inserted = result["route"]["next"]
         assert "error_handler" in inserted
 
         # Error status should be cleared on match
         error_status = result.get("status", {}).get("error")
         assert error_status is None
 
-        # Continuation actors (finalize) should be appended
+        # Continuation actors (finalize) should be prepended to next
         assert "finalize" in inserted
 
     # -- Test: except_dispatch matches via MRO -----------------------------
@@ -281,8 +280,9 @@ def flow(p: dict) -> dict:
         # Error type is "CustomError" but mro contains "ValueError"
         msg = make_message(
             {"data": "test"},
-            actors=[dispatch_name, "placeholder"],
-            current=0,
+            prev=[],
+            curr=dispatch_name,
+            next_actors=["placeholder"],
             status={
                 "error": {
                     "type": "CustomError",
@@ -295,7 +295,7 @@ def flow(p: dict) -> dict:
         result = dispatch_fn(msg)
 
         # Should match via MRO
-        inserted = result["route"]["actors"][1:]
+        inserted = result["route"]["next"]
         assert "value_error_handler" in inserted
 
         # Error status should be cleared
@@ -327,8 +327,9 @@ def flow(p: dict) -> dict:
         # Any error type should match bare except
         msg = make_message(
             {"data": "test"},
-            actors=[dispatch_name, "placeholder"],
-            current=0,
+            prev=[],
+            curr=dispatch_name,
+            next_actors=["placeholder"],
             status={
                 "error": {
                     "type": "SomeUnknownError",
@@ -341,7 +342,7 @@ def flow(p: dict) -> dict:
         result = dispatch_fn(msg)
 
         # Should route to the catch-all handler
-        inserted = result["route"]["actors"][1:]
+        inserted = result["route"]["next"]
         assert "catch_all_handler" in inserted
 
         # Error status should be cleared
@@ -380,8 +381,9 @@ def flow(p: dict) -> dict:
         # Error type is "KeyError" but only "except ValueError:" handler exists
         msg = make_message(
             {"data": "test"},
-            actors=[dispatch_name, "placeholder"],
-            current=0,
+            prev=[],
+            curr=dispatch_name,
+            next_actors=["placeholder"],
             status={
                 "error": {
                     "type": "KeyError",
@@ -394,7 +396,7 @@ def flow(p: dict) -> dict:
         result = dispatch_fn(msg)
 
         # Should route to reraise since no handler matches
-        inserted = result["route"]["actors"][1:]
+        inserted = result["route"]["next"]
         assert reraise_name in inserted
 
         # value_error_handler should NOT be in the route
@@ -427,8 +429,9 @@ def flow(p: dict) -> dict:
 
         msg = make_message(
             {"data": "test"},
-            actors=[reraise_name],
-            current=0,
+            prev=[],
+            curr=reraise_name,
+            next_actors=[],
             status={
                 "error": {
                     "type": "KeyError",
@@ -468,8 +471,9 @@ def flow(p: dict) -> dict:
 
         msg = make_message(
             {"data": "test"},
-            actors=["start_flow", "try_enter", "handler_a", try_exit_name],
-            current=3,
+            prev=["start_flow", "try_enter", "handler_a"],
+            curr=try_exit_name,
+            next_actors=[],
             headers={"_on_error": "some-dispatch"},
         )
 
@@ -478,8 +482,8 @@ def flow(p: dict) -> dict:
         # _on_error should be cleared
         assert "_on_error" not in result.get("headers", {})
 
-        # Both cleanup (finally) and finalize (continuation) should be inserted
-        inserted = result["route"]["actors"][4:]
+        # Both cleanup (finally) and finalize (continuation) should be prepended to next
+        inserted = result["route"]["next"]
         assert "cleanup" in inserted
         assert "finalize" in inserted
 
@@ -513,8 +517,9 @@ def flow(p: dict) -> dict:
 
         msg = make_message(
             {"data": "test"},
-            actors=[dispatch_name, "placeholder"],
-            current=0,
+            prev=[],
+            curr=dispatch_name,
+            next_actors=["placeholder"],
             status={
                 "error": {
                     "type": "ValueError",
@@ -526,8 +531,8 @@ def flow(p: dict) -> dict:
 
         result = dispatch_fn(msg)
 
-        # error_handler, cleanup (finally), and finalize (continuation) should all be inserted
-        inserted = result["route"]["actors"][1:]
+        # error_handler, cleanup (finally), and finalize (continuation) should all be in next
+        inserted = result["route"]["next"]
         assert "error_handler" in inserted
         assert "cleanup" in inserted
         assert "finalize" in inserted
@@ -569,12 +574,13 @@ def flow(p: dict) -> dict:
         # Test ValueError match
         msg_value = make_message(
             {"data": "test"},
-            actors=[dispatch_name, "ph"],
-            current=0,
+            prev=[],
+            curr=dispatch_name,
+            next_actors=["ph"],
             status={"error": {"type": "ValueError", "message": "bad", "mro": ["Exception"]}},
         )
         result = dispatch_fn(copy.deepcopy(msg_value))
-        inserted = result["route"]["actors"][1:]
+        inserted = result["route"]["next"]
         assert "value_handler" in inserted
         assert "type_handler" not in inserted
         assert "key_handler" not in inserted
@@ -582,24 +588,26 @@ def flow(p: dict) -> dict:
         # Test TypeError match
         msg_type = make_message(
             {"data": "test"},
-            actors=[dispatch_name, "ph"],
-            current=0,
+            prev=[],
+            curr=dispatch_name,
+            next_actors=["ph"],
             status={"error": {"type": "TypeError", "message": "bad", "mro": ["Exception"]}},
         )
         result = dispatch_fn(copy.deepcopy(msg_type))
-        inserted = result["route"]["actors"][1:]
+        inserted = result["route"]["next"]
         assert "type_handler" in inserted
         assert "value_handler" not in inserted
 
         # Test KeyError match
         msg_key = make_message(
             {"data": "test"},
-            actors=[dispatch_name, "ph"],
-            current=0,
+            prev=[],
+            curr=dispatch_name,
+            next_actors=["ph"],
             status={"error": {"type": "KeyError", "message": "bad", "mro": ["LookupError", "Exception"]}},
         )
         result = dispatch_fn(copy.deepcopy(msg_key))
-        inserted = result["route"]["actors"][1:]
+        inserted = result["route"]["next"]
         assert "key_handler" in inserted
         assert "value_handler" not in inserted
 
@@ -628,23 +636,25 @@ def flow(p: dict) -> dict:
         # ValueError should match
         msg_val = make_message(
             {"data": "test"},
-            actors=[dispatch_name, "ph"],
-            current=0,
+            prev=[],
+            curr=dispatch_name,
+            next_actors=["ph"],
             status={"error": {"type": "ValueError", "message": "bad", "mro": ["Exception"]}},
         )
         result = dispatch_fn(copy.deepcopy(msg_val))
-        inserted = result["route"]["actors"][1:]
+        inserted = result["route"]["next"]
         assert "combined_handler" in inserted
 
         # TypeError should also match
         msg_type = make_message(
             {"data": "test"},
-            actors=[dispatch_name, "ph"],
-            current=0,
+            prev=[],
+            curr=dispatch_name,
+            next_actors=["ph"],
             status={"error": {"type": "TypeError", "message": "bad", "mro": ["Exception"]}},
         )
         result = dispatch_fn(copy.deepcopy(msg_type))
-        inserted = result["route"]["actors"][1:]
+        inserted = result["route"]["next"]
         assert "combined_handler" in inserted
 
         # KeyError should NOT match, should go to reraise
@@ -653,12 +663,13 @@ def flow(p: dict) -> dict:
 
         msg_key = make_message(
             {"data": "test"},
-            actors=[dispatch_name, "ph"],
-            current=0,
+            prev=[],
+            curr=dispatch_name,
+            next_actors=["ph"],
             status={"error": {"type": "KeyError", "message": "bad", "mro": ["LookupError", "Exception"]}},
         )
         result = dispatch_fn(copy.deepcopy(msg_key))
-        inserted = result["route"]["actors"][1:]
+        inserted = result["route"]["next"]
         assert reraise_name in inserted
         assert "combined_handler" not in inserted
 
@@ -683,39 +694,43 @@ def flow(p: dict) -> dict:
 
         # Step 1: call start_flow
         start_fn = mod.start_flow
-        msg = make_message({"data": "test"}, actors=["start_flow"], current=0)
+        msg = make_message({"data": "test"}, prev=[], curr="start_flow", next_actors=[])
         msg = start_fn(msg)
 
-        # start_flow should insert the try_enter router
+        # start_flow should prepend the try_enter router into next
         try_enter_name, try_enter_fn = _find_function(mod, "try_enter")
-        assert try_enter_name in msg["route"]["actors"]
+        assert try_enter_name in msg["route"]["next"]
 
-        # Step 2: call try_enter
-        msg["route"]["current"] = msg["route"]["actors"].index(try_enter_name)
+        # Step 2: simulate runtime shifting route to try_enter, then call try_enter
+        msg["route"]["prev"] = ["start_flow"]
+        msg["route"]["curr"] = try_enter_name
+        msg["route"]["next"] = [a for a in msg["route"]["next"] if a != try_enter_name]
         msg = try_enter_fn(msg)
 
         # Should set _on_error header
         assert "_on_error" in msg.get("headers", {})
 
-        # Should insert handler_a and try_exit into the route
+        # Should insert handler_a and try_exit into next
         try_exit_name, try_exit_fn = _find_function(mod, "try_exit")
-        assert "handler_a" in msg["route"]["actors"]
-        assert try_exit_name in msg["route"]["actors"]
+        assert "handler_a" in msg["route"]["next"]
+        assert try_exit_name in msg["route"]["next"]
 
-        # Step 3: simulate handler_a processing (just advance current)
-        handler_a_idx = msg["route"]["actors"].index("handler_a")
-        msg["route"]["current"] = handler_a_idx
+        # Step 3: simulate runtime shifting route to handler_a
+        msg["route"]["prev"] = ["start_flow", try_enter_name]
+        msg["route"]["curr"] = "handler_a"
+        msg["route"]["next"] = [a for a in msg["route"]["next"] if a != "handler_a"]
 
-        # Step 4: call try_exit (success path)
-        try_exit_idx = msg["route"]["actors"].index(try_exit_name)
-        msg["route"]["current"] = try_exit_idx
+        # Step 4: simulate runtime shifting route to try_exit, then call try_exit
+        msg["route"]["prev"] = ["start_flow", try_enter_name, "handler_a"]
+        msg["route"]["curr"] = try_exit_name
+        msg["route"]["next"] = [a for a in msg["route"]["next"] if a != try_exit_name]
         msg = try_exit_fn(msg)
 
         # _on_error should be cleared
         assert "_on_error" not in msg.get("headers", {})
 
-        # finalize should be in the route
-        assert "finalize" in msg["route"]["actors"]
+        # finalize should be in next
+        assert "finalize" in msg["route"]["next"]
 
     # -- Test: payload is preserved through routers ------------------------
 
@@ -740,8 +755,9 @@ def flow(p: dict) -> dict:
         original_payload = {"key1": "value1", "key2": [1, 2, 3], "nested": {"a": "b"}}
         msg = make_message(
             original_payload,
-            actors=["start_flow", try_enter_name],
-            current=1,
+            prev=["start_flow"],
+            curr=try_enter_name,
+            next_actors=[],
         )
 
         result = try_enter_fn(msg)
@@ -771,15 +787,16 @@ def flow(p: dict) -> dict:
         dispatch_name, dispatch_fn = _find_function(mod, "except_dispatch")
 
         # Check try_enter preserves id
-        msg = make_message({"data": "test"}, actors=["start", try_enter_name], current=1)
+        msg = make_message({"data": "test"}, prev=["start"], curr=try_enter_name, next_actors=[])
         result = try_enter_fn(msg)
         assert result["id"] == "test-msg"
 
         # Check try_exit preserves id
         msg2 = make_message(
             {"data": "test"},
-            actors=["start", try_exit_name],
-            current=1,
+            prev=["start"],
+            curr=try_exit_name,
+            next_actors=[],
             headers={"_on_error": "dispatch"},
         )
         result2 = try_exit_fn(msg2)
@@ -788,8 +805,9 @@ def flow(p: dict) -> dict:
         # Check except_dispatch preserves id
         msg3 = make_message(
             {"data": "test"},
-            actors=[dispatch_name, "ph"],
-            current=0,
+            prev=[],
+            curr=dispatch_name,
+            next_actors=["ph"],
             status={"error": {"type": "ValueError", "message": "bad", "mro": []}},
         )
         result3 = dispatch_fn(msg3)
@@ -817,8 +835,9 @@ def flow(p: dict) -> dict:
 
         msg = make_message(
             {"data": "test"},
-            actors=[reraise_name],
-            current=0,
+            prev=[],
+            curr=reraise_name,
+            next_actors=[],
             status={
                 "error": {
                     "type": "KeyError",

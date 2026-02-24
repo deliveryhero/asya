@@ -16,30 +16,25 @@ Regenerate by running: asya flow compile ../../while_mutations_in_loop.py
 def start_while_mutations_in_loop_flow(message: dict) -> dict:
     """Entrypoint for flow 'while_mutations_in_loop_flow'"""
     r = message['route']
-    c = r['current']
 
-    r['actors'][c+1:c+1] = [resolve("handler_init"), resolve("router_while_mutations_in_loop_flow_line_12_while_0")]
-    r['current'] = c + 1
+    r['next'] = [resolve("handler_init"), resolve("router_while_mutations_in_loop_flow_line_12_while_0")] + r['next']
     return message
 
 def router_while_mutations_in_loop_flow_line_17_seq(message: dict) -> dict:
     """Router for control flow and payload mutations"""
     p = message['payload']
     r = message['route']
-    c = r['current']
     _next = []
 
     p['processed'] = True
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def router_while_mutations_in_loop_flow_line_13_seq(message: dict) -> dict:
     """Router for control flow and payload mutations"""
     p = message['payload']
     r = message['route']
-    c = r['current']
     _next = []
 
     p['i'] += 1
@@ -48,28 +43,24 @@ def router_while_mutations_in_loop_flow_line_13_seq(message: dict) -> dict:
     _next.append(resolve("handler_process"))
     _next.append(resolve("router_while_mutations_in_loop_flow_line_17_seq"))
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def router_while_mutations_in_loop_flow_line_12_loop_back_0(message: dict) -> dict:
     """Loop-back router: re-inserts loop actors into route"""
     p = message['payload']
     r = message['route']
-    c = r['current']
     _next = []
 
     _next.append(resolve("router_while_mutations_in_loop_flow_line_12_while_0"))
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def router_while_mutations_in_loop_flow_line_12_while_0(message: dict) -> dict:
     """Router for control flow and payload mutations"""
     p = message['payload']
     r = message['route']
-    c = r['current']
     _next = []
 
     p['i'] = 0
@@ -80,8 +71,7 @@ def router_while_mutations_in_loop_flow_line_12_while_0(message: dict) -> dict:
     else:
         _next.append(resolve("handler_finalize"))
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def end_while_mutations_in_loop_flow(message: dict) -> dict:

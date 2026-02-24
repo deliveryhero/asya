@@ -127,7 +127,7 @@ Lightweight socket server injected via ConfigMap. Loads user function, executes 
   ```
 
 ### asya-crew (Python)
-System actors with reserved roles: `x-sink` (persist results to S3), `x-sump` (retry with exponential backoff - not yet implemented, DLQ handling). Both report final status to gateway (`x-sink` - because it's route's `current` index is larger than `len(route["actors"])`, `x-sump` - because the handler had an error), see this logic in `src/asya-sidecar/internal/progress/reporter.go`.
+System actors with reserved roles: `x-sink` (persist results to S3), `x-sump` (retry with exponential backoff - not yet implemented, DLQ handling). Both report final status to gateway (`x-sink` - because `route.curr` is `""` meaning the route is exhausted, `x-sump` - because the handler had an error), see this logic in `src/asya-sidecar/internal/progress/reporter.go`.
 
 ### asya-injector (Go)
 Mutating admission webhook that intercepts Pod creation for AsyncActor workloads. Injects the asya-sidecar container, configures volumes (socket-dir, tmp, asya-runtime ConfigMap), sets environment variables (ASYA_TRANSPORT, ASYA_ACTOR_NAME), and overrides the runtime container command to run `asya_runtime.py`. Uses cert-manager for TLS certificate management.
@@ -484,7 +484,7 @@ See CONTRIBUTING.md for complete testing documentation.
 {
   "id": "<message-id>",
   "parent_id": "<original-message-id>",  // optional, for fanout tracking
-  "route": {"actors": ["q1", "q2"], "current": 0},
+  "route": {"prev": [], "curr": "q1", "next": ["q2"]},
   "headers": {"trace_id": "...", "priority": "high"},  // optional routing metadata
   "payload": <arbitrary JSON>
 }
@@ -493,32 +493,28 @@ See CONTRIBUTING.md for complete testing documentation.
 **Fields**:
 - `id`: Unique message identifier
 - `parent_id` (optional): Original message ID for fanout children (see docs/architecture/protocols/actor-actor.md)
-- `route`: Routing information with actor names and current index
+- `route`: Routing information with processed actors, current actor, and pending actors
 - `headers` (optional): Routing-specific metadata (trace IDs, priorities, etc.)
 - `payload`: Arbitrary JSON data processed by actors
 
-Runtime (not sidecar!) increments `route.current` after processing.
+Runtime (not sidecar!) shifts the route after processing: `prev` grows, `curr` advances to `next[0]`, `next` shrinks.
 
 **Automatic end routing** (NEVER configure explicitly):
-- When `route.current` reaches end of `actors` array (or when runtime returned `None`) → sidecar routes to `x-sink` queue automatically
+- When `route.curr` is `""` (empty string, set by runtime at end-of-route, or when runtime returned `None`) → sidecar routes to `x-sink` queue automatically
 - When errors occur in runtime → sidecar acks the message and routes to `x-sump` queue automatically
 - When errors occur in sidecar → sidecar nacks the message and it's automatically sent to DLQ (configured by the queue)
 - **IMPORTANT**: Never include `x-sink` or `x-sump` in route configurations - they are managed by the sidecar
 
 **Route Modification Rules** (for envelope mode handlers):
 
-Handlers can modify routes dynamically but **MUST preserve already-processed steps**:
+Handlers can modify routes dynamically but **MUST NOT modify already-processed steps**:
 
 ✅ **Allowed**:
-- Add future steps: `["a","b","c"]` → `["a","b","c","d","e"]` (at current=0)
-- Replace future steps: `["a","b","c"]` → `["a","x","y"]` (at current=0, replaces b,c with x,y)
+- Modify `next`: add, replace, or clear future actors freely
 
 ❌ **Forbidden** (runtime will reject with `processing_error`):
-- Erase processed steps: `["a","b","c"]` → `["c"]` at current=2 (erases "a","b")
-- Modify processed actor names: `["a","b","c"]` → `["a-new","b","c"]` at current=1
-- Change current position: Cannot change which actor `route.current` points to
-
-**Validation**: Runtime validates that `route.actors[0:current+1]` remains unchanged from input to output.
+- Modify `prev`: processed actors are read-only
+- Modify `curr`: the current actor is read-only
 
 ## Transport Configuration
 
