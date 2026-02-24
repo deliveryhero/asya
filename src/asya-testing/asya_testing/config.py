@@ -17,7 +17,6 @@ Usage:
     config = TestConfig()
     print(f"Transport: {config.transport}")
     print(f"Storage: {config.storage}")
-    print(f"Handler mode: {config.handler_mode}")
 """
 
 import logging
@@ -93,13 +92,6 @@ class Storage(str, Enum):
     S3 = "s3"
 
 
-class HandlerMode(str, Enum):
-    """Supported handler modes."""
-
-    PAYLOAD = "payload"
-    ENVELOPE = "envelope"
-
-
 @dataclass
 class TestConfig:
     """
@@ -108,7 +100,6 @@ class TestConfig:
     Environment Variables:
         ASYA_TRANSPORT: Transport backend (rabbitmq, sqs)
         ASYA_STORAGE: Storage backend (minio, s3)
-        ASYA_HANDLER_MODE: Handler mode (payload, envelope)
         ASYA_GATEWAY_URL: Gateway URL (default: http://gateway:8080)
         ASYA_S3_ENDPOINT: S3/MinIO endpoint (default: http://minio:9000)
         ASYA_LOG_LEVEL: Log level (default: INFO)
@@ -120,7 +111,6 @@ class TestConfig:
     # Test parameters
     transport: Transport
     storage: Storage
-    handler_mode: HandlerMode
 
     # Service URLs
     gateway_url: str
@@ -156,10 +146,6 @@ class TestConfig:
         storage_str = require_env("ASYA_STORAGE", valid_values=["minio", "s3"]).lower()
         storage = Storage(storage_str)
 
-        # Required: Handler mode
-        mode_str = require_env("ASYA_HANDLER_MODE", valid_values=["payload", "envelope"]).lower()
-        handler_mode = HandlerMode(mode_str)
-
         # Required: Service URLs
         gateway_url = require_env("ASYA_GATEWAY_URL")
         s3_endpoint = require_env("ASYA_S3_ENDPOINT")
@@ -185,7 +171,6 @@ class TestConfig:
         return cls(
             transport=transport,
             storage=storage,
-            handler_mode=handler_mode,
             gateway_url=gateway_url,
             s3_endpoint=s3_endpoint,
             rabbitmq_url=rabbitmq_url,
@@ -212,14 +197,6 @@ class TestConfig:
         """Check if using S3 storage."""
         return self.storage == Storage.S3
 
-    def is_payload_mode(self) -> bool:
-        """Check if using payload handler mode."""
-        return self.handler_mode == HandlerMode.PAYLOAD
-
-    def is_envelope_mode(self) -> bool:
-        """Check if using envelope handler mode."""
-        return self.handler_mode == HandlerMode.ENVELOPE
-
     def get_transport_url(self) -> str | None:
         """Get transport connection URL based on active transport."""
         if self.is_rabbitmq():
@@ -230,12 +207,7 @@ class TestConfig:
 
     def __str__(self) -> str:
         """String representation for logging."""
-        return (
-            f"TestConfig(transport={self.transport.value}, "
-            f"storage={self.storage.value}, "
-            f"mode={self.handler_mode.value}, "
-            f"namespace={self.namespace})"
-        )
+        return f"TestConfig(transport={self.transport.value}, storage={self.storage.value}, namespace={self.namespace})"
 
 
 # Global configuration instance

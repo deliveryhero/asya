@@ -131,9 +131,8 @@ class DockerComposeHelper:
 def docker_helper():
     """Create Docker Compose helper for controlling services."""
     transport = get_env("ASYA_TRANSPORT", "rabbitmq")
-    handler_mode = get_env("ASYA_HANDLER_MODE", "payload")
 
-    project_name = f"int-sidecar-runtime-{handler_mode}-{transport}"
+    project_name = f"int-sidecar-runtime-{transport}"
 
     test_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     compose_file = os.path.join(test_dir, "profiles", f"{transport}.yml")

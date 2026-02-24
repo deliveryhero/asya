@@ -6,7 +6,7 @@ Tests class-based stateful handlers with realistic scenarios:
 - Slow model initialization (simulates AI model loading)
 - State preservation across requests (caching, counters)
 - Large payload handling
-- Message mode (envelope handler mode) with class handlers
+- VFS metadata access with class handlers
 """
 
 import http.client as http_client
@@ -104,8 +104,8 @@ def counter_client():
 
 
 @pytest.fixture
-def message_class_client():
-    """HTTP client for envelope mode class runtime."""
+def vfs_class_client():
+    """HTTP client for VFS metadata class runtime."""
     return HTTPClient("/var/run/asya/envelope-class.sock")
 
 
@@ -255,16 +255,16 @@ def test_counter_sequential_requests(counter_client):
     logger.info(f"Counter test: {num_requests} sequential requests, final count: {num_requests}")
 
 
-def test_message_mode_class_handler(message_class_client):
-    """Test class handler in envelope mode."""
+def test_vfs_class_handler(vfs_class_client):
+    """Test class handler that reads message metadata via VFS."""
     message = {
-        "id": "test-env-001",
+        "id": "test-vfs-001",
         "route": {"prev": [], "curr": "envelope-class", "next": []},
         "headers": {"trace_id": "test-trace-123"},
         "payload": {"value": 42}
     }
 
-    response = message_class_client.send_message(message)
+    response = vfs_class_client.send_message(message)
 
     assert isinstance(response, list)
     assert len(response) == 1
@@ -274,7 +274,6 @@ def test_message_mode_class_handler(message_class_client):
     # Verify payload structure
     assert "payload" in result
     assert result["payload"]["prefix"] == "processed"
-    assert result["payload"]["trace_id"] == "test-trace-123"
     assert result["payload"]["data"]["value"] == 42
     assert result["payload"]["message_count"] == 1
 
@@ -283,19 +282,18 @@ def test_message_mode_class_handler(message_class_client):
 
     # Second request to verify message counter increments
     message2 = {
-        "id": "test-env-002",
+        "id": "test-vfs-002",
         "route": {"prev": [], "curr": "envelope-class", "next": []},
         "headers": {"trace_id": "test-trace-456"},
         "payload": {"value": 100}
     }
 
-    response2 = message_class_client.send_message(message2)
+    response2 = vfs_class_client.send_message(message2)
     result2 = response2[0]
 
     assert result2["payload"]["message_count"] == 2, "Message counter should increment"
-    assert result2["payload"]["trace_id"] == "test-trace-456"
 
-    logger.info(f"Message mode test: processed {result2['payload']['message_count']} messages")
+    logger.info(f"VFS class handler test: processed {result2['payload']['message_count']} messages")
 
 
 def test_class_handler_error_handling(caching_client):

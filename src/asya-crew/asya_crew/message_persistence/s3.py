@@ -4,29 +4,17 @@ S3 message persistence for Asya framework.
 Provides checkpoint handler for persisting complete messages to S3/MinIO.
 Can be used as a hook actor (post-termination) or mid-pipeline checkpoint.
 
-IMPORTANT: Checkpoint handlers MUST run in envelope mode (ASYA_HANDLER_MODE=envelope)
-and with validation disabled (ASYA_ENABLE_VALIDATION=false).
-This module will raise RuntimeError at import time if these conditions are not met.
-
 Environment Variables:
-- ASYA_HANDLER_MODE: Handler mode (MUST be "envelope")
-- ASYA_ENABLE_VALIDATION: Validation flag (MUST be "false")
+- ASYA_MSG_ROOT: Path to virtual filesystem for message metadata (default: /proc/asya/msg)
 - ASYA_S3_BUCKET: S3/MinIO bucket for persistence (optional)
 - ASYA_S3_ENDPOINT: MinIO endpoint (e.g., http://minio:9000, omit for AWS S3)
 - ASYA_S3_ACCESS_KEY: Access key for MinIO/S3 (optional)
 - ASYA_S3_SECRET_KEY: Secret key for MinIO/S3 (optional)
 
-Message Structure:
-    {
-        "id": "<message-id>",
-        "status": {
-            "phase": "succeeded" | "failed" | None,
-            "actor": "<actor-name>",
-            ...
-        },
-        "route": {"prev": [...], "curr": "<actor>", "next": [...]},
-        "payload": <arbitrary JSON>
-    }
+VFS Paths:
+- /proc/asya/msg/id — read-only: message UUID
+- /proc/asya/msg/route/prev — read-only: newline-separated list of processed actors
+- /proc/asya/msg/status/phase — read-only: terminal phase (succeeded/failed)
 
 Storage Prefixes:
 - succeeded/ - Messages with status.phase == "succeeded"
@@ -42,7 +30,7 @@ Examples:
     checkpoint/2026-02-12T10:30:00.123456Z/data-validator/msg-789.json
 
 Handler Behavior:
-- Persists complete message to S3/MinIO
+- Persists payload to S3/MinIO with structured key path
 - Returns empty dict (message passes through unchanged)
 - Gracefully skips if S3 not configured (no error)
 """
@@ -57,23 +45,11 @@ from typing import Any
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
-ASYA_HANDLER_MODE = (os.getenv("ASYA_HANDLER_MODE") or "payload").lower()
-ASYA_ENABLE_VALIDATION = os.getenv("ASYA_ENABLE_VALIDATION", "true").lower() == "true"
+ASYA_MSG_ROOT = os.getenv("ASYA_MSG_ROOT", "/proc/asya/msg")
 ASYA_S3_BUCKET = os.getenv("ASYA_S3_BUCKET", "")
 ASYA_S3_ENDPOINT = os.getenv("ASYA_S3_ENDPOINT", "")
 ASYA_S3_ACCESS_KEY = os.getenv("ASYA_S3_ACCESS_KEY", "")
 ASYA_S3_SECRET_KEY = os.getenv("ASYA_S3_SECRET_KEY", "")
-
-if ASYA_HANDLER_MODE != "envelope":
-    raise RuntimeError(
-        f"Checkpoint handler must run in envelope mode. Current mode: '{ASYA_HANDLER_MODE}'. Set ASYA_HANDLER_MODE=envelope"
-    )
-
-if ASYA_ENABLE_VALIDATION:
-    raise RuntimeError(
-        "Checkpoint handler must run with validation disabled. Current setting: ASYA_ENABLE_VALIDATION=true. "
-        "Set ASYA_ENABLE_VALIDATION=false"
-    )
 
 s3_client = None
 if ASYA_S3_BUCKET:
@@ -130,29 +106,31 @@ def ensure_bucket_exists(bucket: str) -> None:
             logger.warning(f"Could not verify bucket {bucket}: {e}")
 
 
-def checkpoint_handler(message: dict[str, Any]) -> dict[str, Any]:
+def checkpoint_handler(payload: dict[str, Any]) -> dict[str, Any]:
     """
     Checkpoint handler for message persistence.
 
-    Persists complete message to S3/MinIO with structured key path.
+    Persists payload to S3/MinIO with structured key path. Reads message
+    metadata (id, phase, actor) from the VFS at ASYA_MSG_ROOT.
     Can be used as a hook actor or mid-pipeline checkpoint.
 
     Args:
-        message: Complete message with id, route, status, payload
+        payload: Message payload dict
 
     Returns:
         Empty dict (message passes through unchanged)
 
     Raises:
-        ValueError: If message is missing required field: id
+        ValueError: If payload is not a dict
     """
-    if not isinstance(message, dict):
-        raise ValueError(f"Message must be a dict, got {type(message).__name__}")
+    if not isinstance(payload, dict):
+        raise ValueError(f"Payload must be a dict, got {type(payload).__name__}")
 
-    if "id" not in message:
-        raise ValueError("Message missing required field: id")
-
-    message_id = message["id"]
+    try:
+        with open(f"{ASYA_MSG_ROOT}/id") as f:
+            message_id = f.read().strip()
+    except FileNotFoundError:
+        message_id = "unknown"
 
     if not s3_client or not ASYA_S3_BUCKET:
         logger.debug(f"S3 persistence skipped for message {message_id}")
@@ -161,8 +139,11 @@ def checkpoint_handler(message: dict[str, Any]) -> dict[str, Any]:
     try:
         ensure_bucket_exists(ASYA_S3_BUCKET)
 
-        status = message.get("status", {})
-        phase = status.get("phase") if isinstance(status, dict) else None
+        try:
+            with open(f"{ASYA_MSG_ROOT}/status/phase") as f:
+                phase = f.read().strip()
+        except FileNotFoundError:
+            phase = None
 
         if phase == "succeeded":
             prefix = "succeeded/"
@@ -174,19 +155,22 @@ def checkpoint_handler(message: dict[str, Any]) -> dict[str, Any]:
         now = datetime.now(tz=UTC)
         now_str = now.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
 
-        actor = status.get("actor", "unknown") if isinstance(status, dict) else "unknown"
-        if actor == "unknown":
-            route = message.get("route", {})
-            route_prev = route.get("prev", [])
-            if route_prev:
-                actor = route_prev[-1]
+        actor = "unknown"
+        try:
+            with open(f"{ASYA_MSG_ROOT}/route/prev") as f:
+                prev_raw = f.read().strip()
+                prev_actors = [a for a in prev_raw.splitlines() if a]
+                if prev_actors:
+                    actor = prev_actors[-1]
+        except FileNotFoundError:
+            pass
 
         key = f"{prefix}{now_str}/{actor}/{message_id}.json"
 
         try:
-            body = json.dumps(message, indent=2, default=str)
+            body = json.dumps(payload, indent=2, default=str)
         except (TypeError, ValueError) as e:
-            logger.error(f"Failed to serialize message {message_id}: {e}")
+            logger.error(f"Failed to serialize payload for message {message_id}: {e}")
             raise
 
         s3_client.put_object(

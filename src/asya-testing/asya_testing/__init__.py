@@ -11,7 +11,6 @@ Provides reusable components for component, integration, and E2E tests:
 
 from .config import (
     ConfigurationError,
-    HandlerMode,
     Storage,
     TestConfig,
     Transport,
@@ -26,7 +25,6 @@ __version__ = "0.1.0"
 
 __all__ = [
     "ConfigurationError",
-    "HandlerMode",
     "Storage",
     "TestConfig",
     "Transport",

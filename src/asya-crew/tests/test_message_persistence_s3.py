@@ -3,6 +3,7 @@
 Unit tests for S3 message persistence.
 
 Tests the checkpoint-s3 actor which persists messages to S3/MinIO.
+Reads message metadata (id, phase, actor) from VFS at ASYA_MSG_ROOT.
 """
 
 import logging
@@ -19,96 +20,54 @@ logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(name)s - %(leve
 logger = logging.getLogger(__name__)
 
 
+def setup_vfs(tmpdir, msg_id="test-001", phase="succeeded", prev_actors=None):
+    """Create VFS directory structure for testing."""
+    os.makedirs(os.path.join(tmpdir, "route"), exist_ok=True)
+    os.makedirs(os.path.join(tmpdir, "status"), exist_ok=True)
+
+    with open(os.path.join(tmpdir, "id"), "w") as f:
+        f.write(msg_id)
+    with open(os.path.join(tmpdir, "parent_id"), "w") as f:
+        f.write("")
+    with open(os.path.join(tmpdir, "route", "prev"), "w") as f:
+        f.write("\n".join(prev_actors) if prev_actors else "")
+    with open(os.path.join(tmpdir, "route", "curr"), "w") as f:
+        f.write("checkpoint-s3")
+    with open(os.path.join(tmpdir, "route", "next"), "w") as f:
+        f.write("")
+    if phase is not None:
+        with open(os.path.join(tmpdir, "status", "phase"), "w") as f:
+            f.write(phase)
+
+    return tmpdir
+
+
 @pytest.fixture(autouse=True)
-def setup_test_env():
+def setup_test_env(tmp_path, monkeypatch):
     """Set up test environment before each test."""
     for key in ["ASYA_S3_BUCKET", "ASYA_S3_ENDPOINT"]:
-        if key in os.environ:
-            del os.environ[key]
+        monkeypatch.delenv(key, raising=False)
 
-    os.environ["ASYA_HANDLER_MODE"] = "envelope"
-    os.environ["ASYA_ENABLE_VALIDATION"] = "false"
-
-    yield
-
-    for key in ["ASYA_S3_BUCKET", "ASYA_S3_ENDPOINT"]:
-        if key in os.environ:
-            del os.environ[key]
-
-
-def test_import_raises_with_payload_mode():
-    """Test that importing s3 module raises RuntimeError when ASYA_HANDLER_MODE=payload."""
-    logger.info("=== test_import_raises_with_payload_mode ===")
-
-    os.environ["ASYA_HANDLER_MODE"] = "payload"
+    vfs_root = setup_vfs(str(tmp_path))
+    monkeypatch.setenv("ASYA_MSG_ROOT", vfs_root)
 
     if "asya_crew.message_persistence.s3" in sys.modules:
         del sys.modules["asya_crew.message_persistence.s3"]
 
-    with pytest.raises(RuntimeError, match="Checkpoint handler must run in envelope mode"):
-        import asya_crew.message_persistence.s3  # noqa: F401
-
-    os.environ["ASYA_HANDLER_MODE"] = "envelope"
-    if "asya_crew.message_persistence.s3" in sys.modules:
-        del sys.modules["asya_crew.message_persistence.s3"]
-
-    logger.info("=== test_import_raises_with_payload_mode: PASSED ===")
-
-
-def test_import_succeeds_with_envelope_mode():
-    """Test that importing s3 module succeeds when ASYA_HANDLER_MODE=envelope."""
-    logger.info("=== test_import_succeeds_with_envelope_mode ===")
-
-    os.environ["ASYA_HANDLER_MODE"] = "envelope"
+    yield vfs_root
 
     if "asya_crew.message_persistence.s3" in sys.modules:
         del sys.modules["asya_crew.message_persistence.s3"]
 
-    import asya_crew.message_persistence.s3  # noqa: F401
 
-    logger.info("=== test_import_succeeds_with_envelope_mode: PASSED ===")
-
-
-def test_import_raises_with_validation_enabled():
-    """Test that importing s3 module raises RuntimeError when ASYA_ENABLE_VALIDATION=true."""
-    logger.info("=== test_import_raises_with_validation_enabled ===")
-
-    os.environ["ASYA_HANDLER_MODE"] = "envelope"
-    os.environ["ASYA_ENABLE_VALIDATION"] = "true"
-
-    if "asya_crew.message_persistence.s3" in sys.modules:
-        del sys.modules["asya_crew.message_persistence.s3"]
-
-    with pytest.raises(RuntimeError, match="Checkpoint handler must run with validation disabled"):
-        import asya_crew.message_persistence.s3  # noqa: F401
-
-    os.environ["ASYA_ENABLE_VALIDATION"] = "false"
-    if "asya_crew.message_persistence.s3" in sys.modules:
-        del sys.modules["asya_crew.message_persistence.s3"]
-
-    logger.info("=== test_import_raises_with_validation_enabled: PASSED ===")
-
-
-def test_import_succeeds_with_validation_disabled():
-    """Test that importing s3 module succeeds when ASYA_ENABLE_VALIDATION=false."""
-    logger.info("=== test_import_succeeds_with_validation_disabled ===")
-
-    os.environ["ASYA_HANDLER_MODE"] = "envelope"
-    os.environ["ASYA_ENABLE_VALIDATION"] = "false"
-
-    if "asya_crew.message_persistence.s3" in sys.modules:
-        del sys.modules["asya_crew.message_persistence.s3"]
-
-    import asya_crew.message_persistence.s3  # noqa: F401
-
-    logger.info("=== test_import_succeeds_with_validation_disabled: PASSED ===")
-
-
-def test_succeeded_phase_uses_succeeded_prefix():
+def test_succeeded_phase_uses_succeeded_prefix(tmp_path, monkeypatch):
     """Test checkpoint handler uses succeeded/ prefix for succeeded phase."""
     logger.info("=== test_succeeded_phase_uses_succeeded_prefix ===")
 
-    os.environ["ASYA_S3_BUCKET"] = "test-bucket"
+    vfs_root = setup_vfs(str(tmp_path), msg_id="test-message-123", phase="succeeded", prev_actors=["test-actor"])
+    monkeypatch.setenv("ASYA_MSG_ROOT", vfs_root)
+    monkeypatch.setenv("ASYA_S3_BUCKET", "test-bucket")
+
     if "asya_crew.message_persistence.s3" in sys.modules:
         del sys.modules["asya_crew.message_persistence.s3"]
 
@@ -118,13 +77,7 @@ def test_succeeded_phase_uses_succeeded_prefix():
 
         s3_mod.s3_client = mock_s3
 
-        message = {
-            "id": "test-message-123",
-            "status": {"phase": "succeeded", "actor": "test-actor"},
-            "payload": {"result": 42},
-        }
-
-        result = s3_mod.checkpoint_handler(message)
+        result = s3_mod.checkpoint_handler({"result": 42})
 
         assert result == {}
         mock_s3.put_object.assert_called_once()
@@ -132,18 +85,17 @@ def test_succeeded_phase_uses_succeeded_prefix():
         assert call_kwargs["Bucket"] == "test-bucket"
         assert call_kwargs["Key"].startswith("succeeded/")
 
-    del os.environ["ASYA_S3_BUCKET"]
-    if "asya_crew.message_persistence.s3" in sys.modules:
-        del sys.modules["asya_crew.message_persistence.s3"]
-
     logger.info("=== test_succeeded_phase_uses_succeeded_prefix: PASSED ===")
 
 
-def test_failed_phase_uses_failed_prefix():
+def test_failed_phase_uses_failed_prefix(tmp_path, monkeypatch):
     """Test checkpoint handler uses failed/ prefix for failed phase."""
     logger.info("=== test_failed_phase_uses_failed_prefix ===")
 
-    os.environ["ASYA_S3_BUCKET"] = "test-bucket"
+    vfs_root = setup_vfs(str(tmp_path), msg_id="test-message-456", phase="failed", prev_actors=["test-actor"])
+    monkeypatch.setenv("ASYA_MSG_ROOT", vfs_root)
+    monkeypatch.setenv("ASYA_S3_BUCKET", "test-bucket")
+
     if "asya_crew.message_persistence.s3" in sys.modules:
         del sys.modules["asya_crew.message_persistence.s3"]
 
@@ -153,13 +105,7 @@ def test_failed_phase_uses_failed_prefix():
 
         s3_mod.s3_client = mock_s3
 
-        message = {
-            "id": "test-message-456",
-            "status": {"phase": "failed", "actor": "test-actor"},
-            "error": "Processing failed",
-        }
-
-        result = s3_mod.checkpoint_handler(message)
+        result = s3_mod.checkpoint_handler({"error": "Processing failed"})
 
         assert result == {}
         mock_s3.put_object.assert_called_once()
@@ -167,18 +113,17 @@ def test_failed_phase_uses_failed_prefix():
         assert call_kwargs["Bucket"] == "test-bucket"
         assert call_kwargs["Key"].startswith("failed/")
 
-    del os.environ["ASYA_S3_BUCKET"]
-    if "asya_crew.message_persistence.s3" in sys.modules:
-        del sys.modules["asya_crew.message_persistence.s3"]
-
     logger.info("=== test_failed_phase_uses_failed_prefix: PASSED ===")
 
 
-def test_missing_phase_uses_checkpoint_prefix():
-    """Test checkpoint handler uses checkpoint/ prefix when status.phase is missing."""
+def test_missing_phase_uses_checkpoint_prefix(tmp_path, monkeypatch):
+    """Test checkpoint handler uses checkpoint/ prefix when status/phase VFS file is absent."""
     logger.info("=== test_missing_phase_uses_checkpoint_prefix ===")
 
-    os.environ["ASYA_S3_BUCKET"] = "test-bucket"
+    vfs_root = setup_vfs(str(tmp_path / "no_phase"), msg_id="test-message-789", phase=None, prev_actors=["test-actor"])
+    monkeypatch.setenv("ASYA_MSG_ROOT", vfs_root)
+    monkeypatch.setenv("ASYA_S3_BUCKET", "test-bucket")
+
     if "asya_crew.message_persistence.s3" in sys.modules:
         del sys.modules["asya_crew.message_persistence.s3"]
 
@@ -188,9 +133,7 @@ def test_missing_phase_uses_checkpoint_prefix():
 
         s3_mod.s3_client = mock_s3
 
-        message = {"id": "test-message-789", "status": {"actor": "test-actor"}, "payload": {"data": "test"}}
-
-        result = s3_mod.checkpoint_handler(message)
+        result = s3_mod.checkpoint_handler({"data": "test"})
 
         assert result == {}
         mock_s3.put_object.assert_called_once()
@@ -198,60 +141,94 @@ def test_missing_phase_uses_checkpoint_prefix():
         assert call_kwargs["Bucket"] == "test-bucket"
         assert call_kwargs["Key"].startswith("checkpoint/")
 
-    del os.environ["ASYA_S3_BUCKET"]
-    if "asya_crew.message_persistence.s3" in sys.modules:
-        del sys.modules["asya_crew.message_persistence.s3"]
-
     logger.info("=== test_missing_phase_uses_checkpoint_prefix: PASSED ===")
 
 
-def test_returns_empty_dict():
+def test_returns_empty_dict(tmp_path, monkeypatch):
     """Test checkpoint handler returns empty dict."""
     logger.info("=== test_returns_empty_dict ===")
 
+    vfs_root = setup_vfs(str(tmp_path), msg_id="test-message-abc", phase="succeeded")
+    monkeypatch.setenv("ASYA_MSG_ROOT", vfs_root)
+
+    if "asya_crew.message_persistence.s3" in sys.modules:
+        del sys.modules["asya_crew.message_persistence.s3"]
+
     from asya_crew.message_persistence.s3 import checkpoint_handler
 
-    message = {
-        "id": "test-message-abc",
-        "status": {"phase": "succeeded", "actor": "test-actor"},
-        "payload": {"result": 100},
-    }
-
-    result = checkpoint_handler(message)
+    result = checkpoint_handler({"result": 100})
 
     assert result == {}
 
     logger.info("=== test_returns_empty_dict: PASSED ===")
 
 
-def test_works_without_s3_configured():
+def test_works_without_s3_configured(tmp_path, monkeypatch):
     """Test checkpoint handler gracefully skips when S3 not configured."""
     logger.info("=== test_works_without_s3_configured ===")
 
+    vfs_root = setup_vfs(str(tmp_path), msg_id="test-message-no-s3", phase="succeeded")
+    monkeypatch.setenv("ASYA_MSG_ROOT", vfs_root)
+
+    if "asya_crew.message_persistence.s3" in sys.modules:
+        del sys.modules["asya_crew.message_persistence.s3"]
+
     from asya_crew.message_persistence.s3 import checkpoint_handler
 
-    message = {
-        "id": "test-message-no-s3",
-        "status": {"phase": "succeeded", "actor": "test-actor"},
-        "payload": {"value": 42},
-    }
-
-    result = checkpoint_handler(message)
+    result = checkpoint_handler({"value": 42})
 
     assert result == {}
 
     logger.info("=== test_works_without_s3_configured: PASSED ===")
 
 
-def test_missing_id():
-    """Test checkpoint handler with missing id raises ValueError."""
-    logger.info("=== test_missing_id ===")
+def test_key_includes_actor_from_vfs_prev(tmp_path, monkeypatch):
+    """Test checkpoint handler uses last prev actor from VFS for S3 key."""
+    logger.info("=== test_key_includes_actor_from_vfs_prev ===")
+
+    vfs_root = setup_vfs(
+        str(tmp_path),
+        msg_id="test-actor-key",
+        phase="succeeded",
+        prev_actors=["actor-a", "actor-b", "text-processor"],
+    )
+    monkeypatch.setenv("ASYA_MSG_ROOT", vfs_root)
+    monkeypatch.setenv("ASYA_S3_BUCKET", "test-bucket")
+
+    if "asya_crew.message_persistence.s3" in sys.modules:
+        del sys.modules["asya_crew.message_persistence.s3"]
+
+    mock_s3 = MagicMock()
+    with patch.dict("sys.modules", {"boto3": MagicMock()}):
+        import asya_crew.message_persistence.s3 as s3_mod
+
+        s3_mod.s3_client = mock_s3
+
+        result = s3_mod.checkpoint_handler({"data": "test"})
+
+        assert result == {}
+        mock_s3.put_object.assert_called_once()
+        call_kwargs = mock_s3.put_object.call_args.kwargs
+        key = call_kwargs["Key"]
+        assert "/text-processor/" in key
+        assert key.endswith("test-actor-key.json")
+
+    logger.info("=== test_key_includes_actor_from_vfs_prev: PASSED ===")
+
+
+def test_raises_on_non_dict_payload(tmp_path, monkeypatch):
+    """Test checkpoint handler raises ValueError when payload is not a dict."""
+    logger.info("=== test_raises_on_non_dict_payload ===")
+
+    vfs_root = setup_vfs(str(tmp_path))
+    monkeypatch.setenv("ASYA_MSG_ROOT", vfs_root)
+
+    if "asya_crew.message_persistence.s3" in sys.modules:
+        del sys.modules["asya_crew.message_persistence.s3"]
 
     from asya_crew.message_persistence.s3 import checkpoint_handler
 
-    message = {"status": {"phase": "succeeded"}}
+    with pytest.raises(ValueError, match="Payload must be a dict"):
+        checkpoint_handler("not-a-dict")  # type: ignore[arg-type]
 
-    with pytest.raises(ValueError, match="id"):
-        checkpoint_handler(message)
-
-    logger.info("=== test_missing_id: PASSED ===")
+    logger.info("=== test_raises_on_non_dict_payload: PASSED ===")

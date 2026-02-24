@@ -525,18 +525,13 @@ def test_nested_data(transport_helper):
 
 def test_invalid_route_current(transport_helper):
     """
-    Test sidecar handling when runtime handler modifies the read-only curr field.
+    Test sidecar handling when runtime handler attempts to write to read-only route/curr.
 
-    When ASYA_ENABLE_VALIDATION=false, runtime allows a handler to change curr.
-    The sidecar receives the modified route and routes to x-sink because
-    curr no longer matches the expected actor name.
+    The handler uses VFS to attempt writing to /proc/asya/msg/route/curr, which is
+    a read-only path. The runtime catches the PermissionError and routes the message
+    to x-sump as a processing_error.
     """
-    handler_mode = get_env("ASYA_HANDLER_MODE", "payload")
-    if handler_mode != "envelope":
-        logger.info("Skipping test_invalid_route_current (only for envelope mode)")
-        return
-
-    transport_helper.purge_queue("asya-default-x-sink")
+    transport_helper.purge_queue("asya-default-x-sump")
     message = {
         "id": "test-invalid-route-current-1",
         "route": {"prev": [], "curr": "test-invalid-route", "next": ["should-not-reach"]},
@@ -545,20 +540,15 @@ def test_invalid_route_current(transport_helper):
     logger.info(f"Publishing message to test-invalid-route: {json.dumps(message, indent=2)}")
 
     transport_helper.publish_message("asya-default-test-invalid-route", message)
-    logger.info("Message published, waiting for result in asya-x-sink...")
+    logger.info("Message published, waiting for result in asya-x-sump...")
 
-    result = transport_helper.assert_message_in_queue("asya-default-x-sink", timeout=10)
-    logger.info(f"Result from x-sink: {json.dumps(result, indent=2) if result else 'None'}")
-    assert result is not None, "Message with invalid route.curr not routed to x-sink"
+    result = transport_helper.assert_message_in_queue("asya-default-x-sump", timeout=10)
+    logger.info(f"Result from x-sump: {json.dumps(result, indent=2) if result else 'None'}")
+    assert result is not None, "Message with read-only VFS write attempt should route to x-sump"
 
     payload = result.get("payload", {})
-    assert payload.get("test") == "invalid_route_current", f"Payload corrupted, got: {payload}"
+    error_msg = payload.get("error", "")
+    logger.info(f"Error message received: {error_msg}")
+    assert error_msg, f"Should have error in payload, got: {payload}"
 
-    route = result.get("route", {})
-    logger.info(f"Final route: {route}")
-
-    # The handler corrupted curr to "__invalid_actor__" which sidecar treats as end-of-route
-    assert "prev" in route, "Route should have prev field"
-    assert "curr" in route, "Route should have curr field"
-    assert "next" in route, "Route should have next field"
     logger.info("=== test_invalid_route_current: PASSED ===\n")

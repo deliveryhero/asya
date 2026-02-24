@@ -3,7 +3,7 @@
 E2E tests for Gateway routing and MCP protocol.
 
 Tests gateway functionality in a real Kubernetes environment:
-- Dynamic route modification in envelope mode
+- Dynamic route modification via VFS
 - Route validation and error handling
 - Concurrent requests with different routes
 - MCP SSE streaming robustness
