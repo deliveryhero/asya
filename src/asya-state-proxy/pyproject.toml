@@ -1,0 +1,13 @@
+[project]
+name = "asya-state-proxy"
+version = "0.1.0"
+requires-python = ">=3.13"
+dependencies = []
+
+[project.optional-dependencies]
+s3 = ["boto3>=1.35"]
+test = ["pytest>=8.0", "moto[s3]>=5.0"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

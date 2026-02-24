@@ -41,6 +41,8 @@ Socket Configuration:
 
 import asyncio
 import contextlib
+import errno
+import http.client as _http_client
 import http.server
 import importlib
 import inspect
@@ -48,9 +50,12 @@ import json
 import logging
 import os
 import re
+import shutil
 import signal
 import socket
+import stat as _stat_module
 import sys
+import tempfile as _tempfile
 import traceback
 from typing import Any
 
@@ -456,6 +461,407 @@ def _collect_envelope_frames(message, user_func):
     return [_shift_envelope_route(result)]
 
 
+# ---------------------------------------------------------------------------
+# State Proxy Interception Layer
+# Patches Python builtins (open, os.*) so handlers transparently access
+# external state backends via HTTP-over-Unix-socket connectors.
+# Activated only when ASYA_STATE_PROXY_MOUNTS env var is set.
+# ---------------------------------------------------------------------------
+
+
+def _parse_state_proxy_mounts(mounts_str):
+    # type: (str) -> list
+    """Parse ASYA_STATE_PROXY_MOUNTS env var.
+
+    Format: {name}:{path}:{options}[;{name}:{path}:{options}]*
+    Example: meta:/state/meta:write=buffered;media:/state/media:write=passthrough
+    """
+    mounts = []
+    for entry in mounts_str.split(";"):
+        entry = entry.strip()
+        if not entry:
+            continue
+        parts = entry.split(":")
+        if len(parts) < 3:
+            raise ValueError(f"Invalid mount format: {entry!r} (expected name:path:options)")
+        name = parts[0]
+        path = parts[1]
+        options_str = parts[2]
+        opts = {}
+        for opt in options_str.split(","):
+            opt = opt.strip()
+            if "=" in opt:
+                k, v = opt.split("=", 1)
+                opts[k.strip()] = v.strip()
+        if not path.endswith("/"):
+            path = path + "/"
+        socket_path = f"/var/run/asya/state/{name}.sock"
+        mounts.append(
+            {
+                "name": name,
+                "path": path,
+                "socket": socket_path,
+                "write_mode": opts.get("write", "buffered"),
+            }
+        )
+    return mounts
+
+
+class _UnixHTTPClient(_http_client.HTTPConnection):
+    """HTTP connection over Unix socket to state proxy connector."""
+
+    def __init__(self, sock_path):
+        _http_client.HTTPConnection.__init__(self, "localhost")
+        self._sock_path = sock_path
+
+    def connect(self):
+        self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        self.sock.connect(self._sock_path)
+
+
+_STATUS_TO_EXCEPTION = {
+    404: FileNotFoundError,
+    409: FileExistsError,
+    400: ValueError,
+    403: PermissionError,
+    500: OSError,
+    503: ConnectionError,
+    504: TimeoutError,
+}
+
+
+def _raise_for_status(resp, key):
+    # type: (...) -> None
+    """Map HTTP error status to Python exception."""
+    if resp.status >= 400:
+        try:
+            body = json.loads(resp.read())
+            msg = body.get("message", "State proxy error")
+        except Exception:
+            msg = f"State proxy error (status {resp.status})"
+        if resp.status == 413:
+            raise OSError(errno.EFBIG, msg)
+        exc_class = _STATUS_TO_EXCEPTION.get(resp.status, OSError)
+        raise exc_class(msg)
+
+
+def _resolve_mount(path, mounts):
+    # type: (str, list) -> tuple
+    """Match path against configured mounts. Returns (mount, key) or (None, None)."""
+    path_str = os.fspath(path) if hasattr(os, "fspath") else str(path)
+    if isinstance(path_str, bytes):
+        path_str = path_str.decode("utf-8")
+    if not os.path.isabs(path_str):
+        return None, None
+    normalized = os.path.normpath(path_str)
+    for mount in mounts:
+        mount_prefix = mount["path"].rstrip("/")
+        if normalized == mount_prefix or normalized.startswith(mount_prefix + "/"):
+            key = normalized[len(mount_prefix) :]
+            if key.startswith("/"):
+                key = key[1:]
+            return mount, key
+    return None, None
+
+
+class _StateFile:
+    """Read wrapper for state proxy responses."""
+
+    def __init__(self, stream, seekable, text_mode=False, encoding="utf-8"):
+        self._stream = stream
+        self._seekable = seekable
+        self._text_mode = text_mode
+        self._encoding = encoding
+        self._closed = False
+
+    def read(self, size=-1):
+        data = self._stream.read(size) if size != -1 else self._stream.read()
+        if self._text_mode and isinstance(data, bytes):
+            return data.decode(self._encoding)
+        return data
+
+    def readline(self, limit=-1):
+        if hasattr(self._stream, "readline"):
+            line = self._stream.readline(limit) if limit != -1 else self._stream.readline()
+        else:
+            line = self._stream.readline()
+        if self._text_mode and isinstance(line, bytes):
+            return line.decode(self._encoding)
+        return line
+
+    def readlines(self, _hint=-1):
+        return list(self)
+
+    def seek(self, offset, whence=0):
+        if not self._seekable:
+            raise OSError("seek not supported on passthrough state file")
+        return self._stream.seek(offset, whence)
+
+    def tell(self):
+        if not self._seekable:
+            raise OSError("tell not supported on passthrough state file")
+        return self._stream.tell()
+
+    @property
+    def closed(self):
+        return self._closed
+
+    def close(self):
+        if not self._closed:
+            self._closed = True
+            if hasattr(self._stream, "close"):
+                self._stream.close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        self.close()
+
+    def __iter__(self):
+        while True:
+            line = self.readline()
+            if not line:
+                break
+            yield line
+
+    def readable(self):
+        return True
+
+    def writable(self):
+        return False
+
+
+class _BufferedWriteFile:
+    """Buffers writes in SpooledTemporaryFile, sends PUT on close."""
+
+    def __init__(self, sock_path, key, text_mode=False, encoding="utf-8"):
+        self._sock_path = sock_path
+        self._key = key
+        self._text_mode = text_mode
+        self._encoding = encoding
+        self._buf = _tempfile.SpooledTemporaryFile(max_size=4 * 1024 * 1024)  # noqa: SIM115
+        self._closed = False
+
+    def write(self, data):
+        if self._text_mode and isinstance(data, str):
+            data = data.encode(self._encoding)
+        return self._buf.write(data)
+
+    def seek(self, offset, whence=0):
+        return self._buf.seek(offset, whence)
+
+    def tell(self):
+        return self._buf.tell()
+
+    @property
+    def closed(self):
+        return self._closed
+
+    def close(self):
+        if self._closed:
+            return
+        self._closed = True
+        self._buf.seek(0, 2)
+        size = self._buf.tell()
+        self._buf.seek(0)
+        conn = _UnixHTTPClient(self._sock_path)
+        conn.request(
+            "PUT",
+            f"/keys/{self._key}",
+            body=self._buf,
+            headers={"Content-Length": str(size)},
+        )
+        resp = conn.getresponse()
+        _raise_for_status(resp, self._key)
+        self._buf.close()
+        conn.close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        self.close()
+
+    def readable(self):
+        return False
+
+    def writable(self):
+        return True
+
+
+class _PassthroughWriteFile:
+    """Streams writes directly to proxy via chunked transfer encoding."""
+
+    def __init__(self, sock_path, key, text_mode=False, encoding="utf-8"):
+        self._key = key
+        self._text_mode = text_mode
+        self._encoding = encoding
+        self._conn = _UnixHTTPClient(sock_path)
+        self._conn.putrequest("PUT", f"/keys/{key}")
+        self._conn.putheader("Transfer-Encoding", "chunked")
+        self._conn.endheaders()
+        self._closed = False
+
+    def write(self, data):
+        if self._text_mode and isinstance(data, str):
+            data = data.encode(self._encoding)
+        chunk = f"{len(data):x}\r\n".encode() + data + b"\r\n"
+        self._conn.send(chunk)
+        return len(data)
+
+    @property
+    def closed(self):
+        return self._closed
+
+    def close(self):
+        if self._closed:
+            return
+        self._closed = True
+        self._conn.send(b"0\r\n\r\n")
+        resp = self._conn.getresponse()
+        _raise_for_status(resp, self._key)
+        self._conn.close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        self.close()
+
+    def readable(self):
+        return False
+
+    def writable(self):
+        return True
+
+    def seek(self, *_):
+        raise OSError("seek not supported on passthrough write")
+
+    def tell(self):
+        raise OSError("tell not supported on passthrough write")
+
+
+def _open_read(sock_path, key, text_mode):
+    """Open a state key for reading via HTTP GET."""
+    conn = _UnixHTTPClient(sock_path)
+    conn.request("GET", f"/keys/{key}")
+    resp = conn.getresponse()
+    _raise_for_status(resp, key)
+
+    content_length = resp.getheader("Content-Length")
+    if content_length:
+        buf = _tempfile.SpooledTemporaryFile(max_size=4 * 1024 * 1024)  # noqa: SIM115
+        shutil.copyfileobj(resp, buf)
+        buf.seek(0)
+        conn.close()
+        return _StateFile(buf, seekable=True, text_mode=text_mode)
+    else:
+        return _StateFile(resp, seekable=False, text_mode=text_mode)
+
+
+def _open_write(sock_path, key, write_mode, text_mode):
+    """Open a state key for writing."""
+    if write_mode == "buffered":
+        return _BufferedWriteFile(sock_path, key, text_mode=text_mode)
+    else:
+        return _PassthroughWriteFile(sock_path, key, text_mode=text_mode)
+
+
+def _install_state_proxy_hooks(mounts_str):
+    """Patch Python builtins to intercept file I/O for state mount paths."""
+    import builtins
+
+    mounts = _parse_state_proxy_mounts(mounts_str)
+    if not mounts:
+        return
+
+    logger.info("State proxy mounts: %s", [(m["name"], m["path"]) for m in mounts])
+
+    _original_open = builtins.open
+    _original_stat = os.stat
+    _original_listdir = os.listdir
+    _original_unlink = os.unlink
+    _original_makedirs = os.makedirs
+
+    def _patched_open(file, mode="r", *args, **kwargs):
+        mount, key = _resolve_mount(file, mounts)
+        if mount is None or not key:
+            return _original_open(file, mode, *args, **kwargs)
+        text_mode = "b" not in mode
+        if "r" in mode:
+            return _open_read(mount["socket"], key, text_mode)
+        if any(c in mode for c in "wax"):
+            return _open_write(mount["socket"], key, mount["write_mode"], text_mode)
+        return _open_read(mount["socket"], key, text_mode)
+
+    def _patched_stat(path, *args, **kwargs):
+        mount, key = _resolve_mount(path, mounts)
+        if mount is None:
+            return _original_stat(path, *args, **kwargs)
+        conn = _UnixHTTPClient(mount["socket"])
+        conn.request("HEAD", f"/keys/{key}")
+        resp = conn.getresponse()
+        if resp.status == 404:
+            raise FileNotFoundError(2, "No such file or directory", str(path))
+        _raise_for_status(resp, key)
+        size = int(resp.getheader("Content-Length", "0"))
+        is_file = resp.getheader("X-Is-File", "true").lower() == "true"
+        mode = _stat_module.S_IFREG | 0o644 if is_file else _stat_module.S_IFDIR | 0o755
+        conn.close()
+        return os.stat_result((mode, 0, 0, 1, os.getuid(), os.getgid(), size, 0, 0, 0))
+
+    def _patched_listdir(path="."):
+        mount, key = _resolve_mount(path, mounts)
+        if mount is None:
+            return _original_listdir(path)
+        if not key.endswith("/"):
+            key = key + "/"
+        if key == "/":
+            key = ""
+        conn = _UnixHTTPClient(mount["socket"])
+        conn.request("GET", f"/keys/?prefix={key}&delimiter=/")
+        resp = conn.getresponse()
+        _raise_for_status(resp, key)
+        body = json.loads(resp.read())
+        conn.close()
+        entries = []
+        for k in body.get("keys", []):
+            name = k[len(key) :] if k.startswith(key) else k
+            if name:
+                entries.append(name)
+        for p in body.get("prefixes", []):
+            name = p[len(key) :] if p.startswith(key) else p
+            name = name.rstrip("/")
+            if name:
+                entries.append(name)
+        return entries
+
+    def _patched_unlink(path, *args, **kwargs):
+        mount, key = _resolve_mount(path, mounts)
+        if mount is None:
+            return _original_unlink(path, *args, **kwargs)
+        conn = _UnixHTTPClient(mount["socket"])
+        conn.request("DELETE", f"/keys/{key}")
+        resp = conn.getresponse()
+        _raise_for_status(resp, key)
+        conn.close()
+
+    def _patched_makedirs(name, mode=0o777, exist_ok=False):
+        mount, _ = _resolve_mount(name, mounts)
+        if mount is None:
+            return _original_makedirs(name, mode=mode, exist_ok=exist_ok)
+
+    builtins.open = _patched_open
+    os.stat = _patched_stat
+    os.listdir = _patched_listdir
+    os.unlink = _patched_unlink
+    os.remove = _patched_unlink
+    os.makedirs = _patched_makedirs
+
+    logger.info("State proxy hooks installed for %d mount(s)", len(mounts))
+
+
 class _UnixHTTPServer(http.server.HTTPServer):
     """HTTP server that listens on a Unix domain socket."""
 
@@ -562,6 +968,11 @@ def _log_env_vars():
 def handle_requests():
     """Main entry point, blocks forever."""
     _log_env_vars()
+
+    # Activate state proxy interception before loading handler
+    state_proxy_mounts = os.environ.get("ASYA_STATE_PROXY_MOUNTS")
+    if state_proxy_mounts:
+        _install_state_proxy_hooks(state_proxy_mounts)
 
     func = _load_function()
     server = _UnixHTTPServer(SOCKET_PATH, _InvokeHandler)

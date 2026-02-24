@@ -1,0 +1,7 @@
+FROM python:3.13-slim
+WORKDIR /app
+COPY pyproject.toml .
+COPY asya_state_proxy/ asya_state_proxy/
+COPY connectors/ connectors/
+RUN pip install --no-cache-dir ".[s3]"
+ENTRYPOINT ["python", "-m", "connectors.s3_buffered_lww"]

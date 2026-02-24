@@ -203,6 +203,58 @@ spec:
                       type: string
                       description: IAM role ARN for the ServiceAccount (overrides default pattern)
 
+                stateProxy:
+                  type: array
+                  description: State proxy mount configurations for persistent state access
+                  items:
+                    type: object
+                    required:
+                      - name
+                      - mount
+                      - connector
+                    properties:
+                      name:
+                        type: string
+                        description: Unique mount identifier (DNS label format)
+                        minLength: 1
+                        maxLength: 63
+                        pattern: '^[a-z0-9]([a-z0-9-]*[a-z0-9])?$'
+                      mount:
+                        type: object
+                        required:
+                          - path
+                        properties:
+                          path:
+                            type: string
+                            description: Absolute path inside runtime container
+                            pattern: '^/'
+                      connector:
+                        type: object
+                        required:
+                          - image
+                        properties:
+                          image:
+                            type: string
+                            description: Container image for the state proxy connector
+                            minLength: 1
+                          env:
+                            type: array
+                            description: Backend-specific environment variables
+                            items:
+                              type: object
+                              required:
+                                - name
+                                - value
+                              properties:
+                                name:
+                                  type: string
+                                value:
+                                  type: string
+                          resources:
+                            type: object
+                            description: Kubernetes resource requests/limits
+                            x-kubernetes-preserve-unknown-fields: true
+
             status:
               type: object
               properties:

@@ -120,6 +120,9 @@ func (i *Injector) Inject(pod *corev1.Pod, actorConfig *ActorConfig) (*corev1.Po
 	// Add volumes
 	i.addVolumes(mutated)
 
+	// Inject state proxy sidecars if configured
+	i.injectStateProxy(mutated, actorConfig.StateProxy)
+
 	// Set termination grace period
 	gracePeriod := int64(30)
 	mutated.Spec.TerminationGracePeriodSeconds = &gracePeriod

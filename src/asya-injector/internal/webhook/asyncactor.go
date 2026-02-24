@@ -157,6 +157,43 @@ func extractActorConfig(asyncActor *unstructured.Unstructured) (*injection.Actor
 	// Extract resiliency configuration
 	config.Resiliency = extractResiliencyConfig(spec)
 
+	// Extract stateProxy configuration
+	stateProxies, found, _ := unstructured.NestedSlice(spec, "stateProxy")
+	if found {
+		for _, sp := range stateProxies {
+			spMap, ok := sp.(map[string]interface{})
+			if !ok {
+				continue
+			}
+			mount := injection.StateProxyMount{}
+			mount.Name, _, _ = unstructured.NestedString(spMap, "name")
+			mount.MountPath, _, _ = unstructured.NestedString(spMap, "mount", "path")
+			mount.ConnectorImage, _, _ = unstructured.NestedString(spMap, "connector", "image")
+
+			// Extract connector env vars
+			envSlice, envFound, _ := unstructured.NestedSlice(spMap, "connector", "env")
+			if envFound {
+				for _, e := range envSlice {
+					eMap, ok := e.(map[string]interface{})
+					if !ok {
+						continue
+					}
+					name, _, _ := unstructured.NestedString(eMap, "name")
+					value, _, _ := unstructured.NestedString(eMap, "value")
+					if name != "" {
+						mount.ConnectorEnv = append(mount.ConnectorEnv, corev1.EnvVar{
+							Name: name, Value: value,
+						})
+					}
+				}
+			}
+
+			if mount.Name != "" && mount.ConnectorImage != "" {
+				config.StateProxy = append(config.StateProxy, mount)
+			}
+		}
+	}
+
 	return config, nil
 }
 
