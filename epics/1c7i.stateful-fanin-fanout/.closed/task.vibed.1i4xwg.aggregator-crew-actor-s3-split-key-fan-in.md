@@ -6,6 +6,7 @@ dependencies:
   - 1c7i/1i9og1
 ---
 
+
 ## Summary
 
 Implement the v0 aggregator crew actor using the S3 split-key pattern via state proxy sidecar. The aggregator collects N+1 fan-in messages (1 parent payload + N sub-agent slices), detects completeness via directory listing, emits exactly-once via atomic create sentinel, and produces a merged envelope for pipeline continuation.
