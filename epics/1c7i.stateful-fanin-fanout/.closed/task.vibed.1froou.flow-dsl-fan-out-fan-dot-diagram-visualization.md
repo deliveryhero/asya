@@ -13,6 +13,7 @@ dependencies:
 
 
 
+
 ## Summary
 
 Extend the dot diagram generator to visualize fan-out/fan-in patterns. Show the fan-out split, parallel sub-agent branches, and aggregator merge point.
