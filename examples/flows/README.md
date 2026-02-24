@@ -173,7 +173,7 @@ Deploy as AsyncActor CRDs. Send message to gateway with:
 ```python
 {
   "id": "msg-123",
-  "route": {"actors": ["if_router_1"], "current": 0},
+  "route": {"prev": [], "curr": "if_router_1", "next": []},
   "payload": {"type": "A", "data": "..."}
 }
 ```

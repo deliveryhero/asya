@@ -68,6 +68,12 @@ runs:
       restore-keys: |
         precommit-${{ runner.os }}-
 
+  - name: Install graphviz
+    uses: awalsh128/cache-apt-pkgs-action@latest
+    with:
+      packages: graphviz
+      version: 1.0
+
   - name: Install dependencies
     shell: bash
     run: |

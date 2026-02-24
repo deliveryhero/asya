@@ -136,8 +136,9 @@ func TestRouter_RouteValidation(t *testing.T) {
 			name:      "route matches sidecar queue - processes normally",
 			actorName: "test-actor",
 			inputRoute: messages.Route{
-				Actors:  []string{"test-actor", "next-actor"},
-				Current: 0,
+				Prev: []string{},
+				Curr: "test-actor",
+				Next: []string{"next-actor"},
 			},
 			shouldRejectAndError: false,
 			shouldCallRuntime:    true,
@@ -147,8 +148,9 @@ func TestRouter_RouteValidation(t *testing.T) {
 			name:      "route does not match sidecar queue - sends to error queue",
 			actorName: "test-actor",
 			inputRoute: messages.Route{
-				Actors:  []string{"wrong-actor", "next-actor"},
-				Current: 0,
+				Prev: []string{},
+				Curr: "wrong-actor",
+				Next: []string{"next-actor"},
 			},
 			expectedWarnContains: "Route mismatch: message routed to wrong actor",
 			shouldRejectAndError: true,
@@ -159,8 +161,9 @@ func TestRouter_RouteValidation(t *testing.T) {
 			name:      "route current index out of sync - sends to error queue",
 			actorName: "test-actor",
 			inputRoute: messages.Route{
-				Actors:  []string{"test-actor", "next-actor"},
-				Current: 1,
+				Prev: []string{"test-actor"},
+				Curr: "next-actor",
+				Next: []string{},
 			},
 			expectedWarnContains: "Route mismatch: message routed to wrong actor",
 			shouldRejectAndError: true,
@@ -183,10 +186,7 @@ func TestRouter_RouteValidation(t *testing.T) {
 				return []runtime.RuntimeResponse{
 					{
 						Payload: json.RawMessage(`{"result": "processed"}`),
-						Route: messages.Route{
-							Actors:  tt.inputRoute.Actors,
-							Current: tt.inputRoute.Current + 1,
-						},
+						Route:   tt.inputRoute.IncrementCurrent(),
 					},
 				}, http.StatusOK
 			})
@@ -408,8 +408,9 @@ func TestRouter_DynamicRouteModification(t *testing.T) {
 					{
 						Payload: json.RawMessage(`{"result": "processed"}`),
 						Route: messages.Route{
-							Actors:  tt.runtimeOutputActors,
-							Current: 1, // Runtime increments current in payload mode
+							Prev: tt.runtimeOutputActors[:1],
+							Curr: tt.runtimeOutputActors[1],
+							Next: tt.runtimeOutputActors[2:],
 						},
 					},
 				}, http.StatusOK
@@ -440,8 +441,9 @@ func TestRouter_DynamicRouteModification(t *testing.T) {
 			inputMsg := messages.Message{
 				ID: "test-dynamic-route",
 				Route: messages.Route{
-					Actors:  tt.initialActors,
-					Current: 0,
+					Prev: []string{},
+					Curr: tt.initialActors[0],
+					Next: tt.initialActors[1:],
 				},
 				Payload: json.RawMessage(`{"input": "test"}`),
 			}
@@ -475,23 +477,22 @@ func TestRouter_DynamicRouteModification(t *testing.T) {
 			}
 
 			// Verify the route was updated with the modified actors list
-			if len(sentMsg.Route.Actors) != len(tt.runtimeOutputActors) {
-				t.Errorf("Expected route with %d actors, got %d",
-					len(tt.runtimeOutputActors), len(sentMsg.Route.Actors))
+			// With prev/curr/next format: total = len(prev) + 1 (curr) + len(next)
+			totalActors := len(sentMsg.Route.Prev) + 1 + len(sentMsg.Route.Next)
+			if totalActors != len(tt.runtimeOutputActors) {
+				t.Errorf("Expected route with %d actors, got %d (prev=%v, curr=%q, next=%v)",
+					len(tt.runtimeOutputActors), totalActors, sentMsg.Route.Prev, sentMsg.Route.Curr, sentMsg.Route.Next)
 			}
 
-			// Verify current index from runtime (runtime increments, sidecar passes through)
-			expectedCurrent := 1
-			if sentMsg.Route.Current != expectedCurrent {
-				t.Errorf("Expected current=%d (from runtime), got current=%d",
-					expectedCurrent, sentMsg.Route.Current)
+			// Verify curr is the second actor (runtime shifted the route)
+			if sentMsg.Route.Curr != tt.runtimeOutputActors[1] {
+				t.Errorf("Expected curr=%q (from runtime shift), got curr=%q",
+					tt.runtimeOutputActors[1], sentMsg.Route.Curr)
 			}
 
-			// Progress would be calculated as:
-			// (current * 100) / totalActors
-			// If route expands: (1 * 100) / 5 = 20%
-			// If route stays same: (1 * 100) / 2 = 50%
-			expectedProgress := (float64(sentMsg.Route.Current) * 100.0) / float64(len(sentMsg.Route.Actors))
+			// Progress: prev/(total) * 100
+			// If route expands: 1/5 = 20%, if same: 1/2 = 50%
+			expectedProgress := (float64(len(sentMsg.Route.Prev)) * 100.0) / float64(totalActors)
 			t.Logf("%s - Progress would be: %.1f%%", tt.description, expectedProgress)
 		})
 	}
@@ -545,8 +546,9 @@ func TestRouter_ResolveQueueName_Integration(t *testing.T) {
 					{
 						Payload: json.RawMessage(`{"result": "processed"}`),
 						Route: messages.Route{
-							Actors:  tt.inputActors,
-							Current: 1, // Runtime increments current in payload mode
+							Prev: tt.inputActors[:1],
+							Curr: tt.inputActors[1],
+							Next: tt.inputActors[2:],
 						},
 					},
 				}, http.StatusOK
@@ -570,8 +572,9 @@ func TestRouter_ResolveQueueName_Integration(t *testing.T) {
 			inputMsg := messages.Message{
 				ID: "test-123",
 				Route: messages.Route{
-					Actors:  tt.inputActors,
-					Current: 0,
+					Prev: []string{},
+					Curr: tt.inputActors[0],
+					Next: tt.inputActors[1:],
 				},
 				Payload: json.RawMessage(`{"input": "test"}`),
 			}
@@ -693,8 +696,9 @@ func TestRouter_SendToSinkQueue(t *testing.T) {
 	msg := messages.Message{
 		ID: "test-envelope-123",
 		Route: messages.Route{
-			Actors:  []string{"actor1", "actor2"},
-			Current: 1,
+			Prev: []string{"actor1"},
+			Curr: "actor2",
+			Next: []string{},
 		},
 		Payload: json.RawMessage(`{"result": "success"}`),
 	}
@@ -748,8 +752,9 @@ func TestRouter_SendToSumpQueue(t *testing.T) {
 	originalMsg := messages.Message{
 		ID: "test-envelope-456",
 		Route: messages.Route{
-			Actors:  []string{"actor1"},
-			Current: 0,
+			Prev: []string{},
+			Curr: "actor1",
+			Next: []string{},
 		},
 		Payload: json.RawMessage(`{"data": "test"}`),
 	}
@@ -967,7 +972,7 @@ func TestRouter_ProcessMessage_MissingMessageID(t *testing.T) {
 		metrics:   m,
 	}
 
-	msgWithoutID := []byte(`{"route": {"actors": ["test-actor"], "current": 0}, "payload": {"test": "data"}}`)
+	msgWithoutID := []byte(`{"route": {"prev": [], "curr": "test-actor", "next": []}, "payload": {"test": "data"}}`)
 	queueMsg := transport.QueueMessage{
 		ID:   "msg-1",
 		Body: msgWithoutID,
@@ -1033,8 +1038,9 @@ func TestRouter_ProcessMessage_EmptyResponse(t *testing.T) {
 	inputMsg := messages.Message{
 		ID: "test-123",
 		Route: messages.Route{
-			Actors:  []string{"test-actor"},
-			Current: 0,
+			Prev: []string{},
+			Curr: "test-actor",
+			Next: []string{},
 		},
 		Payload: json.RawMessage(`{"input": "test"}`),
 	}
@@ -1066,8 +1072,9 @@ func TestRouter_ProcessMessage_EndActor(t *testing.T) {
 			{
 				Payload: json.RawMessage(`{"status": "logged"}`),
 				Route: messages.Route{
-					Actors:  []string{"x-sink"},
-					Current: 0,
+					Prev: []string{},
+					Curr: "x-sink",
+					Next: []string{},
 				},
 			},
 		}, http.StatusOK
@@ -1099,8 +1106,9 @@ func TestRouter_ProcessMessage_EndActor(t *testing.T) {
 	inputMsg := messages.Message{
 		ID: "test-123",
 		Route: messages.Route{
-			Actors:  []string{"x-sink"},
-			Current: 0,
+			Prev: []string{},
+			Curr: "x-sink",
+			Next: []string{},
 		},
 		Payload: json.RawMessage(`{"result": "success"}`),
 	}
@@ -1131,32 +1139,36 @@ func TestRouter_EndActor_WithInvalidRoute(t *testing.T) {
 		{
 			name: "current points to wrong actor",
 			route: messages.Route{
-				Actors:  []string{"test-echo"},
-				Current: 0,
+				Prev: []string{},
+				Curr: "test-echo",
+				Next: []string{},
 			},
 			desc: "Route points to test-echo but end actor is x-sink",
 		},
 		{
 			name: "current out of bounds",
 			route: messages.Route{
-				Actors:  []string{"test-echo"},
-				Current: 5,
+				Prev: []string{"test-echo"},
+				Curr: "",
+				Next: []string{},
 			},
 			desc: "Route current index is out of bounds",
 		},
 		{
 			name: "empty route",
 			route: messages.Route{
-				Actors:  []string{},
-				Current: 0,
+				Prev: []string{},
+				Curr: "",
+				Next: []string{},
 			},
 			desc: "Route has no actors",
 		},
 		{
 			name: "multi-actor route pointing elsewhere",
 			route: messages.Route{
-				Actors:  []string{"actor1", "actor2", "actor3"},
-				Current: 1,
+				Prev: []string{"actor1"},
+				Curr: "actor2",
+				Next: []string{"actor3"},
 			},
 			desc: "Route points to actor2 but end actor is x-sink",
 		},
@@ -1252,8 +1264,9 @@ func TestRouter_EndActor_WithGatewayReporting(t *testing.T) {
 	inputMsg := messages.Message{
 		ID: "test-gateway-report",
 		Route: messages.Route{
-			Actors:  []string{"actor1", "actor2"},
-			Current: 1,
+			Prev: []string{"actor1"},
+			Curr: "actor2",
+			Next: []string{},
 		},
 		Payload: json.RawMessage(`{"data": "test"}`),
 	}
@@ -1324,8 +1337,9 @@ func TestRouter_EndActor_RuntimeError(t *testing.T) {
 	inputMsg := messages.Message{
 		ID: "test-end-error",
 		Route: messages.Route{
-			Actors:  []string{"some-actor"},
-			Current: 0,
+			Prev: []string{},
+			Curr: "some-actor",
+			Next: []string{},
 		},
 		Payload: json.RawMessage(`{"error": "failed"}`),
 	}
@@ -1358,8 +1372,9 @@ func TestRouter_EndActor_DoesNotIncrementCurrent(t *testing.T) {
 			{
 				Payload: json.RawMessage(`{"status": "logged"}`),
 				Route: messages.Route{
-					Actors:  []string{"actor1", "actor2", "x-sink"},
-					Current: 3, // Try to increment current
+					Prev: []string{"actor1", "actor2", "x-sink"},
+					Curr: "",
+					Next: []string{},
 				},
 			},
 		}, http.StatusOK
@@ -1391,8 +1406,9 @@ func TestRouter_EndActor_DoesNotIncrementCurrent(t *testing.T) {
 	inputMsg := messages.Message{
 		ID: "test-no-increment",
 		Route: messages.Route{
-			Actors:  []string{"actor1", "actor2", "x-sink"},
-			Current: 2, // Current points to x-sink
+			Prev: []string{"actor1", "actor2"},
+			Curr: "x-sink",
+			Next: []string{},
 		},
 		Payload: json.RawMessage(`{"result": "success"}`),
 	}
@@ -1444,8 +1460,9 @@ func TestRouter_ProcessMessage_RuntimeError(t *testing.T) {
 	inputMsg := messages.Message{
 		ID: "test-123",
 		Route: messages.Route{
-			Actors:  []string{"test-actor"},
-			Current: 0,
+			Prev: []string{},
+			Curr: "test-actor",
+			Next: []string{},
 		},
 		Payload: json.RawMessage(`{"input": "test"}`),
 	}
@@ -1509,8 +1526,9 @@ func TestRouter_ProcessMessage_ErrorResponse(t *testing.T) {
 	inputMsg := messages.Message{
 		ID: "test-123",
 		Route: messages.Route{
-			Actors:  []string{"test-actor"},
-			Current: 0,
+			Prev: []string{},
+			Curr: "test-actor",
+			Next: []string{},
 		},
 		Payload: json.RawMessage(`{"input": "test"}`),
 	}
@@ -1711,8 +1729,9 @@ func TestRouter_ReportFinalStatusWithMessage_Sump_ExtractsErrorDetails(t *testin
 	inputMsg := messages.Message{
 		ID: "test-error-details-789",
 		Route: messages.Route{
-			Actors:  []string{"actor1", "actor2"},
-			Current: 1,
+			Prev: []string{"actor1"},
+			Curr: "actor2",
+			Next: []string{},
 		},
 		Payload: json.RawMessage(errorPayloadBytes),
 	}
@@ -1806,8 +1825,9 @@ func TestRouter_ReportFinalStatusWithMessage_Sump_NoErrorDetails(t *testing.T) {
 	inputMsg := messages.Message{
 		ID: "test-no-error-details",
 		Route: messages.Route{
-			Actors:  []string{"actor1"},
-			Current: 0,
+			Prev: []string{},
+			Curr: "actor1",
+			Next: []string{},
 		},
 		Payload: json.RawMessage(`{"some": "data"}`),
 	}
@@ -1877,15 +1897,15 @@ func TestRouter_ProcessMessage_FanOut(t *testing.T) {
 	socketPath := startMockRuntime(t, func(body []byte) ([]runtime.RuntimeResponse, int) {
 		return []runtime.RuntimeResponse{
 			{
-				Route:   messages.Route{Actors: []string{"test-actor", "next-actor"}, Current: 1},
+				Route:   messages.Route{Prev: []string{"test-actor"}, Curr: "next-actor", Next: []string{}},
 				Payload: json.RawMessage(`{"index": 0, "message": "Fan-out message 0"}`),
 			},
 			{
-				Route:   messages.Route{Actors: []string{"test-actor", "next-actor"}, Current: 1},
+				Route:   messages.Route{Prev: []string{"test-actor"}, Curr: "next-actor", Next: []string{}},
 				Payload: json.RawMessage(`{"index": 1, "message": "Fan-out message 1"}`),
 			},
 			{
-				Route:   messages.Route{Actors: []string{"test-actor", "next-actor"}, Current: 1},
+				Route:   messages.Route{Prev: []string{"test-actor"}, Curr: "next-actor", Next: []string{}},
 				Payload: json.RawMessage(`{"index": 2, "message": "Fan-out message 2"}`),
 			},
 		}, http.StatusOK
@@ -1916,8 +1936,9 @@ func TestRouter_ProcessMessage_FanOut(t *testing.T) {
 	inputMsg := messages.Message{
 		ID: "test-fanout-123",
 		Route: messages.Route{
-			Actors:  []string{"test-actor", "next-actor"},
-			Current: 0,
+			Prev: []string{},
+			Curr: "test-actor",
+			Next: []string{"next-actor"},
 		},
 		Payload: json.RawMessage(`{"count": 3}`),
 	}
@@ -1974,8 +1995,8 @@ func TestRouter_ProcessMessage_FanOut(t *testing.T) {
 			}
 		}
 
-		if parsedMsg.Route.Current != 1 {
-			t.Errorf("Message %d route.current = %d, expected 1", i, parsedMsg.Route.Current)
+		if parsedMsg.Route.Curr != "next-actor" {
+			t.Errorf("Message %d route.curr = %q, expected next-actor", i, parsedMsg.Route.Curr)
 		}
 
 		var payload map[string]interface{}
@@ -1993,15 +2014,15 @@ func TestRouter_ProcessMessage_FanOut_CreatesGatewayTasks(t *testing.T) {
 	socketPath := startMockRuntime(t, func(body []byte) ([]runtime.RuntimeResponse, int) {
 		return []runtime.RuntimeResponse{
 			{
-				Route:   messages.Route{Actors: []string{"test-actor", "next-actor"}, Current: 0},
+				Route:   messages.Route{Prev: []string{"test-actor"}, Curr: "next-actor", Next: []string{}},
 				Payload: json.RawMessage(`{"index": 0}`),
 			},
 			{
-				Route:   messages.Route{Actors: []string{"test-actor", "next-actor"}, Current: 0},
+				Route:   messages.Route{Prev: []string{"test-actor"}, Curr: "next-actor", Next: []string{}},
 				Payload: json.RawMessage(`{"index": 1}`),
 			},
 			{
-				Route:   messages.Route{Actors: []string{"test-actor", "next-actor"}, Current: 0},
+				Route:   messages.Route{Prev: []string{"test-actor"}, Curr: "next-actor", Next: []string{}},
 				Payload: json.RawMessage(`{"index": 2}`),
 			},
 		}, http.StatusOK
@@ -2011,8 +2032,9 @@ func TestRouter_ProcessMessage_FanOut_CreatesGatewayTasks(t *testing.T) {
 	var createdTasks []struct {
 		id       string
 		parentID string
-		actors   []string
-		current  int
+		prev     []string
+		curr     string
+		next     []string
 	}
 	createTaskCalled := 0
 
@@ -2023,8 +2045,9 @@ func TestRouter_ProcessMessage_FanOut_CreatesGatewayTasks(t *testing.T) {
 			var req struct {
 				ID       string   `json:"id"`
 				ParentID string   `json:"parent_id"`
-				Actors   []string `json:"actors"`
-				Current  int      `json:"current"`
+				Prev     []string `json:"prev"`
+				Curr     string   `json:"curr"`
+				Next     []string `json:"next"`
 			}
 			if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 				t.Errorf("Failed to decode task create request: %v", err)
@@ -2032,9 +2055,10 @@ func TestRouter_ProcessMessage_FanOut_CreatesGatewayTasks(t *testing.T) {
 			createdTasks = append(createdTasks, struct {
 				id       string
 				parentID string
-				actors   []string
-				current  int
-			}{req.ID, req.ParentID, req.Actors, req.Current})
+				prev     []string
+				curr     string
+				next     []string
+			}{req.ID, req.ParentID, req.Prev, req.Curr, req.Next})
 			w.WriteHeader(http.StatusCreated)
 			_ = json.NewEncoder(w).Encode(map[string]string{"status": "created"})
 		} else {
@@ -2072,8 +2096,9 @@ func TestRouter_ProcessMessage_FanOut_CreatesGatewayTasks(t *testing.T) {
 	inputMsg := messages.Message{
 		ID: "test-fanout-456",
 		Route: messages.Route{
-			Actors:  []string{"test-actor", "next-actor"},
-			Current: 0,
+			Prev: []string{},
+			Curr: "test-actor",
+			Next: []string{"next-actor"},
 		},
 		Payload: json.RawMessage(`{"count": 3}`),
 	}
@@ -2248,7 +2273,7 @@ func TestRouter_EnsureAndUpdateStatus_NewMessage(t *testing.T) {
 	router := &Router{actorName: "test-actor"}
 	msg := &messages.Message{
 		ID:      "msg-1",
-		Route:   messages.Route{Actors: []string{"test-actor"}, Current: 0},
+		Route:   messages.Route{Prev: []string{}, Curr: "test-actor", Next: []string{}},
 		Payload: json.RawMessage(`{}`),
 	}
 
@@ -2275,7 +2300,7 @@ func TestRouter_EnsureAndUpdateStatus_ExistingStatus(t *testing.T) {
 	router := &Router{actorName: "actor-b"}
 	msg := &messages.Message{
 		ID:      "msg-1",
-		Route:   messages.Route{Actors: []string{"actor-a", "actor-b"}, Current: 1},
+		Route:   messages.Route{Prev: []string{"actor-a"}, Curr: "actor-b", Next: []string{}},
 		Payload: json.RawMessage(`{}`),
 		Status: &messages.Status{
 			Phase:     messages.PhasePending,
@@ -2314,7 +2339,7 @@ func TestRouter_EnsureAndUpdateStatus_ActorTransition(t *testing.T) {
 	router := &Router{actorName: "actor-b"}
 	msg := &messages.Message{
 		ID:      "msg-1",
-		Route:   messages.Route{Actors: []string{"actor-a", "actor-b"}, Current: 1},
+		Route:   messages.Route{Prev: []string{"actor-a"}, Curr: "actor-b", Next: []string{}},
 		Payload: json.RawMessage(`{}`),
 		Status: &messages.Status{
 			Phase:   messages.PhasePending,
@@ -2337,7 +2362,7 @@ func TestRouter_EnsureAndUpdateStatus_SameActorRetry(t *testing.T) {
 	router := &Router{actorName: "actor-a"}
 	msg := &messages.Message{
 		ID:      "msg-1",
-		Route:   messages.Route{Actors: []string{"actor-a"}, Current: 0},
+		Route:   messages.Route{Prev: []string{}, Curr: "actor-a", Next: []string{}},
 		Payload: json.RawMessage(`{}`),
 		Status: &messages.Status{
 			Phase:   messages.PhasePending,
@@ -2358,7 +2383,7 @@ func TestRouter_RouteResponse_NextActor_HasStatus(t *testing.T) {
 		return []runtime.RuntimeResponse{
 			{
 				Payload: json.RawMessage(`{"result": "ok"}`),
-				Route:   messages.Route{Actors: []string{"actor1", "actor2"}, Current: 1},
+				Route:   messages.Route{Prev: []string{"actor1"}, Curr: "actor2", Next: []string{}},
 			},
 		}, http.StatusOK
 	})
@@ -2385,7 +2410,7 @@ func TestRouter_RouteResponse_NextActor_HasStatus(t *testing.T) {
 
 	inputMsg := messages.Message{
 		ID:      "test-status-next",
-		Route:   messages.Route{Actors: []string{"actor1", "actor2"}, Current: 0},
+		Route:   messages.Route{Prev: []string{}, Curr: "actor1", Next: []string{"actor2"}},
 		Payload: json.RawMessage(`{"input": "test"}`),
 	}
 	msgBody, _ := json.Marshal(inputMsg)
@@ -2422,7 +2447,7 @@ func TestRouter_RouteResponse_Sink_HasStatus(t *testing.T) {
 		return []runtime.RuntimeResponse{
 			{
 				Payload: json.RawMessage(`{"result": "done"}`),
-				Route:   messages.Route{Actors: []string{"actor1"}, Current: 1},
+				Route:   messages.Route{Prev: []string{"actor1"}, Curr: "", Next: []string{}},
 			},
 		}, http.StatusOK
 	})
@@ -2449,7 +2474,7 @@ func TestRouter_RouteResponse_Sink_HasStatus(t *testing.T) {
 
 	inputMsg := messages.Message{
 		ID:      "test-sink-status",
-		Route:   messages.Route{Actors: []string{"actor1"}, Current: 0},
+		Route:   messages.Route{Prev: []string{}, Curr: "actor1", Next: []string{}},
 		Payload: json.RawMessage(`{"input": "test"}`),
 	}
 	msgBody, _ := json.Marshal(inputMsg)
@@ -2502,7 +2527,7 @@ func TestRouter_SendToSumpQueue_HasStatus(t *testing.T) {
 
 	originalMsg := messages.Message{
 		ID:      "test-error-status",
-		Route:   messages.Route{Actors: []string{"test-actor"}, Current: 0},
+		Route:   messages.Route{Prev: []string{}, Curr: "test-actor", Next: []string{}},
 		Payload: json.RawMessage(`{"data": "test"}`),
 		Status: &messages.Status{
 			Phase:     messages.PhaseProcessing,
@@ -2564,7 +2589,7 @@ func TestRouter_SendToSinkQueue_HasStatus(t *testing.T) {
 
 	msg := messages.Message{
 		ID:      "test-sink-queue-status",
-		Route:   messages.Route{Actors: []string{"actor1"}, Current: 1},
+		Route:   messages.Route{Prev: []string{"actor1"}, Curr: "", Next: []string{}},
 		Payload: json.RawMessage(`{"result": "success"}`),
 	}
 

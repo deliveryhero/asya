@@ -31,11 +31,11 @@ def test_sidecar_basic_routing(transport):
     transport.purge("test-verify")
 
     # Route: test-echo → test-verify → test-timeout
-    # After test-echo processes (current 0→1), sidecar routes to test-verify
-    # test-verify has no consumer, so we can read the message there
+    # After test-echo processes, sidecar shifts the route:
+    #   prev becomes ["test-echo"], curr becomes "test-verify", next becomes ["test-timeout"]
     message = {
         "id": "test-basic-001",
-        "route": {"actors": ["test-echo", "test-verify", "test-timeout"], "current": 0},
+        "route": {"prev": [], "curr": "test-echo", "next": ["test-verify", "test-timeout"]},
         "payload": {"message": "hello"},
     }
 
@@ -46,7 +46,9 @@ def test_sidecar_basic_routing(transport):
     assert result["id"] == message["id"]
     # Echo handler transforms payload: {"message": X} → {"echoed": X}
     assert result["payload"] == {"echoed": "hello"}
-    assert result["route"]["current"] == 1
+    assert result["route"]["prev"] == ["test-echo"]
+    assert result["route"]["curr"] == "test-verify"
+    assert result["route"]["next"] == ["test-timeout"]
 
 
 def test_sidecar_multi_actor_routing(transport):
@@ -56,16 +58,18 @@ def test_sidecar_multi_actor_routing(transport):
 
     message = {
         "id": "test-multi-001",
-        "route": {"actors": ["test-echo", "test-echo", "test-verify"], "current": 0},
+        "route": {"prev": [], "curr": "test-echo", "next": ["test-echo", "test-verify"]},
         "payload": {"message": "multi-hop"},
     }
 
     transport.publish("test-echo", message)
 
-    # First hop: test-echo (current=0) → test-echo (current=1)
-    # Second hop: test-echo (current=1) → test-verify (current=2)
+    # First hop: test-echo (curr) → test-echo (next[0] becomes curr)
+    # Second hop: test-echo (curr) → test-verify (next[0] becomes curr)
     result = transport.consume("test-verify", timeout=15)
 
     assert result is not None, "Message should complete multi-actor route"
     assert result["id"] == message["id"]
-    assert result["route"]["current"] == 2
+    assert result["route"]["prev"] == ["test-echo", "test-echo"]
+    assert result["route"]["curr"] == "test-verify"
+    assert result["route"]["next"] == []

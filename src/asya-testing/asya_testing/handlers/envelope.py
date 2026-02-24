@@ -8,7 +8,7 @@ handle message extraction and reconstruction.
 Message wire format:
 {
   "id": "<message-id>",
-  "route": {"actors": ["q1", "q2"], "current": 0},
+  "route": {"prev": [], "curr": "q1", "next": ["q2"]},
   "headers": {"trace_id": "...", "priority": "high"},
   "payload": <arbitrary JSON>
 }
@@ -42,9 +42,8 @@ def _wrap_payload_handler(handler_func):
     """
 
     def _build_envelope(result_payload, message):
-        output_route = message["route"].copy()
-        output_route["current"] = message["route"]["current"] + 1
-        return {"payload": result_payload, "route": output_route, "headers": message.get("headers", {})}
+        # Envelope-mode handlers return route unchanged; the runtime shifts it.
+        return {"payload": result_payload, "route": message["route"], "headers": message.get("headers", {})}
 
     if inspect.isgeneratorfunction(handler_func):
 
@@ -100,18 +99,24 @@ param_flow_actor_2 = _wrap_payload_handler(payload_handlers.param_flow_actor_2)
 
 def invalid_route_current_handler(message: dict[str, Any]) -> dict[str, Any]:
     """
-    Handler that returns route.current out of range.
+    Handler that returns an invalid route by changing curr.
 
     This tests sidecar behavior when ASYA_ENABLE_VALIDATION=false in runtime
-    and the handler incorrectly sets route.current beyond the actors array length.
+    and the handler incorrectly modifies the read-only curr field.
 
-    The sidecar should handle this gracefully by routing to x-sink.
+    The runtime shifts the route using the handler's output:
+    - corrupted curr gets folded into prev
+    - next is cleared, so after shift curr="" and sidecar routes to x-sink
     """
     payload = message["payload"]
     output_route = message["route"].copy()
 
-    # Set current to an invalid index (beyond actors array)
-    actors_length = len(output_route["actors"])
-    output_route["current"] = actors_length + 5
+    # Corrupt curr and clear next. After runtime shift:
+    #   prev = original_prev + ["__invalid_actor__"]
+    #   curr = ""  (next is empty)
+    #   next = []
+    # Sidecar sees curr="" and routes to x-sink.
+    output_route["curr"] = "__invalid_actor__"
+    output_route["next"] = []
 
     return {"payload": payload, "route": output_route, "headers": message.get("headers", {})}

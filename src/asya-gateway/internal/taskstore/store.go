@@ -27,6 +27,15 @@ func NewStore() *Store {
 	}
 }
 
+// routeTotalActors returns the total number of actors in the route (prev + curr + next).
+func routeTotalActors(route types.Route) int {
+	total := len(route.Prev) + len(route.Next)
+	if route.Curr != "" {
+		total++
+	}
+	return total
+}
+
 // Create creates a new task
 func (s *Store) Create(task *types.Task) error {
 	s.mu.Lock()
@@ -42,9 +51,14 @@ func (s *Store) Create(task *types.Task) error {
 	task.Status = types.TaskStatusPending
 
 	// Initialize progress tracking
-	task.TotalActors = len(task.Route.Actors)
+	task.TotalActors = routeTotalActors(task.Route)
 	task.ActorsCompleted = 0
 	task.ProgressPercent = 0.0
+
+	// Derive current actor name from route
+	if task.Route.Curr != "" {
+		task.CurrentActorName = task.Route.Curr
+	}
 
 	// Set deadline if timeout specified
 	if task.TimeoutSec > 0 {
@@ -98,16 +112,16 @@ func (s *Store) Update(update types.TaskUpdate) error {
 		task.ProgressPercent = *update.ProgressPercent
 	}
 
-	if update.CurrentActorIdx != nil {
-		task.CurrentActorIdx = *update.CurrentActorIdx
-		if *update.CurrentActorIdx >= 0 && *update.CurrentActorIdx < len(update.Actors) {
-			task.CurrentActorName = update.Actors[*update.CurrentActorIdx]
-		}
-	}
-
-	if len(update.Actors) > 0 {
-		task.Route.Actors = update.Actors
-		task.TotalActors = len(update.Actors)
+	// Update route if any route fields are provided
+	if update.Curr != "" || len(update.Prev) > 0 || len(update.Next) > 0 {
+		task.Route.Prev = update.Prev
+		task.Route.Curr = update.Curr
+		task.Route.Next = update.Next
+		task.TotalActors = routeTotalActors(task.Route)
+		task.ActorsCompleted = len(update.Prev)
+		task.CurrentActorName = update.Curr
+	} else if update.Actor != "" {
+		task.CurrentActorName = update.Actor
 	}
 
 	// Cancel timeout timer if task reaches final state
@@ -141,20 +155,18 @@ func (s *Store) UpdateProgress(update types.TaskUpdate) error {
 		task.ProgressPercent = *update.ProgressPercent
 	}
 
-	if update.CurrentActorIdx != nil {
-		task.CurrentActorIdx = *update.CurrentActorIdx
-		if *update.CurrentActorIdx >= 0 && *update.CurrentActorIdx < len(update.Actors) {
-			task.CurrentActorName = update.Actors[*update.CurrentActorIdx]
-		}
+	// Update route fields when provided
+	if update.Curr != "" || len(update.Prev) > 0 || len(update.Next) > 0 {
+		task.Route.Prev = update.Prev
+		task.Route.Curr = update.Curr
+		task.Route.Next = update.Next
+		task.TotalActors = routeTotalActors(task.Route)
+		task.ActorsCompleted = len(update.Prev)
+		task.CurrentActorName = update.Curr
 	}
 
 	if update.Message != "" {
 		task.Message = update.Message
-	}
-
-	if len(update.Actors) > 0 {
-		task.Route.Actors = update.Actors
-		task.TotalActors = len(update.Actors)
 	}
 
 	// Store update in history

@@ -104,7 +104,7 @@ Full access to envelope structure (payload, route, headers). Required for dynami
 def your_function(envelope: dict) -> dict:
     """Process full envelope with access to route."""
     payload = envelope["payload"]
-    route = envelope["route"]  # {"actors": [...], "current": 0}
+    route = envelope["route"]  # {"prev": [...], "curr": "actor-name", "next": [...]}
     headers = envelope.get("headers", {})
 
     # Process and return envelope
@@ -121,51 +121,45 @@ def your_function(envelope: dict) -> dict:
 
 ### ✅ Allowed Operations
 
-1. **Add future steps** (after current position)
+1. **Add future steps** (`next` list)
    ```python
-   # Input:  {"actors": ["a", "b", "c"], "current": 1}
-   # Output: {"actors": ["a", "b", "c", "d", "e"], "current": 1}  # Added d, e
+   # Input:  {"prev": ["a"], "curr": "b", "next": ["c"]}
+   # Output: {"prev": ["a"], "curr": "b", "next": ["c", "d", "e"]}  # Added d, e
    ```
 
-2. **Replace future steps** (after current position)
+2. **Replace future steps** (`next` list)
    ```python
-   # Input:  {"actors": ["a", "b", "c"], "current": 0}
-   # Output: {"actors": ["a", "x", "y"], "current": 0}  # Replaced b, c with x, y
+   # Input:  {"prev": [], "curr": "a", "next": ["b", "c"]}
+   # Output: {"prev": [], "curr": "a", "next": ["x", "y"]}  # Replaced b, c with x, y
    ```
 
-3. **Keep current position unchanged**
+3. **Keep route unchanged**
    ```python
-   # Input:  {"actors": ["a", "b"], "current": 0}
-   # Output: {"actors": ["a", "b"], "current": 0}  # Same
+   # Input:  {"prev": [], "curr": "a", "next": ["b"]}
+   # Output: {"prev": [], "curr": "a", "next": ["b"]}  # Same
    ```
 
 ### ❌ Forbidden Operations
 
-1. **Erase already-processed steps** (positions 0 to current)
+1. **Modify already-processed steps** (`prev` list)
    ```python
-   # Input:  {"actors": ["a", "b", "c"], "current": 2}
-   # Output: {"actors": ["c", "d"], "current": 0}  # ERROR: Erased "a", "b"
+   # Input:  {"prev": ["a", "b"], "curr": "c", "next": []}
+   # Output: {"prev": ["a"], "curr": "c", "next": []}  # ERROR: Erased "b" from prev
    ```
 
-2. **Modify already-processed actor names**
+2. **Modify current actor name** (`curr` field)
    ```python
-   # Input:  {"actors": ["a", "b", "c"], "current": 1}
-   # Output: {"actors": ["a-new", "b", "c"], "current": 1}  # ERROR: Modified "a"
-   ```
-
-3. **Change current position to different actor**
-   ```python
-   # Input:  {"actors": ["a", "b", "c"], "current": 0}  # Points to "a"
-   # Output: {"actors": ["a", "b", "c"], "current": 1}  # ERROR: Now points to "b"
+   # Input:  {"prev": ["a"], "curr": "b", "next": ["c"]}
+   # Output: {"prev": ["a"], "curr": "b-new", "next": ["c"]}  # ERROR: Modified curr
    ```
 
 ### Validation
 
 The runtime validates all output messages (when `ASYA_ENABLE_VALIDATION=true`):
 
-- All actors from position `0` to `current` must remain unchanged
-- The actor at `route.actors[current]` must match the input
-- Future actors (after `current`) can be freely modified
+- `prev` list must remain unchanged from input to output
+- `curr` field must remain unchanged from input to output
+- `next` list can be freely modified
 
 **Violations result in `processing_error` and the message is sent to `x-sump` queue.**
 
@@ -212,8 +206,8 @@ def smart_router(envelope):
 
     # Add conditional actors based on payload
     if payload.get("needs_validation"):
-        # Add validator actor after current processing
-        route["actors"] = route["actors"] + ["validator", "finalizer"]
+        # Extend next steps with additional actors
+        route["next"] = route["next"] + ["validator", "finalizer"]
 
     return {
         "payload": {"processed": True, **payload},
@@ -227,10 +221,9 @@ def smart_router(envelope):
 # ASYA_HANDLER_MODE=envelope
 def process_with_context(envelope):
     route = envelope["route"]
-    current_idx = route["current"]
 
     # Check if this is the last actor
-    is_final = (current_idx == len(route["actors"]) - 1)
+    is_final = len(route["next"]) == 0
 
     result = {
         "payload": {"is_final_step": is_final},
@@ -239,7 +232,7 @@ def process_with_context(envelope):
 
     if is_final:
         # Add final cleanup actor
-        result["route"]["actors"].append("cleanup")
+        result["route"]["next"].append("cleanup")
 
     return result
 ```

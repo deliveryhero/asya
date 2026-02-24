@@ -17,7 +17,7 @@ DOCKER_COMPOSE ?= docker compose
 export DOCKER_BUILDKIT := 1
 export BUILDKIT_PROGRESS ?= plain
 export COMPOSE_ANSI ?= never
-DOCKER_COMPOSE_UP_OPTS := --exit-code-from tester
+DOCKER_COMPOSE_UP_OPTS := --exit-code-from tester --build
 GOTEST_OPTS ?= -v
 COMPOSE_PROJECT := int-gateway
 

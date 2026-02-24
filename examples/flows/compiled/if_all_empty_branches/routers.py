@@ -16,17 +16,14 @@ Regenerate by running: asya flow compile ../../if_all_empty_branches.py
 def start_if_empty_branches_flow(message: dict) -> dict:
     """Entrypoint for flow 'if_empty_branches_flow'"""
     r = message['route']
-    c = r['current']
 
-    r['actors'][c+1:c+1] = [resolve("handler_setup"), resolve("router_if_empty_branches_flow_line_10_if")]
-    r['current'] = c + 1
+    r['next'] = [resolve("handler_setup"), resolve("router_if_empty_branches_flow_line_10_if")] + r['next']
     return message
 
 def router_if_empty_branches_flow_line_10_if(message: dict) -> dict:
     """Router for control flow and payload mutations"""
     p = message['payload']
     r = message['route']
-    c = r['current']
     _next = []
 
     if p['skip_processing']:
@@ -34,8 +31,7 @@ def router_if_empty_branches_flow_line_10_if(message: dict) -> dict:
     else:
         _next.append(resolve("handler_finalize"))
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def end_if_empty_branches_flow(message: dict) -> dict:

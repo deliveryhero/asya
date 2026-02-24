@@ -16,61 +16,52 @@ Regenerate by running: asya flow compile ../../if_nested.py
 def start_conditional_nested_flow(message: dict) -> dict:
     """Entrypoint for flow 'conditional_nested_flow'"""
     r = message['route']
-    c = r['current']
 
-    r['actors'][c+1:c+1] = [resolve("handler_validate_input"), resolve("router_conditional_nested_flow_line_6_if")]
-    r['current'] = c + 1
+    r['next'] = [resolve("handler_validate_input"), resolve("router_conditional_nested_flow_line_6_if")] + r['next']
     return message
 
 def router_conditional_nested_flow_line_15_seq(message: dict) -> dict:
     """Router for control flow and payload mutations"""
     p = message['payload']
     r = message['route']
-    c = r['current']
     _next = []
 
     p['x'] += 4
     _next.append(resolve("router_conditional_nested_flow_line_24_seq"))
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def router_conditional_nested_flow_line_13_seq(message: dict) -> dict:
     """Router for control flow and payload mutations"""
     p = message['payload']
     r = message['route']
-    c = r['current']
     _next = []
 
     p['x'] += 3
     _next.append(resolve("handler_b"))
     _next.append(resolve("router_conditional_nested_flow_line_15_seq"))
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def router_conditional_nested_flow_line_17_seq(message: dict) -> dict:
     """Router for control flow and payload mutations"""
     p = message['payload']
     r = message['route']
-    c = r['current']
     _next = []
 
     p['x'] += 5
     _next.append(resolve("handler_c"))
     _next.append(resolve("router_conditional_nested_flow_line_24_seq"))
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def router_conditional_nested_flow_line_12_if(message: dict) -> dict:
     """Router for control flow and payload mutations"""
     p = message['payload']
     r = message['route']
-    c = r['current']
     _next = []
 
     p['x'] += 2
@@ -79,44 +70,38 @@ def router_conditional_nested_flow_line_12_if(message: dict) -> dict:
     else:
         _next.append(resolve("router_conditional_nested_flow_line_17_seq"))
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def router_conditional_nested_flow_line_22_seq(message: dict) -> dict:
     """Router for control flow and payload mutations"""
     p = message['payload']
     r = message['route']
-    c = r['current']
     _next = []
 
     p['x'] += 7
     _next.append(resolve("router_conditional_nested_flow_line_24_seq"))
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def router_conditional_nested_flow_line_20_seq(message: dict) -> dict:
     """Router for control flow and payload mutations"""
     p = message['payload']
     r = message['route']
-    c = r['current']
     _next = []
 
     p['x'] += 6
     _next.append(resolve("handler_d"))
     _next.append(resolve("router_conditional_nested_flow_line_22_seq"))
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def router_conditional_nested_flow_line_9_if(message: dict) -> dict:
     """Router for control flow and payload mutations"""
     p = message['payload']
     r = message['route']
-    c = r['current']
     _next = []
 
     if p['x'] > 2:
@@ -125,59 +110,51 @@ def router_conditional_nested_flow_line_9_if(message: dict) -> dict:
     else:
         _next.append(resolve("router_conditional_nested_flow_line_20_seq"))
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def router_conditional_nested_flow_line_7_seq(message: dict) -> dict:
     """Router for control flow and payload mutations"""
     p = message['payload']
     r = message['route']
-    c = r['current']
     _next = []
 
     p['x'] += 1
     _next.append(resolve("handler_a"))
     _next.append(resolve("router_conditional_nested_flow_line_9_if"))
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def router_conditional_nested_flow_line_26_seq(message: dict) -> dict:
     """Router for control flow and payload mutations"""
     p = message['payload']
     r = message['route']
-    c = r['current']
     _next = []
 
     p['x'] += 9
     p['x'] *= 10
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def router_conditional_nested_flow_line_24_seq(message: dict) -> dict:
     """Router for control flow and payload mutations"""
     p = message['payload']
     r = message['route']
-    c = r['current']
     _next = []
 
     p['x'] += 8
     _next.append(resolve("handler_finalize"))
     _next.append(resolve("router_conditional_nested_flow_line_26_seq"))
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def router_conditional_nested_flow_line_6_if(message: dict) -> dict:
     """Router for control flow and payload mutations"""
     p = message['payload']
     r = message['route']
-    c = r['current']
     _next = []
 
     p['x'] = 1
@@ -186,8 +163,7 @@ def router_conditional_nested_flow_line_6_if(message: dict) -> dict:
     else:
         _next.append(resolve("router_conditional_nested_flow_line_24_seq"))
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def end_conditional_nested_flow(message: dict) -> dict:

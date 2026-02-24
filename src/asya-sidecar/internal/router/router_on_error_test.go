@@ -19,8 +19,8 @@ func TestRouter_RouteToFlowErrorHandler(t *testing.T) {
 		onError              string
 		response             runtime.RuntimeResponse
 		expectedQueue        string
-		expectedActors       []string
-		expectedCurrent      int
+		expectedCurr         string
+		expectedNext         []string
 		expectedErrorMsg     string
 		expectedErrorType    string
 		expectedErrorMRO     []string
@@ -31,8 +31,9 @@ func TestRouter_RouteToFlowErrorHandler(t *testing.T) {
 			msg: &messages.Message{
 				ID: "msg-001",
 				Route: messages.Route{
-					Actors:  []string{"actor-a", "actor-b", "actor-c"},
-					Current: 0,
+					Prev: []string{},
+					Curr: "actor-a",
+					Next: []string{"actor-b", "actor-c"},
 				},
 				Headers: map[string]interface{}{
 					"_on_error": "except-dispatch-router",
@@ -57,8 +58,8 @@ func TestRouter_RouteToFlowErrorHandler(t *testing.T) {
 				},
 			},
 			expectedQueue:        "asya-default-except-dispatch-router",
-			expectedActors:       []string{"actor-a", "except-dispatch-router"},
-			expectedCurrent:      1,
+			expectedCurr:         "actor-a",
+			expectedNext:         []string{"except-dispatch-router"},
 			expectedErrorMsg:     "value cannot be negative",
 			expectedErrorType:    "ValueError",
 			expectedErrorMRO:     []string{"ValueError", "Exception", "BaseException"},
@@ -69,8 +70,9 @@ func TestRouter_RouteToFlowErrorHandler(t *testing.T) {
 			msg: &messages.Message{
 				ID: "msg-002",
 				Route: messages.Route{
-					Actors:  []string{"validate", "transform"},
-					Current: 0,
+					Prev: []string{},
+					Curr: "validate",
+					Next: []string{"transform"},
 				},
 				Headers: map[string]interface{}{
 					"_on_error": "error-handler",
@@ -86,8 +88,8 @@ func TestRouter_RouteToFlowErrorHandler(t *testing.T) {
 				},
 			},
 			expectedQueue:        "asya-default-error-handler",
-			expectedActors:       []string{"validate", "error-handler"},
-			expectedCurrent:      1,
+			expectedCurr:         "validate",
+			expectedNext:         []string{"error-handler"},
 			expectedErrorMsg:     "validation failed",
 			expectedErrorType:    "RuntimeError",
 			expectOnErrorCleared: true,
@@ -97,8 +99,9 @@ func TestRouter_RouteToFlowErrorHandler(t *testing.T) {
 			msg: &messages.Message{
 				ID: "msg-003",
 				Route: messages.Route{
-					Actors:  []string{"process"},
-					Current: 0,
+					Prev: []string{},
+					Curr: "process",
+					Next: []string{},
 				},
 				Headers: map[string]interface{}{
 					"_on_error": "fallback-handler",
@@ -114,19 +117,20 @@ func TestRouter_RouteToFlowErrorHandler(t *testing.T) {
 				},
 			},
 			expectedQueue:        "asya-default-fallback-handler",
-			expectedActors:       []string{"process", "fallback-handler"},
-			expectedCurrent:      1,
+			expectedCurr:         "process",
+			expectedNext:         []string{"fallback-handler"},
 			expectedErrorMsg:     "unexpected error",
 			expectedErrorType:    "Exception",
 			expectOnErrorCleared: true,
 		},
 		{
-			name: "truncates route after current position",
+			name: "replaces next actors with error handler",
 			msg: &messages.Message{
 				ID: "msg-004",
 				Route: messages.Route{
-					Actors:  []string{"step1", "step2", "step3", "step4"},
-					Current: 1,
+					Prev: []string{"step1"},
+					Curr: "step2",
+					Next: []string{"step3", "step4"},
 				},
 				Headers: map[string]interface{}{
 					"_on_error": "err-dispatch",
@@ -148,8 +152,8 @@ func TestRouter_RouteToFlowErrorHandler(t *testing.T) {
 				},
 			},
 			expectedQueue:        "asya-default-err-dispatch",
-			expectedActors:       []string{"step1", "step2", "err-dispatch"},
-			expectedCurrent:      2,
+			expectedCurr:         "step2",
+			expectedNext:         []string{"err-dispatch"},
 			expectedErrorMsg:     "step2 failed",
 			expectedErrorType:    "TypeError",
 			expectedErrorMRO:     []string{"TypeError", "Exception", "BaseException"},
@@ -160,7 +164,7 @@ func TestRouter_RouteToFlowErrorHandler(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cfg := &config.Config{
-				ActorName:     tt.msg.Route.Actors[tt.msg.Route.Current],
+				ActorName:     tt.msg.Route.Curr,
 				Namespace:     "default",
 				SinkQueue:     "x-sink",
 				SumpQueue:     "x-sump",
@@ -203,20 +207,20 @@ func TestRouter_RouteToFlowErrorHandler(t *testing.T) {
 				t.Fatalf("Failed to unmarshal sent message: %v", err)
 			}
 
-			// Verify route actors
-			if len(sentMsg.Route.Actors) != len(tt.expectedActors) {
-				t.Fatalf("Expected %d actors in route, got %d: %v",
-					len(tt.expectedActors), len(sentMsg.Route.Actors), sentMsg.Route.Actors)
-			}
-			for i, expected := range tt.expectedActors {
-				if sentMsg.Route.Actors[i] != expected {
-					t.Errorf("Route actor[%d] = %q, expected %q", i, sentMsg.Route.Actors[i], expected)
-				}
+			// Verify route curr (unchanged - runtime shifts it)
+			if sentMsg.Route.Curr != tt.expectedCurr {
+				t.Errorf("Route curr = %q, expected %q", sentMsg.Route.Curr, tt.expectedCurr)
 			}
 
-			// Verify route current
-			if sentMsg.Route.Current != tt.expectedCurrent {
-				t.Errorf("Route current = %d, expected %d", sentMsg.Route.Current, tt.expectedCurrent)
+			// Verify route next contains only the error handler
+			if len(sentMsg.Route.Next) != len(tt.expectedNext) {
+				t.Fatalf("Expected %d next actors in route, got %d: %v",
+					len(tt.expectedNext), len(sentMsg.Route.Next), sentMsg.Route.Next)
+			}
+			for i, expected := range tt.expectedNext {
+				if sentMsg.Route.Next[i] != expected {
+					t.Errorf("Route next[%d] = %q, expected %q", i, sentMsg.Route.Next[i], expected)
+				}
 			}
 
 			// Verify _on_error header is cleared
@@ -307,8 +311,9 @@ func TestRouter_HandleErrorResponse_WithOnErrorHeader(t *testing.T) {
 	msg := &messages.Message{
 		ID: "msg-with-on-error",
 		Route: messages.Route{
-			Actors:  []string{"test-actor", "next-actor"},
-			Current: 0,
+			Prev: []string{},
+			Curr: "test-actor",
+			Next: []string{"next-actor"},
 		},
 		Headers: map[string]interface{}{
 			"_on_error": "my-error-handler",
@@ -374,8 +379,9 @@ func TestRouter_HandleErrorResponse_WithoutOnErrorHeader(t *testing.T) {
 	msg := &messages.Message{
 		ID: "msg-no-on-error",
 		Route: messages.Route{
-			Actors:  []string{"test-actor", "next-actor"},
-			Current: 0,
+			Prev: []string{},
+			Curr: "test-actor",
+			Next: []string{"next-actor"},
 		},
 		Payload: json.RawMessage(`{"key": "value"}`),
 	}
@@ -431,8 +437,9 @@ func TestRouter_HandleErrorResponse_EmptyOnErrorHeader(t *testing.T) {
 	msg := &messages.Message{
 		ID: "msg-empty-on-error",
 		Route: messages.Route{
-			Actors:  []string{"test-actor"},
-			Current: 0,
+			Prev: []string{},
+			Curr: "test-actor",
+			Next: []string{},
 		},
 		Headers: map[string]interface{}{
 			"_on_error": "",
@@ -491,8 +498,9 @@ func TestRouter_RouteToFlowErrorHandler_PreservesCreatedAt(t *testing.T) {
 	msg := &messages.Message{
 		ID: "msg-created-at",
 		Route: messages.Route{
-			Actors:  []string{"my-actor", "next"},
-			Current: 0,
+			Prev: []string{},
+			Curr: "my-actor",
+			Next: []string{"next"},
 		},
 		Headers: map[string]interface{}{
 			"_on_error": "handler",
@@ -557,8 +565,9 @@ func TestRouter_RouteToFlowErrorHandler_SetsActorName(t *testing.T) {
 	msg := &messages.Message{
 		ID: "msg-actor-name",
 		Route: messages.Route{
-			Actors:  []string{"failing-actor"},
-			Current: 0,
+			Prev: []string{},
+			Curr: "failing-actor",
+			Next: []string{},
 		},
 		Headers: map[string]interface{}{
 			"_on_error": "err-handler",
@@ -618,8 +627,9 @@ func TestRouter_RouteToFlowErrorHandler_ErrorTraceback(t *testing.T) {
 	msg := &messages.Message{
 		ID: "msg-traceback",
 		Route: messages.Route{
-			Actors:  []string{"actor-x", "actor-y"},
-			Current: 0,
+			Prev: []string{},
+			Curr: "actor-x",
+			Next: []string{"actor-y"},
 		},
 		Headers: map[string]interface{}{
 			"_on_error": "tb-handler",

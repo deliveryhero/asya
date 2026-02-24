@@ -56,13 +56,19 @@ def compile_and_import():
         del sys.modules["routers"]
 
 
-def make_message(payload: dict, actors: list[str] | None = None, current: int = 0) -> dict:
+def make_message(
+    payload: dict,
+    prev: list[str] | None = None,
+    curr: str = "",
+    next_actors: list[str] | None = None,
+) -> dict:
     """Create a test message with route structure."""
     return {
         "id": "test-msg",
         "route": {
-            "actors": actors or [],
-            "current": current,
+            "prev": prev or [],
+            "curr": curr,
+            "next": next_actors or [],
         },
         "payload": payload,
     }
@@ -530,7 +536,7 @@ def flow(p: dict) -> dict:
         code = compiler.compile(source, "test.py")
 
         assert "_ASYA_MAX_LOOP_ITERATIONS" in code
-        assert "r['actors'][:c].count(_self)" in code
+        assert "r['prev'].count(_self)" in code
         assert "RuntimeError" in code
         # No payload pollution
         assert "__loop_" not in code
@@ -611,15 +617,18 @@ def flow(p: dict) -> dict:
         assert loop_back_name is not None
         assert loop_back_fn is not None
 
-        # Realistic initial route: start router placed loop_back into actors
-        msg = make_message({"value": 1}, actors=["start_flow", loop_back_name], current=1)
+        # Realistic initial route: start router placed loop_back into next
+        msg = make_message({"value": 1}, prev=["start_flow"], curr=loop_back_name, next_actors=[])
 
-        # 3 iterations should succeed (route accumulates loop_back visits)
+        # 3 iterations should succeed (prev accumulates loop_back visits)
         for _ in range(3):
             msg = loop_back_fn(msg)
-            msg["route"]["current"] = len(msg["route"]["actors"]) - 1
+            # Simulate runtime shifting route: move curr to prev, advance curr to next[0]
+            msg["route"]["prev"] = msg["route"]["prev"] + [loop_back_name]
+            msg["route"]["curr"] = loop_back_name
+            msg["route"]["next"] = []
 
-        # 4th iteration should raise (3 past visits in route)
+        # 4th iteration should raise (3 past visits in prev)
         with pytest.raises(RuntimeError, match="Max loop iterations"):
             loop_back_fn(msg)
 
@@ -649,12 +658,15 @@ def flow(p: dict) -> dict:
         assert loop_back_name is not None
         assert loop_back_fn is not None
 
-        # Realistic initial route: start router placed loop_back into actors
-        msg = make_message({"value": 1}, actors=["start_flow", loop_back_name], current=1)
+        # Realistic initial route: start router placed loop_back into next
+        msg = make_message({"value": 1}, prev=["start_flow"], curr=loop_back_name, next_actors=[])
 
         for _ in range(5):
             msg = loop_back_fn(msg)
-            msg["route"]["current"] = len(msg["route"]["actors"]) - 1
+            # Simulate runtime shifting route: move curr to prev, advance curr to next[0]
+            msg["route"]["prev"] = msg["route"]["prev"] + [loop_back_name]
+            msg["route"]["curr"] = loop_back_name
+            msg["route"]["next"] = []
 
         # Payload stays clean (no __loop_ keys injected)
         assert not any(k.startswith("__loop_") for k in msg["payload"])

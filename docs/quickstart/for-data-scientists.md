@@ -796,8 +796,9 @@ class LLMJudge:
         #   "id": "...",
         #   "payload": {...},  # Your data
         #   "route": {
-        #     "actors": ["preprocessor", "llm-judge", "postprocessor"],
-        #     "current": 1  # Points to current actor (llm-judge)
+        #     "prev": ["preprocessor"],  # Already processed
+        #     "curr": "llm-judge",       # Current actor
+        #     "next": ["postprocessor"]  # Remaining actors
         #   }
         # }
 
@@ -810,24 +811,17 @@ class LLMJudge:
         # Dynamically modify route based on score
         route = envelope["route"]
         if score < self.threshold:
-            # Low quality response - add refinement step
-            route["actors"].insert(
-                route["current"] + 1,  # After current position
-                "llm-refiner"  # Extra step
-            )
-
-        # Increment current pointer
-        route["current"] += 1
+            # Low quality response - add refinement step before remaining actors
+            route["next"] = ["llm-refiner"] + route["next"]
 
         return envelope
 ```
 
 **Important**: Route modification rules:
 
-- ✅ Can add/replace future steps
-- ✅ Can insert actors after current position
-- ❌ Cannot modify already-processed steps
-- ❌ Cannot change which actor `route.current` points to
+- ✅ Can add/replace future steps via `route["next"]`
+- ❌ Cannot modify already-processed steps (`route["prev"]` is read-only)
+- ❌ Cannot change the current actor (`route["curr"]` is read-only)
 
 ## Error Handling
 

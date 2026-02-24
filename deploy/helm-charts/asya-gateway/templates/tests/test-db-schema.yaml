@@ -58,7 +58,7 @@ spec:
 
       # Verify critical columns in tasks table
       echo "[.] Verifying tasks table schema..."
-      REQUIRED_COLUMNS="id status route_actors route_current created_at updated_at"
+      REQUIRED_COLUMNS="id status route_prev route_curr route_next created_at updated_at"
       for col in $REQUIRED_COLUMNS; do
         COL_EXISTS=$(psql -h {{ include "asya-gateway.databaseHost" . }} \
                           -p {{ include "asya-gateway.databasePort" . }} \
@@ -79,7 +79,7 @@ spec:
            -p {{ include "asya-gateway.databasePort" . }} \
            -U {{ include "asya-gateway.databaseUsername" . }} \
            -d {{ include "asya-gateway.databaseName" . }} \
-           -c "INSERT INTO tasks (id, status, route_actors, route_current) VALUES ('test-schema-validation', 'pending', ARRAY['test'], 0) ON CONFLICT (id) DO NOTHING;"
+           -c "INSERT INTO tasks (id, status, route_prev, route_curr, route_next) VALUES ('test-schema-validation', 'pending', ARRAY[]::text[], 'test-actor', ARRAY[]::text[]) ON CONFLICT (id) DO NOTHING;"
 
       RESULT=$(psql -h {{ include "asya-gateway.databaseHost" . }} \
                     -p {{ include "asya-gateway.databasePort" . }} \

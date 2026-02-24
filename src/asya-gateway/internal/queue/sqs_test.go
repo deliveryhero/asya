@@ -98,8 +98,9 @@ func TestSQSQueueNaming(t *testing.T) {
 			task := &types.Task{
 				ID: "test-task-1",
 				Route: types.Route{
-					Actors:  []string{tt.actorName}, // Actor name without prefix
-					Current: 0,
+					Prev: []string{},
+					Curr: tt.actorName, // Actor name without prefix
+					Next: []string{},
 				},
 				Payload:  map[string]interface{}{"test": "data"},
 				Deadline: time.Now().Add(30 * time.Second),

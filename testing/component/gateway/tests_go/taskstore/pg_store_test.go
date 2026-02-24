@@ -47,8 +47,9 @@ func TestPgStore_CreateAndGet(t *testing.T) {
 	task := &types.Task{
 		ID: "test-create-get-1",
 		Route: types.Route{
-			Actors:  []string{"actor1", "actor2", "actor3"},
-			Current: 0,
+			Prev: []string{},
+			Curr: "actor1",
+			Next: []string{"actor2", "actor3"},
 		},
 		Payload:    map[string]interface{}{"data": "test"},
 		TimeoutSec: 300,
@@ -61,14 +62,15 @@ func TestPgStore_CreateAndGet(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "test-create-get-1", retrieved.ID)
 	assert.Equal(t, types.TaskStatusPending, retrieved.Status)
-	assert.Equal(t, []string{"actor1", "actor2", "actor3"}, retrieved.Route.Actors)
-	assert.Equal(t, 0, retrieved.Route.Current)
+	assert.Equal(t, []string{}, retrieved.Route.Prev)
+	assert.Equal(t, "actor1", retrieved.Route.Curr)
+	assert.Equal(t, []string{"actor2", "actor3"}, retrieved.Route.Next)
 	assert.Equal(t, 3, retrieved.TotalActors)
 	assert.Equal(t, 0, retrieved.ActorsCompleted)
 	assert.Equal(t, 0.0, retrieved.ProgressPercent)
 }
 
-// TestPgStore_UpdateProgress_RouteActorsPersistence tests that route_actors is persisted
+// TestPgStore_UpdateProgress_RouteActorsPersistence tests that route prev/curr/next is persisted
 func TestPgStore_UpdateProgress_RouteActorsPersistence(t *testing.T) {
 	store, cleanup := setupPgStore(t)
 	defer cleanup()
@@ -76,8 +78,9 @@ func TestPgStore_UpdateProgress_RouteActorsPersistence(t *testing.T) {
 	task := &types.Task{
 		ID: "test-route-persist-1",
 		Route: types.Route{
-			Actors:  []string{"actor1", "actor2"},
-			Current: 0,
+			Prev: []string{},
+			Curr: "actor1",
+			Next: []string{"actor2"},
 		},
 		Payload: map[string]interface{}{"data": "test"},
 	}
@@ -85,15 +88,14 @@ func TestPgStore_UpdateProgress_RouteActorsPersistence(t *testing.T) {
 	err := store.Create(task)
 	require.NoError(t, err)
 
-	// Simulate actor modifying route by adding more actors
-	modifiedRoute := []string{"actor1", "actor2", "actor3", "actor4"}
-
+	// Simulate actor modifying route by extending next
 	update := types.TaskUpdate{
 		ID:              "test-route-persist-1",
 		Status:          types.TaskStatusRunning,
 		ProgressPercent: floatPtr(25.0),
-		Actors:          modifiedRoute,
-		CurrentActorIdx: intPtr(0),
+		Prev:            []string{},
+		Curr:            "actor1",
+		Next:            []string{"actor2", "actor3", "actor4"},
 		TaskState:       strPtr("processing"),
 		Timestamp:       time.Now(),
 	}
@@ -104,10 +106,11 @@ func TestPgStore_UpdateProgress_RouteActorsPersistence(t *testing.T) {
 	// Verify route was persisted
 	retrieved, err := store.Get("test-route-persist-1")
 	require.NoError(t, err)
-	assert.Equal(t, modifiedRoute, retrieved.Route.Actors, "Route actors should be updated")
+	assert.Equal(t, []string{}, retrieved.Route.Prev)
+	assert.Equal(t, "actor1", retrieved.Route.Curr)
+	assert.Equal(t, []string{"actor2", "actor3", "actor4"}, retrieved.Route.Next)
 	assert.Equal(t, 4, retrieved.TotalActors, "TotalActors should be updated")
-	assert.Equal(t, 0, retrieved.CurrentActorIdx, "CurrentActorIdx should be updated")
-	assert.Equal(t, "actor1", retrieved.CurrentActorName, "CurrentActorName should be derived")
+	assert.Equal(t, "actor1", retrieved.CurrentActorName, "CurrentActorName should be derived from Curr")
 }
 
 // TestPgStore_UpdateProgress_MultipleUpdates tests multiple progress updates with route changes
@@ -118,8 +121,9 @@ func TestPgStore_UpdateProgress_MultipleUpdates(t *testing.T) {
 	task := &types.Task{
 		ID: "test-multi-update-1",
 		Route: types.Route{
-			Actors:  []string{"step1", "step2"},
-			Current: 0,
+			Prev: []string{},
+			Curr: "step1",
+			Next: []string{"step2"},
 		},
 		Payload: map[string]interface{}{"data": "test"},
 	}
@@ -127,13 +131,14 @@ func TestPgStore_UpdateProgress_MultipleUpdates(t *testing.T) {
 	err := store.Create(task)
 	require.NoError(t, err)
 
-	// First update: extend route
+	// First update: at step1 with extended route
 	update1 := types.TaskUpdate{
 		ID:              "test-multi-update-1",
 		Status:          types.TaskStatusRunning,
 		ProgressPercent: floatPtr(10.0),
-		Actors:          []string{"step1", "step2", "step3"},
-		CurrentActorIdx: intPtr(0),
+		Prev:            []string{},
+		Curr:            "step1",
+		Next:            []string{"step2", "step3"},
 		TaskState:       strPtr("received"),
 		Timestamp:       time.Now(),
 	}
@@ -141,13 +146,14 @@ func TestPgStore_UpdateProgress_MultipleUpdates(t *testing.T) {
 	err = store.UpdateProgress(update1)
 	require.NoError(t, err)
 
-	// Second update: further extend route
+	// Second update: step1 completed, now at step2 with more steps
 	update2 := types.TaskUpdate{
 		ID:              "test-multi-update-1",
 		Status:          types.TaskStatusRunning,
 		ProgressPercent: floatPtr(50.0),
-		Actors:          []string{"step1", "step2", "step3", "step4", "step5"},
-		CurrentActorIdx: intPtr(1),
+		Prev:            []string{"step1"},
+		Curr:            "step2",
+		Next:            []string{"step3", "step4", "step5"},
 		TaskState:       strPtr("processing"),
 		Timestamp:       time.Now(),
 	}
@@ -158,9 +164,10 @@ func TestPgStore_UpdateProgress_MultipleUpdates(t *testing.T) {
 	// Verify final state
 	retrieved, err := store.Get("test-multi-update-1")
 	require.NoError(t, err)
-	assert.Equal(t, []string{"step1", "step2", "step3", "step4", "step5"}, retrieved.Route.Actors)
+	assert.Equal(t, []string{"step1"}, retrieved.Route.Prev)
+	assert.Equal(t, "step2", retrieved.Route.Curr)
+	assert.Equal(t, []string{"step3", "step4", "step5"}, retrieved.Route.Next)
 	assert.Equal(t, 5, retrieved.TotalActors)
-	assert.Equal(t, 1, retrieved.CurrentActorIdx)
 	assert.Equal(t, "step2", retrieved.CurrentActorName)
 	assert.InDelta(t, 50.0, retrieved.ProgressPercent, 0.1)
 }
@@ -173,8 +180,9 @@ func TestPgStore_GetUpdates(t *testing.T) {
 	task := &types.Task{
 		ID: "test-get-updates-1",
 		Route: types.Route{
-			Actors:  []string{"actor1", "actor2"},
-			Current: 0,
+			Prev: []string{},
+			Curr: "actor1",
+			Next: []string{"actor2"},
 		},
 		Payload: map[string]interface{}{"data": "test"},
 	}
@@ -188,8 +196,9 @@ func TestPgStore_GetUpdates(t *testing.T) {
 			ID:              "test-get-updates-1",
 			Status:          types.TaskStatusRunning,
 			ProgressPercent: floatPtr(10.0),
-			Actors:          []string{"actor1", "actor2"},
-			CurrentActorIdx: intPtr(0),
+			Prev:            []string{},
+			Curr:            "actor1",
+			Next:            []string{"actor2"},
 			TaskState:       strPtr("received"),
 			Message:         "Received at actor1",
 			Timestamp:       time.Now(),
@@ -198,8 +207,9 @@ func TestPgStore_GetUpdates(t *testing.T) {
 			ID:              "test-get-updates-1",
 			Status:          types.TaskStatusRunning,
 			ProgressPercent: floatPtr(50.0),
-			Actors:          []string{"actor1", "actor2"},
-			CurrentActorIdx: intPtr(0),
+			Prev:            []string{},
+			Curr:            "actor1",
+			Next:            []string{"actor2"},
 			TaskState:       strPtr("processing"),
 			Message:         "Processing at actor1",
 			Timestamp:       time.Now().Add(100 * time.Millisecond),
@@ -208,8 +218,9 @@ func TestPgStore_GetUpdates(t *testing.T) {
 			ID:              "test-get-updates-1",
 			Status:          types.TaskStatusRunning,
 			ProgressPercent: floatPtr(100.0),
-			Actors:          []string{"actor1", "actor2"},
-			CurrentActorIdx: intPtr(0),
+			Prev:            []string{},
+			Curr:            "actor1",
+			Next:            []string{"actor2"},
 			TaskState:       strPtr("completed"),
 			Message:         "Completed at actor1",
 			Timestamp:       time.Now().Add(200 * time.Millisecond),
@@ -245,8 +256,9 @@ func TestPgStore_GetUpdates_Since(t *testing.T) {
 	task := &types.Task{
 		ID: "test-get-updates-since-1",
 		Route: types.Route{
-			Actors:  []string{"actor1"},
-			Current: 0,
+			Prev: []string{},
+			Curr: "actor1",
+			Next: []string{},
 		},
 		Payload: map[string]interface{}{"data": "test"},
 	}
@@ -258,8 +270,9 @@ func TestPgStore_GetUpdates_Since(t *testing.T) {
 		ID:              "test-get-updates-since-1",
 		Status:          types.TaskStatusRunning,
 		ProgressPercent: floatPtr(10.0),
-		Actors:          []string{"actor1"},
-		CurrentActorIdx: intPtr(0),
+		Prev:            []string{},
+		Curr:            "actor1",
+		Next:            []string{},
 		TaskState:       strPtr("received"),
 		Timestamp:       time.Now(),
 	}
@@ -274,8 +287,9 @@ func TestPgStore_GetUpdates_Since(t *testing.T) {
 		ID:              "test-get-updates-since-1",
 		Status:          types.TaskStatusRunning,
 		ProgressPercent: floatPtr(50.0),
-		Actors:          []string{"actor1"},
-		CurrentActorIdx: intPtr(0),
+		Prev:            []string{},
+		Curr:            "actor1",
+		Next:            []string{},
 		TaskState:       strPtr("processing"),
 		Timestamp:       time.Now(),
 	}
@@ -298,8 +312,9 @@ func TestPgStore_Update_FinalStatus(t *testing.T) {
 	task := &types.Task{
 		ID: "test-final-status-1",
 		Route: types.Route{
-			Actors:  []string{"actor1", "actor2"},
-			Current: 0,
+			Prev: []string{},
+			Curr: "actor1",
+			Next: []string{"actor2"},
 		},
 		Payload: map[string]interface{}{"data": "test"},
 	}
@@ -335,8 +350,9 @@ func TestPgStore_ConcurrentUpdates(t *testing.T) {
 	task := &types.Task{
 		ID: "test-concurrent-1",
 		Route: types.Route{
-			Actors:  []string{"actor1", "actor2", "actor3"},
-			Current: 0,
+			Prev: []string{},
+			Curr: "actor1",
+			Next: []string{"actor2", "actor3"},
 		},
 		Payload: map[string]interface{}{"data": "test"},
 	}
@@ -352,8 +368,9 @@ func TestPgStore_ConcurrentUpdates(t *testing.T) {
 				ID:              "test-concurrent-1",
 				Status:          types.TaskStatusRunning,
 				ProgressPercent: floatPtr(float64(idx * 10)),
-				Actors:          []string{"actor1", "actor2", "actor3"},
-				CurrentActorIdx: intPtr(0),
+				Prev:            []string{},
+				Curr:            "actor1",
+				Next:            []string{"actor2", "actor3"},
 				TaskState:       strPtr("processing"),
 				Timestamp:       time.Now(),
 			}
@@ -390,8 +407,9 @@ func TestPgStore_IsActive(t *testing.T) {
 			task: &types.Task{
 				ID: "test-active-pending",
 				Route: types.Route{
-					Actors:  []string{"actor1"},
-					Current: 0,
+					Prev: []string{},
+					Curr: "actor1",
+					Next: []string{},
 				},
 				Payload: map[string]interface{}{"data": "test"},
 			},
@@ -402,8 +420,9 @@ func TestPgStore_IsActive(t *testing.T) {
 			task: &types.Task{
 				ID: "test-active-running",
 				Route: types.Route{
-					Actors:  []string{"actor1"},
-					Current: 0,
+					Prev: []string{},
+					Curr: "actor1",
+					Next: []string{},
 				},
 				Payload: map[string]interface{}{"data": "test"},
 			},
@@ -419,8 +438,9 @@ func TestPgStore_IsActive(t *testing.T) {
 			task: &types.Task{
 				ID: "test-active-succeeded",
 				Route: types.Route{
-					Actors:  []string{"actor1"},
-					Current: 0,
+					Prev: []string{},
+					Curr: "actor1",
+					Next: []string{},
 				},
 				Payload: map[string]interface{}{"data": "test"},
 			},
@@ -437,8 +457,9 @@ func TestPgStore_IsActive(t *testing.T) {
 			task: &types.Task{
 				ID: "test-active-failed",
 				Route: types.Route{
-					Actors:  []string{"actor1"},
-					Current: 0,
+					Prev: []string{},
+					Curr: "actor1",
+					Next: []string{},
 				},
 				Payload: map[string]interface{}{"data": "test"},
 			},

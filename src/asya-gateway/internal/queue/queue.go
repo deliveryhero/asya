@@ -29,14 +29,11 @@ type ActorMessage struct {
 
 // NewActorMessage creates an ActorMessage from a Task with validated route and initial status.
 func NewActorMessage(task *types.Task) (ActorMessage, error) {
-	if len(task.Route.Actors) == 0 {
-		return ActorMessage{}, fmt.Errorf("route has no actors")
-	}
-	if task.Route.Current < 0 || task.Route.Current >= len(task.Route.Actors) {
-		return ActorMessage{}, fmt.Errorf("invalid route.current=%d for actors length %d", task.Route.Current, len(task.Route.Actors))
+	if task.Route.Curr == "" {
+		return ActorMessage{}, fmt.Errorf("route has no current actor (curr is empty)")
 	}
 
-	actorName := task.Route.Actors[task.Route.Current]
+	actorName := task.Route.Curr
 	now := time.Now().UTC().Format(time.RFC3339)
 
 	msg := ActorMessage{

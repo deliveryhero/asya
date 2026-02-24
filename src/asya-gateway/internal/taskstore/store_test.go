@@ -14,8 +14,9 @@ func TestUpdateProgress_InMemoryStore(t *testing.T) {
 	job := &types.Task{
 		ID: "test-job-1",
 		Route: types.Route{
-			Actors:  []string{"actor1", "actor2", "actor3"},
-			Current: 0,
+			Prev: []string{},
+			Curr: "actor1",
+			Next: []string{"actor2", "actor3"},
 		},
 		Status: types.TaskStatusPending,
 	}
@@ -38,8 +39,9 @@ func TestUpdateProgress_InMemoryStore(t *testing.T) {
 				Status:          types.TaskStatusRunning,
 				Message:         "Processing actor 1",
 				ProgressPercent: floatPtr(25.0),
-				Actors:          []string{"actor1", "actor2", "actor3"},
-				CurrentActorIdx: intPtr(0),
+				Prev:            []string{},
+				Curr:            "actor1",
+				Next:            []string{"actor2", "actor3"},
 				TaskState:       strPtr("processing"),
 				Timestamp:       time.Now(),
 			},
@@ -54,8 +56,9 @@ func TestUpdateProgress_InMemoryStore(t *testing.T) {
 				Status:          types.TaskStatusRunning,
 				Message:         "Processing actor 2",
 				ProgressPercent: floatPtr(50.0),
-				Actors:          []string{"actor1", "actor2", "actor3"},
-				CurrentActorIdx: intPtr(1),
+				Prev:            []string{"actor1"},
+				Curr:            "actor2",
+				Next:            []string{"actor3"},
 				TaskState:       strPtr("processing"),
 				Timestamp:       time.Now(),
 			},
@@ -70,8 +73,9 @@ func TestUpdateProgress_InMemoryStore(t *testing.T) {
 				Status:          types.TaskStatusRunning,
 				Message:         "Completed",
 				ProgressPercent: floatPtr(100.0),
-				Actors:          []string{"actor1", "actor2", "actor3"},
-				CurrentActorIdx: intPtr(2),
+				Prev:            []string{"actor1", "actor2"},
+				Curr:            "actor3",
+				Next:            []string{},
 				TaskState:       strPtr("completed"),
 				Timestamp:       time.Now(),
 			},
@@ -114,8 +118,9 @@ func TestUpdateProgress_NotifiesListeners(t *testing.T) {
 	job := &types.Task{
 		ID: "test-job-notify",
 		Route: types.Route{
-			Actors:  []string{"actor1"},
-			Current: 0,
+			Prev: []string{},
+			Curr: "actor1",
+			Next: []string{},
 		},
 		Status: types.TaskStatusPending,
 	}
@@ -135,8 +140,9 @@ func TestUpdateProgress_NotifiesListeners(t *testing.T) {
 		Status:          types.TaskStatusRunning,
 		Message:         "Processing",
 		ProgressPercent: &progressPercent,
-		Actors:          []string{"actor1"},
-		CurrentActorIdx: intPtr(0),
+		Prev:            []string{},
+		Curr:            "actor1",
+		Next:            []string{},
 		TaskState:       strPtr("processing"),
 		Timestamp:       time.Now(),
 	}
@@ -151,8 +157,8 @@ func TestUpdateProgress_NotifiesListeners(t *testing.T) {
 		if receivedUpdate.ID != "test-job-notify" {
 			t.Errorf("JobID = %v, want test-job-notify", receivedUpdate.ID)
 		}
-		if receivedUpdate.CurrentActorIdx == nil || len(receivedUpdate.Actors) == 0 || receivedUpdate.Actors[*receivedUpdate.CurrentActorIdx] != "actor1" {
-			t.Errorf("Actor = %v, want actor1", receivedUpdate.Actors)
+		if receivedUpdate.Curr != "actor1" {
+			t.Errorf("Curr = %v, want actor1", receivedUpdate.Curr)
 		}
 		if receivedUpdate.TaskState == nil || *receivedUpdate.TaskState != "processing" {
 			t.Errorf("TaskState = %v, want processing", receivedUpdate.TaskState)
@@ -187,8 +193,9 @@ func TestUpdateProgress_MultipleSubscribers(t *testing.T) {
 	job := &types.Task{
 		ID: "test-job-multi",
 		Route: types.Route{
-			Actors:  []string{"actor1"},
-			Current: 0,
+			Prev: []string{},
+			Curr: "actor1",
+			Next: []string{},
 		},
 		Status: types.TaskStatusPending,
 	}
@@ -211,8 +218,9 @@ func TestUpdateProgress_MultipleSubscribers(t *testing.T) {
 		ID:              "test-job-multi",
 		Status:          types.TaskStatusRunning,
 		ProgressPercent: &progressPercent,
-		Actors:          []string{"actor1"},
-		CurrentActorIdx: intPtr(0),
+		Prev:            []string{},
+		Curr:            "actor1",
+		Next:            []string{},
 		Timestamp:       time.Now(),
 	}
 
@@ -242,8 +250,9 @@ func TestUpdateProgress_ProgressSequence(t *testing.T) {
 	job := &types.Task{
 		ID: "test-job-sequence",
 		Route: types.Route{
-			Actors:  []string{"actor1", "actor2", "actor3"},
-			Current: 0,
+			Prev: []string{},
+			Curr: "actor1",
+			Next: []string{"actor2", "actor3"},
 		},
 		Status: types.TaskStatusPending,
 	}
@@ -254,42 +263,37 @@ func TestUpdateProgress_ProgressSequence(t *testing.T) {
 
 	// Simulate progress through all actors
 	progressSequence := []struct {
+		prev      []string
+		curr      string
+		next      []string
 		percent   float64
-		actor     string
 		taskState string
 	}{
-		{3.33, "actor1", "received"},
-		{16.67, "actor1", "processing"},
-		{33.33, "actor1", "completed"},
-		{36.67, "actor2", "received"},
-		{50.0, "actor2", "processing"},
-		{66.67, "actor2", "completed"},
-		{70.0, "actor3", "received"},
-		{83.33, "actor3", "processing"},
-		{100.0, "actor3", "completed"},
+		{[]string{}, "actor1", []string{"actor2", "actor3"}, 3.33, "received"},
+		{[]string{}, "actor1", []string{"actor2", "actor3"}, 16.67, "processing"},
+		{[]string{}, "actor1", []string{"actor2", "actor3"}, 33.33, "completed"},
+		{[]string{"actor1"}, "actor2", []string{"actor3"}, 36.67, "received"},
+		{[]string{"actor1"}, "actor2", []string{"actor3"}, 50.0, "processing"},
+		{[]string{"actor1"}, "actor2", []string{"actor3"}, 66.67, "completed"},
+		{[]string{"actor1", "actor2"}, "actor3", []string{}, 70.0, "received"},
+		{[]string{"actor1", "actor2"}, "actor3", []string{}, 83.33, "processing"},
+		{[]string{"actor1", "actor2"}, "actor3", []string{}, 100.0, "completed"},
 	}
 
 	for i, p := range progressSequence {
-		var currentIdx int
-		if i < 3 {
-			currentIdx = 0
-		} else if i < 6 {
-			currentIdx = 1
-		} else {
-			currentIdx = 2
-		}
 		update := types.TaskUpdate{
 			ID:              "test-job-sequence",
 			Status:          types.TaskStatusRunning,
 			ProgressPercent: &p.percent,
-			Actors:          []string{"actor1", "actor2", "actor3"},
-			CurrentActorIdx: intPtr(currentIdx),
+			Prev:            p.prev,
+			Curr:            p.curr,
+			Next:            p.next,
 			TaskState:       strPtr(p.taskState),
 			Timestamp:       time.Now(),
 		}
 
 		if err := store.UpdateProgress(update); err != nil {
-			t.Fatalf("UpdateProgress failed for %.2f%%: %v", p.percent, err)
+			t.Fatalf("UpdateProgress failed for step %d (%.2f%%): %v", i, p.percent, err)
 		}
 
 		// Verify current state
@@ -297,8 +301,8 @@ func TestUpdateProgress_ProgressSequence(t *testing.T) {
 		if j.ProgressPercent != p.percent {
 			t.Errorf("After update to %.2f%%, got %.2f%%", p.percent, j.ProgressPercent)
 		}
-		if j.CurrentActorName != p.actor {
-			t.Errorf("After update to %s, got %s", p.actor, j.CurrentActorName)
+		if j.CurrentActorName != p.curr {
+			t.Errorf("After update to %s, got %s", p.curr, j.CurrentActorName)
 		}
 	}
 
@@ -318,8 +322,9 @@ func TestJobCreation_InitializesProgress(t *testing.T) {
 	job := &types.Task{
 		ID: "test-job-init",
 		Route: types.Route{
-			Actors:  []string{"actor1", "actor2", "actor3"},
-			Current: 0,
+			Prev: []string{},
+			Curr: "actor1",
+			Next: []string{"actor2", "actor3"},
 		},
 		Status: types.TaskStatusPending,
 	}
@@ -333,6 +338,7 @@ func TestJobCreation_InitializesProgress(t *testing.T) {
 	if createdJob.ProgressPercent != 0.0 {
 		t.Errorf("Initial ProgressPercent = %v, want 0.0", createdJob.ProgressPercent)
 	}
+	// Total: prev(0) + curr(1) + next(2) = 3
 	if createdJob.TotalActors != 3 {
 		t.Errorf("TotalActors = %v, want 3", createdJob.TotalActors)
 	}
@@ -357,8 +363,9 @@ func TestUpdate(t *testing.T) {
 			setupJob: &types.Task{
 				ID: "test-update-1",
 				Route: types.Route{
-					Actors:  []string{"actor1"},
-					Current: 0,
+					Prev: []string{},
+					Curr: "actor1",
+					Next: []string{},
 				},
 			},
 			update: types.TaskUpdate{
@@ -373,8 +380,9 @@ func TestUpdate(t *testing.T) {
 			setupJob: &types.Task{
 				ID: "test-update-2",
 				Route: types.Route{
-					Actors:  []string{"actor1"},
-					Current: 0,
+					Prev: []string{},
+					Curr: "actor1",
+					Next: []string{},
 				},
 			},
 			update: types.TaskUpdate{
@@ -397,8 +405,9 @@ func TestUpdate(t *testing.T) {
 			setupJob: &types.Task{
 				ID: "test-update-3",
 				Route: types.Route{
-					Actors:  []string{"actor1"},
-					Current: 0,
+					Prev: []string{},
+					Curr: "actor1",
+					Next: []string{},
 				},
 			},
 			update: types.TaskUpdate{
@@ -420,8 +429,9 @@ func TestUpdate(t *testing.T) {
 			setupJob: &types.Task{
 				ID: "test-update-4",
 				Route: types.Route{
-					Actors:  []string{"actor1"},
-					Current: 0,
+					Prev: []string{},
+					Curr: "actor1",
+					Next: []string{},
 				},
 			},
 			update: types.TaskUpdate{
@@ -442,17 +452,19 @@ func TestUpdate(t *testing.T) {
 			setupJob: &types.Task{
 				ID: "test-update-5",
 				Route: types.Route{
-					Actors:  []string{"actor1", "actor2"},
-					Current: 0,
+					Prev: []string{},
+					Curr: "actor1",
+					Next: []string{"actor2"},
 				},
 			},
 			update: types.TaskUpdate{
-				ID:              "test-update-5",
-				Status:          types.TaskStatusRunning,
-				Actors:          []string{"actor1", "actor2"},
-				CurrentActorIdx: intPtr(1),
-				TaskState:       strPtr("processing"),
-				Timestamp:       time.Now(),
+				ID:        "test-update-5",
+				Status:    types.TaskStatusRunning,
+				Prev:      []string{"actor1"},
+				Curr:      "actor2",
+				Next:      []string{},
+				TaskState: strPtr("processing"),
+				Timestamp: time.Now(),
 			},
 			wantStatus: types.TaskStatusRunning,
 			checkFields: func(t *testing.T, task *types.Task) {
@@ -466,8 +478,9 @@ func TestUpdate(t *testing.T) {
 			setupJob: &types.Task{
 				ID: "test-update-6",
 				Route: types.Route{
-					Actors:  []string{"actor1"},
-					Current: 0,
+					Prev: []string{},
+					Curr: "actor1",
+					Next: []string{},
 				},
 			},
 			update: types.TaskUpdate{
@@ -534,8 +547,9 @@ func TestIsActive(t *testing.T) {
 			setupJob: &types.Task{
 				ID: "test-active-1",
 				Route: types.Route{
-					Actors:  []string{"actor1"},
-					Current: 0,
+					Prev: []string{},
+					Curr: "actor1",
+					Next: []string{},
 				},
 			},
 			taskID:     "test-active-1",
@@ -546,8 +560,9 @@ func TestIsActive(t *testing.T) {
 			setupJob: &types.Task{
 				ID: "test-active-2",
 				Route: types.Route{
-					Actors:  []string{"actor1"},
-					Current: 0,
+					Prev: []string{},
+					Curr: "actor1",
+					Next: []string{},
 				},
 			},
 			updateTo:   types.TaskStatusRunning,
@@ -559,8 +574,9 @@ func TestIsActive(t *testing.T) {
 			setupJob: &types.Task{
 				ID: "test-active-3",
 				Route: types.Route{
-					Actors:  []string{"actor1"},
-					Current: 0,
+					Prev: []string{},
+					Curr: "actor1",
+					Next: []string{},
 				},
 			},
 			updateTo:   types.TaskStatusSucceeded,
@@ -572,8 +588,9 @@ func TestIsActive(t *testing.T) {
 			setupJob: &types.Task{
 				ID: "test-active-4",
 				Route: types.Route{
-					Actors:  []string{"actor1"},
-					Current: 0,
+					Prev: []string{},
+					Curr: "actor1",
+					Next: []string{},
 				},
 			},
 			updateTo:   types.TaskStatusFailed,
@@ -623,8 +640,9 @@ func TestHandleTimeout(t *testing.T) {
 	task := &types.Task{
 		ID: "test-timeout",
 		Route: types.Route{
-			Actors:  []string{"actor1"},
-			Current: 0,
+			Prev: []string{},
+			Curr: "actor1",
+			Next: []string{},
 		},
 		TimeoutSec: 1,
 	}
@@ -661,8 +679,9 @@ func TestCancelTimer(t *testing.T) {
 	task := &types.Task{
 		ID: "test-cancel-timer",
 		Route: types.Route{
-			Actors:  []string{"actor1"},
-			Current: 0,
+			Prev: []string{},
+			Curr: "actor1",
+			Next: []string{},
 		},
 		TimeoutSec: 5,
 	}
@@ -698,8 +717,9 @@ func TestCreateDuplicate(t *testing.T) {
 	task := &types.Task{
 		ID: "test-duplicate",
 		Route: types.Route{
-			Actors:  []string{"actor1"},
-			Current: 0,
+			Prev: []string{},
+			Curr: "actor1",
+			Next: []string{},
 		},
 	}
 
@@ -730,8 +750,9 @@ func TestSubscribeUnsubscribe(t *testing.T) {
 	task := &types.Task{
 		ID: "test-subscribe",
 		Route: types.Route{
-			Actors:  []string{"actor1"},
-			Current: 0,
+			Prev: []string{},
+			Curr: "actor1",
+			Next: []string{},
 		},
 	}
 
@@ -804,6 +825,6 @@ func floatPtr(f float64) *float64 {
 	return &f
 }
 
-func intPtr(i int) *int {
-	return &i
+func strPtr(s string) *string {
+	return &s
 }

@@ -16,53 +16,45 @@ Regenerate by running: asya flow compile ../../mutations_before_after_handler.py
 def start_mutations_before_after_handler_flow(message: dict) -> dict:
     """Entrypoint for flow 'mutations_before_after_handler_flow'"""
     r = message['route']
-    c = r['current']
 
-    r['actors'][c+1:c+1] = [resolve("router_mutations_before_after_handler_flow_line_9_seq")]
-    r['current'] = c + 1
+    r['next'] = [resolve("router_mutations_before_after_handler_flow_line_9_seq")] + r['next']
     return message
 
 def router_mutations_before_after_handler_flow_line_13_seq(message: dict) -> dict:
     """Router for control flow and payload mutations"""
     p = message['payload']
     r = message['route']
-    c = r['current']
     _next = []
 
     p['step'] = 3
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def router_mutations_before_after_handler_flow_line_11_seq(message: dict) -> dict:
     """Router for control flow and payload mutations"""
     p = message['payload']
     r = message['route']
-    c = r['current']
     _next = []
 
     p['step'] = 2
     _next.append(resolve("handler_b"))
     _next.append(resolve("router_mutations_before_after_handler_flow_line_13_seq"))
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def router_mutations_before_after_handler_flow_line_9_seq(message: dict) -> dict:
     """Router for control flow and payload mutations"""
     p = message['payload']
     r = message['route']
-    c = r['current']
     _next = []
 
     p['step'] = 1
     _next.append(resolve("handler_a"))
     _next.append(resolve("router_mutations_before_after_handler_flow_line_11_seq"))
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def end_mutations_before_after_handler_flow(message: dict) -> dict:

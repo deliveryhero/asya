@@ -16,32 +16,27 @@ Regenerate by running: asya flow compile ../../text_analysis_flow.py
 def start_text_analysis_flow(message: dict) -> dict:
     """Entrypoint for flow 'text_analysis_flow'"""
     r = message['route']
-    c = r['current']
 
-    r['actors'][c+1:c+1] = [resolve("clean_text"), resolve("tokenize"), resolve("router_text_analysis_flow_line_9_if")]
-    r['current'] = c + 1
+    r['next'] = [resolve("clean_text"), resolve("tokenize"), resolve("router_text_analysis_flow_line_9_if")] + r['next']
     return message
 
 def router_text_analysis_flow_line_14_seq(message: dict) -> dict:
     """Router for control flow and payload mutations"""
     p = message['payload']
     r = message['route']
-    c = r['current']
     _next = []
 
     p['sentiment'] = 'neutral'
     _next.append(resolve("extract_entities"))
     _next.append(resolve("router_text_analysis_flow_line_18_seq"))
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def router_text_analysis_flow_line_11_if(message: dict) -> dict:
     """Router for control flow and payload mutations"""
     p = message['payload']
     r = message['route']
-    c = r['current']
     _next = []
 
     if p['language'] == 'es':
@@ -51,28 +46,24 @@ def router_text_analysis_flow_line_11_if(message: dict) -> dict:
     else:
         _next.append(resolve("router_text_analysis_flow_line_14_seq"))
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def router_text_analysis_flow_line_18_seq(message: dict) -> dict:
     """Router for control flow and payload mutations"""
     p = message['payload']
     r = message['route']
-    c = r['current']
     _next = []
 
     p['extracted'] = True
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def router_text_analysis_flow_line_9_if(message: dict) -> dict:
     """Router for control flow and payload mutations"""
     p = message['payload']
     r = message['route']
-    c = r['current']
     _next = []
 
     if p['language'] == 'en':
@@ -82,8 +73,7 @@ def router_text_analysis_flow_line_9_if(message: dict) -> dict:
     else:
         _next.append(resolve("router_text_analysis_flow_line_11_if"))
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def end_text_analysis_flow(message: dict) -> dict:

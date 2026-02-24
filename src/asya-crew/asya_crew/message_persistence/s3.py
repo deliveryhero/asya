@@ -24,7 +24,7 @@ Message Structure:
             "actor": "<actor-name>",
             ...
         },
-        "route": {"actors": [...], "current": N},
+        "route": {"prev": [...], "curr": "<actor>", "next": [...]},
         "payload": <arbitrary JSON>
     }
 
@@ -177,9 +177,9 @@ def checkpoint_handler(message: dict[str, Any]) -> dict[str, Any]:
         actor = status.get("actor", "unknown") if isinstance(status, dict) else "unknown"
         if actor == "unknown":
             route = message.get("route", {})
-            route_actors = route.get("actors", [])
-            if route_actors:
-                actor = route_actors[-1]
+            route_prev = route.get("prev", [])
+            if route_prev:
+                actor = route_prev[-1]
 
         key = f"{prefix}{now_str}/{actor}/{message_id}.json"
 

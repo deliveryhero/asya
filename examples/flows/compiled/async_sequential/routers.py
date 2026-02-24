@@ -16,10 +16,8 @@ Regenerate by running: asya flow compile ../../async_sequential.py
 def start_llm_auditor_flow(message: dict) -> dict:
     """Entrypoint for flow 'llm_auditor_flow'"""
     r = message['route']
-    c = r['current']
 
-    r['actors'][c+1:c+1] = [resolve("critic"), resolve("reviser")]
-    r['current'] = c + 1
+    r['next'] = [resolve("critic"), resolve("reviser")] + r['next']
     return message
 
 def end_llm_auditor_flow(message: dict) -> dict:

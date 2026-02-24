@@ -229,10 +229,10 @@ def _parse_message_json(data: bytes) -> dict[str, Any]:
 
 
 def _validate_message(
-    e: dict,
-    expected_current_actor: str | None = None,
-    input_route: dict | None = None,
-) -> dict:
+    e,  # type: dict
+    input_route=None,  # type: dict | None
+):
+    # type: (...) -> dict
     if "payload" not in e:
         raise ValueError("Missing required field 'payload' in message")
     if "route" not in e:
@@ -242,67 +242,38 @@ def _validate_message(
     route = e["route"]
     if not isinstance(route, dict):
         raise ValueError("Field 'route' must be a dict")
-    if "actors" not in route:
-        raise ValueError("Missing required field 'actors' in route")
-    if not isinstance(route["actors"], list):
-        raise ValueError("Field 'route.actors' must be a list")
-
-    # Default current to 0 if not present (sidecar may omit it)
-    if "current" not in route:
-        logger.info("Field 'route.current' missing, defaulting to 0")
-        route["current"] = 0
-    if not isinstance(route["current"], int):
-        raise ValueError("Field 'route.current' must be an integer")
-
-    # Validate that actors array is non-empty
-    if len(route["actors"]) == 0:
-        raise ValueError("Field 'route.actors' cannot be empty")
-
-    # Get current actor name from route (trusted value)
-    # Allow current to equal len(actors) to signal end-of-route
-    current_idx = route["current"]
-    if current_idx < 0 or current_idx > len(route["actors"]):
-        raise ValueError(
-            f"Invalid route.current={current_idx}: out of bounds for actors of length {len(route['actors'])}"
-        )
+    if "prev" not in route:
+        raise ValueError("Missing required field 'prev' in route")
+    if not isinstance(route["prev"], list):
+        raise ValueError("Field 'route.prev' must be a list")
+    if "curr" not in route:
+        raise ValueError("Missing required field 'curr' in route")
+    if not isinstance(route["curr"], str):
+        raise ValueError("Field 'route.curr' must be a string")
+    if "next" not in route:
+        raise ValueError("Missing required field 'next' in route")
+    if not isinstance(route["next"], list):
+        raise ValueError("Field 'route.next' must be a list")
 
     # Validate headers if present
     if "headers" in e and not isinstance(e["headers"], dict):
         raise ValueError("Field 'headers' must be a dict")
 
-    # Validate that already-processed actors haven't been erased.
-    # This check must come BEFORE expected_current_actor validation
-    # Runtime can add new actors but cannot remove actors that were already processed
+    # Validate that envelope-mode handlers did not modify prev or curr (read-only fields).
+    # Only next may be modified by handlers.
     if input_route is not None:
-        input_actors = input_route.get("actors", [])
-        input_current = input_route.get("current", 0)
-        output_actors = route["actors"]
-
-        # Check that all actors up to and including current are preserved
-        processed_actors = input_actors[: input_current + 1]
-        output_prefix = output_actors[: len(processed_actors)]
-
-        if output_prefix != processed_actors:
+        if route.get("prev") != input_route["prev"]:
             raise ValueError(
-                f"Route modification error: already-processed actors cannot be erased. "
-                f"Input route had {processed_actors} (actors 0-{input_current}), "
-                f"but output route starts with {output_prefix}. "
-                f"Runtimes can add future actors but must preserve all actors up to current."
-            )
-
-    # Only validate current actor if we have input_route context
-    # Validate that the actor at the INPUT position hasn't been changed
-    if expected_current_actor is not None and input_route is not None:
-        input_current = input_route.get("current", 0)
-        # Check that the actor at the INPUT's current position hasn't changed
-        if input_current < len(route["actors"]):
-            actual_current_actor = route["actors"][input_current]
-            if actual_current_actor != expected_current_actor:
-                raise ValueError(
-                    f"Route mismatch: input route points to '{expected_current_actor}' at position {input_current}, "
-                    f"but output route has '{actual_current_actor}' at that position. "
-                    f"Actor cannot change its position in the route."
+                "Route modification error: prev must not change (in={!r}, out={!r})".format(
+                    input_route["prev"], route.get("prev")
                 )
+            )
+        if route.get("curr") != input_route["curr"]:
+            raise ValueError(
+                "Route modification error: curr must not change (in={!r}, out={!r})".format(
+                    input_route["curr"], route.get("curr")
+                )
+            )
 
     # Validate id field if present
     if "id" in e and not isinstance(e["id"], str):
@@ -325,9 +296,7 @@ def _validate_message(
 
 
 def _get_current_actor(message: dict) -> str:
-    actors = message["route"]["actors"]
-    current = message["route"]["current"]
-    return actors[current]
+    return message["route"]["curr"]
 
 
 def _error_response(code: str, exc: Exception | None = None) -> dict[str, Any]:
@@ -364,10 +333,56 @@ def _call_handler(user_func, arg):
     return user_func(arg)
 
 
+def _handle_invoke(data: bytes, user_func) -> tuple:
+    """Process a single invoke request and return (status_code, body_bytes).
+
+    Exposed as a standalone function for unit testing without HTTP machinery.
+
+    Returns:
+        (200, b'{"frames": [...]}')  - success
+        (204, b'')                   - handler returned None (abort pipeline)
+        (400, b'{"error": "..."}')   - message parsing/validation error
+        (500, b'{"error": "..."}')   - handler raised an exception
+    """
+    try:
+        message = _parse_message_json(data)
+        if ASYA_ENABLE_VALIDATION:
+            message = _validate_message(message)
+    except (json.JSONDecodeError, UnicodeDecodeError, KeyError, ValueError) as exc:
+        return 400, json.dumps(_error_response("msg_parsing_error", exc)).encode("utf-8")
+
+    try:
+        if ASYA_HANDLER_MODE == "payload":
+            frames = _collect_payload_frames(message, user_func)
+        elif ASYA_HANDLER_MODE == "envelope":
+            frames = _collect_envelope_frames(message, user_func)
+        else:
+            raise ValueError(f"Invalid ASYA_HANDLER_MODE={ASYA_HANDLER_MODE}: not in {VALID_ASYA_HANDLER_MODES}")
+    except Exception as exc:
+        return 500, json.dumps(_error_response("processing_error", exc)).encode("utf-8")
+
+    if not frames:
+        return 204, b""
+    return 200, json.dumps({"frames": frames}).encode("utf-8")
+
+
 def _collect_payload_frames(message, user_func):
-    """Collect response frames for payload mode handlers."""
-    output_route = message["route"].copy()
-    output_route["current"] = message["route"]["current"] + 1
+    """Collect response frames for payload mode handlers.
+
+    Generators are intentionally materialized into a list here because the HTTP
+    protocol sends a single JSON response containing all frames at once.
+    """
+    input_route = message["route"]
+    prev = [*input_route["prev"], input_route["curr"]]
+    if input_route["next"]:
+        output_route = {
+            "prev": prev,
+            "curr": input_route["next"][0],
+            "next": input_route["next"][1:],
+        }
+    else:
+        # End of route: signal sidecar to route to x-sink
+        output_route = {"prev": prev, "curr": "", "next": []}
     headers = message.get("headers")
     status = message.get("status")
 
@@ -388,18 +403,46 @@ def _collect_payload_frames(message, user_func):
     return [_build_frame(result)]
 
 
+def _shift_envelope_route(out):
+    """Shift the route in an envelope handler output frame.
+
+    Envelope handlers may only modify route.next. The runtime shifts the route
+    forward (same as payload mode) using the handler's possibly-modified next list.
+
+    Before shift: {"prev": P, "curr": C, "next": [N1, N2, ...]}
+    After shift:  {"prev": P + [C], "curr": N1, "next": [N2, ...]}
+                  or if next is empty:
+                  {"prev": P + [C], "curr": "", "next": []}
+    """
+    route = out["route"]
+    prev = [*route["prev"], route["curr"]]
+    handler_next = route["next"]
+    if handler_next:
+        shifted_route = {"prev": prev, "curr": handler_next[0], "next": handler_next[1:]}
+    else:
+        shifted_route = {"prev": prev, "curr": "", "next": []}
+    out["route"] = shifted_route
+    return out
+
+
 def _collect_envelope_frames(message, user_func):
-    """Collect response frames for envelope mode handlers."""
+    """Collect response frames for envelope mode handlers.
+
+    Generators are intentionally materialized into a list here because the HTTP
+    protocol sends a single JSON response containing all frames at once.
+
+    The runtime validates that handlers do not modify prev or curr (read-only),
+    then shifts the route forward using the handler's possibly-modified next list.
+    """
     if inspect.isgeneratorfunction(user_func):
         frames = []
         for out in user_func(message):
             if ASYA_ENABLE_VALIDATION:
                 out = _validate_message(
                     out,
-                    expected_current_actor=_get_current_actor(message),
                     input_route=message["route"],
                 )
-            frames.append(out)
+            frames.append(_shift_envelope_route(out))
         return frames
 
     result = _call_handler(user_func, message)
@@ -408,10 +451,9 @@ def _collect_envelope_frames(message, user_func):
     if ASYA_ENABLE_VALIDATION:
         result = _validate_message(
             result,
-            expected_current_actor=_get_current_actor(message),
             input_route=message["route"],
         )
-    return [result]
+    return [_shift_envelope_route(result)]
 
 
 class _UnixHTTPServer(http.server.HTTPServer):

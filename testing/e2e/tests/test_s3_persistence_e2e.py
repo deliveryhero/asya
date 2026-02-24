@@ -64,8 +64,9 @@ def test_x_sink_persists_to_s3_e2e(e2e_helper, transport_timeouts):
     assert "route" in s3_object
     assert "payload" in s3_object
     assert isinstance(s3_object["route"], dict)
-    assert "actors" in s3_object["route"]
-    assert "current" in s3_object["route"]
+    assert "prev" in s3_object["route"]
+    assert "curr" in s3_object["route"]
+    assert "next" in s3_object["route"]
 
     logger.info(f"S3 message validated (saved as-is): {s3_object}")
     logger.info("=== test_x_sink_persists_to_s3_e2e: PASSED ===")
@@ -100,8 +101,9 @@ def test_x_sump_persists_to_s3_e2e(e2e_helper, transport_timeouts):
     assert "route" in s3_object
     assert "payload" in s3_object
     assert isinstance(s3_object["route"], dict)
-    assert "actors" in s3_object["route"]
-    assert "current" in s3_object["route"]
+    assert "prev" in s3_object["route"]
+    assert "curr" in s3_object["route"]
+    assert "next" in s3_object["route"]
 
     logger.info(f"S3 error message validated (saved as-is): {s3_object}")
     logger.info("=== test_x_sump_persists_to_s3_e2e: PASSED ===")

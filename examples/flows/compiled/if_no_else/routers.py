@@ -16,17 +16,14 @@ Regenerate by running: asya flow compile ../../if_no_else.py
 def start_if_no_else_flow(message: dict) -> dict:
     """Entrypoint for flow 'if_no_else_flow'"""
     r = message['route']
-    c = r['current']
 
-    r['actors'][c+1:c+1] = [resolve("handler_setup"), resolve("router_if_no_else_flow_line_10_if")]
-    r['current'] = c + 1
+    r['next'] = [resolve("handler_setup"), resolve("router_if_no_else_flow_line_10_if")] + r['next']
     return message
 
 def router_if_no_else_flow_line_10_if(message: dict) -> dict:
     """Router for control flow and payload mutations"""
     p = message['payload']
     r = message['route']
-    c = r['current']
     _next = []
 
     if p['condition']:
@@ -34,8 +31,7 @@ def router_if_no_else_flow_line_10_if(message: dict) -> dict:
     else:
         pass
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def end_if_no_else_flow(message: dict) -> dict:

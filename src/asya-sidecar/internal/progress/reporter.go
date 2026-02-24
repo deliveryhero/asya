@@ -8,6 +8,8 @@ import (
 	"log/slog"
 	"net/http"
 	"time"
+
+	"github.com/deliveryhero/asya/asya-sidecar/pkg/messages"
 )
 
 // ProgressStatus represents the status of an actor
@@ -39,12 +41,13 @@ func NewReporter(gatewayURL, actorName string) *Reporter {
 
 // ProgressUpdate represents a progress update payload
 type ProgressUpdate struct {
-	Actors          []string       `json:"actors"`            // Full list of actors in the route
-	CurrentActorIdx int            `json:"current_actor_idx"` // Index of current actor
-	Status          ProgressStatus `json:"status"`            // "received" | "processing" | "completed"
-	Message         string         `json:"message,omitempty"`
-	DurationMs      *int64         `json:"duration_ms,omitempty"`     // Processing duration in milliseconds
-	MessageSizeKB   *float64       `json:"message_size_kb,omitempty"` // Message size in KB
+	Prev          []string       `json:"prev"`
+	Curr          string         `json:"curr"`
+	Next          []string       `json:"next"`
+	Status        ProgressStatus `json:"status"` // "received" | "processing" | "completed"
+	Message       string         `json:"message,omitempty"`
+	DurationMs    *int64         `json:"duration_ms,omitempty"`     // Processing duration in milliseconds
+	MessageSizeKB *float64       `json:"message_size_kb,omitempty"` // Message size in KB
 }
 
 // ReportProgress sends a progress update to the gateway
@@ -64,8 +67,7 @@ func (r *Reporter) ReportProgress(ctx context.Context, id string, update Progres
 	slog.Info("Sending progress update to gateway",
 		"task_id", id,
 		"status", update.Status,
-		"current_actor_idx", update.CurrentActorIdx,
-		"total_actors", len(update.Actors),
+		"curr", update.Curr,
 		"url", url)
 
 	maxRetries := 5
@@ -108,7 +110,7 @@ func (r *Reporter) ReportProgress(ctx context.Context, id string, update Progres
 		slog.Debug("Progress update sent successfully",
 			"task_id", id,
 			"status", update.Status,
-			"current_actor_idx", update.CurrentActorIdx)
+			"curr", update.Curr)
 
 		return nil
 	}
@@ -149,18 +151,20 @@ func (r *Reporter) CheckHealth(ctx context.Context) error {
 type CreateTaskPayload struct {
 	ID       string   `json:"id"`
 	ParentID string   `json:"parent_id"`
-	Actors   []string `json:"actors"`
-	Current  int      `json:"current"`
+	Prev     []string `json:"prev"`
+	Curr     string   `json:"curr"`
+	Next     []string `json:"next"`
 }
 
 // CreateTask creates a fanout child task in the gateway
 // This is called when the sidecar detects multiple responses from runtime (fanout scenario)
-func (r *Reporter) CreateTask(ctx context.Context, id, parentID string, actors []string, current int) error {
+func (r *Reporter) CreateTask(ctx context.Context, id, parentID string, route messages.Route) error {
 	payload := CreateTaskPayload{
 		ID:       id,
 		ParentID: parentID,
-		Actors:   actors,
-		Current:  current,
+		Prev:     route.Prev,
+		Curr:     route.Curr,
+		Next:     route.Next,
 	}
 
 	payloadBytes, err := json.Marshal(payload)

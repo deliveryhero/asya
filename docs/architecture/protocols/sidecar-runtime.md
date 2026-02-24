@@ -32,7 +32,11 @@ Content-Length: <n>
 
 {
   "id": "msg-123",
-  "route": {"actors": ["step1", "step2"], "current": 0},
+  "route": {
+    "prev": [],
+    "curr": "step1",
+    "next": ["step2"]
+  },
   "payload": {"text": "Hello"},
   "headers": {"trace_id": "abc"}
 }
@@ -54,7 +58,11 @@ Content-Length: <n>
   "frames": [
     {
       "payload": {"text": "Hello", "processed": true},
-      "route": {"actors": ["step1", "step2"], "current": 1},
+      "route": {
+        "prev": ["step1"],
+        "curr": "step2",
+        "next": []
+      },
       "headers": {"trace_id": "abc"}
     }
   ]
@@ -130,8 +138,8 @@ Inspect the runtime directly without a sidecar:
 curl --unix-socket /var/run/asya/asya-runtime.sock \
   -X POST http://localhost/invoke \
   -H "Content-Type: application/json" \
-  -d '{"id":"dbg-1","route":{"actors":["my-actor"],"current":0},"payload":{"x":1}}'
-# → 200 {"frames":[{"payload":{"x":1},"route":{"actors":["my-actor"],"current":1}}]}
+  -d '{"id":"dbg-1","route":{"prev":[],"curr":"my-actor","next":[]},"payload":{"x":1}}'
+# → 200 {"frames":[{"payload":{"x":1},"route":{"prev":["my-actor"],"curr":"","next":[]}}]}
 
 # Check handler readiness
 curl --unix-socket /var/run/asya/asya-runtime.sock http://localhost/healthz

@@ -16,17 +16,14 @@ Regenerate by running: asya flow compile ../../while_break_continue.py
 def start_while_break_continue_flow(message: dict) -> dict:
     """Entrypoint for flow 'while_break_continue_flow'"""
     r = message['route']
-    c = r['current']
 
-    r['actors'][c+1:c+1] = [resolve("handler_init"), resolve("router_while_break_continue_flow_line_11_while_0")]
-    r['current'] = c + 1
+    r['next'] = [resolve("handler_init"), resolve("router_while_break_continue_flow_line_11_while_0")] + r['next']
     return message
 
 def router_while_break_continue_flow_line_17_if(message: dict) -> dict:
     """Router for control flow and payload mutations"""
     p = message['payload']
     r = message['route']
-    c = r['current']
     _next = []
 
     if p['stop']:
@@ -34,15 +31,13 @@ def router_while_break_continue_flow_line_17_if(message: dict) -> dict:
     else:
         pass
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def router_while_break_continue_flow_line_14_if(message: dict) -> dict:
     """Router for control flow and payload mutations"""
     p = message['payload']
     r = message['route']
-    c = r['current']
     _next = []
 
     if p['skip']:
@@ -51,43 +46,37 @@ def router_while_break_continue_flow_line_14_if(message: dict) -> dict:
         _next.append(resolve("handler_process"))
         _next.append(resolve("router_while_break_continue_flow_line_17_if"))
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def router_while_break_continue_flow_line_12_seq(message: dict) -> dict:
     """Router for control flow and payload mutations"""
     p = message['payload']
     r = message['route']
-    c = r['current']
     _next = []
 
     p['i'] += 1
     _next.append(resolve("handler_check"))
     _next.append(resolve("router_while_break_continue_flow_line_14_if"))
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def router_while_break_continue_flow_line_11_loop_back_0(message: dict) -> dict:
     """Loop-back router: re-inserts loop actors into route"""
     p = message['payload']
     r = message['route']
-    c = r['current']
     _next = []
 
     _next.append(resolve("router_while_break_continue_flow_line_11_while_0"))
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def router_while_break_continue_flow_line_11_while_0(message: dict) -> dict:
     """Router for control flow and payload mutations"""
     p = message['payload']
     r = message['route']
-    c = r['current']
     _next = []
 
     p['i'] = 0
@@ -97,8 +86,7 @@ def router_while_break_continue_flow_line_11_while_0(message: dict) -> dict:
     else:
         _next.append(resolve("handler_finalize"))
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def end_while_break_continue_flow(message: dict) -> dict:

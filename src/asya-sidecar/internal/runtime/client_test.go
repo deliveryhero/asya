@@ -83,15 +83,16 @@ func TestClient_CallRuntime_Success(t *testing.T) {
 			{
 				Payload: json.RawMessage(`{"processed": true}`),
 				Route: messages.Route{
-					Actors:  []string{"test", "next"},
-					Current: 1,
+					Prev: []string{"test"},
+					Curr: "next",
+					Next: []string{},
 				},
 			},
 		}, http.StatusOK
 	})
 
 	client := NewClient(socketPath, 2*time.Second)
-	messageData := []byte(`{"route":{"actors":["test","next"],"current":0},"payload":{"data":"test"}}`)
+	messageData := []byte(`{"route":{"prev":[],"curr":"test","next":["next"]},"payload":{"data":"test"}}`)
 
 	results, err := client.CallRuntime(context.Background(), messageData)
 	if err != nil {
@@ -122,7 +123,7 @@ func TestClient_CallRuntime_Error(t *testing.T) {
 	})
 
 	client := NewClient(socketPath, 5*time.Second)
-	messageData := []byte(`{"route":{"actors":["test"],"current":0},"payload":{"data":"test"}}`)
+	messageData := []byte(`{"route":{"prev":[],"curr":"test","next":[]},"payload":{"data":"test"}}`)
 
 	results, err := client.CallRuntime(context.Background(), messageData)
 	if err != nil {
@@ -149,7 +150,7 @@ func TestClient_CallRuntime_Timeout(t *testing.T) {
 	})
 
 	client := NewClient(socketPath, 100*time.Millisecond)
-	messageData := []byte(`{"route":{"actors":["test"],"current":0},"payload":{"data":"test"}}`)
+	messageData := []byte(`{"route":{"prev":[],"curr":"test","next":[]},"payload":{"data":"test"}}`)
 
 	_, err := client.CallRuntime(context.Background(), messageData)
 	if err == nil {
@@ -163,29 +164,32 @@ func TestClient_CallRuntime_FanOut(t *testing.T) {
 			{
 				Payload: json.RawMessage(`{"id": 1}`),
 				Route: messages.Route{
-					Actors:  []string{"fan"},
-					Current: 1,
+					Prev: []string{"fan"},
+					Curr: "",
+					Next: []string{},
 				},
 			},
 			{
 				Payload: json.RawMessage(`{"id": 2}`),
 				Route: messages.Route{
-					Actors:  []string{"fan"},
-					Current: 1,
+					Prev: []string{"fan"},
+					Curr: "",
+					Next: []string{},
 				},
 			},
 			{
 				Payload: json.RawMessage(`{"id": 3}`),
 				Route: messages.Route{
-					Actors:  []string{"fan"},
-					Current: 1,
+					Prev: []string{"fan"},
+					Curr: "",
+					Next: []string{},
 				},
 			},
 		}, http.StatusOK
 	})
 
 	client := NewClient(socketPath, 5*time.Second)
-	messageData := []byte(`{"route":{"actors":["fan"],"current":0},"payload":{"data":"test"}}`)
+	messageData := []byte(`{"route":{"prev":[],"curr":"fan","next":[]},"payload":{"data":"test"}}`)
 
 	results, err := client.CallRuntime(context.Background(), messageData)
 	if err != nil {
@@ -209,7 +213,7 @@ func TestClient_CallRuntime_EmptyResponse(t *testing.T) {
 	})
 
 	client := NewClient(socketPath, 5*time.Second)
-	messageData := []byte(`{"route":{"actors":["test"],"current":0},"payload":{"data":"test"}}`)
+	messageData := []byte(`{"route":{"prev":[],"curr":"test","next":[]},"payload":{"data":"test"}}`)
 
 	results, err := client.CallRuntime(context.Background(), messageData)
 	if err != nil {
@@ -236,7 +240,7 @@ func TestClient_CallRuntime_ParsingError(t *testing.T) {
 	})
 
 	client := NewClient(socketPath, 5*time.Second)
-	messageData := []byte(`{"route":{"actors":["test"],"current":0}}`)
+	messageData := []byte(`{"route":{"prev":[],"curr":"test","next":[]}}`)
 
 	results, err := client.CallRuntime(context.Background(), messageData)
 	if err != nil {
@@ -271,7 +275,7 @@ func TestClient_CallRuntime_ConnectionError(t *testing.T) {
 	})
 
 	client := NewClient(socketPath, 5*time.Second)
-	messageData := []byte(`{"route":{"actors":["test"],"current":0},"payload":{"data":"test"}}`)
+	messageData := []byte(`{"route":{"prev":[],"curr":"test","next":[]},"payload":{"data":"test"}}`)
 
 	results, err := client.CallRuntime(context.Background(), messageData)
 	if err != nil {

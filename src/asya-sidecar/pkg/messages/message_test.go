@@ -14,27 +14,27 @@ func TestRoute_GetCurrentActor(t *testing.T) {
 	}{
 		{
 			name:     "first actor",
-			route:    Route{Actors: []string{"actor1", "actor2", "actor3"}, Current: 0},
+			route:    Route{Prev: []string{}, Curr: "actor1", Next: []string{"actor2", "actor3"}},
 			expected: "actor1",
 		},
 		{
 			name:     "middle actor",
-			route:    Route{Actors: []string{"actor1", "actor2", "actor3"}, Current: 1},
+			route:    Route{Prev: []string{"actor1"}, Curr: "actor2", Next: []string{"actor3"}},
 			expected: "actor2",
 		},
 		{
 			name:     "last actor",
-			route:    Route{Actors: []string{"actor1", "actor2", "actor3"}, Current: 2},
+			route:    Route{Prev: []string{"actor1", "actor2"}, Curr: "actor3", Next: []string{}},
 			expected: "actor3",
 		},
 		{
-			name:     "out of bounds",
-			route:    Route{Actors: []string{"actor1", "actor2"}, Current: 5},
+			name:     "end of route (curr empty)",
+			route:    Route{Prev: []string{"actor1", "actor2"}, Curr: "", Next: []string{}},
 			expected: "",
 		},
 		{
-			name:     "negative index",
-			route:    Route{Actors: []string{"actor1", "actor2"}, Current: -1},
+			name:     "empty route",
+			route:    Route{Prev: []string{}, Curr: "", Next: []string{}},
 			expected: "",
 		},
 	}
@@ -57,17 +57,17 @@ func TestRoute_GetNextActor(t *testing.T) {
 	}{
 		{
 			name:     "has next actor",
-			route:    Route{Actors: []string{"actor1", "actor2", "actor3"}, Current: 0},
+			route:    Route{Prev: []string{}, Curr: "actor1", Next: []string{"actor2", "actor3"}},
 			expected: "actor2",
 		},
 		{
 			name:     "last actor",
-			route:    Route{Actors: []string{"actor1", "actor2", "actor3"}, Current: 2},
+			route:    Route{Prev: []string{"actor1", "actor2"}, Curr: "actor3", Next: []string{}},
 			expected: "",
 		},
 		{
-			name:     "empty actors",
-			route:    Route{Actors: []string{}, Current: 0},
+			name:     "empty route",
+			route:    Route{Prev: []string{}, Curr: "", Next: []string{}},
 			expected: "",
 		},
 	}
@@ -90,17 +90,17 @@ func TestRoute_HasNextActor(t *testing.T) {
 	}{
 		{
 			name:     "has next",
-			route:    Route{Actors: []string{"actor1", "actor2", "actor3"}, Current: 0},
+			route:    Route{Prev: []string{}, Curr: "actor1", Next: []string{"actor2", "actor3"}},
 			expected: true,
 		},
 		{
 			name:     "at last actor",
-			route:    Route{Actors: []string{"actor1", "actor2", "actor3"}, Current: 2},
+			route:    Route{Prev: []string{"actor1", "actor2"}, Curr: "actor3", Next: []string{}},
 			expected: false,
 		},
 		{
-			name:     "beyond last actor",
-			route:    Route{Actors: []string{"actor1", "actor2"}, Current: 5},
+			name:     "end of route",
+			route:    Route{Prev: []string{"actor1", "actor2"}, Curr: "", Next: []string{}},
 			expected: false,
 		},
 	}
@@ -116,24 +116,50 @@ func TestRoute_HasNextActor(t *testing.T) {
 }
 
 func TestRoute_IncrementCurrent(t *testing.T) {
-	route := Route{Actors: []string{"actor1", "actor2", "actor3"}, Current: 0}
+	route := Route{Prev: []string{}, Curr: "actor1", Next: []string{"actor2", "actor3"}}
 	newRoute := route.IncrementCurrent()
 
-	if newRoute.Current != 1 {
-		t.Errorf("IncrementCurrent() current = %v, want 1", newRoute.Current)
+	if newRoute.Curr != "actor2" {
+		t.Errorf("IncrementCurrent() curr = %v, want actor2", newRoute.Curr)
+	}
+
+	if len(newRoute.Prev) != 1 || newRoute.Prev[0] != "actor1" {
+		t.Errorf("IncrementCurrent() prev = %v, want [actor1]", newRoute.Prev)
+	}
+
+	if len(newRoute.Next) != 1 || newRoute.Next[0] != "actor3" {
+		t.Errorf("IncrementCurrent() next = %v, want [actor3]", newRoute.Next)
 	}
 
 	// Verify original unchanged
-	if route.Current != 0 {
-		t.Errorf("Original route modified, current = %v, want 0", route.Current)
+	if route.Curr != "actor1" {
+		t.Errorf("Original route modified, curr = %v, want actor1", route.Curr)
+	}
+}
+
+func TestRoute_IncrementCurrent_LastActor(t *testing.T) {
+	route := Route{Prev: []string{"actor1", "actor2"}, Curr: "actor3", Next: []string{}}
+	newRoute := route.IncrementCurrent()
+
+	if newRoute.Curr != "" {
+		t.Errorf("IncrementCurrent() at last actor curr = %v, want empty string", newRoute.Curr)
+	}
+
+	if len(newRoute.Prev) != 3 {
+		t.Errorf("IncrementCurrent() prev len = %d, want 3", len(newRoute.Prev))
+	}
+
+	if newRoute.Prev[2] != "actor3" {
+		t.Errorf("IncrementCurrent() prev[2] = %v, want actor3", newRoute.Prev[2])
 	}
 }
 
 func TestMessage_JSONSerialization(t *testing.T) {
 	original := Message{
 		Route: Route{
-			Actors:  []string{"actor1", "actor2", "actor3"},
-			Current: 1,
+			Prev: []string{"actor1"},
+			Curr: "actor2",
+			Next: []string{"actor3"},
 		},
 		Payload: json.RawMessage(`{"data": "test"}`),
 	}
@@ -151,12 +177,16 @@ func TestMessage_JSONSerialization(t *testing.T) {
 	}
 
 	// Verify
-	if decoded.Route.Current != original.Route.Current {
-		t.Errorf("Route.Current = %v, want %v", decoded.Route.Current, original.Route.Current)
+	if decoded.Route.Curr != original.Route.Curr {
+		t.Errorf("Route.Curr = %v, want %v", decoded.Route.Curr, original.Route.Curr)
 	}
 
-	if len(decoded.Route.Actors) != len(original.Route.Actors) {
-		t.Errorf("Route.Actors length = %v, want %v", len(decoded.Route.Actors), len(original.Route.Actors))
+	if len(decoded.Route.Prev) != len(original.Route.Prev) {
+		t.Errorf("Route.Prev length = %v, want %v", len(decoded.Route.Prev), len(original.Route.Prev))
+	}
+
+	if len(decoded.Route.Next) != len(original.Route.Next) {
+		t.Errorf("Route.Next length = %v, want %v", len(decoded.Route.Next), len(original.Route.Next))
 	}
 
 	// Compare JSON payload (ignoring whitespace)
@@ -183,12 +213,13 @@ func TestMessage_ParentID_Serialization(t *testing.T) {
 			msg: Message{
 				ID: "abc-123",
 				Route: Route{
-					Actors:  []string{"actor1"},
-					Current: 0,
+					Prev: []string{},
+					Curr: "actor1",
+					Next: []string{},
 				},
 				Payload: json.RawMessage(`{"data":"test"}`),
 			},
-			wantJSON: `{"id":"abc-123","route":{"actors":["actor1"],"current":0},"payload":{"data":"test"}}`,
+			wantJSON: `{"id":"abc-123","route":{"prev":[],"curr":"actor1","next":[]},"payload":{"data":"test"}}`,
 		},
 		{
 			name: "fanout child with parent_id",
@@ -196,12 +227,13 @@ func TestMessage_ParentID_Serialization(t *testing.T) {
 				ID:       "abc-123-1",
 				ParentID: stringPtr("abc-123"),
 				Route: Route{
-					Actors:  []string{"actor1"},
-					Current: 0,
+					Prev: []string{},
+					Curr: "actor1",
+					Next: []string{},
 				},
 				Payload: json.RawMessage(`{"data":"test"}`),
 			},
-			wantJSON: `{"id":"abc-123-1","parent_id":"abc-123","route":{"actors":["actor1"],"current":0},"payload":{"data":"test"}}`,
+			wantJSON: `{"id":"abc-123-1","parent_id":"abc-123","route":{"prev":[],"curr":"actor1","next":[]},"payload":{"data":"test"}}`,
 		},
 	}
 
@@ -372,8 +404,9 @@ func TestMessage_WithStatus_Serialization(t *testing.T) {
 	msg := Message{
 		ID: "test-123",
 		Route: Route{
-			Actors:  []string{"actor1", "actor2"},
-			Current: 0,
+			Prev: []string{},
+			Curr: "actor1",
+			Next: []string{"actor2"},
 		},
 		Payload: json.RawMessage(`{"data":"test"}`),
 		Status: &Status{
@@ -408,7 +441,7 @@ func TestMessage_WithStatus_Serialization(t *testing.T) {
 }
 
 func TestMessage_WithoutStatus_BackwardCompat(t *testing.T) {
-	rawJSON := `{"id":"test-123","route":{"actors":["a","b"],"current":0},"payload":{"data":"test"}}`
+	rawJSON := `{"id":"test-123","route":{"prev":[],"curr":"a","next":["b"]},"payload":{"data":"test"}}`
 
 	var msg Message
 	if err := json.Unmarshal([]byte(rawJSON), &msg); err != nil {
@@ -421,8 +454,11 @@ func TestMessage_WithoutStatus_BackwardCompat(t *testing.T) {
 	if msg.ID != "test-123" {
 		t.Errorf("ID = %q, want %q", msg.ID, "test-123")
 	}
-	if len(msg.Route.Actors) != 2 {
-		t.Errorf("Route.Actors length = %d, want 2", len(msg.Route.Actors))
+	if msg.Route.Curr != "a" {
+		t.Errorf("Route.Curr = %q, want %q", msg.Route.Curr, "a")
+	}
+	if len(msg.Route.Next) != 1 {
+		t.Errorf("Route.Next length = %d, want 1", len(msg.Route.Next))
 	}
 
 	// Re-marshal should omit status
@@ -448,7 +484,7 @@ func TestMessage_RawMessagePreservesPayloadBytes(t *testing.T) {
 	// Large nested payload that would be expensive to parse
 	rawJSON := `{
 		"id": "test-123",
-		"route": {"actors": ["a", "b"], "current": 0},
+		"route": {"prev": [], "curr": "a", "next": ["b"]},
 		"payload": {"deeply": {"nested": {"structure": {"with": {"many": {"levels": "value"}}}}}, "array": [1,2,3,4,5]}
 	}`
 
@@ -507,7 +543,7 @@ func TestMessage_RawMessagePreservesPayloadBytes(t *testing.T) {
 // can be extracted and forwarded without modification.
 func TestMessage_RawMessageForwardsUnchanged(t *testing.T) {
 	// Simulate receiving a message from queue
-	queueMessage := []byte(`{"id":"msg-1","route":{"actors":["actor1"],"current":0},"payload":{"key":"value","number":42}}`)
+	queueMessage := []byte(`{"id":"msg-1","route":{"prev":[],"curr":"actor1","next":[]},"payload":{"key":"value","number":42}}`)
 
 	var msg Message
 	if err := json.Unmarshal(queueMessage, &msg); err != nil {

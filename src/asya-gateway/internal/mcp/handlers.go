@@ -108,12 +108,7 @@ func (h *Handler) HandleTaskCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Parse create request
-	var createReq struct {
-		ID       string   `json:"id"`
-		ParentID string   `json:"parent_id"`
-		Actors   []string `json:"actors"`
-		Current  int      `json:"current"`
-	}
+	var createReq types.CreateTaskRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&createReq); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
@@ -127,15 +122,24 @@ func (h *Handler) HandleTaskCreate(w http.ResponseWriter, r *http.Request) {
 
 	slog.Info("Creating fanout task", "id", createReq.ID, "parent_id", createReq.ParentID)
 
+	totalActors := len(createReq.Prev) + len(createReq.Next)
+	if createReq.Curr != "" {
+		totalActors++
+	}
+
 	// Create minimal task for fanout child
 	task := &types.Task{
-		ID:              createReq.ID,
-		ParentID:        &createReq.ParentID,
-		Status:          types.TaskStatusPending,
-		Route:           types.Route{Actors: createReq.Actors, Current: createReq.Current},
+		ID:       createReq.ID,
+		ParentID: createReq.ParentID,
+		Status:   types.TaskStatusPending,
+		Route: types.Route{
+			Prev: createReq.Prev,
+			Curr: createReq.Curr,
+			Next: createReq.Next,
+		},
 		ProgressPercent: 0.0,
-		TotalActors:     len(createReq.Actors),
-		ActorsCompleted: 0,
+		TotalActors:     totalActors,
+		ActorsCompleted: len(createReq.Prev),
 	}
 
 	if err := h.taskStore.Create(task); err != nil {
@@ -331,6 +335,21 @@ func (h *Handler) HandleTaskActive(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// calculateProgress calculates progress percentage from prev/curr/next and status.
+// statusWeight: received=0.1, processing=0.5, completed=1.0
+// Formula: (len(prev) + statusWeight) * 100 / total
+func calculateProgress(prev []string, next []string, statusWeight float64) float64 {
+	total := len(prev) + 1 + len(next)
+	if total == 0 {
+		return 0.0
+	}
+	progress := (float64(len(prev)) + statusWeight) * 100.0 / float64(total)
+	if progress > 100.0 {
+		return 100.0
+	}
+	return progress
+}
+
 // HandleTaskProgress handles POST /tasks/{id}/progress (for actors to report progress)
 func (h *Handler) HandleTaskProgress(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
@@ -357,26 +376,25 @@ func (h *Handler) HandleTaskProgress(w http.ResponseWriter, r *http.Request) {
 	slog.Debug("Received progress update from actor",
 		"task_id", taskID,
 		"status", progress.Status,
-		"current_actor_idx", progress.CurrentActorIdx,
-		"actors_count", len(progress.Actors))
+		"curr", progress.Curr,
+		"prev_count", len(progress.Prev),
+		"next_count", len(progress.Next))
 
-	// Calculate progress percentage
-	// Formula: (actorIndex * 100 + statusWeight) / totalActors
-	// statusWeight: received=10, processing=50, completed=100
+	// Calculate progress percentage based on status weight.
+	// statusWeight: received=0.1, processing=0.5, completed=1.0
 	var statusWeight float64
 	switch progress.Status {
 	case "received":
-		statusWeight = 10
+		statusWeight = 0.1
 	case "processing":
-		statusWeight = 50
+		statusWeight = 0.5
 	case "completed":
-		statusWeight = 100
+		statusWeight = 1.0
 	default:
-		statusWeight = 0
+		statusWeight = 0.0
 	}
 
-	// Always fetch task to get authoritative actors list and total_actors
-	// This ensures progress calculation is consistent even if sidecar sends partial/empty actors list
+	// Fetch task to enforce monotonic progress
 	task, err := h.taskStore.Get(taskID)
 	if err != nil {
 		slog.Error("Failed to get task for progress calculation", "id", taskID, "error", err)
@@ -384,56 +402,52 @@ func (h *Handler) HandleTaskProgress(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Use task's actors list as the source of truth
-	actors := task.Route.Actors
-	if len(progress.Actors) > 0 && len(progress.Actors) > len(actors) {
-		// If progress update has more actors (route was extended), use that instead
-		actors = progress.Actors
-		slog.Debug("Progress update has extended route", "id", taskID, "task_actors", len(task.Route.Actors), "progress_actors", len(progress.Actors))
-	}
-	progress.Actors = actors
-
-	totalActors := len(actors)
-	if totalActors == 0 {
-		slog.Warn("No actors in route for progress calculation", "id", taskID)
-		progress.ProgressPercent = 0
+	// Calculate new progress
+	var newProgress float64
+	if progress.Curr == "" && len(progress.Next) == 0 {
+		// End-of-route: full completion
+		newProgress = 100.0
 	} else {
-		newProgress := (float64(progress.CurrentActorIdx)*100 + statusWeight) / float64(totalActors)
+		newProgress = calculateProgress(progress.Prev, progress.Next, statusWeight)
+	}
 
-		// Enforce monotonic progress: never decrease
-		if newProgress < task.ProgressPercent {
-			slog.Debug("Skipping non-monotonic progress update",
-				"id", taskID,
-				"current", task.ProgressPercent,
-				"new", newProgress,
-				"actor_idx", progress.CurrentActorIdx,
-				"status", progress.Status)
-			progress.ProgressPercent = task.ProgressPercent
-		} else {
-			progress.ProgressPercent = newProgress
-			slog.Debug("Calculated progress", "id", taskID, "actor_idx", progress.CurrentActorIdx, "status", progress.Status, "percent", progress.ProgressPercent, "total_actors", totalActors)
-		}
+	// Enforce monotonic progress: never decrease
+	if newProgress < task.ProgressPercent {
+		slog.Debug("Skipping non-monotonic progress update",
+			"id", taskID,
+			"current", task.ProgressPercent,
+			"new", newProgress,
+			"curr", progress.Curr,
+			"status", progress.Status)
+		newProgress = task.ProgressPercent
+	} else {
+		slog.Debug("Calculated progress",
+			"id", taskID,
+			"curr", progress.Curr,
+			"status", progress.Status,
+			"percent", newProgress)
 	}
 
 	// Ensure progress doesn't exceed 100%
-	if progress.ProgressPercent > 100 {
-		progress.ProgressPercent = 100
+	if newProgress > 100 {
+		newProgress = 100
 	}
 
 	// Transform ProgressUpdate (external API from sidecar) into TaskUpdate (internal event).
 	// This transformation:
 	// - Sets task-level status to Running
 	// - Copies task processing state ("received", "processing", "completed")
-	// - Copies route information (Actors and CurrentActorIdx) to persist modifications
+	// - Copies route information (Prev/Curr/Next) to persist modifications
 	// - Adds calculated progress percentage and timestamp
 	taskState := string(progress.Status)
 	update := types.TaskUpdate{
 		ID:              taskID,
 		Status:          types.TaskStatusRunning,
 		Message:         progress.Message,
-		ProgressPercent: &progress.ProgressPercent,
-		Actors:          progress.Actors,
-		CurrentActorIdx: &progress.CurrentActorIdx,
+		ProgressPercent: &newProgress,
+		Prev:            progress.Prev,
+		Curr:            progress.Curr,
+		Next:            progress.Next,
 		TaskState:       &taskState,
 		Timestamp:       time.Now(),
 	}
@@ -445,16 +459,16 @@ func (h *Handler) HandleTaskProgress(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	slog.Debug("Progress update stored in postgres",
+	slog.Debug("Progress update stored",
 		"task_id", taskID,
 		"status", progress.Status,
-		"current_actor_idx", progress.CurrentActorIdx,
-		"progress_percent", progress.ProgressPercent)
+		"curr", progress.Curr,
+		"progress_percent", newProgress)
 
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(map[string]interface{}{
 		"status":           "ok",
-		"progress_percent": progress.ProgressPercent,
+		"progress_percent": newProgress,
 	})
 }
 
@@ -482,8 +496,6 @@ func (h *Handler) HandleTaskFinal(w http.ResponseWriter, r *http.Request) {
 		Error            string                 `json:"error"`
 		ErrorDetails     interface{}            `json:"error_details"`
 		Metadata         map[string]interface{} `json:"metadata"`
-		Actors           []string               `json:"actors"`
-		CurrentActorIdx  *int                   `json:"current_actor_idx"`
 		CurrentActorName string                 `json:"current_actor_name"`
 		Timestamp        string                 `json:"timestamp"`
 	}
@@ -523,15 +535,10 @@ func (h *Handler) HandleTaskFinal(w http.ResponseWriter, r *http.Request) {
 		Timestamp:       time.Now(),
 	}
 
-	// Set actor and route information
+	// Set actor information
 	if finalUpdate.CurrentActorName != "" {
 		update.Actor = finalUpdate.CurrentActorName
-	}
-	if finalUpdate.CurrentActorIdx != nil {
-		update.CurrentActorIdx = finalUpdate.CurrentActorIdx
-	}
-	if len(finalUpdate.Actors) > 0 {
-		update.Actors = finalUpdate.Actors
+		update.Curr = finalUpdate.CurrentActorName
 	}
 
 	// Set message and error based on status
@@ -560,12 +567,6 @@ func (h *Handler) HandleTaskFinal(w http.ResponseWriter, r *http.Request) {
 			}
 			if finalUpdate.CurrentActorName != "" {
 				errorInfo["failed_actor"] = finalUpdate.CurrentActorName
-			}
-			if finalUpdate.CurrentActorIdx != nil {
-				errorInfo["failed_actor_idx"] = *finalUpdate.CurrentActorIdx
-			}
-			if len(finalUpdate.Actors) > 0 {
-				errorInfo["route"] = finalUpdate.Actors
 			}
 			update.Result = errorInfo
 		}

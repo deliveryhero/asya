@@ -84,8 +84,9 @@ An actor is a stateless (by default) workload that:
 {
   "id": "unique-message-id",
   "route": {
-    "actors": ["preprocess", "inference", "postprocess"],
-    "current": 0
+    "prev": [],
+    "curr": "preprocess",
+    "next": ["inference", "postprocess"]
   },
   "headers": {
     "trace_id": "...",

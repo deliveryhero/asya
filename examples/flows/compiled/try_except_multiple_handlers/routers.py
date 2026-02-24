@@ -16,58 +16,49 @@ Regenerate by running: asya flow compile ../../try_except_multiple_handlers.py
 def start_data_pipeline(message: dict) -> dict:
     """Entrypoint for flow 'data_pipeline'"""
     r = message['route']
-    c = r['current']
 
-    r['actors'][c+1:c+1] = [resolve("router_data_pipeline_line_2_try_enter_0")]
-    r['current'] = c + 1
+    r['next'] = [resolve("router_data_pipeline_line_2_try_enter_0")] + r['next']
     return message
 
 def router_data_pipeline_line_6_seq(message: dict) -> dict:
     """Router for control flow and payload mutations"""
     p = message['payload']
     r = message['route']
-    c = r['current']
     _next = []
 
     p['error_type'] = 'validation'
     _next.append(resolve("handle_validation_error"))
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def router_data_pipeline_line_9_seq(message: dict) -> dict:
     """Router for control flow and payload mutations"""
     p = message['payload']
     r = message['route']
-    c = r['current']
     _next = []
 
     p['error_type'] = 'type_mismatch'
     _next.append(resolve("handle_type_error"))
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def router_data_pipeline_line_12_seq(message: dict) -> dict:
     """Router for control flow and payload mutations"""
     p = message['payload']
     r = message['route']
-    c = r['current']
     _next = []
 
     p['error_type'] = 'runtime'
     _next.append(resolve("handle_runtime_error"))
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def router_data_pipeline_line_2_try_enter_0(message: dict) -> dict:
     """Try-enter router: sets _on_error header and inserts try body"""
     r = message['route']
-    c = r['current']
     _next = []
 
     message.setdefault('headers', {})
@@ -77,28 +68,24 @@ def router_data_pipeline_line_2_try_enter_0(message: dict) -> dict:
     _next.append(resolve("transform_data"))
     _next.append(resolve("router_data_pipeline_line_2_try_exit_0"))
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def router_data_pipeline_line_2_try_exit_0(message: dict) -> dict:
     """Try-exit router: clears _on_error header (success path)"""
     r = message['route']
-    c = r['current']
     _next = []
 
     message.get('headers', {}).pop('_on_error', None)
 
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def router_data_pipeline_line_2_except_dispatch_0(message: dict) -> dict:
     """Except-dispatch router: matches error type and routes to handler"""
     p = message['payload']
     r = message['route']
-    c = r['current']
     _next = []
 
     _error = message.get('status', {}).get('error', {})
@@ -118,8 +105,7 @@ def router_data_pipeline_line_2_except_dispatch_0(message: dict) -> dict:
     else:
         _next.append(resolve("router_data_pipeline_line_2_reraise_0"))
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def router_data_pipeline_line_2_reraise_0(message: dict) -> dict:
