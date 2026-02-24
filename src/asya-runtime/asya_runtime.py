@@ -29,7 +29,7 @@ Handler Types:
 
 Environment Variables:
     ASYA_HANDLER: Full path to function or method (e.g., "foo.bar.process" or "foo.bar.Processor.process")
-    ASYA_HANDLER_MODE: Handler argument type ("payload" or "envelope", default: "payload")
+    ASYA_MSG_ROOT: Virtual filesystem root for message metadata (default: "/proc/asya/msg")
     ASYA_SOCKET_CHMOD: Socket permissions in octal (default: "0o666", empty = skip chmod)
     ASYA_ENABLE_VALIDATION: Enable message validation ("true" or "false", default: "true")
     ASYA_LOG_LEVEL: Logging level (DEBUG, INFO, WARNING, ERROR, default: INFO)
@@ -40,12 +40,14 @@ Socket Configuration:
 """
 
 import asyncio
+import builtins
 import contextlib
 import errno
 import http.client as _http_client
 import http.server
 import importlib
 import inspect
+import io
 import json
 import logging
 import os
@@ -77,7 +79,7 @@ logger = logging.getLogger("asya.runtime")
 
 # Configuration
 ASYA_HANDLER = os.getenv("ASYA_HANDLER", "")
-ASYA_HANDLER_MODE = (os.getenv("ASYA_HANDLER_MODE") or "payload").lower()
+ASYA_MSG_ROOT = os.getenv("ASYA_MSG_ROOT", "/proc/asya/msg")
 ASYA_SOCKET_CHMOD = os.getenv("ASYA_SOCKET_CHMOD", "0o666")
 ASYA_ENABLE_VALIDATION = os.getenv("ASYA_ENABLE_VALIDATION", "true").lower() == "true"
 
@@ -86,8 +88,6 @@ ASYA_ENABLE_VALIDATION = os.getenv("ASYA_ENABLE_VALIDATION", "true").lower() == 
 SOCKET_DIR = os.getenv("ASYA_SOCKET_DIR", "/var/run/asya")
 SOCKET_NAME = os.getenv("ASYA_SOCKET_NAME", "asya-runtime.sock")
 SOCKET_PATH = os.path.join(SOCKET_DIR, SOCKET_NAME)
-
-VALID_ASYA_HANDLER_MODES = ("payload", "envelope")
 
 
 def _instantiate_class_handler(handler_class):
@@ -136,9 +136,6 @@ def _load_function():
     - module.path.function -> direct function
     - module.path.Class.method -> class method (class is instantiated)
     """
-    if ASYA_HANDLER_MODE not in VALID_ASYA_HANDLER_MODES:
-        raise ValueError(f"Invalid ASYA_HANDLER_MODE={ASYA_HANDLER_MODE}: not in {VALID_ASYA_HANDLER_MODES}")
-
     if not ASYA_HANDLER:
         logger.critical("FATAL: ASYA_HANDLER not set")
         sys.exit(1)
@@ -235,7 +232,6 @@ def _parse_message_json(data: bytes) -> dict[str, Any]:
 
 def _validate_message(
     e,  # type: dict
-    input_route=None,  # type: dict | None
 ):
     # type: (...) -> dict
     if "payload" not in e:
@@ -263,22 +259,6 @@ def _validate_message(
     # Validate headers if present
     if "headers" in e and not isinstance(e["headers"], dict):
         raise ValueError("Field 'headers' must be a dict")
-
-    # Validate that envelope-mode handlers did not modify prev or curr (read-only fields).
-    # Only next may be modified by handlers.
-    if input_route is not None:
-        if route.get("prev") != input_route["prev"]:
-            raise ValueError(
-                "Route modification error: prev must not change (in={!r}, out={!r})".format(
-                    input_route["prev"], route.get("prev")
-                )
-            )
-        if route.get("curr") != input_route["curr"]:
-            raise ValueError(
-                "Route modification error: curr must not change (in={!r}, out={!r})".format(
-                    input_route["curr"], route.get("curr")
-                )
-            )
 
     # Validate id field if present
     if "id" in e and not isinstance(e["id"], str):
@@ -327,6 +307,300 @@ def _error_response(code: str, exc: Exception | None = None) -> dict[str, Any]:
     return error
 
 
+# --- Message Virtual Filesystem ---
+
+# Read-only paths (handler cannot write to these)
+_READ_ONLY_PATHS = frozenset({"id", "parent_id", "route/prev", "route/curr"})
+
+
+class _MessageVFS:
+    """In-memory virtual filesystem for message metadata.
+
+    Populated before each handler invocation, read after handler returns.
+    No disk I/O, no network — pure dict operations.
+    """
+
+    def __init__(self):
+        self._data = {}
+        self._active = False
+
+    def populate(self, message):
+        """Populate VFS from incoming message. Called before handler."""
+        route = message["route"]
+        self._data = {
+            "id": message.get("id", ""),
+            "parent_id": message.get("parent_id", ""),
+            "route": {
+                "prev": list(route["prev"]),
+                "curr": route["curr"],
+                "next": list(route["next"]),
+            },
+            "headers": dict(message.get("headers") or {}),
+            "status": dict(message.get("status") or {}),
+        }
+        self._active = True
+
+    def clear(self):
+        """Clear VFS state. Called after handler completes."""
+        self._data = {}
+        self._active = False
+
+    @property
+    def active(self):
+        return self._active
+
+    def snapshot(self):
+        """Snapshot mutable VFS state for frame construction.
+
+        Returns current route.next and headers (both mutable by handler).
+        Called at each generator yield and after handler return.
+        """
+        return {
+            "route_next": list(self._data["route"]["next"]),
+            "headers": dict(self._data["headers"]),
+        }
+
+    def read(self, rel_path):
+        """Read a virtual file by relative path."""
+        parts = rel_path.strip("/").split("/")
+
+        if parts == ["id"]:
+            return self._data.get("id", "")
+        if parts == ["parent_id"]:
+            return self._data.get("parent_id", "")
+        if parts == ["route", "prev"]:
+            return "\n".join(self._data["route"]["prev"])
+        if parts == ["route", "curr"]:
+            return self._data["route"]["curr"]
+        if parts == ["route", "next"]:
+            return "\n".join(self._data["route"]["next"])
+        if len(parts) == 2 and parts[0] == "headers":
+            key = parts[1]
+            if key not in self._data["headers"]:
+                raise FileNotFoundError(f"No such file: {ASYA_MSG_ROOT}/headers/{key}")
+            return str(self._data["headers"][key])
+        if len(parts) == 2 and parts[0] == "status":
+            key = parts[1]
+            if key not in self._data["status"]:
+                raise FileNotFoundError(f"No such file: {ASYA_MSG_ROOT}/status/{key}")
+            return str(self._data["status"][key])
+
+        raise FileNotFoundError(f"No such file: {ASYA_MSG_ROOT}/{rel_path}")
+
+    def write(self, rel_path, content):
+        """Write to a virtual file."""
+        clean = rel_path.strip("/")
+        if clean in _READ_ONLY_PATHS:
+            raise PermissionError(f"Read-only: {ASYA_MSG_ROOT}/{clean}")
+        if clean.startswith("status/") or clean == "status":
+            raise PermissionError(f"Read-only: {ASYA_MSG_ROOT}/{clean}")
+
+        parts = clean.split("/")
+        if parts == ["route", "next"]:
+            self._data["route"]["next"] = content.splitlines() if content else []
+        elif len(parts) == 2 and parts[0] == "headers":
+            self._data["headers"][parts[1]] = content
+        else:
+            raise FileNotFoundError(f"No such file: {ASYA_MSG_ROOT}/{clean}")
+
+    def remove(self, rel_path):
+        """Remove a virtual file (headers only)."""
+        parts = rel_path.strip("/").split("/")
+        if len(parts) == 2 and parts[0] == "headers":
+            key = parts[1]
+            if key not in self._data["headers"]:
+                raise FileNotFoundError(f"No such file: {ASYA_MSG_ROOT}/headers/{key}")
+            del self._data["headers"][key]
+        elif parts == ["route", "next"]:
+            self._data["route"]["next"] = []
+        else:
+            raise PermissionError(f"Cannot remove: {ASYA_MSG_ROOT}/{rel_path}")
+
+    def listdir(self, rel_path):
+        """List directory contents."""
+        clean = rel_path.strip("/")
+        if clean == "":
+            entries = ["id", "route", "headers"]
+            if self._data.get("parent_id"):
+                entries.insert(1, "parent_id")
+            if self._data.get("status"):
+                entries.append("status")
+            return entries
+        if clean == "route":
+            return ["prev", "curr", "next"]
+        if clean == "headers":
+            return list(self._data.get("headers", {}).keys())
+        if clean == "status":
+            return list(self._data.get("status", {}).keys())
+        raise NotADirectoryError(f"Not a directory: {ASYA_MSG_ROOT}/{clean}")
+
+    def exists(self, rel_path):
+        """Check if a virtual path exists."""
+        clean = rel_path.strip("/")
+        if clean in ("", "route", "headers", "status"):
+            return True
+        if clean in ("id", "parent_id", "route/prev", "route/curr", "route/next"):
+            return True
+        parts = clean.split("/")
+        if len(parts) == 2 and parts[0] == "headers":
+            return parts[1] in self._data.get("headers", {})
+        if len(parts) == 2 and parts[0] == "status":
+            return parts[1] in self._data.get("status", {})
+        return False
+
+    def isdir(self, rel_path):
+        """Check if a virtual path is a directory."""
+        clean = rel_path.strip("/")
+        return clean in ("", "route", "headers", "status")
+
+
+class _MsgVirtualFile:
+    """File-like object backed by _MessageVFS.
+
+    Uses io.StringIO for buffering. Flushes writes to VFS on close.
+    """
+
+    def __init__(self, vfs, rel_path, mode):
+        self._vfs = vfs
+        self._rel_path = rel_path
+        self._mode = mode
+        self._closed = False
+
+        if "w" in mode:
+            self._buffer = io.StringIO()
+        else:
+            content = vfs.read(rel_path)
+            self._buffer = io.StringIO(content)
+
+    def read(self, size=-1):
+        if self._closed:
+            raise ValueError("I/O operation on closed file")
+        if size == -1:
+            return self._buffer.read()
+        return self._buffer.read(size)
+
+    def readline(self):
+        if self._closed:
+            raise ValueError("I/O operation on closed file")
+        return self._buffer.readline()
+
+    def readlines(self):
+        if self._closed:
+            raise ValueError("I/O operation on closed file")
+        return self._buffer.readlines()
+
+    def write(self, data):
+        if self._closed:
+            raise ValueError("I/O operation on closed file")
+        if "w" not in self._mode and "a" not in self._mode:
+            raise io.UnsupportedOperation("not writable")
+        return self._buffer.write(data)
+
+    def close(self):
+        if not self._closed:
+            if "w" in self._mode or "a" in self._mode:
+                self._vfs.write(self._rel_path, self._buffer.getvalue())
+            self._buffer.close()
+            self._closed = True
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        self.close()
+
+    def __iter__(self):
+        return iter(self._buffer)
+
+    @property
+    def closed(self):
+        return self._closed
+
+    @property
+    def name(self):
+        return f"{ASYA_MSG_ROOT}/{self._rel_path}"
+
+
+# --- Builtins Patching ---
+
+_msg_vfs = _MessageVFS()
+_original_open = None
+_original_listdir = None
+_original_path_exists = None
+_original_path_isdir = None
+_original_remove = None
+
+
+def _patched_open(path, mode="r", *args, **kwargs):
+    """Intercept open() for /proc/asya/msg/ paths."""
+    path_str = os.fspath(path) if not isinstance(path, str) else path
+    if _msg_vfs.active and path_str.startswith(ASYA_MSG_ROOT):
+        rel = path_str[len(ASYA_MSG_ROOT) :]
+        if not rel:
+            raise IsADirectoryError(f"Is a directory: '{path_str}'")
+        return _MsgVirtualFile(_msg_vfs, rel, mode)
+    return _original_open(path, mode, *args, **kwargs)
+
+
+def _patched_listdir(path="."):
+    path_str = os.fspath(path) if not isinstance(path, str) else path
+    if _msg_vfs.active and path_str.startswith(ASYA_MSG_ROOT):
+        rel = path_str[len(ASYA_MSG_ROOT) :]
+        return _msg_vfs.listdir(rel)
+    return _original_listdir(path)
+
+
+def _patched_path_exists(path):
+    path_str = os.fspath(path) if not isinstance(path, str) else path
+    if _msg_vfs.active and path_str.startswith(ASYA_MSG_ROOT):
+        rel = path_str[len(ASYA_MSG_ROOT) :]
+        return _msg_vfs.exists(rel)
+    return _original_path_exists(path)
+
+
+def _patched_path_isdir(path):
+    path_str = os.fspath(path) if not isinstance(path, str) else path
+    if _msg_vfs.active and path_str.startswith(ASYA_MSG_ROOT):
+        rel = path_str[len(ASYA_MSG_ROOT) :]
+        return _msg_vfs.isdir(rel)
+    return _original_path_isdir(path)
+
+
+def _patched_remove(path):
+    path_str = os.fspath(path) if not isinstance(path, str) else path
+    if _msg_vfs.active and path_str.startswith(ASYA_MSG_ROOT):
+        rel = path_str[len(ASYA_MSG_ROOT) :]
+        return _msg_vfs.remove(rel)
+    return _original_remove(path)
+
+
+def _install_msg_hooks():
+    """Patch builtins.open and os.* to intercept /proc/asya/msg/ paths.
+
+    Called once at runtime startup. Safe to call multiple times (idempotent).
+    """
+    global _original_open, _original_listdir
+    global _original_path_exists, _original_path_isdir, _original_remove
+
+    if _original_open is not None:
+        return
+
+    _original_open = builtins.open
+    _original_listdir = os.listdir
+    _original_path_exists = os.path.exists
+    _original_path_isdir = os.path.isdir
+    _original_remove = os.remove
+
+    builtins.open = _patched_open
+    io.open = _patched_open
+    os.listdir = _patched_listdir
+    os.path.exists = _patched_path_exists
+    os.path.isdir = _patched_path_isdir
+    os.remove = _patched_remove
+
+    logger.info(f"Message VFS hooks installed (root: {ASYA_MSG_ROOT})")
+
+
 def _call_handler(user_func, arg):
     """Call user handler, transparently supporting both sync and async functions.
 
@@ -336,6 +610,57 @@ def _call_handler(user_func, arg):
     if inspect.iscoroutinefunction(user_func):
         return asyncio.run(user_func(arg))
     return user_func(arg)
+
+
+def _build_frame(payload_value, input_route, vfs_state, status):
+    """Build a response frame with shifted route from VFS state."""
+    prev = [*input_route["prev"], input_route["curr"]]
+    handler_next = vfs_state["route_next"]
+
+    if handler_next:
+        route = {"prev": prev, "curr": handler_next[0], "next": handler_next[1:]}
+    else:
+        route = {"prev": prev, "curr": "", "next": []}
+
+    frame = {"payload": payload_value, "route": route}
+    if vfs_state["headers"]:
+        frame["headers"] = vfs_state["headers"]
+    if status is not None:
+        frame["status"] = status
+    return frame
+
+
+def _collect_payload_frames(message, user_func):
+    """Collect response frames using VFS for metadata.
+
+    1. Populate VFS from message
+    2. Call handler with payload only
+    3. Snapshot VFS state (route.next, headers) for each frame
+    4. Shift route and build frames
+    5. Clear VFS
+    """
+    input_route = message["route"]
+    status = message.get("status")
+
+    _msg_vfs.populate(message)
+
+    try:
+        if inspect.isgeneratorfunction(user_func):
+            frames = []
+            for payload_value in user_func(message["payload"]):
+                vfs_state = _msg_vfs.snapshot()
+                frame = _build_frame(payload_value, input_route, vfs_state, status)
+                frames.append(frame)
+            return frames
+
+        result = _call_handler(user_func, message["payload"])
+        if result is None:
+            return []
+
+        vfs_state = _msg_vfs.snapshot()
+        return [_build_frame(result, input_route, vfs_state, status)]
+    finally:
+        _msg_vfs.clear()
 
 
 def _handle_invoke(data: bytes, user_func) -> tuple:
@@ -357,108 +682,13 @@ def _handle_invoke(data: bytes, user_func) -> tuple:
         return 400, json.dumps(_error_response("msg_parsing_error", exc)).encode("utf-8")
 
     try:
-        if ASYA_HANDLER_MODE == "payload":
-            frames = _collect_payload_frames(message, user_func)
-        elif ASYA_HANDLER_MODE == "envelope":
-            frames = _collect_envelope_frames(message, user_func)
-        else:
-            raise ValueError(f"Invalid ASYA_HANDLER_MODE={ASYA_HANDLER_MODE}: not in {VALID_ASYA_HANDLER_MODES}")
+        frames = _collect_payload_frames(message, user_func)
     except Exception as exc:
         return 500, json.dumps(_error_response("processing_error", exc)).encode("utf-8")
 
     if not frames:
         return 204, b""
     return 200, json.dumps({"frames": frames}).encode("utf-8")
-
-
-def _collect_payload_frames(message, user_func):
-    """Collect response frames for payload mode handlers.
-
-    Generators are intentionally materialized into a list here because the HTTP
-    protocol sends a single JSON response containing all frames at once.
-    """
-    input_route = message["route"]
-    prev = [*input_route["prev"], input_route["curr"]]
-    if input_route["next"]:
-        output_route = {
-            "prev": prev,
-            "curr": input_route["next"][0],
-            "next": input_route["next"][1:],
-        }
-    else:
-        # End of route: signal sidecar to route to x-sink
-        output_route = {"prev": prev, "curr": "", "next": []}
-    headers = message.get("headers")
-    status = message.get("status")
-
-    def _build_frame(payload_value):
-        frame = {"payload": payload_value, "route": output_route}
-        if headers is not None:
-            frame["headers"] = headers
-        if status is not None:
-            frame["status"] = status
-        return frame
-
-    if inspect.isgeneratorfunction(user_func):
-        return [_build_frame(p) for p in user_func(message["payload"])]
-
-    result = _call_handler(user_func, message["payload"])
-    if result is None:
-        return []
-    return [_build_frame(result)]
-
-
-def _shift_envelope_route(out):
-    """Shift the route in an envelope handler output frame.
-
-    Envelope handlers may only modify route.next. The runtime shifts the route
-    forward (same as payload mode) using the handler's possibly-modified next list.
-
-    Before shift: {"prev": P, "curr": C, "next": [N1, N2, ...]}
-    After shift:  {"prev": P + [C], "curr": N1, "next": [N2, ...]}
-                  or if next is empty:
-                  {"prev": P + [C], "curr": "", "next": []}
-    """
-    route = out["route"]
-    prev = [*route["prev"], route["curr"]]
-    handler_next = route["next"]
-    if handler_next:
-        shifted_route = {"prev": prev, "curr": handler_next[0], "next": handler_next[1:]}
-    else:
-        shifted_route = {"prev": prev, "curr": "", "next": []}
-    out["route"] = shifted_route
-    return out
-
-
-def _collect_envelope_frames(message, user_func):
-    """Collect response frames for envelope mode handlers.
-
-    Generators are intentionally materialized into a list here because the HTTP
-    protocol sends a single JSON response containing all frames at once.
-
-    The runtime validates that handlers do not modify prev or curr (read-only),
-    then shifts the route forward using the handler's possibly-modified next list.
-    """
-    if inspect.isgeneratorfunction(user_func):
-        frames = []
-        for out in user_func(message):
-            if ASYA_ENABLE_VALIDATION:
-                out = _validate_message(
-                    out,
-                    input_route=message["route"],
-                )
-            frames.append(_shift_envelope_route(out))
-        return frames
-
-    result = _call_handler(user_func, message)
-    if result is None:
-        return []
-    if ASYA_ENABLE_VALIDATION:
-        result = _validate_message(
-            result,
-            input_route=message["route"],
-        )
-    return [_shift_envelope_route(result)]
 
 
 # ---------------------------------------------------------------------------
@@ -920,16 +1150,8 @@ class _InvokeHandler(http.server.BaseHTTPRequestHandler):
 
         try:
             user_func = self.server.user_func
-            logger.info(
-                f"[DIAG] Starting handler execution, mode={ASYA_HANDLER_MODE}, "
-                f"message_id={message.get('id', 'unknown')}"
-            )
-            if ASYA_HANDLER_MODE == "payload":
-                frames = _collect_payload_frames(message, user_func)
-            elif ASYA_HANDLER_MODE == "envelope":
-                frames = _collect_envelope_frames(message, user_func)
-            else:
-                raise ValueError(f"Invalid ASYA_HANDLER_MODE={ASYA_HANDLER_MODE}: not in {VALID_ASYA_HANDLER_MODES}")
+            logger.info(f"[DIAG] Starting handler execution, message_id={message.get('id', 'unknown')}")
+            frames = _collect_payload_frames(message, user_func)
         except Exception as exc:
             logger.exception("Fatal error on processing input message")
             self._send_json(500, _error_response("processing_error", exc))
@@ -960,7 +1182,7 @@ class _InvokeHandler(http.server.BaseHTTPRequestHandler):
 def _log_env_vars():
     logger.info(
         f"Asya Actor Runtime starting with handler: '{ASYA_HANDLER}' "
-        f"(mode: {ASYA_HANDLER_MODE}, validation: {ASYA_ENABLE_VALIDATION})"
+        f"(msg_root: {ASYA_MSG_ROOT}, validation: {ASYA_ENABLE_VALIDATION})"
     )
     if logger.isEnabledFor(logging.DEBUG):
         for name, value in os.environ.items():
@@ -971,6 +1193,7 @@ def _log_env_vars():
 def handle_requests():
     """Main entry point, blocks forever."""
     _log_env_vars()
+    _install_msg_hooks()
 
     # Activate state proxy interception before loading handler
     state_proxy_mounts = os.environ.get("ASYA_STATE_PROXY_MOUNTS")
