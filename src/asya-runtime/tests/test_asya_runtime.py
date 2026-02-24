@@ -2457,7 +2457,10 @@ class TestAsyncHandlers:
             "headers": {"trace_id": "abc", "priority": "high"},
         }
 
-        call_invoke(message, async_handler)
+        responses = call_invoke(message, async_handler)
+
+        assert len(responses) == 1
+        assert responses[0]["headers"] == {"trace_id": "abc", "priority": "high"}
 
 
 class TestHTTPServer:
