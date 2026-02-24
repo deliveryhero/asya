@@ -311,7 +311,7 @@ class TestResolveMount:
         for p in paths:
             if not p.endswith("/"):
                 p = p + "/"
-            mounts.append({"name": "test", "path": p, "socket": "/tmp/test.sock", "write_mode": "buffered"})
+            mounts.append({"name": "test", "path": p, "socket": "/tmp/test.sock", "write_mode": "buffered"})  # nosec B108
         return mounts
 
     def test_path_under_mount(self):
@@ -322,7 +322,7 @@ class TestResolveMount:
 
     def test_path_not_under_any_mount(self):
         mounts = self._make_mounts("/state/meta")
-        mount, key = asya_runtime._resolve_mount("/tmp/regular-file", mounts)
+        mount, key = asya_runtime._resolve_mount("/tmp/regular-file", mounts)  # nosec B108
         assert mount is None
         assert key is None
 
@@ -343,13 +343,13 @@ class TestResolveMount:
         mount_specific = {
             "name": "specific",
             "path": "/state/meta/",
-            "socket": "/tmp/specific.sock",
+            "socket": "/tmp/specific.sock",  # nosec B108
             "write_mode": "buffered",
         }
         mount_general = {
             "name": "general",
             "path": "/state/",
-            "socket": "/tmp/general.sock",
+            "socket": "/tmp/general.sock",  # nosec B108
             "write_mode": "buffered",
         }
         mounts = [mount_specific, mount_general]
@@ -363,13 +363,13 @@ class TestResolveMount:
         mount_general = {
             "name": "general",
             "path": "/state/",
-            "socket": "/tmp/general.sock",
+            "socket": "/tmp/general.sock",  # nosec B108
             "write_mode": "buffered",
         }
         mount_specific = {
             "name": "specific",
             "path": "/state/meta/",
-            "socket": "/tmp/specific.sock",
+            "socket": "/tmp/specific.sock",  # nosec B108
             "write_mode": "buffered",
         }
         mounts = [mount_general, mount_specific]

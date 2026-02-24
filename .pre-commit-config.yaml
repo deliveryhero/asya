@@ -88,7 +88,7 @@ repos:
   hooks:
   - id: mypy
     files: ^src/.*\.py$
-    exclude: ^src/asya-runtime/
+    exclude: ^src/(asya-runtime|asya-state-proxy/tests)/
     additional_dependencies: [types-requests, boto3-stubs]
 
 # Python security linting
