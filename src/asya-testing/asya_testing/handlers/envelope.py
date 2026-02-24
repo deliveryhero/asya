@@ -104,12 +104,19 @@ def invalid_route_current_handler(message: dict[str, Any]) -> dict[str, Any]:
     This tests sidecar behavior when ASYA_ENABLE_VALIDATION=false in runtime
     and the handler incorrectly modifies the read-only curr field.
 
-    The sidecar should handle this gracefully by routing to x-sink.
+    The runtime shifts the route using the handler's output:
+    - corrupted curr gets folded into prev
+    - next is cleared, so after shift curr="" and sidecar routes to x-sink
     """
     payload = message["payload"]
     output_route = message["route"].copy()
 
-    # Corrupt the route by changing curr to a non-existent actor
+    # Corrupt curr and clear next. After runtime shift:
+    #   prev = original_prev + ["__invalid_actor__"]
+    #   curr = ""  (next is empty)
+    #   next = []
+    # Sidecar sees curr="" and routes to x-sink.
     output_route["curr"] = "__invalid_actor__"
+    output_route["next"] = []
 
     return {"payload": payload, "route": output_route, "headers": message.get("headers", {})}

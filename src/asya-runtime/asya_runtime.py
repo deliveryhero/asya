@@ -31,7 +31,6 @@ Environment Variables:
     ASYA_HANDLER: Full path to function or method (e.g., "foo.bar.process" or "foo.bar.Processor.process")
     ASYA_HANDLER_MODE: Handler argument type ("payload" or "envelope", default: "payload")
     ASYA_SOCKET_CHMOD: Socket permissions in octal (default: "0o666", empty = skip chmod)
-    ASYA_CHUNK_SIZE: Socket read chunk size in bytes (default: 65536)
     ASYA_ENABLE_VALIDATION: Enable message validation ("true" or "false", default: "true")
     ASYA_LOG_LEVEL: Logging level (DEBUG, INFO, WARNING, ERROR, default: INFO)
 
@@ -42,6 +41,7 @@ Socket Configuration:
 
 import asyncio
 import contextlib
+import http.server
 import importlib
 import inspect
 import json
@@ -50,7 +50,6 @@ import os
 import re
 import signal
 import socket
-import struct
 import sys
 import traceback
 from typing import Any
@@ -75,7 +74,6 @@ logger = logging.getLogger("asya.runtime")
 ASYA_HANDLER = os.getenv("ASYA_HANDLER", "")
 ASYA_HANDLER_MODE = (os.getenv("ASYA_HANDLER_MODE") or "payload").lower()
 ASYA_SOCKET_CHMOD = os.getenv("ASYA_SOCKET_CHMOD", "0o666")
-ASYA_CHUNK_SIZE = int(os.getenv("ASYA_CHUNK_SIZE", 65536))
 ASYA_ENABLE_VALIDATION = os.getenv("ASYA_ENABLE_VALIDATION", "true").lower() == "true"
 
 # Socket configuration - hard-coded, managed by operator
@@ -225,48 +223,6 @@ def _load_function():
         sys.exit(1)
 
 
-def _recv_exact(sock, n: int) -> bytes:
-    """Read exactly n bytes from socket."""
-    chunks = []
-    remaining = n
-    while remaining > 0:
-        chunk = sock.recv(min(remaining, ASYA_CHUNK_SIZE))
-        if not chunk:
-            raise ConnectionError("Connection closed while reading")
-        chunks.append(chunk)
-        remaining -= len(chunk)
-    return b"".join(chunks)
-
-
-def _send_message(sock, data: bytes):
-    """Send message with length-prefix (4-byte big-endian uint32)."""
-    length = struct.pack(">I", len(data))
-    sock.sendall(length + data)
-
-
-def _setup_socket(socket_path):
-    """Initialize Unix socket server."""
-    # Remove socket file if it exists
-    try:
-        os.unlink(socket_path)
-    except OSError:
-        if os.path.exists(socket_path):
-            raise
-
-    sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-    sock.bind(socket_path)
-    sock.listen(5)
-
-    # Apply chmod if configured (skip if ASYA_SOCKET_CHMOD is empty)
-    if ASYA_SOCKET_CHMOD:
-        mode = int(ASYA_SOCKET_CHMOD, 8)  # Parse octal string like "0o660"
-        os.chmod(socket_path, mode)
-        logger.info(f"Socket permissions set to {ASYA_SOCKET_CHMOD}")
-
-    logger.info(f"Socket server listening on {socket_path}")
-    return sock
-
-
 def _parse_message_json(data: bytes) -> dict[str, Any]:
     """Parse received message from bytes to dict."""
     return json.loads(data.decode("utf-8"))
@@ -377,83 +333,44 @@ def _call_handler(user_func, arg):
     return user_func(arg)
 
 
-def _send_frame(conn: socket.socket, frame: dict[str, Any]):
-    """Send a single frame with length-prefix."""
-    data = json.dumps(frame).encode("utf-8")
-    _send_message(conn, data)
+def _handle_invoke(data: bytes, user_func) -> tuple:
+    """Process a single invoke request and return (status_code, body_bytes).
 
+    Exposed as a standalone function for unit testing without HTTP machinery.
 
-def _send_end_frame(conn: socket.socket):
-    """Send the end sentinel frame."""
-    _send_frame(conn, {"type": "end"})
-
-
-def _handle_request_streaming(conn: socket.socket, user_func: Any):
-    """Handle a single request, sending response frames as they're produced.
-
-    Wire protocol (streaming):
-        Sidecar -> Runtime:  [4-byte length][request JSON]
-        Runtime -> Sidecar:  [4-byte length][response frame 1 JSON]
-        Runtime -> Sidecar:  [4-byte length][response frame 2 JSON]  (generators only)
-        ...
-        Runtime -> Sidecar:  [4-byte length][{"type": "end"} JSON]
-        Connection closes.
+    Returns:
+        (200, b'{"frames": [...]}')  - success
+        (204, b'')                   - handler returned None (abort pipeline)
+        (400, b'{"error": "..."}')   - message parsing/validation error
+        (500, b'{"error": "..."}')   - handler raised an exception
     """
-    # Read message from socket
     try:
-        length_bytes = _recv_exact(conn, 4)
-        length = struct.unpack(">I", length_bytes)[0]
-        data = _recv_exact(conn, length)
-    except ConnectionError as exc:
-        with contextlib.suppress(BrokenPipeError, OSError):
-            _send_frame(conn, _error_response("connection_error", exc))
-            _send_end_frame(conn)
-        return
-    except Exception as exc:
-        logger.error(f"ERROR: Connection handling failed:\n{traceback.format_exc()}")
-        with contextlib.suppress(BrokenPipeError, OSError):
-            _send_frame(conn, _error_response("connection_error", exc))
-            _send_end_frame(conn)
-        return
-
-    # Parse message
-    try:
-        message: dict[str, Any] = _parse_message_json(data)
+        message = _parse_message_json(data)
         if ASYA_ENABLE_VALIDATION:
             message = _validate_message(message)
-        logger.debug(f"Received message: {len(data)} bytes")
     except (json.JSONDecodeError, UnicodeDecodeError, KeyError, ValueError) as exc:
-        with contextlib.suppress(BrokenPipeError, OSError):
-            _send_frame(conn, _error_response("msg_parsing_error", exc))
-            _send_end_frame(conn)
-        return
+        return 400, json.dumps(_error_response("msg_parsing_error", exc)).encode("utf-8")
 
-    # Call handler and stream frames
     try:
-        logger.info(
-            f"[DIAG] Starting handler execution, mode={ASYA_HANDLER_MODE}, message_id={message.get('id', 'unknown')}"
-        )
         if ASYA_HANDLER_MODE == "payload":
-            _handle_payload_mode_streaming(conn, message, user_func)
+            frames = _collect_payload_frames(message, user_func)
         elif ASYA_HANDLER_MODE == "envelope":
-            _handle_envelope_mode_streaming(conn, message, user_func)
+            frames = _collect_envelope_frames(message, user_func)
         else:
             raise ValueError(f"Invalid ASYA_HANDLER_MODE={ASYA_HANDLER_MODE}: not in {VALID_ASYA_HANDLER_MODES}")
     except Exception as exc:
-        logger.error(f"[DIAG] Exception caught in handler: type={type(exc).__name__}, msg={exc}")
-        logger.exception("Fatal error on processing input message")
-        with contextlib.suppress(BrokenPipeError, OSError):
-            _send_frame(conn, _error_response("processing_error", exc))
+        return 500, json.dumps(_error_response("processing_error", exc)).encode("utf-8")
 
-    with contextlib.suppress(BrokenPipeError, OSError):
-        _send_end_frame(conn)
+    if not frames:
+        return 204, b""
+    return 200, json.dumps({"frames": frames}).encode("utf-8")
 
 
-def _handle_payload_mode_streaming(conn: socket.socket, message: dict, user_func: Any):
-    """Handle payload mode: send one frame per result.
+def _collect_payload_frames(message, user_func):
+    """Collect response frames for payload mode handlers.
 
-    - return handler: one frame (or zero for None)
-    - generator handler: one frame per yield
+    Generators are intentionally materialized into a list here because the HTTP
+    protocol sends a single JSON response containing all frames at once.
     """
     input_route = message["route"]
     prev = [*input_route["prev"], input_route["curr"]]
@@ -469,49 +386,160 @@ def _handle_payload_mode_streaming(conn: socket.socket, message: dict, user_func
     headers = message.get("headers")
     status = message.get("status")
 
-    def _build_payload_frame(payload_value: Any) -> dict[str, Any]:
-        frame: dict[str, Any] = {"payload": payload_value, "route": output_route}
+    def _build_frame(payload_value):
+        frame = {"payload": payload_value, "route": output_route}
         if headers is not None:
             frame["headers"] = headers
         if status is not None:
             frame["status"] = status
         return frame
 
-    logger.info(f"[DIAG] Calling user_func with payload: {message['payload']}")
-
     if inspect.isgeneratorfunction(user_func):
-        for p in user_func(message["payload"]):
-            _send_frame(conn, _build_payload_frame(p))
+        return [_build_frame(p) for p in user_func(message["payload"])]
+
+    result = _call_handler(user_func, message["payload"])
+    if result is None:
+        return []
+    return [_build_frame(result)]
+
+
+def _shift_envelope_route(out):
+    """Shift the route in an envelope handler output frame.
+
+    Envelope handlers may only modify route.next. The runtime shifts the route
+    forward (same as payload mode) using the handler's possibly-modified next list.
+
+    Before shift: {"prev": P, "curr": C, "next": [N1, N2, ...]}
+    After shift:  {"prev": P + [C], "curr": N1, "next": [N2, ...]}
+                  or if next is empty:
+                  {"prev": P + [C], "curr": "", "next": []}
+    """
+    route = out["route"]
+    prev = [*route["prev"], route["curr"]]
+    handler_next = route["next"]
+    if handler_next:
+        shifted_route = {"prev": prev, "curr": handler_next[0], "next": handler_next[1:]}
     else:
-        result = _call_handler(user_func, message["payload"])
-        logger.info(f"[DIAG] user_func returned: {result}")
-        if result is not None:
-            _send_frame(conn, _build_payload_frame(result))
+        shifted_route = {"prev": prev, "curr": "", "next": []}
+    out["route"] = shifted_route
+    return out
 
 
-def _handle_envelope_mode_streaming(conn: socket.socket, message: dict, user_func: Any):
-    """Handle envelope mode: send one frame per result.
+def _collect_envelope_frames(message, user_func):
+    """Collect response frames for envelope mode handlers.
 
-    - return handler: one frame (or zero for None)
-    - generator handler: one frame per yield
+    Generators are intentionally materialized into a list here because the HTTP
+    protocol sends a single JSON response containing all frames at once.
+
+    The runtime validates that handlers do not modify prev or curr (read-only),
+    then shifts the route forward using the handler's possibly-modified next list.
     """
     if inspect.isgeneratorfunction(user_func):
+        frames = []
         for out in user_func(message):
             if ASYA_ENABLE_VALIDATION:
                 out = _validate_message(
                     out,
                     input_route=message["route"],
                 )
-            _send_frame(conn, out)
-    else:
-        result = _call_handler(user_func, message)
-        if result is not None:
+            frames.append(_shift_envelope_route(out))
+        return frames
+
+    result = _call_handler(user_func, message)
+    if result is None:
+        return []
+    if ASYA_ENABLE_VALIDATION:
+        result = _validate_message(
+            result,
+            input_route=message["route"],
+        )
+    return [_shift_envelope_route(result)]
+
+
+class _UnixHTTPServer(http.server.HTTPServer):
+    """HTTP server that listens on a Unix domain socket."""
+
+    address_family = socket.AF_UNIX
+
+    def server_bind(self):
+        with contextlib.suppress(OSError):
+            os.unlink(self.server_address)
+        self.socket.bind(self.server_address)
+        self.server_address = self.socket.getsockname()
+        self.server_name = "asya-runtime"
+        self.server_port = 0
+        if ASYA_SOCKET_CHMOD:
+            mode = int(ASYA_SOCKET_CHMOD, 8)
+            os.chmod(self.server_address, mode)
+        logger.info(f"HTTP server bound to {self.server_address}")
+
+    def server_close(self):
+        super().server_close()
+        with contextlib.suppress(OSError):
+            os.unlink(self.server_address)
+
+
+class _InvokeHandler(http.server.BaseHTTPRequestHandler):
+    """HTTP request handler for POST /invoke."""
+
+    def address_string(self):
+        return "unix-client"
+
+    def log_message(self, format, *args):  # noqa: A002
+        logger.debug(format, *args)
+
+    def do_POST(self):  # noqa: N802
+        if self.path != "/invoke":
+            self.send_error(404)
+            return
+
+        content_length = int(self.headers.get("Content-Length", 0))
+        if content_length == 0:
+            self._send_json(400, _error_response("msg_parsing_error", ValueError("Missing request body")))
+            return
+
+        body = self.rfile.read(content_length)
+
+        try:
+            message = _parse_message_json(body)
             if ASYA_ENABLE_VALIDATION:
-                result = _validate_message(
-                    result,
-                    input_route=message["route"],
-                )
-            _send_frame(conn, result)
+                message = _validate_message(message)
+            logger.debug(f"Received message: {len(body)} bytes")
+        except (json.JSONDecodeError, UnicodeDecodeError, KeyError, ValueError) as exc:
+            self._send_json(400, _error_response("msg_parsing_error", exc))
+            return
+
+        try:
+            user_func = self.server.user_func
+            logger.info(
+                f"[DIAG] Starting handler execution, mode={ASYA_HANDLER_MODE}, "
+                f"message_id={message.get('id', 'unknown')}"
+            )
+            if ASYA_HANDLER_MODE == "payload":
+                frames = _collect_payload_frames(message, user_func)
+            elif ASYA_HANDLER_MODE == "envelope":
+                frames = _collect_envelope_frames(message, user_func)
+            else:
+                raise ValueError(f"Invalid ASYA_HANDLER_MODE={ASYA_HANDLER_MODE}: not in {VALID_ASYA_HANDLER_MODES}")
+        except Exception as exc:
+            logger.exception("Fatal error on processing input message")
+            self._send_json(500, _error_response("processing_error", exc))
+            return
+
+        if not frames:
+            self.send_response(204)
+            self.end_headers()
+        else:
+            self._send_json(200, {"frames": frames})
+
+    def _send_json(self, code, data):
+        """Send a JSON response with the given HTTP status code."""
+        body = json.dumps(data).encode("utf-8")
+        self.send_response(code)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
 
 
 def _log_env_vars():
@@ -530,9 +558,9 @@ def handle_requests():
     _log_env_vars()
 
     func = _load_function()
-    sock = _setup_socket(SOCKET_PATH)
+    server = _UnixHTTPServer(SOCKET_PATH, _InvokeHandler)
+    server.user_func = func
 
-    # Signal sidecar that runtime is ready to receive messages
     ready_file = f"{SOCKET_DIR}/runtime-ready"
     try:
         os.makedirs(SOCKET_DIR, exist_ok=True)
@@ -542,48 +570,25 @@ def handle_requests():
     except Exception as e:
         logger.error(f"Failed to create ready file {ready_file}: {e}")
 
-    def _cleanup(signum=None, _frame=None):
-        """Clean up socket and ready file, then exit."""
+    def _shutdown(signum, _frame):
         logger.warning(f"Received signal {signum}, shutting down...")
-        sock.close()
-        with contextlib.suppress(OSError):
-            os.unlink(SOCKET_PATH)
-        with contextlib.suppress(OSError):
-            os.unlink(ready_file)
+        server._BaseServer__shutdown_request = True
 
-    # Signal handlers only work in main thread
     try:
-        signal.signal(signal.SIGTERM, _cleanup)
-        signal.signal(signal.SIGINT, _cleanup)
+        signal.signal(signal.SIGTERM, _shutdown)
+        signal.signal(signal.SIGINT, _shutdown)
     except ValueError as e:
-        # Running in non-main thread (e.g., tests)
         logger.debug(f"Cannot set signal handlers (not in main thread): {e}")
 
     try:
-        while True:
-            try:
-                conn, _ = sock.accept()
-            except (ConnectionAbortedError, OSError) as e:
-                logger.debug(f"Error: {type(e)}: {e}")
-                break
-
-            try:
-                _handle_request_streaming(conn, func)
-
-            except BrokenPipeError:
-                logger.warning("Client disconnected")
-
-            except Exception as e:
-                logger.critical(f"Failed to send response: {type(e)}: {e}")
-
-            finally:
-                conn.close()
-
+        server.serve_forever()
     except Exception as e:
         logger.critical(f"Fatal error: {e}")
         logger.exception("Traceback:")
     finally:
-        _cleanup()
+        server.server_close()
+        with contextlib.suppress(OSError):
+            os.unlink(ready_file)
 
 
 if __name__ == "__main__":
