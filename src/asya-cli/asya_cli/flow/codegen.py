@@ -214,7 +214,8 @@ class CodeGenerator:
 
     def _generate_fanout_router(self, router: Router) -> str:
         """Generate a generator function that fans out to N sub-agents + 1 parent message."""
-        assert router.fan_out_op is not None
+        if router.fan_out_op is None:
+            raise ValueError(f"Router {router.name!r} is marked is_fan_out but has no fan_out_op")
         fan_out = router.fan_out_op
 
         # Determine aggregator: first in true_branch_actors (after convergence resolution)

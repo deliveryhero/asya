@@ -465,7 +465,8 @@ class DotGenerator:
         - sub_agent_X -> aggregator (convergence edges)
         """
         lines: set[str] = set()
-        assert router.fan_out_op is not None
+        if router.fan_out_op is None:
+            raise ValueError(f"Router {router.name!r} is marked is_fan_out but has no fan_out_op")
         fan_out = router.fan_out_op
 
         # Determine aggregator: first non-end actor in true_branch_actors
@@ -485,7 +486,10 @@ class DotGenerator:
         # Edge(s): fanout -> sub-agents (slices 1..N)
         if fan_out.iter_var and fan_out.iterable:
             # Comprehension/gather-with-generator: single representative sub-agent
-            assert len(fan_out.actor_calls) == 1
+            if len(fan_out.actor_calls) != 1:
+                raise ValueError(
+                    f"Comprehension/gather fan-out expects exactly 1 actor_call, got {len(fan_out.actor_calls)}"
+                )
             actor_name = fan_out.actor_calls[0][0]
             lines.add(
                 f"  {self._node_id(router.name)} -> {self._node_id(actor_name)}"
