@@ -1,4 +1,4 @@
-## RFC: Actor Flavors — Composable Configuration Presets
+ma## RFC: Actor Flavors — Composable Configuration Presets
 
 ### 1. Objective
 
