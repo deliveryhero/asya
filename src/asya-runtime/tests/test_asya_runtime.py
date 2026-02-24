@@ -45,9 +45,9 @@ def mock_env():
 
     Usage:
         def test_something(mock_env):
-            with mock_env(ASYA_HANDLER_MODE="envelope", ASYA_SOCKET_CHMOD="0o600"):
+            with mock_env(ASYA_SOCKET_CHMOD="0o600"):
                 # asya_runtime module is reloaded with new env vars
-                assert asya_runtime.ASYA_HANDLER_MODE == "envelope"
+                assert asya_runtime.ASYA_SOCKET_CHMOD == "0o600"
 
     Yields:
         Callable: Context manager that accepts env var overrides as kwargs
@@ -411,266 +411,149 @@ class TestMessageFieldPreservation:
         with pytest.raises(ValueError, match="Field 'id' must be a string"):
             asya_runtime._validate_message(message)
 
-    def test_envelope_mode_handler_accesses_id_field(self, mock_env):
-        """Test that envelope mode handlers can access message id field."""
-        with mock_env(ASYA_HANDLER_MODE="envelope"):
+    def test_vfs_handler_accesses_id_field(self):
+        """Test that handlers can access message id field via VFS."""
 
-            def envelope_handler(msg):
-                message_id = msg["id"]
-                return {
-                    "id": message_id,
-                    "payload": {"message_id": message_id, "data": msg["payload"]},
-                    "route": msg["route"],
-                }
+        def vfs_handler(payload):
+            message_id = asya_runtime._msg_vfs.read("id")
+            return {"message_id": message_id, "data": payload}
 
-            message = {
-                "id": "test-envelope-123",
-                "payload": {"value": 42},
-                "route": {"prev": [], "curr": "a", "next": []},
-            }
+        message = {
+            "id": "test-vfs-123",
+            "payload": {"value": 42},
+            "route": {"prev": [], "curr": "a", "next": []},
+        }
 
-            responses = call_invoke(message, envelope_handler)
+        responses = call_invoke(message, vfs_handler)
 
-            assert len(responses) == 1
-            assert responses[0]["id"] == "test-envelope-123"
-            assert responses[0]["payload"]["message_id"] == "test-envelope-123"
+        assert len(responses) == 1
+        assert responses[0]["payload"]["message_id"] == "test-vfs-123"
 
 
-class TestEnvelopeModeValidation:
-    """Test envelope mode validation edge cases."""
+class TestVFSRouteModification:
+    """Test VFS-based route modification from handlers."""
 
-    def test_handler_returns_invalid_payload_type_in_message(self, mock_env):
-        """Test handler returns message with payload as string instead of dict."""
-        with mock_env(ASYA_HANDLER_MODE="envelope"):
+    def test_vfs_handler_modifies_next_allowed(self):
+        """Test that handler CAN modify route.next via VFS."""
 
-            def invalid_handler(msg):
-                # Return message with payload as string
-                return {"payload": "not a dict", "route": msg["route"]}
+        def next_modifying_handler(payload):
+            # Write new next list to VFS - this is allowed
+            asya_runtime._msg_vfs.write("route/next", "x\ny\nz")
+            return payload
 
-            message = {
-                "payload": {"test": "data"},
-                "route": {"prev": [], "curr": "a", "next": []},
-            }
+        message = {
+            "payload": {"test": "data"},
+            "route": {"prev": [], "curr": "a", "next": ["b", "c"]},
+        }
 
-            responses = call_invoke(message, invalid_handler)
+        responses = call_invoke(message, next_modifying_handler)
 
-            # Should work - payload can be any JSON type
-            assert len(responses) == 1
-            assert responses[0]["payload"] == "not a dict"
+        # Should succeed - handler replaced next via VFS.
+        # Runtime shifts: "a" -> prev, curr becomes "x" (VFS-modified next[0])
+        assert len(responses) == 1
+        assert responses[0]["route"]["prev"] == ["a"]
+        assert responses[0]["route"]["curr"] == "x"
+        assert responses[0]["route"]["next"] == ["y", "z"]
 
-    def test_handler_returns_invalid_route_type_in_message(self, mock_env):
-        """Test handler returns message with route as wrong type."""
-        with mock_env(ASYA_HANDLER_MODE="envelope"):
+    def test_vfs_handler_cannot_write_route_curr(self):
+        """Test that handler cannot write route.curr via VFS (read-only)."""
 
-            def invalid_handler(msg):
-                # Return message with route as string
-                return {"payload": {"ok": True}, "route": "invalid"}
+        def curr_writer(payload):
+            asya_runtime._msg_vfs.write("route/curr", "evil")
+            return payload
 
-            message = {
-                "payload": {"test": "data"},
-                "route": {"prev": [], "curr": "a", "next": []},
-            }
+        message = {
+            "payload": {"test": "data"},
+            "route": {"prev": [], "curr": "a", "next": []},
+        }
 
-            responses = call_invoke(message, invalid_handler)
+        responses = call_invoke(message, curr_writer)
 
-            # Should return error - route validation will fail
-            assert len(responses) == 1
-            assert responses[0]["error"] == "processing_error"
-            assert "Field 'route' must be a dict" in responses[0]["details"]["message"]
+        # Should fail with PermissionError (processing_error)
+        assert len(responses) == 1
+        assert responses[0]["error"] == "processing_error"
 
-    def test_handler_yields_valid_then_invalid_message(self, mock_env):
-        """Test generator handler yields one valid and one invalid envelope.
+    def test_vfs_handler_cannot_write_route_prev(self):
+        """Test that handler cannot write route.prev via VFS (read-only)."""
 
-        With HTTP protocol, frames are collected before sending. If any frame fails
-        validation, the entire request fails with a single processing_error.
-        """
-        with mock_env(ASYA_HANDLER_MODE="envelope"):
+        def prev_writer(payload):
+            asya_runtime._msg_vfs.write("route/prev", "injected")
+            return payload
 
-            def mixed_handler(msg):
-                yield {"payload": {"id": 1}, "route": msg["route"]}
-                yield {"payload": {"id": 2}}  # Missing 'route'
+        message = {
+            "payload": {"test": "data"},
+            "route": {"prev": [], "curr": "a", "next": ["b"]},
+        }
 
-            message = {
-                "payload": {"test": "data"},
-                "route": {"prev": [], "curr": "a", "next": []},
-            }
+        responses = call_invoke(message, prev_writer)
 
-            responses = call_invoke(message, mixed_handler)
+        # Should fail with PermissionError (processing_error)
+        assert len(responses) == 1
+        assert responses[0]["error"] == "processing_error"
 
-            # With HTTP batch protocol, second yield fails validation
-            # causing entire request to fail with processing_error
-            assert len(responses) == 1
-            assert responses[0]["error"] == "processing_error"
-            assert "Missing required field 'route'" in responses[0]["details"]["message"]
+    def test_vfs_handler_fanout_each_yields_with_vfs_next(self):
+        """Test fan-out generator where each yield modifies route.next via VFS."""
 
-    def test_handler_changes_curr_actor(self, mock_env):
-        """Test that handler cannot change curr actor name."""
-        with mock_env(ASYA_HANDLER_MODE="envelope"):
+        def fanout_handler(payload):
+            asya_runtime._msg_vfs.write("route/next", "b")
+            yield {"id": 1}
+            asya_runtime._msg_vfs.write("route/next", "c")
+            yield {"id": 2}
 
-            def actor_changing_handler(msg):
-                # Try to change curr from "a" to "x"
-                return {
-                    "payload": msg["payload"],
-                    "route": {"prev": [], "curr": "x", "next": ["b", "c"]},
-                }
+        message = {
+            "payload": {"test": "data"},
+            "route": {"prev": [], "curr": "a", "next": ["b"]},
+        }
 
-            message = {
-                "payload": {"test": "data"},
-                "route": {"prev": [], "curr": "a", "next": ["b", "c"]},
-            }
+        responses = call_invoke(message, fanout_handler)
 
-            responses = call_invoke(message, actor_changing_handler)
+        assert len(responses) == 2
+        assert responses[0]["payload"] == {"id": 1}
+        assert responses[0]["route"]["curr"] == "b"
+        assert responses[1]["payload"] == {"id": 2}
+        assert responses[1]["route"]["curr"] == "c"
 
-            # Should return error - curr changed from 'a' to 'x'
-            assert len(responses) == 1
-            assert responses[0]["error"] == "processing_error"
-            assert "Route modification error" in responses[0]["details"]["message"]
-            assert "curr must not change" in responses[0]["details"]["message"]
+    def test_vfs_handler_adds_future_actors_via_next(self):
+        """Test that handler CAN add future actors by writing route.next via VFS."""
 
-    def test_handler_changes_prev(self, mock_env):
-        """Test that handler cannot change prev list."""
-        with mock_env(ASYA_HANDLER_MODE="envelope"):
+        def extending_handler(payload):
+            asya_runtime._msg_vfs.write("route/next", "c\nd\ne")
+            return payload
 
-            def prev_changing_handler(msg):
-                # Try to change prev from [] to ["x"]
-                return {
-                    "payload": msg["payload"],
-                    "route": {"prev": ["x"], "curr": "a", "next": ["b"]},
-                }
+        message = {
+            "payload": {"test": "data"},
+            "route": {"prev": ["a"], "curr": "b", "next": ["c"]},
+        }
 
-            message = {
-                "payload": {"test": "data"},
-                "route": {"prev": [], "curr": "a", "next": ["b"]},
-            }
+        responses = call_invoke(message, extending_handler)
 
-            responses = call_invoke(message, prev_changing_handler)
+        # Should succeed - only next changed via VFS.
+        # Runtime shifts: "b" -> prev (prev becomes ["a","b"]), curr becomes "c"
+        assert len(responses) == 1
+        assert responses[0]["route"]["prev"] == ["a", "b"]
+        assert responses[0]["route"]["curr"] == "c"
+        assert responses[0]["route"]["next"] == ["d", "e"]
 
-            # Should return error - prev changed
-            assert len(responses) == 1
-            assert responses[0]["error"] == "processing_error"
-            assert "Route modification error" in responses[0]["details"]["message"]
-            assert "prev must not change" in responses[0]["details"]["message"]
+    def test_vfs_handler_replaces_future_actors(self):
+        """Test that handler CAN replace future actors by writing route.next via VFS."""
 
-    def test_handler_modifies_next_allowed(self, mock_env):
-        """Test that handler CAN modify next (it is writable)."""
-        with mock_env(ASYA_HANDLER_MODE="envelope"):
+        def replacing_handler(payload):
+            asya_runtime._msg_vfs.write("route/next", "x\ny")
+            return payload
 
-            def next_modifying_handler(msg):
-                # Replace next list - this is allowed
-                return {
-                    "payload": msg["payload"],
-                    "route": {"prev": [], "curr": "a", "next": ["x", "y", "z"]},
-                }
+        message = {
+            "payload": {"test": "data"},
+            "route": {"prev": ["a"], "curr": "b", "next": ["c", "d"]},
+        }
 
-            message = {
-                "payload": {"test": "data"},
-                "route": {"prev": [], "curr": "a", "next": ["b", "c"]},
-            }
+        responses = call_invoke(message, replacing_handler)
 
-            responses = call_invoke(message, next_modifying_handler)
-
-            # Should succeed - only next was changed by handler.
-            # Runtime shifts: "a" -> prev, curr becomes "x" (handler's modified next[0])
-            assert len(responses) == 1
-            assert responses[0]["route"]["prev"] == ["a"]
-            assert responses[0]["route"]["curr"] == "x"
-            assert responses[0]["route"]["next"] == ["y", "z"]
-
-    def test_handler_fanout_with_valid_routes(self, mock_env):
-        """Test fan-out where all output messages maintain correct prev and curr."""
-        with mock_env(ASYA_HANDLER_MODE="envelope"):
-
-            def fanout_handler(msg):
-                yield {"payload": {"id": 1}, "route": {"prev": [], "curr": "a", "next": ["b"]}}
-                yield {"payload": {"id": 2}, "route": {"prev": [], "curr": "a", "next": ["b"]}}
-                yield {"payload": {"id": 3}, "route": {"prev": [], "curr": "a", "next": ["c"]}}
-
-            message = {
-                "payload": {"test": "data"},
-                "route": {"prev": [], "curr": "a", "next": ["b"]},
-            }
-
-            responses = call_invoke(message, fanout_handler)
-
-            # Should work - all output messages have correct prev=[] and curr='a'
-            assert len(responses) == 3
-            assert responses[0]["payload"] == {"id": 1}
-            assert responses[1]["payload"] == {"id": 2}
-            assert responses[2]["payload"] == {"id": 3}
-
-    def test_handler_fanout_with_invalid_curr(self, mock_env):
-        """Test fan-out where one message has changed curr.
-
-        With HTTP protocol, frames are collected before sending. If any frame fails
-        validation, the entire request fails with a single processing_error.
-        """
-        with mock_env(ASYA_HANDLER_MODE="envelope"):
-
-            def invalid_fanout_handler(msg):
-                yield {"payload": {"id": 1}, "route": {"prev": [], "curr": "a", "next": ["b"]}}
-                yield {"payload": {"id": 2}, "route": {"prev": [], "curr": "x", "next": ["b"]}}
-
-            message = {
-                "payload": {"test": "data"},
-                "route": {"prev": [], "curr": "a", "next": ["b"]},
-            }
-
-            responses = call_invoke(message, invalid_fanout_handler)
-
-            # With HTTP batch protocol, second yield fails validation
-            # causing entire request to fail with processing_error
-            assert len(responses) == 1
-            assert responses[0]["error"] == "processing_error"
-
-    def test_handler_adds_future_actors_via_next(self, mock_env):
-        """Test that handler CAN add future actors by modifying next."""
-        with mock_env(ASYA_HANDLER_MODE="envelope"):
-
-            def extending_handler(msg):
-                # Add more actors to next
-                return {
-                    "payload": msg["payload"],
-                    "route": {"prev": ["a"], "curr": "b", "next": ["c", "d", "e"]},
-                }
-
-            message = {
-                "payload": {"test": "data"},
-                "route": {"prev": ["a"], "curr": "b", "next": ["c"]},
-            }
-
-            responses = call_invoke(message, extending_handler)
-
-            # Should succeed - only next changed.
-            # Runtime shifts: "b" -> prev (prev becomes ["a","b"]), curr becomes "c"
-            assert len(responses) == 1
-            assert responses[0]["route"]["prev"] == ["a", "b"]
-            assert responses[0]["route"]["curr"] == "c"
-            assert responses[0]["route"]["next"] == ["d", "e"]
-
-    def test_handler_replaces_future_actors(self, mock_env):
-        """Test that handler CAN replace future actors (next list)."""
-        with mock_env(ASYA_HANDLER_MODE="envelope"):
-
-            def replacing_handler(msg):
-                # Replace next entirely
-                return {
-                    "payload": msg["payload"],
-                    "route": {"prev": ["a"], "curr": "b", "next": ["x", "y"]},
-                }
-
-            message = {
-                "payload": {"test": "data"},
-                "route": {"prev": ["a"], "curr": "b", "next": ["c", "d"]},
-            }
-
-            responses = call_invoke(message, replacing_handler)
-
-            # Should succeed - can replace future actors.
-            # Runtime shifts: "b" -> prev (prev becomes ["a","b"]), curr becomes "x"
-            assert len(responses) == 1
-            assert responses[0]["route"]["prev"] == ["a", "b"]
-            assert responses[0]["route"]["curr"] == "x"
-            assert responses[0]["route"]["next"] == ["y"]
+        # Should succeed - next replaced via VFS.
+        # Runtime shifts: "b" -> prev (prev becomes ["a","b"]), curr becomes "x"
+        assert len(responses) == 1
+        assert responses[0]["route"]["prev"] == ["a", "b"]
+        assert responses[0]["route"]["curr"] == "x"
+        assert responses[0]["route"]["next"] == ["y"]
 
 
 class TestLargePayloads:
@@ -712,22 +595,22 @@ class TestConfigFixtures:
 
     def test_mock_env_fixture_basic(self, mock_env):
         """Test mock_env fixture with basic config override."""
-        original_value = asya_runtime.ASYA_HANDLER_MODE
-        assert original_value == asya_runtime.ASYA_HANDLER_MODE
+        original_value = asya_runtime.ASYA_SOCKET_CHMOD
+        assert original_value == asya_runtime.ASYA_SOCKET_CHMOD
 
-        with mock_env(ASYA_HANDLER_MODE="envelope"):
-            assert asya_runtime.ASYA_HANDLER_MODE == "envelope"
+        with mock_env(ASYA_SOCKET_CHMOD="0o600"):
+            assert asya_runtime.ASYA_SOCKET_CHMOD == "0o600"
 
-        assert original_value == asya_runtime.ASYA_HANDLER_MODE
+        assert original_value == asya_runtime.ASYA_SOCKET_CHMOD
 
     def test_mock_env_fixture_multiple_vars(self, mock_env):
         """Test mock_env fixture with multiple env vars."""
         with mock_env(
-            ASYA_HANDLER_MODE="envelope",
             ASYA_SOCKET_CHMOD="0o600",
+            ASYA_ENABLE_VALIDATION="false",
         ):
-            assert asya_runtime.ASYA_HANDLER_MODE == "envelope"
             assert asya_runtime.ASYA_SOCKET_CHMOD == "0o600"
+            assert asya_runtime.ASYA_ENABLE_VALIDATION is False
 
 
 class TestInvokeProtocol:
@@ -990,183 +873,150 @@ class TestErrorDict:
 
 
 class TestHandleRequestPayloadMode:
-    """Test _handle_invoke in payload mode (ASYA_HANDLER_MODE=payload)."""
+    """Test _handle_invoke in payload mode."""
 
-    def test_handle_request_success_single_output(self, mock_env):
+    def test_handle_request_success_single_output(self):
         """Test successful request with single output."""
-        with mock_env(ASYA_HANDLER_MODE="payload"):
 
-            def simple_handler(payload):
-                return {"result": payload["value"] * 2}
+        def simple_handler(payload):
+            return {"result": payload["value"] * 2}
 
-            message = {
-                "route": {"prev": [], "curr": "actor1", "next": []},
-                "payload": {"value": 42},
-            }
+        message = {
+            "route": {"prev": [], "curr": "actor1", "next": []},
+            "payload": {"value": 42},
+        }
 
-            responses = call_invoke(message, simple_handler)
+        responses = call_invoke(message, simple_handler)
 
-            assert len(responses) == 1
-            assert responses[0]["payload"] == {"result": 84}
-            # Payload mode shifts route: curr becomes "", prev gets "actor1"
-            assert responses[0]["route"] == {"prev": ["actor1"], "curr": "", "next": []}
+        assert len(responses) == 1
+        assert responses[0]["payload"] == {"result": 84}
+        # Route shifts: curr becomes "", prev gets "actor1"
+        assert responses[0]["route"] == {"prev": ["actor1"], "curr": "", "next": []}
 
-    def test_handle_request_multi_actor_route(self, mock_env):
+    def test_handle_request_multi_actor_route(self):
         """Test that payload mode shifts route for multi-actor pipelines."""
-        with mock_env(ASYA_HANDLER_MODE="payload"):
 
-            def pipeline_handler(payload):
-                return {"doubled": payload["value"] * 2}
+        def pipeline_handler(payload):
+            return {"doubled": payload["value"] * 2}
 
-            # Message for actor at start of 3-actor pipeline
-            message = {
-                "route": {"prev": [], "curr": "doubler", "next": ["incrementer", "finalizer"]},
-                "payload": {"value": 21},
-            }
+        # Message for actor at start of 3-actor pipeline
+        message = {
+            "route": {"prev": [], "curr": "doubler", "next": ["incrementer", "finalizer"]},
+            "payload": {"value": 21},
+        }
 
-            responses = call_invoke(message, pipeline_handler)
+        responses = call_invoke(message, pipeline_handler)
 
-            assert len(responses) == 1
-            assert responses[0]["payload"] == {"doubled": 42}
-            # Route shifts: "doubler" moves to prev, curr becomes "incrementer"
-            assert responses[0]["route"] == {"prev": ["doubler"], "curr": "incrementer", "next": ["finalizer"]}
+        assert len(responses) == 1
+        assert responses[0]["payload"] == {"doubled": 42}
+        # Route shifts: "doubler" moves to prev, curr becomes "incrementer"
+        assert responses[0]["route"] == {"prev": ["doubler"], "curr": "incrementer", "next": ["finalizer"]}
 
-    def test_handle_request_fanout_list_output(self, mock_env):
+    def test_handle_request_fanout_list_output(self):
         """Test fan-out with list output in payload mode."""
-        with mock_env(ASYA_HANDLER_MODE="payload"):
 
-            def fanout_handler(payload):
-                yield {"id": 1}
-                yield {"id": 2}
-                yield {"id": 3}
+        def fanout_handler(payload):
+            yield {"id": 1}
+            yield {"id": 2}
+            yield {"id": 3}
 
-            message = {
-                "route": {"prev": [], "curr": "fan", "next": []},
-                "payload": {"test": "data"},
-            }
+        message = {
+            "route": {"prev": [], "curr": "fan", "next": []},
+            "payload": {"test": "data"},
+        }
 
-            responses = call_invoke(message, fanout_handler)
+        responses = call_invoke(message, fanout_handler)
 
-            assert len(responses) == 3
-            assert responses[0]["payload"] == {"id": 1}
-            assert responses[1]["payload"] == {"id": 2}
-            assert responses[2]["payload"] == {"id": 3}
-            # All should have shifted route (payload mode auto-shifts)
-            for resp in responses:
-                assert resp["route"] == {"prev": ["fan"], "curr": "", "next": []}
+        assert len(responses) == 3
+        assert responses[0]["payload"] == {"id": 1}
+        assert responses[1]["payload"] == {"id": 2}
+        assert responses[2]["payload"] == {"id": 3}
+        # All should have shifted route (auto-shifts)
+        for resp in responses:
+            assert resp["route"] == {"prev": ["fan"], "curr": "", "next": []}
 
 
-class TestHandleRequestEnvelopeMode:
-    """Test _handle_invoke in envelope mode (ASYA_HANDLER_MODE=envelope)."""
+class TestHandleRequestVFSMode:
+    """Test _handle_invoke with VFS-based metadata access."""
 
-    def test_handle_request_success_single_output(self, mock_env):
-        """Test successful request with single output in envelope mode."""
-        with mock_env(ASYA_HANDLER_MODE="envelope"):
+    def test_handle_request_success_single_output(self):
+        """Test successful request with single output using payload mode."""
 
-            def envelope_handler(msg):
-                return {
-                    "payload": {"result": msg["payload"]["value"] * 2},
-                    "route": msg["route"],
-                }
+        def simple_handler(payload):
+            return {"result": payload["value"] * 2}
 
-            message = {
-                "route": {"prev": [], "curr": "actor1", "next": []},
-                "payload": {"value": 42},
-            }
+        message = {
+            "route": {"prev": [], "curr": "actor1", "next": []},
+            "payload": {"value": 42},
+        }
 
-            responses = call_invoke(message, envelope_handler)
+        responses = call_invoke(message, simple_handler)
 
-            assert len(responses) == 1
-            assert responses[0]["payload"] == {"result": 84}
-            # Runtime shifts route after envelope handler: actor1 -> prev, curr becomes ""
-            assert responses[0]["route"] == {"prev": ["actor1"], "curr": "", "next": []}
+        assert len(responses) == 1
+        assert responses[0]["payload"] == {"result": 84}
+        # Route shifts: actor1 -> prev, curr becomes ""
+        assert responses[0]["route"] == {"prev": ["actor1"], "curr": "", "next": []}
 
-    def test_handle_request_route_modification(self, mock_env):
-        """Test that handler can modify next in envelope mode."""
-        with mock_env(ASYA_HANDLER_MODE="envelope"):
+    def test_handle_request_route_modification_via_vfs(self):
+        """Test that handler can modify next via VFS."""
 
-            def route_modifying_handler(msg):
-                new_route = msg["route"].copy()
-                new_route["next"] = msg["route"]["next"] + ["modified"]
-                return {"payload": msg["payload"], "route": new_route}
+        def route_modifying_handler(payload):
+            # Read current next and append "modified"
+            current_next = asya_runtime._msg_vfs.read("route/next").strip()
+            new_next = (current_next + "\nmodified").strip()
+            asya_runtime._msg_vfs.write("route/next", new_next)
+            return payload
 
-            message = {
-                "route": {"prev": [], "curr": "actor1", "next": []},
-                "payload": {"data": "test"},
-            }
+        message = {
+            "route": {"prev": [], "curr": "actor1", "next": []},
+            "payload": {"data": "test"},
+        }
 
-            responses = call_invoke(message, route_modifying_handler)
+        responses = call_invoke(message, route_modifying_handler)
 
-            assert len(responses) == 1
-            # Runtime shifts route: handler appended "modified" to next, so curr becomes "modified"
-            assert responses[0]["route"]["prev"] == ["actor1"]
-            assert responses[0]["route"]["curr"] == "modified"
-            assert responses[0]["route"]["next"] == []
+        assert len(responses) == 1
+        # Route shifts: handler appended "modified" to next, so curr becomes "modified"
+        assert responses[0]["route"]["prev"] == ["actor1"]
+        assert responses[0]["route"]["curr"] == "modified"
+        assert responses[0]["route"]["next"] == []
 
-    def test_handle_request_fanout_list_output(self, mock_env):
-        """Test fan-out with list output in envelope mode."""
-        with mock_env(ASYA_HANDLER_MODE="envelope"):
+    def test_handle_request_fanout_list_output(self):
+        """Test fan-out with generator in payload mode."""
 
-            def fanout_handler(msg):
-                yield {"payload": {"id": 1}, "route": msg["route"]}
-                yield {"payload": {"id": 2}, "route": msg["route"]}
-                yield {"payload": {"id": 3}, "route": msg["route"]}
+        def fanout_handler(payload):
+            yield {"id": 1}
+            yield {"id": 2}
+            yield {"id": 3}
 
-            message = {
-                "route": {"prev": [], "curr": "fan", "next": []},
-                "payload": {"test": "data"},
-            }
+        message = {
+            "route": {"prev": [], "curr": "fan", "next": []},
+            "payload": {"test": "data"},
+        }
 
-            responses = call_invoke(message, fanout_handler)
+        responses = call_invoke(message, fanout_handler)
 
-            assert len(responses) == 3
-            assert responses[0]["payload"] == {"id": 1}
-            assert responses[1]["payload"] == {"id": 2}
-            assert responses[2]["payload"] == {"id": 3}
+        assert len(responses) == 3
+        assert responses[0]["payload"] == {"id": 1}
+        assert responses[1]["payload"] == {"id": 2}
+        assert responses[2]["payload"] == {"id": 3}
 
-    def test_handle_request_invalid_output_missing_keys(self, mock_env):
-        """Test that handler output is validated for required keys."""
-        with mock_env(ASYA_HANDLER_MODE="envelope"):
+    def test_handle_request_vfs_read_id(self):
+        """Test that handler can read message id via VFS."""
 
-            def invalid_handler(msg):
-                # Missing 'route' key
-                return {"payload": {"test": "data"}}
+        def id_reader(payload):
+            msg_id = asya_runtime._msg_vfs.read("id")
+            return {"id_seen": msg_id, **payload}
 
-            message = {
-                "route": {"prev": [], "curr": "actor1", "next": []},
-                "payload": {"test": "data"},
-            }
+        message = {
+            "route": {"prev": [], "curr": "actor1", "next": []},
+            "payload": {"test": "data"},
+            "id": "msg-xyz-789",
+        }
 
-            responses = call_invoke(message, invalid_handler)
+        responses = call_invoke(message, id_reader)
 
-            assert len(responses) == 1
-            assert responses[0]["error"] == "processing_error"
-            assert "Missing required field 'route'" in responses[0]["details"]["message"]
-
-    def test_handle_request_invalid_output_list_missing_keys(self, mock_env):
-        """Test that handler list output is validated for required keys.
-
-        With HTTP protocol, frames are collected before sending. If any frame fails
-        validation, the entire request fails with a single processing_error.
-        """
-        with mock_env(ASYA_HANDLER_MODE="envelope"):
-
-            def invalid_fanout_handler(msg):
-                yield {"payload": {"id": 1}, "route": msg["route"]}
-                yield {"payload": {"id": 2}}  # Missing 'route'
-
-            message = {
-                "route": {"prev": [], "curr": "actor1", "next": []},
-                "payload": {"test": "data"},
-            }
-
-            responses = call_invoke(message, invalid_fanout_handler)
-
-            # With HTTP batch protocol, second yield fails validation
-            # causing entire request to fail with processing_error
-            assert len(responses) == 1
-            assert responses[0]["error"] == "processing_error"
-            assert "Missing required field 'route'" in responses[0]["details"]["message"]
+        assert len(responses) == 1
+        assert responses[0]["payload"]["id_seen"] == "msg-xyz-789"
 
 
 class TestHandleRequestErrorCases:
@@ -1203,23 +1053,22 @@ class TestHandleRequestErrorCases:
         assert responses[0]["details"]["message"] == "Handler failed"
         assert responses[0]["details"]["type"] == "ValueError"
 
-    def test_handle_request_generic_exception(self, mock_env):
-        """Test handling when an unexpected exception occurs during handler mode dispatch."""
+    def test_handle_request_generic_exception(self):
+        """Test handling when an unexpected exception occurs during handler dispatch."""
 
-        def simple_handler(payload):
-            return payload
+        def raising_handler(payload):
+            raise RuntimeError("unexpected failure")
 
         message = {
             "route": {"prev": [], "curr": "actor1", "next": []},
             "payload": {"test": "data"},
         }
 
-        with mock_env(ASYA_HANDLER_MODE="unexpected-value"):
-            responses = call_invoke(message, simple_handler)
+        responses = call_invoke(message, raising_handler)
 
-            # Invalid ASYA_HANDLER_MODE causes processing error
-            assert len(responses) == 1
-            assert responses[0]["error"] in ("processing_error", "msg_parsing_error")
+        assert len(responses) == 1
+        assert responses[0]["error"] == "processing_error"
+        assert "unexpected failure" in responses[0]["details"]["message"]
 
 
 class TestClassBasedHandlers:
@@ -1311,7 +1160,7 @@ class TestClassBasedHandlers:
 
         sys.path.insert(0, str(tmp_path))
         try:
-            with mock_env(ASYA_HANDLER="payload_class.PayloadProcessor.process", ASYA_HANDLER_MODE="payload"):
+            with mock_env(ASYA_HANDLER="payload_class.PayloadProcessor.process"):
                 handler = asya_runtime._load_function()
 
                 message = {
@@ -1326,27 +1175,30 @@ class TestClassBasedHandlers:
         finally:
             sys.path.pop(0)
 
-    def test_class_handler_envelope_mode(self, mock_env, tmp_path):
-        """Test class handler in envelope mode."""
-        test_module = tmp_path / "envelope_class.py"
+    def test_class_handler_vfs_headers_access(self, mock_env, tmp_path):
+        """Test class handler that reads headers via VFS."""
+        test_module = tmp_path / "vfs_class.py"
         test_module.write_text(
             textwrap.dedent("""
-            class EnvelopeProcessor:
+            import asya_runtime
+
+            class VFSProcessor:
                 def __init__(self):
                     self.prefix = "processed"
 
-                def process(self, msg):
-                    return {
-                        "payload": {"prefix": self.prefix, "data": msg["payload"]},
-                        "route": msg["route"],
-                        "headers": msg.get("headers", {}),
-                    }
+                def process(self, payload):
+                    import asya_runtime
+                    try:
+                        trace_id = asya_runtime._msg_vfs.read("headers/trace_id")
+                    except FileNotFoundError:
+                        trace_id = ""
+                    return {"prefix": self.prefix, "data": payload, "trace_id": trace_id}
             """)
         )
 
         sys.path.insert(0, str(tmp_path))
         try:
-            with mock_env(ASYA_HANDLER="envelope_class.EnvelopeProcessor.process", ASYA_HANDLER_MODE="envelope"):
+            with mock_env(ASYA_HANDLER="vfs_class.VFSProcessor.process"):
                 handler = asya_runtime._load_function()
 
                 message = {
@@ -1359,7 +1211,7 @@ class TestClassBasedHandlers:
                 assert len(responses) == 1
                 assert responses[0]["payload"]["prefix"] == "processed"
                 assert responses[0]["payload"]["data"]["value"] == 100
-                assert responses[0]["headers"]["trace_id"] == "123"
+                assert responses[0]["payload"]["trace_id"] == "123"
 
         finally:
             sys.path.pop(0)
@@ -1705,28 +1557,87 @@ class TestLoadFunction:
                 asya_runtime._load_function()
             assert excinfo.value.code == 1
 
-    def test_load_function_invalid_handler_arg(self, mock_env):
-        """Test that invalid ASYA_HANDLER_MODE causes ValueError."""
-        with mock_env(ASYA_HANDLER="test.module.func", ASYA_HANDLER_MODE="invalid"):
-            with pytest.raises(ValueError, match="Invalid ASYA_HANDLER_MODE"):
-                asya_runtime._load_function()
+    def test_load_function_too_many_attr_parts(self, mock_env, tmp_path):
+        """Test that ASYA_HANDLER with too many attribute parts (a.b.C.D.method) causes exit."""
+        test_module = tmp_path / "deep_module.py"
+        test_module.write_text(
+            textwrap.dedent("""
+            class Outer:
+                class Inner:
+                    def method(self): pass
+            """)
+        )
+        sys.path.insert(0, str(tmp_path))
+        try:
+            with mock_env(ASYA_HANDLER="deep_module.Outer.Inner.method"):
+                with pytest.raises(SystemExit) as exc_info:
+                    asya_runtime._load_function()
+                assert exc_info.value.code == 1
+        finally:
+            sys.path.pop(0)
 
 
-class TestHandlerArgValidation:
-    """Test ASYA_HANDLER_MODE validation."""
+class TestVFSReadOnly:
+    """Test VFS read-only path enforcement."""
 
-    def test_valid_handler_args(self, mock_env):
-        """Test that valid ASYA_HANDLER_MODE values are accepted."""
-        valid_args = ["payload", "envelope", "PAYLOAD", "envelope"]  # Case-insensitive
+    def test_vfs_id_is_read_only(self):
+        """Test that writing to VFS id path raises PermissionError."""
 
-        for arg in valid_args:
-            with mock_env(ASYA_HANDLER_MODE=arg):
-                # Should accept both lowercase versions
-                assert asya_runtime.ASYA_HANDLER_MODE in ("payload", "envelope")
+        def id_writer(payload):
+            asya_runtime._msg_vfs.write("id", "injected")
+            return payload
 
-    def test_default_handler_arg(self):
-        """Test that default ASYA_HANDLER_MODE is 'payload'."""
-        assert asya_runtime.ASYA_HANDLER_MODE == "payload"
+        message = {
+            "id": "original-id",
+            "payload": {"test": True},
+            "route": {"prev": [], "curr": "a", "next": []},
+        }
+
+        responses = call_invoke(message, id_writer)
+
+        assert len(responses) == 1
+        assert responses[0]["error"] == "processing_error"
+
+    def test_vfs_parent_id_is_read_only(self):
+        """Test that writing to VFS parent_id path raises PermissionError."""
+
+        def parent_id_writer(payload):
+            asya_runtime._msg_vfs.write("parent_id", "injected")
+            return payload
+
+        message = {
+            "id": "msg-1",
+            "parent_id": "original-parent",
+            "payload": {},
+            "route": {"prev": [], "curr": "a", "next": []},
+        }
+
+        responses = call_invoke(message, parent_id_writer)
+
+        assert len(responses) == 1
+        assert responses[0]["error"] == "processing_error"
+
+    def test_vfs_route_next_is_writable(self):
+        """Test that route.next is writable via VFS."""
+
+        def next_writer(payload):
+            asya_runtime._msg_vfs.write("route/next", "new-actor")
+            return payload
+
+        message = {
+            "payload": {"test": True},
+            "route": {"prev": [], "curr": "a", "next": ["old-actor"]},
+        }
+
+        responses = call_invoke(message, next_writer)
+
+        assert len(responses) == 1
+        assert responses[0]["route"]["curr"] == "new-actor"
+        assert responses[0]["route"]["next"] == []
+
+    def test_vfs_msg_root_default(self):
+        """Test that ASYA_MSG_ROOT defaults to /proc/asya/msg."""
+        assert asya_runtime.ASYA_MSG_ROOT == "/proc/asya/msg"
 
 
 class TestEdgeCases:
@@ -1908,8 +1819,16 @@ class TestStatusPreservation:
         assert responses[0]["payload"] == {"result": "ok"}
         assert "status" not in responses[0]
 
-    def test_envelope_mode_preserves_status(self, mock_env):
-        """Test that status flows through envelope mode via _validate_message."""
+    def test_vfs_status_is_readable(self):
+        """Test that status fields are readable via VFS."""
+
+        def status_reader(payload):
+            try:
+                phase = asya_runtime._msg_vfs.read("status/phase")
+            except FileNotFoundError:
+                phase = "not-found"
+            return {"phase_seen": phase, **payload}
+
         status = {
             "phase": "processing",
             "actor": "processor",
@@ -1918,24 +1837,17 @@ class TestStatusPreservation:
             "created_at": "2025-01-01T00:00:00Z",
             "updated_at": "2025-01-01T00:01:00Z",
         }
-
-        def envelope_handler(msg):
-            return {
-                "payload": {"processed": True},
-                "route": msg["route"],
-                "status": msg.get("status"),
-            }
-
         message = {
             "payload": {"data": "test"},
             "route": {"prev": [], "curr": "processor", "next": ["next_actor"]},
             "status": status,
         }
 
-        with mock_env(ASYA_HANDLER_MODE="envelope"):
-            responses = call_invoke(message, envelope_handler)
+        responses = call_invoke(message, status_reader)
 
         assert len(responses) == 1
+        assert responses[0]["payload"]["phase_seen"] == "processing"
+        # Status is preserved through VFS snapshot automatically
         assert responses[0]["status"] == status
 
 
@@ -2000,24 +1912,25 @@ class TestHeadersPreservation:
         assert responses[0]["payload"] == {"test": "data"}
         assert "headers" not in responses[0]
 
-    def test_headers_preserved_in_envelope_mode(self, mock_env):
-        """Test that headers are preserved when using envelope mode."""
-        with mock_env(ASYA_HANDLER_MODE="envelope"):
+    def test_headers_readable_via_vfs(self):
+        """Test that headers are readable via VFS and preserved in output."""
 
-            def envelope_handler(msg):
-                return msg
+        def header_reader(payload):
+            req_id = asya_runtime._msg_vfs.read("headers/request_id")
+            return {"value": payload["value"], "request_id": req_id}
 
-            message = {
-                "payload": {"value": 100},
-                "route": {"prev": [], "curr": "passthrough", "next": []},
-                "headers": {"request_id": "req-456"},
-            }
+        message = {
+            "payload": {"value": 100},
+            "route": {"prev": [], "curr": "passthrough", "next": []},
+            "headers": {"request_id": "req-456"},
+        }
 
-            responses = call_invoke(message, envelope_handler)
+        responses = call_invoke(message, header_reader)
 
-            assert len(responses) == 1
-            assert responses[0]["payload"] == {"value": 100}
-            assert responses[0]["headers"] == {"request_id": "req-456"}
+        assert len(responses) == 1
+        assert responses[0]["payload"] == {"value": 100, "request_id": "req-456"}
+        # Headers preserved from VFS snapshot
+        assert responses[0]["headers"] == {"request_id": "req-456"}
 
     def test_headers_validation_invalid_type(self):
         """Test that headers validation rejects non-dict types."""
@@ -2038,112 +1951,106 @@ class TestHeadersPreservation:
         assert "Field 'headers' must be a dict" in responses[0]["details"]["message"]
 
 
-class TestEnvelopeMode:
-    """Test ASYA_HANDLER_MODE=envelope mode."""
+class TestVFSHeaderAccess:
+    """Test VFS-based header access from handlers."""
 
-    def test_envelope_mode_basic(self, mock_env):
-        """Test envelope mode with basic handler."""
-        with mock_env(ASYA_HANDLER_MODE="envelope"):
+    def test_vfs_headers_readable(self):
+        """Test that headers are readable via VFS."""
 
-            def envelope_handler(msg):
-                return msg
-
-            message = {
-                "payload": {"value": 123},
-                "route": {"prev": [], "curr": "passthrough", "next": []},
-                "headers": {"trace_id": "test-123"},
+        def header_reader(payload):
+            priority = asya_runtime._msg_vfs.read("headers/priority")
+            trace_id = asya_runtime._msg_vfs.read("headers/trace_id")
+            return {
+                "priority": priority,
+                "trace_id": trace_id,
+                "value": payload["value"],
             }
 
-            responses = call_invoke(message, envelope_handler)
+        message = {
+            "payload": {"value": 42},
+            "route": {"prev": [], "curr": "processor", "next": []},
+            "headers": {"priority": "high", "trace_id": "xyz"},
+        }
 
-            assert len(responses) == 1
-            assert responses[0]["payload"] == {"value": 123}
-            assert responses[0]["headers"] == {"trace_id": "test-123"}
-            # Runtime shifts route: passthrough -> prev, curr becomes ""
-            assert responses[0]["route"] == {"prev": ["passthrough"], "curr": "", "next": []}
+        responses = call_invoke(message, header_reader)
 
-    def test_envelope_mode_headers_access(self, mock_env):
-        """Test that envelope mode gives access to headers."""
-        with mock_env(ASYA_HANDLER_MODE="envelope"):
+        assert len(responses) == 1
+        assert responses[0]["payload"] == {"priority": "high", "trace_id": "xyz", "value": 42}
+        # Headers preserved in output via VFS snapshot
+        assert responses[0]["headers"] == {"priority": "high", "trace_id": "xyz"}
 
-            def headers_reader(msg):
-                priority = msg.get("headers", {}).get("priority", "low")
-                return {
-                    "payload": {
-                        "priority": priority,
-                        "value": msg["payload"]["value"],
-                    },
-                    "route": msg["route"],
-                    "headers": msg.get("headers", {}),
-                }
+    def test_vfs_headers_writable(self):
+        """Test that new headers can be added via VFS."""
 
-            message = {
-                "payload": {"value": 42},
-                "route": {"prev": [], "curr": "processor", "next": []},
-                "headers": {"priority": "high", "trace_id": "xyz"},
-            }
+        def header_writer(payload):
+            asya_runtime._msg_vfs.write("headers/new-header", "added-value")
+            return payload
 
-            responses = call_invoke(message, headers_reader)
+        message = {
+            "payload": {"test": True},
+            "route": {"prev": [], "curr": "a", "next": []},
+            "headers": {"existing": "kept"},
+        }
 
-            assert len(responses) == 1
-            assert responses[0]["payload"] == {"priority": "high", "value": 42}
-            assert responses[0]["headers"] == {"priority": "high", "trace_id": "xyz"}
+        responses = call_invoke(message, header_writer)
 
-    def test_envelope_mode_fanout(self, mock_env):
-        """Test envelope mode with fanout."""
-        with mock_env(ASYA_HANDLER_MODE="envelope"):
+        assert len(responses) == 1
+        assert responses[0]["headers"]["existing"] == "kept"
+        assert responses[0]["headers"]["new-header"] == "added-value"
 
-            def fanout_handler(msg):
-                yield {"payload": {"id": 1}, "route": msg["route"], "headers": msg.get("headers", {})}
-                yield {"payload": {"id": 2}, "route": msg["route"], "headers": msg.get("headers", {})}
+    def test_vfs_headers_fanout_preserved(self):
+        """Test that headers are preserved in fan-out via VFS."""
 
-            message = {
-                "payload": {"test": "data"},
-                "route": {"prev": [], "curr": "fan", "next": []},
-                "headers": {"correlation_id": "abc"},
-            }
+        def fanout_handler(payload):
+            yield {"id": 1}
+            yield {"id": 2}
 
-            responses = call_invoke(message, fanout_handler)
+        message = {
+            "payload": {"test": "data"},
+            "route": {"prev": [], "curr": "fan", "next": []},
+            "headers": {"correlation_id": "abc"},
+        }
 
-            assert len(responses) == 2
-            assert responses[0]["payload"] == {"id": 1}
-            assert responses[0]["headers"] == {"correlation_id": "abc"}
-            assert responses[1]["payload"] == {"id": 2}
-            assert responses[1]["headers"] == {"correlation_id": "abc"}
+        responses = call_invoke(message, fanout_handler)
 
-    def test_envelope_mode_validation(self, mock_env):
-        """Test envelope mode output validation."""
-        with mock_env(ASYA_HANDLER_MODE="envelope"):
+        assert len(responses) == 2
+        assert responses[0]["payload"] == {"id": 1}
+        assert responses[0]["headers"] == {"correlation_id": "abc"}
+        assert responses[1]["payload"] == {"id": 2}
+        assert responses[1]["headers"] == {"correlation_id": "abc"}
 
-            def invalid_handler(msg):
-                return {"payload": {"result": "ok"}}  # Missing route
+    def test_vfs_missing_header_raises_file_not_found(self):
+        """Test that reading a non-existent header raises FileNotFoundError."""
 
-            message = {
-                "payload": {"test": "data"},
-                "route": {"prev": [], "curr": "processor", "next": []},
-            }
+        def missing_header_reader(payload):
+            asya_runtime._msg_vfs.read("headers/nonexistent")
+            return payload
 
-            responses = call_invoke(message, invalid_handler)
+        message = {
+            "payload": {"test": True},
+            "route": {"prev": [], "curr": "a", "next": []},
+            "headers": {},
+        }
 
-            assert len(responses) == 1
-            assert responses[0]["error"] == "processing_error"
-            assert "Missing required field 'route'" in responses[0]["details"]["message"]
+        responses = call_invoke(message, missing_header_reader)
 
-    def test_envelope_mode_returns_none(self, mock_env):
-        """Test envelope mode handler returning None."""
-        with mock_env(ASYA_HANDLER_MODE="envelope"):
+        assert len(responses) == 1
+        assert responses[0]["error"] == "processing_error"
 
-            def none_handler(msg):
-                return None
+    def test_vfs_handler_returns_none(self):
+        """Test handler returning None aborts pipeline."""
 
-            message = {
-                "payload": {"test": "data"},
-                "route": {"prev": [], "curr": "processor", "next": []},
-            }
+        def none_handler(payload):
+            return None
 
-            responses = call_invoke(message, none_handler)
+        message = {
+            "payload": {"test": "data"},
+            "route": {"prev": [], "curr": "processor", "next": []},
+        }
 
-            assert len(responses) == 0
+        responses = call_invoke(message, none_handler)
+
+        assert len(responses) == 0
 
 
 class TestLoadFunctionErrors:
@@ -2362,15 +2269,12 @@ class TestAsyncHandlers:
 
         assert len(responses) == 0
 
-    def test_async_envelope_mode(self, mock_env):
-        """Async handler in envelope mode receives full message."""
+    def test_async_vfs_header_access(self):
+        """Async handler reads headers via VFS."""
 
-        async def async_envelope(message):
-            return {
-                "payload": {"processed": message["payload"]["data"]},
-                "route": message["route"],
-                "headers": message.get("headers", {}),
-            }
+        async def async_vfs_handler(payload):
+            trace_id = asya_runtime._msg_vfs.read("headers/trace_id")
+            return {"processed": payload["data"], "trace_id": trace_id}
 
         message = {
             "payload": {"data": "test"},
@@ -2378,12 +2282,11 @@ class TestAsyncHandlers:
             "headers": {"trace_id": "t1"},
         }
 
-        with mock_env(ASYA_HANDLER_MODE="envelope"):
-            responses = call_invoke(message, async_envelope)
+        responses = call_invoke(message, async_vfs_handler)
 
         assert len(responses) == 1
-        assert responses[0]["payload"] == {"processed": "test"}
-        # Runtime shifts route: "a" -> prev, curr becomes "b" (from next)
+        assert responses[0]["payload"] == {"processed": "test", "trace_id": "t1"}
+        # Route shifts: "a" -> prev, curr becomes "b" (from next)
         assert responses[0]["route"] == {"prev": ["a"], "curr": "b", "next": []}
         assert responses[0]["headers"] == {"trace_id": "t1"}
 
@@ -2597,42 +2500,35 @@ class TestHTTPInvoke:
         frames, status = runtime_invoke(empty_gen, message)
         assert status == 204
 
-    # --- Envelope mode ---
+    # --- VFS access via handler ---
 
-    def test_envelope_mode_success(self, runtime_invoke, mock_env):
-        with mock_env(ASYA_HANDLER_MODE="envelope"):
+    def test_vfs_id_access_success(self, runtime_invoke):
+        def handler(payload):
+            msg_id = asya_runtime._msg_vfs.read("id")
+            return {"processed": True, "id_seen": msg_id}
 
-            def handler(msg):
-                return {
-                    "payload": {"processed": True},
-                    "route": msg["route"],
-                }
+        message = {"id": "test-msg-id", "payload": {"x": 1}, "route": {"prev": [], "curr": "a", "next": []}}
+        frames, status = runtime_invoke(handler, message)
+        assert status == 200
+        assert frames[0]["payload"]["processed"] is True
+        assert frames[0]["payload"]["id_seen"] == "test-msg-id"
 
-            message = {"payload": {"x": 1}, "route": {"prev": [], "curr": "a", "next": []}}
-            frames, status = runtime_invoke(handler, message)
-            assert status == 200
-            assert frames[0]["payload"] == {"processed": True}
+    def test_vfs_handler_returns_none(self, runtime_invoke):
+        message = {"payload": {}, "route": {"prev": [], "curr": "a", "next": []}}
+        frames, status = runtime_invoke(lambda p: None, message)
+        assert status == 204
 
-    def test_envelope_mode_returns_none(self, runtime_invoke, mock_env):
-        with mock_env(ASYA_HANDLER_MODE="envelope"):
-            message = {"payload": {}, "route": {"prev": [], "curr": "a", "next": []}}
-            frames, status = runtime_invoke(lambda m: None, message)
-            assert status == 204
+    def test_vfs_generator_handler(self, runtime_invoke):
+        def gen(payload):
+            for i in range(2):
+                yield {"i": i}
 
-    def test_envelope_mode_generator(self, runtime_invoke, mock_env):
-        with mock_env(ASYA_HANDLER_MODE="envelope"):
-
-            def gen(msg):
-                for i in range(2):
-                    yield {
-                        "payload": {"i": i},
-                        "route": msg["route"],
-                    }
-
-            message = {"payload": {}, "route": {"prev": [], "curr": "a", "next": []}}
-            frames, status = runtime_invoke(gen, message)
-            assert status == 200
-            assert len(frames) == 2
+        message = {"payload": {}, "route": {"prev": [], "curr": "a", "next": []}}
+        frames, status = runtime_invoke(gen, message)
+        assert status == 200
+        assert len(frames) == 2
+        assert frames[0]["payload"]["i"] == 0
+        assert frames[1]["payload"]["i"] == 1
 
     # --- Large payloads ---
 
