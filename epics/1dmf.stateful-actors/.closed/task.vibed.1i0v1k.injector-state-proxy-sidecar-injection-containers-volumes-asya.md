@@ -2,7 +2,10 @@
 title: "Injector: State proxy sidecar injection (containers, volumes, ASYA_STATE_PROXY_MOUNTS)"
 priority: 1 # high
 type: task
+tags:
+  - pr:195
 ---
+
 
 Update asya-injector mutating webhook to handle stateProxy spec:
 
