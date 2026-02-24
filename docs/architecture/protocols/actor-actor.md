@@ -11,8 +11,9 @@
   "id": "unique-message-id",
   "parent_id": "original-message-id",
   "route": {
-    "actors": ["prep", "infer", "post"],
-    "current": 0
+    "prev": ["prep"],
+    "curr": "infer",
+    "next": ["post"]
   },
   "headers": {
     "trace_id": "abc-123",
@@ -28,9 +29,10 @@
 
 - `id` (required): Unique message identifier
 - `parent_id` (optional): Parent message ID for fanout children (see Fan-Out section)
-- `route` (required): Actor list and current position
-  - `actors`: Pipeline definition
-  - `current`: Current actor index (0-based, incremented by runtime)
+- `route` (required): Actor routing state
+  - `prev`: Actors that have already processed the message (read-only, maintained by runtime)
+  - `curr`: The actor currently processing the message (read-only, set by runtime)
+  - `next`: Actors yet to process the message (modifiable by envelope-mode handlers)
 - `payload` (required): User data processed by actors
 - `headers` (optional): Routing metadata (trace IDs, priorities)
 
@@ -63,7 +65,7 @@ Namespace: `example-ecommerce`
 ## End Queues
 
 **`x-sink`**: Pipeline completed or aborted successfully
-- Automatically routed by sidecar when no more actors in route
+- Automatically routed by sidecar when `route.curr` is `""` (route exhausted)
 - Automatically routed when runtime returns empty response
 
 **`x-sump`**: Processing error occurred
@@ -81,7 +83,7 @@ Runtime returns mutated payload:
 {"processed": true, "timestamp": "2025-11-18T12:00:00Z"}
 ```
 
-**Action**: Sidecar creates message → Increments current → Routes to next actor
+**Action**: Sidecar creates message → Runtime shifts route (prev grows, curr advances) → Routes to next actor
 
 ### Fan-Out (Generator/Yield)
 
@@ -202,10 +204,10 @@ Sidecars report progress to gateway at three points per actor:
 
 **Progress calculation**:
 ```
-progress_percent = (actors_completed / total_actors) * 100
+progress_percent = (len(prev) + 1) / (len(prev) + 1 + len(next)) * 100
 ```
 
-**Example**: Route `["prep", "infer", "post"]` (3 actors)
+**Example**: Route starting as `{prev: [], curr: "prep", next: ["infer", "post"]}`
 - Actor `prep` completed → 33%
 - Actor `infer` completed → 66%
 - Actor `post` completed → 100% (final status from `x-sink`)

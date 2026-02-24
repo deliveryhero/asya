@@ -43,7 +43,6 @@ type Task struct {
 	TimeoutSec       int                    `json:"timeout_seconds,omitempty"` // Total timeout in seconds
 	Deadline         time.Time              `json:"deadline,omitempty"`        // Absolute deadline
 	ProgressPercent  float64                `json:"progress_percent"`
-	CurrentActorIdx  int                    `json:"current_actor_idx"`
 	CurrentActorName string                 `json:"current_actor_name,omitempty"`
 	Message          string                 `json:"message,omitempty"` // Current progress message
 	ActorsCompleted  int                    `json:"actors_completed"`
@@ -52,11 +51,14 @@ type Task struct {
 	UpdatedAt        time.Time              `json:"updated_at"`
 }
 
-// Route represents the task routing information
+// Route represents the routing state of a message through the actor pipeline.
+// prev: actors that have already processed this message.
+// curr: the actor currently processing (or "" at end-of-route).
+// next: actors remaining after curr.
 type Route struct {
-	Actors   []string               `json:"actors"`
-	Current  int                    `json:"current"`
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Prev []string `json:"prev"`
+	Curr string   `json:"curr"`
+	Next []string `json:"next"`
 }
 
 // TaskUpdate represents an internal state change event for a task.
@@ -74,25 +76,26 @@ type Route struct {
 // final status updates (from end actors like x-sink/x-sump).
 type TaskUpdate struct {
 	ID              string     `json:"id"`
-	Status          TaskStatus `json:"status"`                      // Task status (pending/running/succeeded/failed)
-	Message         string     `json:"message,omitempty"`           // Human-readable status message
-	Result          any        `json:"result,omitempty"`            // Final result (only for final states)
-	Error           string     `json:"error,omitempty"`             // Error message (only for failed status)
-	ProgressPercent *float64   `json:"progress_percent,omitempty"`  // Progress 0-100 (nil if not a progress update)
-	Actor           string     `json:"actor,omitempty"`             // Current actor name (for progress updates)
-	Actors          []string   `json:"actors,omitempty"`            // Full route (may be modified by envelope-mode actors)
-	CurrentActorIdx *int       `json:"current_actor_idx,omitempty"` // Index of current actor (0-based, nil for non-progress updates)
-	TaskState       *string    `json:"task_state,omitempty"`        // Task processing state at current actor: "received" | "processing" | "completed"
-	Timestamp       time.Time  `json:"timestamp"`                   // When this update occurred
+	Status          TaskStatus `json:"status"`                     // Task status (pending/running/succeeded/failed)
+	Message         string     `json:"message,omitempty"`          // Human-readable status message
+	Result          any        `json:"result,omitempty"`           // Final result (only for final states)
+	Error           string     `json:"error,omitempty"`            // Error message (only for failed status)
+	ProgressPercent *float64   `json:"progress_percent,omitempty"` // Progress 0-100 (nil if not a progress update)
+	Actor           string     `json:"actor,omitempty"`            // Current actor name (for progress updates)
+	Prev            []string   `json:"prev,omitempty"`             // Actors that have already processed this message
+	Curr            string     `json:"curr,omitempty"`             // Actor currently processing ("" at end-of-route)
+	Next            []string   `json:"next,omitempty"`             // Actors remaining after curr
+	TaskState       *string    `json:"task_state,omitempty"`       // Task processing state at current actor: "received" | "processing" | "completed"
+	Timestamp       time.Time  `json:"timestamp"`                  // When this update occurred
 }
 
 // ProgressUpdate represents a progress report sent FROM sidecars TO the gateway.
 //
 // EXTERNAL API: This type is used for the POST /tasks/{id}/progress endpoint.
 // Sidecars send these updates as actors process tasks to report:
-// - Which actor is currently processing (CurrentActorIdx)
+// - Which actor is currently processing (Curr)
 // - Task processing state ("received", "processing", "completed")
-// - Updated routing table (Actors array may be modified by envelope-mode actors)
+// - Updated routing table (Prev/Curr/Next may be modified by envelope-mode actors)
 //
 // Data flow:
 //
@@ -105,7 +108,7 @@ type TaskUpdate struct {
 //	                      TaskUpdate        --->    TaskStore.UpdateProgress()
 //	                      (internal event)              |
 //	                                                    v
-//	                                              - Update DB (route_actors field)
+//	                                              - Update DB (route_prev/curr/next fields)
 //	                                              - Stream to SSE clients
 //
 // Sent by: Sidecar's progress reporter at three points per actor:
@@ -114,9 +117,19 @@ type TaskUpdate struct {
 // 3. "completed" - Runtime returned successful response
 type ProgressUpdate struct {
 	ID              string   `json:"id"`
-	Actors          []string `json:"actors"`            // Full route (may differ from original if actor modified it)
-	CurrentActorIdx int      `json:"current_actor_idx"` // Index of current actor being processed (0-based)
+	Prev            []string `json:"prev"`              // Actors that have already processed this message
+	Curr            string   `json:"curr"`              // Actor currently processing ("" at end-of-route)
+	Next            []string `json:"next"`              // Actors remaining after curr
 	Status          string   `json:"status"`            // Actor status: "received" | "processing" | "completed"
 	Message         string   `json:"message,omitempty"` // Optional progress message
 	ProgressPercent float64  `json:"progress_percent"`  // Calculated by gateway based on actor progress
+}
+
+// CreateTaskRequest is sent by the sidecar to create fanout child tasks.
+type CreateTaskRequest struct {
+	ID       string   `json:"id"`
+	ParentID *string  `json:"parent_id,omitempty"`
+	Prev     []string `json:"prev"`
+	Curr     string   `json:"curr"`
+	Next     []string `json:"next"`
 }

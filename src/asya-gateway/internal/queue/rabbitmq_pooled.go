@@ -40,11 +40,8 @@ func NewRabbitMQClientPooled(url, exchange string, poolSize int) (*RabbitMQClien
 
 // SendMessage sends a message to the current actor's queue in the route
 func (c *RabbitMQClientPooled) SendMessage(ctx context.Context, task *types.Task) error {
-	if len(task.Route.Actors) == 0 {
-		return fmt.Errorf("route has no actors")
-	}
-	if task.Route.Current < 0 || task.Route.Current >= len(task.Route.Actors) {
-		return fmt.Errorf("invalid route.current=%d for actors length %d", task.Route.Current, len(task.Route.Actors))
+	if task.Route.Curr == "" {
+		return fmt.Errorf("route has no current actor (curr is empty)")
 	}
 
 	// Create actor message
@@ -74,8 +71,7 @@ func (c *RabbitMQClientPooled) SendMessage(ctx context.Context, task *types.Task
 
 	// Send message to current actor's queue
 	// Use actor name as routing key (sidecar binds queue with actor name, not "asya-" prefixed name)
-	actorName := task.Route.Actors[task.Route.Current]
-	routingKey := actorName
+	routingKey := task.Route.Curr
 	err = ch.PublishWithContext(ctx,
 		c.pool.exchange, // exchange
 		routingKey,      // routing key (queue name)

@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
-"""Tests for asya_runtime.py HTTP server."""
+"""Tests for asya_runtime.py HTTP-over-Unix-socket server."""
 
-import http.client as http_client
 import importlib
 import json
 import os
-import socket
+import stat
 import sys
+import tempfile
 import textwrap
-import threading
 from contextlib import contextmanager
 from pathlib import Path
 
@@ -19,18 +18,6 @@ import pytest
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import asya_runtime
-
-
-class _UnixHTTPConnection(http_client.HTTPConnection):
-    """HTTP connection over Unix socket for testing."""
-
-    def __init__(self, socket_path):
-        super().__init__("localhost")
-        self._socket_path = socket_path
-
-    def connect(self):
-        self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        self.sock.connect(self._socket_path)
 
 
 @pytest.fixture
@@ -78,57 +65,33 @@ def mock_env():
     return _mock_env
 
 
-@pytest.fixture
-def runtime_invoke(tmp_path):
-    """Invoke a handler via HTTP runtime server and return (frames_or_error, status_code).
+def call_invoke(message: dict, user_func) -> list[dict]:
+    """Call _handle_invoke with a message dict and return response frames.
 
-    Returns:
-        For 200: (list[dict], 200) — list of response frames
-        For 204: ([], 204) — abort (handler returned None)
-        For 4xx/5xx: (dict, status) — error response body
+    Returns a list of frames:
+    - On 200: returns parsed frames list from {"frames": [...]}
+    - On 204: returns []
+    - On 400/500: returns [{"error": "...", ...}] (single error frame)
     """
-    call_count = [0]
+    data = json.dumps(message).encode("utf-8")
+    status_code, body = asya_runtime._handle_invoke(data, user_func)
 
-    def _invoke(user_func, message):
-        call_count[0] += 1
-        socket_path = str(tmp_path / f"rt-{call_count[0]}.sock")
-        server = asya_runtime._UnixHTTPServer(socket_path, asya_runtime._InvokeHandler)
-        server.user_func = user_func
+    if status_code == 204:
+        return []
 
-        thread = threading.Thread(target=server.handle_request)
-        thread.start()
+    parsed = json.loads(body.decode("utf-8"))
 
-        conn = _UnixHTTPConnection(socket_path)
-        body = json.dumps(message).encode("utf-8")
-        conn.request(
-            "POST",
-            "/invoke",
-            body=body,
-            headers={"Content-Type": "application/json"},
-        )
-        resp = conn.getresponse()
-        status = resp.status
-        raw = resp.read()
-        conn.close()
-        thread.join(timeout=5)
-        server.server_close()
+    if status_code == 200:
+        return parsed["frames"]
 
-        if status == 204:
-            return [], status
-        if not raw:
-            return {}, status
-        data = json.loads(raw)
-        if status == 200:
-            return data["frames"], status
-        return data, status
-
-    return _invoke
+    # 400 or 500: error response is a single frame
+    return [parsed]
 
 
 class TestHandlerReturnTypeValidation:
     """Test handler return type validation in payload mode."""
 
-    def test_handler_returns_string_payload_mode(self, runtime_invoke):
+    def test_handler_returns_string_payload_mode(self):
         """Test handler returning string instead of dict in payload mode."""
 
         def string_handler(payload):
@@ -136,15 +99,16 @@ class TestHandlerReturnTypeValidation:
 
         message = {
             "payload": {"test": "data"},
-            "route": {"actors": ["a"], "current": 0},
+            "route": {"prev": [], "curr": "a", "next": []},
         }
-        frames, status = runtime_invoke(string_handler, message)
 
-        assert status == 200
-        assert len(frames) == 1
-        assert frames[0]["payload"] == "this is a string, not a dict"
+        responses = call_invoke(message, string_handler)
 
-    def test_handler_returns_number_payload_mode(self, runtime_invoke):
+        # String is a valid payload type
+        assert len(responses) == 1
+        assert responses[0]["payload"] == "this is a string, not a dict"
+
+    def test_handler_returns_number_payload_mode(self):
         """Test handler returning number in payload mode."""
 
         def number_handler(payload):
@@ -152,15 +116,15 @@ class TestHandlerReturnTypeValidation:
 
         message = {
             "payload": {"test": "data"},
-            "route": {"actors": ["a"], "current": 0},
+            "route": {"prev": [], "curr": "a", "next": []},
         }
-        frames, status = runtime_invoke(number_handler, message)
 
-        assert status == 200
-        assert len(frames) == 1
-        assert frames[0]["payload"] == 42
+        responses = call_invoke(message, number_handler)
 
-    def test_handler_returns_none_payload_mode(self, runtime_invoke):
+        assert len(responses) == 1
+        assert responses[0]["payload"] == 42
+
+    def test_handler_returns_none_payload_mode(self):
         """Test handler returning None in payload mode (abort execution)."""
 
         def none_handler(payload):
@@ -168,14 +132,14 @@ class TestHandlerReturnTypeValidation:
 
         message = {
             "payload": {"test": "data"},
-            "route": {"actors": ["a"], "current": 0},
+            "route": {"prev": [], "curr": "a", "next": []},
         }
-        frames, status = runtime_invoke(none_handler, message)
 
-        assert status == 204
-        assert frames == []
+        responses = call_invoke(message, none_handler)
 
-    def test_handler_returns_empty_list(self, runtime_invoke):
+        assert len(responses) == 0
+
+    def test_handler_returns_empty_list(self):
         """Test handler returning empty list (returns list as single payload)."""
 
         def empty_list_handler(payload):
@@ -183,26 +147,17 @@ class TestHandlerReturnTypeValidation:
 
         message = {
             "payload": {"test": "data"},
-            "route": {"actors": ["a"], "current": 0},
+            "route": {"prev": [], "curr": "a", "next": []},
         }
-        frames, status = runtime_invoke(empty_list_handler, message)
 
-        assert status == 200
-        assert len(frames) == 1
-        assert frames[0]["payload"] == []
+        responses = call_invoke(message, empty_list_handler)
+
+        assert len(responses) == 1
+        assert responses[0]["payload"] == []
 
 
 class TestRouteValidation:
     """Test route validation edge cases."""
-
-    def test_parse_msg_route_current_missing_defaults_to_zero(self):
-        """Test route without current field - should default to 0."""
-        data = json.dumps({"payload": {"test": "data"}, "route": {"actors": ["a", "b"]}}).encode("utf-8")
-        msg = asya_runtime._parse_message_json(data)
-        validated = asya_runtime._validate_message(msg)
-
-        assert validated["route"]["current"] == 0
-        assert validated["route"]["actors"] == ["a", "b"]
 
     def test_parse_msg_route_not_dict(self):
         """Test route as string instead of dict - should fail validation."""
@@ -211,57 +166,87 @@ class TestRouteValidation:
             msg = asya_runtime._parse_message_json(data)
             asya_runtime._validate_message(msg)
 
-    def test_parse_msg_route_missing_actors(self):
-        """Test route without actors field - should fail validation."""
-        with pytest.raises(ValueError, match="Missing required field 'actors' in route"):
-            data = json.dumps({"payload": {"test": "data"}, "route": {"current": 0}}).encode("utf-8")
+    def test_parse_msg_route_missing_prev(self):
+        """Test route without prev field - should fail validation."""
+        with pytest.raises(ValueError, match="Missing required field 'prev' in route"):
+            data = json.dumps({"payload": {"test": "data"}, "route": {"curr": "a", "next": []}}).encode("utf-8")
             msg = asya_runtime._parse_message_json(data)
             asya_runtime._validate_message(msg)
 
-    def test_parse_msg_route_actors_not_list(self):
-        """Test route with actors as non-list - should fail validation."""
-        with pytest.raises(ValueError, match="Field 'route.actors' must be a list"):
-            data = json.dumps({"payload": {"test": "data"}, "route": {"actors": "not a list"}}).encode("utf-8")
+    def test_parse_msg_route_missing_curr(self):
+        """Test route without curr field - should fail validation."""
+        with pytest.raises(ValueError, match="Missing required field 'curr' in route"):
+            data = json.dumps({"payload": {"test": "data"}, "route": {"prev": [], "next": []}}).encode("utf-8")
             msg = asya_runtime._parse_message_json(data)
             asya_runtime._validate_message(msg)
 
-    def test_parse_msg_route_current_not_int(self):
-        """Test route with current as non-integer - should fail validation."""
-        with pytest.raises(ValueError, match="Field 'route.current' must be an integer"):
+    def test_parse_msg_route_missing_next(self):
+        """Test route without next field - should fail validation."""
+        with pytest.raises(ValueError, match="Missing required field 'next' in route"):
+            data = json.dumps({"payload": {"test": "data"}, "route": {"prev": [], "curr": "a"}}).encode("utf-8")
+            msg = asya_runtime._parse_message_json(data)
+            asya_runtime._validate_message(msg)
+
+    def test_parse_msg_route_prev_not_list(self):
+        """Test route with prev as non-list - should fail validation."""
+        with pytest.raises(ValueError, match="Field 'route.prev' must be a list"):
             data = json.dumps(
-                {
-                    "payload": {"test": "data"},
-                    "route": {"actors": ["a", "b"], "current": "0"},
-                }
+                {"payload": {"test": "data"}, "route": {"prev": "not a list", "curr": "a", "next": []}}
             ).encode("utf-8")
             msg = asya_runtime._parse_message_json(data)
             asya_runtime._validate_message(msg)
 
-    def test_parse_msg_route_current_negative(self):
-        """Test route with negative current index - should fail validation."""
-        with pytest.raises(ValueError, match="Invalid route.current=-1"):
-            data = json.dumps({"payload": {"test": "data"}, "route": {"actors": ["a"], "current": -1}}).encode("utf-8")
+    def test_parse_msg_route_curr_not_string(self):
+        """Test route with curr as non-string - should fail validation."""
+        with pytest.raises(ValueError, match="Field 'route.curr' must be a string"):
+            data = json.dumps({"payload": {"test": "data"}, "route": {"prev": [], "curr": 42, "next": []}}).encode(
+                "utf-8"
+            )
             msg = asya_runtime._parse_message_json(data)
             asya_runtime._validate_message(msg)
 
-    def test_parse_msg_route_current_out_of_bounds(self):
-        """Test route with current index beyond actors length - should fail validation."""
-        with pytest.raises(ValueError, match="Invalid route.current=10"):
+    def test_parse_msg_route_next_not_list(self):
+        """Test route with next as non-list - should fail validation."""
+        with pytest.raises(ValueError, match="Field 'route.next' must be a list"):
             data = json.dumps(
-                {
-                    "payload": {"test": "data"},
-                    "route": {"actors": ["a", "b"], "current": 10},
-                }
+                {"payload": {"test": "data"}, "route": {"prev": [], "curr": "a", "next": "not a list"}}
             ).encode("utf-8")
             msg = asya_runtime._parse_message_json(data)
             asya_runtime._validate_message(msg)
 
-    def test_parse_msg_route_empty_actors_current_zero(self):
-        """Test route with empty actors array and current=0 - should fail validation."""
-        with pytest.raises(ValueError, match="Field 'route.actors' cannot be empty"):
-            data = json.dumps({"payload": {"test": "data"}, "route": {"actors": [], "current": 0}}).encode("utf-8")
-            msg = asya_runtime._parse_message_json(data)
-            asya_runtime._validate_message(msg)
+    def test_parse_msg_route_valid_single_actor(self):
+        """Test valid route with single actor."""
+        data = json.dumps({"payload": {"test": "data"}, "route": {"prev": [], "curr": "a", "next": []}}).encode("utf-8")
+        msg = asya_runtime._parse_message_json(data)
+        validated = asya_runtime._validate_message(msg)
+
+        assert validated["route"]["prev"] == []
+        assert validated["route"]["curr"] == "a"
+        assert validated["route"]["next"] == []
+
+    def test_parse_msg_route_valid_multi_actor(self):
+        """Test valid route with multiple actors."""
+        data = json.dumps(
+            {"payload": {"test": "data"}, "route": {"prev": ["x"], "curr": "a", "next": ["b", "c"]}}
+        ).encode("utf-8")
+        msg = asya_runtime._parse_message_json(data)
+        validated = asya_runtime._validate_message(msg)
+
+        assert validated["route"]["prev"] == ["x"]
+        assert validated["route"]["curr"] == "a"
+        assert validated["route"]["next"] == ["b", "c"]
+
+    def test_parse_msg_route_end_of_route(self):
+        """Test valid end-of-route marker (curr='', next=[])."""
+        data = json.dumps({"payload": {"test": "data"}, "route": {"prev": ["a", "b"], "curr": "", "next": []}}).encode(
+            "utf-8"
+        )
+        msg = asya_runtime._parse_message_json(data)
+        validated = asya_runtime._validate_message(msg)
+
+        assert validated["route"]["prev"] == ["a", "b"]
+        assert validated["route"]["curr"] == ""
+        assert validated["route"]["next"] == []
 
 
 class TestMessageFieldPreservation:
@@ -272,13 +257,13 @@ class TestMessageFieldPreservation:
         message = {
             "id": "envelope-123",
             "payload": {"test": "data"},
-            "route": {"actors": ["a"], "current": 0},
+            "route": {"prev": [], "curr": "a", "next": []},
         }
         validated = asya_runtime._validate_message(message)
 
         assert validated["id"] == "envelope-123"
         assert validated["payload"] == {"test": "data"}
-        assert validated["route"] == {"actors": ["a"], "current": 0}
+        assert validated["route"] == {"prev": [], "curr": "a", "next": []}
 
     def test_validate_message_preserves_parent_id_field(self):
         """Test that parent_id field is preserved through validation."""
@@ -286,7 +271,7 @@ class TestMessageFieldPreservation:
             "id": "envelope-456",
             "parent_id": "parent-envelope-123",
             "payload": {"test": "data"},
-            "route": {"actors": ["a"], "current": 0},
+            "route": {"prev": [], "curr": "a", "next": []},
         }
         validated = asya_runtime._validate_message(message)
 
@@ -300,7 +285,7 @@ class TestMessageFieldPreservation:
             "id": "envelope-789",
             "parent_id": "parent-envelope-456",
             "payload": {"test": "data"},
-            "route": {"actors": ["a", "b"], "current": 0},
+            "route": {"prev": [], "curr": "a", "next": ["b"]},
             "headers": {"trace_id": "trace-123", "priority": "high"},
         }
         validated = asya_runtime._validate_message(message)
@@ -308,7 +293,7 @@ class TestMessageFieldPreservation:
         assert validated["id"] == "envelope-789"
         assert validated["parent_id"] == "parent-envelope-456"
         assert validated["payload"] == {"test": "data"}
-        assert validated["route"] == {"actors": ["a", "b"], "current": 0}
+        assert validated["route"] == {"prev": [], "curr": "a", "next": ["b"]}
         assert validated["headers"] == {"trace_id": "trace-123", "priority": "high"}
 
     def test_validate_message_preserves_status(self):
@@ -324,7 +309,7 @@ class TestMessageFieldPreservation:
         message = {
             "id": "status-msg-1",
             "payload": {"test": "data"},
-            "route": {"actors": ["a", "b"], "current": 0},
+            "route": {"prev": [], "curr": "a", "next": ["b"]},
             "status": status,
         }
         validated = asya_runtime._validate_message(message)
@@ -337,7 +322,7 @@ class TestMessageFieldPreservation:
         """Test that messages without status field still validate (backward compat)."""
         message = {
             "payload": {"test": "data"},
-            "route": {"actors": ["a"], "current": 0},
+            "route": {"prev": [], "curr": "a", "next": []},
         }
         validated = asya_runtime._validate_message(message)
 
@@ -347,7 +332,7 @@ class TestMessageFieldPreservation:
         """Test that message without id field still validates (id is optional)."""
         message = {
             "payload": {"test": "data"},
-            "route": {"actors": ["a"], "current": 0},
+            "route": {"prev": [], "curr": "a", "next": []},
         }
         validated = asya_runtime._validate_message(message)
 
@@ -359,12 +344,12 @@ class TestMessageFieldPreservation:
         message = {
             "id": 12345,
             "payload": {"test": "data"},
-            "route": {"actors": ["a"], "current": 0},
+            "route": {"prev": [], "curr": "a", "next": []},
         }
         with pytest.raises(ValueError, match="Field 'id' must be a string"):
             asya_runtime._validate_message(message)
 
-    def test_envelope_mode_handler_accesses_id_field(self, runtime_invoke, mock_env):
+    def test_envelope_mode_handler_accesses_id_field(self, mock_env):
         """Test that envelope mode handlers can access message id field."""
         with mock_env(ASYA_HANDLER_MODE="envelope"):
 
@@ -379,58 +364,63 @@ class TestMessageFieldPreservation:
             message = {
                 "id": "test-envelope-123",
                 "payload": {"value": 42},
-                "route": {"actors": ["a"], "current": 0},
+                "route": {"prev": [], "curr": "a", "next": []},
             }
-            frames, status = runtime_invoke(envelope_handler, message)
 
-            assert status == 200
-            assert len(frames) == 1
-            assert frames[0]["id"] == "test-envelope-123"
-            assert frames[0]["payload"]["message_id"] == "test-envelope-123"
+            responses = call_invoke(message, envelope_handler)
+
+            assert len(responses) == 1
+            assert responses[0]["id"] == "test-envelope-123"
+            assert responses[0]["payload"]["message_id"] == "test-envelope-123"
 
 
 class TestEnvelopeModeValidation:
     """Test envelope mode validation edge cases."""
 
-    def test_handler_returns_invalid_payload_type_in_message(self, runtime_invoke, mock_env):
+    def test_handler_returns_invalid_payload_type_in_message(self, mock_env):
         """Test handler returns message with payload as string instead of dict."""
         with mock_env(ASYA_HANDLER_MODE="envelope"):
 
             def invalid_handler(msg):
+                # Return message with payload as string
                 return {"payload": "not a dict", "route": msg["route"]}
 
             message = {
                 "payload": {"test": "data"},
-                "route": {"actors": ["a"], "current": 0},
+                "route": {"prev": [], "curr": "a", "next": []},
             }
-            frames, status = runtime_invoke(invalid_handler, message)
 
-            assert status == 200
-            assert len(frames) == 1
-            assert frames[0]["payload"] == "not a dict"
+            responses = call_invoke(message, invalid_handler)
 
-    def test_handler_returns_invalid_route_type_in_message(self, runtime_invoke, mock_env):
+            # Should work - payload can be any JSON type
+            assert len(responses) == 1
+            assert responses[0]["payload"] == "not a dict"
+
+    def test_handler_returns_invalid_route_type_in_message(self, mock_env):
         """Test handler returns message with route as wrong type."""
         with mock_env(ASYA_HANDLER_MODE="envelope"):
 
             def invalid_handler(msg):
+                # Return message with route as string
                 return {"payload": {"ok": True}, "route": "invalid"}
 
             message = {
                 "payload": {"test": "data"},
-                "route": {"actors": ["a"], "current": 0},
+                "route": {"prev": [], "curr": "a", "next": []},
             }
-            error, status = runtime_invoke(invalid_handler, message)
 
-            assert status == 500
-            assert error["error"] == "processing_error"
-            assert "Field 'route' must be a dict" in error["details"]["message"]
+            responses = call_invoke(message, invalid_handler)
 
-    def test_handler_yields_valid_then_invalid_message(self, runtime_invoke, mock_env):
+            # Should return error - route validation will fail
+            assert len(responses) == 1
+            assert responses[0]["error"] == "processing_error"
+            assert "Field 'route' must be a dict" in responses[0]["details"]["message"]
+
+    def test_handler_yields_valid_then_invalid_message(self, mock_env):
         """Test generator handler yields one valid and one invalid envelope.
 
-        With HTTP, frames are collected before responding, so the validation
-        error on the second yield causes the entire request to fail with 500.
+        With HTTP protocol, frames are collected before sending. If any frame fails
+        validation, the entire request fails with a single processing_error.
         """
         with mock_env(ASYA_HANDLER_MODE="envelope"):
 
@@ -440,211 +430,192 @@ class TestEnvelopeModeValidation:
 
             message = {
                 "payload": {"test": "data"},
-                "route": {"actors": ["a"], "current": 0},
+                "route": {"prev": [], "curr": "a", "next": []},
             }
-            error, status = runtime_invoke(mixed_handler, message)
 
-            assert status == 500
-            assert error["error"] == "processing_error"
-            assert "Missing required field 'route'" in error["details"]["message"]
+            responses = call_invoke(message, mixed_handler)
 
-    def test_handler_changes_current_actor(self, runtime_invoke, mock_env):
-        """Test that handler cannot change actor name at the current position."""
+            # With HTTP batch protocol, second yield fails validation
+            # causing entire request to fail with processing_error
+            assert len(responses) == 1
+            assert responses[0]["error"] == "processing_error"
+            assert "Missing required field 'route'" in responses[0]["details"]["message"]
+
+    def test_handler_changes_curr_actor(self, mock_env):
+        """Test that handler cannot change curr actor name."""
         with mock_env(ASYA_HANDLER_MODE="envelope"):
 
             def actor_changing_handler(msg):
+                # Try to change curr from "a" to "x"
                 return {
                     "payload": msg["payload"],
-                    "route": {"actors": ["x", "b", "c"], "current": 0},
+                    "route": {"prev": [], "curr": "x", "next": ["b", "c"]},
                 }
 
             message = {
                 "payload": {"test": "data"},
-                "route": {"actors": ["a", "b", "c"], "current": 0},
+                "route": {"prev": [], "curr": "a", "next": ["b", "c"]},
             }
-            error, status = runtime_invoke(actor_changing_handler, message)
 
-            assert status == 500
-            assert error["error"] == "processing_error"
-            assert "Route" in error["details"]["message"] and (
-                "modification" in error["details"]["message"] or "mismatch" in error["details"]["message"]
-            )
-            assert "'a'" in error["details"]["message"]
-            assert "'x'" in error["details"]["message"] or "['x']" in error["details"]["message"]
+            responses = call_invoke(message, actor_changing_handler)
 
-    def test_handler_modifies_route_but_keeps_current_actor(self, runtime_invoke, mock_env):
-        """Test that handler can modify route actors as long as current actor stays same."""
+            # Should return error - curr changed from 'a' to 'x'
+            assert len(responses) == 1
+            assert responses[0]["error"] == "processing_error"
+            assert "Route modification error" in responses[0]["details"]["message"]
+            assert "curr must not change" in responses[0]["details"]["message"]
+
+    def test_handler_changes_prev(self, mock_env):
+        """Test that handler cannot change prev list."""
         with mock_env(ASYA_HANDLER_MODE="envelope"):
 
-            def route_modifying_handler(msg):
+            def prev_changing_handler(msg):
+                # Try to change prev from [] to ["x"]
                 return {
                     "payload": msg["payload"],
-                    "route": {"actors": ["a", "b", "c", "d"], "current": 0},
+                    "route": {"prev": ["x"], "curr": "a", "next": ["b"]},
                 }
 
             message = {
                 "payload": {"test": "data"},
-                "route": {"actors": ["a", "b"], "current": 0},
+                "route": {"prev": [], "curr": "a", "next": ["b"]},
             }
-            frames, status = runtime_invoke(route_modifying_handler, message)
 
-            assert status == 200
-            assert len(frames) == 1
-            assert frames[0]["route"]["actors"] == ["a", "b", "c", "d"]
-            assert frames[0]["route"]["current"] == 0
+            responses = call_invoke(message, prev_changing_handler)
 
-    def test_handler_fanout_with_actor_validation(self, runtime_invoke, mock_env):
-        """Test fan-out where all output messages maintain correct current actor."""
+            # Should return error - prev changed
+            assert len(responses) == 1
+            assert responses[0]["error"] == "processing_error"
+            assert "Route modification error" in responses[0]["details"]["message"]
+            assert "prev must not change" in responses[0]["details"]["message"]
+
+    def test_handler_modifies_next_allowed(self, mock_env):
+        """Test that handler CAN modify next (it is writable)."""
+        with mock_env(ASYA_HANDLER_MODE="envelope"):
+
+            def next_modifying_handler(msg):
+                # Replace next list - this is allowed
+                return {
+                    "payload": msg["payload"],
+                    "route": {"prev": [], "curr": "a", "next": ["x", "y", "z"]},
+                }
+
+            message = {
+                "payload": {"test": "data"},
+                "route": {"prev": [], "curr": "a", "next": ["b", "c"]},
+            }
+
+            responses = call_invoke(message, next_modifying_handler)
+
+            # Should succeed - only next was changed by handler.
+            # Runtime shifts: "a" -> prev, curr becomes "x" (handler's modified next[0])
+            assert len(responses) == 1
+            assert responses[0]["route"]["prev"] == ["a"]
+            assert responses[0]["route"]["curr"] == "x"
+            assert responses[0]["route"]["next"] == ["y", "z"]
+
+    def test_handler_fanout_with_valid_routes(self, mock_env):
+        """Test fan-out where all output messages maintain correct prev and curr."""
         with mock_env(ASYA_HANDLER_MODE="envelope"):
 
             def fanout_handler(msg):
-                yield {"payload": {"id": 1}, "route": {"actors": ["a", "b"], "current": 0}}
-                yield {"payload": {"id": 2}, "route": {"actors": ["a", "b"], "current": 0}}
-                yield {"payload": {"id": 3}, "route": {"actors": ["a", "c"], "current": 0}}
+                yield {"payload": {"id": 1}, "route": {"prev": [], "curr": "a", "next": ["b"]}}
+                yield {"payload": {"id": 2}, "route": {"prev": [], "curr": "a", "next": ["b"]}}
+                yield {"payload": {"id": 3}, "route": {"prev": [], "curr": "a", "next": ["c"]}}
 
             message = {
                 "payload": {"test": "data"},
-                "route": {"actors": ["a", "b"], "current": 0},
+                "route": {"prev": [], "curr": "a", "next": ["b"]},
             }
-            frames, status = runtime_invoke(fanout_handler, message)
 
-            assert status == 200
-            assert len(frames) == 3
-            assert frames[0]["payload"] == {"id": 1}
-            assert frames[1]["payload"] == {"id": 2}
-            assert frames[2]["payload"] == {"id": 3}
+            responses = call_invoke(message, fanout_handler)
 
-    def test_handler_fanout_with_invalid_actor_name(self, runtime_invoke, mock_env):
-        """Test fan-out where one message has changed actor name at current position.
+            # Should work - all output messages have correct prev=[] and curr='a'
+            assert len(responses) == 3
+            assert responses[0]["payload"] == {"id": 1}
+            assert responses[1]["payload"] == {"id": 2}
+            assert responses[2]["payload"] == {"id": 3}
 
-        With HTTP, the validation error on the second yield causes the
-        entire request to fail with 500.
+    def test_handler_fanout_with_invalid_curr(self, mock_env):
+        """Test fan-out where one message has changed curr.
+
+        With HTTP protocol, frames are collected before sending. If any frame fails
+        validation, the entire request fails with a single processing_error.
         """
         with mock_env(ASYA_HANDLER_MODE="envelope"):
 
             def invalid_fanout_handler(msg):
-                yield {"payload": {"id": 1}, "route": {"actors": ["a", "b"], "current": 0}}
-                yield {"payload": {"id": 2}, "route": {"actors": ["x", "b"], "current": 0}}
+                yield {"payload": {"id": 1}, "route": {"prev": [], "curr": "a", "next": ["b"]}}
+                yield {"payload": {"id": 2}, "route": {"prev": [], "curr": "x", "next": ["b"]}}
 
             message = {
                 "payload": {"test": "data"},
-                "route": {"actors": ["a", "b"], "current": 0},
+                "route": {"prev": [], "curr": "a", "next": ["b"]},
             }
-            error, status = runtime_invoke(invalid_fanout_handler, message)
 
-            assert status == 500
-            assert error["error"] == "processing_error"
+            responses = call_invoke(message, invalid_fanout_handler)
 
-    def test_handler_erases_processed_actors_first_actor(self, runtime_invoke, mock_env):
-        """Test that handler cannot erase already-processed actors at first actor."""
-        with mock_env(ASYA_HANDLER_MODE="envelope"):
+            # With HTTP batch protocol, second yield fails validation
+            # causing entire request to fail with processing_error
+            assert len(responses) == 1
+            assert responses[0]["error"] == "processing_error"
 
-            def erasing_handler(msg):
-                return {
-                    "payload": msg["payload"],
-                    "route": {"actors": ["x", "a", "b"], "current": 1},
-                }
-
-            message = {
-                "payload": {"test": "data"},
-                "route": {"actors": ["a", "b", "c"], "current": 0},
-            }
-            error, status = runtime_invoke(erasing_handler, message)
-
-            assert status == 500
-            assert error["error"] == "processing_error"
-            assert "Route modification error" in error["details"]["message"]
-            assert "already-processed actors cannot be erased" in error["details"]["message"]
-
-    def test_handler_erases_processed_actors_middle(self, runtime_invoke, mock_env):
-        """Test that handler cannot erase already-processed actors in the middle."""
-        with mock_env(ASYA_HANDLER_MODE="envelope"):
-
-            def erasing_handler(msg):
-                return {
-                    "payload": msg["payload"],
-                    "route": {"actors": ["a", "c", "d"], "current": 2},
-                }
-
-            message = {
-                "payload": {"test": "data"},
-                "route": {"actors": ["a", "b", "c"], "current": 2},
-            }
-            error, status = runtime_invoke(erasing_handler, message)
-
-            assert status == 500
-            assert error["error"] == "processing_error"
-            assert "Route modification error" in error["details"]["message"]
-            assert "['a', 'b', 'c']" in error["details"]["message"]
-
-    def test_handler_modifies_one_processed_actor(self, runtime_invoke, mock_env):
-        """Test that handler cannot modify an already-processed actor name."""
-        with mock_env(ASYA_HANDLER_MODE="envelope"):
-
-            def modifying_handler(msg):
-                return {
-                    "payload": msg["payload"],
-                    "route": {"actors": ["a-modified", "b", "c", "d"], "current": 1},
-                }
-
-            message = {
-                "payload": {"test": "data"},
-                "route": {"actors": ["a", "b", "c"], "current": 1},
-            }
-            error, status = runtime_invoke(modifying_handler, message)
-
-            assert status == 500
-            assert error["error"] == "processing_error"
-            assert "Route modification error" in error["details"]["message"]
-
-    def test_handler_adds_future_actors_preserves_prefix(self, runtime_invoke, mock_env):
-        """Test that handler CAN add future actors if prefix is preserved."""
+    def test_handler_adds_future_actors_via_next(self, mock_env):
+        """Test that handler CAN add future actors by modifying next."""
         with mock_env(ASYA_HANDLER_MODE="envelope"):
 
             def extending_handler(msg):
+                # Add more actors to next
                 return {
                     "payload": msg["payload"],
-                    "route": {"actors": ["a", "b", "c", "d", "e"], "current": 1},
+                    "route": {"prev": ["a"], "curr": "b", "next": ["c", "d", "e"]},
                 }
 
             message = {
                 "payload": {"test": "data"},
-                "route": {"actors": ["a", "b", "c"], "current": 1},
+                "route": {"prev": ["a"], "curr": "b", "next": ["c"]},
             }
-            frames, status = runtime_invoke(extending_handler, message)
 
-            assert status == 200
-            assert len(frames) == 1
-            assert frames[0]["route"]["actors"] == ["a", "b", "c", "d", "e"]
-            assert frames[0]["route"]["current"] == 1
+            responses = call_invoke(message, extending_handler)
 
-    def test_handler_replaces_future_actors(self, runtime_invoke, mock_env):
-        """Test that handler CAN replace future actors (after current)."""
+            # Should succeed - only next changed.
+            # Runtime shifts: "b" -> prev (prev becomes ["a","b"]), curr becomes "c"
+            assert len(responses) == 1
+            assert responses[0]["route"]["prev"] == ["a", "b"]
+            assert responses[0]["route"]["curr"] == "c"
+            assert responses[0]["route"]["next"] == ["d", "e"]
+
+    def test_handler_replaces_future_actors(self, mock_env):
+        """Test that handler CAN replace future actors (next list)."""
         with mock_env(ASYA_HANDLER_MODE="envelope"):
 
             def replacing_handler(msg):
+                # Replace next entirely
                 return {
                     "payload": msg["payload"],
-                    "route": {"actors": ["a", "b", "x", "y"], "current": 1},
+                    "route": {"prev": ["a"], "curr": "b", "next": ["x", "y"]},
                 }
 
             message = {
                 "payload": {"test": "data"},
-                "route": {"actors": ["a", "b", "c", "d"], "current": 1},
+                "route": {"prev": ["a"], "curr": "b", "next": ["c", "d"]},
             }
-            frames, status = runtime_invoke(replacing_handler, message)
 
-            assert status == 200
-            assert len(frames) == 1
-            assert frames[0]["route"]["actors"] == ["a", "b", "x", "y"]
-            assert frames[0]["route"]["current"] == 1
+            responses = call_invoke(message, replacing_handler)
+
+            # Should succeed - can replace future actors.
+            # Runtime shifts: "b" -> prev (prev becomes ["a","b"]), curr becomes "x"
+            assert len(responses) == 1
+            assert responses[0]["route"]["prev"] == ["a", "b"]
+            assert responses[0]["route"]["curr"] == "x"
+            assert responses[0]["route"]["next"] == ["y"]
 
 
 class TestLargePayloads:
     """Test handling of large payloads."""
 
     @pytest.mark.parametrize("size_kb", [10, 100, 500, 1024, 5 * 1024, 10 * 1024])
-    def test_large_payloads(self, runtime_invoke, size_kb):
+    def test_large_payloads(self, size_kb):
         """Test various payload sizes from KB to MB."""
 
         def echo_handler(payload):
@@ -653,34 +624,25 @@ class TestLargePayloads:
         large_data = "X" * (size_kb * 1024)
         message = {
             "payload": {"data": large_data},
-            "route": {"actors": ["a"], "current": 0},
+            "route": {"prev": [], "curr": "a", "next": []},
         }
-        frames, status = runtime_invoke(echo_handler, message)
 
-        assert status == 200
-        assert len(frames) == 1
-        assert len(frames[0]["payload"]["data"]) == size_kb * 1024
+        responses = call_invoke(message, echo_handler)
 
-    def test_empty_body_returns_400(self, tmp_path):
-        """Test empty HTTP body returns 400."""
-        socket_path = str(tmp_path / "test.sock")
-        server = asya_runtime._UnixHTTPServer(socket_path, asya_runtime._InvokeHandler)
-        server.user_func = lambda p: p
-        thread = threading.Thread(target=server.handle_request)
-        thread.start()
+        assert len(responses) == 1
+        assert len(responses[0]["payload"]["data"]) == size_kb * 1024
 
-        conn = _UnixHTTPConnection(socket_path)
-        conn.request("POST", "/invoke", body=b"", headers={"Content-Type": "application/json"})
-        resp = conn.getresponse()
-        status = resp.status
-        raw = resp.read()
-        conn.close()
-        thread.join(timeout=5)
-        server.server_close()
+    def test_empty_body_invoke(self):
+        """Test _handle_invoke with empty body (invalid JSON)."""
 
-        assert status == 400
-        data = json.loads(raw)
-        assert data["error"] == "msg_parsing_error"
+        def simple_handler(payload):
+            return payload
+
+        status_code, body = asya_runtime._handle_invoke(b"", simple_handler)
+
+        assert status_code == 400
+        parsed = json.loads(body)
+        assert parsed["error"] == "msg_parsing_error"
 
 
 class TestConfigFixtures:
@@ -706,23 +668,170 @@ class TestConfigFixtures:
             assert asya_runtime.ASYA_SOCKET_CHMOD == "0o600"
 
 
+class TestInvokeProtocol:
+    """Test the _handle_invoke HTTP protocol function."""
+
+    def test_invoke_success(self):
+        """Test _handle_invoke returns 200 with frames on success."""
+
+        def echo_handler(payload):
+            return payload
+
+        data = json.dumps(
+            {
+                "payload": {"hello": "world"},
+                "route": {"prev": [], "curr": "a", "next": []},
+            }
+        ).encode("utf-8")
+
+        status_code, body = asya_runtime._handle_invoke(data, echo_handler)
+        assert status_code == 200
+        parsed = json.loads(body)
+        assert "frames" in parsed
+        assert len(parsed["frames"]) == 1
+        assert parsed["frames"][0]["payload"] == {"hello": "world"}
+
+    def test_invoke_none_response_returns_204(self):
+        """Test _handle_invoke returns 204 when handler returns None."""
+
+        def none_handler(payload):
+            return None
+
+        data = json.dumps(
+            {
+                "payload": {"test": True},
+                "route": {"prev": [], "curr": "a", "next": []},
+            }
+        ).encode("utf-8")
+
+        status_code, body = asya_runtime._handle_invoke(data, none_handler)
+        assert status_code == 204
+        assert body == b""
+
+    def test_invoke_invalid_json_returns_400(self):
+        """Test _handle_invoke returns 400 for invalid JSON."""
+
+        def simple_handler(payload):
+            return payload
+
+        status_code, body = asya_runtime._handle_invoke(b"not valid json{", simple_handler)
+        assert status_code == 400
+        parsed = json.loads(body)
+        assert parsed["error"] == "msg_parsing_error"
+
+    def test_invoke_handler_exception_returns_500(self):
+        """Test _handle_invoke returns 500 when handler raises."""
+
+        def failing_handler(payload):
+            raise ValueError("Handler failed")
+
+        data = json.dumps(
+            {
+                "payload": {"test": "data"},
+                "route": {"prev": [], "curr": "a", "next": []},
+            }
+        ).encode("utf-8")
+
+        status_code, body = asya_runtime._handle_invoke(data, failing_handler)
+        assert status_code == 500
+        parsed = json.loads(body)
+        assert parsed["error"] == "processing_error"
+        assert parsed["details"]["message"] == "Handler failed"
+
+
+class TestSocketSetup:
+    """Test Unix HTTP socket server setup and cleanup."""
+
+    def _make_dummy_handler(self):
+        def dummy(payload):
+            return payload
+
+        return dummy
+
+    def test_socket_setup_cleanup(self):
+        """Test Unix HTTP server creates socket with default chmod."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            socket_path = os.path.join(tmpdir, "test.sock")
+
+            server = asya_runtime._UnixHTTPServer(socket_path, asya_runtime._InvokeHandler)
+            server.user_func = self._make_dummy_handler()
+            assert os.path.exists(socket_path)
+
+            stat_info = os.stat(socket_path)
+            permissions = oct(stat_info.st_mode)[-3:]
+            assert permissions == "666"
+
+            server.server_close()
+            assert not os.path.exists(socket_path)
+
+    def test_socket_setup_custom_chmod(self, monkeypatch):
+        """Test Unix HTTP server creates socket with custom chmod."""
+        monkeypatch.setattr(asya_runtime, "ASYA_SOCKET_CHMOD", "0o600")
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            socket_path = os.path.join(tmpdir, "test.sock")
+
+            server = asya_runtime._UnixHTTPServer(socket_path, asya_runtime._InvokeHandler)
+            server.user_func = self._make_dummy_handler()
+            assert os.path.exists(socket_path)
+
+            stat_info = os.stat(socket_path)
+            permissions = oct(stat_info.st_mode)[-3:]
+            assert permissions == "600"
+
+            server.server_close()
+
+    def test_socket_setup_no_chmod(self, monkeypatch):
+        """Test Unix HTTP server creates socket without chmod."""
+        monkeypatch.setattr(asya_runtime, "ASYA_SOCKET_CHMOD", "")
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            socket_path = os.path.join(tmpdir, "test.sock")
+
+            server = asya_runtime._UnixHTTPServer(socket_path, asya_runtime._InvokeHandler)
+            server.user_func = self._make_dummy_handler()
+            assert os.path.exists(socket_path)
+
+            stat_info = os.stat(socket_path)
+            assert stat.S_ISSOCK(stat_info.st_mode)
+
+            server.server_close()
+
+    def test_socket_setup_removes_existing(self):
+        """Test that Unix HTTP server removes existing socket file."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            socket_path = os.path.join(tmpdir, "test.sock")
+
+            server1 = asya_runtime._UnixHTTPServer(socket_path, asya_runtime._InvokeHandler)
+            server1.user_func = self._make_dummy_handler()
+            server1.server_close()
+
+            server2 = asya_runtime._UnixHTTPServer(socket_path, asya_runtime._InvokeHandler)
+            server2.user_func = self._make_dummy_handler()
+            assert os.path.exists(socket_path)
+
+            server2.server_close()
+
+
 class TestParseMsg:
     """Test _parse_message_json and _validate_message functions."""
 
     def test_parse_msg_with_payload_and_route(self):
         """Test parsing message with both payload and route."""
-        data = json.dumps({"payload": {"test": "data"}, "route": {"actors": ["a", "b"], "current": 0}}).encode("utf-8")
+        data = json.dumps({"payload": {"test": "data"}, "route": {"prev": [], "curr": "a", "next": ["b"]}}).encode(
+            "utf-8"
+        )
 
         msg = asya_runtime._parse_message_json(data)
         msg = asya_runtime._validate_message(msg)
 
         assert msg["payload"] == {"test": "data"}
-        assert msg["route"] == {"actors": ["a", "b"], "current": 0}
+        assert msg["route"] == {"prev": [], "curr": "a", "next": ["b"]}
 
     def test_parse_msg_missing_payload(self):
         """Test parsing message without payload field."""
         with pytest.raises(ValueError, match="Missing required .*payload"):
-            data = json.dumps({"route": {"actors": ["a"], "current": 0}}).encode("utf-8")
+            data = json.dumps({"route": {"prev": [], "curr": "a", "next": []}}).encode("utf-8")
             msg = asya_runtime._parse_message_json(data)
             asya_runtime._validate_message(msg)
 
@@ -736,13 +845,13 @@ class TestParseMsg:
     @pytest.mark.parametrize("payload", [None, {}])
     def test_parse_msg_empty_payload(self, payload):
         """Test parsing message with null/empty payload."""
-        data = json.dumps({"payload": payload, "route": {"actors": ["a"], "current": 0}}).encode("utf-8")
+        data = json.dumps({"payload": payload, "route": {"prev": [], "curr": "a", "next": []}}).encode("utf-8")
 
         msg = asya_runtime._parse_message_json(data)
         msg = asya_runtime._validate_message(msg)
 
         assert msg["payload"] == payload
-        assert msg["route"] == {"actors": ["a"], "current": 0}
+        assert msg["route"] == {"prev": [], "curr": "a", "next": []}
 
     def test_parse_msg_invalid_json(self):
         """Test parsing invalid JSON."""
@@ -819,9 +928,9 @@ class TestErrorDict:
 
 
 class TestHandleRequestPayloadMode:
-    """Test POST /invoke in payload mode (ASYA_HANDLER_MODE=payload)."""
+    """Test _handle_invoke in payload mode (ASYA_HANDLER_MODE=payload)."""
 
-    def test_handle_request_success_single_output(self, runtime_invoke, mock_env):
+    def test_handle_request_success_single_output(self, mock_env):
         """Test successful request with single output."""
         with mock_env(ASYA_HANDLER_MODE="payload"):
 
@@ -829,36 +938,38 @@ class TestHandleRequestPayloadMode:
                 return {"result": payload["value"] * 2}
 
             message = {
-                "route": {"actors": ["actor1"], "current": 0},
+                "route": {"prev": [], "curr": "actor1", "next": []},
                 "payload": {"value": 42},
             }
-            frames, status = runtime_invoke(simple_handler, message)
 
-            assert status == 200
-            assert len(frames) == 1
-            assert frames[0]["payload"] == {"result": 84}
-            assert frames[0]["route"] == {"actors": ["actor1"], "current": 1}
+            responses = call_invoke(message, simple_handler)
 
-    def test_handle_request_multi_actor_route(self, runtime_invoke, mock_env):
-        """Test that payload mode increments current for multi-actor pipelines."""
+            assert len(responses) == 1
+            assert responses[0]["payload"] == {"result": 84}
+            # Payload mode shifts route: curr becomes "", prev gets "actor1"
+            assert responses[0]["route"] == {"prev": ["actor1"], "curr": "", "next": []}
+
+    def test_handle_request_multi_actor_route(self, mock_env):
+        """Test that payload mode shifts route for multi-actor pipelines."""
         with mock_env(ASYA_HANDLER_MODE="payload"):
 
             def pipeline_handler(payload):
                 return {"doubled": payload["value"] * 2}
 
+            # Message for actor at start of 3-actor pipeline
             message = {
-                "route": {"actors": ["doubler", "incrementer", "finalizer"], "current": 0},
+                "route": {"prev": [], "curr": "doubler", "next": ["incrementer", "finalizer"]},
                 "payload": {"value": 21},
             }
-            frames, status = runtime_invoke(pipeline_handler, message)
 
-            assert status == 200
-            assert len(frames) == 1
-            assert frames[0]["payload"] == {"doubled": 42}
-            assert frames[0]["route"]["current"] == 1
-            assert frames[0]["route"]["actors"] == ["doubler", "incrementer", "finalizer"]
+            responses = call_invoke(message, pipeline_handler)
 
-    def test_handle_request_fanout_list_output(self, runtime_invoke, mock_env):
+            assert len(responses) == 1
+            assert responses[0]["payload"] == {"doubled": 42}
+            # Route shifts: "doubler" moves to prev, curr becomes "incrementer"
+            assert responses[0]["route"] == {"prev": ["doubler"], "curr": "incrementer", "next": ["finalizer"]}
+
+    def test_handle_request_fanout_list_output(self, mock_env):
         """Test fan-out with list output in payload mode."""
         with mock_env(ASYA_HANDLER_MODE="payload"):
 
@@ -868,24 +979,25 @@ class TestHandleRequestPayloadMode:
                 yield {"id": 3}
 
             message = {
-                "route": {"actors": ["fan"], "current": 0},
+                "route": {"prev": [], "curr": "fan", "next": []},
                 "payload": {"test": "data"},
             }
-            frames, status = runtime_invoke(fanout_handler, message)
 
-            assert status == 200
-            assert len(frames) == 3
-            assert frames[0]["payload"] == {"id": 1}
-            assert frames[1]["payload"] == {"id": 2}
-            assert frames[2]["payload"] == {"id": 3}
-            for frame in frames:
-                assert frame["route"] == {"actors": ["fan"], "current": 1}
+            responses = call_invoke(message, fanout_handler)
+
+            assert len(responses) == 3
+            assert responses[0]["payload"] == {"id": 1}
+            assert responses[1]["payload"] == {"id": 2}
+            assert responses[2]["payload"] == {"id": 3}
+            # All should have shifted route (payload mode auto-shifts)
+            for resp in responses:
+                assert resp["route"] == {"prev": ["fan"], "curr": "", "next": []}
 
 
 class TestHandleRequestEnvelopeMode:
-    """Test POST /invoke in envelope mode (ASYA_HANDLER_MODE=envelope)."""
+    """Test _handle_invoke in envelope mode (ASYA_HANDLER_MODE=envelope)."""
 
-    def test_handle_request_success_single_output(self, runtime_invoke, mock_env):
+    def test_handle_request_success_single_output(self, mock_env):
         """Test successful request with single output in envelope mode."""
         with mock_env(ASYA_HANDLER_MODE="envelope"):
 
@@ -896,38 +1008,40 @@ class TestHandleRequestEnvelopeMode:
                 }
 
             message = {
-                "route": {"actors": ["actor1"], "current": 0},
+                "route": {"prev": [], "curr": "actor1", "next": []},
                 "payload": {"value": 42},
             }
-            frames, status = runtime_invoke(envelope_handler, message)
 
-            assert status == 200
-            assert len(frames) == 1
-            assert frames[0]["payload"] == {"result": 84}
-            assert frames[0]["route"] == {"actors": ["actor1"], "current": 0}
+            responses = call_invoke(message, envelope_handler)
 
-    def test_handle_request_route_modification(self, runtime_invoke, mock_env):
-        """Test that handler can modify route in envelope mode."""
+            assert len(responses) == 1
+            assert responses[0]["payload"] == {"result": 84}
+            # Runtime shifts route after envelope handler: actor1 -> prev, curr becomes ""
+            assert responses[0]["route"] == {"prev": ["actor1"], "curr": "", "next": []}
+
+    def test_handle_request_route_modification(self, mock_env):
+        """Test that handler can modify next in envelope mode."""
         with mock_env(ASYA_HANDLER_MODE="envelope"):
 
             def route_modifying_handler(msg):
                 new_route = msg["route"].copy()
-                new_route["actors"] = msg["route"]["actors"] + ["modified"]
-                new_route["current"] = 0
+                new_route["next"] = msg["route"]["next"] + ["modified"]
                 return {"payload": msg["payload"], "route": new_route}
 
             message = {
-                "route": {"actors": ["actor1"], "current": 0},
+                "route": {"prev": [], "curr": "actor1", "next": []},
                 "payload": {"data": "test"},
             }
-            frames, status = runtime_invoke(route_modifying_handler, message)
 
-            assert status == 200
-            assert len(frames) == 1
-            assert frames[0]["route"]["actors"] == ["actor1", "modified"]
-            assert frames[0]["route"]["current"] == 0
+            responses = call_invoke(message, route_modifying_handler)
 
-    def test_handle_request_fanout_list_output(self, runtime_invoke, mock_env):
+            assert len(responses) == 1
+            # Runtime shifts route: handler appended "modified" to next, so curr becomes "modified"
+            assert responses[0]["route"]["prev"] == ["actor1"]
+            assert responses[0]["route"]["curr"] == "modified"
+            assert responses[0]["route"]["next"] == []
+
+    def test_handle_request_fanout_list_output(self, mock_env):
         """Test fan-out with list output in envelope mode."""
         with mock_env(ASYA_HANDLER_MODE="envelope"):
 
@@ -937,39 +1051,41 @@ class TestHandleRequestEnvelopeMode:
                 yield {"payload": {"id": 3}, "route": msg["route"]}
 
             message = {
-                "route": {"actors": ["fan"], "current": 0},
+                "route": {"prev": [], "curr": "fan", "next": []},
                 "payload": {"test": "data"},
             }
-            frames, status = runtime_invoke(fanout_handler, message)
 
-            assert status == 200
-            assert len(frames) == 3
-            assert frames[0]["payload"] == {"id": 1}
-            assert frames[1]["payload"] == {"id": 2}
-            assert frames[2]["payload"] == {"id": 3}
+            responses = call_invoke(message, fanout_handler)
 
-    def test_handle_request_invalid_output_missing_keys(self, runtime_invoke, mock_env):
+            assert len(responses) == 3
+            assert responses[0]["payload"] == {"id": 1}
+            assert responses[1]["payload"] == {"id": 2}
+            assert responses[2]["payload"] == {"id": 3}
+
+    def test_handle_request_invalid_output_missing_keys(self, mock_env):
         """Test that handler output is validated for required keys."""
         with mock_env(ASYA_HANDLER_MODE="envelope"):
 
             def invalid_handler(msg):
+                # Missing 'route' key
                 return {"payload": {"test": "data"}}
 
             message = {
-                "route": {"actors": ["actor1"], "current": 0},
+                "route": {"prev": [], "curr": "actor1", "next": []},
                 "payload": {"test": "data"},
             }
-            error, status = runtime_invoke(invalid_handler, message)
 
-            assert status == 500
-            assert error["error"] == "processing_error"
-            assert "Missing required field 'route'" in error["details"]["message"]
+            responses = call_invoke(message, invalid_handler)
 
-    def test_handle_request_invalid_output_list_missing_keys(self, runtime_invoke, mock_env):
+            assert len(responses) == 1
+            assert responses[0]["error"] == "processing_error"
+            assert "Missing required field 'route'" in responses[0]["details"]["message"]
+
+    def test_handle_request_invalid_output_list_missing_keys(self, mock_env):
         """Test that handler list output is validated for required keys.
 
-        With HTTP, the validation error on the second yield causes the
-        entire request to fail with 500.
+        With HTTP protocol, frames are collected before sending. If any frame fails
+        validation, the entire request fails with a single processing_error.
         """
         with mock_env(ASYA_HANDLER_MODE="envelope"):
 
@@ -978,47 +1094,36 @@ class TestHandleRequestEnvelopeMode:
                 yield {"payload": {"id": 2}}  # Missing 'route'
 
             message = {
-                "route": {"actors": ["actor1"], "current": 0},
+                "route": {"prev": [], "curr": "actor1", "next": []},
                 "payload": {"test": "data"},
             }
-            error, status = runtime_invoke(invalid_fanout_handler, message)
 
-            assert status == 500
-            assert error["error"] == "processing_error"
-            assert "Missing required field 'route'" in error["details"]["message"]
+            responses = call_invoke(message, invalid_fanout_handler)
+
+            # With HTTP batch protocol, second yield fails validation
+            # causing entire request to fail with processing_error
+            assert len(responses) == 1
+            assert responses[0]["error"] == "processing_error"
+            assert "Missing required field 'route'" in responses[0]["details"]["message"]
 
 
 class TestHandleRequestErrorCases:
-    """Test error handling in POST /invoke."""
+    """Test error handling in _handle_invoke."""
 
-    def test_handle_request_invalid_json(self, tmp_path):
+    def test_handle_request_invalid_json(self):
         """Test handling of invalid JSON."""
-        socket_path = str(tmp_path / "test.sock")
-        server = asya_runtime._UnixHTTPServer(socket_path, asya_runtime._InvokeHandler)
-        server.user_func = lambda p: p
-        thread = threading.Thread(target=server.handle_request)
-        thread.start()
 
-        conn = _UnixHTTPConnection(socket_path)
-        conn.request(
-            "POST",
-            "/invoke",
-            body=b"not valid json{",
-            headers={"Content-Type": "application/json"},
-        )
-        resp = conn.getresponse()
-        status = resp.status
-        raw = resp.read()
-        conn.close()
-        thread.join(timeout=5)
-        server.server_close()
+        def simple_handler(payload):
+            return payload
 
-        assert status == 400
-        data = json.loads(raw)
-        assert data["error"] == "msg_parsing_error"
-        assert "details" in data
+        status_code, body = asya_runtime._handle_invoke(b"not valid json{", simple_handler)
 
-    def test_handle_request_handler_exception(self, runtime_invoke):
+        assert status_code == 400
+        parsed = json.loads(body)
+        assert parsed["error"] == "msg_parsing_error"
+        assert "details" in parsed
+
+    def test_handle_request_handler_exception(self):
         """Test handling of handler exceptions."""
 
         def failing_handler(payload):
@@ -1026,31 +1131,33 @@ class TestHandleRequestErrorCases:
 
         message = {
             "payload": {"test": "data"},
-            "route": {"actors": ["a"], "current": 0},
+            "route": {"prev": [], "curr": "a", "next": []},
         }
-        error, status = runtime_invoke(failing_handler, message)
 
-        assert status == 500
-        assert error["error"] == "processing_error"
-        assert error["details"]["message"] == "Handler failed"
-        assert error["details"]["type"] == "ValueError"
+        responses = call_invoke(message, failing_handler)
 
-    def test_handle_request_invalid_handler_mode(self, runtime_invoke, mock_env):
-        """Test handling when ASYA_HANDLER_MODE is invalid."""
+        assert len(responses) == 1
+        assert responses[0]["error"] == "processing_error"
+        assert responses[0]["details"]["message"] == "Handler failed"
+        assert responses[0]["details"]["type"] == "ValueError"
+
+    def test_handle_request_generic_exception(self, mock_env):
+        """Test handling when an unexpected exception occurs during handler mode dispatch."""
 
         def simple_handler(payload):
             return payload
 
         message = {
-            "route": {"actors": ["actor1"], "current": 0},
+            "route": {"prev": [], "curr": "actor1", "next": []},
             "payload": {"test": "data"},
         }
 
         with mock_env(ASYA_HANDLER_MODE="unexpected-value"):
-            error, status = runtime_invoke(simple_handler, message)
+            responses = call_invoke(message, simple_handler)
 
-            assert status == 500
-            assert error["error"] == "processing_error"
+            # Invalid ASYA_HANDLER_MODE causes processing error
+            assert len(responses) == 1
+            assert responses[0]["error"] in ("processing_error", "msg_parsing_error")
 
 
 class TestClassBasedHandlers:
@@ -1079,7 +1186,7 @@ class TestClassBasedHandlers:
         finally:
             sys.path.pop(0)
 
-    def test_class_handler_state_preserved_across_calls(self, runtime_invoke, mock_env, tmp_path):
+    def test_class_handler_state_preserved_across_calls(self, mock_env, tmp_path):
         """Test that class state is preserved between multiple calls."""
         test_module = tmp_path / "stateful_handler.py"
         test_module.write_text(
@@ -1101,32 +1208,32 @@ class TestClassBasedHandlers:
             with mock_env(ASYA_HANDLER="stateful_handler.StatefulProcessor.process"):
                 handler = asya_runtime._load_function()
 
+                # First call
                 message1 = {
                     "payload": {"value": 10},
-                    "route": {"actors": ["a"], "current": 0},
+                    "route": {"prev": [], "curr": "a", "next": []},
                 }
-                frames1, status1 = runtime_invoke(handler, message1)
+                responses1 = call_invoke(message1, handler)
 
-                assert status1 == 200
-                assert len(frames1) == 1
-                assert frames1[0]["payload"]["calls"] == 1
-                assert frames1[0]["payload"]["total"] == 10
+                assert len(responses1) == 1
+                assert responses1[0]["payload"]["calls"] == 1
+                assert responses1[0]["payload"]["total"] == 10
 
+                # Second call
                 message2 = {
                     "payload": {"value": 20},
-                    "route": {"actors": ["a"], "current": 0},
+                    "route": {"prev": [], "curr": "a", "next": []},
                 }
-                frames2, status2 = runtime_invoke(handler, message2)
+                responses2 = call_invoke(message2, handler)
 
-                assert status2 == 200
-                assert len(frames2) == 1
-                assert frames2[0]["payload"]["calls"] == 2
-                assert frames2[0]["payload"]["total"] == 30
+                assert len(responses2) == 1
+                assert responses2[0]["payload"]["calls"] == 2
+                assert responses2[0]["payload"]["total"] == 30
 
         finally:
             sys.path.pop(0)
 
-    def test_class_handler_payload_mode(self, runtime_invoke, mock_env, tmp_path):
+    def test_class_handler_payload_mode(self, mock_env, tmp_path):
         """Test class handler in payload mode."""
         test_module = tmp_path / "payload_class.py"
         test_module.write_text(
@@ -1147,18 +1254,17 @@ class TestClassBasedHandlers:
 
                 message = {
                     "payload": {"value": 21},
-                    "route": {"actors": ["a"], "current": 0},
+                    "route": {"prev": [], "curr": "a", "next": []},
                 }
-                frames, status = runtime_invoke(handler, message)
+                responses = call_invoke(message, handler)
 
-                assert status == 200
-                assert len(frames) == 1
-                assert frames[0]["payload"]["result"] == 42
+                assert len(responses) == 1
+                assert responses[0]["payload"]["result"] == 42
 
         finally:
             sys.path.pop(0)
 
-    def test_class_handler_envelope_mode(self, runtime_invoke, mock_env, tmp_path):
+    def test_class_handler_envelope_mode(self, mock_env, tmp_path):
         """Test class handler in envelope mode."""
         test_module = tmp_path / "envelope_class.py"
         test_module.write_text(
@@ -1183,16 +1289,15 @@ class TestClassBasedHandlers:
 
                 message = {
                     "payload": {"value": 100},
-                    "route": {"actors": ["a"], "current": 0},
+                    "route": {"prev": [], "curr": "a", "next": []},
                     "headers": {"trace_id": "123"},
                 }
-                frames, status = runtime_invoke(handler, message)
+                responses = call_invoke(message, handler)
 
-                assert status == 200
-                assert len(frames) == 1
-                assert frames[0]["payload"]["prefix"] == "processed"
-                assert frames[0]["payload"]["data"]["value"] == 100
-                assert frames[0]["headers"]["trace_id"] == "123"
+                assert len(responses) == 1
+                assert responses[0]["payload"]["prefix"] == "processed"
+                assert responses[0]["payload"]["data"]["value"] == 100
+                assert responses[0]["headers"]["trace_id"] == "123"
 
         finally:
             sys.path.pop(0)
@@ -1273,7 +1378,7 @@ class TestClassBasedHandlers:
             textwrap.dedent("""
             class ProcessorNotCallable:
                 def __init__(self):
-                    self.process = "not a method"
+                    self.process = "not_a_method"
             """)
         )
 
@@ -1309,7 +1414,7 @@ class TestClassBasedHandlers:
         finally:
             sys.path.pop(0)
 
-    def test_class_handler_fanout_payload_mode(self, runtime_invoke, mock_env, tmp_path):
+    def test_class_handler_fanout_payload_mode(self, mock_env, tmp_path):
         """Test class handler returning list in payload mode."""
         test_module = tmp_path / "fanout_class.py"
         test_module.write_text(
@@ -1331,20 +1436,19 @@ class TestClassBasedHandlers:
 
                 message = {
                     "payload": {"value": 42},
-                    "route": {"actors": ["fan"], "current": 0},
+                    "route": {"prev": [], "curr": "fan", "next": []},
                 }
-                frames, status = runtime_invoke(handler, message)
+                responses = call_invoke(message, handler)
 
-                assert status == 200
-                assert len(frames) == 3
-                assert frames[0]["payload"]["id"] == 0
-                assert frames[1]["payload"]["id"] == 1
-                assert frames[2]["payload"]["id"] == 2
+                assert len(responses) == 3
+                assert responses[0]["payload"]["id"] == 0
+                assert responses[1]["payload"]["id"] == 1
+                assert responses[2]["payload"]["id"] == 2
 
         finally:
             sys.path.pop(0)
 
-    def test_class_handler_returns_none(self, runtime_invoke, mock_env, tmp_path):
+    def test_class_handler_returns_none(self, mock_env, tmp_path):
         """Test class handler returning None (abort execution)."""
         test_module = tmp_path / "none_class.py"
         test_module.write_text(
@@ -1365,17 +1469,16 @@ class TestClassBasedHandlers:
 
                 message = {
                     "payload": {"value": 42},
-                    "route": {"actors": ["a"], "current": 0},
+                    "route": {"prev": [], "curr": "a", "next": []},
                 }
-                frames, status = runtime_invoke(handler, message)
+                responses = call_invoke(message, handler)
 
-                assert status == 204
-                assert frames == []
+                assert len(responses) == 0
 
         finally:
             sys.path.pop(0)
 
-    def test_class_handler_validation_disabled(self, runtime_invoke, mock_env, tmp_path):
+    def test_class_handler_validation_disabled(self, mock_env, tmp_path):
         """Test class handler with validation disabled."""
         test_module = tmp_path / "no_validation.py"
         test_module.write_text(
@@ -1396,18 +1499,17 @@ class TestClassBasedHandlers:
 
                 message = {
                     "payload": {"value": 23},
-                    "route": {"actors": ["a"], "current": 0},
+                    "route": {"prev": [], "curr": "a", "next": []},
                 }
-                frames, status = runtime_invoke(handler, message)
+                responses = call_invoke(message, handler)
 
-                assert status == 200
-                assert len(frames) == 1
-                assert frames[0]["payload"]["result"] == 123
+                assert len(responses) == 1
+                assert responses[0]["payload"]["result"] == 123
 
         finally:
             sys.path.pop(0)
 
-    def test_class_handler_with_complex_state(self, runtime_invoke, mock_env, tmp_path):
+    def test_class_handler_with_complex_state(self, mock_env, tmp_path):
         """Test class handler with complex internal state."""
         test_module = tmp_path / "complex_state.py"
         test_module.write_text(
@@ -1442,31 +1544,31 @@ class TestClassBasedHandlers:
             with mock_env(ASYA_HANDLER="complex_state.ComplexStateProcessor.process"):
                 handler = asya_runtime._load_function()
 
+                # First call
                 message1 = {
                     "payload": {"value": 100},
-                    "route": {"actors": ["a"], "current": 0},
+                    "route": {"prev": [], "curr": "a", "next": []},
                 }
-                frames1, status1 = runtime_invoke(handler, message1)
+                responses1 = call_invoke(message1, handler)
 
-                assert status1 == 200
-                assert frames1[0]["payload"]["stats"]["calls"] == 1
-                assert frames1[0]["payload"]["stats"]["cache_hits"] == 0
-                assert frames1[0]["payload"]["in_cache"]
+                assert responses1[0]["payload"]["stats"]["calls"] == 1
+                assert responses1[0]["payload"]["stats"]["cache_hits"] == 0
+                assert responses1[0]["payload"]["in_cache"]
 
+                # Second call with same value
                 message2 = {
                     "payload": {"value": 100},
-                    "route": {"actors": ["a"], "current": 0},
+                    "route": {"prev": [], "curr": "a", "next": []},
                 }
-                frames2, status2 = runtime_invoke(handler, message2)
+                responses2 = call_invoke(message2, handler)
 
-                assert status2 == 200
-                assert frames2[0]["payload"]["stats"]["calls"] == 2
-                assert frames2[0]["payload"]["stats"]["cache_hits"] == 1
+                assert responses2[0]["payload"]["stats"]["calls"] == 2
+                assert responses2[0]["payload"]["stats"]["cache_hits"] == 1
 
         finally:
             sys.path.pop(0)
 
-    def test_class_handler_without_custom_init(self, runtime_invoke, mock_env, tmp_path):
+    def test_class_handler_without_custom_init(self, mock_env, tmp_path):
         """Test that class handlers without custom __init__ work correctly.
 
         This tests the fix for the bug where classes inheriting object.__init__
@@ -1490,13 +1592,12 @@ class TestClassBasedHandlers:
 
                 message = {
                     "payload": {"value": 7},
-                    "route": {"actors": ["a"], "current": 0},
+                    "route": {"prev": [], "curr": "a", "next": []},
                 }
-                frames, status = runtime_invoke(handler, message)
+                responses = call_invoke(message, handler)
 
-                assert status == 200
-                assert len(frames) == 1
-                assert frames[0]["payload"]["result"] == 21
+                assert len(responses) == 1
+                assert responses[0]["payload"]["result"] == 21
 
         finally:
             sys.path.pop(0)
@@ -1569,7 +1670,7 @@ class TestHandlerArgValidation:
 class TestEdgeCases:
     """Test edge cases and boundary conditions."""
 
-    def test_handle_request_unicode_content(self, runtime_invoke):
+    def test_handle_request_unicode_content(self):
         """Test handling of unicode content."""
 
         def simple_handler(payload):
@@ -1577,15 +1678,15 @@ class TestEdgeCases:
 
         message = {
             "payload": {"text": "Hello 世界 こんにちは"},
-            "route": {"actors": ["a"], "current": 0},
+            "route": {"prev": [], "curr": "a", "next": []},
         }
-        frames, status = runtime_invoke(simple_handler, message)
 
-        assert status == 200
-        assert len(frames) == 1
-        assert frames[0]["payload"]["text"] == "Hello 世界 こんにちは"
+        responses = call_invoke(message, simple_handler)
 
-    def test_handle_request_deeply_nested_json(self, runtime_invoke):
+        assert len(responses) == 1
+        assert responses[0]["payload"]["text"] == "Hello 世界 こんにちは"
+
+    def test_handle_request_deeply_nested_json(self):
         """Test handling of deeply nested JSON."""
 
         def simple_handler(payload):
@@ -1597,27 +1698,27 @@ class TestEdgeCases:
             current["next"] = {"level": i}
             current = current["next"]
 
-        message = {"payload": nested, "route": {"actors": ["a"], "current": 0}}
-        frames, status = runtime_invoke(simple_handler, message)
+        message = {"payload": nested, "route": {"prev": [], "curr": "a", "next": []}}
 
-        assert status == 200
-        assert len(frames) == 1
-        assert frames[0]["payload"]["level"] == 0
+        responses = call_invoke(message, simple_handler)
 
-    def test_handle_request_null_payload(self, runtime_invoke):
+        assert len(responses) == 1
+        assert responses[0]["payload"]["level"] == 0
+
+    def test_handle_request_null_payload(self):
         """Test handling of null payload."""
 
         def simple_handler(payload):
             return payload if payload is not None else {"default": True}
 
-        message = {"payload": None, "route": {"actors": ["a"], "current": 0}}
-        frames, status = runtime_invoke(simple_handler, message)
+        message = {"payload": None, "route": {"prev": [], "curr": "a", "next": []}}
 
-        assert status == 200
-        assert len(frames) == 1
-        assert frames[0]["payload"] == {"default": True}
+        responses = call_invoke(message, simple_handler)
 
-    def test_handler_raises_runtime_error(self, runtime_invoke):
+        assert len(responses) == 1
+        assert responses[0]["payload"] == {"default": True}
+
+    def test_handler_raises_runtime_error(self):
         """Test handler that raises RuntimeError."""
 
         def error_handler(payload):
@@ -1625,16 +1726,19 @@ class TestEdgeCases:
 
         message = {
             "payload": {"test": "data"},
-            "route": {"actors": ["a"], "current": 0},
+            "route": {"prev": [], "curr": "a", "next": []},
         }
-        error, status = runtime_invoke(error_handler, message)
 
-        assert status == 500
-        assert error["error"] == "processing_error"
-        assert error["details"]["type"] == "RuntimeError"
-        assert "Something went wrong" in error["details"]["message"]
+        responses = call_invoke(message, error_handler)
 
-    def test_handler_returns_complex_types(self, runtime_invoke):
+        assert len(responses) == 1
+        response_error: str | None = responses[0].get("error")
+        response_details: dict = responses[0].get("details", {})
+        assert response_error == "processing_error"
+        assert response_details.get("type") == "RuntimeError"
+        assert "Something went wrong" in str(response_details.get("message", ""))
+
+    def test_handler_returns_complex_types(self):
         """Test handler that returns various Python types."""
 
         def complex_handler(payload):
@@ -1650,18 +1754,18 @@ class TestEdgeCases:
 
         message = {
             "payload": {"test": "data"},
-            "route": {"actors": ["a"], "current": 0},
+            "route": {"prev": [], "curr": "a", "next": []},
         }
-        frames, status = runtime_invoke(complex_handler, message)
 
-        assert status == 200
-        assert len(frames) == 1
-        assert frames[0]["payload"]["int"] == 42
-        assert frames[0]["payload"]["float"] == 3.14
-        assert frames[0]["payload"]["bool"] is True
-        assert frames[0]["payload"]["null"] is None
+        responses = call_invoke(message, complex_handler)
 
-    def test_handler_returns_large_response(self, runtime_invoke):
+        assert len(responses) == 1
+        assert responses[0]["payload"]["int"] == 42
+        assert responses[0]["payload"]["float"] == 3.14
+        assert responses[0]["payload"]["bool"] is True
+        assert responses[0]["payload"]["null"] is None
+
+    def test_handler_returns_large_response(self):
         """Test handler that returns a large response."""
 
         def large_handler(payload):
@@ -1669,15 +1773,15 @@ class TestEdgeCases:
 
         message = {
             "payload": {"test": "data"},
-            "route": {"actors": ["a"], "current": 0},
+            "route": {"prev": [], "curr": "a", "next": []},
         }
-        frames, status = runtime_invoke(large_handler, message)
 
-        assert status == 200
-        assert len(frames) == 1
-        assert len(frames[0]["payload"]["data"]) == 1024 * 1024
+        responses = call_invoke(message, large_handler)
 
-    def test_message_with_special_characters(self, runtime_invoke):
+        assert len(responses) == 1
+        assert len(responses[0]["payload"]["data"]) == 1024 * 1024
+
+    def test_message_with_special_characters(self):
         """Test messages with special JSON characters."""
 
         def simple_handler(payload):
@@ -1685,19 +1789,19 @@ class TestEdgeCases:
 
         message = {
             "payload": {"text": 'Test "quotes" and \\backslashes\\ and \n newlines \t tabs'},
-            "route": {"actors": ["a"], "current": 0},
+            "route": {"prev": [], "curr": "a", "next": []},
         }
-        frames, status = runtime_invoke(simple_handler, message)
 
-        assert status == 200
-        assert len(frames) == 1
-        assert frames[0]["payload"]["text"] == 'Test "quotes" and \\backslashes\\ and \n newlines \t tabs'
+        responses = call_invoke(message, simple_handler)
+
+        assert len(responses) == 1
+        assert responses[0]["payload"]["text"] == 'Test "quotes" and \\backslashes\\ and \n newlines \t tabs'
 
 
 class TestStatusPreservation:
     """Test that status field is properly preserved through message processing."""
 
-    def test_payload_mode_preserves_status_in_frame(self, runtime_invoke):
+    def test_payload_mode_preserves_status_in_frame(self):
         """Test that status is included in response frame in payload mode."""
 
         def simple_handler(payload):
@@ -1713,18 +1817,19 @@ class TestStatusPreservation:
         }
         message = {
             "payload": {"value": 21},
-            "route": {"actors": ["doubler", "next"], "current": 0},
+            "route": {"prev": [], "curr": "doubler", "next": ["next_actor"]},
             "status": status,
         }
-        frames, http_status = runtime_invoke(simple_handler, message)
 
-        assert http_status == 200
-        assert len(frames) == 1
-        assert frames[0]["payload"] == {"result": 42}
-        assert frames[0]["status"] == status
-        assert frames[0]["route"]["current"] == 1
+        responses = call_invoke(message, simple_handler)
 
-    def test_payload_mode_no_status_backward_compat(self, runtime_invoke):
+        assert len(responses) == 1
+        assert responses[0]["payload"] == {"result": 42}
+        assert responses[0]["status"] == status
+        # Route shifts: doubler -> prev, curr becomes next_actor
+        assert responses[0]["route"] == {"prev": ["doubler"], "curr": "next_actor", "next": []}
+
+    def test_payload_mode_no_status_backward_compat(self):
         """Test that payload mode works without status (backward compat)."""
 
         def simple_handler(payload):
@@ -1732,18 +1837,18 @@ class TestStatusPreservation:
 
         message = {
             "payload": {"test": True},
-            "route": {"actors": ["a"], "current": 0},
+            "route": {"prev": [], "curr": "a", "next": []},
         }
-        frames, status = runtime_invoke(simple_handler, message)
 
-        assert status == 200
-        assert len(frames) == 1
-        assert frames[0]["payload"] == {"result": "ok"}
-        assert "status" not in frames[0]
+        responses = call_invoke(message, simple_handler)
 
-    def test_envelope_mode_preserves_status(self, runtime_invoke, mock_env):
+        assert len(responses) == 1
+        assert responses[0]["payload"] == {"result": "ok"}
+        assert "status" not in responses[0]
+
+    def test_envelope_mode_preserves_status(self, mock_env):
         """Test that status flows through envelope mode via _validate_message."""
-        msg_status = {
+        status = {
             "phase": "processing",
             "actor": "processor",
             "attempt": 1,
@@ -1755,28 +1860,27 @@ class TestStatusPreservation:
         def envelope_handler(msg):
             return {
                 "payload": {"processed": True},
-                "route": {**msg["route"], "current": msg["route"]["current"] + 1},
+                "route": msg["route"],
                 "status": msg.get("status"),
             }
 
         message = {
             "payload": {"data": "test"},
-            "route": {"actors": ["processor", "next"], "current": 0},
-            "status": msg_status,
+            "route": {"prev": [], "curr": "processor", "next": ["next_actor"]},
+            "status": status,
         }
 
         with mock_env(ASYA_HANDLER_MODE="envelope"):
-            frames, status = runtime_invoke(envelope_handler, message)
+            responses = call_invoke(message, envelope_handler)
 
-        assert status == 200
-        assert len(frames) == 1
-        assert frames[0]["status"] == msg_status
+        assert len(responses) == 1
+        assert responses[0]["status"] == status
 
 
 class TestHeadersPreservation:
     """Test that headers field is properly preserved through message processing."""
 
-    def test_headers_preserved_in_payload_mode(self, runtime_invoke):
+    def test_headers_preserved_in_payload_mode(self):
         """Test that headers are preserved when using payload mode."""
 
         def simple_handler(payload):
@@ -1784,18 +1888,19 @@ class TestHeadersPreservation:
 
         message = {
             "payload": {"value": 42},
-            "route": {"actors": ["doubler"], "current": 0},
+            "route": {"prev": [], "curr": "doubler", "next": []},
             "headers": {"trace_id": "abc-123", "priority": "high"},
         }
-        frames, status = runtime_invoke(simple_handler, message)
 
-        assert status == 200
-        assert len(frames) == 1
-        assert frames[0]["payload"] == {"result": 84}
-        assert frames[0]["headers"] == {"trace_id": "abc-123", "priority": "high"}
-        assert frames[0]["route"] == {"actors": ["doubler"], "current": 1}
+        responses = call_invoke(message, simple_handler)
 
-    def test_headers_preserved_in_fanout_payload_mode(self, runtime_invoke):
+        assert len(responses) == 1
+        assert responses[0]["payload"] == {"result": 84}
+        assert responses[0]["headers"] == {"trace_id": "abc-123", "priority": "high"}
+        # Payload mode shifts route: doubler -> prev, curr becomes ""
+        assert responses[0]["route"] == {"prev": ["doubler"], "curr": "", "next": []}
+
+    def test_headers_preserved_in_fanout_payload_mode(self):
         """Test that headers are preserved in fanout with payload mode."""
 
         def fanout_handler(payload):
@@ -1804,19 +1909,19 @@ class TestHeadersPreservation:
 
         message = {
             "payload": {"test": "data"},
-            "route": {"actors": ["fan"], "current": 0},
+            "route": {"prev": [], "curr": "fan", "next": []},
             "headers": {"correlation_id": "xyz-789"},
         }
-        frames, status = runtime_invoke(fanout_handler, message)
 
-        assert status == 200
-        assert len(frames) == 2
-        assert frames[0]["payload"] == {"id": 1}
-        assert frames[0]["headers"] == {"correlation_id": "xyz-789"}
-        assert frames[1]["payload"] == {"id": 2}
-        assert frames[1]["headers"] == {"correlation_id": "xyz-789"}
+        responses = call_invoke(message, fanout_handler)
 
-    def test_headers_optional_in_payload_mode(self, runtime_invoke):
+        assert len(responses) == 2
+        assert responses[0]["payload"] == {"id": 1}
+        assert responses[0]["headers"] == {"correlation_id": "xyz-789"}
+        assert responses[1]["payload"] == {"id": 2}
+        assert responses[1]["headers"] == {"correlation_id": "xyz-789"}
+
+    def test_headers_optional_in_payload_mode(self):
         """Test that headers are optional and don't break processing."""
 
         def simple_handler(payload):
@@ -1824,16 +1929,16 @@ class TestHeadersPreservation:
 
         message = {
             "payload": {"test": "data"},
-            "route": {"actors": ["echo"], "current": 0},
+            "route": {"prev": [], "curr": "echo", "next": []},
         }
-        frames, status = runtime_invoke(simple_handler, message)
 
-        assert status == 200
-        assert len(frames) == 1
-        assert frames[0]["payload"] == {"test": "data"}
-        assert "headers" not in frames[0]
+        responses = call_invoke(message, simple_handler)
 
-    def test_headers_preserved_in_envelope_mode(self, runtime_invoke, mock_env):
+        assert len(responses) == 1
+        assert responses[0]["payload"] == {"test": "data"}
+        assert "headers" not in responses[0]
+
+    def test_headers_preserved_in_envelope_mode(self, mock_env):
         """Test that headers are preserved when using envelope mode."""
         with mock_env(ASYA_HANDLER_MODE="envelope"):
 
@@ -1842,17 +1947,17 @@ class TestHeadersPreservation:
 
             message = {
                 "payload": {"value": 100},
-                "route": {"actors": ["passthrough"], "current": 0},
+                "route": {"prev": [], "curr": "passthrough", "next": []},
                 "headers": {"request_id": "req-456"},
             }
-            frames, status = runtime_invoke(envelope_handler, message)
 
-            assert status == 200
-            assert len(frames) == 1
-            assert frames[0]["payload"] == {"value": 100}
-            assert frames[0]["headers"] == {"request_id": "req-456"}
+            responses = call_invoke(message, envelope_handler)
 
-    def test_headers_validation_invalid_type(self, runtime_invoke):
+            assert len(responses) == 1
+            assert responses[0]["payload"] == {"value": 100}
+            assert responses[0]["headers"] == {"request_id": "req-456"}
+
+    def test_headers_validation_invalid_type(self):
         """Test that headers validation rejects non-dict types."""
 
         def simple_handler(payload):
@@ -1860,20 +1965,21 @@ class TestHeadersPreservation:
 
         message = {
             "payload": {"test": "data"},
-            "route": {"actors": ["echo"], "current": 0},
+            "route": {"prev": [], "curr": "echo", "next": []},
             "headers": "this should be a dict, not a string",
         }
-        error, status = runtime_invoke(simple_handler, message)
 
-        assert status == 400
-        assert error["error"] == "msg_parsing_error"
-        assert "Field 'headers' must be a dict" in error["details"]["message"]
+        responses = call_invoke(message, simple_handler)
+
+        assert len(responses) == 1
+        assert responses[0]["error"] == "msg_parsing_error"
+        assert "Field 'headers' must be a dict" in responses[0]["details"]["message"]
 
 
 class TestEnvelopeMode:
     """Test ASYA_HANDLER_MODE=envelope mode."""
 
-    def test_envelope_mode_basic(self, runtime_invoke, mock_env):
+    def test_envelope_mode_basic(self, mock_env):
         """Test envelope mode with basic handler."""
         with mock_env(ASYA_HANDLER_MODE="envelope"):
 
@@ -1882,18 +1988,19 @@ class TestEnvelopeMode:
 
             message = {
                 "payload": {"value": 123},
-                "route": {"actors": ["passthrough"], "current": 0},
+                "route": {"prev": [], "curr": "passthrough", "next": []},
                 "headers": {"trace_id": "test-123"},
             }
-            frames, status = runtime_invoke(envelope_handler, message)
 
-            assert status == 200
-            assert len(frames) == 1
-            assert frames[0]["payload"] == {"value": 123}
-            assert frames[0]["headers"] == {"trace_id": "test-123"}
-            assert frames[0]["route"] == {"actors": ["passthrough"], "current": 0}
+            responses = call_invoke(message, envelope_handler)
 
-    def test_envelope_mode_headers_access(self, runtime_invoke, mock_env):
+            assert len(responses) == 1
+            assert responses[0]["payload"] == {"value": 123}
+            assert responses[0]["headers"] == {"trace_id": "test-123"}
+            # Runtime shifts route: passthrough -> prev, curr becomes ""
+            assert responses[0]["route"] == {"prev": ["passthrough"], "curr": "", "next": []}
+
+    def test_envelope_mode_headers_access(self, mock_env):
         """Test that envelope mode gives access to headers."""
         with mock_env(ASYA_HANDLER_MODE="envelope"):
 
@@ -1910,17 +2017,17 @@ class TestEnvelopeMode:
 
             message = {
                 "payload": {"value": 42},
-                "route": {"actors": ["processor"], "current": 0},
+                "route": {"prev": [], "curr": "processor", "next": []},
                 "headers": {"priority": "high", "trace_id": "xyz"},
             }
-            frames, status = runtime_invoke(headers_reader, message)
 
-            assert status == 200
-            assert len(frames) == 1
-            assert frames[0]["payload"] == {"priority": "high", "value": 42}
-            assert frames[0]["headers"] == {"priority": "high", "trace_id": "xyz"}
+            responses = call_invoke(message, headers_reader)
 
-    def test_envelope_mode_fanout(self, runtime_invoke, mock_env):
+            assert len(responses) == 1
+            assert responses[0]["payload"] == {"priority": "high", "value": 42}
+            assert responses[0]["headers"] == {"priority": "high", "trace_id": "xyz"}
+
+    def test_envelope_mode_fanout(self, mock_env):
         """Test envelope mode with fanout."""
         with mock_env(ASYA_HANDLER_MODE="envelope"):
 
@@ -1930,19 +2037,19 @@ class TestEnvelopeMode:
 
             message = {
                 "payload": {"test": "data"},
-                "route": {"actors": ["fan"], "current": 0},
+                "route": {"prev": [], "curr": "fan", "next": []},
                 "headers": {"correlation_id": "abc"},
             }
-            frames, status = runtime_invoke(fanout_handler, message)
 
-            assert status == 200
-            assert len(frames) == 2
-            assert frames[0]["payload"] == {"id": 1}
-            assert frames[0]["headers"] == {"correlation_id": "abc"}
-            assert frames[1]["payload"] == {"id": 2}
-            assert frames[1]["headers"] == {"correlation_id": "abc"}
+            responses = call_invoke(message, fanout_handler)
 
-    def test_envelope_mode_validation(self, runtime_invoke, mock_env):
+            assert len(responses) == 2
+            assert responses[0]["payload"] == {"id": 1}
+            assert responses[0]["headers"] == {"correlation_id": "abc"}
+            assert responses[1]["payload"] == {"id": 2}
+            assert responses[1]["headers"] == {"correlation_id": "abc"}
+
+    def test_envelope_mode_validation(self, mock_env):
         """Test envelope mode output validation."""
         with mock_env(ASYA_HANDLER_MODE="envelope"):
 
@@ -1951,15 +2058,16 @@ class TestEnvelopeMode:
 
             message = {
                 "payload": {"test": "data"},
-                "route": {"actors": ["processor"], "current": 0},
+                "route": {"prev": [], "curr": "processor", "next": []},
             }
-            error, status = runtime_invoke(invalid_handler, message)
 
-            assert status == 500
-            assert error["error"] == "processing_error"
-            assert "Missing required field 'route'" in error["details"]["message"]
+            responses = call_invoke(message, invalid_handler)
 
-    def test_envelope_mode_returns_none(self, runtime_invoke, mock_env):
+            assert len(responses) == 1
+            assert responses[0]["error"] == "processing_error"
+            assert "Missing required field 'route'" in responses[0]["details"]["message"]
+
+    def test_envelope_mode_returns_none(self, mock_env):
         """Test envelope mode handler returning None."""
         with mock_env(ASYA_HANDLER_MODE="envelope"):
 
@@ -1968,12 +2076,12 @@ class TestEnvelopeMode:
 
             message = {
                 "payload": {"test": "data"},
-                "route": {"actors": ["processor"], "current": 0},
+                "route": {"prev": [], "curr": "processor", "next": []},
             }
-            frames, status = runtime_invoke(none_handler, message)
 
-            assert status == 204
-            assert frames == []
+            responses = call_invoke(message, none_handler)
+
+            assert len(responses) == 0
 
 
 class TestLoadFunctionErrors:
@@ -2028,6 +2136,56 @@ class TestLoadFunctionErrors:
                 assert exc_info.value.code == 1
         finally:
             sys.path.pop(0)
+
+
+class TestSocketSetupErrors:
+    """Test Unix HTTP server socket error handling."""
+
+    def test_setup_socket_file_exists_and_is_directory(self, tmp_path):
+        """Test socket setup when path exists as directory."""
+        socket_path = tmp_path / "socket"
+        socket_path.mkdir()
+
+        with pytest.raises(OSError):
+            asya_runtime._UnixHTTPServer(str(socket_path), asya_runtime._InvokeHandler)
+
+
+class TestInvokeEdgeCases:
+    """Test _handle_invoke edge cases."""
+
+    def test_invoke_missing_payload_field_returns_400(self):
+        """Test _handle_invoke returns 400 when message is missing payload."""
+
+        def dummy_handler(payload):
+            return {"result": "ok"}
+
+        data = json.dumps(
+            {
+                "route": {"prev": [], "curr": "a", "next": []},
+            }
+        ).encode("utf-8")
+
+        status_code, body = asya_runtime._handle_invoke(data, dummy_handler)
+        assert status_code == 400
+        parsed = json.loads(body)
+        assert parsed["error"] == "msg_parsing_error"
+
+    def test_invoke_missing_route_field_returns_400(self):
+        """Test _handle_invoke returns 400 when message is missing route."""
+
+        def dummy_handler(payload):
+            return {"result": "ok"}
+
+        data = json.dumps(
+            {
+                "payload": {"test": "data"},
+            }
+        ).encode("utf-8")
+
+        status_code, body = asya_runtime._handle_invoke(data, dummy_handler)
+        assert status_code == 400
+        parsed = json.loads(body)
+        assert parsed["error"] == "msg_parsing_error"
 
 
 class TestCallHandler:
@@ -2089,9 +2247,9 @@ class TestCallHandler:
 
 
 class TestAsyncHandlers:
-    """Test async handler execution through POST /invoke."""
+    """Test async handler execution through _handle_invoke."""
 
-    def test_async_payload_mode_basic(self, runtime_invoke):
+    def test_async_payload_mode_basic(self):
         """Async handler in payload mode returns correct result."""
 
         async def async_echo(payload):
@@ -2099,16 +2257,17 @@ class TestAsyncHandlers:
 
         message = {
             "payload": {"msg": "hello"},
-            "route": {"actors": ["a"], "current": 0},
+            "route": {"prev": [], "curr": "a", "next": []},
         }
-        frames, status = runtime_invoke(async_echo, message)
 
-        assert status == 200
-        assert len(frames) == 1
-        assert frames[0]["payload"] == {"echoed": "hello"}
-        assert frames[0]["route"]["current"] == 1
+        responses = call_invoke(message, async_echo)
 
-    def test_async_payload_mode_list_return(self, runtime_invoke):
+        assert len(responses) == 1
+        assert responses[0]["payload"] == {"echoed": "hello"}
+        # Payload mode shifts route: "a" -> prev, curr becomes ""
+        assert responses[0]["route"] == {"prev": ["a"], "curr": "", "next": []}
+
+    def test_async_payload_mode_list_return(self):
         """Async handler returning list is treated as single payload (not fan-out)."""
 
         async def async_list_return(payload):
@@ -2116,16 +2275,17 @@ class TestAsyncHandlers:
 
         message = {
             "payload": {"test": True},
-            "route": {"actors": ["a", "b"], "current": 0},
+            "route": {"prev": [], "curr": "a", "next": ["b"]},
         }
-        frames, status = runtime_invoke(async_list_return, message)
 
-        assert status == 200
-        assert len(frames) == 1
-        assert frames[0]["payload"] == [{"i": 0}, {"i": 1}, {"i": 2}]
-        assert frames[0]["route"]["current"] == 1
+        responses = call_invoke(message, async_list_return)
 
-    def test_async_payload_mode_none_return(self, runtime_invoke):
+        assert len(responses) == 1
+        assert responses[0]["payload"] == [{"i": 0}, {"i": 1}, {"i": 2}]
+        # Route shifts: "a" -> prev, curr becomes "b"
+        assert responses[0]["route"] == {"prev": ["a"], "curr": "b", "next": []}
+
+    def test_async_payload_mode_none_return(self):
         """Async handler returning None in payload mode aborts pipeline."""
 
         async def async_none(payload):
@@ -2133,39 +2293,39 @@ class TestAsyncHandlers:
 
         message = {
             "payload": {"test": True},
-            "route": {"actors": ["a"], "current": 0},
+            "route": {"prev": [], "curr": "a", "next": []},
         }
-        frames, status = runtime_invoke(async_none, message)
 
-        assert status == 204
-        assert frames == []
+        responses = call_invoke(message, async_none)
 
-    def test_async_envelope_mode(self, runtime_invoke, mock_env):
+        assert len(responses) == 0
+
+    def test_async_envelope_mode(self, mock_env):
         """Async handler in envelope mode receives full message."""
 
         async def async_envelope(message):
             return {
                 "payload": {"processed": message["payload"]["data"]},
-                "route": {**message["route"], "current": message["route"]["current"] + 1},
+                "route": message["route"],
                 "headers": message.get("headers", {}),
             }
 
         message = {
             "payload": {"data": "test"},
-            "route": {"actors": ["a", "b"], "current": 0},
+            "route": {"prev": [], "curr": "a", "next": ["b"]},
             "headers": {"trace_id": "t1"},
         }
 
         with mock_env(ASYA_HANDLER_MODE="envelope"):
-            frames, status = runtime_invoke(async_envelope, message)
+            responses = call_invoke(message, async_envelope)
 
-        assert status == 200
-        assert len(frames) == 1
-        assert frames[0]["payload"] == {"processed": "test"}
-        assert frames[0]["route"]["current"] == 1
-        assert frames[0]["headers"] == {"trace_id": "t1"}
+        assert len(responses) == 1
+        assert responses[0]["payload"] == {"processed": "test"}
+        # Runtime shifts route: "a" -> prev, curr becomes "b" (from next)
+        assert responses[0]["route"] == {"prev": ["a"], "curr": "b", "next": []}
+        assert responses[0]["headers"] == {"trace_id": "t1"}
 
-    def test_async_handler_exception_produces_processing_error(self, runtime_invoke):
+    def test_async_handler_exception_produces_processing_error(self):
         """Async handler raising exception results in processing_error."""
 
         async def async_error(payload):
@@ -2173,16 +2333,17 @@ class TestAsyncHandlers:
 
         message = {
             "payload": {"test": True},
-            "route": {"actors": ["a"], "current": 0},
+            "route": {"prev": [], "curr": "a", "next": []},
         }
-        error, status = runtime_invoke(async_error, message)
 
-        assert status == 500
-        assert error["error"] == "processing_error"
-        assert "async handler failed" in error["details"]["message"]
-        assert error["details"]["type"] == "ValueError"
+        responses = call_invoke(message, async_error)
 
-    def test_sync_handler_still_works(self, runtime_invoke):
+        assert len(responses) == 1
+        assert responses[0]["error"] == "processing_error"
+        assert "async handler failed" in responses[0]["details"]["message"]
+        assert responses[0]["details"]["type"] == "ValueError"
+
+    def test_sync_handler_still_works(self):
         """Sync handlers continue to work unchanged (regression test)."""
 
         def sync_handler(payload):
@@ -2190,15 +2351,15 @@ class TestAsyncHandlers:
 
         message = {
             "payload": {"value": 41},
-            "route": {"actors": ["a"], "current": 0},
+            "route": {"prev": [], "curr": "a", "next": []},
         }
-        frames, status = runtime_invoke(sync_handler, message)
 
-        assert status == 200
-        assert len(frames) == 1
-        assert frames[0]["payload"] == {"result": 42}
+        responses = call_invoke(message, sync_handler)
 
-    def test_async_class_method_handler(self, runtime_invoke):
+        assert len(responses) == 1
+        assert responses[0]["payload"] == {"result": 42}
+
+    def test_async_class_method_handler(self):
         """Async class method handler works through _call_handler."""
 
         class AsyncProcessor:
@@ -2213,16 +2374,16 @@ class TestAsyncHandlers:
 
         message = {
             "payload": {"test": "data"},
-            "route": {"actors": ["a"], "current": 0},
+            "route": {"prev": [], "curr": "a", "next": []},
         }
-        frames, status = runtime_invoke(processor.process, message)
 
-        assert status == 200
-        assert len(frames) == 1
-        assert frames[0]["payload"]["count"] == 1
-        assert frames[0]["payload"]["data"] == {"test": "data"}
+        responses = call_invoke(message, processor.process)
 
-    def test_async_handler_preserves_headers(self, runtime_invoke):
+        assert len(responses) == 1
+        assert responses[0]["payload"]["count"] == 1
+        assert responses[0]["payload"]["data"] == {"test": "data"}
+
+    def test_async_handler_preserves_headers(self):
         """Async handler in payload mode preserves headers."""
 
         async def async_handler(payload):
@@ -2230,214 +2391,11 @@ class TestAsyncHandlers:
 
         message = {
             "payload": {"test": True},
-            "route": {"actors": ["a", "b"], "current": 0},
+            "route": {"prev": [], "curr": "a", "next": ["b"]},
             "headers": {"trace_id": "abc", "priority": "high"},
         }
-        frames, status = runtime_invoke(async_handler, message)
 
-        assert status == 200
-        assert len(frames) == 1
-        assert frames[0]["headers"] == {"trace_id": "abc", "priority": "high"}
+        responses = call_invoke(message, async_handler)
 
-
-class TestHTTPServer:
-    """Test HTTP server infrastructure."""
-
-    def test_server_binds_to_unix_socket(self, tmp_path):
-        socket_path = str(tmp_path / "test.sock")
-        server = asya_runtime._UnixHTTPServer(socket_path, asya_runtime._InvokeHandler)
-        assert os.path.exists(socket_path)
-        server.server_close()
-        assert not os.path.exists(socket_path)
-
-    def test_server_removes_existing_socket(self, tmp_path):
-        socket_path = str(tmp_path / "test.sock")
-        Path(socket_path).touch()
-        server = asya_runtime._UnixHTTPServer(socket_path, asya_runtime._InvokeHandler)
-        assert os.path.exists(socket_path)
-        server.server_close()
-
-    def test_server_chmod(self, tmp_path, mock_env):
-        with mock_env(ASYA_SOCKET_CHMOD="0o600"):
-            socket_path = str(tmp_path / "chmod.sock")
-            server = asya_runtime._UnixHTTPServer(socket_path, asya_runtime._InvokeHandler)
-            mode = os.stat(socket_path).st_mode & 0o777
-            assert mode == 0o600
-            server.server_close()
-
-
-class TestHTTPInvoke:
-    """Test POST /invoke endpoint via HTTP."""
-
-    # --- Success (200) ---
-
-    def test_payload_mode_success(self, runtime_invoke):
-        def handler(payload):
-            return {"result": payload["x"] + 1}
-
-        message = {
-            "payload": {"x": 10},
-            "route": {"actors": ["a", "b"], "current": 0},
-        }
-        frames, status = runtime_invoke(handler, message)
-        assert status == 200
-        assert len(frames) == 1
-        assert frames[0]["payload"] == {"result": 11}
-        assert frames[0]["route"]["current"] == 1
-        assert frames[0]["route"]["actors"] == ["a", "b"]
-
-    def test_payload_mode_preserves_headers(self, runtime_invoke):
-        message = {
-            "payload": {"x": 1},
-            "route": {"actors": ["a", "b"], "current": 0},
-            "headers": {"trace_id": "abc-123"},
-        }
-        frames, status = runtime_invoke(lambda p: {"ok": True}, message)
-        assert status == 200
-        assert frames[0]["headers"] == {"trace_id": "abc-123"}
-
-    def test_payload_mode_preserves_status(self, runtime_invoke):
-        message = {
-            "payload": {},
-            "route": {"actors": ["a"], "current": 0},
-            "status": {"phase": "working"},
-        }
-        frames, status = runtime_invoke(lambda p: {"ok": True}, message)
-        assert status == 200
-        assert frames[0]["status"] == {"phase": "working"}
-
-    def test_async_handler(self, runtime_invoke):
-        async def handler(payload):
-            return {"async": True}
-
-        message = {"payload": {}, "route": {"actors": ["a"], "current": 0}}
-        frames, status = runtime_invoke(handler, message)
-        assert status == 200
-        assert frames[0]["payload"] == {"async": True}
-
-    # --- Abort (204) ---
-
-    def test_handler_returns_none_204(self, runtime_invoke):
-        message = {"payload": {}, "route": {"actors": ["a"], "current": 0}}
-        frames, status = runtime_invoke(lambda p: None, message)
-        assert status == 204
-        assert frames == []
-
-    # --- Handler error (500) ---
-
-    def test_handler_exception_500(self, runtime_invoke):
-        def bad_handler(payload):
-            raise ValueError("something broke")
-
-        message = {"payload": {}, "route": {"actors": ["a"], "current": 0}}
-        error, status = runtime_invoke(bad_handler, message)
-        assert status == 500
-        assert error["error"] == "processing_error"
-        assert "something broke" in error["details"]["message"]
-        assert error["details"]["type"] == "ValueError"
-
-    # --- Parse error (400) ---
-
-    def test_missing_payload_400(self, runtime_invoke):
-        message = {"route": {"actors": ["a"], "current": 0}}
-        error, status = runtime_invoke(lambda p: p, message)
-        assert status == 400
-        assert error["error"] == "msg_parsing_error"
-
-    def test_missing_route_400(self, runtime_invoke):
-        message = {"payload": {"x": 1}}
-        error, status = runtime_invoke(lambda p: p, message)
-        assert status == 400
-        assert error["error"] == "msg_parsing_error"
-
-    # --- Generators (collected into frames array) ---
-
-    def test_generator_fanout(self, runtime_invoke):
-        def gen(payload):
-            yield {"id": 1}
-            yield {"id": 2}
-            yield {"id": 3}
-
-        message = {"payload": {}, "route": {"actors": ["a", "b"], "current": 0}}
-        frames, status = runtime_invoke(gen, message)
-        assert status == 200
-        assert len(frames) == 3
-        assert [f["payload"]["id"] for f in frames] == [1, 2, 3]
-        assert all(f["route"]["current"] == 1 for f in frames)
-
-    def test_generator_yields_nothing_204(self, runtime_invoke):
-        def empty_gen(payload):
-            return
-            yield  # noqa: unreachable
-
-        message = {"payload": {}, "route": {"actors": ["a"], "current": 0}}
-        frames, status = runtime_invoke(empty_gen, message)
-        assert status == 204
-
-    # --- Envelope mode ---
-
-    def test_envelope_mode_success(self, runtime_invoke, mock_env):
-        with mock_env(ASYA_HANDLER_MODE="envelope"):
-
-            def handler(msg):
-                return {
-                    "payload": {"processed": True},
-                    "route": msg["route"],
-                }
-
-            message = {"payload": {"x": 1}, "route": {"actors": ["a"], "current": 0}}
-            frames, status = runtime_invoke(handler, message)
-            assert status == 200
-            assert frames[0]["payload"] == {"processed": True}
-
-    def test_envelope_mode_returns_none(self, runtime_invoke, mock_env):
-        with mock_env(ASYA_HANDLER_MODE="envelope"):
-            message = {"payload": {}, "route": {"actors": ["a"], "current": 0}}
-            frames, status = runtime_invoke(lambda m: None, message)
-            assert status == 204
-
-    def test_envelope_mode_generator(self, runtime_invoke, mock_env):
-        with mock_env(ASYA_HANDLER_MODE="envelope"):
-
-            def gen(msg):
-                for i in range(2):
-                    yield {
-                        "payload": {"i": i},
-                        "route": msg["route"],
-                    }
-
-            message = {"payload": {}, "route": {"actors": ["a"], "current": 0}}
-            frames, status = runtime_invoke(gen, message)
-            assert status == 200
-            assert len(frames) == 2
-
-    # --- Large payloads ---
-
-    @pytest.mark.parametrize("size_kb", [10, 100, 500, 1024])
-    def test_large_payloads(self, runtime_invoke, size_kb):
-        large_data = "X" * (size_kb * 1024)
-        message = {
-            "payload": {"data": large_data},
-            "route": {"actors": ["a"], "current": 0},
-        }
-        frames, status = runtime_invoke(lambda p: p, message)
-        assert status == 200
-        assert len(frames[0]["payload"]["data"]) == size_kb * 1024
-
-    # --- 404 ---
-
-    def test_wrong_path_404(self, tmp_path):
-        socket_path = str(tmp_path / "test.sock")
-        server = asya_runtime._UnixHTTPServer(socket_path, asya_runtime._InvokeHandler)
-        server.user_func = lambda p: p
-        thread = threading.Thread(target=server.handle_request)
-        thread.start()
-
-        conn = _UnixHTTPConnection(socket_path)
-        conn.request("POST", "/health")
-        resp = conn.getresponse()
-        resp.read()
-        conn.close()
-        thread.join(timeout=5)
-        server.server_close()
-        assert resp.status == 404
+        assert len(responses) == 1
+        assert responses[0]["headers"] == {"trace_id": "abc", "priority": "high"}

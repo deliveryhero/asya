@@ -16,10 +16,8 @@ Regenerate by running: asya flow compile ../../minimal.py
 def start_minimal_flow(message: dict) -> dict:
     """Entrypoint for flow 'minimal_flow'"""
     r = message['route']
-    c = r['current']
 
-    r['actors'][c+1:c+1] = [resolve("handler_a")]
-    r['current'] = c + 1
+    r['next'] = [resolve("handler_a")] + r['next']
     return message
 
 def end_minimal_flow(message: dict) -> dict:

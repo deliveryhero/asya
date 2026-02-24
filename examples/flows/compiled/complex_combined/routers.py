@@ -16,17 +16,14 @@ Regenerate by running: asya flow compile ../../complex_combined.py
 def start_complex_combined_flow(message: dict) -> dict:
     """Entrypoint for flow 'complex_combined_flow'"""
     r = message['route']
-    c = r['current']
 
-    r['actors'][c+1:c+1] = [resolve("handler_init"), resolve("router_complex_combined_flow_line_11_if")]
-    r['current'] = c + 1
+    r['next'] = [resolve("handler_init"), resolve("router_complex_combined_flow_line_11_if")] + r['next']
     return message
 
 def router_complex_combined_flow_line_25_if(message: dict) -> dict:
     """Router for control flow and payload mutations"""
     p = message['payload']
     r = message['route']
-    c = r['current']
     _next = []
 
     if p['stop_early']:
@@ -34,15 +31,13 @@ def router_complex_combined_flow_line_25_if(message: dict) -> dict:
     else:
         pass
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def router_complex_combined_flow_line_20_if(message: dict) -> dict:
     """Router for control flow and payload mutations"""
     p = message['payload']
     r = message['route']
-    c = r['current']
     _next = []
 
     p['i'] += 1
@@ -52,28 +47,24 @@ def router_complex_combined_flow_line_20_if(message: dict) -> dict:
         _next.append(resolve("handler_process"))
         _next.append(resolve("router_complex_combined_flow_line_25_if"))
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def router_complex_combined_flow_line_17_loop_back_0(message: dict) -> dict:
     """Loop-back router: re-inserts loop actors into route"""
     p = message['payload']
     r = message['route']
-    c = r['current']
     _next = []
 
     _next.append(resolve("router_complex_combined_flow_line_17_while_0"))
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def router_complex_combined_flow_line_17_while_0(message: dict) -> dict:
     """Router for control flow and payload mutations"""
     p = message['payload']
     r = message['route']
-    c = r['current']
     _next = []
 
     p['i'] = 0
@@ -83,15 +74,13 @@ def router_complex_combined_flow_line_17_while_0(message: dict) -> dict:
     else:
         _next.append(resolve("handler_finalize"))
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def router_complex_combined_flow_line_30_if(message: dict) -> dict:
     """Router for control flow and payload mutations"""
     p = message['payload']
     r = message['route']
-    c = r['current']
     _next = []
 
     if p['type'] == 'B':
@@ -101,15 +90,13 @@ def router_complex_combined_flow_line_30_if(message: dict) -> dict:
         _next.append(resolve("handler_default"))
         _next.append(resolve("handler_finalize"))
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def router_complex_combined_flow_line_28_if(message: dict) -> dict:
     """Router for control flow and payload mutations"""
     p = message['payload']
     r = message['route']
-    c = r['current']
     _next = []
 
     if p['type'] == 'A':
@@ -118,15 +105,13 @@ def router_complex_combined_flow_line_28_if(message: dict) -> dict:
     else:
         _next.append(resolve("router_complex_combined_flow_line_30_if"))
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def router_complex_combined_flow_line_15_if(message: dict) -> dict:
     """Router for control flow and payload mutations"""
     p = message['payload']
     r = message['route']
-    c = r['current']
     _next = []
 
     if p['needs_loop']:
@@ -134,15 +119,13 @@ def router_complex_combined_flow_line_15_if(message: dict) -> dict:
     else:
         _next.append(resolve("router_complex_combined_flow_line_28_if"))
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def router_complex_combined_flow_line_11_if(message: dict) -> dict:
     """Router for control flow and payload mutations"""
     p = message['payload']
     r = message['route']
-    c = r['current']
     _next = []
 
     if not p['valid']:
@@ -150,8 +133,7 @@ def router_complex_combined_flow_line_11_if(message: dict) -> dict:
     else:
         _next.append(resolve("router_complex_combined_flow_line_15_if"))
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def end_complex_combined_flow(message: dict) -> dict:

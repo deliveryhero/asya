@@ -16,16 +16,13 @@ Regenerate by running: asya flow compile ../../try_except_retry_loop.py
 def start_retry_pipeline(message: dict) -> dict:
     """Entrypoint for flow 'retry_pipeline'"""
     r = message['route']
-    c = r['current']
 
-    r['actors'][c+1:c+1] = [resolve("router_retry_pipeline_line_10_seq")]
-    r['current'] = c + 1
+    r['next'] = [resolve("router_retry_pipeline_line_10_seq")] + r['next']
     return message
 
 def router_retry_pipeline_line_14_try_enter_0(message: dict) -> dict:
     """Try-enter router: sets _on_error header and inserts try body"""
     r = message['route']
-    c = r['current']
     _next = []
 
     message.setdefault('headers', {})
@@ -35,28 +32,24 @@ def router_retry_pipeline_line_14_try_enter_0(message: dict) -> dict:
     _next.append(resolve("call_another_api"))
     _next.append(resolve("router_retry_pipeline_line_14_try_exit_0"))
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def router_retry_pipeline_line_14_try_exit_0(message: dict) -> dict:
     """Try-exit router: clears _on_error header (success path)"""
     r = message['route']
-    c = r['current']
     _next = []
 
     message.get('headers', {}).pop('_on_error', None)
 
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def router_retry_pipeline_line_14_except_dispatch_0(message: dict) -> dict:
     """Except-dispatch router: matches error type and routes to handler"""
     p = message['payload']
     r = message['route']
-    c = r['current']
     _next = []
 
     _error = message.get('status', {}).get('error', {})
@@ -73,8 +66,7 @@ def router_retry_pipeline_line_14_except_dispatch_0(message: dict) -> dict:
     else:
         _next.append(resolve("router_retry_pipeline_line_14_reraise_0"))
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def router_retry_pipeline_line_14_reraise_0(message: dict) -> dict:
@@ -88,34 +80,29 @@ def router_retry_pipeline_line_13_seq(message: dict) -> dict:
     """Router for control flow and payload mutations"""
     p = message['payload']
     r = message['route']
-    c = r['current']
     _next = []
 
     p['attempt'] += 1
     _next.append(resolve("router_retry_pipeline_line_14_try_enter_0"))
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def router_retry_pipeline_line_12_loop_back_0(message: dict) -> dict:
     """Loop-back router: re-inserts loop actors into route"""
     p = message['payload']
     r = message['route']
-    c = r['current']
     _next = []
 
     _next.append(resolve("router_retry_pipeline_line_12_while_0"))
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def router_retry_pipeline_line_12_while_0(message: dict) -> dict:
     """Router for control flow and payload mutations"""
     p = message['payload']
     r = message['route']
-    c = r['current']
     _next = []
 
     if p['attempt'] < 3:
@@ -124,23 +111,20 @@ def router_retry_pipeline_line_12_while_0(message: dict) -> dict:
     else:
         pass
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def router_retry_pipeline_line_10_seq(message: dict) -> dict:
     """Router for control flow and payload mutations"""
     p = message['payload']
     r = message['route']
-    c = r['current']
     _next = []
 
     p['attempt'] = 0
     _next.append(resolve("prepare_request"))
     _next.append(resolve("router_retry_pipeline_line_12_while_0"))
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def end_retry_pipeline(message: dict) -> dict:

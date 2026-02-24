@@ -272,7 +272,7 @@ channel = connection.channel()
 
 message = {
     "id": "test-1",
-    "route": {"actors": ["hello-actor"], "current": 0},
+    "route": {"prev": [], "curr": "hello-actor", "next": []},
     "payload": {"who": "Local"}
 }
 

@@ -137,8 +137,9 @@ func createTestRouter(t *testing.T, socketPath string, timeout time.Duration) (s
 // createTestMessage creates a test message with the given payload
 func createTestMessage(payload map[string]interface{}) transport.QueueMessage {
 	route := messages.Route{
-		Actors:  []string{"test-actor"},
-		Current: 0,
+		Prev: []string{},
+		Curr: "test-actor",
+		Next: []string{},
 	}
 
 	payloadBytes, _ := json.Marshal(payload)

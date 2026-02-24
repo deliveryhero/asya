@@ -109,12 +109,20 @@ func (s *Server) handleProcessImageWorkflow(ctx context.Context, request mcp.Cal
 	timeout := request.GetFloat("timeout", 0.0)
 
 	// Create task
+	// route is the full actor list: first actor goes to Curr, rest go to Next
 	taskID := uuid.New().String()
+	var routeCurr string
+	var routeNext []string
+	if len(route) > 0 {
+		routeCurr = route[0]
+		routeNext = route[1:]
+	}
 	task := &types.Task{
 		ID: taskID,
 		Route: types.Route{
-			Actors:  route,
-			Current: 0,
+			Prev: []string{},
+			Curr: routeCurr,
+			Next: routeNext,
 		},
 		Payload: map[string]any{
 			"description": description,

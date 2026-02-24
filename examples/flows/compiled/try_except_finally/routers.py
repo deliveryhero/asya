@@ -16,30 +16,25 @@ Regenerate by running: asya flow compile ../../try_except_finally.py
 def start_resource_pipeline(message: dict) -> dict:
     """Entrypoint for flow 'resource_pipeline'"""
     r = message['route']
-    c = r['current']
 
-    r['actors'][c+1:c+1] = [resolve("router_resource_pipeline_line_2_seq")]
-    r['current'] = c + 1
+    r['next'] = [resolve("router_resource_pipeline_line_2_seq")] + r['next']
     return message
 
 def router_resource_pipeline_line_7_seq(message: dict) -> dict:
     """Router for control flow and payload mutations"""
     p = message['payload']
     r = message['route']
-    c = r['current']
     _next = []
 
     p['status'] = 'failed'
     _next.append(resolve("handle_failure"))
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def router_resource_pipeline_line_3_try_enter_0(message: dict) -> dict:
     """Try-enter router: sets _on_error header and inserts try body"""
     r = message['route']
-    c = r['current']
     _next = []
 
     message.setdefault('headers', {})
@@ -49,14 +44,12 @@ def router_resource_pipeline_line_3_try_enter_0(message: dict) -> dict:
     _next.append(resolve("process_with_resource"))
     _next.append(resolve("router_resource_pipeline_line_3_try_exit_0"))
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def router_resource_pipeline_line_3_try_exit_0(message: dict) -> dict:
     """Try-exit router: clears _on_error header (success path)"""
     r = message['route']
-    c = r['current']
     _next = []
 
     message.get('headers', {}).pop('_on_error', None)
@@ -64,15 +57,13 @@ def router_resource_pipeline_line_3_try_exit_0(message: dict) -> dict:
     _next.append(resolve("release_resource"))
     _next.append(resolve("finalize"))
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def router_resource_pipeline_line_3_except_dispatch_0(message: dict) -> dict:
     """Except-dispatch router: matches error type and routes to handler"""
     p = message['payload']
     r = message['route']
-    c = r['current']
     _next = []
 
     _error = message.get('status', {}).get('error', {})
@@ -88,8 +79,7 @@ def router_resource_pipeline_line_3_except_dispatch_0(message: dict) -> dict:
     _next.append(resolve("release_resource"))
     _next.append(resolve("finalize"))
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def router_resource_pipeline_line_3_reraise_0(message: dict) -> dict:
@@ -103,14 +93,12 @@ def router_resource_pipeline_line_2_seq(message: dict) -> dict:
     """Router for control flow and payload mutations"""
     p = message['payload']
     r = message['route']
-    c = r['current']
     _next = []
 
     p['status'] = 'started'
     _next.append(resolve("router_resource_pipeline_line_3_try_enter_0"))
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def end_resource_pipeline(message: dict) -> dict:

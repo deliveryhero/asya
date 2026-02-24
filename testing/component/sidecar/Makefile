@@ -17,7 +17,7 @@ DOCKER_COMPOSE ?= docker compose
 export DOCKER_BUILDKIT := 1
 export BUILDKIT_PROGRESS ?= plain
 export COMPOSE_ANSI ?= never
-DOCKER_COMPOSE_UP_OPTS := --exit-code-from tester
+DOCKER_COMPOSE_UP_OPTS := --exit-code-from tester --build
 export ASYA_LOG_LEVEL ?= INFO
 ASYA_TRANSPORT ?= sqs
 export ASYA_TRANSPORT

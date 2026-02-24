@@ -86,7 +86,7 @@ func (c *RabbitMQClient) SendMessage(ctx context.Context, task *types.Task) erro
 
 	// Send message to current actor's queue
 	// Use actor name as routing key (sidecar binds queue with actor name, not "asya-" prefixed name)
-	routingKey := task.Route.Actors[task.Route.Current]
+	routingKey := task.Route.Curr
 
 	// Protect channel access with mutex for thread-safety
 	c.mu.Lock()

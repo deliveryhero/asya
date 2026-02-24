@@ -90,9 +90,8 @@ class LLMJudge:
         # Dynamically modify route based on LLM judge score
         route = envelope["route"]
         if score < self.threshold:
-            route["actors"].insert(route["current"] + 1, "llm-refiner")
+            route["next"] = ["llm-refiner"] + route["next"]
 
-        route["current"] += 1
         return envelope
 ```
 

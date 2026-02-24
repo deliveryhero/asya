@@ -16,44 +16,37 @@ Regenerate by running: asya flow compile ../../while_nested_loop.py
 def start_nested_loop_flow(message: dict) -> dict:
     """Entrypoint for flow 'nested_loop_flow'"""
     r = message['route']
-    c = r['current']
 
-    r['actors'][c+1:c+1] = [resolve("initialize"), resolve("router_nested_loop_flow_line_12_while_0")]
-    r['current'] = c + 1
+    r['next'] = [resolve("initialize"), resolve("router_nested_loop_flow_line_12_while_0")] + r['next']
     return message
 
 def router_nested_loop_flow_line_16_seq(message: dict) -> dict:
     """Router for control flow and payload mutations"""
     p = message['payload']
     r = message['route']
-    c = r['current']
     _next = []
 
     p['j'] += 1
     _next.append(resolve("process_item"))
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def router_nested_loop_flow_line_15_loop_back_1(message: dict) -> dict:
     """Loop-back router: re-inserts loop actors into route"""
     p = message['payload']
     r = message['route']
-    c = r['current']
     _next = []
 
     _next.append(resolve("router_nested_loop_flow_line_15_while_1"))
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def router_nested_loop_flow_line_15_while_1(message: dict) -> dict:
     """Router for control flow and payload mutations"""
     p = message['payload']
     r = message['route']
-    c = r['current']
     _next = []
 
     p['i'] += 1
@@ -64,28 +57,24 @@ def router_nested_loop_flow_line_15_while_1(message: dict) -> dict:
     else:
         _next.append(resolve("finalize_loop_j"))
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def router_nested_loop_flow_line_12_loop_back_0(message: dict) -> dict:
     """Loop-back router: re-inserts loop actors into route"""
     p = message['payload']
     r = message['route']
-    c = r['current']
     _next = []
 
     _next.append(resolve("router_nested_loop_flow_line_12_while_0"))
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def router_nested_loop_flow_line_12_while_0(message: dict) -> dict:
     """Router for control flow and payload mutations"""
     p = message['payload']
     r = message['route']
-    c = r['current']
     _next = []
 
     p['i'] = 0
@@ -95,8 +84,7 @@ def router_nested_loop_flow_line_12_while_0(message: dict) -> dict:
     else:
         _next.append(resolve("finalize_loop_i"))
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def end_nested_loop_flow(message: dict) -> dict:

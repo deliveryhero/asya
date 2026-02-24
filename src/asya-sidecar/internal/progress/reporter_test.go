@@ -7,6 +7,8 @@ import (
 	"net/http/httptest"
 	"testing"
 	"time"
+
+	"github.com/deliveryhero/asya/asya-sidecar/pkg/messages"
 )
 
 func TestNewReporter(t *testing.T) {
@@ -75,10 +77,11 @@ func TestReportProgress_Success(t *testing.T) {
 	reporter := NewReporter(server.URL, "test-actor")
 
 	update := ProgressUpdate{
-		Actors:          []string{"parser", "processor", "finalizer"},
-		CurrentActorIdx: 1,
-		Status:          StatusProcessing,
-		Message:         "Processing data",
+		Prev:    []string{"parser"},
+		Curr:    "processor",
+		Next:    []string{"finalizer"},
+		Status:  StatusProcessing,
+		Message: "Processing data",
 	}
 
 	ctx := context.Background()
@@ -93,12 +96,12 @@ func TestReportProgress_Success(t *testing.T) {
 	}
 
 	// Verify received update
-	if len(receivedUpdate.Actors) != 3 {
-		t.Errorf("Received %d actors, want 3", len(receivedUpdate.Actors))
+	if receivedUpdate.Curr != "processor" {
+		t.Errorf("Received curr = %v, want processor", receivedUpdate.Curr)
 	}
 
-	if receivedUpdate.CurrentActorIdx != 1 {
-		t.Errorf("Received currentActorIdx = %v, want 1", receivedUpdate.CurrentActorIdx)
+	if len(receivedUpdate.Prev) != 1 || receivedUpdate.Prev[0] != "parser" {
+		t.Errorf("Received prev = %v, want [parser]", receivedUpdate.Prev)
 	}
 
 	if receivedUpdate.Status != StatusProcessing {
@@ -122,9 +125,10 @@ func TestReportProgress_EmptyID(t *testing.T) {
 	reporter := NewReporter(server.URL, "test-actor")
 
 	update := ProgressUpdate{
-		Actors:          []string{"test"},
-		CurrentActorIdx: 0,
-		Status:          StatusReceived,
+		Prev:   []string{},
+		Curr:   "test",
+		Next:   []string{},
+		Status: StatusReceived,
 	}
 
 	ctx := context.Background()
@@ -151,9 +155,10 @@ func TestReportProgress_ServerError(t *testing.T) {
 	reporter := NewReporter(server.URL, "test-actor")
 
 	update := ProgressUpdate{
-		Actors:          []string{"test"},
-		CurrentActorIdx: 0,
-		Status:          StatusReceived,
+		Prev:   []string{},
+		Curr:   "test",
+		Next:   []string{},
+		Status: StatusReceived,
 	}
 
 	ctx := context.Background()
@@ -170,9 +175,10 @@ func TestReportProgress_NetworkError(t *testing.T) {
 	reporter := NewReporter("http://invalid-host-that-does-not-exist:99999", "test-actor")
 
 	update := ProgressUpdate{
-		Actors:          []string{"test"},
-		CurrentActorIdx: 0,
-		Status:          StatusReceived,
+		Prev:   []string{},
+		Curr:   "test",
+		Next:   []string{},
+		Status: StatusReceived,
 	}
 
 	ctx := context.Background()
@@ -195,9 +201,10 @@ func TestReportProgress_ContextCancellation(t *testing.T) {
 	reporter := NewReporter(server.URL, "test-actor")
 
 	update := ProgressUpdate{
-		Actors:          []string{"test"},
-		CurrentActorIdx: 0,
-		Status:          StatusReceived,
+		Prev:   []string{},
+		Curr:   "test",
+		Next:   []string{},
+		Status: StatusReceived,
 	}
 
 	// Create context with short timeout
@@ -237,9 +244,10 @@ func TestReportProgress_AllStatuses(t *testing.T) {
 			reporter := NewReporter(server.URL, "test-actor")
 
 			update := ProgressUpdate{
-				Actors:          []string{"test"},
-				CurrentActorIdx: 0,
-				Status:          tt.status,
+				Prev:   []string{},
+				Curr:   "test",
+				Next:   []string{},
+				Status: tt.status,
 			}
 
 			ctx := context.Background()
@@ -273,9 +281,10 @@ func TestReportProgress_ConcurrentCalls(t *testing.T) {
 	for i := 0; i < numRequests; i++ {
 		go func(idx int) {
 			update := ProgressUpdate{
-				Actors:          []string{"test"},
-				CurrentActorIdx: idx,
-				Status:          StatusProcessing,
+				Prev:   []string{},
+				Curr:   "test",
+				Next:   []string{},
+				Status: StatusProcessing,
 			}
 			ctx := context.Background()
 			_ = reporter.ReportProgress(ctx, "test-job", update)
@@ -314,12 +323,13 @@ func TestReportProgress_WithTimingMetrics(t *testing.T) {
 	messageSizeKB := 5.67
 
 	update := ProgressUpdate{
-		Actors:          []string{"parser", "processor", "finalizer"},
-		CurrentActorIdx: 1,
-		Status:          StatusCompleted,
-		Message:         "Completed processing in 1234ms",
-		DurationMs:      &durationMs,
-		MessageSizeKB:   &messageSizeKB,
+		Prev:          []string{"parser"},
+		Curr:          "processor",
+		Next:          []string{"finalizer"},
+		Status:        StatusCompleted,
+		Message:       "Completed processing in 1234ms",
+		DurationMs:    &durationMs,
+		MessageSizeKB: &messageSizeKB,
 	}
 
 	ctx := context.Background()
@@ -366,10 +376,11 @@ func TestReportProgress_RetriesOnFailure(t *testing.T) {
 	reporter := NewReporter(server.URL, "test-actor")
 
 	update := ProgressUpdate{
-		Actors:          []string{"parser", "processor", "finalizer"},
-		CurrentActorIdx: 1,
-		Status:          StatusProcessing,
-		Message:         "Processing data",
+		Prev:    []string{"parser"},
+		Curr:    "processor",
+		Next:    []string{"finalizer"},
+		Status:  StatusProcessing,
+		Message: "Processing data",
 	}
 
 	ctx := context.Background()
@@ -393,8 +404,8 @@ func TestReportProgress_RetriesOnFailure(t *testing.T) {
 	}
 
 	// Verify update was received on successful attempt
-	if len(receivedUpdate.Actors) == 0 || receivedUpdate.Actors[receivedUpdate.CurrentActorIdx] != "processor" {
-		t.Errorf("Received actors = %v, currentIdx = %d, want processor at index", receivedUpdate.Actors, receivedUpdate.CurrentActorIdx)
+	if receivedUpdate.Curr != "processor" {
+		t.Errorf("Received curr = %v, want processor", receivedUpdate.Curr)
 	}
 }
 
@@ -411,9 +422,10 @@ func TestReportProgress_RetriesUpToMaxAttempts(t *testing.T) {
 	reporter := NewReporter(server.URL, "test-actor")
 
 	update := ProgressUpdate{
-		Actors:          []string{"parser", "processor", "finalizer"},
-		CurrentActorIdx: 1,
-		Status:          StatusProcessing,
+		Prev:   []string{"parser"},
+		Curr:   "processor",
+		Next:   []string{"finalizer"},
+		Status: StatusProcessing,
 	}
 
 	ctx := context.Background()
@@ -443,9 +455,10 @@ func TestReportProgress_RespectsContextCancellationDuringRetry(t *testing.T) {
 	reporter := NewReporter(server.URL, "test-actor")
 
 	update := ProgressUpdate{
-		Actors:          []string{"parser", "processor", "finalizer"},
-		CurrentActorIdx: 1,
-		Status:          StatusProcessing,
+		Prev:   []string{"parser"},
+		Curr:   "processor",
+		Next:   []string{"finalizer"},
+		Status: StatusProcessing,
 	}
 
 	// Create context that cancels after first attempt
@@ -481,10 +494,11 @@ func TestReportProgress_SucceedsOnFirstAttempt(t *testing.T) {
 	reporter := NewReporter(server.URL, "test-actor")
 
 	update := ProgressUpdate{
-		Actors:          []string{"parser", "processor", "finalizer"},
-		CurrentActorIdx: 1,
-		Status:          StatusProcessing,
-		Message:         "Processing data",
+		Prev:    []string{"parser"},
+		Curr:    "processor",
+		Next:    []string{"finalizer"},
+		Status:  StatusProcessing,
+		Message: "Processing data",
 	}
 
 	ctx := context.Background()
@@ -508,8 +522,8 @@ func TestReportProgress_SucceedsOnFirstAttempt(t *testing.T) {
 	}
 
 	// Verify update was received
-	if len(receivedUpdate.Actors) == 0 || receivedUpdate.Actors[receivedUpdate.CurrentActorIdx] != "processor" {
-		t.Errorf("Received actors = %v, currentIdx = %d, want processor at index", receivedUpdate.Actors, receivedUpdate.CurrentActorIdx)
+	if receivedUpdate.Curr != "processor" {
+		t.Errorf("Received curr = %v, want processor", receivedUpdate.Curr)
 	}
 }
 
@@ -545,7 +559,12 @@ func TestCreateTask_Success(t *testing.T) {
 	reporter := NewReporter(server.URL, "test-actor")
 
 	ctx := context.Background()
-	err := reporter.CreateTask(ctx, "abc-123-1", "abc-123", []string{"actor1", "actor2"}, 1)
+	route := messages.Route{
+		Prev: []string{"actor1"},
+		Curr: "actor2",
+		Next: []string{},
+	}
+	err := reporter.CreateTask(ctx, "abc-123-1", "abc-123", route)
 
 	if err != nil {
 		t.Errorf("CreateTask returned error: %v", err)
@@ -560,12 +579,12 @@ func TestCreateTask_Success(t *testing.T) {
 		t.Errorf("ParentID = %v, want abc-123", receivedPayload.ParentID)
 	}
 
-	if len(receivedPayload.Actors) != 2 {
-		t.Errorf("Actors length = %v, want 2", len(receivedPayload.Actors))
+	if len(receivedPayload.Prev) != 1 {
+		t.Errorf("Prev length = %v, want 1", len(receivedPayload.Prev))
 	}
 
-	if receivedPayload.Current != 1 {
-		t.Errorf("Current = %v, want 1", receivedPayload.Current)
+	if receivedPayload.Curr != "actor2" {
+		t.Errorf("Curr = %v, want actor2", receivedPayload.Curr)
 	}
 }
 
@@ -579,7 +598,8 @@ func TestCreateTask_ServerError(t *testing.T) {
 	reporter := NewReporter(server.URL, "test-actor")
 
 	ctx := context.Background()
-	err := reporter.CreateTask(ctx, "abc-123-1", "abc-123", []string{"actor1"}, 1)
+	route := messages.Route{Prev: []string{}, Curr: "actor1", Next: []string{}}
+	err := reporter.CreateTask(ctx, "abc-123-1", "abc-123", route)
 
 	// Should return error
 	if err == nil {
@@ -596,7 +616,8 @@ func TestCreateTask_NetworkError(t *testing.T) {
 	reporter := NewReporter("http://invalid-host-that-does-not-exist:99999", "test-actor")
 
 	ctx := context.Background()
-	err := reporter.CreateTask(ctx, "abc-123-1", "abc-123", []string{"actor1"}, 1)
+	route := messages.Route{Prev: []string{}, Curr: "actor1", Next: []string{}}
+	err := reporter.CreateTask(ctx, "abc-123-1", "abc-123", route)
 
 	// Should return error
 	if err == nil {
@@ -618,7 +639,8 @@ func TestCreateTask_ContextCancellation(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 	defer cancel()
 
-	err := reporter.CreateTask(ctx, "abc-123-1", "abc-123", []string{"actor1"}, 1)
+	route := messages.Route{Prev: []string{}, Curr: "actor1", Next: []string{}}
+	err := reporter.CreateTask(ctx, "abc-123-1", "abc-123", route)
 
 	// Should return error due to timeout
 	if err == nil {

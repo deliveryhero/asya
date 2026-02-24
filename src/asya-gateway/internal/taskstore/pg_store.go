@@ -106,6 +106,15 @@ func (s *PgStore) Close() {
 	s.pool.Close()
 }
 
+// totalActors returns the total number of actors in the route (prev + curr + next).
+func totalActors(route types.Route) int {
+	total := len(route.Prev) + len(route.Next)
+	if route.Curr != "" {
+		total++
+	}
+	return total
+}
+
 // Create creates a new task
 func (s *PgStore) Create(task *types.Task) error {
 	now := time.Now()
@@ -114,9 +123,12 @@ func (s *PgStore) Create(task *types.Task) error {
 	task.Status = types.TaskStatusPending
 
 	// Initialize progress tracking
-	task.TotalActors = len(task.Route.Actors)
+	task.TotalActors = totalActors(task.Route)
 	task.ActorsCompleted = 0
 	task.ProgressPercent = 0.0
+
+	// Derive current actor name from route
+	currentActorName := task.Route.Curr
 
 	var deadline *time.Time
 	if task.TimeoutSec > 0 {
@@ -130,18 +142,30 @@ func (s *PgStore) Create(task *types.Task) error {
 		return fmt.Errorf("failed to marshal payload: %w", err)
 	}
 
+	// Ensure nil slices are stored as empty arrays
+	routePrev := task.Route.Prev
+	if routePrev == nil {
+		routePrev = []string{}
+	}
+	routeNext := task.Route.Next
+	if routeNext == nil {
+		routeNext = []string{}
+	}
+
 	query := `
-		INSERT INTO tasks (id, parent_id, status, route_actors, route_current, payload, timeout_sec, deadline,
-		                 progress_percent, total_actors, actors_completed, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+		INSERT INTO tasks (id, parent_id, status, route_prev, route_curr, route_next, current_actor_name, payload,
+		                   timeout_sec, deadline, progress_percent, total_actors, actors_completed, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
 	`
 
 	_, err = s.pool.Exec(s.ctx, query,
 		task.ID,
 		task.ParentID,
 		task.Status,
-		task.Route.Actors,
-		task.Route.Current,
+		routePrev,
+		task.Route.Curr,
+		routeNext,
+		currentActorName,
 		payloadJSON,
 		task.TimeoutSec,
 		deadline,
@@ -171,8 +195,8 @@ func (s *PgStore) Create(task *types.Task) error {
 // Get retrieves a task by ID
 func (s *PgStore) Get(id string) (*types.Task, error) {
 	query := `
-		SELECT id, parent_id, status, route_actors, route_current, payload, result, error, message, timeout_sec, deadline,
-		       progress_percent, current_actor_idx, current_actor_name, actors_completed, total_actors, created_at, updated_at
+		SELECT id, parent_id, status, route_prev, route_curr, route_next, payload, result, error, message, timeout_sec, deadline,
+		       progress_percent, current_actor_name, actors_completed, total_actors, created_at, updated_at
 		FROM tasks
 		WHERE id = $1
 	`
@@ -187,8 +211,9 @@ func (s *PgStore) Get(id string) (*types.Task, error) {
 		&task.ID,
 		&task.ParentID,
 		&task.Status,
-		&task.Route.Actors,
-		&task.Route.Current,
+		&task.Route.Prev,
+		&task.Route.Curr,
+		&task.Route.Next,
 		&payloadJSON,
 		&resultJSON,
 		&errorStr,
@@ -196,7 +221,6 @@ func (s *PgStore) Get(id string) (*types.Task, error) {
 		&timeoutSec,
 		&deadline,
 		&task.ProgressPercent,
-		&task.CurrentActorIdx,
 		&currentActorName,
 		&task.ActorsCompleted,
 		&task.TotalActors,
@@ -230,6 +254,14 @@ func (s *PgStore) Get(id string) (*types.Task, error) {
 
 	if currentActorName != nil {
 		task.CurrentActorName = *currentActorName
+	}
+
+	// Ensure route slices are never nil
+	if task.Route.Prev == nil {
+		task.Route.Prev = []string{}
+	}
+	if task.Route.Next == nil {
+		task.Route.Next = []string{}
 	}
 
 	if payloadJSON != nil {
@@ -296,11 +328,13 @@ func (s *PgStore) Update(update types.TaskUpdate) error {
 	}
 
 	// Insert update record for SSE streaming
-	// Derive current_actor_name from Actors and CurrentActorIdx if available
+	// Derive current_actor_name from Curr field if available
 	var currentActorName *string
-	if update.CurrentActorIdx != nil && *update.CurrentActorIdx >= 0 && *update.CurrentActorIdx < len(update.Actors) {
-		name := update.Actors[*update.CurrentActorIdx]
+	if update.Curr != "" {
+		name := update.Curr
 		currentActorName = &name
+	} else if update.Actor != "" {
+		currentActorName = &update.Actor
 	}
 
 	insertUpdateQuery := `
@@ -357,41 +391,60 @@ func (s *PgStore) UpdateProgress(update types.TaskUpdate) error {
 	}
 	defer func() { _ = tx.Rollback(s.ctx) }()
 
-	// Update main task record with progress fields
-	// Derive current_actor_name from Actors and CurrentActorIdx
+	// Derive current_actor_name from Curr field
 	var currentActorName *string
-	if update.CurrentActorIdx != nil && *update.CurrentActorIdx >= 0 && *update.CurrentActorIdx < len(update.Actors) {
-		name := update.Actors[*update.CurrentActorIdx]
+	if update.Curr != "" {
+		name := update.Curr
 		currentActorName = &name
 	}
 
-	// Calculate total_actors from the Actors slice when route is updated
+	// Calculate total_actors from the route when it is updated
 	var totalActors *int
-	if len(update.Actors) > 0 {
-		total := len(update.Actors)
+	if update.Curr != "" || len(update.Prev) > 0 || len(update.Next) > 0 {
+		total := len(update.Prev) + len(update.Next)
+		if update.Curr != "" {
+			total++
+		}
 		totalActors = &total
+	}
+
+	// actors_completed = len(prev): actors that have fully processed the message
+	actorsCompleted := len(update.Prev)
+
+	// Ensure nil slices are stored as empty arrays
+	routePrev := update.Prev
+	if routePrev == nil {
+		routePrev = []string{}
+	}
+	routeNext := update.Next
+	if routeNext == nil {
+		routeNext = []string{}
 	}
 
 	updateQuery := `
 		UPDATE tasks
-		SET progress_percent = COALESCE($1, progress_percent),
-		    current_actor_idx = COALESCE($2, current_actor_idx),
-		    current_actor_name = COALESCE($3, current_actor_name),
-		    message = COALESCE(NULLIF($4, ''), message),
-		    route_actors = COALESCE($5, route_actors),
-		    total_actors = COALESCE($6, total_actors),
-		    status = $7,
-		    updated_at = $8
-		WHERE id = $9
+		SET progress_percent  = COALESCE($1, progress_percent),
+		    current_actor_name = COALESCE($2, current_actor_name),
+		    message            = COALESCE(NULLIF($3, ''), message),
+		    route_prev         = $4,
+		    route_curr         = $5,
+		    route_next         = $6,
+		    total_actors       = COALESCE($7, total_actors),
+		    actors_completed   = $8,
+		    status             = $9,
+		    updated_at         = $10
+		WHERE id = $11
 	`
 
 	_, err = tx.Exec(s.ctx, updateQuery,
 		update.ProgressPercent,
-		update.CurrentActorIdx,
 		currentActorName,
 		update.Message,
-		update.Actors,
+		routePrev,
+		update.Curr,
+		routeNext,
 		totalActors,
+		actorsCompleted,
 		update.Status,
 		update.Timestamp,
 		update.ID,
@@ -496,6 +549,7 @@ func (s *PgStore) GetUpdates(id string, since *time.Time) ([]types.TaskUpdate, e
 
 		if actorName != nil {
 			update.Actor = *actorName
+			update.Curr = *actorName
 		}
 
 		if resultJSON != nil {

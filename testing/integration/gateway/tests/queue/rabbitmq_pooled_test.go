@@ -26,8 +26,9 @@ func TestRabbitMQClientPooled_SendMessage(t *testing.T) {
 	job := &types.Task{
 		ID: "test-job-1",
 		Route: types.Route{
-			Actors:  []string{"test-queue"},
-			Current: 0,
+			Prev: []string{},
+			Curr: "test-queue",
+			Next: []string{},
 		},
 		Payload: map[string]interface{}{
 			"envelope": "test",
@@ -66,8 +67,9 @@ func TestRabbitMQClientPooled_ConcurrentSend(t *testing.T) {
 				job := &types.Task{
 					ID: fmt.Sprintf("job-%d-%d", id, j),
 					Route: types.Route{
-						Actors:  []string{"test-queue"},
-						Current: 0,
+						Prev: []string{},
+						Curr: "test-queue",
+						Next: []string{},
 					},
 					Payload: map[string]interface{}{
 						"goroutine": id,
@@ -112,8 +114,9 @@ func TestRabbitMQClientPooled_SendWithDeadline(t *testing.T) {
 	job := &types.Task{
 		ID: "test-job-deadline",
 		Route: types.Route{
-			Actors:  []string{"test-queue"},
-			Current: 0,
+			Prev: []string{},
+			Curr: "test-queue",
+			Next: []string{},
 		},
 		Payload: map[string]interface{}{
 			"envelope": "test with deadline",
@@ -140,8 +143,9 @@ func TestRabbitMQClientPooled_SendEmptyRoute(t *testing.T) {
 	job := &types.Task{
 		ID: "test-job-empty-route",
 		Route: types.Route{
-			Actors:  []string{}, // Empty route
-			Current: 0,
+			Prev: []string{},
+			Curr: "", // Empty curr to trigger empty route error
+			Next: []string{},
 		},
 		Payload: map[string]interface{}{},
 	}
@@ -167,8 +171,9 @@ func TestRabbitMQClientPooled_ContextCancellation(t *testing.T) {
 	job := &types.Task{
 		ID: "test-job-cancel",
 		Route: types.Route{
-			Actors:  []string{"test-queue"},
-			Current: 0,
+			Prev: []string{},
+			Curr: "test-queue",
+			Next: []string{},
 		},
 		Payload: map[string]interface{}{},
 	}
@@ -197,8 +202,9 @@ func BenchmarkRabbitMQClientPooled_Send(b *testing.B) {
 			job := &types.Task{
 				ID: fmt.Sprintf("bench-job-%d", i),
 				Route: types.Route{
-					Actors:  []string{"bench-queue"},
-					Current: 0,
+					Prev: []string{},
+					Curr: "bench-queue",
+					Next: []string{},
 				},
 				Payload: map[string]interface{}{
 					"iteration": i,
@@ -230,8 +236,9 @@ func BenchmarkRabbitMQClient_SendWithMutex(b *testing.B) {
 			job := &types.Task{
 				ID: fmt.Sprintf("bench-job-%d", i),
 				Route: types.Route{
-					Actors:  []string{"bench-queue"},
-					Current: 0,
+					Prev: []string{},
+					Curr: "bench-queue",
+					Next: []string{},
 				},
 				Payload: map[string]interface{}{
 					"iteration": i,

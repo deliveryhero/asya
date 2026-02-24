@@ -223,12 +223,12 @@ func TestExtractMessageID(t *testing.T) {
 	}{
 		{
 			name:   "valid message",
-			body:   `{"id":"test-123","route":{"actors":["a","b"],"current":0},"payload":{}}`,
+			body:   `{"id":"test-123","route":{"prev":[],"curr":"a","next":["b"]},"payload":{}}`,
 			wantID: "test-123",
 		},
 		{
 			name:    "missing id",
-			body:    `{"route":{"actors":["a"],"current":0},"payload":{}}`,
+			body:    `{"route":{"prev":[],"curr":"a","next":[]},"payload":{}}`,
 			wantErr: true,
 		},
 		{

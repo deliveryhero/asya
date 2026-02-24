@@ -33,7 +33,7 @@ Message Structure:
     {
         "id": "<message-id>",
         "parent_id": "<original-message-id>",  // optional, for fanout children
-        "route": {"actors": [...], "current": N},
+        "route": {"prev": [...], "curr": "<actor>", "next": [...]},
         "headers": {"x-asya-fan-in": "aggregator", ...},  // optional
         "status": {
             "phase": "<any phase>",  // any value accepted
@@ -135,7 +135,11 @@ def sink_handler(message: dict[str, Any]) -> dict[str, Any]:
         hooks = [h.strip() for h in ASYA_SINK_HOOKS.split(",") if h.strip()]
         if hooks:
             logger.info(f"Routing message {message_id} to hooks: {hooks}")
-            message["route"] = {"actors": hooks, "current": 0}
+            message["route"] = {
+                "prev": [],
+                "curr": hooks[0],
+                "next": hooks[1:],
+            }
             return message
 
     logger.info(f"No hooks configured, message {message_id} passes through to sump")

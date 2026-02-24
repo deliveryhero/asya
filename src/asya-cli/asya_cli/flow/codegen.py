@@ -113,15 +113,13 @@ class CodeGenerator:
         lines.append(f"def {router.name}(message: dict) -> dict:")
         lines.append(f'    """Entrypoint for flow \'{self.flow_name}\'"""')
         lines.append("    r = message['route']")
-        lines.append("    c = r['current']")
         lines.append("")
 
         if router.true_branch_actors:
             filtered_actors = [name for name in router.true_branch_actors if not name.startswith("end_")]
             if filtered_actors:
                 next_list = ", ".join([f'resolve("{name}")' for name in filtered_actors])
-                lines.append(f"    r['actors'][c+1:c+1] = [{next_list}]")
-        lines.append("    r['current'] = c + 1")
+                lines.append(f"    r['next'] = [{next_list}] + r['next']")
         lines.append("    return message")
         lines.append("")
 
@@ -142,7 +140,6 @@ class CodeGenerator:
         lines.append('    """Router for control flow and payload mutations"""')
         lines.append("    p = message['payload']")
         lines.append("    r = message['route']")
-        lines.append("    c = r['current']")
         lines.append("    _next = []")
         lines.append("")
 
@@ -174,8 +171,7 @@ class CodeGenerator:
                 lines.append(f'    _next.append(resolve("{actor}"))')
 
         lines.append("")
-        lines.append("    r['actors'][c+1:c+1] = _next")
-        lines.append("    r['current'] = c + 1")
+        lines.append("    r['next'] = _next + r['next']")
         lines.append("    return message")
         lines.append("")
 
@@ -190,7 +186,6 @@ class CodeGenerator:
             lines.append('    """Loop-back router: re-inserts loop actors into route"""')
         lines.append("    p = message['payload']")
         lines.append("    r = message['route']")
-        lines.append("    c = r['current']")
         lines.append("    _next = []")
         lines.append("")
 
@@ -199,7 +194,7 @@ class CodeGenerator:
 
         if router.guard_max_iter is not None:
             lines.append(f'    _self = resolve("{router.name}")')
-            lines.append("    if r['actors'][:c].count(_self) >= _ASYA_MAX_LOOP_ITERATIONS:")
+            lines.append("    if r['prev'].count(_self) >= _ASYA_MAX_LOOP_ITERATIONS:")
             lines.append(
                 f'        raise RuntimeError(f"Max loop iterations ({{_ASYA_MAX_LOOP_ITERATIONS}}) exceeded for while-loop at line {router.lineno}")'
             )
@@ -210,8 +205,7 @@ class CodeGenerator:
             lines.append(f'    _next.append(resolve("{actor}"))')
 
         lines.append("")
-        lines.append("    r['actors'][c+1:c+1] = _next")
-        lines.append("    r['current'] = c + 1")
+        lines.append("    r['next'] = _next + r['next']")
         lines.append("    return message")
         lines.append("")
 
@@ -222,7 +216,6 @@ class CodeGenerator:
         lines.append(f"def {router.name}(message: dict) -> dict:")
         lines.append('    """Try-enter router: sets _on_error header and inserts try body"""')
         lines.append("    r = message['route']")
-        lines.append("    c = r['current']")
         lines.append("    _next = []")
         lines.append("")
         lines.append("    message.setdefault('headers', {})")
@@ -234,8 +227,7 @@ class CodeGenerator:
             lines.append(f'    _next.append(resolve("{actor}"))')
 
         lines.append("")
-        lines.append("    r['actors'][c+1:c+1] = _next")
-        lines.append("    r['current'] = c + 1")
+        lines.append("    r['next'] = _next + r['next']")
         lines.append("    return message")
         lines.append("")
 
@@ -246,7 +238,6 @@ class CodeGenerator:
         lines.append(f"def {router.name}(message: dict) -> dict:")
         lines.append('    """Try-exit router: clears _on_error header (success path)"""')
         lines.append("    r = message['route']")
-        lines.append("    c = r['current']")
         lines.append("    _next = []")
         lines.append("")
         lines.append("    message.get('headers', {}).pop('_on_error', None)")
@@ -261,8 +252,7 @@ class CodeGenerator:
             lines.append(f'    _next.append(resolve("{actor}"))')
 
         lines.append("")
-        lines.append("    r['actors'][c+1:c+1] = _next")
-        lines.append("    r['current'] = c + 1")
+        lines.append("    r['next'] = _next + r['next']")
         lines.append("    return message")
         lines.append("")
 
@@ -274,7 +264,6 @@ class CodeGenerator:
         lines.append('    """Except-dispatch router: matches error type and routes to handler"""')
         lines.append("    p = message['payload']")
         lines.append("    r = message['route']")
-        lines.append("    c = r['current']")
         lines.append("    _next = []")
         lines.append("")
         lines.append("    _error = message.get('status', {}).get('error', {})")
@@ -324,8 +313,7 @@ class CodeGenerator:
             lines.append(f'    _next.append(resolve("{actor}"))')
 
         lines.append("")
-        lines.append("    r['actors'][c+1:c+1] = _next")
-        lines.append("    r['current'] = c + 1")
+        lines.append("    r['next'] = _next + r['next']")
         lines.append("    return message")
         lines.append("")
 

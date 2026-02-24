@@ -123,7 +123,7 @@ def test_succeeded_phase_with_hooks():
 
     result = sink_handler(message)
 
-    assert result["route"] == {"actors": ["checkpoint-s3", "notify-slack"], "current": 0}
+    assert result["route"] == {"prev": [], "curr": "checkpoint-s3", "next": ["notify-slack"]}
     assert result["id"] == "test-message-123"
 
     logger.info("=== test_succeeded_phase_with_hooks: PASSED ===")
@@ -148,7 +148,7 @@ def test_failed_phase_with_hooks():
 
     result = sink_handler(message)
 
-    assert result["route"] == {"actors": ["checkpoint-s3"], "current": 0}
+    assert result["route"] == {"prev": [], "curr": "checkpoint-s3", "next": []}
 
     logger.info("=== test_failed_phase_with_hooks: PASSED ===")
 

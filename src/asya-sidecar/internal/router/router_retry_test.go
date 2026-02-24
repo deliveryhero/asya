@@ -263,7 +263,7 @@ func TestRouter_EnsureAndUpdateStatus_SetsMaxAttemptsFromResiliency(t *testing.T
 
 	msg := &messages.Message{
 		ID:      "msg-1",
-		Route:   messages.Route{Actors: []string{"actor-a"}, Current: 0},
+		Route:   messages.Route{Prev: []string{}, Curr: "actor-a", Next: []string{}},
 		Payload: json.RawMessage(`{}`),
 	}
 
@@ -282,7 +282,7 @@ func TestRouter_EnsureAndUpdateStatus_DefaultMaxAttemptsWithoutResiliency(t *tes
 
 	msg := &messages.Message{
 		ID:      "msg-1",
-		Route:   messages.Route{Actors: []string{"actor-a"}, Current: 0},
+		Route:   messages.Route{Prev: []string{}, Curr: "actor-a", Next: []string{}},
 		Payload: json.RawMessage(`{}`),
 	}
 
@@ -303,7 +303,7 @@ func TestRouter_EnsureAndUpdateStatus_UpdatesMaxAttemptsOnTransition(t *testing.
 
 	msg := &messages.Message{
 		ID:      "msg-1",
-		Route:   messages.Route{Actors: []string{"actor-a", "actor-b"}, Current: 1},
+		Route:   messages.Route{Prev: []string{"actor-a"}, Curr: "actor-b", Next: []string{}},
 		Payload: json.RawMessage(`{}`),
 		Status: &messages.Status{
 			Phase:       messages.PhasePending,
@@ -331,7 +331,7 @@ func TestRouter_RetryMessage_SendsToOwnQueue(t *testing.T) {
 
 	msg := &messages.Message{
 		ID:      "msg-retry-1",
-		Route:   messages.Route{Actors: []string{"test-actor", "next-actor"}, Current: 0},
+		Route:   messages.Route{Prev: []string{}, Curr: "test-actor", Next: []string{"next-actor"}},
 		Payload: json.RawMessage(`{"data": "test"}`),
 		Status: &messages.Status{
 			Phase:       messages.PhaseProcessing,
@@ -407,9 +407,9 @@ func TestRouter_RetryMessage_SendsToOwnQueue(t *testing.T) {
 		t.Errorf("Payload should be preserved, got %s", string(retryMsg.Payload))
 	}
 
-	// Verify route is preserved unchanged
-	if retryMsg.Route.Current != 0 {
-		t.Errorf("Route.Current should be preserved at 0, got %d", retryMsg.Route.Current)
+	// Verify route is preserved unchanged (curr remains test-actor, not yet shifted)
+	if retryMsg.Route.Curr != "test-actor" {
+		t.Errorf("Route.Curr should be preserved as test-actor, got %q", retryMsg.Route.Curr)
 	}
 }
 
@@ -455,7 +455,7 @@ func TestRouter_ProcessMessage_RetryOnRetriableError(t *testing.T) {
 
 	inputMsg := messages.Message{
 		ID:      "test-retry-msg",
-		Route:   messages.Route{Actors: []string{"test-actor", "next"}, Current: 0},
+		Route:   messages.Route{Prev: []string{}, Curr: "test-actor", Next: []string{"next"}},
 		Payload: json.RawMessage(`{"input": "data"}`),
 	}
 	msgBody, _ := json.Marshal(inputMsg)
@@ -537,7 +537,7 @@ func TestRouter_ProcessMessage_NonRetryableError(t *testing.T) {
 
 	inputMsg := messages.Message{
 		ID:      "test-nonretryable",
-		Route:   messages.Route{Actors: []string{"test-actor"}, Current: 0},
+		Route:   messages.Route{Prev: []string{}, Curr: "test-actor", Next: []string{}},
 		Payload: json.RawMessage(`{"input": "bad"}`),
 	}
 	msgBody, _ := json.Marshal(inputMsg)
@@ -622,7 +622,7 @@ func TestRouter_ProcessMessage_MaxRetriesExhausted(t *testing.T) {
 	// Simulate attempt 3 (max) — the message already had 2 previous attempts
 	inputMsg := messages.Message{
 		ID:    "test-exhausted",
-		Route: messages.Route{Actors: []string{"test-actor"}, Current: 0},
+		Route: messages.Route{Prev: []string{}, Curr: "test-actor", Next: []string{}},
 		Status: &messages.Status{
 			Phase:       messages.PhaseRetrying,
 			Actor:       "test-actor",
@@ -709,7 +709,7 @@ func TestRouter_ProcessMessage_NoResiliency_LegacyBehavior(t *testing.T) {
 
 	inputMsg := messages.Message{
 		ID:      "test-legacy",
-		Route:   messages.Route{Actors: []string{"test-actor"}, Current: 0},
+		Route:   messages.Route{Prev: []string{}, Curr: "test-actor", Next: []string{}},
 		Payload: json.RawMessage(`{"input": "test"}`),
 	}
 	msgBody, _ := json.Marshal(inputMsg)
@@ -779,7 +779,7 @@ func TestRouter_ProcessMessage_SendWithDelayFails_FallsBackToSump(t *testing.T) 
 
 	inputMsg := messages.Message{
 		ID:      "test-delay-fail",
-		Route:   messages.Route{Actors: []string{"test-actor"}, Current: 0},
+		Route:   messages.Route{Prev: []string{}, Curr: "test-actor", Next: []string{}},
 		Payload: json.RawMessage(`{"input": "test"}`),
 	}
 	msgBody, _ := json.Marshal(inputMsg)
@@ -841,7 +841,7 @@ func TestRouter_ProcessMessage_RetryPreservesPayloadAndRoute(t *testing.T) {
 	originalPayload := `{"complex": {"nested": true}, "array": [1,2,3]}`
 	inputMsg := messages.Message{
 		ID:      "test-preserve",
-		Route:   messages.Route{Actors: []string{"test-actor", "next-actor", "final"}, Current: 0},
+		Route:   messages.Route{Prev: []string{}, Curr: "test-actor", Next: []string{"next-actor", "final"}},
 		Payload: json.RawMessage(originalPayload),
 	}
 	msgBody, _ := json.Marshal(inputMsg)
@@ -863,12 +863,15 @@ func TestRouter_ProcessMessage_RetryPreservesPayloadAndRoute(t *testing.T) {
 		t.Fatalf("Failed to unmarshal: %v", err)
 	}
 
-	// Route must be preserved exactly
-	if len(retryMsg.Route.Actors) != 3 {
-		t.Errorf("Expected 3 actors in route, got %d", len(retryMsg.Route.Actors))
+	// Route must be preserved exactly (curr=test-actor, prev=[], next=[next-actor, final])
+	if retryMsg.Route.Curr != "test-actor" {
+		t.Errorf("Expected route.curr=test-actor, got %q", retryMsg.Route.Curr)
 	}
-	if retryMsg.Route.Current != 0 {
-		t.Errorf("Expected route.current=0, got %d", retryMsg.Route.Current)
+	if len(retryMsg.Route.Prev) != 0 {
+		t.Errorf("Expected empty prev, got %v", retryMsg.Route.Prev)
+	}
+	if len(retryMsg.Route.Next) != 2 {
+		t.Errorf("Expected 2 next actors, got %d: %v", len(retryMsg.Route.Next), retryMsg.Route.Next)
 	}
 
 	// Payload must be preserved exactly
@@ -889,7 +892,7 @@ func TestRouter_SendRetryFailure_PreservesErrorDetailsInPayload(t *testing.T) {
 
 	msg := &messages.Message{
 		ID:      "msg-fail",
-		Route:   messages.Route{Actors: []string{"test-actor"}, Current: 0},
+		Route:   messages.Route{Prev: []string{}, Curr: "test-actor", Next: []string{}},
 		Payload: json.RawMessage(`{"original": "data"}`),
 		Status: &messages.Status{
 			Phase:       messages.PhaseProcessing,
@@ -995,7 +998,7 @@ func TestRouter_ProcessMessage_MaxAttemptsOne_NoRetry(t *testing.T) {
 
 	inputMsg := messages.Message{
 		ID:      "test-maxone",
-		Route:   messages.Route{Actors: []string{"test-actor"}, Current: 0},
+		Route:   messages.Route{Prev: []string{}, Curr: "test-actor", Next: []string{}},
 		Payload: json.RawMessage(`{}`),
 	}
 	msgBody, _ := json.Marshal(inputMsg)

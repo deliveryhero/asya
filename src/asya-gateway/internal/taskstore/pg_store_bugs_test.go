@@ -8,58 +8,26 @@ import (
 )
 
 // TestCurrentActorName_Derivation tests that current_actor_name is correctly derived
-// from Actors[CurrentActorIdx] in the UpdateProgress method
-//
-// Bug: If CurrentActorIdx is not properly checked, we could get index out of range panics
-// or incorrect actor names
+// from the Curr field in the UpdateProgress method
 func TestCurrentActorName_Derivation(t *testing.T) {
 	tests := []struct {
 		name            string
-		actors          []string
-		currentActorIdx *int
+		curr            string
 		expectActorName *string
-		expectPanic     bool
 	}{
 		{
-			name:            "valid index 0",
-			actors:          []string{"actor1", "actor2", "actor3"},
-			currentActorIdx: intPtr(0),
+			name:            "non-empty curr",
+			curr:            "actor1",
 			expectActorName: strPtr("actor1"),
 		},
 		{
-			name:            "valid index 1",
-			actors:          []string{"actor1", "actor2", "actor3"},
-			currentActorIdx: intPtr(1),
-			expectActorName: strPtr("actor2"),
+			name:            "another non-empty curr",
+			curr:            "processor",
+			expectActorName: strPtr("processor"),
 		},
 		{
-			name:            "valid index at end",
-			actors:          []string{"actor1", "actor2", "actor3"},
-			currentActorIdx: intPtr(2),
-			expectActorName: strPtr("actor3"),
-		},
-		{
-			name:            "nil index",
-			actors:          []string{"actor1", "actor2"},
-			currentActorIdx: nil,
-			expectActorName: nil,
-		},
-		{
-			name:            "empty actors array",
-			actors:          []string{},
-			currentActorIdx: intPtr(0),
-			expectActorName: nil,
-		},
-		{
-			name:            "index out of bounds (too high)",
-			actors:          []string{"actor1", "actor2"},
-			currentActorIdx: intPtr(5),
-			expectActorName: nil,
-		},
-		{
-			name:            "negative index",
-			actors:          []string{"actor1", "actor2"},
-			currentActorIdx: intPtr(-1),
+			name:            "empty curr (end of route)",
+			curr:            "",
 			expectActorName: nil,
 		},
 	}
@@ -68,8 +36,8 @@ func TestCurrentActorName_Derivation(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Test the derivation logic that's used in pg_store.go
 			var currentActorName *string
-			if tt.currentActorIdx != nil && *tt.currentActorIdx >= 0 && *tt.currentActorIdx < len(tt.actors) {
-				name := tt.actors[*tt.currentActorIdx]
+			if tt.curr != "" {
+				name := tt.curr
 				currentActorName = &name
 			}
 
@@ -83,45 +51,64 @@ func TestCurrentActorName_Derivation(t *testing.T) {
 	}
 }
 
-// TestRouteActors_UpdateLogic tests the logic for updating route actors
-// to ensure we don't lose the route information
-//
-// Bug: If we forget to update route_actors column, route modifications will be lost
-func TestRouteActors_UpdateLogic(t *testing.T) {
+// TestRouteUpdate_Logic tests the logic for updating route prev/curr/next fields
+// to ensure we don't lose route information
+func TestRouteUpdate_Logic(t *testing.T) {
 	tests := []struct {
 		name         string
-		initialRoute []string
-		updateActors []string
-		expectRoute  []string
+		initialRoute types.Route
+		updatePrev   []string
+		updateCurr   string
+		updateNext   []string
+		expectPrev   []string
+		expectCurr   string
+		expectNext   []string
 		expectTotal  int
 	}{
 		{
-			name:         "route extends by 2 actors",
-			initialRoute: []string{"a", "b"},
-			updateActors: []string{"a", "b", "c", "d"},
-			expectRoute:  []string{"a", "b", "c", "d"},
-			expectTotal:  4,
+			name: "route advances - actor0 completes, actor1 is current",
+			initialRoute: types.Route{
+				Prev: []string{},
+				Curr: "a",
+				Next: []string{"b"},
+			},
+			updatePrev:  []string{"a"},
+			updateCurr:  "b",
+			updateNext:  []string{},
+			expectPrev:  []string{"a"},
+			expectCurr:  "b",
+			expectNext:  []string{},
+			expectTotal: 2,
 		},
 		{
-			name:         "route extends by 1 actor",
-			initialRoute: []string{"a", "b", "c"},
-			updateActors: []string{"a", "b", "c", "d"},
-			expectRoute:  []string{"a", "b", "c", "d"},
-			expectTotal:  4,
+			name: "route extends - new actors added to next",
+			initialRoute: types.Route{
+				Prev: []string{},
+				Curr: "a",
+				Next: []string{"b", "c"},
+			},
+			updatePrev:  []string{},
+			updateCurr:  "a",
+			updateNext:  []string{"b", "c", "d"},
+			expectPrev:  []string{},
+			expectCurr:  "a",
+			expectNext:  []string{"b", "c", "d"},
+			expectTotal: 4,
 		},
 		{
-			name:         "route replaces future actors",
-			initialRoute: []string{"a", "b", "c"},
-			updateActors: []string{"a", "x", "y", "z"},
-			expectRoute:  []string{"a", "x", "y", "z"},
-			expectTotal:  4,
-		},
-		{
-			name:         "empty update actors",
-			initialRoute: []string{"a", "b"},
-			updateActors: []string{},
-			expectRoute:  []string{"a", "b"},
-			expectTotal:  2,
+			name: "route replaces future actors",
+			initialRoute: types.Route{
+				Prev: []string{},
+				Curr: "a",
+				Next: []string{"b", "c"},
+			},
+			updatePrev:  []string{},
+			updateCurr:  "a",
+			updateNext:  []string{"x", "y", "z"},
+			expectPrev:  []string{},
+			expectCurr:  "a",
+			expectNext:  []string{"x", "y", "z"},
+			expectTotal: 4,
 		},
 	}
 
@@ -129,31 +116,37 @@ func TestRouteActors_UpdateLogic(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Simulate the update logic from store.go UpdateProgress
 			task := &types.Task{
-				Route: types.Route{
-					Actors: tt.initialRoute,
-				},
-				TotalActors: len(tt.initialRoute),
+				Route:       tt.initialRoute,
+				TotalActors: len(tt.initialRoute.Prev) + 1 + len(tt.initialRoute.Next),
 			}
 
 			update := types.TaskUpdate{
-				Actors: tt.updateActors,
+				Prev: tt.updatePrev,
+				Curr: tt.updateCurr,
+				Next: tt.updateNext,
 			}
 
-			// Apply update logic
-			if len(update.Actors) > 0 {
-				task.Route.Actors = update.Actors
-				task.TotalActors = len(update.Actors)
+			// Apply update logic (mirrors store.go UpdateProgress)
+			if update.Curr != "" || len(update.Prev) > 0 || len(update.Next) > 0 {
+				task.Route.Prev = update.Prev
+				task.Route.Curr = update.Curr
+				task.Route.Next = update.Next
+				total := len(update.Prev) + len(update.Next)
+				if update.Curr != "" {
+					total++
+				}
+				task.TotalActors = total
 			}
 
-			assert.Equal(t, tt.expectRoute, task.Route.Actors)
+			assert.Equal(t, tt.expectPrev, task.Route.Prev)
+			assert.Equal(t, tt.expectCurr, task.Route.Curr)
+			assert.Equal(t, tt.expectNext, task.Route.Next)
 			assert.Equal(t, tt.expectTotal, task.TotalActors)
 		})
 	}
 }
 
-// TestTaskUpdate_FieldMapping tests that TaskUpdate fields correctly map to database columns
-//
-// Bug: If field names don't match between Go struct and SQL queries, we get runtime errors
+// TestTaskUpdate_FieldMapping tests that TaskUpdate fields correctly map to the new format
 func TestTaskUpdate_FieldMapping(t *testing.T) {
 	update := types.TaskUpdate{
 		ID:              "test-id",
@@ -162,8 +155,9 @@ func TestTaskUpdate_FieldMapping(t *testing.T) {
 		Result:          nil,
 		Error:           "",
 		ProgressPercent: floatPtr(50.0),
-		Actors:          []string{"actor1", "actor2"},
-		CurrentActorIdx: intPtr(1),
+		Prev:            []string{"actor1"},
+		Curr:            "actor2",
+		Next:            []string{},
 		TaskState:       strPtr("processing"),
 	}
 
@@ -173,23 +167,23 @@ func TestTaskUpdate_FieldMapping(t *testing.T) {
 	assert.Equal(t, "test message", update.Message)
 	assert.NotNil(t, update.ProgressPercent)
 	assert.Equal(t, 50.0, *update.ProgressPercent)
-	assert.Equal(t, []string{"actor1", "actor2"}, update.Actors)
-	assert.NotNil(t, update.CurrentActorIdx)
-	assert.Equal(t, 1, *update.CurrentActorIdx)
+	assert.Equal(t, []string{"actor1"}, update.Prev)
+	assert.Equal(t, "actor2", update.Curr)
+	assert.Equal(t, []string{}, update.Next)
 	assert.NotNil(t, update.TaskState)
 	assert.Equal(t, "processing", *update.TaskState)
 }
 
 // TestProgressUpdate_TransformToTaskUpdate tests the transformation logic
 // from ProgressUpdate (external) to TaskUpdate (internal)
-//
-// Bug: If transformation doesn't copy all fields, we lose data
 func TestProgressUpdate_TransformToTaskUpdate(t *testing.T) {
 	progress := types.ProgressUpdate{
-		ID:              "test-task-1",
-		Actors:          []string{"step1", "step2", "step3"},
-		CurrentActorIdx: 1,
-		Status:          "processing",
+		ID:     "test-task-1",
+		Prev:   []string{"step1"},
+		Curr:   "step2",
+		Next:   []string{"step3"},
+		Status: "processing",
+
 		Message:         "Processing at step2",
 		ProgressPercent: 50.0,
 	}
@@ -201,8 +195,9 @@ func TestProgressUpdate_TransformToTaskUpdate(t *testing.T) {
 		Status:          types.TaskStatusRunning,
 		Message:         progress.Message,
 		ProgressPercent: &progressPercent,
-		Actors:          progress.Actors,
-		CurrentActorIdx: &progress.CurrentActorIdx,
+		Prev:            progress.Prev,
+		Curr:            progress.Curr,
+		Next:            progress.Next,
 		TaskState:       strPtr(progress.Status),
 	}
 
@@ -212,13 +207,9 @@ func TestProgressUpdate_TransformToTaskUpdate(t *testing.T) {
 	assert.Equal(t, "Processing at step2", update.Message)
 	assert.NotNil(t, update.ProgressPercent)
 	assert.Equal(t, 50.0, *update.ProgressPercent)
-	assert.Equal(t, []string{"step1", "step2", "step3"}, update.Actors)
-	assert.NotNil(t, update.CurrentActorIdx)
-	assert.Equal(t, 1, *update.CurrentActorIdx)
+	assert.Equal(t, []string{"step1"}, update.Prev)
+	assert.Equal(t, "step2", update.Curr)
+	assert.Equal(t, []string{"step3"}, update.Next)
 	assert.NotNil(t, update.TaskState)
 	assert.Equal(t, "processing", *update.TaskState)
-}
-
-func strPtr(s string) *string {
-	return &s
 }

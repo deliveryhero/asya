@@ -16,17 +16,14 @@ Regenerate by running: asya flow compile ../../if_with_early_return.py
 def start_early_return_flow(message: dict) -> dict:
     """Entrypoint for flow 'early_return_flow'"""
     r = message['route']
-    c = r['current']
 
-    r['actors'][c+1:c+1] = [resolve("handler_validate"), resolve("router_early_return_flow_line_10_if")]
-    r['current'] = c + 1
+    r['next'] = [resolve("handler_validate"), resolve("router_early_return_flow_line_10_if")] + r['next']
     return message
 
 def router_early_return_flow_line_10_if(message: dict) -> dict:
     """Router for control flow and payload mutations"""
     p = message['payload']
     r = message['route']
-    c = r['current']
     _next = []
 
     if not p['valid']:
@@ -35,8 +32,7 @@ def router_early_return_flow_line_10_if(message: dict) -> dict:
         _next.append(resolve("handler_process"))
         _next.append(resolve("handler_finalize"))
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def end_early_return_flow(message: dict) -> dict:

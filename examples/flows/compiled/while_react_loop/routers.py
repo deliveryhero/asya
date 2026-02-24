@@ -19,17 +19,14 @@ _ASYA_MAX_LOOP_ITERATIONS = int(_os.environ.get("ASYA_MAX_LOOP_ITERATIONS", "100
 def start_react_agent(message: dict) -> dict:
     """Entrypoint for flow 'react_agent'"""
     r = message['route']
-    c = r['current']
 
-    r['actors'][c+1:c+1] = [resolve("router_react_agent_line_10_loop_back_0")]
-    r['current'] = c + 1
+    r['next'] = [resolve("router_react_agent_line_10_loop_back_0")] + r['next']
     return message
 
 def router_react_agent_line_12_if(message: dict) -> dict:
     """Router for control flow and payload mutations"""
     p = message['payload']
     r = message['route']
-    c = r['current']
     _next = []
 
     if p.get('tool_calls'):
@@ -37,27 +34,24 @@ def router_react_agent_line_12_if(message: dict) -> dict:
     else:
         pass
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def router_react_agent_line_10_loop_back_0(message: dict) -> dict:
     """Loop-back router: re-inserts loop actors into route (guarded)"""
     p = message['payload']
     r = message['route']
-    c = r['current']
     _next = []
 
     _self = resolve("router_react_agent_line_10_loop_back_0")
-    if r['actors'][:c].count(_self) >= _ASYA_MAX_LOOP_ITERATIONS:
+    if r['prev'].count(_self) >= _ASYA_MAX_LOOP_ITERATIONS:
         raise RuntimeError(f"Max loop iterations ({_ASYA_MAX_LOOP_ITERATIONS}) exceeded for while-loop at line 10")
 
     _next.append(resolve("llm_call"))
     _next.append(resolve("router_react_agent_line_12_if"))
     _next.append(resolve("router_react_agent_line_10_loop_back_0"))
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def end_react_agent(message: dict) -> dict:

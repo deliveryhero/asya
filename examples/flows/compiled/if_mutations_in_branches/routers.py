@@ -16,17 +16,14 @@ Regenerate by running: asya flow compile ../../if_mutations_in_branches.py
 def start_if_mutations_in_branches_flow(message: dict) -> dict:
     """Entrypoint for flow 'if_mutations_in_branches_flow'"""
     r = message['route']
-    c = r['current']
 
-    r['actors'][c+1:c+1] = [resolve("handler_setup"), resolve("router_if_mutations_in_branches_flow_line_10_if")]
-    r['current'] = c + 1
+    r['next'] = [resolve("handler_setup"), resolve("router_if_mutations_in_branches_flow_line_10_if")] + r['next']
     return message
 
 def router_if_mutations_in_branches_flow_line_11_seq(message: dict) -> dict:
     """Router for control flow and payload mutations"""
     p = message['payload']
     r = message['route']
-    c = r['current']
     _next = []
 
     p['branch'] = 'A'
@@ -34,30 +31,26 @@ def router_if_mutations_in_branches_flow_line_11_seq(message: dict) -> dict:
     _next.append(resolve("handler_type_a"))
     _next.append(resolve("handler_finalize"))
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def router_if_mutations_in_branches_flow_line_16_seq(message: dict) -> dict:
     """Router for control flow and payload mutations"""
     p = message['payload']
     r = message['route']
-    c = r['current']
     _next = []
 
     p['branch'] = 'B'
     p['value'] = 200
     _next.append(resolve("handler_finalize"))
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def router_if_mutations_in_branches_flow_line_10_if(message: dict) -> dict:
     """Router for control flow and payload mutations"""
     p = message['payload']
     r = message['route']
-    c = r['current']
     _next = []
 
     if p['type'] == 'A':
@@ -66,8 +59,7 @@ def router_if_mutations_in_branches_flow_line_10_if(message: dict) -> dict:
         _next.append(resolve("handler_type_b"))
         _next.append(resolve("router_if_mutations_in_branches_flow_line_16_seq"))
 
-    r['actors'][c+1:c+1] = _next
-    r['current'] = c + 1
+    r['next'] = _next + r['next']
     return message
 
 def end_if_mutations_in_branches_flow(message: dict) -> dict:
