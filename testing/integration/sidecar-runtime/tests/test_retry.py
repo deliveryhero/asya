@@ -29,7 +29,9 @@ logger = logging.getLogger(__name__)
 RETRY_FAIL_QUEUE = "asya-default-test-retry-fail"
 RETRY_NONRETRYABLE_QUEUE = "asya-default-test-retry-nonretryable"
 RETRY_MRO_QUEUE = "asya-default-test-retry-mro"
+RETRY_SUCCEED_QUEUE = "asya-default-test-retry-succeed"
 SUMP_QUEUE = "asya-default-x-sump"
+SINK_QUEUE = "asya-default-x-sink"
 
 
 # ============================================================================
@@ -223,3 +225,89 @@ def test_retry_delay_not_supported_fallback(transport_helper):
     # retryMessage() increments attempt before calling SendWithDelay, so attempt=2
     assert status.get("attempt") == 2, f"Expected attempt=2, got {status.get('attempt')}"
     logger.info("=== test_retry_delay_not_supported_fallback: PASSED ===")
+
+
+# ============================================================================
+# Retry success and status preservation tests (SQS only)
+# ============================================================================
+
+
+def test_retry_success_after_one_failure(transport_helper):
+    """Handler fails on attempt 1, succeeds on attempt 2. Message reaches x-sink with phase=succeeded.
+    Also verifies status.error is cleared on success."""
+    transport = get_env("ASYA_TRANSPORT", "rabbitmq")
+    if transport != "sqs":
+        pytest.skip("Retry with delay requires SQS transport")
+
+    transport_helper.purge_queue(RETRY_SUCCEED_QUEUE)
+    transport_helper.purge_queue(SINK_QUEUE)
+    message = {
+        "id": "test-succeed-after-one-1",
+        "route": {"actors": ["test-retry-succeed"], "current": 0},
+        "payload": {"test": "succeed_after_one"},
+    }
+    transport_helper.publish_message(RETRY_SUCCEED_QUEUE, message)
+
+    result = transport_helper.get_message(SINK_QUEUE, timeout=20)
+    assert result is not None, "Message should reach x-sink after successful retry"
+
+    status = result.get("status", {})
+    assert status.get("phase") == "succeeded", f"Expected phase=succeeded, got {status.get('phase')}"
+    assert "error" not in status or status.get("error") is None, \
+        f"status.error should be cleared on success, got: {status.get('error')}"
+    assert status.get("attempt") == 2, f"Expected attempt=2, got {status.get('attempt')}"
+    logger.info("=== test_retry_success_after_one_failure: PASSED ===")
+
+
+def test_retry_created_at_preserved(transport_helper):
+    """status.created_at is preserved across all retry attempts.
+    Uses test-retry-fail actor which exhausts attempts, then checks sump."""
+    transport = get_env("ASYA_TRANSPORT", "rabbitmq")
+    if transport != "sqs":
+        pytest.skip("Retry with delay requires SQS transport")
+
+    transport_helper.purge_queue(RETRY_FAIL_QUEUE)
+    transport_helper.purge_queue(SUMP_QUEUE)
+    message = {
+        "id": "test-created-at-preserved-1",
+        "route": {"actors": ["test-retry-fail"], "current": 0},
+        "payload": {"test": "created_at_preserved"},
+    }
+    transport_helper.publish_message(RETRY_FAIL_QUEUE, message)
+
+    result = transport_helper.get_message(SUMP_QUEUE, timeout=30)
+    assert result is not None, "Message should reach x-sump after retry exhaustion"
+
+    status = result.get("status", {})
+    assert "created_at" in status, "created_at must be present"
+    assert "updated_at" in status, "updated_at must be present"
+    assert status["created_at"] <= status["updated_at"], \
+        f"created_at ({status['created_at']}) should be <= updated_at ({status['updated_at']})"
+    assert status.get("attempt") == 3, f"Expected 3 attempts, got {status.get('attempt')}"
+    logger.info("=== test_retry_created_at_preserved: PASSED ===")
+
+
+def test_retry_attempt_resets_on_actor_transition(transport_helper):
+    """Attempt counter resets to 1 when message moves to the next actor.
+    Routes through test-retry-succeed twice: first actor fails+retries, second also fails+retries."""
+    transport = get_env("ASYA_TRANSPORT", "rabbitmq")
+    if transport != "sqs":
+        pytest.skip("Retry with delay requires SQS transport")
+
+    transport_helper.purge_queue(RETRY_SUCCEED_QUEUE)
+    transport_helper.purge_queue(SINK_QUEUE)
+    message = {
+        "id": "test-attempt-reset-1",
+        "route": {"actors": ["test-retry-succeed", "test-retry-succeed"], "current": 0},
+        "payload": {"test": "attempt_reset"},
+    }
+    transport_helper.publish_message(RETRY_SUCCEED_QUEUE, message)
+
+    result = transport_helper.get_message(SINK_QUEUE, timeout=30)
+    assert result is not None, "Message should reach x-sink after two-actor retry pipeline"
+
+    status = result.get("status", {})
+    assert status.get("phase") == "succeeded"
+    assert status.get("attempt") == 2, \
+        f"Expected attempt=2 (reset + one failure for actor2), got {status.get('attempt')}"
+    logger.info("=== test_retry_attempt_resets_on_actor_transition: PASSED ===")

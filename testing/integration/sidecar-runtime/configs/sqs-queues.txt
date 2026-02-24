@@ -19,6 +19,7 @@ asya-default-test-invalid-route
 asya-default-test-retry-fail
 asya-default-test-retry-nonretryable
 asya-default-test-retry-mro
+asya-default-test-retry-succeed
 
 # System actor queues
 asya-default-x-sink

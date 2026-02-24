@@ -11,6 +11,7 @@ x-logging: &default-logging
     max-file: "2"
 
 include:
+- path: ../../../shared/compose/minio.yml
 - path: ../compose/actors.yml
 
 services:
@@ -78,6 +79,8 @@ services:
       ASYA_TRANSPORT: sqs
     depends_on:
       queue-setup:
+        condition: service_completed_successfully
+      storage-setup:
         condition: service_completed_successfully
       test-actors-waiter:
         condition: service_completed_successfully

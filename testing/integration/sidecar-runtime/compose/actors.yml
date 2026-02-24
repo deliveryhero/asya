@@ -637,6 +637,52 @@ services:
     volumes:
     - asya-retry-nonretryable-sockets:/var/run/asya
 
+  # Actor that fails on attempt 1 and succeeds on attempt 2 (envelope mode, reads status.attempt)
+  asya-retry-succeed-runtime:
+    build:
+      context: ../../../../src/asya-testing
+      dockerfile: Dockerfile
+    logging: *default-logging
+    command: ["python3", "/opt/asya/asya_runtime.py"]
+    env_file: *runtime-env-files
+    environment:
+      ASYA_HANDLER: asya_testing.handlers.envelope.fail_once_envelope_handler
+      ASYA_HANDLER_MODE: envelope
+      ASYA_ENABLE_VALIDATION: "false"
+      ASYA_RUNTIME_TIMEOUT: 5s
+    volumes:
+    - asya-retry-succeed-sockets:/var/run/asya
+    - ../../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro
+    healthcheck:
+      test: ["CMD", "test", "-S", "/var/run/asya/asya-runtime.sock"]
+      interval: 500ms
+      timeout: 500ms
+      retries: 20
+      start_period: 1s
+
+  asya-retry-succeed-sidecar:
+    build:
+      context: ../../../../src/asya-sidecar
+      dockerfile: Dockerfile
+    logging: *default-logging
+    depends_on:
+      asya-retry-succeed-runtime:
+        condition: service_healthy
+      queue-setup:
+        condition: service_completed_successfully
+    env_file: *sidecar-env-files
+    environment:
+      ASYA_ACTOR_NAME: test-retry-succeed
+      ASYA_ACTOR_ROLE: regular
+      ASYA_RUNTIME_TIMEOUT: 30s
+      ASYA_RESILIENCY_RETRY_POLICY: constant
+      ASYA_RESILIENCY_RETRY_MAX_ATTEMPTS: "3"
+      ASYA_RESILIENCY_RETRY_INITIAL_INTERVAL: 1s
+      ASYA_RESILIENCY_RETRY_MAX_INTERVAL: 2s
+      ASYA_RESILIENCY_RETRY_JITTER: "false"
+    volumes:
+    - asya-retry-succeed-sockets:/var/run/asya
+
   # Actor that fails with MemoryError, classified as non-retryable via MRO ancestor
   asya-retry-mro-runtime:
     build:
@@ -718,6 +764,8 @@ services:
         condition: service_started
       asya-retry-mro-sidecar:
         condition: service_started
+      asya-retry-succeed-sidecar:
+        condition: service_started
 
 volumes:
   asya-error-sockets:
@@ -735,4 +783,5 @@ volumes:
   asya-retry-fail-sockets:
   asya-retry-nonretryable-sockets:
   asya-retry-mro-sockets:
+  asya-retry-succeed-sockets:
   asya-invalid-route-sockets:
