@@ -68,8 +68,8 @@ func TestRabbitMQClientPooled_ConcurrentSend(t *testing.T) {
 					ID: fmt.Sprintf("job-%d-%d", id, j),
 					Route: types.Route{
 						Prev: []string{},
-			Curr: "test-queue",
-			Next: []string{},
+						Curr: "test-queue",
+						Next: []string{},
 					},
 					Payload: map[string]interface{}{
 						"goroutine": id,

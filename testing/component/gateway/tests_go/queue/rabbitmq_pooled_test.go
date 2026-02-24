@@ -68,9 +68,9 @@ func TestRabbitMQClientPooled_ConcurrentSend(t *testing.T) {
 					ID: fmt.Sprintf("job-%d-%d", id, j),
 					Route: types.Route{
 						Prev: []string{},
-					Curr: "test-queue",
-					Next: []string{},
-											},
+						Curr: "test-queue",
+						Next: []string{},
+					},
 					Payload: map[string]interface{}{
 						"goroutine": id,
 						"message":   j,
@@ -205,7 +205,7 @@ func BenchmarkRabbitMQClientPooled_Send(b *testing.B) {
 					Prev: []string{},
 					Curr: "bench-queue",
 					Next: []string{},
-									},
+				},
 				Payload: map[string]interface{}{
 					"iteration": i,
 				},
@@ -239,7 +239,7 @@ func BenchmarkRabbitMQClient_SendWithMutex(b *testing.B) {
 					Prev: []string{},
 					Curr: "bench-queue",
 					Next: []string{},
-									},
+				},
 				Payload: map[string]interface{}{
 					"iteration": i,
 				},
