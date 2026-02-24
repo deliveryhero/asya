@@ -2,7 +2,10 @@
 title: "Checklist: compositionSelector required on all AsyncActor manifests"
 priority: 3 # low
 type: task
+tags:
+  - pr:197
 ---
+
 
 
 
