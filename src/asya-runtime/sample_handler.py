@@ -26,6 +26,6 @@ def process(payload: Dict[str, Any], route: Optional[List[str]] = None) -> List[
                 "original": payload,
                 "message": "Integration test message processed successfully",
             },
-            "route": {"actors": ["actor-1", "actor-2", "actor-3"], "current": 0},
+            "route": {"prev": [], "curr": "actor-1", "next": ["actor-2", "actor-3"]},
         }
     ]

@@ -336,8 +336,9 @@ def metadata_handler(payload: dict[str, Any], route: dict[str, Any] | None = Non
 
     if has_route and route is not None:
         result["route_info"] = {
-            "actors": route.get("actors", []),
-            "current": route.get("current", 0),
+            "prev": route.get("prev", []),
+            "curr": route.get("curr", ""),
+            "next": route.get("next", []),
         }
 
     return result
