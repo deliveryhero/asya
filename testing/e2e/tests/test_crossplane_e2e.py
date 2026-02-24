@@ -93,9 +93,6 @@ metadata:
   namespace: {namespace}
 spec:
   actor: {name}
-  compositionSelector:
-    matchLabels:
-      asya.sh/transport: {transport}
   transport: {transport}{flavors_block}
 {scaling_block}
   workload:
@@ -205,9 +202,6 @@ metadata:
   namespace: {e2e_helper.namespace}
 spec:
   actor: test-lifecycle
-  compositionSelector:
-    matchLabels:
-      asya.sh/transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
   transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
   scaling:
     enabled: true
@@ -304,9 +298,6 @@ metadata:
   namespace: {e2e_helper.namespace}
 spec:
   actor: test-update
-  compositionSelector:
-    matchLabels:
-      asya.sh/transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
   transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
   scaling:
     enabled: true
@@ -334,9 +325,6 @@ metadata:
   namespace: {e2e_helper.namespace}
 spec:
   actor: test-update
-  compositionSelector:
-    matchLabels:
-      asya.sh/transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
   transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
   scaling:
     enabled: true
@@ -473,9 +461,6 @@ metadata:
   namespace: {e2e_helper.namespace}
 spec:
   actor: test-status
-  compositionSelector:
-    matchLabels:
-      asya.sh/transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
   transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
   scaling:
     enabled: true
@@ -549,9 +534,6 @@ metadata:
   namespace: {e2e_helper.namespace}
 spec:
   actor: test-broken-image
-  compositionSelector:
-    matchLabels:
-      asya.sh/transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
   transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
   scaling:
     enabled: false
@@ -627,9 +609,6 @@ metadata:
   namespace: {e2e_helper.namespace}
 spec:
   actor: test-sidecar-env
-  compositionSelector:
-    matchLabels:
-      asya.sh/transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
   transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
   scaling:
     enabled: true
@@ -732,9 +711,6 @@ metadata:
     env: test
 spec:
   actor: test-labels
-  compositionSelector:
-    matchLabels:
-      asya.sh/transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
   transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
   scaling:
     enabled: true
@@ -929,9 +905,6 @@ metadata:
     app.kubernetes.io/custom: forbidden
 spec:
   actor: test-invalid-labels
-  compositionSelector:
-    matchLabels:
-      asya.sh/transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
   transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
   workload:
     kind: Deployment
