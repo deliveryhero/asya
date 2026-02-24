@@ -9,6 +9,7 @@ tags:
 
 
 
+
 ## Summary
 
 Replace `fmt.Sprintf("%s-%d", msg.ID, index)` with `uuid.New().String()` in `handleSuccessResponse()` (router.go:580) for fan-out child IDs (index > 0).
