@@ -55,7 +55,7 @@ class TestCodeStructure:
 
         for func in router_funcs:
             assert len(func.args.args) == 1
-            assert func.args.args[0].arg == "message"
+            assert func.args.args[0].arg == "payload"
 
     def test_resolve_function_exists(self):
         routers = [Router(name="start_flow", lineno=0), Router(name="end_flow", lineno=999)]
@@ -94,8 +94,9 @@ class TestStartRouter:
         routers = [Router(name="start_flow", lineno=0, true_branch_actors=["handler", "end_flow"])]
         code = CodeGenerator("flow", routers, "test.py")._generate_start_router(routers[0])
 
-        assert "r['next'] = " in code
-        assert "+ r['next']" in code
+        assert "_next_tail" in code
+        assert "_next + _next_tail" in code
+        assert "route/next" in code
 
     def test_start_router_handles_empty_actors(self):
         routers = [Router(name="start_flow", lineno=0, true_branch_actors=[])]
@@ -115,11 +116,11 @@ class TestEndRouter:
         assert "Exitpoint" in code
         assert "my_flow" in code
 
-    def test_end_router_returns_message_unchanged(self):
+    def test_end_router_returns_payload_unchanged(self):
         routers = [Router(name="end_flow", lineno=999)]
         code = CodeGenerator("flow", routers, "test.py")._generate_end_router(routers[0])
 
-        assert "return message" in code
+        assert "return payload" in code
         assert "resolve(" not in code
 
 
@@ -158,7 +159,8 @@ class TestSequentialRouter:
         routers = [Router(name="router_flow_line_1_seq", lineno=1, true_branch_actors=["handler"])]
         code = CodeGenerator("flow", routers, "test.py")._generate_router(routers[0])
 
-        assert "r['next'] = _next + r['next']" in code
+        assert "_next + _next_tail" in code
+        assert "route/next" in code
 
 
 class TestConditionalRouter:
@@ -437,7 +439,7 @@ class TestEdgeCases:
         routers = [Router(name="router_flow_line_10_if", lineno=10)]
         code = CodeGenerator("flow", routers, "test.py")._generate_router(routers[0])
 
-        assert "def router_flow_line_10_if(message: dict) -> dict:" in code
+        assert "def router_flow_line_10_if(payload: dict) -> dict:" in code
 
     def test_very_long_actor_list(self):
         actors = [f"handler_{i}" for i in range(50)]
@@ -538,7 +540,8 @@ class TestLoopBackRouter:
         ]
         code = CodeGenerator("flow", routers, "test.py")._generate_loop_back_router(routers[0])
 
-        assert "r['next'] = _next + r['next']" in code
+        assert "_next + _next_tail" in code
+        assert "route/next" in code
 
     def test_loop_back_router_with_mutations(self):
         routers = [
@@ -636,7 +639,8 @@ class TestLoopBackGuard:
         code = CodeGenerator("flow", routers, "test.py")._generate_loop_back_router(routers[0])
 
         assert '_self = resolve("router_flow_line_3_loop_back_0")' in code
-        assert "r['prev'].count(_self) >= _ASYA_MAX_LOOP_ITERATIONS" in code
+        assert "route/prev" in code
+        assert "_prev.count(_self) >= _ASYA_MAX_LOOP_ITERATIONS" in code
         assert "RuntimeError" in code
         # No payload mutation
         assert "__loop_" not in code

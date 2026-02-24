@@ -104,8 +104,8 @@ class TestTryEnterCodeGen:
         """
         code = _compile(source)
 
-        assert "message.setdefault('headers', {})" in code
-        assert "['_on_error']" in code
+        assert "headers/_on_error" in code
+        assert "_on_error" in code
 
     def test_try_enter_uses_resolve(self):
         source = """\
@@ -138,7 +138,8 @@ class TestTryExitCodeGen:
         """
         code = _compile(source)
 
-        assert ".pop('_on_error'" in code
+        assert "_on_error_path" in code
+        assert "_os_try_exit.remove" in code
 
 
 class TestExceptDispatchCodeGen:
@@ -196,7 +197,7 @@ class TestExceptDispatchCodeGen:
         """
         code = _compile(source)
 
-        assert "pop('error'" in code
+        assert "status/error" in code
 
 
 class TestReraiseCodeGen:

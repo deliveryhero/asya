@@ -2,11 +2,11 @@
 
 These tests exercise the full compilation pipeline (parse -> group -> codegen)
 and validate that the generated router code correctly manipulates message routes,
-headers, and status fields for try-except error handling patterns.
+headers, and status fields for try-except error handling patterns via VFS.
 """
 
-import copy
 import importlib
+import os
 import sys
 import tempfile
 from pathlib import Path
@@ -56,29 +56,80 @@ def compile_and_import():
         del sys.modules["routers"]
 
 
-def make_message(
-    payload: dict,
+# ---------------------------------------------------------------------------
+# VFS helpers
+# ---------------------------------------------------------------------------
+
+
+def setup_vfs(
+    tmpdir: str,
     prev: list[str] | None = None,
-    curr: str = "",
     next_actors: list[str] | None = None,
-    headers: dict | None = None,
-    status: dict | None = None,
-) -> dict:
-    """Create a test message with route structure."""
-    msg: dict = {
-        "id": "test-msg",
-        "route": {
-            "prev": prev or [],
-            "curr": curr,
-            "next": next_actors or [],
-        },
-        "payload": payload,
-    }
-    if headers is not None:
-        msg["headers"] = headers
-    if status is not None:
-        msg["status"] = status
-    return msg
+    headers: dict[str, str] | None = None,
+    error_type: str | None = None,
+    error_message: str | None = None,
+    error_mro: list[str] | None = None,
+) -> str:
+    """Set up a VFS directory structure for a message and return the VFS root path."""
+    vfs_root = os.path.join(tmpdir, "vfs")
+    route_dir = os.path.join(vfs_root, "route")
+    os.makedirs(route_dir, exist_ok=True)
+    with open(os.path.join(route_dir, "prev"), "w") as f:
+        f.write("\n".join(prev or []))
+    with open(os.path.join(route_dir, "next"), "w") as f:
+        f.write("\n".join(next_actors or []))
+
+    if headers:
+        headers_dir = os.path.join(vfs_root, "headers")
+        os.makedirs(headers_dir, exist_ok=True)
+        for key, value in headers.items():
+            with open(os.path.join(headers_dir, key), "w") as f:
+                f.write(value)
+
+    if error_type is not None:
+        status_error_dir = os.path.join(vfs_root, "status", "error")
+        os.makedirs(status_error_dir, exist_ok=True)
+        with open(os.path.join(status_error_dir, "type"), "w") as f:
+            f.write(error_type)
+        with open(os.path.join(status_error_dir, "message"), "w") as f:
+            f.write(error_message or "")
+        with open(os.path.join(status_error_dir, "mro"), "w") as f:
+            f.write("\n".join(error_mro or []))
+
+    return vfs_root
+
+
+def read_vfs_next(vfs_root: str) -> list[str]:
+    next_path = os.path.join(vfs_root, "route", "next")
+    with open(next_path) as f:
+        content = f.read()
+    return [x for x in content.splitlines() if x]
+
+
+def read_vfs_header(vfs_root: str, key: str) -> str | None:
+    header_path = os.path.join(vfs_root, "headers", key)
+    if not os.path.exists(header_path):
+        return None
+    with open(header_path) as f:
+        return f.read()
+
+
+def vfs_header_exists(vfs_root: str, key: str) -> bool:
+    return os.path.exists(os.path.join(vfs_root, "headers", key))
+
+
+def vfs_error_exists(vfs_root: str) -> bool:
+    return os.path.exists(os.path.join(vfs_root, "status", "error"))
+
+
+def write_vfs_next(vfs_root: str, next_actors: list[str]) -> None:
+    with open(os.path.join(vfs_root, "route", "next"), "w") as f:
+        f.write("\n".join(next_actors))
+
+
+def write_vfs_prev(vfs_root: str, prev: list[str]) -> None:
+    with open(os.path.join(vfs_root, "route", "prev"), "w") as f:
+        f.write("\n".join(prev))
 
 
 def _find_function(mod, substring: str):
@@ -129,40 +180,32 @@ def flow(p: dict) -> dict:
         monkeypatch.setenv("ASYA_HANDLER_FINALIZE", "finalize")
 
         mod = compile_and_import(source)
-        # Override resolve to return the handler name as the actor name
         monkeypatch.setattr(mod, "resolve", lambda name: name)
 
-        # Find the try_enter function
         try_enter_name, try_enter_fn = _find_function(mod, "try_enter")
         assert try_enter_name is not None, "try_enter router not found"
 
-        # Find the except_dispatch name for verification
         except_dispatch_name, _ = _find_function(mod, "except_dispatch")
         assert except_dispatch_name is not None, "except_dispatch router not found"
 
-        # Find the try_exit name for verification
         try_exit_name, _ = _find_function(mod, "try_exit")
         assert try_exit_name is not None, "try_exit router not found"
 
-        msg = make_message(
-            {"data": "test"},
-            prev=["start_flow"],
-            curr=try_enter_name,
-            next_actors=[],
-        )
+        with tempfile.TemporaryDirectory() as tmpdir:
+            vfs_root = setup_vfs(tmpdir, prev=["start_flow"], next_actors=[])
+            monkeypatch.setattr(mod, "_MSG_ROOT", vfs_root)
 
-        result = try_enter_fn(msg)
+            try_enter_fn({"data": "test"})
 
-        # _on_error header should be set to the except_dispatch router
-        assert "headers" in result
-        assert "_on_error" in result["headers"]
-        assert result["headers"]["_on_error"] == except_dispatch_name
+            # _on_error header should be set to the except_dispatch router
+            assert vfs_header_exists(vfs_root, "_on_error")
+            assert read_vfs_header(vfs_root, "_on_error") == except_dispatch_name
 
-        # Body actors (handler_a, handler_b) and try_exit should be prepended to next
-        inserted = result["route"]["next"]
-        assert "handler_a" in inserted
-        assert "handler_b" in inserted
-        assert try_exit_name in inserted
+            # Body actors (handler_a, handler_b) and try_exit should be prepended to next
+            inserted = read_vfs_next(vfs_root)
+            assert "handler_a" in inserted
+            assert "handler_b" in inserted
+            assert try_exit_name in inserted
 
     # -- Test: try_exit clears _on_error -----------------------------------
 
@@ -186,25 +229,25 @@ def flow(p: dict) -> dict:
         try_exit_name, try_exit_fn = _find_function(mod, "try_exit")
         assert try_exit_name is not None, "try_exit router not found"
 
-        # Simulate a message arriving at try_exit (success path)
-        msg = make_message(
-            {"data": "test"},
-            prev=["start_flow", "try_enter", "handler_a"],
-            curr=try_exit_name,
-            next_actors=[],
-            headers={"_on_error": "some-except-dispatch", "trace_id": "abc"},
-        )
+        with tempfile.TemporaryDirectory() as tmpdir:
+            vfs_root = setup_vfs(
+                tmpdir,
+                prev=["start_flow", "try_enter", "handler_a"],
+                next_actors=[],
+                headers={"_on_error": "some-except-dispatch", "trace_id": "abc"},
+            )
+            monkeypatch.setattr(mod, "_MSG_ROOT", vfs_root)
 
-        result = try_exit_fn(msg)
+            try_exit_fn({"data": "test"})
 
-        # _on_error header should be removed
-        assert "_on_error" not in result.get("headers", {})
-        # Other headers should be preserved
-        assert result["headers"]["trace_id"] == "abc"
+            # _on_error header should be removed
+            assert not vfs_header_exists(vfs_root, "_on_error")
+            # trace_id should still exist (only _on_error was removed)
+            assert vfs_header_exists(vfs_root, "trace_id")
 
-        # Continuation actors (finalize) should be prepended to next
-        inserted = result["route"]["next"]
-        assert "finalize" in inserted
+            # Continuation actors (finalize) should be prepended to next
+            inserted = read_vfs_next(vfs_root)
+            assert "finalize" in inserted
 
     # -- Test: except_dispatch matches error type --------------------------
 
@@ -228,32 +271,28 @@ def flow(p: dict) -> dict:
         dispatch_name, dispatch_fn = _find_function(mod, "except_dispatch")
         assert dispatch_name is not None, "except_dispatch router not found"
 
-        msg = make_message(
-            {"data": "test"},
-            prev=[],
-            curr=dispatch_name,
-            next_actors=["placeholder"],
-            status={
-                "error": {
-                    "type": "ValueError",
-                    "message": "invalid value",
-                    "mro": ["Exception"],
-                }
-            },
-        )
+        with tempfile.TemporaryDirectory() as tmpdir:
+            vfs_root = setup_vfs(
+                tmpdir,
+                prev=[],
+                next_actors=["placeholder"],
+                error_type="ValueError",
+                error_message="invalid value",
+                error_mro=["Exception"],
+            )
+            monkeypatch.setattr(mod, "_MSG_ROOT", vfs_root)
 
-        result = dispatch_fn(msg)
+            dispatch_fn({"data": "test"})
 
-        # Should route to the ValueError handler
-        inserted = result["route"]["next"]
-        assert "error_handler" in inserted
+            # Should route to the ValueError handler
+            inserted = read_vfs_next(vfs_root)
+            assert "error_handler" in inserted
 
-        # Error status should be cleared on match
-        error_status = result.get("status", {}).get("error")
-        assert error_status is None
+            # Error status should be cleared on match
+            assert not vfs_error_exists(vfs_root)
 
-        # Continuation actors (finalize) should be prepended to next
-        assert "finalize" in inserted
+            # Continuation actors (finalize) should be prepended to next
+            assert "finalize" in inserted
 
     # -- Test: except_dispatch matches via MRO -----------------------------
 
@@ -277,30 +316,25 @@ def flow(p: dict) -> dict:
         dispatch_name, dispatch_fn = _find_function(mod, "except_dispatch")
         assert dispatch_name is not None, "except_dispatch router not found"
 
-        # Error type is "CustomError" but mro contains "ValueError"
-        msg = make_message(
-            {"data": "test"},
-            prev=[],
-            curr=dispatch_name,
-            next_actors=["placeholder"],
-            status={
-                "error": {
-                    "type": "CustomError",
-                    "message": "custom error that inherits from ValueError",
-                    "mro": ["ValueError", "Exception"],
-                }
-            },
-        )
+        with tempfile.TemporaryDirectory() as tmpdir:
+            vfs_root = setup_vfs(
+                tmpdir,
+                prev=[],
+                next_actors=["placeholder"],
+                error_type="CustomError",
+                error_message="custom error that inherits from ValueError",
+                error_mro=["ValueError", "Exception"],
+            )
+            monkeypatch.setattr(mod, "_MSG_ROOT", vfs_root)
 
-        result = dispatch_fn(msg)
+            dispatch_fn({"data": "test"})
 
-        # Should match via MRO
-        inserted = result["route"]["next"]
-        assert "value_error_handler" in inserted
+            # Should match via MRO
+            inserted = read_vfs_next(vfs_root)
+            assert "value_error_handler" in inserted
 
-        # Error status should be cleared
-        error_status = result.get("status", {}).get("error")
-        assert error_status is None
+            # Error status should be cleared
+            assert not vfs_error_exists(vfs_root)
 
     # -- Test: bare except catches all errors ------------------------------
 
@@ -324,34 +358,26 @@ def flow(p: dict) -> dict:
         dispatch_name, dispatch_fn = _find_function(mod, "except_dispatch")
         assert dispatch_name is not None, "except_dispatch router not found"
 
-        # Any error type should match bare except
-        msg = make_message(
-            {"data": "test"},
-            prev=[],
-            curr=dispatch_name,
-            next_actors=["placeholder"],
-            status={
-                "error": {
-                    "type": "SomeUnknownError",
-                    "message": "something broke",
-                    "mro": ["BaseException"],
-                }
-            },
-        )
+        with tempfile.TemporaryDirectory() as tmpdir:
+            vfs_root = setup_vfs(
+                tmpdir,
+                prev=[],
+                next_actors=["placeholder"],
+                error_type="SomeUnknownError",
+                error_message="something broke",
+                error_mro=["BaseException"],
+            )
+            monkeypatch.setattr(mod, "_MSG_ROOT", vfs_root)
 
-        result = dispatch_fn(msg)
+            dispatch_fn({"data": "test"})
 
-        # Should route to the catch-all handler
-        inserted = result["route"]["next"]
-        assert "catch_all_handler" in inserted
+            # Should route to the catch-all handler
+            inserted = read_vfs_next(vfs_root)
+            assert "catch_all_handler" in inserted
 
-        # Error status should be cleared
-        error_status = result.get("status", {}).get("error")
-        assert error_status is None
-
-        # No reraise router should exist for bare except flows
-        reraise_name, _ = _find_function(mod, "reraise")
-        assert reraise_name is None, "reraise router should not exist with bare except"
+            # No reraise router should exist for bare except flows
+            reraise_name, _ = _find_function(mod, "reraise")
+            assert reraise_name is None, "reraise router should not exist with bare except"
 
     # -- Test: unmatched error routes to reraise ---------------------------
 
@@ -378,34 +404,28 @@ def flow(p: dict) -> dict:
         reraise_name, _ = _find_function(mod, "reraise")
         assert reraise_name is not None, "reraise router should exist when no bare except"
 
-        # Error type is "KeyError" but only "except ValueError:" handler exists
-        msg = make_message(
-            {"data": "test"},
-            prev=[],
-            curr=dispatch_name,
-            next_actors=["placeholder"],
-            status={
-                "error": {
-                    "type": "KeyError",
-                    "message": "missing key",
-                    "mro": ["LookupError", "Exception"],
-                }
-            },
-        )
+        with tempfile.TemporaryDirectory() as tmpdir:
+            vfs_root = setup_vfs(
+                tmpdir,
+                prev=[],
+                next_actors=["placeholder"],
+                error_type="KeyError",
+                error_message="missing key",
+                error_mro=["LookupError", "Exception"],
+            )
+            monkeypatch.setattr(mod, "_MSG_ROOT", vfs_root)
 
-        result = dispatch_fn(msg)
+            dispatch_fn({"data": "test"})
 
-        # Should route to reraise since no handler matches
-        inserted = result["route"]["next"]
-        assert reraise_name in inserted
+            # Should route to reraise since no handler matches
+            inserted = read_vfs_next(vfs_root)
+            assert reraise_name in inserted
 
-        # value_error_handler should NOT be in the route
-        assert "value_error_handler" not in inserted
+            # value_error_handler should NOT be in the route
+            assert "value_error_handler" not in inserted
 
-        # Error status should NOT be cleared (unmatched)
-        error_status = result.get("status", {}).get("error")
-        assert error_status is not None
-        assert error_status["type"] == "KeyError"
+            # Error status should NOT be cleared (unmatched)
+            assert vfs_error_exists(vfs_root)
 
     # -- Test: reraise raises RuntimeError ---------------------------------
 
@@ -427,22 +447,19 @@ def flow(p: dict) -> dict:
         reraise_name, reraise_fn = _find_function(mod, "reraise")
         assert reraise_name is not None, "reraise router should exist"
 
-        msg = make_message(
-            {"data": "test"},
-            prev=[],
-            curr=reraise_name,
-            next_actors=[],
-            status={
-                "error": {
-                    "type": "KeyError",
-                    "message": "missing key 'x'",
-                    "mro": ["LookupError", "Exception"],
-                }
-            },
-        )
+        with tempfile.TemporaryDirectory() as tmpdir:
+            vfs_root = setup_vfs(
+                tmpdir,
+                prev=[],
+                next_actors=[],
+                error_type="KeyError",
+                error_message="missing key 'x'",
+                error_mro=["LookupError", "Exception"],
+            )
+            monkeypatch.setattr(mod, "_MSG_ROOT", vfs_root)
 
-        with pytest.raises(RuntimeError, match="Unhandled exception"):
-            reraise_fn(msg)
+            with pytest.raises(RuntimeError, match="Unhandled exception"):
+                reraise_fn({"data": "test"})
 
     # -- Test: try-except with finally clause ------------------------------
 
@@ -469,28 +486,29 @@ def flow(p: dict) -> dict:
         try_exit_name, try_exit_fn = _find_function(mod, "try_exit")
         assert try_exit_name is not None, "try_exit router not found"
 
-        msg = make_message(
-            {"data": "test"},
-            prev=["start_flow", "try_enter", "handler_a"],
-            curr=try_exit_name,
-            next_actors=[],
-            headers={"_on_error": "some-dispatch"},
-        )
+        with tempfile.TemporaryDirectory() as tmpdir:
+            vfs_root = setup_vfs(
+                tmpdir,
+                prev=["start_flow", "try_enter", "handler_a"],
+                next_actors=[],
+                headers={"_on_error": "some-dispatch"},
+            )
+            monkeypatch.setattr(mod, "_MSG_ROOT", vfs_root)
 
-        result = try_exit_fn(msg)
+            try_exit_fn({"data": "test"})
 
-        # _on_error should be cleared
-        assert "_on_error" not in result.get("headers", {})
+            # _on_error should be cleared
+            assert not vfs_header_exists(vfs_root, "_on_error")
 
-        # Both cleanup (finally) and finalize (continuation) should be prepended to next
-        inserted = result["route"]["next"]
-        assert "cleanup" in inserted
-        assert "finalize" in inserted
+            # Both cleanup (finally) and finalize (continuation) should be prepended to next
+            inserted = read_vfs_next(vfs_root)
+            assert "cleanup" in inserted
+            assert "finalize" in inserted
 
-        # cleanup (finally) should come before finalize (continuation)
-        cleanup_idx = inserted.index("cleanup")
-        finalize_idx = inserted.index("finalize")
-        assert cleanup_idx < finalize_idx
+            # cleanup (finally) should come before finalize (continuation)
+            cleanup_idx = inserted.index("cleanup")
+            finalize_idx = inserted.index("finalize")
+            assert cleanup_idx < finalize_idx
 
     def test_except_dispatch_with_finally_inserts_finally_actors(self, compile_and_import, monkeypatch):
         source = """\
@@ -515,33 +533,30 @@ def flow(p: dict) -> dict:
         dispatch_name, dispatch_fn = _find_function(mod, "except_dispatch")
         assert dispatch_name is not None, "except_dispatch router not found"
 
-        msg = make_message(
-            {"data": "test"},
-            prev=[],
-            curr=dispatch_name,
-            next_actors=["placeholder"],
-            status={
-                "error": {
-                    "type": "ValueError",
-                    "message": "invalid value",
-                    "mro": ["Exception"],
-                }
-            },
-        )
+        with tempfile.TemporaryDirectory() as tmpdir:
+            vfs_root = setup_vfs(
+                tmpdir,
+                prev=[],
+                next_actors=["placeholder"],
+                error_type="ValueError",
+                error_message="invalid value",
+                error_mro=["Exception"],
+            )
+            monkeypatch.setattr(mod, "_MSG_ROOT", vfs_root)
 
-        result = dispatch_fn(msg)
+            dispatch_fn({"data": "test"})
 
-        # error_handler, cleanup (finally), and finalize (continuation) should all be in next
-        inserted = result["route"]["next"]
-        assert "error_handler" in inserted
-        assert "cleanup" in inserted
-        assert "finalize" in inserted
+            # error_handler, cleanup (finally), and finalize (continuation) should all be in next
+            inserted = read_vfs_next(vfs_root)
+            assert "error_handler" in inserted
+            assert "cleanup" in inserted
+            assert "finalize" in inserted
 
-        # Order: error_handler < cleanup < finalize
-        eh_idx = inserted.index("error_handler")
-        cleanup_idx = inserted.index("cleanup")
-        finalize_idx = inserted.index("finalize")
-        assert eh_idx < cleanup_idx < finalize_idx
+            # Order: error_handler < cleanup < finalize
+            eh_idx = inserted.index("error_handler")
+            cleanup_idx = inserted.index("cleanup")
+            finalize_idx = inserted.index("finalize")
+            assert eh_idx < cleanup_idx < finalize_idx
 
     # -- Test: multiple except handlers ------------------------------------
 
@@ -572,44 +587,53 @@ def flow(p: dict) -> dict:
         assert dispatch_name is not None
 
         # Test ValueError match
-        msg_value = make_message(
-            {"data": "test"},
-            prev=[],
-            curr=dispatch_name,
-            next_actors=["ph"],
-            status={"error": {"type": "ValueError", "message": "bad", "mro": ["Exception"]}},
-        )
-        result = dispatch_fn(copy.deepcopy(msg_value))
-        inserted = result["route"]["next"]
-        assert "value_handler" in inserted
-        assert "type_handler" not in inserted
-        assert "key_handler" not in inserted
+        with tempfile.TemporaryDirectory() as tmpdir:
+            vfs_root = setup_vfs(
+                tmpdir,
+                prev=[],
+                next_actors=["ph"],
+                error_type="ValueError",
+                error_message="bad",
+                error_mro=["Exception"],
+            )
+            monkeypatch.setattr(mod, "_MSG_ROOT", vfs_root)
+            dispatch_fn({"data": "test"})
+            inserted = read_vfs_next(vfs_root)
+            assert "value_handler" in inserted
+            assert "type_handler" not in inserted
+            assert "key_handler" not in inserted
 
         # Test TypeError match
-        msg_type = make_message(
-            {"data": "test"},
-            prev=[],
-            curr=dispatch_name,
-            next_actors=["ph"],
-            status={"error": {"type": "TypeError", "message": "bad", "mro": ["Exception"]}},
-        )
-        result = dispatch_fn(copy.deepcopy(msg_type))
-        inserted = result["route"]["next"]
-        assert "type_handler" in inserted
-        assert "value_handler" not in inserted
+        with tempfile.TemporaryDirectory() as tmpdir:
+            vfs_root = setup_vfs(
+                tmpdir,
+                prev=[],
+                next_actors=["ph"],
+                error_type="TypeError",
+                error_message="bad",
+                error_mro=["Exception"],
+            )
+            monkeypatch.setattr(mod, "_MSG_ROOT", vfs_root)
+            dispatch_fn({"data": "test"})
+            inserted = read_vfs_next(vfs_root)
+            assert "type_handler" in inserted
+            assert "value_handler" not in inserted
 
         # Test KeyError match
-        msg_key = make_message(
-            {"data": "test"},
-            prev=[],
-            curr=dispatch_name,
-            next_actors=["ph"],
-            status={"error": {"type": "KeyError", "message": "bad", "mro": ["LookupError", "Exception"]}},
-        )
-        result = dispatch_fn(copy.deepcopy(msg_key))
-        inserted = result["route"]["next"]
-        assert "key_handler" in inserted
-        assert "value_handler" not in inserted
+        with tempfile.TemporaryDirectory() as tmpdir:
+            vfs_root = setup_vfs(
+                tmpdir,
+                prev=[],
+                next_actors=["ph"],
+                error_type="KeyError",
+                error_message="bad",
+                error_mro=["LookupError", "Exception"],
+            )
+            monkeypatch.setattr(mod, "_MSG_ROOT", vfs_root)
+            dispatch_fn({"data": "test"})
+            inserted = read_vfs_next(vfs_root)
+            assert "key_handler" in inserted
+            assert "value_handler" not in inserted
 
     # -- Test: tuple except (multiple types in one handler) ----------------
 
@@ -633,45 +657,54 @@ def flow(p: dict) -> dict:
         dispatch_name, dispatch_fn = _find_function(mod, "except_dispatch")
         assert dispatch_name is not None
 
-        # ValueError should match
-        msg_val = make_message(
-            {"data": "test"},
-            prev=[],
-            curr=dispatch_name,
-            next_actors=["ph"],
-            status={"error": {"type": "ValueError", "message": "bad", "mro": ["Exception"]}},
-        )
-        result = dispatch_fn(copy.deepcopy(msg_val))
-        inserted = result["route"]["next"]
-        assert "combined_handler" in inserted
-
-        # TypeError should also match
-        msg_type = make_message(
-            {"data": "test"},
-            prev=[],
-            curr=dispatch_name,
-            next_actors=["ph"],
-            status={"error": {"type": "TypeError", "message": "bad", "mro": ["Exception"]}},
-        )
-        result = dispatch_fn(copy.deepcopy(msg_type))
-        inserted = result["route"]["next"]
-        assert "combined_handler" in inserted
-
-        # KeyError should NOT match, should go to reraise
         reraise_name, _ = _find_function(mod, "reraise")
         assert reraise_name is not None
 
-        msg_key = make_message(
-            {"data": "test"},
-            prev=[],
-            curr=dispatch_name,
-            next_actors=["ph"],
-            status={"error": {"type": "KeyError", "message": "bad", "mro": ["LookupError", "Exception"]}},
-        )
-        result = dispatch_fn(copy.deepcopy(msg_key))
-        inserted = result["route"]["next"]
-        assert reraise_name in inserted
-        assert "combined_handler" not in inserted
+        # ValueError should match
+        with tempfile.TemporaryDirectory() as tmpdir:
+            vfs_root = setup_vfs(
+                tmpdir,
+                prev=[],
+                next_actors=["ph"],
+                error_type="ValueError",
+                error_message="bad",
+                error_mro=["Exception"],
+            )
+            monkeypatch.setattr(mod, "_MSG_ROOT", vfs_root)
+            dispatch_fn({"data": "test"})
+            inserted = read_vfs_next(vfs_root)
+            assert "combined_handler" in inserted
+
+        # TypeError should also match
+        with tempfile.TemporaryDirectory() as tmpdir:
+            vfs_root = setup_vfs(
+                tmpdir,
+                prev=[],
+                next_actors=["ph"],
+                error_type="TypeError",
+                error_message="bad",
+                error_mro=["Exception"],
+            )
+            monkeypatch.setattr(mod, "_MSG_ROOT", vfs_root)
+            dispatch_fn({"data": "test"})
+            inserted = read_vfs_next(vfs_root)
+            assert "combined_handler" in inserted
+
+        # KeyError should NOT match, should go to reraise
+        with tempfile.TemporaryDirectory() as tmpdir:
+            vfs_root = setup_vfs(
+                tmpdir,
+                prev=[],
+                next_actors=["ph"],
+                error_type="KeyError",
+                error_message="bad",
+                error_mro=["LookupError", "Exception"],
+            )
+            monkeypatch.setattr(mod, "_MSG_ROOT", vfs_root)
+            dispatch_fn({"data": "test"})
+            inserted = read_vfs_next(vfs_root)
+            assert reraise_name in inserted
+            assert "combined_handler" not in inserted
 
     # -- Test: end-to-end success path (start -> try_enter -> try_exit) ----
 
@@ -692,45 +725,43 @@ def flow(p: dict) -> dict:
         mod = compile_and_import(source)
         monkeypatch.setattr(mod, "resolve", lambda name: name)
 
-        # Step 1: call start_flow
-        start_fn = mod.start_flow
-        msg = make_message({"data": "test"}, prev=[], curr="start_flow", next_actors=[])
-        msg = start_fn(msg)
-
-        # start_flow should prepend the try_enter router into next
         try_enter_name, try_enter_fn = _find_function(mod, "try_enter")
-        assert try_enter_name in msg["route"]["next"]
-
-        # Step 2: simulate runtime shifting route to try_enter, then call try_enter
-        msg["route"]["prev"] = ["start_flow"]
-        msg["route"]["curr"] = try_enter_name
-        msg["route"]["next"] = [a for a in msg["route"]["next"] if a != try_enter_name]
-        msg = try_enter_fn(msg)
-
-        # Should set _on_error header
-        assert "_on_error" in msg.get("headers", {})
-
-        # Should insert handler_a and try_exit into next
         try_exit_name, try_exit_fn = _find_function(mod, "try_exit")
-        assert "handler_a" in msg["route"]["next"]
-        assert try_exit_name in msg["route"]["next"]
 
-        # Step 3: simulate runtime shifting route to handler_a
-        msg["route"]["prev"] = ["start_flow", try_enter_name]
-        msg["route"]["curr"] = "handler_a"
-        msg["route"]["next"] = [a for a in msg["route"]["next"] if a != "handler_a"]
+        with tempfile.TemporaryDirectory() as tmpdir:
+            vfs_root = setup_vfs(tmpdir, prev=[], next_actors=[])
+            monkeypatch.setattr(mod, "_MSG_ROOT", vfs_root)
 
-        # Step 4: simulate runtime shifting route to try_exit, then call try_exit
-        msg["route"]["prev"] = ["start_flow", try_enter_name, "handler_a"]
-        msg["route"]["curr"] = try_exit_name
-        msg["route"]["next"] = [a for a in msg["route"]["next"] if a != try_exit_name]
-        msg = try_exit_fn(msg)
+            # Step 1: call start_flow
+            start_fn = mod.start_flow
+            start_fn({"data": "test"})
 
-        # _on_error should be cleared
-        assert "_on_error" not in msg.get("headers", {})
+            # start_flow should prepend the try_enter router into next
+            assert try_enter_name in read_vfs_next(vfs_root)
 
-        # finalize should be in next
-        assert "finalize" in msg["route"]["next"]
+            # Step 2: simulate runtime shifting route to try_enter, then call try_enter
+            write_vfs_prev(vfs_root, ["start_flow"])
+            write_vfs_next(vfs_root, [a for a in read_vfs_next(vfs_root) if a != try_enter_name])
+            try_enter_fn({"data": "test"})
+
+            # Should set _on_error header
+            assert vfs_header_exists(vfs_root, "_on_error")
+
+            # Should insert handler_a and try_exit into next
+            next_after_enter = read_vfs_next(vfs_root)
+            assert "handler_a" in next_after_enter
+            assert try_exit_name in next_after_enter
+
+            # Step 3: simulate runtime advancing to try_exit (handler_a was handled by runtime)
+            write_vfs_prev(vfs_root, ["start_flow", try_enter_name, "handler_a"])
+            write_vfs_next(vfs_root, [a for a in next_after_enter if a not in ["handler_a", try_exit_name]])
+            try_exit_fn({"data": "test"})
+
+            # _on_error should be cleared
+            assert not vfs_header_exists(vfs_root, "_on_error")
+
+            # finalize should be in next
+            assert "finalize" in read_vfs_next(vfs_root)
 
     # -- Test: payload is preserved through routers ------------------------
 
@@ -753,17 +784,15 @@ def flow(p: dict) -> dict:
         assert try_enter_name is not None
 
         original_payload = {"key1": "value1", "key2": [1, 2, 3], "nested": {"a": "b"}}
-        msg = make_message(
-            original_payload,
-            prev=["start_flow"],
-            curr=try_enter_name,
-            next_actors=[],
-        )
 
-        result = try_enter_fn(msg)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            vfs_root = setup_vfs(tmpdir, prev=["start_flow"], next_actors=[])
+            monkeypatch.setattr(mod, "_MSG_ROOT", vfs_root)
 
-        # Payload should be untouched by try_enter router
-        assert result["payload"] == original_payload
+            result_payload = try_enter_fn(dict(original_payload))
+
+            # Payload should be untouched by try_enter router
+            assert result_payload == original_payload
 
     # -- Test: message id is preserved through all routers -----------------
 
@@ -786,32 +815,40 @@ def flow(p: dict) -> dict:
         try_exit_name, try_exit_fn = _find_function(mod, "try_exit")
         dispatch_name, dispatch_fn = _find_function(mod, "except_dispatch")
 
-        # Check try_enter preserves id
-        msg = make_message({"data": "test"}, prev=["start"], curr=try_enter_name, next_actors=[])
-        result = try_enter_fn(msg)
-        assert result["id"] == "test-msg"
+        payload = {"id": "test-msg", "data": "test"}
 
-        # Check try_exit preserves id
-        msg2 = make_message(
-            {"data": "test"},
-            prev=["start"],
-            curr=try_exit_name,
-            next_actors=[],
-            headers={"_on_error": "dispatch"},
-        )
-        result2 = try_exit_fn(msg2)
-        assert result2["id"] == "test-msg"
+        # Check try_enter returns same payload object with id preserved
+        with tempfile.TemporaryDirectory() as tmpdir:
+            vfs_root = setup_vfs(tmpdir, prev=["start"], next_actors=[])
+            monkeypatch.setattr(mod, "_MSG_ROOT", vfs_root)
+            result = try_enter_fn(dict(payload))
+            assert result["id"] == "test-msg"
 
-        # Check except_dispatch preserves id
-        msg3 = make_message(
-            {"data": "test"},
-            prev=[],
-            curr=dispatch_name,
-            next_actors=["ph"],
-            status={"error": {"type": "ValueError", "message": "bad", "mro": []}},
-        )
-        result3 = dispatch_fn(msg3)
-        assert result3["id"] == "test-msg"
+        # Check try_exit returns same payload object with id preserved
+        with tempfile.TemporaryDirectory() as tmpdir:
+            vfs_root = setup_vfs(
+                tmpdir,
+                prev=["start"],
+                next_actors=[],
+                headers={"_on_error": "dispatch"},
+            )
+            monkeypatch.setattr(mod, "_MSG_ROOT", vfs_root)
+            result2 = try_exit_fn(dict(payload))
+            assert result2["id"] == "test-msg"
+
+        # Check except_dispatch returns same payload object with id preserved
+        with tempfile.TemporaryDirectory() as tmpdir:
+            vfs_root = setup_vfs(
+                tmpdir,
+                prev=[],
+                next_actors=["ph"],
+                error_type="ValueError",
+                error_message="bad",
+                error_mro=[],
+            )
+            monkeypatch.setattr(mod, "_MSG_ROOT", vfs_root)
+            result3 = dispatch_fn(dict(payload))
+            assert result3["id"] == "test-msg"
 
     # -- Test: reraise error message content -------------------------------
 
@@ -833,21 +870,18 @@ def flow(p: dict) -> dict:
         reraise_name, reraise_fn = _find_function(mod, "reraise")
         assert reraise_name is not None
 
-        msg = make_message(
-            {"data": "test"},
-            prev=[],
-            curr=reraise_name,
-            next_actors=[],
-            status={
-                "error": {
-                    "type": "KeyError",
-                    "message": "missing key 'important_field'",
-                    "mro": ["LookupError", "Exception"],
-                }
-            },
-        )
+        with tempfile.TemporaryDirectory() as tmpdir:
+            vfs_root = setup_vfs(
+                tmpdir,
+                prev=[],
+                next_actors=[],
+                error_type="KeyError",
+                error_message="missing key 'important_field'",
+                error_mro=["LookupError", "Exception"],
+            )
+            monkeypatch.setattr(mod, "_MSG_ROOT", vfs_root)
 
-        with pytest.raises(RuntimeError, match="KeyError") as exc_info:
-            reraise_fn(msg)
+            with pytest.raises(RuntimeError, match="KeyError") as exc_info:
+                reraise_fn({"data": "test"})
 
-        assert "missing key" in str(exc_info.value)
+            assert "missing key" in str(exc_info.value)

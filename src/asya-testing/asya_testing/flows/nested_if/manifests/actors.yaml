@@ -24,8 +24,6 @@ spec:
           env:
           - name: ASYA_HANDLER
             value: testing.e2e.flows.nested_if.compiled_routers.start_test_nested_flow
-          - name: ASYA_HANDLER_MODE
-            value: envelope
 ---
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
@@ -53,8 +51,6 @@ spec:
           env:
           - name: ASYA_HANDLER
             value: testing.e2e.flows.nested_if.compiled_routers.router_test_nested_flow_line_4_if
-          - name: ASYA_HANDLER_MODE
-            value: envelope
 ---
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
@@ -82,8 +78,6 @@ spec:
           env:
           - name: ASYA_HANDLER
             value: testing.e2e.flows.nested_if.compiled_routers.router_test_nested_flow_line_6_if
-          - name: ASYA_HANDLER_MODE
-            value: envelope
 ---
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
@@ -111,8 +105,6 @@ spec:
           env:
           - name: ASYA_HANDLER
             value: testing.e2e.flows.nested_if.compiled_routers.router_test_nested_flow_line_14_if
-          - name: ASYA_HANDLER_MODE
-            value: envelope
 ---
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
@@ -140,8 +132,6 @@ spec:
           env:
           - name: ASYA_HANDLER
             value: testing.e2e.flows.nested_if.compiled_routers.router_test_nested_flow_line_7_seq
-          - name: ASYA_HANDLER_MODE
-            value: envelope
 ---
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
@@ -169,8 +159,6 @@ spec:
           env:
           - name: ASYA_HANDLER
             value: testing.e2e.flows.nested_if.compiled_routers.router_test_nested_flow_line_10_seq
-          - name: ASYA_HANDLER_MODE
-            value: envelope
 ---
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
@@ -198,8 +186,6 @@ spec:
           env:
           - name: ASYA_HANDLER
             value: testing.e2e.flows.nested_if.compiled_routers.router_test_nested_flow_line_15_seq
-          - name: ASYA_HANDLER_MODE
-            value: envelope
 ---
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
@@ -227,8 +213,6 @@ spec:
           env:
           - name: ASYA_HANDLER
             value: testing.e2e.flows.nested_if.compiled_routers.router_test_nested_flow_line_18_seq
-          - name: ASYA_HANDLER_MODE
-            value: envelope
 ---
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
@@ -256,8 +240,6 @@ spec:
           env:
           - name: ASYA_HANDLER
             value: testing.e2e.flows.nested_if.compiled_routers.end_test_nested_flow
-          - name: ASYA_HANDLER_MODE
-            value: envelope
 ---
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
@@ -285,8 +267,6 @@ spec:
           env:
           - name: ASYA_HANDLER
             value: testing.e2e.flows.nested_if.flow.validate_input
-          - name: ASYA_HANDLER_MODE
-            value: payload
 ---
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
@@ -314,8 +294,6 @@ spec:
           env:
           - name: ASYA_HANDLER
             value: testing.e2e.flows.nested_if.flow.route_a_x
-          - name: ASYA_HANDLER_MODE
-            value: payload
 ---
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
@@ -343,8 +321,6 @@ spec:
           env:
           - name: ASYA_HANDLER
             value: testing.e2e.flows.nested_if.flow.route_a_y
-          - name: ASYA_HANDLER_MODE
-            value: payload
 ---
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
@@ -372,8 +348,6 @@ spec:
           env:
           - name: ASYA_HANDLER
             value: testing.e2e.flows.nested_if.flow.route_b_x
-          - name: ASYA_HANDLER_MODE
-            value: payload
 ---
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
@@ -401,8 +375,6 @@ spec:
           env:
           - name: ASYA_HANDLER
             value: testing.e2e.flows.nested_if.flow.route_b_y
-          - name: ASYA_HANDLER_MODE
-            value: payload
 ---
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
@@ -430,5 +402,3 @@ spec:
           env:
           - name: ASYA_HANDLER
             value: testing.e2e.flows.nested_if.flow.finalize_result
-          - name: ASYA_HANDLER_MODE
-            value: payload

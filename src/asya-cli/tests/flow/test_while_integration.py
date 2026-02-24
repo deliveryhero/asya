@@ -6,6 +6,7 @@ for various while loop patterns.
 """
 
 import ast
+import os
 import sys
 import tempfile
 from pathlib import Path
@@ -536,7 +537,8 @@ def flow(p: dict) -> dict:
         code = compiler.compile(source, "test.py")
 
         assert "_ASYA_MAX_LOOP_ITERATIONS" in code
-        assert "r['prev'].count(_self)" in code
+        assert "route/prev" in code
+        assert "_prev.count(_self) >= _ASYA_MAX_LOOP_ITERATIONS" in code
         assert "RuntimeError" in code
         # No payload pollution
         assert "__loop_" not in code
@@ -591,6 +593,31 @@ def agent(p: dict) -> dict:
         tree = ast.parse(code)
         assert tree is not None
 
+    def _setup_vfs(self, tmpdir: str, prev: list[str], next_actors: list[str]) -> str:
+        """Set up a VFS directory structure for a message."""
+        vfs_root = os.path.join(tmpdir, "vfs")
+        route_dir = os.path.join(vfs_root, "route")
+        os.makedirs(route_dir, exist_ok=True)
+        with open(os.path.join(route_dir, "prev"), "w") as f:
+            f.write("\n".join(prev))
+        with open(os.path.join(route_dir, "next"), "w") as f:
+            f.write("\n".join(next_actors))
+        return vfs_root
+
+    def _read_vfs_next(self, vfs_root: str) -> list[str]:
+        next_path = os.path.join(vfs_root, "route", "next")
+        with open(next_path) as f:
+            content = f.read()
+        return [x for x in content.splitlines() if x]
+
+    def _write_vfs_prev(self, vfs_root: str, prev: list[str]) -> None:
+        with open(os.path.join(vfs_root, "route", "prev"), "w") as f:
+            f.write("\n".join(prev))
+
+    def _write_vfs_next(self, vfs_root: str, next_actors: list[str]) -> None:
+        with open(os.path.join(vfs_root, "route", "next"), "w") as f:
+            f.write("\n".join(next_actors))
+
     def test_guard_execution_raises_at_limit(self, compile_and_import, monkeypatch):
         source = """
 def flow(p: dict) -> dict:
@@ -617,20 +644,26 @@ def flow(p: dict) -> dict:
         assert loop_back_name is not None
         assert loop_back_fn is not None
 
-        # Realistic initial route: start router placed loop_back into next
-        msg = make_message({"value": 1}, prev=["start_flow"], curr=loop_back_name, next_actors=[])
+        with tempfile.TemporaryDirectory() as tmpdir:
+            vfs_root = self._setup_vfs(tmpdir, prev=["start_flow"], next_actors=[])
+            monkeypatch.setattr(mod, "_MSG_ROOT", vfs_root)
 
-        # 3 iterations should succeed (prev accumulates loop_back visits)
-        for _ in range(3):
-            msg = loop_back_fn(msg)
-            # Simulate runtime shifting route: move curr to prev, advance curr to next[0]
-            msg["route"]["prev"] = msg["route"]["prev"] + [loop_back_name]
-            msg["route"]["curr"] = loop_back_name
-            msg["route"]["next"] = []
+            payload = {"value": 1}
 
-        # 4th iteration should raise (3 past visits in prev)
-        with pytest.raises(RuntimeError, match="Max loop iterations"):
-            loop_back_fn(msg)
+            # 3 iterations should succeed (prev accumulates loop_back visits)
+            prev_list = ["start_flow"]
+            for _ in range(3):
+                self._write_vfs_prev(vfs_root, prev_list)
+                self._write_vfs_next(vfs_root, [])
+                loop_back_fn(payload)
+                # Simulate runtime shifting route: move curr to prev
+                prev_list = [*prev_list, loop_back_name]
+
+            # 4th iteration should raise (3 past visits in prev)
+            self._write_vfs_prev(vfs_root, prev_list)
+            self._write_vfs_next(vfs_root, [])
+            with pytest.raises(RuntimeError, match="Max loop iterations"):
+                loop_back_fn(payload)
 
     def test_guard_execution_succeeds_under_limit(self, compile_and_import, monkeypatch):
         source = """
@@ -658,15 +691,19 @@ def flow(p: dict) -> dict:
         assert loop_back_name is not None
         assert loop_back_fn is not None
 
-        # Realistic initial route: start router placed loop_back into next
-        msg = make_message({"value": 1}, prev=["start_flow"], curr=loop_back_name, next_actors=[])
+        with tempfile.TemporaryDirectory() as tmpdir:
+            vfs_root = self._setup_vfs(tmpdir, prev=["start_flow"], next_actors=[])
+            monkeypatch.setattr(mod, "_MSG_ROOT", vfs_root)
 
-        for _ in range(5):
-            msg = loop_back_fn(msg)
-            # Simulate runtime shifting route: move curr to prev, advance curr to next[0]
-            msg["route"]["prev"] = msg["route"]["prev"] + [loop_back_name]
-            msg["route"]["curr"] = loop_back_name
-            msg["route"]["next"] = []
+            payload = {"value": 1}
+            prev_list = ["start_flow"]
 
-        # Payload stays clean (no __loop_ keys injected)
-        assert not any(k.startswith("__loop_") for k in msg["payload"])
+            for _ in range(5):
+                self._write_vfs_prev(vfs_root, prev_list)
+                self._write_vfs_next(vfs_root, [])
+                result = loop_back_fn(payload)
+                # Simulate runtime shifting route: move curr to prev
+                prev_list = [*prev_list, loop_back_name]
+
+            # Payload stays clean (no __loop_ keys injected)
+            assert not any(k.startswith("__loop_") for k in result)

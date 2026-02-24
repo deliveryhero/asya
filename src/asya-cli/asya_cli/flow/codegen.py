@@ -35,6 +35,7 @@ class CodeGenerator:
 
         parts = []
         parts.append(self._generate_header())
+        parts.append(self._generate_msg_root_constant())
         if self._has_loop_guards():
             parts.append(self._generate_max_iter_constant())
         parts.append(self._generate_routers())
@@ -45,10 +46,15 @@ class CodeGenerator:
     def _has_loop_guards(self) -> bool:
         return any(r.guard_max_iter is not None for r in self.routers)
 
+    def _generate_msg_root_constant(self) -> str:
+        return dedent("""\
+            import os as _os
+            _MSG_ROOT = _os.getenv("ASYA_MSG_ROOT", "/proc/asya/msg")
+            """)
+
     def _generate_max_iter_constant(self) -> str:
         default = next(r.guard_max_iter for r in self.routers if r.guard_max_iter is not None)
         return dedent(f'''\
-            import os as _os
             _ASYA_MAX_LOOP_ITERATIONS = int(_os.environ.get("ASYA_MAX_LOOP_ITERATIONS", "{default}"))
             ''')
 
@@ -110,36 +116,43 @@ class CodeGenerator:
 
     def _generate_start_router(self, router: Router) -> str:
         lines = []
-        lines.append(f"def {router.name}(message: dict) -> dict:")
+        lines.append(f"def {router.name}(payload: dict) -> dict:")
         lines.append(f'    """Entrypoint for flow \'{self.flow_name}\'"""')
-        lines.append("    r = message['route']")
+        lines.append('    with open(f"{_MSG_ROOT}/route/next") as _f:')
+        lines.append("        _next_tail = _f.read().splitlines()")
+        lines.append("    _next = []")
         lines.append("")
 
         if router.true_branch_actors:
             filtered_actors = [name for name in router.true_branch_actors if not name.startswith("end_")]
-            if filtered_actors:
-                next_list = ", ".join([f'resolve("{name}")' for name in filtered_actors])
-                lines.append(f"    r['next'] = [{next_list}] + r['next']")
-        lines.append("    return message")
+            for name in filtered_actors:
+                lines.append(f'    _next.append(resolve("{name}"))')
+
+        lines.append('    with open(f"{_MSG_ROOT}/route/next", "w") as _f:')
+        lines.append('        _f.write("\\n".join(_next + _next_tail))')
+        lines.append("    return payload")
         lines.append("")
 
         return "\n".join(lines)
 
     def _generate_end_router(self, router: Router) -> str:
         lines = []
-        lines.append(f"def {router.name}(message: dict) -> dict:")
+        lines.append(f"def {router.name}(payload: dict) -> dict:")
         lines.append(f'    """Exitpoint for flow \'{self.flow_name}\'"""')
-        lines.append("    return message")
+        lines.append('    with open(f"{_MSG_ROOT}/route/next", "w") as _f:')
+        lines.append('        _f.write("")')
+        lines.append("    return payload")
         lines.append("")
 
         return "\n".join(lines)
 
     def _generate_router(self, router: Router) -> str:
         lines = []
-        lines.append(f"def {router.name}(message: dict) -> dict:")
+        lines.append(f"def {router.name}(payload: dict) -> dict:")
         lines.append('    """Router for control flow and payload mutations"""')
-        lines.append("    p = message['payload']")
-        lines.append("    r = message['route']")
+        lines.append("    p = payload")
+        lines.append('    with open(f"{_MSG_ROOT}/route/next") as _f:')
+        lines.append("        _next_tail = _f.read().splitlines()")
         lines.append("    _next = []")
         lines.append("")
 
@@ -171,21 +184,23 @@ class CodeGenerator:
                 lines.append(f'    _next.append(resolve("{actor}"))')
 
         lines.append("")
-        lines.append("    r['next'] = _next + r['next']")
-        lines.append("    return message")
+        lines.append('    with open(f"{_MSG_ROOT}/route/next", "w") as _f:')
+        lines.append('        _f.write("\\n".join(_next + _next_tail))')
+        lines.append("    return payload")
         lines.append("")
 
         return "\n".join(lines)
 
     def _generate_loop_back_router(self, router: Router) -> str:
         lines = []
-        lines.append(f"def {router.name}(message: dict) -> dict:")
+        lines.append(f"def {router.name}(payload: dict) -> dict:")
         if router.guard_max_iter is not None:
             lines.append('    """Loop-back router: re-inserts loop actors into route (guarded)"""')
         else:
             lines.append('    """Loop-back router: re-inserts loop actors into route"""')
-        lines.append("    p = message['payload']")
-        lines.append("    r = message['route']")
+        lines.append("    p = payload")
+        lines.append('    with open(f"{_MSG_ROOT}/route/next") as _f:')
+        lines.append("        _next_tail = _f.read().splitlines()")
         lines.append("    _next = []")
         lines.append("")
 
@@ -194,7 +209,9 @@ class CodeGenerator:
 
         if router.guard_max_iter is not None:
             lines.append(f'    _self = resolve("{router.name}")')
-            lines.append("    if r['prev'].count(_self) >= _ASYA_MAX_LOOP_ITERATIONS:")
+            lines.append('    with open(f"{_MSG_ROOT}/route/prev") as _f:')
+            lines.append("        _prev = _f.read().splitlines()")
+            lines.append("    if _prev.count(_self) >= _ASYA_MAX_LOOP_ITERATIONS:")
             lines.append(
                 f'        raise RuntimeError(f"Max loop iterations ({{_ASYA_MAX_LOOP_ITERATIONS}}) exceeded for while-loop at line {router.lineno}")'
             )
@@ -205,21 +222,24 @@ class CodeGenerator:
             lines.append(f'    _next.append(resolve("{actor}"))')
 
         lines.append("")
-        lines.append("    r['next'] = _next + r['next']")
-        lines.append("    return message")
+        lines.append('    with open(f"{_MSG_ROOT}/route/next", "w") as _f:')
+        lines.append('        _f.write("\\n".join(_next + _next_tail))')
+        lines.append("    return payload")
         lines.append("")
 
         return "\n".join(lines)
 
     def _generate_try_enter_router(self, router: Router) -> str:
         lines = []
-        lines.append(f"def {router.name}(message: dict) -> dict:")
+        lines.append(f"def {router.name}(payload: dict) -> dict:")
         lines.append('    """Try-enter router: sets _on_error header and inserts try body"""')
-        lines.append("    r = message['route']")
+        lines.append('    with open(f"{_MSG_ROOT}/route/next") as _f:')
+        lines.append("        _next_tail = _f.read().splitlines()")
         lines.append("    _next = []")
         lines.append("")
-        lines.append("    message.setdefault('headers', {})")
-        lines.append(f"    message['headers']['_on_error'] = resolve(\"{router.except_dispatch_name}\")")
+        lines.append('    _os.makedirs(f"{_MSG_ROOT}/headers", exist_ok=True)')
+        lines.append('    with open(f"{_MSG_ROOT}/headers/_on_error", "w") as _f:')
+        lines.append(f'        _f.write(resolve("{router.except_dispatch_name}"))')
         lines.append("")
 
         filtered_actors = [a for a in router.true_branch_actors if not a.startswith("end_")]
@@ -227,20 +247,25 @@ class CodeGenerator:
             lines.append(f'    _next.append(resolve("{actor}"))')
 
         lines.append("")
-        lines.append("    r['next'] = _next + r['next']")
-        lines.append("    return message")
+        lines.append('    with open(f"{_MSG_ROOT}/route/next", "w") as _f:')
+        lines.append('        _f.write("\\n".join(_next + _next_tail))')
+        lines.append("    return payload")
         lines.append("")
 
         return "\n".join(lines)
 
     def _generate_try_exit_router(self, router: Router) -> str:
         lines = []
-        lines.append(f"def {router.name}(message: dict) -> dict:")
+        lines.append(f"def {router.name}(payload: dict) -> dict:")
         lines.append('    """Try-exit router: clears _on_error header (success path)"""')
-        lines.append("    r = message['route']")
+        lines.append('    with open(f"{_MSG_ROOT}/route/next") as _f:')
+        lines.append("        _next_tail = _f.read().splitlines()")
         lines.append("    _next = []")
         lines.append("")
-        lines.append("    message.get('headers', {}).pop('_on_error', None)")
+        lines.append("    import os as _os_try_exit")
+        lines.append('    _on_error_path = f"{_MSG_ROOT}/headers/_on_error"')
+        lines.append("    if _os_try_exit.path.exists(_on_error_path):")
+        lines.append("        _os_try_exit.remove(_on_error_path)")
         lines.append("")
 
         filtered_finally = [a for a in router.finally_actors if not a.startswith("end_")]
@@ -252,23 +277,26 @@ class CodeGenerator:
             lines.append(f'    _next.append(resolve("{actor}"))')
 
         lines.append("")
-        lines.append("    r['next'] = _next + r['next']")
-        lines.append("    return message")
+        lines.append('    with open(f"{_MSG_ROOT}/route/next", "w") as _f:')
+        lines.append('        _f.write("\\n".join(_next + _next_tail))')
+        lines.append("    return payload")
         lines.append("")
 
         return "\n".join(lines)
 
     def _generate_except_dispatch_router(self, router: Router) -> str:
         lines = []
-        lines.append(f"def {router.name}(message: dict) -> dict:")
+        lines.append(f"def {router.name}(payload: dict) -> dict:")
         lines.append('    """Except-dispatch router: matches error type and routes to handler"""')
-        lines.append("    p = message['payload']")
-        lines.append("    r = message['route']")
+        lines.append("    p = payload")
+        lines.append('    with open(f"{_MSG_ROOT}/route/next") as _f:')
+        lines.append("        _next_tail = _f.read().splitlines()")
         lines.append("    _next = []")
         lines.append("")
-        lines.append("    _error = message.get('status', {}).get('error', {})")
-        lines.append("    _error_type = _error.get('type', '')")
-        lines.append("    _error_mro = _error.get('mro', [])")
+        lines.append('    with open(f"{_MSG_ROOT}/status/error/type") as _f:')
+        lines.append("        _error_type = _f.read().strip()")
+        lines.append('    with open(f"{_MSG_ROOT}/status/error/mro") as _f:')
+        lines.append("        _error_mro = _f.read().splitlines()")
         lines.append("    _all_types = [_error_type] + _error_mro")
         lines.append("")
 
@@ -289,7 +317,9 @@ class CodeGenerator:
                 first = False
 
                 # Handler body: clear error, apply mutations, add actors
-                lines.append("        message.get('status', {}).pop('error', None)")
+                lines.append(
+                    '        import shutil as _shutil_exc; _shutil_exc.rmtree(f"{_MSG_ROOT}/status/error", ignore_errors=True)'
+                )
                 for mutation in handler.mutations:
                     lines.append(f"        {mutation.code}")
                 filtered = [a for a in handler.actors if not a.startswith("end_")]
@@ -313,19 +343,21 @@ class CodeGenerator:
             lines.append(f'    _next.append(resolve("{actor}"))')
 
         lines.append("")
-        lines.append("    r['next'] = _next + r['next']")
-        lines.append("    return message")
+        lines.append('    with open(f"{_MSG_ROOT}/route/next", "w") as _f:')
+        lines.append('        _f.write("\\n".join(_next + _next_tail))')
+        lines.append("    return payload")
         lines.append("")
 
         return "\n".join(lines)
 
     def _generate_reraise_router(self, router: Router) -> str:
         lines = []
-        lines.append(f"def {router.name}(message: dict) -> dict:")
+        lines.append(f"def {router.name}(payload: dict) -> dict:")
         lines.append('    """Reraise router: raises RuntimeError for unhandled exceptions"""')
-        lines.append("    _error = message.get('status', {}).get('error', {})")
-        lines.append("    _error_type = _error.get('type', 'unknown')")
-        lines.append("    _error_msg = _error.get('message', 'unknown error')")
+        lines.append('    with open(f"{_MSG_ROOT}/status/error/type") as _f:')
+        lines.append("        _error_type = _f.read().strip() or 'unknown'")
+        lines.append('    with open(f"{_MSG_ROOT}/status/error/message") as _f:')
+        lines.append("        _error_msg = _f.read().strip() or 'unknown error'")
         lines.append('    raise RuntimeError(f"Unhandled exception {_error_type}: {_error_msg}")')
         lines.append("")
 
