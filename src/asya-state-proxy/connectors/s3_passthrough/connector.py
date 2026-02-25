@@ -7,9 +7,10 @@ Reads configuration from environment variables:
     AWS_ENDPOINT_URL  - Custom endpoint for MinIO/LocalStack (optional)
 """
 
+import io
 import logging
 import os
-from typing import BinaryIO, cast
+from typing import BinaryIO
 
 import boto3
 from asya_state_proxy.interface import KeyMeta, ListResult, StateProxyConnector
@@ -19,25 +20,20 @@ from botocore.exceptions import ClientError
 logger = logging.getLogger("asya.state-proxy")
 
 
-class _StreamingBodyWrapper:
-    """Wraps a botocore StreamingBody to expose a minimal BinaryIO read interface."""
+class _StreamingBodyWrapper(io.RawIOBase):
+    """Wraps a botocore StreamingBody as a proper RawIOBase for BinaryIO compatibility."""
 
     def __init__(self, streaming_body) -> None:
         self._body = streaming_body
 
-    def read(self, size: int = -1) -> bytes:
-        if size == -1:
-            return self._body.read()
-        return self._body.read(size)
+    def readinto(self, b):
+        data = self._body.read(len(b))
+        n = len(data)
+        b[:n] = data
+        return n
 
     def readable(self) -> bool:
         return True
-
-    def writable(self) -> bool:
-        return False
-
-    def seekable(self) -> bool:
-        return False
 
 
 class S3Passthrough(StateProxyConnector):
@@ -83,7 +79,7 @@ class S3Passthrough(StateProxyConnector):
         try:
             response = self._s3.get_object(Bucket=self._bucket, Key=full_key)
             logger.debug("read key=%s", key)
-            return cast(BinaryIO, _StreamingBodyWrapper(response["Body"]))
+            return _StreamingBodyWrapper(response["Body"])  # type: ignore[return-value]
         except ClientError as exc:
             code = exc.response["Error"]["Code"]
             if code in ("NoSuchKey", "404"):
@@ -96,7 +92,7 @@ class S3Passthrough(StateProxyConnector):
         extra_args: dict = {}
         if size is not None:
             extra_args["ContentLength"] = size
-        self._s3.upload_fileobj(data, self._bucket, full_key, ExtraArgs=extra_args if extra_args else None)
+        self._s3.upload_fileobj(data, self._bucket, full_key, ExtraArgs=extra_args)
         logger.debug("write key=%s size=%s", key, size)
 
     def exists(self, key: str) -> bool:

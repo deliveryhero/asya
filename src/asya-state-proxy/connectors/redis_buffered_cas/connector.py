@@ -81,7 +81,7 @@ class RedisBufferedCAS(StateProxyConnector):
 
     def list(self, key_prefix: str, delimiter: str = "/") -> ListResult:
         """List keys under the given prefix using SCAN."""
-        full_prefix = self._full_key(key_prefix) if key_prefix else (self._prefix + ":" if self._prefix else "")
+        full_prefix = self._full_key(key_prefix)
         pattern = f"{full_prefix}*"
         keys: list[str] = []
         prefixes_set: set[str] = set()
