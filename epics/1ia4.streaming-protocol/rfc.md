@@ -1,7 +1,8 @@
 # RFC: Streaming Protocol — Upstream Partial Events
 
-**Status**: Draft
+**Status**: Accepted
 **Date**: 2026-02-23
+**Updated**: 2026-02-25
 **Epic**: 1ia4.streaming-protocol
 **Depends on**: 1fbe.redesign-protocol-sidecar-runtime (HTTP-over-Unix-socket)
 
@@ -69,6 +70,20 @@ No intermediate actor is involved.
 
 ## 3. Architecture
 
+### Terminology layers
+
+| Layer | Runtime -> Sidecar | Sidecar -> Gateway | Gateway -> Client |
+|---|---|---|---|
+| Direction-based | `event: upstream` | — | — |
+| Direction-based | `event: downstream` | — | — |
+| Semantics-based | — | `POST /tasks/{id}/partial` | `event: partial` |
+| Semantics-based | — | `POST /tasks/{id}/progress` | `event: update` |
+
+The runtime-to-sidecar protocol uses **directional** naming (upstream/downstream)
+because the sidecar must decide where to route each event. The sidecar-to-gateway
+and gateway-to-client protocols use **semantic** naming (partial/update) because
+the data meaning matters more than direction at that layer.
+
 ### Event flow
 
 ```
@@ -78,7 +93,7 @@ Runtime (generator handler)
     v
 Sidecar
     |
-    |-- upstream events --> HTTP POST --> Gateway --> SSE to client
+    |-- upstream events --> POST /tasks/{id}/partial --> Gateway --> event: partial
     |
     |-- downstream events --> Queue --> Next actor
     |
@@ -109,19 +124,19 @@ events are not routable messages; they are ephemeral streaming data.
 
 ### Sidecar -> Gateway forwarding
 
-The sidecar forwards upstream events to the gateway using the **same HTTP
-client and retry logic** as progress reporting (`progress.Reporter`):
+The sidecar forwards upstream events to the gateway via `ForwardPartial()`
+in `progress.Reporter`:
 
 ```
-POST /tasks/{task_id}/stream
+POST /tasks/{task_id}/partial
 Content-Type: application/json
 
 {"payload": {"type": "text_delta", "delta": "The capital"}}
 ```
 
-This is fire-and-forget with best-effort retry (same as progress updates).
-If the gateway is unreachable, upstream events are dropped — they are
-ephemeral by design.
+Request body is limited to 1MB (`http.MaxBytesReader`). Errors are propagated
+to the caller (logged as warnings by the router). If the gateway is
+unreachable, partial events are dropped — they are ephemeral by design.
 
 ### Gateway -> Client delivery
 
@@ -130,12 +145,14 @@ The gateway receives upstream events and:
 1. Stores them in the task's event history (for late-joining SSE clients)
 2. Pushes them to connected SSE clients watching this task
 
-SSE clients receive:
+SSE clients receive partial events with `event: partial`:
 
 ```
-event: stream
-data: {"type": "text_delta", "delta": "The capital", "timestamp": "..."}
+event: partial
+data: {"type": "text_delta", "delta": "The capital"}
 ```
+
+Regular progress updates continue using `event: update` (unchanged).
 
 ---
 
@@ -201,10 +218,14 @@ when the route is exhausted — same as today.
 
 ## 6. Scope Boundary
 
-This RFC covers **only** the transport of upstream partial events from
-runtime to gateway. It does NOT cover:
+This RFC covers the transport of upstream partial events from
+runtime to gateway. Remaining work tracked within this epic:
 
-- Compiler support for `async for` / `yield from` (separate epic: agentic compiler)
-- Queue-based partial event routing (`ASYA_PARTIAL_EVENTS_ROUTE` — rejected)
+- Compiler restriction: reject `async for` / `yield from` across actor boundaries (task within this epic)
+- Integration test: full streaming path `runtime -> sidecar -> gateway -> SSE client` (task within this epic)
+
+Out of scope:
+
+- Queue-based partial event routing (`ASYA_PARTIAL_EVENTS_ROUTE` — rejected, see Section 2)
 - Client-side partial event assembly or rendering
 - Partial event filtering or transformation in intermediate actors

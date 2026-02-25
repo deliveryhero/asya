@@ -1,8 +1,10 @@
 ---
 title: "Streaming Protocol: Upstream Partial Events to Gateway"
+status: peeped
 priority: 2 # medium
 type: epic
 ---
+
 
 Implement upstream partial event streaming from generator handlers to the gateway for real-time UI updates (LLM token streaming, progress indicators). Upstream events are transport-level — they flow directly from sidecar to gateway via HTTP, never entering message queues.
 
