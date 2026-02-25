@@ -671,19 +671,24 @@ func (r *Router) ProcessMessage(ctx context.Context, queueMsg transport.QueueMes
 
 	currentActor := msg.Route.GetCurrentActor()
 	if currentActor != r.cfg.ActorName {
-		slog.Warn("Route mismatch: message routed to wrong actor",
-			"expected", r.cfg.ActorName, "actual", currentActor, "id", msg.ID)
+		// Skip validation if a route override maps currentActor to this actor (ADR-3)
+		if !r.isOverrideTarget(currentActor, msg.Headers) {
+			slog.Warn("Route mismatch: message routed to wrong actor",
+				"expected", r.cfg.ActorName, "actual", currentActor, "id", msg.ID)
 
-		if r.metrics != nil {
-			r.metrics.RecordMessageProcessed(r.actorName, "error")
-			r.metrics.RecordMessageFailed(r.actorName, "route_mismatch")
-			r.metrics.RecordProcessingDuration(r.actorName, time.Since(startTime))
+			if r.metrics != nil {
+				r.metrics.RecordMessageProcessed(r.actorName, "error")
+				r.metrics.RecordMessageFailed(r.actorName, "route_mismatch")
+				r.metrics.RecordProcessingDuration(r.actorName, time.Since(startTime))
+			}
+
+			errorMsg := fmt.Sprintf("Route mismatch: message routed to wrong actor (expected: %s, actual: %s)",
+				r.cfg.ActorName, currentActor)
+			_ = r.sendToSumpQueue(ctx, queueMsg.Body, errorMsg)
+			return nil
 		}
-
-		errorMsg := fmt.Sprintf("Route mismatch: message routed to wrong actor (expected: %s, actual: %s)",
-			r.cfg.ActorName, currentActor)
-		_ = r.sendToSumpQueue(ctx, queueMsg.Body, errorMsg)
-		return nil
+		slog.Info("Route override accepted: actor identity matches override target",
+			"route_actor", currentActor, "this_actor", r.cfg.ActorName, "id", msg.ID)
 	}
 
 	if r.progressReporter != nil {
@@ -766,8 +771,33 @@ func (r *Router) routeResponse(ctx context.Context, id string, parentID *string,
 	actorToSend := route.GetCurrentActor()
 
 	if actorToSend != "" {
-		// There's a next actor in the route
-		destinationQueue = r.resolveQueueName(actorToSend)
+		// Check for route override before resolving queue name
+		resolvedActor := actorToSend
+		if target, ok := r.lookupRouteOverride(actorToSend, headers); ok {
+			slog.Info("Route override applied",
+				"original", actorToSend,
+				"target", target,
+				"by", r.actorName,
+			)
+			resolvedActor = target
+
+			// Stamp x-asya-route-resolved for audit trail
+			if headers == nil {
+				headers = make(map[string]interface{})
+			}
+			resolved := headers["x-asya-route-resolved"]
+			resolvedMap, ok := resolved.(map[string]interface{})
+			if !ok {
+				resolvedMap = make(map[string]interface{})
+			}
+			resolvedMap[actorToSend] = map[string]interface{}{
+				"target": target,
+				"by":     r.actorName,
+			}
+			headers["x-asya-route-resolved"] = resolvedMap
+		}
+
+		destinationQueue = r.resolveQueueName(resolvedActor)
 		msgType = "routing"
 	} else {
 		// No more actors, route to x-sink automatically
@@ -1246,6 +1276,57 @@ func (r *Router) reportFinalStatus(ctx context.Context, msgID string, resultPayl
 	slog.Info("Reported final status to gateway", "id", msgID, "status", status,
 		"actor", currentActorName, "actor_idx", currentActorIdx)
 	return nil
+}
+
+// lookupRouteOverride checks if headers contain an x-asya-route-override mapping
+// for the given actor name. Returns the override target and true if found.
+//
+// Handles two representations of the override value:
+//   - map[string]interface{} — when headers come from a parsed Message (json.Unmarshal)
+//   - json.RawMessage — when headers come from a RuntimeResponse (raw bytes)
+func (r *Router) lookupRouteOverride(actorName string, headers map[string]interface{}) (string, bool) {
+	if headers == nil {
+		return "", false
+	}
+	overrides, ok := headers["x-asya-route-override"]
+	if !ok {
+		return "", false
+	}
+
+	// Try direct map assertion (from parsed Message.Headers)
+	if overrideMap, ok := overrides.(map[string]interface{}); ok {
+		target, ok := overrideMap[actorName]
+		if !ok {
+			return "", false
+		}
+		targetStr, ok := target.(string)
+		if !ok || targetStr == "" {
+			return "", false
+		}
+		return targetStr, true
+	}
+
+	// Try json.RawMessage (from RuntimeResponse.Headers copied to map[string]interface{})
+	if raw, ok := overrides.(json.RawMessage); ok {
+		var overrideMap map[string]string
+		if err := json.Unmarshal(raw, &overrideMap); err != nil {
+			return "", false
+		}
+		target, ok := overrideMap[actorName]
+		if !ok || target == "" {
+			return "", false
+		}
+		return target, true
+	}
+
+	return "", false
+}
+
+// isOverrideTarget checks if a route override maps the given route actor to this
+// sidecar's actor name. Used to skip actor identity validation for overridden messages.
+func (r *Router) isOverrideTarget(routeActor string, headers map[string]interface{}) bool {
+	target, ok := r.lookupRouteOverride(routeActor, headers)
+	return ok && target == r.cfg.ActorName
 }
 
 // resolveQueueName resolves an actor name to a queue name based on transport type

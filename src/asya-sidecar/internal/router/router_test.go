@@ -2618,3 +2618,716 @@ func TestRouter_SendToSinkQueue_HasStatus(t *testing.T) {
 		t.Errorf("Status.Reason = %q, want %q", sentMsg.Status.Reason, messages.ReasonCompleted)
 	}
 }
+
+// --- Route Override Tests ---
+
+func TestRouter_LookupRouteOverride(t *testing.T) {
+	router := &Router{
+		cfg: &config.Config{ActorName: "model-v2"},
+	}
+
+	tests := []struct {
+		name       string
+		actorName  string
+		headers    map[string]interface{}
+		wantTarget string
+		wantOK     bool
+	}{
+		{
+			name:      "override found",
+			actorName: "model",
+			headers: map[string]interface{}{
+				"x-asya-route-override": map[string]interface{}{
+					"model": "model-v2",
+				},
+			},
+			wantTarget: "model-v2",
+			wantOK:     true,
+		},
+		{
+			name:      "no override header",
+			actorName: "model",
+			headers:   map[string]interface{}{},
+			wantOK:    false,
+		},
+		{
+			name:      "nil headers",
+			actorName: "model",
+			headers:   nil,
+			wantOK:    false,
+		},
+		{
+			name:      "override for different actor - ignored",
+			actorName: "model",
+			headers: map[string]interface{}{
+				"x-asya-route-override": map[string]interface{}{
+					"postprocess": "postprocess-v2",
+				},
+			},
+			wantOK: false,
+		},
+		{
+			name:      "empty target string - ignored",
+			actorName: "model",
+			headers: map[string]interface{}{
+				"x-asya-route-override": map[string]interface{}{
+					"model": "",
+				},
+			},
+			wantOK: false,
+		},
+		{
+			name:      "non-string target - ignored",
+			actorName: "model",
+			headers: map[string]interface{}{
+				"x-asya-route-override": map[string]interface{}{
+					"model": 42,
+				},
+			},
+			wantOK: false,
+		},
+		{
+			name:      "malformed override value - not a map",
+			actorName: "model",
+			headers: map[string]interface{}{
+				"x-asya-route-override": "not-a-map",
+			},
+			wantOK: false,
+		},
+		{
+			name:      "multiple overrides - correct one selected",
+			actorName: "model",
+			headers: map[string]interface{}{
+				"x-asya-route-override": map[string]interface{}{
+					"model":       "model-v2",
+					"postprocess": "postprocess-v2",
+				},
+			},
+			wantTarget: "model-v2",
+			wantOK:     true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			target, ok := router.lookupRouteOverride(tt.actorName, tt.headers)
+			if ok != tt.wantOK {
+				t.Errorf("lookupRouteOverride() ok = %v, want %v", ok, tt.wantOK)
+			}
+			if target != tt.wantTarget {
+				t.Errorf("lookupRouteOverride() target = %q, want %q", target, tt.wantTarget)
+			}
+		})
+	}
+}
+
+func TestRouter_IsOverrideTarget(t *testing.T) {
+	router := &Router{
+		cfg: &config.Config{ActorName: "model-v2"},
+	}
+
+	tests := []struct {
+		name       string
+		routeActor string
+		headers    map[string]interface{}
+		want       bool
+	}{
+		{
+			name:       "override maps to this actor",
+			routeActor: "model",
+			headers: map[string]interface{}{
+				"x-asya-route-override": map[string]interface{}{
+					"model": "model-v2",
+				},
+			},
+			want: true,
+		},
+		{
+			name:       "override maps to different actor",
+			routeActor: "model",
+			headers: map[string]interface{}{
+				"x-asya-route-override": map[string]interface{}{
+					"model": "model-v3",
+				},
+			},
+			want: false,
+		},
+		{
+			name:       "no override",
+			routeActor: "model",
+			headers:    map[string]interface{}{},
+			want:       false,
+		},
+		{
+			name:       "nil headers",
+			routeActor: "model",
+			headers:    nil,
+			want:       false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := router.isOverrideTarget(tt.routeActor, tt.headers)
+			if got != tt.want {
+				t.Errorf("isOverrideTarget() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestRouter_RouteOverride_Integration(t *testing.T) {
+	tests := []struct {
+		name              string
+		actorName         string
+		inputHeaders      map[string]interface{}
+		inputRoute        messages.Route
+		expectedDestQueue string
+		expectResolved    bool
+	}{
+		{
+			name:      "override routes to alternate queue",
+			actorName: "prep",
+			inputHeaders: map[string]interface{}{
+				"x-asya-route-override": map[string]interface{}{
+					"model": "model-v2",
+				},
+			},
+			inputRoute: messages.Route{
+				Prev: []string{},
+				Curr: "prep",
+				Next: []string{"model", "post"},
+			},
+			expectedDestQueue: "asya-default-model-v2",
+			expectResolved:    true,
+		},
+		{
+			name:      "no override - normal routing",
+			actorName: "prep",
+			inputHeaders: map[string]interface{}{
+				"trace_id": "abc-123",
+			},
+			inputRoute: messages.Route{
+				Prev: []string{},
+				Curr: "prep",
+				Next: []string{"model", "post"},
+			},
+			expectedDestQueue: "asya-default-model",
+			expectResolved:    false,
+		},
+		{
+			name:      "override for non-matching actor - ignored",
+			actorName: "prep",
+			inputHeaders: map[string]interface{}{
+				"x-asya-route-override": map[string]interface{}{
+					"postprocess": "postprocess-v2",
+				},
+			},
+			inputRoute: messages.Route{
+				Prev: []string{},
+				Curr: "prep",
+				Next: []string{"model", "post"},
+			},
+			expectedDestQueue: "asya-default-model",
+			expectResolved:    false,
+		},
+		{
+			name:         "nil headers - normal routing",
+			actorName:    "prep",
+			inputHeaders: nil,
+			inputRoute: messages.Route{
+				Prev: []string{},
+				Curr: "prep",
+				Next: []string{"model"},
+			},
+			expectedDestQueue: "asya-default-model",
+			expectResolved:    false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Convert inputHeaders to map[string]json.RawMessage for RuntimeResponse
+			var runtimeHeaders map[string]json.RawMessage
+			if tt.inputHeaders != nil {
+				runtimeHeaders = make(map[string]json.RawMessage, len(tt.inputHeaders))
+				for k, v := range tt.inputHeaders {
+					raw, _ := json.Marshal(v)
+					runtimeHeaders[k] = raw
+				}
+			}
+
+			socketPath := startMockRuntime(t, func(body []byte) ([]runtime.RuntimeResponse, int) {
+				return []runtime.RuntimeResponse{
+					{
+						Payload: json.RawMessage(`{"result": "ok"}`),
+						Route:   tt.inputRoute.IncrementCurrent(),
+						Headers: runtimeHeaders,
+					},
+				}, http.StatusOK
+			})
+
+			cfg := &config.Config{
+				ActorName:     tt.actorName,
+				Namespace:     "default",
+				SinkQueue:     testQueueSink,
+				SumpQueue:     testQueueSump,
+				TransportType: "rabbitmq",
+			}
+
+			mockTr := &mockTransport{}
+			runtimeClient := runtime.NewClient(socketPath, 2*time.Second)
+
+			router := &Router{
+				cfg:           cfg,
+				transport:     mockTr,
+				runtimeClient: runtimeClient,
+				actorName:     cfg.ActorName,
+				sinkQueue:     cfg.SinkQueue,
+				sumpQueue:     cfg.SumpQueue,
+				metrics:       metrics.NewMetrics("test", []config.CustomMetricConfig{}),
+			}
+
+			inputMsg := messages.Message{
+				ID:      "test-override-123",
+				Route:   tt.inputRoute,
+				Payload: json.RawMessage(`{"input": "test"}`),
+				Headers: tt.inputHeaders,
+			}
+			msgBody, err := json.Marshal(inputMsg)
+			if err != nil {
+				t.Fatalf("Failed to marshal: %v", err)
+			}
+
+			err = router.ProcessMessage(context.Background(), transport.QueueMessage{
+				ID:   "msg-1",
+				Body: msgBody,
+			})
+			if err != nil {
+				t.Fatalf("ProcessMessage failed: %v", err)
+			}
+
+			if len(mockTr.sentMessages) != 1 {
+				t.Fatalf("Expected 1 sent message, got %d", len(mockTr.sentMessages))
+			}
+
+			if mockTr.sentMessages[0].queue != tt.expectedDestQueue {
+				t.Errorf("Sent to queue %q, expected %q",
+					mockTr.sentMessages[0].queue, tt.expectedDestQueue)
+			}
+
+			var sentMsg messages.Message
+			if err := json.Unmarshal(mockTr.sentMessages[0].body, &sentMsg); err != nil {
+				t.Fatalf("Failed to unmarshal sent message: %v", err)
+			}
+
+			if tt.expectResolved {
+				resolved, ok := sentMsg.Headers["x-asya-route-resolved"]
+				if !ok {
+					t.Fatal("Expected x-asya-route-resolved header")
+				}
+				resolvedMap, ok := resolved.(map[string]interface{})
+				if !ok {
+					t.Fatalf("x-asya-route-resolved should be a map, got %T", resolved)
+				}
+				if len(resolvedMap) == 0 {
+					t.Error("x-asya-route-resolved should have at least one entry")
+				}
+			} else {
+				if sentMsg.Headers != nil {
+					if _, ok := sentMsg.Headers["x-asya-route-resolved"]; ok {
+						t.Error("x-asya-route-resolved should NOT be set when no override is applied")
+					}
+				}
+			}
+		})
+	}
+}
+
+func TestRouter_RouteOverride_ActorValidation(t *testing.T) {
+	tests := []struct {
+		name              string
+		actorName         string
+		inputRoute        messages.Route
+		inputHeaders      map[string]interface{}
+		shouldCallRuntime bool
+		expectedDestQueue string
+	}{
+		{
+			name:      "override matches actor - accepted",
+			actorName: "model-v2",
+			inputRoute: messages.Route{
+				Prev: []string{"prep"},
+				Curr: "model",
+				Next: []string{"post"},
+			},
+			inputHeaders: map[string]interface{}{
+				"x-asya-route-override": map[string]interface{}{
+					"model": "model-v2",
+				},
+			},
+			shouldCallRuntime: true,
+			expectedDestQueue: "asya-default-post",
+		},
+		{
+			name:      "override maps to different actor - rejected",
+			actorName: "model-v2",
+			inputRoute: messages.Route{
+				Prev: []string{"prep"},
+				Curr: "model",
+				Next: []string{"post"},
+			},
+			inputHeaders: map[string]interface{}{
+				"x-asya-route-override": map[string]interface{}{
+					"model": "model-v3",
+				},
+			},
+			shouldCallRuntime: false,
+			expectedDestQueue: "asya-default-x-sump",
+		},
+		{
+			name:      "no override and mismatch - rejected",
+			actorName: "model-v2",
+			inputRoute: messages.Route{
+				Prev: []string{"prep"},
+				Curr: "model",
+				Next: []string{"post"},
+			},
+			inputHeaders:      nil,
+			shouldCallRuntime: false,
+			expectedDestQueue: "asya-default-x-sump",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			runtimeCalled := false
+			socketPath := startMockRuntime(t, func(body []byte) ([]runtime.RuntimeResponse, int) {
+				runtimeCalled = true
+				return []runtime.RuntimeResponse{
+					{
+						Payload: json.RawMessage(`{"result": "ok"}`),
+						Route:   tt.inputRoute.IncrementCurrent(),
+					},
+				}, http.StatusOK
+			})
+
+			cfg := &config.Config{
+				ActorName:     tt.actorName,
+				Namespace:     "default",
+				SinkQueue:     testQueueSink,
+				SumpQueue:     testQueueSump,
+				TransportType: "rabbitmq",
+			}
+
+			mockTr := &mockTransport{}
+			runtimeClient := runtime.NewClient(socketPath, 2*time.Second)
+
+			router := &Router{
+				cfg:           cfg,
+				transport:     mockTr,
+				runtimeClient: runtimeClient,
+				actorName:     cfg.ActorName,
+				sinkQueue:     cfg.SinkQueue,
+				sumpQueue:     cfg.SumpQueue,
+				metrics:       metrics.NewMetrics("test", []config.CustomMetricConfig{}),
+			}
+
+			inputMsg := messages.Message{
+				ID:      "test-validation-123",
+				Route:   tt.inputRoute,
+				Payload: json.RawMessage(`{"input": "test"}`),
+				Headers: tt.inputHeaders,
+			}
+			msgBody, err := json.Marshal(inputMsg)
+			if err != nil {
+				t.Fatalf("Failed to marshal: %v", err)
+			}
+
+			err = router.ProcessMessage(context.Background(), transport.QueueMessage{
+				ID:   "msg-1",
+				Body: msgBody,
+			})
+			if err != nil {
+				t.Fatalf("ProcessMessage failed: %v", err)
+			}
+
+			time.Sleep(50 * time.Millisecond) // Wait for runtime call to complete
+
+			if tt.shouldCallRuntime && !runtimeCalled {
+				t.Error("Expected runtime to be called, but it was not")
+			}
+			if !tt.shouldCallRuntime && runtimeCalled {
+				t.Error("Expected runtime NOT to be called, but it was")
+			}
+
+			if len(mockTr.sentMessages) != 1 {
+				t.Fatalf("Expected 1 sent message, got %d", len(mockTr.sentMessages))
+			}
+			if mockTr.sentMessages[0].queue != tt.expectedDestQueue {
+				t.Errorf("Sent to queue %q, expected %q",
+					mockTr.sentMessages[0].queue, tt.expectedDestQueue)
+			}
+		})
+	}
+}
+
+func TestRouter_RouteOverride_FanOut(t *testing.T) {
+	overrideJSON := json.RawMessage(`{"model":"model-v2"}`)
+	socketPath := startMockRuntime(t, func(body []byte) ([]runtime.RuntimeResponse, int) {
+		inputRoute := messages.Route{
+			Prev: []string{},
+			Curr: "prep",
+			Next: []string{"model", "post"},
+		}
+		shiftedRoute := inputRoute.IncrementCurrent()
+		return []runtime.RuntimeResponse{
+			{
+				Payload: json.RawMessage(`{"result": "item-0"}`),
+				Route:   shiftedRoute,
+				Headers: map[string]json.RawMessage{
+					"x-asya-route-override": overrideJSON,
+				},
+			},
+			{
+				Payload: json.RawMessage(`{"result": "item-1"}`),
+				Route:   shiftedRoute,
+				Headers: map[string]json.RawMessage{
+					"x-asya-route-override": overrideJSON,
+				},
+			},
+			{
+				Payload: json.RawMessage(`{"result": "item-2"}`),
+				Route:   shiftedRoute,
+				Headers: map[string]json.RawMessage{
+					"x-asya-route-override": overrideJSON,
+				},
+			},
+		}, http.StatusOK
+	})
+
+	cfg := &config.Config{
+		ActorName:     "prep",
+		Namespace:     "default",
+		SinkQueue:     testQueueSink,
+		SumpQueue:     testQueueSump,
+		TransportType: "rabbitmq",
+	}
+
+	mockTr := &mockTransport{}
+	runtimeClient := runtime.NewClient(socketPath, 2*time.Second)
+
+	router := &Router{
+		cfg:           cfg,
+		transport:     mockTr,
+		runtimeClient: runtimeClient,
+		actorName:     cfg.ActorName,
+		sinkQueue:     cfg.SinkQueue,
+		sumpQueue:     cfg.SumpQueue,
+		metrics:       metrics.NewMetrics("test", []config.CustomMetricConfig{}),
+	}
+
+	inputMsg := messages.Message{
+		ID: "test-fanout-override-123",
+		Route: messages.Route{
+			Prev: []string{},
+			Curr: "prep",
+			Next: []string{"model", "post"},
+		},
+		Payload: json.RawMessage(`{"input": "test"}`),
+		Headers: map[string]interface{}{
+			"x-asya-route-override": map[string]interface{}{
+				"model": "model-v2",
+			},
+		},
+	}
+	msgBody, err := json.Marshal(inputMsg)
+	if err != nil {
+		t.Fatalf("Failed to marshal: %v", err)
+	}
+
+	err = router.ProcessMessage(context.Background(), transport.QueueMessage{
+		ID:   "msg-1",
+		Body: msgBody,
+	})
+	if err != nil {
+		t.Fatalf("ProcessMessage failed: %v", err)
+	}
+
+	if len(mockTr.sentMessages) != 3 {
+		t.Fatalf("Expected 3 fanout messages, got %d", len(mockTr.sentMessages))
+	}
+
+	for i, sent := range mockTr.sentMessages {
+		if sent.queue != "asya-default-model-v2" {
+			t.Errorf("Fanout message %d sent to %q, expected %q",
+				i, sent.queue, "asya-default-model-v2")
+		}
+
+		var sentMsg messages.Message
+		if err := json.Unmarshal(sent.body, &sentMsg); err != nil {
+			t.Fatalf("Failed to unmarshal fanout message %d: %v", i, err)
+		}
+
+		resolved, ok := sentMsg.Headers["x-asya-route-resolved"]
+		if !ok {
+			t.Errorf("Fanout message %d missing x-asya-route-resolved", i)
+			continue
+		}
+		resolvedMap, ok := resolved.(map[string]interface{})
+		if !ok {
+			t.Errorf("Fanout message %d x-asya-route-resolved is not a map", i)
+			continue
+		}
+		entry, ok := resolvedMap["model"]
+		if !ok {
+			t.Errorf("Fanout message %d x-asya-route-resolved missing 'model' entry", i)
+			continue
+		}
+		entryMap, ok := entry.(map[string]interface{})
+		if !ok {
+			t.Errorf("Fanout message %d resolution entry is not a map", i)
+			continue
+		}
+		if entryMap["target"] != "model-v2" {
+			t.Errorf("Fanout message %d resolution target = %v, want model-v2", i, entryMap["target"])
+		}
+		if entryMap["by"] != "prep" {
+			t.Errorf("Fanout message %d resolution by = %v, want prep", i, entryMap["by"])
+		}
+	}
+
+	var msg0 messages.Message
+	if err := json.Unmarshal(mockTr.sentMessages[0].body, &msg0); err != nil {
+		t.Fatalf("unmarshal msg 0: %v", err)
+	}
+	if msg0.ID != "test-fanout-override-123" {
+		t.Errorf("Fanout index 0 should keep original ID, got %q", msg0.ID)
+	}
+	if msg0.ParentID != nil {
+		t.Errorf("Fanout index 0 should have nil ParentID, got %v", *msg0.ParentID)
+	}
+
+	for i := 1; i < 3; i++ {
+		var msgN messages.Message
+		if err := json.Unmarshal(mockTr.sentMessages[i].body, &msgN); err != nil {
+			t.Fatalf("unmarshal msg %d: %v", i, err)
+		}
+		if msgN.ID == "test-fanout-override-123" {
+			t.Errorf("Fanout index %d should have new UUID, got original ID", i)
+		}
+		if msgN.ParentID == nil || *msgN.ParentID != "test-fanout-override-123" {
+			t.Errorf("Fanout index %d ParentID should be original ID", i)
+		}
+	}
+}
+
+func TestRouter_RouteOverride_ResolvedHeaderAuditTrail(t *testing.T) {
+	socketPath := startMockRuntime(t, func(body []byte) ([]runtime.RuntimeResponse, int) {
+		return []runtime.RuntimeResponse{
+			{
+				Payload: json.RawMessage(`{"result": "ok"}`),
+				Route: messages.Route{
+					Prev: []string{"prep"},
+					Curr: "model",
+					Next: []string{"post"},
+				},
+				Headers: map[string]json.RawMessage{
+					"x-asya-route-override": json.RawMessage(`{"model":"model-v2"}`),
+				},
+			},
+		}, http.StatusOK
+	})
+
+	cfg := &config.Config{
+		ActorName:     "prep",
+		Namespace:     "default",
+		SinkQueue:     testQueueSink,
+		SumpQueue:     testQueueSump,
+		TransportType: "sqs",
+	}
+
+	mockTr := &mockTransport{}
+	runtimeClient := runtime.NewClient(socketPath, 2*time.Second)
+
+	router := &Router{
+		cfg:           cfg,
+		transport:     mockTr,
+		runtimeClient: runtimeClient,
+		actorName:     cfg.ActorName,
+		sinkQueue:     cfg.SinkQueue,
+		sumpQueue:     cfg.SumpQueue,
+		metrics:       metrics.NewMetrics("test", []config.CustomMetricConfig{}),
+	}
+
+	inputMsg := messages.Message{
+		ID: "test-audit-123",
+		Route: messages.Route{
+			Prev: []string{},
+			Curr: "prep",
+			Next: []string{"model", "post"},
+		},
+		Payload: json.RawMessage(`{"input": "test"}`),
+	}
+	msgBody, _ := json.Marshal(inputMsg)
+
+	err := router.ProcessMessage(context.Background(), transport.QueueMessage{
+		ID:   "msg-1",
+		Body: msgBody,
+	})
+	if err != nil {
+		t.Fatalf("ProcessMessage failed: %v", err)
+	}
+
+	if len(mockTr.sentMessages) != 1 {
+		t.Fatalf("Expected 1 message, got %d", len(mockTr.sentMessages))
+	}
+
+	if mockTr.sentMessages[0].queue != "asya-default-model-v2" {
+		t.Errorf("Queue = %q, want asya-default-model-v2", mockTr.sentMessages[0].queue)
+	}
+
+	var sentMsg messages.Message
+	if err := json.Unmarshal(mockTr.sentMessages[0].body, &sentMsg); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+
+	resolved, ok := sentMsg.Headers["x-asya-route-resolved"]
+	if !ok {
+		t.Fatal("Missing x-asya-route-resolved")
+	}
+
+	resolvedMap, ok := resolved.(map[string]interface{})
+	if !ok {
+		t.Fatalf("x-asya-route-resolved is %T, want map", resolved)
+	}
+
+	entry, ok := resolvedMap["model"]
+	if !ok {
+		t.Fatal("Missing 'model' entry in x-asya-route-resolved")
+	}
+
+	entryMap, ok := entry.(map[string]interface{})
+	if !ok {
+		t.Fatalf("Resolution entry is %T, want map", entry)
+	}
+
+	if entryMap["target"] != "model-v2" {
+		t.Errorf("target = %v, want model-v2", entryMap["target"])
+	}
+	if entryMap["by"] != "prep" {
+		t.Errorf("by = %v, want prep", entryMap["by"])
+	}
+
+	override, ok := sentMsg.Headers["x-asya-route-override"]
+	if !ok {
+		t.Fatal("x-asya-route-override should propagate through pipeline")
+	}
+	overrideMap, ok := override.(map[string]interface{})
+	if !ok {
+		t.Fatalf("x-asya-route-override is %T, want map", override)
+	}
+	if overrideMap["model"] != "model-v2" {
+		t.Errorf("Override should be preserved, got %v", overrideMap["model"])
+	}
+}
