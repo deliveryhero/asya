@@ -4,6 +4,7 @@ priority: 2 # medium
 type: task
 ---
 
+
 Add an integration test (Docker Compose) that validates the full partial event
 streaming pipeline end-to-end:
 
