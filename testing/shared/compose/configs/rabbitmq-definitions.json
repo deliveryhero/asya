@@ -74,6 +74,7 @@
       "arguments": {}
     },
     { "vhost": "/", "name": "asya-default-test-invalid-route", "durable": true, "auto_delete": false, "arguments": {} },
+    { "vhost": "/", "name": "asya-default-test-echo-v2", "durable": true, "auto_delete": false, "arguments": {} },
     { "vhost": "/", "name": "asya-default-test-retry-fail", "durable": true, "auto_delete": false, "arguments": {} },
     {
       "vhost": "/",
@@ -314,6 +315,14 @@
       "destination": "asya-default-test-invalid-route",
       "destination_type": "queue",
       "routing_key": "test-invalid-route",
+      "arguments": {}
+    },
+    {
+      "source": "asya",
+      "vhost": "/",
+      "destination": "asya-default-test-echo-v2",
+      "destination_type": "queue",
+      "routing_key": "test-echo-v2",
       "arguments": {}
     },
     {
