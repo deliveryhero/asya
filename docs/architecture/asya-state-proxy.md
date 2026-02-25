@@ -184,6 +184,166 @@ files = os.listdir("/state/weights/")
 os.remove("/state/cache/stale.json")
 ```
 
+## Limitations and Compatibility
+
+The state proxy works by patching Python builtins at the interpreter level. This
+means it intercepts **Python-level** file operations but cannot intercept
+**C-level** system calls made by native extensions.
+
+### What is patched
+
+| Python API | Patched | Notes |
+|------------|---------|-------|
+| `builtins.open()` | ✅ | Primary file I/O — most libraries use this |
+| `os.stat()` | ✅ | Returns synthetic `stat_result` (see below) |
+| `os.path.exists()` | ✅ | Works via patched `os.stat()` internally |
+| `os.path.isfile()` / `os.path.isdir()` | ✅ | Works via patched `os.stat()` internally |
+| `os.path.getsize()` | ✅ | Works via patched `os.stat()` internally |
+| `os.listdir()` | ✅ | Lists keys from connector |
+| `os.remove()` / `os.unlink()` | ✅ | Deletes key via connector |
+| `os.makedirs()` | ✅ | No-op for mount paths (flat key-value store) |
+
+### What is NOT patched
+
+| Python API | Patched | Workaround |
+|------------|---------|------------|
+| `os.open()` | ❌ | Use `builtins.open()` instead |
+| `os.rename()` / `os.replace()` | ❌ | Read + write + delete manually |
+| `os.scandir()` | ❌ | Use `os.listdir()` |
+| `os.walk()` | ❌ | Use `os.listdir()` recursively |
+| `os.chmod()` / `os.chown()` | ❌ | Not applicable (no real filesystem) |
+| `mmap.mmap()` | ❌ | Read into `io.BytesIO` instead |
+| `pathlib.Path.open()` | ❌ | Calls `io.open()` internally, not `builtins.open()` |
+| `pathlib.Path.read_bytes()` | ❌ | Use `open(path, "rb")` instead |
+| `shutil.copy2()` | ❌ | Fails copying filesystem metadata |
+
+### Filesystem metadata
+
+`os.stat()` returns a synthetic `os.stat_result` with limited fields:
+
+| Field | Value | Real? |
+|-------|-------|-------|
+| `st_size` | Actual content size | ✅ |
+| `st_mode` | `0o644` (file) / `0o755` (dir) | ❌ Synthetic |
+| `st_uid` / `st_gid` | Current process user | ❌ Synthetic |
+| `st_ino` | `0` | ❌ Not available |
+| `st_dev` | `0` | ❌ Not available |
+| `st_nlink` | `1` | ❌ Always 1 |
+| `st_atime` / `st_mtime` / `st_ctime` | `0` | ❌ Not available |
+
+Libraries that depend on modification times (e.g. caching based on `mtime`) will
+not work correctly.
+
+### Libraries that work
+
+Any pure-Python library that reads or writes via `builtins.open()` works
+transparently:
+
+```python
+import json, csv, pickle, configparser
+
+# json — uses open() internally
+with open("/state/meta/config.json") as f:
+    config = json.load(f)
+
+# csv — wraps a file object from open()
+with open("/state/meta/data.csv") as f:
+    reader = csv.reader(f)
+    rows = list(reader)
+
+# pickle — uses open() in binary mode
+with open("/state/meta/model.pkl", "rb") as f:
+    model = pickle.load(f)
+
+# yaml (PyYAML) — wraps a file object from open()
+import yaml
+with open("/state/meta/spec.yaml") as f:
+    spec = yaml.safe_load(f)
+
+# PIL/Pillow — pass a file object (not a path string)
+from PIL import Image
+with open("/state/meta/photo.png", "rb") as f:
+    img = Image.open(f)
+    img.load()  # Force read before file closes
+```
+
+### Libraries that do NOT work (with path strings)
+
+Libraries with C extensions that perform their own system-level I/O bypass the
+Python-level patch:
+
+```python
+# These will FAIL — they use C-level file I/O, not builtins.open()
+import pandas as pd
+df = pd.read_parquet("/state/meta/data.parquet")    # pyarrow C extension
+df = pd.read_csv("/state/meta/data.csv")            # C parser by default
+
+import torch
+model = torch.load("/state/meta/model.pt")          # C extension
+
+import numpy as np
+arr = np.load("/state/meta/array.npy")              # C extension
+
+import h5py
+f = h5py.File("/state/meta/data.h5")                # HDF5 C library
+
+import cv2
+img = cv2.imread("/state/meta/photo.png")           # OpenCV C library
+```
+
+### Workaround: read into BytesIO
+
+Read the data through `open()` first, then pass an `io.BytesIO` buffer to the
+library:
+
+```python
+import io
+
+# pandas
+with open("/state/meta/data.parquet", "rb") as f:
+    df = pd.read_parquet(io.BytesIO(f.read()))
+
+# pandas CSV (force Python parser, or use BytesIO)
+with open("/state/meta/data.csv", "rb") as f:
+    df = pd.read_csv(io.BytesIO(f.read()))
+
+# torch
+with open("/state/meta/model.pt", "rb") as f:
+    model = torch.load(io.BytesIO(f.read()))
+
+# numpy
+with open("/state/meta/array.npy", "rb") as f:
+    arr = np.load(io.BytesIO(f.read()))
+
+# Pillow (already works with file objects)
+with open("/state/meta/photo.png", "rb") as f:
+    img = Image.open(io.BytesIO(f.read()))
+```
+
+For writes, buffer first and write through `open()`:
+
+```python
+# pandas to parquet
+buf = io.BytesIO()
+df.to_parquet(buf)
+with open("/state/meta/data.parquet", "wb") as f:
+    f.write(buf.getvalue())
+
+# torch save
+buf = io.BytesIO()
+torch.save(model.state_dict(), buf)
+with open("/state/meta/model.pt", "wb") as f:
+    f.write(buf.getvalue())
+```
+
+### Directory semantics
+
+The state proxy is a flat key-value store, not a real filesystem. Paths like
+`/state/meta/subdir/file.txt` are stored as the key `subdir/file.txt` — there is
+no actual `subdir/` directory. `os.makedirs()` is a no-op for mount paths.
+`os.listdir()` uses the connector's prefix-based listing to simulate directory
+entries.
+
 ## HTTP Protocol
 
 Source: `src/asya-state-proxy/asya_state_proxy/server.py`
