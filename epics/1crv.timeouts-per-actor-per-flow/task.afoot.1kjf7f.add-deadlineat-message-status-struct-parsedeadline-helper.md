@@ -2,7 +2,11 @@
 title: Add DeadlineAt to message Status struct and ParseDeadline helper
 priority: 2 # medium
 type: task
+tags:
+  - worktree:.worktrees/1crv/1kjf7f.add-deadlineat-message-status-struct-parsedeadline-helper
+  - branch:1crv/1kjf7f.add-deadlineat-message-status-struct-parsedeadline-helper
 ---
+
 
 
 ## Scope
