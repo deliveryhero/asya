@@ -45,7 +45,7 @@ spec:
         path: /state/checkpoints
       writeMode: buffered
       connector:
-        image: ghcr.io/deliveryhero/asya-state-proxy-s3-buffered-lww:latest
+        image: ghcr.io/deliveryhero/asya-state-proxy-s3-buffered-lww:v1.0.0
         env:
           - name: STATE_BUCKET
             value: my-checkpoints-bucket
