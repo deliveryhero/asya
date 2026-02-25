@@ -23,11 +23,12 @@ type ErrorDetails struct {
 
 // RuntimeResponse represents the response from the actor runtime
 type RuntimeResponse struct {
-	Payload json.RawMessage  `json:"payload,omitempty"` // payload output from handler
-	Route   messages.Route   `json:"route,omitempty"`   // route output from handler
-	Status  *messages.Status `json:"status,omitempty"`  // status from runtime (passed through)
-	Error   string           `json:"error,omitempty"`
-	Details ErrorDetails     `json:"details,omitempty"`
+	Payload json.RawMessage            `json:"payload,omitempty"` // payload output from handler
+	Route   messages.Route             `json:"route,omitempty"`   // route output from handler
+	Status  *messages.Status           `json:"status,omitempty"`  // status from runtime (passed through)
+	Error   string                     `json:"error,omitempty"`
+	Details ErrorDetails               `json:"details,omitempty"`
+	Headers map[string]json.RawMessage `json:"headers,omitempty"` // headers set by handler
 }
 
 // httpInvokeResponse is the wire format for a successful POST /invoke response.

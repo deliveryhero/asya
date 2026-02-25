@@ -45,6 +45,8 @@ class DotGenerator:
         self._color_false_branch = "indianred4"
         self._color_raise = "crimson"
         self._color_finally = "gray50"
+        self._color_fanout = "mediumpurple4"
+        self._color_fanin = "slateblue4"
 
     @staticmethod
     def _sanitize_node_id(name: str) -> str:
@@ -158,6 +160,11 @@ class DotGenerator:
                     for actor in handler.actors:
                         if actor not in self.router_map:
                             self.user_actors.add(actor)
+            # Collect fan-out sub-agent actor names as user actors
+            if router.is_fan_out and router.fan_out_op:
+                for actor_name, _payload_expr in router.fan_out_op.actor_calls:
+                    if actor_name not in self.router_map:
+                        self.user_actors.add(actor_name)
 
     def _build_try_info(self) -> None:
         """Build try cluster info, hidden routers set, and redirect map."""
@@ -290,6 +297,8 @@ class DotGenerator:
     def _generate_actor_node(self, router: Router) -> str:
         if router.name.startswith("start_") or router.name.startswith("end_"):
             color = "lightgreen"
+        elif router.is_fan_out:
+            color = "plum1"
         else:
             color = "wheat"
 
@@ -317,9 +326,18 @@ class DotGenerator:
                 f"</tr></table></td></tr>"
             )
 
+        if router.is_fan_out and router.fan_out_op:
+            fan_out = router.fan_out_op
+            rows.append(f'<tr><td bgcolor="plum2" align="center"><b>[fan-out:{fan_out.pattern}]</b></td></tr>')
+            if fan_out.iter_var and fan_out.iterable:
+                iter_text = self._truncate_text(f"for {fan_out.iter_var} in {fan_out.iterable}")
+                rows.append(f'<tr><td bgcolor="plum3" align="left">{self._escape_html(iter_text)}</td></tr>')
+
         label = f'<<table border="0" cellspacing="0" cellpadding="6" cellborder="1">{"".join(rows)}</table>>'
 
-        return f'  {self._node_id(router.name)} [fillcolor="{color}", label={label}];'
+        shape = "diamond" if router.is_fan_out else "box"
+        extra = f", shape={shape}" if router.is_fan_out else ""
+        return f'  {self._node_id(router.name)} [fillcolor="{color}", label={label}{extra}];'
 
     def _generate_user_actor_node(self, actor_name: str) -> str:
         display_name = self._get_display_name(actor_name)
@@ -332,6 +350,19 @@ class DotGenerator:
         )
 
         return f'  {self._node_id(actor_name)} [fillcolor="lightblue", label={label}];'
+
+    def _generate_fanin_node(self, actor_name: str) -> str:
+        """Generate a fan-in aggregator node (diamond shape, distinct color)."""
+        display_name = self._get_display_name(actor_name)
+        truncated_name = self._truncate_display_name(display_name)
+        label = (
+            f'<<table border="0" cellspacing="0" cellpadding="6" cellborder="1">'
+            f'<tr><td bgcolor="white" align="center">'
+            f"<i>{self._escape_html(truncated_name)}</i></td></tr>"
+            f'<tr><td bgcolor="mediumpurple1" align="center"><b>[fan-in]</b></td></tr>'
+            f"</table>>"
+        )
+        return f'  {self._node_id(actor_name)} [fillcolor="thistle", label={label}, shape=diamond];'
 
     def _generate_try_cluster(self, cluster: _TryCluster) -> list[str]:
         """Generate DOT subgraph clusters for a try block and its finally block."""
@@ -425,11 +456,77 @@ class DotGenerator:
 
         return lines
 
+    def _generate_fan_out_edges(self, router: Router) -> set[str]:
+        """Generate edges for a fan-out router.
+
+        Shows:
+        - fanout_router -> aggregator [label="slice 0 (parent)"]
+        - fanout_router -> sub_agent_X [label="slice 1..N"] for each unique sub-agent
+        - sub_agent_X -> aggregator (convergence edges)
+        """
+        lines: set[str] = set()
+        if router.fan_out_op is None:
+            raise ValueError(f"Router {router.name!r} is marked is_fan_out but has no fan_out_op")
+        fan_out = router.fan_out_op
+
+        # Determine aggregator: first non-end actor in true_branch_actors
+        agg_actors = [a for a in router.true_branch_actors if not a.startswith("end_")]
+        aggregator = agg_actors[0] if agg_actors else None
+        after_agg = agg_actors[1:] if agg_actors else []
+
+        # Edge: fanout -> aggregator (parent message, slice 0)
+        if aggregator:
+            lines.add(
+                f"  {self._node_id(router.name)} -> {self._node_id(aggregator)}"
+                f' [color={self._color_fanout}, label="slice 0\\n(parent)", style=dashed];'
+            )
+            # Sequential edges after aggregator
+            self._add_sequential_edges([aggregator, *after_agg], lines)
+
+        # Edge(s): fanout -> sub-agents (slices 1..N)
+        if fan_out.iter_var and fan_out.iterable:
+            # Comprehension/gather-with-generator: single representative sub-agent
+            if len(fan_out.actor_calls) != 1:
+                raise ValueError(
+                    f"Comprehension/gather fan-out expects exactly 1 actor_call, got {len(fan_out.actor_calls)}"
+                )
+            actor_name = fan_out.actor_calls[0][0]
+            lines.add(
+                f"  {self._node_id(router.name)} -> {self._node_id(actor_name)}"
+                f' [color={self._color_fanout}, label="slice 1..N\\n(per {fan_out.iter_var})", style=bold];'
+            )
+            # Sub-agent -> aggregator convergence
+            if aggregator:
+                lines.add(
+                    f"  {self._node_id(actor_name)} -> {self._node_id(aggregator)}"
+                    f" [color={self._color_fanin}, style=dashed];"
+                )
+        else:
+            # Literal/gather-explicit: one edge per unique sub-agent
+            seen_actors: set[str] = set()
+            for idx, (actor_name, _payload_expr) in enumerate(fan_out.actor_calls):
+                if actor_name not in seen_actors:
+                    seen_actors.add(actor_name)
+                    lines.add(
+                        f"  {self._node_id(router.name)} -> {self._node_id(actor_name)}"
+                        f' [color={self._color_fanout}, label="slice {idx + 1}", style=bold];'
+                    )
+                    # Sub-agent -> aggregator convergence
+                    if aggregator:
+                        lines.add(
+                            f"  {self._node_id(actor_name)} -> {self._node_id(aggregator)}"
+                            f" [color={self._color_fanin}, style=dashed];"
+                        )
+
+        return lines
+
     def _generate_edges(self, router: Router) -> set[str]:
         """Generate edges for non-try-infrastructure routers."""
         lines: set[str] = set()
 
-        if router.is_loop_back:
+        if router.is_fan_out:
+            lines.update(self._generate_fan_out_edges(router))
+        elif router.is_loop_back:
             actors = [self._resolve(a) for a in router.true_branch_actors]
             if actors:
                 lines.add(f"  {self._node_id(router.name)} -> {self._node_id(actors[0])} [constraint=false];")
@@ -463,7 +560,7 @@ class DotGenerator:
         """Add sequential edges between consecutive actors in a branch.
 
         Stops the chain when an actor is a router that generates its own
-        outgoing edges (conditional, loop-back, or try-except routers),
+        outgoing edges (conditional, loop-back, fan-out, or try-except routers),
         preventing duplicate edges in the graph.
         """
         for i in range(len(actors) - 1):
@@ -476,6 +573,7 @@ class DotGenerator:
             if source_router and (
                 source_router.condition
                 or source_router.is_loop_back
+                or source_router.is_fan_out
                 or source_router.is_try_enter
                 or source_router.is_try_exit
                 or source_router.is_except_dispatch
