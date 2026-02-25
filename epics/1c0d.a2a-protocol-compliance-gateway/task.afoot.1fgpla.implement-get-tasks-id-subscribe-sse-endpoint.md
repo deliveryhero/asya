@@ -2,7 +2,10 @@
 title: "Implement GET /tasks/{id}:subscribe SSE endpoint"
 priority: 2 # medium
 type: task
+tags:
+  - pr:202
 ---
+
 
 
 
