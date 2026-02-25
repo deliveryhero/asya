@@ -3487,3 +3487,296 @@ func TestRouter_RouteOverride_PreservesExistingAuditTrail(t *testing.T) {
 		t.Errorf("model by = %v, want prep", modelMap["by"])
 	}
 }
+
+func TestRouter_EffectiveTimeout(t *testing.T) {
+	tests := []struct {
+		name          string
+		runtimeTO     time.Duration
+		actorTO       time.Duration
+		deadlineIn    time.Duration
+		wantTimeout   time.Duration
+		wantApproxMin time.Duration
+		wantApproxMax time.Duration
+	}{
+		{
+			name:        "no resiliency, no deadline - uses runtime timeout",
+			runtimeTO:   5 * time.Minute,
+			actorTO:     0,
+			deadlineIn:  0,
+			wantTimeout: 5 * time.Minute,
+		},
+		{
+			name:        "actor timeout < runtime timeout, no deadline - uses actor timeout",
+			runtimeTO:   5 * time.Minute,
+			actorTO:     2 * time.Minute,
+			deadlineIn:  0,
+			wantTimeout: 2 * time.Minute,
+		},
+		{
+			name:        "actor timeout > runtime timeout - uses runtime timeout",
+			runtimeTO:   2 * time.Minute,
+			actorTO:     5 * time.Minute,
+			deadlineIn:  0,
+			wantTimeout: 2 * time.Minute,
+		},
+		{
+			name:          "deadline remaining < both - uses remaining SLA",
+			runtimeTO:     5 * time.Minute,
+			actorTO:       3 * time.Minute,
+			deadlineIn:    1 * time.Minute,
+			wantApproxMin: 59 * time.Second,
+			wantApproxMax: 61 * time.Second,
+		},
+		{
+			name:        "no deadline, actor timeout set - uses actor timeout",
+			runtimeTO:   10 * time.Minute,
+			actorTO:     4 * time.Minute,
+			deadlineIn:  0,
+			wantTimeout: 4 * time.Minute,
+		},
+		{
+			name:        "deadline in far future - uses actor timeout",
+			runtimeTO:   5 * time.Minute,
+			actorTO:     2 * time.Minute,
+			deadlineIn:  10 * time.Minute,
+			wantTimeout: 2 * time.Minute,
+		},
+		{
+			name:          "deadline already passed - returns negative duration",
+			runtimeTO:     5 * time.Minute,
+			actorTO:       0,
+			deadlineIn:    -1 * time.Minute,
+			wantApproxMin: -61 * time.Second,
+			wantApproxMax: -59 * time.Second,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := &config.Config{
+				Timeout: tt.runtimeTO,
+			}
+			if tt.actorTO > 0 {
+				cfg.Resiliency = &config.ResiliencyConfig{
+					ActorTimeout: tt.actorTO,
+				}
+			}
+
+			router := &Router{cfg: cfg}
+
+			msg := &messages.Message{
+				ID: "test-msg",
+				Route: messages.Route{
+					Curr: "test-actor",
+				},
+			}
+
+			if tt.deadlineIn != 0 {
+				deadline := time.Now().Add(tt.deadlineIn).UTC().Format(time.RFC3339)
+				msg.Status = &messages.Status{
+					DeadlineAt: deadline,
+				}
+			}
+
+			got := router.effectiveTimeout(msg)
+
+			if tt.wantTimeout > 0 {
+				if got != tt.wantTimeout {
+					t.Errorf("effectiveTimeout() = %v, want %v", got, tt.wantTimeout)
+				}
+			} else {
+				if got < tt.wantApproxMin || got > tt.wantApproxMax {
+					t.Errorf("effectiveTimeout() = %v, want between %v and %v",
+						got, tt.wantApproxMin, tt.wantApproxMax)
+				}
+			}
+		})
+	}
+}
+
+func TestRouter_ProcessMessage_SLAExpired(t *testing.T) {
+	runtimeCalled := false
+
+	socketPath := startMockRuntime(t, func(body []byte) ([]runtime.RuntimeResponse, int) {
+		runtimeCalled = true
+		return []runtime.RuntimeResponse{
+			{
+				Payload: json.RawMessage(`{"result": "ok"}`),
+				Route: messages.Route{
+					Prev: []string{},
+					Curr: "",
+					Next: []string{},
+				},
+			},
+		}, http.StatusOK
+	})
+
+	cfg := &config.Config{
+		ActorName:     "test-actor",
+		Namespace:     "default",
+		SinkQueue:     testQueueSink,
+		SumpQueue:     testQueueSump,
+		Timeout:       5 * time.Second,
+		TransportType: "rabbitmq",
+	}
+
+	mockTp := &mockTransport{}
+	runtimeClient := runtime.NewClient(socketPath, 5*time.Second)
+	router := &Router{
+		cfg:           cfg,
+		transport:     mockTp,
+		runtimeClient: runtimeClient,
+		actorName:     cfg.ActorName,
+		sinkQueue:     cfg.SinkQueue,
+		sumpQueue:     cfg.SumpQueue,
+		metrics:       metrics.NewMetrics("test", []config.CustomMetricConfig{}),
+	}
+
+	msg := messages.Message{
+		ID: "expired-msg",
+		Route: messages.Route{
+			Prev: []string{},
+			Curr: "test-actor",
+			Next: []string{"next-actor"},
+		},
+		Payload: json.RawMessage(`{"test": "data"}`),
+		Status: &messages.Status{
+			Phase:      messages.PhasePending,
+			Actor:      "test-actor",
+			CreatedAt:  time.Now().Add(-10 * time.Minute).UTC().Format(time.RFC3339),
+			DeadlineAt: time.Now().Add(-1 * time.Minute).UTC().Format(time.RFC3339),
+			UpdatedAt:  time.Now().Add(-10 * time.Minute).UTC().Format(time.RFC3339),
+		},
+	}
+
+	msgBody, err := json.Marshal(msg)
+	if err != nil {
+		t.Fatalf("Failed to marshal message: %v", err)
+	}
+
+	queueMsg := transport.QueueMessage{
+		ID:   "q-1",
+		Body: msgBody,
+	}
+
+	err = router.ProcessMessage(context.Background(), queueMsg)
+	if err != nil {
+		t.Fatalf("ProcessMessage() error = %v", err)
+	}
+
+	if runtimeCalled {
+		t.Error("Runtime should NOT be called for expired SLA")
+	}
+
+	if len(mockTp.sentMessages) != 1 {
+		t.Fatalf("Expected 1 message sent to sink, got %d", len(mockTp.sentMessages))
+	}
+
+	sentMsg := mockTp.sentMessages[0]
+	expectedQueue := "asya-default-x-sink"
+	if sentMsg.queue != expectedQueue {
+		t.Errorf("Message sent to %s, want %s", sentMsg.queue, expectedQueue)
+	}
+
+	var sentMsgData messages.Message
+	if err := json.Unmarshal(sentMsg.body, &sentMsgData); err != nil {
+		t.Fatalf("Failed to unmarshal sent message: %v", err)
+	}
+
+	if sentMsgData.Status == nil {
+		t.Fatal("Sent message has no status")
+	}
+
+	if sentMsgData.Status.Phase != messages.PhaseFailed {
+		t.Errorf("Status phase = %s, want %s", sentMsgData.Status.Phase, messages.PhaseFailed)
+	}
+
+	if sentMsgData.Status.Reason != messages.ReasonTimeout {
+		t.Errorf("Status reason = %s, want %s", sentMsgData.Status.Reason, messages.ReasonTimeout)
+	}
+}
+
+func TestRouter_ProcessMessage_SLANotExpired(t *testing.T) {
+	runtimeCalled := false
+
+	socketPath := startMockRuntime(t, func(body []byte) ([]runtime.RuntimeResponse, int) {
+		runtimeCalled = true
+		return []runtime.RuntimeResponse{
+			{
+				Payload: json.RawMessage(`{"result": "ok"}`),
+				Route: messages.Route{
+					Prev: []string{"test-actor"},
+					Curr: "next-actor",
+					Next: []string{},
+				},
+			},
+		}, http.StatusOK
+	})
+
+	cfg := &config.Config{
+		ActorName:     "test-actor",
+		Namespace:     "default",
+		SinkQueue:     testQueueSink,
+		SumpQueue:     testQueueSump,
+		Timeout:       5 * time.Second,
+		TransportType: "rabbitmq",
+	}
+
+	mockTp := &mockTransport{}
+	runtimeClient := runtime.NewClient(socketPath, 5*time.Second)
+	router := &Router{
+		cfg:           cfg,
+		transport:     mockTp,
+		runtimeClient: runtimeClient,
+		actorName:     cfg.ActorName,
+		sinkQueue:     cfg.SinkQueue,
+		sumpQueue:     cfg.SumpQueue,
+		metrics:       metrics.NewMetrics("test", []config.CustomMetricConfig{}),
+	}
+
+	msg := messages.Message{
+		ID: "valid-msg",
+		Route: messages.Route{
+			Prev: []string{},
+			Curr: "test-actor",
+			Next: []string{"next-actor"},
+		},
+		Payload: json.RawMessage(`{"test": "data"}`),
+		Status: &messages.Status{
+			Phase:      messages.PhasePending,
+			Actor:      "test-actor",
+			CreatedAt:  time.Now().UTC().Format(time.RFC3339),
+			DeadlineAt: time.Now().Add(5 * time.Minute).UTC().Format(time.RFC3339),
+			UpdatedAt:  time.Now().UTC().Format(time.RFC3339),
+		},
+	}
+
+	msgBody, err := json.Marshal(msg)
+	if err != nil {
+		t.Fatalf("Failed to marshal message: %v", err)
+	}
+
+	queueMsg := transport.QueueMessage{
+		ID:   "q-1",
+		Body: msgBody,
+	}
+
+	err = router.ProcessMessage(context.Background(), queueMsg)
+	if err != nil {
+		t.Fatalf("ProcessMessage() error = %v", err)
+	}
+
+	if !runtimeCalled {
+		t.Error("Runtime SHOULD be called for non-expired SLA")
+	}
+
+	if len(mockTp.sentMessages) != 1 {
+		t.Fatalf("Expected 1 message sent to next queue, got %d", len(mockTp.sentMessages))
+	}
+
+	sentMsg := mockTp.sentMessages[0]
+	expectedQueue := "asya-default-next-actor"
+	if sentMsg.queue != expectedQueue {
+		t.Errorf("Message sent to %s, want %s", sentMsg.queue, expectedQueue)
+	}
+}
