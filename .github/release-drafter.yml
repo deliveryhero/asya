@@ -14,8 +14,10 @@ categories:
   - 'asya-crew'
   - 'asya-gateway'
   - 'asya-injector'
+  - 'function-asya-flavors'
   - 'asya-runtime'
   - 'asya-sidecar'
+  - 'asya-state-proxy'
   - 'build'
   - 'charts'
   - 'chore'
@@ -43,8 +45,10 @@ include-labels:
 - 'asya-crew'
 - 'asya-gateway'
 - 'asya-injector'
+- 'function-asya-flavors'
 - 'asya-runtime'
 - 'asya-sidecar'
+- 'asya-state-proxy'
 - 'build'
 - 'charts'
 - 'chore'
@@ -152,12 +156,18 @@ autolabeler:
 - label: 'asya-injector'
   files:
   - 'src/asya-injector/**/*'
+- label: 'function-asya-flavors'
+  files:
+  - 'src/function-asya-flavors/**/*'
 - label: 'asya-runtime'
   files:
   - 'src/asya-runtime/**/*'
 - label: 'asya-sidecar'
   files:
   - 'src/asya-sidecar/**/*'
+- label: 'asya-state-proxy'
+  files:
+  - 'src/asya-state-proxy/**/*'
 
 template: |
   $CHANGES
