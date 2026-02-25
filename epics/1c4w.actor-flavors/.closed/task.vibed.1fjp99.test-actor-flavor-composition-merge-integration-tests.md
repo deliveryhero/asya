@@ -4,7 +4,9 @@ priority: 2 # medium
 type: task
 tags:
   - pr:197
+reason: "PR #197 merged: EnvironmentConfigs created, actors migrated to spec.flavors, test_asyncactor_flavors_resolved added (xfail pending function publication)"
 ---
+
 
 
 

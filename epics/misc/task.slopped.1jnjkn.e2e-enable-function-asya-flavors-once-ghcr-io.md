@@ -28,3 +28,5 @@ Two separate image loading mechanisms in Kind:
 - Crossplane OCI puller: used by Function/Provider packages - kind load does NOT work
 
 Crossplane Functions must be pullable from an OCI registry.
+
+UPD: xfailed test to be un-xfailed: test_asyncactor_flavors_resolved
