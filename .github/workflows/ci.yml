@@ -120,6 +120,23 @@ jobs:
           component: sidecar
           config_var: ASYA_TRANSPORT
           config_value: rabbitmq
+        # State proxy component tests - test all connector profiles
+        - name: state-proxy (s3-lww)
+          component: state-proxy
+          config_var: CONNECTOR_PROFILE
+          config_value: s3-lww
+        - name: state-proxy (s3-passthrough)
+          component: state-proxy
+          config_var: CONNECTOR_PROFILE
+          config_value: s3-passthrough
+        - name: state-proxy (s3-cas)
+          component: state-proxy
+          config_var: CONNECTOR_PROFILE
+          config_value: s3-cas
+        - name: state-proxy (redis-cas)
+          component: state-proxy
+          config_var: CONNECTOR_PROFILE
+          config_value: redis-cas
 
     steps:
     - uses: actions/checkout@v4
@@ -167,6 +184,8 @@ jobs:
           target: gateway
         - name: sidecar
           target: sidecar
+        - name: stateful-actors
+          target: stateful-actors
         # Sidecar-runtime tests (2 transports)
         - name: sidecar-runtime (rabbitmq)
           target: sidecar-runtime
