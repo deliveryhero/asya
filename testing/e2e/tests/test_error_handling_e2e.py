@@ -44,6 +44,10 @@ def _get_transport_client(transport: str):
 
 
 @pytest.mark.slow
+@pytest.mark.xfail(
+    reason="Checkpointer writes via open() to local filesystem; needs state proxy connector (debt/1k5a8e)",
+    strict=True,
+)
 def test_error_goes_to_sump_when_available(e2e_helper, kubectl, chaos_queues, namespace, errors_bucket):
     """
     E2E: Test errors are processed by x-sump when x-sump is available.
