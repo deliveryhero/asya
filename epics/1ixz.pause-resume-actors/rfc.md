@@ -96,11 +96,11 @@ const (
 
 **Gateway**: Thin role — tracks task state, accepts resume input from users, routes resume messages to x-resume queue. Does NOT store the message route (that's persisted with the message by x-pause).
 
-**x-pause** (crew actor): Persists the full message to storage (S3/MinIO via state proxy connector). Signals pause via `x-pause` header. Returns `None`.
+**x-pause** (crew actor): Persists the full message to storage (S3/MinIO via state proxy connector). Signals pause via `x-asya-pause` header. Returns `None`.
 
 **x-resume** (crew actor): Receives resume message from gateway (user input as payload). Loads persisted message from storage. Merges user input into restored payload at specified paths (can be configured via env var to do either shallow or deep merge, shallow by default). Sends merged message to the next actor using the restored route.
 
-**Sidecar**: Reads `x-pause` header from runtime response. When present: reports `phase: paused` to gateway, acks message, does NOT route to next actor.
+**Sidecar**: Reads `x-asya-pause` header from runtime response. When present: reports `phase: paused` to gateway, acks message, does NOT route to next actor.
 
 #### 2.3 Checkpoint vs Pause
 
@@ -130,11 +130,21 @@ route: [analyzer, x-pause, x-resume, summarizer, x-sink]
 
 ```python
 def pause_handler(payload: dict) -> dict:
-    # 1. Persist full message to storage
+    # 1. Verify x-resume is next in route (safety check)
+    #    If the flow author forgot to place x-resume after x-pause, prepend it.
+    with open(f"{MSG_ROOT}/route/next") as f:
+        next_actors = [a for a in f.read().splitlines() if a]
+
+    if not next_actors or next_actors[0] != "x-resume":
+        next_actors.insert(0, "x-resume")
+        with open(f"{MSG_ROOT}/route/next", "w") as f:
+            f.write("\n".join(next_actors))
+
+    # 2. Persist full message to storage
     persist_message(payload)  # Uses state proxy / S3 connector
 
-    # 2. Signal pause via header
-    with open(f"{MSG_ROOT}/headers/x-pause", "w") as f:
+    # 3. Signal pause via header
+    with open(f"{MSG_ROOT}/headers/x-asya-pause", "w") as f:
         f.write(json.dumps({
             "prompt": "Review this analysis before proceeding",
             "fields": [
@@ -143,13 +153,8 @@ def pause_handler(payload: dict) -> dict:
                  "payload_key": "/review/notes"}
             ]
         }))
-    
-    # 3. Ensure that the next immediate step is x-resume
-    with open(f"{MSG_ROOT}/route/next", "r") as f:
-        next_step = f.readline()
-    if next_step != "
 
-    return {}
+    return None
 ```
 
 #### 3.3 x-pause Header Schema
@@ -197,9 +202,9 @@ Equivalent to `"payload_key": "/approved"` — merged at `payload["approved"]`.
 
 #### 3.4 Sidecar Behavior
 
-When sidecar receives a runtime response with `x-pause` header:
+When sidecar receives a runtime response with `x-asya-pause` header:
 
-1. Parse `x-pause` header value (JSON)
+1. Parse `x-asya-pause` header value (JSON)
 2. Report to gateway: `POST /tasks/{id}/progress` with `phase: paused` and pause metadata
 3. Ack the message (remove from queue)
 4. Do NOT route to the next actor (x-resume)
@@ -438,7 +443,7 @@ paused/{timestamp}/{actor}/{message_id}.json
 ALTER TABLE tasks ADD COLUMN pause_metadata JSONB;
 ```
 
-The `pause_metadata` column stores the `x-pause` header content (prompt, fields) for clients to render appropriate input UI.
+The `pause_metadata` column stores the `x-asya-pause` header content (prompt, fields) for clients to render appropriate input UI.
 
 #### TaskStore Interface Additions
 
@@ -463,7 +468,7 @@ Scope: gateway + sidecar phase constants. No crew actors.
 | List tasks | Gateway | `GET /a2a/tasks` + `tasks/list` JSON-RPC |
 | Cancel | Gateway | `POST /a2a/tasks/{id}:cancel` + `tasks/cancel` JSON-RPC |
 | Paused/canceled phases | Sidecar | `PhasePaused`, `PhaseCanceled` constants |
-| Pause header handling | Sidecar | Read `x-pause` header, report `paused` to gateway, stop routing |
+| Pause header handling | Sidecar | Read `x-asya-pause` header, report `paused` to gateway, stop routing |
 | Pause state | Gateway | Accept `paused` phase, store metadata, SSE notification |
 | Resume endpoint | Gateway | Accept `message/send` with `task_id` on paused task, queue to x-resume |
 | External pause | Gateway | `POST /a2a/tasks/{id}:pause` endpoint |
@@ -473,7 +478,7 @@ Scope: gateway + sidecar phase constants. No crew actors.
 
 | Item | Component | Description |
 |------|-----------|-------------|
-| x-pause | Crew | Persist message + set `x-pause` header |
+| x-pause | Crew | Persist message + set `x-asya-pause` header |
 | x-resume | Crew | Load persisted message, merge user input, continue route |
 | Helm chart | Crew | Add x-pause and x-resume to asya-crew chart |
 | Tests | Integration | Pause/resume flow end-to-end |
