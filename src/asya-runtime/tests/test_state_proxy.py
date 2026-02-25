@@ -920,6 +920,24 @@ class TestInstallStateProxyHooks:
         os.unlink("/state/meta/unlinkme")
         assert "unlinkme" not in mock_server.store
 
+    def test_open_state_path_exclusive_create_succeeds(self, mock_server, monkeypatch):
+        """open(path, 'x') through the patched builtins succeeds when key does not exist."""
+        _install_hooks_with_server(mock_server, "meta:/state/meta:write=buffered", monkeypatch)
+
+        with builtins.open("/state/meta/new_exclusive_file", "x") as f:
+            f.write("new content")
+
+        assert mock_server.store.get("new_exclusive_file") == b"new content"
+
+    def test_open_state_path_exclusive_create_fails_if_exists(self, mock_server, monkeypatch):
+        """open(path, 'x') through the patched builtins raises FileExistsError when key exists."""
+        mock_server.store["existing_file"] = b"old content"
+        _install_hooks_with_server(mock_server, "meta:/state/meta:write=buffered", monkeypatch)
+
+        with pytest.raises(FileExistsError):
+            with builtins.open("/state/meta/existing_file", "x") as f:
+                f.write("should not overwrite")
+
 
 # ---------------------------------------------------------------------------
 # 6. Local Dev Parity - no patching when env var not set
@@ -1003,8 +1021,6 @@ class TestExclusiveCreateMode:
 
     def test_open_x_mode_sends_if_none_match_header(self, mock_server):
         """open(path, "x") sends If-None-Match: * header in the PUT request."""
-        if not hasattr(mock_server._server, "last_put_headers"):
-            mock_server._server.last_put_headers = {}
         f = asya_runtime._BufferedWriteFile(mock_server.socket_path, "sentinel", exclusive=True)
         f.write(b"sentinel value")
         f.close()
@@ -1013,8 +1029,6 @@ class TestExclusiveCreateMode:
 
     def test_open_w_mode_does_not_send_if_none_match_header(self, mock_server):
         """Normal write mode ("w") does NOT include If-None-Match header."""
-        if not hasattr(mock_server._server, "last_put_headers"):
-            mock_server._server.last_put_headers = {}
         f = asya_runtime._BufferedWriteFile(mock_server.socket_path, "normalkey", exclusive=False)
         f.write(b"normal write")
         f.close()
