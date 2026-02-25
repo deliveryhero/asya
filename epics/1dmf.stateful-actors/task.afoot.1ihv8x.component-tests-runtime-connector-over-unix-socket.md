@@ -2,7 +2,11 @@
 title: "Component tests: runtime <-> connector over Unix socket"
 priority: 2 # medium
 type: task
+tags:
+  - worktree:.worktrees/1dmf/1ihv8x.component-tests-runtime-connector-over-unix-socket
+  - branch:1dmf/1ihv8x.component-tests-runtime-connector-over-unix-socket
 ---
+
 
 
 Component tests validating runtime interception layer communicates correctly with a connector over Unix socket.
