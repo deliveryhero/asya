@@ -144,9 +144,9 @@ func (r *Router) processEndActorMessage(ctx context.Context, msg messages.Messag
 	// End actors run in message mode with validation disabled.
 	// They typically return empty dict {}, which is ignored by the sidecar.
 
-	// Send to runtime without route validation
+	// Send to runtime without route validation (end actors don't forward upstream events)
 	runtimeStart := time.Now()
-	responses, err := r.runtimeClient.CallRuntime(ctx, msgBody)
+	responses, err := r.runtimeClient.CallRuntime(ctx, msgBody, nil)
 	runtimeDuration := time.Since(runtimeStart)
 
 	if r.metrics != nil {
@@ -586,7 +586,7 @@ func (r *Router) routeToFlowErrorHandler(ctx context.Context, msg *messages.Mess
 func (r *Router) handleSuccessResponse(ctx context.Context, msg *messages.Message, response runtime.RuntimeResponse, index, totalResponses int, runtimeDuration time.Duration) error {
 	// Runtime is responsible for shifting the route (prev/curr/next):
 	// - In payload mode: runtime auto-increments
-	// - In envelope mode: user handler manually increments
+	// - In VFS mode: user handler writes to /proc/asya/msg/route/next
 	outputRoute := response.Route
 
 	if index == 0 && r.progressReporter != nil {
@@ -709,9 +709,19 @@ func (r *Router) ProcessMessage(ctx context.Context, queueMsg transport.QueueMes
 		return fmt.Errorf("failed to marshal message with status: %w", err)
 	}
 
+	// Build callback that forwards partial events to gateway
+	var onUpstream func(json.RawMessage)
+	if r.progressReporter != nil {
+		onUpstream = func(payload json.RawMessage) {
+			if err := r.progressReporter.ForwardPartial(ctx, msg.ID, payload); err != nil {
+				slog.Warn("Failed to forward partial event", "id", msg.ID, "error", err)
+			}
+		}
+	}
+
 	slog.Info("Calling runtime", "id", msg.ID, "actor", r.cfg.ActorName)
 	runtimeStart := time.Now()
-	responses, err := r.runtimeClient.CallRuntime(ctx, updatedBody)
+	responses, err := r.runtimeClient.CallRuntime(ctx, updatedBody, onUpstream)
 	runtimeDuration := time.Since(runtimeStart)
 
 	if err != nil {

@@ -436,12 +436,7 @@ def test_s3_error_retry_logic(e2e_helper, s3_endpoint):
     logger.info("Simulating S3 failure...")
     try:
         e2e_helper.kubectl("scale", "deployment", "s3", "--replicas=0", namespace=e2e_helper.system_namespace)
-        time.sleep(5)
-
-        logger.info("Waiting for task to complete (S3 unavailable)...")
-        final_task = e2e_helper.wait_for_task_completion(task_id, timeout=60)
-
-        logger.info(f"Task status: {final_task['status']}")
+        time.sleep(10)  # Let the outage propagate through the pipeline
 
         logger.info("Restoring S3...")
         e2e_helper.kubectl("scale", "deployment", "s3", "--replicas=1", namespace=e2e_helper.system_namespace)
@@ -454,7 +449,14 @@ def test_s3_error_retry_logic(e2e_helper, s3_endpoint):
 
         logger.info("Re-establishing port-forward to gateway...")
         assert e2e_helper.restart_port_forward(), "Port-forward should be re-established"
-        time.sleep(10)
+
+        logger.info("Waiting for task to reach terminal state after S3 recovery...")
+        final_task = e2e_helper.wait_for_task_completion(task_id, timeout=90)
+
+        logger.info(f"Task status: {final_task['status']}")
+        assert final_task["status"] in ["succeeded", "failed"], (
+            f"Task should reach a terminal state after S3 recovery, got: {final_task['status']}"
+        )
 
         logger.info("[+] S3 error handling verified")
 

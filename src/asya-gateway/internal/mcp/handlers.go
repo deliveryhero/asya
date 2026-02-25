@@ -3,7 +3,9 @@ package mcp
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"regexp"
@@ -20,6 +22,7 @@ var (
 	taskActivePathRegex   = regexp.MustCompile(`^/tasks/([^/]+)/active$`)
 	taskProgressPathRegex = regexp.MustCompile(`^/tasks/([^/]+)/progress$`)
 	taskFinalPathRegex    = regexp.MustCompile(`^/tasks/([^/]+)/final$`)
+	taskPartialPathRegex  = regexp.MustCompile(`^/tasks/([^/]+)/partial$`)
 )
 
 // Handler provides HTTP endpoints for task management
@@ -249,17 +252,7 @@ func (h *Handler) HandleTaskStream(w http.ResponseWriter, r *http.Request) {
 		slog.Warn("Failed to get historical updates", "error", err, "task_id", taskID)
 	} else {
 		for _, update := range historicalUpdates {
-			data, err := json.Marshal(update)
-			if err != nil {
-				slog.Error("Failed to marshal historical update", "error", err)
-				continue
-			}
-			// Security: Safe to use Fprintf here - data is pre-encoded JSON for SSE streaming.
-			// This is not HTML rendering context, so XSS concerns don't apply. The SSE
-			// Content-Type is text/event-stream, and json.Marshal already escapes the data.
-			_, _ = fmt.Fprintf(w, "event: update\n")
-			_, _ = fmt.Fprintf(w, "data: %s\n\n", data)
-			flusher.Flush()
+			writeSSEEvent(w, flusher, update)
 		}
 	}
 
@@ -277,32 +270,34 @@ func (h *Handler) HandleTaskStream(w http.ResponseWriter, r *http.Request) {
 		case <-r.Context().Done():
 			return
 		case <-keepaliveTicker.C:
-			// Send keepalive comment to prevent proxy/client timeout
 			_, _ = fmt.Fprintf(w, ": keepalive\n\n")
 			flusher.Flush()
 		case update := <-updateChan:
-			// Send update
-			data, err := json.Marshal(update)
-			if err != nil {
-				slog.Error("Failed to marshal update", "error", err)
-				continue
-			}
+			writeSSEEvent(w, flusher, update)
 
-			// Security: Safe to use Fprintf here - data is pre-encoded JSON for SSE streaming.
-			// This is not HTML rendering context, so XSS concerns don't apply. The SSE
-			// Content-Type is text/event-stream, and json.Marshal already escapes the data.
-			_, _ = fmt.Fprintf(w, "event: update\n")
-			_, _ = fmt.Fprintf(w, "data: %s\n\n", data)
-			flusher.Flush()
-
-			// Close stream if task is in final state
 			if isFinalStatus(update.Status) {
-				// Final flush to ensure task is sent before closing
 				flusher.Flush()
 				return
 			}
 		}
 	}
+}
+
+// writeSSEEvent writes a TaskUpdate as an SSE event to the client.
+// Partial events (PartialPayload set) are sent as "event: partial".
+// All other updates (progress, status changes) are sent as "event: update".
+func writeSSEEvent(w http.ResponseWriter, flusher http.Flusher, update types.TaskUpdate) {
+	if update.PartialPayload != nil {
+		_, _ = fmt.Fprintf(w, "event: partial\ndata: %s\n\n", update.PartialPayload)
+	} else {
+		data, err := json.Marshal(update)
+		if err != nil {
+			slog.Error("Failed to marshal SSE update", "error", err)
+			return
+		}
+		_, _ = fmt.Fprintf(w, "event: update\ndata: %s\n\n", data)
+	}
+	flusher.Flush()
 }
 
 // isFinalStatus checks if a status is final (Succeeded or Failed)
@@ -590,4 +585,53 @@ func (h *Handler) HandleTaskFinal(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+}
+
+// HandleTaskPartial handles POST /tasks/{id}/partial (for sidecar to forward partial events)
+// Partial events are incremental results (e.g., LLM tokens) from generator handlers.
+// They bypass message queues and are forwarded directly to SSE clients.
+func (h *Handler) HandleTaskPartial(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	matches := taskPartialPathRegex.FindStringSubmatch(r.URL.Path)
+	if matches == nil {
+		http.Error(w, "Invalid task partial path", http.StatusBadRequest)
+		return
+	}
+	taskID := matches[1]
+
+	// Limit request body size to prevent resource exhaustion (1MB)
+	r.Body = http.MaxBytesReader(w, r.Body, 1024*1024)
+
+	// Read raw payload body
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		var maxBytesError *http.MaxBytesError
+		if errors.As(err, &maxBytesError) {
+			http.Error(w, "Request body too large", http.StatusRequestEntityTooLarge)
+		} else {
+			http.Error(w, "Failed to read request body", http.StatusBadRequest)
+		}
+		return
+	}
+
+	// Create a TaskUpdate with PartialPayload for SSE broadcasting
+	update := types.TaskUpdate{
+		ID:             taskID,
+		Status:         types.TaskStatusRunning,
+		PartialPayload: json.RawMessage(body),
+		Timestamp:      time.Now(),
+	}
+
+	// Store and broadcast to SSE subscribers
+	if err := h.taskStore.UpdateProgress(update); err != nil {
+		slog.Error("Failed to store partial event", "task_id", taskID, "error", err)
+		http.Error(w, "Failed to store partial event", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 }

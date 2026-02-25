@@ -195,6 +195,34 @@ func (r *Reporter) CreateTask(ctx context.Context, id, parentID string, route me
 	return nil
 }
 
+// ForwardPartial sends a partial event to the gateway for live SSE delivery.
+// Used for streaming token-by-token output from generator handlers to connected clients.
+func (r *Reporter) ForwardPartial(ctx context.Context, taskID string, payload json.RawMessage) error {
+	if taskID == "" {
+		return nil
+	}
+
+	url := fmt.Sprintf("%s/tasks/%s/partial", r.gatewayURL, taskID)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(payload))
+	if err != nil {
+		return fmt.Errorf("failed to create partial request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := r.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to forward partial event: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("partial forward returned non-200 status: %d", resp.StatusCode)
+	}
+
+	return nil
+}
+
 // ReportFinalError reports a final error status to the gateway
 // Used by end actors when they encounter unrecoverable errors (e.g., timeout)
 func (r *Reporter) ReportFinalError(ctx context.Context, taskID, errorMsg string) error {

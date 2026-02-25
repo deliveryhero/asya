@@ -160,6 +160,8 @@ func main() {
 			taskHandler.HandleTaskProgress(w, r)
 		} else if strings.HasSuffix(r.URL.Path, "/final") {
 			taskHandler.HandleTaskFinal(w, r)
+		} else if strings.HasSuffix(r.URL.Path, "/partial") {
+			taskHandler.HandleTaskPartial(w, r)
 		} else {
 			taskHandler.HandleTaskStatus(w, r)
 		}

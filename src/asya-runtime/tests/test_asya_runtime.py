@@ -35,6 +35,25 @@ class _UnixHTTPConnection(http_client.HTTPConnection):
         self.sock.connect(self._socket_path)
 
 
+def _parse_sse(raw_bytes):
+    """Parse raw SSE bytes into list of (event_type, data_dict) tuples."""
+    events = []
+    event_type = None
+    data_buf = []
+    for line in raw_bytes.decode().splitlines():
+        if line.startswith("event: "):
+            event_type = line[7:]
+        elif line.startswith("data: "):
+            data_buf.append(line[6:])
+        elif line == "":
+            if event_type is not None:
+                data_str = "\n".join(data_buf)
+                events.append((event_type, json.loads(data_str) if data_str else {}))
+            event_type = None
+            data_buf = []
+    return events
+
+
 @pytest.fixture
 def mock_env():
     """
@@ -2588,74 +2607,8 @@ class TestHTTPInvoke:
         assert status == 400
         assert error["error"] == "msg_parsing_error"
 
-    # --- Generators (collected into frames array) ---
-
-    def test_generator_fanout(self, runtime_invoke):
-        def gen(payload):
-            yield {"id": 1}
-            yield {"id": 2}
-            yield {"id": 3}
-
-        message = {"payload": {}, "route": {"prev": [], "curr": "a", "next": ["b"]}}
-        frames, status = runtime_invoke(gen, message)
-        assert status == 200
-        assert len(frames) == 3
-        assert [f["payload"]["id"] for f in frames] == [1, 2, 3]
-        assert all(f["route"]["curr"] == "b" for f in frames)
-
-    def test_generator_yields_nothing_204(self, runtime_invoke):
-        # A proper generator that immediately returns without yielding any values
-        def empty_gen(payload):
-            yield from []
-
-        message = {"payload": {}, "route": {"prev": [], "curr": "a", "next": []}}
-        frames, status = runtime_invoke(empty_gen, message)
-        assert status == 204
-
-    # --- Async generators (collected into frames array) ---
-
-    def test_async_generator_fanout(self, runtime_invoke):
-        async def async_gen(payload):
-            yield {"id": 1}
-            yield {"id": 2}
-            yield {"id": 3}
-
-        message = {"payload": {}, "route": {"prev": [], "curr": "a", "next": ["b"]}}
-        frames, status = runtime_invoke(async_gen, message)
-        assert status == 200
-        assert len(frames) == 3
-        assert [f["payload"]["id"] for f in frames] == [1, 2, 3]
-        assert all(f["route"]["curr"] == "b" for f in frames)
-
-    def test_async_generator_yields_nothing_204(self, runtime_invoke):
-        async def empty_gen(payload):
-            for _ in []:
-                yield
-
-        message = {"payload": {}, "route": {"prev": [], "curr": "a", "next": []}}
-        frames, status = runtime_invoke(empty_gen, message)
-        assert status == 204
-
-    def test_async_generator_single_yield(self, runtime_invoke):
-        async def single_gen(payload):
-            yield {"result": payload["value"] * 2}
-
-        message = {"payload": {"value": 21}, "route": {"prev": [], "curr": "a", "next": []}}
-        frames, status = runtime_invoke(single_gen, message)
-        assert status == 200
-        assert len(frames) == 1
-        assert frames[0]["payload"] == {"result": 42}
-
-    def test_async_generator_exception_500(self, runtime_invoke):
-        async def failing_gen(payload):
-            yield {"id": 1}
-            raise ValueError("async gen broke")
-
-        message = {"payload": {}, "route": {"prev": [], "curr": "a", "next": []}}
-        error, status = runtime_invoke(failing_gen, message)
-        assert status == 500
-        assert error["error"] == "processing_error"
-        assert "async gen broke" in error["details"]["message"]
+    # --- Generators now return SSE (tested in TestSSEStreaming) ---
+    # Generator HTTP tests moved to TestSSEStreaming class below.
 
     # --- VFS access via handler ---
 
@@ -2675,17 +2628,7 @@ class TestHTTPInvoke:
         frames, status = runtime_invoke(lambda p: None, message)
         assert status == 204
 
-    def test_vfs_generator_handler(self, runtime_invoke):
-        def gen(payload):
-            for i in range(2):
-                yield {"i": i}
-
-        message = {"payload": {}, "route": {"prev": [], "curr": "a", "next": []}}
-        frames, status = runtime_invoke(gen, message)
-        assert status == 200
-        assert len(frames) == 2
-        assert frames[0]["payload"]["i"] == 0
-        assert frames[1]["payload"]["i"] == 1
+    # test_vfs_generator_handler moved to TestSSEStreaming
 
     # --- Large payloads ---
 
@@ -2717,6 +2660,177 @@ class TestHTTPInvoke:
         thread.join(timeout=5)
         server.server_close()
         assert resp.status == 404
+
+
+class TestSSEStreaming:
+    """Test SSE streaming for generator handlers over HTTP."""
+
+    def _invoke_raw(self, tmp_path, user_func, message, sock_id="sse"):
+        """Invoke handler via HTTP and return raw (status, content_type, body_bytes)."""
+        socket_path = str(tmp_path / f"{sock_id}.sock")
+        server = asya_runtime._UnixHTTPServer(socket_path, asya_runtime._InvokeHandler)
+        server.user_func = user_func
+
+        thread = threading.Thread(target=server.handle_request)
+        thread.start()
+
+        conn = _UnixHTTPConnection(socket_path)
+        body = json.dumps(message).encode("utf-8")
+        conn.request("POST", "/invoke", body=body, headers={"Content-Type": "application/json"})
+        resp = conn.getresponse()
+        status = resp.status
+        content_type = resp.getheader("Content-Type", "")
+        raw = resp.read()
+        conn.close()
+        thread.join(timeout=5)
+        server.server_close()
+        return status, content_type, raw
+
+    def test_sse_content_type(self, tmp_path):
+        """Generator responses use text/event-stream Content-Type."""
+
+        def gen(payload):
+            yield {"id": 1}
+
+        message = {"payload": {}, "route": {"prev": [], "curr": "a", "next": []}}
+        status, ct, _ = self._invoke_raw(tmp_path, gen, message)
+        assert status == 200
+        assert ct == "text/event-stream"
+
+    def test_sse_downstream_events(self, tmp_path):
+        """Sync generator yields 3 downstream events."""
+
+        def gen(payload):
+            yield {"id": 1}
+            yield {"id": 2}
+            yield {"id": 3}
+
+        message = {"payload": {}, "route": {"prev": [], "curr": "a", "next": ["b"]}}
+        status, _, raw = self._invoke_raw(tmp_path, gen, message)
+        assert status == 200
+
+        events = _parse_sse(raw)
+        downstream = [(t, d) for t, d in events if t == "downstream"]
+        assert len(downstream) == 3
+        assert [d["payload"]["id"] for _, d in downstream] == [1, 2, 3]
+        assert all(d["route"]["curr"] == "b" for _, d in downstream)
+
+        assert events[-1][0] == "done"
+
+    def test_sse_upstream_events(self, tmp_path):
+        """Generator yields upstream() markers."""
+
+        def gen(payload):
+            yield asya_runtime.upstream({"token": "hello"})
+            yield asya_runtime.upstream({"token": "world"})
+
+        message = {"payload": {}, "route": {"prev": [], "curr": "a", "next": []}}
+        status, _, raw = self._invoke_raw(tmp_path, gen, message)
+        assert status == 200
+
+        events = _parse_sse(raw)
+        upstream = [(t, d) for t, d in events if t == "upstream"]
+        assert len(upstream) == 2
+        assert upstream[0][1]["payload"] == {"token": "hello"}
+        assert upstream[1][1]["payload"] == {"token": "world"}
+
+        assert events[-1][0] == "done"
+
+    def test_sse_mixed_events(self, tmp_path):
+        """Mix of upstream and downstream events."""
+
+        def gen(payload):
+            yield asya_runtime.upstream({"token": "thinking"})
+            yield {"result": "step1"}
+            yield asya_runtime.upstream({"token": "done"})
+            yield {"result": "step2"}
+
+        message = {"payload": {}, "route": {"prev": [], "curr": "a", "next": ["b"]}}
+        status, _, raw = self._invoke_raw(tmp_path, gen, message)
+        assert status == 200
+
+        events = _parse_sse(raw)
+        types = [t for t, _ in events]
+        assert types == ["upstream", "downstream", "upstream", "downstream", "done"]
+
+    def test_sse_empty_generator_done(self, tmp_path):
+        """Empty generator emits only done event."""
+
+        def gen(payload):
+            yield from []
+
+        message = {"payload": {}, "route": {"prev": [], "curr": "a", "next": []}}
+        status, _, raw = self._invoke_raw(tmp_path, gen, message)
+        assert status == 200
+
+        events = _parse_sse(raw)
+        assert len(events) == 1
+        assert events[0][0] == "done"
+
+    def test_sse_midstream_error(self, tmp_path):
+        """Exception during streaming emits error event."""
+
+        def gen(payload):
+            yield {"id": 1}
+            raise ValueError("midstream failure")
+
+        message = {"payload": {}, "route": {"prev": [], "curr": "a", "next": []}}
+        status, _, raw = self._invoke_raw(tmp_path, gen, message)
+        assert status == 200
+
+        events = _parse_sse(raw)
+        error_events = [(t, d) for t, d in events if t == "error"]
+        assert len(error_events) == 1
+        assert error_events[0][1]["error"] == "processing_error"
+        assert "midstream failure" in error_events[0][1]["details"]["message"]
+
+    def test_sse_async_generator(self, tmp_path):
+        """Async generator streams SSE events."""
+
+        async def gen(payload):
+            yield {"id": 1}
+            yield asya_runtime.upstream({"token": "partial"})
+            yield {"id": 2}
+
+        message = {"payload": {}, "route": {"prev": [], "curr": "a", "next": ["b"]}}
+        status, _, raw = self._invoke_raw(tmp_path, gen, message)
+        assert status == 200
+
+        events = _parse_sse(raw)
+        types = [t for t, _ in events]
+        assert types == ["downstream", "upstream", "downstream", "done"]
+
+    def test_regular_handler_still_json(self, tmp_path):
+        """Non-generator handlers still return JSON."""
+
+        def handler(payload):
+            return {"result": "ok"}
+
+        message = {"payload": {}, "route": {"prev": [], "curr": "a", "next": []}}
+        status, ct, raw = self._invoke_raw(tmp_path, handler, message)
+        assert status == 200
+        assert ct == "application/json"
+        data = json.loads(raw)
+        assert "frames" in data
+
+    def test_sse_generator_vfs_modification(self, tmp_path):
+        """Generator with VFS route modification between yields."""
+
+        def gen(payload):
+            yield {"step": 1}
+            asya_runtime._msg_vfs.write("route/next", "c\nd")
+            yield {"step": 2}
+
+        message = {"payload": {}, "route": {"prev": [], "curr": "a", "next": ["b"]}}
+        status, _, raw = self._invoke_raw(tmp_path, gen, message)
+        assert status == 200
+
+        events = _parse_sse(raw)
+        downstream = [d for t, d in events if t == "downstream"]
+        assert len(downstream) == 2
+        assert downstream[0]["route"]["curr"] == "b"
+        assert downstream[1]["route"]["curr"] == "c"
+        assert downstream[1]["route"]["next"] == ["d"]
 
 
 class TestHTTPHealthz:

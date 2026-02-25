@@ -213,7 +213,7 @@ func TestRouter_RouteValidation(t *testing.T) {
 			}
 
 			inputMsg := messages.Message{
-				ID:      "test-envelope-123",
+				ID:      "test-msg-123",
 				Route:   tt.inputRoute,
 				Payload: json.RawMessage(`{"input": "test"}`),
 			}
@@ -694,7 +694,7 @@ func TestRouter_SendToSinkQueue(t *testing.T) {
 	}
 
 	msg := messages.Message{
-		ID: "test-envelope-123",
+		ID: "test-msg-123",
 		Route: messages.Route{
 			Prev: []string{"actor1"},
 			Curr: "actor2",
@@ -723,8 +723,8 @@ func TestRouter_SendToSinkQueue(t *testing.T) {
 		t.Fatalf("Failed to unmarshal sent message: %v", err)
 	}
 
-	if sentMsg.ID != "test-envelope-123" {
-		t.Errorf("Expected message ID 'test-envelope-123', got %q", sentMsg.ID)
+	if sentMsg.ID != "test-msg-123" {
+		t.Errorf("Expected message ID 'test-msg-123', got %q", sentMsg.ID)
 	}
 }
 
@@ -750,7 +750,7 @@ func TestRouter_SendToSumpQueue(t *testing.T) {
 	}
 
 	originalMsg := messages.Message{
-		ID: "test-envelope-456",
+		ID: "test-msg-456",
 		Route: messages.Route{
 			Prev: []string{},
 			Curr: "actor1",
@@ -781,8 +781,8 @@ func TestRouter_SendToSumpQueue(t *testing.T) {
 		t.Fatalf("Failed to unmarshal sent error message: %v", err)
 	}
 
-	if errorMsg["id"] != "test-envelope-456" {
-		t.Errorf("Expected error message ID 'test-envelope-456', got %v", errorMsg["id"])
+	if errorMsg["id"] != "test-msg-456" {
+		t.Errorf("Expected error message ID 'test-msg-456', got %v", errorMsg["id"])
 	}
 
 	// Error should be inside payload (nested format)
@@ -1611,12 +1611,12 @@ func TestRouter_ReportFinalStatus_Sink(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	err := router.reportFinalStatus(ctx, "test-envelope-123", response.Payload, 100*time.Millisecond)
+	err := router.reportFinalStatus(ctx, "test-msg-123", response.Payload, 100*time.Millisecond)
 	if err != nil {
 		t.Fatalf("reportFinalStatus failed: %v", err)
 	}
 
-	expectedPath := "/tasks/test-envelope-123/final"
+	expectedPath := "/tasks/test-msg-123/final"
 	req := mockServer.GetRequest(expectedPath)
 	if req == nil {
 		t.Fatalf("Expected request to %s, but none received", expectedPath)
@@ -1631,8 +1631,8 @@ func TestRouter_ReportFinalStatus_Sink(t *testing.T) {
 		t.Errorf("Expected status '%s', got %v", statusSucceeded, payload["status"])
 	}
 
-	if payload["id"] != "test-envelope-123" {
-		t.Errorf("Expected id 'test-envelope-123', got %v", payload["id"])
+	if payload["id"] != "test-msg-123" {
+		t.Errorf("Expected id 'test-msg-123', got %v", payload["id"])
 	}
 
 	if payload["progress"] != 1.0 {
