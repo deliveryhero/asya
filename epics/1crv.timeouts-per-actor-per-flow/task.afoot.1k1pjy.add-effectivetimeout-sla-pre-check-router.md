@@ -2,10 +2,14 @@
 title: Add effectiveTimeout and SLA pre-check to router
 priority: 2 # medium
 type: task
+tags:
+  - worktree:.worktrees/1crv/1k1pjy.add-effectivetimeout-sla-pre-check-router
+  - branch:1crv/1k1pjy.add-effectivetimeout-sla-pre-check-router
 dependencies:
   - 1crv/1kjf7f
   - 1crv/1kbup4
 ---
+
 
 
 ## Scope
