@@ -92,7 +92,15 @@
       "arguments": {}
     },
     { "vhost": "/", "name": "asya-default-test-state-ops", "durable": true, "auto_delete": false, "arguments": {} },
-    { "vhost": "/", "name": "asya-default-test-plain-echo", "durable": true, "auto_delete": false, "arguments": {} }
+    { "vhost": "/", "name": "asya-default-test-plain-echo", "durable": true, "auto_delete": false, "arguments": {} },
+    { "vhost": "/", "name": "asya-default-test-streaming", "durable": true, "auto_delete": false, "arguments": {} },
+    {
+      "vhost": "/",
+      "name": "asya-default-test-streaming-error",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    }
   ],
   "bindings": [
     {
@@ -373,6 +381,22 @@
       "destination": "asya-default-test-plain-echo",
       "destination_type": "queue",
       "routing_key": "test-plain-echo",
+      "arguments": {}
+    },
+    {
+      "source": "asya",
+      "vhost": "/",
+      "destination": "asya-default-test-streaming",
+      "destination_type": "queue",
+      "routing_key": "test-streaming",
+      "arguments": {}
+    },
+    {
+      "source": "asya",
+      "vhost": "/",
+      "destination": "asya-default-test-streaming-error",
+      "destination_type": "queue",
+      "routing_key": "test-streaming-error",
       "arguments": {}
     },
     {

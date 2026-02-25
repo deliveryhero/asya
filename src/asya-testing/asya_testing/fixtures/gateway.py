@@ -97,6 +97,8 @@ def _get_required_queues_for_test(request) -> list[str]:
         "unicode": "asya-default-test-unicode",
         "large[_-]?payload": "asya-default-test-large-payload",
         "slow[_-]?boundary": "asya-default-test-slow-boundary",
+        "streaming[_-]?error": "asya-default-test-streaming-error",
+        "streaming": "asya-default-test-streaming",
     }
 
     for pattern, queue_name in actor_patterns.items():

@@ -135,3 +135,21 @@ tools:
       default: 10
   route: [test-param-flow-1, test-param-flow-2]
   timeout: 45
+
+# Streaming partial events test
+- name: test_streaming
+  description: Test streaming partial events (upstream) from generator handler
+  parameters:
+    token_count:
+      type: integer
+      description: Number of partial tokens to stream
+      default: 3
+  route: [test-streaming]
+  timeout: 30
+
+# Streaming error test
+- name: test_streaming_error
+  description: Test mid-stream error during partial event streaming
+  parameters: {}
+  route: [test-streaming-error]
+  timeout: 30

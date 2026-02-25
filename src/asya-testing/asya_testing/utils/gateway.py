@@ -259,6 +259,61 @@ class GatewayTestHelper:
         else:
             return self.poll_task_progress(task_id, timeout)
 
+    def stream_task_events(
+        self,
+        task_id: str,
+        timeout: int = 30,
+    ) -> dict[str, list]:
+        """
+        Stream task events via SSE, collecting both partial and update events separately.
+
+        Returns dict with:
+        - "partial": list of partial event payloads (from event: partial)
+        - "update": list of update event dicts (from event: update)
+        """
+        logger.debug(f"Starting SSE stream for task (all events): {task_id}")
+        result: dict[str, list] = {"partial": [], "update": []}
+
+        response = requests.get(
+            f"{self.tasks_url}/{task_id}/stream",
+            stream=True,
+            timeout=timeout,
+            headers={"Accept": "text/event-stream"},
+        )
+        response.raise_for_status()
+        logger.debug(f"SSE stream connected, status: {response.status_code}")
+
+        client = SSEClient(response)
+
+        try:
+            for event in client.events():
+                logger.debug(
+                    f"SSE event type={event.event} data={event.data[:100] if event.data and len(event.data) > 100 else event.data}"
+                )
+
+                if event.event == "partial" and event.data:
+                    data = json.loads(event.data)
+                    result["partial"].append(data)
+                elif event.event == "update" and event.data:
+                    data = json.loads(event.data)
+
+                    if "actor" not in data and "current_actor_name" in data:
+                        data["actor"] = data["current_actor_name"]
+
+                    result["update"].append(data)
+
+                    if data.get("status") in ["succeeded", "failed"]:
+                        logger.debug(f"Final status reached: {data.get('status')}")
+                        break
+
+        except Exception as e:
+            logger.debug(f"SSE stream ended with exception: {e}")
+
+        logger.debug(
+            f"SSE stream complete. Received {len(result['partial'])} partial events, {len(result['update'])} updates"
+        )
+        return result
+
     def wait_for_task_completion(
         self,
         task_id: str,

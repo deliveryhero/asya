@@ -697,6 +697,98 @@ services:
     volumes:
     - asya-param-flow-2-sockets:/var/run/asya
 
+  # Streaming actor
+  asya-streaming-runtime:
+    build:
+      context: ../../../../src/asya-testing
+      dockerfile: Dockerfile
+    logging: *default-logging
+    command: ["python3", "/opt/asya/asya_runtime.py"]
+    env_file:
+    - ../envs/.env.asya-shared
+    - ../envs/.env.asya-runtime
+    environment:
+      ASYA_HANDLER: asya_testing.handlers.payload.streaming_handler
+
+
+    volumes:
+    - asya-streaming-sockets:/var/run/asya
+    - ../../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro
+    healthcheck:
+      test: ["CMD", "test", "-S", "/var/run/asya/asya-runtime.sock"]
+      interval: 2s
+      timeout: 1s
+      retries: 15
+
+  asya-streaming-sidecar:
+    network_mode: "service:asya-streaming-runtime"
+    build:
+      context: ../../../../src/asya-sidecar
+      dockerfile: Dockerfile
+    logging: *default-logging
+    depends_on:
+      asya-streaming-runtime:
+        condition: service_healthy
+      queue-setup:
+        condition: service_completed_successfully
+    env_file:
+    - ../envs/.env.asya-shared
+    - ../envs/.env.asya-sidecar
+    - ../envs/.env.${ASYA_TRANSPORT}
+    environment:
+      ASYA_RUNTIME_TIMEOUT: 30s
+      ASYA_ACTOR_NAME: test-streaming
+
+
+    volumes:
+    - asya-streaming-sockets:/var/run/asya
+
+  # Streaming error actor
+  asya-streaming-error-runtime:
+    build:
+      context: ../../../../src/asya-testing
+      dockerfile: Dockerfile
+    logging: *default-logging
+    command: ["python3", "/opt/asya/asya_runtime.py"]
+    env_file:
+    - ../envs/.env.asya-shared
+    - ../envs/.env.asya-runtime
+    environment:
+      ASYA_HANDLER: asya_testing.handlers.payload.streaming_error_handler
+
+
+    volumes:
+    - asya-streaming-error-sockets:/var/run/asya
+    - ../../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro
+    healthcheck:
+      test: ["CMD", "test", "-S", "/var/run/asya/asya-runtime.sock"]
+      interval: 2s
+      timeout: 1s
+      retries: 15
+
+  asya-streaming-error-sidecar:
+    network_mode: "service:asya-streaming-error-runtime"
+    build:
+      context: ../../../../src/asya-sidecar
+      dockerfile: Dockerfile
+    logging: *default-logging
+    depends_on:
+      asya-streaming-error-runtime:
+        condition: service_healthy
+      queue-setup:
+        condition: service_completed_successfully
+    env_file:
+    - ../envs/.env.asya-shared
+    - ../envs/.env.asya-sidecar
+    - ../envs/.env.${ASYA_TRANSPORT}
+    environment:
+      ASYA_RUNTIME_TIMEOUT: 30s
+      ASYA_ACTOR_NAME: test-streaming-error
+
+
+    volumes:
+    - asya-streaming-error-sockets:/var/run/asya
+
   # Waiter service for test actors dependency subgraph
   test-actors-waiter:
     image: busybox:latest
@@ -731,4 +823,8 @@ services:
       asya-param-flow-1-sidecar:
         condition: service_started
       asya-param-flow-2-sidecar:
+        condition: service_started
+      asya-streaming-sidecar:
+        condition: service_started
+      asya-streaming-error-sidecar:
         condition: service_started

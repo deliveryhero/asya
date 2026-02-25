@@ -18,6 +18,8 @@ asya-default-test-slow-boundary
 asya-default-test-cycle
 asya-default-test-param-flow-1
 asya-default-test-param-flow-2
+asya-default-test-streaming
+asya-default-test-streaming-error
 
 # Gateway component test queues
 asya-default-test-queue
