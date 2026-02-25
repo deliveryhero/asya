@@ -75,12 +75,12 @@ type Route struct {
 // frames over the Unix socket. The sidecar reads each frame and creates a separate
 // message for routing.
 // The first fanout message retains the original ID to preserve SSE streaming compatibility.
-// Subsequent fanout messages receive suffixed IDs following the pattern: {original_id}-{index}
+// Subsequent fanout messages receive UUID4 IDs to avoid collisions across concurrent fan-outs.
 //
 // Example fanout from message "abc-123" returning 3 items:
-//   - Index 0: ID = "abc-123"      ParentID = nil     (original ID, SSE clients can track this)
-//   - Index 1: ID = "abc-123-1"    ParentID = "abc-123" (fanout child)
-//   - Index 2: ID = "abc-123-2"    ParentID = "abc-123" (fanout child)
+//   - Index 0: ID = "abc-123"                               ParentID = nil        (original ID, SSE clients can track this)
+//   - Index 1: ID = "550e8400-e29b-41d4-a716-446655440000"  ParentID = "abc-123"  (fanout child, UUID4)
+//   - Index 2: ID = "7c9e6679-7425-40de-944b-e07fc1f90ae7"  ParentID = "abc-123"  (fanout child, UUID4)
 //
 // All fanout children have ParentID set to the original message ID for traceability.
 type Message struct {

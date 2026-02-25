@@ -1971,15 +1971,15 @@ func TestRouter_ProcessMessage_FanOut(t *testing.T) {
 			t.Fatalf("Failed to unmarshal message %d: %v", i, err)
 		}
 
-		// First item keeps original ID, subsequent items get suffix
-		var expectedID string
+		// First item keeps original ID, subsequent items get UUID4
 		if i == 0 {
-			expectedID = "test-fanout-123"
+			if parsedMsg.ID != "test-fanout-123" {
+				t.Errorf("Message %d has ID %q, expected %q", i, parsedMsg.ID, "test-fanout-123")
+			}
 		} else {
-			expectedID = fmt.Sprintf("test-fanout-123-%d", i)
-		}
-		if parsedMsg.ID != expectedID {
-			t.Errorf("Message %d has ID %q, expected %q", i, parsedMsg.ID, expectedID)
+			if parsedMsg.ID == "" || parsedMsg.ID == "test-fanout-123" || strings.HasPrefix(parsedMsg.ID, "test-fanout-123-") {
+				t.Errorf("Message %d has ID %q, expected a unique UUID", i, parsedMsg.ID)
+			}
 		}
 
 		// First item has no parent_id, subsequent items have parent_id set to original ID
@@ -2126,20 +2126,24 @@ func TestRouter_ProcessMessage_FanOut_CreatesGatewayTasks(t *testing.T) {
 		t.Fatalf("Expected 2 created tasks, got %d", len(createdTasks))
 	}
 
-	// First fanout child (index 1)
-	if createdTasks[0].id != "test-fanout-456-1" {
-		t.Errorf("First task ID = %q, want test-fanout-456-1", createdTasks[0].id)
+	// First fanout child (index 1): UUID4 ID, parent is original
+	if createdTasks[0].id == "" || createdTasks[0].id == "test-fanout-456" || strings.HasPrefix(createdTasks[0].id, "test-fanout-456-") {
+		t.Errorf("First task ID = %q, want a unique UUID", createdTasks[0].id)
 	}
 	if createdTasks[0].parentID != "test-fanout-456" {
 		t.Errorf("First task ParentID = %q, want test-fanout-456", createdTasks[0].parentID)
 	}
 
-	// Second fanout child (index 2)
-	if createdTasks[1].id != "test-fanout-456-2" {
-		t.Errorf("Second task ID = %q, want test-fanout-456-2", createdTasks[1].id)
+	// Second fanout child (index 2): UUID4 ID, parent is original
+	if createdTasks[1].id == "" || createdTasks[1].id == "test-fanout-456" || strings.HasPrefix(createdTasks[1].id, "test-fanout-456-") {
+		t.Errorf("Second task ID = %q, want a unique UUID", createdTasks[1].id)
 	}
 	if createdTasks[1].parentID != "test-fanout-456" {
 		t.Errorf("Second task ParentID = %q, want test-fanout-456", createdTasks[1].parentID)
+	}
+	// IDs should be distinct
+	if createdTasks[0].id == createdTasks[1].id {
+		t.Errorf("Fanout children have duplicate IDs: %q", createdTasks[0].id)
 	}
 }
 

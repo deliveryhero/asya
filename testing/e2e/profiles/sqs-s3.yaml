@@ -97,6 +97,7 @@ crossplane:
     # docker-image` does NOT work for Function packages — unlike regular container
     # images which kubelet pulls from containerd's local store via imagePullPolicy: Never.
     flavorsEnabled: false
+    flavorsPackagePullPolicy: Never
   awsProviderConfig:
     name: localstack
     credentialsSource: Secret
