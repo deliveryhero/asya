@@ -10,6 +10,7 @@ dependencies:
 ---
 
 
+
 Forward upstream (partial) SSE events from runtime to the gateway via HTTP for real-time client delivery (LLM token streaming, progress indicators).
 
 ## Design
