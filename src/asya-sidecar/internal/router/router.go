@@ -964,10 +964,10 @@ func (r *Router) routeResponse(ctx context.Context, id string, parentID *string,
 }
 
 // sendToSinkQueue sends the original message to the x-sink queue.
-// If message.Status already has a Phase set (e.g. PhaseFailed for SLA timeout),
+// If message.Status already has a terminal phase (succeeded/failed),
 // it is preserved. Otherwise, PhaseSucceeded/ReasonCompleted is stamped.
 func (r *Router) sendToSinkQueue(ctx context.Context, message messages.Message) error {
-	if message.Status == nil || message.Status.Phase == "" {
+	if message.Status == nil || (message.Status.Phase != messages.PhaseSucceeded && message.Status.Phase != messages.PhaseFailed) {
 		now := time.Now().UTC().Format(time.RFC3339)
 		createdAt := now
 		if message.Status != nil {
