@@ -2,11 +2,13 @@
 title: "Sidecar: forward upstream events to gateway"
 priority: 2 # medium
 type: task
-dependencies:
-  - 1ia4/1in0hv
 tags:
   - type:feature
+  - pr:205
+dependencies:
+  - 1ia4/1in0hv
 ---
+
 
 Forward upstream (partial) SSE events from runtime to the gateway via HTTP for real-time client delivery (LLM token streaming, progress indicators).
 
