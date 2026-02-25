@@ -25,8 +25,8 @@ class RuntimeClient:
 
     SOCKET_PATH = "/var/run/asya/asya-runtime.sock"
 
-    def invoke(self, payload: dict, timeout: int = 10) -> dict:
-        """Send a state operation to the runtime and return the result payload."""
+    def _send_request(self, payload: dict, timeout: int = 10) -> tuple[http.client.HTTPResponse, dict]:
+        """Send request and return response and parsed data."""
         message = {
             "id": f"test-{id(payload)}",
             "route": {"prev": [], "curr": "state-ops", "next": []},
@@ -35,15 +35,22 @@ class RuntimeClient:
         conn = _UnixHTTPConnection(self.SOCKET_PATH)
         conn.timeout = timeout
         body = json.dumps(message).encode()
-        conn.request(
-            "POST",
-            "/invoke",
-            body=body,
-            headers={"Content-Type": "application/json"},
-        )
-        resp = conn.getresponse()
-        data = json.loads(resp.read())
-        conn.close()
+        try:
+            conn.request(
+                "POST",
+                "/invoke",
+                body=body,
+                headers={"Content-Type": "application/json"},
+            )
+            resp = conn.getresponse()
+            data = json.loads(resp.read())
+            return resp, data
+        finally:
+            conn.close()
+
+    def invoke(self, payload: dict, timeout: int = 10) -> dict:
+        """Send a state operation to the runtime and return the result payload."""
+        resp, data = self._send_request(payload, timeout)
         if resp.status == 200:
             assert len(data["frames"]) == 1
             return data["frames"][0]["payload"]
@@ -51,23 +58,7 @@ class RuntimeClient:
 
     def invoke_expect_error(self, payload: dict, timeout: int = 10) -> dict:
         """Send a state operation expecting a 500 error response."""
-        message = {
-            "id": f"test-{id(payload)}",
-            "route": {"prev": [], "curr": "state-ops", "next": []},
-            "payload": payload,
-        }
-        conn = _UnixHTTPConnection(self.SOCKET_PATH)
-        conn.timeout = timeout
-        body = json.dumps(message).encode()
-        conn.request(
-            "POST",
-            "/invoke",
-            body=body,
-            headers={"Content-Type": "application/json"},
-        )
-        resp = conn.getresponse()
-        data = json.loads(resp.read())
-        conn.close()
+        resp, data = self._send_request(payload, timeout)
         assert resp.status == 500, f"Expected 500, got {resp.status}: {data}"
         return data
 

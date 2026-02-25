@@ -18,6 +18,5 @@ services:
     - |
       set -ex
       pytest tests/ ${PYTEST_OPTS} \
-        --cov --cov-config=/app/.coveragerc \
-        --cov-report=term \
+        --cov-config=/app/.coveragerc \
         --cov-report=json:/app/.coverage/cov-${CONNECTOR_PROFILE}.json

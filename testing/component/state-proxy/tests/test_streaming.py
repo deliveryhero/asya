@@ -12,7 +12,7 @@ def _key():
 
 
 class TestLargeFileStreaming:
-    """Test with files larger than the SpooledTemporaryFile threshold (4MB)."""
+    """Test streaming of large files."""
 
     def test_write_and_read_1mb(self, runtime):
         key = _key()

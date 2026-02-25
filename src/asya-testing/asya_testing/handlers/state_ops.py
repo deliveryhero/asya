@@ -29,13 +29,9 @@ def state_ops_handler(payload: dict) -> dict:
     if op == "write":
         content = payload["content"]
         mode = payload.get("mode", "w")
-        if "b" in mode:
-            data = base64.b64decode(content)
-            with open(path, mode) as f:
-                written = f.write(data)
-            return {"written": written}
+        data_to_write = base64.b64decode(content) if "b" in mode else content
         with open(path, mode) as f:
-            written = f.write(content)
+            written = f.write(data_to_write)
         return {"written": written}
 
     if op == "exists":
