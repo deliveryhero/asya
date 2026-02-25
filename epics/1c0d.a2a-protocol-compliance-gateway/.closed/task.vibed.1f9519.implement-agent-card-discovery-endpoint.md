@@ -10,6 +10,7 @@ tags:
 
 
 
+
 Add GET /.well-known/a2a/agent-card endpoint that returns the Agent Card JSON.
 
 ## Requirements
