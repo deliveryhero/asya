@@ -94,24 +94,24 @@ Migrations are automatically run via Helm hooks before gateway deployment. See:
 
 ### Tables
 
-**envelopes**
+**tasks**
 - Stores task metadata and current state
 - Primary table for task management
 - Auto-updates `updated_at` on every change
 
-**envelope_updates**
+**task_updates**
 - Audit log of all task status changes
 - Used for SSE streaming to provide full update history
 - Automatically cleaned up when task is deleted (CASCADE)
 
 ### Indexes
 
-- `idx_envelopes_status`: Fast filtering by task status
-- `idx_envelopes_created_at`: Sorting by creation time
-- `idx_envelopes_updated_at`: Finding recently updated tasks
-- `idx_envelopes_deadline`: Finding tasks approaching timeout
-- `idx_envelope_updates_envelope_id`: Fast lookup of updates per task
-- `idx_envelope_updates_timestamp`: Time-ordered update stream
+- `idx_tasks_status`: Fast filtering by task status
+- `idx_tasks_created_at`: Sorting by creation time
+- `idx_tasks_updated_at`: Finding recently updated tasks
+- `idx_tasks_deadline`: Finding tasks approaching timeout
+- `idx_task_updates_task_id`: Fast lookup of updates per task
+- `idx_task_updates_timestamp`: Time-ordered update stream
 
 ## Adding New Migrations
 
