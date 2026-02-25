@@ -1,8 +1,10 @@
 ---
 title: Stateful Fan-In/Fan-Out
+status: vibed
 priority: 2 # medium
 type: epic
 ---
+
 
 
 ## Summary
