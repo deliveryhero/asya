@@ -90,9 +90,7 @@ func streamTaskUpdates(w http.ResponseWriter, r *http.Request, store taskstore.T
 		case <-r.Context().Done():
 			return
 		case <-keepaliveTicker.C:
-			// nosemgrep: go.lang.security.audit.xss.no-direct-write-to-response-writer
-			_, _ = io.WriteString(w, ": keepalive\n\n")
-			flusher.Flush()
+			writeSSEKeepalive(w, flusher)
 		case update := <-updateChan:
 			writeSSEEvent(w, flusher, update)
 			if isFinalA2AStatus(update.Status) {
@@ -103,7 +101,7 @@ func streamTaskUpdates(w http.ResponseWriter, r *http.Request, store taskstore.T
 	}
 }
 
-func writeSSEEvent(w http.ResponseWriter, flusher http.Flusher, update types.TaskUpdate) {
+func writeSSEEvent(w io.Writer, flusher http.Flusher, update types.TaskUpdate) {
 	a2aEvent := TaskUpdateToSSEEvents(update)
 
 	eventType := "status_update"
@@ -113,8 +111,12 @@ func writeSSEEvent(w http.ResponseWriter, flusher http.Flusher, update types.Tas
 		return
 	}
 
-	// nosemgrep: go.lang.security.audit.xss.no-direct-write-to-response-writer -- SSE text/event-stream, not HTML
 	_, _ = io.WriteString(w, "event: "+eventType+"\ndata: "+string(data)+"\n\n")
+	flusher.Flush()
+}
+
+func writeSSEKeepalive(w io.Writer, flusher http.Flusher) {
+	_, _ = io.WriteString(w, ": keepalive\n\n")
 	flusher.Flush()
 }
 
