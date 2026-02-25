@@ -6,7 +6,23 @@ tags:
   - type:feature
 ---
 
+The original task 1fw7nd proposed a custom multi-frame protocol over the Unix socket:
+{"type": "stream", "data": {"type": "text_delta", "delta": "..."}}
+{"type": "stream", "data": {"type": "progress", "pct": 50}}
+{"type": "result", "data": {"payload": {...}, "route": {...}}}
 
+This was a proprietary framing format — the sidecar would read frames in a loop, distinguish stream vs result types, and forward
+accordingly.
+
+What replaced it: Instead of inventing a custom protocol, we used standard SSE (text/event-stream) — the same format the gateway
+already uses for client streaming. The runtime emits event: downstream, event: upstream, event: done, and event: error as standard
+SSE events. The sidecar detects SSE via Content-Type header and uses a standard SSE parser.
+
+Why SSE won:
+- No custom framing to maintain — SSE is a well-specified standard
+- Content-Type detection makes backward compatibility trivial (JSON responses still work)
+- The sidecar's parseSSEStream() is ~30 lines of standard SSE parsing vs a custom frame loop
+- Event types (downstream/upstream) provide clear semantics without a type field convention
 
 
 
