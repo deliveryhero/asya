@@ -146,7 +146,7 @@ func (r *Router) processEndActorMessage(ctx context.Context, msg messages.Messag
 
 	// Send to runtime without route validation (end actors don't forward upstream events)
 	runtimeStart := time.Now()
-	responses, err := r.runtimeClient.CallRuntime(ctx, msgBody, nil)
+	responses, err := r.runtimeClient.CallRuntime(ctx, msgBody, r.cfg.Timeout, nil)
 	runtimeDuration := time.Since(runtimeStart)
 
 	if r.metrics != nil {
@@ -721,7 +721,7 @@ func (r *Router) ProcessMessage(ctx context.Context, queueMsg transport.QueueMes
 
 	slog.Info("Calling runtime", "id", msg.ID, "actor", r.cfg.ActorName)
 	runtimeStart := time.Now()
-	responses, err := r.runtimeClient.CallRuntime(ctx, updatedBody, onUpstream)
+	responses, err := r.runtimeClient.CallRuntime(ctx, updatedBody, r.cfg.Timeout, onUpstream)
 	runtimeDuration := time.Since(runtimeStart)
 
 	if err != nil {

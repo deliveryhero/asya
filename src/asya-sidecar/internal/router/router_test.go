@@ -196,6 +196,7 @@ func TestRouter_RouteValidation(t *testing.T) {
 				Namespace:     "default",
 				SinkQueue:     "x-sink",
 				SumpQueue:     "x-sump",
+				Timeout:       2 * time.Second,
 				TransportType: "rabbitmq",
 			}
 
@@ -422,6 +423,7 @@ func TestRouter_DynamicRouteModification(t *testing.T) {
 				Namespace: "default",
 				SinkQueue: "x-sink",
 				SumpQueue: "x-sump",
+				Timeout:   2 * time.Second,
 			}
 
 			mockTransport := &mockTransport{}
@@ -517,6 +519,7 @@ func TestRouter_ResolveQueueName_Integration(t *testing.T) {
 				ActorName:     "actor1",
 				SinkQueue:     "x-sink",
 				SumpQueue:     "x-sump",
+				Timeout:       2 * time.Second,
 			},
 			inputActors:      []string{"actor1", "actor2", "actor3"},
 			expectedQueues:   []string{"asya-default-actor2"},
@@ -532,6 +535,7 @@ func TestRouter_ResolveQueueName_Integration(t *testing.T) {
 				ActorName:     "processor",
 				SinkQueue:     "x-sink",
 				SumpQueue:     "x-sump",
+				Timeout:       2 * time.Second,
 			},
 			inputActors:      []string{"processor", "validator"},
 			expectedQueues:   []string{"asya-default-validator"},
@@ -636,6 +640,7 @@ func TestNewRouter(t *testing.T) {
 				Namespace:  "default",
 				SinkQueue:  "x-sink",
 				SumpQueue:  "x-sump",
+				Timeout:    2 * time.Second,
 				GatewayURL: tt.gatewayURL,
 			}
 
@@ -678,6 +683,7 @@ func TestRouter_SendToSinkQueue(t *testing.T) {
 		Namespace:     "default",
 		SinkQueue:     "x-sink",
 		SumpQueue:     "x-sump",
+		Timeout:       2 * time.Second,
 		TransportType: "rabbitmq",
 	}
 
@@ -734,6 +740,7 @@ func TestRouter_SendToSumpQueue(t *testing.T) {
 		Namespace:     "default",
 		SinkQueue:     "x-sink",
 		SumpQueue:     "x-sump",
+		Timeout:       2 * time.Second,
 		TransportType: "rabbitmq",
 	}
 
@@ -817,6 +824,7 @@ func TestRouter_SendToSumpQueue_WithInvalidOriginalMessage(t *testing.T) {
 		Namespace:     "default",
 		SinkQueue:     "x-sink",
 		SumpQueue:     "x-sump",
+		Timeout:       2 * time.Second,
 		TransportType: "rabbitmq",
 	}
 
@@ -878,6 +886,7 @@ func TestRouter_Run(t *testing.T) {
 		Namespace:     "default",
 		SinkQueue:     "x-sink",
 		SumpQueue:     "x-sump",
+		Timeout:       2 * time.Second,
 		TransportType: "rabbitmq",
 	}
 
@@ -915,6 +924,7 @@ func TestRouter_ProcessMessage_ParseError(t *testing.T) {
 		Namespace:     "default",
 		SinkQueue:     "x-sink",
 		SumpQueue:     "x-sump",
+		Timeout:       2 * time.Second,
 		TransportType: "rabbitmq",
 	}
 
@@ -957,6 +967,7 @@ func TestRouter_ProcessMessage_MissingMessageID(t *testing.T) {
 		Namespace:     "default",
 		SinkQueue:     "x-sink",
 		SumpQueue:     "x-sump",
+		Timeout:       2 * time.Second,
 		TransportType: "rabbitmq",
 	}
 
@@ -1018,6 +1029,7 @@ func TestRouter_ProcessMessage_EmptyResponse(t *testing.T) {
 		Namespace:     "default",
 		SinkQueue:     "x-sink",
 		SumpQueue:     "x-sump",
+		Timeout:       2 * time.Second,
 		TransportType: "rabbitmq",
 	}
 
@@ -1085,6 +1097,7 @@ func TestRouter_ProcessMessage_EndActor(t *testing.T) {
 		Namespace:     "default",
 		SinkQueue:     "x-sink",
 		SumpQueue:     "x-sump",
+		Timeout:       2 * time.Second,
 		TransportType: "rabbitmq",
 		IsEndActor:    true,
 	}
@@ -1189,6 +1202,7 @@ func TestRouter_EndActor_WithInvalidRoute(t *testing.T) {
 				Namespace:     "default",
 				SinkQueue:     "x-sink",
 				SumpQueue:     "x-sump",
+				Timeout:       2 * time.Second,
 				TransportType: "rabbitmq",
 				IsEndActor:    true,
 			}
@@ -1250,6 +1264,7 @@ func TestRouter_EndActor_WithGatewayReporting(t *testing.T) {
 		Namespace:     "default",
 		SinkQueue:     "x-sink",
 		SumpQueue:     "x-sump",
+		Timeout:       2 * time.Second,
 		TransportType: "rabbitmq",
 		IsEndActor:    true,
 		GatewayURL:    mockServer.URL,
@@ -1316,6 +1331,7 @@ func TestRouter_EndActor_RuntimeError(t *testing.T) {
 		Namespace:     "default",
 		SinkQueue:     "x-sink",
 		SumpQueue:     "x-sump",
+		Timeout:       2 * time.Second,
 		TransportType: "rabbitmq",
 		IsEndActor:    true,
 	}
@@ -1385,6 +1401,7 @@ func TestRouter_EndActor_DoesNotIncrementCurrent(t *testing.T) {
 		Namespace:     "default",
 		SinkQueue:     "x-sink",
 		SumpQueue:     "x-sump",
+		Timeout:       2 * time.Second,
 		TransportType: "rabbitmq",
 		IsEndActor:    true,
 	}
@@ -1440,6 +1457,7 @@ func TestRouter_ProcessMessage_RuntimeError(t *testing.T) {
 		Namespace:     "default",
 		SinkQueue:     "x-sink",
 		SumpQueue:     "x-sump",
+		Timeout:       2 * time.Second,
 		TransportType: "rabbitmq",
 	}
 
@@ -1506,6 +1524,7 @@ func TestRouter_ProcessMessage_ErrorResponse(t *testing.T) {
 		Namespace:     "default",
 		SinkQueue:     "x-sink",
 		SumpQueue:     "x-sump",
+		Timeout:       2 * time.Second,
 		TransportType: "rabbitmq",
 	}
 
@@ -1598,6 +1617,7 @@ func TestRouter_ReportFinalStatus_Sink(t *testing.T) {
 		Namespace:  "default",
 		SinkQueue:  "x-sink",
 		SumpQueue:  "x-sump",
+		Timeout:    2 * time.Second,
 		GatewayURL: mockServer.URL,
 	}
 
@@ -1650,6 +1670,7 @@ func TestRouter_ReportFinalStatus_Sump(t *testing.T) {
 		Namespace:  "default",
 		SinkQueue:  "x-sink",
 		SumpQueue:  "x-sump",
+		Timeout:    2 * time.Second,
 		GatewayURL: mockServer.URL,
 	}
 
@@ -1702,6 +1723,7 @@ func TestRouter_ReportFinalStatusWithMessage_Sump_ExtractsErrorDetails(t *testin
 		Namespace:     "default",
 		SinkQueue:     "x-sink",
 		SumpQueue:     "x-sump",
+		Timeout:       2 * time.Second,
 		TransportType: "rabbitmq",
 		IsEndActor:    true,
 		GatewayURL:    mockServer.URL,
@@ -1811,6 +1833,7 @@ func TestRouter_ReportFinalStatusWithMessage_Sump_NoErrorDetails(t *testing.T) {
 		Namespace:     "default",
 		SinkQueue:     "x-sink",
 		SumpQueue:     "x-sump",
+		Timeout:       2 * time.Second,
 		TransportType: "rabbitmq",
 		IsEndActor:    true,
 		GatewayURL:    mockServer.URL,
@@ -1874,6 +1897,7 @@ func TestRouter_ReportFinalStatus_NoGateway(t *testing.T) {
 		Namespace:  "default",
 		SinkQueue:  "x-sink",
 		SumpQueue:  "x-sump",
+		Timeout:    2 * time.Second,
 		GatewayURL: "",
 	}
 
@@ -1916,6 +1940,7 @@ func TestRouter_ProcessMessage_FanOut(t *testing.T) {
 		Namespace:     "default",
 		SinkQueue:     "x-sink",
 		SumpQueue:     "x-sump",
+		Timeout:       2 * time.Second,
 		TransportType: "rabbitmq",
 	}
 
@@ -2072,6 +2097,7 @@ func TestRouter_ProcessMessage_FanOut_CreatesGatewayTasks(t *testing.T) {
 		Namespace:     "default",
 		SinkQueue:     "x-sink",
 		SumpQueue:     "x-sump",
+		Timeout:       2 * time.Second,
 		TransportType: "rabbitmq",
 		GatewayURL:    gatewayServer.URL,
 	}
@@ -2167,6 +2193,7 @@ func TestRouter_CheckGatewayHealth_Success(t *testing.T) {
 		Namespace:     "default",
 		SinkQueue:     "x-sink",
 		SumpQueue:     "x-sump",
+		Timeout:       2 * time.Second,
 		TransportType: "rabbitmq",
 		GatewayURL:    gatewayServer.URL,
 	}
@@ -2202,6 +2229,7 @@ func TestRouter_CheckGatewayHealth_Failure(t *testing.T) {
 		Namespace:     "default",
 		SinkQueue:     "x-sink",
 		SumpQueue:     "x-sump",
+		Timeout:       2 * time.Second,
 		TransportType: "rabbitmq",
 		GatewayURL:    gatewayServer.URL,
 	}
@@ -2227,6 +2255,7 @@ func TestRouter_CheckGatewayHealth_NoGatewayConfigured(t *testing.T) {
 		Namespace:     "default",
 		SinkQueue:     "x-sink",
 		SumpQueue:     "x-sump",
+		Timeout:       2 * time.Second,
 		TransportType: "rabbitmq",
 		GatewayURL:    "", // No gateway configured
 	}
@@ -2252,6 +2281,7 @@ func TestRouter_CheckGatewayHealth_NetworkError(t *testing.T) {
 		Namespace:     "default",
 		SinkQueue:     "x-sink",
 		SumpQueue:     "x-sump",
+		Timeout:       2 * time.Second,
 		TransportType: "rabbitmq",
 		GatewayURL:    "http://invalid-host-that-does-not-exist:99999",
 	}
@@ -2397,6 +2427,7 @@ func TestRouter_RouteResponse_NextActor_HasStatus(t *testing.T) {
 		Namespace:     "default",
 		SinkQueue:     "x-sink",
 		SumpQueue:     "x-sump",
+		Timeout:       2 * time.Second,
 		TransportType: "rabbitmq",
 	}
 	mockTransport := &mockTransport{}
@@ -2461,6 +2492,7 @@ func TestRouter_RouteResponse_Sink_HasStatus(t *testing.T) {
 		Namespace:     "default",
 		SinkQueue:     "x-sink",
 		SumpQueue:     "x-sump",
+		Timeout:       2 * time.Second,
 		TransportType: "rabbitmq",
 	}
 	mockTransport := &mockTransport{}
@@ -2515,6 +2547,7 @@ func TestRouter_SendToSumpQueue_HasStatus(t *testing.T) {
 		Namespace:     "default",
 		SinkQueue:     "x-sink",
 		SumpQueue:     "x-sump",
+		Timeout:       2 * time.Second,
 		TransportType: "rabbitmq",
 	}
 	mockTransport := &mockTransport{}
@@ -2577,6 +2610,7 @@ func TestRouter_SendToSinkQueue_HasStatus(t *testing.T) {
 		Namespace:     "default",
 		SinkQueue:     "x-sink",
 		SumpQueue:     "x-sump",
+		Timeout:       2 * time.Second,
 		TransportType: "rabbitmq",
 	}
 	mockTransport := &mockTransport{}
@@ -2873,6 +2907,7 @@ func TestRouter_RouteOverride_Integration(t *testing.T) {
 				SinkQueue:     testQueueSink,
 				SumpQueue:     testQueueSump,
 				TransportType: "rabbitmq",
+				Timeout:       2 * time.Second,
 			}
 
 			mockTr := &mockTransport{}
@@ -3018,6 +3053,7 @@ func TestRouter_RouteOverride_ActorValidation(t *testing.T) {
 				SinkQueue:     testQueueSink,
 				SumpQueue:     testQueueSump,
 				TransportType: "rabbitmq",
+				Timeout:       2 * time.Second,
 			}
 
 			mockTr := &mockTransport{}
@@ -3111,6 +3147,7 @@ func TestRouter_RouteOverride_FanOut(t *testing.T) {
 		Namespace:     "default",
 		SinkQueue:     testQueueSink,
 		SumpQueue:     testQueueSump,
+		Timeout:       2 * time.Second,
 		TransportType: "rabbitmq",
 	}
 
@@ -3244,6 +3281,7 @@ func TestRouter_RouteOverride_ResolvedHeaderAuditTrail(t *testing.T) {
 		Namespace:     "default",
 		SinkQueue:     testQueueSink,
 		SumpQueue:     testQueueSump,
+		Timeout:       2 * time.Second,
 		TransportType: "sqs",
 	}
 
@@ -3358,6 +3396,7 @@ func TestRouter_RouteOverride_PreservesExistingAuditTrail(t *testing.T) {
 		Namespace:     "default",
 		SinkQueue:     testQueueSink,
 		SumpQueue:     testQueueSump,
+		Timeout:       2 * time.Second,
 		TransportType: "rabbitmq",
 	}
 

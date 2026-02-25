@@ -567,3 +567,201 @@ func TestMessage_RawMessageForwardsUnchanged(t *testing.T) {
 		t.Errorf("payload mismatch:\ngot:  %v\nwant: %v", payload, expected)
 	}
 }
+
+func TestMessage_ParseDeadline_Valid(t *testing.T) {
+	tests := []struct {
+		name       string
+		deadlineAt string
+		wantValid  bool
+	}{
+		{
+			name:       "valid RFC3339 timestamp",
+			deadlineAt: "2026-02-25T12:00:00Z",
+			wantValid:  true,
+		},
+		{
+			name:       "valid RFC3339 with timezone",
+			deadlineAt: "2026-02-25T12:00:00+05:00",
+			wantValid:  true,
+		},
+		{
+			name:       "valid RFC3339 with nanoseconds",
+			deadlineAt: "2026-02-25T12:00:00.123456789Z",
+			wantValid:  true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			msg := &Message{
+				Status: &Status{
+					DeadlineAt: tt.deadlineAt,
+				},
+			}
+
+			deadline, ok := msg.ParseDeadline()
+			if ok != tt.wantValid {
+				t.Errorf("ParseDeadline() ok = %v, want %v", ok, tt.wantValid)
+			}
+
+			if tt.wantValid {
+				if deadline.IsZero() {
+					t.Error("ParseDeadline() returned zero time for valid deadline")
+				}
+			}
+		})
+	}
+}
+
+func TestMessage_ParseDeadline_Empty(t *testing.T) {
+	msg := &Message{
+		Status: &Status{
+			DeadlineAt: "",
+		},
+	}
+
+	deadline, ok := msg.ParseDeadline()
+	if ok {
+		t.Error("ParseDeadline() should return false for empty deadline_at")
+	}
+	if !deadline.IsZero() {
+		t.Error("ParseDeadline() should return zero time for empty deadline_at")
+	}
+}
+
+func TestMessage_ParseDeadline_NoStatus(t *testing.T) {
+	msg := &Message{
+		Status: nil,
+	}
+
+	deadline, ok := msg.ParseDeadline()
+	if ok {
+		t.Error("ParseDeadline() should return false when status is nil")
+	}
+	if !deadline.IsZero() {
+		t.Error("ParseDeadline() should return zero time when status is nil")
+	}
+}
+
+func TestMessage_ParseDeadline_Malformed(t *testing.T) {
+	tests := []struct {
+		name       string
+		deadlineAt string
+	}{
+		{
+			name:       "invalid format",
+			deadlineAt: "not-a-timestamp",
+		},
+		{
+			name:       "unix timestamp",
+			deadlineAt: "1708862400",
+		},
+		{
+			name:       "ISO 8601 without T separator",
+			deadlineAt: "2026-02-25 12:00:00Z",
+		},
+		{
+			name:       "missing timezone",
+			deadlineAt: "2026-02-25T12:00:00",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			msg := &Message{
+				Status: &Status{
+					DeadlineAt: tt.deadlineAt,
+				},
+			}
+
+			deadline, ok := msg.ParseDeadline()
+			if ok {
+				t.Errorf("ParseDeadline() should return false for malformed deadline: %q", tt.deadlineAt)
+			}
+			if !deadline.IsZero() {
+				t.Errorf("ParseDeadline() should return zero time for malformed deadline: %q", tt.deadlineAt)
+			}
+		})
+	}
+}
+
+func TestStatus_DeadlineAt_JSONSerialization(t *testing.T) {
+	tests := []struct {
+		name      string
+		status    *Status
+		wantField bool
+		wantValue string
+	}{
+		{
+			name: "with deadline_at",
+			status: &Status{
+				Phase:      PhasePending,
+				Actor:      "test-actor",
+				Attempt:    1,
+				CreatedAt:  "2026-02-25T10:00:00Z",
+				UpdatedAt:  "2026-02-25T10:00:00Z",
+				DeadlineAt: "2026-02-25T12:00:00Z",
+			},
+			wantField: true,
+			wantValue: "2026-02-25T12:00:00Z",
+		},
+		{
+			name: "without deadline_at (empty string)",
+			status: &Status{
+				Phase:      PhasePending,
+				Actor:      "test-actor",
+				Attempt:    1,
+				CreatedAt:  "2026-02-25T10:00:00Z",
+				UpdatedAt:  "2026-02-25T10:00:00Z",
+				DeadlineAt: "",
+			},
+			wantField: false,
+		},
+		{
+			name: "without deadline_at (not set)",
+			status: &Status{
+				Phase:     PhasePending,
+				Actor:     "test-actor",
+				Attempt:   1,
+				CreatedAt: "2026-02-25T10:00:00Z",
+				UpdatedAt: "2026-02-25T10:00:00Z",
+			},
+			wantField: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			data, err := json.Marshal(tt.status)
+			if err != nil {
+				t.Fatalf("Failed to marshal status: %v", err)
+			}
+
+			var decoded map[string]interface{}
+			if err := json.Unmarshal(data, &decoded); err != nil {
+				t.Fatalf("Failed to unmarshal to map: %v", err)
+			}
+
+			deadlineAt, hasField := decoded["deadline_at"]
+			if hasField != tt.wantField {
+				t.Errorf("deadline_at field presence = %v, want %v", hasField, tt.wantField)
+			}
+
+			if tt.wantField {
+				if deadlineAt != tt.wantValue {
+					t.Errorf("deadline_at = %q, want %q", deadlineAt, tt.wantValue)
+				}
+			}
+
+			// Verify round-trip
+			var roundtrip Status
+			if err := json.Unmarshal(data, &roundtrip); err != nil {
+				t.Fatalf("Failed to unmarshal roundtrip: %v", err)
+			}
+
+			if roundtrip.DeadlineAt != tt.status.DeadlineAt {
+				t.Errorf("DeadlineAt after roundtrip = %q, want %q", roundtrip.DeadlineAt, tt.status.DeadlineAt)
+			}
+		})
+	}
+}

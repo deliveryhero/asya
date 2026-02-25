@@ -83,6 +83,8 @@ func NewClient(socketPath string, timeout time.Duration) *Client {
 // CallRuntime sends a message to the runtime via HTTP POST /invoke and returns response frames.
 // Returns responses collected from the response body, empty slice for abort (204), or error.
 //
+// The timeout parameter specifies the per-call timeout duration for this invocation.
+//
 // The onUpstream callback is invoked for each upstream SSE event (partial results forwarded
 // to the gateway). Pass nil to silently drop upstream events.
 //
@@ -94,8 +96,8 @@ func NewClient(socketPath string, timeout time.Duration) *Client {
 //	Runtime -> Sidecar:  204 (empty)                           (abort / handler returned None)
 //	Runtime -> Sidecar:  400 {"error": "...", ...}             (bad request)
 //	Runtime -> Sidecar:  500 {"error": "...", ...}             (handler error)
-func (c *Client) CallRuntime(ctx context.Context, data []byte, onUpstream func(json.RawMessage)) ([]RuntimeResponse, error) {
-	ctx, cancel := context.WithTimeout(ctx, c.timeout)
+func (c *Client) CallRuntime(ctx context.Context, data []byte, timeout time.Duration, onUpstream func(json.RawMessage)) ([]RuntimeResponse, error) {
+	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "http://localhost/invoke", bytes.NewReader(data))

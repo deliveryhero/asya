@@ -42,6 +42,7 @@ type Status struct {
 	MaxAttempts int          `json:"max_attempts"`
 	CreatedAt   string       `json:"created_at"`
 	UpdatedAt   string       `json:"updated_at"`
+	DeadlineAt  string       `json:"deadline_at,omitempty"`
 	Error       *StatusError `json:"error,omitempty"`
 }
 
@@ -124,4 +125,17 @@ func (r *Route) IncrementCurrent() Route {
 		Curr: r.Next[0],
 		Next: r.Next[1:],
 	}
+}
+
+// ParseDeadline parses the status.deadline_at field as RFC3339.
+// Returns zero time and false if the message has no status, no deadline, or the value is malformed.
+func (m *Message) ParseDeadline() (time.Time, bool) {
+	if m.Status == nil || m.Status.DeadlineAt == "" {
+		return time.Time{}, false
+	}
+	t, err := time.Parse(time.RFC3339, m.Status.DeadlineAt)
+	if err != nil {
+		return time.Time{}, false
+	}
+	return t, true
 }

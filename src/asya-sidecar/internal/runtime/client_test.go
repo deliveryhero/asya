@@ -95,7 +95,7 @@ func TestClient_CallRuntime_Success(t *testing.T) {
 	client := NewClient(socketPath, 2*time.Second)
 	messageData := []byte(`{"route":{"prev":[],"curr":"test","next":["next"]},"payload":{"data":"test"}}`)
 
-	results, err := client.CallRuntime(context.Background(), messageData, nil)
+	results, err := client.CallRuntime(context.Background(), messageData, 2*time.Second, nil)
 	if err != nil {
 		t.Fatalf("CallRuntime failed: %v", err)
 	}
@@ -126,7 +126,7 @@ func TestClient_CallRuntime_Error(t *testing.T) {
 	client := NewClient(socketPath, 5*time.Second)
 	messageData := []byte(`{"route":{"prev":[],"curr":"test","next":[]},"payload":{"data":"test"}}`)
 
-	results, err := client.CallRuntime(context.Background(), messageData, nil)
+	results, err := client.CallRuntime(context.Background(), messageData, 5*time.Second, nil)
 	if err != nil {
 		t.Fatalf("CallRuntime failed: %v", err)
 	}
@@ -153,7 +153,7 @@ func TestClient_CallRuntime_Timeout(t *testing.T) {
 	client := NewClient(socketPath, 100*time.Millisecond)
 	messageData := []byte(`{"route":{"prev":[],"curr":"test","next":[]},"payload":{"data":"test"}}`)
 
-	_, err := client.CallRuntime(context.Background(), messageData, nil)
+	_, err := client.CallRuntime(context.Background(), messageData, 100*time.Millisecond, nil)
 	if err == nil {
 		t.Error("Expected timeout error but got nil")
 	}
@@ -192,7 +192,7 @@ func TestClient_CallRuntime_FanOut(t *testing.T) {
 	client := NewClient(socketPath, 5*time.Second)
 	messageData := []byte(`{"route":{"prev":[],"curr":"fan","next":[]},"payload":{"data":"test"}}`)
 
-	results, err := client.CallRuntime(context.Background(), messageData, nil)
+	results, err := client.CallRuntime(context.Background(), messageData, 5*time.Second, nil)
 	if err != nil {
 		t.Fatalf("CallRuntime failed: %v", err)
 	}
@@ -216,7 +216,7 @@ func TestClient_CallRuntime_EmptyResponse(t *testing.T) {
 	client := NewClient(socketPath, 5*time.Second)
 	messageData := []byte(`{"route":{"prev":[],"curr":"test","next":[]},"payload":{"data":"test"}}`)
 
-	results, err := client.CallRuntime(context.Background(), messageData, nil)
+	results, err := client.CallRuntime(context.Background(), messageData, 5*time.Second, nil)
 	if err != nil {
 		t.Fatalf("CallRuntime failed: %v", err)
 	}
@@ -243,7 +243,7 @@ func TestClient_CallRuntime_ParsingError(t *testing.T) {
 	client := NewClient(socketPath, 5*time.Second)
 	messageData := []byte(`{"route":{"prev":[],"curr":"test","next":[]}}`)
 
-	results, err := client.CallRuntime(context.Background(), messageData, nil)
+	results, err := client.CallRuntime(context.Background(), messageData, 5*time.Second, nil)
 	if err != nil {
 		t.Fatalf("CallRuntime failed: %v", err)
 	}
@@ -278,7 +278,7 @@ func TestClient_CallRuntime_ConnectionError(t *testing.T) {
 	client := NewClient(socketPath, 5*time.Second)
 	messageData := []byte(`{"route":{"prev":[],"curr":"test","next":[]},"payload":{"data":"test"}}`)
 
-	results, err := client.CallRuntime(context.Background(), messageData, nil)
+	results, err := client.CallRuntime(context.Background(), messageData, 5*time.Second, nil)
 	if err != nil {
 		t.Fatalf("CallRuntime failed: %v", err)
 	}
@@ -331,7 +331,7 @@ func TestClient_CallRuntime_SSE_DownstreamEvents(t *testing.T) {
 	client := NewClient(socketPath, 5*time.Second)
 	messageData := []byte(`{"route":{"prev":[],"curr":"a","next":["b"]},"payload":{}}`)
 
-	results, err := client.CallRuntime(context.Background(), messageData, nil)
+	results, err := client.CallRuntime(context.Background(), messageData, 5*time.Second, nil)
 	if err != nil {
 		t.Fatalf("CallRuntime failed: %v", err)
 	}
@@ -357,7 +357,7 @@ func TestClient_CallRuntime_SSE_UpstreamEvents(t *testing.T) {
 		upstreamEvents = append(upstreamEvents, payload)
 	}
 
-	results, err := client.CallRuntime(context.Background(), messageData, onUpstream)
+	results, err := client.CallRuntime(context.Background(), messageData, 5*time.Second, onUpstream)
 	if err != nil {
 		t.Fatalf("CallRuntime failed: %v", err)
 	}
@@ -381,7 +381,7 @@ func TestClient_CallRuntime_SSE_MixedEvents(t *testing.T) {
 	messageData := []byte(`{"route":{"prev":[],"curr":"a","next":["b"]},"payload":{}}`)
 
 	var upstreamEvents []json.RawMessage
-	results, err := client.CallRuntime(context.Background(), messageData, func(payload json.RawMessage) {
+	results, err := client.CallRuntime(context.Background(), messageData, 5*time.Second, func(payload json.RawMessage) {
 		upstreamEvents = append(upstreamEvents, payload)
 	})
 	if err != nil {
@@ -402,7 +402,7 @@ func TestClient_CallRuntime_SSE_EmptyStream(t *testing.T) {
 	client := NewClient(socketPath, 5*time.Second)
 	messageData := []byte(`{"route":{"prev":[],"curr":"a","next":[]},"payload":{}}`)
 
-	results, err := client.CallRuntime(context.Background(), messageData, nil)
+	results, err := client.CallRuntime(context.Background(), messageData, 5*time.Second, nil)
 	if err != nil {
 		t.Fatalf("CallRuntime failed: %v", err)
 	}
@@ -419,7 +419,7 @@ func TestClient_CallRuntime_SSE_MidStreamError(t *testing.T) {
 	client := NewClient(socketPath, 5*time.Second)
 	messageData := []byte(`{"route":{"prev":[],"curr":"a","next":[]},"payload":{}}`)
 
-	_, err := client.CallRuntime(context.Background(), messageData, nil)
+	_, err := client.CallRuntime(context.Background(), messageData, 5*time.Second, nil)
 	if err == nil {
 		t.Fatal("Expected error, got nil")
 	}
@@ -441,7 +441,7 @@ func TestClient_CallRuntime_SSE_NilUpstreamHandler(t *testing.T) {
 	client := NewClient(socketPath, 5*time.Second)
 	messageData := []byte(`{"route":{"prev":[],"curr":"a","next":[]},"payload":{}}`)
 
-	results, err := client.CallRuntime(context.Background(), messageData, nil)
+	results, err := client.CallRuntime(context.Background(), messageData, 5*time.Second, nil)
 	if err != nil {
 		t.Fatalf("CallRuntime failed: %v", err)
 	}
@@ -460,7 +460,7 @@ func TestClient_CallRuntime_JSON_StillWorks(t *testing.T) {
 	client := NewClient(socketPath, 5*time.Second)
 	messageData := []byte(`{"route":{"prev":[],"curr":"a","next":[]},"payload":{}}`)
 
-	results, err := client.CallRuntime(context.Background(), messageData, nil)
+	results, err := client.CallRuntime(context.Background(), messageData, 5*time.Second, nil)
 	if err != nil {
 		t.Fatalf("CallRuntime failed: %v", err)
 	}
