@@ -2,12 +2,15 @@
 title: "E2E test: compiled flow with fan-out/fan-in on Kind cluster"
 priority: 2 # medium
 type: task
+tags:
+  - pr:210
 dependencies:
   - 1c7i/1fr7i0
   - 1c7i/1fci1o
   - 1c7i/1i4xwg
   - 1c7i/1isz5r
 ---
+
 
 
 
