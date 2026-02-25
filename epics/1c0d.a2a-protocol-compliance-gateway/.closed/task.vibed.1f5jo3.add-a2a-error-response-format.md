@@ -10,6 +10,7 @@ tags:
 
 
 
+
 Implement A2A-compliant error responses.
 
 ## A2A Error Types
