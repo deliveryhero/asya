@@ -90,6 +90,7 @@ func streamTaskUpdates(w http.ResponseWriter, r *http.Request, store taskstore.T
 		case <-r.Context().Done():
 			return
 		case <-keepaliveTicker.C:
+			// nosemgrep: go.lang.security.audit.xss.no-direct-write-to-response-writer
 			_, _ = io.WriteString(w, ": keepalive\n\n")
 			flusher.Flush()
 		case update := <-updateChan:
@@ -112,6 +113,7 @@ func writeSSEEvent(w http.ResponseWriter, flusher http.Flusher, update types.Tas
 		return
 	}
 
+	// nosemgrep: go.lang.security.audit.xss.no-direct-write-to-response-writer -- SSE text/event-stream, not HTML
 	_, _ = io.WriteString(w, "event: "+eventType+"\ndata: "+string(data)+"\n\n")
 	flusher.Flush()
 }
