@@ -469,10 +469,15 @@ class DotGenerator:
             raise ValueError(f"Router {router.name!r} is marked is_fan_out but has no fan_out_op")
         fan_out = router.fan_out_op
 
-        # Determine aggregator: first non-end actor in true_branch_actors
+        # Find aggregator: first non-end actor in the continuation chain
         agg_actors = [a for a in router.true_branch_actors if not a.startswith("end_")]
         aggregator = agg_actors[0] if agg_actors else None
-        after_agg = agg_actors[1:] if agg_actors else []
+        # All actors after the aggregator, including end_ routers
+        if aggregator:
+            agg_idx = router.true_branch_actors.index(aggregator)
+            after_agg = router.true_branch_actors[agg_idx + 1 :]
+        else:
+            after_agg = []
 
         # Edge: fanout -> aggregator (parent message, slice 0)
         if aggregator:

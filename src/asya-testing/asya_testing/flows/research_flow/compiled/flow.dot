@@ -14,4 +14,5 @@ digraph flow {
   fanout_research_flow_L2 -> summarizer [color=mediumpurple4, label="slice 0\n(parent)", style=dashed];
   research_agent -> summarizer [color=slateblue4, style=dashed];
   start_research_flow -> fanout_research_flow_L2;
+  summarizer -> end_research_flow;
 }
