@@ -89,7 +89,9 @@
       "durable": true,
       "auto_delete": false,
       "arguments": {}
-    }
+    },
+    { "vhost": "/", "name": "asya-default-test-state-ops", "durable": true, "auto_delete": false, "arguments": {} },
+    { "vhost": "/", "name": "asya-default-test-plain-echo", "durable": true, "auto_delete": false, "arguments": {} }
   ],
   "bindings": [
     {
@@ -346,6 +348,22 @@
       "destination": "asya-default-test-retry-succeed",
       "destination_type": "queue",
       "routing_key": "test-retry-succeed",
+      "arguments": {}
+    },
+    {
+      "source": "asya",
+      "vhost": "/",
+      "destination": "asya-default-test-state-ops",
+      "destination_type": "queue",
+      "routing_key": "test-state-ops",
+      "arguments": {}
+    },
+    {
+      "source": "asya",
+      "vhost": "/",
+      "destination": "asya-default-test-plain-echo",
+      "destination_type": "queue",
+      "routing_key": "test-plain-echo",
       "arguments": {}
     },
     {

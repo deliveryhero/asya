@@ -1,0 +1,133 @@
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "2"
+
+x-runtime-env-files: &runtime-env-files
+- ../../../shared/compose/envs/.env.asya-shared
+- ../../../shared/compose/envs/.env.asya-runtime
+
+x-sidecar-env-files: &sidecar-env-files
+- ../../../shared/compose/envs/.env.asya-shared
+- ../../../shared/compose/envs/.env.asya-sidecar
+- ../../../shared/compose/envs/.env.rabbitmq
+
+services:
+  # --- Stateful actor: sidecar + runtime + connector ---
+  state-proxy-connector:
+    build:
+      context: ../../../../src/asya-state-proxy
+      dockerfile: Dockerfile.s3-buffered-lww
+    logging: *default-logging
+    depends_on:
+      storage-setup:
+        condition: service_completed_successfully
+    environment:
+      CONNECTOR_SOCKET: /var/run/asya/state/meta.sock
+      STATE_BUCKET: asya-state-test
+      STATE_PREFIX: integration
+      AWS_REGION: us-east-1
+      AWS_ENDPOINT_URL: http://minio:9000
+      AWS_ACCESS_KEY_ID: minioadmin
+      AWS_SECRET_ACCESS_KEY: minioadmin
+    volumes:
+    - state-ops-state-sockets:/var/run/asya/state
+    healthcheck:
+      test: ["CMD", "test", "-S", "/var/run/asya/state/meta.sock"]
+      interval: 1s
+      timeout: 1s
+      retries: 30
+
+  state-ops-runtime:
+    build:
+      context: ../../../../src/asya-testing
+      dockerfile: Dockerfile
+    logging: *default-logging
+    command: ["python3", "/opt/asya/asya_runtime.py"]
+    depends_on:
+      state-proxy-connector:
+        condition: service_healthy
+    env_file: *runtime-env-files
+    environment:
+      ASYA_HANDLER: asya_testing.handlers.state_ops.state_ops_handler
+      ASYA_RUNTIME_TIMEOUT: 30s
+      ASYA_STATE_PROXY_MOUNTS: "meta:/state/meta:write=buffered"
+    volumes:
+    - state-ops-runtime-sockets:/var/run/asya
+    - state-ops-state-sockets:/var/run/asya/state
+    - ../../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro
+    healthcheck:
+      test: ["CMD", "test", "-S", "/var/run/asya/asya-runtime.sock"]
+      interval: 1s
+      timeout: 1s
+      retries: 30
+
+  state-ops-sidecar:
+    build:
+      context: ../../../../src/asya-sidecar
+      dockerfile: Dockerfile
+    logging: *default-logging
+    depends_on:
+      state-ops-runtime:
+        condition: service_healthy
+      queue-setup:
+        condition: service_completed_successfully
+    env_file: *sidecar-env-files
+    environment:
+      ASYA_ACTOR_NAME: test-state-ops
+      ASYA_RUNTIME_TIMEOUT: 30s
+    volumes:
+    - state-ops-runtime-sockets:/var/run/asya
+
+  # --- Plain echo actor: sidecar + runtime (no state) ---
+  plain-echo-runtime:
+    build:
+      context: ../../../../src/asya-testing
+      dockerfile: Dockerfile
+    logging: *default-logging
+    command: ["python3", "/opt/asya/asya_runtime.py"]
+    env_file: *runtime-env-files
+    environment:
+      ASYA_HANDLER: asya_testing.handlers.payload.echo_handler
+      ASYA_RUNTIME_TIMEOUT: 5s
+    volumes:
+    - plain-echo-sockets:/var/run/asya
+    - ../../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro
+    healthcheck:
+      test: ["CMD", "test", "-S", "/var/run/asya/asya-runtime.sock"]
+      interval: 1s
+      timeout: 1s
+      retries: 30
+
+  plain-echo-sidecar:
+    build:
+      context: ../../../../src/asya-sidecar
+      dockerfile: Dockerfile
+    logging: *default-logging
+    depends_on:
+      plain-echo-runtime:
+        condition: service_healthy
+      queue-setup:
+        condition: service_completed_successfully
+    env_file: *sidecar-env-files
+    environment:
+      ASYA_ACTOR_NAME: test-plain-echo
+      ASYA_RUNTIME_TIMEOUT: 30s
+    volumes:
+    - plain-echo-sockets:/var/run/asya
+
+  # --- Waiter: signals all actors are ready ---
+  test-actors-waiter:
+    image: busybox:latest
+    depends_on:
+      state-ops-sidecar:
+        condition: service_started
+      plain-echo-sidecar:
+        condition: service_started
+    command: ["sh", "-c", "echo '[+] All test actors started'"]
+
+volumes:
+  state-ops-runtime-sockets:
+  state-ops-state-sockets:
+  plain-echo-sockets:
