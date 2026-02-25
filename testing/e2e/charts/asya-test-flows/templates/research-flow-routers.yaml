@@ -1,0 +1,70 @@
+---
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: start-research-flow
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "asya-test-flows.labels" . | nindent 4 }}
+    asya.sh/flow: research-flow
+    asya.sh/actor-type: router
+spec:
+  actor: start-research-flow
+  compositionSelector:
+    matchLabels:
+      asya.sh/transport: {{ .Values.transport }}
+  transport: {{ .Values.transport }}
+
+  scaling:
+    enabled: {{ .Values.scaling.enabled }}
+    minReplicas: {{ .Values.scaling.minReplicas }}
+    maxReplicas: {{ .Values.scaling.maxReplicas }}
+    queueLength: {{ .Values.scaling.queueLength }}
+
+  workload:
+    kind: Deployment
+    template:
+      spec:
+        containers:
+        - name: asya-runtime
+          image: {{ .Values.workload.image }}
+          imagePullPolicy: {{ .Values.workload.imagePullPolicy }}
+          env:
+          - name: ASYA_HANDLER
+            value: asya_testing.flows.research_flow.compiled.routers.start_research_flow
+          {{- include "asya-test-flows.research-flow-handler-env" . | nindent 10 }}
+---
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: fanout-research-flow-l2
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "asya-test-flows.labels" . | nindent 4 }}
+    asya.sh/flow: research-flow
+    asya.sh/actor-type: router
+spec:
+  actor: fanout-research-flow-l2
+  compositionSelector:
+    matchLabels:
+      asya.sh/transport: {{ .Values.transport }}
+  transport: {{ .Values.transport }}
+
+  scaling:
+    enabled: {{ .Values.scaling.enabled }}
+    minReplicas: {{ .Values.scaling.minReplicas }}
+    maxReplicas: {{ .Values.scaling.maxReplicas }}
+    queueLength: {{ .Values.scaling.queueLength }}
+
+  workload:
+    kind: Deployment
+    template:
+      spec:
+        containers:
+        - name: asya-runtime
+          image: {{ .Values.workload.image }}
+          imagePullPolicy: {{ .Values.workload.imagePullPolicy }}
+          env:
+          - name: ASYA_HANDLER
+            value: asya_testing.flows.research_flow.compiled.routers.fanout_research_flow_L2
+          {{- include "asya-test-flows.research-flow-handler-env" . | nindent 10 }}

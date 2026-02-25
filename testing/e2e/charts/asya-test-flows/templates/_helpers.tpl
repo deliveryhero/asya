@@ -56,3 +56,31 @@ These environment variables allow routers to resolve handler names to actor name
 - name: ASYA_HANDLER_END_TEST_NESTED_FLOW
   value: asya_testing.flows.nested_if.compiled.routers.end_test_nested_flow
 {{- end }}
+
+{{/*
+Flow handler resolution environment variables for research-flow (fan-out/fan-in).
+These env vars allow routers to resolve handler names to actor queue names.
+
+Handler-to-actor name mapping (via ASYA_HANDLER_<ACTOR_NAME_UPPER> env vars):
+  ASYA_HANDLER_START_RESEARCH_FLOW     -> actor "start-research-flow"
+  ASYA_HANDLER_FANOUT_RESEARCH_FLOW_L2 -> actor "fanout-research-flow-l2"
+  ASYA_HANDLER_END_RESEARCH_FLOW       -> actor "end-research-flow"
+  ASYA_HANDLER_RESEARCH_AGENT          -> actor "research-agent"
+  ASYA_HANDLER_RESEARCH_FLOW_AGGREGATOR -> actor "research-flow-aggregator"
+
+resolve("summarizer") matches suffix "summarizer" of handler path
+  "asya_testing.flows.research_flow.flow.summarizer" and returns
+  actor name "research-flow-aggregator" (derived from env key suffix).
+*/}}
+{{- define "asya-test-flows.research-flow-handler-env" -}}
+- name: ASYA_HANDLER_START_RESEARCH_FLOW
+  value: asya_testing.flows.research_flow.compiled.routers.start_research_flow
+- name: ASYA_HANDLER_FANOUT_RESEARCH_FLOW_L2
+  value: asya_testing.flows.research_flow.compiled.routers.fanout_research_flow_L2
+- name: ASYA_HANDLER_END_RESEARCH_FLOW
+  value: asya_testing.flows.research_flow.compiled.routers.end_research_flow
+- name: ASYA_HANDLER_RESEARCH_AGENT
+  value: asya_testing.flows.research_flow.flow.research_agent
+- name: ASYA_HANDLER_RESEARCH_FLOW_AGGREGATOR
+  value: asya_testing.flows.research_flow.flow.summarizer
+{{- end }}

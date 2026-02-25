@@ -1,0 +1,37 @@
+---
+# research-agent: processes a single research topic.
+# Receives a single topic value (not a dict) as payload from the fan-out router.
+# Returns a dict with topic, findings, and status fields.
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: research-agent
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "asya-test-flows.labels" . | nindent 4 }}
+    asya.sh/flow: research-flow
+    asya.sh/actor-type: handler
+spec:
+  actor: research-agent
+  compositionSelector:
+    matchLabels:
+      asya.sh/transport: {{ .Values.transport }}
+  transport: {{ .Values.transport }}
+
+  scaling:
+    enabled: {{ .Values.scaling.enabled }}
+    minReplicas: {{ .Values.scaling.minReplicas }}
+    maxReplicas: {{ .Values.scaling.maxReplicas }}
+    queueLength: {{ .Values.scaling.queueLength }}
+
+  workload:
+    kind: Deployment
+    template:
+      spec:
+        containers:
+        - name: asya-runtime
+          image: {{ .Values.workload.image }}
+          imagePullPolicy: {{ .Values.workload.imagePullPolicy }}
+          env:
+          - name: ASYA_HANDLER
+            value: asya_testing.flows.research_flow.flow.research_agent

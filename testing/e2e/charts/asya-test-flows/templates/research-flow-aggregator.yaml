@@ -1,0 +1,59 @@
+---
+# Fan-in aggregator for the research_flow E2E test.
+#
+# Runs the asya_crew S3 split-key aggregator, which:
+# - Collects N+1 fan-in slices (1 parent payload + N sub-agent results)
+# - Emits a merged envelope once all slices arrive
+# - Uses the state proxy sidecar for durable S3-backed state storage
+#
+# Requires ASYA_HANDLER_MODE=envelope so the runtime passes the full message
+# envelope (not just payload) to the aggregator function.
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: research-flow-aggregator
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "asya-test-flows.labels" . | nindent 4 }}
+    asya.sh/flow: research-flow
+    asya.sh/actor-type: aggregator
+spec:
+  actor: research-flow-aggregator
+  compositionSelector:
+    matchLabels:
+      asya.sh/transport: {{ .Values.transport }}
+  transport: {{ .Values.transport }}
+
+  scaling:
+    enabled: {{ .Values.scaling.enabled }}
+    minReplicas: 1
+    maxReplicas: 5
+    queueLength: 5
+
+  workload:
+    kind: Deployment
+    template:
+      spec:
+        containers:
+        - name: asya-runtime
+          image: {{ .Values.crewImage | default "ghcr.io/deliveryhero/asya-crew:latest" }}
+          imagePullPolicy: {{ .Values.workload.imagePullPolicy }}
+          env:
+          - name: ASYA_HANDLER
+            value: asya_crew.fanin.s3_split_key.aggregator
+          # Envelope mode: runtime passes full message envelope to handler.
+          # Required for fan-in aggregator to access x-asya-fan-in header.
+          - name: ASYA_HANDLER_MODE
+            value: envelope
+          # State proxy: maps Python file I/O to S3-backed HTTP API.
+          # fanin:/state/fanin:write=buffered means OS file ops under
+          # /state/fanin/ are proxied to S3 by the state proxy sidecar.
+          - name: ASYA_STATE_PROXY_MOUNTS
+            value: "fanin:/state/fanin:write=buffered"
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi

@@ -4,6 +4,10 @@ workload:
   image: localhost/asya-runtime:latest
   imagePullPolicy: Never
 
+# Image for asya-crew actors (aggregator and other crew-based actors).
+# Uses the same tag as the rest of the cluster deployment.
+crewImage: ghcr.io/deliveryhero/asya-crew:latest
+
 scaling:
   enabled: true
   minReplicas: 1
