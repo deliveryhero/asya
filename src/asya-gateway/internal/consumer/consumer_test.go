@@ -46,6 +46,10 @@ func (s *mockTaskStore) Unsubscribe(id string, ch chan types.TaskUpdate) {}
 
 func (s *mockTaskStore) IsActive(id string) bool { return false }
 
+func (s *mockTaskStore) Resume(id string) (*types.Task, error) { return nil, nil }
+
+func (s *mockTaskStore) List(status *types.TaskStatus) ([]*types.Task, error) { return nil, nil }
+
 // mockQueueClient implements queue.Client with all no-ops
 type mockQueueClient struct{}
 

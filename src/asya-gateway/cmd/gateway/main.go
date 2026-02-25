@@ -190,12 +190,29 @@ func main() {
 	// A2A JSON-RPC endpoint (message/send, message/stream, tasks/get)
 	mux.Handle("/a2a/", a2aHandler)
 
-	// A2A REST endpoints for task status and subscribe
+	// A2A lifecycle endpoints (pause, cancel, list)
+	a2aLifecycleHandler := a2a.NewLifecycleHandler(taskStore)
+
+	// A2A task list endpoint
+	mux.HandleFunc("GET /a2a/tasks", a2aLifecycleHandler.HandleList)
+
+	// A2A REST endpoints for task status, subscribe, pause, and cancel
 	mux.HandleFunc("GET /a2a/tasks/{id}", func(w http.ResponseWriter, r *http.Request) {
 		if strings.HasSuffix(r.PathValue("id"), ":subscribe") {
 			a2aSubscribeHandler.ServeHTTP(w, r)
 		} else {
 			a2aTaskStatusHandler.ServeHTTP(w, r)
+		}
+	})
+
+	mux.HandleFunc("POST /a2a/tasks/{id}", func(w http.ResponseWriter, r *http.Request) {
+		id := r.PathValue("id")
+		if strings.HasSuffix(id, ":pause") {
+			a2aLifecycleHandler.HandlePause(w, r)
+		} else if strings.HasSuffix(id, ":cancel") {
+			a2aLifecycleHandler.HandleCancel(w, r)
+		} else {
+			http.Error(w, "Unknown action", http.StatusBadRequest)
 		}
 	})
 
@@ -223,6 +240,9 @@ func main() {
 		slog.Info("A2A Agent Card: GET /.well-known/a2a/agent-card")
 		slog.Info("A2A task status: GET /a2a/tasks/{id}")
 		slog.Info("A2A subscribe: GET /a2a/tasks/{id}:subscribe (SSE)")
+		slog.Info("A2A pause: POST /a2a/tasks/{id}:pause")
+		slog.Info("A2A cancel: POST /a2a/tasks/{id}:cancel")
+		slog.Info("A2A list: GET /a2a/tasks")
 
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			slog.Error("Server failed", "error", err)

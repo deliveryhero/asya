@@ -121,5 +121,5 @@ func writeSSEKeepalive(w io.Writer, flusher http.Flusher) {
 }
 
 func isFinalA2AStatus(status types.TaskStatus) bool {
-	return status == types.TaskStatusSucceeded || status == types.TaskStatusFailed
+	return status == types.TaskStatusSucceeded || status == types.TaskStatusFailed || status == types.TaskStatusCanceled
 }

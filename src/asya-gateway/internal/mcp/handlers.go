@@ -300,10 +300,11 @@ func writeSSEEvent(w http.ResponseWriter, flusher http.Flusher, update types.Tas
 	flusher.Flush()
 }
 
-// isFinalStatus checks if a status is final (Succeeded or Failed)
+// isFinalStatus checks if a status is final (Succeeded, Failed, or Canceled)
 func isFinalStatus(status types.TaskStatus) bool {
 	return status == types.TaskStatusSucceeded ||
-		status == types.TaskStatusFailed
+		status == types.TaskStatusFailed ||
+		status == types.TaskStatusCanceled
 }
 
 // HandleTaskActive handles GET /tasks/{id}/active (for actors to check if task is still valid)

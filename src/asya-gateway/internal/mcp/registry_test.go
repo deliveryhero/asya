@@ -111,6 +111,17 @@ func (m *MockTaskStore) GetUpdates(id string, since *time.Time) ([]types.TaskUpd
 	return []types.TaskUpdate{}, nil
 }
 
+func (m *MockTaskStore) Resume(id string) (*types.Task, error) {
+	if task, ok := m.tasks[id]; ok {
+		return task, nil
+	}
+	return nil, fmt.Errorf("task not found")
+}
+
+func (m *MockTaskStore) List(status *types.TaskStatus) ([]*types.Task, error) {
+	return nil, nil
+}
+
 // TestNewRegistry tests registry initialization
 func TestNewRegistry(t *testing.T) {
 	cfg := &config.Config{

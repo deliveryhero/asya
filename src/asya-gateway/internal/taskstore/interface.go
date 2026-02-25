@@ -31,4 +31,11 @@ type TaskStore interface {
 
 	// IsActive checks if a task is still active
 	IsActive(id string) bool
+
+	// Resume transitions a paused task back to running, restarting the timeout timer
+	// with the remaining timeout budget. Returns the updated task.
+	Resume(id string) (*types.Task, error)
+
+	// List returns tasks, optionally filtered by status
+	List(status *types.TaskStatus) ([]*types.Task, error)
 }

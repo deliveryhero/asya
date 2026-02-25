@@ -65,15 +65,19 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// resolveAndCreateTask parses the JSON-RPC params, resolves the skill to actors,
-// creates the internal task, persists it, and dispatches it to the queue.
+// resolveAndCreateTask resolves the skill to actors, creates the internal task,
+// persists it, and dispatches it to the queue.
 // Returns the created task, or an A2A error response on failure.
 func (h *Handler) resolveAndCreateTask(rpcReq types.A2AJSONRPCRequest) (*types.Task, *types.A2AJSONRPCResponse) {
 	params, err := h.parseMessageParams(rpcReq)
 	if err != nil {
 		return nil, types.NewA2AError(rpcReq.ID, types.A2AErrInvalidParams, err.Error())
 	}
+	return h.resolveAndCreateTaskFromParams(rpcReq, params)
+}
 
+// resolveAndCreateTaskFromParams creates a task from pre-parsed params.
+func (h *Handler) resolveAndCreateTaskFromParams(rpcReq types.A2AJSONRPCRequest, params *types.A2ASendMessageParams) (*types.Task, *types.A2AJSONRPCResponse) {
 	tool, ok := h.toolIndex[params.Skill]
 	if !ok {
 		return nil, types.NewA2AError(rpcReq.ID, types.A2AErrInvalidParams,
@@ -133,12 +137,56 @@ func (h *Handler) resolveAndCreateTask(rpcReq types.A2AJSONRPCRequest) (*types.T
 }
 
 func (h *Handler) handleMessageSend(w http.ResponseWriter, rpcReq types.A2AJSONRPCRequest) {
-	task, errResp := h.resolveAndCreateTask(rpcReq)
+	params, err := h.parseMessageParams(rpcReq)
+	if err != nil {
+		h.writeJSON(w, types.NewA2AError(rpcReq.ID, types.A2AErrInvalidParams, err.Error()))
+		return
+	}
+
+	// Check if this is a resume of a paused task
+	if params.TaskID != "" {
+		existingTask, err := h.taskStore.Get(params.TaskID)
+		if err == nil && existingTask.Status == types.TaskStatusPaused {
+			h.handleResume(w, rpcReq, existingTask, params)
+			return
+		}
+	}
+
+	// Normal new task creation
+	task, errResp := h.resolveAndCreateTaskFromParams(rpcReq, params)
 	if errResp != nil {
 		h.writeJSON(w, errResp)
 		return
 	}
 	a2aTask := TaskToA2ATask(task)
+	h.writeJSON(w, types.NewA2AResult(rpcReq.ID, a2aTask))
+}
+
+// handleResume resumes a paused task with new input from the user.
+// It transitions the task back to running, restarts the timeout timer,
+// and dispatches the new payload to the next actor in the route.
+func (h *Handler) handleResume(w http.ResponseWriter, rpcReq types.A2AJSONRPCRequest, task *types.Task, params *types.A2ASendMessageParams) {
+	// Resume the task in the store (transitions paused → running, restarts timer)
+	resumedTask, err := h.taskStore.Resume(task.ID)
+	if err != nil {
+		h.writeJSON(w, types.NewA2AError(rpcReq.ID, types.A2AErrInternalError,
+			fmt.Sprintf("failed to resume task: %v", err)))
+		return
+	}
+
+	// Update payload with resume input
+	payload := MessageToPayload(params.Message)
+	resumedTask.Payload = payload
+
+	slog.Info("Resuming paused task",
+		"id", resumedTask.ID,
+		"curr", resumedTask.Route.Curr,
+		"next_count", len(resumedTask.Route.Next))
+
+	// Send to queue (the route already points to the next actor)
+	go h.sendToQueue(resumedTask)
+
+	a2aTask := TaskToA2ATask(resumedTask)
 	h.writeJSON(w, types.NewA2AResult(rpcReq.ID, a2aTask))
 }
 
