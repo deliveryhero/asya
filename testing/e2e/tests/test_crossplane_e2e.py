@@ -58,9 +58,11 @@ def _actor_manifest(
     queue_length: int = 10,
     replicas: int | None = None,
     extra_containers: str = "",
+    extra_runtime_env: str = "",
     image: str = "ghcr.io/deliveryhero/asya-testing:latest",
     image_pull_policy: str = "IfNotPresent",
     transport: str | None = None,
+    flavors: list[str] | None = None,
 ) -> str:
     """Build an AsyncActor manifest with common defaults."""
     transport = transport or TRANSPORT
@@ -79,6 +81,13 @@ def _actor_manifest(
 
     replicas_line = f"\n    replicas: {replicas}" if replicas is not None else ""
 
+    flavors_block = ""
+    if flavors:
+        flavor_lines = "\n".join(f"    - {f}" for f in flavors)
+        flavors_block = f"\n  flavors:\n{flavor_lines}"
+
+    extra_env_block = f"\n{extra_runtime_env}" if extra_runtime_env else ""
+
     return f"""
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
@@ -87,10 +96,7 @@ metadata:
   namespace: {namespace}
 spec:
   actor: {name}
-  compositionSelector:
-    matchLabels:
-      asya.sh/transport: {transport}
-  transport: {transport}
+  transport: {transport}{flavors_block}
 {scaling_block}
   workload:
     kind: Deployment{replicas_line}
@@ -102,7 +108,7 @@ spec:
           imagePullPolicy: {image_pull_policy}
           env:
           - name: ASYA_HANDLER
-            value: asya_testing.handlers.payload.echo_handler
+            value: asya_testing.handlers.payload.echo_handler{extra_env_block}
 {extra_containers}"""
 
 
@@ -199,9 +205,6 @@ metadata:
   namespace: {e2e_helper.namespace}
 spec:
   actor: test-lifecycle
-  compositionSelector:
-    matchLabels:
-      asya.sh/transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
   transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
   scaling:
     enabled: true
@@ -298,9 +301,6 @@ metadata:
   namespace: {e2e_helper.namespace}
 spec:
   actor: test-update
-  compositionSelector:
-    matchLabels:
-      asya.sh/transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
   transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
   scaling:
     enabled: true
@@ -328,9 +328,6 @@ metadata:
   namespace: {e2e_helper.namespace}
 spec:
   actor: test-update
-  compositionSelector:
-    matchLabels:
-      asya.sh/transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
   transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
   scaling:
     enabled: true
@@ -467,9 +464,6 @@ metadata:
   namespace: {e2e_helper.namespace}
 spec:
   actor: test-status
-  compositionSelector:
-    matchLabels:
-      asya.sh/transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
   transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
   scaling:
     enabled: true
@@ -543,9 +537,6 @@ metadata:
   namespace: {e2e_helper.namespace}
 spec:
   actor: test-broken-image
-  compositionSelector:
-    matchLabels:
-      asya.sh/transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
   transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
   scaling:
     enabled: false
@@ -621,9 +612,6 @@ metadata:
   namespace: {e2e_helper.namespace}
 spec:
   actor: test-sidecar-env
-  compositionSelector:
-    matchLabels:
-      asya.sh/transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
   transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
   scaling:
     enabled: true
@@ -726,9 +714,6 @@ metadata:
     env: test
 spec:
   actor: test-labels
-  compositionSelector:
-    matchLabels:
-      asya.sh/transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
   transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
   scaling:
     enabled: true
@@ -923,9 +908,6 @@ metadata:
     app.kubernetes.io/custom: forbidden
 spec:
   actor: test-invalid-labels
-  compositionSelector:
-    matchLabels:
-      asya.sh/transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
   transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
   workload:
     kind: Deployment
@@ -1563,3 +1545,111 @@ def test_crossplane_resilience_after_provider_restart(e2e_helper):
         raise
     finally:
         _cleanup_actor(name, e2e_helper.namespace)
+
+
+@pytest.mark.xfail(
+    reason="function-asya-flavors disabled in E2E until image is published to ghcr.io (functions.flavorsEnabled=false)"
+)
+@pytest.mark.core
+@pytest.mark.timeout(300)
+def test_asyncactor_flavors_resolved(e2e_helper):
+    """
+    E2E: Test that spec.flavors are resolved and merged into the actor workload.
+
+    Scenario 1 - Single flavor:
+    1. Create actor with spec.flavors: [asya-test-actor] (no inline resources)
+    2. Crossplane resolves flavor EnvironmentConfig, merges resources into spec
+    3. Deployment is created with resources from the flavor
+
+    Scenario 2 - Multiple flavors + env var override:
+    1. Create actor with spec.flavors: [asya-test-actor, asya-test-env-vars]
+       plus an inline env var FLAVOR_EXTRA_VAR=from-actor
+    2. Actor inline spec wins over flavor: override is applied last
+    3. Deployment env has FLAVOR_EXTRA_VAR=from-actor (not from-flavor)
+
+    Scenario 3 - No flavors (backward compat):
+    1. Actor without spec.flavors is created
+    2. Actor still reconciles correctly without flavor EnvironmentConfig
+
+    Expected: All three scenarios work correctly
+    """
+    actor_single = f"test-flavor-single-{e2e_helper.namespace[-4:]}"
+    actor_multi = f"test-flavor-multi-{e2e_helper.namespace[-4:]}"
+    actor_no_flavor = f"test-flavor-none-{e2e_helper.namespace[-4:]}"
+
+    try:
+        # --- Scenario 1: single flavor ---
+        logger.info("Creating actor with single flavor...")
+        kubectl_apply_raw(
+            _actor_manifest(
+                actor_single,
+                e2e_helper.namespace,
+                flavors=["asya-test-actor"],
+            ),
+            namespace=e2e_helper.namespace,
+        )
+
+        assert wait_for_asyncactor_ready(actor_single, namespace=e2e_helper.namespace, timeout=180), (
+            "Flavor actor should reach Ready=True"
+        )
+
+        # Verify the Deployment has resources injected by the flavor
+        deployment = kubectl_get("deployment", actor_single, namespace=e2e_helper.namespace)
+        containers = deployment.get("spec", {}).get("template", {}).get("spec", {}).get("containers", [])
+        runtime = next((c for c in containers if c["name"] == "asya-runtime"), None)
+        assert runtime is not None, "asya-runtime container must exist"
+        resources = runtime.get("resources", {})
+        assert resources.get("limits", {}).get("cpu") == "500m", (
+            f"Flavor should set cpu limit to 500m, got: {resources}"
+        )
+        assert resources.get("requests", {}).get("memory") == "128Mi", (
+            f"Flavor should set memory request to 128Mi, got: {resources}"
+        )
+        logger.info("[+] Single flavor: resources correctly injected from flavor")
+
+        # --- Scenario 2: multiple flavors + env var override ---
+        logger.info("Creating actor with multiple flavors and env var override...")
+        override_env = """\
+          - name: FLAVOR_EXTRA_VAR
+            value: from-actor"""
+        manifest = _actor_manifest(
+            actor_multi,
+            e2e_helper.namespace,
+            flavors=["asya-test-actor", "asya-test-env-vars"],
+            extra_runtime_env=override_env,
+        )
+        kubectl_apply_raw(manifest, namespace=e2e_helper.namespace)
+
+        assert wait_for_asyncactor_ready(actor_multi, namespace=e2e_helper.namespace, timeout=180), (
+            "Multi-flavor actor should reach Ready=True"
+        )
+
+        deployment = kubectl_get("deployment", actor_multi, namespace=e2e_helper.namespace)
+        containers = deployment.get("spec", {}).get("template", {}).get("spec", {}).get("containers", [])
+        runtime = next((c for c in containers if c["name"] == "asya-runtime"), None)
+        assert runtime is not None, "asya-runtime container must exist"
+        env_vars = {e["name"]: e["value"] for e in runtime.get("env", [])}
+        assert env_vars.get("FLAVOR_EXTRA_VAR") == "from-actor", (
+            f"Inline env var should override flavor value, got: {env_vars}"
+        )
+        logger.info("[+] Multi-flavor: env var override correctly applied")
+
+        # --- Scenario 3: no flavors (backward compat) ---
+        logger.info("Creating actor without flavors...")
+        kubectl_apply_raw(
+            _actor_manifest(actor_no_flavor, e2e_helper.namespace),
+            namespace=e2e_helper.namespace,
+        )
+
+        assert wait_for_asyncactor_ready(actor_no_flavor, namespace=e2e_helper.namespace, timeout=180), (
+            "Unflavored actor should reach Ready=True (backward compat)"
+        )
+        logger.info("[+] No-flavor actor: backward compat confirmed")
+
+    except Exception:
+        for actor in [actor_single, actor_multi, actor_no_flavor]:
+            log_asyncactor_workload_diagnostics(actor, namespace=e2e_helper.namespace)
+        raise
+    finally:
+        for actor in [actor_single, actor_multi, actor_no_flavor]:
+            _cleanup_actor(actor, e2e_helper.namespace)

@@ -245,7 +245,8 @@ func createPatch(original, mutated *corev1.Pod) ([]byte, error) {
 }
 
 // HandleMutateAsyncActor handles the mutating admission webhook request for AsyncActor resources.
-// It copies spec.actor to metadata.labels["asya.sh/actor"] on CREATE and UPDATE operations.
+// It sets metadata.labels["asya.sh/actor"] from spec.actor and derives spec.compositionSelector
+// from spec.transport when compositionSelector is not already set.
 func (h *Handler) HandleMutateAsyncActor(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -288,7 +289,8 @@ func (h *Handler) HandleMutateAsyncActor(w http.ResponseWriter, r *http.Request)
 	_, _ = w.Write(respBytes)
 }
 
-// mutateAsyncActor copies spec.actor to metadata.labels["asya.sh/actor"]
+// mutateAsyncActor sets metadata.labels["asya.sh/actor"] from spec.actor and
+// injects spec.compositionSelector derived from spec.transport when not already set.
 func (h *Handler) mutateAsyncActor(_ context.Context, req *admissionv1.AdmissionRequest) *admissionv1.AdmissionResponse {
 	if req == nil {
 		return &admissionv1.AdmissionResponse{
@@ -319,7 +321,7 @@ func (h *Handler) mutateAsyncActor(_ context.Context, req *admissionv1.Admission
 		}
 	}
 
-	// Extract spec.actor
+	// Extract spec.actor (required)
 	actorName, found, err := unstructured.NestedString(obj.Object, "spec", "actor")
 	if err != nil || !found || actorName == "" {
 		slog.Error("spec.actor is required", "name", req.Name)
@@ -332,10 +334,13 @@ func (h *Handler) mutateAsyncActor(_ context.Context, req *admissionv1.Admission
 		}
 	}
 
-	// Build JSON patch to set metadata.labels["asya.sh/actor"]
-	patch, err := buildActorLabelPatch(obj.GetLabels(), actorName)
+	// Extract spec.transport (optional: empty means no compositionSelector injection)
+	transport, _, _ := unstructured.NestedString(obj.Object, "spec", "transport")
+
+	// Build combined patch: actor label + compositionSelector
+	labelOps, err := buildActorLabelPatch(obj.GetLabels(), actorName)
 	if err != nil {
-		slog.Error("Failed to build patch", "error", err)
+		slog.Error("Failed to build label patch", "error", err)
 		return &admissionv1.AdmissionResponse{
 			Allowed: false,
 			Result: &metav1.Status{
@@ -345,10 +350,24 @@ func (h *Handler) mutateAsyncActor(_ context.Context, req *admissionv1.Admission
 		}
 	}
 
-	slog.Info("Setting actor label on AsyncActor",
+	allOps := append(labelOps, buildCompositionSelectorOps(obj.Object, transport)...)
+	patch, err := json.Marshal(allOps)
+	if err != nil {
+		slog.Error("Failed to marshal patch", "error", err)
+		return &admissionv1.AdmissionResponse{
+			Allowed: false,
+			Result: &metav1.Status{
+				Code:    http.StatusInternalServerError,
+				Message: fmt.Sprintf("failed to marshal patch: %v", err),
+			},
+		}
+	}
+
+	slog.Info("Patching AsyncActor",
 		"name", req.Name,
 		"namespace", req.Namespace,
 		"actor", actorName,
+		"transport", transport,
 	)
 
 	patchType := admissionv1.PatchTypeJSONPatch
@@ -366,15 +385,15 @@ type jsonPatchOp struct {
 	Value any    `json:"value"`
 }
 
-// buildActorLabelPatch creates an RFC 6902 JSON Patch to set the asya.sh/actor label.
+// buildActorLabelPatch returns RFC 6902 JSON Patch operations to set the asya.sh/actor label.
 // Handles both cases: labels map missing entirely, or label needs add/replace.
-func buildActorLabelPatch(existingLabels map[string]string, actorName string) ([]byte, error) {
+func buildActorLabelPatch(existingLabels map[string]string, actorName string) ([]jsonPatchOp, error) {
 	if existingLabels == nil {
-		return json.Marshal([]jsonPatchOp{{
+		return []jsonPatchOp{{
 			Op:    "add",
 			Path:  "/metadata/labels",
 			Value: map[string]string{LabelActor: actorName},
-		}})
+		}}, nil
 	}
 
 	// RFC 6902: "/" in JSON Pointer path is escaped as "~1"
@@ -382,9 +401,31 @@ func buildActorLabelPatch(existingLabels map[string]string, actorName string) ([
 	if _, exists := existingLabels[LabelActor]; exists {
 		op = "replace"
 	}
-	return json.Marshal([]jsonPatchOp{{
+	return []jsonPatchOp{{
 		Op:    op,
 		Path:  "/metadata/labels/asya.sh~1actor",
 		Value: actorName,
-	}})
+	}}, nil
+}
+
+// buildCompositionSelectorOps returns a JSON Patch op to set spec.compositionSelector
+// derived from the transport field. Returns nil when compositionSelector is already
+// set (respects explicit user configuration) or when transport is empty.
+func buildCompositionSelectorOps(obj map[string]interface{}, transport string) []jsonPatchOp {
+	if transport == "" {
+		return nil
+	}
+	// Don't overwrite an explicit compositionSelector
+	if _, exists, _ := unstructured.NestedMap(obj, "spec", "compositionSelector"); exists {
+		return nil
+	}
+	return []jsonPatchOp{{
+		Op:   "add",
+		Path: "/spec/compositionSelector",
+		Value: map[string]interface{}{
+			"matchLabels": map[string]string{
+				"asya.sh/transport": transport,
+			},
+		},
+	}}
 }

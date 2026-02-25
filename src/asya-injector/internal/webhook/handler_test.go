@@ -267,7 +267,7 @@ func TestHandler_mutateAsyncActor_NilRequest(t *testing.T) {
 	}
 }
 
-func TestHandler_mutateAsyncActor_SetsLabel(t *testing.T) {
+func TestHandler_mutateAsyncActor_SetsLabelAndCompositionSelector(t *testing.T) {
 	cfg := &config.Config{
 		SidecarImage:     "test:latest",
 		RuntimeConfigMap: "asya-runtime",
@@ -314,14 +314,35 @@ func TestHandler_mutateAsyncActor_SetsLabel(t *testing.T) {
 	if err := json.Unmarshal(resp.Patch, &patches); err != nil {
 		t.Fatalf("failed to unmarshal patch: %v", err)
 	}
-	if len(patches) != 1 {
-		t.Fatalf("expected 1 patch operation, got %d", len(patches))
+	if len(patches) != 2 {
+		t.Fatalf("expected 2 patch operations (label + compositionSelector), got %d: %v", len(patches), patches)
 	}
+
+	// First op: actor label
 	if patches[0]["op"] != "add" {
-		t.Errorf("expected op 'add', got %v", patches[0]["op"])
+		t.Errorf("expected op 'add' for label, got %v", patches[0]["op"])
 	}
 	if patches[0]["value"] != "text-analyzer" {
-		t.Errorf("expected value 'text-analyzer', got %v", patches[0]["value"])
+		t.Errorf("expected label value 'text-analyzer', got %v", patches[0]["value"])
+	}
+
+	// Second op: compositionSelector
+	if patches[1]["op"] != "add" {
+		t.Errorf("expected op 'add' for compositionSelector, got %v", patches[1]["op"])
+	}
+	if patches[1]["path"] != "/spec/compositionSelector" {
+		t.Errorf("expected path '/spec/compositionSelector', got %v", patches[1]["path"])
+	}
+	selectorVal, ok := patches[1]["value"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected compositionSelector value to be a map, got %T", patches[1]["value"])
+	}
+	matchLabels, ok := selectorVal["matchLabels"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected matchLabels to be a map, got %T", selectorVal["matchLabels"])
+	}
+	if matchLabels["asya.sh/transport"] != "sqs" {
+		t.Errorf("expected transport label 'sqs', got %v", matchLabels["asya.sh/transport"])
 	}
 }
 
@@ -373,6 +394,108 @@ func TestHandler_mutateAsyncActor_ReplacesExistingLabel(t *testing.T) {
 	}
 	if patches[0]["value"] != "new-name" {
 		t.Errorf("expected value 'new-name', got %v", patches[0]["value"])
+	}
+}
+
+func TestHandler_mutateAsyncActor_DoesNotOverwriteCompositionSelector(t *testing.T) {
+	cfg := &config.Config{
+		SidecarImage:     "test:latest",
+		RuntimeConfigMap: "asya-runtime",
+		SocketDir:        "/var/run/asya",
+		RuntimeMountPath: "/opt/asya/asya_runtime.py",
+	}
+	handler := NewHandler(nil, nil, cfg)
+
+	obj := map[string]any{
+		"apiVersion": "asya.sh/v1alpha1",
+		"kind":       "AsyncActor",
+		"metadata": map[string]any{
+			"name":      "test-actor",
+			"namespace": "default",
+		},
+		"spec": map[string]any{
+			"actor":     "my-actor",
+			"transport": "sqs",
+			"compositionSelector": map[string]any{
+				"matchLabels": map[string]any{
+					"asya.sh/transport": "rabbitmq", // deliberately different
+				},
+			},
+		},
+	}
+	objBytes, _ := json.Marshal(obj)
+
+	req := &admissionv1.AdmissionRequest{
+		Name:      "test-actor",
+		Namespace: "default",
+		Operation: admissionv1.Create,
+		Object:    runtime.RawExtension{Raw: objBytes},
+	}
+
+	resp := handler.mutateAsyncActor(context.Background(), req)
+
+	if !resp.Allowed {
+		t.Errorf("expected request to be allowed, got rejected: %v", resp.Result)
+	}
+
+	var patches []map[string]any
+	if err := json.Unmarshal(resp.Patch, &patches); err != nil {
+		t.Fatalf("failed to unmarshal patch: %v", err)
+	}
+	// Should only have the actor label patch, NOT a compositionSelector patch
+	if len(patches) != 1 {
+		t.Fatalf("expected 1 patch (label only), got %d: %v", len(patches), patches)
+	}
+	for _, p := range patches {
+		if p["path"] == "/spec/compositionSelector" {
+			t.Error("should not overwrite existing compositionSelector")
+		}
+	}
+}
+
+func TestHandler_mutateAsyncActor_NoTransportSkipsCompositionSelector(t *testing.T) {
+	cfg := &config.Config{
+		SidecarImage:     "test:latest",
+		RuntimeConfigMap: "asya-runtime",
+		SocketDir:        "/var/run/asya",
+		RuntimeMountPath: "/opt/asya/asya_runtime.py",
+	}
+	handler := NewHandler(nil, nil, cfg)
+
+	obj := map[string]any{
+		"apiVersion": "asya.sh/v1alpha1",
+		"kind":       "AsyncActor",
+		"metadata": map[string]any{
+			"name":      "test-actor",
+			"namespace": "default",
+		},
+		"spec": map[string]any{
+			"actor": "my-actor",
+			// no transport field
+		},
+	}
+	objBytes, _ := json.Marshal(obj)
+
+	req := &admissionv1.AdmissionRequest{
+		Name:      "test-actor",
+		Namespace: "default",
+		Operation: admissionv1.Create,
+		Object:    runtime.RawExtension{Raw: objBytes},
+	}
+
+	resp := handler.mutateAsyncActor(context.Background(), req)
+
+	if !resp.Allowed {
+		t.Errorf("expected request to be allowed, got rejected: %v", resp.Result)
+	}
+
+	var patches []map[string]any
+	if err := json.Unmarshal(resp.Patch, &patches); err != nil {
+		t.Fatalf("failed to unmarshal patch: %v", err)
+	}
+	// Only actor label patch, no compositionSelector
+	if len(patches) != 1 {
+		t.Fatalf("expected 1 patch (label only), got %d: %v", len(patches), patches)
 	}
 }
 
@@ -455,7 +578,11 @@ func TestHandler_mutateAsyncActor_NoLabelsMap(t *testing.T) {
 	if err := json.Unmarshal(resp.Patch, &patches); err != nil {
 		t.Fatalf("failed to unmarshal patch: %v", err)
 	}
-	// When no labels map exists, the patch creates the entire labels object
+	// 2 ops: create labels map + add compositionSelector
+	if len(patches) != 2 {
+		t.Fatalf("expected 2 patch operations, got %d: %v", len(patches), patches)
+	}
+	// First op: creates entire labels object
 	if patches[0]["op"] != "add" {
 		t.Errorf("expected op 'add', got %v", patches[0]["op"])
 	}
@@ -511,24 +638,97 @@ func TestBuildActorLabelPatch(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			patch, err := buildActorLabelPatch(tt.existingLabels, tt.actorName)
+			ops, err := buildActorLabelPatch(tt.existingLabels, tt.actorName)
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
-			}
-
-			var ops []map[string]any
-			if err := json.Unmarshal(patch, &ops); err != nil {
-				t.Fatalf("failed to unmarshal patch: %v", err)
 			}
 
 			if len(ops) != 1 {
 				t.Fatalf("expected 1 operation, got %d", len(ops))
 			}
-			if ops[0]["op"] != tt.wantOp {
-				t.Errorf("expected op %q, got %v", tt.wantOp, ops[0]["op"])
+			if ops[0].Op != tt.wantOp {
+				t.Errorf("expected op %q, got %v", tt.wantOp, ops[0].Op)
 			}
-			if ops[0]["path"] != tt.wantPath {
-				t.Errorf("expected path %q, got %v", tt.wantPath, ops[0]["path"])
+			if ops[0].Path != tt.wantPath {
+				t.Errorf("expected path %q, got %v", tt.wantPath, ops[0].Path)
+			}
+		})
+	}
+}
+
+func TestBuildCompositionSelectorOps(t *testing.T) {
+	tests := []struct {
+		name          string
+		obj           map[string]interface{}
+		transport     string
+		wantOps       int
+		wantTransport string
+	}{
+		{
+			name: "injects selector when absent",
+			obj: map[string]interface{}{
+				"spec": map[string]interface{}{
+					"actor":     "my-actor",
+					"transport": "rabbitmq",
+				},
+			},
+			transport:     "rabbitmq",
+			wantOps:       1,
+			wantTransport: "rabbitmq",
+		},
+		{
+			name: "does not overwrite existing selector",
+			obj: map[string]interface{}{
+				"spec": map[string]interface{}{
+					"actor":     "my-actor",
+					"transport": "sqs",
+					"compositionSelector": map[string]interface{}{
+						"matchLabels": map[string]interface{}{
+							"asya.sh/transport": "rabbitmq",
+						},
+					},
+				},
+			},
+			transport: "sqs",
+			wantOps:   0,
+		},
+		{
+			name: "empty transport produces no ops",
+			obj: map[string]interface{}{
+				"spec": map[string]interface{}{
+					"actor": "my-actor",
+				},
+			},
+			transport: "",
+			wantOps:   0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ops := buildCompositionSelectorOps(tt.obj, tt.transport)
+			if len(ops) != tt.wantOps {
+				t.Fatalf("expected %d ops, got %d: %v", tt.wantOps, len(ops), ops)
+			}
+			if tt.wantOps == 0 {
+				return
+			}
+			if ops[0].Op != "add" {
+				t.Errorf("expected op 'add', got %v", ops[0].Op)
+			}
+			if ops[0].Path != "/spec/compositionSelector" {
+				t.Errorf("expected path '/spec/compositionSelector', got %v", ops[0].Path)
+			}
+			val, ok := ops[0].Value.(map[string]interface{})
+			if !ok {
+				t.Fatalf("expected value map, got %T", ops[0].Value)
+			}
+			ml, ok := val["matchLabels"].(map[string]string)
+			if !ok {
+				t.Fatalf("expected matchLabels map[string]string, got %T", val["matchLabels"])
+			}
+			if ml["asya.sh/transport"] != tt.wantTransport {
+				t.Errorf("expected transport %q, got %v", tt.wantTransport, ml["asya.sh/transport"])
 			}
 		})
 	}

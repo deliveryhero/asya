@@ -12,10 +12,9 @@ metadata:
     asya.sh/hop-index: "{{ $i }}"
 spec:
   actor: test-multihop-{{ $i }}
-  compositionSelector:
-    matchLabels:
-      asya.sh/transport: {{ $.Values.transport }}
   transport: {{ $.Values.transport }}
+  flavors:
+  - asya-test-actor
 
   scaling:
     enabled: true
