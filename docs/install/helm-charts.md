@@ -97,7 +97,7 @@ x-sink:
           image: ghcr.io/deliveryhero/asya-crew:latest
           env:
           - name: ASYA_HANDLER
-            value: asya_crew.checkpointer.checkpoint_handler
+            value: asya_crew.checkpointer.handler
           - name: ASYA_CHECKPOINT_MOUNT
             value: /state/checkpoints
 
@@ -116,7 +116,7 @@ x-sump:
           image: ghcr.io/deliveryhero/asya-crew:latest
           env:
           - name: ASYA_HANDLER
-            value: asya_crew.checkpointer.checkpoint_handler
+            value: asya_crew.checkpointer.handler
           - name: ASYA_CHECKPOINT_MOUNT
             value: /state/checkpoints
 ```

@@ -149,7 +149,7 @@ x-sink:
         - name: asya-runtime
           env:
           - name: ASYA_HANDLER
-            value: asya_crew.checkpointer.checkpoint_handler
+            value: asya_crew.checkpointer.handler
           - name: ASYA_CHECKPOINT_MOUNT
             value: /state/checkpoints
 
@@ -163,7 +163,7 @@ x-sump:
         - name: asya-runtime
           env:
           - name: ASYA_HANDLER
-            value: asya_crew.checkpointer.checkpoint_handler
+            value: asya_crew.checkpointer.handler
           - name: ASYA_CHECKPOINT_MOUNT
             value: /state/checkpoints
 EOF

@@ -73,9 +73,9 @@ def test_succeeded_phase_uses_succeeded_prefix(tmp_path, monkeypatch):
 
     if "asya_crew.checkpointer" in sys.modules:
         del sys.modules["asya_crew.checkpointer"]
-    from asya_crew.checkpointer import checkpoint_handler
+    from asya_crew.checkpointer import handler
 
-    result = checkpoint_handler({"result": 42})
+    result = handler({"result": 42})
 
     assert result == {}
     files = _find_json_files(mount_path)
@@ -98,9 +98,9 @@ def test_failed_phase_uses_failed_prefix(tmp_path, monkeypatch):
 
     if "asya_crew.checkpointer" in sys.modules:
         del sys.modules["asya_crew.checkpointer"]
-    from asya_crew.checkpointer import checkpoint_handler
+    from asya_crew.checkpointer import handler
 
-    result = checkpoint_handler({"error": "Processing failed"})
+    result = handler({"error": "Processing failed"})
 
     assert result == {}
     files = _find_json_files(mount_path)
@@ -123,9 +123,9 @@ def test_missing_phase_uses_checkpoint_prefix(tmp_path, monkeypatch):
 
     if "asya_crew.checkpointer" in sys.modules:
         del sys.modules["asya_crew.checkpointer"]
-    from asya_crew.checkpointer import checkpoint_handler
+    from asya_crew.checkpointer import handler
 
-    result = checkpoint_handler({"data": "test"})
+    result = handler({"data": "test"})
 
     assert result == {}
     files = _find_json_files(mount_path)
@@ -144,9 +144,9 @@ def test_returns_empty_dict(tmp_path, monkeypatch):
 
     if "asya_crew.checkpointer" in sys.modules:
         del sys.modules["asya_crew.checkpointer"]
-    from asya_crew.checkpointer import checkpoint_handler
+    from asya_crew.checkpointer import handler
 
-    result = checkpoint_handler({"result": 100})
+    result = handler({"result": 100})
 
     assert result == {}
 
@@ -162,9 +162,9 @@ def test_skips_when_mount_not_configured(tmp_path, monkeypatch):
 
     if "asya_crew.checkpointer" in sys.modules:
         del sys.modules["asya_crew.checkpointer"]
-    from asya_crew.checkpointer import checkpoint_handler
+    from asya_crew.checkpointer import handler
 
-    result = checkpoint_handler({"value": 42})
+    result = handler({"value": 42})
 
     assert result == {}
 
@@ -189,9 +189,9 @@ def test_key_includes_actor_from_vfs_prev(tmp_path, monkeypatch):
 
     if "asya_crew.checkpointer" in sys.modules:
         del sys.modules["asya_crew.checkpointer"]
-    from asya_crew.checkpointer import checkpoint_handler
+    from asya_crew.checkpointer import handler
 
-    result = checkpoint_handler({"data": "test"})
+    result = handler({"data": "test"})
 
     assert result == {}
     files = _find_json_files(mount_path)
@@ -222,9 +222,9 @@ def test_persists_complete_message(tmp_path, monkeypatch):
 
     if "asya_crew.checkpointer" in sys.modules:
         del sys.modules["asya_crew.checkpointer"]
-    from asya_crew.checkpointer import checkpoint_handler
+    from asya_crew.checkpointer import handler
 
-    checkpoint_handler({"result": 42})
+    handler({"result": 42})
 
     files = _find_json_files(mount_path)
     assert len(files) == 1
@@ -261,9 +261,9 @@ def test_message_without_parent_id(tmp_path, monkeypatch):
 
     if "asya_crew.checkpointer" in sys.modules:
         del sys.modules["asya_crew.checkpointer"]
-    from asya_crew.checkpointer import checkpoint_handler
+    from asya_crew.checkpointer import handler
 
-    checkpoint_handler({"data": "test"})
+    handler({"data": "test"})
 
     files = _find_json_files(mount_path)
     with open(files[0]) as f:
@@ -283,10 +283,10 @@ def test_raises_on_non_dict_payload(tmp_path, monkeypatch):
 
     if "asya_crew.checkpointer" in sys.modules:
         del sys.modules["asya_crew.checkpointer"]
-    from asya_crew.checkpointer import checkpoint_handler
+    from asya_crew.checkpointer import handler
 
     with pytest.raises(ValueError, match="Payload must be a dict"):
-        checkpoint_handler("not-a-dict")  # type: ignore[arg-type]
+        handler("not-a-dict")  # type: ignore[arg-type]
 
     logger.info("=== test_raises_on_non_dict_payload: PASSED ===")
 

@@ -21,7 +21,7 @@ Persists successful results to S3 and returns metadata for sidecar to report to 
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `ASYA_HANDLER` | ✅ | Set to `asya_crew.checkpointer.checkpoint_handler` |
+| `ASYA_HANDLER` | ✅ | Set to `asya_crew.checkpointer.handler` |
 | `ASYA_CHECKPOINT_MOUNT` | ✅ | Directory path for checkpoint persistence |
 
 ### Message Format
@@ -48,7 +48,7 @@ Persists errors to S3 and returns error metadata for sidecar to report to gatewa
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `ASYA_HANDLER` | - | Set to `asya_crew.checkpointer.checkpoint_handler` |
+| `ASYA_HANDLER` | - | Set to `asya_crew.checkpointer.handler` |
 | `ASYA_CHECKPOINT_MOUNT` | - | Directory path for checkpoint persistence |
 
 ### Message Format
@@ -90,7 +90,7 @@ spec:
           image: my-actor:latest
           env:
           - name: ASYA_HANDLER
-            value: "asya_crew.checkpointer.checkpoint_handler"
+            value: "asya_crew.checkpointer.handler"
           - name: ASYA_CHECKPOINT_MOUNT
             value: "/state/checkpoints"
 ```

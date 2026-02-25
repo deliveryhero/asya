@@ -43,15 +43,14 @@ from datetime import UTC, datetime
 from typing import Any
 
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 ASYA_MSG_ROOT = os.getenv("ASYA_MSG_ROOT", "/proc/asya/msg")
 ASYA_CHECKPOINT_MOUNT = os.getenv("ASYA_CHECKPOINT_MOUNT", "")
 
 
-def _read_vfs(path: str, default: str = "") -> str:
-    """Read a VFS file, returning default if not found."""
+def _read_msg_meta(path: str, default: str = "") -> str:
+    """Read message metadata field, returning default if not found."""
     try:
         with open(f"{ASYA_MSG_ROOT}/{path}") as f:
             return f.read().strip()
@@ -59,7 +58,7 @@ def _read_vfs(path: str, default: str = "") -> str:
         return default
 
 
-def checkpoint_handler(payload: dict[str, Any]) -> dict[str, Any]:
+def handler(payload: dict[str, Any]) -> dict[str, Any]:
     """
     Checkpoint handler for message persistence via state proxy.
 
@@ -78,17 +77,17 @@ def checkpoint_handler(payload: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(payload, dict):
         raise ValueError(f"Payload must be a dict, got {type(payload).__name__}")
 
-    message_id = _read_vfs("id", "unknown")
+    message_id = _read_msg_meta("id", "unknown")
 
     if not ASYA_CHECKPOINT_MOUNT:
         logger.debug(f"Checkpoint skipped for message {message_id} (ASYA_CHECKPOINT_MOUNT not set)")
         return {}
 
-    phase = _read_vfs("status/phase")
-    parent_id = _read_vfs("parent_id")
-    prev_raw = _read_vfs("route/prev")
+    phase = _read_msg_meta("status/phase")
+    parent_id = _read_msg_meta("parent_id")
+    prev_raw = _read_msg_meta("route/prev")
     prev_actors = [a for a in prev_raw.splitlines() if a] if prev_raw else []
-    curr = _read_vfs("route/curr")
+    curr = _read_msg_meta("route/curr")
 
     if phase == "succeeded":
         prefix = "succeeded"

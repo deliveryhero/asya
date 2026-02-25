@@ -62,9 +62,9 @@ def sump_handler(payload: dict[str, Any]) -> None:
 
     if ASYA_CHECKPOINT_MOUNT:
         try:
-            from asya_crew.checkpointer import checkpoint_handler
+            from asya_crew.checkpointer import handler
 
-            checkpoint_handler(payload)
+            handler(payload)
         except Exception as e:
             logger.error(f"Checkpoint failed for message {message_id}: {e}")
 
