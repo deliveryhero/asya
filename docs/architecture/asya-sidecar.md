@@ -249,8 +249,7 @@ All configuration via environment variables:
 |----------|---------|-------------|
 | `ASYA_ACTOR_NAME` | _(required)_ | Queue to consume |
 | `ASYA_SOCKET_PATH` | `/tmp/sockets/app.sock` | Unix socket path |
-| `ASYA_RUNTIME_TIMEOUT` | `5m` | Per-call timeout for runtime socket |
-| `ASYA_RESILIENCY_ACTOR_TIMEOUT` | _(none)_ | Per-actor timeout from XRD `resiliency.actorTimeout` |
+| `ASYA_RESILIENCY_ACTOR_TIMEOUT` | `5m` | Per-call actor timeout (from XRD `resiliency.actorTimeout`) |
 | `ASYA_ACTOR_SINK` | `x-sink` | Success queue |
 | `ASYA_ACTOR_SUMP` | `x-sump` | Error queue |
 | `ASYA_IS_END_ACTOR` | `false` | End actor mode |
@@ -309,7 +308,7 @@ All configuration via environment variables:
 **Message fate:** Sent to x-sump for retry logic (not automatically retried)
 
 #### Timeout (Hung Process)
-**Detection:** No response within effective timeout: `min(ASYA_RUNTIME_TIMEOUT, ASYA_RESILIENCY_ACTOR_TIMEOUT, remaining_SLA)`
+**Detection:** No response within effective timeout: `min(ASYA_RESILIENCY_ACTOR_TIMEOUT, remaining_SLA)`
 
 **Recovery:**
 1. Socket read returns `context.DeadlineExceeded`

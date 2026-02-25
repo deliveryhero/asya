@@ -70,10 +70,11 @@ const (
 	envResiliencyRetryCoefficient = "ASYA_RESILIENCY_RETRY_BACKOFF_COEFFICIENT"
 	envResiliencyRetryJitter      = "ASYA_RESILIENCY_RETRY_JITTER"
 	envResiliencyNonRetryable     = "ASYA_RESILIENCY_NON_RETRYABLE_ERRORS"
-	envResiliencyActorTimeout     = "ASYA_RESILIENCY_ACTOR_TIMEOUT"
 )
 
-// resiliencyEnvKeys lists all ASYA_RESILIENCY_* env var keys for activation detection.
+// resiliencyEnvKeys lists ASYA_RESILIENCY_* env var keys that activate retry logic.
+// ASYA_RESILIENCY_ACTOR_TIMEOUT is intentionally excluded: it controls Config.Timeout
+// (the per-call timeout) and does not activate retry behaviour on its own.
 var resiliencyEnvKeys = []string{
 	envResiliencyRetryPolicy,
 	envResiliencyRetryMaxAttempts,
@@ -82,15 +83,15 @@ var resiliencyEnvKeys = []string{
 	envResiliencyRetryCoefficient,
 	envResiliencyRetryJitter,
 	envResiliencyNonRetryable,
-	envResiliencyActorTimeout,
 }
 
-// ResiliencyConfig holds optional retry and timeout configuration for an actor.
+// ResiliencyConfig holds optional retry configuration for an actor.
 // When nil, the actor does not retry (single attempt).
+// The per-call timeout (ASYA_RESILIENCY_ACTOR_TIMEOUT) lives in Config.Timeout,
+// not here, because it applies independently of retry logic.
 type ResiliencyConfig struct {
 	Retry              RetryConfig
 	NonRetryableErrors []string
-	ActorTimeout       time.Duration // 0 means no timeout
 }
 
 // RetryConfig holds retry-specific parameters.
@@ -131,7 +132,7 @@ func LoadFromEnv() (*Config, error) {
 		// Runtime communication - hard-coded, managed by operator
 		// ASYA_SOCKET_DIR is for internal testing only - DO NOT set in production
 		SocketPath: "", // Will be set below
-		Timeout:    getEnvDuration("ASYA_RUNTIME_TIMEOUT", 5*time.Minute),
+		Timeout:    getEnvDuration("ASYA_RESILIENCY_ACTOR_TIMEOUT", 5*time.Minute),
 
 		// End queues
 		SinkQueue:  getEnv("ASYA_ACTOR_SINK", "x-sink"),
@@ -224,11 +225,6 @@ func loadResiliencyConfig() (*ResiliencyConfig, error) {
 		}
 	}
 
-	actorTimeout := getEnvDuration(envResiliencyActorTimeout, 0)
-	if actorTimeout < 0 {
-		return nil, fmt.Errorf("%s must be >= 0, got %v", envResiliencyActorTimeout, actorTimeout)
-	}
-
 	return &ResiliencyConfig{
 		Retry: RetryConfig{
 			Policy:             policy,
@@ -239,7 +235,6 @@ func loadResiliencyConfig() (*ResiliencyConfig, error) {
 			Jitter:             jitter,
 		},
 		NonRetryableErrors: nonRetryable,
-		ActorTimeout:       actorTimeout,
 	}, nil
 }
 

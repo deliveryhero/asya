@@ -104,7 +104,7 @@ kubectl logs deploy/<actor> -c asya-runtime
 
 **Solutions**:
 
-- Increase `ASYA_RUNTIME_TIMEOUT`
+- Increase `ASYA_RESILIENCY_ACTOR_TIMEOUT`
 - Optimize handler performance
 - Add timeout warning in handler
 

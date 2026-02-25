@@ -24,7 +24,7 @@ services:
     env_file: *runtime-env-files
     environment:
       ASYA_HANDLER: asya_testing.handlers.payload.error_handler
-      ASYA_RUNTIME_TIMEOUT: 5s
+      ASYA_RESILIENCY_ACTOR_TIMEOUT: 5s
     volumes:
     - asya-error-sockets:/var/run/asya
     - ../../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro
@@ -44,7 +44,7 @@ services:
     env_file: *runtime-env-files
     environment:
       ASYA_HANDLER: asya_testing.handlers.payload.oom_handler
-      ASYA_RUNTIME_TIMEOUT: 5s
+      ASYA_RESILIENCY_ACTOR_TIMEOUT: 5s
 
     volumes:
     - asya-oom-sockets:/var/run/asya
@@ -65,7 +65,7 @@ services:
     env_file: *runtime-env-files
     environment:
       ASYA_HANDLER: asya_testing.handlers.payload.cuda_oom_handler
-      ASYA_RUNTIME_TIMEOUT: 5s
+      ASYA_RESILIENCY_ACTOR_TIMEOUT: 5s
 
       ASYA_CUDA_CLEANUP_ON_OOM: true
     volumes:
@@ -87,7 +87,7 @@ services:
     env_file: *runtime-env-files
     environment:
       ASYA_HANDLER: asya_testing.handlers.payload.timeout_handler
-      ASYA_RUNTIME_TIMEOUT: 5s
+      ASYA_RESILIENCY_ACTOR_TIMEOUT: 5s
 
 
     volumes:
@@ -109,7 +109,7 @@ services:
     env_file: *runtime-env-files
     environment:
       ASYA_HANDLER: asya_testing.handlers.payload.fanout_handler
-      ASYA_RUNTIME_TIMEOUT: 5s
+      ASYA_RESILIENCY_ACTOR_TIMEOUT: 5s
 
 
     volumes:
@@ -131,7 +131,7 @@ services:
     env_file: *runtime-env-files
     environment:
       ASYA_HANDLER: asya_testing.handlers.payload.empty_response_handler
-      ASYA_RUNTIME_TIMEOUT: 5s
+      ASYA_RESILIENCY_ACTOR_TIMEOUT: 5s
 
 
     volumes:
@@ -153,7 +153,7 @@ services:
     env_file: *runtime-env-files
     environment:
       ASYA_HANDLER: asya_testing.handlers.payload.large_payload_handler
-      ASYA_RUNTIME_TIMEOUT: 5s
+      ASYA_RESILIENCY_ACTOR_TIMEOUT: 5s
 
 
     volumes:
@@ -175,7 +175,7 @@ services:
     env_file: *runtime-env-files
     environment:
       ASYA_HANDLER: asya_testing.handlers.payload.unicode_handler
-      ASYA_RUNTIME_TIMEOUT: 5s
+      ASYA_RESILIENCY_ACTOR_TIMEOUT: 5s
 
 
     volumes:
@@ -197,7 +197,7 @@ services:
     env_file: *runtime-env-files
     environment:
       ASYA_HANDLER: asya_testing.handlers.payload.null_values_handler
-      ASYA_RUNTIME_TIMEOUT: 5s
+      ASYA_RESILIENCY_ACTOR_TIMEOUT: 5s
 
 
     volumes:
@@ -219,7 +219,7 @@ services:
     env_file: *runtime-env-files
     environment:
       ASYA_HANDLER: asya_testing.handlers.payload.conditional_handler
-      ASYA_RUNTIME_TIMEOUT: 5s
+      ASYA_RESILIENCY_ACTOR_TIMEOUT: 5s
 
 
     volumes:
@@ -241,7 +241,7 @@ services:
     env_file: *runtime-env-files
     environment:
       ASYA_HANDLER: asya_testing.handlers.payload.nested_data_handler
-      ASYA_RUNTIME_TIMEOUT: 5s
+      ASYA_RESILIENCY_ACTOR_TIMEOUT: 5s
 
 
     volumes:
@@ -263,7 +263,7 @@ services:
     env_file: *runtime-env-files
     environment:
       ASYA_HANDLER: asya_testing.handlers.payload.echo_handler
-      ASYA_RUNTIME_TIMEOUT: 5s
+      ASYA_RESILIENCY_ACTOR_TIMEOUT: 5s
 
 
     volumes:
@@ -291,7 +291,7 @@ services:
       ASYA_ACTOR_NAME: test-error
 
 
-      ASYA_RUNTIME_TIMEOUT: 30s
+      ASYA_RESILIENCY_ACTOR_TIMEOUT: 30s
     volumes:
     - asya-error-sockets:/var/run/asya
 
@@ -310,7 +310,7 @@ services:
       ASYA_ACTOR_NAME: test-oom-queue
 
 
-      ASYA_RUNTIME_TIMEOUT: 30s
+      ASYA_RESILIENCY_ACTOR_TIMEOUT: 30s
     volumes:
     - asya-oom-sockets:/var/run/asya
 
@@ -329,7 +329,7 @@ services:
       ASYA_ACTOR_NAME: test-cuda-oom-queue
 
 
-      ASYA_RUNTIME_TIMEOUT: 30s
+      ASYA_RESILIENCY_ACTOR_TIMEOUT: 30s
     volumes:
     - asya-cuda-sockets:/var/run/asya
 
@@ -348,7 +348,7 @@ services:
       ASYA_ACTOR_NAME: test-timeout
 
 
-      ASYA_RUNTIME_TIMEOUT: 3s
+      ASYA_RESILIENCY_ACTOR_TIMEOUT: 3s
     volumes:
     - asya-timeout-sockets:/var/run/asya
 
@@ -367,7 +367,7 @@ services:
       ASYA_ACTOR_NAME: test-fanout
 
 
-      ASYA_RUNTIME_TIMEOUT: 30s
+      ASYA_RESILIENCY_ACTOR_TIMEOUT: 30s
     volumes:
     - asya-fanout-sockets:/var/run/asya
 
@@ -386,7 +386,7 @@ services:
       ASYA_ACTOR_NAME: test-empty
 
 
-      ASYA_RUNTIME_TIMEOUT: 30s
+      ASYA_RESILIENCY_ACTOR_TIMEOUT: 30s
     volumes:
     - asya-empty-sockets:/var/run/asya
 
@@ -405,7 +405,7 @@ services:
       ASYA_ACTOR_NAME: test-large-queue
 
 
-      ASYA_RUNTIME_TIMEOUT: 30s
+      ASYA_RESILIENCY_ACTOR_TIMEOUT: 30s
     volumes:
     - asya-large-sockets:/var/run/asya
 
@@ -424,7 +424,7 @@ services:
       ASYA_ACTOR_NAME: test-unicode
 
 
-      ASYA_RUNTIME_TIMEOUT: 30s
+      ASYA_RESILIENCY_ACTOR_TIMEOUT: 30s
     volumes:
     - asya-unicode-sockets:/var/run/asya
 
@@ -443,7 +443,7 @@ services:
       ASYA_ACTOR_NAME: test-null
 
 
-      ASYA_RUNTIME_TIMEOUT: 30s
+      ASYA_RESILIENCY_ACTOR_TIMEOUT: 30s
     volumes:
     - asya-null-sockets:/var/run/asya
 
@@ -462,7 +462,7 @@ services:
       ASYA_ACTOR_NAME: test-conditional-queue
 
 
-      ASYA_RUNTIME_TIMEOUT: 30s
+      ASYA_RESILIENCY_ACTOR_TIMEOUT: 30s
     volumes:
     - asya-cond-sockets:/var/run/asya
 
@@ -481,7 +481,7 @@ services:
       ASYA_ACTOR_NAME: test-nested
 
 
-      ASYA_RUNTIME_TIMEOUT: 30s
+      ASYA_RESILIENCY_ACTOR_TIMEOUT: 30s
     volumes:
     - asya-nested-sockets:/var/run/asya
 
@@ -500,7 +500,7 @@ services:
       ASYA_ACTOR_NAME: test-echo
 
 
-      ASYA_RUNTIME_TIMEOUT: 30s
+      ASYA_RESILIENCY_ACTOR_TIMEOUT: 30s
     volumes:
     - asya-echo-sockets:/var/run/asya
 
@@ -513,7 +513,7 @@ services:
     env_file: *runtime-env-files
     environment:
       ASYA_HANDLER: asya_testing.handlers.payload.echo_handler
-      ASYA_RUNTIME_TIMEOUT: 5s
+      ASYA_RESILIENCY_ACTOR_TIMEOUT: 5s
     volumes:
     - asya-echo-v2-sockets:/var/run/asya
     - ../../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro
@@ -537,7 +537,7 @@ services:
     env_file: *sidecar-env-files
     environment:
       ASYA_ACTOR_NAME: test-echo-v2
-      ASYA_RUNTIME_TIMEOUT: 30s
+      ASYA_RESILIENCY_ACTOR_TIMEOUT: 30s
     volumes:
     - asya-echo-v2-sockets:/var/run/asya
 
@@ -550,7 +550,7 @@ services:
     env_file: *runtime-env-files
     environment:
       ASYA_HANDLER: asya_testing.handlers.payload.invalid_route_write_handler
-      ASYA_RUNTIME_TIMEOUT: 5s
+      ASYA_RESILIENCY_ACTOR_TIMEOUT: 5s
     volumes:
     - asya-invalid-route-sockets:/var/run/asya
     - ../../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro
@@ -576,7 +576,7 @@ services:
       ASYA_ACTOR_NAME: test-invalid-route
 
 
-      ASYA_RUNTIME_TIMEOUT: 30s
+      ASYA_RESILIENCY_ACTOR_TIMEOUT: 30s
     volumes:
     - asya-invalid-route-sockets:/var/run/asya
 
@@ -594,7 +594,7 @@ services:
     env_file: *runtime-env-files
     environment:
       ASYA_HANDLER: asya_testing.handlers.payload.error_handler
-      ASYA_RUNTIME_TIMEOUT: 5s
+      ASYA_RESILIENCY_ACTOR_TIMEOUT: 5s
     volumes:
     - asya-retry-fail-sockets:/var/run/asya
     - ../../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro
@@ -618,7 +618,7 @@ services:
     env_file: *sidecar-env-files
     environment:
       ASYA_ACTOR_NAME: test-retry-fail
-      ASYA_RUNTIME_TIMEOUT: 30s
+      ASYA_RESILIENCY_ACTOR_TIMEOUT: 30s
       ASYA_RESILIENCY_RETRY_POLICY: constant
       ASYA_RESILIENCY_RETRY_MAX_ATTEMPTS: 3
       ASYA_RESILIENCY_RETRY_INITIAL_INTERVAL: 1s
@@ -637,7 +637,7 @@ services:
     env_file: *runtime-env-files
     environment:
       ASYA_HANDLER: asya_testing.handlers.payload.error_handler
-      ASYA_RUNTIME_TIMEOUT: 5s
+      ASYA_RESILIENCY_ACTOR_TIMEOUT: 5s
     volumes:
     - asya-retry-nonretryable-sockets:/var/run/asya
     - ../../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro
@@ -661,7 +661,7 @@ services:
     env_file: *sidecar-env-files
     environment:
       ASYA_ACTOR_NAME: test-retry-nonretryable
-      ASYA_RUNTIME_TIMEOUT: 30s
+      ASYA_RESILIENCY_ACTOR_TIMEOUT: 30s
       ASYA_RESILIENCY_RETRY_POLICY: constant
       ASYA_RESILIENCY_RETRY_MAX_ATTEMPTS: 3
       ASYA_RESILIENCY_RETRY_INITIAL_INTERVAL: 1s
@@ -681,7 +681,7 @@ services:
     env_file: *runtime-env-files
     environment:
       ASYA_HANDLER: asya_testing.handlers.payload.fail_once_handler
-      ASYA_RUNTIME_TIMEOUT: 5s
+      ASYA_RESILIENCY_ACTOR_TIMEOUT: 5s
     volumes:
     - asya-retry-succeed-sockets:/var/run/asya
     - ../../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro
@@ -706,7 +706,7 @@ services:
     environment:
       ASYA_ACTOR_NAME: test-retry-succeed
       ASYA_ACTOR_ROLE: regular
-      ASYA_RUNTIME_TIMEOUT: 30s
+      ASYA_RESILIENCY_ACTOR_TIMEOUT: 30s
       ASYA_RESILIENCY_RETRY_POLICY: constant
       ASYA_RESILIENCY_RETRY_MAX_ATTEMPTS: "3"
       ASYA_RESILIENCY_RETRY_INITIAL_INTERVAL: 1s
@@ -725,7 +725,7 @@ services:
     env_file: *runtime-env-files
     environment:
       ASYA_HANDLER: asya_testing.handlers.payload.oom_handler
-      ASYA_RUNTIME_TIMEOUT: 5s
+      ASYA_RESILIENCY_ACTOR_TIMEOUT: 5s
     volumes:
     - asya-retry-mro-sockets:/var/run/asya
     - ../../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro
@@ -749,7 +749,7 @@ services:
     env_file: *sidecar-env-files
     environment:
       ASYA_ACTOR_NAME: test-retry-mro
-      ASYA_RUNTIME_TIMEOUT: 30s
+      ASYA_RESILIENCY_ACTOR_TIMEOUT: 30s
       ASYA_RESILIENCY_RETRY_POLICY: constant
       ASYA_RESILIENCY_RETRY_MAX_ATTEMPTS: 3
       ASYA_RESILIENCY_RETRY_INITIAL_INTERVAL: 1s

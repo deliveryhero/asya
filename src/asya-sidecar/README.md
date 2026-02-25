@@ -16,7 +16,7 @@ export ASYA_RABBITMQ_URL=amqp://user:pass@localhost:5672/
 |----------|---------|-------------|
 | `ASYA_ACTOR_NAME` | _(required)_ | Actor name (used as queue name) |
 | `ASYA_SOCKET_DIR` | `/var/run/asya` | Directory for Unix socket (socket is `asya-runtime.sock`) |
-| `ASYA_RUNTIME_TIMEOUT` | `5m` | Runtime response timeout |
+| `ASYA_RESILIENCY_ACTOR_TIMEOUT` | `5m` | Runtime response timeout |
 | `ASYA_ACTOR_SINK` | `x-sink` | Success end queue |
 | `ASYA_ACTOR_SUMP` | `x-sump` | Error end queue |
 | `ASYA_IS_END_ACTOR` | `false` | End actor mode (no routing) |

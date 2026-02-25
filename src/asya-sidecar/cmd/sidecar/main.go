@@ -145,11 +145,7 @@ func main() {
 		initCtx := context.Background()
 		visibilityTimeout := cfg.SQSVisibilityTimeout
 		if visibilityTimeout == 0 {
-			baseTimeout := cfg.Timeout
-			if cfg.Resiliency != nil && cfg.Resiliency.ActorTimeout > 0 && cfg.Resiliency.ActorTimeout > baseTimeout {
-				baseTimeout = cfg.Resiliency.ActorTimeout
-			}
-			visibilityTimeout = int32(baseTimeout.Seconds() * 2)
+			visibilityTimeout = int32(cfg.Timeout.Seconds() * 2)
 		}
 		tp, err = transport.NewSQSTransport(initCtx, transport.SQSConfig{
 			Region:            cfg.SQSRegion,

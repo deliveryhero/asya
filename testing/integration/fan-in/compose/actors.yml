@@ -49,7 +49,7 @@ services:
     env_file: *runtime-env-files
     environment:
       ASYA_HANDLER: asya_testing.handlers.fanout.fanout_router_handler
-      ASYA_RUNTIME_TIMEOUT: 30s
+      ASYA_RESILIENCY_ACTOR_TIMEOUT: 30s
       ASYA_ACTOR_SUB_AGENT: test-sub-agent
       ASYA_ACTOR_AGGREGATOR: test-aggregator
       ASYA_FANIN_AGGREGATION_KEY: /results
@@ -75,7 +75,7 @@ services:
     env_file: *sidecar-env-files
     environment:
       ASYA_ACTOR_NAME: test-fanout-router
-      ASYA_RUNTIME_TIMEOUT: 30s
+      ASYA_RESILIENCY_ACTOR_TIMEOUT: 30s
     volumes:
     - fanout-router-sockets:/var/run/asya
 
@@ -89,7 +89,7 @@ services:
     env_file: *runtime-env-files
     environment:
       ASYA_HANDLER: asya_testing.handlers.payload.echo_handler
-      ASYA_RUNTIME_TIMEOUT: 30s
+      ASYA_RESILIENCY_ACTOR_TIMEOUT: 30s
     volumes:
     - sub-agent-sockets:/var/run/asya
     - ../../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro
@@ -112,7 +112,7 @@ services:
     env_file: *sidecar-env-files
     environment:
       ASYA_ACTOR_NAME: test-sub-agent
-      ASYA_RUNTIME_TIMEOUT: 30s
+      ASYA_RESILIENCY_ACTOR_TIMEOUT: 30s
     volumes:
     - sub-agent-sockets:/var/run/asya
 
@@ -129,7 +129,7 @@ services:
     env_file: *runtime-env-files
     environment:
       ASYA_HANDLER: asya_crew.fanin.s3_split_key.aggregator
-      ASYA_RUNTIME_TIMEOUT: 30s
+      ASYA_RESILIENCY_ACTOR_TIMEOUT: 30s
       ASYA_STATE_PROXY_MOUNTS: "fanin:/state/fanin:write=cas"
     volumes:
     - aggregator-sockets:/var/run/asya
@@ -154,7 +154,7 @@ services:
     env_file: *sidecar-env-files
     environment:
       ASYA_ACTOR_NAME: test-aggregator
-      ASYA_RUNTIME_TIMEOUT: 30s
+      ASYA_RESILIENCY_ACTOR_TIMEOUT: 30s
     volumes:
     - aggregator-sockets:/var/run/asya
 
