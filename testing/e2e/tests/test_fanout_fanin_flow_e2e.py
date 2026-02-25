@@ -35,6 +35,7 @@ import uuid
 import boto3
 import pytest
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -84,9 +85,7 @@ def flow_helper(transport_timeouts, s3_endpoint, results_bucket, test_config):
 
             sqs.send_message(QueueUrl=queue_url, MessageBody=json.dumps(message))
 
-            logger.info(
-                f"[.] Sent message {task_id} to start-research-flow with {len(topics)} topics: {topics}"
-            )
+            logger.info(f"[.] Sent message {task_id} to start-research-flow with {len(topics)} topics: {topics}")
             return task_id
 
         def wait_for_result(self, task_id: str, timeout: int = 120) -> dict:
@@ -99,18 +98,17 @@ def flow_helper(transport_timeouts, s3_endpoint, results_bucket, test_config):
 
             start_time = time.time()
             while time.time() - start_time < timeout:
-                response = s3.list_objects_v2(Bucket=self.results_bucket, Prefix="")
+                # S3 key format: {prefix}/{timestamp}/{actor}/{task_id}.json
+                # task_id appears as the filename, so we list with a broad prefix
+                # and match by task_id within the key
+                response = s3.list_objects_v2(Bucket=self.results_bucket)
 
                 if "Contents" in response:
                     for obj in response["Contents"]:
                         if task_id in obj["Key"]:
-                            result_obj = s3.get_object(
-                                Bucket=self.results_bucket, Key=obj["Key"]
-                            )
+                            result_obj = s3.get_object(Bucket=self.results_bucket, Key=obj["Key"])
                             result = json.loads(result_obj["Body"].read())
-                            logger.info(
-                                f"[+] Retrieved result for task {task_id} from {obj['Key']}"
-                            )
+                            logger.info(f"[+] Retrieved result for task {task_id} from {obj['Key']}")
                             return result
 
                 time.sleep(2)  # Poll S3 for new result objects
@@ -121,9 +119,7 @@ def flow_helper(transport_timeouts, s3_endpoint, results_bucket, test_config):
                 f"ensure ASYA_HANDLER_MODE=envelope is supported by asya_runtime."
             )
 
-        def count_partial_results_in_sink(
-            self, task_id: str, timeout: int = 60
-        ) -> int:
+        def count_partial_results_in_sink(self, task_id: str, timeout: int = 60) -> int:
             """Count how many S3 objects reference this task_id.
 
             For a correctly working fan-in, exactly ONE final merged envelope
@@ -135,7 +131,9 @@ def flow_helper(transport_timeouts, s3_endpoint, results_bucket, test_config):
             # Wait a moment for any partial results to potentially appear
             time.sleep(min(timeout, 10))  # Give x-sink time to process partials
 
-            response = s3.list_objects_v2(Bucket=self.results_bucket, Prefix="")
+            # S3 key format: {prefix}/{timestamp}/{actor}/{task_id}.json
+            # task_id appears as the filename, so we list broadly and filter by key
+            response = s3.list_objects_v2(Bucket=self.results_bucket)
 
             count = 0
             if "Contents" in response:
@@ -178,9 +176,7 @@ def test_fanout_fanin_basic_3_topics(flow_helper):
     assert result is not None, "Expected a result from S3"
 
     # x-sink persists the payload dict directly (not the full message envelope)
-    assert "results" in result, (
-        f"Merged payload missing 'results' field. Got keys: {list(result.keys())}"
-    )
+    assert "results" in result, f"Merged payload missing 'results' field. Got keys: {list(result.keys())}"
 
     results = result["results"]
     assert len(results) == len(topics), (
@@ -190,17 +186,10 @@ def test_fanout_fanin_basic_3_topics(flow_helper):
 
     # Each result item should have topic and findings (from research_agent handler)
     for i, item in enumerate(results):
-        assert isinstance(item, dict), (
-            f"Result item {i} should be a dict, got {type(item).__name__}"
-        )
-        assert "topic" in item or "findings" in item, (
-            f"Result item {i} missing expected fields: {item}"
-        )
+        assert isinstance(item, dict), f"Result item {i} should be a dict, got {type(item).__name__}"
+        assert "topic" in item or "findings" in item, f"Result item {i} missing expected fields: {item}"
 
-    logger.info(
-        f"[+] Fan-out/fan-in with {len(topics)} topics completed: "
-        f"{len(results)} results in merged payload"
-    )
+    logger.info(f"[+] Fan-out/fan-in with {len(topics)} topics completed: {len(results)} results in merged payload")
 
 
 @pytest.mark.flow
@@ -238,9 +227,7 @@ def test_fanout_fanin_no_false_positives_from_partial_slices(flow_helper):
         f"Check x-sink's x-asya-fan-in header detection logic."
     )
 
-    logger.info(
-        f"[+] No false positives: exactly {count} result in S3 for task {task_id}"
-    )
+    logger.info(f"[+] No false positives: exactly {count} result in S3 for task {task_id}")
 
 
 @pytest.mark.flow
@@ -267,13 +254,10 @@ def test_fanout_fanin_10_topics(flow_helper):
 
     results = result["results"]
     assert len(results) == 10, (
-        f"Expected 10 results but got {len(results)}. "
-        f"Some research-agent slices may have been lost during aggregation."
+        f"Expected 10 results but got {len(results)}. Some research-agent slices may have been lost during aggregation."
     )
 
-    logger.info(
-        f"[+] 10-topic fan-out/fan-in completed: all {len(results)} results present"
-    )
+    logger.info(f"[+] 10-topic fan-out/fan-in completed: all {len(results)} results present")
 
 
 @pytest.mark.flow
@@ -297,9 +281,7 @@ def test_fanout_fanin_single_topic(flow_helper):
     assert "results" in result, "Merged payload missing 'results' field"
 
     results = result["results"]
-    assert len(results) == 1, (
-        f"Expected 1 result for single-topic fan-out, got {len(results)}"
-    )
+    assert len(results) == 1, f"Expected 1 result for single-topic fan-out, got {len(results)}"
 
     logger.info("[+] Single-topic fan-out/fan-in completed successfully")
 
@@ -377,22 +359,23 @@ def test_fanout_fanin_aggregator_restart_mid_aggregation(flow_helper, e2e_helper
 
     logger.info("[.] Restarting research-flow-aggregator pod")
     pods = e2e_helper.kubectl(
-        "get", "pods",
-        "-l", "asya.sh/actor=research-flow-aggregator",
-        "-o", "jsonpath={.items[*].metadata.name}",
+        "get",
+        "pods",
+        "-l",
+        "asya.sh/actor=research-flow-aggregator",
+        "-o",
+        "jsonpath={.items[*].metadata.name}",
     )
 
     if pods and pods.strip():
-        pod_names = pods.strip().split()
-        if pod_names:
-            pod_name = pod_names[0]
-            logger.info(f"[.] Deleting aggregator pod: {pod_name}")
-            e2e_helper.delete_pod(pod_name)
+        pod_name = pods.strip().split()[0]
+        logger.info(f"[.] Deleting aggregator pod: {pod_name}")
+        e2e_helper.delete_pod(pod_name)
 
-            logger.info("[.] Waiting for new aggregator pod to become ready")
-            assert e2e_helper.wait_for_pod_ready(
-                "asya.sh/actor=research-flow-aggregator", timeout=60
-            ), "New aggregator pod did not become ready after restart"
+        logger.info("[.] Waiting for new aggregator pod to become ready")
+        assert e2e_helper.wait_for_pod_ready("asya.sh/actor=research-flow-aggregator", timeout=60), (
+            "New aggregator pod did not become ready after restart"
+        )
     else:
         pytest.skip("No research-flow-aggregator pod found; skip restart test")
 
@@ -418,7 +401,4 @@ def test_fanout_fanin_aggregator_restart_mid_aggregation(flow_helper, e2e_helper
         f"Aggregator may have emitted duplicate envelopes (check sentinel logic)."
     )
 
-    logger.info(
-        f"[+] Aggregator restart durability verified: {len(results)} results present, "
-        f"no duplicate emissions"
-    )
+    logger.info(f"[+] Aggregator restart durability verified: {len(results)} results present, no duplicate emissions")
