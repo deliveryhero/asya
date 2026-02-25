@@ -1,0 +1,18 @@
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "2"
+
+services:
+  redis:
+    image: redis:7-alpine
+    logging: *default-logging
+    command: redis-server --save "" --appendonly no
+    tmpfs:
+    - /data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 1s
+      retries: 10
