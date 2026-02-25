@@ -12,5 +12,4 @@ Rename all references from 'Envelope' to 'Message' terminology. The term 'envelo
 **Close reason**: All envelope→message/task renames complete across Go sidecar, Go gateway, Python code, docs. 127 files changed. Deferred ASYA_HANDLER_MODE=envelope rename to asya-ob75.
 
 
----
-_Migrated from beads `asya-830`_
+--
