@@ -430,7 +430,7 @@ func (h *Handler) HandleTaskProgress(w http.ResponseWriter, r *http.Request) {
 
 	// Transform ProgressUpdate (external API from sidecar) into TaskUpdate (internal event).
 	// This transformation:
-	// - Sets task-level status to Running
+	// - Sets task-level status to Running (or Paused if PauseMetadata present)
 	// - Copies task processing state ("received", "processing", "completed")
 	// - Copies route information (Prev/Curr/Next) to persist modifications
 	// - Adds calculated progress percentage and timestamp
@@ -445,6 +445,16 @@ func (h *Handler) HandleTaskProgress(w http.ResponseWriter, r *http.Request) {
 		Next:            progress.Next,
 		TaskState:       &taskState,
 		Timestamp:       time.Now(),
+	}
+
+	// If pause metadata is present, transition to paused state instead of running.
+	// The sidecar sends this when it detects the x-asya-pause header from the runtime.
+	if progress.PauseMetadata != nil {
+		update.Status = types.TaskStatusPaused
+		update.PauseMetadata = progress.PauseMetadata
+		slog.Info("Task paused via x-asya-pause header",
+			"task_id", taskID,
+			"curr", progress.Curr)
 	}
 
 	// Update task store (using UpdateProgress for lighter weight update)

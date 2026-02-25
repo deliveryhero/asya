@@ -126,13 +126,14 @@ type TaskUpdate struct {
 // 2. "processing" - Message sent to runtime via Unix socket
 // 3. "completed" - Runtime returned successful response
 type ProgressUpdate struct {
-	ID              string   `json:"id"`
-	Prev            []string `json:"prev"`              // Actors that have already processed this message
-	Curr            string   `json:"curr"`              // Actor currently processing ("" at end-of-route)
-	Next            []string `json:"next"`              // Actors remaining after curr
-	Status          string   `json:"status"`            // Actor status: "received" | "processing" | "completed"
-	Message         string   `json:"message,omitempty"` // Optional progress message
-	ProgressPercent float64  `json:"progress_percent"`  // Calculated by gateway based on actor progress
+	ID              string          `json:"id"`
+	Prev            []string        `json:"prev"`                     // Actors that have already processed this message
+	Curr            string          `json:"curr"`                     // Actor currently processing ("" at end-of-route)
+	Next            []string        `json:"next"`                     // Actors remaining after curr
+	Status          string          `json:"status"`                   // Actor status: "received" | "processing" | "completed"
+	Message         string          `json:"message,omitempty"`        // Optional progress message
+	ProgressPercent float64         `json:"progress_percent"`         // Calculated by gateway based on actor progress
+	PauseMetadata   json.RawMessage `json:"pause_metadata,omitempty"` // x-asya-pause header content for HITL pause
 }
 
 // CreateTaskRequest is sent by the sidecar to create fanout child tasks.

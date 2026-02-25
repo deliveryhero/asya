@@ -428,6 +428,12 @@ func (s *PgStore) UpdateProgress(update types.TaskUpdate) error {
 		routeNext = []string{}
 	}
 
+	// Prepare pause_metadata for SQL (nil → NULL, preserves existing value via COALESCE)
+	var pauseMetadata interface{}
+	if update.PauseMetadata != nil {
+		pauseMetadata = []byte(update.PauseMetadata)
+	}
+
 	updateQuery := `
 		UPDATE tasks
 		SET progress_percent  = COALESCE($1, progress_percent),
@@ -439,7 +445,8 @@ func (s *PgStore) UpdateProgress(update types.TaskUpdate) error {
 		    total_actors       = COALESCE($7, total_actors),
 		    actors_completed   = $8,
 		    status             = $9,
-		    updated_at         = $10
+		    updated_at         = $10,
+		    pause_metadata     = COALESCE($12, pause_metadata)
 		WHERE id = $11
 	`
 
@@ -455,6 +462,7 @@ func (s *PgStore) UpdateProgress(update types.TaskUpdate) error {
 		update.Status,
 		update.Timestamp,
 		update.ID,
+		pauseMetadata,
 	)
 
 	if err != nil {
@@ -498,10 +506,18 @@ func (s *PgStore) UpdateProgress(update types.TaskUpdate) error {
 		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
-	// Notify SSE listeners
-	s.mu.RLock()
-	s.notifyListeners(update)
-	s.mu.RUnlock()
+	// Cancel timeout timer when task is paused (freeze)
+	if update.Status == types.TaskStatusPaused {
+		s.mu.Lock()
+		s.cancelTimer(update.ID)
+		s.notifyListeners(update)
+		s.mu.Unlock()
+	} else {
+		// Notify SSE listeners
+		s.mu.RLock()
+		s.notifyListeners(update)
+		s.mu.RUnlock()
+	}
 
 	return nil
 }

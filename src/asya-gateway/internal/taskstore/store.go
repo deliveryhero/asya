@@ -169,6 +169,16 @@ func (s *Store) UpdateProgress(update types.TaskUpdate) error {
 		task.Message = update.Message
 	}
 
+	// Store pause metadata if present (HITL pause signal from sidecar)
+	if update.PauseMetadata != nil {
+		task.PauseMetadata = update.PauseMetadata
+	}
+
+	// Cancel timeout timer when task is paused (freeze)
+	if update.Status == types.TaskStatusPaused {
+		s.cancelTimer(update.ID)
+	}
+
 	// Store update in history
 	s.updates[update.ID] = append(s.updates[update.ID], update)
 

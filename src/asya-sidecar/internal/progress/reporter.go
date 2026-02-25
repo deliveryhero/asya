@@ -41,13 +41,14 @@ func NewReporter(gatewayURL, actorName string) *Reporter {
 
 // ProgressUpdate represents a progress update payload
 type ProgressUpdate struct {
-	Prev          []string       `json:"prev"`
-	Curr          string         `json:"curr"`
-	Next          []string       `json:"next"`
-	Status        ProgressStatus `json:"status"` // "received" | "processing" | "completed"
-	Message       string         `json:"message,omitempty"`
-	DurationMs    *int64         `json:"duration_ms,omitempty"`     // Processing duration in milliseconds
-	MessageSizeKB *float64       `json:"message_size_kb,omitempty"` // Message size in KB
+	Prev          []string        `json:"prev"`
+	Curr          string          `json:"curr"`
+	Next          []string        `json:"next"`
+	Status        ProgressStatus  `json:"status"` // "received" | "processing" | "completed"
+	Message       string          `json:"message,omitempty"`
+	DurationMs    *int64          `json:"duration_ms,omitempty"`     // Processing duration in milliseconds
+	MessageSizeKB *float64        `json:"message_size_kb,omitempty"` // Message size in KB
+	PauseMetadata json.RawMessage `json:"pause_metadata,omitempty"`  // x-asya-pause header content for HITL
 }
 
 // ReportProgress sends a progress update to the gateway

@@ -652,6 +652,44 @@ func (r *Router) handleSuccessResponse(ctx context.Context, msg *messages.Messag
 		outHeaders = msg.Headers
 	}
 
+	// Check for x-asya-pause header — signals pipeline should pause for external input
+	if pauseRaw, ok := outHeaders["x-asya-pause"]; ok {
+		slog.Info("Pause header detected, reporting paused status to gateway", "id", msgID)
+
+		var pauseMetadata json.RawMessage
+		switch v := pauseRaw.(type) {
+		case string:
+			pauseMetadata = json.RawMessage(v)
+		case json.RawMessage:
+			pauseMetadata = v
+		default:
+			pm, err := json.Marshal(v)
+			if err != nil {
+				slog.Error("Failed to marshal pause metadata", "id", msgID, "error", err)
+			} else {
+				pauseMetadata = pm
+			}
+		}
+
+		if r.progressReporter != nil {
+			_ = r.progressReporter.ReportProgress(ctx, msgID, progress.ProgressUpdate{
+				Prev:          outputRoute.Prev,
+				Curr:          outputRoute.Curr,
+				Next:          outputRoute.Next,
+				Status:        progress.StatusCompleted,
+				Message:       "Paused: waiting for external input",
+				PauseMetadata: pauseMetadata,
+			})
+		}
+
+		if r.metrics != nil {
+			r.metrics.RecordMessageProcessed(r.actorName, "paused")
+		}
+
+		// Do NOT route to next actor — message is persisted by x-pause, gateway tracks state
+		return nil
+	}
+
 	return r.routeResponse(ctx, msgID, parentID, outputRoute, response.Payload, statusFromRuntime, outHeaders)
 }
 
