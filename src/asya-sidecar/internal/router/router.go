@@ -693,7 +693,7 @@ func (r *Router) ProcessMessage(ctx context.Context, queueMsg transport.QueueMes
 			_ = r.progressReporter.ReportFinalError(reportCtx, msg.ID, "SLA deadline expired")
 		}
 
-		// Route to x-sink with failed/Timeout status
+		// Stamp failed/Timeout status and route to x-sink
 		now := time.Now().UTC().Format(time.RFC3339)
 		createdAt := now
 		if msg.Status != nil {
@@ -710,22 +710,7 @@ func (r *Router) ProcessMessage(ctx context.Context, queueMsg transport.QueueMes
 			UpdatedAt:   now,
 		}
 
-		msgBody, err := json.Marshal(msg)
-		if err != nil {
-			return fmt.Errorf("failed to marshal SLA expired message: %w", err)
-		}
-
-		sinkQueueName := r.resolveQueueName(r.sinkQueue)
-		if err := r.transport.Send(ctx, sinkQueueName, msgBody); err != nil {
-			return fmt.Errorf("failed to send SLA expired message to sink: %w", err)
-		}
-
-		if r.metrics != nil {
-			r.metrics.RecordMessageSize("sent", len(msgBody))
-			r.metrics.RecordMessageSent(r.sinkQueue, "sink")
-		}
-
-		return nil
+		return r.sendToSinkQueue(ctx, *msg)
 	}
 
 	if r.cfg.IsEndActor {
@@ -978,21 +963,25 @@ func (r *Router) routeResponse(ctx context.Context, id string, parentID *string,
 	return err
 }
 
-// sendToSinkQueue sends the original message to the x-sink queue
+// sendToSinkQueue sends the original message to the x-sink queue.
+// If message.Status already has a Phase set (e.g. PhaseFailed for SLA timeout),
+// it is preserved. Otherwise, PhaseSucceeded/ReasonCompleted is stamped.
 func (r *Router) sendToSinkQueue(ctx context.Context, message messages.Message) error {
-	now := time.Now().UTC().Format(time.RFC3339)
-	createdAt := now
-	if message.Status != nil {
-		createdAt = message.Status.CreatedAt
-	}
-	message.Status = &messages.Status{
-		Phase:       messages.PhaseSucceeded,
-		Reason:      messages.ReasonCompleted,
-		Actor:       r.actorName,
-		Attempt:     1,
-		MaxAttempts: 1,
-		CreatedAt:   createdAt,
-		UpdatedAt:   now,
+	if message.Status == nil || message.Status.Phase == "" {
+		now := time.Now().UTC().Format(time.RFC3339)
+		createdAt := now
+		if message.Status != nil {
+			createdAt = message.Status.CreatedAt
+		}
+		message.Status = &messages.Status{
+			Phase:       messages.PhaseSucceeded,
+			Reason:      messages.ReasonCompleted,
+			Actor:       r.actorName,
+			Attempt:     1,
+			MaxAttempts: 1,
+			CreatedAt:   createdAt,
+			UpdatedAt:   now,
+		}
 	}
 
 	msgBody, err := json.Marshal(message)
