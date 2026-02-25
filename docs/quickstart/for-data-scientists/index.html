@@ -872,7 +872,7 @@
 <li>Test handlers locally and package them in Docker images</li>
 <li>Deploy actors using AsyncActor CRDs with autoscaling</li>
 <li>Use Flow DSL to build multi-step pipelines with conditional routing</li>
-<li>Handle dynamic routing with envelope mode for AI agents</li>
+<li>Handle dynamic routing with VFS-based route modification for AI agents</li>
 </ul>
 <h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
 <p>As a data scientist, you focus on writing pure Python functions. Asya handles infrastructure, routing, scaling, and monitoring.</p>
@@ -1331,8 +1331,6 @@ resolve<span class="o">(</span><span class="s2">&quot;SpanishSentiment.process&q
 <span class="w">          </span><span class="c1"># This router&#39;s handler</span>
 <span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_HANDLER</span>
 <span class="w">            </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;routers.start_text_analysis_flow&quot;</span>
-<span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_HANDLER_MODE</span>
-<span class="w">            </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;envelope&quot;</span>
 
 <span class="w">          </span><span class="c1"># Handler-to-actor mappings (for generated `resolve()` function)</span>
 <span class="w">          </span><span class="c1"># User handlers - map function names to deployed actor names</span>
@@ -1372,8 +1370,6 @@ resolve<span class="o">(</span><span class="s2">&quot;SpanishSentiment.process&q
 <span class="w">          </span><span class="nt">env</span><span class="p">:</span>
 <span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_HANDLER</span>
 <span class="w">            </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;routers.router_text_analysis_flow_line_10_if&quot;</span>
-<span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_HANDLER_MODE</span>
-<span class="w">            </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;envelope&quot;</span>
 <span class="w">          </span><span class="c1"># Same handler mappings as above (both user handlers AND router functions)</span>
 <span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_HANDLER_CLEAN_TEXT</span>
 <span class="w">            </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;text_handlers.clean_text&quot;</span>
@@ -1421,7 +1417,7 @@ resolve<span class="o">(</span><span class="s2">&quot;SpanishSentiment.process&q
 <li>Complex expressions: <code>p["result"] = p["x"] + p["y"] * 2</code></li>
 <li>Class instantiation: <code>classifier = TextClassifier()</code> (default args only)</li>
 </ul>
-<p><strong>Not Supported</strong> (use envelope mode instead):</p>
+<p><strong>Not Supported</strong>:</p>
 <ul>
 <li>Loops (<code>for</code>, <code>while</code>)</li>
 <li>Custom routing logic</li>
@@ -1449,7 +1445,7 @@ resolve<span class="o">(</span><span class="s2">&quot;SpanishSentiment.process&q
 </ul>
 <p>❌ <strong>Not suitable for</strong>:</p>
 <ul>
-<li>Dynamic routing based on state outside of <code>p</code> (need to implement branching inside your actor in envelope mode)</li>
+<li>Dynamic routing based on state outside of <code>p</code></li>
 <li>Iterative processing (loops support coming soon)</li>
 </ul>
 <h3 id="complete-example-ml-pipeline">Complete Example: ML Pipeline<a class="headerlink" href="#complete-example-ml-pipeline" title="Permanent link">&para;</a></h3>
@@ -1494,51 +1490,38 @@ resolve<span class="o">(</span><span class="s2">&quot;SpanishSentiment.process&q
 <p><strong>Visualize</strong>: Open <code>compiled/flow.png</code> to see the control flow diagram.</p>
 <p><strong>Deploy</strong>: Package routers and handlers, deploy as AsyncActor CRDs (see <code>examples/flows/compiled/README.md</code> for complete deployment examples).</p>
 <p>See <a href="../../architecture/asya-flow/">Flow Compiler Architecture</a> for complete documentation and <code>examples/flows/</code> for more flow examples.</p>
-<h2 id="advanced-envelope-mode-dynamic-routing">Advanced: Envelope Mode (Dynamic Routing)<a class="headerlink" href="#advanced-envelope-mode-dynamic-routing" title="Permanent link">&para;</a></h2>
+<h2 id="advanced-dynamic-routing">Advanced: Dynamic Routing<a class="headerlink" href="#advanced-dynamic-routing" title="Permanent link">&para;</a></h2>
 <p><strong>Use case</strong>: AI agents, LLM judges, conditional routing based on model outputs.</p>
-<p>Envelope mode gives you full control over the routing structure:</p>
-<div class="highlight"><pre><span></span><code><span class="nt">env</span><span class="p">:</span>
-
-<span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_HANDLER_MODE</span>
-<span class="w">  </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;envelope&quot;</span><span class="w">  </span><span class="c1"># Receive full message, not just payload</span>
-</code></pre></div>
+<p>Handlers can modify the route by writing to <code>/proc/asya/msg/route/next</code> via the VFS:</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># llm_judge.py</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">LLMJudge</span><span class="p">:</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">load_llm</span><span class="p">(</span><span class="s2">&quot;/models/judge&quot;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">threshold</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">threshold</span><span class="p">)</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">process</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">envelope</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
-        <span class="c1"># Envelope structure:</span>
-        <span class="c1"># {</span>
-        <span class="c1">#   &quot;id&quot;: &quot;...&quot;,</span>
-        <span class="c1">#   &quot;payload&quot;: {...},  # Your data</span>
-        <span class="c1">#   &quot;route&quot;: {</span>
-        <span class="c1">#     &quot;prev&quot;: [&quot;preprocessor&quot;],  # Already processed</span>
-        <span class="c1">#     &quot;curr&quot;: &quot;llm-judge&quot;,       # Current actor</span>
-        <span class="c1">#     &quot;next&quot;: [&quot;postprocessor&quot;]  # Remaining actors</span>
-        <span class="c1">#   }</span>
-        <span class="c1"># }</span>
-
-        <span class="n">payload</span> <span class="o">=</span> <span class="n">envelope</span><span class="p">[</span><span class="s2">&quot;payload&quot;</span><span class="p">]</span>
-
+    <span class="k">def</span><span class="w"> </span><span class="nf">process</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">payload</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
         <span class="c1"># Run LLM judge</span>
         <span class="n">score</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">judge</span><span class="p">(</span><span class="n">payload</span><span class="p">[</span><span class="s2">&quot;llm_response&quot;</span><span class="p">])</span>
         <span class="n">payload</span><span class="p">[</span><span class="s2">&quot;judge_score&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">score</span>
 
-        <span class="c1"># Dynamically modify route based on score</span>
-        <span class="n">route</span> <span class="o">=</span> <span class="n">envelope</span><span class="p">[</span><span class="s2">&quot;route&quot;</span><span class="p">]</span>
-        <span class="k">if</span> <span class="n">score</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">threshold</span><span class="p">:</span>
-            <span class="c1"># Low quality response - add refinement step before remaining actors</span>
-            <span class="n">route</span><span class="p">[</span><span class="s2">&quot;next&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;llm-refiner&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="n">route</span><span class="p">[</span><span class="s2">&quot;next&quot;</span><span class="p">]</span>
+        <span class="c1"># Read current next actors from VFS</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;/proc/asya/msg/route/next&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+            <span class="n">next_actors</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">envelope</span>
+        <span class="k">if</span> <span class="n">score</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">threshold</span><span class="p">:</span>
+            <span class="c1"># Low quality response - prepend refinement step</span>
+            <span class="n">next_actors</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;llm-refiner&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="n">next_actors</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;/proc/asya/msg/route/next&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">next_actors</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">payload</span>
 </code></pre></div>
-<p><strong>Important</strong>: Route modification rules:</p>
+<p><strong>Route modification rules</strong>:</p>
 <ul>
-<li>✅ Can add/replace future steps via <code>route["next"]</code></li>
-<li>❌ Cannot modify already-processed steps (<code>route["prev"]</code> is read-only)</li>
-<li>❌ Cannot change the current actor (<code>route["curr"]</code> is read-only)</li>
+<li>✅ Can write to <code>/proc/asya/msg/route/next</code> to modify future actors</li>
+<li>❌ <code>/proc/asya/msg/route/prev</code> is read-only (already-processed actors)</li>
+<li>❌ <code>/proc/asya/msg/route/curr</code> is read-only (current actor name)</li>
 </ul>
 <h2 id="error-handling">Error Handling<a class="headerlink" href="#error-handling" title="Permanent link">&para;</a></h2>
 <p>Asya automatically handles exceptions:</p>
@@ -2009,10 +1992,10 @@ kubectl<span class="w"> </span>logs<span class="w"> </span>-f<span class="w"> </
         
 
         
-        <a href="#advanced-envelope-mode-dynamic-routing"
+        <a href="#advanced-dynamic-routing"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
-            Advanced: Envelope Mode (Dynamic Routing)
+            Advanced: Dynamic Routing
         </a>
         
 

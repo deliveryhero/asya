@@ -6,8 +6,6 @@ System actors with reserved roles for framework-level tasks.
 
 Crew actors are **end actors** that run in special sidecar mode (`ASYA_IS_END_ACTOR=true`). They:
 
-- Run in envelope mode (`ASYA_HANDLER_MODE=envelope`)
-- Disable message validation (`ASYA_ENABLE_VALIDATION=false`)
 - Accept messages with ANY route state (no route validation)
 - Do NOT route responses to any queue (terminal processing)
 - Persist results to S3/MinIO (optional)
@@ -29,10 +27,6 @@ Crew actors are **end actors** that run in special sidecar mode (`ASYA_IS_END_AC
 **Environment Variables**:
 ```yaml
 # Required (auto-injected by operator)
-- name: ASYA_HANDLER_MODE
-  value: envelope
-- name: ASYA_ENABLE_VALIDATION
-  value: "false"
 - name: ASYA_HANDLER
   value: asya_crew.message_persistence.s3.checkpoint_handler
 
@@ -81,10 +75,6 @@ sink-asya/2025-11-18T14:30:45.123456Z/text-processor/abc-123.json
 **Environment Variables**:
 ```yaml
 # Required (auto-injected by operator)
-- name: ASYA_HANDLER_MODE
-  value: envelope
-- name: ASYA_ENABLE_VALIDATION
-  value: "false"
 - name: ASYA_HANDLER
   value: asya_crew.message_persistence.s3.checkpoint_handler
 
@@ -153,7 +143,6 @@ helm install asya-crew deploy/helm-charts/asya-crew/ \
 **Chart structure**:
 
 - Creates two AsyncActor resources: `x-sink` and `x-sump`
-- Helm templates inject required environment variables (`ASYA_HANDLER_MODE=envelope`, `ASYA_ENABLE_VALIDATION=false`)
 - Operator handles sidecar injection and `ASYA_IS_END_ACTOR=true` flag
 
 **Default configuration** (from `values.yaml`):
@@ -258,24 +247,6 @@ helm install asya-crew deploy/helm-charts/asya-crew/ \
 ```
 
 ## Implementation Details
-
-### Handler Requirements
-
-End handlers MUST satisfy these requirements (enforced at import time):
-
-1. **Envelope mode required**:
-   ```python
-   if ASYA_HANDLER_MODE != "envelope":
-       raise RuntimeError("End handlers must run in envelope mode")
-   ```
-
-2. **Validation disabled**:
-   ```python
-   if ASYA_ENABLE_VALIDATION:
-       raise RuntimeError("End handlers must run with validation disabled")
-   ```
-
-These are automatically configured by Helm templates and operator injection.
 
 ### S3 Persistence
 

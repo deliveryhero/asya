@@ -129,8 +129,6 @@ x-sump:
             value: asya-results
 ```
 
-**Note**: Chart templates automatically inject `ASYA_HANDLER_MODE=envelope` and `ASYA_ENABLE_VALIDATION=false`.
-
 ### asya-crossplane
 
 Deploys Crossplane XRDs and Compositions for AsyncActor management.

@@ -12,7 +12,7 @@
 1. Listen on Unix socket at `/var/run/asya/asya-runtime.sock`
 2. Receive message from sidecar
 3. Load user handler (function or class)
-4. Execute handler with payload (or full message)
+4. Execute handler with payload
 5. Return result to sidecar
 
 ## Deployment
@@ -169,42 +169,6 @@ class Processor:
         self.model = load_model(model_path)
 ```
 
-## Handler Modes
-
-### Payload Mode (Default)
-
-**Configuration**: `ASYA_HANDLER_MODE=payload`
-
-Handler receives only payload, headers/route preserved automatically:
-
-```python
-async def process(payload: dict) -> dict:
-    return {"result": ...}  # Single value or list for fan-out
-```
-
-Runtime automatically:
-
-- Increments `route.current`
-- Preserves `headers`
-- Creates new message with mutated payload
-
-### Envelope Mode
-
-**Configuration**: `ASYA_HANDLER_MODE=envelope`
-
-Handler receives full message structure:
-
-```python
-async def process(envelope: dict) -> dict:
-    # Modify route dynamically
-    envelope["route"]["actors"].append("extra-step")
-    envelope["route"]["current"] += 1
-    envelope["payload"]["processed"] = True
-    return envelope
-```
-
-**Use case**: Dynamic routing, route modification
-
 ## Response Patterns
 
 ### Single Response
@@ -258,22 +222,6 @@ Runtime catches exception, creates error response with detailed traceback:
 
 Sidecar receives error response and routes message to `x-sump`.
 
-## Route Modification Rules
-
-Handlers in envelope mode can modify routes but **MUST preserve already-processed steps**:
-
-✅ **Allowed**:
-
-- Add future steps: `["a","b","c"]` → `["a","b","c","d"]` (at current=0)
-- Replace future steps: `["a","b","c"]` → `["a","x","y"]` (at current=0)
-
-❌ **Forbidden**:
-
-- Erase processed steps: `["a","b","c"]` → `["c"]` at current=2
-- Modify processed actor names: `["a","b","c"]` → `["a-new","b","c"]` at current=1
-
-**Validation**: Runtime validates `route.actors[0:current+1]` unchanged.
-
 ## `asya_runtime.py` via ConfigMap
 
 **Source**: `src/asya-runtime/asya_runtime.py` (single file, no dependencies)
@@ -300,13 +248,11 @@ Runtime creates `/var/run/asya/runtime-ready` file after handler initialization.
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `ASYA_HANDLER` | (required) | Handler path (`module.Class.method`) |
-| `ASYA_HANDLER_MODE` | `payload` | Mode: `payload` or `envelope` |
 | `ASYA_PYTHONEXECUTABLE` | `python3` | Python binary path for launching the runtime |
 | `ASYA_SOCKET_DIR` | `/var/run/asya` | Unix socket directory (internal testing only) |
 | `ASYA_SOCKET_NAME` | `asya-runtime.sock` | Socket filename (internal testing only) |
 | `ASYA_SOCKET_CHMOD` | `0o666` | Socket permissions in octal (empty = skip chmod) |
 | `ASYA_CHUNK_SIZE` | `65536` | Socket read chunk size in bytes |
-| `ASYA_ENABLE_VALIDATION` | `true` | Enable message validation |
 | `ASYA_LOG_LEVEL` | `INFO` | Logging level (DEBUG, INFO, WARNING, ERROR) |
 
 **Note**: `ASYA_SOCKET_DIR` and `ASYA_SOCKET_NAME` are for internal testing only. DO NOT set in production - socket path is managed by the injector webhook.
@@ -329,18 +275,6 @@ class LLMInference:
     async def process(self, payload: dict) -> dict:
         response = await self.model.generate(payload["prompt"])
         return {**payload, "response": response}
-```
-
-**Dynamic routing** (async envelope mode):
-```python
-async def process(envelope: dict) -> dict:
-    if envelope["payload"]["priority"] == "high":
-        envelope["route"]["actors"].insert(
-            envelope["route"]["current"] + 1,
-            "priority-handler"
-        )
-    envelope["route"]["current"] += 1
-    return envelope
 ```
 
 **Simple sync handler** (still supported):

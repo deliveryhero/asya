@@ -869,8 +869,6 @@
 <h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
 <p>Crew actors are <strong>end actors</strong> that run in special sidecar mode (<code>ASYA_IS_END_ACTOR=true</code>). They:</p>
 <ul>
-<li>Run in envelope mode (<code>ASYA_HANDLER_MODE=envelope</code>)</li>
-<li>Disable message validation (<code>ASYA_ENABLE_VALIDATION=false</code>)</li>
 <li>Accept messages with ANY route state (no route validation)</li>
 <li>Do NOT route responses to any queue (terminal processing)</li>
 <li>Persist results to S3/MinIO (optional)</li>
@@ -887,10 +885,6 @@
 <p><strong>Handler</strong>: <code>asya_crew.message_persistence.s3.checkpoint_handler</code></p>
 <p><strong>Environment Variables</strong>:
 <div class="highlight"><pre><span></span><code><span class="c1"># Required (auto-injected by operator)</span>
-<span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_HANDLER_MODE</span>
-<span class="w">  </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">envelope</span>
-<span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_ENABLE_VALIDATION</span>
-<span class="w">  </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;false&quot;</span>
 <span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_HANDLER</span>
 <span class="w">  </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya_crew.message_persistence.s3.checkpoint_handler</span>
 
@@ -931,10 +925,6 @@ sink-asya/2025-11-18T14:30:45.123456Z/text-processor/abc-123.json
 <p><strong>Handler</strong>: <code>asya_crew.message_persistence.s3.checkpoint_handler</code></p>
 <p><strong>Environment Variables</strong>:
 <div class="highlight"><pre><span></span><code><span class="c1"># Required (auto-injected by operator)</span>
-<span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_HANDLER_MODE</span>
-<span class="w">  </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">envelope</span>
-<span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_ENABLE_VALIDATION</span>
-<span class="w">  </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;false&quot;</span>
 <span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_HANDLER</span>
 <span class="w">  </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya_crew.message_persistence.s3.checkpoint_handler</span>
 
@@ -993,7 +983,6 @@ Messages routed to <code>x-sump</code> contain error information in the payload:
 <p><strong>Chart structure</strong>:</p>
 <ul>
 <li>Creates two AsyncActor resources: <code>x-sink</code> and <code>x-sump</code></li>
-<li>Helm templates inject required environment variables (<code>ASYA_HANDLER_MODE=envelope</code>, <code>ASYA_ENABLE_VALIDATION=false</code>)</li>
 <li>Operator handles sidecar injection and <code>ASYA_IS_END_ACTOR=true</code> flag</li>
 </ul>
 <p><strong>Default configuration</strong> (from <code>values.yaml</code>):
@@ -1091,23 +1080,6 @@ Messages routed to <code>x-sump</code> contain error information in the payload:
 <span class="w">  </span>--values<span class="w"> </span>custom-values.yaml
 </code></pre></div></p>
 <h2 id="implementation-details">Implementation Details<a class="headerlink" href="#implementation-details" title="Permanent link">&para;</a></h2>
-<h3 id="handler-requirements">Handler Requirements<a class="headerlink" href="#handler-requirements" title="Permanent link">&para;</a></h3>
-<p>End handlers MUST satisfy these requirements (enforced at import time):</p>
-<ol>
-<li>
-<p><strong>Envelope mode required</strong>:
-   <div class="highlight"><pre><span></span><code><span class="k">if</span> <span class="n">ASYA_HANDLER_MODE</span> <span class="o">!=</span> <span class="s2">&quot;envelope&quot;</span><span class="p">:</span>
-    <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;End handlers must run in envelope mode&quot;</span><span class="p">)</span>
-</code></pre></div></p>
-</li>
-<li>
-<p><strong>Validation disabled</strong>:
-   <div class="highlight"><pre><span></span><code><span class="k">if</span> <span class="n">ASYA_ENABLE_VALIDATION</span><span class="p">:</span>
-    <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;End handlers must run with validation disabled&quot;</span><span class="p">)</span>
-</code></pre></div></p>
-</li>
-</ol>
-<p>These are automatically configured by Helm templates and operator injection.</p>
 <h3 id="s3-persistence">S3 Persistence<a class="headerlink" href="#s3-persistence" title="Permanent link">&para;</a></h3>
 <p><strong>Bucket auto-creation</strong>: Handlers check if bucket exists and create it if missing (for MinIO/S3).</p>
 <p><strong>Key structure breakdown</strong>:</p>
@@ -1478,12 +1450,6 @@ Messages routed to <code>x-sump</code> contain error information in the payload:
             Implementation Details
         </a>
         
-        
-        <a href="#handler-requirements"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="3">
-            Handler Requirements
-        </a>
         
         <a href="#s3-persistence"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"

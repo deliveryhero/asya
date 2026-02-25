@@ -877,7 +877,7 @@
 <li>Listen on Unix socket at <code>/var/run/asya/asya-runtime.sock</code></li>
 <li>Receive message from sidecar</li>
 <li>Load user handler (function or class)</li>
-<li>Execute handler with payload (or full message)</li>
+<li>Execute handler with payload</li>
 <li>Return result to sidecar</li>
 </ol>
 <h2 id="deployment">Deployment<a class="headerlink" href="#deployment" title="Permanent link">&para;</a></h2>
@@ -1059,30 +1059,6 @@
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>  <span class="c1"># Missing default!</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">load_model</span><span class="p">(</span><span class="n">model_path</span><span class="p">)</span>
 </code></pre></div>
-<h2 id="handler-modes">Handler Modes<a class="headerlink" href="#handler-modes" title="Permanent link">&para;</a></h2>
-<h3 id="payload-mode-default">Payload Mode (Default)<a class="headerlink" href="#payload-mode-default" title="Permanent link">&para;</a></h3>
-<p><strong>Configuration</strong>: <code>ASYA_HANDLER_MODE=payload</code></p>
-<p>Handler receives only payload, headers/route preserved automatically:</p>
-<div class="highlight"><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">process</span><span class="p">(</span><span class="n">payload</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
-    <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;result&quot;</span><span class="p">:</span> <span class="o">...</span><span class="p">}</span>  <span class="c1"># Single value or list for fan-out</span>
-</code></pre></div>
-<p>Runtime automatically:</p>
-<ul>
-<li>Increments <code>route.current</code></li>
-<li>Preserves <code>headers</code></li>
-<li>Creates new message with mutated payload</li>
-</ul>
-<h3 id="envelope-mode">Envelope Mode<a class="headerlink" href="#envelope-mode" title="Permanent link">&para;</a></h3>
-<p><strong>Configuration</strong>: <code>ASYA_HANDLER_MODE=envelope</code></p>
-<p>Handler receives full message structure:</p>
-<div class="highlight"><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">process</span><span class="p">(</span><span class="n">envelope</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
-    <span class="c1"># Modify route dynamically</span>
-    <span class="n">envelope</span><span class="p">[</span><span class="s2">&quot;route&quot;</span><span class="p">][</span><span class="s2">&quot;actors&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;extra-step&quot;</span><span class="p">)</span>
-    <span class="n">envelope</span><span class="p">[</span><span class="s2">&quot;route&quot;</span><span class="p">][</span><span class="s2">&quot;current&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
-    <span class="n">envelope</span><span class="p">[</span><span class="s2">&quot;payload&quot;</span><span class="p">][</span><span class="s2">&quot;processed&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
-    <span class="k">return</span> <span class="n">envelope</span>
-</code></pre></div>
-<p><strong>Use case</strong>: Dynamic routing, route modification</p>
 <h2 id="response-patterns">Response Patterns<a class="headerlink" href="#response-patterns" title="Permanent link">&para;</a></h2>
 <h3 id="single-response">Single Response<a class="headerlink" href="#single-response" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><span class="k">return</span> <span class="p">{</span><span class="s2">&quot;processed&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">}</span>
@@ -1116,19 +1092,6 @@
 <li><code>connection_error</code>: Socket/network issues</li>
 </ul>
 <p>Sidecar receives error response and routes message to <code>x-sump</code>.</p>
-<h2 id="route-modification-rules">Route Modification Rules<a class="headerlink" href="#route-modification-rules" title="Permanent link">&para;</a></h2>
-<p>Handlers in envelope mode can modify routes but <strong>MUST preserve already-processed steps</strong>:</p>
-<p>✅ <strong>Allowed</strong>:</p>
-<ul>
-<li>Add future steps: <code>["a","b","c"]</code> → <code>["a","b","c","d"]</code> (at current=0)</li>
-<li>Replace future steps: <code>["a","b","c"]</code> → <code>["a","x","y"]</code> (at current=0)</li>
-</ul>
-<p>❌ <strong>Forbidden</strong>:</p>
-<ul>
-<li>Erase processed steps: <code>["a","b","c"]</code> → <code>["c"]</code> at current=2</li>
-<li>Modify processed actor names: <code>["a","b","c"]</code> → <code>["a-new","b","c"]</code> at current=1</li>
-</ul>
-<p><strong>Validation</strong>: Runtime validates <code>route.actors[0:current+1]</code> unchanged.</p>
 <h2 id="asya_runtimepy-via-configmap"><code>asya_runtime.py</code> via ConfigMap<a class="headerlink" href="#asya_runtimepy-via-configmap" title="Permanent link">&para;</a></h2>
 <p><strong>Source</strong>: <code>src/asya-runtime/asya_runtime.py</code> (single file, no dependencies)</p>
 <p><strong>Deployment</strong>:
@@ -1158,11 +1121,6 @@
 <td>Handler path (<code>module.Class.method</code>)</td>
 </tr>
 <tr>
-<td><code>ASYA_HANDLER_MODE</code></td>
-<td><code>payload</code></td>
-<td>Mode: <code>payload</code> or <code>envelope</code></td>
-</tr>
-<tr>
 <td><code>ASYA_PYTHONEXECUTABLE</code></td>
 <td><code>python3</code></td>
 <td>Python binary path for launching the runtime</td>
@@ -1188,11 +1146,6 @@
 <td>Socket read chunk size in bytes</td>
 </tr>
 <tr>
-<td><code>ASYA_ENABLE_VALIDATION</code></td>
-<td><code>true</code></td>
-<td>Enable message validation</td>
-</tr>
-<tr>
 <td><code>ASYA_LOG_LEVEL</code></td>
 <td><code>INFO</code></td>
 <td>Logging level (DEBUG, INFO, WARNING, ERROR)</td>
@@ -1214,16 +1167,6 @@
     <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">process</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">payload</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
         <span class="n">response</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span><span class="n">payload</span><span class="p">[</span><span class="s2">&quot;prompt&quot;</span><span class="p">])</span>
         <span class="k">return</span> <span class="p">{</span><span class="o">**</span><span class="n">payload</span><span class="p">,</span> <span class="s2">&quot;response&quot;</span><span class="p">:</span> <span class="n">response</span><span class="p">}</span>
-</code></pre></div></p>
-<p><strong>Dynamic routing</strong> (async envelope mode):
-<div class="highlight"><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">process</span><span class="p">(</span><span class="n">envelope</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
-    <span class="k">if</span> <span class="n">envelope</span><span class="p">[</span><span class="s2">&quot;payload&quot;</span><span class="p">][</span><span class="s2">&quot;priority&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;high&quot;</span><span class="p">:</span>
-        <span class="n">envelope</span><span class="p">[</span><span class="s2">&quot;route&quot;</span><span class="p">][</span><span class="s2">&quot;actors&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span>
-            <span class="n">envelope</span><span class="p">[</span><span class="s2">&quot;route&quot;</span><span class="p">][</span><span class="s2">&quot;current&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
-            <span class="s2">&quot;priority-handler&quot;</span>
-        <span class="p">)</span>
-    <span class="n">envelope</span><span class="p">[</span><span class="s2">&quot;route&quot;</span><span class="p">][</span><span class="s2">&quot;current&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
-    <span class="k">return</span> <span class="n">envelope</span>
 </code></pre></div></p>
 <p><strong>Simple sync handler</strong> (still supported):
 <div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">process</span><span class="p">(</span><span class="n">payload</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
@@ -1596,28 +1539,6 @@
         
 
         
-        <a href="#handler-modes"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="2">
-            Handler Modes
-        </a>
-        
-        
-        <a href="#payload-mode-default"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="3">
-            Payload Mode (Default)
-        </a>
-        
-        <a href="#envelope-mode"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="3">
-            Envelope Mode
-        </a>
-        
-        
-
-        
         <a href="#response-patterns"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
@@ -1649,14 +1570,6 @@
             Error
         </a>
         
-        
-
-        
-        <a href="#route-modification-rules"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="2">
-            Route Modification Rules
-        </a>
         
 
         

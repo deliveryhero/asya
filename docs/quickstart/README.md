@@ -342,8 +342,6 @@ spec:
           env:
           - name: ASYA_HANDLER
             value: handler.greet
-          - name: ASYA_HANDLER_MODE
-            value: payload
           - name: PYTHONPATH
             value: /app
 EOF

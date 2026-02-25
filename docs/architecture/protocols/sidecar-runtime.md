@@ -153,7 +153,6 @@ curl --unix-socket /var/run/asya/asya-runtime.sock http://localhost/healthz
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `ASYA_HANDLER` | (required) | Handler path (`module.function` or `module.Class.method`) |
-| `ASYA_HANDLER_MODE` | `payload` | Mode: `payload` or `envelope` |
 | `ASYA_SOCKET_CHMOD` | `0o666` | Socket file permissions (octal string) |
 | `ASYA_ENABLE_VALIDATION` | `true` | Enable message validation |
 | `ASYA_LOG_LEVEL` | `INFO` | Log level (`DEBUG`, `INFO`, `WARNING`, `ERROR`) |
