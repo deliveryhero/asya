@@ -364,8 +364,8 @@ would expire, and every downstream sidecar would reject the message on resume.
 | **A2A Protocol** | No timeout fields | Tasks persist indefinitely in `input_required` |
 | **LangGraph** | No timeout | `interrupt()` waits indefinitely |
 | **Mastra** | No timeout | `suspend()` persists "minutes, hours, or days" |
-| **Temporal.io** | Timeout continues | Considered a design flaw; docs recommend explicit timers instead |
-| **Google ADK** | Connection timeout only | No session expiration for paused states |
+| **Temporal.io** | Time continues ticking | Considered a design flaw; docs recommend explicit timers instead |
+| **Google ADK** | Connection timeout only (transport-level) | No session expiration for paused states |
 
 **Consensus**: Frameworks persist state indefinitely. Timeout is application-level
 business logic, not infrastructure-level enforcement.
