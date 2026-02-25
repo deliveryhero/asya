@@ -89,13 +89,13 @@ def test_route_a_x(flow_helper):
     task_id = flow_helper.send_to_flow(level1="A", level2="X")
     result = flow_helper.wait_for_result(task_id)
 
-    assert result["payload"]["validated"] is True
-    assert result["payload"]["path"] == "A"
-    assert result["payload"]["route"] == "A-X"
-    assert result["payload"]["processed_by"] == "route_a_x"
-    assert result["payload"]["result"] == "A-X complete"
-    assert result["payload"]["status"] == "completed"
-    assert result["payload"]["final"] is True
+    assert result["validated"] is True
+    assert result["path"] == "A"
+    assert result["route"] == "A-X"
+    assert result["processed_by"] == "route_a_x"
+    assert result["result"] == "A-X complete"
+    assert result["status"] == "completed"
+    assert result["final"] is True
 
     logger.info("[+] Route A-X completed successfully")
 
@@ -109,13 +109,13 @@ def test_route_a_y(flow_helper):
     task_id = flow_helper.send_to_flow(level1="A", level2="Y")
     result = flow_helper.wait_for_result(task_id)
 
-    assert result["payload"]["validated"] is True
-    assert result["payload"]["path"] == "A"
-    assert result["payload"]["route"] == "A-Y"
-    assert result["payload"]["processed_by"] == "route_a_y"
-    assert result["payload"]["result"] == "A-Y complete"
-    assert result["payload"]["status"] == "completed"
-    assert result["payload"]["final"] is True
+    assert result["validated"] is True
+    assert result["path"] == "A"
+    assert result["route"] == "A-Y"
+    assert result["processed_by"] == "route_a_y"
+    assert result["result"] == "A-Y complete"
+    assert result["status"] == "completed"
+    assert result["final"] is True
 
     logger.info("[+] Route A-Y completed successfully")
 
@@ -129,13 +129,13 @@ def test_route_b_x(flow_helper):
     task_id = flow_helper.send_to_flow(level1="B", level2="X")
     result = flow_helper.wait_for_result(task_id)
 
-    assert result["payload"]["validated"] is True
-    assert result["payload"]["path"] == "B"
-    assert result["payload"]["route"] == "B-X"
-    assert result["payload"]["processed_by"] == "route_b_x"
-    assert result["payload"]["result"] == "B-X complete"
-    assert result["payload"]["status"] == "completed"
-    assert result["payload"]["final"] is True
+    assert result["validated"] is True
+    assert result["path"] == "B"
+    assert result["route"] == "B-X"
+    assert result["processed_by"] == "route_b_x"
+    assert result["result"] == "B-X complete"
+    assert result["status"] == "completed"
+    assert result["final"] is True
 
     logger.info("[+] Route B-X completed successfully")
 
@@ -149,13 +149,13 @@ def test_route_b_y(flow_helper):
     task_id = flow_helper.send_to_flow(level1="B", level2="Y")
     result = flow_helper.wait_for_result(task_id)
 
-    assert result["payload"]["validated"] is True
-    assert result["payload"]["path"] == "B"
-    assert result["payload"]["route"] == "B-Y"
-    assert result["payload"]["processed_by"] == "route_b_y"
-    assert result["payload"]["result"] == "B-Y complete"
-    assert result["payload"]["status"] == "completed"
-    assert result["payload"]["final"] is True
+    assert result["validated"] is True
+    assert result["path"] == "B"
+    assert result["route"] == "B-Y"
+    assert result["processed_by"] == "route_b_y"
+    assert result["result"] == "B-Y complete"
+    assert result["status"] == "completed"
+    assert result["final"] is True
 
     logger.info("[+] Route B-Y completed successfully")
 
@@ -187,10 +187,10 @@ def test_all_routes_parallel(flow_helper):
         expected_handler = next(h for l1, l2, h, _ in test_cases if l1 == level1 and l2 == level2)
         expected_result = next(r for l1, l2, _, r in test_cases if l1 == level1 and l2 == level2)
 
-        assert result["payload"]["route"] == expected_route, f"Wrong route for {task_id}"
-        assert result["payload"]["processed_by"] == expected_handler, f"Wrong handler for {task_id}"
-        assert result["payload"]["result"] == expected_result, f"Wrong result for {task_id}"
-        assert result["payload"]["status"] == "completed", f"Not completed for {task_id}"
+        assert result["route"] == expected_route, f"Wrong route for {task_id}"
+        assert result["processed_by"] == expected_handler, f"Wrong handler for {task_id}"
+        assert result["result"] == expected_result, f"Wrong result for {task_id}"
+        assert result["status"] == "completed", f"Not completed for {task_id}"
 
         logger.info(f"[+] Task {task_id} ({level1}-{level2}): verified")
 
