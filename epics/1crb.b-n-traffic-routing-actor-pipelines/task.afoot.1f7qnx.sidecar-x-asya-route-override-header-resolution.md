@@ -11,6 +11,7 @@ tags:
 
 
 
+
 ## Summary
 
 Implement the `x-asya-route-override` header resolution mechanism in the sidecar. When routing a message to the next actor, the sidecar checks if `headers["x-asya-route-override"]` contains a mapping for the target actor name, and if so, routes to the override queue instead.
