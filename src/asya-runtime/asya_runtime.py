@@ -713,6 +713,17 @@ def _collect_payload_frames(message, user_func):
     _msg_vfs.populate(message)
 
     try:
+        if inspect.isasyncgenfunction(user_func):
+
+            async def _collect_async():
+                frames = []
+                async for payload_value in user_func(message["payload"]):
+                    vfs_state = _msg_vfs.snapshot()
+                    frames.append(_build_frame(payload_value, input_route, vfs_state))
+                return frames
+
+            return asyncio.run(_collect_async())
+
         if inspect.isgeneratorfunction(user_func):
             frames = []
             for payload_value in user_func(message["payload"]):

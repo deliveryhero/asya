@@ -2366,6 +2366,118 @@ class TestAsyncHandlers:
         assert responses[0]["headers"] == {"trace_id": "abc", "priority": "high"}
 
 
+class TestAsyncGeneratorHandlers:
+    """Test async generator handler execution (fan-out via async yield)."""
+
+    def test_async_generator_fanout(self):
+        """Async generator yields 3 items, producing 3 frames."""
+
+        async def async_gen(payload):
+            yield {"id": 1}
+            yield {"id": 2}
+            yield {"id": 3}
+
+        message = {
+            "payload": {},
+            "route": {"prev": [], "curr": "a", "next": ["b"]},
+        }
+
+        responses = call_invoke(message, async_gen)
+
+        assert len(responses) == 3
+        assert [f["payload"]["id"] for f in responses] == [1, 2, 3]
+        assert all(f["route"]["curr"] == "b" for f in responses)
+
+    def test_async_generator_yields_nothing_204(self):
+        """Empty async generator returns no frames (204)."""
+
+        async def empty_gen(payload):
+            for _ in []:
+                yield
+
+        message = {
+            "payload": {},
+            "route": {"prev": [], "curr": "a", "next": []},
+        }
+
+        responses = call_invoke(message, empty_gen)
+
+        assert len(responses) == 0
+
+    def test_async_generator_with_vfs_modification(self):
+        """Async generator modifies VFS route.next between yields."""
+
+        async def gen_with_vfs(payload):
+            yield {"step": 1}
+            asya_runtime._msg_vfs.write("route/next", "c\nd")
+            yield {"step": 2}
+
+        message = {
+            "payload": {},
+            "route": {"prev": [], "curr": "a", "next": ["b"]},
+        }
+
+        responses = call_invoke(message, gen_with_vfs)
+
+        assert len(responses) == 2
+        assert responses[0]["route"]["curr"] == "b"
+        assert responses[1]["route"]["curr"] == "c"
+        assert responses[1]["route"]["next"] == ["d"]
+
+    def test_async_generator_exception_midstream(self):
+        """Exception after partial yields returns processing_error."""
+
+        async def failing_gen(payload):
+            yield {"id": 1}
+            raise ValueError("midstream failure")
+
+        message = {
+            "payload": {},
+            "route": {"prev": [], "curr": "a", "next": []},
+        }
+
+        responses = call_invoke(message, failing_gen)
+
+        assert len(responses) == 1
+        assert responses[0]["error"] == "processing_error"
+        assert "midstream failure" in responses[0]["details"]["message"]
+
+    def test_async_generator_single_yield(self):
+        """Single yield works like a regular return."""
+
+        async def single_gen(payload):
+            yield {"result": payload["value"] * 2}
+
+        message = {
+            "payload": {"value": 21},
+            "route": {"prev": [], "curr": "a", "next": []},
+        }
+
+        responses = call_invoke(message, single_gen)
+
+        assert len(responses) == 1
+        assert responses[0]["payload"] == {"result": 42}
+        assert responses[0]["route"] == {"prev": ["a"], "curr": "", "next": []}
+
+    def test_async_generator_preserves_headers(self):
+        """Async generator preserves headers in all frames."""
+
+        async def gen(payload):
+            yield {"id": 1}
+            yield {"id": 2}
+
+        message = {
+            "payload": {},
+            "route": {"prev": [], "curr": "a", "next": ["b"]},
+            "headers": {"trace_id": "t1"},
+        }
+
+        responses = call_invoke(message, gen)
+
+        assert len(responses) == 2
+        assert all(f["headers"] == {"trace_id": "t1"} for f in responses)
+
+
 class TestHTTPServer:
     """Test HTTP server infrastructure."""
 
@@ -2499,6 +2611,51 @@ class TestHTTPInvoke:
         message = {"payload": {}, "route": {"prev": [], "curr": "a", "next": []}}
         frames, status = runtime_invoke(empty_gen, message)
         assert status == 204
+
+    # --- Async generators (collected into frames array) ---
+
+    def test_async_generator_fanout(self, runtime_invoke):
+        async def async_gen(payload):
+            yield {"id": 1}
+            yield {"id": 2}
+            yield {"id": 3}
+
+        message = {"payload": {}, "route": {"prev": [], "curr": "a", "next": ["b"]}}
+        frames, status = runtime_invoke(async_gen, message)
+        assert status == 200
+        assert len(frames) == 3
+        assert [f["payload"]["id"] for f in frames] == [1, 2, 3]
+        assert all(f["route"]["curr"] == "b" for f in frames)
+
+    def test_async_generator_yields_nothing_204(self, runtime_invoke):
+        async def empty_gen(payload):
+            for _ in []:
+                yield
+
+        message = {"payload": {}, "route": {"prev": [], "curr": "a", "next": []}}
+        frames, status = runtime_invoke(empty_gen, message)
+        assert status == 204
+
+    def test_async_generator_single_yield(self, runtime_invoke):
+        async def single_gen(payload):
+            yield {"result": payload["value"] * 2}
+
+        message = {"payload": {"value": 21}, "route": {"prev": [], "curr": "a", "next": []}}
+        frames, status = runtime_invoke(single_gen, message)
+        assert status == 200
+        assert len(frames) == 1
+        assert frames[0]["payload"] == {"result": 42}
+
+    def test_async_generator_exception_500(self, runtime_invoke):
+        async def failing_gen(payload):
+            yield {"id": 1}
+            raise ValueError("async gen broke")
+
+        message = {"payload": {}, "route": {"prev": [], "curr": "a", "next": []}}
+        error, status = runtime_invoke(failing_gen, message)
+        assert status == 500
+        assert error["error"] == "processing_error"
+        assert "async gen broke" in error["details"]["message"]
 
     # --- VFS access via handler ---
 
