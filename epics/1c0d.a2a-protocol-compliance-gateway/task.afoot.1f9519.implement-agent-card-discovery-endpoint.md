@@ -2,7 +2,10 @@
 title: Implement Agent Card discovery endpoint
 priority: 2 # medium
 type: task
+tags:
+  - pr:202
 ---
+
 
 
 
