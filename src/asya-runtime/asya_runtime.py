@@ -831,6 +831,7 @@ class _UnixHTTPClient(_http_client.HTTPConnection):
 _STATUS_TO_EXCEPTION = {
     404: FileNotFoundError,
     409: FileExistsError,
+    412: FileExistsError,
     400: ValueError,
     403: PermissionError,
     500: OSError,
@@ -944,11 +945,12 @@ class _StateFile:
 class _BufferedWriteFile:
     """Buffers writes in SpooledTemporaryFile, sends PUT on close."""
 
-    def __init__(self, sock_path, key, text_mode=False, encoding="utf-8"):
+    def __init__(self, sock_path, key, text_mode=False, encoding="utf-8", exclusive=False):
         self._sock_path = sock_path
         self._key = key
         self._text_mode = text_mode
         self._encoding = encoding
+        self._exclusive = exclusive
         self._buf = _tempfile.SpooledTemporaryFile(max_size=4 * 1024 * 1024)  # noqa: SIM115
         self._closed = False
 
@@ -975,11 +977,14 @@ class _BufferedWriteFile:
         size = self._buf.tell()
         self._buf.seek(0)
         conn = _UnixHTTPClient(self._sock_path)
+        headers = {"Content-Length": str(size)}
+        if self._exclusive:
+            headers["If-None-Match"] = "*"
         conn.request(
             "PUT",
             f"/keys/{self._key}",
             body=self._buf,
-            headers={"Content-Length": str(size)},
+            headers=headers,
         )
         resp = conn.getresponse()
         _raise_for_status(resp, self._key)
@@ -1069,10 +1074,10 @@ def _open_read(sock_path, key, text_mode):
         return _StateFile(resp, seekable=False, text_mode=text_mode)
 
 
-def _open_write(sock_path, key, write_mode, text_mode):
+def _open_write(sock_path, key, write_mode, text_mode, exclusive=False):
     """Open a state key for writing."""
-    if write_mode == "buffered":
-        return _BufferedWriteFile(sock_path, key, text_mode=text_mode)
+    if exclusive or write_mode == "buffered":
+        return _BufferedWriteFile(sock_path, key, text_mode=text_mode, exclusive=exclusive)
     else:
         return _PassthroughWriteFile(sock_path, key, text_mode=text_mode)
 
@@ -1103,7 +1108,9 @@ def _install_state_proxy_hooks(mounts_str):
         text_mode = "b" not in mode
         if "r" in mode:
             return _open_read(mount["socket"], key, text_mode)
-        if any(c in mode for c in "wax"):
+        if "x" in mode:
+            return _open_write(mount["socket"], key, mount["write_mode"], text_mode, exclusive=True)
+        if any(c in mode for c in "wa"):
             return _open_write(mount["socket"], key, mount["write_mode"], text_mode)
         return _open_read(mount["socket"], key, text_mode)
 

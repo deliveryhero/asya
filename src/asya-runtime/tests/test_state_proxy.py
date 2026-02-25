@@ -131,6 +131,15 @@ class _MockConnectorHandler(BaseHTTPRequestHandler):
         else:
             length = int(self.headers.get("Content-Length", "0"))
             body = self.rfile.read(length)
+        # Record the request headers so tests can inspect them
+        if not hasattr(self.server, "last_put_headers"):
+            self.server.last_put_headers = {}
+        self.server.last_put_headers[key] = dict(self.headers)
+        # If-None-Match: * means create-only; reject with 412 if key exists
+        if_none_match = self.headers.get("If-None-Match", "")
+        if if_none_match == "*" and key in self.server.store:
+            self._send_json(412, {"message": f"key already exists: {key}"})
+            return
         self.server.store[key] = body
         self._send_json(200, {"ok": True})
 
@@ -951,3 +960,63 @@ class TestNoPatchingWithoutEnvVar:
         original_open = builtins.open
         asya_runtime._install_state_proxy_hooks(";;;")
         assert builtins.open is original_open
+
+
+# ---------------------------------------------------------------------------
+# 7. Exclusive Create Mode Tests (open(path, "x") / "xb" / "xt")
+# ---------------------------------------------------------------------------
+
+
+class TestExclusiveCreateMode:
+    """Tests for open(path, "x") exclusive create semantics in _BufferedWriteFile and _open_write."""
+
+    def test_open_x_mode_succeeds_when_key_absent(self, mock_server):
+        """open(path, "x") succeeds and stores data when the key does not exist."""
+        f = asya_runtime._BufferedWriteFile(mock_server.socket_path, "newkey", exclusive=True)
+        f.write(b"exclusive data")
+        f.close()
+        assert mock_server.store.get("newkey") == b"exclusive data"
+
+    def test_open_x_mode_raises_file_exists_on_412(self, mock_server):
+        """open(path, "x") raises FileExistsError when server returns 412 (key already exists)."""
+        mock_server.store["existing"] = b"already here"
+        f = asya_runtime._BufferedWriteFile(mock_server.socket_path, "existing", exclusive=True)
+        f.write(b"should not overwrite")
+        with pytest.raises(FileExistsError):
+            f.close()
+
+    def test_open_xb_mode_binary_raises_file_exists_on_412(self, mock_server):
+        """open(path, "xb") binary exclusive mode raises FileExistsError on 412."""
+        mock_server.store["binkey"] = b"original"
+        f = asya_runtime._BufferedWriteFile(mock_server.socket_path, "binkey", text_mode=False, exclusive=True)
+        f.write(b"conflict")
+        with pytest.raises(FileExistsError):
+            f.close()
+
+    def test_open_xt_mode_text_raises_file_exists_on_412(self, mock_server):
+        """open(path, "xt") text exclusive mode raises FileExistsError on 412."""
+        mock_server.store["txtkey"] = b"original"
+        f = asya_runtime._BufferedWriteFile(mock_server.socket_path, "txtkey", text_mode=True, exclusive=True)
+        f.write("conflict text")
+        with pytest.raises(FileExistsError):
+            f.close()
+
+    def test_open_x_mode_sends_if_none_match_header(self, mock_server):
+        """open(path, "x") sends If-None-Match: * header in the PUT request."""
+        if not hasattr(mock_server._server, "last_put_headers"):
+            mock_server._server.last_put_headers = {}
+        f = asya_runtime._BufferedWriteFile(mock_server.socket_path, "sentinel", exclusive=True)
+        f.write(b"sentinel value")
+        f.close()
+        put_headers = mock_server._server.last_put_headers.get("sentinel", {})
+        assert put_headers.get("If-None-Match") == "*"
+
+    def test_open_w_mode_does_not_send_if_none_match_header(self, mock_server):
+        """Normal write mode ("w") does NOT include If-None-Match header."""
+        if not hasattr(mock_server._server, "last_put_headers"):
+            mock_server._server.last_put_headers = {}
+        f = asya_runtime._BufferedWriteFile(mock_server.socket_path, "normalkey", exclusive=False)
+        f.write(b"normal write")
+        f.close()
+        put_headers = mock_server._server.last_put_headers.get("normalkey", {})
+        assert "If-None-Match" not in put_headers
