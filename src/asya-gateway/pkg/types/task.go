@@ -14,6 +14,8 @@ const (
 	TaskStatusSucceeded TaskStatus = "succeeded"
 	TaskStatusFailed    TaskStatus = "failed"
 	TaskStatusUnknown   TaskStatus = "unknown"
+	TaskStatusPaused    TaskStatus = "paused"
+	TaskStatusCanceled  TaskStatus = "canceled"
 )
 
 // Task represents a task in the system.
@@ -35,24 +37,26 @@ const (
 //   - Parent-child relationships are explicit via ParentID field
 //   - Log queries can find all related tasks via ID prefix matching
 type Task struct {
-	ID               string                 `json:"id"`
-	ParentID         *string                `json:"parent_id,omitempty"`  // Set for fanout children (index > 0)
-	ContextID        string                 `json:"context_id,omitempty"` // Groups related tasks into conversations
-	Status           TaskStatus             `json:"status"`
-	Route            Route                  `json:"route"`
-	Headers          map[string]interface{} `json:"headers,omitempty"`
-	Payload          any                    `json:"payload"`
-	Result           any                    `json:"result,omitempty"`
-	Error            string                 `json:"error,omitempty"`
-	TimeoutSec       int                    `json:"timeout_seconds,omitempty"` // Total timeout in seconds
-	Deadline         time.Time              `json:"deadline,omitempty"`        // Absolute deadline
-	ProgressPercent  float64                `json:"progress_percent"`
-	CurrentActorName string                 `json:"current_actor_name,omitempty"`
-	Message          string                 `json:"message,omitempty"` // Current progress message
-	ActorsCompleted  int                    `json:"actors_completed"`
-	TotalActors      int                    `json:"total_actors"`
-	CreatedAt        time.Time              `json:"created_at"`
-	UpdatedAt        time.Time              `json:"updated_at"`
+	ID                  string                 `json:"id"`
+	ParentID            *string                `json:"parent_id,omitempty"`  // Set for fanout children (index > 0)
+	ContextID           string                 `json:"context_id,omitempty"` // Groups related tasks into conversations
+	Status              TaskStatus             `json:"status"`
+	Route               Route                  `json:"route"`
+	Headers             map[string]interface{} `json:"headers,omitempty"`
+	Payload             any                    `json:"payload"`
+	Result              any                    `json:"result,omitempty"`
+	Error               string                 `json:"error,omitempty"`
+	TimeoutSec          int                    `json:"timeout_seconds,omitempty"`       // Total timeout in seconds
+	Deadline            time.Time              `json:"deadline,omitempty"`              // Absolute deadline
+	RemainingTimeoutSec *float64               `json:"remaining_timeout_sec,omitempty"` // Saved on pause for freeze/thaw
+	ProgressPercent     float64                `json:"progress_percent"`
+	CurrentActorName    string                 `json:"current_actor_name,omitempty"`
+	Message             string                 `json:"message,omitempty"` // Current progress message
+	PauseMetadata       json.RawMessage        `json:"pause_metadata,omitempty"`
+	ActorsCompleted     int                    `json:"actors_completed"`
+	TotalActors         int                    `json:"total_actors"`
+	CreatedAt           time.Time              `json:"created_at"`
+	UpdatedAt           time.Time              `json:"updated_at"`
 }
 
 // Route represents the routing state of a message through the actor pipeline.
@@ -91,7 +95,8 @@ type TaskUpdate struct {
 	Next            []string        `json:"next,omitempty"`             // Actors remaining after curr
 	TaskState       *string         `json:"task_state,omitempty"`       // Task processing state at current actor: "received" | "processing" | "completed"
 	PartialPayload  json.RawMessage `json:"partial_payload,omitempty"`  // Partial event payload (e.g., LLM tokens) for SSE broadcasting
-	Timestamp       time.Time       `json:"timestamp"`                  // When this update occurred
+	PauseMetadata   json.RawMessage `json:"pause_metadata,omitempty"`
+	Timestamp       time.Time       `json:"timestamp"` // When this update occurred
 }
 
 // ProgressUpdate represents a progress report sent FROM sidecars TO the gateway.

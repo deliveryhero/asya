@@ -259,6 +259,11 @@ func (s *Store) IsActive(id string) bool {
 		return false
 	}
 
+	// Paused tasks are not active (sidecar should not route further)
+	if task.Status == types.TaskStatusPaused {
+		return false
+	}
+
 	// Check if task has timed out
 	if !task.Deadline.IsZero() && time.Now().After(task.Deadline) {
 		return false
@@ -309,5 +314,5 @@ func (s *Store) cancelTimer(id string) {
 
 // isFinal checks if a status is final (must hold lock)
 func (s *Store) isFinal(status types.TaskStatus) bool {
-	return status == types.TaskStatusSucceeded || status == types.TaskStatusFailed
+	return status == types.TaskStatusSucceeded || status == types.TaskStatusFailed || status == types.TaskStatusCanceled
 }

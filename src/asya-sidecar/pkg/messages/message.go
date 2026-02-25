@@ -12,6 +12,8 @@ const (
 	PhaseRetrying   = "retrying"
 	PhaseSucceeded  = "succeeded"
 	PhaseFailed     = "failed"
+	PhasePaused     = "paused"
+	PhaseCanceled   = "canceled"
 )
 
 // Status reason constants

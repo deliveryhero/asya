@@ -114,7 +114,7 @@ func TaskToA2ATask(task *types.Task) types.A2ATask {
 // TaskUpdateToSSEEvents converts an internal TaskUpdate to A2A SSE events.
 func TaskUpdateToSSEEvents(update types.TaskUpdate) types.A2ATaskStatusUpdateEvent {
 	state := types.ToA2AState(update.Status)
-	final := state == types.A2AStateCompleted || state == types.A2AStateFailed
+	final := state == types.A2AStateCompleted || state == types.A2AStateFailed || state == types.A2AStateCanceled
 
 	event := types.A2ATaskStatusUpdateEvent{
 		ID: update.ID,

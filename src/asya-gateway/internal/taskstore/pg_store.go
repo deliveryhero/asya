@@ -647,6 +647,11 @@ func (s *PgStore) IsActive(id string) bool {
 		return false
 	}
 
+	// Paused tasks are not active (sidecar should not route further)
+	if status == types.TaskStatusPaused {
+		return false
+	}
+
 	// Check if task has timed out
 	if deadline != nil && time.Now().After(*deadline) {
 		return false
@@ -701,7 +706,7 @@ func (s *PgStore) cancelTimer(id string) {
 
 // isFinal checks if a status is final
 func (s *PgStore) isFinal(status types.TaskStatus) bool {
-	return status == types.TaskStatusSucceeded || status == types.TaskStatusFailed
+	return status == types.TaskStatusSucceeded || status == types.TaskStatusFailed || status == types.TaskStatusCanceled
 }
 
 // cleanupOldUpdates periodically removes old task updates (keep last 24 hours)

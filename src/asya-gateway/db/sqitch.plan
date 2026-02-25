@@ -9,3 +9,4 @@
 005_route_prev_curr_next [004_lowercase_status_values] 2026-02-24T00:00:00Z Asya Team <team@asya.sh> # Migrate route to prev/curr/next format
 006_add_context_id [005_route_prev_curr_next] 2026-02-25T00:00:00Z Asya Team <team@asya.sh> # Add context_id for A2A conversation grouping
 007_add_partial_payload [006_add_context_id] 2026-02-25T01:00:00Z Asya Team <team@asya.sh> # Add partial_payload to task_updates for streaming event persistence
+008_add_pause_metadata [007_add_partial_payload] 2026-02-25T02:00:00Z Asya Team <team@asya.sh> # Add pause_metadata and remaining_timeout_sec for pause/resume functionality

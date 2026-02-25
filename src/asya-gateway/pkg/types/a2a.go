@@ -30,6 +30,10 @@ func ToA2AState(s TaskStatus) A2ATaskState {
 		return A2AStateCompleted
 	case TaskStatusFailed:
 		return A2AStateFailed
+	case TaskStatusPaused:
+		return A2AStateInputRequired
+	case TaskStatusCanceled:
+		return A2AStateCanceled
 	default:
 		return A2AStateUnknown
 	}
