@@ -1,0 +1,25 @@
+# Profile: RabbitMQ + MinIO
+#
+# Fan-out/fan-in pipeline: RabbitMQ transport + MinIO state storage for aggregator
+#
+# Usage: docker compose -f profiles/rabbitmq.yml up
+
+include:
+- path: ../../../shared/compose/rabbitmq.yml
+- path: ../../../shared/compose/minio.yml
+- path: ../compose/actors.yml
+
+services:
+  tester:
+    extends:
+      file: ../compose/tester.yml
+      service: tester
+    environment:
+      ASYA_TRANSPORT: rabbitmq
+    depends_on:
+      queue-setup:
+        condition: service_completed_successfully
+      storage-setup:
+        condition: service_completed_successfully
+      test-actors-waiter:
+        condition: service_completed_successfully

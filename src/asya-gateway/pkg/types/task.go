@@ -100,7 +100,7 @@ type TaskUpdate struct {
 // Sidecars send these updates as actors process tasks to report:
 // - Which actor is currently processing (Curr)
 // - Task processing state ("received", "processing", "completed")
-// - Updated routing table (Prev/Curr/Next may be modified by envelope-mode actors)
+// - Updated routing table (Prev/Curr/Next may be modified via VFS by actors)
 //
 // Data flow:
 //

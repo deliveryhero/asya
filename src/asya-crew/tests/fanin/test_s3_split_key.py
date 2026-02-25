@@ -3,19 +3,85 @@
 Unit tests for the S3 split-key fan-in aggregator.
 
 Tests the aggregator handler that collects N+1 fan-in slices and emits a merged
-envelope once all slices have arrived. Uses tmp_path for filesystem isolation.
+payload once all slices have arrived. Uses tmp_path for filesystem isolation.
+
+The aggregator returns only the merged payload dict (parent payload with sub-agent
+results placed at aggregation_key). Route, headers, and id are managed by the
+runtime/sidecar layer and are not part of the aggregator's return value.
 """
 
 import json
 import logging
 import os
 import sys
+from contextlib import contextmanager
+from unittest.mock import patch
 
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
+
+
+def make_fan_in_header(
+    origin_id: str,
+    idx: int,
+    slice_count: int,
+    aggregation_key: str = "/results",
+) -> dict:
+    """Build the x-asya-fan-in header dict."""
+    return {
+        "actor": "aggregator",
+        "origin_id": origin_id,
+        "slice_index": idx,
+        "slice_count": slice_count,
+        "aggregation_key": aggregation_key,
+    }
+
+
+@contextmanager
+def mock_vfs(
+    fan_in_header: dict,
+    route: dict,
+    headers: dict | None = None,
+    message_id: str = "",
+):
+    """Context manager that mocks VFS calls in the aggregator module."""
+    non_transient_headers = headers or {}
+
+    def mock_read_fan_in():
+        return fan_in_header
+
+    def mock_read_route():
+        return route.copy()
+
+    def mock_read_non_transient_headers():
+        return dict(non_transient_headers)
+
+    def mock_read_message_id():
+        return message_id
+
+    with (
+        patch("asya_crew.fanin.s3_split_key._read_fan_in_header", side_effect=mock_read_fan_in),
+        patch("asya_crew.fanin.s3_split_key._read_route", side_effect=mock_read_route),
+        patch("asya_crew.fanin.s3_split_key._read_non_transient_headers", side_effect=mock_read_non_transient_headers),
+        patch("asya_crew.fanin.s3_split_key._read_message_id", side_effect=mock_read_message_id),
+    ):
+        yield
+
+
+def call_aggregator(envelope: dict, base_dir: str) -> dict | None:
+    """Call aggregator with envelope context, mocking VFS calls."""
+    from asya_crew.fanin.s3_split_key import aggregator
+
+    fan_in_header = envelope["headers"]["x-asya-fan-in"]
+    route = envelope["route"].copy()
+    all_headers = {k: v for k, v in envelope.get("headers", {}).items() if k != "x-asya-fan-in"}
+    message_id = envelope.get("id", "")
+
+    with mock_vfs(fan_in_header, route, all_headers, message_id):
+        return aggregator(envelope["payload"], _base_dir=base_dir)
 
 
 def make_envelope(
@@ -51,15 +117,8 @@ def make_envelope(
     }
 
 
-def call_aggregator(envelope: dict, base_dir: str) -> dict | None:
-    """Call aggregator with injected base_dir for test isolation."""
-    from asya_crew.fanin.s3_split_key import aggregator
-
-    return aggregator(envelope, _base_dir=base_dir)
-
-
 def test_full_cycle_two_slices(tmp_path):
-    """Single sub-agent: slice_count=2 (index 0 + one sub-agent). Full cycle returns merged envelope."""
+    """Single sub-agent: slice_count=2 (index 0 + one sub-agent). Full cycle returns merged payload."""
     logger.info("=== test_full_cycle_two_slices ===")
 
     base_dir = str(tmp_path)
@@ -77,13 +136,12 @@ def test_full_cycle_two_slices(tmp_path):
     env1 = make_envelope(origin_id, 1, 2, subagent_result)
     result = call_aggregator(env1, base_dir)
 
-    assert result is not None, "Should emit merged envelope"
-    assert result["id"] == origin_id
-    # Parent payload fields are preserved in the merged payload
-    assert result["payload"]["task"] == "analyze"
-    assert result["payload"]["input"] == "document.pdf"
+    assert result is not None, "Should emit merged payload"
+    # Aggregator returns the merged payload dict directly (not a full envelope)
+    assert result["task"] == "analyze"
+    assert result["input"] == "document.pdf"
     # Sub-agent results placed at aggregation key
-    assert result["payload"]["results"] == [subagent_result]
+    assert result["results"] == [subagent_result]
 
     logger.info("=== test_full_cycle_two_slices: PASSED ===")
 
@@ -111,8 +169,8 @@ def test_multi_slice_in_order_arrival(tmp_path):
     result = call_aggregator(env_last, base_dir)
 
     assert result is not None
-    assert result["payload"]["task"] == "classify"
-    assert result["payload"]["results"] == sub_results
+    assert result["task"] == "classify"
+    assert result["results"] == sub_results
 
     logger.info("=== test_multi_slice_in_order_arrival: PASSED ===")
 
@@ -144,15 +202,15 @@ def test_out_of_order_arrival(tmp_path):
     result = call_aggregator(env1, base_dir)
 
     assert result is not None
-    assert result["payload"]["task"] == "summarize"
+    assert result["task"] == "summarize"
     # Results are ordered by slice index (slice-1, slice-2) = [sub1, sub2]
-    assert result["payload"]["results"] == [sub1, sub2]
+    assert result["results"] == [sub1, sub2]
 
     logger.info("=== test_out_of_order_arrival: PASSED ===")
 
 
 def test_index_zero_arrives_last(tmp_path):
-    """Index 0 (parent) arrives after sub-agent slices. message.json written when idx=0 arrives."""
+    """Index 0 (parent) arrives after sub-agent slices. Merged correctly when all arrive."""
     logger.info("=== test_index_zero_arrives_last ===")
 
     base_dir = str(tmp_path)
@@ -172,18 +230,14 @@ def test_index_zero_arrives_last(tmp_path):
     result = call_aggregator(env2, base_dir)
     assert result is None
 
-    # Verify message.json does not exist yet (idx=0 not arrived)
-    msg_path = os.path.join(base_dir, origin_id, "message.json")
-    assert not os.path.exists(msg_path), "message.json should not exist before idx=0 arrives"
-
     # Parent slice arrives last and triggers emission
     env0 = make_envelope(origin_id, 0, slice_count, parent_payload)
     result = call_aggregator(env0, base_dir)
 
     assert result is not None
-    assert result["payload"]["task"] == "translate"
-    assert result["payload"]["lang"] == "fr"
-    assert result["payload"]["results"] == [sub1, sub2]
+    assert result["task"] == "translate"
+    assert result["lang"] == "fr"
+    assert result["results"] == [sub1, sub2]
 
     logger.info("=== test_index_zero_arrives_last: PASSED ===")
 
@@ -210,7 +264,7 @@ def test_duplicate_slice_idempotent(tmp_path):
     assert result is not None
 
     # Only first delivery stored
-    assert result["payload"]["results"] == [sub_result_v1]
+    assert result["results"] == [sub_result_v1]
 
     # Re-deliver slice 1 with different content (simulates at-least-once delivery)
     # After emission, directory is gone, so re-delivery starts fresh accumulation
@@ -273,9 +327,9 @@ def test_concurrent_completion_exactly_once(tmp_path):
     logger.info("=== test_concurrent_completion_exactly_once: PASSED ===")
 
 
-def test_transient_headers_stripped(tmp_path):
-    """Transient headers (x-asya-fan-in, x-asya-route-override, etc.) not in merged envelope."""
-    logger.info("=== test_transient_headers_stripped ===")
+def test_transient_headers_not_in_payload(tmp_path):
+    """Aggregator returns merged payload; transient headers are not part of payload content."""
+    logger.info("=== test_transient_headers_not_in_payload ===")
 
     base_dir = str(tmp_path)
     origin_id = "test-origin-008"
@@ -288,7 +342,6 @@ def test_transient_headers_stripped(tmp_path):
         "trace-id": "trace-abc-123",
         "x-custom-header": "keep-me",
     }
-    # Transient headers added alongside non-transient ones; make_envelope also adds x-asya-fan-in
     transient_extra = {
         "x-asya-route-override": "some-override",
         "x-asya-route-resolved": "resolved",
@@ -303,19 +356,15 @@ def test_transient_headers_stripped(tmp_path):
     result = call_aggregator(env1, base_dir)
 
     assert result is not None
-    result_headers = result.get("headers", {})
+    # The returned value is the merged payload dict; it should contain parent fields
+    assert result["task"] == "strip-headers"
+    assert result["results"] == [sub_result]
+    # Headers are not part of the returned payload dict
+    assert "x-asya-fan-in" not in result
+    assert "x-asya-route-override" not in result
+    assert "trace-id" not in result
 
-    # Non-transient headers must be preserved
-    assert result_headers.get("trace-id") == "trace-abc-123"
-    assert result_headers.get("x-custom-header") == "keep-me"
-
-    # Transient headers must be stripped
-    assert "x-asya-fan-in" not in result_headers
-    assert "x-asya-route-override" not in result_headers
-    assert "x-asya-route-resolved" not in result_headers
-    assert "x-asya-parent-id" not in result_headers
-
-    logger.info("=== test_transient_headers_stripped: PASSED ===")
+    logger.info("=== test_transient_headers_not_in_payload: PASSED ===")
 
 
 def test_aggregation_key_placement(tmp_path):
@@ -348,8 +397,8 @@ def test_aggregation_key_placement(tmp_path):
 
     assert result is not None
     # Results placed at /analysis/scores, not at /results
-    assert result["payload"]["analysis"]["scores"] == [sub1, sub2]
-    assert "results" not in result["payload"]
+    assert result["analysis"]["scores"] == [sub1, sub2]
+    assert "results" not in result
 
     logger.info("=== test_aggregation_key_placement: PASSED ===")
 
@@ -380,29 +429,33 @@ def test_state_cleanup_after_emission(tmp_path):
     logger.info("=== test_state_cleanup_after_emission: PASSED ===")
 
 
-def test_route_preserved_in_merged_envelope(tmp_path):
-    """Route from index-0 slice is preserved in the merged envelope output."""
-    logger.info("=== test_route_preserved_in_merged_envelope ===")
+def test_merged_payload_preserves_parent_fields(tmp_path):
+    """Merged payload preserves all parent payload fields."""
+    logger.info("=== test_merged_payload_preserves_parent_fields ===")
 
     base_dir = str(tmp_path)
     origin_id = "test-origin-011"
     slice_count = 2
 
-    route = {
-        "prev": ["step-a", "fanout-router"],
-        "curr": "aggregator",
-        "next": ["post-processor", "notifier"],
+    parent_payload = {
+        "task": "route-check",
+        "metadata": {"source": "test"},
+        "tags": ["a", "b"],
     }
-    parent_payload = {"task": "route-check"}
     sub_result = {"output": "ok"}
 
-    env0 = make_envelope(origin_id, 0, slice_count, parent_payload, route=route)
+    env0 = make_envelope(origin_id, 0, slice_count, parent_payload)
     call_aggregator(env0, base_dir)
 
-    env1 = make_envelope(origin_id, 1, slice_count, sub_result, route=route)
+    env1 = make_envelope(origin_id, 1, slice_count, sub_result)
     result = call_aggregator(env1, base_dir)
 
     assert result is not None
-    assert result["route"] == route
+    # All parent payload fields preserved
+    assert result["task"] == "route-check"
+    assert result["metadata"] == {"source": "test"}
+    assert result["tags"] == ["a", "b"]
+    # Sub-agent result appended at aggregation key
+    assert result["results"] == [sub_result]
 
-    logger.info("=== test_route_preserved_in_merged_envelope: PASSED ===")
+    logger.info("=== test_merged_payload_preserves_parent_fields: PASSED ===")
