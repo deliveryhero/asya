@@ -1,6 +1,9 @@
 package a2a
 
 import (
+	"maps"
+	"strings"
+
 	"github.com/deliveryhero/asya/asya-gateway/pkg/types"
 )
 
@@ -42,23 +45,21 @@ func MessageToPayload(msg types.A2AMessage) any {
 
 	// Merge data parts
 	for _, dp := range dataParts {
-		for k, v := range dp {
-			payload[k] = v
-		}
+		maps.Copy(payload, dp)
 	}
 
 	// Add text
 	if len(textParts) == 1 {
 		payload["_a2a_text"] = textParts[0]
 	} else if len(textParts) > 1 {
-		combined := ""
+		var b strings.Builder
 		for i, t := range textParts {
 			if i > 0 {
-				combined += "\n"
+				b.WriteString("\n")
 			}
-			combined += t
+			b.WriteString(t)
 		}
-		payload["_a2a_text"] = combined
+		payload["_a2a_text"] = b.String()
 	}
 
 	// Add files
