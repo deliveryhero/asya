@@ -92,23 +92,11 @@ SOCKET_PATH = os.path.join(SOCKET_DIR, SOCKET_NAME)
 
 
 # ---------------------------------------------------------------------------
-# Upstream event marker — handlers yield upstream(payload) for partial events
-# that bypass message queues and stream directly to the gateway SSE client.
+# Partial event convention — handlers yield dicts with partial=True to mark
+# events that bypass message queues and stream directly to the gateway.
+# Example: yield {"partial": True, "type": "text_delta", "token": "hello"}
+# The runtime strips the "partial" key before forwarding upstream.
 # ---------------------------------------------------------------------------
-
-
-class _UpstreamEvent:
-    """Marker wrapping a payload value that should be forwarded upstream to the gateway."""
-
-    __slots__ = ("payload",)
-
-    def __init__(self, payload):
-        self.payload = payload
-
-
-def upstream(payload):
-    """Mark a yielded value as an upstream event (forwarded to gateway, not routed to next actor)."""
-    return _UpstreamEvent(payload)
 
 
 def _instantiate_class_handler(handler_class):
@@ -738,6 +726,8 @@ def _collect_payload_frames(message, user_func):
             async def _collect_async():
                 frames = []
                 async for payload_value in user_func(message["payload"]):
+                    if isinstance(payload_value, dict) and payload_value.get("partial") is True:
+                        continue  # Skip partial events in batch mode
                     vfs_state = _msg_vfs.snapshot()
                     frames.append(_build_frame(payload_value, input_route, vfs_state))
                 return frames
@@ -747,6 +737,8 @@ def _collect_payload_frames(message, user_func):
         if inspect.isgeneratorfunction(user_func):
             frames = []
             for payload_value in user_func(message["payload"]):
+                if isinstance(payload_value, dict) and payload_value.get("partial") is True:
+                    continue  # Skip partial events in batch mode
                 vfs_state = _msg_vfs.snapshot()
                 frame = _build_frame(payload_value, input_route, vfs_state)
                 frames.append(frame)
@@ -1311,8 +1303,10 @@ class _InvokeHandler(http.server.BaseHTTPRequestHandler):
 
     def _emit_sse_event(self, payload_value, input_route):
         """Emit a single SSE event for a yielded value."""
-        if isinstance(payload_value, _UpstreamEvent):
-            data = json.dumps({"payload": payload_value.payload})
+        if isinstance(payload_value, dict) and payload_value.get("partial") is True:
+            # Partial event — strip the marker and forward upstream to gateway
+            event_payload = {k: v for k, v in payload_value.items() if k != "partial"}
+            data = json.dumps({"payload": event_payload})
             self.wfile.write(f"event: upstream\ndata: {data}\n\n".encode())
         else:
             vfs_state = _msg_vfs.snapshot()

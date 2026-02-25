@@ -2718,11 +2718,11 @@ class TestSSEStreaming:
         assert events[-1][0] == "done"
 
     def test_sse_upstream_events(self, tmp_path):
-        """Generator yields upstream() markers."""
+        """Generator yields partial=True dicts as upstream events."""
 
         def gen(payload):
-            yield asya_runtime.upstream({"token": "hello"})
-            yield asya_runtime.upstream({"token": "world"})
+            yield {"partial": True, "token": "hello"}
+            yield {"partial": True, "token": "world"}
 
         message = {"payload": {}, "route": {"prev": [], "curr": "a", "next": []}}
         status, _, raw = self._invoke_raw(tmp_path, gen, message)
@@ -2740,9 +2740,9 @@ class TestSSEStreaming:
         """Mix of upstream and downstream events."""
 
         def gen(payload):
-            yield asya_runtime.upstream({"token": "thinking"})
+            yield {"partial": True, "token": "thinking"}
             yield {"result": "step1"}
-            yield asya_runtime.upstream({"token": "done"})
+            yield {"partial": True, "token": "done"}
             yield {"result": "step2"}
 
         message = {"payload": {}, "route": {"prev": [], "curr": "a", "next": ["b"]}}
@@ -2789,7 +2789,7 @@ class TestSSEStreaming:
 
         async def gen(payload):
             yield {"id": 1}
-            yield asya_runtime.upstream({"token": "partial"})
+            yield {"partial": True, "token": "partial"}
             yield {"id": 2}
 
         message = {"payload": {}, "route": {"prev": [], "curr": "a", "next": ["b"]}}

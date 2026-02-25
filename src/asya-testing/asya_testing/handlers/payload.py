@@ -621,26 +621,24 @@ def invalid_route_write_handler(payload):
 
 
 # =============================================================================
-# Streaming / Partial Events (generator + upstream)
+# Streaming / Partial Events (generator + partial=True dict convention)
 # =============================================================================
 
 
 def streaming_handler(payload):
     """
-    Streaming handler: yields upstream partial events followed by a downstream result.
+    Streaming handler: yields partial events followed by a downstream result.
 
     Tests the full streaming path:
     runtime -> sidecar -> gateway -> SSE client
 
-    Yields upstream() events that bypass message queues and stream directly
-    to the gateway as `event: partial` SSE events.
+    Yields dicts with partial=True that bypass message queues and stream
+    directly to the gateway as partial SSE events.
     """
-    from asya_runtime import upstream
-
     token_count = payload.get("token_count", 3)
 
     for i in range(token_count):
-        yield upstream({"type": "text_delta", "token": f"token_{i}"})
+        yield {"partial": True, "type": "text_delta", "token": f"token_{i}"}
 
     yield {"summary": "streaming complete", "total_tokens": token_count}
 
@@ -651,7 +649,5 @@ def streaming_error_handler(payload):
 
     Tests mid-stream error handling in the streaming path.
     """
-    from asya_runtime import upstream
-
-    yield upstream({"type": "text_delta", "token": "before_error"})
+    yield {"partial": True, "type": "text_delta", "token": "before_error"}
     raise ValueError("Mid-stream intentional error")
