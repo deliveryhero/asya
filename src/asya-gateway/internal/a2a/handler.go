@@ -65,39 +65,34 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *Handler) handleMessageSend(w http.ResponseWriter, rpcReq types.A2AJSONRPCRequest) {
+// resolveAndCreateTask parses the JSON-RPC params, resolves the skill to actors,
+// creates the internal task, persists it, and dispatches it to the queue.
+// Returns the created task, or an A2A error response on failure.
+func (h *Handler) resolveAndCreateTask(rpcReq types.A2AJSONRPCRequest) (*types.Task, *types.A2AJSONRPCResponse) {
 	params, err := h.parseMessageParams(rpcReq)
 	if err != nil {
-		h.writeJSON(w, types.NewA2AError(rpcReq.ID, types.A2AErrInvalidParams, err.Error()))
-		return
+		return nil, types.NewA2AError(rpcReq.ID, types.A2AErrInvalidParams, err.Error())
 	}
 
-	// Resolve skill (tool)
 	tool, ok := h.toolIndex[params.Skill]
 	if !ok {
-		h.writeJSON(w, types.NewA2AError(rpcReq.ID, types.A2AErrInvalidParams,
-			fmt.Sprintf("skill %q not found", params.Skill)))
-		return
+		return nil, types.NewA2AError(rpcReq.ID, types.A2AErrInvalidParams,
+			fmt.Sprintf("skill %q not found", params.Skill))
 	}
 
-	// Resolve route actors
 	actors, err := tool.Route.GetActors(h.config.Routes)
 	if err != nil {
-		h.writeJSON(w, types.NewA2AError(rpcReq.ID, types.A2AErrInternalError,
-			fmt.Sprintf("route error: %v", err)))
-		return
+		return nil, types.NewA2AError(rpcReq.ID, types.A2AErrInternalError,
+			fmt.Sprintf("route error: %v", err))
 	}
 
-	// Translate A2A message to payload
 	payload := MessageToPayload(params.Message)
 
-	// Determine context_id
 	contextID := params.ContextID
 	if contextID == "" {
 		contextID = uuid.New().String()
 	}
 
-	// Create task
 	taskID := params.TaskID
 	if taskID == "" {
 		taskID = uuid.New().String()
@@ -111,7 +106,6 @@ func (h *Handler) handleMessageSend(w http.ResponseWriter, rpcReq types.A2AJSONR
 	}
 
 	opts := tool.GetOptions(h.config.Defaults)
-
 	task := &types.Task{
 		ID:        taskID,
 		ContextID: contextID,
@@ -130,15 +124,20 @@ func (h *Handler) handleMessageSend(w http.ResponseWriter, rpcReq types.A2AJSONR
 	}
 
 	if err := h.taskStore.Create(task); err != nil {
-		h.writeJSON(w, types.NewA2AError(rpcReq.ID, types.A2AErrInternalError,
-			fmt.Sprintf("failed to create task: %v", err)))
-		return
+		return nil, types.NewA2AError(rpcReq.ID, types.A2AErrInternalError,
+			fmt.Sprintf("failed to create task: %v", err))
 	}
 
-	// Send to queue async
 	go h.sendToQueue(task)
+	return task, nil
+}
 
-	// Return A2A Task response
+func (h *Handler) handleMessageSend(w http.ResponseWriter, rpcReq types.A2AJSONRPCRequest) {
+	task, errResp := h.resolveAndCreateTask(rpcReq)
+	if errResp != nil {
+		h.writeJSON(w, errResp)
+		return
+	}
 	a2aTask := TaskToA2ATask(task)
 	h.writeJSON(w, types.NewA2AResult(rpcReq.ID, a2aTask))
 }

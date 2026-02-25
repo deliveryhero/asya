@@ -2,13 +2,11 @@ package a2a
 
 import (
 	"encoding/json"
-	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"regexp"
 	"time"
-
-	"github.com/google/uuid"
 
 	"github.com/deliveryhero/asya/asya-gateway/internal/taskstore"
 	"github.com/deliveryhero/asya/asya-gateway/pkg/types"
@@ -52,65 +50,12 @@ func (sh *SubscribeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // handleMessageStream implements the message/stream JSON-RPC method.
 // It creates a task and immediately starts streaming updates via SSE.
 func (h *Handler) handleMessageStream(w http.ResponseWriter, r *http.Request, rpcReq types.A2AJSONRPCRequest) {
-	params, err := h.parseMessageParams(rpcReq)
-	if err != nil {
-		h.writeJSON(w, types.NewA2AError(rpcReq.ID, types.A2AErrInvalidParams, err.Error()))
+	task, errResp := h.resolveAndCreateTask(rpcReq)
+	if errResp != nil {
+		h.writeJSON(w, errResp)
 		return
 	}
-
-	tool, ok := h.toolIndex[params.Skill]
-	if !ok {
-		h.writeJSON(w, types.NewA2AError(rpcReq.ID, types.A2AErrInvalidParams,
-			fmt.Sprintf("skill %q not found", params.Skill)))
-		return
-	}
-
-	actors, err := tool.Route.GetActors(h.config.Routes)
-	if err != nil {
-		h.writeJSON(w, types.NewA2AError(rpcReq.ID, types.A2AErrInternalError, err.Error()))
-		return
-	}
-
-	payload := MessageToPayload(params.Message)
-	contextID := params.ContextID
-	if contextID == "" {
-		contextID = uuid.New().String()
-	}
-
-	taskID := params.TaskID
-	if taskID == "" {
-		taskID = uuid.New().String()
-	}
-
-	var routeCurr string
-	var routeNext []string
-	if len(actors) > 0 {
-		routeCurr = actors[0]
-		routeNext = actors[1:]
-	}
-
-	opts := tool.GetOptions(h.config.Defaults)
-	task := &types.Task{
-		ID:         taskID,
-		ContextID:  contextID,
-		Route:      types.Route{Prev: []string{}, Curr: routeCurr, Next: routeNext},
-		Payload:    payload,
-		TimeoutSec: int(opts.Timeout.Seconds()),
-	}
-
-	if opts.Timeout > 0 {
-		task.Deadline = time.Now().Add(opts.Timeout)
-	}
-
-	if err := h.taskStore.Create(task); err != nil {
-		h.writeJSON(w, types.NewA2AError(rpcReq.ID, types.A2AErrInternalError, err.Error()))
-		return
-	}
-
-	go h.sendToQueue(task)
-
-	// Stream updates as SSE
-	streamTaskUpdates(w, r, h.taskStore, taskID)
+	streamTaskUpdates(w, r, h.taskStore, task.ID)
 }
 
 // streamTaskUpdates streams A2A-formatted SSE events for a task.
@@ -148,7 +93,7 @@ func streamTaskUpdates(w http.ResponseWriter, r *http.Request, store taskstore.T
 		case <-r.Context().Done():
 			return
 		case <-keepaliveTicker.C:
-			_, _ = fmt.Fprintf(w, ": keepalive\n\n")
+			_, _ = io.WriteString(w, ": keepalive\n\n")
 			flusher.Flush()
 		case update := <-updateChan:
 			writeSSEEvent(w, flusher, update)
@@ -170,9 +115,10 @@ func writeSSEEvent(w http.ResponseWriter, flusher http.Flusher, update types.Tas
 		return
 	}
 
-	// Security: Safe to use Fprintf here - data is pre-encoded JSON for SSE streaming.
-	_, _ = fmt.Fprintf(w, "event: %s\n", eventType)
-	_, _ = fmt.Fprintf(w, "data: %s\n\n", data)
+	_, _ = io.WriteString(w, "event: "+eventType+"\n")
+	_, _ = io.WriteString(w, "data: ")
+	_, _ = w.Write(data)
+	_, _ = io.WriteString(w, "\n\n")
 	flusher.Flush()
 }
 
