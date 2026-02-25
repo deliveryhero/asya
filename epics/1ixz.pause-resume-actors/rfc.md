@@ -96,11 +96,11 @@ const (
 
 **Gateway**: Thin role — tracks task state, accepts resume input from users, routes resume messages to x-resume queue. Does NOT store the message route (that's persisted with the message by x-pause).
 
-**x-pause** (crew actor): Persists the full message to storage (S3/MinIO via state proxy connector). Signals pause via `x-asya-pause` header. Returns empty payload.
+**x-pause** (crew actor): Persists the full message to storage (S3/MinIO via state proxy connector). Signals pause via `x-pause` header. Returns `None`.
 
-**x-resume** (crew actor): Receives resume message from gateway (user input as payload). Loads persisted message from storage. Merges user input into restored payload at specified paths. Sends merged message to the next actor using the restored route.
+**x-resume** (crew actor): Receives resume message from gateway (user input as payload). Loads persisted message from storage. Merges user input into restored payload at specified paths (can be configured via env var to do either shallow or deep merge, shallow by default). Sends merged message to the next actor using the restored route.
 
-**Sidecar**: Reads `x-asya-pause` header from runtime response. When present: reports `phase: paused` to gateway, acks message, does NOT route to next actor.
+**Sidecar**: Reads `x-pause` header from runtime response. When present: reports `phase: paused` to gateway, acks message, does NOT route to next actor.
 
 #### 2.3 Checkpoint vs Pause
 
@@ -134,7 +134,7 @@ def pause_handler(payload: dict) -> dict:
     persist_message(payload)  # Uses state proxy / S3 connector
 
     # 2. Signal pause via header
-    with open(f"{MSG_ROOT}/headers/x-asya-pause", "w") as f:
+    with open(f"{MSG_ROOT}/headers/x-pause", "w") as f:
         f.write(json.dumps({
             "prompt": "Review this analysis before proceeding",
             "fields": [
@@ -143,11 +143,16 @@ def pause_handler(payload: dict) -> dict:
                  "payload_key": "/review/notes"}
             ]
         }))
+    
+    # 3. Ensure that the next immediate step is x-resume
+    with open(f"{MSG_ROOT}/route/next", "r") as f:
+        next_step = f.readline()
+    if next_step != "
 
     return {}
 ```
 
-#### 3.3 x-asya-pause Header Schema
+#### 3.3 x-pause Header Schema
 
 ```json
 {
@@ -192,9 +197,9 @@ Equivalent to `"payload_key": "/approved"` — merged at `payload["approved"]`.
 
 #### 3.4 Sidecar Behavior
 
-When sidecar receives a runtime response with `x-asya-pause` header:
+When sidecar receives a runtime response with `x-pause` header:
 
-1. Parse `x-asya-pause` header value (JSON)
+1. Parse `x-pause` header value (JSON)
 2. Report to gateway: `POST /tasks/{id}/progress` with `phase: paused` and pause metadata
 3. Ack the message (remove from queue)
 4. Do NOT route to the next actor (x-resume)
@@ -337,7 +342,67 @@ Cancel is a terminal state — canceled tasks cannot be resumed.
 
 ---
 
-### 6. Persistence Layer
+### 6. Timeout Interaction
+
+> See also: RFC [[1crv]] (Timeouts Per-Actor and Per-Flow)
+
+#### 6.1 Problem
+
+The timeout system (RFC 1crv) uses absolute `deadline_at` timestamps on messages.
+When a task is paused for human input (potentially hours/days), the original deadline
+would expire, and every downstream sidecar would reject the message on resume.
+
+#### 6.2 Industry Survey
+
+| Framework | Timeout During Pause | Behavior |
+|-----------|---------------------|----------|
+| **A2A Protocol** | No timeout fields | Tasks persist indefinitely in `input_required` |
+| **LangGraph** | No timeout | `interrupt()` waits indefinitely |
+| **Mastra** | No timeout | `suspend()` persists "minutes, hours, or days" |
+| **Temporal.io** | Timeout continues | Considered a design flaw; docs recommend explicit timers instead |
+| **Google ADK** | Connection timeout only | No session expiration for paused states |
+
+**Consensus**: Frameworks persist state indefinitely. Timeout is application-level
+business logic, not infrastructure-level enforcement.
+
+#### 6.3 Design
+
+**Paused tasks have no timeout.** The gateway cancels the backstop timer on pause
+and starts a fresh one on resume. No "remaining time" tracking.
+
+| Event | Gateway Backstop Timer | Message `deadline_at` |
+|-------|----------------------|----------------------|
+| Task created | Started (`timeout_sec`) | Stamped on message by gateway |
+| Task paused | **Canceled** | Irrelevant (message persisted in S3) |
+| Task resumed | **Fresh timer** (`timeout_sec` from tool config) | x-resume stamps new `deadline_at = now + timeout_sec` |
+| Task canceled | Canceled | N/A |
+
+**Gateway behavior on pause:**
+1. Cancel backstop `time.AfterFunc` timer
+2. Store `timeout_sec` from tool config (for restart on resume)
+3. No deadline tracking — paused tasks live until explicitly resumed or canceled
+
+**Gateway behavior on resume:**
+1. Start fresh backstop timer with original `timeout_sec`
+2. Include `timeout_sec` in resume message headers (e.g., `x-asya-resume-timeout`)
+3. x-resume stamps new `deadline_at = now + timeout_sec` on the outbound message
+
+**x-resume behavior:**
+1. Read `x-asya-resume-timeout` header from resume message
+2. Compute `deadline_at = now + timeout_sec`
+3. Stamp new `status.deadline_at` on outbound message (replacing the expired original)
+
+**Rationale**: A resumed task is effectively a new request from the SLA perspective.
+The user took time to provide input — that time should not count against the
+pipeline's processing budget.
+
+**Optional pause expiration**: Applications that need auto-cancellation of stale
+paused tasks should implement cleanup as business logic (e.g., a scheduled job
+that cancels tasks paused longer than N hours). This is NOT enforced by the framework.
+
+---
+
+### 7. Persistence Layer
 
 x-pause and x-resume use the same persistence backend as the checkpointer crew actor (task `debt/1k34nz`). Currently this is S3/MinIO via `src/asya-crew/asya_crew/message_persistence/s3.py`.
 
@@ -364,7 +429,7 @@ paused/{timestamp}/{actor}/{message_id}.json
 
 ---
 
-### 7. Database Changes (Gateway)
+### 8. Database Changes (Gateway)
 
 #### Migration 008
 
@@ -373,7 +438,7 @@ paused/{timestamp}/{actor}/{message_id}.json
 ALTER TABLE tasks ADD COLUMN pause_metadata JSONB;
 ```
 
-The `pause_metadata` column stores the `x-asya-pause` header content (prompt, fields) for clients to render appropriate input UI.
+The `pause_metadata` column stores the `x-pause` header content (prompt, fields) for clients to render appropriate input UI.
 
 #### TaskStore Interface Additions
 
@@ -387,7 +452,7 @@ Cancel(id string) error
 
 ---
 
-### 8. Implementation Phases
+### 9. Implementation Phases
 
 #### Phase A: Gateway State Machine (A2A Phase 2 PR)
 
@@ -398,7 +463,7 @@ Scope: gateway + sidecar phase constants. No crew actors.
 | List tasks | Gateway | `GET /a2a/tasks` + `tasks/list` JSON-RPC |
 | Cancel | Gateway | `POST /a2a/tasks/{id}:cancel` + `tasks/cancel` JSON-RPC |
 | Paused/canceled phases | Sidecar | `PhasePaused`, `PhaseCanceled` constants |
-| Pause header handling | Sidecar | Read `x-asya-pause` header, report `paused` to gateway, stop routing |
+| Pause header handling | Sidecar | Read `x-pause` header, report `paused` to gateway, stop routing |
 | Pause state | Gateway | Accept `paused` phase, store metadata, SSE notification |
 | Resume endpoint | Gateway | Accept `message/send` with `task_id` on paused task, queue to x-resume |
 | External pause | Gateway | `POST /a2a/tasks/{id}:pause` endpoint |
@@ -408,7 +473,7 @@ Scope: gateway + sidecar phase constants. No crew actors.
 
 | Item | Component | Description |
 |------|-----------|-------------|
-| x-pause | Crew | Persist message + set `x-asya-pause` header |
+| x-pause | Crew | Persist message + set `x-pause` header |
 | x-resume | Crew | Load persisted message, merge user input, continue route |
 | Helm chart | Crew | Add x-pause and x-resume to asya-crew chart |
 | Tests | Integration | Pause/resume flow end-to-end |
@@ -423,12 +488,12 @@ Scope: gateway + sidecar phase constants. No crew actors.
 
 ---
 
-### 9. Open Questions
+### 10. Open Questions
 
 1. **Sidecar persistence on external pause**: When sidecar discovers the task is paused mid-routing, should it persist the in-flight message before stopping? Without persistence, external-paused tasks cannot be resumed with full state.
 
-2. **Pause timeout**: Should paused tasks have a separate timeout (e.g., 24h) after which they auto-cancel? The original task deadline is suspended on pause.
+2. **Multiple pause points**: Can a route have multiple x-pause/x-resume pairs? If so, each pause point persists the current state, and each resume loads from the most recent checkpoint.
 
-3. **Multiple pause points**: Can a route have multiple x-pause/x-resume pairs? If so, each pause point persists the current state, and each resume loads from the most recent checkpoint.
+3. **Pause metadata evolution**: When epic [[1ixz.typed-handler-signatures]] lands, the `fields` schema in `x-asya-pause` could be auto-generated from x-resume's handler signature. This would close the loop on dynamic tool exposure.
 
-4. **Pause metadata evolution**: When epic [[1ixz.typed-handler-signatures]] lands, the `fields` schema in `x-asya-pause` could be auto-generated from x-resume's handler signature. This would close the loop on dynamic tool exposure.
+4. **Pause expiration policy**: Paused tasks have no framework-level timeout (section 6.3). Applications that need auto-cancellation should implement it as business logic (e.g., scheduled cleanup job). Should the framework provide a hook or convenience mechanism for this?
