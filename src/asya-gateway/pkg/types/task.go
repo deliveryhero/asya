@@ -33,7 +33,8 @@ const (
 //   - Log queries can find all related tasks via ID prefix matching
 type Task struct {
 	ID               string                 `json:"id"`
-	ParentID         *string                `json:"parent_id,omitempty"` // Set for fanout children (index > 0)
+	ParentID         *string                `json:"parent_id,omitempty"`  // Set for fanout children (index > 0)
+	ContextID        string                 `json:"context_id,omitempty"` // Groups related tasks into conversations
 	Status           TaskStatus             `json:"status"`
 	Route            Route                  `json:"route"`
 	Headers          map[string]interface{} `json:"headers,omitempty"`

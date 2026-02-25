@@ -153,14 +153,15 @@ func (s *PgStore) Create(task *types.Task) error {
 	}
 
 	query := `
-		INSERT INTO tasks (id, parent_id, status, route_prev, route_curr, route_next, current_actor_name, payload,
+		INSERT INTO tasks (id, parent_id, context_id, status, route_prev, route_curr, route_next, current_actor_name, payload,
 		                   timeout_sec, deadline, progress_percent, total_actors, actors_completed, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
 	`
 
 	_, err = s.pool.Exec(s.ctx, query,
 		task.ID,
 		task.ParentID,
+		task.ContextID,
 		task.Status,
 		routePrev,
 		task.Route.Curr,
@@ -195,7 +196,7 @@ func (s *PgStore) Create(task *types.Task) error {
 // Get retrieves a task by ID
 func (s *PgStore) Get(id string) (*types.Task, error) {
 	query := `
-		SELECT id, parent_id, status, route_prev, route_curr, route_next, payload, result, error, message, timeout_sec, deadline,
+		SELECT id, parent_id, context_id, status, route_prev, route_curr, route_next, payload, result, error, message, timeout_sec, deadline,
 		       progress_percent, current_actor_name, actors_completed, total_actors, created_at, updated_at
 		FROM tasks
 		WHERE id = $1
@@ -205,11 +206,13 @@ func (s *PgStore) Get(id string) (*types.Task, error) {
 	var payloadJSON, resultJSON []byte
 	var deadline *time.Time
 	var errorStr, messageStr, currentActorName *string
+	var contextID *string
 	var timeoutSec *int
 
 	err := s.pool.QueryRow(s.ctx, query, id).Scan(
 		&task.ID,
 		&task.ParentID,
+		&contextID,
 		&task.Status,
 		&task.Route.Prev,
 		&task.Route.Curr,
@@ -236,6 +239,10 @@ func (s *PgStore) Get(id string) (*types.Task, error) {
 	}
 
 	// Handle nullable fields
+	if contextID != nil {
+		task.ContextID = *contextID
+	}
+
 	if deadline != nil {
 		task.Deadline = *deadline
 	}

@@ -820,6 +820,26 @@ func TestSubscribeUnsubscribe(t *testing.T) {
 	store.Unsubscribe("test-subscribe", ch2)
 }
 
+// TestStore_ContextID tests that ContextID is preserved through Create/Get
+func TestStore_ContextID(t *testing.T) {
+	store := NewStore()
+	task := &types.Task{
+		ID:        "ctx-test-1",
+		ContextID: "conv-123",
+		Route:     types.Route{Prev: []string{}, Curr: "a1", Next: []string{}},
+	}
+	if err := store.Create(task); err != nil {
+		t.Fatal(err)
+	}
+	got, err := store.Get("ctx-test-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.ContextID != "conv-123" {
+		t.Errorf("ContextID = %q, want %q", got.ContextID, "conv-123")
+	}
+}
+
 // Helper functions
 func floatPtr(f float64) *float64 {
 	return &f
