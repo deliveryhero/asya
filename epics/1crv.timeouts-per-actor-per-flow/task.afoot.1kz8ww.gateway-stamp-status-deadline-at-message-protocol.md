@@ -2,9 +2,13 @@
 title: "Gateway: stamp status.deadline_at in message protocol"
 priority: 2 # medium
 type: task
+tags:
+  - worktree:.worktrees/1crv/1kz8ww.gateway-stamp-status-deadline-at-message-protocol
+  - branch:1crv/1kz8ww.gateway-stamp-status-deadline-at-message-protocol
 dependencies:
   - 1crv/1kjf7f
 ---
+
 
 
 ## Scope
