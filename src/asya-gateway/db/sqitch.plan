@@ -7,3 +7,4 @@
 003_add_parent_id [002_add_progress_tracking] 2025-11-03T00:00:00Z Asya Team <team@asya.sh> # Add parent_id for fanout traceability
 004_lowercase_status_values [003_add_parent_id] 2025-11-05T00:00:00Z Asya Team <team@asya.sh> # Convert status values to lowercase for MCP compliance
 005_route_prev_curr_next [004_lowercase_status_values] 2026-02-24T00:00:00Z Asya Team <team@asya.sh> # Migrate route to prev/curr/next format
+006_add_context_id [005_route_prev_curr_next] 2026-02-25T00:00:00Z Asya Team <team@asya.sh> # Add context_id for A2A conversation grouping
