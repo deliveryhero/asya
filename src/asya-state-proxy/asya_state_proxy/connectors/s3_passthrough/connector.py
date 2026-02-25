@@ -90,10 +90,7 @@ class S3Passthrough(StateProxyConnector):
     def write(self, key: str, data: BinaryIO, size: int | None = None) -> None:
         """Stream object directly to S3 without reading into memory."""
         full_key = self._full_key(key)
-        extra_args: dict = {}
-        if size is not None:
-            extra_args["ContentLength"] = size
-        self._s3.upload_fileobj(data, self._bucket, full_key, ExtraArgs=extra_args)
+        self._s3.upload_fileobj(data, self._bucket, full_key)
         logger.debug("write key=%s size=%s", key, size)
 
     def exists(self, key: str) -> bool:

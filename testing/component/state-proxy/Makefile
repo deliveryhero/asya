@@ -18,7 +18,8 @@ export PYTEST_OPTS ?= -v --cov --cov-report=term
 
 CONNECTOR_PROFILE ?= s3-lww
 COMPOSE_PROJECT := comp-state-proxy-$(CONNECTOR_PROFILE)
-COMPOSE_FILES := -f profiles/$(CONNECTOR_PROFILE).yml
+COMPOSE_ENV_FILES := --env-file profiles/.env.shared --env-file profiles/.env.$(CONNECTOR_PROFILE)
+COMPOSE_FILES := $(COMPOSE_ENV_FILES) -f profiles/$(CONNECTOR_PROFILE).yml
 
 test: clean ## Run all state-proxy component test profiles
 	$(MAKE) test-one CONNECTOR_PROFILE=s3-lww
