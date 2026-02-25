@@ -1,0 +1,54 @@
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "2"
+
+services:
+  state-proxy-connector:
+    build:
+      context: ../../../../src/asya-state-proxy
+      dockerfile: ${CONNECTOR_DOCKERFILE}
+    logging: *default-logging
+    environment:
+      CONNECTOR_SOCKET: /var/run/asya/state/meta.sock
+    env_file:
+    - ../profiles/.env.shared
+    - ../profiles/.env.${CONNECTOR_PROFILE}
+    volumes:
+    - state-sockets:/var/run/asya/state
+    healthcheck:
+      test: ["CMD", "test", "-S", "/var/run/asya/state/meta.sock"]
+      interval: 1s
+      timeout: 1s
+      retries: 30
+
+  asya-state-ops-runtime:
+    build:
+      context: ../../../../src/asya-testing
+      dockerfile: Dockerfile
+    logging: *default-logging
+    command: ["python3", "/opt/asya/asya_runtime.py"]
+    depends_on:
+      state-proxy-connector:
+        condition: service_healthy
+    env_file:
+    - ../../../shared/compose/envs/.env.asya-shared
+    - ../../../shared/compose/envs/.env.asya-runtime
+    environment:
+      ASYA_HANDLER: asya_testing.handlers.state_ops.state_ops_handler
+      ASYA_RUNTIME_TIMEOUT: 30s
+      ASYA_STATE_PROXY_MOUNTS: "meta:/state/meta:write=${WRITE_MODE}"
+    volumes:
+    - runtime-sockets:/var/run/asya
+    - state-sockets:/var/run/asya/state
+    - ../../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro
+    healthcheck:
+      test: ["CMD", "test", "-S", "/var/run/asya/asya-runtime.sock"]
+      interval: 1s
+      timeout: 1s
+      retries: 30
+
+volumes:
+  state-sockets:
+  runtime-sockets:

@@ -1,0 +1,23 @@
+services:
+  tester:
+    build:
+      context: ../../../../src/asya-testing
+      dockerfile: Dockerfile
+    environment:
+      CONNECTOR_PROFILE: ${CONNECTOR_PROFILE}
+      COVERAGE_FILE: .coverage/cov.db
+    volumes:
+    - ${COVERAGE_DIR}:/app/.coverage:rw
+    - ${COVERAGERC}:/app/.coveragerc:ro
+    - runtime-sockets:/var/run/asya
+    - ../tests:/app/tests
+    working_dir: /app
+    entrypoint: /bin/bash
+    command:
+    - -c
+    - |
+      set -ex
+      pytest tests/ ${PYTEST_OPTS} \
+        --cov --cov-config=/app/.coveragerc \
+        --cov-report=term \
+        --cov-report=json:/app/.coverage/cov-${CONNECTOR_PROFILE}.json

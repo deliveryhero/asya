@@ -1,0 +1,21 @@
+include:
+- path: ../../../shared/compose/minio.yml
+- path: ../compose/state-actors.yml
+
+services:
+  state-proxy-connector:
+    depends_on:
+      storage-setup:
+        condition: service_completed_successfully
+
+  storage-setup:
+    volumes:
+    - ../configs/minio-buckets.txt:/tmp/minio-buckets.txt:ro
+
+  tester:
+    extends:
+      file: ../compose/tester.yml
+      service: tester
+    depends_on:
+      asya-state-ops-runtime:
+        condition: service_healthy

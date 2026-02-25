@@ -1,0 +1,17 @@
+include:
+- path: ../../../shared/compose/redis.yml
+- path: ../compose/state-actors.yml
+
+services:
+  state-proxy-connector:
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  tester:
+    extends:
+      file: ../compose/tester.yml
+      service: tester
+    depends_on:
+      asya-state-ops-runtime:
+        condition: service_healthy
