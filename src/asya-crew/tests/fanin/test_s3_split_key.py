@@ -72,7 +72,7 @@ def mock_vfs(
 
 
 def call_aggregator(msg: dict, base_dir: str) -> dict | None:
-    """Call aggregator with envelope context, mocking VFS calls."""
+    """Call aggregator with message context, mocking VFS calls."""
     from asya_crew.fanin.s3_split_key import aggregator
 
     fan_in_header = msg["headers"]["x-asya-fan-in"]
@@ -93,7 +93,7 @@ def make_message(
     headers: dict | None = None,
     aggregation_key: str = "/results",
 ) -> dict:
-    """Build a fan-in envelope for testing."""
+    """Build a fan-in message for testing."""
     base_route = route or {
         "prev": ["sender"],
         "curr": "aggregator",
@@ -137,7 +137,7 @@ def test_full_cycle_two_slices(tmp_path):
     result = call_aggregator(msg1, base_dir)
 
     assert result is not None, "Should emit merged payload"
-    # Aggregator returns the merged payload dict directly (not a full envelope)
+    # Aggregator returns the merged payload dict directly (not a full message)
     assert result["task"] == "analyze"
     assert result["input"] == "document.pdf"
     # Sub-agent results placed at aggregation key
