@@ -463,14 +463,20 @@ func (s *PgStore) UpdateProgress(update types.TaskUpdate) error {
 
 	// Insert progress update record (uses derived current_actor_name for SSE streaming)
 	insertUpdateQuery := `
-		INSERT INTO task_updates (task_id, status, message, progress_percent, actor, task_state, timestamp)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		INSERT INTO task_updates (task_id, status, message, progress_percent, actor, task_state, partial_payload, timestamp)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 	`
 
 	// TaskState is already nullable (*string), pass directly
 	var taskState interface{}
 	if update.TaskState != nil && *update.TaskState != "" {
 		taskState = *update.TaskState
+	}
+
+	// PartialPayload is persisted so SSE clients connecting after task completion can replay it
+	var partialPayload interface{}
+	if update.PartialPayload != nil {
+		partialPayload = []byte(update.PartialPayload)
 	}
 
 	_, err = tx.Exec(s.ctx, insertUpdateQuery,
@@ -480,6 +486,7 @@ func (s *PgStore) UpdateProgress(update types.TaskUpdate) error {
 		update.ProgressPercent,
 		currentActorName,
 		taskState,
+		partialPayload,
 		update.Timestamp,
 	)
 
@@ -506,7 +513,7 @@ func (s *PgStore) GetUpdates(id string, since *time.Time) ([]types.TaskUpdate, e
 
 	if since != nil {
 		query = `
-			SELECT task_id, status, message, result, error, progress_percent, actor, task_state, timestamp
+			SELECT task_id, status, message, result, error, progress_percent, actor, task_state, partial_payload, timestamp
 			FROM task_updates
 			WHERE task_id = $1 AND timestamp > $2
 			ORDER BY timestamp ASC
@@ -514,7 +521,7 @@ func (s *PgStore) GetUpdates(id string, since *time.Time) ([]types.TaskUpdate, e
 		args = []interface{}{id, since}
 	} else {
 		query = `
-			SELECT task_id, status, message, result, error, progress_percent, actor, task_state, timestamp
+			SELECT task_id, status, message, result, error, progress_percent, actor, task_state, partial_payload, timestamp
 			FROM task_updates
 			WHERE task_id = $1
 			ORDER BY timestamp ASC
@@ -534,6 +541,7 @@ func (s *PgStore) GetUpdates(id string, since *time.Time) ([]types.TaskUpdate, e
 		var resultJSON []byte
 		var errorStr *string
 		var actorName *string
+		var partialPayloadJSON []byte
 
 		err := rows.Scan(
 			&update.ID,
@@ -544,6 +552,7 @@ func (s *PgStore) GetUpdates(id string, since *time.Time) ([]types.TaskUpdate, e
 			&update.ProgressPercent,
 			&actorName,
 			&update.TaskState,
+			&partialPayloadJSON,
 			&update.Timestamp,
 		)
 		if err != nil {
@@ -563,6 +572,10 @@ func (s *PgStore) GetUpdates(id string, since *time.Time) ([]types.TaskUpdate, e
 			if err := json.Unmarshal(resultJSON, &update.Result); err != nil {
 				return nil, fmt.Errorf("failed to unmarshal result: %w", err)
 			}
+		}
+
+		if partialPayloadJSON != nil {
+			update.PartialPayload = json.RawMessage(partialPayloadJSON)
 		}
 
 		updates = append(updates, update)
