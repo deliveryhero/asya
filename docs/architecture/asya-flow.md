@@ -257,23 +257,23 @@ ASYA_HANDLER_HANDLER_B="my_module.handler_b"
 """
 
 # Router functions
-def start_my_flow(envelope: dict) -> dict:
+def start_my_flow(msg: dict) -> dict:
     """Entrypoint for flow 'my_flow'"""
-    r = envelope['route']
+    r = msg['route']
 
     # Mutations
-    p = envelope['payload']
+    p = msg['payload']
     p["status"] = "processing"
-    envelope['payload'] = p
+    msg['payload'] = p
 
     # Routing
     r['next'] = [resolve("handler_a"), resolve("handler_b")] + r['next']
-    return envelope
+    return msg
 
-def router_my_flow_line_10_if(envelope: dict) -> dict:
+def router_my_flow_line_10_if(msg: dict) -> dict:
     """Router at line 10"""
-    r = envelope['route']
-    p = envelope['payload']
+    r = msg['route']
+    p = msg['payload']
 
     _next = []
     if p["condition"]:
@@ -282,11 +282,11 @@ def router_my_flow_line_10_if(envelope: dict) -> dict:
         _next.append(resolve("handler_false"))
 
     r['next'] = _next + r['next']
-    return envelope
+    return msg
 
-def end_my_flow(envelope: dict) -> dict:
+def end_my_flow(msg: dict) -> dict:
     """Exitpoint for flow 'my_flow'"""
-    return envelope
+    return msg
 
 # Handler resolution
 def resolve(handler_full_name: str) -> str:
@@ -436,15 +436,15 @@ p["c"] = 3
 p = handler(p)
 
 # Generates single router with all mutations
-def router_mutations(envelope: dict) -> dict:
-    p = envelope['payload']
-    r = envelope['route']
+def router_mutations(msg: dict) -> dict:
+    p = msg['payload']
+    r = msg['route']
     p["a"] = 1
     p["b"] = 2
     p["c"] = 3
-    envelope['payload'] = p
+    msg['payload'] = p
     r['next'] = [resolve("handler")] + r['next']
-    return envelope
+    return msg
 ```
 
 ### Empty Branch Optimization
@@ -475,7 +475,7 @@ else:
 - Complex function arguments beyond `p`
 
 **Workarounds**:
-- Use envelope mode for custom routing logic
+- Use VFS mode for custom routing logic
 - Implement loop logic in actor code
 - Use mutations for complex state tracking
 
@@ -483,7 +483,7 @@ else:
 
 Compiled routers integrate seamlessly with asya-runtime:
 
-1. **Envelope Mode**: Routers always run in envelope mode
+1. **VFS Mode**: Routers always run in VFS mode
 2. **Handler Resolution**: `resolve()` function maps handler names to actor queues
 3. **Route Modification**: Routers prepend actors to `route.next` to control flow
 4. **Automatic Termination**: When `route.curr` is `""` (route exhausted), sidecar routes to `x-sink`

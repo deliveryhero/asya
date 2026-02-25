@@ -1238,9 +1238,9 @@ asya<span class="w"> </span>flow<span class="w"> </span>compile<span class="w"> 
 </ol>
 <p><strong>Key Generated Functions</strong>:</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># Entrypoint - starts the flow</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">start_sample_flow</span><span class="p">(</span><span class="n">envelope</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">start_sample_flow</span><span class="p">(</span><span class="n">msg</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Entrypoint for flow &#39;sample_flow&#39;&quot;&quot;&quot;</span>
-    <span class="n">r</span> <span class="o">=</span> <span class="n">envelope</span><span class="p">[</span><span class="s1">&#39;route&#39;</span><span class="p">]</span>
+    <span class="n">r</span> <span class="o">=</span> <span class="n">msg</span><span class="p">[</span><span class="s1">&#39;route&#39;</span><span class="p">]</span>
     <span class="n">c</span> <span class="o">=</span> <span class="n">r</span><span class="p">[</span><span class="s1">&#39;current&#39;</span><span class="p">]</span>
 
     <span class="c1"># Insert first handler and conditional router</span>
@@ -1249,13 +1249,13 @@ asya<span class="w"> </span>flow<span class="w"> </span>compile<span class="w"> 
         <span class="n">resolve</span><span class="p">(</span><span class="s2">&quot;router_sample_flow_line_3_if&quot;</span><span class="p">)</span>
     <span class="p">]</span>
     <span class="n">r</span><span class="p">[</span><span class="s1">&#39;current&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">c</span> <span class="o">+</span> <span class="mi">1</span>
-    <span class="k">return</span> <span class="n">envelope</span>
+    <span class="k">return</span> <span class="n">msg</span>
 
 <span class="c1"># Conditional router - branches based on payload</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">router_sample_flow_line_3_if</span><span class="p">(</span><span class="n">envelope</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">router_sample_flow_line_3_if</span><span class="p">(</span><span class="n">msg</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Router for control flow and payload mutations&quot;&quot;&quot;</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="n">envelope</span><span class="p">[</span><span class="s1">&#39;payload&#39;</span><span class="p">]</span>
-    <span class="n">r</span> <span class="o">=</span> <span class="n">envelope</span><span class="p">[</span><span class="s1">&#39;route&#39;</span><span class="p">]</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">msg</span><span class="p">[</span><span class="s1">&#39;payload&#39;</span><span class="p">]</span>
+    <span class="n">r</span> <span class="o">=</span> <span class="n">msg</span><span class="p">[</span><span class="s1">&#39;route&#39;</span><span class="p">]</span>
     <span class="n">c</span> <span class="o">=</span> <span class="n">r</span><span class="p">[</span><span class="s1">&#39;current&#39;</span><span class="p">]</span>
     <span class="n">_next</span> <span class="o">=</span> <span class="p">[]</span>
 
@@ -1267,7 +1267,7 @@ asya<span class="w"> </span>flow<span class="w"> </span>compile<span class="w"> 
 
     <span class="n">r</span><span class="p">[</span><span class="s1">&#39;actors&#39;</span><span class="p">][</span><span class="n">c</span><span class="o">+</span><span class="mi">1</span><span class="p">:</span><span class="n">c</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">_next</span>
     <span class="n">r</span><span class="p">[</span><span class="s1">&#39;current&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">c</span> <span class="o">+</span> <span class="mi">1</span>
-    <span class="k">return</span> <span class="n">envelope</span>
+    <span class="k">return</span> <span class="n">msg</span>
 </code></pre></div>
 <h3 id="handler-resolution-system">Handler Resolution System<a class="headerlink" href="#handler-resolution-system" title="Permanent link">&para;</a></h3>
 <p>Generated routers use <code>resolve()</code> to map handler names to actor names via environment variables:</p>

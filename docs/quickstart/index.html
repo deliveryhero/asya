@@ -1194,7 +1194,7 @@ kubectl<span class="w"> </span>logs<span class="w"> </span>-n<span class="w"> </
 <span class="c1"># READY should show 0/0</span>
 </code></pre></div>
 <h2 id="10-test-scale-to-n">10. Test Scale-to-N<a class="headerlink" href="#10-test-scale-to-n" title="Permanent link">&para;</a></h2>
-<p>Send a batch of messages with proper envelope format to trigger multiple replicas:</p>
+<p>Send a batch of messages with proper message format to trigger multiple replicas:</p>
 <div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>port-forward<span class="w"> </span>-n<span class="w"> </span>localstack<span class="w"> </span>svc/localstack<span class="w"> </span><span class="m">4566</span>:4566<span class="w"> </span><span class="p">&amp;</span>
 sleep<span class="w"> </span><span class="m">3</span>
 

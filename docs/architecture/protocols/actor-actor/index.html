@@ -892,7 +892,7 @@
 <li><code>route</code> (required): Actor routing state</li>
 <li><code>prev</code>: Actors that have already processed the message (read-only, maintained by runtime)</li>
 <li><code>curr</code>: The actor currently processing the message (read-only, set by runtime)</li>
-<li><code>next</code>: Actors yet to process the message (modifiable by envelope-mode handlers)</li>
+<li><code>next</code>: Actors yet to process the message (modifiable via VFS)</li>
 <li><code>payload</code> (required): User data processed by actors</li>
 <li><code>headers</code> (optional): Routing metadata (trace IDs, priorities)</li>
 </ul>

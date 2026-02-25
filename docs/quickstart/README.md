@@ -401,7 +401,7 @@ kubectl get deployment hello -n default
 
 ## 10. Test Scale-to-N
 
-Send a batch of messages with proper envelope format to trigger multiple replicas:
+Send a batch of messages with proper message format to trigger multiple replicas:
 
 ```bash
 kubectl port-forward -n localstack svc/localstack 4566:4566 &

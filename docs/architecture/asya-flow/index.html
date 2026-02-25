@@ -1022,23 +1022,23 @@
 <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="c1"># Router functions</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">start_my_flow</span><span class="p">(</span><span class="n">envelope</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">start_my_flow</span><span class="p">(</span><span class="n">msg</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Entrypoint for flow &#39;my_flow&#39;&quot;&quot;&quot;</span>
-    <span class="n">r</span> <span class="o">=</span> <span class="n">envelope</span><span class="p">[</span><span class="s1">&#39;route&#39;</span><span class="p">]</span>
+    <span class="n">r</span> <span class="o">=</span> <span class="n">msg</span><span class="p">[</span><span class="s1">&#39;route&#39;</span><span class="p">]</span>
 
     <span class="c1"># Mutations</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="n">envelope</span><span class="p">[</span><span class="s1">&#39;payload&#39;</span><span class="p">]</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">msg</span><span class="p">[</span><span class="s1">&#39;payload&#39;</span><span class="p">]</span>
     <span class="n">p</span><span class="p">[</span><span class="s2">&quot;status&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;processing&quot;</span>
-    <span class="n">envelope</span><span class="p">[</span><span class="s1">&#39;payload&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">p</span>
+    <span class="n">msg</span><span class="p">[</span><span class="s1">&#39;payload&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">p</span>
 
     <span class="c1"># Routing</span>
     <span class="n">r</span><span class="p">[</span><span class="s1">&#39;next&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">resolve</span><span class="p">(</span><span class="s2">&quot;handler_a&quot;</span><span class="p">),</span> <span class="n">resolve</span><span class="p">(</span><span class="s2">&quot;handler_b&quot;</span><span class="p">)]</span> <span class="o">+</span> <span class="n">r</span><span class="p">[</span><span class="s1">&#39;next&#39;</span><span class="p">]</span>
-    <span class="k">return</span> <span class="n">envelope</span>
+    <span class="k">return</span> <span class="n">msg</span>
 
-<span class="k">def</span><span class="w"> </span><span class="nf">router_my_flow_line_10_if</span><span class="p">(</span><span class="n">envelope</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">router_my_flow_line_10_if</span><span class="p">(</span><span class="n">msg</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Router at line 10&quot;&quot;&quot;</span>
-    <span class="n">r</span> <span class="o">=</span> <span class="n">envelope</span><span class="p">[</span><span class="s1">&#39;route&#39;</span><span class="p">]</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="n">envelope</span><span class="p">[</span><span class="s1">&#39;payload&#39;</span><span class="p">]</span>
+    <span class="n">r</span> <span class="o">=</span> <span class="n">msg</span><span class="p">[</span><span class="s1">&#39;route&#39;</span><span class="p">]</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">msg</span><span class="p">[</span><span class="s1">&#39;payload&#39;</span><span class="p">]</span>
 
     <span class="n">_next</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">if</span> <span class="n">p</span><span class="p">[</span><span class="s2">&quot;condition&quot;</span><span class="p">]:</span>
@@ -1047,11 +1047,11 @@
         <span class="n">_next</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">resolve</span><span class="p">(</span><span class="s2">&quot;handler_false&quot;</span><span class="p">))</span>
 
     <span class="n">r</span><span class="p">[</span><span class="s1">&#39;next&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_next</span> <span class="o">+</span> <span class="n">r</span><span class="p">[</span><span class="s1">&#39;next&#39;</span><span class="p">]</span>
-    <span class="k">return</span> <span class="n">envelope</span>
+    <span class="k">return</span> <span class="n">msg</span>
 
-<span class="k">def</span><span class="w"> </span><span class="nf">end_my_flow</span><span class="p">(</span><span class="n">envelope</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">end_my_flow</span><span class="p">(</span><span class="n">msg</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Exitpoint for flow &#39;my_flow&#39;&quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">envelope</span>
+    <span class="k">return</span> <span class="n">msg</span>
 
 <span class="c1"># Handler resolution</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">resolve</span><span class="p">(</span><span class="n">handler_full_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
@@ -1168,15 +1168,15 @@
 <span class="n">p</span> <span class="o">=</span> <span class="n">handler</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
 
 <span class="c1"># Generates single router with all mutations</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">router_mutations</span><span class="p">(</span><span class="n">envelope</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="n">envelope</span><span class="p">[</span><span class="s1">&#39;payload&#39;</span><span class="p">]</span>
-    <span class="n">r</span> <span class="o">=</span> <span class="n">envelope</span><span class="p">[</span><span class="s1">&#39;route&#39;</span><span class="p">]</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">router_mutations</span><span class="p">(</span><span class="n">msg</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">msg</span><span class="p">[</span><span class="s1">&#39;payload&#39;</span><span class="p">]</span>
+    <span class="n">r</span> <span class="o">=</span> <span class="n">msg</span><span class="p">[</span><span class="s1">&#39;route&#39;</span><span class="p">]</span>
     <span class="n">p</span><span class="p">[</span><span class="s2">&quot;a&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
     <span class="n">p</span><span class="p">[</span><span class="s2">&quot;b&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span>
     <span class="n">p</span><span class="p">[</span><span class="s2">&quot;c&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">3</span>
-    <span class="n">envelope</span><span class="p">[</span><span class="s1">&#39;payload&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">p</span>
+    <span class="n">msg</span><span class="p">[</span><span class="s1">&#39;payload&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">p</span>
     <span class="n">r</span><span class="p">[</span><span class="s1">&#39;next&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">resolve</span><span class="p">(</span><span class="s2">&quot;handler&quot;</span><span class="p">)]</span> <span class="o">+</span> <span class="n">r</span><span class="p">[</span><span class="s1">&#39;next&#39;</span><span class="p">]</span>
-    <span class="k">return</span> <span class="n">envelope</span>
+    <span class="k">return</span> <span class="n">msg</span>
 </code></pre></div>
 <h3 id="empty-branch-optimization">Empty Branch Optimization<a class="headerlink" href="#empty-branch-optimization" title="Permanent link">&para;</a></h3>
 <p>Empty branches use <code>pass</code> statement:</p>
@@ -1200,13 +1200,13 @@
 - Assignment to variables other than <code>p</code>
 - Complex function arguments beyond <code>p</code></p>
 <p><strong>Workarounds</strong>:
-- Use envelope mode for custom routing logic
+- Use VFS mode for custom routing logic
 - Implement loop logic in actor code
 - Use mutations for complex state tracking</p>
 <h2 id="integration-with-asya-runtime">Integration with Asya Runtime<a class="headerlink" href="#integration-with-asya-runtime" title="Permanent link">&para;</a></h2>
 <p>Compiled routers integrate seamlessly with asya-runtime:</p>
 <ol>
-<li><strong>Envelope Mode</strong>: Routers always run in envelope mode</li>
+<li><strong>VFS Mode</strong>: Routers always run in VFS mode</li>
 <li><strong>Handler Resolution</strong>: <code>resolve()</code> function maps handler names to actor queues</li>
 <li><strong>Route Modification</strong>: Routers prepend actors to <code>route.next</code> to control flow</li>
 <li><strong>Automatic Termination</strong>: When <code>route.curr</code> is <code>""</code> (route exhausted), sidecar routes to <code>x-sink</code></li>
