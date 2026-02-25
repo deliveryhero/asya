@@ -8,6 +8,7 @@ type: task
 
 
 
+
 Add A2A-compliant task subscription endpoint for real-time updates.
 
 ## Requirements
