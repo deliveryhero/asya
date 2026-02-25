@@ -2,7 +2,11 @@
 title: "Integration test: full streaming path (runtime -> sidecar -> gateway -> SSE client)"
 priority: 2 # medium
 type: task
+tags:
+  - worktree:.worktrees/1ia4/1kyuas.integration-test-full-streaming-path-runtime-sidecar-gateway
+  - branch:1ia4/1kyuas.integration-test-full-streaming-path-runtime-sidecar-gateway
 ---
+
 
 
 Add an integration test (Docker Compose) that validates the full partial event
