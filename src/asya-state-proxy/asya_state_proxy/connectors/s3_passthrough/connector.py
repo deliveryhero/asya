@@ -1,4 +1,4 @@
-"""S3 buffered last-write-wins connector.
+"""S3 passthrough connector — streaming reads and writes with no local buffering.
 
 Reads configuration from environment variables:
     STATE_BUCKET      - S3 bucket name (required)
@@ -13,15 +13,32 @@ import os
 from typing import BinaryIO
 
 import boto3
-from asya_state_proxy.interface import KeyMeta, ListResult, StateProxyConnector
 from botocore.exceptions import ClientError
+
+from asya_state_proxy.interface import KeyMeta, ListResult, StateProxyConnector
 
 
 logger = logging.getLogger("asya.state-proxy")
 
 
-class S3BufferedLWW(StateProxyConnector):
-    """Last-write-wins S3 connector. Full body is buffered in memory."""
+class _StreamingBodyWrapper(io.RawIOBase):
+    """Wraps a botocore StreamingBody as a proper RawIOBase for BinaryIO compatibility."""
+
+    def __init__(self, streaming_body) -> None:
+        self._body = streaming_body
+
+    def readinto(self, b):
+        data = self._body.read(len(b))
+        n = len(data)
+        b[:n] = data
+        return n
+
+    def readable(self) -> bool:
+        return True
+
+
+class S3Passthrough(StateProxyConnector):
+    """S3 connector that streams data directly without buffering in memory."""
 
     def __init__(self) -> None:
         bucket = os.environ.get("STATE_BUCKET")
@@ -39,7 +56,7 @@ class S3BufferedLWW(StateProxyConnector):
 
         self._s3 = boto3.client("s3", **kwargs)
         logger.info(
-            "S3BufferedLWW connector initialised: bucket=%s prefix=%r region=%s endpoint=%s",
+            "S3Passthrough connector initialised: bucket=%s prefix=%r region=%s endpoint=%s",
             bucket,
             self._prefix,
             region,
@@ -58,13 +75,12 @@ class S3BufferedLWW(StateProxyConnector):
         return full_key
 
     def read(self, key: str) -> BinaryIO:
-        """Fetch object from S3 and return as in-memory stream."""
+        """Fetch object from S3 and return a streaming wrapper without buffering."""
         full_key = self._full_key(key)
         try:
             response = self._s3.get_object(Bucket=self._bucket, Key=full_key)
-            body = response["Body"].read()
-            logger.debug("read key=%s size=%d", key, len(body))
-            return io.BytesIO(body)
+            logger.debug("read key=%s", key)
+            return _StreamingBodyWrapper(response["Body"])  # type: ignore[return-value]
         except ClientError as exc:
             code = exc.response["Error"]["Code"]
             if code in ("NoSuchKey", "404"):
@@ -72,11 +88,13 @@ class S3BufferedLWW(StateProxyConnector):
             raise
 
     def write(self, key: str, data: BinaryIO, size: int | None = None) -> None:
-        """Write object to S3 using last-write-wins semantics."""
+        """Stream object directly to S3 without reading into memory."""
         full_key = self._full_key(key)
-        body = data.read()
-        self._s3.put_object(Bucket=self._bucket, Key=full_key, Body=body)
-        logger.debug("write key=%s size=%d", key, len(body))
+        extra_args: dict = {}
+        if size is not None:
+            extra_args["ContentLength"] = size
+        self._s3.upload_fileobj(data, self._bucket, full_key, ExtraArgs=extra_args)
+        logger.debug("write key=%s size=%s", key, size)
 
     def exists(self, key: str) -> bool:
         """Return True if the object exists in S3."""

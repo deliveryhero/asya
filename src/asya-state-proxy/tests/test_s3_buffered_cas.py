@@ -4,9 +4,9 @@ import io
 
 import boto3
 import pytest
+from asya_state_proxy.connectors.s3_buffered_cas.connector import S3BufferedCAS
 from asya_state_proxy.interface import KeyMeta
 from botocore.exceptions import ClientError
-from connectors.s3_buffered_cas.connector import S3BufferedCAS
 from moto import mock_aws
 
 

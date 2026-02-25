@@ -4,8 +4,8 @@ import io
 
 import boto3
 import pytest
+from asya_state_proxy.connectors.s3_buffered_lww.connector import S3BufferedLWW
 from asya_state_proxy.interface import KeyMeta
-from connectors.s3_buffered_lww.connector import S3BufferedLWW
 from moto import mock_aws
 
 

@@ -1,4 +1,4 @@
-"""S3 passthrough connector — streaming reads and writes with no local buffering.
+"""S3 buffered compare-and-swap connector.
 
 Reads configuration from environment variables:
     STATE_BUCKET      - S3 bucket name (required)
@@ -13,31 +13,22 @@ import os
 from typing import BinaryIO
 
 import boto3
-from asya_state_proxy.interface import KeyMeta, ListResult, StateProxyConnector
 from botocore.exceptions import ClientError
+
+from asya_state_proxy.interface import KeyMeta, ListResult, StateProxyConnector
 
 
 logger = logging.getLogger("asya.state-proxy")
 
 
-class _StreamingBodyWrapper(io.RawIOBase):
-    """Wraps a botocore StreamingBody as a proper RawIOBase for BinaryIO compatibility."""
+class S3BufferedCAS(StateProxyConnector):
+    """Compare-and-swap S3 connector. Full body is buffered in memory.
 
-    def __init__(self, streaming_body) -> None:
-        self._body = streaming_body
-
-    def readinto(self, b):
-        data = self._body.read(len(b))
-        n = len(data)
-        b[:n] = data
-        return n
-
-    def readable(self) -> bool:
-        return True
-
-
-class S3Passthrough(StateProxyConnector):
-    """S3 connector that streams data directly without buffering in memory."""
+    Maintains an in-memory ETag cache to detect concurrent modifications.
+    When writing a key that was previously read, the write is conditional
+    on the cached ETag matching the current S3 ETag. If the object was
+    modified externally, the write raises FileExistsError.
+    """
 
     def __init__(self) -> None:
         bucket = os.environ.get("STATE_BUCKET")
@@ -54,8 +45,9 @@ class S3Passthrough(StateProxyConnector):
             kwargs["endpoint_url"] = endpoint_url
 
         self._s3 = boto3.client("s3", **kwargs)
+        self._etags: dict[str, str] = {}
         logger.info(
-            "S3Passthrough connector initialised: bucket=%s prefix=%r region=%s endpoint=%s",
+            "S3BufferedCAS connector initialised: bucket=%s prefix=%r region=%s endpoint=%s",
             bucket,
             self._prefix,
             region,
@@ -74,12 +66,14 @@ class S3Passthrough(StateProxyConnector):
         return full_key
 
     def read(self, key: str) -> BinaryIO:
-        """Fetch object from S3 and return a streaming wrapper without buffering."""
+        """Fetch object from S3, cache ETag, and return as in-memory stream."""
         full_key = self._full_key(key)
         try:
             response = self._s3.get_object(Bucket=self._bucket, Key=full_key)
-            logger.debug("read key=%s", key)
-            return _StreamingBodyWrapper(response["Body"])  # type: ignore[return-value]
+            body = response["Body"].read()
+            self._etags[key] = response["ETag"]
+            logger.debug("read key=%s size=%d etag=%s", key, len(body), response["ETag"])
+            return io.BytesIO(body)
         except ClientError as exc:
             code = exc.response["Error"]["Code"]
             if code in ("NoSuchKey", "404"):
@@ -87,13 +81,32 @@ class S3Passthrough(StateProxyConnector):
             raise
 
     def write(self, key: str, data: BinaryIO, size: int | None = None) -> None:
-        """Stream object directly to S3 without reading into memory."""
+        """Write object to S3 with CAS semantics when a prior ETag is cached.
+
+        If the key was previously read, the write is conditional on the cached
+        ETag matching the current S3 object ETag. If the condition fails (object
+        was modified externally), FileExistsError is raised.
+
+        If the key has never been read, the write is unconditional (new key path).
+        """
         full_key = self._full_key(key)
-        extra_args: dict = {}
-        if size is not None:
-            extra_args["ContentLength"] = size
-        self._s3.upload_fileobj(data, self._bucket, full_key, ExtraArgs=extra_args)
-        logger.debug("write key=%s size=%s", key, size)
+        body = data.read()
+
+        put_kwargs: dict = {"Bucket": self._bucket, "Key": full_key, "Body": body}
+        cached_etag = self._etags.get(key)
+        if cached_etag is not None:
+            put_kwargs["IfMatch"] = cached_etag
+
+        try:
+            response = self._s3.put_object(**put_kwargs)
+        except ClientError as exc:
+            code = exc.response["Error"]["Code"]
+            if code == "PreconditionFailed":
+                raise FileExistsError(f"CAS conflict: key={key} cached_etag={cached_etag}") from exc
+            raise
+
+        self._etags[key] = response["ETag"]
+        logger.debug("write key=%s size=%d etag=%s", key, len(body), response["ETag"])
 
     def exists(self, key: str) -> bool:
         """Return True if the object exists in S3."""
@@ -143,10 +156,11 @@ class S3Passthrough(StateProxyConnector):
         return ListResult(keys=keys, prefixes=prefixes)
 
     def delete(self, key: str) -> None:
-        """Delete object from S3. Raises FileNotFoundError if it does not exist."""
+        """Delete object from S3 and clear ETag cache. Raises FileNotFoundError if not found."""
         full_key = self._full_key(key)
         # S3 DeleteObject does not error on missing keys, so check first.
         if not self.exists(key):
             raise FileNotFoundError(f"Key not found: {key}")
         self._s3.delete_object(Bucket=self._bucket, Key=full_key)
+        self._etags.pop(key, None)
         logger.debug("delete key=%s", key)

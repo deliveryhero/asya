@@ -5,8 +5,8 @@ import io
 import fakeredis
 import pytest
 import redis as redis_lib
+from asya_state_proxy.connectors.redis_buffered_cas.connector import RedisBufferedCAS
 from asya_state_proxy.interface import KeyMeta
-from connectors.redis_buffered_cas.connector import RedisBufferedCAS
 
 
 @pytest.fixture(autouse=True)
