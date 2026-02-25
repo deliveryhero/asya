@@ -74,7 +74,7 @@ spec:
         path: /state/weights # Absolute path intercepted in runtime container
       writeMode: buffered    # buffered (default) or passthrough
       connector:
-        image: ghcr.io/deliveryhero/asya-state-proxy-s3-buffered-lww:latest
+        image: ghcr.io/deliveryhero/asya-state-proxy-s3-buffered-lww:v1.0.0
         env:
           - name: STATE_BUCKET
             value: my-model-weights
@@ -90,7 +90,7 @@ spec:
         path: /state/cache
       writeMode: passthrough
       connector:
-        image: ghcr.io/deliveryhero/asya-state-proxy-s3-passthrough:latest
+        image: ghcr.io/deliveryhero/asya-state-proxy-s3-passthrough:v1.0.0
         env:
           - name: STATE_BUCKET
             value: my-inference-cache
