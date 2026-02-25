@@ -112,10 +112,7 @@ func writeSSEEvent(w http.ResponseWriter, flusher http.Flusher, update types.Tas
 		return
 	}
 
-	_, _ = io.WriteString(w, "event: "+eventType+"\n")
-	_, _ = io.WriteString(w, "data: ")
-	_, _ = w.Write(data)
-	_, _ = io.WriteString(w, "\n\n")
+	_, _ = io.WriteString(w, "event: "+eventType+"\ndata: "+string(data)+"\n\n")
 	flusher.Flush()
 }
 
