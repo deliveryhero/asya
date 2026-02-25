@@ -89,7 +89,8 @@ class LLMJudge:
         # Dynamically modify route based on LLM judge score via VFS
         if score < self.threshold:
             with open("/proc/asya/msg/route/next", "r") as f:
-                next_actors = f.read().strip().split(",")
+                next_actors_str = f.read().strip()
+                next_actors = next_actors_str.split(",") if next_actors_str else []
             with open("/proc/asya/msg/route/next", "w") as f:
                 f.write(",".join(["llm-refiner"] + next_actors))
 
