@@ -22,7 +22,7 @@ var (
 	taskActivePathRegex   = regexp.MustCompile(`^/tasks/([^/]+)/active$`)
 	taskProgressPathRegex = regexp.MustCompile(`^/tasks/([^/]+)/progress$`)
 	taskFinalPathRegex    = regexp.MustCompile(`^/tasks/([^/]+)/final$`)
-	taskUpstreamPathRegex = regexp.MustCompile(`^/tasks/([^/]+)/upstream$`)
+	taskPartialPathRegex  = regexp.MustCompile(`^/tasks/([^/]+)/partial$`)
 )
 
 // Handler provides HTTP endpoints for task management
@@ -284,11 +284,11 @@ func (h *Handler) HandleTaskStream(w http.ResponseWriter, r *http.Request) {
 }
 
 // writeSSEEvent writes a TaskUpdate as an SSE event to the client.
-// Upstream partial events (StreamPayload set) are sent as "event: stream".
+// Partial events (PartialPayload set) are sent as "event: partial".
 // All other updates (progress, status changes) are sent as "event: update".
 func writeSSEEvent(w http.ResponseWriter, flusher http.Flusher, update types.TaskUpdate) {
-	if update.StreamPayload != nil {
-		_, _ = fmt.Fprintf(w, "event: stream\ndata: %s\n\n", update.StreamPayload)
+	if update.PartialPayload != nil {
+		_, _ = fmt.Fprintf(w, "event: partial\ndata: %s\n\n", update.PartialPayload)
 	} else {
 		data, err := json.Marshal(update)
 		if err != nil {
@@ -587,18 +587,18 @@ func (h *Handler) HandleTaskFinal(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 }
 
-// HandleTaskUpstream handles POST /tasks/{id}/upstream (for sidecar to forward upstream events)
-// Upstream events are partial results (e.g., LLM tokens) streamed from generator handlers.
+// HandleTaskPartial handles POST /tasks/{id}/partial (for sidecar to forward partial events)
+// Partial events are incremental results (e.g., LLM tokens) from generator handlers.
 // They bypass message queues and are forwarded directly to SSE clients.
-func (h *Handler) HandleTaskUpstream(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) HandleTaskPartial(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	matches := taskUpstreamPathRegex.FindStringSubmatch(r.URL.Path)
+	matches := taskPartialPathRegex.FindStringSubmatch(r.URL.Path)
 	if matches == nil {
-		http.Error(w, "Invalid task upstream path", http.StatusBadRequest)
+		http.Error(w, "Invalid task partial path", http.StatusBadRequest)
 		return
 	}
 	taskID := matches[1]
@@ -618,18 +618,18 @@ func (h *Handler) HandleTaskUpstream(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Create a TaskUpdate with StreamPayload for SSE broadcasting
+	// Create a TaskUpdate with PartialPayload for SSE broadcasting
 	update := types.TaskUpdate{
-		ID:            taskID,
-		Status:        types.TaskStatusRunning,
-		StreamPayload: json.RawMessage(body),
-		Timestamp:     time.Now(),
+		ID:             taskID,
+		Status:         types.TaskStatusRunning,
+		PartialPayload: json.RawMessage(body),
+		Timestamp:      time.Now(),
 	}
 
 	// Store and broadcast to SSE subscribers
 	if err := h.taskStore.UpdateProgress(update); err != nil {
-		slog.Error("Failed to store upstream event", "task_id", taskID, "error", err)
-		http.Error(w, "Failed to store upstream event", http.StatusInternalServerError)
+		slog.Error("Failed to store partial event", "task_id", taskID, "error", err)
+		http.Error(w, "Failed to store partial event", http.StatusInternalServerError)
 		return
 	}
 

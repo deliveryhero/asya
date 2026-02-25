@@ -709,12 +709,12 @@ func (r *Router) ProcessMessage(ctx context.Context, queueMsg transport.QueueMes
 		return fmt.Errorf("failed to marshal message with status: %w", err)
 	}
 
-	// Build upstream callback that forwards partial events to gateway
+	// Build callback that forwards partial events to gateway
 	var onUpstream func(json.RawMessage)
 	if r.progressReporter != nil {
 		onUpstream = func(payload json.RawMessage) {
-			if err := r.progressReporter.ForwardUpstream(ctx, msg.ID, payload); err != nil {
-				slog.Warn("Failed to forward upstream event", "id", msg.ID, "error", err)
+			if err := r.progressReporter.ForwardPartial(ctx, msg.ID, payload); err != nil {
+				slog.Warn("Failed to forward partial event", "id", msg.ID, "error", err)
 			}
 		}
 	}

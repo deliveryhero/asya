@@ -89,7 +89,7 @@ type TaskUpdate struct {
 	Curr            string          `json:"curr,omitempty"`             // Actor currently processing ("" at end-of-route)
 	Next            []string        `json:"next,omitempty"`             // Actors remaining after curr
 	TaskState       *string         `json:"task_state,omitempty"`       // Task processing state at current actor: "received" | "processing" | "completed"
-	StreamPayload   json.RawMessage `json:"stream_payload,omitempty"`   // Upstream partial event payload (for SSE streaming)
+	PartialPayload  json.RawMessage `json:"partial_payload,omitempty"`  // Partial event payload (e.g., LLM tokens) for SSE broadcasting
 	Timestamp       time.Time       `json:"timestamp"`                  // When this update occurred
 }
 
