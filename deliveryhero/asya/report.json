@@ -1,18 +1,18 @@
 {
   "repository": "deliveryhero/asya",
   "ref": "refs/heads/main",
-  "commit": "affcffe4562b00ef44aaf8cc6de31eca96a3be97",
+  "commit": "3cd0956522ad56e0e7ae9f908ec3080fcc1efa0d",
   "coverage": {
     "type": "merged",
     "format": "Go coverage",
     "total": 5196,
-    "covered": 3014,
+    "covered": 3016,
     "files": [
       {
         "type": "statement",
         "file": "github.com/deliveryhero/asya/asya-sidecar/cmd/sidecar/main.go",
         "total": 191,
-        "covered": 49,
+        "covered": 51,
         "blocks": [
           {
             "type": "statement",
@@ -102,7 +102,7 @@
             "end_line": 61,
             "end_col": 20,
             "num_stmt": 1,
-            "count": 0
+            "count": 1
           },
           {
             "type": "statement",
@@ -16240,27 +16240,27 @@
     ]
   },
   "code_to_test_ratio": {
-    "code": 24100,
-    "test": 18552,
+    "code": 25532,
+    "test": 18539,
     "code_files": [
       {
-        "code": 701,
-        "comment": 127,
-        "blank": 187,
+        "code": 933,
+        "comment": 141,
+        "blank": 243,
         "path": "deploy/helm-charts/asya-crossplane/files/asya_runtime.py",
         "language": "Python"
       },
       {
-        "code": 65,
+        "code": 80,
         "comment": 45,
-        "blank": 33,
+        "blank": 34,
         "path": "docs/img/for-data-scientists-flows/compiled/sample_flow/routers.py",
         "language": "Python"
       },
       {
-        "code": 77,
+        "code": 95,
         "comment": 46,
-        "blank": 36,
+        "blank": 37,
         "path": "docs/img/for-data-scientists-flows/compiled/text_analysis_flow/routers.py",
         "language": "Python"
       },
@@ -16300,254 +16300,254 @@
         "language": "Python"
       },
       {
-        "code": 60,
+        "code": 73,
         "comment": 44,
-        "blank": 30,
+        "blank": 31,
         "path": "examples/flows/compiled/async_conditional/routers.py",
         "language": "Python"
       },
       {
-        "code": 48,
+        "code": 59,
         "comment": 43,
-        "blank": 27,
+        "blank": 28,
         "path": "examples/flows/compiled/async_nested/routers.py",
         "language": "Python"
       },
       {
-        "code": 37,
+        "code": 46,
         "comment": 42,
-        "blank": 24,
+        "blank": 25,
         "path": "examples/flows/compiled/async_sequential/routers.py",
         "language": "Python"
       },
       {
-        "code": 121,
+        "code": 146,
         "comment": 50,
-        "blank": 48,
+        "blank": 49,
         "path": "examples/flows/compiled/complex_combined/routers.py",
         "language": "Python"
       },
       {
-        "code": 109,
+        "code": 133,
         "comment": 49,
-        "blank": 45,
+        "blank": 46,
         "path": "examples/flows/compiled/complex_with_while/routers.py",
         "language": "Python"
       },
       {
-        "code": 47,
+        "code": 58,
         "comment": 43,
-        "blank": 27,
+        "blank": 28,
         "path": "examples/flows/compiled/if_all_empty_branches/routers.py",
         "language": "Python"
       },
       {
-        "code": 60,
+        "code": 73,
         "comment": 44,
-        "blank": 30,
+        "blank": 31,
         "path": "examples/flows/compiled/if_elif_else/routers.py",
         "language": "Python"
       },
       {
-        "code": 49,
+        "code": 60,
         "comment": 43,
-        "blank": 27,
+        "blank": 28,
         "path": "examples/flows/compiled/if_else_simple/routers.py",
         "language": "Python"
       },
       {
-        "code": 67,
+        "code": 82,
         "comment": 45,
-        "blank": 33,
+        "blank": 34,
         "path": "examples/flows/compiled/if_mutations_in_branches/routers.py",
         "language": "Python"
       },
       {
-        "code": 139,
+        "code": 170,
         "comment": 53,
-        "blank": 57,
+        "blank": 58,
         "path": "examples/flows/compiled/if_nested/routers.py",
         "language": "Python"
       },
       {
-        "code": 47,
+        "code": 58,
         "comment": 43,
-        "blank": 27,
+        "blank": 28,
         "path": "examples/flows/compiled/if_no_else/routers.py",
         "language": "Python"
       },
       {
-        "code": 48,
+        "code": 59,
         "comment": 43,
-        "blank": 27,
+        "blank": 28,
         "path": "examples/flows/compiled/if_one_empty_branch/routers.py",
         "language": "Python"
       },
       {
-        "code": 48,
+        "code": 59,
         "comment": 43,
-        "blank": 27,
+        "blank": 28,
         "path": "examples/flows/compiled/if_with_early_return/routers.py",
         "language": "Python"
       },
       {
-        "code": 37,
+        "code": 45,
         "comment": 42,
-        "blank": 24,
+        "blank": 25,
         "path": "examples/flows/compiled/minimal/routers.py",
         "language": "Python"
       },
       {
-        "code": 62,
+        "code": 76,
         "comment": 45,
-        "blank": 33,
+        "blank": 34,
         "path": "examples/flows/compiled/mutations_before_after_handler/routers.py",
         "language": "Python"
       },
       {
-        "code": 47,
+        "code": 57,
         "comment": 43,
-        "blank": 27,
+        "blank": 28,
         "path": "examples/flows/compiled/mutations_only/routers.py",
         "language": "Python"
       },
       {
-        "code": 55,
+        "code": 67,
         "comment": 44,
-        "blank": 30,
+        "blank": 31,
         "path": "examples/flows/compiled/mutations_with_handler/routers.py",
         "language": "Python"
       },
       {
-        "code": 105,
+        "code": 128,
         "comment": 49,
-        "blank": 45,
+        "blank": 46,
         "path": "examples/flows/compiled/nested_if/routers.py",
         "language": "Python"
       },
       {
-        "code": 37,
+        "code": 47,
         "comment": 42,
-        "blank": 24,
+        "blank": 25,
         "path": "examples/flows/compiled/sequential/routers.py",
         "language": "Python"
       },
       {
-        "code": 37,
+        "code": 47,
         "comment": 42,
-        "blank": 24,
+        "blank": 25,
         "path": "examples/flows/compiled/sequential_with_class/routers.py",
         "language": "Python"
       },
       {
-        "code": 84,
+        "code": 107,
         "comment": 47,
-        "blank": 42,
+        "blank": 43,
         "path": "examples/flows/compiled/try_except_catch_all/routers.py",
         "language": "Python"
       },
       {
-        "code": 93,
+        "code": 117,
         "comment": 48,
-        "blank": 43,
+        "blank": 44,
         "path": "examples/flows/compiled/try_except_finally/routers.py",
         "language": "Python"
       },
       {
-        "code": 103,
+        "code": 129,
         "comment": 49,
-        "blank": 46,
+        "blank": 47,
         "path": "examples/flows/compiled/try_except_multiple_handlers/routers.py",
         "language": "Python"
       },
       {
-        "code": 111,
+        "code": 139,
         "comment": 50,
-        "blank": 49,
+        "blank": 50,
         "path": "examples/flows/compiled/try_except_retry_loop/routers.py",
         "language": "Python"
       },
       {
-        "code": 80,
+        "code": 102,
         "comment": 47,
-        "blank": 40,
+        "blank": 41,
         "path": "examples/flows/compiled/try_except_simple/routers.py",
         "language": "Python"
       },
       {
-        "code": 86,
+        "code": 105,
         "comment": 47,
-        "blank": 39,
+        "blank": 40,
         "path": "examples/flows/compiled/while_break_continue/routers.py",
         "language": "Python"
       },
       {
-        "code": 103,
+        "code": 126,
         "comment": 49,
-        "blank": 45,
+        "blank": 46,
         "path": "examples/flows/compiled/while_loop_processing/routers.py",
         "language": "Python"
       },
       {
-        "code": 75,
+        "code": 92,
         "comment": 46,
-        "blank": 36,
+        "blank": 37,
         "path": "examples/flows/compiled/while_mutations_in_loop/routers.py",
         "language": "Python"
       },
       {
-        "code": 92,
+        "code": 113,
         "comment": 48,
-        "blank": 42,
+        "blank": 43,
         "path": "examples/flows/compiled/while_nested/routers.py",
         "language": "Python"
       },
       {
-        "code": 84,
+        "code": 103,
         "comment": 47,
-        "blank": 39,
+        "blank": 40,
         "path": "examples/flows/compiled/while_nested_loop/routers.py",
         "language": "Python"
       },
       {
-        "code": 61,
+        "code": 74,
         "comment": 44,
-        "blank": 32,
+        "blank": 33,
         "path": "examples/flows/compiled/while_react_loop/routers.py",
         "language": "Python"
       },
       {
-        "code": 64,
+        "code": 79,
         "comment": 45,
-        "blank": 33,
+        "blank": 34,
         "path": "examples/flows/compiled/while_simple/routers.py",
         "language": "Python"
       },
       {
-        "code": 61,
+        "code": 75,
         "comment": 44,
-        "blank": 32,
+        "blank": 33,
         "path": "examples/flows/compiled/while_true_simple/routers.py",
         "language": "Python"
       },
       {
-        "code": 75,
+        "code": 92,
         "comment": 46,
-        "blank": 36,
+        "blank": 37,
         "path": "examples/flows/compiled/while_with_break/routers.py",
         "language": "Python"
       },
       {
-        "code": 67,
+        "code": 82,
         "comment": 45,
-        "blank": 33,
+        "blank": 34,
         "path": "examples/flows/compiled/while_with_continue/routers.py",
         "language": "Python"
       },
       {
-        "code": 67,
+        "code": 82,
         "comment": 45,
-        "blank": 33,
+        "blank": 34,
         "path": "examples/flows/compiled/while_with_if/routers.py",
         "language": "Python"
       },
@@ -16853,9 +16853,9 @@
         "language": "Python"
       },
       {
-        "code": 400,
-        "comment": 73,
-        "blank": 87,
+        "code": 427,
+        "comment": 76,
+        "blank": 89,
         "path": "src/asya-cli/asya_cli/flow/codegen.py",
         "language": "Python"
       },
@@ -16944,7 +16944,7 @@
         "language": "Python"
       },
       {
-        "code": 624,
+        "code": 628,
         "comment": 63,
         "blank": 150,
         "path": "src/asya-cli/tests/flow/test_codegen.py",
@@ -17007,7 +17007,7 @@
         "language": "Python"
       },
       {
-        "code": 83,
+        "code": 84,
         "comment": 99,
         "blank": 34,
         "path": "src/asya-cli/tests/flow/test_try_except_codegen.py",
@@ -17021,9 +17021,9 @@
         "language": "Python"
       },
       {
-        "code": 499,
-        "comment": 204,
-        "blank": 150,
+        "code": 521,
+        "comment": 197,
+        "blank": 169,
         "path": "src/asya-cli/tests/flow/test_try_except_integration.py",
         "language": "Python"
       },
@@ -17035,9 +17035,9 @@
         "language": "Python"
       },
       {
-        "code": 298,
-        "comment": 240,
-        "blank": 134,
+        "code": 330,
+        "comment": 239,
+        "blank": 140,
         "path": "src/asya-cli/tests/flow/test_while_integration.py",
         "language": "Python"
       },
@@ -17070,23 +17070,23 @@
         "language": "Python"
       },
       {
-        "code": 106,
-        "comment": 58,
-        "blank": 41,
+        "code": 104,
+        "comment": 48,
+        "blank": 37,
         "path": "src/asya-crew/asya_crew/message_persistence/s3.py",
         "language": "Python"
       },
       {
-        "code": 57,
-        "comment": 61,
-        "blank": 28,
+        "code": 45,
+        "comment": 38,
+        "blank": 20,
         "path": "src/asya-crew/asya_crew/sink.py",
         "language": "Python"
       },
       {
-        "code": 43,
-        "comment": 45,
-        "blank": 26,
+        "code": 30,
+        "comment": 25,
+        "blank": 16,
         "path": "src/asya-crew/asya_crew/sump.py",
         "language": "Python"
       },
@@ -17287,9 +17287,9 @@
         "language": "Go"
       },
       {
-        "code": 37,
-        "comment": 16,
-        "blank": 16,
+        "code": 36,
+        "comment": 15,
+        "blank": 15,
         "path": "src/asya-injector/internal/injection/config.go",
         "language": "Go"
       },
@@ -17308,9 +17308,9 @@
         "language": "Go"
       },
       {
-        "code": 197,
+        "code": 193,
         "comment": 24,
-        "blank": 39,
+        "blank": 38,
         "path": "src/asya-injector/internal/webhook/asyncactor.go",
         "language": "Go"
       },
@@ -17329,9 +17329,9 @@
         "language": "Go"
       },
       {
-        "code": 701,
-        "comment": 127,
-        "blank": 187,
+        "code": 933,
+        "comment": 141,
+        "blank": 243,
         "path": "src/asya-runtime/asya_runtime.py",
         "language": "Python"
       },
@@ -17441,6 +17441,97 @@
         "language": "Python"
       },
       {
+        "code": 0,
+        "comment": 0,
+        "blank": 0,
+        "path": "src/asya-state-proxy/asya_state_proxy/connectors/__init__.py",
+        "language": "Python"
+      },
+      {
+        "code": 0,
+        "comment": 0,
+        "blank": 0,
+        "path": "src/asya-state-proxy/asya_state_proxy/connectors/redis_buffered_cas/__init__.py",
+        "language": "Python"
+      },
+      {
+        "code": 5,
+        "comment": 1,
+        "blank": 6,
+        "path": "src/asya-state-proxy/asya_state_proxy/connectors/redis_buffered_cas/__main__.py",
+        "language": "Python"
+      },
+      {
+        "code": 75,
+        "comment": 13,
+        "blank": 20,
+        "path": "src/asya-state-proxy/asya_state_proxy/connectors/redis_buffered_cas/connector.py",
+        "language": "Python"
+      },
+      {
+        "code": 0,
+        "comment": 0,
+        "blank": 0,
+        "path": "src/asya-state-proxy/asya_state_proxy/connectors/s3_buffered_cas/__init__.py",
+        "language": "Python"
+      },
+      {
+        "code": 5,
+        "comment": 1,
+        "blank": 6,
+        "path": "src/asya-state-proxy/asya_state_proxy/connectors/s3_buffered_cas/__main__.py",
+        "language": "Python"
+      },
+      {
+        "code": 110,
+        "comment": 26,
+        "blank": 30,
+        "path": "src/asya-state-proxy/asya_state_proxy/connectors/s3_buffered_cas/connector.py",
+        "language": "Python"
+      },
+      {
+        "code": 0,
+        "comment": 0,
+        "blank": 0,
+        "path": "src/asya-state-proxy/asya_state_proxy/connectors/s3_buffered_lww/__init__.py",
+        "language": "Python"
+      },
+      {
+        "code": 5,
+        "comment": 1,
+        "blank": 6,
+        "path": "src/asya-state-proxy/asya_state_proxy/connectors/s3_buffered_lww/__main__.py",
+        "language": "Python"
+      },
+      {
+        "code": 96,
+        "comment": 16,
+        "blank": 24,
+        "path": "src/asya-state-proxy/asya_state_proxy/connectors/s3_buffered_lww/connector.py",
+        "language": "Python"
+      },
+      {
+        "code": 0,
+        "comment": 0,
+        "blank": 0,
+        "path": "src/asya-state-proxy/asya_state_proxy/connectors/s3_passthrough/__init__.py",
+        "language": "Python"
+      },
+      {
+        "code": 5,
+        "comment": 1,
+        "blank": 6,
+        "path": "src/asya-state-proxy/asya_state_proxy/connectors/s3_passthrough/__main__.py",
+        "language": "Python"
+      },
+      {
+        "code": 107,
+        "comment": 17,
+        "blank": 29,
+        "path": "src/asya-state-proxy/asya_state_proxy/connectors/s3_passthrough/connector.py",
+        "language": "Python"
+      },
+      {
         "code": 21,
         "comment": 7,
         "blank": 12,
@@ -17455,35 +17546,7 @@
         "language": "Python"
       },
       {
-        "code": 0,
-        "comment": 0,
-        "blank": 0,
-        "path": "src/asya-state-proxy/connectors/__init__.py",
-        "language": "Python"
-      },
-      {
-        "code": 0,
-        "comment": 0,
-        "blank": 0,
-        "path": "src/asya-state-proxy/connectors/s3_buffered_lww/__init__.py",
-        "language": "Python"
-      },
-      {
-        "code": 5,
-        "comment": 1,
-        "blank": 7,
-        "path": "src/asya-state-proxy/connectors/s3_buffered_lww/__main__.py",
-        "language": "Python"
-      },
-      {
-        "code": 96,
-        "comment": 16,
-        "blank": 23,
-        "path": "src/asya-state-proxy/connectors/s3_buffered_lww/connector.py",
-        "language": "Python"
-      },
-      {
-        "code": 24,
+        "code": 22,
         "comment": 9,
         "blank": 5,
         "path": "src/asya-testing/asya_testing/__init__.py",
@@ -17518,9 +17581,9 @@
         "language": "Python"
       },
       {
-        "code": 109,
-        "comment": 89,
-        "blank": 64,
+        "code": 93,
+        "comment": 83,
+        "blank": 58,
         "path": "src/asya-testing/asya_testing/config.py",
         "language": "Python"
       },
@@ -17595,9 +17658,9 @@
         "language": "Python"
       },
       {
-        "code": 105,
+        "code": 128,
         "comment": 49,
-        "blank": 45,
+        "blank": 46,
         "path": "src/asya-testing/asya_testing/flows/nested_if/compiled/routers.py",
         "language": "Python"
       },
@@ -17611,28 +17674,21 @@
       {
         "code": 2,
         "comment": 13,
-        "blank": 5,
+        "blank": 4,
         "path": "src/asya-testing/asya_testing/handlers/__init__.py",
         "language": "Python"
       },
       {
-        "code": 83,
+        "code": 85,
         "comment": 27,
-        "blank": 36,
+        "blank": 38,
         "path": "src/asya-testing/asya_testing/handlers/classes.py",
         "language": "Python"
       },
       {
-        "code": 63,
-        "comment": 46,
-        "blank": 29,
-        "path": "src/asya-testing/asya_testing/handlers/envelope.py",
-        "language": "Python"
-      },
-      {
-        "code": 205,
-        "comment": 207,
-        "blank": 147,
+        "code": 241,
+        "comment": 217,
+        "blank": 162,
         "path": "src/asya-testing/asya_testing/handlers/payload.py",
         "language": "Python"
       },
@@ -17863,7 +17919,7 @@
         "language": "Go"
       },
       {
-        "code": 979,
+        "code": 977,
         "comment": 21,
         "blank": 148,
         "path": "src/asya-injector/internal/injection/inject_test.go",
@@ -17877,7 +17933,7 @@
         "language": "Go"
       },
       {
-        "code": 457,
+        "code": 446,
         "comment": 2,
         "blank": 17,
         "path": "src/asya-injector/internal/webhook/asyncactor_test.go",
@@ -18074,6 +18130,6 @@
       }
     ]
   },
-  "test_execution_time": 238000000000,
-  "timestamp": "2026-02-25T10:30:22.864777467Z"
+  "test_execution_time": 209000000000,
+  "timestamp": "2026-02-25T12:32:13.943180646Z"
 }
