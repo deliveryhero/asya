@@ -293,6 +293,9 @@ class GatewayTestHelper:
 
                 if event.event == "partial" and event.data:
                     data = json.loads(event.data)
+                    # Unwrap the {"payload": ...} envelope from runtime SSE
+                    if "payload" in data and len(data) == 1:
+                        data = data["payload"]
                     result["partial"].append(data)
                 elif event.event == "update" and event.data:
                     data = json.loads(event.data)
