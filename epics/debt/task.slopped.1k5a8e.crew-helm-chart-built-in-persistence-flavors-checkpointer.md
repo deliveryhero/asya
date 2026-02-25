@@ -23,7 +23,7 @@ crew:
 
 The chart auto-creates the necessary EnvironmentConfig flavor and references it
 in crew actors' `spec.flavors` list, wiring stateProxy with the correct connector
-image and ASYA_CHECKPOINT_MOUNT.
+image and ASYA_PERSISTENCE_MOUNT.
 
 ## What This Enables
 
@@ -57,7 +57,7 @@ data:
             - name: STATE_BUCKET
               value: "{{ .Values.persistence.config.bucket }}"
     env:
-      - name: ASYA_CHECKPOINT_MOUNT
+      - name: ASYA_PERSISTENCE_MOUNT
         value: /state/checkpoints
 ```
 
@@ -75,7 +75,7 @@ persistence:
 When `persistence.enabled: true`, the chart:
 1. Creates the EnvironmentConfig (template: `templates/persistence-flavor.yaml`)
 2. Adds the flavor name to x-sink and x-sump AsyncActor `spec.flavors[]`
-3. Sets `ASYA_CHECKPOINT_MOUNT` on crew actors via the flavor env injection
+3. Sets `ASYA_PERSISTENCE_MOUNT` on crew actors via the flavor env injection
 
 x-sink gets `/state/checkpoints/results`, x-sump gets `/state/checkpoints/errors`
 (or configurable via `persistence.resultsMountSuffix` / `persistence.errorsMountSuffix`).
