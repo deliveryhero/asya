@@ -5,7 +5,9 @@ type: task
 tags:
   - worktree:.worktrees/1c0d/1fl5rf.update-sidecar-use-a2a-task-terminology
   - branch:1c0d/1fl5rf.update-sidecar-use-a2a-task-terminology
+  - pr:208
 ---
+
 
 
 
