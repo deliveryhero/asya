@@ -471,9 +471,9 @@ def sample_flow(p: dict) -> dict:
 
 ```python
 # Entrypoint - starts the flow
-def start_sample_flow(envelope: dict) -> dict:
+def start_sample_flow(msg: dict) -> dict:
     """Entrypoint for flow 'sample_flow'"""
-    r = envelope['route']
+    r = msg['route']
     c = r['current']
 
     # Insert first handler and conditional router
@@ -482,13 +482,13 @@ def start_sample_flow(envelope: dict) -> dict:
         resolve("router_sample_flow_line_3_if")
     ]
     r['current'] = c + 1
-    return envelope
+    return msg
 
 # Conditional router - branches based on payload
-def router_sample_flow_line_3_if(envelope: dict) -> dict:
+def router_sample_flow_line_3_if(msg: dict) -> dict:
     """Router for control flow and payload mutations"""
-    p = envelope['payload']
-    r = envelope['route']
+    p = msg['payload']
+    r = msg['route']
     c = r['current']
     _next = []
 
@@ -500,7 +500,7 @@ def router_sample_flow_line_3_if(envelope: dict) -> dict:
 
     r['actors'][c+1:c+1] = _next
     r['current'] = c + 1
-    return envelope
+    return msg
 ```
 
 ### Handler Resolution System

@@ -82,7 +82,7 @@ type A2ATask struct {
 
 // --- A2A JSON-RPC ---
 
-// A2AJSONRPCRequest is the A2A JSON-RPC 2.0 request envelope.
+// A2AJSONRPCRequest is the A2A JSON-RPC 2.0 request message.
 type A2AJSONRPCRequest struct {
 	JSONRPC string `json:"jsonrpc"`
 	ID      any    `json:"id"`
@@ -90,7 +90,7 @@ type A2AJSONRPCRequest struct {
 	Params  any    `json:"params"`
 }
 
-// A2AJSONRPCResponse is the A2A JSON-RPC 2.0 response envelope.
+// A2AJSONRPCResponse is the A2A JSON-RPC 2.0 response message.
 type A2AJSONRPCResponse struct {
 	JSONRPC string           `json:"jsonrpc"`
 	ID      any              `json:"id"`

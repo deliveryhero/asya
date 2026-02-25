@@ -287,7 +287,7 @@ func BenchmarkChannelPool_PublishWithPool(b *testing.B) {
 	defer pool.Close()
 
 	ctx := context.Background()
-	envelope := []byte(`{"test":"envelope"}`)
+	msg := []byte(`{"test":"message"}`)
 
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
@@ -299,7 +299,7 @@ func BenchmarkChannelPool_PublishWithPool(b *testing.B) {
 
 			err = ch.PublishWithContext(ctx, "bench-exchange", "test-queue", false, false, amqp.Publishing{
 				ContentType:  "application/json",
-				Body:         envelope,
+				Body:         msg,
 				DeliveryMode: amqp.Persistent,
 			})
 			if err != nil {

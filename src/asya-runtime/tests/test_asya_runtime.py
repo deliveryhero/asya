@@ -336,43 +336,43 @@ class TestMessageFieldPreservation:
     def test_validate_message_preserves_id_field(self):
         """Test that id field is preserved through validation."""
         message = {
-            "id": "envelope-123",
+            "id": "message-123",
             "payload": {"test": "data"},
             "route": {"prev": [], "curr": "a", "next": []},
         }
         validated = asya_runtime._validate_message(message)
 
-        assert validated["id"] == "envelope-123"
+        assert validated["id"] == "message-123"
         assert validated["payload"] == {"test": "data"}
         assert validated["route"] == {"prev": [], "curr": "a", "next": []}
 
     def test_validate_message_preserves_parent_id_field(self):
         """Test that parent_id field is preserved through validation."""
         message = {
-            "id": "envelope-456",
-            "parent_id": "parent-envelope-123",
+            "id": "message-456",
+            "parent_id": "parent-message-123",
             "payload": {"test": "data"},
             "route": {"prev": [], "curr": "a", "next": []},
         }
         validated = asya_runtime._validate_message(message)
 
-        assert validated["id"] == "envelope-456"
-        assert validated["parent_id"] == "parent-envelope-123"
+        assert validated["id"] == "message-456"
+        assert validated["parent_id"] == "parent-message-123"
         assert validated["payload"] == {"test": "data"}
 
     def test_validate_message_preserves_all_fields(self):
         """Test that all message fields are preserved together."""
         message = {
-            "id": "envelope-789",
-            "parent_id": "parent-envelope-456",
+            "id": "message-789",
+            "parent_id": "parent-message-456",
             "payload": {"test": "data"},
             "route": {"prev": [], "curr": "a", "next": ["b"]},
             "headers": {"trace_id": "trace-123", "priority": "high"},
         }
         validated = asya_runtime._validate_message(message)
 
-        assert validated["id"] == "envelope-789"
-        assert validated["parent_id"] == "parent-envelope-456"
+        assert validated["id"] == "message-789"
+        assert validated["parent_id"] == "parent-message-456"
         assert validated["payload"] == {"test": "data"}
         assert validated["route"] == {"prev": [], "curr": "a", "next": ["b"]}
         assert validated["headers"] == {"trace_id": "trace-123", "priority": "high"}
@@ -839,11 +839,11 @@ class TestErrorDict:
     def test_error_dict_with_exception(self):
         """Test error dict with exception details."""
         try:
-            raise ValueError("Test exception envelope")
+            raise ValueError("Test exception message")
         except ValueError as e:
             err = asya_runtime._error_response("processing_error", e)
             assert err["error"] == "processing_error"
-            assert err["details"]["message"] == "Test exception envelope"
+            assert err["details"]["message"] == "Test exception message"
             assert err["details"]["type"] == "ValueError"
             assert err["details"]["mro"] == ["Exception"]
             assert "traceback" in err["details"]

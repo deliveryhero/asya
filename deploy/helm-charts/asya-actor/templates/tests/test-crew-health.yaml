@@ -33,7 +33,7 @@ spec:
         if ! kubectl get asyncactor {{ . }} -n {{ $.Values.namespace }} >/dev/null 2>&1; then
           echo "[-] FAILED: Crew actor '{{ . }}' does not exist"
           echo ""
-          echo "Crew actors are required for envelope routing."
+          echo "Crew actors are required for message routing."
           echo "Install asya-crew chart:"
           echo "  helm install asya-crew deploy/helm-charts/asya-crew -n {{ $.Values.namespace }}"
           echo ""

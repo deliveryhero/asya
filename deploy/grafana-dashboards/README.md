@@ -129,7 +129,7 @@ All metrics exposed by asya-sidecar at `:8080/metrics`:
 - `asya_actor_runtime_execution_duration_seconds{queue}`
 - `asya_actor_queue_receive_duration_seconds{queue, transport}`
 - `asya_actor_queue_send_duration_seconds{destination_queue, transport}`
-- `asya_actor_envelope_size_bytes{direction}`
+- `asya_actor_message_size_bytes{direction}`
 - `asya_actor_active_messages`
 - `asya_actor_runtime_errors_total{queue, error_type}`
 

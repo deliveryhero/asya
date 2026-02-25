@@ -6,13 +6,13 @@ Tests the full fan-out/fan-in lifecycle on a live Kind cluster:
 - start-research-flow router (entry point, routes to fanout router)
 - fanout-research-flow-l2 router (generates N+1 slices)
 - research-agent actors (processes individual topics in parallel)
-- research-flow-aggregator crew actor (collects N+1 slices, emits merged envelope)
+- research-flow-aggregator crew actor (collects N+1 slices, emits merged message)
 - Final merged result persisted to S3 by x-sink
 
 Prerequisites:
 - Kind cluster deployed with PROFILE=sqs-s3
 - asya-test-flows Helm chart deployed (includes research-flow actors)
-- ASYA_HANDLER_MODE=envelope support in asya_runtime (see epic 1c7i)
+- ASYA_HANDLER_MODE=message support in asya_runtime (see epic 1c7i)
 - State proxy sidecar active on research-flow-aggregator pod
 
 Actors deployed by the asya-test-flows chart:
@@ -24,7 +24,7 @@ Actors deployed by the asya-test-flows chart:
 Fan-out protocol (N topics => N+1 messages):
 - Slice index 0: parent payload forwarded to aggregator with x-asya-fan-in header
 - Slices 1..N: each topic sent to research-agent, result forwarded to aggregator
-- Aggregator emits merged envelope when all N+1 slices have arrived
+- Aggregator emits merged message when all N+1 slices have arrived
 """
 
 import json
@@ -91,7 +91,7 @@ def flow_helper(transport_timeouts, s3_endpoint, results_bucket, test_config):
         def wait_for_result(self, task_id: str, timeout: int = 120) -> dict:
             """Poll S3 results bucket until a result matching task_id appears.
 
-            Returns the full message envelope stored by x-sink.
+            Returns the full message message stored by x-sink.
             Raises TimeoutError if result does not appear within timeout seconds.
             """
             s3 = boto3.client("s3", endpoint_url=self.s3_endpoint)
@@ -116,13 +116,13 @@ def flow_helper(transport_timeouts, s3_endpoint, results_bucket, test_config):
             raise TimeoutError(
                 f"Fan-out/fan-in result not found after {timeout}s for task_id={task_id}. "
                 f"Check aggregator logs (asya-e2e/research-flow-aggregator) and "
-                f"ensure ASYA_HANDLER_MODE=envelope is supported by asya_runtime."
+                f"ensure ASYA_HANDLER_MODE=message is supported by asya_runtime."
             )
 
         def count_partial_results_in_sink(self, task_id: str, timeout: int = 60) -> int:
             """Count how many S3 objects reference this task_id.
 
-            For a correctly working fan-in, exactly ONE final merged envelope
+            For a correctly working fan-in, exactly ONE final merged message
             should reach x-sink (the partial slices are suppressed via
             x-asya-fan-in header detection in x-sink).
             """
@@ -175,7 +175,7 @@ def test_fanout_fanin_basic_3_topics(flow_helper):
 
     assert result is not None, "Expected a result from S3"
 
-    # x-sink persists the payload dict directly (not the full message envelope)
+    # x-sink persists the payload dict directly (not the full message message)
     assert "results" in result, f"Merged payload missing 'results' field. Got keys: {list(result.keys())}"
 
     results = result["results"]
@@ -201,7 +201,7 @@ def test_fanout_fanin_no_false_positives_from_partial_slices(flow_helper):
     routes those acked messages to x-sink. x-sink must NOT report gateway status
     for messages carrying the x-asya-fan-in header (non-reporting mechanism).
 
-    Only the final merged envelope (emitted when all slices collected) triggers
+    Only the final merged message (emitted when all slices collected) triggers
     x-sink gateway reporting. This test verifies exactly ONE S3 result object
     appears for the task -- not N+1 partial results.
 
@@ -222,7 +222,7 @@ def test_fanout_fanin_no_false_positives_from_partial_slices(flow_helper):
     count = flow_helper.count_partial_results_in_sink(task_id, timeout=30)
     assert count == 1, (
         f"Expected exactly 1 result in S3 for task {task_id} "
-        f"(merged envelope only), but found {count}. "
+        f"(merged message only), but found {count}. "
         f"x-sink may not be suppressing partial fan-in results. "
         f"Check x-sink's x-asya-fan-in header detection logic."
     )
@@ -337,7 +337,7 @@ def test_fanout_fanin_aggregator_restart_mid_aggregation(flow_helper, e2e_helper
 
     State is stored in S3 via the state proxy sidecar. When the aggregator
     pod is restarted, a new pod picks up the next slice and reads existing
-    state from S3. The merged envelope is still emitted exactly once.
+    state from S3. The merged message is still emitted exactly once.
 
     This test verifies the durability guarantee of the S3 split-key fan-in design.
 
@@ -398,7 +398,7 @@ def test_fanout_fanin_aggregator_restart_mid_aggregation(flow_helper, e2e_helper
     count = flow_helper.count_partial_results_in_sink(task_id, timeout=10)
     assert count == 1, (
         f"Expected exactly 1 merged result but found {count}. "
-        f"Aggregator may have emitted duplicate envelopes (check sentinel logic)."
+        f"Aggregator may have emitted duplicate messages (check sentinel logic)."
     )
 
     logger.info(f"[+] Aggregator restart durability verified: {len(results)} results present, no duplicate emissions")

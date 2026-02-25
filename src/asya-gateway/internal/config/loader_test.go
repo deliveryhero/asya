@@ -20,7 +20,7 @@ tools:
   - name: echo
     description: Echo tool
     parameters:
-      envelope:
+      message:
         type: string
         required: true
     route: [echo-actor]
