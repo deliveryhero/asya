@@ -40,23 +40,11 @@ func NewRabbitMQClientPooled(url, exchange string, poolSize int) (*RabbitMQClien
 
 // SendMessage sends a message to the current actor's queue in the route
 func (c *RabbitMQClientPooled) SendMessage(ctx context.Context, task *types.Task) error {
-	if task.Route.Curr == "" {
-		return fmt.Errorf("route has no current actor (curr is empty)")
+	msg, err := NewActorMessage(task)
+	if err != nil {
+		return fmt.Errorf("failed to create actor message: %w", err)
 	}
 
-	// Create actor message
-	msg := ActorMessage{
-		ID:      task.ID,
-		Route:   task.Route,
-		Payload: task.Payload,
-	}
-
-	// Add deadline if task has timeout
-	if !task.Deadline.IsZero() {
-		msg.Deadline = task.Deadline.Format("2006-01-02T15:04:05Z07:00")
-	}
-
-	// Marshal to JSON
 	body, err := json.Marshal(msg)
 	if err != nil {
 		return fmt.Errorf("failed to marshal message: %w", err)

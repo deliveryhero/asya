@@ -51,24 +51,20 @@ func TestRabbitMQQueueNaming(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create task with new route format
+			deadline := time.Now().Add(30 * time.Second)
 			task := &types.Task{
 				ID: "test-task-1",
 				Route: types.Route{
 					Prev: []string{},
-					Curr: tt.actorName, // Actor name without prefix
+					Curr: tt.actorName,
 					Next: []string{},
 				},
 				Payload:  map[string]interface{}{"test": "data"},
-				Deadline: time.Now().Add(30 * time.Second),
+				Deadline: deadline,
 			}
 
 			// Marshal expected message to compare
-			expectedMsg := ActorMessage{
-				ID:       task.ID,
-				Route:    task.Route,
-				Payload:  task.Payload,
-				Deadline: task.Deadline.Format("2006-01-02T15:04:05Z07:00"),
-			}
+			expectedMsg, _ := NewActorMessage(task)
 			expectedBody, _ := json.Marshal(expectedMsg)
 
 			// Create a mock channel that captures the routing key

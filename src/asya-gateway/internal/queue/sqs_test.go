@@ -77,9 +77,7 @@ func TestSQSQueueNaming(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mockClient := new(mockSQSClient)
 
-			// Mock GetQueueUrl to capture what queue name is requested
 			mockClient.On("GetQueueUrl", mock.Anything, mock.MatchedBy(func(params *sqs.GetQueueUrlInput) bool {
-				// Verify the queue name has the asya- prefix
 				return *params.QueueName == tt.expectedQueue
 			})).Return(&sqs.GetQueueUrlOutput{
 				QueueUrl: stringPtr("http://sqs:4566/000000000000/" + tt.expectedQueue),
@@ -95,21 +93,21 @@ func TestSQSQueueNaming(t *testing.T) {
 				queueURLCache: make(map[string]string),
 			}
 
+			deadline := time.Now().Add(30 * time.Second)
 			task := &types.Task{
 				ID: "test-task-1",
 				Route: types.Route{
 					Prev: []string{},
-					Curr: tt.actorName, // Actor name without prefix
+					Curr: tt.actorName,
 					Next: []string{},
 				},
 				Payload:  map[string]interface{}{"test": "data"},
-				Deadline: time.Now().Add(30 * time.Second),
+				Deadline: deadline,
 			}
 
 			err := sqsClient.SendMessage(context.Background(), task)
 			assert.NoError(t, err)
 
-			// Verify GetQueueUrl was called with the prefixed queue name
 			mockClient.AssertExpectations(t)
 		})
 	}
