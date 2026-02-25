@@ -9,6 +9,7 @@ dependencies:
 ---
 
 
+
 ## Scope
 
 Change `CallRuntime` in `src/asya-sidecar/internal/runtime/client.go` to accept timeout as a parameter instead of using the struct field. Update visibility timeout formula in `cmd/sidecar/main.go`.
