@@ -4,6 +4,7 @@ priority: 2 # medium
 type: task
 ---
 
+
 ## Summary
 
 Replace the direct `boto3` S3 client in `src/asya-crew/asya_crew/message_persistence/s3.py` with a generic checkpointer that writes through the **state proxy** file I/O interface. The checkpointer reads message metadata from the VFS (`/proc/asya/msg/`) and writes the message as JSON to a mounted state path — no storage SDK imports needed.
