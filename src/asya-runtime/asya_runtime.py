@@ -401,7 +401,10 @@ class _MessageVFS:
             key = parts[1]
             if key not in self._data["headers"]:
                 raise FileNotFoundError(f"No such file: {ASYA_MSG_ROOT}/headers/{key}")
-            return str(self._data["headers"][key])
+            value = self._data["headers"][key]
+            if isinstance(value, (dict, list)):
+                return json.dumps(value)
+            return str(value)
         if parts[0] == "status" and len(parts) >= 2:
             node = self._data.get("status", {})
             for p in parts[1:]:

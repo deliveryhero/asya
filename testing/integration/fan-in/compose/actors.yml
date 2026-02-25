@@ -1,0 +1,177 @@
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "2"
+
+x-runtime-env-files: &runtime-env-files
+- ../../../shared/compose/envs/.env.asya-shared
+- ../../../shared/compose/envs/.env.asya-runtime
+
+x-sidecar-env-files: &sidecar-env-files
+- ../../../shared/compose/envs/.env.asya-shared
+- ../../../shared/compose/envs/.env.asya-sidecar
+- ../../../shared/compose/envs/.env.${ASYA_TRANSPORT}
+
+services:
+  # --- State proxy for aggregator (s3-buffered-cas for atomic create-if-not-exists) ---
+  state-proxy-connector:
+    build:
+      context: ../../../../src/asya-state-proxy
+      dockerfile: Dockerfile.s3-buffered-cas
+    logging: *default-logging
+    depends_on:
+      storage-setup:
+        condition: service_completed_successfully
+    environment:
+      CONNECTOR_SOCKET: /var/run/asya/state/fanin.sock
+      STATE_BUCKET: asya-state-test
+      STATE_PREFIX: fanin
+      AWS_REGION: us-east-1
+      AWS_ENDPOINT_URL: http://minio:9000
+      AWS_ACCESS_KEY_ID: minioadmin
+      AWS_SECRET_ACCESS_KEY: minioadmin
+    volumes:
+    - aggregator-state-sockets:/var/run/asya/state
+    healthcheck:
+      test: ["CMD", "test", "-S", "/var/run/asya/state/fanin.sock"]
+      interval: 1s
+      timeout: 1s
+      retries: 30
+
+  # --- Fan-out router actor ---
+  fanout-router-runtime:
+    build:
+      context: ../../../../src/asya-testing
+      dockerfile: Dockerfile
+    logging: *default-logging
+    command: ["python3", "/opt/asya/asya_runtime.py"]
+    env_file: *runtime-env-files
+    environment:
+      ASYA_HANDLER: asya_testing.handlers.fanout.fanout_router_handler
+      ASYA_RUNTIME_TIMEOUT: 30s
+      ASYA_ACTOR_SUB_AGENT: test-sub-agent
+      ASYA_ACTOR_AGGREGATOR: test-aggregator
+      ASYA_FANIN_AGGREGATION_KEY: /results
+    volumes:
+    - fanout-router-sockets:/var/run/asya
+    - ../../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro
+    healthcheck:
+      test: ["CMD", "test", "-S", "/var/run/asya/asya-runtime.sock"]
+      interval: 1s
+      timeout: 1s
+      retries: 30
+
+  fanout-router-sidecar:
+    build:
+      context: ../../../../src/asya-sidecar
+      dockerfile: Dockerfile
+    logging: *default-logging
+    depends_on:
+      fanout-router-runtime:
+        condition: service_healthy
+      queue-setup:
+        condition: service_completed_successfully
+    env_file: *sidecar-env-files
+    environment:
+      ASYA_ACTOR_NAME: test-fanout-router
+      ASYA_RUNTIME_TIMEOUT: 30s
+    volumes:
+    - fanout-router-sockets:/var/run/asya
+
+  # --- Sub-agent actor (echoes topic payload) ---
+  sub-agent-runtime:
+    build:
+      context: ../../../../src/asya-testing
+      dockerfile: Dockerfile
+    logging: *default-logging
+    command: ["python3", "/opt/asya/asya_runtime.py"]
+    env_file: *runtime-env-files
+    environment:
+      ASYA_HANDLER: asya_testing.handlers.payload.echo_handler
+      ASYA_RUNTIME_TIMEOUT: 30s
+    volumes:
+    - sub-agent-sockets:/var/run/asya
+    - ../../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro
+    healthcheck:
+      test: ["CMD", "test", "-S", "/var/run/asya/asya-runtime.sock"]
+      interval: 1s
+      timeout: 1s
+      retries: 30
+
+  sub-agent-sidecar:
+    build:
+      context: ../../../../src/asya-sidecar
+      dockerfile: Dockerfile
+    logging: *default-logging
+    depends_on:
+      sub-agent-runtime:
+        condition: service_healthy
+      queue-setup:
+        condition: service_completed_successfully
+    env_file: *sidecar-env-files
+    environment:
+      ASYA_ACTOR_NAME: test-sub-agent
+      ASYA_RUNTIME_TIMEOUT: 30s
+    volumes:
+    - sub-agent-sockets:/var/run/asya
+
+  # --- Aggregator actor (fan-in with S3-backed split-key state) ---
+  aggregator-runtime:
+    build:
+      context: ../../../../src/asya-crew
+      dockerfile: Dockerfile
+    logging: *default-logging
+    command: ["python3", "/opt/asya/asya_runtime.py"]
+    depends_on:
+      state-proxy-connector:
+        condition: service_healthy
+    env_file: *runtime-env-files
+    environment:
+      ASYA_HANDLER: asya_crew.fanin.s3_split_key.aggregator
+      ASYA_RUNTIME_TIMEOUT: 30s
+      ASYA_STATE_PROXY_MOUNTS: "fanin:/state/fanin:write=cas"
+    volumes:
+    - aggregator-sockets:/var/run/asya
+    - aggregator-state-sockets:/var/run/asya/state
+    - ../../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro
+    healthcheck:
+      test: ["CMD", "test", "-S", "/var/run/asya/asya-runtime.sock"]
+      interval: 1s
+      timeout: 1s
+      retries: 30
+
+  aggregator-sidecar:
+    build:
+      context: ../../../../src/asya-sidecar
+      dockerfile: Dockerfile
+    logging: *default-logging
+    depends_on:
+      aggregator-runtime:
+        condition: service_healthy
+      queue-setup:
+        condition: service_completed_successfully
+    env_file: *sidecar-env-files
+    environment:
+      ASYA_ACTOR_NAME: test-aggregator
+      ASYA_RUNTIME_TIMEOUT: 30s
+    volumes:
+    - aggregator-sockets:/var/run/asya
+
+  # --- Waiter: signals all actors are ready ---
+  test-actors-waiter:
+    image: busybox:latest
+    depends_on:
+      fanout-router-sidecar:
+        condition: service_started
+      sub-agent-sidecar:
+        condition: service_started
+      aggregator-sidecar:
+        condition: service_started
+    command: ["sh", "-c", "echo '[+] All fan-in test actors started'"]
+
+volumes:
+  fanout-router-sockets:
+  sub-agent-sockets:
+  aggregator-sockets:
+  aggregator-state-sockets:

@@ -34,6 +34,11 @@ asya-default-test-cuda-oom-queue
 asya-default-test-large-queue
 asya-default-test-conditional-queue
 
+# Fan-in integration test queues
+asya-default-test-fanout-router
+asya-default-test-sub-agent
+asya-default-test-aggregator
+
 # System actor queues (with asya-{namespace}- prefix for namespace isolation)
 asya-default-x-sink
 asya-default-x-sump

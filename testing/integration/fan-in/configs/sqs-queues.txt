@@ -1,0 +1,11 @@
+# SQS queues for fan-in integration tests
+# Used by queue-setup service in sqs.yml
+
+# Fan-in pipeline actor queues
+asya-default-test-fanout-router
+asya-default-test-sub-agent
+asya-default-test-aggregator
+
+# System actor queues
+asya-default-x-sink
+asya-default-x-sump

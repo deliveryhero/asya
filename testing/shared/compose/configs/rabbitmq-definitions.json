@@ -92,7 +92,10 @@
       "arguments": {}
     },
     { "vhost": "/", "name": "asya-default-test-state-ops", "durable": true, "auto_delete": false, "arguments": {} },
-    { "vhost": "/", "name": "asya-default-test-plain-echo", "durable": true, "auto_delete": false, "arguments": {} }
+    { "vhost": "/", "name": "asya-default-test-plain-echo", "durable": true, "auto_delete": false, "arguments": {} },
+    { "vhost": "/", "name": "asya-default-test-fanout-router", "durable": true, "auto_delete": false, "arguments": {} },
+    { "vhost": "/", "name": "asya-default-test-sub-agent", "durable": true, "auto_delete": false, "arguments": {} },
+    { "vhost": "/", "name": "asya-default-test-aggregator", "durable": true, "auto_delete": false, "arguments": {} }
   ],
   "bindings": [
     {
@@ -373,6 +376,30 @@
       "destination": "asya-default-test-plain-echo",
       "destination_type": "queue",
       "routing_key": "test-plain-echo",
+      "arguments": {}
+    },
+    {
+      "source": "asya",
+      "vhost": "/",
+      "destination": "asya-default-test-fanout-router",
+      "destination_type": "queue",
+      "routing_key": "test-fanout-router",
+      "arguments": {}
+    },
+    {
+      "source": "asya",
+      "vhost": "/",
+      "destination": "asya-default-test-sub-agent",
+      "destination_type": "queue",
+      "routing_key": "test-sub-agent",
+      "arguments": {}
+    },
+    {
+      "source": "asya",
+      "vhost": "/",
+      "destination": "asya-default-test-aggregator",
+      "destination_type": "queue",
+      "routing_key": "test-aggregator",
       "arguments": {}
     },
     {
