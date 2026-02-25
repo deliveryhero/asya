@@ -372,38 +372,44 @@ business logic, not infrastructure-level enforcement.
 
 #### 6.3 Design
 
-**Paused tasks have no timeout.** The gateway cancels the backstop timer on pause
-and starts a fresh one on resume. No "remaining time" tracking.
+**Pause freezes the SLA countdown; resume continues it.** Human think-time does
+not count against the processing budget, but the total processing time is bounded
+by the original SLA.
 
 | Event | Gateway Backstop Timer | Message `deadline_at` |
 |-------|----------------------|----------------------|
 | Task created | Started (`timeout_sec`) | Stamped on message by gateway |
-| Task paused | **Canceled** | Irrelevant (message persisted in S3) |
-| Task resumed | **Fresh timer** (`timeout_sec` from tool config) | x-resume stamps new `deadline_at = now + timeout_sec` |
+| Task paused | **Suspended** (save `remaining_sec`) | Irrelevant (message persisted in S3) |
+| Task resumed | **Restarted** with `remaining_sec` | x-resume stamps `deadline_at = now + remaining_sec` |
 | Task canceled | Canceled | N/A |
+
+**Example**: 30s SLA, pipeline uses 10s before pause → 20s remaining.
+After resume, pipeline has 20s left. A second pause at 5s more → 15s remaining.
+This prevents flows with multiple pause points from getting unbounded processing time.
 
 **Gateway behavior on pause:**
 1. Cancel backstop `time.AfterFunc` timer
-2. Store `timeout_sec` from tool config (for restart on resume)
-3. No deadline tracking — paused tasks live until explicitly resumed or canceled
+2. Compute `remaining_sec = deadline - now` (from task record)
+3. Store `remaining_sec` in task record (new DB field or in `pause_metadata`)
 
 **Gateway behavior on resume:**
-1. Start fresh backstop timer with original `timeout_sec`
-2. Include `timeout_sec` in resume message headers (e.g., `x-asya-resume-timeout`)
-3. x-resume stamps new `deadline_at = now + timeout_sec` on the outbound message
+1. Restart backstop timer with stored `remaining_sec`
+2. Include `remaining_sec` in resume message headers (`x-asya-resume-timeout`)
+3. Update task deadline to `now + remaining_sec`
 
 **x-resume behavior:**
 1. Read `x-asya-resume-timeout` header from resume message
-2. Compute `deadline_at = now + timeout_sec`
+2. Compute `deadline_at = now + remaining_sec`
 3. Stamp new `status.deadline_at` on outbound message (replacing the expired original)
 
-**Rationale**: A resumed task is effectively a new request from the SLA perspective.
-The user took time to provide input — that time should not count against the
-pipeline's processing budget.
+**Rationale**: The SLA represents a fixed processing budget for the pipeline.
+Human think-time is excluded (the clock pauses), but processing time across all
+resume cycles accumulates against the same budget.
 
-**Optional pause expiration**: Applications that need auto-cancellation of stale
-paused tasks should implement cleanup as business logic (e.g., a scheduled job
-that cancels tasks paused longer than N hours). This is NOT enforced by the framework.
+**Optional pause expiration**: Paused tasks have no framework-level timeout
+for human think-time. Applications that need auto-cancellation of stale paused
+tasks should implement cleanup as business logic (e.g., a scheduled job that
+cancels tasks paused longer than N hours). This is NOT enforced by the framework.
 
 ---
 
