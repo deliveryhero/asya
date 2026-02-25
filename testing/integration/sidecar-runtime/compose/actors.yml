@@ -512,7 +512,7 @@ services:
     command: ["python3", "/opt/asya/asya_runtime.py"]
     env_file: *runtime-env-files
     environment:
-      ASYA_HANDLER: asya_testing.handlers.${ASYA_HANDLER_MODE}.echo_handler
+      ASYA_HANDLER: asya_testing.handlers.payload.echo_handler
       ASYA_RUNTIME_TIMEOUT: 5s
     volumes:
     - asya-echo-v2-sockets:/var/run/asya
