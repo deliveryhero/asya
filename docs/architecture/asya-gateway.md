@@ -169,7 +169,7 @@ data: {"id":"task-123","status":"succeeded","progress_percent":100,"result":{...
 - `current_actor_idx`: Current actor index (0-based, omitted for final states)
 - `actor_state`: Actor processing state (`received`, `processing`, `completed`)
 - `actor`: Current actor name (omitted for final states)
-- `actors`: Full route (may be modified by envelope-mode actors)
+- `actors`: Full route (may be modified via VFS)
 - `message`: Human-readable status message
 - `result`: Final result (only for `succeeded` status)
 - `error`: Error message (only for `failed` status)

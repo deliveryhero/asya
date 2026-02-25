@@ -74,7 +74,7 @@ class MyActor:
         }
 ```
 
-**Envelope mode** for dynamic routing (agents, LLM judges):
+**Dynamic routing** via VFS (agents, LLM judges):
 
 ```python
 class LLMJudge:
@@ -82,17 +82,19 @@ class LLMJudge:
         self.model = load_llm("/models/judge")
         self.threshold = float(threshold)
 
-    def process(self, envelope: dict) -> dict:
-        payload = envelope["payload"]
+    def process(self, payload: dict) -> dict:
         score = self.model.judge(payload["llm_response"])
         payload["judge_score"] = score
 
-        # Dynamically modify route based on LLM judge score
-        route = envelope["route"]
+        # Dynamically modify route based on LLM judge score via VFS
         if score < self.threshold:
-            route["next"] = ["llm-refiner"] + route["next"]
+            with open("/proc/asya/msg/route/next", "r") as f:
+                next_actors_str = f.read().strip()
+                next_actors = next_actors_str.split(",") if next_actors_str else []
+            with open("/proc/asya/msg/route/next", "w") as f:
+                f.write(",".join(["llm-refiner"] + next_actors))
 
-        return envelope
+        return payload
 ```
 
 **Pattern**: Enrich payload with your results, pass it to next actor. Full pipeline history preserved.

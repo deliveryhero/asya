@@ -108,17 +108,17 @@ func (w *Worker) processOne(ctx context.Context) error {
 
 // extractMessageID parses the message body and extracts the "id" field.
 func extractMessageID(body []byte) (string, error) {
-	var envelope struct {
+	var msg struct {
 		ID string `json:"id"`
 	}
 
-	if err := json.Unmarshal(body, &envelope); err != nil {
+	if err := json.Unmarshal(body, &msg); err != nil {
 		return "", err
 	}
 
-	if envelope.ID == "" {
+	if msg.ID == "" {
 		return "", errors.New("message has no 'id' field")
 	}
 
-	return envelope.ID, nil
+	return msg.ID, nil
 }

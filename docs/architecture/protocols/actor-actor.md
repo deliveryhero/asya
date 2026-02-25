@@ -32,7 +32,7 @@
 - `route` (required): Actor routing state
   - `prev`: Actors that have already processed the message (read-only, maintained by runtime)
   - `curr`: The actor currently processing the message (read-only, set by runtime)
-  - `next`: Actors yet to process the message (modifiable by envelope-mode handlers)
+  - `next`: Actors yet to process the message (modifiable via VFS)
 - `payload` (required): User data processed by actors
 - `headers` (optional): Routing metadata (trace IDs, priorities)
 

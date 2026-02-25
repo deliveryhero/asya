@@ -671,7 +671,7 @@ services:
     volumes:
     - asya-retry-nonretryable-sockets:/var/run/asya
 
-  # Actor that fails on attempt 1 and succeeds on attempt 2 (envelope mode, reads status.attempt)
+  # Actor that fails on attempt 1 and succeeds on attempt 2 (reads status.attempt via VFS)
   asya-retry-succeed-runtime:
     build:
       context: ../../../../src/asya-testing

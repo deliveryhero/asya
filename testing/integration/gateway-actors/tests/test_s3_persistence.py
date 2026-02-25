@@ -99,7 +99,7 @@ def test_x_sink_persists_to_s3():
     s3_object = wait_for_message_in_s3(RESULTS_BUCKET, task_id, timeout=10)
 
     assert s3_object is not None, f"Message {task_id} not found in {RESULTS_BUCKET}"
-    # S3 stores just the payload dict (not the full message envelope)
+    # S3 stores just the payload dict (not the full message message)
     assert isinstance(s3_object, dict), f"S3 object should be a dict, got {type(s3_object)}"
     assert s3_object.get("echoed") == "test s3 persistence", f"S3 payload should contain echoed message, got {s3_object}"
 
@@ -130,7 +130,7 @@ def test_x_sump_persists_to_s3():
     s3_object = wait_for_message_in_s3(ERRORS_BUCKET, task_id, timeout=10)
 
     assert s3_object is not None, f"Message {task_id} not found in {ERRORS_BUCKET}"
-    # S3 stores just the payload dict (not the full message envelope)
+    # S3 stores just the payload dict (not the full message message)
     assert isinstance(s3_object, dict), f"S3 object should be a dict, got {type(s3_object)}"
 
     logger.info(f"S3 error payload validated: {s3_object}")
@@ -160,7 +160,7 @@ def test_pipeline_result_persists_to_s3():
     s3_object = wait_for_message_in_s3(RESULTS_BUCKET, task_id, timeout=10)
 
     assert s3_object is not None, f"Message {task_id} not found in {RESULTS_BUCKET}"
-    # S3 stores just the payload dict (not the full message envelope)
+    # S3 stores just the payload dict (not the full message message)
     assert isinstance(s3_object, dict), f"S3 object should be a dict, got {type(s3_object)}"
     assert s3_object["value"] == 25, f"Expected pipeline result value 25, got {s3_object.get('value')}"
 

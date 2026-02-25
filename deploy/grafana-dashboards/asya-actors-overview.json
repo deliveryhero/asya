@@ -909,7 +909,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "histogram_quantile(${percentile}, sum by (le, direction) (rate(asya_actor_envelope_size_bytes_bucket{namespace=~\"$namespace\", direction=\"received\"}[5m])))",
+          "expr": "histogram_quantile(${percentile}, sum by (le, direction) (rate(asya_actor_message_size_bytes_bucket{namespace=~\"$namespace\", direction=\"received\"}[5m])))",
           "legendFormat": "received",
           "refId": "A"
         },
@@ -918,12 +918,12 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "histogram_quantile(${percentile}, sum by (le, direction) (rate(asya_actor_envelope_size_bytes_bucket{namespace=~\"$namespace\", direction=\"sent\"}[5m])))",
+          "expr": "histogram_quantile(${percentile}, sum by (le, direction) (rate(asya_actor_message_size_bytes_bucket{namespace=~\"$namespace\", direction=\"sent\"}[5m])))",
           "legendFormat": "sent",
           "refId": "B"
         }
       ],
-      "title": "Envelope Size (${percentile:text})",
+      "title": "Message Size (${percentile:text})",
       "type": "timeseries"
     },
     {

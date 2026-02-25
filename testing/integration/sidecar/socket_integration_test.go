@@ -145,7 +145,7 @@ func createTestMessage(payload map[string]interface{}) transport.QueueMessage {
 	payloadBytes, _ := json.Marshal(payload)
 
 	msg := messages.Message{
-		ID:      "test-envelope-1",
+		ID:      "test-message-1",
 		Route:   route,
 		Payload: json.RawMessage(payloadBytes),
 	}

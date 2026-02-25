@@ -33,7 +33,7 @@ else:
 
 15 AsyncActors total (deployed via `asya-test-flows` Helm chart):
 
-**Routers** (envelope mode):
+**Routers** (VFS mode):
 - start-test-nested-flow
 - router-test-nested-flow-line-4-if
 - router-test-nested-flow-line-6-if

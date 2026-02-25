@@ -106,7 +106,7 @@ def counter_client():
 @pytest.fixture
 def vfs_class_client():
     """HTTP client for VFS metadata class runtime."""
-    return HTTPClient("/var/run/asya/envelope-class.sock")
+    return HTTPClient("/var/run/asya/msg-class.sock")
 
 
 def test_slow_model_init_once(slow_model_client):
@@ -259,7 +259,7 @@ def test_vfs_class_handler(vfs_class_client):
     """Test class handler that reads message metadata via VFS."""
     message = {
         "id": "test-vfs-001",
-        "route": {"prev": [], "curr": "envelope-class", "next": []},
+        "route": {"prev": [], "curr": "msg-class", "next": []},
         "headers": {"trace_id": "test-trace-123"},
         "payload": {"value": 42}
     }
@@ -283,7 +283,7 @@ def test_vfs_class_handler(vfs_class_client):
     # Second request to verify message counter increments
     message2 = {
         "id": "test-vfs-002",
-        "route": {"prev": [], "curr": "envelope-class", "next": []},
+        "route": {"prev": [], "curr": "msg-class", "next": []},
         "headers": {"trace_id": "test-trace-456"},
         "payload": {"value": 100}
     }

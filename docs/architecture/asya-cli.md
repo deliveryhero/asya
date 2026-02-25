@@ -50,7 +50,7 @@ asya mcp call text-processor --text="Hello world"
 
 Output (with SSE streaming):
 ```
-[.] Envelope ID: 5e6fdb2d-1d6b-4e91-baef-73e825434e7b
+[.] Message ID: 5e6fdb2d-1d6b-4e91-baef-73e825434e7b
 Processing: 100% |████████████████████████████████████| , succeeded
 {
   "id": "5e6fdb2d-1d6b-4e91-baef-73e825434e7b",

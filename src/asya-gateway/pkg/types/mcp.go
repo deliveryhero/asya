@@ -1,6 +1,6 @@
 package types
 
-// MCP JSON-RPC 2.0 envelope types
+// MCP JSON-RPC 2.0 message types
 
 // JSONRPCRequest represents a JSON-RPC 2.0 request
 type JSONRPCRequest struct {

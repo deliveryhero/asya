@@ -24,7 +24,7 @@ Tests nested if-else flow with 2 levels of branching.
 - Route B-Y: level1=B, level2=Y
 
 **Actors deployed:** 15 total
-- 9 routers (envelope mode)
+- 9 routers (VFS mode)
 - 6 handlers (payload mode)
 
 **Test coverage:**
@@ -87,7 +87,7 @@ Flow actors are automatically deployed during `make up` via:
    uv run --with-editable ../../src/asya-cli asya flow compile flow.py -o compiled/
    ```
 4. Create manifests: `<flow_name>/manifests/actors.yaml`
-   - One AsyncActor per router function (envelope mode)
+   - One AsyncActor per router function (VFS mode)
    - One AsyncActor per handler function (payload mode)
 5. Create deployment script: `<flow_name>/deploy.sh`
 6. Write tests: `../../tests/test_flow_<flow_name>_e2e.py`
@@ -128,6 +128,6 @@ This is the most comprehensive test type, covering:
 - Router logic correctness
 - Operator queue/workload creation
 - Sidecar message routing
-- Runtime payload/envelope handling
+- Runtime payload/message handling
 - Multi-actor coordination
 - End-to-end latency and reliability

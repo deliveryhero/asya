@@ -31,7 +31,7 @@ func TestRabbitMQClientPooled_SendMessage(t *testing.T) {
 			Next: []string{},
 		},
 		Payload: map[string]interface{}{
-			"envelope": "test",
+			"message": "test",
 		},
 	}
 
@@ -73,7 +73,7 @@ func TestRabbitMQClientPooled_ConcurrentSend(t *testing.T) {
 					},
 					Payload: map[string]interface{}{
 						"goroutine": id,
-						"envelope":  j,
+						"message":  j,
 					},
 				}
 
@@ -119,7 +119,7 @@ func TestRabbitMQClientPooled_SendWithDeadline(t *testing.T) {
 			Next: []string{},
 		},
 		Payload: map[string]interface{}{
-			"envelope": "test with deadline",
+			"message": "test with deadline",
 		},
 		Deadline: deadline,
 	}

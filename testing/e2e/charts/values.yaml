@@ -121,11 +121,11 @@ gateway:
           required: true
       route: [test-timeout]
     - name: test_fanout
-      description: Create multiple envelopes via fan-out
+      description: Create multiple messages via fan-out
       parameters:
         count:
           type: number
-          description: Number of envelopes to create
+          description: Number of messages to create
           required: true
       route: [test-fanout]
     - name: test_empty_response
@@ -185,7 +185,7 @@ gateway:
           required: false
       route: [test-nested]
     - name: test_multihop
-      description: Test multi-hop envelope processing through 15 actors
+      description: Test multi-hop message processing through 15 actors
       parameters:
         message:
           type: string

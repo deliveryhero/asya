@@ -31,14 +31,14 @@ data:
       const actor = actors[Math.floor(Math.random() * actors.length)];
       const queueUrl = `${__ENV.SQS_ENDPOINT}/000000000000/asya-${__ENV.ASYA_NAMESPACE}-${actor}`;
 
-      const envelope = {
+      const message = {
         id: `k6-${__VU}-${__ITER}`,
         route: { actors: [actor], current: 0 },
         payload: { test: 'k6', vu: __VU, iteration: __ITER },
       };
 
       try {
-        sqs.sendMessage(queueUrl, JSON.stringify(envelope));
+        sqs.sendMessage(queueUrl, JSON.stringify(message));
         check(null, { 'message sent': () => true });
       } catch (error) {
         console.error(`Send failed: ${error}`);

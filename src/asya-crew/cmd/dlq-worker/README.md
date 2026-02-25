@@ -21,7 +21,7 @@ The DLQ worker operates in a **completely separate failure domain** from the sid
 | Runtime | Injected into actor pods | Standalone K8s Deployment |
 | Transport SDK | `internal/transport` abstraction | Native `aws-sdk-go-v2` |
 | Queue discovery | `GetQueueUrl` + cache + retry | Direct URL from config |
-| Message format | Asya envelope expected | Best-effort JSON parse |
+| Message format | Asya message expected | Best-effort JSON parse |
 | Failure impact | Sidecar bug affects all actors | Independent binary |
 
 ### Alternatives Considered

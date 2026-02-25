@@ -23,7 +23,7 @@ results list is placed inside the parent payload.
 
 The handler reads x-asya-fan-in from the VFS at /proc/asya/msg/headers/x-asya-fan-in
 (JSON-serialized by the runtime VFS). Route and non-transient headers are also
-read from VFS to construct the merged envelope for emission.
+read from VFS to construct the merged message for emission.
 """
 
 import json

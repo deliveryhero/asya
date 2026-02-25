@@ -566,7 +566,7 @@ def test_multi_actor_parameter_flow(gateway_helper):
     assert s3_object is not None, \
         f"Message {task_id} should be persisted to S3 by x-sink"
 
-    # S3 stores just the payload dict (not the full message envelope)
+    # S3 stores just the payload dict (not the full message message)
     logger.info(f"x-sink persisted result: {json.dumps(s3_object, indent=2)}")
 
     assert s3_object == result, \

@@ -24,7 +24,7 @@ pip install -e asya_testing/
 
 ```python
 from asya_testing.utils.rabbitmq import wait_for_rabbitmq_consumers
-from asya_testing.utils.s3 import wait_for_envelope_in_s3
+from asya_testing.utils.s3 import wait_for_message_in_s3
 from asya_testing.utils.gateway import GatewayTestHelper
 from asya_testing.clients.rabbitmq import RabbitMQClient
 ```

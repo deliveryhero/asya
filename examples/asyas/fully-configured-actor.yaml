@@ -34,7 +34,7 @@ spec:
 
           # Validation (optional, default: "true")
           - name: ASYA_ENABLE_VALIDATION
-            value: "true" # Validate envelope structure
+            value: "true" # Validate message structure
 
           resources:
             requests:

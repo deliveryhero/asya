@@ -33,7 +33,7 @@ Prometheus metrics implementation for the 🎭 sidecar.
 | `runtime_execution_duration_seconds` | `queue` | 0.005 to 120s | Time spent executing payload in runtime |
 | `queue_receive_duration_seconds` | `queue`, `transport` | 0.001 to 10s | Time spent receiving message from queue |
 | `queue_send_duration_seconds` | `destination_queue`, `transport` | 0.001 to 5s | Time spent sending message to queue |
-| `envelope_size_bytes` | `direction` | 100B to ~10MB (exponential) | Message size in bytes<br/>Direction: `received`, `sent` |
+| `message_size_bytes` | `direction` | 100B to ~10MB (exponential) | Message size in bytes<br/>Direction: `received`, `sent` |
 
 ## Custom Metrics
 

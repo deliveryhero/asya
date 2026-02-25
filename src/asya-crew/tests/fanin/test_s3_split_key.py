@@ -71,20 +71,20 @@ def mock_vfs(
         yield
 
 
-def call_aggregator(envelope: dict, base_dir: str) -> dict | None:
-    """Call aggregator with envelope context, mocking VFS calls."""
+def call_aggregator(msg: dict, base_dir: str) -> dict | None:
+    """Call aggregator with message context, mocking VFS calls."""
     from asya_crew.fanin.s3_split_key import aggregator
 
-    fan_in_header = envelope["headers"]["x-asya-fan-in"]
-    route = envelope["route"].copy()
-    all_headers = {k: v for k, v in envelope.get("headers", {}).items() if k != "x-asya-fan-in"}
-    message_id = envelope.get("id", "")
+    fan_in_header = msg["headers"]["x-asya-fan-in"]
+    route = msg["route"].copy()
+    all_headers = {k: v for k, v in msg.get("headers", {}).items() if k != "x-asya-fan-in"}
+    message_id = msg.get("id", "")
 
     with mock_vfs(fan_in_header, route, all_headers, message_id):
-        return aggregator(envelope["payload"], _base_dir=base_dir)
+        return aggregator(msg["payload"], _base_dir=base_dir)
 
 
-def make_envelope(
+def make_message(
     origin_id: str,
     idx: int,
     slice_count: int,
@@ -93,7 +93,7 @@ def make_envelope(
     headers: dict | None = None,
     aggregation_key: str = "/results",
 ) -> dict:
-    """Build a fan-in envelope for testing."""
+    """Build a fan-in message for testing."""
     base_route = route or {
         "prev": ["sender"],
         "curr": "aggregator",
@@ -128,16 +128,16 @@ def test_full_cycle_two_slices(tmp_path):
     subagent_result = {"analysis": "positive", "confidence": 0.95}
 
     # Slice 0: parent payload
-    env0 = make_envelope(origin_id, 0, 2, parent_payload)
-    result = call_aggregator(env0, base_dir)
+    msg0 = make_message(origin_id, 0, 2, parent_payload)
+    result = call_aggregator(msg0, base_dir)
     assert result is None, "Should accumulate, not emit yet"
 
     # Slice 1: sub-agent result triggers emission
-    env1 = make_envelope(origin_id, 1, 2, subagent_result)
-    result = call_aggregator(env1, base_dir)
+    msg1 = make_message(origin_id, 1, 2, subagent_result)
+    result = call_aggregator(msg1, base_dir)
 
     assert result is not None, "Should emit merged payload"
-    # Aggregator returns the merged payload dict directly (not a full envelope)
+    # Aggregator returns the merged payload dict directly (not a full message)
     assert result["task"] == "analyze"
     assert result["input"] == "document.pdf"
     # Sub-agent results placed at aggregation key
@@ -160,13 +160,13 @@ def test_multi_slice_in_order_arrival(tmp_path):
     # Send slices 0 through N-2 — all should return None
     for i in range(slice_count - 1):
         payload = parent_payload if i == 0 else sub_results[i - 1]
-        env = make_envelope(origin_id, i, slice_count, payload)
-        result = call_aggregator(env, base_dir)
+        msg = make_message(origin_id, i, slice_count, payload)
+        result = call_aggregator(msg, base_dir)
         assert result is None, f"Slice {i} should not trigger emission"
 
     # Last slice triggers emission
-    env_last = make_envelope(origin_id, slice_count - 1, slice_count, sub_results[-1])
-    result = call_aggregator(env_last, base_dir)
+    msg_last = make_message(origin_id, slice_count - 1, slice_count, sub_results[-1])
+    result = call_aggregator(msg_last, base_dir)
 
     assert result is not None
     assert result["task"] == "classify"
@@ -188,18 +188,18 @@ def test_out_of_order_arrival(tmp_path):
     sub2 = {"summary": "part-2"}
 
     # Slice 2 arrives first
-    env2 = make_envelope(origin_id, 2, slice_count, sub2)
-    result = call_aggregator(env2, base_dir)
+    msg2 = make_message(origin_id, 2, slice_count, sub2)
+    result = call_aggregator(msg2, base_dir)
     assert result is None
 
     # Slice 0 (parent) arrives second
-    env0 = make_envelope(origin_id, 0, slice_count, parent_payload)
-    result = call_aggregator(env0, base_dir)
+    msg0 = make_message(origin_id, 0, slice_count, parent_payload)
+    result = call_aggregator(msg0, base_dir)
     assert result is None
 
     # Slice 1 arrives last and triggers emission
-    env1 = make_envelope(origin_id, 1, slice_count, sub1)
-    result = call_aggregator(env1, base_dir)
+    msg1 = make_message(origin_id, 1, slice_count, sub1)
+    result = call_aggregator(msg1, base_dir)
 
     assert result is not None
     assert result["task"] == "summarize"
@@ -222,17 +222,17 @@ def test_index_zero_arrives_last(tmp_path):
     sub2 = {"translation": "monde"}
 
     # Sub-agents arrive first
-    env1 = make_envelope(origin_id, 1, slice_count, sub1)
-    result = call_aggregator(env1, base_dir)
+    msg1 = make_message(origin_id, 1, slice_count, sub1)
+    result = call_aggregator(msg1, base_dir)
     assert result is None
 
-    env2 = make_envelope(origin_id, 2, slice_count, sub2)
-    result = call_aggregator(env2, base_dir)
+    msg2 = make_message(origin_id, 2, slice_count, sub2)
+    result = call_aggregator(msg2, base_dir)
     assert result is None
 
     # Parent slice arrives last and triggers emission
-    env0 = make_envelope(origin_id, 0, slice_count, parent_payload)
-    result = call_aggregator(env0, base_dir)
+    msg0 = make_message(origin_id, 0, slice_count, parent_payload)
+    result = call_aggregator(msg0, base_dir)
 
     assert result is not None
     assert result["task"] == "translate"
@@ -255,12 +255,12 @@ def test_duplicate_slice_idempotent(tmp_path):
     sub_result_v2 = {"data": "second-delivery-ignored"}
 
     # Slice 0 (parent) arrives
-    env0 = make_envelope(origin_id, 0, slice_count, parent_payload)
-    call_aggregator(env0, base_dir)
+    msg0 = make_message(origin_id, 0, slice_count, parent_payload)
+    call_aggregator(msg0, base_dir)
 
     # Slice 1 arrives first time — triggers emission with v1 data
-    env1_first = make_envelope(origin_id, 1, slice_count, sub_result_v1)
-    result = call_aggregator(env1_first, base_dir)
+    msg1_first = make_message(origin_id, 1, slice_count, sub_result_v1)
+    result = call_aggregator(msg1_first, base_dir)
     assert result is not None
 
     # Only first delivery stored
@@ -268,8 +268,8 @@ def test_duplicate_slice_idempotent(tmp_path):
 
     # Re-deliver slice 1 with different content (simulates at-least-once delivery)
     # After emission, directory is gone, so re-delivery starts fresh accumulation
-    env1_dup = make_envelope(origin_id, 1, slice_count, sub_result_v2)
-    result_dup = call_aggregator(env1_dup, base_dir)
+    msg1_dup = make_message(origin_id, 1, slice_count, sub_result_v2)
+    result_dup = call_aggregator(msg1_dup, base_dir)
     # Fresh aggregation started but idx=0 (parent) not re-delivered, so returns None
     assert result_dup is None
 
@@ -286,8 +286,8 @@ def test_incomplete_returns_none(tmp_path):
 
     for i in range(slice_count - 1):
         payload = {"data": f"slice-{i}"}
-        env = make_envelope(origin_id, i, slice_count, payload)
-        result = call_aggregator(env, base_dir)
+        msg = make_message(origin_id, i, slice_count, payload)
+        result = call_aggregator(msg, base_dir)
         assert result is None, f"Slice {i} of {slice_count} should not emit"
 
     logger.info("=== test_incomplete_returns_none: PASSED ===")
@@ -305,8 +305,8 @@ def test_concurrent_completion_exactly_once(tmp_path):
     sub_result = {"winner": "first-pod"}
 
     # Deliver slice 0 (parent)
-    env0 = make_envelope(origin_id, 0, slice_count, parent_payload)
-    call_aggregator(env0, base_dir)
+    msg0 = make_message(origin_id, 0, slice_count, parent_payload)
+    call_aggregator(msg0, base_dir)
 
     # Manually pre-create the sentinel to simulate another pod completing first
     sentinel_path = os.path.join(base_dir, origin_id, "complete")
@@ -319,8 +319,8 @@ def test_concurrent_completion_exactly_once(tmp_path):
         json.dump(sub_result, fh)
 
     # Now call aggregator with slice 1 — sentinel already exists, should return None
-    env1 = make_envelope(origin_id, 1, slice_count, sub_result)
-    result = call_aggregator(env1, base_dir)
+    msg1 = make_message(origin_id, 1, slice_count, sub_result)
+    result = call_aggregator(msg1, base_dir)
 
     assert result is None, "Should return None when sentinel already created by another pod"
 
@@ -349,11 +349,11 @@ def test_transient_headers_not_in_payload(tmp_path):
     }
     all_headers = {**non_transient_headers, **transient_extra}
 
-    env0 = make_envelope(origin_id, 0, slice_count, parent_payload, headers=all_headers)
-    call_aggregator(env0, base_dir)
+    msg0 = make_message(origin_id, 0, slice_count, parent_payload, headers=all_headers)
+    call_aggregator(msg0, base_dir)
 
-    env1 = make_envelope(origin_id, 1, slice_count, sub_result, headers=all_headers)
-    result = call_aggregator(env1, base_dir)
+    msg1 = make_message(origin_id, 1, slice_count, sub_result, headers=all_headers)
+    result = call_aggregator(msg1, base_dir)
 
     assert result is not None
     # The returned value is the merged payload dict; it should contain parent fields
@@ -386,14 +386,14 @@ def test_aggregation_key_placement(tmp_path):
     # Use a nested aggregation key
     aggregation_key = "/analysis/scores"
 
-    env0 = make_envelope(origin_id, 0, slice_count, parent_payload, aggregation_key=aggregation_key)
-    call_aggregator(env0, base_dir)
+    msg0 = make_message(origin_id, 0, slice_count, parent_payload, aggregation_key=aggregation_key)
+    call_aggregator(msg0, base_dir)
 
-    env1 = make_envelope(origin_id, 1, slice_count, sub1, aggregation_key=aggregation_key)
-    call_aggregator(env1, base_dir)
+    msg1 = make_message(origin_id, 1, slice_count, sub1, aggregation_key=aggregation_key)
+    call_aggregator(msg1, base_dir)
 
-    env2 = make_envelope(origin_id, 2, slice_count, sub2, aggregation_key=aggregation_key)
-    result = call_aggregator(env2, base_dir)
+    msg2 = make_message(origin_id, 2, slice_count, sub2, aggregation_key=aggregation_key)
+    result = call_aggregator(msg2, base_dir)
 
     assert result is not None
     # Results placed at /analysis/scores, not at /results
@@ -414,11 +414,11 @@ def test_state_cleanup_after_emission(tmp_path):
     parent_payload = {"task": "cleanup"}
     sub_result = {"cleaned": True}
 
-    env0 = make_envelope(origin_id, 0, slice_count, parent_payload)
-    call_aggregator(env0, base_dir)
+    msg0 = make_message(origin_id, 0, slice_count, parent_payload)
+    call_aggregator(msg0, base_dir)
 
-    env1 = make_envelope(origin_id, 1, slice_count, sub_result)
-    result = call_aggregator(env1, base_dir)
+    msg1 = make_message(origin_id, 1, slice_count, sub_result)
+    result = call_aggregator(msg1, base_dir)
 
     assert result is not None
 
@@ -444,11 +444,11 @@ def test_merged_payload_preserves_parent_fields(tmp_path):
     }
     sub_result = {"output": "ok"}
 
-    env0 = make_envelope(origin_id, 0, slice_count, parent_payload)
-    call_aggregator(env0, base_dir)
+    msg0 = make_message(origin_id, 0, slice_count, parent_payload)
+    call_aggregator(msg0, base_dir)
 
-    env1 = make_envelope(origin_id, 1, slice_count, sub_result)
-    result = call_aggregator(env1, base_dir)
+    msg1 = make_message(origin_id, 1, slice_count, sub_result)
+    result = call_aggregator(msg1, base_dir)
 
     assert result is not None
     # All parent payload fields preserved

@@ -55,7 +55,7 @@ exclude = [
   "UP038",
   "SIM105",
 ] # Allow typing.Dict/List for 3.7 compat, isinstance tuples, try-except-pass
-# end_handlers.py uses 'id' as variable name for envelope identifiers (common pattern in message handling)
+# end_handlers.py uses 'id' as variable name for message identifiers (common pattern in message handling)
 "src/asya-crew/handlers/end_handlers.py" = [
   "A001",
   "A002",

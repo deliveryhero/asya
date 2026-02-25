@@ -158,14 +158,14 @@ services:
       timeout: 1s
       retries: 15
 
-  asya-envelope-class-runtime:
+  asya-msg-class-runtime:
     build:
       context: ../../../src/asya-testing
       dockerfile: Dockerfile
     command: ["python3", "/opt/asya/asya_runtime.py"]
     environment:
     - ASYA_HANDLER=asya_testing.handlers.classes.MessageHandler.process
-    - ASYA_SOCKET_NAME=envelope-class.sock
+    - ASYA_SOCKET_NAME=msg-class.sock
 
 
     - ASYA_SOCKET_CHMOD=666
@@ -174,7 +174,7 @@ services:
     - sockets:/var/run/asya
     - ../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro
     healthcheck:
-      test: ["CMD", "test", "-S", "/var/run/asya/envelope-class.sock"]
+      test: ["CMD", "test", "-S", "/var/run/asya/msg-class.sock"]
       interval: 2s
       timeout: 1s
       retries: 15
@@ -203,7 +203,7 @@ services:
         condition: service_healthy
       asya-counter-runtime:
         condition: service_healthy
-      asya-envelope-class-runtime:
+      asya-msg-class-runtime:
         condition: service_healthy
     env_file:
     - ../../shared/compose/envs/.env.tester
