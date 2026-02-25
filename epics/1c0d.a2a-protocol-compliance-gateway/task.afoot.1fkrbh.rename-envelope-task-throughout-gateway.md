@@ -6,6 +6,7 @@ type: task
 
 
 
+
 Refactor gateway codebase to use A2A terminology.
 
 ## Terminology Changes
