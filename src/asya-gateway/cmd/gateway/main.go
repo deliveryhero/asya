@@ -14,6 +14,7 @@ import (
 
 	mcpserver "github.com/mark3labs/mcp-go/server"
 
+	"github.com/deliveryhero/asya/asya-gateway/internal/a2a"
 	"github.com/deliveryhero/asya/asya-gateway/internal/config"
 	"github.com/deliveryhero/asya/asya-gateway/internal/mcp"
 	"github.com/deliveryhero/asya/asya-gateway/internal/queue"
@@ -173,6 +174,29 @@ func main() {
 		_, _ = fmt.Fprintln(w, "OK")
 	})
 
+	// A2A protocol endpoints
+	a2aHandler := a2a.NewHandler(taskStore, queueClient, toolConfig)
+	a2aTaskStatusHandler := a2a.NewTaskStatusHandler(taskStore)
+	a2aSubscribeHandler := a2a.NewSubscribeHandler(taskStore)
+
+	// Agent Card discovery
+	if toolConfig != nil {
+		agentCardHandler := a2a.NewAgentCardHandler(toolConfig)
+		mux.Handle("/.well-known/a2a/agent-card", agentCardHandler)
+	}
+
+	// A2A JSON-RPC endpoint (message/send, message/stream, tasks/get)
+	mux.Handle("/a2a/", a2aHandler)
+
+	// A2A REST endpoints for task status and subscribe
+	mux.HandleFunc("/a2a/tasks/", func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, ":subscribe") {
+			a2aSubscribeHandler.ServeHTTP(w, r)
+		} else {
+			a2aTaskStatusHandler.ServeHTTP(w, r)
+		}
+	})
+
 	// Setup graceful shutdown
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
@@ -193,6 +217,10 @@ func main() {
 		slog.Info("Task active check: GET /tasks/{id}/active (for actors)")
 		slog.Info("Task progress: POST /tasks/{id}/progress (from sidecar)")
 		slog.Info("Task final status: POST /tasks/{id}/final (for end actors)")
+		slog.Info("A2A endpoint: POST /a2a/ (JSON-RPC: message/send, message/stream, tasks/get)")
+		slog.Info("A2A Agent Card: GET /.well-known/a2a/agent-card")
+		slog.Info("A2A task status: GET /a2a/tasks/{id}")
+		slog.Info("A2A subscribe: GET /a2a/tasks/{id}:subscribe (SSE)")
 
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			slog.Error("Server failed", "error", err)
