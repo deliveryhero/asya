@@ -3,6 +3,7 @@ package mcp
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -602,10 +603,18 @@ func (h *Handler) HandleTaskUpstream(w http.ResponseWriter, r *http.Request) {
 	}
 	taskID := matches[1]
 
+	// Limit request body size to prevent resource exhaustion (1MB)
+	r.Body = http.MaxBytesReader(w, r.Body, 1024*1024)
+
 	// Read raw payload body
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		http.Error(w, "Failed to read request body", http.StatusBadRequest)
+		var maxBytesError *http.MaxBytesError
+		if errors.As(err, &maxBytesError) {
+			http.Error(w, "Request body too large", http.StatusRequestEntityTooLarge)
+		} else {
+			http.Error(w, "Failed to read request body", http.StatusBadRequest)
+		}
 		return
 	}
 

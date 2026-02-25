@@ -149,7 +149,7 @@ func (c *Client) parseSSEStream(body io.ReadCloser, onUpstream func(json.RawMess
 	scanner := bufio.NewScanner(body)
 	var responses []RuntimeResponse
 	var eventType string
-	var dataBuf strings.Builder
+	var dataLines []string
 
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -158,13 +158,13 @@ func (c *Client) parseSSEStream(body io.ReadCloser, onUpstream func(json.RawMess
 		case strings.HasPrefix(line, "event: "):
 			eventType = line[7:]
 		case strings.HasPrefix(line, "data: "):
-			dataBuf.WriteString(line[6:])
+			dataLines = append(dataLines, line[6:])
 		case line == "":
 			if eventType == "" {
 				continue
 			}
-			data := dataBuf.String()
-			dataBuf.Reset()
+			data := strings.Join(dataLines, "\n")
+			dataLines = nil
 
 			switch eventType {
 			case "downstream":

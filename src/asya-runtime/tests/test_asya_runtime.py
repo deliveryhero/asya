@@ -47,7 +47,7 @@ def _parse_sse(raw_bytes):
             data_buf.append(line[6:])
         elif line == "":
             if event_type is not None:
-                data_str = "".join(data_buf)
+                data_str = "\n".join(data_buf)
                 events.append((event_type, json.loads(data_str) if data_str else {}))
             event_type = None
             data_buf = []

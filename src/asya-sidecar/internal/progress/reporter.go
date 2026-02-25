@@ -212,13 +212,12 @@ func (r *Reporter) ForwardUpstream(ctx context.Context, taskID string, payload j
 
 	resp, err := r.httpClient.Do(req)
 	if err != nil {
-		slog.Warn("Failed to forward upstream event", "task_id", taskID, "error", err)
-		return nil
+		return fmt.Errorf("failed to forward upstream event: %w", err)
 	}
 	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
-		slog.Warn("Upstream forward returned non-200", "task_id", taskID, "status", resp.StatusCode)
+		return fmt.Errorf("upstream forward returned non-200 status: %d", resp.StatusCode)
 	}
 
 	return nil
