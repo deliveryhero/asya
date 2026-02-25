@@ -77,7 +77,7 @@ class TestStatefulActorPipeline:
         }
         transport.publish_message(STATE_OPS_QUEUE, msg)
         result = transport.assert_message_in_queue(SUMP_QUEUE, timeout=15)
-        assert "processing_error" in result.get("error", "")
+        assert result["payload"]["error"] == "processing_error"
 
     def test_overwrite_state(self, transport):
         """Overwrite a key and verify new content."""

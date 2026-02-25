@@ -16,11 +16,6 @@ services:
     - ../../../shared/compose/envs/.env.rabbitmq
     - ../../../shared/compose/envs/.env.asya-sidecar
     environment:
-    - ASYA_TRANSPORT=rabbitmq
-    - RABBITMQ_HOST=rabbitmq
-    - RABBITMQ_PORT=5672
-    - RABBITMQ_USER=guest
-    - RABBITMQ_PASS=guest
     - PYTEST_OPTS=${PYTEST_OPTS}
     - COVERAGE_FILE=/app/.coverage/cov.db
     - COVERAGE_RCFILE=/app/.coveragerc
