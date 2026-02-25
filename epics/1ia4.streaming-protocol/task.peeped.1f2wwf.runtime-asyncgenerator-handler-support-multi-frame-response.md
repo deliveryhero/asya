@@ -2,11 +2,12 @@
 title: "Runtime: AsyncGenerator handler support"
 priority: 1 # high
 type: task
-dependencies:
-  - 1fbe/1iof6x
 tags:
   - type:feature
+dependencies:
+  - 1fbe/1iof6x
 ---
+
 
 Add `AsyncGenerator` handler detection to `asya_runtime.py`. The runtime already supports sync generators (`inspect.isgeneratorfunction`). This task adds the async counterpart.
 
