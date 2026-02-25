@@ -1,8 +1,10 @@
 ---
 title: "Timeouts: per-actor and per-flow"
+status: peeped
 priority: 2 # medium
 type: epic
 ---
+
 
 
 Design and implement a comprehensive timeout system that supports: (1) per-actor processing and graceful shutdown timeouts, (2) per-N-actors (flow or partial flow) end-to-end timeouts, (3) SQS visibility timeout coordination - actor processing timeout must align with SQS visibilityTimeout to prevent duplicate processing, (4) error handling edge cases - what happens when a timeout fires mid-processing, how retries interact with timeouts, (5) DLQ implications - messages that timeout vs messages that error, (6) multi-hop timeout budgets - a flow-level timeout that decrements as messages pass through actors. This is an epic that needs design before implementation.
