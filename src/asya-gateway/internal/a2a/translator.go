@@ -49,17 +49,8 @@ func MessageToPayload(msg types.A2AMessage) any {
 	}
 
 	// Add text
-	if len(textParts) == 1 {
-		payload["_a2a_text"] = textParts[0]
-	} else if len(textParts) > 1 {
-		var b strings.Builder
-		for i, t := range textParts {
-			if i > 0 {
-				b.WriteString("\n")
-			}
-			b.WriteString(t)
-		}
-		payload["_a2a_text"] = b.String()
+	if len(textParts) > 0 {
+		payload["_a2a_text"] = strings.Join(textParts, "\n")
 	}
 
 	// Add files
@@ -123,8 +114,7 @@ func TaskToA2ATask(task *types.Task) types.A2ATask {
 // TaskUpdateToSSEEvents converts an internal TaskUpdate to A2A SSE events.
 func TaskUpdateToSSEEvents(update types.TaskUpdate) types.A2ATaskStatusUpdateEvent {
 	state := types.ToA2AState(update.Status)
-	final := state == types.A2AStateCompleted || state == types.A2AStateFailed ||
-		state == types.A2AStateCanceled || state == types.A2AStateRejected
+	final := state == types.A2AStateCompleted || state == types.A2AStateFailed
 
 	event := types.A2ATaskStatusUpdateEvent{
 		ID: update.ID,

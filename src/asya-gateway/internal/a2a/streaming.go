@@ -5,14 +5,12 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
-	"regexp"
+	"strings"
 	"time"
 
 	"github.com/deliveryhero/asya/asya-gateway/internal/taskstore"
 	"github.com/deliveryhero/asya/asya-gateway/pkg/types"
 )
-
-var subscribePathRegex = regexp.MustCompile(`^/a2a/tasks/([^/]+):subscribe$`)
 
 // SubscribeHandler handles GET /a2a/tasks/{id}:subscribe (SSE)
 type SubscribeHandler struct {
@@ -30,12 +28,11 @@ func (sh *SubscribeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	matches := subscribePathRegex.FindStringSubmatch(r.URL.Path)
-	if matches == nil {
+	taskID := strings.TrimSuffix(r.PathValue("id"), ":subscribe")
+	if taskID == "" {
 		http.Error(w, "Invalid path", http.StatusBadRequest)
 		return
 	}
-	taskID := matches[1]
 
 	// Verify task exists
 	_, err := sh.taskStore.Get(taskID)

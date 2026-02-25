@@ -96,6 +96,7 @@ func TestSubscribeHandler(t *testing.T) {
 	defer cancel()
 
 	req := httptest.NewRequest(http.MethodGet, "/a2a/tasks/sub-test-1:subscribe", nil).WithContext(ctx)
+	req.SetPathValue("id", "sub-test-1:subscribe")
 	rr := httptest.NewRecorder()
 
 	// Complete task after a delay
@@ -128,6 +129,7 @@ func TestSubscribeHandler_TaskNotFound(t *testing.T) {
 	sh := NewSubscribeHandler(store)
 
 	req := httptest.NewRequest(http.MethodGet, "/a2a/tasks/nonexistent:subscribe", nil)
+	req.SetPathValue("id", "nonexistent:subscribe")
 	rr := httptest.NewRecorder()
 
 	sh.ServeHTTP(rr, req)

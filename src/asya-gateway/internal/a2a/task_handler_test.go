@@ -35,6 +35,7 @@ func TestTaskStatusHandler(t *testing.T) {
 
 	h := NewTaskStatusHandler(store)
 	req := httptest.NewRequest(http.MethodGet, "/a2a/tasks/rest-task-1", nil)
+	req.SetPathValue("id", "rest-task-1")
 	rr := httptest.NewRecorder()
 	h.ServeHTTP(rr, req)
 
@@ -62,6 +63,7 @@ func TestTaskStatusHandler_NotFound(t *testing.T) {
 	store := taskstore.NewStore()
 	h := NewTaskStatusHandler(store)
 	req := httptest.NewRequest(http.MethodGet, "/a2a/tasks/nonexistent", nil)
+	req.SetPathValue("id", "nonexistent")
 	rr := httptest.NewRecorder()
 	h.ServeHTTP(rr, req)
 

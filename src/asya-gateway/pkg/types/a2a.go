@@ -7,14 +7,16 @@ package types
 type A2ATaskState string
 
 const (
-	A2AStateSubmitted     A2ATaskState = "submitted"
-	A2AStateWorking       A2ATaskState = "working"
-	A2AStateCompleted     A2ATaskState = "completed"
-	A2AStateFailed        A2ATaskState = "failed"
+	A2AStateSubmitted A2ATaskState = "submitted"
+	A2AStateWorking   A2ATaskState = "working"
+	A2AStateCompleted A2ATaskState = "completed"
+	A2AStateFailed    A2ATaskState = "failed"
+	A2AStateUnknown   A2ATaskState = "unknown"
+
+	// A2A spec states for Phase 2: human-in-the-loop, cancellation, rejection
 	A2AStateInputRequired A2ATaskState = "input_required"
 	A2AStateCanceled      A2ATaskState = "canceled"
 	A2AStateRejected      A2ATaskState = "rejected"
-	A2AStateUnknown       A2ATaskState = "unknown"
 )
 
 // ToA2AState converts internal TaskStatus to A2A task state.

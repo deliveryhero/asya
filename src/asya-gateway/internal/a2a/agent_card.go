@@ -2,6 +2,7 @@ package a2a
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 
 	"github.com/deliveryhero/asya/asya-gateway/internal/config"
@@ -47,5 +48,7 @@ func (h *AgentCardHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(card)
+	if err := json.NewEncoder(w).Encode(card); err != nil {
+		slog.Error("Failed to encode agent card response", "error", err)
+	}
 }

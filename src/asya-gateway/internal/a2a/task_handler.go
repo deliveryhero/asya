@@ -4,12 +4,9 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
-	"regexp"
 
 	"github.com/deliveryhero/asya/asya-gateway/internal/taskstore"
 )
-
-var a2aTaskPathRegex = regexp.MustCompile(`^/a2a/tasks/([^/:]+)$`)
 
 // TaskStatusHandler handles GET /a2a/tasks/{id}
 type TaskStatusHandler struct {
@@ -27,12 +24,11 @@ func (h *TaskStatusHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	matches := a2aTaskPathRegex.FindStringSubmatch(r.URL.Path)
-	if matches == nil {
+	taskID := r.PathValue("id")
+	if taskID == "" {
 		http.Error(w, "Invalid path", http.StatusBadRequest)
 		return
 	}
-	taskID := matches[1]
 
 	task, err := h.taskStore.Get(taskID)
 	if err != nil {

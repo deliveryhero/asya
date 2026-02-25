@@ -189,8 +189,8 @@ func main() {
 	mux.Handle("/a2a/", a2aHandler)
 
 	// A2A REST endpoints for task status and subscribe
-	mux.HandleFunc("/a2a/tasks/", func(w http.ResponseWriter, r *http.Request) {
-		if strings.HasSuffix(r.URL.Path, ":subscribe") {
+	mux.HandleFunc("GET /a2a/tasks/{id}", func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.PathValue("id"), ":subscribe") {
 			a2aSubscribeHandler.ServeHTTP(w, r)
 		} else {
 			a2aTaskStatusHandler.ServeHTTP(w, r)
