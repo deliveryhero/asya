@@ -789,6 +789,14 @@ func (r *Router) routeResponse(ctx context.Context, id string, parentID *string,
 			resolvedMap, ok := resolved.(map[string]interface{})
 			if !ok {
 				resolvedMap = make(map[string]interface{})
+				// Preserve existing audit trail from json.RawMessage (RuntimeResponse headers)
+				if raw, isRaw := resolved.(json.RawMessage); isRaw {
+					if err := json.Unmarshal(raw, &resolvedMap); err != nil {
+						slog.Warn("Failed to unmarshal existing x-asya-route-resolved, starting fresh audit trail",
+							"error", err, "id", id)
+						resolvedMap = make(map[string]interface{})
+					}
+				}
 			}
 			resolvedMap[actorToSend] = map[string]interface{}{
 				"target": target,

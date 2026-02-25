@@ -3331,3 +3331,120 @@ func TestRouter_RouteOverride_ResolvedHeaderAuditTrail(t *testing.T) {
 		t.Errorf("Override should be preserved, got %v", overrideMap["model"])
 	}
 }
+
+func TestRouter_RouteOverride_PreservesExistingAuditTrail(t *testing.T) {
+	// When an upstream actor already stamped x-asya-route-resolved and the runtime
+	// passes headers through as json.RawMessage, the existing audit trail must be
+	// preserved (not overwritten).
+	socketPath := startMockRuntime(t, func(body []byte) ([]runtime.RuntimeResponse, int) {
+		return []runtime.RuntimeResponse{
+			{
+				Payload: json.RawMessage(`{"result": "ok"}`),
+				Route: messages.Route{
+					Prev: []string{"router", "prep"},
+					Curr: "model",
+					Next: []string{"post"},
+				},
+				Headers: map[string]json.RawMessage{
+					"x-asya-route-override": json.RawMessage(`{"model":"model-v2","post":"post-v2"}`),
+					"x-asya-route-resolved": json.RawMessage(`{"prep":{"target":"prep-v2","by":"router"}}`),
+				},
+			},
+		}, http.StatusOK
+	})
+
+	cfg := &config.Config{
+		ActorName:     "prep",
+		Namespace:     "default",
+		SinkQueue:     testQueueSink,
+		SumpQueue:     testQueueSump,
+		TransportType: "rabbitmq",
+	}
+
+	mockTr := &mockTransport{}
+	runtimeClient := runtime.NewClient(socketPath, 2*time.Second)
+
+	router := &Router{
+		cfg:           cfg,
+		transport:     mockTr,
+		runtimeClient: runtimeClient,
+		actorName:     cfg.ActorName,
+		sinkQueue:     cfg.SinkQueue,
+		sumpQueue:     cfg.SumpQueue,
+		metrics:       metrics.NewMetrics("test", []config.CustomMetricConfig{}),
+	}
+
+	inputMsg := messages.Message{
+		ID: "test-preserve-audit-123",
+		Route: messages.Route{
+			Prev: []string{},
+			Curr: "prep",
+			Next: []string{"model", "post"},
+		},
+		Payload: json.RawMessage(`{"input": "test"}`),
+	}
+	msgBody, _ := json.Marshal(inputMsg)
+
+	err := router.ProcessMessage(context.Background(), transport.QueueMessage{
+		ID:   "msg-1",
+		Body: msgBody,
+	})
+	if err != nil {
+		t.Fatalf("ProcessMessage failed: %v", err)
+	}
+
+	if len(mockTr.sentMessages) != 1 {
+		t.Fatalf("Expected 1 message, got %d", len(mockTr.sentMessages))
+	}
+
+	// Should route to overridden queue
+	if mockTr.sentMessages[0].queue != "asya-default-model-v2" {
+		t.Errorf("Queue = %q, want asya-default-model-v2", mockTr.sentMessages[0].queue)
+	}
+
+	var sentMsg messages.Message
+	if err := json.Unmarshal(mockTr.sentMessages[0].body, &sentMsg); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+
+	resolved, ok := sentMsg.Headers["x-asya-route-resolved"]
+	if !ok {
+		t.Fatal("Missing x-asya-route-resolved")
+	}
+	resolvedMap, ok := resolved.(map[string]interface{})
+	if !ok {
+		t.Fatalf("x-asya-route-resolved is %T, want map", resolved)
+	}
+
+	// Existing audit trail entry from upstream should be preserved
+	prepEntry, ok := resolvedMap["prep"]
+	if !ok {
+		t.Fatal("Existing 'prep' audit trail entry was lost")
+	}
+	prepMap, ok := prepEntry.(map[string]interface{})
+	if !ok {
+		t.Fatalf("prep entry is %T, want map", prepEntry)
+	}
+	if prepMap["target"] != "prep-v2" {
+		t.Errorf("Existing prep target = %v, want prep-v2", prepMap["target"])
+	}
+	if prepMap["by"] != "router" {
+		t.Errorf("Existing prep by = %v, want router", prepMap["by"])
+	}
+
+	// New audit trail entry for model override should be added
+	modelEntry, ok := resolvedMap["model"]
+	if !ok {
+		t.Fatal("New 'model' audit trail entry missing")
+	}
+	modelMap, ok := modelEntry.(map[string]interface{})
+	if !ok {
+		t.Fatalf("model entry is %T, want map", modelEntry)
+	}
+	if modelMap["target"] != "model-v2" {
+		t.Errorf("model target = %v, want model-v2", modelMap["target"])
+	}
+	if modelMap["by"] != "prep" {
+		t.Errorf("model by = %v, want prep", modelMap["by"])
+	}
+}
