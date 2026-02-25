@@ -911,6 +911,34 @@ class TestInstallStateProxyHooks:
         os.unlink("/state/meta/unlinkme")
         assert "unlinkme" not in mock_server.store
 
+    def test_os_remove_nonexistent_raises_file_not_found(self, mock_server, monkeypatch):
+        _install_hooks_with_server(mock_server, "meta:/state/meta:write=buffered", monkeypatch)
+
+        with pytest.raises(FileNotFoundError):
+            os.remove("/state/meta/nonexistent_key")
+
+    def test_os_makedirs_exist_ok_false_state_path(self, mock_server, monkeypatch):
+        _install_hooks_with_server(mock_server, "meta:/state/meta:write=buffered", monkeypatch)
+
+        os.makedirs("/state/meta/somedir", exist_ok=False)
+
+    def test_open_write_then_read_roundtrip(self, mock_server, monkeypatch):
+        _install_hooks_with_server(mock_server, "meta:/state/meta:write=buffered", monkeypatch)
+
+        with builtins.open("/state/meta/roundtrip.txt", "w") as f:
+            f.write("roundtrip content")
+
+        with builtins.open("/state/meta/roundtrip.txt") as f:
+            result = f.read()
+
+        assert result == "roundtrip content"
+
+    def test_os_stat_nonexistent_raises_file_not_found(self, mock_server, monkeypatch):
+        _install_hooks_with_server(mock_server, "meta:/state/meta:write=buffered", monkeypatch)
+
+        with pytest.raises(FileNotFoundError):
+            os.stat("/state/meta/nonexistent_key")
+
 
 # ---------------------------------------------------------------------------
 # 6. Local Dev Parity - no patching when env var not set
