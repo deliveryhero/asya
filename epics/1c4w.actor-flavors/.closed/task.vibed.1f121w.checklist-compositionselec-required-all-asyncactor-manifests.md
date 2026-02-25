@@ -4,7 +4,9 @@ priority: 3 # low
 type: task
 tags:
   - pr:197
+reason: "PR #197 merged: compositionSelector now auto-injected by webhook from spec.transport — manual checklist superseded by injector automation"
 ---
+
 
 
 
