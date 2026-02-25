@@ -8,6 +8,7 @@ type: task
 
 
 
+
 Update asya-sidecar to communicate with gateway using A2A task terminology.
 
 ## Current State
