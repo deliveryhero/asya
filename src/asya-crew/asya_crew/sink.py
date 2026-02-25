@@ -22,7 +22,7 @@ Environment Variables:
 - ASYA_SINK_FANOUT_HOOKS: When "true", run hooks even for fire-and-forget fan-out children
                            (messages with parent_id set but no x-asya-fan-in header).
                            Default: "false" — fan-out children skip hooks silently.
-- ASYA_CHECKPOINT_MOUNT: State proxy mount path for inline checkpoint persistence (optional)
+- ASYA_PERSISTENCE_MOUNT: State proxy mount path for inline checkpoint persistence (optional)
 
 VFS Paths:
 - /proc/asya/msg/id — read-only: message UUID
@@ -52,7 +52,7 @@ logger = logging.getLogger(__name__)
 ASYA_MSG_ROOT = os.getenv("ASYA_MSG_ROOT", "/proc/asya/msg")
 ASYA_SINK_HOOKS = os.getenv("ASYA_SINK_HOOKS", "")
 ASYA_SINK_FANOUT_HOOKS = os.getenv("ASYA_SINK_FANOUT_HOOKS", "false").lower() == "true"
-ASYA_CHECKPOINT_MOUNT = os.getenv("ASYA_CHECKPOINT_MOUNT", "")
+ASYA_PERSISTENCE_MOUNT = os.getenv("ASYA_PERSISTENCE_MOUNT", "")
 
 
 def sink_handler(payload: dict[str, Any]) -> dict[str, Any] | None:
@@ -79,7 +79,7 @@ def sink_handler(payload: dict[str, Any]) -> dict[str, Any] | None:
         f"Processing sink for message {message_id}, phase={phase}, fan_in={has_fan_in}, parent_id={has_parent_id}"
     )
 
-    if ASYA_CHECKPOINT_MOUNT:
+    if ASYA_PERSISTENCE_MOUNT:
         try:
             from asya_crew.checkpointer import handler
 

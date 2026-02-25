@@ -31,7 +31,7 @@ Crew actors are **end actors** that run in special sidecar mode (`ASYA_IS_END_AC
   value: asya_crew.checkpointer.handler
 
 # Checkpoint persistence mount point
-- name: ASYA_CHECKPOINT_MOUNT
+- name: ASYA_PERSISTENCE_MOUNT
   value: /state/checkpoints
 ```
 
@@ -69,7 +69,7 @@ sink-asya/2025-11-18T14:30:45.123456Z/text-processor/abc-123.json
   value: asya_crew.checkpointer.handler
 
 # Checkpoint persistence mount point
-- name: ASYA_CHECKPOINT_MOUNT
+- name: ASYA_PERSISTENCE_MOUNT
   value: /state/checkpoints
 ```
 
@@ -195,7 +195,7 @@ x-sink:
           env:
           - name: ASYA_HANDLER
             value: asya_crew.checkpointer.handler
-          - name: ASYA_CHECKPOINT_MOUNT
+          - name: ASYA_PERSISTENCE_MOUNT
             value: /state/checkpoints
 
 x-sump:
@@ -207,7 +207,7 @@ x-sump:
           env:
           - name: ASYA_HANDLER
             value: asya_crew.checkpointer.handler
-          - name: ASYA_CHECKPOINT_MOUNT
+          - name: ASYA_PERSISTENCE_MOUNT
             value: /state/checkpoints
 ```
 

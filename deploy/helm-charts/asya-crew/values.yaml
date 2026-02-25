@@ -163,7 +163,7 @@ checkpoint-s3:
   # DO NOT set ASYA_HANDLER - it is pre-configured by the Helm template and cannot be overridden
   env:
     # State proxy mount path for checkpoint storage
-    ASYA_CHECKPOINT_MOUNT: ""
+    ASYA_PERSISTENCE_MOUNT: ""
 
 # DLQ Worker configuration
 # Standalone Go binary for processing transport-level Dead Letter Queue messages.

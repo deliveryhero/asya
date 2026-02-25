@@ -539,7 +539,7 @@ x-sink:
           env:
           - name: ASYA_GATEWAY_URL
             value: ""  # Set this when gateway is installed
-          - name: ASYA_CHECKPOINT_MOUNT
+          - name: ASYA_PERSISTENCE_MOUNT
             value: /tmp/checkpoints/results
 
 x-sump:
@@ -552,7 +552,7 @@ x-sump:
           env:
           - name: ASYA_GATEWAY_URL
             value: ""  # Set this when gateway is installed
-          - name: ASYA_CHECKPOINT_MOUNT
+          - name: ASYA_PERSISTENCE_MOUNT
             value: /tmp/checkpoints/errors
 EOF
 
@@ -683,7 +683,7 @@ x-sink:
           env:
           - name: ASYA_GATEWAY_URL
             value: "http://asya-gateway.default.svc.cluster.local:8080"
-          - name: ASYA_CHECKPOINT_MOUNT
+          - name: ASYA_PERSISTENCE_MOUNT
             value: /tmp/checkpoints/results
 
 x-sump:
@@ -696,7 +696,7 @@ x-sump:
           env:
           - name: ASYA_GATEWAY_URL
             value: "http://asya-gateway.default.svc.cluster.local:8080"
-          - name: ASYA_CHECKPOINT_MOUNT
+          - name: ASYA_PERSISTENCE_MOUNT
             value: /tmp/checkpoints/errors
 EOF
 

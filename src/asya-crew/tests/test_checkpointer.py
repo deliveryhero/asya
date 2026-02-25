@@ -4,7 +4,7 @@ Unit tests for generic checkpointer.
 
 Tests the checkpointer which persists messages via state proxy file I/O.
 Reads message metadata (id, phase, actor) from VFS at ASYA_MSG_ROOT and
-writes complete messages as JSON files to ASYA_CHECKPOINT_MOUNT.
+writes complete messages as JSON files to ASYA_PERSISTENCE_MOUNT.
 """
 
 import json
@@ -46,7 +46,7 @@ def setup_vfs(tmpdir, msg_id="test-001", phase="succeeded", prev_actors=None, pa
 @pytest.fixture(autouse=True)
 def setup_test_env(tmp_path, monkeypatch):
     """Set up test environment before each test."""
-    monkeypatch.delenv("ASYA_CHECKPOINT_MOUNT", raising=False)
+    monkeypatch.delenv("ASYA_PERSISTENCE_MOUNT", raising=False)
 
     vfs_root = setup_vfs(str(tmp_path))
     monkeypatch.setenv("ASYA_MSG_ROOT", vfs_root)
@@ -69,7 +69,7 @@ def test_succeeded_phase_uses_succeeded_prefix(tmp_path, monkeypatch):
 
     mount_path = str(tmp_path / "checkpoints")
     os.makedirs(mount_path)
-    monkeypatch.setenv("ASYA_CHECKPOINT_MOUNT", mount_path)
+    monkeypatch.setenv("ASYA_PERSISTENCE_MOUNT", mount_path)
 
     if "asya_crew.checkpointer" in sys.modules:
         del sys.modules["asya_crew.checkpointer"]
@@ -94,7 +94,7 @@ def test_failed_phase_uses_failed_prefix(tmp_path, monkeypatch):
 
     mount_path = str(tmp_path / "checkpoints")
     os.makedirs(mount_path)
-    monkeypatch.setenv("ASYA_CHECKPOINT_MOUNT", mount_path)
+    monkeypatch.setenv("ASYA_PERSISTENCE_MOUNT", mount_path)
 
     if "asya_crew.checkpointer" in sys.modules:
         del sys.modules["asya_crew.checkpointer"]
@@ -119,7 +119,7 @@ def test_missing_phase_uses_checkpoint_prefix(tmp_path, monkeypatch):
 
     mount_path = str(tmp_path / "checkpoints")
     os.makedirs(mount_path)
-    monkeypatch.setenv("ASYA_CHECKPOINT_MOUNT", mount_path)
+    monkeypatch.setenv("ASYA_PERSISTENCE_MOUNT", mount_path)
 
     if "asya_crew.checkpointer" in sys.modules:
         del sys.modules["asya_crew.checkpointer"]
@@ -154,7 +154,7 @@ def test_returns_empty_dict(tmp_path, monkeypatch):
 
 
 def test_skips_when_mount_not_configured(tmp_path, monkeypatch):
-    """Test checkpoint handler gracefully skips when ASYA_CHECKPOINT_MOUNT not set."""
+    """Test checkpoint handler gracefully skips when ASYA_PERSISTENCE_MOUNT not set."""
     logger.info("=== test_skips_when_mount_not_configured ===")
 
     vfs_root = setup_vfs(str(tmp_path), msg_id="test-message-no-mount", phase="succeeded")
@@ -185,7 +185,7 @@ def test_key_includes_actor_from_vfs_prev(tmp_path, monkeypatch):
 
     mount_path = str(tmp_path / "checkpoints")
     os.makedirs(mount_path)
-    monkeypatch.setenv("ASYA_CHECKPOINT_MOUNT", mount_path)
+    monkeypatch.setenv("ASYA_PERSISTENCE_MOUNT", mount_path)
 
     if "asya_crew.checkpointer" in sys.modules:
         del sys.modules["asya_crew.checkpointer"]
@@ -218,7 +218,7 @@ def test_persists_complete_message(tmp_path, monkeypatch):
 
     mount_path = str(tmp_path / "checkpoints")
     os.makedirs(mount_path)
-    monkeypatch.setenv("ASYA_CHECKPOINT_MOUNT", mount_path)
+    monkeypatch.setenv("ASYA_PERSISTENCE_MOUNT", mount_path)
 
     if "asya_crew.checkpointer" in sys.modules:
         del sys.modules["asya_crew.checkpointer"]
@@ -257,7 +257,7 @@ def test_message_without_parent_id(tmp_path, monkeypatch):
 
     mount_path = str(tmp_path / "checkpoints")
     os.makedirs(mount_path)
-    monkeypatch.setenv("ASYA_CHECKPOINT_MOUNT", mount_path)
+    monkeypatch.setenv("ASYA_PERSISTENCE_MOUNT", mount_path)
 
     if "asya_crew.checkpointer" in sys.modules:
         del sys.modules["asya_crew.checkpointer"]

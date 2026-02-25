@@ -238,7 +238,7 @@ crew:
     transport: rabbitmq
     env:
       ASYA_GATEWAY_URL: "http://asya-gateway.asya-e2e.svc.cluster.local:8080"
-      ASYA_CHECKPOINT_MOUNT: "/tmp/checkpoints/results"
+      ASYA_PERSISTENCE_MOUNT: "/tmp/checkpoints/results"
     resources:
       requests:
         cpu: 50m
@@ -262,7 +262,7 @@ crew:
     transport: rabbitmq
     env:
       ASYA_GATEWAY_URL: "http://asya-gateway.asya-e2e.svc.cluster.local:8080"
-      ASYA_CHECKPOINT_MOUNT: "/tmp/checkpoints/errors"
+      ASYA_PERSISTENCE_MOUNT: "/tmp/checkpoints/errors"
     resources:
       requests:
         cpu: 50m

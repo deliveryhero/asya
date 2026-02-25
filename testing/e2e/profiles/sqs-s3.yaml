@@ -38,7 +38,7 @@ crew:
     transport: sqs
     env:
       ASYA_GATEWAY_URL: "http://asya-gateway.asya-e2e.svc.cluster.local:8080"
-      ASYA_CHECKPOINT_MOUNT: "/tmp/checkpoints/results"
+      ASYA_PERSISTENCE_MOUNT: "/tmp/checkpoints/results"
       AWS_ACCESS_KEY_ID: "test"
       AWS_SECRET_ACCESS_KEY: "test"
     scaling:
@@ -48,7 +48,7 @@ crew:
     transport: sqs
     env:
       ASYA_GATEWAY_URL: "http://asya-gateway.asya-e2e.svc.cluster.local:8080"
-      ASYA_CHECKPOINT_MOUNT: "/tmp/checkpoints/errors"
+      ASYA_PERSISTENCE_MOUNT: "/tmp/checkpoints/errors"
       AWS_ACCESS_KEY_ID: "test"
       AWS_SECRET_ACCESS_KEY: "test"
     scaling:

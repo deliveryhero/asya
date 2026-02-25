@@ -7,7 +7,7 @@ configured in the AsyncActor CRD.
 
 Environment Variables:
 - ASYA_MSG_ROOT: Path to virtual filesystem for message metadata (default: /proc/asya/msg)
-- ASYA_CHECKPOINT_MOUNT: State proxy mount path for checkpoint storage
+- ASYA_PERSISTENCE_MOUNT: State proxy mount path for checkpoint storage
 
 VFS Paths Read:
 - /proc/asya/msg/id — read-only: message UUID
@@ -32,7 +32,7 @@ Handler Behavior:
 - Reads message metadata from VFS
 - Persists full message (metadata + payload) as JSON to state proxy mount
 - Returns empty dict (message passes through unchanged)
-- Gracefully skips if ASYA_CHECKPOINT_MOUNT not set
+- Gracefully skips if ASYA_PERSISTENCE_MOUNT not set
 """
 
 import contextlib
@@ -46,7 +46,7 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 ASYA_MSG_ROOT = os.getenv("ASYA_MSG_ROOT", "/proc/asya/msg")
-ASYA_CHECKPOINT_MOUNT = os.getenv("ASYA_CHECKPOINT_MOUNT", "")
+ASYA_PERSISTENCE_MOUNT = os.getenv("ASYA_PERSISTENCE_MOUNT", "")
 
 
 def _read_msg_meta(path: str, default: str = "") -> str:
@@ -79,8 +79,8 @@ def handler(payload: dict[str, Any]) -> dict[str, Any]:
 
     message_id = _read_msg_meta("id", "unknown")
 
-    if not ASYA_CHECKPOINT_MOUNT:
-        logger.debug(f"Checkpoint skipped for message {message_id} (ASYA_CHECKPOINT_MOUNT not set)")
+    if not ASYA_PERSISTENCE_MOUNT:
+        logger.debug(f"Checkpoint skipped for message {message_id} (ASYA_PERSISTENCE_MOUNT not set)")
         return {}
 
     phase = _read_msg_meta("status/phase")
@@ -101,7 +101,7 @@ def handler(payload: dict[str, Any]) -> dict[str, Any]:
     now = datetime.now(tz=UTC)
     timestamp = now.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
     key = f"{prefix}/{timestamp}/{actor}/{message_id}.json"
-    file_path = f"{ASYA_CHECKPOINT_MOUNT}/{key}"
+    file_path = f"{ASYA_PERSISTENCE_MOUNT}/{key}"
 
     message: dict[str, Any] = {
         "id": message_id,
