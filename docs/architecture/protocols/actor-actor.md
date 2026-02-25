@@ -19,6 +19,15 @@
     "trace_id": "abc-123",
     "priority": "high"
   },
+  "status": {
+    "phase": "pending",
+    "actor": "infer",
+    "attempt": 1,
+    "max_attempts": 1,
+    "created_at": "2025-11-18T12:00:00Z",
+    "updated_at": "2025-11-18T12:00:00Z",
+    "deadline_at": "2025-11-18T12:05:00Z"
+  },
   "payload": {
     "text": "Hello world"
   }
@@ -33,6 +42,10 @@
   - `prev`: Actors that have already processed the message (read-only, maintained by runtime)
   - `curr`: The actor currently processing the message (read-only, set by runtime)
   - `next`: Actors yet to process the message (modifiable via VFS)
+- `status` (optional): Message lifecycle status, stamped by gateway on creation
+  - `phase`: Current lifecycle phase (`pending`, `processing`, `succeeded`, `failed`)
+  - `actor`: Actor that last updated the status
+  - `deadline_at`: Absolute deadline in RFC3339 UTC (omitted if no timeout configured)
 - `payload` (required): User data processed by actors
 - `headers` (optional): Routing metadata (trace IDs, priorities)
 
@@ -64,13 +77,14 @@ Namespace: `example-ecommerce`
 
 ## End Queues
 
-**`x-sink`**: Pipeline completed or aborted successfully
+**`x-sink`**: Pipeline completed, aborted, or expired
 - Automatically routed by sidecar when `route.curr` is `""` (route exhausted)
 - Automatically routed when runtime returns empty response
+- Automatically routed when `status.deadline_at` has passed (SLA expired, stamped with `phase=failed`, `reason=Timeout`)
 
 **`x-sump`**: Processing error occurred
 - Automatically routed when runtime returns error
-- Automatically routed on timeout
+- Automatically routed when runtime call times out (per-call timeout exceeded)
 
 **Important**: Do not include `x-sink` or `x-sump` in route configurations - managed by sidecar.
 

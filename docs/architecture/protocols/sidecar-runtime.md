@@ -118,16 +118,32 @@ Any unknown path returns `404 Not Found`.
 
 ## Timeout Strategy
 
-Sidecar enforces a per-message timeout (default: 5 minutes) via `context.WithTimeout`:
+The sidecar enforces timeouts at two levels:
 
-**On timeout** (`context.DeadlineExceeded`):
+### SLA Pre-Check (Pipeline-Level Deadline)
+
+Before calling the runtime, the sidecar checks `status.deadline_at` on the incoming message. If the current time is past the deadline, the message is routed directly to `x-sink` with `phase=failed`, `reason=Timeout` — the runtime is never called.
+
+The gateway stamps `status.deadline_at` based on the tool's `timeout_seconds` configuration. This absolute deadline is never mutated as the message travels through actors.
+
+### Effective Timeout (Per-Call)
+
+For messages that pass the SLA pre-check, the sidecar computes an effective timeout:
+
+```
+effective_timeout = min(ASYA_RUNTIME_TIMEOUT, ASYA_RESILIENCY_ACTOR_TIMEOUT, remaining_SLA)
+```
+
+Where `remaining_SLA = deadline_at - now` (only if `deadline_at` is set).
+
+### Runtime Timeout Behavior
+
+**On runtime timeout** (`context.DeadlineExceeded`):
 1. Sidecar sends the message to `x-sump` with a timeout error
 2. Sidecar **crashes the pod** (exits with status code 1)
 3. Kubernetes restarts the pod to recover clean state
 
-**Rationale**: prevents zombie processing where the runtime may still be executing after the sidecar gives up.
-
-**Configuration**: `ASYA_RUNTIME_TIMEOUT` (default: `5m`)
+**Rationale**: crash-on-timeout prevents zombie processing where the runtime may still be executing after the sidecar gives up.
 
 ## Debugging with curl
 
@@ -161,7 +177,8 @@ curl --unix-socket /var/run/asya/asya-runtime.sock http://localhost/healthz
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `ASYA_RUNTIME_TIMEOUT` | `5m` | Processing timeout per message |
+| `ASYA_RUNTIME_TIMEOUT` | `5m` | Per-call timeout for runtime socket |
+| `ASYA_RESILIENCY_ACTOR_TIMEOUT` | _(none)_ | Per-actor timeout from XRD `resiliency.actorTimeout` |
 | `ASYA_ACTOR_NAME` | (required) | Actor name for queue consumption |
 
 ## Best Practices

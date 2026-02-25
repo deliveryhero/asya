@@ -205,10 +205,11 @@ func TestSQS_TaskWithDeadline(t *testing.T) {
 	err = json.Unmarshal(msg.Body(), &received)
 	require.NoError(t, err, "Failed to unmarshal message")
 
-	assert.NotEmpty(t, received.Deadline, "Deadline should be set")
+	require.NotNil(t, received.Status, "Status should be set")
+	assert.NotEmpty(t, received.Status.DeadlineAt, "Status.DeadlineAt should be set")
 
-	receivedDeadline, err := time.Parse("2006-01-02T15:04:05Z07:00", received.Deadline)
-	require.NoError(t, err, "Failed to parse deadline")
+	receivedDeadline, err := time.Parse(time.RFC3339, received.Status.DeadlineAt)
+	require.NoError(t, err, "Failed to parse deadline_at")
 
 	assert.WithinDuration(t, deadline, receivedDeadline, time.Second)
 
