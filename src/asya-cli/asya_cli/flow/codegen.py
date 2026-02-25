@@ -37,6 +37,8 @@ class CodeGenerator:
         parts.append(self._generate_header())
         if self._has_loop_guards():
             parts.append(self._generate_max_iter_constant())
+        if self._has_fan_out():
+            parts.append(self._generate_fanout_helpers())
         parts.append(self._generate_routers())
         parts.append(self._generate_resolve_function())
 
@@ -45,12 +47,39 @@ class CodeGenerator:
     def _has_loop_guards(self) -> bool:
         return any(r.guard_max_iter is not None for r in self.routers)
 
+    def _has_fan_out(self) -> bool:
+        return any(r.is_fan_out for r in self.routers)
+
     def _generate_max_iter_constant(self) -> str:
         default = next(r.guard_max_iter for r in self.routers if r.guard_max_iter is not None)
         return dedent(f'''\
             import os as _os
             _ASYA_MAX_LOOP_ITERATIONS = int(_os.environ.get("ASYA_MAX_LOOP_ITERATIONS", "{default}"))
             ''')
+
+    def _generate_fanout_helpers(self) -> str:
+        """Generate the _resolve_aggregator helper (emitted once per file)."""
+        return dedent("""\
+            import json as _json
+            import os as _fanout_os
+
+            _FANIN_SHARDS = int(_fanout_os.environ.get("ASYA_FANIN_SHARDS", "1"))
+
+            if _FANIN_SHARDS > 1:
+                import xxhash as _xxhash
+
+                def _resolve_aggregator(origin_id, target):
+                    best = max(
+                        range(_FANIN_SHARDS),
+                        key=lambda i: _xxhash.xxh64_intdigest(f"{origin_id}:{i}".encode()),
+                    )
+                    shard = f"{target}-{best}"
+                    return shard, {"x-asya-route-override": {target: shard}}
+            else:
+                def _resolve_aggregator(origin_id, target):
+                    return target, {}
+
+            """)
 
     def _collect_handlers(self) -> None:
         for router in self.routers:
@@ -67,6 +96,10 @@ class CodeGenerator:
                 for handler in router.exception_handlers:
                     for actor_name in handler.actors:
                         self.all_handlers.add(actor_name)
+            # Fan-out: collect sub-agent actor names
+            if router.is_fan_out and router.fan_out_op:
+                for actor_name, _payload_expr in router.fan_out_op.actor_calls:
+                    self.all_handlers.add(actor_name)
 
     def _generate_header(self) -> str:
         return dedent(f'''\
@@ -93,6 +126,8 @@ class CodeGenerator:
                 lines.append(self._generate_start_router(router))
             elif router.name.startswith("end_"):
                 lines.append(self._generate_end_router(router))
+            elif router.is_fan_out:
+                lines.append(self._generate_fanout_router(router))
             elif router.is_loop_back:
                 lines.append(self._generate_loop_back_router(router))
             elif router.is_try_enter:
@@ -173,6 +208,119 @@ class CodeGenerator:
         lines.append("")
         lines.append("    r['next'] = _next + r['next']")
         lines.append("    return message")
+        lines.append("")
+
+        return "\n".join(lines)
+
+    def _generate_fanout_router(self, router: Router) -> str:
+        """Generate a generator function that fans out to N sub-agents + 1 parent message."""
+        if router.fan_out_op is None:
+            raise ValueError(f"Router {router.name!r} is marked is_fan_out but has no fan_out_op")
+        fan_out = router.fan_out_op
+
+        # Determine aggregator: first in true_branch_actors (after convergence resolution)
+        agg_actors = [a for a in router.true_branch_actors if not a.startswith("end_")]
+        if agg_actors:
+            aggregator_abstract = agg_actors[0]
+            after_agg = agg_actors[1:]
+        else:
+            # No continuation: this is the end of the flow
+            aggregator_abstract = None
+            after_agg = []
+
+        lines = []
+        lines.append(f"def {router.name}(message: dict):")
+        lines.append(f'    """Fan-out router: dispatches to sub-agents and aggregator (line {fan_out.lineno})"""')
+        lines.append("    p = message['payload']")
+        lines.append("    r = message['route']")
+        lines.append("    origin_id = message['id']")
+        lines.append("    _hdrs = message.get('headers', {})")
+        lines.append("")
+
+        if aggregator_abstract:
+            lines.append(f'    _agg_abstract = resolve("{aggregator_abstract}")')
+            lines.append("    _agg, _override = _resolve_aggregator(origin_id, _agg_abstract)")
+        else:
+            # No aggregator: parent message goes to end of flow
+            lines.append("    _agg_abstract = None")
+            lines.append("    _agg, _override = None, {}")
+
+        lines.append("")
+
+        # Build _slices list based on pattern
+        lines.append("    # Accumulate (actor_name, slice_payload) pairs")
+        lines.append("    _slices = []")
+
+        if fan_out.pattern == "comprehension" or (fan_out.pattern == "gather" and fan_out.iter_var is not None):
+            # Comprehension or gather-with-generator: loop over iterable
+            iter_var = fan_out.iter_var
+            iterable = fan_out.iterable
+            actor_name, payload_expr = fan_out.actor_calls[0]
+            lines.append(f"    for {iter_var} in {iterable}:")
+            lines.append(f'        _slices.append((resolve("{actor_name}"), {payload_expr}))')
+        else:
+            # Literal or gather-explicit: fixed list of (actor, payload) pairs
+            for actor_name, payload_expr in fan_out.actor_calls:
+                lines.append(f'    _slices.append((resolve("{actor_name}"), {payload_expr}))')
+
+        lines.append("")
+        lines.append("    _n = len(_slices) + 1")
+        lines.append("    _fan_in = {")
+        if aggregator_abstract:
+            lines.append('        "actor": _agg_abstract,')
+        else:
+            lines.append('        "actor": None,')
+        lines.append('        "origin_id": origin_id,')
+        lines.append('        "slice_count": _n,')
+        lines.append(f'        "aggregation_key": "{fan_out.target_key}",')
+        lines.append("    }")
+        lines.append("")
+
+        if aggregator_abstract:
+            # Index 0: parent payload forwarded to aggregator — route manually shifted
+            # (generators don't auto-shift; runtime does NOT shift for yielded messages)
+            after_agg_resolved = [f'resolve("{a}")' for a in after_agg]
+            after_agg_str = (", ".join(after_agg_resolved) + ", ") if after_agg_resolved else ""
+            lines.append("    # Index 0: parent payload forwarded to aggregator (route manually shifted)")
+            lines.append("    yield {")
+            lines.append("        'id': origin_id,")
+            lines.append("        'route': {")
+            lines.append("            'prev': r['prev'] + [r['curr']],")
+            lines.append("            'curr': _agg,")
+            lines.append(f"            'next': [{after_agg_str}] + r['next'],")
+            lines.append("        },")
+            lines.append("        'headers': {**_hdrs, **_override, 'x-asya-fan-in': {**_fan_in, 'slice_index': 0}},")
+            lines.append("        'payload': _json.loads(_json.dumps(p)),")
+            lines.append("    }")
+        else:
+            lines.append("    # Index 0: parent payload forwarded to end of flow")
+            lines.append("    yield {")
+            lines.append("        'id': origin_id,")
+            lines.append("        'route': {")
+            lines.append("            'prev': r['prev'] + [r['curr']],")
+            lines.append("            'curr': r['curr'],")
+            lines.append("            'next': r['next'],")
+            lines.append("        },")
+            lines.append("        'headers': {**_hdrs, 'x-asya-fan-in': {**_fan_in, 'slice_index': 0}},")
+            lines.append("        'payload': _json.loads(_json.dumps(p)),")
+            lines.append("    }")
+
+        lines.append("")
+        lines.append("    # Indices 1..N: sub-agent slices")
+        lines.append("    import uuid as _uuid")
+        lines.append("    for _i, (_actor, _payload) in enumerate(_slices):")
+        lines.append("        yield {")
+        lines.append("            'id': str(_uuid.uuid4()),")
+        lines.append("            'parent_id': origin_id,")
+        if aggregator_abstract:
+            lines.append("            'route': {'prev': [], 'curr': _actor, 'next': [_agg]},")
+        else:
+            lines.append("            'route': {'prev': [], 'curr': _actor, 'next': []},")
+        lines.append(
+            "            'headers': {**_hdrs, **_override, 'x-asya-fan-in': {**_fan_in, 'slice_index': _i + 1}},"
+        )
+        lines.append("            'payload': _payload,")
+        lines.append("        }")
         lines.append("")
 
         return "\n".join(lines)

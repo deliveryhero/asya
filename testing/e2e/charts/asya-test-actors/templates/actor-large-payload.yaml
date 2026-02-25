@@ -7,10 +7,9 @@ metadata:
     {{- include "asya-test-actors.labels" . | nindent 4 }}
 spec:
   actor: test-large-payload
-  compositionSelector:
-    matchLabels:
-      asya.sh/transport: {{ .Values.transport }}
   transport: {{ .Values.transport }}
+  flavors:
+  - asya-test-actor
 
   scaling:
     enabled: true
