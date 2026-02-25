@@ -58,6 +58,7 @@ test-unit: ## Run unit tests (go + python)
 	$(MAKE) -C src/asya-crew/cmd/dlq-worker test-unit
 	$(MAKE) -C src/asya-cli test-unit
 	$(MAKE) -C src/asya-injector test-unit
+	$(MAKE) -C src/asya-state-proxy test-unit
 	$(MAKE) -C src/function-asya-flavors test-unit
 	@echo "$(GREEN_START)[++] Success: All unit tests completed successfully!$(GREEN_END)"
 
