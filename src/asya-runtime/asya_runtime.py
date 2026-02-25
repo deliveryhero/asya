@@ -91,6 +91,26 @@ SOCKET_NAME = os.getenv("ASYA_SOCKET_NAME", "asya-runtime.sock")
 SOCKET_PATH = os.path.join(SOCKET_DIR, SOCKET_NAME)
 
 
+# ---------------------------------------------------------------------------
+# Upstream event marker — handlers yield upstream(payload) for partial events
+# that bypass message queues and stream directly to the gateway SSE client.
+# ---------------------------------------------------------------------------
+
+
+class _UpstreamEvent:
+    """Marker wrapping a payload value that should be forwarded upstream to the gateway."""
+
+    __slots__ = ("payload",)
+
+    def __init__(self, payload):
+        self.payload = payload
+
+
+def upstream(payload):
+    """Mark a yielded value as an upstream event (forwarded to gateway, not routed to next actor)."""
+    return _UpstreamEvent(payload)
+
+
 def _instantiate_class_handler(handler_class):
     """Instantiate class handler.
 
@@ -1227,26 +1247,79 @@ class _InvokeHandler(http.server.BaseHTTPRequestHandler):
             self._send_json(400, _error_response("msg_parsing_error", exc))
             return
 
-        try:
-            user_func = self.server.user_func
-            logger.info(f"[DIAG] Starting handler execution, message_id={message.get('id', 'unknown')}")
-            frames = _collect_payload_frames(message, user_func)
-        except Exception as exc:
-            logger.exception("Fatal error on processing input message")
-            self._send_json(500, _error_response("processing_error", exc))
-            return
+        user_func = self.server.user_func
+        is_generator = inspect.isgeneratorfunction(user_func) or inspect.isasyncgenfunction(user_func)
+        logger.info(f"[DIAG] Starting handler execution, message_id={message.get('id', 'unknown')}")
 
-        if not frames:
-            self.send_response(204)
-            self.end_headers()
+        if is_generator:
+            self._stream_sse_response(message, user_func)
         else:
-            self._send_json(200, {"frames": frames})
+            try:
+                frames = _collect_payload_frames(message, user_func)
+            except Exception as exc:
+                logger.exception("Fatal error on processing input message")
+                self._send_json(500, _error_response("processing_error", exc))
+                return
+
+            if not frames:
+                self.send_response(204)
+                self.end_headers()
+            else:
+                self._send_json(200, {"frames": frames})
 
     def do_GET(self):  # noqa: N802
         if self.path == "/healthz":
             self._send_json(200, {"status": "ready"})
         else:
             self.send_error(404)
+
+    def _stream_sse_response(self, message, user_func):
+        """Stream generator frames as SSE events."""
+        self.send_response(200)
+        self.send_header("Content-Type", "text/event-stream")
+        self.send_header("Cache-Control", "no-cache")
+        self.end_headers()
+
+        input_route = message["route"]
+        _msg_vfs.populate(message)
+        try:
+            if inspect.isasyncgenfunction(user_func):
+                asyncio.run(self._stream_async_gen(message, user_func, input_route))
+            else:
+                self._stream_sync_gen(message, user_func, input_route)
+        except Exception as exc:
+            logger.exception("Error during SSE streaming")
+            error_data = json.dumps(_error_response("processing_error", exc))
+            self.wfile.write(f"event: error\ndata: {error_data}\n\n".encode())
+            self.wfile.flush()
+        finally:
+            _msg_vfs.clear()
+
+    def _stream_sync_gen(self, message, user_func, input_route):
+        """Stream sync generator yields as SSE events."""
+        for payload_value in user_func(message["payload"]):
+            self._emit_sse_event(payload_value, input_route)
+        self.wfile.write(b"event: done\ndata: {}\n\n")
+        self.wfile.flush()
+
+    async def _stream_async_gen(self, message, user_func, input_route):
+        """Stream async generator yields as SSE events."""
+        async for payload_value in user_func(message["payload"]):
+            self._emit_sse_event(payload_value, input_route)
+        self.wfile.write(b"event: done\ndata: {}\n\n")
+        self.wfile.flush()
+
+    def _emit_sse_event(self, payload_value, input_route):
+        """Emit a single SSE event for a yielded value."""
+        if isinstance(payload_value, _UpstreamEvent):
+            data = json.dumps({"payload": payload_value.payload})
+            self.wfile.write(f"event: upstream\ndata: {data}\n\n".encode())
+        else:
+            vfs_state = _msg_vfs.snapshot()
+            frame = _build_frame(payload_value, input_route, vfs_state)
+            data = json.dumps(frame)
+            self.wfile.write(f"event: downstream\ndata: {data}\n\n".encode())
+        self.wfile.flush()
 
     def _send_json(self, code, data):
         """Send a JSON response with the given HTTP status code."""

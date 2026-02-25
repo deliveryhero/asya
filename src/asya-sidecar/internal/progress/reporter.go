@@ -195,6 +195,35 @@ func (r *Reporter) CreateTask(ctx context.Context, id, parentID string, route me
 	return nil
 }
 
+// ForwardUpstream sends an upstream partial event to the gateway for live SSE delivery.
+// Used for streaming token-by-token output from generator handlers to connected clients.
+func (r *Reporter) ForwardUpstream(ctx context.Context, taskID string, payload json.RawMessage) error {
+	if taskID == "" {
+		return nil
+	}
+
+	url := fmt.Sprintf("%s/tasks/%s/upstream", r.gatewayURL, taskID)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(payload))
+	if err != nil {
+		return fmt.Errorf("failed to create upstream request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := r.httpClient.Do(req)
+	if err != nil {
+		slog.Warn("Failed to forward upstream event", "task_id", taskID, "error", err)
+		return nil
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode != http.StatusOK {
+		slog.Warn("Upstream forward returned non-200", "task_id", taskID, "status", resp.StatusCode)
+	}
+
+	return nil
+}
+
 // ReportFinalError reports a final error status to the gateway
 // Used by end actors when they encounter unrecoverable errors (e.g., timeout)
 func (r *Reporter) ReportFinalError(ctx context.Context, taskID, errorMsg string) error {

@@ -144,9 +144,9 @@ func (r *Router) processEndActorMessage(ctx context.Context, msg messages.Messag
 	// End actors run in message mode with validation disabled.
 	// They typically return empty dict {}, which is ignored by the sidecar.
 
-	// Send to runtime without route validation
+	// Send to runtime without route validation (end actors don't forward upstream events)
 	runtimeStart := time.Now()
-	responses, err := r.runtimeClient.CallRuntime(ctx, msgBody)
+	responses, err := r.runtimeClient.CallRuntime(ctx, msgBody, nil)
 	runtimeDuration := time.Since(runtimeStart)
 
 	if r.metrics != nil {
@@ -709,9 +709,19 @@ func (r *Router) ProcessMessage(ctx context.Context, queueMsg transport.QueueMes
 		return fmt.Errorf("failed to marshal message with status: %w", err)
 	}
 
+	// Build upstream callback that forwards partial events to gateway
+	var onUpstream func(json.RawMessage)
+	if r.progressReporter != nil {
+		onUpstream = func(payload json.RawMessage) {
+			if err := r.progressReporter.ForwardUpstream(ctx, msg.ID, payload); err != nil {
+				slog.Warn("Failed to forward upstream event", "id", msg.ID, "error", err)
+			}
+		}
+	}
+
 	slog.Info("Calling runtime", "id", msg.ID, "actor", r.cfg.ActorName)
 	runtimeStart := time.Now()
-	responses, err := r.runtimeClient.CallRuntime(ctx, updatedBody)
+	responses, err := r.runtimeClient.CallRuntime(ctx, updatedBody, onUpstream)
 	runtimeDuration := time.Since(runtimeStart)
 
 	if err != nil {

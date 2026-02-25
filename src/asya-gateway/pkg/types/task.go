@@ -1,6 +1,9 @@
 package types
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
 // TaskStatus represents the current state of a task (MCP-style lowercase)
 type TaskStatus string
@@ -75,18 +78,19 @@ type Route struct {
 // Created by: Gateway handlers when processing ProgressUpdate (from sidecars) or
 // final status updates (from end actors like x-sink/x-sump).
 type TaskUpdate struct {
-	ID              string     `json:"id"`
-	Status          TaskStatus `json:"status"`                     // Task status (pending/running/succeeded/failed)
-	Message         string     `json:"message,omitempty"`          // Human-readable status message
-	Result          any        `json:"result,omitempty"`           // Final result (only for final states)
-	Error           string     `json:"error,omitempty"`            // Error message (only for failed status)
-	ProgressPercent *float64   `json:"progress_percent,omitempty"` // Progress 0-100 (nil if not a progress update)
-	Actor           string     `json:"actor,omitempty"`            // Current actor name (for progress updates)
-	Prev            []string   `json:"prev,omitempty"`             // Actors that have already processed this message
-	Curr            string     `json:"curr,omitempty"`             // Actor currently processing ("" at end-of-route)
-	Next            []string   `json:"next,omitempty"`             // Actors remaining after curr
-	TaskState       *string    `json:"task_state,omitempty"`       // Task processing state at current actor: "received" | "processing" | "completed"
-	Timestamp       time.Time  `json:"timestamp"`                  // When this update occurred
+	ID              string          `json:"id"`
+	Status          TaskStatus      `json:"status"`                     // Task status (pending/running/succeeded/failed)
+	Message         string          `json:"message,omitempty"`          // Human-readable status message
+	Result          any             `json:"result,omitempty"`           // Final result (only for final states)
+	Error           string          `json:"error,omitempty"`            // Error message (only for failed status)
+	ProgressPercent *float64        `json:"progress_percent,omitempty"` // Progress 0-100 (nil if not a progress update)
+	Actor           string          `json:"actor,omitempty"`            // Current actor name (for progress updates)
+	Prev            []string        `json:"prev,omitempty"`             // Actors that have already processed this message
+	Curr            string          `json:"curr,omitempty"`             // Actor currently processing ("" at end-of-route)
+	Next            []string        `json:"next,omitempty"`             // Actors remaining after curr
+	TaskState       *string         `json:"task_state,omitempty"`       // Task processing state at current actor: "received" | "processing" | "completed"
+	StreamPayload   json.RawMessage `json:"stream_payload,omitempty"`   // Upstream partial event payload (for SSE streaming)
+	Timestamp       time.Time       `json:"timestamp"`                  // When this update occurred
 }
 
 // ProgressUpdate represents a progress report sent FROM sidecars TO the gateway.
