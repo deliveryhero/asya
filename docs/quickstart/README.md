@@ -539,16 +539,8 @@ x-sink:
           env:
           - name: ASYA_GATEWAY_URL
             value: ""  # Set this when gateway is installed
-          - name: ASYA_S3_BUCKET
-            value: "asya-results-bucket"
-          - name: ASYA_S3_ENDPOINT
-            value: "http://localstack.asya-system.svc.cluster.local:4566"
-          - name: ASYA_S3_REGION
-            value: "us-east-1"
-          - name: AWS_ACCESS_KEY_ID
-            value: "test"
-          - name: AWS_SECRET_ACCESS_KEY
-            value: "test"
+          - name: ASYA_PERSISTENCE_MOUNT
+            value: /tmp/checkpoints/results
 
 x-sump:
   transport: sqs
@@ -560,16 +552,8 @@ x-sump:
           env:
           - name: ASYA_GATEWAY_URL
             value: ""  # Set this when gateway is installed
-          - name: ASYA_S3_BUCKET
-            value: "asya-errors-bucket"
-          - name: ASYA_S3_ENDPOINT
-            value: "http://localstack.asya-system.svc.cluster.local:4566"
-          - name: ASYA_S3_REGION
-            value: "us-east-1"
-          - name: AWS_ACCESS_KEY_ID
-            value: "test"
-          - name: AWS_SECRET_ACCESS_KEY
-            value: "test"
+          - name: ASYA_PERSISTENCE_MOUNT
+            value: /tmp/checkpoints/errors
 EOF
 
 helm install asya-crew asya/asya-crew \
@@ -699,16 +683,8 @@ x-sink:
           env:
           - name: ASYA_GATEWAY_URL
             value: "http://asya-gateway.default.svc.cluster.local:8080"
-          - name: ASYA_S3_BUCKET
-            value: "asya-results-bucket"
-          - name: ASYA_S3_ENDPOINT
-            value: "http://localstack.asya-system.svc.cluster.local:4566"
-          - name: ASYA_S3_REGION
-            value: "us-east-1"
-          - name: AWS_ACCESS_KEY_ID
-            value: "test"
-          - name: AWS_SECRET_ACCESS_KEY
-            value: "test"
+          - name: ASYA_PERSISTENCE_MOUNT
+            value: /tmp/checkpoints/results
 
 x-sump:
   transport: sqs
@@ -720,16 +696,8 @@ x-sump:
           env:
           - name: ASYA_GATEWAY_URL
             value: "http://asya-gateway.default.svc.cluster.local:8080"
-          - name: ASYA_S3_BUCKET
-            value: "asya-errors-bucket"
-          - name: ASYA_S3_ENDPOINT
-            value: "http://localstack.asya-system.svc.cluster.local:4566"
-          - name: ASYA_S3_REGION
-            value: "us-east-1"
-          - name: AWS_ACCESS_KEY_ID
-            value: "test"
-          - name: AWS_SECRET_ACCESS_KEY
-            value: "test"
+          - name: ASYA_PERSISTENCE_MOUNT
+            value: /tmp/checkpoints/errors
 EOF
 
 helm upgrade asya-crew asya/asya-crew \

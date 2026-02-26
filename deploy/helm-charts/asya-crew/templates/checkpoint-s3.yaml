@@ -44,7 +44,7 @@ spec:
           {{- end }}
           {{- end }}
           - name: ASYA_HANDLER
-            value: asya_crew.message_persistence.s3.checkpoint_handler
+            value: asya_crew.checkpointer.handler
           {{- with $checkpointS3.resources }}
           resources:
             {{- toYaml . | nindent 12 }}

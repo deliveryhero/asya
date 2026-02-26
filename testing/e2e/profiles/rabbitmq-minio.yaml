@@ -40,12 +40,9 @@ crew:
     transport: rabbitmq
     env:
       ASYA_GATEWAY_URL: "http://asya-gateway.asya-e2e.svc.cluster.local:8080"
-      ASYA_S3_BUCKET: "asya-results"
-      ASYA_S3_ENDPOINT: "http://minio.asya-e2e.svc.cluster.local:9000"
-      ASYA_S3_REGION: "us-east-1"
+      ASYA_PERSISTENCE_MOUNT: "/tmp/checkpoints/results"
       AWS_ACCESS_KEY_ID: "minioadmin"
       AWS_SECRET_ACCESS_KEY: "minioadmin"
-      ASYA_S3_RESULTS_PREFIX: ""
     scaling:
       enabled: true
       minReplicas: 1
@@ -53,12 +50,9 @@ crew:
     transport: rabbitmq
     env:
       ASYA_GATEWAY_URL: "http://asya-gateway.asya-e2e.svc.cluster.local:8080"
-      ASYA_S3_BUCKET: "asya-errors"
-      ASYA_S3_ENDPOINT: "http://minio.asya-e2e.svc.cluster.local:9000"
-      ASYA_S3_REGION: "us-east-1"
+      ASYA_PERSISTENCE_MOUNT: "/tmp/checkpoints/errors"
       AWS_ACCESS_KEY_ID: "minioadmin"
       AWS_SECRET_ACCESS_KEY: "minioadmin"
-      ASYA_S3_ERRORS_PREFIX: ""
     scaling:
       enabled: true
       minReplicas: 1

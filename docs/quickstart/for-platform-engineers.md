@@ -100,16 +100,9 @@ x-sink:
         - name: asya-runtime
           env:
           - name: ASYA_HANDLER
-            value: asya_crew.message_persistence.s3.checkpoint_handler
-          - name: ASYA_S3_BUCKET
-            value: asya-results
-          # For MinIO:
-          # - name: ASYA_S3_ENDPOINT
-          #   value: http://minio:9000
-          # - name: ASYA_S3_ACCESS_KEY
-          #   value: minioadmin
-          # - name: ASYA_S3_SECRET_KEY
-          #   value: minioadmin
+            value: asya_crew.checkpointer.handler
+          - name: ASYA_PERSISTENCE_MOUNT
+            value: /state/checkpoints
 
 x-sump:
   enabled: true
@@ -121,9 +114,9 @@ x-sump:
         - name: asya-runtime
           env:
           - name: ASYA_HANDLER
-            value: asya_crew.message_persistence.s3.checkpoint_handler
-          - name: ASYA_S3_BUCKET
-            value: asya-results
+            value: asya_crew.checkpointer.handler
+          - name: ASYA_PERSISTENCE_MOUNT
+            value: /state/checkpoints
 ```
 
 ```bash

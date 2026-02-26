@@ -16,7 +16,7 @@ Architecture:
 
 Environment Variables:
 - ASYA_MSG_ROOT: Path to virtual filesystem for message metadata (default: /proc/asya/msg)
-- ASYA_S3_BUCKET: S3/MinIO bucket for persistence (optional, enables inline S3 persistence)
+- ASYA_PERSISTENCE_MOUNT: State proxy mount path for inline checkpoint persistence (optional)
 
 VFS Paths:
 - /proc/asya/msg/id — read-only: message UUID
@@ -38,7 +38,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(level
 logger = logging.getLogger(__name__)
 
 ASYA_MSG_ROOT = os.getenv("ASYA_MSG_ROOT", "/proc/asya/msg")
-ASYA_S3_BUCKET = os.getenv("ASYA_S3_BUCKET", "")
+ASYA_PERSISTENCE_MOUNT = os.getenv("ASYA_PERSISTENCE_MOUNT", "")
 
 
 def sump_handler(payload: dict[str, Any]) -> None:
@@ -60,12 +60,12 @@ def sump_handler(payload: dict[str, Any]) -> None:
     else:
         logger.info(f"Terminal non-final phase '{phase}' for message {message_id}")
 
-    if ASYA_S3_BUCKET:
+    if ASYA_PERSISTENCE_MOUNT:
         try:
-            from asya_crew.message_persistence.s3 import checkpoint_handler
+            from asya_crew.checkpointer import handler
 
-            checkpoint_handler(payload)
+            handler(payload)
         except Exception as e:
-            logger.error(f"S3 persistence failed for message {message_id}: {e}")
+            logger.error(f"Checkpoint failed for message {message_id}: {e}")
 
     return None

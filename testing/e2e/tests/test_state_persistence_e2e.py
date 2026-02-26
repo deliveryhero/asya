@@ -118,6 +118,10 @@ def test_gateway_restart_preserves_task_history(e2e_helper):
 
 
 @pytest.mark.fast
+@pytest.mark.xfail(
+    reason="Checkpointer writes via open() to local filesystem; needs state proxy connector (debt/1k5a8e)",
+    strict=True,
+)
 def test_successful_result_persisted_to_s3(e2e_helper, s3_endpoint, results_bucket):
     """
     E2E: Test successful results are persisted to S3.
@@ -156,6 +160,10 @@ def test_successful_result_persisted_to_s3(e2e_helper, s3_endpoint, results_buck
 
 
 @pytest.mark.fast
+@pytest.mark.xfail(
+    reason="Checkpointer writes via open() to local filesystem; needs state proxy connector (debt/1k5a8e)",
+    strict=True,
+)
 def test_error_result_persisted_to_s3(e2e_helper, s3_endpoint, errors_bucket):
     """
     E2E: Test error results are persisted to S3 errors bucket.
@@ -194,6 +202,10 @@ def test_error_result_persisted_to_s3(e2e_helper, s3_endpoint, errors_bucket):
 
 
 @pytest.mark.fast
+@pytest.mark.xfail(
+    reason="Checkpointer writes via open() to local filesystem; needs state proxy connector (debt/1k5a8e)",
+    strict=True,
+)
 def test_s3_persistence_with_large_payload(e2e_helper, s3_endpoint, results_bucket):
     """
     E2E: Test large payload persisted correctly to S3.
@@ -281,6 +293,10 @@ def test_task_state_transitions_tracked(e2e_helper):
 
 
 @pytest.mark.fast
+@pytest.mark.xfail(
+    reason="Checkpointer writes via open() to local filesystem; needs state proxy connector (debt/1k5a8e)",
+    strict=True,
+)
 def test_concurrent_s3_writes_no_conflicts(e2e_helper, s3_endpoint, results_bucket):
     """
     E2E: Test concurrent S3 writes don't conflict.

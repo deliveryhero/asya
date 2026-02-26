@@ -76,6 +76,10 @@ def wait_for_completion(task_id: str, timeout: int = 60) -> dict:
     raise TimeoutError(f"Task {task_id} did not complete within {timeout}s")
 
 
+@pytest.mark.xfail(
+    reason="Checkpointer writes via open() to local filesystem; needs state proxy connector in Docker Compose (debt/1k5a8e)",
+    strict=True,
+)
 def test_x_sink_persists_to_s3():
     """
     Test that x-sink actor persists successful results to S3.
@@ -107,6 +111,10 @@ def test_x_sink_persists_to_s3():
     logger.info("=== test_x_sink_persists_to_s3: PASSED ===")
 
 
+@pytest.mark.xfail(
+    reason="Checkpointer writes via open() to local filesystem; needs state proxy connector in Docker Compose (debt/1k5a8e)",
+    strict=True,
+)
 def test_x_sump_persists_to_s3():
     """
     Test that x-sump actor persists errors to S3.
@@ -137,6 +145,10 @@ def test_x_sump_persists_to_s3():
     logger.info("=== test_x_sump_persists_to_s3: PASSED ===")
 
 
+@pytest.mark.xfail(
+    reason="Checkpointer writes via open() to local filesystem; needs state proxy connector in Docker Compose (debt/1k5a8e)",
+    strict=True,
+)
 def test_pipeline_result_persists_to_s3():
     """
     Test that multi-actor pipeline results are persisted to S3.

@@ -112,8 +112,9 @@ x-sump:
   # DO NOT set ASYA_HANDLER - it is pre-configured by the Helm template and cannot be overridden
   env: {}
 
-# Checkpoint-s3 actor configuration
-# S3 message persistence (can be used as hook or mid-pipeline checkpoint)
+# Checkpoint actor configuration
+# Message persistence via state proxy (can be used as hook or mid-pipeline checkpoint)
+# Storage backend is determined by the state proxy connector configured externally
 checkpoint-s3:
   enabled: false
   name: checkpoint-s3
@@ -161,12 +162,8 @@ checkpoint-s3:
   # Environment variables
   # DO NOT set ASYA_HANDLER - it is pre-configured by the Helm template and cannot be overridden
   env:
-    # S3/MinIO storage configuration (set to enable)
-    ASYA_S3_BUCKET: ""
-    ASYA_S3_ENDPOINT: ""
-    ASYA_S3_REGION: ""
-    ASYA_S3_ACCESS_KEY: ""
-    ASYA_S3_SECRET_KEY: ""
+    # State proxy mount path for checkpoint storage
+    ASYA_PERSISTENCE_MOUNT: ""
 
 # DLQ Worker configuration
 # Standalone Go binary for processing transport-level Dead Letter Queue messages.

@@ -24,7 +24,7 @@ services:
     - ../envs/.env.${ASYA_STORAGE}
     environment:
     - ASYA_HANDLER=asya_crew.sink.sink_handler
-    - ASYA_S3_BUCKET=asya-results
+    - ASYA_PERSISTENCE_MOUNT=/tmp/checkpoints/results
     volumes:
     - asya-x-sink-sockets:/var/run/asya
     - ../../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro
@@ -75,7 +75,7 @@ services:
     - ../envs/.env.${ASYA_STORAGE}
     environment:
     - ASYA_HANDLER=asya_crew.sump.sump_handler
-    - ASYA_S3_BUCKET=asya-errors
+    - ASYA_PERSISTENCE_MOUNT=/tmp/checkpoints/errors
     volumes:
     - asya-x-sump-sockets:/var/run/asya
     - ../../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro

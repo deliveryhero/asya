@@ -21,11 +21,8 @@ Persists successful results to S3 and returns metadata for sidecar to report to 
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `ASYA_HANDLER` | ✅ | Set to `asya_crew.message_persistence.s3.checkpoint_handler` |
-| `ASYA_S3_BUCKET` | ❌ | S3/MinIO bucket for storing results |
-| `ASYA_S3_ENDPOINT` | ❌ | MinIO endpoint (omit for AWS S3) |
-| `ASYA_S3_ACCESS_KEY` | ❌ | S3/MinIO credentials |
-| `ASYA_S3_SECRET_KEY` | ❌ | S3/MinIO credentials |
+| `ASYA_HANDLER` | ✅ | Set to `asya_crew.checkpointer.handler` |
+| `ASYA_PERSISTENCE_MOUNT` | ✅ | Directory path for checkpoint persistence |
 
 ### Message Format
 
@@ -51,11 +48,8 @@ Persists errors to S3 and returns error metadata for sidecar to report to gatewa
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `ASYA_HANDLER` | - | Set to `asya_crew.message_persistence.s3.checkpoint_handler` |
-| `ASYA_S3_BUCKET` | - | S3/MinIO bucket for errors |
-| `ASYA_S3_ENDPOINT` | - | MinIO endpoint (omit for AWS) |
-| `ASYA_S3_ACCESS_KEY` | - | S3/MinIO credentials |
-| `ASYA_S3_SECRET_KEY` | - | S3/MinIO credentials |
+| `ASYA_HANDLER` | - | Set to `asya_crew.checkpointer.handler` |
+| `ASYA_PERSISTENCE_MOUNT` | - | Directory path for checkpoint persistence |
 
 ### Message Format
 
@@ -96,9 +90,9 @@ spec:
           image: my-actor:latest
           env:
           - name: ASYA_HANDLER
-            value: "asya_crew.message_persistence.s3.checkpoint_handler"
-          - name: ASYA_S3_BUCKET
-            value: "asya-results"
+            value: "asya_crew.checkpointer.handler"
+          - name: ASYA_PERSISTENCE_MOUNT
+            value: "/state/checkpoints"
 ```
 
 See [Crossplane README](../../deploy/helm-charts/asya-crossplane/README.md) for deployment.

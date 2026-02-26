@@ -22,7 +22,7 @@ Environment Variables:
 - ASYA_SINK_FANOUT_HOOKS: When "true", run hooks even for fire-and-forget fan-out children
                            (messages with parent_id set but no x-asya-fan-in header).
                            Default: "false" — fan-out children skip hooks silently.
-- ASYA_S3_BUCKET: S3/MinIO bucket for persistence (optional, enables inline S3 persistence)
+- ASYA_PERSISTENCE_MOUNT: State proxy mount path for inline checkpoint persistence (optional)
 
 VFS Paths:
 - /proc/asya/msg/id — read-only: message UUID
@@ -52,7 +52,7 @@ logger = logging.getLogger(__name__)
 ASYA_MSG_ROOT = os.getenv("ASYA_MSG_ROOT", "/proc/asya/msg")
 ASYA_SINK_HOOKS = os.getenv("ASYA_SINK_HOOKS", "")
 ASYA_SINK_FANOUT_HOOKS = os.getenv("ASYA_SINK_FANOUT_HOOKS", "false").lower() == "true"
-ASYA_S3_BUCKET = os.getenv("ASYA_S3_BUCKET", "")
+ASYA_PERSISTENCE_MOUNT = os.getenv("ASYA_PERSISTENCE_MOUNT", "")
 
 
 def sink_handler(payload: dict[str, Any]) -> dict[str, Any] | None:
@@ -79,13 +79,13 @@ def sink_handler(payload: dict[str, Any]) -> dict[str, Any] | None:
         f"Processing sink for message {message_id}, phase={phase}, fan_in={has_fan_in}, parent_id={has_parent_id}"
     )
 
-    if ASYA_S3_BUCKET:
+    if ASYA_PERSISTENCE_MOUNT:
         try:
-            from asya_crew.message_persistence.s3 import checkpoint_handler
+            from asya_crew.checkpointer import handler
 
-            checkpoint_handler(payload)
+            handler(payload)
         except Exception as e:
-            logger.error(f"S3 persistence failed for message {message_id}: {e}")
+            logger.error(f"Checkpoint failed for message {message_id}: {e}")
 
     if has_parent_id and not has_fan_in and not ASYA_SINK_FANOUT_HOOKS:
         logger.info(f"Fan-out child (parent_id set), skipping hooks for message {message_id}")

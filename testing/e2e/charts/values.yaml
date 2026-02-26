@@ -238,11 +238,7 @@ crew:
     transport: rabbitmq
     env:
       ASYA_GATEWAY_URL: "http://asya-gateway.asya-e2e.svc.cluster.local:8080"
-      ASYA_S3_BUCKET: "asya-results"
-      ASYA_S3_ENDPOINT: "http://minio.asya-e2e.svc.cluster.local:9000"
-      ASYA_S3_ACCESS_KEY: "minioadmin"
-      ASYA_S3_SECRET_KEY: "minioadmin"
-      ASYA_S3_RESULTS_PREFIX: ""
+      ASYA_PERSISTENCE_MOUNT: "/tmp/checkpoints/results"
     resources:
       requests:
         cpu: 50m
@@ -266,11 +262,7 @@ crew:
     transport: rabbitmq
     env:
       ASYA_GATEWAY_URL: "http://asya-gateway.asya-e2e.svc.cluster.local:8080"
-      ASYA_S3_BUCKET: "asya-errors"
-      ASYA_S3_ENDPOINT: "http://minio.asya-e2e.svc.cluster.local:9000"
-      ASYA_S3_ACCESS_KEY: "minioadmin"
-      ASYA_S3_SECRET_KEY: "minioadmin"
-      ASYA_S3_ERRORS_PREFIX: ""
+      ASYA_PERSISTENCE_MOUNT: "/tmp/checkpoints/errors"
     resources:
       requests:
         cpu: 50m

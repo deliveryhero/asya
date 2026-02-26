@@ -50,7 +50,7 @@ def setup_vfs(tmpdir, msg_id="test-001", phase="succeeded", parent_id="", header
 @pytest.fixture(autouse=True)
 def setup_test_env(tmp_path, monkeypatch):
     """Set up test environment before each test."""
-    for key in ["ASYA_SINK_HOOKS", "ASYA_SINK_FANOUT_HOOKS", "ASYA_S3_BUCKET"]:
+    for key in ["ASYA_SINK_HOOKS", "ASYA_SINK_FANOUT_HOOKS", "ASYA_PERSISTENCE_MOUNT"]:
         monkeypatch.delenv(key, raising=False)
 
     vfs_root = setup_vfs(str(tmp_path))

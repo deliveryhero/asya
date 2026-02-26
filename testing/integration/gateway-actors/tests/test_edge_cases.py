@@ -35,7 +35,6 @@ import pytest
 import requests
 from sseclient import SSEClient
 
-from asya_testing.utils.s3 import wait_for_message_in_s3
 from asya_testing.utils.gateway import GatewayTestHelper
 from asya_testing.utils import wait_for_transport
 from asya_testing.config import require_env, get_env
@@ -84,14 +83,6 @@ def test_fan_out_array_response(gateway_helper):
     # This test documents the expected behavior
     logger.info(f"Fanout payload: {payload}")
 
-    s3_object = wait_for_message_in_s3(bucket_name="asya-results", message_id=task_id, timeout=10)
-    assert s3_object is not None, f"x-sink should persist fan-out message {task_id} to S3"
-    # S3 stores just the payload dict; for fanout, it's the fanned-out item payload
-    assert "index" in s3_object, "S3 fanout payload should have index field"
-    assert "message" in s3_object, "S3 fanout payload should have message field"
-    assert s3_object.get("count") == payload.get("count"), "S3 should preserve original count param"
-    logger.info(f"S3 verification: Fan-out item persisted correctly with index={s3_object['index']}")
-
 
 def test_empty_payload_handling(gateway_helper):
     """
@@ -113,10 +104,6 @@ def test_empty_payload_handling(gateway_helper):
     # Verify task completed successfully with original payload
     assert final_task["status"] == "succeeded", "Empty response should go to x-sink"
     logger.info(f"Final task: {final_task}")
-
-    s3_object = wait_for_message_in_s3(bucket_name="asya-results", message_id=task_id, timeout=10)
-    assert s3_object is not None, f"x-sink should persist empty payload message {task_id} to S3"
-    logger.info("S3 verification: x-sink persisted empty payload correctly")
 
 
 def test_multiple_sse_clients_for_same_task(gateway_helper):
@@ -377,11 +364,6 @@ def test_unicode_payload_handling(gateway_helper):
 
     logger.info(f"Unicode result: {result}")
 
-    s3_object = wait_for_message_in_s3(bucket_name="asya-results", message_id=task_id, timeout=10)
-    assert s3_object is not None, f"x-sink should persist unicode message {task_id} to S3"
-    assert s3_object == result, "S3 payload should preserve unicode characters correctly"
-    logger.info("S3 verification: x-sink persisted unicode payload correctly")
-
 
 def test_large_payload_within_limits(gateway_helper):
     """
@@ -410,10 +392,6 @@ def test_large_payload_within_limits(gateway_helper):
     assert final_task["status"] == "succeeded", \
         f"Large payload should succeed, got {final_task['status']}"
 
-    s3_object = wait_for_message_in_s3(bucket_name="asya-results", message_id=task_id, timeout=10)
-    assert s3_object is not None, f"x-sink should persist large payload message {task_id} to S3"
-    logger.info("S3 verification: x-sink persisted large payload correctly")
-
 
 
 def test_nested_json_payload(gateway_helper):
@@ -436,11 +414,6 @@ def test_nested_json_payload(gateway_helper):
 
     result = final_task.get("result", {})
     assert result.get("nested_depth") == 20, "Should have 20 levels of nesting"
-
-    s3_object = wait_for_message_in_s3(bucket_name="asya-results", message_id=task_id, timeout=10)
-    assert s3_object is not None, f"x-sink should persist nested payload message {task_id} to S3"
-    assert s3_object == result, "S3 payload should preserve nested JSON correctly"
-    logger.info("S3 verification: x-sink persisted nested payload correctly")
 
 
 
@@ -465,11 +438,6 @@ def test_null_values_in_payload(gateway_helper):
     result = final_task.get("result", {})
     assert result.get("null_field") is None, "null_field should be None"
     assert None in result.get("list_with_nulls", []), "list should contain None values"
-
-    s3_object = wait_for_message_in_s3(bucket_name="asya-results", message_id=task_id, timeout=10)
-    assert s3_object is not None, f"x-sink should persist null values message {task_id} to S3"
-    assert s3_object == result, "S3 payload should preserve null values correctly"
-    logger.info("S3 verification: x-sink persisted null values correctly")
 
 
 def test_multi_actor_parameter_flow(gateway_helper):
@@ -555,28 +523,3 @@ def test_multi_actor_parameter_flow(gateway_helper):
         "Actor 2 should NOT have original params at top level (they're in actor_1's captured data)"
 
     logger.info("Verified parameter flow through actor pipeline")
-
-    logger.info("Waiting for S3 persistence to verify what x-sink received...")
-    s3_object = wait_for_message_in_s3(
-        bucket_name="asya-results",
-        message_id=task_id,
-        timeout=10,
-    )
-
-    assert s3_object is not None, \
-        f"Message {task_id} should be persisted to S3 by x-sink"
-
-    # S3 stores just the payload dict (not the full message message)
-    logger.info(f"x-sink persisted result: {json.dumps(s3_object, indent=2)}")
-
-    assert s3_object == result, \
-        "x-sink should persist exactly what the final actor (actor 2) returned"
-
-    assert s3_object.get("processed_by") == "actor_2", \
-        "x-sink should receive the final actor's output (processed by actor_2)"
-
-    assert "actor_2_received" in s3_object, \
-        "x-sink should receive actor 2's complete output including what it received"
-
-    logger.info("S3 verification PASSED: x-sink received and persisted final actor output correctly")
-    logger.info("Parameter flow test PASSED: Multi-actor pipeline correctly passes outputs")

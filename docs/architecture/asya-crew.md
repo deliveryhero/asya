@@ -22,27 +22,17 @@ Crew actors are **end actors** that run in special sidecar mode (`ASYA_IS_END_AC
 
 **Queue**: `asya-{namespace}-x-sink` (automatically routed by sidecar when pipeline completes)
 
-**Handler**: `asya_crew.message_persistence.s3.checkpoint_handler`
+**Handler**: `asya_crew.checkpointer.handler`
 
 **Environment Variables**:
 ```yaml
 # Required (auto-injected by operator)
 - name: ASYA_HANDLER
-  value: asya_crew.message_persistence.s3.checkpoint_handler
+  value: asya_crew.checkpointer.handler
 
-# Optional S3/MinIO persistence
-- name: ASYA_S3_BUCKET
-  value: asya-results
-- name: ASYA_S3_ENDPOINT
-  value: http://minio:9000  # Omit for AWS S3
-- name: ASYA_S3_ACCESS_KEY
-  value: minioadmin  # Optional for MinIO
-- name: ASYA_S3_SECRET_KEY
-  value: minioadmin  # Optional for MinIO
-- name: ASYA_S3_RESULTS_PREFIX
-  value: sink-asya/  # Default prefix
-- name: AWS_REGION
-  value: us-east-1  # For AWS S3 only
+# Checkpoint persistence mount point
+- name: ASYA_PERSISTENCE_MOUNT
+  value: /state/checkpoints
 ```
 
 **S3 Key Structure**:
@@ -70,27 +60,17 @@ sink-asya/2025-11-18T14:30:45.123456Z/text-processor/abc-123.json
 
 **Queue**: `asya-{namespace}-x-sump` (automatically routed by sidecar when runtime/sidecar errors occur)
 
-**Handler**: `asya_crew.message_persistence.s3.checkpoint_handler`
+**Handler**: `asya_crew.checkpointer.handler`
 
 **Environment Variables**:
 ```yaml
 # Required (auto-injected by operator)
 - name: ASYA_HANDLER
-  value: asya_crew.message_persistence.s3.checkpoint_handler
+  value: asya_crew.checkpointer.handler
 
-# Optional S3/MinIO persistence
-- name: ASYA_S3_BUCKET
-  value: asya-results
-- name: ASYA_S3_ENDPOINT
-  value: http://minio:9000  # Omit for AWS S3
-- name: ASYA_S3_ACCESS_KEY
-  value: minioadmin  # Optional for MinIO
-- name: ASYA_S3_SECRET_KEY
-  value: minioadmin  # Optional for MinIO
-- name: ASYA_S3_ERRORS_PREFIX
-  value: error-asya/  # Default prefix
-- name: AWS_REGION
-  value: us-east-1  # For AWS S3 only
+# Checkpoint persistence mount point
+- name: ASYA_PERSISTENCE_MOUNT
+  value: /state/checkpoints
 ```
 
 **S3 Key Structure**:
@@ -164,7 +144,7 @@ x-sink:
           image: ghcr.io/deliveryhero/asya-crew:latest
           env:
           - name: ASYA_HANDLER
-            value: asya_crew.message_persistence.s3.checkpoint_handler
+            value: asya_crew.checkpointer.handler
           # Optional S3 configuration (uncomment to enable)
           resources:
             requests:
@@ -191,7 +171,7 @@ x-sump:
           image: ghcr.io/deliveryhero/asya-crew:latest
           env:
           - name: ASYA_HANDLER
-            value: asya_crew.message_persistence.s3.checkpoint_handler
+            value: asya_crew.checkpointer.handler
           resources:
             requests:
               cpu: 50m
@@ -214,15 +194,9 @@ x-sink:
         - name: asya-runtime
           env:
           - name: ASYA_HANDLER
-            value: asya_crew.message_persistence.s3.checkpoint_handler
-          - name: ASYA_S3_BUCKET
-            value: my-results-bucket
-          - name: ASYA_S3_ENDPOINT
-            value: http://minio.storage:9000
-          - name: ASYA_S3_ACCESS_KEY
-            value: minioadmin
-          - name: ASYA_S3_SECRET_KEY
-            value: minioadmin
+            value: asya_crew.checkpointer.handler
+          - name: ASYA_PERSISTENCE_MOUNT
+            value: /state/checkpoints
 
 x-sump:
   workload:
@@ -232,11 +206,9 @@ x-sump:
         - name: asya-runtime
           env:
           - name: ASYA_HANDLER
-            value: asya_crew.message_persistence.s3.checkpoint_handler
-          - name: ASYA_S3_BUCKET
-            value: my-results-bucket
-          - name: ASYA_S3_ENDPOINT
-            value: http://minio.storage:9000
+            value: asya_crew.checkpointer.handler
+          - name: ASYA_PERSISTENCE_MOUNT
+            value: /state/checkpoints
 ```
 
 Deploy with custom values:
