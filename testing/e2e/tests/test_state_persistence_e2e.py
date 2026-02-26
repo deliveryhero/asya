@@ -428,10 +428,6 @@ def test_database_connection_recovery(e2e_helper):
 
 @pytest.mark.chaos
 @pytest.mark.xdist_group(name="chaos")
-@pytest.mark.xfail(
-    reason="Checkpointer writes via open() to local filesystem; needs state proxy connector (debt/1k5a8e)",
-    strict=True,
-)
 def test_s3_error_retry_logic(e2e_helper, s3_endpoint):
     """
     E2E: Test S3 write failures are retried.
