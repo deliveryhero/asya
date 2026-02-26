@@ -606,8 +606,19 @@ class DotGenerator:
         if terminal_router:
             if terminal_router.condition:
                 # Conditional with an empty branch: add fall-through edge
-                if not terminal_router.true_branch_actors or not terminal_router.false_branch_actors:
+                # with the correct T/F label and color for the empty branch
+                if not terminal_router.true_branch_actors and not terminal_router.false_branch_actors:
                     lines.add(f"  {self._node_id(terminal)} -> {self._node_id(resolved_target)};")
+                elif not terminal_router.false_branch_actors:
+                    lines.add(
+                        f"  {self._node_id(terminal)} -> {self._node_id(resolved_target)}"
+                        f' [label="F", color={self._color_false_branch}];'
+                    )
+                elif not terminal_router.true_branch_actors:
+                    lines.add(
+                        f"  {self._node_id(terminal)} -> {self._node_id(resolved_target)}"
+                        f' [label="T", color={self._color_true_branch}];'
+                    )
                 return
             # Skip other edge-owning routers (they generate their own edges)
             if any(

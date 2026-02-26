@@ -33,6 +33,6 @@ digraph flow {
   router_loop_flow_line_17_seq -> process_abort;
   router_loop_flow_line_19_seq -> router_loop_flow_line_12_loop_back_0;
   router_loop_flow_line_23_if -> finalize_loop [label="T", color=darkseagreen4];
-  router_loop_flow_line_23_if -> router_loop_flow_line_12_loop_back_0;
+  router_loop_flow_line_23_if -> router_loop_flow_line_12_loop_back_0 [label="F", color=indianred4];
   start_loop_flow -> initialize;
 }

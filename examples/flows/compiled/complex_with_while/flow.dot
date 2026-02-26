@@ -40,7 +40,7 @@ digraph flow {
   router_complex_flow_line_23_if -> router_complex_flow_line_19_loop_back_0 [label="T", color=darkseagreen4];
   router_complex_flow_line_23_if -> router_complex_flow_line_26_if [label="F", color=indianred4];
   router_complex_flow_line_26_if -> handler_finalize [label="T", color=darkseagreen4];
-  router_complex_flow_line_26_if -> router_complex_flow_line_19_loop_back_0;
+  router_complex_flow_line_26_if -> router_complex_flow_line_19_loop_back_0 [label="F", color=indianred4];
   router_complex_flow_line_29_if -> handler_finalize [label="F", color=indianred4];
   router_complex_flow_line_29_if -> handler_retry_handler [label="T", color=darkseagreen4];
   start_complex_flow -> handler_preprocess;
