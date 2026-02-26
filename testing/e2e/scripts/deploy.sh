@@ -306,6 +306,40 @@ time {
 }
 echo
 
+# Phase 6c: Wait for asya-injector webhook TLS to be ready
+# cert-manager's cainjector asynchronously injects the CA bundle into the
+# MutatingWebhookConfiguration after the Certificate is issued. Without this
+# wait, AsyncActor creation in Phase 7 fails with "x509: certificate signed
+# by unknown authority" because the API server hasn't received the CA bundle yet.
+echo "[.] Phase 6c: Waiting for asya-injector webhook TLS..."
+time {
+  echo "[.] Waiting for Certificate to be issued..."
+  if ! kubectl wait --for=condition=Ready certificate/asya-injector-tls \
+    -n "$SYSTEM_NAMESPACE" --timeout=120s 2> /dev/null; then
+    echo "[-] Certificate not ready after 120s"
+    kubectl get certificate -n "$SYSTEM_NAMESPACE" || true
+    exit 1
+  fi
+  echo "[+] Certificate issued"
+
+  echo "[.] Waiting for CA bundle injection into webhook..."
+  for i in $(seq 1 30); do
+    CA_BUNDLE=$(kubectl get mutatingwebhookconfiguration asya-injector \
+      -o jsonpath='{.webhooks[0].clientConfig.caBundle}' 2> /dev/null)
+    if [ -n "$CA_BUNDLE" ]; then
+      echo "[+] CA bundle injected into MutatingWebhookConfiguration"
+      break
+    fi
+    if [ "$i" -eq 30 ]; then
+      echo "[-] Timeout waiting for CA bundle injection (60s)"
+      kubectl get mutatingwebhookconfiguration asya-injector -o yaml || true
+      exit 1
+    fi
+    sleep 2 # Poll for cainjector to update the webhook config
+  done
+}
+echo
+
 # Phase 7: Deploy application layer with Helmfile (test actors + system actors)
 echo "[.] Phase 7: Deploying application layer (actors)..."
 time {
