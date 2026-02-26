@@ -573,26 +573,46 @@ class DotGenerator:
     def _add_sequential_edges(self, actors: list[str], lines: set[str]) -> None:
         """Add sequential edges between consecutive actors in a branch.
 
-        Stops the chain when an actor is a router that generates its own
-        outgoing edges (conditional, loop-back, fan-out, or try-except routers),
-        preventing duplicate edges in the graph.
+        For router sources, finds their terminal actors and connects those
+        terminals to the next actor in the chain, rather than adding a direct
+        source → target edge. Edge-owning routers (conditional, loop-back,
+        fan-out, try-except) are skipped as terminals since they generate
+        their own outgoing edges.
         """
         for i in range(len(actors) - 1):
             source = actors[i]
             target = actors[i + 1]
             if source in self._hidden_routers or target in self._hidden_routers:
                 continue
-            # If the source is a router that owns its own outgoing edges, stop the chain
             source_router = self.router_map.get(source)
-            if source_router and (
-                source_router.condition
-                or source_router.is_loop_back
-                or source_router.is_fan_out
-                or source_router.is_try_enter
-                or source_router.is_try_exit
-                or source_router.is_except_dispatch
-            ):
-                break
+            if source_router:
+                # For ANY router source, connect its terminal actors to the target
+                # rather than adding a direct source → target edge
+                resolved_target = self._resolve(target)
+                if resolved_target not in self._hidden_routers:
+                    terminals = self._find_chain_terminals([source])
+                    for terminal in terminals:
+                        terminal_router = self.router_map.get(terminal)
+                        if terminal_router:
+                            if terminal_router.condition:
+                                # Conditional with an empty branch: add fall-through edge
+                                if not terminal_router.true_branch_actors or not terminal_router.false_branch_actors:
+                                    lines.add(f"  {self._node_id(terminal)} -> {self._node_id(resolved_target)};")
+                                continue
+                            # Skip other edge-owning routers (they generate their own edges)
+                            if (
+                                terminal_router.is_loop_back
+                                or terminal_router.is_fan_out
+                                or terminal_router.is_try_enter
+                                or terminal_router.is_try_exit
+                                or terminal_router.is_except_dispatch
+                            ):
+                                continue
+                        # Skip flow exits and self-loops
+                        if terminal.startswith("end_") or terminal == resolved_target:
+                            continue
+                        lines.add(f"  {self._node_id(terminal)} -> {self._node_id(resolved_target)};")
+                continue
             lines.add(f"  {self._node_id(source)} -> {self._node_id(target)};")
 
     # ── Helpers ──────────────────────────────────────────────────────
@@ -621,12 +641,20 @@ class DotGenerator:
         router = self.router_map.get(last)
         if router:
             if router.condition:
+                if not router.true_branch_actors or not router.false_branch_actors:
+                    # One or both branches empty: the conditional itself is a
+                    # terminal (empty branch falls through to the next actor)
+                    return [last]
                 terminals = []
-                if router.true_branch_actors:
-                    terminals.extend(self._find_chain_terminals(router.true_branch_actors))
-                if router.false_branch_actors:
-                    terminals.extend(self._find_chain_terminals(router.false_branch_actors))
+                terminals.extend(self._find_chain_terminals(router.true_branch_actors))
+                terminals.extend(self._find_chain_terminals(router.false_branch_actors))
                 return terminals if terminals else [last]
+            elif router.is_try_exit:
+                # Follow continuation through try-exit infrastructure
+                continuation = [*router.finally_actors, *router.continuation_actors]
+                if continuation:
+                    return self._find_chain_terminals(continuation)
+                return [last]
             elif not router.is_loop_back and router.true_branch_actors:
                 return self._find_chain_terminals(router.true_branch_actors)
         return [last]

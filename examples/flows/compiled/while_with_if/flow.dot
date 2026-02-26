@@ -14,8 +14,10 @@ digraph flow {
   handler_init [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = handler_init(p)</i></td></tr></table>>];
   handler_odd [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = handler_odd(p)</i></td></tr></table>>];
 
+  handler_even -> router_if_inside_while_flow_line_11_loop_back_0;
   handler_finalize -> end_if_inside_while_flow;
   handler_init -> router_if_inside_while_flow_line_11_while_0;
+  handler_odd -> router_if_inside_while_flow_line_11_loop_back_0;
   router_if_inside_while_flow_line_11_loop_back_0 -> router_if_inside_while_flow_line_11_while_0 [constraint=false];
   router_if_inside_while_flow_line_11_while_0 -> handler_finalize [label="F", color=indianred4];
   router_if_inside_while_flow_line_11_while_0 -> router_if_inside_while_flow_line_13_if [label="T", color=darkseagreen4];

@@ -11,6 +11,7 @@ digraph flow {
   execute_tool [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = execute_tool(p)</i></td></tr></table>>];
   llm_call [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = llm_call(p)</i></td></tr></table>>];
 
+  execute_tool -> router_react_agent_line_10_loop_back_0;
   llm_call -> router_react_agent_line_12_if;
   router_react_agent_line_10_loop_back_0 -> llm_call [constraint=false];
   router_react_agent_line_12_if -> end_react_agent [label="F", color=indianred4];

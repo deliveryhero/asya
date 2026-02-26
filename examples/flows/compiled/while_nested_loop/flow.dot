@@ -17,7 +17,9 @@ digraph flow {
   process_item [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = process_item(p)</i></td></tr></table>>];
 
   finalize_loop_i -> end_nested_loop_flow;
+  finalize_loop_j -> router_nested_loop_flow_line_12_loop_back_0;
   initialize -> router_nested_loop_flow_line_12_while_0;
+  process_item -> router_nested_loop_flow_line_15_loop_back_1;
   router_nested_loop_flow_line_12_loop_back_0 -> router_nested_loop_flow_line_12_while_0 [constraint=false];
   router_nested_loop_flow_line_12_while_0 -> finalize_loop_i [label="F", color=indianred4];
   router_nested_loop_flow_line_12_while_0 -> router_nested_loop_flow_line_15_while_1 [label="T", color=darkseagreen4];
@@ -25,6 +27,5 @@ digraph flow {
   router_nested_loop_flow_line_15_while_1 -> finalize_loop_j [label="F", color=indianred4];
   router_nested_loop_flow_line_15_while_1 -> router_nested_loop_flow_line_16_seq [label="T", color=darkseagreen4];
   router_nested_loop_flow_line_16_seq -> process_item;
-  router_nested_loop_flow_line_16_seq -> router_nested_loop_flow_line_15_loop_back_1;
   start_nested_loop_flow -> initialize;
 }
