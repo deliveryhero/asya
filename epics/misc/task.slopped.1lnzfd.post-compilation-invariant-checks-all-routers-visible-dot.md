@@ -12,7 +12,7 @@ After fixing the while-loop DOT visualization dead-end bug (#226), we have stron
 
 Add post-compilation checks (run after every `asya flow compile`) that verify:
 
-1. **Router-DOT parity**: Every router function defined in `routers.py` (except `resolve()` and module-level code) must have a corresponding node in `flow.dot`
+1. **Router-DOT parity**: Every router function defined in `routers.py` (except `resolve()` and module-level code) must have a corresponding node in `flow.dot` (similarly, to the future React-flow components as alternative to dot).
 2. **Input/output connectivity**: Every node in the DOT graph must have:
    - At least one **incoming** edge (except `start_*`)
    - At least one **outgoing** edge (except `end_*`)
