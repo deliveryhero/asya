@@ -11,6 +11,7 @@ dependencies:
 
 
 
+
 ## Scope
 
 Fix protocol mismatch: the gateway currently stamps deadline as a top-level `Deadline` field on `ActorMessage`. Change it to stamp `status.deadline_at` inside the message status struct, matching the sidecar protocol.
