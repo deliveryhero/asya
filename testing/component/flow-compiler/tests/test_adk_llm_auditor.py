@@ -1,4 +1,3 @@
-import os
 import sys
 import tempfile
 from pathlib import Path
@@ -41,19 +40,16 @@ def compile_and_import():
 
 
 def _setup_vfs(tmpdir, prev, next_actors):
-    vfs_root = os.path.join(tmpdir, "vfs")
-    route_dir = os.path.join(vfs_root, "route")
-    os.makedirs(route_dir, exist_ok=True)
-    with open(os.path.join(route_dir, "prev"), "w") as f:
-        f.write("\n".join(prev))
-    with open(os.path.join(route_dir, "next"), "w") as f:
-        f.write("\n".join(next_actors))
-    return vfs_root
+    vfs_root = Path(tmpdir) / "vfs"
+    route_dir = vfs_root / "route"
+    route_dir.mkdir(parents=True, exist_ok=True)
+    (route_dir / "prev").write_text("\n".join(prev))
+    (route_dir / "next").write_text("\n".join(next_actors))
+    return str(vfs_root)
 
 
 def _read_vfs_next(vfs_root):
-    with open(os.path.join(vfs_root, "route", "next")) as f:
-        content = f.read()
+    content = (Path(vfs_root) / "route" / "next").read_text()
     return [x for x in content.splitlines() if x]
 
 
@@ -82,7 +78,7 @@ def test_compile_sequential_async(project_root):
     assert "start_llm_auditor_flow" in router_names
     assert "end_llm_auditor_flow" in router_names
 
-    start_router = [r for r in compiler.routers if r.name == "start_llm_auditor_flow"][0]
+    start_router = next(r for r in compiler.routers if r.name == "start_llm_auditor_flow")
     assert "critic" in start_router.true_branch_actors
     assert "reviser" in start_router.true_branch_actors
 
@@ -122,7 +118,8 @@ def test_compile_react_loop(project_root):
     assert "execute_tool" in code
 
 
-def test_execute_react_loop_no_tools(project_root, compile_and_import, monkeypatch):
+def _run_react_loop_if_router(project_root, compile_and_import, monkeypatch, payload):
+    """Compile the ReAct loop flow, execute the conditional router, return VFS next actors."""
     monkeypatch.setenv("ASYA_HANDLER_LLM_CALL", "llm_call")
     monkeypatch.setenv("ASYA_HANDLER_EXECUTE_TOOL", "execute_tool")
 
@@ -131,38 +128,25 @@ def test_execute_react_loop_no_tools(project_root, compile_and_import, monkeypat
     routers = compile_and_import(source)
 
     router_names = [name for name in dir(routers) if name.startswith("router_react_agent")]
-    if_router_name = [n for n in router_names if "_if" in n][0]
+    if_router_name = next(n for n in router_names if "_if" in n)
     if_router = getattr(routers, if_router_name)
 
     with tempfile.TemporaryDirectory() as tmpdir:
         vfs_root = _setup_vfs(tmpdir, [], [])
         monkeypatch.setattr(routers, "_MSG_ROOT", vfs_root)
-
-        payload = {"tool_calls": []}
         if_router(payload)
+        return _read_vfs_next(vfs_root)
 
-        next_actors = _read_vfs_next(vfs_root)
-        assert "execute-tool" not in next_actors
+
+def test_execute_react_loop_no_tools(project_root, compile_and_import, monkeypatch):
+    next_actors = _run_react_loop_if_router(
+        project_root, compile_and_import, monkeypatch, {"tool_calls": []}
+    )
+    assert "execute-tool" not in next_actors
 
 
 def test_execute_react_loop_with_tools(project_root, compile_and_import, monkeypatch):
-    monkeypatch.setenv("ASYA_HANDLER_LLM_CALL", "llm_call")
-    monkeypatch.setenv("ASYA_HANDLER_EXECUTE_TOOL", "execute_tool")
-
-    flow_file = project_root / "examples" / "flows" / "while_react_loop.py"
-    source = flow_file.read_text()
-    routers = compile_and_import(source)
-
-    router_names = [name for name in dir(routers) if name.startswith("router_react_agent")]
-    if_router_name = [n for n in router_names if "_if" in n][0]
-    if_router = getattr(routers, if_router_name)
-
-    with tempfile.TemporaryDirectory() as tmpdir:
-        vfs_root = _setup_vfs(tmpdir, [], [])
-        monkeypatch.setattr(routers, "_MSG_ROOT", vfs_root)
-
-        payload = {"tool_calls": ["some_tool"]}
-        if_router(payload)
-
-        next_actors = _read_vfs_next(vfs_root)
-        assert "execute-tool" in next_actors
+    next_actors = _run_react_loop_if_router(
+        project_root, compile_and_import, monkeypatch, {"tool_calls": ["some_tool"]}
+    )
+    assert "execute-tool" in next_actors
