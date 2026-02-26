@@ -6,10 +6,9 @@ Tests the sidecar's deadline_at-based SLA enforcement mechanisms:
 2. Effective timeout: effectiveTimeout = min(ACTOR_TIMEOUT, remaining_SLA)
 3. Retry + SLA interaction: SLA pre-check takes precedence over retry logic
 
-IMPORTANT: Test ordering matters! TestSLAPreCheck must run before
-TestSLAEffectiveTimeout because the effective-timeout test causes the sidecar
-to os.Exit(1) after runtime timeout, killing the container. The pre-check test
-is non-destructive (sidecar stays alive after routing to x-sink).
+IMPORTANT: TestSLAEffectiveTimeout must run last because it causes the
+test-sla-slow sidecar to os.Exit(1) after runtime timeout. Other tests
+are non-destructive and must complete before the sidecar crash.
 
 Test actors:
 - test-sla-slow: timeout_handler (sleeps 120s), ACTOR_TIMEOUT=30s
@@ -47,8 +46,6 @@ class TestSLAPreCheck:
     When a message arrives with an already-expired deadline_at, the sidecar
     routes it directly to x-sink with phase=failed, reason=Timeout.
     The runtime is never called — no handler execution overhead.
-
-    MUST run before TestSLAEffectiveTimeout (which crashes the sidecar).
     """
 
     def test_expired_deadline_routes_to_sink(self, transport_helper):
@@ -114,82 +111,6 @@ class TestSLAPreCheck:
 
         logger.info(
             f"=== test_expired_deadline_routes_to_sink: PASSED ({elapsed:.1f}s) ==="
-        )
-
-
-class TestSLAEffectiveTimeout:
-    """SLA deadline constrains the sidecar's effective timeout.
-
-    The sidecar computes effectiveTimeout = min(ACTOR_TIMEOUT, remaining_SLA).
-    When remaining_SLA < ACTOR_TIMEOUT, the runtime context deadline fires
-    earlier than ACTOR_TIMEOUT would, proving the SLA constrains the timeout.
-
-    WARNING: This test causes the sidecar to os.Exit(1) after runtime timeout.
-    Must run AFTER TestSLAPreCheck (which needs the sidecar alive).
-    """
-
-    def test_sla_constrains_effective_timeout(self, transport_helper):
-        """Deadline tighter than ACTOR_TIMEOUT causes earlier runtime timeout.
-
-        Setup:
-        - Actor: test-sla-slow (timeout_handler sleeps 120s, ACTOR_TIMEOUT=30s)
-        - Deadline: 5s from now
-
-        Without SLA: effective timeout = 30s (ACTOR_TIMEOUT)
-        With SLA: effective timeout = min(30s, 5s) = 5s
-
-        Handler exceeds effective timeout at ~5s → runtime context deadline → x-sump.
-        Wall time should be ~5-8s, NOT 30s.
-        """
-        transport_helper.purge_queue("asya-default-x-sump")
-
-        deadline_at = _make_deadline(5)
-        message = {
-            "id": "test-sla-effective-timeout-1",
-            "route": {"prev": [], "curr": "test-sla-slow", "next": []},
-            "payload": {"sleep": 120},
-            "status": {"deadline_at": deadline_at},
-        }
-        logger.info(
-            f"Publishing message with 5s SLA deadline (deadline_at={deadline_at}): "
-            f"{json.dumps(message, indent=2)}"
-        )
-
-        start = time.monotonic()
-        transport_helper.publish_message("asya-default-test-sla-slow", message)
-
-        # With SLA: effective timeout ~5s, message in x-sump by ~8s.
-        # Without SLA: timeout at 30s (ACTOR_TIMEOUT), would fail this 15s poll.
-        result = transport_helper.get_message("asya-default-x-sump", timeout=15)
-        elapsed = time.monotonic() - start
-
-        logger.info(
-            f"Result from x-sump after {elapsed:.1f}s: "
-            f"{json.dumps(result, indent=2) if result else 'None'}"
-        )
-
-        assert result is not None, (
-            f"No message in x-sump after 15s. "
-            f"effectiveTimeout should be ~5s (SLA), not 30s (ACTOR_TIMEOUT)."
-        )
-
-        # Verify the failure is a timeout (context deadline exceeded)
-        payload = result.get("payload", {})
-        error_msg = payload.get("error", "")
-        logger.info(f"Error: {error_msg}")
-        assert "deadline" in error_msg.lower() or "timeout" in error_msg.lower(), (
-            f"Expected context deadline / timeout error, got: {error_msg}"
-        )
-
-        # Wall time should be well under 30s (the ACTOR_TIMEOUT).
-        # SLA effective timeout is ~5s, so total with overhead should be <12s.
-        assert elapsed < 12, (
-            f"Message took {elapsed:.1f}s — expected <12s with 5s SLA deadline. "
-            f"Without SLA enforcement, timeout would be ~30s."
-        )
-
-        logger.info(
-            f"=== test_sla_constrains_effective_timeout: PASSED ({elapsed:.1f}s) ==="
         )
 
 
@@ -272,3 +193,81 @@ class TestRetrySLAInteraction:
         )
 
         logger.info(f"=== test_sla_precheck_stops_retries: PASSED ({elapsed:.1f}s) ===")
+
+
+@pytest.mark.order("last")
+class TestSLAEffectiveTimeout:
+    """SLA deadline constrains the sidecar's effective timeout.
+
+    The sidecar computes effectiveTimeout = min(ACTOR_TIMEOUT, remaining_SLA).
+    When remaining_SLA < ACTOR_TIMEOUT, the runtime context deadline fires
+    earlier than ACTOR_TIMEOUT would, proving the SLA constrains the timeout.
+
+    WARNING: This test causes the test-sla-slow sidecar to os.Exit(1) after
+    runtime timeout, killing the container. Ordered last via @pytest.mark.order
+    so all non-destructive tests complete first.
+    """
+
+    def test_sla_constrains_effective_timeout(self, transport_helper):
+        """Deadline tighter than ACTOR_TIMEOUT causes earlier runtime timeout.
+
+        Setup:
+        - Actor: test-sla-slow (timeout_handler sleeps 120s, ACTOR_TIMEOUT=30s)
+        - Deadline: 5s from now
+
+        Without SLA: effective timeout = 30s (ACTOR_TIMEOUT)
+        With SLA: effective timeout = min(30s, 5s) = 5s
+
+        Handler exceeds effective timeout at ~5s → runtime context deadline → x-sump.
+        Wall time should be ~5-8s, NOT 30s.
+        """
+        transport_helper.purge_queue("asya-default-x-sump")
+
+        deadline_at = _make_deadline(5)
+        message = {
+            "id": "test-sla-effective-timeout-1",
+            "route": {"prev": [], "curr": "test-sla-slow", "next": []},
+            "payload": {"sleep": 120},
+            "status": {"deadline_at": deadline_at},
+        }
+        logger.info(
+            f"Publishing message with 5s SLA deadline (deadline_at={deadline_at}): "
+            f"{json.dumps(message, indent=2)}"
+        )
+
+        start = time.monotonic()
+        transport_helper.publish_message("asya-default-test-sla-slow", message)
+
+        # With SLA: effective timeout ~5s, message in x-sump by ~8s.
+        # Without SLA: timeout at 30s (ACTOR_TIMEOUT), would fail this 15s poll.
+        result = transport_helper.get_message("asya-default-x-sump", timeout=15)
+        elapsed = time.monotonic() - start
+
+        logger.info(
+            f"Result from x-sump after {elapsed:.1f}s: "
+            f"{json.dumps(result, indent=2) if result else 'None'}"
+        )
+
+        assert result is not None, (
+            f"No message in x-sump after 15s. "
+            f"effectiveTimeout should be ~5s (SLA), not 30s (ACTOR_TIMEOUT)."
+        )
+
+        # Verify the failure is a timeout (context deadline exceeded)
+        payload = result.get("payload", {})
+        error_msg = payload.get("error", "")
+        logger.info(f"Error: {error_msg}")
+        assert "deadline" in error_msg.lower() or "timeout" in error_msg.lower(), (
+            f"Expected context deadline / timeout error, got: {error_msg}"
+        )
+
+        # Wall time should be well under 30s (the ACTOR_TIMEOUT).
+        # SLA effective timeout is ~5s, so total with overhead should be <12s.
+        assert elapsed < 12, (
+            f"Message took {elapsed:.1f}s — expected <12s with 5s SLA deadline. "
+            f"Without SLA enforcement, timeout would be ~30s."
+        )
+
+        logger.info(
+            f"=== test_sla_constrains_effective_timeout: PASSED ({elapsed:.1f}s) ==="
+        )
