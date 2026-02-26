@@ -97,6 +97,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
+        # Flow compiler component tests (pure Python, no Docker)
+        - name: flow-compiler
+          component: flow-compiler
+          config_var: _UNUSED
+          config_value: default
         # Gateway component tests - test both transports
         - name: gateway (sqs)
           component: gateway

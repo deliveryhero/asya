@@ -1,4 +1,4 @@
-.PHONY: test clean ensure-coverage-dir cov
+.PHONY: test test-one clean ensure-coverage-dir cov
 MAKEFLAGS += --no-print-directory
 .EXPORT_ALL_VARIABLES:
 
@@ -29,6 +29,8 @@ test: clean validate-env ## Run flow compiler component tests
 		../../testing/component/flow-compiler/tests/
 	@test -f $(COVERAGE_DIR)/cov.json && echo "[+] Coverage JSON: $(COVERAGE_DIR)/cov.json" || echo "[-] Coverage not generated"
 	@echo "[+] Success: Flow compiler component tests passed!"
+
+test-one: test ## Alias for CI compatibility (no transport/profile config needed)
 
 cov: ## Display component test coverage report
 	@echo "Flow compiler (component) coverage:"
