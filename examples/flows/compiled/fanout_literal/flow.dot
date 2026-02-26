@@ -5,7 +5,7 @@ digraph flow {
   edge [fontname="Courier", fontsize=10];
 
   start_analysis_flow [fillcolor="lightgreen", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = start_analysis_flow(p)</i></td></tr></table>>];
-  fanout_analysis_flow_L10 [fillcolor="plum1", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = fanout_analysis_flow_L10(p)</i></td></tr><tr><td bgcolor="plum2" align="center"><b>[fan-out:literal]</b></td></tr></table>>, shape=diamond];
+  fanout_analysis_flow_L10 [fillcolor="mediumpurple1", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = fanout_analysis_flow_L10(p)</i></td></tr><tr><td bgcolor="mediumpurple2" align="center"><b>[fan-out:literal]</b></td></tr></table>>];
   end_analysis_flow [fillcolor="lightgreen", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = end_analysis_flow(p)</i></td></tr></table>>];
   entity_recognizer [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = entity_recognizer(p)</i></td></tr></table>>];
   merge_analysis [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = merge_analysis(p)</i></td></tr></table>>];

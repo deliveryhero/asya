@@ -298,7 +298,7 @@ class DotGenerator:
         if router.name.startswith("start_") or router.name.startswith("end_"):
             color = "lightgreen"
         elif router.is_fan_out:
-            color = "plum1"
+            color = "mediumpurple1"
         else:
             color = "wheat"
 
@@ -328,16 +328,14 @@ class DotGenerator:
 
         if router.is_fan_out and router.fan_out_op:
             fan_out = router.fan_out_op
-            rows.append(f'<tr><td bgcolor="plum2" align="center"><b>[fan-out:{fan_out.pattern}]</b></td></tr>')
+            rows.append(f'<tr><td bgcolor="mediumpurple2" align="center"><b>[fan-out:{fan_out.pattern}]</b></td></tr>')
             if fan_out.iter_var and fan_out.iterable:
                 iter_text = self._truncate_text(f"for {fan_out.iter_var} in {fan_out.iterable}")
-                rows.append(f'<tr><td bgcolor="plum3" align="left">{self._escape_html(iter_text)}</td></tr>')
+                rows.append(f'<tr><td bgcolor="mediumpurple3" align="left">{self._escape_html(iter_text)}</td></tr>')
 
         label = f'<<table border="0" cellspacing="0" cellpadding="6" cellborder="1">{"".join(rows)}</table>>'
 
-        shape = "diamond" if router.is_fan_out else "box"
-        extra = f", shape={shape}" if router.is_fan_out else ""
-        return f'  {self._node_id(router.name)} [fillcolor="{color}", label={label}{extra}];'
+        return f'  {self._node_id(router.name)} [fillcolor="{color}", label={label}];'
 
     def _generate_user_actor_node(self, actor_name: str) -> str:
         display_name = self._get_display_name(actor_name)
