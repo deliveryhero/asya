@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 import ast
+import json
+import os
+import tempfile
 import textwrap
-import uuid
+from contextlib import contextmanager
 
 import pytest
 from asya_cli.flow.codegen import CodeGenerator
@@ -56,17 +59,59 @@ def _exec_code(code: str) -> dict:
     return ns
 
 
-def _make_test_message(route_curr: str = "fanout_flow_L5", route_next: list | None = None) -> dict:
-    return {
-        "id": str(uuid.uuid4()),
-        "route": {
-            "prev": [],
-            "curr": route_curr,
-            "next": route_next or [],
-        },
-        "headers": {},
-        "payload": {"topics": ["topic_a", "topic_b", "topic_c"]},
-    }
+@contextmanager
+def _vfs_tmpdir(msg_id: str, route_next: list[str] | None = None, headers: dict | None = None):
+    """Create a temporary VFS directory populated with message metadata.
+
+    Sets ASYA_MSG_ROOT so generated code reads/writes the tmpdir.
+    """
+    with tempfile.TemporaryDirectory() as tmpdir:
+        # Write id
+        with open(os.path.join(tmpdir, "id"), "w") as f:
+            f.write(msg_id)
+        # Write route/next
+        route_dir = os.path.join(tmpdir, "route")
+        os.makedirs(route_dir, exist_ok=True)
+        with open(os.path.join(route_dir, "next"), "w") as f:
+            f.write("\n".join(route_next or []))
+        # Write headers
+        headers_dir = os.path.join(tmpdir, "headers")
+        os.makedirs(headers_dir, exist_ok=True)
+        if headers:
+            for k, v in headers.items():
+                with open(os.path.join(headers_dir, k), "w") as f:
+                    if isinstance(v, (dict, list)):
+                        f.write(json.dumps(v))
+                    else:
+                        f.write(str(v))
+
+        old_env = os.environ.get("ASYA_MSG_ROOT")
+        os.environ["ASYA_MSG_ROOT"] = tmpdir
+        try:
+            yield tmpdir
+        finally:
+            if old_env is None:
+                os.environ.pop("ASYA_MSG_ROOT", None)
+            else:
+                os.environ["ASYA_MSG_ROOT"] = old_env
+
+
+def _read_vfs_route_next(tmpdir: str) -> list[str]:
+    """Read current route/next from VFS tmpdir."""
+    with open(os.path.join(tmpdir, "route", "next")) as f:
+        content = f.read()
+    return content.splitlines() if content else []
+
+
+def _read_vfs_header(tmpdir: str, name: str) -> dict | str:
+    """Read a header from VFS tmpdir, parsing JSON if possible."""
+    path = os.path.join(tmpdir, "headers", name)
+    with open(path) as f:
+        content = f.read()
+    try:
+        return json.loads(content)
+    except (json.JSONDecodeError, TypeError):
+        return content
 
 
 # ---------------------------------------------------------------------------
@@ -363,16 +408,17 @@ class TestFanOutCodeStructure:
         ]
         assert len(fanout_funcs) == 1
 
-        # Check no for loops inside (only enumerate is OK)
+        # Check no for loops that build _slices (enumerate and method calls like .items() are OK)
         for_nodes = [
             node
             for node in ast.walk(fanout_funcs[0])
             if isinstance(node, ast.For)
             and not (
-                # allow the `for _i, (_actor, _payload) in enumerate(...)` loop
                 isinstance(node.iter, ast.Call)
-                and isinstance(node.iter.func, ast.Name)
-                and node.iter.func.id == "enumerate"
+                and (
+                    (isinstance(node.iter.func, ast.Name) and node.iter.func.id == "enumerate")
+                    or isinstance(node.iter.func, ast.Attribute)
+                )
             )
         ]
         assert len(for_nodes) == 0, "Literal pattern should not use for loop to build slices"
@@ -407,52 +453,43 @@ class TestFanOutCodeStructure:
 
         assert "x-asya-fan-in" in code
 
-    def test_parent_id_field_for_slices(self):
-        """Sub-agent slices should have parent_id set to origin_id."""
+    def test_fanout_reads_id_from_vfs(self):
+        """Fan-out router reads message ID from VFS."""
         ops = [_make_fanout_op(), Return(lineno=6)]
         code = _generate_code_for_ops("flow", ops)
 
-        assert "parent_id" in code
+        assert "_MSG_ROOT}/id" in code
 
-    def test_route_manually_shifted_for_index0(self):
-        """Parent message (index 0) must manually shift route: prev+[curr], curr=aggregator."""
-        ops = [
-            _make_fanout_op(),
-            ActorCall(lineno=6, name="aggregator"),
-            Return(lineno=7),
-        ]
+    def test_fanout_reads_route_next_from_vfs(self):
+        """Fan-out router reads route/next from VFS."""
+        ops = [_make_fanout_op(), Return(lineno=6)]
         code = _generate_code_for_ops("flow", ops)
 
-        # The generated code must have manual route shifting for index 0
-        assert "r['prev'] + [r['curr']]" in code or 'r["prev"] + [r["curr"]]' in code
+        assert "_MSG_ROOT}/route/next" in code
 
-    def test_slices_have_fresh_route_starting_from_empty_prev(self):
-        """Sub-agent slices get fresh routes with empty prev."""
-        ops = [_make_fanout_op(), ActorCall(lineno=6, name="aggregator"), Return(lineno=7)]
+    def test_fanout_writes_headers_via_vfs(self):
+        """Fan-out router writes headers to VFS files."""
+        ops = [_make_fanout_op(), Return(lineno=6)]
         code = _generate_code_for_ops("flow", ops)
 
-        # Slice routes should have empty prev
-        assert "'prev': []" in code or '"prev": []' in code
+        assert "_MSG_ROOT}/headers/x-asya-fan-in" in code
 
 
 # ---------------------------------------------------------------------------
-# Test: Generated code execution
+# Test: Generated code execution (VFS-based)
 # ---------------------------------------------------------------------------
 
 
 class TestFanOutCodeExecution:
-    """Execute the generated code (with mocked resolve) and verify yielded messages."""
+    """Execute the generated code with a VFS tmpdir and verify yielded payloads + VFS state."""
 
-    def _setup_ns_with_mock_resolve(self, code: str, actor_map: dict[str, str]) -> dict:
-        """Exec the code with env vars set for resolve()."""
-        import os
-
-        # Set up env vars for all actors
+    def _setup_and_exec(self, code: str, actor_map: dict[str, str]) -> dict:
+        """Exec the code with env vars set for resolve(). Must be called inside _vfs_tmpdir."""
         env_backup = {}
         for actor_name, _queue_name in actor_map.items():
             env_key = f"ASYA_HANDLER_{actor_name.upper().replace('-', '_')}"
             env_backup[env_key] = os.environ.get(env_key)
-            os.environ[env_key] = actor_name  # handler name = actor name for simplicity
+            os.environ[env_key] = actor_name
 
         try:
             ns = _exec_code(code)
@@ -465,8 +502,13 @@ class TestFanOutCodeExecution:
 
         return ns
 
-    def test_comprehension_fanout_yields_n_plus_1_messages(self):
-        """With 3 topics, fan-out should yield 4 messages (1 parent + 3 slices)."""
+    def _get_fanout_fn(self, ns: dict):
+        """Find the fanout function in the executed namespace."""
+        fanout_fn_name = next(k for k in ns if k.startswith("fanout_"))
+        return ns[fanout_fn_name]
+
+    def test_comprehension_fanout_yields_n_plus_1_payloads(self):
+        """With 3 topics, fan-out should yield 4 payloads (1 parent + 3 slices)."""
         ops = [
             FanOutCall(
                 lineno=5,
@@ -480,32 +522,21 @@ class TestFanOutCodeExecution:
             Return(lineno=7),
         ]
         code = _generate_code_for_ops("flow", ops)
-
-        ns = self._setup_ns_with_mock_resolve(
-            code,
-            {
-                "research_agent": "research-agent",
-                "aggregator": "aggregator",
-                "fanout_flow_L5": "fanout-flow-l5",
-            },
-        )
-
-        # Find the fanout function
-        fanout_fn_name = next(k for k in ns if k.startswith("fanout_"))
-        fanout_fn = ns[fanout_fn_name]
-
-        msg = {
-            "id": "test-msg-id",
-            "route": {"prev": [], "curr": "fanout-flow-l5", "next": []},
-            "headers": {},
-            "payload": {"topics": ["a", "b", "c"]},
+        actor_map = {
+            "research_agent": "research-agent",
+            "aggregator": "aggregator",
+            "fanout_flow_L5": "fanout-flow-l5",
         }
 
-        messages = list(fanout_fn(msg))
-        assert len(messages) == 4, f"Expected 4 messages (1+3 topics), got {len(messages)}"
+        with _vfs_tmpdir("test-msg-id", route_next=[]):
+            ns = self._setup_and_exec(code, actor_map)
+            fanout_fn = self._get_fanout_fn(ns)
+            payloads = list(fanout_fn({"topics": ["a", "b", "c"]}))
 
-    def test_literal_fanout_yields_n_plus_1_messages(self):
-        """Literal fan-out with 2 actors should yield 3 messages (1 parent + 2 slices)."""
+        assert len(payloads) == 4, f"Expected 4 payloads (1+3 topics), got {len(payloads)}"
+
+    def test_literal_fanout_yields_n_plus_1_payloads(self):
+        """Literal fan-out with 2 actors should yield 3 payloads (1 parent + 2 slices)."""
         ops = [
             FanOutCall(
                 lineno=5,
@@ -519,277 +550,213 @@ class TestFanOutCodeExecution:
             Return(lineno=7),
         ]
         code = _generate_code_for_ops("flow", ops)
-
-        ns = self._setup_ns_with_mock_resolve(
-            code,
-            {
-                "sentiment_analyzer": "sentiment-analyzer",
-                "topic_extractor": "topic-extractor",
-                "aggregator": "aggregator",
-                "fanout_flow_L5": "fanout-flow-l5",
-            },
-        )
-
-        fanout_fn_name = next(k for k in ns if k.startswith("fanout_"))
-        fanout_fn = ns[fanout_fn_name]
-
-        msg = {
-            "id": "test-msg-id",
-            "route": {"prev": [], "curr": "fanout-flow-l5", "next": []},
-            "headers": {},
-            "payload": {"text": "hello world"},
+        actor_map = {
+            "sentiment_analyzer": "sentiment-analyzer",
+            "topic_extractor": "topic-extractor",
+            "aggregator": "aggregator",
+            "fanout_flow_L5": "fanout-flow-l5",
         }
 
-        messages = list(fanout_fn(msg))
-        assert len(messages) == 3, f"Expected 3 messages (1+2 actors), got {len(messages)}"
+        with _vfs_tmpdir("test-msg-id", route_next=[]):
+            ns = self._setup_and_exec(code, actor_map)
+            fanout_fn = self._get_fanout_fn(ns)
+            payloads = list(fanout_fn({"text": "hello world"}))
 
-    def test_parent_message_has_slice_index_0(self):
-        ops = [
-            _make_fanout_op(),
-            ActorCall(lineno=6, name="aggregator"),
-            Return(lineno=7),
-        ]
+        assert len(payloads) == 3, f"Expected 3 payloads (1+2 actors), got {len(payloads)}"
+
+    def test_parent_payload_is_deep_copy_of_input(self):
+        """Index 0 yield should be a deep copy of the input payload."""
+        ops = [_make_fanout_op(), ActorCall(lineno=6, name="aggregator"), Return(lineno=7)]
         code = _generate_code_for_ops("flow", ops)
-
-        ns = self._setup_ns_with_mock_resolve(
-            code,
-            {
-                "research_agent": "research-agent",
-                "aggregator": "aggregator",
-                "fanout_flow_L5": "fanout-flow-l5",
-            },
-        )
-
-        fanout_fn_name = next(k for k in ns if k.startswith("fanout_"))
-        msg = {
-            "id": "orig-id",
-            "route": {"prev": [], "curr": "fanout-flow-l5", "next": []},
-            "headers": {},
-            "payload": {"topics": ["x"]},
+        actor_map = {
+            "research_agent": "research-agent",
+            "aggregator": "aggregator",
+            "fanout_flow_L5": "fanout-flow-l5",
         }
 
-        messages = list(ns[fanout_fn_name](msg))
-        parent = messages[0]
-        assert parent["headers"]["x-asya-fan-in"]["slice_index"] == 0
+        input_payload = {"topics": ["x"]}
+        with _vfs_tmpdir("orig-id", route_next=[]):
+            ns = self._setup_and_exec(code, actor_map)
+            fanout_fn = self._get_fanout_fn(ns)
+            gen = fanout_fn(input_payload)
+            parent_payload = next(gen)
 
-    def test_slice_messages_have_increasing_slice_indices(self):
-        ops = [
-            _make_fanout_op(),
-            ActorCall(lineno=6, name="aggregator"),
-            Return(lineno=7),
-        ]
+        assert parent_payload == input_payload
+        assert parent_payload is not input_payload
+
+    def test_parent_vfs_route_points_to_aggregator(self):
+        """After yielding index 0, VFS route/next should point to the aggregator."""
+        ops = [_make_fanout_op(), ActorCall(lineno=6, name="aggregator"), Return(lineno=7)]
         code = _generate_code_for_ops("flow", ops)
-
-        ns = self._setup_ns_with_mock_resolve(
-            code,
-            {
-                "research_agent": "research-agent",
-                "aggregator": "aggregator",
-                "fanout_flow_L5": "fanout-flow-l5",
-            },
-        )
-
-        fanout_fn_name = next(k for k in ns if k.startswith("fanout_"))
-        msg = {
-            "id": "orig-id",
-            "route": {"prev": [], "curr": "fanout-flow-l5", "next": []},
-            "headers": {},
-            "payload": {"topics": ["a", "b"]},
+        actor_map = {
+            "research_agent": "research-agent",
+            "aggregator": "aggregator",
+            "fanout_flow_L5": "fanout-flow-l5",
         }
 
-        messages = list(ns[fanout_fn_name](msg))
-        indices = [m["headers"]["x-asya-fan-in"]["slice_index"] for m in messages]
-        assert indices == [0, 1, 2]
+        with _vfs_tmpdir("orig-id", route_next=["downstream"]) as tmpdir:
+            ns = self._setup_and_exec(code, actor_map)
+            fanout_fn = self._get_fanout_fn(ns)
+            gen = fanout_fn({"topics": ["x"]})
+            next(gen)  # yield parent
 
-    def test_parent_message_route_manually_shifted(self):
-        """Index 0 message must have prev+[curr], curr=aggregator, next=[]."""
-        ops = [
-            _make_fanout_op(),
-            ActorCall(lineno=6, name="aggregator"),
-            Return(lineno=7),
-        ]
+            route_next = _read_vfs_route_next(tmpdir)
+            assert route_next[0] == "aggregator"
+            assert "downstream" in route_next
+
+    def test_parent_vfs_fan_in_header_slice_index_0(self):
+        """After yielding index 0, VFS x-asya-fan-in header should have slice_index=0."""
+        ops = [_make_fanout_op(), ActorCall(lineno=6, name="aggregator"), Return(lineno=7)]
         code = _generate_code_for_ops("flow", ops)
-
-        ns = self._setup_ns_with_mock_resolve(
-            code,
-            {
-                "research_agent": "research-agent",
-                "aggregator": "aggregator",
-                "fanout_flow_L5": "fanout-flow-l5",
-            },
-        )
-
-        fanout_fn_name = next(k for k in ns if k.startswith("fanout_"))
-        msg = {
-            "id": "orig-id",
-            "route": {"prev": ["start-flow"], "curr": "fanout-flow-l5", "next": ["downstream"]},
-            "headers": {},
-            "payload": {"topics": ["x"]},
+        actor_map = {
+            "research_agent": "research-agent",
+            "aggregator": "aggregator",
+            "fanout_flow_L5": "fanout-flow-l5",
         }
 
-        messages = list(ns[fanout_fn_name](msg))
-        parent_route = messages[0]["route"]
+        with _vfs_tmpdir("orig-id", route_next=[]) as tmpdir:
+            ns = self._setup_and_exec(code, actor_map)
+            fanout_fn = self._get_fanout_fn(ns)
+            gen = fanout_fn({"topics": ["x"]})
+            next(gen)  # yield parent
 
-        assert "start-flow" in parent_route["prev"]
-        assert "fanout-flow-l5" in parent_route["prev"]
-        assert parent_route["curr"] == "aggregator"
-        assert "downstream" in parent_route["next"]
+            fan_in = _read_vfs_header(tmpdir, "x-asya-fan-in")
+            assert fan_in["slice_index"] == 0
 
-    def test_slice_messages_have_fresh_routes(self):
-        """Slice messages (indices 1+) should have empty prev and fresh curr/next."""
-        ops = [
-            _make_fanout_op(),
-            ActorCall(lineno=6, name="aggregator"),
-            Return(lineno=7),
-        ]
+    def test_slice_vfs_route_points_to_actor_then_aggregator(self):
+        """After yielding a slice, VFS route/next should be [sub_agent, aggregator]."""
+        ops = [_make_fanout_op(), ActorCall(lineno=6, name="aggregator"), Return(lineno=7)]
         code = _generate_code_for_ops("flow", ops)
-
-        ns = self._setup_ns_with_mock_resolve(
-            code,
-            {
-                "research_agent": "research-agent",
-                "aggregator": "aggregator",
-                "fanout_flow_L5": "fanout-flow-l5",
-            },
-        )
-
-        fanout_fn_name = next(k for k in ns if k.startswith("fanout_"))
-        msg = {
-            "id": "orig-id",
-            "route": {"prev": ["before"], "curr": "fanout-flow-l5", "next": []},
-            "headers": {},
-            "payload": {"topics": ["a"]},
+        actor_map = {
+            "research_agent": "research-agent",
+            "aggregator": "aggregator",
+            "fanout_flow_L5": "fanout-flow-l5",
         }
 
-        messages = list(ns[fanout_fn_name](msg))
-        slice_msg = messages[1]  # First sub-agent slice
+        with _vfs_tmpdir("orig-id", route_next=[]) as tmpdir:
+            ns = self._setup_and_exec(code, actor_map)
+            fanout_fn = self._get_fanout_fn(ns)
+            gen = fanout_fn({"topics": ["a"]})
+            next(gen)  # skip parent
+            next(gen)  # yield first slice
 
-        assert slice_msg["route"]["prev"] == []
-        assert slice_msg["route"]["curr"] == "research-agent"
-        assert slice_msg["route"]["next"] == ["aggregator"]
+            route_next = _read_vfs_route_next(tmpdir)
+            assert route_next == ["research-agent", "aggregator"]
+
+    def test_slice_vfs_fan_in_header_increasing_indices(self):
+        """Slice yields should have increasing slice_index in VFS."""
+        ops = [_make_fanout_op(), ActorCall(lineno=6, name="aggregator"), Return(lineno=7)]
+        code = _generate_code_for_ops("flow", ops)
+        actor_map = {
+            "research_agent": "research-agent",
+            "aggregator": "aggregator",
+            "fanout_flow_L5": "fanout-flow-l5",
+        }
+
+        with _vfs_tmpdir("orig-id", route_next=[]) as tmpdir:
+            ns = self._setup_and_exec(code, actor_map)
+            fanout_fn = self._get_fanout_fn(ns)
+            gen = fanout_fn({"topics": ["a", "b"]})
+
+            indices = []
+            for _ in gen:
+                fan_in = _read_vfs_header(tmpdir, "x-asya-fan-in")
+                indices.append(fan_in["slice_index"])
+
+            assert indices == [0, 1, 2]
 
     def test_fan_in_header_slice_count_equals_n_plus_1(self):
-        """x-asya-fan-in.slice_count should be total number of messages."""
-        ops = [
-            _make_fanout_op(),
-            ActorCall(lineno=6, name="aggregator"),
-            Return(lineno=7),
-        ]
+        """x-asya-fan-in.slice_count should be total number of yields."""
+        ops = [_make_fanout_op(), ActorCall(lineno=6, name="aggregator"), Return(lineno=7)]
         code = _generate_code_for_ops("flow", ops)
-
-        ns = self._setup_ns_with_mock_resolve(
-            code,
-            {
-                "research_agent": "research-agent",
-                "aggregator": "aggregator",
-                "fanout_flow_L5": "fanout-flow-l5",
-            },
-        )
-
-        fanout_fn_name = next(k for k in ns if k.startswith("fanout_"))
-        msg = {
-            "id": "orig-id",
-            "route": {"prev": [], "curr": "fanout-flow-l5", "next": []},
-            "headers": {},
-            "payload": {"topics": ["a", "b", "c"]},  # 3 topics
+        actor_map = {
+            "research_agent": "research-agent",
+            "aggregator": "aggregator",
+            "fanout_flow_L5": "fanout-flow-l5",
         }
 
-        messages = list(ns[fanout_fn_name](msg))
-        # All messages should agree on slice_count
-        slice_counts = {m["headers"]["x-asya-fan-in"]["slice_count"] for m in messages}
-        assert slice_counts == {4}  # 1 parent + 3 slices
+        with _vfs_tmpdir("orig-id", route_next=[]) as tmpdir:
+            ns = self._setup_and_exec(code, actor_map)
+            fanout_fn = self._get_fanout_fn(ns)
+
+            slice_counts = set()
+            for _ in fanout_fn({"topics": ["a", "b", "c"]}):
+                fan_in = _read_vfs_header(tmpdir, "x-asya-fan-in")
+                slice_counts.add(fan_in["slice_count"])
+
+            assert slice_counts == {4}  # 1 parent + 3 slices
 
     def test_fan_in_header_aggregation_key(self):
-        ops = [
-            _make_fanout_op(target_key="/results"),
-            ActorCall(lineno=6, name="aggregator"),
-            Return(lineno=7),
-        ]
+        ops = [_make_fanout_op(target_key="/results"), ActorCall(lineno=6, name="aggregator"), Return(lineno=7)]
         code = _generate_code_for_ops("flow", ops)
-
-        ns = self._setup_ns_with_mock_resolve(
-            code,
-            {
-                "research_agent": "research-agent",
-                "aggregator": "aggregator",
-                "fanout_flow_L5": "fanout-flow-l5",
-            },
-        )
-
-        fanout_fn_name = next(k for k in ns if k.startswith("fanout_"))
-        msg = {
-            "id": "orig-id",
-            "route": {"prev": [], "curr": "fanout-flow-l5", "next": []},
-            "headers": {},
-            "payload": {"topics": ["a"]},
+        actor_map = {
+            "research_agent": "research-agent",
+            "aggregator": "aggregator",
+            "fanout_flow_L5": "fanout-flow-l5",
         }
 
-        messages = list(ns[fanout_fn_name](msg))
-        for m in messages:
-            assert m["headers"]["x-asya-fan-in"]["aggregation_key"] == "/results"
+        with _vfs_tmpdir("orig-id", route_next=[]) as tmpdir:
+            ns = self._setup_and_exec(code, actor_map)
+            fanout_fn = self._get_fanout_fn(ns)
 
-    def test_parent_id_set_on_slices(self):
-        """Sub-agent slice messages should have parent_id = origin message id."""
-        ops = [
-            _make_fanout_op(),
-            ActorCall(lineno=6, name="aggregator"),
-            Return(lineno=7),
-        ]
+            for _ in fanout_fn({"topics": ["a"]}):
+                fan_in = _read_vfs_header(tmpdir, "x-asya-fan-in")
+                assert fan_in["aggregation_key"] == "/results"
+
+    def test_fan_in_header_origin_id(self):
+        """x-asya-fan-in.origin_id should be the original message ID from VFS."""
+        ops = [_make_fanout_op(), ActorCall(lineno=6, name="aggregator"), Return(lineno=7)]
         code = _generate_code_for_ops("flow", ops)
-
-        ns = self._setup_ns_with_mock_resolve(
-            code,
-            {
-                "research_agent": "research-agent",
-                "aggregator": "aggregator",
-                "fanout_flow_L5": "fanout-flow-l5",
-            },
-        )
-
-        fanout_fn_name = next(k for k in ns if k.startswith("fanout_"))
-        origin_id = "my-origin-id-123"
-        msg = {
-            "id": origin_id,
-            "route": {"prev": [], "curr": "fanout-flow-l5", "next": []},
-            "headers": {},
-            "payload": {"topics": ["a"]},
+        actor_map = {
+            "research_agent": "research-agent",
+            "aggregator": "aggregator",
+            "fanout_flow_L5": "fanout-flow-l5",
         }
 
-        messages = list(ns[fanout_fn_name](msg))
-        # Slices (index 1+) should have parent_id = origin_id
-        for slice_msg in messages[1:]:
-            assert slice_msg.get("parent_id") == origin_id
+        with _vfs_tmpdir("my-origin-id-123", route_next=[]) as tmpdir:
+            ns = self._setup_and_exec(code, actor_map)
+            fanout_fn = self._get_fanout_fn(ns)
 
-    def test_parent_message_preserves_existing_headers(self):
-        """Existing headers on incoming message should be preserved in all yielded messages."""
-        ops = [
-            _make_fanout_op(),
-            ActorCall(lineno=6, name="aggregator"),
-            Return(lineno=7),
-        ]
+            for _ in fanout_fn({"topics": ["a"]}):
+                fan_in = _read_vfs_header(tmpdir, "x-asya-fan-in")
+                assert fan_in["origin_id"] == "my-origin-id-123"
+
+    def test_slice_payloads_are_individual_items(self):
+        """Slice yields should be the individual items from the iterable."""
+        ops = [_make_fanout_op(), ActorCall(lineno=6, name="aggregator"), Return(lineno=7)]
         code = _generate_code_for_ops("flow", ops)
-
-        ns = self._setup_ns_with_mock_resolve(
-            code,
-            {
-                "research_agent": "research-agent",
-                "aggregator": "aggregator",
-                "fanout_flow_L5": "fanout-flow-l5",
-            },
-        )
-
-        fanout_fn_name = next(k for k in ns if k.startswith("fanout_"))
-        msg = {
-            "id": "orig-id",
-            "route": {"prev": [], "curr": "fanout-flow-l5", "next": []},
-            "headers": {"trace_id": "abc123", "priority": "high"},
-            "payload": {"topics": ["a"]},
+        actor_map = {
+            "research_agent": "research-agent",
+            "aggregator": "aggregator",
+            "fanout_flow_L5": "fanout-flow-l5",
         }
 
-        messages = list(ns[fanout_fn_name](msg))
-        for m in messages:
-            assert m["headers"].get("trace_id") == "abc123"
-            assert m["headers"].get("priority") == "high"
+        with _vfs_tmpdir("orig-id", route_next=[]):
+            ns = self._setup_and_exec(code, actor_map)
+            fanout_fn = self._get_fanout_fn(ns)
+            payloads = list(fanout_fn({"topics": ["a", "b"]}))
+
+        assert payloads[1] == "a"
+        assert payloads[2] == "b"
+
+    def test_existing_headers_preserved(self):
+        """Existing headers in VFS should be preserved (not overwritten)."""
+        ops = [_make_fanout_op(), ActorCall(lineno=6, name="aggregator"), Return(lineno=7)]
+        code = _generate_code_for_ops("flow", ops)
+        actor_map = {
+            "research_agent": "research-agent",
+            "aggregator": "aggregator",
+            "fanout_flow_L5": "fanout-flow-l5",
+        }
+
+        with _vfs_tmpdir("orig-id", route_next=[], headers={"trace_id": "abc123"}) as tmpdir:
+            ns = self._setup_and_exec(code, actor_map)
+            fanout_fn = self._get_fanout_fn(ns)
+            list(fanout_fn({"topics": ["a"]}))
+
+            # trace_id header should still exist
+            trace_id = _read_vfs_header(tmpdir, "trace_id")
+            assert trace_id == "abc123"
 
 
 # ---------------------------------------------------------------------------

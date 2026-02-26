@@ -227,7 +227,13 @@ class CodeGenerator:
         return "\n".join(lines)
 
     def _generate_fanout_router(self, router: Router) -> str:
-        """Generate a generator function that fans out to N sub-agents + 1 parent message."""
+        """Generate a generator function that fans out to N sub-agents + 1 parent message.
+
+        Uses VFS (/proc/asya/msg/) for reading message metadata (id, route)
+        and writing route/next + headers before each yield. The runtime
+        snapshots VFS state between yields to build each output frame.
+        The sidecar handles id/parent_id assignment for multi-frame responses.
+        """
         if router.fan_out_op is None:
             raise ValueError(f"Router {router.name!r} is marked is_fan_out but has no fan_out_op")
         fan_out = router.fan_out_op
@@ -243,12 +249,15 @@ class CodeGenerator:
             after_agg = []
 
         lines = []
-        lines.append(f"def {router.name}(message: dict):")
+        lines.append(f"def {router.name}(payload: dict):")
         lines.append(f'    """Fan-out router: dispatches to sub-agents and aggregator (line {fan_out.lineno})"""')
-        lines.append("    p = message['payload']")
-        lines.append("    r = message['route']")
-        lines.append("    origin_id = message['id']")
-        lines.append("    _hdrs = message.get('headers', {})")
+        lines.append("    p = payload")
+        lines.append("")
+        # Read message metadata from VFS
+        lines.append('    with open(f"{_MSG_ROOT}/id") as _f:')
+        lines.append("        origin_id = _f.read().strip()")
+        lines.append('    with open(f"{_MSG_ROOT}/route/next") as _f:')
+        lines.append("        _next_tail = _f.read().splitlines()")
         lines.append("")
 
         if aggregator_abstract:
@@ -291,50 +300,38 @@ class CodeGenerator:
         lines.append("")
 
         if aggregator_abstract:
-            # Index 0: parent payload forwarded to aggregator — route manually shifted
-            # (generators don't auto-shift; runtime does NOT shift for yielded messages)
+            # Index 0: parent payload forwarded to aggregator
             after_agg_resolved = [f'resolve("{a}")' for a in after_agg]
-            after_agg_str = (", ".join(after_agg_resolved) + ", ") if after_agg_resolved else ""
-            lines.append("    # Index 0: parent payload forwarded to aggregator (route manually shifted)")
-            lines.append("    yield {")
-            lines.append("        'id': origin_id,")
-            lines.append("        'route': {")
-            lines.append("            'prev': r['prev'] + [r['curr']],")
-            lines.append("            'curr': _agg,")
-            lines.append(f"            'next': [{after_agg_str}] + r['next'],")
-            lines.append("        },")
-            lines.append("        'headers': {**_hdrs, **_override, 'x-asya-fan-in': {**_fan_in, 'slice_index': 0}},")
-            lines.append("        'payload': _json.loads(_json.dumps(p)),")
-            lines.append("    }")
+            after_list_items = ", ".join(["_agg"] + after_agg_resolved)
+            lines.append("    # Index 0: parent payload forwarded to aggregator via VFS route")
+            lines.append('    with open(f"{_MSG_ROOT}/route/next", "w") as _f:')
+            lines.append(f'        _f.write("\\n".join([{after_list_items}] + _next_tail))')
         else:
             lines.append("    # Index 0: parent payload forwarded to end of flow")
-            lines.append("    yield {")
-            lines.append("        'id': origin_id,")
-            lines.append("        'route': {")
-            lines.append("            'prev': r['prev'] + [r['curr']],")
-            lines.append("            'curr': r['curr'],")
-            lines.append("            'next': r['next'],")
-            lines.append("        },")
-            lines.append("        'headers': {**_hdrs, 'x-asya-fan-in': {**_fan_in, 'slice_index': 0}},")
-            lines.append("        'payload': _json.loads(_json.dumps(p)),")
-            lines.append("    }")
+            lines.append('    with open(f"{_MSG_ROOT}/route/next", "w") as _f:')
+            lines.append('        _f.write("\\n".join(_next_tail))')
 
+        lines.append('    _os.makedirs(f"{_MSG_ROOT}/headers", exist_ok=True)')
+        lines.append('    with open(f"{_MSG_ROOT}/headers/x-asya-fan-in", "w") as _f:')
+        lines.append('        _f.write(_json.dumps({**_fan_in, "slice_index": 0}))')
+        lines.append("    for _k, _v in _override.items():")
+        lines.append('        with open(f"{_MSG_ROOT}/headers/{_k}", "w") as _f:')
+        lines.append("            _f.write(_json.dumps(_v))")
+        lines.append("    yield _json.loads(_json.dumps(p))")
         lines.append("")
+
+        # Indices 1..N: sub-agent slices
         lines.append("    # Indices 1..N: sub-agent slices")
-        lines.append("    import uuid as _uuid")
         lines.append("    for _i, (_actor, _payload) in enumerate(_slices):")
-        lines.append("        yield {")
-        lines.append("            'id': str(_uuid.uuid4()),")
-        lines.append("            'parent_id': origin_id,")
         if aggregator_abstract:
-            lines.append("            'route': {'prev': [], 'curr': _actor, 'next': [_agg]},")
+            lines.append('        with open(f"{_MSG_ROOT}/route/next", "w") as _f:')
+            lines.append('            _f.write("\\n".join([_actor, _agg]))')
         else:
-            lines.append("            'route': {'prev': [], 'curr': _actor, 'next': []},")
-        lines.append(
-            "            'headers': {**_hdrs, **_override, 'x-asya-fan-in': {**_fan_in, 'slice_index': _i + 1}},"
-        )
-        lines.append("            'payload': _payload,")
-        lines.append("        }")
+            lines.append('        with open(f"{_MSG_ROOT}/route/next", "w") as _f:')
+            lines.append("            _f.write(_actor)")
+        lines.append('        with open(f"{_MSG_ROOT}/headers/x-asya-fan-in", "w") as _f:')
+        lines.append('            _f.write(_json.dumps({**_fan_in, "slice_index": _i + 1}))')
+        lines.append("        yield _payload")
         lines.append("")
 
         return "\n".join(lines)

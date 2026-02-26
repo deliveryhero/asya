@@ -87,7 +87,7 @@ runs:
 
   - name: Install Kind
     if: inputs.install-kind == 'true'
-    uses: helm/kind-action@v1
+    uses: helm/kind-action@v1.12.0
     with:
       install_only: true
       version: v0.25.0
