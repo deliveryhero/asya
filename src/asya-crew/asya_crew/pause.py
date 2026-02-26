@@ -202,6 +202,7 @@ def pause_handler(payload: dict[str, Any]) -> None:
             logger.info(f"Paused message {message_id} to {file_path}")
         except Exception as e:
             logger.error(f"Failed to persist paused message {message_id}: {e}", exc_info=True)
+            raise
     else:
         logger.debug(f"Pause persistence skipped for message {message_id} (ASYA_PERSISTENCE_MOUNT not set)")
 
@@ -212,5 +213,6 @@ def pause_handler(payload: dict[str, Any]) -> None:
         logger.info(f"Set x-asya-pause header for message {message_id}")
     except Exception as e:
         logger.error(f"Failed to set x-asya-pause header for message {message_id}: {e}", exc_info=True)
+        raise
 
     return None
