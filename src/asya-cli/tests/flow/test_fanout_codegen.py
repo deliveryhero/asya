@@ -146,30 +146,32 @@ class TestGrouperFanOut:
         routers = grouper.group()
 
         fanout_router = next(r for r in routers if r.is_fan_out)
-        assert "L42" in fanout_router.name
+        assert "line_42" in fanout_router.name
         assert "myflow" in fanout_router.name
 
     def test_fanout_true_branch_actors_is_continuation(self):
-        """Fan-out router's true_branch_actors = aggregator + after-aggregator."""
+        """Fan-out router's true_branch_actors = generated aggregator + user actors."""
         ops = [
             _make_fanout_op(),
-            ActorCall(lineno=6, name="aggregator"),
+            ActorCall(lineno=6, name="formatter"),
             Return(lineno=7),
         ]
         grouper = OperationGrouper("flow", ops)
         routers = grouper.group()
 
         fanout_router = next(r for r in routers if r.is_fan_out)
-        assert "aggregator" in fanout_router.true_branch_actors
+        assert "formatter" in fanout_router.true_branch_actors
+        assert any(a.startswith("aggregator-") for a in fanout_router.true_branch_actors)
 
     def test_fanout_at_end_of_flow_no_aggregator(self):
-        """Fan-out at end of flow: no explicit aggregator, true_branch_actors points to end."""
+        """Fan-out at end of flow: generated aggregator present, plus end actors."""
         ops = [_make_fanout_op(), Return(lineno=6)]
         grouper = OperationGrouper("flow", ops)
         routers = grouper.group()
 
         fanout_router = next(r for r in routers if r.is_fan_out)
-        # When no continuation, true_branch_actors points to end_flow
+        # When no explicit continuation, true_branch_actors has generated aggregator and end_flow
+        assert any(a.startswith("aggregator-") for a in fanout_router.true_branch_actors)
         assert any(a.startswith("end_") for a in fanout_router.true_branch_actors)
 
     def test_two_sequential_fanouts(self):
@@ -302,26 +304,23 @@ class TestFanOutCodeValidity:
         yields = [node for node in ast.walk(fanout_funcs[0]) if isinstance(node, ast.Yield | ast.YieldFrom)]
         assert len(yields) >= 2, "Fan-out function should yield at least 2 messages (parent + slices)"
 
-    def test_resolve_aggregator_helper_generated_once(self):
-        """_resolve_aggregator should appear exactly once per file even with multiple fan-outs."""
+    def test_fanout_json_import_generated_once(self):
+        """import json as _json should appear exactly once per file even with multiple fan-outs."""
         ops = [
             _make_fanout_op(target_key="/a", lineno=3),
-            ActorCall(lineno=4, name="agg1"),
+            ActorCall(lineno=4, name="formatter1"),
             _make_fanout_op(target_key="/b", lineno=5, actor_calls=[("agent_b", "x")], iterable='p["items"]'),
-            ActorCall(lineno=6, name="agg2"),
+            ActorCall(lineno=6, name="formatter2"),
             Return(lineno=7),
         ]
         code = _generate_code_for_ops("flow", ops)
 
-        # The helper block emits 'import json as _json' exactly once per file.
-        # 'def _resolve_aggregator' appears twice (once in if-branch, once in else-branch of
-        # the FANIN_SHARDS conditional) — both are part of the single helper block.
         count = code.count("import json as _json")
-        assert count == 1, f"Fan-out helper block should be emitted exactly once, found {count} times"
+        assert count == 1, f"json import should be emitted exactly once, found {count} times"
 
-    def test_no_fanout_no_resolve_aggregator(self):
-        """Files without fan-out should not contain _resolve_aggregator."""
-        ops = [ActorCall(lineno=1, name="handler"), Return(lineno=2)]
+    def test_fanout_no_resolve_aggregator(self):
+        """Files with fan-out should not contain _resolve_aggregator (removed helper)."""
+        ops = [_make_fanout_op(), Return(lineno=6)]
         code = _generate_code_for_ops("flow", ops)
 
         assert "_resolve_aggregator" not in code
@@ -340,7 +339,7 @@ class TestFanOutCodeValidity:
         ops = [_make_fanout_op(), Return(lineno=6)]
         code = _generate_code_for_ops("flow", ops)
 
-        assert "_json" in code
+        assert "import json as _json" in code
 
     def test_fanout_sub_agents_in_all_handlers(self):
         """Sub-agent names from fan_out_op.actor_calls must be in all_handlers."""
@@ -518,14 +517,15 @@ class TestFanOutCodeExecution:
                 iter_var="t",
                 iterable='p["topics"]',
             ),
-            ActorCall(lineno=6, name="aggregator"),
+            ActorCall(lineno=6, name="formatter"),
             Return(lineno=7),
         ]
         code = _generate_code_for_ops("flow", ops)
         actor_map = {
             "research_agent": "research-agent",
-            "aggregator": "aggregator",
-            "fanout_flow_L5": "fanout-flow-l5",
+            "formatter": "formatter",
+            "aggregator-flow_line_5": "aggregator-flow-line-5",
+            "fanout_flow_line_5": "fanout-flow-line-5",
         }
 
         with _vfs_tmpdir("test-msg-id", route_next=[]):
@@ -546,15 +546,16 @@ class TestFanOutCodeExecution:
                 iter_var=None,
                 iterable=None,
             ),
-            ActorCall(lineno=6, name="aggregator"),
+            ActorCall(lineno=6, name="formatter"),
             Return(lineno=7),
         ]
         code = _generate_code_for_ops("flow", ops)
         actor_map = {
             "sentiment_analyzer": "sentiment-analyzer",
             "topic_extractor": "topic-extractor",
-            "aggregator": "aggregator",
-            "fanout_flow_L5": "fanout-flow-l5",
+            "formatter": "formatter",
+            "aggregator-flow_line_5": "aggregator-flow-line-5",
+            "fanout_flow_line_5": "fanout-flow-line-5",
         }
 
         with _vfs_tmpdir("test-msg-id", route_next=[]):
@@ -566,12 +567,13 @@ class TestFanOutCodeExecution:
 
     def test_parent_payload_is_deep_copy_of_input(self):
         """Index 0 yield should be a deep copy of the input payload."""
-        ops = [_make_fanout_op(), ActorCall(lineno=6, name="aggregator"), Return(lineno=7)]
+        ops = [_make_fanout_op(), ActorCall(lineno=6, name="formatter"), Return(lineno=7)]
         code = _generate_code_for_ops("flow", ops)
         actor_map = {
             "research_agent": "research-agent",
-            "aggregator": "aggregator",
-            "fanout_flow_L5": "fanout-flow-l5",
+            "formatter": "formatter",
+            "aggregator-flow_line_5": "aggregator-flow-line-5",
+            "fanout_flow_line_5": "fanout-flow-line-5",
         }
 
         input_payload = {"topics": ["x"]}
@@ -585,13 +587,14 @@ class TestFanOutCodeExecution:
         assert parent_payload is not input_payload
 
     def test_parent_vfs_route_points_to_aggregator(self):
-        """After yielding index 0, VFS route/next should point to the aggregator."""
-        ops = [_make_fanout_op(), ActorCall(lineno=6, name="aggregator"), Return(lineno=7)]
+        """After yielding index 0, VFS route/next should point to the generated aggregator."""
+        ops = [_make_fanout_op(), ActorCall(lineno=6, name="formatter"), Return(lineno=7)]
         code = _generate_code_for_ops("flow", ops)
         actor_map = {
             "research_agent": "research-agent",
-            "aggregator": "aggregator",
-            "fanout_flow_L5": "fanout-flow-l5",
+            "formatter": "formatter",
+            "aggregator-flow_line_5": "aggregator-flow-line-5",
+            "fanout_flow_line_5": "fanout-flow-line-5",
         }
 
         with _vfs_tmpdir("orig-id", route_next=["downstream"]) as tmpdir:
@@ -601,17 +604,18 @@ class TestFanOutCodeExecution:
             next(gen)  # yield parent
 
             route_next = _read_vfs_route_next(tmpdir)
-            assert route_next[0] == "aggregator"
+            assert route_next[0] == "aggregator-flow-line-5"
             assert "downstream" in route_next
 
     def test_parent_vfs_fan_in_header_slice_index_0(self):
         """After yielding index 0, VFS x-asya-fan-in header should have slice_index=0."""
-        ops = [_make_fanout_op(), ActorCall(lineno=6, name="aggregator"), Return(lineno=7)]
+        ops = [_make_fanout_op(), ActorCall(lineno=6, name="formatter"), Return(lineno=7)]
         code = _generate_code_for_ops("flow", ops)
         actor_map = {
             "research_agent": "research-agent",
-            "aggregator": "aggregator",
-            "fanout_flow_L5": "fanout-flow-l5",
+            "formatter": "formatter",
+            "aggregator-flow_line_5": "aggregator-flow-line-5",
+            "fanout_flow_line_5": "fanout-flow-line-5",
         }
 
         with _vfs_tmpdir("orig-id", route_next=[]) as tmpdir:
@@ -624,13 +628,14 @@ class TestFanOutCodeExecution:
             assert fan_in["slice_index"] == 0
 
     def test_slice_vfs_route_points_to_actor_then_aggregator(self):
-        """After yielding a slice, VFS route/next should be [sub_agent, aggregator]."""
-        ops = [_make_fanout_op(), ActorCall(lineno=6, name="aggregator"), Return(lineno=7)]
+        """After yielding a slice, VFS route/next should be [sub_agent, generated_aggregator]."""
+        ops = [_make_fanout_op(), ActorCall(lineno=6, name="formatter"), Return(lineno=7)]
         code = _generate_code_for_ops("flow", ops)
         actor_map = {
             "research_agent": "research-agent",
-            "aggregator": "aggregator",
-            "fanout_flow_L5": "fanout-flow-l5",
+            "formatter": "formatter",
+            "aggregator-flow_line_5": "aggregator-flow-line-5",
+            "fanout_flow_line_5": "fanout-flow-line-5",
         }
 
         with _vfs_tmpdir("orig-id", route_next=[]) as tmpdir:
@@ -641,16 +646,17 @@ class TestFanOutCodeExecution:
             next(gen)  # yield first slice
 
             route_next = _read_vfs_route_next(tmpdir)
-            assert route_next == ["research-agent", "aggregator"]
+            assert route_next == ["research-agent", "aggregator-flow-line-5"]
 
     def test_slice_vfs_fan_in_header_increasing_indices(self):
         """Slice yields should have increasing slice_index in VFS."""
-        ops = [_make_fanout_op(), ActorCall(lineno=6, name="aggregator"), Return(lineno=7)]
+        ops = [_make_fanout_op(), ActorCall(lineno=6, name="formatter"), Return(lineno=7)]
         code = _generate_code_for_ops("flow", ops)
         actor_map = {
             "research_agent": "research-agent",
-            "aggregator": "aggregator",
-            "fanout_flow_L5": "fanout-flow-l5",
+            "formatter": "formatter",
+            "aggregator-flow_line_5": "aggregator-flow-line-5",
+            "fanout_flow_line_5": "fanout-flow-line-5",
         }
 
         with _vfs_tmpdir("orig-id", route_next=[]) as tmpdir:
@@ -667,12 +673,13 @@ class TestFanOutCodeExecution:
 
     def test_fan_in_header_slice_count_equals_n_plus_1(self):
         """x-asya-fan-in.slice_count should be total number of yields."""
-        ops = [_make_fanout_op(), ActorCall(lineno=6, name="aggregator"), Return(lineno=7)]
+        ops = [_make_fanout_op(), ActorCall(lineno=6, name="formatter"), Return(lineno=7)]
         code = _generate_code_for_ops("flow", ops)
         actor_map = {
             "research_agent": "research-agent",
-            "aggregator": "aggregator",
-            "fanout_flow_L5": "fanout-flow-l5",
+            "formatter": "formatter",
+            "aggregator-flow_line_5": "aggregator-flow-line-5",
+            "fanout_flow_line_5": "fanout-flow-line-5",
         }
 
         with _vfs_tmpdir("orig-id", route_next=[]) as tmpdir:
@@ -687,12 +694,13 @@ class TestFanOutCodeExecution:
             assert slice_counts == {4}  # 1 parent + 3 slices
 
     def test_fan_in_header_aggregation_key(self):
-        ops = [_make_fanout_op(target_key="/results"), ActorCall(lineno=6, name="aggregator"), Return(lineno=7)]
+        ops = [_make_fanout_op(target_key="/results"), ActorCall(lineno=6, name="formatter"), Return(lineno=7)]
         code = _generate_code_for_ops("flow", ops)
         actor_map = {
             "research_agent": "research-agent",
-            "aggregator": "aggregator",
-            "fanout_flow_L5": "fanout-flow-l5",
+            "formatter": "formatter",
+            "aggregator-flow_line_5": "aggregator-flow-line-5",
+            "fanout_flow_line_5": "fanout-flow-line-5",
         }
 
         with _vfs_tmpdir("orig-id", route_next=[]) as tmpdir:
@@ -705,12 +713,13 @@ class TestFanOutCodeExecution:
 
     def test_fan_in_header_origin_id(self):
         """x-asya-fan-in.origin_id should be the original message ID from VFS."""
-        ops = [_make_fanout_op(), ActorCall(lineno=6, name="aggregator"), Return(lineno=7)]
+        ops = [_make_fanout_op(), ActorCall(lineno=6, name="formatter"), Return(lineno=7)]
         code = _generate_code_for_ops("flow", ops)
         actor_map = {
             "research_agent": "research-agent",
-            "aggregator": "aggregator",
-            "fanout_flow_L5": "fanout-flow-l5",
+            "formatter": "formatter",
+            "aggregator-flow_line_5": "aggregator-flow-line-5",
+            "fanout_flow_line_5": "fanout-flow-line-5",
         }
 
         with _vfs_tmpdir("my-origin-id-123", route_next=[]) as tmpdir:
@@ -723,12 +732,13 @@ class TestFanOutCodeExecution:
 
     def test_slice_payloads_are_individual_items(self):
         """Slice yields should be the individual items from the iterable."""
-        ops = [_make_fanout_op(), ActorCall(lineno=6, name="aggregator"), Return(lineno=7)]
+        ops = [_make_fanout_op(), ActorCall(lineno=6, name="formatter"), Return(lineno=7)]
         code = _generate_code_for_ops("flow", ops)
         actor_map = {
             "research_agent": "research-agent",
-            "aggregator": "aggregator",
-            "fanout_flow_L5": "fanout-flow-l5",
+            "formatter": "formatter",
+            "aggregator-flow_line_5": "aggregator-flow-line-5",
+            "fanout_flow_line_5": "fanout-flow-line-5",
         }
 
         with _vfs_tmpdir("orig-id", route_next=[]):
@@ -741,12 +751,13 @@ class TestFanOutCodeExecution:
 
     def test_existing_headers_preserved(self):
         """Existing headers in VFS should be preserved (not overwritten)."""
-        ops = [_make_fanout_op(), ActorCall(lineno=6, name="aggregator"), Return(lineno=7)]
+        ops = [_make_fanout_op(), ActorCall(lineno=6, name="formatter"), Return(lineno=7)]
         code = _generate_code_for_ops("flow", ops)
         actor_map = {
             "research_agent": "research-agent",
-            "aggregator": "aggregator",
-            "fanout_flow_L5": "fanout-flow-l5",
+            "formatter": "formatter",
+            "aggregator-flow_line_5": "aggregator-flow-line-5",
+            "fanout_flow_line_5": "fanout-flow-line-5",
         }
 
         with _vfs_tmpdir("orig-id", route_next=[], headers={"trace_id": "abc123"}) as tmpdir:
@@ -825,20 +836,19 @@ class TestFanOutIntegration:
         except SyntaxError as e:
             pytest.fail(f"Compilation failed: {e}")
 
-    def test_fanout_contains_resolve_aggregator(self):
+    def test_fanout_no_resolve_aggregator(self):
         code = self._compile_flow("""
             def flow(p: dict) -> dict:
                 p["results"] = [research_agent(t) for t in p["topics"]]
                 return p
         """)
-        assert "_resolve_aggregator" in code
+        assert "_resolve_aggregator" not in code
 
-    def test_two_fanouts_share_one_resolve_aggregator(self):
+    def test_two_fanouts_share_one_json_import(self):
         code = self._compile_flow("""
             def flow(p: dict) -> dict:
                 p["research"] = [research_agent(t) for t in p["topics"]]
                 p["reviews"] = [review_agent(r) for r in p["research"]]
                 return p
         """)
-        # The fan-out helper block is emitted once per file. Check via the json import marker.
-        assert code.count("import json as _json") == 1, "Fan-out helper block emitted more than once"
+        assert code.count("import json as _json") == 1, "json import should be emitted exactly once"
