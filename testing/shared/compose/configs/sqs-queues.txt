@@ -44,3 +44,5 @@ asya-default-test-aggregator
 # System actor queues (with asya-{namespace}- prefix for namespace isolation)
 asya-default-x-sink
 asya-default-x-sump
+asya-default-x-pause
+asya-default-x-resume

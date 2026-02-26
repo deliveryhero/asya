@@ -1,0 +1,120 @@
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "2"
+
+# Note: Volumes must be defined in the compose file that includes this file
+
+services:
+  # x-pause actor (pause flow handler)
+  asya-x-pause-runtime:
+    build:
+      context: ../../../../src/asya-crew
+      dockerfile: Dockerfile
+    logging: *default-logging
+    command: ["python3", "/opt/asya/asya_runtime.py"]
+    depends_on:
+      storage-setup:
+        condition: service_completed_successfully
+    env_file:
+    - ../envs/.env.asya-shared
+    - ../envs/.env.asya-runtime
+    - ../envs/.env.${ASYA_TRANSPORT}
+    - ../envs/.env.${ASYA_STORAGE}
+    environment:
+    - ASYA_HANDLER=asya_crew.pause.pause_handler
+    - ASYA_PERSISTENCE_MOUNT=/tmp/paused-state
+    volumes:
+    - asya-x-pause-sockets:/var/run/asya
+    - ../../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro
+    - asya-pause-state:/tmp/paused-state
+    healthcheck:
+      test: ["CMD", "test", "-S", "/var/run/asya/asya-runtime.sock"]
+      interval: 2s
+      timeout: 1s
+      retries: 15
+
+  asya-x-pause-sidecar:
+    network_mode: "service:asya-x-pause-runtime"
+    build:
+      context: ../../../../src/asya-sidecar
+      dockerfile: Dockerfile
+    logging: *default-logging
+    depends_on:
+      asya-x-pause-runtime:
+        condition: service_healthy
+      gateway:
+        condition: service_healthy
+      queue-setup:
+        condition: service_completed_successfully
+    env_file:
+    - ../envs/.env.asya-sidecar
+    - ../envs/.env.${ASYA_TRANSPORT}
+    environment:
+      ASYA_RESILIENCY_ACTOR_TIMEOUT: 5s
+      ASYA_ACTOR_NAME: x-pause
+      ASYA_GATEWAY_URL: http://gateway:8080
+    volumes:
+    - asya-x-pause-sockets:/var/run/asya
+
+  # x-resume actor (resume flow handler)
+  asya-x-resume-runtime:
+    build:
+      context: ../../../../src/asya-crew
+      dockerfile: Dockerfile
+    logging: *default-logging
+    command: ["python3", "/opt/asya/asya_runtime.py"]
+    depends_on:
+      storage-setup:
+        condition: service_completed_successfully
+    env_file:
+    - ../envs/.env.asya-shared
+    - ../envs/.env.asya-runtime
+    - ../envs/.env.${ASYA_TRANSPORT}
+    - ../envs/.env.${ASYA_STORAGE}
+    environment:
+    - ASYA_HANDLER=asya_crew.resume.resume_handler
+    - ASYA_PERSISTENCE_MOUNT=/tmp/paused-state
+    volumes:
+    - asya-x-resume-sockets:/var/run/asya
+    - ../../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro
+    - asya-pause-state:/tmp/paused-state
+    healthcheck:
+      test: ["CMD", "test", "-S", "/var/run/asya/asya-runtime.sock"]
+      interval: 2s
+      timeout: 1s
+      retries: 15
+
+  asya-x-resume-sidecar:
+    network_mode: "service:asya-x-resume-runtime"
+    build:
+      context: ../../../../src/asya-sidecar
+      dockerfile: Dockerfile
+    logging: *default-logging
+    depends_on:
+      asya-x-resume-runtime:
+        condition: service_healthy
+      gateway:
+        condition: service_healthy
+      queue-setup:
+        condition: service_completed_successfully
+    env_file:
+    - ../envs/.env.asya-sidecar
+    - ../envs/.env.${ASYA_TRANSPORT}
+    environment:
+      ASYA_RESILIENCY_ACTOR_TIMEOUT: 5s
+      ASYA_ACTOR_NAME: x-resume
+      ASYA_GATEWAY_URL: http://gateway:8080
+    volumes:
+    - asya-x-resume-sockets:/var/run/asya
+
+  # Waiter service for pause/resume actors dependency subgraph
+  pause-resume-actors-waiter:
+    image: busybox:latest
+    command: ["sh", "-c", "echo 'Pause/resume actors ready'"]
+    depends_on:
+      asya-x-pause-sidecar:
+        condition: service_started
+      asya-x-resume-sidecar:
+        condition: service_started

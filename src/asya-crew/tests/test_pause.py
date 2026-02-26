@@ -215,20 +215,22 @@ def test_sets_x_asya_pause_header(tmp_path, monkeypatch):
     logger.info("=== test_sets_x_asya_pause_header: PASSED ===")
 
 
-def test_returns_none(tmp_path, monkeypatch):
-    """Test pause handler returns None."""
-    logger.info("=== test_returns_none ===")
+def test_returns_payload(tmp_path, monkeypatch):
+    """Test pause handler returns the original payload for VFS header propagation."""
+    logger.info("=== test_returns_payload ===")
 
-    vfs_root = setup_vfs(str(tmp_path), msg_id="test-none", curr="x-pause")
+    vfs_root = setup_vfs(str(tmp_path), msg_id="test-return", curr="x-pause")
     monkeypatch.setenv("ASYA_MSG_ROOT", vfs_root)
 
     if "asya_crew.pause" in sys.modules:
         del sys.modules["asya_crew.pause"]
     from asya_crew.pause import pause_handler
 
-    pause_handler({"data": "test"})
+    input_payload = {"data": "test"}
+    result = pause_handler(input_payload)
+    assert result == input_payload
 
-    logger.info("=== test_returns_none: PASSED ===")
+    logger.info("=== test_returns_payload: PASSED ===")
 
 
 def test_custom_pause_metadata_from_env(tmp_path, monkeypatch):

@@ -29,7 +29,7 @@ Handler Behavior:
 - Ensures x-resume is first in route.next (prepends if missing)
 - Persists full message (metadata + headers + payload + pause metadata) to state proxy mount
 - Sets x-asya-pause header with pause metadata
-- Returns None (terminal handler)
+- Returns payload so runtime builds a frame with VFS headers for sidecar detection
 - Gracefully skips persistence if ASYA_PERSISTENCE_MOUNT not set
 """
 
@@ -102,7 +102,7 @@ def _read_headers() -> dict[str, Any]:
     return headers
 
 
-def pause_handler(payload: dict[str, Any]) -> None:
+def pause_handler(payload: dict[str, Any]) -> dict[str, Any]:
     """
     x-pause crew actor handler.
 
@@ -126,13 +126,14 @@ def pause_handler(payload: dict[str, Any]) -> None:
        Write JSON to /proc/asya/msg/headers/x-asya-pause
        The JSON should contain the pause metadata (prompt, fields).
 
-    4. Return None (terminal - sidecar will detect x-asya-pause header and handle)
+    4. Return payload so the runtime builds a response frame with VFS headers.
+       The sidecar detects x-asya-pause and stops forwarding.
 
     Args:
         payload: Message payload dict
 
     Returns:
-        None (terminal handler)
+        The original payload (sidecar uses x-asya-pause header to halt forwarding)
 
     Raises:
         ValueError: If payload is not a dict
@@ -215,4 +216,6 @@ def pause_handler(payload: dict[str, Any]) -> None:
         logger.error(f"Failed to set x-asya-pause header for message {message_id}: {e}", exc_info=True)
         raise
 
-    return None
+    # Return payload so the runtime builds a response frame containing VFS headers
+    # (including x-asya-pause). The sidecar detects the header and stops forwarding.
+    return payload

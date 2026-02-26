@@ -153,3 +153,18 @@ tools:
   parameters: {}
   route: [test-streaming-error]
   timeout: 30
+
+# Pause/resume test - pipeline that pauses mid-execution
+- name: test_pause_resume
+  description: Test pause/resume flow with echo actor before pause
+  parameters:
+    message:
+      type: string
+      description: Message to echo before pausing
+      required: true
+    value:
+      type: integer
+      description: Optional value for incrementer pipeline stage
+      default: 0
+  route: [test-echo, x-pause, test-incrementer]
+  timeout: 60
