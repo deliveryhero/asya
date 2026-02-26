@@ -98,15 +98,13 @@ actor:
     {
       "name": "approved",
       "type": "boolean",
-      "prompt": "Approve this analysis?",
-      "required": true
+      "prompt": "Approve this analysis?"
     },
     {
       "name": "notes",
       "type": "string",
       "prompt": "Any reviewer notes?",
-      "payload_key": "/review/notes",
-      "required": false
+      "payload_key": "/review/notes"
     }
   ]
 }
@@ -120,8 +118,8 @@ actor:
 | `type` | Yes | - | JSON type: `string`, `boolean`, `number`, `array`, `object` |
 | `prompt` | No | - | Human-readable label for UI |
 | `payload_key` | No | `/<name>` | `/`-separated path where value lands in restored payload |
-| `required` | No | `true` | Whether the field must be provided on resume |
-| `default` | No | `null` | Default value if not provided |
+| `required` | No | `true` | UI hint; not enforced by x-resume (planned) |
+| `default` | No | `null` | UI hint; not applied by x-resume (planned) |
 | `options` | No | - | Enumerated choices for multichoice inputs |
 
 When `payload_key` is omitted, the value merges at `payload["<name>"]`. When
@@ -227,7 +225,13 @@ POST /a2a/tasks/{id}:pause    # Pause a running task
 POST /a2a/tasks/{id}:cancel   # Cancel a task (terminal)
 ```
 
-External pause differs from actor-initiated pause: there is no pause metadata
-(no prompt/fields), and resume input merges at the payload root.
+**External pause** transitions the task to `paused` at the gateway level. The
+endpoint accepts optional `metadata` in the request body for client context.
+However, because x-pause never runs, no message state is persisted to storage.
+This means externally paused tasks **cannot be resumed via x-resume** — resuming
+requires a persisted state file that only x-pause creates. External pause is
+currently useful for stopping a task and reporting `input_required` to clients,
+but full resume support for externally paused tasks requires additional
+implementation (e.g., sidecar-level persistence on pause discovery).
 
 Cancel is terminal. Canceled tasks cannot be resumed.
