@@ -2,6 +2,8 @@ package a2a
 
 import (
 	"encoding/json"
+	"errors"
+	"io"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -50,7 +52,7 @@ func (h *LifecycleHandler) HandlePause(w http.ResponseWriter, r *http.Request) {
 		Metadata json.RawMessage `json:"metadata,omitempty"`
 		Message  string          `json:"message,omitempty"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil && err.Error() != "EOF" {
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil && !errors.Is(err, io.EOF) {
 		http.Error(w, "Invalid JSON in request body", http.StatusBadRequest)
 		return
 	}
@@ -76,16 +78,7 @@ func (h *LifecycleHandler) HandlePause(w http.ResponseWriter, r *http.Request) {
 
 	slog.Info("Task paused via external request", "id", taskID)
 
-	// Return updated task
-	task, err = h.taskStore.Get(taskID)
-	if err != nil {
-		slog.Error("Failed to get task after pause", "id", taskID, "error", err)
-		http.Error(w, "Failed to retrieve updated task", http.StatusInternalServerError)
-		return
-	}
-	a2aTask := TaskToA2ATask(task)
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(a2aTask)
+	h.writeTaskResponse(w, taskID)
 }
 
 // HandleCancel handles POST /a2a/tasks/{id}:cancel
@@ -128,16 +121,22 @@ func (h *LifecycleHandler) HandleCancel(w http.ResponseWriter, r *http.Request) 
 
 	slog.Info("Task canceled", "id", taskID)
 
-	// Return updated task
-	task, err = h.taskStore.Get(taskID)
+	h.writeTaskResponse(w, taskID)
+}
+
+// writeTaskResponse fetches a task by ID and writes it as a JSON response.
+func (h *LifecycleHandler) writeTaskResponse(w http.ResponseWriter, taskID string) {
+	task, err := h.taskStore.Get(taskID)
 	if err != nil {
-		slog.Error("Failed to get task after cancel", "id", taskID, "error", err)
+		slog.Error("Failed to get task for response", "id", taskID, "error", err)
 		http.Error(w, "Failed to retrieve updated task", http.StatusInternalServerError)
 		return
 	}
 	a2aTask := TaskToA2ATask(task)
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(a2aTask)
+	if err := json.NewEncoder(w).Encode(a2aTask); err != nil {
+		slog.Error("Failed to write task response", "id", taskID, "error", err)
+	}
 }
 
 // HandleList handles GET /a2a/tasks
@@ -168,5 +167,7 @@ func (h *LifecycleHandler) HandleList(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(a2aTasks)
+	if err := json.NewEncoder(w).Encode(a2aTasks); err != nil {
+		slog.Error("Failed to write task list response", "error", err)
+	}
 }

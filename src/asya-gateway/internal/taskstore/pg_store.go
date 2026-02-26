@@ -806,32 +806,21 @@ func (s *PgStore) Resume(id string) (*types.Task, error) {
 
 // List returns tasks, optionally filtered by status
 func (s *PgStore) List(status *types.TaskStatus) ([]*types.Task, error) {
-	var query string
+	query := `
+		SELECT id, context_id, status, payload, result, error, timeout_seconds, deadline,
+		       remaining_timeout_sec, progress_percent, current_actor_name, message,
+		       pause_metadata, actors_completed, total_actors,
+		       route_prev, route_curr, route_next,
+		       created_at, updated_at
+		FROM tasks`
 	var args []any
 
 	if status != nil {
-		query = `
-			SELECT id, context_id, status, payload, result, error, timeout_seconds, deadline,
-			       remaining_timeout_sec, progress_percent, current_actor_name, message,
-			       pause_metadata, actors_completed, total_actors,
-			       route_prev, route_curr, route_next,
-			       created_at, updated_at
-			FROM tasks
-			WHERE status = $1
-			ORDER BY created_at DESC
-		`
+		query += " WHERE status = $1"
 		args = []any{*status}
-	} else {
-		query = `
-			SELECT id, context_id, status, payload, result, error, timeout_seconds, deadline,
-			       remaining_timeout_sec, progress_percent, current_actor_name, message,
-			       pause_metadata, actors_completed, total_actors,
-			       route_prev, route_curr, route_next,
-			       created_at, updated_at
-			FROM tasks
-			ORDER BY created_at DESC
-		`
 	}
+
+	query += " ORDER BY created_at DESC"
 
 	rows, err := s.pool.Query(s.ctx, query, args...)
 	if err != nil {
@@ -861,10 +850,14 @@ func (s *PgStore) List(status *types.TaskStatus) ([]*types.Task, error) {
 		}
 
 		if payloadJSON != nil {
-			_ = json.Unmarshal(payloadJSON, &task.Payload)
+			if err := json.Unmarshal(payloadJSON, &task.Payload); err != nil {
+				return nil, fmt.Errorf("failed to unmarshal payload for task %s: %w", task.ID, err)
+			}
 		}
 		if resultJSON != nil {
-			_ = json.Unmarshal(resultJSON, &task.Result)
+			if err := json.Unmarshal(resultJSON, &task.Result); err != nil {
+				return nil, fmt.Errorf("failed to unmarshal result for task %s: %w", task.ID, err)
+			}
 		}
 		if pauseMetadataJSON != nil {
 			task.PauseMetadata = pauseMetadataJSON
