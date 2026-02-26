@@ -37,7 +37,6 @@ crew:
   persistence:
     enabled: true
     backend: s3
-    mountPath: /state/checkpoints
     config:
       bucket: asya-results
       endpoint: http://localstack-s3.asya-system.svc.cluster.local:4566

@@ -39,7 +39,6 @@ crew:
   persistence:
     enabled: true
     backend: s3
-    mountPath: /state/checkpoints
     config:
       bucket: asya-results
       endpoint: http://minio.asya-e2e.svc.cluster.local:9000

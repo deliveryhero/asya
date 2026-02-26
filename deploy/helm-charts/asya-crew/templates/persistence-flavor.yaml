@@ -16,7 +16,7 @@ data:
   stateProxy:
     - name: checkpoints
       mount:
-        path: {{ .Values.persistence.mountPath }}
+        path: /state/checkpoints
       connector:
         image: {{ .Values.persistence.connector.image }}
         env:
