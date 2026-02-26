@@ -38,7 +38,7 @@ def fanout_research_flow_line_2(payload: dict):
     with open(f"{_MSG_ROOT}/route/next") as _f:
         _next_tail = _f.read().splitlines()
 
-    _agg = resolve("summarizer")
+    _agg = resolve("fanin_research_flow_line_2")
 
     # Accumulate (actor_name, slice_payload) pairs
     _slices = []
