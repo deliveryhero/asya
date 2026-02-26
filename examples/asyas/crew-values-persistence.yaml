@@ -1,0 +1,40 @@
+# Example values for asya-crew chart with S3 persistence enabled
+#
+# Deploy with:
+#   helm install asya-crew deploy/helm-charts/asya-crew/ -f crew-values-persistence.yaml
+#
+# This creates:
+#   - x-sink AsyncActor with persistence flavor (stores results at /state/checkpoints/results)
+#   - x-sump AsyncActor with persistence flavor (stores errors at /state/checkpoints/errors)
+#   - checkpoint-s3 AsyncActor with persistence flavor (stores checkpoints at /state/checkpoints)
+#   - EnvironmentConfig "asya-persistence-s3" with S3 stateProxy connector
+
+# Enable S3 persistence for all crew actors
+persistence:
+  enabled: true
+  backend: s3
+  mountPath: /state/checkpoints
+  config:
+    bucket: my-asya-checkpoints
+    # endpoint: http://minio:9000  # uncomment for MinIO/LocalStack
+    # region: eu-west-1            # uncomment to set AWS region
+
+# x-sink: stores final results
+x-sink:
+  transport: sqs
+  env:
+    ASYA_SINK_HOOKS: ""
+    ASYA_PERSISTENCE_MOUNT: "/state/checkpoints/results"
+
+# x-sump: stores error payloads
+x-sump:
+  transport: sqs
+  env:
+    ASYA_PERSISTENCE_MOUNT: "/state/checkpoints/errors"
+
+# checkpoint-s3: mid-pipeline message persistence
+checkpoint-s3:
+  enabled: true
+  transport: sqs
+  env:
+    ASYA_PERSISTENCE_MOUNT: "/state/checkpoints"

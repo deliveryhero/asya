@@ -1,0 +1,48 @@
+# Actor with S3 persistence via flavor
+# The persistence-s3 flavor provides a stateProxy connector that mounts
+# an S3 bucket at the configured path. The actor writes to this path
+# using standard file I/O (via the state proxy VFS).
+#
+# Prerequisites:
+#   - asya-crew chart deployed with persistence.enabled: true
+#   - EnvironmentConfig "asya-persistence-s3" exists (created by crew chart)
+#
+# The flavor provides:
+#   - stateProxy connector sidecar (s3-buffered-lww)
+#   - S3 bucket configuration (STATE_BUCKET env var)
+#
+# The actor provides:
+#   - ASYA_PERSISTENCE_MOUNT: where to write data within the mount
+
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: data-processor
+  namespace: default
+spec:
+  actor: data-processor
+  transport: sqs
+
+  # Reference shared persistence flavor created by asya-crew chart
+  flavors:
+  - asya-persistence-s3
+
+  workload:
+    kind: Deployment
+    template:
+      spec:
+        containers:
+        - name: asya-runtime
+          image: my-data-processor:latest
+          env:
+          - name: ASYA_HANDLER
+            value: "processor.handle"
+          - name: ASYA_PERSISTENCE_MOUNT
+            value: "/state/checkpoints/data-processor"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
