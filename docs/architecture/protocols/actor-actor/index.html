@@ -880,6 +880,15 @@
 <span class="w">    </span><span class="nt">&quot;trace_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;abc-123&quot;</span><span class="p">,</span>
 <span class="w">    </span><span class="nt">&quot;priority&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;high&quot;</span>
 <span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;phase&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;pending&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;actor&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;infer&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;attempt&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;max_attempts&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;created_at&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2025-11-18T12:00:00Z&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;updated_at&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2025-11-18T12:00:00Z&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;deadline_at&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2025-11-18T12:05:00Z&quot;</span>
+<span class="w">  </span><span class="p">},</span>
 <span class="w">  </span><span class="nt">&quot;payload&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="nt">&quot;text&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Hello world&quot;</span>
 <span class="w">  </span><span class="p">}</span>
@@ -893,6 +902,10 @@
 <li><code>prev</code>: Actors that have already processed the message (read-only, maintained by runtime)</li>
 <li><code>curr</code>: The actor currently processing the message (read-only, set by runtime)</li>
 <li><code>next</code>: Actors yet to process the message (modifiable via VFS)</li>
+<li><code>status</code> (optional): Message lifecycle status, stamped by gateway on creation</li>
+<li><code>phase</code>: Current lifecycle phase (<code>pending</code>, <code>processing</code>, <code>succeeded</code>, <code>failed</code>)</li>
+<li><code>actor</code>: Actor that last updated the status</li>
+<li><code>deadline_at</code>: Absolute deadline in RFC3339 UTC (omitted if no timeout configured)</li>
 <li><code>payload</code> (required): User data processed by actors</li>
 <li><code>headers</code> (optional): Routing metadata (trace IDs, priorities)</li>
 </ul>
@@ -917,12 +930,13 @@ Namespace: <code>example-ecommerce</code>
 - Sidecar crashes before processing
 - Queue automatically sends to DLQ after max retries</p>
 <h2 id="end-queues">End Queues<a class="headerlink" href="#end-queues" title="Permanent link">&para;</a></h2>
-<p><strong><code>x-sink</code></strong>: Pipeline completed or aborted successfully
+<p><strong><code>x-sink</code></strong>: Pipeline completed, aborted, or expired
 - Automatically routed by sidecar when <code>route.curr</code> is <code>""</code> (route exhausted)
-- Automatically routed when runtime returns empty response</p>
+- Automatically routed when runtime returns empty response
+- Automatically routed when <code>status.deadline_at</code> has passed (SLA expired, stamped with <code>phase=failed</code>, <code>reason=Timeout</code>)</p>
 <p><strong><code>x-sump</code></strong>: Processing error occurred
 - Automatically routed when runtime returns error
-- Automatically routed on timeout</p>
+- Automatically routed when runtime call times out (per-call timeout exceeded)</p>
 <p><strong>Important</strong>: Do not include <code>x-sink</code> or <code>x-sump</code> in route configurations - managed by sidecar.</p>
 <h2 id="response-patterns">Response Patterns<a class="headerlink" href="#response-patterns" title="Permanent link">&para;</a></h2>
 <h3 id="single-response">Single Response<a class="headerlink" href="#single-response" title="Permanent link">&para;</a></h3>

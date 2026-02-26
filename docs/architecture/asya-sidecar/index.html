@@ -982,8 +982,12 @@
 <td>Send to x-sump</td>
 </tr>
 <tr>
-<td>Timeout</td>
-<td>Send to x-sump</td>
+<td>SLA expired</td>
+<td>Send to x-sink (phase=failed, reason=Timeout)</td>
+</tr>
+<tr>
+<td>Runtime timeout</td>
+<td>Send to x-sump, crash pod</td>
 </tr>
 <tr>
 <td>End of route</td>
@@ -1088,8 +1092,13 @@ or
 <td>x-sump</td>
 </tr>
 <tr>
-<td>Timeout</td>
-<td>Log + construct error</td>
+<td>SLA expired</td>
+<td>Log + stamp phase=failed, reason=Timeout</td>
+<td>x-sink</td>
+</tr>
+<tr>
+<td>Runtime timeout</td>
+<td>Log + construct error + crash pod</td>
 <td>x-sump</td>
 </tr>
 <tr>
@@ -1131,9 +1140,9 @@ or
 <td>Unix socket path</td>
 </tr>
 <tr>
-<td><code>ASYA_RUNTIME_TIMEOUT</code></td>
+<td><code>ASYA_RESILIENCY_ACTOR_TIMEOUT</code></td>
 <td><code>5m</code></td>
-<td>Response timeout</td>
+<td>Per-call actor timeout (from XRD <code>resiliency.actorTimeout</code>)</td>
 </tr>
 <tr>
 <td><code>ASYA_ACTOR_SINK</code></td>
@@ -1209,13 +1218,20 @@ or
 4. Next message attempt succeeds</p>
 <p><strong>Message fate:</strong> Sent to x-sump for retry logic (not automatically retried)</p>
 <h4 id="timeout-hung-process">Timeout (Hung Process)<a class="headerlink" href="#timeout-hung-process" title="Permanent link">&para;</a></h4>
-<p><strong>Detection:</strong> No response within <code>ASYA_RUNTIME_TIMEOUT</code> (default: 5m)</p>
+<p><strong>Detection:</strong> No response within effective timeout: <code>min(ASYA_RESILIENCY_ACTOR_TIMEOUT, remaining_SLA)</code></p>
 <p><strong>Recovery:</strong>
 1. Socket read returns <code>context.DeadlineExceeded</code>
 2. Message sent to x-sump with timeout error
-3. ⚠️ <strong>Container NOT restarted</strong> (no liveness probe configured)
-4. Runtime becomes a zombie, failing all subsequent messages</p>
-<p><strong>Operational impact:</strong> Requires manual pod restart or liveness probe configuration.</p>
+3. Sidecar <strong>crashes the pod</strong> (exits with status code 1)
+4. Kubernetes restarts the pod to recover clean state</p>
+<p><strong>Rationale:</strong> Crash-on-timeout prevents zombie processing where the runtime may still be executing after the sidecar gives up.</p>
+<h4 id="sla-expired-pipeline-deadline">SLA Expired (Pipeline Deadline)<a class="headerlink" href="#sla-expired-pipeline-deadline" title="Permanent link">&para;</a></h4>
+<p><strong>Detection:</strong> <code>status.deadline_at</code> has passed before calling runtime</p>
+<p><strong>Recovery:</strong>
+1. Message routed directly to x-sink with <code>phase=failed</code>, <code>reason=Timeout</code>
+2. Runtime is never called — no wasted compute
+3. Pod remains healthy for subsequent messages</p>
+<p><strong>Message fate:</strong> Sent to x-sink as a failed completion (not an error). The gateway reports the task as failed with timeout reason.</p>
 <h4 id="user-code-exception">User Code Exception<a class="headerlink" href="#user-code-exception" title="Permanent link">&para;</a></h4>
 <p><strong>Detection:</strong> Runtime returns error response with traceback</p>
 <p><strong>Recovery:</strong>
@@ -1255,8 +1271,14 @@ or
 <tr>
 <td>Runtime timeout</td>
 <td>❌ No</td>
-<td>⚠️ No (zombie pod)</td>
-<td>Via x-sump, needs manual restart</td>
+<td>✅ Yes (crash + restart)</td>
+<td>Via x-sump, pod crashes to prevent zombie</td>
+</tr>
+<tr>
+<td>SLA expired</td>
+<td>❌ No</td>
+<td>✅ Yes</td>
+<td>Via x-sink (phase=failed), runtime not called</td>
 </tr>
 <tr>
 <td>Pod eviction</td>

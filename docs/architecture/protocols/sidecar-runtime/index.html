@@ -1003,7 +1003,7 @@ Content-Type: application/json
 <tbody>
 <tr>
 <td><code>context.DeadlineExceeded</code></td>
-<td>Runtime exceeded <code>ASYA_RUNTIME_TIMEOUT</code></td>
+<td>Runtime exceeded <code>ASYA_RESILIENCY_ACTOR_TIMEOUT</code></td>
 <td>Send to <code>x-sump</code>, crash pod</td>
 </tr>
 <tr>
@@ -1014,13 +1014,21 @@ Content-Type: application/json
 </tbody>
 </table></div>
 <h2 id="timeout-strategy">Timeout Strategy<a class="headerlink" href="#timeout-strategy" title="Permanent link">&para;</a></h2>
-<p>Sidecar enforces a per-message timeout (default: 5 minutes) via <code>context.WithTimeout</code>:</p>
-<p><strong>On timeout</strong> (<code>context.DeadlineExceeded</code>):
+<p>The sidecar enforces timeouts at two levels:</p>
+<h3 id="sla-pre-check-pipeline-level-deadline">SLA Pre-Check (Pipeline-Level Deadline)<a class="headerlink" href="#sla-pre-check-pipeline-level-deadline" title="Permanent link">&para;</a></h3>
+<p>Before calling the runtime, the sidecar checks <code>status.deadline_at</code> on the incoming message. If the current time is past the deadline, the message is routed directly to <code>x-sink</code> with <code>phase=failed</code>, <code>reason=Timeout</code> — the runtime is never called.</p>
+<p>The gateway stamps <code>status.deadline_at</code> based on the tool's <code>timeout_seconds</code> configuration. This absolute deadline is never mutated as the message travels through actors.</p>
+<h3 id="effective-timeout-per-call">Effective Timeout (Per-Call)<a class="headerlink" href="#effective-timeout-per-call" title="Permanent link">&para;</a></h3>
+<p>For messages that pass the SLA pre-check, the sidecar computes an effective timeout:</p>
+<div class="highlight"><pre><span></span><code>effective_timeout = min(ASYA_RESILIENCY_ACTOR_TIMEOUT, remaining_SLA)
+</code></pre></div>
+<p>Where <code>remaining_SLA = deadline_at - now</code> (only if <code>deadline_at</code> is set).</p>
+<h3 id="runtime-timeout-behavior">Runtime Timeout Behavior<a class="headerlink" href="#runtime-timeout-behavior" title="Permanent link">&para;</a></h3>
+<p><strong>On runtime timeout</strong> (<code>context.DeadlineExceeded</code>):
 1. Sidecar sends the message to <code>x-sump</code> with a timeout error
 2. Sidecar <strong>crashes the pod</strong> (exits with status code 1)
 3. Kubernetes restarts the pod to recover clean state</p>
-<p><strong>Rationale</strong>: prevents zombie processing where the runtime may still be executing after the sidecar gives up.</p>
-<p><strong>Configuration</strong>: <code>ASYA_RUNTIME_TIMEOUT</code> (default: <code>5m</code>)</p>
+<p><strong>Rationale</strong>: crash-on-timeout prevents zombie processing where the runtime may still be executing after the sidecar gives up.</p>
 <h2 id="debugging-with-curl">Debugging with curl<a class="headerlink" href="#debugging-with-curl" title="Permanent link">&para;</a></h2>
 <p>Inspect the runtime directly without a sidecar:</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># Invoke handler</span>
@@ -1078,9 +1086,9 @@ curl<span class="w"> </span>--unix-socket<span class="w"> </span>/var/run/asya/a
 </thead>
 <tbody>
 <tr>
-<td><code>ASYA_RUNTIME_TIMEOUT</code></td>
+<td><code>ASYA_RESILIENCY_ACTOR_TIMEOUT</code></td>
 <td><code>5m</code></td>
-<td>Processing timeout per message</td>
+<td>Per-call actor timeout (from XRD <code>resiliency.actorTimeout</code>)</td>
 </tr>
 <tr>
 <td><code>ASYA_ACTOR_NAME</code></td>
@@ -1101,7 +1109,7 @@ curl<span class="w"> </span>--unix-socket<span class="w"> </span>/var/run/asya/a
 </ol>
 <h3 id="for-operators">For Operators<a class="headerlink" href="#for-operators" title="Permanent link">&para;</a></h3>
 <ol>
-<li><strong>Tune <code>ASYA_RUNTIME_TIMEOUT</code></strong> to balance task duration against responsiveness; short timeouts cause false crashes on slow model inference.</li>
+<li><strong>Tune <code>ASYA_RESILIENCY_ACTOR_TIMEOUT</code></strong> to balance task duration against responsiveness; short timeouts cause false crashes on slow model inference.</li>
 <li><strong>Monitor <code>x-sump</code> queue depth</strong> — a growing sump queue signals systematic handler errors or timeout spikes.</li>
 <li><strong>Size container memory</strong> for peak model/data size, not average; OOM kills look like pod crashes and are hard to distinguish from timeout crashes without metrics.</li>
 <li><strong>Use <code>GET /healthz</code></strong> as the Kubernetes readiness probe target — it becomes available only after the handler is fully loaded, so the pod never receives traffic while still initialising.</li>
@@ -1423,6 +1431,26 @@ curl<span class="w"> </span>--unix-socket<span class="w"> </span>/var/run/asya/a
             data-active="false" data-depth="2">
             Timeout Strategy
         </a>
+        
+        
+        <a href="#sla-pre-check-pipeline-level-deadline"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            SLA Pre-Check (Pipeline-Level Deadline)
+        </a>
+        
+        <a href="#effective-timeout-per-call"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Effective Timeout (Per-Call)
+        </a>
+        
+        <a href="#runtime-timeout-behavior"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Runtime Timeout Behavior
+        </a>
+        
         
 
         
