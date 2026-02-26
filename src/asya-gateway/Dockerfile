@@ -4,7 +4,8 @@ WORKDIR /build
 
 # Copy go mod files and download dependencies
 COPY go.mod go.sum ./
-RUN go mod download && go mod verify
+RUN --mount=type=cache,target=/go/pkg/mod \
+    go mod download
 
 # Install build dependencies
 RUN apk add --no-cache git
@@ -13,7 +14,9 @@ RUN apk add --no-cache git
 COPY . .
 
 # Build
-RUN CGO_ENABLED=0 GOOS=linux go build -o gateway ./cmd/gateway
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    --mount=type=cache,target=/go/pkg/mod \
+    CGO_ENABLED=0 GOOS=linux go build -o gateway ./cmd/gateway
 
 # Test image
 FROM builder AS tester
