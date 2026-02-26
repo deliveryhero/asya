@@ -105,6 +105,32 @@ class TestStartRouter:
         tree = ast.parse(code)
         assert tree is not None
 
+    def test_start_router_with_mutations(self):
+        routers = [
+            Router(
+                name="start_flow",
+                lineno=0,
+                mutations=[Mutation(lineno=1, code='p["x"] = 1'), Mutation(lineno=2, code='p["y"] = 2')],
+                true_branch_actors=["handler", "end_flow"],
+            )
+        ]
+        code = CodeGenerator("flow", routers, "test.py")._generate_start_router(routers[0])
+
+        assert "p = payload" in code
+        assert 'p["x"] = 1' in code
+        assert 'p["y"] = 2' in code
+        assert "return p" in code
+        assert "return payload" not in code
+        tree = ast.parse(code)
+        assert tree is not None
+
+    def test_start_router_without_mutations_returns_payload(self):
+        routers = [Router(name="start_flow", lineno=0, true_branch_actors=["handler", "end_flow"])]
+        code = CodeGenerator("flow", routers, "test.py")._generate_start_router(routers[0])
+
+        assert "return payload" in code
+        assert "p = payload" not in code
+
 
 class TestEndRouter:
     """Test end router generation."""

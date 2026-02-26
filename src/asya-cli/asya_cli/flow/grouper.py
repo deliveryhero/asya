@@ -85,6 +85,22 @@ class OperationGrouper:
 
         self._resolve_convergence_labels()
 
+        # Merge leading mutation-only router into start (saves one actor hop)
+        if start_router.true_branch_actors:
+            first_name = start_router.true_branch_actors[0]
+            first_router = next((r for r in self.routers if r.name == first_name), None)
+            if (
+                first_router
+                and first_router.mutations
+                and not first_router.condition
+                and not first_router.is_fan_out
+                and not first_router.is_loop_back
+                and not first_router.is_try_enter
+            ):
+                start_router.mutations = first_router.mutations
+                start_router.true_branch_actors = first_router.true_branch_actors
+                self.routers.remove(first_router)
+
         return self.routers
 
     def _process_operations(

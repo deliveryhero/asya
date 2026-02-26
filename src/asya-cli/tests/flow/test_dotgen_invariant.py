@@ -127,6 +127,6 @@ def test_all_nodes_can_reach_exitpoint(flow_dir: Path) -> None:
     rev = _reverse_adj(adj)
     can_reach_end = _bfs_reachable(rev, end_node)
 
-    # Reraise nodes are error terminals that don't reach the normal exitpoint
-    no_path = {n for n in nodes if n not in can_reach_end and "reraise" not in n}
+    # Reraise and raise_exit nodes are error terminals that don't reach the normal exitpoint
+    no_path = {n for n in nodes if n not in can_reach_end and "reraise" not in n and "raise_exit" not in n}
     assert not no_path, f"Nodes cannot reach exitpoint: {no_path}"

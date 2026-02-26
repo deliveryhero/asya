@@ -566,22 +566,13 @@ class TestTryExceptEdgeCases:
         grouper = OperationGrouper("flow", ops)
         routers = grouper.group()
 
-        # Mutations before try should create a mutation router
-        mutation_routers = [
-            r
-            for r in routers
-            if r.name.startswith("router_")
-            and len(r.mutations) > 0
-            and not r.is_try_enter
-            and not r.is_try_exit
-            and not r.is_except_dispatch
-            and not r.is_reraise
-        ]
-        assert len(mutation_routers) == 1
-        assert len(mutation_routers[0].mutations) == 2
-        assert mutation_routers[0].mutations[0].code == 'p["status"] = "starting"'
-        assert mutation_routers[0].mutations[1].code == 'p["retries"] = 0'
+        # Mutations before try are merged into start
+        start = routers[0]
+        assert start.name == "start_flow"
+        assert len(start.mutations) == 2
+        assert start.mutations[0].code == 'p["status"] = "starting"'
+        assert start.mutations[1].code == 'p["retries"] = 0'
 
-        # The mutation router should route to the try_enter
+        # The start router should route to the try_enter
         try_enter = next(r for r in routers if r.is_try_enter)
-        assert try_enter.name in mutation_routers[0].true_branch_actors
+        assert try_enter.name in start.true_branch_actors

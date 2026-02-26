@@ -41,6 +41,7 @@ class DotGenerator:
         self._redirect_map: dict[str, str] = {}
         self._try_clusters: list[_TryCluster] = []
         self._cluster_membership: dict[str, str] = {}
+        self._raise_exit_nodes: dict[str, str] = {}  # cluster_name → raise_exit node name
         self._color_error_control_flow = "snow4"
         self._color_true_branch = "darkseagreen4"
         self._color_false_branch = "indianred4"
@@ -118,6 +119,14 @@ class DotGenerator:
                 parts.append(self._generate_fanin_node(actor))
             else:
                 parts.append(self._generate_user_actor_node(actor))
+
+        # Raise exit pseudo-nodes (stop-sign shape for raise propagation to x-sump)
+        for raise_node in self._raise_exit_nodes.values():
+            parts.append(
+                f'  {raise_node} [shape=octagon, fillcolor="mistyrose",'
+                f' fontcolor="crimson", style=filled,'
+                f' label="raise"];'
+            )
 
         # Try clusters (subgraph blocks with contained node definitions)
         for cluster in self._try_clusters:
@@ -226,6 +235,14 @@ class DotGenerator:
                     finally_actors=finally_actors_list,
                 )
             )
+
+            # Track raise exit pseudo-nodes for clusters with raise handlers
+            if except_dispatch and except_dispatch.exception_handlers:
+                has_raise = any(h.is_raise for h in except_dispatch.exception_handlers if h.actors)
+                if has_raise:
+                    raise_node = f"raise_exit_{cluster_id}"
+                    self._raise_exit_nodes[cluster_name] = raise_node
+
             cluster_id += 1
 
             # Mark infrastructure routers as hidden
@@ -445,18 +462,28 @@ class DotGenerator:
                         if handler.is_raise:
                             label = self._format_raise_label(handler.error_types)
                             edge_color = self._color_raise
+                            # Redirect end_ targets to raise exit pseudo-node
+                            raise_node = self._raise_exit_nodes.get(cluster.cluster_name)
+                            if raise_node:
+                                handler_actors_resolved = [
+                                    raise_node if a.startswith("end_") else a for a in handler.actors
+                                ]
+                            else:
+                                handler_actors_resolved = handler.actors
                         else:
                             label = self._format_except_label(handler.error_types)
                             edge_color = self._color_error_control_flow
+                            handler_actors_resolved = handler.actors
                         lines.add(
-                            f"  {self._node_id(anchor)} -> {self._node_id(handler.actors[0])}"
+                            f"  {self._node_id(anchor)} -> {self._node_id(handler_actors_resolved[0])}"
                             f" [ltail={cluster.cluster_name}, color={edge_color}, style=dashed,"
                             f' label="{self._escape_html(label)}", constraint=false];'
                         )
-                        self._add_sequential_edges(handler.actors, lines)
+                        self._add_sequential_edges(handler_actors_resolved, lines)
 
                         # Connect handler terminals → continuation (finally + post-try)
-                        if handler_continuation:
+                        # Skip for raise handlers — raise_exit is a terminal
+                        if handler_continuation and not handler.is_raise:
                             for terminal in self._find_chain_terminals(handler.actors):
                                 if not terminal.startswith("end_"):
                                     lines.add(

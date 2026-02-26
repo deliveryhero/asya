@@ -22,10 +22,16 @@ def start_mutations_with_handler_flow(payload: dict) -> dict:
         _next_tail = _f.read().splitlines()
     _next = []
 
-    _next.append(resolve("router_mutations_with_handler_flow_line_9_seq"))
+    p = payload
+    p['initialized'] = True
+    p['step'] = 1
+    p['count'] = 0
+
+    _next.append(resolve("handler_process"))
+    _next.append(resolve("router_mutations_with_handler_flow_line_13_seq"))
     with open(f"{_MSG_ROOT}/route/next", "w") as _f:
         _f.write("\n".join(_next + _next_tail))
-    return payload
+    return p
 
 def router_mutations_with_handler_flow_line_13_seq(payload: dict) -> dict:
     """Router for control flow and payload mutations"""
@@ -35,23 +41,6 @@ def router_mutations_with_handler_flow_line_13_seq(payload: dict) -> dict:
     _next = []
 
     p['finalized'] = True
-
-    with open(f"{_MSG_ROOT}/route/next", "w") as _f:
-        _f.write("\n".join(_next + _next_tail))
-    return payload
-
-def router_mutations_with_handler_flow_line_9_seq(payload: dict) -> dict:
-    """Router for control flow and payload mutations"""
-    p = payload
-    with open(f"{_MSG_ROOT}/route/next") as _f:
-        _next_tail = _f.read().splitlines()
-    _next = []
-
-    p['initialized'] = True
-    p['step'] = 1
-    p['count'] = 0
-    _next.append(resolve("handler_process"))
-    _next.append(resolve("router_mutations_with_handler_flow_line_13_seq"))
 
     with open(f"{_MSG_ROOT}/route/next", "w") as _f:
         _f.write("\n".join(_next + _next_tail))

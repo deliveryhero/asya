@@ -71,17 +71,19 @@ class TestSimpleFlows:
         assert "handler_c" in start.true_branch_actors
         assert "end_flow" in start.true_branch_actors
 
-    def test_mutations_only_creates_router(self):
+    def test_mutations_only_merged_into_start(self):
         ops = [Mutation(lineno=1, code='p["x"] = 1'), Mutation(lineno=2, code='p["y"] = 2'), Return(lineno=3)]
         grouper = OperationGrouper("flow", ops)
         routers = grouper.group()
 
-        assert len(routers) == 3
-        router = next(r for r in routers if r.name.startswith("router_"))
-        assert len(router.mutations) == 2
-        assert router.condition is None
+        # Leading mutation-only router is merged into start
+        assert len(routers) == 2
+        start = routers[0]
+        assert start.name == "start_flow"
+        assert len(start.mutations) == 2
+        assert start.condition is None
 
-    def test_mutations_with_handler_creates_router(self):
+    def test_mutations_with_handler_merged_into_start(self):
         ops = [
             Mutation(lineno=1, code='p["x"] = 1'),
             ActorCall(lineno=2, name="handler"),
@@ -90,12 +92,14 @@ class TestSimpleFlows:
         grouper = OperationGrouper("flow", ops)
         routers = grouper.group()
 
-        router = next(r for r in routers if r.name.startswith("router_"))
-        assert len(router.mutations) == 1
-        assert "handler" in router.true_branch_actors
-        assert "end_flow" in router.true_branch_actors
+        # Leading mutation+handler router is merged into start
+        start = routers[0]
+        assert start.name == "start_flow"
+        assert len(start.mutations) == 1
+        assert "handler" in start.true_branch_actors
+        assert "end_flow" in start.true_branch_actors
 
-    def test_multiple_mutations_grouped_together(self):
+    def test_multiple_mutations_merged_into_start(self):
         ops = [
             Mutation(lineno=1, code='p["a"] = 1'),
             Mutation(lineno=2, code='p["b"] = 2'),
@@ -106,8 +110,10 @@ class TestSimpleFlows:
         grouper = OperationGrouper("flow", ops)
         routers = grouper.group()
 
-        router = next(r for r in routers if r.name.startswith("router_"))
-        assert len(router.mutations) == 3
+        # All leading mutations merged into start
+        start = routers[0]
+        assert start.name == "start_flow"
+        assert len(start.mutations) == 3
 
 
 class TestConditionals:
@@ -587,13 +593,16 @@ class TestEdgeCases:
         start, end = routers
         assert "end_flow" in start.true_branch_actors
 
-    def test_single_mutation_only(self):
+    def test_single_mutation_merged_into_start(self):
         ops = [Mutation(lineno=1, code='p["x"] = 1'), Return(lineno=2)]
         grouper = OperationGrouper("flow", ops)
         routers = grouper.group()
 
-        router = next(r for r in routers if r.name.startswith("router_"))
-        assert len(router.mutations) == 1
+        # Single leading mutation merged into start
+        assert len(routers) == 2
+        start = routers[0]
+        assert start.name == "start_flow"
+        assert len(start.mutations) == 1
 
     def test_convergence_counter_increments(self):
         ops = [
@@ -821,14 +830,16 @@ class TestWhileLoopGrouping:
         grouper = OperationGrouper("flow", ops)
         routers = grouper.group()
 
-        # Mutation before while should be in a separate seq router,
-        # NOT on the while condition router (otherwise it re-executes every iteration)
+        # Mutation before while is merged into start (NOT on the while condition
+        # router, which would re-execute it every iteration)
         cond_router = next(r for r in routers if r.condition is not None and "while" in r.name)
         assert len(cond_router.mutations) == 0
 
-        seq_routers = [r for r in routers if "_seq" in r.name and r.condition is None]
-        pre_seq = next(r for r in seq_routers if any(m.code == 'p["i"] = 0' for m in r.mutations))
-        assert cond_router.name in pre_seq.true_branch_actors
+        start = routers[0]
+        assert start.name == "start_flow"
+        assert len(start.mutations) == 1
+        assert start.mutations[0].code == 'p["i"] = 0'
+        assert cond_router.name in start.true_branch_actors
 
     def test_while_body_mutations_grouped(self):
         ops = [
