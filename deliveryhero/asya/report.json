@@ -1,7 +1,7 @@
 {
   "repository": "deliveryhero/asya",
   "ref": "refs/heads/main",
-  "commit": "0c82c5d537fe0cbb4354e1a1c609dae9fb93620f",
+  "commit": "86c07583d5b93c29bf8daace123e0b6310f9e86b",
   "coverage": {
     "type": "merged",
     "format": "Go coverage",
@@ -20870,8 +20870,8 @@
       },
       {
         "code": 107,
-        "comment": 68,
-        "blank": 43,
+        "comment": 79,
+        "blank": 44,
         "path": "src/asya-crew/asya_crew/pause.py",
         "language": "Python"
       },
@@ -22083,6 +22083,6 @@
       }
     ]
   },
-  "test_execution_time": 257000000000,
-  "timestamp": "2026-02-26T18:07:21.370984155Z"
+  "test_execution_time": 238000000000,
+  "timestamp": "2026-02-26T19:21:14.831234836Z"
 }
