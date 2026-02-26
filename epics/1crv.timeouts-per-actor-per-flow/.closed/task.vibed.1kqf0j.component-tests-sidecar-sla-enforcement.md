@@ -13,6 +13,7 @@ dependencies:
 
 
 
+
 ## Scope
 
 Add component tests in Docker Compose validating sidecar SLA enforcement against a real transport (RabbitMQ/SQS).
