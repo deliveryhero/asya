@@ -592,28 +592,38 @@ class DotGenerator:
                 if resolved_target not in self._hidden_routers:
                     terminals = self._find_chain_terminals([source])
                     for terminal in terminals:
-                        terminal_router = self.router_map.get(terminal)
-                        if terminal_router:
-                            if terminal_router.condition:
-                                # Conditional with an empty branch: add fall-through edge
-                                if not terminal_router.true_branch_actors or not terminal_router.false_branch_actors:
-                                    lines.add(f"  {self._node_id(terminal)} -> {self._node_id(resolved_target)};")
-                                continue
-                            # Skip other edge-owning routers (they generate their own edges)
-                            if (
-                                terminal_router.is_loop_back
-                                or terminal_router.is_fan_out
-                                or terminal_router.is_try_enter
-                                or terminal_router.is_try_exit
-                                or terminal_router.is_except_dispatch
-                            ):
-                                continue
-                        # Skip flow exits and self-loops
-                        if terminal.startswith("end_") or terminal == resolved_target:
-                            continue
-                        lines.add(f"  {self._node_id(terminal)} -> {self._node_id(resolved_target)};")
+                        self._add_edge_from_terminal(terminal, resolved_target, lines)
                 continue
             lines.add(f"  {self._node_id(source)} -> {self._node_id(target)};")
+
+    def _add_edge_from_terminal(self, terminal: str, resolved_target: str, lines: set[str]) -> None:
+        """Add edge from a terminal actor to the resolved target.
+
+        Handles special cases like conditionals with empty branches and skips
+        edge-owning routers that generate their own edges.
+        """
+        terminal_router = self.router_map.get(terminal)
+        if terminal_router:
+            if terminal_router.condition:
+                # Conditional with an empty branch: add fall-through edge
+                if not terminal_router.true_branch_actors or not terminal_router.false_branch_actors:
+                    lines.add(f"  {self._node_id(terminal)} -> {self._node_id(resolved_target)};")
+                return
+            # Skip other edge-owning routers (they generate their own edges)
+            if any(
+                [
+                    terminal_router.is_loop_back,
+                    terminal_router.is_fan_out,
+                    terminal_router.is_try_enter,
+                    terminal_router.is_try_exit,
+                    terminal_router.is_except_dispatch,
+                ]
+            ):
+                return
+        # Skip flow exits and self-loops
+        if terminal.startswith("end_") or terminal == resolved_target:
+            return
+        lines.add(f"  {self._node_id(terminal)} -> {self._node_id(resolved_target)};")
 
     # ── Helpers ──────────────────────────────────────────────────────
 
