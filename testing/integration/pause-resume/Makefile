@@ -63,7 +63,6 @@ down:
 
 down-one: require-ASYA_TRANSPORT
 	$(DOCKER_COMPOSE) $(COMPOSE_FILES) -p $(COMPOSE_PROJECT) down -v --remove-orphans || true
-	docker volume rm $(COMPOSE_PROJECT)_sockets $(COMPOSE_PROJECT)_default 2>/dev/null || true
 
 clean:
 	$(MAKE) clean-one ASYA_TRANSPORT=rabbitmq ASYA_STORAGE=minio || true

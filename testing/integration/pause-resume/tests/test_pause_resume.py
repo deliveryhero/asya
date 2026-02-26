@@ -144,6 +144,13 @@ class TestPauseResumeFlow:
         assert final["status"] == "succeeded", (
             f"Expected 'succeeded' but got '{final['status']}': {final}"
         )
+        result_payload = final.get("result", {})
+        assert result_payload.get("extra_field") == "from-resume", (
+            f"Resume data 'extra_field' not merged into result: {result_payload}"
+        )
+        assert result_payload.get("value") == 15, (
+            f"Expected value=15 (10+5 from incrementer), got: {result_payload.get('value')}"
+        )
 
     def test_resume_nonexistent_task_fails(self, gateway_helper):
         """Test that resuming a non-paused task returns an error."""
@@ -153,8 +160,7 @@ class TestPauseResumeFlow:
             "test_pause_resume",
             {"data": "should-fail"},
         )
-        # A2A should return an error for non-existent or non-paused tasks
-        assert "error" in resume_resp or (
-            "result" in resume_resp
-            and resume_resp["result"].get("status", {}).get("state") != "working"
-        ), f"Expected error for nonexistent task resume: {resume_resp}"
+        # A2A should return a JSON-RPC error for non-existent tasks
+        assert "error" in resume_resp, (
+            f"Expected error for nonexistent task resume, but got: {resume_resp}"
+        )
