@@ -5,7 +5,17 @@ from pathlib import Path
 import pytest
 
 from asya_cli.flow import FlowCompiler
-from asya_cli.flow.ir import ActorCall
+from asya_cli.flow.ir import (
+    ActorCall,
+    Break,
+    Condition,
+    Continue,
+    FanOutCall,
+    Mutation,
+    Return,
+    TryExcept,
+    WhileLoop,
+)
 from asya_cli.flow.parser import FlowParser
 
 
@@ -150,3 +160,225 @@ def test_execute_react_loop_with_tools(project_root, compile_and_import, monkeyp
         project_root, compile_and_import, monkeypatch, {"tool_calls": ["some_tool"]}
     )
     assert "execute-tool" in next_actors
+
+
+def _collect_ir_nodes(operations):
+    """Recursively collect all IR nodes from nested structures."""
+    nodes = []
+    for op in operations:
+        nodes.append(op)
+        if isinstance(op, Condition):
+            nodes.extend(_collect_ir_nodes(op.true_branch))
+            nodes.extend(_collect_ir_nodes(op.false_branch))
+        elif isinstance(op, WhileLoop):
+            nodes.extend(_collect_ir_nodes(op.body))
+        elif isinstance(op, TryExcept):
+            nodes.extend(_collect_ir_nodes(op.body))
+            for handler in op.handlers:
+                nodes.extend(_collect_ir_nodes(handler.body))
+            nodes.extend(_collect_ir_nodes(op.finally_body))
+    return nodes
+
+
+def test_parse_auditor_comprehensive(project_root):
+    flow_file = project_root / "examples" / "flows" / "adk_llm_auditor.py"
+    source = flow_file.read_text()
+    parser = FlowParser(source, str(flow_file))
+    flow_name, operations = parser.parse()
+
+    assert parser.is_async is True
+    assert flow_name == "llm_auditor"
+
+    all_nodes = _collect_ir_nodes(operations)
+
+    actor_calls = [n for n in all_nodes if isinstance(n, ActorCall)]
+    assert len(actor_calls) >= 7
+
+    actor_names = {ac.name for ac in actor_calls}
+    expected_actors = {
+        "extract_claims",
+        "llm_generate",
+        "fallback_generate",
+        "critique",
+        "reviser",
+        "deep_reviser",
+        "finalize",
+    }
+    assert expected_actors.issubset(actor_names)
+
+    while_loops = [n for n in all_nodes if isinstance(n, WhileLoop)]
+    assert len(while_loops) >= 1
+
+    fanouts = [n for n in all_nodes if isinstance(n, FanOutCall)]
+    assert len(fanouts) >= 1
+
+    try_excepts = [n for n in all_nodes if isinstance(n, TryExcept)]
+    assert len(try_excepts) >= 1
+
+
+def test_compile_auditor_comprehensive(project_root):
+    flow_file = project_root / "examples" / "flows" / "adk_llm_auditor.py"
+    source = flow_file.read_text()
+    compiler = FlowCompiler()
+    code = compiler.compile(source, str(flow_file))
+
+    assert len(compiler.routers) >= 18
+
+    router_names = [r.name for r in compiler.routers]
+    assert "start_llm_auditor" in router_names
+    assert "end_llm_auditor" in router_names
+    assert any("loop_back" in name for name in router_names)
+    assert any(name.startswith("fanout_") for name in router_names)
+
+    conditional_routers = [name for name in router_names if "_if" in name]
+    assert len(conditional_routers) >= 4
+
+    compile(code, "test.py", "exec")
+
+
+def test_execute_auditor_init_mutations(project_root, compile_and_import, monkeypatch):
+    monkeypatch.setenv("ASYA_HANDLER_EXTRACT_CLAIMS", "extract_claims")
+
+    flow_file = project_root / "examples" / "flows" / "adk_llm_auditor.py"
+    source = flow_file.read_text()
+    routers = compile_and_import(source)
+    monkeypatch.setattr(routers, "resolve", lambda name: name)
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        vfs_root = _setup_vfs(tmpdir, [], [])
+        monkeypatch.setattr(routers, "_MSG_ROOT", vfs_root)
+
+        payload = {"text": "test"}
+        result = routers.router_llm_auditor_line_29_seq(payload)
+
+        assert result["iteration"] == 0
+        assert result["status"] == "started"
+        assert result["partial"] is True
+
+        next_actors = _read_vfs_next(vfs_root)
+        assert "extract_claims" in next_actors
+        assert "router_llm_auditor_line_37_if" in next_actors
+
+
+def test_execute_auditor_no_claims_exit(project_root, compile_and_import, monkeypatch):
+    monkeypatch.setenv("ASYA_HANDLER_EXTRACT_CLAIMS", "extract_claims")
+
+    flow_file = project_root / "examples" / "flows" / "adk_llm_auditor.py"
+    source = flow_file.read_text()
+    routers = compile_and_import(source)
+    monkeypatch.setattr(routers, "resolve", lambda name: name)
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        vfs_root = _setup_vfs(tmpdir, [], [])
+        monkeypatch.setattr(routers, "_MSG_ROOT", vfs_root)
+
+        payload = {"claims": []}
+        routers.router_llm_auditor_line_37_if(payload)
+
+        next_actors = _read_vfs_next(vfs_root)
+        assert "router_llm_auditor_line_38_seq" in next_actors
+
+
+def test_execute_auditor_with_claims_enters_loop(
+    project_root, compile_and_import, monkeypatch
+):
+    monkeypatch.setenv("ASYA_HANDLER_EXTRACT_CLAIMS", "extract_claims")
+
+    flow_file = project_root / "examples" / "flows" / "adk_llm_auditor.py"
+    source = flow_file.read_text()
+    routers = compile_and_import(source)
+    monkeypatch.setattr(routers, "resolve", lambda name: name)
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        vfs_root = _setup_vfs(tmpdir, [], [])
+        monkeypatch.setattr(routers, "_MSG_ROOT", vfs_root)
+
+        payload = {"claims": ["claim1"]}
+        routers.router_llm_auditor_line_37_if(payload)
+
+        next_actors = _read_vfs_next(vfs_root)
+        assert "router_llm_auditor_line_42_loop_back_0" in next_actors
+
+
+def test_execute_auditor_score_approved(project_root, compile_and_import, monkeypatch):
+    monkeypatch.setenv("ASYA_HANDLER_EXTRACT_CLAIMS", "extract_claims")
+
+    flow_file = project_root / "examples" / "flows" / "adk_llm_auditor.py"
+    source = flow_file.read_text()
+    routers = compile_and_import(source)
+    monkeypatch.setattr(routers, "resolve", lambda name: name)
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        vfs_root = _setup_vfs(tmpdir, [], [])
+        monkeypatch.setattr(routers, "_MSG_ROOT", vfs_root)
+
+        payload = {"aggregate_score": 95}
+        routers.router_llm_auditor_line_66_if(payload)
+
+        next_actors = _read_vfs_next(vfs_root)
+        assert "router_llm_auditor_line_67_seq" in next_actors
+
+
+def test_execute_auditor_score_standard_revision(
+    project_root, compile_and_import, monkeypatch
+):
+    monkeypatch.setenv("ASYA_HANDLER_EXTRACT_CLAIMS", "extract_claims")
+
+    flow_file = project_root / "examples" / "flows" / "adk_llm_auditor.py"
+    source = flow_file.read_text()
+    routers = compile_and_import(source)
+    monkeypatch.setattr(routers, "resolve", lambda name: name)
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        vfs_root = _setup_vfs(tmpdir, [], [])
+        monkeypatch.setattr(routers, "_MSG_ROOT", vfs_root)
+
+        payload = {"aggregate_score": 75}
+        routers.router_llm_auditor_line_69_if(payload)
+
+        next_actors = _read_vfs_next(vfs_root)
+        assert "critique" in next_actors
+        assert "reviser" in next_actors
+
+
+def test_execute_auditor_score_deep_revision(
+    project_root, compile_and_import, monkeypatch
+):
+    monkeypatch.setenv("ASYA_HANDLER_EXTRACT_CLAIMS", "extract_claims")
+
+    flow_file = project_root / "examples" / "flows" / "adk_llm_auditor.py"
+    source = flow_file.read_text()
+    routers = compile_and_import(source)
+    monkeypatch.setattr(routers, "resolve", lambda name: name)
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        vfs_root = _setup_vfs(tmpdir, [], [])
+        monkeypatch.setattr(routers, "_MSG_ROOT", vfs_root)
+
+        payload = {"aggregate_score": 40}
+        routers.router_llm_auditor_line_69_if(payload)
+
+        next_actors = _read_vfs_next(vfs_root)
+        assert "critique" in next_actors
+        assert "deep_reviser" in next_actors
+
+
+def test_execute_auditor_continue_marginal(
+    project_root, compile_and_import, monkeypatch
+):
+    monkeypatch.setenv("ASYA_HANDLER_EXTRACT_CLAIMS", "extract_claims")
+
+    flow_file = project_root / "examples" / "flows" / "adk_llm_auditor.py"
+    source = flow_file.read_text()
+    routers = compile_and_import(source)
+    monkeypatch.setattr(routers, "resolve", lambda name: name)
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        vfs_root = _setup_vfs(tmpdir, [], [])
+        monkeypatch.setattr(routers, "_MSG_ROOT", vfs_root)
+
+        payload = {"aggregate_score": 50, "prev_score": 30}
+        routers.router_llm_auditor_line_61_if(payload)
+
+        next_actors = _read_vfs_next(vfs_root)
+        assert "router_llm_auditor_line_62_seq" in next_actors
