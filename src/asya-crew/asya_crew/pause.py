@@ -31,6 +31,15 @@ Handler Behavior:
 - Sets x-asya-pause header with pause metadata
 - Returns payload so runtime builds a frame with VFS headers for sidecar detection
 - Gracefully skips persistence if ASYA_PERSISTENCE_MOUNT not set
+
+IMPORTANT — Return Value Contract:
+    This handler MUST return the payload dict, not None. The runtime only includes
+    VFS-written headers (like x-asya-pause) in response frames built by _build_frame().
+    When a handler returns None, the runtime responds with HTTP 204 (no body), and the
+    sidecar receives zero frames. With no frames to inspect, the sidecar treats the
+    message as end-of-route and sends it to x-sink — silently skipping the pause signal.
+    Returning payload ensures the runtime builds a frame carrying VFS headers through the
+    Unix socket to the sidecar, where x-asya-pause is detected and forwarding is halted.
 """
 
 import contextlib
