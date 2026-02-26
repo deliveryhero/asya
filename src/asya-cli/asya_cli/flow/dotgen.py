@@ -344,7 +344,8 @@ class DotGenerator:
 
         label = f'<<table border="0" cellspacing="0" cellpadding="6" cellborder="1">{"".join(rows)}</table>>'
 
-        return f'  {self._node_id(router.name)} [fillcolor="{color}", label={label}];'
+        group_attr = ' group="main"'
+        return f'  {self._node_id(router.name)} [fillcolor="{color}",{group_attr}, label={label}];'
 
     def _generate_user_actor_node(self, actor_name: str) -> str:
         display_name = self._get_display_name(actor_name)
@@ -450,7 +451,7 @@ class DotGenerator:
                         lines.add(
                             f"  {self._node_id(anchor)} -> {self._node_id(handler.actors[0])}"
                             f" [ltail={cluster.cluster_name}, color={edge_color}, style=dashed,"
-                            f' label="{self._escape_html(label)}"];'
+                            f' label="{self._escape_html(label)}", constraint=false];'
                         )
                         self._add_sequential_edges(handler.actors, lines)
 
@@ -628,7 +629,7 @@ class DotGenerator:
                 elif not terminal_router.true_branch_actors:
                     lines.add(
                         f"  {self._node_id(terminal)} -> {self._node_id(resolved_target)}"
-                        f' [label="T", color={self._color_true_branch}];'
+                        f' [label="T", color={self._color_true_branch}, weight=2];'  # Weight 2 forces it to be vertical
                     )
                 return
             # Skip other edge-owning routers (they generate their own edges)
