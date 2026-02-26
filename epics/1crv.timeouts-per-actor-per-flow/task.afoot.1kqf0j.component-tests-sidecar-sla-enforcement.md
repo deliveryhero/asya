@@ -2,9 +2,13 @@
 title: Component tests for sidecar SLA enforcement
 priority: 2 # medium
 type: task
+tags:
+  - worktree:.worktrees/1crv/1kqf0j.component-tests-sidecar-sla-enforcement
+  - branch:1crv/1kqf0j.component-tests-sidecar-sla-enforcement
 dependencies:
   - 1crv/1k1pjy
 ---
+
 
 
 ## Scope
