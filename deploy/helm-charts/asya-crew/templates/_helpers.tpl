@@ -208,3 +208,17 @@ Resolve image pull policy for DLQ worker
 {{- $dlq := index .Values "dlq-worker" }}
 {{- $dlq.image.pullPolicy | default "IfNotPresent" }}
 {{- end }}
+
+{{/*
+Persistence flavor name
+*/}}
+{{- define "asya-crew.persistence.flavorName" -}}
+{{- printf "%s-persistence-%s" .Release.Name .Values.persistence.backend }}
+{{- end }}
+
+{{/*
+Persistence flavor labels
+*/}}
+{{- define "asya-crew.persistence.labels" -}}
+helm.sh/chart: {{ include "asya-crew.chart" . }}
+{{- end }}

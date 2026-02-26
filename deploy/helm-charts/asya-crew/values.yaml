@@ -61,6 +61,7 @@ x-sink:
     # Comma-separated list of hook actor names (optional)
     # Example: "checkpoint-s3,notify-slack"
     ASYA_SINK_HOOKS: ""
+    ASYA_PERSISTENCE_MOUNT: ""
 
 # X-sump actor configuration
 # Second layer of two-layer termination: final terminal, emits metrics, logs errors
@@ -110,7 +111,8 @@ x-sump:
 
   # Environment variables
   # DO NOT set ASYA_HANDLER - it is pre-configured by the Helm template and cannot be overridden
-  env: {}
+  env:
+    ASYA_PERSISTENCE_MOUNT: ""
 
 # Checkpoint actor configuration
 # Message persistence via state proxy (can be used as hook or mid-pipeline checkpoint)
@@ -272,6 +274,20 @@ x-resume:
     ASYA_PERSISTENCE_MOUNT: ""
     # Merge mode for user input: "shallow" (default) or "deep"
     ASYA_RESUME_MERGE_MODE: ""
+
+# Persistence flavor configuration
+# When enabled, creates a shared EnvironmentConfig flavor providing S3 infrastructure
+# (stateProxy connector + bucket). Each crew actor sets its own ASYA_PERSISTENCE_MOUNT.
+persistence:
+  enabled: false
+  backend: "" # "s3" (only backend currently supported)
+  mountPath: /state/checkpoints
+  config:
+    bucket: "" # S3 bucket name (required when enabled)
+    endpoint: "" # custom S3 endpoint for MinIO/LocalStack (omit for AWS)
+    region: "" # AWS region (optional)
+  connector:
+    image: ghcr.io/deliveryhero/asya-state-proxy-s3-buffered-lww:v1.0.0
 
 # DLQ Worker configuration
 # Standalone Go binary for processing transport-level Dead Letter Queue messages.

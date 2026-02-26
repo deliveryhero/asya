@@ -1,0 +1,33 @@
+{{- if .Values.persistence.enabled }}
+{{- if not (eq .Values.persistence.backend "s3") }}
+{{- fail "persistence.backend must be 's3' (only backend currently supported)" }}
+{{- end }}
+{{- if not .Values.persistence.config.bucket }}
+{{- fail "persistence.config.bucket is required when persistence.enabled is true" }}
+{{- end }}
+apiVersion: apiextensions.crossplane.io/v1beta1
+kind: EnvironmentConfig
+metadata:
+  name: {{ include "asya-crew.persistence.flavorName" . }}
+  labels:
+    {{- include "asya-crew.persistence.labels" . | nindent 4 }}
+    asya.sh/flavor: {{ include "asya-crew.persistence.flavorName" . }}
+data:
+  stateProxy:
+    - name: checkpoints
+      mount:
+        path: {{ .Values.persistence.mountPath }}
+      connector:
+        image: {{ .Values.persistence.connector.image }}
+        env:
+          - name: STATE_BUCKET
+            value: {{ .Values.persistence.config.bucket | quote }}
+          {{- with .Values.persistence.config.endpoint }}
+          - name: STATE_ENDPOINT
+            value: {{ . | quote }}
+          {{- end }}
+          {{- with .Values.persistence.config.region }}
+          - name: AWS_REGION
+            value: {{ . | quote }}
+          {{- end }}
+{{- end }}

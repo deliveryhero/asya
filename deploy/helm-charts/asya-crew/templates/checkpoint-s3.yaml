@@ -17,6 +17,10 @@ spec:
     matchLabels:
       asya.sh/transport: {{ $checkpointS3.transport }}
   transport: {{ $checkpointS3.transport }}
+  {{- if .Values.persistence.enabled }}
+  flavors:
+    - {{ include "asya-crew.persistence.flavorName" . }}
+  {{- end }}
 
   {{- with $checkpointS3.sidecar }}
   sidecar:
