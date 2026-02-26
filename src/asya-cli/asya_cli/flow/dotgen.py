@@ -307,7 +307,7 @@ class DotGenerator:
         if router.name.startswith("start_") or router.name.startswith("end_"):
             color = "lightgreen"
         elif router.is_fan_out:
-            color = "mediumpurple1"
+            color = "lightblue"  # same as regular routers
         else:
             color = "wheat"
 
