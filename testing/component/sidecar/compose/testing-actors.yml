@@ -43,6 +43,8 @@ services:
       asya-timeout-runtime:
         condition: service_healthy
     restart: on-failure:30
+    environment:
+      ASYA_RESILIENCY_ACTOR_TIMEOUT: 120s
 
   # Waiter service for test actors dependency subgraph
   test-actors-waiter:
