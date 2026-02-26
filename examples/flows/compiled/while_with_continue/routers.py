@@ -37,22 +37,9 @@ def router_while_with_continue_flow_line_13_if(payload: dict) -> dict:
 
     p['i'] += 1
     if p['skip_iteration']:
-        _next.append(resolve("router_while_with_continue_flow_line_11_loop_back_0"))
+        _next.append(resolve("router_while_with_continue_flow_line_11_while_0"))
     else:
         _next.append(resolve("handler_process"))
-
-    with open(f"{_MSG_ROOT}/route/next", "w") as _f:
-        _f.write("\n".join(_next + _next_tail))
-    return payload
-
-def router_while_with_continue_flow_line_11_loop_back_0(payload: dict) -> dict:
-    """Loop-back router: re-inserts loop actors into route"""
-    p = payload
-    with open(f"{_MSG_ROOT}/route/next") as _f:
-        _next_tail = _f.read().splitlines()
-    _next = []
-
-    _next.append(resolve("router_while_with_continue_flow_line_11_while_0"))
 
     with open(f"{_MSG_ROOT}/route/next", "w") as _f:
         _f.write("\n".join(_next + _next_tail))
@@ -68,7 +55,7 @@ def router_while_with_continue_flow_line_11_while_0(payload: dict) -> dict:
     p['i'] = 0
     if p['i'] < p['max_iterations']:
         _next.append(resolve("router_while_with_continue_flow_line_13_if"))
-        _next.append(resolve("router_while_with_continue_flow_line_11_loop_back_0"))
+        _next.append(resolve("router_while_with_continue_flow_line_11_while_0"))
     else:
         _next.append(resolve("handler_finalize"))
 

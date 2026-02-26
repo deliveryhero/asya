@@ -100,7 +100,8 @@ def flow(p: dict) -> dict:
         assert "start_flow" in func_names
         assert "end_flow" in func_names
         assert any("while" in n for n in func_names)
-        assert any("loop_back" in n for n in func_names)
+        # Conditional while self-references: no loop_back router
+        assert not any("loop_back" in n for n in func_names)
 
     def test_compile_while_true(self):
         source = """
@@ -146,7 +147,8 @@ def flow(p: dict) -> dict:
 
         func_names = [n.name for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)]
         assert any("while" in n for n in func_names)
-        assert any("loop_back" in n for n in func_names)
+        # Conditional while self-references: no loop_back
+        assert not any("loop_back" in n for n in func_names)
 
         # Should reference handler_finalize in the generated code (break exits to it)
         assert "handler_finalize" in code
@@ -174,8 +176,8 @@ def flow(p: dict) -> dict:
         tree = ast.parse(code)
         assert tree is not None
 
-        # continue should reference a loop_back router
-        assert "loop_back" in code
+        # continue should reference the while condition router (not loop_back)
+        assert "_while_" in code
 
 
 class TestWhileWithIfInBody:
@@ -201,7 +203,7 @@ def flow(p: dict) -> dict:
         func_names = [n.name for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)]
 
         assert any("_if" in n for n in func_names)
-        assert any("while" in n or "loop_back" in n for n in func_names)
+        assert any("_while_" in n for n in func_names)
         assert "handler_even" in code
         assert "handler_odd" in code
 
@@ -233,7 +235,8 @@ def flow(p: dict) -> dict:
         loop_backs = [n for n in func_names if "loop_back" in n]
         whiles = [n for n in func_names if "_while_" in n]
 
-        assert len(loop_backs) == 2
+        # Conditional whiles self-reference: no loop_backs
+        assert len(loop_backs) == 0
         assert len(whiles) == 2
 
 
@@ -290,8 +293,9 @@ def flow(p: dict) -> dict:
         tree = ast.parse(code)
         func_names = [n.name for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)]
 
-        assert any("while" in n for n in func_names)
-        assert any("loop_back" in n for n in func_names)
+        assert any("_while_" in n for n in func_names)
+        # Conditional while self-references: no loop_back
+        assert not any("loop_back" in n for n in func_names)
         assert "handler_check" in code
         assert "handler_process" in code
         assert "handler_finalize" in code
@@ -318,7 +322,7 @@ def flow(p: dict) -> dict:
         func_names = [n.name for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)]
 
         assert any("_if" in n for n in func_names)
-        assert any("while" in n or "loop_back" in n for n in func_names)
+        assert any("_while_" in n for n in func_names)
 
 
 class TestComplexFlow:
@@ -364,7 +368,7 @@ def complex_flow(p: dict) -> dict:
         func_names = [n.name for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)]
         assert "start_complex_flow" in func_names
         assert "end_complex_flow" in func_names
-        assert any("while" in n or "loop_back" in n for n in func_names)
+        assert any("_while_" in n for n in func_names)
 
     def test_react_loop_pattern(self):
         """Test the ReAct (Reasoning + Acting) loop pattern from the RFC."""
@@ -413,7 +417,8 @@ def flow(p: dict) -> dict:
         loop_backs = [n for n in func_names if "loop_back" in n]
         whiles = [n for n in func_names if "_while_" in n]
 
-        assert len(loop_backs) == 2
+        # Conditional whiles self-reference: no loop_backs
+        assert len(loop_backs) == 0
         assert len(whiles) == 2
 
 

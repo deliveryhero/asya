@@ -42,19 +42,6 @@ def router_while_nested_flow_line_16_seq(payload: dict) -> dict:
         _f.write("\n".join(_next + _next_tail))
     return payload
 
-def router_while_nested_flow_line_15_loop_back_1(payload: dict) -> dict:
-    """Loop-back router: re-inserts loop actors into route"""
-    p = payload
-    with open(f"{_MSG_ROOT}/route/next") as _f:
-        _next_tail = _f.read().splitlines()
-    _next = []
-
-    _next.append(resolve("router_while_nested_flow_line_15_while_1"))
-
-    with open(f"{_MSG_ROOT}/route/next", "w") as _f:
-        _f.write("\n".join(_next + _next_tail))
-    return payload
-
 def router_while_nested_flow_line_15_while_1(payload: dict) -> dict:
     """Router for control flow and payload mutations"""
     p = payload
@@ -65,7 +52,7 @@ def router_while_nested_flow_line_15_while_1(payload: dict) -> dict:
     p['j'] = 0
     if p['j'] < p['max_j']:
         _next.append(resolve("router_while_nested_flow_line_16_seq"))
-        _next.append(resolve("router_while_nested_flow_line_15_loop_back_1"))
+        _next.append(resolve("router_while_nested_flow_line_15_while_1"))
     else:
         _next.append(resolve("handler_outer_end"))
 
@@ -88,19 +75,6 @@ def router_while_nested_flow_line_12_seq(payload: dict) -> dict:
         _f.write("\n".join(_next + _next_tail))
     return payload
 
-def router_while_nested_flow_line_11_loop_back_0(payload: dict) -> dict:
-    """Loop-back router: re-inserts loop actors into route"""
-    p = payload
-    with open(f"{_MSG_ROOT}/route/next") as _f:
-        _next_tail = _f.read().splitlines()
-    _next = []
-
-    _next.append(resolve("router_while_nested_flow_line_11_while_0"))
-
-    with open(f"{_MSG_ROOT}/route/next", "w") as _f:
-        _f.write("\n".join(_next + _next_tail))
-    return payload
-
 def router_while_nested_flow_line_11_while_0(payload: dict) -> dict:
     """Router for control flow and payload mutations"""
     p = payload
@@ -111,7 +85,7 @@ def router_while_nested_flow_line_11_while_0(payload: dict) -> dict:
     p['i'] = 0
     if p['i'] < p['max_i']:
         _next.append(resolve("router_while_nested_flow_line_12_seq"))
-        _next.append(resolve("router_while_nested_flow_line_11_loop_back_0"))
+        _next.append(resolve("router_while_nested_flow_line_11_while_0"))
     else:
         _next.append(resolve("handler_finalize"))
 

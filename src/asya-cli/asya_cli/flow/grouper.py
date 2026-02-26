@@ -424,12 +424,12 @@ class OperationGrouper:
         """Process a WhileLoop IR node into router(s).
 
         For `while True:` (no condition):
-            loop_back_router (re-inserts loop body into route)
+            loop_back_router (re-inserts loop body into route with iteration guard)
             Body is processed with loop_back pointing to loop_back_router
 
         For `while condition:` (conditional):
-            loop_condition_router (checks condition, true -> body, false -> continuation)
-            loop_back_router (re-inserts condition_router into route)
+            condition_router self-references (appends itself to true_branch_actors)
+            No loop_back router needed — eliminates one actor hop per iteration
         """
         loop_id = self._loop_counter
         self._loop_counter += 1
@@ -473,6 +473,7 @@ class OperationGrouper:
 
         else:
             # `while condition:` — need a condition router
+            # No loop_back router needed — condition router self-references
             condition_name = f"router_{self.flow_name}_line_{loop.lineno}_while_{loop_id}"
 
             # Process loop body with loop context
@@ -483,19 +484,10 @@ class OperationGrouper:
                 loop_exit_label=loop_exit_label,
             )
 
-            # Create loop-back router: re-inserts condition_router into route
-            loop_back_router = Router(
-                name=loop_back_name,
-                lineno=loop.lineno,
-                true_branch_actors=[condition_name],
-                is_loop_back=True,
-            )
-            self.routers.append(loop_back_router)
+            # Register loop_back_label so `continue` resolves to condition router
+            self.convergence_map[loop_back_label] = [condition_name]
 
-            # Register the loop_back_label so continue resolves to loop_back_router
-            self.convergence_map[loop_back_label] = [loop_back_name]
-
-            # Create the condition-check router
+            # Create the condition-check router (self-references at end of true branch)
             condition_ir = Condition(
                 lineno=loop.lineno,
                 test=loop.test,
@@ -508,7 +500,7 @@ class OperationGrouper:
                 lineno=loop.lineno,
                 mutations=pre_mutations,
                 condition=condition_ir,
-                true_branch_actors=[*body_actors, loop_back_name],
+                true_branch_actors=[*body_actors, condition_name],
                 false_branch_actors=[loop_exit_label],
             )
             self.routers.append(condition_router)
