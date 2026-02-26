@@ -213,6 +213,11 @@ Content-Type: application/json
 **Progress formula**: `(actor_idx * 100 + status_weight) / total_actors`
 - `received` = 10, `processing` = 50, `completed` = 100
 
+**Unknown task IDs**: Progress updates for tasks not found in the store are
+silently accepted (200 OK). This is expected for direct-SQS messages that bypass
+gateway task creation. Infrastructure errors (e.g., database failures) still
+return 500.
+
 Response:
 ```json
 {"status": "ok", "progress_percent": 33.3}

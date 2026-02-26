@@ -392,8 +392,13 @@ func (h *Handler) HandleTaskProgress(w http.ResponseWriter, r *http.Request) {
 	// Fetch task to enforce monotonic progress
 	task, err := h.taskStore.Get(taskID)
 	if err != nil {
-		slog.Debug("Task not found for progress update, skipping", "id", taskID)
-		w.WriteHeader(http.StatusOK)
+		if errors.Is(err, taskstore.ErrNotFound) {
+			slog.Debug("Task not found for progress update, skipping", "id", taskID)
+			w.WriteHeader(http.StatusOK)
+		} else {
+			slog.Error("Failed to get task for progress calculation", "id", taskID, "error", err)
+			http.Error(w, "Failed to get task", http.StatusInternalServerError)
+		}
 		return
 	}
 

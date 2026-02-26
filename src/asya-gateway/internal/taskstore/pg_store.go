@@ -232,7 +232,7 @@ func (s *PgStore) Get(id string) (*types.Task, error) {
 	)
 
 	if err == pgx.ErrNoRows {
-		return nil, fmt.Errorf("task %s not found", id)
+		return nil, fmt.Errorf("task %s: %w", id, ErrNotFound)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to get task: %w", err)

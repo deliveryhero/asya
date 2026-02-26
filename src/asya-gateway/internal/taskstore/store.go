@@ -1,12 +1,16 @@
 package taskstore
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 	"time"
 
 	"github.com/deliveryhero/asya/asya-gateway/pkg/types"
 )
+
+// ErrNotFound is returned when a task does not exist in the store.
+var ErrNotFound = errors.New("task not found")
 
 // Store manages task state in memory
 type Store struct {
@@ -81,7 +85,7 @@ func (s *Store) Get(id string) (*types.Task, error) {
 
 	task, exists := s.tasks[id]
 	if !exists {
-		return nil, fmt.Errorf("task %s not found", id)
+		return nil, fmt.Errorf("task %s: %w", id, ErrNotFound)
 	}
 
 	return task, nil
