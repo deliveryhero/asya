@@ -37,7 +37,7 @@ def cleanup_s3():
 
 @pytest.mark.fast
 @pytest.mark.xfail(
-    reason="Checkpointer writes via open() to local filesystem; needs state proxy connector (debt/1k5a8e)",
+    reason="Persistence flavor ready (debt/1k5a8e) but function-asya-flavors not enabled in E2E (debt/1jnjkn)",
     strict=True,
 )
 def test_x_sink_persists_to_s3_e2e(e2e_helper, transport_timeouts):
@@ -74,7 +74,7 @@ def test_x_sink_persists_to_s3_e2e(e2e_helper, transport_timeouts):
 
 @pytest.mark.fast
 @pytest.mark.xfail(
-    reason="Checkpointer writes via open() to local filesystem; needs state proxy connector (debt/1k5a8e)",
+    reason="Persistence flavor ready (debt/1k5a8e) but function-asya-flavors not enabled in E2E (debt/1jnjkn)",
     strict=True,
 )
 def test_x_sump_persists_to_s3_e2e(e2e_helper, transport_timeouts):

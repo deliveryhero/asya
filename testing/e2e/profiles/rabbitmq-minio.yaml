@@ -36,11 +36,19 @@ actors:
 crew:
   image:
     pullPolicy: Never
+  persistence:
+    enabled: true
+    backend: s3
+    mountPath: /state/checkpoints
+    config:
+      bucket: asya-results
+      endpoint: http://minio.asya-e2e.svc.cluster.local:9000
+      region: us-east-1
   x-sink:
     transport: rabbitmq
     env:
       ASYA_GATEWAY_URL: "http://asya-gateway.asya-e2e.svc.cluster.local:8080"
-      ASYA_PERSISTENCE_MOUNT: "/tmp/checkpoints/results"
+      ASYA_PERSISTENCE_MOUNT: "/state/checkpoints/results"
       AWS_ACCESS_KEY_ID: "minioadmin"
       AWS_SECRET_ACCESS_KEY: "minioadmin"
     scaling:
@@ -50,7 +58,7 @@ crew:
     transport: rabbitmq
     env:
       ASYA_GATEWAY_URL: "http://asya-gateway.asya-e2e.svc.cluster.local:8080"
-      ASYA_PERSISTENCE_MOUNT: "/tmp/checkpoints/errors"
+      ASYA_PERSISTENCE_MOUNT: "/state/checkpoints/errors"
       AWS_ACCESS_KEY_ID: "minioadmin"
       AWS_SECRET_ACCESS_KEY: "minioadmin"
     scaling:
