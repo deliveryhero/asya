@@ -821,10 +821,14 @@ class TestWhileLoopGrouping:
         grouper = OperationGrouper("flow", ops)
         routers = grouper.group()
 
-        # Mutation before while should be in the while condition router's mutations
+        # Mutation before while should be in a separate seq router,
+        # NOT on the while condition router (otherwise it re-executes every iteration)
         cond_router = next(r for r in routers if r.condition is not None and "while" in r.name)
-        assert len(cond_router.mutations) == 1
-        assert cond_router.mutations[0].code == 'p["i"] = 0'
+        assert len(cond_router.mutations) == 0
+
+        seq_routers = [r for r in routers if "_seq" in r.name and r.condition is None]
+        pre_seq = next(r for r in seq_routers if any(m.code == 'p["i"] = 0' for m in r.mutations))
+        assert cond_router.name in pre_seq.true_branch_actors
 
     def test_while_body_mutations_grouped(self):
         ops = [

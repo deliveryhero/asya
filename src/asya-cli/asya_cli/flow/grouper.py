@@ -195,8 +195,18 @@ class OperationGrouper:
                             loop_exit_label=loop_exit_label,
                         )
 
-                        loop_actors = self._process_while_loop(next_op, mutations, continuation)
-                        return [*result, *loop_actors]
+                        # Create a mutation router before the while loop —
+                        # mutations must NOT be on the loop router itself,
+                        # otherwise they re-execute on every iteration.
+                        loop_actors = self._process_while_loop(next_op, [], continuation)
+                        router = Router(
+                            name=f"router_{self.flow_name}_line_{mutations[0].lineno}_seq",
+                            lineno=mutations[0].lineno,
+                            mutations=mutations,
+                            true_branch_actors=loop_actors,
+                        )
+                        self.routers.append(router)
+                        return [*result, router.name]
 
                     elif isinstance(next_op, TryExcept):
                         i += 1
@@ -430,6 +440,10 @@ class OperationGrouper:
         For `while condition:` (conditional):
             condition_router self-references (appends itself to true_branch_actors)
             No loop_back router needed — eliminates one actor hop per iteration
+
+        IMPORTANT: pre_mutations must be empty. Mutations preceding a while loop
+        are handled by the caller via a separate seq router so they execute once
+        on entry, not on every iteration.
         """
         loop_id = self._loop_counter
         self._loop_counter += 1
