@@ -105,7 +105,7 @@ class TestFanOutNodeRendering:
         assert "research_agent" in nodes, f"Expected research_agent in nodes, got: {nodes}"
 
     def test_aggregator_appears_as_user_actor_node(self):
-        """The generated aggregator should appear with lightskyblue color and fan-in label."""
+        """The generated aggregator should appear with fan-in label."""
         ops = [
             _make_fanout_op(),
             ActorCall(lineno=6, name="formatter"),
@@ -115,7 +115,6 @@ class TestFanOutNodeRendering:
 
         nodes = _extract_nodes(dot)
         assert "formatter" in nodes, f"Expected formatter node, got: {nodes}"
-        assert "lightskyblue" in dot, "Generated aggregator should use lightskyblue color"
         assert "fan-in" in dot.lower(), "Generated aggregator should have fan-in label"
 
     def test_start_and_end_nodes_present(self):

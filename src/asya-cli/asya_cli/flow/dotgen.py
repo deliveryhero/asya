@@ -164,14 +164,14 @@ class DotGenerator:
                     for actor in handler.actors:
                         if actor not in self.router_map:
                             self.user_actors.add(actor)
-            # Collect fan-out sub-agent actor names and identify aggregator
+            # Collect fan-out sub-agent actor names and identify fan-in
             if router.is_fan_out and router.fan_out_op:
                 for actor_name, _payload_expr in router.fan_out_op.actor_calls:
                     if actor_name not in self.router_map:
                         self.user_actors.add(actor_name)
-                # Generated aggregator actors have name prefix "aggregator_"
+                # Generated fan-in actors have name prefix "fanin_"
                 for actor in router.true_branch_actors:
-                    if actor.startswith("aggregator_"):
+                    if actor.startswith("fanin_"):
                         self.fanin_actors.add(actor)
                         break
 

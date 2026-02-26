@@ -150,7 +150,7 @@ class TestGrouperFanOut:
         assert "myflow" in fanout_router.name
 
     def test_fanout_true_branch_actors_is_continuation(self):
-        """Fan-out router's true_branch_actors = generated aggregator + user actors."""
+        """Fan-out router's true_branch_actors = generated fan-in + user actors."""
         ops = [
             _make_fanout_op(),
             ActorCall(lineno=6, name="formatter"),
@@ -161,17 +161,17 @@ class TestGrouperFanOut:
 
         fanout_router = next(r for r in routers if r.is_fan_out)
         assert "formatter" in fanout_router.true_branch_actors
-        assert any(a.startswith("aggregator_") for a in fanout_router.true_branch_actors)
+        assert any(a.startswith("fanin_") for a in fanout_router.true_branch_actors)
 
-    def test_fanout_at_end_of_flow_no_aggregator(self):
-        """Fan-out at end of flow: generated aggregator present, plus end actors."""
+    def test_fanout_at_end_of_flow_no_fanin(self):
+        """Fan-out at end of flow: generated fan-in present, plus end actors."""
         ops = [_make_fanout_op(), Return(lineno=6)]
         grouper = OperationGrouper("flow", ops)
         routers = grouper.group()
 
         fanout_router = next(r for r in routers if r.is_fan_out)
-        # When no explicit continuation, true_branch_actors has generated aggregator and end_flow
-        assert any(a.startswith("aggregator_") for a in fanout_router.true_branch_actors)
+        # When no explicit continuation, true_branch_actors has generated fan-in and end_flow
+        assert any(a.startswith("fanin_") for a in fanout_router.true_branch_actors)
         assert any(a.startswith("end_") for a in fanout_router.true_branch_actors)
 
     def test_two_sequential_fanouts(self):
@@ -318,12 +318,12 @@ class TestFanOutCodeValidity:
         count = code.count("import json as _json")
         assert count == 1, f"json import should be emitted exactly once, found {count} times"
 
-    def test_fanout_no_resolve_aggregator(self):
-        """Files with fan-out should not contain _resolve_aggregator (removed helper)."""
+    def test_fanout_no_resolve_fanin(self):
+        """Files with fan-out should not contain _resolve_fanin (removed helper)."""
         ops = [_make_fanout_op(), Return(lineno=6)]
         code = _generate_code_for_ops("flow", ops)
 
-        assert "_resolve_aggregator" not in code
+        assert "_resolve_fanin" not in code
 
     def test_no_fanout_no_json_import(self):
         """Files without fan-out should not import json for fan-out purposes."""
@@ -524,7 +524,7 @@ class TestFanOutCodeExecution:
         actor_map = {
             "research_agent": "research-agent",
             "formatter": "formatter",
-            "aggregator_flow_line_5": "aggregator-flow-line-5",
+            "fanin_flow_line_5": "fanin-flow-line-5",
             "fanout_flow_line_5": "fanout-flow-line-5",
         }
 
@@ -554,7 +554,7 @@ class TestFanOutCodeExecution:
             "sentiment_analyzer": "sentiment-analyzer",
             "topic_extractor": "topic-extractor",
             "formatter": "formatter",
-            "aggregator_flow_line_5": "aggregator-flow-line-5",
+            "fanin_flow_line_5": "fanin-flow-line-5",
             "fanout_flow_line_5": "fanout-flow-line-5",
         }
 
@@ -572,7 +572,7 @@ class TestFanOutCodeExecution:
         actor_map = {
             "research_agent": "research-agent",
             "formatter": "formatter",
-            "aggregator_flow_line_5": "aggregator-flow-line-5",
+            "fanin_flow_line_5": "fanin-flow-line-5",
             "fanout_flow_line_5": "fanout-flow-line-5",
         }
 
@@ -593,7 +593,7 @@ class TestFanOutCodeExecution:
         actor_map = {
             "research_agent": "research-agent",
             "formatter": "formatter",
-            "aggregator_flow_line_5": "aggregator-flow-line-5",
+            "fanin_flow_line_5": "fanin-flow-line-5",
             "fanout_flow_line_5": "fanout-flow-line-5",
         }
 
@@ -614,7 +614,7 @@ class TestFanOutCodeExecution:
         actor_map = {
             "research_agent": "research-agent",
             "formatter": "formatter",
-            "aggregator_flow_line_5": "aggregator-flow-line-5",
+            "fanin_flow_line_5": "fanin-flow-line-5",
             "fanout_flow_line_5": "fanout-flow-line-5",
         }
 
@@ -634,7 +634,7 @@ class TestFanOutCodeExecution:
         actor_map = {
             "research_agent": "research-agent",
             "formatter": "formatter",
-            "aggregator_flow_line_5": "aggregator-flow-line-5",
+            "fanin_flow_line_5": "fanin-flow-line-5",
             "fanout_flow_line_5": "fanout-flow-line-5",
         }
 
@@ -655,7 +655,7 @@ class TestFanOutCodeExecution:
         actor_map = {
             "research_agent": "research-agent",
             "formatter": "formatter",
-            "aggregator_flow_line_5": "aggregator-flow-line-5",
+            "fanin_flow_line_5": "fanin-flow-line-5",
             "fanout_flow_line_5": "fanout-flow-line-5",
         }
 
@@ -678,7 +678,7 @@ class TestFanOutCodeExecution:
         actor_map = {
             "research_agent": "research-agent",
             "formatter": "formatter",
-            "aggregator_flow_line_5": "aggregator-flow-line-5",
+            "fanin_flow_line_5": "fanin-flow-line-5",
             "fanout_flow_line_5": "fanout-flow-line-5",
         }
 
@@ -699,7 +699,7 @@ class TestFanOutCodeExecution:
         actor_map = {
             "research_agent": "research-agent",
             "formatter": "formatter",
-            "aggregator_flow_line_5": "aggregator-flow-line-5",
+            "fanin_flow_line_5": "fanin-flow-line-5",
             "fanout_flow_line_5": "fanout-flow-line-5",
         }
 
@@ -718,7 +718,7 @@ class TestFanOutCodeExecution:
         actor_map = {
             "research_agent": "research-agent",
             "formatter": "formatter",
-            "aggregator_flow_line_5": "aggregator-flow-line-5",
+            "fanin_flow_line_5": "fanin-flow-line-5",
             "fanout_flow_line_5": "fanout-flow-line-5",
         }
 
@@ -737,7 +737,7 @@ class TestFanOutCodeExecution:
         actor_map = {
             "research_agent": "research-agent",
             "formatter": "formatter",
-            "aggregator_flow_line_5": "aggregator-flow-line-5",
+            "fanin_flow_line_5": "fanin-flow-line-5",
             "fanout_flow_line_5": "fanout-flow-line-5",
         }
 
@@ -756,7 +756,7 @@ class TestFanOutCodeExecution:
         actor_map = {
             "research_agent": "research-agent",
             "formatter": "formatter",
-            "aggregator_flow_line_5": "aggregator-flow-line-5",
+            "fanin_flow_line_5": "fanin-flow-line-5",
             "fanout_flow_line_5": "fanout-flow-line-5",
         }
 

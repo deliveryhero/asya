@@ -400,10 +400,10 @@ class OperationGrouper:
 
         fanout_suffix = f"{self.flow_name}_line_{fan_out.lineno}"
         router_name = f"fanout_{fanout_suffix}"
-        aggregator_name = f"aggregator_{fanout_suffix}"
+        aggregator_name = f"fanin_{fanout_suffix}"
 
-        # true_branch_actors: [aggregator, ...continuation]
-        # The aggregator is always generated; continuation follows it.
+        # true_branch_actors: [fan-in, ...continuation]
+        # The fan-in actor is always generated; continuation follows it.
         router = Router(
             name=router_name,
             lineno=fan_out.lineno,
