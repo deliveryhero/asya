@@ -8,6 +8,7 @@ import os
 import tempfile
 import textwrap
 from contextlib import contextmanager
+from typing import Any
 
 import pytest
 from asya_cli.flow.codegen import CodeGenerator
@@ -80,7 +81,7 @@ def _vfs_tmpdir(msg_id: str, route_next: list[str] | None = None, headers: dict 
         if headers:
             for k, v in headers.items():
                 with open(os.path.join(headers_dir, k), "w") as f:
-                    if isinstance(v, (dict, list)):
+                    if isinstance(v, dict | list):
                         f.write(json.dumps(v))
                     else:
                         f.write(str(v))
@@ -103,7 +104,7 @@ def _read_vfs_route_next(tmpdir: str) -> list[str]:
     return content.splitlines() if content else []
 
 
-def _read_vfs_header(tmpdir: str, name: str) -> dict | str:
+def _read_vfs_header(tmpdir: str, name: str) -> dict[str, Any] | str:
     """Read a header from VFS tmpdir, parsing JSON if possible."""
     path = os.path.join(tmpdir, "headers", name)
     with open(path) as f:
@@ -586,8 +587,8 @@ class TestFanOutCodeExecution:
         assert parent_payload == input_payload
         assert parent_payload is not input_payload
 
-    def test_parent_vfs_route_points_to_aggregator(self):
-        """After yielding index 0, VFS route/next should point to the generated aggregator."""
+    def test_parent_vfs_route_points_to_fanin(self):
+        """After yielding index 0, VFS route/next should point to the generated fan-in."""
         ops = [_make_fanout_op(), ActorCall(lineno=6, name="formatter"), Return(lineno=7)]
         code = _generate_code_for_ops("flow", ops)
         actor_map = {
@@ -604,7 +605,7 @@ class TestFanOutCodeExecution:
             next(gen)  # yield parent
 
             route_next = _read_vfs_route_next(tmpdir)
-            assert route_next[0] == "aggregator-flow-line-5"
+            assert route_next[0] == "fanin-flow-line-5"
             assert "downstream" in route_next
 
     def test_parent_vfs_fan_in_header_slice_index_0(self):
@@ -625,10 +626,11 @@ class TestFanOutCodeExecution:
             next(gen)  # yield parent
 
             fan_in = _read_vfs_header(tmpdir, "x-asya-fan-in")
+            assert isinstance(fan_in, dict)
             assert fan_in["slice_index"] == 0
 
-    def test_slice_vfs_route_points_to_actor_then_aggregator(self):
-        """After yielding a slice, VFS route/next should be [sub_agent, generated_aggregator]."""
+    def test_slice_vfs_route_points_to_actor_then_fanin(self):
+        """After yielding a slice, VFS route/next should be [sub_agent, generated_fanin]."""
         ops = [_make_fanout_op(), ActorCall(lineno=6, name="formatter"), Return(lineno=7)]
         code = _generate_code_for_ops("flow", ops)
         actor_map = {
@@ -646,7 +648,7 @@ class TestFanOutCodeExecution:
             next(gen)  # yield first slice
 
             route_next = _read_vfs_route_next(tmpdir)
-            assert route_next == ["research-agent", "aggregator-flow-line-5"]
+            assert route_next == ["research-agent", "fanin-flow-line-5"]
 
     def test_slice_vfs_fan_in_header_increasing_indices(self):
         """Slice yields should have increasing slice_index in VFS."""
@@ -667,6 +669,7 @@ class TestFanOutCodeExecution:
             indices = []
             for _ in gen:
                 fan_in = _read_vfs_header(tmpdir, "x-asya-fan-in")
+                assert isinstance(fan_in, dict)
                 indices.append(fan_in["slice_index"])
 
             assert indices == [0, 1, 2]
@@ -689,6 +692,7 @@ class TestFanOutCodeExecution:
             slice_counts = set()
             for _ in fanout_fn({"topics": ["a", "b", "c"]}):
                 fan_in = _read_vfs_header(tmpdir, "x-asya-fan-in")
+                assert isinstance(fan_in, dict)
                 slice_counts.add(fan_in["slice_count"])
 
             assert slice_counts == {4}  # 1 parent + 3 slices
@@ -709,6 +713,7 @@ class TestFanOutCodeExecution:
 
             for _ in fanout_fn({"topics": ["a"]}):
                 fan_in = _read_vfs_header(tmpdir, "x-asya-fan-in")
+                assert isinstance(fan_in, dict)
                 assert fan_in["aggregation_key"] == "/results"
 
     def test_fan_in_header_origin_id(self):
@@ -728,6 +733,7 @@ class TestFanOutCodeExecution:
 
             for _ in fanout_fn({"topics": ["a"]}):
                 fan_in = _read_vfs_header(tmpdir, "x-asya-fan-in")
+                assert isinstance(fan_in, dict)
                 assert fan_in["origin_id"] == "my-origin-id-123"
 
     def test_slice_payloads_are_individual_items(self):
@@ -836,13 +842,13 @@ class TestFanOutIntegration:
         except SyntaxError as e:
             pytest.fail(f"Compilation failed: {e}")
 
-    def test_fanout_no_resolve_aggregator(self):
+    def test_fanout_no_resolve_fanin(self):
         code = self._compile_flow("""
             def flow(p: dict) -> dict:
                 p["results"] = [research_agent(t) for t in p["topics"]]
                 return p
         """)
-        assert "_resolve_aggregator" not in code
+        assert "_resolve_fanin" not in code
 
     def test_two_fanouts_share_one_json_import(self):
         code = self._compile_flow("""

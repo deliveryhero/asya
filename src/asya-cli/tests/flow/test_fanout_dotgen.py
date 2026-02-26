@@ -104,8 +104,8 @@ class TestFanOutNodeRendering:
         nodes = _extract_nodes(dot)
         assert "research_agent" in nodes, f"Expected research_agent in nodes, got: {nodes}"
 
-    def test_aggregator_appears_as_user_actor_node(self):
-        """The generated aggregator should appear with fan-in label."""
+    def test_fanin_appears_as_user_actor_node(self):
+        """The generated fan-in should appear with fan-in label."""
         ops = [
             _make_fanout_op(),
             ActorCall(lineno=6, name="formatter"),
@@ -115,7 +115,7 @@ class TestFanOutNodeRendering:
 
         nodes = _extract_nodes(dot)
         assert "formatter" in nodes, f"Expected formatter node, got: {nodes}"
-        assert "fan-in" in dot.lower(), "Generated aggregator should have fan-in label"
+        assert "fan-in" in dot.lower(), "Generated fan-in should have fan-in label"
 
     def test_start_and_end_nodes_present(self):
         """Start and end nodes should always be present."""
@@ -152,8 +152,8 @@ class TestFanOutEdgeRendering:
         fanout_to_research = any(e[0] in fanout_nodes and e[1] == "research_agent" for e in edges)
         assert fanout_to_research, f"Expected fanout -> research_agent edge, edges: {edges}"
 
-    def test_fanout_to_aggregator_edge_exists(self):
-        """Fan-out router should have an edge to the generated aggregator (parent slice)."""
+    def test_fanout_to_fanin_edge_exists(self):
+        """Fan-out router should have an edge to the generated fan-in (parent slice)."""
         ops = [
             _make_fanout_op(),
             ActorCall(lineno=6, name="formatter"),
@@ -164,11 +164,11 @@ class TestFanOutEdgeRendering:
         edges = _extract_edges(dot)
         fanout_nodes = {n for n in {e[0] for e in edges} if "fanout" in n.lower()}
 
-        fanout_to_agg = any(e[0] in fanout_nodes and e[1].startswith("aggregator_flow_line") for e in edges)
-        assert fanout_to_agg, f"Expected fanout -> aggregator_flow_line_5 edge, edges: {edges}"
+        fanout_to_agg = any(e[0] in fanout_nodes and e[1].startswith("fanin_flow_line") for e in edges)
+        assert fanout_to_agg, f"Expected fanout -> fanin_flow_line_5 edge, edges: {edges}"
 
-    def test_sub_agent_to_aggregator_convergence_edge(self):
-        """Sub-agent should have a convergence edge back to the generated aggregator."""
+    def test_sub_agent_to_fanin_convergence_edge(self):
+        """Sub-agent should have a convergence edge back to the generated fan-in."""
         ops = [
             _make_fanout_op(),
             ActorCall(lineno=6, name="formatter"),
@@ -177,8 +177,8 @@ class TestFanOutEdgeRendering:
         dot = _generate_dot_for_ops("flow", ops)
 
         edges = _extract_edges(dot)
-        sub_agent_to_agg = ("research_agent", "aggregator_flow_line_5") in edges
-        assert sub_agent_to_agg, f"Expected research_agent -> aggregator_flow_line_5 edge, edges: {edges}"
+        sub_agent_to_agg = ("research_agent", "fanin_flow_line_5") in edges
+        assert sub_agent_to_agg, f"Expected research_agent -> fanin_flow_line_5 edge, edges: {edges}"
 
     def test_literal_fanout_edges_for_each_sub_agent(self):
         """Literal fan-out should have edges from fanout router to each unique sub-agent."""
