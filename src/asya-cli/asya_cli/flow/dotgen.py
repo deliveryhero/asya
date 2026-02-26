@@ -552,14 +552,14 @@ class DotGenerator:
             if true_actors:
                 lines.add(
                     f"  {self._node_id(router.name)} -> {self._node_id(true_actors[0])}"
-                    f" [color={self._color_true_branch}];"
+                    f' [label="T", color={self._color_true_branch}];'
                 )
                 self._add_sequential_edges(true_actors, lines)
 
             if false_actors:
                 lines.add(
                     f"  {self._node_id(router.name)} -> {self._node_id(false_actors[0])}"
-                    f" [color={self._color_false_branch}];"
+                    f' [label="F", color={self._color_false_branch}];'
                 )
                 self._add_sequential_edges(false_actors, lines)
         else:

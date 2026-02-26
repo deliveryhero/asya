@@ -16,6 +16,6 @@ digraph flow {
   handler_init -> router_while_true_flow_line_10_loop_back_0;
   handler_process -> router_while_true_flow_line_12_if;
   router_while_true_flow_line_10_loop_back_0 -> handler_process [constraint=false];
-  router_while_true_flow_line_12_if -> handler_finalize [color=darkseagreen4];
+  router_while_true_flow_line_12_if -> handler_finalize [label="T", color=darkseagreen4];
   start_while_true_flow -> handler_init;
 }

@@ -18,10 +18,10 @@ digraph flow {
   handler_init -> router_while_with_break_flow_line_11_while_0;
   handler_process -> router_while_with_break_flow_line_14_if;
   router_while_with_break_flow_line_11_loop_back_0 -> router_while_with_break_flow_line_11_while_0 [constraint=false];
-  router_while_with_break_flow_line_11_while_0 -> handler_finalize [color=indianred4];
-  router_while_with_break_flow_line_11_while_0 -> router_while_with_break_flow_line_12_seq [color=darkseagreen4];
+  router_while_with_break_flow_line_11_while_0 -> handler_finalize [label="F", color=indianred4];
+  router_while_with_break_flow_line_11_while_0 -> router_while_with_break_flow_line_12_seq [label="T", color=darkseagreen4];
   router_while_with_break_flow_line_12_seq -> handler_process;
   router_while_with_break_flow_line_12_seq -> router_while_with_break_flow_line_11_loop_back_0;
-  router_while_with_break_flow_line_14_if -> handler_finalize [color=darkseagreen4];
+  router_while_with_break_flow_line_14_if -> handler_finalize [label="T", color=darkseagreen4];
   start_while_with_break_flow -> handler_init;
 }

@@ -18,8 +18,8 @@ digraph flow {
   handler_setup -> router_sample_flow_line_3_if;
   handler_type_a -> handler_finalize;
   handler_type_b -> router_sample_flow_line_8_seq;
-  router_sample_flow_line_3_if -> handler_type_b [color=indianred4];
-  router_sample_flow_line_3_if -> router_sample_flow_line_4_seq [color=darkseagreen4];
+  router_sample_flow_line_3_if -> handler_type_b [label="F", color=indianred4];
+  router_sample_flow_line_3_if -> router_sample_flow_line_4_seq [label="T", color=darkseagreen4];
   router_sample_flow_line_4_seq -> handler_type_a;
   router_sample_flow_line_8_seq -> handler_finalize;
   start_sample_flow -> handler_setup;

@@ -19,12 +19,12 @@ digraph flow {
   clean_text -> tokenize;
   english_sentiment -> extract_entities;
   extract_entities -> router_text_analysis_flow_line_18_seq;
-  router_text_analysis_flow_line_11_if -> router_text_analysis_flow_line_14_seq [color=indianred4];
-  router_text_analysis_flow_line_11_if -> spanish_sentiment [color=darkseagreen4];
+  router_text_analysis_flow_line_11_if -> router_text_analysis_flow_line_14_seq [label="F", color=indianred4];
+  router_text_analysis_flow_line_11_if -> spanish_sentiment [label="T", color=darkseagreen4];
   router_text_analysis_flow_line_14_seq -> extract_entities;
   router_text_analysis_flow_line_18_seq -> end_text_analysis_flow;
-  router_text_analysis_flow_line_9_if -> english_sentiment [color=darkseagreen4];
-  router_text_analysis_flow_line_9_if -> router_text_analysis_flow_line_11_if [color=indianred4];
+  router_text_analysis_flow_line_9_if -> english_sentiment [label="T", color=darkseagreen4];
+  router_text_analysis_flow_line_9_if -> router_text_analysis_flow_line_11_if [label="F", color=indianred4];
   spanish_sentiment -> extract_entities;
   start_text_analysis_flow -> clean_text;
   tokenize -> router_text_analysis_flow_line_9_if;

@@ -17,9 +17,9 @@ digraph flow {
   handler_finalize -> end_if_inside_while_flow;
   handler_init -> router_if_inside_while_flow_line_11_while_0;
   router_if_inside_while_flow_line_11_loop_back_0 -> router_if_inside_while_flow_line_11_while_0 [constraint=false];
-  router_if_inside_while_flow_line_11_while_0 -> handler_finalize [color=indianred4];
-  router_if_inside_while_flow_line_11_while_0 -> router_if_inside_while_flow_line_13_if [color=darkseagreen4];
-  router_if_inside_while_flow_line_13_if -> handler_even [color=darkseagreen4];
-  router_if_inside_while_flow_line_13_if -> handler_odd [color=indianred4];
+  router_if_inside_while_flow_line_11_while_0 -> handler_finalize [label="F", color=indianred4];
+  router_if_inside_while_flow_line_11_while_0 -> router_if_inside_while_flow_line_13_if [label="T", color=darkseagreen4];
+  router_if_inside_while_flow_line_13_if -> handler_even [label="T", color=darkseagreen4];
+  router_if_inside_while_flow_line_13_if -> handler_odd [label="F", color=indianred4];
   start_if_inside_while_flow -> handler_init;
 }

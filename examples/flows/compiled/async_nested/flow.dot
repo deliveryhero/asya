@@ -16,7 +16,7 @@ digraph flow {
   detailed_review -> human_review;
   human_review -> end_review_pipeline_flow;
   initial_review -> router_review_pipeline_flow_line_13_if;
-  router_review_pipeline_flow_line_13_if -> auto_approve [color=indianred4];
-  router_review_pipeline_flow_line_13_if -> detailed_review [color=darkseagreen4];
+  router_review_pipeline_flow_line_13_if -> auto_approve [label="F", color=indianred4];
+  router_review_pipeline_flow_line_13_if -> detailed_review [label="T", color=darkseagreen4];
   start_review_pipeline_flow -> initial_review;
 }

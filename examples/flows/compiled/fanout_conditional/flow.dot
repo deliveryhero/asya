@@ -23,8 +23,8 @@ digraph flow {
   fanout_adaptive_flow_line_13 -> fast_analyzer [color=mediumpurple4, label="slice 1", style=bold];
   fast_analyzer -> aggregator_adaptive_flow_line_13 [color=slateblue4, style=dashed];
   formatter -> end_adaptive_flow;
-  router_adaptive_flow_line_12_if -> fanout_adaptive_flow_line_13 [color=darkseagreen4];
-  router_adaptive_flow_line_12_if -> sequential_analyzer [color=indianred4];
+  router_adaptive_flow_line_12_if -> fanout_adaptive_flow_line_13 [label="T", color=darkseagreen4];
+  router_adaptive_flow_line_12_if -> sequential_analyzer [label="F", color=indianred4];
   sequential_analyzer -> formatter;
   start_adaptive_flow -> classifier;
 }

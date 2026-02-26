@@ -18,10 +18,10 @@ digraph flow {
   generic_processor -> quality_check;
   image_processor -> quality_check;
   quality_check -> end_content_pipeline_flow;
-  router_content_pipeline_flow_line_12_if -> router_content_pipeline_flow_line_14_if [color=indianred4];
-  router_content_pipeline_flow_line_12_if -> text_processor [color=darkseagreen4];
-  router_content_pipeline_flow_line_14_if -> generic_processor [color=indianred4];
-  router_content_pipeline_flow_line_14_if -> image_processor [color=darkseagreen4];
+  router_content_pipeline_flow_line_12_if -> router_content_pipeline_flow_line_14_if [label="F", color=indianred4];
+  router_content_pipeline_flow_line_12_if -> text_processor [label="T", color=darkseagreen4];
+  router_content_pipeline_flow_line_14_if -> generic_processor [label="F", color=indianred4];
+  router_content_pipeline_flow_line_14_if -> image_processor [label="T", color=darkseagreen4];
   start_content_pipeline_flow -> classifier;
   text_processor -> quality_check;
 }
