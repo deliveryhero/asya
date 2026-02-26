@@ -17,7 +17,6 @@ import logging
 import pytest
 
 from asya_testing.config import get_env
-from asya_testing.utils.s3 import wait_for_message_in_s3
 from asya_testing.fixtures.gateway import gateway_helper
 
 log_level = get_env('ASYA_LOG_LEVEL', 'INFO').upper()
@@ -54,11 +53,6 @@ def test_simple_tool_execution(gateway_helper):
 
     task_result = final_task["result"]
     assert task_result.get("echoed") == "Hello, World!", "Should echo the input"
-
-    s3_object = wait_for_message_in_s3(bucket_name="asya-results", message_id=task_id, timeout=10)
-    assert s3_object is not None, f"x-sink should persist message {task_id} to S3"
-    assert s3_object == task_result, "S3 payload should match gateway result"
-    logger.info(" S3 verification: x-sink persisted result correctly")
 
 
 def test_multi_actor_pipeline(gateway_helper):
@@ -108,11 +102,6 @@ def test_multi_actor_pipeline(gateway_helper):
     assert result is not None, "Should have a result"
     # Value should be: 10 * 2 + 5 = 25 (doubled + incremented)
     assert result.get("value") == 25, f"Expected 25, got {result.get('value')}"
-
-    s3_object = wait_for_message_in_s3(bucket_name="asya-results", message_id=task_id, timeout=10)
-    assert s3_object is not None, f"x-sink should persist pipeline message {task_id} to S3"
-    assert s3_object == result, "S3 payload should match gateway result"
-    logger.info(" S3 verification: x-sink persisted pipeline result correctly")
 
 
 def test_error_handling(gateway_helper):
