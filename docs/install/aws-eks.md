@@ -276,10 +276,9 @@ x-sink:
         - name: asya-runtime
           env:
           - name: ASYA_HANDLER
-            value: asya_crew.message_persistence.s3.checkpoint_handler
-          - name: ASYA_S3_BUCKET
-            value: asya-results-bucket
-          # AWS_REGION from IRSA
+            value: asya_crew.checkpointer.handler
+          - name: ASYA_PERSISTENCE_MOUNT
+            value: /state/checkpoints
 
 x-sump:
   enabled: true
@@ -291,9 +290,9 @@ x-sump:
         - name: asya-runtime
           env:
           - name: ASYA_HANDLER
-            value: asya_crew.message_persistence.s3.checkpoint_handler
-          - name: ASYA_S3_BUCKET
-            value: asya-results-bucket
+            value: asya_crew.checkpointer.handler
+          - name: ASYA_PERSISTENCE_MOUNT
+            value: /state/checkpoints
 ```
 
 ```bash

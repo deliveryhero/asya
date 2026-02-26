@@ -1299,16 +1299,8 @@ helm<span class="w"> </span>uninstall<span class="w"> </span>prometheus<span cla
 <span class="s">          env:</span>
 <span class="s">          - name: ASYA_GATEWAY_URL</span>
 <span class="s">            value: &quot;&quot;  # Set this when gateway is installed</span>
-<span class="s">          - name: ASYA_S3_BUCKET</span>
-<span class="s">            value: &quot;asya-results-bucket&quot;</span>
-<span class="s">          - name: ASYA_S3_ENDPOINT</span>
-<span class="s">            value: &quot;http://localstack.asya-system.svc.cluster.local:4566&quot;</span>
-<span class="s">          - name: ASYA_S3_REGION</span>
-<span class="s">            value: &quot;us-east-1&quot;</span>
-<span class="s">          - name: AWS_ACCESS_KEY_ID</span>
-<span class="s">            value: &quot;test&quot;</span>
-<span class="s">          - name: AWS_SECRET_ACCESS_KEY</span>
-<span class="s">            value: &quot;test&quot;</span>
+<span class="s">          - name: ASYA_PERSISTENCE_MOUNT</span>
+<span class="s">            value: /tmp/checkpoints/results</span>
 
 <span class="s">x-sump:</span>
 <span class="s">  transport: sqs</span>
@@ -1320,16 +1312,8 @@ helm<span class="w"> </span>uninstall<span class="w"> </span>prometheus<span cla
 <span class="s">          env:</span>
 <span class="s">          - name: ASYA_GATEWAY_URL</span>
 <span class="s">            value: &quot;&quot;  # Set this when gateway is installed</span>
-<span class="s">          - name: ASYA_S3_BUCKET</span>
-<span class="s">            value: &quot;asya-errors-bucket&quot;</span>
-<span class="s">          - name: ASYA_S3_ENDPOINT</span>
-<span class="s">            value: &quot;http://localstack.asya-system.svc.cluster.local:4566&quot;</span>
-<span class="s">          - name: ASYA_S3_REGION</span>
-<span class="s">            value: &quot;us-east-1&quot;</span>
-<span class="s">          - name: AWS_ACCESS_KEY_ID</span>
-<span class="s">            value: &quot;test&quot;</span>
-<span class="s">          - name: AWS_SECRET_ACCESS_KEY</span>
-<span class="s">            value: &quot;test&quot;</span>
+<span class="s">          - name: ASYA_PERSISTENCE_MOUNT</span>
+<span class="s">            value: /tmp/checkpoints/errors</span>
 <span class="s">EOF</span>
 
 helm<span class="w"> </span>install<span class="w"> </span>asya-crew<span class="w"> </span>asya/asya-crew<span class="w"> </span><span class="se">\</span>
@@ -1438,16 +1422,8 @@ kubectl<span class="w"> </span><span class="nb">wait</span><span class="w"> </sp
 <span class="s">          env:</span>
 <span class="s">          - name: ASYA_GATEWAY_URL</span>
 <span class="s">            value: &quot;http://asya-gateway.default.svc.cluster.local:8080&quot;</span>
-<span class="s">          - name: ASYA_S3_BUCKET</span>
-<span class="s">            value: &quot;asya-results-bucket&quot;</span>
-<span class="s">          - name: ASYA_S3_ENDPOINT</span>
-<span class="s">            value: &quot;http://localstack.asya-system.svc.cluster.local:4566&quot;</span>
-<span class="s">          - name: ASYA_S3_REGION</span>
-<span class="s">            value: &quot;us-east-1&quot;</span>
-<span class="s">          - name: AWS_ACCESS_KEY_ID</span>
-<span class="s">            value: &quot;test&quot;</span>
-<span class="s">          - name: AWS_SECRET_ACCESS_KEY</span>
-<span class="s">            value: &quot;test&quot;</span>
+<span class="s">          - name: ASYA_PERSISTENCE_MOUNT</span>
+<span class="s">            value: /tmp/checkpoints/results</span>
 
 <span class="s">x-sump:</span>
 <span class="s">  transport: sqs</span>
@@ -1459,16 +1435,8 @@ kubectl<span class="w"> </span><span class="nb">wait</span><span class="w"> </sp
 <span class="s">          env:</span>
 <span class="s">          - name: ASYA_GATEWAY_URL</span>
 <span class="s">            value: &quot;http://asya-gateway.default.svc.cluster.local:8080&quot;</span>
-<span class="s">          - name: ASYA_S3_BUCKET</span>
-<span class="s">            value: &quot;asya-errors-bucket&quot;</span>
-<span class="s">          - name: ASYA_S3_ENDPOINT</span>
-<span class="s">            value: &quot;http://localstack.asya-system.svc.cluster.local:4566&quot;</span>
-<span class="s">          - name: ASYA_S3_REGION</span>
-<span class="s">            value: &quot;us-east-1&quot;</span>
-<span class="s">          - name: AWS_ACCESS_KEY_ID</span>
-<span class="s">            value: &quot;test&quot;</span>
-<span class="s">          - name: AWS_SECRET_ACCESS_KEY</span>
-<span class="s">            value: &quot;test&quot;</span>
+<span class="s">          - name: ASYA_PERSISTENCE_MOUNT</span>
+<span class="s">            value: /tmp/checkpoints/errors</span>
 <span class="s">EOF</span>
 
 helm<span class="w"> </span>upgrade<span class="w"> </span>asya-crew<span class="w"> </span>asya/asya-crew<span class="w"> </span><span class="se">\</span>

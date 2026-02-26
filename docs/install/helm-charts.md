@@ -97,16 +97,9 @@ x-sink:
           image: ghcr.io/deliveryhero/asya-crew:latest
           env:
           - name: ASYA_HANDLER
-            value: asya_crew.message_persistence.s3.checkpoint_handler
-          # Optional S3/MinIO persistence
-          - name: ASYA_S3_BUCKET
-            value: asya-results
-          - name: ASYA_S3_ENDPOINT
-            value: http://minio:9000
-          - name: ASYA_S3_ACCESS_KEY
-            value: minioadmin
-          - name: ASYA_S3_SECRET_KEY
-            value: minioadmin
+            value: asya_crew.checkpointer.handler
+          - name: ASYA_PERSISTENCE_MOUNT
+            value: /state/checkpoints
 
 x-sump:
   enabled: true
@@ -123,10 +116,9 @@ x-sump:
           image: ghcr.io/deliveryhero/asya-crew:latest
           env:
           - name: ASYA_HANDLER
-            value: asya_crew.message_persistence.s3.checkpoint_handler
-          # Optional S3/MinIO persistence
-          - name: ASYA_S3_BUCKET
-            value: asya-results
+            value: asya_crew.checkpointer.handler
+          - name: ASYA_PERSISTENCE_MOUNT
+            value: /state/checkpoints
 ```
 
 ### asya-crossplane
@@ -259,9 +251,8 @@ x-sink:
         containers:
         - name: asya-runtime
           env:
-          - name: ASYA_S3_BUCKET
-            value: asya-results
-          # AWS_REGION from IRSA or instance metadata
+          - name: ASYA_PERSISTENCE_MOUNT
+            value: /state/checkpoints
 
 x-sump:
   transport: sqs
@@ -271,8 +262,8 @@ x-sump:
         containers:
         - name: asya-runtime
           env:
-          - name: ASYA_S3_BUCKET
-            value: asya-results
+          - name: ASYA_PERSISTENCE_MOUNT
+            value: /state/checkpoints
 ```
 
 **Actors**:
@@ -302,14 +293,8 @@ x-sink:
         containers:
         - name: asya-runtime
           env:
-          - name: ASYA_S3_BUCKET
-            value: asya-results
-          - name: ASYA_S3_ENDPOINT
-            value: http://minio.default.svc.cluster.local:9000
-          - name: ASYA_S3_ACCESS_KEY
-            value: minioadmin
-          - name: ASYA_S3_SECRET_KEY
-            value: minioadmin
+          - name: ASYA_PERSISTENCE_MOUNT
+            value: /state/checkpoints
 
 x-sump:
   transport: rabbitmq
@@ -319,14 +304,8 @@ x-sump:
         containers:
         - name: asya-runtime
           env:
-          - name: ASYA_S3_BUCKET
-            value: asya-results
-          - name: ASYA_S3_ENDPOINT
-            value: http://minio.default.svc.cluster.local:9000
-          - name: ASYA_S3_ACCESS_KEY
-            value: minioadmin
-          - name: ASYA_S3_SECRET_KEY
-            value: minioadmin
+          - name: ASYA_PERSISTENCE_MOUNT
+            value: /state/checkpoints
 ```
 
 **Actors**:
