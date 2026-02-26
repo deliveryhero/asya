@@ -24,13 +24,16 @@ logger = logging.getLogger(__name__)
 transport = transport_client
 
 
+_RFC3339_FMT = "%Y-%m-%dT%H:%M:%SZ"
+
+
 def _now_rfc3339() -> str:
-    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return datetime.now(timezone.utc).strftime(_RFC3339_FMT)
 
 
 def _deadline_rfc3339(delta_seconds: int) -> str:
     dt = datetime.now(timezone.utc) + timedelta(seconds=delta_seconds)
-    return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+    return dt.strftime(_RFC3339_FMT)
 
 
 def _is_sqs() -> bool:
