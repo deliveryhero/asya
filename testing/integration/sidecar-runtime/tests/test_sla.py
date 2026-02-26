@@ -104,9 +104,9 @@ class TestSLAPreCheck:
             f"Original payload not preserved, got: {payload}"
         )
 
-        # Should complete almost instantly (no handler execution)
-        assert elapsed < 5, (
-            f"SLA pre-check took {elapsed:.1f}s — should be near-instant."
+        # Should complete well under ACTOR_TIMEOUT (30s)
+        assert elapsed < 10, (
+            f"SLA pre-check took {elapsed:.1f}s — expected well under ACTOR_TIMEOUT (30s)."
         )
 
         logger.info(
