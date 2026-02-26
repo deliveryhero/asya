@@ -109,6 +109,54 @@ Resolve image pull policy for checkpoint-s3 actor (convenience wrapper)
 {{- end }}
 
 {{/*
+Common labels for x-pause actor
+Labels for AsyncActor CRs should NOT include reserved prefixes (app.kubernetes.io/, etc.)
+as these are managed by the operator and added to child resources.
+*/}}
+{{- define "asya-crew.x-pause.labels" -}}
+helm.sh/chart: {{ include "asya-crew.chart" . }}
+asya.sh/actor: x-pause
+{{- end }}
+
+{{/*
+Common labels for x-resume actor
+Labels for AsyncActor CRs should NOT include reserved prefixes (app.kubernetes.io/, etc.)
+as these are managed by the operator and added to child resources.
+*/}}
+{{- define "asya-crew.x-resume.labels" -}}
+helm.sh/chart: {{ include "asya-crew.chart" . }}
+asya.sh/actor: x-resume
+{{- end }}
+
+{{/*
+Resolve image for x-pause actor (convenience wrapper)
+*/}}
+{{- define "asya-crew.x-pause.image" -}}
+{{- include "asya-crew.actor.image" (dict "root" . "actorName" "x-pause") }}
+{{- end }}
+
+{{/*
+Resolve image pull policy for x-pause actor (convenience wrapper)
+*/}}
+{{- define "asya-crew.x-pause.imagePullPolicy" -}}
+{{- include "asya-crew.actor.imagePullPolicy" (dict "root" . "actorName" "x-pause") }}
+{{- end }}
+
+{{/*
+Resolve image for x-resume actor (convenience wrapper)
+*/}}
+{{- define "asya-crew.x-resume.image" -}}
+{{- include "asya-crew.actor.image" (dict "root" . "actorName" "x-resume") }}
+{{- end }}
+
+{{/*
+Resolve image pull policy for x-resume actor (convenience wrapper)
+*/}}
+{{- define "asya-crew.x-resume.imagePullPolicy" -}}
+{{- include "asya-crew.actor.imagePullPolicy" (dict "root" . "actorName" "x-resume") }}
+{{- end }}
+
+{{/*
 DLQ Worker helpers
 The DLQ worker is a standalone Go binary (NOT an AsyncActor).
 It uses a separate image (asya-dlq-worker) with its own image config.

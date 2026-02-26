@@ -1,0 +1,52 @@
+{{- $pause := index .Values "x-pause" }}
+{{- if $pause.enabled }}
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: {{ $pause.name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "asya-crew.x-pause.labels" . | nindent 4 }}
+  {{- with $pause.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  actor: {{ $pause.name }}
+  compositionSelector:
+    matchLabels:
+      asya.sh/transport: {{ $pause.transport }}
+  transport: {{ $pause.transport }}
+
+  {{- with $pause.sidecar }}
+  sidecar:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+
+  {{- if $pause.scaling.enabled }}
+  scaling:
+    {{- toYaml $pause.scaling | nindent 4 }}
+  {{- end }}
+
+  workload:
+    kind: {{ $pause.workload.kind }}
+    template:
+      spec:
+        containers:
+        - name: asya-runtime
+          image: {{ include "asya-crew.x-pause.image" . }}
+          imagePullPolicy: {{ include "asya-crew.x-pause.imagePullPolicy" . }}
+          env:
+          {{- range $key, $value := $pause.env }}
+          {{- if ne $value "" }}
+          - name: {{ $key }}
+            value: {{ $value | quote }}
+          {{- end }}
+          {{- end }}
+          - name: ASYA_HANDLER
+            value: asya_crew.pause.pause_handler
+          {{- with $pause.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+{{- end }}

@@ -1,0 +1,52 @@
+{{- $resume := index .Values "x-resume" }}
+{{- if $resume.enabled }}
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: {{ $resume.name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "asya-crew.x-resume.labels" . | nindent 4 }}
+  {{- with $resume.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  actor: {{ $resume.name }}
+  compositionSelector:
+    matchLabels:
+      asya.sh/transport: {{ $resume.transport }}
+  transport: {{ $resume.transport }}
+
+  {{- with $resume.sidecar }}
+  sidecar:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+
+  {{- if $resume.scaling.enabled }}
+  scaling:
+    {{- toYaml $resume.scaling | nindent 4 }}
+  {{- end }}
+
+  workload:
+    kind: {{ $resume.workload.kind }}
+    template:
+      spec:
+        containers:
+        - name: asya-runtime
+          image: {{ include "asya-crew.x-resume.image" . }}
+          imagePullPolicy: {{ include "asya-crew.x-resume.imagePullPolicy" . }}
+          env:
+          {{- range $key, $value := $resume.env }}
+          {{- if ne $value "" }}
+          - name: {{ $key }}
+            value: {{ $value | quote }}
+          {{- end }}
+          {{- end }}
+          - name: ASYA_HANDLER
+            value: asya_crew.resume.resume_handler
+          {{- with $resume.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+{{- end }}

@@ -165,6 +165,114 @@ checkpoint-s3:
     # State proxy mount path for checkpoint storage
     ASYA_PERSISTENCE_MOUNT: ""
 
+# X-pause actor configuration
+# Pause handler: persists message state, signals pause via header
+x-pause:
+  enabled: false
+  name: x-pause
+  transport: "" # required
+
+  # Sidecar configuration (passed to AsyncActor.spec.sidecar)
+  # Use this to configure sidecar environment variables, resources, etc.
+  sidecar: {}
+  # Example:
+  #   env:
+  #   - name: AWS_ACCESS_KEY_ID
+  #     value: "test"
+
+  # Image overrides (optional, uses global image config by default)
+  image:
+    repository: ""
+    tag: ""
+    pullPolicy: ""
+
+  # Resource limits and requests
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
+  # KEDA autoscaling configuration
+  scaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 10
+    pollingInterval: 10
+    cooldownPeriod: 60
+    queueLength: 5
+
+  # Workload configuration
+  workload:
+    kind: Deployment
+
+  # Additional annotations for AsyncActor CR
+  annotations: {}
+
+  # Environment variables
+  # DO NOT set ASYA_HANDLER - it is pre-configured by the Helm template and cannot be overridden
+  env:
+    # State proxy mount path for message persistence (required)
+    ASYA_PERSISTENCE_MOUNT: ""
+    # Optional JSON pause metadata schema (prompt + fields for UI rendering)
+    ASYA_PAUSE_METADATA: ""
+
+# X-resume actor configuration
+# Resume handler: loads persisted message, merges user input, continues route
+x-resume:
+  enabled: false
+  name: x-resume
+  transport: "" # required
+
+  # Sidecar configuration (passed to AsyncActor.spec.sidecar)
+  # Use this to configure sidecar environment variables, resources, etc.
+  sidecar: {}
+  # Example:
+  #   env:
+  #   - name: AWS_ACCESS_KEY_ID
+  #     value: "test"
+
+  # Image overrides (optional, uses global image config by default)
+  image:
+    repository: ""
+    tag: ""
+    pullPolicy: ""
+
+  # Resource limits and requests
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
+  # KEDA autoscaling configuration
+  scaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 10
+    pollingInterval: 10
+    cooldownPeriod: 60
+    queueLength: 5
+
+  # Workload configuration
+  workload:
+    kind: Deployment
+
+  # Additional annotations for AsyncActor CR
+  annotations: {}
+
+  # Environment variables
+  # DO NOT set ASYA_HANDLER - it is pre-configured by the Helm template and cannot be overridden
+  env:
+    # State proxy mount path for loading persisted messages (required)
+    ASYA_PERSISTENCE_MOUNT: ""
+    # Merge mode for user input: "shallow" (default) or "deep"
+    ASYA_RESUME_MERGE_MODE: ""
+
 # DLQ Worker configuration
 # Standalone Go binary for processing transport-level Dead Letter Queue messages.
 # NOT an AsyncActor - deployed as a regular Kubernetes Deployment.
