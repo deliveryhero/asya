@@ -39,7 +39,7 @@ def fanout_adaptive_flow_line_13(payload: dict):
     with open(f"{_MSG_ROOT}/route/next") as _f:
         _next_tail = _f.read().splitlines()
 
-    _agg = resolve("aggregator-adaptive_flow_line_13")
+    _agg = resolve("aggregator_adaptive_flow_line_13")
 
     # Accumulate (actor_name, slice_payload) pairs
     _slices = []

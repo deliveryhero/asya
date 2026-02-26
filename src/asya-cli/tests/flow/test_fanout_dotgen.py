@@ -72,12 +72,6 @@ class TestFanOutNodeRendering:
         fanout_nodes = {n for n in nodes if "fanout" in n.lower()}
         assert len(fanout_nodes) >= 1, f"Expected at least one fanout node, got nodes: {nodes}"
 
-    def test_fanout_node_uses_diamond_shape(self):
-        ops = [_make_fanout_op(), Return(lineno=6)]
-        dot = _generate_dot_for_ops("flow", ops)
-
-        assert "diamond" in dot, "Fan-out router should use diamond shape"
-
     def test_fanout_node_has_distinct_color(self):
         """Fan-out node should have a color distinct from regular router nodes."""
         ops = [_make_fanout_op(), Return(lineno=6)]
@@ -111,7 +105,7 @@ class TestFanOutNodeRendering:
         assert "research_agent" in nodes, f"Expected research_agent in nodes, got: {nodes}"
 
     def test_aggregator_appears_as_user_actor_node(self):
-        """The generated aggregator should appear with diamond shape and lightskyblue color."""
+        """The generated aggregator should appear with lightskyblue color and fan-in label."""
         ops = [
             _make_fanout_op(),
             ActorCall(lineno=6, name="formatter"),

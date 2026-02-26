@@ -169,9 +169,9 @@ class DotGenerator:
                 for actor_name, _payload_expr in router.fan_out_op.actor_calls:
                     if actor_name not in self.router_map:
                         self.user_actors.add(actor_name)
-                # Generated aggregator actors have name prefix "aggregator-"
+                # Generated aggregator actors have name prefix "aggregator_"
                 for actor in router.true_branch_actors:
-                    if actor.startswith("aggregator-"):
+                    if actor.startswith("aggregator_"):
                         self.fanin_actors.add(actor)
                         break
 
@@ -359,7 +359,7 @@ class DotGenerator:
         return f'  {self._node_id(actor_name)} [fillcolor="lightblue", label={label}];'
 
     def _generate_fanin_node(self, actor_name: str) -> str:
-        """Generate a fan-in aggregator node (distinct color)."""
+        """Generate a fan-in aggregator node."""
         display_name = self._get_display_name(actor_name)
         truncated_name = self._truncate_display_name(display_name)
         label = (

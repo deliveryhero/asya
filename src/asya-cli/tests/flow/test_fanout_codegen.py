@@ -161,7 +161,7 @@ class TestGrouperFanOut:
 
         fanout_router = next(r for r in routers if r.is_fan_out)
         assert "formatter" in fanout_router.true_branch_actors
-        assert any(a.startswith("aggregator-") for a in fanout_router.true_branch_actors)
+        assert any(a.startswith("aggregator_") for a in fanout_router.true_branch_actors)
 
     def test_fanout_at_end_of_flow_no_aggregator(self):
         """Fan-out at end of flow: generated aggregator present, plus end actors."""
@@ -171,7 +171,7 @@ class TestGrouperFanOut:
 
         fanout_router = next(r for r in routers if r.is_fan_out)
         # When no explicit continuation, true_branch_actors has generated aggregator and end_flow
-        assert any(a.startswith("aggregator-") for a in fanout_router.true_branch_actors)
+        assert any(a.startswith("aggregator_") for a in fanout_router.true_branch_actors)
         assert any(a.startswith("end_") for a in fanout_router.true_branch_actors)
 
     def test_two_sequential_fanouts(self):
@@ -524,7 +524,7 @@ class TestFanOutCodeExecution:
         actor_map = {
             "research_agent": "research-agent",
             "formatter": "formatter",
-            "aggregator-flow_line_5": "aggregator-flow-line-5",
+            "aggregator_flow_line_5": "aggregator-flow-line-5",
             "fanout_flow_line_5": "fanout-flow-line-5",
         }
 
@@ -554,7 +554,7 @@ class TestFanOutCodeExecution:
             "sentiment_analyzer": "sentiment-analyzer",
             "topic_extractor": "topic-extractor",
             "formatter": "formatter",
-            "aggregator-flow_line_5": "aggregator-flow-line-5",
+            "aggregator_flow_line_5": "aggregator-flow-line-5",
             "fanout_flow_line_5": "fanout-flow-line-5",
         }
 
@@ -572,7 +572,7 @@ class TestFanOutCodeExecution:
         actor_map = {
             "research_agent": "research-agent",
             "formatter": "formatter",
-            "aggregator-flow_line_5": "aggregator-flow-line-5",
+            "aggregator_flow_line_5": "aggregator-flow-line-5",
             "fanout_flow_line_5": "fanout-flow-line-5",
         }
 
@@ -593,7 +593,7 @@ class TestFanOutCodeExecution:
         actor_map = {
             "research_agent": "research-agent",
             "formatter": "formatter",
-            "aggregator-flow_line_5": "aggregator-flow-line-5",
+            "aggregator_flow_line_5": "aggregator-flow-line-5",
             "fanout_flow_line_5": "fanout-flow-line-5",
         }
 
@@ -614,7 +614,7 @@ class TestFanOutCodeExecution:
         actor_map = {
             "research_agent": "research-agent",
             "formatter": "formatter",
-            "aggregator-flow_line_5": "aggregator-flow-line-5",
+            "aggregator_flow_line_5": "aggregator-flow-line-5",
             "fanout_flow_line_5": "fanout-flow-line-5",
         }
 
@@ -634,7 +634,7 @@ class TestFanOutCodeExecution:
         actor_map = {
             "research_agent": "research-agent",
             "formatter": "formatter",
-            "aggregator-flow_line_5": "aggregator-flow-line-5",
+            "aggregator_flow_line_5": "aggregator-flow-line-5",
             "fanout_flow_line_5": "fanout-flow-line-5",
         }
 
@@ -655,7 +655,7 @@ class TestFanOutCodeExecution:
         actor_map = {
             "research_agent": "research-agent",
             "formatter": "formatter",
-            "aggregator-flow_line_5": "aggregator-flow-line-5",
+            "aggregator_flow_line_5": "aggregator-flow-line-5",
             "fanout_flow_line_5": "fanout-flow-line-5",
         }
 
@@ -678,7 +678,7 @@ class TestFanOutCodeExecution:
         actor_map = {
             "research_agent": "research-agent",
             "formatter": "formatter",
-            "aggregator-flow_line_5": "aggregator-flow-line-5",
+            "aggregator_flow_line_5": "aggregator-flow-line-5",
             "fanout_flow_line_5": "fanout-flow-line-5",
         }
 
@@ -699,7 +699,7 @@ class TestFanOutCodeExecution:
         actor_map = {
             "research_agent": "research-agent",
             "formatter": "formatter",
-            "aggregator-flow_line_5": "aggregator-flow-line-5",
+            "aggregator_flow_line_5": "aggregator-flow-line-5",
             "fanout_flow_line_5": "fanout-flow-line-5",
         }
 
@@ -718,7 +718,7 @@ class TestFanOutCodeExecution:
         actor_map = {
             "research_agent": "research-agent",
             "formatter": "formatter",
-            "aggregator-flow_line_5": "aggregator-flow-line-5",
+            "aggregator_flow_line_5": "aggregator-flow-line-5",
             "fanout_flow_line_5": "fanout-flow-line-5",
         }
 
@@ -737,7 +737,7 @@ class TestFanOutCodeExecution:
         actor_map = {
             "research_agent": "research-agent",
             "formatter": "formatter",
-            "aggregator-flow_line_5": "aggregator-flow-line-5",
+            "aggregator_flow_line_5": "aggregator-flow-line-5",
             "fanout_flow_line_5": "fanout-flow-line-5",
         }
 
@@ -756,7 +756,7 @@ class TestFanOutCodeExecution:
         actor_map = {
             "research_agent": "research-agent",
             "formatter": "formatter",
-            "aggregator-flow_line_5": "aggregator-flow-line-5",
+            "aggregator_flow_line_5": "aggregator-flow-line-5",
             "fanout_flow_line_5": "fanout-flow-line-5",
         }
 

@@ -38,7 +38,7 @@ def fanout_multi_stage_flow_line_12(payload: dict):
     with open(f"{_MSG_ROOT}/route/next") as _f:
         _next_tail = _f.read().splitlines()
 
-    _agg = resolve("aggregator-multi_stage_flow_line_12")
+    _agg = resolve("aggregator_multi_stage_flow_line_12")
 
     # Accumulate (actor_name, slice_payload) pairs
     _slices = []
@@ -78,7 +78,7 @@ def fanout_multi_stage_flow_line_11(payload: dict):
     with open(f"{_MSG_ROOT}/route/next") as _f:
         _next_tail = _f.read().splitlines()
 
-    _agg = resolve("aggregator-multi_stage_flow_line_11")
+    _agg = resolve("aggregator_multi_stage_flow_line_11")
 
     # Accumulate (actor_name, slice_payload) pairs
     _slices = []
