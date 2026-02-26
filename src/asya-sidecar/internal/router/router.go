@@ -103,15 +103,10 @@ func (r *Router) maxAttempts() int {
 }
 
 // effectiveTimeout computes the per-message timeout as the minimum of:
-//   - ASYA_RUNTIME_TIMEOUT (global fallback, r.cfg.Timeout)
-//   - ASYA_RESILIENCY_ACTOR_TIMEOUT (per-actor, from XRD)
+//   - ASYA_RESILIENCY_ACTOR_TIMEOUT (per-actor timeout, r.cfg.Timeout)
 //   - remaining SLA (deadline_at - now, from message status)
 func (r *Router) effectiveTimeout(msg *messages.Message) time.Duration {
 	timeout := r.cfg.Timeout
-
-	if r.cfg.Resiliency != nil && r.cfg.Resiliency.ActorTimeout > 0 && r.cfg.Resiliency.ActorTimeout < timeout {
-		timeout = r.cfg.Resiliency.ActorTimeout
-	}
 
 	if deadline, ok := msg.ParseDeadline(); ok {
 		remaining := time.Until(deadline)

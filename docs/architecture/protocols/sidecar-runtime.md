@@ -113,21 +113,37 @@ Any unknown path returns `404 Not Found`.
 
 | Error | Cause | Action |
 |-------|-------|--------|
-| `context.DeadlineExceeded` | Runtime exceeded `ASYA_RUNTIME_TIMEOUT` | Send to `x-sump`, crash pod |
+| `context.DeadlineExceeded` | Runtime exceeded `ASYA_RESILIENCY_ACTOR_TIMEOUT` | Send to `x-sump`, crash pod |
 | HTTP parse error | Unexpected non-HTTP response | Route to `x-sump` |
 
 ## Timeout Strategy
 
-Sidecar enforces a per-message timeout (default: 5 minutes) via `context.WithTimeout`:
+The sidecar enforces timeouts at two levels:
 
-**On timeout** (`context.DeadlineExceeded`):
+### SLA Pre-Check (Pipeline-Level Deadline)
+
+Before calling the runtime, the sidecar checks `status.deadline_at` on the incoming message. If the current time is past the deadline, the message is routed directly to `x-sink` with `phase=failed`, `reason=Timeout` — the runtime is never called.
+
+The gateway stamps `status.deadline_at` based on the tool's `timeout_seconds` configuration. This absolute deadline is never mutated as the message travels through actors.
+
+### Effective Timeout (Per-Call)
+
+For messages that pass the SLA pre-check, the sidecar computes an effective timeout:
+
+```
+effective_timeout = min(ASYA_RESILIENCY_ACTOR_TIMEOUT, remaining_SLA)
+```
+
+Where `remaining_SLA = deadline_at - now` (only if `deadline_at` is set).
+
+### Runtime Timeout Behavior
+
+**On runtime timeout** (`context.DeadlineExceeded`):
 1. Sidecar sends the message to `x-sump` with a timeout error
 2. Sidecar **crashes the pod** (exits with status code 1)
 3. Kubernetes restarts the pod to recover clean state
 
-**Rationale**: prevents zombie processing where the runtime may still be executing after the sidecar gives up.
-
-**Configuration**: `ASYA_RUNTIME_TIMEOUT` (default: `5m`)
+**Rationale**: crash-on-timeout prevents zombie processing where the runtime may still be executing after the sidecar gives up.
 
 ## Debugging with curl
 
@@ -161,7 +177,7 @@ curl --unix-socket /var/run/asya/asya-runtime.sock http://localhost/healthz
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `ASYA_RUNTIME_TIMEOUT` | `5m` | Processing timeout per message |
+| `ASYA_RESILIENCY_ACTOR_TIMEOUT` | `5m` | Per-call actor timeout (from XRD `resiliency.actorTimeout`) |
 | `ASYA_ACTOR_NAME` | (required) | Actor name for queue consumption |
 
 ## Best Practices
@@ -177,7 +193,7 @@ curl --unix-socket /var/run/asya/asya-runtime.sock http://localhost/healthz
 
 ### For Operators
 
-1. **Tune `ASYA_RUNTIME_TIMEOUT`** to balance task duration against responsiveness; short timeouts cause false crashes on slow model inference.
+1. **Tune `ASYA_RESILIENCY_ACTOR_TIMEOUT`** to balance task duration against responsiveness; short timeouts cause false crashes on slow model inference.
 2. **Monitor `x-sump` queue depth** — a growing sump queue signals systematic handler errors or timeout spikes.
 3. **Size container memory** for peak model/data size, not average; OOM kills look like pod crashes and are hard to distinguish from timeout crashes without metrics.
 4. **Use `GET /healthz`** as the Kubernetes readiness probe target — it becomes available only after the handler is fully loaded, so the pod never receives traffic while still initialising.

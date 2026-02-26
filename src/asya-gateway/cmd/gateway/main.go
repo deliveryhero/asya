@@ -131,6 +131,22 @@ func main() {
 		slog.Info("No ASYA_CONFIG_PATH provided, using default tools")
 	}
 
+	// Apply default timeout from environment if set and no default exists
+	defaultTimeoutStr := getEnv("ASYA_GATEWAY_DEFAULT_TIMEOUT", "")
+	if defaultTimeoutStr != "" && toolConfig != nil {
+		if defaultTimeout, err := strconv.Atoi(defaultTimeoutStr); err == nil {
+			if toolConfig.Defaults == nil {
+				toolConfig.Defaults = &config.ToolDefaults{}
+			}
+			if toolConfig.Defaults.Timeout == nil {
+				toolConfig.Defaults.Timeout = &defaultTimeout
+				slog.Info("Applied default timeout from environment", "timeout_seconds", defaultTimeout)
+			}
+		} else {
+			slog.Warn("Invalid ASYA_GATEWAY_DEFAULT_TIMEOUT value", "value", defaultTimeoutStr)
+		}
+	}
+
 	// Create MCP server with mark3labs/mcp-go (minimal boilerplate!)
 	mcpServer := mcp.NewServer(taskStore, queueClient, toolConfig)
 

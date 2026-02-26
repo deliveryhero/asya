@@ -18,8 +18,8 @@ digraph flow {
   handler_init -> router_while_mutations_in_loop_flow_line_12_while_0;
   handler_process -> router_while_mutations_in_loop_flow_line_17_seq;
   router_while_mutations_in_loop_flow_line_12_loop_back_0 -> router_while_mutations_in_loop_flow_line_12_while_0 [constraint=false];
-  router_while_mutations_in_loop_flow_line_12_while_0 -> handler_finalize [color=indianred4];
-  router_while_mutations_in_loop_flow_line_12_while_0 -> router_while_mutations_in_loop_flow_line_13_seq [color=darkseagreen4];
+  router_while_mutations_in_loop_flow_line_12_while_0 -> handler_finalize [label="F", color=indianred4];
+  router_while_mutations_in_loop_flow_line_12_while_0 -> router_while_mutations_in_loop_flow_line_13_seq [label="T", color=darkseagreen4];
   router_while_mutations_in_loop_flow_line_13_seq -> handler_process;
   router_while_mutations_in_loop_flow_line_13_seq -> router_while_mutations_in_loop_flow_line_12_loop_back_0;
   start_while_mutations_in_loop_flow -> handler_init;

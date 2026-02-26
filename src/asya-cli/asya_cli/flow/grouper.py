@@ -389,35 +389,27 @@ class OperationGrouper:
         """Process a FanOutCall IR node into a fan-out router.
 
         The fan-out router is a generator that yields N+1 messages:
-        - Index 0: parent payload forwarded to the aggregator (first in continuation)
+        - Index 0: parent payload forwarded to the generated aggregator
         - Indices 1..N: sub-agent slices for each actor_call
 
-        The aggregator (fan-in actor) is the first actor in continuation.
-        It receives all N+1 messages and merges them.
+        The compiler generates a dedicated aggregator crew actor
+        (``aggregator-{flow}_{lineno}``) that collects all slices via
+        state proxy before passing the merged result to continuation.
         """
         self._fanout_counter += 1
 
-        router_name = f"fanout_{self.flow_name}_L{fan_out.lineno}"
+        fanout_suffix = f"{self.flow_name}_line_{fan_out.lineno}"
+        router_name = f"fanout_{fanout_suffix}"
+        aggregator_name = f"fanin_{fanout_suffix}"
 
-        # The aggregator is the first actor in the continuation chain.
-        # If no continuation exists (end of flow), there's no aggregator — unusual
-        # but we still need to build a meaningful route. We use the end router.
-        if continuation and not continuation[0].startswith("end_"):
-            aggregator = continuation[0]
-            after_aggregator = continuation[1:]
-        else:
-            # No explicit aggregator: parent payload goes to end
-            aggregator = f"end_{self.flow_name}"
-            after_aggregator = []
-
-        # true_branch_actors represents the route continuation after fan-out router:
-        # [aggregator, ...after_aggregator] — the path the parent message takes
+        # true_branch_actors: [fan-in, ...continuation]
+        # The fan-in actor is always generated; continuation follows it.
         router = Router(
             name=router_name,
             lineno=fan_out.lineno,
             is_fan_out=True,
             fan_out_op=fan_out,
-            true_branch_actors=[aggregator, *after_aggregator],
+            true_branch_actors=[aggregator_name, *continuation],
         )
         self.routers.append(router)
 

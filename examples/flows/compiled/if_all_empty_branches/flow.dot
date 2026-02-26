@@ -12,7 +12,7 @@ digraph flow {
 
   handler_finalize -> end_if_empty_branches_flow;
   handler_setup -> router_if_empty_branches_flow_line_10_if;
-  router_if_empty_branches_flow_line_10_if -> handler_finalize [color=darkseagreen4];
-  router_if_empty_branches_flow_line_10_if -> handler_finalize [color=indianred4];
+  router_if_empty_branches_flow_line_10_if -> handler_finalize [label="F", color=indianred4];
+  router_if_empty_branches_flow_line_10_if -> handler_finalize [label="T", color=darkseagreen4];
   start_if_empty_branches_flow -> handler_setup;
 }

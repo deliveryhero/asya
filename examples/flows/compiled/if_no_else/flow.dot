@@ -12,7 +12,7 @@ digraph flow {
 
   handler_setup -> router_if_no_else_flow_line_10_if;
   handler_true -> end_if_no_else_flow;
-  router_if_no_else_flow_line_10_if -> end_if_no_else_flow [color=indianred4];
-  router_if_no_else_flow_line_10_if -> handler_true [color=darkseagreen4];
+  router_if_no_else_flow_line_10_if -> end_if_no_else_flow [label="F", color=indianred4];
+  router_if_no_else_flow_line_10_if -> handler_true [label="T", color=darkseagreen4];
   start_if_no_else_flow -> handler_setup;
 }

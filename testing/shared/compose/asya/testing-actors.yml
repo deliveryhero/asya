@@ -46,7 +46,7 @@ services:
     - ../envs/.env.asya-sidecar
     - ../envs/.env.${ASYA_TRANSPORT}
     environment:
-      ASYA_RUNTIME_TIMEOUT: 5s
+      ASYA_RESILIENCY_ACTOR_TIMEOUT: 5s
       ASYA_ACTOR_NAME: test-echo
 
 
@@ -92,7 +92,7 @@ services:
     - ../envs/.env.asya-sidecar
     - ../envs/.env.${ASYA_TRANSPORT}
     environment:
-      ASYA_RUNTIME_TIMEOUT: 5s
+      ASYA_RESILIENCY_ACTOR_TIMEOUT: 5s
       ASYA_ACTOR_NAME: test-doubler
 
 
@@ -138,7 +138,7 @@ services:
     - ../envs/.env.asya-sidecar
     - ../envs/.env.${ASYA_TRANSPORT}
     environment:
-      ASYA_RUNTIME_TIMEOUT: 5s
+      ASYA_RESILIENCY_ACTOR_TIMEOUT: 5s
       ASYA_ACTOR_NAME: test-incrementer
 
 
@@ -184,7 +184,7 @@ services:
     - ../envs/.env.asya-sidecar
     - ../envs/.env.${ASYA_TRANSPORT}
     environment:
-      ASYA_RUNTIME_TIMEOUT: 5s
+      ASYA_RESILIENCY_ACTOR_TIMEOUT: 5s
       ASYA_ACTOR_NAME: test-error
 
 
@@ -230,7 +230,7 @@ services:
     - ../envs/.env.asya-sidecar
     - ../envs/.env.${ASYA_TRANSPORT}
     environment:
-      ASYA_RUNTIME_TIMEOUT: 5s
+      ASYA_RESILIENCY_ACTOR_TIMEOUT: 5s
       ASYA_ACTOR_NAME: test-timeout
 
 
@@ -276,7 +276,7 @@ services:
     - ../envs/.env.asya-sidecar
     - ../envs/.env.${ASYA_TRANSPORT}
     environment:
-      ASYA_RUNTIME_TIMEOUT: 30s
+      ASYA_RESILIENCY_ACTOR_TIMEOUT: 30s
       ASYA_ACTOR_NAME: test-fanout
 
 
@@ -322,7 +322,7 @@ services:
     - ../envs/.env.asya-sidecar
     - ../envs/.env.${ASYA_TRANSPORT}
     environment:
-      ASYA_RUNTIME_TIMEOUT: 30s
+      ASYA_RESILIENCY_ACTOR_TIMEOUT: 30s
       ASYA_ACTOR_NAME: test-empty
 
 
@@ -368,7 +368,7 @@ services:
     - ../envs/.env.asya-sidecar
     - ../envs/.env.${ASYA_TRANSPORT}
     environment:
-      ASYA_RUNTIME_TIMEOUT: 30s
+      ASYA_RESILIENCY_ACTOR_TIMEOUT: 30s
       ASYA_ACTOR_NAME: test-unicode
 
 
@@ -414,7 +414,7 @@ services:
     - ../envs/.env.asya-sidecar
     - ../envs/.env.${ASYA_TRANSPORT}
     environment:
-      ASYA_RUNTIME_TIMEOUT: 30s
+      ASYA_RESILIENCY_ACTOR_TIMEOUT: 30s
       ASYA_ACTOR_NAME: test-large-payload
 
 
@@ -460,7 +460,7 @@ services:
     - ../envs/.env.asya-sidecar
     - ../envs/.env.${ASYA_TRANSPORT}
     environment:
-      ASYA_RUNTIME_TIMEOUT: 30s
+      ASYA_RESILIENCY_ACTOR_TIMEOUT: 30s
       ASYA_ACTOR_NAME: test-nested
 
 
@@ -506,7 +506,7 @@ services:
     - ../envs/.env.asya-sidecar
     - ../envs/.env.${ASYA_TRANSPORT}
     environment:
-      ASYA_RUNTIME_TIMEOUT: 30s
+      ASYA_RESILIENCY_ACTOR_TIMEOUT: 30s
       ASYA_ACTOR_NAME: test-null
 
 
@@ -552,7 +552,7 @@ services:
     - ../envs/.env.asya-sidecar
     - ../envs/.env.${ASYA_TRANSPORT}
     environment:
-      ASYA_RUNTIME_TIMEOUT: 30s
+      ASYA_RESILIENCY_ACTOR_TIMEOUT: 30s
       ASYA_ACTOR_NAME: test-slow-boundary
 
 
@@ -598,7 +598,7 @@ services:
     - ../envs/.env.asya-sidecar
     - ../envs/.env.${ASYA_TRANSPORT}
     environment:
-      ASYA_RUNTIME_TIMEOUT: 30s
+      ASYA_RESILIENCY_ACTOR_TIMEOUT: 30s
       ASYA_ACTOR_NAME: test-cycle
 
 
@@ -644,7 +644,7 @@ services:
     - ../envs/.env.asya-sidecar
     - ../envs/.env.${ASYA_TRANSPORT}
     environment:
-      ASYA_RUNTIME_TIMEOUT: 30s
+      ASYA_RESILIENCY_ACTOR_TIMEOUT: 30s
       ASYA_ACTOR_NAME: test-param-flow-1
 
 
@@ -690,7 +690,7 @@ services:
     - ../envs/.env.asya-sidecar
     - ../envs/.env.${ASYA_TRANSPORT}
     environment:
-      ASYA_RUNTIME_TIMEOUT: 30s
+      ASYA_RESILIENCY_ACTOR_TIMEOUT: 30s
       ASYA_ACTOR_NAME: test-param-flow-2
 
 
@@ -738,7 +738,7 @@ services:
     - ../envs/.env.asya-sidecar
     - ../envs/.env.${ASYA_TRANSPORT}
     environment:
-      ASYA_RUNTIME_TIMEOUT: 30s
+      ASYA_RESILIENCY_ACTOR_TIMEOUT: 30s
       ASYA_ACTOR_NAME: test-streaming
       ASYA_GATEWAY_URL: http://gateway:8080
 
@@ -787,7 +787,7 @@ services:
     - ../envs/.env.asya-sidecar
     - ../envs/.env.${ASYA_TRANSPORT}
     environment:
-      ASYA_RUNTIME_TIMEOUT: 30s
+      ASYA_RESILIENCY_ACTOR_TIMEOUT: 30s
       ASYA_ACTOR_NAME: test-streaming-error
       ASYA_GATEWAY_URL: http://gateway:8080
 

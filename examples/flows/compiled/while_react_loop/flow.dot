@@ -13,7 +13,7 @@ digraph flow {
 
   llm_call -> router_react_agent_line_12_if;
   router_react_agent_line_10_loop_back_0 -> llm_call [constraint=false];
-  router_react_agent_line_12_if -> end_react_agent [color=indianred4];
-  router_react_agent_line_12_if -> execute_tool [color=darkseagreen4];
+  router_react_agent_line_12_if -> end_react_agent [label="F", color=indianred4];
+  router_react_agent_line_12_if -> execute_tool [label="T", color=darkseagreen4];
   start_react_agent -> router_react_agent_line_10_loop_back_0;
 }

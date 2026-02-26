@@ -51,7 +51,7 @@ services:
     - ../envs/.env.asya-sidecar
     - ../envs/.env.${ASYA_TRANSPORT}
     environment:
-      ASYA_RUNTIME_TIMEOUT: 5s
+      ASYA_RESILIENCY_ACTOR_TIMEOUT: 5s
       ASYA_IS_END_ACTOR: "true"
       ASYA_ACTOR_NAME: x-sink
       ASYA_GATEWAY_URL: http://gateway:8080
@@ -102,7 +102,7 @@ services:
     - ../envs/.env.asya-sidecar
     - ../envs/.env.${ASYA_TRANSPORT}
     environment:
-      ASYA_RUNTIME_TIMEOUT: 5s
+      ASYA_RESILIENCY_ACTOR_TIMEOUT: 5s
       ASYA_IS_END_ACTOR: "true"
       ASYA_ACTOR_NAME: x-sump
       ASYA_GATEWAY_URL: http://gateway:8080

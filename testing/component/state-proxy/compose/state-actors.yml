@@ -37,7 +37,7 @@ services:
     - ../../../shared/compose/envs/.env.asya-runtime
     environment:
       ASYA_HANDLER: asya_testing.handlers.state_ops.state_ops_handler
-      ASYA_RUNTIME_TIMEOUT: 30s
+      ASYA_RESILIENCY_ACTOR_TIMEOUT: 30s
       ASYA_STATE_PROXY_MOUNTS: "meta:/state/meta:write=${WRITE_MODE}"
     volumes:
     - runtime-sockets:/var/run/asya
