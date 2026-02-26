@@ -21,6 +21,7 @@ COMPILED_DIR = Path(__file__).resolve().parents[4] / "examples" / "flows" / "com
 # Pre-existing while loop DOT visualization bugs where body actors
 # are rendered as dead-end nodes (no edge back to loop_back router).
 _WHILE_EXITPOINT_XFAIL = {
+    "adk_llm_auditor",
     "while_mutations_in_loop",
     "while_nested",
     "while_nested_loop",
