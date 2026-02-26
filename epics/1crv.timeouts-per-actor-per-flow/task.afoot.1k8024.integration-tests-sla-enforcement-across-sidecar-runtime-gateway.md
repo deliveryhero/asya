@@ -2,10 +2,14 @@
 title: "Integration tests: SLA enforcement across sidecar, runtime, and gateway"
 priority: 2 # medium
 type: task
+tags:
+  - worktree:.worktrees/1crv/1k8024.integration-tests-sla-enforcement-across-sidecar-runtime-gateway
+  - branch:1crv/1k8024.integration-tests-sla-enforcement-across-sidecar-runtime-gateway
 dependencies:
   - 1crv/1k1pjy
   - 1crv/1kz8ww
 ---
+
 
 
 ## Scope
