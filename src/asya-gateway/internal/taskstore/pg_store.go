@@ -392,10 +392,11 @@ func (s *PgStore) Update(update types.TaskUpdate) error {
 
 	// Freeze timeout timer when task is paused: save remaining budget via SQL and cancel timer
 	if update.Status == types.TaskStatusPaused {
-		// Save remaining_timeout_sec in DB
-		_, _ = s.pool.Exec(s.ctx,
+		if _, err := s.pool.Exec(s.ctx,
 			`UPDATE tasks SET remaining_timeout_sec = EXTRACT(EPOCH FROM (deadline - NOW())) WHERE id = $1 AND deadline IS NOT NULL`,
-			update.ID)
+			update.ID); err != nil {
+			return fmt.Errorf("failed to save remaining timeout for paused task %s: %w", update.ID, err)
+		}
 		s.mu.Lock()
 		s.cancelTimer(update.ID)
 		s.mu.Unlock()
@@ -527,10 +528,11 @@ func (s *PgStore) UpdateProgress(update types.TaskUpdate) error {
 
 	// Freeze timeout timer when task is paused: save remaining budget and cancel timer
 	if update.Status == types.TaskStatusPaused {
-		// Save remaining_timeout_sec in DB
-		_, _ = s.pool.Exec(s.ctx,
+		if _, err := s.pool.Exec(s.ctx,
 			`UPDATE tasks SET remaining_timeout_sec = EXTRACT(EPOCH FROM (deadline - NOW())) WHERE id = $1 AND deadline IS NOT NULL`,
-			update.ID)
+			update.ID); err != nil {
+			return fmt.Errorf("failed to save remaining timeout for paused task %s: %w", update.ID, err)
+		}
 		s.mu.Lock()
 		s.cancelTimer(update.ID)
 		s.notifyListeners(update)
@@ -746,7 +748,7 @@ func (s *PgStore) cancelTimer(id string) {
 // Resume transitions a paused task back to running, restarting the timeout timer
 func (s *PgStore) Resume(id string) (*types.Task, error) {
 	// Thaw: restore remaining timeout and transition to running
-	_, err := s.pool.Exec(s.ctx, `
+	result, err := s.pool.Exec(s.ctx, `
 		UPDATE tasks
 		SET status = $1,
 		    deadline = CASE WHEN remaining_timeout_sec IS NOT NULL
@@ -761,14 +763,19 @@ func (s *PgStore) Resume(id string) (*types.Task, error) {
 		return nil, fmt.Errorf("failed to resume task: %w", err)
 	}
 
+	if result.RowsAffected() == 0 {
+		// Task either doesn't exist or is not paused
+		task, err := s.Get(id)
+		if err != nil {
+			return nil, fmt.Errorf("task %s not found", id)
+		}
+		return nil, fmt.Errorf("task %s is not paused (status: %s)", id, task.Status)
+	}
+
 	// Fetch updated task
 	task, err := s.Get(id)
 	if err != nil {
 		return nil, err
-	}
-
-	if task.Status != types.TaskStatusRunning {
-		return nil, fmt.Errorf("task %s is not paused (status: %s)", id, task.Status)
 	}
 
 	// Restart in-memory timeout timer with restored deadline

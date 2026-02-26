@@ -45,12 +45,15 @@ func (h *LifecycleHandler) HandlePause(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Parse optional pause metadata from body
+	// Parse optional pause metadata from body (empty body is valid)
 	var body struct {
 		Metadata json.RawMessage `json:"metadata,omitempty"`
 		Message  string          `json:"message,omitempty"`
 	}
-	_ = json.NewDecoder(r.Body).Decode(&body)
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil && err.Error() != "EOF" {
+		http.Error(w, "Invalid JSON in request body", http.StatusBadRequest)
+		return
+	}
 
 	msg := "Task paused by external request"
 	if body.Message != "" {
@@ -74,7 +77,12 @@ func (h *LifecycleHandler) HandlePause(w http.ResponseWriter, r *http.Request) {
 	slog.Info("Task paused via external request", "id", taskID)
 
 	// Return updated task
-	task, _ = h.taskStore.Get(taskID)
+	task, err = h.taskStore.Get(taskID)
+	if err != nil {
+		slog.Error("Failed to get task after pause", "id", taskID, "error", err)
+		http.Error(w, "Failed to retrieve updated task", http.StatusInternalServerError)
+		return
+	}
 	a2aTask := TaskToA2ATask(task)
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(a2aTask)
@@ -121,7 +129,12 @@ func (h *LifecycleHandler) HandleCancel(w http.ResponseWriter, r *http.Request) 
 	slog.Info("Task canceled", "id", taskID)
 
 	// Return updated task
-	task, _ = h.taskStore.Get(taskID)
+	task, err = h.taskStore.Get(taskID)
+	if err != nil {
+		slog.Error("Failed to get task after cancel", "id", taskID, "error", err)
+		http.Error(w, "Failed to retrieve updated task", http.StatusInternalServerError)
+		return
+	}
 	a2aTask := TaskToA2ATask(task)
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(a2aTask)
