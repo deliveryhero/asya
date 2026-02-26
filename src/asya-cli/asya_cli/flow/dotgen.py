@@ -33,6 +33,7 @@ class DotGenerator:
         self.routers = routers
         self.step_width = step_width
         self.user_actors: set[str] = set()
+        self.fanin_actors: set[str] = set()
         self.router_map: dict[str, Router] = {}
         self.class_methods = class_methods or set()
         self.is_async = is_async
@@ -109,11 +110,14 @@ class DotGenerator:
                 continue
             parts.append(self._generate_actor_node(router))
 
-        # Non-cluster user actor nodes
+        # Non-cluster user actor nodes (fan-in aggregators use distinct styling)
         for actor in sorted(self.user_actors):
             if actor in self._cluster_membership:
                 continue
-            parts.append(self._generate_user_actor_node(actor))
+            if actor in self.fanin_actors:
+                parts.append(self._generate_fanin_node(actor))
+            else:
+                parts.append(self._generate_user_actor_node(actor))
 
         # Try clusters (subgraph blocks with contained node definitions)
         for cluster in self._try_clusters:
@@ -160,11 +164,16 @@ class DotGenerator:
                     for actor in handler.actors:
                         if actor not in self.router_map:
                             self.user_actors.add(actor)
-            # Collect fan-out sub-agent actor names as user actors
+            # Collect fan-out sub-agent actor names and identify fan-in
             if router.is_fan_out and router.fan_out_op:
                 for actor_name, _payload_expr in router.fan_out_op.actor_calls:
                     if actor_name not in self.router_map:
                         self.user_actors.add(actor_name)
+                # Generated fan-in actors have name prefix "fanin_"
+                for actor in router.true_branch_actors:
+                    if actor.startswith("fanin_"):
+                        self.fanin_actors.add(actor)
+                        break
 
     def _build_try_info(self) -> None:
         """Build try cluster info, hidden routers set, and redirect map."""
@@ -298,7 +307,7 @@ class DotGenerator:
         if router.name.startswith("start_") or router.name.startswith("end_"):
             color = "lightgreen"
         elif router.is_fan_out:
-            color = "plum1"
+            color = "lightblue"  # same as regular routers
         else:
             color = "wheat"
 
@@ -328,16 +337,14 @@ class DotGenerator:
 
         if router.is_fan_out and router.fan_out_op:
             fan_out = router.fan_out_op
-            rows.append(f'<tr><td bgcolor="plum2" align="center"><b>[fan-out:{fan_out.pattern}]</b></td></tr>')
+            rows.append(f'<tr><td bgcolor="mediumpurple2" align="center"><b>[fan-out:{fan_out.pattern}]</b></td></tr>')
             if fan_out.iter_var and fan_out.iterable:
                 iter_text = self._truncate_text(f"for {fan_out.iter_var} in {fan_out.iterable}")
-                rows.append(f'<tr><td bgcolor="plum3" align="left">{self._escape_html(iter_text)}</td></tr>')
+                rows.append(f'<tr><td bgcolor="mediumpurple3" align="left">{self._escape_html(iter_text)}</td></tr>')
 
         label = f'<<table border="0" cellspacing="0" cellpadding="6" cellborder="1">{"".join(rows)}</table>>'
 
-        shape = "diamond" if router.is_fan_out else "box"
-        extra = f", shape={shape}" if router.is_fan_out else ""
-        return f'  {self._node_id(router.name)} [fillcolor="{color}", label={label}{extra}];'
+        return f'  {self._node_id(router.name)} [fillcolor="{color}", label={label}];'
 
     def _generate_user_actor_node(self, actor_name: str) -> str:
         display_name = self._get_display_name(actor_name)
@@ -352,7 +359,7 @@ class DotGenerator:
         return f'  {self._node_id(actor_name)} [fillcolor="lightblue", label={label}];'
 
     def _generate_fanin_node(self, actor_name: str) -> str:
-        """Generate a fan-in aggregator node (diamond shape, distinct color)."""
+        """Generate a fan-in aggregator node."""
         display_name = self._get_display_name(actor_name)
         truncated_name = self._truncate_display_name(display_name)
         label = (
@@ -362,7 +369,7 @@ class DotGenerator:
             f'<tr><td bgcolor="mediumpurple1" align="center"><b>[fan-in]</b></td></tr>'
             f"</table>>"
         )
-        return f'  {self._node_id(actor_name)} [fillcolor="thistle", label={label}, shape=diamond];'
+        return f'  {self._node_id(actor_name)} [fillcolor="lightblue", label={label}];'
 
     def _generate_try_cluster(self, cluster: _TryCluster) -> list[str]:
         """Generate DOT subgraph clusters for a try block and its finally block."""
@@ -376,6 +383,8 @@ class DotGenerator:
         for actor in sorted(cluster.cluster_actors):
             if actor in self.router_map:
                 parts.append(f"  {self._generate_actor_node(self.router_map[actor])}")
+            elif actor in self.fanin_actors:
+                parts.append(f"  {self._generate_fanin_node(actor)}")
             elif actor in self.user_actors:
                 parts.append(f"  {self._generate_user_actor_node(actor)}")
         parts.append("  }")
@@ -543,14 +552,14 @@ class DotGenerator:
             if true_actors:
                 lines.add(
                     f"  {self._node_id(router.name)} -> {self._node_id(true_actors[0])}"
-                    f" [color={self._color_true_branch}];"
+                    f' [label="T", color={self._color_true_branch}];'
                 )
                 self._add_sequential_edges(true_actors, lines)
 
             if false_actors:
                 lines.add(
                     f"  {self._node_id(router.name)} -> {self._node_id(false_actors[0])}"
-                    f" [color={self._color_false_branch}];"
+                    f' [label="F", color={self._color_false_branch}];'
                 )
                 self._add_sequential_edges(false_actors, lines)
         else:

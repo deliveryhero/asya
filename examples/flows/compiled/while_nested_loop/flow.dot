@@ -19,11 +19,11 @@ digraph flow {
   finalize_loop_i -> end_nested_loop_flow;
   initialize -> router_nested_loop_flow_line_12_while_0;
   router_nested_loop_flow_line_12_loop_back_0 -> router_nested_loop_flow_line_12_while_0 [constraint=false];
-  router_nested_loop_flow_line_12_while_0 -> finalize_loop_i [color=indianred4];
-  router_nested_loop_flow_line_12_while_0 -> router_nested_loop_flow_line_15_while_1 [color=darkseagreen4];
+  router_nested_loop_flow_line_12_while_0 -> finalize_loop_i [label="F", color=indianred4];
+  router_nested_loop_flow_line_12_while_0 -> router_nested_loop_flow_line_15_while_1 [label="T", color=darkseagreen4];
   router_nested_loop_flow_line_15_loop_back_1 -> router_nested_loop_flow_line_15_while_1 [constraint=false];
-  router_nested_loop_flow_line_15_while_1 -> finalize_loop_j [color=indianred4];
-  router_nested_loop_flow_line_15_while_1 -> router_nested_loop_flow_line_16_seq [color=darkseagreen4];
+  router_nested_loop_flow_line_15_while_1 -> finalize_loop_j [label="F", color=indianred4];
+  router_nested_loop_flow_line_15_while_1 -> router_nested_loop_flow_line_16_seq [label="T", color=darkseagreen4];
   router_nested_loop_flow_line_16_seq -> process_item;
   router_nested_loop_flow_line_16_seq -> router_nested_loop_flow_line_15_loop_back_1;
   start_nested_loop_flow -> initialize;

@@ -26,10 +26,10 @@ func TestLoadFromEnv(t *testing.T) {
 		{
 			name: "valid RabbitMQ config",
 			env: map[string]string{
-				"ASYA_ACTOR_NAME":      "test-actor",
-				"ASYA_NAMESPACE":       "default",
-				"ASYA_RABBITMQ_URL":    "amqp://localhost:5672/",
-				"ASYA_RUNTIME_TIMEOUT": "10m",
+				"ASYA_ACTOR_NAME":               "test-actor",
+				"ASYA_NAMESPACE":                "default",
+				"ASYA_RABBITMQ_URL":             "amqp://localhost:5672/",
+				"ASYA_RESILIENCY_ACTOR_TIMEOUT": "10m",
 			},
 			expectError: false,
 			validate: func(t *testing.T, cfg *Config) {
@@ -41,6 +41,9 @@ func TestLoadFromEnv(t *testing.T) {
 				}
 				if cfg.Timeout != 10*time.Minute {
 					t.Errorf("Timeout = %v, want 10m", cfg.Timeout)
+				}
+				if cfg.Resiliency != nil {
+					t.Error("Resiliency should be nil when only actor timeout is set")
 				}
 			},
 		},
@@ -276,9 +279,6 @@ func TestLoadFromEnv(t *testing.T) {
 				if len(r.NonRetryableErrors) != 0 {
 					t.Errorf("NonRetryableErrors = %v, want empty", r.NonRetryableErrors)
 				}
-				if r.ActorTimeout != 0 {
-					t.Errorf("ActorTimeout = %v, want 0", r.ActorTimeout)
-				}
 			},
 		},
 		{
@@ -327,8 +327,8 @@ func TestLoadFromEnv(t *testing.T) {
 						t.Errorf("NonRetryableErrors[%d] = %v, want %v", i, r.NonRetryableErrors[i], e)
 					}
 				}
-				if r.ActorTimeout != 5*time.Minute {
-					t.Errorf("ActorTimeout = %v, want 5m0s", r.ActorTimeout)
+				if cfg.Timeout != 5*time.Minute {
+					t.Errorf("Timeout = %v, want 5m0s", cfg.Timeout)
 				}
 			},
 		},
@@ -416,21 +416,18 @@ func TestLoadFromEnv(t *testing.T) {
 			},
 		},
 		{
-			name: "resiliency config triggered by only actor timeout",
+			name: "actor timeout alone does not activate resiliency",
 			env: map[string]string{
 				"ASYA_ACTOR_NAME":               "test-actor",
 				"ASYA_NAMESPACE":                "default",
 				"ASYA_RESILIENCY_ACTOR_TIMEOUT": "30s",
 			},
 			validate: func(t *testing.T, cfg *Config) {
-				if cfg.Resiliency == nil {
-					t.Fatal("Resiliency should not be nil")
+				if cfg.Timeout != 30*time.Second {
+					t.Errorf("Timeout = %v, want 30s", cfg.Timeout)
 				}
-				if cfg.Resiliency.ActorTimeout != 30*time.Second {
-					t.Errorf("ActorTimeout = %v, want 30s", cfg.Resiliency.ActorTimeout)
-				}
-				if cfg.Resiliency.Retry.Policy != RetryPolicyExponential {
-					t.Errorf("Policy should default to exponential, got %v", cfg.Resiliency.Retry.Policy)
+				if cfg.Resiliency != nil {
+					t.Error("Resiliency should be nil when only actor timeout is set")
 				}
 			},
 		},

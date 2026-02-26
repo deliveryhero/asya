@@ -25,14 +25,14 @@ digraph flow {
   process_abort -> router_loop_flow_line_19_seq;
   process_item -> router_loop_flow_line_16_if;
   router_loop_flow_line_12_loop_back_0 -> router_loop_flow_line_12_while_0 [constraint=false];
-  router_loop_flow_line_12_while_0 -> finalize_loop [color=indianred4];
-  router_loop_flow_line_12_while_0 -> router_loop_flow_line_13_seq [color=darkseagreen4];
+  router_loop_flow_line_12_while_0 -> finalize_loop [label="F", color=indianred4];
+  router_loop_flow_line_12_while_0 -> router_loop_flow_line_13_seq [label="T", color=darkseagreen4];
   router_loop_flow_line_13_seq -> process_item;
   router_loop_flow_line_13_seq -> router_loop_flow_line_12_loop_back_0;
-  router_loop_flow_line_16_if -> check_threshold [color=indianred4];
-  router_loop_flow_line_16_if -> router_loop_flow_line_17_seq [color=darkseagreen4];
+  router_loop_flow_line_16_if -> check_threshold [label="F", color=indianred4];
+  router_loop_flow_line_16_if -> router_loop_flow_line_17_seq [label="T", color=darkseagreen4];
   router_loop_flow_line_17_seq -> process_abort;
   router_loop_flow_line_19_seq -> router_loop_flow_line_12_loop_back_0;
-  router_loop_flow_line_23_if -> finalize_loop [color=darkseagreen4];
+  router_loop_flow_line_23_if -> finalize_loop [label="T", color=darkseagreen4];
   start_loop_flow -> initialize;
 }

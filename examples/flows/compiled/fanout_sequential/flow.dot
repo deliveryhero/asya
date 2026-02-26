@@ -1,0 +1,27 @@
+digraph flow {
+  rankdir=TB;
+  graph [fontname="Courier", fontsize=10];
+  node [fontname="Courier", fontsize=10, shape=box, style="filled,rounded", margin="0.2"];
+  edge [fontname="Courier", fontsize=10];
+
+  start_multi_stage_flow [fillcolor="lightgreen", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = start_multi_stage_flow(p)</i></td></tr></table>>];
+  fanout_multi_stage_flow_line_12 [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = fanout_multi_stage_flow_line_12(p)</i></td></tr><tr><td bgcolor="mediumpurple2" align="center"><b>[fan-out:comprehension]</b></td></tr><tr><td bgcolor="mediumpurple3" align="left">for r in p['research']</td></tr></table>>];
+  fanout_multi_stage_flow_line_11 [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = fanout_multi_stage_flow_line_11(p)</i></td></tr><tr><td bgcolor="mediumpurple2" align="center"><b>[fan-out:comprehension]</b></td></tr><tr><td bgcolor="mediumpurple3" align="left">for t in p['topics']</td></tr></table>>];
+  end_multi_stage_flow [fillcolor="lightgreen", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = end_multi_stage_flow(p)</i></td></tr></table>>];
+  fanin_multi_stage_flow_line_11 [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = fanin_multi_stage_flow_line_11(p)</i></td></tr><tr><td bgcolor="mediumpurple1" align="center"><b>[fan-in]</b></td></tr></table>>];
+  fanin_multi_stage_flow_line_12 [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = fanin_multi_stage_flow_line_12(p)</i></td></tr><tr><td bgcolor="mediumpurple1" align="center"><b>[fan-in]</b></td></tr></table>>];
+  research_agent [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = research_agent(p)</i></td></tr></table>>];
+  review_agent [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = review_agent(p)</i></td></tr></table>>];
+  summarizer [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = summarizer(p)</i></td></tr></table>>];
+
+  fanin_multi_stage_flow_line_11 -> fanout_multi_stage_flow_line_12;
+  fanin_multi_stage_flow_line_12 -> summarizer;
+  fanout_multi_stage_flow_line_11 -> fanin_multi_stage_flow_line_11 [color=mediumpurple4, label="slice 0\n(parent)", style=dashed];
+  fanout_multi_stage_flow_line_11 -> research_agent [color=mediumpurple4, label="slice 1..N\n(per t)", style=bold];
+  fanout_multi_stage_flow_line_12 -> fanin_multi_stage_flow_line_12 [color=mediumpurple4, label="slice 0\n(parent)", style=dashed];
+  fanout_multi_stage_flow_line_12 -> review_agent [color=mediumpurple4, label="slice 1..N\n(per r)", style=bold];
+  research_agent -> fanin_multi_stage_flow_line_11 [color=slateblue4, style=dashed];
+  review_agent -> fanin_multi_stage_flow_line_12 [color=slateblue4, style=dashed];
+  start_multi_stage_flow -> fanout_multi_stage_flow_line_11;
+  summarizer -> end_multi_stage_flow;
+}

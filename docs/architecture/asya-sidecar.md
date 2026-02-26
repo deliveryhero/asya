@@ -117,7 +117,8 @@ Router → Transport.Ack/Nack()
 | Array (fan-out) | Route each to next actor |
 | Empty | Send to x-sink |
 | Error | Send to x-sump |
-| Timeout | Send to x-sump |
+| SLA expired | Send to x-sink (phase=failed, reason=Timeout) |
+| Runtime timeout | Send to x-sump, crash pod |
 | End of route | Send to x-sink |
 
 ## Transport Interface
@@ -234,7 +235,8 @@ volumes:
 |------------|--------|-------------|
 | Parse error | Log + send error | x-sump |
 | Runtime error | Log + send error | x-sump |
-| Timeout | Log + construct error | x-sump |
+| SLA expired | Log + stamp phase=failed, reason=Timeout | x-sink |
+| Runtime timeout | Log + construct error + crash pod | x-sump |
 | Empty response | Log + send original | x-sink |
 | Transport error | Log + NACK | retry queue |
 | Shutdown signal | Graceful NACK | retry queue |
@@ -247,7 +249,7 @@ All configuration via environment variables:
 |----------|---------|-------------|
 | `ASYA_ACTOR_NAME` | _(required)_ | Queue to consume |
 | `ASYA_SOCKET_PATH` | `/tmp/sockets/app.sock` | Unix socket path |
-| `ASYA_RUNTIME_TIMEOUT` | `5m` | Response timeout |
+| `ASYA_RESILIENCY_ACTOR_TIMEOUT` | `5m` | Per-call actor timeout (from XRD `resiliency.actorTimeout`) |
 | `ASYA_ACTOR_SINK` | `x-sink` | Success queue |
 | `ASYA_ACTOR_SUMP` | `x-sump` | Error queue |
 | `ASYA_IS_END_ACTOR` | `false` | End actor mode |
@@ -306,15 +308,25 @@ All configuration via environment variables:
 **Message fate:** Sent to x-sump for retry logic (not automatically retried)
 
 #### Timeout (Hung Process)
-**Detection:** No response within `ASYA_RUNTIME_TIMEOUT` (default: 5m)
+**Detection:** No response within effective timeout: `min(ASYA_RESILIENCY_ACTOR_TIMEOUT, remaining_SLA)`
 
 **Recovery:**
 1. Socket read returns `context.DeadlineExceeded`
 2. Message sent to x-sump with timeout error
-3. ⚠️ **Container NOT restarted** (no liveness probe configured)
-4. Runtime becomes a zombie, failing all subsequent messages
+3. Sidecar **crashes the pod** (exits with status code 1)
+4. Kubernetes restarts the pod to recover clean state
 
-**Operational impact:** Requires manual pod restart or liveness probe configuration.
+**Rationale:** Crash-on-timeout prevents zombie processing where the runtime may still be executing after the sidecar gives up.
+
+#### SLA Expired (Pipeline Deadline)
+**Detection:** `status.deadline_at` has passed before calling runtime
+
+**Recovery:**
+1. Message routed directly to x-sink with `phase=failed`, `reason=Timeout`
+2. Runtime is never called — no wasted compute
+3. Pod remains healthy for subsequent messages
+
+**Message fate:** Sent to x-sink as a failed completion (not an error). The gateway reports the task as failed with timeout reason.
 
 #### User Code Exception
 **Detection:** Runtime returns error response with traceback
@@ -333,7 +345,8 @@ All configuration via environment variables:
 | Sidecar crash | ❌ No | ✅ Yes (fast) | NACK → redelivery |
 | Runtime crash | ❌ No | ✅ Yes | Via x-sump queue |
 | Runtime OOM | ❌ No | ✅ Yes (may CrashLoopBackoff) | Via x-sump queue |
-| Runtime timeout | ❌ No | ⚠️ No (zombie pod) | Via x-sump, needs manual restart |
+| Runtime timeout | ❌ No | ✅ Yes (crash + restart) | Via x-sump, pod crashes to prevent zombie |
+| SLA expired | ❌ No | ✅ Yes | Via x-sink (phase=failed), runtime not called |
 | Pod eviction | ❌ No | ✅ Yes | Full pod restart |
 | Socket corruption | ❌ No | ✅ Yes | Transient, usually recovers |
 

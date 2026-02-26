@@ -51,7 +51,7 @@ services:
     env_file: *runtime-env-files
     environment:
       ASYA_HANDLER: asya_testing.handlers.state_ops.state_ops_handler
-      ASYA_RUNTIME_TIMEOUT: 30s
+      ASYA_RESILIENCY_ACTOR_TIMEOUT: 30s
       ASYA_STATE_PROXY_MOUNTS: "meta:/state/meta:write=buffered"
     volumes:
     - state-ops-runtime-sockets:/var/run/asya
@@ -76,7 +76,7 @@ services:
     env_file: *sidecar-env-files
     environment:
       ASYA_ACTOR_NAME: test-state-ops
-      ASYA_RUNTIME_TIMEOUT: 30s
+      ASYA_RESILIENCY_ACTOR_TIMEOUT: 30s
     volumes:
     - state-ops-runtime-sockets:/var/run/asya
 
@@ -90,7 +90,7 @@ services:
     env_file: *runtime-env-files
     environment:
       ASYA_HANDLER: asya_testing.handlers.payload.echo_handler
-      ASYA_RUNTIME_TIMEOUT: 5s
+      ASYA_RESILIENCY_ACTOR_TIMEOUT: 5s
     volumes:
     - plain-echo-sockets:/var/run/asya
     - ../../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro
@@ -113,7 +113,7 @@ services:
     env_file: *sidecar-env-files
     environment:
       ASYA_ACTOR_NAME: test-plain-echo
-      ASYA_RUNTIME_TIMEOUT: 30s
+      ASYA_RESILIENCY_ACTOR_TIMEOUT: 30s
     volumes:
     - plain-echo-sockets:/var/run/asya
 

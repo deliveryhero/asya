@@ -32,8 +32,8 @@ _FUNC_DEF_TYPES = (ast.FunctionDef, ast.AsyncFunctionDef)
 class _ParamNormalizer(ast.NodeTransformer):
     """Rename flow parameter references to the canonical name 'p'.
 
-    Generated router code uses ``p = message['payload']``, so all
-    mutations and condition tests must reference ``p``.  This transformer
+    Generated router code uses ``p = payload``, so all mutations and
+    condition tests must reference ``p``.  This transformer
     rewrites the AST *before* unparsing so downstream code stays simple.
     """
 

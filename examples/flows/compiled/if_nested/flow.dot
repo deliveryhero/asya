@@ -31,8 +31,8 @@ digraph flow {
   handler_d -> router_conditional_nested_flow_line_22_seq;
   handler_finalize -> router_conditional_nested_flow_line_26_seq;
   handler_validate_input -> router_conditional_nested_flow_line_6_if;
-  router_conditional_nested_flow_line_12_if -> router_conditional_nested_flow_line_13_seq [color=darkseagreen4];
-  router_conditional_nested_flow_line_12_if -> router_conditional_nested_flow_line_17_seq [color=indianred4];
+  router_conditional_nested_flow_line_12_if -> router_conditional_nested_flow_line_13_seq [label="T", color=darkseagreen4];
+  router_conditional_nested_flow_line_12_if -> router_conditional_nested_flow_line_17_seq [label="F", color=indianred4];
   router_conditional_nested_flow_line_13_seq -> handler_b;
   router_conditional_nested_flow_line_15_seq -> router_conditional_nested_flow_line_24_seq;
   router_conditional_nested_flow_line_17_seq -> handler_c;
@@ -40,10 +40,10 @@ digraph flow {
   router_conditional_nested_flow_line_22_seq -> router_conditional_nested_flow_line_24_seq;
   router_conditional_nested_flow_line_24_seq -> handler_finalize;
   router_conditional_nested_flow_line_26_seq -> end_conditional_nested_flow;
-  router_conditional_nested_flow_line_6_if -> router_conditional_nested_flow_line_24_seq [color=indianred4];
-  router_conditional_nested_flow_line_6_if -> router_conditional_nested_flow_line_7_seq [color=darkseagreen4];
+  router_conditional_nested_flow_line_6_if -> router_conditional_nested_flow_line_24_seq [label="F", color=indianred4];
+  router_conditional_nested_flow_line_6_if -> router_conditional_nested_flow_line_7_seq [label="T", color=darkseagreen4];
   router_conditional_nested_flow_line_7_seq -> handler_a;
-  router_conditional_nested_flow_line_9_if -> handler_b [color=darkseagreen4];
-  router_conditional_nested_flow_line_9_if -> router_conditional_nested_flow_line_20_seq [color=indianred4];
+  router_conditional_nested_flow_line_9_if -> handler_b [label="T", color=darkseagreen4];
+  router_conditional_nested_flow_line_9_if -> router_conditional_nested_flow_line_20_seq [label="F", color=indianred4];
   start_conditional_nested_flow -> handler_validate_input;
 }

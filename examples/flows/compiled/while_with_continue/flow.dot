@@ -16,9 +16,9 @@ digraph flow {
   handler_finalize -> end_while_with_continue_flow;
   handler_init -> router_while_with_continue_flow_line_11_while_0;
   router_while_with_continue_flow_line_11_loop_back_0 -> router_while_with_continue_flow_line_11_while_0 [constraint=false];
-  router_while_with_continue_flow_line_11_while_0 -> handler_finalize [color=indianred4];
-  router_while_with_continue_flow_line_11_while_0 -> router_while_with_continue_flow_line_13_if [color=darkseagreen4];
-  router_while_with_continue_flow_line_13_if -> handler_process [color=indianred4];
-  router_while_with_continue_flow_line_13_if -> router_while_with_continue_flow_line_11_loop_back_0 [color=darkseagreen4];
+  router_while_with_continue_flow_line_11_while_0 -> handler_finalize [label="F", color=indianred4];
+  router_while_with_continue_flow_line_11_while_0 -> router_while_with_continue_flow_line_13_if [label="T", color=darkseagreen4];
+  router_while_with_continue_flow_line_13_if -> handler_process [label="F", color=indianred4];
+  router_while_with_continue_flow_line_13_if -> router_while_with_continue_flow_line_11_loop_back_0 [label="T", color=darkseagreen4];
   start_while_with_continue_flow -> handler_init;
 }

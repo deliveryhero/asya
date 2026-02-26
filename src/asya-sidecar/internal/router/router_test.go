@@ -3491,60 +3491,40 @@ func TestRouter_RouteOverride_PreservesExistingAuditTrail(t *testing.T) {
 func TestRouter_EffectiveTimeout(t *testing.T) {
 	tests := []struct {
 		name          string
-		runtimeTO     time.Duration
-		actorTO       time.Duration
+		timeout       time.Duration
 		deadlineIn    time.Duration
 		wantTimeout   time.Duration
 		wantApproxMin time.Duration
 		wantApproxMax time.Duration
 	}{
 		{
-			name:        "no resiliency, no deadline - uses runtime timeout",
-			runtimeTO:   5 * time.Minute,
-			actorTO:     0,
+			name:        "no deadline - uses actor timeout",
+			timeout:     5 * time.Minute,
 			deadlineIn:  0,
 			wantTimeout: 5 * time.Minute,
 		},
 		{
-			name:        "actor timeout < runtime timeout, no deadline - uses actor timeout",
-			runtimeTO:   5 * time.Minute,
-			actorTO:     2 * time.Minute,
+			name:        "short actor timeout, no deadline",
+			timeout:     2 * time.Minute,
 			deadlineIn:  0,
 			wantTimeout: 2 * time.Minute,
 		},
 		{
-			name:        "actor timeout > runtime timeout - uses runtime timeout",
-			runtimeTO:   2 * time.Minute,
-			actorTO:     5 * time.Minute,
-			deadlineIn:  0,
-			wantTimeout: 2 * time.Minute,
-		},
-		{
-			name:          "deadline remaining < both - uses remaining SLA",
-			runtimeTO:     5 * time.Minute,
-			actorTO:       3 * time.Minute,
+			name:          "deadline remaining < actor timeout - uses remaining SLA",
+			timeout:       5 * time.Minute,
 			deadlineIn:    1 * time.Minute,
 			wantApproxMin: 59 * time.Second,
 			wantApproxMax: 61 * time.Second,
 		},
 		{
-			name:        "no deadline, actor timeout set - uses actor timeout",
-			runtimeTO:   10 * time.Minute,
-			actorTO:     4 * time.Minute,
-			deadlineIn:  0,
-			wantTimeout: 4 * time.Minute,
-		},
-		{
 			name:        "deadline in far future - uses actor timeout",
-			runtimeTO:   5 * time.Minute,
-			actorTO:     2 * time.Minute,
+			timeout:     2 * time.Minute,
 			deadlineIn:  10 * time.Minute,
 			wantTimeout: 2 * time.Minute,
 		},
 		{
 			name:          "deadline already passed - returns negative duration",
-			runtimeTO:     5 * time.Minute,
-			actorTO:       0,
+			timeout:       5 * time.Minute,
 			deadlineIn:    -1 * time.Minute,
 			wantApproxMin: -61 * time.Second,
 			wantApproxMax: -59 * time.Second,
@@ -3554,12 +3534,7 @@ func TestRouter_EffectiveTimeout(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cfg := &config.Config{
-				Timeout: tt.runtimeTO,
-			}
-			if tt.actorTO > 0 {
-				cfg.Resiliency = &config.ResiliencyConfig{
-					ActorTimeout: tt.actorTO,
-				}
+				Timeout: tt.timeout,
 			}
 
 			router := &Router{cfg: cfg}

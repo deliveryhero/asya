@@ -420,7 +420,16 @@ class _MessageVFS:
         if parts == ["route", "next"]:
             self._data["route"]["next"] = content.splitlines() if content else []
         elif len(parts) == 2 and parts[0] == "headers":
-            self._data["headers"][parts[1]] = content
+            # Parse JSON dicts/lists so complex headers survive the
+            # write → snapshot → serialize round-trip (e.g. x-asya-fan-in).
+            try:
+                parsed = json.loads(content)
+                if isinstance(parsed, (dict, list)):
+                    self._data["headers"][parts[1]] = parsed
+                else:
+                    self._data["headers"][parts[1]] = content
+            except (json.JSONDecodeError, TypeError):
+                self._data["headers"][parts[1]] = content
         else:
             raise FileNotFoundError(f"No such file: {ASYA_MSG_ROOT}/{clean}")
 

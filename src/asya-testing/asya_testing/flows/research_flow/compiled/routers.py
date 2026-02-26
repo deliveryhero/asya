@@ -12,24 +12,6 @@ import os as _os
 _MSG_ROOT = _os.getenv("ASYA_MSG_ROOT", "/proc/asya/msg")
 
 import json as _json
-import os as _fanout_os
-
-_FANIN_SHARDS = int(_fanout_os.environ.get("ASYA_FANIN_SHARDS", "1"))
-
-if _FANIN_SHARDS > 1:
-    import xxhash as _xxhash
-
-    def _resolve_aggregator(origin_id, target):
-        best = max(
-            range(_FANIN_SHARDS),
-            key=lambda i: _xxhash.xxh64_intdigest(f"{origin_id}:{i}".encode()),
-        )
-        shard = f"{target}-{best}"
-        return shard, {"x-asya-route-override": {target: shard}}
-else:
-    def _resolve_aggregator(origin_id, target):
-        return target, {}
-
 
 
 # ======================================================================
@@ -42,20 +24,21 @@ def start_research_flow(payload: dict) -> dict:
         _next_tail = _f.read().splitlines()
     _next = []
 
-    _next.append(resolve("fanout_research_flow_L2"))
+    _next.append(resolve("fanout_research_flow_line_2"))
     with open(f"{_MSG_ROOT}/route/next", "w") as _f:
         _f.write("\n".join(_next + _next_tail))
     return payload
 
-def fanout_research_flow_L2(message: dict):
+def fanout_research_flow_line_2(payload: dict):
     """Fan-out router: dispatches to sub-agents and aggregator (line 2)"""
-    p = message['payload']
-    r = message['route']
-    origin_id = message['id']
-    _hdrs = message.get('headers', {})
+    p = payload
 
-    _agg_abstract = resolve("summarizer")
-    _agg, _override = _resolve_aggregator(origin_id, _agg_abstract)
+    with open(f"{_MSG_ROOT}/id") as _f:
+        origin_id = _f.read().strip()
+    with open(f"{_MSG_ROOT}/route/next") as _f:
+        _next_tail = _f.read().splitlines()
+
+    _agg = resolve("fanin_research_flow_line_2")
 
     # Accumulate (actor_name, slice_payload) pairs
     _slices = []
@@ -64,34 +47,27 @@ def fanout_research_flow_L2(message: dict):
 
     _n = len(_slices) + 1
     _fan_in = {
-        "actor": _agg_abstract,
+        "actor": _agg,
         "origin_id": origin_id,
         "slice_count": _n,
         "aggregation_key": "/results",
     }
 
-    # Index 0: parent payload forwarded to aggregator (route manually shifted)
-    yield {
-        'id': origin_id,
-        'route': {
-            'prev': r['prev'] + [r['curr']],
-            'curr': _agg,
-            'next': [] + r['next'],
-        },
-        'headers': {**_hdrs, **_override, 'x-asya-fan-in': {**_fan_in, 'slice_index': 0}},
-        'payload': _json.loads(_json.dumps(p)),
-    }
+    # Index 0: parent payload forwarded to aggregator via VFS route
+    with open(f"{_MSG_ROOT}/route/next", "w") as _f:
+        _f.write("\n".join([_agg, resolve("summarizer")] + _next_tail))
+    _os.makedirs(f"{_MSG_ROOT}/headers", exist_ok=True)
+    with open(f"{_MSG_ROOT}/headers/x-asya-fan-in", "w") as _f:
+        _f.write(_json.dumps({**_fan_in, "slice_index": 0}))
+    yield _json.loads(_json.dumps(p))
 
     # Indices 1..N: sub-agent slices
-    import uuid as _uuid
     for _i, (_actor, _payload) in enumerate(_slices):
-        yield {
-            'id': str(_uuid.uuid4()),
-            'parent_id': origin_id,
-            'route': {'prev': [], 'curr': _actor, 'next': [_agg]},
-            'headers': {**_hdrs, **_override, 'x-asya-fan-in': {**_fan_in, 'slice_index': _i + 1}},
-            'payload': _payload,
-        }
+        with open(f"{_MSG_ROOT}/route/next", "w") as _f:
+            _f.write("\n".join([_actor, _agg]))
+        with open(f"{_MSG_ROOT}/headers/x-asya-fan-in", "w") as _f:
+            _f.write(_json.dumps({**_fan_in, "slice_index": _i + 1}))
+        yield _payload
 
 def end_research_flow(payload: dict) -> dict:
     """Exitpoint for flow 'research_flow'"""

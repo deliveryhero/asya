@@ -16,7 +16,7 @@ digraph flow {
   handler_setup -> router_if_else_simple_flow_line_10_if;
   handler_type_a -> handler_finalize;
   handler_type_b -> handler_finalize;
-  router_if_else_simple_flow_line_10_if -> handler_type_a [color=darkseagreen4];
-  router_if_else_simple_flow_line_10_if -> handler_type_b [color=indianred4];
+  router_if_else_simple_flow_line_10_if -> handler_type_a [label="T", color=darkseagreen4];
+  router_if_else_simple_flow_line_10_if -> handler_type_b [label="F", color=indianred4];
   start_if_else_simple_flow -> handler_setup;
 }

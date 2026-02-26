@@ -72,19 +72,13 @@ class TestFanOutNodeRendering:
         fanout_nodes = {n for n in nodes if "fanout" in n.lower()}
         assert len(fanout_nodes) >= 1, f"Expected at least one fanout node, got nodes: {nodes}"
 
-    def test_fanout_node_uses_diamond_shape(self):
-        ops = [_make_fanout_op(), Return(lineno=6)]
-        dot = _generate_dot_for_ops("flow", ops)
-
-        assert "diamond" in dot, "Fan-out router should use diamond shape"
-
     def test_fanout_node_has_distinct_color(self):
         """Fan-out node should have a color distinct from regular router nodes."""
         ops = [_make_fanout_op(), Return(lineno=6)]
         dot = _generate_dot_for_ops("flow", ops)
 
-        # The fanout node should use plum1 color
-        assert "plum1" in dot, "Fan-out router node should use plum1 fill color"
+        # The fanout node should use mediumpurple1 color
+        assert "mediumpurple1" in dot, "Fan-out router node should use mediumpurple1 fill color"
 
     def test_fanout_label_contains_fan_out_pattern(self):
         """Fan-out node label should indicate the fan-out pattern."""
@@ -110,17 +104,18 @@ class TestFanOutNodeRendering:
         nodes = _extract_nodes(dot)
         assert "research_agent" in nodes, f"Expected research_agent in nodes, got: {nodes}"
 
-    def test_aggregator_appears_as_user_actor_node(self):
-        """The aggregator (first actor in continuation) should be a node."""
+    def test_fanin_appears_as_user_actor_node(self):
+        """The generated fan-in should appear with fan-in label."""
         ops = [
             _make_fanout_op(),
-            ActorCall(lineno=6, name="aggregator"),
+            ActorCall(lineno=6, name="formatter"),
             Return(lineno=7),
         ]
         dot = _generate_dot_for_ops("flow", ops)
 
         nodes = _extract_nodes(dot)
-        assert "aggregator" in nodes, f"Expected aggregator node, got: {nodes}"
+        assert "formatter" in nodes, f"Expected formatter node, got: {nodes}"
+        assert "fan-in" in dot.lower(), "Generated fan-in should have fan-in label"
 
     def test_start_and_end_nodes_present(self):
         """Start and end nodes should always be present."""
@@ -157,11 +152,11 @@ class TestFanOutEdgeRendering:
         fanout_to_research = any(e[0] in fanout_nodes and e[1] == "research_agent" for e in edges)
         assert fanout_to_research, f"Expected fanout -> research_agent edge, edges: {edges}"
 
-    def test_fanout_to_aggregator_edge_exists(self):
-        """Fan-out router should have an edge to the aggregator (parent slice)."""
+    def test_fanout_to_fanin_edge_exists(self):
+        """Fan-out router should have an edge to the generated fan-in (parent slice)."""
         ops = [
             _make_fanout_op(),
-            ActorCall(lineno=6, name="aggregator"),
+            ActorCall(lineno=6, name="formatter"),
             Return(lineno=7),
         ]
         dot = _generate_dot_for_ops("flow", ops)
@@ -169,21 +164,21 @@ class TestFanOutEdgeRendering:
         edges = _extract_edges(dot)
         fanout_nodes = {n for n in {e[0] for e in edges} if "fanout" in n.lower()}
 
-        fanout_to_agg = any(e[0] in fanout_nodes and e[1] == "aggregator" for e in edges)
-        assert fanout_to_agg, f"Expected fanout -> aggregator edge, edges: {edges}"
+        fanout_to_agg = any(e[0] in fanout_nodes and e[1].startswith("fanin_flow_line") for e in edges)
+        assert fanout_to_agg, f"Expected fanout -> fanin_flow_line_5 edge, edges: {edges}"
 
-    def test_sub_agent_to_aggregator_convergence_edge(self):
-        """Sub-agent should have a convergence edge back to the aggregator."""
+    def test_sub_agent_to_fanin_convergence_edge(self):
+        """Sub-agent should have a convergence edge back to the generated fan-in."""
         ops = [
             _make_fanout_op(),
-            ActorCall(lineno=6, name="aggregator"),
+            ActorCall(lineno=6, name="formatter"),
             Return(lineno=7),
         ]
         dot = _generate_dot_for_ops("flow", ops)
 
         edges = _extract_edges(dot)
-        sub_agent_to_agg = ("research_agent", "aggregator") in edges
-        assert sub_agent_to_agg, f"Expected research_agent -> aggregator edge, edges: {edges}"
+        sub_agent_to_agg = ("research_agent", "fanin_flow_line_5") in edges
+        assert sub_agent_to_agg, f"Expected research_agent -> fanin_flow_line_5 edge, edges: {edges}"
 
     def test_literal_fanout_edges_for_each_sub_agent(self):
         """Literal fan-out should have edges from fanout router to each unique sub-agent."""
@@ -199,7 +194,7 @@ class TestFanOutEdgeRendering:
                 iter_var=None,
                 iterable=None,
             ),
-            ActorCall(lineno=6, name="aggregator"),
+            ActorCall(lineno=6, name="formatter"),
             Return(lineno=7),
         ]
         dot = _generate_dot_for_ops("flow", ops)
@@ -218,7 +213,7 @@ class TestFanOutEdgeRendering:
         """Fan-out edges should use a distinct color (mediumpurple4 or similar)."""
         ops = [
             _make_fanout_op(),
-            ActorCall(lineno=6, name="aggregator"),
+            ActorCall(lineno=6, name="formatter"),
             Return(lineno=7),
         ]
         dot = _generate_dot_for_ops("flow", ops)
@@ -230,7 +225,7 @@ class TestFanOutEdgeRendering:
         """Fan-out edges should have slice labels."""
         ops = [
             _make_fanout_op(),
-            ActorCall(lineno=6, name="aggregator"),
+            ActorCall(lineno=6, name="formatter"),
             Return(lineno=7),
         ]
         dot = _generate_dot_for_ops("flow", ops)
@@ -271,7 +266,7 @@ class TestFanOutDotValidity:
         """Each node should be defined at most once."""
         ops = [
             _make_fanout_op(actor_calls=[("research_agent", "t")]),
-            ActorCall(lineno=6, name="aggregator"),
+            ActorCall(lineno=6, name="formatter"),
             Return(lineno=7),
         ]
         dot = _generate_dot_for_ops("flow", ops)
@@ -299,7 +294,7 @@ class TestFanOutDotValidity:
                 iter_var=None,
                 iterable=None,
             ),
-            ActorCall(lineno=6, name="aggregator"),
+            ActorCall(lineno=6, name="formatter"),
             Return(lineno=7),
         ]
         dot = _generate_dot_for_ops("flow", ops)
@@ -315,11 +310,11 @@ class TestFanOutDotValidity:
         """Two sequential fan-outs should both be rendered."""
         ops = [
             _make_fanout_op(target_key="/research", lineno=3),
-            ActorCall(lineno=4, name="agg1"),
+            ActorCall(lineno=4, name="formatter1"),
             _make_fanout_op(
                 target_key="/reviews", lineno=5, actor_calls=[("review_agent", "r")], iterable='p["research"]'
             ),
-            ActorCall(lineno=6, name="agg2"),
+            ActorCall(lineno=6, name="formatter2"),
             Return(lineno=7),
         ]
         dot = _generate_dot_for_ops("flow", ops)
@@ -344,6 +339,6 @@ class TestFanOutDotValidity:
         try:
             # Should be valid DOT
             assert "digraph" in dot
-            assert "fanout" in dot.lower() or "fan" in dot.lower() or "L5" in dot
+            assert "fanout" in dot.lower() or "fan" in dot.lower() or "line_5" in dot
         except Exception as e:
             pytest.fail(f"Fan-out in conditional failed: {e}")

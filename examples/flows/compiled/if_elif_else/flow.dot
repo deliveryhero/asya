@@ -19,9 +19,9 @@ digraph flow {
   handler_type_a -> handler_finalize;
   handler_type_b -> handler_finalize;
   handler_validate -> router_if_elif_else_flow_line_10_if;
-  router_if_elif_else_flow_line_10_if -> handler_type_a [color=darkseagreen4];
-  router_if_elif_else_flow_line_10_if -> router_if_elif_else_flow_line_12_if [color=indianred4];
-  router_if_elif_else_flow_line_12_if -> handler_default [color=indianred4];
-  router_if_elif_else_flow_line_12_if -> handler_type_b [color=darkseagreen4];
+  router_if_elif_else_flow_line_10_if -> handler_type_a [label="T", color=darkseagreen4];
+  router_if_elif_else_flow_line_10_if -> router_if_elif_else_flow_line_12_if [label="F", color=indianred4];
+  router_if_elif_else_flow_line_12_if -> handler_default [label="F", color=indianred4];
+  router_if_elif_else_flow_line_12_if -> handler_type_b [label="T", color=darkseagreen4];
   start_if_elif_else_flow -> handler_validate;
 }

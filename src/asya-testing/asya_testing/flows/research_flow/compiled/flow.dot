@@ -5,14 +5,16 @@ digraph flow {
   edge [fontname="Courier", fontsize=10];
 
   start_research_flow [fillcolor="lightgreen", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = start_research_flow(p)</i></td></tr></table>>];
-  fanout_research_flow_L2 [fillcolor="plum1", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = fanout_research_flow_L2(p)</i></td></tr><tr><td bgcolor="plum2" align="center"><b>[fan-out:comprehension]</b></td></tr><tr><td bgcolor="plum3" align="left">for t in p['topics']</td></tr></table>>, shape=diamond];
+  fanout_research_flow_line_2 [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = fanout_research_flow_line_2(p)</i></td></tr><tr><td bgcolor="mediumpurple2" align="center"><b>[fan-out:comprehension]</b></td></tr><tr><td bgcolor="mediumpurple3" align="left">for t in p['topics']</td></tr></table>>];
   end_research_flow [fillcolor="lightgreen", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = end_research_flow(p)</i></td></tr></table>>];
+  fanin_research_flow_line_2 [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = fanin_research_flow_line_2(p)</i></td></tr><tr><td bgcolor="mediumpurple1" align="center"><b>[fan-in]</b></td></tr></table>>];
   research_agent [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = research_agent(p)</i></td></tr></table>>];
   summarizer [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = summarizer(p)</i></td></tr></table>>];
 
-  fanout_research_flow_L2 -> research_agent [color=mediumpurple4, label="slice 1..N\n(per t)", style=bold];
-  fanout_research_flow_L2 -> summarizer [color=mediumpurple4, label="slice 0\n(parent)", style=dashed];
-  research_agent -> summarizer [color=slateblue4, style=dashed];
-  start_research_flow -> fanout_research_flow_L2;
+  fanin_research_flow_line_2 -> summarizer;
+  fanout_research_flow_line_2 -> fanin_research_flow_line_2 [color=mediumpurple4, label="slice 0\n(parent)", style=dashed];
+  fanout_research_flow_line_2 -> research_agent [color=mediumpurple4, label="slice 1..N\n(per t)", style=bold];
+  research_agent -> fanin_research_flow_line_2 [color=slateblue4, style=dashed];
+  start_research_flow -> fanout_research_flow_line_2;
   summarizer -> end_research_flow;
 }
