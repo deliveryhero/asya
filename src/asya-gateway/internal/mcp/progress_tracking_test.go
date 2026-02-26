@@ -339,7 +339,9 @@ func TestProgressTracking_ConcurrentUpdates(t *testing.T) {
 	}
 }
 
-// TestProgressTracking_InvalidTaskID tests behavior with non-existent task
+// TestProgressTracking_InvalidTaskID tests behavior with non-existent task.
+// Progress updates for unknown tasks are silently accepted (200 OK) because
+// direct-SQS messages bypass gateway task creation.
 func TestProgressTracking_InvalidTaskID(t *testing.T) {
 	store := taskstore.NewStore()
 	handler := NewHandler(store)
@@ -358,9 +360,8 @@ func TestProgressTracking_InvalidTaskID(t *testing.T) {
 
 	handler.HandleTaskProgress(rr, req)
 
-	// Should return error for non-existent task
-	if rr.Code == http.StatusOK {
-		t.Error("Expected error for non-existent task, got success")
+	if rr.Code != http.StatusOK {
+		t.Errorf("Expected 200 OK for non-existent task (silent accept), got %d", rr.Code)
 	}
 }
 

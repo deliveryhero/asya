@@ -153,6 +153,10 @@ def flow_helper(transport_timeouts, s3_endpoint, results_bucket, test_config):
 
 @pytest.mark.flow
 @pytest.mark.timeout(300)
+@pytest.mark.xfail(
+    reason="S3 result polling requires state proxy connector on x-sink (debt/1k5a8e)",
+    strict=True,
+)
 def test_fanout_fanin_basic_3_topics(flow_helper):
     """Fan-out with 3 topics: verify merged result contains all 3 research outputs.
 
@@ -194,6 +198,10 @@ def test_fanout_fanin_basic_3_topics(flow_helper):
 
 @pytest.mark.flow
 @pytest.mark.timeout(300)
+@pytest.mark.xfail(
+    reason="S3 result polling requires state proxy connector on x-sink (debt/1k5a8e)",
+    strict=True,
+)
 def test_fanout_fanin_no_false_positives_from_partial_slices(flow_helper):
     """Verify gateway does not see false completions from partial fan-in slices.
 
@@ -232,6 +240,10 @@ def test_fanout_fanin_no_false_positives_from_partial_slices(flow_helper):
 
 @pytest.mark.flow
 @pytest.mark.timeout(600)
+@pytest.mark.xfail(
+    reason="S3 result polling requires state proxy connector on x-sink (debt/1k5a8e)",
+    strict=True,
+)
 def test_fanout_fanin_10_topics(flow_helper):
     """Fan-out with 10 topics: verify all 10 results aggregated correctly.
 
@@ -262,6 +274,10 @@ def test_fanout_fanin_10_topics(flow_helper):
 
 @pytest.mark.flow
 @pytest.mark.timeout(300)
+@pytest.mark.xfail(
+    reason="S3 result polling requires state proxy connector on x-sink (debt/1k5a8e)",
+    strict=True,
+)
 def test_fanout_fanin_single_topic(flow_helper):
     """Fan-out with 1 topic: minimal case N=1, slice_count=2.
 
@@ -288,6 +304,10 @@ def test_fanout_fanin_single_topic(flow_helper):
 
 @pytest.mark.flow
 @pytest.mark.timeout(300)
+@pytest.mark.xfail(
+    reason="S3 result polling requires state proxy connector on x-sink (debt/1k5a8e)",
+    strict=True,
+)
 def test_fanout_fanin_concurrent_requests(flow_helper):
     """Two concurrent fan-out requests must not interfere with each other.
 
@@ -332,6 +352,10 @@ def test_fanout_fanin_concurrent_requests(flow_helper):
 @pytest.mark.flow
 @pytest.mark.slow
 @pytest.mark.timeout(600)
+@pytest.mark.xfail(
+    reason="S3 result polling requires state proxy connector on x-sink (debt/1k5a8e)",
+    strict=True,
+)
 def test_fanout_fanin_aggregator_restart_mid_aggregation(flow_helper, e2e_helper):
     """Aggregator pod restart mid-aggregation must not lose progress.
 

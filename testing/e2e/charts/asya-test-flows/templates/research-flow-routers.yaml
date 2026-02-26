@@ -66,5 +66,5 @@ spec:
           imagePullPolicy: {{ .Values.workload.imagePullPolicy }}
           env:
           - name: ASYA_HANDLER
-            value: asya_testing.flows.research_flow.compiled.routers.fanout_research_flow_L2
+            value: asya_testing.flows.research_flow.compiled.routers.fanout_research_flow_line_2
           {{- include "asya-test-flows.research-flow-handler-env" . | nindent 10 }}

@@ -82,6 +82,10 @@ def flow_helper(gateway_helper, transport_timeouts, s3_endpoint, results_bucket,
 
 @pytest.mark.flow
 @pytest.mark.timeout(300)
+@pytest.mark.xfail(
+    reason="S3 result polling requires state proxy connector on x-sink (debt/1k5a8e)",
+    strict=True,
+)
 def test_route_a_x(flow_helper):
     """Test route A-X: level1=A, level2=X."""
     logger.info("Testing route A-X")
@@ -102,6 +106,10 @@ def test_route_a_x(flow_helper):
 
 @pytest.mark.flow
 @pytest.mark.timeout(300)
+@pytest.mark.xfail(
+    reason="S3 result polling requires state proxy connector on x-sink (debt/1k5a8e)",
+    strict=True,
+)
 def test_route_a_y(flow_helper):
     """Test route A-Y: level1=A, level2=Y."""
     logger.info("Testing route A-Y")
@@ -122,6 +130,10 @@ def test_route_a_y(flow_helper):
 
 @pytest.mark.flow
 @pytest.mark.timeout(300)
+@pytest.mark.xfail(
+    reason="S3 result polling requires state proxy connector on x-sink (debt/1k5a8e)",
+    strict=True,
+)
 def test_route_b_x(flow_helper):
     """Test route B-X: level1=B, level2=X."""
     logger.info("Testing route B-X")
@@ -142,6 +154,10 @@ def test_route_b_x(flow_helper):
 
 @pytest.mark.flow
 @pytest.mark.timeout(300)
+@pytest.mark.xfail(
+    reason="S3 result polling requires state proxy connector on x-sink (debt/1k5a8e)",
+    strict=True,
+)
 def test_route_b_y(flow_helper):
     """Test route B-Y: level1=B, level2=Y."""
     logger.info("Testing route B-Y")
@@ -162,6 +178,10 @@ def test_route_b_y(flow_helper):
 
 @pytest.mark.flow
 @pytest.mark.timeout(300)
+@pytest.mark.xfail(
+    reason="S3 result polling requires state proxy connector on x-sink (debt/1k5a8e)",
+    strict=True,
+)
 def test_all_routes_parallel(flow_helper):
     """Test all 4 routes in parallel to verify no crosstalk."""
     logger.info("Testing all routes in parallel")

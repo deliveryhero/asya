@@ -76,7 +76,7 @@ resolve("summarizer") matches suffix "summarizer" of handler path
 - name: ASYA_HANDLER_START_RESEARCH_FLOW
   value: asya_testing.flows.research_flow.compiled.routers.start_research_flow
 - name: ASYA_HANDLER_FANOUT_RESEARCH_FLOW_L2
-  value: asya_testing.flows.research_flow.compiled.routers.fanout_research_flow_L2
+  value: asya_testing.flows.research_flow.compiled.routers.fanout_research_flow_line_2
 - name: ASYA_HANDLER_END_RESEARCH_FLOW
   value: asya_testing.flows.research_flow.compiled.routers.end_research_flow
 - name: ASYA_HANDLER_RESEARCH_AGENT
