@@ -1029,6 +1029,10 @@ Content-Type:<span class="w"> </span>application/json
 <p><strong>Called by</strong>: Sidecars at three points per actor (<code>received</code>, <code>processing</code>, <code>completed</code>)</p>
 <p><strong>Progress formula</strong>: <code>(actor_idx * 100 + status_weight) / total_actors</code>
 - <code>received</code> = 10, <code>processing</code> = 50, <code>completed</code> = 100</p>
+<p><strong>Unknown task IDs</strong>: Progress updates for tasks not found in the store are
+silently accepted (200 OK). This is expected for direct-SQS messages that bypass
+gateway task creation. Infrastructure errors (e.g., database failures) still
+return 500.</p>
 <p>Response:
 <div class="highlight"><pre><span></span><code><span class="p">{</span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ok&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;progress_percent&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">33.3</span><span class="p">}</span>
 </code></pre></div></p>
