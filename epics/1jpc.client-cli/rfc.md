@@ -280,27 +280,130 @@ If a different version exists, the command errors and asks the user to explicitl
 undeploy first. If an identical version exists, exit 0 (idempotent). This prevents
 accidental overwrites in shared environments.
 
+### 3.6 Flow Deployment Implementation (Label-Based, No AsyncFlow CRD)
+
+Flow deployment uses **labels + CLI tooling** rather than a separate AsyncFlow CRD
+(see ADR in epic 1iqd). The CLI manages flow membership via Kubernetes labels.
+
+#### Label Convention
+
+Every actor in a flow carries these labels:
+
+| Label | Purpose | Values |
+|---|---|---|
+| `asya.sh/flow` | Flow membership (1:M) | Flow name (e.g., `order-processing`) |
+| `asya.sh/flow-role` | Role within flow | `entrypoint`, `exitpoint`, `router`, `processor` |
+
+Annotations for gateway metadata:
+- `asya.sh/flow-tool` -- MCP tool name (if exposed via gateway)
+- `asya.sh/flow-description` -- Tool description (from flow.py docstring)
+
+#### 1:M Constraint
+
+One actor can belong to **at most one flow**. If the same handler logic is needed
+in multiple flows, the actor is cloned (new name, same image/handler, flow-specific
+scaling config). This makes `asya.sh/flow` a reliable foreign key and aligns with
+Kubernetes-native patterns -- different flows need different scaling/resources.
+
+#### What `asya flow deploy` Does (K8s context)
+
+1. **Creates AsyncActor manifests for routers** -- new resources with `asya.sh/flow`
+   and `asya.sh/flow-role=router` labels.
+2. **Updates existing processor actor manifests** -- adds `asya.sh/flow` label and
+   `asya.sh/flow-role=processor`.
+3. **Marks entrypoint/exitpoint actors** -- sets `asya.sh/flow-role` accordingly.
+4. **Creates ConfigMap with router code** -- `routers.py` content, labeled with
+   `asya.sh/flow`. All routers in the flow share this ConfigMap.
+5. Supports `--output-dir` for GitOps (generate files to disk instead of applying).
+
+#### What `asya flow undeploy` Does (K8s context)
+
+Removes all flow resources by label: `kubectl delete asya,configmap -l asya.sh/flow=<name>`.
+Option `--keep-processors` deletes only routers and ConfigMap, preserving processor
+actors (useful when processor actors are shared infrastructure).
+
+#### Flavors for Router Actors
+
+Generated router actors are lightweight (pure Python routing logic, no ML models).
+Platform engineers can define a `flow-router` flavor with minimal resources:
+
+```yaml
+apiVersion: apiextensions.crossplane.io/v1beta1
+kind: EnvironmentConfig
+metadata:
+  name: flow-router
+  labels:
+    asya.sh/flavor: flow-router
+data:
+  scaling:
+    minReplicas: 0
+    maxReplicas: 20
+  workload:
+    template:
+      spec:
+        containers:
+        - name: asya-runtime
+          resources:
+            requests: { cpu: "50m", memory: "64Mi" }
+            limits: { cpu: "200m", memory: "128Mi" }
+```
+
+`asya flow compile --router-flavor flow-router` auto-injects the flavor reference
+into all generated router actors in the manifest.
+
+### 3.7 Flow Exposure (`asya flow expose`)
+
+Registers a flow as an MCP tool (or A2A agent) in the gateway's singleton
+ConfigMap (`gateway-tools`):
+
+1. Finds entrypoint actor by label: `asya.sh/flow-role=entrypoint`
+2. Reads tool metadata from annotations or flow.py (name, description, parameters)
+3. Patches `gateway-tools` ConfigMap via `kubectl patch`
+4. Gateway detects change via fsnotify and reloads tool config (no restart needed)
+
+The gateway watches its mounted config directory via fsnotify. Changes to the
+ConfigMap propagate through kubelet volume sync and trigger a hot-reload of the
+tool registry. Existing in-flight requests complete normally.
+
+Discovery queries work natively via kubectl:
+```bash
+kubectl get asya -l asya.sh/flow=order-processing
+kubectl get asya -l asya.sh/flow-role=entrypoint
+```
+
 ---
 
 ## 4. Jupyter Magics
 
-### 4.1 Basic Usage
+### 4.1 How Magics Work
+
+Jupyter magic functions (`%` for line magics, `%%` for cell magics) are NOT shell
+commands (`!`). They are Python extensions that receive the notebook context and
+can dynamically process information from the notebook environment. This means:
+
+- The magic extension can inspect locally developed flows and actors
+- It can auto-detect the current project, context, and available flows
+- It can provide shorter commands by inferring context from the notebook state
+- It can render rich interactive output (widgets, graphs, tables)
+
+### 4.2 Basic Usage
 
 ```python
 %load_ext asya
 
-# Compile and visualize flow
-%asya flow compile my_flows/order_processing.py
-# -> renders interactive flow diagram inline
+# Compile and visualize flow -- magic auto-detects project root
+%asya flow compile order_processing
+# -> renders interactive flow diagram inline in cell output
+# (magic resolves "order_processing" to the flow module in the project)
 
-# Check status
-%asya flow status order-processing --context=k8s-stg
+# Check status -- context from ASYA_CONTEXT or asya.yaml default
+%asya flow status order-processing
 
 # Call flow (line magic for simple payloads)
 %asya flow call analyze '{"text": "hello world"}'
 
 # Call flow (cell magic for complex payloads)
-%%asya flow call analyze --context=k8s-stg
+%%asya flow call analyze
 {"text": "hello world", "options": {"language": "en"}}
 
 # Stream results
@@ -313,18 +416,35 @@ accidental overwrites in shared environments.
 The `%asya` line magic and `%%asya` cell magic both delegate to the same SDK
 functions. The cell magic variant is useful for multi-line JSON payloads.
 
-### 4.2 Interactive Visualization
+### 4.3 Notebook Context Auto-Processing
+
+The Jupyter magic extension automatically processes the notebook environment:
+
+- **Project detection**: Finds `asya.yaml` from the notebook's working directory
+- **Flow discovery**: Scans imported modules and local packages for flow definitions
+- **Variable injection**: If the user defines a `payload` variable in a prior cell,
+  magics can reference it: `%asya flow call analyze payload`
+- **Context inference**: Reads `ASYA_CONTEXT` or notebook-level configuration
+- **Shorter commands**: Because the magic knows the project context, users can write
+  `%asya flow compile order_processing` instead of the full module path
+
+This context awareness is what makes `%` magics fundamentally different from `!`
+shell commands. The magic layer adds intelligence that a raw CLI call cannot.
+
+### 4.4 Interactive Visualization
 
 Flow compilation renders an interactive graph inline in the notebook cell output:
 
 - Nodes represent actors and routers
 - Edges represent message routes
 - Clicking an actor node reveals a detail panel showing:
-  - Configuration (from actor definition)
+  - Configuration (from actor.yaml in deploy/)
   - Environment variables
   - Live logs (if deployed)
   - Replica count and queue depth (if deployed)
-- Configuration changes in the detail panel write back to local files
+- Configuration changes in the detail panel write back to local deploy/ files
+- Same interactive components as VSCode extension (shared React components
+  rendered via ipywidgets or JupyterLab widget framework)
 
 Implementation options (in priority order):
 
@@ -332,7 +452,7 @@ Implementation options (in priority order):
 2. **JupyterLab extension** -- richer interactivity, JupyterLab only
 3. **Static SVG with links** -- fallback for environments without widget support
 
-### 4.3 Rich Output
+### 4.5 Rich Output
 
 Jupyter output uses rich formatting where available:
 
