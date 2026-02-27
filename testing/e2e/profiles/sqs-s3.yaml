@@ -90,6 +90,7 @@ crossplane:
     install: false
   functions:
     flavorsEnabled: true
+    flavorsVersion: "0.5.2"
   awsProviderConfig:
     name: localstack
     credentialsSource: Secret
