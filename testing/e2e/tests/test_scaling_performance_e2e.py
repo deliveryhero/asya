@@ -3,13 +3,10 @@
 E2E tests for KEDA autoscaling and performance characteristics.
 
 Tests scaling behavior in a real Kubernetes environment:
-- Cold start latency (scale from 0)
 - Scale-up speed under burst load
-- Scale-down behavior after idle period
-- Queue backlog handling
 - Multiple actors scaling simultaneously
-- Resource limit handling
-- Concurrent message processing
+- Processing throughput
+- KEDA pollingInterval effectiveness
 
 These tests verify the system performs well under various load conditions.
 """
@@ -20,55 +17,6 @@ import time
 import pytest
 
 logger = logging.getLogger(__name__)
-
-
-@pytest.mark.xfail(reason="KEDA ScaledObject enforces minReplicas=1; scale-to-zero cold start can't be tested")
-@pytest.mark.slow
-def test_cold_start_latency(e2e_helper):
-    """
-    E2E: Measure cold start latency (scale from 0 to processing).
-
-    Scenario:
-    1. Verify actor is scaled to 0
-    2. Send message
-    3. Measure time until processing starts
-    4. Measure total completion time
-
-    Expected: Cold start < 30s, total completion reasonable
-    """
-    logger.info("Verifying actor is scaled to 0...")
-
-    e2e_helper.kubectl("scale", "deployment", "test-echo", "--replicas=0")
-    time.sleep(5)
-
-    pod_count = e2e_helper.get_pod_count("asya.sh/actor=test-echo")
-    logger.info(f"Initial pod count: {pod_count}")
-
-    logger.info("Sending message to trigger scale-up...")
-    start_time = time.time()
-
-    response = e2e_helper.call_mcp_tool(
-        tool_name="test_echo",
-        arguments={"message": "cold-start-test"},
-    )
-
-    task_id = response["result"]["task_id"]
-
-    logger.info("Waiting for KEDA to scale up...")
-    pod_ready = e2e_helper.wait_for_pod_ready("asya.sh/actor=test-echo", timeout=30)
-    scale_up_time = time.time() - start_time
-
-    assert pod_ready, "Pod should scale up within 30s"
-    logger.info(f"Pod scaled up in {scale_up_time:.2f}s")
-
-    final_task = e2e_helper.wait_for_task_completion(task_id, timeout=60)
-    total_time = time.time() - start_time
-
-    assert final_task["status"] == "succeeded", "Cold start task should succeed"
-
-    logger.info(f"[+] Cold start completed in {total_time:.2f}s (scale-up: {scale_up_time:.2f}s)")
-
-    assert total_time < 45, f"Cold start should complete within 45s, took {total_time:.2f}s"
 
 
 @pytest.mark.slow
@@ -130,130 +78,6 @@ def test_scale_up_under_burst_load(e2e_helper):
     assert completed >= 8, f"At least 8/10 should complete, got {completed}"
 
     logger.info(f"[+] Burst load handled (max_pods={max_pods}, initial={initial_pods})")
-
-
-@pytest.mark.xfail(reason="parallel test workers share test-echo, keeping the queue active and resetting KEDA cooldown")
-@pytest.mark.slow
-def test_scale_down_after_idle(e2e_helper):
-    """
-    E2E: Test KEDA scales down after idle period.
-
-    Scenario:
-    1. Send messages to trigger scale-up
-    2. Wait for processing to complete (queue drains)
-    3. Wait for KEDA scale-up to peak
-    4. Monitor pod count over cooldown period (test-echo cooldownPeriod=60s)
-    5. Verify scale-down occurs
-
-    Expected: Pods scale down to minReplicas after cooldown
-    """
-    logger.info("Sending messages to trigger scale-up...")
-    task_ids = []
-    for i in range(10):
-        response = e2e_helper.call_mcp_tool(
-            tool_name="test_echo",
-            arguments={"message": f"scale-down-test-{i}"},
-        )
-        task_ids.append(response["result"]["task_id"])
-
-    logger.info("Waiting for all messages to be processed...")
-    for task_id in task_ids:
-        try:
-            e2e_helper.wait_for_task_completion(task_id, timeout=60)
-        except Exception as e:
-            logger.warning(f"Task {task_id} completion wait failed: {e}")
-
-    # Poll until pods peak and stabilize (KEDA reconciliation can lag)
-    logger.info("Waiting for scale-up to peak...")
-    peak_pods = 0
-    stable_count = 0
-    for check in range(12):
-        time.sleep(5)  # Poll every 5s for KEDA reconciliation
-        current_pods = e2e_helper.get_pod_count("asya.sh/actor=test-echo")
-        logger.info(f"Check {check+1}/12: {current_pods} pods")
-        if current_pods == peak_pods:
-            stable_count += 1
-            if stable_count >= 2:
-                break
-        else:
-            peak_pods = max(peak_pods, current_pods)
-            stable_count = 0
-
-    logger.info(f"Peak pods: {peak_pods}")
-
-    scaled_obj = e2e_helper.kubectl(
-        "get", "scaledobject", "test-echo",
-        "-o", "jsonpath='{.spec.minReplicaCount}'"
-    )
-    min_replicas = int(scaled_obj.strip("'")) if scaled_obj and scaled_obj != "''" else 0
-    logger.info(f"Min replicas configured: {min_replicas}")
-
-    # test-echo cooldownPeriod=60s, wait 90s for margin
-    logger.info("Waiting for cooldown period (90s)...")
-    time.sleep(90)
-
-    final_pods = e2e_helper.get_pod_count("asya.sh/actor=test-echo")
-    logger.info(f"Pods after cooldown: {final_pods}")
-
-    if peak_pods > min_replicas:
-        assert final_pods < peak_pods, \
-            f"Should scale down from peak, was {peak_pods}, now {final_pods}"
-
-    logger.info(f"[+] Scale-down behavior verified (peak={peak_pods}, final={final_pods}, min={min_replicas})")
-
-
-@pytest.mark.xfail(reason="KEDA ScaledObject enforces minReplicas=1; scale-to-zero backlog test can't be tested")
-@pytest.mark.fast
-def test_queue_backlog_processing(e2e_helper):
-    """
-    E2E: Test system handles queue backlog correctly.
-
-    Scenario:
-    1. Scale actor to 0
-    2. Send 50 messages (queue backlog)
-    3. Scale actor back up
-    4. Verify all messages processed
-
-    Expected: All queued messages eventually processed
-    """
-    logger.info("Scaling actor to 0...")
-    e2e_helper.kubectl("scale", "deployment", "test-echo", "--replicas=0")
-    time.sleep(5)
-
-    logger.info("Creating queue backlog (50 messages)...")
-    task_ids = []
-    for i in range(50):
-        try:
-            response = e2e_helper.call_mcp_tool(
-                tool_name="test_echo",
-                arguments={"message": f"backlog-{i}"},
-            )
-            task_ids.append(response["result"]["task_id"])
-        except Exception as e:
-            logger.warning(f"Failed to create task {i}: {e}")
-
-    logger.info(f"Created {len(task_ids)} messages in backlog")
-
-    logger.info("Triggering scale-up (KEDA should detect queue length)...")
-
-    logger.info("Waiting for KEDA to scale up...")
-    pod_ready = e2e_helper.wait_for_pod_ready("asya.sh/actor=test-echo", timeout=45)
-    assert pod_ready, "Pod should scale up to process backlog"
-
-    logger.info("Waiting for backlog to be processed...")
-    completed = 0
-    for task_id in task_ids[:20]:
-        try:
-            final = e2e_helper.wait_for_task_completion(task_id, timeout=120)
-            if final["status"] == "succeeded":
-                completed += 1
-        except Exception as e:
-            logger.warning(f"Task failed: {e}")
-
-    logger.info(f"Completed {completed}/20 sample tasks from backlog")
-    assert completed >= 16, f"At least 16/20 should complete, got {completed}"
-
-    logger.info("[+] Queue backlog processed successfully")
 
 
 @pytest.mark.slow

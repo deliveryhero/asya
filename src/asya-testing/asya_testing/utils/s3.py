@@ -143,7 +143,7 @@ def find_message_in_s3(bucket_name: str, message_id: str, prefix: str = "") -> d
             logger.info(f"Found message {message_id} at s3://{bucket_name}/{key}")
             return get_object_from_s3(bucket_name, key)
 
-    logger.warning(f"Message {message_id} not found in bucket {bucket_name}")
+    logger.debug(f"Message {message_id} not found in bucket {bucket_name}")
     return None
 
 
@@ -172,6 +172,7 @@ def wait_for_message_in_s3(
     """
     start_time = time.time()
     attempt = 0
+    logger.info(f"Polling S3 for message {message_id} in {bucket_name} (timeout={timeout}s)")
 
     while time.time() - start_time < timeout:
         attempt += 1
@@ -184,7 +185,8 @@ def wait_for_message_in_s3(
 
         time.sleep(poll_interval)  # Polling interval for S3 message check
 
-    logger.warning(f"Message {message_id} not found in S3 after {timeout}s ({attempt} attempts)")
+    elapsed = time.time() - start_time
+    logger.warning(f"Message {message_id} not found in S3 after {elapsed:.1f}s ({attempt} attempts)")
     return None
 
 
