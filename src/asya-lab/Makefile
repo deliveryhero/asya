@@ -14,7 +14,6 @@ cov-unit:
 	@echo "Lab (Python) coverage: N/A (no tests yet)"
 
 clean:
-	rm -rf __pycache__/
 	rm -rf .pytest_cache/
 	rm -rf $(COVERAGE_DIR)
 	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
