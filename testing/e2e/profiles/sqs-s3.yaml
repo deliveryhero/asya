@@ -89,7 +89,7 @@ crossplane:
   providerConfigs:
     install: false
   functions:
-    flavorsEnabled: true
+    flavorsEnabled: false
     flavorsVersion: "0.5.2"
   awsProviderConfig:
     name: localstack
