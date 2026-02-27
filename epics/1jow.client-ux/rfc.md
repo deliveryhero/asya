@@ -257,11 +257,13 @@ project: my-ml-platform
 contexts:
   k8s-stg:
     type: kubernetes
+    kubeconfig: ~/...
     namespace: ml-stg
     gateway: https://gateway.stg.internal
     compilePath: deploy/k8s/stg/
   k8s-prod:
     type: kubernetes
+    kubeconfig: ~/...
     namespace: ml-prod
     gateway: https://gateway.prod.internal
     compilePath: deploy/k8s/prod/
@@ -269,9 +271,7 @@ contexts:
     type: docker-compose
     compilePath: deploy/docker/
 
-actorDefaults:
-  transport: sqs
-  flavors: [base]
+defaultFlavors: [base]
 
 dotenv:
   stg: [.env, .env.stg]
