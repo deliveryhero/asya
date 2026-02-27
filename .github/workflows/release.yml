@@ -65,6 +65,7 @@ jobs:
           "asya-lab"
           "asya-testing"
           "asya-ui"
+          "function-asya-flavors"
         )
 
         for img in "${IMAGES[@]}"; do
@@ -90,6 +91,7 @@ jobs:
         - \`ghcr.io/${{ github.repository_owner }}/asya-lab:${{ steps.version.outputs.version }}\`
         - \`ghcr.io/${{ github.repository_owner }}/asya-testing:${{ steps.version.outputs.version }}\`
         - \`ghcr.io/${{ github.repository_owner }}/asya-ui:${{ steps.version.outputs.version }}\`
+        - \`ghcr.io/${{ github.repository_owner }}/function-asya-flavors:${{ steps.version.outputs.version }}\`
         EOF
 
         if [ "${{ github.event.release.prerelease }}" == "false" ]; then
