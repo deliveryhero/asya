@@ -1,7 +1,7 @@
 {
   "repository": "deliveryhero/asya",
   "ref": "refs/heads/main",
-  "commit": "30031486d2f5407a72c7c4d305f60124f1effdde",
+  "commit": "e39a197c72b859e635327fb787fffd7569d32eba",
   "coverage": {
     "type": "merged",
     "format": "Go coverage",
@@ -20004,7 +20004,7 @@
     ]
   },
   "code_to_test_ratio": {
-    "code": 27811,
+    "code": 27877,
     "test": 21019,
     "code_files": [
       {
@@ -20092,9 +20092,9 @@
         "language": "Python"
       },
       {
-        "code": 133,
-        "comment": 49,
-        "blank": 46,
+        "code": 124,
+        "comment": 48,
+        "blank": 43,
         "path": "examples/flows/compiled/complex_with_while/routers.py",
         "language": "Python"
       },
@@ -20197,23 +20197,23 @@
         "language": "Python"
       },
       {
-        "code": 76,
-        "comment": 45,
-        "blank": 34,
+        "code": 68,
+        "comment": 44,
+        "blank": 32,
         "path": "examples/flows/compiled/mutations_before_after_handler/routers.py",
         "language": "Python"
       },
       {
-        "code": 57,
-        "comment": 43,
-        "blank": 28,
+        "code": 49,
+        "comment": 42,
+        "blank": 26,
         "path": "examples/flows/compiled/mutations_only/routers.py",
         "language": "Python"
       },
       {
-        "code": 67,
-        "comment": 44,
-        "blank": 31,
+        "code": 59,
+        "comment": 43,
+        "blank": 29,
         "path": "examples/flows/compiled/mutations_with_handler/routers.py",
         "language": "Python"
       },
@@ -20246,9 +20246,9 @@
         "language": "Python"
       },
       {
-        "code": 117,
-        "comment": 48,
-        "blank": 44,
+        "code": 109,
+        "comment": 47,
+        "blank": 42,
         "path": "examples/flows/compiled/try_except_finally/routers.py",
         "language": "Python"
       },
@@ -20260,9 +20260,9 @@
         "language": "Python"
       },
       {
-        "code": 139,
-        "comment": 50,
-        "blank": 50,
+        "code": 122,
+        "comment": 48,
+        "blank": 45,
         "path": "examples/flows/compiled/try_except_retry_loop/routers.py",
         "language": "Python"
       },
@@ -20652,9 +20652,9 @@
         "language": "Python"
       },
       {
-        "code": 401,
+        "code": 406,
         "comment": 63,
-        "blank": 86,
+        "blank": 87,
         "path": "src/asya-cli/asya_cli/flow/codegen.py",
         "language": "Python"
       },
@@ -20666,9 +20666,9 @@
         "language": "Python"
       },
       {
-        "code": 486,
-        "comment": 77,
-        "blank": 83,
+        "code": 582,
+        "comment": 101,
+        "blank": 91,
         "path": "src/asya-cli/asya_cli/flow/dotgen.py",
         "language": "Python"
       },
@@ -20680,9 +20680,9 @@
         "language": "Python"
       },
       {
-        "code": 490,
-        "comment": 50,
-        "blank": 107,
+        "code": 504,
+        "comment": 57,
+        "blank": 108,
         "path": "src/asya-cli/asya_cli/flow/grouper.py",
         "language": "Python"
       },
@@ -20743,16 +20743,16 @@
         "language": "Python"
       },
       {
-        "code": 628,
+        "code": 653,
         "comment": 63,
-        "blank": 150,
+        "blank": 154,
         "path": "src/asya-cli/tests/flow/test_codegen.py",
         "language": "Python"
       },
       {
-        "code": 95,
-        "comment": 23,
-        "blank": 36,
+        "code": 78,
+        "comment": 21,
+        "blank": 33,
         "path": "src/asya-cli/tests/flow/test_dotgen_invariant.py",
         "language": "Python"
       },
@@ -20771,9 +20771,9 @@
         "language": "Python"
       },
       {
-        "code": 1020,
-        "comment": 27,
-        "blank": 156,
+        "code": 1029,
+        "comment": 39,
+        "blank": 157,
         "path": "src/asya-cli/tests/flow/test_grouper.py",
         "language": "Python"
       },
@@ -20813,7 +20813,7 @@
         "language": "Python"
       },
       {
-        "code": 508,
+        "code": 499,
         "comment": 12,
         "blank": 67,
         "path": "src/asya-cli/tests/flow/test_try_except_grouper.py",
@@ -20835,7 +20835,7 @@
       },
       {
         "code": 330,
-        "comment": 239,
+        "comment": 244,
         "blank": 140,
         "path": "src/asya-cli/tests/flow/test_while_integration.py",
         "language": "Python"
@@ -21182,6 +21182,13 @@
         "blank": 3,
         "path": "src/asya-injector/internal/webhook/patch.go",
         "language": "Go"
+      },
+      {
+        "code": 1,
+        "comment": 0,
+        "blank": 0,
+        "path": "src/asya-lab/asya_lab/__init__.py",
+        "language": "Python"
       },
       {
         "code": 998,
@@ -22083,6 +22090,6 @@
       }
     ]
   },
-  "test_execution_time": 234000000000,
-  "timestamp": "2026-02-26T22:04:09.584785947Z"
+  "test_execution_time": 249000000000,
+  "timestamp": "2026-02-27T14:29:31.757032646Z"
 }
