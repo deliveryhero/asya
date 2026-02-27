@@ -1547,9 +1547,6 @@ def test_crossplane_resilience_after_provider_restart(e2e_helper):
         _cleanup_actor(name, e2e_helper.namespace)
 
 
-@pytest.mark.xfail(
-    reason="function-asya-flavors disabled in E2E until image is published to ghcr.io (functions.flavorsEnabled=false)"
-)
 @pytest.mark.core
 @pytest.mark.timeout(300)
 def test_asyncactor_flavors_resolved(e2e_helper):

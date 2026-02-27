@@ -36,10 +36,6 @@ def cleanup_s3():
 
 
 @pytest.mark.fast
-@pytest.mark.xfail(
-    reason="Persistence flavor ready (debt/1k5a8e) but function-asya-flavors not enabled in E2E (debt/1jnjkn)",
-    strict=True,
-)
 def test_x_sink_persists_to_s3_e2e(e2e_helper, transport_timeouts):
     """
     Test that x-sink actor persists successful results to S3 in e2e environment.
@@ -73,10 +69,6 @@ def test_x_sink_persists_to_s3_e2e(e2e_helper, transport_timeouts):
 
 
 @pytest.mark.fast
-@pytest.mark.xfail(
-    reason="Persistence flavor ready (debt/1k5a8e) but function-asya-flavors not enabled in E2E (debt/1jnjkn)",
-    strict=True,
-)
 def test_x_sump_persists_to_s3_e2e(e2e_helper, transport_timeouts):
     """
     Test that x-sump actor persists errors to S3 in e2e environment.
