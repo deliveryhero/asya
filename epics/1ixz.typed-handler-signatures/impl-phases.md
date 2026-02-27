@@ -2,29 +2,29 @@
 
 > Epic: [[1ixz]] | RFC: [[rfc.md]]
 
-## Pre-implementation: RFC fixes
+## Design decisions
 
-Before starting, apply these corrections to `rfc.md`:
+All decisions finalized and applied to the RFC:
 
-1. **VFS path**: Replace all `/tmp/msg/` references with `/proc/asya/msg/`
-   (sections: non-goals, section 9, section 11). The VFS landed in epic 1ixt
-   with `ASYA_MSG_ROOT=/proc/asya/msg`.
+1. **Env var names**: `ASYA_PARAMS_AT` / `ASYA_RESULT_AT`
+   - "params" = function parameters (matches `inspect.signature().parameters`)
+   - "result" = function return value
+   - "_AT" suffix reads naturally: "params at .context", "result at .weather"
 
-2. **Envelope mode**: Remove all `ASYA_HANDLER_MODE=envelope` discussion
-   (section 9 third paragraph, section 11 last paragraph).
-   Envelope mode was fully removed from the runtime — there is no transition
-   period to handle.
+2. **Path syntax**: Reduced jq (not JSON Pointer, not JSONPath)
+   - `.` = root, `.key` = child, `.key.subkey` = nested, `.[-1]` = last element
+   - No VFS collision (`.key` vs `/proc/asya/msg/...`)
+   - Shell-safe (no `$` expansion like JSONPath)
+   - jq is well-known in the K8s ecosystem
+   - Only single-location addressing (no wildcards/filters/slicing)
 
-4. **Yield upstream partial protocol**: Section 7.2 proposes
-   `yield Token(...), True` (tuple syntax), but the runtime uses
-   `yield {"partial": True, ...}` (dict with `"partial"` key).
-   Decision needed — options:
-   - **(a)** Keep existing dict convention: typed models must be serialized
-     to dict and merged with `{"partial": True}` before yielding upstream.
-   - **(b)** Support both: tuple `(model, True)` detected by the runtime,
-     existing dict convention still works. Runtime serializes the model and
-     forwards as upstream event.
-   - Recommendation: **(b)** — cleaner for typed handlers, backward-compatible.
+3. **Yield upstream partials**: Keep existing `{"partial": True}` convention only
+   - No tuple `(model, True)` syntax
+   - Typed models for upstream partials must be manually serialized to dict
+     with `"partial": True` merged in
+
+4. **Stale references removed**: `/tmp/msg/` -> `/proc/asya/msg/`,
+   envelope mode discussion deleted (already removed from runtime)
 
 ---
 
@@ -37,10 +37,10 @@ All handler forms from RFC section 6 working end-to-end.
 
 | Task | Ref | Description |
 |------|-----|-------------|
-| Input extraction + deserialization | [[1ixz/1m4yo6]] | Signature introspection (`inspect.signature`, `typing.get_type_hints`), legacy single-dict detection, `ASYA_HANDLER_AT` path navigation, per-parameter extraction by name, type-based deserialization (Pydantic v1/v2 `.model_validate`/`.parse_obj`, `dataclass(**val)`, TypedDict passthrough, primitive passthrough). Error on missing required params. |
-| Output merge + serialization | [[1ixz/1m8sym]] | `ASYA_HANDLER_AT` path navigation with auto-creation of intermediate dicts, return value serialization (`.model_dump`/`.dict`, `asdict`, passthrough), shallow merge (`dict.update`) at target path, scalar/list direct write at path. `None` return preserves abort semantics. |
-| Generator/yield typed support | [[1ixz/1m6hk3]] | Extend yield handling to serialize typed return values (same serialization dispatcher as output merge). Support tuple `(model, True)` for upstream partials alongside existing `{"partial": True}` convention. Each yield frame serialized independently. |
-| Tests | [[1ixz/1mnz5v]] | **Unit tests**: All 8 handler forms (RFC 6.1-6.8) — legacy dict, typed params + dict return, typed params + typed return, Pydantic input model, multiple typed params, dataclass, TypedDict, class-based. Edge cases: missing keys, optional params, nested input paths, nested output paths, scalar return, list return, `None` return. **Component tests**: Docker Compose with typed handler containers, end-to-end via Unix socket HTTP. |
+| Input extraction + deserialization | [[1ixz/1m4yo6]] | Signature introspection (`inspect.signature`, `typing.get_type_hints`), legacy single-dict detection, `ASYA_PARAMS_AT` jq-style path navigation, per-parameter extraction by name, type-based deserialization (Pydantic v1/v2 `.model_validate`/`.parse_obj`, `dataclass(**val)`, TypedDict passthrough, primitive passthrough). Error on missing required params. |
+| Output merge + serialization | [[1ixz/1m8sym]] | `ASYA_RESULT_AT` jq-style path navigation with auto-creation of intermediate dicts, return value serialization (`.model_dump`/`.dict`, `asdict`, passthrough), shallow merge (`dict.update`) at target path, scalar/list direct write at path. `None` return preserves abort semantics. |
+| Generator/yield typed support | [[1ixz/1m6hk3]] | Extend yield handling to serialize typed return values (same serialization dispatcher as output merge). Upstream partials use existing `{"partial": True}` convention unchanged. Each yield frame serialized independently. |
+| Tests | [[1ixz/1mnz5v]] | **Unit tests**: All 8 handler forms (RFC 6.1-6.8) -- legacy dict, typed params + dict return, typed params + typed return, Pydantic input model, multiple typed params, dataclass, TypedDict, class-based. Edge cases: missing keys, optional params, nested input paths, nested output paths, scalar return, list return, `None` return, array index paths. **Component tests**: Docker Compose with typed handler containers, end-to-end via Unix socket HTTP. |
 
 ### Dependency order
 
@@ -58,7 +58,7 @@ everything together.
 
 | File | Changes |
 |------|---------|
-| `src/asya-runtime/asya_runtime.py` | New functions: `_introspect_handler()`, `_extract_input()`, `_deserialize_param()`, `_merge_output()`, `_serialize_return()`. Modified: `_call_handler()`, `_collect_payload_frames()`, `_handle_invoke()` startup introspection. New env vars: `ASYA_HANDLER_AT`, `ASYA_HANDLER_AT`. |
+| `src/asya-runtime/asya_runtime.py` | New functions: `_introspect_handler()`, `_parse_jq_path()`, `_navigate_path()`, `_extract_input()`, `_deserialize_param()`, `_merge_output()`, `_serialize_return()`. Modified: `_call_handler()`, `_collect_payload_frames()`, `_handle_invoke()` startup introspection. New env vars: `ASYA_PARAMS_AT`, `ASYA_RESULT_AT`. |
 | `src/asya-runtime/tests/` | New test files for typed signatures (unit). |
 | `src/asya-testing/asya_testing/handlers/` | New `typed.py` with example typed handlers for all forms. |
 | `testing/component/runtime/` | New test cases and handler services for typed signatures. |
@@ -102,11 +102,26 @@ Phase 2 depends on Phase 1 (uses the same introspection infrastructure).
 
 ---
 
+## Phase 3: Documentation (single PR)
+
+### Tasks
+
+| Task | Ref | Description |
+|------|-----|-------------|
+| Update docs | [[1ixz/1mbksn]] | Update `docs/` with typed handler signature guide: env vars, handler forms, deployment examples, migration path, jq path syntax reference. |
+
+### Dependency
+
+Phase 3 depends on Phase 1 (documents the implemented feature).
+
+---
+
 ## Summary
 
 | Phase | PR | Tasks | Scope |
 |-------|----|-------|-------|
 | 1 | Core typed signatures | 1m4yo6, 1m8sym, 1m6hk3, 1mnz5v | Input extraction, output merge, yield, tests |
 | 2 | Schema generation | 1m58xk | JSON Schema + endpoint |
+| 3 | Documentation | 1mbksn | docs/ updates |
 
-Total: **2 PRs**, **5 tasks**, all changes in `src/asya-runtime/` + test infrastructure.
+Total: **3 PRs**, **6 tasks**, core changes in `src/asya-runtime/` + test infrastructure + docs.

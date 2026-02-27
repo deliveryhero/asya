@@ -25,7 +25,7 @@ This has three consequences:
 
 #### Goal
 
-Allow handlers to declare typed input and output parameters that the runtime extracts from (and merges back into) the payload. Mapping between payload paths and handler arguments is controlled by deployment-time environment variables, so the same handler code works across different pipelines without modification.
+Allow handlers to declare typed input and output parameters that the runtime extracts from (and merges back into) the payload. Mapping between payload locations and handler parameters is controlled by deployment-time environment variables, so the same handler code works across different pipelines without modification.
 
 ```python
 from pydantic import BaseModel
@@ -43,7 +43,7 @@ async def get_weather(request: WeatherRequest) -> WeatherResult:
     return WeatherResult(temperature=data.temp, description=data.desc)
 ```
 
-Deployed with `ASYA_PARAMS_AT=/` and `ASYA_RESULT_AT=/weather`, the runtime receives payload:
+Deployed with `ASYA_PARAMS_AT=.` and `ASYA_RESULT_AT=.weather`, the runtime receives payload:
 ```json
 {"request": {"city": "New York", "units": "metric"}}
 ```
@@ -53,7 +53,7 @@ extracts `request` from payload root (by parameter name), calls the handler, and
 ```
 
 
-Or even primitive types (same request/response when deployed with `ASYA_PARAMS_AT=/request` and `ASYA_RESULT_AT=/weather`):
+Or even primitive types (same request/response when deployed with `ASYA_PARAMS_AT=.request` and `ASYA_RESULT_AT=.weather`):
 
 ```python
 async def get_weather(city: str, units: str = "metric") -> float:
@@ -64,7 +64,7 @@ async def get_weather(city: str, units: str = "metric") -> float:
 
 #### Non-goals
 
-- Replacing `/tmp/msg/` metadata access (that is epic 1ixt).
+- Replacing `/proc/asya/msg/` metadata access (that is epic 1ixt).
 - Adding an `asya` pip package or framework-specific imports.
 - Loop constructs in flow DSL (that is epic 1irj).
 - Changing the sidecar-runtime wire protocol.
@@ -77,15 +77,29 @@ async def get_weather(city: str, units: str = "metric") -> float:
 
 | Variable | Default | Description |
 |---|---|---|
-| `ASYA_PARAMS_AT` | `/` | JSONPath-like subpath from which handler arguments are extracted |
+| `ASYA_PARAMS_AT` | `.` | jq-style path from which handler parameters are extracted |
 
-The path uses `/`-separated segments to navigate into the payload dict. `/` means the payload root.
+#### Path syntax (reduced jq)
+
+Paths use jq-style dot notation to navigate into the payload. Only single-location
+addressing is supported (no wildcards, filters, slicing, or recursive descent).
+
+| Syntax | Meaning | Example |
+|--------|---------|---------|
+| `.` | Root (whole payload) | `ASYA_PARAMS_AT=.` |
+| `.key` | Child access | `.context` = `payload["context"]` |
+| `.key.subkey` | Nested access | `.results.nlp` = `payload["results"]["nlp"]` |
+| `.[n]` | Array index | `.[0]` = `payload[0]` |
+| `.[-1]` | Negative index | `.events[-1]` = last element |
+| Combined | Dot + index | `.events[-1].data` = `payload["events"][-1]["data"]` |
+
+Not supported: `.[*]` (wildcard), `..` (recursive descent), `.[?@.x>1]` (filters), `.[0:5]` (slicing).
 
 #### Extraction rules
 
 The runtime inspects the handler signature with `inspect.signature()`. For each parameter (excluding `self` for class methods), it looks up a key matching the parameter name within the subtree selected by `ASYA_PARAMS_AT`.
 
-**Example: root extraction (`ASYA_PARAMS_AT=/`)**
+**Example: root extraction (`ASYA_PARAMS_AT=.`)**
 
 ```python
 def handler(weather: str, image: ImageModel):
@@ -103,7 +117,7 @@ Payload:
 
 Runtime extracts `payload["weather"]` and `payload["image"]`, deserializes them into the declared types, and calls `handler(weather="sunny", image=ImageModel(...))`.
 
-**Example: nested extraction (`ASYA_PARAMS_AT=/context`)**
+**Example: nested extraction (`ASYA_PARAMS_AT=.context`)**
 
 ```python
 def handler(weather: str, image: ImageModel):
@@ -122,6 +136,25 @@ Payload:
 ```
 
 Runtime extracts `payload["context"]["weather"]` and `payload["context"]["image"]`.
+
+**Example: array access (`ASYA_PARAMS_AT=.events[-1]`)**
+
+```python
+def handler(text: str, severity: str):
+    ...
+```
+
+Payload:
+```json
+{
+  "events": [
+    {"text": "first", "severity": "low"},
+    {"text": "latest", "severity": "high"}
+  ]
+}
+```
+
+Runtime navigates to `payload["events"][-1]` (last element), then extracts `text` and `severity` from it.
 
 #### Missing keys
 
@@ -147,13 +180,13 @@ def handler(payload: dict) -> dict:
 
 | Variable | Default | Description |
 |---|---|---|
-| `ASYA_RESULT_AT` | `/` | JSONPath-like subpath where handler result is merged into payload |
+| `ASYA_RESULT_AT` | `.` | jq-style path where handler result is merged into payload |
 
 #### Merge target
 
 The handler's return value (serialized to `dict` if it is a model) is merged into the payload at the path specified by `ASYA_RESULT_AT`.
 
-**Example: root output (`ASYA_RESULT_AT=/`)**
+**Example: root output (`ASYA_RESULT_AT=.`)**
 
 ```python
 def handler(text: str) -> dict:
@@ -163,14 +196,14 @@ def handler(text: str) -> dict:
 Before: `{"text": "great", "lang": "en"}`
 After: `{"text": "great", "lang": "en", "sentiment": "positive", "score": 0.95}`
 
-**Example: nested output (`ASYA_RESULT_AT=/analyzed`)**
+**Example: nested output (`ASYA_RESULT_AT=.analyzed`)**
 
 Same handler, same return value.
 
 Before: `{"text": "great", "lang": "en"}`
 After: `{"text": "great", "lang": "en", "analyzed": {"sentiment": "positive", "score": 0.95}}`
 
-**Example: deep nested output (`ASYA_RESULT_AT=/results/nlp`)**
+**Example: deep nested output (`ASYA_RESULT_AT=.results.nlp`)**
 
 Before: `{"text": "great", "results": {"vision": {...}}}`
 After: `{"text": "great", "results": {"vision": {...}, "nlp": {"sentiment": "positive", "score": 0.95}}}`
@@ -198,7 +231,7 @@ When the handler returns a typed result (not the `dict` fallback), the runtime p
 
 **Example:**
 
-Output path: `/analyzed`
+Output path: `.analyzed`
 
 Target before handler:
 ```json
@@ -226,7 +259,7 @@ def classify(text: str) -> str:
     return "positive"
 ```
 
-With `ASYA_RESULT_AT=/sentiment`:
+With `ASYA_RESULT_AT=.sentiment`:
 
 Before: `{"text": "great"}`
 After: `{"text": "great", "sentiment": "positive"}`
@@ -331,8 +364,8 @@ async def summarize(input: TextInput) -> TextOutput:
 ```
 
 - Parameter `input` is extracted by name from the input subtree: `subtree["input"]`, then deserialized via `TextInput.model_validate()`.
-- With `ASYA_PARAMS_AT=/`, payload must contain `{"input": {"text": "...", ...}}`.
-- With `ASYA_PARAMS_AT=/context`, payload must contain `{"context": {"input": {"text": "...", ...}}}`.
+- With `ASYA_PARAMS_AT=.`, payload must contain `{"input": {"text": "...", ...}}`.
+- With `ASYA_PARAMS_AT=.context`, payload must contain `{"context": {"input": {"text": "...", ...}}}`.
 - Pydantic validation errors are returned as `processing_error` with the validation detail.
 
 #### 6.5 Multiple typed parameters
@@ -344,7 +377,7 @@ async def enrich(text: str, image: ImageModel, temperature: float = 0.7):
 
 - Each parameter extracted individually from input subtree by name.
 - `temperature` is optional.
-- `image` is deserialized as `ImageModel.model_validate(payload[input_path]["image"])`.
+- `image` is deserialized as `ImageModel.model_validate(subtree["image"])`.
 
 #### 6.6 Dataclass handler
 
@@ -431,9 +464,13 @@ def process_chunks(items: list) -> ChunkResult:
         yield ChunkResult(chunk_id=i, text=item.upper())
 ```
 
-Each `yield` serializes `ChunkResult` via `.model_dump()` and merges into `payload[output_path]`.
+Each `yield` serializes `ChunkResult` via `.model_dump()` and merges into payload at `ASYA_RESULT_AT`.
 
 #### 7.2 Typed yield upstream (partial)
+
+Upstream partials use the existing `{"partial": True}` convention. For typed
+handlers, the model must be serialized to dict and merged with
+`{"partial": True}` before yielding:
 
 ```python
 class Token(BaseModel):
@@ -448,18 +485,18 @@ async def stream_llm(prompt: str) -> FinalResult:
     tokens = []
     async for i, tok in aenumerate(llm.stream(prompt)):
         tokens.append(tok)
-        yield Token(text=tok, index=i), True     # upstream partial
+        yield {"partial": True, "text": tok, "index": i}  # upstream partial
 
     yield FinalResult(full_text="".join(tokens), token_count=len(tokens))
 ```
 
-- `yield model, True` -- the model is serialized and sent as an upstream partial frame. The partial is merged at the output path in the upstream direction.
-- `yield model` (without `True`) -- downstream frame, merged at output path.
-- The yield protocol from the original RFC (section 4) is unchanged; only the serialization step is added.
+- `yield {"partial": True, ...}` -- dict with `"partial"` key is forwarded upstream to the gateway. The runtime strips the `"partial"` key before forwarding.
+- `yield model` (without `"partial"`) -- downstream frame, serialized and merged at output path.
+- The yield protocol is unchanged from the existing convention; only the serialization step for non-partial yields is added.
 
 #### 7.3 Mixed yield types
 
-The return type annotation applies to the final downstream yield. Upstream partials may have a different shape (as shown above with `Token` vs `FinalResult`). The runtime does not enforce type consistency across yields -- it serializes whatever is yielded.
+The return type annotation applies to the final downstream yield. Upstream partials are always raw dicts with `"partial": True`. The runtime does not enforce type consistency across yields -- it serializes whatever is yielded (typed models are serialized, dicts are passed through).
 
 ---
 
@@ -550,26 +587,34 @@ This is a future integration point -- the initial implementation focuses on the 
 | Variable | Default | Description |
 |---|---|---|
 | `ASYA_HANDLER` | (required) | Handler function path (e.g., `module.function` or `module.Class.method`) |
-| `ASYA_PARAMS_AT` | `/` | JSONPath-like subpath for parameter extraction from payload |
-| `ASYA_RESULT_AT` | `/` | JSONPath-like subpath for result merge into payload |
+| `ASYA_PARAMS_AT` | `.` | jq-style path for parameter extraction from payload |
+| `ASYA_RESULT_AT` | `.` | jq-style path for result merge into payload |
 
-#### Path syntax
+#### Path syntax (reduced jq)
 
-- `/` -- payload root (entire payload dict)
-- `/key` -- `payload["key"]`
-- `/key/subkey` -- `payload["key"]["subkey"]`
-- Leading `/` is required. No trailing `/`. No array indexing. No wildcards.
+Uses jq-style dot notation. Only single-location addressing is supported.
 
-#### Interaction with handler mode
+- `.` -- payload root (entire payload dict)
+- `.key` -- `payload["key"]`
+- `.key.subkey` -- `payload["key"]["subkey"]`
+- `.[0]` -- `payload[0]` (array index)
+- `.[-1]` -- last element (negative index)
+- `.events[-1].data` -- combined navigation
 
-`ASYA_PARAMS_AT` and `ASYA_RESULT_AT` operate within payload mode. They are orthogonal to message metadata access (`/tmp/msg/` from epic 1ixt). The env var `ASYA_HANDLER_MODE` will be deprecated once epic 1ixt lands (envelope mode is replaced by `/tmp/msg/`), but typed signatures work with both modes during the transition:
+Not supported: wildcards (`.[*]`), recursive descent (`..`), filters (`.[?@.x>1]`), slicing (`.[0:5]`).
 
-- **Payload mode** (default): `ASYA_PARAMS_AT` / `ASYA_RESULT_AT` apply to the payload dict.
-- **Envelope mode**: Not supported with typed signatures. If `ASYA_HANDLER_MODE=envelope` and the handler has typed parameters (not single `dict`), the runtime raises a startup error. Envelope mode is being phased out by epic 1ixt.
+#### Interaction with metadata VFS
+
+`ASYA_PARAMS_AT` and `ASYA_RESULT_AT` operate on the payload dict. They are orthogonal to message metadata access (`/proc/asya/msg/` from epic 1ixt):
+
+- **Typed signatures** (this epic): payload extraction and result merge via function parameters.
+- **Metadata VFS** (epic 1ixt): message metadata (route, headers, status) via virtual filesystem.
+
+The two features solve different problems and do not interact. Typed signatures always operate on payload; metadata always goes through `/proc/asya/msg/`.
 
 #### Deployment examples
 
-**Pydantic model parameter** (`ASYA_PARAMS_AT=/`, param name does the key lookup):
+**Pydantic model parameter** (`ASYA_PARAMS_AT=.`, param name does the key lookup):
 
 ```yaml
 apiVersion: asya.dev/v1alpha1
@@ -582,15 +627,15 @@ spec:
   handler: handlers.weather.get_weather  # get_weather(request: WeatherRequest)
   env:
     - name: ASYA_RESULT_AT
-      value: "/weather"
-    # ASYA_PARAMS_AT defaults to "/" -- param name "request" selects payload["request"]
+      value: ".weather"
+    # ASYA_PARAMS_AT defaults to "." -- param name "request" selects payload["request"]
 ```
 
 Payload flow:
 ```
 Input:  {"request": {"city": "Tokyo", "units": "metric"}, "session_id": "abc"}
                           |
-                    extract param "request" from /
+                    extract param "request" from .
                     -> payload["request"] = {"city": "Tokyo", "units": "metric"}
                     -> WeatherRequest.model_validate({"city": "Tokyo", "units": "metric"})
                           |
@@ -598,13 +643,13 @@ Input:  {"request": {"city": "Tokyo", "units": "metric"}, "session_id": "abc"}
                           |
                     WeatherResult(temperature=22.5, description="Clear")
                           |
-                    merge .model_dump() into /weather
+                    merge .model_dump() into .weather
                           |
 Output: {"request": {"city": "Tokyo", "units": "metric"}, "session_id": "abc",
          "weather": {"temperature": 22.5, "description": "Clear"}}
 ```
 
-**Primitive parameters** (same payload, `ASYA_PARAMS_AT=/request` to navigate into the subtree):
+**Primitive parameters** (same payload, `ASYA_PARAMS_AT=.request` to navigate into the subtree):
 
 ```yaml
 apiVersion: asya.dev/v1alpha1
@@ -617,16 +662,16 @@ spec:
   handler: handlers.weather.get_weather  # get_weather(city: str, units: str = "metric")
   env:
     - name: ASYA_PARAMS_AT
-      value: "/request"
+      value: ".request"
     - name: ASYA_RESULT_AT
-      value: "/weather"
+      value: ".weather"
 ```
 
 Payload flow:
 ```
 Input:  {"request": {"city": "Tokyo", "units": "metric"}, "session_id": "abc"}
                           |
-                    navigate to /request subtree
+                    navigate to .request subtree
                     -> {"city": "Tokyo", "units": "metric"}
                     extract param "city" -> "Tokyo"
                     extract param "units" -> "metric"
@@ -635,10 +680,28 @@ Input:  {"request": {"city": "Tokyo", "units": "metric"}, "session_id": "abc"}
                           |
                     result: 22.5 (float)
                           |
-                    write scalar at /weather
+                    write scalar at .weather
                           |
 Output: {"request": {"city": "Tokyo", "units": "metric"}, "session_id": "abc",
          "weather": 22.5}
+```
+
+**Array access** (process last event from a list):
+
+```yaml
+apiVersion: asya.dev/v1alpha1
+kind: AsyncActor
+metadata:
+  name: event-analyzer
+spec:
+  image: my-handlers:latest
+  transport: sqs
+  handler: handlers.events.analyze  # analyze(text: str, severity: str) -> AnalysisResult
+  env:
+    - name: ASYA_PARAMS_AT
+      value: ".events[-1]"
+    - name: ASYA_RESULT_AT
+      value: ".analysis"
 ```
 
 ---
@@ -677,18 +740,18 @@ else:
 
 ### 11. Dependencies
 
-#### Epic 1ixt (message metadata vfs) -- soft dependency
+#### Epic 1ixt (message metadata vfs) -- no dependency
 
-Typed handler signatures are independent of `/tmp/msg/`. They solve orthogonal problems:
+Typed handler signatures are independent of `/proc/asya/msg/`. They solve orthogonal problems:
 
 - **1ixz** (this epic): payload extraction and result merge via typed function parameters.
 - **1ixt**: message metadata access (route, headers) via virtual filesystem.
 
-However, once 1ixt lands and `ASYA_HANDLER_MODE=envelope` is removed, the interaction becomes cleaner: typed signatures always operate on payload, metadata always goes through `/tmp/msg/`. During the transition, typed signatures are only supported in payload mode (section 9).
+Typed signatures operate on payload; metadata goes through `/proc/asya/msg/`. No interaction.
 
 #### Epic 1irj (flow free vars & iteration) -- no dependency
 
-Flow DSL compilation generates router actors that run in envelope mode. Typed handler signatures apply to leaf actor handlers, not routers. No interaction.
+Flow DSL compilation generates router actors. Typed handler signatures apply to leaf actor handlers, not routers. No interaction.
 
 #### Runtime changes
 
