@@ -1547,9 +1547,6 @@ def test_crossplane_resilience_after_provider_restart(e2e_helper):
         _cleanup_actor(name, e2e_helper.namespace)
 
 
-@pytest.mark.xfail(
-    reason="function-asya-overlays disabled in E2E until image is published to ghcr.io"
-)
 @pytest.mark.core
 @pytest.mark.timeout(300)
 def test_asyncactor_overlays_resolved(e2e_helper):
