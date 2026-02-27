@@ -5,11 +5,11 @@ digraph flow {
   node [fontname="Courier", fontsize=10, shape=box, style="filled,rounded", margin="0.2"];
   edge [fontname="Courier", fontsize=10];
 
-  start_data_pipeline [fillcolor="lightgreen", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = start_data_pipeline(p)</i></td></tr></table>>];
-  router_data_pipeline_line_6_seq [fillcolor="wheat", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_data_pipeline_line_6_seq(p)</i></td></tr><tr><td bgcolor="white" align="left">p['error_type'] = 'validation'</td></tr></table>>];
-  router_data_pipeline_line_9_seq [fillcolor="wheat", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_data_pipeline_line_9_seq(p)</i></td></tr><tr><td bgcolor="white" align="left">p['error_type'] = 'type_mismatch'</td></tr></table>>];
-  router_data_pipeline_line_12_seq [fillcolor="wheat", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_data_pipeline_line_12_seq(p)</i></td></tr><tr><td bgcolor="white" align="left">p['error_type'] = 'runtime'</td></tr></table>>];
-  end_data_pipeline [fillcolor="lightgreen", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = end_data_pipeline(p)</i></td></tr></table>>];
+  start_data_pipeline [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = start_data_pipeline(p)</i></td></tr></table>>];
+  router_data_pipeline_line_6_seq [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_data_pipeline_line_6_seq(p)</i></td></tr><tr><td bgcolor="white" align="left">p['error_type'] = 'validation'</td></tr></table>>];
+  router_data_pipeline_line_9_seq [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_data_pipeline_line_9_seq(p)</i></td></tr><tr><td bgcolor="white" align="left">p['error_type'] = 'type_mismatch'</td></tr></table>>];
+  router_data_pipeline_line_12_seq [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_data_pipeline_line_12_seq(p)</i></td></tr><tr><td bgcolor="white" align="left">p['error_type'] = 'runtime'</td></tr></table>>];
+  end_data_pipeline [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = end_data_pipeline(p)</i></td></tr></table>>];
   handle_runtime_error [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = handle_runtime_error(p)</i></td></tr></table>>];
   handle_type_error [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = handle_type_error(p)</i></td></tr></table>>];
   handle_validation_error [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = handle_validation_error(p)</i></td></tr></table>>];
@@ -32,7 +32,7 @@ digraph flow {
   router_data_pipeline_line_9_seq -> handle_type_error;
   start_data_pipeline -> parse_input;
   transform_data -> end_data_pipeline;
-  transform_data -> router_data_pipeline_line_12_seq [ltail=cluster_try_0, color=snow4, style=dashed, label="except RuntimeError"];
-  transform_data -> router_data_pipeline_line_6_seq [ltail=cluster_try_0, color=snow4, style=dashed, label="except ValueError"];
-  transform_data -> router_data_pipeline_line_9_seq [ltail=cluster_try_0, color=snow4, style=dashed, label="except TypeError"];
+  transform_data -> router_data_pipeline_line_12_seq [ltail=cluster_try_0, color=snow4, style=dashed, label="except RuntimeError", constraint=false];
+  transform_data -> router_data_pipeline_line_6_seq [ltail=cluster_try_0, color=snow4, style=dashed, label="except ValueError", constraint=false];
+  transform_data -> router_data_pipeline_line_9_seq [ltail=cluster_try_0, color=snow4, style=dashed, label="except TypeError", constraint=false];
 }

@@ -53,23 +53,10 @@ def router_complex_combined_flow_line_20_if(payload: dict) -> dict:
 
     p['i'] += 1
     if p['skip_even'] and p['i'] % 2 == 0:
-        _next.append(resolve("router_complex_combined_flow_line_17_loop_back_0"))
+        _next.append(resolve("router_complex_combined_flow_line_17_while_0"))
     else:
         _next.append(resolve("handler_process"))
         _next.append(resolve("router_complex_combined_flow_line_25_if"))
-
-    with open(f"{_MSG_ROOT}/route/next", "w") as _f:
-        _f.write("\n".join(_next + _next_tail))
-    return payload
-
-def router_complex_combined_flow_line_17_loop_back_0(payload: dict) -> dict:
-    """Loop-back router: re-inserts loop actors into route"""
-    p = payload
-    with open(f"{_MSG_ROOT}/route/next") as _f:
-        _next_tail = _f.read().splitlines()
-    _next = []
-
-    _next.append(resolve("router_complex_combined_flow_line_17_while_0"))
 
     with open(f"{_MSG_ROOT}/route/next", "w") as _f:
         _f.write("\n".join(_next + _next_tail))
@@ -82,12 +69,25 @@ def router_complex_combined_flow_line_17_while_0(payload: dict) -> dict:
         _next_tail = _f.read().splitlines()
     _next = []
 
-    p['i'] = 0
     if p['i'] < p['max_iterations']:
         _next.append(resolve("router_complex_combined_flow_line_20_if"))
-        _next.append(resolve("router_complex_combined_flow_line_17_loop_back_0"))
+        _next.append(resolve("router_complex_combined_flow_line_17_while_0"))
     else:
         _next.append(resolve("handler_finalize"))
+
+    with open(f"{_MSG_ROOT}/route/next", "w") as _f:
+        _f.write("\n".join(_next + _next_tail))
+    return payload
+
+def router_complex_combined_flow_line_16_seq(payload: dict) -> dict:
+    """Router for control flow and payload mutations"""
+    p = payload
+    with open(f"{_MSG_ROOT}/route/next") as _f:
+        _next_tail = _f.read().splitlines()
+    _next = []
+
+    p['i'] = 0
+    _next.append(resolve("router_complex_combined_flow_line_17_while_0"))
 
     with open(f"{_MSG_ROOT}/route/next", "w") as _f:
         _f.write("\n".join(_next + _next_tail))
@@ -136,7 +136,7 @@ def router_complex_combined_flow_line_15_if(payload: dict) -> dict:
     _next = []
 
     if p['needs_loop']:
-        _next.append(resolve("router_complex_combined_flow_line_17_while_0"))
+        _next.append(resolve("router_complex_combined_flow_line_16_seq"))
     else:
         _next.append(resolve("router_complex_combined_flow_line_28_if"))
 

@@ -18,23 +18,6 @@ import pytest
 
 COMPILED_DIR = Path(__file__).resolve().parents[4] / "examples" / "flows" / "compiled"
 
-# Pre-existing while loop DOT visualization bugs where body actors
-# are rendered as dead-end nodes (no edge back to loop_back router).
-_WHILE_EXITPOINT_XFAIL = {
-    "adk_llm_auditor",
-    "while_mutations_in_loop",
-    "while_nested",
-    "while_nested_loop",
-    "while_react_loop",
-    "while_simple",
-    "while_with_continue",
-    "while_with_if",
-}
-_WHILE_REACHABILITY_XFAIL = {
-    "while_nested_loop",
-    "while_with_if",
-}
-
 
 def _discover_compiled_flows() -> list[Path]:
     """Discover all compiled flow directories containing flow.dot files."""
@@ -121,9 +104,6 @@ def test_single_entrypoint_and_exitpoint(flow_dir: Path) -> None:
 )
 def test_all_nodes_reachable_from_entrypoint(flow_dir: Path) -> None:
     """All non-reraise nodes must be reachable from the entrypoint."""
-    if flow_dir.name in _WHILE_REACHABILITY_XFAIL:
-        pytest.xfail("Pre-existing while loop DOT visualization bug")
-
     nodes, adj = _parse_dot(flow_dir / "flow.dot")
 
     start_node = next(n for n in nodes if n.startswith("start_"))
@@ -141,15 +121,12 @@ def test_all_nodes_reachable_from_entrypoint(flow_dir: Path) -> None:
 )
 def test_all_nodes_can_reach_exitpoint(flow_dir: Path) -> None:
     """All non-reraise nodes must have a path to the exitpoint."""
-    if flow_dir.name in _WHILE_EXITPOINT_XFAIL:
-        pytest.xfail("Pre-existing while loop DOT visualization bug")
-
     nodes, adj = _parse_dot(flow_dir / "flow.dot")
 
     end_node = next(n for n in nodes if n.startswith("end_"))
     rev = _reverse_adj(adj)
     can_reach_end = _bfs_reachable(rev, end_node)
 
-    # Reraise nodes are error terminals that don't reach the normal exitpoint
-    no_path = {n for n in nodes if n not in can_reach_end and "reraise" not in n}
+    # Reraise and raise_exit nodes are error terminals that don't reach the normal exitpoint
+    no_path = {n for n in nodes if n not in can_reach_end and "reraise" not in n and "raise_exit" not in n}
     assert not no_path, f"Nodes cannot reach exitpoint: {no_path}"

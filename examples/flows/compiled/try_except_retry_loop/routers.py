@@ -22,10 +22,14 @@ def start_retry_pipeline(payload: dict) -> dict:
         _next_tail = _f.read().splitlines()
     _next = []
 
-    _next.append(resolve("router_retry_pipeline_line_10_seq"))
+    p = payload
+    p['attempt'] = 0
+
+    _next.append(resolve("prepare_request"))
+    _next.append(resolve("router_retry_pipeline_line_12_while_0"))
     with open(f"{_MSG_ROOT}/route/next", "w") as _f:
         _f.write("\n".join(_next + _next_tail))
-    return payload
+    return p
 
 def router_retry_pipeline_line_14_try_enter_0(payload: dict) -> dict:
     """Try-enter router: sets _on_error header and inserts try body"""
@@ -109,19 +113,6 @@ def router_retry_pipeline_line_13_seq(payload: dict) -> dict:
         _f.write("\n".join(_next + _next_tail))
     return payload
 
-def router_retry_pipeline_line_12_loop_back_0(payload: dict) -> dict:
-    """Loop-back router: re-inserts loop actors into route"""
-    p = payload
-    with open(f"{_MSG_ROOT}/route/next") as _f:
-        _next_tail = _f.read().splitlines()
-    _next = []
-
-    _next.append(resolve("router_retry_pipeline_line_12_while_0"))
-
-    with open(f"{_MSG_ROOT}/route/next", "w") as _f:
-        _f.write("\n".join(_next + _next_tail))
-    return payload
-
 def router_retry_pipeline_line_12_while_0(payload: dict) -> dict:
     """Router for control flow and payload mutations"""
     p = payload
@@ -131,24 +122,9 @@ def router_retry_pipeline_line_12_while_0(payload: dict) -> dict:
 
     if p['attempt'] < 3:
         _next.append(resolve("router_retry_pipeline_line_13_seq"))
-        _next.append(resolve("router_retry_pipeline_line_12_loop_back_0"))
+        _next.append(resolve("router_retry_pipeline_line_12_while_0"))
     else:
         pass
-
-    with open(f"{_MSG_ROOT}/route/next", "w") as _f:
-        _f.write("\n".join(_next + _next_tail))
-    return payload
-
-def router_retry_pipeline_line_10_seq(payload: dict) -> dict:
-    """Router for control flow and payload mutations"""
-    p = payload
-    with open(f"{_MSG_ROOT}/route/next") as _f:
-        _next_tail = _f.read().splitlines()
-    _next = []
-
-    p['attempt'] = 0
-    _next.append(resolve("prepare_request"))
-    _next.append(resolve("router_retry_pipeline_line_12_while_0"))
 
     with open(f"{_MSG_ROOT}/route/next", "w") as _f:
         _f.write("\n".join(_next + _next_tail))

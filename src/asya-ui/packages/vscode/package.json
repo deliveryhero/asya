@@ -1,0 +1,9 @@
+{
+  "name": "asya-vscode",
+  "version": "0.0.1",
+  "type": "module",
+  "main": "./src/extension.ts",
+  "scripts": {
+    "build": "echo 'Stub build'"
+  }
+}

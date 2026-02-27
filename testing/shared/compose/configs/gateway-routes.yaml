@@ -168,3 +168,14 @@ tools:
       default: 0
   route: [test-echo, x-pause, test-incrementer]
   timeout: 60
+
+# SLA backstop test - gateway timeout fires before actor timeout
+- name: test_sla_backstop
+  description: Test gateway backstop fires before actor processes message
+  parameters:
+    sleep_seconds:
+      type: integer
+      description: How long handler sleeps (must exceed gateway timeout)
+      default: 60
+  route: [test-timeout]
+  timeout: 3

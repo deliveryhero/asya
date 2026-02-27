@@ -4,14 +4,12 @@ digraph flow {
   node [fontname="Courier", fontsize=10, shape=box, style="filled,rounded", margin="0.2"];
   edge [fontname="Courier", fontsize=10];
 
-  start_mutations_with_handler_flow [fillcolor="lightgreen", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = start_mutations_with_handler_flow(p)</i></td></tr></table>>];
-  router_mutations_with_handler_flow_line_13_seq [fillcolor="wheat", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_mutations_with_handler_flow_line_13…(p)</i></td></tr><tr><td bgcolor="white" align="left">p['finalized'] = True</td></tr></table>>];
-  router_mutations_with_handler_flow_line_9_seq [fillcolor="wheat", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_mutations_with_handler_flow_line_9_…(p)</i></td></tr><tr><td bgcolor="white" align="left">p['initialized'] = True</td></tr><tr><td bgcolor="white" align="left">p['step'] = 1</td></tr><tr><td bgcolor="white" align="left">p['count'] = 0</td></tr></table>>];
-  end_mutations_with_handler_flow [fillcolor="lightgreen", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = end_mutations_with_handler_flow(p)</i></td></tr></table>>];
+  start_mutations_with_handler_flow [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = start_mutations_with_handler_flow(p)</i></td></tr><tr><td bgcolor="white" align="left">p['initialized'] = True</td></tr><tr><td bgcolor="white" align="left">p['step'] = 1</td></tr><tr><td bgcolor="white" align="left">p['count'] = 0</td></tr></table>>];
+  router_mutations_with_handler_flow_line_13_seq [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_mutations_with_handler_flow_line_13…(p)</i></td></tr><tr><td bgcolor="white" align="left">p['finalized'] = True</td></tr></table>>];
+  end_mutations_with_handler_flow [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = end_mutations_with_handler_flow(p)</i></td></tr></table>>];
   handler_process [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = handler_process(p)</i></td></tr></table>>];
 
   handler_process -> router_mutations_with_handler_flow_line_13_seq;
   router_mutations_with_handler_flow_line_13_seq -> end_mutations_with_handler_flow;
-  router_mutations_with_handler_flow_line_9_seq -> handler_process;
-  start_mutations_with_handler_flow -> router_mutations_with_handler_flow_line_9_seq;
+  start_mutations_with_handler_flow -> handler_process;
 }

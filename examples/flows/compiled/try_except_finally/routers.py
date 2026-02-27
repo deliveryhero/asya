@@ -22,10 +22,13 @@ def start_resource_pipeline(payload: dict) -> dict:
         _next_tail = _f.read().splitlines()
     _next = []
 
-    _next.append(resolve("router_resource_pipeline_line_2_seq"))
+    p = payload
+    p['status'] = 'started'
+
+    _next.append(resolve("router_resource_pipeline_line_3_try_enter_0"))
     with open(f"{_MSG_ROOT}/route/next", "w") as _f:
         _f.write("\n".join(_next + _next_tail))
-    return payload
+    return p
 
 def router_resource_pipeline_line_7_seq(payload: dict) -> dict:
     """Router for control flow and payload mutations"""
@@ -109,20 +112,6 @@ def router_resource_pipeline_line_3_reraise_0(payload: dict) -> dict:
     with open(f"{_MSG_ROOT}/status/error/message") as _f:
         _error_msg = _f.read().strip() or 'unknown error'
     raise RuntimeError(f"Unhandled exception {_error_type}: {_error_msg}")
-
-def router_resource_pipeline_line_2_seq(payload: dict) -> dict:
-    """Router for control flow and payload mutations"""
-    p = payload
-    with open(f"{_MSG_ROOT}/route/next") as _f:
-        _next_tail = _f.read().splitlines()
-    _next = []
-
-    p['status'] = 'started'
-    _next.append(resolve("router_resource_pipeline_line_3_try_enter_0"))
-
-    with open(f"{_MSG_ROOT}/route/next", "w") as _f:
-        _f.write("\n".join(_next + _next_tail))
-    return payload
 
 def end_resource_pipeline(payload: dict) -> dict:
     """Exitpoint for flow 'resource_pipeline'"""

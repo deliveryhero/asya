@@ -71,17 +71,19 @@ class TestSimpleFlows:
         assert "handler_c" in start.true_branch_actors
         assert "end_flow" in start.true_branch_actors
 
-    def test_mutations_only_creates_router(self):
+    def test_mutations_only_merged_into_start(self):
         ops = [Mutation(lineno=1, code='p["x"] = 1'), Mutation(lineno=2, code='p["y"] = 2'), Return(lineno=3)]
         grouper = OperationGrouper("flow", ops)
         routers = grouper.group()
 
-        assert len(routers) == 3
-        router = next(r for r in routers if r.name.startswith("router_"))
-        assert len(router.mutations) == 2
-        assert router.condition is None
+        # Leading mutation-only router is merged into start
+        assert len(routers) == 2
+        start = routers[0]
+        assert start.name == "start_flow"
+        assert len(start.mutations) == 2
+        assert start.condition is None
 
-    def test_mutations_with_handler_creates_router(self):
+    def test_mutations_with_handler_merged_into_start(self):
         ops = [
             Mutation(lineno=1, code='p["x"] = 1'),
             ActorCall(lineno=2, name="handler"),
@@ -90,12 +92,14 @@ class TestSimpleFlows:
         grouper = OperationGrouper("flow", ops)
         routers = grouper.group()
 
-        router = next(r for r in routers if r.name.startswith("router_"))
-        assert len(router.mutations) == 1
-        assert "handler" in router.true_branch_actors
-        assert "end_flow" in router.true_branch_actors
+        # Leading mutation+handler router is merged into start
+        start = routers[0]
+        assert start.name == "start_flow"
+        assert len(start.mutations) == 1
+        assert "handler" in start.true_branch_actors
+        assert "end_flow" in start.true_branch_actors
 
-    def test_multiple_mutations_grouped_together(self):
+    def test_multiple_mutations_merged_into_start(self):
         ops = [
             Mutation(lineno=1, code='p["a"] = 1'),
             Mutation(lineno=2, code='p["b"] = 2'),
@@ -106,8 +110,10 @@ class TestSimpleFlows:
         grouper = OperationGrouper("flow", ops)
         routers = grouper.group()
 
-        router = next(r for r in routers if r.name.startswith("router_"))
-        assert len(router.mutations) == 3
+        # All leading mutations merged into start
+        start = routers[0]
+        assert start.name == "start_flow"
+        assert len(start.mutations) == 3
 
 
 class TestConditionals:
@@ -587,13 +593,16 @@ class TestEdgeCases:
         start, end = routers
         assert "end_flow" in start.true_branch_actors
 
-    def test_single_mutation_only(self):
+    def test_single_mutation_merged_into_start(self):
         ops = [Mutation(lineno=1, code='p["x"] = 1'), Return(lineno=2)]
         grouper = OperationGrouper("flow", ops)
         routers = grouper.group()
 
-        router = next(r for r in routers if r.name.startswith("router_"))
-        assert len(router.mutations) == 1
+        # Single leading mutation merged into start
+        assert len(routers) == 2
+        start = routers[0]
+        assert start.name == "start_flow"
+        assert len(start.mutations) == 1
 
     def test_convergence_counter_increments(self):
         ops = [
@@ -660,7 +669,7 @@ class TestEdgeCases:
 class TestWhileLoopGrouping:
     """Test while loop router generation."""
 
-    def test_simple_while_creates_condition_and_loop_back_routers(self):
+    def test_simple_while_creates_condition_router_with_self_reference(self):
         ops = [
             WhileLoop(
                 lineno=3,
@@ -672,9 +681,9 @@ class TestWhileLoopGrouping:
         grouper = OperationGrouper("flow", ops)
         routers = grouper.group()
 
-        # Should have: start, while_condition, loop_back, end
+        # Conditional while should NOT create a loop_back router
         loop_back_routers = [r for r in routers if r.is_loop_back]
-        assert len(loop_back_routers) == 1
+        assert len(loop_back_routers) == 0
 
         cond_routers = [r for r in routers if r.condition is not None and "while" in r.name]
         assert len(cond_routers) == 1
@@ -683,7 +692,8 @@ class TestWhileLoopGrouping:
         assert cond_router.condition is not None
         assert cond_router.condition.test == 'p["i"] < 10'
         assert "handler" in cond_router.true_branch_actors
-        assert loop_back_routers[0].name in cond_router.true_branch_actors
+        # Condition router self-references (last in true_branch)
+        assert cond_router.true_branch_actors[-1] == cond_router.name
 
     def test_while_true_no_condition_router(self):
         ops = [
@@ -734,7 +744,7 @@ class TestWhileLoopGrouping:
         # False branch should contain finalize + end
         assert "finalize" in cond_router.false_branch_actors
 
-    def test_while_loop_back_re_inserts_condition(self):
+    def test_while_condition_self_references_at_end_of_true_branch(self):
         ops = [
             WhileLoop(
                 lineno=3,
@@ -746,11 +756,11 @@ class TestWhileLoopGrouping:
         grouper = OperationGrouper("flow", ops)
         routers = grouper.group()
 
-        loop_back = next(r for r in routers if r.is_loop_back)
         cond_router = next(r for r in routers if r.condition is not None and "while" in r.name)
 
-        # Loop-back should re-insert the condition router
-        assert cond_router.name in loop_back.true_branch_actors
+        # Condition router should self-reference at the end of its true branch
+        assert cond_router.true_branch_actors[-1] == cond_router.name
+        assert cond_router.true_branch_actors == ["handler", cond_router.name]
 
     def test_while_with_break_goes_to_continuation(self):
         ops = [
@@ -777,7 +787,7 @@ class TestWhileLoopGrouping:
         break_cond = next(r for r in routers if r.condition is not None and r.condition.test == 'p["stop"]')
         assert "finalize" in break_cond.true_branch_actors
 
-    def test_while_with_continue_goes_to_loop_back(self):
+    def test_while_with_continue_goes_to_condition_router(self):
         ops = [
             WhileLoop(
                 lineno=3,
@@ -798,11 +808,11 @@ class TestWhileLoopGrouping:
         grouper = OperationGrouper("flow", ops)
         routers = grouper.group()
 
-        loop_back = next(r for r in routers if r.is_loop_back)
+        cond_router = next(r for r in routers if r.condition is not None and "while" in r.name)
 
-        # Continue's if-condition should route to loop_back on the true branch
+        # Continue's if-condition should route to condition router (not loop_back)
         skip_cond = next(r for r in routers if r.condition is not None and r.condition.test == 'p["skip"]')
-        assert loop_back.name in skip_cond.true_branch_actors
+        assert cond_router.name in skip_cond.true_branch_actors
 
     def test_while_with_mutations_before_loop(self):
         ops = [
@@ -820,10 +830,16 @@ class TestWhileLoopGrouping:
         grouper = OperationGrouper("flow", ops)
         routers = grouper.group()
 
-        # Mutation before while should be in the while condition router's mutations
+        # Mutation before while is merged into start (NOT on the while condition
+        # router, which would re-execute it every iteration)
         cond_router = next(r for r in routers if r.condition is not None and "while" in r.name)
-        assert len(cond_router.mutations) == 1
-        assert cond_router.mutations[0].code == 'p["i"] = 0'
+        assert len(cond_router.mutations) == 0
+
+        start = routers[0]
+        assert start.name == "start_flow"
+        assert len(start.mutations) == 1
+        assert start.mutations[0].code == 'p["i"] = 0'
+        assert cond_router.name in start.true_branch_actors
 
     def test_while_body_mutations_grouped(self):
         ops = [
@@ -886,11 +902,11 @@ class TestWhileLoopGrouping:
         grouper = OperationGrouper("flow", ops)
         routers = grouper.group()
 
-        # Should have two condition routers and two loop-back routers
+        # Two condition routers, zero loop-back routers (conditional whiles self-reference)
         cond_routers = [r for r in routers if r.condition is not None and "while" in r.name]
         loop_back_routers = [r for r in routers if r.is_loop_back]
         assert len(cond_routers) == 2
-        assert len(loop_back_routers) == 2
+        assert len(loop_back_routers) == 0
 
     def test_while_loop_counter_increments(self):
         ops = [
@@ -909,9 +925,11 @@ class TestWhileLoopGrouping:
         grouper = OperationGrouper("flow", ops)
         routers = grouper.group()
 
-        loop_back_routers = [r for r in routers if r.is_loop_back]
-        assert len(loop_back_routers) == 2
-        assert loop_back_routers[0].name != loop_back_routers[1].name
+        # Conditional whiles produce no loop_back routers, but condition routers
+        # should have distinct names with incrementing IDs
+        cond_routers = [r for r in routers if r.condition is not None and "while" in r.name]
+        assert len(cond_routers) == 2
+        assert cond_routers[0].name != cond_routers[1].name
 
     def test_while_with_if_inside_body(self):
         ops = [
@@ -932,7 +950,7 @@ class TestWhileLoopGrouping:
         grouper = OperationGrouper("flow", ops)
         routers = grouper.group()
 
-        # Should have while condition + if condition + loop_back
+        # Should have while condition + if condition (no loop_back for conditional while)
         if_routers = [r for r in routers if r.condition is not None and "_if" in r.name]
         assert len(if_routers) == 1
         if_router = if_routers[0]
@@ -1007,7 +1025,7 @@ class TestWhileLoopGrouping:
         while_conds = [r for r in routers if r.condition is not None and "while" in r.name]
         assert len(while_conds) == 1
 
-    def test_while_empty_body_produces_loop_back(self):
+    def test_while_empty_body_self_references(self):
         ops = [
             WhileLoop(
                 lineno=3,
@@ -1019,8 +1037,11 @@ class TestWhileLoopGrouping:
         grouper = OperationGrouper("flow", ops)
         routers = grouper.group()
 
+        # Conditional while with empty body: no loop_back, condition self-references
         loop_backs = [r for r in routers if r.is_loop_back]
-        assert len(loop_backs) == 1
+        assert len(loop_backs) == 0
+        cond_router = next(r for r in routers if r.condition is not None and "while" in r.name)
+        assert cond_router.true_branch_actors[-1] == cond_router.name
 
     def test_sequential_while_loops(self):
         ops = [
@@ -1077,10 +1098,11 @@ class TestWhileLoopGrouping:
         grouper = OperationGrouper("flow", ops)
         routers = grouper.group()
 
-        loop_back = next(r for r in routers if r.is_loop_back)
+        cond_router = next(r for r in routers if r.condition is not None and "while" in r.name)
 
+        # Continue routes to condition router (not loop_back)
         skip_cond = next(r for r in routers if r.condition is not None and r.condition.test == 'p["skip"]')
-        assert loop_back.name in skip_cond.true_branch_actors
+        assert cond_router.name in skip_cond.true_branch_actors
 
         stop_cond = next(r for r in routers if r.condition is not None and r.condition.test == 'p["stop"]')
         assert "finalize" in stop_cond.true_branch_actors
@@ -1104,7 +1126,7 @@ class TestMaxIterationsGuard:
         loop_back = next(r for r in routers if r.is_loop_back)
         assert loop_back.guard_max_iter == 100
 
-    def test_while_condition_no_guard(self):
+    def test_while_condition_no_loop_back(self):
         ops = [
             WhileLoop(
                 lineno=3,
@@ -1116,8 +1138,9 @@ class TestMaxIterationsGuard:
         grouper = OperationGrouper("flow", ops)
         routers = grouper.group()
 
-        loop_back = next(r for r in routers if r.is_loop_back)
-        assert loop_back.guard_max_iter is None
+        # Conditional while produces no loop_back at all
+        loop_backs = [r for r in routers if r.is_loop_back]
+        assert len(loop_backs) == 0
 
     def test_custom_max_iterations(self):
         ops = [
@@ -1194,10 +1217,9 @@ class TestMaxIterationsGuard:
         grouper = OperationGrouper("flow", ops)
         routers = grouper.group()
 
+        # Only while True produces a loop_back (conditional while self-references)
         loop_backs = [r for r in routers if r.is_loop_back]
-        assert len(loop_backs) == 2
+        assert len(loop_backs) == 1
 
         guarded = [r for r in loop_backs if r.guard_max_iter is not None]
-        unguarded = [r for r in loop_backs if r.guard_max_iter is None]
         assert len(guarded) == 1
-        assert len(unguarded) == 1

@@ -22,18 +22,7 @@ def start_mutations_only_flow(payload: dict) -> dict:
         _next_tail = _f.read().splitlines()
     _next = []
 
-    _next.append(resolve("router_mutations_only_flow_line_10_seq"))
-    with open(f"{_MSG_ROOT}/route/next", "w") as _f:
-        _f.write("\n".join(_next + _next_tail))
-    return payload
-
-def router_mutations_only_flow_line_10_seq(payload: dict) -> dict:
-    """Router for control flow and payload mutations"""
     p = payload
-    with open(f"{_MSG_ROOT}/route/next") as _f:
-        _next_tail = _f.read().splitlines()
-    _next = []
-
     p['step'] = 1
     p['x'] = 10
     p['y'] = 20
@@ -41,7 +30,7 @@ def router_mutations_only_flow_line_10_seq(payload: dict) -> dict:
 
     with open(f"{_MSG_ROOT}/route/next", "w") as _f:
         _f.write("\n".join(_next + _next_tail))
-    return payload
+    return p
 
 def end_mutations_only_flow(payload: dict) -> dict:
     """Exitpoint for flow 'mutations_only_flow'"""

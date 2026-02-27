@@ -85,6 +85,22 @@ class OperationGrouper:
 
         self._resolve_convergence_labels()
 
+        # Merge leading mutation-only router into start (saves one actor hop)
+        if start_router.true_branch_actors:
+            first_name = start_router.true_branch_actors[0]
+            first_router = next((r for r in self.routers if r.name == first_name), None)
+            if (
+                first_router
+                and first_router.mutations
+                and not first_router.condition
+                and not first_router.is_fan_out
+                and not first_router.is_loop_back
+                and not first_router.is_try_enter
+            ):
+                start_router.mutations = first_router.mutations
+                start_router.true_branch_actors = first_router.true_branch_actors
+                self.routers.remove(first_router)
+
         return self.routers
 
     def _process_operations(
@@ -195,8 +211,18 @@ class OperationGrouper:
                             loop_exit_label=loop_exit_label,
                         )
 
-                        loop_actors = self._process_while_loop(next_op, mutations, continuation)
-                        return [*result, *loop_actors]
+                        # Create a mutation router before the while loop —
+                        # mutations must NOT be on the loop router itself,
+                        # otherwise they re-execute on every iteration.
+                        loop_actors = self._process_while_loop(next_op, [], continuation)
+                        router = Router(
+                            name=f"router_{self.flow_name}_line_{mutations[0].lineno}_seq",
+                            lineno=mutations[0].lineno,
+                            mutations=mutations,
+                            true_branch_actors=loop_actors,
+                        )
+                        self.routers.append(router)
+                        return [*result, router.name]
 
                     elif isinstance(next_op, TryExcept):
                         i += 1
@@ -424,12 +450,16 @@ class OperationGrouper:
         """Process a WhileLoop IR node into router(s).
 
         For `while True:` (no condition):
-            loop_back_router (re-inserts loop body into route)
+            loop_back_router (re-inserts loop body into route with iteration guard)
             Body is processed with loop_back pointing to loop_back_router
 
         For `while condition:` (conditional):
-            loop_condition_router (checks condition, true -> body, false -> continuation)
-            loop_back_router (re-inserts condition_router into route)
+            condition_router self-references (appends itself to true_branch_actors)
+            No loop_back router needed — eliminates one actor hop per iteration
+
+        IMPORTANT: pre_mutations must be empty. Mutations preceding a while loop
+        are handled by the caller via a separate seq router so they execute once
+        on entry, not on every iteration.
         """
         loop_id = self._loop_counter
         self._loop_counter += 1
@@ -473,6 +503,7 @@ class OperationGrouper:
 
         else:
             # `while condition:` — need a condition router
+            # No loop_back router needed — condition router self-references
             condition_name = f"router_{self.flow_name}_line_{loop.lineno}_while_{loop_id}"
 
             # Process loop body with loop context
@@ -483,19 +514,10 @@ class OperationGrouper:
                 loop_exit_label=loop_exit_label,
             )
 
-            # Create loop-back router: re-inserts condition_router into route
-            loop_back_router = Router(
-                name=loop_back_name,
-                lineno=loop.lineno,
-                true_branch_actors=[condition_name],
-                is_loop_back=True,
-            )
-            self.routers.append(loop_back_router)
+            # Register loop_back_label so `continue` resolves to condition router
+            self.convergence_map[loop_back_label] = [condition_name]
 
-            # Register the loop_back_label so continue resolves to loop_back_router
-            self.convergence_map[loop_back_label] = [loop_back_name]
-
-            # Create the condition-check router
+            # Create the condition-check router (self-references at end of true branch)
             condition_ir = Condition(
                 lineno=loop.lineno,
                 test=loop.test,
@@ -508,7 +530,7 @@ class OperationGrouper:
                 lineno=loop.lineno,
                 mutations=pre_mutations,
                 condition=condition_ir,
-                true_branch_actors=[*body_actors, loop_back_name],
+                true_branch_actors=[*body_actors, condition_name],
                 false_branch_actors=[loop_exit_label],
             )
             self.routers.append(condition_router)

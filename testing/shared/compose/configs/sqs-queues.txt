@@ -36,6 +36,10 @@ asya-default-test-cuda-oom-queue
 asya-default-test-large-queue
 asya-default-test-conditional-queue
 
+# SLA enforcement test queues
+asya-default-test-sla-slow
+asya-default-test-sla-retry
+
 # Fan-in integration test queues
 asya-default-test-fanout-router
 asya-default-test-sub-agent

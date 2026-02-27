@@ -23,7 +23,7 @@ def start_while_mutations_in_loop_flow(payload: dict) -> dict:
     _next = []
 
     _next.append(resolve("handler_init"))
-    _next.append(resolve("router_while_mutations_in_loop_flow_line_12_while_0"))
+    _next.append(resolve("router_while_mutations_in_loop_flow_line_10_seq"))
     with open(f"{_MSG_ROOT}/route/next", "w") as _f:
         _f.write("\n".join(_next + _next_tail))
     return payload
@@ -58,20 +58,24 @@ def router_while_mutations_in_loop_flow_line_13_seq(payload: dict) -> dict:
         _f.write("\n".join(_next + _next_tail))
     return payload
 
-def router_while_mutations_in_loop_flow_line_12_loop_back_0(payload: dict) -> dict:
-    """Loop-back router: re-inserts loop actors into route"""
+def router_while_mutations_in_loop_flow_line_12_while_0(payload: dict) -> dict:
+    """Router for control flow and payload mutations"""
     p = payload
     with open(f"{_MSG_ROOT}/route/next") as _f:
         _next_tail = _f.read().splitlines()
     _next = []
 
-    _next.append(resolve("router_while_mutations_in_loop_flow_line_12_while_0"))
+    if p['i'] < p['max_iterations']:
+        _next.append(resolve("router_while_mutations_in_loop_flow_line_13_seq"))
+        _next.append(resolve("router_while_mutations_in_loop_flow_line_12_while_0"))
+    else:
+        _next.append(resolve("handler_finalize"))
 
     with open(f"{_MSG_ROOT}/route/next", "w") as _f:
         _f.write("\n".join(_next + _next_tail))
     return payload
 
-def router_while_mutations_in_loop_flow_line_12_while_0(payload: dict) -> dict:
+def router_while_mutations_in_loop_flow_line_10_seq(payload: dict) -> dict:
     """Router for control flow and payload mutations"""
     p = payload
     with open(f"{_MSG_ROOT}/route/next") as _f:
@@ -80,11 +84,7 @@ def router_while_mutations_in_loop_flow_line_12_while_0(payload: dict) -> dict:
 
     p['i'] = 0
     p['sum'] = 0
-    if p['i'] < p['max_iterations']:
-        _next.append(resolve("router_while_mutations_in_loop_flow_line_13_seq"))
-        _next.append(resolve("router_while_mutations_in_loop_flow_line_12_loop_back_0"))
-    else:
-        _next.append(resolve("handler_finalize"))
+    _next.append(resolve("router_while_mutations_in_loop_flow_line_12_while_0"))
 
     with open(f"{_MSG_ROOT}/route/next", "w") as _f:
         _f.write("\n".join(_next + _next_tail))

@@ -4,10 +4,10 @@ digraph flow {
   node [fontname="Courier", fontsize=10, shape=box, style="filled,rounded", margin="0.2"];
   edge [fontname="Courier", fontsize=10];
 
-  start_while_true_flow [fillcolor="lightgreen", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = start_while_true_flow(p)</i></td></tr></table>>];
-  router_while_true_flow_line_12_if [fillcolor="wheat", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_while_true_flow_line_12_if(p)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> p.get('done', False)</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkseagreen4"><font color="white"><b>TRUE</b></font></td><td bgcolor="indianred4"><font color="white"><b>pass</b></font></td></tr></table></td></tr></table>>];
-  router_while_true_flow_line_10_loop_back_0 [fillcolor="wheat", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_while_true_flow_line_10_loop_back_0(p)</i></td></tr></table>>];
-  end_while_true_flow [fillcolor="lightgreen", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = end_while_true_flow(p)</i></td></tr></table>>];
+  start_while_true_flow [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = start_while_true_flow(p)</i></td></tr></table>>];
+  router_while_true_flow_line_12_if [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_while_true_flow_line_12_if(p)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> p.get('done', False)</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkseagreen4"><font color="white"><b>TRUE</b></font></td><td bgcolor="indianred4"><font color="white"><b>pass</b></font></td></tr></table></td></tr></table>>];
+  router_while_true_flow_line_10_loop_back_0 [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_while_true_flow_line_10_loop_back_0(p)</i></td></tr></table>>];
+  end_while_true_flow [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = end_while_true_flow(p)</i></td></tr></table>>];
   handler_finalize [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = handler_finalize(p)</i></td></tr></table>>];
   handler_init [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = handler_init(p)</i></td></tr></table>>];
   handler_process [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = handler_process(p)</i></td></tr></table>>];
@@ -17,5 +17,6 @@ digraph flow {
   handler_process -> router_while_true_flow_line_12_if;
   router_while_true_flow_line_10_loop_back_0 -> handler_process [constraint=false];
   router_while_true_flow_line_12_if -> handler_finalize [label="T", color=darkseagreen4];
+  router_while_true_flow_line_12_if -> router_while_true_flow_line_10_loop_back_0 [label="F", color=indianred4];
   start_while_true_flow -> handler_init;
 }

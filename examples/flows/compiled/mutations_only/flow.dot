@@ -4,10 +4,8 @@ digraph flow {
   node [fontname="Courier", fontsize=10, shape=box, style="filled,rounded", margin="0.2"];
   edge [fontname="Courier", fontsize=10];
 
-  start_mutations_only_flow [fillcolor="lightgreen", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = start_mutations_only_flow(p)</i></td></tr></table>>];
-  router_mutations_only_flow_line_10_seq [fillcolor="wheat", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_mutations_only_flow_line_10_seq(p)</i></td></tr><tr><td bgcolor="white" align="left">p['step'] = 1</td></tr><tr><td bgcolor="white" align="left">p['x'] = 10</td></tr><tr><td bgcolor="white" align="left">p['y'] = 20</td></tr><tr><td bgcolor="white" align="left">p['x'] += p['y']</td></tr></table>>];
-  end_mutations_only_flow [fillcolor="lightgreen", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = end_mutations_only_flow(p)</i></td></tr></table>>];
+  start_mutations_only_flow [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = start_mutations_only_flow(p)</i></td></tr><tr><td bgcolor="white" align="left">p['step'] = 1</td></tr><tr><td bgcolor="white" align="left">p['x'] = 10</td></tr><tr><td bgcolor="white" align="left">p['y'] = 20</td></tr><tr><td bgcolor="white" align="left">p['x'] += p['y']</td></tr></table>>];
+  end_mutations_only_flow [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = end_mutations_only_flow(p)</i></td></tr></table>>];
 
-  router_mutations_only_flow_line_10_seq -> end_mutations_only_flow;
-  start_mutations_only_flow -> router_mutations_only_flow_line_10_seq;
+  start_mutations_only_flow -> end_mutations_only_flow;
 }

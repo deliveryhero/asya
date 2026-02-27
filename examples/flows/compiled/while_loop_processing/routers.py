@@ -23,7 +23,7 @@ def start_loop_flow(payload: dict) -> dict:
     _next = []
 
     _next.append(resolve("initialize"))
-    _next.append(resolve("router_loop_flow_line_12_while_0"))
+    _next.append(resolve("router_loop_flow_line_11_seq"))
     with open(f"{_MSG_ROOT}/route/next", "w") as _f:
         _f.write("\n".join(_next + _next_tail))
     return payload
@@ -36,7 +36,7 @@ def router_loop_flow_line_19_seq(payload: dict) -> dict:
     _next = []
 
     p['abort'] = 2
-    _next.append(resolve("router_loop_flow_line_12_loop_back_0"))
+    _next.append(resolve("router_loop_flow_line_12_while_0"))
 
     with open(f"{_MSG_ROOT}/route/next", "w") as _f:
         _f.write("\n".join(_next + _next_tail))
@@ -105,19 +105,6 @@ def router_loop_flow_line_13_seq(payload: dict) -> dict:
         _f.write("\n".join(_next + _next_tail))
     return payload
 
-def router_loop_flow_line_12_loop_back_0(payload: dict) -> dict:
-    """Loop-back router: re-inserts loop actors into route"""
-    p = payload
-    with open(f"{_MSG_ROOT}/route/next") as _f:
-        _next_tail = _f.read().splitlines()
-    _next = []
-
-    _next.append(resolve("router_loop_flow_line_12_while_0"))
-
-    with open(f"{_MSG_ROOT}/route/next", "w") as _f:
-        _f.write("\n".join(_next + _next_tail))
-    return payload
-
 def router_loop_flow_line_12_while_0(payload: dict) -> dict:
     """Router for control flow and payload mutations"""
     p = payload
@@ -125,12 +112,25 @@ def router_loop_flow_line_12_while_0(payload: dict) -> dict:
         _next_tail = _f.read().splitlines()
     _next = []
 
-    p['iteration'] = 0
     if p['iteration'] < p['max_iterations']:
         _next.append(resolve("router_loop_flow_line_13_seq"))
-        _next.append(resolve("router_loop_flow_line_12_loop_back_0"))
+        _next.append(resolve("router_loop_flow_line_12_while_0"))
     else:
         _next.append(resolve("finalize_loop"))
+
+    with open(f"{_MSG_ROOT}/route/next", "w") as _f:
+        _f.write("\n".join(_next + _next_tail))
+    return payload
+
+def router_loop_flow_line_11_seq(payload: dict) -> dict:
+    """Router for control flow and payload mutations"""
+    p = payload
+    with open(f"{_MSG_ROOT}/route/next") as _f:
+        _next_tail = _f.read().splitlines()
+    _next = []
+
+    p['iteration'] = 0
+    _next.append(resolve("router_loop_flow_line_12_while_0"))
 
     with open(f"{_MSG_ROOT}/route/next", "w") as _f:
         _f.write("\n".join(_next + _next_tail))

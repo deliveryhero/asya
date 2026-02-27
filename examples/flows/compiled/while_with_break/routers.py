@@ -23,7 +23,7 @@ def start_while_with_break_flow(payload: dict) -> dict:
     _next = []
 
     _next.append(resolve("handler_init"))
-    _next.append(resolve("router_while_with_break_flow_line_11_while_0"))
+    _next.append(resolve("router_while_with_break_flow_line_10_seq"))
     with open(f"{_MSG_ROOT}/route/next", "w") as _f:
         _f.write("\n".join(_next + _next_tail))
     return payload
@@ -59,19 +59,6 @@ def router_while_with_break_flow_line_12_seq(payload: dict) -> dict:
         _f.write("\n".join(_next + _next_tail))
     return payload
 
-def router_while_with_break_flow_line_11_loop_back_0(payload: dict) -> dict:
-    """Loop-back router: re-inserts loop actors into route"""
-    p = payload
-    with open(f"{_MSG_ROOT}/route/next") as _f:
-        _next_tail = _f.read().splitlines()
-    _next = []
-
-    _next.append(resolve("router_while_with_break_flow_line_11_while_0"))
-
-    with open(f"{_MSG_ROOT}/route/next", "w") as _f:
-        _f.write("\n".join(_next + _next_tail))
-    return payload
-
 def router_while_with_break_flow_line_11_while_0(payload: dict) -> dict:
     """Router for control flow and payload mutations"""
     p = payload
@@ -79,12 +66,25 @@ def router_while_with_break_flow_line_11_while_0(payload: dict) -> dict:
         _next_tail = _f.read().splitlines()
     _next = []
 
-    p['i'] = 0
     if p['i'] < p['max_iterations']:
         _next.append(resolve("router_while_with_break_flow_line_12_seq"))
-        _next.append(resolve("router_while_with_break_flow_line_11_loop_back_0"))
+        _next.append(resolve("router_while_with_break_flow_line_11_while_0"))
     else:
         _next.append(resolve("handler_finalize"))
+
+    with open(f"{_MSG_ROOT}/route/next", "w") as _f:
+        _f.write("\n".join(_next + _next_tail))
+    return payload
+
+def router_while_with_break_flow_line_10_seq(payload: dict) -> dict:
+    """Router for control flow and payload mutations"""
+    p = payload
+    with open(f"{_MSG_ROOT}/route/next") as _f:
+        _next_tail = _f.read().splitlines()
+    _next = []
+
+    p['i'] = 0
+    _next.append(resolve("router_while_with_break_flow_line_11_while_0"))
 
     with open(f"{_MSG_ROOT}/route/next", "w") as _f:
         _f.write("\n".join(_next + _next_tail))

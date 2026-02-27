@@ -1,0 +1,12 @@
+{
+  "name": "asya-ui-root",
+  "version": "0.0.1",
+  "private": true,
+  "packageManager": "pnpm@9.0.0",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "pnpm -r build"
+  }
+}

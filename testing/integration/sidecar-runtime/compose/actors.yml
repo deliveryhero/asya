@@ -759,6 +759,93 @@ services:
     volumes:
     - asya-retry-mro-sockets:/var/run/asya
 
+  # =========================================================================
+  # SLA enforcement test actors
+  # =========================================================================
+
+  # Actor with long handler sleep and large actor timeout.
+  # Used in SLA pipeline test to verify effectiveTimeout = min(ACTOR_TIMEOUT, remaining_SLA)
+  asya-sla-slow-runtime:
+    build:
+      context: ../../../../src/asya-testing
+      dockerfile: Dockerfile
+    logging: *default-logging
+    command: ["python3", "/opt/asya/asya_runtime.py"]
+    env_file: *runtime-env-files
+    environment:
+      ASYA_HANDLER: asya_testing.handlers.payload.timeout_handler
+      ASYA_RESILIENCY_ACTOR_TIMEOUT: 5s
+    volumes:
+    - asya-sla-slow-sockets:/var/run/asya
+    - ../../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro
+    healthcheck:
+      test: ["CMD", "test", "-S", "/var/run/asya/asya-runtime.sock"]
+      interval: 500ms
+      timeout: 500ms
+      retries: 20
+      start_period: 1s
+
+  asya-sla-slow-sidecar:
+    build:
+      context: ../../../../src/asya-sidecar
+      dockerfile: Dockerfile
+    logging: *default-logging
+    depends_on:
+      asya-sla-slow-runtime:
+        condition: service_healthy
+      queue-setup:
+        condition: service_completed_successfully
+    env_file: *sidecar-env-files
+    environment:
+      ASYA_ACTOR_NAME: test-sla-slow
+      ASYA_RESILIENCY_ACTOR_TIMEOUT: 30s
+    volumes:
+    - asya-sla-slow-sockets:/var/run/asya
+
+  # Actor that always fails, with retry policy and large actor timeout.
+  # Used in retry+SLA test to verify SLA pre-check takes precedence over retries.
+  asya-sla-retry-runtime:
+    build:
+      context: ../../../../src/asya-testing
+      dockerfile: Dockerfile
+    logging: *default-logging
+    command: ["python3", "/opt/asya/asya_runtime.py"]
+    env_file: *runtime-env-files
+    environment:
+      ASYA_HANDLER: asya_testing.handlers.payload.error_handler
+      ASYA_RESILIENCY_ACTOR_TIMEOUT: 5s
+    volumes:
+    - asya-sla-retry-sockets:/var/run/asya
+    - ../../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro
+    healthcheck:
+      test: ["CMD", "test", "-S", "/var/run/asya/asya-runtime.sock"]
+      interval: 500ms
+      timeout: 500ms
+      retries: 20
+      start_period: 1s
+
+  asya-sla-retry-sidecar:
+    build:
+      context: ../../../../src/asya-sidecar
+      dockerfile: Dockerfile
+    logging: *default-logging
+    depends_on:
+      asya-sla-retry-runtime:
+        condition: service_healthy
+      queue-setup:
+        condition: service_completed_successfully
+    env_file: *sidecar-env-files
+    environment:
+      ASYA_ACTOR_NAME: test-sla-retry
+      ASYA_RESILIENCY_ACTOR_TIMEOUT: 30s
+      ASYA_RESILIENCY_RETRY_POLICY: constant
+      ASYA_RESILIENCY_RETRY_MAX_ATTEMPTS: 5
+      ASYA_RESILIENCY_RETRY_INITIAL_INTERVAL: 2s
+      ASYA_RESILIENCY_RETRY_MAX_INTERVAL: 2s
+      ASYA_RESILIENCY_RETRY_JITTER: "false"
+    volumes:
+    - asya-sla-retry-sockets:/var/run/asya
+
   # Waiter service for test actors dependency subgraph
   test-actors-waiter:
     image: busybox:latest
@@ -800,6 +887,10 @@ services:
         condition: service_started
       asya-retry-succeed-sidecar:
         condition: service_started
+      asya-sla-slow-sidecar:
+        condition: service_started
+      asya-sla-retry-sidecar:
+        condition: service_started
 
 volumes:
   asya-error-sockets:
@@ -820,3 +911,5 @@ volumes:
   asya-retry-mro-sockets:
   asya-retry-succeed-sockets:
   asya-invalid-route-sockets:
+  asya-sla-slow-sockets:
+  asya-sla-retry-sockets:

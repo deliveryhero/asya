@@ -41,6 +41,7 @@ class DotGenerator:
         self._redirect_map: dict[str, str] = {}
         self._try_clusters: list[_TryCluster] = []
         self._cluster_membership: dict[str, str] = {}
+        self._raise_exit_nodes: dict[str, str] = {}  # cluster_name → raise_exit node name
         self._color_error_control_flow = "snow4"
         self._color_true_branch = "darkseagreen4"
         self._color_false_branch = "indianred4"
@@ -118,6 +119,14 @@ class DotGenerator:
                 parts.append(self._generate_fanin_node(actor))
             else:
                 parts.append(self._generate_user_actor_node(actor))
+
+        # Raise exit pseudo-nodes (stop-sign shape for raise propagation to x-sump)
+        for raise_node in self._raise_exit_nodes.values():
+            parts.append(
+                f'  {raise_node} [shape=octagon, fillcolor="mistyrose",'
+                f' fontcolor="crimson", style=filled,'
+                f' label="raise"];'
+            )
 
         # Try clusters (subgraph blocks with contained node definitions)
         for cluster in self._try_clusters:
@@ -226,6 +235,14 @@ class DotGenerator:
                     finally_actors=finally_actors_list,
                 )
             )
+
+            # Track raise exit pseudo-nodes for clusters with raise handlers
+            if except_dispatch and except_dispatch.exception_handlers:
+                has_raise = any(h.is_raise for h in except_dispatch.exception_handlers if h.actors)
+                if has_raise:
+                    raise_node = f"raise_exit_{cluster_id}"
+                    self._raise_exit_nodes[cluster_name] = raise_node
+
             cluster_id += 1
 
             # Mark infrastructure routers as hidden
@@ -344,7 +361,8 @@ class DotGenerator:
 
         label = f'<<table border="0" cellspacing="0" cellpadding="6" cellborder="1">{"".join(rows)}</table>>'
 
-        return f'  {self._node_id(router.name)} [fillcolor="{color}", label={label}];'
+        group_attr = ' group="main"'
+        return f'  {self._node_id(router.name)} [fillcolor="{color}",{group_attr}, label={label}];'
 
     def _generate_user_actor_node(self, actor_name: str) -> str:
         display_name = self._get_display_name(actor_name)
@@ -444,18 +462,28 @@ class DotGenerator:
                         if handler.is_raise:
                             label = self._format_raise_label(handler.error_types)
                             edge_color = self._color_raise
+                            # Redirect end_ targets to raise exit pseudo-node
+                            raise_node = self._raise_exit_nodes.get(cluster.cluster_name)
+                            if raise_node:
+                                handler_actors_resolved = [
+                                    raise_node if a.startswith("end_") else a for a in handler.actors
+                                ]
+                            else:
+                                handler_actors_resolved = handler.actors
                         else:
                             label = self._format_except_label(handler.error_types)
                             edge_color = self._color_error_control_flow
+                            handler_actors_resolved = handler.actors
                         lines.add(
-                            f"  {self._node_id(anchor)} -> {self._node_id(handler.actors[0])}"
+                            f"  {self._node_id(anchor)} -> {self._node_id(handler_actors_resolved[0])}"
                             f" [ltail={cluster.cluster_name}, color={edge_color}, style=dashed,"
-                            f' label="{self._escape_html(label)}"];'
+                            f' label="{self._escape_html(label)}", constraint=false];'
                         )
-                        self._add_sequential_edges(handler.actors, lines)
+                        self._add_sequential_edges(handler_actors_resolved, lines)
 
                         # Connect handler terminals → continuation (finally + post-try)
-                        if handler_continuation:
+                        # Skip for raise handlers — raise_exit is a terminal
+                        if handler_continuation and not handler.is_raise:
                             for terminal in self._find_chain_terminals(handler.actors):
                                 if not terminal.startswith("end_"):
                                     lines.add(
@@ -549,12 +577,23 @@ class DotGenerator:
             true_actors = [self._resolve(a) for a in router.true_branch_actors]
             false_actors = [self._resolve(a) for a in router.false_branch_actors]
 
+            # Detect self-referencing while loop (condition at end of its own true branch)
+            is_while_self_ref = true_actors and true_actors[-1] == router.name
+            if is_while_self_ref:
+                true_actors = true_actors[:-1]  # Strip self-ref for sequential edges
+
             if true_actors:
                 lines.add(
                     f"  {self._node_id(router.name)} -> {self._node_id(true_actors[0])}"
                     f' [label="T", color={self._color_true_branch}];'
                 )
                 self._add_sequential_edges(true_actors, lines)
+
+            # Add back-edges from body terminals to condition router
+            if is_while_self_ref and true_actors:
+                back_terminals = self._find_chain_terminals(true_actors)
+                for terminal in back_terminals:
+                    self._add_back_edge(terminal, router.name, lines)
 
             if false_actors:
                 lines.add(
@@ -573,27 +612,98 @@ class DotGenerator:
     def _add_sequential_edges(self, actors: list[str], lines: set[str]) -> None:
         """Add sequential edges between consecutive actors in a branch.
 
-        Stops the chain when an actor is a router that generates its own
-        outgoing edges (conditional, loop-back, fan-out, or try-except routers),
-        preventing duplicate edges in the graph.
+        For router sources, finds their terminal actors and connects those
+        terminals to the next actor in the chain, rather than adding a direct
+        source → target edge. Edge-owning routers (conditional, loop-back,
+        fan-out, try-except) are skipped as terminals since they generate
+        their own outgoing edges.
         """
         for i in range(len(actors) - 1):
             source = actors[i]
             target = actors[i + 1]
             if source in self._hidden_routers or target in self._hidden_routers:
                 continue
-            # If the source is a router that owns its own outgoing edges, stop the chain
             source_router = self.router_map.get(source)
-            if source_router and (
-                source_router.condition
-                or source_router.is_loop_back
-                or source_router.is_fan_out
-                or source_router.is_try_enter
-                or source_router.is_try_exit
-                or source_router.is_except_dispatch
-            ):
-                break
+            if source_router:
+                # For ANY router source, connect its terminal actors to the target
+                # rather than adding a direct source → target edge
+                resolved_target = self._resolve(target)
+                if resolved_target not in self._hidden_routers:
+                    terminals = self._find_chain_terminals([source])
+                    for terminal in terminals:
+                        self._add_edge_from_terminal(terminal, resolved_target, lines)
+                continue
             lines.add(f"  {self._node_id(source)} -> {self._node_id(target)};")
+
+    def _add_edge_from_terminal(self, terminal: str, resolved_target: str, lines: set[str]) -> None:
+        """Add edge from a terminal actor to the resolved target.
+
+        Handles special cases like conditionals with empty branches and skips
+        edge-owning routers that generate their own edges.
+        """
+        terminal_router = self.router_map.get(terminal)
+        if terminal_router:
+            if terminal_router.condition:
+                # Conditional with an empty branch: add fall-through edge
+                # with the correct T/F label and color for the empty branch
+                if not terminal_router.true_branch_actors and not terminal_router.false_branch_actors:
+                    lines.add(f"  {self._node_id(terminal)} -> {self._node_id(resolved_target)};")
+                elif not terminal_router.false_branch_actors:
+                    lines.add(
+                        f"  {self._node_id(terminal)} -> {self._node_id(resolved_target)}"
+                        f' [label="F", color={self._color_false_branch}];'
+                    )
+                elif not terminal_router.true_branch_actors:
+                    lines.add(
+                        f"  {self._node_id(terminal)} -> {self._node_id(resolved_target)}"
+                        f' [label="T", color={self._color_true_branch}, weight=2];'  # Weight 2 forces it to be vertical
+                    )
+                return
+            # Skip other edge-owning routers (they generate their own edges)
+            if any(
+                [
+                    terminal_router.is_loop_back,
+                    terminal_router.is_fan_out,
+                    terminal_router.is_try_enter,
+                    terminal_router.is_try_exit,
+                    terminal_router.is_except_dispatch,
+                ]
+            ):
+                return
+        # Skip flow exits and self-loops
+        if terminal.startswith("end_") or terminal == resolved_target:
+            return
+        lines.add(f"  {self._node_id(terminal)} -> {self._node_id(resolved_target)};")
+
+    def _add_back_edge(self, terminal: str, target: str, lines: set[str]) -> None:
+        """Add a loop back-edge from terminal to target with constraint=false."""
+        terminal_router = self.router_map.get(terminal)
+        if terminal_router:
+            if terminal_router.condition:
+                if not terminal_router.false_branch_actors:
+                    lines.add(
+                        f"  {self._node_id(terminal)} -> {self._node_id(target)}"
+                        f' [label="F", color={self._color_false_branch}, constraint=false];'
+                    )
+                elif not terminal_router.true_branch_actors:
+                    lines.add(
+                        f"  {self._node_id(terminal)} -> {self._node_id(target)}"
+                        f' [label="T", color={self._color_true_branch}, constraint=false];'
+                    )
+                return
+            if any(
+                [
+                    terminal_router.is_loop_back,
+                    terminal_router.is_fan_out,
+                    terminal_router.is_try_enter,
+                    terminal_router.is_try_exit,
+                    terminal_router.is_except_dispatch,
+                ]
+            ):
+                return
+        if terminal.startswith("end_") or terminal == target:
+            return
+        lines.add(f"  {self._node_id(terminal)} -> {self._node_id(target)} [constraint=false];")
 
     # ── Helpers ──────────────────────────────────────────────────────
 
@@ -613,22 +723,40 @@ class DotGenerator:
             return f"raise {error_types[0]}"
         return f"raise ({', '.join(error_types)})"
 
-    def _find_chain_terminals(self, actors: list[str]) -> list[str]:
+    def _find_chain_terminals(self, actors: list[str], _visited: set[str] | None = None) -> list[str]:
         """Find all terminal actors in a sequential chain (actors with no further routing)."""
         if not actors:
             return []
+        if _visited is None:
+            _visited = set()
         last = actors[-1]
+        if last in _visited:
+            return [last]
         router = self.router_map.get(last)
         if router:
+            _visited = _visited | {last}
             if router.condition:
+                if not router.true_branch_actors or not router.false_branch_actors:
+                    # One or both branches empty: the conditional itself is a
+                    # terminal (empty branch falls through to the next actor)
+                    return [last]
+                # Self-referencing while loop: terminals are only in the false (exit)
+                # branch — the true branch loops internally and generates its own
+                # back-edges, so we don't follow it for terminal discovery.
+                is_self_ref = last in router.true_branch_actors
                 terminals = []
-                if router.true_branch_actors:
-                    terminals.extend(self._find_chain_terminals(router.true_branch_actors))
-                if router.false_branch_actors:
-                    terminals.extend(self._find_chain_terminals(router.false_branch_actors))
+                if not is_self_ref:
+                    terminals.extend(self._find_chain_terminals(router.true_branch_actors, _visited))
+                terminals.extend(self._find_chain_terminals(router.false_branch_actors, _visited))
                 return terminals if terminals else [last]
+            elif router.is_try_exit:
+                # Follow continuation through try-exit infrastructure
+                continuation = [*router.finally_actors, *router.continuation_actors]
+                if continuation:
+                    return self._find_chain_terminals(continuation, _visited)
+                return [last]
             elif not router.is_loop_back and router.true_branch_actors:
-                return self._find_chain_terminals(router.true_branch_actors)
+                return self._find_chain_terminals(router.true_branch_actors, _visited)
         return [last]
 
     def _node_id(self, name: str) -> str:

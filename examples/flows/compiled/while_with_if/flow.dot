@@ -4,19 +4,21 @@ digraph flow {
   node [fontname="Courier", fontsize=10, shape=box, style="filled,rounded", margin="0.2"];
   edge [fontname="Courier", fontsize=10];
 
-  start_if_inside_while_flow [fillcolor="lightgreen", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = start_if_inside_while_flow(p)</i></td></tr></table>>];
-  router_if_inside_while_flow_line_13_if [fillcolor="wheat", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_if_inside_while_flow_line_13_if(p)</i></td></tr><tr><td bgcolor="white" align="left">p['i'] += 1</td></tr><tr><td bgcolor="lightyellow"><b>if</b> p['i'] % 2 == 0</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkseagreen4"><font color="white"><b>TRUE</b></font></td><td bgcolor="indianred4"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
-  router_if_inside_while_flow_line_11_loop_back_0 [fillcolor="wheat", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_if_inside_while_flow_line_11_loop_b…(p)</i></td></tr></table>>];
-  router_if_inside_while_flow_line_11_while_0 [fillcolor="wheat", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_if_inside_while_flow_line_11_while_0(p)</i></td></tr><tr><td bgcolor="white" align="left">p['i'] = 0</td></tr><tr><td bgcolor="lightyellow"><b>if</b> p['i'] &lt; p['max_iterations']</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkseagreen4"><font color="white"><b>TRUE</b></font></td><td bgcolor="indianred4"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
-  end_if_inside_while_flow [fillcolor="lightgreen", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = end_if_inside_while_flow(p)</i></td></tr></table>>];
+  start_if_inside_while_flow [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = start_if_inside_while_flow(p)</i></td></tr></table>>];
+  router_if_inside_while_flow_line_13_if [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_if_inside_while_flow_line_13_if(p)</i></td></tr><tr><td bgcolor="white" align="left">p['i'] += 1</td></tr><tr><td bgcolor="lightyellow"><b>if</b> p['i'] % 2 == 0</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkseagreen4"><font color="white"><b>TRUE</b></font></td><td bgcolor="indianred4"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
+  router_if_inside_while_flow_line_11_while_0 [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_if_inside_while_flow_line_11_while_0(p)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> p['i'] &lt; p['max_iterations']</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkseagreen4"><font color="white"><b>TRUE</b></font></td><td bgcolor="indianred4"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
+  router_if_inside_while_flow_line_10_seq [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_if_inside_while_flow_line_10_seq(p)</i></td></tr><tr><td bgcolor="white" align="left">p['i'] = 0</td></tr></table>>];
+  end_if_inside_while_flow [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = end_if_inside_while_flow(p)</i></td></tr></table>>];
   handler_even [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = handler_even(p)</i></td></tr></table>>];
   handler_finalize [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = handler_finalize(p)</i></td></tr></table>>];
   handler_init [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = handler_init(p)</i></td></tr></table>>];
   handler_odd [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = handler_odd(p)</i></td></tr></table>>];
 
+  handler_even -> router_if_inside_while_flow_line_11_while_0 [constraint=false];
   handler_finalize -> end_if_inside_while_flow;
-  handler_init -> router_if_inside_while_flow_line_11_while_0;
-  router_if_inside_while_flow_line_11_loop_back_0 -> router_if_inside_while_flow_line_11_while_0 [constraint=false];
+  handler_init -> router_if_inside_while_flow_line_10_seq;
+  handler_odd -> router_if_inside_while_flow_line_11_while_0 [constraint=false];
+  router_if_inside_while_flow_line_10_seq -> router_if_inside_while_flow_line_11_while_0;
   router_if_inside_while_flow_line_11_while_0 -> handler_finalize [label="F", color=indianred4];
   router_if_inside_while_flow_line_11_while_0 -> router_if_inside_while_flow_line_13_if [label="T", color=darkseagreen4];
   router_if_inside_while_flow_line_13_if -> handler_even [label="T", color=darkseagreen4];

@@ -62,7 +62,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        component: [asya-crew, asya-cli, asya-gateway, asya-injector, asya-runtime, asya-sidecar, asya-state-proxy]
+        component:
+        - asya-cli
+        - asya-crew
+        - asya-gateway
+        - asya-injector
+        - asya-lab
+        - asya-runtime
+        - asya-sidecar
+        - asya-state-proxy
+        - asya-ui
 
     steps:
     - uses: actions/checkout@v4

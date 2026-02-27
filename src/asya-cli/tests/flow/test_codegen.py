@@ -105,6 +105,32 @@ class TestStartRouter:
         tree = ast.parse(code)
         assert tree is not None
 
+    def test_start_router_with_mutations(self):
+        routers = [
+            Router(
+                name="start_flow",
+                lineno=0,
+                mutations=[Mutation(lineno=1, code='p["x"] = 1'), Mutation(lineno=2, code='p["y"] = 2')],
+                true_branch_actors=["handler", "end_flow"],
+            )
+        ]
+        code = CodeGenerator("flow", routers, "test.py")._generate_start_router(routers[0])
+
+        assert "p = payload" in code
+        assert 'p["x"] = 1' in code
+        assert 'p["y"] = 2' in code
+        assert "return p" in code
+        assert "return payload" not in code
+        tree = ast.parse(code)
+        assert tree is not None
+
+    def test_start_router_without_mutations_returns_payload(self):
+        routers = [Router(name="start_flow", lineno=0, true_branch_actors=["handler", "end_flow"])]
+        code = CodeGenerator("flow", routers, "test.py")._generate_start_router(routers[0])
+
+        assert "return payload" in code
+        assert "p = payload" not in code
+
 
 class TestEndRouter:
     """Test end router generation."""
@@ -744,8 +770,9 @@ def flow(p: dict) -> dict:
         assert "start_flow" in func_names
         assert "end_flow" in func_names
         assert "resolve" in func_names
-        # Must have at least one while/loop_back router
-        assert any("loop_back" in name for name in func_names)
+        # Conditional while self-references: no loop_back, but a while condition router
+        assert not any("loop_back" in name for name in func_names)
+        assert any("_while_" in name for name in func_names)
 
     def test_while_true_generates_valid_code(self):
         from asya_cli.flow.compiler import FlowCompiler
@@ -816,9 +843,11 @@ def flow(p: dict) -> dict:
             pytest.fail(f"Generated code for nested while is not valid Python: {e}")
 
         func_names = [n.name for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)]
-        # Should have two loop_back and two while condition routers
+        # Conditional whiles self-reference: no loop_backs, two while condition routers
         loop_backs = [n for n in func_names if "loop_back" in n]
-        assert len(loop_backs) == 2
+        assert len(loop_backs) == 0
+        whiles = [n for n in func_names if "_while_" in n]
+        assert len(whiles) == 2
 
     def test_while_inside_if_generates_valid_code(self):
         from asya_cli.flow.compiler import FlowCompiler

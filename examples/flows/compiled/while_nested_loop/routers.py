@@ -23,7 +23,7 @@ def start_nested_loop_flow(payload: dict) -> dict:
     _next = []
 
     _next.append(resolve("initialize"))
-    _next.append(resolve("router_nested_loop_flow_line_12_while_0"))
+    _next.append(resolve("router_nested_loop_flow_line_11_seq"))
     with open(f"{_MSG_ROOT}/route/next", "w") as _f:
         _f.write("\n".join(_next + _next_tail))
     return payload
@@ -42,20 +42,24 @@ def router_nested_loop_flow_line_16_seq(payload: dict) -> dict:
         _f.write("\n".join(_next + _next_tail))
     return payload
 
-def router_nested_loop_flow_line_15_loop_back_1(payload: dict) -> dict:
-    """Loop-back router: re-inserts loop actors into route"""
+def router_nested_loop_flow_line_15_while_1(payload: dict) -> dict:
+    """Router for control flow and payload mutations"""
     p = payload
     with open(f"{_MSG_ROOT}/route/next") as _f:
         _next_tail = _f.read().splitlines()
     _next = []
 
-    _next.append(resolve("router_nested_loop_flow_line_15_while_1"))
+    if p['j'] < p['max_j']:
+        _next.append(resolve("router_nested_loop_flow_line_16_seq"))
+        _next.append(resolve("router_nested_loop_flow_line_15_while_1"))
+    else:
+        _next.append(resolve("finalize_loop_j"))
 
     with open(f"{_MSG_ROOT}/route/next", "w") as _f:
         _f.write("\n".join(_next + _next_tail))
     return payload
 
-def router_nested_loop_flow_line_15_while_1(payload: dict) -> dict:
+def router_nested_loop_flow_line_13_seq(payload: dict) -> dict:
     """Router for control flow and payload mutations"""
     p = payload
     with open(f"{_MSG_ROOT}/route/next") as _f:
@@ -64,24 +68,7 @@ def router_nested_loop_flow_line_15_while_1(payload: dict) -> dict:
 
     p['i'] += 1
     p['j'] = 0
-    if p['j'] < p['max_j']:
-        _next.append(resolve("router_nested_loop_flow_line_16_seq"))
-        _next.append(resolve("router_nested_loop_flow_line_15_loop_back_1"))
-    else:
-        _next.append(resolve("finalize_loop_j"))
-
-    with open(f"{_MSG_ROOT}/route/next", "w") as _f:
-        _f.write("\n".join(_next + _next_tail))
-    return payload
-
-def router_nested_loop_flow_line_12_loop_back_0(payload: dict) -> dict:
-    """Loop-back router: re-inserts loop actors into route"""
-    p = payload
-    with open(f"{_MSG_ROOT}/route/next") as _f:
-        _next_tail = _f.read().splitlines()
-    _next = []
-
-    _next.append(resolve("router_nested_loop_flow_line_12_while_0"))
+    _next.append(resolve("router_nested_loop_flow_line_15_while_1"))
 
     with open(f"{_MSG_ROOT}/route/next", "w") as _f:
         _f.write("\n".join(_next + _next_tail))
@@ -94,12 +81,25 @@ def router_nested_loop_flow_line_12_while_0(payload: dict) -> dict:
         _next_tail = _f.read().splitlines()
     _next = []
 
-    p['i'] = 0
     if p['i'] < p['max_i']:
-        _next.append(resolve("router_nested_loop_flow_line_15_while_1"))
-        _next.append(resolve("router_nested_loop_flow_line_12_loop_back_0"))
+        _next.append(resolve("router_nested_loop_flow_line_13_seq"))
+        _next.append(resolve("router_nested_loop_flow_line_12_while_0"))
     else:
         _next.append(resolve("finalize_loop_i"))
+
+    with open(f"{_MSG_ROOT}/route/next", "w") as _f:
+        _f.write("\n".join(_next + _next_tail))
+    return payload
+
+def router_nested_loop_flow_line_11_seq(payload: dict) -> dict:
+    """Router for control flow and payload mutations"""
+    p = payload
+    with open(f"{_MSG_ROOT}/route/next") as _f:
+        _next_tail = _f.read().splitlines()
+    _next = []
+
+    p['i'] = 0
+    _next.append(resolve("router_nested_loop_flow_line_12_while_0"))
 
     with open(f"{_MSG_ROOT}/route/next", "w") as _f:
         _f.write("\n".join(_next + _next_tail))

@@ -134,6 +134,12 @@ class CodeGenerator:
         lines.append("    _next = []")
         lines.append("")
 
+        if router.mutations:
+            lines.append("    p = payload")
+            for mutation in router.mutations:
+                lines.append(f"    {mutation.code}")
+            lines.append("")
+
         if router.true_branch_actors:
             filtered_actors = [name for name in router.true_branch_actors if not name.startswith("end_")]
             for name in filtered_actors:
@@ -141,7 +147,7 @@ class CodeGenerator:
 
         lines.append('    with open(f"{_MSG_ROOT}/route/next", "w") as _f:')
         lines.append('        _f.write("\\n".join(_next + _next_tail))')
-        lines.append("    return payload")
+        lines.append(f"    return {'p' if router.mutations else 'payload'}")
         lines.append("")
 
         return "\n".join(lines)

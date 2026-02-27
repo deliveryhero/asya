@@ -5,9 +5,9 @@ digraph flow {
   node [fontname="Courier", fontsize=10, shape=box, style="filled,rounded", margin="0.2"];
   edge [fontname="Courier", fontsize=10];
 
-  start_order_processing [fillcolor="lightgreen", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = start_order_processing(p)</i></td></tr></table>>];
-  router_order_processing_line_5_seq [fillcolor="wheat", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_order_processing_line_5_seq(p)</i></td></tr><tr><td bgcolor="white" align="left">p['status'] = 'invalid'</td></tr></table>>];
-  end_order_processing [fillcolor="lightgreen", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = end_order_processing(p)</i></td></tr></table>>];
+  start_order_processing [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = start_order_processing(p)</i></td></tr></table>>];
+  router_order_processing_line_5_seq [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_order_processing_line_5_seq(p)</i></td></tr><tr><td bgcolor="white" align="left">p['status'] = 'invalid'</td></tr></table>>];
+  end_order_processing [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = end_order_processing(p)</i></td></tr></table>>];
   notify_rejection [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = notify_rejection(p)</i></td></tr></table>>];
   subgraph cluster_try_0 {
     style=dashed;
@@ -22,5 +22,5 @@ digraph flow {
   router_order_processing_line_5_seq -> notify_rejection;
   start_order_processing -> validate_order;
   validate_order -> end_order_processing;
-  validate_order -> router_order_processing_line_5_seq [ltail=cluster_try_0, color=snow4, style=dashed, label="except ValueError"];
+  validate_order -> router_order_processing_line_5_seq [ltail=cluster_try_0, color=snow4, style=dashed, label="except ValueError", constraint=false];
 }

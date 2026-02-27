@@ -4,8 +4,8 @@ digraph flow {
   node [fontname="Courier", fontsize=10, shape=box, style="filled,rounded", margin="0.2"];
   edge [fontname="Courier", fontsize=10];
 
-  start_class_instantiation_flow [fillcolor="lightgreen", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = start_class_instantiation_flow(p)</i></td></tr></table>>];
-  end_class_instantiation_flow [fillcolor="lightgreen", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = end_class_instantiation_flow(p)</i></td></tr></table>>];
+  start_class_instantiation_flow [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = start_class_instantiation_flow(p)</i></td></tr></table>>];
+  end_class_instantiation_flow [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = end_class_instantiation_flow(p)</i></td></tr></table>>];
   sequential_with_class_DataPreprocessor_clean [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = DataPreprocessor.clean(p)</i></td></tr></table>>];
   sequential_with_class_MLModel_predict [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = MLModel.predict(p)</i></td></tr></table>>];
   transformation [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = transformation(p)</i></td></tr></table>>];

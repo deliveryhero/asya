@@ -4,9 +4,9 @@ digraph flow {
   node [fontname="Courier", fontsize=10, shape=box, style="filled,rounded", margin="0.2"];
   edge [fontname="Courier", fontsize=10];
 
-  start_research_flow [fillcolor="lightgreen", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = start_research_flow(p)</i></td></tr></table>>];
-  fanout_research_flow_line_2 [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = fanout_research_flow_line_2(p)</i></td></tr><tr><td bgcolor="mediumpurple2" align="center"><b>[fan-out:comprehension]</b></td></tr><tr><td bgcolor="mediumpurple3" align="left">for t in p['topics']</td></tr></table>>];
-  end_research_flow [fillcolor="lightgreen", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = end_research_flow(p)</i></td></tr></table>>];
+  start_research_flow [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = start_research_flow(p)</i></td></tr></table>>];
+  fanout_research_flow_line_2 [fillcolor="lightblue", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = fanout_research_flow_line_2(p)</i></td></tr><tr><td bgcolor="mediumpurple2" align="center"><b>[fan-out:comprehension]</b></td></tr><tr><td bgcolor="mediumpurple3" align="left">for t in p['topics']</td></tr></table>>];
+  end_research_flow [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = end_research_flow(p)</i></td></tr></table>>];
   fanin_research_flow_line_2 [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = fanin_research_flow_line_2(p)</i></td></tr><tr><td bgcolor="mediumpurple1" align="center"><b>[fan-in]</b></td></tr></table>>];
   research_agent [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = research_agent(p)</i></td></tr></table>>];
   summarizer [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = summarizer(p)</i></td></tr></table>>];

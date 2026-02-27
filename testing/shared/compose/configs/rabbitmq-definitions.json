@@ -105,7 +105,9 @@
     { "vhost": "/", "name": "asya-default-test-sub-agent", "durable": true, "auto_delete": false, "arguments": {} },
     { "vhost": "/", "name": "asya-default-test-aggregator", "durable": true, "auto_delete": false, "arguments": {} },
     { "vhost": "/", "name": "asya-default-x-pause", "durable": true, "auto_delete": false, "arguments": {} },
-    { "vhost": "/", "name": "asya-default-x-resume", "durable": true, "auto_delete": false, "arguments": {} }
+    { "vhost": "/", "name": "asya-default-x-resume", "durable": true, "auto_delete": false, "arguments": {} },
+    { "vhost": "/", "name": "asya-default-test-sla-slow", "durable": true, "auto_delete": false, "arguments": {} },
+    { "vhost": "/", "name": "asya-default-test-sla-retry", "durable": true, "auto_delete": false, "arguments": {} }
   ],
   "bindings": [
     {
@@ -426,6 +428,22 @@
       "destination": "asya-default-test-aggregator",
       "destination_type": "queue",
       "routing_key": "test-aggregator",
+      "arguments": {}
+    },
+    {
+      "source": "asya",
+      "vhost": "/",
+      "destination": "asya-default-test-sla-slow",
+      "destination_type": "queue",
+      "routing_key": "test-sla-slow",
+      "arguments": {}
+    },
+    {
+      "source": "asya",
+      "vhost": "/",
+      "destination": "asya-default-test-sla-retry",
+      "destination_type": "queue",
+      "routing_key": "test-sla-retry",
       "arguments": {}
     },
     {
