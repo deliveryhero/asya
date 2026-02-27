@@ -90,16 +90,6 @@ jobs:
         - \`ghcr.io/${{ github.repository_owner }}/asya-lab:${{ steps.version.outputs.version }}\`
         - \`ghcr.io/${{ github.repository_owner }}/asya-testing:${{ steps.version.outputs.version }}\`
         - \`ghcr.io/${{ github.repository_owner }}/asya-ui:${{ steps.version.outputs.version }}\`
-
-        ## Reserved Image Names
-
-        The following placeholder images have been reserved (tagged as \`reserved\`):
-
-        - \`ghcr.io/${{ github.repository_owner }}/asya-magic:reserved\`
-        - \`ghcr.io/${{ github.repository_owner }}/asya-client:reserved\`
-        - \`ghcr.io/${{ github.repository_owner }}/asya-sdk:reserved\`
-        - \`ghcr.io/${{ github.repository_owner }}/asya-workbench:reserved\`
-        - \`ghcr.io/${{ github.repository_owner }}/asya-dashboard:reserved\`
         EOF
 
         if [ "${{ github.event.release.prerelease }}" == "false" ]; then
@@ -119,7 +109,6 @@ jobs:
       matrix:
         name:
         - asya-magic
-        - asya-client
         - asya-sdk
         - asya-workbench
         - asya-dashboard
