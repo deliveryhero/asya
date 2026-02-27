@@ -1,36 +1,42 @@
 ---
-title: Client VSCode Extension and Standalone Web UI
+title: "Asya UI: TypeScript Workspace (React Components + VSCode Extension)"
 priority: 3 # low
 type: epic
-dependencies: [1jow, 1jpc]
+dependencies: [1jow, 1jux]
 ---
 
-Visual developer experience for Asya via VSCode extension and standalone web UI. Both surfaces share the same React components and connect to the Python SDK via `asya serve` (local HTTP/WebSocket server).
+TypeScript pnpm monorepo workspace containing all client-side UI code: the shared
+React component library (`@asya/ui`) and the VSCode extension. Both packages live
+under `src/asya-ui/` with separate build outputs.
 
 ## Scope
 
-- VSCode extension that spawns `asya serve` on activation
-- React webview panels: flow diagram viewer (clickable nodes), actor status dashboard, log streamer, config editor
-- Standalone web SPA served by `asya serve` with identical functionality
-- Shared React component library (`@asya/ui`): FlowDiagram, ActorCard, LogViewer, StatusDashboard, ConfigEditor
-- `asya serve` REST/WebSocket API for all UI operations
+- pnpm workspace at `src/asya-ui/` with two packages:
+  - `packages/components/` -- `@asya/ui` React component library
+  - `packages/vscode/` -- VSCode extension (`.vsix`)
+- Shared tooling: tsconfig, eslint, prettier, vitest
+- React components: FlowDiagram, ActorCard, LogViewer, StatusDashboard, ConfigEditor
+- VSCode extension: spawns `asya serve`, relays postMessage to HTTP/WS, registers commands
+- Build pipeline: React bundle output goes into `asya-lab[ui]` static assets; `.vsix` goes into asya-lens Docker image
+
+## Distribution
+
+| Package | Channel | Consumer |
+|---|---|---|
+| `@asya/ui` | Bundled as static assets into `asya-lab[ui]` | Standalone web SPA, VSCode webviews |
+| VSCode extension | VS Code Marketplace (for local users) | Local VSCode installs |
+| VSCode extension | Bundled into `asya-lens` Docker image | Self-hosted code-server |
 
 ## Architecture
 
-- Extension host (TypeScript) manages `asya serve` lifecycle and relays postMessage between webviews and Python server
-- React webviews are sandboxed -- no direct Python access
-- `asya serve` is context-aware: shows data from current ASYA_CONTEXT (k8s-stg, docker, etc.)
-- Same server, same API, same components for both VSCode and standalone web
-
-## Key UX Requirements
-
-- Flow diagram: compiled graph rendered with clickable actor nodes
-- Clicking a node: shows actor config, logs, replica count, queue depth
-- Config editing: read/write actor.yaml and .env files through the UI (writes to local deploy/ files)
-- Log streaming: colorful actor-name prefix (like docker compose logs)
-- Real-time status updates via WebSocket
+- Extension host (TypeScript) manages `asya serve` lifecycle and relays postMessage between sandboxed webviews and the Python server
+- React webviews have no direct Python/filesystem access
+- `@asya/ui` components are framework-agnostic React -- consumed by both VSCode webviews and the standalone web SPA
+- `asya serve` is context-aware: shows data from current ASYA_CONTEXT
 
 ## Related Epics
 
 - 1jow: Client UX Design (parent design document)
-- 1jpc: CLI and SDK (provides `asya serve` and SDK functions)
+- 1jux: Asya Lab -- Python SDK and CLI (provides `asya serve` backend)
+- 1juy: Asya Lens -- Docker image that bundles extension + SDK for self-hosting
+- 1jpc: Client CLI (predecessor; detailed CLI/SDK API design)

@@ -1,29 +1,86 @@
-# RFC: VSCode Extension and Standalone Web UI
+# RFC: Asya UI -- TypeScript Workspace
 
-## Status
+**Status**: Proposed
+**Date**: 2026-02-27
+**Epic**: 1juv.asya-ui
+**Depends on**: 1jow (client UX design), 1jux (asya-lab SDK)
 
-Draft
+---
 
-## Summary
+## 1. Summary
 
-This RFC defines the architecture for two client surfaces -- a VSCode extension
-and a standalone web UI -- that share the same React component library and
-communicate with a local `asya serve` process over HTTP and WebSocket. The design
-avoids LSP: `asya serve` is a general-purpose API server, not a language server.
+This RFC defines the architecture for `src/asya-ui/`, a pnpm monorepo workspace
+containing all client-side TypeScript code. Two packages live in the workspace:
 
-## Motivation
+1. `packages/components/` -- `@asya/ui`, a framework-agnostic React component
+   library consumed by both the VSCode extension and the standalone web SPA.
+2. `packages/vscode/` -- the VSCode extension that spawns `asya serve` and
+   provides editor-integrated panels for flow visualization, actor status, logs,
+   and configuration.
+
+The design avoids LSP: `asya serve` (from `asya-lab[ui]`) is a general-purpose
+API server, not a language server.
+
+---
+
+## 2. Motivation
 
 Developers working with Asya actor meshes need visibility into flow topology,
-actor status, logs, and configuration. Two deployment contexts exist:
+actor status, logs, and configuration. Three deployment contexts exist:
 
-1. **VSCode users** want panels embedded in their editor.
-2. **Non-VSCode users** (or CI dashboards) want a browser-based UI with
-   identical functionality.
+1. **Local VSCode users** want panels embedded in their editor (extension from
+   VS Code Marketplace).
+2. **Self-hosted VSCode users** access code-server via browser with the extension
+   pre-installed (asya-lens Docker image).
+3. **Non-VSCode users** (or ops dashboards) want a browser-based UI with
+   identical functionality (standalone web via `asya serve`).
 
-Both contexts should render the same components and talk to the same backend.
-The `asya serve` command (part of the CLI/SDK epic 1jpc) provides that backend.
+All three contexts render the same React components and talk to the same
+`asya serve` backend.
 
-## Architecture Overview
+---
+
+## 3. Source Structure
+
+```
+src/asya-ui/                          # pnpm workspace root
+├── package.json                      # workspace config
+├── pnpm-workspace.yaml               # packages: ["packages/*"]
+├── tsconfig.base.json                # shared TypeScript config
+├── .eslintrc.js                      # shared linting
+├── vitest.config.ts                  # shared test config
+│
+├── packages/
+│   ├── components/                   # @asya/ui
+│   │   ├── package.json              # name: "@asya/ui"
+│   │   ├── tsconfig.json             # extends ../../tsconfig.base.json
+│   │   ├── src/
+│   │   │   ├── FlowDiagram.tsx       # Interactive directed graph
+│   │   │   ├── ActorCard.tsx         # Actor status/config summary
+│   │   │   ├── LogViewer.tsx         # Streaming log display
+│   │   │   ├── StatusDashboard.tsx   # Overview grid of all actors
+│   │   │   ├── ConfigEditor.tsx      # Monaco-based YAML editor
+│   │   │   └── index.ts             # Public API
+│   │   └── tests/
+│   │
+│   └── vscode/                       # VSCode extension
+│       ├── package.json              # name: "asya-vscode"
+│       ├── tsconfig.json
+│       ├── src/
+│       │   ├── extension.ts          # activate/deactivate, spawn asya serve
+│       │   ├── server.ts             # asya serve lifecycle management
+│       │   ├── relay.ts              # postMessage <-> HTTP/WS relay
+│       │   ├── commands.ts           # registerCommand handlers
+│       │   └── panels/               # WebviewPanel providers
+│       │       ├── FlowPanel.ts
+│       │       ├── StatusPanel.ts
+│       │       └── LogPanel.ts
+│       └── tests/
+```
+
+---
+
+## 4. Architecture
 
 ```
 +--------------------------------------------+
@@ -46,109 +103,38 @@ The `asya serve` command (part of the CLI/SDK epic 1jpc) provides that backend.
    local filesystem, Docker, kubectl
 ```
 
-**Key points:**
+### 4.1 TS-Python Bridge
 
-- The VSCode extension host spawns `asya serve` as a child process on
-  activation and kills it on deactivation.
-- Webview panels load React bundles that communicate with the extension host
-  via `postMessage`. The extension host relays requests to `asya serve`
-  over HTTP/WebSocket.
-- The standalone web SPA is served directly by `asya serve` and uses the
-  same React components, talking to the same HTTP/WS endpoints.
-- `asya serve` always runs locally on the developer's machine. It is
-  context-aware: it reads ASYA_CONTEXT (or a flag) to determine which
-  cluster, namespace, or docker-compose project to operate on.
-
-## TS-Python Bridge
-
-### Protocol
-
-`asya serve` exposes a local HTTP+WebSocket server built on FastAPI (or
-Starlette). It is NOT an LSP server -- it handles arbitrary REST and streaming
-endpoints relevant to the Asya developer workflow.
-
-### Lifecycle
+`asya serve` (provided by `asya-lab[ui]`) exposes a local HTTP+WebSocket server.
 
 | Context        | How `asya serve` starts                         |
 |----------------|-------------------------------------------------|
-| VSCode         | Extension host spawns it as a subprocess        |
+| Local VSCode   | Extension host spawns it as a subprocess        |
+| asya-lens      | Extension host spawns it inside the container   |
 | Standalone web | User runs `asya serve --port=8080` manually     |
 
-In both cases the same binary/entry point is used. The extension discovers
-the port from stdout or a well-known file.
+In all cases the same Python entry point is used. The extension discovers the
+port from stdout or a well-known file.
 
-### Communication
+### 4.2 Communication
 
-- **REST** for request/response operations (compile, deploy, config
-  read/write, status snapshots).
-- **WebSocket** for streaming operations (log tailing, real-time status
-  updates).
-- A single protocol serves all UI surfaces. The VSCode extension host acts
-  as a thin relay, forwarding webview postMessage calls to HTTP/WS and
-  returning responses.
+- **REST** for request/response: compile, deploy, config read/write, status
+- **WebSocket** for streaming: log tailing, real-time status updates
+- Extension host acts as a thin relay, forwarding webview postMessage calls
+  to HTTP/WS and returning responses
 
-## Webview Panels
+---
 
-### Flow Diagram Viewer
+## 5. React Components (`@asya/ui`)
 
-- Renders the compiled DOT or manifest into an interactive graph.
-- Nodes are clickable. Clicking a node opens a detail pane showing:
-  - Actor configuration (image, handler, env vars)
-  - Current replica count
-  - Queue depth (messages pending)
-  - Recent logs for that actor
-- Layout is driven by compiled flow output; no manual positioning.
-
-### Actor Status Dashboard
-
-- Grid or list of all actors in the current context.
-- Each actor shows: name, status (running/scaled-to-zero/error), replica
-  count, queue depth, last message timestamp.
-- Updates in real time via WebSocket subscription.
-
-### Log Streamer
-
-- Streams logs from one or more actors simultaneously.
-- Each actor's log lines are prefixed with the actor name in a distinct
-  color, similar to `docker compose logs`.
-- Supports filtering by actor name, log level, and free-text search.
-- Auto-scrolls with a "pin to bottom" toggle.
-
-### Config Editor
-
-- Reads and writes `actor.yaml` and `.env` files from the local
-  `deploy/` directory (or whichever path the context specifies).
-- Provides a YAML editor with syntax highlighting.
-- Validates against the AsyncActor schema before saving.
-- Writes go back to the local filesystem via `asya serve` -- no direct
-  file access from the webview.
-
-## Standalone Web
-
-Running `asya serve --port=8080` starts the same FastAPI server. In
-standalone mode it additionally serves the React SPA as static files from
-a bundled directory.
-
-Functionality is identical to the VSCode panels:
-
-- Flow diagram viewer
-- Actor status dashboard
-- Log streamer
-- Config editor
-
-This mode is intended for developers who do not use VSCode, or for
-displaying a shared dashboard (e.g., on a wall monitor or in CI).
-
-## React Components (`@asya/ui`)
-
-All UI components are written in TypeScript and published as the `@asya/ui`
-package. They are consumed by both the VSCode webview and the standalone SPA.
+All UI components are written in TypeScript, published as `@asya/ui`, and
+consumed by both the VSCode webview and the standalone SPA.
 
 ### FlowDiagram
 
-Interactive directed graph rendered from a compiled manifest or DOT
-definition. Supports zoom, pan, and click-to-select. Selected node emits an
-event consumed by the parent to show detail panels.
+Interactive directed graph rendered from a compiled manifest or DOT definition.
+Supports zoom, pan, and click-to-select. Selected node emits an event consumed
+by the parent to show detail panels.
 
 ### ActorCard
 
@@ -172,82 +158,177 @@ Monaco-based YAML editor for actor configuration files. Loads content via
 REST, validates on save, and writes back via REST. Displays validation
 errors inline.
 
-## `asya serve` API
+---
+
+## 6. VSCode Extension
+
+### 6.1 Lifecycle
+
+1. On activation: spawn `asya serve` as a child process, wait for port
+2. Register commands: `asya.flow.compile`, `asya.flow.status`, `asya.actor.logs`
+3. Register webview panel providers for flow diagram, status, logs
+4. On deactivation: kill `asya serve` process
+
+### 6.2 Webview Panels
+
+Webview panels load bundled `@asya/ui` React components. Communication between
+the panel and extension host uses `postMessage`:
+
+```
+Webview (React) --postMessage--> Extension Host --HTTP/WS--> asya serve
+Webview (React) <--postMessage-- Extension Host <--HTTP/WS-- asya serve
+```
+
+Webviews are sandboxed and cannot directly access the filesystem, network,
+or VSCode APIs. The extension host mediates all interactions.
+
+### 6.3 Flow Diagram Viewer
+
+- Renders compiled DOT or manifest into an interactive graph
+- Clickable nodes open a detail pane showing:
+  - Actor configuration (image, handler, env vars)
+  - Current replica count
+  - Queue depth (messages pending)
+  - Recent logs for that actor
+- Layout driven by compiled flow output; no manual positioning
+
+### 6.4 Log Streamer
+
+- Streams logs from one or more actors simultaneously
+- Actor-name prefix with distinct colors (like `docker compose logs`)
+- Filtering by actor name, log level, and free-text search
+- Auto-scrolls with a "pin to bottom" toggle
+
+### 6.5 Config Editor
+
+- Reads/writes `actor.yaml` and `.env` files from local `deploy/` directory
+- YAML syntax highlighting via Monaco
+- Validates against AsyncActor schema before saving
+- Writes go through `asya serve` REST API
+
+---
+
+## 7. Build Pipeline
+
+### 7.1 @asya/ui Build
+
+```
+pnpm --filter @asya/ui build
+  -> TypeScript compile + Vite bundle
+  -> dist/  (JS + CSS)
+```
+
+The built assets are consumed in two ways:
+1. **Standalone web SPA**: copied into `asya-lab` Python package at
+   `asya/server/static/` before `uv build`
+2. **VSCode webview**: bundled into the extension's `media/` directory by
+   the extension build step
+
+### 7.2 Extension Build
+
+```
+pnpm --filter asya-vscode build
+  -> copies @asya/ui dist into media/
+  -> esbuild bundles extension host code
+  -> vsce package -> asya-vscode.vsix
+```
+
+### 7.3 CI Pipeline
+
+```
+pnpm install              # install all workspace dependencies
+pnpm -r build             # build all packages (components first, then vscode)
+pnpm -r test              # run all tests
+pnpm -r lint              # lint all packages
+```
+
+---
+
+## 8. Distribution
+
+| Output | Channel | Consumer |
+|---|---|---|
+| `@asya/ui` JS bundle | Bundled into `asya-lab[ui]` and extension | Standalone web, VSCode webviews |
+| `asya-vscode.vsix` | VS Code Marketplace | Local VSCode users |
+| `asya-vscode.vsix` | Bundled into `asya-lens` Docker image | Self-hosted code-server |
+
+`@asya/ui` is NOT published to npm separately. It is an internal workspace
+package consumed at build time by the extension and by the `asya-lab` Python
+package build step.
+
+---
+
+## 9. `asya serve` API
+
+Defined in `asya-lab[ui]` (epic 1jux), consumed by both the extension and
+standalone web. Included here for reference:
 
 ### REST Endpoints
 
-| Method | Path                          | Description                      |
-|--------|-------------------------------|----------------------------------|
-| POST   | /api/compile                  | Compile a flow DSL file          |
-| POST   | /api/deploy                   | Deploy actors from manifest      |
-| DELETE | /api/deploy/{name}            | Undeploy an actor                |
-| GET    | /api/actors                   | List actors in current context   |
-| GET    | /api/actors/{name}            | Actor detail (config, status)    |
-| GET    | /api/actors/{name}/config     | Read actor config file           |
-| PUT    | /api/actors/{name}/config     | Write actor config file          |
-| GET    | /api/flow                     | Get compiled flow manifest       |
-| GET    | /api/health                   | Server health check              |
+| Method | Path                      | Description                  |
+|--------|---------------------------|------------------------------|
+| POST   | /api/compile              | Compile a flow DSL file      |
+| POST   | /api/deploy               | Deploy actors from manifest  |
+| DELETE | /api/deploy/{name}        | Undeploy an actor            |
+| GET    | /api/actors               | List actors in context       |
+| GET    | /api/actors/{name}        | Actor detail (config/status) |
+| GET    | /api/actors/{name}/config | Read actor config file       |
+| PUT    | /api/actors/{name}/config | Write actor config file      |
+| GET    | /api/flow                 | Get compiled flow manifest   |
+| GET    | /api/health               | Server health check          |
 
 ### WebSocket Endpoints
 
-| Path                          | Description                      |
-|-------------------------------|----------------------------------|
-| /ws/logs                      | Stream logs (query: actor, level)|
-| /ws/status                    | Real-time actor status updates   |
+| Path       | Description                       |
+|------------|-----------------------------------|
+| /ws/logs   | Stream logs (query: actor, level) |
+| /ws/status | Real-time actor status updates    |
 
-### Context Awareness
+---
 
-`asya serve` reads ASYA_CONTEXT (environment variable or CLI flag) to
-determine the operational target:
-
-- **docker-compose**: reads compose files, runs docker commands locally
-- **kubernetes**: uses kubeconfig to query the target cluster/namespace
-- **local**: operates on local files only (compile, config edit)
-
-The context determines which backends are available. For example, log
-streaming requires a running docker-compose or Kubernetes context; compile
-and config editing work in any context.
-
-## Future Considerations
+## 10. Future Considerations
 
 ### Pyodide for In-Browser Compilation
 
 The Flow DSL compiler is pure Python with no native dependencies. A future
 iteration could bundle it via Pyodide so the standalone web UI can compile
-flows entirely in the browser, removing the requirement for a local Python
-installation for read-only / compile-only use cases.
+flows entirely in the browser, removing the Python requirement for
+compile-only use cases.
 
 ### LSP Integration for Flow DSL
 
 A dedicated LSP server could provide language features for `.py` flow files:
+syntax error highlighting, actor name autocompletion, inline diagnostics
+(e.g., "loops not supported", "parameter must be named p"). This would
+complement `asya serve`.
 
-- Syntax error highlighting specific to Flow DSL constraints
-- Autocompletion for actor names referenced in the flow
-- Inline diagnostics (e.g., "loops not supported", "parameter must be
-  named p")
+### Jupyter Widget Integration
 
-This would complement (not replace) `asya serve`, which handles runtime
-operations.
+Jupyter notebooks could render `@asya/ui` components inline via ipywidgets
+or the JupyterLab extension framework. The same React components would be
+reused, making three surfaces total (VSCode, standalone web, Jupyter).
 
-### Real-Time Collaboration
+---
 
-WebSocket infrastructure could be extended to support multi-user scenarios:
+## 11. Decision Log
 
-- Shared dashboard viewing with cursor presence
-- Collaborative config editing with conflict resolution
-- Useful for pair programming or team debugging sessions
+| Decision | Rationale |
+|---|---|
+| pnpm workspace (not separate repos) | Tight coupling between components and extension; shared tooling |
+| FastAPI over LSP | `asya serve` is a general-purpose API, not a language tool |
+| Shared React components (`@asya/ui`) | Single source of truth for all UI surfaces |
+| Extension host as relay, not direct WS | Webviews cannot open WebSocket connections directly |
+| `@asya/ui` not published to npm | Internal package; only consumed at build time |
+| `asya serve` always local | Avoids auth/security complexity of remote API servers |
+| Context-aware via ASYA_CONTEXT | Consistent with CLI conventions from epic 1jpc/1jux |
 
-## Related Epics
+---
 
-- **1jow** -- Client UX Design (parent epic; defines overall UX patterns)
-- **1jpc** -- CLI and SDK (`asya serve` is implemented as part of the SDK)
+## 12. Related Epics
 
-## Decision Log
-
-| Decision                                      | Rationale                                                  |
-|-----------------------------------------------|------------------------------------------------------------|
-| FastAPI over LSP                              | `asya serve` is a general-purpose API, not a language tool |
-| Shared React components (`@asya/ui`)          | Single source of truth for both VSCode and standalone web  |
-| Extension host as relay, not direct WS        | Webviews cannot open WebSocket connections directly        |
-| `asya serve` always local                     | Avoids auth/security complexity of remote API servers      |
-| Context-aware via ASYA_CONTEXT                | Consistent with CLI conventions from epic 1jpc             |
+| Epic | Relationship |
+|---|---|
+| 1jow (Client UX Design) | Parent design -- overall UX patterns |
+| 1jux (Asya Lab) | Provides `asya serve` backend and SDK functions |
+| 1juy (Asya Lens) | Docker image that bundles this extension + SDK |
+| 1jpc (Client CLI) | Predecessor; detailed CLI/SDK API design |
