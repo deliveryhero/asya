@@ -125,3 +125,24 @@ async def async_generator(count: int):
 def nested_input_output(value: int) -> dict:
     """Handler for testing nested input/output paths."""
     return {"computed": value * 2}
+
+
+# **kwargs handlers
+
+
+def kwargs_only(**kwargs):
+    """Handler with only **kwargs - receives all subtree keys."""
+    return {"received": kwargs}
+
+
+def mixed_kwargs(text: str, **extra):
+    """Handler with named param + **kwargs - named extracted first, rest to kwargs."""
+    return {"text": text, "extra": extra}
+
+
+# *args handler (should be rejected at load time)
+
+
+def args_handler(*args):
+    """Handler with *args - should be rejected at startup."""
+    return {"args": list(args)}

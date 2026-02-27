@@ -723,3 +723,141 @@ class TestAsyncTypedHandlers:
         finally:
             asya_runtime.ASYA_PARAMS_AT = old_at
             asya_runtime.ASYA_RESULT_AT = old_result_at
+
+
+class TestKwargsSupport:
+    """Test **kwargs parameter support."""
+
+    def test_kwargs_only_handler(self):
+        """Handler with only **kwargs receives all subtree keys."""
+
+        def kwargs_handler(**kwargs):
+            return {"received": kwargs}
+
+        message = {
+            "id": "msg-1",
+            "route": {"prev": [], "curr": "actor1", "next": []},
+            "payload": {"text": "hello", "lang": "en", "debug": True},
+        }
+
+        old_at = asya_runtime.ASYA_PARAMS_AT
+        old_result_at = asya_runtime.ASYA_RESULT_AT
+        try:
+            asya_runtime.ASYA_PARAMS_AT = "."
+            asya_runtime.ASYA_RESULT_AT = "."
+            frames = asya_runtime._collect_payload_frames(message, kwargs_handler)
+            assert len(frames) == 1
+            assert frames[0]["payload"]["received"] == {"text": "hello", "lang": "en", "debug": True}
+        finally:
+            asya_runtime.ASYA_PARAMS_AT = old_at
+            asya_runtime.ASYA_RESULT_AT = old_result_at
+
+    def test_mixed_named_and_kwargs(self):
+        """Handler with named params + **kwargs - named extracted first, rest to kwargs."""
+
+        def mixed_handler(text: str, **extra):
+            return {"text": text, "extra": extra}
+
+        message = {
+            "id": "msg-1",
+            "route": {"prev": [], "curr": "actor1", "next": []},
+            "payload": {"text": "hello", "lang": "en", "debug": True},
+        }
+
+        old_at = asya_runtime.ASYA_PARAMS_AT
+        old_result_at = asya_runtime.ASYA_RESULT_AT
+        try:
+            asya_runtime.ASYA_PARAMS_AT = "."
+            asya_runtime.ASYA_RESULT_AT = "."
+            frames = asya_runtime._collect_payload_frames(message, mixed_handler)
+            assert len(frames) == 1
+            assert frames[0]["payload"]["text"] == "hello"
+            assert frames[0]["payload"]["extra"] == {"lang": "en", "debug": True}
+        finally:
+            asya_runtime.ASYA_PARAMS_AT = old_at
+            asya_runtime.ASYA_RESULT_AT = old_result_at
+
+    def test_kwargs_no_extra_keys(self):
+        """Handler with **kwargs but no extra keys in subtree."""
+
+        def mixed_handler(text: str, **extra):
+            return {"text": text, "extra": extra}
+
+        message = {
+            "id": "msg-1",
+            "route": {"prev": [], "curr": "actor1", "next": []},
+            "payload": {"text": "hello"},
+        }
+
+        old_at = asya_runtime.ASYA_PARAMS_AT
+        old_result_at = asya_runtime.ASYA_RESULT_AT
+        try:
+            asya_runtime.ASYA_PARAMS_AT = "."
+            asya_runtime.ASYA_RESULT_AT = "."
+            frames = asya_runtime._collect_payload_frames(message, mixed_handler)
+            assert len(frames) == 1
+            assert frames[0]["payload"]["text"] == "hello"
+            assert frames[0]["payload"]["extra"] == {}
+        finally:
+            asya_runtime.ASYA_PARAMS_AT = old_at
+            asya_runtime.ASYA_RESULT_AT = old_result_at
+
+    def test_kwargs_raw_values_no_deserialization(self):
+        """Values passed to **kwargs are raw JSON - no type deserialization."""
+
+        def kwargs_handler(**kwargs):
+            return {"received": kwargs, "types": {k: type(v).__name__ for k, v in kwargs.items()}}
+
+        message = {
+            "id": "msg-1",
+            "route": {"prev": [], "curr": "actor1", "next": []},
+            "payload": {"num": 42, "flag": True, "nested": {"a": 1}},
+        }
+
+        old_at = asya_runtime.ASYA_PARAMS_AT
+        old_result_at = asya_runtime.ASYA_RESULT_AT
+        try:
+            asya_runtime.ASYA_PARAMS_AT = "."
+            asya_runtime.ASYA_RESULT_AT = "."
+            frames = asya_runtime._collect_payload_frames(message, kwargs_handler)
+            assert len(frames) == 1
+            assert frames[0]["payload"]["received"]["num"] == 42
+            assert frames[0]["payload"]["received"]["flag"] is True
+            assert frames[0]["payload"]["received"]["nested"] == {"a": 1}
+            assert frames[0]["payload"]["types"]["num"] == "int"
+            assert frames[0]["payload"]["types"]["flag"] == "bool"
+            assert frames[0]["payload"]["types"]["nested"] == "dict"
+        finally:
+            asya_runtime.ASYA_PARAMS_AT = old_at
+            asya_runtime.ASYA_RESULT_AT = old_result_at
+
+
+class TestArgsRejection:
+    """Test that *args parameters are rejected at handler load time."""
+
+    def test_args_only_rejected(self):
+        """Handler with only *args is rejected at load time."""
+
+        def args_handler(*args):
+            return {"args": list(args)}
+
+        with pytest.raises(RuntimeError, match="declares \\*args which is not supported"):
+            asya_runtime.HandlerSignature(args_handler)
+
+    def test_args_mixed_with_named_rejected(self):
+        """Handler with named params + *args is rejected at load time."""
+
+        def mixed_handler(x: int, *args):
+            return {"x": x, "args": list(args)}
+
+        with pytest.raises(RuntimeError, match="declares \\*args which is not supported"):
+            asya_runtime.HandlerSignature(mixed_handler)
+
+    def test_args_with_kwargs_rejected(self):
+        """Handler with *args and **kwargs is rejected at load time."""
+
+        def full_handler(x: int, *args, **kwargs):
+            return {"x": x, "args": list(args), "kwargs": kwargs}
+
+        with pytest.raises(RuntimeError, match="declares \\*args which is not supported"):
+            asya_runtime.HandlerSignature(full_handler)

@@ -261,23 +261,42 @@ class HandlerSignature:
 
     Uniform extraction model: all parameters are extracted by name from the input subtree,
     regardless of type annotation. The type annotation controls deserialization, not extraction.
+
+    **kwargs support: If the handler has a VAR_KEYWORD parameter (**kwargs), all keys from the
+    subtree that are not explicitly named parameters are passed to **kwargs as raw JSON values.
+
+    *args rejection: Handlers with VAR_POSITIONAL parameters (*args) are rejected at startup
+    because JSON objects are unordered and cannot be reliably mapped to positional arguments.
     """
 
     def __init__(self, handler_func):
         # type: (Any) -> None
         self.params = {}  # type: Dict[str, Any]
         self.type_hints = {}  # type: Dict[str, Any]
+        self.kwargs_param = None  # type: Any
         self._introspect(handler_func)
 
     def _introspect(self, handler_func):
         # type: (Any) -> None
-        """Introspect handler signature to extract parameter metadata."""
+        """Introspect handler signature to extract parameter metadata.
+
+        Rejects *args (VAR_POSITIONAL) at startup.
+        Detects **kwargs (VAR_KEYWORD) for special extraction handling.
+        """
         sig = inspect.signature(handler_func)
         params = list(sig.parameters.values())
 
         # Exclude 'self' for class methods
         if params and params[0].name == "self":
             params = params[1:]
+
+        # Reject *args - JSON objects are unordered, cannot map to positional args
+        for param in params:
+            if param.kind == inspect.Parameter.VAR_POSITIONAL:
+                raise RuntimeError(
+                    f"Handler '{handler_func.__name__}' declares *{param.name} which is not supported. "
+                    "JSON objects are unordered; use **kwargs or named parameters instead."
+                )
 
         # Try to get type hints
         try:
@@ -287,15 +306,21 @@ class HandlerSignature:
         except Exception:
             type_hints = {p.name: p.annotation for p in params}
 
-        # Extract parameter metadata
+        # Extract parameter metadata and detect **kwargs
         for param in params:
-            param_info = {
-                "name": param.name,
-                "annotation": type_hints.get(param.name, param.annotation),
-                "default": param.default,
-                "required": param.default == inspect.Parameter.empty,
-            }
-            self.params[param.name] = param_info
+            if param.kind == inspect.Parameter.VAR_KEYWORD:
+                # **kwargs parameter - capture all remaining keys from subtree
+                self.kwargs_param = param.name
+                logger.info(f"Handler has **{param.name} parameter for capturing extra keys")
+            else:
+                # Named parameter - extract by name from subtree
+                param_info = {
+                    "name": param.name,
+                    "annotation": type_hints.get(param.name, param.annotation),
+                    "default": param.default,
+                    "required": param.default == inspect.Parameter.empty,
+                }
+                self.params[param.name] = param_info
 
         self.type_hints = type_hints
         logger.info(f"Handler signature: params={list(self.params.keys())}")
@@ -568,6 +593,10 @@ def _extract_handler_inputs(payload, signature):
 
     Uses ASYA_PARAMS_AT to navigate to the input subtree, then extracts each parameter by name.
 
+    **kwargs handling: If the handler has a **kwargs parameter, all named parameters are extracted
+    first, then all remaining keys from the subtree are passed into **kwargs as raw JSON values
+    (no deserialization for **kwargs values).
+
     Args:
         payload: Message payload
         signature: Handler signature
@@ -589,15 +618,27 @@ def _extract_handler_inputs(payload, signature):
         raise ValueError(f"ASYA_PARAMS_AT path '{ASYA_PARAMS_AT}' must point to a dict, got {type(subtree).__name__}")
 
     kwargs = {}  # type: Dict[str, Any]
+    extracted_keys = set()  # type: set
+
+    # Extract all explicitly named parameters first
     for param_name, param_info in signature.params.items():
         if param_name in subtree:
             raw_value = subtree[param_name]
             annotation = param_info["annotation"]
             kwargs[param_name] = _deserialize_input(raw_value, annotation)
+            extracted_keys.add(param_name)
         elif param_info["required"]:
             raise ValueError(
                 f"Missing required parameter '{param_name}' at ASYA_PARAMS_AT='{ASYA_PARAMS_AT}' in payload"
             )
+
+    # If handler has **kwargs, merge all remaining keys from subtree directly into kwargs dict
+    # This allows _call_handler(**kwargs) to unpack them as keyword arguments
+    if signature.kwargs_param is not None:
+        for key, value in subtree.items():
+            if key not in extracted_keys:
+                # Pass raw JSON value (no deserialization for **kwargs values)
+                kwargs[key] = value
 
     return kwargs
 
