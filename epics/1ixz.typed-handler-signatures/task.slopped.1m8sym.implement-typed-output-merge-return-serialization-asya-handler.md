@@ -1,5 +1,5 @@
 ---
-title: Implement typed output merge and return serialization (ASYA_HANDLER_OUTPUT_KEY)
+title: Implement typed output merge and return serialization (ASYA_RESULT_AT_KEY)
 priority: 2 # medium
 type: task
 ---
