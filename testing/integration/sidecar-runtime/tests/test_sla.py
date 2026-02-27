@@ -35,17 +35,8 @@ UTC = timezone.utc
 
 
 def _make_deadline(seconds_from_now: float) -> str:
-    """Create an RFC3339 deadline_at timestamp.
-
-    Rounds UP to the next whole second so the effective deadline is never
-    shorter than ``seconds_from_now``.  Without rounding, strftime's
-    integer-second truncation can shave up to ~1 s off, leaving the last
-    retry attempt with a near-zero effectiveTimeout that races against
-    the runtime round-trip.
-    """
+    """Create an RFC3339 deadline_at timestamp."""
     deadline = datetime.now(tz=UTC) + timedelta(seconds=seconds_from_now)
-    if deadline.microsecond > 0:
-        deadline = deadline.replace(microsecond=0) + timedelta(seconds=1)
     return deadline.strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
