@@ -8,9 +8,99 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.5.2] - 2026-02-27
 
-**Full Changelog**: https://github.com/deliveryhero/asya/compare/v0.5.1...v0.5.2
+## Major Changes
 
-trigger release build
+* feat: scaffold asya-lab and asya-ui packages, reserve image names (#229) @atemate
+* fix(compiler): fix errors in compiler, while-loop visualization and DOT simplifications (#226) @atemate
+* fix: Fix e2e failures on main branch (#223) @atemate
+* feat(crew): x-pause and x-resume crew actors (Phase B, epic 1ixy) (#221) @atemate
+* feat: pause/resume/cancel lifecycle for A2A protocol (Phase A, epic 1ixy) (#222) @atemate
+* fix: Fix e2e failures on main branch for fanout (#218) @atemate
+* feat(gateway): stamp status.deadline\_at in message protocol (wave 3, epic 1crv) (#215) @atemate
+* feat(sidecar): SLA enforcement and effective timeout (wave 2, epic 1crv) (#214) @atemate
+* refactor!: replace envelope terminology with message/msg across codebase (#213) @atemate
+* feat(sidecar): add DeadlineAt field and per-call timeout (wave 1, epic 1crv) (#212) @atemate
+* test: integration tests for streaming partial events (epic 1ia4) (#209) @atemate
+* feat(integration): fan-out/fan-in integration test suite (epic 1c7i) (#211) @atemate
+* feat(runtime): add open(path, x) exclusive create mode for state proxy (epic 1c7i) (#206) @atemate
+* feat(runtime): SSE streaming protocol for generator handlers (epic 1ia4) (#205) @atemate
+* feat(gateway): A2A protocol compliance - core endpoints (epic 1c0d) (#202) @atemate
+* feat(sidecar): x-asya-route-override header resolution (epic 1crb) (#201) @atemate
+* feat(runtime): add async generator handler support (epic 1ia4) (#203) @atemate
+* feat(1dmf): add state proxy connectors — s3-passthrough, s3-buffered-cas, redis-buffered-cas (#200) @atemate
+* feat(runtime): replace ASYA\_HANDLER\_MODE with /proc/asya/msg/ VFS (epic 1ixt) (#198) @atemate
+* feat(1c4w): E2E flavor testing — EnvironmentConfigs, actor migration, compositionSelector (#197) @atemate
+* feat(fanout): fan-out/fan-in infrastructure (epic 1c7i) (#196) @atemate
+* feat: add stateful actors via state proxy sidecars (epic 1dmf) (#195) @atemate
+
+## Other Changes
+
+* feat: scaffold asya-lab and asya-ui packages, reserve image names (#229) @atemate
+* fix(compiler): fix errors in compiler, while-loop visualization and DOT simplifications (#226) @atemate
+* test(integration): SLA enforcement tests across sidecar, runtime, and gateway (#228) @atemate
+* docs: task pause/resume feature documentation (#227) @atemate
+* test(integration): pause/resume flow end-to-end (epic 1ixy) (#225) @atemate
+* fix: Fix e2e failures on main branch (#223) @atemate
+* test(component): sidecar SLA enforcement tests (wave 4, epic 1crv) (#220) @atemate
+* feat(crew): x-pause and x-resume crew actors (Phase B, epic 1ixy) (#221) @atemate
+* feat: pause/resume/cancel lifecycle for A2A protocol (Phase A, epic 1ixy) (#222) @atemate
+* refactor(crew): migrate S3 checkpointer to state-proxy-based file I/O (task 1k34nz) (#216) @atemate
+* fix: Fix e2e failures on main branch for fanout (#218) @atemate
+* feat(gateway): stamp status.deadline\_at in message protocol (wave 3, epic 1crv) (#215) @atemate
+* feat(sidecar): SLA enforcement and effective timeout (wave 2, epic 1crv) (#214) @atemate
+* refactor!: replace envelope terminology with message/msg across codebase (#213) @atemate
+* feat(sidecar): add DeadlineAt field and per-call timeout (wave 1, epic 1crv) (#212) @atemate
+* test: integration tests for streaming partial events (epic 1ia4) (#209) @atemate
+* test(e2e): compiled flow with fan-out/fan-in on Kind cluster (epic 1c7i) (#210) @atemate
+* test(state-proxy): state proxy architecture doc and error path tests (epic 1dmf) (#207) @atemate
+* feat(integration): fan-out/fan-in integration test suite (epic 1c7i) (#211) @atemate
+* feat(runtime): add open(path, x) exclusive create mode for state proxy (epic 1c7i) (#206) @atemate
+* refactor: replace envelope terminology with task/VFS (epic 1c0d) (#208) @atemate
+* feat(runtime): SSE streaming protocol for generator handlers (epic 1ia4) (#205) @atemate
+* test(state-proxy): component tests for state proxy + fix S3 passthrough write (epic 1dmf) (#204) @atemate
+* feat(gateway): A2A protocol compliance - core endpoints (epic 1c0d) (#202) @atemate
+* feat(sidecar): x-asya-route-override header resolution (epic 1crb) (#201) @atemate
+* feat(runtime): add async generator handler support (epic 1ia4) (#203) @atemate
+* feat(1dmf): add state proxy connectors — s3-passthrough, s3-buffered-cas, redis-buffered-cas (#200) @atemate
+* feat(runtime): replace ASYA\_HANDLER\_MODE with /proc/asya/msg/ VFS (epic 1ixt) (#198) @atemate
+* feat(1c4w): E2E flavor testing — EnvironmentConfigs, actor migration, compositionSelector (#197) @atemate
+* feat(fanout): fan-out/fan-in infrastructure (epic 1c7i) (#196) @atemate
+* feat: add stateful actors via state proxy sidecars (epic 1dmf) (#195) @atemate
+
+## Installation
+
+### Helm Charts
+
+Add the Helm repository:
+```bash
+helm repo add asya https://asya.sh/charts
+helm repo update
+```
+
+Install the Crossplane compositions and gateway:
+```bash
+helm install asya-crossplane asya/asya-crossplane \
+  --version 0.5.2 \
+  --namespace asya-system \
+  --create-namespace
+helm install asya-gateway asya/asya-gateway \
+  --version 0.5.2 \
+  --namespace asya
+```
+
+## Docker Images
+
+All images are published to GitHub Container Registry:
+
+- `ghcr.io/deliveryhero/asya-crew:0.5.2`
+- `ghcr.io/deliveryhero/asya-gateway:0.5.2`
+- `ghcr.io/deliveryhero/asya-injector:0.5.2`
+- `ghcr.io/deliveryhero/asya-sidecar:0.5.2`
+- `ghcr.io/deliveryhero/asya-testing:0.5.2`
+
+## Contributors
+
+@atemate, @github-actions[bot] and [github-actions[bot]](https://github.com/apps/github-actions)
 
 
 
@@ -355,7 +445,7 @@ All images are published to GitHub Container Registry:
 
 Install or upgrade AsyncActor CRDs:
 ```bash
-kubectl apply -f https://github.com/deliveryhero/asya/releases/download/1.0.0/asya-crds.yaml
+kubectl apply -f https://github.com/deliveryhero/asya/releases/download/0.4.0/asya-crds.yaml
 ```
 
 ### Helm Charts
@@ -369,7 +459,7 @@ helm repo update
 Install the operator:
 ```bash
 helm install asya-operator asya/asya-operator \
-  --version 1.0.0 \
+  --version 0.4.0 \
   --namespace asya-system \
   --create-namespace
 ```
@@ -378,11 +468,11 @@ helm install asya-operator asya/asya-operator \
 
 All images are published to GitHub Container Registry:
 
-- `ghcr.io/deliveryhero/asya-operator:1.0.0`
-- `ghcr.io/deliveryhero/asya-gateway:1.0.0`
-- `ghcr.io/deliveryhero/asya-sidecar:1.0.0`
-- `ghcr.io/deliveryhero/asya-crew:1.0.0`
-- `ghcr.io/deliveryhero/asya-testing:1.0.0`
+- `ghcr.io/deliveryhero/asya-operator:0.4.0`
+- `ghcr.io/deliveryhero/asya-gateway:0.4.0`
+- `ghcr.io/deliveryhero/asya-sidecar:0.4.0`
+- `ghcr.io/deliveryhero/asya-crew:0.4.0`
+- `ghcr.io/deliveryhero/asya-testing:0.4.0`
 
 ## Contributors
 
@@ -715,11 +805,11 @@ All images are published to GitHub Container Registry:
 
 All images are published to GitHub Container Registry:
 
-- `ghcr.io/deliveryhero/asya-operator:1.0.0`
-- `ghcr.io/deliveryhero/asya-gateway:1.0.0`
-- `ghcr.io/deliveryhero/asya-sidecar:1.0.0`
-- `ghcr.io/deliveryhero/asya-crew:1.0.0`
-- `ghcr.io/deliveryhero/asya-testing:1.0.0`
+- `ghcr.io/deliveryhero/asya-operator:0.3.0`
+- `ghcr.io/deliveryhero/asya-gateway:0.3.0`
+- `ghcr.io/deliveryhero/asya-sidecar:0.3.0`
+- `ghcr.io/deliveryhero/asya-crew:0.3.0`
+- `ghcr.io/deliveryhero/asya-testing:0.3.0`
 
 ## Contributors
 
