@@ -23,7 +23,16 @@ All decisions finalized and applied to the RFC:
    - Typed models for upstream partials must be manually serialized to dict
      with `"partial": True` merged in
 
-4. **Stale references removed**: `/tmp/msg/` -> `/proc/asya/msg/`,
+4. **No legacy detection**: All parameters extracted uniformly by name,
+   regardless of type annotation. `dict` parameters are not special-cased.
+   No `self.is_legacy` or mode branching. Existing `def f(payload: dict)`
+   handlers must adapt (rename param or use `**kwargs`).
+
+5. **Configurable merge strategy**: `ASYA_RESULT_MERGE` env var with two modes:
+   - `shallow` (default): `target.update(result)` — top-level key merge
+   - `deep`: recursive merge — nested dicts merged, scalars/lists overwritten
+
+6. **Stale references removed**: `/tmp/msg/` -> `/proc/asya/msg/`,
    envelope mode discussion deleted (already removed from runtime)
 
 ---
@@ -38,7 +47,7 @@ All handler forms from RFC section 6 working end-to-end.
 | Task | Ref | Description |
 |------|-----|-------------|
 | Input extraction + deserialization | [[1ixz/1m4yo6]] | Signature introspection (`inspect.signature`, `typing.get_type_hints`), legacy single-dict detection, `ASYA_PARAMS_AT` jq-style path navigation, per-parameter extraction by name, type-based deserialization (Pydantic v1/v2 `.model_validate`/`.parse_obj`, `dataclass(**val)`, TypedDict passthrough, primitive passthrough). Error on missing required params. |
-| Output merge + serialization | [[1ixz/1m8sym]] | `ASYA_RESULT_AT` jq-style path navigation with auto-creation of intermediate dicts, return value serialization (`.model_dump`/`.dict`, `asdict`, passthrough), shallow merge (`dict.update`) at target path, scalar/list direct write at path. `None` return preserves abort semantics. |
+| Output merge + serialization | [[1ixz/1m8sym]] | `ASYA_RESULT_AT` jq-style path navigation with auto-creation of intermediate dicts, return value serialization (`.model_dump`/`.dict`, `asdict`, passthrough), configurable merge via `ASYA_RESULT_MERGE` (shallow: `dict.update`, deep: recursive), scalar/list direct write at path. `None` return preserves abort semantics. |
 | Generator/yield typed support | [[1ixz/1m6hk3]] | Extend yield handling to serialize typed return values (same serialization dispatcher as output merge). Upstream partials use existing `{"partial": True}` convention unchanged. Each yield frame serialized independently. |
 | Tests | [[1ixz/1mnz5v]] | **Unit tests**: All 8 handler forms (RFC 6.1-6.8) -- legacy dict, typed params + dict return, typed params + typed return, Pydantic input model, multiple typed params, dataclass, TypedDict, class-based. Edge cases: missing keys, optional params, nested input paths, nested output paths, scalar return, list return, `None` return, array index paths. **Component tests**: Docker Compose with typed handler containers, end-to-end via Unix socket HTTP. |
 
@@ -58,15 +67,16 @@ everything together.
 
 | File | Changes |
 |------|---------|
-| `src/asya-runtime/asya_runtime.py` | New functions: `_introspect_handler()`, `_parse_jq_path()`, `_navigate_path()`, `_extract_input()`, `_deserialize_param()`, `_merge_output()`, `_serialize_return()`. Modified: `_call_handler()`, `_collect_payload_frames()`, `_handle_invoke()` startup introspection. New env vars: `ASYA_PARAMS_AT`, `ASYA_RESULT_AT`. |
+| `src/asya-runtime/asya_runtime.py` | New functions: `_introspect_handler()`, `_parse_jq_path()`, `_navigate_path()`, `_extract_input()`, `_deserialize_param()`, `_merge_output()`, `_deep_merge()`, `_serialize_return()`. Modified: `_call_handler()`, `_collect_payload_frames()`, `_handle_invoke()` startup introspection. New env vars: `ASYA_PARAMS_AT`, `ASYA_RESULT_AT`, `ASYA_RESULT_MERGE`. |
 | `src/asya-runtime/tests/` | New test files for typed signatures (unit). |
 | `src/asya-testing/asya_testing/handlers/` | New `typed.py` with example typed handlers for all forms. |
 | `testing/component/runtime/` | New test cases and handler services for typed signatures. |
 
 ### Backward compatibility
 
-- `def f(payload: dict) -> dict` detection: `len(params) == 1 and annotation in (dict, Dict, Dict[str, Any], dict[str, Any], Parameter.empty)` -> legacy mode, env vars ignored.
-- All existing tests must pass without modification.
+- No legacy detection — all parameters extracted uniformly by name.
+- Existing `def f(payload: dict)` handlers need minor migration (rename param or use `**kwargs`).
+- Existing tests for handler invocation will need updates to match new extraction behavior.
 - No sidecar, gateway, or wire protocol changes.
 
 ---

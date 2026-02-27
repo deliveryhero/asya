@@ -162,15 +162,21 @@ If a required parameter (no default value) is missing from the input subtree, th
 
 Optional parameters (those with defaults in the signature) are omitted from extraction when the key is absent, and the handler receives the default value.
 
-#### Single-parameter `dict` fallback
+#### Uniform extraction (no special-casing)
 
-If the handler has exactly one parameter annotated as `dict` (or untyped), the runtime passes the entire input subtree as-is with no extraction. This preserves backward compatibility with existing `payload: dict` handlers.
+All parameters are extracted by name, regardless of type annotation. A parameter
+annotated as `dict` is treated the same as `str` or `BaseModel` -- the runtime
+looks up `subtree[param_name]` and passes whatever JSON value is there.
 
 ```python
-# Legacy form -- no extraction, full subtree passed as dict
-def handler(payload: dict) -> dict:
-    return {"result": payload["text"].upper()}
+# Parameter "data" of type dict -- extracted by name like any other param
+# ASYA_PARAMS_AT=.  ->  payload["data"] is passed as the argument
+def handler(data: dict) -> dict:
+    return {"result": data["text"].upper()}
 ```
+
+There is no legacy fallback mode. The type annotation controls deserialization
+(e.g., Pydantic validation), not whether extraction happens.
 
 ---
 
@@ -214,41 +220,55 @@ Intermediate dicts are created automatically if they do not exist.
 
 If the handler returns `None`, the payload is left unchanged and the message is routed to `x-sink` (abort semantics, same as today).
 
-#### `dict` return from legacy handlers
-
-If the single-parameter `dict` fallback is active (section 2), the return value replaces the entire input subtree rather than merging. This matches current payload-mode behavior exactly.
-
 ---
 
 ### 4. Merge semantics
 
-When the handler returns a typed result (not the `dict` fallback), the runtime performs a **shallow merge** at the output path:
+When the handler returns a dict-like result, the runtime merges it into the payload at the output path. The merge strategy is configurable via `ASYA_RESULT_MERGE`.
 
-1. The return value is serialized to a flat `dict` (via `.model_dump()`, `dataclasses.asdict()`, or `dict()` depending on type).
+#### Env var
+
+| Variable | Default | Description |
+|---|---|---|
+| `ASYA_RESULT_MERGE` | `shallow` | Merge strategy: `shallow` or `deep` |
+
+#### Shallow merge (default)
+
+`ASYA_RESULT_MERGE=shallow` -- performs `target.update(result)` at the output path:
+
+1. The return value is serialized to a `dict` (via `.model_dump()`, `dataclasses.asdict()`, or `dict()` depending on type).
 2. Each top-level key in the result dict is written into the target subtree.
 3. Keys present in the target but absent from the result are **preserved** (not deleted).
-4. Keys present in both are **overwritten** by the result.
+4. Keys present in both are **overwritten** by the result (including nested dicts -- they are replaced, not recursively merged).
 
-**Example:**
+**Example** (output path: `.analyzed`):
 
-Output path: `.analyzed`
+Target before: `{"analyzed": {"foo": "bar", "baz": "zoo", "nested": {"a": 1, "b": 2}}}`
+Handler returns: `{"foo": "kek", "new_field": 42, "nested": {"a": 99}}`
+Target after: `{"analyzed": {"foo": "kek", "baz": "zoo", "nested": {"a": 99}, "new_field": 42}}`
 
-Target before handler:
-```json
-{"analyzed": {"foo": "bar", "baz": "zoo", "keep": true}}
-```
+Note: `nested.b` is lost because shallow merge replaces the entire `nested` dict.
 
-Handler returns:
-```json
-{"foo": "kek", "new_field": 42}
-```
+#### Deep merge
 
-Target after merge:
-```json
-{"analyzed": {"foo": "kek", "baz": "zoo", "keep": true, "new_field": 42}}
-```
+`ASYA_RESULT_MERGE=deep` -- recursively merges nested dicts:
 
-This is a standard `dict.update()` at the output path -- predictable and debuggable.
+1. Same serialization as shallow.
+2. For each key in the result: if both the target and result values are dicts, merge recursively. Otherwise, overwrite.
+3. Non-dict values (lists, scalars) are always overwritten, never merged.
+
+**Example** (same data as above):
+
+Target before: `{"analyzed": {"foo": "bar", "baz": "zoo", "nested": {"a": 1, "b": 2}}}`
+Handler returns: `{"foo": "kek", "new_field": 42, "nested": {"a": 99}}`
+Target after: `{"analyzed": {"foo": "kek", "baz": "zoo", "nested": {"a": 99, "b": 2}, "new_field": 42}}`
+
+Note: `nested.b` is preserved because deep merge recurses into nested dicts.
+
+#### When to use each
+
+- **Shallow** (default): Predictable, matches `dict.update()` semantics. Use when each actor owns its output subtree and doesn't need to preserve nested structure from previous actors.
+- **Deep**: Use when multiple actors write to overlapping nested structures and must preserve each other's keys.
 
 #### Scalar returns
 
@@ -306,16 +326,17 @@ All introspection uses `inspect`, `typing`, and `dataclasses` from the standard 
 
 ### 6. Handler signature forms
 
-#### 6.1 Legacy dict handler (backward compatible)
+#### 6.1 Dict parameter (uniform extraction)
 
 ```python
-def process(payload: dict) -> dict:
-    return {"result": payload["text"].upper()}
+# ASYA_PARAMS_AT=.  ->  extracts payload["data"]
+def process(data: dict) -> dict:
+    return {"result": data["text"].upper()}
 ```
 
-- Single `dict` parameter triggers fallback mode.
-- No extraction, no merge -- full payload in, full payload out.
-- `ASYA_PARAMS_AT` and `ASYA_RESULT_AT` are ignored.
+- Parameter `data` extracted by name from input subtree, same as any other type.
+- No special-casing -- `dict` is just another annotation.
+- `ASYA_PARAMS_AT` and `ASYA_RESULT_AT` apply normally.
 
 #### 6.2 Typed parameters, dict return
 
@@ -589,6 +610,7 @@ This is a future integration point -- the initial implementation focuses on the 
 | `ASYA_HANDLER` | (required) | Handler function path (e.g., `module.function` or `module.Class.method`) |
 | `ASYA_PARAMS_AT` | `.` | jq-style path for parameter extraction from payload |
 | `ASYA_RESULT_AT` | `.` | jq-style path for result merge into payload |
+| `ASYA_RESULT_MERGE` | `shallow` | Merge strategy: `shallow` (dict.update) or `deep` (recursive) |
 
 #### Path syntax (reduced jq)
 
@@ -708,33 +730,42 @@ spec:
 
 ### 10. Migration and backward compatibility
 
-#### Zero breaking changes
+#### Uniform model (no legacy detection)
 
-Existing handlers with `payload: dict` signature continue to work without any modification. The single-dict-parameter detection (section 2) ensures full backward compatibility.
+There is no legacy/typed mode distinction. All handlers use the same extraction
+and merge logic. The parameter name is always used as the key for extraction,
+regardless of the type annotation.
 
 | Handler form | ASYA_PARAMS_AT | ASYA_RESULT_AT | Behavior |
 |---|---|---|---|
-| `def f(payload: dict) -> dict` | ignored | ignored | Full payload in, full payload out (current behavior) |
-| `def f(payload: dict)` | ignored | ignored | Full payload in, None return = abort |
+| `def f(data: dict) -> dict` | applied | applied | Extract `subtree["data"]` by param name, merge return dict |
 | `def f(text: str) -> dict` | applied | applied | Extract `subtree["text"]` by param name, merge return dict |
 | `def f(req: MyModel) -> MyModel` | applied | applied | Extract `subtree["req"]`, validate via `model_validate()`, serialize + merge |
+| `def f(a: str, b: int) -> dict` | applied | applied | Extract `subtree["a"]` and `subtree["b"]` by param names |
 
-#### Migration path
+#### Migration path for existing `payload: dict` handlers
 
-1. **No action required** for existing `payload: dict` handlers.
-2. To adopt typed signatures, change the handler signature and set `ASYA_PARAMS_AT` / `ASYA_RESULT_AT` in the AsyncActor spec.
-3. Handlers can be migrated one actor at a time -- the feature is per-handler, not global.
+Existing handlers that use the convention `def f(payload: dict) -> dict` will
+need a minor change. With uniform extraction, the runtime extracts
+`subtree["payload"]` (by parameter name), which is likely not what was intended.
 
-#### Detection logic
-
-The runtime distinguishes legacy from typed handlers at load time:
-
+**Option A**: Rename the parameter to match the actual payload key:
+```python
+# Before: def process(payload: dict) -> dict
+# After:  parameter name matches the key in the payload
+def process(data: dict) -> dict:
+    return {"result": data["text"].upper()}
+# Payload: {"data": {"text": "hello"}}
 ```
-if len(params) == 1 and annotation in (dict, inspect.Parameter.empty, Dict, Dict[str, Any]):
-    -> legacy dict mode (no extraction, no merge)
-else:
-    -> typed mode (extract by param name, merge at output path)
+
+**Option B**: Use `**kwargs` to receive all keys from the subtree:
+```python
+def process(**kwargs) -> dict:
+    return {"result": kwargs["text"].upper()}
+# Payload: {"text": "hello"}, ASYA_PARAMS_AT=.
 ```
+
+Handlers can be migrated one actor at a time -- the feature is per-handler, not global.
 
 ---
 
