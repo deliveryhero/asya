@@ -13,7 +13,7 @@ class TestExampleFlows:
     @pytest.mark.parametrize("flow_file,expected_min_routers", [
         ("minimal.py", 2),
         ("sequential.py", 2),
-        ("mutations_only.py", 3),
+        ("mutations_only.py", 2),
         ("mutations_with_handler.py", 3),
         ("if_no_else.py", 3),
         ("if_else_simple.py", 3),

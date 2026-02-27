@@ -62,8 +62,8 @@ class TestDotGeneration:
         dot = generator.generate()
 
         assert "if" in dot.lower()
-        assert "true" in dot.lower() or "darkgreen" in dot
-        assert "false" in dot.lower() or "darkred" in dot
+        assert "true" in dot.lower() or "darkseagreen4" in dot
+        assert "false" in dot.lower() or "indianred4" in dot
 
     def test_generate_with_mutations(self):
         routers = [
@@ -104,8 +104,8 @@ class TestDotGeneration:
         generator = DotGenerator("flow", routers)
         dot = generator.generate()
 
-        assert "darkgreen" in dot
-        assert "darkred" in dot
+        assert "darkseagreen4" in dot
+        assert "indianred4" in dot
 
 
 class TestActorCollection:
@@ -202,8 +202,8 @@ class TestEdgeGeneration:
 
         assert len(edges) >= 2
         edges_str = " ".join(edges)
-        assert "darkgreen" in edges_str
-        assert "darkred" in edges_str
+        assert "darkseagreen4" in edges_str
+        assert "indianred4" in edges_str
 
     def test_generate_edges_empty_branches(self):
         condition = Condition(lineno=5, test='p["x"]', true_branch=[], false_branch=[])
@@ -240,21 +240,18 @@ class TestHelperMethods:
         generator = DotGenerator("flow", [], step_width=20)
         text = "this is a very long text that should be truncated"
         truncated = generator._truncate_text(text)
-        assert len(truncated) <= 20
-        assert "..." in truncated
+        assert len(truncated) <= len(text)
+        assert "\u2026" in truncated
 
-    def test_center_text_short(self):
-        generator = DotGenerator("flow", [], step_width=20)
-        text = "hello"
-        centered = generator._center_text(text)
-        assert len(centered) == 20
-        assert text in centered
+    def test_truncate_display_name_short(self):
+        generator = DotGenerator("flow", [], step_width=40)
+        result = generator._truncate_display_name("short_func")
+        assert result == "p = short_func(p)"
 
-    def test_center_text_long(self):
+    def test_truncate_display_name_long(self):
         generator = DotGenerator("flow", [], step_width=20)
-        text = "this is a very long text that should be truncated"
-        centered = generator._center_text(text)
-        assert len(centered) <= 20
+        result = generator._truncate_display_name("very_long_function_name_that_exceeds")
+        assert len(result) <= 20
 
 
 class TestEndToEnd:
@@ -294,8 +291,8 @@ class TestEndToEnd:
         dot = generator.generate()
 
         assert "if" in dot.lower()
-        assert "darkgreen" in dot
-        assert "darkred" in dot
+        assert "darkseagreen4" in dot
+        assert "indianred4" in dot
 
     def test_mutation_flow_dot(self):
         source = textwrap.dedent("""

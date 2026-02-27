@@ -1,11 +1,46 @@
 """Test routing correctness by executing compiled routers."""
 
 import os
+import tempfile
 import textwrap
+from pathlib import Path
 
 import pytest
 
 from asya_cli.flow import FlowCompiler
+
+
+def _setup_vfs(tmpdir, prev, next_actors):
+    """Create mock VFS directory structure for testing routers."""
+    vfs_root = Path(tmpdir) / "vfs"
+    route_dir = vfs_root / "route"
+    route_dir.mkdir(parents=True, exist_ok=True)
+    (route_dir / "prev").write_text("\n".join(prev))
+    (route_dir / "next").write_text("\n".join(next_actors))
+    return str(vfs_root)
+
+
+def _read_vfs_next(vfs_root):
+    """Read the route/next VFS file and return list of actors."""
+    content = (Path(vfs_root) / "route" / "next").read_text()
+    return [x for x in content.splitlines() if x]
+
+
+def _compile_and_exec(source, env_vars=None):
+    """Compile source, set env vars, exec code, and return namespace.
+
+    env_vars must be set BEFORE exec() so the handler-to-actor
+    mapping (_HANDLER_TO_ACTOR) is populated during module load.
+    """
+    if env_vars:
+        for key, value in env_vars.items():
+            os.environ[key] = value
+
+    compiler = FlowCompiler()
+    code = compiler.compile(source, "test.py")
+    namespace = {}
+    exec(code, namespace)
+    return namespace
 
 
 class TestRouterExecution:
@@ -24,21 +59,17 @@ class TestRouterExecution:
                 return p
         """)
 
-        compiler = FlowCompiler()
-        code = compiler.compile(source, "test.py")
-
-        namespace = {}
-        exec(code, namespace)
-
-        os.environ["ASYA_HANDLER_HANDLER_A"] = "handler_a"
-        os.environ["ASYA_HANDLER_END_FLOW"] = "end_flow"
-        os.environ["ASYA_HANDLER_START_FLOW"] = "start_flow"
-
-        message = {"route": {"prev": [], "curr": "start_flow", "next": []}, "payload": {}}
+        namespace = _compile_and_exec(source, {"ASYA_HANDLER_HANDLER_A": "handler_a"})
         start_func = namespace["start_flow"]
-        result = start_func(message)
 
-        assert "handler-a" in result["route"]["next"]
+        with tempfile.TemporaryDirectory() as tmpdir:
+            vfs_root = _setup_vfs(tmpdir, [], [])
+            namespace["_MSG_ROOT"] = vfs_root
+
+            start_func({})
+
+            next_actors = _read_vfs_next(vfs_root)
+            assert "handler-a" in next_actors
 
     def test_sequential_handlers_routing(self):
         source = textwrap.dedent("""
@@ -56,25 +87,23 @@ class TestRouterExecution:
                 return p
         """)
 
-        compiler = FlowCompiler()
-        code = compiler.compile(source, "test.py")
-
-        namespace = {}
-        exec(code, namespace)
-
-        os.environ["ASYA_HANDLER_HANDLER_A"] = "handler_a"
-        os.environ["ASYA_HANDLER_HANDLER_B"] = "handler_b"
-        os.environ["ASYA_HANDLER_HANDLER_C"] = "handler_c"
-        os.environ["ASYA_HANDLER_END_FLOW"] = "end_flow"
-        os.environ["ASYA_HANDLER_START_FLOW"] = "start_flow"
-
-        message = {"route": {"prev": [], "curr": "start_flow", "next": []}, "payload": {}}
+        namespace = _compile_and_exec(source, {
+            "ASYA_HANDLER_HANDLER_A": "handler_a",
+            "ASYA_HANDLER_HANDLER_B": "handler_b",
+            "ASYA_HANDLER_HANDLER_C": "handler_c",
+        })
         start_func = namespace["start_flow"]
-        result = start_func(message)
 
-        assert "handler-a" in result["route"]["next"]
-        assert "handler-b" in result["route"]["next"]
-        assert "handler-c" in result["route"]["next"]
+        with tempfile.TemporaryDirectory() as tmpdir:
+            vfs_root = _setup_vfs(tmpdir, [], [])
+            namespace["_MSG_ROOT"] = vfs_root
+
+            start_func({})
+
+            next_actors = _read_vfs_next(vfs_root)
+            assert "handler-a" in next_actors
+            assert "handler-b" in next_actors
+            assert "handler-c" in next_actors
 
 
 class TestConditionalRouting:
@@ -98,27 +127,23 @@ class TestConditionalRouting:
                 return p
         """)
 
-        compiler = FlowCompiler()
-        code = compiler.compile(source, "test.py")
-
-        namespace = {}
-        exec(code, namespace)
-
-        os.environ["ASYA_HANDLER_LEFT_HANDLER"] = "left_handler"
-        os.environ["ASYA_HANDLER_RIGHT_HANDLER"] = "right_handler"
-        os.environ["ASYA_HANDLER_END_FLOW"] = "end_flow"
+        namespace = _compile_and_exec(source, {
+            "ASYA_HANDLER_LEFT_HANDLER": "left_handler",
+            "ASYA_HANDLER_RIGHT_HANDLER": "right_handler",
+        })
 
         cond_router_name = [name for name in namespace if name.startswith("router_") and "_if" in name][0]
         cond_func = namespace[cond_router_name]
 
-        message_true = {
-            "route": {"prev": [], "curr": cond_router_name, "next": []},
-            "payload": {"go_left": True}
-        }
-        result_true = cond_func(message_true)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            vfs_root = _setup_vfs(tmpdir, [], [])
+            namespace["_MSG_ROOT"] = vfs_root
 
-        assert "left-handler" in result_true["route"]["next"]
-        assert "right-handler" not in result_true["route"]["next"]
+            cond_func({"go_left": True})
+
+            next_actors = _read_vfs_next(vfs_root)
+            assert "left-handler" in next_actors
+            assert "right-handler" not in next_actors
 
     def test_false_branch_routing(self):
         source = textwrap.dedent("""
@@ -135,27 +160,23 @@ class TestConditionalRouting:
                 return p
         """)
 
-        compiler = FlowCompiler()
-        code = compiler.compile(source, "test.py")
-
-        namespace = {}
-        exec(code, namespace)
-
-        os.environ["ASYA_HANDLER_LEFT_HANDLER"] = "left_handler"
-        os.environ["ASYA_HANDLER_RIGHT_HANDLER"] = "right_handler"
-        os.environ["ASYA_HANDLER_END_FLOW"] = "end_flow"
+        namespace = _compile_and_exec(source, {
+            "ASYA_HANDLER_LEFT_HANDLER": "left_handler",
+            "ASYA_HANDLER_RIGHT_HANDLER": "right_handler",
+        })
 
         cond_router_name = [name for name in namespace if name.startswith("router_") and "_if" in name][0]
         cond_func = namespace[cond_router_name]
 
-        message_false = {
-            "route": {"prev": [], "curr": cond_router_name, "next": []},
-            "payload": {"go_left": False}
-        }
-        result_false = cond_func(message_false)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            vfs_root = _setup_vfs(tmpdir, [], [])
+            namespace["_MSG_ROOT"] = vfs_root
 
-        assert "right-handler" in result_false["route"]["next"]
-        assert "left-handler" not in result_false["route"]["next"]
+            cond_func({"go_left": False})
+
+            next_actors = _read_vfs_next(vfs_root)
+            assert "right-handler" in next_actors
+            assert "left-handler" not in next_actors
 
     def test_complex_condition_evaluation(self):
         source = textwrap.dedent("""
@@ -172,32 +193,29 @@ class TestConditionalRouting:
                 return p
         """)
 
-        compiler = FlowCompiler()
-        code = compiler.compile(source, "test.py")
-
-        namespace = {}
-        exec(code, namespace)
-
-        os.environ["ASYA_HANDLER_HANDLER_MATCH"] = "handler_match"
-        os.environ["ASYA_HANDLER_HANDLER_NO_MATCH"] = "handler_no_match"
-        os.environ["ASYA_HANDLER_END_FLOW"] = "end_flow"
+        namespace = _compile_and_exec(source, {
+            "ASYA_HANDLER_HANDLER_MATCH": "handler_match",
+            "ASYA_HANDLER_HANDLER_NO_MATCH": "handler_no_match",
+        })
 
         cond_router_name = [name for name in namespace if name.startswith("router_") and "_if" in name][0]
         cond_func = namespace[cond_router_name]
 
-        message_match = {
-            "route": {"prev": [], "curr": cond_router_name, "next": []},
-            "payload": {"x": 15, "y": 10}
-        }
-        result_match = cond_func(message_match)
-        assert "handler-match" in result_match["route"]["next"]
+        with tempfile.TemporaryDirectory() as tmpdir:
+            vfs_root = _setup_vfs(tmpdir, [], [])
+            namespace["_MSG_ROOT"] = vfs_root
 
-        message_no_match = {
-            "route": {"prev": [], "curr": cond_router_name, "next": []},
-            "payload": {"x": 5, "y": 25}
-        }
-        result_no_match = cond_func(message_no_match)
-        assert "handler-no-match" in result_no_match["route"]["next"]
+            cond_func({"x": 15, "y": 10})
+            next_actors = _read_vfs_next(vfs_root)
+            assert "handler-match" in next_actors
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            vfs_root = _setup_vfs(tmpdir, [], [])
+            namespace["_MSG_ROOT"] = vfs_root
+
+            cond_func({"x": 5, "y": 25})
+            next_actors = _read_vfs_next(vfs_root)
+            assert "handler-no-match" in next_actors
 
 
 class TestMutationRouting:
@@ -217,26 +235,19 @@ class TestMutationRouting:
                 return p
         """)
 
-        compiler = FlowCompiler()
-        code = compiler.compile(source, "test.py")
+        namespace = _compile_and_exec(source, {"ASYA_HANDLER_HANDLER": "handler"})
+        start_func = namespace["start_flow"]
 
-        namespace = {}
-        exec(code, namespace)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            vfs_root = _setup_vfs(tmpdir, [], [])
+            namespace["_MSG_ROOT"] = vfs_root
 
-        os.environ["ASYA_HANDLER_HANDLER"] = "handler"
-        os.environ["ASYA_HANDLER_END_FLOW"] = "end_flow"
+            payload = {}
+            result = start_func(payload)
 
-        mutation_router_name = [name for name in namespace if name.startswith("router_") and "_seq" in name][0]
-        mutation_func = namespace[mutation_router_name]
-
-        message = {
-            "route": {"prev": [], "curr": mutation_router_name, "next": []},
-            "payload": {}
-        }
-        result = mutation_func(message)
-
-        assert result["payload"]["key"] == "value"
-        assert "handler" in result["route"]["next"]
+            assert result["key"] == "value"
+            next_actors = _read_vfs_next(vfs_root)
+            assert "handler" in next_actors
 
     def test_multiple_mutations(self):
         source = textwrap.dedent("""
@@ -247,26 +258,19 @@ class TestMutationRouting:
                 return p
         """)
 
-        compiler = FlowCompiler()
-        code = compiler.compile(source, "test.py")
+        namespace = _compile_and_exec(source)
+        start_func = namespace["start_flow"]
 
-        namespace = {}
-        exec(code, namespace)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            vfs_root = _setup_vfs(tmpdir, [], [])
+            namespace["_MSG_ROOT"] = vfs_root
 
-        os.environ["ASYA_HANDLER_END_FLOW"] = "end_flow"
+            payload = {}
+            result = start_func(payload)
 
-        mutation_router_name = [name for name in namespace if name.startswith("router_") and "_seq" in name][0]
-        mutation_func = namespace[mutation_router_name]
-
-        message = {
-            "route": {"prev": [], "curr": mutation_router_name, "next": []},
-            "payload": {}
-        }
-        result = mutation_func(message)
-
-        assert result["payload"]["x"] == 1
-        assert result["payload"]["y"] == 2
-        assert result["payload"]["z"] == 3
+            assert result["x"] == 1
+            assert result["y"] == 2
+            assert result["z"] == 3
 
     def test_mutations_in_conditional_branches(self):
         source = textwrap.dedent("""
@@ -278,34 +282,39 @@ class TestMutationRouting:
                 return p
         """)
 
+        # Compile first to discover router names, then set env vars and exec
         compiler = FlowCompiler()
         code = compiler.compile(source, "test.py")
+
+        env_vars = {}
+        for router in compiler.routers:
+            env_name = router.name.upper().replace("-", "_")
+            env_vars[f"ASYA_HANDLER_{env_name}"] = router.name
+        for key, value in env_vars.items():
+            os.environ[key] = value
 
         namespace = {}
         exec(code, namespace)
 
-        os.environ["ASYA_HANDLER_END_FLOW"] = "end_flow"
-
-        for router_name in namespace:
-            if router_name.startswith("router_"):
-                env_name = router_name.upper().replace("-", "_")
-                os.environ[f"ASYA_HANDLER_{env_name}"] = router_name
-
-        mutation_routers = [name for name in namespace if name.startswith("router_") and "_seq" in name]
-
         cond_router_name = [name for name in namespace if name.startswith("router_") and "_if" in name][0]
         cond_func = namespace[cond_router_name]
 
-        message_a = {
-            "route": {"prev": [], "curr": cond_router_name, "next": []},
-            "payload": {"type": "A"}
-        }
-        result_a = cond_func(message_a)
+        # Conditional router selects the correct mutation branch via VFS
+        with tempfile.TemporaryDirectory() as tmpdir:
+            vfs_root = _setup_vfs(tmpdir, [], [])
+            namespace["_MSG_ROOT"] = vfs_root
 
-        if mutation_routers:
-            mutation_router = namespace[mutation_routers[0]]
-            result_a = mutation_router(result_a)
-            assert result_a["payload"]["label"] == "A"
+            cond_func({"type": "A"})
+            next_actors = _read_vfs_next(vfs_root)
+
+            # Find the true-branch mutation router (the one with p["label"] = "A")
+            true_branch_router = next(
+                r for r in compiler.routers
+                if r.mutations and any("'A'" in m.code for m in r.mutations)
+            )
+            # resolve() converts underscores to hyphens (kebab-case)
+            expected_name = true_branch_router.name.replace("_", "-")
+            assert expected_name in next_actors
 
 
 class TestConvergenceRouting:
@@ -332,35 +341,32 @@ class TestConvergenceRouting:
                 return p
         """)
 
-        compiler = FlowCompiler()
-        code = compiler.compile(source, "test.py")
-
-        namespace = {}
-        exec(code, namespace)
-
-        os.environ["ASYA_HANDLER_HANDLER_A"] = "handler_a"
-        os.environ["ASYA_HANDLER_HANDLER_B"] = "handler_b"
-        os.environ["ASYA_HANDLER_FINAL_HANDLER"] = "final_handler"
-        os.environ["ASYA_HANDLER_END_FLOW"] = "end_flow"
+        namespace = _compile_and_exec(source, {
+            "ASYA_HANDLER_HANDLER_A": "handler_a",
+            "ASYA_HANDLER_HANDLER_B": "handler_b",
+            "ASYA_HANDLER_FINAL_HANDLER": "final_handler",
+        })
 
         cond_router_name = [name for name in namespace if name.startswith("router_") and "_if" in name][0]
         cond_func = namespace[cond_router_name]
 
-        message_true = {
-            "route": {"prev": [], "curr": cond_router_name, "next": []},
-            "payload": {"condition": True}
-        }
-        result_true = cond_func(message_true)
-        assert "handler-a" in result_true["route"]["next"]
-        assert "final-handler" in result_true["route"]["next"]
+        with tempfile.TemporaryDirectory() as tmpdir:
+            vfs_root = _setup_vfs(tmpdir, [], [])
+            namespace["_MSG_ROOT"] = vfs_root
 
-        message_false = {
-            "route": {"prev": [], "curr": cond_router_name, "next": []},
-            "payload": {"condition": False}
-        }
-        result_false = cond_func(message_false)
-        assert "handler-b" in result_false["route"]["next"]
-        assert "final-handler" in result_false["route"]["next"]
+            cond_func({"condition": True})
+            next_actors = _read_vfs_next(vfs_root)
+            assert "handler-a" in next_actors
+            assert "final-handler" in next_actors
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            vfs_root = _setup_vfs(tmpdir, [], [])
+            namespace["_MSG_ROOT"] = vfs_root
+
+            cond_func({"condition": False})
+            next_actors = _read_vfs_next(vfs_root)
+            assert "handler-b" in next_actors
+            assert "final-handler" in next_actors
 
 
 class TestEndRouter:
@@ -372,21 +378,21 @@ class TestEndRouter:
                 return p
         """)
 
-        compiler = FlowCompiler()
-        code = compiler.compile(source, "test.py")
+        namespace = _compile_and_exec(source)
 
-        namespace = {}
-        exec(code, namespace)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            vfs_root = _setup_vfs(tmpdir, [], [])
+            namespace["_MSG_ROOT"] = vfs_root
 
-        message = {
-            "route": {"prev": [], "curr": "end_flow", "next": []},
-            "payload": {"test": "data"}
-        }
-        end_func = namespace["end_flow"]
-        result = end_func(message)
+            payload = {"test": "data"}
+            end_func = namespace["end_flow"]
+            result = end_func(payload)
 
-        assert result == message
-        assert result["payload"]["test"] == "data"
+            assert result == payload
+            assert result["test"] == "data"
+
+            next_actors = _read_vfs_next(vfs_root)
+            assert next_actors == []
 
 
 class TestResolveFunction:
@@ -405,13 +411,7 @@ class TestResolveFunction:
                 return p
         """)
 
-        compiler = FlowCompiler()
-        code = compiler.compile(source, "test.py")
-
-        namespace = {}
-        exec(code, namespace)
-
-        os.environ["ASYA_HANDLER_MY_ACTOR"] = "handler"
+        namespace = _compile_and_exec(source, {"ASYA_HANDLER_MY_ACTOR": "handler"})
 
         resolve_func = namespace["resolve"]
         actor_name = resolve_func("handler")
@@ -428,12 +428,7 @@ class TestResolveFunction:
                 return p
         """)
 
-        compiler = FlowCompiler()
-        code = compiler.compile(source, "test.py")
-
-        namespace = {}
-        exec(code, namespace)
-
+        namespace = _compile_and_exec(source)
         resolve_func = namespace["resolve"]
 
         with pytest.raises(ValueError, match="not found in environment variables"):
@@ -452,11 +447,7 @@ class TestResolveFunction:
                 return p
         """)
 
-        compiler = FlowCompiler()
-        code = compiler.compile(source, "test.py")
-
-        namespace = {}
-        exec(code, namespace)
+        namespace = _compile_and_exec(source)
 
         assert "_HANDLER_TO_ACTOR" in namespace
         assert "handler1" in namespace["_HANDLER_TO_ACTOR"]
@@ -480,28 +471,18 @@ class TestRouteInsertion:
                 return p
         """)
 
-        compiler = FlowCompiler()
-        code = compiler.compile(source, "test.py")
+        namespace = _compile_and_exec(source, {"ASYA_HANDLER_HANDLER": "handler"})
+        start_func = namespace["start_flow"]
 
-        namespace = {}
-        exec(code, namespace)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            vfs_root = _setup_vfs(tmpdir, [], ["router_after"])
+            namespace["_MSG_ROOT"] = vfs_root
 
-        os.environ["ASYA_HANDLER_HANDLER"] = "handler"
-        os.environ["ASYA_HANDLER_END_FLOW"] = "end_flow"
+            start_func({})
 
-        router_name = [name for name in namespace if name.startswith("router_")][0]
-        router_func = namespace[router_name]
-
-        # Router receives message with router_after already in next
-        message = {
-            "route": {"prev": ["router_before"], "curr": router_name, "next": ["router_after"]},
-            "payload": {}
-        }
-        result = router_func(message)
-
-        # Handler should be prepended before router_after in next
-        assert "handler" in result["route"]["next"]
-        assert result["route"]["next"][-1] == "router_after"
+            next_actors = _read_vfs_next(vfs_root)
+            assert "handler" in next_actors
+            assert next_actors[-1] == "router_after"
 
     def test_router_preserves_existing_route(self):
         source = textwrap.dedent("""
@@ -513,26 +494,14 @@ class TestRouteInsertion:
                 return p
         """)
 
-        compiler = FlowCompiler()
-        code = compiler.compile(source, "test.py")
-
-        namespace = {}
-        exec(code, namespace)
-
-        os.environ["ASYA_HANDLER_HANDLER"] = "handler"
-        os.environ["ASYA_HANDLER_END_FLOW"] = "end_flow"
-        os.environ["ASYA_HANDLER_START_FLOW"] = "start_flow"
-
+        namespace = _compile_and_exec(source, {"ASYA_HANDLER_HANDLER": "handler"})
         start_func = namespace["start_flow"]
 
-        message = {
-            "route": {"prev": [], "curr": "start_flow", "next": []},
-            "payload": {}
-        }
-        result = start_func(message)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            vfs_root = _setup_vfs(tmpdir, [], [])
+            namespace["_MSG_ROOT"] = vfs_root
 
-        # prev should be unchanged (curr hasn't been shifted yet - runtime does that)
-        assert result["route"]["prev"] == []
-        assert result["route"]["curr"] == "start_flow"
-        # handler should be in next
-        assert "handler" in result["route"]["next"]
+            start_func({})
+
+            next_actors = _read_vfs_next(vfs_root)
+            assert "handler" in next_actors

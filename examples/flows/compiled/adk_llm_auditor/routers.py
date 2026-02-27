@@ -26,10 +26,16 @@ def start_llm_auditor(payload: dict) -> dict:
         _next_tail = _f.read().splitlines()
     _next = []
 
-    _next.append(resolve("router_llm_auditor_line_29_seq"))
+    p = payload
+    p['iteration'] = 0
+    p['status'] = 'started'
+    p['partial'] = True
+
+    _next.append(resolve("extract_claims"))
+    _next.append(resolve("router_llm_auditor_line_37_if"))
     with open(f"{_MSG_ROOT}/route/next", "w") as _f:
         _f.write("\n".join(_next + _next_tail))
-    return payload
+    return p
 
 def router_llm_auditor_line_38_seq(payload: dict) -> dict:
     """Router for control flow and payload mutations"""
@@ -321,23 +327,6 @@ def router_llm_auditor_line_37_if(payload: dict) -> dict:
         _next.append(resolve("router_llm_auditor_line_38_seq"))
     else:
         _next.append(resolve("router_llm_auditor_line_42_loop_back_0"))
-
-    with open(f"{_MSG_ROOT}/route/next", "w") as _f:
-        _f.write("\n".join(_next + _next_tail))
-    return payload
-
-def router_llm_auditor_line_29_seq(payload: dict) -> dict:
-    """Router for control flow and payload mutations"""
-    p = payload
-    with open(f"{_MSG_ROOT}/route/next") as _f:
-        _next_tail = _f.read().splitlines()
-    _next = []
-
-    p['iteration'] = 0
-    p['status'] = 'started'
-    p['partial'] = True
-    _next.append(resolve("extract_claims"))
-    _next.append(resolve("router_llm_auditor_line_37_if"))
 
     with open(f"{_MSG_ROOT}/route/next", "w") as _f:
         _f.write("\n".join(_next + _next_tail))

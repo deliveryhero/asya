@@ -249,7 +249,7 @@ def test_execute_auditor_init_mutations(project_root, compile_and_import, monkey
         monkeypatch.setattr(routers, "_MSG_ROOT", vfs_root)
 
         payload = {"text": "test"}
-        result = routers.router_llm_auditor_line_29_seq(payload)
+        result = routers.start_llm_auditor(payload)
 
         assert result["iteration"] == 0
         assert result["status"] == "started"
