@@ -156,7 +156,7 @@ BaseModel (pydantic)
 
 `types.Content` (from Google GenAI SDK):
 
-```python
+```py3
 class Content:
     role: Optional[str]   # "user" or "model"
     parts: list[Part]     # heterogeneous content parts
@@ -175,7 +175,7 @@ Each `Part` contains exactly one of:
 | `thought` | `bool` | Thinking/reasoning content |
 
 **FunctionCall**:
-```python
+```py3
 class FunctionCall:
     name: str           # tool/function name
     args: dict[str, Any] # arguments as key-value pairs
@@ -183,7 +183,7 @@ class FunctionCall:
 ```
 
 **FunctionResponse**:
-```python
+```py3
 class FunctionResponse:
     name: str               # tool/function name (matches FunctionCall.name)
     response: dict[str, Any] # result dictionary
@@ -194,7 +194,7 @@ class FunctionResponse:
 
 Events are classified by inspecting fields, not by a type enum:
 
-```python
+```py3
 def classify_event(event: Event) -> str:
     if event.author == "user":
         return "USER_INPUT"
@@ -234,7 +234,7 @@ def classify_event(event: Event) -> str:
 
 ### 2.6 is_final_response() Logic
 
-```python
+```py3
 def is_final_response(self) -> bool:
     # Short-circuit: skip_summarization or long-running tools
     if self.actions.skip_summarization or self.long_running_tool_ids:
@@ -268,7 +268,7 @@ def is_final_response(self) -> bool:
 
 **Source**: [runners.py](https://github.com/google/adk-python/blob/main/src/google/adk/runners.py) --
 persistence check:
-```python
+```py3
 if event.partial is not True:
     await self.session_service.append_event(session=session, event=event)
 ```
@@ -279,7 +279,7 @@ if event.partial is not True:
 
 ### 3.1 BaseLlmFlow.run_async() -- The While Loop
 
-```python
+```py3
 async def run_async(self, invocation_context: InvocationContext):
     while True:
         last_event = None
@@ -372,7 +372,7 @@ BaseTool (ABC)
 
 ### 4.2 FunctionTool: Python Functions as Tools
 
-```python
+```py3
 class FunctionTool(BaseTool):
     def __init__(self, func, *, require_confirmation=False):
         name = func.__name__
@@ -396,12 +396,12 @@ class FunctionTool(BaseTool):
 3. Validate mandatory args (return error dict if missing)
 4. Check confirmation requirement
 5. `_invoke_callable()` -- handles both sync and async functions:
-   ```python
+```py3
    if inspect.iscoroutinefunction(target):
        return await target(**args_to_call)
    else:
        return target(**args_to_call)
-   ```
+```
 
 ### 4.3 Tool Execution Pipeline (Complete)
 
@@ -460,7 +460,7 @@ Merged Event yielded to agent loop
 
 When the LLM makes multiple function calls in one response:
 
-```python
+```py3
 # functions.py
 tasks = [
     asyncio.create_task(
@@ -484,7 +484,7 @@ and deep-merged action dictionaries.
 `ToolContext` is an alias for `Context`. The `Context` class provides:
 
 **State access** (mutable, delta-tracked):
-```python
+```py3
 tool_context.state["key"] = "value"   # writes to session AND records delta
 count = tool_context.state.get("call_count", 0)
 ```
@@ -521,7 +521,7 @@ State key prefixes (convention, not enforced):
 
 **Source**: [long_running_tool.py](https://github.com/google/adk-python/blob/main/src/google/adk/tools/long_running_tool.py)
 
-```python
+```py3
 class LongRunningFunctionTool(FunctionTool):
     def __init__(self, func):
         super().__init__(func)
@@ -540,7 +540,7 @@ Flow:
 
 **Source**: [tool_confirmation.py](https://github.com/google/adk-python/blob/main/src/google/adk/tools/tool_confirmation.py)
 
-```python
+```py3
 class ToolConfirmation(BaseModel):
     hint: str = ""
     confirmed: bool = False
@@ -557,7 +557,7 @@ Flow:
 
 ### 4.8 Streaming Tools (Live Mode)
 
-```python
+```py3
 # function_tool.py -- _call_live()
 async def _call_live(self, *, args, tool_context, invocation_context):
     if self.name in invocation_context.active_streaming_tools:
@@ -576,7 +576,7 @@ audio/video streaming).
 ### 4.9 Callbacks
 
 **Before/after model** (intercept LLM calls):
-```python
+```py3
 LlmAgent(
     before_model_callback=fn,   # (CallbackContext, LlmRequest) -> Optional[LlmResponse]
     after_model_callback=fn,    # (CallbackContext, LlmResponse) -> Optional[LlmResponse]
@@ -586,7 +586,7 @@ LlmAgent(
 Return `None` to continue normally. Return `LlmResponse` to skip LLM / replace response.
 
 **Before/after tool** (intercept tool execution):
-```python
+```py3
 LlmAgent(
     before_tool_callback=fn,    # (BaseTool, args, ToolContext) -> Optional[dict]
     after_tool_callback=fn,     # (BaseTool, args, ToolContext, response) -> Optional[dict]
@@ -615,7 +615,7 @@ Return `None` to continue normally. Return `dict` to skip tool / replace result.
 
 **Source**: [sequential_agent.py](https://github.com/google/adk-python/blob/main/src/google/adk/agents/sequential_agent.py)
 
-```python
+```py3
 async def _run_async_impl(self, ctx: InvocationContext):
     for i in range(start_index, len(self.sub_agents)):
         sub_agent = self.sub_agents[i]
@@ -638,7 +638,7 @@ async def _run_async_impl(self, ctx: InvocationContext):
 **Source**: [parallel_agent.py](https://github.com/google/adk-python/blob/main/src/google/adk/agents/parallel_agent.py)
 
 Each sub-agent gets a **branched context**:
-```python
+```py3
 invocation_context = invocation_context.model_copy()
 branch_suffix = f'{agent.name}.{sub_agent.name}'
 invocation_context.branch = (
@@ -649,7 +649,7 @@ invocation_context.branch = (
 ```
 
 Events merged via `asyncio.Queue` with backpressure:
-```python
+```py3
 async def _merge_agent_run(agent_runs):
     queue = asyncio.Queue()
 
@@ -676,7 +676,7 @@ async def _merge_agent_run(agent_runs):
 
 **Source**: [loop_agent.py](https://github.com/google/adk-python/blob/main/src/google/adk/agents/loop_agent.py)
 
-```python
+```py3
 async def _run_async_impl(self, ctx: InvocationContext):
     while (not self.max_iterations or times_looped < self.max_iterations)
           and not (should_exit or pause_invocation):
@@ -704,7 +704,7 @@ async def _run_async_impl(self, ctx: InvocationContext):
 [transfer_to_agent_tool.py](https://github.com/google/adk-python/blob/main/src/google/adk/tools/transfer_to_agent_tool.py)
 
 AutoFlow extends SingleFlow by adding a `transfer_to_agent` tool:
-```python
+```py3
 def transfer_to_agent(agent_name: str, tool_context: ToolContext):
     tool_context.actions.transfer_to_agent = agent_name
 ```
@@ -725,7 +725,7 @@ On the next user message, `Runner._find_agent_to_run()` routes to the target age
 
 The most distinct composition mode. Creates a **complete isolation boundary**:
 
-```python
+```py3
 async def run_async(self, *, args, tool_context):
     # 1. New Runner with own session service
     runner = Runner(
@@ -783,7 +783,7 @@ async def run_async(self, *, args, tool_context):
 
 **Source**: [state.py](https://github.com/google/adk-python/blob/main/src/google/adk/sessions/state.py)
 
-```python
+```py3
 class State:
     APP_PREFIX = "app:"
     USER_PREFIX = "user:"
@@ -815,7 +815,7 @@ persisted by the Runner.
 
 When `output_key` is set on an LlmAgent, the final text response is saved to state:
 
-```python
+```py3
 # llm_agent.py
 def __maybe_save_output_to_state(self, event):
     if self.output_key and event.is_final_response() and event.content:
@@ -826,7 +826,7 @@ def __maybe_save_output_to_state(self, event):
 ```
 
 This enables pipeline patterns:
-```python
+```py3
 analyzer = LlmAgent(name="Analyzer", output_key="analysis", ...)
 writer   = LlmAgent(name="Writer",   instruction="Based on: {analysis}", ...)
 pipeline = SequentialAgent(sub_agents=[analyzer, writer])
@@ -1080,7 +1080,7 @@ On next user message:
 The ReAct loop pattern requires local variables to survive across actor boundaries.
 Without auto-serialization, the user must manually pack/unpack from payload:
 
-```python
+```py3
 # ADK (in-process, variables survive naturally)
 async def react(state):
     while True:
@@ -1109,7 +1109,7 @@ either:
 ADK's `asyncio.gather(*tasks)` for parallel tool execution maps to fan-out in Asya.
 The flow DSL supports fan-out via list yield but not parallel `await` with join:
 
-```python
+```py3
 # ADK: parallel tool execution (automatic when LLM requests multiple tools)
 results = await asyncio.gather(tool_a(args), tool_b(args))
 
