@@ -99,6 +99,35 @@ Not supported: `.[*]` (wildcard), `..` (recursive descent), `.[?@.x>1]` (filters
 
 The runtime inspects the handler signature with `inspect.signature()`. For each parameter (excluding `self` for class methods), it looks up a key matching the parameter name within the subtree selected by `ASYA_PARAMS_AT`.
 
+#### `**kwargs` support
+
+If the handler declares `**kwargs`, the runtime passes **all keys** from the input subtree as keyword arguments. Named parameters are extracted first by name; remaining keys go into `**kwargs`.
+
+```python
+# ASYA_PARAMS_AT=.  ->  all payload keys passed as kwargs
+def handler(**kwargs) -> dict:
+    return {"result": kwargs["text"].upper()}
+# Payload: {"text": "hello", "lang": "en"}
+# Called as: handler(text="hello", lang="en")
+```
+
+```python
+# Mixed: named param extracted first, rest goes to **kwargs
+def handler(text: str, **extra) -> dict:
+    return {"result": text.upper(), "extra_keys": list(extra.keys())}
+# Payload: {"text": "hello", "lang": "en", "debug": true}
+# Called as: handler(text="hello", lang="en", debug=True)
+```
+
+#### `*args` is disallowed
+
+Handlers must NOT declare `*args` (variadic positional parameters). JSON objects are unordered -- positional extraction is ambiguous. The runtime raises a **startup error** if `*args` is detected in the handler signature:
+
+```
+RuntimeError: Handler 'module.handler' declares *args which is not supported.
+JSON objects are unordered; use **kwargs or named parameters instead.
+```
+
 **Example: root extraction (`ASYA_PARAMS_AT=.`)**
 
 ```python
@@ -443,7 +472,19 @@ def process(data: InputData) -> OutputData:
 - TypedDicts are dicts at runtime -- no deserialization needed, direct pass-through.
 - Provides IDE autocompletion and type checker support without runtime overhead.
 
-#### 6.8 Class-based handler with typed method
+#### 6.8 `**kwargs` handler (whole subtree)
+
+```python
+# ASYA_PARAMS_AT=.context  ->  all keys from payload["context"] as kwargs
+def process(**kwargs) -> dict:
+    return {"result": kwargs["text"].upper(), "lang": kwargs.get("lang", "en")}
+```
+
+- Receives all keys from the input subtree as keyword arguments.
+- Useful for migration from legacy `payload: dict` handlers.
+- Can be mixed with named params: `def f(text: str, **rest)`.
+
+#### 6.9 Class-based handler with typed method
 
 ```python
 from pydantic import BaseModel
@@ -742,6 +783,9 @@ regardless of the type annotation.
 | `def f(text: str) -> dict` | applied | applied | Extract `subtree["text"]` by param name, merge return dict |
 | `def f(req: MyModel) -> MyModel` | applied | applied | Extract `subtree["req"]`, validate via `model_validate()`, serialize + merge |
 | `def f(a: str, b: int) -> dict` | applied | applied | Extract `subtree["a"]` and `subtree["b"]` by param names |
+| `def f(**kwargs) -> dict` | applied | applied | Pass all keys from subtree as keyword arguments |
+| `def f(text: str, **rest)` | applied | applied | Extract `subtree["text"]`, remaining keys go to `**rest` |
+| `def f(*args)` | **error** | -- | Startup error: `*args` disallowed (ambiguous ordering) |
 
 #### Migration path for existing `payload: dict` handlers
 
