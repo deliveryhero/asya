@@ -58,7 +58,9 @@ test-unit: ## Run unit tests (go + python)
 	$(MAKE) -C src/asya-crew/cmd/dlq-worker test-unit
 	$(MAKE) -C src/asya-cli test-unit
 	$(MAKE) -C src/asya-injector test-unit
+	$(MAKE) -C src/asya-lab test-unit
 	$(MAKE) -C src/asya-state-proxy test-unit
+	$(MAKE) -C src/asya-ui test-unit
 	$(MAKE) -C src/function-asya-flavors test-unit
 	@echo "$(GREEN_START)[++] Success: All unit tests completed successfully!$(GREEN_END)"
 
@@ -107,6 +109,8 @@ cov: ## Run all tests with coverage and display summary
 	$(MAKE) -C src/asya-crew cov-unit
 	$(MAKE) -C src/asya-crew/cmd/dlq-worker cov-unit
 	$(MAKE) -C src/asya-cli cov-unit
+	$(MAKE) -C src/asya-lab cov-unit
+	$(MAKE) -C src/asya-ui cov-unit
 	$(MAKE) -C src/function-asya-flavors cov-unit
 	$(MAKE) -C testing/integration cov
 	$(MAKE) -C testing/component cov
@@ -131,9 +135,11 @@ clean: clean-integration ## Clean build artifacts
 	$(MAKE) -C src/function-asya-flavors clean
 	$(MAKE) -C src/asya-crew clean
 	$(MAKE) -C src/asya-crew/cmd/dlq-worker clean
+	$(MAKE) -C src/asya-lab clean
 	$(MAKE) -C src/asya-sidecar clean
 	$(MAKE) -C src/asya-runtime clean
 	$(MAKE) -C src/asya-gateway clean
+	$(MAKE) -C src/asya-ui clean
 	PROFILE=sqs-s3 $(MAKE) -C testing/e2e clean
 	PROFILE=rabbitmq-minio $(MAKE) -C testing/e2e clean
 	find . -type f -name "*.pyc" -delete

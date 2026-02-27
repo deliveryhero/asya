@@ -62,7 +62,9 @@ jobs:
           "asya-sidecar"
           "asya-injector"
           "asya-crew"
+          "asya-lab"
           "asya-testing"
+          "asya-ui"
         )
 
         for img in "${IMAGES[@]}"; do
@@ -85,7 +87,9 @@ jobs:
         - \`ghcr.io/${{ github.repository_owner }}/asya-sidecar:${{ steps.version.outputs.version }}\`
         - \`ghcr.io/${{ github.repository_owner }}/asya-injector:${{ steps.version.outputs.version }}\`
         - \`ghcr.io/${{ github.repository_owner }}/asya-crew:${{ steps.version.outputs.version }}\`
+        - \`ghcr.io/${{ github.repository_owner }}/asya-lab:${{ steps.version.outputs.version }}\`
         - \`ghcr.io/${{ github.repository_owner }}/asya-testing:${{ steps.version.outputs.version }}\`
+        - \`ghcr.io/${{ github.repository_owner }}/asya-ui:${{ steps.version.outputs.version }}\`
         EOF
 
         if [ "${{ github.event.release.prerelease }}" == "false" ]; then
