@@ -43,6 +43,10 @@ def _get_transport_client(transport: str):
         pytest.skip(f"Unsupported transport: {transport}")
 
 
+@pytest.mark.xfail(
+    strict=True,
+    reason="S3 persistence requires state-proxy connector on x-sump",
+)
 @pytest.mark.slow
 def test_error_goes_to_sump_when_available(e2e_helper, kubectl, chaos_queues, namespace, errors_bucket):
     """

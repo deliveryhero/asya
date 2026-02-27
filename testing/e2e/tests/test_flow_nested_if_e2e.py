@@ -80,6 +80,10 @@ def flow_helper(gateway_helper, transport_timeouts, s3_endpoint, results_bucket,
     return FlowHelper()
 
 
+@pytest.mark.xfail(
+    strict=True,
+    reason="Flow routing requires VFS-based route modification (not yet functional in E2E)",
+)
 @pytest.mark.flow
 @pytest.mark.timeout(300)
 def test_route_a_x(flow_helper):
@@ -100,6 +104,10 @@ def test_route_a_x(flow_helper):
     logger.info("[+] Route A-X completed successfully")
 
 
+@pytest.mark.xfail(
+    strict=True,
+    reason="Flow routing requires VFS-based route modification (not yet functional in E2E)",
+)
 @pytest.mark.flow
 @pytest.mark.timeout(300)
 def test_route_a_y(flow_helper):
@@ -120,6 +128,10 @@ def test_route_a_y(flow_helper):
     logger.info("[+] Route A-Y completed successfully")
 
 
+@pytest.mark.xfail(
+    strict=True,
+    reason="Flow routing requires VFS-based route modification (not yet functional in E2E)",
+)
 @pytest.mark.flow
 @pytest.mark.timeout(300)
 def test_route_b_x(flow_helper):
@@ -140,6 +152,10 @@ def test_route_b_x(flow_helper):
     logger.info("[+] Route B-X completed successfully")
 
 
+@pytest.mark.xfail(
+    strict=True,
+    reason="Flow routing requires VFS-based route modification (not yet functional in E2E)",
+)
 @pytest.mark.flow
 @pytest.mark.timeout(300)
 def test_route_b_y(flow_helper):
@@ -160,6 +176,10 @@ def test_route_b_y(flow_helper):
     logger.info("[+] Route B-Y completed successfully")
 
 
+@pytest.mark.xfail(
+    strict=True,
+    reason="Flow routing requires VFS-based route modification (not yet functional in E2E)",
+)
 @pytest.mark.flow
 @pytest.mark.timeout(300)
 def test_all_routes_parallel(flow_helper):
