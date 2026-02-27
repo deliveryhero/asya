@@ -224,8 +224,10 @@ jobs:
 
     - name: Package asya-playground with local dependencies
       run: |
-        # Serve the already-indexed gh-pages/charts locally instead of fetching
-        # from asya.sh (GitHub Pages hasn't deployed the push yet)
+        # Re-index with local URLs so helm downloads from localhost, not asya.sh
+        # (GitHub Pages hasn't deployed the push yet)
+        helm repo index gh-pages/charts --url http://localhost:8879
+
         python3 -m http.server 8879 --directory gh-pages/charts &
         SERVER_PID=$!
         trap 'kill $SERVER_PID 2>/dev/null' EXIT
@@ -240,6 +242,8 @@ jobs:
         echo "[.] Building asya-playground dependencies..."
         helm dependency build deploy/helm-charts/asya-playground
 
+        kill $SERVER_PID 2>/dev/null || true
+
         # Restore Chart.yaml with production URLs before packaging
         git checkout deploy/helm-charts/asya-playground/Chart.yaml
         rm -f deploy/helm-charts/asya-playground/Chart.lock
@@ -247,9 +251,7 @@ jobs:
         echo "[.] Packaging asya-playground..."
         helm package deploy/helm-charts/asya-playground -d .deploy/charts
 
-        kill $SERVER_PID 2>/dev/null || true
-
-        # Copy to gh-pages and update index
+        # Copy to gh-pages and re-index with production URLs
         cp .deploy/charts/asya-playground-*.tgz gh-pages/charts/
         helm repo index gh-pages/charts --url https://asya.sh/charts
         echo "[+] All charts packaged:"
