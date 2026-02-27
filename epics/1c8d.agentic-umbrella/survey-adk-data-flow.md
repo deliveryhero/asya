@@ -19,12 +19,12 @@ classification logic and is_final_response() decision tree
 result feedback cycle
 4. **Tool system** -- class hierarchy, FunctionTool schema generation, complete 8-step execution pipeline, parallel asyncio.gather(),
 ToolContext API, long-running tools, confirmation, streaming tools, before/after callbacks
-5. Agent composition -- 5 patterns (Sequential, Parallel, Loop, AgentTool, Transfer) with exact event propagation semantics and a
+5. **Agent composition** -- 5 patterns (Sequential, Parallel, Loop, AgentTool, Transfer) with exact event propagation semantics and a
 cross-reference matrix
-6. State management -- delta-tracked State object, scope prefixes, output_key enrichment, context sharing rules per composition type
-7. 8 end-to-end examples -- simple tool call, streaming+tool, parallel tools, sequential pipeline, AgentTool, LoopAgent+escalation,
+6. **State management** -- delta-tracked State object, scope prefixes, output_key enrichment, context sharing rules per composition type
+7. **8 end-to-end examples** -- simple tool call, streaming+tool, parallel tools, sequential pipeline, AgentTool, LoopAgent+escalation,
 long-running pause/resume, agent transfer
-8. Asya gap analysis -- 18 patterns mapped with status, 4 critical gaps identified
+8. **Asya gap analysis** -- 18 patterns mapped with status, 4 critical gaps identified
 
 The 4 critical gaps for Asya:
 - Free variable serialization across actor boundaries (epic 1irj)
