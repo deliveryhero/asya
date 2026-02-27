@@ -91,9 +91,10 @@ addressing is supported (no wildcards, filters, slicing, or recursive descent).
 | `.key.subkey` | Nested access | `.results.nlp` = `payload["results"]["nlp"]` |
 | `.[n]` | Array index | `.[0]` = `payload[0]` |
 | `.[-1]` | Negative index | `.events[-1]` = last element |
+| `.[+]` | Append (write-only) | `.events[+]` = append to array (only valid in `ASYA_RESULT_AT`) |
 | Combined | Dot + index | `.events[-1].data` = `payload["events"][-1]["data"]` |
 
-Not supported: `.[*]` (wildcard), `..` (recursive descent), `.[?@.x>1]` (filters), `.[0:5]` (slicing).
+Not supported: `.[*]` (wildcard), `..` (recursive descent), `.[?@.x>1]` (filters), `.[0:5]` (slicing), `.[-]` (use `[+]` for append).
 
 #### Extraction rules
 
@@ -316,6 +317,24 @@ After: `{"text": "great", "sentiment": "positive"}`
 #### List returns
 
 Similarly, `-> list` or `-> List[...]` writes the list directly at the output path, no merge.
+
+#### Array append (`[+]`)
+
+If `ASYA_RESULT_AT` ends with `[+]`, the runtime appends the handler's return value to the array at the parent path instead of overwriting:
+
+```python
+def process_event(text: str) -> dict:
+    return {"text": text, "status": "processed"}
+```
+
+With `ASYA_RESULT_AT=.events[+]`:
+
+Before: `{"events": [{"text": "old", "status": "done"}]}`
+After: `{"events": [{"text": "old", "status": "done"}, {"text": "hello", "status": "processed"}]}`
+
+If the target path does not exist, the runtime creates an empty list and appends. If the target exists but is not a list, the runtime returns a `processing_error`.
+
+`[+]` is **write-only** -- using it in `ASYA_PARAMS_AT` raises a startup error.
 
 ---
 
@@ -662,9 +681,10 @@ Uses jq-style dot notation. Only single-location addressing is supported.
 - `.key.subkey` -- `payload["key"]["subkey"]`
 - `.[0]` -- `payload[0]` (array index)
 - `.[-1]` -- last element (negative index)
+- `.[+]` -- append to array (write-only, only valid in `ASYA_RESULT_AT`)
 - `.events[-1].data` -- combined navigation
 
-Not supported: wildcards (`.[*]`), recursive descent (`..`), filters (`.[?@.x>1]`), slicing (`.[0:5]`).
+Not supported: wildcards (`.[*]`), recursive descent (`..`), filters (`.[?@.x>1]`), slicing (`.[0:5]`), `.[-]` (use `[+]`).
 
 #### Interaction with metadata VFS
 
