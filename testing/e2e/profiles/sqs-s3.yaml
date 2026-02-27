@@ -89,7 +89,7 @@ crossplane:
   providerConfigs:
     install: false
   functions:
-    overlaysEnabled: false
+    overlaysEnabled: true
     overlaysVersion: "latest"
   awsProviderConfig:
     name: localstack
