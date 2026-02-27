@@ -4,6 +4,7 @@
 **Date**: 2026-02-27
 **Epic**: 1jux.asya-lab
 **Depends on**: 1jow (client UX design)
+**Supersedes**: 1jpc (client-cli)
 
 ---
 
@@ -169,6 +170,50 @@ asya context use <name>              # switch context
 asya compile                         # shortcut: compile all flows
 ```
 
+### 5.5 Protocol Handling
+
+`asya flow call` and `asya flow expose` accept a `--protocol=mcp|a2a` flag.
+The default protocol is configurable in `asya.yaml`:
+
+```yaml
+gateway:
+  protocol: mcp  # or a2a
+  url: http://localhost:8080
+```
+
+Data scientists should not need to care about MCP vs A2A. Both are gateway
+front doors that accept the same payload and return the same results. The
+protocol selection is a deployment concern, not a user concern.
+
+### 5.6 Log Display
+
+`asya flow logs <flow>` aggregates logs from all actors in the flow, prefixed
+with a colored actor name (similar to `docker compose logs`):
+
+```
+text-analyzer    | [+] Processing message abc-123
+text-analyzer    | [+] Analysis complete
+summarizer       | [+] Received input from text-analyzer
+summarizer       | [+] Summary generated
+```
+
+Each actor gets a distinct color from a fixed palette. The display works for
+both K8s (`kubectl logs`) and Docker (`docker compose logs`) backends.
+
+### 5.7 Deploy/Undeploy Semantics
+
+Deployment behavior depends on the active context type:
+
+| Context type | `deploy` | `undeploy` |
+|---|---|---|
+| `kubernetes` | `kubectl apply` manifests | `kubectl delete` manifests |
+| `docker-compose` | `docker compose up -d` | `docker compose down` |
+
+**K8s safety rule**: `asya flow deploy` on K8s checks for an existing
+deployment. If a different version exists, the command errors and asks the
+user to explicitly undeploy first. If an identical version exists, exit 0
+(idempotent). This prevents accidental overwrites in shared environments.
+
 ---
 
 ## 6. Context System
@@ -229,7 +274,111 @@ Override hierarchy (highest priority first):
 
 ---
 
-## 8. Compiler Refactoring
+## 8. Flow Deployment (Label-Based, No AsyncFlow CRD)
+
+Flow deployment uses **labels + CLI tooling** rather than a separate AsyncFlow
+CRD (see ADR in epic 1iqd). The CLI manages flow membership via Kubernetes
+labels.
+
+### 8.1 Label Convention
+
+Every actor in a flow carries these labels:
+
+| Label | Purpose | Values |
+|---|---|---|
+| `asya.sh/flow` | Flow membership (1:M) | Flow name (e.g., `order-processing`) |
+| `asya.sh/flow-role` | Role within flow | `entrypoint`, `exitpoint`, `router`, `processor` |
+
+Annotations for gateway metadata:
+- `asya.sh/flow-tool` -- MCP tool name (if exposed via gateway)
+- `asya.sh/flow-description` -- Tool description (from flow.py docstring)
+
+### 8.2 1:M Constraint
+
+One actor can belong to **at most one flow**. If the same handler logic is
+needed in multiple flows, the actor is cloned (new name, same image/handler,
+flow-specific scaling config). This makes `asya.sh/flow` a reliable foreign
+key and aligns with Kubernetes-native patterns -- different flows need
+different scaling/resources.
+
+### 8.3 What `asya flow deploy` Does (K8s context)
+
+1. **Creates AsyncActor manifests for routers** -- new resources with
+   `asya.sh/flow` and `asya.sh/flow-role=router` labels.
+2. **Updates existing processor actor manifests** -- adds `asya.sh/flow`
+   label and `asya.sh/flow-role=processor`.
+3. **Marks entrypoint/exitpoint actors** -- sets `asya.sh/flow-role`
+   accordingly.
+4. **Creates ConfigMap with router code** -- `routers.py` content, labeled
+   with `asya.sh/flow`. All routers in the flow share this ConfigMap.
+5. Supports `--output-dir` for GitOps (generate files to disk instead of
+   applying).
+
+### 8.4 What `asya flow undeploy` Does (K8s context)
+
+Removes all flow resources by label:
+`kubectl delete asya,configmap -l asya.sh/flow=<name>`.
+
+Option `--keep-processors` deletes only routers and ConfigMap, preserving
+processor actors (useful when processor actors are shared infrastructure).
+
+### 8.5 Router Flavors
+
+Generated router actors are lightweight (pure Python routing logic, no ML
+models). Platform engineers can define a `flow-router` flavor with minimal
+resources:
+
+```yaml
+apiVersion: apiextensions.crossplane.io/v1beta1
+kind: EnvironmentConfig
+metadata:
+  name: flow-router
+  labels:
+    asya.sh/flavor: flow-router
+data:
+  scaling:
+    minReplicas: 0
+    maxReplicas: 20
+  workload:
+    template:
+      spec:
+        containers:
+        - name: asya-runtime
+          resources:
+            requests: { cpu: "50m", memory: "64Mi" }
+            limits: { cpu: "200m", memory: "128Mi" }
+```
+
+`asya flow compile --router-flavor flow-router` auto-injects the flavor
+reference into all generated router actors in the manifest.
+
+---
+
+## 9. Flow Exposure (`asya flow expose`)
+
+Registers a flow as an MCP tool (or A2A agent) in the gateway's singleton
+ConfigMap (`gateway-tools`):
+
+1. Finds entrypoint actor by label: `asya.sh/flow-role=entrypoint`
+2. Reads tool metadata from annotations or flow.py (name, description,
+   parameters)
+3. Patches `gateway-tools` ConfigMap via `kubectl patch`
+4. Gateway detects change via fsnotify and reloads tool config (no restart
+   needed)
+
+The gateway watches its mounted config directory via fsnotify. Changes to the
+ConfigMap propagate through kubelet volume sync and trigger a hot-reload of
+the tool registry. Existing in-flight requests complete normally.
+
+Discovery queries work natively via kubectl:
+```bash
+kubectl get asya -l asya.sh/flow=order-processing
+kubectl get asya -l asya.sh/flow-role=entrypoint
+```
+
+---
+
+## 10. Compiler Refactoring
 
 The existing flow compiler in `src/asya-cli/asya_cli/flow/` (parser, grouper,
 codegen, dotgen, IR) moves into `asya_lab/compile/frontends/flow_dsl/`. The IR
@@ -241,7 +390,7 @@ compiler core.
 
 ---
 
-## 9. MCP Client Refactoring
+## 11. MCP Client Refactoring
 
 The existing MCP client in `src/asya-cli/asya_cli/mcp/` moves into
 `asya_lab/mcp/`. The client becomes a standalone class:
@@ -258,7 +407,7 @@ for event in client.stream(result.task_id):
 
 ---
 
-## 10. `asya serve` (UI Extra)
+## 12. `asya serve` (UI Extra)
 
 The `[ui]` extra installs FastAPI and bundles the `@asya/ui` React SPA as
 static files. `asya serve` starts the local HTTP/WS server consumed by:
@@ -271,26 +420,98 @@ See epic 1juv for the full `asya serve` API specification.
 
 ---
 
-## 11. Jupyter Magics (Jupyter Extra)
+## 13. Jupyter Magics (Jupyter Extra)
+
+### 13.1 How Magics Work
+
+Jupyter magic functions (`%` for line magics, `%%` for cell magics) are NOT
+shell commands (`!`). They are Python extensions that receive the notebook
+context and can dynamically process information from the notebook environment:
+
+- The magic extension can inspect locally developed flows and actors
+- It can auto-detect the current project, context, and available flows
+- It can provide shorter commands by inferring context from the notebook state
+- It can render rich interactive output (widgets, graphs, tables)
+
+### 13.2 Basic Usage
 
 ```python
 %load_ext asya_lab
 
-%asya flow compile order_processing     # renders interactive flow diagram inline
-%asya flow status order-processing      # shows actor status table
-%asya flow call analyze '{"text": "hello"}'
+# Compile and visualize flow -- magic auto-detects project root
+%asya flow compile order_processing
+# -> renders interactive flow diagram inline in cell output
 
-%%asya flow call analyze                # cell magic for complex payloads
+# Check status -- context from ASYA_CONTEXT or asya.yaml default
+%asya flow status order-processing
+
+# Call flow (line magic for simple payloads)
+%asya flow call analyze '{"text": "hello world"}'
+
+# Call flow (cell magic for complex payloads)
+%%asya flow call analyze
 {"text": "hello world", "options": {"language": "en"}}
+
+# Stream results
+%asya flow stream <task-id>
+
+# Logs
+%asya flow logs order-processing
 ```
 
-Magics call SDK functions directly (Python-native, no HTTP layer). They
-auto-detect project root, resolve flow module names, and render rich output
-(tables, graphs, progress bars).
+### 13.3 Notebook Context Auto-Processing
+
+The Jupyter magic extension automatically processes the notebook environment:
+
+- **Project detection**: Finds `asya.yaml` from the notebook's working
+  directory
+- **Flow discovery**: Scans imported modules and local packages for flow
+  definitions
+- **Variable injection**: If the user defines a `payload` variable in a prior
+  cell, magics can reference it: `%asya flow call analyze payload`
+- **Context inference**: Reads `ASYA_CONTEXT` or notebook-level configuration
+- **Shorter commands**: Because the magic knows the project context, users can
+  write `%asya flow compile order_processing` instead of the full module path
+
+This context awareness is what makes `%` magics fundamentally different from
+`!` shell commands.
+
+### 13.4 Interactive Visualization
+
+Flow compilation renders an interactive graph inline in the notebook cell
+output:
+
+- Nodes represent actors and routers
+- Edges represent message routes
+- Clicking an actor node reveals a detail panel showing:
+  - Configuration (from actor.yaml in deploy/)
+  - Environment variables
+  - Live logs (if deployed)
+  - Replica count and queue depth (if deployed)
+- Configuration changes in the detail panel write back to local deploy/ files
+- Same interactive components as VSCode extension (shared React components
+  rendered via ipywidgets or JupyterLab widget framework)
+
+Implementation options (in priority order):
+
+1. **ipywidgets** -- works in JupyterLab and classic Jupyter
+2. **JupyterLab extension** -- richer interactivity, JupyterLab only
+3. **Static SVG with links** -- fallback for environments without widget
+   support
+
+### 13.5 Rich Output
+
+Jupyter output uses rich formatting where available:
+
+- Status tables with colored status indicators (green/yellow/red)
+- Log streaming with actor-name coloring (same palette as CLI)
+- Progress bars for long-running operations (reusing existing tqdm-based
+  progress from the MCP client)
+- Inline error display with tracebacks
 
 ---
 
-## 12. React SPA Bundling
+## 14. React SPA Bundling
 
 The `@asya/ui` React components (from epic 1juv) are built into a JS bundle
 and copied into `asya_lab/server/static/` as part of the Python package build.
@@ -307,7 +528,7 @@ included in the wheel but only served when FastAPI is installed.
 
 ---
 
-## 13. Testing Fixtures (`asya_lab.testing`)
+## 15. Testing Fixtures (`asya_lab.testing`)
 
 Pytest fixtures for testing actor handlers:
 
@@ -323,23 +544,69 @@ def test_router_modifies_route(vfs_fixture):
 
 ---
 
-## 14. Migration from asya-cli
+## 16. Local Testing
 
-### 14.1 Current State
+### 16.1 Pure Python (no framework needed)
 
-The existing `src/asya-cli/` package contains ~3,400 lines: MCP client,
-flow compiler, CLI entry points.
+Actors are plain Python functions. The simplest test is a direct function
+call:
 
-### 14.2 Migration Path
+```python
+from my_actors import analyze
+
+result = analyze({"text": "hello world"})
+assert result["sentiment"] == "positive"
+```
+
+No special test runner, no Asya infrastructure required.
+
+### 16.2 Docker Compose Testing
+
+For integration-level testing of full pipelines:
+
+```bash
+asya compile --context=docker       # generates docker-compose.yaml
+asya flow deploy --context=docker   # runs docker compose up
+asya flow call analyze '{"text": "hello"}' --context=docker
+asya flow undeploy --context=docker # docker compose down
+```
+
+Same CLI verbs as K8s, different context.
+
+---
+
+## 17. Migration from asya-cli
+
+### 17.1 Current State
+
+The existing `src/asya-cli/` package contains:
+
+| Module | Lines (approx) | Purpose |
+|---|---|---|
+| `mcp/client.py` | ~300 | MCP gateway HTTP client |
+| `mcp/commands.py` | ~400 | Click commands for MCP operations |
+| `mcp/port_forward.py` | ~160 | kubectl port-forward helper |
+| `flow/parser.py` | ~500 | AST-based flow parser |
+| `flow/grouper.py` | ~600 | Operation grouping into routers |
+| `flow/codegen.py` | ~700 | Python code generation |
+| `flow/dotgen.py` | ~400 | Graphviz DOT generation |
+| `flow/ir.py` | ~80 | IR dataclasses |
+| `flow/errors.py` | ~20 | Error classes |
+| `flow_cli.py` | ~100 | Flow CLI entry point |
+| `cli.py` | ~65 | Main CLI entry point |
+
+### 17.2 Migration Path
 
 1. Create `src/asya-lab/` with new package structure
-2. Move MCP client to `asya_lab/mcp/`
-3. Move flow compiler to `asya_lab/compile/frontends/flow_dsl/`
+2. Move MCP client to `asya_lab/mcp/` -- `MCPClient` becomes the public API;
+   CLI commands rewritten as thin wrappers
+3. Move flow compiler to `asya_lab/compile/frontends/flow_dsl/` -- IR
+   dataclasses to `asya_lab/compile/ir.py`
 4. Add new modules incrementally (project, deploy, testing, server, jupyter)
 5. Deprecate `asya-cli` package
 6. CLI entry point (`asya`) stays the same
 
-### 14.3 Backward Compatibility
+### 17.3 Backward Compatibility
 
 - `asya mcp *` commands continue to work
 - `asya flow compile` and `asya flow validate` continue to work
@@ -348,7 +615,7 @@ flow compiler, CLI entry points.
 
 ---
 
-## 15. Source Directory
+## 18. Source Directory
 
 ```
 src/asya-lab/
@@ -368,7 +635,7 @@ src/asya-lab/
 
 ---
 
-## 16. Phasing
+## 19. Phasing
 
 ### Phase 1: Core SDK + CLI restructure
 - Package creation, migration from asya-cli
@@ -394,18 +661,22 @@ src/asya-lab/
 
 ---
 
-## 17. Related Epics
+## 20. Related Epics
 
 | Epic | Relationship |
 |---|---|
 | 1jow (Client UX Design) | Parent design -- this RFC implements the design |
-| 1jpc (Client CLI) | Predecessor; detailed CLI/SDK API design |
+| 1jpc (Client CLI) | Superseded by this RFC |
 | 1juv (Asya UI) | TypeScript workspace; `@asya/ui` bundle goes into `[ui]` extra |
 | 1juy (Asya Lens) | Docker image that packages `asya-lab[ui,deploy]` |
+| 1is3 (GitOps Flow Design) | Informs deploy/undeploy semantics |
+| 1ibt (Client Commands) | Existing design work absorbed here |
+| 1g2t (Gateway Dynamic Tool Exposure) | Powers `asya flow expose` command |
+| 1iu4 (Local Testing Workflow) | Informs Docker Compose context |
 
 ---
 
-## 18. Open Questions
+## 21. Open Questions
 
 1. **Click vs argparse**: Current CLI uses argparse. Should the new CLI use
    Click (richer features, better subcommand support) or stay with argparse?
@@ -413,5 +684,5 @@ src/asya-lab/
 2. **Jupyter widget framework**: ipywidgets vs JupyterLab extensions vs static
    SVG. Depends on target Jupyter environment.
 
-3. **Docker Compose generation**: Should `asya compile --context=docker` generate
-   a full `docker-compose.yaml` or a partial overlay?
+3. **Docker Compose generation**: Should `asya compile --context=docker`
+   generate a full `docker-compose.yaml` or a partial overlay?
