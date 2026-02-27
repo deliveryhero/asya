@@ -3755,3 +3755,110 @@ func TestRouter_ProcessMessage_SLANotExpired(t *testing.T) {
 		t.Errorf("Message sent to %s, want %s", sentMsg.queue, expectedQueue)
 	}
 }
+
+// TestRouter_ProcessMessage_SLATOCTOUGuard verifies the defense-in-depth
+// guard in processStandardMessage that catches non-positive effectiveTimeout
+// before calling the runtime.  With cfg.Timeout = 0 and a future deadline
+// the SLA pre-check passes (deadline not expired), but effectiveTimeout
+// returns 0, so the guard routes the message to x-sink.
+func TestRouter_ProcessMessage_SLATOCTOUGuard(t *testing.T) {
+	runtimeCalled := false
+
+	socketPath := startMockRuntime(t, func(body []byte) ([]runtime.RuntimeResponse, int) {
+		runtimeCalled = true
+		return []runtime.RuntimeResponse{
+			{
+				Payload: json.RawMessage(`{"result": "ok"}`),
+				Route: messages.Route{
+					Prev: []string{},
+					Curr: "",
+					Next: []string{},
+				},
+			},
+		}, http.StatusOK
+	})
+
+	cfg := &config.Config{
+		ActorName:     "test-actor",
+		Namespace:     "default",
+		SinkQueue:     testQueueSink,
+		SumpQueue:     testQueueSump,
+		Timeout:       0, // zero timeout triggers the TOCTOU guard
+		TransportType: "rabbitmq",
+	}
+
+	mockTp := &mockTransport{}
+	runtimeClient := runtime.NewClient(socketPath, 5*time.Second)
+	router := &Router{
+		cfg:           cfg,
+		transport:     mockTp,
+		runtimeClient: runtimeClient,
+		actorName:     cfg.ActorName,
+		sinkQueue:     cfg.SinkQueue,
+		sumpQueue:     cfg.SumpQueue,
+		metrics:       metrics.NewMetrics("test", []config.CustomMetricConfig{}),
+	}
+
+	msg := messages.Message{
+		ID: "toctou-msg",
+		Route: messages.Route{
+			Prev: []string{},
+			Curr: "test-actor",
+			Next: []string{"next-actor"},
+		},
+		Payload: json.RawMessage(`{"test": "data"}`),
+		Status: &messages.Status{
+			Phase:      messages.PhasePending,
+			Actor:      "test-actor",
+			CreatedAt:  time.Now().UTC().Format(time.RFC3339),
+			DeadlineAt: time.Now().Add(5 * time.Minute).UTC().Format(time.RFC3339),
+			UpdatedAt:  time.Now().UTC().Format(time.RFC3339),
+		},
+	}
+
+	msgBody, err := json.Marshal(msg)
+	if err != nil {
+		t.Fatalf("Failed to marshal message: %v", err)
+	}
+
+	queueMsg := transport.QueueMessage{
+		ID:   "q-1",
+		Body: msgBody,
+	}
+
+	err = router.ProcessMessage(context.Background(), queueMsg)
+	if err != nil {
+		t.Fatalf("ProcessMessage() error = %v", err)
+	}
+
+	if runtimeCalled {
+		t.Error("Runtime should NOT be called when effectiveTimeout <= 0")
+	}
+
+	if len(mockTp.sentMessages) != 1 {
+		t.Fatalf("Expected 1 message sent to sink, got %d", len(mockTp.sentMessages))
+	}
+
+	sentMsg2 := mockTp.sentMessages[0]
+	expectedQueue2 := "asya-default-x-sink"
+	if sentMsg2.queue != expectedQueue2 {
+		t.Errorf("Message sent to %s, want %s", sentMsg2.queue, expectedQueue2)
+	}
+
+	var sentMsgData messages.Message
+	if err := json.Unmarshal(sentMsg2.body, &sentMsgData); err != nil {
+		t.Fatalf("Failed to unmarshal sent message: %v", err)
+	}
+
+	if sentMsgData.Status == nil {
+		t.Fatal("Sent message has no status")
+	}
+
+	if sentMsgData.Status.Phase != messages.PhaseFailed {
+		t.Errorf("Status phase = %s, want %s", sentMsgData.Status.Phase, messages.PhaseFailed)
+	}
+
+	if sentMsgData.Status.Reason != messages.ReasonTimeout {
+		t.Errorf("Status reason = %s, want %s", sentMsgData.Status.Reason, messages.ReasonTimeout)
+	}
+}

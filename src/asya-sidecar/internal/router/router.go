@@ -812,9 +812,33 @@ func (r *Router) ProcessMessage(ctx context.Context, queueMsg transport.QueueMes
 		}
 	}
 
+	// Compute effective timeout and guard against TOCTOU: SLA pre-check in
+	// ProcessMessage passed (remaining > 0), but time elapsed since then may
+	// have pushed remaining to zero or negative.  A non-positive timeout
+	// would create an immediately-cancelled context, sending the message to
+	// x-sump via DeadlineExceeded instead of correctly routing to x-sink.
+	timeout := r.effectiveTimeout(msg)
+	if timeout <= 0 {
+		slog.Warn("SLA expired before runtime call, routing to x-sink",
+			"id", msg.ID, "deadline_at", msg.Status.DeadlineAt)
+
+		if r.metrics != nil {
+			r.metrics.RecordMessageProcessed(r.actorName, "sla_expired")
+			r.metrics.RecordMessageFailed(r.actorName, "sla_timeout")
+			r.metrics.RecordProcessingDuration(r.actorName, time.Since(startTime))
+		}
+
+		now := time.Now().UTC().Format(time.RFC3339)
+		msg.Status.Phase = messages.PhaseFailed
+		msg.Status.Reason = messages.ReasonTimeout
+		msg.Status.UpdatedAt = now
+
+		return r.sendToSinkQueue(ctx, *msg)
+	}
+
 	slog.Info("Calling runtime", "id", msg.ID, "actor", r.cfg.ActorName)
 	runtimeStart := time.Now()
-	responses, err := r.runtimeClient.CallRuntime(ctx, updatedBody, r.effectiveTimeout(msg), onUpstream)
+	responses, err := r.runtimeClient.CallRuntime(ctx, updatedBody, timeout, onUpstream)
 	runtimeDuration := time.Since(runtimeStart)
 
 	if err != nil {
