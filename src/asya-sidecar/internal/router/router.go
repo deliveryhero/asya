@@ -812,15 +812,27 @@ func (r *Router) ProcessMessage(ctx context.Context, queueMsg transport.QueueMes
 		}
 	}
 
-	// Compute effective timeout and guard against TOCTOU: SLA pre-check in
-	// ProcessMessage passed (remaining > 0), but time elapsed since then may
-	// have pushed remaining to zero or negative.  A non-positive timeout
-	// would create an immediately-cancelled context, sending the message to
-	// x-sump via DeadlineExceeded instead of correctly routing to x-sink.
+	// Guard against tight or expired SLA deadlines before calling the runtime.
+	//
+	// The SLA pre-check in ProcessMessage uses time.Now().After(deadline)
+	// with whole-second RFC3339 timestamps.  Between that check and here,
+	// the remaining SLA may have dropped to zero or near-zero.  A very
+	// small timeout would almost certainly trigger context.DeadlineExceeded
+	// inside CallRuntime, which sends the message to x-sump + os.Exit(1)
+	// instead of the correct x-sink route for SLA expiry.
+	//
+	// The 1-second margin also absorbs the up-to-1s truncation error from
+	// strftime's integer-second formatting of deadline timestamps.
+	const slaGuardMargin = 1 * time.Second
 	timeout := r.effectiveTimeout(msg)
-	if timeout <= 0 {
-		slog.Warn("SLA expired before runtime call, routing to x-sink",
-			"id", msg.ID, "deadline_at", msg.Status.DeadlineAt)
+	slaExpiring := false
+	if deadline, ok := msg.ParseDeadline(); ok {
+		slaExpiring = time.Until(deadline) < slaGuardMargin
+	}
+	if timeout <= 0 || slaExpiring {
+		slog.Warn("SLA deadline too close, routing to x-sink",
+			"id", msg.ID, "deadline_at", msg.Status.DeadlineAt,
+			"effective_timeout", timeout)
 
 		if r.metrics != nil {
 			r.metrics.RecordMessageProcessed(r.actorName, "sla_expired")

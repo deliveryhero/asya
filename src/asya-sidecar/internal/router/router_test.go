@@ -3756,109 +3756,127 @@ func TestRouter_ProcessMessage_SLANotExpired(t *testing.T) {
 	}
 }
 
-// TestRouter_ProcessMessage_SLATOCTOUGuard verifies the defense-in-depth
-// guard in processStandardMessage that catches non-positive effectiveTimeout
-// before calling the runtime.  With cfg.Timeout = 0 and a future deadline
-// the SLA pre-check passes (deadline not expired), but effectiveTimeout
-// returns 0, so the guard routes the message to x-sink.
-func TestRouter_ProcessMessage_SLATOCTOUGuard(t *testing.T) {
-	runtimeCalled := false
+// TestRouter_ProcessMessage_SLAGuard verifies the defense-in-depth guard
+// before CallRuntime that catches tight or expired SLA deadlines.
+func TestRouter_ProcessMessage_SLAGuard(t *testing.T) {
+	tests := []struct {
+		name       string
+		timeout    time.Duration
+		deadlineIn time.Duration
+	}{
+		{
+			name:       "zero timeout with future deadline",
+			timeout:    0,
+			deadlineIn: 5 * time.Minute,
+		},
+		{
+			name:       "deadline within guard margin",
+			timeout:    30 * time.Second,
+			deadlineIn: 500 * time.Millisecond, // < 1s slaGuardMargin
+		},
+	}
 
-	socketPath := startMockRuntime(t, func(body []byte) ([]runtime.RuntimeResponse, int) {
-		runtimeCalled = true
-		return []runtime.RuntimeResponse{
-			{
-				Payload: json.RawMessage(`{"result": "ok"}`),
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			runtimeCalled := false
+
+			socketPath := startMockRuntime(t, func(body []byte) ([]runtime.RuntimeResponse, int) {
+				runtimeCalled = true
+				return []runtime.RuntimeResponse{
+					{
+						Payload: json.RawMessage(`{"result": "ok"}`),
+						Route: messages.Route{
+							Prev: []string{},
+							Curr: "",
+							Next: []string{},
+						},
+					},
+				}, http.StatusOK
+			})
+
+			cfg := &config.Config{
+				ActorName:     "test-actor",
+				Namespace:     "default",
+				SinkQueue:     testQueueSink,
+				SumpQueue:     testQueueSump,
+				Timeout:       tt.timeout,
+				TransportType: "rabbitmq",
+			}
+
+			mockTp := &mockTransport{}
+			runtimeClient := runtime.NewClient(socketPath, 5*time.Second)
+			router := &Router{
+				cfg:           cfg,
+				transport:     mockTp,
+				runtimeClient: runtimeClient,
+				actorName:     cfg.ActorName,
+				sinkQueue:     cfg.SinkQueue,
+				sumpQueue:     cfg.SumpQueue,
+				metrics:       metrics.NewMetrics("test", []config.CustomMetricConfig{}),
+			}
+
+			msg := messages.Message{
+				ID: "guard-msg",
 				Route: messages.Route{
 					Prev: []string{},
-					Curr: "",
-					Next: []string{},
+					Curr: "test-actor",
+					Next: []string{"next-actor"},
 				},
-			},
-		}, http.StatusOK
-	})
+				Payload: json.RawMessage(`{"test": "data"}`),
+				Status: &messages.Status{
+					Phase:      messages.PhasePending,
+					Actor:      "test-actor",
+					CreatedAt:  time.Now().UTC().Format(time.RFC3339),
+					DeadlineAt: time.Now().Add(tt.deadlineIn).UTC().Format(time.RFC3339),
+					UpdatedAt:  time.Now().UTC().Format(time.RFC3339),
+				},
+			}
 
-	cfg := &config.Config{
-		ActorName:     "test-actor",
-		Namespace:     "default",
-		SinkQueue:     testQueueSink,
-		SumpQueue:     testQueueSump,
-		Timeout:       0, // zero timeout triggers the TOCTOU guard
-		TransportType: "rabbitmq",
-	}
+			msgBody, err := json.Marshal(msg)
+			if err != nil {
+				t.Fatalf("Failed to marshal message: %v", err)
+			}
 
-	mockTp := &mockTransport{}
-	runtimeClient := runtime.NewClient(socketPath, 5*time.Second)
-	router := &Router{
-		cfg:           cfg,
-		transport:     mockTp,
-		runtimeClient: runtimeClient,
-		actorName:     cfg.ActorName,
-		sinkQueue:     cfg.SinkQueue,
-		sumpQueue:     cfg.SumpQueue,
-		metrics:       metrics.NewMetrics("test", []config.CustomMetricConfig{}),
-	}
+			queueMsg := transport.QueueMessage{
+				ID:   "q-1",
+				Body: msgBody,
+			}
 
-	msg := messages.Message{
-		ID: "toctou-msg",
-		Route: messages.Route{
-			Prev: []string{},
-			Curr: "test-actor",
-			Next: []string{"next-actor"},
-		},
-		Payload: json.RawMessage(`{"test": "data"}`),
-		Status: &messages.Status{
-			Phase:      messages.PhasePending,
-			Actor:      "test-actor",
-			CreatedAt:  time.Now().UTC().Format(time.RFC3339),
-			DeadlineAt: time.Now().Add(5 * time.Minute).UTC().Format(time.RFC3339),
-			UpdatedAt:  time.Now().UTC().Format(time.RFC3339),
-		},
-	}
+			err = router.ProcessMessage(context.Background(), queueMsg)
+			if err != nil {
+				t.Fatalf("ProcessMessage() error = %v", err)
+			}
 
-	msgBody, err := json.Marshal(msg)
-	if err != nil {
-		t.Fatalf("Failed to marshal message: %v", err)
-	}
+			if runtimeCalled {
+				t.Error("Runtime should NOT be called when SLA guard fires")
+			}
 
-	queueMsg := transport.QueueMessage{
-		ID:   "q-1",
-		Body: msgBody,
-	}
+			if len(mockTp.sentMessages) != 1 {
+				t.Fatalf("Expected 1 message sent to sink, got %d", len(mockTp.sentMessages))
+			}
 
-	err = router.ProcessMessage(context.Background(), queueMsg)
-	if err != nil {
-		t.Fatalf("ProcessMessage() error = %v", err)
-	}
+			sentMsg := mockTp.sentMessages[0]
+			expectedQueue := "asya-default-x-sink"
+			if sentMsg.queue != expectedQueue {
+				t.Errorf("Message sent to %s, want %s", sentMsg.queue, expectedQueue)
+			}
 
-	if runtimeCalled {
-		t.Error("Runtime should NOT be called when effectiveTimeout <= 0")
-	}
+			var sentMsgData messages.Message
+			if err := json.Unmarshal(sentMsg.body, &sentMsgData); err != nil {
+				t.Fatalf("Failed to unmarshal sent message: %v", err)
+			}
 
-	if len(mockTp.sentMessages) != 1 {
-		t.Fatalf("Expected 1 message sent to sink, got %d", len(mockTp.sentMessages))
-	}
+			if sentMsgData.Status == nil {
+				t.Fatal("Sent message has no status")
+			}
 
-	sentMsg2 := mockTp.sentMessages[0]
-	expectedQueue2 := "asya-default-x-sink"
-	if sentMsg2.queue != expectedQueue2 {
-		t.Errorf("Message sent to %s, want %s", sentMsg2.queue, expectedQueue2)
-	}
+			if sentMsgData.Status.Phase != messages.PhaseFailed {
+				t.Errorf("Status phase = %s, want %s", sentMsgData.Status.Phase, messages.PhaseFailed)
+			}
 
-	var sentMsgData messages.Message
-	if err := json.Unmarshal(sentMsg2.body, &sentMsgData); err != nil {
-		t.Fatalf("Failed to unmarshal sent message: %v", err)
-	}
-
-	if sentMsgData.Status == nil {
-		t.Fatal("Sent message has no status")
-	}
-
-	if sentMsgData.Status.Phase != messages.PhaseFailed {
-		t.Errorf("Status phase = %s, want %s", sentMsgData.Status.Phase, messages.PhaseFailed)
-	}
-
-	if sentMsgData.Status.Reason != messages.ReasonTimeout {
-		t.Errorf("Status reason = %s, want %s", sentMsgData.Status.Reason, messages.ReasonTimeout)
+			if sentMsgData.Status.Reason != messages.ReasonTimeout {
+				t.Errorf("Status reason = %s, want %s", sentMsgData.Status.Reason, messages.ReasonTimeout)
+			}
+		})
 	}
 }
