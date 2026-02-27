@@ -112,6 +112,7 @@ jobs:
         - asya-sdk
         - asya-workbench
         - asya-dashboard
+        - function-asya-overlays
 
     steps:
     - name: Log in to GitHub Container Registry
