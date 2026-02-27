@@ -33,8 +33,9 @@ Environment Variables:
     ASYA_SOCKET_CHMOD: Socket permissions in octal (default: "0o666", empty = skip chmod)
     ASYA_ENABLE_VALIDATION: Enable message validation ("true" or "false", default: "true")
     ASYA_LOG_LEVEL: Logging level (DEBUG, INFO, WARNING, ERROR, default: INFO)
-    ASYA_PARAMS_AT: JSONPath-like input extraction path (default: "/")
-    ASYA_RESULT_AT: JSONPath-like output merge path (default: "/")
+    ASYA_PARAMS_AT: jq-style path for parameter extraction (default: ".")
+    ASYA_RESULT_AT: jq-style path for result merge (default: ".")
+    ASYA_RESULT_MERGE: Merge strategy: "shallow" or "deep" (default: "shallow")
 
 Socket Configuration:
     The socket path defaults to /var/run/asya/asya-runtime.sock and is managed by the operator.
@@ -63,7 +64,7 @@ import stat as _stat_module
 import sys
 import tempfile as _tempfile
 import traceback
-from typing import Any, Dict
+from typing import Any
 
 
 # Optional Pydantic support
@@ -96,8 +97,9 @@ ASYA_HANDLER = os.getenv("ASYA_HANDLER", "")
 ASYA_MSG_ROOT = os.getenv("ASYA_MSG_ROOT", "/proc/asya/msg")
 ASYA_SOCKET_CHMOD = os.getenv("ASYA_SOCKET_CHMOD", "0o666")
 ASYA_ENABLE_VALIDATION = os.getenv("ASYA_ENABLE_VALIDATION", "true").lower() == "true"
-ASYA_PARAMS_AT = os.getenv("ASYA_PARAMS_AT", "/")
-ASYA_RESULT_AT = os.getenv("ASYA_RESULT_AT", "/")
+ASYA_PARAMS_AT = os.getenv("ASYA_PARAMS_AT", ".")
+ASYA_RESULT_AT = os.getenv("ASYA_RESULT_AT", ".")
+ASYA_RESULT_MERGE = os.getenv("ASYA_RESULT_MERGE", "shallow")
 
 # Socket configuration - hard-coded, managed by operator
 # ASYA_SOCKET_DIR and ASYA_SOCKET_NAME are for internal testing only - DO NOT set in production
@@ -255,18 +257,21 @@ def _load_function():
 
 
 class HandlerSignature:
-    """Cached handler signature introspection result."""
+    """Cached handler signature introspection result.
+
+    Uniform extraction model: all parameters are extracted by name from the input subtree,
+    regardless of type annotation. The type annotation controls deserialization, not extraction.
+    """
 
     def __init__(self, handler_func):
         # type: (Any) -> None
-        self.is_legacy = False
         self.params = {}  # type: Dict[str, Any]
         self.type_hints = {}  # type: Dict[str, Any]
         self._introspect(handler_func)
 
     def _introspect(self, handler_func):
         # type: (Any) -> None
-        """Introspect handler signature to determine if it's legacy or typed."""
+        """Introspect handler signature to extract parameter metadata."""
         sig = inspect.signature(handler_func)
         params = list(sig.parameters.values())
 
@@ -282,25 +287,7 @@ class HandlerSignature:
         except Exception:
             type_hints = {p.name: p.annotation for p in params}
 
-        # Legacy detection: single dict parameter
-        if len(params) == 1:
-            param = params[0]
-            annotation = type_hints.get(param.name, param.annotation)
-
-            # Check for dict, Dict, Dict[str, Any], dict[str, Any] (3.9+)
-            legacy_annotations = (dict, Dict, inspect.Parameter.empty)
-            if annotation in legacy_annotations:
-                self.is_legacy = True
-                return
-
-            # Check for Dict[str, Any]
-            if hasattr(annotation, "__origin__"):
-                origin = getattr(annotation, "__origin__", None)
-                if origin is dict or (hasattr(typing, "Dict") and origin is typing.Dict):
-                    self.is_legacy = True
-                    return
-
-        # Typed mode: extract parameter names and types
+        # Extract parameter metadata
         for param in params:
             param_info = {
                 "name": param.name,
@@ -311,82 +298,199 @@ class HandlerSignature:
             self.params[param.name] = param_info
 
         self.type_hints = type_hints
-        logger.info(f"Handler signature: is_legacy={self.is_legacy}, params={list(self.params.keys())}")
+        logger.info(f"Handler signature: params={list(self.params.keys())}")
 
 
-def _extract_value_at_path(data, path):
-    # type: (Dict[str, Any], str) -> Any
-    """Extract value from dict at JSONPath-like path.
+def _parse_jq_path(path_str):
+    # type: (str) -> list
+    """Parse jq-style path into segments.
+
+    Supported syntax:
+        .         → [] (root)
+        .key      → ["key"]
+        .a.b      → ["a", "b"]
+        .[0]      → [0]
+        .[-1]     → [-1]
+        .a[0].b   → ["a", 0, "b"]
+
+    Not supported: wildcards (.[*]), recursive descent (..), filters, slicing.
 
     Args:
-        data: Source dictionary
-        path: JSONPath-like path (e.g., '/', '/key', '/key/subkey')
+        path_str: jq-style path (e.g., ".", ".key", ".key.subkey", ".[0]", ".[-1]")
+
+    Returns:
+        List of path segments (strings or ints)
+
+    Raises:
+        ValueError: If path syntax is invalid
+    """
+    if not path_str:
+        raise ValueError("Path cannot be empty")
+
+    if path_str == ".":
+        return []
+
+    if not path_str.startswith("."):
+        raise ValueError(f"jq path must start with '.', got: {path_str}")
+
+    segments = []  # type: list
+    rest = path_str[1:]  # Remove leading '.'
+
+    while rest:
+        # Array index: [n] or [-n]
+        if rest.startswith("["):
+            close_idx = rest.find("]")
+            if close_idx == -1:
+                raise ValueError(f"Unclosed bracket in path: {path_str}")
+            index_str = rest[1:close_idx]
+            try:
+                index = int(index_str)
+            except ValueError as e:
+                raise ValueError(f"Invalid array index '{index_str}' in path: {path_str}") from e
+            segments.append(index)
+            rest = rest[close_idx + 1 :]
+            # Optional dot after array index
+            if rest.startswith("."):
+                rest = rest[1:]
+        # Key segment
+        elif rest:
+            next_bracket = rest.find("[")
+            next_dot = rest.find(".")
+            if next_bracket != -1 and (next_dot == -1 or next_bracket < next_dot):
+                # Key ends at bracket
+                key = rest[:next_bracket]
+                segments.append(key)
+                rest = rest[next_bracket:]
+            elif next_dot != -1:
+                # Key ends at dot
+                key = rest[:next_dot]
+                segments.append(key)
+                rest = rest[next_dot + 1 :]
+            else:
+                # Key is the rest
+                segments.append(rest)
+                rest = ""
+        else:
+            break
+
+    return segments
+
+
+def _navigate_path(data, segments):
+    # type: (Any, list) -> Any
+    """Navigate data structure using parsed jq path segments.
+
+    Args:
+        data: Source data (dict, list, or scalar)
+        segments: List of path segments from _parse_jq_path
 
     Returns:
         Value at path
 
     Raises:
-        KeyError: If path not found
+        KeyError: If key not found
+        IndexError: If array index out of range
+        TypeError: If navigation fails (e.g., indexing into non-list)
     """
-    if path == "/" or path == "":
-        return data
-
-    # Remove leading slash and split
-    parts = path.lstrip("/").split("/")
     current = data
-    for part in parts:
-        if not isinstance(current, dict):
-            raise KeyError(f"Cannot navigate path '{path}': '{part}' is not a dict")
-        if part not in current:
-            raise KeyError(f"Missing key '{part}' in path '{path}'")
-        current = current[part]
+    for seg in segments:
+        if isinstance(seg, int):
+            # Array index
+            if not isinstance(current, list):
+                raise TypeError(f"Cannot index non-list with {seg}")
+            try:
+                current = current[seg]
+            except IndexError as e:
+                raise IndexError(f"Array index {seg} out of range") from e
+        else:
+            # Dict key
+            if not isinstance(current, dict):
+                raise KeyError(f"Cannot access key '{seg}' in non-dict")
+            if seg not in current:
+                raise KeyError(f"Missing key '{seg}'")
+            current = current[seg]
     return current
 
 
-def _set_value_at_path(data, path, value):
-    # type: (Dict[str, Any], str, Any) -> Any
-    """Set value in dict at JSONPath-like path, creating intermediate dicts if needed.
+def _deep_merge(target, source):
+    # type: (Dict[str, Any], Dict[str, Any]) -> None
+    """Recursively merge source dict into target dict.
+
+    When both target and source have a dict at the same key, merge recursively.
+    Otherwise, overwrite the target value with the source value.
+    Non-dict values (scalars, lists) always overwrite.
+
+    Args:
+        target: Target dict (modified in-place)
+        source: Source dict to merge from
+    """
+    for key, value in source.items():
+        if key in target and isinstance(target[key], dict) and isinstance(value, dict):
+            # Both are dicts - merge recursively
+            _deep_merge(target[key], value)
+        else:
+            # Overwrite (scalar, list, or target not a dict)
+            target[key] = value
+
+
+def _set_value_at_path(data, path_str, value, merge_strategy):
+    # type: (Dict[str, Any], str, Any, str) -> Any
+    """Set value in dict at jq-style path, using specified merge strategy.
 
     Args:
         data: Target dictionary (modified in-place for non-root paths)
-        path: JSONPath-like path (e.g., '/', '/key', '/key/subkey')
+        path_str: jq-style path (e.g., ".", ".key", ".key.subkey")
         value: Value to set
+        merge_strategy: "shallow" or "deep"
 
     Returns:
         For root path with scalar/list: returns the value (replaces entire dict)
         For other paths: modifies data in-place, returns None
     """
-    if path == "/" or path == "":
+    segments = _parse_jq_path(path_str)
+
+    # Root path
+    if not segments:
         if isinstance(value, dict):
-            data.update(value)
+            if merge_strategy == "deep":
+                _deep_merge(data, value)
+            else:
+                # Shallow merge
+                data.update(value)
             return None
         else:
             # Scalar or list at root - replace entire payload
             return value
 
-    # Remove leading slash and split
-    parts = path.lstrip("/").split("/")
-    current = data
-
     # Navigate to parent, creating intermediate dicts
-    for part in parts[:-1]:
-        if part not in current:
-            current[part] = {}
-        current = current[part]
+    current = data
+    for seg in segments[:-1]:
+        if isinstance(seg, int):
+            raise ValueError(f"Cannot set value inside array at path '{path_str}'")
+        if seg not in current:
+            current[seg] = {}
+        current = current[seg]
         if not isinstance(current, dict):
-            raise ValueError(f"Cannot create path '{path}': '{part}' is not a dict")
+            raise ValueError(f"Cannot create path '{path_str}': '{seg}' is not a dict")
 
     # Set final value
-    last_key = parts[-1]
+    last_seg = segments[-1]
+    if isinstance(last_seg, int):
+        raise ValueError(f"Cannot set array element at path '{path_str}'")
+
     if isinstance(value, dict):
-        if last_key not in current:
-            current[last_key] = {}
-        if isinstance(current[last_key], dict):
-            current[last_key].update(value)
+        if last_seg not in current:
+            current[last_seg] = {}
+        if isinstance(current[last_seg], dict):
+            if merge_strategy == "deep":
+                _deep_merge(current[last_seg], value)
+            else:
+                # Shallow merge
+                current[last_seg].update(value)
         else:
-            current[last_key] = value
+            current[last_seg] = value
     else:
-        current[last_key] = value
+        current[last_seg] = value
     return None
 
 
@@ -462,6 +566,8 @@ def _extract_handler_inputs(payload, signature):
     # type: (Dict[str, Any], HandlerSignature) -> Dict[str, Any]
     """Extract and deserialize handler inputs from payload.
 
+    Uses ASYA_PARAMS_AT to navigate to the input subtree, then extracts each parameter by name.
+
     Args:
         payload: Message payload
         signature: Handler signature
@@ -470,13 +576,14 @@ def _extract_handler_inputs(payload, signature):
         Dict of parameter name -> deserialized value
 
     Raises:
-        ValueError: If required parameter is missing
+        ValueError: If required parameter is missing or path navigation fails
     """
-    # Extract subtree at ASYA_PARAMS_AT
+    # Navigate to input subtree at ASYA_PARAMS_AT
     try:
-        subtree = _extract_value_at_path(payload, ASYA_PARAMS_AT)
-    except KeyError as e:
-        raise ValueError(f"Missing ASYA_PARAMS_AT path '{ASYA_PARAMS_AT}': {e}") from e
+        segments = _parse_jq_path(ASYA_PARAMS_AT)
+        subtree = _navigate_path(payload, segments)
+    except (ValueError, KeyError, IndexError, TypeError) as e:
+        raise ValueError(f"Failed to navigate ASYA_PARAMS_AT path '{ASYA_PARAMS_AT}': {e}") from e
 
     if not isinstance(subtree, dict):
         raise ValueError(f"ASYA_PARAMS_AT path '{ASYA_PARAMS_AT}' must point to a dict, got {type(subtree).__name__}")
@@ -497,14 +604,14 @@ def _extract_handler_inputs(payload, signature):
 
 def _merge_handler_output(payload, result):
     # type: (Dict[str, Any], Any) -> Any
-    """Merge handler output into payload at ASYA_RESULT_AT.
+    """Merge handler output into payload at ASYA_RESULT_AT using ASYA_RESULT_MERGE strategy.
 
     Args:
         payload: Message payload
         result: Handler return value
 
     Returns:
-        Updated payload (may be scalar/list if ASYA_RESULT_AT='/' and result is scalar/list)
+        Updated payload (may be scalar/list if ASYA_RESULT_AT='.' and result is scalar/list)
     """
     serialized = _serialize_output(result)
     if serialized is None:
@@ -514,10 +621,10 @@ def _merge_handler_output(payload, result):
     output_payload = copy.deepcopy(payload)
 
     try:
-        replaced = _set_value_at_path(output_payload, ASYA_RESULT_AT, serialized)
+        replaced = _set_value_at_path(output_payload, ASYA_RESULT_AT, serialized, ASYA_RESULT_MERGE)
         if replaced is not None:
             return replaced
-    except (KeyError, ValueError) as e:
+    except (ValueError, TypeError) as e:
         raise ValueError(f"Failed to merge result at ASYA_RESULT_AT='{ASYA_RESULT_AT}': {e}") from e
 
     return output_payload
@@ -999,15 +1106,14 @@ def _call_handler(user_func, arg, is_kwargs=False):
     return user_func(arg)
 
 
-def _build_frame(payload_value, input_route, vfs_state, is_typed=False, original_payload=None):
+def _build_frame(payload_value, input_route, vfs_state, original_payload):
     """Build a response frame with shifted route from VFS state.
 
     Args:
-        payload_value: Handler return value (legacy: replaces payload, typed: merged into payload)
+        payload_value: Handler return value (will be merged into original_payload)
         input_route: Original message route
         vfs_state: VFS snapshot with route.next, headers, status
-        is_typed: If True, merge payload_value into original_payload using ASYA_RESULT_AT
-        original_payload: Original payload dict (required if is_typed=True)
+        original_payload: Original payload dict
     """
     prev = [*input_route["prev"], input_route["curr"]]
     handler_next = vfs_state["route_next"]
@@ -1017,11 +1123,8 @@ def _build_frame(payload_value, input_route, vfs_state, is_typed=False, original
     else:
         route = {"prev": prev, "curr": "", "next": []}
 
-    # Determine final payload
-    if is_typed and original_payload is not None:
-        final_payload = _merge_handler_output(original_payload, payload_value)
-    else:
-        final_payload = payload_value
+    # Merge handler output into original payload
+    final_payload = _merge_handler_output(original_payload, payload_value)
 
     frame = {"payload": final_payload, "route": route}
     if vfs_state["headers"]:
@@ -1034,11 +1137,13 @@ def _build_frame(payload_value, input_route, vfs_state, is_typed=False, original
 def _collect_payload_frames(message, user_func, signature=None):
     """Collect response frames using VFS for metadata.
 
+    Uniform extraction model: all handlers use typed parameter extraction and result merge.
+
     1. Populate VFS from message
     2. Introspect handler signature (cached)
-    3. Extract inputs (typed) or use payload (legacy)
-    4. Call handler
-    5. Merge outputs (typed) or use result (legacy)
+    3. Extract inputs from payload at ASYA_PARAMS_AT
+    4. Call handler with extracted parameters
+    5. Merge outputs into payload at ASYA_RESULT_AT
     6. Snapshot VFS state (route.next, headers, status) for each frame
     7. Shift route and build frames
     8. Clear VFS
@@ -1058,61 +1163,39 @@ def _collect_payload_frames(message, user_func, signature=None):
     _msg_vfs.populate(message)
 
     try:
-        # Determine handler input
-        if signature.is_legacy:
-            handler_input = payload
-            is_kwargs = False
-            is_typed = False
-        else:
-            handler_input = _extract_handler_inputs(payload, signature)
-            is_kwargs = True
-            is_typed = True
+        # Extract handler inputs from payload (uniform extraction)
+        handler_input = _extract_handler_inputs(payload, signature)
 
         if inspect.isasyncgenfunction(user_func):
 
             async def _collect_async():
                 frames = []
-                if is_kwargs:
-                    async for raw_result in user_func(**handler_input):
-                        serialized = _serialize_output(raw_result)
-                        if isinstance(raw_result, dict) and raw_result.get("partial") is True:
-                            continue
-                        vfs_state = _msg_vfs.snapshot()
-                        frames.append(_build_frame(serialized, input_route, vfs_state, is_typed, payload))
-                else:
-                    async for payload_value in user_func(handler_input):
-                        if isinstance(payload_value, dict) and payload_value.get("partial") is True:
-                            continue
-                        vfs_state = _msg_vfs.snapshot()
-                        frames.append(_build_frame(payload_value, input_route, vfs_state, is_typed, payload))
+                async for raw_result in user_func(**handler_input):
+                    serialized = _serialize_output(raw_result)
+                    if isinstance(raw_result, dict) and raw_result.get("partial") is True:
+                        continue
+                    vfs_state = _msg_vfs.snapshot()
+                    frames.append(_build_frame(serialized, input_route, vfs_state, payload))
                 return frames
 
             return asyncio.run(_collect_async())
 
         if inspect.isgeneratorfunction(user_func):
             frames = []
-            if is_kwargs:
-                for raw_result in user_func(**handler_input):
-                    serialized = _serialize_output(raw_result)
-                    if isinstance(raw_result, dict) and raw_result.get("partial") is True:
-                        continue
-                    vfs_state = _msg_vfs.snapshot()
-                    frames.append(_build_frame(serialized, input_route, vfs_state, is_typed, payload))
-            else:
-                for payload_value in user_func(handler_input):
-                    if isinstance(payload_value, dict) and payload_value.get("partial") is True:
-                        continue
-                    vfs_state = _msg_vfs.snapshot()
-                    frame = _build_frame(payload_value, input_route, vfs_state, is_typed, payload)
-                    frames.append(frame)
+            for raw_result in user_func(**handler_input):
+                serialized = _serialize_output(raw_result)
+                if isinstance(raw_result, dict) and raw_result.get("partial") is True:
+                    continue
+                vfs_state = _msg_vfs.snapshot()
+                frames.append(_build_frame(serialized, input_route, vfs_state, payload))
             return frames
 
-        result = _call_handler(user_func, handler_input, is_kwargs=is_kwargs)
+        result = _call_handler(user_func, handler_input, is_kwargs=True)
         if result is None:
             return []
 
         vfs_state = _msg_vfs.snapshot()
-        return [_build_frame(result, input_route, vfs_state, is_typed, payload)]
+        return [_build_frame(result, input_route, vfs_state, payload)]
     finally:
         _msg_vfs.clear()
 

@@ -1,4 +1,8 @@
-"""Typed handler examples for testing typed signatures feature."""
+"""Typed handler examples for testing typed signatures feature.
+
+All handlers use uniform extraction: parameters are extracted by name from the
+input subtree selected by ASYA_PARAMS_AT. dict parameters are not special-cased.
+"""
 
 import dataclasses
 
@@ -39,6 +43,11 @@ def scalar_return(value: int) -> int:
 def list_return(values: list) -> list:
     """Typed handler returning list."""
     return [v * 2 for v in values]
+
+
+def dict_param(data: dict) -> dict:
+    """Handler with dict parameter - extracted by name like any other parameter."""
+    return {"keys": list(data.keys())}
 
 
 # Dataclass handlers

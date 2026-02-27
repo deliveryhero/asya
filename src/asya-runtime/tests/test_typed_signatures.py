@@ -4,7 +4,6 @@
 import dataclasses
 import sys
 from pathlib import Path
-from typing import Any, Dict
 
 import pytest
 
@@ -28,9 +27,9 @@ except ImportError:
 # Test handlers
 
 
-def legacy_handler(payload: dict) -> dict:
-    """Legacy dict handler."""
-    return {"result": payload.get("value", 0) * 2}
+def dict_param_handler(data: dict) -> dict:
+    """Handler with dict parameter - extracted by name like any other param."""
+    return {"result": data.get("value", 0) * 2}
 
 
 def typed_simple(value: int) -> dict:
@@ -84,40 +83,19 @@ class StatefulProcessor:
 class TestHandlerSignature:
     """Test HandlerSignature introspection."""
 
-    def test_legacy_detection_dict(self):
-        sig = asya_runtime.HandlerSignature(legacy_handler)
-        assert sig.is_legacy is True
-
-    def test_legacy_detection_dict_capital(self):
-        def handler(payload: Dict) -> dict:
-            return payload
-
-        sig = asya_runtime.HandlerSignature(handler)
-        assert sig.is_legacy is True
-
-    def test_legacy_detection_dict_typed(self):
-        def handler(payload: Dict[str, Any]) -> dict:
-            return payload
-
-        sig = asya_runtime.HandlerSignature(handler)
-        assert sig.is_legacy is True
-
-    def test_legacy_detection_no_annotation(self):
-        def handler(payload):
-            return payload
-
-        sig = asya_runtime.HandlerSignature(handler)
-        assert sig.is_legacy is True
+    def test_dict_param_not_legacy(self):
+        """dict parameters are not special-cased - uniform extraction applies."""
+        sig = asya_runtime.HandlerSignature(dict_param_handler)
+        assert "data" in sig.params
+        assert sig.params["data"]["required"] is True
 
     def test_typed_single_param(self):
         sig = asya_runtime.HandlerSignature(typed_simple)
-        assert sig.is_legacy is False
         assert "value" in sig.params
         assert sig.params["value"]["required"] is True
 
     def test_typed_multi_params(self):
         sig = asya_runtime.HandlerSignature(typed_multi_params)
-        assert sig.is_legacy is False
         assert "x" in sig.params
         assert "y" in sig.params
         assert "z" in sig.params
@@ -133,67 +111,185 @@ class TestHandlerSignature:
         assert "value" in sig.params
 
 
-class TestExtractValueAtPath:
-    """Test _extract_value_at_path helper."""
+class TestJqPathParsing:
+    """Test jq-style path parsing."""
 
-    def test_root_path(self):
+    def test_parse_root(self):
+        segments = asya_runtime._parse_jq_path(".")
+        assert segments == []
+
+    def test_parse_single_key(self):
+        segments = asya_runtime._parse_jq_path(".key")
+        assert segments == ["key"]
+
+    def test_parse_nested_keys(self):
+        segments = asya_runtime._parse_jq_path(".key.subkey")
+        assert segments == ["key", "subkey"]
+
+    def test_parse_array_index(self):
+        segments = asya_runtime._parse_jq_path(".[0]")
+        assert segments == [0]
+
+    def test_parse_negative_index(self):
+        segments = asya_runtime._parse_jq_path(".[-1]")
+        assert segments == [-1]
+
+    def test_parse_combined(self):
+        segments = asya_runtime._parse_jq_path(".events[-1].data")
+        assert segments == ["events", -1, "data"]
+
+    def test_parse_key_with_array(self):
+        segments = asya_runtime._parse_jq_path(".items[0].name")
+        assert segments == ["items", 0, "name"]
+
+    def test_invalid_no_leading_dot(self):
+        with pytest.raises(ValueError, match="must start with"):
+            asya_runtime._parse_jq_path("key")
+
+    def test_invalid_unclosed_bracket(self):
+        with pytest.raises(ValueError, match="Unclosed bracket"):
+            asya_runtime._parse_jq_path(".[0")
+
+    def test_invalid_non_numeric_index(self):
+        with pytest.raises(ValueError, match="Invalid array index"):
+            asya_runtime._parse_jq_path(".[abc]")
+
+
+class TestNavigatePath:
+    """Test _navigate_path with parsed segments."""
+
+    def test_navigate_root(self):
         data = {"a": 1, "b": 2}
-        result = asya_runtime._extract_value_at_path(data, "/")
+        result = asya_runtime._navigate_path(data, [])
         assert result == data
 
-    def test_empty_path(self):
+    def test_navigate_single_key(self):
         data = {"a": 1, "b": 2}
-        result = asya_runtime._extract_value_at_path(data, "")
-        assert result == data
-
-    def test_single_key(self):
-        data = {"a": 1, "b": 2}
-        result = asya_runtime._extract_value_at_path(data, "/a")
+        result = asya_runtime._navigate_path(data, ["a"])
         assert result == 1
 
-    def test_nested_path(self):
+    def test_navigate_nested_keys(self):
         data = {"user": {"profile": {"name": "Alice"}}}
-        result = asya_runtime._extract_value_at_path(data, "/user/profile/name")
+        result = asya_runtime._navigate_path(data, ["user", "profile", "name"])
         assert result == "Alice"
+
+    def test_navigate_array_index(self):
+        data = {"items": [10, 20, 30]}
+        result = asya_runtime._navigate_path(data, ["items", 1])
+        assert result == 20
+
+    def test_navigate_negative_index(self):
+        data = {"items": [10, 20, 30]}
+        result = asya_runtime._navigate_path(data, ["items", -1])
+        assert result == 30
+
+    def test_navigate_combined(self):
+        data = {"events": [{"data": "first"}, {"data": "last"}]}
+        result = asya_runtime._navigate_path(data, ["events", -1, "data"])
+        assert result == "last"
 
     def test_missing_key_raises(self):
         data = {"a": 1}
-        with pytest.raises(KeyError):
-            asya_runtime._extract_value_at_path(data, "/b")
+        with pytest.raises(KeyError, match="Missing key"):
+            asya_runtime._navigate_path(data, ["b"])
 
-    def test_invalid_path_raises(self):
-        data = {"a": 1}
-        with pytest.raises(KeyError):
-            asya_runtime._extract_value_at_path(data, "/a/b")
+    def test_invalid_index_raises(self):
+        data = {"items": [1, 2]}
+        with pytest.raises(IndexError, match="out of range"):
+            asya_runtime._navigate_path(data, ["items", 10])
+
+    def test_index_non_list_raises(self):
+        data = {"value": 42}
+        with pytest.raises(TypeError, match="Cannot index non-list"):
+            asya_runtime._navigate_path(data, ["value", 0])
+
+    def test_key_non_dict_raises(self):
+        data = {"value": 42}
+        with pytest.raises(KeyError, match="Cannot access key .* in non-dict"):
+            asya_runtime._navigate_path(data, ["value", "subkey"])
+
+
+class TestDeepMerge:
+    """Test _deep_merge recursive dict merging."""
+
+    def test_shallow_keys(self):
+        target = {"a": 1, "b": 2}
+        source = {"c": 3}
+        asya_runtime._deep_merge(target, source)
+        assert target == {"a": 1, "b": 2, "c": 3}
+
+    def test_overwrite_scalar(self):
+        target = {"a": 1, "b": 2}
+        source = {"b": 99}
+        asya_runtime._deep_merge(target, source)
+        assert target == {"a": 1, "b": 99}
+
+    def test_nested_dict_merge(self):
+        target = {"nested": {"a": 1, "b": 2}}
+        source = {"nested": {"a": 99, "c": 3}}
+        asya_runtime._deep_merge(target, source)
+        assert target == {"nested": {"a": 99, "b": 2, "c": 3}}
+
+    def test_list_overwrite(self):
+        target = {"items": [1, 2, 3]}
+        source = {"items": [4, 5]}
+        asya_runtime._deep_merge(target, source)
+        assert target == {"items": [4, 5]}
+
+    def test_deep_nested(self):
+        target = {"a": {"b": {"c": 1, "d": 2}}}
+        source = {"a": {"b": {"c": 99, "e": 3}}}
+        asya_runtime._deep_merge(target, source)
+        assert target == {"a": {"b": {"c": 99, "d": 2, "e": 3}}}
 
 
 class TestSetValueAtPath:
-    """Test _set_value_at_path helper."""
+    """Test _set_value_at_path with jq paths and merge strategies."""
 
-    def test_root_path_dict(self):
+    def test_root_shallow_dict(self):
         data = {"a": 1}
-        asya_runtime._set_value_at_path(data, "/", {"b": 2})
+        asya_runtime._set_value_at_path(data, ".", {"b": 2}, "shallow")
         assert data == {"a": 1, "b": 2}
+
+    def test_root_deep_dict(self):
+        data = {"a": 1, "nested": {"x": 10}}
+        asya_runtime._set_value_at_path(data, ".", {"b": 2, "nested": {"y": 20}}, "deep")
+        assert data == {"a": 1, "b": 2, "nested": {"x": 10, "y": 20}}
+
+    def test_root_scalar_replaces(self):
+        data = {"a": 1}
+        result = asya_runtime._set_value_at_path(data, ".", 42, "shallow")
+        assert result == 42
 
     def test_single_key_scalar(self):
         data = {}
-        asya_runtime._set_value_at_path(data, "/result", 42)
+        asya_runtime._set_value_at_path(data, ".result", 42, "shallow")
         assert data == {"result": 42}
 
-    def test_single_key_dict(self):
+    def test_single_key_dict_shallow(self):
         data = {"result": {"old": 1}}
-        asya_runtime._set_value_at_path(data, "/result", {"new": 2})
+        asya_runtime._set_value_at_path(data, ".result", {"new": 2}, "shallow")
         assert data == {"result": {"old": 1, "new": 2}}
+
+    def test_single_key_dict_deep(self):
+        data = {"result": {"nested": {"a": 1}}}
+        asya_runtime._set_value_at_path(data, ".result", {"nested": {"b": 2}, "new": 3}, "deep")
+        assert data == {"result": {"nested": {"a": 1, "b": 2}, "new": 3}}
 
     def test_nested_path_creates_intermediate(self):
         data = {}
-        asya_runtime._set_value_at_path(data, "/user/profile/name", "Alice")
+        asya_runtime._set_value_at_path(data, ".user.profile.name", "Alice", "shallow")
         assert data == {"user": {"profile": {"name": "Alice"}}}
 
-    def test_nested_path_merge_dict(self):
-        data = {"user": {"profile": {"age": 30}}}
-        asya_runtime._set_value_at_path(data, "/user/profile", {"name": "Alice"})
-        assert data == {"user": {"profile": {"age": 30, "name": "Alice"}}}
+    def test_nested_path_merge_shallow(self):
+        data = {"user": {"profile": {"age": 30, "nested": {"a": 1}}}}
+        asya_runtime._set_value_at_path(data, ".user.profile", {"name": "Alice", "nested": {"b": 2}}, "shallow")
+        assert data == {"user": {"profile": {"age": 30, "name": "Alice", "nested": {"b": 2}}}}
+
+    def test_nested_path_merge_deep(self):
+        data = {"user": {"profile": {"age": 30, "nested": {"a": 1}}}}
+        asya_runtime._set_value_at_path(data, ".user.profile", {"name": "Alice", "nested": {"b": 2}}, "deep")
+        assert data == {"user": {"profile": {"age": 30, "name": "Alice", "nested": {"a": 1, "b": 2}}}}
 
 
 class TestSerializeDeserialize:
@@ -250,40 +346,88 @@ class TestSerializeDeserialize:
 class TestExtractHandlerInputs:
     """Test _extract_handler_inputs function."""
 
-    def test_extract_single_param(self):
+    def test_extract_single_param_root(self):
         payload = {"value": 42}
         sig = asya_runtime.HandlerSignature(typed_simple)
-        result = asya_runtime._extract_handler_inputs(payload, sig)
-        assert result == {"value": 42}
+
+        old_value = asya_runtime.ASYA_PARAMS_AT
+        try:
+            asya_runtime.ASYA_PARAMS_AT = "."
+            result = asya_runtime._extract_handler_inputs(payload, sig)
+            assert result == {"value": 42}
+        finally:
+            asya_runtime.ASYA_PARAMS_AT = old_value
 
     def test_extract_multi_params(self):
         payload = {"x": 10, "y": 20}
         sig = asya_runtime.HandlerSignature(typed_multi_params)
-        result = asya_runtime._extract_handler_inputs(payload, sig)
-        assert result == {"x": 10, "y": 20}
+
+        old_value = asya_runtime.ASYA_PARAMS_AT
+        try:
+            asya_runtime.ASYA_PARAMS_AT = "."
+            result = asya_runtime._extract_handler_inputs(payload, sig)
+            assert result == {"x": 10, "y": 20}
+        finally:
+            asya_runtime.ASYA_PARAMS_AT = old_value
 
     def test_extract_with_optional_provided(self):
         payload = {"x": 10, "y": 20, "z": 5}
         sig = asya_runtime.HandlerSignature(typed_multi_params)
-        result = asya_runtime._extract_handler_inputs(payload, sig)
-        assert result == {"x": 10, "y": 20, "z": 5}
+
+        old_value = asya_runtime.ASYA_PARAMS_AT
+        try:
+            asya_runtime.ASYA_PARAMS_AT = "."
+            result = asya_runtime._extract_handler_inputs(payload, sig)
+            assert result == {"x": 10, "y": 20, "z": 5}
+        finally:
+            asya_runtime.ASYA_PARAMS_AT = old_value
 
     def test_extract_missing_required_raises(self):
         payload = {"x": 10}
         sig = asya_runtime.HandlerSignature(typed_multi_params)
-        with pytest.raises(ValueError, match="Missing required parameter 'y'"):
-            asya_runtime._extract_handler_inputs(payload, sig)
+
+        old_value = asya_runtime.ASYA_PARAMS_AT
+        try:
+            asya_runtime.ASYA_PARAMS_AT = "."
+            with pytest.raises(ValueError, match="Missing required parameter 'y'"):
+                asya_runtime._extract_handler_inputs(payload, sig)
+        finally:
+            asya_runtime.ASYA_PARAMS_AT = old_value
 
     def test_extract_from_nested_path(self):
         payload = {"inputs": {"value": 42}}
         sig = asya_runtime.HandlerSignature(typed_simple)
 
-        # Set ASYA_PARAMS_AT temporarily
         old_value = asya_runtime.ASYA_PARAMS_AT
         try:
-            asya_runtime.ASYA_PARAMS_AT = "/inputs"
+            asya_runtime.ASYA_PARAMS_AT = ".inputs"
             result = asya_runtime._extract_handler_inputs(payload, sig)
             assert result == {"value": 42}
+        finally:
+            asya_runtime.ASYA_PARAMS_AT = old_value
+
+    def test_extract_from_array_index(self):
+        payload = {"events": [{"value": 10}, {"value": 42}]}
+        sig = asya_runtime.HandlerSignature(typed_simple)
+
+        old_value = asya_runtime.ASYA_PARAMS_AT
+        try:
+            asya_runtime.ASYA_PARAMS_AT = ".events[-1]"
+            result = asya_runtime._extract_handler_inputs(payload, sig)
+            assert result == {"value": 42}
+        finally:
+            asya_runtime.ASYA_PARAMS_AT = old_value
+
+    def test_extract_dict_parameter_by_name(self):
+        """dict parameter is extracted by name, not passed as entire payload."""
+        payload = {"data": {"value": 10}}
+        sig = asya_runtime.HandlerSignature(dict_param_handler)
+
+        old_value = asya_runtime.ASYA_PARAMS_AT
+        try:
+            asya_runtime.ASYA_PARAMS_AT = "."
+            result = asya_runtime._extract_handler_inputs(payload, sig)
+            assert result == {"data": {"value": 10}}
         finally:
             asya_runtime.ASYA_PARAMS_AT = old_value
 
@@ -291,28 +435,58 @@ class TestExtractHandlerInputs:
 class TestMergeHandlerOutput:
     """Test _merge_handler_output function."""
 
-    def test_merge_dict_at_root(self):
+    def test_merge_dict_at_root_shallow(self):
         payload = {"a": 1}
         result = {"b": 2}
-        merged = asya_runtime._merge_handler_output(payload, result)
-        assert merged == {"a": 1, "b": 2}
+
+        old_at = asya_runtime.ASYA_RESULT_AT
+        old_merge = asya_runtime.ASYA_RESULT_MERGE
+        try:
+            asya_runtime.ASYA_RESULT_AT = "."
+            asya_runtime.ASYA_RESULT_MERGE = "shallow"
+            merged = asya_runtime._merge_handler_output(payload, result)
+            assert merged == {"a": 1, "b": 2}
+        finally:
+            asya_runtime.ASYA_RESULT_AT = old_at
+            asya_runtime.ASYA_RESULT_MERGE = old_merge
+
+    def test_merge_dict_at_root_deep(self):
+        payload = {"a": 1, "nested": {"x": 10}}
+        result = {"b": 2, "nested": {"y": 20}}
+
+        old_at = asya_runtime.ASYA_RESULT_AT
+        old_merge = asya_runtime.ASYA_RESULT_MERGE
+        try:
+            asya_runtime.ASYA_RESULT_AT = "."
+            asya_runtime.ASYA_RESULT_MERGE = "deep"
+            merged = asya_runtime._merge_handler_output(payload, result)
+            assert merged == {"a": 1, "b": 2, "nested": {"x": 10, "y": 20}}
+        finally:
+            asya_runtime.ASYA_RESULT_AT = old_at
+            asya_runtime.ASYA_RESULT_MERGE = old_merge
 
     def test_merge_scalar_at_root(self):
         payload = {"a": 1}
-        merged = asya_runtime._merge_handler_output(payload, 42)
-        assert merged == 42
+
+        old_at = asya_runtime.ASYA_RESULT_AT
+        try:
+            asya_runtime.ASYA_RESULT_AT = "."
+            merged = asya_runtime._merge_handler_output(payload, 42)
+            assert merged == 42
+        finally:
+            asya_runtime.ASYA_RESULT_AT = old_at
 
     def test_merge_dict_at_nested_path(self):
         payload = {"a": 1}
         result = {"c": 3}
 
-        old_value = asya_runtime.ASYA_RESULT_AT
+        old_at = asya_runtime.ASYA_RESULT_AT
         try:
-            asya_runtime.ASYA_RESULT_AT = "/result"
+            asya_runtime.ASYA_RESULT_AT = ".result"
             merged = asya_runtime._merge_handler_output(payload, result)
             assert merged == {"a": 1, "result": {"c": 3}}
         finally:
-            asya_runtime.ASYA_RESULT_AT = old_value
+            asya_runtime.ASYA_RESULT_AT = old_at
 
     def test_merge_none_returns_original(self):
         payload = {"a": 1}
@@ -327,20 +501,28 @@ class TestMergeHandlerOutput:
 
 
 class TestCollectPayloadFrames:
-    """Test _collect_payload_frames with typed handlers."""
+    """Test _collect_payload_frames with uniform extraction."""
 
-    def test_legacy_handler_unchanged(self):
+    def test_dict_param_uniform_extraction(self):
+        """dict parameter handler uses uniform extraction - extracts by param name."""
         message = {
             "id": "msg-1",
             "route": {"prev": [], "curr": "actor1", "next": ["actor2"]},
-            "payload": {"value": 10},
+            "payload": {"data": {"value": 10}},
         }
 
-        frames = asya_runtime._collect_payload_frames(message, legacy_handler)
-        assert len(frames) == 1
-        assert frames[0]["payload"] == {"result": 20}
-        assert frames[0]["route"]["prev"] == ["actor1"]
-        assert frames[0]["route"]["curr"] == "actor2"
+        old_at = asya_runtime.ASYA_PARAMS_AT
+        old_result_at = asya_runtime.ASYA_RESULT_AT
+        try:
+            asya_runtime.ASYA_PARAMS_AT = "."
+            asya_runtime.ASYA_RESULT_AT = "."
+            frames = asya_runtime._collect_payload_frames(message, dict_param_handler)
+            assert len(frames) == 1
+            # Result merged at root
+            assert frames[0]["payload"] == {"data": {"value": 10}, "result": 20}
+        finally:
+            asya_runtime.ASYA_PARAMS_AT = old_at
+            asya_runtime.ASYA_RESULT_AT = old_result_at
 
     def test_typed_single_param(self):
         message = {
@@ -349,9 +531,17 @@ class TestCollectPayloadFrames:
             "payload": {"value": 10},
         }
 
-        frames = asya_runtime._collect_payload_frames(message, typed_simple)
-        assert len(frames) == 1
-        assert frames[0]["payload"] == {"value": 10, "doubled": 20}
+        old_at = asya_runtime.ASYA_PARAMS_AT
+        old_result_at = asya_runtime.ASYA_RESULT_AT
+        try:
+            asya_runtime.ASYA_PARAMS_AT = "."
+            asya_runtime.ASYA_RESULT_AT = "."
+            frames = asya_runtime._collect_payload_frames(message, typed_simple)
+            assert len(frames) == 1
+            assert frames[0]["payload"] == {"value": 10, "doubled": 20}
+        finally:
+            asya_runtime.ASYA_PARAMS_AT = old_at
+            asya_runtime.ASYA_RESULT_AT = old_result_at
 
     def test_typed_multi_params(self):
         message = {
@@ -360,9 +550,17 @@ class TestCollectPayloadFrames:
             "payload": {"x": 5, "y": 10},
         }
 
-        frames = asya_runtime._collect_payload_frames(message, typed_multi_params)
-        assert len(frames) == 1
-        assert frames[0]["payload"] == {"x": 5, "y": 10, "sum": 25}
+        old_at = asya_runtime.ASYA_PARAMS_AT
+        old_result_at = asya_runtime.ASYA_RESULT_AT
+        try:
+            asya_runtime.ASYA_PARAMS_AT = "."
+            asya_runtime.ASYA_RESULT_AT = "."
+            frames = asya_runtime._collect_payload_frames(message, typed_multi_params)
+            assert len(frames) == 1
+            assert frames[0]["payload"] == {"x": 5, "y": 10, "sum": 25}
+        finally:
+            asya_runtime.ASYA_PARAMS_AT = old_at
+            asya_runtime.ASYA_RESULT_AT = old_result_at
 
     def test_typed_scalar_return(self):
         message = {
@@ -371,9 +569,18 @@ class TestCollectPayloadFrames:
             "payload": {"value": 10},
         }
 
-        frames = asya_runtime._collect_payload_frames(message, typed_scalar_return)
-        assert len(frames) == 1
-        assert frames[0]["payload"] == 20
+        old_at = asya_runtime.ASYA_PARAMS_AT
+        old_result_at = asya_runtime.ASYA_RESULT_AT
+        try:
+            asya_runtime.ASYA_PARAMS_AT = "."
+            asya_runtime.ASYA_RESULT_AT = "."
+            frames = asya_runtime._collect_payload_frames(message, typed_scalar_return)
+            assert len(frames) == 1
+            # Scalar at root replaces entire payload
+            assert frames[0]["payload"] == 20
+        finally:
+            asya_runtime.ASYA_PARAMS_AT = old_at
+            asya_runtime.ASYA_RESULT_AT = old_result_at
 
     def test_typed_dataclass_input(self):
         message = {
@@ -382,9 +589,17 @@ class TestCollectPayloadFrames:
             "payload": {"point": {"x": 3, "y": 4}},
         }
 
-        frames = asya_runtime._collect_payload_frames(message, typed_dataclass)
-        assert len(frames) == 1
-        assert frames[0]["payload"]["distance"] == 5.0
+        old_at = asya_runtime.ASYA_PARAMS_AT
+        old_result_at = asya_runtime.ASYA_RESULT_AT
+        try:
+            asya_runtime.ASYA_PARAMS_AT = "."
+            asya_runtime.ASYA_RESULT_AT = "."
+            frames = asya_runtime._collect_payload_frames(message, typed_dataclass)
+            assert len(frames) == 1
+            assert frames[0]["payload"]["distance"] == 5.0
+        finally:
+            asya_runtime.ASYA_PARAMS_AT = old_at
+            asya_runtime.ASYA_RESULT_AT = old_result_at
 
     def test_typed_dataclass_return(self):
         message = {
@@ -393,9 +608,17 @@ class TestCollectPayloadFrames:
             "payload": {"x": 10, "y": 20},
         }
 
-        frames = asya_runtime._collect_payload_frames(message, typed_dataclass_return)
-        assert len(frames) == 1
-        assert frames[0]["payload"] == {"x": 10, "y": 20}
+        old_at = asya_runtime.ASYA_PARAMS_AT
+        old_result_at = asya_runtime.ASYA_RESULT_AT
+        try:
+            asya_runtime.ASYA_PARAMS_AT = "."
+            asya_runtime.ASYA_RESULT_AT = "."
+            frames = asya_runtime._collect_payload_frames(message, typed_dataclass_return)
+            assert len(frames) == 1
+            assert frames[0]["payload"] == {"x": 10, "y": 20}
+        finally:
+            asya_runtime.ASYA_PARAMS_AT = old_at
+            asya_runtime.ASYA_RESULT_AT = old_result_at
 
     def test_typed_none_return_empty_frames(self):
         def handler(value: int):
@@ -407,8 +630,13 @@ class TestCollectPayloadFrames:
             "payload": {"value": 10},
         }
 
-        frames = asya_runtime._collect_payload_frames(message, handler)
-        assert len(frames) == 0
+        old_at = asya_runtime.ASYA_PARAMS_AT
+        try:
+            asya_runtime.ASYA_PARAMS_AT = "."
+            frames = asya_runtime._collect_payload_frames(message, handler)
+            assert len(frames) == 0
+        finally:
+            asya_runtime.ASYA_PARAMS_AT = old_at
 
     def test_typed_missing_param_raises(self):
         message = {
@@ -417,8 +645,13 @@ class TestCollectPayloadFrames:
             "payload": {"x": 10},
         }
 
-        with pytest.raises(ValueError, match="Missing required parameter 'y'"):
-            asya_runtime._collect_payload_frames(message, typed_multi_params)
+        old_at = asya_runtime.ASYA_PARAMS_AT
+        try:
+            asya_runtime.ASYA_PARAMS_AT = "."
+            with pytest.raises(ValueError, match="Missing required parameter 'y'"):
+                asya_runtime._collect_payload_frames(message, typed_multi_params)
+        finally:
+            asya_runtime.ASYA_PARAMS_AT = old_at
 
     def test_class_handler(self):
         processor = StatefulProcessor(multiplier=5)
@@ -428,9 +661,17 @@ class TestCollectPayloadFrames:
             "payload": {"value": 10},
         }
 
-        frames = asya_runtime._collect_payload_frames(message, processor.process)
-        assert len(frames) == 1
-        assert frames[0]["payload"] == {"value": 10, "result": 50}
+        old_at = asya_runtime.ASYA_PARAMS_AT
+        old_result_at = asya_runtime.ASYA_RESULT_AT
+        try:
+            asya_runtime.ASYA_PARAMS_AT = "."
+            asya_runtime.ASYA_RESULT_AT = "."
+            frames = asya_runtime._collect_payload_frames(message, processor.process)
+            assert len(frames) == 1
+            assert frames[0]["payload"] == {"value": 10, "result": 50}
+        finally:
+            asya_runtime.ASYA_PARAMS_AT = old_at
+            asya_runtime.ASYA_RESULT_AT = old_result_at
 
 
 class TestAsyncTypedHandlers:
@@ -446,9 +687,17 @@ class TestAsyncTypedHandlers:
             "payload": {"value": 10},
         }
 
-        frames = asya_runtime._collect_payload_frames(message, async_handler)
-        assert len(frames) == 1
-        assert frames[0]["payload"] == {"value": 10, "doubled": 20}
+        old_at = asya_runtime.ASYA_PARAMS_AT
+        old_result_at = asya_runtime.ASYA_RESULT_AT
+        try:
+            asya_runtime.ASYA_PARAMS_AT = "."
+            asya_runtime.ASYA_RESULT_AT = "."
+            frames = asya_runtime._collect_payload_frames(message, async_handler)
+            assert len(frames) == 1
+            assert frames[0]["payload"] == {"value": 10, "doubled": 20}
+        finally:
+            asya_runtime.ASYA_PARAMS_AT = old_at
+            asya_runtime.ASYA_RESULT_AT = old_result_at
 
     def test_async_generator_typed(self):
         async def async_gen(value: int):
@@ -461,54 +710,16 @@ class TestAsyncTypedHandlers:
             "payload": {"value": 5},
         }
 
-        frames = asya_runtime._collect_payload_frames(message, async_gen)
-        assert len(frames) == 3
-        assert frames[0]["payload"]["index"] == 0
-        assert frames[1]["payload"]["index"] == 1
-        assert frames[2]["payload"]["index"] == 2
-
-
-class TestBackwardCompatibility:
-    """Test that legacy handlers remain unchanged."""
-
-    def test_legacy_dict_handler(self):
-        def handler(payload: dict) -> dict:
-            return {"result": payload.get("x", 0) + 1}
-
-        message = {
-            "id": "msg-1",
-            "route": {"prev": [], "curr": "actor1", "next": []},
-            "payload": {"x": 10},
-        }
-
-        frames = asya_runtime._collect_payload_frames(message, handler)
-        assert len(frames) == 1
-        assert frames[0]["payload"] == {"result": 11}
-
-    def test_legacy_dict_typed_annotation(self):
-        def handler(payload: Dict[str, Any]) -> dict:
-            return {"result": payload.get("x", 0) + 1}
-
-        message = {
-            "id": "msg-1",
-            "route": {"prev": [], "curr": "actor1", "next": []},
-            "payload": {"x": 10},
-        }
-
-        frames = asya_runtime._collect_payload_frames(message, handler)
-        assert len(frames) == 1
-        assert frames[0]["payload"] == {"result": 11}
-
-    def test_legacy_no_annotation(self):
-        def handler(payload):
-            return {"result": payload.get("x", 0) + 1}
-
-        message = {
-            "id": "msg-1",
-            "route": {"prev": [], "curr": "actor1", "next": []},
-            "payload": {"x": 10},
-        }
-
-        frames = asya_runtime._collect_payload_frames(message, handler)
-        assert len(frames) == 1
-        assert frames[0]["payload"] == {"result": 11}
+        old_at = asya_runtime.ASYA_PARAMS_AT
+        old_result_at = asya_runtime.ASYA_RESULT_AT
+        try:
+            asya_runtime.ASYA_PARAMS_AT = "."
+            asya_runtime.ASYA_RESULT_AT = "."
+            frames = asya_runtime._collect_payload_frames(message, async_gen)
+            assert len(frames) == 3
+            assert frames[0]["payload"]["index"] == 0
+            assert frames[1]["payload"]["index"] == 1
+            assert frames[2]["payload"]["index"] == 2
+        finally:
+            asya_runtime.ASYA_PARAMS_AT = old_at
+            asya_runtime.ASYA_RESULT_AT = old_result_at
