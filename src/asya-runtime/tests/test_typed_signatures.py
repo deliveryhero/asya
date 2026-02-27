@@ -142,6 +142,21 @@ class TestJqPathParsing:
         segments = asya_runtime._parse_jq_path(".items[0].name")
         assert segments == ["items", 0, "name"]
 
+    def test_parse_array_append(self):
+        """Test parsing [+] array append syntax."""
+        segments = asya_runtime._parse_jq_path(".[+]")
+        assert segments == ["+"]
+
+    def test_parse_key_with_array_append(self):
+        """Test parsing key with [+] append."""
+        segments = asya_runtime._parse_jq_path(".events[+]")
+        assert segments == ["events", "+"]
+
+    def test_parse_nested_with_array_append(self):
+        """Test parsing nested path with [+] append."""
+        segments = asya_runtime._parse_jq_path(".data.events[+]")
+        assert segments == ["data", "events", "+"]
+
     def test_invalid_no_leading_dot(self):
         with pytest.raises(ValueError, match="must start with"):
             asya_runtime._parse_jq_path("key")
@@ -153,6 +168,11 @@ class TestJqPathParsing:
     def test_invalid_non_numeric_index(self):
         with pytest.raises(ValueError, match="Invalid array index"):
             asya_runtime._parse_jq_path(".[abc]")
+
+    def test_invalid_negative_append(self):
+        """Test that .[-] raises ValueError."""
+        with pytest.raises(ValueError, match="not supported"):
+            asya_runtime._parse_jq_path(".[-]")
 
 
 class TestNavigatePath:
@@ -290,6 +310,48 @@ class TestSetValueAtPath:
         data = {"user": {"profile": {"age": 30, "nested": {"a": 1}}}}
         asya_runtime._set_value_at_path(data, ".user.profile", {"name": "Alice", "nested": {"b": 2}}, "deep")
         assert data == {"user": {"profile": {"age": 30, "name": "Alice", "nested": {"a": 1, "b": 2}}}}
+
+    def test_array_append_to_existing_list(self):
+        """Test [+] appends to existing list."""
+        data = {"events": [{"id": 1}, {"id": 2}]}
+        asya_runtime._set_value_at_path(data, ".events[+]", {"id": 3}, "shallow")
+        assert data == {"events": [{"id": 1}, {"id": 2}, {"id": 3}]}
+
+    def test_array_append_creates_list_if_missing(self):
+        """Test [+] creates list if key doesn't exist."""
+        data = {}
+        asya_runtime._set_value_at_path(data, ".events[+]", {"id": 1}, "shallow")
+        assert data == {"events": [{"id": 1}]}
+
+    def test_array_append_scalar_value(self):
+        """Test [+] appends scalar values."""
+        data = {"items": [1, 2]}
+        asya_runtime._set_value_at_path(data, ".items[+]", 3, "shallow")
+        assert data == {"items": [1, 2, 3]}
+
+    def test_array_append_nested_path(self):
+        """Test [+] with nested path."""
+        data = {"user": {"events": [1, 2]}}
+        asya_runtime._set_value_at_path(data, ".user.events[+]", 3, "shallow")
+        assert data == {"user": {"events": [1, 2, 3]}}
+
+    def test_array_append_errors_if_target_not_list(self):
+        """Test [+] raises error if target is not a list."""
+        data = {"items": "not a list"}
+        with pytest.raises(ValueError, match="not list"):
+            asya_runtime._set_value_at_path(data, ".items[+]", 42, "shallow")
+
+    def test_array_append_creates_intermediate_dicts(self):
+        """Test [+] creates intermediate dicts in path."""
+        data = {}
+        asya_runtime._set_value_at_path(data, ".data.events[+]", {"id": 1}, "shallow")
+        assert data == {"data": {"events": [{"id": 1}]}}
+
+    def test_array_append_root_level_invalid(self):
+        """Test .[+] at root is invalid."""
+        data = {}
+        with pytest.raises(ValueError, match="root must be a dict"):
+            asya_runtime._set_value_at_path(data, ".[+]", {"id": 1}, "shallow")
 
 
 class TestSerializeDeserialize:
@@ -861,3 +923,82 @@ class TestArgsRejection:
 
         with pytest.raises(RuntimeError, match="declares \\*args which is not supported"):
             asya_runtime.HandlerSignature(full_handler)
+
+
+class TestArrayAppendResultMerge:
+    """Test [+] array append with _merge_handler_output."""
+
+    def test_append_to_existing_list_at_result_path(self):
+        """Test merging with [+] appends to existing list."""
+        payload = {"a": 1, "events": [1, 2]}
+        result = {"event_id": 3}
+
+        old_at = asya_runtime.ASYA_RESULT_AT
+        try:
+            asya_runtime.ASYA_RESULT_AT = ".events[+]"
+            merged = asya_runtime._merge_handler_output(payload, result)
+            assert merged == {"a": 1, "events": [1, 2, {"event_id": 3}]}
+        finally:
+            asya_runtime.ASYA_RESULT_AT = old_at
+
+    def test_append_creates_list_at_result_path(self):
+        """Test [+] creates list if missing."""
+        payload = {"a": 1}
+        result = {"event_id": 1}
+
+        old_at = asya_runtime.ASYA_RESULT_AT
+        try:
+            asya_runtime.ASYA_RESULT_AT = ".events[+]"
+            merged = asya_runtime._merge_handler_output(payload, result)
+            assert merged == {"a": 1, "events": [{"event_id": 1}]}
+        finally:
+            asya_runtime.ASYA_RESULT_AT = old_at
+
+    def test_append_scalar_value(self):
+        """Test appending scalar values."""
+        payload = {"nums": [1, 2]}
+        result = 3
+
+        old_at = asya_runtime.ASYA_RESULT_AT
+        try:
+            asya_runtime.ASYA_RESULT_AT = ".nums[+]"
+            merged = asya_runtime._merge_handler_output(payload, result)
+            assert merged == {"nums": [1, 2, 3]}
+        finally:
+            asya_runtime.ASYA_RESULT_AT = old_at
+
+    def test_append_with_nested_path(self):
+        """Test [+] with nested path."""
+        payload = {"user": {"events": [1]}}
+        result = 2
+
+        old_at = asya_runtime.ASYA_RESULT_AT
+        try:
+            asya_runtime.ASYA_RESULT_AT = ".user.events[+]"
+            merged = asya_runtime._merge_handler_output(payload, result)
+            assert merged == {"user": {"events": [1, 2]}}
+        finally:
+            asya_runtime.ASYA_RESULT_AT = old_at
+
+    def test_append_errors_if_target_not_list(self):
+        """Test [+] raises error if target is not a list."""
+        payload = {"events": "not a list"}
+        result = {"id": 1}
+
+        old_at = asya_runtime.ASYA_RESULT_AT
+        try:
+            asya_runtime.ASYA_RESULT_AT = ".events[+]"
+            with pytest.raises(ValueError, match="not list"):
+                asya_runtime._merge_handler_output(payload, result)
+        finally:
+            asya_runtime.ASYA_RESULT_AT = old_at
+
+
+class TestParamsAtValidation:
+    """Test ASYA_PARAMS_AT validation at startup."""
+
+    def test_params_at_with_append_raises_at_parse(self):
+        """Test that [+] in ASYA_PARAMS_AT path raises error."""
+        path_with_append = ".inputs[+]"
+        segments = asya_runtime._parse_jq_path(path_with_append)
+        assert "+" in segments

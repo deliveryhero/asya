@@ -336,18 +336,21 @@ def _parse_jq_path(path_str):
         .a.b      → ["a", "b"]
         .[0]      → [0]
         .[-1]     → [-1]
+        .[+]      → ["+"] (array append sentinel)
         .a[0].b   → ["a", 0, "b"]
+        .events[+] → ["events", "+"]
 
     Not supported: wildcards (.[*]), recursive descent (..), filters, slicing.
+    Unsupported: .[-] (negative append).
 
     Args:
-        path_str: jq-style path (e.g., ".", ".key", ".key.subkey", ".[0]", ".[-1]")
+        path_str: jq-style path (e.g., ".", ".key", ".key.subkey", ".[0]", ".[-1]", ".[+]")
 
     Returns:
-        List of path segments (strings or ints)
+        List of path segments (strings, ints, or "+" for append)
 
     Raises:
-        ValueError: If path syntax is invalid
+        ValueError: If path syntax is invalid or .[-] is used
     """
     if not path_str:
         raise ValueError("Path cannot be empty")
@@ -362,17 +365,24 @@ def _parse_jq_path(path_str):
     rest = path_str[1:]  # Remove leading '.'
 
     while rest:
-        # Array index: [n] or [-n]
+        # Array index: [n] or [-n] or [+]
         if rest.startswith("["):
             close_idx = rest.find("]")
             if close_idx == -1:
                 raise ValueError(f"Unclosed bracket in path: {path_str}")
             index_str = rest[1:close_idx]
-            try:
-                index = int(index_str)
-            except ValueError as e:
-                raise ValueError(f"Invalid array index '{index_str}' in path: {path_str}") from e
-            segments.append(index)
+            # Check for array append [+]
+            if index_str == "+":
+                segments.append("+")
+            # Check for invalid negative append .[-]
+            elif index_str == "-":
+                raise ValueError("Array append syntax '.[-]' is not supported (use '.[+]' for append)")
+            else:
+                try:
+                    index = int(index_str)
+                except ValueError as e:
+                    raise ValueError(f"Invalid array index '{index_str}' in path: {path_str}") from e
+                segments.append(index)
             rest = rest[close_idx + 1 :]
             # Optional dot after array index
             if rest.startswith("."):
@@ -462,15 +472,20 @@ def _set_value_at_path(data, path_str, value, merge_strategy):
     # type: (Dict[str, Any], str, Any, str) -> Any
     """Set value in dict at jq-style path, using specified merge strategy.
 
+    Supports array append syntax [+] to append to lists.
+
     Args:
         data: Target dictionary (modified in-place for non-root paths)
-        path_str: jq-style path (e.g., ".", ".key", ".key.subkey")
+        path_str: jq-style path (e.g., ".", ".key", ".key.subkey", ".events[+]")
         value: Value to set
         merge_strategy: "shallow" or "deep"
 
     Returns:
         For root path with scalar/list: returns the value (replaces entire dict)
         For other paths: modifies data in-place, returns None
+
+    Raises:
+        ValueError: If [+] target is not a list or if operation is invalid
     """
     segments = _parse_jq_path(path_str)
 
@@ -487,11 +502,62 @@ def _set_value_at_path(data, path_str, value, merge_strategy):
             # Scalar or list at root - replace entire payload
             return value
 
+    # Check if last segment is [+] (array append)
+    is_append = len(segments) > 0 and segments[-1] == "+"
+
+    if is_append:
+        # Array append path: navigate to parent dict, then append to list
+        # segments are like ["events", "+"] or ["user", "events", "+"]
+        # We need to navigate to the dict containing the list to append to
+
+        if len(segments) == 1:
+            # Root-level append (.[+]) - append to root list (invalid)
+            raise ValueError("Cannot append at root path '.[+]': root must be a dict")
+
+        # Navigate to the parent dict that contains the list
+        # For .events[+], we navigate through [] to get to data
+        # For .user.events[+], we navigate through ["user"] to get to data["user"]
+        parent_segments = segments[:-2]  # All except the list key and [+]
+        list_key = segments[-2]  # The key of the list to append to
+
+        if not isinstance(list_key, str):
+            raise ValueError(f"Cannot append to array element: path '{path_str}' is invalid")
+
+        # Navigate to parent, creating intermediate dicts
+        current = data
+        for seg in parent_segments:
+            if isinstance(seg, int):
+                raise ValueError(f"Cannot navigate through array at path '{path_str}'")
+            if seg == "+":
+                raise ValueError(f"Array append [+] cannot be in middle of path: {path_str}")
+            if seg not in current:
+                current[seg] = {}
+            current = current[seg]
+            if not isinstance(current, dict):
+                raise ValueError(f"Cannot create path '{path_str}': '{seg}' is not a dict")
+
+        # Now current is the dict containing the list to append to
+        # Ensure the target exists and is a list
+        if list_key not in current:
+            # Create empty list
+            current[list_key] = []
+        elif not isinstance(current[list_key], list):
+            raise ValueError(
+                f"Cannot append to '{list_key}' at path '{path_str}': target is {type(current[list_key]).__name__}, not list"
+            )
+
+        # Append the value
+        current[list_key].append(value)
+        return None
+
+    # Regular path (no append)
     # Navigate to parent, creating intermediate dicts
     current = data
     for seg in segments[:-1]:
         if isinstance(seg, int):
             raise ValueError(f"Cannot set value inside array at path '{path_str}'")
+        if seg == "+":
+            raise ValueError(f"Invalid use of array append [+] in middle of path: {path_str}")
         if seg not in current:
             current[seg] = {}
         current = current[seg]
@@ -1853,6 +1919,20 @@ def handle_requests():
     state_proxy_mounts = os.environ.get("ASYA_STATE_PROXY_MOUNTS")
     if state_proxy_mounts:
         _install_state_proxy_hooks(state_proxy_mounts)
+
+    # Validate ASYA_PARAMS_AT - [+] is write-only, not valid for input extraction
+    if ASYA_PARAMS_AT != ".":
+        try:
+            segments = _parse_jq_path(ASYA_PARAMS_AT)
+            if "+" in segments:
+                logger.critical(
+                    f"FATAL: ASYA_PARAMS_AT='{ASYA_PARAMS_AT}' contains array append syntax [+]. "
+                    "Array append [+] is write-only (use ASYA_RESULT_AT), not valid for input extraction."
+                )
+                sys.exit(1)
+        except ValueError as e:
+            logger.critical(f"FATAL: Invalid ASYA_PARAMS_AT='{ASYA_PARAMS_AT}': {e}")
+            sys.exit(1)
 
     func = _load_function()
     signature = HandlerSignature(func)
