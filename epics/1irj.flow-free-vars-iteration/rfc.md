@@ -440,9 +440,23 @@ The parser detects the `async for ... yield` pattern and produces this node. The
 
 #### Phase 4: Async-For-Yield Streaming
 
-**Goal:** Support the `async for event in source: yield event` pattern for streaming composition.
+> **STATUS: STALE** -- This phase depends on `ASYA_PARTIAL_EVENTS_ROUTE`
+> queue-based routing for partial events, which was **rejected** by the
+> 1ia4 streaming protocol RFC (Section 2). Partial events are transport-level
+> (HTTP direct from sidecar to gateway) and cannot flow through message queues.
+>
+> The `async for ... yield` pattern across actor boundaries is now explicitly
+> **forbidden** by task 1ia4/1khyvl. The compiler must reject this pattern.
+>
+> The `async for` pattern **inside a single handler** (e.g. ADK's ReAct loop)
+> works without compiler involvement -- the runtime handles async generators
+> natively (tasks 1f2wwf, 1i6yzk, vibed).
+>
+> See `survey-adk-data-flow.md` (Section 8) for the full ADK pattern analysis.
 
-**Deliverables:**
+**Original goal:** Support the `async for event in source: yield event` pattern for streaming composition.
+
+**Original deliverables:**
 - `AsyncForYield` IR node
 - Parser detection of the `async for ... yield` pattern
 - Grouper: identity yield optimization (set `ASYA_PARTIAL_EVENTS_ROUTE=""`)
@@ -451,7 +465,7 @@ The parser detects the `async for ... yield` pattern and produces this node. The
 - DotGen: visualization of streaming composition edges
 - Unit tests for identity passthrough, mutation yield, nested composition, and free variables in yield bodies
 
-**Depends on:** Phase 2 (free variables in yield bodies need auto-serialization). Also depends on runtime and sidecar support for multi-frame streaming protocol and `ASYA_PARTIAL_EVENTS_ROUTE` routing (from epic 1cnt, agentic flow compiler).
+**Original dependency:** Phase 2 (free variables in yield bodies need auto-serialization). Also depends on runtime and sidecar support for multi-frame streaming protocol and `ASYA_PARTIAL_EVENTS_ROUTE` routing (from epic 1cnt, agentic flow compiler).
 
 ---
 
@@ -460,7 +474,7 @@ The parser detects the `async for ... yield` pattern and produces this node. The
 | Dependency | Epic | Relationship |
 |---|---|---|
 | Agentic flow compiler | 1cnt (closed) | CPS transformation, `AwaitCall` IR node, async flow function support — all already implemented. Phases 1-3 of this RFC can proceed immediately. |
-| Streaming protocol | 1ia4 | Phase 4 (async-for-yield) requires multi-frame sidecar protocol and `ASYA_PARTIAL_EVENTS_ROUTE` routing from 1ia4. |
+| Streaming protocol | 1ia4 | Phase 4 (async-for-yield) is **STALE** -- 1ia4 RFC rejected `ASYA_PARTIAL_EVENTS_ROUTE` queue-based routing (Section 2). Partial events are transport-level only. The compiler must reject `async for ... yield` across actor boundaries (task 1ia4/1khyvl). |
 | Message metadata VFS | 1ixt | Independent. Free variable analysis does not interact with `/tmp/msg/` filesystem access. |
 | Typed handler signatures | 1ixz | Independent but complementary. Type annotations on handler parameters could improve serialization constraint checking (Phase 2). |
 | While-loop infrastructure | (existing) | For-loop support (Phase 3) reuses `WhileLoop` IR node, condition routers, loop-back routers, and max iteration guards already implemented in the grouper. |
