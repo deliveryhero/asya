@@ -9,7 +9,7 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
-func TestRunFunction_NoFlavors(t *testing.T) {
+func TestRunFunction_NoOverlays(t *testing.T) {
 	f := &Function{log: logging.NewNopLogger()}
 
 	xr := mustNewStruct(t, map[string]interface{}{
@@ -32,21 +32,21 @@ func TestRunFunction_NoFlavors(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// No context key should be set when there are no flavors
+	// No context key should be set when there are no overlays
 	if rsp.GetContext() != nil {
 		fields := rsp.GetContext().GetFields()
 		if _, ok := fields[ContextKeyResolvedSpec]; ok {
-			t.Error("context key should not be set when there are no flavors")
+			t.Error("context key should not be set when there are no overlays")
 		}
 	}
 
 	// No requirements should be set
 	if rsp.Requirements != nil && len(rsp.Requirements.Resources) > 0 {
-		t.Error("no requirements should be set when there are no flavors")
+		t.Error("no requirements should be set when there are no overlays")
 	}
 }
 
-func TestRunFunction_EmptyFlavorsArray(t *testing.T) {
+func TestRunFunction_EmptyOverlaysArray(t *testing.T) {
 	f := &Function{log: logging.NewNopLogger()}
 
 	xr := mustNewStruct(t, map[string]interface{}{
@@ -55,7 +55,7 @@ func TestRunFunction_EmptyFlavorsArray(t *testing.T) {
 		"spec": map[string]interface{}{
 			"actor":     "test-actor",
 			"transport": "sqs",
-			"flavors":   []interface{}{},
+			"overlays":  []interface{}{},
 		},
 	})
 
@@ -73,7 +73,7 @@ func TestRunFunction_EmptyFlavorsArray(t *testing.T) {
 	if rsp.GetContext() != nil {
 		fields := rsp.GetContext().GetFields()
 		if _, ok := fields[ContextKeyResolvedSpec]; ok {
-			t.Error("context key should not be set for empty flavors array")
+			t.Error("context key should not be set for empty overlays array")
 		}
 	}
 }
@@ -87,7 +87,7 @@ func TestRunFunction_SetsRequirements(t *testing.T) {
 		"spec": map[string]interface{}{
 			"actor":     "test-actor",
 			"transport": "sqs",
-			"flavors":   []interface{}{"gpu-t4", "openai-keys"},
+			"overlays":  []interface{}{"gpu-t4", "openai-keys"},
 		},
 	})
 
@@ -102,35 +102,35 @@ func TestRunFunction_SetsRequirements(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Requirements should be set for both flavors
+	// Requirements should be set for both overlays
 	if rsp.Requirements == nil || rsp.Requirements.Resources == nil {
 		t.Fatal("requirements should be set")
 	}
 
-	for _, flavor := range []string{"gpu-t4", "openai-keys"} {
-		key := flavorResourceKey(flavor)
+	for _, overlay := range []string{"gpu-t4", "openai-keys"} {
+		key := overlayResourceKey(overlay)
 		sel, ok := rsp.Requirements.Resources[key]
 		if !ok {
-			t.Errorf("missing requirement for flavor %q", flavor)
+			t.Errorf("missing requirement for overlay %q", overlay)
 			continue
 		}
 
 		if sel.ApiVersion != EnvConfigAPIVersion {
-			t.Errorf("flavor %q: apiVersion = %q, want %q", flavor, sel.ApiVersion, EnvConfigAPIVersion)
+			t.Errorf("overlay %q: apiVersion = %q, want %q", overlay, sel.ApiVersion, EnvConfigAPIVersion)
 		}
 		if sel.Kind != EnvConfigKind {
-			t.Errorf("flavor %q: kind = %q, want %q", flavor, sel.Kind, EnvConfigKind)
+			t.Errorf("overlay %q: kind = %q, want %q", overlay, sel.Kind, EnvConfigKind)
 		}
 
 		matchLabels := sel.GetMatchLabels()
 		if matchLabels == nil {
-			t.Errorf("flavor %q: missing matchLabels", flavor)
+			t.Errorf("overlay %q: missing matchLabels", overlay)
 			continue
 		}
 
-		label, ok := matchLabels.Labels[FlavorLabel]
-		if !ok || label != flavor {
-			t.Errorf("flavor %q: label = %q, want %q", flavor, label, flavor)
+		label, ok := matchLabels.Labels[OverlayLabel]
+		if !ok || label != overlay {
+			t.Errorf("overlay %q: label = %q, want %q", overlay, label, overlay)
 		}
 	}
 }
@@ -144,7 +144,7 @@ func TestRunFunction_WaitsForResources(t *testing.T) {
 		"spec": map[string]interface{}{
 			"actor":     "test-actor",
 			"transport": "sqs",
-			"flavors":   []interface{}{"gpu-t4"},
+			"overlays":  []interface{}{"gpu-t4"},
 		},
 	})
 
@@ -174,7 +174,7 @@ func TestRunFunction_WaitsForResources(t *testing.T) {
 	}
 }
 
-func TestRunFunction_MergesSingleFlavor(t *testing.T) {
+func TestRunFunction_MergesSingleOverlay(t *testing.T) {
 	f := &Function{log: logging.NewNopLogger()}
 
 	xr := mustNewStruct(t, map[string]interface{}{
@@ -183,7 +183,7 @@ func TestRunFunction_MergesSingleFlavor(t *testing.T) {
 		"spec": map[string]interface{}{
 			"actor":     "test-actor",
 			"transport": "sqs",
-			"flavors":   []interface{}{"gpu-t4"},
+			"overlays":  []interface{}{"gpu-t4"},
 			"workload": map[string]interface{}{
 				"template": map[string]interface{}{
 					"spec": map[string]interface{}{
@@ -205,7 +205,7 @@ func TestRunFunction_MergesSingleFlavor(t *testing.T) {
 		"metadata": map[string]interface{}{
 			"name": "gpu-t4",
 			"labels": map[string]interface{}{
-				"asya.sh/flavor": "gpu-t4",
+				"asya.sh/overlay": "gpu-t4",
 			},
 		},
 		"data": map[string]interface{}{
@@ -237,7 +237,7 @@ func TestRunFunction_MergesSingleFlavor(t *testing.T) {
 			Composite: &fnv1.Resource{Resource: xr},
 		},
 		RequiredResources: map[string]*fnv1.Resources{
-			"flavor-gpu-t4": {
+			"overlay-gpu-t4": {
 				Items: []*fnv1.Resource{
 					{Resource: envConfig},
 				},
@@ -254,10 +254,10 @@ func TestRunFunction_MergesSingleFlavor(t *testing.T) {
 	resolvedValue := getContextValue(t, rsp, ContextKeyResolvedSpec)
 	resolved := resolvedValue.GetStructValue().AsMap()
 
-	// Flavor's scaling should be present, but actor's minReplicas not set so flavor's value preserved
+	// Overlay's scaling should be present, but actor's minReplicas not set so overlay's value preserved
 	scaling := resolved["scaling"].(map[string]interface{})
 	if scaling["minReplicas"] != float64(1) {
-		t.Errorf("minReplicas: got %v, want 1 (from flavor)", scaling["minReplicas"])
+		t.Errorf("minReplicas: got %v, want 1 (from overlay)", scaling["minReplicas"])
 	}
 
 	// Actor's image should be present (inline override)
@@ -267,15 +267,15 @@ func TestRunFunction_MergesSingleFlavor(t *testing.T) {
 		t.Errorf("image: got %v, want my-model:v1 (actor inline override)", container["image"])
 	}
 
-	// Flavor's GPU resources should also be present (merged)
+	// Overlay's GPU resources should also be present (merged)
 	resources := container["resources"].(map[string]interface{})
 	limits := resources["limits"].(map[string]interface{})
 	if limits["nvidia.com/gpu"] != "1" {
-		t.Errorf("nvidia.com/gpu: got %v, want 1 (from flavor)", limits["nvidia.com/gpu"])
+		t.Errorf("nvidia.com/gpu: got %v, want 1 (from overlay)", limits["nvidia.com/gpu"])
 	}
 }
 
-func TestRunFunction_MissingFlavorData(t *testing.T) {
+func TestRunFunction_MissingOverlayData(t *testing.T) {
 	f := &Function{log: logging.NewNopLogger()}
 
 	xr := mustNewStruct(t, map[string]interface{}{
@@ -284,7 +284,7 @@ func TestRunFunction_MissingFlavorData(t *testing.T) {
 		"spec": map[string]interface{}{
 			"actor":     "test-actor",
 			"transport": "sqs",
-			"flavors":   []interface{}{"empty-flavor"},
+			"overlays":  []interface{}{"empty-overlay"},
 			"workload": map[string]interface{}{
 				"template": map[string]interface{}{
 					"spec": map[string]interface{}{
@@ -305,7 +305,7 @@ func TestRunFunction_MissingFlavorData(t *testing.T) {
 		"apiVersion": "apiextensions.crossplane.io/v1beta1",
 		"kind":       "EnvironmentConfig",
 		"metadata": map[string]interface{}{
-			"name": "empty-flavor",
+			"name": "empty-overlay",
 		},
 	})
 
@@ -314,7 +314,7 @@ func TestRunFunction_MissingFlavorData(t *testing.T) {
 			Composite: &fnv1.Resource{Resource: xr},
 		},
 		RequiredResources: map[string]*fnv1.Resources{
-			"flavor-empty-flavor": {
+			"overlay-empty-overlay": {
 				Items: []*fnv1.Resource{
 					{Resource: envConfig},
 				},

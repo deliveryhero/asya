@@ -71,9 +71,9 @@ spec:
 apiVersion: pkg.crossplane.io/v1
 kind: Function
 metadata:
-  name: function-asya-flavors
+  name: function-asya-overlays
   labels:
     {{- include "asya-crossplane.labels" . | nindent 4 }}
 spec:
-  package: ghcr.io/deliveryhero/function-asya-flavors:{{ .Values.functions.flavorsVersion }}
-  packagePullPolicy: {{ .Values.functions.flavorsPackagePullPolicy }}
+  package: ghcr.io/deliveryhero/function-asya-overlays:{{ .Values.functions.overlaysVersion }}
+  packagePullPolicy: {{ .Values.functions.overlaysPackagePullPolicy }}

@@ -210,14 +210,14 @@ Resolve image pull policy for DLQ worker
 {{- end }}
 
 {{/*
-Persistence flavor name
+Persistence overlay name
 */}}
-{{- define "asya-crew.persistence.flavorName" -}}
+{{- define "asya-crew.persistence.overlayName" -}}
 {{- printf "%s-persistence-%s" .Release.Name .Values.persistence.backend }}
 {{- end }}
 
 {{/*
-Persistence flavor labels
+Persistence overlay labels
 */}}
 {{- define "asya-crew.persistence.labels" -}}
 helm.sh/chart: {{ include "asya-crew.chart" . }}

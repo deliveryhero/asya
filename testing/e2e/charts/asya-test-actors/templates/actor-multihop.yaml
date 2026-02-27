@@ -13,7 +13,7 @@ metadata:
 spec:
   actor: test-multihop-{{ $i }}
   transport: {{ $.Values.transport }}
-  flavors:
+  overlays:
   - asya-test-actor
 
   scaling:

@@ -8,10 +8,10 @@
 apiVersion: apiextensions.crossplane.io/v1beta1
 kind: EnvironmentConfig
 metadata:
-  name: {{ include "asya-crew.persistence.flavorName" . }}
+  name: {{ include "asya-crew.persistence.overlayName" . }}
   labels:
     {{- include "asya-crew.persistence.labels" . | nindent 4 }}
-    asya.sh/flavor: {{ include "asya-crew.persistence.flavorName" . }}
+    asya.sh/overlay: {{ include "asya-crew.persistence.overlayName" . }}
 data:
   stateProxy:
     - name: checkpoints

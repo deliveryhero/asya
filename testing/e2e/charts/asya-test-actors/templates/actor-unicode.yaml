@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: test-unicode
   transport: {{ .Values.transport }}
-  flavors:
+  overlays:
   - asya-test-actor
   - asya-test-env-vars
 
