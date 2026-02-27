@@ -2,11 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/0.5.1/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
-## [1.0.0] - 2026-02-27
+## [0.5.1] - 2026-02-27
 
 ## Major Changes
 
@@ -446,7 +446,7 @@ All images are published to GitHub Container Registry:
 
 Install or upgrade AsyncActor CRDs:
 ```bash
-kubectl apply -f https://github.com/deliveryhero/asya/releases/download/1.0.0/asya-crds.yaml
+kubectl apply -f https://github.com/deliveryhero/asya/releases/download/0.5.1/asya-crds.yaml
 ```
 
 ### Helm Charts
@@ -460,7 +460,7 @@ helm repo update
 Install the operator:
 ```bash
 helm install asya-operator asya/asya-operator \
-  --version 1.0.0 \
+  --version 0.5.1 \
   --namespace asya-system \
   --create-namespace
 ```
@@ -469,11 +469,11 @@ helm install asya-operator asya/asya-operator \
 
 All images are published to GitHub Container Registry:
 
-- `ghcr.io/deliveryhero/asya-operator:1.0.0`
-- `ghcr.io/deliveryhero/asya-gateway:1.0.0`
-- `ghcr.io/deliveryhero/asya-sidecar:1.0.0`
-- `ghcr.io/deliveryhero/asya-crew:1.0.0`
-- `ghcr.io/deliveryhero/asya-testing:1.0.0`
+- `ghcr.io/deliveryhero/asya-operator:0.5.1`
+- `ghcr.io/deliveryhero/asya-gateway:0.5.1`
+- `ghcr.io/deliveryhero/asya-sidecar:0.5.1`
+- `ghcr.io/deliveryhero/asya-crew:0.5.1`
+- `ghcr.io/deliveryhero/asya-testing:0.5.1`
 
 ## Contributors
 
@@ -806,11 +806,11 @@ All images are published to GitHub Container Registry:
 
 All images are published to GitHub Container Registry:
 
-- `ghcr.io/deliveryhero/asya-operator:1.0.0`
-- `ghcr.io/deliveryhero/asya-gateway:1.0.0`
-- `ghcr.io/deliveryhero/asya-sidecar:1.0.0`
-- `ghcr.io/deliveryhero/asya-crew:1.0.0`
-- `ghcr.io/deliveryhero/asya-testing:1.0.0`
+- `ghcr.io/deliveryhero/asya-operator:0.5.1`
+- `ghcr.io/deliveryhero/asya-gateway:0.5.1`
+- `ghcr.io/deliveryhero/asya-sidecar:0.5.1`
+- `ghcr.io/deliveryhero/asya-crew:0.5.1`
+- `ghcr.io/deliveryhero/asya-testing:0.5.1`
 
 ## Contributors
 
@@ -972,6 +972,7 @@ All images are published to GitHub Container Registry:
 [0.3.4]: https://github.com/deliveryhero/asya/releases/tag/v0.3.4
 
 
+
 [0.3.9]: https://github.com/deliveryhero/asya/releases/tag/v0.3.9
 
 
@@ -993,6 +994,6 @@ All images are published to GitHub Container Registry:
 [0.5.1]: https://github.com/deliveryhero/asya/releases/tag/v0.5.1
 
 
-[Unreleased]: https://github.com/deliveryhero/asya/compare/v1.0.0...HEAD
-[1.0.0]: https://github.com/deliveryhero/asya/releases/tag/v1.0.0
+[Unreleased]: https://github.com/deliveryhero/asya/compare/v0.5.1...HEAD
+[0.5.1]: https://github.com/deliveryhero/asya/releases/tag/v0.5.1
 
