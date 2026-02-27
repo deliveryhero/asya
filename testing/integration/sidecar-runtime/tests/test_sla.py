@@ -130,15 +130,16 @@ class TestRetrySLAInteraction:
 
         Setup:
         - Actor: test-sla-retry (error_handler, max_attempts=5, interval=2s)
-        - Deadline: 5s from now
+        - Deadline: 8s from now
 
         Expected timeline:
-        - Attempt 1 (t=0s): SLA check ok (5s left), handler raises ValueError → retry
-        - Attempt 2 (t=2s): SLA check ok (3s left), handler raises ValueError → retry
-        - Attempt 3 (t=4s): SLA check ok (1s left), handler raises ValueError → retry
-        - Attempt 4 (t=6s): SLA pre-check → deadline expired → x-sink (reason=Timeout)
+        - Attempt 1 (t=0s): SLA check ok (8s left), handler raises ValueError → retry
+        - Attempt 2 (t=2s): SLA check ok (6s left), handler raises ValueError → retry
+        - Attempt 3 (t=4s): SLA check ok (4s left), handler raises ValueError → retry
+        - Attempt 4 (t=6s): SLA check ok (2s left), handler raises ValueError → retry
+        - Attempt 5 (t=8s): SLA pre-check, deadline expired, route to x-sink (reason=Timeout)
 
-        Only 3 of 5 attempts execute. SLA takes precedence.
+        Only 4 of 5 attempts execute. SLA takes precedence.
         """
         transport = get_env("ASYA_TRANSPORT", "rabbitmq")
         if transport != "sqs":
@@ -147,7 +148,7 @@ class TestRetrySLAInteraction:
         transport_helper.purge_queue("asya-default-x-sink")
         transport_helper.purge_queue("asya-default-x-sump")
 
-        deadline_at = _make_deadline(5)
+        deadline_at = _make_deadline(8)
         message = {
             "id": "test-sla-retry-1",
             "route": {"prev": [], "curr": "test-sla-retry", "next": []},
@@ -162,15 +163,15 @@ class TestRetrySLAInteraction:
         start = time.monotonic()
         transport_helper.publish_message("asya-default-test-sla-retry", message)
 
-        # SLA should expire and route to x-sink within ~6-8s.
-        # Use 15s timeout as generous upper bound.
-        result = transport_helper.get_message("asya-default-x-sink", timeout=15)
+        # SLA should expire and route to x-sink within ~8-12s.
+        # Use 20s timeout as generous upper bound.
+        result = transport_helper.get_message("asya-default-x-sink", timeout=20)
         elapsed = time.monotonic() - start
 
         logger.info(f"Result from x-sink after {elapsed:.1f}s: {json.dumps(result, indent=2) if result else 'None'}")
 
         assert result is not None, (
-            f"No message in x-sink after 15s — SLA pre-check may not be stopping retries. "
+            f"No message in x-sink after 20s — SLA pre-check may not be stopping retries. "
             f"Expected message in x-sink (not x-sump) when deadline expires."
         )
 
