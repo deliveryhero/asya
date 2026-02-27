@@ -138,6 +138,7 @@ def runtime_invoke(tmp_path):
         socket_path = str(tmp_path / f"rt-{call_count[0]}.sock")
         server = asya_runtime._UnixHTTPServer(socket_path, asya_runtime._InvokeHandler)
         server.user_func = user_func
+        server.handler_signature = asya_runtime.HandlerSignature(user_func)
 
         thread = threading.Thread(target=server.handle_request)
         thread.start()
@@ -2670,6 +2671,7 @@ class TestSSEStreaming:
         socket_path = str(tmp_path / f"{sock_id}.sock")
         server = asya_runtime._UnixHTTPServer(socket_path, asya_runtime._InvokeHandler)
         server.user_func = user_func
+        server.handler_signature = asya_runtime.HandlerSignature(user_func)
 
         thread = threading.Thread(target=server.handle_request)
         thread.start()

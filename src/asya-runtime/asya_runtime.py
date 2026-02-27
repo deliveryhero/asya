@@ -33,6 +33,8 @@ Environment Variables:
     ASYA_SOCKET_CHMOD: Socket permissions in octal (default: "0o666", empty = skip chmod)
     ASYA_ENABLE_VALIDATION: Enable message validation ("true" or "false", default: "true")
     ASYA_LOG_LEVEL: Logging level (DEBUG, INFO, WARNING, ERROR, default: INFO)
+    ASYA_PARAMS_AT: JSONPath-like input extraction path (default: "/")
+    ASYA_RESULT_AT: JSONPath-like output merge path (default: "/")
 
 Socket Configuration:
     The socket path defaults to /var/run/asya/asya-runtime.sock and is managed by the operator.
@@ -43,6 +45,7 @@ import asyncio
 import builtins
 import contextlib
 import copy
+import dataclasses
 import errno
 import http.client as _http_client
 import http.server
@@ -60,7 +63,17 @@ import stat as _stat_module
 import sys
 import tempfile as _tempfile
 import traceback
-from typing import Any
+from typing import Any, Dict
+
+
+# Optional Pydantic support
+try:
+    from pydantic import BaseModel
+
+    HAS_PYDANTIC = True
+except ImportError:
+    BaseModel = None
+    HAS_PYDANTIC = False
 
 
 # Configure logging with unbuffered output
@@ -83,6 +96,8 @@ ASYA_HANDLER = os.getenv("ASYA_HANDLER", "")
 ASYA_MSG_ROOT = os.getenv("ASYA_MSG_ROOT", "/proc/asya/msg")
 ASYA_SOCKET_CHMOD = os.getenv("ASYA_SOCKET_CHMOD", "0o666")
 ASYA_ENABLE_VALIDATION = os.getenv("ASYA_ENABLE_VALIDATION", "true").lower() == "true"
+ASYA_PARAMS_AT = os.getenv("ASYA_PARAMS_AT", "/")
+ASYA_RESULT_AT = os.getenv("ASYA_RESULT_AT", "/")
 
 # Socket configuration - hard-coded, managed by operator
 # ASYA_SOCKET_DIR and ASYA_SOCKET_NAME are for internal testing only - DO NOT set in production
@@ -232,6 +247,280 @@ def _load_function():
         logger.critical(f"Failed to load asya handler {ASYA_HANDLER}: {type(e).__name__}: {e}")
         logger.debug("Traceback:", exc_info=True)
         sys.exit(1)
+
+
+# ---------------------------------------------------------------------------
+# Typed Handler Signature Support
+# ---------------------------------------------------------------------------
+
+
+class HandlerSignature:
+    """Cached handler signature introspection result."""
+
+    def __init__(self, handler_func):
+        # type: (Any) -> None
+        self.is_legacy = False
+        self.params = {}  # type: Dict[str, Any]
+        self.type_hints = {}  # type: Dict[str, Any]
+        self._introspect(handler_func)
+
+    def _introspect(self, handler_func):
+        # type: (Any) -> None
+        """Introspect handler signature to determine if it's legacy or typed."""
+        sig = inspect.signature(handler_func)
+        params = list(sig.parameters.values())
+
+        # Exclude 'self' for class methods
+        if params and params[0].name == "self":
+            params = params[1:]
+
+        # Try to get type hints
+        try:
+            import typing
+
+            type_hints = typing.get_type_hints(handler_func)
+        except Exception:
+            type_hints = {p.name: p.annotation for p in params}
+
+        # Legacy detection: single dict parameter
+        if len(params) == 1:
+            param = params[0]
+            annotation = type_hints.get(param.name, param.annotation)
+
+            # Check for dict, Dict, Dict[str, Any], dict[str, Any] (3.9+)
+            legacy_annotations = (dict, Dict, inspect.Parameter.empty)
+            if annotation in legacy_annotations:
+                self.is_legacy = True
+                return
+
+            # Check for Dict[str, Any]
+            if hasattr(annotation, "__origin__"):
+                origin = getattr(annotation, "__origin__", None)
+                if origin is dict or (hasattr(typing, "Dict") and origin is typing.Dict):
+                    self.is_legacy = True
+                    return
+
+        # Typed mode: extract parameter names and types
+        for param in params:
+            param_info = {
+                "name": param.name,
+                "annotation": type_hints.get(param.name, param.annotation),
+                "default": param.default,
+                "required": param.default == inspect.Parameter.empty,
+            }
+            self.params[param.name] = param_info
+
+        self.type_hints = type_hints
+        logger.info(f"Handler signature: is_legacy={self.is_legacy}, params={list(self.params.keys())}")
+
+
+def _extract_value_at_path(data, path):
+    # type: (Dict[str, Any], str) -> Any
+    """Extract value from dict at JSONPath-like path.
+
+    Args:
+        data: Source dictionary
+        path: JSONPath-like path (e.g., '/', '/key', '/key/subkey')
+
+    Returns:
+        Value at path
+
+    Raises:
+        KeyError: If path not found
+    """
+    if path == "/" or path == "":
+        return data
+
+    # Remove leading slash and split
+    parts = path.lstrip("/").split("/")
+    current = data
+    for part in parts:
+        if not isinstance(current, dict):
+            raise KeyError(f"Cannot navigate path '{path}': '{part}' is not a dict")
+        if part not in current:
+            raise KeyError(f"Missing key '{part}' in path '{path}'")
+        current = current[part]
+    return current
+
+
+def _set_value_at_path(data, path, value):
+    # type: (Dict[str, Any], str, Any) -> Any
+    """Set value in dict at JSONPath-like path, creating intermediate dicts if needed.
+
+    Args:
+        data: Target dictionary (modified in-place for non-root paths)
+        path: JSONPath-like path (e.g., '/', '/key', '/key/subkey')
+        value: Value to set
+
+    Returns:
+        For root path with scalar/list: returns the value (replaces entire dict)
+        For other paths: modifies data in-place, returns None
+    """
+    if path == "/" or path == "":
+        if isinstance(value, dict):
+            data.update(value)
+            return None
+        else:
+            # Scalar or list at root - replace entire payload
+            return value
+
+    # Remove leading slash and split
+    parts = path.lstrip("/").split("/")
+    current = data
+
+    # Navigate to parent, creating intermediate dicts
+    for part in parts[:-1]:
+        if part not in current:
+            current[part] = {}
+        current = current[part]
+        if not isinstance(current, dict):
+            raise ValueError(f"Cannot create path '{path}': '{part}' is not a dict")
+
+    # Set final value
+    last_key = parts[-1]
+    if isinstance(value, dict):
+        if last_key not in current:
+            current[last_key] = {}
+        if isinstance(current[last_key], dict):
+            current[last_key].update(value)
+        else:
+            current[last_key] = value
+    else:
+        current[last_key] = value
+    return None
+
+
+def _deserialize_input(value, annotation):
+    # type: (Any, Any) -> Any
+    """Deserialize JSON value to typed Python object.
+
+    Args:
+        value: JSON value from payload
+        annotation: Type annotation from handler signature
+
+    Returns:
+        Deserialized value
+    """
+    # No annotation or basic types
+    if annotation == inspect.Parameter.empty or annotation in (str, int, float, bool, list, dict):
+        return value
+
+    # Pydantic BaseModel
+    if HAS_PYDANTIC and BaseModel is not None:
+        try:
+            if isinstance(annotation, type) and issubclass(annotation, BaseModel):
+                # Try v2 first, fall back to v1
+                if hasattr(annotation, "model_validate"):
+                    return annotation.model_validate(value)
+                else:
+                    return annotation.parse_obj(value)
+        except TypeError:
+            pass
+
+    # dataclass
+    if dataclasses.is_dataclass(annotation) and isinstance(value, dict):
+        return annotation(**value)
+
+    # TypedDict and other types
+    return value
+
+
+def _serialize_output(value):
+    # type: (Any) -> Any
+    """Serialize Python object to JSON-compatible value.
+
+    Args:
+        value: Handler return value
+
+    Returns:
+        JSON-compatible value
+    """
+    if value is None:
+        return None
+
+    # Basic types
+    if isinstance(value, (str, int, float, bool, list, dict)):
+        return value
+
+    # Pydantic BaseModel
+    if HAS_PYDANTIC and BaseModel is not None and isinstance(value, BaseModel):
+        # Try v2 first, fall back to v1
+        if hasattr(value, "model_dump"):
+            return value.model_dump()
+        else:
+            return value.dict()
+
+    # dataclass
+    if dataclasses.is_dataclass(value):
+        return dataclasses.asdict(value)
+
+    # Fallback
+    return value
+
+
+def _extract_handler_inputs(payload, signature):
+    # type: (Dict[str, Any], HandlerSignature) -> Dict[str, Any]
+    """Extract and deserialize handler inputs from payload.
+
+    Args:
+        payload: Message payload
+        signature: Handler signature
+
+    Returns:
+        Dict of parameter name -> deserialized value
+
+    Raises:
+        ValueError: If required parameter is missing
+    """
+    # Extract subtree at ASYA_PARAMS_AT
+    try:
+        subtree = _extract_value_at_path(payload, ASYA_PARAMS_AT)
+    except KeyError as e:
+        raise ValueError(f"Missing ASYA_PARAMS_AT path '{ASYA_PARAMS_AT}': {e}") from e
+
+    if not isinstance(subtree, dict):
+        raise ValueError(f"ASYA_PARAMS_AT path '{ASYA_PARAMS_AT}' must point to a dict, got {type(subtree).__name__}")
+
+    kwargs = {}  # type: Dict[str, Any]
+    for param_name, param_info in signature.params.items():
+        if param_name in subtree:
+            raw_value = subtree[param_name]
+            annotation = param_info["annotation"]
+            kwargs[param_name] = _deserialize_input(raw_value, annotation)
+        elif param_info["required"]:
+            raise ValueError(
+                f"Missing required parameter '{param_name}' at ASYA_PARAMS_AT='{ASYA_PARAMS_AT}' in payload"
+            )
+
+    return kwargs
+
+
+def _merge_handler_output(payload, result):
+    # type: (Dict[str, Any], Any) -> Any
+    """Merge handler output into payload at ASYA_RESULT_AT.
+
+    Args:
+        payload: Message payload
+        result: Handler return value
+
+    Returns:
+        Updated payload (may be scalar/list if ASYA_RESULT_AT='/' and result is scalar/list)
+    """
+    serialized = _serialize_output(result)
+    if serialized is None:
+        return payload
+
+    # Make a copy to avoid mutating original
+    output_payload = copy.deepcopy(payload)
+
+    try:
+        replaced = _set_value_at_path(output_payload, ASYA_RESULT_AT, serialized)
+        if replaced is not None:
+            return replaced
+    except (KeyError, ValueError) as e:
+        raise ValueError(f"Failed to merge result at ASYA_RESULT_AT='{ASYA_RESULT_AT}': {e}") from e
+
+    return output_payload
 
 
 def _parse_message_json(data: bytes) -> dict[str, Any]:
@@ -690,19 +979,36 @@ def _install_msg_hooks():
     logger.info(f"Message VFS hooks installed (root: {ASYA_MSG_ROOT})")
 
 
-def _call_handler(user_func, arg):
+def _call_handler(user_func, arg, is_kwargs=False):
     """Call user handler, transparently supporting both sync and async functions.
 
     For async handlers (async def), uses asyncio.run() to execute the coroutine.
     For sync handlers, calls directly with zero overhead (single if check).
+
+    Args:
+        user_func: Handler function to call
+        arg: Either payload dict (legacy) or kwargs dict (typed)
+        is_kwargs: If True, arg is a kwargs dict to unpack
     """
     if inspect.iscoroutinefunction(user_func):
+        if is_kwargs:
+            return asyncio.run(user_func(**arg))
         return asyncio.run(user_func(arg))
+    if is_kwargs:
+        return user_func(**arg)
     return user_func(arg)
 
 
-def _build_frame(payload_value, input_route, vfs_state):
-    """Build a response frame with shifted route from VFS state."""
+def _build_frame(payload_value, input_route, vfs_state, is_typed=False, original_payload=None):
+    """Build a response frame with shifted route from VFS state.
+
+    Args:
+        payload_value: Handler return value (legacy: replaces payload, typed: merged into payload)
+        input_route: Original message route
+        vfs_state: VFS snapshot with route.next, headers, status
+        is_typed: If True, merge payload_value into original_payload using ASYA_RESULT_AT
+        original_payload: Original payload dict (required if is_typed=True)
+    """
     prev = [*input_route["prev"], input_route["curr"]]
     handler_next = vfs_state["route_next"]
 
@@ -711,7 +1017,13 @@ def _build_frame(payload_value, input_route, vfs_state):
     else:
         route = {"prev": prev, "curr": "", "next": []}
 
-    frame = {"payload": payload_value, "route": route}
+    # Determine final payload
+    if is_typed and original_payload is not None:
+        final_payload = _merge_handler_output(original_payload, payload_value)
+    else:
+        final_payload = payload_value
+
+    frame = {"payload": final_payload, "route": route}
     if vfs_state["headers"]:
         frame["headers"] = vfs_state["headers"]
     if vfs_state.get("status"):
@@ -719,49 +1031,88 @@ def _build_frame(payload_value, input_route, vfs_state):
     return frame
 
 
-def _collect_payload_frames(message, user_func):
+def _collect_payload_frames(message, user_func, signature=None):
     """Collect response frames using VFS for metadata.
 
     1. Populate VFS from message
-    2. Call handler with payload only
-    3. Snapshot VFS state (route.next, headers, status) for each frame
-    4. Shift route and build frames
-    5. Clear VFS
+    2. Introspect handler signature (cached)
+    3. Extract inputs (typed) or use payload (legacy)
+    4. Call handler
+    5. Merge outputs (typed) or use result (legacy)
+    6. Snapshot VFS state (route.next, headers, status) for each frame
+    7. Shift route and build frames
+    8. Clear VFS
+
+    Args:
+        message: Incoming message dict
+        user_func: Handler function
+        signature: Cached HandlerSignature (optional, computed if not provided)
     """
     input_route = message["route"]
+    payload = message["payload"]
+
+    # Introspect handler signature (should be cached by caller)
+    if signature is None:
+        signature = HandlerSignature(user_func)
 
     _msg_vfs.populate(message)
 
     try:
+        # Determine handler input
+        if signature.is_legacy:
+            handler_input = payload
+            is_kwargs = False
+            is_typed = False
+        else:
+            handler_input = _extract_handler_inputs(payload, signature)
+            is_kwargs = True
+            is_typed = True
+
         if inspect.isasyncgenfunction(user_func):
 
             async def _collect_async():
                 frames = []
-                async for payload_value in user_func(message["payload"]):
-                    if isinstance(payload_value, dict) and payload_value.get("partial") is True:
-                        continue  # Skip partial events in batch mode
-                    vfs_state = _msg_vfs.snapshot()
-                    frames.append(_build_frame(payload_value, input_route, vfs_state))
+                if is_kwargs:
+                    async for raw_result in user_func(**handler_input):
+                        serialized = _serialize_output(raw_result)
+                        if isinstance(raw_result, dict) and raw_result.get("partial") is True:
+                            continue
+                        vfs_state = _msg_vfs.snapshot()
+                        frames.append(_build_frame(serialized, input_route, vfs_state, is_typed, payload))
+                else:
+                    async for payload_value in user_func(handler_input):
+                        if isinstance(payload_value, dict) and payload_value.get("partial") is True:
+                            continue
+                        vfs_state = _msg_vfs.snapshot()
+                        frames.append(_build_frame(payload_value, input_route, vfs_state, is_typed, payload))
                 return frames
 
             return asyncio.run(_collect_async())
 
         if inspect.isgeneratorfunction(user_func):
             frames = []
-            for payload_value in user_func(message["payload"]):
-                if isinstance(payload_value, dict) and payload_value.get("partial") is True:
-                    continue  # Skip partial events in batch mode
-                vfs_state = _msg_vfs.snapshot()
-                frame = _build_frame(payload_value, input_route, vfs_state)
-                frames.append(frame)
+            if is_kwargs:
+                for raw_result in user_func(**handler_input):
+                    serialized = _serialize_output(raw_result)
+                    if isinstance(raw_result, dict) and raw_result.get("partial") is True:
+                        continue
+                    vfs_state = _msg_vfs.snapshot()
+                    frames.append(_build_frame(serialized, input_route, vfs_state, is_typed, payload))
+            else:
+                for payload_value in user_func(handler_input):
+                    if isinstance(payload_value, dict) and payload_value.get("partial") is True:
+                        continue
+                    vfs_state = _msg_vfs.snapshot()
+                    frame = _build_frame(payload_value, input_route, vfs_state, is_typed, payload)
+                    frames.append(frame)
             return frames
 
-        result = _call_handler(user_func, message["payload"])
+        result = _call_handler(user_func, handler_input, is_kwargs=is_kwargs)
         if result is None:
             return []
 
         vfs_state = _msg_vfs.snapshot()
-        return [_build_frame(result, input_route, vfs_state)]
+        return [_build_frame(result, input_route, vfs_state, is_typed, payload)]
     finally:
         _msg_vfs.clear()
 
@@ -1259,14 +1610,15 @@ class _InvokeHandler(http.server.BaseHTTPRequestHandler):
             return
 
         user_func = self.server.user_func
+        signature = self.server.handler_signature
         is_generator = inspect.isgeneratorfunction(user_func) or inspect.isasyncgenfunction(user_func)
         logger.info(f"[DIAG] Starting handler execution, message_id={message.get('id', 'unknown')}")
 
         if is_generator:
-            self._stream_sse_response(message, user_func)
+            self._stream_sse_response(message, user_func, signature)
         else:
             try:
-                frames = _collect_payload_frames(message, user_func)
+                frames = _collect_payload_frames(message, user_func, signature)
             except Exception as exc:
                 logger.exception("Fatal error on processing input message")
                 self._send_json(500, _error_response("processing_error", exc))
@@ -1284,7 +1636,7 @@ class _InvokeHandler(http.server.BaseHTTPRequestHandler):
         else:
             self.send_error(404)
 
-    def _stream_sse_response(self, message, user_func):
+    def _stream_sse_response(self, message, user_func, signature):
         """Stream generator frames as SSE events."""
         self.send_response(200)
         self.send_header("Content-Type", "text/event-stream")
@@ -1292,12 +1644,13 @@ class _InvokeHandler(http.server.BaseHTTPRequestHandler):
         self.end_headers()
 
         input_route = message["route"]
+        payload = message["payload"]
         _msg_vfs.populate(message)
         try:
             if inspect.isasyncgenfunction(user_func):
-                asyncio.run(self._stream_async_gen(message, user_func, input_route))
+                asyncio.run(self._stream_async_gen(message, user_func, input_route, signature, payload))
             else:
-                self._stream_sync_gen(message, user_func, input_route)
+                self._stream_sync_gen(message, user_func, input_route, signature, payload)
         except Exception as exc:
             logger.exception("Error during SSE streaming")
             error_data = json.dumps(_error_response("processing_error", exc))
@@ -1306,21 +1659,33 @@ class _InvokeHandler(http.server.BaseHTTPRequestHandler):
         finally:
             _msg_vfs.clear()
 
-    def _stream_sync_gen(self, message, user_func, input_route):
+    def _stream_sync_gen(self, message, user_func, input_route, signature, payload):
         """Stream sync generator yields as SSE events."""
-        for payload_value in user_func(message["payload"]):
-            self._emit_sse_event(payload_value, input_route)
+        if signature.is_legacy:
+            for payload_value in user_func(payload):
+                self._emit_sse_event(payload_value, input_route, False, payload)
+        else:
+            handler_input = _extract_handler_inputs(payload, signature)
+            for raw_result in user_func(**handler_input):
+                serialized = _serialize_output(raw_result)
+                self._emit_sse_event(serialized, input_route, True, payload)
         self.wfile.write(b"event: done\ndata: {}\n\n")
         self.wfile.flush()
 
-    async def _stream_async_gen(self, message, user_func, input_route):
+    async def _stream_async_gen(self, message, user_func, input_route, signature, payload):
         """Stream async generator yields as SSE events."""
-        async for payload_value in user_func(message["payload"]):
-            self._emit_sse_event(payload_value, input_route)
+        if signature.is_legacy:
+            async for payload_value in user_func(payload):
+                self._emit_sse_event(payload_value, input_route, False, payload)
+        else:
+            handler_input = _extract_handler_inputs(payload, signature)
+            async for raw_result in user_func(**handler_input):
+                serialized = _serialize_output(raw_result)
+                self._emit_sse_event(serialized, input_route, True, payload)
         self.wfile.write(b"event: done\ndata: {}\n\n")
         self.wfile.flush()
 
-    def _emit_sse_event(self, payload_value, input_route):
+    def _emit_sse_event(self, payload_value, input_route, is_typed, original_payload):
         """Emit a single SSE event for a yielded value."""
         if isinstance(payload_value, dict) and payload_value.get("partial") is True:
             # Partial event — strip the marker and forward upstream to gateway
@@ -1329,7 +1694,7 @@ class _InvokeHandler(http.server.BaseHTTPRequestHandler):
             self.wfile.write(f"event: upstream\ndata: {data}\n\n".encode())
         else:
             vfs_state = _msg_vfs.snapshot()
-            frame = _build_frame(payload_value, input_route, vfs_state)
+            frame = _build_frame(payload_value, input_route, vfs_state, is_typed, original_payload)
             data = json.dumps(frame)
             self.wfile.write(f"event: downstream\ndata: {data}\n\n".encode())
         self.wfile.flush()
@@ -1366,8 +1731,10 @@ def handle_requests():
         _install_state_proxy_hooks(state_proxy_mounts)
 
     func = _load_function()
+    signature = HandlerSignature(func)
     server = _UnixHTTPServer(SOCKET_PATH, _InvokeHandler)
     server.user_func = func
+    server.handler_signature = signature
 
     ready_file = f"{SOCKET_DIR}/runtime-ready"
     try:
