@@ -552,3 +552,12 @@ routers modify routing metadata instead of business data.
 This means routers benefit from the same infrastructure: autoscaling,
 retries, monitoring, and deployment. There is no special "router runtime"
 — it's actors all the way down.
+
+---
+
+## Further reading
+
+- [Flow Compiler Architecture](../architecture/asya-flow.md) — compiler
+  internals: parser IR, grouper optimization, code generation
+- [ABI Protocol](../../.aint/epics/1l01.abi-instead-vfs/abi-protocol.md) —
+  yield-based metadata access used by generated routers and user handlers
