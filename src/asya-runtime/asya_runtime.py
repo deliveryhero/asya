@@ -29,7 +29,6 @@ Handler Types:
 
 Environment Variables:
     ASYA_HANDLER: Full path to function or method (e.g., "foo.bar.process" or "foo.bar.Processor.process")
-    ASYA_MSG_ROOT: Virtual filesystem root for message metadata (default: "/proc/asya/msg")
     ASYA_SOCKET_CHMOD: Socket permissions in octal (default: "0o666", empty = skip chmod)
     ASYA_ENABLE_VALIDATION: Enable message validation ("true" or "false", default: "true")
     ASYA_LOG_LEVEL: Logging level (DEBUG, INFO, WARNING, ERROR, default: INFO)
@@ -40,7 +39,6 @@ Socket Configuration:
 """
 
 import asyncio
-import builtins
 import contextlib
 import copy
 import errno
@@ -48,7 +46,6 @@ import http.client as _http_client
 import http.server
 import importlib
 import inspect
-import io
 import json
 import logging
 import os
@@ -80,7 +77,6 @@ logger = logging.getLogger("asya.runtime")
 
 # Configuration
 ASYA_HANDLER = os.getenv("ASYA_HANDLER", "")
-ASYA_MSG_ROOT = os.getenv("ASYA_MSG_ROOT", "/proc/asya/msg")
 ASYA_SOCKET_CHMOD = os.getenv("ASYA_SOCKET_CHMOD", "0o666")
 ASYA_ENABLE_VALIDATION = os.getenv("ASYA_ENABLE_VALIDATION", "true").lower() == "true"
 
@@ -89,14 +85,6 @@ ASYA_ENABLE_VALIDATION = os.getenv("ASYA_ENABLE_VALIDATION", "true").lower() == 
 SOCKET_DIR = os.getenv("ASYA_SOCKET_DIR", "/var/run/asya")
 SOCKET_NAME = os.getenv("ASYA_SOCKET_NAME", "asya-runtime.sock")
 SOCKET_PATH = os.path.join(SOCKET_DIR, SOCKET_NAME)
-
-
-# ---------------------------------------------------------------------------
-# Partial event convention — handlers yield dicts with partial=True to mark
-# events that bypass message queues and stream directly to the gateway.
-# Example: yield {"partial": True, "type": "text_delta", "token": "hello"}
-# The runtime strips the "partial" key before forwarding upstream.
-# ---------------------------------------------------------------------------
 
 
 def _instantiate_class_handler(handler_class):
@@ -395,7 +383,7 @@ def _resolve_del(data, segments):
 class _AbiContext:
     """ABI context for a single message invocation.
 
-    Replaces _MessageVFS. Same lifecycle: populate -> use -> snapshot -> discard.
+    Lifecycle: populate -> use -> snapshot -> discard.
     """
 
     def __init__(self, message):
@@ -519,380 +507,6 @@ async def _drive_async_generator(gen, ctx, on_fly=None):
     return frames
 
 
-# --- Message Virtual Filesystem ---
-
-# Read-only paths (handler cannot write to these)
-_READ_ONLY_PATHS = frozenset({"id", "parent_id", "route/prev", "route/curr"})
-
-
-class _MessageVFS:
-    """In-memory virtual filesystem for message metadata.
-
-    Populated before each handler invocation, read after handler returns.
-    No disk I/O, no network — pure dict operations.
-    """
-
-    def __init__(self):
-        self._data = {}
-        self._active = False
-
-    def populate(self, message):
-        """Populate VFS from incoming message. Called before handler."""
-        route = message["route"]
-        self._data = {
-            "id": message.get("id", ""),
-            "parent_id": message.get("parent_id", ""),
-            "route": {
-                "prev": list(route["prev"]),
-                "curr": route["curr"],
-                "next": list(route["next"]),
-            },
-            "headers": dict(message.get("headers") or {}),
-            "status": dict(message.get("status") or {}),
-        }
-        self._active = True
-
-    def clear(self):
-        """Clear VFS state. Called after handler completes."""
-        self._data = {}
-        self._active = False
-
-    @property
-    def active(self):
-        return self._active
-
-    def snapshot(self):
-        """Snapshot mutable VFS state for frame construction.
-
-        Returns current route.next, headers, and status (all mutable by handler).
-        Called at each generator yield and after handler return.
-        Uses deepcopy for status since it may contain nested dicts.
-        """
-        return {
-            "route_next": list(self._data["route"]["next"]),
-            "headers": dict(self._data["headers"]),
-            "status": copy.deepcopy(self._data.get("status") or {}),
-        }
-
-    def read(self, rel_path):
-        """Read a virtual file by relative path."""
-        parts = rel_path.strip("/").split("/")
-
-        if parts == ["id"]:
-            return self._data.get("id", "")
-        if parts == ["parent_id"]:
-            return self._data.get("parent_id", "")
-        if parts == ["route", "prev"]:
-            return "\n".join(self._data["route"]["prev"])
-        if parts == ["route", "curr"]:
-            return self._data["route"]["curr"]
-        if parts == ["route", "next"]:
-            return "\n".join(self._data["route"]["next"])
-        if len(parts) == 2 and parts[0] == "headers":
-            key = parts[1]
-            if key not in self._data["headers"]:
-                raise FileNotFoundError(f"No such file: {ASYA_MSG_ROOT}/headers/{key}")
-            value = self._data["headers"][key]
-            if isinstance(value, (dict, list)):
-                return json.dumps(value)
-            return str(value)
-        if parts[0] == "status" and len(parts) >= 2:
-            node = self._data.get("status", {})
-            for p in parts[1:]:
-                if isinstance(node, dict) and p in node:
-                    node = node[p]
-                else:
-                    raise FileNotFoundError(f"No such file: {ASYA_MSG_ROOT}/{rel_path}")
-            if isinstance(node, dict):
-                raise IsADirectoryError(f"Is a directory: {ASYA_MSG_ROOT}/{rel_path}")
-            if isinstance(node, list):
-                return "\n".join(str(x) for x in node)
-            return str(node)
-
-        raise FileNotFoundError(f"No such file: {ASYA_MSG_ROOT}/{rel_path}")
-
-    def write(self, rel_path, content):
-        """Write to a virtual file."""
-        clean = rel_path.strip("/")
-        if clean in _READ_ONLY_PATHS:
-            raise PermissionError(f"Read-only: {ASYA_MSG_ROOT}/{clean}")
-        if clean.startswith("status/") or clean == "status":
-            raise PermissionError(f"Read-only: {ASYA_MSG_ROOT}/{clean}")
-
-        parts = clean.split("/")
-        if parts == ["route", "next"]:
-            self._data["route"]["next"] = content.splitlines() if content else []
-        elif len(parts) == 2 and parts[0] == "headers":
-            # Parse JSON dicts/lists so complex headers survive the
-            # write → snapshot → serialize round-trip (e.g. x-asya-fan-in).
-            try:
-                parsed = json.loads(content)
-                if isinstance(parsed, (dict, list)):
-                    self._data["headers"][parts[1]] = parsed
-                else:
-                    self._data["headers"][parts[1]] = content
-            except (json.JSONDecodeError, TypeError):
-                self._data["headers"][parts[1]] = content
-        else:
-            raise FileNotFoundError(f"No such file: {ASYA_MSG_ROOT}/{clean}")
-
-    def remove(self, rel_path):
-        """Remove a virtual file or status subtree."""
-        parts = rel_path.strip("/").split("/")
-        if len(parts) == 2 and parts[0] == "headers":
-            key = parts[1]
-            if key not in self._data["headers"]:
-                raise FileNotFoundError(f"No such file: {ASYA_MSG_ROOT}/headers/{key}")
-            del self._data["headers"][key]
-        elif parts == ["route", "next"]:
-            self._data["route"]["next"] = []
-        elif parts[0] == "status" and len(parts) >= 2:
-            node = self._data.get("status", {})
-            for p in parts[1:-1]:
-                if isinstance(node, dict) and p in node:
-                    node = node[p]
-                else:
-                    raise FileNotFoundError(f"No such file: {ASYA_MSG_ROOT}/{rel_path}")
-            key = parts[-1]
-            if isinstance(node, dict) and key in node:
-                del node[key]
-            else:
-                raise FileNotFoundError(f"No such file: {ASYA_MSG_ROOT}/{rel_path}")
-        else:
-            raise PermissionError(f"Cannot remove: {ASYA_MSG_ROOT}/{rel_path}")
-
-    def listdir(self, rel_path):
-        """List directory contents."""
-        clean = rel_path.strip("/")
-        if clean == "":
-            entries = ["id", "route", "headers"]
-            if self._data.get("parent_id"):
-                entries.insert(1, "parent_id")
-            if self._data.get("status"):
-                entries.append("status")
-            return entries
-        if clean == "route":
-            return ["prev", "curr", "next"]
-        if clean == "headers":
-            return list(self._data.get("headers", {}).keys())
-        parts = clean.split("/")
-        if parts[0] == "status":
-            node = self._data.get("status", {})
-            for p in parts[1:]:
-                if isinstance(node, dict) and p in node:
-                    node = node[p]
-                else:
-                    raise NotADirectoryError(f"Not a directory: {ASYA_MSG_ROOT}/{clean}")
-            if isinstance(node, dict):
-                return list(node.keys())
-            raise NotADirectoryError(f"Not a directory: {ASYA_MSG_ROOT}/{clean}")
-        raise NotADirectoryError(f"Not a directory: {ASYA_MSG_ROOT}/{clean}")
-
-    def exists(self, rel_path):
-        """Check if a virtual path exists."""
-        clean = rel_path.strip("/")
-        if clean in ("", "route", "headers", "status"):
-            return True
-        if clean in ("id", "parent_id", "route/prev", "route/curr", "route/next"):
-            return True
-        parts = clean.split("/")
-        if len(parts) == 2 and parts[0] == "headers":
-            return parts[1] in self._data.get("headers", {})
-        if parts[0] == "status" and len(parts) >= 2:
-            node = self._data.get("status", {})
-            for p in parts[1:]:
-                if isinstance(node, dict) and p in node:
-                    node = node[p]
-                else:
-                    return False
-            return True
-        return False
-
-    def isdir(self, rel_path):
-        """Check if a virtual path is a directory."""
-        clean = rel_path.strip("/")
-        if clean in ("", "route", "headers", "status"):
-            return True
-        parts = clean.split("/")
-        if parts[0] == "status" and len(parts) >= 2:
-            node = self._data.get("status", {})
-            for p in parts[1:]:
-                if isinstance(node, dict) and p in node:
-                    node = node[p]
-                else:
-                    return False
-            return isinstance(node, dict)
-        return False
-
-
-class _MsgVirtualFile:
-    """File-like object backed by _MessageVFS.
-
-    Uses io.StringIO for buffering. Flushes writes to VFS on close.
-    """
-
-    def __init__(self, vfs, rel_path, mode):
-        self._vfs = vfs
-        self._rel_path = rel_path
-        self._mode = mode
-        self._closed = False
-
-        if "w" in mode:
-            self._buffer = io.StringIO()
-        else:
-            content = vfs.read(rel_path)
-            self._buffer = io.StringIO(content)
-
-    def read(self, size=-1):
-        if self._closed:
-            raise ValueError("I/O operation on closed file")
-        if size == -1:
-            return self._buffer.read()
-        return self._buffer.read(size)
-
-    def readline(self):
-        if self._closed:
-            raise ValueError("I/O operation on closed file")
-        return self._buffer.readline()
-
-    def readlines(self):
-        if self._closed:
-            raise ValueError("I/O operation on closed file")
-        return self._buffer.readlines()
-
-    def write(self, data):
-        if self._closed:
-            raise ValueError("I/O operation on closed file")
-        if "w" not in self._mode and "a" not in self._mode:
-            raise io.UnsupportedOperation("not writable")
-        return self._buffer.write(data)
-
-    def close(self):
-        if not self._closed:
-            if "w" in self._mode or "a" in self._mode:
-                self._vfs.write(self._rel_path, self._buffer.getvalue())
-            self._buffer.close()
-            self._closed = True
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, *args):
-        self.close()
-
-    def __iter__(self):
-        return iter(self._buffer)
-
-    @property
-    def closed(self):
-        return self._closed
-
-    @property
-    def name(self):
-        return f"{ASYA_MSG_ROOT}/{self._rel_path}"
-
-
-# --- Builtins Patching ---
-
-_msg_vfs = _MessageVFS()
-_original_open = None
-_original_listdir = None
-_original_path_exists = None
-_original_path_isdir = None
-_original_remove = None
-_original_makedirs = None
-_original_rmdir = None
-
-
-def _patched_open(path, mode="r", *args, **kwargs):
-    """Intercept open() for /proc/asya/msg/ paths."""
-    path_str = os.fspath(path) if not isinstance(path, str) else path
-    if _msg_vfs.active and path_str.startswith(ASYA_MSG_ROOT):
-        rel = path_str[len(ASYA_MSG_ROOT) :]
-        if not rel:
-            raise IsADirectoryError(f"Is a directory: '{path_str}'")
-        return _MsgVirtualFile(_msg_vfs, rel, mode)
-    return _original_open(path, mode, *args, **kwargs)
-
-
-def _patched_listdir(path="."):
-    path_str = os.fspath(path) if not isinstance(path, str) else path
-    if _msg_vfs.active and path_str.startswith(ASYA_MSG_ROOT):
-        rel = path_str[len(ASYA_MSG_ROOT) :]
-        return _msg_vfs.listdir(rel)
-    return _original_listdir(path)
-
-
-def _patched_path_exists(path):
-    path_str = os.fspath(path) if not isinstance(path, str) else path
-    if _msg_vfs.active and path_str.startswith(ASYA_MSG_ROOT):
-        rel = path_str[len(ASYA_MSG_ROOT) :]
-        return _msg_vfs.exists(rel)
-    return _original_path_exists(path)
-
-
-def _patched_path_isdir(path):
-    path_str = os.fspath(path) if not isinstance(path, str) else path
-    if _msg_vfs.active and path_str.startswith(ASYA_MSG_ROOT):
-        rel = path_str[len(ASYA_MSG_ROOT) :]
-        return _msg_vfs.isdir(rel)
-    return _original_path_isdir(path)
-
-
-def _patched_remove(path):
-    path_str = os.fspath(path) if not isinstance(path, str) else path
-    if _msg_vfs.active and path_str.startswith(ASYA_MSG_ROOT):
-        rel = path_str[len(ASYA_MSG_ROOT) :]
-        return _msg_vfs.remove(rel)
-    return _original_remove(path)
-
-
-def _patched_makedirs(name, mode=0o777, exist_ok=False):
-    path_str = os.fspath(name) if not isinstance(name, str) else name
-    if _msg_vfs.active and path_str.startswith(ASYA_MSG_ROOT):
-        return  # VFS handles nested structure implicitly
-    return _original_makedirs(name, mode=mode, exist_ok=exist_ok)
-
-
-def _patched_rmdir(path):
-    path_str = os.fspath(path) if not isinstance(path, str) else path
-    if _msg_vfs.active and path_str.startswith(ASYA_MSG_ROOT):
-        return  # VFS directory removal handled via remove()
-    return _original_rmdir(path)
-
-
-def _install_msg_hooks():
-    """Patch builtins.open and os.* to intercept /proc/asya/msg/ paths.
-
-    Called once at runtime startup. Safe to call multiple times (idempotent).
-    """
-    global _original_open, _original_listdir
-    global _original_path_exists, _original_path_isdir, _original_remove
-    global _original_makedirs, _original_rmdir
-
-    if _original_open is not None:
-        return
-
-    _original_open = builtins.open
-    _original_listdir = os.listdir
-    _original_path_exists = os.path.exists
-    _original_path_isdir = os.path.isdir
-    _original_remove = os.remove
-    _original_makedirs = os.makedirs
-    _original_rmdir = os.rmdir
-
-    builtins.open = _patched_open
-    io.open = _patched_open
-    os.listdir = _patched_listdir
-    os.path.exists = _patched_path_exists
-    os.path.isdir = _patched_path_isdir
-    os.remove = _patched_remove
-    os.makedirs = _patched_makedirs
-    os.rmdir = _patched_rmdir
-
-    logger.info(f"Message VFS hooks installed (root: {ASYA_MSG_ROOT})")
-
-
 def _call_handler(user_func, arg):
     """Call user handler, transparently supporting both sync and async functions.
 
@@ -904,10 +518,10 @@ def _call_handler(user_func, arg):
     return user_func(arg)
 
 
-def _build_frame(payload_value, input_route, vfs_state):
-    """Build a response frame with shifted route from VFS state."""
+def _build_frame(payload_value, input_route, ctx_state):
+    """Build a response frame with shifted route from ABI context state."""
     prev = [*input_route["prev"], input_route["curr"]]
-    handler_next = vfs_state["route_next"]
+    handler_next = ctx_state["route_next"]
 
     if handler_next:
         route = {"prev": prev, "curr": handler_next[0], "next": handler_next[1:]}
@@ -915,10 +529,10 @@ def _build_frame(payload_value, input_route, vfs_state):
         route = {"prev": prev, "curr": "", "next": []}
 
     frame = {"payload": payload_value, "route": route}
-    if vfs_state["headers"]:
-        frame["headers"] = vfs_state["headers"]
-    if vfs_state.get("status"):
-        frame["status"] = vfs_state["status"]
+    if ctx_state["headers"]:
+        frame["headers"] = ctx_state["headers"]
+    if ctx_state.get("status"):
+        frame["status"] = ctx_state["status"]
     return frame
 
 
