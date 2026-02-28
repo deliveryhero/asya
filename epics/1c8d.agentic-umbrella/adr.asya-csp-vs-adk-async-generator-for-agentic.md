@@ -1,4 +1,4 @@
-# ADR: Asya CPS vs ADK Async Generator -- Agentic Pattern Implementation
+# ADR: Asya CPS vs ADK Async Generator -- Agentic **Patterns** Implementation
 
 > **Status**: Proposed
 > **Date**: 2026-02-27
@@ -17,7 +17,7 @@ Asya adopts a **CPS-based downstream message-passing** model that is architectur
 different from ADK's **call-stack upstream event propagation**, but supports all 17
 applicable ADK patterns (18 minus bidirectional streaming which is a different paradigm).
 
-The Flow DSL introduces two actor-call semantics:
+The Flow DSL **introduces** two actor-call semantics:
 
 | Syntax | Semantics | Wire behavior |
 |--------|-----------|---------------|
