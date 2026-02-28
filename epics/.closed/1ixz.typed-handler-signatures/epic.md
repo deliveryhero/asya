@@ -1,6 +1,7 @@
 ---
 title: Typed Handler Signatures
-status: peeped
+status: yeeted
+reason: won't do, superseeded by [[1l03]]
 priority: 2 # medium
 type: epic
 ---

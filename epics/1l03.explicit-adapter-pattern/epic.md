@@ -23,8 +23,8 @@ real usage before we bake them into the framework.
 
 ## Decision
 
-- Close PR 235 without merging
-- Close all tasks in epic 1ixz (typed handler signatures)
+- Close PR 235 without merging (done)
+- Close all tasks in epic 1ixz (typed handler signatures) (done)
 - Document the adapter pattern in tutorials as the recommended approach
 
 ## Adapter Pattern
@@ -32,13 +32,13 @@ real usage before we bake them into the framework.
 ```python
 from myapp.models import Foo, Bar
 
-# The user's domain function — clean, typed, testable
+# The user's domain function — clean, typed, testable (can be tool, agent, whatever)
 async def user_function(foo: Foo, bar: Bar) -> dict:
     return {"baz": foo.process(bar)}
 
-# The adapter — explicit protocol mapping
+# The adapter — explicit protocol mapping (adapt for signature dict -> dict)
 async def my_actor(state: dict) -> dict:
-    foo = Foo(**state["foo"])
+    foo = Foo(**state["foo"])  # optional type enforcement
     bar = Bar(**state["bar"])
     state["result"] = await user_function(foo, bar)
     return state
@@ -46,8 +46,15 @@ async def my_actor(state: dict) -> dict:
 
 Users deploy `my_actor` as the handler. The adapter is plain Python — no
 framework magic, no env vars, full control over extraction and merging.
+The idea is to leave users freedom to design their own data schemas, validators,
+and not to limit them anyhow. We expect the users eventually to implement
+shortcuts and util methods (for example, decorators) that would turn their custom
+functions into actors to have their code more concise. But the idea is to leave
+users freedom and keep asya framework explicit and simple.
 
 ## For Generator Handlers (ABI)
+
+See epic [[1l01]].
 
 ```python
 async def llm_adapter(state: dict):
