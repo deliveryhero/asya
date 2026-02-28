@@ -2982,3 +2982,224 @@ class TestAbiPathResolver:
     def test_get_single_key(self):
         data = {"id": "msg-123"}
         assert asya_runtime._resolve_get(data, asya_runtime._parse_path(".id")) == "msg-123"
+
+
+class TestAbiContext:
+    """Test _AbiContext class."""
+
+    def _make_message(self, **overrides):
+        msg = {
+            "id": "msg-1",
+            "route": {"prev": ["x"], "curr": "a", "next": ["b", "c"]},
+            "payload": {"data": 1},
+            "headers": {"trace_id": "t1"},
+        }
+        msg.update(overrides)
+        return msg
+
+    def test_context_populates_from_message(self):
+        ctx = asya_runtime._AbiContext(self._make_message())
+        assert ctx.data["id"] == "msg-1"
+        assert ctx.data["route"]["next"] == ["b", "c"]
+        assert ctx.data["headers"]["trace_id"] == "t1"
+
+    def test_context_snapshot(self):
+        ctx = asya_runtime._AbiContext(self._make_message())
+        snap = ctx.snapshot()
+        assert snap["route_next"] == ["b", "c"]
+        assert snap["headers"] == {"trace_id": "t1"}
+
+    def test_context_isolates_from_message(self):
+        msg = self._make_message()
+        ctx = asya_runtime._AbiContext(msg)
+        ctx.data["route"]["next"].append("mutated")
+        assert msg["route"]["next"] == ["b", "c"]
+
+    def test_context_with_status(self):
+        msg = self._make_message(status={"error": {"type": "ValueError"}})
+        ctx = asya_runtime._AbiContext(msg)
+        assert ctx.data["status"]["error"]["type"] == "ValueError"
+
+    def test_context_without_headers(self):
+        msg = self._make_message()
+        del msg["headers"]
+        ctx = asya_runtime._AbiContext(msg)
+        assert ctx.data["headers"] == {}
+
+    def test_context_with_parent_id(self):
+        msg = self._make_message(parent_id="parent-1")
+        ctx = asya_runtime._AbiContext(msg)
+        assert ctx.data["parent_id"] == "parent-1"
+
+
+class TestAbiAccessControl:
+    """Test ABI SET/DEL access control."""
+
+    def test_set_route_next_allowed(self):
+        asya_runtime._check_set_access(".route.next")
+
+    def test_set_headers_allowed(self):
+        asya_runtime._check_set_access(".headers.trace_id")
+
+    def test_set_route_prev_denied(self):
+        with pytest.raises(PermissionError):
+            asya_runtime._check_set_access(".route.prev")
+
+    def test_set_route_curr_denied(self):
+        with pytest.raises(PermissionError):
+            asya_runtime._check_set_access(".route.curr")
+
+    def test_set_id_denied(self):
+        with pytest.raises(PermissionError):
+            asya_runtime._check_set_access(".id")
+
+    def test_set_status_allowed(self):
+        asya_runtime._check_set_access(".status.error")
+
+    def test_del_route_next_allowed(self):
+        asya_runtime._check_del_access(".route.next")
+
+    def test_del_headers_allowed(self):
+        asya_runtime._check_del_access(".headers.trace_id")
+
+    def test_del_status_allowed(self):
+        asya_runtime._check_del_access(".status.error")
+
+    def test_del_id_denied(self):
+        with pytest.raises(PermissionError):
+            asya_runtime._check_del_access(".id")
+
+    def test_del_route_prev_denied(self):
+        with pytest.raises(PermissionError):
+            asya_runtime._check_del_access(".route.prev")
+
+
+class TestAbiDispatch:
+    """Test _drive_generator ABI dispatch engine."""
+
+    def _make_ctx(self, **overrides):
+        msg = {
+            "id": "msg-1",
+            "route": {"prev": [], "curr": "a", "next": ["b"]},
+            "payload": {},
+            "headers": {},
+        }
+        msg.update(overrides)
+        return asya_runtime._AbiContext(msg)
+
+    def test_emit_dict(self):
+        def gen(payload):
+            yield {"result": "ok"}
+
+        ctx = self._make_ctx()
+        frames = asya_runtime._drive_generator(gen({}), ctx)
+        assert len(frames) == 1
+        assert frames[0]["payload"] == {"result": "ok"}
+
+    def test_get_returns_value(self):
+        def gen(payload):
+            prev = yield "GET", ".route.prev"
+            payload["saw_prev"] = prev
+            yield payload
+
+        ctx = self._make_ctx()
+        frames = asya_runtime._drive_generator(gen({}), ctx)
+        assert frames[0]["payload"]["saw_prev"] == []
+
+    def test_set_modifies_route_next(self):
+        def gen(payload):
+            yield "SET", ".route.next", ["x", "y"]
+            yield payload
+
+        ctx = self._make_ctx()
+        frames = asya_runtime._drive_generator(gen({}), ctx)
+        assert frames[0]["route"]["curr"] == "x"
+        assert frames[0]["route"]["next"] == ["y"]
+
+    def test_del_removes_header(self):
+        def gen(payload):
+            yield "DEL", ".headers.trace_id"
+            yield payload
+
+        ctx = self._make_ctx(headers={"trace_id": "abc"})
+        frames = asya_runtime._drive_generator(gen({}), ctx)
+        assert "trace_id" not in frames[0].get("headers", {})
+
+    def test_fly_skipped_in_batch(self):
+        def gen(payload):
+            yield "FLY", {"token": "hello"}
+            yield payload
+
+        ctx = self._make_ctx()
+        frames = asya_runtime._drive_generator(gen({}), ctx)
+        assert len(frames) == 1
+
+    def test_fly_callback_in_sse_mode(self):
+        fly_events = []
+
+        def gen(payload):
+            yield "FLY", {"token": "hello"}
+            yield payload
+
+        ctx = self._make_ctx()
+        frames = asya_runtime._drive_generator(gen({}), ctx, on_fly=lambda p: fly_events.append(p))
+        assert fly_events == [{"token": "hello"}]
+        assert len(frames) == 1
+
+    def test_noop_yield(self):
+        def gen(payload):
+            yield
+            yield payload
+
+        ctx = self._make_ctx()
+        frames = asya_runtime._drive_generator(gen({}), ctx)
+        assert len(frames) == 1
+
+    def test_protocol_error_bad_type(self):
+        def gen(payload):
+            yield 42
+
+        ctx = self._make_ctx()
+        with pytest.raises(RuntimeError, match="protocol error"):
+            asya_runtime._drive_generator(gen({}), ctx)
+
+    def test_protocol_error_unknown_verb(self):
+        def gen(payload):
+            yield "UNKNOWN", ".route"
+
+        ctx = self._make_ctx()
+        with pytest.raises(RuntimeError, match="protocol error"):
+            asya_runtime._drive_generator(gen({}), ctx)
+
+    def test_access_violation_set(self):
+        def gen(payload):
+            yield "SET", ".route.prev", ["evil"]
+
+        ctx = self._make_ctx()
+        with pytest.raises(PermissionError):
+            asya_runtime._drive_generator(gen({}), ctx)
+
+    def test_multiple_emits(self):
+        def gen(payload):
+            yield "SET", ".route.next", ["x", "y"]
+            yield {"first": True}
+            yield "SET", ".route.next", ["z"]
+            yield {"second": True}
+
+        ctx = self._make_ctx()
+        frames = asya_runtime._drive_generator(gen({}), ctx)
+        assert len(frames) == 2
+        assert frames[0]["payload"] == {"first": True}
+        assert frames[1]["payload"] == {"second": True}
+
+    def test_get_returns_deep_copy(self):
+        def gen(payload):
+            route_next = yield "GET", ".route.next"
+            route_next.append("mutated")
+            actual = yield "GET", ".route.next"
+            payload["actual"] = actual
+            yield payload
+
+        ctx = self._make_ctx()
+        frames = asya_runtime._drive_generator(gen({}), ctx)
+        assert frames[0]["payload"]["actual"] == ["b"]

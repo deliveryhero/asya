@@ -389,6 +389,136 @@ def _resolve_del(data, segments):
         del parent[val]
 
 
+# --- ABI Context and Dispatch ---
+
+
+class _AbiContext:
+    """ABI context for a single message invocation.
+
+    Replaces _MessageVFS. Same lifecycle: populate -> use -> snapshot -> discard.
+    """
+
+    def __init__(self, message):
+        # type: (dict) -> None
+        route = message["route"]
+        self.data = {
+            "id": message.get("id", ""),
+            "parent_id": message.get("parent_id", ""),
+            "route": {
+                "prev": list(route["prev"]),
+                "curr": route["curr"],
+                "next": list(route["next"]),
+            },
+            "headers": dict(message.get("headers") or {}),
+            "status": copy.deepcopy(message.get("status") or {}),
+        }
+        self.input_route = route
+
+    def snapshot(self):
+        # type: () -> dict
+        return {
+            "route_next": list(self.data["route"]["next"]),
+            "headers": dict(self.data["headers"]),
+            "status": copy.deepcopy(self.data.get("status") or {}),
+        }
+
+
+def _check_set_access(path):
+    # type: (str) -> None
+    if path.startswith(".route.next") or path.startswith(".headers") or path.startswith(".status"):
+        return
+    raise PermissionError(f"Cannot SET {path}")
+
+
+def _check_del_access(path):
+    # type: (str) -> None
+    if path.startswith(".route.next") or path.startswith(".headers") or path.startswith(".status"):
+        return
+    raise PermissionError(f"Cannot DEL {path}")
+
+
+def _drive_generator(gen, ctx, on_fly=None):
+    """Drive a sync generator, dispatching ABI commands."""
+    frames = []
+    send_val = None
+
+    while True:
+        try:
+            yielded = gen.send(send_val)
+        except StopIteration:
+            break
+
+        send_val = None
+
+        if yielded is None:
+            continue
+        elif isinstance(yielded, dict):
+            frames.append(_build_frame(yielded, ctx.input_route, ctx.snapshot()))
+        elif isinstance(yielded, tuple) and len(yielded) >= 2:
+            verb = yielded[0]
+            if verb == "FLY":
+                if on_fly:
+                    on_fly(yielded[1])
+            elif verb == "GET":
+                segs = _parse_path(yielded[1])
+                send_val = _resolve_get(ctx.data, segs)
+            elif verb == "SET" and len(yielded) >= 3:
+                _check_set_access(yielded[1])
+                segs = _parse_path(yielded[1])
+                _resolve_set(ctx.data, segs, yielded[2])
+            elif verb == "DEL":
+                _check_del_access(yielded[1])
+                segs = _parse_path(yielded[1])
+                _resolve_del(ctx.data, segs)
+            else:
+                raise RuntimeError(f"ABI protocol error: unknown verb {verb!r}")
+        else:
+            raise RuntimeError(f"ABI protocol error: unexpected yield type {type(yielded).__name__}")
+
+    return frames
+
+
+async def _drive_async_generator(gen, ctx, on_fly=None):
+    """Drive an async generator, dispatching ABI commands."""
+    frames = []
+    send_val = None
+
+    while True:
+        try:
+            yielded = await gen.asend(send_val)
+        except StopAsyncIteration:
+            break
+
+        send_val = None
+
+        if yielded is None:
+            continue
+        elif isinstance(yielded, dict):
+            frames.append(_build_frame(yielded, ctx.input_route, ctx.snapshot()))
+        elif isinstance(yielded, tuple) and len(yielded) >= 2:
+            verb = yielded[0]
+            if verb == "FLY":
+                if on_fly:
+                    on_fly(yielded[1])
+            elif verb == "GET":
+                segs = _parse_path(yielded[1])
+                send_val = _resolve_get(ctx.data, segs)
+            elif verb == "SET" and len(yielded) >= 3:
+                _check_set_access(yielded[1])
+                segs = _parse_path(yielded[1])
+                _resolve_set(ctx.data, segs, yielded[2])
+            elif verb == "DEL":
+                _check_del_access(yielded[1])
+                segs = _parse_path(yielded[1])
+                _resolve_del(ctx.data, segs)
+            else:
+                raise RuntimeError(f"ABI protocol error: unknown verb {verb!r}")
+        else:
+            raise RuntimeError(f"ABI protocol error: unexpected yield type {type(yielded).__name__}")
+
+    return frames
+
+
 # --- Message Virtual Filesystem ---
 
 # Read-only paths (handler cannot write to these)
