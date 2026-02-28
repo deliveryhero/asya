@@ -1,10 +1,17 @@
-# RFC: Streaming Protocol — Upstream Partial Events
+# RFC: Streaming Protocol — Upstream Events
 
-**Status**: Accepted
+**Status**: Accepted (implemented)
 **Date**: 2026-02-23
-**Updated**: 2026-02-25
+**Updated**: 2026-02-28
 **Epic**: 1ia4.streaming-protocol
 **Depends on**: 1fbe.redesign-protocol-sidecar-runtime (HTTP-over-Unix-socket)
+
+> **Note**: This RFC describes the streaming *architecture* — the transport-level
+> decision that upstream events bypass queues and flow direct to the gateway.
+> This architecture is implemented and working. The *handler-side interface*
+> (how actors produce upstream events) is evolving from `partial: True` dict
+> keys to the ABI `FLY` verb — see epic 1l01. The *wire protocol naming*
+> (partial → stream) is tracked in epic 1l02.
 
 ---
 
@@ -51,20 +58,23 @@ correctly.
 
 ### Compiler restriction
 
-The flow compiler MUST forbid re-yielding partial events across actor boundaries:
+The flow compiler MUST forbid re-yielding streaming events across actor
+boundaries:
 
 ```python
 # FORBIDDEN — compiler must reject this
 async for event in agent_llm(prompt):
-    yield event  # Cannot forward partials through queues
-
-# ALLOWED — delegate streaming to the callee actor
-yield from agent_llm(prompt)  # Callee's sidecar streams directly to gateway
+    yield event  # Cannot forward streaming events through queues
 ```
 
-The `yield from` form works because the callee actor's runtime produces the
-partial events, and its own sidecar forwards them directly to the gateway.
-No intermediate actor is involved.
+> **Update (2026-02-28)**: Epic 1l04 simplifies this further — the Flow DSL
+> now uses **only `await`** for actor calls. The compiler already rejects
+> `async for`, `yield`, and `yield from` as unsupported flow constructs. The
+> streaming rationale (this section) provides the *why* behind that rejection.
+>
+> Streaming happens transparently: each actor's sidecar forwards `FLY` events
+> (ABI) / upstream SSE events directly to the gateway. No flow-level construct
+> is needed.
 
 ---
 
@@ -76,12 +86,16 @@ No intermediate actor is involved.
 |---|---|---|---|
 | Direction-based | `event: upstream` | — | — |
 | Direction-based | `event: downstream` | — | — |
-| Semantics-based | — | `POST /tasks/{id}/partial` | `event: partial` |
+| Semantics-based | — | `POST /tasks/{id}/stream` | `event: stream` |
 | Semantics-based | — | `POST /tasks/{id}/progress` | `event: update` |
+
+> **Note**: The current codebase still uses `partial` (`POST /tasks/{id}/partial`,
+> `event: partial`). Epic 1l02 renames these to `stream` to match the ABI
+> terminology. The runtime→sidecar layer (`event: upstream`) is unchanged.
 
 The runtime-to-sidecar protocol uses **directional** naming (upstream/downstream)
 because the sidecar must decide where to route each event. The sidecar-to-gateway
-and gateway-to-client protocols use **semantic** naming (partial/update) because
+and gateway-to-client protocols use **semantic** naming (stream/update) because
 the data meaning matters more than direction at that layer.
 
 ### Event flow
@@ -93,7 +107,7 @@ Runtime (generator handler)
     v
 Sidecar
     |
-    |-- upstream events --> POST /tasks/{id}/partial --> Gateway --> event: partial
+    |-- upstream events --> POST /tasks/{id}/stream --> Gateway --> event: stream
     |
     |-- downstream events --> Queue --> Next actor
     |
@@ -112,7 +126,19 @@ for generator handler responses:
 | `done` | Generator exhausted | Close connection |
 | `error` | Handler exception mid-stream | Report to x-sump |
 
-### Upstream event format
+### Handler-side interface
+
+Handlers produce upstream events via the ABI `FLY` verb:
+
+```python
+yield "FLY", {"type": "text_delta", "delta": "The capital"}
+```
+
+> **Legacy**: The current codebase uses `yield {"partial": True, "type": ...}`.
+> Epic 1l01 replaces this with `FLY`. The runtime strips the marker/wraps the
+> payload identically in both cases — the wire format is unchanged.
+
+### Upstream event format (Runtime -> Sidecar)
 
 ```
 event: upstream
@@ -124,19 +150,22 @@ events are not routable messages; they are ephemeral streaming data.
 
 ### Sidecar -> Gateway forwarding
 
-The sidecar forwards upstream events to the gateway via `ForwardPartial()`
+The sidecar forwards upstream events to the gateway via `ForwardStream()`
 in `progress.Reporter`:
 
 ```
-POST /tasks/{task_id}/partial
+POST /tasks/{task_id}/stream
 Content-Type: application/json
 
 {"payload": {"type": "text_delta", "delta": "The capital"}}
 ```
 
+> **Legacy**: Current code uses `ForwardPartial()` and `POST /tasks/{id}/partial`.
+> Epic 1l02 renames to `ForwardStream()` and `/stream`.
+
 Request body is limited to 1MB (`http.MaxBytesReader`). Errors are propagated
 to the caller (logged as warnings by the router). If the gateway is
-unreachable, partial events are dropped — they are ephemeral by design.
+unreachable, streaming events are dropped — they are ephemeral by design.
 
 ### Gateway -> Client delivery
 
@@ -145,12 +174,15 @@ The gateway receives upstream events and:
 1. Stores them in the task's event history (for late-joining SSE clients)
 2. Pushes them to connected SSE clients watching this task
 
-SSE clients receive partial events with `event: partial`:
+SSE clients receive streaming events with `event: stream`:
 
 ```
-event: partial
+event: stream
 data: {"type": "text_delta", "delta": "The capital"}
 ```
+
+> **Legacy**: Current code sends `event: partial`. Epic 1l02 renames to
+> `event: stream`.
 
 Regular progress updates continue using `event: update` (unchanged).
 
@@ -184,13 +216,13 @@ data: {"error": "processing_error", "details": {"message": "LLM connection lost"
 5. Gateway receives the error via the normal final-status path
    (x-sump reports `status.phase=failed` to gateway)
 
-### Gateway behavior on error after partials
+### Gateway behavior on error after streaming events
 
 The gateway should:
 
 1. Send an `error` SSE event to connected clients
 2. Mark the task as `failed`
-3. Preserve the partial events in history (for debugging/replay)
+3. Preserve the streaming events in history (for debugging/replay)
 
 Clients are responsible for handling the error event and discarding
 or displaying the partial data as appropriate.
@@ -218,14 +250,31 @@ when the route is exhausted — same as today.
 
 ## 6. Scope Boundary
 
-This RFC covers the transport of upstream partial events from
-runtime to gateway. Remaining work tracked within this epic:
+This RFC covers the transport of upstream streaming events from runtime to
+gateway. The architecture is implemented and working.
 
-- Compiler restriction: reject `async for` / `yield from` across actor boundaries (task within this epic)
-- Integration test: full streaming path `runtime -> sidecar -> gateway -> SSE client` (task within this epic)
+### Completed
 
-Out of scope:
+- Runtime SSE streaming for generator handlers (PR #205)
+- Sidecar SSE parser for generator responses (PR #205)
+- Sidecar→Gateway forwarding (PR #205)
+- Integration test: full streaming path (PR #209)
 
-- Queue-based partial event routing (`ASYA_PARTIAL_EVENTS_ROUTE` — rejected, see Section 2)
-- Client-side partial event assembly or rendering
-- Partial event filtering or transformation in intermediate actors
+### Remaining (within this epic)
+
+- Compiler: reject `async for` / `yield from` across actor boundaries (task
+  1khyvl, slopped) — scope narrowed by epic 1l04, see note in Section 2
+
+### Tracked in other epics
+
+- **1l01**: ABI protocol — `FLY` verb replaces `partial: True` dict convention
+  (handler-side interface change)
+- **1l02**: Rename `partial` → `stream` across sidecar, gateway, and wire
+  protocol (downstream naming change)
+
+### Out of scope (rejected)
+
+- Queue-based streaming event routing (`ASYA_PARTIAL_EVENTS_ROUTE` — see
+  Section 2 for rationale)
+- Client-side streaming event assembly or rendering
+- Streaming event filtering or transformation in intermediate actors

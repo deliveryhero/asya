@@ -14,6 +14,11 @@ dependencies:
 
 ## Context
 
+Epic 1ia4 (streaming-protocol) established the streaming architecture: upstream
+events flow transport-level from sidecar to gateway, bypassing message queues.
+That epic used the term "partial" throughout — `ForwardPartial()`, `POST
+/tasks/{id}/partial`, `event: partial`, `PartialPayload`.
+
 The ABI protocol (epic 1l01) introduces the `FLY` verb for upstream streaming
 events, replacing the `partial: True` dict key convention. On the handler side,
 this is covered by 1l01.
@@ -23,7 +28,8 @@ protocol, sidecar forwarding, gateway endpoints, database schema, and client-fac
 SSE event types.
 
 The word "partial" is misleading — these are **streaming events** (LLM tokens,
-progress updates), not incomplete/partial data.
+progress updates), not incomplete/partial data. The 1ia4 RFC has been updated
+to use the new terminology (with legacy notes for current code).
 
 ## Scope
 

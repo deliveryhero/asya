@@ -1,77 +1,3 @@
-
-      437  This ABI intentionally:
-      438
-      439  * treats `yield` as a syscall instruction
-      338 -* uses three structural JSON verbs (GET/SET/DEL) that work on any node type
-      339 -* avoids ambient mutable state (no globals, no imports from runtime)
-      440 +* uses four verbs: three structural JSON verbs (GET/SET/DEL) + one streaming verb (FLY)
-      441 +* separates control plane (tuples) from data plane (bare dicts)
-      442 +* avoids ambient mutable state (no globals, no imports from runtime, no file I/O)
-      443  * preserves linear, readable actor code
-      444  * works identically in sync and async Python
-      445
-      343 -The ABI cannot be implemented using `await`, futures, callbacks, or context managers without losing correctn
-          -ess or composability.
-      446 +The ABI cannot be implemented using `await`, futures, callbacks, or context
-      447 +managers without losing correctness or composability.
-      448
-      449 +### Why FLY instead of `partial: True`
-      450 +
-      451 +The previous convention mixed control signals with payload data:
-      452 +
-      453 +```python
-      454 +# OLD: runtime must inspect every dict for "partial" key
-      455 +yield {"partial": True, "token": "hello"}
-      456 +```
-      457 +
-      458 +FLY makes the control signal structural (tuple type) not semantic (dict key):
-      459 +
-      460 +```python
-      461 +# NEW: runtime dispatches on type, never inspects dict contents
-      462 +yield "FLY", {"token": "hello"}
-      463 +```
-      464 +
-      465 +This enables the runtime to be a pure instruction dispatcher — it routes
-      466 +tuples as commands and dicts as payloads without ever looking inside them.
-      467 +
-      468  ---
-      469
-      347 -## 11. Reference mental model
-      470 +## 12. Reference mental model
-      471
-      472  Think of an actor as a **userland process** and the runtime as a **kernel**.
-      473
-      351 -| Actor code                                  | Kernel analogue              |
-      352 -| ------------------------------------------- | ---------------------------- |
-      353 -| `yield "GET", "/route"`                     | `sys_read(ROUTE)`            |
-      354 -| `yield "SET", "/route/next", ["a", "b"]`    | `sys_write(ROUTE_NEXT, val)` |
-      355 -| `yield "DEL", "/headers/trace_id"`          | `sys_unlink(path)`           |
-      356 -| `yield {"result": ...}`                     | `send_frame(downstream)`     |
-      357 -| `yield {"token": ...}, True`                | `send_frame(upstream)`       |
-      358 -| `yield from helper()`                       | inlined syscall macro        |
-      474 +| Actor code                                    | Kernel analogue              |
-      475 +| --------------------------------------------- | ---------------------------- |
-      476 +| `yield "GET", ".route"`                       | `sys_read(ROUTE)`            |
-      477 +| `yield "SET", ".route.next", ["a", "b"]`      | `sys_write(ROUTE_NEXT, val)` |
-      478 +| `yield "SET", ".route.next[:0]", ["x"]`       | `sys_splice(ROUTE_NEXT, val)`|
-      479 +| `yield "DEL", ".headers.trace_id"`            | `sys_unlink(path)`           |
-      480 +| `yield {"result": ...}`                       | `send_frame(downstream)`     |
-      481 +| `yield "FLY", {"token": ...}`                 | `send_frame(upstream)`       |
-      482 +| `yield from helper()`                         | inlined syscall macro        |
-
-● Now let me create the three new epics:
-
-● Bash(mkdir -p /home/a.yushkovskiy/asya/.aint/epics/1l02.stream-replaces-partial
-      /home/a.yushkovskiy/asya/.aint/epics/1l03.explicit-adapter-pattern /home/a.yushkovski…)
-  ⎿  Done
-
-● Write(.aint/epics/1l04.flow-await-only/epic.md)
-  ⎿  Wrote 111 lines to .aint/epics/1l04.flow-await-only/epic.md
-       1 ---
-       2 title: "Flow DSL: only await, arbitrary payload names, no generator logic in flows"
-       3 status: ideated
-       4 priority: 1
-       5 type: epic
 ---
 title: "Flow DSL: only await, arbitrary payload names, no generator logic in flows"
 status: ideated
@@ -87,7 +13,7 @@ dependencies:
 
 ## Context
 
-The previous design (ADR `adr.asya-csp-vs-adk-async-generator-for-agentic.md`)
+The previous design (ADR `.aint/epics/1c8d.agentic-umbrella/adr.asya-csp-vs-adk-async-generator-for-agentic.md`)
 proposed two actor-call syntaxes in the flow DSL:
 
 1. `state = await actor(state)` — 1-to-1
