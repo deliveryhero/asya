@@ -316,6 +316,79 @@ def _error_response(code: str, exc: Exception | None = None) -> dict[str, Any]:
     return error
 
 
+# --- ABI Path Resolver ---
+
+_PATH_RE = re.compile(
+    r"\.([a-zA-Z_][a-zA-Z0-9_-]*)"  # .key          (dot notation)
+    r'|\["([^"]+)"\]'  # ["key"]       (bracket notation)
+    r"|\[(-?\d+)\]"  # [int]         (index)
+    r"|\[(-?\d*):(-?\d*)\]"  # [start:stop]  (slice)
+)
+
+
+def _parse_path(path):
+    # type: (str) -> list
+    if not path.startswith("."):
+        raise ValueError(f"Path must start with '.': {path}")
+    segments = []
+    for m in _PATH_RE.finditer(path):
+        if m.group(1) is not None:
+            segments.append(("key", m.group(1)))
+        elif m.group(2) is not None:
+            segments.append(("key", m.group(2)))
+        elif m.group(3) is not None:
+            segments.append(("idx", int(m.group(3))))
+        else:
+            start = int(m.group(4)) if m.group(4) else None
+            stop = int(m.group(5)) if m.group(5) else None
+            segments.append(("slc", slice(start, stop)))
+    if not segments:
+        raise ValueError(f"Empty path: {path}")
+    return segments
+
+
+def _navigate(data, segments, auto_create=False):
+    # type: (dict, list, bool) -> Any
+    node = data
+    for kind, val in segments:
+        if kind == "key":
+            if auto_create and isinstance(node, dict) and val not in node:
+                node[val] = {}
+            node = node[val]
+        elif kind == "idx":
+            node = node[val]
+        else:
+            raise ValueError("Slice only valid as terminal SET segment")
+    return node
+
+
+def _resolve_get(data, segments):
+    # type: (dict, list) -> Any
+    for kind, _val in segments:
+        if kind == "slc":
+            raise ValueError("Slice not valid for GET")
+    return copy.deepcopy(_navigate(data, segments))
+
+
+def _resolve_set(data, segments, value):
+    # type: (dict, list, Any) -> None
+    parent = _navigate(data, segments[:-1], auto_create=True) if len(segments) > 1 else data
+    kind, val = segments[-1]
+    if kind == "key" or kind == "idx" or kind == "slc":
+        parent[val] = copy.deepcopy(value)
+
+
+def _resolve_del(data, segments):
+    # type: (dict, list) -> None
+    for kind, _val in segments:
+        if kind == "slc":
+            raise ValueError("Slice not valid for DEL")
+    parent = _navigate(data, segments[:-1]) if len(segments) > 1 else data
+    kind, val = segments[-1]
+    if kind == "key" or kind == "idx":
+        del parent[val]
+
+
 # --- Message Virtual Filesystem ---
 
 # Read-only paths (handler cannot write to these)

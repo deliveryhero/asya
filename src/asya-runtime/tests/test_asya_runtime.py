@@ -2861,3 +2861,124 @@ class TestHTTPHealthz:
     def test_healthz_unknown_path_returns_404(self, tmp_path):
         status, _ = self._make_get_request(tmp_path, "/unknown")
         assert status == 404
+
+
+class TestAbiPathResolver:
+    """Test ABI path resolver: _parse_path, _resolve_get, _resolve_set, _resolve_del."""
+
+    def test_parse_dot_access(self):
+        segs = asya_runtime._parse_path(".route.next")
+        assert segs == [("key", "route"), ("key", "next")]
+
+    def test_parse_bracket_access(self):
+        segs = asya_runtime._parse_path('.headers["model.config.version"]')
+        assert segs == [("key", "headers"), ("key", "model.config.version")]
+
+    def test_parse_index_access(self):
+        segs = asya_runtime._parse_path(".route.next[0]")
+        assert segs == [("key", "route"), ("key", "next"), ("idx", 0)]
+
+    def test_parse_negative_index(self):
+        segs = asya_runtime._parse_path(".route.next[-1]")
+        assert segs == [("key", "route"), ("key", "next"), ("idx", -1)]
+
+    def test_parse_slice(self):
+        segs = asya_runtime._parse_path(".route.next[:0]")
+        assert segs == [("key", "route"), ("key", "next"), ("slc", slice(None, 0))]
+
+    def test_parse_slice_with_start(self):
+        segs = asya_runtime._parse_path(".route.next[1:3]")
+        assert segs == [("key", "route"), ("key", "next"), ("slc", slice(1, 3))]
+
+    def test_parse_mixed_dot_and_bracket(self):
+        segs = asya_runtime._parse_path('.status["error.detail"].message')
+        assert segs == [("key", "status"), ("key", "error.detail"), ("key", "message")]
+
+    def test_parse_hyphenated_key(self):
+        segs = asya_runtime._parse_path(".headers.x-asya-fan-in")
+        assert segs == [("key", "headers"), ("key", "x-asya-fan-in")]
+
+    def test_parse_empty_path_raises(self):
+        with pytest.raises(ValueError, match="must start with"):
+            asya_runtime._parse_path("no-dot-prefix")
+
+    def test_parse_dot_only_raises(self):
+        with pytest.raises(ValueError, match="Empty path"):
+            asya_runtime._parse_path(".")
+
+    def test_get_dot_access(self):
+        data = {"route": {"next": ["a", "b"]}}
+        result = asya_runtime._resolve_get(data, asya_runtime._parse_path(".route.next"))
+        assert result == ["a", "b"]
+
+    def test_get_returns_deep_copy(self):
+        data = {"route": {"next": ["a"]}}
+        result = asya_runtime._resolve_get(data, asya_runtime._parse_path(".route.next"))
+        result.append("mutated")
+        assert data["route"]["next"] == ["a"]
+
+    def test_get_index(self):
+        data = {"route": {"next": ["a", "b", "c"]}}
+        assert asya_runtime._resolve_get(data, asya_runtime._parse_path(".route.next[0]")) == "a"
+        assert asya_runtime._resolve_get(data, asya_runtime._parse_path(".route.next[-1]")) == "c"
+
+    def test_get_missing_key_raises(self):
+        data = {"route": {}}
+        with pytest.raises(KeyError):
+            asya_runtime._resolve_get(data, asya_runtime._parse_path(".route.next"))
+
+    def test_get_slice_raises(self):
+        data = {"route": {"next": ["a", "b"]}}
+        with pytest.raises(ValueError, match="[Ss]lice"):
+            asya_runtime._resolve_get(data, asya_runtime._parse_path(".route.next[:0]"))
+
+    def test_set_replaces_value(self):
+        data = {"route": {"next": ["old"]}}
+        asya_runtime._resolve_set(data, asya_runtime._parse_path(".route.next"), ["new"])
+        assert data["route"]["next"] == ["new"]
+
+    def test_set_deep_copies_value(self):
+        data = {"route": {"next": []}}
+        val = ["a", "b"]
+        asya_runtime._resolve_set(data, asya_runtime._parse_path(".route.next"), val)
+        val.append("mutated")
+        assert data["route"]["next"] == ["a", "b"]
+
+    def test_set_slice_prepend(self):
+        data = {"route": {"next": ["c", "d"]}}
+        asya_runtime._resolve_set(data, asya_runtime._parse_path(".route.next[:0]"), ["a", "b"])
+        assert data["route"]["next"] == ["a", "b", "c", "d"]
+
+    def test_set_auto_creates_intermediate_dicts(self):
+        data = {}
+        asya_runtime._resolve_set(data, asya_runtime._parse_path(".headers.trace_id"), "abc")
+        assert data == {"headers": {"trace_id": "abc"}}
+
+    def test_set_index(self):
+        data = {"route": {"next": ["a", "b", "c"]}}
+        asya_runtime._resolve_set(data, asya_runtime._parse_path(".route.next[1]"), "x")
+        assert data["route"]["next"] == ["a", "x", "c"]
+
+    def test_del_key(self):
+        data = {"headers": {"trace_id": "abc", "other": "val"}}
+        asya_runtime._resolve_del(data, asya_runtime._parse_path(".headers.trace_id"))
+        assert data == {"headers": {"other": "val"}}
+
+    def test_del_index(self):
+        data = {"route": {"next": ["a", "b", "c"]}}
+        asya_runtime._resolve_del(data, asya_runtime._parse_path(".route.next[1]"))
+        assert data["route"]["next"] == ["a", "c"]
+
+    def test_del_missing_key_raises(self):
+        data = {"headers": {}}
+        with pytest.raises(KeyError):
+            asya_runtime._resolve_del(data, asya_runtime._parse_path(".headers.trace_id"))
+
+    def test_del_slice_raises(self):
+        data = {"route": {"next": ["a"]}}
+        with pytest.raises(ValueError, match="[Ss]lice"):
+            asya_runtime._resolve_del(data, asya_runtime._parse_path(".route.next[:0]"))
+
+    def test_get_single_key(self):
+        data = {"id": "msg-123"}
+        assert asya_runtime._resolve_get(data, asya_runtime._parse_path(".id")) == "msg-123"
