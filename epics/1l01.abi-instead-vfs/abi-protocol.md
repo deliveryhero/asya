@@ -240,7 +240,8 @@ Yielded value                          Type seen by runtime          Instruction
 
 ## 5. Path syntax
 
-Paths use **jq-like dot notation** with **Python-like list slicing**.
+Paths use **jq-like dot notation** with **bracket notation** for escaping
+and **Python-like list slicing**.
 
 ### 5.1 Dot access
 
@@ -253,7 +254,33 @@ Paths use **jq-like dot notation** with **Python-like list slicing**.
 
 The leading `.` is required and refers to the message root.
 
-### 5.2 Index access
+Dot notation supports identifiers: letters, digits, underscores, hyphens.
+This covers the vast majority of keys including `x-asya-fan-in`,
+`trace_id`, `_on_error`.
+
+### 5.2 Bracket key access
+
+For keys containing dots, brackets, or other characters outside the
+identifier grammar, use bracket notation (following jq convention):
+
+```python
+# Key with dots:
+yield "GET", '.headers["model.config.version"]'
+
+# Key with brackets:
+yield "GET", '.headers["key[0]"]'
+
+# Equivalent — bracket works for any key:
+yield "GET", '.headers["trace_id"]'     # same as .headers.trace_id
+```
+
+Dot and bracket notation can be mixed freely in a single path:
+
+```python
+yield "GET", '.status["error.detail"].message'
+```
+
+### 5.3 Index access
 
 ```
 .route.next[0]    → message["route"]["next"][0]       (first element)
@@ -263,7 +290,7 @@ The leading `.` is required and refers to the message root.
 
 Index access on non-list types is a protocol error.
 
-### 5.3 Slice access (SET only)
+### 5.4 Slice access (SET only)
 
 Slice syntax is valid only in SET commands and only on list-typed fields:
 

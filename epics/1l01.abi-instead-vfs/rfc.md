@@ -101,27 +101,50 @@ touch metadata directly.
 ### 4.1 Grammar
 
 ```
-path       := '.' segment+
-segment    := dot_key | bracket
-dot_key    := '.' IDENTIFIER
-bracket    := '[' (INTEGER | SLICE) ']'
-IDENTIFIER := [a-zA-Z_][a-zA-Z0-9_-]*
-INTEGER    := '-'? [0-9]+
-SLICE      := INTEGER? ':' INTEGER?
+path          := '.' segment+
+segment       := dot_key | bracket_key | bracket_index | bracket_slice
+dot_key       := '.' IDENTIFIER
+bracket_key   := '["' STRING '"]'
+bracket_index := '[' INTEGER ']'
+bracket_slice := '[' INTEGER? ':' INTEGER? ']'
+IDENTIFIER    := [a-zA-Z_][a-zA-Z0-9_-]*
+STRING        := [^"]+
+INTEGER       := '-'? [0-9]+
 ```
+
+Two ways to access dict keys:
+
+- **Dot notation** (`.key`) — for identifiers: letters, digits, underscores,
+  hyphens. Covers 99% of cases: `.route.next`, `.headers.x-asya-fan-in`.
+
+- **Bracket notation** (`["key"]`) — for keys containing dots, brackets, or
+  other special characters. Follows jq convention. Use when dot notation
+  can't represent the key.
 
 ### 4.2 Examples
 
 ```
-Path                    Resolves to
-──────────────────────  ────────────────────────────────────
-.route.next             message["route"]["next"]
-.route.next[0]          message["route"]["next"][0]
-.route.next[-1]         message["route"]["next"][-1]
-.headers.x-asya-fan-in  message["headers"]["x-asya-fan-in"]
-.status.error.type      message["status"]["error"]["type"]
-.status.error.mro       message["status"]["error"]["mro"]
-.id                     message["id"]
+Path                              Resolves to
+────────────────────────────────  ──────────────────────────────────────────
+.route.next                       message["route"]["next"]
+.route.next[0]                    message["route"]["next"][0]
+.route.next[-1]                   message["route"]["next"][-1]
+.headers.x-asya-fan-in            message["headers"]["x-asya-fan-in"]
+.headers["x-asya.bla.bla"]        message["headers"]["x-asya.bla.bla"]
+.headers["key[0]"]                message["headers"]["key[0]"]
+.status.error.type                message["status"]["error"]["type"]
+.id                               message["id"]
+```
+
+Dot and bracket notation can be mixed freely:
+
+```python
+# These are equivalent:
+yield "GET", ".headers.trace_id"
+yield "GET", '.headers["trace_id"]'
+
+# Bracket required when key contains dots:
+yield "GET", '.headers["model.config.version"]'
 ```
 
 ### 4.3 Slice semantics (SET only)
@@ -143,27 +166,26 @@ Slice on non-list types is a protocol error.
 import re, copy
 
 _PATH_RE = re.compile(
-    r'\.([a-zA-Z_][a-zA-Z0-9_-]*)'   # .key
-    r'|\[(-?\d+)\]'                    # [int]
-    r'|\[(-?\d*):(-?\d*)\]'            # [start:stop]
+    r'\.([a-zA-Z_][a-zA-Z0-9_-]*)'   # .key          (dot notation)
+    r'|\["([^"]+)"\]'                  # ["key"]       (bracket notation)
+    r'|\[(-?\d+)\]'                    # [int]         (index)
+    r'|\[(-?\d*):(-?\d*)\]'            # [start:stop]  (slice)
 )
-
-_Dot = tuple[str, str]      # ("dot", key)
-_Idx = tuple[str, int]      # ("idx", index)
-_Slc = tuple[str, object]   # ("slc", slice(start, stop))
 
 def _parse_path(path: str) -> list:
     if not path.startswith("."):
         raise ValueError(f"Path must start with '.': {path}")
     segments = []
     for m in _PATH_RE.finditer(path):
-        if m.group(1) is not None:
-            segments.append(("dot", m.group(1)))
-        elif m.group(2) is not None:
-            segments.append(("idx", int(m.group(2))))
-        else:
-            start = int(m.group(3)) if m.group(3) else None
-            stop = int(m.group(4)) if m.group(4) else None
+        if m.group(1) is not None:          # .key
+            segments.append(("key", m.group(1)))
+        elif m.group(2) is not None:        # ["key"]
+            segments.append(("key", m.group(2)))
+        elif m.group(3) is not None:        # [int]
+            segments.append(("idx", int(m.group(3))))
+        else:                               # [start:stop]
+            start = int(m.group(4)) if m.group(4) else None
+            stop = int(m.group(5)) if m.group(5) else None
             segments.append(("slc", slice(start, stop)))
     if not segments:
         raise ValueError(f"Empty path: {path}")
@@ -174,7 +196,7 @@ def _navigate(data: dict, segments: list):
     """Navigate to the node addressed by segments."""
     node = data
     for kind, val in segments:
-        if kind == "dot":
+        if kind == "key":
             node = node[val]
         elif kind == "idx":
             node = node[val]
@@ -190,7 +212,7 @@ def _resolve_get(data: dict, segments: list):
 def _resolve_set(data: dict, segments: list, value):
     parent = _navigate(data, segments[:-1]) if len(segments) > 1 else data
     kind, val = segments[-1]
-    if kind == "dot":
+    if kind == "key":
         parent[val] = copy.deepcopy(value)
     elif kind == "idx":
         parent[val] = copy.deepcopy(value)
@@ -201,7 +223,7 @@ def _resolve_set(data: dict, segments: list, value):
 def _resolve_del(data: dict, segments: list):
     parent = _navigate(data, segments[:-1]) if len(segments) > 1 else data
     kind, val = segments[-1]
-    if kind == "dot":
+    if kind == "key":
         del parent[val]
     elif kind == "idx":
         del parent[val]
