@@ -923,50 +923,20 @@ def _build_frame(payload_value, input_route, vfs_state):
 
 
 def _collect_payload_frames(message, user_func):
-    """Collect response frames using VFS for metadata.
+    """Collect response frames using ABI dispatch for metadata."""
+    ctx = _AbiContext(message)
 
-    1. Populate VFS from message
-    2. Call handler with payload only
-    3. Snapshot VFS state (route.next, headers, status) for each frame
-    4. Shift route and build frames
-    5. Clear VFS
-    """
-    input_route = message["route"]
+    if inspect.isasyncgenfunction(user_func):
+        return asyncio.run(_drive_async_generator(user_func(message["payload"]), ctx))
 
-    _msg_vfs.populate(message)
+    if inspect.isgeneratorfunction(user_func):
+        return _drive_generator(user_func(message["payload"]), ctx)
 
-    try:
-        if inspect.isasyncgenfunction(user_func):
-
-            async def _collect_async():
-                frames = []
-                async for payload_value in user_func(message["payload"]):
-                    if isinstance(payload_value, dict) and payload_value.get("partial") is True:
-                        continue  # Skip partial events in batch mode
-                    vfs_state = _msg_vfs.snapshot()
-                    frames.append(_build_frame(payload_value, input_route, vfs_state))
-                return frames
-
-            return asyncio.run(_collect_async())
-
-        if inspect.isgeneratorfunction(user_func):
-            frames = []
-            for payload_value in user_func(message["payload"]):
-                if isinstance(payload_value, dict) and payload_value.get("partial") is True:
-                    continue  # Skip partial events in batch mode
-                vfs_state = _msg_vfs.snapshot()
-                frame = _build_frame(payload_value, input_route, vfs_state)
-                frames.append(frame)
-            return frames
-
-        result = _call_handler(user_func, message["payload"])
-        if result is None:
-            return []
-
-        vfs_state = _msg_vfs.snapshot()
-        return [_build_frame(result, input_route, vfs_state)]
-    finally:
-        _msg_vfs.clear()
+    # Function actor - no ABI access
+    result = _call_handler(user_func, message["payload"])
+    if result is None:
+        return []
+    return [_build_frame(result, ctx.input_route, ctx.snapshot())]
 
 
 def _handle_invoke(data: bytes, user_func) -> tuple:
@@ -1488,54 +1458,101 @@ class _InvokeHandler(http.server.BaseHTTPRequestHandler):
             self.send_error(404)
 
     def _stream_sse_response(self, message, user_func):
-        """Stream generator frames as SSE events."""
+        """Stream generator frames as SSE events using ABI dispatch."""
         self.send_response(200)
         self.send_header("Content-Type", "text/event-stream")
         self.send_header("Cache-Control", "no-cache")
         self.end_headers()
 
-        input_route = message["route"]
-        _msg_vfs.populate(message)
+        ctx = _AbiContext(message)
+
+        def on_fly(payload):
+            data = json.dumps({"payload": payload})
+            self.wfile.write(f"event: upstream\ndata: {data}\n\n".encode())
+            self.wfile.flush()
+
+        def on_emit(frame):
+            data = json.dumps(frame)
+            self.wfile.write(f"event: downstream\ndata: {data}\n\n".encode())
+            self.wfile.flush()
+
         try:
             if inspect.isasyncgenfunction(user_func):
-                asyncio.run(self._stream_async_gen(message, user_func, input_route))
+                asyncio.run(self._stream_sse_abi_async(message, user_func, ctx, on_fly, on_emit))
             else:
-                self._stream_sync_gen(message, user_func, input_route)
+                self._stream_sse_abi_sync(message, user_func, ctx, on_fly, on_emit)
         except Exception as exc:
             logger.exception("Error during SSE streaming")
             error_data = json.dumps(_error_response("processing_error", exc))
             self.wfile.write(f"event: error\ndata: {error_data}\n\n".encode())
             self.wfile.flush()
-        finally:
-            _msg_vfs.clear()
 
-    def _stream_sync_gen(self, message, user_func, input_route):
-        """Stream sync generator yields as SSE events."""
-        for payload_value in user_func(message["payload"]):
-            self._emit_sse_event(payload_value, input_route)
         self.wfile.write(b"event: done\ndata: {}\n\n")
         self.wfile.flush()
 
-    async def _stream_async_gen(self, message, user_func, input_route):
-        """Stream async generator yields as SSE events."""
-        async for payload_value in user_func(message["payload"]):
-            self._emit_sse_event(payload_value, input_route)
-        self.wfile.write(b"event: done\ndata: {}\n\n")
-        self.wfile.flush()
+    def _stream_sse_abi_sync(self, message, user_func, ctx, on_fly, on_emit):
+        """Drive sync generator for SSE, emitting events inline."""
+        gen = user_func(message["payload"])
+        send_val = None
+        while True:
+            try:
+                yielded = gen.send(send_val)
+            except StopIteration:
+                break
+            send_val = None
+            if yielded is None:
+                continue
+            elif isinstance(yielded, dict):
+                frame = _build_frame(yielded, ctx.input_route, ctx.snapshot())
+                on_emit(frame)
+            elif isinstance(yielded, tuple) and len(yielded) >= 2:
+                verb = yielded[0]
+                if verb == "FLY":
+                    on_fly(yielded[1])
+                elif verb == "GET":
+                    send_val = _resolve_get(ctx.data, _parse_path(yielded[1]))
+                elif verb == "SET" and len(yielded) >= 3:
+                    _check_set_access(yielded[1])
+                    _resolve_set(ctx.data, _parse_path(yielded[1]), yielded[2])
+                elif verb == "DEL":
+                    _check_del_access(yielded[1])
+                    _resolve_del(ctx.data, _parse_path(yielded[1]))
+                else:
+                    raise RuntimeError(f"ABI protocol error: unknown verb {verb!r}")
+            else:
+                raise RuntimeError(f"ABI protocol error: unexpected yield type {type(yielded).__name__}")
 
-    def _emit_sse_event(self, payload_value, input_route):
-        """Emit a single SSE event for a yielded value."""
-        if isinstance(payload_value, dict) and payload_value.get("partial") is True:
-            # Partial event — strip the marker and forward upstream to gateway
-            event_payload = {k: v for k, v in payload_value.items() if k != "partial"}
-            data = json.dumps({"payload": event_payload})
-            self.wfile.write(f"event: upstream\ndata: {data}\n\n".encode())
-        else:
-            vfs_state = _msg_vfs.snapshot()
-            frame = _build_frame(payload_value, input_route, vfs_state)
-            data = json.dumps(frame)
-            self.wfile.write(f"event: downstream\ndata: {data}\n\n".encode())
-        self.wfile.flush()
+    async def _stream_sse_abi_async(self, message, user_func, ctx, on_fly, on_emit):
+        """Drive async generator for SSE, emitting events inline."""
+        gen = user_func(message["payload"])
+        send_val = None
+        while True:
+            try:
+                yielded = await gen.asend(send_val)
+            except StopAsyncIteration:
+                break
+            send_val = None
+            if yielded is None:
+                continue
+            elif isinstance(yielded, dict):
+                frame = _build_frame(yielded, ctx.input_route, ctx.snapshot())
+                on_emit(frame)
+            elif isinstance(yielded, tuple) and len(yielded) >= 2:
+                verb = yielded[0]
+                if verb == "FLY":
+                    on_fly(yielded[1])
+                elif verb == "GET":
+                    send_val = _resolve_get(ctx.data, _parse_path(yielded[1]))
+                elif verb == "SET" and len(yielded) >= 3:
+                    _check_set_access(yielded[1])
+                    _resolve_set(ctx.data, _parse_path(yielded[1]), yielded[2])
+                elif verb == "DEL":
+                    _check_del_access(yielded[1])
+                    _resolve_del(ctx.data, _parse_path(yielded[1]))
+                else:
+                    raise RuntimeError(f"ABI protocol error: unknown verb {verb!r}")
+            else:
+                raise RuntimeError(f"ABI protocol error: unexpected yield type {type(yielded).__name__}")
 
     def _send_json(self, code, data):
         """Send a JSON response with the given HTTP status code."""
@@ -1548,10 +1565,7 @@ class _InvokeHandler(http.server.BaseHTTPRequestHandler):
 
 
 def _log_env_vars():
-    logger.info(
-        f"Asya Actor Runtime starting with handler: '{ASYA_HANDLER}' "
-        f"(msg_root: {ASYA_MSG_ROOT}, validation: {ASYA_ENABLE_VALIDATION})"
-    )
+    logger.info(f"Asya Actor Runtime starting with handler: '{ASYA_HANDLER}' (validation: {ASYA_ENABLE_VALIDATION})")
     if logger.isEnabledFor(logging.DEBUG):
         for name, value in os.environ.items():
             if name.startswith("ASYA_"):
@@ -1561,7 +1575,6 @@ def _log_env_vars():
 def handle_requests():
     """Main entry point, blocks forever."""
     _log_env_vars()
-    _install_msg_hooks()
 
     # Activate state proxy interception before loading handler
     state_proxy_mounts = os.environ.get("ASYA_STATE_PROXY_MOUNTS")
