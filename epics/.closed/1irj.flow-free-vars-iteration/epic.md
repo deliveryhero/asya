@@ -1,6 +1,7 @@
 ---
 title: Flow DSL Free Variables and Iteration
-status: slopped
+status: yeeted
+reason: won't do for simplicity reasons - in flow, state must be only in payload dict.
 priority: 2 # medium
 type: epic
 ---
