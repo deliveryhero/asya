@@ -381,40 +381,7 @@ spec:
 
 ## Visualization
 
-Flow compiler generates Graphviz diagrams:
-
-```
-┌────────────────┐=
-│  start_my_flow   │  (lightgreen)
-│  =============   │
-│  p["status"] =   │
-│    "processing"  │
-└────┘
-         │
-         ▼
-┌────────────────┐=
-│    preprocess    │  (lightblue)
-└────┘
-         │
-         ▼
-┌────────────────┐=
-│  router_line_5   │  (wheat)
-│  ==============  │
-│  if p["valid"]   │
-│  ┌=======,=======│
-│  │ TRUE  │FALSE ││
-└────┘│
-└────┘
-       │       │
-       ▼       ▼
-   handler_a handler_b
-       │       │
-       └────┘
-           ▼
-   ┌================
-   │  end_my_flow  │  (lightgreen)
-   └────┘
-```
+Flow compiler generates Graphviz diagrams - see examples in [examples/flows/compiled/](/examples/flows/compiled/).
 
 **Colors**:
 - Green: Start/End routers
