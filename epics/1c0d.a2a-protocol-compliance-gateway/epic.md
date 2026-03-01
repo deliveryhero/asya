@@ -6,6 +6,9 @@ type: epic
 
 UPD: need to use official client https://github.com/a2aproject/a2a-go
 UPD: see official support for open telemetry handlers: https://github.com/a2aproject/a2a-python/blob/main/src/a2a/utils/telemetry.py
+UPD: agent skills and model cards are defined declaratively in python at deployment time, see: https://github.com/a2aproject/a2a-samples/blob/main/samples/python/agents/helloworld/__main__.py -- in CLI (see .aint/epics/1jux.asya-lab) whenever user needs to expose the pipeline, CLI tool should read this code (or similar yaml file).
+UPD: note that `AgentExecutor` (https://a2a-protocol.org/latest/tutorials/python/4-agent-executor/) is basically replaced fully by Asya.
+UPD: See example https://a2a-protocol.org/latest/tutorials/python/4-agent-executor/#helloworld-agent-executor - should A2A `Message` be implemented as pause/resume communication through the entrypoint router agent, or it should be sent by the business logic worker similar to `yield "FLY", {...}` for streaming updates and then pause? I think low-level "FLY" capability of asya as Transport can be mapped to streaming/push/A2A-Message and other application-level capabilities of the protocols (based on the contents of the yielded event `{...}`).
 
 Transform asya-gateway from current /envelopes/* routes to A2A-compliant /messages and /tasks/* endpoints. This enables external agents to interact with Asya actor networks using the standard Agent2Agent protocol.
 
