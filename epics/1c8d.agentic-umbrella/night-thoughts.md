@@ -66,7 +66,7 @@ async def flow(state):  # <- flow must be SIMPLE, only awaits! all async for log
 
 
 # or as decorator:
-def actor_handler(func):
+def actor(func):
     @functools.wraps(func)
     async def wrapper(*args, **kwargs):
         gen = func(*args, **kwargs)
@@ -74,7 +74,7 @@ def actor_handler(func):
         return events[0]
     return wrapper
 
-@actor_handler
+@actor
 async def llm(state):
     # yield ...
     ...
@@ -130,7 +130,7 @@ class CheckerAgent_Actor:
     def __init__(self, agent: CheckerAgent):
         self._agent = agent
         
-    @actor_handler
+    @actor
     async def gen_adapter(state):  #<-- take adk agent, wrap it to use on asya
         foo = Foo(state["foo"])
         bar = Bar(state["bar"])
