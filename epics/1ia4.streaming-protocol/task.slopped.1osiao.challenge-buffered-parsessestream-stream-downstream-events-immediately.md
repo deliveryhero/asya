@@ -41,140 +41,129 @@ sidecar: it holds frame 1 in memory doing nothing while waiting for frame 2+.
 - Simple routers that yield 1-2 frames with no delay between them
 - Short-lived generators that complete in milliseconds
 
-## Design Challenges
+## Design Decisions
 
-### Challenge 1: Message ID assignment
+### Decision 1: Message ID assignment → Option B (first yield keeps ID)
 
-Current logic (router.go:620-632):
+**Decided**: First downstream yield keeps original `msg.ID`. Subsequent yields
+get `uuid4()` + `parent_id = msg.ID`. Sidecar tracks with a boolean
+`firstDownstreamSeen` flag.
 
-```go
-msgID := msg.ID
-var parentID *string
-if totalResponses > 1 && index > 0 {
-    msgID = uuid.New().String()
-    parentID = &msg.ID
-}
+**Why not Option A (all new UUIDs)**: Most actors yield a single frame. That
+single yield MUST preserve `message.id` for gateway progress correlation. The
+sidecar can't know at first-yield time whether more frames will follow.
+
+**Why not Option C (handler-assigned IDs)**: Message ID is sidecar
+infrastructure, not user concern. Making handlers do `yield "SET", ".id",
+uuid4()` for every fan-out message is fragile and error-prone.
+
+**Fan-out constraint**: Fan-out routers MUST yield index 0 (parent payload)
+first. This is already the case — the generated router code yields the parent
+before sub-agent slices.
+
+### Decision 2: Fan-out setup message ordering → safe, no change needed
+
+Streaming dispatch of fan-out frames is safe. The aggregator uses split-key
+S3 and detects completeness by listing — it's inherently order-independent.
+The parent payload (index 0) carries `slice_count` which is computed from
+the DSL before any yields.
+
+### Decision 3: Error handling mid-stream → document, accept
+
+Already-dispatched downstream frames cannot be recalled (same precedent as
+upstream events in 1ia4 RFC Section 4). For partial fan-outs, aggregator TTL
+via S3 lifecycle policy handles cleanup. The original message goes to DLQ.
+
+**Action**: Document these failure semantics clearly in the streaming protocol
+docs. Cover: partial fan-out (N of M slices dispatched, then error), single-
+frame handler error (frame dispatched, cleanup code fails), and interaction
+with retry logic.
+
+### Decision 4: Progress reporting → map `done` event to `StatusCompleted`
+
+**Question answered**: Yes, the runtime sends `event: done` to the sidecar
+when the generator is fully exhausted. This is the "I have finished" signal.
+
+**Key finding — the corner case doesn't exist**: In Python generators, `done`
+(which maps to `StopIteration`/`StopAsyncIteration`) fires AFTER all user
+code has executed, including code after the last yield:
+
+```python
+async def handler(state):
+    result = await llm_call(state)
+    state["result"] = result
+    yield state              # ← last yield, SSE downstream dispatched
+
+    await cleanup()          # ← runs BEFORE StopAsyncIteration
+    log("finished")          # ← runs BEFORE StopAsyncIteration
+    # implicit StopAsyncIteration when function returns
 ```
 
-The sidecar decides ID assignment based on `totalResponses` and `index`. With
-streaming dispatch, when the first frame arrives, the sidecar doesn't know
-whether more frames will follow. Options:
+Runtime code (`_stream_async_gen`, line 1316):
+```python
+async for payload_value in user_func(message["payload"]):
+    self._emit_sse_event(payload_value, input_route)
+# ↑ for-loop exits only after StopAsyncIteration (all user code done)
+self.wfile.write(b"event: done\ndata: {}\n\n")  # ← "I'm done"
+```
 
-**Option A: Always assign fresh UUIDs (all frames get new IDs)**
+The `async for` loop blocks between last yield and StopAsyncIteration while
+post-yield code runs. Only then does the runtime send `done`. So `done`
+already means "generator fully exhausted, ALL user code finished."
 
-Every downstream frame gets `id = uuid4()`, `parent_id = original_msg.id`.
-Including the first one. This breaks the current invariant that "first yield
-keeps original message.id", which fan-out depends on (ADR-3 in 1c7i RFC:
-index 0 keeps the original ID so the aggregator can restore it on the merged
-envelope).
+**Progress lifecycle with streaming dispatch**:
 
-Impact: Fan-out protocol (x-asya-fan-in) uses `origin_id` from the header,
-NOT from `message.id`. So the aggregator doesn't care about `message.id`.
-But gateway tracking uses `message.id` to correlate progress updates — if
-the first frame gets a new ID, the gateway loses the correlation.
+```
+Message arrives         → StatusReceived
+Before calling runtime  → StatusProcessing
+First downstream frame  → dispatch to queue (no progress change)
+  ... more frames ...   → dispatch to queue (no progress change)
+done event              → StatusCompleted (report to gateway + ack message)
+error event             → StatusFailed (report to gateway + route to x-sump)
+```
 
-**Option B: First yield keeps original ID, mark subsequent as children**
+**Micro-optimization (future)**: The batching idea (runtime waits ~1ms after
+last yield to batch with `done`) is worth noting for later. For 99% of cases,
+`done` follows the last yield with only microseconds of Python cleanup. The
+sidecar would send 1 HTTP request to gateway (`StatusCompleted`). For the 1%
+with expensive post-yield code, the sidecar would have already dispatched the
+frame, and the `done` event arrives later — 2 HTTP requests total. This is
+fine for now; the batching optimization can be added if profiling shows it
+matters.
 
-Keep current behavior: first downstream frame uses `msg.ID`, subsequent get
-`uuid4()` + `parent_id`. This works with streaming dispatch — just send each
-frame immediately as it arrives. The sidecar tracks whether it's seen the
-first downstream frame.
+**Message acknowledgment**: The sidecar should NOT ack the incoming queue
+message until `done` arrives. This ensures that if the sidecar/runtime crashes
+between dispatching a downstream frame and sending `done`, the original
+message is redelivered (and re-processed). Already-dispatched frames may
+produce duplicates downstream, but that's the same at-least-once guarantee
+as the rest of the system.
 
-Impact: This is a minimal change. A boolean flag `firstDownstreamSeen` in
-the SSE parsing loop suffices. But: what if the first frame is actually a
-fan-out index 1 (not the parent payload)? Currently the fan-out router is
-designed to yield index 0 first. If we mandate this ordering, Option B works.
+## Design Summary
 
-**Option C: Explicit ID assignment in the frame itself**
+**Streaming dispatch** (Option B + done-based completion):
 
-Frames carry their own `id` and `parent_id` fields. The runtime/router sets
-them, and the sidecar uses them as-is (no auto-assignment). This gives full
-control to the router/handler.
-
-Impact: Breaking change to the wire protocol. Currently the sidecar owns ID
-assignment. This would move ownership to the runtime.
-
-### Challenge 2: Fan-out setup message ordering
-
-Current fan-out protocol (from 1c7i RFC):
-- Index 0 (parent payload) is yielded first → sent to aggregator queue
-- Indices 1..N (sub-agent slices) yielded after → sent to sub-agent queues
-
-The parent payload carries `x-asya-fan-in.slice_count = N+1`. If dispatched
-immediately via streaming, the aggregator might receive the parent payload
-and attempt completeness detection before all sub-agent slices have even been
-dispatched.
-
-**Is this actually a problem?**
-
-No, because the aggregator detects completeness by listing S3 objects. Each
-slice writes to its own key. The parent payload arrives at the aggregator,
-writes `slice-0.json`, lists → sees only 1 of N+1 → not complete → returns
-None. When each sub-agent finishes and arrives at the aggregator, it writes
-its slice and checks again. The last arrival detects completeness.
-
-The parent payload knowing `slice_count` upfront is fine — the count is
-computed from the DSL before any yields. The only requirement is that the
-fan-out router yields the parent payload with the correct count, which it
-already does.
-
-**So streaming dispatch is safe for fan-out.** The parent payload can be
-dispatched immediately. Sub-agent slices can be dispatched as they're
-yielded. The aggregator is tolerant of arrival order.
-
-### Challenge 3: Error handling mid-stream
-
-If the generator errors after some downstream frames have already been
-dispatched (with streaming), those frames are now in queues and cannot be
-recalled. This is analogous to the existing upstream event semantics (Section
-4 of the 1ia4 RFC: "upstream events already forwarded are NOT recalled").
-
-For downstream frames, this is more concerning because dispatched frames
-trigger actual actor processing, not just UI updates. A partial fan-out
-(3 of 5 slices dispatched, then error) means the aggregator will never reach
-completeness.
-
-**Mitigation options**:
-- Aggregator TTL: S3 lifecycle policy already cleans up stale aggregation
-  state. The partial fan-out will time out and be cleaned up.
-- Error propagation: On error mid-stream, send an error message to the
-  aggregator or x-sump with the `origin_id`, allowing active cleanup.
-- No mitigation: Accept that partial fan-outs are a failure mode. The
-  original message is nacked/sent to DLQ. This is the current behavior for
-  any sidecar/runtime crash mid-processing.
-
-### Challenge 4: Progress reporting
-
-Currently `handleSuccessResponse` reports progress to the gateway only for
-`index == 0`. With streaming dispatch, the sidecar sends the first frame and
-reports "completed". But the generator is still running. Should progress be
-reported per-frame? Only on the last frame?
-
-**Option**: Report "processing" on first frame, "completed" when `done` event
-arrives. This decouples progress reporting from frame dispatch.
-
-## Proposed Direction
-
-**Minimal streaming dispatch** (Option B + safe fan-out):
-
-1. `parseSSEStream()` calls a dispatch callback for each downstream frame
-   instead of collecting into a slice
-2. First downstream frame keeps original `msg.ID`, subsequent get `uuid4()`
-3. Fan-out is safe because aggregator is order-independent
-4. Progress reported as "completed" only when `done` event arrives
-5. Mid-stream errors: already-dispatched frames proceed independently (same
-   semantics as upstream events)
+1. `parseSSEStream()` calls callbacks for each event instead of buffering
+2. First downstream frame: dispatch immediately with original `msg.ID`
+3. Subsequent downstream frames: dispatch with `uuid4()` + `parent_id`
+4. `upstream` events: forward to gateway (unchanged)
+5. `done` event: report `StatusCompleted` to gateway, ack incoming message
+6. `error` event: report failure, route to x-sump, do NOT ack (redelivery)
 
 The signature changes from:
 ```go
-func parseSSEStream(body, onUpstream) ([]RuntimeResponse, error)
+func (c *Client) CallRuntime(...) ([]RuntimeResponse, error)
 ```
 to:
 ```go
-func parseSSEStream(body, onUpstream, onDownstream) error
+func (c *Client) CallRuntime(..., onDownstream func(RuntimeResponse, int)) error
 ```
 
-Where `onDownstream` sends each frame to its queue immediately.
+Where `onDownstream(frame, index)` dispatches each frame to its queue
+immediately. The `int` index tracks yield position (0 = first = keeps ID).
+
+`handleRuntimeResponses()` is eliminated — its logic moves into the
+`onDownstream` callback and the `done`/`error` event handlers inside
+`parseSSEStream`.
 
 ## References
 
@@ -182,4 +171,7 @@ Where `onDownstream` sends each frame to its queue immediately.
   (ADR-3: origin_id, yield order, ID assignment)
 - Sidecar SSE parsing: `src/asya-sidecar/internal/runtime/client.go:150`
 - Router frame handling: `src/asya-sidecar/internal/router/router.go:259`
+- 1fbe epic: `.aint/epics/.closed/1fbe.redesign-protocol-sidecar-runtime/epic.md`
+  (SSE protocol design, `done` event definition)
 - 1ia4 RFC Section 4 (error handling for already-emitted events)
+- Runtime streaming: `src/asya-runtime/asya_runtime.py:1316` (`_stream_async_gen`)
