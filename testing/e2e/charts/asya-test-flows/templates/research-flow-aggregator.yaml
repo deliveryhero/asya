@@ -6,7 +6,7 @@
 # - Emits a merged message once all slices arrive
 # - Uses the state proxy sidecar for durable S3-backed state storage
 #
-# The aggregator accesses message metadata via VFS (/proc/asya/msg/)
+# The aggregator accesses message metadata via VFS (pending migration to ABI)
 # including the x-asya-fan-in header for fan-in coordination.
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor

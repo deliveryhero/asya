@@ -770,7 +770,7 @@ See [Flow Compiler Architecture](../architecture/asya-flow.md) for complete docu
 
 **Use case**: AI agents, LLM judges, conditional routing based on model outputs.
 
-Handlers can modify the route by writing to `/proc/asya/msg/route/next` via the VFS:
+Generator handlers can read and modify routing via the ABI yield protocol:
 
 ```python
 # llm_judge.py
@@ -779,30 +779,23 @@ class LLMJudge:
         self.model = load_llm("/models/judge")
         self.threshold = float(threshold)
 
-    def process(self, payload: dict) -> dict:
-        # Run LLM judge
+    def process(self, payload: dict):
         score = self.model.judge(payload["llm_response"])
         payload["judge_score"] = score
 
-        # Read current next actors from VFS
-        with open("/proc/asya/msg/route/next") as f:
-            import json
-            next_actors = json.load(f)
-
         if score < self.threshold:
-            # Low quality response - prepend refinement step
-            next_actors = ["llm-refiner"] + next_actors
-            with open("/proc/asya/msg/route/next", "w") as f:
-                json.dump(next_actors, f)
+            # Prepend refinement step via slice notation
+            yield "SET", ".route.next[:0]", ["llm-refiner"]
 
-        return payload
+        yield payload
 ```
 
 **Route modification rules**:
 
-- ✅ Can write to `/proc/asya/msg/route/next` to modify future actors
-- ❌ `/proc/asya/msg/route/prev` is read-only (already-processed actors)
-- ❌ `/proc/asya/msg/route/curr` is read-only (current actor name)
+- ✅ Can use `yield "SET", ".route.next", [...]` to modify future actors
+- ❌ `yield "GET", ".route.prev"` is read-only (already-processed actors)
+- ❌ `yield "GET", ".route.curr"` is read-only (current actor name)
+- ❌ `.route.prev` and `.route.curr` cannot be SET (PermissionError)
 
 ## Error Handling
 

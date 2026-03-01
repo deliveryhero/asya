@@ -1,12 +1,12 @@
 """Fan-out router test handler.
 
 Generates N+1 fan-out slices from a payload containing a 'topics' list.
-Uses the VFS (/proc/asya/msg/) to control routing for each slice and to
-embed the x-asya-fan-in header.
+This handler still uses the VFS (/proc/asya/msg/) to control routing and is
+pending migration to the ABI yield protocol.
 
 Generator protocol for fan-out with per-slice routing:
   Before each yield, writes VFS route/next and headers/x-asya-fan-in.
-  The runtime snapshots VFS state after each yield to build the frame route.
+  The runtime snapshots state after each yield to build the frame route.
   The sidecar uses the frame route to dispatch each slice independently.
 
 Slice 0 (index 0): parent payload, routed directly to aggregator.

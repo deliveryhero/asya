@@ -6,7 +6,7 @@ These handlers test stateful class handler functionality:
 - State preservation across requests (caching, counters)
 - Large payload handling with stateful processing
 - Deep module structures
-- VFS metadata access via /proc/asya/msg/ paths
+- Message metadata access (VFS, pending migration to ABI)
 
 Async class methods (async def process) represent the preferred pattern
 for AI workloads. __init__ is always synchronous.

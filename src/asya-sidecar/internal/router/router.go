@@ -601,8 +601,8 @@ func (r *Router) routeToFlowErrorHandler(ctx context.Context, msg *messages.Mess
 // handleSuccessResponse handles successful responses from runtime
 func (r *Router) handleSuccessResponse(ctx context.Context, msg *messages.Message, response runtime.RuntimeResponse, index, totalResponses int, runtimeDuration time.Duration) error {
 	// Runtime is responsible for shifting the route (prev/curr/next):
-	// - In payload mode: runtime auto-increments
-	// - In VFS mode: user handler writes to /proc/asya/msg/route/next
+	// - Default: runtime auto-shifts route
+	// - Via ABI: user handler yields SET ".route.next" with new actors
 	outputRoute := response.Route
 
 	if index == 0 && r.progressReporter != nil {
