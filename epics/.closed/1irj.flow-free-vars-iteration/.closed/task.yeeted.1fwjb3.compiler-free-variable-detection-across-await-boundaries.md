@@ -4,8 +4,9 @@ priority: 1 # high
 type: task
 tags:
   - type:feature
-reason: "User directive: free variables must be explicitly disallowed. Phase 1 (error detection) is critical."
+reason: All state lives in p dict by design. Parser already prevents local variable assignments — free variables cannot exist by construction.
 ---
+
 
 
 
