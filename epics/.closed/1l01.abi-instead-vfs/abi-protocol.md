@@ -299,8 +299,9 @@ Slice syntax is valid only in SET commands and only on list-typed fields:
 yield "SET", ".route.next[:0]", ["first", "second"]
 # Equivalent to: route_next[:0] = ["first", "second"]
 
-# Append via slice (alternative to full replacement)
-yield "SET", ".route.next[len:]", ["last"]
+# Appending requires read-modify-write (no slice shorthand)
+nxt = yield "GET", ".route.next"
+yield "SET", ".route.next", nxt + ["last"]
 
 # Replace a range
 yield "SET", ".route.next[1:3]", ["replacement"]
