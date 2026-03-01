@@ -140,4 +140,8 @@
          <loc>https://asya.sh/docs/quickstart/for-platform-engineers/</loc>
          <lastmod>2026-03-01</lastmod>
     </url>
+    <url>
+         <loc>https://asya.sh/docs/reference/flow-dsl/</loc>
+         <lastmod>2026-03-01</lastmod>
+    </url>
 </urlset>
