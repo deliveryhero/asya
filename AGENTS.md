@@ -111,8 +111,8 @@ class Processor:
 
 **Message Metadata**: Generator handlers access message metadata (route, headers, status)
 via the **yield-based ABI protocol**. Four verbs: GET, SET, DEL, FLY. Function handlers
-have no metadata access — use generators if needed. See the ABI spec at
-`.aint/epics/1l01.abi-instead-vfs/abi-protocol.md`.
+have no metadata access — use generators if needed. See
+`docs/reference/abi-protocol.md`.
 
 ```python
 # Read metadata

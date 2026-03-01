@@ -174,7 +174,7 @@ def router_flow_line_5_if(payload: dict):
 
 Routers are **generators** — they use ABI yield commands (GET/SET/DEL) to
 interact with message metadata. See the
-[ABI protocol specification](../../.aint/epics/1l01.abi-instead-vfs/abi-protocol.md)
+[ABI protocol specification](../reference/abi-protocol.md)
 for details.
 
 ### Handler resolution
@@ -232,5 +232,5 @@ default 100), `--overwrite`, `--verbose`.
 
 - [Flow DSL Reference](../reference/flow-dsl.md) — user-facing syntax,
   CPS execution model, deployment guide
-- [ABI Protocol](../../.aint/epics/1l01.abi-instead-vfs/abi-protocol.md) —
+- [ABI Protocol Reference](../reference/abi-protocol.md) —
   yield-based metadata access used by generated routers

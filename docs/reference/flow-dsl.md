@@ -556,5 +556,5 @@ retries, monitoring, and deployment. There is no special "router runtime"
 
 - [Flow Compiler Architecture](../architecture/asya-flow.md) — compiler
   internals: parser IR, grouper optimization, code generation
-- [ABI Protocol](../../.aint/epics/1l01.abi-instead-vfs/abi-protocol.md) —
+- [ABI Protocol Reference](abi-protocol.md) —
   yield-based metadata access used by generated routers and user handlers
