@@ -1,7 +1,9 @@
-def order_processing(p: dict) -> dict:
+def order_processing(state: dict) -> dict:
+    assert state.get("order_id"), "order_id is required"
+
     try:
-        p = validate_order(p)
+        state = validate_order(state)
     except ValueError:
-        p["status"] = "invalid"
-        p = notify_rejection(p)
-    return p
+        state["status"] = "invalid"
+        state = notify_rejection(state)
+    return state

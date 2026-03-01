@@ -21,71 +21,71 @@ Pipeline:
 """
 
 
-async def llm_auditor(p: dict) -> dict:
+async def llm_auditor(state: dict) -> dict:
     # Class instantiation
     scorer = QualityScorer()
 
     # Mutations: initialize audit state
-    p["iteration"] = 0
-    p["status"] = "started"
-    p["partial"] = True
+    state["iteration"] = 0
+    state["status"] = "started"
+    state["partial"] = True
 
     # Sequential async call: extract verifiable claims
-    p = await extract_claims(p)
+    state = await extract_claims(state)
 
     # Early return: nothing to audit
-    if not p.get("claims"):
-        p["status"] = "no_claims"
-        return p
+    if not state.get("claims"):
+        state["status"] = "no_claims"
+        return state
 
     # Main audit loop
     while True:
-        p["iteration"] += 1
+        state["iteration"] += 1
 
         # Try-except: resilient LLM generation
         try:
-            p = await llm_generate(p)
+            state = await llm_generate(state)
         except:
-            p = await fallback_generate(p)
+            state = await fallback_generate(state)
 
         # Fan-out: parallel scoring by two independent LLMs
-        p["scores"] = [
-            await accuracy_scorer(p["response"]),
-            await completeness_scorer(p["response"]),
+        state["scores"] = [
+            await accuracy_scorer(state["response"]),
+            await completeness_scorer(state["response"]),
         ]
 
         # Class method call: aggregate scores
-        p = await scorer.aggregate(p)
+        state = await scorer.aggregate(state)
 
         # Continue: marginal improvement, retry without revision
-        if p["aggregate_score"] > p.get("prev_score", 0) and p["aggregate_score"] < 70:
-            p["prev_score"] = p["aggregate_score"]
+        if state["aggregate_score"] > state.get("prev_score", 0) and state["aggregate_score"] < 70:
+            state["prev_score"] = state["aggregate_score"]
             continue
 
         # Conditional exit: high quality
-        if p["aggregate_score"] >= 90:
-            p["status"] = "approved"
-            return p
-        elif p["aggregate_score"] >= 70:
+        if state["aggregate_score"] >= 90:
+            state["status"] = "approved"
+            return state
+        elif state["aggregate_score"] >= 70:
             # Moderate quality: standard revision
-            p = await critique(p)
-            p = await reviser(p)
+            state = await critique(state)
+            state = await reviser(state)
         else:
             # Low quality: deep revision
-            p = await critique(p)
-            p = await deep_reviser(p)
+            state = await critique(state)
+            state = await deep_reviser(state)
 
         # Break: max iterations safeguard
-        if p["iteration"] >= p.get("max_iterations", 5):
-            p["status"] = "max_iterations"
+        if state["iteration"] >= state.get("max_iterations", 5):
+            state["status"] = "max_iterations"
             break
 
-        p["prev_score"] = p["aggregate_score"]
+        state["prev_score"] = state["aggregate_score"]
 
     # Post-loop finalization
-    p["partial"] = False
-    p = await finalize(p)
-    return p
+    state["partial"] = False
+    state = await finalize(state)
+    return state
 
 
 # --- Handler stubs (deployed as separate AsyncActors) ---

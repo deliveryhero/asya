@@ -6,23 +6,23 @@ collected into p["results"] by the fan-in aggregator.
 """
 
 
-def research_flow(p: dict) -> dict:
-    p = preprocessor(p)
-    p["results"] = [research_agent(t) for t in p["topics"]]
-    p = post_processor(p)
-    return p
+def research_flow(state: dict) -> dict:
+    state = preprocessor(state)
+    state["results"] = [research_agent(t) for t in state["topics"]]
+    state = post_processor(state)
+    return state
 
 
-def preprocessor(p: dict) -> dict:
+def preprocessor(state: dict) -> dict:
     """Prepare topics for research."""
-    return p
+    return state
 
 
-def research_agent(topic: dict) -> dict:
+def research_agent(state: dict) -> dict:
     """Research a single topic."""
-    return topic
+    return state
 
 
-def post_processor(p: dict) -> dict:
+def post_processor(state: dict) -> dict:
     """Merge and summarize research results."""
-    return p
+    return state

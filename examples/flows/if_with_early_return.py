@@ -1,35 +1,19 @@
 """
 Early return in conditional.
 
-Tests early exit pattern for error handling.
+Tests early exit pattern with assert guard and module-level imports.
 """
 
-
-def early_return_flow(p: dict) -> dict:
-    p = handler_validate(p)
-    if not p["valid"]:
-        p = handler_error(p)
-        return p
-    p = handler_process(p)
-    p = handler_finalize(p)
-    return p
+from my_handlers import handler_validate, handler_process, handler_finalize
 
 
-def handler_validate(p: dict) -> dict:
-    """Validation handler."""
-    return p
+def early_return_flow(ctx: dict) -> dict:
+    assert ctx.get("user_id"), "user_id is required"
 
-
-def handler_error(p: dict) -> dict:
-    """Error handler."""
-    return p
-
-
-def handler_process(p: dict) -> dict:
-    """Process handler."""
-    return p
-
-
-def handler_finalize(p: dict) -> dict:
-    """Finalize handler."""
-    return p
+    ctx = handler_validate(ctx)
+    if not ctx["valid"]:
+        ctx["error"] = "validation_failed"
+        return ctx
+    ctx = handler_process(ctx)
+    ctx = handler_finalize(ctx)
+    return ctx
