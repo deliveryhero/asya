@@ -356,7 +356,7 @@ The compiler generates both a fan-out and a corresponding fan-in router to handl
 | `for x in items:` | `for` loops not yet supported | Use `while` with an index |
 | `result = a(b(state))` | Nested calls not allowed | Assign to state sequentially |
 | `x, y = handler(state)` | Multiple assignment targets | Use single state variable |
-| `MyClass(param=value)` | Class args must be defaults | Set defaults in class definition |
+| `MyClass(param=value)` | Instantiation with arguments not supported | Instantiate with `MyClass()` and rely on default `__init__` arguments. |
 | `yield` / `yield from` | Flows don't produce events | Use ABI yields inside actor handlers |
 | `import` / `global` | Flows are pure control flow | Put logic in actor handlers |
 
