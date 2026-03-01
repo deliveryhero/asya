@@ -21,9 +21,8 @@ from asya_cli.flow.ir import (
 )
 
 
-# Parameter names accepted in flow function signatures.
-# The canonical name used in generated code is "p".
-VALID_PARAM_NAMES = ("p", "payload", "state")
+# The canonical parameter name used in generated code is "p".
+# Any single-parameter name is accepted and normalized to "p" during parsing.
 
 # Function definition types (sync and async)
 _FUNC_DEF_TYPES = (ast.FunctionDef, ast.AsyncFunctionDef)
@@ -97,7 +96,9 @@ class FlowParser:
         if len(func.args.args) != 1:
             return False
         arg = func.args.args[0]
-        if arg.arg not in VALID_PARAM_NAMES:
+        if arg.annotation is None:
+            return False
+        if ast.unparse(arg.annotation) != "dict":
             return False
         return bool(func.returns)
 
@@ -123,6 +124,12 @@ class FlowParser:
             raise FlowCompileError(
                 f"{self.filename}:{stmt.lineno}: 'for' loops are not supported. Use 'while' loops instead"
             )
+        elif isinstance(stmt, ast.AsyncFor):
+            raise FlowCompileError(
+                f"{self.filename}:{stmt.lineno}: 'async for' is not supported in flow definitions. "
+                f"Streaming events are transport-level and cannot flow through message queues. "
+                f"Use 'state = await actor(state)' for actor calls."
+            )
         elif isinstance(stmt, ast.Return):
             return [Return(lineno=stmt.lineno)]
         elif isinstance(stmt, ast.Pass):
@@ -137,8 +144,16 @@ class FlowParser:
             return [Continue(lineno=stmt.lineno)]
         elif isinstance(stmt, ast.Raise):
             return self._parse_raise(stmt)
+        elif isinstance(stmt, ast.Assert):
+            code = ast.unparse(stmt)
+            return [Mutation(lineno=stmt.lineno, code=code)]
         elif isinstance(stmt, ast.Expr):
             return self._parse_expr(stmt)
+        elif isinstance(stmt, ast.Import | ast.ImportFrom):
+            raise FlowCompileError(
+                f"{self.filename}:{stmt.lineno}: imports are not allowed inside flow functions. "
+                f"Place imports at the module level, before the flow function definition."
+            )
         else:
             raise FlowCompileError(f"{self.filename}:{stmt.lineno}: Unsupported statement type: {type(stmt).__name__}")
 
@@ -148,7 +163,7 @@ class FlowParser:
 
         target = stmt.targets[0]
 
-        if isinstance(target, ast.Name) and target.id in ("p", "payload"):
+        if isinstance(target, ast.Name) and target.id == "p":
             # Assignment to p: must be actor call (possibly wrapped in await)
             value = stmt.value
             if isinstance(value, ast.Await):
@@ -344,7 +359,11 @@ class FlowParser:
         """Handle bare expression statements with descriptive errors."""
         value = stmt.value
         if isinstance(value, ast.Yield | ast.YieldFrom):
-            raise FlowCompileError(f"{self.filename}:{stmt.lineno}: 'yield' is not supported in flow definitions")
+            raise FlowCompileError(
+                f"{self.filename}:{stmt.lineno}: 'yield' is not supported in flow definitions. "
+                f"Flows compile to router actors that use 'yield' internally for ABI commands. "
+                f"Generator logic (streaming, ABI) belongs inside actor handlers, not flows."
+            )
         if isinstance(value, ast.Await):
             raise FlowCompileError(
                 f"{self.filename}:{stmt.lineno}: standalone 'await' is not supported; "
