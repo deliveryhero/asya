@@ -793,18 +793,20 @@ func (r *Router) ProcessMessage(ctx context.Context, queueMsg transport.QueueMes
 	var (
 		downstreamCount int
 		dispatchErr     error
+		streamHalted    bool
 	)
 
 	runtimeStart := time.Now()
 
 	onDownstream := func(frame runtime.RuntimeResponse, index int) {
-		if dispatchErr != nil {
+		if dispatchErr != nil || streamHalted {
 			return
 		}
 		downstreamCount++
 
 		if frame.IsError() {
 			dispatchErr = r.handleErrorResponse(ctx, msg, frame, startTime)
+			streamHalted = true
 			return
 		}
 
@@ -814,6 +816,7 @@ func (r *Router) ProcessMessage(ctx context.Context, queueMsg transport.QueueMes
 				r.metrics.RecordProcessingDuration(r.actorName, time.Since(startTime))
 			}
 			dispatchErr = fmt.Errorf("failed to route response %d: %w", index, err)
+			streamHalted = true
 		}
 	}
 
