@@ -161,8 +161,13 @@ func (r *Router) processEndActorMessage(ctx context.Context, msg messages.Messag
 	// They typically return empty dict {}, which is ignored by the sidecar.
 
 	// Send to runtime without route validation (end actors don't forward upstream events)
+	var resultPayload json.RawMessage
 	runtimeStart := time.Now()
-	responses, err := r.runtimeClient.CallRuntime(ctx, msgBody, r.effectiveTimeout(&msg), nil)
+	err := r.runtimeClient.CallRuntime(ctx, msgBody, r.effectiveTimeout(&msg), nil, func(frame runtime.RuntimeResponse, index int) {
+		if index == 0 && len(frame.Payload) > 0 {
+			resultPayload = frame.Payload
+		}
+	})
 	runtimeDuration := time.Since(runtimeStart)
 
 	if r.metrics != nil {
@@ -201,14 +206,8 @@ func (r *Router) processEndActorMessage(ctx context.Context, msg messages.Messag
 		r.metrics.RecordProcessingDuration(r.actorName, time.Since(startTime))
 	}
 
-	// Extract result payload from runtime response
-	// End handlers should return empty dict, so we use the original message payload as result
-	var resultPayload json.RawMessage
-	if len(responses) > 0 && len(responses[0].Payload) > 0 {
-		// Runtime returned a payload, use it
-		resultPayload = responses[0].Payload
-	} else {
-		// Runtime returned empty/null, use original message payload as result
+	// Use original message payload if runtime returned empty/null
+	if len(resultPayload) == 0 {
 		resultPayload = msg.Payload
 	}
 
@@ -254,43 +253,6 @@ func (r *Router) parseAndValidateMessage(ctx context.Context, msgBody []byte, st
 
 	slog.Info("Message parsed and validated", "id", msg.ID, "route", msg.Route)
 	return &msg, nil
-}
-
-// handleRuntimeResponses processes runtime responses and routes them to appropriate destinations
-func (r *Router) handleRuntimeResponses(ctx context.Context, msg *messages.Message, responses []runtime.RuntimeResponse, _ []byte, runtimeDuration time.Duration, startTime time.Time) error {
-	if len(responses) == 0 {
-		slog.Info("Empty response from runtime, routing to x-sink", "id", msg.ID)
-
-		if r.metrics != nil {
-			r.metrics.RecordMessageProcessed(r.actorName, "empty_response")
-			r.metrics.RecordProcessingDuration(r.actorName, time.Since(startTime))
-		}
-
-		return r.sendToSinkQueue(ctx, *msg)
-	}
-
-	for i, response := range responses {
-		slog.Debug("Processing response", "index", i+1, "total", len(responses))
-
-		if response.IsError() {
-			return r.handleErrorResponse(ctx, msg, response, startTime)
-		}
-
-		if err := r.handleSuccessResponse(ctx, msg, response, i, len(responses), runtimeDuration); err != nil {
-			if r.metrics != nil {
-				r.metrics.RecordMessageFailed(r.actorName, "routing_error")
-				r.metrics.RecordProcessingDuration(r.actorName, time.Since(startTime))
-			}
-			return fmt.Errorf("failed to route response %d: %w", i, err)
-		}
-	}
-
-	if r.metrics != nil {
-		r.metrics.RecordMessageProcessed(r.actorName, "success")
-		r.metrics.RecordProcessingDuration(r.actorName, time.Since(startTime))
-	}
-
-	return nil
 }
 
 // handleErrorResponse handles error responses from runtime with retry logic.
@@ -599,7 +561,7 @@ func (r *Router) routeToFlowErrorHandler(ctx context.Context, msg *messages.Mess
 }
 
 // handleSuccessResponse handles successful responses from runtime
-func (r *Router) handleSuccessResponse(ctx context.Context, msg *messages.Message, response runtime.RuntimeResponse, index, totalResponses int, runtimeDuration time.Duration) error {
+func (r *Router) handleSuccessResponse(ctx context.Context, msg *messages.Message, response runtime.RuntimeResponse, index int, runtimeDuration time.Duration) error {
 	// Runtime is responsible for shifting the route (prev/curr/next):
 	// - Default: runtime auto-shifts route
 	// - Via ABI: user handler yields SET ".route.next" with new actors
@@ -619,7 +581,7 @@ func (r *Router) handleSuccessResponse(ctx context.Context, msg *messages.Messag
 
 	msgID := msg.ID
 	var parentID *string
-	if totalResponses > 1 && index > 0 {
+	if index > 0 {
 		msgID = uuid.New().String()
 		parentID = &msg.ID
 		slog.Debug("Fan-out: generated unique message ID", "original", msg.ID, "fanout", msgID, "index", index)
@@ -828,15 +790,41 @@ func (r *Router) ProcessMessage(ctx context.Context, queueMsg transport.QueueMes
 		return r.handleSLAExpiry(ctx, *msg, startTime)
 	}
 
-	slog.Info("Calling runtime", "id", msg.ID, "actor", r.cfg.ActorName)
+	var (
+		downstreamCount int
+		dispatchErr     error
+	)
+
 	runtimeStart := time.Now()
-	responses, err := r.runtimeClient.CallRuntime(ctx, updatedBody, timeout, onUpstream)
+
+	onDownstream := func(frame runtime.RuntimeResponse, index int) {
+		if dispatchErr != nil {
+			return
+		}
+		downstreamCount++
+
+		if frame.IsError() {
+			dispatchErr = r.handleErrorResponse(ctx, msg, frame, startTime)
+			return
+		}
+
+		if err := r.handleSuccessResponse(ctx, msg, frame, index, time.Since(runtimeStart)); err != nil {
+			if r.metrics != nil {
+				r.metrics.RecordMessageFailed(r.actorName, "routing_error")
+				r.metrics.RecordProcessingDuration(r.actorName, time.Since(startTime))
+			}
+			dispatchErr = fmt.Errorf("failed to route response %d: %w", index, err)
+		}
+	}
+
+	slog.Info("Calling runtime", "id", msg.ID, "actor", r.cfg.ActorName)
+	err = r.runtimeClient.CallRuntime(ctx, updatedBody, timeout, onUpstream, onDownstream)
 	runtimeDuration := time.Since(runtimeStart)
 
 	if err != nil {
 		slog.Info("Runtime call failed", "id", msg.ID, "duration", runtimeDuration, "error", err)
 	} else {
-		slog.Info("Runtime call completed", "id", msg.ID, "duration", runtimeDuration, "responses", len(responses))
+		slog.Info("Runtime call completed", "id", msg.ID, "duration", runtimeDuration, "frames", downstreamCount)
 	}
 
 	if r.metrics != nil {
@@ -844,49 +832,75 @@ func (r *Router) ProcessMessage(ctx context.Context, queueMsg transport.QueueMes
 	}
 
 	if err != nil {
-		// Generator handlers signal errors via SSE error events, which the
-		// runtime client wraps as *RuntimeError. Convert these back into a
-		// normal error response so that retry/MRO logic in handleErrorResponse
-		// applies consistently for both function and generator handlers.
-		var runtimeErr *runtime.RuntimeError
-		if errors.As(err, &runtimeErr) {
-			slog.Info("Runtime handler error (SSE)", "id", msg.ID, "error", runtimeErr.Response.Error)
-			return r.handleRuntimeResponses(ctx, msg, []runtime.RuntimeResponse{runtimeErr.Response}, queueMsg.Body, runtimeDuration, startTime)
-		}
-
-		slog.Error("Runtime calling error", "error", err)
-
-		if r.metrics != nil {
-			r.metrics.RecordMessageProcessed(r.actorName, "error")
-			r.metrics.RecordMessageFailed(r.actorName, "runtime_error")
-			r.metrics.RecordRuntimeError(r.actorName, "execution_error")
-			r.metrics.RecordProcessingDuration(r.actorName, time.Since(startTime))
-		}
-
-		// Check for timeout to provide better error message
-		isTimeout := errors.Is(err, context.DeadlineExceeded) || errors.Is(err, os.ErrDeadlineExceeded)
-		errorMsg := err.Error()
-		if isTimeout {
-			slog.Error("Runtime timeout exceeded - crashing pod to recover",
-				"timeout", r.cfg.Timeout, "message", msg.ID)
-			errorMsg = fmt.Sprintf("Runtime timeout exceeded after %s", r.cfg.Timeout)
-
-			if err := r.sendToSumpQueue(ctx, queueMsg.Body, errorMsg); err != nil {
-				slog.Error("Failed to send timeout error to error queue - exiting anyway", "error", err)
-			}
-
-			slog.Error("Exiting to prevent zombie processing (runtime may still be working)")
-			os.Exit(1)
-		}
-
-		if err := r.sendToSumpQueue(ctx, queueMsg.Body, errorMsg); err != nil {
-			slog.Error("Failed to send runtime error to error queue - will requeue for DLQ handling", "error", err)
-			return fmt.Errorf("failed to send runtime error to error queue: %w", err)
-		}
-		return nil
+		return r.handleRuntimeCallError(ctx, msg, err, queueMsg.Body, startTime)
 	}
 
-	return r.handleRuntimeResponses(ctx, msg, responses, queueMsg.Body, runtimeDuration, startTime)
+	// Check for dispatch errors from the callback
+	if dispatchErr != nil {
+		return dispatchErr
+	}
+
+	// Handle empty response (no downstream frames)
+	if downstreamCount == 0 {
+		slog.Info("Empty response from runtime, routing to x-sink", "id", msg.ID)
+		if r.metrics != nil {
+			r.metrics.RecordMessageProcessed(r.actorName, "empty_response")
+			r.metrics.RecordProcessingDuration(r.actorName, time.Since(startTime))
+		}
+		return r.sendToSinkQueue(ctx, *msg)
+	}
+
+	// All frames dispatched successfully
+	if r.metrics != nil {
+		r.metrics.RecordMessageProcessed(r.actorName, "success")
+		r.metrics.RecordProcessingDuration(r.actorName, time.Since(startTime))
+	}
+	return nil
+}
+
+// handleRuntimeCallError handles errors returned by CallRuntime, including SSE
+// handler errors (*RuntimeError), infrastructure errors, and timeouts.
+func (r *Router) handleRuntimeCallError(ctx context.Context, msg *messages.Message, err error, originalBody []byte, startTime time.Time) error {
+	// Generator handlers signal errors via SSE error events, which the
+	// runtime client wraps as *RuntimeError. Convert these back into a
+	// normal error response so that retry/MRO logic in handleErrorResponse
+	// applies consistently for both function and generator handlers.
+	var runtimeErr *runtime.RuntimeError
+	if errors.As(err, &runtimeErr) {
+		slog.Info("Runtime handler error (SSE)", "id", msg.ID, "error", runtimeErr.Response.Error)
+		return r.handleErrorResponse(ctx, msg, runtimeErr.Response, startTime)
+	}
+
+	slog.Error("Runtime calling error", "error", err)
+
+	if r.metrics != nil {
+		r.metrics.RecordMessageProcessed(r.actorName, "error")
+		r.metrics.RecordMessageFailed(r.actorName, "runtime_error")
+		r.metrics.RecordRuntimeError(r.actorName, "execution_error")
+		r.metrics.RecordProcessingDuration(r.actorName, time.Since(startTime))
+	}
+
+	// Check for timeout to provide better error message
+	isTimeout := errors.Is(err, context.DeadlineExceeded) || errors.Is(err, os.ErrDeadlineExceeded)
+	errorMsg := err.Error()
+	if isTimeout {
+		slog.Error("Runtime timeout exceeded - crashing pod to recover",
+			"timeout", r.cfg.Timeout, "message", msg.ID)
+		errorMsg = fmt.Sprintf("Runtime timeout exceeded after %s", r.cfg.Timeout)
+
+		if err := r.sendToSumpQueue(ctx, originalBody, errorMsg); err != nil {
+			slog.Error("Failed to send timeout error to error queue - exiting anyway", "error", err)
+		}
+
+		slog.Error("Exiting to prevent zombie processing (runtime may still be working)")
+		os.Exit(1)
+	}
+
+	if err := r.sendToSumpQueue(ctx, originalBody, errorMsg); err != nil {
+		slog.Error("Failed to send runtime error to error queue - will requeue for DLQ handling", "error", err)
+		return fmt.Errorf("failed to send runtime error to error queue: %w", err)
+	}
+	return nil
 }
 
 // routeResponse routes a single response to the appropriate queue
