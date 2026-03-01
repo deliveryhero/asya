@@ -345,10 +345,7 @@ state["results"] = [
 state = await merge_results(state)
 ```
 
-The compiler generates a fan-out router that emits N+1 messages: one
-parent payload forwarded to the aggregator, and N slice payloads sent to
-individual actors. The aggregator collects all slices before forwarding
-the merged result.
+The compiler generates both a fan-out and a corresponding fan-in router to handle this. The fan-out router dispatches work to `analyzer_a`, `analyzer_b`, `and analyzer_c` in parallel. A hidden fan-in router then acts as an aggregator, collecting the results from all analyzers and placing them into `state["results"]`. Once all results are collected, the flow proceeds to the next step, `await merge_results(state)`, which can then operate on the aggregated data.
 
 ---
 
