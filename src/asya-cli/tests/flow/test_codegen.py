@@ -880,3 +880,84 @@ def flow(p: dict) -> dict:
             ast.parse(code)
         except SyntaxError as e:
             pytest.fail(f"Generated code for while-inside-if is not valid Python: {e}")
+
+
+class TestDotGeneratorAssertErrorEdge:
+    """Test that DotGenerator adds AssertionError edges for routers with assert mutations."""
+
+    def test_assert_mutation_creates_error_node(self):
+        from asya_cli.flow.dotgen import DotGenerator
+
+        routers = [
+            Router(
+                name="start_flow",
+                lineno=0,
+                mutations=[Mutation(lineno=1, code="assert p['x'], 'x required'")],
+                true_branch_actors=["handler_a", "end_flow"],
+            ),
+            Router(name="end_flow", lineno=999),
+        ]
+        dot = DotGenerator("flow", routers).generate()
+
+        assert "assert_error" in dot
+        assert 'label="error"' in dot
+        assert "shape=octagon" in dot
+
+    def test_assert_mutation_creates_assertion_error_edge(self):
+        from asya_cli.flow.dotgen import DotGenerator
+
+        routers = [
+            Router(
+                name="start_flow",
+                lineno=0,
+                mutations=[Mutation(lineno=1, code="assert p['x'], 'x required'")],
+                true_branch_actors=["handler_a", "end_flow"],
+            ),
+            Router(name="end_flow", lineno=999),
+        ]
+        dot = DotGenerator("flow", routers).generate()
+
+        assert "start_flow -> assert_error" in dot
+        assert "AssertionError" in dot
+        assert "dashed" in dot
+
+    def test_no_assert_mutation_no_error_node(self):
+        from asya_cli.flow.dotgen import DotGenerator
+
+        routers = [
+            Router(
+                name="start_flow",
+                lineno=0,
+                mutations=[Mutation(lineno=1, code="p['status'] = 'ok'")],
+                true_branch_actors=["end_flow"],
+            ),
+            Router(name="end_flow", lineno=999),
+        ]
+        dot = DotGenerator("flow", routers).generate()
+
+        assert "assert_error" not in dot
+        assert "AssertionError" not in dot
+
+    def test_multiple_routers_with_assert_share_error_node(self):
+        from asya_cli.flow.dotgen import DotGenerator
+
+        routers = [
+            Router(
+                name="start_flow",
+                lineno=0,
+                mutations=[Mutation(lineno=1, code="assert p['a']")],
+                true_branch_actors=["router_flow_line_3_seq", "end_flow"],
+            ),
+            Router(
+                name="router_flow_line_3_seq",
+                lineno=3,
+                mutations=[Mutation(lineno=3, code="assert p['b']")],
+                true_branch_actors=["end_flow"],
+            ),
+            Router(name="end_flow", lineno=999),
+        ]
+        dot = DotGenerator("flow", routers).generate()
+
+        assert dot.count('label="error"') == 1
+        assert "start_flow -> assert_error" in dot
+        assert "router_flow_line_3_seq -> assert_error" in dot

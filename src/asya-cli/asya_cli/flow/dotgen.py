@@ -44,6 +44,7 @@ class DotGenerator:
         self._try_clusters: list[_TryCluster] = []
         self._cluster_membership: dict[str, str] = {}
         self._raise_exit_nodes: dict[str, str] = {}  # cluster_name → raise_exit node name
+        self._routers_with_assert: set[str] = set()  # routers that contain assert mutations
         self._color_error_control_flow = "snow4"
         self._color_true_branch = "darkseagreen4"
         self._color_false_branch = "indianred4"
@@ -92,9 +93,18 @@ class DotGenerator:
             return f"{prefix}{display_name[:max_len]}{cut}({pn})"
         return full_text
 
+    def _build_assert_info(self) -> None:
+        """Detect routers containing assert mutations for error-edge visualization."""
+        for router in self.routers:
+            if router.name in self._hidden_routers:
+                continue
+            if any(m.code.startswith("assert ") for m in router.mutations):
+                self._routers_with_assert.add(router.name)
+
     def generate(self) -> str:
         self._collect_actors()
         self._build_try_info()
+        self._build_assert_info()
 
         parts = []
         parts.append("digraph flow {")
@@ -131,6 +141,14 @@ class DotGenerator:
                 f' label="raise"];'
             )
 
+        # Assert error pseudo-node (shared terminal for assertion failures → x-sump)
+        if self._routers_with_assert:
+            parts.append(
+                '  assert_error [shape=octagon, fillcolor="mistyrose",'
+                ' fontcolor="crimson", style=filled,'
+                ' label="error"];'
+            )
+
         # Try clusters (subgraph blocks with contained node definitions)
         for cluster in self._try_clusters:
             parts.extend(self._generate_try_cluster(cluster))
@@ -145,6 +163,14 @@ class DotGenerator:
                     all_edges.update(self._generate_try_block_edges(router))
                 continue
             all_edges.update(self._generate_edges(router))
+
+        # Assert error edges (dashed edges from assert-bearing routers to error node)
+        for router_name in self._routers_with_assert:
+            all_edges.add(
+                f"  {self._node_id(router_name)} -> assert_error"
+                f" [color={self._color_raise}, style=dashed,"
+                f' label="AssertionError"];'
+            )
 
         if all_edges:
             for edge in sorted(all_edges):
