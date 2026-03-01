@@ -183,9 +183,15 @@ echo
 # (registry:2), push freshly-built function images to it, and point the Crossplane
 # Function CRD at the registry's cluster-internal IP. This lets E2E tests run on the
 # same function-asya-overlays code that was just built, matching how other images work.
+#
+# Crossplane's OCI client (go-containerregistry) uses HTTPS by default. A plain HTTP
+# registry at a private IP fails silently. We generate a self-signed TLS cert so the
+# registry serves HTTPS, configure Docker to trust it for push, and configure
+# Crossplane via registryCaBundleConfig to trust the CA for pull.
 REGISTRY_NAME="${REGISTRY_NAME:-asya-e2e-registry}"
 REGISTRY_HOST_PORT=5001
 OVERLAYS_REPOSITORY=""
+REGISTRY_CERTS_DIR=$(mktemp -d)
 
 echo "[.] Phase 3: Loading images into Kind cluster..."
 time {
@@ -203,27 +209,73 @@ time {
     LOAD_PIDS+=($!)
   done
 
-  # Set up local OCI registry for Crossplane Function packages.
-  # Crossplane's package manager has its own OCI client that runs inside a pod,
-  # so it can't use containerd's image store. The registry container sits on the
-  # Kind Docker network; pods reach it via the container's bridge IP.
+  # Set up local OCI registry with TLS for Crossplane Function packages.
+  # Crossplane's package manager runs inside a pod and uses HTTPS by default,
+  # so the registry must serve TLS. We generate a self-signed CA + server cert
+  # for the registry's bridge IP.
   echo "[.] Setting up local OCI registry for Crossplane functions..."
   docker rm -f "$REGISTRY_NAME" 2> /dev/null || true
+
+  # Start registry first to get its IP on the Kind network
   docker run -d --restart=always -p "${REGISTRY_HOST_PORT}:5000" \
     --name "$REGISTRY_NAME" registry:2 > /dev/null
   docker network connect kind "$REGISTRY_NAME" 2> /dev/null || true
-
-  docker tag "function-asya-overlays:latest" \
-    "localhost:${REGISTRY_HOST_PORT}/function-asya-overlays:latest"
-  docker push "localhost:${REGISTRY_HOST_PORT}/function-asya-overlays:latest" > /dev/null
 
   REGISTRY_IP=$(docker inspect -f '{{.NetworkSettings.Networks.kind.IPAddress}}' "$REGISTRY_NAME")
   if [ -z "$REGISTRY_IP" ]; then
     echo "[-] Failed to get IP address for local registry container '$REGISTRY_NAME'"
     exit 1
   fi
+
+  # Generate self-signed TLS cert for the registry's bridge IP
+  echo "[.] Generating TLS certificate for registry at ${REGISTRY_IP}..."
+  openssl req -new -x509 -days 1 -nodes -newkey rsa:2048 \
+    -keyout "$REGISTRY_CERTS_DIR/ca.key" -out "$REGISTRY_CERTS_DIR/ca.crt" \
+    -subj "/CN=E2E Registry CA" 2> /dev/null
+  openssl req -new -nodes -newkey rsa:2048 \
+    -keyout "$REGISTRY_CERTS_DIR/server.key" -out "$REGISTRY_CERTS_DIR/server.csr" \
+    -subj "/CN=${REGISTRY_IP}" \
+    -addext "subjectAltName=IP:${REGISTRY_IP}" 2> /dev/null
+  openssl x509 -req -in "$REGISTRY_CERTS_DIR/server.csr" \
+    -CA "$REGISTRY_CERTS_DIR/ca.crt" -CAkey "$REGISTRY_CERTS_DIR/ca.key" \
+    -CAcreateserial -out "$REGISTRY_CERTS_DIR/server.crt" -days 1 \
+    -extfile <(echo "subjectAltName=IP:${REGISTRY_IP}") 2> /dev/null
+
+  # Restart registry with TLS
+  docker rm -f "$REGISTRY_NAME" > /dev/null 2>&1
+  docker run -d --restart=always -p "${REGISTRY_HOST_PORT}:5000" \
+    --name "$REGISTRY_NAME" \
+    -v "$REGISTRY_CERTS_DIR/server.crt:/certs/server.crt:ro" \
+    -v "$REGISTRY_CERTS_DIR/server.key:/certs/server.key:ro" \
+    -e REGISTRY_HTTP_TLS_CERTIFICATE=/certs/server.crt \
+    -e REGISTRY_HTTP_TLS_KEY=/certs/server.key \
+    registry:2 > /dev/null
+  docker network connect kind "$REGISTRY_NAME" 2> /dev/null || true
+
+  # Configure Docker to trust the CA for localhost push
+  DOCKER_CERT_DIR="/etc/docker/certs.d/localhost:${REGISTRY_HOST_PORT}"
+  sudo mkdir -p "$DOCKER_CERT_DIR"
+  sudo cp "$REGISTRY_CERTS_DIR/ca.crt" "$DOCKER_CERT_DIR/ca.crt"
+
+  # Push function image to the TLS registry
+  docker tag "function-asya-overlays:latest" \
+    "localhost:${REGISTRY_HOST_PORT}/function-asya-overlays:latest"
+  docker push "localhost:${REGISTRY_HOST_PORT}/function-asya-overlays:latest" > /dev/null
+
+  # Create ConfigMap with CA cert so Crossplane trusts the registry
+  kubectl create configmap local-registry-ca \
+    --from-file=ca-certificates.crt="$REGISTRY_CERTS_DIR/ca.crt" \
+    -n crossplane-system --dry-run=client -o yaml | kubectl apply -f - > /dev/null
+
+  # Reconfigure Crossplane to trust the local registry CA
+  helm upgrade crossplane crossplane-stable/crossplane \
+    -n crossplane-system --reuse-values \
+    --set "registryCaBundleConfig.name=local-registry-ca" \
+    --set "registryCaBundleConfig.key=ca-certificates.crt" \
+    --wait --timeout 60s > /dev/null
+
   OVERLAYS_REPOSITORY="${REGISTRY_IP}:5000/function-asya-overlays"
-  echo "[+] Local OCI registry at ${REGISTRY_IP}:5000"
+  echo "[+] Local OCI registry (TLS) at ${REGISTRY_IP}:5000"
   echo "[+] Function repository: ${OVERLAYS_REPOSITORY}"
 
   # Wait for all kind load operations
