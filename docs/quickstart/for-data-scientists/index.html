@@ -1492,36 +1492,29 @@ resolve<span class="o">(</span><span class="s2">&quot;SpanishSentiment.process&q
 <p>See <a href="../../architecture/asya-flow/">Flow Compiler Architecture</a> for complete documentation and <code>examples/flows/</code> for more flow examples.</p>
 <h2 id="advanced-dynamic-routing">Advanced: Dynamic Routing<a class="headerlink" href="#advanced-dynamic-routing" title="Permanent link">&para;</a></h2>
 <p><strong>Use case</strong>: AI agents, LLM judges, conditional routing based on model outputs.</p>
-<p>Handlers can modify the route by writing to <code>/proc/asya/msg/route/next</code> via the VFS:</p>
+<p>Generator handlers can read and modify routing via the ABI yield protocol:</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># llm_judge.py</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">LLMJudge</span><span class="p">:</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">load_llm</span><span class="p">(</span><span class="s2">&quot;/models/judge&quot;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">threshold</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">threshold</span><span class="p">)</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">process</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">payload</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
-        <span class="c1"># Run LLM judge</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">process</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">payload</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
         <span class="n">score</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">judge</span><span class="p">(</span><span class="n">payload</span><span class="p">[</span><span class="s2">&quot;llm_response&quot;</span><span class="p">])</span>
         <span class="n">payload</span><span class="p">[</span><span class="s2">&quot;judge_score&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">score</span>
 
-        <span class="c1"># Read current next actors from VFS</span>
-        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;/proc/asya/msg/route/next&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-            <span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
-            <span class="n">next_actors</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
-
         <span class="k">if</span> <span class="n">score</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">threshold</span><span class="p">:</span>
-            <span class="c1"># Low quality response - prepend refinement step</span>
-            <span class="n">next_actors</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;llm-refiner&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="n">next_actors</span>
-            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;/proc/asya/msg/route/next&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-                <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">next_actors</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
+            <span class="c1"># Prepend refinement step via slice notation</span>
+            <span class="k">yield</span> <span class="s2">&quot;SET&quot;</span><span class="p">,</span> <span class="s2">&quot;.route.next[:0]&quot;</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;llm-refiner&quot;</span><span class="p">]</span>
 
-        <span class="k">return</span> <span class="n">payload</span>
+        <span class="k">yield</span> <span class="n">payload</span>
 </code></pre></div>
 <p><strong>Route modification rules</strong>:</p>
 <ul>
-<li>✅ Can write to <code>/proc/asya/msg/route/next</code> to modify future actors</li>
-<li>❌ <code>/proc/asya/msg/route/prev</code> is read-only (already-processed actors)</li>
-<li>❌ <code>/proc/asya/msg/route/curr</code> is read-only (current actor name)</li>
+<li>✅ Can use <code>yield "SET", ".route.next", [...]</code> to modify future actors</li>
+<li>❌ <code>yield "GET", ".route.prev"</code> is read-only (already-processed actors)</li>
+<li>❌ <code>yield "GET", ".route.curr"</code> is read-only (current actor name)</li>
+<li>❌ <code>.route.prev</code> and <code>.route.curr</code> cannot be SET (PermissionError)</li>
 </ul>
 <h2 id="error-handling">Error Handling<a class="headerlink" href="#error-handling" title="Permanent link">&para;</a></h2>
 <p>Asya automatically handles exceptions:</p>
