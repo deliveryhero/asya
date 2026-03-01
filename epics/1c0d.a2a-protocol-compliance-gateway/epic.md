@@ -10,13 +10,13 @@ UPD: agent skills and model cards are defined declaratively in python at deploym
 UPD: note that `AgentExecutor` (https://a2a-protocol.org/latest/tutorials/python/4-agent-executor/) is basically replaced fully by Asya.
 UPD: See example https://a2a-protocol.org/latest/tutorials/python/4-agent-executor/#helloworld-agent-executor - should A2A `Message` be implemented as pause/resume communication through the entrypoint router agent, or it should be sent by the business logic worker similar to `yield "FLY", {...}` for streaming updates and then pause? I think low-level "FLY" capability of asya as Transport can be mapped to streaming/push/A2A-Message and other application-level capabilities of the protocols (based on the contents of the yielded event `{...}`).
 
-Transform asya-gateway from current /envelopes/* routes to A2A-compliant /messages and /tasks/* endpoints. This enables external agents to interact with Asya actor networks using the standard Agent2Agent protocol.
+Transform asya-gateway from current /tasks/* routes to A2A-compliant endpoints. This enables external agents to interact with Asya actor networks using the standard Agent2Agent protocol.
 
 ## Current State
-- /envelopes/{id} - Get envelope status
-- /envelopes/{id}/stream - SSE streaming
-- /envelopes/{id}/progress - Sidecar progress updates
-- /envelopes/{id}/final - End actor final status
+- /tasks/{id} - Get messa status
+- /tasks/{id}/stream - SSE streaming
+- /tasks/{id}/progress - Sidecar progress updates
+- /tasks/{id}/final - End actor final status
 - /tools/call - REST tool invocation
 - /mcp - MCP JSON-RPC endpoint
 - No authentication
@@ -33,8 +33,8 @@ Transform asya-gateway from current /envelopes/* routes to A2A-compliant /messag
 - Authentication (Bearer, OAuth2, API Key)
 
 ## Key Terminology Changes
-- envelope → task (A2A terminology)
-- envelope_id → task_id
+- message → task (A2A terminology)
+- message.id → task_id
 - Add context_id for conversation grouping
 
 ## RFC: A2A Protocol Compliance for Asya Gateway
@@ -1988,7 +1988,7 @@ See bead `asya-0bvg` for implementation details and dependency graph.
 - `/mcp` - Streamable HTTP endpoint (JSON-RPC 2.0)
 - `/mcp/sse` - SSE endpoint (backward compatibility)
 - `/tools/call` - Simple REST interface
-- `/envelopes/*` - Status, streaming, progress
+- `/tasks/*` - Status, streaming, progress
 
 **Why keep MCP:**
 1. **Easy testing** - Developers can use `asya mcp call` CLI for quick tests
@@ -2046,12 +2046,12 @@ REST Clients ────► /tools/call ─┘
 /mcp                  # MCP Streamable HTTP
 /mcp/sse             # MCP SSE (deprecated)
 /tools/call          # REST tool invocation
-/envelopes/*         # Envelope lifecycle
+/tasks/*         # Envelope lifecycle
 
 # New A2A endpoints
 /.well-known/agent.json     # Agent Card discovery
 /a2a                        # A2A JSON-RPC messaging (Gateway Pattern)
-/tasks                      # A2A task listing (maps to envelopes)
+/tasks                      # A2A task listing (maps to tasks)
 /tasks/{id}                 # Task status (maps to envelope status)
 /tasks/{id}:subscribe       # SSE streaming (maps to envelope stream)
 ```
@@ -2110,7 +2110,7 @@ tools:
 
 3. **Phase 3: Task API** (P2)
    - Map existing envelope API to A2A task terminology
-   - `/tasks/*` endpoints as aliases for `/envelopes/*`
+   - `/tasks/*` endpoints as aliases for `/tasks/*`
 
 4. **Phase 4: Smart Routing** (P3)
    - Intent-based routing (optional LLM-powered)

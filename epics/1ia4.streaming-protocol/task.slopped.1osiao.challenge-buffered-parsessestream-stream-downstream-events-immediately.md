@@ -122,14 +122,33 @@ done event              → StatusCompleted (report to gateway + ack message)
 error event             → StatusFailed (report to gateway + route to x-sump)
 ```
 
-**Micro-optimization (future)**: The batching idea (runtime waits ~1ms after
-last yield to batch with `done`) is worth noting for later. For 99% of cases,
-`done` follows the last yield with only microseconds of Python cleanup. The
-sidecar would send 1 HTTP request to gateway (`StatusCompleted`). For the 1%
-with expensive post-yield code, the sidecar would have already dispatched the
-frame, and the `done` event arrives later — 2 HTTP requests total. This is
-fine for now; the batching optimization can be added if profiling shows it
-matters.
+### Decision 5: No batching of last frame + done → always separate events
+
+**Decided**: The runtime always sends `done` as a separate SSE event after the
+last downstream frame. The sidecar always sends a separate HTTP request to the
+gateway for `StatusCompleted`. No attempt to batch them.
+
+**Why batching was rejected**:
+
+- **Runtime can't batch**: Python generators don't expose "is this the last
+  yield?" — the runtime only learns the generator is exhausted when
+  `__anext__()` raises `StopAsyncIteration`, by which time the last frame
+  has already been flushed to the Unix socket.
+
+- **Sidecar can't reliably peek**: A `bufio.Reader.Peek()` approach was
+  considered — check if `done` bytes are already in the read buffer after
+  receiving the last downstream event. But the sidecar (Go) typically reads
+  faster than the runtime (Python) writes, so the downstream event is
+  consumed before `done` is written. The peek is probabilistic, not
+  guaranteed, and timing-dependent.
+
+- **No ordering race**: Unix sockets are ordered byte streams. The downstream
+  event always arrives before `done`. The sidecar processes events
+  sequentially in the same goroutine, so `StatusCompleted` is always
+  reported AFTER the last frame dispatch completes. No race.
+
+- **Cost is negligible**: One extra SSE event parse (nanoseconds) + one HTTP
+  POST to gateway (~1ms). Handler execution is seconds. Not worth optimizing.
 
 **Message acknowledgment**: The sidecar should NOT ack the incoming queue
 message until `done` arrives. This ensures that if the sidecar/runtime crashes

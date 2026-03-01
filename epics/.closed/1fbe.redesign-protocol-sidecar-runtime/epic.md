@@ -146,15 +146,18 @@ data: {}
 
 | Event | Meaning | Sidecar action |
 |---|---|---|
-| `downstream` | Frame for next actor | Route to `route.next[0]` queue |
-| `upstream` | Partial frame for caller (gateway SSE) | Forward to gateway progress endpoint |
-| `done` | Generator exhausted | Close connection |
+| `downstream` | Frame for next actor | Dispatch to queue immediately |
+| `upstream` | Streaming frame for gateway | Forward to gateway streaming endpoint |
+| `done` | Generator exhausted | Report StatusCompleted + ack message |
+| `error` | Handler exception mid-stream | Report StatusFailed + route to x-sump |
 
 Each `downstream` event includes the full routing context (route + headers) as snapshotted at the `yield` point. This allows different frames from the same generator to have different routes (e.g., fan-out with per-frame routing).
 
-Each `upstream` event includes only `payload` — the sidecar forwards it to the gateway's progress endpoint with the original message `id`.
+Each `upstream` event includes only `payload` — the sidecar forwards it to the gateway's streaming endpoint with the original message `id`.
 
-The `done` event signals generator exhaustion. If no `downstream` frames were emitted, the sidecar routes to `x-sink` (same as handler returning `None`).
+The `done` event signals generator exhaustion — including any user code after the last `yield` (Python's `StopIteration` fires after all user code has executed). The sidecar reports `StatusCompleted` to the gateway and acks the incoming queue message only on `done`. If no `downstream` frames were emitted, the sidecar routes to `x-sink` (same as handler returning `None`).
+
+**Streaming dispatch**: The sidecar dispatches each `downstream` frame to the next actor's queue immediately as it arrives — it does not buffer frames. The first downstream frame keeps the original `message.id`; subsequent frames get `uuid4()` with `parent_id`. The `done` event is always a separate SSE event (not embedded in the last downstream frame).
 
 #### Error response
 

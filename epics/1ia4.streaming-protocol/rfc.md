@@ -109,9 +109,11 @@ Sidecar
     |
     |-- upstream events --> POST /tasks/{id}/stream --> Gateway --> event: stream
     |
-    |-- downstream events --> Queue --> Next actor
+    |-- downstream events --> dispatch to queue immediately (streaming dispatch)
     |
-    |-- done event --> Close connection
+    |-- done event --> StatusCompleted to gateway, ack incoming message
+    |
+    |-- error event --> StatusFailed to gateway, route to x-sump
 ```
 
 ### SSE event types (Runtime -> Sidecar)
@@ -121,10 +123,39 @@ for generator handler responses:
 
 | Event | Meaning | Sidecar action |
 |---|---|---|
-| `downstream` | Result frame for next actor | Route to next actor's queue |
-| `upstream` | Partial frame for gateway | HTTP POST to gateway |
-| `done` | Generator exhausted | Close connection |
-| `error` | Handler exception mid-stream | Report to x-sump |
+| `downstream` | Result frame for next actor | Dispatch to queue immediately |
+| `upstream` | Streaming frame for gateway | HTTP POST to gateway |
+| `done` | Generator exhausted | Report StatusCompleted + ack message |
+| `error` | Handler exception mid-stream | Report StatusFailed + route to x-sump |
+
+### Streaming dispatch (sidecar)
+
+The sidecar dispatches each downstream frame to the next actor's queue
+**immediately** as it arrives via SSE — it does not buffer frames. This
+eliminates latency for generators that yield multiple frames with delays
+between yields (e.g., LLM agents doing tool calls).
+
+**ID assignment**: The first downstream frame keeps the original `message.id`.
+Subsequent frames get `uuid4()` with `parent_id` pointing to the original.
+The sidecar tracks this with a `firstDownstreamSeen` flag.
+
+**Completion**: The `done` event is always a separate SSE event from the
+runtime. The sidecar reports `StatusCompleted` to the gateway and acks the
+incoming queue message only when `done` arrives. This is safe because:
+
+1. The runtime sends `done` only after the generator is fully exhausted
+   (including any code after the last yield — Python's `StopIteration`
+   fires after all user code has executed)
+2. Unix sockets are ordered byte streams — `done` always arrives after
+   the last downstream frame
+3. The sidecar processes events sequentially in one goroutine —
+   `StatusCompleted` is always reported after the last frame dispatch
+
+**No batching**: Embedding `done` into the last downstream frame was
+considered and rejected. The runtime cannot know which yield is the last
+one (Python generators don't expose this), and sidecar-level buffer peeking
+is timing-dependent and unreliable. The cost of a separate `done` event is
+one SSE parse (nanoseconds) + one HTTP POST to gateway (~1ms) — negligible.
 
 ### Handler-side interface
 
