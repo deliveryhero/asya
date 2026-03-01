@@ -421,7 +421,43 @@ time {
 }
 echo
 
-# Run Helm tests (can be disabled with SKIP_HELM_TESTS=true)
+# Phase 8: Wait for Crossplane to reconcile all AsyncActor claims
+echo "[.] Phase 8: Waiting for Crossplane to reconcile AsyncActor claims..."
+time {
+  if ! kubectl wait --for=condition=Ready asyncactor --all \
+    -n "$NAMESPACE" --timeout=120s; then
+    echo "[!] Warning: Not all AsyncActors reconciled"
+    echo "[.] Current AsyncActor status:"
+    kubectl get asyncactors -n "$NAMESPACE"
+  else
+    TOTAL_ACTORS=$(kubectl get asyncactors -n "$NAMESPACE" --no-headers 2> /dev/null | wc -l)
+    echo "[+] All $TOTAL_ACTORS AsyncActors reconciled (condition=Ready)"
+  fi
+}
+echo
+
+# Phase 9: Wait for actor pods to scale up and be ready
+echo "[.] Phase 9: Waiting for actor pods to be ready..."
+time {
+  # Give KEDA time to create HPAs and scale up pods
+  sleep 5
+
+  if ! kubectl wait --for=condition=ready pod \
+    -l app.kubernetes.io/component=actor \
+    -n "$NAMESPACE" \
+    --timeout=120s 2> /dev/null; then
+    echo "[!] Warning: Some actor pods may not be ready yet"
+    kubectl get pods -n "$NAMESPACE" -l app.kubernetes.io/component=actor
+  else
+    READY_PODS=$(kubectl get pods -n "$NAMESPACE" -l app.kubernetes.io/component=actor --field-selector=status.phase=Running --no-headers 2> /dev/null | wc -l)
+    echo "[+] All $READY_PODS actor pods are ready"
+  fi
+}
+echo
+
+# Run Helm tests after Crossplane reconciliation and pod readiness.
+# Helm tests verify the end state (labels, connectivity, schema) and need
+# Deployments to exist, so they must run after Phase 8/9.
 if [ "${SKIP_HELM_TESTS:-false}" = "true" ]; then
   echo "[!] Skipping Helm tests (SKIP_HELM_TESTS=true)"
   echo
@@ -430,7 +466,6 @@ else
   time {
     cd "$CHARTS_DIR"
 
-    # Add timeout and better error handling
     HELM_TEST_TIMEOUT="${HELM_TEST_TIMEOUT:-300}"
     echo "[.] Helm test timeout: ${HELM_TEST_TIMEOUT}s"
 
@@ -493,40 +528,6 @@ else
     echo
   }
 fi
-
-# Phase 8: Wait for Crossplane to reconcile all AsyncActor claims
-echo "[.] Phase 8: Waiting for Crossplane to reconcile AsyncActor claims..."
-time {
-  if ! kubectl wait --for=condition=Ready asyncactor --all \
-    -n "$NAMESPACE" --timeout=120s; then
-    echo "[!] Warning: Not all AsyncActors reconciled"
-    echo "[.] Current AsyncActor status:"
-    kubectl get asyncactors -n "$NAMESPACE"
-  else
-    TOTAL_ACTORS=$(kubectl get asyncactors -n "$NAMESPACE" --no-headers 2> /dev/null | wc -l)
-    echo "[+] All $TOTAL_ACTORS AsyncActors reconciled (condition=Ready)"
-  fi
-}
-echo
-
-# Phase 9: Wait for actor pods to scale up and be ready
-echo "[.] Phase 9: Waiting for actor pods to be ready..."
-time {
-  # Give KEDA time to create HPAs and scale up pods
-  sleep 5
-
-  if ! kubectl wait --for=condition=ready pod \
-    -l app.kubernetes.io/component=actor \
-    -n "$NAMESPACE" \
-    --timeout=120s 2> /dev/null; then
-    echo "[!] Warning: Some actor pods may not be ready yet"
-    kubectl get pods -n "$NAMESPACE" -l app.kubernetes.io/component=actor
-  else
-    READY_PODS=$(kubectl get pods -n "$NAMESPACE" -l app.kubernetes.io/component=actor --field-selector=status.phase=Running --no-headers 2> /dev/null | wc -l)
-    echo "[+] All $READY_PODS actor pods are ready"
-  fi
-}
-echo
 
 # Phase 10: Print detailed component status and save logs
 echo "[.] Phase 10: Running diagnostics..."
