@@ -15,54 +15,46 @@ Regenerate by running: asya flow compile ../../while_with_continue.py
 
 def start_while_with_continue_flow(payload: dict):
     """Entrypoint for flow 'while_with_continue_flow'"""
-    _next_tail = yield "GET", ".route.next"
     _next = []
-
     _next.append(resolve("handler_init"))
     _next.append(resolve("router_while_with_continue_flow_line_10_seq"))
-    yield "SET", ".route.next", _next + _next_tail
+    yield "SET", ".route.next[:0]", _next
     yield payload
 
 def router_while_with_continue_flow_line_13_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
-    _next_tail = yield "GET", ".route.next"
     _next = []
-
     p['i'] += 1
     if p['skip_iteration']:
         _next.append(resolve("router_while_with_continue_flow_line_11_while_0"))
     else:
         _next.append(resolve("handler_process"))
 
-    yield "SET", ".route.next", _next + _next_tail
+    yield "SET", ".route.next[:0]", _next
     yield payload
 
 def router_while_with_continue_flow_line_11_while_0(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
-    _next_tail = yield "GET", ".route.next"
     _next = []
-
     if p['i'] < p['max_iterations']:
         _next.append(resolve("router_while_with_continue_flow_line_13_if"))
         _next.append(resolve("router_while_with_continue_flow_line_11_while_0"))
     else:
         _next.append(resolve("handler_finalize"))
 
-    yield "SET", ".route.next", _next + _next_tail
+    yield "SET", ".route.next[:0]", _next
     yield payload
 
 def router_while_with_continue_flow_line_10_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
-    _next_tail = yield "GET", ".route.next"
     _next = []
-
     p['i'] = 0
     _next.append(resolve("router_while_with_continue_flow_line_11_while_0"))
 
-    yield "SET", ".route.next", _next + _next_tail
+    yield "SET", ".route.next[:0]", _next
     yield payload
 
 def end_while_with_continue_flow(payload: dict):

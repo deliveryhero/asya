@@ -15,27 +15,23 @@ Regenerate by running: asya flow compile ../../if_with_early_return.py
 
 def start_early_return_flow(payload: dict):
     """Entrypoint for flow 'early_return_flow'"""
-    _next_tail = yield "GET", ".route.next"
     _next = []
-
     _next.append(resolve("handler_validate"))
     _next.append(resolve("router_early_return_flow_line_10_if"))
-    yield "SET", ".route.next", _next + _next_tail
+    yield "SET", ".route.next[:0]", _next
     yield payload
 
 def router_early_return_flow_line_10_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
-    _next_tail = yield "GET", ".route.next"
     _next = []
-
     if not p['valid']:
         _next.append(resolve("handler_error"))
     else:
         _next.append(resolve("handler_process"))
         _next.append(resolve("handler_finalize"))
 
-    yield "SET", ".route.next", _next + _next_tail
+    yield "SET", ".route.next[:0]", _next
     yield payload
 
 def end_early_return_flow(payload: dict):

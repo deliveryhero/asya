@@ -17,11 +17,9 @@ import copy
 
 def start_analysis_flow(payload: dict):
     """Entrypoint for flow 'analysis_flow'"""
-    _next_tail = yield "GET", ".route.next"
     _next = []
-
     _next.append(resolve("fanout_analysis_flow_line_10"))
-    yield "SET", ".route.next", _next + _next_tail
+    yield "SET", ".route.next[:0]", _next
     yield payload
 
 def fanout_analysis_flow_line_10(payload: dict):

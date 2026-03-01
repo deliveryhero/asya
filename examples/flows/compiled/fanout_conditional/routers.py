@@ -17,12 +17,10 @@ import copy
 
 def start_adaptive_flow(payload: dict):
     """Entrypoint for flow 'adaptive_flow'"""
-    _next_tail = yield "GET", ".route.next"
     _next = []
-
     _next.append(resolve("classifier"))
     _next.append(resolve("router_adaptive_flow_line_12_if"))
-    yield "SET", ".route.next", _next + _next_tail
+    yield "SET", ".route.next[:0]", _next
     yield payload
 
 def fanout_adaptive_flow_line_13(payload: dict):
@@ -59,16 +57,14 @@ def fanout_adaptive_flow_line_13(payload: dict):
 def router_adaptive_flow_line_12_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
-    _next_tail = yield "GET", ".route.next"
     _next = []
-
     if p['parallel']:
         _next.append(resolve("fanout_adaptive_flow_line_13"))
     else:
         _next.append(resolve("sequential_analyzer"))
         _next.append(resolve("formatter"))
 
-    yield "SET", ".route.next", _next + _next_tail
+    yield "SET", ".route.next[:0]", _next
     yield payload
 
 def end_adaptive_flow(payload: dict):

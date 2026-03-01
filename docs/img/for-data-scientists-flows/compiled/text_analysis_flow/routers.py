@@ -15,34 +15,28 @@ Regenerate by running: asya flow compile ../../text_analysis_flow.py
 
 def start_text_analysis_flow(payload: dict):
     """Entrypoint for flow 'text_analysis_flow'"""
-    _next_tail = yield "GET", ".route.next"
     _next = []
-
     _next.append(resolve("clean_text"))
     _next.append(resolve("tokenize"))
     _next.append(resolve("router_text_analysis_flow_line_9_if"))
-    yield "SET", ".route.next", _next + _next_tail
+    yield "SET", ".route.next[:0]", _next
     yield payload
 
 def router_text_analysis_flow_line_14_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
-    _next_tail = yield "GET", ".route.next"
     _next = []
-
     p['sentiment'] = 'neutral'
     _next.append(resolve("extract_entities"))
     _next.append(resolve("router_text_analysis_flow_line_18_seq"))
 
-    yield "SET", ".route.next", _next + _next_tail
+    yield "SET", ".route.next[:0]", _next
     yield payload
 
 def router_text_analysis_flow_line_11_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
-    _next_tail = yield "GET", ".route.next"
     _next = []
-
     if p['language'] == 'es':
         _next.append(resolve("spanish_sentiment"))
         _next.append(resolve("extract_entities"))
@@ -50,26 +44,22 @@ def router_text_analysis_flow_line_11_if(payload: dict):
     else:
         _next.append(resolve("router_text_analysis_flow_line_14_seq"))
 
-    yield "SET", ".route.next", _next + _next_tail
+    yield "SET", ".route.next[:0]", _next
     yield payload
 
 def router_text_analysis_flow_line_18_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
-    _next_tail = yield "GET", ".route.next"
     _next = []
-
     p['extracted'] = True
 
-    yield "SET", ".route.next", _next + _next_tail
+    yield "SET", ".route.next[:0]", _next
     yield payload
 
 def router_text_analysis_flow_line_9_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
-    _next_tail = yield "GET", ".route.next"
     _next = []
-
     if p['language'] == 'en':
         _next.append(resolve("english_sentiment"))
         _next.append(resolve("extract_entities"))
@@ -77,7 +67,7 @@ def router_text_analysis_flow_line_9_if(payload: dict):
     else:
         _next.append(resolve("router_text_analysis_flow_line_11_if"))
 
-    yield "SET", ".route.next", _next + _next_tail
+    yield "SET", ".route.next[:0]", _next
     yield payload
 
 def end_text_analysis_flow(payload: dict):

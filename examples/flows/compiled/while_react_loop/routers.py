@@ -18,33 +18,27 @@ _ASYA_MAX_LOOP_ITERATIONS = int(_os.environ.get("ASYA_MAX_LOOP_ITERATIONS", "100
 
 def start_react_agent(payload: dict):
     """Entrypoint for flow 'react_agent'"""
-    _next_tail = yield "GET", ".route.next"
     _next = []
-
     _next.append(resolve("router_react_agent_line_10_loop_back_0"))
-    yield "SET", ".route.next", _next + _next_tail
+    yield "SET", ".route.next[:0]", _next
     yield payload
 
 def router_react_agent_line_12_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
-    _next_tail = yield "GET", ".route.next"
     _next = []
-
     if p.get('tool_calls'):
         _next.append(resolve("execute_tool"))
     else:
         pass
 
-    yield "SET", ".route.next", _next + _next_tail
+    yield "SET", ".route.next[:0]", _next
     yield payload
 
 def router_react_agent_line_10_loop_back_0(payload: dict):
     """Loop-back router: re-inserts loop actors into route (guarded)"""
     p = payload
-    _next_tail = yield "GET", ".route.next"
     _next = []
-
     _self = resolve("router_react_agent_line_10_loop_back_0")
     _prev = yield "GET", ".route.prev"
     if _prev.count(_self) >= _ASYA_MAX_LOOP_ITERATIONS:
@@ -54,7 +48,7 @@ def router_react_agent_line_10_loop_back_0(payload: dict):
     _next.append(resolve("router_react_agent_line_12_if"))
     _next.append(resolve("router_react_agent_line_10_loop_back_0"))
 
-    yield "SET", ".route.next", _next + _next_tail
+    yield "SET", ".route.next[:0]", _next
     yield payload
 
 def end_react_agent(payload: dict):

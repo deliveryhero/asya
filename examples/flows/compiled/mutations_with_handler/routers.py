@@ -15,28 +15,23 @@ Regenerate by running: asya flow compile ../../mutations_with_handler.py
 
 def start_mutations_with_handler_flow(payload: dict):
     """Entrypoint for flow 'mutations_with_handler_flow'"""
-    _next_tail = yield "GET", ".route.next"
     _next = []
-
     p = payload
     p['initialized'] = True
     p['step'] = 1
     p['count'] = 0
-
     _next.append(resolve("handler_process"))
     _next.append(resolve("router_mutations_with_handler_flow_line_13_seq"))
-    yield "SET", ".route.next", _next + _next_tail
+    yield "SET", ".route.next[:0]", _next
     yield p
 
 def router_mutations_with_handler_flow_line_13_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
-    _next_tail = yield "GET", ".route.next"
     _next = []
-
     p['finalized'] = True
 
-    yield "SET", ".route.next", _next + _next_tail
+    yield "SET", ".route.next[:0]", _next
     yield payload
 
 def end_mutations_with_handler_flow(payload: dict):

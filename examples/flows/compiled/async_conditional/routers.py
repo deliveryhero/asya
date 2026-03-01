@@ -15,20 +15,16 @@ Regenerate by running: asya flow compile ../../async_conditional.py
 
 def start_content_pipeline_flow(payload: dict):
     """Entrypoint for flow 'content_pipeline_flow'"""
-    _next_tail = yield "GET", ".route.next"
     _next = []
-
     _next.append(resolve("classifier"))
     _next.append(resolve("router_content_pipeline_flow_line_12_if"))
-    yield "SET", ".route.next", _next + _next_tail
+    yield "SET", ".route.next[:0]", _next
     yield payload
 
 def router_content_pipeline_flow_line_14_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
-    _next_tail = yield "GET", ".route.next"
     _next = []
-
     if p['content_type'] == 'image':
         _next.append(resolve("image_processor"))
         _next.append(resolve("quality_check"))
@@ -36,22 +32,20 @@ def router_content_pipeline_flow_line_14_if(payload: dict):
         _next.append(resolve("generic_processor"))
         _next.append(resolve("quality_check"))
 
-    yield "SET", ".route.next", _next + _next_tail
+    yield "SET", ".route.next[:0]", _next
     yield payload
 
 def router_content_pipeline_flow_line_12_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
-    _next_tail = yield "GET", ".route.next"
     _next = []
-
     if p['content_type'] == 'text':
         _next.append(resolve("text_processor"))
         _next.append(resolve("quality_check"))
     else:
         _next.append(resolve("router_content_pipeline_flow_line_14_if"))
 
-    yield "SET", ".route.next", _next + _next_tail
+    yield "SET", ".route.next[:0]", _next
     yield payload
 
 def end_content_pipeline_flow(payload: dict):

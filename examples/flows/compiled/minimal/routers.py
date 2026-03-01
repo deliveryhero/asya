@@ -15,11 +15,9 @@ Regenerate by running: asya flow compile ../../minimal.py
 
 def start_minimal_flow(payload: dict):
     """Entrypoint for flow 'minimal_flow'"""
-    _next_tail = yield "GET", ".route.next"
     _next = []
-
     _next.append(resolve("handler_a"))
-    yield "SET", ".route.next", _next + _next_tail
+    yield "SET", ".route.next[:0]", _next
     yield payload
 
 def end_minimal_flow(payload: dict):

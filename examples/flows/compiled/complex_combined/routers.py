@@ -15,34 +15,28 @@ Regenerate by running: asya flow compile ../../complex_combined.py
 
 def start_complex_combined_flow(payload: dict):
     """Entrypoint for flow 'complex_combined_flow'"""
-    _next_tail = yield "GET", ".route.next"
     _next = []
-
     _next.append(resolve("handler_init"))
     _next.append(resolve("router_complex_combined_flow_line_11_if"))
-    yield "SET", ".route.next", _next + _next_tail
+    yield "SET", ".route.next[:0]", _next
     yield payload
 
 def router_complex_combined_flow_line_25_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
-    _next_tail = yield "GET", ".route.next"
     _next = []
-
     if p['stop_early']:
         _next.append(resolve("handler_finalize"))
     else:
         pass
 
-    yield "SET", ".route.next", _next + _next_tail
+    yield "SET", ".route.next[:0]", _next
     yield payload
 
 def router_complex_combined_flow_line_20_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
-    _next_tail = yield "GET", ".route.next"
     _next = []
-
     p['i'] += 1
     if p['skip_even'] and p['i'] % 2 == 0:
         _next.append(resolve("router_complex_combined_flow_line_17_while_0"))
@@ -50,42 +44,36 @@ def router_complex_combined_flow_line_20_if(payload: dict):
         _next.append(resolve("handler_process"))
         _next.append(resolve("router_complex_combined_flow_line_25_if"))
 
-    yield "SET", ".route.next", _next + _next_tail
+    yield "SET", ".route.next[:0]", _next
     yield payload
 
 def router_complex_combined_flow_line_17_while_0(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
-    _next_tail = yield "GET", ".route.next"
     _next = []
-
     if p['i'] < p['max_iterations']:
         _next.append(resolve("router_complex_combined_flow_line_20_if"))
         _next.append(resolve("router_complex_combined_flow_line_17_while_0"))
     else:
         _next.append(resolve("handler_finalize"))
 
-    yield "SET", ".route.next", _next + _next_tail
+    yield "SET", ".route.next[:0]", _next
     yield payload
 
 def router_complex_combined_flow_line_16_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
-    _next_tail = yield "GET", ".route.next"
     _next = []
-
     p['i'] = 0
     _next.append(resolve("router_complex_combined_flow_line_17_while_0"))
 
-    yield "SET", ".route.next", _next + _next_tail
+    yield "SET", ".route.next[:0]", _next
     yield payload
 
 def router_complex_combined_flow_line_30_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
-    _next_tail = yield "GET", ".route.next"
     _next = []
-
     if p['type'] == 'B':
         _next.append(resolve("handler_type_b"))
         _next.append(resolve("handler_finalize"))
@@ -93,50 +81,44 @@ def router_complex_combined_flow_line_30_if(payload: dict):
         _next.append(resolve("handler_default"))
         _next.append(resolve("handler_finalize"))
 
-    yield "SET", ".route.next", _next + _next_tail
+    yield "SET", ".route.next[:0]", _next
     yield payload
 
 def router_complex_combined_flow_line_28_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
-    _next_tail = yield "GET", ".route.next"
     _next = []
-
     if p['type'] == 'A':
         _next.append(resolve("handler_type_a"))
         _next.append(resolve("handler_finalize"))
     else:
         _next.append(resolve("router_complex_combined_flow_line_30_if"))
 
-    yield "SET", ".route.next", _next + _next_tail
+    yield "SET", ".route.next[:0]", _next
     yield payload
 
 def router_complex_combined_flow_line_15_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
-    _next_tail = yield "GET", ".route.next"
     _next = []
-
     if p['needs_loop']:
         _next.append(resolve("router_complex_combined_flow_line_16_seq"))
     else:
         _next.append(resolve("router_complex_combined_flow_line_28_if"))
 
-    yield "SET", ".route.next", _next + _next_tail
+    yield "SET", ".route.next[:0]", _next
     yield payload
 
 def router_complex_combined_flow_line_11_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
-    _next_tail = yield "GET", ".route.next"
     _next = []
-
     if not p['valid']:
         _next.append(resolve("handler_error"))
     else:
         _next.append(resolve("router_complex_combined_flow_line_15_if"))
 
-    yield "SET", ".route.next", _next + _next_tail
+    yield "SET", ".route.next[:0]", _next
     yield payload
 
 def end_complex_combined_flow(payload: dict):

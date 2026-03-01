@@ -15,81 +15,69 @@ Regenerate by running: asya flow compile ../../while_break_continue.py
 
 def start_while_break_continue_flow(payload: dict):
     """Entrypoint for flow 'while_break_continue_flow'"""
-    _next_tail = yield "GET", ".route.next"
     _next = []
-
     _next.append(resolve("handler_init"))
     _next.append(resolve("router_while_break_continue_flow_line_10_seq"))
-    yield "SET", ".route.next", _next + _next_tail
+    yield "SET", ".route.next[:0]", _next
     yield payload
 
 def router_while_break_continue_flow_line_17_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
-    _next_tail = yield "GET", ".route.next"
     _next = []
-
     if p['stop']:
         _next.append(resolve("handler_finalize"))
     else:
         pass
 
-    yield "SET", ".route.next", _next + _next_tail
+    yield "SET", ".route.next[:0]", _next
     yield payload
 
 def router_while_break_continue_flow_line_14_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
-    _next_tail = yield "GET", ".route.next"
     _next = []
-
     if p['skip']:
         _next.append(resolve("router_while_break_continue_flow_line_11_while_0"))
     else:
         _next.append(resolve("handler_process"))
         _next.append(resolve("router_while_break_continue_flow_line_17_if"))
 
-    yield "SET", ".route.next", _next + _next_tail
+    yield "SET", ".route.next[:0]", _next
     yield payload
 
 def router_while_break_continue_flow_line_12_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
-    _next_tail = yield "GET", ".route.next"
     _next = []
-
     p['i'] += 1
     _next.append(resolve("handler_check"))
     _next.append(resolve("router_while_break_continue_flow_line_14_if"))
 
-    yield "SET", ".route.next", _next + _next_tail
+    yield "SET", ".route.next[:0]", _next
     yield payload
 
 def router_while_break_continue_flow_line_11_while_0(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
-    _next_tail = yield "GET", ".route.next"
     _next = []
-
     if p['i'] < p['max_iterations']:
         _next.append(resolve("router_while_break_continue_flow_line_12_seq"))
         _next.append(resolve("router_while_break_continue_flow_line_11_while_0"))
     else:
         _next.append(resolve("handler_finalize"))
 
-    yield "SET", ".route.next", _next + _next_tail
+    yield "SET", ".route.next[:0]", _next
     yield payload
 
 def router_while_break_continue_flow_line_10_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
-    _next_tail = yield "GET", ".route.next"
     _next = []
-
     p['i'] = 0
     _next.append(resolve("router_while_break_continue_flow_line_11_while_0"))
 
-    yield "SET", ".route.next", _next + _next_tail
+    yield "SET", ".route.next[:0]", _next
     yield payload
 
 def end_while_break_continue_flow(payload: dict):

@@ -15,12 +15,10 @@ Regenerate by running: asya flow compile ../../async_sequential.py
 
 def start_llm_auditor_flow(payload: dict):
     """Entrypoint for flow 'llm_auditor_flow'"""
-    _next_tail = yield "GET", ".route.next"
     _next = []
-
     _next.append(resolve("critic"))
     _next.append(resolve("reviser"))
-    yield "SET", ".route.next", _next + _next_tail
+    yield "SET", ".route.next[:0]", _next
     yield payload
 
 def end_llm_auditor_flow(payload: dict):

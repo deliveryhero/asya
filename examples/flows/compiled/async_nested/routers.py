@@ -15,27 +15,23 @@ Regenerate by running: asya flow compile ../../async_nested.py
 
 def start_review_pipeline_flow(payload: dict):
     """Entrypoint for flow 'review_pipeline_flow'"""
-    _next_tail = yield "GET", ".route.next"
     _next = []
-
     _next.append(resolve("initial_review"))
     _next.append(resolve("router_review_pipeline_flow_line_13_if"))
-    yield "SET", ".route.next", _next + _next_tail
+    yield "SET", ".route.next[:0]", _next
     yield payload
 
 def router_review_pipeline_flow_line_13_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
-    _next_tail = yield "GET", ".route.next"
     _next = []
-
     if p['score'] < 0.5:
         _next.append(resolve("detailed_review"))
         _next.append(resolve("human_review"))
     else:
         _next.append(resolve("auto_approve"))
 
-    yield "SET", ".route.next", _next + _next_tail
+    yield "SET", ".route.next[:0]", _next
     yield payload
 
 def end_review_pipeline_flow(payload: dict):

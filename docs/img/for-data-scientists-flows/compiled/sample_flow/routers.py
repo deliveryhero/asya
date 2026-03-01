@@ -15,52 +15,44 @@ Regenerate by running: asya flow compile ../../sample_flow.py
 
 def start_sample_flow(payload: dict):
     """Entrypoint for flow 'sample_flow'"""
-    _next_tail = yield "GET", ".route.next"
     _next = []
-
     _next.append(resolve("handler_setup"))
     _next.append(resolve("router_sample_flow_line_3_if"))
-    yield "SET", ".route.next", _next + _next_tail
+    yield "SET", ".route.next[:0]", _next
     yield payload
 
 def router_sample_flow_line_4_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
-    _next_tail = yield "GET", ".route.next"
     _next = []
-
     p['branch'] = 'A'
     _next.append(resolve("handler_type_a"))
     _next.append(resolve("handler_finalize"))
 
-    yield "SET", ".route.next", _next + _next_tail
+    yield "SET", ".route.next[:0]", _next
     yield payload
 
 def router_sample_flow_line_8_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
-    _next_tail = yield "GET", ".route.next"
     _next = []
-
     p['branch'] = 'B'
     _next.append(resolve("handler_finalize"))
 
-    yield "SET", ".route.next", _next + _next_tail
+    yield "SET", ".route.next[:0]", _next
     yield payload
 
 def router_sample_flow_line_3_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
-    _next_tail = yield "GET", ".route.next"
     _next = []
-
     if p['type'] == 'A':
         _next.append(resolve("router_sample_flow_line_4_seq"))
     else:
         _next.append(resolve("handler_type_b"))
         _next.append(resolve("router_sample_flow_line_8_seq"))
 
-    yield "SET", ".route.next", _next + _next_tail
+    yield "SET", ".route.next[:0]", _next
     yield payload
 
 def end_sample_flow(payload: dict):

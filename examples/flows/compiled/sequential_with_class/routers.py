@@ -15,13 +15,11 @@ Regenerate by running: asya flow compile ../../sequential_with_class.py
 
 def start_class_instantiation_flow(payload: dict):
     """Entrypoint for flow 'class_instantiation_flow'"""
-    _next_tail = yield "GET", ".route.next"
     _next = []
-
     _next.append(resolve("sequential_with_class.DataPreprocessor.clean"))
     _next.append(resolve("transformation"))
     _next.append(resolve("sequential_with_class.MLModel.predict"))
-    yield "SET", ".route.next", _next + _next_tail
+    yield "SET", ".route.next[:0]", _next
     yield payload
 
 def end_class_instantiation_flow(payload: dict):

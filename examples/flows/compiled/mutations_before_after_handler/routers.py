@@ -15,39 +15,32 @@ Regenerate by running: asya flow compile ../../mutations_before_after_handler.py
 
 def start_mutations_before_after_handler_flow(payload: dict):
     """Entrypoint for flow 'mutations_before_after_handler_flow'"""
-    _next_tail = yield "GET", ".route.next"
     _next = []
-
     p = payload
     p['step'] = 1
-
     _next.append(resolve("handler_a"))
     _next.append(resolve("router_mutations_before_after_handler_flow_line_11_seq"))
-    yield "SET", ".route.next", _next + _next_tail
+    yield "SET", ".route.next[:0]", _next
     yield p
 
 def router_mutations_before_after_handler_flow_line_13_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
-    _next_tail = yield "GET", ".route.next"
     _next = []
-
     p['step'] = 3
 
-    yield "SET", ".route.next", _next + _next_tail
+    yield "SET", ".route.next[:0]", _next
     yield payload
 
 def router_mutations_before_after_handler_flow_line_11_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
-    _next_tail = yield "GET", ".route.next"
     _next = []
-
     p['step'] = 2
     _next.append(resolve("handler_b"))
     _next.append(resolve("router_mutations_before_after_handler_flow_line_13_seq"))
 
-    yield "SET", ".route.next", _next + _next_tail
+    yield "SET", ".route.next[:0]", _next
     yield payload
 
 def end_mutations_before_after_handler_flow(payload: dict):

@@ -15,16 +15,13 @@ Regenerate by running: asya flow compile ../../mutations_only.py
 
 def start_mutations_only_flow(payload: dict):
     """Entrypoint for flow 'mutations_only_flow'"""
-    _next_tail = yield "GET", ".route.next"
     _next = []
-
     p = payload
     p['step'] = 1
     p['x'] = 10
     p['y'] = 20
     p['x'] += p['y']
-
-    yield "SET", ".route.next", _next + _next_tail
+    yield "SET", ".route.next[:0]", _next
     yield p
 
 def end_mutations_only_flow(payload: dict):

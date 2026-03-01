@@ -15,54 +15,46 @@ Regenerate by running: asya flow compile ../../if_mutations_in_branches.py
 
 def start_if_mutations_in_branches_flow(payload: dict):
     """Entrypoint for flow 'if_mutations_in_branches_flow'"""
-    _next_tail = yield "GET", ".route.next"
     _next = []
-
     _next.append(resolve("handler_setup"))
     _next.append(resolve("router_if_mutations_in_branches_flow_line_10_if"))
-    yield "SET", ".route.next", _next + _next_tail
+    yield "SET", ".route.next[:0]", _next
     yield payload
 
 def router_if_mutations_in_branches_flow_line_11_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
-    _next_tail = yield "GET", ".route.next"
     _next = []
-
     p['branch'] = 'A'
     p['value'] = 100
     _next.append(resolve("handler_type_a"))
     _next.append(resolve("handler_finalize"))
 
-    yield "SET", ".route.next", _next + _next_tail
+    yield "SET", ".route.next[:0]", _next
     yield payload
 
 def router_if_mutations_in_branches_flow_line_16_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
-    _next_tail = yield "GET", ".route.next"
     _next = []
-
     p['branch'] = 'B'
     p['value'] = 200
     _next.append(resolve("handler_finalize"))
 
-    yield "SET", ".route.next", _next + _next_tail
+    yield "SET", ".route.next[:0]", _next
     yield payload
 
 def router_if_mutations_in_branches_flow_line_10_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
-    _next_tail = yield "GET", ".route.next"
     _next = []
-
     if p['type'] == 'A':
         _next.append(resolve("router_if_mutations_in_branches_flow_line_11_seq"))
     else:
         _next.append(resolve("handler_type_b"))
         _next.append(resolve("router_if_mutations_in_branches_flow_line_16_seq"))
 
-    yield "SET", ".route.next", _next + _next_tail
+    yield "SET", ".route.next[:0]", _next
     yield payload
 
 def end_if_mutations_in_branches_flow(payload: dict):

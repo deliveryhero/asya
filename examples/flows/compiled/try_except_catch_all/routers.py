@@ -15,69 +15,55 @@ Regenerate by running: asya flow compile ../../try_except_catch_all.py
 
 def start_resilient_pipeline(payload: dict):
     """Entrypoint for flow 'resilient_pipeline'"""
-    _next_tail = yield "GET", ".route.next"
     _next = []
-
     _next.append(resolve("router_resilient_pipeline_line_2_try_enter_0"))
-    yield "SET", ".route.next", _next + _next_tail
+    yield "SET", ".route.next[:0]", _next
     yield payload
 
 def router_resilient_pipeline_line_5_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
-    _next_tail = yield "GET", ".route.next"
     _next = []
-
     p['error_type'] = 'known'
     _next.append(resolve("handle_known_error"))
 
-    yield "SET", ".route.next", _next + _next_tail
+    yield "SET", ".route.next[:0]", _next
     yield payload
 
 def router_resilient_pipeline_line_8_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
-    _next_tail = yield "GET", ".route.next"
     _next = []
-
     p['error_type'] = 'unknown'
     _next.append(resolve("handle_unknown_error"))
 
-    yield "SET", ".route.next", _next + _next_tail
+    yield "SET", ".route.next[:0]", _next
     yield payload
 
 def router_resilient_pipeline_line_2_try_enter_0(payload: dict):
     """Try-enter router: sets _on_error header and inserts try body"""
-    _next_tail = yield "GET", ".route.next"
     _next = []
-
     yield "SET", ".headers._on_error", resolve("router_resilient_pipeline_line_2_except_dispatch_0")
-
     _next.append(resolve("risky_operation"))
     _next.append(resolve("router_resilient_pipeline_line_2_try_exit_0"))
 
-    yield "SET", ".route.next", _next + _next_tail
+    yield "SET", ".route.next[:0]", _next
     yield payload
 
 def router_resilient_pipeline_line_2_try_exit_0(payload: dict):
     """Try-exit router: clears _on_error header (success path)"""
-    _next_tail = yield "GET", ".route.next"
     _next = []
-
     headers = yield "GET", ".headers"
     if "_on_error" in headers:
         yield "DEL", ".headers._on_error"
 
-
-    yield "SET", ".route.next", _next + _next_tail
+    yield "SET", ".route.next[:0]", _next
     yield payload
 
 def router_resilient_pipeline_line_2_except_dispatch_0(payload: dict):
     """Except-dispatch router: matches error type and routes to handler"""
     p = payload
-    _next_tail = yield "GET", ".route.next"
     _next = []
-
     _error_type = yield "GET", ".status.error.type"
     _error_mro = yield "GET", ".status.error.mro"
     _all_types = [_error_type] + _error_mro
@@ -89,7 +75,7 @@ def router_resilient_pipeline_line_2_except_dispatch_0(payload: dict):
         yield "DEL", ".status.error"
         _next.append(resolve("router_resilient_pipeline_line_8_seq"))
 
-    yield "SET", ".route.next", _next + _next_tail
+    yield "SET", ".route.next[:0]", _next
     yield payload
 
 def end_resilient_pipeline(payload: dict):

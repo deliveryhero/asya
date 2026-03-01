@@ -15,108 +15,92 @@ Regenerate by running: asya flow compile ../flow.py
 
 def start_test_nested_flow(payload: dict):
     """Entrypoint for flow 'test_nested_flow'"""
-    _next_tail = yield "GET", ".route.next"
     _next = []
-
     _next.append(resolve("validate_input"))
     _next.append(resolve("router_test_nested_flow_line_4_if"))
-    yield "SET", ".route.next", _next + _next_tail
+    yield "SET", ".route.next[:0]", _next
     yield payload
 
 def router_test_nested_flow_line_7_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
-    _next_tail = yield "GET", ".route.next"
     _next = []
-
     p['route'] = 'A-X'
     _next.append(resolve("route_a_x"))
     _next.append(resolve("finalize_result"))
 
-    yield "SET", ".route.next", _next + _next_tail
+    yield "SET", ".route.next[:0]", _next
     yield payload
 
 def router_test_nested_flow_line_10_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
-    _next_tail = yield "GET", ".route.next"
     _next = []
-
     p['route'] = 'A-Y'
     _next.append(resolve("route_a_y"))
     _next.append(resolve("finalize_result"))
 
-    yield "SET", ".route.next", _next + _next_tail
+    yield "SET", ".route.next[:0]", _next
     yield payload
 
 def router_test_nested_flow_line_6_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
-    _next_tail = yield "GET", ".route.next"
     _next = []
-
     p['path'] = 'A'
     if p['level2'] == 'X':
         _next.append(resolve("router_test_nested_flow_line_7_seq"))
     else:
         _next.append(resolve("router_test_nested_flow_line_10_seq"))
 
-    yield "SET", ".route.next", _next + _next_tail
+    yield "SET", ".route.next[:0]", _next
     yield payload
 
 def router_test_nested_flow_line_15_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
-    _next_tail = yield "GET", ".route.next"
     _next = []
-
     p['route'] = 'B-X'
     _next.append(resolve("route_b_x"))
     _next.append(resolve("finalize_result"))
 
-    yield "SET", ".route.next", _next + _next_tail
+    yield "SET", ".route.next[:0]", _next
     yield payload
 
 def router_test_nested_flow_line_18_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
-    _next_tail = yield "GET", ".route.next"
     _next = []
-
     p['route'] = 'B-Y'
     _next.append(resolve("route_b_y"))
     _next.append(resolve("finalize_result"))
 
-    yield "SET", ".route.next", _next + _next_tail
+    yield "SET", ".route.next[:0]", _next
     yield payload
 
 def router_test_nested_flow_line_14_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
-    _next_tail = yield "GET", ".route.next"
     _next = []
-
     p['path'] = 'B'
     if p['level2'] == 'X':
         _next.append(resolve("router_test_nested_flow_line_15_seq"))
     else:
         _next.append(resolve("router_test_nested_flow_line_18_seq"))
 
-    yield "SET", ".route.next", _next + _next_tail
+    yield "SET", ".route.next[:0]", _next
     yield payload
 
 def router_test_nested_flow_line_4_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
-    _next_tail = yield "GET", ".route.next"
     _next = []
-
     if p['level1'] == 'A':
         _next.append(resolve("router_test_nested_flow_line_6_if"))
     else:
         _next.append(resolve("router_test_nested_flow_line_14_if"))
 
-    yield "SET", ".route.next", _next + _next_tail
+    yield "SET", ".route.next[:0]", _next
     yield payload
 
 def end_test_nested_flow(payload: dict):

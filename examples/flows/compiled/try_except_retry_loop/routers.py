@@ -15,50 +15,39 @@ Regenerate by running: asya flow compile ../../try_except_retry_loop.py
 
 def start_retry_pipeline(payload: dict):
     """Entrypoint for flow 'retry_pipeline'"""
-    _next_tail = yield "GET", ".route.next"
     _next = []
-
     p = payload
     p['attempt'] = 0
-
     _next.append(resolve("prepare_request"))
     _next.append(resolve("router_retry_pipeline_line_12_while_0"))
-    yield "SET", ".route.next", _next + _next_tail
+    yield "SET", ".route.next[:0]", _next
     yield p
 
 def router_retry_pipeline_line_14_try_enter_0(payload: dict):
     """Try-enter router: sets _on_error header and inserts try body"""
-    _next_tail = yield "GET", ".route.next"
     _next = []
-
     yield "SET", ".headers._on_error", resolve("router_retry_pipeline_line_14_except_dispatch_0")
-
     _next.append(resolve("call_external_api"))
     _next.append(resolve("call_another_api"))
     _next.append(resolve("router_retry_pipeline_line_14_try_exit_0"))
 
-    yield "SET", ".route.next", _next + _next_tail
+    yield "SET", ".route.next[:0]", _next
     yield payload
 
 def router_retry_pipeline_line_14_try_exit_0(payload: dict):
     """Try-exit router: clears _on_error header (success path)"""
-    _next_tail = yield "GET", ".route.next"
     _next = []
-
     headers = yield "GET", ".headers"
     if "_on_error" in headers:
         yield "DEL", ".headers._on_error"
 
-
-    yield "SET", ".route.next", _next + _next_tail
+    yield "SET", ".route.next[:0]", _next
     yield payload
 
 def router_retry_pipeline_line_14_except_dispatch_0(payload: dict):
     """Except-dispatch router: matches error type and routes to handler"""
     p = payload
-    _next_tail = yield "GET", ".route.next"
     _next = []
-
     _error_type = yield "GET", ".status.error.type"
     _error_mro = yield "GET", ".status.error.mro"
     _all_types = [_error_type] + _error_mro
@@ -72,7 +61,7 @@ def router_retry_pipeline_line_14_except_dispatch_0(payload: dict):
     else:
         _next.append(resolve("router_retry_pipeline_line_14_reraise_0"))
 
-    yield "SET", ".route.next", _next + _next_tail
+    yield "SET", ".route.next[:0]", _next
     yield payload
 
 def router_retry_pipeline_line_14_reraise_0(payload: dict):
@@ -84,28 +73,24 @@ def router_retry_pipeline_line_14_reraise_0(payload: dict):
 def router_retry_pipeline_line_13_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
-    _next_tail = yield "GET", ".route.next"
     _next = []
-
     p['attempt'] += 1
     _next.append(resolve("router_retry_pipeline_line_14_try_enter_0"))
 
-    yield "SET", ".route.next", _next + _next_tail
+    yield "SET", ".route.next[:0]", _next
     yield payload
 
 def router_retry_pipeline_line_12_while_0(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
-    _next_tail = yield "GET", ".route.next"
     _next = []
-
     if p['attempt'] < 3:
         _next.append(resolve("router_retry_pipeline_line_13_seq"))
         _next.append(resolve("router_retry_pipeline_line_12_while_0"))
     else:
         pass
 
-    yield "SET", ".route.next", _next + _next_tail
+    yield "SET", ".route.next[:0]", _next
     yield payload
 
 def end_retry_pipeline(payload: dict):
