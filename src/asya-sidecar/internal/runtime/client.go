@@ -80,13 +80,16 @@ func NewClient(socketPath string, timeout time.Duration) *Client {
 	}
 }
 
-// CallRuntime sends a message to the runtime via HTTP POST /invoke and returns response frames.
-// Returns responses collected from the response body, empty slice for abort (204), or error.
+// CallRuntime sends a message to the runtime via HTTP POST /invoke and streams response frames
+// via the onDownstream callback. Each frame is delivered with its zero-based index.
 //
 // The timeout parameter specifies the per-call timeout duration for this invocation.
 //
 // The onUpstream callback is invoked for each upstream SSE event (partial results forwarded
 // to the gateway). Pass nil to silently drop upstream events.
+//
+// The onDownstream callback is invoked for each response frame (downstream event, JSON batch
+// frame, or error response). The index parameter is the zero-based position of the frame.
 //
 // HTTP protocol:
 //
@@ -96,19 +99,19 @@ func NewClient(socketPath string, timeout time.Duration) *Client {
 //	Runtime -> Sidecar:  204 (empty)                           (abort / handler returned None)
 //	Runtime -> Sidecar:  400 {"error": "...", ...}             (bad request)
 //	Runtime -> Sidecar:  500 {"error": "...", ...}             (handler error)
-func (c *Client) CallRuntime(ctx context.Context, data []byte, timeout time.Duration, onUpstream func(json.RawMessage)) ([]RuntimeResponse, error) {
+func (c *Client) CallRuntime(ctx context.Context, data []byte, timeout time.Duration, onUpstream func(json.RawMessage), onDownstream func(RuntimeResponse, int)) error {
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "http://localhost/invoke", bytes.NewReader(data))
 	if err != nil {
-		return nil, fmt.Errorf("failed to create HTTP request: %w", err)
+		return fmt.Errorf("failed to create HTTP request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("failed to send request to runtime: %w", err)
+		return fmt.Errorf("failed to send request to runtime: %w", err)
 	}
 	defer func() { _ = resp.Body.Close() }()
 
@@ -116,40 +119,44 @@ func (c *Client) CallRuntime(ctx context.Context, data []byte, timeout time.Dura
 
 	switch {
 	case resp.StatusCode == http.StatusNoContent:
-		return nil, nil
+		return nil
 
 	case strings.HasPrefix(contentType, "text/event-stream"):
-		return c.parseSSEStream(resp.Body, onUpstream)
+		return c.parseSSEStream(resp.Body, onUpstream, onDownstream)
 
 	case resp.StatusCode == http.StatusOK:
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
-			return nil, fmt.Errorf("failed to read runtime response body: %w", err)
+			return fmt.Errorf("failed to read runtime response body: %w", err)
 		}
 		var invokeResp httpInvokeResponse
 		if err := json.Unmarshal(body, &invokeResp); err != nil {
-			return nil, fmt.Errorf("failed to parse runtime success response: %w", err)
+			return fmt.Errorf("failed to parse runtime success response: %w", err)
 		}
-		return invokeResp.Frames, nil
+		for i, frame := range invokeResp.Frames {
+			onDownstream(frame, i)
+		}
+		return nil
 
 	default:
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
-			return nil, fmt.Errorf("failed to read runtime response body: %w", err)
+			return fmt.Errorf("failed to read runtime response body: %w", err)
 		}
 		var errResp RuntimeResponse
 		if err := json.Unmarshal(body, &errResp); err != nil {
-			return nil, fmt.Errorf("runtime returned HTTP %d with unparseable body: %s", resp.StatusCode, string(body))
+			return fmt.Errorf("runtime returned HTTP %d with unparseable body: %s", resp.StatusCode, string(body))
 		}
-		return []RuntimeResponse{errResp}, nil
+		onDownstream(errResp, 0)
+		return nil
 	}
 }
 
-// parseSSEStream reads an SSE event stream from the runtime, collecting downstream frames
-// and forwarding upstream events via the callback.
-func (c *Client) parseSSEStream(body io.ReadCloser, onUpstream func(json.RawMessage)) ([]RuntimeResponse, error) {
+// parseSSEStream reads an SSE event stream from the runtime, dispatching downstream frames
+// via callback and forwarding upstream events via the onUpstream callback.
+func (c *Client) parseSSEStream(body io.ReadCloser, onUpstream func(json.RawMessage), onDownstream func(RuntimeResponse, int)) error {
 	scanner := bufio.NewScanner(body)
-	var responses []RuntimeResponse
+	var downstreamIndex int
 	var eventType string
 	var dataLines []string
 
@@ -172,24 +179,25 @@ func (c *Client) parseSSEStream(body io.ReadCloser, onUpstream func(json.RawMess
 			case "downstream":
 				var frame RuntimeResponse
 				if err := json.Unmarshal([]byte(data), &frame); err != nil {
-					return nil, fmt.Errorf("parse downstream frame: %w", err)
+					return fmt.Errorf("parse downstream frame: %w", err)
 				}
-				responses = append(responses, frame)
+				onDownstream(frame, downstreamIndex)
+				downstreamIndex++
 			case "upstream":
 				if onUpstream != nil {
 					onUpstream(json.RawMessage(data))
 				}
 			case "done":
-				return responses, nil
+				return nil
 			case "error":
 				var errResp RuntimeResponse
 				if err := json.Unmarshal([]byte(data), &errResp); err != nil {
-					return nil, fmt.Errorf("parse error frame: %w", err)
+					return fmt.Errorf("parse error frame: %w", err)
 				}
-				return nil, &RuntimeError{Response: errResp}
+				return &RuntimeError{Response: errResp}
 			}
 			eventType = ""
 		}
 	}
-	return responses, scanner.Err()
+	return scanner.Err()
 }
