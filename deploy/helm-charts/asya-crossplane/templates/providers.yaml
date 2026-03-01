@@ -68,6 +68,7 @@ metadata:
 spec:
   package: xpkg.upbound.io/crossplane-contrib/function-auto-ready:{{ .Values.functions.autoReadyVersion }}
 ---
+{{- if .Values.functions.overlaysEnabled }}
 apiVersion: pkg.crossplane.io/v1
 kind: Function
 metadata:
@@ -77,3 +78,4 @@ metadata:
 spec:
   package: ghcr.io/deliveryhero/function-asya-overlays:{{ .Values.functions.overlaysVersion }}
   packagePullPolicy: {{ .Values.functions.overlaysPackagePullPolicy }}
+{{- end }}
