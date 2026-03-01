@@ -2,6 +2,8 @@
 title: Design GitOps Flow for Asya Projects
 priority: 2 # medium
 type: epic
+state: yeeted
+reason: superseeded by more granular design (see [[1jow]], [[1iu5]], [[1jpc]], [[1juv]], [[1juw]], [[1jux]], [[1juy]] and future ones)
 dependencies: [1jow]
 ---
 

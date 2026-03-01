@@ -4,6 +4,8 @@ priority: 1 # high
 type: epic
 ---
 
+UPD: need to use official client https://github.com/a2aproject/a2a-go
+UPD: see official support for open telemetry handlers: https://github.com/a2aproject/a2a-python/blob/main/src/a2a/utils/telemetry.py
 
 Transform asya-gateway from current /envelopes/* routes to A2A-compliant /messages and /tasks/* endpoints. This enables external agents to interact with Asya actor networks using the standard Agent2Agent protocol.
 
