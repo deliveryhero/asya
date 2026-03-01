@@ -1,9 +1,8 @@
 ---
-title: "Challenge buffered parseSSEStream: stream downstream events immediately"
+title: "Stream events instead of buffer"
 priority: 2 # medium
 type: task
 tags:
-  - type:research
   - component:sidecar
   - component:runtime
 ---
