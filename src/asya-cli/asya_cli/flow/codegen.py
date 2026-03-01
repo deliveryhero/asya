@@ -123,22 +123,19 @@ class CodeGenerator:
         lines = []
         lines.append(f"def {router.name}(payload: dict):")
         lines.append(f'    """Entrypoint for flow \'{self.flow_name}\'"""')
-        lines.append('    _next_tail = yield "GET", ".route.next"')
         lines.append("    _next = []")
-        lines.append("")
 
         if router.mutations:
             lines.append("    p = payload")
             for mutation in router.mutations:
                 lines.append(f"    {mutation.code}")
-            lines.append("")
 
         if router.true_branch_actors:
             filtered_actors = [name for name in router.true_branch_actors if not name.startswith("end_")]
             for name in filtered_actors:
                 lines.append(f'    _next.append(resolve("{name}"))')
 
-        lines.append('    yield "SET", ".route.next", _next + _next_tail')
+        lines.append('    yield "SET", ".route.next[:0]", _next')
         lines.append(f"    yield {'p' if router.mutations else 'payload'}")
         lines.append("")
 
@@ -159,9 +156,7 @@ class CodeGenerator:
         lines.append(f"def {router.name}(payload: dict):")
         lines.append('    """Router for control flow and payload mutations"""')
         lines.append("    p = payload")
-        lines.append('    _next_tail = yield "GET", ".route.next"')
         lines.append("    _next = []")
-        lines.append("")
 
         for mutation in router.mutations:
             lines.append(f"    {mutation.code}")
@@ -191,7 +186,7 @@ class CodeGenerator:
                 lines.append(f'    _next.append(resolve("{actor}"))')
 
         lines.append("")
-        lines.append('    yield "SET", ".route.next", _next + _next_tail')
+        lines.append('    yield "SET", ".route.next[:0]", _next')
         lines.append("    yield payload")
         lines.append("")
 
@@ -284,9 +279,7 @@ class CodeGenerator:
         else:
             lines.append('    """Loop-back router: re-inserts loop actors into route"""')
         lines.append("    p = payload")
-        lines.append('    _next_tail = yield "GET", ".route.next"')
         lines.append("    _next = []")
-        lines.append("")
 
         for mutation in router.mutations:
             lines.append(f"    {mutation.code}")
@@ -305,7 +298,7 @@ class CodeGenerator:
             lines.append(f'    _next.append(resolve("{actor}"))')
 
         lines.append("")
-        lines.append('    yield "SET", ".route.next", _next + _next_tail')
+        lines.append('    yield "SET", ".route.next[:0]", _next')
         lines.append("    yield payload")
         lines.append("")
 
@@ -315,18 +308,15 @@ class CodeGenerator:
         lines = []
         lines.append(f"def {router.name}(payload: dict):")
         lines.append('    """Try-enter router: sets _on_error header and inserts try body"""')
-        lines.append('    _next_tail = yield "GET", ".route.next"')
         lines.append("    _next = []")
-        lines.append("")
         lines.append(f'    yield "SET", ".headers._on_error", resolve("{router.except_dispatch_name}")')
-        lines.append("")
 
         filtered_actors = [a for a in router.true_branch_actors if not a.startswith("end_")]
         for actor in filtered_actors:
             lines.append(f'    _next.append(resolve("{actor}"))')
 
         lines.append("")
-        lines.append('    yield "SET", ".route.next", _next + _next_tail')
+        lines.append('    yield "SET", ".route.next[:0]", _next')
         lines.append("    yield payload")
         lines.append("")
 
@@ -336,13 +326,10 @@ class CodeGenerator:
         lines = []
         lines.append(f"def {router.name}(payload: dict):")
         lines.append('    """Try-exit router: clears _on_error header (success path)"""')
-        lines.append('    _next_tail = yield "GET", ".route.next"')
         lines.append("    _next = []")
-        lines.append("")
         lines.append('    headers = yield "GET", ".headers"')
         lines.append('    if "_on_error" in headers:')
         lines.append('        yield "DEL", ".headers._on_error"')
-        lines.append("")
 
         filtered_finally = [a for a in router.finally_actors if not a.startswith("end_")]
         for actor in filtered_finally:
@@ -353,7 +340,7 @@ class CodeGenerator:
             lines.append(f'    _next.append(resolve("{actor}"))')
 
         lines.append("")
-        lines.append('    yield "SET", ".route.next", _next + _next_tail')
+        lines.append('    yield "SET", ".route.next[:0]", _next')
         lines.append("    yield payload")
         lines.append("")
 
@@ -364,9 +351,7 @@ class CodeGenerator:
         lines.append(f"def {router.name}(payload: dict):")
         lines.append('    """Except-dispatch router: matches error type and routes to handler"""')
         lines.append("    p = payload")
-        lines.append('    _next_tail = yield "GET", ".route.next"')
         lines.append("    _next = []")
-        lines.append("")
         lines.append('    _error_type = yield "GET", ".status.error.type"')
         lines.append('    _error_mro = yield "GET", ".status.error.mro"')
         lines.append("    _all_types = [_error_type] + _error_mro")
@@ -408,7 +393,7 @@ class CodeGenerator:
             lines.append(f'    _next.append(resolve("{actor}"))')
 
         lines.append("")
-        lines.append('    yield "SET", ".route.next", _next + _next_tail')
+        lines.append('    yield "SET", ".route.next[:0]", _next')
         lines.append("    yield payload")
         lines.append("")
 

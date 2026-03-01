@@ -94,10 +94,7 @@ class TestStartRouter:
         routers = [Router(name="start_flow", lineno=0, true_branch_actors=["handler", "end_flow"])]
         code = CodeGenerator("flow", routers, "test.py")._generate_start_router(routers[0])
 
-        assert "_next_tail" in code
-        assert "_next + _next_tail" in code
-        assert 'yield "GET", ".route.next"' in code
-        assert 'yield "SET", ".route.next"' in code
+        assert 'yield "SET", ".route.next[:0]", _next' in code
 
     def test_start_router_handles_empty_actors(self):
         routers = [Router(name="start_flow", lineno=0, true_branch_actors=[])]
@@ -186,9 +183,7 @@ class TestSequentialRouter:
         routers = [Router(name="router_flow_line_1_seq", lineno=1, true_branch_actors=["handler"])]
         code = CodeGenerator("flow", routers, "test.py")._generate_router(routers[0])
 
-        assert "_next + _next_tail" in code
-        assert 'yield "GET", ".route.next"' in code
-        assert 'yield "SET", ".route.next"' in code
+        assert 'yield "SET", ".route.next[:0]", _next' in code
 
 
 class TestConditionalRouter:
@@ -568,9 +563,7 @@ class TestLoopBackRouter:
         ]
         code = CodeGenerator("flow", routers, "test.py")._generate_loop_back_router(routers[0])
 
-        assert "_next + _next_tail" in code
-        assert 'yield "GET", ".route.next"' in code
-        assert 'yield "SET", ".route.next"' in code
+        assert 'yield "SET", ".route.next[:0]", _next' in code
 
     def test_loop_back_router_with_mutations(self):
         routers = [

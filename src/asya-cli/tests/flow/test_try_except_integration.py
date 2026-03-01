@@ -7,6 +7,7 @@ headers, and status fields for try-except error handling patterns via ABI yields
 
 import contextlib
 import importlib
+import re
 import sys
 import tempfile
 from pathlib import Path
@@ -34,11 +35,19 @@ def _set_path(data: dict, path: str, value: Any) -> None:
     """Set a value at a dotted path on a nested dict. Leading dot is stripped."""
     parts = path.lstrip(".").split(".")
     cur = data
+    last = parts[-1]
     for p in parts[:-1]:
         if p not in cur:
             cur[p] = {}
         cur = cur[p]
-    cur[parts[-1]] = value
+    m = re.match(r"^(\w+)\[(-?\d*):(-?\d*)\]$", last)
+    if m:
+        key = m.group(1)
+        start = int(m.group(2)) if m.group(2) else None
+        stop = int(m.group(3)) if m.group(3) else None
+        cur[key][start:stop] = value
+    else:
+        cur[last] = value
 
 
 def _del_path(data: dict, path: str) -> None:

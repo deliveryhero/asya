@@ -425,8 +425,12 @@ def _check_del_access(path):
     raise PermissionError(f"Cannot DEL {path}")
 
 
-def _drive_generator(gen, ctx, on_fly=None):
-    """Drive a sync generator, dispatching ABI commands."""
+def _drive_generator(gen, ctx, on_fly=None, on_emit=None):
+    """Drive a sync generator, dispatching ABI commands.
+
+    When on_emit is provided, each frame is passed to it instead of being
+    collected. This allows SSE streaming to emit frames inline.
+    """
     frames = []
     send_val = None
 
@@ -441,7 +445,11 @@ def _drive_generator(gen, ctx, on_fly=None):
         if yielded is None:
             continue
         elif isinstance(yielded, dict):
-            frames.append(_build_frame(yielded, ctx.input_route, ctx.snapshot()))
+            frame = _build_frame(yielded, ctx.input_route, ctx.snapshot())
+            if on_emit:
+                on_emit(frame)
+            else:
+                frames.append(frame)
         elif isinstance(yielded, tuple) and len(yielded) >= 2:
             verb = yielded[0]
             if verb == "FLY":
@@ -466,8 +474,12 @@ def _drive_generator(gen, ctx, on_fly=None):
     return frames
 
 
-async def _drive_async_generator(gen, ctx, on_fly=None):
-    """Drive an async generator, dispatching ABI commands."""
+async def _drive_async_generator(gen, ctx, on_fly=None, on_emit=None):
+    """Drive an async generator, dispatching ABI commands.
+
+    When on_emit is provided, each frame is passed to it instead of being
+    collected. This allows SSE streaming to emit frames inline.
+    """
     frames = []
     send_val = None
 
@@ -482,7 +494,11 @@ async def _drive_async_generator(gen, ctx, on_fly=None):
         if yielded is None:
             continue
         elif isinstance(yielded, dict):
-            frames.append(_build_frame(yielded, ctx.input_route, ctx.snapshot()))
+            frame = _build_frame(yielded, ctx.input_route, ctx.snapshot())
+            if on_emit:
+                on_emit(frame)
+            else:
+                frames.append(frame)
         elif isinstance(yielded, tuple) and len(yielded) >= 2:
             verb = yielded[0]
             if verb == "FLY":
@@ -1092,9 +1108,9 @@ class _InvokeHandler(http.server.BaseHTTPRequestHandler):
 
         try:
             if inspect.isasyncgenfunction(user_func):
-                asyncio.run(self._stream_sse_abi_async(message, user_func, ctx, on_fly, on_emit))
+                asyncio.run(_drive_async_generator(user_func(message["payload"]), ctx, on_fly=on_fly, on_emit=on_emit))
             else:
-                self._stream_sse_abi_sync(message, user_func, ctx, on_fly, on_emit)
+                _drive_generator(user_func(message["payload"]), ctx, on_fly=on_fly, on_emit=on_emit)
         except Exception as exc:
             logger.exception("Error during SSE streaming")
             error_data = json.dumps(_error_response("processing_error", exc))
@@ -1103,70 +1119,6 @@ class _InvokeHandler(http.server.BaseHTTPRequestHandler):
 
         self.wfile.write(b"event: done\ndata: {}\n\n")
         self.wfile.flush()
-
-    def _stream_sse_abi_sync(self, message, user_func, ctx, on_fly, on_emit):
-        """Drive sync generator for SSE, emitting events inline."""
-        gen = user_func(message["payload"])
-        send_val = None
-        while True:
-            try:
-                yielded = gen.send(send_val)
-            except StopIteration:
-                break
-            send_val = None
-            if yielded is None:
-                continue
-            elif isinstance(yielded, dict):
-                frame = _build_frame(yielded, ctx.input_route, ctx.snapshot())
-                on_emit(frame)
-            elif isinstance(yielded, tuple) and len(yielded) >= 2:
-                verb = yielded[0]
-                if verb == "FLY":
-                    on_fly(yielded[1])
-                elif verb == "GET":
-                    send_val = _resolve_get(ctx.data, _parse_path(yielded[1]))
-                elif verb == "SET" and len(yielded) >= 3:
-                    _check_set_access(yielded[1])
-                    _resolve_set(ctx.data, _parse_path(yielded[1]), yielded[2])
-                elif verb == "DEL":
-                    _check_del_access(yielded[1])
-                    _resolve_del(ctx.data, _parse_path(yielded[1]))
-                else:
-                    raise RuntimeError(f"ABI protocol error: unknown verb {verb!r}")
-            else:
-                raise RuntimeError(f"ABI protocol error: unexpected yield type {type(yielded).__name__}")
-
-    async def _stream_sse_abi_async(self, message, user_func, ctx, on_fly, on_emit):
-        """Drive async generator for SSE, emitting events inline."""
-        gen = user_func(message["payload"])
-        send_val = None
-        while True:
-            try:
-                yielded = await gen.asend(send_val)
-            except StopAsyncIteration:
-                break
-            send_val = None
-            if yielded is None:
-                continue
-            elif isinstance(yielded, dict):
-                frame = _build_frame(yielded, ctx.input_route, ctx.snapshot())
-                on_emit(frame)
-            elif isinstance(yielded, tuple) and len(yielded) >= 2:
-                verb = yielded[0]
-                if verb == "FLY":
-                    on_fly(yielded[1])
-                elif verb == "GET":
-                    send_val = _resolve_get(ctx.data, _parse_path(yielded[1]))
-                elif verb == "SET" and len(yielded) >= 3:
-                    _check_set_access(yielded[1])
-                    _resolve_set(ctx.data, _parse_path(yielded[1]), yielded[2])
-                elif verb == "DEL":
-                    _check_del_access(yielded[1])
-                    _resolve_del(ctx.data, _parse_path(yielded[1]))
-                else:
-                    raise RuntimeError(f"ABI protocol error: unknown verb {verb!r}")
-            else:
-                raise RuntimeError(f"ABI protocol error: unexpected yield type {type(yielded).__name__}")
 
     def _send_json(self, code, data):
         """Send a JSON response with the given HTTP status code."""

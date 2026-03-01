@@ -7,6 +7,7 @@ for various while loop patterns.
 
 import ast
 import contextlib
+import re
 import sys
 import tempfile
 from pathlib import Path
@@ -612,11 +613,19 @@ def agent(p: dict) -> dict:
         """Set a value at a dotted path on a nested dict."""
         parts = path.lstrip(".").split(".")
         cur = data
+        last = parts[-1]
         for p in parts[:-1]:
             if p not in cur:
                 cur[p] = {}
             cur = cur[p]
-        cur[parts[-1]] = value
+        m = re.match(r"^(\w+)\[(-?\d*):(-?\d*)\]$", last)
+        if m:
+            key = m.group(1)
+            start = int(m.group(2)) if m.group(2) else None
+            stop = int(m.group(3)) if m.group(3) else None
+            cur[key][start:stop] = value
+        else:
+            cur[last] = value
 
     @staticmethod
     def _drive_abi_single(gen, msg_ctx: dict):
