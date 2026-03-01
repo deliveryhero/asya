@@ -1,8 +1,10 @@
 ---
 title: Support import/from-import for handler module references
-priority: 1
+priority: 1 # high
 type: task
+reason: "Implemented: module-level imports allowed, body-level rejected with clear message"
 ---
+
 
 Allow `import` and `from ... import` at the top of flow files so users can
 reference handler modules explicitly:
