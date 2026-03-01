@@ -2,7 +2,9 @@
 title: Support async-for fan-in from multi-yield actors
 priority: 2 # medium
 type: task
+reason: async for forbidden in flows — streaming cannot cross actor boundaries. Fan-in from multi-yield actors needs separate design if ever needed.
 ---
+
 
 When a single actor yields multiple payloads (non-ABI generator), the flow
 should support collecting those results via async-for comprehension syntax:
