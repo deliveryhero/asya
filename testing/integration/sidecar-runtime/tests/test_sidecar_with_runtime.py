@@ -527,7 +527,7 @@ def test_invalid_route_current(transport_helper):
     """
     Test sidecar handling when runtime handler attempts to write to read-only route/curr.
 
-    The handler uses VFS to attempt writing to /proc/asya/msg/route/curr, which is
+    The handler uses ABI yield to attempt writing to .route.curr, which is
     a read-only path. The runtime catches the PermissionError and routes the message
     to x-sump as a processing_error.
     """

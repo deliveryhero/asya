@@ -64,7 +64,7 @@ func NewDefaultStatus(actor string) *Status {
 // Route represents the routing state of a message through the actor pipeline.
 // prev: actors that have already processed this message (read-only to handlers).
 // curr: the actor currently processing this message (read-only to handlers).
-// next: actors remaining after curr (writable via /proc/asya/msg/route/next VFS).
+// next: actors remaining after curr (writable via ABI yield protocol).
 type Route struct {
 	Prev []string `json:"prev"`
 	Curr string   `json:"curr"`

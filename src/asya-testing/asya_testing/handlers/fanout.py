@@ -1,7 +1,7 @@
 """Fan-out router test handler.
 
 Generates N+1 fan-out slices from a payload containing a 'topics' list.
-Uses the VFS (/proc/asya/msg/) to control routing for each slice and to
+Controls routing for each slice using message metadata and
 embed the x-asya-fan-in header.
 
 Generator protocol for fan-out with per-slice routing:
