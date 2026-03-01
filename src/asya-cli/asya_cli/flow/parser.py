@@ -72,7 +72,8 @@ class FlowParser:
         arg = func.args.args[0]
         if arg.annotation is None:
             return False
-        if ast.unparse(arg.annotation) != "dict":
+        annotation_str = ast.unparse(arg.annotation)
+        if annotation_str not in ("dict", "Dict", "typing.Dict"):
             return False
         return bool(func.returns)
 
