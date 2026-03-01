@@ -1,10 +1,12 @@
 ---
 title: "Compiler: free variable detection across await boundaries"
-priority: 2 # medium -- upgraded: blocks react_* flow compilation (1k38vs)
+priority: 1 # high
 type: task
 tags:
   - type:feature
+reason: "User directive: free variables must be explicitly disallowed. Phase 1 (error detection) is critical."
 ---
+
 
 
 
