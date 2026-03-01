@@ -1,13 +1,15 @@
 ---
-title: "Adopt ABI yield protocol instead of VFS for actor-runtime communication"
-status: ideated
-priority: 1
+title: Adopt ABI yield protocol instead of VFS for actor-runtime communication
+status: vibed
+priority: 1 # high
 type: epic
 tags:
   - type:breaking-change
   - component:runtime
   - component:sidecar
+  - pr:239
 ---
+
 
 ## Context
 
