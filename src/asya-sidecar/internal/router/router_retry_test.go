@@ -498,6 +498,87 @@ func TestRouter_ProcessMessage_RetryOnRetriableError(t *testing.T) {
 	}
 }
 
+// TestRouter_ProcessMessage_SSEErrorTriggersRetry verifies that generator handler
+// errors (delivered as SSE error events) are retried the same way as function
+// handler errors (delivered as HTTP 500 JSON responses).
+func TestRouter_ProcessMessage_SSEErrorTriggersRetry(t *testing.T) {
+	socketPath := startMockSSERuntime(t, func(body []byte) *runtime.RuntimeResponse {
+		return &runtime.RuntimeResponse{
+			Error: "processing_error",
+			Details: runtime.ErrorDetails{
+				Type:    "ValueError",
+				MRO:     []string{"Exception"},
+				Message: "Intentional first-attempt failure",
+			},
+		}
+	})
+
+	mt := &retryMockTransport{}
+	cfg := &config.Config{
+		ActorName:     "test-actor",
+		Namespace:     "default",
+		SinkQueue:     "x-sink",
+		SumpQueue:     "x-sump",
+		TransportType: "sqs",
+		Timeout:       5 * time.Second,
+		Resiliency:    newRetryConfig(3, nil),
+	}
+
+	runtimeClient := runtime.NewClient(socketPath, 2*time.Second)
+	m := metrics.NewMetrics("test", []config.CustomMetricConfig{})
+
+	router := &Router{
+		cfg:           cfg,
+		transport:     mt,
+		runtimeClient: runtimeClient,
+		actorName:     cfg.ActorName,
+		sinkQueue:     cfg.SinkQueue,
+		sumpQueue:     cfg.SumpQueue,
+		metrics:       m,
+	}
+
+	inputMsg := messages.Message{
+		ID:      "test-sse-retry-msg",
+		Route:   messages.Route{Prev: []string{}, Curr: "test-actor", Next: []string{"next"}},
+		Payload: json.RawMessage(`{"input": "data"}`),
+	}
+	msgBody, _ := json.Marshal(inputMsg)
+
+	err := router.ProcessMessage(context.Background(), transport.QueueMessage{
+		ID:   "queue-msg-sse-1",
+		Body: msgBody,
+	})
+	if err != nil {
+		t.Fatalf("ProcessMessage should return nil on retry: %v", err)
+	}
+
+	// Should retry via SendWithDelay, NOT send to x-sump
+	if len(mt.sentMessages) != 0 {
+		t.Errorf("Expected no regular sends (to x-sump), got %d", len(mt.sentMessages))
+	}
+
+	if len(mt.delayedMessages) != 1 {
+		t.Fatalf("Expected 1 delayed message (retry), got %d", len(mt.delayedMessages))
+	}
+
+	dm := mt.delayedMessages[0]
+	if dm.queue != "asya-default-test-actor" {
+		t.Errorf("Retry should go to own queue, got %s", dm.queue)
+	}
+
+	var retryMsg messages.Message
+	if err := json.Unmarshal(dm.body, &retryMsg); err != nil {
+		t.Fatalf("Failed to unmarshal: %v", err)
+	}
+
+	if retryMsg.Status.Phase != messages.PhaseRetrying {
+		t.Errorf("Expected phase retrying, got %s", retryMsg.Status.Phase)
+	}
+	if retryMsg.Status.Attempt != 2 {
+		t.Errorf("Expected attempt 2, got %d", retryMsg.Status.Attempt)
+	}
+}
+
 func TestRouter_ProcessMessage_NonRetryableError(t *testing.T) {
 	socketPath := startMockRuntime(t, func(body []byte) ([]runtime.RuntimeResponse, int) {
 		return []runtime.RuntimeResponse{
