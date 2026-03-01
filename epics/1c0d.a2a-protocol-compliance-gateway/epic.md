@@ -13,7 +13,7 @@ UPD: See example https://a2a-protocol.org/latest/tutorials/python/4-agent-execut
 Transform asya-gateway from current /tasks/* routes to A2A-compliant endpoints. This enables external agents to interact with Asya actor networks using the standard Agent2Agent protocol.
 
 ## Current State
-- /tasks/{id} - Get messa status
+- /tasks/{id} - Get message status
 - /tasks/{id}/stream - SSE streaming
 - /tasks/{id}/progress - Sidecar progress updates
 - /tasks/{id}/final - End actor final status
