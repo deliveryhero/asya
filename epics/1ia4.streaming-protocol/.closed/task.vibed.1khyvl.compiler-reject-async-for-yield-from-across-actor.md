@@ -2,7 +2,9 @@
 title: "Compiler: improve error messages for async-for / yield-from rejection"
 priority: 3 # low
 type: task
+reason: "Implemented: explicit AsyncFor rejection + improved yield/yield-from error messages with ABI context"
 ---
+
 
 The Flow DSL compiler already rejects `async for`, `yield`, and `yield from`
 in flow definitions — but the error messages are generic. This task improves
