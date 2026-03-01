@@ -21,11 +21,52 @@ headers) from "message" to "meshage" to avoid collision with A2A "Message"
 
 ## Scope
 
+### Gateway internal routes: `/tasks/` -> `/mesh/`
+
+The sidecar-facing internal endpoints currently live under `/tasks/`:
+
+```
+POST /tasks/{id}/progress   — sidecar reports actor progress
+POST /tasks/{id}/final      — end actors report completion
+GET  /tasks/{id}/active     — sidecar checks meshage liveness
+GET  /tasks/{id}/stream     — SSE streaming (legacy clients)
+GET  /tasks/{id}            — meshage status
+POST /tasks/{id}/partial    — streaming partial data
+POST /tasks                 — fanout child creation
+```
+
+These are about **meshage lifecycle**, not A2A tasks. Rename to `/mesh/`:
+
+```
+POST /mesh/{id}/progress
+POST /mesh/{id}/final
+GET  /mesh/{id}/active
+GET  /mesh/{id}/stream
+GET  /mesh/{id}
+POST /mesh/{id}/partial
+POST /mesh
+```
+
+This frees `/tasks/` for exclusive A2A use (`/a2a/tasks/{id}`, etc.) and
+eliminates the collision between the sidecar-facing internal API and the
+client-facing A2A API.
+
+**Sidecar changes**: Update the gateway URL format strings in
+`src/asya-sidecar/internal/progress/reporter.go`:
+- `"%s/tasks/%s/progress"` -> `"%s/mesh/%s/progress"`
+- `"%s/tasks/%s/final"` -> `"%s/mesh/%s/final"`
+- `"%s/tasks/%s/active"` -> `"%s/mesh/%s/active"`
+- etc.
+
+**Crew actor changes**: Update x-sink and x-sump gateway URL references.
+
 ### Go (asya-sidecar, asya-gateway)
 
 - `src/asya-sidecar/pkg/messages/message.go` — `Message` struct -> `Meshage`
 - `src/asya-sidecar/internal/` — all references to `Message`, `msg`, etc.
+- `src/asya-sidecar/internal/progress/reporter.go` — gateway URL format strings
 - `src/asya-gateway/pkg/types/` — any internal message types
+- `src/asya-gateway/cmd/gateway/main.go` — route registrations (`mux.HandleFunc`)
 - Variable names, function names, log messages
 
 ### Python (asya-runtime, asya-crew, asya-cli)
@@ -54,4 +95,5 @@ headers) from "message" to "meshage" to avoid collision with A2A "Message"
 ## Non-Goals
 
 - Changing the queue-level wire format (JSON field names in transit)
-- Changing external API field names (yet)
+- Changing MCP or A2A protocol endpoints (those stay as `/mcp`, `/a2a/`)
+- Changing the JSON field names inside meshage bodies (id, route, payload, etc.)
