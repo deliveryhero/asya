@@ -45,7 +45,7 @@ def fanout_async_research_flow_line_11(payload: dict):
     }
 
     # Index 0: parent payload forwarded to aggregator
-    yield "SET", ".route.next", [_agg, resolve("post_processor")] + _next_tail
+    yield "SET", ".route.next", [_agg, resolve("postprocessor")] + _next_tail
     yield "SET", ".headers.x-asya-fan-in", {**_fan_in, "slice_index": 0}
     yield copy.deepcopy(p)
 
