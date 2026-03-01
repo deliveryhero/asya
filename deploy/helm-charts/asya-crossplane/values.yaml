@@ -19,6 +19,7 @@ functions:
   patchAndTransformVersion: "v0.8.2"
   autoReadyVersion: "v0.6.0"
   overlaysEnabled: true
+  overlaysRepository: "ghcr.io/deliveryhero/function-asya-overlays"
   overlaysVersion: "0.5.3"
   overlaysPackagePullPolicy: IfNotPresent
 

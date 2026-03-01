@@ -29,6 +29,7 @@ endif
 
 NAMESPACE := asya-e2e
 SYSTEM_NAMESPACE := asya-system
+REGISTRY_NAME := asya-e2e-registry
 
 export SYSTEM_NAMESPACE
 export NAMESPACE
@@ -94,5 +95,6 @@ logs: ## Show recent logs from all Asya components
 
 down clean: ## Delete Kind cluster and cleanup
 	kind delete cluster --name "$(CLUSTER_NAME)" || true
+	docker rm -f "$(REGISTRY_NAME)" 2>/dev/null || true
 	rm -rf .coverage
-	@echo "[+] Kind cluster '$(CLUSTER_NAME)' deleted"
+	@echo "[+] Kind cluster '$(CLUSTER_NAME)' and local registry deleted"

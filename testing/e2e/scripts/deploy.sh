@@ -112,6 +112,11 @@ time {
   docker build -t "${IMAGE_PREFIX}asya-injector:latest" "$ROOT_DIR/src/asya-injector/" > /dev/null 2>&1 &
   INJECTOR_BUILD_PID=$!
 
+  # Build Crossplane function image (will be pushed to local registry in Phase 3)
+  echo "[.] Building function-asya-overlays image..."
+  docker build -t "function-asya-overlays:latest" "$ROOT_DIR/src/function-asya-overlays/" > /dev/null 2>&1 &
+  FUNCTION_BUILD_PID=$!
+
   # Wait for image builds
   if ! wait "$BUILD_PID"; then
     echo "[-] Docker image build failed"
@@ -124,6 +129,12 @@ time {
     exit 1
   fi
   echo "[+] Injector image built"
+
+  if ! wait "$FUNCTION_BUILD_PID"; then
+    echo "[-] function-asya-overlays build failed"
+    exit 1
+  fi
+  echo "[+] function-asya-overlays image built"
 
   # Wait for cluster creation
   if [ -n "$CLUSTER_PID" ]; then
@@ -162,15 +173,20 @@ time {
 }
 echo
 
-# Phase 3: Load images into Kind cluster
+# Phase 3: Load images into Kind cluster and set up local OCI registry
 #
-# NOTE on image loading mechanisms:
-# - Container images (sidecar, gateway, crew, etc.) are loaded via `kind load docker-image`
-#   into containerd's image store. Kubelet uses these with `imagePullPolicy: Never`.
-# - Crossplane Function packages (function-asya-overlays) use Crossplane's own OCI puller,
-#   NOT containerd. `kind load` does NOT work for Functions — they must be pullable from
-#   an OCI registry (ghcr.io). When the Function image is not publicly accessible,
-#   set functions.overlaysEnabled=false in the e2e profile to skip it.
+# Container images (sidecar, gateway, crew, etc.) are loaded via `kind load docker-image`
+# into containerd's image store. Kubelet uses these with `imagePullPolicy: Never`.
+#
+# Crossplane Function packages (function-asya-overlays) use Crossplane's own OCI puller,
+# NOT containerd — `kind load` does NOT work for them. We run a local OCI registry
+# (registry:2), push freshly-built function images to it, and point the Crossplane
+# Function CRD at the registry's cluster-internal IP. This lets E2E tests run on the
+# same function-asya-overlays code that was just built, matching how other images work.
+REGISTRY_NAME="${REGISTRY_NAME:-asya-e2e-registry}"
+REGISTRY_HOST_PORT=5001
+OVERLAYS_REPOSITORY=""
+
 echo "[.] Phase 3: Loading images into Kind cluster..."
 time {
   IMAGES_TO_LOAD=(
@@ -187,7 +203,30 @@ time {
     LOAD_PIDS+=($!)
   done
 
-  # Wait for all loads to complete
+  # Set up local OCI registry for Crossplane Function packages.
+  # Crossplane's package manager has its own OCI client that runs inside a pod,
+  # so it can't use containerd's image store. The registry container sits on the
+  # Kind Docker network; pods reach it via the container's bridge IP.
+  echo "[.] Setting up local OCI registry for Crossplane functions..."
+  docker rm -f "$REGISTRY_NAME" 2> /dev/null || true
+  docker run -d --restart=always -p "${REGISTRY_HOST_PORT}:5000" \
+    --name "$REGISTRY_NAME" registry:2 > /dev/null
+  docker network connect kind "$REGISTRY_NAME" 2> /dev/null || true
+
+  docker tag "function-asya-overlays:latest" \
+    "localhost:${REGISTRY_HOST_PORT}/function-asya-overlays:latest"
+  docker push "localhost:${REGISTRY_HOST_PORT}/function-asya-overlays:latest" > /dev/null
+
+  REGISTRY_IP=$(docker inspect -f '{{.NetworkSettings.Networks.kind.IPAddress}}' "$REGISTRY_NAME")
+  if [ -z "$REGISTRY_IP" ]; then
+    echo "[-] Failed to get IP address for local registry container '$REGISTRY_NAME'"
+    exit 1
+  fi
+  OVERLAYS_REPOSITORY="${REGISTRY_IP}:5000/function-asya-overlays"
+  echo "[+] Local OCI registry at ${REGISTRY_IP}:5000"
+  echo "[+] Function repository: ${OVERLAYS_REPOSITORY}"
+
+  # Wait for all kind load operations
   LOAD_FAILED=false
   for pid in "${LOAD_PIDS[@]}"; do
     if ! wait "$pid"; then
@@ -272,6 +311,21 @@ time {
   fi
   echo "[+] Infrastructure layer deployed"
 }
+echo
+
+# Point function-asya-overlays at the local OCI registry.
+# Phase 5 created the Function CRD with the default ghcr.io URL; this upgrade
+# rewrites the package field so Crossplane pulls from our local registry instead.
+if [ -n "$OVERLAYS_REPOSITORY" ]; then
+  echo "[.] Pointing function-asya-overlays at local registry..."
+  helm upgrade asya-crossplane ../../../deploy/helm-charts/asya-crossplane \
+    -n asya-system --reuse-values \
+    --set "functions.overlaysRepository=${OVERLAYS_REPOSITORY}" \
+    --set "functions.overlaysVersion=latest" \
+    --set "functions.overlaysPackagePullPolicy=Always" \
+    --wait --timeout 60s > /dev/null
+  echo "[+] Function CRD updated: ${OVERLAYS_REPOSITORY}:latest"
+fi
 echo
 
 # Phase 6: Wait for Crossplane providers to become healthy

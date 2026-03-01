@@ -76,6 +76,6 @@ metadata:
   labels:
     {{- include "asya-crossplane.labels" . | nindent 4 }}
 spec:
-  package: ghcr.io/deliveryhero/function-asya-overlays:{{ .Values.functions.overlaysVersion }}
+  package: {{ .Values.functions.overlaysRepository }}:{{ .Values.functions.overlaysVersion }}
   packagePullPolicy: {{ .Values.functions.overlaysPackagePullPolicy }}
 {{- end }}
