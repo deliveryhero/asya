@@ -10,6 +10,21 @@ UPD: agent skills and model cards are defined declaratively in python at deploym
 UPD: note that `AgentExecutor` (https://a2a-protocol.org/latest/tutorials/python/4-agent-executor/) is basically replaced fully by Asya.
 UPD: See example https://a2a-protocol.org/latest/tutorials/python/4-agent-executor/#helloworld-agent-executor - should A2A `Message` be implemented as pause/resume communication through the entrypoint router agent, or it should be sent by the business logic worker similar to `yield "FLY", {...}` for streaming updates and then pause? I think low-level "FLY" capability of asya as Transport can be mapped to streaming/push/A2A-Message and other application-level capabilities of the protocols (based on the contents of the yielded event `{...}`).
 
+UPD 2026-03-01: See `rfc.md` in this directory for the cross-cutting design
+that supersedes several sections of this RFC:
+- **Section 9 (Config/Exposure)**: Superseded by epic 1m01. YAML ConfigMap
+  config is replaced by DB-backed tool/skill registry (`POST /tools/expose`).
+  No fsnotify, no ConfigMap — gateway boots from PostgreSQL.
+- **Section 8.9 (Internal Endpoints)**: Sidecar-facing `/tasks/*` routes will
+  be renamed to `/mesh/*` (epic 1mx1) to disambiguate from A2A `/a2a/tasks/*`.
+- **Terminology**: Asya's internal "message" (envelope) renamed to "meshage"
+  (epic 1mx1). "Message" reserved for A2A communication turns.
+- **A2A Message model**: Hybrid — FLY for ephemeral streaming (`StreamResponse.message`),
+  meshage `payload.history` for canonical turns (`Task.history`). Multi-turn
+  conversations map to pause-resume cycles (epic 1ixy).
+- **Conceptual mapping**: A2A Context = meshage, A2A Task = gateway metadata
+  record (no payload in DB), A2A Skill = exposed actor/flow in `tools` table.
+
 Transform asya-gateway from current /tasks/* routes to A2A-compliant endpoints. This enables external agents to interact with Asya actor networks using the standard Agent2Agent protocol.
 
 ## Current State
@@ -891,6 +906,10 @@ SSE stream for an existing task. Identical to SendStreamingMessage but for tasks
 
 #### 8.9 Internal Endpoints (Sidecar-Facing)
 
+> **NOTE (epic 1mx1)**: These `/tasks/*` routes will be renamed to `/mesh/*`
+> to disambiguate from A2A `/a2a/tasks/*`. E.g. `POST /tasks/{id}/progress`
+> becomes `POST /mesh/{id}/progress`.
+
 These endpoints are NOT part of the A2A spec. They are internal infrastructure endpoints used by sidecars to report status to the gateway.
 
 **Existing** (unchanged):
@@ -916,6 +935,10 @@ The `/tasks/{id}/events` endpoint accepts streaming frames from sidecars (multi-
 ### 9. Agent Card Generation from Flow Config
 
 #### 9.1 Unified Config YAML Schema
+
+> **SUPERSEDED by epic 1m01**: YAML ConfigMap config is replaced by a
+> PostgreSQL `tools` table with `POST /tools/expose` REST API. The schema
+> below is kept for historical reference. See `rfc.md` section 6.
 
 The existing gateway config schema (in `internal/config/routes.go`) is extended with A2A-specific fields. A single ConfigMap defines both MCP tools and A2A skills:
 
@@ -1047,6 +1070,9 @@ type Config struct {
 - `false`: not exposed in MCP tools/list
 
 #### 9.2 ConfigMap Mount and Hot-Reload
+
+> **SUPERSEDED by epic 1m01**: No ConfigMap, no fsnotify. Gateway boots from
+> DB and refreshes in-memory registry on API mutations. See `rfc.md` section 6.5.
 
 **Deployment pattern** (Helm chart values):
 
