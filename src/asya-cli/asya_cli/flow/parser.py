@@ -21,28 +21,8 @@ from asya_cli.flow.ir import (
 )
 
 
-# The canonical parameter name used in generated code is "p".
-# Any single-parameter name is accepted and normalized to "p" during parsing.
-
 # Function definition types (sync and async)
 _FUNC_DEF_TYPES = (ast.FunctionDef, ast.AsyncFunctionDef)
-
-
-class _ParamNormalizer(ast.NodeTransformer):
-    """Rename flow parameter references to the canonical name 'p'.
-
-    Generated router code uses ``p = payload``, so all mutations and
-    condition tests must reference ``p``.  This transformer
-    rewrites the AST *before* unparsing so downstream code stays simple.
-    """
-
-    def __init__(self, old_name: str) -> None:
-        self.old_name = old_name
-
-    def visit_Name(self, node: ast.Name) -> ast.Name:  # noqa: N802
-        if node.id == self.old_name:
-            node.id = "p"
-        return node
 
 
 class FlowParser:
@@ -51,6 +31,7 @@ class FlowParser:
         self.filename = filename
         self.module_path = module_path
         self.flow_name: str | None = None
+        self.param_name: str = "p"  # User's chosen parameter name, preserved in generated code
         self.is_async: bool = False  # Whether flow function is async def
         self.instances: dict[str, str] = {}  # Map instance variable to class name
         self.class_methods: set[str] = set()  # Track class method handlers
@@ -69,15 +50,8 @@ class FlowParser:
             raise FlowCompileError("No flow function found (signature: def name(p: dict) -> dict)")
 
         self.flow_name = flow_func.name
+        self.param_name = flow_func.args.args[0].arg
         self.is_async = isinstance(flow_func, ast.AsyncFunctionDef)
-
-        # Normalize parameter name to "p" so generated code is consistent
-        param_name = flow_func.args.args[0].arg
-        if param_name != "p":
-            normalizer = _ParamNormalizer(param_name)
-            for i, stmt in enumerate(flow_func.body):
-                flow_func.body[i] = normalizer.visit(stmt)
-            ast.fix_missing_locations(flow_func)
 
         operations = self._parse_body(flow_func.body)
         return self.flow_name, operations
@@ -163,21 +137,21 @@ class FlowParser:
 
         target = stmt.targets[0]
 
-        if isinstance(target, ast.Name) and target.id == "p":
-            # Assignment to p: must be actor call (possibly wrapped in await)
+        if isinstance(target, ast.Name) and target.id == self.param_name:
+            # Assignment to state variable: must be actor call (possibly wrapped in await)
             value = stmt.value
             if isinstance(value, ast.Await):
                 value = value.value
             if isinstance(value, ast.Call):
                 return [self._parse_actor_call(stmt)]
             else:
-                raise FlowCompileError(f"{self.filename}:{stmt.lineno}: Invalid assignment to 'p'")
+                raise FlowCompileError(f"{self.filename}:{stmt.lineno}: Invalid assignment to '{self.param_name}'")
         elif isinstance(target, ast.Subscript):
-            # Check for fan-out patterns only on payload subscripts (p["key"])
+            # Check for fan-out patterns only on payload subscripts (state["key"])
             base: ast.expr = target
             while isinstance(base, ast.Subscript):
                 base = base.value
-            if isinstance(base, ast.Name) and base.id == "p":
+            if isinstance(base, ast.Name) and base.id == self.param_name:
                 value = stmt.value
                 # Unwrap await for asyncio.gather detection
                 if isinstance(value, ast.Await):

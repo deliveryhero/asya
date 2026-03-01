@@ -1304,10 +1304,10 @@ class TestAwaitActorCallParsing:
             parser.parse()
 
 
-class TestStateParameterNormalization:
-    """Test that arbitrary parameter names are normalized to 'p' for code generation."""
+class TestParameterNamePreservation:
+    """Test that arbitrary parameter names are preserved in generated code."""
 
-    def test_ctx_parameter_normalized_to_p(self):
+    def test_ctx_parameter_preserved(self):
         source = textwrap.dedent("""
             def flow(ctx: dict) -> dict:
                 ctx["key"] = "value"
@@ -1317,9 +1317,9 @@ class TestStateParameterNormalization:
         _, ops = parser.parse()
 
         assert isinstance(ops[0], Mutation)
-        assert contains_with_either_quotes(ops[0].code, 'p["key"]')
+        assert contains_with_either_quotes(ops[0].code, 'ctx["key"]')
 
-    def test_data_parameter_normalized_to_p(self):
+    def test_data_parameter_preserved(self):
         source = textwrap.dedent("""
             def flow(data: dict) -> dict:
                 data["status"] = "processing"
@@ -1329,9 +1329,9 @@ class TestStateParameterNormalization:
         _, ops = parser.parse()
 
         assert isinstance(ops[0], Mutation)
-        assert contains_with_either_quotes(ops[0].code, 'p["status"]')
+        assert contains_with_either_quotes(ops[0].code, 'data["status"]')
 
-    def test_arbitrary_name_normalized_to_p(self):
+    def test_arbitrary_name_preserved(self):
         source = textwrap.dedent("""
             def flow(x: dict) -> dict:
                 x["count"] = 42
@@ -1341,9 +1341,9 @@ class TestStateParameterNormalization:
         _, ops = parser.parse()
 
         assert isinstance(ops[0], Mutation)
-        assert contains_with_either_quotes(ops[0].code, 'p["count"]')
+        assert contains_with_either_quotes(ops[0].code, 'x["count"]')
 
-    def test_state_mutations_normalized_to_p(self):
+    def test_state_mutations_preserved(self):
         source = textwrap.dedent("""
             def flow(state: dict) -> dict:
                 state["key"] = "value"
@@ -1353,9 +1353,9 @@ class TestStateParameterNormalization:
         _, ops = parser.parse()
 
         assert isinstance(ops[0], Mutation)
-        assert contains_with_either_quotes(ops[0].code, 'p["key"]')
+        assert contains_with_either_quotes(ops[0].code, 'state["key"]')
 
-    def test_state_conditions_normalized_to_p(self):
+    def test_state_conditions_preserved(self):
         source = textwrap.dedent("""
             def flow(state: dict) -> dict:
                 if state["type"] == "A":
@@ -1368,9 +1368,9 @@ class TestStateParameterNormalization:
         _, ops = parser.parse()
 
         assert isinstance(ops[0], Condition)
-        assert contains_with_either_quotes(ops[0].test, 'p["type"]')
+        assert contains_with_either_quotes(ops[0].test, 'state["type"]')
 
-    def test_state_augmented_assignment_normalized(self):
+    def test_state_augmented_assignment_preserved(self):
         source = textwrap.dedent("""
             def flow(state: dict) -> dict:
                 state["counter"] += 1
@@ -1380,9 +1380,9 @@ class TestStateParameterNormalization:
         _, ops = parser.parse()
 
         assert isinstance(ops[0], Mutation)
-        assert contains_with_either_quotes(ops[0].code, 'p["counter"]')
+        assert contains_with_either_quotes(ops[0].code, 'state["counter"]')
 
-    def test_async_state_flow_fully_normalized(self):
+    def test_async_state_flow_fully_preserved(self):
         source = textwrap.dedent("""
             async def my_flow(state: dict) -> dict:
                 state = await classifier(state)
@@ -1399,13 +1399,13 @@ class TestStateParameterNormalization:
         assert isinstance(ops[0], ActorCall)
         assert ops[0].name == "classifier"
         assert isinstance(ops[1], Condition)
-        assert contains_with_either_quotes(ops[1].test, 'p["content_type"]')
+        assert contains_with_either_quotes(ops[1].test, 'state["content_type"]')
         assert isinstance(ops[1].true_branch[0], ActorCall)
         assert ops[1].true_branch[0].name == "text_processor"
         assert isinstance(ops[1].false_branch[0], ActorCall)
         assert ops[1].false_branch[0].name == "generic_processor"
 
-    def test_payload_parameter_not_renamed(self):
+    def test_payload_parameter_preserved(self):
         source = textwrap.dedent("""
             def flow(payload: dict) -> dict:
                 payload["key"] = "value"
@@ -1415,7 +1415,7 @@ class TestStateParameterNormalization:
         _, ops = parser.parse()
 
         assert isinstance(ops[0], Mutation)
-        assert contains_with_either_quotes(ops[0].code, 'p["key"]')
+        assert contains_with_either_quotes(ops[0].code, 'payload["key"]')
 
 
 class TestIsAsyncFlag:
@@ -1513,7 +1513,7 @@ class TestAssertStatement:
         assert "assert" in ops[0].code
         assert "count must be positive" in ops[0].code
 
-    def test_assert_with_state_parameter_normalized(self):
+    def test_assert_with_state_parameter_preserved(self):
         source = textwrap.dedent("""
             def flow(state: dict) -> dict:
                 assert state["valid"], "validation failed"
@@ -1522,8 +1522,8 @@ class TestAssertStatement:
         parser = FlowParser(source, "test.py")
         _, ops = parser.parse()
         assert isinstance(ops[0], Mutation)
-        # state should be normalized to p
-        assert 'p["valid"]' in ops[0].code or "p['valid']" in ops[0].code
+        # state should be preserved
+        assert 'state["valid"]' in ops[0].code or "state['valid']" in ops[0].code
 
 
 class TestImportHandling:

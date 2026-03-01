@@ -464,10 +464,10 @@ class TestFanOutWithOtherOperations:
         assert ops[1].target_key == "/reviews"
 
 
-class TestFanOutParameterNormalization:
-    """Test that state/payload parameters are normalized to 'p' in fan-out."""
+class TestFanOutParameterPreservation:
+    """Test that parameter names are preserved in fan-out expressions."""
 
-    def test_state_parameter_normalized_in_comprehension(self):
+    def test_state_parameter_preserved_in_comprehension(self):
         source = textwrap.dedent("""
             def flow(state: dict) -> dict:
                 state["results"] = [agent(t) for t in state["items"]]
@@ -480,9 +480,9 @@ class TestFanOutParameterNormalization:
         assert isinstance(fanout, FanOutCall)
         assert fanout.target_key == "/results"
         assert fanout.iterable is not None
-        assert contains_with_either_quotes(fanout.iterable, 'p["items"]')
+        assert contains_with_either_quotes(fanout.iterable, 'state["items"]')
 
-    def test_payload_parameter_normalized_in_literal(self):
+    def test_payload_parameter_preserved_in_literal(self):
         source = textwrap.dedent("""
             def flow(payload: dict) -> dict:
                 payload["result"] = [agent_a(payload["x"]), agent_b(payload["y"])]
@@ -494,5 +494,5 @@ class TestFanOutParameterNormalization:
         fanout = ops[0]
         assert isinstance(fanout, FanOutCall)
         assert fanout.target_key == "/result"
-        assert contains_with_either_quotes(fanout.actor_calls[0][1], 'p["x"]')
-        assert contains_with_either_quotes(fanout.actor_calls[1][1], 'p["y"]')
+        assert contains_with_either_quotes(fanout.actor_calls[0][1], 'payload["x"]')
+        assert contains_with_either_quotes(fanout.actor_calls[1][1], 'payload["y"]')

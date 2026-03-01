@@ -122,6 +122,22 @@ class TestStartRouter:
         tree = ast.parse(code)
         assert tree is not None
 
+    def test_start_router_preserves_custom_param_name(self):
+        routers = [
+            Router(
+                name="start_flow",
+                lineno=0,
+                mutations=[Mutation(lineno=1, code='state["x"] = 1')],
+                true_branch_actors=["handler", "end_flow"],
+            )
+        ]
+        code = CodeGenerator("flow", routers, "test.py", param_name="state")._generate_start_router(routers[0])
+
+        assert "state = payload" in code
+        assert 'state["x"] = 1' in code
+        assert "yield state" in code
+        assert "p = payload" not in code
+
     def test_start_router_without_mutations_returns_payload(self):
         routers = [Router(name="start_flow", lineno=0, true_branch_actors=["handler", "end_flow"])]
         code = CodeGenerator("flow", routers, "test.py")._generate_start_router(routers[0])

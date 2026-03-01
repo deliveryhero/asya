@@ -43,6 +43,7 @@ class FlowCompiler:
         self.max_iterations = max_iterations
         self.warnings: list[str] = []
         self.flow_name: str | None = None
+        self.param_name: str = "p"
         self.routers: list[Router] = []
         self.class_methods: set[str] = set()
         self.is_async: bool = False
@@ -92,6 +93,7 @@ class FlowCompiler:
             step_width=plot_width,
             class_methods=self.class_methods,
             is_async=self.is_async,
+            param_name=self.param_name,
         )
         dot_content = generator.generate()
 
@@ -136,9 +138,10 @@ class FlowCompiler:
         module_path = _calculate_module_path(filename)
         parser = FlowParser(source_code, filename, module_path)
         flow_name, operations = parser.parse()
-        # Store metadata for later use by DotGenerator
+        # Store metadata for later use by CodeGenerator and DotGenerator
         self.class_methods = parser.get_class_methods()
         self.is_async = parser.is_async
+        self.param_name = parser.param_name
         return flow_name, operations
 
     def _group(self, flow_name: str, operations):
@@ -146,5 +149,5 @@ class FlowCompiler:
         return grouper.group()
 
     def _generate(self, flow_name: str, units, filename: str, output_file: str | None = None):
-        generator = CodeGenerator(flow_name, units, filename, output_file)
+        generator = CodeGenerator(flow_name, units, filename, output_file, param_name=self.param_name)
         return generator.generate()
