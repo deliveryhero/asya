@@ -146,8 +146,9 @@ yield "SET", ".route.next", ["actor_a", "actor_b"]
 # Prepend to route.next (insert before existing actors)
 yield "SET", ".route.next[:0]", ["urgent_handler"]
 
-# Append to route.next
-yield "SET", ".route.next[len:]", ["final_step"]
+# Append to route.next (read-modify-write)
+nxt = yield "GET", ".route.next"
+yield "SET", ".route.next", nxt + ["final_step"]
 
 # Set a header
 yield "SET", ".headers.trace_id", "abc-123"
@@ -259,7 +260,9 @@ Slices work only in SET commands on list fields:
 
 ```python
 yield "SET", ".route.next[:0]", ["prepend"]    # insert at beginning
-yield "SET", ".route.next[len:]", ["append"]   # insert at end
+# Appending requires read-modify-write (no slice shorthand)
+nxt = yield "GET", ".route.next"
+yield "SET", ".route.next", nxt + ["append"]
 yield "SET", ".route.next[1:3]", ["replace"]   # replace range
 ```
 
