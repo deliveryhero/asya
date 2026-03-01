@@ -386,14 +386,14 @@ For cleaner test code, wrap `actor()` as a decorator:
 import functools
 
 def actor(func):
-    """Decorator: turn a generator handler into an awaitable."""
+    """Decorator: turn a generator handler into an awaitable for single-payload handlers."""
     @functools.wraps(func)
     async def wrapper(*args, **kwargs):
         gen = func(*args, **kwargs)
         events = [e async for e in gen if not isinstance(e, tuple)]
-        if not events:
-            return None
-        return events[0]
+        if len(events) > 1:
+            raise ValueError(f"Expected 1 emitted frame for @actor, got {len(events)}")
+        return events[0] if events else None
     return wrapper
 
 @actor
