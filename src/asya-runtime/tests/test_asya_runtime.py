@@ -431,11 +431,11 @@ class TestMessageFieldPreservation:
             asya_runtime._validate_message(message)
 
     def test_vfs_handler_accesses_id_field(self):
-        """Test that handlers can access message id field via VFS."""
+        """Test that generators can access message id via ABI."""
 
-        def vfs_handler(payload):
-            message_id = asya_runtime._msg_vfs.read("id")
-            return {"message_id": message_id, "data": payload}
+        def abi_handler(payload):
+            message_id = yield "GET", ".id"
+            yield {"message_id": message_id, "data": payload}
 
         message = {
             "id": "test-vfs-123",
@@ -443,22 +443,21 @@ class TestMessageFieldPreservation:
             "route": {"prev": [], "curr": "a", "next": []},
         }
 
-        responses = call_invoke(message, vfs_handler)
+        responses = call_invoke(message, abi_handler)
 
         assert len(responses) == 1
         assert responses[0]["payload"]["message_id"] == "test-vfs-123"
 
 
-class TestVFSRouteModification:
-    """Test VFS-based route modification from handlers."""
+class TestAbiRouteModification:
+    """Test ABI-based route modification from generators."""
 
-    def test_vfs_handler_modifies_next_allowed(self):
-        """Test that handler CAN modify route.next via VFS."""
+    def test_abi_handler_modifies_next_allowed(self):
+        """Test that generator CAN modify route.next via ABI SET."""
 
         def next_modifying_handler(payload):
-            # Write new next list to VFS - this is allowed
-            asya_runtime._msg_vfs.write("route/next", "x\ny\nz")
-            return payload
+            yield "SET", ".route.next", ["x", "y", "z"]
+            yield payload
 
         message = {
             "payload": {"test": "data"},
@@ -467,19 +466,19 @@ class TestVFSRouteModification:
 
         responses = call_invoke(message, next_modifying_handler)
 
-        # Should succeed - handler replaced next via VFS.
-        # Runtime shifts: "a" -> prev, curr becomes "x" (VFS-modified next[0])
+        # Generator replaced next via ABI SET.
+        # Route shifts: "a" -> prev, curr becomes "x" (modified next[0])
         assert len(responses) == 1
         assert responses[0]["route"]["prev"] == ["a"]
         assert responses[0]["route"]["curr"] == "x"
         assert responses[0]["route"]["next"] == ["y", "z"]
 
-    def test_vfs_handler_cannot_write_route_curr(self):
-        """Test that handler cannot write route.curr via VFS (read-only)."""
+    def test_abi_handler_cannot_write_route_curr(self):
+        """Test that generator cannot SET route.curr (read-only)."""
 
         def curr_writer(payload):
-            asya_runtime._msg_vfs.write("route/curr", "evil")
-            return payload
+            yield "SET", ".route.curr", "evil"
+            yield payload
 
         message = {
             "payload": {"test": "data"},
@@ -492,12 +491,12 @@ class TestVFSRouteModification:
         assert len(responses) == 1
         assert responses[0]["error"] == "processing_error"
 
-    def test_vfs_handler_cannot_write_route_prev(self):
-        """Test that handler cannot write route.prev via VFS (read-only)."""
+    def test_abi_handler_cannot_write_route_prev(self):
+        """Test that generator cannot SET route.prev (read-only)."""
 
         def prev_writer(payload):
-            asya_runtime._msg_vfs.write("route/prev", "injected")
-            return payload
+            yield "SET", ".route.prev", ["injected"]
+            yield payload
 
         message = {
             "payload": {"test": "data"},
@@ -510,13 +509,13 @@ class TestVFSRouteModification:
         assert len(responses) == 1
         assert responses[0]["error"] == "processing_error"
 
-    def test_vfs_handler_fanout_each_yields_with_vfs_next(self):
-        """Test fan-out generator where each yield modifies route.next via VFS."""
+    def test_abi_handler_fanout_each_yields_with_next(self):
+        """Test fan-out generator where each yield modifies route.next via ABI SET."""
 
         def fanout_handler(payload):
-            asya_runtime._msg_vfs.write("route/next", "b")
+            yield "SET", ".route.next", ["b"]
             yield {"id": 1}
-            asya_runtime._msg_vfs.write("route/next", "c")
+            yield "SET", ".route.next", ["c"]
             yield {"id": 2}
 
         message = {
@@ -532,12 +531,12 @@ class TestVFSRouteModification:
         assert responses[1]["payload"] == {"id": 2}
         assert responses[1]["route"]["curr"] == "c"
 
-    def test_vfs_handler_adds_future_actors_via_next(self):
-        """Test that handler CAN add future actors by writing route.next via VFS."""
+    def test_abi_handler_adds_future_actors_via_next(self):
+        """Test that generator CAN add future actors by SET route.next."""
 
         def extending_handler(payload):
-            asya_runtime._msg_vfs.write("route/next", "c\nd\ne")
-            return payload
+            yield "SET", ".route.next", ["c", "d", "e"]
+            yield payload
 
         message = {
             "payload": {"test": "data"},
@@ -546,19 +545,18 @@ class TestVFSRouteModification:
 
         responses = call_invoke(message, extending_handler)
 
-        # Should succeed - only next changed via VFS.
-        # Runtime shifts: "b" -> prev (prev becomes ["a","b"]), curr becomes "c"
+        # Route shifts: "b" -> prev (prev becomes ["a","b"]), curr becomes "c"
         assert len(responses) == 1
         assert responses[0]["route"]["prev"] == ["a", "b"]
         assert responses[0]["route"]["curr"] == "c"
         assert responses[0]["route"]["next"] == ["d", "e"]
 
-    def test_vfs_handler_replaces_future_actors(self):
-        """Test that handler CAN replace future actors by writing route.next via VFS."""
+    def test_abi_handler_replaces_future_actors(self):
+        """Test that generator CAN replace future actors by SET route.next."""
 
         def replacing_handler(payload):
-            asya_runtime._msg_vfs.write("route/next", "x\ny")
-            return payload
+            yield "SET", ".route.next", ["x", "y"]
+            yield payload
 
         message = {
             "payload": {"test": "data"},
@@ -567,8 +565,7 @@ class TestVFSRouteModification:
 
         responses = call_invoke(message, replacing_handler)
 
-        # Should succeed - next replaced via VFS.
-        # Runtime shifts: "b" -> prev (prev becomes ["a","b"]), curr becomes "x"
+        # Route shifts: "b" -> prev (prev becomes ["a","b"]), curr becomes "x"
         assert len(responses) == 1
         assert responses[0]["route"]["prev"] == ["a", "b"]
         assert responses[0]["route"]["curr"] == "x"
@@ -976,15 +973,14 @@ class TestHandleRequestVFSMode:
         # Route shifts: actor1 -> prev, curr becomes ""
         assert responses[0]["route"] == {"prev": ["actor1"], "curr": "", "next": []}
 
-    def test_handle_request_route_modification_via_vfs(self):
-        """Test that handler can modify next via VFS."""
+    def test_handle_request_route_modification_via_abi(self):
+        """Test that generator can modify next via ABI SET."""
 
         def route_modifying_handler(payload):
-            # Read current next and append "modified"
-            current_next = asya_runtime._msg_vfs.read("route/next").strip()
-            new_next = (current_next + "\nmodified").strip()
-            asya_runtime._msg_vfs.write("route/next", new_next)
-            return payload
+            current_next = yield "GET", ".route.next"
+            current_next.append("modified")
+            yield "SET", ".route.next", current_next
+            yield payload
 
         message = {
             "route": {"prev": [], "curr": "actor1", "next": []},
@@ -994,7 +990,7 @@ class TestHandleRequestVFSMode:
         responses = call_invoke(message, route_modifying_handler)
 
         assert len(responses) == 1
-        # Route shifts: handler appended "modified" to next, so curr becomes "modified"
+        # Generator appended "modified" to next, so curr becomes "modified"
         assert responses[0]["route"]["prev"] == ["actor1"]
         assert responses[0]["route"]["curr"] == "modified"
         assert responses[0]["route"]["next"] == []
@@ -1019,12 +1015,12 @@ class TestHandleRequestVFSMode:
         assert responses[1]["payload"] == {"id": 2}
         assert responses[2]["payload"] == {"id": 3}
 
-    def test_handle_request_vfs_read_id(self):
-        """Test that handler can read message id via VFS."""
+    def test_handle_request_abi_read_id(self):
+        """Test that generator can read message id via ABI GET."""
 
         def id_reader(payload):
-            msg_id = asya_runtime._msg_vfs.read("id")
-            return {"id_seen": msg_id, **payload}
+            msg_id = yield "GET", ".id"
+            yield {"id_seen": msg_id, **payload}
 
         message = {
             "route": {"prev": [], "curr": "actor1", "next": []},
@@ -1194,30 +1190,24 @@ class TestClassBasedHandlers:
         finally:
             sys.path.pop(0)
 
-    def test_class_handler_vfs_headers_access(self, mock_env, tmp_path):
-        """Test class handler that reads headers via VFS."""
-        test_module = tmp_path / "vfs_class.py"
+    def test_class_handler_abi_headers_access(self, mock_env, tmp_path):
+        """Test class handler that reads headers via ABI GET (generator)."""
+        test_module = tmp_path / "abi_class.py"
         test_module.write_text(
             textwrap.dedent("""
-            import asya_runtime
-
-            class VFSProcessor:
+            class AbiProcessor:
                 def __init__(self):
                     self.prefix = "processed"
 
                 def process(self, payload):
-                    import asya_runtime
-                    try:
-                        trace_id = asya_runtime._msg_vfs.read("headers/trace_id")
-                    except FileNotFoundError:
-                        trace_id = ""
-                    return {"prefix": self.prefix, "data": payload, "trace_id": trace_id}
+                    trace_id = yield "GET", ".headers.trace_id"
+                    yield {"prefix": self.prefix, "data": payload, "trace_id": trace_id}
             """)
         )
 
         sys.path.insert(0, str(tmp_path))
         try:
-            with mock_env(ASYA_HANDLER="vfs_class.VFSProcessor.process"):
+            with mock_env(ASYA_HANDLER="abi_class.AbiProcessor.process"):
                 handler = asya_runtime._load_function()
 
                 message = {
@@ -1596,15 +1586,15 @@ class TestLoadFunction:
             sys.path.pop(0)
 
 
-class TestVFSReadOnly:
-    """Test VFS read-only path enforcement."""
+class TestAbiReadOnly:
+    """Test ABI read-only path enforcement."""
 
-    def test_vfs_id_is_read_only(self):
-        """Test that writing to VFS id path raises PermissionError."""
+    def test_abi_id_is_read_only(self):
+        """Test that SET on .id raises PermissionError."""
 
         def id_writer(payload):
-            asya_runtime._msg_vfs.write("id", "injected")
-            return payload
+            yield "SET", ".id", "injected"
+            yield payload
 
         message = {
             "id": "original-id",
@@ -1617,12 +1607,12 @@ class TestVFSReadOnly:
         assert len(responses) == 1
         assert responses[0]["error"] == "processing_error"
 
-    def test_vfs_parent_id_is_read_only(self):
-        """Test that writing to VFS parent_id path raises PermissionError."""
+    def test_abi_parent_id_is_read_only(self):
+        """Test that SET on .parent_id raises PermissionError."""
 
         def parent_id_writer(payload):
-            asya_runtime._msg_vfs.write("parent_id", "injected")
-            return payload
+            yield "SET", ".parent_id", "injected"
+            yield payload
 
         message = {
             "id": "msg-1",
@@ -1636,12 +1626,12 @@ class TestVFSReadOnly:
         assert len(responses) == 1
         assert responses[0]["error"] == "processing_error"
 
-    def test_vfs_route_next_is_writable(self):
-        """Test that route.next is writable via VFS."""
+    def test_abi_route_next_is_writable(self):
+        """Test that route.next is writable via ABI SET."""
 
         def next_writer(payload):
-            asya_runtime._msg_vfs.write("route/next", "new-actor")
-            return payload
+            yield "SET", ".route.next", ["new-actor"]
+            yield payload
 
         message = {
             "payload": {"test": True},
@@ -1653,10 +1643,6 @@ class TestVFSReadOnly:
         assert len(responses) == 1
         assert responses[0]["route"]["curr"] == "new-actor"
         assert responses[0]["route"]["next"] == []
-
-    def test_vfs_msg_root_default(self):
-        """Test that ASYA_MSG_ROOT defaults to /proc/asya/msg."""
-        assert asya_runtime.ASYA_MSG_ROOT == "/proc/asya/msg"
 
 
 class TestEdgeCases:
@@ -1838,15 +1824,12 @@ class TestStatusPreservation:
         assert responses[0]["payload"] == {"result": "ok"}
         assert "status" not in responses[0]
 
-    def test_vfs_status_is_readable(self):
-        """Test that status fields are readable via VFS."""
+    def test_abi_status_is_readable(self):
+        """Test that status fields are readable via ABI GET."""
 
         def status_reader(payload):
-            try:
-                phase = asya_runtime._msg_vfs.read("status/phase")
-            except FileNotFoundError:
-                phase = "not-found"
-            return {"phase_seen": phase, **payload}
+            phase = yield "GET", ".status.phase"
+            yield {"phase_seen": phase, **payload}
 
         status = {
             "phase": "processing",
@@ -1866,7 +1849,7 @@ class TestStatusPreservation:
 
         assert len(responses) == 1
         assert responses[0]["payload"]["phase_seen"] == "processing"
-        # Status is preserved through VFS snapshot automatically
+        # Status is preserved through ABI context snapshot
         assert responses[0]["status"] == status
 
 
@@ -1931,12 +1914,12 @@ class TestHeadersPreservation:
         assert responses[0]["payload"] == {"test": "data"}
         assert "headers" not in responses[0]
 
-    def test_headers_readable_via_vfs(self):
-        """Test that headers are readable via VFS and preserved in output."""
+    def test_headers_readable_via_abi(self):
+        """Test that headers are readable via ABI GET and preserved in output."""
 
         def header_reader(payload):
-            req_id = asya_runtime._msg_vfs.read("headers/request_id")
-            return {"value": payload["value"], "request_id": req_id}
+            req_id = yield "GET", ".headers.request_id"
+            yield {"value": payload["value"], "request_id": req_id}
 
         message = {
             "payload": {"value": 100},
@@ -1948,7 +1931,7 @@ class TestHeadersPreservation:
 
         assert len(responses) == 1
         assert responses[0]["payload"] == {"value": 100, "request_id": "req-456"}
-        # Headers preserved from VFS snapshot
+        # Headers preserved from ABI context snapshot
         assert responses[0]["headers"] == {"request_id": "req-456"}
 
     def test_headers_validation_invalid_type(self):
@@ -1970,16 +1953,16 @@ class TestHeadersPreservation:
         assert "Field 'headers' must be a dict" in responses[0]["details"]["message"]
 
 
-class TestVFSHeaderAccess:
-    """Test VFS-based header access from handlers."""
+class TestAbiHeaderAccess:
+    """Test ABI-based header access from generators."""
 
-    def test_vfs_headers_readable(self):
-        """Test that headers are readable via VFS."""
+    def test_abi_headers_readable(self):
+        """Test that headers are readable via ABI GET."""
 
         def header_reader(payload):
-            priority = asya_runtime._msg_vfs.read("headers/priority")
-            trace_id = asya_runtime._msg_vfs.read("headers/trace_id")
-            return {
+            priority = yield "GET", ".headers.priority"
+            trace_id = yield "GET", ".headers.trace_id"
+            yield {
                 "priority": priority,
                 "trace_id": trace_id,
                 "value": payload["value"],
@@ -1995,15 +1978,15 @@ class TestVFSHeaderAccess:
 
         assert len(responses) == 1
         assert responses[0]["payload"] == {"priority": "high", "trace_id": "xyz", "value": 42}
-        # Headers preserved in output via VFS snapshot
+        # Headers preserved in output via ABI context snapshot
         assert responses[0]["headers"] == {"priority": "high", "trace_id": "xyz"}
 
-    def test_vfs_headers_writable(self):
-        """Test that new headers can be added via VFS."""
+    def test_abi_headers_writable(self):
+        """Test that new headers can be added via ABI SET."""
 
         def header_writer(payload):
-            asya_runtime._msg_vfs.write("headers/new-header", "added-value")
-            return payload
+            yield "SET", ".headers.new-header", "added-value"
+            yield payload
 
         message = {
             "payload": {"test": True},
@@ -2017,8 +2000,8 @@ class TestVFSHeaderAccess:
         assert responses[0]["headers"]["existing"] == "kept"
         assert responses[0]["headers"]["new-header"] == "added-value"
 
-    def test_vfs_headers_fanout_preserved(self):
-        """Test that headers are preserved in fan-out via VFS."""
+    def test_abi_headers_fanout_preserved(self):
+        """Test that headers are preserved in fan-out via ABI."""
 
         def fanout_handler(payload):
             yield {"id": 1}
@@ -2038,12 +2021,12 @@ class TestVFSHeaderAccess:
         assert responses[1]["payload"] == {"id": 2}
         assert responses[1]["headers"] == {"correlation_id": "abc"}
 
-    def test_vfs_missing_header_raises_file_not_found(self):
-        """Test that reading a non-existent header raises FileNotFoundError."""
+    def test_abi_missing_header_raises_key_error(self):
+        """Test that reading a non-existent header via ABI GET raises KeyError."""
 
         def missing_header_reader(payload):
-            asya_runtime._msg_vfs.read("headers/nonexistent")
-            return payload
+            yield "GET", ".headers.nonexistent"
+            yield payload
 
         message = {
             "payload": {"test": True},
@@ -2056,7 +2039,7 @@ class TestVFSHeaderAccess:
         assert len(responses) == 1
         assert responses[0]["error"] == "processing_error"
 
-    def test_vfs_handler_returns_none(self):
+    def test_abi_handler_returns_none(self):
         """Test handler returning None aborts pipeline."""
 
         def none_handler(payload):
@@ -2288,12 +2271,12 @@ class TestAsyncHandlers:
 
         assert len(responses) == 0
 
-    def test_async_vfs_header_access(self):
-        """Async handler reads headers via VFS."""
+    def test_async_abi_header_access(self):
+        """Async generator reads headers via ABI GET."""
 
-        async def async_vfs_handler(payload):
-            trace_id = asya_runtime._msg_vfs.read("headers/trace_id")
-            return {"processed": payload["data"], "trace_id": trace_id}
+        async def async_abi_handler(payload):
+            trace_id = yield "GET", ".headers.trace_id"
+            yield {"processed": payload["data"], "trace_id": trace_id}
 
         message = {
             "payload": {"data": "test"},
@@ -2301,7 +2284,7 @@ class TestAsyncHandlers:
             "headers": {"trace_id": "t1"},
         }
 
-        responses = call_invoke(message, async_vfs_handler)
+        responses = call_invoke(message, async_abi_handler)
 
         assert len(responses) == 1
         assert responses[0]["payload"] == {"processed": "test", "trace_id": "t1"}
@@ -2423,12 +2406,12 @@ class TestAsyncGeneratorHandlers:
 
         assert len(responses) == 0
 
-    def test_async_generator_with_vfs_modification(self):
-        """Async generator modifies VFS route.next between yields."""
+    def test_async_generator_with_abi_modification(self):
+        """Async generator modifies route.next via ABI SET between yields."""
 
-        async def gen_with_vfs(payload):
+        async def gen_with_abi(payload):
             yield {"step": 1}
-            asya_runtime._msg_vfs.write("route/next", "c\nd")
+            yield "SET", ".route.next", ["c", "d"]
             yield {"step": 2}
 
         message = {
@@ -2436,7 +2419,7 @@ class TestAsyncGeneratorHandlers:
             "route": {"prev": [], "curr": "a", "next": ["b"]},
         }
 
-        responses = call_invoke(message, gen_with_vfs)
+        responses = call_invoke(message, gen_with_abi)
 
         assert len(responses) == 2
         assert responses[0]["route"]["curr"] == "b"
@@ -2612,16 +2595,37 @@ class TestHTTPInvoke:
 
     # --- VFS access via handler ---
 
-    def test_vfs_id_access_success(self, runtime_invoke):
+    def test_abi_id_access_success(self, tmp_path):
+        """ABI generator reading .id returns SSE downstream events."""
+
         def handler(payload):
-            msg_id = asya_runtime._msg_vfs.read("id")
-            return {"processed": True, "id_seen": msg_id}
+            msg_id = yield "GET", ".id"
+            yield {"processed": True, "id_seen": msg_id}
 
         message = {"id": "test-msg-id", "payload": {"x": 1}, "route": {"prev": [], "curr": "a", "next": []}}
-        frames, status = runtime_invoke(handler, message)
+        socket_path = str(tmp_path / "abi-id.sock")
+        server = asya_runtime._UnixHTTPServer(socket_path, asya_runtime._InvokeHandler)
+        server.user_func = handler
+
+        thread = threading.Thread(target=server.handle_request)
+        thread.start()
+
+        conn = _UnixHTTPConnection(socket_path)
+        body = json.dumps(message).encode("utf-8")
+        conn.request("POST", "/invoke", body=body, headers={"Content-Type": "application/json"})
+        resp = conn.getresponse()
+        status = resp.status
+        raw = resp.read()
+        conn.close()
+        thread.join(timeout=5)
+        server.server_close()
+
         assert status == 200
-        assert frames[0]["payload"]["processed"] is True
-        assert frames[0]["payload"]["id_seen"] == "test-msg-id"
+        events = _parse_sse(raw)
+        downstream = [d for t, d in events if t == "downstream"]
+        assert len(downstream) == 1
+        assert downstream[0]["payload"]["processed"] is True
+        assert downstream[0]["payload"]["id_seen"] == "test-msg-id"
 
     def test_vfs_handler_returns_none(self, runtime_invoke):
         message = {"payload": {}, "route": {"prev": [], "curr": "a", "next": []}}
@@ -2718,11 +2722,11 @@ class TestSSEStreaming:
         assert events[-1][0] == "done"
 
     def test_sse_upstream_events(self, tmp_path):
-        """Generator yields partial=True dicts as upstream events."""
+        """Generator yields FLY tuples as upstream events."""
 
         def gen(payload):
-            yield {"partial": True, "token": "hello"}
-            yield {"partial": True, "token": "world"}
+            yield "FLY", {"token": "hello"}
+            yield "FLY", {"token": "world"}
 
         message = {"payload": {}, "route": {"prev": [], "curr": "a", "next": []}}
         status, _, raw = self._invoke_raw(tmp_path, gen, message)
@@ -2737,12 +2741,12 @@ class TestSSEStreaming:
         assert events[-1][0] == "done"
 
     def test_sse_mixed_events(self, tmp_path):
-        """Mix of upstream and downstream events."""
+        """Mix of upstream (FLY) and downstream (dict) events."""
 
         def gen(payload):
-            yield {"partial": True, "token": "thinking"}
+            yield "FLY", {"token": "thinking"}
             yield {"result": "step1"}
-            yield {"partial": True, "token": "done"}
+            yield "FLY", {"token": "done"}
             yield {"result": "step2"}
 
         message = {"payload": {}, "route": {"prev": [], "curr": "a", "next": ["b"]}}
@@ -2789,7 +2793,7 @@ class TestSSEStreaming:
 
         async def gen(payload):
             yield {"id": 1}
-            yield {"partial": True, "token": "partial"}
+            yield "FLY", {"token": "partial"}
             yield {"id": 2}
 
         message = {"payload": {}, "route": {"prev": [], "curr": "a", "next": ["b"]}}
@@ -2813,12 +2817,12 @@ class TestSSEStreaming:
         data = json.loads(raw)
         assert "frames" in data
 
-    def test_sse_generator_vfs_modification(self, tmp_path):
-        """Generator with VFS route modification between yields."""
+    def test_sse_generator_abi_modification(self, tmp_path):
+        """Generator with ABI SET route modification between yields."""
 
         def gen(payload):
             yield {"step": 1}
-            asya_runtime._msg_vfs.write("route/next", "c\nd")
+            yield "SET", ".route.next", ["c", "d"]
             yield {"step": 2}
 
         message = {"payload": {}, "route": {"prev": [], "curr": "a", "next": ["b"]}}
@@ -2861,3 +2865,345 @@ class TestHTTPHealthz:
     def test_healthz_unknown_path_returns_404(self, tmp_path):
         status, _ = self._make_get_request(tmp_path, "/unknown")
         assert status == 404
+
+
+class TestAbiPathResolver:
+    """Test ABI path resolver: _parse_path, _resolve_get, _resolve_set, _resolve_del."""
+
+    def test_parse_dot_access(self):
+        segs = asya_runtime._parse_path(".route.next")
+        assert segs == [("key", "route"), ("key", "next")]
+
+    def test_parse_bracket_access(self):
+        segs = asya_runtime._parse_path('.headers["model.config.version"]')
+        assert segs == [("key", "headers"), ("key", "model.config.version")]
+
+    def test_parse_index_access(self):
+        segs = asya_runtime._parse_path(".route.next[0]")
+        assert segs == [("key", "route"), ("key", "next"), ("idx", 0)]
+
+    def test_parse_negative_index(self):
+        segs = asya_runtime._parse_path(".route.next[-1]")
+        assert segs == [("key", "route"), ("key", "next"), ("idx", -1)]
+
+    def test_parse_slice(self):
+        segs = asya_runtime._parse_path(".route.next[:0]")
+        assert segs == [("key", "route"), ("key", "next"), ("slc", slice(None, 0))]
+
+    def test_parse_slice_with_start(self):
+        segs = asya_runtime._parse_path(".route.next[1:3]")
+        assert segs == [("key", "route"), ("key", "next"), ("slc", slice(1, 3))]
+
+    def test_parse_mixed_dot_and_bracket(self):
+        segs = asya_runtime._parse_path('.status["error.detail"].message')
+        assert segs == [("key", "status"), ("key", "error.detail"), ("key", "message")]
+
+    def test_parse_hyphenated_key(self):
+        segs = asya_runtime._parse_path(".headers.x-asya-fan-in")
+        assert segs == [("key", "headers"), ("key", "x-asya-fan-in")]
+
+    def test_parse_empty_path_raises(self):
+        with pytest.raises(ValueError, match="must start with"):
+            asya_runtime._parse_path("no-dot-prefix")
+
+    def test_parse_dot_only_raises(self):
+        with pytest.raises(ValueError, match="Empty path"):
+            asya_runtime._parse_path(".")
+
+    def test_get_dot_access(self):
+        data = {"route": {"next": ["a", "b"]}}
+        result = asya_runtime._resolve_get(data, asya_runtime._parse_path(".route.next"))
+        assert result == ["a", "b"]
+
+    def test_get_returns_deep_copy(self):
+        data = {"route": {"next": ["a"]}}
+        result = asya_runtime._resolve_get(data, asya_runtime._parse_path(".route.next"))
+        result.append("mutated")
+        assert data["route"]["next"] == ["a"]
+
+    def test_get_index(self):
+        data = {"route": {"next": ["a", "b", "c"]}}
+        assert asya_runtime._resolve_get(data, asya_runtime._parse_path(".route.next[0]")) == "a"
+        assert asya_runtime._resolve_get(data, asya_runtime._parse_path(".route.next[-1]")) == "c"
+
+    def test_get_missing_key_raises(self):
+        data = {"route": {}}
+        with pytest.raises(KeyError):
+            asya_runtime._resolve_get(data, asya_runtime._parse_path(".route.next"))
+
+    def test_get_slice_raises(self):
+        data = {"route": {"next": ["a", "b"]}}
+        with pytest.raises(ValueError, match="[Ss]lice"):
+            asya_runtime._resolve_get(data, asya_runtime._parse_path(".route.next[:0]"))
+
+    def test_set_replaces_value(self):
+        data = {"route": {"next": ["old"]}}
+        asya_runtime._resolve_set(data, asya_runtime._parse_path(".route.next"), ["new"])
+        assert data["route"]["next"] == ["new"]
+
+    def test_set_deep_copies_value(self):
+        data = {"route": {"next": []}}
+        val = ["a", "b"]
+        asya_runtime._resolve_set(data, asya_runtime._parse_path(".route.next"), val)
+        val.append("mutated")
+        assert data["route"]["next"] == ["a", "b"]
+
+    def test_set_slice_prepend(self):
+        data = {"route": {"next": ["c", "d"]}}
+        asya_runtime._resolve_set(data, asya_runtime._parse_path(".route.next[:0]"), ["a", "b"])
+        assert data["route"]["next"] == ["a", "b", "c", "d"]
+
+    def test_set_auto_creates_intermediate_dicts(self):
+        data = {}
+        asya_runtime._resolve_set(data, asya_runtime._parse_path(".headers.trace_id"), "abc")
+        assert data == {"headers": {"trace_id": "abc"}}
+
+    def test_set_index(self):
+        data = {"route": {"next": ["a", "b", "c"]}}
+        asya_runtime._resolve_set(data, asya_runtime._parse_path(".route.next[1]"), "x")
+        assert data["route"]["next"] == ["a", "x", "c"]
+
+    def test_del_key(self):
+        data = {"headers": {"trace_id": "abc", "other": "val"}}
+        asya_runtime._resolve_del(data, asya_runtime._parse_path(".headers.trace_id"))
+        assert data == {"headers": {"other": "val"}}
+
+    def test_del_index(self):
+        data = {"route": {"next": ["a", "b", "c"]}}
+        asya_runtime._resolve_del(data, asya_runtime._parse_path(".route.next[1]"))
+        assert data["route"]["next"] == ["a", "c"]
+
+    def test_del_missing_key_raises(self):
+        data = {"headers": {}}
+        with pytest.raises(KeyError):
+            asya_runtime._resolve_del(data, asya_runtime._parse_path(".headers.trace_id"))
+
+    def test_del_slice_raises(self):
+        data = {"route": {"next": ["a"]}}
+        with pytest.raises(ValueError, match="[Ss]lice"):
+            asya_runtime._resolve_del(data, asya_runtime._parse_path(".route.next[:0]"))
+
+    def test_get_single_key(self):
+        data = {"id": "msg-123"}
+        assert asya_runtime._resolve_get(data, asya_runtime._parse_path(".id")) == "msg-123"
+
+
+class TestAbiContext:
+    """Test _AbiContext class."""
+
+    def _make_message(self, **overrides):
+        msg = {
+            "id": "msg-1",
+            "route": {"prev": ["x"], "curr": "a", "next": ["b", "c"]},
+            "payload": {"data": 1},
+            "headers": {"trace_id": "t1"},
+        }
+        msg.update(overrides)
+        return msg
+
+    def test_context_populates_from_message(self):
+        ctx = asya_runtime._AbiContext(self._make_message())
+        assert ctx.data["id"] == "msg-1"
+        assert ctx.data["route"]["next"] == ["b", "c"]
+        assert ctx.data["headers"]["trace_id"] == "t1"
+
+    def test_context_snapshot(self):
+        ctx = asya_runtime._AbiContext(self._make_message())
+        snap = ctx.snapshot()
+        assert snap["route_next"] == ["b", "c"]
+        assert snap["headers"] == {"trace_id": "t1"}
+
+    def test_context_isolates_from_message(self):
+        msg = self._make_message()
+        ctx = asya_runtime._AbiContext(msg)
+        ctx.data["route"]["next"].append("mutated")
+        assert msg["route"]["next"] == ["b", "c"]
+
+    def test_context_with_status(self):
+        msg = self._make_message(status={"error": {"type": "ValueError"}})
+        ctx = asya_runtime._AbiContext(msg)
+        assert ctx.data["status"]["error"]["type"] == "ValueError"
+
+    def test_context_without_headers(self):
+        msg = self._make_message()
+        del msg["headers"]
+        ctx = asya_runtime._AbiContext(msg)
+        assert ctx.data["headers"] == {}
+
+    def test_context_with_parent_id(self):
+        msg = self._make_message(parent_id="parent-1")
+        ctx = asya_runtime._AbiContext(msg)
+        assert ctx.data["parent_id"] == "parent-1"
+
+
+class TestAbiAccessControl:
+    """Test ABI SET/DEL access control."""
+
+    def test_set_route_next_allowed(self):
+        asya_runtime._check_set_access(".route.next")
+
+    def test_set_headers_allowed(self):
+        asya_runtime._check_set_access(".headers.trace_id")
+
+    def test_set_route_prev_denied(self):
+        with pytest.raises(PermissionError):
+            asya_runtime._check_set_access(".route.prev")
+
+    def test_set_route_curr_denied(self):
+        with pytest.raises(PermissionError):
+            asya_runtime._check_set_access(".route.curr")
+
+    def test_set_id_denied(self):
+        with pytest.raises(PermissionError):
+            asya_runtime._check_set_access(".id")
+
+    def test_set_status_allowed(self):
+        asya_runtime._check_set_access(".status.error")
+
+    def test_del_route_next_allowed(self):
+        asya_runtime._check_del_access(".route.next")
+
+    def test_del_headers_allowed(self):
+        asya_runtime._check_del_access(".headers.trace_id")
+
+    def test_del_status_allowed(self):
+        asya_runtime._check_del_access(".status.error")
+
+    def test_del_id_denied(self):
+        with pytest.raises(PermissionError):
+            asya_runtime._check_del_access(".id")
+
+    def test_del_route_prev_denied(self):
+        with pytest.raises(PermissionError):
+            asya_runtime._check_del_access(".route.prev")
+
+
+class TestAbiDispatch:
+    """Test _drive_generator ABI dispatch engine."""
+
+    def _make_ctx(self, **overrides):
+        msg = {
+            "id": "msg-1",
+            "route": {"prev": [], "curr": "a", "next": ["b"]},
+            "payload": {},
+            "headers": {},
+        }
+        msg.update(overrides)
+        return asya_runtime._AbiContext(msg)
+
+    def test_emit_dict(self):
+        def gen(payload):
+            yield {"result": "ok"}
+
+        ctx = self._make_ctx()
+        frames = asya_runtime._drive_generator(gen({}), ctx)
+        assert len(frames) == 1
+        assert frames[0]["payload"] == {"result": "ok"}
+
+    def test_get_returns_value(self):
+        def gen(payload):
+            prev = yield "GET", ".route.prev"
+            payload["saw_prev"] = prev
+            yield payload
+
+        ctx = self._make_ctx()
+        frames = asya_runtime._drive_generator(gen({}), ctx)
+        assert frames[0]["payload"]["saw_prev"] == []
+
+    def test_set_modifies_route_next(self):
+        def gen(payload):
+            yield "SET", ".route.next", ["x", "y"]
+            yield payload
+
+        ctx = self._make_ctx()
+        frames = asya_runtime._drive_generator(gen({}), ctx)
+        assert frames[0]["route"]["curr"] == "x"
+        assert frames[0]["route"]["next"] == ["y"]
+
+    def test_del_removes_header(self):
+        def gen(payload):
+            yield "DEL", ".headers.trace_id"
+            yield payload
+
+        ctx = self._make_ctx(headers={"trace_id": "abc"})
+        frames = asya_runtime._drive_generator(gen({}), ctx)
+        assert "trace_id" not in frames[0].get("headers", {})
+
+    def test_fly_skipped_in_batch(self):
+        def gen(payload):
+            yield "FLY", {"token": "hello"}
+            yield payload
+
+        ctx = self._make_ctx()
+        frames = asya_runtime._drive_generator(gen({}), ctx)
+        assert len(frames) == 1
+
+    def test_fly_callback_in_sse_mode(self):
+        fly_events = []
+
+        def gen(payload):
+            yield "FLY", {"token": "hello"}
+            yield payload
+
+        ctx = self._make_ctx()
+        frames = asya_runtime._drive_generator(gen({}), ctx, on_fly=lambda p: fly_events.append(p))
+        assert fly_events == [{"token": "hello"}]
+        assert len(frames) == 1
+
+    def test_noop_yield(self):
+        def gen(payload):
+            yield
+            yield payload
+
+        ctx = self._make_ctx()
+        frames = asya_runtime._drive_generator(gen({}), ctx)
+        assert len(frames) == 1
+
+    def test_protocol_error_bad_type(self):
+        def gen(payload):
+            yield 42
+
+        ctx = self._make_ctx()
+        with pytest.raises(RuntimeError, match="protocol error"):
+            asya_runtime._drive_generator(gen({}), ctx)
+
+    def test_protocol_error_unknown_verb(self):
+        def gen(payload):
+            yield "UNKNOWN", ".route"
+
+        ctx = self._make_ctx()
+        with pytest.raises(RuntimeError, match="protocol error"):
+            asya_runtime._drive_generator(gen({}), ctx)
+
+    def test_access_violation_set(self):
+        def gen(payload):
+            yield "SET", ".route.prev", ["evil"]
+
+        ctx = self._make_ctx()
+        with pytest.raises(PermissionError):
+            asya_runtime._drive_generator(gen({}), ctx)
+
+    def test_multiple_emits(self):
+        def gen(payload):
+            yield "SET", ".route.next", ["x", "y"]
+            yield {"first": True}
+            yield "SET", ".route.next", ["z"]
+            yield {"second": True}
+
+        ctx = self._make_ctx()
+        frames = asya_runtime._drive_generator(gen({}), ctx)
+        assert len(frames) == 2
+        assert frames[0]["payload"] == {"first": True}
+        assert frames[1]["payload"] == {"second": True}
+
+    def test_get_returns_deep_copy(self):
+        def gen(payload):
+            route_next = yield "GET", ".route.next"
+            route_next.append("mutated")
+            actual = yield "GET", ".route.next"
+            payload["actual"] = actual
+            yield payload
+
+        ctx = self._make_ctx()
+        frames = asya_runtime._drive_generator(gen({}), ctx)
+        assert frames[0]["payload"]["actual"] == ["b"]

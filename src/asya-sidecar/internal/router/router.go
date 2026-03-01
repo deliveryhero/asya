@@ -828,6 +828,16 @@ func (r *Router) ProcessMessage(ctx context.Context, queueMsg transport.QueueMes
 	}
 
 	if err != nil {
+		// Generator handlers signal errors via SSE error events, which the
+		// runtime client wraps as *RuntimeError. Convert these back into a
+		// normal error response so that retry/MRO logic in handleErrorResponse
+		// applies consistently for both function and generator handlers.
+		var runtimeErr *runtime.RuntimeError
+		if errors.As(err, &runtimeErr) {
+			slog.Info("Runtime handler error (SSE)", "id", msg.ID, "error", runtimeErr.Response.Error)
+			return r.handleRuntimeResponses(ctx, msg, []runtime.RuntimeResponse{runtimeErr.Response}, queueMsg.Body, runtimeDuration, startTime)
+		}
+
 		slog.Error("Runtime calling error", "error", err)
 
 		if r.metrics != nil {

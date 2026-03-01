@@ -72,7 +72,7 @@ while [[ $# -gt 0 ]]; do
       echo "  - asya-sidecar"
       echo "  - asya-testing"
       echo "  - asya-ui"
-      echo "  - function-asya-flavors"
+      echo "  - function-asya-overlays"
       echo ""
       echo "Environment variables:"
       echo "  TAG                 Image tag (default: latest)"
@@ -201,7 +201,7 @@ declare -a ALL_IMAGES=(
   "asya-sidecar"
   "asya-testing"
   "asya-ui"
-  "function-asya-flavors"
+  "function-asya-overlays"
 )
 
 # Resolve build context for an image name.

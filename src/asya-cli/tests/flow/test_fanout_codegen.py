@@ -3,11 +3,10 @@
 from __future__ import annotations
 
 import ast
-import json
+import copy
 import os
-import tempfile
+import re
 import textwrap
-from contextlib import contextmanager
 from typing import Any
 
 import pytest
@@ -60,59 +59,119 @@ def _exec_code(code: str) -> dict:
     return ns
 
 
-@contextmanager
-def _vfs_tmpdir(msg_id: str, route_next: list[str] | None = None, headers: dict | None = None):
-    """Create a temporary VFS directory populated with message metadata.
+def _resolve_path(data: dict, path: str) -> Any:
+    """Resolve a dotted path on a nested dict. Leading dot is stripped."""
+    parts = path.lstrip(".").split(".")
+    cur: Any = data
+    for p in parts:
+        cur = cur[p]
+    return cur
 
-    Sets ASYA_MSG_ROOT so generated code reads/writes the tmpdir.
+
+def _set_path(data: dict, path: str, value: Any) -> None:
+    """Set a value at a dotted path on a nested dict. Leading dot is stripped."""
+    parts = path.lstrip(".").split(".")
+    cur = data
+    last = parts[-1]
+    for p in parts[:-1]:
+        if p not in cur:
+            cur[p] = {}
+        cur = cur[p]
+    m = re.match(r"^(\w+)\[(-?\d*):(-?\d*)\]$", last)
+    if m:
+        key = m.group(1)
+        start = int(m.group(2)) if m.group(2) else None
+        stop = int(m.group(3)) if m.group(3) else None
+        cur[key][start:stop] = value
+    else:
+        cur[last] = value
+
+
+def _del_path(data: dict, path: str) -> None:
+    """Delete a value at a dotted path on a nested dict. Leading dot is stripped."""
+    parts = path.lstrip(".").split(".")
+    cur = data
+    for p in parts[:-1]:
+        cur = cur[p]
+    del cur[parts[-1]]
+
+
+class AbiFrame:
+    """Represents one output frame collected from an ABI generator."""
+
+    def __init__(self, payload: Any, route_next: list[str], headers: dict[str, Any]):
+        self.payload = payload
+        self.route_next = list(route_next)
+        self.headers = copy.deepcopy(headers)
+
+
+def _drive_abi_generator(gen, msg_ctx: dict) -> list[AbiFrame]:
+    """Drive an ABI generator, dispatching GET/SET/DEL operations on msg_ctx.
+
+    msg_ctx is a dict like:
+        {"id": "...", "route": {"prev": [...], "next": [...]}, "headers": {...}, "status": {...}}
+
+    Each yielded value is either:
+    - ("GET", path) -> respond with resolved value
+    - ("SET", path, value) -> set value, respond with None
+    - ("DEL", path) -> delete value, respond with None
+    - anything else -> a payload frame, snapshot state as AbiFrame
     """
-    with tempfile.TemporaryDirectory() as tmpdir:
-        # Write id
-        with open(os.path.join(tmpdir, "id"), "w") as f:
-            f.write(msg_id)
-        # Write route/next
-        route_dir = os.path.join(tmpdir, "route")
-        os.makedirs(route_dir, exist_ok=True)
-        with open(os.path.join(route_dir, "next"), "w") as f:
-            f.write("\n".join(route_next or []))
-        # Write headers
-        headers_dir = os.path.join(tmpdir, "headers")
-        os.makedirs(headers_dir, exist_ok=True)
-        if headers:
-            for k, v in headers.items():
-                with open(os.path.join(headers_dir, k), "w") as f:
-                    if isinstance(v, dict | list):
-                        f.write(json.dumps(v))
-                    else:
-                        f.write(str(v))
-
-        old_env = os.environ.get("ASYA_MSG_ROOT")
-        os.environ["ASYA_MSG_ROOT"] = tmpdir
-        try:
-            yield tmpdir
-        finally:
-            if old_env is None:
-                os.environ.pop("ASYA_MSG_ROOT", None)
-            else:
-                os.environ["ASYA_MSG_ROOT"] = old_env
-
-
-def _read_vfs_route_next(tmpdir: str) -> list[str]:
-    """Read current route/next from VFS tmpdir."""
-    with open(os.path.join(tmpdir, "route", "next")) as f:
-        content = f.read()
-    return content.splitlines() if content else []
-
-
-def _read_vfs_header(tmpdir: str, name: str) -> dict[str, Any] | str:
-    """Read a header from VFS tmpdir, parsing JSON if possible."""
-    path = os.path.join(tmpdir, "headers", name)
-    with open(path) as f:
-        content = f.read()
+    frames: list[AbiFrame] = []
+    value = None
     try:
-        return json.loads(content)
-    except (json.JSONDecodeError, TypeError):
-        return content
+        value = gen.send(None)
+        while True:
+            if (
+                isinstance(value, tuple)
+                and len(value) >= 2
+                and isinstance(value[0], str)
+                and value[0] in ("GET", "SET", "DEL")
+            ):
+                op = value[0]
+                if op == "GET":
+                    result = _resolve_path(msg_ctx, value[1])
+                    value = gen.send(result)
+                elif op == "SET":
+                    _set_path(msg_ctx, value[1], value[2])
+                    value = gen.send(None)
+                elif op == "DEL":
+                    _del_path(msg_ctx, value[1])
+                    value = gen.send(None)
+            else:
+                # Payload frame
+                frames.append(
+                    AbiFrame(
+                        payload=value,
+                        route_next=msg_ctx.get("route", {}).get("next", []),
+                        headers=msg_ctx.get("headers", {}),
+                    )
+                )
+                value = gen.send(None)
+    except StopIteration:
+        pass
+    return frames
+
+
+def _make_msg_ctx(
+    msg_id: str = "test-msg-id",
+    route_next: list[str] | None = None,
+    route_prev: list[str] | None = None,
+    headers: dict[str, Any] | None = None,
+    status: dict[str, Any] | None = None,
+) -> dict:
+    """Create a message context dict for ABI-based tests."""
+    ctx: dict[str, Any] = {
+        "id": msg_id,
+        "route": {
+            "prev": route_prev or [],
+            "next": route_next or [],
+        },
+        "headers": headers or {},
+    }
+    if status is not None:
+        ctx["status"] = status
+    return ctx
 
 
 # ---------------------------------------------------------------------------
@@ -305,8 +364,8 @@ class TestFanOutCodeValidity:
         yields = [node for node in ast.walk(fanout_funcs[0]) if isinstance(node, ast.Yield | ast.YieldFrom)]
         assert len(yields) >= 2, "Fan-out function should yield at least 2 messages (parent + slices)"
 
-    def test_fanout_json_import_generated_once(self):
-        """import json as _json should appear exactly once per file even with multiple fan-outs."""
+    def test_fanout_copy_import_generated_once(self):
+        """import copy should appear exactly once per file even with multiple fan-outs."""
         ops = [
             _make_fanout_op(target_key="/a", lineno=3),
             ActorCall(lineno=4, name="formatter1"),
@@ -316,8 +375,8 @@ class TestFanOutCodeValidity:
         ]
         code = _generate_code_for_ops("flow", ops)
 
-        count = code.count("import json as _json")
-        assert count == 1, f"json import should be emitted exactly once, found {count} times"
+        count = code.count("import copy")
+        assert count == 1, f"copy import should be emitted exactly once, found {count} times"
 
     def test_fanout_no_resolve_fanin(self):
         """Files with fan-out should not contain _resolve_fanin (removed helper)."""
@@ -326,21 +385,19 @@ class TestFanOutCodeValidity:
 
         assert "_resolve_fanin" not in code
 
-    def test_no_fanout_no_json_import(self):
-        """Files without fan-out should not import json for fan-out purposes."""
+    def test_no_fanout_no_copy_import(self):
+        """Files without fan-out should not import copy."""
         ops = [ActorCall(lineno=1, name="handler"), Return(lineno=2)]
         code = _generate_code_for_ops("flow", ops)
 
-        # The resolve function at module level doesn't import json either
-        # _json is the fan-out specific alias
-        assert "_json" not in code
+        assert "import copy" not in code
 
-    def test_fanout_imports_json(self):
-        """Files with fan-out should import json (as _json)."""
+    def test_fanout_imports_copy(self):
+        """Files with fan-out should import copy."""
         ops = [_make_fanout_op(), Return(lineno=6)]
         code = _generate_code_for_ops("flow", ops)
 
-        assert "import json as _json" in code
+        assert "import copy" in code
 
     def test_fanout_sub_agents_in_all_handlers(self):
         """Sub-agent names from fan_out_op.actor_calls must be in all_handlers."""
@@ -453,26 +510,26 @@ class TestFanOutCodeStructure:
 
         assert "x-asya-fan-in" in code
 
-    def test_fanout_reads_id_from_vfs(self):
-        """Fan-out router reads message ID from VFS."""
+    def test_fanout_reads_id_via_abi(self):
+        """Fan-out router reads message ID via ABI GET."""
         ops = [_make_fanout_op(), Return(lineno=6)]
         code = _generate_code_for_ops("flow", ops)
 
-        assert "_MSG_ROOT}/id" in code
+        assert 'yield "GET", ".id"' in code
 
-    def test_fanout_reads_route_next_from_vfs(self):
-        """Fan-out router reads route/next from VFS."""
+    def test_fanout_reads_route_next_via_abi(self):
+        """Fan-out router reads route/next via ABI GET."""
         ops = [_make_fanout_op(), Return(lineno=6)]
         code = _generate_code_for_ops("flow", ops)
 
-        assert "_MSG_ROOT}/route/next" in code
+        assert 'yield "GET", ".route.next"' in code
 
-    def test_fanout_writes_headers_via_vfs(self):
-        """Fan-out router writes headers to VFS files."""
+    def test_fanout_writes_headers_via_abi(self):
+        """Fan-out router writes headers via ABI SET."""
         ops = [_make_fanout_op(), Return(lineno=6)]
         code = _generate_code_for_ops("flow", ops)
 
-        assert "_MSG_ROOT}/headers/x-asya-fan-in" in code
+        assert 'yield "SET", ".headers.x-asya-fan-in"' in code
 
 
 # ---------------------------------------------------------------------------
@@ -481,10 +538,10 @@ class TestFanOutCodeStructure:
 
 
 class TestFanOutCodeExecution:
-    """Execute the generated code with a VFS tmpdir and verify yielded payloads + VFS state."""
+    """Execute the generated code with ABI driver and verify yielded payloads + message state."""
 
     def _setup_and_exec(self, code: str, actor_map: dict[str, str]) -> dict:
-        """Exec the code with env vars set for resolve(). Must be called inside _vfs_tmpdir."""
+        """Exec the code with env vars set for resolve()."""
         env_backup = {}
         for actor_name, _queue_name in actor_map.items():
             env_key = f"ASYA_HANDLER_{actor_name.upper().replace('-', '_')}"
@@ -529,12 +586,12 @@ class TestFanOutCodeExecution:
             "fanout_flow_line_5": "fanout-flow-line-5",
         }
 
-        with _vfs_tmpdir("test-msg-id", route_next=[]):
-            ns = self._setup_and_exec(code, actor_map)
-            fanout_fn = self._get_fanout_fn(ns)
-            payloads = list(fanout_fn({"topics": ["a", "b", "c"]}))
+        ns = self._setup_and_exec(code, actor_map)
+        fanout_fn = self._get_fanout_fn(ns)
+        msg_ctx = _make_msg_ctx("test-msg-id", route_next=[])
+        frames = _drive_abi_generator(fanout_fn({"topics": ["a", "b", "c"]}), msg_ctx)
 
-        assert len(payloads) == 4, f"Expected 4 payloads (1+3 topics), got {len(payloads)}"
+        assert len(frames) == 4, f"Expected 4 frames (1+3 topics), got {len(frames)}"
 
     def test_literal_fanout_yields_n_plus_1_payloads(self):
         """Literal fan-out with 2 actors should yield 3 payloads (1 parent + 2 slices)."""
@@ -559,12 +616,12 @@ class TestFanOutCodeExecution:
             "fanout_flow_line_5": "fanout-flow-line-5",
         }
 
-        with _vfs_tmpdir("test-msg-id", route_next=[]):
-            ns = self._setup_and_exec(code, actor_map)
-            fanout_fn = self._get_fanout_fn(ns)
-            payloads = list(fanout_fn({"text": "hello world"}))
+        ns = self._setup_and_exec(code, actor_map)
+        fanout_fn = self._get_fanout_fn(ns)
+        msg_ctx = _make_msg_ctx("test-msg-id", route_next=[])
+        frames = _drive_abi_generator(fanout_fn({"text": "hello world"}), msg_ctx)
 
-        assert len(payloads) == 3, f"Expected 3 payloads (1+2 actors), got {len(payloads)}"
+        assert len(frames) == 3, f"Expected 3 frames (1+2 actors), got {len(frames)}"
 
     def test_parent_payload_is_deep_copy_of_input(self):
         """Index 0 yield should be a deep copy of the input payload."""
@@ -578,17 +635,16 @@ class TestFanOutCodeExecution:
         }
 
         input_payload = {"topics": ["x"]}
-        with _vfs_tmpdir("orig-id", route_next=[]):
-            ns = self._setup_and_exec(code, actor_map)
-            fanout_fn = self._get_fanout_fn(ns)
-            gen = fanout_fn(input_payload)
-            parent_payload = next(gen)
+        ns = self._setup_and_exec(code, actor_map)
+        fanout_fn = self._get_fanout_fn(ns)
+        msg_ctx = _make_msg_ctx("orig-id", route_next=[])
+        frames = _drive_abi_generator(fanout_fn(input_payload), msg_ctx)
 
-        assert parent_payload == input_payload
-        assert parent_payload is not input_payload
+        assert frames[0].payload == input_payload
+        assert frames[0].payload is not input_payload
 
-    def test_parent_vfs_route_points_to_fanin(self):
-        """After yielding index 0, VFS route/next should point to the generated fan-in."""
+    def test_parent_route_points_to_fanin(self):
+        """After yielding index 0, route/next should point to the generated fan-in."""
         ops = [_make_fanout_op(), ActorCall(lineno=6, name="formatter"), Return(lineno=7)]
         code = _generate_code_for_ops("flow", ops)
         actor_map = {
@@ -598,18 +654,17 @@ class TestFanOutCodeExecution:
             "fanout_flow_line_5": "fanout-flow-line-5",
         }
 
-        with _vfs_tmpdir("orig-id", route_next=["downstream"]) as tmpdir:
-            ns = self._setup_and_exec(code, actor_map)
-            fanout_fn = self._get_fanout_fn(ns)
-            gen = fanout_fn({"topics": ["x"]})
-            next(gen)  # yield parent
+        ns = self._setup_and_exec(code, actor_map)
+        fanout_fn = self._get_fanout_fn(ns)
+        msg_ctx = _make_msg_ctx("orig-id", route_next=["downstream"])
+        frames = _drive_abi_generator(fanout_fn({"topics": ["x"]}), msg_ctx)
 
-            route_next = _read_vfs_route_next(tmpdir)
-            assert route_next[0] == "fanin-flow-line-5"
-            assert "downstream" in route_next
+        route_next = frames[0].route_next
+        assert route_next[0] == "fanin-flow-line-5"
+        assert "downstream" in route_next
 
-    def test_parent_vfs_fan_in_header_slice_index_0(self):
-        """After yielding index 0, VFS x-asya-fan-in header should have slice_index=0."""
+    def test_parent_fan_in_header_slice_index_0(self):
+        """After yielding index 0, x-asya-fan-in header should have slice_index=0."""
         ops = [_make_fanout_op(), ActorCall(lineno=6, name="formatter"), Return(lineno=7)]
         code = _generate_code_for_ops("flow", ops)
         actor_map = {
@@ -619,18 +674,17 @@ class TestFanOutCodeExecution:
             "fanout_flow_line_5": "fanout-flow-line-5",
         }
 
-        with _vfs_tmpdir("orig-id", route_next=[]) as tmpdir:
-            ns = self._setup_and_exec(code, actor_map)
-            fanout_fn = self._get_fanout_fn(ns)
-            gen = fanout_fn({"topics": ["x"]})
-            next(gen)  # yield parent
+        ns = self._setup_and_exec(code, actor_map)
+        fanout_fn = self._get_fanout_fn(ns)
+        msg_ctx = _make_msg_ctx("orig-id", route_next=[])
+        frames = _drive_abi_generator(fanout_fn({"topics": ["x"]}), msg_ctx)
 
-            fan_in = _read_vfs_header(tmpdir, "x-asya-fan-in")
-            assert isinstance(fan_in, dict)
-            assert fan_in["slice_index"] == 0
+        fan_in = frames[0].headers.get("x-asya-fan-in")
+        assert isinstance(fan_in, dict)
+        assert fan_in["slice_index"] == 0
 
-    def test_slice_vfs_route_points_to_actor_then_fanin(self):
-        """After yielding a slice, VFS route/next should be [sub_agent, generated_fanin]."""
+    def test_slice_route_points_to_actor_then_fanin(self):
+        """After yielding a slice, route/next should be [sub_agent, generated_fanin]."""
         ops = [_make_fanout_op(), ActorCall(lineno=6, name="formatter"), Return(lineno=7)]
         code = _generate_code_for_ops("flow", ops)
         actor_map = {
@@ -640,18 +694,15 @@ class TestFanOutCodeExecution:
             "fanout_flow_line_5": "fanout-flow-line-5",
         }
 
-        with _vfs_tmpdir("orig-id", route_next=[]) as tmpdir:
-            ns = self._setup_and_exec(code, actor_map)
-            fanout_fn = self._get_fanout_fn(ns)
-            gen = fanout_fn({"topics": ["a"]})
-            next(gen)  # skip parent
-            next(gen)  # yield first slice
+        ns = self._setup_and_exec(code, actor_map)
+        fanout_fn = self._get_fanout_fn(ns)
+        msg_ctx = _make_msg_ctx("orig-id", route_next=[])
+        frames = _drive_abi_generator(fanout_fn({"topics": ["a"]}), msg_ctx)
 
-            route_next = _read_vfs_route_next(tmpdir)
-            assert route_next == ["research-agent", "fanin-flow-line-5"]
+        assert frames[1].route_next == ["research-agent", "fanin-flow-line-5"]
 
-    def test_slice_vfs_fan_in_header_increasing_indices(self):
-        """Slice yields should have increasing slice_index in VFS."""
+    def test_slice_fan_in_header_increasing_indices(self):
+        """Slice yields should have increasing slice_index."""
         ops = [_make_fanout_op(), ActorCall(lineno=6, name="formatter"), Return(lineno=7)]
         code = _generate_code_for_ops("flow", ops)
         actor_map = {
@@ -661,18 +712,13 @@ class TestFanOutCodeExecution:
             "fanout_flow_line_5": "fanout-flow-line-5",
         }
 
-        with _vfs_tmpdir("orig-id", route_next=[]) as tmpdir:
-            ns = self._setup_and_exec(code, actor_map)
-            fanout_fn = self._get_fanout_fn(ns)
-            gen = fanout_fn({"topics": ["a", "b"]})
+        ns = self._setup_and_exec(code, actor_map)
+        fanout_fn = self._get_fanout_fn(ns)
+        msg_ctx = _make_msg_ctx("orig-id", route_next=[])
+        frames = _drive_abi_generator(fanout_fn({"topics": ["a", "b"]}), msg_ctx)
 
-            indices = []
-            for _ in gen:
-                fan_in = _read_vfs_header(tmpdir, "x-asya-fan-in")
-                assert isinstance(fan_in, dict)
-                indices.append(fan_in["slice_index"])
-
-            assert indices == [0, 1, 2]
+        indices = [f.headers["x-asya-fan-in"]["slice_index"] for f in frames]
+        assert indices == [0, 1, 2]
 
     def test_fan_in_header_slice_count_equals_n_plus_1(self):
         """x-asya-fan-in.slice_count should be total number of yields."""
@@ -685,17 +731,13 @@ class TestFanOutCodeExecution:
             "fanout_flow_line_5": "fanout-flow-line-5",
         }
 
-        with _vfs_tmpdir("orig-id", route_next=[]) as tmpdir:
-            ns = self._setup_and_exec(code, actor_map)
-            fanout_fn = self._get_fanout_fn(ns)
+        ns = self._setup_and_exec(code, actor_map)
+        fanout_fn = self._get_fanout_fn(ns)
+        msg_ctx = _make_msg_ctx("orig-id", route_next=[])
+        frames = _drive_abi_generator(fanout_fn({"topics": ["a", "b", "c"]}), msg_ctx)
 
-            slice_counts = set()
-            for _ in fanout_fn({"topics": ["a", "b", "c"]}):
-                fan_in = _read_vfs_header(tmpdir, "x-asya-fan-in")
-                assert isinstance(fan_in, dict)
-                slice_counts.add(fan_in["slice_count"])
-
-            assert slice_counts == {4}  # 1 parent + 3 slices
+        slice_counts = {f.headers["x-asya-fan-in"]["slice_count"] for f in frames}
+        assert slice_counts == {4}  # 1 parent + 3 slices
 
     def test_fan_in_header_aggregation_key(self):
         ops = [_make_fanout_op(target_key="/results"), ActorCall(lineno=6, name="formatter"), Return(lineno=7)]
@@ -707,17 +749,16 @@ class TestFanOutCodeExecution:
             "fanout_flow_line_5": "fanout-flow-line-5",
         }
 
-        with _vfs_tmpdir("orig-id", route_next=[]) as tmpdir:
-            ns = self._setup_and_exec(code, actor_map)
-            fanout_fn = self._get_fanout_fn(ns)
+        ns = self._setup_and_exec(code, actor_map)
+        fanout_fn = self._get_fanout_fn(ns)
+        msg_ctx = _make_msg_ctx("orig-id", route_next=[])
+        frames = _drive_abi_generator(fanout_fn({"topics": ["a"]}), msg_ctx)
 
-            for _ in fanout_fn({"topics": ["a"]}):
-                fan_in = _read_vfs_header(tmpdir, "x-asya-fan-in")
-                assert isinstance(fan_in, dict)
-                assert fan_in["aggregation_key"] == "/results"
+        for frame in frames:
+            assert frame.headers["x-asya-fan-in"]["aggregation_key"] == "/results"
 
     def test_fan_in_header_origin_id(self):
-        """x-asya-fan-in.origin_id should be the original message ID from VFS."""
+        """x-asya-fan-in.origin_id should be the original message ID."""
         ops = [_make_fanout_op(), ActorCall(lineno=6, name="formatter"), Return(lineno=7)]
         code = _generate_code_for_ops("flow", ops)
         actor_map = {
@@ -727,14 +768,13 @@ class TestFanOutCodeExecution:
             "fanout_flow_line_5": "fanout-flow-line-5",
         }
 
-        with _vfs_tmpdir("my-origin-id-123", route_next=[]) as tmpdir:
-            ns = self._setup_and_exec(code, actor_map)
-            fanout_fn = self._get_fanout_fn(ns)
+        ns = self._setup_and_exec(code, actor_map)
+        fanout_fn = self._get_fanout_fn(ns)
+        msg_ctx = _make_msg_ctx("my-origin-id-123", route_next=[])
+        frames = _drive_abi_generator(fanout_fn({"topics": ["a"]}), msg_ctx)
 
-            for _ in fanout_fn({"topics": ["a"]}):
-                fan_in = _read_vfs_header(tmpdir, "x-asya-fan-in")
-                assert isinstance(fan_in, dict)
-                assert fan_in["origin_id"] == "my-origin-id-123"
+        for frame in frames:
+            assert frame.headers["x-asya-fan-in"]["origin_id"] == "my-origin-id-123"
 
     def test_slice_payloads_are_individual_items(self):
         """Slice yields should be the individual items from the iterable."""
@@ -747,16 +787,16 @@ class TestFanOutCodeExecution:
             "fanout_flow_line_5": "fanout-flow-line-5",
         }
 
-        with _vfs_tmpdir("orig-id", route_next=[]):
-            ns = self._setup_and_exec(code, actor_map)
-            fanout_fn = self._get_fanout_fn(ns)
-            payloads = list(fanout_fn({"topics": ["a", "b"]}))
+        ns = self._setup_and_exec(code, actor_map)
+        fanout_fn = self._get_fanout_fn(ns)
+        msg_ctx = _make_msg_ctx("orig-id", route_next=[])
+        frames = _drive_abi_generator(fanout_fn({"topics": ["a", "b"]}), msg_ctx)
 
-        assert payloads[1] == "a"
-        assert payloads[2] == "b"
+        assert frames[1].payload == "a"
+        assert frames[2].payload == "b"
 
     def test_existing_headers_preserved(self):
-        """Existing headers in VFS should be preserved (not overwritten)."""
+        """Existing headers in message context should be preserved (not overwritten)."""
         ops = [_make_fanout_op(), ActorCall(lineno=6, name="formatter"), Return(lineno=7)]
         code = _generate_code_for_ops("flow", ops)
         actor_map = {
@@ -766,14 +806,14 @@ class TestFanOutCodeExecution:
             "fanout_flow_line_5": "fanout-flow-line-5",
         }
 
-        with _vfs_tmpdir("orig-id", route_next=[], headers={"trace_id": "abc123"}) as tmpdir:
-            ns = self._setup_and_exec(code, actor_map)
-            fanout_fn = self._get_fanout_fn(ns)
-            list(fanout_fn({"topics": ["a"]}))
+        ns = self._setup_and_exec(code, actor_map)
+        fanout_fn = self._get_fanout_fn(ns)
+        msg_ctx = _make_msg_ctx("orig-id", route_next=[], headers={"trace_id": "abc123"})
+        frames = _drive_abi_generator(fanout_fn({"topics": ["a"]}), msg_ctx)
 
-            # trace_id header should still exist
-            trace_id = _read_vfs_header(tmpdir, "trace_id")
-            assert trace_id == "abc123"
+        # trace_id header should still exist in all frames
+        for frame in frames:
+            assert frame.headers.get("trace_id") == "abc123"
 
 
 # ---------------------------------------------------------------------------
@@ -850,11 +890,11 @@ class TestFanOutIntegration:
         """)
         assert "_resolve_fanin" not in code
 
-    def test_two_fanouts_share_one_json_import(self):
+    def test_two_fanouts_share_one_copy_import(self):
         code = self._compile_flow("""
             def flow(p: dict) -> dict:
                 p["research"] = [research_agent(t) for t in p["topics"]]
                 p["reviews"] = [review_agent(r) for r in p["research"]]
                 return p
         """)
-        assert code.count("import json as _json") == 1, "json import should be emitted exactly once"
+        assert code.count("import copy") == 1, "copy import should be emitted exactly once"

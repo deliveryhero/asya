@@ -9,95 +9,69 @@ Regenerate by running: asya flow compile ../../adk_llm_auditor.py
 """
 
 import os as _os
-_MSG_ROOT = _os.getenv("ASYA_MSG_ROOT", "/proc/asya/msg")
-
 _ASYA_MAX_LOOP_ITERATIONS = int(_os.environ.get("ASYA_MAX_LOOP_ITERATIONS", "100"))
 
-import json as _json
+import copy
 
 
 # ======================================================================
 # Generated Routers (for kubernetes deployment)
 # ======================================================================
 
-def start_llm_auditor(payload: dict) -> dict:
+def start_llm_auditor(payload: dict):
     """Entrypoint for flow 'llm_auditor'"""
-    with open(f"{_MSG_ROOT}/route/next") as _f:
-        _next_tail = _f.read().splitlines()
     _next = []
-
     p = payload
     p['iteration'] = 0
     p['status'] = 'started'
     p['partial'] = True
-
     _next.append(resolve("extract_claims"))
     _next.append(resolve("router_llm_auditor_line_37_if"))
-    with open(f"{_MSG_ROOT}/route/next", "w") as _f:
-        _f.write("\n".join(_next + _next_tail))
-    return p
+    yield "SET", ".route.next[:0]", _next
+    yield p
 
-def router_llm_auditor_line_38_seq(payload: dict) -> dict:
+def router_llm_auditor_line_38_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
-    with open(f"{_MSG_ROOT}/route/next") as _f:
-        _next_tail = _f.read().splitlines()
     _next = []
-
     p['status'] = 'no_claims'
 
-    with open(f"{_MSG_ROOT}/route/next", "w") as _f:
-        _f.write("\n".join(_next + _next_tail))
-    return payload
+    yield "SET", ".route.next[:0]", _next
+    yield payload
 
-def router_llm_auditor_line_86_seq(payload: dict) -> dict:
+def router_llm_auditor_line_86_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
-    with open(f"{_MSG_ROOT}/route/next") as _f:
-        _next_tail = _f.read().splitlines()
     _next = []
-
     p['partial'] = False
     _next.append(resolve("finalize"))
 
-    with open(f"{_MSG_ROOT}/route/next", "w") as _f:
-        _f.write("\n".join(_next + _next_tail))
-    return payload
+    yield "SET", ".route.next[:0]", _next
+    yield payload
 
-def router_llm_auditor_line_62_seq(payload: dict) -> dict:
+def router_llm_auditor_line_62_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
-    with open(f"{_MSG_ROOT}/route/next") as _f:
-        _next_tail = _f.read().splitlines()
     _next = []
-
     p['prev_score'] = p['aggregate_score']
     _next.append(resolve("router_llm_auditor_line_42_loop_back_0"))
 
-    with open(f"{_MSG_ROOT}/route/next", "w") as _f:
-        _f.write("\n".join(_next + _next_tail))
-    return payload
+    yield "SET", ".route.next[:0]", _next
+    yield payload
 
-def router_llm_auditor_line_67_seq(payload: dict) -> dict:
+def router_llm_auditor_line_67_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
-    with open(f"{_MSG_ROOT}/route/next") as _f:
-        _next_tail = _f.read().splitlines()
     _next = []
-
     p['status'] = 'approved'
 
-    with open(f"{_MSG_ROOT}/route/next", "w") as _f:
-        _f.write("\n".join(_next + _next_tail))
-    return payload
+    yield "SET", ".route.next[:0]", _next
+    yield payload
 
-def router_llm_auditor_line_69_if(payload: dict) -> dict:
+def router_llm_auditor_line_69_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
-    with open(f"{_MSG_ROOT}/route/next") as _f:
-        _next_tail = _f.read().splitlines()
     _next = []
-
     if p['aggregate_score'] >= 70:
         _next.append(resolve("critique"))
         _next.append(resolve("reviser"))
@@ -107,97 +81,73 @@ def router_llm_auditor_line_69_if(payload: dict) -> dict:
         _next.append(resolve("deep_reviser"))
         _next.append(resolve("router_llm_auditor_line_79_if"))
 
-    with open(f"{_MSG_ROOT}/route/next", "w") as _f:
-        _f.write("\n".join(_next + _next_tail))
-    return payload
+    yield "SET", ".route.next[:0]", _next
+    yield payload
 
-def router_llm_auditor_line_80_seq(payload: dict) -> dict:
+def router_llm_auditor_line_80_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
-    with open(f"{_MSG_ROOT}/route/next") as _f:
-        _next_tail = _f.read().splitlines()
     _next = []
-
     p['status'] = 'max_iterations'
     _next.append(resolve("router_llm_auditor_line_86_seq"))
 
-    with open(f"{_MSG_ROOT}/route/next", "w") as _f:
-        _f.write("\n".join(_next + _next_tail))
-    return payload
+    yield "SET", ".route.next[:0]", _next
+    yield payload
 
-def router_llm_auditor_line_83_seq(payload: dict) -> dict:
+def router_llm_auditor_line_83_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
-    with open(f"{_MSG_ROOT}/route/next") as _f:
-        _next_tail = _f.read().splitlines()
     _next = []
-
     p['prev_score'] = p['aggregate_score']
 
-    with open(f"{_MSG_ROOT}/route/next", "w") as _f:
-        _f.write("\n".join(_next + _next_tail))
-    return payload
+    yield "SET", ".route.next[:0]", _next
+    yield payload
 
-def router_llm_auditor_line_79_if(payload: dict) -> dict:
+def router_llm_auditor_line_79_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
-    with open(f"{_MSG_ROOT}/route/next") as _f:
-        _next_tail = _f.read().splitlines()
     _next = []
-
     if p['iteration'] >= p.get('max_iterations', 5):
         _next.append(resolve("router_llm_auditor_line_80_seq"))
     else:
         _next.append(resolve("router_llm_auditor_line_83_seq"))
 
-    with open(f"{_MSG_ROOT}/route/next", "w") as _f:
-        _f.write("\n".join(_next + _next_tail))
-    return payload
+    yield "SET", ".route.next[:0]", _next
+    yield payload
 
-def router_llm_auditor_line_66_if(payload: dict) -> dict:
+def router_llm_auditor_line_66_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
-    with open(f"{_MSG_ROOT}/route/next") as _f:
-        _next_tail = _f.read().splitlines()
     _next = []
-
     if p['aggregate_score'] >= 90:
         _next.append(resolve("router_llm_auditor_line_67_seq"))
     else:
         _next.append(resolve("router_llm_auditor_line_69_if"))
 
-    with open(f"{_MSG_ROOT}/route/next", "w") as _f:
-        _f.write("\n".join(_next + _next_tail))
-    return payload
+    yield "SET", ".route.next[:0]", _next
+    yield payload
 
-def router_llm_auditor_line_61_if(payload: dict) -> dict:
+def router_llm_auditor_line_61_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
-    with open(f"{_MSG_ROOT}/route/next") as _f:
-        _next_tail = _f.read().splitlines()
     _next = []
-
     if p['aggregate_score'] > p.get('prev_score', 0) and p['aggregate_score'] < 70:
         _next.append(resolve("router_llm_auditor_line_62_seq"))
     else:
         _next.append(resolve("router_llm_auditor_line_66_if"))
 
-    with open(f"{_MSG_ROOT}/route/next", "w") as _f:
-        _f.write("\n".join(_next + _next_tail))
-    return payload
+    yield "SET", ".route.next[:0]", _next
+    yield payload
 
 def fanout_llm_auditor_line_52(payload: dict):
     """Fan-out router: dispatches to sub-agents and aggregator (line 52)"""
     p = payload
 
-    with open(f"{_MSG_ROOT}/id") as _f:
-        origin_id = _f.read().strip()
-    with open(f"{_MSG_ROOT}/route/next") as _f:
-        _next_tail = _f.read().splitlines()
+    origin_id = yield "GET", ".id"
+    _next_tail = yield "GET", ".route.next"
 
     _agg = resolve("fanin_llm_auditor_line_52")
 
-    # Accumulate (actor_name, slice_payload) pairs
     _slices = []
     _slices.append((resolve("accuracy_scorer"), p['response']))
     _slices.append((resolve("completeness_scorer"), p['response']))
@@ -210,133 +160,94 @@ def fanout_llm_auditor_line_52(payload: dict):
         "aggregation_key": "/scores",
     }
 
-    # Index 0: parent payload forwarded to aggregator via VFS route
-    with open(f"{_MSG_ROOT}/route/next", "w") as _f:
-        _f.write("\n".join([_agg, resolve("adk_llm_auditor.QualityScorer.aggregate"), resolve("router_llm_auditor_line_61_if")] + _next_tail))
-    _os.makedirs(f"{_MSG_ROOT}/headers", exist_ok=True)
-    with open(f"{_MSG_ROOT}/headers/x-asya-fan-in", "w") as _f:
-        _f.write(_json.dumps({**_fan_in, "slice_index": 0}))
-    yield _json.loads(_json.dumps(p))
+    # Index 0: parent payload forwarded to aggregator
+    yield "SET", ".route.next", [_agg, resolve("adk_llm_auditor.QualityScorer.aggregate"), resolve("router_llm_auditor_line_61_if")] + _next_tail
+    yield "SET", ".headers.x-asya-fan-in", {**_fan_in, "slice_index": 0}
+    yield copy.deepcopy(p)
 
-    # Indices 1..N: sub-agent slices
     for _i, (_actor, _payload) in enumerate(_slices):
-        with open(f"{_MSG_ROOT}/route/next", "w") as _f:
-            _f.write("\n".join([_actor, _agg]))
-        with open(f"{_MSG_ROOT}/headers/x-asya-fan-in", "w") as _f:
-            _f.write(_json.dumps({**_fan_in, "slice_index": _i + 1}))
+        yield "SET", ".route.next", [_actor, _agg]
+        yield "SET", ".headers.x-asya-fan-in", {**_fan_in, "slice_index": _i + 1}
         yield _payload
 
-def router_llm_auditor_line_46_try_enter_0(payload: dict) -> dict:
+def router_llm_auditor_line_46_try_enter_0(payload: dict):
     """Try-enter router: sets _on_error header and inserts try body"""
-    with open(f"{_MSG_ROOT}/route/next") as _f:
-        _next_tail = _f.read().splitlines()
     _next = []
-
-    _os.makedirs(f"{_MSG_ROOT}/headers", exist_ok=True)
-    with open(f"{_MSG_ROOT}/headers/_on_error", "w") as _f:
-        _f.write(resolve("router_llm_auditor_line_46_except_dispatch_0"))
-
+    yield "SET", ".headers._on_error", resolve("router_llm_auditor_line_46_except_dispatch_0")
     _next.append(resolve("llm_generate"))
     _next.append(resolve("router_llm_auditor_line_46_try_exit_0"))
 
-    with open(f"{_MSG_ROOT}/route/next", "w") as _f:
-        _f.write("\n".join(_next + _next_tail))
-    return payload
+    yield "SET", ".route.next[:0]", _next
+    yield payload
 
-def router_llm_auditor_line_46_try_exit_0(payload: dict) -> dict:
+def router_llm_auditor_line_46_try_exit_0(payload: dict):
     """Try-exit router: clears _on_error header (success path)"""
-    with open(f"{_MSG_ROOT}/route/next") as _f:
-        _next_tail = _f.read().splitlines()
     _next = []
-
-    import os as _os_try_exit
-    _on_error_path = f"{_MSG_ROOT}/headers/_on_error"
-    if _os_try_exit.path.exists(_on_error_path):
-        _os_try_exit.remove(_on_error_path)
-
+    headers = yield "GET", ".headers"
+    if "_on_error" in headers:
+        yield "DEL", ".headers._on_error"
     _next.append(resolve("fanout_llm_auditor_line_52"))
 
-    with open(f"{_MSG_ROOT}/route/next", "w") as _f:
-        _f.write("\n".join(_next + _next_tail))
-    return payload
+    yield "SET", ".route.next[:0]", _next
+    yield payload
 
-def router_llm_auditor_line_46_except_dispatch_0(payload: dict) -> dict:
+def router_llm_auditor_line_46_except_dispatch_0(payload: dict):
     """Except-dispatch router: matches error type and routes to handler"""
     p = payload
-    with open(f"{_MSG_ROOT}/route/next") as _f:
-        _next_tail = _f.read().splitlines()
     _next = []
-
-    with open(f"{_MSG_ROOT}/status/error/type") as _f:
-        _error_type = _f.read().strip()
-    with open(f"{_MSG_ROOT}/status/error/mro") as _f:
-        _error_mro = _f.read().splitlines()
+    _error_type = yield "GET", ".status.error.type"
+    _error_mro = yield "GET", ".status.error.mro"
     _all_types = [_error_type] + _error_mro
 
     if True:
-        import shutil as _shutil_exc; _shutil_exc.rmtree(f"{_MSG_ROOT}/status/error", ignore_errors=True)
+        yield "DEL", ".status.error"
         _next.append(resolve("fallback_generate"))
     _next.append(resolve("fanout_llm_auditor_line_52"))
 
-    with open(f"{_MSG_ROOT}/route/next", "w") as _f:
-        _f.write("\n".join(_next + _next_tail))
-    return payload
+    yield "SET", ".route.next[:0]", _next
+    yield payload
 
-def router_llm_auditor_line_43_seq(payload: dict) -> dict:
+def router_llm_auditor_line_43_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
-    with open(f"{_MSG_ROOT}/route/next") as _f:
-        _next_tail = _f.read().splitlines()
     _next = []
-
     p['iteration'] += 1
     _next.append(resolve("router_llm_auditor_line_46_try_enter_0"))
 
-    with open(f"{_MSG_ROOT}/route/next", "w") as _f:
-        _f.write("\n".join(_next + _next_tail))
-    return payload
+    yield "SET", ".route.next[:0]", _next
+    yield payload
 
-def router_llm_auditor_line_42_loop_back_0(payload: dict) -> dict:
+def router_llm_auditor_line_42_loop_back_0(payload: dict):
     """Loop-back router: re-inserts loop actors into route (guarded)"""
     p = payload
-    with open(f"{_MSG_ROOT}/route/next") as _f:
-        _next_tail = _f.read().splitlines()
     _next = []
-
     _self = resolve("router_llm_auditor_line_42_loop_back_0")
-    with open(f"{_MSG_ROOT}/route/prev") as _f:
-        _prev = _f.read().splitlines()
+    _prev = yield "GET", ".route.prev"
     if _prev.count(_self) >= _ASYA_MAX_LOOP_ITERATIONS:
         raise RuntimeError(f"Max loop iterations ({_ASYA_MAX_LOOP_ITERATIONS}) exceeded for while-loop at line 42")
 
     _next.append(resolve("router_llm_auditor_line_43_seq"))
     _next.append(resolve("router_llm_auditor_line_42_loop_back_0"))
 
-    with open(f"{_MSG_ROOT}/route/next", "w") as _f:
-        _f.write("\n".join(_next + _next_tail))
-    return payload
+    yield "SET", ".route.next[:0]", _next
+    yield payload
 
-def router_llm_auditor_line_37_if(payload: dict) -> dict:
+def router_llm_auditor_line_37_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
-    with open(f"{_MSG_ROOT}/route/next") as _f:
-        _next_tail = _f.read().splitlines()
     _next = []
-
     if not p.get('claims'):
         _next.append(resolve("router_llm_auditor_line_38_seq"))
     else:
         _next.append(resolve("router_llm_auditor_line_42_loop_back_0"))
 
-    with open(f"{_MSG_ROOT}/route/next", "w") as _f:
-        _f.write("\n".join(_next + _next_tail))
-    return payload
+    yield "SET", ".route.next[:0]", _next
+    yield payload
 
-def end_llm_auditor(payload: dict) -> dict:
+def end_llm_auditor(payload: dict):
     """Exitpoint for flow 'llm_auditor'"""
-    with open(f"{_MSG_ROOT}/route/next", "w") as _f:
-        _f.write("")
-    return payload
+    yield "SET", ".route.next", []
+    yield payload
 
 
 # ======================================================================

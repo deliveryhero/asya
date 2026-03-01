@@ -104,7 +104,7 @@ class TestTryEnterCodeGen:
         """
         code = _compile(source)
 
-        assert "headers/_on_error" in code
+        assert 'yield "SET", ".headers._on_error"' in code
         assert "_on_error" in code
 
     def test_try_enter_uses_resolve(self):
@@ -138,8 +138,8 @@ class TestTryExitCodeGen:
         """
         code = _compile(source)
 
-        assert "_on_error_path" in code
-        assert "_os_try_exit.remove" in code
+        assert 'yield "GET", ".headers"' in code
+        assert 'yield "DEL", ".headers._on_error"' in code
 
 
 class TestExceptDispatchCodeGen:
@@ -197,7 +197,7 @@ class TestExceptDispatchCodeGen:
         """
         code = _compile(source)
 
-        assert "status/error" in code
+        assert 'yield "DEL", ".status.error"' in code
 
 
 class TestReraiseCodeGen:

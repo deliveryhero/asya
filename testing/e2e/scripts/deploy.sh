@@ -167,10 +167,10 @@ echo
 # NOTE on image loading mechanisms:
 # - Container images (sidecar, gateway, crew, etc.) are loaded via `kind load docker-image`
 #   into containerd's image store. Kubelet uses these with `imagePullPolicy: Never`.
-# - Crossplane Function packages (function-asya-flavors) use Crossplane's own OCI puller,
+# - Crossplane Function packages (function-asya-overlays) use Crossplane's own OCI puller,
 #   NOT containerd. `kind load` does NOT work for Functions — they must be pullable from
 #   an OCI registry (ghcr.io). When the Function image is not publicly accessible,
-#   set functions.flavorsEnabled=false in the e2e profile to skip it.
+#   set functions.overlaysEnabled=false in the e2e profile to skip it.
 echo "[.] Phase 3: Loading images into Kind cluster..."
 time {
   IMAGES_TO_LOAD=(

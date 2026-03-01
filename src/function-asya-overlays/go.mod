@@ -1,4 +1,4 @@
-module github.com/deliveryhero/asya/function-asya-flavors
+module github.com/deliveryhero/asya/function-asya-overlays
 
 go 1.24.9
 

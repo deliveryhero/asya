@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: test-doubler
   transport: {{ .Values.transport }}
-  flavors:
+  overlays:
   - asya-test-actor
 
   scaling:

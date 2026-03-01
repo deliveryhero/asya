@@ -35,11 +35,10 @@ class CodeGenerator:
 
         parts = []
         parts.append(self._generate_header())
-        parts.append(self._generate_msg_root_constant())
         if self._has_loop_guards():
             parts.append(self._generate_max_iter_constant())
         if self._has_fan_out():
-            parts.append("import json as _json\n")
+            parts.append("import copy\n")
         parts.append(self._generate_routers())
         parts.append(self._generate_resolve_function())
 
@@ -48,18 +47,13 @@ class CodeGenerator:
     def _has_loop_guards(self) -> bool:
         return any(r.guard_max_iter is not None for r in self.routers)
 
-    def _generate_msg_root_constant(self) -> str:
-        return dedent("""\
-            import os as _os
-            _MSG_ROOT = _os.getenv("ASYA_MSG_ROOT", "/proc/asya/msg")
-            """)
-
     def _has_fan_out(self) -> bool:
         return any(r.is_fan_out for r in self.routers)
 
     def _generate_max_iter_constant(self) -> str:
         default = next(r.guard_max_iter for r in self.routers if r.guard_max_iter is not None)
         return dedent(f'''\
+            import os as _os
             _ASYA_MAX_LOOP_ITERATIONS = int(_os.environ.get("ASYA_MAX_LOOP_ITERATIONS", "{default}"))
             ''')
 
@@ -127,51 +121,42 @@ class CodeGenerator:
 
     def _generate_start_router(self, router: Router) -> str:
         lines = []
-        lines.append(f"def {router.name}(payload: dict) -> dict:")
+        lines.append(f"def {router.name}(payload: dict):")
         lines.append(f'    """Entrypoint for flow \'{self.flow_name}\'"""')
-        lines.append('    with open(f"{_MSG_ROOT}/route/next") as _f:')
-        lines.append("        _next_tail = _f.read().splitlines()")
         lines.append("    _next = []")
-        lines.append("")
 
         if router.mutations:
             lines.append("    p = payload")
             for mutation in router.mutations:
                 lines.append(f"    {mutation.code}")
-            lines.append("")
 
         if router.true_branch_actors:
             filtered_actors = [name for name in router.true_branch_actors if not name.startswith("end_")]
             for name in filtered_actors:
                 lines.append(f'    _next.append(resolve("{name}"))')
 
-        lines.append('    with open(f"{_MSG_ROOT}/route/next", "w") as _f:')
-        lines.append('        _f.write("\\n".join(_next + _next_tail))')
-        lines.append(f"    return {'p' if router.mutations else 'payload'}")
+        lines.append('    yield "SET", ".route.next[:0]", _next')
+        lines.append(f"    yield {'p' if router.mutations else 'payload'}")
         lines.append("")
 
         return "\n".join(lines)
 
     def _generate_end_router(self, router: Router) -> str:
         lines = []
-        lines.append(f"def {router.name}(payload: dict) -> dict:")
+        lines.append(f"def {router.name}(payload: dict):")
         lines.append(f'    """Exitpoint for flow \'{self.flow_name}\'"""')
-        lines.append('    with open(f"{_MSG_ROOT}/route/next", "w") as _f:')
-        lines.append('        _f.write("")')
-        lines.append("    return payload")
+        lines.append('    yield "SET", ".route.next", []')
+        lines.append("    yield payload")
         lines.append("")
 
         return "\n".join(lines)
 
     def _generate_router(self, router: Router) -> str:
         lines = []
-        lines.append(f"def {router.name}(payload: dict) -> dict:")
+        lines.append(f"def {router.name}(payload: dict):")
         lines.append('    """Router for control flow and payload mutations"""')
         lines.append("    p = payload")
-        lines.append('    with open(f"{_MSG_ROOT}/route/next") as _f:')
-        lines.append("        _next_tail = _f.read().splitlines()")
         lines.append("    _next = []")
-        lines.append("")
 
         for mutation in router.mutations:
             lines.append(f"    {mutation.code}")
@@ -201,9 +186,8 @@ class CodeGenerator:
                 lines.append(f'    _next.append(resolve("{actor}"))')
 
         lines.append("")
-        lines.append('    with open(f"{_MSG_ROOT}/route/next", "w") as _f:')
-        lines.append('        _f.write("\\n".join(_next + _next_tail))')
-        lines.append("    return payload")
+        lines.append('    yield "SET", ".route.next[:0]", _next')
+        lines.append("    yield payload")
         lines.append("")
 
         return "\n".join(lines)
@@ -211,9 +195,9 @@ class CodeGenerator:
     def _generate_fanout_router(self, router: Router) -> str:
         """Generate a generator function that fans out to N sub-agents + 1 parent message.
 
-        Uses VFS (/proc/asya/msg/) for reading message metadata (id, route)
-        and writing route/next + headers before each yield. The runtime
-        snapshots VFS state between yields to build each output frame.
+        Uses ABI yields for reading message metadata (id, route) and writing
+        route/next + headers before each yield. The runtime dispatches ABI
+        operations between yields to build each output frame.
         The sidecar handles id/parent_id assignment for multi-frame responses.
         """
         if router.fan_out_op is None:
@@ -230,33 +214,25 @@ class CodeGenerator:
         lines.append(f'    """Fan-out router: dispatches to sub-agents and aggregator (line {fan_out.lineno})"""')
         lines.append("    p = payload")
         lines.append("")
-        # Read message metadata from VFS
-        lines.append('    with open(f"{_MSG_ROOT}/id") as _f:')
-        lines.append("        origin_id = _f.read().strip()")
-        lines.append('    with open(f"{_MSG_ROOT}/route/next") as _f:')
-        lines.append("        _next_tail = _f.read().splitlines()")
+        lines.append('    origin_id = yield "GET", ".id"')
+        lines.append('    _next_tail = yield "GET", ".route.next"')
         lines.append("")
 
         if aggregator:
             lines.append(f'    _agg = resolve("{aggregator}")')
         else:
             lines.append("    _agg = None")
-
         lines.append("")
 
-        # Build _slices list based on pattern
-        lines.append("    # Accumulate (actor_name, slice_payload) pairs")
         lines.append("    _slices = []")
 
         if fan_out.pattern == "comprehension" or (fan_out.pattern == "gather" and fan_out.iter_var is not None):
-            # Comprehension or gather-with-generator: loop over iterable
             iter_var = fan_out.iter_var
             iterable = fan_out.iterable
             actor_name, payload_expr = fan_out.actor_calls[0]
             lines.append(f"    for {iter_var} in {iterable}:")
             lines.append(f'        _slices.append((resolve("{actor_name}"), {payload_expr}))')
         else:
-            # Literal or gather-explicit: fixed list of (actor, payload) pairs
             for actor_name, payload_expr in fan_out.actor_calls:
                 lines.append(f'    _slices.append((resolve("{actor_name}"), {payload_expr}))')
 
@@ -270,34 +246,26 @@ class CodeGenerator:
         lines.append("    }")
         lines.append("")
 
+        # Index 0: parent payload
         if aggregator:
-            # Index 0: parent payload forwarded to aggregator
             after_list_items = ", ".join(["_agg", *[f'resolve("{a}")' for a in after_agg]])
-            lines.append("    # Index 0: parent payload forwarded to aggregator via VFS route")
-            lines.append('    with open(f"{_MSG_ROOT}/route/next", "w") as _f:')
-            lines.append(f'        _f.write("\\n".join([{after_list_items}] + _next_tail))')
+            lines.append("    # Index 0: parent payload forwarded to aggregator")
+            lines.append(f'    yield "SET", ".route.next", [{after_list_items}] + _next_tail')
         else:
             lines.append("    # Index 0: parent payload forwarded to end of flow")
-            lines.append('    with open(f"{_MSG_ROOT}/route/next", "w") as _f:')
-            lines.append('        _f.write("\\n".join(_next_tail))')
+            lines.append('    yield "SET", ".route.next", _next_tail')
 
-        lines.append('    _os.makedirs(f"{_MSG_ROOT}/headers", exist_ok=True)')
-        lines.append('    with open(f"{_MSG_ROOT}/headers/x-asya-fan-in", "w") as _f:')
-        lines.append('        _f.write(_json.dumps({**_fan_in, "slice_index": 0}))')
-        lines.append("    yield _json.loads(_json.dumps(p))")
+        lines.append('    yield "SET", ".headers.x-asya-fan-in", {**_fan_in, "slice_index": 0}')
+        lines.append("    yield copy.deepcopy(p)")
         lines.append("")
 
         # Indices 1..N: sub-agent slices
-        lines.append("    # Indices 1..N: sub-agent slices")
         lines.append("    for _i, (_actor, _payload) in enumerate(_slices):")
         if aggregator:
-            lines.append('        with open(f"{_MSG_ROOT}/route/next", "w") as _f:')
-            lines.append('            _f.write("\\n".join([_actor, _agg]))')
+            lines.append('        yield "SET", ".route.next", [_actor, _agg]')
         else:
-            lines.append('        with open(f"{_MSG_ROOT}/route/next", "w") as _f:')
-            lines.append("            _f.write(_actor)")
-        lines.append('        with open(f"{_MSG_ROOT}/headers/x-asya-fan-in", "w") as _f:')
-        lines.append('            _f.write(_json.dumps({**_fan_in, "slice_index": _i + 1}))')
+            lines.append('        yield "SET", ".route.next", [_actor]')
+        lines.append('        yield "SET", ".headers.x-asya-fan-in", {**_fan_in, "slice_index": _i + 1}')
         lines.append("        yield _payload")
         lines.append("")
 
@@ -305,24 +273,20 @@ class CodeGenerator:
 
     def _generate_loop_back_router(self, router: Router) -> str:
         lines = []
-        lines.append(f"def {router.name}(payload: dict) -> dict:")
+        lines.append(f"def {router.name}(payload: dict):")
         if router.guard_max_iter is not None:
             lines.append('    """Loop-back router: re-inserts loop actors into route (guarded)"""')
         else:
             lines.append('    """Loop-back router: re-inserts loop actors into route"""')
         lines.append("    p = payload")
-        lines.append('    with open(f"{_MSG_ROOT}/route/next") as _f:')
-        lines.append("        _next_tail = _f.read().splitlines()")
         lines.append("    _next = []")
-        lines.append("")
 
         for mutation in router.mutations:
             lines.append(f"    {mutation.code}")
 
         if router.guard_max_iter is not None:
             lines.append(f'    _self = resolve("{router.name}")')
-            lines.append('    with open(f"{_MSG_ROOT}/route/prev") as _f:')
-            lines.append("        _prev = _f.read().splitlines()")
+            lines.append('    _prev = yield "GET", ".route.prev"')
             lines.append("    if _prev.count(_self) >= _ASYA_MAX_LOOP_ITERATIONS:")
             lines.append(
                 f'        raise RuntimeError(f"Max loop iterations ({{_ASYA_MAX_LOOP_ITERATIONS}}) exceeded for while-loop at line {router.lineno}")'
@@ -334,51 +298,38 @@ class CodeGenerator:
             lines.append(f'    _next.append(resolve("{actor}"))')
 
         lines.append("")
-        lines.append('    with open(f"{_MSG_ROOT}/route/next", "w") as _f:')
-        lines.append('        _f.write("\\n".join(_next + _next_tail))')
-        lines.append("    return payload")
+        lines.append('    yield "SET", ".route.next[:0]", _next')
+        lines.append("    yield payload")
         lines.append("")
 
         return "\n".join(lines)
 
     def _generate_try_enter_router(self, router: Router) -> str:
         lines = []
-        lines.append(f"def {router.name}(payload: dict) -> dict:")
+        lines.append(f"def {router.name}(payload: dict):")
         lines.append('    """Try-enter router: sets _on_error header and inserts try body"""')
-        lines.append('    with open(f"{_MSG_ROOT}/route/next") as _f:')
-        lines.append("        _next_tail = _f.read().splitlines()")
         lines.append("    _next = []")
-        lines.append("")
-        lines.append('    _os.makedirs(f"{_MSG_ROOT}/headers", exist_ok=True)')
-        lines.append('    with open(f"{_MSG_ROOT}/headers/_on_error", "w") as _f:')
-        lines.append(f'        _f.write(resolve("{router.except_dispatch_name}"))')
-        lines.append("")
+        lines.append(f'    yield "SET", ".headers._on_error", resolve("{router.except_dispatch_name}")')
 
         filtered_actors = [a for a in router.true_branch_actors if not a.startswith("end_")]
         for actor in filtered_actors:
             lines.append(f'    _next.append(resolve("{actor}"))')
 
         lines.append("")
-        lines.append('    with open(f"{_MSG_ROOT}/route/next", "w") as _f:')
-        lines.append('        _f.write("\\n".join(_next + _next_tail))')
-        lines.append("    return payload")
+        lines.append('    yield "SET", ".route.next[:0]", _next')
+        lines.append("    yield payload")
         lines.append("")
 
         return "\n".join(lines)
 
     def _generate_try_exit_router(self, router: Router) -> str:
         lines = []
-        lines.append(f"def {router.name}(payload: dict) -> dict:")
+        lines.append(f"def {router.name}(payload: dict):")
         lines.append('    """Try-exit router: clears _on_error header (success path)"""')
-        lines.append('    with open(f"{_MSG_ROOT}/route/next") as _f:')
-        lines.append("        _next_tail = _f.read().splitlines()")
         lines.append("    _next = []")
-        lines.append("")
-        lines.append("    import os as _os_try_exit")
-        lines.append('    _on_error_path = f"{_MSG_ROOT}/headers/_on_error"')
-        lines.append("    if _os_try_exit.path.exists(_on_error_path):")
-        lines.append("        _os_try_exit.remove(_on_error_path)")
-        lines.append("")
+        lines.append('    headers = yield "GET", ".headers"')
+        lines.append('    if "_on_error" in headers:')
+        lines.append('        yield "DEL", ".headers._on_error"')
 
         filtered_finally = [a for a in router.finally_actors if not a.startswith("end_")]
         for actor in filtered_finally:
@@ -389,26 +340,20 @@ class CodeGenerator:
             lines.append(f'    _next.append(resolve("{actor}"))')
 
         lines.append("")
-        lines.append('    with open(f"{_MSG_ROOT}/route/next", "w") as _f:')
-        lines.append('        _f.write("\\n".join(_next + _next_tail))')
-        lines.append("    return payload")
+        lines.append('    yield "SET", ".route.next[:0]", _next')
+        lines.append("    yield payload")
         lines.append("")
 
         return "\n".join(lines)
 
     def _generate_except_dispatch_router(self, router: Router) -> str:
         lines = []
-        lines.append(f"def {router.name}(payload: dict) -> dict:")
+        lines.append(f"def {router.name}(payload: dict):")
         lines.append('    """Except-dispatch router: matches error type and routes to handler"""')
         lines.append("    p = payload")
-        lines.append('    with open(f"{_MSG_ROOT}/route/next") as _f:')
-        lines.append("        _next_tail = _f.read().splitlines()")
         lines.append("    _next = []")
-        lines.append("")
-        lines.append('    with open(f"{_MSG_ROOT}/status/error/type") as _f:')
-        lines.append("        _error_type = _f.read().strip()")
-        lines.append('    with open(f"{_MSG_ROOT}/status/error/mro") as _f:')
-        lines.append("        _error_mro = _f.read().splitlines()")
+        lines.append('    _error_type = yield "GET", ".status.error.type"')
+        lines.append('    _error_mro = yield "GET", ".status.error.mro"')
         lines.append("    _all_types = [_error_type] + _error_mro")
         lines.append("")
 
@@ -416,22 +361,17 @@ class CodeGenerator:
             first = True
             for handler in router.exception_handlers:
                 if handler.error_types is None:
-                    # Bare except: catch-all
                     if first:
                         lines.append("    if True:")
                     else:
                         lines.append("    else:")
                 else:
-                    # Typed except: check error type and MRO
                     type_checks = " or ".join(f'"{t}" in _all_types' for t in handler.error_types)
                     keyword = "if" if first else "elif"
                     lines.append(f"    {keyword} {type_checks}:")
                 first = False
 
-                # Handler body: clear error, apply mutations, add actors
-                lines.append(
-                    '        import shutil as _shutil_exc; _shutil_exc.rmtree(f"{_MSG_ROOT}/status/error", ignore_errors=True)'
-                )
+                lines.append('        yield "DEL", ".status.error"')
                 for mutation in handler.mutations:
                     lines.append(f"        {mutation.code}")
                 filtered = [a for a in handler.actors if not a.startswith("end_")]
@@ -440,12 +380,10 @@ class CodeGenerator:
                 if not filtered and not handler.mutations:
                     lines.append("        pass")
 
-            # If no bare except, add else clause that routes to reraise
             if router.reraise_name:
                 lines.append("    else:")
                 lines.append(f'        _next.append(resolve("{router.reraise_name}"))')
 
-        # Add finally and continuation actors
         filtered_finally = [a for a in router.finally_actors if not a.startswith("end_")]
         for actor in filtered_finally:
             lines.append(f'    _next.append(resolve("{actor}"))')
@@ -455,21 +393,18 @@ class CodeGenerator:
             lines.append(f'    _next.append(resolve("{actor}"))')
 
         lines.append("")
-        lines.append('    with open(f"{_MSG_ROOT}/route/next", "w") as _f:')
-        lines.append('        _f.write("\\n".join(_next + _next_tail))')
-        lines.append("    return payload")
+        lines.append('    yield "SET", ".route.next[:0]", _next')
+        lines.append("    yield payload")
         lines.append("")
 
         return "\n".join(lines)
 
     def _generate_reraise_router(self, router: Router) -> str:
         lines = []
-        lines.append(f"def {router.name}(payload: dict) -> dict:")
+        lines.append(f"def {router.name}(payload: dict):")
         lines.append('    """Reraise router: raises RuntimeError for unhandled exceptions"""')
-        lines.append('    with open(f"{_MSG_ROOT}/status/error/type") as _f:')
-        lines.append("        _error_type = _f.read().strip() or 'unknown'")
-        lines.append('    with open(f"{_MSG_ROOT}/status/error/message") as _f:')
-        lines.append("        _error_msg = _f.read().strip() or 'unknown error'")
+        lines.append('    _error_type = yield "GET", ".status.error.type"')
+        lines.append('    _error_msg = yield "GET", ".status.error.message"')
         lines.append('    raise RuntimeError(f"Unhandled exception {_error_type}: {_error_msg}")')
         lines.append("")
 

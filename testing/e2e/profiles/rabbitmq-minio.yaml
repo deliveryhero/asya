@@ -82,8 +82,8 @@ crossplane:
   providerConfigs:
     install: false
   functions:
-    flavorsEnabled: false
-    flavorsVersion: "0.5.2"
+    overlaysEnabled: false
+    overlaysVersion: "latest"
   kubernetesProviderConfig:
     name: in-cluster
     credentialsSource: InjectedIdentity

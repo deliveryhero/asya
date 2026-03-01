@@ -9,8 +9,6 @@ Regenerate by running: asya flow compile ../../while_react_loop.py
 """
 
 import os as _os
-_MSG_ROOT = _os.getenv("ASYA_MSG_ROOT", "/proc/asya/msg")
-
 _ASYA_MAX_LOOP_ITERATIONS = int(_os.environ.get("ASYA_MAX_LOOP_ITERATIONS", "100"))
 
 
@@ -18,43 +16,31 @@ _ASYA_MAX_LOOP_ITERATIONS = int(_os.environ.get("ASYA_MAX_LOOP_ITERATIONS", "100
 # Generated Routers (for kubernetes deployment)
 # ======================================================================
 
-def start_react_agent(payload: dict) -> dict:
+def start_react_agent(payload: dict):
     """Entrypoint for flow 'react_agent'"""
-    with open(f"{_MSG_ROOT}/route/next") as _f:
-        _next_tail = _f.read().splitlines()
     _next = []
-
     _next.append(resolve("router_react_agent_line_10_loop_back_0"))
-    with open(f"{_MSG_ROOT}/route/next", "w") as _f:
-        _f.write("\n".join(_next + _next_tail))
-    return payload
+    yield "SET", ".route.next[:0]", _next
+    yield payload
 
-def router_react_agent_line_12_if(payload: dict) -> dict:
+def router_react_agent_line_12_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
-    with open(f"{_MSG_ROOT}/route/next") as _f:
-        _next_tail = _f.read().splitlines()
     _next = []
-
     if p.get('tool_calls'):
         _next.append(resolve("execute_tool"))
     else:
         pass
 
-    with open(f"{_MSG_ROOT}/route/next", "w") as _f:
-        _f.write("\n".join(_next + _next_tail))
-    return payload
+    yield "SET", ".route.next[:0]", _next
+    yield payload
 
-def router_react_agent_line_10_loop_back_0(payload: dict) -> dict:
+def router_react_agent_line_10_loop_back_0(payload: dict):
     """Loop-back router: re-inserts loop actors into route (guarded)"""
     p = payload
-    with open(f"{_MSG_ROOT}/route/next") as _f:
-        _next_tail = _f.read().splitlines()
     _next = []
-
     _self = resolve("router_react_agent_line_10_loop_back_0")
-    with open(f"{_MSG_ROOT}/route/prev") as _f:
-        _prev = _f.read().splitlines()
+    _prev = yield "GET", ".route.prev"
     if _prev.count(_self) >= _ASYA_MAX_LOOP_ITERATIONS:
         raise RuntimeError(f"Max loop iterations ({_ASYA_MAX_LOOP_ITERATIONS}) exceeded for while-loop at line 10")
 
@@ -62,15 +48,13 @@ def router_react_agent_line_10_loop_back_0(payload: dict) -> dict:
     _next.append(resolve("router_react_agent_line_12_if"))
     _next.append(resolve("router_react_agent_line_10_loop_back_0"))
 
-    with open(f"{_MSG_ROOT}/route/next", "w") as _f:
-        _f.write("\n".join(_next + _next_tail))
-    return payload
+    yield "SET", ".route.next[:0]", _next
+    yield payload
 
-def end_react_agent(payload: dict) -> dict:
+def end_react_agent(payload: dict):
     """Exitpoint for flow 'react_agent'"""
-    with open(f"{_MSG_ROOT}/route/next", "w") as _f:
-        _f.write("")
-    return payload
+    yield "SET", ".route.next", []
+    yield payload
 
 
 # ======================================================================

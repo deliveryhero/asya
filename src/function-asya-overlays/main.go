@@ -1,5 +1,5 @@
-// Package main implements the function-asya-flavors Crossplane Composition Function.
-// It resolves AsyncActor flavor EnvironmentConfigs and merges them via strategic merge patch.
+// Package main implements the function-asya-overlays Crossplane Composition Function.
+// It resolves AsyncActor overlay EnvironmentConfigs and merges them via strategic merge patch.
 package main
 
 import (
@@ -33,6 +33,6 @@ func (c *CLI) Run() error {
 }
 
 func main() {
-	ctx := kong.Parse(&CLI{}, kong.Description("Crossplane Composition Function that resolves AsyncActor flavor EnvironmentConfigs via strategic merge patch."))
+	ctx := kong.Parse(&CLI{}, kong.Description("Crossplane Composition Function that resolves AsyncActor overlay EnvironmentConfigs via strategic merge patch."))
 	ctx.FatalIfErrorf(ctx.Run())
 }

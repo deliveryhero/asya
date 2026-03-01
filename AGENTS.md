@@ -109,15 +109,33 @@ class Processor:
         return {"result": await self.model.predict(payload)}
 ```
 
-**Message Metadata**: Handlers access message metadata (route, headers, status) via the
-`/proc/asya/msg/` virtual filesystem using standard `open()` calls. See the RFC at
-`.aint/epics/1ixt.msg-metadata-vfs/rfc.md` for the full VFS layout and examples.
+**Message Metadata**: Generator handlers access message metadata (route, headers, status)
+via the **yield-based ABI protocol**. Four verbs: GET, SET, DEL, FLY. Function handlers
+have no metadata access — use generators if needed. See the ABI spec at
+`.aint/epics/1l01.abi-instead-vfs/abi-protocol.md`.
+
+```python
+# Read metadata
+prev = yield "GET", ".route.prev"
+
+# Overwrite routing (replaces entire route.next)
+yield "SET", ".route.next", ["actor_a", "actor_b"]
+
+# Prepend to routing (inserts before existing actors via slice)
+yield "SET", ".route.next[:0]", ["actor_a", "actor_b"]
+
+# Stream upstream (SSE)
+yield "FLY", {"type": "text_delta", "token": "hello"}
+
+# Emit downstream frame
+yield payload
+```
 
 ### asya-crew (Python)
 System actors with reserved roles: `x-sink` (persist results to S3), `x-sump` (retry with exponential backoff - not yet implemented, DLQ handling). Both report final status to gateway (`x-sink` - because `route.curr` is `""` meaning the route is exhausted, `x-sump` - because the handler had an error), see this logic in `src/asya-sidecar/internal/progress/reporter.go`.
 
 ### asya-injector (Go)
-Mutating admission webhook that intercepts Pod creation for AsyncActor workloads. Injects the asya-sidecar container, configures volumes (socket-dir, tmp, asya-runtime ConfigMap), sets environment variables (ASYA_TRANSPORT, ASYA_ACTOR_NAME, ASYA_MSG_ROOT), and overrides the runtime container command to run `asya_runtime.py`. Uses cert-manager for TLS certificate management.
+Mutating admission webhook that intercepts Pod creation for AsyncActor workloads. Injects the asya-sidecar container, configures volumes (socket-dir, tmp, asya-runtime ConfigMap), sets environment variables (ASYA_TRANSPORT, ASYA_ACTOR_NAME, ASYA_NAMESPACE), and overrides the runtime container command to run `asya_runtime.py`. Uses cert-manager for TLS certificate management.
 
 ### asya-testing (Python)
 Shared testing utilities and fixtures used across component, integration, and e2e tests. Provides common assertions, mock helpers, and test data builders.
@@ -271,7 +289,7 @@ spec:
       value: "handlers.express_handler"
 ```
 
-**Generated routers use the VFS (`/proc/asya/msg/`) to dynamically modify routes.**
+**Generated routers use the ABI yield protocol to dynamically modify routes.**
 
 ### How It Works
 
@@ -492,9 +510,9 @@ Runtime (not sidecar!) shifts the route after processing: `prev` grows, `curr` a
 - When errors occur in sidecar → sidecar nacks the message and it's automatically sent to DLQ (configured by the queue)
 - **IMPORTANT**: Never include `x-sink` or `x-sump` in route configurations - they are managed by the sidecar
 
-**Route Modification**: Handlers that need to modify routing do so by writing to
-`/proc/asya/msg/route/next` via the VFS. Only the `next` field may be modified;
-`prev` and `curr` are read-only and managed by the runtime.
+**Route Modification**: Generator handlers modify routing via ABI yields:
+`yield "SET", ".route.next", ["actor_a", "actor_b"]`. Only `.route.next` and
+`.headers` are writable; `.route.prev`, `.route.curr`, and `.id` are read-only.
 
 ## Transport Configuration
 

@@ -6,7 +6,8 @@ for various while loop patterns.
 """
 
 import ast
-import os
+import contextlib
+import re
 import sys
 import tempfile
 from pathlib import Path
@@ -542,7 +543,7 @@ def flow(p: dict) -> dict:
         code = compiler.compile(source, "test.py")
 
         assert "_ASYA_MAX_LOOP_ITERATIONS" in code
-        assert "route/prev" in code
+        assert 'yield "GET", ".route.prev"' in code
         assert "_prev.count(_self) >= _ASYA_MAX_LOOP_ITERATIONS" in code
         assert "RuntimeError" in code
         # No payload pollution
@@ -598,30 +599,59 @@ def agent(p: dict) -> dict:
         tree = ast.parse(code)
         assert tree is not None
 
-    def _setup_vfs(self, tmpdir: str, prev: list[str], next_actors: list[str]) -> str:
-        """Set up a VFS directory structure for a message."""
-        vfs_root = os.path.join(tmpdir, "vfs")
-        route_dir = os.path.join(vfs_root, "route")
-        os.makedirs(route_dir, exist_ok=True)
-        with open(os.path.join(route_dir, "prev"), "w") as f:
-            f.write("\n".join(prev))
-        with open(os.path.join(route_dir, "next"), "w") as f:
-            f.write("\n".join(next_actors))
-        return vfs_root
+    @staticmethod
+    def _resolve_path(data: dict, path: str):
+        """Resolve a dotted path on a nested dict."""
+        parts = path.lstrip(".").split(".")
+        cur = data
+        for p in parts:
+            cur = cur[p]
+        return cur
 
-    def _read_vfs_next(self, vfs_root: str) -> list[str]:
-        next_path = os.path.join(vfs_root, "route", "next")
-        with open(next_path) as f:
-            content = f.read()
-        return [x for x in content.splitlines() if x]
+    @staticmethod
+    def _set_path(data: dict, path: str, value):
+        """Set a value at a dotted path on a nested dict."""
+        parts = path.lstrip(".").split(".")
+        cur = data
+        last = parts[-1]
+        for p in parts[:-1]:
+            if p not in cur:
+                cur[p] = {}
+            cur = cur[p]
+        m = re.match(r"^(\w+)\[(-?\d*):(-?\d*)\]$", last)
+        if m:
+            key = m.group(1)
+            start = int(m.group(2)) if m.group(2) else None
+            stop = int(m.group(3)) if m.group(3) else None
+            cur[key][start:stop] = value
+        else:
+            cur[last] = value
 
-    def _write_vfs_prev(self, vfs_root: str, prev: list[str]) -> None:
-        with open(os.path.join(vfs_root, "route", "prev"), "w") as f:
-            f.write("\n".join(prev))
-
-    def _write_vfs_next(self, vfs_root: str, next_actors: list[str]) -> None:
-        with open(os.path.join(vfs_root, "route", "next"), "w") as f:
-            f.write("\n".join(next_actors))
+    @staticmethod
+    def _drive_abi_single(gen, msg_ctx: dict):
+        """Drive an ABI generator that yields exactly one payload frame."""
+        value = gen.send(None)
+        while True:
+            if (
+                isinstance(value, tuple)
+                and len(value) >= 2
+                and isinstance(value[0], str)
+                and value[0] in ("GET", "SET", "DEL")
+            ):
+                op = value[0]
+                if op == "GET":
+                    result = TestMaxIterationsGuardIntegration._resolve_path(msg_ctx, value[1])
+                    value = gen.send(result)
+                elif op == "SET":
+                    TestMaxIterationsGuardIntegration._set_path(msg_ctx, value[1], value[2])
+                    value = gen.send(None)
+                else:
+                    value = gen.send(None)
+            else:
+                payload = value
+                with contextlib.suppress(StopIteration):
+                    gen.send(None)
+                return payload
 
     def test_guard_execution_raises_at_limit(self, compile_and_import, monkeypatch):
         source = """
@@ -636,7 +666,6 @@ def flow(p: dict) -> dict:
         monkeypatch.setenv("ASYA_MAX_LOOP_ITERATIONS", "3")
 
         mod = compile_and_import(source)
-        # resolve() returns name as-is so route history can be counted
         monkeypatch.setattr(mod, "resolve", lambda name: name)
 
         loop_back_name = None
@@ -649,26 +678,27 @@ def flow(p: dict) -> dict:
         assert loop_back_name is not None
         assert loop_back_fn is not None
 
-        with tempfile.TemporaryDirectory() as tmpdir:
-            vfs_root = self._setup_vfs(tmpdir, prev=["start_flow"], next_actors=[])
-            monkeypatch.setattr(mod, "_MSG_ROOT", vfs_root)
+        payload = {"value": 1}
 
-            payload = {"value": 1}
+        # 3 iterations should succeed (prev accumulates loop_back visits)
+        prev_list = ["start_flow"]
+        for _ in range(3):
+            msg_ctx = {
+                "id": "test-msg",
+                "route": {"prev": list(prev_list), "next": []},
+                "headers": {},
+            }
+            self._drive_abi_single(loop_back_fn(payload), msg_ctx)
+            prev_list = [*prev_list, loop_back_name]
 
-            # 3 iterations should succeed (prev accumulates loop_back visits)
-            prev_list = ["start_flow"]
-            for _ in range(3):
-                self._write_vfs_prev(vfs_root, prev_list)
-                self._write_vfs_next(vfs_root, [])
-                loop_back_fn(payload)
-                # Simulate runtime shifting route: move curr to prev
-                prev_list = [*prev_list, loop_back_name]
-
-            # 4th iteration should raise (3 past visits in prev)
-            self._write_vfs_prev(vfs_root, prev_list)
-            self._write_vfs_next(vfs_root, [])
-            with pytest.raises(RuntimeError, match="Max loop iterations"):
-                loop_back_fn(payload)
+        # 4th iteration should raise (3 past visits in prev)
+        msg_ctx = {
+            "id": "test-msg",
+            "route": {"prev": list(prev_list), "next": []},
+            "headers": {},
+        }
+        with pytest.raises(RuntimeError, match="Max loop iterations"):
+            self._drive_abi_single(loop_back_fn(payload), msg_ctx)
 
     def test_guard_execution_succeeds_under_limit(self, compile_and_import, monkeypatch):
         source = """
@@ -683,7 +713,6 @@ def flow(p: dict) -> dict:
         monkeypatch.setenv("ASYA_MAX_LOOP_ITERATIONS", "5")
 
         mod = compile_and_import(source)
-        # resolve() returns name as-is so route history can be counted
         monkeypatch.setattr(mod, "resolve", lambda name: name)
 
         loop_back_name = None
@@ -696,19 +725,17 @@ def flow(p: dict) -> dict:
         assert loop_back_name is not None
         assert loop_back_fn is not None
 
-        with tempfile.TemporaryDirectory() as tmpdir:
-            vfs_root = self._setup_vfs(tmpdir, prev=["start_flow"], next_actors=[])
-            monkeypatch.setattr(mod, "_MSG_ROOT", vfs_root)
+        payload = {"value": 1}
+        prev_list = ["start_flow"]
 
-            payload = {"value": 1}
-            prev_list = ["start_flow"]
+        for _ in range(5):
+            msg_ctx = {
+                "id": "test-msg",
+                "route": {"prev": list(prev_list), "next": []},
+                "headers": {},
+            }
+            result = self._drive_abi_single(loop_back_fn(payload), msg_ctx)
+            prev_list = [*prev_list, loop_back_name]
 
-            for _ in range(5):
-                self._write_vfs_prev(vfs_root, prev_list)
-                self._write_vfs_next(vfs_root, [])
-                result = loop_back_fn(payload)
-                # Simulate runtime shifting route: move curr to prev
-                prev_list = [*prev_list, loop_back_name]
-
-            # Payload stays clean (no __loop_ keys injected)
-            assert not any(k.startswith("__loop_") for k in result)
+        # Payload stays clean (no __loop_ keys injected)
+        assert not any(k.startswith("__loop_") for k in result)

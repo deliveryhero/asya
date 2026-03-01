@@ -18,8 +18,8 @@ spec:
       asya.sh/transport: {{ $sump.transport }}
   transport: {{ $sump.transport }}
   {{- if .Values.persistence.enabled }}
-  flavors:
-    - {{ include "asya-crew.persistence.flavorName" . }}
+  overlays:
+    - {{ include "asya-crew.persistence.overlayName" . }}
   {{- end }}
 
   {{- with $sump.sidecar }}

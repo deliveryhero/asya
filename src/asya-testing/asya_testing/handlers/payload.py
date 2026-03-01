@@ -19,7 +19,6 @@ Sync handlers remain for error/edge-case testing where async adds no value.
 """
 
 import asyncio
-import os
 import time
 from collections.abc import Generator
 from typing import Any
@@ -560,54 +559,40 @@ async def multihop_handler(payload: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-# --- VFS test handlers ---
-
-ASYA_MSG_ROOT = os.getenv("ASYA_MSG_ROOT", "/proc/asya/msg")
+# --- ABI metadata handlers (generator-based) ---
 
 
 def route_modifier_handler(payload):
-    """Handler that modifies route.next via VFS."""
-    with open(f"{ASYA_MSG_ROOT}/route/next", "w") as f:
-        f.write("\n".join(["injected_actor", "final_actor"]))
-    return payload
+    """Handler that modifies route.next via ABI."""
+    yield "SET", ".route.next", ["injected_actor", "final_actor"]
+    yield payload
 
 
 def header_reader_handler(payload):
-    """Handler that reads headers via VFS."""
-    try:
-        with open(f"{ASYA_MSG_ROOT}/headers/trace_id") as f:
-            trace_id = f.read()
-    except FileNotFoundError:
-        trace_id = "none"
-    return {**payload, "trace_id": trace_id}
+    """Handler that reads headers via ABI."""
+    headers = yield "GET", ".headers"
+    trace_id = headers.get("trace_id", "none")
+    yield {**payload, "trace_id": trace_id}
 
 
 def metadata_inspector_handler(payload):
-    """Handler that reads all metadata via VFS."""
-    with open(f"{ASYA_MSG_ROOT}/id") as f:
-        msg_id = f.read()
-    with open(f"{ASYA_MSG_ROOT}/route/curr") as f:
-        curr = f.read()
-    headers = {}
-    for key in os.listdir(f"{ASYA_MSG_ROOT}/headers"):
-        with open(f"{ASYA_MSG_ROOT}/headers/{key}") as f:
-            headers[key] = f.read()
-    return {**payload, "meta": {"msg_id": msg_id, "actor": curr, "headers": headers}}
+    """Handler that reads all metadata via ABI."""
+    msg_id = yield "GET", ".id"
+    curr = yield "GET", ".route.curr"
+    headers = yield "GET", ".headers"
+    yield {**payload, "meta": {"msg_id": msg_id, "actor": curr, "headers": headers}}
 
 
 def fail_once_handler(payload):
     """Fails on attempt 1, succeeds on attempt 2+.
 
-    Reads attempt from status via VFS.
+    Reads attempt from status via ABI.
     """
-    try:
-        with open(f"{ASYA_MSG_ROOT}/status/attempt") as f:
-            attempt = int(f.read())
-    except (FileNotFoundError, ValueError):
-        attempt = 1
+    status = yield "GET", ".status"
+    attempt = int(status.get("attempt", 1)) if status else 1
     if attempt <= 1:
         raise ValueError("Intentional first-attempt failure (attempt 1)")
-    return {**payload, "succeeded_on_attempt": attempt}
+    yield {**payload, "succeeded_on_attempt": attempt}
 
 
 def invalid_route_write_handler(payload):
@@ -615,39 +600,38 @@ def invalid_route_write_handler(payload):
 
     Should raise PermissionError, which runtime catches as processing_error.
     """
-    with open(f"{ASYA_MSG_ROOT}/route/curr", "w") as f:
-        f.write("__invalid_actor__")
-    return payload
+    yield "SET", ".route.curr", "__invalid_actor__"
+    yield payload
 
 
 # =============================================================================
-# Streaming / Partial Events (generator + partial=True dict convention)
+# Streaming / FLY Events (generator + ABI FLY protocol)
 # =============================================================================
 
 
 def streaming_handler(payload):
     """
-    Streaming handler: yields partial events followed by a downstream result.
+    Streaming handler: yields FLY events followed by a downstream result.
 
     Tests the full streaming path:
     runtime -> sidecar -> gateway -> SSE client
 
-    Yields dicts with partial=True that bypass message queues and stream
+    Yields FLY tuples that bypass message queues and stream
     directly to the gateway as partial SSE events.
     """
     token_count = payload.get("token_count", 3)
 
     for i in range(token_count):
-        yield {"partial": True, "type": "text_delta", "token": f"token_{i}"}
+        yield "FLY", {"type": "text_delta", "token": f"token_{i}"}
 
     yield {"summary": "streaming complete", "total_tokens": token_count}
 
 
 def streaming_error_handler(payload):
     """
-    Streaming error handler: yields some partial events then raises an exception.
+    Streaming error handler: yields some FLY events then raises an exception.
 
     Tests mid-stream error handling in the streaming path.
     """
-    yield {"partial": True, "type": "text_delta", "token": "before_error"}
+    yield "FLY", {"type": "text_delta", "token": "before_error"}
     raise ValueError("Mid-stream intentional error")

@@ -13,10 +13,10 @@ test-unit:
 	@mkdir -p $(COVERAGE_DIR)
 	go test -coverprofile=$(COVERAGE_DIR)/cov.out -covermode=set $(GOTEST_OPTS) ./...
 	@test -f $(COVERAGE_DIR)/cov.out && echo "[+] Coverage: $(COVERAGE_DIR)/cov.out" || echo "[-] Coverage not generated"
-	@echo "[+] Success: function-asya-flavors unit tests"
+	@echo "[+] Success: function-asya-overlays unit tests"
 
 cov-unit:
-	@echo "function-asya-flavors (unit) coverage:"
+	@echo "function-asya-overlays (unit) coverage:"
 	@go tool cover -func=$(COVERAGE_DIR)/cov.out | tail -1
 
 build:

@@ -18,6 +18,8 @@ from asya_cli.flow.ir import (
 )
 from asya_cli.flow.parser import FlowParser
 
+from .conftest import _drive_abi, _make_msg_ctx
+
 
 @pytest.fixture
 def compile_and_import():
@@ -47,20 +49,6 @@ def compile_and_import():
             sys.path.remove(path)
     if "routers" in sys.modules:
         del sys.modules["routers"]
-
-
-def _setup_vfs(tmpdir, prev, next_actors):
-    vfs_root = Path(tmpdir) / "vfs"
-    route_dir = vfs_root / "route"
-    route_dir.mkdir(parents=True, exist_ok=True)
-    (route_dir / "prev").write_text("\n".join(prev))
-    (route_dir / "next").write_text("\n".join(next_actors))
-    return str(vfs_root)
-
-
-def _read_vfs_next(vfs_root):
-    content = (Path(vfs_root) / "route" / "next").read_text()
-    return [x for x in content.splitlines() if x]
 
 
 def test_parse_sequential_async(project_root):
@@ -101,15 +89,12 @@ def test_execute_sequential_async(project_root, compile_and_import, monkeypatch)
     source = flow_file.read_text()
     routers = compile_and_import(source)
 
-    with tempfile.TemporaryDirectory() as tmpdir:
-        vfs_root = _setup_vfs(tmpdir, [], [])
-        monkeypatch.setattr(routers, "_MSG_ROOT", vfs_root)
+    msg_ctx = _make_msg_ctx()
+    payload = {"text": "test"}
+    _drive_abi(routers.start_llm_auditor_flow(payload), msg_ctx)
 
-        payload = {"text": "test"}
-        routers.start_llm_auditor_flow(payload)
-
-        next_actors = _read_vfs_next(vfs_root)
-        assert next_actors == ["critic", "reviser"]
+    next_actors = msg_ctx["route"]["next"]
+    assert next_actors == ["critic", "reviser"]
 
 
 def test_compile_react_loop(project_root):
@@ -129,7 +114,7 @@ def test_compile_react_loop(project_root):
 
 
 def _run_react_loop_if_router(project_root, compile_and_import, monkeypatch, payload):
-    """Compile the ReAct loop flow, execute the conditional router, return VFS next actors."""
+    """Compile the ReAct loop flow, execute the conditional router, return next actors."""
     monkeypatch.setenv("ASYA_HANDLER_LLM_CALL", "llm_call")
     monkeypatch.setenv("ASYA_HANDLER_EXECUTE_TOOL", "execute_tool")
 
@@ -141,11 +126,9 @@ def _run_react_loop_if_router(project_root, compile_and_import, monkeypatch, pay
     if_router_name = next(n for n in router_names if "_if" in n)
     if_router = getattr(routers, if_router_name)
 
-    with tempfile.TemporaryDirectory() as tmpdir:
-        vfs_root = _setup_vfs(tmpdir, [], [])
-        monkeypatch.setattr(routers, "_MSG_ROOT", vfs_root)
-        if_router(payload)
-        return _read_vfs_next(vfs_root)
+    msg_ctx = _make_msg_ctx()
+    _drive_abi(if_router(payload), msg_ctx)
+    return msg_ctx["route"]["next"]
 
 
 def test_execute_react_loop_no_tools(project_root, compile_and_import, monkeypatch):
@@ -244,20 +227,18 @@ def test_execute_auditor_init_mutations(project_root, compile_and_import, monkey
     routers = compile_and_import(source)
     monkeypatch.setattr(routers, "resolve", lambda name: name)
 
-    with tempfile.TemporaryDirectory() as tmpdir:
-        vfs_root = _setup_vfs(tmpdir, [], [])
-        monkeypatch.setattr(routers, "_MSG_ROOT", vfs_root)
+    msg_ctx = _make_msg_ctx()
+    payload = {"text": "test"}
+    payloads = _drive_abi(routers.start_llm_auditor(payload), msg_ctx)
+    result = payloads[0]
 
-        payload = {"text": "test"}
-        result = routers.start_llm_auditor(payload)
+    assert result["iteration"] == 0
+    assert result["status"] == "started"
+    assert result["partial"] is True
 
-        assert result["iteration"] == 0
-        assert result["status"] == "started"
-        assert result["partial"] is True
-
-        next_actors = _read_vfs_next(vfs_root)
-        assert "extract_claims" in next_actors
-        assert "router_llm_auditor_line_37_if" in next_actors
+    next_actors = msg_ctx["route"]["next"]
+    assert "extract_claims" in next_actors
+    assert "router_llm_auditor_line_37_if" in next_actors
 
 
 def test_execute_auditor_no_claims_exit(project_root, compile_and_import, monkeypatch):
@@ -268,15 +249,12 @@ def test_execute_auditor_no_claims_exit(project_root, compile_and_import, monkey
     routers = compile_and_import(source)
     monkeypatch.setattr(routers, "resolve", lambda name: name)
 
-    with tempfile.TemporaryDirectory() as tmpdir:
-        vfs_root = _setup_vfs(tmpdir, [], [])
-        monkeypatch.setattr(routers, "_MSG_ROOT", vfs_root)
+    msg_ctx = _make_msg_ctx()
+    payload = {"claims": []}
+    _drive_abi(routers.router_llm_auditor_line_37_if(payload), msg_ctx)
 
-        payload = {"claims": []}
-        routers.router_llm_auditor_line_37_if(payload)
-
-        next_actors = _read_vfs_next(vfs_root)
-        assert "router_llm_auditor_line_38_seq" in next_actors
+    next_actors = msg_ctx["route"]["next"]
+    assert "router_llm_auditor_line_38_seq" in next_actors
 
 
 def test_execute_auditor_with_claims_enters_loop(
@@ -289,15 +267,12 @@ def test_execute_auditor_with_claims_enters_loop(
     routers = compile_and_import(source)
     monkeypatch.setattr(routers, "resolve", lambda name: name)
 
-    with tempfile.TemporaryDirectory() as tmpdir:
-        vfs_root = _setup_vfs(tmpdir, [], [])
-        monkeypatch.setattr(routers, "_MSG_ROOT", vfs_root)
+    msg_ctx = _make_msg_ctx()
+    payload = {"claims": ["claim1"]}
+    _drive_abi(routers.router_llm_auditor_line_37_if(payload), msg_ctx)
 
-        payload = {"claims": ["claim1"]}
-        routers.router_llm_auditor_line_37_if(payload)
-
-        next_actors = _read_vfs_next(vfs_root)
-        assert "router_llm_auditor_line_42_loop_back_0" in next_actors
+    next_actors = msg_ctx["route"]["next"]
+    assert "router_llm_auditor_line_42_loop_back_0" in next_actors
 
 
 def test_execute_auditor_score_approved(project_root, compile_and_import, monkeypatch):
@@ -308,15 +283,12 @@ def test_execute_auditor_score_approved(project_root, compile_and_import, monkey
     routers = compile_and_import(source)
     monkeypatch.setattr(routers, "resolve", lambda name: name)
 
-    with tempfile.TemporaryDirectory() as tmpdir:
-        vfs_root = _setup_vfs(tmpdir, [], [])
-        monkeypatch.setattr(routers, "_MSG_ROOT", vfs_root)
+    msg_ctx = _make_msg_ctx()
+    payload = {"aggregate_score": 95}
+    _drive_abi(routers.router_llm_auditor_line_66_if(payload), msg_ctx)
 
-        payload = {"aggregate_score": 95}
-        routers.router_llm_auditor_line_66_if(payload)
-
-        next_actors = _read_vfs_next(vfs_root)
-        assert "router_llm_auditor_line_67_seq" in next_actors
+    next_actors = msg_ctx["route"]["next"]
+    assert "router_llm_auditor_line_67_seq" in next_actors
 
 
 def test_execute_auditor_score_standard_revision(
@@ -329,16 +301,13 @@ def test_execute_auditor_score_standard_revision(
     routers = compile_and_import(source)
     monkeypatch.setattr(routers, "resolve", lambda name: name)
 
-    with tempfile.TemporaryDirectory() as tmpdir:
-        vfs_root = _setup_vfs(tmpdir, [], [])
-        monkeypatch.setattr(routers, "_MSG_ROOT", vfs_root)
+    msg_ctx = _make_msg_ctx()
+    payload = {"aggregate_score": 75}
+    _drive_abi(routers.router_llm_auditor_line_69_if(payload), msg_ctx)
 
-        payload = {"aggregate_score": 75}
-        routers.router_llm_auditor_line_69_if(payload)
-
-        next_actors = _read_vfs_next(vfs_root)
-        assert "critique" in next_actors
-        assert "reviser" in next_actors
+    next_actors = msg_ctx["route"]["next"]
+    assert "critique" in next_actors
+    assert "reviser" in next_actors
 
 
 def test_execute_auditor_score_deep_revision(
@@ -351,16 +320,13 @@ def test_execute_auditor_score_deep_revision(
     routers = compile_and_import(source)
     monkeypatch.setattr(routers, "resolve", lambda name: name)
 
-    with tempfile.TemporaryDirectory() as tmpdir:
-        vfs_root = _setup_vfs(tmpdir, [], [])
-        monkeypatch.setattr(routers, "_MSG_ROOT", vfs_root)
+    msg_ctx = _make_msg_ctx()
+    payload = {"aggregate_score": 40}
+    _drive_abi(routers.router_llm_auditor_line_69_if(payload), msg_ctx)
 
-        payload = {"aggregate_score": 40}
-        routers.router_llm_auditor_line_69_if(payload)
-
-        next_actors = _read_vfs_next(vfs_root)
-        assert "critique" in next_actors
-        assert "deep_reviser" in next_actors
+    next_actors = msg_ctx["route"]["next"]
+    assert "critique" in next_actors
+    assert "deep_reviser" in next_actors
 
 
 def test_execute_auditor_continue_marginal(
@@ -373,12 +339,9 @@ def test_execute_auditor_continue_marginal(
     routers = compile_and_import(source)
     monkeypatch.setattr(routers, "resolve", lambda name: name)
 
-    with tempfile.TemporaryDirectory() as tmpdir:
-        vfs_root = _setup_vfs(tmpdir, [], [])
-        monkeypatch.setattr(routers, "_MSG_ROOT", vfs_root)
+    msg_ctx = _make_msg_ctx()
+    payload = {"aggregate_score": 50, "prev_score": 30}
+    _drive_abi(routers.router_llm_auditor_line_61_if(payload), msg_ctx)
 
-        payload = {"aggregate_score": 50, "prev_score": 30}
-        routers.router_llm_auditor_line_61_if(payload)
-
-        next_actors = _read_vfs_next(vfs_root)
-        assert "router_llm_auditor_line_62_seq" in next_actors
+    next_actors = msg_ctx["route"]["next"]
+    assert "router_llm_auditor_line_62_seq" in next_actors
