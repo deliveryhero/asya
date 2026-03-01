@@ -1,8 +1,10 @@
 ---
 title: Allow arbitrary flow parameter name beyond p/payload/state
-priority: 2 # medium
+priority: 1 # high
 type: task
+reason: "Implemented: removed VALID_PARAM_NAMES whitelist, any param name accepted"
 ---
+
 
 Remove the `VALID_PARAM_NAMES` whitelist in `parser.py`. Any single-parameter
 name should work (`ctx`, `data`, `msg`, `x`, etc.). The `_ParamNormalizer`

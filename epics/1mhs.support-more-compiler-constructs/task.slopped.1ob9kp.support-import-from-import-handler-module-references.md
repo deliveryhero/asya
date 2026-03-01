@@ -1,6 +1,6 @@
 ---
 title: Support import/from-import for handler module references
-priority: 3 # low
+priority: 1
 type: task
 ---
 
