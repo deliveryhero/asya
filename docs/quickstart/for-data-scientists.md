@@ -784,7 +784,7 @@ class LLMJudge:
         payload["judge_score"] = score
 
         if score < self.threshold:
-            # Read current route and prepend refinement step
+            # Prepend refinement step via slice notation
             yield "SET", ".route.next[:0]", ["llm-refiner"]
 
         yield payload

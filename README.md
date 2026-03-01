@@ -88,8 +88,7 @@ class LLMJudge:
 
         # Dynamically modify route based on LLM judge score
         if score < self.threshold:
-            next_actors = yield "GET", ".route.next"
-            yield "SET", ".route.next", ["llm-refiner"] + next_actors
+            yield "SET", ".route.next[:0]", ["llm-refiner"]
 
         yield payload
 ```
