@@ -4,6 +4,7 @@ Fan-out via asyncio.gather - async parallel dispatch.
 Demonstrates both gather patterns: generator expression for
 homogeneous fan-out and explicit args for heterogeneous fan-out.
 """
+import asyncio
 
 
 async def async_research_flow(p: dict) -> dict:
