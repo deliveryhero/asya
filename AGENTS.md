@@ -118,8 +118,11 @@ have no metadata access — use generators if needed. See the ABI spec at
 # Read metadata
 prev = yield "GET", ".route.prev"
 
-# Modify routing
+# Overwrite routing (replaces entire route.next)
 yield "SET", ".route.next", ["actor_a", "actor_b"]
+
+# Prepend to routing (inserts before existing actors via slice)
+yield "SET", ".route.next[:0]", ["actor_a", "actor_b"]
 
 # Stream upstream (SSE)
 yield "FLY", {"type": "text_delta", "token": "hello"}
