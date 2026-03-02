@@ -16,29 +16,30 @@ Regenerate by running: asya flow compile ../../plan_and_execute.py
 def start_plan_and_execute(payload: dict):
     """Entrypoint for flow 'plan_and_execute'"""
     _next = []
-    state = payload
-    state['current_step'] = 0
+    p = payload
+    p['current_step'] = 0
+    p['step_results'] = []
     _next.append(resolve("planner"))
-    _next.append(resolve("router_plan_and_execute_line_47_while_0"))
+    _next.append(resolve("router_plan_and_execute_line_52_while_0"))
     yield "SET", ".route.next[:0]", _next
-    yield state
+    yield p
 
-def router_plan_and_execute_line_59_seq(payload: dict):
+def router_plan_and_execute_line_63_seq(payload: dict):
     """Router for control flow and payload mutations"""
-    state = payload
+    p = payload
     _next = []
-    state['completed'] = True
+    p['completed'] = True
     _next.append(resolve("synthesizer"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_plan_and_execute_line_55_if(payload: dict):
+def router_plan_and_execute_line_59_if(payload: dict):
     """Router for control flow and payload mutations"""
-    state = payload
+    p = payload
     _next = []
-    state['current_step'] += 1
-    if state['current_step'] < len(state.get('plan', [])):
+    p['current_step'] += 1
+    if p['current_step'] < len(p.get('plan', [])):
         _next.append(resolve("re_planner"))
     else:
         pass
@@ -46,16 +47,16 @@ def router_plan_and_execute_line_55_if(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_plan_and_execute_line_47_while_0(payload: dict):
+def router_plan_and_execute_line_52_while_0(payload: dict):
     """Router for control flow and payload mutations"""
-    state = payload
+    p = payload
     _next = []
-    if state['current_step'] < len(state.get('plan', [])):
+    if p['current_step'] < len(p.get('plan', [])):
         _next.append(resolve("executor"))
-        _next.append(resolve("router_plan_and_execute_line_55_if"))
-        _next.append(resolve("router_plan_and_execute_line_47_while_0"))
+        _next.append(resolve("router_plan_and_execute_line_59_if"))
+        _next.append(resolve("router_plan_and_execute_line_52_while_0"))
     else:
-        _next.append(resolve("router_plan_and_execute_line_59_seq"))
+        _next.append(resolve("router_plan_and_execute_line_63_seq"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload

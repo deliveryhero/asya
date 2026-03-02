@@ -46,7 +46,7 @@ pattern with stub actor handlers. The patterns are derived from analysis of:
 | `evaluator_optimizer.py` | Generator-Critic Refinement Loop | `while` + generate + evaluate + `break` |
 | `orchestrator_workers.py` | Dynamic Orchestrator with Workers | `while True` + `if/elif` dynamic dispatch |
 | `hierarchical_delegation.py` | Hierarchical Multi-Level Delegation | nested `if/elif` + sub-pipelines |
-| `multi_agent_debate.py` | Multi-Agent Debate / Deliberation | fan-out + `while` rounds + fan-out revise |
+| `multi_agent_debate.py` | Multi-Agent Debate / Deliberation | fan-out + `while` rounds + fan-out revise (fan-out inside while loop) |
 
 ### Category E: Human-Agent Interaction
 
@@ -117,17 +117,13 @@ network.
 
 ## Compiler gaps found during development
 
-These patterns exposed parser limitations. All flows compile after workarounds.
+These patterns exposed parser limitations, all fixed in PR #246.
 
 | Gap | Severity | Status | Description |
 |-----|----------|--------|-------------|
-| Empty `[]` as fan-out | P1 | Workaround | `state["x"] = []` parsed as fan-out, not mutation |
-| Non-call list as fan-out | P2 | Workaround | `state["x"] = [state.get("y")]` parsed as fan-out |
-| Fan-out inside while loops | P3 | Untested | Compiles but runtime behavior needs verification |
-
-**Root cause**: The parser cannot distinguish actor calls from non-actor function
-calls. Any `state["key"] = [f(...)]` is treated as fan-out. Fix: check that list
-elements are bare function calls (top-level names), not method calls on `state`.
+| Empty `[]` as fan-out | P1 | ✅ Fixed | `state["x"] = []` now correctly parsed as mutation |
+| Non-call list as fan-out | P2 | ✅ Fixed | `state["x"] = [state.get("y")]` now correctly parsed as mutation |
+| Fan-out inside while loops | P3 | ✅ Fixed | Verified at runtime: fan-out, break, and continue all work inside while loops |
 
 **Not a gap** (initially thought to be):
 - Dynamic fan-out: supported via list comprehension `[actor(x) for x in items]`

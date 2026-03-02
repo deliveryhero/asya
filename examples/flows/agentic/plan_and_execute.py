@@ -43,22 +43,18 @@ calls (planner, executor, etc.) become real deployed actors.
 
 async def plan_and_execute(state: dict) -> dict:
     state["current_step"] = 0
+    state["step_results"] = []
 
-    # [ACTOR: planner] LLM decomposes goal into ordered steps
     state = await planner(state)
 
-    # [ROUTER: compiled] Loop over steps until plan is exhausted
     while state["current_step"] < len(state.get("plan", [])):
-        # [ACTOR: executor] LLM+tools executes current step
         state = await executor(state)
 
         state["current_step"] += 1
 
-        # [ACTOR: re_planner] LLM adjusts remaining steps based on progress
         if state["current_step"] < len(state.get("plan", [])):
             state = await re_planner(state)
 
-    # [ACTOR: synthesizer] Combine all step results into final output
     state["completed"] = True
     state = await synthesizer(state)
     return state
@@ -71,7 +67,7 @@ async def plan_and_execute(state: dict) -> dict:
 
 
 async def planner(state: dict) -> dict:
-    """[LLM ACTOR] Decompose goal into an ordered list of steps.
+    """LLM actor: decompose goal into an ordered list of steps.
 
     Reads:  state["goal"]
     Writes: state["plan"] (list of step description strings)
@@ -84,7 +80,7 @@ async def planner(state: dict) -> dict:
 
 
 async def executor(state: dict) -> dict:
-    """[LLM+TOOLS ACTOR] Execute a single step from the plan.
+    """LLM+tools actor: execute a single step from the plan.
 
     Reads:  state["plan"][state["current_step"]]
     Writes: appends to state["step_results"]
@@ -96,7 +92,7 @@ async def executor(state: dict) -> dict:
 
 
 async def re_planner(state: dict) -> dict:
-    """[LLM ACTOR] Review progress and adjust the remaining plan.
+    """LLM actor: review progress and adjust the remaining plan.
 
     Reads:  state["plan"], state["step_results"], state["current_step"]
     Writes: state["plan"] (may add, remove, or reorder remaining steps)
@@ -109,7 +105,7 @@ async def re_planner(state: dict) -> dict:
 
 
 async def synthesizer(state: dict) -> dict:
-    """[LLM ACTOR] Produce final output from all step results.
+    """LLM actor: produce final output from all step results.
 
     Reads:  state["step_results"], state["goal"]
     Writes: state["final_output"]

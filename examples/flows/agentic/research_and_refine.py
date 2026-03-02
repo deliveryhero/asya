@@ -45,24 +45,16 @@ async def research_and_refine(state: dict) -> dict:
 
     while True:
         state["iteration"] += 1
-
-        # [ACTOR: researcher] LLM searches for information
         state = await researcher(state)
-
-        # [ACTOR: critic] LLM evaluates quality and identifies gaps
         state = await critic(state)
 
-        # [ROUTER: compiled] Exit when quality threshold met or no gaps
         if not state.get("gaps") or state.get("quality_score", 0) >= 85:
             break
 
-        # [ACTOR: refine_query] LLM generates better search queries from gaps
         state = await refine_query(state)
-
         if state["iteration"] >= 5:
             break
 
-    # [ACTOR: write_report] LLM synthesizes findings into final report
     state = await write_report(state)
     return state
 
@@ -74,7 +66,7 @@ async def research_and_refine(state: dict) -> dict:
 
 
 async def researcher(state: dict) -> dict:
-    """[LLM+TOOLS ACTOR] Execute queries, extract findings.
+    """LLM+tools actor: execute queries, extract findings.
 
     Reads:  state["search_query"]
     Writes: appends to state["findings"] (list of {source, title, summary})
@@ -86,7 +78,7 @@ async def researcher(state: dict) -> dict:
 
 
 async def critic(state: dict) -> dict:
-    """[LLM ACTOR] Evaluate research quality and identify gaps.
+    """LLM actor: evaluate research quality and identify gaps.
 
     Reads:  state["findings"], state["question"]
     Writes: state["quality_score"] (0-100)
@@ -100,7 +92,7 @@ async def critic(state: dict) -> dict:
 
 
 async def refine_query(state: dict) -> dict:
-    """[LLM ACTOR] Produce improved search queries based on gaps.
+    """LLM actor: produce improved search queries based on gaps.
 
     Reads:  state["gaps"], state["question"]
     Writes: state["search_query"]
@@ -113,7 +105,7 @@ async def refine_query(state: dict) -> dict:
 
 
 async def write_report(state: dict) -> dict:
-    """[LLM ACTOR] Synthesize findings into a structured report.
+    """LLM actor: synthesize findings into a structured report.
 
     Reads:  state["findings"], state["question"], state["quality_score"]
     Writes: state["report"]

@@ -48,28 +48,26 @@ calls (orchestrator, data_worker, etc.) become real deployed actors.
 
 async def orchestrator_workers(state: dict) -> dict:
     state["iteration"] = 0
+    state["worker_results"] = []
 
     while True:
         state["iteration"] += 1
 
-        # [ACTOR: orchestrator] LLM analyzes state, sets next_action + is_complete
         state = await orchestrator(state)
 
         if state.get("is_complete"):
             break
 
-        # [ROUTER: compiled] Static dispatch based on orchestrator's decision
         if state.get("next_action") == "research":
-            state = await data_worker(state)       # [ACTOR: data_worker]
+            state = await data_worker(state)
         elif state.get("next_action") == "analyze":
-            state = await analysis_worker(state)   # [ACTOR: analysis_worker]
+            state = await analysis_worker(state)
         elif state.get("next_action") == "write":
-            state = await writing_worker(state)    # [ACTOR: writing_worker]
+            state = await writing_worker(state)
 
         if state["iteration"] >= 10:
             break
 
-    # [ACTOR: synthesizer] Combine all worker results into final output
     state = await synthesizer(state)
     return state
 
@@ -81,7 +79,7 @@ async def orchestrator_workers(state: dict) -> dict:
 
 
 async def orchestrator(state: dict) -> dict:
-    """[LLM ACTOR] The "brain" that plans and dispatches.
+    """LLM actor: the "brain" that plans and dispatches.
 
     Reads:  state["request"], state["worker_results"]
     Writes: state["next_action"] ("research"|"analyze"|"write")
@@ -96,7 +94,7 @@ async def orchestrator(state: dict) -> dict:
 
 
 async def data_worker(state: dict) -> dict:
-    """[LLM+TOOLS ACTOR] Gather data and information.
+    """LLM+tools actor: gather data and information.
 
     Reads:  state["request"]
     Writes: appends to state["worker_results"]
@@ -108,7 +106,7 @@ async def data_worker(state: dict) -> dict:
 
 
 async def analysis_worker(state: dict) -> dict:
-    """[LLM+TOOLS ACTOR] Analyze data.
+    """LLM+tools actor: analyze data.
 
     Reads:  state["worker_results"] (previous findings)
     Writes: appends to state["worker_results"]
@@ -120,7 +118,7 @@ async def analysis_worker(state: dict) -> dict:
 
 
 async def writing_worker(state: dict) -> dict:
-    """[LLM ACTOR] Produce written content.
+    """LLM actor: produce written content.
 
     Reads:  state["worker_results"] (all findings + analyses)
     Writes: appends to state["worker_results"]
@@ -131,7 +129,7 @@ async def writing_worker(state: dict) -> dict:
 
 
 async def synthesizer(state: dict) -> dict:
-    """[LLM ACTOR] Produce final output from accumulated worker results.
+    """LLM actor: produce final output from accumulated worker results.
 
     Reads:  state["worker_results"]
     Writes: state["final_output"]

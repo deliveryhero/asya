@@ -11,8 +11,6 @@ Regenerate by running: asya flow compile ../../multi_agent_debate.py
 import os as _os
 _ASYA_MAX_LOOP_ITERATIONS = int(_os.environ.get("ASYA_MAX_LOOP_ITERATIONS", "100"))
 
-import copy
-
 
 # ======================================================================
 # Generated Routers (for kubernetes deployment)
@@ -21,95 +19,71 @@ import copy
 def start_multi_agent_debate(payload: dict):
     """Entrypoint for flow 'multi_agent_debate'"""
     _next = []
-    state = payload
-    state['round'] = 0
-    _next.append(resolve("fanout_multi_agent_debate_line_51"))
+    p = payload
+    p['round'] = 0
+    p['positions'] = list(await asyncio.gather(debater_a(p['question']), debater_b(p['question']), debater_c(p['question'])))
+    _next.append(resolve("router_multi_agent_debate_line_61_loop_back_0"))
     yield "SET", ".route.next[:0]", _next
-    yield state
+    yield p
+
+def router_multi_agent_debate_line_74_seq(payload: dict):
+    """Router for control flow and payload mutations"""
+    p = payload
+    _next = []
+    p['positions'] = list(await asyncio.gather(revise_a(p), revise_b(p), revise_c(p)))
+
+    yield "SET", ".route.next[:0]", _next
+    yield payload
+
+def router_multi_agent_debate_line_70_if(payload: dict):
+    """Router for control flow and payload mutations"""
+    p = payload
+    _next = []
+    if p['round'] >= 3:
+        _next.append(resolve("final_judge"))
+    else:
+        _next.append(resolve("router_multi_agent_debate_line_74_seq"))
+
+    yield "SET", ".route.next[:0]", _next
+    yield payload
 
 def router_multi_agent_debate_line_67_if(payload: dict):
     """Router for control flow and payload mutations"""
-    state = payload
+    p = payload
     _next = []
-    if state['round'] >= 3:
+    if p.get('converged'):
         _next.append(resolve("final_judge"))
     else:
-        _next.append(resolve("revise_a"))
-        _next.append(resolve("revise_b"))
-        _next.append(resolve("revise_c"))
+        _next.append(resolve("router_multi_agent_debate_line_70_if"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_multi_agent_debate_line_64_if(payload: dict):
+def router_multi_agent_debate_line_62_seq(payload: dict):
     """Router for control flow and payload mutations"""
-    state = payload
+    p = payload
     _next = []
-    if state.get('converged'):
-        _next.append(resolve("final_judge"))
-    else:
-        _next.append(resolve("router_multi_agent_debate_line_67_if"))
-
-    yield "SET", ".route.next[:0]", _next
-    yield payload
-
-def router_multi_agent_debate_line_59_seq(payload: dict):
-    """Router for control flow and payload mutations"""
-    state = payload
-    _next = []
-    state['round'] += 1
+    p['round'] += 1
     _next.append(resolve("convergence_checker"))
-    _next.append(resolve("router_multi_agent_debate_line_64_if"))
+    _next.append(resolve("router_multi_agent_debate_line_67_if"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_multi_agent_debate_line_58_loop_back_0(payload: dict):
+def router_multi_agent_debate_line_61_loop_back_0(payload: dict):
     """Loop-back router: re-inserts loop actors into route (guarded)"""
-    state = payload
+    p = payload
     _next = []
-    _self = resolve("router_multi_agent_debate_line_58_loop_back_0")
+    _self = resolve("router_multi_agent_debate_line_61_loop_back_0")
     _prev = yield "GET", ".route.prev"
     if _prev.count(_self) >= _ASYA_MAX_LOOP_ITERATIONS:
-        raise RuntimeError(f"Max loop iterations ({_ASYA_MAX_LOOP_ITERATIONS}) exceeded for while-loop at line 58")
+        raise RuntimeError(f"Max loop iterations ({_ASYA_MAX_LOOP_ITERATIONS}) exceeded for while-loop at line 61")
 
-    _next.append(resolve("router_multi_agent_debate_line_59_seq"))
-    _next.append(resolve("router_multi_agent_debate_line_58_loop_back_0"))
+    _next.append(resolve("router_multi_agent_debate_line_62_seq"))
+    _next.append(resolve("router_multi_agent_debate_line_61_loop_back_0"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
-
-def fanout_multi_agent_debate_line_51(payload: dict):
-    """Fan-out router: dispatches to sub-agents and aggregator (line 51)"""
-    state = payload
-
-    origin_id = yield "GET", ".id"
-    _next_tail = yield "GET", ".route.next"
-
-    _agg = resolve("fanin_multi_agent_debate_line_51")
-
-    _slices = []
-    _slices.append((resolve("debater_a"), state['question']))
-    _slices.append((resolve("debater_b"), state['question']))
-    _slices.append((resolve("debater_c"), state['question']))
-
-    _n = len(_slices) + 1
-    _fan_in = {
-        "actor": _agg,
-        "origin_id": origin_id,
-        "slice_count": _n,
-        "aggregation_key": "/positions",
-    }
-
-    # Index 0: parent payload forwarded to aggregator
-    yield "SET", ".route.next", [_agg, resolve("router_multi_agent_debate_line_58_loop_back_0")] + _next_tail
-    yield "SET", ".headers.x-asya-fan-in", {**_fan_in, "slice_index": 0}
-    yield copy.deepcopy(state)
-
-    for _i, (_actor, _payload) in enumerate(_slices):
-        yield "SET", ".route.next", [_actor, _agg]
-        yield "SET", ".headers.x-asya-fan-in", {**_fan_in, "slice_index": _i + 1}
-        yield _payload
 
 def end_multi_agent_debate(payload: dict):
     """Exitpoint for flow 'multi_agent_debate'"""

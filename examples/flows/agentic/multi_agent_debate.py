@@ -30,6 +30,7 @@ Deployment:
     models, temperatures, or system prompts for diversity)
   - convergence_checker: evaluates if agents have reached consensus
   - revise_a, revise_b, revise_c: LLM actors that revise positions
+    (fan-out inside while loop: all three revise in parallel each round)
   - final_judge: LLM actor that selects or synthesizes the best answer
 
 Payload contract:
@@ -39,9 +40,8 @@ Payload contract:
   state["converged"]     - whether agents have converged
   state["final_answer"]  - the consensus or judged answer
 
-NOTE: The revision round uses sequential calls as a workaround. Fan-out
-inside while loops is now supported by the compiler -- this example can
-be updated to use parallel fan-out for revisions.
+This example uses fan-out inside a while loop for the revision round --
+each debater revises in parallel, then convergence is checked.
 """
 
 import asyncio
@@ -50,18 +50,15 @@ import asyncio
 async def multi_agent_debate(state: dict) -> dict:
     state["round"] = 0
 
-    # [FAN-OUT: compiled] Round 0 -- each debater generates independently
     state["positions"] = list(await asyncio.gather(
-        debater_a(state["question"]),   # [ACTOR: debater_a]
-        debater_b(state["question"]),   # [ACTOR: debater_b]
-        debater_c(state["question"]),   # [ACTOR: debater_c]
+        debater_a(state["question"]),
+        debater_b(state["question"]),
+        debater_c(state["question"]),
     ))
 
-    # [ROUTER: compiled] Debate rounds until convergence or max rounds
     while True:
         state["round"] += 1
 
-        # [ACTOR: convergence_checker] LLM/logic evaluates consensus
         state = await convergence_checker(state)
 
         if state.get("converged"):
@@ -70,12 +67,12 @@ async def multi_agent_debate(state: dict) -> dict:
         if state["round"] >= 3:
             break
 
-        # [ACTORS: revise_*] Each debater revises seeing all positions
-        state = await revise_a(state)   # [ACTOR: revise_a]
-        state = await revise_b(state)   # [ACTOR: revise_b]
-        state = await revise_c(state)   # [ACTOR: revise_c]
+        state["positions"] = list(await asyncio.gather(
+            revise_a(state),
+            revise_b(state),
+            revise_c(state),
+        ))
 
-    # [ACTOR: final_judge] LLM synthesizes the best answer
     state = await final_judge(state)
     return state
 
@@ -87,7 +84,7 @@ async def multi_agent_debate(state: dict) -> dict:
 
 
 async def debater_a(question: dict) -> dict:
-    """[LLM ACTOR] Generate initial position on the question.
+    """LLM actor: generate initial position on the question.
 
     Reads:  question (passed directly, not from state)
     Returns: {position, confidence, reasoning} dict
@@ -100,7 +97,7 @@ async def debater_a(question: dict) -> dict:
 
 
 async def debater_b(question: dict) -> dict:
-    """[LLM ACTOR] Generate initial position (different perspective).
+    """LLM actor: generate initial position (different perspective).
 
     Same interface as debater_a. May use a different model, higher
     temperature, or contrarian system prompt.
@@ -109,7 +106,7 @@ async def debater_b(question: dict) -> dict:
 
 
 async def debater_c(question: dict) -> dict:
-    """[LLM ACTOR] Generate initial position (third perspective).
+    """LLM actor: generate initial position (third perspective).
 
     Same interface as debater_a. Yet another angle on the question.
     """
@@ -117,7 +114,7 @@ async def debater_c(question: dict) -> dict:
 
 
 async def convergence_checker(state: dict) -> dict:
-    """[LLM/LOGIC ACTOR] Check if debaters have reached consensus.
+    """LLM/logic actor: check if debaters have reached consensus.
 
     Reads:  state["positions"]
     Writes: state["converged"] (True if consensus reached)
@@ -133,10 +130,10 @@ async def convergence_checker(state: dict) -> dict:
 
 
 async def revise_a(state: dict) -> dict:
-    """[LLM ACTOR] Debater A revises position seeing all positions.
+    """LLM actor: debater A revises position seeing all positions.
 
-    Reads:  state["positions"] (all agents' current answers)
-    Writes: state["positions"][0] (updated position)
+    Reads:  state (full payload with all positions)
+    Returns: revised position dict for debater A
 
     May strengthen, weaken, or change stance based on other agents'
     arguments. The revision is informed by but not dictated by others.
@@ -145,23 +142,25 @@ async def revise_a(state: dict) -> dict:
 
 
 async def revise_b(state: dict) -> dict:
-    """[LLM ACTOR] Debater B revises position seeing all positions.
+    """LLM actor: debater B revises position seeing all positions.
 
-    Same as revise_a but updates state["positions"][1].
+    Reads:  state (full payload with all positions)
+    Returns: revised position dict for debater B
     """
     ...  # LLM call: revise own position given all other positions
 
 
 async def revise_c(state: dict) -> dict:
-    """[LLM ACTOR] Debater C revises position seeing all positions.
+    """LLM actor: debater C revises position seeing all positions.
 
-    Same as revise_a but updates state["positions"][2].
+    Reads:  state (full payload with all positions)
+    Returns: revised position dict for debater C
     """
     ...  # LLM call: revise own position given all other positions
 
 
 async def final_judge(state: dict) -> dict:
-    """[LLM ACTOR] Select or synthesize the final answer.
+    """LLM actor: select or synthesize the final answer.
 
     Reads:  state["positions"]
     Writes: state["final_answer"]
