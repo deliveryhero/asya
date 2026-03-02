@@ -213,49 +213,84 @@ time {
   # Crossplane's package manager runs inside a pod and uses HTTPS by default,
   # so the registry must serve TLS. We generate a self-signed CA + server cert
   # for the registry's bridge IP.
+  #
+  # IP pinning: We start a temporary container on the Kind network to discover
+  # the assigned IP, generate a TLS cert with that IP as SAN, then start the
+  # real container with --network kind --ip to pin the same IP. Without pinning,
+  # the recreated container gets a different IP and the cert SAN won't match.
   echo "[.] Setting up local OCI registry for Crossplane functions..."
   docker rm -f "$REGISTRY_NAME" 2> /dev/null || true
 
-  # Start registry first to get its IP on the Kind network
-  docker run -d --restart=always -p "${REGISTRY_HOST_PORT}:5000" \
-    --name "$REGISTRY_NAME" registry:2 > /dev/null
-  docker network connect kind "$REGISTRY_NAME" 2> /dev/null || true
+  # Start a temporary container on the Kind network to discover the IP it assigns
+  docker run -d --name "$REGISTRY_NAME" --network kind registry:2 > /dev/null
 
   REGISTRY_IP=$(docker inspect -f '{{.NetworkSettings.Networks.kind.IPAddress}}' "$REGISTRY_NAME")
   if [ -z "$REGISTRY_IP" ]; then
     echo "[-] Failed to get IP address for local registry container '$REGISTRY_NAME'"
     exit 1
   fi
+  docker rm -f "$REGISTRY_NAME" > /dev/null
 
-  # Generate self-signed TLS cert for the registry's bridge IP
-  echo "[.] Generating TLS certificate for registry at ${REGISTRY_IP}..."
+  # Generate self-signed TLS cert covering both the Kind network IP (for
+  # Crossplane pulling from inside the cluster) and localhost (for Docker
+  # pushing from the host).
+  CERT_SAN="IP:${REGISTRY_IP},DNS:localhost,IP:127.0.0.1"
+  echo "[.] Generating TLS certificate (SAN: ${CERT_SAN})..."
   openssl req -new -x509 -days 1 -nodes -newkey rsa:2048 \
     -keyout "$REGISTRY_CERTS_DIR/ca.key" -out "$REGISTRY_CERTS_DIR/ca.crt" \
     -subj "/CN=E2E Registry CA" 2> /dev/null
   openssl req -new -nodes -newkey rsa:2048 \
     -keyout "$REGISTRY_CERTS_DIR/server.key" -out "$REGISTRY_CERTS_DIR/server.csr" \
     -subj "/CN=${REGISTRY_IP}" \
-    -addext "subjectAltName=IP:${REGISTRY_IP}" 2> /dev/null
+    -addext "subjectAltName=${CERT_SAN}" 2> /dev/null
   openssl x509 -req -in "$REGISTRY_CERTS_DIR/server.csr" \
     -CA "$REGISTRY_CERTS_DIR/ca.crt" -CAkey "$REGISTRY_CERTS_DIR/ca.key" \
     -CAcreateserial -out "$REGISTRY_CERTS_DIR/server.crt" -days 1 \
-    -extfile <(echo "subjectAltName=IP:${REGISTRY_IP}") 2> /dev/null
+    -extfile <(echo "subjectAltName=${CERT_SAN}") 2> /dev/null
 
-  # Restart registry with TLS
-  docker rm -f "$REGISTRY_NAME" > /dev/null 2>&1
+  # Start the real registry with TLS, pinning to the same IP the cert covers
   docker run -d --restart=always -p "${REGISTRY_HOST_PORT}:5000" \
     --name "$REGISTRY_NAME" \
+    --network kind --ip "$REGISTRY_IP" \
     -v "$REGISTRY_CERTS_DIR/server.crt:/certs/server.crt:ro" \
     -v "$REGISTRY_CERTS_DIR/server.key:/certs/server.key:ro" \
     -e REGISTRY_HTTP_TLS_CERTIFICATE=/certs/server.crt \
     -e REGISTRY_HTTP_TLS_KEY=/certs/server.key \
     registry:2 > /dev/null
-  docker network connect kind "$REGISTRY_NAME" 2> /dev/null || true
 
   # Configure Docker to trust the CA for localhost push
   DOCKER_CERT_DIR="/etc/docker/certs.d/localhost:${REGISTRY_HOST_PORT}"
   sudo mkdir -p "$DOCKER_CERT_DIR"
   sudo cp "$REGISTRY_CERTS_DIR/ca.crt" "$DOCKER_CERT_DIR/ca.crt"
+
+  # Configure containerd on Kind nodes to trust the CA for runtime image pulls.
+  # Crossplane creates Deployments that reference the registry image, so kubelet
+  # needs containerd to trust our CA when pulling function runtime images.
+  # kind-config.yaml sets config_path="/etc/containerd/certs.d", so containerd
+  # discovers hosts.toml files dynamically. Fallback adds config_path + restarts
+  # containerd if the cluster was created without the containerdConfigPatches.
+  CONTAINERD_CERTS_DIR="/etc/containerd/certs.d/${REGISTRY_IP}:5000"
+  for node in $(kind get nodes --name "$CLUSTER_NAME" 2> /dev/null); do
+    docker cp "$REGISTRY_CERTS_DIR/ca.crt" "${node}:/root/registry-ca.crt"
+    docker exec "$node" mkdir -p "$CONTAINERD_CERTS_DIR"
+    docker exec "$node" cp /root/registry-ca.crt "${CONTAINERD_CERTS_DIR}/ca.crt"
+    docker exec "$node" bash -c "cat > ${CONTAINERD_CERTS_DIR}/hosts.toml << TOML
+server = \"https://${REGISTRY_IP}:5000\"
+
+[host.\"https://${REGISTRY_IP}:5000\"]
+  ca = \"${CONTAINERD_CERTS_DIR}/ca.crt\"
+TOML"
+    # Fallback: enable containerd registry host discovery if not already set
+    if ! docker exec "$node" grep -q 'config_path.*certs.d' /etc/containerd/config.toml; then
+      docker exec "$node" bash -c 'cat >> /etc/containerd/config.toml << TOML
+
+[plugins."io.containerd.grpc.v1.cri".registry]
+  config_path = "/etc/containerd/certs.d"
+TOML'
+      docker exec "$node" systemctl restart containerd
+    fi
+  done
+  echo "[+] containerd CA trust configured on Kind nodes"
 
   # Push function image to the TLS registry
   docker tag "function-asya-overlays:latest" \

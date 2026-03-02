@@ -11,5 +11,6 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
     CGO_ENABLED=0 go build -o /function .
 
 FROM gcr.io/distroless/static:nonroot
+COPY package/crossplane.yaml /package.yaml
 COPY --from=build /function /function
 ENTRYPOINT ["/function"]
