@@ -1,9 +1,10 @@
 ---
-title: "Rename asya Message to Meshage"
-status: ideated
-priority: 2
+title: Rename asya Message to Meshage
+status: vibed
+priority: 2 # medium
 type: epic
 ---
+
 
 Mesh + message. Rename Asya's internal envelope (id, route, payload, status,
 headers) from "message" to "meshage" to avoid collision with A2A "Message"
