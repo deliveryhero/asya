@@ -1,0 +1,7 @@
+apiVersion: meta.pkg.crossplane.io/v1beta1
+kind: Function
+metadata:
+  name: function-asya-overlays
+spec:
+  crossplane:
+    version: ">=v1.14.0"

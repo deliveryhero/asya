@@ -19,18 +19,18 @@ def start_async_research_flow(payload: dict):
     """Entrypoint for flow 'async_research_flow'"""
     _next = []
     _next.append(resolve("preprocessor"))
-    _next.append(resolve("fanout_async_research_flow_line_11"))
+    _next.append(resolve("fanout_async_research_flow_line_12"))
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def fanout_async_research_flow_line_11(payload: dict):
-    """Fan-out router: dispatches to sub-agents and aggregator (line 11)"""
+def fanout_async_research_flow_line_12(payload: dict):
+    """Fan-out router: dispatches to sub-agents and aggregator (line 12)"""
     p = payload
 
     origin_id = yield "GET", ".id"
     _next_tail = yield "GET", ".route.next"
 
-    _agg = resolve("fanin_async_research_flow_line_11")
+    _agg = resolve("fanin_async_research_flow_line_12")
 
     _slices = []
     for t in p['topics']:
@@ -45,7 +45,7 @@ def fanout_async_research_flow_line_11(payload: dict):
     }
 
     # Index 0: parent payload forwarded to aggregator
-    yield "SET", ".route.next", [_agg, resolve("post_processor")] + _next_tail
+    yield "SET", ".route.next", [_agg, resolve("postprocessor")] + _next_tail
     yield "SET", ".headers.x-asya-fan-in", {**_fan_in, "slice_index": 0}
     yield copy.deepcopy(p)
 

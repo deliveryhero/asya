@@ -1547,10 +1547,6 @@ def test_crossplane_resilience_after_provider_restart(e2e_helper):
         _cleanup_actor(name, e2e_helper.namespace)
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="function-asya-flavors disabled in E2E (Crossplane OCI puller cannot access ghcr.io from Kind)",
-)
 @pytest.mark.core
 @pytest.mark.timeout(300)
 def test_asyncactor_overlays_resolved(e2e_helper):
