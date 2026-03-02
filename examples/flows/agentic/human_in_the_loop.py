@@ -62,18 +62,13 @@ async def human_in_the_loop(state: dict) -> dict:
         # Human review checkpoint
         state = await approval_gate(state)
 
-        # Human approved: execute the action
-        if state.get("approval") == "approved":
-            state = await executor(state)
-            break
-
-        # Human modified: execute with modifications
-        if state.get("approval") == "modified":
+        # Human approved or modified: execute the action
+        if state.get("approval") in ("approved", "modified"):
             state = await executor(state)
             break
 
         # Human rejected: revise and try again
-        if state.get("approval") == "rejected":
+        elif state.get("approval") == "rejected":
             state = await revision_agent(state)
 
         # Safety: max revision attempts

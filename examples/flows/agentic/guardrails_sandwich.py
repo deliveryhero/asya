@@ -50,7 +50,7 @@ async def guardrails_sandwich(state: dict) -> dict:
         # Post-processing: validate output safety
         state = await output_validator(state)
 
-    except:
+    except Exception:
         # Safety violation caught: generate safe response
         state = await safe_fallback(state)
 

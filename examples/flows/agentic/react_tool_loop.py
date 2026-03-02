@@ -91,10 +91,10 @@ async def llm_reason(state: dict) -> dict:
     messages = state.get("messages", [])
 
     if iteration == 1:
-        state["tool_calls"] = [{"name": "web_search", "args": {"query": "latest developments in quantum computing 2026"}}]
+        state["tool_calls"] = [{"id": "call_1", "name": "web_search", "args": {"query": "latest developments in quantum computing 2026"}}]
         messages.append({"role": "assistant", "content": "Let me search for recent information about quantum computing."})
     elif iteration == 2:
-        state["tool_calls"] = [{"name": "calculator", "args": {"expression": "2048 * 365"}}]
+        state["tool_calls"] = [{"id": "call_2", "name": "calculator", "args": {"expression": "2048 * 365"}}]
         messages.append({"role": "assistant", "content": "Now let me calculate the total processing capacity."})
     else:
         state["tool_calls"] = []
@@ -107,22 +107,34 @@ async def llm_reason(state: dict) -> dict:
 
 async def web_search(state: dict) -> dict:
     """Tool actor: execute a web search query, return results as observation."""
-    query = state["tool_calls"][0]["args"]["query"]
+    tool_call = state["tool_calls"][0]
+    query = tool_call["args"]["query"]
     state["observation"] = f"Search results for '{query}': Researchers at MIT and Google achieved 99.9% qubit coherence time in February 2026. IBM announced a 1000-qubit processor with breakthrough error correction. Nature published a study showing quantum advantage in drug discovery simulations."
+    state.setdefault("messages", []).append(
+        {"role": "tool", "tool_call_id": tool_call["id"], "content": state["observation"]}
+    )
     return state
 
 
 async def code_exec(state: dict) -> dict:
     """Tool actor: execute code in a sandboxed environment, return output."""
-    code = state["tool_calls"][0]["args"].get("code", "")
+    tool_call = state["tool_calls"][0]
+    code = tool_call["args"].get("code", "")
     state["observation"] = f"Code execution output:\n{code}\n---\nSuccessfully executed. Output: 42"
+    state.setdefault("messages", []).append(
+        {"role": "tool", "tool_call_id": tool_call["id"], "content": state["observation"]}
+    )
     return state
 
 
 async def calculator(state: dict) -> dict:
     """Tool actor: evaluate a mathematical expression."""
-    expression = state["tool_calls"][0]["args"]["expression"]
+    tool_call = state["tool_calls"][0]
+    expression = tool_call["args"]["expression"]
     state["observation"] = f"Calculated {expression} = 747520"
+    state.setdefault("messages", []).append(
+        {"role": "tool", "tool_call_id": tool_call["id"], "content": state["observation"]}
+    )
     return state
 
 
