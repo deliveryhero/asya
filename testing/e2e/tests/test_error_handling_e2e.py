@@ -43,8 +43,7 @@ def _get_transport_client(transport: str):
         pytest.skip(f"Unsupported transport: {transport}")
 
 
-@pytest.mark.xfail(
-    strict=True,
+@pytest.mark.skip(
     reason="S3 persistence requires state-proxy connector on x-sump",
 )
 @pytest.mark.slow

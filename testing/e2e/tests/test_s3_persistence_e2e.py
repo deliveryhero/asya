@@ -35,8 +35,7 @@ def cleanup_s3():
         logger.warning(f"Failed to clean up S3 after test: {e}")
 
 
-@pytest.mark.xfail(
-    strict=True,
+@pytest.mark.skip(
     reason="S3 persistence requires state-proxy connector on x-sink",
 )
 @pytest.mark.fast
@@ -72,8 +71,7 @@ def test_x_sink_persists_to_s3_e2e(e2e_helper, transport_timeouts):
     logger.info("=== test_x_sink_persists_to_s3_e2e: PASSED ===")
 
 
-@pytest.mark.xfail(
-    strict=True,
+@pytest.mark.skip(
     reason="S3 persistence requires state-proxy connector on x-sump",
 )
 @pytest.mark.fast

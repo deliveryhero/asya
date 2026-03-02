@@ -117,8 +117,8 @@ class E2ETestHelper(GatewayTestHelper):
         """
         Poll task status until it reaches end state.
 
-        This E2E version handles connection errors by automatically restarting
-        port-forward when needed (useful in chaos tests).
+        This E2E version retries on transient connection errors (e.g. gateway
+        pod restart during chaos tests).
 
         Returns the final task object when status is succeeded, failed, or unknown.
 
@@ -129,7 +129,7 @@ class E2ETestHelper(GatewayTestHelper):
         logger.debug(f"Waiting for task completion: {task_id} (timeout={timeout}s)")
         start_time = time.time()
         consecutive_failures = 0
-        max_consecutive_failures = 3
+        max_consecutive_failures = 5
 
         i = 0
         while time.time() - start_time < timeout:
@@ -160,33 +160,25 @@ class E2ETestHelper(GatewayTestHelper):
                 )
 
                 if consecutive_failures >= max_consecutive_failures:
-                    logger.error("Too many consecutive connection failures, attempting port-forward restart")
-                    try:
-                        self.ensure_gateway_connectivity(max_retries=2)
-                        consecutive_failures = 0
-                        logger.info("Gateway connectivity restored, resuming task wait")
-                    except ConnectionError as ce:
-                        raise ConnectionError(
-                            f"Gateway unreachable after port-forward restart while waiting for task {task_id}"
-                        ) from ce
+                    raise ConnectionError(
+                        f"Gateway unreachable after {max_consecutive_failures} consecutive failures "
+                        f"while waiting for task {task_id}"
+                    ) from e
 
                 time.sleep(interval)
 
         raise TimeoutError(f"Task {task_id} did not complete within {timeout}s")
 
-    def ensure_gateway_connectivity(self, max_retries: int = 3) -> bool:
+    def ensure_gateway_connectivity(self, max_retries: int = 3, retry_interval: float = 2.0) -> bool:
         """
-        Ensure gateway is reachable, restarting port-forward if needed.
-
-        This method checks gateway connectivity and automatically restarts
-        port-forward if connection fails. Useful in chaos tests where
-        infrastructure components restart and may break port-forward.
+        Wait for gateway to become reachable (e.g. after pod restart).
 
         Args:
             max_retries: Maximum number of retry attempts
+            retry_interval: Seconds between retries
 
         Returns:
-            True if gateway is reachable, False otherwise
+            True if gateway is reachable
 
         Raises:
             ConnectionError: If gateway unreachable after all retries
@@ -204,82 +196,6 @@ class E2ETestHelper(GatewayTestHelper):
                 logger.warning(f"Gateway unreachable (attempt {attempt + 1}/{max_retries}): {e}")
 
                 if attempt < max_retries - 1:
-                    logger.info("Restarting port-forward...")
-                    if self.restart_port_forward():
-                        time.sleep(3)
-                    else:
-                        logger.error("Failed to restart port-forward")
-                        break
+                    time.sleep(retry_interval)
 
         raise ConnectionError(f"Gateway unreachable after {max_retries} attempts")
-
-    def restart_port_forward(self, service_name: str = "asya-gateway", local_port: int = 8080):
-        """
-        Restart port-forward connection to a service.
-
-        This is useful when the target pod is restarted and the port-forward connection breaks.
-
-        Args:
-            service_name: Name of the service to port-forward to
-            local_port: Local port to forward to
-
-        Returns:
-            True if port-forward was successfully re-established
-        """
-        import os
-        import signal
-
-        logger.info(f"Restarting port-forward for {service_name}...")
-
-        try:
-            result = subprocess.run(
-                ["pgrep", "-f", f"kubectl port-forward.*{service_name}.*{local_port}"],
-                capture_output=True,
-                text=True,
-                timeout=5,
-            )
-
-            if result.returncode == 0 and result.stdout.strip():
-                pids = result.stdout.strip().split("\n")
-                for pid_str in pids:
-                    try:
-                        pid = int(pid_str.strip())
-                        os.kill(pid, signal.SIGTERM)
-                        logger.debug(f"Killed existing port-forward PID {pid} with SIGTERM")
-                    except (ValueError, ProcessLookupError) as e:
-                        logger.debug(f"Could not kill PID {pid_str}: {e}")
-
-                time.sleep(1)
-
-                for pid_str in pids:
-                    try:
-                        pid = int(pid_str.strip())
-                        os.kill(pid, signal.SIGKILL)
-                        logger.debug(f"Force-killed port-forward PID {pid} with SIGKILL")
-                    except (ValueError, ProcessLookupError) as e:
-                        logger.debug(f"Could not force-kill PID {pid_str}: {e}")
-
-        except Exception as e:
-            logger.warning(f"Failed to kill existing port-forward: {e}")
-
-        script_dir = subprocess.run(
-            ["git", "rev-parse", "--show-toplevel"],
-            capture_output=True,
-            text=True,
-            timeout=5,
-        ).stdout.strip()
-
-        port_forward_script = f"{script_dir}/testing/e2e/scripts/port-forward.sh"
-
-        try:
-            subprocess.run(
-                [port_forward_script, "start"],
-                env={**os.environ, "NAMESPACE": self.namespace},
-                timeout=30,
-                check=True,
-            )
-            logger.info(f"Port-forward re-established for {service_name}")
-            return True
-        except Exception as e:
-            logger.error(f"Failed to restart port-forward: {e}")
-            return False

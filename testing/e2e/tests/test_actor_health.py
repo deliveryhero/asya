@@ -177,10 +177,19 @@ def test_all_actors_healthy():
     logger.info(f"Namespace: {namespace}")
     logger.info(f"Transport: {transport}")
 
-    actors = get_all_actors(namespace)
+    all_actors = get_all_actors(namespace)
+    # Filter out ephemeral actors created by test_keda_scaling.py (test-keda-*,
+    # test-no-scaling, test-update-scaling, test-advanced-scaling, test-hpa-keda,
+    # test-pod-kill).  These are created and cleaned up during their own tests
+    # and should not be validated by the health check.
+    ephemeral_prefixes = (
+        "test-keda-", "test-no-scaling", "test-update-scaling",
+        "test-advanced-scaling", "test-hpa-keda", "test-pod-kill",
+    )
+    actors = [a for a in all_actors if not a.startswith(ephemeral_prefixes)]
     assert len(actors) > 0, f"No AsyncActor CRDs found in namespace {namespace}"
 
-    logger.info(f"Found {len(actors)} actors: {', '.join(actors)}")
+    logger.info(f"Found {len(actors)} actors (filtered {len(all_actors) - len(actors)} ephemeral): {', '.join(actors)}")
 
     logger.info("\nFetching all deployments, queues, ScaledObjects, and scaling config...")
     all_deployments = get_all_deployments(namespace)

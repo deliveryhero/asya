@@ -47,7 +47,7 @@ spec:
                 region: {{`{{ $region }}`}}
                 visibilityTimeoutSeconds: 30
                 messageRetentionSeconds: 345600
-                receiveWaitTimeSeconds: 20
+                receiveWaitTimeSeconds: {{ .Values.sqs.receiveWaitTimeSeconds | default 20 }}
                 tags:
                   asya.sh/namespace: {{`{{ $namespace }}`}}
                   asya.sh/actor: {{`{{ $actorName }}`}}

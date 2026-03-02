@@ -106,5 +106,7 @@ config:
   awsCredsSecret: ""
   # RabbitMQ AMQP connection URL
   rabbitmqURL: ""
+  # SQS long-polling wait time override (seconds) for sidecar ReceiveMessage calls
+  sqsWaitTimeSeconds: ""
   # RabbitMQ credentials secret name to inject into sidecar
   rabbitmqCredsSecret: ""

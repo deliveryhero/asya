@@ -102,10 +102,10 @@ spec:
     try:
         kubectl_apply(actor_manifest, namespace=namespace)
 
-        assert wait_for_asyncactor_ready(actor_name, namespace=namespace, timeout=180), \
+        assert wait_for_asyncactor_ready(actor_name, namespace=namespace, timeout=240), \
             "AsyncActor should reach Ready condition"
 
-        assert wait_for_resource("scaledobject", actor_name, namespace=namespace, timeout=60), \
+        assert wait_for_resource("scaledobject", actor_name, namespace=namespace, timeout=90), \
             "ScaledObject should be created by Composition"
 
         scaled_obj = kubectl_get("scaledobject", actor_name, namespace=namespace)

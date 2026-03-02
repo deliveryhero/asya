@@ -86,6 +86,10 @@ keda:
     accessKeyIdKey: AWS_ACCESS_KEY_ID
     secretAccessKeyKey: AWS_SECRET_ACCESS_KEY
 
+# SQS configuration (used by composition-sqs)
+sqs:
+  receiveWaitTimeSeconds: 20
+
 # RabbitMQ configuration (used by composition-rabbitmq)
 rabbitmq:
   host: "rabbitmq.default.svc.cluster.local"

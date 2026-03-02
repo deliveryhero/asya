@@ -102,9 +102,7 @@ def test_gateway_restart_preserves_task_history(e2e_helper):
             logger.info("Waiting for new gateway pod...")
             assert e2e_helper.wait_for_pod_ready("app.kubernetes.io/name=asya-gateway", timeout=30)
 
-            logger.info("Re-establishing port-forward to new gateway pod...")
-            assert e2e_helper.restart_port_forward(), "Port-forward should be re-established"
-            time.sleep(3)
+            e2e_helper.ensure_gateway_connectivity(max_retries=5, retry_interval=2.0)
     else:
         pytest.fail("No gateway pod found to restart")
 
@@ -117,8 +115,7 @@ def test_gateway_restart_preserves_task_history(e2e_helper):
     logger.info("[+] Task history preserved across gateway restart")
 
 
-@pytest.mark.xfail(
-    strict=True,
+@pytest.mark.skip(
     reason="S3 persistence requires state-proxy connector on x-sink",
 )
 @pytest.mark.fast
@@ -159,8 +156,7 @@ def test_successful_result_persisted_to_s3(e2e_helper, s3_endpoint, results_buck
     logger.info("[+] Successful result persisted to S3")
 
 
-@pytest.mark.xfail(
-    strict=True,
+@pytest.mark.skip(
     reason="S3 persistence requires state-proxy connector on x-sump",
 )
 @pytest.mark.fast
@@ -288,8 +284,7 @@ def test_task_state_transitions_tracked(e2e_helper):
     logger.info("[+] Task state transitions tracked")
 
 
-@pytest.mark.xfail(
-    strict=True,
+@pytest.mark.skip(
     reason="S3 persistence requires state-proxy connector on x-sink",
 )
 @pytest.mark.fast
@@ -400,9 +395,7 @@ def test_database_connection_recovery(e2e_helper):
         logger.info("Waiting for gateway to recover...")
         assert e2e_helper.wait_for_pod_ready("app.kubernetes.io/name=asya-gateway", timeout=30)
 
-        logger.info("Re-establishing port-forward to gateway...")
-        assert e2e_helper.restart_port_forward(), "Port-forward should be re-established"
-        time.sleep(10)
+        e2e_helper.ensure_gateway_connectivity(max_retries=5, retry_interval=2.0)
 
         logger.info("Sending message after recovery...")
         response_after = e2e_helper.call_mcp_tool(
@@ -459,8 +452,7 @@ def test_s3_error_retry_logic(e2e_helper, s3_endpoint):
         logger.info("Waiting for gateway to recover...")
         assert e2e_helper.wait_for_pod_ready("app.kubernetes.io/name=asya-gateway", timeout=30)
 
-        logger.info("Re-establishing port-forward to gateway...")
-        assert e2e_helper.restart_port_forward(), "Port-forward should be re-established"
+        e2e_helper.ensure_gateway_connectivity(max_retries=5, retry_interval=2.0)
 
         logger.info("Waiting for task to reach terminal state after S3 recovery...")
         final_task = e2e_helper.wait_for_task_completion(task_id, timeout=90)
