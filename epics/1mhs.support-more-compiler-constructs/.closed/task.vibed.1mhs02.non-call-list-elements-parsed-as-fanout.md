@@ -10,11 +10,12 @@ tags:
 
 ## Problem
 
-The parser treats any list literal assigned to a payload key as a fan-out
-operation. This includes lists containing non-actor expressions like method
+The parser treats any list literal assigned to a payload key as an actor call (sepcifically, if inside `[]` then as fanout
+operation). This includes lists containing non-actor expressions like method
 calls on state:
 
 ```python
+state["question_duplicate"] = state.get("question", "")  # not an actor!
 state["search_queries"] = [state.get("question", "")]
 ```
 

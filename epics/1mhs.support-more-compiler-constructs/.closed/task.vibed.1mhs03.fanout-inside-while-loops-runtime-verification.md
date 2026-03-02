@@ -1,12 +1,14 @@
 ---
-title: "Verify fan-out inside while loops works at runtime"
-priority: 3
+title: Verify fan-out inside while loops works at runtime
+priority: 3 # low
 type: task
 tags:
   - type:testing
   - component:compiler
   - component:flow-dsl
+  - pr:246
 ---
+
 
 ## Problem
 
@@ -19,6 +21,9 @@ Specifically: after fan-in collects all slices, the aggregated message needs
 to continue through the rest of the loop body AND potentially loop back.
 The routing continuation from fan-in must correctly reference the loop-back
 router.
+
+Fanout should be able to happen in any context - if/else branch, while loop, multiple nested if/while, etc.
+
 
 ## Example
 

@@ -71,6 +71,8 @@ def actor(func):
     async def wrapper(*args, **kwargs):
         gen = func(*args, **kwargs)
         events = [e async for e in gen if not isinstance(e, tuple)]
+        if len(events) != 1:
+            raise ValueError(f"Expected 1 yield, got {len(events)}")
         return events[0]
     return wrapper
 
@@ -89,6 +91,34 @@ async def flow(state):
 #     while hasattr(func, "__wrapped__"):
 #         func = func.__wrapped__
 #     return func
+```
+
+
+OR merged:
+
+```py
+import functools
+import inspect
+
+def actor(obj):
+    # Core logic extracted to a helper for re-use
+    async def process_gen(gen):
+        events = [e async for e in gen if not isinstance(e, tuple)]
+        if len(events) != 1:
+            raise ValueError(f"Expected 1 yield, got {len(events)}")
+        return events[0]
+
+    # Scenario 1: Used as @actor (decorator)
+    if callable(obj):
+        @functools.wraps(obj)
+        async def wrapper(*args, **kwargs):
+            # obj(*args, **kwargs) is expected to return the async generator
+            return await process_gen(obj(*args, **kwargs))
+        return wrapper
+
+    # Scenario 2: Used as actor(fun(args)) (direct call)
+    # obj is already the async generator object
+    return process_gen(obj)
 ```
 
 

@@ -25,6 +25,12 @@ state["step_results"] = []
 state["findings"] = []
 ```
 
+Additionally, any list definition WITHOUT a function call must also work, for example:
+
+```
+state["worker_results"] = [1, 2, 3]
+```
+
 ## Root cause
 
 `parser.py` method `_parse_assignment` checks `isinstance(value, ast.List)` and
