@@ -1099,188 +1099,45 @@ router matches it against the handler clauses.</p>
 </code></pre></div>
 <p>The compiler generates both a fan-out and a corresponding fan-in router to handle this. The fan-out router dispatches work to <code>analyzer_a</code>, <code>analyzer_b</code>, <code>and analyzer_c</code> in parallel. A hidden fan-in router then acts as an aggregator, collecting the results from all analyzers and placing them into <code>state["results"]</code>. Once all results are collected, the flow proceeds to the next step, <code>await merge_results(state)</code>, which can then operate on the aggregated data.</p>
 <hr />
-<h2 id="syntax-support">Syntax support<a class="headerlink" href="#syntax-support" title="Permanent link">&para;</a></h2>
-<h3 id="supported">Supported<a class="headerlink" href="#supported" title="Permanent link">&para;</a></h3>
+<h2 id="what-you-cannot-write-in-a-flow">What you cannot write in a flow<a class="headerlink" href="#what-you-cannot-write-in-a-flow" title="Permanent link">&para;</a></h2>
 <div class="table-wrapper"><table>
 <thead>
 <tr>
-<th>Construct</th>
-<th>Compiles to</th>
-<th>Example</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>state = await actor(state)</code></td>
-<td>Route entry for actor</td>
-<td>Actor call (message hop)</td>
-</tr>
-<tr>
-<td><code>state["key"] = value</code></td>
-<td>Mutation router</td>
-<td>Payload modification</td>
-</tr>
-<tr>
-<td><code>state["key"] += 1</code></td>
-<td>Mutation router</td>
-<td>Augmented assignment</td>
-</tr>
-<tr>
-<td><code>if</code> / <code>elif</code> / <code>else</code></td>
-<td>Conditional router</td>
-<td>Branch on payload values</td>
-</tr>
-<tr>
-<td><code>while</code> / <code>while True</code></td>
-<td>Loop-back router</td>
-<td>Iteration with guard</td>
-</tr>
-<tr>
-<td><code>break</code> / <code>continue</code></td>
-<td>Loop control</td>
-<td>Inside <code>while</code> only</td>
-</tr>
-<tr>
-<td><code>return state</code></td>
-<td>End router</td>
-<td>Pipeline completion or early exit</td>
-</tr>
-<tr>
-<td><code>try</code> / <code>except</code> / <code>finally</code></td>
-<td>Error dispatch routers</td>
-<td>Actor failure recovery</td>
-</tr>
-<tr>
-<td><code>raise</code> (bare, in <code>except</code>)</td>
-<td>Reraise router</td>
-<td>Re-raise caught error to <code>x-sump</code></td>
-</tr>
-<tr>
-<td><code>pass</code></td>
-<td>No-op</td>
-<td>Swallow exceptions, empty branches</td>
-</tr>
-<tr>
-<td><code>state["r"] = [a(s), b(s)]</code></td>
-<td>Fan-out + fan-in</td>
-<td>Parallel dispatch to multiple actors</td>
-</tr>
-<tr>
-<td><code>state["r"] = [a(i) for i in items]</code></td>
-<td>Fan-out + fan-in</td>
-<td>Parallel dispatch over iterable</td>
-</tr>
-<tr>
-<td><code>MyClass()</code></td>
-<td>Class handler instantiation</td>
-<td>Only with default arguments</td>
-</tr>
-<tr>
-<td><code>assert expr, "msg"</code></td>
-<td>Mutation router</td>
-<td>Guard that raises on violation, routes to <code>x-sump</code></td>
-</tr>
-<tr>
-<td><code>import</code> / <code>from import</code></td>
-<td>Module-level imports</td>
-<td>Handler name resolution (module-level only)</td>
-</tr>
-</tbody>
-</table></div>
-<h3 id="may-be-supported-later">May be supported later<a class="headerlink" href="#may-be-supported-later" title="Permanent link">&para;</a></h3>
-<p>These constructs have clear compilation targets but are not yet implemented.</p>
-<div class="table-wrapper"><table>
-<thead>
-<tr>
-<th>Construct</th>
-<th>Planned compilation</th>
-<th>Status</th>
+<th>Feature</th>
+<th>Why not</th>
+<th>Alternative</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><code>for x in items:</code></td>
-<td>Transform to <code>while</code> with index in payload</td>
-<td>Blocked on explicit state management design</td>
-</tr>
-<tr>
-<td><code>del state["key"]</code></td>
-<td>Mutation (payload key removal)</td>
-<td>Planned</td>
-</tr>
-<tr>
-<td><code>match</code> / <code>case</code></td>
-<td>Conditional router (like <code>if</code>/<code>elif</code>)</td>
-<td>Planned (requires Python 3.10+)</td>
-</tr>
-<tr>
-<td><code>with</code> / <code>async with</code></td>
-<td>Context manager — possible via try/finally expansion</td>
-<td>Under consideration</td>
-</tr>
-</tbody>
-</table></div>
-<h3 id="never-supported">Never supported<a class="headerlink" href="#never-supported" title="Permanent link">&para;</a></h3>
-<p>These constructs are <strong>fundamentally incompatible</strong> with the CPS execution
-model. They will always produce a compile error.</p>
-<div class="table-wrapper"><table>
-<thead>
-<tr>
-<th>Construct</th>
-<th>Why it cannot work</th>
-<th>What to do instead</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>yield</code> / <code>yield from</code></td>
-<td>Flows define control flow graphs, not generators. The compiler reserves generator semantics for ABI routing. <code>yield</code> in a flow would collide with the router code generation that uses <code>yield "SET", ...</code> to emit ABI commands.</td>
-<td>Use ABI yields inside actor handler code, not in flows.</td>
-</tr>
-<tr>
-<td><code>async for e in actor(state)</code></td>
-<td>Streaming events are transport-level (sidecar-to-gateway via SSE). They cannot flow through message queues between actors. Each <code>await</code> is a full message hop — there is no open channel to iterate over. An actor that yields multiple payloads produces multiple independent messages; the flow has no way to "subscribe" to them.</td>
-<td>Streaming belongs inside actor handlers. If an actor yields multiple payloads, downstream actors receive them individually via normal routing — no flow-level collection syntax exists.</td>
-</tr>
-<tr>
-<td><code>lambda</code></td>
-<td>Flow syntax must be explicit and minimal. Flows define a CFG (control flow graph) and compile to router actors. Anonymous functions have no place in routing logic.</td>
-<td>Put logic in actor handlers.</td>
-</tr>
-<tr>
-<td>Local variables across <code>await</code></td>
-<td>Each <code>await</code> is a message hop to a different pod. Local variables don't survive — there is no shared memory, no closure, no stack between actors. All state must live in the payload dict.</td>
-<td>Store values in the payload: <code>state["temp"] = value</code> before the <code>await</code>, retrieve after.</td>
-</tr>
-<tr>
-<td><code>class</code> / <code>def</code> inside flow</td>
-<td>Flows describe routing between actors, not define new logic. Nested definitions would compile to nothing meaningful.</td>
-<td>Define classes and functions in actor handler modules.</td>
-</tr>
-<tr>
-<td><code>global</code> / <code>nonlocal</code></td>
-<td>No scope to escape — each router is an independent actor.</td>
-<td>Use the payload dict for all shared state.</td>
-</tr>
-<tr>
-<td>Walrus operator <code>:=</code></td>
-<td>Introduces implicit local variables that don't survive actor boundaries.</td>
-<td>Use explicit payload mutations.</td>
+<td><code>for</code> loops not yet supported</td>
+<td>Use <code>while</code> with an index</td>
 </tr>
 <tr>
 <td><code>result = a(b(state))</code></td>
-<td>Nested calls imply synchronous composition. In CPS, each call is an independent message hop — there is no return value to pass to the outer call.</td>
-<td>Assign to state sequentially: <code>state = await b(state)</code> then <code>state = await a(state)</code>.</td>
+<td>Nested calls not allowed</td>
+<td>Assign to state sequentially</td>
 </tr>
 <tr>
 <td><code>x, y = handler(state)</code></td>
-<td>Multiple assignment targets. Actors return a single payload dict.</td>
-<td>Use the single state variable and extract fields from payload.</td>
+<td>Multiple assignment targets</td>
+<td>Use single state variable</td>
 </tr>
 <tr>
 <td><code>MyClass(param=value)</code></td>
-<td>Class instantiation with arguments requires serializing constructor state, which the compiler cannot validate.</td>
-<td>Use <code>MyClass()</code> with defaults. Configure via environment variables or init-time loading in the handler.</td>
+<td>Instantiation with arguments not supported</td>
+<td>Instantiate with <code>MyClass()</code> and rely on default <code>__init__</code> arguments.</td>
+</tr>
+<tr>
+<td><code>yield</code> / <code>yield from</code></td>
+<td>Flows don't produce events</td>
+<td>Use ABI yields inside actor handlers</td>
+</tr>
+<tr>
+<td><code>import</code> / <code>global</code></td>
+<td>Flows are pure control flow</td>
+<td>Put logic in actor handlers</td>
 </tr>
 </tbody>
 </table></div>
@@ -1840,31 +1697,11 @@ retries, monitoring, and deployment. There is no special "router runtime"
         
 
         
-        <a href="#syntax-support"
+        <a href="#what-you-cannot-write-in-a-flow"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
-            Syntax support
+            What you cannot write in a flow
         </a>
-        
-        
-        <a href="#supported"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="3">
-            Supported
-        </a>
-        
-        <a href="#may-be-supported-later"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="3">
-            May be supported later
-        </a>
-        
-        <a href="#never-supported"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="3">
-            Never supported
-        </a>
-        
         
 
         
