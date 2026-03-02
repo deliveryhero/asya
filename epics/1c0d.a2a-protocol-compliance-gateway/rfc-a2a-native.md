@@ -115,10 +115,10 @@ pause/resume — all through standard A2A operations.
 | Term | Definition |
 |------|-----------|
 | **Meshage** | Asya's internal envelope traveling through the actor mesh. Contains `id`, `route`, `payload`, `status`, `headers`. Lives in queues (in-transit) or S3 (paused). Formerly "message" or "envelope" (see epic 1mx1). |
-| **Task** (A2A) | Assembled from two sources: metadata from gateway DB (id, context_id, status) + data from meshage payload (history, artifacts). See Section 5.0. |
+| **Task** (A2A) | Assembled from two sources: metadata from gateway DB (id, context_id, status) + data from `payload.a2a.task` (history, artifacts, metadata). See Section 5.0. |
 | **Context** (`context_id`) | A grouping attribute on tasks. Groups related tasks in a conversation/session. Just a TEXT column — not a first-class entity. Server-generated UUID if not provided by client. |
-| **Message** (A2A) | Proto `Message`: immutable communication turn with `role`, `parts`, `message_id`. Stored in `payload.a2a.history[]` (= A2A `Task.history`). |
-| **Artifact** (A2A) | Proto `Artifact`: task output with `artifact_id`, `name`, `parts`. Stored in `payload.a2a.artifacts[]` (= A2A `Task.artifacts`). Content in external storage. |
+| **Message** (A2A) | Proto `Message`: immutable communication turn with `role`, `parts`, `message_id`. Stored at `payload.a2a.task.history[]`. |
+| **Artifact** (A2A) | Proto `Artifact`: task output with `artifact_id`, `name`, `parts`. Stored at `payload.a2a.task.artifacts[]`. Content in external storage. |
 | **Skill** (A2A) | A named capability in the Agent Card. Maps to an exposed actor/flow in the `tools` table. |
 | **Tool** (MCP) | A named capability in MCP `tools/list`. Same backing data as a Skill. |
 | **FLY** | ABI yield verb for upstream streaming: `yield "FLY", {...}`. Delivers events from actor → runtime → sidecar → gateway → SSE client. |
@@ -132,11 +132,11 @@ pause/resume — all through standard A2A operations.
 | A2A Concept | Asya Mapping | Notes |
 |-------------|-------------|-------|
 | **Context** (`contextId`) | TEXT column on tasks table | Grouping key for conversations. One context can have many tasks. Server-generated UUID if not provided. |
-| **Task** | Assembled: DB metadata (id, status, context_id) + meshage data (`payload.a2a.*`) | See Section 5.0 for split. 1:1 with a meshage lifecycle. |
+| **Task** | Assembled: DB metadata (id, status, context_id) + `payload.a2a.task` (history, artifacts, metadata) | See Section 5.0 for split. 1:1 with a meshage lifecycle. |
 | **Message** (client → server) | Creates meshage or resumes paused task | User input dispatched to the actor mesh. |
 | **Message** (server → client, streaming) | FLY event in A2A StreamResponse format | Ephemeral upstream delivery via ABI. Not persisted. |
-| **Message** (server → client, history) | `payload.a2a.history[]` (= A2A `Task.history`) | Canonical turns, survive pause/resume via S3. |
-| **Artifact** | `payload.a2a.artifacts[]` (= A2A `Task.artifacts`), Part content in external storage | Gateway stores only metadata pointers, never content. |
+| **Message** (server → client, history) | `payload.a2a.task.history[]` | Canonical turns, survive pause/resume via S3. |
+| **Artifact** | `payload.a2a.task.artifacts[]`, Part content in external storage | Gateway stores only metadata pointers, never content. |
 | **Skill** | Exposed actor/flow in `tools` table | `WHERE a2a_enabled = true`. Maps to entrypoint actor. |
 | **AgentCard** | Generated dynamically from `tools` table | Cached in memory, regenerated on tool registry change. |
 
@@ -200,33 +200,55 @@ message Task {
 In Asya, the A2A Task is **split across two storage layers**:
 
 ```
-A2A Task field     Storage location            Why
-────────────────── ─────────────────────────── ──────────────────────────────
-id                 Gateway DB (tasks.id)       Metadata — always available
-context_id         Gateway DB (tasks.context_id)  Metadata — indexed for queries
-status             Gateway DB (tasks.status)   Metadata — mutable, query filter
-artifacts          Meshage payload.a2a.artifacts  DATA — can be large (files, blobs)
-history            Meshage payload.a2a.history    DATA — grows with conversation
-metadata           Gateway DB (tasks.metadata) Metadata — small key/value
+A2A Task field     Storage location                        Why
+────────────────── ─────────────────────────────────────── ──────────────────────────────
+id                 Gateway DB (tasks.id)                   Metadata — always available
+                   + payload.a2a.task.id (duplicate)       Travels with meshage for self-containment
+                   + headers.x-asya-a2a-task-id (dup)      Sidecar access without payload parsing
+context_id         Gateway DB (tasks.context_id)           Metadata — indexed for queries
+                   + payload.a2a.task.context_id (dup)     Travels with meshage
+                   + headers.x-asya-a2a-context-id (dup)   Sidecar access
+status             Gateway DB (tasks.status)               Metadata — mutable, query filter
+                   NOT in payload (would be stale)
+artifacts          payload.a2a.task.artifacts              DATA — can be large (files, blobs)
+history            payload.a2a.task.history                DATA — grows with conversation
+metadata           payload.a2a.task.metadata               DATA — A2A Task.metadata
 ```
 
-**`payload.a2a` namespace**: A dedicated namespace inside the meshage payload
-that mirrors A2A `Task` data fields. It contains the A2A objects that are too
-large or too coupled to the actor pipeline to live in the gateway DB:
+**`payload.a2a.task` structure**: Mirrors the A2A `Task` proto exactly. The
+payload contains a namespace `a2a` with a `task` object whose fields use A2A's
+canonical schemas — no Asya-specific wrappers or field renames:
 
 ```json
 {
   "a2a": {
-    "history": [ ...A2A Message objects... ],
-    "artifacts": [ ...A2A Artifact objects... ]
+    "task": {
+      "id": "task-uuid",
+      "context_id": "ctx-uuid",
+      "history": [ ...A2A Message objects... ],
+      "artifacts": [ ...A2A Artifact objects... ],
+      "metadata": {
+        "skill": "analyze-doc"
+      }
+    }
   },
   "query": "actor-facing fields at root",
   "depth": 3
 }
 ```
 
-The objects inside `payload.a2a` use **A2A's canonical proto schemas exactly**
-(Message, Artifact, Part). No Asya-specific wrappers or transformations.
+**Why mirror the proto**: The structure inside `payload.a2a.task` uses the
+exact field names and types from the A2A `Task` proto. This means:
+- No translation needed when reading/writing A2A data in actors
+- `a2a-go` types can be serialized/deserialized directly into this location
+- `status` is intentionally ABSENT — it's mutable and authoritative only in
+  gateway DB. The payload snapshot would be stale.
+
+**Why duplicate in headers**: The sidecar needs `task_id` for progress
+reporting (`POST /mesh/{id}/progress`) but must NOT parse payload contents.
+Headers provide lightweight access. `meshage.id` happens to equal `task_id`
+today, but this is a convenience, not a hard contract — the sidecar should
+read from headers.
 
 **Gateway Task reconstruction**: When the gateway needs to return a full A2A
 `Task` (for GetTask, SendMessage response, etc.), it assembles it from both
@@ -234,17 +256,17 @@ sources:
 
 ```
 A2A Task response = {
-  id:         ← tasks.id              (DB)
-  context_id: ← tasks.context_id      (DB)
-  status:     ← tasks.status → toA2AState()  (DB, translated)
-  metadata:   ← tasks.metadata        (DB)
-  artifacts:  ← payload.a2a.artifacts  (S3, optional fetch)
-  history:    ← payload.a2a.history    (S3, optional fetch)
+  id:         ← tasks.id                         (DB, authoritative)
+  context_id: ← tasks.context_id                 (DB, authoritative)
+  status:     ← tasks.status → toA2AState()      (DB, authoritative)
+  artifacts:  ← payload.a2a.task.artifacts        (S3, optional fetch)
+  history:    ← payload.a2a.task.history          (S3, optional fetch)
+  metadata:   ← payload.a2a.task.metadata         (S3, optional fetch)
 }
 ```
 
 For in-flight tasks where the meshage is in a queue (not accessible), the
-gateway omits `artifacts` and `history` entirely — both are optional per spec.
+gateway omits `artifacts`, `history`, and `metadata` — all optional per spec.
 
 The following subsections reference A2A proto types. For the full type mapping
 to `a2a-go` Go types, see Appendix A.
@@ -316,8 +338,8 @@ When the gateway receives an A2A `SendMessageRequest`, it translates the A2A
 `Message` into a meshage `payload` and stamps A2A metadata in meshage `headers`.
 
 **Design principle**: The meshage payload contains TWO distinct areas:
-- `payload.a2a` — A2A-native protocol state (history, artifacts). Managed by
-  the gateway and crew actors. Uses A2A's canonical schemas.
+- `payload.a2a.task` — A2A Task object (history, artifacts, metadata). Mirrors
+  the A2A `Task` proto exactly. Managed by the gateway and crew actors.
 - Everything else — Actor-custom fields. Managed by the actor handler's business
   logic. The gateway extracts user intent from Message parts and places it at
   the payload root for actor consumption.
@@ -325,66 +347,67 @@ When the gateway receives an A2A `SendMessageRequest`, it translates the A2A
 **Inbound translation** (A2A Message → meshage):
 
 ```
-A2A SendMessageRequest {                 Meshage {
-  message: {                               id: "meshage-uuid",
-    message_id: "m-001",                   route: {prev:[], curr:"analyzer", next:[...]},
-    context_id: "c-001",                   headers: {
-    role: "user",                            "x-asya-a2a-task-id": "meshage-uuid",
-    parts: [                                 "x-asya-a2a-context-id": "c-001",
-      {data: {                               "x-asya-a2a-skill": "analyze-doc"
-        query: "Analyze this",             },
-        format: "pdf"                      payload: {
-      }}                                     "a2a": {
-    ]                                          "history": [
-  }                                              {
-}                                                  "message_id": "m-001",
-                                                   "role": "user",
-                                                   "parts": [
-                                                     {"data": {"query": "Analyze this",
-                                                               "format": "pdf"}}
-                                                   ]
-                                                 }
-                                               ]
-                                             },
-                                             "query": "Analyze this",
-                                             "format": "pdf"
-                                           }
-                                         }
+A2A SendMessageRequest {              Meshage {
+  message: {                            id: "meshage-uuid",
+    message_id: "m-001",               route: {prev:[], curr:"analyzer", next:[...]},
+    context_id: "c-001",               headers: {
+    role: "user",                         "x-asya-a2a-task-id": "meshage-uuid",
+    parts: [                              "x-asya-a2a-context-id": "c-001"
+      {data: {                          },
+        query: "Analyze this",          payload: {
+        format: "pdf"                     "a2a": {
+      }}                                    "task": {
+    ]                                         "id": "meshage-uuid",
+  }                                           "context_id": "c-001",
+}                                             "history": [{
+                                                "message_id": "m-001",
+                                                "role": "user",
+                                                "parts": [{"data": {
+                                                  "query": "Analyze this",
+                                                  "format": "pdf"}}]
+                                              }],
+                                              "metadata": {"skill": "analyze-doc"}
+                                            }
+                                          },
+                                          "query": "Analyze this",
+                                          "format": "pdf"
+                                        }
+                                      }
 ```
 
 **Payload construction rules**:
 
-1. **Always first**: Store the full A2A Message in `payload.a2a.history[]`.
-   This is the canonical conversation record.
+1. **Always first**: Initialize `payload.a2a.task` with `id`, `context_id`,
+   and append the full A2A Message to `payload.a2a.task.history[]`.
 
 2. **Single data Part**: Unwrap `data.Value` and merge at payload root.
    This is the common case for structured API calls.
    ```json
    parts: [{data: {query: "...", depth: 3}}]
-   → payload: {a2a: {history: [...]}, query: "...", depth: 3}
+   → payload: {a2a: {task: {id:..., history:[...]}}, query: "...", depth: 3}
    ```
 
 3. **Text-only Part(s)**: Concatenate text parts with `\n` and store as
    `payload.query` (conventional field name for text-based skills).
    ```json
    parts: [{text: "Analyze this"}]
-   → payload: {a2a: {history: [...]}, query: "Analyze this"}
+   → payload: {a2a: {task: {id:..., history:[...]}}, query: "Analyze this"}
    ```
 
 4. **Mixed or multi-part**: The full A2A Message with all parts is preserved
-   in `payload.a2a.history`. Actor-facing extraction is best-effort — if there's
-   a single data Part among the parts, merge it at root. Otherwise, actors
-   read from `payload.a2a.history[-1].parts` directly.
+   in `payload.a2a.task.history`. Actor-facing extraction is best-effort — if
+   there's a single data Part among the parts, merge it at root. Otherwise,
+   actors read from `payload.a2a.task.history[-1].parts` directly.
 
 **No synthetic fields**: The gateway does NOT create `_a2a_files`, `_a2a_text`,
 or any underscore-prefixed convenience fields. The canonical A2A data lives in
-`payload.a2a` and actors that need multi-part awareness read from there.
+`payload.a2a.task` and actors that need multi-part awareness read from there.
 
 **Outbound translation** (meshage result → A2A response): See Section 5.3.
 
 ### 5.3 Artifact Model
 
-`payload.a2a.artifacts` stores `repeated Artifact` — the same schema as A2A
+`payload.a2a.task.artifacts` stores `repeated Artifact` — the same schema as A2A
 `Task.artifacts`. Each entry is an A2A `Artifact` proto (JSON-serialized):
 
 ```protobuf
@@ -465,9 +488,9 @@ async def handler(payload):
         f.write(generate_pdf(result))
     report_url = state_url("/state/media/report.pdf")
 
-    # Add artifacts to A2A state in payload
-    payload.setdefault("a2a", {}).setdefault("artifacts", [])
-    payload["a2a"]["artifacts"].append({
+    # Add artifacts to A2A task in payload
+    payload.setdefault("a2a", {}).setdefault("task", {}).setdefault("artifacts", [])
+    payload["a2a"]["task"]["artifacts"].append({
         "artifact_id": "analysis-result",
         "name": "Analysis Result",
         "parts": [
@@ -484,14 +507,14 @@ async def handler(payload):
 
 When x-sink reports the final result to the gateway:
 
-1. Gateway reads `payload.a2a.artifacts` from the result
+1. Gateway reads `payload.a2a.task.artifacts` from the result
 2. Gateway stores artifact **metadata** (IDs, names, part media types) in its
    internal task record — NOT the content
 3. `GetTask(includeArtifacts=true)` returns the artifact references as received
    from the meshage result
 
 For GetTask on completed tasks, the gateway fetches the meshage result from S3
-(same mechanism as history) and extracts `payload.a2a.artifacts`.
+(same mechanism as history) and extracts `payload.a2a.task.artifacts`.
 
 #### 5.3.4 Artifact Materializer Crew Actor (Future)
 
@@ -502,13 +525,13 @@ For cases where A2A clients need actual blob content (not URL references), a
 route: [analyzer, materializer, x-sink]
 ```
 
-The materializer reads `payload.a2a.artifacts[].parts` with URL references,
+The materializer reads `payload.a2a.task.artifacts[].parts` with URL references,
 fetches the content from external storage, and replaces URL parts with inline
 data/raw parts. This is optional — most A2A clients can follow URLs directly.
 
 ### 5.4 History in Meshage Payload
 
-`payload.a2a.history` stores `repeated Message` — the same schema as A2A
+`payload.a2a.task.history` stores `repeated Message` — the same schema as A2A
 `Task.history`. Each entry is an A2A `Message` proto (JSON-serialized):
 
 ```protobuf
@@ -529,23 +552,28 @@ message Message {
 ```json
 {
   "a2a": {
-    "history": [
-      {
-        "message_id": "m-001",
-        "role": "user",
-        "parts": [{"text": "Analyze this data"}]
-      },
-      {
-        "message_id": "m-002",
-        "role": "agent",
-        "parts": [{"text": "I need more context. What aspect should I focus on?"}]
-      },
-      {
-        "message_id": "m-003",
-        "role": "user",
-        "parts": [{"text": "Focus on revenue trends"}]
-      }
-    ]
+    "task": {
+      "id": "task-uuid",
+      "context_id": "ctx-uuid",
+      "history": [
+        {
+          "message_id": "m-001",
+          "role": "user",
+          "parts": [{"text": "Analyze this data"}]
+        },
+        {
+          "message_id": "m-002",
+          "role": "agent",
+          "parts": [{"text": "I need more context. What aspect should I focus on?"}]
+        },
+        {
+          "message_id": "m-003",
+          "role": "user",
+          "parts": [{"text": "Focus on revenue trends"}]
+        }
+      ],
+      "metadata": {"skill": "analyze-doc"}
+    }
   },
   "query": "Focus on revenue trends",
   "context": "Analyze this data"
@@ -555,7 +583,7 @@ message Message {
 **Why meshage payload, not gateway DB**:
 
 - History travels with the meshage through the actor mesh. Actors that need
-  multi-turn context can read `payload.a2a.history` directly.
+  multi-turn context can read `payload.a2a.task.history` directly.
 - On pause (x-pause), the full meshage (including history) is persisted to S3.
   On resume (x-resume), history is restored with the meshage.
 - The gateway does not store a separate copy of history.
@@ -594,31 +622,55 @@ results in the same context (e.g., multi-turn agent memory), it can use the stat
 proxy (RFC 1dmf) with `context_id` as a storage key. This is actor-level business
 logic, not A2A protocol logic.
 
-### 5.6 ID Scheme
+### 5.6 ID Scheme and Metadata Placement
 
 **Task ID = Meshage ID** (same UUID). The gateway generates the ID and uses it
-for both the task record and the meshage envelope. This is the current behavior
-and avoids sidecar changes.
+for both the task record and the meshage envelope. This is a convenience, not a
+hard contract — consumers should NOT rely on `meshage.id` to obtain the A2A
+task ID. Instead, read from the canonical locations below.
 
-Additionally, the gateway stamps A2A metadata in meshage headers using the
-`x-asya-a2a-` prefix to clearly mark A2A-specific concepts:
+**A2A metadata is stored in TWO locations** (intentional duplication):
 
-```json
-{
-  "headers": {
-    "x-asya-a2a-task-id": "task-uuid",
-    "x-asya-a2a-context-id": "ctx-uuid",
-    "x-asya-a2a-skill": "analyze-doc"
-  }
-}
-```
+1. **`payload.a2a.task`** — canonical, self-contained, travels with the meshage
+   through the pipeline. Actors read A2A data directly from payload:
+   ```python
+   context_id = payload["a2a"]["task"]["context_id"]
+   history = payload["a2a"]["task"]["history"]
+   ```
 
-Actors can read these via ABI: `yield "GET", ".headers.x-asya-a2a-context-id"`.
+2. **`headers.x-asya-a2a-*`** — lightweight duplicate for sidecar access.
+   The sidecar must not parse payload contents, so it reads from headers:
+   ```json
+   {
+     "headers": {
+       "x-asya-a2a-task-id": "task-uuid",
+       "x-asya-a2a-context-id": "ctx-uuid"
+     }
+   }
+   ```
+
+| Data | `payload.a2a.task.*` | `headers.x-asya-a2a-*` | Gateway DB |
+|------|---------------------|------------------------|------------|
+| task_id | `.id` | `x-asya-a2a-task-id` | `tasks.id` |
+| context_id | `.context_id` | `x-asya-a2a-context-id` | `tasks.context_id` |
+| skill | `.metadata.skill` | — | — |
+| history | `.history[]` | — | — |
+| artifacts | `.artifacts[]` | — | — |
+| status | — (stale, omitted) | — | `tasks.status` |
+
+**Why duplicate**: Headers exist for sidecar (progress reporter, which needs
+task_id for `POST /mesh/{id}/progress`). Payload exists for actors and for
+self-containment (when persisted to S3, the meshage carries all A2A context).
+Gateway DB exists for queries (ListTasks, GetTask metadata).
 
 **Why `x-asya-a2a-*` prefix**: "Task" and "context" are A2A protocol concepts —
 they should NOT exist outside the A2A layer. The `x-asya-a2a-` prefix makes this
 boundary explicit. Asya-internal headers (like `x-asya-pause`, `x-asya-resume-task`)
 keep the existing `x-asya-` prefix since they are not A2A-specific.
+
+**Skill storage**: The skill name that was invoked lives in
+`payload.a2a.task.metadata.skill` (not a header). The gateway reads it from the
+persisted meshage when handling task continuation.
 
 ### 5.7 Dual-Channel Message Pattern
 
@@ -628,7 +680,7 @@ they are transient signals or canonical records:
 | Feature | FLY (Ephemeral) | Meshage History (Persistent) |
 |---------|-----------------|------------------------------|
 | **A2A semantic** | `StreamResponse` variants: `artifact_update`, `status_update`, `message` | A2A `Task.history` (`repeated Message`) |
-| **Asya mechanism** | `yield "FLY", {...}` → runtime SSE → sidecar → `POST /mesh/{id}/partial` → gateway SSE | Appended to `payload.a2a.history[]` → travels through message queues |
+| **Asya mechanism** | `yield "FLY", {...}` → runtime SSE → sidecar → `POST /mesh/{id}/partial` → gateway SSE | Appended to `payload.a2a.task.history[]` → travels through message queues |
 | **Persistence** | None (real-time broadcast only) | Travels with meshage, survives pause/resume via S3 |
 | **Primary use** | Streaming tokens, thoughts, live status, progress indicators | Multi-turn conversation history, final answers, input prompts |
 | **Visibility** | Connected SSE clients only | All subsequent actors + late-joining clients (via S3 fetch) |
@@ -636,7 +688,7 @@ they are transient signals or canonical records:
 | **When to use** | Actor wants to show progress, stream tokens, signal thinking | Actor needs to record a turn that future actors or resume cycles can read |
 
 **Rule of thumb**: If the data matters after the SSE connection closes, put it in
-`payload.a2a.history`. If it's only useful while watching in real-time, use FLY.
+`payload.a2a.task.history`. If it's only useful while watching in real-time, use FLY.
 
 **FLY channel example** (actor code):
 
@@ -652,8 +704,8 @@ async def agent_actor(payload):
 
     # Record canonical turn in history — persisted
     result = await model.complete(payload["query"])
-    payload.setdefault("a2a", {}).setdefault("history", [])
-    payload["a2a"]["history"].append({
+    payload.setdefault("a2a", {}).setdefault("task", {}).setdefault("history", [])
+    payload["a2a"]["task"]["history"].append({
         "role": "agent",
         "parts": [{"text": result}]
     })
@@ -708,11 +760,11 @@ asya-gateway
 ├── {base}/mesh/{id}/active              # Sidecar liveness check (GET)
 ├── {base}/mesh/{id}/stream              # SSE streaming (GET, internal)
 ├── {base}/mesh/{id}/partial             # Partial event payload (POST)
-├── {base}/mesh                          # Fanout child creation (POST)
+├── {base}/mesh                          # Sidecar registers fanout child tasks (POST)
 │
-│  Root (no prefix)
-├── /.well-known/agent.json              # Agent Card discovery (GET, always root)
-└── /health                              # Health check (GET, always root)
+│  Root (no prefix, not affected by ASYA_BASE_PREFIX)
+├── /.well-known/agent.json              # Agent Card discovery (GET, A2A spec requires root)
+└── /health                              # Health check (GET, K8s probes need fixed path)
 ```
 
 **Three namespaces, clean separation**:
@@ -805,7 +857,6 @@ func (e *AsyaExecutor) Execute(
         Headers: map[string]any{
             "x-asya-a2a-task-id":    string(taskInfo.TaskID),
             "x-asya-a2a-context-id": taskInfo.ContextID,
-            "x-asya-a2a-skill":      skill.Name,
         },
         Payload: payload,
     }
@@ -1013,7 +1064,7 @@ Returns the current state of a task.
 **Artifact retrieval** (since artifacts live in meshage payload):
 
 - Same S3 fetch mechanism as history. When `include_artifacts=true`, gateway
-  reads `payload.a2a.artifacts` from S3 result.
+  reads `payload.a2a.task.artifacts` from S3 result.
 
 ### 7.4 ListTasks
 
@@ -1253,7 +1304,7 @@ When a client sends `SendMessage`, the gateway must determine which skill
    Exact match against `tools.name WHERE a2a_enabled = true`.
 
 2. **Task continuation**: `message.task_id` is set → look up the original task's
-   skill from `headers.x-asya-a2a-skill`.
+   skill from persisted meshage `payload.a2a.task.metadata.skill`.
 
 3. **Single skill default**: If exactly one A2A skill is registered, use it.
    Common for single-purpose gateways.
@@ -1830,14 +1881,14 @@ Client sends `SendMessage` with `task_id` referencing the paused task
 
 ### 10.4 History Accumulation During Pause/Resume
 
-Each turn of a pause/resume conversation adds to `payload.a2a.history`:
+Each turn of a pause/resume conversation adds to `payload.a2a.task.history`:
 
-1. **Initial send**: Gateway appends user Message to `payload.a2a.history`
-   before dispatching meshage
+1. **Initial send**: Gateway initializes `payload.a2a.task` with id, context_id,
+   and appends user Message to `payload.a2a.task.history` before dispatching.
 2. **Actor pause**: Actor (or x-pause) can append agent Message to history
-   before pausing — e.g., `payload["a2a"]["history"].append({...})`
+   before pausing — e.g., `payload["a2a"]["task"]["history"].append({...})`
 3. **Resume**: Gateway creates resume meshage with user's new Message in
-   `payload.a2a.history`. x-resume loads original meshage from S3 and
+   `payload.a2a.task.history`. x-resume loads original meshage from S3 and
    merges: appends resume history entries to restored history.
 
 **x-resume history merge** (addition to RFC 1ixy):
@@ -1851,10 +1902,11 @@ def resume_handler(payload):
     restored = persisted["payload"]
 
     # Append user's resume messages to A2A history
-    resume_history = payload.get("a2a", {}).get("history", [])
+    resume_task = payload.get("a2a", {}).get("task", {})
+    resume_history = resume_task.get("history", [])
     if resume_history:
-        restored.setdefault("a2a", {}).setdefault("history", [])
-        restored["a2a"]["history"].extend(resume_history)
+        restored.setdefault("a2a", {}).setdefault("task", {}).setdefault("history", [])
+        restored["a2a"]["task"]["history"].extend(resume_history)
 
     # Merge user input fields at configured payload_key paths
     pause_meta = persisted.get("_pause_metadata", {})
@@ -2006,7 +2058,7 @@ ALTER TABLE tasks ADD CONSTRAINT tasks_status_check
 ### 13.2 No Artifacts Table
 
 Artifact content and references live in the meshage payload at
-`payload.a2a.artifacts` and are persisted to S3 via x-sink. The gateway DB
+`payload.a2a.task.artifacts` and are persisted to S3 via x-sink. The gateway DB
 does NOT store artifacts. `GetTask(includeArtifacts=true)` fetches from S3.
 
 ### 13.3 Push Notification Configs Table (Phase 4)
@@ -2104,7 +2156,7 @@ around a2a-go). ~200 lines sidecar changes (URL rename + FLY forwarding).
 | Bearer/JWT authentication | `ASYA_A2A_JWT_*` env vars |
 | Extended Agent Card | `GetExtendedAgentCard` with auth-gated details |
 | LLM-based skill resolution | Intent classification for skill routing |
-| GetTask history from S3 | Fetch `payload.a2a.history` from S3 for paused/completed |
+| GetTask history from S3 | Fetch `payload.a2a.task.history` from S3 for paused/completed |
 
 ### Phase 4: Extended Protocol
 
@@ -2140,7 +2192,7 @@ around a2a-go). ~200 lines sidecar changes (URL rename + FLY forwarding).
 | SendMessage creates task | POST → task in DB → meshage in queue → correct actor routing |
 | SendStreamingMessage SSE | POST → SSE stream with task/status_update/artifact_update events |
 | GetTask format | A2A response with status, optional artifacts (from S3), omitted history for in-flight |
-| GetTask paused with history | S3 fetch for paused task returns history from `payload.a2a.history` |
+| GetTask paused with history | S3 fetch for paused task returns history from `payload.a2a.task.history` |
 | ListTasks pagination | Cursor-based pagination, context_id filtering, status filtering |
 | CancelTask | Cancel → status updated → sidecar stops routing (410 Gone) |
 | Registration API | `POST /mesh/expose` upsert, `GET /mesh/expose` list |
