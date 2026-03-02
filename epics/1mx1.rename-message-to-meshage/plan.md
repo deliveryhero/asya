@@ -15,6 +15,8 @@ and rename the gateway's sidecar-facing routes from `/tasks/` to `/mesh/`.
 | Gateway queue struct | `ActorMessage` | `ActorMeshage` |
 | Gateway queue struct | `ActorMessageStatus` | `ActorMeshageStatus` |
 | Gateway func | `NewActorMessage` | `NewActorMeshage` |
+| Sidecar reporter struct | `CreateTaskPayload` | `CreateMeshPayload` |
+| Sidecar reporter method | `CreateTask` | `CreateMesh` |
 | Gateway sidecar routes | `/tasks/{id}/*` | `/mesh/{id}/*` |
 | Gateway fanout route | `POST /tasks` | `POST /mesh` |
 | Sidecar reporter URLs | `/tasks/%s/progress` etc. | `/mesh/%s/progress` etc. |
@@ -39,6 +41,8 @@ and rename the gateway's sidecar-facing routes from `/tasks/` to `/mesh/`.
 - `TaskUpdate.Message` field — human-readable status text
 - MCP/A2A endpoints (`/mcp`, `/a2a/`)
 - `ASYA_MSG_ROOT` env var and `/proc/asya/msg/` VFS paths — separate concern (legacy VFS)
+- `types.TaskStatus*` constants — the A2A RFC (1c0d) notes these may become
+  `MeshageStatus` but defers that to the A2A native implementation, not 1mx1
 
 ---
 
@@ -90,8 +94,10 @@ and rename the gateway's sidecar-facing routes from `/tasks/` to `/mesh/`.
 2. `reporter.go`: `"/tasks/%s/partial"` → `"/mesh/%s/partial"`
 3. `reporter.go`: `"/tasks/%s/final"` → `"/mesh/%s/final"`
 4. `reporter.go`: `"/tasks"` → `"/mesh"` (fanout creation)
-5. `router.go`: `"/tasks/%s/final"` → `"/mesh/%s/final"` (two occurrences)
-6. Update all test assertions for these URL paths
+5. `reporter.go`: `CreateTaskPayload` → `CreateMeshPayload`
+6. `reporter.go`: `CreateTask` method → `CreateMesh`
+7. `router.go`: `"/tasks/%s/final"` → `"/mesh/%s/final"` (two occurrences)
+8. Update all test assertions for these URL paths
 
 **Files**:
 - `src/asya-sidecar/internal/progress/reporter.go`
@@ -297,6 +303,35 @@ and rename the gateway's sidecar-facing routes from `/tasks/` to `/mesh/`.
 | Go import cycle after rename | Mechanical rename, same dependency graph |
 | Python runtime symlink | Symlink follows source; no manual sync needed |
 | `StatusError.Message` accidentally renamed | Excluded explicitly — it's a string field, not the type |
+
+## Verified Against A2A RFC (1c0d/rfc-a2a-native.md)
+
+This plan was cross-checked against the A2A native protocol RFC. Findings:
+
+1. **Route rename is a prereq for A2A** — RFC Phase 1 (Section 14) explicitly
+   lists "Rename `/tasks/*` to `/mesh/*` (Epic 1mx1)" as a dependency. The RFC's
+   endpoint map (Section 6.1) already uses `/mesh/*` for sidecar routes and
+   reserves `/tasks/*` (under configurable prefix) for A2A client-facing routes.
+
+2. **No collision with A2A `/tasks/` routes** — A2A uses
+   `{prefix}/tasks/{id}` (e.g. `/a2a/tasks/{id}`) while internal mesh routes
+   live at `/mesh/{id}/*`. The RFC explicitly notes this (Section 6.1, line 497):
+   "Collision avoidance: internal sidecar-facing routes are at `/mesh/*`".
+
+3. **`TaskStatus` rename deferred** — RFC line 185 notes `TaskStatus` should
+   become `MeshageStatus`, but the RFC's own code examples still use
+   `types.TaskStatus*` constants. This rename belongs to the A2A implementation
+   (1c0d), not to 1mx1, since it involves restructuring the gateway type system
+   around `a2a-go` library types.
+
+4. **`types.Task` stays** — The RFC continues to use `types.Task` as the
+   gateway's internal task representation (Section 6.3, line 560). The A2A RFC
+   wraps it with `A2AStoreAdapter`. No conflict with our decision to keep
+   `TaskStore` and `types.Task` unchanged.
+
+5. **`CreateTaskPayload` / `CreateTask` → added** — The RFC references
+   `POST /mesh` for fanout child creation. Plan updated to include the method
+   and struct rename (`CreateMesh`, `CreateMeshPayload`).
 
 ## Execution Strategy
 
