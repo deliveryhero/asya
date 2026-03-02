@@ -90,13 +90,9 @@ class GCSBufferedCAS(GCSXattrMixin, StateProxyConnector):
         blob = self._bucket.blob(self._full_key(key))
         body = data.read()
 
-        upload_kwargs: dict = {"size": len(body), "rewind": True}
         cached_gen = self._generations.get(key)
-        if cached_gen is not None:
-            upload_kwargs["if_generation_match"] = cached_gen
-
         try:
-            blob.upload_from_file(io.BytesIO(body), **upload_kwargs)
+            blob.upload_from_string(body, if_generation_match=cached_gen)
         except PreconditionFailed as exc:
             raise FileExistsError(f"CAS conflict: key={key} cached_generation={cached_gen}") from exc
 

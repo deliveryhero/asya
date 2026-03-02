@@ -69,7 +69,7 @@ class GCSBufferedLWW(GCSXattrMixin, StateProxyConnector):
         """Write object to GCS using last-write-wins semantics."""
         blob = self._bucket.blob(self._full_key(key))
         body = data.read()
-        blob.upload_from_file(io.BytesIO(body), size=len(body), rewind=True)
+        blob.upload_from_string(body)
         logger.debug("write key=%s size=%d", key, len(body))
 
     def exists(self, key: str) -> bool:

@@ -51,8 +51,8 @@ def mock_client():
                         raise NotFound("not found")
                     return blob._data
 
-                def upload_from_file(f, size=None, _rewind=False, **kwargs):
-                    blob._data = f.read()
+                def upload_from_string(data, **kwargs):
+                    blob._data = data if isinstance(data, bytes) else data.encode()
                     blob._exists = True
                     blob.size = len(blob._data)
                     blob.generation += 1
@@ -72,7 +72,7 @@ def mock_client():
                     pass
 
                 blob.download_as_bytes = download_as_bytes
-                blob.upload_from_file = upload_from_file
+                blob.upload_from_string = upload_from_string
                 blob.exists = exists
                 blob.reload = reload
                 blob.delete = delete
