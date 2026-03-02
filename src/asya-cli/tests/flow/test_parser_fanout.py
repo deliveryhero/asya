@@ -211,15 +211,62 @@ class TestListLiteralFanOut:
         with pytest.raises(FlowCompileError, match="[Aa]ctor call"):
             parser.parse()
 
-    def test_reject_empty_list_literal(self):
+    def test_empty_list_literal_is_mutation(self):
         source = textwrap.dedent("""
             def flow(p: dict) -> dict:
                 p["result"] = []
                 return p
         """)
         parser = FlowParser(source, "test.py")
-        with pytest.raises(FlowCompileError, match="[Ee]mpty"):
-            parser.parse()
+        _, ops = parser.parse()
+
+        from asya_cli.flow.ir import Mutation
+
+        assert len(ops) == 2
+        assert isinstance(ops[0], Mutation)
+        assert "[]" in ops[0].code
+
+    def test_list_of_constants_is_mutation(self):
+        source = textwrap.dedent("""
+            def flow(p: dict) -> dict:
+                p["items"] = [1, 2, 3]
+                return p
+        """)
+        parser = FlowParser(source, "test.py")
+        _, ops = parser.parse()
+
+        from asya_cli.flow.ir import Mutation
+
+        assert len(ops) == 2
+        assert isinstance(ops[0], Mutation)
+
+    def test_list_of_payload_methods_is_mutation(self):
+        source = textwrap.dedent("""
+            def flow(p: dict) -> dict:
+                p["search_queries"] = [p.get("question", "")]
+                return p
+        """)
+        parser = FlowParser(source, "test.py")
+        _, ops = parser.parse()
+
+        from asya_cli.flow.ir import Mutation
+
+        assert len(ops) == 2
+        assert isinstance(ops[0], Mutation)
+
+    def test_list_of_nested_payload_methods_is_mutation(self):
+        source = textwrap.dedent("""
+            def flow(p: dict) -> dict:
+                p["dup"] = [p["question"], p["answer"]]
+                return p
+        """)
+        parser = FlowParser(source, "test.py")
+        _, ops = parser.parse()
+
+        from asya_cli.flow.ir import Mutation
+
+        assert len(ops) == 2
+        assert isinstance(ops[0], Mutation)
 
     def test_list_literal_preserves_lineno(self):
         source = textwrap.dedent("""

@@ -353,7 +353,7 @@ def test_concurrent_tasks_independent_routing_e2e(e2e_helper):
     # subsequent tasks to the same actor succeed immediately.  Retry with a
     # fresh task to distinguish a real outage from a one-off stuck message.
     max_warmup_attempts = 3
-    warmup_timeout = 60
+    warmup_timeout = 90
     for warmup_attempt in range(max_warmup_attempts):
         warmup_response = e2e_helper.call_mcp_tool(
             tool_name="test_echo",

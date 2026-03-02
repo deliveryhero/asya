@@ -95,3 +95,49 @@ def _drive_abi(gen, msg_ctx):
     except StopIteration:
         pass
     return payloads
+
+
+class AbiFrame:
+    """A yielded payload frame with its route and header state snapshot."""
+
+    def __init__(self, payload, route_next, headers):
+        self.payload = payload
+        self.route_next = list(route_next)
+        self.headers = copy.deepcopy(headers)
+
+
+def _drive_abi_multi(gen, msg_ctx):
+    """Drive an ABI generator, return list of AbiFrame capturing state at each yield."""
+    frames = []
+    value = None
+    try:
+        value = gen.send(None)
+        while True:
+            if (
+                isinstance(value, tuple)
+                and len(value) >= 2
+                and isinstance(value[0], str)
+                and value[0] in ("GET", "SET", "DEL")
+            ):
+                op = value[0]
+                if op == "GET":
+                    result = _resolve_path(msg_ctx, value[1])
+                    value = gen.send(result)
+                elif op == "SET":
+                    _set_path(msg_ctx, value[1], value[2])
+                    value = gen.send(None)
+                elif op == "DEL":
+                    _del_path(msg_ctx, value[1])
+                    value = gen.send(None)
+            else:
+                frames.append(
+                    AbiFrame(
+                        payload=value,
+                        route_next=msg_ctx.get("route", {}).get("next", []),
+                        headers=msg_ctx.get("headers", {}),
+                    )
+                )
+                value = gen.send(None)
+    except StopIteration:
+        pass
+    return frames

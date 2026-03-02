@@ -169,7 +169,7 @@ class FlowParser:
                     value = value.value
                 if isinstance(value, ast.ListComp):
                     return [self._parse_fanout_comprehension(stmt, target, value)]
-                elif isinstance(value, ast.List):
+                elif isinstance(value, ast.List) and self._list_contains_actor_calls(value):
                     return [self._parse_fanout_literal(stmt, target, value)]
                 elif isinstance(value, ast.Call) and self._is_asyncio_gather(value):
                     return [self._parse_fanout_gather(stmt, target, value)]
@@ -421,10 +421,36 @@ class FlowParser:
             iterable=iterable,
         )
 
+    def _is_actor_call_node(self, node: ast.expr) -> bool:
+        """Check if an AST node looks like an actor call.
+
+        Actor calls are bare function calls (``agent(p)``) or method calls
+        on class instances (``model.predict(p)``).  Method calls on the
+        payload parameter (``p.get("k")``, ``p["k"].upper()``) are NOT
+        actor calls — they are payload operations.
+        """
+        if isinstance(node, ast.Await):
+            node = node.value
+        if not isinstance(node, ast.Call):
+            return False
+        func = node.func
+        if isinstance(func, ast.Name):
+            return True
+        if isinstance(func, ast.Attribute):
+            # Walk to the root of the attribute chain to check
+            # whether it originates from the payload parameter.
+            base: ast.expr = func.value
+            while isinstance(base, ast.Subscript | ast.Attribute):
+                base = base.value
+            return not (isinstance(base, ast.Name) and base.id == "p")
+        return False
+
+    def _list_contains_actor_calls(self, lst: ast.List) -> bool:
+        """Return True if the list has at least one actor-call element."""
+        return any(self._is_actor_call_node(elt) for elt in lst.elts)
+
     def _parse_fanout_literal(self, stmt: ast.Assign, target: ast.Subscript, lst: ast.List) -> FanOutCall:
         """Parse ``p["key"] = [actor_a(x), actor_b(y), ...]``."""
-        if not lst.elts:
-            raise FlowCompileError(f"{self.filename}:{stmt.lineno}: Empty list literal is not valid for fan-out")
         actor_calls = [self._extract_fanout_actor_call(elt) for elt in lst.elts]
         return FanOutCall(
             lineno=stmt.lineno,

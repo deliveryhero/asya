@@ -21,6 +21,7 @@ import socket
 import sys
 import tempfile
 import threading
+import urllib.parse
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 
@@ -75,6 +76,30 @@ class _MockConnectorHandler(BaseHTTPRequestHandler):
         self.end_headers()
 
     def do_GET(self):  # noqa: N802
+        # Handle /meta/ routes for xattr
+        if self.path.startswith("/meta/"):
+            parsed = urllib.parse.urlparse(self.path)
+            path_part = parsed.path[len("/meta/") :]
+            qs = urllib.parse.parse_qs(parsed.query)
+            if qs.get("attr"):
+                key_part = path_part
+                attr = qs["attr"][0]
+                if key_part not in self.server.store:
+                    self._send_json(404, {"message": "key not found"})
+                    return
+                if attr == "url":
+                    self._send_json(200, {"attr": "url", "value": "stub://" + key_part})
+                elif attr == "content_type":
+                    self._send_json(200, {"attr": "content_type", "value": "application/octet-stream"})
+                else:
+                    self._send_json(400, {"error": "unsupported_attribute", "message": f"unsupported: {attr}"})
+            else:
+                if path_part not in self.server.store:
+                    self._send_json(404, {"message": "key not found"})
+                    return
+                self._send_json(200, {"attrs": ["url", "content_type"]})
+            return
+
         # listing: /keys/?prefix=...&delimiter=/
         if "?" in self.path:
             base, qs = self.path.split("?", 1)
@@ -113,6 +138,29 @@ class _MockConnectorHandler(BaseHTTPRequestHandler):
         self.wfile.write(data)
 
     def do_PUT(self):  # noqa: N802
+        if self.path.startswith("/meta/"):
+            parsed = urllib.parse.urlparse(self.path)
+            path_part = parsed.path[len("/meta/") :]
+            qs = urllib.parse.parse_qs(parsed.query)
+            if qs.get("attr"):
+                key_part = path_part
+                attr = qs["attr"][0]
+                length = int(self.headers.get("Content-Length", "0"))
+                body = self.rfile.read(length)
+                if key_part not in self.server.store:
+                    self._send_json(404, {"message": "key not found"})
+                    return
+                if attr == "content_type":
+                    self.send_response(204)
+                    self.end_headers()
+                elif attr == "url":
+                    self._send_json(403, {"error": "permission_denied", "message": "read-only"})
+                else:
+                    self._send_json(400, {"error": "unsupported_attribute", "message": f"unsupported: {attr}"})
+            else:
+                self._send_json(400, {"error": "bad_request", "message": "attr required"})
+            return
+
         key = self._parse_key()
         transfer_encoding = self.headers.get("Transfer-Encoding", "")
         if "chunked" in transfer_encoding.lower():
@@ -215,6 +263,9 @@ def saved_builtins():
     original_unlink = os.unlink
     original_remove = os.remove
     original_makedirs = os.makedirs
+    original_getxattr = getattr(os, "getxattr", None)
+    original_listxattr = getattr(os, "listxattr", None)
+    original_setxattr = getattr(os, "setxattr", None)
     yield
     builtins.open = original_open
     os.stat = original_stat
@@ -222,6 +273,18 @@ def saved_builtins():
     os.unlink = original_unlink
     os.remove = original_remove
     os.makedirs = original_makedirs
+    if original_getxattr is not None:
+        os.getxattr = original_getxattr
+    elif hasattr(os, "getxattr"):
+        delattr(os, "getxattr")
+    if original_listxattr is not None:
+        os.listxattr = original_listxattr
+    elif hasattr(os, "listxattr"):
+        delattr(os, "listxattr")
+    if original_setxattr is not None:
+        os.setxattr = original_setxattr
+    elif hasattr(os, "setxattr"):
+        delattr(os, "setxattr")
 
 
 # ---------------------------------------------------------------------------
@@ -1062,3 +1125,62 @@ class TestExclusiveCreateMode:
         f.close()
         put_headers = mock_server._server.last_put_headers.get("normalkey", {})
         assert "If-None-Match" not in put_headers
+
+
+# ---------------------------------------------------------------------------
+# 8. xattr patching tests
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.usefixtures("saved_builtins")
+class TestXattrPatching:
+    """Tests for patched os.getxattr, os.listxattr, os.setxattr."""
+
+    def test_listxattr_returns_prefixed_attrs(self, mock_server, monkeypatch):
+        mock_server.store["xkey"] = b"data"
+        _install_hooks_with_server(mock_server, "meta:/state/meta:write=buffered", monkeypatch)
+
+        attrs = os.listxattr("/state/meta/xkey")
+        assert "user.asya.url" in attrs
+        assert "user.asya.content_type" in attrs
+
+    def test_getxattr_returns_bytes(self, mock_server, monkeypatch):
+        mock_server.store["xkey"] = b"data"
+        _install_hooks_with_server(mock_server, "meta:/state/meta:write=buffered", monkeypatch)
+
+        value = os.getxattr("/state/meta/xkey", "user.asya.url")
+        assert isinstance(value, bytes)
+        assert b"stub://xkey" in value
+
+    def test_getxattr_unsupported_raises_oserror(self, mock_server, monkeypatch):
+        mock_server.store["xkey"] = b"data"
+        _install_hooks_with_server(mock_server, "meta:/state/meta:write=buffered", monkeypatch)
+
+        with pytest.raises(OSError) as exc_info:
+            os.getxattr("/state/meta/xkey", "user.asya.nosuch")
+        assert exc_info.value.errno == errno.ENODATA
+
+    def test_setxattr_succeeds(self, mock_server, monkeypatch):
+        mock_server.store["xkey"] = b"data"
+        _install_hooks_with_server(mock_server, "meta:/state/meta:write=buffered", monkeypatch)
+
+        os.setxattr("/state/meta/xkey", "user.asya.content_type", b"text/plain")
+
+    def test_setxattr_readonly_raises_permission_error(self, mock_server, monkeypatch):
+        mock_server.store["xkey"] = b"data"
+        _install_hooks_with_server(mock_server, "meta:/state/meta:write=buffered", monkeypatch)
+
+        with pytest.raises(PermissionError):
+            os.setxattr("/state/meta/xkey", "user.asya.url", b"x")
+
+    def test_getxattr_non_asya_prefix_falls_through(self, monkeypatch, tmp_path):
+        _install_hooks_no_server("meta:/state/meta:write=buffered", monkeypatch)
+        # Non user.asya.* attrs should fall through (or raise ENOTSUP/ENODATA)
+        with pytest.raises(OSError):
+            os.getxattr(str(tmp_path), "user.other.attr")
+
+    def test_listxattr_non_state_path_falls_through(self, monkeypatch, tmp_path):
+        _install_hooks_no_server("meta:/state/meta:write=buffered", monkeypatch)
+        # Non-state paths should fall through to native
+        result = os.listxattr(str(tmp_path))
+        assert isinstance(result, list)

@@ -27,11 +27,44 @@ Handler Types:
         Note: All __init__ parameters must have default values for zero-arg instantiation.
         Note: __init__ is always synchronous. Only the handler method can be async.
 
+    Generator handler (ABI yield protocol): Access message metadata via yields.
+        Four verbs: GET (read), SET (write), DEL (delete), FLY (stream upstream).
+
+        def process(payload: dict) -> dict:
+            prev = yield "GET", ".route.prev"           # read metadata
+            yield "SET", ".route.next", ["actor_b"]     # modify routing
+            yield "FLY", {"type": "text_delta", "t": "hello"}  # stream to client
+            yield payload                                # emit downstream frame
+
+        Writable paths: .route.next, .headers
+        Read-only paths: .route.prev, .route.curr, .id
+
+State Proxy Hooks:
+    When ASYA_STATE_PROXY_MOUNTS is set, the runtime patches Python stdlib functions
+    to intercept file I/O on configured mount paths, translating to HTTP calls over
+    Unix socket to connector sidecars:
+
+        builtins.open   -> PUT/GET /keys/{key}    (read/write files)
+        os.stat         -> HEAD /keys/{key}       (file metadata)
+        os.listdir      -> GET /keys/?prefix=     (list directory)
+        os.unlink       -> DELETE /keys/{key}     (delete files)
+        os.makedirs     -> no-op for state paths  (directories are virtual)
+        os.listxattr    -> GET /meta/{key}        (list backend attributes)
+        os.getxattr     -> GET /meta/{key}?attr=  (read backend attribute)
+        os.setxattr     -> PUT /meta/{key}?attr=  (write backend attribute)
+
+    The xattr functions use the user.asya.* namespace convention. Handlers access
+    backend metadata (URLs, ETags, content types) via standard os.getxattr calls:
+
+        url = os.getxattr("/state/media/report.pdf", "user.asya.url")
+        attrs = os.listxattr("/state/media/report.pdf")
+
 Environment Variables:
     ASYA_HANDLER: Full path to function or method (e.g., "foo.bar.process" or "foo.bar.Processor.process")
     ASYA_SOCKET_CHMOD: Socket permissions in octal (default: "0o666", empty = skip chmod)
     ASYA_ENABLE_VALIDATION: Enable message validation ("true" or "false", default: "true")
     ASYA_LOG_LEVEL: Logging level (DEBUG, INFO, WARNING, ERROR, default: INFO)
+    ASYA_STATE_PROXY_MOUNTS: State proxy mount config (e.g., "media:/state/media:write=passthrough")
 
 Socket Configuration:
     The socket path defaults to /var/run/asya/asya-runtime.sock and is managed by the operator.
@@ -998,12 +1031,87 @@ def _install_state_proxy_hooks(mounts_str):
         if mount is None:
             return _original_makedirs(name, mode=mode, exist_ok=exist_ok)
 
+    _original_getxattr = getattr(os, "getxattr", None)
+    _original_listxattr = getattr(os, "listxattr", None)
+    _original_setxattr = getattr(os, "setxattr", None)
+
+    asya_xattr_prefix = "user.asya."
+
+    def _check_xattr_status(resp, key, bare):
+        """Map xattr-specific HTTP errors to Python exceptions."""
+        if resp.status == 400:
+            raise OSError(errno.ENODATA, f"Attribute not supported: {bare}")
+        if resp.status == 403:
+            raise PermissionError(f"Attribute is read-only: {bare}")
+        _raise_for_status(resp, key)
+
+    def _patched_getxattr(path, attribute, *args, **kwargs):
+        attr_str = attribute.decode("utf-8") if isinstance(attribute, bytes) else attribute
+        if attr_str.startswith(asya_xattr_prefix):
+            mount, key = _resolve_mount(path, mounts)
+            if mount is not None:
+                bare = attr_str[len(asya_xattr_prefix) :]
+                conn = _UnixHTTPClient(mount["socket"])
+                conn.request("GET", f"/meta/{key}?attr={bare}")
+                resp = conn.getresponse()
+                _check_xattr_status(resp, key, bare)
+                body = json.loads(resp.read())
+                conn.close()
+                return body["value"].encode("utf-8")
+        if _original_getxattr is not None:
+            return _original_getxattr(path, attribute, *args, **kwargs)
+        raise OSError(errno.ENOTSUP, "Extended attributes not supported")
+
+    def _patched_listxattr(path=None, **kwargs):
+        if path is not None:
+            mount, key = _resolve_mount(path, mounts)
+            if mount is not None:
+                conn = _UnixHTTPClient(mount["socket"])
+                conn.request("GET", f"/meta/{key}")
+                resp = conn.getresponse()
+                _raise_for_status(resp, key)
+                body = json.loads(resp.read())
+                conn.close()
+                return [f"{asya_xattr_prefix}{a}" for a in body["attrs"]]
+        if _original_listxattr is not None:
+            return _original_listxattr(path, **kwargs)
+        return []
+
+    def _patched_setxattr(path, attribute, value, flags=0, *args, **kwargs):
+        attr_str = attribute.decode("utf-8") if isinstance(attribute, bytes) else attribute
+        if attr_str.startswith(asya_xattr_prefix):
+            mount, key = _resolve_mount(path, mounts)
+            if mount is not None:
+                bare = attr_str[len(asya_xattr_prefix) :]
+                val_str = value.decode("utf-8") if isinstance(value, bytes) else value
+                req_body = json.dumps({"value": val_str}).encode("utf-8")
+                conn = _UnixHTTPClient(mount["socket"])
+                conn.request(
+                    "PUT",
+                    f"/meta/{key}?attr={bare}",
+                    body=req_body,
+                    headers={
+                        "Content-Length": str(len(req_body)),
+                        "Content-Type": "application/json",
+                    },
+                )
+                resp = conn.getresponse()
+                _check_xattr_status(resp, key, bare)
+                conn.close()
+                return
+        if _original_setxattr is not None:
+            return _original_setxattr(path, attribute, value, flags, *args, **kwargs)
+        raise OSError(errno.ENOTSUP, "Extended attributes not supported")
+
     builtins.open = _patched_open
     os.stat = _patched_stat
     os.listdir = _patched_listdir
     os.unlink = _patched_unlink
     os.remove = _patched_unlink
     os.makedirs = _patched_makedirs
+    os.getxattr = _patched_getxattr
+    os.listxattr = _patched_listxattr
+    os.setxattr = _patched_setxattr
 
     logger.info("State proxy hooks installed for %d mount(s)", len(mounts))
 

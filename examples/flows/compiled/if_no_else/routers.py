@@ -28,7 +28,9 @@ def router_if_no_else_flow_line_10_if(payload: dict):
     if p['condition']:
         _next.append(resolve("handler_true"))
     else:
-        pass
+        yield "SET", ".route.next", []
+        yield p
+        return
 
     yield "SET", ".route.next[:0]", _next
     yield payload

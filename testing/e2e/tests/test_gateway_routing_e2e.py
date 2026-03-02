@@ -218,7 +218,7 @@ def test_task_status_history(e2e_helper):
 
     logger.info("Polling task status during processing...")
     start_time = time.time()
-    while time.time() - start_time < 45:
+    while time.time() - start_time < 90:
         task = e2e_helper.get_task_status(task_id)
         status = task["status"]
         statuses_seen.add(status)

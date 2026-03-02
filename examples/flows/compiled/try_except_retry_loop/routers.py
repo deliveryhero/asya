@@ -88,7 +88,9 @@ def router_retry_pipeline_line_12_while_0(payload: dict):
         _next.append(resolve("router_retry_pipeline_line_13_seq"))
         _next.append(resolve("router_retry_pipeline_line_12_while_0"))
     else:
-        pass
+        yield "SET", ".route.next", []
+        yield p
+        return
 
     yield "SET", ".route.next[:0]", _next
     yield payload

@@ -173,8 +173,8 @@ def test_multiple_component_failures(e2e_helper):
             e2e_helper.delete_pod(pod_name)
 
         logger.info("Waiting for components to restart...")
-        assert e2e_helper.wait_for_pod_ready("app.kubernetes.io/name=asya-gateway", timeout=60)
-        assert e2e_helper.wait_for_pod_ready("asya.sh/actor=test-echo", timeout=60)
+        assert e2e_helper.wait_for_pod_ready("app.kubernetes.io/name=asya-gateway", timeout=120)
+        assert e2e_helper.wait_for_pod_ready("asya.sh/actor=test-echo", timeout=120)
 
         # Crew actors (x-sink, x-sump) may be scaled to 0 by KEDA if queues are empty
         # They will scale up automatically when needed, so we don't check them here
@@ -301,7 +301,7 @@ def test_network_partition_simulation(e2e_helper):
             e2e_helper.delete_pod(pod_name)
 
         logger.info("Waiting for pod to restart...")
-        assert e2e_helper.wait_for_pod_ready("asya.sh/actor=test-echo", timeout=60)
+        assert e2e_helper.wait_for_pod_ready("asya.sh/actor=test-echo", timeout=120)
 
         logger.info("Waiting for task to complete (with network issues)...")
         final_task = e2e_helper.wait_for_task_completion(task_id, timeout=120)

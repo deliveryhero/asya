@@ -151,6 +151,32 @@ class CodeGenerator:
 
         return "\n".join(lines)
 
+    @staticmethod
+    def _is_exit_branch(actors: list[str]) -> bool:
+        """Check if a branch consists only of end_ actors (break/return exit)."""
+        return bool(actors) and all(a.startswith("end_") for a in actors)
+
+    @staticmethod
+    def _generate_branch_body(actors: list[str], is_exit: bool, indent: str, lines: list[str]) -> None:
+        """Generate the body of a conditional branch.
+
+        Exit branches (break/return) overwrite route.next to clear any
+        loop-back routers already in the queue.  Normal branches filter
+        out end_ actors and append the rest to _next for prepending.
+        """
+        if is_exit:
+            lines.append(f'{indent}yield "SET", ".route.next", []')
+            lines.append(f"{indent}yield p")
+            lines.append(f"{indent}return")
+        elif actors:
+            filtered = [a for a in actors if not a.startswith("end_")]
+            for actor in filtered:
+                lines.append(f'{indent}_next.append(resolve("{actor}"))')
+            if not filtered:
+                lines.append(f"{indent}pass")
+        else:
+            lines.append(f"{indent}pass")
+
     def _generate_router(self, router: Router) -> str:
         lines = []
         lines.append(f"def {router.name}(payload: dict):")
@@ -162,24 +188,14 @@ class CodeGenerator:
             lines.append(f"    {mutation.code}")
 
         if router.condition:
+            true_is_exit = self._is_exit_branch(router.true_branch_actors)
+            false_is_exit = self._is_exit_branch(router.false_branch_actors)
+
             lines.append(f"    if {router.condition.test}:")
-            if router.true_branch_actors:
-                filtered_true = [actor for actor in router.true_branch_actors if not actor.startswith("end_")]
-                for actor in filtered_true:
-                    lines.append(f'        _next.append(resolve("{actor}"))')
-                if not filtered_true:
-                    lines.append("        pass")
-            else:
-                lines.append("        pass")
+            self._generate_branch_body(router.true_branch_actors, true_is_exit, "        ", lines)
+
             lines.append("    else:")
-            if router.false_branch_actors:
-                filtered_false = [actor for actor in router.false_branch_actors if not actor.startswith("end_")]
-                for actor in filtered_false:
-                    lines.append(f'        _next.append(resolve("{actor}"))')
-                if not filtered_false:
-                    lines.append("        pass")
-            else:
-                lines.append("        pass")
+            self._generate_branch_body(router.false_branch_actors, false_is_exit, "        ", lines)
         else:
             filtered_actors = [actor for actor in router.true_branch_actors if not actor.startswith("end_")]
             for actor in filtered_actors:
