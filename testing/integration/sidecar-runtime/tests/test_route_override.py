@@ -47,10 +47,10 @@ def test_route_override_routes_to_alternate_queue(transport_helper):
         },
         "payload": {"test": "route_override", "data": "override_target"},
     }
-    logger.info(f"Publishing message with route override: {json.dumps(meshage, indent=2)}")
+    logger.info(f"Publishing meshage with route override: {json.dumps(meshage, indent=2)}")
 
     transport_helper.publish_meshage("asya-default-test-echo", meshage)
-    logger.info("Message published, waiting for result in x-sink...")
+    logger.info("Meshage published, waiting for result in x-sink...")
 
     result = transport_helper.assert_meshage_in_queue("asya-default-x-sink", timeout=30)
     logger.info(f"Result from x-sink: {json.dumps(result, indent=2) if result else 'None'}")
@@ -88,10 +88,10 @@ def test_no_override_normal_routing(transport_helper):
         },
         "payload": {"test": "no_override", "data": "normal_routing"},
     }
-    logger.info(f"Publishing message without route override: {json.dumps(meshage, indent=2)}")
+    logger.info(f"Publishing meshage without route override: {json.dumps(meshage, indent=2)}")
 
     transport_helper.publish_meshage("asya-default-test-echo", meshage)
-    logger.info("Message published, waiting for result in x-sink...")
+    logger.info("Meshage published, waiting for result in x-sink...")
 
     result = transport_helper.assert_meshage_in_queue("asya-default-x-sink", timeout=30)
     logger.info(f"Result from x-sink: {json.dumps(result, indent=2) if result else 'None'}")
@@ -141,10 +141,10 @@ def test_route_override_audit_trail(transport_helper):
         },
         "payload": {"test": "audit_trail"},
     }
-    logger.info(f"Publishing message for audit trail test: {json.dumps(meshage, indent=2)}")
+    logger.info(f"Publishing meshage for audit trail test: {json.dumps(meshage, indent=2)}")
 
     transport_helper.publish_meshage("asya-default-test-echo", meshage)
-    logger.info("Message published, waiting for result in x-sink...")
+    logger.info("Meshage published, waiting for result in x-sink...")
 
     result = transport_helper.assert_meshage_in_queue("asya-default-x-sink", timeout=30)
     logger.info(f"Result from x-sink: {json.dumps(result, indent=2) if result else 'None'}")

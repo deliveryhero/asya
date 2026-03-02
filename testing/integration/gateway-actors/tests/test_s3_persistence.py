@@ -60,7 +60,7 @@ def call_mcp_tool(tool_name: str, arguments: dict, timeout: int = 60) -> str:
 
 def get_task_status(task_id: str) -> dict:
     """Get task status from gateway."""
-    response = requests.get(f"{ASYA_GATEWAY_URL}/tasks/{task_id}", timeout=5)
+    response = requests.get(f"{ASYA_GATEWAY_URL}/mesh/{task_id}", timeout=5)
     response.raise_for_status()
     return response.json()
 

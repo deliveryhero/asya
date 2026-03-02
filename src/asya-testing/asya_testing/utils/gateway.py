@@ -49,7 +49,7 @@ class GatewayTestHelper:
             gateway_url = require_env("ASYA_GATEWAY_URL")
         self.gateway_url = gateway_url
         self.tools_url = f"{gateway_url}/tools/call"
-        self.tasks_url = f"{gateway_url}/tasks"
+        self.tasks_url = f"{gateway_url}/mesh"
         self.progress_method = progress_method
         logger.debug(f"Initialized GatewayTestHelper with progress_method={progress_method}")
 

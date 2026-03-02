@@ -201,11 +201,11 @@ class AsyaGatewayClient:
 
     def get_status(self, task_id: str) -> dict[str, Any]:
         """Get task status."""
-        return self._get(f"/tasks/{task_id}")
+        return self._get(f"/mesh/{task_id}")
 
     def stream_updates(self, task_id: str) -> None:
         """Stream task updates via SSE."""
-        url = urljoin(self.base_url + "/", f"tasks/{task_id}/stream")
+        url = urljoin(self.base_url + "/", f"mesh/{task_id}/stream")
         try:
             with requests.get(url, stream=True, timeout=300) as resp:
                 resp.raise_for_status()
@@ -238,7 +238,7 @@ class AsyaGatewayClient:
 
         Returns final task state as dict.
         """
-        url = urljoin(self.base_url + "/", f"tasks/{task_id}/stream")
+        url = urljoin(self.base_url + "/", f"mesh/{task_id}/stream")
 
         final_result = None
         progress_bar = None

@@ -251,10 +251,10 @@ def test_happy_path(transport_helper):
         "route": {"prev": [], "curr": "test-echo", "next": []},
         "payload": {"test": "happy_path", "data": "integration test"},
     }
-    logger.info(f"Publishing message to asya-test-echo: {json.dumps(meshage, indent=2)}")
+    logger.info(f"Publishing meshage to asya-test-echo: {json.dumps(meshage, indent=2)}")
 
     transport_helper.publish_meshage("asya-default-test-echo", meshage)
-    logger.info("Message published successfully, waiting for response in asya-x-sink...")
+    logger.info("Meshage published successfully, waiting for response in asya-x-sink...")
 
     result = transport_helper.assert_meshage_in_queue("asya-default-x-sink", timeout=10)
     logger.info(f"Result from x-sink: {json.dumps(result, indent=2) if result else 'None'}")
@@ -275,10 +275,10 @@ def test_error_handling(transport_helper):
         "route": {"prev": [], "curr": "test-error", "next": []},
         "payload": {"test": "error_handling"},
     }
-    logger.info(f"Publishing error test message to test-error: {json.dumps(meshage, indent=2)}")
+    logger.info(f"Publishing error test meshage to test-error: {json.dumps(meshage, indent=2)}")
 
     transport_helper.publish_meshage("asya-default-test-error", meshage)
-    logger.info("Message published, waiting for error in asya-x-sump...")
+    logger.info("Meshage published, waiting for error in asya-x-sump...")
 
     result = transport_helper.assert_meshage_in_queue("asya-default-x-sump", timeout=10)
     logger.info(f"Result from x-sump: {json.dumps(result, indent=2) if result else 'None'}")
@@ -304,7 +304,7 @@ def test_oom_error(transport_helper):
         "route": {"prev": [], "curr": "test-oom-queue", "next": []},
         "payload": {"test": "oom_simulation"},
     }
-    logger.info(f"Publishing OOM test message: {json.dumps(meshage, indent=2)}")
+    logger.info(f"Publishing OOM test meshage: {json.dumps(meshage, indent=2)}")
 
     transport_helper.publish_meshage("asya-default-test-oom-queue", meshage)
     logger.info("Waiting for OOM error in asya-x-sump...")
@@ -462,11 +462,11 @@ def test_multi_actor_routing(transport_helper):
         },
         "payload": {"test": "multi_actor", "data": "routed", "action": "success"},
     }
-    logger.info(f"Publishing multi-actor message: {json.dumps(meshage, indent=2)}")
+    logger.info(f"Publishing multi-actor meshage: {json.dumps(meshage, indent=2)}")
 
     transport_helper.publish_meshage("asya-default-test-conditional-queue", meshage)
-    logger.info("Message published to asya-test-conditional-queue")
-    logger.info("Waiting for message to route through asya-test-conditional-queue -> asya-test-echo -> asya-x-sink...")
+    logger.info("Meshage published to asya-test-conditional-queue")
+    logger.info("Waiting for meshage to route through asya-test-conditional-queue -> asya-test-echo -> asya-x-sink...")
 
     # Should eventually reach asya-x-sink after going through both queues
     result = transport_helper.assert_meshage_in_queue("asya-default-x-sink", timeout=30)
@@ -537,10 +537,10 @@ def test_invalid_route_current(transport_helper):
         "route": {"prev": [], "curr": "test-invalid-route", "next": ["should-not-reach"]},
         "payload": {"test": "invalid_route_current"},
     }
-    logger.info(f"Publishing message to test-invalid-route: {json.dumps(meshage, indent=2)}")
+    logger.info(f"Publishing meshage to test-invalid-route: {json.dumps(meshage, indent=2)}")
 
     transport_helper.publish_meshage("asya-default-test-invalid-route", meshage)
-    logger.info("Message published, waiting for result in asya-x-sump...")
+    logger.info("Meshage published, waiting for result in asya-x-sump...")
 
     result = transport_helper.assert_meshage_in_queue("asya-default-x-sump", timeout=10)
     logger.info(f"Result from x-sump: {json.dumps(result, indent=2) if result else 'None'}")

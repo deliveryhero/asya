@@ -400,7 +400,7 @@ class TestMeshageFieldPreservation:
         assert validated["status"]["actor"] == "actor-a"
 
     def test_validate_meshage_without_status(self):
-        """Test that messages without status field still validate (backward compat)."""
+        """Test that meshages without status field still validate (backward compat)."""
         meshage = {
             "payload": {"test": "data"},
             "route": {"prev": [], "curr": "a", "next": []},

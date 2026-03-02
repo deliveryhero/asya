@@ -110,7 +110,7 @@ def test_multiple_sse_clients_for_same_task(gateway_helper):
     """
     MUST-HAVE: Test multiple SSE streams for same task.
 
-    Scenario: Two clients connect to /tasks/{id}/stream simultaneously
+    Scenario: Two clients connect to /mesh/{id}/stream simultaneously
     Expected: Both should receive all updates (broadcast)
     """
     import threading
@@ -198,7 +198,7 @@ def test_invalid_tool_name(gateway_helper):
 
 def test_get_task_status_for_nonexistent_id(gateway_helper):
     """
-    MUST-HAVE: Test GET /tasks/{id} for non-existent task.
+    MUST-HAVE: Test GET /mesh/{id} for non-existent task.
 
     Expected: 404 Not Found
     """
@@ -246,7 +246,7 @@ def test_sse_stream_for_already_completed_task(gateway_helper):
     """
     SHOULD-HAVE: Test SSE stream connection after task completed.
 
-    Scenario: Connect to /tasks/{id}/stream after task finished
+    Scenario: Connect to /mesh/{id}/stream after task finished
     Expected: Should receive cached events or final status
     """
     # Create and wait for task to complete

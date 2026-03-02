@@ -56,7 +56,7 @@ def test_retry_max_attempts_exhausted(transport_helper):
         "route": {"prev": [], "curr": "test-retry-fail", "next": []},
         "payload": {"test": "retry_exhausted"},
     }
-    logger.info(f"Publishing message: {json.dumps(meshage)}")
+    logger.info(f"Publishing meshage: {json.dumps(meshage)}")
 
     transport_helper.publish_meshage(RETRY_FAIL_QUEUE, meshage)
 
@@ -133,7 +133,7 @@ def test_retry_non_retryable_error(transport_helper):
         "route": {"prev": [], "curr": "test-retry-nonretryable", "next": []},
         "payload": {"test": "non_retryable"},
     }
-    logger.info(f"Publishing message: {json.dumps(meshage)}")
+    logger.info(f"Publishing meshage: {json.dumps(meshage)}")
 
     transport_helper.publish_meshage(RETRY_NONRETRYABLE_QUEUE, meshage)
 
@@ -166,7 +166,7 @@ def test_retry_non_retryable_via_mro(transport_helper):
         "route": {"prev": [], "curr": "test-retry-mro", "next": []},
         "payload": {"test": "mro_classification"},
     }
-    logger.info(f"Publishing message: {json.dumps(meshage)}")
+    logger.info(f"Publishing meshage: {json.dumps(meshage)}")
 
     transport_helper.publish_meshage(RETRY_MRO_QUEUE, meshage)
 
@@ -210,7 +210,7 @@ def test_retry_delay_not_supported_fallback(transport_helper):
         "route": {"prev": [], "curr": "test-retry-fail", "next": []},
         "payload": {"test": "delay_fallback"},
     }
-    logger.info(f"Publishing message: {json.dumps(meshage)}")
+    logger.info(f"Publishing meshage: {json.dumps(meshage)}")
 
     transport_helper.publish_meshage(RETRY_FAIL_QUEUE, meshage)
 
