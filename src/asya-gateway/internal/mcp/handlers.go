@@ -214,7 +214,7 @@ func (h *Handler) HandleMeshStatus(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// HandleMeshStream handles GET /tasks/{id}/stream (SSE)
+// HandleMeshStream handles GET /mesh/{id}/stream (SSE)
 func (h *Handler) HandleMeshStream(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -307,7 +307,7 @@ func isFinalStatus(status types.TaskStatus) bool {
 		status == types.TaskStatusCanceled
 }
 
-// HandleMeshActive handles GET /tasks/{id}/active (for actors to check if task is still valid)
+// HandleMeshActive handles GET /mesh/{id}/active (for actors to check if task is still valid)
 func (h *Handler) HandleMeshActive(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -346,7 +346,7 @@ func calculateProgress(prev []string, next []string, statusWeight float64) float
 	return progress
 }
 
-// HandleMeshProgress handles POST /tasks/{id}/progress (for actors to report progress)
+// HandleMeshProgress handles POST /mesh/{id}/progress (for actors to report progress)
 func (h *Handler) HandleMeshProgress(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -483,7 +483,7 @@ func (h *Handler) HandleMeshProgress(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// HandleMeshFinal handles POST /tasks/{id}/final (for end actors to report final status)
+// HandleMeshFinal handles POST /mesh/{id}/final (for end actors to report final status)
 // This is called by x-sink and x-sump actors to report task completion
 func (h *Handler) HandleMeshFinal(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
@@ -603,7 +603,7 @@ func (h *Handler) HandleMeshFinal(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 }
 
-// HandleMeshPartial handles POST /tasks/{id}/partial (for sidecar to forward partial events)
+// HandleMeshPartial handles POST /mesh/{id}/partial (for sidecar to forward partial events)
 // Partial events are incremental results (e.g., LLM tokens) from generator handlers.
 // They bypass message queues and are forwarded directly to SSE clients.
 func (h *Handler) HandleMeshPartial(w http.ResponseWriter, r *http.Request) {

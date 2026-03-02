@@ -144,13 +144,13 @@ func (r *Router) shouldReportFinalToGateway(msg *meshages.Meshage) bool {
 	return true
 }
 
-// processEndActorMessage handles meshage processing for end actors (x-sink, x-sump)
+// processEndActorMeshage handles meshage processing for end actors (x-sink, x-sump)
 // End actors are terminal nodes that:
 // - Accept meshages with ANY route state (no validation)
 // - Process the meshage through runtime
 // - Do NOT route responses anywhere (terminal processing)
 // - Report final status to gateway
-func (r *Router) processEndActorMessage(ctx context.Context, msg meshages.Meshage, msgBody []byte, startTime time.Time) error {
+func (r *Router) processEndActorMeshage(ctx context.Context, msg meshages.Meshage, msgBody []byte, startTime time.Time) error {
 	slog.Debug("End actor processing message", "id", msg.ID, "actor", r.actorName)
 
 	// IMPORTANT: End actors are terminal - they do NOT route to any queue
@@ -695,7 +695,7 @@ func (r *Router) ProcessMessage(ctx context.Context, queueMsg transport.QueueMes
 	}
 
 	if r.cfg.IsEndActor {
-		return r.processEndActorMessage(ctx, *msg, queueMsg.Body, startTime)
+		return r.processEndActorMeshage(ctx, *msg, queueMsg.Body, startTime)
 	}
 
 	if r.progressReporter != nil {

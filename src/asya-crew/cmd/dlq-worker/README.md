@@ -89,7 +89,7 @@ All configuration is via environment variables. No config files.
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `GATEWAY_URL` | _(empty = disabled)_ | Gateway base URL for reporting failure status via `POST /tasks/{id}/final` |
+| `GATEWAY_URL` | _(empty = disabled)_ | Gateway base URL for reporting failure status via `POST /mesh/{id}/final` |
 
 ### Optional — Tuning
 

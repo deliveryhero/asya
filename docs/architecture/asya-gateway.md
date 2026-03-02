@@ -100,7 +100,7 @@ Response (MCP CallToolResult):
   "content": [
     {
       "type": "text",
-      "text": "{\"task_id\":\"5e6fdb2d...\",\"message\":\"Task created successfully\",\"status_url\":\"/tasks/5e6fdb2d...\",\"stream_url\":\"/tasks/5e6fdb2d.../stream\"}"
+      "text": "{\"task_id\":\"5e6fdb2d...\",\"message\":\"Task created successfully\",\"status_url\":\"/mesh/5e6fdb2d...\",\"stream_url\":\"/mesh/5e6fdb2d.../stream\"}"
     }
   ],
   "isError": false
@@ -135,7 +135,7 @@ Response:
 #### Stream Task Updates (SSE)
 
 ```bash
-GET /tasks/{id}/stream
+GET /mesh/{id}/stream
 Accept: text/event-stream
 ```
 
@@ -178,7 +178,7 @@ data: {"id":"task-123","status":"succeeded","progress_percent":100,"result":{...
 #### Check Task Active
 
 ```bash
-GET /tasks/{id}/active
+GET /mesh/{id}/active
 ```
 
 **Used by**: Actors to verify task hasn't timed out

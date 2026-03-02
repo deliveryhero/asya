@@ -23,7 +23,7 @@ type gatewayClient struct {
 	httpClient *http.Client
 }
 
-// NewGatewayClient creates a gateway reporter that posts to /tasks/{id}/final.
+// NewGatewayClient creates a gateway reporter that posts to /mesh/{id}/final.
 func NewGatewayClient(baseURL string) GatewayReporter {
 	return &gatewayClient{
 		baseURL: baseURL,
@@ -48,7 +48,7 @@ func (g *gatewayClient) ReportFailure(ctx context.Context, taskID, errorMsg stri
 		return fmt.Errorf("failed to marshal failure payload: %w", err)
 	}
 
-	url := fmt.Sprintf("%s/tasks/%s/final", g.baseURL, taskID)
+	url := fmt.Sprintf("%s/mesh/%s/final", g.baseURL, taskID)
 
 	maxRetries := 3
 	retryDelay := 200 * time.Millisecond
