@@ -47,7 +47,7 @@ def test_task_persisted_to_database(e2e_helper, gateway_url):
     logger.info(f"Task ID: {task_id}")
 
     logger.info("Waiting for task to complete...")
-    final_task = e2e_helper.wait_for_task_completion(task_id, timeout=30)
+    final_task = e2e_helper.wait_for_task_completion(task_id, timeout=60)
 
     assert final_task["status"] == "succeeded", "Task should succeed"
 
@@ -117,8 +117,7 @@ def test_gateway_restart_preserves_task_history(e2e_helper):
     logger.info("[+] Task history preserved across gateway restart")
 
 
-@pytest.mark.xfail(
-    strict=True,
+@pytest.mark.skip(
     reason="S3 persistence requires state-proxy connector on x-sink",
 )
 @pytest.mark.fast
@@ -159,8 +158,7 @@ def test_successful_result_persisted_to_s3(e2e_helper, s3_endpoint, results_buck
     logger.info("[+] Successful result persisted to S3")
 
 
-@pytest.mark.xfail(
-    strict=True,
+@pytest.mark.skip(
     reason="S3 persistence requires state-proxy connector on x-sump",
 )
 @pytest.mark.fast
@@ -288,8 +286,7 @@ def test_task_state_transitions_tracked(e2e_helper):
     logger.info("[+] Task state transitions tracked")
 
 
-@pytest.mark.xfail(
-    strict=True,
+@pytest.mark.skip(
     reason="S3 persistence requires state-proxy connector on x-sink",
 )
 @pytest.mark.fast

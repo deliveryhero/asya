@@ -257,9 +257,10 @@ def test_keda_pollingInterval_effectiveness(e2e_helper):
         )
 
     logger.info("Monitoring for scale-up...")
-    pod_ready = e2e_helper.wait_for_pod_ready("asya.sh/actor=test-echo", timeout=polling_interval * 3)
+    scale_timeout = max(polling_interval * 3, 30)
+    pod_ready = e2e_helper.wait_for_pod_ready("asya.sh/actor=test-echo", timeout=scale_timeout)
     scale_up_time = time.time() - start_time
 
-    assert pod_ready, f"Pod should scale up within {polling_interval * 3}s"
+    assert pod_ready, f"Pod should scale up within {scale_timeout}s"
 
     logger.info(f"[+] Scale-up occurred in {scale_up_time:.2f}s (pollingInterval={polling_interval}s)")

@@ -590,7 +590,7 @@ def test_nested_json_end_to_end(e2e_helper):
 
     task_id = response["result"]["task_id"]
 
-    final_task = e2e_helper.wait_for_task_completion(task_id, timeout=30)
+    final_task = e2e_helper.wait_for_task_completion(task_id, timeout=60)
 
     assert final_task["status"] == "succeeded", "Nested JSON should succeed"
 

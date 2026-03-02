@@ -97,7 +97,7 @@ def transport_timeouts() -> TransportTimeouts:
     Provide transport-aware timeout values for tests.
 
     Returns different timeout values based on the transport type:
-    - SQS: Longer timeouts to account for 20s long-polling delays
+    - SQS: Longer timeouts to account for SQS polling delays
     - RabbitMQ: Shorter timeouts for immediate message delivery
 
     Returns:
