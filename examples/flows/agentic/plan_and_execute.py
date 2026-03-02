@@ -26,7 +26,7 @@ Deployment:
   - planner: LLM actor that generates ordered task list
   - executor: LLM actor with tools for executing individual steps
   - re_planner: LLM actor that reviews progress and adjusts remaining steps
-  - synthesizer: actor that produces final output from step results
+  - synthesizer: LLM actor that produces final output from step results
 
 Payload contract:
   state["goal"]          - the user's original objective
@@ -34,123 +34,86 @@ Payload contract:
   state["current_step"]  - index of current step being executed
   state["step_results"]  - accumulated results from completed steps
   state["completed"]     - whether the plan is fully executed
+
+Note on control flow: The while loop and step counter are pure state
+transformations -- they compile into router actors. Only the function
+calls (planner, executor, etc.) become real deployed actors.
 """
 
 
 async def plan_and_execute(state: dict) -> dict:
     state["current_step"] = 0
 
-    # Phase 1: Generate the plan
+    # [ACTOR: planner] LLM decomposes goal into ordered steps
     state = await planner(state)
 
-    # Phase 2: Execute each step with optional re-planning
+    # [ROUTER: compiled] Loop over steps until plan is exhausted
     while state["current_step"] < len(state.get("plan", [])):
-        # Execute the current step
+        # [ACTOR: executor] LLM+tools executes current step
         state = await executor(state)
 
-        # Accumulate result
         state["current_step"] += 1
 
-        # Re-plan: adjust remaining steps based on what we learned
+        # [ACTOR: re_planner] LLM adjusts remaining steps based on progress
         if state["current_step"] < len(state.get("plan", [])):
             state = await re_planner(state)
 
-    # Phase 3: Synthesize final output from all step results
+    # [ACTOR: synthesizer] Combine all step results into final output
     state["completed"] = True
     state = await synthesizer(state)
     return state
 
 
-# --- Handler stubs ---
+# ---------------------------------------------------------------------------
+# Actor stubs -- each becomes a separately deployed AsyncActor.
+# Replace `...` with real LLM calls, tool use, or business logic.
+# ---------------------------------------------------------------------------
 
 
 async def planner(state: dict) -> dict:
-    """LLM actor: decompose state["goal"] into an ordered list of steps.
+    """[LLM ACTOR] Decompose goal into an ordered list of steps.
 
-    Receives the user's goal and produces state["plan"] - a list of
-    step descriptions. Each step should be atomic and independently
-    executable. The planner reasons about dependencies between steps
-    and orders them appropriately.
+    Reads:  state["goal"]
+    Writes: state["plan"] (list of step description strings)
+            state["step_results"] (initialized to [])
 
-    Example output:
-      state["plan"] = [
-          "Search for recent papers on topic X",
-          "Extract key findings from top 3 papers",
-          "Compare findings with existing knowledge",
-          "Write synthesis report"
-      ]
+    Each step should be atomic and independently executable. The planner
+    reasons about dependencies and orders steps appropriately.
     """
-    goal = state.get("goal", "")
-    state["plan"] = [
-        "Gather background information and recent developments",
-        "Identify key stakeholders and requirements",
-        "Analyze technical constraints and dependencies",
-        "Draft implementation proposal with timeline"
-    ]
-    state["step_results"] = []
-    return state
+    ...  # LLM call: goal -> ordered list of atomic steps
 
 
 async def executor(state: dict) -> dict:
-    """LLM actor with tools: execute a single step from the plan.
+    """[LLM+TOOLS ACTOR] Execute a single step from the plan.
 
-    Reads state["plan"][state["current_step"]] to know what to do.
+    Reads:  state["plan"][state["current_step"]]
+    Writes: appends to state["step_results"]
+
     Has access to tools (web search, code execution, file operations).
-    Writes its result to state["step_results"].
+    Executes exactly one step and records the result.
     """
-    current_step = state.get("current_step", 0)
-    step_description = state["plan"][current_step]
-
-    step_results = state.get("step_results", [])
-
-    if current_step == 0:
-        result = "Found 15 relevant articles from 2025-2026. Key trends include increased adoption of AI-native architectures and serverless computing."
-    elif current_step == 1:
-        result = "Identified 3 primary stakeholders: engineering team, product management, and operations. Key requirements: scalability to 10M users, 99.9% uptime, cost under $50k/month."
-    elif current_step == 2:
-        result = "Technical analysis complete. Main constraint is database migration from PostgreSQL to distributed system. Dependencies: API versioning, backward compatibility for 6 months."
-    else:
-        result = "Implementation proposal drafted. Timeline: 12 weeks with 3 phases. Budget: $120k. Risk mitigation plan included."
-
-    step_results.append({"step": step_description, "result": result})
-    state["step_results"] = step_results
-    return state
+    ...  # LLM call with tools: execute plan[current_step], record result
 
 
 async def re_planner(state: dict) -> dict:
-    """LLM actor: review progress and adjust the remaining plan.
+    """[LLM ACTOR] Review progress and adjust the remaining plan.
 
-    Receives the original plan, completed step results, and remaining
-    steps. May add, remove, or reorder remaining steps based on what
-    was learned during execution. This is what makes plan-and-execute
-    adaptive (unlike a pure sequential pipeline).
+    Reads:  state["plan"], state["step_results"], state["current_step"]
+    Writes: state["plan"] (may add, remove, or reorder remaining steps)
+
+    This is what makes plan-and-execute adaptive -- the re-planner can
+    modify the remaining plan based on what was learned during execution.
+    Without this actor, the pattern is just a static sequential pipeline.
     """
-    plan = state.get("plan", [])
-    step_results = state.get("step_results", [])
-    current_step = state.get("current_step", 0)
-
-    if current_step == 1 and len(step_results) >= 1:
-        plan[2] = "Analyze technical constraints including newly identified database migration complexity"
-    elif current_step == 2 and len(step_results) >= 2:
-        plan.append("Add risk mitigation strategy for database migration")
-
-    state["plan"] = plan
-    return state
+    ...  # LLM call: given results so far, adjust remaining plan steps
 
 
 async def synthesizer(state: dict) -> dict:
-    """Actor: produce final output from all accumulated step results.
+    """[LLM ACTOR] Produce final output from all step results.
 
-    Combines state["step_results"] into a coherent final response.
-    May use an LLM for synthesis or simple programmatic aggregation.
+    Reads:  state["step_results"], state["goal"]
+    Writes: state["final_output"]
+
+    Combines all completed step results into a coherent final response.
     """
-    step_results = state.get("step_results", [])
-
-    summary = "Project Analysis Summary:\n\n"
-    for i, result in enumerate(step_results, 1):
-        summary += f"{i}. {result['step']}\n   {result['result']}\n\n"
-
-    summary += "Recommendation: Proceed with phased implementation approach. Total estimated cost: $120k over 12 weeks with acceptable risk profile."
-
-    state["final_output"] = summary
-    return state
+    ...  # LLM call: step_results -> coherent final output

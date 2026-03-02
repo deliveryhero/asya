@@ -23,15 +23,19 @@ Deployment:
   - researcher: LLM actor with search tools
   - critic: LLM actor that evaluates research quality and identifies gaps
   - refine_query: LLM actor that produces improved search queries
-  - write_report: actor that produces the final report with citations
+  - write_report: LLM actor that produces the final report with citations
 
 Payload contract:
   state["question"]       - the research question
   state["findings"]       - accumulated research findings
   state["gaps"]           - identified gaps (set by critic; empty = done)
-  state["search_query"]  - current search query
+  state["search_query"]   - current search query
   state["iteration"]      - loop counter
   state["quality_score"]  - quality assessment from critic (0-100)
+
+Note on control flow: The while loop, quality threshold check, and break
+are pure state transformations -- they compile into router actors. Only the
+function calls (researcher, critic, etc.) become real deployed actors.
 """
 
 
@@ -42,155 +46,79 @@ async def research_and_refine(state: dict) -> dict:
     while True:
         state["iteration"] += 1
 
-        # Search: execute current queries, accumulate findings
+        # [ACTOR: researcher] LLM searches for information
         state = await researcher(state)
 
-        # Critique: evaluate research quality, identify gaps
+        # [ACTOR: critic] LLM evaluates quality and identifies gaps
         state = await critic(state)
 
-        # Exit: no gaps found or quality threshold met
+        # [ROUTER: compiled] Exit when quality threshold met or no gaps
         if not state.get("gaps") or state.get("quality_score", 0) >= 85:
             break
 
-        # Refine: generate better search queries based on gaps
+        # [ACTOR: refine_query] LLM generates better search queries from gaps
         state = await refine_query(state)
 
-        # Safety: max iterations
         if state["iteration"] >= 5:
             break
 
-    # Produce final report from accumulated findings
+    # [ACTOR: write_report] LLM synthesizes findings into final report
     state = await write_report(state)
     return state
 
 
-# --- Handler stubs ---
+# ---------------------------------------------------------------------------
+# Actor stubs -- each becomes a separately deployed AsyncActor.
+# Replace `...` with real LLM calls, tool use, or business logic.
+# ---------------------------------------------------------------------------
 
 
 async def researcher(state: dict) -> dict:
-    """LLM actor with search tools: execute queries, extract findings.
+    """[LLM+TOOLS ACTOR] Execute queries, extract findings.
 
-    Uses web search, academic databases, or document retrieval to
-    find information relevant to state["search_query"]. Appends
-    results to state["findings"] with source citations.
+    Reads:  state["search_query"]
+    Writes: appends to state["findings"] (list of {source, title, summary})
+
+    Uses web search, academic databases, or document retrieval to find
+    information. Each finding should include source citations.
     """
-    search_query = state.get("search_query", "")
-    findings = state.get("findings", [])
-    iteration = state.get("iteration", 0)
-
-    if iteration == 1:
-        findings.append({
-            "source": "Nature Quantum Information, 2026",
-            "title": "Breakthrough in topological qubit stability",
-            "summary": "Researchers achieved record coherence times using Majorana fermions in superconducting circuits.",
-            "relevance": "high"
-        })
-        findings.append({
-            "source": "arXiv:2601.12345",
-            "title": "Scalable quantum error correction protocols",
-            "summary": "New surface code implementations reduce overhead by 40%.",
-            "relevance": "high"
-        })
-    elif iteration == 2:
-        findings.append({
-            "source": "IEEE Quantum Engineering, 2026",
-            "title": "Commercial applications of quantum computing in finance",
-            "summary": "Monte Carlo simulations for risk assessment show 100x speedup on current quantum processors.",
-            "relevance": "medium"
-        })
-        findings.append({
-            "source": "MIT Technology Review, 2026",
-            "title": "Quantum advantage in drug discovery",
-            "summary": "Pharmaceutical companies report successful protein folding predictions using quantum algorithms.",
-            "relevance": "high"
-        })
-    elif iteration == 3:
-        findings.append({
-            "source": "Physical Review Letters, 2026",
-            "title": "Hybrid quantum-classical architectures for near-term applications",
-            "summary": "Variational quantum eigensolvers integrated with classical ML achieve state-of-the-art results in optimization.",
-            "relevance": "high"
-        })
-
-    state["findings"] = findings
-    return state
+    ...  # LLM call with search tools: query, extract, cite
 
 
 async def critic(state: dict) -> dict:
-    """LLM actor: evaluate research quality and identify gaps.
+    """[LLM ACTOR] Evaluate research quality and identify gaps.
 
-    Reviews state["findings"] against state["question"]. Produces:
-    - state["quality_score"]: 0-100 assessment
-    - state["gaps"]: list of topics/angles not yet covered
+    Reads:  state["findings"], state["question"]
+    Writes: state["quality_score"] (0-100)
+            state["gaps"] (list of missing topics; empty = done)
 
-    The critique is what drives the iterative refinement - if the
-    critic finds no gaps, the loop terminates.
+    The critique drives the iterative loop -- if the critic finds no
+    gaps or quality_score >= 85, the loop terminates. This actor's
+    judgment determines how many iterations the flow runs.
     """
-    findings = state.get("findings", [])
-    question = state.get("question", "")
-    iteration = state.get("iteration", 0)
-
-    if iteration == 1:
-        state["quality_score"] = 45
-        state["gaps"] = [
-            "Missing information on commercial applications",
-            "No coverage of practical deployment challenges",
-            "Limited discussion of hybrid quantum-classical approaches"
-        ]
-    elif iteration == 2:
-        state["quality_score"] = 70
-        state["gaps"] = [
-            "Need more detail on hybrid architectures",
-            "Economic viability analysis missing"
-        ]
-    else:
-        state["quality_score"] = 90
-        state["gaps"] = []
-
-    return state
+    ...  # LLM call: assess coverage, score quality, list gaps
 
 
 async def refine_query(state: dict) -> dict:
-    """LLM actor: produce improved search queries based on identified gaps.
+    """[LLM ACTOR] Produce improved search queries based on gaps.
 
-    Reads state["gaps"] and generates new state["search_queries"] that
-    target the missing information. May also reframe the original
-    question to explore different angles.
+    Reads:  state["gaps"], state["question"]
+    Writes: state["search_query"]
+
+    Generates new search queries that target the missing information
+    identified by the critic. May reframe the original question to
+    explore different angles.
     """
-    gaps = state.get("gaps", [])
-    iteration = state.get("iteration", 0)
-
-    if iteration == 1:
-        state["search_query"] = "quantum computing commercial applications finance drug discovery 2026"
-    elif iteration == 2:
-        state["search_query"] = "hybrid quantum-classical architectures variational algorithms practical deployment"
-    else:
-        state["search_query"] = state.get("question", "")
-
-    return state
+    ...  # LLM call: gaps -> refined search queries
 
 
 async def write_report(state: dict) -> dict:
-    """LLM actor: synthesize findings into a structured report.
+    """[LLM ACTOR] Synthesize findings into a structured report.
 
-    Combines all state["findings"] into a coherent report with
-    proper citations, organized by theme or chronology.
+    Reads:  state["findings"], state["question"], state["quality_score"]
+    Writes: state["report"]
+
+    Combines all accumulated findings into a coherent report with
+    proper citations, organized by theme.
     """
-    findings = state.get("findings", [])
-    question = state.get("question", "")
-
-    report = f"Research Report: {question}\n\n"
-    report += f"Quality Score: {state.get('quality_score', 0)}/100\n"
-    report += f"Total Sources: {len(findings)}\n\n"
-
-    report += "Key Findings:\n\n"
-    for i, finding in enumerate(findings, 1):
-        report += f"{i}. {finding['title']}\n"
-        report += f"   Source: {finding['source']}\n"
-        report += f"   Summary: {finding['summary']}\n"
-        report += f"   Relevance: {finding['relevance']}\n\n"
-
-    report += "Conclusion: Quantum computing research in 2026 shows significant progress across hardware stability, error correction, and commercial applications. The field is transitioning from pure research to practical deployment in finance and pharmaceutical sectors."
-
-    state["report"] = report
-    return state
+    ...  # LLM call: findings -> structured report with citations

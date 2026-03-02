@@ -31,14 +31,18 @@ Framework references:
 
 Deployment:
   - orchestrator: LLM actor that plans and dispatches (the "brain")
-  - data_worker, analysis_worker, writing_worker: specialist actors
-  - synthesizer: produces final output from accumulated results
+  - data_worker, analysis_worker, writing_worker: specialist LLM actors
+  - synthesizer: LLM actor that produces final output from accumulated results
 
 Payload contract:
-  state["request"]       - user's original request
-  state["next_action"]   - orchestrator's decision (set by orchestrator)
+  state["request"]        - user's original request
+  state["next_action"]    - orchestrator's decision (set by orchestrator LLM)
   state["worker_results"] - accumulated results from workers
-  state["is_complete"]   - whether the orchestrator is done
+  state["is_complete"]    - whether the orchestrator is done
+
+Note on control flow: The while loop, if/elif dispatch, and break are pure
+state transformations -- they compile into router actors. Only the function
+calls (orchestrator, data_worker, etc.) become real deployed actors.
 """
 
 
@@ -48,138 +52,90 @@ async def orchestrator_workers(state: dict) -> dict:
     while True:
         state["iteration"] += 1
 
-        # Orchestrator: analyze current state, decide next action
+        # [ACTOR: orchestrator] LLM analyzes state, sets next_action + is_complete
         state = await orchestrator(state)
 
-        # Check if orchestrator decided we're done
         if state.get("is_complete"):
             break
 
-        # Dispatch to the worker chosen by orchestrator
+        # [ROUTER: compiled] Static dispatch based on orchestrator's decision
         if state.get("next_action") == "research":
-            state = await data_worker(state)
+            state = await data_worker(state)       # [ACTOR: data_worker]
         elif state.get("next_action") == "analyze":
-            state = await analysis_worker(state)
+            state = await analysis_worker(state)   # [ACTOR: analysis_worker]
         elif state.get("next_action") == "write":
-            state = await writing_worker(state)
-        else:
-            # Unknown action - let orchestrator reconsider
-            state["next_action"] = "unknown"
+            state = await writing_worker(state)    # [ACTOR: writing_worker]
 
-        # Safety: max iterations
         if state["iteration"] >= 10:
-            state["is_complete"] = True
             break
 
-    # Synthesize final output from all worker results
+    # [ACTOR: synthesizer] Combine all worker results into final output
     state = await synthesizer(state)
     return state
 
 
-# --- Handler stubs ---
+# ---------------------------------------------------------------------------
+# Actor stubs -- each becomes a separately deployed AsyncActor.
+# Replace `...` with real LLM calls, tool use, or business logic.
+# ---------------------------------------------------------------------------
 
 
 async def orchestrator(state: dict) -> dict:
-    """LLM actor: the "brain" that plans and dispatches.
+    """[LLM ACTOR] The "brain" that plans and dispatches.
 
-    Receives state["request"] and state["worker_results"]. Decides:
-    - state["next_action"]: which worker to invoke ("research"|"analyze"|"write")
-    - state["is_complete"]: True if no more workers needed
+    Reads:  state["request"], state["worker_results"]
+    Writes: state["next_action"] ("research"|"analyze"|"write")
+            state["is_complete"] (True when no more workers needed)
 
-    The orchestrator sees ALL accumulated worker results and uses them
-    to decide what to do next. This is what makes it dynamic -- the same
-    request might take different paths depending on intermediate results.
+    This is the only actor that requires an LLM -- it examines all
+    accumulated worker results and decides what to do next. The decision
+    is non-deterministic, which is why this cannot be inlined into
+    the flow DSL as a static conditional.
     """
-    request = state["request"]
-    worker_results = state.get("worker_results", [])
-    iteration = state.get("iteration", 0)
-
-    if "worker_results" not in state:
-        state["worker_results"] = []
-
-    if iteration == 1:
-        state["next_action"] = "research"
-        state["is_complete"] = False
-    elif iteration == 2:
-        state["next_action"] = "analyze"
-        state["is_complete"] = False
-    elif iteration == 3:
-        state["next_action"] = "write"
-        state["is_complete"] = False
-    else:
-        state["next_action"] = None
-        state["is_complete"] = True
-
-    return state
+    ...  # LLM call: given request + worker_results, decide next_action
 
 
 async def data_worker(state: dict) -> dict:
-    """LLM actor with search tools: gather data and information.
+    """[LLM+TOOLS ACTOR] Gather data and information.
+
+    Reads:  state["request"]
+    Writes: appends to state["worker_results"]
 
     Specialized in web search, database queries, and data retrieval.
-    Appends its findings to state["worker_results"].
+    Has tool access (search APIs, databases, document stores).
     """
-    request = state["request"]
-
-    findings = {
-        "worker": "data_worker",
-        "findings": f"Research results for '{request}': Found 47 relevant sources, 12 key statistics, and 5 primary data points from authoritative databases."
-    }
-
-    state["worker_results"].append(findings)
-    return state
+    ...  # LLM call with tools: search, retrieve, extract findings
 
 
 async def analysis_worker(state: dict) -> dict:
-    """LLM actor with computation tools: analyze data.
+    """[LLM+TOOLS ACTOR] Analyze data.
 
-    Specialized in data analysis, statistical computation, and
-    pattern recognition. Appends its analysis to state["worker_results"].
+    Reads:  state["worker_results"] (previous findings)
+    Writes: appends to state["worker_results"]
+
+    Specialized in statistical analysis, pattern recognition, and
+    computation. Has tool access (calculators, plotting, code execution).
     """
-    worker_results = state["worker_results"]
-
-    analysis = {
-        "worker": "analysis_worker",
-        "analysis": f"Statistical analysis complete: 3 major trends identified, correlation coefficient 0.87, p-value < 0.01. Key pattern: exponential growth in Q3-Q4."
-    }
-
-    state["worker_results"].append(analysis)
-    return state
+    ...  # LLM call with tools: analyze data, compute statistics
 
 
 async def writing_worker(state: dict) -> dict:
-    """LLM actor: produce written content.
+    """[LLM ACTOR] Produce written content.
+
+    Reads:  state["worker_results"] (all findings + analyses)
+    Writes: appends to state["worker_results"]
 
     Specialized in drafting reports, summaries, and communications.
-    Appends its output to state["worker_results"].
     """
-    worker_results = state["worker_results"]
-
-    written_content = {
-        "worker": "writing_worker",
-        "content": "Executive Summary: Based on comprehensive research and analysis, the data reveals significant trends with high statistical confidence. The findings support strategic recommendations for Q1 2026 planning."
-    }
-
-    state["worker_results"].append(written_content)
-    return state
+    ...  # LLM call: draft report/summary from accumulated results
 
 
 async def synthesizer(state: dict) -> dict:
-    """LLM actor: produce final output from accumulated worker results.
+    """[LLM ACTOR] Produce final output from accumulated worker results.
 
-    Reads state["worker_results"] and combines them into a coherent
-    final response for the user.
+    Reads:  state["worker_results"]
+    Writes: state["final_output"]
+
+    Combines all worker contributions into a coherent final response.
     """
-    worker_results = state["worker_results"]
-
-    combined_sections = []
-    for result in worker_results:
-        if "findings" in result:
-            combined_sections.append(f"Research: {result['findings']}")
-        elif "analysis" in result:
-            combined_sections.append(f"Analysis: {result['analysis']}")
-        elif "content" in result:
-            combined_sections.append(f"Summary: {result['content']}")
-
-    state["final_output"] = " | ".join(combined_sections)
-    return state
+    ...  # LLM call: synthesize worker_results into final_output
