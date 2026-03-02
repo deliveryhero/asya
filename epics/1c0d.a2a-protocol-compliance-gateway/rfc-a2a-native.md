@@ -15,6 +15,7 @@
 - [3. Terminology](#3-terminology)
 - [4. Conceptual Mapping: Asya to A2A](#4-conceptual-mapping-asya-to-a2a)
 - [5. Data Model](#5-data-model)
+  - [5.0 A2A Schemas and Storage Mapping](#50-a2a-schemas-and-storage-mapping)
   - [5.1 Task State Machine](#51-task-state-machine)
   - [5.2 Message-to-Meshage Translation](#52-message-to-meshage-translation)
   - [5.3 Artifact Model](#53-artifact-model)
@@ -78,10 +79,9 @@ store. The `a2a-go` library handles JSON-RPC dispatch, SSE formatting, request
 validation, and protocol compliance. Asya's internal architecture (meshages,
 sidecars, actors, queues) remains unchanged.
 
-The A2A endpoint prefix is configurable via `ASYA_A2A_PREFIX` (default: `/a2a`, next to `/mcp`).
-In future, we'll implement api versioning with prefixes like `/api/v1`.
-
-Note: still, A2A protocol requires to host in the root: `/.well-known/agent-card.json`.
+All gateway routes are organized into three fixed namespaces (`/a2a`, `/mcp`,
+`/mesh`) under a configurable base prefix `ASYA_BASE_PREFIX` (default: empty).
+Exception: `/.well-known/agent.json` is always at root per A2A spec.
 
 ---
 
@@ -115,10 +115,10 @@ pause/resume — all through standard A2A operations.
 | Term | Definition |
 |------|-----------|
 | **Meshage** | Asya's internal envelope traveling through the actor mesh. Contains `id`, `route`, `payload`, `status`, `headers`. Lives in queues (in-transit) or S3 (paused). Formerly "message" or "envelope" (see epic 1mx1). |
-| **Task** | Gateway's metadata record tracking a meshage's lifecycle in PostgreSQL. Has `id`, `context_id`, `status`, `artifacts`, `timestamps`. The A2A-facing representation of work. |
+| **Task** (A2A) | Assembled from two sources: metadata from gateway DB (id, context_id, status) + data from meshage payload (history, artifacts). See Section 5.0. |
 | **Context** (`context_id`) | A grouping attribute on tasks. Groups related tasks in a conversation/session. Just a TEXT column — not a first-class entity. Server-generated UUID if not provided by client. |
-| **Message** (A2A) | An immutable communication turn with `role` (user/agent), `parts`, `message_id`. Lives in meshage `payload.a2a.history`. |
-| **Artifact** (A2A) | A structured output from a task. Contains `parts` (text, data, file references). Stored in external storage. |
+| **Message** (A2A) | Proto `Message`: immutable communication turn with `role`, `parts`, `message_id`. Stored in `payload.a2a.history[]` (= A2A `Task.history`). |
+| **Artifact** (A2A) | Proto `Artifact`: task output with `artifact_id`, `name`, `parts`. Stored in `payload.a2a.artifacts[]` (= A2A `Task.artifacts`). Content in external storage. |
 | **Skill** (A2A) | A named capability in the Agent Card. Maps to an exposed actor/flow in the `tools` table. |
 | **Tool** (MCP) | A named capability in MCP `tools/list`. Same backing data as a Skill. |
 | **FLY** | ABI yield verb for upstream streaming: `yield "FLY", {...}`. Delivers events from actor → runtime → sidecar → gateway → SSE client. |
@@ -132,11 +132,11 @@ pause/resume — all through standard A2A operations.
 | A2A Concept | Asya Mapping | Notes |
 |-------------|-------------|-------|
 | **Context** (`contextId`) | TEXT column on tasks table | Grouping key for conversations. One context can have many tasks. Server-generated UUID if not provided. |
-| **Task** | Gateway task record in PostgreSQL | 1:1 with a meshage lifecycle. Tracks status, artifacts, metadata. |
+| **Task** | Assembled: DB metadata (id, status, context_id) + meshage data (`payload.a2a.*`) | See Section 5.0 for split. 1:1 with a meshage lifecycle. |
 | **Message** (client → server) | Creates meshage or resumes paused task | User input dispatched to the actor mesh. |
-| **Message** (server → client, streaming) | FLY event in A2A StreamResponse format | Ephemeral upstream delivery via ABI. Not persisted by gateway. |
-| **Message** (server → client, history) | Stored in `payload.a2a.history` in meshage | Canonical turns survive pause/resume via S3. |
-| **Artifact** | References in `payload.a2a.artifacts`, content in external storage (state proxy) | Gateway stores only metadata pointers, never artifact content. |
+| **Message** (server → client, streaming) | FLY event in A2A StreamResponse format | Ephemeral upstream delivery via ABI. Not persisted. |
+| **Message** (server → client, history) | `payload.a2a.history[]` (= A2A `Task.history`) | Canonical turns, survive pause/resume via S3. |
+| **Artifact** | `payload.a2a.artifacts[]` (= A2A `Task.artifacts`), Part content in external storage | Gateway stores only metadata pointers, never content. |
 | **Skill** | Exposed actor/flow in `tools` table | `WHERE a2a_enabled = true`. Maps to entrypoint actor. |
 | **AgentCard** | Generated dynamically from `tools` table | Cached in memory, regenerated on tool registry change. |
 
@@ -181,6 +181,73 @@ sharing only the `context_id` attribute.
 ---
 
 ## 5. Data Model
+
+### 5.0 A2A Schemas and Storage Mapping
+
+The A2A `Task` proto has these fields (from `a2a.proto`):
+
+```protobuf
+message Task {
+  string id = 1;                    // REQUIRED
+  string context_id = 2;            // REQUIRED
+  TaskStatus status = 3;            // REQUIRED
+  repeated Artifact artifacts = 4;  // optional
+  repeated Message history = 5;     // optional
+  Struct metadata = 6;              // optional
+}
+```
+
+In Asya, the A2A Task is **split across two storage layers**:
+
+```
+A2A Task field     Storage location            Why
+────────────────── ─────────────────────────── ──────────────────────────────
+id                 Gateway DB (tasks.id)       Metadata — always available
+context_id         Gateway DB (tasks.context_id)  Metadata — indexed for queries
+status             Gateway DB (tasks.status)   Metadata — mutable, query filter
+artifacts          Meshage payload.a2a.artifacts  DATA — can be large (files, blobs)
+history            Meshage payload.a2a.history    DATA — grows with conversation
+metadata           Gateway DB (tasks.metadata) Metadata — small key/value
+```
+
+**`payload.a2a` namespace**: A dedicated namespace inside the meshage payload
+that mirrors A2A `Task` data fields. It contains the A2A objects that are too
+large or too coupled to the actor pipeline to live in the gateway DB:
+
+```json
+{
+  "a2a": {
+    "history": [ ...A2A Message objects... ],
+    "artifacts": [ ...A2A Artifact objects... ]
+  },
+  "query": "actor-facing fields at root",
+  "depth": 3
+}
+```
+
+The objects inside `payload.a2a` use **A2A's canonical proto schemas exactly**
+(Message, Artifact, Part). No Asya-specific wrappers or transformations.
+
+**Gateway Task reconstruction**: When the gateway needs to return a full A2A
+`Task` (for GetTask, SendMessage response, etc.), it assembles it from both
+sources:
+
+```
+A2A Task response = {
+  id:         ← tasks.id              (DB)
+  context_id: ← tasks.context_id      (DB)
+  status:     ← tasks.status → toA2AState()  (DB, translated)
+  metadata:   ← tasks.metadata        (DB)
+  artifacts:  ← payload.a2a.artifacts  (S3, optional fetch)
+  history:    ← payload.a2a.history    (S3, optional fetch)
+}
+```
+
+For in-flight tasks where the meshage is in a queue (not accessible), the
+gateway omits `artifacts` and `history` entirely — both are optional per spec.
+
+The following subsections reference A2A proto types. For the full type mapping
+to `a2a-go` Go types, see Appendix A.
 
 ### 5.1 Task State Machine
 
@@ -317,11 +384,35 @@ or any underscore-prefixed convenience fields. The canonical A2A data lives in
 
 ### 5.3 Artifact Model
 
-A2A Artifacts are stored in **external storage** via the state proxy, never in
-the gateway DB. The gateway stores only metadata pointers (artifact IDs) needed
-to construct A2A responses. Artifact content (Parts with data/files) lives in
-the meshage payload at `payload.a2a.artifacts` and/or in external storage
-referenced by URL.
+`payload.a2a.artifacts` stores `repeated Artifact` — the same schema as A2A
+`Task.artifacts`. Each entry is an A2A `Artifact` proto (JSON-serialized):
+
+```protobuf
+message Artifact {
+  string artifact_id = 1;         // REQUIRED — unique within task
+  string name = 2;                // optional — human-readable
+  string description = 3;         // optional
+  repeated Part parts = 4;        // REQUIRED — content (text, data, url, raw)
+  Struct metadata = 5;            // optional
+  repeated string extensions = 6; // optional
+}
+
+message Part {
+  oneof content {
+    string text = 1;              // text content
+    bytes raw = 2;                // binary (base64 in JSON)
+    string url = 3;               // URL pointing to content
+    Value data = 4;               // structured JSON
+  }
+  Struct metadata = 5;            // optional
+  string filename = 6;            // optional (e.g. "report.pdf")
+  string media_type = 7;          // MIME type (e.g. "application/json")
+}
+```
+
+Artifact **content** (the Part data — files, blobs, structured results) is
+stored in **external storage** via state proxy, never in the gateway DB. The
+gateway stores only artifact metadata pointers needed to construct A2A responses.
 
 **Design principle**: The gateway DB is for metadata only. All data (artifact
 content, files, blobs) lives in external storage (S3/MinIO via state proxy).
@@ -417,8 +508,23 @@ data/raw parts. This is optional — most A2A clients can follow URLs directly.
 
 ### 5.4 History in Meshage Payload
 
-A2A conversation history lives in the meshage payload at `payload.a2a.history`.
-This is a list of A2A Message objects (using A2A's native format).
+`payload.a2a.history` stores `repeated Message` — the same schema as A2A
+`Task.history`. Each entry is an A2A `Message` proto (JSON-serialized):
+
+```protobuf
+message Message {
+  string message_id = 1;          // REQUIRED — unique per message
+  string context_id = 2;          // optional — set by gateway
+  string task_id = 3;             // optional — set by gateway
+  Role role = 4;                  // REQUIRED — "user" or "agent"
+  repeated Part parts = 5;        // REQUIRED — content
+  Struct metadata = 6;            // optional
+  repeated string extensions = 7; // optional
+  repeated string reference_task_ids = 8; // optional
+}
+```
+
+**Example**: full meshage payload with 3-turn history:
 
 ```json
 {
@@ -521,8 +627,8 @@ they are transient signals or canonical records:
 
 | Feature | FLY (Ephemeral) | Meshage History (Persistent) |
 |---------|-----------------|------------------------------|
-| **A2A semantic** | `StreamResponse` variants: `artifact_update`, `status_update`, `message` | `Task.history` (list of Messages) |
-| **Asya mechanism** | `yield "FLY", {...}` → runtime SSE → sidecar → `POST /mesh/{id}/partial` → gateway SSE | Appended to `payload.a2a.history` → travels through message queues |
+| **A2A semantic** | `StreamResponse` variants: `artifact_update`, `status_update`, `message` | A2A `Task.history` (`repeated Message`) |
+| **Asya mechanism** | `yield "FLY", {...}` → runtime SSE → sidecar → `POST /mesh/{id}/partial` → gateway SSE | Appended to `payload.a2a.history[]` → travels through message queues |
 | **Persistence** | None (real-time broadcast only) | Travels with meshage, survives pause/resume via S3 |
 | **Primary use** | Streaming tokens, thoughts, live status, progress indicators | Multi-turn conversation history, final answers, input prompts |
 | **Visibility** | Connected SSE clients only | All subsequent actors + late-joining clients (via S3 fetch) |
@@ -562,56 +668,71 @@ async def agent_actor(payload):
 
 ### 6.1 Endpoint Layout
 
-The A2A endpoint prefix is configurable:
+All routes (except `/.well-known/agent.json` and `/health`) live under three
+fixed namespaces with an optional base prefix:
 
 ```
-ASYA_A2A_PREFIX=""       →  POST /message:send, GET /tasks/{id}, ...
-ASYA_A2A_PREFIX="/a2a"   →  POST /a2a/message:send, GET /a2a/tasks/{id}, ...
+ASYA_BASE_PREFIX=""          →  /a2a/..., /mcp/..., /mesh/...
+ASYA_BASE_PREFIX="/api/v1"   →  /api/v1/a2a/..., /api/v1/mcp/..., /api/v1/mesh/...
 ```
 
-Note: later we'll introduce `ASYA_BASE_PREFIX` to support `/api/v1` - should be applied to ALL routes (including `/mesh` and `/mcp`) EXCEPT `/.well-known/agent.json` (must always be at root).
+| Env Var | Purpose | Default |
+|---------|---------|---------|
+| `ASYA_BASE_PREFIX` | Base prefix for all namespaced routes | `""` (empty) |
 
-**Full endpoint map** (with configurable `{prefix}`):
+**Full endpoint map** (with `{base}` = `ASYA_BASE_PREFIX`):
 
 ```
 asya-gateway
-├── {prefix}/message:send             # SendMessage (POST, JSON-RPC)
-├── {prefix}/message:stream           # SendStreamingMessage (POST, SSE response)
-├── {prefix}/tasks/{id}               # GetTask (GET)
-├── {prefix}/tasks                    # ListTasks (GET)
-├── {prefix}/tasks/{id}:cancel        # CancelTask (POST)
-├── {prefix}/tasks/{id}:subscribe     # SubscribeToTask (GET, SSE)
-├── {prefix}/tasks/{id}/pushNotificationConfigs          # Push CRUD
-├── {prefix}/tasks/{id}/pushNotificationConfigs/{cfgId}  # Push Get/Delete
-├── {prefix}/extendedAgentCard        # GetExtendedAgentCard (GET)
 │
-├── /.well-known/agent.json            # Agent Card discovery (GET)
+│  A2A namespace (/a2a) — client-facing, A2A protocol
+├── {base}/a2a/message:send                                # SendMessage (POST)
+├── {base}/a2a/message:stream                              # SendStreamingMessage (POST, SSE)
+├── {base}/a2a/tasks/{id}                                  # GetTask (GET)
+├── {base}/a2a/tasks                                       # ListTasks (GET)
+├── {base}/a2a/tasks/{id}:cancel                           # CancelTask (POST)
+├── {base}/a2a/tasks/{id}:subscribe                        # SubscribeToTask (GET, SSE)
+├── {base}/a2a/tasks/{id}/pushNotificationConfigs          # Push CRUD
+├── {base}/a2a/tasks/{id}/pushNotificationConfigs/{cfgId}  # Push Get/Delete
+├── {base}/a2a/extendedAgentCard                           # GetExtendedAgentCard (GET)
 │
-├── /mcp                              # MCP Streamable HTTP (unchanged - to become also configurable!)
-├── /mcp/sse                          # MCP SSE deprecated (unchanged)
-├── /tools/call                       # REST tool invocation (MCP, unchanged)
+│  MCP namespace (/mcp) — client-facing, MCP protocol
+├── {base}/mcp                           # MCP Streamable HTTP (POST)
+├── {base}/mcp/sse                       # MCP SSE deprecated (GET)
+├── {base}/mcp/tools/call                # REST tool invocation (POST)
 │
-├── /mesh/expose                     # Register tool/skill (POST), list (GET)
-├── /mesh/tools/{name}               # Get/remove tool (GET/DELETE)
+│  Mesh namespace (/mesh) — internal, sidecar + management
+├── {base}/mesh/expose                   # Register tool/skill (POST), list (GET)
+├── {base}/mesh/{id}/progress            # Sidecar progress reporting (POST)
+├── {base}/mesh/{id}/final               # End actor final status (POST)
+├── {base}/mesh/{id}/active              # Sidecar liveness check (GET)
+├── {base}/mesh/{id}/stream              # SSE streaming (GET, internal)
+├── {base}/mesh/{id}/partial             # Partial event payload (POST)
+├── {base}/mesh                          # Fanout child creation (POST)
 │
-├── /mesh/{id}/progress               # Sidecar progress reporting (POST)
-├── /mesh/{id}/final                  # End actor final status (POST)
-├── /mesh/{id}/active                 # Sidecar liveness check (GET)
-├── /mesh/{id}/stream                 # SSE streaming (GET, internal)
-├── /mesh/{id}/partial                # Partial event payload (POST)
-├── /mesh                             # Fanout child creation (POST)
-│
-└── /health                           # Health check (GET)
+│  Root (no prefix)
+├── /.well-known/agent.json              # Agent Card discovery (GET, always root)
+└── /health                              # Health check (GET, always root)
 ```
 
-**Design decision**: A2A paths follow the protobuf HTTP annotations exactly
-(`/message:send`, `/tasks/{id}:cancel`, etc.). The prefix is applied uniformly.
-When `ASYA_A2A_PREFIX=""` (default), the paths match the A2A spec. When set to
-`/a2a`, they are namespaced to avoid collision with `/mesh/` routes.
+**Three namespaces, clean separation**:
 
-**Collision avoidance**: The internal sidecar-facing routes are at `/mesh/*`
-(renamed from `/tasks/*` per epic 1mx1). The A2A routes at `/tasks/*` (or
-`/a2a/tasks/*`) are client-facing. No collision.
+| Namespace | Audience | Auth | Purpose |
+|-----------|----------|------|---------|
+| `/a2a` | External AI agents, orchestrators | A2A auth middleware | A2A protocol surface |
+| `/mcp` | LLMs, developers, tool-calling clients | MCP auth (future) | MCP protocol surface |
+| `/mesh` | Sidecars, operators, CLI | Internal (network-level) | Actor mesh management |
+
+**Design decisions**:
+- A2A paths follow the protobuf HTTP annotations (`/message:send`,
+  `/tasks/{id}:cancel`). No collision with `/mesh/{id}/*` (internal).
+- MCP tool invocation moves from `/tools/call` to `/mcp/tools/call` for
+  namespace consistency.
+- `POST /mesh/expose` is the only registration endpoint — no per-tool
+  GET/DELETE. To remove a tool, POST with `"enabled": false` (soft delete)
+  or add `DELETE /mesh/expose/{name}` if hard delete is needed later.
+- `/.well-known/agent.json` is ALWAYS at root regardless of base prefix
+  (A2A spec requirement).
 
 ### 6.2 a2a-go Library Integration
 
@@ -806,7 +927,7 @@ func (a *A2AStoreAdapter) List(
 ### 7.1 SendMessage
 
 **Method**: `message/send`
-**HTTP**: `POST {prefix}/message:send`
+**HTTP**: `POST {base}/a2a/message:send`
 
 **Flow**:
 
@@ -837,7 +958,7 @@ func (a *A2AStoreAdapter) List(
 ### 7.2 SendStreamingMessage
 
 **Method**: `message/stream`
-**HTTP**: `POST {prefix}/message:stream`
+**HTTP**: `POST {base}/a2a/message:stream`
 
 Same as SendMessage but returns an SSE stream instead of a single response.
 
@@ -871,7 +992,7 @@ translates events to SSE. The gateway feeds events from:
 ### 7.3 GetTask
 
 **Method**: `tasks/get`
-**HTTP**: `GET {prefix}/tasks/{id}`
+**HTTP**: `GET {base}/a2a/tasks/{id}`
 
 Returns the current state of a task.
 
@@ -897,7 +1018,7 @@ Returns the current state of a task.
 ### 7.4 ListTasks
 
 **Method**: `tasks/list`
-**HTTP**: `GET {prefix}/tasks`
+**HTTP**: `GET {base}/a2a/tasks`
 
 **Parameters**:
 
@@ -918,7 +1039,7 @@ clauses.
 ### 7.5 CancelTask
 
 **Method**: `tasks/cancel`
-**HTTP**: `POST {prefix}/tasks/{id}:cancel`
+**HTTP**: `POST {base}/a2a/tasks/{id}:cancel`
 
 **Flow**:
 
@@ -966,7 +1087,7 @@ minimal change.
 ### 7.6 SubscribeToTask
 
 **Method**: `tasks/subscribe`
-**HTTP**: `GET {prefix}/tasks/{id}:subscribe`
+**HTTP**: `GET {base}/a2a/tasks/{id}:subscribe`
 
 SSE stream for an existing task. Same event format as SendStreamingMessage.
 
@@ -984,10 +1105,10 @@ Four methods for managing webhook-based push notifications:
 
 | Method | HTTP | Purpose |
 |--------|------|---------|
-| `CreateTaskPushNotificationConfig` | `POST {prefix}/tasks/{id}/pushNotificationConfigs` | Register webhook |
-| `GetTaskPushNotificationConfig` | `GET {prefix}/tasks/{id}/pushNotificationConfigs/{cfgId}` | Get config |
-| `ListTaskPushNotificationConfigs` | `GET {prefix}/tasks/{id}/pushNotificationConfigs` | List configs |
-| `DeleteTaskPushNotificationConfig` | `DELETE {prefix}/tasks/{id}/pushNotificationConfigs/{cfgId}` | Remove |
+| `CreateTaskPushNotificationConfig` | `POST {base}/a2a/tasks/{id}/pushNotificationConfigs` | Register webhook |
+| `GetTaskPushNotificationConfig` | `GET {base}/a2a/tasks/{id}/pushNotificationConfigs/{cfgId}` | Get config |
+| `ListTaskPushNotificationConfigs` | `GET {base}/a2a/tasks/{id}/pushNotificationConfigs` | List configs |
+| `DeleteTaskPushNotificationConfig` | `DELETE {base}/a2a/tasks/{id}/pushNotificationConfigs/{cfgId}` | Remove |
 
 **Push delivery**: When a task update occurs and push configs exist, the gateway
 POSTs the event to the registered webhook URL with the configured authentication
@@ -1002,7 +1123,7 @@ headers.
 ### 7.8 GetExtendedAgentCard
 
 **Method**: `extendedAgentCard`
-**HTTP**: `GET {prefix}/extendedAgentCard`
+**HTTP**: `GET {base}/a2a/extendedAgentCard`
 
 Returns an authenticated, extended version of the Agent Card with additional
 details not publicly visible.
@@ -1171,24 +1292,25 @@ Tool/skill registration replaces the former YAML-based static config
 (`routes.yaml` ConfigMap) with a DB-backed registry and REST API. The gateway
 boots from PostgreSQL. No ConfigMap, no fsnotify, no gateway restart needed.
 
-**Design decision**: Registration endpoints live under `/mesh/expose` (not
-`/tools/expose`) because they are internal management operations for the actor
-mesh — same namespace as sidecar-facing routes. The `/tools/call` endpoint
-remains separate as the client-facing MCP REST tool invocation.
+**Design decision**: Registration lives under `/mesh/expose` — an internal
+management operation for the actor mesh, same namespace as sidecar-facing routes.
+MCP tool invocation lives at `/mcp/tools/call`. A2A endpoints at `/a2a/*`.
 
 #### 8.4.1 Endpoints
 
 | Method | Path | Purpose |
 |--------|------|---------|
-| `POST` | `/mesh/expose` | Register or update a tool/skill (upsert) |
-| `GET` | `/mesh/expose` | List all registered tools/skills |
-| `GET` | `/mesh/tools/{name}` | Get a specific tool/skill |
-| `DELETE` | `/mesh/tools/{name}` | Remove a tool/skill |
+| `POST` | `{base}/mesh/expose` | Register or update a tool/skill (upsert) |
+| `GET` | `{base}/mesh/expose` | List all registered tools/skills |
+
+No per-tool GET/DELETE endpoints. To remove a tool, POST with
+`"mcp_enabled": false, "a2a": {"enabled": false}` (soft disable). Hard delete
+can be added later if needed via `DELETE {base}/mesh/expose/{name}`.
 
 #### 8.4.2 Register (Upsert)
 
 ```http
-POST /mesh/expose
+POST {base}/mesh/expose
 Content-Type: application/json
 
 {
@@ -1233,7 +1355,7 @@ Content-Type: application/json
 #### 8.4.3 List
 
 ```http
-GET /mesh/expose
+GET {base}/mesh/expose
 
 Response: 200 OK
 [
@@ -1242,15 +1364,7 @@ Response: 200 OK
 ]
 ```
 
-#### 8.4.4 Remove
-
-```http
-DELETE /mesh/tools/analyze-document
-
-Response: 204 No Content
-```
-
-#### 8.4.5 In-Memory Registry Refresh
+#### 8.4.4 In-Memory Registry Refresh
 
 After each mutation (POST/DELETE), the gateway reloads the full tool list from
 DB into an in-memory registry. Thread-safe via `atomic.Value` (Go). In-flight
@@ -1275,7 +1389,7 @@ Both MCP and A2A read from the same registry:
 - MCP `tools/list`: filter `WHERE mcp_enabled = true`
 - A2A Agent Card skills: filter `WHERE a2a_enabled = true`
 
-#### 8.4.6 Route Simplification (CPS)
+#### 8.4.5 Route Simplification (CPS)
 
 With DB-backed registration, the gateway sends to the **entrypoint actor only**,
 not a full route list. Routing decisions are made by router actors at each step
@@ -1295,7 +1409,7 @@ yield payload
 A tool maps to exactly **one entrypoint actor**. Standalone actors with empty
 `next` are just entrypoints with no continuation.
 
-#### 8.4.7 YAML Config Migration
+#### 8.4.6 YAML Config Migration
 
 The YAML-based tool config (`routes.yaml` ConfigMap) is fully replaced:
 
@@ -1827,7 +1941,7 @@ internal deployments.
 ```
 
 **Config**: `ASYA_A2A_API_KEY` env var. Middleware validates on all
-`{prefix}/*` routes.
+`{base}/a2a/*` routes.
 
 ### Phase 3: Bearer Token (JWT)
 
@@ -1854,7 +1968,7 @@ Client Credentials flow for machine-to-machine agent authentication.
 ### Middleware Architecture
 
 ```go
-// Applied to {prefix}/* routes only
+// Applied to {base}/a2a/* routes only
 func A2AAuthMiddleware(config AuthConfig) func(http.Handler) http.Handler {
     return func(next http.Handler) http.Handler {
         return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -1977,7 +2091,7 @@ around a2a-go). ~200 lines sidecar changes (URL rename + FLY forwarding).
 
 | Task | Description |
 |------|-------------|
-| API Key authentication | `ASYA_A2A_API_KEY` middleware on `{prefix}/*` |
+| API Key authentication | `ASYA_A2A_API_KEY` middleware on `{base}/a2a/*` |
 | ListTasks with pagination | Internal TaskStore.List() + cursor pagination |
 | CancelTask with sidecar support | Extend `/mesh/{id}/active` for canceled |
 | Blocking mode | Hold connection for `configuration.blocking: true` |
@@ -2029,7 +2143,7 @@ around a2a-go). ~200 lines sidecar changes (URL rename + FLY forwarding).
 | GetTask paused with history | S3 fetch for paused task returns history from `payload.a2a.history` |
 | ListTasks pagination | Cursor-based pagination, context_id filtering, status filtering |
 | CancelTask | Cancel → status updated → sidecar stops routing (410 Gone) |
-| Registration API | `POST /mesh/expose` upsert, `GET /mesh/expose` list, `DELETE /mesh/tools/{name}` |
+| Registration API | `POST /mesh/expose` upsert, `GET /mesh/expose` list |
 | Registration refresh | POST new tool → Agent Card immediately reflects new skill |
 | Auth middleware | 401 for unauthenticated, 200 for authenticated, no auth on `/mesh/*` |
 | Blocking mode | `configuration.blocking: true` → response after completion |
@@ -2141,15 +2255,25 @@ a2aHandler := a2asrv.NewHandler(executor,
     a2asrv.WithAgentCard(agentCardProvider),
 )
 
-// Mount at configurable prefix
-prefix := os.Getenv("ASYA_A2A_PREFIX") // "" or "/a2a"
+// Mount with base prefix + fixed /a2a namespace
+base := os.Getenv("ASYA_BASE_PREFIX") // "" or "/api/v1"
+a2aPrefix := base + "/a2a"
 jsonRPCHandler := a2asrv.NewJSONRPCHandler(a2aHandler)
 
-mux.Handle(prefix+"/message:send", jsonRPCHandler)
-mux.Handle(prefix+"/message:stream", jsonRPCHandler)
-mux.Handle(prefix+"/tasks/", a2aHandler)  // REST routes
-mux.Handle(prefix+"/extendedAgentCard", a2aHandler)
+mux.Handle(a2aPrefix+"/message:send", jsonRPCHandler)
+mux.Handle(a2aPrefix+"/message:stream", jsonRPCHandler)
+mux.Handle(a2aPrefix+"/tasks/", a2aHandler)  // REST routes
+mux.Handle(a2aPrefix+"/extendedAgentCard", a2aHandler)
 
-// Agent Card at well-known path (always without prefix)
+// MCP at {base}/mcp
+mux.Handle(base+"/mcp", mcpHandler)
+mux.Handle(base+"/mcp/tools/call", mcpToolCallHandler)
+
+// Mesh management at {base}/mesh
+mux.Handle(base+"/mesh/expose", meshExposeHandler)
+mux.Handle(base+"/mesh/", meshHandler)  // sidecar routes
+
+// Root-level (no prefix)
 mux.HandleFunc("/.well-known/agent.json", a2aHandler.AgentCard)
+mux.HandleFunc("/health", healthHandler)
 ```
