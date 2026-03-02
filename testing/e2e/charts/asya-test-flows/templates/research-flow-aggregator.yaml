@@ -6,8 +6,8 @@
 # - Emits a merged message once all slices arrive
 # - Uses the state proxy sidecar for durable S3-backed state storage
 #
-# The aggregator accesses message metadata via VFS (pending migration to ABI)
-# including the x-asya-fan-in header for fan-in coordination.
+# The aggregator reads x-asya-fan-in header via ABI yield protocol
+# for fan-in coordination.
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 metadata:
@@ -23,6 +23,8 @@ spec:
     matchLabels:
       asya.sh/transport: {{ .Values.transport }}
   transport: {{ .Values.transport }}
+
+  overlays: [asya-persistence-s3]
 
   scaling:
     enabled: {{ .Values.scaling.enabled }}
@@ -43,13 +45,10 @@ spec:
           env:
           - name: ASYA_HANDLER
             value: asya_crew.fanin.s3_split_key.aggregator
-          # Fan-in aggregator accesses x-asya-fan-in header via VFS.
-          # No special handler mode needed - VFS is always available.
-          # State proxy: maps Python file I/O to S3-backed HTTP API.
-          # fanin:/state/fanin:write=buffered means OS file ops under
-          # /state/fanin/ are proxied to S3 by the state proxy sidecar.
-          - name: ASYA_STATE_PROXY_MOUNTS
-            value: "fanin:/state/fanin:write=buffered"
+          - name: AWS_ACCESS_KEY_ID
+            value: "test"
+          - name: AWS_SECRET_ACCESS_KEY
+            value: "test"
           resources:
             requests:
               cpu: 10m
