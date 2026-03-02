@@ -1,6 +1,10 @@
 enabled: true
 region: us-east-1
 
+service:
+  type: NodePort
+  nodePort: 30566
+
 auth:
   accessKey: test
   secretKey: test

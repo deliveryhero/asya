@@ -39,23 +39,23 @@ def ensure_gateway_port_forward(request, e2e_helper):
 
     Pod restarts (from chaos tests, KEDA scaling, resource pressure) can
     break port-forwards.  This fixture checks connectivity before every
-    test and restarts if needed.
+    test and uses locked restart to prevent thundering herd when multiple
+    pytest-xdist workers detect failures simultaneously.
     """
-    max_retries = 3
-    for attempt in range(max_retries):
-        try:
-            import requests
-            requests.get(f"{e2e_helper.gateway_url}/health", timeout=2)
-            logger.info(f"Gateway port-forward healthy before {request.node.name}")
-            return
-        except Exception as e:
-            logger.warning(f"Gateway port-forward check failed (attempt {attempt + 1}/{max_retries}): {e}")
-            if attempt < max_retries - 1:
-                logger.info("Restarting port-forward...")
-                e2e_helper.restart_port_forward()
-                time.sleep(3)
-            else:
-                pytest.fail(f"Gateway port-forward not available after {max_retries} attempts")
+    try:
+        import requests as req
+        req.get(f"{e2e_helper.gateway_url}/health", timeout=2)
+        logger.info(f"Gateway port-forward healthy before {request.node.name}")
+        return
+    except Exception:
+        pass
+
+    # Gateway unhealthy — use locked ensure_gateway_connectivity
+    try:
+        e2e_helper.ensure_gateway_connectivity(max_retries=3)
+        logger.info(f"Gateway port-forward restored before {request.node.name}")
+    except ConnectionError:
+        pytest.fail("Gateway port-forward not available after locked restart attempts")
 
 
 @pytest.fixture(scope="session")

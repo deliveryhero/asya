@@ -265,7 +265,8 @@ def test_resource_exhaustion_handling(e2e_helper):
     logger.info("[+] Resource exhaustion handled gracefully")
 
 
-@pytest.mark.fast
+@pytest.mark.chaos
+@pytest.mark.xdist_group(name="chaos")
 def test_network_partition_simulation(e2e_helper):
     """
     E2E: Test system handles network issues.

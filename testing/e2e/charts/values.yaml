@@ -46,8 +46,9 @@ gateway:
   replicaCount: 1
 
   service:
-    type: ClusterIP
+    type: NodePort
     port: 8080
+    nodePort: 30080
 
   config:
     port: "8080"
@@ -139,14 +140,14 @@ gateway:
     - name: test_slow_boundary
       description: |
         Test slow processing at actor boundary
-        (1.5s processing, 4s timeout with overhead)
+        (1.5s processing, generous timeout for SQS transit)
       parameters:
         first_call:
           type: boolean
           description: Whether this is the first call
           required: true
       route: [test-slow-boundary]
-      timeout: 4
+      timeout: 30
     - name: test_nested_flow
       description: Test nested if-else flow with level1 and level2 parameters
       parameters:

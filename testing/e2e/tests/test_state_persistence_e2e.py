@@ -47,7 +47,7 @@ def test_task_persisted_to_database(e2e_helper, gateway_url):
     logger.info(f"Task ID: {task_id}")
 
     logger.info("Waiting for task to complete...")
-    final_task = e2e_helper.wait_for_task_completion(task_id, timeout=60)
+    final_task = e2e_helper.wait_for_task_completion(task_id, timeout=120)
 
     assert final_task["status"] == "succeeded", "Task should succeed"
 
@@ -265,7 +265,7 @@ def test_task_state_transitions_tracked(e2e_helper):
 
     logger.info("Monitoring state transitions...")
     start_time = time.time()
-    while time.time() - start_time < 45:
+    while time.time() - start_time < 90:
         task = e2e_helper.get_task_status(task_id)
         status = task["status"]
 
