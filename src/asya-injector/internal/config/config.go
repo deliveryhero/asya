@@ -27,6 +27,9 @@ type Config struct {
 	// SQSEndpoint is the custom SQS endpoint URL (for LocalStack or other AWS-compatible services)
 	SQSEndpoint string
 
+	// SQSWaitTimeSeconds overrides the SQS long-polling duration for ReceiveMessage calls
+	SQSWaitTimeSeconds string
+
 	// AWSCredsSecret is the name of the secret containing AWS credentials to inject into the sidecar
 	AWSCredsSecret string
 
@@ -47,6 +50,7 @@ func LoadFromEnv() *Config {
 		RuntimeMountPath:       getEnv("ASYA_RUNTIME_MOUNT_PATH", "/opt/asya/asya_runtime.py"),
 		GatewayURL:             getEnv("ASYA_GATEWAY_URL", ""),
 		SQSEndpoint:            getEnv("ASYA_SQS_ENDPOINT", ""),
+		SQSWaitTimeSeconds:     getEnv("ASYA_SQS_WAIT_TIME_SECONDS", ""),
 		AWSCredsSecret:         getEnv("ASYA_AWS_CREDS_SECRET", ""),
 		RabbitMQURL:            getEnv("ASYA_RABBITMQ_URL", ""),
 		RabbitMQCredsSecret:    getEnv("ASYA_RABBITMQ_CREDS_SECRET", ""),

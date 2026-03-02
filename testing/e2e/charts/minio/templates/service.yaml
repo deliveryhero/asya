@@ -8,13 +8,16 @@ metadata:
     app.kubernetes.io/name: minio
     app.kubernetes.io/instance: {{ .Release.Name }}
 spec:
+  type: {{ .Values.service.type | default "ClusterIP" }}
   ports:
   - name: api
     port: 9000
     targetPort: 9000
+    {{- if and .Values.service.nodePort (eq (.Values.service.type | default "ClusterIP") "NodePort") }}
+    nodePort: {{ .Values.service.nodePort }}
+    {{- end }}
   - name: console
     port: 9001
     targetPort: 9001
   selector:
     app: minio
-  type: ClusterIP

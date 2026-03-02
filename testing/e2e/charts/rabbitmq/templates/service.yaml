@@ -8,13 +8,16 @@ metadata:
     app.kubernetes.io/name: rabbitmq
     app.kubernetes.io/instance: {{ .Release.Name }}
 spec:
+  type: {{ .Values.service.type | default "ClusterIP" }}
   ports:
   - name: amqp
     port: 5672
     targetPort: 5672
+    {{- if and .Values.service.nodePort (eq (.Values.service.type | default "ClusterIP") "NodePort") }}
+    nodePort: {{ .Values.service.nodePort }}
+    {{- end }}
   - name: management
     port: 15672
     targetPort: 15672
   selector:
     app: rabbitmq
-  type: ClusterIP

@@ -6,6 +6,22 @@ containerdConfigPatches:
     config_path = "/etc/containerd/certs.d"
 nodes:
 - role: control-plane
+  extraPortMappings:
+  - containerPort: 30080
+    hostPort: 8080
+    protocol: TCP
+  - containerPort: 30566
+    hostPort: 4566
+    protocol: TCP
+  - containerPort: 30567
+    hostPort: 4567
+    protocol: TCP
+  - containerPort: 30672
+    hostPort: 5672
+    protocol: TCP
+  - containerPort: 30900
+    hostPort: 9000
+    protocol: TCP
   kubeadmConfigPatches:
   - |
     kind: InitConfiguration

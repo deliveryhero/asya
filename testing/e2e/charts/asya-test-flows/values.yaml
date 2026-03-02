@@ -12,4 +12,6 @@ scaling:
   enabled: true
   minReplicas: 1
   maxReplicas: 5
+  pollingInterval: 5
+  cooldownPeriod: 30
   queueLength: 5
