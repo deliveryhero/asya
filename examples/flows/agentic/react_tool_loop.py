@@ -1,0 +1,110 @@
+"""
+ReAct Tool Loop - the foundational agentic pattern.
+
+An LLM iterates in a Thought-Action-Observation loop: it reasons about what
+to do, selects a tool, executes it, observes the result, and loops until it
+produces a final answer.
+
+The flow models the OUTER control loop. Each actor (llm_reason, tool_*)
+is an independent AsyncActor. The LLM actor sets tool_calls in the payload;
+the router dispatches to the appropriate tool actor.
+
+Pattern: while True -> LLM -> if tool_call -> dispatch tool -> loop
+
+ADK equivalent:
+  - BaseLlmFlow.run_async() while-true loop
+  - https://github.com/google/adk-python/blob/main/src/google/adk/flows/llm_flows/base_llm_flow.py
+  - ADK samples: Customer Service, Personalized Shopping, SWE Benchmark
+  - https://github.com/google/adk-samples/tree/main/python/agents/customer-service
+
+Framework references:
+  - LangGraph: prebuilt ReAct agent with tools_condition edge
+    https://langchain-ai.github.io/langgraph/how-tos/create-react-agent/
+  - DSPy: dspy.ReAct("question -> answer", tools=[...])
+  - Anthropic: tool_runner.until_done() agentic loop
+    https://www.anthropic.com/engineering/building-effective-agents
+  - Google Cloud: "Single agent" pattern
+    https://docs.cloud.google.com/architecture/choose-design-pattern-agentic-ai-system
+
+Deployment:
+  - llm_reason: LLM actor (e.g., Gemini/Claude with tool schemas)
+  - web_search, code_exec, calculator: individual tool actors
+  - format_response: post-processing actor
+
+Payload contract:
+  state["messages"]    - conversation history
+  state["tool_calls"]  - list of {name, args} from LLM (empty = final answer)
+  state["tool_name"]   - dispatched tool name (set by router)
+  state["observation"]  - tool execution result
+"""
+
+
+async def react_tool_loop(state: dict) -> dict:
+    state["messages"] = state.get("messages", [])
+    state["iteration"] = 0
+
+    while True:
+        state["iteration"] += 1
+
+        # LLM decides: produce tool_calls or final answer
+        state = await llm_reason(state)
+
+        # No tool calls = final answer produced
+        if not state.get("tool_calls"):
+            break
+
+        # Dispatch to the appropriate tool based on LLM's choice
+        state["tool_name"] = state["tool_calls"][0]["name"]
+
+        if state["tool_name"] == "web_search":
+            state = await web_search(state)
+        elif state["tool_name"] == "code_exec":
+            state = await code_exec(state)
+        elif state["tool_name"] == "calculator":
+            state = await calculator(state)
+        else:
+            state["observation"] = "Unknown tool"
+
+        # Append observation to messages for next LLM turn
+        state["messages"] = state.get("messages", [])
+
+        # Safety: max iterations
+        if state["iteration"] >= 10:
+            break
+
+    state = await format_response(state)
+    return state
+
+
+# --- Handler stubs (each deployed as a separate AsyncActor) ---
+
+
+async def llm_reason(state: dict) -> dict:
+    """LLM actor: receives messages + tool schemas, returns tool_calls or final answer.
+
+    The actor internally calls an LLM API (Gemini, Claude, GPT) with the
+    conversation history and available tool definitions. If the LLM wants
+    to use a tool, it populates state["tool_calls"]. Otherwise, it writes
+    the final answer to state["response"].
+    """
+    return state
+
+
+async def web_search(state: dict) -> dict:
+    """Tool actor: execute a web search query, return results as observation."""
+    return state
+
+
+async def code_exec(state: dict) -> dict:
+    """Tool actor: execute code in a sandboxed environment, return output."""
+    return state
+
+
+async def calculator(state: dict) -> dict:
+    """Tool actor: evaluate a mathematical expression."""
+    return state
+
+
+async def format_response(state: dict) -> dict:
+    """Post-processing: format the final response for the user."""
+    return state

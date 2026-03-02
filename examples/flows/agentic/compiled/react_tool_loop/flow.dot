@@ -1,0 +1,42 @@
+digraph flow {
+  rankdir=TB;
+  graph [fontname="Courier", fontsize=10];
+  node [fontname="Courier", fontsize=10, shape=box, style="filled,rounded", margin="0.2"];
+  edge [fontname="Courier", fontsize=10];
+
+  start_react_tool_loop [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = await start_react_tool_loop(state)</i></td></tr><tr><td bgcolor="white" align="left">state['messages'] = state.get('messages', [])</td></tr><tr><td bgcolor="white" align="left">state['iteration'] = 0</td></tr></table>>];
+  router_react_tool_loop_line_66_seq [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = await router_react_tool_loop_line_…(state)</i></td></tr><tr><td bgcolor="white" align="left">state['observation'] = 'Unknown tool'</td></tr></table>>];
+  router_react_tool_loop_line_63_if [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = await router_react_tool_loop_line_…(state)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> state['tool_name'] == 'calculator'</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkseagreen4"><font color="white"><b>TRUE</b></font></td><td bgcolor="indianred4"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
+  router_react_tool_loop_line_61_if [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = await router_react_tool_loop_line_…(state)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> state['tool_name'] == 'code_exec'</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkseagreen4"><font color="white"><b>TRUE</b></font></td><td bgcolor="indianred4"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
+  router_react_tool_loop_line_72_if [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = await router_react_tool_loop_line_…(state)</i></td></tr><tr><td bgcolor="white" align="left">state['messages'] = state.get('messages', [])</td></tr><tr><td bgcolor="lightyellow"><b>if</b> state['iteration'] &gt;= 10</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkseagreen4"><font color="white"><b>TRUE</b></font></td><td bgcolor="indianred4"><font color="white"><b>pass</b></font></td></tr></table></td></tr></table>>];
+  router_react_tool_loop_line_59_if [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = await router_react_tool_loop_line_…(state)</i></td></tr><tr><td bgcolor="white" align="left">state['tool_name'] = state['tool_call…][0]['name']</td></tr><tr><td bgcolor="lightyellow"><b>if</b> state['tool_name'] == 'web_search'</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkseagreen4"><font color="white"><b>TRUE</b></font></td><td bgcolor="indianred4"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
+  router_react_tool_loop_line_53_if [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = await router_react_tool_loop_line_…(state)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> not state.get('tool_calls')</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkseagreen4"><font color="white"><b>TRUE</b></font></td><td bgcolor="indianred4"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
+  router_react_tool_loop_line_47_seq [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = await router_react_tool_loop_line_…(state)</i></td></tr><tr><td bgcolor="white" align="left">state['iteration'] += 1</td></tr></table>>];
+  router_react_tool_loop_line_46_loop_back_0 [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = await router_react_tool_loop_line_…(state)</i></td></tr></table>>];
+  end_react_tool_loop [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = await end_react_tool_loop(state)</i></td></tr></table>>];
+  calculator [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = await calculator(state)</i></td></tr></table>>];
+  code_exec [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = await code_exec(state)</i></td></tr></table>>];
+  format_response [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = await format_response(state)</i></td></tr></table>>];
+  llm_reason [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = await llm_reason(state)</i></td></tr></table>>];
+  web_search [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = await web_search(state)</i></td></tr></table>>];
+
+  calculator -> router_react_tool_loop_line_72_if;
+  code_exec -> router_react_tool_loop_line_72_if;
+  format_response -> end_react_tool_loop;
+  llm_reason -> router_react_tool_loop_line_53_if;
+  router_react_tool_loop_line_46_loop_back_0 -> router_react_tool_loop_line_47_seq [constraint=false];
+  router_react_tool_loop_line_47_seq -> llm_reason;
+  router_react_tool_loop_line_53_if -> format_response [label="T", color=darkseagreen4];
+  router_react_tool_loop_line_53_if -> router_react_tool_loop_line_59_if [label="F", color=indianred4];
+  router_react_tool_loop_line_59_if -> router_react_tool_loop_line_61_if [label="F", color=indianred4];
+  router_react_tool_loop_line_59_if -> web_search [label="T", color=darkseagreen4];
+  router_react_tool_loop_line_61_if -> code_exec [label="T", color=darkseagreen4];
+  router_react_tool_loop_line_61_if -> router_react_tool_loop_line_63_if [label="F", color=indianred4];
+  router_react_tool_loop_line_63_if -> calculator [label="T", color=darkseagreen4];
+  router_react_tool_loop_line_63_if -> router_react_tool_loop_line_66_seq [label="F", color=indianred4];
+  router_react_tool_loop_line_66_seq -> router_react_tool_loop_line_72_if;
+  router_react_tool_loop_line_72_if -> format_response [label="T", color=darkseagreen4];
+  router_react_tool_loop_line_72_if -> router_react_tool_loop_line_46_loop_back_0 [label="F", color=indianred4];
+  start_react_tool_loop -> router_react_tool_loop_line_46_loop_back_0;
+  web_search -> router_react_tool_loop_line_72_if;
+}

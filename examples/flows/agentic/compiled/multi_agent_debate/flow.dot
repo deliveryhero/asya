@@ -1,0 +1,44 @@
+digraph flow {
+  rankdir=TB;
+  graph [fontname="Courier", fontsize=10];
+  node [fontname="Courier", fontsize=10, shape=box, style="filled,rounded", margin="0.2"];
+  edge [fontname="Courier", fontsize=10];
+
+  start_multi_agent_debate [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = await start_multi_agent_debate(state)</i></td></tr><tr><td bgcolor="white" align="left">state['round'] = 0</td></tr></table>>];
+  router_multi_agent_debate_line_67_if [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = await router_multi_agent_debate_li…(state)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> state['round'] &gt;= 3</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkseagreen4"><font color="white"><b>TRUE</b></font></td><td bgcolor="indianred4"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
+  router_multi_agent_debate_line_64_if [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = await router_multi_agent_debate_li…(state)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> state.get('converged')</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkseagreen4"><font color="white"><b>TRUE</b></font></td><td bgcolor="indianred4"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
+  router_multi_agent_debate_line_59_seq [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = await router_multi_agent_debate_li…(state)</i></td></tr><tr><td bgcolor="white" align="left">state['round'] += 1</td></tr></table>>];
+  router_multi_agent_debate_line_58_loop_back_0 [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = await router_multi_agent_debate_li…(state)</i></td></tr></table>>];
+  fanout_multi_agent_debate_line_51 [fillcolor="lightblue", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = await fanout_multi_agent_debate_li…(state)</i></td></tr><tr><td bgcolor="mediumpurple2" align="center"><b>[fan-out:literal]</b></td></tr></table>>];
+  end_multi_agent_debate [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = await end_multi_agent_debate(state)</i></td></tr></table>>];
+  convergence_checker [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = await convergence_checker(state)</i></td></tr></table>>];
+  debater_a [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = await debater_a(state)</i></td></tr></table>>];
+  debater_b [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = await debater_b(state)</i></td></tr></table>>];
+  debater_c [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = await debater_c(state)</i></td></tr></table>>];
+  fanin_multi_agent_debate_line_51 [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = await fanin_multi_agent_debate_lin…(state)</i></td></tr><tr><td bgcolor="mediumpurple1" align="center"><b>[fan-in]</b></td></tr></table>>];
+  final_judge [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = await final_judge(state)</i></td></tr></table>>];
+  revise_a [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = await revise_a(state)</i></td></tr></table>>];
+  revise_b [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = await revise_b(state)</i></td></tr></table>>];
+  revise_c [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = await revise_c(state)</i></td></tr></table>>];
+
+  convergence_checker -> router_multi_agent_debate_line_64_if;
+  debater_a -> fanin_multi_agent_debate_line_51 [color=slateblue4, style=dashed];
+  debater_b -> fanin_multi_agent_debate_line_51 [color=slateblue4, style=dashed];
+  debater_c -> fanin_multi_agent_debate_line_51 [color=slateblue4, style=dashed];
+  fanin_multi_agent_debate_line_51 -> router_multi_agent_debate_line_58_loop_back_0;
+  fanout_multi_agent_debate_line_51 -> debater_a [color=mediumpurple4, label="slice 1", style=bold];
+  fanout_multi_agent_debate_line_51 -> debater_b [color=mediumpurple4, label="slice 2", style=bold];
+  fanout_multi_agent_debate_line_51 -> debater_c [color=mediumpurple4, label="slice 3", style=bold];
+  fanout_multi_agent_debate_line_51 -> fanin_multi_agent_debate_line_51 [color=mediumpurple4, label="slice 0\n(parent)", style=dashed];
+  final_judge -> end_multi_agent_debate;
+  revise_a -> revise_b;
+  revise_b -> revise_c;
+  revise_c -> router_multi_agent_debate_line_58_loop_back_0;
+  router_multi_agent_debate_line_58_loop_back_0 -> router_multi_agent_debate_line_59_seq [constraint=false];
+  router_multi_agent_debate_line_59_seq -> convergence_checker;
+  router_multi_agent_debate_line_64_if -> final_judge [label="T", color=darkseagreen4];
+  router_multi_agent_debate_line_64_if -> router_multi_agent_debate_line_67_if [label="F", color=indianred4];
+  router_multi_agent_debate_line_67_if -> final_judge [label="T", color=darkseagreen4];
+  router_multi_agent_debate_line_67_if -> revise_a [label="F", color=indianred4];
+  start_multi_agent_debate -> fanout_multi_agent_debate_line_51;
+}

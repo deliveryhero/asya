@@ -1,0 +1,19 @@
+digraph flow {
+  rankdir=TB;
+  graph [fontname="Courier", fontsize=10];
+  node [fontname="Courier", fontsize=10, shape=box, style="filled,rounded", margin="0.2"];
+  edge [fontname="Courier", fontsize=10];
+
+  start_sequential_pipeline [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = await start_sequential_pipeline(state)</i></td></tr></table>>];
+  end_sequential_pipeline [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = await end_sequential_pipeline(state)</i></td></tr></table>>];
+  data_analyst [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = await data_analyst(state)</i></td></tr></table>>];
+  execution_planner [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = await execution_planner(state)</i></td></tr></table>>];
+  risk_evaluator [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = await risk_evaluator(state)</i></td></tr></table>>];
+  trading_analyst [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = await trading_analyst(state)</i></td></tr></table>>];
+
+  data_analyst -> trading_analyst;
+  execution_planner -> risk_evaluator;
+  risk_evaluator -> end_sequential_pipeline;
+  start_sequential_pipeline -> data_analyst;
+  trading_analyst -> execution_planner;
+}

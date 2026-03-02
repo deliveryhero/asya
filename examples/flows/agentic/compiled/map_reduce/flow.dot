@@ -1,0 +1,22 @@
+digraph flow {
+  rankdir=TB;
+  graph [fontname="Courier", fontsize=10];
+  node [fontname="Courier", fontsize=10, shape=box, style="filled,rounded", margin="0.2"];
+  edge [fontname="Courier", fontsize=10];
+
+  start_map_reduce [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = await start_map_reduce(state)</i></td></tr></table>>];
+  fanout_map_reduce_line_49 [fillcolor="lightblue", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = await fanout_map_reduce_line_49(state)</i></td></tr><tr><td bgcolor="mediumpurple2" align="center"><b>[fan-out:comprehension]</b></td></tr><tr><td bgcolor="mediumpurple3" align="left">for chunk in state['chunks']</td></tr></table>>];
+  end_map_reduce [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = await end_map_reduce(state)</i></td></tr></table>>];
+  chunk_processor [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = await chunk_processor(state)</i></td></tr></table>>];
+  fanin_map_reduce_line_49 [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = await fanin_map_reduce_line_49(state)</i></td></tr><tr><td bgcolor="mediumpurple1" align="center"><b>[fan-in]</b></td></tr></table>>];
+  reducer [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = await reducer(state)</i></td></tr></table>>];
+  splitter [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = await splitter(state)</i></td></tr></table>>];
+
+  chunk_processor -> fanin_map_reduce_line_49 [color=slateblue4, style=dashed];
+  fanin_map_reduce_line_49 -> reducer;
+  fanout_map_reduce_line_49 -> chunk_processor [color=mediumpurple4, label="slice 1..N\n(per chunk)", style=bold];
+  fanout_map_reduce_line_49 -> fanin_map_reduce_line_49 [color=mediumpurple4, label="slice 0\n(parent)", style=dashed];
+  reducer -> end_map_reduce;
+  splitter -> fanout_map_reduce_line_49;
+  start_map_reduce -> splitter;
+}

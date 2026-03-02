@@ -1,0 +1,26 @@
+digraph flow {
+  rankdir=TB;
+  graph [fontname="Courier", fontsize=10];
+  node [fontname="Courier", fontsize=10, shape=box, style="filled,rounded", margin="0.2"];
+  edge [fontname="Courier", fontsize=10];
+
+  start_voting_ensemble [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = await start_voting_ensemble(state)</i></td></tr></table>>];
+  fanout_voting_ensemble_line_38 [fillcolor="lightblue", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = await fanout_voting_ensemble_line_…(state)</i></td></tr><tr><td bgcolor="mediumpurple2" align="center"><b>[fan-out:literal]</b></td></tr></table>>];
+  end_voting_ensemble [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = await end_voting_ensemble(state)</i></td></tr></table>>];
+  analytical_writer [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = await analytical_writer(state)</i></td></tr></table>>];
+  concise_writer [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = await concise_writer(state)</i></td></tr></table>>];
+  creative_writer [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = await creative_writer(state)</i></td></tr></table>>];
+  fanin_voting_ensemble_line_38 [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = await fanin_voting_ensemble_line_38(state)</i></td></tr><tr><td bgcolor="mediumpurple1" align="center"><b>[fan-in]</b></td></tr></table>>];
+  judge [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = await judge(state)</i></td></tr></table>>];
+
+  analytical_writer -> fanin_voting_ensemble_line_38 [color=slateblue4, style=dashed];
+  concise_writer -> fanin_voting_ensemble_line_38 [color=slateblue4, style=dashed];
+  creative_writer -> fanin_voting_ensemble_line_38 [color=slateblue4, style=dashed];
+  fanin_voting_ensemble_line_38 -> judge;
+  fanout_voting_ensemble_line_38 -> analytical_writer [color=mediumpurple4, label="slice 2", style=bold];
+  fanout_voting_ensemble_line_38 -> concise_writer [color=mediumpurple4, label="slice 3", style=bold];
+  fanout_voting_ensemble_line_38 -> creative_writer [color=mediumpurple4, label="slice 1", style=bold];
+  fanout_voting_ensemble_line_38 -> fanin_voting_ensemble_line_38 [color=mediumpurple4, label="slice 0\n(parent)", style=dashed];
+  judge -> end_voting_ensemble;
+  start_voting_ensemble -> fanout_voting_ensemble_line_38;
+}

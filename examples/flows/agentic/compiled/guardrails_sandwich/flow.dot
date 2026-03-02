@@ -1,0 +1,28 @@
+digraph flow {
+  rankdir=TB;
+  compound=true;
+  graph [fontname="Courier", fontsize=10];
+  node [fontname="Courier", fontsize=10, shape=box, style="filled,rounded", margin="0.2"];
+  edge [fontname="Courier", fontsize=10];
+
+  start_guardrails_sandwich [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = await start_guardrails_sandwich(state)</i></td></tr></table>>];
+  end_guardrails_sandwich [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = await end_guardrails_sandwich(state)</i></td></tr></table>>];
+  safe_fallback [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = await safe_fallback(state)</i></td></tr></table>>];
+  subgraph cluster_try_0 {
+    style=dashed;
+    color="snow4";
+    fontname="Courier";
+    fontsize=10;
+    label="try";
+    core_agent [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = await core_agent(state)</i></td></tr></table>>];
+    input_validator [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = await input_validator(state)</i></td></tr></table>>];
+    output_validator [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = await output_validator(state)</i></td></tr></table>>];
+  }
+
+  core_agent -> output_validator;
+  input_validator -> core_agent;
+  output_validator -> end_guardrails_sandwich;
+  output_validator -> safe_fallback [ltail=cluster_try_0, color=snow4, style=dashed, label="except", constraint=false];
+  safe_fallback -> end_guardrails_sandwich;
+  start_guardrails_sandwich -> input_validator;
+}
