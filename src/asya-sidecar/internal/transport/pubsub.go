@@ -2,6 +2,7 @@ package transport
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"sync"
@@ -148,11 +149,9 @@ func (c *realPubSubClient) Close() error {
 	c.topicCache = make(map[string]*pubsub.Topic)
 	c.mu.Unlock()
 
-	if err := c.subscriber.Close(); err != nil {
-		_ = c.publisher.Close()
-		return err
-	}
-	return c.publisher.Close()
+	errSubscriber := c.subscriber.Close()
+	errPublisher := c.publisher.Close()
+	return errors.Join(errSubscriber, errPublisher)
 }
 
 // PubSubTransport implements Transport interface for Google Cloud Pub/Sub

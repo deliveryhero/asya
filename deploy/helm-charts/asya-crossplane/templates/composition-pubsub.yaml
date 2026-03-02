@@ -41,9 +41,11 @@ spec:
             kind: Topic
             metadata:
               annotations:
+                crossplane.io/external-name: asya-{{`{{ $namespace }}`}}-{{`{{ $actorName }}`}}
                 gotemplating.fn.crossplane.io/composition-resource-name: pubsub-topic
             spec:
               forProvider:
+                name: asya-{{`{{ $namespace }}`}}-{{`{{ $actorName }}`}}
                 project: {{`{{ $gcpProject }}`}}
               providerConfigRef:
                 name: {{`{{ $providerConfigRef }}`}}
@@ -68,9 +70,11 @@ spec:
             kind: Subscription
             metadata:
               annotations:
+                crossplane.io/external-name: asya-{{`{{ $namespace }}`}}-{{`{{ $actorName }}`}}
                 gotemplating.fn.crossplane.io/composition-resource-name: pubsub-subscription
             spec:
               forProvider:
+                name: asya-{{`{{ $namespace }}`}}-{{`{{ $actorName }}`}}
                 project: {{`{{ $gcpProject }}`}}
                 topicSelector:
                   matchControllerRef: true
