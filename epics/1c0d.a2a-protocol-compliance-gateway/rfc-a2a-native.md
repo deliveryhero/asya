@@ -3,7 +3,7 @@
 **Status**: Draft
 **Date**: 2026-03-02
 **Epic**: 1c0d (A2A Protocol Compliance for Gateway)
-**Supersedes**: Sections of `epic.md` (original A2A RFC) and `rfc.md` (expose flows)
+**Supersedes**: `epic.md` (original A2A RFC) and `rfc.md` (expose flows) — **this is the single source of truth**
 **Related**: 1mx1 (meshage rename), 1ixy (pause-resume), 1l01 (ABI protocol), 1dmf (stateful actors)
 
 ---
@@ -21,6 +21,7 @@
   - [5.4 History in Meshage Payload](#54-history-in-meshage-payload)
   - [5.5 Context as Grouping Attribute](#55-context-as-grouping-attribute)
   - [5.6 ID Scheme](#56-id-scheme)
+  - [5.7 Dual-Channel Message Pattern](#57-dual-channel-message-pattern)
 - [6. Gateway Architecture](#6-gateway-architecture)
   - [6.1 Endpoint Layout](#61-endpoint-layout)
   - [6.2 a2a-go Library Integration](#62-a2a-go-library-integration)
@@ -39,11 +40,13 @@
   - [8.1 Agent Card Structure](#81-agent-card-structure)
   - [8.2 Skill Registration](#82-skill-registration)
   - [8.3 Skill Resolution Strategy](#83-skill-resolution-strategy)
+  - [8.4 Registration API](#84-registration-api)
 - [9. Streaming Architecture](#9-streaming-architecture)
   - [9.1 FLY to A2A StreamResponse Mapping](#91-fly-to-a2a-streamresponse-mapping)
   - [9.2 SSE Event Format](#92-sse-event-format)
   - [9.3 Actor-to-Client Streaming Flow](#93-actor-to-client-streaming-flow)
   - [9.4 Blocking Mode](#94-blocking-mode)
+  - [9.5 Multi-Frame Streaming Pipeline](#95-multi-frame-streaming-pipeline)
 - [10. Pause/Resume and input_required](#10-pauseresume-and-input_required)
   - [10.1 Actor-Initiated Pause](#101-actor-initiated-pause)
   - [10.2 Gateway State Transition](#102-gateway-state-transition)
@@ -511,6 +514,48 @@ they should NOT exist outside the A2A layer. The `x-asya-a2a-` prefix makes this
 boundary explicit. Asya-internal headers (like `x-asya-pause`, `x-asya-resume-task`)
 keep the existing `x-asya-` prefix since they are not A2A-specific.
 
+### 5.7 Dual-Channel Message Pattern
+
+A2A Messages are modeled via two complementary channels depending on whether
+they are transient signals or canonical records:
+
+| Feature | FLY (Ephemeral) | Meshage History (Persistent) |
+|---------|-----------------|------------------------------|
+| **A2A semantic** | `StreamResponse` variants: `artifact_update`, `status_update`, `message` | `Task.history` (list of Messages) |
+| **Asya mechanism** | `yield "FLY", {...}` → runtime SSE → sidecar → `POST /mesh/{id}/partial` → gateway SSE | Appended to `payload.a2a.history` → travels through message queues |
+| **Persistence** | None (real-time broadcast only) | Travels with meshage, survives pause/resume via S3 |
+| **Primary use** | Streaming tokens, thoughts, live status, progress indicators | Multi-turn conversation history, final answers, input prompts |
+| **Visibility** | Connected SSE clients only | All subsequent actors + late-joining clients (via S3 fetch) |
+| **Storage cost** | Zero (fire-and-forget broadcast) | Grows per canonical turn (bounded by queue message size limit) |
+| **When to use** | Actor wants to show progress, stream tokens, signal thinking | Actor needs to record a turn that future actors or resume cycles can read |
+
+**Rule of thumb**: If the data matters after the SSE connection closes, put it in
+`payload.a2a.history`. If it's only useful while watching in real-time, use FLY.
+
+**FLY channel example** (actor code):
+
+```python
+async def agent_actor(payload):
+    # Stream tokens via FLY — ephemeral, not persisted
+    async for token in model.stream(payload["query"]):
+        yield "FLY", {"artifact_update": {
+            "artifact": {"artifact_id": "stream-0",
+                         "parts": [{"text": token}]},
+            "append": True, "last_chunk": False
+        }}
+
+    # Record canonical turn in history — persisted
+    result = await model.complete(payload["query"])
+    payload.setdefault("a2a", {}).setdefault("history", [])
+    payload["a2a"]["history"].append({
+        "role": "agent",
+        "parts": [{"text": result}]
+    })
+
+    payload["response"] = result
+    yield payload  # EMIT downstream
+```
+
 ---
 
 ## 6. Gateway Architecture
@@ -544,10 +589,10 @@ asya-gateway
 │
 ├── /mcp                              # MCP Streamable HTTP (unchanged - to become also configurable!)
 ├── /mcp/sse                          # MCP SSE deprecated (unchanged)
-├── /tools/call                       # REST tool invocation (unchanged)
-├── /tools/expose                     # Register tool/skill (POST)
-├── /tools                            # List tools (GET)
-├── /tools/{name}                     # Remove tool (DELETE)
+├── /tools/call                       # REST tool invocation (MCP, unchanged)
+│
+├── /mesh/expose                     # Register tool/skill (POST), list (GET)
+├── /mesh/tools/{name}               # Get/remove tool (GET/DELETE)
 │
 ├── /mesh/{id}/progress               # Sidecar progress reporting (POST)
 ├── /mesh/{id}/final                  # End actor final status (POST)
@@ -883,6 +928,39 @@ clauses.
 4. Sidecar acks current message, does not route to next actor
 5. Return updated Task with `status.state: CANCELED`
 
+**Cancellation flow**:
+
+```
+Client                     Gateway              Sidecar             Actor Mesh
+  |                          |                     |                    |
+  |-- POST :cancel --------->|                     |                    |
+  |                          |-- Set canceled       |                    |
+  |                          |   in TaskStore       |                    |
+  |<-- Task{CANCELED} -------|                     |                    |
+  |                          |                     |                    |
+  |                          |     (next poll)     |                    |
+  |                          |<-- GET /mesh/{id}/  |                    |
+  |                          |    active ----------|                    |
+  |                          |--- 410 Gone ------->|                    |
+  |                          |                     |-- Ack msg          |
+  |                          |                     |   (no DLQ) ------->|
+  |                          |                     |-- Do NOT route     |
+  |                          |                     |   to next actor    |
+  |                          |                     |-- Report final     |
+  |                          |                     |   status: canceled |
+```
+
+**Sidecar behavior on cancellation** (discovered via `GET /mesh/{id}/active` → `410 Gone`):
+1. Ack the current message (prevent DLQ pollution)
+2. Do NOT route to next actor
+3. Log cancellation at INFO level
+4. Report final status as `canceled` to gateway
+
+No changes to the runtime or user handlers — cancellation is transparent to actors.
+The sidecar's existing `/mesh/{id}/active` endpoint already returns `410 Gone` for
+completed/failed tasks. Extending it to also return `410` for `canceled` requires
+minimal change.
+
 **Error**: `TaskNotCancelableError` if task is already terminal.
 
 ### 7.6 SubscribeToTask
@@ -990,7 +1068,7 @@ Served at `GET /.well-known/agent.json`. Generated dynamically from the
 | `ASYA_A2A_PUBLIC_URL` | Base URL for `supportedInterfaces` | Required |
 
 **Refresh**: Agent Card is regenerated from the `tools` table whenever the tool
-registry changes (POST/DELETE on `/tools/expose`). Cached in memory via atomic
+registry changes (POST/DELETE on `/mesh/expose`). Cached in memory via atomic
 pointer swap.
 
 ### 8.2 Skill Registration
@@ -1086,6 +1164,152 @@ immediately and the response appears synchronous to the client when
 
 **This pattern is not in initial scope** — it requires the LLM router actor to
 be designed and the gateway to support `blocking` mode first (Phase 2).
+
+### 8.4 Registration API
+
+Tool/skill registration replaces the former YAML-based static config
+(`routes.yaml` ConfigMap) with a DB-backed registry and REST API. The gateway
+boots from PostgreSQL. No ConfigMap, no fsnotify, no gateway restart needed.
+
+**Design decision**: Registration endpoints live under `/mesh/expose` (not
+`/tools/expose`) because they are internal management operations for the actor
+mesh — same namespace as sidecar-facing routes. The `/tools/call` endpoint
+remains separate as the client-facing MCP REST tool invocation.
+
+#### 8.4.1 Endpoints
+
+| Method | Path | Purpose |
+|--------|------|---------|
+| `POST` | `/mesh/expose` | Register or update a tool/skill (upsert) |
+| `GET` | `/mesh/expose` | List all registered tools/skills |
+| `GET` | `/mesh/tools/{name}` | Get a specific tool/skill |
+| `DELETE` | `/mesh/tools/{name}` | Remove a tool/skill |
+
+#### 8.4.2 Register (Upsert)
+
+```http
+POST /mesh/expose
+Content-Type: application/json
+
+{
+  "name": "analyze-document",
+  "actor": "start-analysis",
+  "description": "Analyze documents for key themes and sentiment",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "query": {"type": "string", "description": "Analysis query"},
+      "depth": {"type": "integer", "default": 1}
+    },
+    "required": ["query"]
+  },
+  "timeout_sec": 300,
+  "progress": true,
+  "mcp_enabled": true,
+  "a2a": {
+    "enabled": true,
+    "tags": ["analysis", "nlp", "documents"],
+    "input_modes": ["application/json", "application/pdf"],
+    "output_modes": ["application/json"],
+    "examples": ["Analyze this quarterly report for revenue trends"]
+  }
+}
+```
+
+**Response**: `201 Created` (new) or `200 OK` (updated).
+
+```json
+{
+  "name": "analyze-document",
+  "actor": "start-analysis",
+  "description": "Analyze documents for key themes and sentiment",
+  "mcp_enabled": true,
+  "a2a_enabled": true,
+  "created_at": "2026-03-02T10:00:00Z",
+  "updated_at": "2026-03-02T10:00:00Z"
+}
+```
+
+#### 8.4.3 List
+
+```http
+GET /mesh/expose
+
+Response: 200 OK
+[
+  {"name": "analyze-document", "actor": "start-analysis", "mcp_enabled": true, "a2a_enabled": true},
+  {"name": "extract-text", "actor": "text-extractor", "mcp_enabled": true, "a2a_enabled": false}
+]
+```
+
+#### 8.4.4 Remove
+
+```http
+DELETE /mesh/tools/analyze-document
+
+Response: 204 No Content
+```
+
+#### 8.4.5 In-Memory Registry Refresh
+
+After each mutation (POST/DELETE), the gateway reloads the full tool list from
+DB into an in-memory registry. Thread-safe via `atomic.Value` (Go). In-flight
+requests complete with the old registry; new requests use the updated one.
+
+```go
+// Follows existing TaskStore pattern
+type ToolRegistry struct {
+    tools atomic.Value // *[]Tool
+    db    *sql.DB
+}
+
+func (r *ToolRegistry) Refresh() error {
+    tools, err := r.loadFromDB()
+    if err != nil { return err }
+    r.tools.Store(&tools)
+    return nil
+}
+```
+
+Both MCP and A2A read from the same registry:
+- MCP `tools/list`: filter `WHERE mcp_enabled = true`
+- A2A Agent Card skills: filter `WHERE a2a_enabled = true`
+
+#### 8.4.6 Route Simplification (CPS)
+
+With DB-backed registration, the gateway sends to the **entrypoint actor only**,
+not a full route list. Routing decisions are made by router actors at each step
+(Continuation-Passing Style):
+
+```
+Before (YAML config):    route: [validator, processor, notifier]
+After (DB + CPS):         actor: start-order-processing
+```
+
+The `start-order-processing` router writes the actual continuation via ABI:
+```python
+yield "SET", ".route.next", ["validator", "processor", "notifier"]
+yield payload
+```
+
+A tool maps to exactly **one entrypoint actor**. Standalone actors with empty
+`next` are just entrypoints with no continuation.
+
+#### 8.4.7 YAML Config Migration
+
+The YAML-based tool config (`routes.yaml` ConfigMap) is fully replaced:
+
+**Removed**:
+- `config.LoadConfig()` from `main.go`
+- `ASYA_CONFIG_PATH` env var
+- `routes-configmap.yaml` from Helm chart
+- `config/routes.go` route template resolution
+
+**Migration path**: CLI migration script (Phase 2):
+```bash
+asya tools migrate --from routes.yaml --gateway-url http://...
+```
+Reads YAML, POSTs each tool to the gateway API. Explicit, auditable.
 
 ---
 
@@ -1235,6 +1459,130 @@ When `configuration.blocking: true`, the gateway holds the HTTP connection:
 
 **Timeout**: Uses the task's `timeout_sec` as the HTTP response timeout. If the
 task times out, the gateway returns the task with `status: FAILED`.
+
+**Blocking mode response** (example):
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "task": {
+      "id": "task-789",
+      "contextId": "ctx-abc",
+      "status": {
+        "state": "COMPLETED",
+        "timestamp": "2026-03-02T10:00:30Z"
+      },
+      "artifacts": [{
+        "artifactId": "result-1",
+        "parts": [{"data": {"themes": ["revenue growth", "market expansion"]}}]
+      }]
+    }
+  }
+}
+```
+
+### 9.5 Multi-Frame Streaming Pipeline
+
+Generator handlers communicate with the sidecar via an SSE-based multi-frame
+protocol. This is the low-level transport that enables FLY streaming.
+
+#### 9.5.1 Runtime → Sidecar Protocol
+
+When a handler uses `yield` (generator), the runtime switches from batch JSON
+response to SSE streaming with four event types:
+
+| SSE Event Type | When | Content |
+|----------------|------|---------|
+| `event: downstream` | Handler yields a payload dict (EMIT) | `{"payload": {...}, "route": {...}}` — routed to next actor |
+| `event: upstream` | Handler yields `"FLY", {...}` | `{"payload": {...}}` — forwarded to gateway for SSE broadcast |
+| `event: error` | Handler raises exception | `{"error": "...", "traceback": "..."}` |
+| `event: done` | Generator exhausted | Empty — signals stream end |
+
+**Runtime implementation** (`asya_runtime.py`):
+```python
+def _stream_sse_response(self, message, user_func):
+    self.send_response(200)
+    self.send_header("Content-Type", "text/event-stream")
+
+    def on_fly(payload):
+        data = json.dumps({"payload": payload})
+        self.wfile.write(f"event: upstream\ndata: {data}\n\n".encode())
+
+    def on_emit(frame):
+        data = json.dumps(frame)
+        self.wfile.write(f"event: downstream\ndata: {data}\n\n".encode())
+
+    # Drive generator with ABI dispatch (FLY → on_fly, EMIT → on_emit)
+    self._drive_generator(message, user_func, on_fly, on_emit)
+    self.wfile.write(b"event: done\ndata: \n\n")
+```
+
+#### 9.5.2 Sidecar SSE Stream Parsing
+
+The sidecar's runtime client (`internal/runtime/client.go`) parses the SSE stream
+and dispatches each event type:
+
+```
+Sidecar receives SSE from runtime:
+├── "downstream" → RuntimeResponse → queued to next actor via transport
+├── "upstream"   → onUpstream callback → forwarded to gateway
+├── "error"      → RuntimeError → message nacked, routed to x-sump
+└── "done"       → stream complete, return all responses
+```
+
+The `onUpstream` callback is wired by the router to call
+`progressReporter.ForwardPartial()`, which POSTs the raw FLY payload to the
+gateway at `POST /mesh/{id}/partial`.
+
+**FLY forwarding is fire-and-forget**: The sidecar does not wait for gateway
+acknowledgment. If the gateway is unavailable, the event is logged and dropped.
+This preserves the sidecar's non-blocking message processing guarantee.
+
+#### 9.5.3 Gateway Partial Event Handling
+
+The gateway's `HandleTaskPartial` receives the raw FLY payload and:
+
+1. Wraps it in a `TaskUpdate` with `PartialPayload` field
+2. Persists to `task_updates` table (column: `partial_payload JSONB`)
+3. Broadcasts immediately to SSE subscribers
+
+**A2A translation**: The gateway inspects the FLY dict's top-level key to
+determine the SSE event type:
+
+| FLY Dict Key | A2A SSE Event |
+|-------------|---------------|
+| `artifact_update` | `event: artifact_update` |
+| `status_update` | `event: status_update` |
+| `message` | `event: message` |
+| (other) | `event: partial` (legacy/non-A2A) |
+
+The gateway stamps `taskId` and `contextId` from the task record before
+broadcasting.
+
+#### 9.5.4 Full Pipeline Diagram
+
+```
+Actor Handler            Runtime              Sidecar              Gateway              Client
+  |                       |                    |                    |                    |
+  |-- yield "FLY",{...} ->|                    |                    |                    |
+  |                       |-- event: upstream   |                    |                    |
+  |                       |   data: {payload:  |                    |                    |
+  |                       |          {...}} -->|                    |                    |
+  |                       |                    |-- POST /mesh/{id}/ |                    |
+  |                       |                    |   partial -------->|                    |
+  |                       |                    |                    |-- SSE event ------->|
+  |                       |                    |                    |  (artifact_update)  |
+  |                       |                    |                    |                    |
+  |-- yield payload ----->|                    |                    |                    |
+  |                       |-- event: downstream|                    |                    |
+  |                       |   data: {payload:  |                    |                    |
+  |                       |    {...},route:{}} |                    |                    |
+  |                       |                    |-- Route to next    |                    |
+  |                       |                    |   actor queue      |                    |
+  |                       |-- event: done ---->|                    |                    |
+```
 
 ---
 
@@ -1562,16 +1910,43 @@ CREATE TABLE task_push_configs (
 CREATE INDEX idx_task_push_configs_task_id ON task_push_configs(task_id);
 ```
 
-### 13.4 Tools Table Extensions
+### 13.4 Tools Table
+
+Replaces the former YAML-based `routes.yaml` ConfigMap. This is the full schema
+(new table, not ALTER):
 
 ```sql
--- Add A2A-specific columns (may already exist from rfc.md)
-ALTER TABLE tools ADD COLUMN IF NOT EXISTS a2a_enabled BOOLEAN NOT NULL DEFAULT false;
-ALTER TABLE tools ADD COLUMN IF NOT EXISTS a2a_tags TEXT[] NOT NULL DEFAULT '{}';
-ALTER TABLE tools ADD COLUMN IF NOT EXISTS a2a_input_modes TEXT[] NOT NULL DEFAULT '{application/json}';
-ALTER TABLE tools ADD COLUMN IF NOT EXISTS a2a_output_modes TEXT[] NOT NULL DEFAULT '{application/json}';
-ALTER TABLE tools ADD COLUMN IF NOT EXISTS a2a_examples TEXT[] NOT NULL DEFAULT '{}';
+CREATE TABLE tools (
+    name             TEXT PRIMARY KEY,
+    actor            TEXT NOT NULL,
+    description      TEXT NOT NULL DEFAULT '',
+    parameters       JSONB NOT NULL DEFAULT '{}',
+    timeout_sec      INTEGER,
+    progress         BOOLEAN NOT NULL DEFAULT false,
+    mcp_enabled      BOOLEAN NOT NULL DEFAULT true,
+    a2a_enabled      BOOLEAN NOT NULL DEFAULT false,
+    a2a_tags         TEXT[] NOT NULL DEFAULT '{}',
+    a2a_input_modes  TEXT[] NOT NULL DEFAULT '{application/json}',
+    a2a_output_modes TEXT[] NOT NULL DEFAULT '{application/json}',
+    a2a_examples     TEXT[] NOT NULL DEFAULT '{}',
+    created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at       TIMESTAMPTZ NOT NULL DEFAULT now()
+);
 ```
+
+| Column | Notes |
+|--------|-------|
+| `name` | Natural PK. Tool/skill identifier across MCP, A2A, CLI. |
+| `actor` | Single entrypoint actor name. Gateway resolves to queue: `asya-{namespace}-{actor}`. |
+| `parameters` | Full JSON Schema object. Passed through to MCP/A2A without interpretation. |
+| `timeout_sec` | Per-tool timeout override. Null = gateway default. |
+| `progress` | Whether to enable progress reporting for this tool. |
+| `mcp_enabled` | Visible in MCP `tools/list`. Default true. |
+| `a2a_enabled` | Visible in A2A Agent Card skills. Default false (explicit opt-in). |
+| `a2a_tags` | A2A skill tags for discoverability. |
+| `a2a_input_modes` | A2A skill input MIME types. |
+| `a2a_output_modes` | A2A skill output MIME types. |
+| `a2a_examples` | Example prompts for the A2A skill. |
 
 ---
 
@@ -1629,47 +2004,61 @@ around a2a-go). ~200 lines sidecar changes (URL rename + FLY forwarding).
 
 ## 15. Testing Strategy
 
-### Unit Tests
+### 15.1 Unit Tests
 
 | Component | What to Test | Location |
 |-----------|-------------|----------|
-| Message → payload translation | Part extraction, history construction, A2A nesting | `internal/a2a/translator_test.go` |
-| State mapping | All 9 A2A states ↔ internal states | `internal/a2a/state_test.go` |
-| Skill resolution | Extension-based, single-skill default, rejection | `internal/a2a/skill_resolver_test.go` |
-| Agent Card generation | Skills filtering, capabilities | `internal/a2a/agent_card_test.go` |
-| Store adapter | Internal ↔ A2A task translation | `internal/a2a/store_adapter_test.go` |
-| Executor | Meshage creation, resume detection | `internal/a2a/executor_test.go` |
+| Message → payload translation | Part extraction, history construction, A2A nesting, single data part unwrap, text-only concat, mixed parts | `internal/a2a/translator_test.go` |
+| State mapping | All 9 A2A states ↔ internal states, bidirectional | `internal/a2a/state_test.go` |
+| Skill resolution | Extension-based, single-skill default, multi-skill rejection with guidance, task continuation | `internal/a2a/skill_resolver_test.go` |
+| Agent Card generation | Skills filtering (a2a_enabled), capabilities flags, input/output modes, env var config | `internal/a2a/agent_card_test.go` |
+| Store adapter | Internal ↔ A2A task translation, version tracking, list pagination | `internal/a2a/store_adapter_test.go` |
+| Executor | New task meshage creation, resume detection for paused tasks, skill metadata in headers | `internal/a2a/executor_test.go` |
+| Tool registry | CRUD operations, MCP/A2A filtering, in-memory refresh, concurrent access | `internal/toolstore/registry_test.go` |
+| Partial event translation | FLY dict key → A2A SSE event type mapping | `internal/a2a/streaming_test.go` |
+| Blocking mode | Timeout handling, terminal state detection, interrupted state detection | `internal/a2a/blocking_test.go` |
 
-### Component Tests (Docker Compose)
-
-| Test | What to Verify |
-|------|---------------|
-| Agent Card served | `GET /.well-known/agent.json` returns valid A2A card |
-| SendMessage creates task | POST → task in DB → meshage in queue |
-| SendStreamingMessage SSE | POST → SSE events in A2A format |
-| GetTask format | A2A response with status, artifacts |
-| ListTasks pagination | Cursor-based pagination, context filtering |
-| CancelTask | Cancel → sidecar stops routing |
-| Auth middleware | 401 for unauthenticated, 200 for authenticated |
-
-### Integration Tests (Docker Compose)
+### 15.2 Component Tests (Docker Compose)
 
 | Test | What to Verify |
 |------|---------------|
-| A2A end-to-end | SendMessage → actors → SSE result |
-| MCP + A2A parity | Same flow callable via both protocols |
-| Multi-turn conversation | Same context_id → grouped tasks |
-| Pause/resume as input_required | Pause → INPUT_REQUIRED → resume → COMPLETED |
-| FLY streaming | Actor FLY → artifact_update SSE events |
+| Agent Card served | `GET /.well-known/agent.json` returns valid A2A card with skills |
+| SendMessage creates task | POST → task in DB → meshage in queue → correct actor routing |
+| SendStreamingMessage SSE | POST → SSE stream with task/status_update/artifact_update events |
+| GetTask format | A2A response with status, optional artifacts (from S3), omitted history for in-flight |
+| GetTask paused with history | S3 fetch for paused task returns history from `payload.a2a.history` |
+| ListTasks pagination | Cursor-based pagination, context_id filtering, status filtering |
+| CancelTask | Cancel → status updated → sidecar stops routing (410 Gone) |
+| Registration API | `POST /mesh/expose` upsert, `GET /mesh/expose` list, `DELETE /mesh/tools/{name}` |
+| Registration refresh | POST new tool → Agent Card immediately reflects new skill |
+| Auth middleware | 401 for unauthenticated, 200 for authenticated, no auth on `/mesh/*` |
+| Blocking mode | `configuration.blocking: true` → response after completion |
+| Error responses | JSON-RPC error codes for skill not found, task not found, invalid params |
 
-### E2E Tests (Kind cluster)
+### 15.3 Integration Tests (Docker Compose)
 
 | Test | What to Verify |
 |------|---------------|
-| Agent Card with real AsyncActors | Skills match deployed flows |
-| Cross-namespace routing | Gateway routes to correct namespace |
-| Auth enforcement | API Key required for A2A, not for MCP |
-| A2A SDK client interop | Official a2a-go client can interact with gateway |
+| A2A end-to-end | SendMessage → actors → SSE result → GetTask returns artifacts |
+| MCP + A2A parity | Same flow callable via both protocols, same result |
+| Multi-turn conversation | Same context_id → grouped tasks in ListTasks |
+| Pause/resume as input_required | Pause → INPUT_REQUIRED → resume with data → COMPLETED |
+| FLY streaming pipeline | Actor FLY → runtime upstream SSE → sidecar → `/mesh/{id}/partial` → client SSE artifact_update |
+| Multi-frame ordering | Multiple FLY events arrive in order at client SSE |
+| Cancellation mid-flight | Cancel during actor processing → sidecar acks, no routing |
+| Context_id propagation | context_id in headers, readable by actor via ABI GET |
+
+### 15.4 E2E Tests (Kind cluster)
+
+| Test | What to Verify |
+|------|---------------|
+| Agent Card with real AsyncActors | Skills match deployed flows via `POST /mesh/expose` |
+| Full A2A flow with Crossplane | SendMessage → Crossplane-managed actors → result |
+| Cross-namespace routing | Gateway routes to correct namespace queue |
+| Auth enforcement | API Key required for A2A, not for MCP or `/mesh/*` |
+| A2A SDK client interop | Official `a2a-go` client can discover, send, stream, cancel |
+| Pause/resume with S3 | Full pause → S3 persist → resume → S3 load → continue |
+| Concurrent tasks | Multiple tasks in same context, correct isolation |
 
 ---
 
