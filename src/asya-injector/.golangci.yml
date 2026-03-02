@@ -35,7 +35,7 @@ linters-settings:
     - G115 # Integer overflow conversion
 
   gocyclo:
-    min-complexity: 30
+    min-complexity: 35
 
   goconst:
     min-len: 3

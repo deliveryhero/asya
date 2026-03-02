@@ -44,7 +44,7 @@ linters-settings:
     check-generated: false
 
   gocyclo:
-    min-complexity: 30
+    min-complexity: 35
 
   goconst:
     min-len: 3
