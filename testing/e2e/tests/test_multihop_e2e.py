@@ -34,7 +34,7 @@ def test_multihop_chain(gateway_helper):
     logger.info("Streaming progress updates...")
     updates = gateway_helper.stream_task_progress(
         task_id=task_id,
-        timeout=120
+        timeout=90
     )
 
     logger.info(f"[+] Received {len(updates)} progress updates")
@@ -70,7 +70,7 @@ def test_multihop_progress_percentage(gateway_helper):
 
     updates = gateway_helper.stream_task_progress(
         task_id=task_id,
-        timeout=120
+        timeout=90
     )
 
     progress_values = [u.get("progress_percent", 0) for u in updates]

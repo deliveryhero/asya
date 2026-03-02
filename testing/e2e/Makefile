@@ -1,4 +1,4 @@
-.PHONY: help up test test-crossplane clean down trigger-tests port-forward-up port-forward-down diagnostics logs debug
+.PHONY: help up test test-crossplane clean down trigger-tests diagnostics logs debug
 MAKEFLAGS += --no-print-directory
 .EXPORT_ALL_VARIABLES:
 
@@ -40,41 +40,29 @@ export PROFILE
 up: ## Deploy E2E environment
 	./scripts/deploy.sh
 
-test: ## Run complete E2E tests (deploy → port-forward-up → test → port-forward-down → cleanup)
+test: ## Run complete E2E tests (deploy → test → cleanup)
 	$(MAKE) up
-	$(MAKE) port-forward-up
 	$(MAKE) trigger-tests
-	$(MAKE) port-forward-down
 	$(MAKE) down
 
-port-forward-up: ## Start port-forwards in background (idemportent operation)
-	./scripts/port-forward.sh start
-
-port-forward-down: ## Stop all port-forwards
-	./scripts/port-forward.sh stop
-
-trigger-tests: ## Only trigger tests, assuming that Kind cluster is already up (sets up port-forwarding if needed)
+trigger-tests: ## Only trigger tests, assuming that Kind cluster is already up
 	@echo "Running E2E tests with profile=$(PROFILE)..."
 	@mkdir -p $(COVERAGE_DIR)
-	$(MAKE) port-forward-up
 	set -a && . ./profiles/.env.$(PROFILE) && set +a && \
 		uv run $(UV_RUN_OPTS) pytest tests/ $(PYTEST_OPTS) \
 			--cov --cov-config=$(COVERAGERC) --cov-report=term \
 			--cov-report=json:$(COVERAGE_DIR)/cov-$(PROFILE).json
 	@test -f $(COVERAGE_DIR)/cov-$(PROFILE).json && echo "[+] Coverage JSON: $(COVERAGE_DIR)/cov-$(PROFILE).json" || echo "[-] Coverage not generated"
 	@echo "[+] Success: E2E tests with $(PROFILE) profile"
-	$(MAKE) port-forward-down
 
 test-crossplane: ## Run Crossplane + Injector E2E tests
 	@echo "[.] Running Crossplane E2E tests with profile=$(PROFILE)"
 	@mkdir -p $(COVERAGE_DIR)
-	$(MAKE) port-forward-up
 	set -a && . ./profiles/.env.$(PROFILE) && set +a && \
 		uv run $(UV_RUN_OPTS) pytest tests/test_crossplane_e2e.py $(PYTEST_OPTS) \
 			--cov --cov-config=$(COVERAGERC) --cov-report=term \
 			--cov-report=json:$(COVERAGE_DIR)/cov-$(PROFILE)-crossplane.json
 	@echo "[+] All Crossplane E2E tests: PASSED"
-	$(MAKE) port-forward-down
 
 cov: ## Display e2e test coverage report
 	@echo "E2e coverage:"

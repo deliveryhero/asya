@@ -170,6 +170,12 @@ func (i *Injector) buildSidecarEnv(actorConfig *ActorConfig) []corev1.EnvVar {
 				Value: i.config.SQSEndpoint,
 			})
 		}
+		if i.config.SQSWaitTimeSeconds != "" {
+			env = append(env, corev1.EnvVar{
+				Name:  "ASYA_SQS_WAIT_TIME_SECONDS",
+				Value: i.config.SQSWaitTimeSeconds,
+			})
+		}
 		if actorConfig.QueueURL != "" {
 			env = append(env, corev1.EnvVar{
 				Name:  "ASYA_QUEUE_URL",

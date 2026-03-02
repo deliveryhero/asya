@@ -3,6 +3,10 @@ auth:
   password: guest
   erlangCookie: asya-secret-cookie
 
+service:
+  type: NodePort
+  nodePort: 30672
+
 resources:
   requests:
     cpu: 100m
