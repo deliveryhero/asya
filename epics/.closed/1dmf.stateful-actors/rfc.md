@@ -182,6 +182,11 @@ class StateProxyConnector(ABC):
         os.listdir(path)                  -> connector.list(prefix)
         os.remove(path)                   -> connector.delete(key)
 
+    Extended attributes (xattr) — non-abstract, opt-in:
+        os.listxattr(path)                -> connector.listxattr(key)
+        os.getxattr(path, attr)           -> connector.getxattr(key, attr)
+        os.setxattr(path, attr, value)    -> connector.setxattr(key, attr, value)
+
     Runtime handles locally (NOT forwarded):
         f.seek(), f.tell()                -> SpooledTemporaryFile (buffered)
         f.readline(), f.readlines()       -> derived from read()
@@ -265,6 +270,55 @@ class StateProxyConnector(ABC):
         Raises:
             FileNotFoundError: key does not exist (HTTP 404)
         """
+
+    # -- Extended attributes (xattr) --
+    # Non-abstract: connectors opt in by overriding.
+
+    def listxattr(self, key: str) -> list[str]:
+        """List available metadata attributes for a stored key.
+
+        Maps to: os.listxattr(path)
+        Returns attribute names WITHOUT the 'user.asya.' prefix
+        (e.g., ["url", "etag", "content_type"]).
+
+        Default: empty list (no xattr support).
+        """
+        return []
+
+    def getxattr(self, key: str, attr: str) -> str:
+        """Read a metadata attribute for a stored key.
+
+        Maps to: os.getxattr(path, "user.asya.{attr}")
+        attr is the bare name (e.g., "url", not "user.asya.url").
+
+        Returns the attribute value as a string.
+
+        Raises:
+            KeyError: attribute not supported by this connector
+            FileNotFoundError: key does not exist (for attrs that
+                require backend access, e.g. etag)
+        """
+        raise KeyError(
+            f"{type(self).__name__} does not support attribute: {attr}"
+        )
+
+    def setxattr(self, key: str, attr: str, value: str) -> None:
+        """Set a metadata attribute on a stored key.
+
+        Maps to: os.setxattr(path, "user.asya.{attr}", value)
+        attr is the bare name (e.g., "content_type").
+
+        Not all attributes are writable. Read-only attributes (url, etag,
+        version) raise PermissionError. Unsupported attributes raise KeyError.
+
+        Raises:
+            KeyError: attribute not supported by this connector
+            PermissionError: attribute is read-only
+            FileNotFoundError: key does not exist
+        """
+        raise KeyError(
+            f"{type(self).__name__} does not support attribute: {attr}"
+        )
 ```
 
 ### Buffered vs. passthrough implementation example
@@ -422,6 +476,9 @@ Each state proxy connector listens on a Unix socket at `/var/run/asya/state/{nam
 | `stat(key)` | `HEAD /keys/{key}` | 204 + `Content-Length`, `X-Is-File` headers |
 | `list(prefix)` | `GET /keys/?prefix={p}&delimiter=/` | 200 + JSON `{keys: [], prefixes: []}` |
 | `delete(key)` | `DELETE /keys/{key}` | 204 |
+| `listxattr(key)` | `GET /meta/{key}` | 200 + JSON `{attrs: [...]}` |
+| `getxattr(key, attr)` | `GET /meta/{key}?attr={a}` | 200 + JSON `{attr: "...", value: "..."}` |
+| `setxattr(key, attr, val)` | `PUT /meta/{key}?attr={a}` | 204 |
 
 ### Read response format (determines runtime buffering)
 
@@ -454,6 +511,160 @@ GET /keys/?prefix={p}&delimiter=/&limit={n}  -> 200 + limited listing
 ```
 
 This protocol is intentionally simple — any language can implement a connector. No custom serialization, no RPC frameworks. Standard HTTP semantics.
+
+### Metadata (xattr) endpoints
+
+**List attributes**:
+```
+GET /meta/media/report.pdf HTTP/1.1
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"attrs": ["url", "presigned_url", "etag", "content_type"]}
+```
+
+**Read attribute**:
+```
+GET /meta/media/report.pdf?attr=url HTTP/1.1
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"attr": "url", "value": "s3://my-bucket/prefix/media/report.pdf"}
+```
+
+**Set attribute**:
+```
+PUT /meta/media/report.pdf?attr=content_type HTTP/1.1
+Content-Type: application/json
+
+{"value": "application/pdf"}
+
+HTTP/1.1 204 No Content
+```
+
+**Error responses**:
+- `404` — key not found (for attrs requiring backend access)
+- `400` — missing or invalid `attr` query parameter
+- `403` — attribute is read-only (e.g., setting `url` or `etag`)
+- `501` — connector does not support xattrs at all
+
+---
+
+## Extended Attributes (xattr)
+
+Connectors expose backend-specific metadata through `os.getxattr`/`os.setxattr`/
+`os.listxattr` — the standard Linux extended attributes API. The runtime intercepts
+these calls on state mount paths and translates them to HTTP requests on the
+connector's `/meta/` endpoints.
+
+### Namespace Convention
+
+All Asya xattrs use the `user.asya.{attr}` naming convention:
+
+- `user.` — required Linux xattr namespace prefix (only namespace accessible to
+  unprivileged processes)
+- `asya.` — application sub-namespace (prevents collision with other xattr users)
+- `{attr}` — bare attribute name (e.g., `url`, `etag`, `content_type`)
+
+The runtime strips the `user.asya.` prefix before sending to the connector, and
+prepends it when returning results from `os.listxattr`.
+
+### Attribute Catalog
+
+| Attribute | R/W | Type | Description | Backends |
+|-----------|-----|------|-------------|----------|
+| `url` | R | str | Canonical backend URI (`s3://...`, `gs://...`) | S3, GCS, Azure, FS |
+| `presigned_url` | R | str | Time-limited HTTPS URL for unauthenticated access | S3, GCS, Azure |
+| `etag` | R | str | Content hash / entity tag | S3, GCS |
+| `content_type` | RW | str | MIME type (e.g., `application/pdf`) | S3, GCS, Azure |
+| `version` | R | str | Backend version/revision identifier | S3 (versioned), NATS KV |
+| `storage_class` | R | str | Storage tier (e.g., `STANDARD`, `GLACIER`) | S3 |
+| `ttl` | RW | str | Seconds until expiration | Redis |
+
+**R** = read-only (computed by backend, set internally). Setting a read-only
+attribute raises `PermissionError` (HTTP 403).
+
+**RW** = read-write. Actor can set the value. For `content_type`, setting the
+xattr updates the object's Content-Type metadata in the backend. For `ttl`,
+setting updates the key's TTL in Redis.
+
+### Attribute Availability by Connector
+
+| Connector | `url` | `presigned_url` | `etag` | `content_type` | `version` | `ttl` |
+|-----------|-------|-----------------|--------|----------------|-----------|-------|
+| `s3-passthrough` | R | R | R | RW | R* | - |
+| `s3-buffered-cas` | R | R | R | RW | R* | - |
+| `s3-buffered-lww` | R | R | R | RW | R* | - |
+| `redis-buffered-cas` | - | - | - | - | - | RW |
+| `nats-kv-buffered-cas` | - | - | - | - | R | - |
+
+`*` = only if S3 bucket versioning is enabled.
+`-` = not supported (`os.getxattr` raises `OSError(ENODATA)`, `os.listxattr`
+omits from result).
+
+### Handler Usage
+
+```python
+import os
+
+async def handler(payload):
+    # Write a file (existing pattern)
+    with open("/state/media/report.pdf", "wb") as f:
+        f.write(generate_pdf(payload))
+
+    # Discover available attributes
+    attrs = os.listxattr("/state/media/report.pdf")
+    # → ["user.asya.url", "user.asya.presigned_url", "user.asya.etag", ...]
+
+    # Read the external URL
+    url = os.getxattr("/state/media/report.pdf", "user.asya.url")
+    # → b"s3://my-bucket/prefix/media/report.pdf"
+
+    # Read a presigned URL for A2A artifact delivery
+    presigned = os.getxattr("/state/media/report.pdf", "user.asya.presigned_url")
+    # → b"https://my-bucket.s3.amazonaws.com/prefix/media/report.pdf?X-Amz-..."
+
+    # Set content type (writable attribute)
+    os.setxattr("/state/media/report.pdf", "user.asya.content_type",
+                b"application/pdf")
+
+    # Use URL in A2A artifact
+    payload.setdefault("a2a", {}).setdefault("task", {}).setdefault("artifacts", [])
+    payload["a2a"]["task"]["artifacts"].append({
+        "artifact_id": "report",
+        "parts": [{"url": presigned.decode(), "media_type": "application/pdf",
+                    "filename": "report.pdf"}]
+    })
+    return payload
+```
+
+### Local Development
+
+When `ASYA_STATE_PROXY_MOUNTS` is unset, the xattr calls are NOT patched:
+
+- **Linux/macOS**: `os.listxattr` / `os.getxattr` / `os.setxattr` exist natively.
+  On real files without xattrs set, `os.getxattr` raises `OSError` (ENODATA) and
+  `os.listxattr` returns an empty list. Actors that need URL resolution should
+  handle this gracefully.
+- **Windows**: `os.listxattr` / `os.getxattr` / `os.setxattr` do not exist.
+  `AttributeError` on access. Guard with `hasattr(os, "getxattr")` if needed.
+
+For testing, `asya-testing` provides a pytest fixture that patches `os.getxattr`
+to return `file://` URIs for local paths, `os.listxattr` to return
+`["user.asya.url"]`, and `os.setxattr` as a no-op. See `asya-testing` docs.
+
+### Presigned URL Configuration
+
+The `presigned_url` attribute requires connector-side configuration:
+
+- `STATE_PRESIGN_TTL` (env var, default: `3600`) — expiration in seconds
+- The connector's S3 client must have signing credentials
+
+Presigned URLs are computed on each `getxattr` call (not cached). Actors should
+use them promptly. For long-lived references, use the `url` attribute (S3 URI)
+and let the consumer resolve access.
 
 ---
 
@@ -651,6 +862,9 @@ Six functions, covering all standard Python file I/O entry points:
 | `pathlib.Path.iterdir()`, `os.scandir(path)` | `os.scandir` | `GET /keys/?prefix=...&delimiter=/` |
 | `os.remove(path)`, `pathlib.Path.unlink()` | `os.unlink` | `DELETE /keys/{key}` |
 | `os.makedirs(path)` | `os.makedirs` | No-op for state paths (prefixes are implicit) |
+| `os.listxattr(path)` | `os.listxattr` | `GET /meta/{key}` — list available attributes |
+| `os.getxattr(path, attr)` | `os.getxattr` | `GET /meta/{key}?attr={a}` — read attribute value |
+| `os.setxattr(path, attr, value)` | `os.setxattr` | `PUT /meta/{key}?attr={a}` — set attribute value |
 
 The key to catching `pathlib` operations: `pathlib.Path.open()` delegates to `builtins.open`, and `pathlib.Path.exists()` delegates to `os.stat`. Patching the low-level functions catches all high-level wrappers.
 
@@ -836,13 +1050,16 @@ For `passthrough` connectors, writes flow through incrementally. A crash mid-wri
 
 Buffered writes use `SpooledTemporaryFile` (4MB in-memory, then disk spill). Practical limit is ~100MB — beyond that, the temp disk overhead becomes significant. For larger files, use `passthrough` connectors.
 
-### No filesystem metadata
+### Limited filesystem metadata
 
 `os.stat()` returns synthetic values:
 - `st_size`: from backend (`Content-Length` header)
 - `st_mode`: fixed (`S_IFREG | 0644` for files, `S_IFDIR | 0755` for directories)
 - `st_mtime`, `st_atime`, `st_ctime`: not meaningful (zero or backend-provided if available)
 - `st_uid`, `st_gid`: fixed (current user)
+
+For richer metadata, use the extended attributes API (`os.getxattr`, `os.listxattr`,
+`os.setxattr`). See the [Extended Attributes](#extended-attributes-xattr) section.
 
 ### No file locking
 

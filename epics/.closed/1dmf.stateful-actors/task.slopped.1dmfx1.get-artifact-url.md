@@ -1,297 +1,351 @@
 ---
-title: "Implement functionality for actors to read stored artifact URL"
+title: "Implement xattr-based metadata API for state proxy (getxattr/listxattr/setxattr)"
 priority: 1
 type: task
 dependencies: []
-tags: [state-proxy, a2a, artifacts]
+tags: [state-proxy, a2a, artifacts, xattr]
 ---
 
 ## Motivation
 
 Actors that produce files (PDFs, images, model outputs) need to reference them in
 A2A artifacts. Today an actor can `open("/state/media/report.pdf", "wb")` and write
-content — but has no way to obtain the external URL for that file to embed in
-`payload.a2a.task.artifacts[].parts[].url`.
+content — but has no way to obtain backend metadata: external URL, content hash,
+presigned URLs, etc.
 
 The actor doesn't (and shouldn't) know the storage backend configuration (bucket
 name, prefix, region, endpoint). The state proxy connector owns all that. We need
-a way for actors to ask: "what is the externally-addressable URL for this key?"
+a FS-native API for actors to read and write backend metadata using **only Python
+stdlib** — no custom imports (asya_runtime is ConfigMap-injected, not a pip package).
 
-**Cross-reference**: A2A RFC (1c0d) Section 5.3.1 "State Proxy URL Extension".
+**Cross-reference**: A2A RFC (1c0d) Section 5.3.1, State Proxy RFC (1dmf) Section
+"Extended Attributes (xattr)".
 
-## Current Architecture (Context)
+## Design: xattr as Backend Metadata API
 
-```
-Handler code  ──open("/state/media/k","w")──>  asya_runtime.py  ──PUT /keys/k──>  connector  ──>  S3
-                                                (builtins patch)    (Unix socket)     (sidecar)
-```
+Extended attributes (`os.getxattr`/`os.listxattr`/`os.setxattr`) are the standard
+Linux filesystem mechanism for per-file metadata. They map perfectly to "ask the
+backend about a stored object" — and they're Python stdlib on Linux + macOS.
 
-- **Runtime** (`asya_runtime.py`): Patches `builtins.open`, `os.stat`, `os.listdir`,
-  `os.unlink`, `os.makedirs`. Translates to HTTP over Unix socket.
-- **Connector interface** (`StateProxyConnector`): 6 methods — `read`, `write`,
-  `exists`, `stat`, `list`, `delete`. None return URLs.
-- **HTTP server** (`server.py`): Routes `GET/PUT/HEAD/DELETE /keys/{key}` and
-  `GET /keys/?prefix=&delimiter=/`. PUT returns `204` with no body/headers.
-- **S3 connectors**: Have `self._bucket`, `self._prefix`, `self._s3` internally.
-  Can trivially compute `s3://{bucket}/{prefix}/{key}` or generate presigned URLs
-  via `self._s3.generate_presigned_url(...)`.
-- **Redis connector**: No URL-addressable objects. `external_url()` would raise
-  `NotImplementedError` or return `None`.
-
-## Constraint: No Custom Imports
-
-`asya_runtime.py` is a ConfigMap-injected script — NOT a pip package. Handler code
-cannot `from asya_runtime import anything`. The handler API surface is **stdlib only**:
-whatever the runtime patches into `builtins` or `os` modules.
-
-The existing pattern: runtime patches `builtins.open`, `os.stat`, `os.listdir`,
-`os.unlink`, `os.makedirs`. Actors use these stdlib calls transparently. URL
-resolution MUST follow the same pattern — a stdlib call that the runtime intercepts.
-
-## Design
-
-### Handler API: `os.getxattr`
+### Handler API
 
 ```python
+import os
+
 # Write a file (existing pattern — intercepted open())
 with open("/state/media/report.pdf", "wb") as f:
     f.write(pdf_content)
 
-# Get its external URL (new — intercepted os.getxattr())
-url = os.getxattr("/state/media/report.pdf", "user.url")
-# Returns: b"s3://my-bucket/prefix/media/report.pdf"
+# Discover available attributes
+attrs = os.listxattr("/state/media/report.pdf")
+# → ["user.asya.url", "user.asya.presigned_url", "user.asya.etag", ...]
+
+# Read the canonical backend URL
+url = os.getxattr("/state/media/report.pdf", "user.asya.url")
+# → b"s3://my-bucket/prefix/media/report.pdf"
+
+# Read a presigned URL for A2A artifact delivery
+presigned = os.getxattr("/state/media/report.pdf", "user.asya.presigned_url")
+# → b"https://my-bucket.s3.amazonaws.com/prefix/...?X-Amz-Signature=..."
+
+# Set content type (writable attribute)
+os.setxattr("/state/media/report.pdf", "user.asya.content_type",
+            b"application/pdf")
 ```
 
-**Why `os.getxattr`**: Extended attributes are THE filesystem mechanism for attaching
-metadata to files. "What is this file's external URL?" is metadata about a file —
-exactly what xattrs are for. The `user.*` namespace is available to unprivileged
-processes on Linux (no root/capabilities needed).
+### Namespace Convention: `user.asya.{attr}`
 
-**Signature**: `os.getxattr(path, attribute, *, follow_symlinks=True) -> bytes`
+Linux xattr has four namespaces (`user`, `system`, `security`, `trusted`). Only
+`user.*` is accessible to unprivileged processes. We sub-namespace under `asya`
+to prevent collisions:
 
-**Platform availability**:
-- Linux: available (native syscall)
-- macOS: available (native syscall, Darwin 8.0+)
-- Windows: NOT available (`AttributeError` on `os.getxattr`)
+- `user.` — required Linux xattr namespace prefix
+- `asya.` — application sub-namespace
+- `{attr}` — bare attribute name (`url`, `etag`, `content_type`, etc.)
 
-### URL Types
+The runtime strips `user.asya.` before sending to the connector, and prepends it
+when returning results from `os.listxattr`.
 
-| Type | Example | Pros | Cons |
-|------|---------|------|------|
-| **S3 URI** | `s3://bucket/prefix/key` | Simple, stable, no expiry | Requires S3 access to consume |
-| **HTTPS URL** | `https://bucket.s3.region.amazonaws.com/prefix/key` | Standard HTTP | Requires public access or signing |
-| **Presigned URL** | `https://...?X-Amz-Signature=...` | Self-contained, no creds | Expires, long, single-use risk |
+### Attribute Catalog
 
-**Decision**: Return the **canonical backend URL** (S3 URI for S3 connectors). The
-consumer (gateway, materializer, A2A client) resolves/proxies/presigns as needed.
-Keeps connectors simple and avoids expiration concerns. Presigned URL generation is
-the gateway's job when serving `GetTask(includeArtifacts=true)`.
+| Attribute | R/W | Returns | Description | Backends |
+|-----------|-----|---------|-------------|----------|
+| `url` | R | Canonical backend URI | `s3://bucket/key`, `gs://bucket/key` | S3, GCS, Azure |
+| `presigned_url` | R | Time-limited HTTPS URL | Unauthenticated access, configurable TTL | S3, GCS, Azure |
+| `etag` | R | Content hash | Entity tag from backend | S3, GCS |
+| `content_type` | RW | MIME type | e.g. `application/pdf` | S3, GCS, Azure |
+| `version` | R | Version/revision ID | S3 version ID, NATS KV revision | S3*, NATS KV |
+| `storage_class` | R | Storage tier | `STANDARD`, `GLACIER`, etc. | S3 |
+| `ttl` | RW | Seconds until expiry | Key TTL in Redis | Redis |
+
+`R` = read-only (computed by backend). `os.setxattr` raises `PermissionError`.
+`RW` = read-write. `*` = only if S3 bucket versioning is enabled.
+
+### Attribute Availability by Connector
+
+| Connector | `url` | `presigned_url` | `etag` | `content_type` | `version` | `ttl` |
+|-----------|-------|-----------------|--------|----------------|-----------|-------|
+| s3-passthrough | R | R | R | RW | R* | - |
+| s3-buffered-cas | R | R | R | RW | R* | - |
+| s3-buffered-lww | R | R | R | RW | R* | - |
+| redis-buffered-cas | - | - | - | - | - | RW |
+| nats-kv-buffered-cas | - | - | - | - | R | - |
+
+`-` = not supported. `os.getxattr` raises `OSError(ENODATA)`. `os.listxattr`
+omits from result.
 
 ### Cross-Platform Story
 
+**Platform availability**: `os.getxattr`/`os.listxattr`/`os.setxattr`:
+- Linux: available (native syscall)
+- macOS: available (native syscall, Darwin 8.0+)
+- Windows: NOT available (`AttributeError`)
+
 **K8s runtime (Linux)** — full support:
-- Runtime patches `os.getxattr` for state mount paths
-- `os.getxattr("/state/media/k", "user.url")` → HTTP to connector → S3 URI
-- Non-state paths fall through to native `os.getxattr`
+- Runtime patches all three xattr functions for state mount paths
+- `user.asya.*` attributes → HTTP to connector `/meta/` endpoints
+- Non-state paths and non-`user.asya.*` attributes fall through to native
 
 **Local dev (Linux/macOS)** — graceful degradation:
-- `os.getxattr` exists natively on both platforms
-- No state proxy running → calling on a real file raises `OSError` (ENODATA — no
-  such attribute). This is expected — local files don't have external URLs.
-- Actors that produce artifacts should guard the call:
+- `os.getxattr` exists natively but no `user.asya.*` attributes are set on real
+  files → `OSError(ENODATA)`. `os.listxattr` returns empty list (or other real
+  xattrs, never `user.asya.*`).
+- This is expected: local files don't have backend URLs. Actors should guard:
   ```python
   try:
-      url = os.getxattr("/state/media/report.pdf", "user.url").decode()
+      url = os.getxattr(path, "user.asya.url").decode()
   except OSError:
-      url = None  # URL resolution not available locally
+      url = None  # xattr not available locally
   ```
-- Alternatively, `asya-testing` provides a pytest fixture that patches
-  `os.getxattr` to return `file://` URIs for local dev simulation.
+- For test simulation: `asya-testing` provides a pytest fixture.
 
-**Local dev (Windows)** — `os.getxattr` doesn't exist:
-- `AttributeError` on `os.getxattr`. Handler code should guard with
-  `hasattr(os, "getxattr")` or catch both `AttributeError` and `OSError`.
-- Windows is the minority case — most local dev happens on Linux/macOS.
-- If needed, `asya-testing` fixture defines `os.getxattr` on Windows too.
+**Local dev (Windows)** — `os.*xattr` doesn't exist:
+- `AttributeError` on access. Guard with `hasattr(os, "getxattr")` or catch both
+  `AttributeError` and `OSError`.
+- `asya-testing` fixture defines the functions on Windows and returns `file://`
+  URIs. Not a blocker — Windows is minority for container-targeted dev.
 
-**Comparison with existing pattern**: `open("/state/media/k")` "just works" locally
-because real FS is the natural fallback. URL resolution has NO natural local
-fallback — there IS no S3 URL for a local file. The try/except is inherent to the
-feature, not a design flaw. This is infrastructure metadata, not data access.
+## Layer Changes
 
-### Layer Changes
+### 1. Connector Interface (`interface.py`)
 
-#### 1. Connector Interface (`interface.py`)
-
-Add a non-abstract `external_url` method with a default raise:
+Add three non-abstract methods (connectors opt in by overriding):
 
 ```python
 class StateProxyConnector(ABC):
-    # ... existing 6 methods ...
+    # ... existing 6 abstract methods ...
 
-    def external_url(self, key: str) -> str:
-        """Return the external URL for a stored key.
+    def listxattr(self, key: str) -> list[str]:
+        """List supported metadata attributes (bare names, no prefix)."""
+        return []
 
-        Raises NotImplementedError for backends without URL-addressable
-        objects (e.g., Redis).
-        """
-        raise NotImplementedError(
-            f"{type(self).__name__} does not support external URLs"
+    def getxattr(self, key: str, attr: str) -> str:
+        """Read a metadata attribute value.
+        Raises KeyError (unsupported) or FileNotFoundError (key missing)."""
+        raise KeyError(f"{type(self).__name__}: unsupported attr {attr}")
+
+    def setxattr(self, key: str, attr: str, value: str) -> None:
+        """Set a metadata attribute.
+        Raises KeyError (unsupported), PermissionError (read-only),
+        or FileNotFoundError (key missing)."""
+        raise KeyError(f"{type(self).__name__}: unsupported attr {attr}")
+```
+
+### 2. S3 Connectors (all three)
+
+```python
+_S3_ATTRS = ["url", "presigned_url", "etag", "content_type", "version",
+             "storage_class"]
+_S3_WRITABLE = {"content_type"}
+
+def listxattr(self, key: str) -> list[str]:
+    return list(_S3_ATTRS)
+
+def getxattr(self, key: str, attr: str) -> str:
+    full_key = self._full_key(key)
+    if attr == "url":
+        return f"s3://{self._bucket}/{full_key}"
+    if attr == "presigned_url":
+        return self._s3.generate_presigned_url(
+            "get_object",
+            Params={"Bucket": self._bucket, "Key": full_key},
+            ExpiresIn=int(os.environ.get("STATE_PRESIGN_TTL", "3600")),
+        )
+    if attr == "etag":
+        resp = self._s3.head_object(Bucket=self._bucket, Key=full_key)
+        return resp["ETag"]
+    if attr == "content_type":
+        resp = self._s3.head_object(Bucket=self._bucket, Key=full_key)
+        return resp.get("ContentType", "application/octet-stream")
+    if attr == "version":
+        resp = self._s3.head_object(Bucket=self._bucket, Key=full_key)
+        return resp.get("VersionId", "")
+    if attr == "storage_class":
+        resp = self._s3.head_object(Bucket=self._bucket, Key=full_key)
+        return resp.get("StorageClass", "STANDARD")
+    raise KeyError(f"Unsupported attribute: {attr}")
+
+def setxattr(self, key: str, attr: str, value: str) -> None:
+    if attr not in _S3_WRITABLE:
+        raise PermissionError(f"Attribute {attr} is read-only")
+    if attr == "content_type":
+        full_key = self._full_key(key)
+        self._s3.copy_object(
+            Bucket=self._bucket, Key=full_key,
+            CopySource={"Bucket": self._bucket, "Key": full_key},
+            ContentType=value, MetadataDirective="REPLACE",
         )
 ```
 
-Not `@abstractmethod` — connectors that can't provide URLs (Redis, NATS KV) inherit
-the default raise. Only URL-addressable backends override.
+Cost profile: `url` = zero API calls (string concat). `presigned_url` = signing
+call (local crypto, no network). `etag`/`content_type`/`version`/`storage_class`
+= HEAD request.
 
-#### 2. S3 Connectors (all three)
+### 3. HTTP Server (`server.py`)
 
-Override `external_url` to return the S3 URI:
+New `/meta/` route family:
 
-```python
-def external_url(self, key: str) -> str:
-    full_key = self._full_key(key)
-    return f"s3://{self._bucket}/{full_key}"
-```
+| Request | Handler | Response |
+|---------|---------|----------|
+| `GET /meta/{key}` | `listxattr(key)` | `{"attrs": ["url", ...]}` |
+| `GET /meta/{key}?attr=url` | `getxattr(key, "url")` | `{"attr": "url", "value": "s3://..."}` |
+| `PUT /meta/{key}?attr=content_type` | `setxattr(key, "content_type", val)` | 204 |
 
-No S3 API call needed — just concatenates known values.
+Error mapping:
+- `KeyError` → 400 (unsupported attribute)
+- `PermissionError` → 403 (read-only attribute)
+- `FileNotFoundError` → 404 (key not found)
 
-#### 3. HTTP Server (`server.py`)
+### 4. Runtime (`asya_runtime.py`)
 
-Add a new route: `GET /url/{key}` → JSON response with URL.
-
-```
-GET /url/media/report.pdf HTTP/1.1
-
-HTTP/1.1 200 OK
-Content-Type: application/json
-
-{"url": "s3://my-bucket/prefix/media/report.pdf"}
-```
-
-Error responses:
-- `501 Not Implemented` — connector doesn't support URLs (Redis)
-- Standard error mapping for other failures
-
-No existence check — URL is computed from key, not fetched from storage. The actor
-just wrote the file; it should exist.
-
-**Alternatives rejected**:
-- `X-External-URL` header on PUT response — adds overhead to every write, forces
-  runtime to cache. URL resolution is rare; should be on-demand.
-- Query param on HEAD (`HEAD /keys/{key}?url=true`) — HEAD responses shouldn't
-  have bodies; stuffing URLs into headers is awkward.
-
-#### 4. Runtime (`asya_runtime.py`)
-
-Patch `os.getxattr` inside `_install_state_proxy_hooks`, alongside the existing
-`builtins.open`, `os.stat`, etc. patches:
+Patch `os.getxattr`, `os.listxattr`, `os.setxattr` in `_install_state_proxy_hooks`:
 
 ```python
-def _install_state_proxy_hooks(mounts_str):
-    # ... existing patches ...
+_original_getxattr = getattr(os, "getxattr", None)
+_original_listxattr = getattr(os, "listxattr", None)
+_original_setxattr = getattr(os, "setxattr", None)
 
-    _original_getxattr = getattr(os, "getxattr", None)
+_ASYA_PREFIX = "user.asya."
 
-    def _patched_getxattr(path, attribute, *args, **kwargs):
-        # Only intercept user.url on state mount paths
-        attr_str = attribute.decode() if isinstance(attribute, bytes) else attribute
-        if attr_str == "user.url":
-            mount, key = _resolve_mount(path, mounts)
-            if mount is not None:
-                conn = _UnixHTTPClient(mount["socket"])
-                conn.request("GET", f"/url/{key}")
-                resp = conn.getresponse()
-                if resp.status == 501:
-                    raise OSError(errno.ENOTSUP, "Connector does not support URLs")
-                _raise_for_status(resp, key)
-                body = json.loads(resp.read())
-                conn.close()
-                return body["url"].encode("utf-8")
+def _patched_getxattr(path, attribute, *args, **kwargs):
+    attr_str = attribute.decode() if isinstance(attribute, bytes) else attribute
+    if attr_str.startswith(_ASYA_PREFIX):
+        mount, key = _resolve_mount(path, mounts)
+        if mount is not None:
+            bare = attr_str[len(_ASYA_PREFIX):]
+            conn = _UnixHTTPClient(mount["socket"])
+            conn.request("GET", f"/meta/{key}?attr={bare}")
+            resp = conn.getresponse()
+            if resp.status == 400:
+                raise OSError(errno.ENODATA, f"Attribute not supported: {bare}")
+            if resp.status == 403:
+                raise PermissionError(f"Attribute is read-only: {bare}")
+            _raise_for_status(resp, key)
+            body = json.loads(resp.read())
+            conn.close()
+            return body["value"].encode("utf-8")
+    if _original_getxattr is not None:
+        return _original_getxattr(path, attribute, *args, **kwargs)
+    raise OSError(errno.ENOTSUP, "Extended attributes not supported")
 
-        # Fall through to original for non-state paths or other attributes
-        if _original_getxattr is not None:
-            return _original_getxattr(path, attribute, *args, **kwargs)
-        raise OSError(errno.ENOTSUP, "Extended attributes not supported")
+def _patched_listxattr(path=None, **kwargs):
+    if path is not None:
+        mount, key = _resolve_mount(path, mounts)
+        if mount is not None:
+            conn = _UnixHTTPClient(mount["socket"])
+            conn.request("GET", f"/meta/{key}")
+            resp = conn.getresponse()
+            _raise_for_status(resp, key)
+            body = json.loads(resp.read())
+            conn.close()
+            return [f"{_ASYA_PREFIX}{a}" for a in body["attrs"]]
+    if _original_listxattr is not None:
+        return _original_listxattr(path, **kwargs)
+    return []
 
-    os.getxattr = _patched_getxattr
+def _patched_setxattr(path, attribute, value, *args, **kwargs):
+    attr_str = attribute.decode() if isinstance(attribute, bytes) else attribute
+    if attr_str.startswith(_ASYA_PREFIX):
+        mount, key = _resolve_mount(path, mounts)
+        if mount is not None:
+            bare = attr_str[len(_ASYA_PREFIX):]
+            val_str = value.decode() if isinstance(value, bytes) else value
+            body = json.dumps({"value": val_str}).encode()
+            conn = _UnixHTTPClient(mount["socket"])
+            conn.request("PUT", f"/meta/{key}?attr={bare}",
+                         body=body,
+                         headers={"Content-Length": str(len(body)),
+                                  "Content-Type": "application/json"})
+            resp = conn.getresponse()
+            if resp.status == 400:
+                raise OSError(errno.ENODATA, f"Attribute not supported: {bare}")
+            if resp.status == 403:
+                raise PermissionError(f"Attribute is read-only: {bare}")
+            _raise_for_status(resp, key)
+            conn.close()
+            return
+    if _original_setxattr is not None:
+        return _original_setxattr(path, attribute, value, *args, **kwargs)
+    raise OSError(errno.ENOTSUP, "Extended attributes not supported")
+
+os.getxattr = _patched_getxattr
+os.listxattr = _patched_listxattr
+os.setxattr = _patched_setxattr
 ```
-
-Key design points:
-- Returns `bytes` (matching real `os.getxattr` signature)
-- Only intercepts `"user.url"` attribute — all other xattr calls pass through
-- Non-state-mount paths fall through to native `os.getxattr`
-- On platforms where `os.getxattr` doesn't exist (shouldn't happen on K8s/Linux),
-  defines it as a function that raises `OSError(ENOTSUP)` for non-state paths
-- Connector 501 → `OSError(ENOTSUP)` — maps HTTP error to appropriate errno
 
 ### Rejected Alternatives
 
-#### `from asya_runtime import state_url`
+**`from asya_runtime import state_url`** — Impossible. Runtime is ConfigMap-injected,
+not a pip package. Handler code cannot import from it.
 
-Impossible. `asya_runtime.py` is ConfigMap-injected, not a pip package. Handler
-code has no way to import from it.
+**`builtins.state_url` (magic builtin)** — Non-standard, undiscoverable, `NameError`
+locally (worse than `OSError`). Patched calls should be EXISTING stdlib functions.
 
-#### `builtins.state_url` (magic builtin injection)
+**`os.readlink` (virtual symlink)** — `os.path.realpath()` calls `os.readlink()`
+internally — patching breaks it. URL strings corrupt code expecting paths.
 
-Runtime could inject `state_url` into `builtins`. But:
-1. Non-standard builtin — developers wouldn't discover it without docs
-2. Locally, `state_url` is undefined → `NameError` (worse than `OSError`)
-3. Violates principle: patched calls should be EXISTING stdlib functions
-
-#### `os.readlink` (virtual symlink resolution)
-
-`os.readlink("/state/media/report.pdf")` → "where does this point?" → S3 URL.
-Semantically appealing (state mounts ARE "links" to external storage). Cross-platform
-(`os.readlink` exists on Linux, macOS, Windows). BUT:
-1. `os.path.realpath()` calls `os.readlink()` internally — patching breaks it
-2. Code that uses `readlink` result as a filesystem path gets a URL string
-3. Conflicts with actual symlinks under state mounts
-
-#### ABI Yield Protocol
-
-`url = yield "GET", ".state.url(/state/media/report.pdf)"` — overloads ABI semantics
-(message metadata, not storage), only works in generator handlers, awkward path syntax.
+**ABI yield protocol** — Only works in generators, overloads message metadata
+semantics, awkward path-inside-dotpath syntax.
 
 ## Implementation Plan
 
-1. Add `external_url(key) -> str` to `StateProxyConnector` (non-abstract, raises)
-2. Override in `S3Passthrough`, `S3BufferedCAS`, `S3BufferedLWW`
-3. Add `GET /url/{key}` route to `server.py`
-4. Patch `os.getxattr` in `_install_state_proxy_hooks` in `asya_runtime.py`
-5. Add `asya-testing` fixture for local dev xattr simulation
-6. Unit tests: connector `external_url`, server `/url/` endpoint, runtime patching
-7. Component test: runtime ↔ connector round-trip via `os.getxattr`
+1. Add `listxattr`/`getxattr`/`setxattr` to `StateProxyConnector` (non-abstract)
+2. Implement in S3 connectors (all three) with full attribute catalog
+3. Implement in Redis connector (`ttl` attribute only)
+4. Add `/meta/{key}` routes to `server.py`
+5. Patch `os.getxattr`/`os.listxattr`/`os.setxattr` in `asya_runtime.py`
+6. Add `asya-testing` pytest fixture for local dev xattr simulation
+7. Unit tests: connector, server, runtime (per layer)
+8. Component test: Docker Compose with MinIO — full round-trip
+9. Update state proxy RFC (1dmf) — done, see "Extended Attributes" section
 
 ## Testing Strategy
 
-- **Unit (connector)**: `S3Passthrough.external_url("media/report.pdf")` returns
-  `"s3://bucket/prefix/media/report.pdf"`
-- **Unit (server)**: `GET /url/media/report.pdf` → `{"url": "s3://..."}`
-- **Unit (server, 501)**: Redis connector → `GET /url/key` → 501
-- **Unit (runtime)**: Patched `os.getxattr(path, "user.url")` → calls connector,
-  returns bytes
-- **Unit (runtime, passthrough)**: `os.getxattr(path, "user.other")` → falls through
-  to native or raises `OSError`
-- **Unit (runtime, non-mount)**: `os.getxattr("/tmp/file", "user.url")` → native
-  `os.getxattr` (no interception)
-- **Component**: Docker Compose with MinIO — write file, `os.getxattr` → S3 URI
-- **asya-testing fixture**: Verify `os.getxattr` returns `file://` URIs locally
+**Unit (connector)**:
+- `listxattr("media/report.pdf")` → `["url", "presigned_url", "etag", ...]`
+- `getxattr("media/report.pdf", "url")` → `"s3://bucket/prefix/media/report.pdf"`
+- `getxattr("media/report.pdf", "etag")` → HEAD response ETag
+- `getxattr("media/report.pdf", "unsupported")` → `KeyError`
+- `setxattr("k", "content_type", "image/png")` → S3 CopyObject
+- `setxattr("k", "url", "x")` → `PermissionError` (read-only)
+- Redis: `listxattr` → `["ttl"]`, `getxattr("k", "url")` → `KeyError`
 
-## Open Questions
+**Unit (server)**:
+- `GET /meta/key` → `{"attrs": [...]}`
+- `GET /meta/key?attr=url` → `{"attr": "url", "value": "s3://..."}`
+- `GET /meta/key?attr=bad` → 400
+- `PUT /meta/key?attr=url` → 403 (read-only)
+- `PUT /meta/key?attr=content_type` → 204
 
-1. **Should URL computation verify key existence?** Recommendation: NO. S3 URIs are
-   computed from bucket+prefix+key without an API call. The actor just wrote the file.
-   Adding `exists()` would be an extra round-trip with no benefit.
+**Unit (runtime)**:
+- Patched `os.listxattr(path)` → returns `["user.asya.url", ...]`
+- Patched `os.getxattr(path, "user.asya.url")` → returns bytes
+- Patched `os.setxattr(path, "user.asya.content_type", b"...")` → 204
+- Non-`user.asya.*` attributes → fall through to native
+- Non-state-mount paths → fall through to native
 
-2. **Presigned URL support (future)**: Defer to gateway. The gateway has S3 access
-   and can `generate_presigned_url()` from the S3 URI when serving
-   `GetTask(includeArtifacts=true)`. If actors need presigning directly, add
-   `user.presigned_url` xattr with a separate connector method later.
+**Component**: Docker Compose with MinIO — write file, listxattr, getxattr,
+setxattr round-trip.
 
-3. **Redis/NATS KV connectors**: `external_url()` raises `NotImplementedError` →
-   server returns 501 → runtime raises `OSError(ENOTSUP)`. Document that
-   `os.getxattr(..., "user.url")` only works with URL-addressable backends.
-
-4. **Windows local dev**: Provide `asya-testing` pytest fixture that defines
-   `os.getxattr` on Windows and returns `file://` URIs. Not a blocker — Windows
-   is minority for container-targeted dev.
+**asya-testing fixture**: `os.listxattr` → `["user.asya.url"]`,
+`os.getxattr` → `file://` URIs, `os.setxattr` → no-op.
