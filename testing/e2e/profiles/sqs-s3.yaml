@@ -46,6 +46,7 @@ crew:
     env:
       ASYA_GATEWAY_URL: "http://asya-gateway.asya-e2e.svc.cluster.local:8080"
       ASYA_PERSISTENCE_MOUNT: "/state/checkpoints/results"
+      ASYA_SQS_WAIT_TIME_SECONDS: "2"
       AWS_ACCESS_KEY_ID: "test"
       AWS_SECRET_ACCESS_KEY: "test"
     scaling:
@@ -56,6 +57,7 @@ crew:
     env:
       ASYA_GATEWAY_URL: "http://asya-gateway.asya-e2e.svc.cluster.local:8080"
       ASYA_PERSISTENCE_MOUNT: "/state/checkpoints/errors"
+      ASYA_SQS_WAIT_TIME_SECONDS: "2"
       AWS_ACCESS_KEY_ID: "test"
       AWS_SECRET_ACCESS_KEY: "test"
     scaling:
@@ -76,7 +78,7 @@ gateway:
         endpoint: "http://localstack-sqs.asya-system.svc.cluster.local:4566"
         region: "us-east-1"
         visibilityTimeout: 300
-        waitTimeSeconds: 20
+        waitTimeSeconds: 2
   env:
   - name: AWS_ACCESS_KEY_ID
     value: "test"
@@ -86,6 +88,8 @@ gateway:
     value: "us-east-1"
 
 crossplane:
+  sqs:
+    receiveWaitTimeSeconds: 2
   providerConfigs:
     install: false
   functions:
@@ -126,5 +130,6 @@ injector:
     sidecarImage: ghcr.io/deliveryhero/asya-sidecar:latest
     sidecarImagePullPolicy: Never
     sqsEndpoint: http://localstack-sqs.asya-system.svc.cluster.local:4566
+    sqsWaitTimeSeconds: "2"
     gatewayURL: http://asya-gateway.asya-e2e.svc.cluster.local:8080
     awsCredsSecret: aws-creds

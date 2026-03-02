@@ -114,10 +114,10 @@ def transport_timeouts() -> TransportTimeouts:
 
     if transport == "sqs":
         return TransportTimeouts(
-            crash_detection=60,
-            task_completion_short=60,
-            task_completion_medium=120,
-            task_completion_long=180,
+            crash_detection=30,
+            task_completion_short=30,
+            task_completion_medium=60,
+            task_completion_long=120,
         )
     else:
         return TransportTimeouts(

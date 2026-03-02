@@ -124,7 +124,7 @@ def check_port_forward_health(gateway_url):
             fcntl.flock(lock.fileno(), fcntl.LOCK_UN)
 
 
-def wait_for_actors_factory(kubectl, namespace, actor_names, max_wait=120, check_interval=5):
+def wait_for_actors_factory(kubectl, namespace, actor_names, max_wait=120, check_interval=2):
     """
     Generic fixture factory to wait for AsyncActors to be deployed.
 
@@ -168,7 +168,7 @@ def wait_for_actors_factory(kubectl, namespace, actor_names, max_wait=120, check
     return actor_names
 
 
-def wait_for_queues_factory(transport_client, queue_names, namespace, max_wait=120, check_interval=5):
+def wait_for_queues_factory(transport_client, queue_names, namespace, max_wait=120, check_interval=2):
     """
     Generic fixture factory to wait for queues to be created by operator.
 

@@ -823,6 +823,119 @@ func TestInjector_InjectRabbitMQNoCredsForSQS(t *testing.T) {
 	}
 }
 
+func TestInjector_InjectSQSWaitTimeSeconds(t *testing.T) {
+	cfg := &config.Config{
+		SidecarImage:           "ghcr.io/deliveryhero/asya-sidecar:test",
+		RuntimeConfigMap:       "asya-runtime",
+		SidecarImagePullPolicy: "IfNotPresent",
+		SocketDir:              "/var/run/asya",
+		RuntimeMountPath:       "/opt/asya/asya_runtime.py",
+		SQSWaitTimeSeconds:     "2",
+	}
+
+	injector := NewInjector(cfg)
+
+	pod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-pod",
+			Namespace: "default",
+		},
+		Spec: corev1.PodSpec{
+			Containers: []corev1.Container{
+				{Name: "asya-runtime", Image: "my-app:v1"},
+			},
+		},
+	}
+
+	actorConfig := &ActorConfig{
+		ActorName: "my-actor",
+		Namespace: "default",
+		Transport: "sqs",
+		Region:    "us-east-1",
+	}
+
+	mutated, err := injector.Inject(pod, actorConfig)
+	if err != nil {
+		t.Fatalf("Inject failed: %v", err)
+	}
+
+	var sidecar *corev1.Container
+	for i := range mutated.Spec.Containers {
+		if mutated.Spec.Containers[i].Name == "asya-sidecar" {
+			sidecar = &mutated.Spec.Containers[i]
+			break
+		}
+	}
+	if sidecar == nil {
+		t.Fatal("sidecar container was not added")
+	}
+
+	found := false
+	for _, e := range sidecar.Env {
+		if e.Name == "ASYA_SQS_WAIT_TIME_SECONDS" && e.Value == "2" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("expected ASYA_SQS_WAIT_TIME_SECONDS=2 on sidecar, not found")
+	}
+}
+
+func TestInjector_InjectNoSQSWaitTimeSeconds(t *testing.T) {
+	cfg := &config.Config{
+		SidecarImage:           "ghcr.io/deliveryhero/asya-sidecar:test",
+		RuntimeConfigMap:       "asya-runtime",
+		SidecarImagePullPolicy: "IfNotPresent",
+		SocketDir:              "/var/run/asya",
+		RuntimeMountPath:       "/opt/asya/asya_runtime.py",
+		SQSWaitTimeSeconds:     "",
+	}
+
+	injector := NewInjector(cfg)
+
+	pod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-pod",
+			Namespace: "default",
+		},
+		Spec: corev1.PodSpec{
+			Containers: []corev1.Container{
+				{Name: "asya-runtime", Image: "my-app:v1"},
+			},
+		},
+	}
+
+	actorConfig := &ActorConfig{
+		ActorName: "my-actor",
+		Namespace: "default",
+		Transport: "sqs",
+		Region:    "us-east-1",
+	}
+
+	mutated, err := injector.Inject(pod, actorConfig)
+	if err != nil {
+		t.Fatalf("Inject failed: %v", err)
+	}
+
+	var sidecar *corev1.Container
+	for i := range mutated.Spec.Containers {
+		if mutated.Spec.Containers[i].Name == "asya-sidecar" {
+			sidecar = &mutated.Spec.Containers[i]
+			break
+		}
+	}
+	if sidecar == nil {
+		t.Fatal("sidecar container was not added")
+	}
+
+	for _, e := range sidecar.Env {
+		if e.Name == "ASYA_SQS_WAIT_TIME_SECONDS" {
+			t.Error("ASYA_SQS_WAIT_TIME_SECONDS should not be present when empty")
+		}
+	}
+}
+
 func TestInjector_SidecarImageOverride(t *testing.T) {
 	cfg := &config.Config{
 		SidecarImage:     "ghcr.io/deliveryhero/asya-sidecar:default",
