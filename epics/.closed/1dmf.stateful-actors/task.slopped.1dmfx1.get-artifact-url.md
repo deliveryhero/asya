@@ -309,15 +309,85 @@ semantics, awkward path-inside-dotpath syntax.
 
 ## Implementation Plan
 
-1. Add `listxattr`/`getxattr`/`setxattr` to `StateProxyConnector` (non-abstract)
-2. Implement in S3 connectors (all three) with full attribute catalog
-3. Implement in Redis connector (`ttl` attribute only)
-4. Add `/meta/{key}` routes to `server.py`
-5. Patch `os.getxattr`/`os.listxattr`/`os.setxattr` in `asya_runtime.py`
-6. Add `asya-testing` pytest fixture for local dev xattr simulation
-7. Unit tests: connector, server, runtime (per layer)
-8. Component test: Docker Compose with MinIO — full round-trip
-9. Update state proxy RFC (1dmf) — done, see "Extended Attributes" section
+### Phase 1: Interface & Server
+
+1. **`src/asya-state-proxy/asya_state_proxy/interface.py`** — Add `listxattr`,
+   `getxattr`, `setxattr` to `StateProxyConnector` (non-abstract, default raises)
+2. **`src/asya-state-proxy/asya_state_proxy/server.py`** — Add `/meta/{key}` route
+   handlers: `do_GET` dispatches to `listxattr`/`getxattr`, `do_PUT` dispatches to
+   `setxattr`. Add `KeyError` → 400 and `PermissionError` → 403 to `_ERROR_MAP`.
+
+### Phase 2: S3 Connectors
+
+3. **`src/asya-state-proxy/asya_state_proxy/connectors/s3_passthrough/connector.py`**
+   — Override `listxattr`/`getxattr`/`setxattr` on `S3Passthrough`. Attrs: `url`
+   (string concat), `presigned_url` (`generate_presigned_url`), `etag`
+   (`head_object`), `content_type` (head/copy), `version` (head), `storage_class`
+   (head). `setxattr` for `content_type` via `copy_object` with
+   `MetadataDirective=REPLACE`.
+4. **`src/asya-state-proxy/asya_state_proxy/connectors/s3_buffered_cas/connector.py`**
+   — Same as above on `S3BufferedCAS`. CAS connector already tracks ETags internally
+   — `getxattr("etag")` can return cached ETag from `self._etags[key]` when available,
+   falling back to `head_object`.
+5. **`src/asya-state-proxy/asya_state_proxy/connectors/s3_buffered_lww/connector.py`**
+   — Same as above on `S3BufferedLWW`.
+
+   Note: The three S3 connectors share identical xattr logic. Extract a mixin
+   `_S3XattrMixin` to avoid duplication:
+   ```python
+   class _S3XattrMixin:
+       _ATTRS = ["url", "presigned_url", "etag", "content_type", "version",
+                 "storage_class"]
+       _WRITABLE = {"content_type"}
+
+       def listxattr(self, key): ...
+       def getxattr(self, key, attr): ...
+       def setxattr(self, key, attr, value): ...
+   ```
+   Place in `src/asya-state-proxy/asya_state_proxy/connectors/_s3_xattr.py` (or
+   inline in each if mixin feels over-engineered for 3 files).
+
+### Phase 3: Redis Connector
+
+6. **`src/asya-state-proxy/asya_state_proxy/connectors/redis_buffered_cas/connector.py`**
+   — Override `listxattr` → `["ttl"]`. `getxattr("ttl")` → `self._redis.ttl(key)`.
+   `setxattr("ttl", value)` → `self._redis.expire(key, int(value))`.
+   All other attrs → `KeyError`.
+
+### Phase 4: Runtime
+
+7. **`src/asya-runtime/asya_runtime.py`** — Patch `os.getxattr`, `os.listxattr`,
+   `os.setxattr` inside `_install_state_proxy_hooks`. Intercept `user.asya.*`
+   attributes on state mount paths, translate to HTTP on `/meta/` endpoints. Fall
+   through to native for non-state paths and non-`user.asya.*` attributes.
+
+### Phase 5: Testing Fixtures
+
+8. **`src/asya-testing/`** — Add pytest fixture `mock_state_xattr` that patches
+   `os.getxattr` (returns `file://` URIs for `user.asya.url`), `os.listxattr`
+   (returns `["user.asya.url"]`), `os.setxattr` (no-op). Defines the functions on
+   Windows where they don't exist.
+
+### Phase 6: Tests
+
+9. **`src/asya-state-proxy/tests/test_interface.py`** — Default `listxattr` returns
+   `[]`, default `getxattr`/`setxattr` raise `KeyError`.
+10. **`src/asya-state-proxy/tests/test_s3_passthrough.py`** — Add xattr tests.
+11. **`src/asya-state-proxy/tests/test_s3_buffered_cas.py`** — Add xattr tests,
+    verify cached ETag reuse.
+12. **`src/asya-state-proxy/tests/test_s3_buffered_lww.py`** — Add xattr tests.
+13. **`src/asya-state-proxy/tests/test_redis_buffered_cas.py`** — TTL xattr tests.
+14. **`src/asya-state-proxy/tests/test_server.py`** — `/meta/` endpoint tests
+    (list, get, set, error codes 400/403/404).
+15. **`src/asya-runtime/tests/test_state_proxy.py`** — Patched `os.getxattr`,
+    `os.listxattr`, `os.setxattr` tests (interception, passthrough, non-mount).
+16. **`testing/component/state-proxy/tests/`** — Add xattr round-trip test:
+    write → listxattr → getxattr → setxattr with MinIO.
+
+### Phase 7: Documentation
+
+17. Update state proxy RFC (1dmf) — done, see "Extended Attributes" section.
+18. Update `docs/architecture/asya-state-proxy.md` with xattr usage examples.
 
 ## Testing Strategy
 
