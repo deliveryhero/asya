@@ -2,7 +2,6 @@
 
 from .config import errors_bucket, gateway_url, namespace, results_bucket, s3_endpoint, test_config
 from .e2e import (
-    check_port_forward_health,
     e2e_helper,
     rabbitmq_url,
     wait_for_actors_factory,
@@ -16,7 +15,6 @@ from .transport import TransportTimeouts, rabbitmq_client, transport_timeouts
 
 __all__ = [
     "TransportTimeouts",
-    "check_port_forward_health",
     "configure_logging",
     "e2e_helper",
     "errors_bucket",

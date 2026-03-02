@@ -69,10 +69,7 @@ def test_gateway_restart_during_processing(e2e_helper):
             assert e2e_helper.wait_for_pod_ready("app.kubernetes.io/name=asya-gateway", timeout=30), \
                 "Gateway pod should restart"
 
-            logger.info("Re-establishing port-forward to new gateway pod...")
-            assert e2e_helper.restart_port_forward(), "Port-forward should be re-established"
-
-            time.sleep(2)
+            e2e_helper.ensure_gateway_connectivity(max_retries=5, retry_interval=2.0)
 
     logger.info("Checking if task status is still accessible...")
     task = e2e_helper.get_task_status(task_id)

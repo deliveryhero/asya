@@ -117,8 +117,8 @@ class E2ETestHelper(GatewayTestHelper):
         """
         Poll task status until it reaches end state.
 
-        This E2E version handles connection errors by automatically restarting
-        port-forward when needed (useful in chaos tests).
+        This E2E version retries on transient connection errors (e.g. gateway
+        pod restart during chaos tests).
 
         Returns the final task object when status is succeeded, failed, or unknown.
 
@@ -129,7 +129,7 @@ class E2ETestHelper(GatewayTestHelper):
         logger.debug(f"Waiting for task completion: {task_id} (timeout={timeout}s)")
         start_time = time.time()
         consecutive_failures = 0
-        max_consecutive_failures = 3
+        max_consecutive_failures = 5
 
         i = 0
         while time.time() - start_time < timeout:
@@ -160,32 +160,25 @@ class E2ETestHelper(GatewayTestHelper):
                 )
 
                 if consecutive_failures >= max_consecutive_failures:
-                    logger.error("Too many consecutive connection failures, attempting port-forward restart")
-                    try:
-                        self.ensure_gateway_connectivity(max_retries=2)
-                        consecutive_failures = 0
-                        logger.info("Gateway connectivity restored, resuming task wait")
-                    except ConnectionError as ce:
-                        raise ConnectionError(
-                            f"Gateway unreachable after port-forward restart while waiting for task {task_id}"
-                        ) from ce
+                    raise ConnectionError(
+                        f"Gateway unreachable after {max_consecutive_failures} consecutive failures "
+                        f"while waiting for task {task_id}"
+                    ) from e
 
                 time.sleep(interval)
 
         raise TimeoutError(f"Task {task_id} did not complete within {timeout}s")
 
-    def ensure_gateway_connectivity(self, max_retries: int = 3) -> bool:
+    def ensure_gateway_connectivity(self, max_retries: int = 3, retry_interval: float = 2.0) -> bool:
         """
-        Ensure gateway is reachable, restarting port-forward if needed.
-
-        Uses file locking to prevent multiple pytest-xdist workers from
-        restarting port-forward simultaneously (thundering herd).
+        Wait for gateway to become reachable (e.g. after pod restart).
 
         Args:
             max_retries: Maximum number of retry attempts
+            retry_interval: Seconds between retries
 
         Returns:
-            True if gateway is reachable, False otherwise
+            True if gateway is reachable
 
         Raises:
             ConnectionError: If gateway unreachable after all retries
@@ -203,124 +196,6 @@ class E2ETestHelper(GatewayTestHelper):
                 logger.warning(f"Gateway unreachable (attempt {attempt + 1}/{max_retries}): {e}")
 
                 if attempt < max_retries - 1:
-                    if self.restart_port_forward():
-                        time.sleep(3)
-                    else:
-                        # Another worker may have restarted it — retry health check
-                        time.sleep(5)
+                    time.sleep(retry_interval)
 
         raise ConnectionError(f"Gateway unreachable after {max_retries} attempts")
-
-    def restart_port_forward(self, service_name: str = "asya-gateway", local_port: int = 8080):
-        """
-        Restart port-forward connection to a service.
-
-        Uses file locking to serialize restarts across pytest-xdist workers.
-        If another worker holds the lock, this worker waits for the restart
-        to complete and then verifies connectivity.
-
-        Args:
-            service_name: Name of the service to port-forward to
-            local_port: Local port to forward to
-
-        Returns:
-            True if port-forward was successfully re-established
-        """
-        import fcntl
-        import os
-        import signal
-        import tempfile
-
-        lock_file = os.path.join(tempfile.gettempdir(), "asya-e2e-port-forward.lock")
-
-        with open(lock_file, "w") as lock:
-            try:
-                fcntl.flock(lock.fileno(), fcntl.LOCK_EX)
-            except OSError:
-                logger.warning("Could not acquire port-forward lock")
-                return False
-
-            try:
-                # Re-check health under lock — another worker may have fixed it
-                try:
-                    response = requests.get(
-                        f"{self.gateway_url}/health",
-                        timeout=2,
-                    )
-                    if response.status_code == 200:
-                        logger.info("Gateway already healthy (fixed by another worker)")
-                        return True
-                except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
-                    pass
-
-                logger.info(f"Restarting port-forward for {service_name}...")
-
-                try:
-                    result = subprocess.run(
-                        ["pgrep", "-f", f"kubectl port-forward.*{service_name}.*{local_port}"],
-                        capture_output=True,
-                        text=True,
-                        timeout=5,
-                    )
-
-                    if result.returncode == 0 and result.stdout.strip():
-                        pids = result.stdout.strip().split("\n")
-                        for pid_str in pids:
-                            try:
-                                pid = int(pid_str.strip())
-                                os.kill(pid, signal.SIGTERM)
-                            except (ValueError, ProcessLookupError):
-                                pass
-
-                        time.sleep(1)
-
-                        for pid_str in pids:
-                            try:
-                                pid = int(pid_str.strip())
-                                os.kill(pid, signal.SIGKILL)
-                            except (ValueError, ProcessLookupError):
-                                pass
-
-                except Exception as e:
-                    logger.warning(f"Failed to kill existing port-forward: {e}")
-
-                script_dir = subprocess.run(
-                    ["git", "rev-parse", "--show-toplevel"],
-                    capture_output=True,
-                    text=True,
-                    timeout=5,
-                ).stdout.strip()
-
-                port_forward_script = f"{script_dir}/testing/e2e/scripts/port-forward.sh"
-
-                try:
-                    subprocess.run(
-                        [port_forward_script, "start"],
-                        env={**os.environ, "NAMESPACE": self.namespace},
-                        timeout=30,
-                        check=True,
-                    )
-
-                    # Wait for port-forward to stabilize
-                    for _check in range(5):
-                        time.sleep(2)
-                        try:
-                            response = requests.get(
-                                f"{self.gateway_url}/health",
-                                timeout=2,
-                            )
-                            if response.status_code == 200:
-                                logger.info(f"Port-forward re-established for {service_name}")
-                                return True
-                        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
-                            pass
-
-                    logger.error("Port-forward started but gateway not healthy")
-                    return False
-
-                except Exception as e:
-                    logger.error(f"Failed to restart port-forward: {e}")
-                    return False
-
-            finally:
-                fcntl.flock(lock.fileno(), fcntl.LOCK_UN)
