@@ -12,7 +12,6 @@ Tests the full fan-out/fan-in lifecycle on a live Kind cluster:
 Prerequisites:
 - Kind cluster deployed with PROFILE=sqs-s3
 - asya-test-flows Helm chart deployed (includes research-flow actors)
-- ASYA_HANDLER_MODE=message support in asya_runtime (see epic 1c7i)
 - State proxy sidecar active on research-flow-aggregator pod
 
 Actors deployed by the asya-test-flows chart:
@@ -151,9 +150,6 @@ def flow_helper(transport_timeouts, s3_endpoint, results_bucket, test_config):
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.skip(
-    reason="Fan-out/fan-in flow requires VFS-based route modification and S3 state-proxy (not yet functional in E2E)",
-)
 @pytest.mark.flow
 @pytest.mark.timeout(300)
 def test_fanout_fanin_basic_3_topics(flow_helper):
@@ -195,9 +191,6 @@ def test_fanout_fanin_basic_3_topics(flow_helper):
     logger.info(f"[+] Fan-out/fan-in with {len(topics)} topics completed: {len(results)} results in merged payload")
 
 
-@pytest.mark.skip(
-    reason="Fan-out/fan-in flow requires VFS-based route modification and S3 state-proxy (not yet functional in E2E)",
-)
 @pytest.mark.flow
 @pytest.mark.timeout(300)
 def test_fanout_fanin_no_false_positives_from_partial_slices(flow_helper):
@@ -236,9 +229,6 @@ def test_fanout_fanin_no_false_positives_from_partial_slices(flow_helper):
     logger.info(f"[+] No false positives: exactly {count} result in S3 for task {task_id}")
 
 
-@pytest.mark.skip(
-    reason="Fan-out/fan-in flow requires VFS-based route modification and S3 state-proxy (not yet functional in E2E)",
-)
 @pytest.mark.flow
 @pytest.mark.timeout(600)
 def test_fanout_fanin_10_topics(flow_helper):
@@ -269,9 +259,6 @@ def test_fanout_fanin_10_topics(flow_helper):
     logger.info(f"[+] 10-topic fan-out/fan-in completed: all {len(results)} results present")
 
 
-@pytest.mark.skip(
-    reason="Fan-out/fan-in flow requires VFS-based route modification and S3 state-proxy (not yet functional in E2E)",
-)
 @pytest.mark.flow
 @pytest.mark.timeout(300)
 def test_fanout_fanin_single_topic(flow_helper):
@@ -298,9 +285,6 @@ def test_fanout_fanin_single_topic(flow_helper):
     logger.info("[+] Single-topic fan-out/fan-in completed successfully")
 
 
-@pytest.mark.skip(
-    reason="Fan-out/fan-in flow requires VFS-based route modification and S3 state-proxy (not yet functional in E2E)",
-)
 @pytest.mark.flow
 @pytest.mark.timeout(300)
 def test_fanout_fanin_concurrent_requests(flow_helper):
@@ -344,9 +328,6 @@ def test_fanout_fanin_concurrent_requests(flow_helper):
     )
 
 
-@pytest.mark.skip(
-    reason="Fan-out/fan-in flow requires VFS-based route modification and S3 state-proxy (not yet functional in E2E)",
-)
 @pytest.mark.flow
 @pytest.mark.slow
 @pytest.mark.timeout(600)
