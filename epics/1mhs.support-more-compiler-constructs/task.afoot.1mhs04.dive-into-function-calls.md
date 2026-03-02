@@ -2,7 +2,11 @@
 title: Allow compiler to dive into functions
 priority: 2 # medium
 type: task
+tags:
+  - worktree:.worktrees/1mhs/1mhs04.dive-into-function-calls
+  - branch:1mhs/1mhs04.dive-into-function-calls
 ---
+
 
 
 
