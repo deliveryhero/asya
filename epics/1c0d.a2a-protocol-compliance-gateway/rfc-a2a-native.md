@@ -557,13 +557,21 @@ async def handler(payload):
     result = analyze(payload["query"])
 
     # Write ALL outputs to external storage via state proxy
-    with open("/state/artifacts/analysis.json", "w") as f:
+    analysis_proxy = "/state/artifacts/analysis.json"
+    with open(analysis_proxy, "w") as f:
         json.dump(result, f)
-    result_url = os.getxattr("/state/artifacts/analysis.json", "user.asya.url").decode()
+    try:
+        result_url = os.getxattr(analysis_proxy, "user.asya.url").decode()
+    except OSError:
+        result_url = analysis_proxy  # fallback - return asya-internal path (or none)
 
-    with open("/state/artifacts/report.pdf", "wb") as f:
+    report_proxy = "/state/artifacts/report.pdf"
+    with open(report_proxy, "wb") as f:
         f.write(generate_pdf(result))
-    report_url = os.getxattr("/state/artifacts/report.pdf", "user.asya.url").decode()
+    try:
+        report_url = os.getxattr(report_proxy, "user.asya.url").decode()
+    except OSError:
+        report_url = report_proxy  # fallback
 
     # Artifact contains ONLY url Parts — no inline data
     payload.setdefault("a2a", {}).setdefault("task", {}).setdefault("artifacts", [])
