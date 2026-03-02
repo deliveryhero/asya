@@ -265,7 +265,7 @@ asya-gateway
 |   |-- GET    /a2a/tasks/{id}:subscribe         # SubscribeToTask (SSE)
 |   `-- /a2a/tasks/{id}/pushNotificationConfigs  # Push CRUD (future)
 |-- /mcp                             # MCP Streamable HTTP (unchanged)
-|-- /mcp/sse                         # MCP SSE deprecated (unchanged)
+|-- /mcp/sse                         # MCP SSE deprecated (unchanged) -- remove deprecated!!
 |-- /tools/call                      # REST tool invocation (unchanged)
 |-- /tasks/                          # Internal task API (sidecar-facing)
 |   |-- GET    /tasks/{id}           # Task status (sidecar + legacy clients)
