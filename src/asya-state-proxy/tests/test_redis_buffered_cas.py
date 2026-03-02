@@ -147,3 +147,39 @@ def test_state_prefix_is_applied(monkeypatch):
 
     # Read back via connector strips the prefix
     assert conn.read("foo").read() == b"bar"
+
+
+# ---------------------------------------------------------------------------
+# xattr tests
+# ---------------------------------------------------------------------------
+
+
+def test_listxattr_returns_ttl(connector):
+    connector.write("xkey", io.BytesIO(b"data"))
+    attrs = connector.listxattr("xkey")
+    assert attrs == ["ttl"]
+
+
+def test_getxattr_ttl_returns_string(connector):
+    connector.write("xkey", io.BytesIO(b"data"))
+    ttl = connector.getxattr("xkey", "ttl")
+    assert isinstance(ttl, str)
+
+
+def test_getxattr_unsupported_raises_key_error(connector):
+    connector.write("xkey", io.BytesIO(b"data"))
+    with pytest.raises(KeyError):
+        connector.getxattr("xkey", "url")
+
+
+def test_setxattr_ttl(connector):
+    connector.write("xkey", io.BytesIO(b"data"))
+    connector.setxattr("xkey", "ttl", "300")
+    ttl = connector.getxattr("xkey", "ttl")
+    assert int(ttl) > 0
+
+
+def test_setxattr_unsupported_raises_key_error(connector):
+    connector.write("xkey", io.BytesIO(b"data"))
+    with pytest.raises(KeyError):
+        connector.setxattr("xkey", "url", "x")

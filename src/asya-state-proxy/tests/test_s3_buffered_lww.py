@@ -143,3 +143,56 @@ def test_state_prefix_is_applied(monkeypatch, s3_bucket):
 
     # Read back via connector strips the prefix
     assert conn.read("foo").read() == b"bar"
+
+
+# ---------------------------------------------------------------------------
+# xattr tests
+# ---------------------------------------------------------------------------
+
+
+def test_listxattr_returns_s3_attrs(connector, s3_bucket):
+    connector.write("xkey", io.BytesIO(b"data"))
+    attrs = connector.listxattr("xkey")
+    assert "url" in attrs
+    assert "presigned_url" in attrs
+    assert "etag" in attrs
+    assert "content_type" in attrs
+
+
+def test_getxattr_url_returns_s3_uri(connector, s3_bucket):
+    connector.write("xkey", io.BytesIO(b"data"))
+    url = connector.getxattr("xkey", "url")
+    assert url.startswith("s3://")
+    assert "xkey" in url
+
+
+def test_getxattr_etag_returns_string(connector, s3_bucket):
+    connector.write("xkey", io.BytesIO(b"data"))
+    etag = connector.getxattr("xkey", "etag")
+    assert isinstance(etag, str)
+    assert len(etag) > 0
+
+
+def test_getxattr_content_type_returns_string(connector, s3_bucket):
+    connector.write("xkey", io.BytesIO(b"data"))
+    ct = connector.getxattr("xkey", "content_type")
+    assert isinstance(ct, str)
+
+
+def test_getxattr_unsupported_raises_key_error(connector, s3_bucket):
+    connector.write("xkey", io.BytesIO(b"data"))
+    with pytest.raises(KeyError):
+        connector.getxattr("xkey", "nosuch")
+
+
+def test_setxattr_content_type(connector, s3_bucket):
+    connector.write("xkey", io.BytesIO(b"data"))
+    connector.setxattr("xkey", "content_type", "text/plain")
+    ct = connector.getxattr("xkey", "content_type")
+    assert ct == "text/plain"
+
+
+def test_setxattr_readonly_raises_permission_error(connector, s3_bucket):
+    connector.write("xkey", io.BytesIO(b"data"))
+    with pytest.raises(PermissionError):
+        connector.setxattr("xkey", "url", "x")

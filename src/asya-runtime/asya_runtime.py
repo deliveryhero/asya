@@ -998,12 +998,87 @@ def _install_state_proxy_hooks(mounts_str):
         if mount is None:
             return _original_makedirs(name, mode=mode, exist_ok=exist_ok)
 
+    _original_getxattr = getattr(os, "getxattr", None)
+    _original_listxattr = getattr(os, "listxattr", None)
+    _original_setxattr = getattr(os, "setxattr", None)
+
+    asya_xattr_prefix = "user.asya."
+
+    def _patched_getxattr(path, attribute, *args, **kwargs):
+        attr_str = attribute.decode("utf-8") if isinstance(attribute, bytes) else attribute
+        if attr_str.startswith(asya_xattr_prefix):
+            mount, key = _resolve_mount(path, mounts)
+            if mount is not None:
+                bare = attr_str[len(asya_xattr_prefix) :]
+                conn = _UnixHTTPClient(mount["socket"])
+                conn.request("GET", f"/meta/{key}?attr={bare}")
+                resp = conn.getresponse()
+                if resp.status == 400:
+                    raise OSError(errno.ENODATA, f"Attribute not supported: {bare}")
+                if resp.status == 403:
+                    raise PermissionError(f"Attribute is read-only: {bare}")
+                _raise_for_status(resp, key)
+                body = json.loads(resp.read())
+                conn.close()
+                return body["value"].encode("utf-8")
+        if _original_getxattr is not None:
+            return _original_getxattr(path, attribute, *args, **kwargs)
+        raise OSError(errno.ENOTSUP, "Extended attributes not supported")
+
+    def _patched_listxattr(path=None, **kwargs):
+        if path is not None:
+            mount, key = _resolve_mount(path, mounts)
+            if mount is not None:
+                conn = _UnixHTTPClient(mount["socket"])
+                conn.request("GET", f"/meta/{key}")
+                resp = conn.getresponse()
+                _raise_for_status(resp, key)
+                body = json.loads(resp.read())
+                conn.close()
+                return [f"{asya_xattr_prefix}{a}" for a in body["attrs"]]
+        if _original_listxattr is not None:
+            return _original_listxattr(path, **kwargs)
+        return []
+
+    def _patched_setxattr(path, attribute, value, flags=0, *args, **kwargs):
+        attr_str = attribute.decode("utf-8") if isinstance(attribute, bytes) else attribute
+        if attr_str.startswith(asya_xattr_prefix):
+            mount, key = _resolve_mount(path, mounts)
+            if mount is not None:
+                bare = attr_str[len(asya_xattr_prefix) :]
+                val_str = value.decode("utf-8") if isinstance(value, bytes) else value
+                req_body = json.dumps({"value": val_str}).encode("utf-8")
+                conn = _UnixHTTPClient(mount["socket"])
+                conn.request(
+                    "PUT",
+                    f"/meta/{key}?attr={bare}",
+                    body=req_body,
+                    headers={
+                        "Content-Length": str(len(req_body)),
+                        "Content-Type": "application/json",
+                    },
+                )
+                resp = conn.getresponse()
+                if resp.status == 400:
+                    raise OSError(errno.ENODATA, f"Attribute not supported: {bare}")
+                if resp.status == 403:
+                    raise PermissionError(f"Attribute is read-only: {bare}")
+                _raise_for_status(resp, key)
+                conn.close()
+                return
+        if _original_setxattr is not None:
+            return _original_setxattr(path, attribute, value, flags, *args, **kwargs)
+        raise OSError(errno.ENOTSUP, "Extended attributes not supported")
+
     builtins.open = _patched_open
     os.stat = _patched_stat
     os.listdir = _patched_listdir
     os.unlink = _patched_unlink
     os.remove = _patched_unlink
     os.makedirs = _patched_makedirs
+    os.getxattr = _patched_getxattr
+    os.listxattr = _patched_listxattr
+    os.setxattr = _patched_setxattr
 
     logger.info("State proxy hooks installed for %d mount(s)", len(mounts))
 

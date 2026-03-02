@@ -14,6 +14,7 @@ from asya_state_proxy.interface import StateProxyConnector
 logger = logging.getLogger("asya.state-proxy")
 
 _ERROR_MAP = {
+    KeyError: (400, "unsupported_attribute"),
     FileNotFoundError: (404, "key_not_found"),
     FileExistsError: (409, "conflict"),
     ValueError: (400, "bad_request"),
@@ -98,11 +99,48 @@ def _make_handler(connector: StateProxyConnector) -> type:
                     _handle_connector_error(self, exc)
                 return
 
+            if path.startswith("/meta/") and len(path) > len("/meta/"):
+                key = path[len("/meta/") :]
+                qs = urllib.parse.parse_qs(parsed.query)
+                attr_list = qs.get("attr")
+                try:
+                    if attr_list:
+                        value = connector.getxattr(key, attr_list[0])
+                        _json_ok(self, {"attr": attr_list[0], "value": value})
+                    else:
+                        attrs = connector.listxattr(key)
+                        _json_ok(self, {"attrs": attrs})
+                except Exception as exc:
+                    _handle_connector_error(self, exc)
+                return
+
             _json_error(self, 404, "not_found")
 
         def do_PUT(self) -> None:  # noqa: N802
             parsed = urllib.parse.urlparse(self.path)
             path = parsed.path
+
+            if path.startswith("/meta/") and len(path) > len("/meta/"):
+                key = path[len("/meta/") :]
+                qs = urllib.parse.parse_qs(parsed.query)
+                attr_list = qs.get("attr")
+                if not attr_list:
+                    _json_error(self, 400, "bad_request", "attr query parameter required")
+                    return
+                content_length = self.headers.get("Content-Length")
+                body = self.rfile.read(int(content_length)) if content_length else b""
+                try:
+                    data = json.loads(body)
+                    value = data.get("value", "")
+                    connector.setxattr(key, attr_list[0], value)
+                    self.send_response(204)
+                    self.end_headers()
+                except (json.JSONDecodeError, UnicodeDecodeError):
+                    _json_error(self, 400, "bad_request", "invalid JSON body")
+                except Exception as exc:
+                    _handle_connector_error(self, exc)
+                return
+
             if not path.startswith("/keys/") or len(path) <= len("/keys/"):
                 _json_error(self, 404, "not_found")
                 return

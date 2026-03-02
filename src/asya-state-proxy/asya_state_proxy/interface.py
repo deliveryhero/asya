@@ -1,5 +1,7 @@
 """StateProxyConnector interface -- contract for all state proxy connectors."""
 
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from typing import BinaryIO, NamedTuple
 
@@ -38,3 +40,29 @@ class StateProxyConnector(ABC):
     @abstractmethod
     def delete(self, key: str) -> None:
         """DELETE /keys/{key}. Raises FileNotFoundError on 404."""
+
+    def listxattr(self, key: str) -> list[str]:  # type: ignore[valid-type]
+        """GET /meta/{key} -> list of supported attribute names (bare, no prefix).
+
+        Connectors override to advertise available metadata attributes.
+        Returns empty list by default (no metadata available).
+        """
+        return []
+
+    def getxattr(self, key: str, attr: str) -> str:
+        """GET /meta/{key}?attr={attr} -> attribute value as string.
+
+        Raises KeyError for unsupported attributes,
+        PermissionError for write-only attributes,
+        FileNotFoundError if the key does not exist.
+        """
+        raise KeyError(f"{type(self).__name__}: unsupported attr {attr}")
+
+    def setxattr(self, key: str, attr: str, value: str) -> None:
+        """PUT /meta/{key}?attr={attr} with value. Returns None on success.
+
+        Raises KeyError for unsupported attributes,
+        PermissionError for read-only attributes,
+        FileNotFoundError if the key does not exist.
+        """
+        raise KeyError(f"{type(self).__name__}: unsupported attr {attr}")

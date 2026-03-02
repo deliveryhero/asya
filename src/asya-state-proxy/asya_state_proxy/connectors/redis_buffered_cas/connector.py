@@ -5,6 +5,8 @@ Reads configuration from environment variables:
     STATE_PREFIX  - Key prefix inside Redis (optional, default "")
 """
 
+from __future__ import annotations
+
 import io
 import logging
 import os
@@ -98,6 +100,27 @@ class RedisBufferedCAS(StateProxyConnector):
 
         logger.debug("list prefix=%r keys=%d prefixes=%d", key_prefix, len(keys), len(prefixes_set))
         return ListResult(keys=sorted(keys), prefixes=sorted(prefixes_set))
+
+    def listxattr(self, key: str) -> list[str]:  # type: ignore[valid-type]
+        return ["ttl"]
+
+    def getxattr(self, key: str, attr: str) -> str:
+        if attr == "ttl":
+            full_key = self._full_key(key)
+            ttl = self._redis.ttl(full_key)
+            if ttl == -2:
+                raise FileNotFoundError(f"Key not found: {key}")
+            return str(ttl)
+        raise KeyError(f"Unsupported attribute: {attr}")
+
+    def setxattr(self, key: str, attr: str, value: str) -> None:
+        if attr == "ttl":
+            full_key = self._full_key(key)
+            if not self._redis.exists(full_key):
+                raise FileNotFoundError(f"Key not found: {key}")
+            self._redis.expire(full_key, int(value))
+            return
+        raise KeyError(f"Unsupported attribute: {attr}")
 
     def delete(self, key: str) -> None:
         """Delete key from Redis. Raises FileNotFoundError if it does not exist."""

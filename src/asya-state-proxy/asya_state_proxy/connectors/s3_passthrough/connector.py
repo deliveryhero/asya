@@ -15,6 +15,7 @@ from typing import BinaryIO
 import boto3
 from botocore.exceptions import ClientError
 
+from asya_state_proxy.connectors._s3_xattr import S3XattrMixin
 from asya_state_proxy.interface import KeyMeta, ListResult, StateProxyConnector
 
 
@@ -37,7 +38,7 @@ class _StreamingBodyWrapper(io.RawIOBase):
         return True
 
 
-class S3Passthrough(StateProxyConnector):
+class S3Passthrough(S3XattrMixin, StateProxyConnector):
     """S3 connector that streams data directly without buffering in memory."""
 
     def __init__(self) -> None:

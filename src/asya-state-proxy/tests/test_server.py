@@ -1,5 +1,7 @@
 """Tests for ConnectorServer over a real Unix socket."""
 
+from __future__ import annotations
+
 import http.client
 import io
 import json
@@ -55,6 +57,29 @@ class StubConnector(StateProxyConnector):
         if key not in self._store:
             raise FileNotFoundError(f"Key not found: {key}")
         del self._store[key]
+
+    def listxattr(self, key: str) -> list[str]:
+        if key not in self._store:
+            raise FileNotFoundError(f"Key not found: {key}")
+        return ["url", "content_type"]
+
+    def getxattr(self, key: str, attr: str) -> str:
+        if key not in self._store:
+            raise FileNotFoundError(f"Key not found: {key}")
+        if attr == "url":
+            return f"stub://{key}"
+        if attr == "content_type":
+            return "application/octet-stream"
+        raise KeyError(f"Unsupported attribute: {attr}")
+
+    def setxattr(self, key: str, attr: str, value: str) -> None:
+        if key not in self._store:
+            raise FileNotFoundError(f"Key not found: {key}")
+        if attr == "content_type":
+            return
+        if attr == "url":
+            raise PermissionError(f"Attribute {attr} is read-only")
+        raise KeyError(f"Unsupported attribute: {attr}")
 
 
 # ---------------------------------------------------------------------------
@@ -221,3 +246,112 @@ def test_put_empty_body(server_socket):
     status, _, body = _request(socket_path, "GET", "/keys/empty")
     assert status == 200
     assert body == b""
+
+
+# ---------------------------------------------------------------------------
+# Meta endpoint tests (xattr)
+# ---------------------------------------------------------------------------
+
+
+def test_meta_listxattr_returns_attrs(server_socket):
+    socket_path, _ = server_socket
+    _request(socket_path, "PUT", "/keys/metakey", body=b"data")
+
+    status, _, body = _request(socket_path, "GET", "/meta/metakey")
+    assert status == 200
+    data = json.loads(body)
+    assert "url" in data["attrs"]
+    assert "content_type" in data["attrs"]
+
+
+def test_meta_getxattr_returns_value(server_socket):
+    socket_path, _ = server_socket
+    _request(socket_path, "PUT", "/keys/metakey", body=b"data")
+
+    status, _, body = _request(socket_path, "GET", "/meta/metakey?attr=url")
+    assert status == 200
+    data = json.loads(body)
+    assert data["attr"] == "url"
+    assert data["value"] == "stub://metakey"
+
+
+def test_meta_getxattr_unsupported_returns_400(server_socket):
+    socket_path, _ = server_socket
+    _request(socket_path, "PUT", "/keys/metakey", body=b"data")
+
+    status, _, body = _request(socket_path, "GET", "/meta/metakey?attr=nosuch")
+    assert status == 400
+    data = json.loads(body)
+    assert data["error"] == "unsupported_attribute"
+
+
+def test_meta_getxattr_missing_key_returns_404(server_socket):
+    socket_path, _ = server_socket
+    status, _, body = _request(socket_path, "GET", "/meta/missing?attr=url")
+    assert status == 404
+
+
+def test_meta_listxattr_missing_key_returns_404(server_socket):
+    socket_path, _ = server_socket
+    status, _, body = _request(socket_path, "GET", "/meta/missing")
+    assert status == 404
+
+
+def test_meta_setxattr_returns_204(server_socket):
+    socket_path, _ = server_socket
+    _request(socket_path, "PUT", "/keys/metakey", body=b"data")
+
+    req_body = json.dumps({"value": "text/plain"}).encode()
+    status, _, _ = _request(
+        socket_path,
+        "PUT",
+        "/meta/metakey?attr=content_type",
+        body=req_body,
+        headers={"Content-Type": "application/json"},
+    )
+    assert status == 204
+
+
+def test_meta_setxattr_readonly_returns_403(server_socket):
+    socket_path, _ = server_socket
+    _request(socket_path, "PUT", "/keys/metakey", body=b"data")
+
+    req_body = json.dumps({"value": "x"}).encode()
+    status, _, body = _request(
+        socket_path,
+        "PUT",
+        "/meta/metakey?attr=url",
+        body=req_body,
+        headers={"Content-Type": "application/json"},
+    )
+    assert status == 403
+
+
+def test_meta_setxattr_unsupported_returns_400(server_socket):
+    socket_path, _ = server_socket
+    _request(socket_path, "PUT", "/keys/metakey", body=b"data")
+
+    req_body = json.dumps({"value": "x"}).encode()
+    status, _, body = _request(
+        socket_path,
+        "PUT",
+        "/meta/metakey?attr=nosuch",
+        body=req_body,
+        headers={"Content-Type": "application/json"},
+    )
+    assert status == 400
+
+
+def test_meta_setxattr_missing_attr_param_returns_400(server_socket):
+    socket_path, _ = server_socket
+    _request(socket_path, "PUT", "/keys/metakey", body=b"data")
+
+    req_body = json.dumps({"value": "x"}).encode()
+    status, _, body = _request(
+        socket_path,
+        "PUT",
+        "/meta/metakey",
+        body=req_body,
+        headers={"Content-Type": "application/json"},
+    )
+    assert status == 400
