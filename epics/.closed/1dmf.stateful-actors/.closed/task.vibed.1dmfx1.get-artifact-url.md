@@ -1,10 +1,15 @@
 ---
-title: "Implement xattr-based metadata API for state proxy (getxattr/listxattr/setxattr)"
-priority: 1
+title: Implement xattr-based metadata API for state proxy (getxattr/listxattr/setxattr)
+priority: 1 # high
 type: task
-dependencies: []
-tags: [state-proxy, a2a, artifacts, xattr]
+tags:
+  - topic:state-proxy
+  - topic:a2a
+  - topic:artifacts
+  - topic:xattr
+  - pr:249
 ---
+
 
 ## Motivation
 
