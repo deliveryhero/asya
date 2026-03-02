@@ -531,18 +531,19 @@ Actors write all content to external storage, then reference it by URL in the
 artifact manifest:
 
 ```python
+import json, os
+
 async def handler(payload):
     result = analyze(payload["query"])
 
     # Write ALL outputs to external storage via state proxy
-    import json
     with open("/state/artifacts/analysis.json", "w") as f:
         json.dump(result, f)
-    result_url = state_url("/state/artifacts/analysis.json")
+    result_url = os.getxattr("/state/artifacts/analysis.json", "user.asya.url").decode()
 
     with open("/state/artifacts/report.pdf", "wb") as f:
         f.write(generate_pdf(result))
-    report_url = state_url("/state/artifacts/report.pdf")
+    report_url = os.getxattr("/state/artifacts/report.pdf", "user.asya.url").decode()
 
     # Artifact contains ONLY url Parts — no inline data
     payload.setdefault("a2a", {}).setdefault("task", {}).setdefault("artifacts", [])
@@ -602,6 +603,202 @@ natively.
 x-sink. After materialization, the payload may exceed queue size limits, so
 x-sink should receive it via direct HTTP (not queue). This is a future design
 concern — see Phase 3+.
+
+#### 5.3.6 Workflow Examples
+
+Three concrete scenarios illustrate how artifacts flow through the system.
+
+##### Scenario 1: Many Small Images (Batch Processing)
+
+An actor processes a document and produces multiple images — each as a separate
+Part with its own URL. All images belong to one Artifact (the "page renders").
+
+```python
+import os
+
+def render_pages(payload):
+    doc = load_document(payload["document_url"])
+    parts = []
+
+    for i, page in enumerate(doc.pages):
+        # Write each image to state proxy
+        path = f"/state/artifacts/page_{i:03d}.png"
+        with open(path, "wb") as f:
+            f.write(page.render_png())
+
+        # Get external URL (zero-cost string concat)
+        url = os.getxattr(path, "user.asya.url").decode()
+        parts.append({
+            "url": url,
+            "media_type": "image/png",
+            "filename": f"page_{i:03d}.png"
+        })
+
+    # One artifact, many parts — each part is a separate image
+    payload.setdefault("a2a", {}).setdefault("task", {}).setdefault("artifacts", [])
+    payload["a2a"]["task"]["artifacts"].append({
+        "artifact_id": "page-renders",
+        "name": f"Rendered Pages ({len(parts)} images)",
+        "parts": parts
+    })
+    return payload
+```
+
+**Resulting artifact in meshage payload**:
+```json
+{
+  "artifact_id": "page-renders",
+  "name": "Rendered Pages (12 images)",
+  "parts": [
+    {"url": "s3://bucket/artifacts/page_000.png", "media_type": "image/png", "filename": "page_000.png"},
+    {"url": "s3://bucket/artifacts/page_001.png", "media_type": "image/png", "filename": "page_001.png"},
+    "... (10 more)"
+  ]
+}
+```
+
+**Key point**: Each Part is ~100 bytes (URL + metadata). 1000 images = ~100KB of
+URL manifests — well within SQS 256KB limit. The actual image data (potentially
+GBs) stays in S3.
+
+##### Scenario 2: Large File (Single Object Upload)
+
+For large files (high-res images, videos, trained models), the actor writes a
+single file. No chunking in the payload — the storage layer handles multipart
+upload transparently.
+
+```python
+import os
+
+async def generate_video(payload):
+    # Generate or download a large video file
+    video_data = await render_video(payload["scene_config"])
+
+    # Write to state proxy — storage layer handles multipart upload
+    # for files >5MB (S3 multipart upload is transparent to the actor)
+    with open("/state/artifacts/output.mp4", "wb") as f:
+        f.write(video_data)  # Could be 2GB — state proxy streams to S3
+
+    url = os.getxattr("/state/artifacts/output.mp4", "user.asya.url").decode()
+
+    payload.setdefault("a2a", {}).setdefault("task", {}).setdefault("artifacts", [])
+    payload["a2a"]["task"]["artifacts"].append({
+        "artifact_id": "rendered-video",
+        "name": "Rendered Video",
+        "parts": [
+            {"url": url, "media_type": "video/mp4", "filename": "output.mp4"}
+        ]
+    })
+    return payload
+```
+
+**No chunking in the artifact**. The artifact has one Part with one URL. The file
+may be 2GB, but the Part in the meshage is ~80 bytes. Chunked/multipart upload
+is handled at the storage transport level by the state proxy connector — the
+actor sees a regular `open()`/`write()`.
+
+**A2A client access**: The client receives the URL and downloads the file
+directly from S3 (or via presigned URL for unauthenticated access). For very
+large files, use `user.asya.presigned_url` to avoid requiring S3 credentials:
+
+```python
+presigned = os.getxattr("/state/artifacts/output.mp4", "user.asya.presigned_url").decode()
+# → "https://bucket.s3.amazonaws.com/artifacts/output.mp4?X-Amz-Signature=..."
+```
+
+##### Scenario 3: Streaming Output (LLM Text + Progressive Artifacts)
+
+For streaming scenarios (LLM token generation, progressive image rendering),
+the actor uses the **FLY channel** (ABI yield protocol) for real-time SSE
+delivery. Streamed chunks are **ephemeral** — they reach the client via SSE but
+are NOT persisted in `payload.a2a.task.artifacts` or `task.history`.
+
+**A2A protocol support**: The `TaskArtifactUpdateEvent` has `append: bool` and
+`last_chunk: bool` — the spec's mechanism for streaming chunked artifacts:
+
+```protobuf
+message TaskArtifactUpdateEvent {
+  string task_id = 1;
+  string context_id = 2;
+  Artifact artifact = 3;    // chunk content
+  bool append = 4;          // true = append to prev artifact with same ID
+  bool last_chunk = 5;      // true = final chunk
+}
+```
+
+**Actor implementation** (generator handler with FLY):
+
+```python
+import os
+
+def stream_analysis(payload):
+    query = payload["query"]
+
+    # --- Phase 1: Stream text tokens via FLY (ephemeral) ---
+    # Each FLY event becomes a TaskArtifactUpdateEvent SSE event
+    for token in llm.stream(query):
+        yield "FLY", {
+            "type": "artifact_update",
+            "artifact": {
+                "artifact_id": "live-analysis",
+                "parts": [{"text": token}]
+            },
+            "append": True,
+            "last_chunk": False
+        }
+
+    # Signal end of text stream
+    yield "FLY", {
+        "type": "artifact_update",
+        "artifact": {
+            "artifact_id": "live-analysis",
+            "name": "Analysis",
+            "parts": [{"text": ""}]
+        },
+        "append": True,
+        "last_chunk": True
+    }
+
+    # --- Phase 2: Persist final result as URL artifact ---
+    full_text = llm.get_full_response()
+    with open("/state/artifacts/analysis.md", "w") as f:
+        f.write(full_text)
+    url = os.getxattr("/state/artifacts/analysis.md", "user.asya.url").decode()
+
+    # This URL artifact is what persists in payload.a2a.task.artifacts
+    payload.setdefault("a2a", {}).setdefault("task", {}).setdefault("artifacts", [])
+    payload["a2a"]["task"]["artifacts"].append({
+        "artifact_id": "analysis-final",
+        "name": "Complete Analysis",
+        "parts": [{"url": url, "media_type": "text/markdown",
+                   "filename": "analysis.md"}]
+    })
+    yield payload
+```
+
+**Two channels, two lifecycles**:
+
+| Channel | Transport | Persisted? | Purpose |
+|---------|-----------|------------|---------|
+| FLY (`yield "FLY"`) | SSE `artifact_update` events | No — ephemeral | Real-time streaming to connected clients |
+| Payload artifacts | `payload.a2a.task.artifacts` | Yes — in meshage/S3 | Final result for `GetTask` responses |
+
+**Gateway translation**: The sidecar forwards FLY events to the gateway via
+`POST {base}/mesh/{id}/partial`. The gateway broadcasts them as SSE
+`TaskArtifactUpdateEvent` to subscribed clients. When the task completes,
+`GetTask` returns only the URL artifacts from `payload.a2a.task.artifacts` —
+the streamed tokens are gone.
+
+**Does streamed content need to be persisted?** No. The A2A spec explicitly
+separates streaming events (`TaskArtifactUpdateEvent` in `StreamResponse`) from
+the persisted task state (`Task.artifacts` in `GetTask`). Streaming events are
+delivery-time-only. If a client connects after the stream ends, they get the
+final artifacts via `GetTask`, not a replay of the stream. This matches how
+SSE works in general — it's a live channel, not a recording.
+
+**What if the client needs the full streamed text?** The actor persists it as a
+final URL artifact (Phase 2 above). The stream gives real-time UX; the URL
+artifact gives durable access. Both coexist.
 
 ### 5.4 History in Meshage Payload
 
