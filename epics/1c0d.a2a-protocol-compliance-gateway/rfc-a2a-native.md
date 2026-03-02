@@ -225,6 +225,10 @@ canonical schemas — no Asya-specific wrappers or field renames:
     "task": {
       "id": "task-uuid",
       "context_id": "ctx-uuid",
+      "status": {
+        "state": "working",
+        "timestamp": "2026-03-02T10:00:00Z"
+      },
       "history": [ ...A2A Message objects... ],
       "artifacts": [ ...A2A Artifact objects... ],
       "metadata": {
@@ -241,8 +245,20 @@ canonical schemas — no Asya-specific wrappers or field renames:
 exact field names and types from the A2A `Task` proto. This means:
 - No translation needed when reading/writing A2A data in actors
 - `a2a-go` types can be serialized/deserialized directly into this location
-- `status` is intentionally ABSENT — it's mutable and authoritative only in
-  gateway DB. The payload snapshot would be stale.
+- All required fields are present, including `status`
+
+**`status` in payload is a snapshot**: `payload.a2a.task.status` is REQUIRED
+by the A2A proto (`TaskStatus status = 3 [REQUIRED]`), so it MUST be present.
+The gateway sets it at dispatch time and actors MAY update it as the meshage
+flows. However, it is a **point-in-time snapshot** — the gateway DB is the
+authoritative source. The sidecar uses `GET /mesh/{id}/active` to check the
+gateway's authoritative status before processing:
+
+| Location | What it stores | Authoritative? |
+|----------|---------------|----------------|
+| Gateway DB (`tasks.status`) | Current task state | **Yes** — single source of truth |
+| `payload.a2a.task.status` | Snapshot at dispatch/last-update time | **No** — may be stale |
+| `GET /mesh/{id}/active` | Gateway's live answer | **Yes** — real-time check |
 
 **Why duplicate in headers**: The sidecar needs `task_id` for progress
 reporting (`POST /mesh/{id}/progress`) but must NOT parse payload contents.
@@ -258,12 +274,16 @@ sources:
 A2A Task response = {
   id:         ← tasks.id                         (DB, authoritative)
   context_id: ← tasks.context_id                 (DB, authoritative)
-  status:     ← tasks.status → toA2AState()      (DB, authoritative)
+  status:     ← tasks.status → toA2AState()      (DB, authoritative, NOT from payload)
   artifacts:  ← payload.a2a.task.artifacts        (S3, optional fetch)
   history:    ← payload.a2a.task.history          (S3, optional fetch)
   metadata:   ← payload.a2a.task.metadata         (S3, optional fetch)
 }
 ```
+
+**Critical**: `status` in the response ALWAYS comes from the gateway DB, never
+from `payload.a2a.task.status`. The payload snapshot may be stale (e.g., payload
+says WORKING but user already cancelled → DB says CANCELED).
 
 For in-flight tasks where the meshage is in a queue (not accessible), the
 gateway omits `artifacts`, `history`, and `metadata` — all optional per spec.
@@ -560,6 +580,13 @@ async def handler(payload):
 
     return payload
 ```
+
+**Using A2A pydantic types directly**: Actors MAY use bare A2A pydantic models
+(e.g. `Artifact(...)`, `Part(...)`, `Message(...)`) or dataclasses/TypedDicts
+instead of hand-written dicts. The runtime's JSON serializer duck-types common
+serialization protocols (`model_dump`, `asdict`, etc.) so any JSON-serializable
+object works transparently in payloads, return values, and FLY events. See task
+`1mx1x2x3` for implementation details.
 
 #### 5.3.4 Gateway Artifact Handling
 
@@ -1115,7 +1142,13 @@ func (e *AsyaExecutor) Execute(
     // 2. Translate A2A Message → meshage payload
     payload := messageToPayload(msg)
 
-    // 3. Create meshage with A2A metadata in headers
+    // 3. Set A2A task status snapshot in payload (REQUIRED by proto)
+    payload["a2a"].(map[string]any)["task"].(map[string]any)["status"] = map[string]any{
+        "state":     "submitted",
+        "timestamp": time.Now().UTC().Format(time.RFC3339),
+    }
+
+    // 4. Create meshage with A2A metadata in headers
     meshage := &types.Task{
         ID:        string(taskInfo.TaskID),
         ContextID: taskInfo.ContextID,
@@ -1132,12 +1165,12 @@ func (e *AsyaExecutor) Execute(
         Payload: payload,
     }
 
-    // 4. Dispatch to actor queue
+    // 5. Dispatch to actor queue
     if err := e.queueClient.SendMessage(ctx, meshage); err != nil {
         return e.writeFailure(queue, taskInfo, err)
     }
 
-    // 5. Write initial "submitted" event
+    // 6. Write initial "submitted" event
     return queue.Write(ctx, &a2a.TaskStatusUpdateEvent{
         TaskID:    taskInfo.TaskID,
         ContextID: taskInfo.ContextID,
@@ -1366,45 +1399,108 @@ clauses.
 **Flow**:
 
 1. Validate task exists and is not in terminal state
-2. Set task status to `canceled` in TaskStore
-3. Sidecar discovers on next `GET /mesh/{id}/active` → receives `410 Gone`
-4. Sidecar acks current message, does not route to next actor
-5. Return updated Task with `status.state: CANCELED`
+2. Set task status to `canceled` in TaskStore (DB — authoritative)
+3. Return updated Task with `status.state: CANCELED` to client immediately
+4. Sidecar discovers cancellation on next `GET /mesh/{id}/active` → `410 Gone`
+5. Sidecar drops the meshage, persists it, and reports final status
 
-**Cancellation flow**:
+**Race condition**: The meshage may be in a queue, being processed by an actor,
+or waiting to be picked up. The gateway cannot modify messages already in queues.
+The sidecar's `GET /mesh/{id}/active` check is the handshake that resolves this:
+
+**Cancellation flow — meshage in queue (not yet picked up)**:
 
 ```
-Client                     Gateway              Sidecar             Actor Mesh
+Client                     Gateway              Sidecar               Queue
   |                          |                     |                    |
   |-- POST :cancel --------->|                     |                    |
-  |                          |-- Set canceled       |                    |
-  |                          |   in TaskStore       |                    |
+  |                          |-- DB: status =      |                    |
+  |                          |   "canceled"        |                    |
   |<-- Task{CANCELED} -------|                     |                    |
   |                          |                     |                    |
-  |                          |     (next poll)     |                    |
-  |                          |<-- GET /mesh/{id}/  |                    |
-  |                          |    active ----------|                    |
+  |                     (later: sidecar picks up message from queue)    |
+  |                          |                     |<-- receive msg ----|
+  |                          |                     |                    |
+  |                          |                     |-- POST /mesh/{id}/ |
+  |                          |<-------- progress (status: received) ----|
   |                          |--- 410 Gone ------->|                    |
+  |                          |                     |                    |
   |                          |                     |-- Ack msg          |
-  |                          |                     |   (no DLQ) ------->|
-  |                          |                     |-- Do NOT route     |
-  |                          |                     |   to next actor    |
-  |                          |                     |-- Report final     |
-  |                          |                     |   status: canceled |
+  |                          |                     |   (prevent DLQ)    |
+  |                          |                     |-- Persist meshage  |
+  |                          |                     |   to x-sink queue  |
+  |                          |                     |   (for S3 record)  |
+  |                          |                     |-- Do NOT call      |
+  |                          |                     |   runtime          |
 ```
 
-**Sidecar behavior on cancellation** (discovered via `GET /mesh/{id}/active` → `410 Gone`):
-1. Ack the current message (prevent DLQ pollution)
-2. Do NOT route to next actor
-3. Log cancellation at INFO level
-4. Report final status as `canceled` to gateway
+**Cancellation flow — meshage being processed by actor**:
 
-No changes to the runtime or user handlers — cancellation is transparent to actors.
-The sidecar's existing `/mesh/{id}/active` endpoint already returns `410 Gone` for
-completed/failed tasks. Extending it to also return `410` for `canceled` requires
-minimal change.
+```
+Client                     Gateway              Sidecar               Runtime
+  |                          |                     |                    |
+  |                          |                     |-- POST /mesh/{id}/ |
+  |                          |<-- progress (received) --|               |
+  |                          |--- 200 OK (active) -->|                  |
+  |                          |                     |-- Forward to ----->|
+  |                          |                     |   runtime          |
+  |                          |                     |                    |
+  |-- POST :cancel --------->|                     |     (processing)   |
+  |                          |-- DB: status =      |                    |
+  |                          |   "canceled"        |                    |
+  |<-- Task{CANCELED} -------|                     |                    |
+  |                          |                     |                    |
+  |                          |                     |<-- response -------|
+  |                          |                     |                    |
+  |                          |                     |-- POST /mesh/{id}/ |
+  |                          |<-- progress (completed) --|              |
+  |                          |--- 410 Gone ------->|                    |
+  |                          |                     |                    |
+  |                          |                     |-- Ack msg          |
+  |                          |                     |-- Persist meshage  |
+  |                          |                     |   to x-sink queue  |
+  |                          |                     |-- Do NOT route     |
+  |                          |                     |   to next actor    |
+```
 
-**Error**: `TaskNotCancelableError` if task is already terminal.
+**Sidecar behavior on cancellation** (discovered via progress report → `410 Gone`):
+
+1. **On progress report**: Sidecar sends `POST /mesh/{id}/progress` with
+   `status: received` when it picks up a message. If gateway returns `410 Gone`
+   instead of `200 OK`, the task is no longer active (canceled, completed, or
+   failed).
+
+2. **Before runtime call**: If `410` is received on the initial "received"
+   progress report, sidecar MUST NOT call the runtime. Instead:
+   - Ack the message (prevent DLQ pollution)
+   - Route to x-sink queue for S3 persistence (preserves meshage for audit)
+   - Log cancellation at INFO level
+
+3. **After runtime call**: If `410` is received on the "completed" progress
+   report (meaning cancellation happened during processing), sidecar:
+   - Ack the message
+   - Route result to x-sink queue (preserves the work done)
+   - Do NOT route to the next actor in the pipeline
+   - The runtime's work is not wasted — it's persisted for potential replay
+
+4. **No runtime changes**: Cancellation is transparent to actors. The runtime
+   handler runs to completion if already started — the sidecar decides not to
+   route further.
+
+**Progress reporter response codes**:
+
+| Response | Meaning | Sidecar action |
+|----------|---------|----------------|
+| `200 OK` | Task is active | Continue processing normally |
+| `410 Gone` | Task is inactive (canceled/completed/failed) | Drop, persist, don't route |
+| `5xx` / timeout | Gateway unreachable | Continue processing (fail-open) |
+
+**Why fail-open on 5xx**: If the gateway is temporarily unreachable, the sidecar
+should continue processing rather than dropping the message (fail-safe over fail-fast).
+The meshage is already dequeued — dropping it would lose work. Better to process and
+let the next progress report discover the cancellation.
+
+**Error**: `TaskNotCancelableError` if task is already in terminal state.
 
 ### 7.6 SubscribeToTask
 
@@ -2220,7 +2316,7 @@ Per epic 1mx1, internal sidecar-facing routes move from `/tasks/` to `/mesh/`:
 ### 11.2 Sidecar Changes for A2A
 
 The sidecar operates identically regardless of whether a task was created via
-MCP or A2A. Minimal changes:
+MCP or A2A. Changes:
 
 1. **Header stamping**: Gateway already stamps `x-asya-a2a-task-id` and
    `x-asya-a2a-context-id` in meshage headers. Sidecar reads `x-asya-a2a-task-id` for
@@ -2231,8 +2327,12 @@ MCP or A2A. Minimal changes:
    `POST /mesh/{id}/partial` as-is. The gateway handles the A2A translation.
    No sidecar change needed.
 
-3. **Canceled state**: `GET /mesh/{id}/active` returns `410 Gone` for `canceled`
-   status (already returns 410 for `succeeded` and `failed`). Minor code change.
+3. **Progress-based active check**: The sidecar's `POST /mesh/{id}/progress`
+   report now doubles as an active check. If the gateway returns `410 Gone`
+   instead of `200 OK`, the sidecar drops the meshage, persists it to x-sink
+   queue, and does not route further. This handles cancellation (and any other
+   terminal state transition) that happened while the meshage was in the queue.
+   See Section 7.5 for the full cancellation flow.
 
 4. **Artifact reporting**: x-sink's `POST /mesh/{id}/final` already sends the
    result. Gateway creates A2A Artifacts from this result. No sidecar change.
