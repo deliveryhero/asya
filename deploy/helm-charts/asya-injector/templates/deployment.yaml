@@ -68,6 +68,10 @@ spec:
         - name: ASYA_AWS_CREDS_SECRET
           value: {{ .Values.config.awsCredsSecret | quote }}
         {{- end }}
+        {{- if .Values.config.sqsWaitTimeSeconds }}
+        - name: ASYA_SQS_WAIT_TIME_SECONDS
+          value: {{ .Values.config.sqsWaitTimeSeconds | quote }}
+        {{- end }}
         {{- if .Values.config.rabbitmqURL }}
         - name: ASYA_RABBITMQ_URL
           value: {{ .Values.config.rabbitmqURL | quote }}

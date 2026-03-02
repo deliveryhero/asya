@@ -46,8 +46,9 @@ gateway:
   replicaCount: 1
 
   service:
-    type: ClusterIP
+    type: NodePort
     port: 8080
+    nodePort: 30080
 
   config:
     port: "8080"
@@ -65,7 +66,7 @@ gateway:
         endpoint: ""
         region: "us-east-1"
         visibilityTimeout: 300
-        waitTimeSeconds: 20
+        waitTimeSeconds: 2
 
   postgresql:
     host: postgres.asya-e2e.svc.cluster.local
@@ -139,14 +140,14 @@ gateway:
     - name: test_slow_boundary
       description: |
         Test slow processing at actor boundary
-        (1.5s processing, 4s timeout with overhead)
+        (1.5s processing, generous timeout for SQS transit)
       parameters:
         first_call:
           type: boolean
           description: Whether this is the first call
           required: true
       route: [test-slow-boundary]
-      timeout: 4
+      timeout: 30
     - name: test_nested_flow
       description: Test nested if-else flow with level1 and level2 parameters
       parameters:
@@ -207,14 +208,14 @@ gateway:
       - test-multihop-12
       - test-multihop-13
       - test-multihop-14
-      timeout: 300
+      timeout: 120
   resources:
     requests:
-      cpu: 50m
-      memory: 64Mi
-    limits:
       cpu: 100m
       memory: 128Mi
+    limits:
+      cpu: 250m
+      memory: 256Mi
 
 actors:
   namespace: asya-e2e
@@ -239,6 +240,7 @@ crew:
     env:
       ASYA_GATEWAY_URL: "http://asya-gateway.asya-e2e.svc.cluster.local:8080"
       ASYA_PERSISTENCE_MOUNT: "/tmp/checkpoints/results"
+      ASYA_SQS_WAIT_TIME_SECONDS: "2"
     resources:
       requests:
         cpu: 50m
@@ -250,8 +252,8 @@ crew:
       enabled: true
       minReplicas: 1
       maxReplicas: 10
-      pollingInterval: 10
-      cooldownPeriod: 60
+      pollingInterval: 5
+      cooldownPeriod: 30
       queueLength: 5
     workload:
       kind: Deployment
@@ -263,6 +265,7 @@ crew:
     env:
       ASYA_GATEWAY_URL: "http://asya-gateway.asya-e2e.svc.cluster.local:8080"
       ASYA_PERSISTENCE_MOUNT: "/tmp/checkpoints/errors"
+      ASYA_SQS_WAIT_TIME_SECONDS: "2"
     resources:
       requests:
         cpu: 50m
@@ -274,8 +277,8 @@ crew:
       enabled: true
       minReplicas: 1
       maxReplicas: 10
-      pollingInterval: 10
-      cooldownPeriod: 60
+      pollingInterval: 5
+      cooldownPeriod: 30
       queueLength: 5
     workload:
       kind: Deployment

@@ -2,7 +2,6 @@
 
 import logging
 import os
-import time
 
 import pytest
 
@@ -30,32 +29,6 @@ logger = logging.getLogger(__name__)
 
 
 CHAOS_ACTOR_NAMES = ["test-echo", "test-error", "test-queue-health", "x-sump"]
-
-
-@pytest.fixture(scope="function", autouse=True)
-def ensure_gateway_port_forward(request, e2e_helper):
-    """
-    Ensure gateway port-forward is healthy before each test.
-
-    Pod restarts (from chaos tests, KEDA scaling, resource pressure) can
-    break port-forwards.  This fixture checks connectivity before every
-    test and restarts if needed.
-    """
-    max_retries = 3
-    for attempt in range(max_retries):
-        try:
-            import requests
-            requests.get(f"{e2e_helper.gateway_url}/health", timeout=2)
-            logger.info(f"Gateway port-forward healthy before {request.node.name}")
-            return
-        except Exception as e:
-            logger.warning(f"Gateway port-forward check failed (attempt {attempt + 1}/{max_retries}): {e}")
-            if attempt < max_retries - 1:
-                logger.info("Restarting port-forward...")
-                e2e_helper.restart_port_forward()
-                time.sleep(3)
-            else:
-                pytest.fail(f"Gateway port-forward not available after {max_retries} attempts")
 
 
 @pytest.fixture(scope="session")

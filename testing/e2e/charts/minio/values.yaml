@@ -2,6 +2,10 @@ auth:
   rootUser: minioadmin
   rootPassword: minioadmin
 
+service:
+  type: NodePort
+  nodePort: 30900
+
 buckets:
 - name: asya-results
 - name: asya-errors

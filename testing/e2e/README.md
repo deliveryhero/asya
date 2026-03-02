@@ -29,8 +29,7 @@ make up
 make diagnostics
 make logs
 
-# 3. Trigger pytest suite
-# Note: This target automatically manages port-forwarding for its duration.
+# 3. Trigger pytest suite (gateway accessible via NodePort)
 make trigger-tests
 
 # 4. Tear everything down
@@ -53,7 +52,6 @@ Each profile maps to `profiles/<name>.yaml` and wires all Helm charts plus `.env
 - `make trigger-tests PROFILE=...` – Run pytest suite against an existing cluster.
 - `make diagnostics PROFILE=...` – Execute `scripts/debug.sh diagnostics` for the active cluster.
 - `make logs PROFILE=...` – Tail recent logs across Asya components.
-- `make port-forward-up|port-forward-down PROFILE=...` – Manage background port-forwards for gateway, RabbitMQ/SQS, etc.
 - `make cov` – Print coverage info stored under `.coverage/testing/e2e`.
 
 ## Prerequisites
@@ -68,22 +66,8 @@ Each profile maps to `profiles/<name>.yaml` and wires all Helm charts plus `.env
 
 ### macOS
 
-**Port-forwarding stability**: `kubectl port-forward` can be unstable on macOS when running tests in parallel. If you experience connection errors:
-
-```bash
-# Reduce parallel workers (recommended for macOS)
-make trigger-tests PROFILE=sqs-s3 PYTEST_WORKERS=2
-
-# Or run sequentially for maximum stability
-make trigger-tests PROFILE=sqs-s3 PYTEST_WORKERS=1
-```
-
-The test framework includes automatic retry logic that restarts port-forwards when connections fail, but reducing parallelism improves stability.
-
 **Debug failing tests**: Use fail-fast mode to stop on first failure:
 
 ```bash
 make trigger-tests PROFILE=sqs-s3 PYTEST_WORKERS=2 PYTEST_OPTS="-v -x"
 ```
-
-Default parallelism (`PYTEST_WORKERS=auto`) works well on Linux CI but may overwhelm port-forwards on macOS.
