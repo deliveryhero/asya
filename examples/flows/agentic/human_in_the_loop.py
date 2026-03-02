@@ -99,6 +99,41 @@ async def proposal_generator(state: dict) -> dict:
     The proposal should be detailed enough for a human to make an
     informed approval decision.
     """
+    request = state.get("request", "")
+    feedback = state.get("human_feedback", "")
+    attempt = state.get("attempt", 1)
+
+    if attempt == 1:
+        state["proposal"] = {
+            "action": "Deploy new recommendation engine to production",
+            "rationale": "A/B test shows 15% improvement in click-through rate",
+            "impact": {
+                "estimated_revenue_lift": "$50K/month",
+                "risk_level": "medium",
+                "rollback_plan": "Feature flag allows instant rollback"
+            },
+            "timeline": "Deploy Friday 6pm, monitor through weekend",
+            "resources_required": ["2 hours engineering time", "On-call coverage"]
+        }
+    else:
+        state["proposal"] = {
+            "action": "Deploy new recommendation engine to production with staged rollout",
+            "rationale": "A/B test shows 15% improvement in click-through rate",
+            "impact": {
+                "estimated_revenue_lift": "$50K/month",
+                "risk_level": "low",
+                "rollback_plan": "Feature flag allows instant rollback",
+                "cost_breakdown": {
+                    "infrastructure": "$2K/month additional compute",
+                    "monitoring": "$500/month enhanced observability",
+                    "engineering": "2 hours deployment + 4 hours monitoring"
+                }
+            },
+            "timeline": "Deploy Tuesday 10am, 10% rollout for 24h, full rollout Thursday",
+            "resources_required": ["6 hours engineering time", "On-call coverage Tuesday-Thursday"],
+            "addressing_feedback": f"Added detailed cost breakdown as requested: {feedback}"
+        }
+
     return state
 
 
@@ -118,6 +153,15 @@ async def approval_gate(state: dict) -> dict:
     The actor's queue will have a long message visibility timeout
     to accommodate human response time.
     """
+    attempt = state.get("attempt", 1)
+
+    if attempt == 1:
+        state["approval"] = "rejected"
+        state["human_feedback"] = "needs more detail on cost breakdown and infrastructure impact"
+    else:
+        state["approval"] = "approved"
+        state["human_feedback"] = "looks good with the staged rollout approach"
+
     return state
 
 
@@ -130,6 +174,31 @@ async def executor(state: dict) -> dict:
     This is where the actual side effects happen (database changes,
     API calls, deployments, etc.).
     """
+    proposal = state.get("proposal", {})
+
+    state["result"] = {
+        "action_taken": proposal.get("action", "unknown"),
+        "execution_status": "success",
+        "deployment_id": "deploy-20240315-143218",
+        "steps_completed": [
+            "Feature flag configured for staged rollout",
+            "Deployment triggered to production cluster",
+            "Initial 10% traffic routed to new engine",
+            "Monitoring dashboards configured",
+            "On-call team notified"
+        ],
+        "metrics": {
+            "deployment_duration_seconds": 187,
+            "health_check_status": "passing",
+            "initial_error_rate": 0.001
+        },
+        "next_steps": [
+            "Monitor metrics for 24 hours",
+            "Review user feedback",
+            "Increase rollout to 100% if metrics remain stable"
+        ],
+        "timestamp": "2024-03-15T14:32:18Z"
+    }
     return state
 
 
@@ -140,6 +209,20 @@ async def revision_agent(state: dict) -> dict:
     revised proposal will go through the approval gate again on
     the next iteration.
     """
+    proposal = state.get("proposal", {})
+    feedback = state.get("human_feedback", "")
+
+    state["revision_notes"] = {
+        "feedback_received": feedback,
+        "changes_planned": [
+            "Add detailed cost breakdown for infrastructure and monitoring",
+            "Include staged rollout approach to reduce risk",
+            "Extend timeline to allow for gradual rollout",
+            "Add engineering time estimate for monitoring phase"
+        ],
+        "revised_at": "2024-03-15T13:45:00Z"
+    }
+
     return state
 
 
@@ -150,4 +233,28 @@ async def notifier(state: dict) -> dict:
     max attempts were reached). Uses email, Slack, or push
     notification depending on configuration.
     """
+    result = state.get("result", {})
+    approval = state.get("approval", "")
+
+    if result.get("execution_status") == "success":
+        state["notification"] = {
+            "channel": "slack",
+            "recipient": "engineering-team",
+            "subject": "Deployment Completed Successfully",
+            "message": f"Your requested deployment has been completed. Deployment ID: {result.get('deployment_id', 'unknown')}. Status: {result.get('execution_status', 'unknown')}. Initial metrics look healthy. Monitoring for 24 hours before full rollout.",
+            "action_buttons": [
+                {"label": "View Metrics Dashboard", "url": "https://metrics.example.com/deploy-20240315-143218"},
+                {"label": "Rollback", "url": "https://deploy.example.com/rollback"}
+            ],
+            "sent_at": "2024-03-15T14:32:25Z"
+        }
+    else:
+        state["notification"] = {
+            "channel": "slack",
+            "recipient": "engineering-team",
+            "subject": "Deployment Approval Process Ended",
+            "message": f"Max revision attempts reached. Please review the proposal manually. Last status: {approval}",
+            "sent_at": "2024-03-15T14:32:25Z"
+        }
+
     return state

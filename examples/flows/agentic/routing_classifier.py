@@ -66,6 +66,17 @@ async def classifier(state: dict) -> dict:
     Can be a lightweight model (Gemini Flash, Haiku) or even a
     traditional ML classifier for cost efficiency.
     """
+    message = state.get("message", "").lower()
+
+    if any(word in message for word in ["invoice", "payment", "charge", "refund", "billing", "bill"]):
+        state["category"] = "billing"
+    elif any(word in message for word in ["error", "bug", "crash", "broken", "not working", "technical"]):
+        state["category"] = "technical"
+    elif any(word in message for word in ["password", "account", "profile", "login", "subscription"]):
+        state["category"] = "account"
+    else:
+        state["category"] = "general"
+
     return state
 
 
@@ -75,6 +86,17 @@ async def billing_agent(state: dict) -> dict:
     Has access to billing system tools (invoice lookup, payment status,
     refund processing). Writes state["resolution"].
     """
+    message = state.get("message", "")
+    category = state.get("category", "unknown")
+
+    state["resolution"] = (
+        f"I've reviewed your billing inquiry. Your last invoice (INV-2026-0847) "
+        f"for $127.50 was processed on February 15, 2026. Payment status shows "
+        f"successful charge to card ending in 4892. If you need a detailed "
+        f"breakdown or have concerns about specific charges, I can provide an "
+        f"itemized statement or initiate a refund request within 30 days of "
+        f"the transaction date."
+    )
     return state
 
 
@@ -84,6 +106,17 @@ async def technical_agent(state: dict) -> dict:
     Has access to documentation search, bug tracker, and system status
     tools. Writes state["resolution"].
     """
+    message = state.get("message", "")
+
+    state["resolution"] = (
+        f"I've identified the issue you're experiencing. This appears to be "
+        f"related to the API timeout configuration in version 2.4.1. Our system "
+        f"status shows all services operational, but we have a known issue "
+        f"(TECH-3892) affecting connection pooling under high load. "
+        f"Workaround: increase timeout to 30 seconds and enable retry logic. "
+        f"A permanent fix is scheduled for release 2.4.2 on March 15. "
+        f"You can track progress at status.example.com/TECH-3892"
+    )
     return state
 
 
@@ -93,6 +126,18 @@ async def account_agent(state: dict) -> dict:
     Has access to account CRUD tools (profile update, password reset,
     subscription changes). Writes state["resolution"].
     """
+    message = state.get("message", "")
+
+    state["resolution"] = (
+        f"I can help you with your account management request. Your account "
+        f"(user_id: USR-88492) is currently on the Professional plan with "
+        f"renewal date March 28, 2026. I've sent a password reset link to "
+        f"your registered email (j****n@example.com). The link expires in "
+        f"60 minutes. If you need to update your profile information or change "
+        f"your subscription tier, I can process that immediately with your "
+        f"confirmation. Current subscription options: Basic ($29/mo), "
+        f"Professional ($79/mo), Enterprise (custom pricing)."
+    )
     return state
 
 
@@ -102,6 +147,18 @@ async def general_agent(state: dict) -> dict:
     Fallback handler with broad knowledge but fewer specialized tools.
     Writes state["resolution"].
     """
+    message = state.get("message", "")
+
+    state["resolution"] = (
+        f"Thank you for reaching out. I'd be happy to help with your inquiry. "
+        f"Our service offers comprehensive solutions for project management, "
+        f"team collaboration, and workflow automation. Key features include: "
+        f"real-time collaboration (up to 50 users), 99.9% uptime SLA, "
+        f"integrations with 200+ tools, and 24/7 support. "
+        f"For specific questions about features, pricing, or implementation, "
+        f"I can connect you with a specialist or provide documentation links. "
+        f"What aspect would you like to explore further?"
+    )
     return state
 
 
@@ -112,4 +169,22 @@ async def format_reply(state: dict) -> dict:
     the response meets quality standards regardless of which
     specialist handled it.
     """
+    resolution = state.get("resolution", "")
+    category = state.get("category", "general")
+
+    category_labels = {
+        "billing": "Billing Support",
+        "technical": "Technical Support",
+        "account": "Account Management",
+        "general": "Customer Service",
+    }
+
+    state["formatted_reply"] = (
+        f"--- {category_labels.get(category, 'Support')} ---\n\n"
+        f"{resolution}\n\n"
+        f"---\n"
+        f"Need more help? Visit help.example.com or reply to this message.\n"
+        f"Reference ID: REQ-{category.upper()[:4]}-{hash(resolution) % 100000:05d}\n"
+        f"Response time: <1 minute | Category: {category}"
+    )
     return state

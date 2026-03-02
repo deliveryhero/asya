@@ -31,15 +31,17 @@ Payload contract:
   state["judge_rationale"] - explanation of why this was chosen
 """
 
+import asyncio
+
 
 async def voting_ensemble(state: dict) -> dict:
     # Fan-out: three agents tackle the same task independently
     # Each uses different LLM settings (temperature, style, model)
-    state["candidates"] = [
-        await creative_writer(state["prompt"]),
-        await analytical_writer(state["prompt"]),
-        await concise_writer(state["prompt"]),
-    ]
+    state["candidates"] = list(await asyncio.gather(
+        creative_writer(state["prompt"]),
+        analytical_writer(state["prompt"]),
+        concise_writer(state["prompt"]),
+    ))
 
     # Judge evaluates all candidates and selects the best
     state = await judge(state)
@@ -55,7 +57,11 @@ async def creative_writer(prompt: dict) -> dict:
     Uses high temperature (0.9+) for diverse, imaginative output.
     May use a model optimized for creative writing.
     """
-    return prompt
+    return {
+        "text": "Picture a world where machines don't just compute but truly understand - where algorithms dance with data in elegant symphonies of meaning. This is the promise of modern AI: not cold calculation, but intelligent partnership. Like a master craftsman shaping raw materials into art, neural networks transform information into insight, creating bridges between human intention and digital capability.",
+        "style": "creative",
+        "word_count": 62,
+    }
 
 
 async def analytical_writer(prompt: dict) -> dict:
@@ -64,7 +70,11 @@ async def analytical_writer(prompt: dict) -> dict:
     Uses low temperature (0.2) for focused, factual output.
     May use a model optimized for reasoning (e.g., o3, Gemini Pro).
     """
-    return prompt
+    return {
+        "text": "Artificial intelligence systems process input data through mathematical transformations to produce outputs. Modern approaches leverage deep learning architectures trained on large datasets. Key components include feature extraction, pattern recognition, and optimization algorithms. Performance metrics such as accuracy, precision, and recall quantify model effectiveness. Implementation requires careful consideration of computational resources, data quality, and algorithmic complexity.",
+        "style": "analytical",
+        "word_count": 57,
+    }
 
 
 async def concise_writer(prompt: dict) -> dict:
@@ -73,7 +83,11 @@ async def concise_writer(prompt: dict) -> dict:
     Uses medium temperature (0.5) with instructions emphasizing brevity.
     May use a fast model (Haiku, Flash) for efficiency.
     """
-    return prompt
+    return {
+        "text": "AI systems use neural networks to learn patterns from data and make predictions. They excel at tasks like image recognition, language processing, and decision support. Success depends on quality training data and appropriate model architecture.",
+        "style": "concise",
+        "word_count": 38,
+    }
 
 
 async def judge(state: dict) -> dict:
@@ -87,4 +101,15 @@ async def judge(state: dict) -> dict:
     May also synthesize a hybrid combining the best parts of
     multiple candidates.
     """
+    candidates = state["candidates"]
+
+    state["selected"] = candidates[1]
+    state["judge_rationale"] = (
+        "Selected the analytical response for its comprehensive coverage of key concepts "
+        "and precise technical accuracy. While the creative version offers engaging prose "
+        "and the concise version provides clarity, the analytical approach best balances "
+        "depth with factual rigor. It systematically addresses core components, performance "
+        "metrics, and implementation considerations without sacrificing accessibility."
+    )
+
     return state

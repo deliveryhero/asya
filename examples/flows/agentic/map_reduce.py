@@ -65,6 +65,22 @@ async def splitter(state: dict) -> dict:
     - Data: by record count or partition key
     - Code: by file or function
     """
+    document = state["document"]
+    chunks = [
+        {
+            "content": document[:len(document)//3],
+            "index": 0
+        },
+        {
+            "content": document[len(document)//3:2*len(document)//3],
+            "index": 1
+        },
+        {
+            "content": document[2*len(document)//3:],
+            "index": 2
+        }
+    ]
+    state["chunks"] = chunks
     return state
 
 
@@ -79,7 +95,18 @@ async def chunk_processor(chunk: dict) -> dict:
     - Extract entities from a data partition
     - Translate a chapter
     """
-    return chunk
+    content = chunk["content"]
+    word_count = len(content.split())
+
+    return {
+        "summary": f"Summary of chunk {chunk['index']}: {content[:50]}...",
+        "key_points": [
+            f"Point 1 from chunk {chunk['index']}",
+            f"Point 2 from chunk {chunk['index']}",
+            f"Point 3 from chunk {chunk['index']}"
+        ],
+        "word_count": word_count
+    }
 
 
 async def reducer(state: dict) -> dict:
@@ -91,4 +118,17 @@ async def reducer(state: dict) -> dict:
     - Deduplication and merging (entity extraction)
     - Majority voting (classification)
     """
+    chunk_results = state["chunk_results"]
+
+    all_summaries = [r["summary"] for r in chunk_results]
+    all_key_points = []
+    for r in chunk_results:
+        all_key_points.extend(r["key_points"])
+    total_words = sum(r["word_count"] for r in chunk_results)
+
+    state["final_result"] = {
+        "full_summary": " ".join(all_summaries),
+        "all_key_points": all_key_points,
+        "total_words": total_words
+    }
     return state

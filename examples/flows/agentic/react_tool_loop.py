@@ -87,24 +87,53 @@ async def llm_reason(state: dict) -> dict:
     to use a tool, it populates state["tool_calls"]. Otherwise, it writes
     the final answer to state["response"].
     """
+    iteration = state.get("iteration", 0)
+    messages = state.get("messages", [])
+
+    if iteration == 1:
+        state["tool_calls"] = [{"name": "web_search", "args": {"query": "latest developments in quantum computing 2026"}}]
+        messages.append({"role": "assistant", "content": "Let me search for recent information about quantum computing."})
+    elif iteration == 2:
+        state["tool_calls"] = [{"name": "calculator", "args": {"expression": "2048 * 365"}}]
+        messages.append({"role": "assistant", "content": "Now let me calculate the total processing capacity."})
+    else:
+        state["tool_calls"] = []
+        state["response"] = "Based on my research, quantum computing has made significant progress in 2026 with new qubit stability records. The total processing capacity of current systems is approximately 747,520 operations per year."
+        messages.append({"role": "assistant", "content": state["response"]})
+
+    state["messages"] = messages
     return state
 
 
 async def web_search(state: dict) -> dict:
     """Tool actor: execute a web search query, return results as observation."""
+    query = state["tool_calls"][0]["args"]["query"]
+    state["observation"] = f"Search results for '{query}': Researchers at MIT and Google achieved 99.9% qubit coherence time in February 2026. IBM announced a 1000-qubit processor with breakthrough error correction. Nature published a study showing quantum advantage in drug discovery simulations."
     return state
 
 
 async def code_exec(state: dict) -> dict:
     """Tool actor: execute code in a sandboxed environment, return output."""
+    code = state["tool_calls"][0]["args"].get("code", "")
+    state["observation"] = f"Code execution output:\n{code}\n---\nSuccessfully executed. Output: 42"
     return state
 
 
 async def calculator(state: dict) -> dict:
     """Tool actor: evaluate a mathematical expression."""
+    expression = state["tool_calls"][0]["args"]["expression"]
+    state["observation"] = f"Calculated {expression} = 747520"
     return state
 
 
 async def format_response(state: dict) -> dict:
     """Post-processing: format the final response for the user."""
+    response = state.get("response", "")
+    messages = state.get("messages", [])
+
+    state["formatted_response"] = {
+        "answer": response,
+        "iterations": state.get("iteration", 0),
+        "conversation_length": len(messages)
+    }
     return state

@@ -90,6 +90,26 @@ async def orchestrator(state: dict) -> dict:
     to decide what to do next. This is what makes it dynamic -- the same
     request might take different paths depending on intermediate results.
     """
+    request = state["request"]
+    worker_results = state.get("worker_results", [])
+    iteration = state.get("iteration", 0)
+
+    if "worker_results" not in state:
+        state["worker_results"] = []
+
+    if iteration == 1:
+        state["next_action"] = "research"
+        state["is_complete"] = False
+    elif iteration == 2:
+        state["next_action"] = "analyze"
+        state["is_complete"] = False
+    elif iteration == 3:
+        state["next_action"] = "write"
+        state["is_complete"] = False
+    else:
+        state["next_action"] = None
+        state["is_complete"] = True
+
     return state
 
 
@@ -99,6 +119,14 @@ async def data_worker(state: dict) -> dict:
     Specialized in web search, database queries, and data retrieval.
     Appends its findings to state["worker_results"].
     """
+    request = state["request"]
+
+    findings = {
+        "worker": "data_worker",
+        "findings": f"Research results for '{request}': Found 47 relevant sources, 12 key statistics, and 5 primary data points from authoritative databases."
+    }
+
+    state["worker_results"].append(findings)
     return state
 
 
@@ -108,6 +136,14 @@ async def analysis_worker(state: dict) -> dict:
     Specialized in data analysis, statistical computation, and
     pattern recognition. Appends its analysis to state["worker_results"].
     """
+    worker_results = state["worker_results"]
+
+    analysis = {
+        "worker": "analysis_worker",
+        "analysis": f"Statistical analysis complete: 3 major trends identified, correlation coefficient 0.87, p-value < 0.01. Key pattern: exponential growth in Q3-Q4."
+    }
+
+    state["worker_results"].append(analysis)
     return state
 
 
@@ -117,6 +153,14 @@ async def writing_worker(state: dict) -> dict:
     Specialized in drafting reports, summaries, and communications.
     Appends its output to state["worker_results"].
     """
+    worker_results = state["worker_results"]
+
+    written_content = {
+        "worker": "writing_worker",
+        "content": "Executive Summary: Based on comprehensive research and analysis, the data reveals significant trends with high statistical confidence. The findings support strategic recommendations for Q1 2026 planning."
+    }
+
+    state["worker_results"].append(written_content)
     return state
 
 
@@ -126,4 +170,16 @@ async def synthesizer(state: dict) -> dict:
     Reads state["worker_results"] and combines them into a coherent
     final response for the user.
     """
+    worker_results = state["worker_results"]
+
+    combined_sections = []
+    for result in worker_results:
+        if "findings" in result:
+            combined_sections.append(f"Research: {result['findings']}")
+        elif "analysis" in result:
+            combined_sections.append(f"Analysis: {result['analysis']}")
+        elif "content" in result:
+            combined_sections.append(f"Summary: {result['content']}")
+
+    state["final_output"] = " | ".join(combined_sections)
     return state

@@ -72,6 +72,24 @@ async def input_validator(state: dict) -> dict:
     Raises RuntimeError on violation (caught by try/except router).
     On success, sets state["is_safe"] = True.
     """
+    user_input = state.get("user_input", "").lower()
+
+    dangerous_patterns = [
+        "ignore instructions",
+        "ignore previous instructions",
+        "system prompt",
+        "disregard",
+        "jailbreak",
+        "pretend you are",
+        "act as if",
+    ]
+
+    for pattern in dangerous_patterns:
+        if pattern in user_input:
+            state["violation_type"] = "prompt_injection"
+            raise RuntimeError(f"Input validation failed: detected pattern '{pattern}'")
+
+    state["is_safe"] = True
     return state
 
 
@@ -82,6 +100,16 @@ async def core_agent(state: dict) -> dict:
     input that passed the input validator. Its output will be checked
     by the output validator before reaching the user.
     """
+    user_input = state.get("user_input", "")
+
+    state["response"] = (
+        f"I understand you're asking about: '{user_input}'. "
+        f"Based on my knowledge base, I can provide helpful information on this topic. "
+        f"The key points to consider are: (1) understanding the context and requirements, "
+        f"(2) evaluating available options and trade-offs, and (3) implementing a solution "
+        f"that meets your specific needs. Would you like me to elaborate on any particular "
+        f"aspect or provide more specific guidance?"
+    )
     return state
 
 
@@ -97,6 +125,23 @@ async def output_validator(state: dict) -> dict:
     Raises RuntimeError on violation (caught by try/except router).
     On success, sets state["output_safe"] = True.
     """
+    response = state.get("response", "").lower()
+
+    leaked_patterns = [
+        "system:",
+        "assistant:",
+        "internal prompt",
+        "secret key",
+        "api_key",
+        "password:",
+    ]
+
+    for pattern in leaked_patterns:
+        if pattern in response:
+            state["violation_type"] = "data_leak"
+            raise RuntimeError(f"Output validation failed: detected leaked pattern '{pattern}'")
+
+    state["output_safe"] = True
     return state
 
 
@@ -107,4 +152,12 @@ async def safe_fallback(state: dict) -> dict:
     polite, informative refusal that doesn't reveal what specific
     safety check was triggered.
     """
+    state["response"] = (
+        "I apologize, but I'm unable to process this request as it doesn't align "
+        "with my safety guidelines. I'm designed to provide helpful, accurate, and "
+        "safe information. If you have a different question or need assistance with "
+        "something else, I'd be happy to help. Please feel free to rephrase your "
+        "request or ask about a different topic."
+    )
+    state["violation_type"] = state.get("violation_type", "safety_filter")
     return state
