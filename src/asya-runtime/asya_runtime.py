@@ -1004,6 +1004,14 @@ def _install_state_proxy_hooks(mounts_str):
 
     asya_xattr_prefix = "user.asya."
 
+    def _check_xattr_status(resp, key, bare):
+        """Map xattr-specific HTTP errors to Python exceptions."""
+        if resp.status == 400:
+            raise OSError(errno.ENODATA, f"Attribute not supported: {bare}")
+        if resp.status == 403:
+            raise PermissionError(f"Attribute is read-only: {bare}")
+        _raise_for_status(resp, key)
+
     def _patched_getxattr(path, attribute, *args, **kwargs):
         attr_str = attribute.decode("utf-8") if isinstance(attribute, bytes) else attribute
         if attr_str.startswith(asya_xattr_prefix):
@@ -1013,11 +1021,7 @@ def _install_state_proxy_hooks(mounts_str):
                 conn = _UnixHTTPClient(mount["socket"])
                 conn.request("GET", f"/meta/{key}?attr={bare}")
                 resp = conn.getresponse()
-                if resp.status == 400:
-                    raise OSError(errno.ENODATA, f"Attribute not supported: {bare}")
-                if resp.status == 403:
-                    raise PermissionError(f"Attribute is read-only: {bare}")
-                _raise_for_status(resp, key)
+                _check_xattr_status(resp, key, bare)
                 body = json.loads(resp.read())
                 conn.close()
                 return body["value"].encode("utf-8")
@@ -1059,11 +1063,7 @@ def _install_state_proxy_hooks(mounts_str):
                     },
                 )
                 resp = conn.getresponse()
-                if resp.status == 400:
-                    raise OSError(errno.ENODATA, f"Attribute not supported: {bare}")
-                if resp.status == 403:
-                    raise PermissionError(f"Attribute is read-only: {bare}")
-                _raise_for_status(resp, key)
+                _check_xattr_status(resp, key, bare)
                 conn.close()
                 return
         if _original_setxattr is not None:

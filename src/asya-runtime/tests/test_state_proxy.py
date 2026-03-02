@@ -21,6 +21,7 @@ import socket
 import sys
 import tempfile
 import threading
+import urllib.parse
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 
@@ -77,15 +78,12 @@ class _MockConnectorHandler(BaseHTTPRequestHandler):
     def do_GET(self):  # noqa: N802
         # Handle /meta/ routes for xattr
         if self.path.startswith("/meta/"):
-            path_part = self.path[len("/meta/") :]
-            if "?" in path_part:
-                key_part, qs = path_part.split("?", 1)
-                params = {}
-                for part in qs.split("&"):
-                    if "=" in part:
-                        k, v = part.split("=", 1)
-                        params[k] = v
-                attr = params.get("attr")
+            parsed = urllib.parse.urlparse(self.path)
+            path_part = parsed.path[len("/meta/") :]
+            qs = urllib.parse.parse_qs(parsed.query)
+            if qs.get("attr"):
+                key_part = path_part
+                attr = qs["attr"][0]
                 if key_part not in self.server.store:
                     self._send_json(404, {"message": "key not found"})
                     return
@@ -141,15 +139,12 @@ class _MockConnectorHandler(BaseHTTPRequestHandler):
 
     def do_PUT(self):  # noqa: N802
         if self.path.startswith("/meta/"):
-            path_part = self.path[len("/meta/") :]
-            if "?" in path_part:
-                key_part, qs = path_part.split("?", 1)
-                params = {}
-                for part in qs.split("&"):
-                    if "=" in part:
-                        k, v = part.split("=", 1)
-                        params[k] = v
-                attr = params.get("attr")
+            parsed = urllib.parse.urlparse(self.path)
+            path_part = parsed.path[len("/meta/") :]
+            qs = urllib.parse.parse_qs(parsed.query)
+            if qs.get("attr"):
+                key_part = path_part
+                attr = qs["attr"][0]
                 length = int(self.headers.get("Content-Length", "0"))
                 body = self.rfile.read(length)
                 if key_part not in self.server.store:
