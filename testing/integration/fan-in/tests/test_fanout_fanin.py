@@ -41,7 +41,7 @@ class TestFanOutFanIn:
             "topics": ["topic-alpha", "topic-beta"],
         }
 
-        message = {
+        meshage = {
             "id": msg_id,
             "route": {"prev": [], "curr": "test-fanout-router", "next": []},
             "payload": payload,
@@ -82,7 +82,7 @@ class TestFanOutFanIn:
             "topics": ["alpha", "beta", "gamma"],
         }
 
-        message = {
+        meshage = {
             "id": msg_id,
             "route": {"prev": [], "curr": "test-fanout-router", "next": []},
             "payload": payload,
@@ -117,7 +117,7 @@ class TestFanOutFanIn:
             "topics": ["only-topic"],
         }
 
-        message = {
+        meshage = {
             "id": msg_id,
             "route": {"prev": [], "curr": "test-fanout-router", "next": []},
             "payload": payload,
@@ -188,7 +188,7 @@ class TestFanOutFanInEdgeCases:
         msg_id = _msg_id()
         payload = {"query": "empty topics test", "topics": []}
 
-        message = {
+        meshage = {
             "id": msg_id,
             "route": {"prev": [], "curr": "test-fanout-router", "next": []},
             "payload": payload,

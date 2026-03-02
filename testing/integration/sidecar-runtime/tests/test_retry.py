@@ -51,14 +51,14 @@ def test_retry_max_attempts_exhausted(transport_helper):
         pytest.skip("Retry with delay requires SQS transport (RabbitMQ lacks SendWithDelay)")
 
     transport_helper.purge_queue(SUMP_QUEUE)
-    message = {
+    meshage = {
         "id": "test-retry-exhausted-1",
         "route": {"prev": [], "curr": "test-retry-fail", "next": []},
         "payload": {"test": "retry_exhausted"},
     }
     logger.info(f"Publishing message: {json.dumps(message)}")
 
-    transport_helper.publish_message(RETRY_FAIL_QUEUE, message)
+    transport_helper.publish_meshage(RETRY_FAIL_QUEUE, message)
 
     # 3 attempts with 1s delay between each = ~3-5s total processing
     result = transport_helper.get_message(SUMP_QUEUE, timeout=30)
@@ -92,13 +92,13 @@ def test_retry_status_timestamps(transport_helper):
         pytest.skip("Retry with delay requires SQS transport (RabbitMQ lacks SendWithDelay)")
 
     transport_helper.purge_queue(SUMP_QUEUE)
-    message = {
+    meshage = {
         "id": "test-retry-timestamps-1",
         "route": {"prev": [], "curr": "test-retry-fail", "next": []},
         "payload": {"test": "retry_timestamps"},
     }
 
-    transport_helper.publish_message(RETRY_FAIL_QUEUE, message)
+    transport_helper.publish_meshage(RETRY_FAIL_QUEUE, message)
 
     result = transport_helper.get_message(SUMP_QUEUE, timeout=30)
     assert result is not None, "No message in x-sump after retry"
@@ -128,14 +128,14 @@ def test_retry_non_retryable_error(transport_helper):
     to x-sump with reason=NonRetryableFailure.
     """
     transport_helper.purge_queue(SUMP_QUEUE)
-    message = {
+    meshage = {
         "id": "test-nonretryable-1",
         "route": {"prev": [], "curr": "test-retry-nonretryable", "next": []},
         "payload": {"test": "non_retryable"},
     }
     logger.info(f"Publishing message: {json.dumps(message)}")
 
-    transport_helper.publish_message(RETRY_NONRETRYABLE_QUEUE, message)
+    transport_helper.publish_meshage(RETRY_NONRETRYABLE_QUEUE, message)
 
     result = transport_helper.get_message(SUMP_QUEUE, timeout=10)
     logger.info(f"Result from x-sump: {json.dumps(result, indent=2) if result else 'None'}")
@@ -161,14 +161,14 @@ def test_retry_non_retryable_via_mro(transport_helper):
     classifies it as non-retryable via ancestor match and sends directly to x-sump.
     """
     transport_helper.purge_queue(SUMP_QUEUE)
-    message = {
+    meshage = {
         "id": "test-mro-nonretryable-1",
         "route": {"prev": [], "curr": "test-retry-mro", "next": []},
         "payload": {"test": "mro_classification"},
     }
     logger.info(f"Publishing message: {json.dumps(message)}")
 
-    transport_helper.publish_message(RETRY_MRO_QUEUE, message)
+    transport_helper.publish_meshage(RETRY_MRO_QUEUE, message)
 
     result = transport_helper.get_message(SUMP_QUEUE, timeout=10)
     logger.info(f"Result from x-sump: {json.dumps(result, indent=2) if result else 'None'}")
@@ -205,14 +205,14 @@ def test_retry_delay_not_supported_fallback(transport_helper):
         pytest.skip("This test verifies RabbitMQ fallback for unsupported delay")
 
     transport_helper.purge_queue(SUMP_QUEUE)
-    message = {
+    meshage = {
         "id": "test-delay-fallback-1",
         "route": {"prev": [], "curr": "test-retry-fail", "next": []},
         "payload": {"test": "delay_fallback"},
     }
     logger.info(f"Publishing message: {json.dumps(message)}")
 
-    transport_helper.publish_message(RETRY_FAIL_QUEUE, message)
+    transport_helper.publish_meshage(RETRY_FAIL_QUEUE, message)
 
     result = transport_helper.get_message(SUMP_QUEUE, timeout=10)
     logger.info(f"Result from x-sump: {json.dumps(result, indent=2) if result else 'None'}")
@@ -241,12 +241,12 @@ def test_retry_success_after_one_failure(transport_helper):
 
     transport_helper.purge_queue(RETRY_SUCCEED_QUEUE)
     transport_helper.purge_queue(SINK_QUEUE)
-    message = {
+    meshage = {
         "id": "test-succeed-after-one-1",
         "route": {"prev": [], "curr": "test-retry-succeed", "next": []},
         "payload": {"test": "succeed_after_one"},
     }
-    transport_helper.publish_message(RETRY_SUCCEED_QUEUE, message)
+    transport_helper.publish_meshage(RETRY_SUCCEED_QUEUE, message)
 
     result = transport_helper.get_message(SINK_QUEUE, timeout=20)
     assert result is not None, "Message should reach x-sink after successful retry"
@@ -268,12 +268,12 @@ def test_retry_created_at_preserved(transport_helper):
 
     transport_helper.purge_queue(RETRY_FAIL_QUEUE)
     transport_helper.purge_queue(SUMP_QUEUE)
-    message = {
+    meshage = {
         "id": "test-created-at-preserved-1",
         "route": {"prev": [], "curr": "test-retry-fail", "next": []},
         "payload": {"test": "created_at_preserved"},
     }
-    transport_helper.publish_message(RETRY_FAIL_QUEUE, message)
+    transport_helper.publish_meshage(RETRY_FAIL_QUEUE, message)
 
     result = transport_helper.get_message(SUMP_QUEUE, timeout=30)
     assert result is not None, "Message should reach x-sump after retry exhaustion"
@@ -296,12 +296,12 @@ def test_retry_attempt_resets_on_actor_transition(transport_helper):
 
     transport_helper.purge_queue(RETRY_SUCCEED_QUEUE)
     transport_helper.purge_queue(SINK_QUEUE)
-    message = {
+    meshage = {
         "id": "test-attempt-reset-1",
         "route": {"prev": [], "curr": "test-retry-succeed", "next": ["test-retry-succeed"]},
         "payload": {"test": "attempt_reset"},
     }
-    transport_helper.publish_message(RETRY_SUCCEED_QUEUE, message)
+    transport_helper.publish_meshage(RETRY_SUCCEED_QUEUE, message)
 
     result = transport_helper.get_message(SINK_QUEUE, timeout=30)
     assert result is not None, "Message should reach x-sink after two-actor retry pipeline"

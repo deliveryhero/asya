@@ -33,7 +33,7 @@ def test_route_override_routes_to_alternate_queue(transport_helper):
     """
     transport_helper.purge_queue("asya-default-x-sink")
 
-    message = {
+    meshage = {
         "id": "test-route-override-1",
         "route": {
             "prev": [],
@@ -49,10 +49,10 @@ def test_route_override_routes_to_alternate_queue(transport_helper):
     }
     logger.info(f"Publishing message with route override: {json.dumps(message, indent=2)}")
 
-    transport_helper.publish_message("asya-default-test-echo", message)
+    transport_helper.publish_meshage("asya-default-test-echo", meshage)
     logger.info("Message published, waiting for result in x-sink...")
 
-    result = transport_helper.assert_message_in_queue("asya-default-x-sink", timeout=30)
+    result = transport_helper.assert_meshage_in_queue("asya-default-x-sink", timeout=30)
     logger.info(f"Result from x-sink: {json.dumps(result, indent=2) if result else 'None'}")
     assert result is not None, "No message in x-sink queue after route override"
 
@@ -79,7 +79,7 @@ def test_no_override_normal_routing(transport_helper):
     """
     transport_helper.purge_queue("asya-default-x-sink")
 
-    message = {
+    meshage = {
         "id": "test-no-override-1",
         "route": {
             "prev": [],
@@ -90,10 +90,10 @@ def test_no_override_normal_routing(transport_helper):
     }
     logger.info(f"Publishing message without route override: {json.dumps(message, indent=2)}")
 
-    transport_helper.publish_message("asya-default-test-echo", message)
+    transport_helper.publish_meshage("asya-default-test-echo", meshage)
     logger.info("Message published, waiting for result in x-sink...")
 
-    result = transport_helper.assert_message_in_queue("asya-default-x-sink", timeout=30)
+    result = transport_helper.assert_meshage_in_queue("asya-default-x-sink", timeout=30)
     logger.info(f"Result from x-sink: {json.dumps(result, indent=2) if result else 'None'}")
     assert result is not None, "No message in x-sink queue for normal routing"
 
@@ -127,7 +127,7 @@ def test_route_override_audit_trail(transport_helper):
     """
     transport_helper.purge_queue("asya-default-x-sink")
 
-    message = {
+    meshage = {
         "id": "test-route-override-audit-1",
         "route": {
             "prev": [],
@@ -143,10 +143,10 @@ def test_route_override_audit_trail(transport_helper):
     }
     logger.info(f"Publishing message for audit trail test: {json.dumps(message, indent=2)}")
 
-    transport_helper.publish_message("asya-default-test-echo", message)
+    transport_helper.publish_meshage("asya-default-test-echo", meshage)
     logger.info("Message published, waiting for result in x-sink...")
 
-    result = transport_helper.assert_message_in_queue("asya-default-x-sink", timeout=30)
+    result = transport_helper.assert_meshage_in_queue("asya-default-x-sink", timeout=30)
     logger.info(f"Result from x-sink: {json.dumps(result, indent=2) if result else 'None'}")
     assert result is not None, "No message in x-sink queue for audit trail test"
 

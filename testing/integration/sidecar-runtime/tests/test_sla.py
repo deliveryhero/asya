@@ -61,7 +61,7 @@ class TestSLAPreCheck:
         transport_helper.purge_queue("asya-default-x-sink")
 
         deadline_at = _make_deadline(-60)
-        message = {
+        meshage = {
             "id": "test-sla-precheck-expired-1",
             "route": {"prev": [], "curr": "test-sla-slow", "next": []},
             "payload": {"sleep": 120},
@@ -73,7 +73,7 @@ class TestSLAPreCheck:
         )
 
         start = time.monotonic()
-        transport_helper.publish_message("asya-default-test-sla-slow", message)
+        transport_helper.publish_meshage("asya-default-test-sla-slow", meshage)
 
         # SLA pre-check should reject immediately — message in x-sink within seconds
         result = transport_helper.get_message("asya-default-x-sink", timeout=10)
@@ -144,7 +144,7 @@ class TestRetrySLAInteraction:
         transport_helper.purge_queue("asya-default-x-sump")
 
         deadline_at = _make_deadline(8)
-        message = {
+        meshage = {
             "id": "test-sla-retry-1",
             "route": {"prev": [], "curr": "test-sla-retry", "next": []},
             "payload": {"test": "sla_retry_interaction"},
@@ -156,7 +156,7 @@ class TestRetrySLAInteraction:
         )
 
         start = time.monotonic()
-        transport_helper.publish_message("asya-default-test-sla-retry", message)
+        transport_helper.publish_meshage("asya-default-test-sla-retry", meshage)
 
         # SLA should expire and route to x-sink within ~8-15s.
         # Use 25s timeout as generous upper bound.
@@ -224,7 +224,7 @@ class TestSLAEffectiveTimeout:
         transport_helper.purge_queue("asya-default-x-sump")
 
         deadline_at = _make_deadline(5)
-        message = {
+        meshage = {
             "id": "test-sla-effective-timeout-1",
             "route": {"prev": [], "curr": "test-sla-slow", "next": []},
             "payload": {"sleep": 120},
@@ -236,7 +236,7 @@ class TestSLAEffectiveTimeout:
         )
 
         start = time.monotonic()
-        transport_helper.publish_message("asya-default-test-sla-slow", message)
+        transport_helper.publish_meshage("asya-default-test-sla-slow", meshage)
 
         # With SLA: effective timeout ~5s, message in x-sump by ~8s.
         # Without SLA: timeout at 30s (ACTOR_TIMEOUT), would fail this 15s poll.

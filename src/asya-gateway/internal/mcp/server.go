@@ -166,8 +166,8 @@ func (s *Server) handleProcessImageWorkflow(ctx context.Context, request mcp.Cal
 	responseData := map[string]interface{}{
 		"task_id":    taskID,
 		"message":    "Task created successfully",
-		"status_url": fmt.Sprintf("/tasks/%s", taskID),
-		"stream_url": fmt.Sprintf("/tasks/%s/stream", taskID),
+		"status_url": fmt.Sprintf("/mesh/%s", taskID),
+		"stream_url": fmt.Sprintf("/mesh/%s/stream", taskID),
 	}
 
 	// Convert to JSON string for text content

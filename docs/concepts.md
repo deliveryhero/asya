@@ -24,12 +24,12 @@ An actor is a stateless (by default) workload that:
 
 **Responsibilities**:
 
-- Message routing between queues and runtime
+- Meshage routing between queues and runtime
 - Transport management (RabbitMQ, SQS)
 - Observability (metrics, logs)
 - Reliability (retries, error handling)
 
-**How it works**: Injected as a container into actor pods. Consumes messages from queues, validates message structure, forwards to runtime via Unix socket, routes responses to next queue.
+**How it works**: Injected as a container into actor pods. Consumes meshages from queues, validates meshage structure, forwards to runtime via Unix socket, routes responses to next queue.
 
 **See**: [architecture/asya-sidecar.md](architecture/asya-sidecar.md) for details.
 
@@ -41,7 +41,7 @@ An actor is a stateless (by default) workload that:
 - Processing input messages
 - Generating output messages
 
-**How it works**: Receives messages from sidecar via Unix socket, loads user handler (function or class), executes it, returns results back to sidecar.
+**How it works**: Receives meshages from sidecar via Unix socket, loads user handler (function or class), executes it, returns results back to sidecar.
 
 **Deployment**: User defines container image with Python code. Asya injector webhook injects `asya_runtime.py` entrypoint script via ConfigMap.
 
@@ -75,14 +75,14 @@ An actor is a stateless (by default) workload that:
 
 **See**: [architecture/transports/README.md](architecture/transports/README.md) for details.
 
-## Message
+## Meshage
 
 **Definition**: JSON object passed between actors via message queues.
 
 **Structure**:
 ```json
 {
-  "id": "unique-message-id",
+  "id": "unique-meshage-id",
   "route": {
     "prev": [],
     "curr": "preprocess",
@@ -105,7 +105,7 @@ An actor is a stateless (by default) workload that:
 - `payload` (required): User data processed by actors
 - `headers` (optional): Routing metadata (traces, priorities)
 
-**Stateful routing**: `route.current` increments after each actor processes the message. Note once again, this is a unique feature of 🎭: pipelines are stateless, but messages are stateful (they represent different pipeline executions).
+**Stateful routing**: `route.current` increments after each actor processes the meshage. Note once again, this is a unique feature of 🎭: pipelines are stateless, but meshages are stateful (they represent different pipeline executions).
 
 **See**: [architecture/protocols/actor-actor.md](architecture/protocols/actor-actor.md) for details.
 

@@ -8,8 +8,8 @@ import (
 	"github.com/deliveryhero/asya/asya-gateway/pkg/types"
 )
 
-// ActorMessageStatus represents the lifecycle status of a message
-type ActorMessageStatus struct {
+// ActorMeshageStatus represents the lifecycle status of a message
+type ActorMeshageStatus struct {
 	Phase       string `json:"phase"`
 	Actor       string `json:"actor"`
 	Attempt     int    `json:"attempt"`
@@ -19,24 +19,24 @@ type ActorMessageStatus struct {
 	DeadlineAt  string `json:"deadline_at,omitempty"`
 }
 
-// ActorMessage represents the message format sent to actors
-type ActorMessage struct {
+// ActorMeshage represents the message format sent to actors
+type ActorMeshage struct {
 	ID      string              `json:"id"`
 	Route   types.Route         `json:"route"`
 	Payload any                 `json:"payload"`
-	Status  *ActorMessageStatus `json:"status,omitempty"`
+	Status  *ActorMeshageStatus `json:"status,omitempty"`
 }
 
-// NewActorMessage creates an ActorMessage from a Task with validated route and initial status.
-func NewActorMessage(task *types.Task) (ActorMessage, error) {
+// NewActorMeshage creates an ActorMeshage from a Task with validated route and initial status.
+func NewActorMeshage(task *types.Task) (ActorMeshage, error) {
 	if task.Route.Curr == "" {
-		return ActorMessage{}, fmt.Errorf("route has no current actor (curr is empty)")
+		return ActorMeshage{}, fmt.Errorf("route has no current actor (curr is empty)")
 	}
 
 	actorName := task.Route.Curr
 	now := time.Now().UTC().Format(time.RFC3339)
 
-	status := &ActorMessageStatus{
+	status := &ActorMeshageStatus{
 		Phase:       "pending",
 		Actor:       actorName,
 		Attempt:     1,
@@ -49,7 +49,7 @@ func NewActorMessage(task *types.Task) (ActorMessage, error) {
 		status.DeadlineAt = task.Deadline.UTC().Format(time.RFC3339)
 	}
 
-	msg := ActorMessage{
+	msg := ActorMeshage{
 		ID:      task.ID,
 		Route:   task.Route,
 		Payload: task.Payload,

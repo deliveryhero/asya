@@ -132,25 +132,25 @@ func main() {
 	// REST endpoint for tool calls (simpler alternative to SSE-based MCP)
 	mux.HandleFunc("/tools/call", taskHandler.HandleToolCall)
 
-	// Task status endpoints (custom functionality)
-	mux.HandleFunc("/tasks/", func(w http.ResponseWriter, r *http.Request) {
+	// Mesh status endpoints (custom functionality)
+	mux.HandleFunc("/mesh/", func(w http.ResponseWriter, r *http.Request) {
 		if strings.HasSuffix(r.URL.Path, "/stream") {
-			taskHandler.HandleTaskStream(w, r)
+			taskHandler.HandleMeshStream(w, r)
 		} else if strings.HasSuffix(r.URL.Path, "/active") {
-			taskHandler.HandleTaskActive(w, r)
+			taskHandler.HandleMeshActive(w, r)
 		} else if strings.HasSuffix(r.URL.Path, "/progress") {
-			taskHandler.HandleTaskProgress(w, r)
+			taskHandler.HandleMeshProgress(w, r)
 		} else if strings.HasSuffix(r.URL.Path, "/final") {
-			taskHandler.HandleTaskFinal(w, r)
+			taskHandler.HandleMeshFinal(w, r)
 		} else if strings.HasSuffix(r.URL.Path, "/partial") {
-			taskHandler.HandleTaskPartial(w, r)
+			taskHandler.HandleMeshPartial(w, r)
 		} else {
-			taskHandler.HandleTaskStatus(w, r)
+			taskHandler.HandleMeshStatus(w, r)
 		}
 	})
 
-	// Task creation endpoint (for fanout child tasks from sidecar)
-	mux.HandleFunc("/tasks", taskHandler.HandleTaskCreate)
+	// Mesh creation endpoint (for fanout child mesh from sidecar)
+	mux.HandleFunc("/mesh", taskHandler.HandleMeshCreate)
 
 	// Health check
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
@@ -213,11 +213,11 @@ func main() {
 		slog.Info("MCP endpoint (streamable HTTP): POST /mcp (recommended)")
 		slog.Info("MCP endpoint (SSE): /mcp/sse (deprecated, for backward compatibility)")
 		slog.Info("REST tool endpoint: POST /tools/call (simple JSON API)")
-		slog.Info("Task status: GET /tasks/{id}")
-		slog.Info("Task stream: GET /tasks/{id}/stream (SSE)")
-		slog.Info("Task active check: GET /tasks/{id}/active (for actors)")
-		slog.Info("Task progress: POST /tasks/{id}/progress (from sidecar)")
-		slog.Info("Task final status: POST /tasks/{id}/final (for end actors)")
+		slog.Info("Mesh status: GET /mesh/{id}")
+		slog.Info("Mesh stream: GET /mesh/{id}/stream (SSE)")
+		slog.Info("Mesh active check: GET /mesh/{id}/active (for actors)")
+		slog.Info("Mesh progress: POST /mesh/{id}/progress (from sidecar)")
+		slog.Info("Mesh final status: POST /mesh/{id}/final (for end actors)")
 		slog.Info("A2A endpoint: POST /a2a/ (JSON-RPC: message/send, message/stream, tasks/get)")
 		slog.Info("A2A Agent Card: GET /.well-known/a2a/agent-card")
 		slog.Info("A2A task status: GET /a2a/tasks/{id}")
