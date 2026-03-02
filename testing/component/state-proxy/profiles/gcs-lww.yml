@@ -1,0 +1,28 @@
+include:
+- path: ../../../shared/compose/fake-gcs.yml
+
+services:
+  state-proxy-connector:
+    extends:
+      file: ../compose/state-actors.yml
+      service: state-proxy-connector
+    depends_on:
+      storage-setup:
+        condition: service_completed_successfully
+
+  asya-state-ops-runtime:
+    extends:
+      file: ../compose/state-actors.yml
+      service: asya-state-ops-runtime
+
+  tester:
+    extends:
+      file: ../compose/tester.yml
+      service: tester
+    depends_on:
+      asya-state-ops-runtime:
+        condition: service_healthy
+
+volumes:
+  state-sockets:
+  runtime-sockets:

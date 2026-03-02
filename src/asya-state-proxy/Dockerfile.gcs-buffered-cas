@@ -1,0 +1,6 @@
+FROM python:3.13-slim
+WORKDIR /app
+COPY pyproject.toml .
+COPY asya_state_proxy/ asya_state_proxy/
+RUN pip install --no-cache-dir ".[gcs]"
+ENTRYPOINT ["python", "-m", "asya_state_proxy.connectors.gcs_buffered_cas"]

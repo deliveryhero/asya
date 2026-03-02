@@ -26,6 +26,8 @@ test: clean ## Run all state-proxy component test profiles
 	$(MAKE) test-one CONNECTOR_PROFILE=s3-passthrough
 	$(MAKE) test-one CONNECTOR_PROFILE=s3-cas
 	$(MAKE) test-one CONNECTOR_PROFILE=redis-cas
+	$(MAKE) test-one CONNECTOR_PROFILE=gcs-lww
+	$(MAKE) test-one CONNECTOR_PROFILE=gcs-cas
 
 test-one: validate-env ## Run state-proxy component tests for a single profile
 	@test -n "$(CONNECTOR_PROFILE)" || (echo "[-] CONNECTOR_PROFILE not set" && exit 1)

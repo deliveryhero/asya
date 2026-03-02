@@ -6,6 +6,7 @@ dependencies = []
 
 [project.optional-dependencies]
 s3 = ["boto3>=1.35"]
+gcs = ["google-cloud-storage>=2.14"]
 redis = ["redis>=5.0"]
 test = ["pytest>=8.0", "moto[s3]>=5.0", "fakeredis>=2.21"]
 

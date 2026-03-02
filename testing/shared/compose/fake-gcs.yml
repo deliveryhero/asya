@@ -1,0 +1,32 @@
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "2"
+
+services:
+  fake-gcs:
+    image: fsouza/fake-gcs-server:latest
+    logging: *default-logging
+    command: ["-scheme", "http", "-port", "4443"]
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:4443/storage/v1/b"]
+      interval: 2s
+      timeout: 5s
+      retries: 10
+
+  storage-setup:
+    image: curlimages/curl:latest
+    logging: *default-logging
+    profiles: [""]
+    depends_on:
+      fake-gcs:
+        condition: service_healthy
+    entrypoint: >
+      sh -c "
+      curl -s -X POST
+      'http://fake-gcs:4443/storage/v1/b?project=test'
+      -H 'Content-Type: application/json'
+      -d '{\"name\": \"asya-state-test\"}';
+      echo 'GCS bucket created successfully';
+      "
