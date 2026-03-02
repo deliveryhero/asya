@@ -151,6 +151,11 @@ class CodeGenerator:
 
         return "\n".join(lines)
 
+    @staticmethod
+    def _is_exit_branch(actors: list[str]) -> bool:
+        """Check if a branch consists only of end_ actors (break/return exit)."""
+        return bool(actors) and all(a.startswith("end_") for a in actors)
+
     def _generate_router(self, router: Router) -> str:
         lines = []
         lines.append(f"def {router.name}(payload: dict):")
@@ -162,8 +167,17 @@ class CodeGenerator:
             lines.append(f"    {mutation.code}")
 
         if router.condition:
+            true_is_exit = self._is_exit_branch(router.true_branch_actors)
+            false_is_exit = self._is_exit_branch(router.false_branch_actors)
+
             lines.append(f"    if {router.condition.test}:")
-            if router.true_branch_actors:
+            if true_is_exit:
+                # Exit branch (break/return): overwrite route.next to
+                # clear any loop-back routers already in the queue.
+                lines.append('        yield "SET", ".route.next", []')
+                lines.append("        yield p")
+                lines.append("        return")
+            elif router.true_branch_actors:
                 filtered_true = [actor for actor in router.true_branch_actors if not actor.startswith("end_")]
                 for actor in filtered_true:
                     lines.append(f'        _next.append(resolve("{actor}"))')
@@ -171,8 +185,13 @@ class CodeGenerator:
                     lines.append("        pass")
             else:
                 lines.append("        pass")
+
             lines.append("    else:")
-            if router.false_branch_actors:
+            if false_is_exit:
+                lines.append('        yield "SET", ".route.next", []')
+                lines.append("        yield p")
+                lines.append("        return")
+            elif router.false_branch_actors:
                 filtered_false = [actor for actor in router.false_branch_actors if not actor.startswith("end_")]
                 for actor in filtered_false:
                     lines.append(f'        _next.append(resolve("{actor}"))')
