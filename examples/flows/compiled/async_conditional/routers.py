@@ -23,9 +23,9 @@ def start_content_pipeline_flow(payload: dict):
 
 def router_content_pipeline_flow_line_14_if(payload: dict):
     """Router for control flow and payload mutations"""
-    state = payload
+    p = payload
     _next = []
-    if state['content_type'] == 'image':
+    if p['content_type'] == 'image':
         _next.append(resolve("image_processor"))
         _next.append(resolve("quality_check"))
     else:
@@ -37,9 +37,9 @@ def router_content_pipeline_flow_line_14_if(payload: dict):
 
 def router_content_pipeline_flow_line_12_if(payload: dict):
     """Router for control flow and payload mutations"""
-    state = payload
+    p = payload
     _next = []
-    if state['content_type'] == 'text':
+    if p['content_type'] == 'text':
         _next.append(resolve("text_processor"))
         _next.append(resolve("quality_check"))
     else:

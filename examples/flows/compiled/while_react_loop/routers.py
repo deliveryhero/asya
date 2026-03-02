@@ -30,7 +30,9 @@ def router_react_agent_line_12_if(payload: dict):
     if p.get('tool_calls'):
         _next.append(resolve("execute_tool"))
     else:
-        pass
+        yield "SET", ".route.next", []
+        yield p
+        return
 
     yield "SET", ".route.next[:0]", _next
     yield payload

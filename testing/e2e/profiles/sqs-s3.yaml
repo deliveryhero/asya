@@ -90,7 +90,6 @@ crossplane:
     install: false
   functions:
     overlaysEnabled: true
-    overlaysVersion: "0.5.3"
   awsProviderConfig:
     name: localstack
     credentialsSource: Secret

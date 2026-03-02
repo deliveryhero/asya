@@ -4,12 +4,13 @@ Fan-out via asyncio.gather - async parallel dispatch.
 Demonstrates both gather patterns: generator expression for
 homogeneous fan-out and explicit args for heterogeneous fan-out.
 """
+import asyncio
 
 
 async def async_research_flow(p: dict) -> dict:
     p = await preprocessor(p)
     p["results"] = await asyncio.gather(*(research_agent(t) for t in p["topics"]))  # noqa: F821
-    p = await post_processor(p)
+    p = await postprocessor(p)
     return p
 
 
@@ -23,6 +24,6 @@ async def research_agent(topic: dict) -> dict:
     return topic
 
 
-async def post_processor(p: dict) -> dict:
+async def postprocessor(p: dict) -> dict:
     """Merge and summarize research results."""
     return p

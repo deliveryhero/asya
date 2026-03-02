@@ -5,7 +5,7 @@ import textwrap
 import pytest
 from asya_cli.flow.errors import FlowCompileError
 from asya_cli.flow.ir import ActorCall, Break, Condition, Continue, Mutation, Return, WhileLoop
-from asya_cli.flow.parser import FlowParser
+from asya_cli.flow.parser import VALID_PARAM_NAMES, FlowParser
 
 from .test_helpers import contains_with_either_quotes
 
@@ -40,14 +40,14 @@ class TestFlowFunctionDetection:
         with pytest.raises(FlowCompileError, match="No flow function found"):
             parser.parse()
 
-    def test_accepts_flow_with_arbitrary_parameter_name(self):
+    def test_rejects_function_with_wrong_parameter_name(self):
         source = textwrap.dedent("""
             def my_flow(data: dict) -> dict:
                 return data
         """)
         parser = FlowParser(source, "test.py")
-        flow_name, _ = parser.parse()
-        assert flow_name == "my_flow"
+        with pytest.raises(FlowCompileError, match="No flow function found"):
+            parser.parse()
 
     def test_rejects_function_with_multiple_parameters(self):
         source = textwrap.dedent("""
@@ -1304,46 +1304,13 @@ class TestAwaitActorCallParsing:
             parser.parse()
 
 
-class TestParameterNamePreservation:
-    """Test that arbitrary parameter names are preserved in generated code."""
+class TestStateParameterNormalization:
+    """Test that 'state' parameter is normalized to 'p' for code generation."""
 
-    def test_ctx_parameter_preserved(self):
-        source = textwrap.dedent("""
-            def flow(ctx: dict) -> dict:
-                ctx["key"] = "value"
-                return ctx
-        """)
-        parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+    def test_state_parameter_accepted(self):
+        assert "state" in VALID_PARAM_NAMES
 
-        assert isinstance(ops[0], Mutation)
-        assert contains_with_either_quotes(ops[0].code, 'ctx["key"]')
-
-    def test_data_parameter_preserved(self):
-        source = textwrap.dedent("""
-            def flow(data: dict) -> dict:
-                data["status"] = "processing"
-                return data
-        """)
-        parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
-
-        assert isinstance(ops[0], Mutation)
-        assert contains_with_either_quotes(ops[0].code, 'data["status"]')
-
-    def test_arbitrary_name_preserved(self):
-        source = textwrap.dedent("""
-            def flow(x: dict) -> dict:
-                x["count"] = 42
-                return x
-        """)
-        parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
-
-        assert isinstance(ops[0], Mutation)
-        assert contains_with_either_quotes(ops[0].code, 'x["count"]')
-
-    def test_state_mutations_preserved(self):
+    def test_state_mutations_normalized_to_p(self):
         source = textwrap.dedent("""
             def flow(state: dict) -> dict:
                 state["key"] = "value"
@@ -1353,9 +1320,9 @@ class TestParameterNamePreservation:
         _, ops = parser.parse()
 
         assert isinstance(ops[0], Mutation)
-        assert contains_with_either_quotes(ops[0].code, 'state["key"]')
+        assert contains_with_either_quotes(ops[0].code, 'p["key"]')
 
-    def test_state_conditions_preserved(self):
+    def test_state_conditions_normalized_to_p(self):
         source = textwrap.dedent("""
             def flow(state: dict) -> dict:
                 if state["type"] == "A":
@@ -1368,9 +1335,9 @@ class TestParameterNamePreservation:
         _, ops = parser.parse()
 
         assert isinstance(ops[0], Condition)
-        assert contains_with_either_quotes(ops[0].test, 'state["type"]')
+        assert contains_with_either_quotes(ops[0].test, 'p["type"]')
 
-    def test_state_augmented_assignment_preserved(self):
+    def test_state_augmented_assignment_normalized(self):
         source = textwrap.dedent("""
             def flow(state: dict) -> dict:
                 state["counter"] += 1
@@ -1380,9 +1347,9 @@ class TestParameterNamePreservation:
         _, ops = parser.parse()
 
         assert isinstance(ops[0], Mutation)
-        assert contains_with_either_quotes(ops[0].code, 'state["counter"]')
+        assert contains_with_either_quotes(ops[0].code, 'p["counter"]')
 
-    def test_async_state_flow_fully_preserved(self):
+    def test_async_state_flow_fully_normalized(self):
         source = textwrap.dedent("""
             async def my_flow(state: dict) -> dict:
                 state = await classifier(state)
@@ -1399,13 +1366,13 @@ class TestParameterNamePreservation:
         assert isinstance(ops[0], ActorCall)
         assert ops[0].name == "classifier"
         assert isinstance(ops[1], Condition)
-        assert contains_with_either_quotes(ops[1].test, 'state["content_type"]')
+        assert contains_with_either_quotes(ops[1].test, 'p["content_type"]')
         assert isinstance(ops[1].true_branch[0], ActorCall)
         assert ops[1].true_branch[0].name == "text_processor"
         assert isinstance(ops[1].false_branch[0], ActorCall)
         assert ops[1].false_branch[0].name == "generic_processor"
 
-    def test_payload_parameter_preserved(self):
+    def test_payload_parameter_not_renamed(self):
         source = textwrap.dedent("""
             def flow(payload: dict) -> dict:
                 payload["key"] = "value"
@@ -1415,7 +1382,7 @@ class TestParameterNamePreservation:
         _, ops = parser.parse()
 
         assert isinstance(ops[0], Mutation)
-        assert contains_with_either_quotes(ops[0].code, 'payload["key"]')
+        assert contains_with_either_quotes(ops[0].code, 'p["key"]')
 
 
 class TestIsAsyncFlag:
@@ -1451,18 +1418,7 @@ class TestExprStatementErrors:
                 return p
         """)
         parser = FlowParser(source, "test.py")
-        with pytest.raises(FlowCompileError, match="'yield' is not supported in flow definitions.*ABI"):
-            parser.parse()
-
-    def test_async_for_gives_descriptive_error(self):
-        source = textwrap.dedent("""
-            async def flow(p: dict) -> dict:
-                async for event in handler(p):
-                    pass
-                return p
-        """)
-        parser = FlowParser(source, "test.py")
-        with pytest.raises(FlowCompileError, match="'async for' is not supported in flow definitions.*transport-level"):
+        with pytest.raises(FlowCompileError, match="'yield' is not supported in flow definitions"):
             parser.parse()
 
     def test_standalone_await_gives_descriptive_error(self):
@@ -1483,95 +1439,4 @@ class TestExprStatementErrors:
         """)
         parser = FlowParser(source, "test.py")
         with pytest.raises(FlowCompileError, match="standalone function call is not supported"):
-            parser.parse()
-
-
-class TestAssertStatement:
-    """Test assert statement support."""
-
-    def test_assert_compiles_to_mutation(self):
-        source = textwrap.dedent("""
-            def flow(p: dict) -> dict:
-                assert p["valid"]
-                return p
-        """)
-        parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
-        assert isinstance(ops[0], Mutation)
-        assert "assert" in ops[0].code
-        assert 'p["valid"]' in ops[0].code or "p['valid']" in ops[0].code
-
-    def test_assert_with_message(self):
-        source = textwrap.dedent("""
-            def flow(p: dict) -> dict:
-                assert p["count"] > 0, "count must be positive"
-                return p
-        """)
-        parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
-        assert isinstance(ops[0], Mutation)
-        assert "assert" in ops[0].code
-        assert "count must be positive" in ops[0].code
-
-    def test_assert_with_state_parameter_preserved(self):
-        source = textwrap.dedent("""
-            def flow(state: dict) -> dict:
-                assert state["valid"], "validation failed"
-                return state
-        """)
-        parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
-        assert isinstance(ops[0], Mutation)
-        # state should be preserved
-        assert 'state["valid"]' in ops[0].code or "state['valid']" in ops[0].code
-
-
-class TestImportHandling:
-    """Test import statement handling."""
-
-    def test_module_level_import_allowed(self):
-        source = textwrap.dedent("""
-            import my_handlers
-
-            def flow(p: dict) -> dict:
-                p = my_handlers.process(p)
-                return p
-        """)
-        parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
-        assert len(ops) == 2  # ActorCall + Return
-
-    def test_module_level_from_import_allowed(self):
-        source = textwrap.dedent("""
-            from my_handlers import validate, process
-
-            def flow(p: dict) -> dict:
-                p = validate(p)
-                p = process(p)
-                return p
-        """)
-        parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
-        assert len(ops) == 3  # 2 ActorCalls + Return
-
-    def test_import_inside_flow_body_rejected(self):
-        source = textwrap.dedent("""
-            def flow(p: dict) -> dict:
-                import my_handlers
-                p = my_handlers.process(p)
-                return p
-        """)
-        parser = FlowParser(source, "test.py")
-        with pytest.raises(FlowCompileError, match="imports are not allowed inside flow functions"):
-            parser.parse()
-
-    def test_from_import_inside_flow_body_rejected(self):
-        source = textwrap.dedent("""
-            def flow(p: dict) -> dict:
-                from my_handlers import process
-                p = process(p)
-                return p
-        """)
-        parser = FlowParser(source, "test.py")
-        with pytest.raises(FlowCompileError, match="imports are not allowed inside flow functions"):
             parser.parse()

@@ -349,56 +349,16 @@ The compiler generates both a fan-out and a corresponding fan-in router to handl
 
 ---
 
-## Syntax support
+## What you cannot write in a flow
 
-### Supported
-
-| Construct | Compiles to | Example |
+| Feature | Why not | Alternative |
 |---|---|---|
-| `state = await actor(state)` | Route entry for actor | Actor call (message hop) |
-| `state["key"] = value` | Mutation router | Payload modification |
-| `state["key"] += 1` | Mutation router | Augmented assignment |
-| `if` / `elif` / `else` | Conditional router | Branch on payload values |
-| `while` / `while True` | Loop-back router | Iteration with guard |
-| `break` / `continue` | Loop control | Inside `while` only |
-| `return state` | End router | Pipeline completion or early exit |
-| `try` / `except` / `finally` | Error dispatch routers | Actor failure recovery |
-| `raise` (bare, in `except`) | Reraise router | Re-raise caught error to `x-sump` |
-| `pass` | No-op | Swallow exceptions, empty branches |
-| `state["r"] = [a(s), b(s)]` | Fan-out + fan-in | Parallel dispatch to multiple actors |
-| `state["r"] = [a(i) for i in items]` | Fan-out + fan-in | Parallel dispatch over iterable |
-| `MyClass()` | Class handler instantiation | Only with default arguments |
-| `assert expr, "msg"` | Mutation router | Guard that raises on violation, routes to `x-sump` |
-| `import` / `from import` | Module-level imports | Handler name resolution (module-level only) |
-
-### May be supported later
-
-These constructs have clear compilation targets but are not yet implemented.
-
-| Construct | Planned compilation | Status |
-|---|---|---|
-| `for x in items:` | Transform to `while` with index in payload | Blocked on explicit state management design |
-| `del state["key"]` | Mutation (payload key removal) | Planned |
-| `match` / `case` | Conditional router (like `if`/`elif`) | Planned (requires Python 3.10+) |
-| `with` / `async with` | Context manager — possible via try/finally expansion | Under consideration |
-
-### Never supported
-
-These constructs are **fundamentally incompatible** with the CPS execution
-model. They will always produce a compile error.
-
-| Construct | Why it cannot work | What to do instead |
-|---|---|---|
-| `yield` / `yield from` | Flows define control flow graphs, not generators. The compiler reserves generator semantics for ABI routing. `yield` in a flow would collide with the router code generation that uses `yield "SET", ...` to emit ABI commands. | Use ABI yields inside actor handler code, not in flows. |
-| `async for e in actor(state)` | Streaming events are transport-level (sidecar-to-gateway via SSE). They cannot flow through message queues between actors. Each `await` is a full message hop — there is no open channel to iterate over. An actor that yields multiple payloads produces multiple independent messages; the flow has no way to "subscribe" to them. | Streaming belongs inside actor handlers. If an actor yields multiple payloads, downstream actors receive them individually via normal routing — no flow-level collection syntax exists. |
-| `lambda` | Flow syntax must be explicit and minimal. Flows define a CFG (control flow graph) and compile to router actors. Anonymous functions have no place in routing logic. | Put logic in actor handlers. |
-| Local variables across `await` | Each `await` is a message hop to a different pod. Local variables don't survive — there is no shared memory, no closure, no stack between actors. All state must live in the payload dict. | Store values in the payload: `state["temp"] = value` before the `await`, retrieve after. |
-| `class` / `def` inside flow | Flows describe routing between actors, not define new logic. Nested definitions would compile to nothing meaningful. | Define classes and functions in actor handler modules. |
-| `global` / `nonlocal` | No scope to escape — each router is an independent actor. | Use the payload dict for all shared state. |
-| Walrus operator `:=` | Introduces implicit local variables that don't survive actor boundaries. | Use explicit payload mutations. |
-| `result = a(b(state))` | Nested calls imply synchronous composition. In CPS, each call is an independent message hop — there is no return value to pass to the outer call. | Assign to state sequentially: `state = await b(state)` then `state = await a(state)`. |
-| `x, y = handler(state)` | Multiple assignment targets. Actors return a single payload dict. | Use the single state variable and extract fields from payload. |
-| `MyClass(param=value)` | Class instantiation with arguments requires serializing constructor state, which the compiler cannot validate. | Use `MyClass()` with defaults. Configure via environment variables or init-time loading in the handler. |
+| `for x in items:` | `for` loops not yet supported | Use `while` with an index |
+| `result = a(b(state))` | Nested calls not allowed | Assign to state sequentially |
+| `x, y = handler(state)` | Multiple assignment targets | Use single state variable |
+| `MyClass(param=value)` | Instantiation with arguments not supported | Instantiate with `MyClass()` and rely on default `__init__` arguments. |
+| `yield` / `yield from` | Flows don't produce events | Use ABI yields inside actor handlers |
+| `import` / `global` | Flows are pure control flow | Put logic in actor handlers |
 
 ---
 

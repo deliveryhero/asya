@@ -25,7 +25,7 @@ def start_research_flow(payload: dict):
 
 def fanout_research_flow_line_11(payload: dict):
     """Fan-out router: dispatches to sub-agents and aggregator (line 11)"""
-    state = payload
+    p = payload
 
     origin_id = yield "GET", ".id"
     _next_tail = yield "GET", ".route.next"
@@ -33,7 +33,7 @@ def fanout_research_flow_line_11(payload: dict):
     _agg = resolve("fanin_research_flow_line_11")
 
     _slices = []
-    for t in state['topics']:
+    for t in p['topics']:
         _slices.append((resolve("research_agent"), t))
 
     _n = len(_slices) + 1
@@ -47,7 +47,7 @@ def fanout_research_flow_line_11(payload: dict):
     # Index 0: parent payload forwarded to aggregator
     yield "SET", ".route.next", [_agg, resolve("post_processor")] + _next_tail
     yield "SET", ".headers.x-asya-fan-in", {**_fan_in, "slice_index": 0}
-    yield copy.deepcopy(state)
+    yield copy.deepcopy(p)
 
     for _i, (_actor, _payload) in enumerate(_slices):
         yield "SET", ".route.next", [_actor, _agg]

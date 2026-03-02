@@ -4,21 +4,19 @@ digraph flow {
   node [fontname="Courier", fontsize=10, shape=box, style="filled,rounded", margin="0.2"];
   edge [fontname="Courier", fontsize=10];
 
-  start_early_return_flow [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>ctx = start_early_return_flow(ctx)</i></td></tr><tr><td bgcolor="white" align="left">assert ctx.get('user_id'), 'user_id is required'</td></tr></table>>];
-  router_early_return_flow_line_15_seq [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>ctx = router_early_return_flow_line_15_seq(ctx)</i></td></tr><tr><td bgcolor="white" align="left">ctx['error'] = 'validation_failed'</td></tr></table>>];
-  router_early_return_flow_line_14_if [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>ctx = router_early_return_flow_line_14_if(ctx)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> not ctx['valid']</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkseagreen4"><font color="white"><b>TRUE</b></font></td><td bgcolor="indianred4"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
-  end_early_return_flow [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>ctx = end_early_return_flow(ctx)</i></td></tr></table>>];
-  handler_finalize [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>ctx = handler_finalize(ctx)</i></td></tr></table>>];
-  handler_process [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>ctx = handler_process(ctx)</i></td></tr></table>>];
-  handler_validate [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>ctx = handler_validate(ctx)</i></td></tr></table>>];
-  assert_error [shape=octagon, fillcolor="mistyrose", fontcolor="crimson", style=filled, label="error"];
+  start_early_return_flow [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = start_early_return_flow(p)</i></td></tr></table>>];
+  router_early_return_flow_line_10_if [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_early_return_flow_line_10_if(p)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> not p['valid']</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkseagreen4"><font color="white"><b>TRUE</b></font></td><td bgcolor="indianred4"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
+  end_early_return_flow [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = end_early_return_flow(p)</i></td></tr></table>>];
+  handler_error [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = handler_error(p)</i></td></tr></table>>];
+  handler_finalize [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = handler_finalize(p)</i></td></tr></table>>];
+  handler_process [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = handler_process(p)</i></td></tr></table>>];
+  handler_validate [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = handler_validate(p)</i></td></tr></table>>];
 
+  handler_error -> end_early_return_flow;
   handler_finalize -> end_early_return_flow;
   handler_process -> handler_finalize;
-  handler_validate -> router_early_return_flow_line_14_if;
-  router_early_return_flow_line_14_if -> handler_process [label="F", color=indianred4];
-  router_early_return_flow_line_14_if -> router_early_return_flow_line_15_seq [label="T", color=darkseagreen4];
-  router_early_return_flow_line_15_seq -> end_early_return_flow;
-  start_early_return_flow -> assert_error [color=crimson, style=dashed, label="AssertionError"];
+  handler_validate -> router_early_return_flow_line_10_if;
+  router_early_return_flow_line_10_if -> handler_error [label="T", color=darkseagreen4];
+  router_early_return_flow_line_10_if -> handler_process [label="F", color=indianred4];
   start_early_return_flow -> handler_validate;
 }

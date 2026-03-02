@@ -4,11 +4,11 @@ digraph flow {
   node [fontname="Courier", fontsize=10, shape=box, style="filled,rounded", margin="0.2"];
   edge [fontname="Courier", fontsize=10];
 
-  start_sequential_flow [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>data = start_sequential_flow(data)</i></td></tr></table>>];
-  end_sequential_flow [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>data = end_sequential_flow(data)</i></td></tr></table>>];
-  handler_a [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>data = handler_a(data)</i></td></tr></table>>];
-  handler_b [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>data = handler_b(data)</i></td></tr></table>>];
-  handler_c [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>data = handler_c(data)</i></td></tr></table>>];
+  start_sequential_flow [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = start_sequential_flow(p)</i></td></tr></table>>];
+  end_sequential_flow [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = end_sequential_flow(p)</i></td></tr></table>>];
+  handler_a [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = handler_a(p)</i></td></tr></table>>];
+  handler_b [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = handler_b(p)</i></td></tr></table>>];
+  handler_c [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = handler_c(p)</i></td></tr></table>>];
 
   handler_a -> handler_b;
   handler_b -> handler_c;

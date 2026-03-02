@@ -23,9 +23,9 @@ def start_review_pipeline_flow(payload: dict):
 
 def router_review_pipeline_flow_line_13_if(payload: dict):
     """Router for control flow and payload mutations"""
-    state = payload
+    p = payload
     _next = []
-    if state['score'] < 0.5:
+    if p['score'] < 0.5:
         _next.append(resolve("detailed_review"))
         _next.append(resolve("human_review"))
     else:

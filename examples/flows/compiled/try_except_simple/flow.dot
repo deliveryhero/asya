@@ -5,24 +5,22 @@ digraph flow {
   node [fontname="Courier", fontsize=10, shape=box, style="filled,rounded", margin="0.2"];
   edge [fontname="Courier", fontsize=10];
 
-  start_order_processing [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = start_order_processing(state)</i></td></tr><tr><td bgcolor="white" align="left">assert state.get('order_id'), 'order_…is required'</td></tr></table>>];
-  router_order_processing_line_7_seq [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = router_order_processing_line_7_seq(state)</i></td></tr><tr><td bgcolor="white" align="left">state['status'] = 'invalid'</td></tr></table>>];
-  end_order_processing [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = end_order_processing(state)</i></td></tr></table>>];
-  notify_rejection [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = notify_rejection(state)</i></td></tr></table>>];
-  assert_error [shape=octagon, fillcolor="mistyrose", fontcolor="crimson", style=filled, label="error"];
+  start_order_processing [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = start_order_processing(p)</i></td></tr></table>>];
+  router_order_processing_line_5_seq [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_order_processing_line_5_seq(p)</i></td></tr><tr><td bgcolor="white" align="left">p['status'] = 'invalid'</td></tr></table>>];
+  end_order_processing [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = end_order_processing(p)</i></td></tr></table>>];
+  notify_rejection [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = notify_rejection(p)</i></td></tr></table>>];
   subgraph cluster_try_0 {
     style=dashed;
     color="snow4";
     fontname="Courier";
     fontsize=10;
     label="try";
-    validate_order [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = validate_order(state)</i></td></tr></table>>];
+    validate_order [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = validate_order(p)</i></td></tr></table>>];
   }
 
   notify_rejection -> end_order_processing;
-  router_order_processing_line_7_seq -> notify_rejection;
-  start_order_processing -> assert_error [color=crimson, style=dashed, label="AssertionError"];
+  router_order_processing_line_5_seq -> notify_rejection;
   start_order_processing -> validate_order;
   validate_order -> end_order_processing;
-  validate_order -> router_order_processing_line_7_seq [ltail=cluster_try_0, color=snow4, style=dashed, label="except ValueError", constraint=false];
+  validate_order -> router_order_processing_line_5_seq [ltail=cluster_try_0, color=snow4, style=dashed, label="except ValueError", constraint=false];
 }

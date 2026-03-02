@@ -21,29 +21,29 @@ import copy
 def start_llm_auditor(payload: dict):
     """Entrypoint for flow 'llm_auditor'"""
     _next = []
-    state = payload
-    state['iteration'] = 0
-    state['status'] = 'started'
-    state['partial'] = True
+    p = payload
+    p['iteration'] = 0
+    p['status'] = 'started'
+    p['partial'] = True
     _next.append(resolve("extract_claims"))
     _next.append(resolve("router_llm_auditor_line_37_if"))
     yield "SET", ".route.next[:0]", _next
-    yield state
+    yield p
 
 def router_llm_auditor_line_38_seq(payload: dict):
     """Router for control flow and payload mutations"""
-    state = payload
+    p = payload
     _next = []
-    state['status'] = 'no_claims'
+    p['status'] = 'no_claims'
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
 def router_llm_auditor_line_86_seq(payload: dict):
     """Router for control flow and payload mutations"""
-    state = payload
+    p = payload
     _next = []
-    state['partial'] = False
+    p['partial'] = False
     _next.append(resolve("finalize"))
 
     yield "SET", ".route.next[:0]", _next
@@ -51,9 +51,9 @@ def router_llm_auditor_line_86_seq(payload: dict):
 
 def router_llm_auditor_line_62_seq(payload: dict):
     """Router for control flow and payload mutations"""
-    state = payload
+    p = payload
     _next = []
-    state['prev_score'] = state['aggregate_score']
+    p['prev_score'] = p['aggregate_score']
     _next.append(resolve("router_llm_auditor_line_42_loop_back_0"))
 
     yield "SET", ".route.next[:0]", _next
@@ -61,18 +61,18 @@ def router_llm_auditor_line_62_seq(payload: dict):
 
 def router_llm_auditor_line_67_seq(payload: dict):
     """Router for control flow and payload mutations"""
-    state = payload
+    p = payload
     _next = []
-    state['status'] = 'approved'
+    p['status'] = 'approved'
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
 def router_llm_auditor_line_69_if(payload: dict):
     """Router for control flow and payload mutations"""
-    state = payload
+    p = payload
     _next = []
-    if state['aggregate_score'] >= 70:
+    if p['aggregate_score'] >= 70:
         _next.append(resolve("critique"))
         _next.append(resolve("reviser"))
         _next.append(resolve("router_llm_auditor_line_79_if"))
@@ -86,9 +86,9 @@ def router_llm_auditor_line_69_if(payload: dict):
 
 def router_llm_auditor_line_80_seq(payload: dict):
     """Router for control flow and payload mutations"""
-    state = payload
+    p = payload
     _next = []
-    state['status'] = 'max_iterations'
+    p['status'] = 'max_iterations'
     _next.append(resolve("router_llm_auditor_line_86_seq"))
 
     yield "SET", ".route.next[:0]", _next
@@ -96,18 +96,18 @@ def router_llm_auditor_line_80_seq(payload: dict):
 
 def router_llm_auditor_line_83_seq(payload: dict):
     """Router for control flow and payload mutations"""
-    state = payload
+    p = payload
     _next = []
-    state['prev_score'] = state['aggregate_score']
+    p['prev_score'] = p['aggregate_score']
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
 def router_llm_auditor_line_79_if(payload: dict):
     """Router for control flow and payload mutations"""
-    state = payload
+    p = payload
     _next = []
-    if state['iteration'] >= state.get('max_iterations', 5):
+    if p['iteration'] >= p.get('max_iterations', 5):
         _next.append(resolve("router_llm_auditor_line_80_seq"))
     else:
         _next.append(resolve("router_llm_auditor_line_83_seq"))
@@ -117,9 +117,9 @@ def router_llm_auditor_line_79_if(payload: dict):
 
 def router_llm_auditor_line_66_if(payload: dict):
     """Router for control flow and payload mutations"""
-    state = payload
+    p = payload
     _next = []
-    if state['aggregate_score'] >= 90:
+    if p['aggregate_score'] >= 90:
         _next.append(resolve("router_llm_auditor_line_67_seq"))
     else:
         _next.append(resolve("router_llm_auditor_line_69_if"))
@@ -129,9 +129,9 @@ def router_llm_auditor_line_66_if(payload: dict):
 
 def router_llm_auditor_line_61_if(payload: dict):
     """Router for control flow and payload mutations"""
-    state = payload
+    p = payload
     _next = []
-    if state['aggregate_score'] > state.get('prev_score', 0) and state['aggregate_score'] < 70:
+    if p['aggregate_score'] > p.get('prev_score', 0) and p['aggregate_score'] < 70:
         _next.append(resolve("router_llm_auditor_line_62_seq"))
     else:
         _next.append(resolve("router_llm_auditor_line_66_if"))
@@ -141,7 +141,7 @@ def router_llm_auditor_line_61_if(payload: dict):
 
 def fanout_llm_auditor_line_52(payload: dict):
     """Fan-out router: dispatches to sub-agents and aggregator (line 52)"""
-    state = payload
+    p = payload
 
     origin_id = yield "GET", ".id"
     _next_tail = yield "GET", ".route.next"
@@ -149,8 +149,8 @@ def fanout_llm_auditor_line_52(payload: dict):
     _agg = resolve("fanin_llm_auditor_line_52")
 
     _slices = []
-    _slices.append((resolve("accuracy_scorer"), state['response']))
-    _slices.append((resolve("completeness_scorer"), state['response']))
+    _slices.append((resolve("accuracy_scorer"), p['response']))
+    _slices.append((resolve("completeness_scorer"), p['response']))
 
     _n = len(_slices) + 1
     _fan_in = {
@@ -163,7 +163,7 @@ def fanout_llm_auditor_line_52(payload: dict):
     # Index 0: parent payload forwarded to aggregator
     yield "SET", ".route.next", [_agg, resolve("adk_llm_auditor.QualityScorer.aggregate"), resolve("router_llm_auditor_line_61_if")] + _next_tail
     yield "SET", ".headers.x-asya-fan-in", {**_fan_in, "slice_index": 0}
-    yield copy.deepcopy(state)
+    yield copy.deepcopy(p)
 
     for _i, (_actor, _payload) in enumerate(_slices):
         yield "SET", ".route.next", [_actor, _agg]
@@ -193,7 +193,7 @@ def router_llm_auditor_line_46_try_exit_0(payload: dict):
 
 def router_llm_auditor_line_46_except_dispatch_0(payload: dict):
     """Except-dispatch router: matches error type and routes to handler"""
-    state = payload
+    p = payload
     _next = []
     _error_type = yield "GET", ".status.error.type"
     _error_mro = yield "GET", ".status.error.mro"
@@ -209,9 +209,9 @@ def router_llm_auditor_line_46_except_dispatch_0(payload: dict):
 
 def router_llm_auditor_line_43_seq(payload: dict):
     """Router for control flow and payload mutations"""
-    state = payload
+    p = payload
     _next = []
-    state['iteration'] += 1
+    p['iteration'] += 1
     _next.append(resolve("router_llm_auditor_line_46_try_enter_0"))
 
     yield "SET", ".route.next[:0]", _next
@@ -219,7 +219,7 @@ def router_llm_auditor_line_43_seq(payload: dict):
 
 def router_llm_auditor_line_42_loop_back_0(payload: dict):
     """Loop-back router: re-inserts loop actors into route (guarded)"""
-    state = payload
+    p = payload
     _next = []
     _self = resolve("router_llm_auditor_line_42_loop_back_0")
     _prev = yield "GET", ".route.prev"
@@ -234,9 +234,9 @@ def router_llm_auditor_line_42_loop_back_0(payload: dict):
 
 def router_llm_auditor_line_37_if(payload: dict):
     """Router for control flow and payload mutations"""
-    state = payload
+    p = payload
     _next = []
-    if not state.get('claims'):
+    if not p.get('claims'):
         _next.append(resolve("router_llm_auditor_line_38_seq"))
     else:
         _next.append(resolve("router_llm_auditor_line_42_loop_back_0"))

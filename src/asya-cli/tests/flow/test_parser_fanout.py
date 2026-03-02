@@ -211,15 +211,62 @@ class TestListLiteralFanOut:
         with pytest.raises(FlowCompileError, match="[Aa]ctor call"):
             parser.parse()
 
-    def test_reject_empty_list_literal(self):
+    def test_empty_list_literal_is_mutation(self):
         source = textwrap.dedent("""
             def flow(p: dict) -> dict:
                 p["result"] = []
                 return p
         """)
         parser = FlowParser(source, "test.py")
-        with pytest.raises(FlowCompileError, match="[Ee]mpty"):
-            parser.parse()
+        _, ops = parser.parse()
+
+        from asya_cli.flow.ir import Mutation
+
+        assert len(ops) == 2
+        assert isinstance(ops[0], Mutation)
+        assert "[]" in ops[0].code
+
+    def test_list_of_constants_is_mutation(self):
+        source = textwrap.dedent("""
+            def flow(p: dict) -> dict:
+                p["items"] = [1, 2, 3]
+                return p
+        """)
+        parser = FlowParser(source, "test.py")
+        _, ops = parser.parse()
+
+        from asya_cli.flow.ir import Mutation
+
+        assert len(ops) == 2
+        assert isinstance(ops[0], Mutation)
+
+    def test_list_of_payload_methods_is_mutation(self):
+        source = textwrap.dedent("""
+            def flow(p: dict) -> dict:
+                p["search_queries"] = [p.get("question", "")]
+                return p
+        """)
+        parser = FlowParser(source, "test.py")
+        _, ops = parser.parse()
+
+        from asya_cli.flow.ir import Mutation
+
+        assert len(ops) == 2
+        assert isinstance(ops[0], Mutation)
+
+    def test_list_of_nested_payload_methods_is_mutation(self):
+        source = textwrap.dedent("""
+            def flow(p: dict) -> dict:
+                p["dup"] = [p["question"], p["answer"]]
+                return p
+        """)
+        parser = FlowParser(source, "test.py")
+        _, ops = parser.parse()
+
+        from asya_cli.flow.ir import Mutation
+
+        assert len(ops) == 2
+        assert isinstance(ops[0], Mutation)
 
     def test_list_literal_preserves_lineno(self):
         source = textwrap.dedent("""
@@ -464,10 +511,10 @@ class TestFanOutWithOtherOperations:
         assert ops[1].target_key == "/reviews"
 
 
-class TestFanOutParameterPreservation:
-    """Test that parameter names are preserved in fan-out expressions."""
+class TestFanOutParameterNormalization:
+    """Test that state/payload parameters are normalized to 'p' in fan-out."""
 
-    def test_state_parameter_preserved_in_comprehension(self):
+    def test_state_parameter_normalized_in_comprehension(self):
         source = textwrap.dedent("""
             def flow(state: dict) -> dict:
                 state["results"] = [agent(t) for t in state["items"]]
@@ -480,9 +527,9 @@ class TestFanOutParameterPreservation:
         assert isinstance(fanout, FanOutCall)
         assert fanout.target_key == "/results"
         assert fanout.iterable is not None
-        assert contains_with_either_quotes(fanout.iterable, 'state["items"]')
+        assert contains_with_either_quotes(fanout.iterable, 'p["items"]')
 
-    def test_payload_parameter_preserved_in_literal(self):
+    def test_payload_parameter_normalized_in_literal(self):
         source = textwrap.dedent("""
             def flow(payload: dict) -> dict:
                 payload["result"] = [agent_a(payload["x"]), agent_b(payload["y"])]
@@ -494,5 +541,5 @@ class TestFanOutParameterPreservation:
         fanout = ops[0]
         assert isinstance(fanout, FanOutCall)
         assert fanout.target_key == "/result"
-        assert contains_with_either_quotes(fanout.actor_calls[0][1], 'payload["x"]')
-        assert contains_with_either_quotes(fanout.actor_calls[1][1], 'payload["y"]')
+        assert contains_with_either_quotes(fanout.actor_calls[0][1], 'p["x"]')
+        assert contains_with_either_quotes(fanout.actor_calls[1][1], 'p["y"]')

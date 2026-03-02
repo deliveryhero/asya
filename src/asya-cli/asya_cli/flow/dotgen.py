@@ -28,7 +28,6 @@ class DotGenerator:
         step_width: int = 50,
         class_methods: set[str] | None = None,
         is_async: bool = False,
-        param_name: str = "p",
     ):
         self.flow_name = flow_name
         self.routers = routers
@@ -38,13 +37,11 @@ class DotGenerator:
         self.router_map: dict[str, Router] = {}
         self.class_methods = class_methods or set()
         self.is_async = is_async
-        self.param_name = param_name
         self._hidden_routers: set[str] = set()
         self._redirect_map: dict[str, str] = {}
         self._try_clusters: list[_TryCluster] = []
         self._cluster_membership: dict[str, str] = {}
         self._raise_exit_nodes: dict[str, str] = {}  # cluster_name → raise_exit node name
-        self._routers_with_assert: set[str] = set()  # routers that contain assert mutations
         self._color_error_control_flow = "snow4"
         self._color_true_branch = "darkseagreen4"
         self._color_false_branch = "indianred4"
@@ -81,30 +78,20 @@ class DotGenerator:
 
     def _truncate_display_name(self, display_name: str) -> str:
         """Truncate display name if it exceeds step_width."""
-        pn = self.param_name
-        prefix = f"{pn} = await " if self.is_async else f"{pn} = "
-        full_text = f"{prefix}{display_name}({pn})"
+        prefix = "p = await " if self.is_async else "p = "
+        full_text = f"{prefix}{display_name}(p)"
         if len(full_text) <= self.step_width:
             return full_text
         # Truncate with ellipsis
         cut = "…"
-        max_len = self.step_width - len(prefix) - len(f"({pn})") - len(cut)
+        max_len = self.step_width - len(prefix) - len("(p)") - len(cut)
         if max_len > 0:
-            return f"{prefix}{display_name[:max_len]}{cut}({pn})"
+            return f"{prefix}{display_name[:max_len]}{cut}(p)"
         return full_text
-
-    def _build_assert_info(self) -> None:
-        """Detect routers containing assert mutations for error-edge visualization."""
-        for router in self.routers:
-            if router.name in self._hidden_routers:
-                continue
-            if any(m.code.startswith("assert ") for m in router.mutations):
-                self._routers_with_assert.add(router.name)
 
     def generate(self) -> str:
         self._collect_actors()
         self._build_try_info()
-        self._build_assert_info()
 
         parts = []
         parts.append("digraph flow {")
@@ -141,14 +128,6 @@ class DotGenerator:
                 f' label="raise"];'
             )
 
-        # Assert error pseudo-node (shared terminal for assertion failures → x-sump)
-        if self._routers_with_assert:
-            parts.append(
-                '  assert_error [shape=octagon, fillcolor="mistyrose",'
-                ' fontcolor="crimson", style=filled,'
-                ' label="error"];'
-            )
-
         # Try clusters (subgraph blocks with contained node definitions)
         for cluster in self._try_clusters:
             parts.extend(self._generate_try_cluster(cluster))
@@ -163,14 +142,6 @@ class DotGenerator:
                     all_edges.update(self._generate_try_block_edges(router))
                 continue
             all_edges.update(self._generate_edges(router))
-
-        # Assert error edges (dashed edges from assert-bearing routers to error node)
-        for router_name in self._routers_with_assert:
-            all_edges.add(
-                f"  {self._node_id(router_name)} -> assert_error"
-                f" [color={self._color_raise}, style=dashed,"
-                f' label="AssertionError"];'
-            )
 
         if all_edges:
             for edge in sorted(all_edges):
