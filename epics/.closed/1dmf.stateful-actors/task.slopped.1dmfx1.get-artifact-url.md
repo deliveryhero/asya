@@ -21,6 +21,94 @@ stdlib** — no custom imports (asya_runtime is ConfigMap-injected, not a pip pa
 **Cross-reference**: A2A RFC (1c0d) Section 5.3.1, State Proxy RFC (1dmf) Section
 "Extended Attributes (xattr)".
 
+## Current Architecture (Execution Context)
+
+An agent executing this task must understand the state proxy stack:
+
+```
+Handler code                          asya_runtime.py                  State proxy sidecar
+open("/state/media/k", "w")  ──>  builtins.open patch  ──>  PUT /keys/k  ──>  connector  ──> S3
+os.stat("/state/media/k")    ──>  os.stat patch        ──>  HEAD /keys/k ──>  connector  ──> S3
+os.listdir("/state/media/")  ──>  os.listdir patch     ──>  GET /keys/?  ──>  connector  ──> S3
+os.remove("/state/media/k")  ──>  os.unlink patch      ──>  DELETE /keys/k -> connector  ──> S3
+
+NEW (this task):
+os.listxattr(path)           ──>  os.listxattr patch   ──>  GET /meta/k  ──>  connector.listxattr
+os.getxattr(path, attr)      ──>  os.getxattr patch    ──>  GET /meta/k?attr=a -> connector.getxattr
+os.setxattr(path, attr, val) ──>  os.setxattr patch    ──>  PUT /meta/k?attr=a -> connector.setxattr
+```
+
+### Key files and their roles
+
+| File | Python | Role |
+|------|--------|------|
+| `src/asya-state-proxy/asya_state_proxy/interface.py` | >=3.13 | ABC with 6 abstract methods (`read`, `write`, `exists`, `stat`, `list`, `delete`). New xattr methods go here as non-abstract. |
+| `src/asya-state-proxy/asya_state_proxy/server.py` | >=3.13 | `ConnectorServer` (Unix socket HTTP). `_make_handler` creates `_Handler` with `do_GET`, `do_PUT`, `do_HEAD`, `do_DELETE`. Routes `/keys/{key}` and `/keys/?prefix=`. Error mapping: `_ERROR_MAP` dict maps exception types to HTTP status codes. Helper functions: `_json_ok`, `_json_error`, `_handle_connector_error`. New `/meta/{key}` routes go here. |
+| `src/asya-state-proxy/asya_state_proxy/connectors/s3_passthrough/connector.py` | >=3.13 | `S3Passthrough(StateProxyConnector)`. Has `self._bucket`, `self._prefix`, `self._s3` (boto3 client). `_full_key(key)` prepends prefix. |
+| `src/asya-state-proxy/asya_state_proxy/connectors/s3_buffered_cas/connector.py` | >=3.13 | `S3BufferedCAS(StateProxyConnector)`. Same as passthrough + `self._etags: dict[str, str]` for CAS. ETags cached on read, used for conditional write. |
+| `src/asya-state-proxy/asya_state_proxy/connectors/s3_buffered_lww/connector.py` | >=3.13 | `S3BufferedLWW(StateProxyConnector)`. Same S3 structure, no ETag tracking. |
+| `src/asya-state-proxy/asya_state_proxy/connectors/redis_buffered_cas/connector.py` | >=3.13 | `RedisBufferedCAS(StateProxyConnector)`. Has `self._redis` (redis client), `self._prefix`. Uses WATCH/MULTI/EXEC for CAS. |
+| `src/asya-runtime/asya_runtime.py` | **>=3.7** | Single file, zero dependencies. Patches `builtins.open`, `os.stat`, `os.listdir`, `os.unlink`, `os.makedirs` inside `_install_state_proxy_hooks(mounts_str)`. Closures capture `mounts` list. Helpers: `_resolve_mount(path, mounts)` → `(mount, key)`, `_UnixHTTPClient(sock_path)` for HTTP over Unix socket, `_raise_for_status(resp, key)` maps HTTP errors to Python exceptions. **Must use Python 3.7+ compatible syntax**: `typing.Dict`/`List`, `# type:` comments, no `X | Y` unions, no `list[str]`. |
+
+### Runtime patching pattern (follow exactly)
+
+All patches in `_install_state_proxy_hooks` follow this pattern:
+1. Store original: `_original_foo = os.foo`
+2. Define closure: `def _patched_foo(path, ...)`
+3. Call `_resolve_mount(path, mounts)` → `(mount, key)` or `(None, None)`
+4. If `mount is None`: fall through to `_original_foo(path, ...)`
+5. If mount matched: create `_UnixHTTPClient(mount["socket"])`, make HTTP request, parse response
+6. At end of function: `os.foo = _patched_foo`
+
+### Mount configuration
+
+`ASYA_STATE_PROXY_MOUNTS` env var format: `{name}:{path}:{options}[;...]`
+Example: `meta:/state/meta:write=buffered;media:/state/media:write=passthrough`
+
+Each mount becomes a dict: `{"name": "media", "path": "/state/media/", "socket": "/var/run/asya/state/media.sock", "write_mode": "passthrough"}`
+
+### Existing test patterns
+
+**Server tests** (`src/asya-state-proxy/tests/test_server.py`):
+- `StubConnector` in-memory implementation of `StateProxyConnector`
+- `server_socket` fixture: creates `ConnectorServer` on tmp Unix socket, runs in thread
+- `_request(socket_path, method, path, body, headers)` helper for HTTP calls
+- Tests: `test_put_then_get_returns_same_data`, `test_get_missing_key_returns_404`, etc.
+- `StubConnector` needs xattr methods added for new tests.
+
+**Runtime tests** (`src/asya-runtime/tests/test_state_proxy.py`):
+- `_MockConnectorHandler` — HTTP handler with in-memory KV store
+- Runs mock server on Unix socket, patches `_install_state_proxy_hooks`
+- Tests patched `builtins.open`, `os.stat`, `os.listdir`, etc.
+- Mock handler needs `/meta/` route support added for new tests.
+
+### Error mapping conventions
+
+**Server** (`_ERROR_MAP` in `server.py`):
+```python
+_ERROR_MAP = {
+    FileNotFoundError: (404, "key_not_found"),
+    FileExistsError: (409, "conflict"),
+    ValueError: (400, "bad_request"),
+    PermissionError: (403, "permission_denied"),
+    ConnectionError: (503, "unavailable"),
+    TimeoutError: (504, "timeout"),
+}
+```
+Add: `KeyError: (400, "unsupported_attribute")`. `PermissionError` → 403 already mapped.
+
+**Runtime** (`_STATUS_TO_EXCEPTION` in `asya_runtime.py`):
+```python
+_STATUS_TO_EXCEPTION = {
+    404: FileNotFoundError, 409: FileExistsError, 412: FileExistsError,
+    400: ValueError, 403: PermissionError, 500: OSError, 503: ConnectionError,
+    504: TimeoutError,
+}
+```
+For xattr patches: 400 → `OSError(errno.ENODATA)`, 403 → `PermissionError`
+(handle explicitly before `_raise_for_status` since 400 normally maps to
+`ValueError`, not `OSError`).
+
 ## Design: xattr as Backend Metadata API
 
 Extended attributes (`os.getxattr`/`os.listxattr`/`os.setxattr`) are the standard
