@@ -1,10 +1,11 @@
 ---
-title: "Enable flow compilation for async actors"
+title: Enable flow compilation for async actors
 priority: 2 # medium
 type: task
 dependencies:
   - 1irj/1fwjb3
 ---
+
 
 Enable `react_*` and `fanout_*` flow compilation in `.pre-commit-hooks/compile-flows.sh`.
 
