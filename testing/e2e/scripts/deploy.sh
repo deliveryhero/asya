@@ -212,24 +212,24 @@ time {
   # Set up local OCI registry with TLS for Crossplane Function packages.
   # Crossplane's package manager runs inside a pod and uses HTTPS by default,
   # so the registry must serve TLS. We generate a self-signed CA + server cert
-  # for the registry's bridge IP.
+  # for the registry's Kind network IP.
   #
-  # IP pinning: We start a temporary container on the Kind network to discover
-  # the assigned IP, generate a TLS cert with that IP as SAN, then start the
-  # real container with --network kind --ip to pin the same IP. Without pinning,
-  # the recreated container gets a different IP and the cert SAN won't match.
+  # To avoid IP mismatch, we keep the SAME container throughout: start it on
+  # the Kind network (HTTP), discover its IP, generate a TLS cert for that IP,
+  # copy certs in via docker cp, update the config, and restart. docker restart
+  # preserves network attachments and IP addresses.
   echo "[.] Setting up local OCI registry for Crossplane functions..."
   docker rm -f "$REGISTRY_NAME" 2> /dev/null || true
 
-  # Start a temporary container on the Kind network to discover the IP it assigns
-  docker run -d --name "$REGISTRY_NAME" --network kind registry:2 > /dev/null
+  # Start registry on the Kind network with host port mapping (HTTP initially)
+  docker run -d --restart=always -p "${REGISTRY_HOST_PORT}:5000" \
+    --name "$REGISTRY_NAME" --network kind registry:2 > /dev/null
 
   REGISTRY_IP=$(docker inspect -f '{{.NetworkSettings.Networks.kind.IPAddress}}' "$REGISTRY_NAME")
   if [ -z "$REGISTRY_IP" ]; then
     echo "[-] Failed to get IP address for local registry container '$REGISTRY_NAME'"
     exit 1
   fi
-  docker rm -f "$REGISTRY_NAME" > /dev/null
 
   # Generate self-signed TLS cert covering both the Kind network IP (for
   # Crossplane pulling from inside the cluster) and localhost (for Docker
@@ -248,15 +248,25 @@ time {
     -CAcreateserial -out "$REGISTRY_CERTS_DIR/server.crt" -days 1 \
     -extfile <(echo "subjectAltName=${CERT_SAN}") 2> /dev/null
 
-  # Start the real registry with TLS, pinning to the same IP the cert covers
-  docker run -d --restart=always -p "${REGISTRY_HOST_PORT}:5000" \
-    --name "$REGISTRY_NAME" \
-    --network kind --ip "$REGISTRY_IP" \
-    -v "$REGISTRY_CERTS_DIR/server.crt:/certs/server.crt:ro" \
-    -v "$REGISTRY_CERTS_DIR/server.key:/certs/server.key:ro" \
-    -e REGISTRY_HTTP_TLS_CERTIFICATE=/certs/server.crt \
-    -e REGISTRY_HTTP_TLS_KEY=/certs/server.key \
-    registry:2 > /dev/null
+  # Copy certs into the running container and enable TLS via config file.
+  # docker restart preserves the container's network IP, avoiding the need
+  # for --ip (which requires user-configured subnets).
+  docker exec "$REGISTRY_NAME" mkdir -p /certs
+  docker cp "$REGISTRY_CERTS_DIR/server.crt" "${REGISTRY_NAME}:/certs/server.crt"
+  docker cp "$REGISTRY_CERTS_DIR/server.key" "${REGISTRY_NAME}:/certs/server.key"
+  docker exec "$REGISTRY_NAME" sh -c 'cat > /etc/docker/registry/config.yml << YAML
+version: 0.1
+storage:
+  filesystem:
+    rootdirectory: /var/lib/registry
+http:
+  addr: :5000
+  tls:
+    certificate: /certs/server.crt
+    key: /certs/server.key
+YAML'
+  docker restart "$REGISTRY_NAME" > /dev/null
+  echo "[+] Registry restarted with TLS at ${REGISTRY_IP}:5000"
 
   # Configure Docker to trust the CA for localhost push
   DOCKER_CERT_DIR="/etc/docker/certs.d/localhost:${REGISTRY_HOST_PORT}"
