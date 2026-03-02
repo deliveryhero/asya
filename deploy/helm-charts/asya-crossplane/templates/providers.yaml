@@ -10,6 +10,17 @@ spec:
   package: xpkg.upbound.io/upbound/provider-aws-sqs:{{ .Values.providers.aws.sqsVersion }}
 {{- end }}
 ---
+{{- if .Values.providers.gcp.enabled }}
+apiVersion: pkg.crossplane.io/v1
+kind: Provider
+metadata:
+  name: provider-gcp-pubsub
+  labels:
+    {{- include "asya-crossplane.labels" . | nindent 4 }}
+spec:
+  package: xpkg.upbound.io/upbound/provider-gcp-pubsub:{{ .Values.providers.gcp.pubsubVersion }}
+{{- end }}
+---
 apiVersion: pkg.crossplane.io/v1beta1
 kind: DeploymentRuntimeConfig
 metadata:

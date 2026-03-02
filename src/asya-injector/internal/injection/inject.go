@@ -100,6 +100,17 @@ func (i *Injector) Inject(pod *corev1.Pod, actorConfig *ActorConfig) (*corev1.Po
 		})
 	}
 
+	// Inject GCP credentials from secret if configured
+	if actorConfig.Transport == "pubsub" && i.config.GCPCredsSecret != "" {
+		sidecar.EnvFrom = append(sidecar.EnvFrom, corev1.EnvFromSource{
+			SecretRef: &corev1.SecretEnvSource{
+				LocalObjectReference: corev1.LocalObjectReference{
+					Name: i.config.GCPCredsSecret,
+				},
+			},
+		})
+	}
+
 	sidecarExists := false
 	for i, c := range mutated.Spec.Containers {
 		if c.Name == sidecarContainerName {
@@ -181,6 +192,19 @@ func (i *Injector) buildSidecarEnv(actorConfig *ActorConfig) []corev1.EnvVar {
 			env = append(env, corev1.EnvVar{
 				Name:  "ASYA_RABBITMQ_URL",
 				Value: i.config.RabbitMQURL,
+			})
+		}
+	} else if actorConfig.Transport == "pubsub" {
+		if actorConfig.GCPProject != "" {
+			env = append(env, corev1.EnvVar{
+				Name:  "ASYA_PUBSUB_PROJECT_ID",
+				Value: actorConfig.GCPProject,
+			})
+		}
+		if i.config.PubSubEndpoint != "" {
+			env = append(env, corev1.EnvVar{
+				Name:  "ASYA_PUBSUB_ENDPOINT",
+				Value: i.config.PubSubEndpoint,
 			})
 		}
 	}

@@ -46,6 +46,7 @@ spec:
                   enum:
                     - sqs
                     - rabbitmq
+                    - pubsub
                   default: sqs
 
                 overlays:
@@ -63,6 +64,10 @@ spec:
                   type: string
                   description: AWS region for SQS queue
                   default: us-east-1
+
+                gcpProject:
+                  type: string
+                  description: GCP project ID for Pub/Sub
 
                 scaling:
                   type: object

@@ -76,6 +76,14 @@ spec:
         - name: ASYA_RABBITMQ_CREDS_SECRET
           value: {{ .Values.config.rabbitmqCredsSecret | quote }}
         {{- end }}
+        {{- if .Values.config.pubsubEndpoint }}
+        - name: ASYA_PUBSUB_ENDPOINT
+          value: {{ .Values.config.pubsubEndpoint | quote }}
+        {{- end }}
+        {{- if .Values.config.gcpCredsSecret }}
+        - name: ASYA_GCP_CREDS_SECRET
+          value: {{ .Values.config.gcpCredsSecret | quote }}
+        {{- end }}
         livenessProbe:
           httpGet:
             path: /healthz

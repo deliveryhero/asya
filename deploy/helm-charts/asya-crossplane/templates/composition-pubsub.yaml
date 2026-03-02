@@ -1,0 +1,443 @@
+{{- if .Values.providers.gcp.enabled }}
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: asyncactor-pubsub
+  labels:
+    {{- include "asya-crossplane.labels" . | nindent 4 }}
+    crossplane.io/xrd: xasyncactors.asya.sh
+    asya.sh/transport: pubsub
+spec:
+  compositeTypeRef:
+    apiVersion: asya.sh/v1alpha1
+    kind: XAsyncActor
+  mode: Pipeline
+  pipeline:
+    {{- if .Values.functions.overlaysEnabled }}
+    # Resolve actor overlays -- merges EnvironmentConfig overlay data into a resolved spec
+    # written to context key asya.sh/resolved-spec for downstream steps to consume.
+    # Actors without spec.overlays are passed through with no changes.
+    - step: resolve-overlays
+      functionRef:
+        name: function-asya-overlays
+    {{- end }}
+
+    # Create Pub/Sub Topic
+    - step: render-pubsub-topic
+      functionRef:
+        name: function-go-templating
+      input:
+        apiVersion: gotemplating.fn.crossplane.io/v1beta1
+        kind: GoTemplate
+        source: Inline
+        inline:
+          template: |
+            {{`{{- $xr := .observed.composite.resource -}}`}}
+            {{`{{- $namespace := index $xr.metadata.labels "crossplane.io/claim-namespace" -}}`}}
+            {{`{{- $actorName := $xr.spec.actor -}}`}}
+            {{`{{- $gcpProject := $xr.spec.gcpProject | default "`}}{{ .Values.gcpProviderConfig.projectId }}{{`" -}}`}}
+            {{`{{- $providerConfigRef := "`}}{{ .Values.gcpProviderConfig.name }}{{`" -}}`}}
+            apiVersion: pubsub.gcp.upbound.io/v1beta2
+            kind: Topic
+            metadata:
+              annotations:
+                gotemplating.fn.crossplane.io/composition-resource-name: pubsub-topic
+            spec:
+              forProvider:
+                project: {{`{{ $gcpProject }}`}}
+              providerConfigRef:
+                name: {{`{{ $providerConfigRef }}`}}
+              deletionPolicy: Delete
+
+    # Create Pub/Sub Subscription
+    - step: render-pubsub-subscription
+      functionRef:
+        name: function-go-templating
+      input:
+        apiVersion: gotemplating.fn.crossplane.io/v1beta1
+        kind: GoTemplate
+        source: Inline
+        inline:
+          template: |
+            {{`{{- $xr := .observed.composite.resource -}}`}}
+            {{`{{- $namespace := index $xr.metadata.labels "crossplane.io/claim-namespace" -}}`}}
+            {{`{{- $actorName := $xr.spec.actor -}}`}}
+            {{`{{- $gcpProject := $xr.spec.gcpProject | default "`}}{{ .Values.gcpProviderConfig.projectId }}{{`" -}}`}}
+            {{`{{- $providerConfigRef := "`}}{{ .Values.gcpProviderConfig.name }}{{`" -}}`}}
+            apiVersion: pubsub.gcp.upbound.io/v1beta2
+            kind: Subscription
+            metadata:
+              annotations:
+                gotemplating.fn.crossplane.io/composition-resource-name: pubsub-subscription
+            spec:
+              forProvider:
+                project: {{`{{ $gcpProject }}`}}
+                topicSelector:
+                  matchControllerRef: true
+                ackDeadlineSeconds: 300
+                messageRetentionDuration: "604800s"
+                expirationPolicy:
+                  - ttl: ""
+              providerConfigRef:
+                name: {{`{{ $providerConfigRef }}`}}
+              deletionPolicy: Delete
+
+    # Create KEDA TriggerAuthentication for GCP Pub/Sub scaling
+    - step: render-triggerauthentication
+      functionRef:
+        name: function-go-templating
+      input:
+        apiVersion: gotemplating.fn.crossplane.io/v1beta1
+        kind: GoTemplate
+        source: Inline
+        inline:
+          template: |
+            {{`{{- $xr := .observed.composite.resource -}}`}}
+            {{`{{- $namespace := index $xr.metadata.labels "crossplane.io/claim-namespace" -}}`}}
+            {{`{{- $actorName := $xr.spec.actor -}}`}}
+            {{`{{- $scalingEnabled := true -}}`}}
+            {{`{{- if hasKey $xr.spec "scaling" -}}`}}
+              {{`{{- if hasKey $xr.spec.scaling "enabled" -}}`}}
+                {{`{{- $scalingEnabled = $xr.spec.scaling.enabled -}}`}}
+              {{`{{- end -}}`}}
+            {{`{{- end -}}`}}
+            {{`{{- if $scalingEnabled -}}`}}
+            apiVersion: kubernetes.crossplane.io/v1alpha2
+            kind: Object
+            metadata:
+              annotations:
+                gotemplating.fn.crossplane.io/composition-resource-name: triggerauthentication
+            spec:
+              watch: true
+              forProvider:
+                manifest:
+                  apiVersion: keda.sh/v1alpha1
+                  kind: TriggerAuthentication
+                  metadata:
+                    name: {{`{{ $actorName }}`}}-trigger-auth
+                    namespace: {{`{{ $namespace }}`}}
+                    labels:
+                      app.kubernetes.io/name: {{`{{ $actorName }}`}}
+                      app.kubernetes.io/component: triggerauthentication
+                      app.kubernetes.io/part-of: asya
+                      app.kubernetes.io/managed-by: crossplane
+                  spec:
+                    secretTargetRef:
+                      - parameter: GoogleApplicationCredentials
+                        name: {{ .Values.pubsub.keda.secretRef.name }}
+                        key: {{ .Values.pubsub.keda.secretRef.credentialsKey }}
+              providerConfigRef:
+                name: {{ .Values.kubernetesProviderConfig.name }}
+            {{`{{- end }}`}}
+
+    # Create KEDA ScaledObject for autoscaling based on Pub/Sub subscription size
+    - step: render-scaledobject
+      functionRef:
+        name: function-go-templating
+      input:
+        apiVersion: gotemplating.fn.crossplane.io/v1beta1
+        kind: GoTemplate
+        source: Inline
+        inline:
+          template: |
+            {{`{{- $xr := .observed.composite.resource -}}`}}
+            {{`{{- $namespace := index $xr.metadata.labels "crossplane.io/claim-namespace" -}}`}}
+            {{`{{- $actorName := $xr.spec.actor -}}`}}
+            {{`{{- $gcpProject := $xr.spec.gcpProject | default "`}}{{ .Values.gcpProviderConfig.projectId }}{{`" -}}`}}
+            {{`{{- $subscriptionReady := false -}}`}}
+            {{`{{- if .observed.resources -}}`}}
+              {{`{{- if index .observed.resources "pubsub-subscription" -}}`}}
+                {{`{{- $sub := (index .observed.resources "pubsub-subscription").resource -}}`}}
+                {{`{{- if and (hasKey $sub "status") (hasKey $sub.status "conditions") -}}`}}
+                  {{`{{- range $sub.status.conditions -}}`}}
+                    {{`{{- if and (eq .type "Ready") (eq .status "True") -}}`}}
+                      {{`{{- $subscriptionReady = true -}}`}}
+                    {{`{{- end -}}`}}
+                  {{`{{- end -}}`}}
+                {{`{{- end -}}`}}
+              {{`{{- end -}}`}}
+            {{`{{- end -}}`}}
+            {{`{{- $resolvedSpec := dict -}}`}}
+            {{`{{- if and .context (index .context "asya.sh/resolved-spec") -}}`}}
+            {{`{{- $resolvedSpec = index .context "asya.sh/resolved-spec" -}}`}}
+            {{`{{- end -}}`}}
+            {{`{{- $scaling := $xr.spec.scaling -}}`}}
+            {{`{{- if and $resolvedSpec (hasKey $resolvedSpec "scaling") -}}`}}
+            {{`{{- $scaling = $resolvedSpec.scaling -}}`}}
+            {{`{{- end -}}`}}
+            {{`{{- $workload := $xr.spec.workload -}}`}}
+            {{`{{- if and $resolvedSpec (hasKey $resolvedSpec "workload") -}}`}}
+            {{`{{- $workload = $resolvedSpec.workload -}}`}}
+            {{`{{- end -}}`}}
+            {{`{{- $scalingEnabled := true -}}`}}
+            {{`{{- if and $scaling (hasKey $scaling "enabled") -}}`}}
+              {{`{{- $scalingEnabled = $scaling.enabled -}}`}}
+            {{`{{- end -}}`}}
+            {{`{{- if and $scalingEnabled $subscriptionReady -}}`}}
+            {{`{{- $minReplicas := 0 -}}`}}
+            {{`{{- $maxReplicas := 10 -}}`}}
+            {{`{{- $pollingInterval := 30 -}}`}}
+            {{`{{- $cooldownPeriod := 300 -}}`}}
+            {{`{{- $queueLength := 5 -}}`}}
+            {{`{{- if $scaling -}}`}}
+              {{`{{- if hasKey $scaling "minReplicas" }}{{ $minReplicas = $scaling.minReplicas }}{{ end -}}`}}
+              {{`{{- if hasKey $scaling "maxReplicas" }}{{ $maxReplicas = $scaling.maxReplicas }}{{ end -}}`}}
+              {{`{{- if hasKey $scaling "pollingInterval" }}{{ $pollingInterval = $scaling.pollingInterval }}{{ end -}}`}}
+              {{`{{- if hasKey $scaling "cooldownPeriod" }}{{ $cooldownPeriod = $scaling.cooldownPeriod }}{{ end -}}`}}
+              {{`{{- if hasKey $scaling "queueLength" }}{{ $queueLength = $scaling.queueLength }}{{ end -}}`}}
+            {{`{{- end -}}`}}
+            {{`{{- $workloadName := $actorName -}}`}}
+            {{`{{- $workloadKind := "Deployment" -}}`}}
+            {{`{{- if hasKey $workload "kind" -}}`}}
+              {{`{{- $workloadKind = $workload.kind -}}`}}
+            {{`{{- end -}}`}}
+            apiVersion: kubernetes.crossplane.io/v1alpha2
+            kind: Object
+            metadata:
+              annotations:
+                gotemplating.fn.crossplane.io/composition-resource-name: scaledobject
+            spec:
+              watch: true
+              forProvider:
+                manifest:
+                  apiVersion: keda.sh/v1alpha1
+                  kind: ScaledObject
+                  metadata:
+                    name: {{`{{ $actorName }}`}}
+                    namespace: {{`{{ $namespace }}`}}
+                    labels:
+                      app.kubernetes.io/name: {{`{{ $actorName }}`}}
+                      app.kubernetes.io/component: scaledobject
+                      app.kubernetes.io/part-of: asya
+                      app.kubernetes.io/managed-by: crossplane
+                  spec:
+                    scaleTargetRef:
+                      name: {{`{{ $workloadName }}`}}
+                      kind: {{`{{ $workloadKind }}`}}
+                    minReplicaCount: {{`{{ $minReplicas }}`}}
+                    maxReplicaCount: {{`{{ $maxReplicas }}`}}
+                    pollingInterval: {{`{{ $pollingInterval }}`}}
+                    cooldownPeriod: {{`{{ $cooldownPeriod }}`}}
+                    triggers:
+                      - type: gcp-pubsub
+                        authenticationRef:
+                          name: {{`{{ $actorName }}`}}-trigger-auth
+                        metadata:
+                          subscriptionName: projects/{{`{{ $gcpProject }}`}}/subscriptions/asya-{{`{{ $namespace }}`}}-{{`{{ $actorName }}`}}
+                          mode: SubscriptionSize
+                          value: "{{`{{ $queueLength }}`}}"
+                    advanced:
+                      horizontalPodAutoscalerConfig:
+                        behavior:
+                          scaleDown:
+                            stabilizationWindowSeconds: 300
+                            policies:
+                              - type: Pods
+                                value: 1
+                                periodSeconds: 60
+                          scaleUp:
+                            stabilizationWindowSeconds: 0
+                            policies:
+                              - type: Pods
+                                value: 10
+                                periodSeconds: 60
+                              - type: Percent
+                                value: 100
+                                periodSeconds: 60
+              providerConfigRef:
+                name: {{ .Values.kubernetesProviderConfig.name }}
+            {{`{{- end }}`}}
+
+    # Create Deployment from workload template
+    - step: render-deployment
+      functionRef:
+        name: function-go-templating
+      input:
+        apiVersion: gotemplating.fn.crossplane.io/v1beta1
+        kind: GoTemplate
+        source: Inline
+        inline:
+          template: |
+            {{`{{- $xr := .observed.composite.resource -}}`}}
+            {{`{{- $namespace := index $xr.metadata.labels "crossplane.io/claim-namespace" -}}`}}
+            {{`{{- $actorName := $xr.spec.actor -}}`}}
+            {{`{{- $resolvedSpec := dict -}}`}}
+            {{`{{- if and .context (index .context "asya.sh/resolved-spec") -}}`}}
+            {{`{{- $resolvedSpec = index .context "asya.sh/resolved-spec" -}}`}}
+            {{`{{- end -}}`}}
+            {{`{{- $workload := $xr.spec.workload -}}`}}
+            {{`{{- if and $resolvedSpec (hasKey $resolvedSpec "workload") -}}`}}
+            {{`{{- $workload = $resolvedSpec.workload -}}`}}
+            {{`{{- end -}}`}}
+            {{`{{- $scaling := $xr.spec.scaling -}}`}}
+            {{`{{- if and $resolvedSpec (hasKey $resolvedSpec "scaling") -}}`}}
+            {{`{{- $scaling = $resolvedSpec.scaling -}}`}}
+            {{`{{- end -}}`}}
+            {{`{{- /* Create Deployment from workload spec */ -}}`}}
+            {{`{{- if hasKey $xr.spec "workload" -}}`}}
+            {{`{{- $workloadKind := "Deployment" -}}`}}
+            {{`{{- if hasKey $workload "kind" -}}`}}
+              {{`{{- $workloadKind = $workload.kind -}}`}}
+            {{`{{- end -}}`}}
+            {{`{{- $scalingEnabled := true -}}`}}
+            {{`{{- if and $scaling (hasKey $scaling "enabled") -}}`}}
+              {{`{{- $scalingEnabled = $scaling.enabled -}}`}}
+            {{`{{- end -}}`}}
+            {{`{{- $replicas := 1 -}}`}}
+            {{`{{- if not $scalingEnabled -}}`}}
+              {{`{{- if hasKey $workload "replicas" -}}`}}
+                {{`{{- $replicas = $workload.replicas -}}`}}
+              {{`{{- end -}}`}}
+            {{`{{- end -}}`}}
+            apiVersion: kubernetes.crossplane.io/v1alpha2
+            kind: Object
+            metadata:
+              annotations:
+                gotemplating.fn.crossplane.io/composition-resource-name: deployment
+            spec:
+              watch: true
+              forProvider:
+                manifest:
+                  apiVersion: apps/v1
+                  kind: {{`{{ $workloadKind }}`}}
+                  metadata:
+                    name: {{`{{ $actorName }}`}}
+                    namespace: {{`{{ $namespace }}`}}
+                    labels:
+                      app.kubernetes.io/name: {{`{{ $actorName }}`}}
+                      app.kubernetes.io/component: actor
+                      app.kubernetes.io/part-of: asya
+                      app.kubernetes.io/managed-by: crossplane
+                      asya.sh/actor: {{`{{ $actorName }}`}}
+                      asya.sh/inject: "true"
+                  spec:
+                    replicas: {{`{{ $replicas }}`}}
+                    selector:
+                      matchLabels:
+                        app.kubernetes.io/name: {{`{{ $actorName }}`}}
+                    template:
+                      metadata:
+                        labels:
+                          app.kubernetes.io/name: {{`{{ $actorName }}`}}
+                          app.kubernetes.io/component: actor
+                          asya.sh/actor: {{`{{ $actorName }}`}}
+                          asya.sh/inject: "true"
+                      spec:
+                        {{`{{- if hasKey $workload "template" }}`}}
+                        {{`{{- if hasKey $workload.template "spec" }}`}}
+                        {{`{{- $workload.template.spec | toYaml | nindent 24 }}`}}
+                        {{`{{- end }}`}}
+                        {{`{{- end }}`}}
+              providerConfigRef:
+                name: {{ .Values.kubernetesProviderConfig.name }}
+            {{`{{- end }}`}}
+
+    # Patch status and derive phase
+    - step: patch-status-and-derive-phase
+      functionRef:
+        name: function-go-templating
+      input:
+        apiVersion: gotemplating.fn.crossplane.io/v1beta1
+        kind: GoTemplate
+        source: Inline
+        inline:
+          template: |
+            {{`{{- $xr := .observed.composite.resource -}}`}}
+            {{`{{- $actorName := $xr.spec.actor -}}`}}
+            {{`{{- $namespace := index $xr.metadata.labels "crossplane.io/claim-namespace" -}}`}}
+            {{`{{- $queueIdentifier := printf "asya-%s-%s" $namespace $actorName -}}`}}
+            {{`{{- $topicReady := false -}}`}}
+            {{`{{- $subscriptionReady := false -}}`}}
+            {{`{{- $kedaReady := false -}}`}}
+            {{`{{- $scalingEnabled := true -}}`}}
+            {{`{{- if hasKey $xr.spec "scaling" -}}`}}
+              {{`{{- if hasKey $xr.spec.scaling "enabled" -}}`}}
+                {{`{{- $scalingEnabled = $xr.spec.scaling.enabled -}}`}}
+              {{`{{- end -}}`}}
+            {{`{{- end -}}`}}
+            {{`{{- if not $scalingEnabled -}}`}}
+              {{`{{- $kedaReady = true -}}`}}
+            {{`{{- end -}}`}}
+            {{`{{- $workloadReplicas := 0 -}}`}}
+            {{`{{- $workloadReadyReplicas := 0 -}}`}}
+            {{`{{- if .observed.resources -}}`}}
+              {{`{{- if index .observed.resources "pubsub-topic" -}}`}}
+                {{`{{- $t := (index .observed.resources "pubsub-topic").resource -}}`}}
+                {{`{{- if and (hasKey $t "status") (hasKey $t.status "conditions") -}}`}}
+                  {{`{{- range $t.status.conditions -}}`}}
+                    {{`{{- if and (eq .type "Ready") (eq .status "True") -}}`}}
+                      {{`{{- $topicReady = true -}}`}}
+                    {{`{{- end -}}`}}
+                  {{`{{- end -}}`}}
+                {{`{{- end -}}`}}
+              {{`{{- end -}}`}}
+              {{`{{- if index .observed.resources "pubsub-subscription" -}}`}}
+                {{`{{- $sub := (index .observed.resources "pubsub-subscription").resource -}}`}}
+                {{`{{- if and (hasKey $sub "status") (hasKey $sub.status "conditions") -}}`}}
+                  {{`{{- range $sub.status.conditions -}}`}}
+                    {{`{{- if and (eq .type "Ready") (eq .status "True") -}}`}}
+                      {{`{{- $subscriptionReady = true -}}`}}
+                    {{`{{- end -}}`}}
+                  {{`{{- end -}}`}}
+                {{`{{- end -}}`}}
+              {{`{{- end -}}`}}
+              {{`{{- if index .observed.resources "scaledobject" -}}`}}
+                {{`{{- $so := (index .observed.resources "scaledobject").resource -}}`}}
+                {{`{{- if and (hasKey $so "status") (hasKey $so.status "atProvider") (hasKey $so.status.atProvider "manifest") (hasKey $so.status.atProvider.manifest "status") -}}`}}
+                  {{`{{- range $so.status.atProvider.manifest.status.conditions | default list -}}`}}
+                    {{`{{- if and (eq .type "Ready") (eq .status "True") -}}`}}
+                      {{`{{- $kedaReady = true -}}`}}
+                    {{`{{- end -}}`}}
+                  {{`{{- end -}}`}}
+                {{`{{- end -}}`}}
+              {{`{{- end -}}`}}
+              {{`{{- if index .observed.resources "deployment" -}}`}}
+                {{`{{- $dep := (index .observed.resources "deployment").resource -}}`}}
+                {{`{{- if and (hasKey $dep "status") (hasKey $dep.status "atProvider") (hasKey $dep.status.atProvider "manifest") (hasKey $dep.status.atProvider.manifest "status") -}}`}}
+                  {{`{{- $workloadReplicas = $dep.status.atProvider.manifest.status.replicas | default 0 -}}`}}
+                  {{`{{- $workloadReadyReplicas = $dep.status.atProvider.manifest.status.readyReplicas | default 0 -}}`}}
+                {{`{{- end -}}`}}
+              {{`{{- end -}}`}}
+            {{`{{- end -}}`}}
+            {{`{{- $workloadReady := false -}}`}}
+            {{`{{- if and .observed.resources (index .observed.resources "deployment") -}}`}}
+              {{`{{- $dep := (index .observed.resources "deployment").resource -}}`}}
+              {{`{{- if and (hasKey $dep "status") (hasKey $dep.status "atProvider") (hasKey $dep.status.atProvider "manifest") (hasKey $dep.status.atProvider.manifest "status") -}}`}}
+                {{`{{- range $dep.status.atProvider.manifest.status.conditions | default list -}}`}}
+                  {{`{{- if and (eq .type "Available") (eq .status "True") -}}`}}
+                    {{`{{- $workloadReady = true -}}`}}
+                  {{`{{- end -}}`}}
+                {{`{{- end -}}`}}
+              {{`{{- end -}}`}}
+            {{`{{- end -}}`}}
+            {{`{{- $queueReady := and $topicReady $subscriptionReady -}}`}}
+            {{`{{- $phase := "Creating" -}}`}}
+            {{`{{- if and $queueReady $kedaReady $workloadReady -}}`}}
+              {{`{{- $phase = "Ready" -}}`}}
+              {{`{{- if eq (int $workloadReplicas) 0 -}}`}}
+                {{`{{- $phase = "Napping" -}}`}}
+              {{`{{- end -}}`}}
+            {{`{{- end -}}`}}
+            apiVersion: asya.sh/v1alpha1
+            kind: XAsyncActor
+            metadata:
+              labels:
+                asya.sh/actor: {{`{{ $actorName }}`}}
+            status:
+              phase: {{`{{ $phase }}`}}
+              queueIdentifier: {{`{{ $queueIdentifier }}`}}
+              infrastructure:
+                queue:
+                  ready: {{`{{ $queueReady }}`}}
+                keda:
+                  ready: {{`{{ $kedaReady }}`}}
+                workload:
+                  ready: {{`{{ $workloadReady }}`}}
+                  replicas: {{`{{ $workloadReplicas }}`}}
+                  readyReplicas: {{`{{ $workloadReadyReplicas }}`}}
+
+    # Automatically detect readiness from all composed resources
+    - step: automatically-detect-ready-composed-resources
+      functionRef:
+        name: function-auto-ready
+{{- end }}

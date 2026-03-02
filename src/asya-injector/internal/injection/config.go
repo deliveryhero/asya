@@ -58,6 +58,9 @@ type ActorConfig struct {
 	// Region is the AWS region for SQS
 	Region string
 
+	// GCPProject is the GCP project ID for Pub/Sub
+	GCPProject string
+
 	// Resiliency is the resiliency configuration (nil means no resiliency config)
 	Resiliency *ResiliencyConfig
 

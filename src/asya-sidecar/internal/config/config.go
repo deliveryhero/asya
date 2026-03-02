@@ -24,6 +24,10 @@ type Config struct {
 	SQSVisibilityTimeout int32 // seconds
 	SQSWaitTimeSeconds   int32
 
+	// Pub/Sub configuration
+	PubSubProjectID string
+	PubSubEndpoint  string
+
 	// Runtime communication
 	SocketPath string
 	Timeout    time.Duration
@@ -128,6 +132,10 @@ func LoadFromEnv() (*Config, error) {
 		SQSRegion:            getEnv("ASYA_AWS_REGION", "us-east-1"),
 		SQSVisibilityTimeout: getEnvInt32("ASYA_SQS_VISIBILITY_TIMEOUT", 0),
 		SQSWaitTimeSeconds:   getEnvInt32("ASYA_SQS_WAIT_TIME_SECONDS", 20),
+
+		// Pub/Sub configuration
+		PubSubProjectID: getEnv("ASYA_PUBSUB_PROJECT_ID", ""),
+		PubSubEndpoint:  getEnv("ASYA_PUBSUB_ENDPOINT", ""),
 
 		// Runtime communication - hard-coded, managed by operator
 		// ASYA_SOCKET_DIR is for internal testing only - DO NOT set in production

@@ -162,6 +162,19 @@ func main() {
 			"baseURL", cfg.SQSBaseURL,
 			"visibilityTimeout", visibilityTimeout,
 			"waitTimeSeconds", cfg.SQSWaitTimeSeconds)
+	case "pubsub":
+		initCtx := context.Background()
+		tp, err = transport.NewPubSubTransport(initCtx, transport.PubSubConfig{
+			ProjectID: cfg.PubSubProjectID,
+			Endpoint:  cfg.PubSubEndpoint,
+		})
+		if err != nil {
+			slog.Error("Failed to create Pub/Sub transport", "error", err)
+			os.Exit(1)
+		}
+		slog.Info("Pub/Sub transport initialized",
+			"projectID", cfg.PubSubProjectID,
+			"endpoint", cfg.PubSubEndpoint)
 	default:
 		slog.Error("Unsupported transport type", "transport", cfg.TransportType)
 		os.Exit(1)

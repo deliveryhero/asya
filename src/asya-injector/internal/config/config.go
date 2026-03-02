@@ -35,6 +35,12 @@ type Config struct {
 
 	// RabbitMQCredsSecret is the name of the secret containing RabbitMQ credentials to inject into the sidecar
 	RabbitMQCredsSecret string
+
+	// PubSubEndpoint is the custom Pub/Sub endpoint URL (for emulator)
+	PubSubEndpoint string
+
+	// GCPCredsSecret is the name of the secret containing GCP credentials to inject into the sidecar
+	GCPCredsSecret string
 }
 
 // LoadFromEnv loads configuration from environment variables
@@ -50,6 +56,8 @@ func LoadFromEnv() *Config {
 		AWSCredsSecret:         getEnv("ASYA_AWS_CREDS_SECRET", ""),
 		RabbitMQURL:            getEnv("ASYA_RABBITMQ_URL", ""),
 		RabbitMQCredsSecret:    getEnv("ASYA_RABBITMQ_CREDS_SECRET", ""),
+		PubSubEndpoint:         getEnv("ASYA_PUBSUB_ENDPOINT", ""),
+		GCPCredsSecret:         getEnv("ASYA_GCP_CREDS_SECRET", ""),
 	}
 }
 

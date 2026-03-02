@@ -9,6 +9,11 @@ providers:
     enabled: true
     # SQS provider version
     sqsVersion: "v1.19.0"
+  gcp:
+    # Enable GCP Pub/Sub provider (set to false for non-GCP deployments)
+    enabled: false
+    # GCP Pub/Sub provider version
+    pubsubVersion: "v1.14.0"
   kubernetes:
     # Kubernetes provider version
     version: "v0.17.0"
@@ -94,3 +99,24 @@ rabbitmq:
     secretRef:
       name: "rabbitmq-keda-secret"
       hostKey: "host"
+
+# GCP ProviderConfig settings (for Pub/Sub)
+gcpProviderConfig:
+  # Name of the GCP ProviderConfig
+  name: default
+  # GCP project ID for Pub/Sub resources
+  projectId: ""
+  # Credentials source: Secret or InjectedIdentity
+  credentialsSource: Secret
+  # Secret reference for credentials (when source is Secret)
+  secretRef:
+    namespace: crossplane-system
+    name: gcp-creds
+    key: credentials.json
+
+# Pub/Sub KEDA authentication configuration
+pubsub:
+  keda:
+    secretRef:
+      name: "gcp-keda-secret"
+      credentialsKey: "credentials.json"

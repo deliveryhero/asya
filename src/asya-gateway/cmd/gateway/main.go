@@ -69,45 +69,11 @@ func main() {
 		taskStore = taskstore.NewStore()
 	}
 
-	// Initialize queue client (RabbitMQ or SQS)
-	var queueClient queue.Client
-	var err error
-
-	// Check which transport is configured (SQS takes precedence if both are set)
-	sqsEndpoint := getEnv("ASYA_SQS_ENDPOINT", "")
-	rabbitmqURL := getEnv("ASYA_RABBITMQ_URL", "")
-
-	if sqsEndpoint != "" || rabbitmqURL == "" {
-		// Use SQS transport
-		sqsRegion := getEnv("ASYA_SQS_REGION", "us-east-1")
-		namespace := getEnv("ASYA_NAMESPACE", "default")
-		slog.Info("Using SQS transport", "region", sqsRegion, "namespace", namespace, "endpoint", sqsEndpoint)
-
-		visibilityTimeout := getEnvInt("ASYA_SQS_VISIBILITY_TIMEOUT", 300)
-		waitTimeSeconds := getEnvInt("ASYA_SQS_WAIT_TIME_SECONDS", 20)
-
-		queueClient, err = queue.NewSQSClient(ctx, queue.SQSConfig{
-			Region:            sqsRegion,
-			Endpoint:          sqsEndpoint,
-			Namespace:         namespace,
-			VisibilityTimeout: int32(visibilityTimeout), // #nosec G115 - config values bounded by reasonable defaults
-			WaitTimeSeconds:   int32(waitTimeSeconds),   // #nosec G115 - config values bounded by reasonable defaults
-		})
-		if err != nil {
-			slog.Error("Failed to create SQS client", "error", err)
-			os.Exit(1)
-		}
-	} else {
-		// Use RabbitMQ transport
-		rabbitmqExchange := getEnv("ASYA_RABBITMQ_EXCHANGE", "asya")
-		rabbitmqPoolSize := getEnvInt("ASYA_RABBITMQ_POOL_SIZE", 20)
-		slog.Info("Using RabbitMQ transport", "url", rabbitmqURL, "exchange", rabbitmqExchange, "poolSize", rabbitmqPoolSize)
-
-		queueClient, err = queue.NewRabbitMQClientPooled(rabbitmqURL, rabbitmqExchange, rabbitmqPoolSize)
-		if err != nil {
-			slog.Error("Failed to create RabbitMQ client", "error", err)
-			os.Exit(1)
-		}
+	// Initialize queue client (Pub/Sub, SQS, or RabbitMQ)
+	queueClient, err := initQueueClient(ctx)
+	if err != nil {
+		slog.Error("Failed to create queue client", "error", err)
+		os.Exit(1)
 	}
 	defer func() { _ = queueClient.Close() }()
 
@@ -295,4 +261,45 @@ func getEnvInt(key string, defaultValue int) int {
 		slog.Warn("Invalid integer value, using default", "key", key, "value", value, "default", defaultValue)
 	}
 	return defaultValue
+}
+
+func initQueueClient(ctx context.Context) (queue.Client, error) {
+	pubsubProjectID := getEnv("ASYA_PUBSUB_PROJECT_ID", "")
+	sqsEndpoint := getEnv("ASYA_SQS_ENDPOINT", "")
+	rabbitmqURL := getEnv("ASYA_RABBITMQ_URL", "")
+
+	if pubsubProjectID != "" {
+		pubsubEndpoint := getEnv("ASYA_PUBSUB_ENDPOINT", "")
+		namespace := getEnv("ASYA_NAMESPACE", "default")
+		slog.Info("Using Pub/Sub transport", "projectID", pubsubProjectID, "namespace", namespace, "endpoint", pubsubEndpoint)
+
+		return queue.NewPubSubClient(ctx, queue.PubSubConfig{
+			ProjectID: pubsubProjectID,
+			Endpoint:  pubsubEndpoint,
+			Namespace: namespace,
+		})
+	}
+
+	if sqsEndpoint != "" || rabbitmqURL == "" {
+		sqsRegion := getEnv("ASYA_SQS_REGION", "us-east-1")
+		namespace := getEnv("ASYA_NAMESPACE", "default")
+		slog.Info("Using SQS transport", "region", sqsRegion, "namespace", namespace, "endpoint", sqsEndpoint)
+
+		visibilityTimeout := getEnvInt("ASYA_SQS_VISIBILITY_TIMEOUT", 300)
+		waitTimeSeconds := getEnvInt("ASYA_SQS_WAIT_TIME_SECONDS", 20)
+
+		return queue.NewSQSClient(ctx, queue.SQSConfig{
+			Region:            sqsRegion,
+			Endpoint:          sqsEndpoint,
+			Namespace:         namespace,
+			VisibilityTimeout: int32(visibilityTimeout), // #nosec G115 - config values bounded by reasonable defaults
+			WaitTimeSeconds:   int32(waitTimeSeconds),   // #nosec G115 - config values bounded by reasonable defaults
+		})
+	}
+
+	rabbitmqExchange := getEnv("ASYA_RABBITMQ_EXCHANGE", "asya")
+	rabbitmqPoolSize := getEnvInt("ASYA_RABBITMQ_POOL_SIZE", 20)
+	slog.Info("Using RabbitMQ transport", "url", rabbitmqURL, "exchange", rabbitmqExchange, "poolSize", rabbitmqPoolSize)
+
+	return queue.NewRabbitMQClientPooled(rabbitmqURL, rabbitmqExchange, rabbitmqPoolSize)
 }

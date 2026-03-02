@@ -108,3 +108,7 @@ config:
   rabbitmqURL: ""
   # RabbitMQ credentials secret name to inject into sidecar
   rabbitmqCredsSecret: ""
+  # Custom Pub/Sub endpoint (for emulator)
+  pubsubEndpoint: ""
+  # GCP credentials secret name to inject into sidecar
+  gcpCredsSecret: ""

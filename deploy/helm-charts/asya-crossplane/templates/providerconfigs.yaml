@@ -43,6 +43,25 @@ spec:
   s3_use_path_style: true
   {{- end }}
 {{- end }}
+{{- if .Values.providers.gcp.enabled }}
+---
+apiVersion: gcp.upbound.io/v1beta1
+kind: ProviderConfig
+metadata:
+  name: {{ .Values.gcpProviderConfig.name }}
+  labels:
+    {{- include "asya-crossplane.labels" . | nindent 4 }}
+spec:
+  projectID: {{ .Values.gcpProviderConfig.projectId }}
+  credentials:
+    source: {{ .Values.gcpProviderConfig.credentialsSource }}
+    {{- if eq .Values.gcpProviderConfig.credentialsSource "Secret" }}
+    secretRef:
+      namespace: {{ .Values.gcpProviderConfig.secretRef.namespace }}
+      name: {{ .Values.gcpProviderConfig.secretRef.name }}
+      key: {{ .Values.gcpProviderConfig.secretRef.key }}
+    {{- end }}
+{{- end }}
 ---
 apiVersion: kubernetes.crossplane.io/v1alpha1
 kind: ProviderConfig
