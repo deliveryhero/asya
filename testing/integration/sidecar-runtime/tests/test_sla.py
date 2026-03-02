@@ -69,14 +69,14 @@ class TestSLAPreCheck:
         }
         logger.info(
             f"Publishing message with expired deadline (deadline_at={deadline_at}): "
-            f"{json.dumps(message, indent=2)}"
+            f"{json.dumps(meshage, indent=2)}"
         )
 
         start = time.monotonic()
         transport_helper.publish_meshage("asya-default-test-sla-slow", meshage)
 
         # SLA pre-check should reject immediately — message in x-sink within seconds
-        result = transport_helper.get_message("asya-default-x-sink", timeout=10)
+        result = transport_helper.get_meshage("asya-default-x-sink", timeout=10)
         elapsed = time.monotonic() - start
 
         logger.info(
@@ -152,7 +152,7 @@ class TestRetrySLAInteraction:
         }
         logger.info(
             f"Publishing SLA retry message (deadline_at={deadline_at}): "
-            f"{json.dumps(message, indent=2)}"
+            f"{json.dumps(meshage, indent=2)}"
         )
 
         start = time.monotonic()
@@ -160,13 +160,13 @@ class TestRetrySLAInteraction:
 
         # SLA should expire and route to x-sink within ~8-15s.
         # Use 25s timeout as generous upper bound.
-        result = transport_helper.get_message("asya-default-x-sink", timeout=25)
+        result = transport_helper.get_meshage("asya-default-x-sink", timeout=25)
         elapsed = time.monotonic() - start
 
         logger.info(f"Result from x-sink after {elapsed:.1f}s: {json.dumps(result, indent=2) if result else 'None'}")
 
         if result is None:
-            sump_msg = transport_helper.get_message("asya-default-x-sump", timeout=3)
+            sump_msg = transport_helper.get_meshage("asya-default-x-sump", timeout=3)
             sump_info = json.dumps(sump_msg, indent=2) if sump_msg else "None"
             sump_reason = sump_msg.get("status", {}).get("reason", "?") if sump_msg else "N/A"
             assert False, (
@@ -186,7 +186,7 @@ class TestRetrySLAInteraction:
         )
 
         # Verify no message went to x-sump (SLA pre-check routes to x-sink, not x-sump)
-        sump_msg = transport_helper.get_message("asya-default-x-sump", timeout=3)
+        sump_msg = transport_helper.get_meshage("asya-default-x-sump", timeout=3)
         assert sump_msg is None, (
             "Message found in x-sump — SLA pre-check should route to x-sink, "
             "not x-sump. x-sump is for runtime errors, not SLA expiry."
@@ -232,7 +232,7 @@ class TestSLAEffectiveTimeout:
         }
         logger.info(
             f"Publishing message with 5s SLA deadline (deadline_at={deadline_at}): "
-            f"{json.dumps(message, indent=2)}"
+            f"{json.dumps(meshage, indent=2)}"
         )
 
         start = time.monotonic()
@@ -240,7 +240,7 @@ class TestSLAEffectiveTimeout:
 
         # With SLA: effective timeout ~5s, message in x-sump by ~8s.
         # Without SLA: timeout at 30s (ACTOR_TIMEOUT), would fail this 15s poll.
-        result = transport_helper.get_message("asya-default-x-sump", timeout=15)
+        result = transport_helper.get_meshage("asya-default-x-sump", timeout=15)
         elapsed = time.monotonic() - start
 
         logger.info(

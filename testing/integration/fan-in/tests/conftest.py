@@ -40,7 +40,7 @@ class RabbitMQTestHelper:
         self.base_url = f"http://{rabbitmq_host}:15672/api"
         self.auth = (rabbitmq_user, rabbitmq_pass)
 
-    def publish_meshage(self, queue: str, message: dict, exchange: str = "asya") -> None:
+    def publish_meshage(self, queue: str, meshage: dict, exchange: str = "asya") -> None:
         """Publish meshage to RabbitMQ with delivery confirmation."""
         routing_key = queue.removeprefix(f"asya-{self.namespace}-")
         credentials = pika.PlainCredentials(self.rabbitmq_user, self.rabbitmq_pass)
@@ -149,9 +149,9 @@ class SQSTestHelper:
             secret_key=secret_key,
         )
 
-    def publish_meshage(self, queue: str, message: dict, exchange: str = "") -> None:
+    def publish_meshage(self, queue: str, meshage: dict, exchange: str = "") -> None:
         """Publish meshage to SQS queue."""
-        self.transport_client.publish(queue, meshage, exchange)
+        self.sqs_client.publish(queue, meshage, exchange)
 
     def get_meshage(self, queue: str, timeout: int = 10) -> Optional[Dict]:
         """Get meshage from a queue with timeout."""
