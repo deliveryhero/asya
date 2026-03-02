@@ -560,14 +560,19 @@ async def handler(payload):
     analysis_proxy = "/state/artifacts/analysis.json"
     with open(analysis_proxy, "w") as f:
         json.dump(result, f)
+
+    # get artifact URL:
     try:
         result_url = os.getxattr(analysis_proxy, "user.asya.url").decode()
     except OSError:
         result_url = analysis_proxy  # fallback - return asya-internal path (or none)
 
+    # save report:
     report_proxy = "/state/artifacts/report.pdf"
     with open(report_proxy, "wb") as f:
         f.write(generate_pdf(result))
+
+    # get artifact URL:
     try:
         report_url = os.getxattr(report_proxy, "user.asya.url").decode()
     except OSError:
