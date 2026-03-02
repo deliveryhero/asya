@@ -12,6 +12,30 @@ spec:
     kind: XAsyncActor
   mode: Pipeline
   pipeline:
+    # Reject claims with reserved label prefixes (app.kubernetes.io/)
+    - step: validate-labels
+      functionRef:
+        name: function-go-templating
+      input:
+        apiVersion: gotemplating.fn.crossplane.io/v1beta1
+        kind: GoTemplate
+        source: Inline
+        inline:
+          template: |
+            {{`{{- $xr := .observed.composite.resource -}}`}}
+            {{`{{- $reserved := list -}}`}}
+            {{`{{- range $k, $v := $xr.metadata.labels -}}`}}
+              {{`{{- if hasPrefix "app.kubernetes.io/" $k -}}`}}
+                {{`{{- $reserved = append $reserved $k -}}`}}
+              {{`{{- end -}}`}}
+            {{`{{- end -}}`}}
+            {{`{{- if gt (len $reserved) 0 -}}`}}
+            apiVersion: meta.gotemplating.fn.crossplane.io/v1alpha1
+            kind: Result
+            severity: Fatal
+            message: "Labels with reserved prefix 'app.kubernetes.io/' are not allowed: {{`{{ join ", " $reserved }}`}}"
+            {{`{{- end -}}`}}
+
     {{- if .Values.functions.overlaysEnabled }}
     # Resolve actor overlays — merges EnvironmentConfig overlay data into a resolved spec
     # written to context key asya.sh/resolved-spec for downstream steps to consume.
@@ -35,6 +59,12 @@ spec:
             {{`{{- $namespace := index $xr.metadata.labels "crossplane.io/claim-namespace" -}}`}}
             {{`{{- $claimName := index $xr.metadata.labels "crossplane.io/claim-name" -}}`}}
             {{`{{- $actorName := (index $xr.metadata.labels "asya.sh/actor") | default $claimName -}}`}}
+            {{`{{- $userLabels := dict -}}`}}
+            {{`{{- range $k, $v := $xr.metadata.labels -}}`}}
+              {{`{{- if not (hasPrefix "crossplane.io/" $k) -}}`}}
+                {{`{{- $_ := set $userLabels $k $v -}}`}}
+              {{`{{- end -}}`}}
+            {{`{{- end -}}`}}
             {{`{{- $scalingEnabled := true -}}`}}
             {{`{{- if hasKey $xr.spec "scaling" -}}`}}
               {{`{{- if hasKey $xr.spec.scaling "enabled" -}}`}}
@@ -57,6 +87,9 @@ spec:
                     name: {{`{{ $actorName }}`}}-trigger-auth
                     namespace: {{`{{ $namespace }}`}}
                     labels:
+                      {{`{{- range $k, $v := $userLabels }}`}}
+                      {{`{{ $k }}`}}: "{{`{{ $v }}`}}"
+                      {{`{{- end }}`}}
                       app.kubernetes.io/name: {{`{{ $actorName }}`}}
                       app.kubernetes.io/component: triggerauthentication
                       app.kubernetes.io/part-of: asya
@@ -84,6 +117,12 @@ spec:
             {{`{{- $namespace := index $xr.metadata.labels "crossplane.io/claim-namespace" -}}`}}
             {{`{{- $claimName := index $xr.metadata.labels "crossplane.io/claim-name" -}}`}}
             {{`{{- $actorName := (index $xr.metadata.labels "asya.sh/actor") | default $claimName -}}`}}
+            {{`{{- $userLabels := dict -}}`}}
+            {{`{{- range $k, $v := $xr.metadata.labels -}}`}}
+              {{`{{- if not (hasPrefix "crossplane.io/" $k) -}}`}}
+                {{`{{- $_ := set $userLabels $k $v -}}`}}
+              {{`{{- end -}}`}}
+            {{`{{- end -}}`}}
             {{`{{- $resolvedSpec := dict -}}`}}
             {{`{{- if and .context (index .context "asya.sh/resolved-spec") -}}`}}
             {{`{{- $resolvedSpec = index .context "asya.sh/resolved-spec" -}}`}}
@@ -133,6 +172,9 @@ spec:
                     name: {{`{{ $actorName }}`}}
                     namespace: {{`{{ $namespace }}`}}
                     labels:
+                      {{`{{- range $k, $v := $userLabels }}`}}
+                      {{`{{ $k }}`}}: "{{`{{ $v }}`}}"
+                      {{`{{- end }}`}}
                       app.kubernetes.io/name: {{`{{ $actorName }}`}}
                       app.kubernetes.io/component: scaledobject
                       app.kubernetes.io/part-of: asya
@@ -190,6 +232,12 @@ spec:
             {{`{{- $namespace := index $xr.metadata.labels "crossplane.io/claim-namespace" -}}`}}
             {{`{{- $claimName := index $xr.metadata.labels "crossplane.io/claim-name" -}}`}}
             {{`{{- $actorName := (index $xr.metadata.labels "asya.sh/actor") | default $claimName -}}`}}
+            {{`{{- $userLabels := dict -}}`}}
+            {{`{{- range $k, $v := $xr.metadata.labels -}}`}}
+              {{`{{- if not (hasPrefix "crossplane.io/" $k) -}}`}}
+                {{`{{- $_ := set $userLabels $k $v -}}`}}
+              {{`{{- end -}}`}}
+            {{`{{- end -}}`}}
             {{`{{- $resolvedSpec := dict -}}`}}
             {{`{{- if and .context (index .context "asya.sh/resolved-spec") -}}`}}
             {{`{{- $resolvedSpec = index .context "asya.sh/resolved-spec" -}}`}}
@@ -233,6 +281,9 @@ spec:
                     name: {{`{{ $actorName }}`}}
                     namespace: {{`{{ $namespace }}`}}
                     labels:
+                      {{`{{- range $k, $v := $userLabels }}`}}
+                      {{`{{ $k }}`}}: "{{`{{ $v }}`}}"
+                      {{`{{- end }}`}}
                       app.kubernetes.io/name: {{`{{ $actorName }}`}}
                       app.kubernetes.io/component: actor
                       app.kubernetes.io/part-of: asya
@@ -247,6 +298,9 @@ spec:
                     template:
                       metadata:
                         labels:
+                          {{`{{- range $k, $v := $userLabels }}`}}
+                          {{`{{ $k }}`}}: "{{`{{ $v }}`}}"
+                          {{`{{- end }}`}}
                           app.kubernetes.io/name: {{`{{ $actorName }}`}}
                           app.kubernetes.io/component: actor
                           asya.sh/actor: {{`{{ $actorName }}`}}

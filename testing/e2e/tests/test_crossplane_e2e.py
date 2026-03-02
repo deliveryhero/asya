@@ -683,9 +683,6 @@ spec:
         wait_for_deletion("scaledobject", "test-sidecar-env", namespace=e2e_helper.namespace, timeout=60)
 
 
-@pytest.mark.xfail(
-    reason="Crossplane labels differ from operator; managed-by is 'crossplane', no reserved prefix rejection"
-)
 @pytest.mark.core
 def test_asyncactor_label_propagation(e2e_helper):
     """
@@ -924,17 +921,23 @@ spec:
 
         kubectl_apply(invalid_actor_manifest, namespace=e2e_helper.namespace)
 
-        time.sleep(5)
+        time.sleep(10)  # Wait for Crossplane to reconcile and surface the Fatal result
 
         asyncactor = kubectl_get("asyncactor", "test-invalid-labels", namespace=e2e_helper.namespace)
         status = asyncactor.get("status", {})
         conditions = status.get("conditions", [])
 
-        workload_ready = next((c for c in conditions if c["type"] == "WorkloadReady"), None)
-        assert workload_ready is not None, "WorkloadReady condition should exist"
-        assert workload_ready["status"] == "False", "WorkloadReady should be False when labels use reserved prefixes"
-        assert "reserved prefix" in workload_ready.get("message", "").lower(), (
-            "Error message should mention reserved prefix"
+        # Crossplane surfaces Fatal results as Synced=False with the error message
+        error_condition = next(
+            (
+                c
+                for c in conditions
+                if c.get("status") == "False" and "reserved prefix" in c.get("message", "").lower()
+            ),
+            None,
+        )
+        assert error_condition is not None, (
+            f"Should have a False condition mentioning reserved prefix, got conditions: {conditions}"
         )
 
         logger.info("[+] Label propagation verified successfully")
