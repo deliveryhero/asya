@@ -399,6 +399,15 @@ A2A SendMessageRequest {              Meshage {
    there's a single data Part among the parts, merge it at root. Otherwise,
    actors read from `payload.a2a.task.history[-1].parts` directly.
 
+**Inbound blob handling**: If a client sends a Message with `raw` (binary) Parts,
+the gateway MUST externalize them before dispatching the meshage:
+1. Write the `raw` content to external storage via state proxy
+2. Replace the `raw` Part with a `url` Part referencing the stored content
+3. This protects the pipeline from queue size limit violations
+
+Small `text` and `data` Parts in Messages are stored inline in
+`payload.a2a.task.history` (they're typically prompt-sized).
+
 **No synthetic fields**: The gateway does NOT create `_a2a_files`, `_a2a_text`,
 or any underscore-prefixed convenience fields. The canonical A2A data lives in
 `payload.a2a.task` and actors that need multi-part awareness read from there.
@@ -408,14 +417,14 @@ or any underscore-prefixed convenience fields. The canonical A2A data lives in
 ### 5.3 Artifact Model
 
 `payload.a2a.task.artifacts` stores `repeated Artifact` — the same schema as A2A
-`Task.artifacts`. Each entry is an A2A `Artifact` proto (JSON-serialized):
+`Task.artifacts`:
 
 ```protobuf
 message Artifact {
   string artifact_id = 1;         // REQUIRED — unique within task
   string name = 2;                // optional — human-readable
   string description = 3;         // optional
-  repeated Part parts = 4;        // REQUIRED — content (text, data, url, raw)
+  repeated Part parts = 4;        // REQUIRED — content
   Struct metadata = 5;            // optional
   repeated string extensions = 6; // optional
 }
@@ -433,68 +442,116 @@ message Part {
 }
 ```
 
-Artifact **content** (the Part data — files, blobs, structured results) is
-stored in **external storage** via state proxy, never in the gateway DB. The
-gateway stores only artifact metadata pointers needed to construct A2A responses.
+#### 5.3.1 URL-Only Artifact Constraint
 
-**Design principle**: The gateway DB is for metadata only. All data (artifact
-content, files, blobs) lives in external storage (S3/MinIO via state proxy).
+**Blob content MUST NOT live in the meshage payload.** Meshages travel through
+message queues (SQS limit: 256KB, RabbitMQ practical limit: ~128MB but impacts
+throughput). Inline `raw` or large `data`/`text` Parts would blow up the
+payload, fail queue delivery, or degrade the entire pipeline.
 
-#### 5.3.1 State Proxy URL Extension
+**Rule**: Every Part inside `payload.a2a.task.artifacts` MUST use the `url`
+content type. All actual content lives in external storage (S3/MinIO via state
+proxy). The artifact in the payload is a **manifest of URLs**, not a container
+of data:
 
-The state proxy (RFC 1dmf) is extended to return the **external URL** of stored
-objects. When an actor writes a file:
+```json
+{
+  "a2a": {
+    "task": {
+      "artifacts": [
+        {
+          "artifact_id": "analysis-result",
+          "name": "Analysis Result",
+          "parts": [
+            {
+              "url": "s3://bucket/results/analysis.json",
+              "media_type": "application/json",
+              "filename": "analysis.json"
+            },
+            {
+              "url": "s3://bucket/reports/report.pdf",
+              "media_type": "application/pdf",
+              "filename": "report.pdf"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
+```
+
+**What the proto allows vs. what Asya allows**:
+
+| Part type | A2A proto | In `payload.a2a.task.artifacts` | In A2A GetTask response |
+|-----------|-----------|--------------------------------|-------------------------|
+| `url` | Yes | **Yes** — the only type allowed | Yes (passed through) |
+| `text` | Yes | **No** — write to storage, use URL | Yes (materializer resolves) |
+| `data` | Yes | **No** — write to storage, use URL | Yes (materializer resolves) |
+| `raw` | Yes | **No** — write to storage, use URL | Yes (materializer resolves) |
+
+#### 5.3.2 Getting Artifact URLs via xattr
+
+The state proxy (RFC 1dmf) provides external URLs via the **xattr API** — actors
+use `os.getxattr()` (Python stdlib) to query backend metadata. No custom imports,
+no knowledge of storage configuration. See task `1dmfx1` for full implementation.
 
 ```python
-# Actor writes file to state proxy
-with open("/state/media/report.pdf", "wb") as f:
+import os
+
+# 1. Write content to external storage (existing pattern)
+with open("/state/artifacts/report.pdf", "wb") as f:
     f.write(pdf_content)
 
-# State proxy extension: get the external URL for a stored object
-# New API on the state proxy connector
-url = get_external_url("/state/media/report.pdf")
-# Returns: "s3://my-bucket/prefix/media/report.pdf"
+# 2. Get the canonical backend URL (zero API calls — string concat)
+url = os.getxattr("/state/artifacts/report.pdf", "user.asya.url").decode()
+# → "s3://my-bucket/prefix/artifacts/report.pdf"
+
+# 3. Or get a presigned URL for unauthenticated client access
+presigned = os.getxattr("/state/artifacts/report.pdf", "user.asya.presigned_url").decode()
+# → "https://my-bucket.s3.amazonaws.com/prefix/...?X-Amz-Signature=..."
 ```
 
-**Implementation**: The state proxy HTTP interface adds a `HEAD` method (or
-`X-External-URL` response header on write) that returns the backend-resolved URL.
-The runtime translates this to a Python API:
+**Available xattr attributes** (per connector):
 
-```python
-# Option A: Header on write response
-# (state proxy returns X-External-URL header on PUT)
-url = os.getxattr("/state/media/report.pdf", "user.external_url")
+| Attribute | Returns | Cost |
+|-----------|---------|------|
+| `user.asya.url` | `s3://bucket/key` canonical URI | Zero (string concat) |
+| `user.asya.presigned_url` | Time-limited HTTPS URL | Local crypto (no network) |
+| `user.asya.etag` | Content hash | HEAD request |
+| `user.asya.content_type` | MIME type | HEAD request |
 
-# Option B: Explicit API call in runtime helpers
-from asya_runtime import state_url
-url = state_url("/state/media/report.pdf")
-```
+**Which URL to use in artifacts**: Use `user.asya.presigned_url` when the A2A
+client needs direct HTTPS access without S3 credentials. Use `user.asya.url`
+when the client has storage access or when a materializer will resolve it.
 
-The exact API is out of scope for this RFC — see state proxy RFC (1dmf) for
-extension design. The key requirement is: **actors can obtain external URLs for
-files they produce, without knowing the storage backend configuration**.
+#### 5.3.3 Actor-Produced Artifacts
 
-#### 5.3.2 Actor-Produced Artifacts
-
-Actors construct A2A Artifacts in the meshage payload:
+Actors write all content to external storage, then reference it by URL in the
+artifact manifest:
 
 ```python
 async def handler(payload):
-    # Actor produces a result
     result = analyze(payload["query"])
 
-    # Store large output in external storage
-    with open("/state/media/report.pdf", "wb") as f:
-        f.write(generate_pdf(result))
-    report_url = state_url("/state/media/report.pdf")
+    # Write ALL outputs to external storage via state proxy
+    import json
+    with open("/state/artifacts/analysis.json", "w") as f:
+        json.dump(result, f)
+    result_url = state_url("/state/artifacts/analysis.json")
 
-    # Add artifacts to A2A task in payload
+    with open("/state/artifacts/report.pdf", "wb") as f:
+        f.write(generate_pdf(result))
+    report_url = state_url("/state/artifacts/report.pdf")
+
+    # Artifact contains ONLY url Parts — no inline data
     payload.setdefault("a2a", {}).setdefault("task", {}).setdefault("artifacts", [])
     payload["a2a"]["task"]["artifacts"].append({
         "artifact_id": "analysis-result",
         "name": "Analysis Result",
         "parts": [
-            {"data": result, "media_type": "application/json"},
+            {"url": result_url, "media_type": "application/json",
+             "filename": "analysis.json"},
             {"url": report_url, "media_type": "application/pdf",
              "filename": "report.pdf"}
         ]
@@ -503,31 +560,48 @@ async def handler(payload):
     return payload
 ```
 
-#### 5.3.3 Gateway Artifact Handling
+#### 5.3.4 Gateway Artifact Handling
 
 When x-sink reports the final result to the gateway:
 
 1. Gateway reads `payload.a2a.task.artifacts` from the result
-2. Gateway stores artifact **metadata** (IDs, names, part media types) in its
-   internal task record — NOT the content
-3. `GetTask(includeArtifacts=true)` returns the artifact references as received
-   from the meshage result
+2. All Parts are `url` references — gateway stores the manifest as-is
+3. `GetTask(includeArtifacts=true)` returns the URL-only artifacts
 
 For GetTask on completed tasks, the gateway fetches the meshage result from S3
 (same mechanism as history) and extracts `payload.a2a.task.artifacts`.
 
-#### 5.3.4 Artifact Materializer Crew Actor (Future)
+**Client responsibility**: A2A clients receive `url` Parts and fetch content
+directly from external storage. This is standard A2A behavior — the spec
+explicitly supports URL-referenced content.
 
-For cases where A2A clients need actual blob content (not URL references), a
-**materializer crew actor** can be added to the pipeline:
+#### 5.3.5 Artifact Materializer Crew Actor (Future)
+
+Some A2A clients expect inline content (`text`, `data`, `raw` Parts) rather
+than URL references. A **materializer crew actor** resolves URLs to inline
+content at the end of the pipeline:
 
 ```yaml
 route: [analyzer, materializer, x-sink]
 ```
 
-The materializer reads `payload.a2a.task.artifacts[].parts` with URL references,
-fetches the content from external storage, and replaces URL parts with inline
-data/raw parts. This is optional — most A2A clients can follow URLs directly.
+The materializer:
+1. Reads `payload.a2a.task.artifacts[].parts` with `url` references
+2. Fetches content from each URL via state proxy
+3. Replaces `url` Parts with the appropriate inline type:
+   - `application/json` → `data` Part
+   - `text/*` → `text` Part
+   - Binary (images, PDFs) → `raw` Part (base64)
+4. Emits the enriched payload to x-sink
+
+**When to use**: Only when the A2A client cannot follow URLs (e.g., sandbox
+environments with no external network access). Most A2A clients handle URLs
+natively.
+
+**Queue size consideration**: The materializer MUST be the last actor before
+x-sink. After materialization, the payload may exceed queue size limits, so
+x-sink should receive it via direct HTTP (not queue). This is a future design
+concern — see Phase 3+.
 
 ### 5.4 History in Meshage Payload
 
@@ -1641,7 +1715,9 @@ task times out, the gateway returns the task with `status: FAILED`.
       },
       "artifacts": [{
         "artifactId": "result-1",
-        "parts": [{"data": {"themes": ["revenue growth", "market expansion"]}}]
+        "parts": [{"url": "s3://bucket/results/analysis.json",
+                   "mediaType": "application/json",
+                   "filename": "analysis.json"}]
       }]
     }
   }
