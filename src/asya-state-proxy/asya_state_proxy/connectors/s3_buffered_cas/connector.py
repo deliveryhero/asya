@@ -15,13 +15,14 @@ from typing import BinaryIO
 import boto3
 from botocore.exceptions import ClientError
 
+from asya_state_proxy.connectors._s3_xattr import S3XattrMixin
 from asya_state_proxy.interface import KeyMeta, ListResult, StateProxyConnector
 
 
 logger = logging.getLogger("asya.state-proxy")
 
 
-class S3BufferedCAS(StateProxyConnector):
+class S3BufferedCAS(S3XattrMixin, StateProxyConnector):
     """Compare-and-swap S3 connector. Full body is buffered in memory.
 
     Maintains an in-memory ETag cache to detect concurrent modifications.
@@ -154,6 +155,12 @@ class S3BufferedCAS(StateProxyConnector):
 
         logger.debug("list prefix=%r keys=%d prefixes=%d", key_prefix, len(keys), len(prefixes))
         return ListResult(keys=keys, prefixes=prefixes)
+
+    def getxattr(self, key: str, attr: str) -> str:
+        """Override to return cached ETag when available."""
+        if attr == "etag" and key in self._etags:
+            return self._etags[key]
+        return super().getxattr(key, attr)
 
     def delete(self, key: str) -> None:
         """Delete object from S3 and clear ETag cache. Raises FileNotFoundError if not found."""

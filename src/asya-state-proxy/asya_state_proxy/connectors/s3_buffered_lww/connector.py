@@ -15,13 +15,14 @@ from typing import BinaryIO
 import boto3
 from botocore.exceptions import ClientError
 
+from asya_state_proxy.connectors._s3_xattr import S3XattrMixin
 from asya_state_proxy.interface import KeyMeta, ListResult, StateProxyConnector
 
 
 logger = logging.getLogger("asya.state-proxy")
 
 
-class S3BufferedLWW(StateProxyConnector):
+class S3BufferedLWW(S3XattrMixin, StateProxyConnector):
     """Last-write-wins S3 connector. Full body is buffered in memory."""
 
     def __init__(self) -> None:

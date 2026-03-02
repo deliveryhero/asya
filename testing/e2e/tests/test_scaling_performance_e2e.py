@@ -149,7 +149,7 @@ def test_multiple_actors_scaling_simultaneously(e2e_helper):
     echo_completed = 0
     for task_id in results["echo"][:10]:
         try:
-            final = e2e_helper.wait_for_task_completion(task_id, timeout=120)
+            final = e2e_helper.wait_for_task_completion(task_id, timeout=60)
             if final["status"] == "succeeded":
                 echo_completed += 1
         except Exception as e:
@@ -158,7 +158,7 @@ def test_multiple_actors_scaling_simultaneously(e2e_helper):
     pipeline_completed = 0
     for task_id in results["doubler"][:10]:
         try:
-            final = e2e_helper.wait_for_task_completion(task_id, timeout=120)
+            final = e2e_helper.wait_for_task_completion(task_id, timeout=90)
             if final["status"] == "succeeded":
                 pipeline_completed += 1
         except Exception as e:

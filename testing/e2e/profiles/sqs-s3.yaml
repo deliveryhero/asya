@@ -68,7 +68,7 @@ gateway:
   routes:
     defaults:
       progress: true
-      timeout: 60
+      timeout: 120
   transports:
     rabbitmq:
       enabled: false

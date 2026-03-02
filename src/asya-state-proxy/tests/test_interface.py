@@ -111,3 +111,82 @@ def test_list_result_named_tuple_unpacking():
 def test_list_result_equality():
     assert ListResult(keys=["a"], prefixes=[]) == ListResult(keys=["a"], prefixes=[])
     assert ListResult(keys=["a"], prefixes=[]) != ListResult(keys=["b"], prefixes=[])
+
+
+# ---------------------------------------------------------------------------
+# Extended attributes (xattr)
+# ---------------------------------------------------------------------------
+
+
+def test_default_listxattr_returns_empty_list():
+    class FullConnector(StateProxyConnector):
+        def read(self, key: str) -> BinaryIO:
+            return io.BytesIO(b"")
+
+        def write(self, key: str, data: BinaryIO, size: int | None = None) -> None:
+            pass
+
+        def exists(self, key: str) -> bool:
+            return False
+
+        def stat(self, key: str) -> KeyMeta | None:
+            return None
+
+        def list(self, key_prefix: str, delimiter: str = "/") -> ListResult:
+            return ListResult(keys=[], prefixes=[])
+
+        def delete(self, key: str) -> None:
+            pass
+
+    connector = FullConnector()
+    assert connector.listxattr("any_key") == []
+
+
+def test_default_getxattr_raises_key_error():
+    class FullConnector(StateProxyConnector):
+        def read(self, key: str) -> BinaryIO:
+            return io.BytesIO(b"")
+
+        def write(self, key: str, data: BinaryIO, size: int | None = None) -> None:
+            pass
+
+        def exists(self, key: str) -> bool:
+            return False
+
+        def stat(self, key: str) -> KeyMeta | None:
+            return None
+
+        def list(self, key_prefix: str, delimiter: str = "/") -> ListResult:
+            return ListResult(keys=[], prefixes=[])
+
+        def delete(self, key: str) -> None:
+            pass
+
+    connector = FullConnector()
+    with pytest.raises(KeyError):
+        connector.getxattr("key", "url")
+
+
+def test_default_setxattr_raises_key_error():
+    class FullConnector(StateProxyConnector):
+        def read(self, key: str) -> BinaryIO:
+            return io.BytesIO(b"")
+
+        def write(self, key: str, data: BinaryIO, size: int | None = None) -> None:
+            pass
+
+        def exists(self, key: str) -> bool:
+            return False
+
+        def stat(self, key: str) -> KeyMeta | None:
+            return None
+
+        def list(self, key_prefix: str, delimiter: str = "/") -> ListResult:
+            return ListResult(keys=[], prefixes=[])
+
+        def delete(self, key: str) -> None:
+            pass
+
+    connector = FullConnector()
+    with pytest.raises(KeyError):
+        connector.setxattr("key", "url", "value")
