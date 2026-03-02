@@ -36,9 +36,9 @@ async def voting_ensemble(state: dict) -> dict:
     # Fan-out: three agents tackle the same task independently
     # Each uses different LLM settings (temperature, style, model)
     state["candidates"] = [
-        creative_writer(state["prompt"]),
-        analytical_writer(state["prompt"]),
-        concise_writer(state["prompt"]),
+        await creative_writer(state["prompt"]),
+        await analytical_writer(state["prompt"]),
+        await concise_writer(state["prompt"]),
     ]
 
     # Judge evaluates all candidates and selects the best

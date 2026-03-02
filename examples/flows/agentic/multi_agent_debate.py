@@ -49,9 +49,9 @@ async def multi_agent_debate(state: dict) -> dict:
     # Round 0: each debater generates an independent initial position
     # (fan-out: all three run in parallel)
     state["positions"] = [
-        debater_a(state["question"]),
-        debater_b(state["question"]),
-        debater_c(state["question"]),
+        await debater_a(state["question"]),
+        await debater_b(state["question"]),
+        await debater_c(state["question"]),
     ]
 
     # Debate rounds: agents revise their positions seeing all others

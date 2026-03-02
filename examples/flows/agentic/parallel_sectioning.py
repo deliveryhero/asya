@@ -40,9 +40,9 @@ async def parallel_sectioning(state: dict) -> dict:
 
     # Fan-out: three independent analyses run in parallel
     state["analysis"] = [
-        sentiment_analyzer(state["text"]),
-        topic_extractor(state["text"]),
-        entity_recognizer(state["text"]),
+        await sentiment_analyzer(state["text"]),
+        await topic_extractor(state["text"]),
+        await entity_recognizer(state["text"]),
     ]
 
     # Fan-in: merge all parallel results
