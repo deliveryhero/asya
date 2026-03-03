@@ -2,8 +2,13 @@
 title: Wire a2a-go handler with Agent Card and endpoint layout
 priority: 2 # medium
 type: task
-dependencies: [1c0d/1qn6p7, 1c0d/1qx70r]
+tags:
+  - pr:257
+dependencies:
+  - 1c0d/1qn6p7
+  - 1c0d/1qx70r
 ---
+
 
 ## Summary
 
