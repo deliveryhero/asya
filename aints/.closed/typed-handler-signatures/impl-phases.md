@@ -46,10 +46,10 @@ All handler forms from RFC section 6 working end-to-end.
 
 | Task | Ref | Description |
 |------|-----|-------------|
-| Input extraction + deserialization | [[1ixz/1m4yo6]] | Signature introspection (`inspect.signature`, `typing.get_type_hints`), legacy single-dict detection, `ASYA_PARAMS_AT` jq-style path navigation, per-parameter extraction by name, type-based deserialization (Pydantic v1/v2 `.model_validate`/`.parse_obj`, `dataclass(**val)`, TypedDict passthrough, primitive passthrough). Error on missing required params. |
-| Output merge + serialization | [[1ixz/1m8sym]] | `ASYA_RESULT_AT` jq-style path navigation with auto-creation of intermediate dicts, return value serialization (`.model_dump`/`.dict`, `asdict`, passthrough), configurable merge via `ASYA_RESULT_MERGE` (shallow: `dict.update`, deep: recursive), scalar/list direct write at path. `None` return preserves abort semantics. |
-| Generator/yield typed support | [[1ixz/1m6hk3]] | Extend yield handling to serialize typed return values (same serialization dispatcher as output merge). Upstream partials use existing `{"partial": True}` convention unchanged. Each yield frame serialized independently. |
-| Tests | [[1ixz/1mnz5v]] | **Unit tests**: All 8 handler forms (RFC 6.1-6.8) -- legacy dict, typed params + dict return, typed params + typed return, Pydantic input model, multiple typed params, dataclass, TypedDict, class-based. Edge cases: missing keys, optional params, nested input paths, nested output paths, scalar return, list return, `None` return, array index paths. **Component tests**: Docker Compose with typed handler containers, end-to-end via Unix socket HTTP. |
+| Input extraction + deserialization | [[1m4y]] | Signature introspection (`inspect.signature`, `typing.get_type_hints`), legacy single-dict detection, `ASYA_PARAMS_AT` jq-style path navigation, per-parameter extraction by name, type-based deserialization (Pydantic v1/v2 `.model_validate`/`.parse_obj`, `dataclass(**val)`, TypedDict passthrough, primitive passthrough). Error on missing required params. |
+| Output merge + serialization | [[1m8s]] | `ASYA_RESULT_AT` jq-style path navigation with auto-creation of intermediate dicts, return value serialization (`.model_dump`/`.dict`, `asdict`, passthrough), configurable merge via `ASYA_RESULT_MERGE` (shallow: `dict.update`, deep: recursive), scalar/list direct write at path. `None` return preserves abort semantics. |
+| Generator/yield typed support | [[1m6h]] | Extend yield handling to serialize typed return values (same serialization dispatcher as output merge). Upstream partials use existing `{"partial": True}` convention unchanged. Each yield frame serialized independently. |
+| Tests | [[1mnz]] | **Unit tests**: All 8 handler forms (RFC 6.1-6.8) -- legacy dict, typed params + dict return, typed params + typed return, Pydantic input model, multiple typed params, dataclass, TypedDict, class-based. Edge cases: missing keys, optional params, nested input paths, nested output paths, scalar return, list return, `None` return, array index paths. **Component tests**: Docker Compose with typed handler containers, end-to-end via Unix socket HTTP. |
 
 ### Dependency order
 
@@ -91,7 +91,7 @@ auto-discovery.
 
 | Task | Ref | Description |
 |------|-----|-------------|
-| Schema generation + endpoint | [[1ixz/1m58xk]] | Implement `_generate_schema()`: Pydantic `.model_json_schema()`, dataclass/TypedDict annotation walking (Python type -> JSON Schema type mapping). Add `GET /schema` HTTP handler on Unix socket server. Return `{"input_schema": {...}, "output_schema": {...}}`. Include unit tests for schema generation and HTTP endpoint. |
+| Schema generation + endpoint | [[1m58]] | Implement `_generate_schema()`: Pydantic `.model_json_schema()`, dataclass/TypedDict annotation walking (Python type -> JSON Schema type mapping). Add `GET /schema` HTTP handler on Unix socket server. Return `{"input_schema": {...}, "output_schema": {...}}`. Include unit tests for schema generation and HTTP endpoint. |
 
 ### Dependency
 
@@ -118,7 +118,7 @@ Phase 2 depends on Phase 1 (uses the same introspection infrastructure).
 
 | Task | Ref | Description |
 |------|-----|-------------|
-| Update docs | [[1ixz/1mbksn]] | Update `docs/` with typed handler signature guide: env vars, handler forms, deployment examples, migration path, jq path syntax reference. |
+| Update docs | [[1mbk]] | Update `docs/` with typed handler signature guide: env vars, handler forms, deployment examples, migration path, jq path syntax reference. |
 
 ### Dependency
 

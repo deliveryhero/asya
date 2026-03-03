@@ -2,7 +2,7 @@
 title: "Phase 3.1: Add IRSA ServiceAccount to Composition"
 priority: 2 # medium
 dependencies:
-  - 1cph/1fd2ug
+  - 1fd2
 ---
 
 

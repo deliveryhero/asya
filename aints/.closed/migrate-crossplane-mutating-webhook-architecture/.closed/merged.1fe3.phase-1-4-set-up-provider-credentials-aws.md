@@ -2,7 +2,7 @@
 title: "Phase 1.4: Set up provider credentials (AWS/LocalStack)"
 priority: 1 # high
 dependencies:
-  - 1cph/1f2uai
+  - 1f2u
 ---
 
 

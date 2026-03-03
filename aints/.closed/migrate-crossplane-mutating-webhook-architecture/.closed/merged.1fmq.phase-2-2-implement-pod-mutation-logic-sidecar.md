@@ -2,7 +2,7 @@
 title: "Phase 2.2: Implement pod mutation logic (sidecar injection)"
 priority: 1 # high
 dependencies:
-  - 1cph/1fm7ch
+  - 1fm7
 ---
 
 

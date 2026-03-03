@@ -4,7 +4,7 @@ priority: 2 # medium
 tags:
   - pr:192
 dependencies:
-  - 1fbe/1iof6x
+  - 1iof
 reason: "Late binding: HTTP server starts after handler load, so 503 guard is unnecessary. GET /healthz added for K8s probes instead."
 ---
 

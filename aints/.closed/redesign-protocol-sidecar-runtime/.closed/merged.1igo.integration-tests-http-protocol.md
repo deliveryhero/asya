@@ -4,8 +4,8 @@ priority: 2 # medium
 tags:
   - pr:192
 dependencies:
-  - 1fbe/1ikczz
-  - 1ia4/1in0hv
+  - 1ikc
+  - 1in0
 reason: Integration tests verified passing with HTTP protocol - confirmed by PR CI.
 ---
 

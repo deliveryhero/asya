@@ -2,8 +2,8 @@
 title: "Phase 4.3: Update documentation for new architecture"
 priority: 3 # low
 dependencies:
-  - 1cph/1feaiz
-  - 1cph/1ft4qf
+  - 1fea
+  - 1ft4
 ---
 
 

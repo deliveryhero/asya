@@ -2,13 +2,13 @@
 title: "Phase 3.5: Manually test full actor lifecycle (create, scale, delete)"
 priority: 2 # medium
 dependencies:
-  - 1cph/1fmswt
-  - 1cph/1fgyno
-  - 1cph/1f4klq
-  - 1cph/1fhqn0
-  - 1cph/1fq4k2
-  - misc/1f8x5n
-  - misc/1fiw26
+  - 1fms
+  - 1fgy
+  - 1f4k
+  - 1fhq
+  - 1fq4
+  - 1f8x
+  - 1fiw
 ---
 
 

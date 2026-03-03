@@ -6,11 +6,11 @@ tags:
   - branch:1ixy/1kpm6e.integration-test-pause-resume-flow-end-to-end
   - pr:225
 dependencies:
-  - 1ixy/1kk0r7
-  - 1ixy/1knc3h
-  - 1ixy/1knfkr
-  - 1ixy/1ka9sc
-  - 1ixy/1k2yps
+  - 1kk0
+  - 1knc
+  - 1knf
+  - 1ka9
+  - 1k2y
 ---
 
 

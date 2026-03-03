@@ -2,7 +2,7 @@
 title: Update Go templates to consume resolved flavor data
 priority: 2 # medium
 dependencies:
-  - misc/1fijg5
+  - 1fij
 ---
 
 

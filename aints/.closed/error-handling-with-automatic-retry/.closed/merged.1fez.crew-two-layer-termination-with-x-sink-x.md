@@ -2,7 +2,7 @@
 title: "Crew: two-layer termination with x-sink, x-sump, and configurable hooks"
 priority: 3 # low
 dependencies:
-  - 1c46/1fsy0p
+  - 1fsy
 ---
 
 

@@ -2,7 +2,7 @@
 title: "Phase 3.2: Add TriggerAuthentication for KEDA"
 priority: 2 # medium
 dependencies:
-  - 1cph/1fd2ug
+  - 1fd2
 ---
 
 

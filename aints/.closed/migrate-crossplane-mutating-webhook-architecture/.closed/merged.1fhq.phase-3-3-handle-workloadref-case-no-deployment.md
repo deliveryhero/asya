@@ -2,7 +2,7 @@
 title: "Phase 3.3: Handle workloadRef case (no Deployment creation)"
 priority: 2 # medium
 dependencies:
-  - 1cph/1fd2ug
+  - 1fd2
 ---
 
 

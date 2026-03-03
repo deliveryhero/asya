@@ -2,7 +2,7 @@
 title: "Crew: create x-dlq standalone Go worker for infrastructure DLQ"
 priority: 2 # medium
 dependencies:
-  - 1c46/1fezrw
+  - 1fez
 ---
 
 

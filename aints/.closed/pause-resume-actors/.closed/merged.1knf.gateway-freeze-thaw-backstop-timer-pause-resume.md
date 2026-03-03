@@ -4,7 +4,7 @@ priority: 2 # medium
 tags:
   - pr:217
 dependencies:
-  - 1ixy/1kmp6r
+  - 1kmp
 ---
 
 

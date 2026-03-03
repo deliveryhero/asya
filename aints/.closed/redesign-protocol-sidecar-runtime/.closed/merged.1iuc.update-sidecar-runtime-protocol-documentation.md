@@ -4,7 +4,7 @@ priority: 3 # low
 tags:
   - pr:192
 dependencies:
-  - 1ia4/1in0hv
+  - 1in0
 reason: docs/architecture/protocols/sidecar-runtime.md rewritten for HTTP POST /invoke + GET /healthz in this PR.
 ---
 

@@ -2,7 +2,7 @@
 title: "Gateway: migrate progress tracking to prev/curr/next route"
 priority: 2 # medium
 dependencies:
-  - 1iah/1ikdzb
+  - 1ikd
 ---
 
 

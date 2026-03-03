@@ -2,7 +2,7 @@
 title: Add ScaledObject to SQS Composition
 priority: 2 # medium
 dependencies:
-  - 1cph/1favq5
+  - 1fav
 ---
 
 

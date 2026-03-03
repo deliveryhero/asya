@@ -2,7 +2,7 @@
 title: "Clean up build system, CI pipelines, and documentation after operator removal"
 priority: 3 # low
 dependencies:
-  - 1cph/1fdm35
+  - 1fdm
 ---
 
 

@@ -4,7 +4,7 @@ priority: 2 # medium
 tags:
   - pr:221
 dependencies:
-  - 1ixy/1kjvyj
+  - 1kjv
 ---
 
 

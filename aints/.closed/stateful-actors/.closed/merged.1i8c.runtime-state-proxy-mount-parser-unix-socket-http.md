@@ -4,7 +4,7 @@ priority: 1 # high
 tags:
   - pr:195
 dependencies:
-  - 1dmf/1ipgpc
+  - 1ipg
 ---
 
 

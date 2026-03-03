@@ -2,7 +2,7 @@
 title: "Phase 1.2: Define AsyncActor XRD (CompositeResourceDefinition)"
 priority: 1 # high
 dependencies:
-  - 1cph/1f2uai
+  - 1f2u
 ---
 
 

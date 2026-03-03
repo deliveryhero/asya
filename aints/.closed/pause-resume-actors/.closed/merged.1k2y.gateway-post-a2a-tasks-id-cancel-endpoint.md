@@ -4,7 +4,7 @@ priority: 3 # low
 tags:
   - pr:217
 dependencies:
-  - 1ixy/1kwi46
+  - 1kwi
 ---
 
 

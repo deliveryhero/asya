@@ -2,7 +2,7 @@
 title: "Phase 4.0b: Manual testing of Crossplane setup using quickstart"
 priority: 2 # medium
 dependencies:
-  - 1cph/1fwy1i
+  - 1fwy
 ---
 
 

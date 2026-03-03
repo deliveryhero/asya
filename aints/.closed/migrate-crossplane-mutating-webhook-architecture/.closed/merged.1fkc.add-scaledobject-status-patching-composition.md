@@ -2,7 +2,7 @@
 title: Add ScaledObject status patching to Composition
 priority: 2 # medium
 dependencies:
-  - 1cph/1fhrqy
+  - 1fhr
 ---
 
 

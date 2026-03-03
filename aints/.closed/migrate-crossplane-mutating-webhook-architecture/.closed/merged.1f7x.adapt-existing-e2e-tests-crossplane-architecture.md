@@ -2,10 +2,10 @@
 title: Adapt existing E2E tests for Crossplane architecture
 priority: 2 # medium
 dependencies:
-  - 1cph/1fm4wm
-  - 1cph/1fj4gm
-  - 1cph/1f20gv
-  - 1cph/1fsq6w
+  - 1fm4
+  - 1fj4
+  - 1f20
+  - 1fsq
 ---
 
 

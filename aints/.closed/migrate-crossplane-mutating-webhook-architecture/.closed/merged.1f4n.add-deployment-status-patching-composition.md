@@ -2,7 +2,7 @@
 title: Add Deployment status patching to Composition
 priority: 2 # medium
 dependencies:
-  - 1cph/1favq5
+  - 1fav
 ---
 
 

@@ -2,7 +2,7 @@
 title: Decouple runtime ConfigMap provisioning from operator
 priority: 2 # medium
 dependencies:
-  - 1cph/1fm4wm
+  - 1fm4
 ---
 
 

@@ -2,10 +2,10 @@
 title: "Sidecar: implement retry logic with exponential backoff and MRO-based error classification"
 priority: 1 # high
 dependencies:
-  - 1c46/1f4znp
-  - 1c46/1fj60s
-  - 1c46/1fsy0p
-  - 1c46/1f6ff6
+  - 1f4z
+  - 1fj6
+  - 1fsy
+  - 1f6f
 ---
 
 

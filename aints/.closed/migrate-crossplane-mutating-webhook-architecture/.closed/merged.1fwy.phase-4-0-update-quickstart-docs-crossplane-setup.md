@@ -2,7 +2,7 @@
 title: "Phase 4.0: Update quickstart docs for Crossplane setup"
 priority: 2 # medium
 dependencies:
-  - 1cph/1fm4wm
+  - 1fm4
 ---
 
 

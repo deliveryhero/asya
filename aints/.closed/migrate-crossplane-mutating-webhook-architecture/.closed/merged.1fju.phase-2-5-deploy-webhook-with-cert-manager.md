@@ -2,7 +2,7 @@
 title: "Phase 2.5: Deploy webhook with cert-manager"
 priority: 1 # high
 dependencies:
-  - 1cph/1fmqov
+  - 1fmq
 ---
 
 

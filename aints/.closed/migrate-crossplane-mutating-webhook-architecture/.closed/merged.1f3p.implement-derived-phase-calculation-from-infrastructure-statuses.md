@@ -2,9 +2,9 @@
 title: Implement derived phase calculation from infrastructure statuses
 priority: 2 # medium
 dependencies:
-  - 1cph/1fq4k2
-  - 1cph/1fkcun
-  - 1cph/1f4n2n
+  - 1fq4
+  - 1fkc
+  - 1f4n
 ---
 
 

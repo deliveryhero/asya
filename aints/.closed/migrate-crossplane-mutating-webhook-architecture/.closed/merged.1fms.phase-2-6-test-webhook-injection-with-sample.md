@@ -2,8 +2,8 @@
 title: "Phase 2.6: Test webhook injection with sample workloads"
 priority: 1 # high
 dependencies:
-  - 1cph/1fju03
-  - 1cph/1f7oeq
+  - 1fju
+  - 1f7o
 ---
 
 

@@ -2,8 +2,8 @@
 title: "Phase 1.3: Create SQS Composition (queue + KEDA + deployment)"
 priority: 1 # high
 dependencies:
-  - 1cph/1f3zaa
-  - 1cph/1fe31l
+  - 1f3z
+  - 1fe3
 ---
 
 

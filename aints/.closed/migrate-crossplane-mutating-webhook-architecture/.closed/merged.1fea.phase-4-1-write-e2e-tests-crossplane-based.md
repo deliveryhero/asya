@@ -2,8 +2,8 @@
 title: "Phase 4.1: Write E2E tests for Crossplane-based deployment"
 priority: 2 # medium
 dependencies:
-  - 1cph/1fm4wm
-  - 1cph/1fj4gm
+  - 1fm4
+  - 1fj4
 ---
 
 

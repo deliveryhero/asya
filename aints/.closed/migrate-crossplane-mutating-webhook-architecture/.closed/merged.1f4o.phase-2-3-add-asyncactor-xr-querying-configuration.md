@@ -2,8 +2,8 @@
 title: "Phase 2.3: Add AsyncActor XR querying for configuration"
 priority: 1 # high
 dependencies:
-  - 1cph/1fmqov
-  - 1cph/1f3zaa
+  - 1fmq
+  - 1f3z
 ---
 
 

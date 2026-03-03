@@ -2,7 +2,7 @@
 title: Migrate credential env var mounting to asya-injector
 priority: 2 # medium
 dependencies:
-  - 1cph/1f1x1e
+  - 1f1x
 ---
 
 

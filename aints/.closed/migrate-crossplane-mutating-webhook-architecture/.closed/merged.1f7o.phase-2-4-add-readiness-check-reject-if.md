@@ -2,7 +2,7 @@
 title: "Phase 2.4: Add readiness check (reject if infrastructure not ready)"
 priority: 1 # high
 dependencies:
-  - 1cph/1f4o91
+  - 1f4o
 ---
 
 

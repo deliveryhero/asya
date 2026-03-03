@@ -2,7 +2,7 @@
 title: "Phase 4.2: Create Helm charts for new architecture"
 priority: 2 # medium
 dependencies:
-  - 1cph/1fm4wm
+  - 1fm4
 ---
 
 

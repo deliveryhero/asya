@@ -2,7 +2,7 @@
 title: Add transport credential Secret to Crossplane Composition
 priority: 2 # medium
 dependencies:
-  - 1cph/1fm4wm
+  - 1fm4
 ---
 
 

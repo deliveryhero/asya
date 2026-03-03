@@ -4,8 +4,8 @@ priority: 2 # medium
 tags:
   - pr:221
 dependencies:
-  - 1ixy/1kcw5i
-  - 1ixy/1kr9uw
+  - 1kcw
+  - 1kr9
 ---
 
 

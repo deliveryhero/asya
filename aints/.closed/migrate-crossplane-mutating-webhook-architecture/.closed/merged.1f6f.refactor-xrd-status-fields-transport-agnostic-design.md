@@ -2,7 +2,7 @@
 title: Refactor XRD status fields for transport-agnostic design
 priority: 3 # low
 dependencies:
-  - 1cph/1feaiz
+  - 1fea
 ---
 
 

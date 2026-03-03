@@ -4,7 +4,7 @@ priority: 2 # medium
 tags:
   - pr:200
 dependencies:
-  - 1dmf/1iph0b
+  - 1iph
 ---
 
 

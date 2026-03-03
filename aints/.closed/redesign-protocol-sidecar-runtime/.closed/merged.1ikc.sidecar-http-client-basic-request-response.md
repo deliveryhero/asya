@@ -4,8 +4,8 @@ priority: 2 # medium
 tags:
   - pr:192
 dependencies:
-  - 1fbe/1iof6x
-  - 1fbe/1ig1zh
+  - 1iof
+  - 1ig1
 reason: "Sidecar HTTP client implemented in PR #189 (net/http over Unix socket, POST /invoke)."
 ---
 

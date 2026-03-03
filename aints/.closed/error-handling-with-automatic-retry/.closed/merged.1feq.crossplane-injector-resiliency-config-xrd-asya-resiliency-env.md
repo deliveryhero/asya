@@ -2,8 +2,8 @@
 title: "Crossplane + Injector: resiliency config in XRD and ASYA_RESILIENCY_* env injection"
 priority: 2 # medium
 dependencies:
-  - 1c46/1f6ff6
-  - 1c46/1fezrw
+  - 1f6f
+  - 1fez
 ---
 
 

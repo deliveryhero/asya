@@ -4,8 +4,8 @@ priority: 2 # medium
 tags:
   - pr:221
 dependencies:
-  - 1ixy/1kftbu
-  - debt/1k34nz
+  - 1kft
+  - 1k34
 ---
 
 

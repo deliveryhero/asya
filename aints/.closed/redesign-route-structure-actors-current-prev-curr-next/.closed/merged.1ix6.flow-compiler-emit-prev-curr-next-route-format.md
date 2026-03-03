@@ -2,7 +2,7 @@
 title: "Flow compiler: emit prev/curr/next route format"
 priority: 2 # medium
 dependencies:
-  - 1iah/1iqkcq
+  - 1iqk
 ---
 
 
