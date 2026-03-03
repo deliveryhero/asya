@@ -34,7 +34,7 @@ func testInitialize(t *testing.T, transportName string, serverFactory func(*mcps
 	taskStore := taskstore.NewStore()
 	queueClient := &MockQueueClient{}
 
-	mcpSrv := NewServer(taskStore, queueClient)
+	mcpSrv := NewServer(taskStore, queueClient, nil)
 	handler := serverFactory(mcpSrv.GetMCPServer())
 
 	initRequest := map[string]interface{}{
@@ -116,7 +116,7 @@ func testInvalidMethod(t *testing.T, transportName string, serverFactory func(*m
 	taskStore := taskstore.NewStore()
 	queueClient := &MockQueueClient{}
 
-	mcpSrv := NewServer(taskStore, queueClient)
+	mcpSrv := NewServer(taskStore, queueClient, nil)
 	handler := serverFactory(mcpSrv.GetMCPServer())
 
 	invalidRequest := map[string]interface{}{
@@ -154,7 +154,7 @@ func TestMCPProtocol_BothTransportsWork(t *testing.T) {
 	taskStore := taskstore.NewStore()
 	queueClient := &MockQueueClient{}
 
-	mcpSrv := NewServer(taskStore, queueClient)
+	mcpSrv := NewServer(taskStore, queueClient, nil)
 
 	streamableHandler := mcpserver.NewStreamableHTTPServer(mcpSrv.GetMCPServer())
 	sseHandler := mcpserver.NewSSEServer(mcpSrv.GetMCPServer())

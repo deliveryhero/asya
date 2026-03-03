@@ -32,7 +32,7 @@ func TestNewServer_Basic(t *testing.T) {
 	taskStore := taskstore.NewStore()
 	queueClient := &MockQueueClient{}
 
-	server := NewServer(taskStore, queueClient)
+	server := NewServer(taskStore, queueClient, nil)
 
 	if server == nil {
 		t.Fatal("NewServer returned nil")

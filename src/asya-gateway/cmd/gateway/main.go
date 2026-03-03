@@ -16,6 +16,7 @@ import (
 	mcpserver "github.com/mark3labs/mcp-go/server"
 
 	"github.com/deliveryhero/asya/asya-gateway/internal/a2a"
+	"github.com/deliveryhero/asya/asya-gateway/internal/config"
 	"github.com/deliveryhero/asya/asya-gateway/internal/mcp"
 	"github.com/deliveryhero/asya/asya-gateway/internal/queue"
 	"github.com/deliveryhero/asya/asya-gateway/internal/taskstore"
@@ -97,8 +98,21 @@ func main() {
 		slog.Info("Using in-memory tool registry")
 	}
 
+	// Load tool configuration from YAML (if configured)
+	var cfg *config.Config
+	configPath := getEnv("ASYA_CONFIG_PATH", "")
+	if configPath != "" {
+		var err error
+		cfg, err = config.LoadConfig(configPath)
+		if err != nil {
+			slog.Error("Failed to load config", "path", configPath, "error", err)
+			os.Exit(1)
+		}
+		slog.Info("Loaded tool configuration", "path", configPath, "tools", len(cfg.Tools))
+	}
+
 	// Create MCP server
-	mcpServer := mcp.NewServer(taskStore, queueClient)
+	mcpServer := mcp.NewServer(taskStore, queueClient, cfg)
 
 	// Create task handler for custom endpoints
 	taskHandler := mcp.NewHandler(taskStore)

@@ -17,7 +17,7 @@ func TestTransport_StreamableHTTP_Initialize(t *testing.T) {
 	taskStore := taskstore.NewStore()
 	queueClient := &MockQueueClient{}
 
-	mcpSrv := NewServer(taskStore, queueClient)
+	mcpSrv := NewServer(taskStore, queueClient, nil)
 	handler := mcpserver.NewStreamableHTTPServer(mcpSrv.GetMCPServer())
 
 	server := httptest.NewServer(handler)
@@ -79,7 +79,7 @@ func TestTransport_SSE_ServerCreation(t *testing.T) {
 	taskStore := taskstore.NewStore()
 	queueClient := &MockQueueClient{}
 
-	mcpSrv := NewServer(taskStore, queueClient)
+	mcpSrv := NewServer(taskStore, queueClient, nil)
 	sseServer := mcpserver.NewSSEServer(mcpSrv.GetMCPServer())
 
 	if sseServer == nil {
@@ -95,7 +95,7 @@ func TestTransport_DualEndpoints(t *testing.T) {
 	taskStore := taskstore.NewStore()
 	queueClient := &MockQueueClient{}
 
-	mcpSrv := NewServer(taskStore, queueClient)
+	mcpSrv := NewServer(taskStore, queueClient, nil)
 
 	streamableHandler := mcpserver.NewStreamableHTTPServer(mcpSrv.GetMCPServer())
 	sseHandler := mcpserver.NewSSEServer(mcpSrv.GetMCPServer())
@@ -135,7 +135,7 @@ func TestTransport_ContentTypes(t *testing.T) {
 	taskStore := taskstore.NewStore()
 	queueClient := &MockQueueClient{}
 
-	mcpSrv := NewServer(taskStore, queueClient)
+	mcpSrv := NewServer(taskStore, queueClient, nil)
 	handler := mcpserver.NewStreamableHTTPServer(mcpSrv.GetMCPServer())
 
 	server := httptest.NewServer(handler)

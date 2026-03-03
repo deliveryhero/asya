@@ -123,7 +123,7 @@ func TestNewRegistry(t *testing.T) {
 	taskStore := taskstore.NewStore()
 	queueClient := &MockQueueClient{}
 
-	registry := NewRegistry(taskStore, queueClient)
+	registry := NewRegistry(nil, taskStore, queueClient)
 
 	if registry == nil {
 		t.Fatal("Expected non-nil registry")
@@ -144,7 +144,7 @@ func TestGetToolHandler(t *testing.T) {
 	taskStore := taskstore.NewStore()
 	queueClient := &MockQueueClient{}
 
-	registry := NewRegistry(taskStore, queueClient)
+	registry := NewRegistry(nil, taskStore, queueClient)
 
 	t.Run("non-existing tool returns nil", func(t *testing.T) {
 		handler := registry.GetToolHandler("non_existing_tool")

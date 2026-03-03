@@ -413,7 +413,7 @@ func TestHandleToolCall(t *testing.T) {
 
 			if tt.setupMCP {
 				queueClient := &MockQueueClient{}
-				mcpServer := NewServer(store, queueClient)
+				mcpServer := NewServer(store, queueClient, nil)
 				handler.SetServer(mcpServer)
 			}
 
