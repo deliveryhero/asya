@@ -2,8 +2,12 @@
 title: Implement A2A message-to-envelope translator
 priority: 2 # medium
 type: task
-dependencies: [1c0d/1qcmsr]
+tags:
+  - pr:257
+dependencies:
+  - 1c0d/1qcmsr
 ---
+
 
 ## Objective
 
