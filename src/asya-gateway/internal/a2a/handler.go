@@ -90,7 +90,7 @@ func (h *Handler) resolveAndCreateTaskFromParams(rpcReq types.A2AJSONRPCRequest,
 			fmt.Sprintf("route error: %v", err))
 	}
 
-	payload := MessageToPayload(params.Message)
+	payload := MessageToPayloadLegacy(params.Message)
 
 	contextID := params.ContextID
 	if contextID == "" {
@@ -175,7 +175,7 @@ func (h *Handler) handleResume(w http.ResponseWriter, rpcReq types.A2AJSONRPCReq
 	}
 
 	// Update payload with resume input
-	payload := MessageToPayload(params.Message)
+	payload := MessageToPayloadLegacy(params.Message)
 	resumedTask.Payload = payload
 
 	slog.Info("Resuming paused task",
