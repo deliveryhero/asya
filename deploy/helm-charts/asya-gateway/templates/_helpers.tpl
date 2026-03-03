@@ -136,10 +136,7 @@ Validate transport configuration - ensure exactly one transport is enabled
 {{- $rabbitmqEnabled := .Values.transports.rabbitmq.enabled }}
 {{- $sqsEnabled := .Values.transports.sqs.enabled }}
 {{- $pubsubEnabled := ((.Values.transports).pubsub).enabled | default false }}
-{{- $enabledCount := 0 }}
-{{- if $rabbitmqEnabled }}{{ $enabledCount = add1 $enabledCount }}{{- end }}
-{{- if $sqsEnabled }}{{ $enabledCount = add1 $enabledCount }}{{- end }}
-{{- if $pubsubEnabled }}{{ $enabledCount = add1 $enabledCount }}{{- end }}
+{{- $enabledCount := (list $rabbitmqEnabled $sqsEnabled $pubsubEnabled) | compact | len }}
 {{- if gt $enabledCount 1 }}
 {{- fail "ERROR: Cannot enable multiple transports. Please set exactly one of transports.rabbitmq.enabled, transports.sqs.enabled, or transports.pubsub.enabled to true" }}
 {{- end }}

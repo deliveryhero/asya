@@ -40,7 +40,9 @@ spec:
         - "-port"
         - "4443"
         - "-backend"
-        - "memory"
+        - "filesystem"
+        - "-data"
+        - "/data"
         - "-public-host"
         - "fake-gcs.{{ .Release.Namespace }}.svc.cluster.local:4443"
         ports:

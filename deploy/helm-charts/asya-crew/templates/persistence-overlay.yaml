@@ -5,12 +5,12 @@
 {{- if not .Values.persistence.config.bucket }}
 {{- fail "persistence.config.bucket is required when persistence.enabled is true" }}
 {{- end }}
-{{- $connectorImage := .Values.persistence.connector.image }}
-{{- if not $connectorImage }}
+{{- $connectorImage := dict "val" .Values.persistence.connector.image }}
+{{- if not $connectorImage.val }}
   {{- if eq .Values.persistence.backend "s3" }}
-    {{- $connectorImage = "ghcr.io/deliveryhero/asya-state-proxy-s3-buffered-lww:v1.0.0" }}
+    {{- $_ := set $connectorImage "val" "ghcr.io/deliveryhero/asya-state-proxy-s3-buffered-lww:v1.0.0" }}
   {{- else if eq .Values.persistence.backend "gcs" }}
-    {{- $connectorImage = "ghcr.io/deliveryhero/asya-state-proxy-gcs-buffered-lww:v1.0.0" }}
+    {{- $_ := set $connectorImage "val" "ghcr.io/deliveryhero/asya-state-proxy-gcs-buffered-lww:v1.0.0" }}
   {{- end }}
 {{- end }}
 apiVersion: apiextensions.crossplane.io/v1beta1
@@ -26,7 +26,7 @@ data:
       mount:
         path: /state/checkpoints
       connector:
-        image: {{ $connectorImage }}
+        image: {{ $connectorImage.val }}
         env:
           - name: STATE_BUCKET
             value: {{ .Values.persistence.config.bucket | quote }}

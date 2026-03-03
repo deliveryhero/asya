@@ -5,7 +5,7 @@ import json
 import logging
 import time
 
-from google.api_core.exceptions import AlreadyExists, NotFound
+from google.api_core.exceptions import AlreadyExists, GoogleAPICallError, NotFound
 from google.cloud import pubsub_v1
 
 from .base import TransportClient
@@ -65,7 +65,7 @@ class PubSubClient(TransportClient):
                     request={"subscription": sub_path, "max_messages": 1},
                     timeout=min(2.0, max(0.5, timeout - (time.time() - start))),
                 )
-            except Exception:
+            except GoogleAPICallError:
                 time.sleep(poll_interval)  # Retry on transient errors from emulator
                 continue
 
@@ -89,7 +89,7 @@ class PubSubClient(TransportClient):
                     request={"subscription": sub_path, "max_messages": 100},
                     timeout=2.0,
                 )
-            except Exception:
+            except GoogleAPICallError:
                 break
             if not response.received_messages:
                 break
