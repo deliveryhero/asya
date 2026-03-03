@@ -5,7 +5,9 @@ type: task
 tags:
   - worktree:.worktrees/1l01/1pjo6p.un-xfail-fan-out-fan-in-e2e-tests
   - branch:1l01/1pjo6p.un-xfail-fan-out-fan-in-e2e-tests
+  - pr:255
 ---
+
 
 5 tests in `testing/e2e/tests/test_fanout_fanin_flow_e2e.py` are xfailed with:
 `"Fan-out/fan-in flow requires VFS-based route modification and S3 state-proxy (not yet functional in E2E)"`
