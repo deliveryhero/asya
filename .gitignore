@@ -1,13 +1,10 @@
 # Managed by git-aint — overwritten on every `git aint init`
-# On aint-sync branch: only track epics/
+# On aint-sync branch: only track aints/, scripts/, and AGENTS.md
 # Everything else (source code, docs, etc.) lives on main branch
 *
 !.gitignore
-!epics/
-!epics/**
+!AGENTS.md
+!aints/
+!aints/**
 !scripts/
 !scripts/**
-
-epics/**/*.txt
-# Tmux session logs (local only) — must come AFTER !epics/** to override it
-epics/**/.tmux-logs/
