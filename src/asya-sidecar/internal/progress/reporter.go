@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/deliveryhero/asya/asya-sidecar/pkg/meshages"
+	"github.com/deliveryhero/asya/asya-sidecar/pkg/envelopes"
 )
 
 // ProgressStatus represents the status of an actor
@@ -159,7 +159,7 @@ type CreateMeshPayload struct {
 
 // CreateMesh creates a fanout child mesh in the gateway
 // This is called when the sidecar detects multiple responses from runtime (fanout scenario)
-func (r *Reporter) CreateMesh(ctx context.Context, id, parentID string, route meshages.Route) error {
+func (r *Reporter) CreateMesh(ctx context.Context, id, parentID string, route envelopes.Route) error {
 	payload := CreateMeshPayload{
 		ID:       id,
 		ParentID: parentID,

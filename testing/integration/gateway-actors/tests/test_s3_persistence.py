@@ -13,7 +13,7 @@ import time
 import pytest
 import requests
 
-from asya_testing.utils.s3 import delete_all_objects_in_bucket, find_meshage_in_s3, wait_for_meshage_in_s3
+from asya_testing.utils.s3 import delete_all_objects_in_bucket, find_envelope_in_s3, wait_for_envelope_in_s3
 from asya_testing.config import require_env
 
 logger = logging.getLogger(__name__)
@@ -100,7 +100,7 @@ def test_x_sink_persists_to_s3():
 
     logger.info(f"Task {task_id} completed successfully")
 
-    s3_object = wait_for_meshage_in_s3(RESULTS_BUCKET, task_id, timeout=10)
+    s3_object = wait_for_envelope_in_s3(RESULTS_BUCKET, task_id, timeout=10)
 
     assert s3_object is not None, f"Message {task_id} not found in {RESULTS_BUCKET}"
     # S3 stores just the payload dict (not the full message message)
@@ -135,7 +135,7 @@ def test_x_sump_persists_to_s3():
 
     logger.info(f"Task {task_id} failed as expected")
 
-    s3_object = wait_for_meshage_in_s3(ERRORS_BUCKET, task_id, timeout=10)
+    s3_object = wait_for_envelope_in_s3(ERRORS_BUCKET, task_id, timeout=10)
 
     assert s3_object is not None, f"Message {task_id} not found in {ERRORS_BUCKET}"
     # S3 stores just the payload dict (not the full message message)
@@ -169,7 +169,7 @@ def test_pipeline_result_persists_to_s3():
 
     logger.info(f"Pipeline task {task_id} completed successfully")
 
-    s3_object = wait_for_meshage_in_s3(RESULTS_BUCKET, task_id, timeout=10)
+    s3_object = wait_for_envelope_in_s3(RESULTS_BUCKET, task_id, timeout=10)
 
     assert s3_object is not None, f"Message {task_id} not found in {RESULTS_BUCKET}"
     # S3 stores just the payload dict (not the full message message)

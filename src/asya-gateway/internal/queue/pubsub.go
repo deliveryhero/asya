@@ -67,7 +67,7 @@ func (c *PubSubClient) getOrCreateTopic(topicID string) *pubsub.Topic {
 
 // SendMessage sends a message to the current actor's topic
 func (c *PubSubClient) SendMessage(ctx context.Context, task *types.Task) error {
-	actorMsg, err := NewActorMessage(task)
+	actorMsg, err := NewActorEnvelope(task)
 	if err != nil {
 		return err
 	}

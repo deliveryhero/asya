@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/deliveryhero/asya/asya-sidecar/pkg/meshages"
+	"github.com/deliveryhero/asya/asya-sidecar/pkg/envelopes"
 )
 
 func TestNewReporter(t *testing.T) {
@@ -559,7 +559,7 @@ func TestCreateMesh_Success(t *testing.T) {
 	reporter := NewReporter(server.URL, "test-actor")
 
 	ctx := context.Background()
-	route := meshages.Route{
+	route := envelopes.Route{
 		Prev: []string{"actor1"},
 		Curr: "actor2",
 		Next: []string{},
@@ -598,7 +598,7 @@ func TestCreateMesh_ServerError(t *testing.T) {
 	reporter := NewReporter(server.URL, "test-actor")
 
 	ctx := context.Background()
-	route := meshages.Route{Prev: []string{}, Curr: "actor1", Next: []string{}}
+	route := envelopes.Route{Prev: []string{}, Curr: "actor1", Next: []string{}}
 	err := reporter.CreateMesh(ctx, "abc-123-1", "abc-123", route)
 
 	// Should return error
@@ -616,7 +616,7 @@ func TestCreateMesh_NetworkError(t *testing.T) {
 	reporter := NewReporter("http://invalid-host-that-does-not-exist:99999", "test-actor")
 
 	ctx := context.Background()
-	route := meshages.Route{Prev: []string{}, Curr: "actor1", Next: []string{}}
+	route := envelopes.Route{Prev: []string{}, Curr: "actor1", Next: []string{}}
 	err := reporter.CreateMesh(ctx, "abc-123-1", "abc-123", route)
 
 	// Should return error
@@ -639,7 +639,7 @@ func TestCreateMesh_ContextCancellation(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 	defer cancel()
 
-	route := meshages.Route{Prev: []string{}, Curr: "actor1", Next: []string{}}
+	route := envelopes.Route{Prev: []string{}, Curr: "actor1", Next: []string{}}
 	err := reporter.CreateMesh(ctx, "abc-123-1", "abc-123", route)
 
 	// Should return error due to timeout

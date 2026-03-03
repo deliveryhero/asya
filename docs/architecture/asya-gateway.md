@@ -13,7 +13,7 @@
 1. Client calls MCP tool via HTTP POST
 2. Gateway creates task with unique ID
 3. Gateway stores task in PostgreSQL (status: `pending`)
-4. Gateway sends meshage to first actor's queue
+4. Gateway sends envelope to first actor's queue
 5. Crew actors (`x-sink`, `x-sump`) report final task status
 6. Client polls or streams task status updates via SSE
 
@@ -214,7 +214,7 @@ Content-Type: application/json
 - `received` = 10, `processing` = 50, `completed` = 100
 
 **Unknown task IDs**: Progress updates for tasks not found in the store are
-silently accepted (200 OK). This is expected for direct-SQS meshages that bypass
+silently accepted (200 OK). This is expected for direct-SQS envelopes that bypass
 gateway task creation. Infrastructure errors (e.g., database failures) still
 return 500.
 

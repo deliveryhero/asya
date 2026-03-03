@@ -1,10 +1,10 @@
 # Actor-to-Actor Protocol
 
-## Meshage Structure
+## Envelope Structure
 
-**Meshage**: Structured JSON object transmitted through message queues (RabbitMQ, SQS), containing routing information and application data.
+**Envelope**: Structured JSON object transmitted through message queues (RabbitMQ, SQS), containing routing information and application data.
 
-**Payload**: Application-specific data within meshage, processed by actors.
+**Payload**: Application-specific data within envelope, processed by actors.
 
 ```json
 {
@@ -36,13 +36,13 @@
 
 **Fields**:
 
-- `id` (required): Unique meshage identifier
-- `parent_id` (optional): Parent meshage ID for fanout children (see Fan-Out section)
+- `id` (required): Unique envelope identifier
+- `parent_id` (optional): Parent envelope ID for fanout children (see Fan-Out section)
 - `route` (required): Actor routing state
-  - `prev`: Actors that have already processed the meshage (read-only, maintained by runtime)
-  - `curr`: The actor currently processing the meshage (read-only, set by runtime)
-  - `next`: Actors yet to process the meshage (modifiable via VFS)
-- `status` (optional): Meshage lifecycle status, stamped by gateway on creation
+  - `prev`: Actors that have already processed the envelope (read-only, maintained by runtime)
+  - `curr`: The actor currently processing the envelope (read-only, set by runtime)
+  - `next`: Actors yet to process the envelope (modifiable via VFS)
+- `status` (optional): Envelope lifecycle status, stamped by gateway on creation
   - `phase`: Current lifecycle phase (`pending`, `processing`, `succeeded`, `failed`)
   - `actor`: Actor that last updated the status
   - `deadline_at`: Absolute deadline in RFC3339 UTC (omitted if no timeout configured)
@@ -65,13 +65,13 @@ Namespace: `example-ecommerce`
 - Clear namespace separation
 - Automated queue management by operator
 
-## Meshage Acknowledgment
+## Envelope Acknowledgment
 
-**Ack**: Meshage processed successfully, remove from queue
+**Ack**: Envelope processed successfully, remove from queue
 - Runtime returns valid response
 - Sidecar routes to next actor or end queue
 
-**Nack**: Meshage processing failed in sidecar, requeue
+**Nack**: Envelope processing failed in sidecar, requeue
 - Sidecar crashes before processing
 - Queue automatically sends to DLQ after max retries
 
@@ -97,7 +97,7 @@ Runtime returns mutated payload:
 {"processed": true, "timestamp": "2025-11-18T12:00:00Z"}
 ```
 
-**Action**: Sidecar creates meshage → Runtime shifts route (prev grows, curr advances) → Routes to next actor
+**Action**: Sidecar creates envelope → Runtime shifts route (prev grows, curr advances) → Routes to next actor
 
 ### Fan-Out (Generator/Yield)
 
@@ -109,15 +109,15 @@ def process(payload):
         yield {"processed": item}
 ```
 
-**Action**: Sidecar reads each yielded frame and routes it as a separate meshage to the next actor.
+**Action**: Sidecar reads each yielded frame and routes it as a separate envelope to the next actor.
 
 **Fanout ID semantics**:
 
-- First yielded meshage retains original ID (for SSE streaming compatibility)
-- Subsequent yielded meshages receive suffixed IDs: `{original_id}-{index}`
-- All fanout children have `parent_id` set to original meshage ID
+- First yielded envelope retains original ID (for SSE streaming compatibility)
+- Subsequent yielded envelopes receive suffixed IDs: `{original_id}-{index}`
+- All fanout children have `parent_id` set to original envelope ID
 
-**Example**: Meshage `abc-123` yields 3 items:
+**Example**: Envelope `abc-123` yields 3 items:
 
 - Index 0: `id="abc-123"`, `parent_id=null` (original ID preserved)
 - Index 1: `id="abc-123-1"`, `parent_id="abc-123"` (fanout child)
@@ -129,7 +129,7 @@ def process(payload):
 
 Runtime returns `None` (`null`):
 
-**Action**: Sidecar routes meshage to `x-sink` (no increment)
+**Action**: Sidecar routes envelope to `x-sink` (no increment)
 
 ### Error Response
 
@@ -203,12 +203,12 @@ Sidecars report progress to gateway at three points per actor:
 
 **1. Received** (`received`):
 
-- Meshage pulled from queue
+- Envelope pulled from queue
 - Before forwarding to runtime
 
 **2. Processing** (`processing`):
 
-- Meshage sent to runtime via Unix socket
+- Envelope sent to runtime via Unix socket
 - Runtime is executing handler
 
 **3. Completed** (`completed`):

@@ -8,8 +8,8 @@ import (
 	"github.com/deliveryhero/asya/asya-gateway/pkg/types"
 )
 
-// ActorMeshageStatus represents the lifecycle status of a message
-type ActorMeshageStatus struct {
+// ActorEnvelopeStatus represents the lifecycle status of a message
+type ActorEnvelopeStatus struct {
 	Phase       string `json:"phase"`
 	Actor       string `json:"actor"`
 	Attempt     int    `json:"attempt"`
@@ -19,24 +19,24 @@ type ActorMeshageStatus struct {
 	DeadlineAt  string `json:"deadline_at,omitempty"`
 }
 
-// ActorMeshage represents the message format sent to actors
-type ActorMeshage struct {
-	ID      string              `json:"id"`
-	Route   types.Route         `json:"route"`
-	Payload any                 `json:"payload"`
-	Status  *ActorMeshageStatus `json:"status,omitempty"`
+// ActorEnvelope represents the message format sent to actors
+type ActorEnvelope struct {
+	ID      string               `json:"id"`
+	Route   types.Route          `json:"route"`
+	Payload any                  `json:"payload"`
+	Status  *ActorEnvelopeStatus `json:"status,omitempty"`
 }
 
-// NewActorMeshage creates an ActorMeshage from a Task with validated route and initial status.
-func NewActorMeshage(task *types.Task) (ActorMeshage, error) {
+// NewActorEnvelope creates an ActorEnvelope from a Task with validated route and initial status.
+func NewActorEnvelope(task *types.Task) (ActorEnvelope, error) {
 	if task.Route.Curr == "" {
-		return ActorMeshage{}, fmt.Errorf("route has no current actor (curr is empty)")
+		return ActorEnvelope{}, fmt.Errorf("route has no current actor (curr is empty)")
 	}
 
 	actorName := task.Route.Curr
 	now := time.Now().UTC().Format(time.RFC3339)
 
-	status := &ActorMeshageStatus{
+	status := &ActorEnvelopeStatus{
 		Phase:       "pending",
 		Actor:       actorName,
 		Attempt:     1,
@@ -49,7 +49,7 @@ func NewActorMeshage(task *types.Task) (ActorMeshage, error) {
 		status.DeadlineAt = task.Deadline.UTC().Format(time.RFC3339)
 	}
 
-	msg := ActorMeshage{
+	msg := ActorEnvelope{
 		ID:      task.ID,
 		Route:   task.Route,
 		Payload: task.Payload,

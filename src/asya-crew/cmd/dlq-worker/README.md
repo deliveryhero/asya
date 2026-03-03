@@ -51,9 +51,9 @@ SQS DLQ Queue
 │  x-dlq Worker (standalone Go)   │
 │                                  │
 │  1. Receive (native SQS SDK)    │
-│  2. Parse meshage body → ID     │
+│  2. Parse envelope body → ID     │
 │  3. POST /mesh/{id}/final ───────┼──→ Gateway (best-effort, 3 retries)
-│  4. Persist meshage ─────────────┼──→ S3/MinIO  OR  stdout
+│  4. Persist envelope ─────────────┼──→ S3/MinIO  OR  stdout
 │  5. ACK (delete from DLQ)       │
 └──────────────────────────────────┘
 ```
@@ -61,8 +61,8 @@ SQS DLQ Queue
 **Processing guarantees:**
 - S3 persistence (or stdout) must succeed before ACK
 - Gateway reporting is best-effort (3 retries with 200ms backoff)
-- Malformed meshages (unparseable JSON, missing `id`) are ACKed to prevent infinite redelivery; full body is logged
-- If S3 fails, the meshage stays in the DLQ for retry on next delivery
+- Malformed envelopes (unparseable JSON, missing `id`) are ACKed to prevent infinite redelivery; full body is logged
+- If S3 fails, the envelope stays in the DLQ for retry on next delivery
 
 ## Configuration
 
@@ -80,9 +80,9 @@ All configuration is via environment variables. No config files.
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `S3_BUCKET` | _(empty = stdout mode)_ | S3 bucket for meshage persistence. When unset, meshages are written to stdout as structured log lines |
+| `S3_BUCKET` | _(empty = stdout mode)_ | S3 bucket for envelope persistence. When unset, envelopes are written to stdout as structured log lines |
 | `S3_ENDPOINT` | _(empty)_ | Custom S3 endpoint for MinIO or LocalStack |
-| `S3_PREFIX` | `dlq/` | Key prefix for stored meshages |
+| `S3_PREFIX` | `dlq/` | Key prefix for stored envelopes |
 | `S3_REGION` | `$AWS_REGION` | S3 region (only required when S3_BUCKET is set) |
 
 ### Optional — Gateway
@@ -103,10 +103,10 @@ All configuration is via environment variables. No config files.
 ### Storage Modes
 
 **stdout mode** (default when `S3_BUCKET` is unset):
-Meshages are written to stdout as structured log lines. Suitable for development, debugging, and environments where log aggregation (Loki, CloudWatch Logs) provides sufficient persistence.
+Envelopes are written to stdout as structured log lines. Suitable for development, debugging, and environments where log aggregation (Loki, CloudWatch Logs) provides sufficient persistence.
 
 **S3 mode** (when `S3_BUCKET` is set):
-Meshages are persisted to S3 under key `{S3_PREFIX}{date}/{meshage_id}.json`. Suitable for production environments requiring durable meshage archival for auditing or replay.
+Envelopes are persisted to S3 under key `{S3_PREFIX}{date}/{envelope_id}.json`. Suitable for production environments requiring durable envelope archival for auditing or replay.
 
 ## Deployment
 

@@ -12,7 +12,7 @@ Persists successful results to S3 and returns metadata for sidecar to report to 
 
 ### Behavior
 
-1. Receives meshages with successful results
+1. Receives envelopes with successful results
 2. Persists results to S3/MinIO (if configured)
 3. Returns result and S3 metadata to sidecar
 4. Sidecar reports final status to gateway
@@ -24,7 +24,7 @@ Persists successful results to S3 and returns metadata for sidecar to report to 
 | `ASYA_HANDLER` | ✅ | Set to `asya_crew.checkpointer.handler` |
 | `ASYA_PERSISTENCE_MOUNT` | ✅ | Directory path for checkpoint persistence |
 
-### Meshage Format
+### Envelope Format
 
 ```json
 {
@@ -39,7 +39,7 @@ Persists errors to S3 and returns error metadata for sidecar to report to gatewa
 
 ### Behavior
 
-1. Receives error meshages
+1. Receives error envelopes
 2. Persists errors to S3/MinIO for debugging (if configured)
 3. Returns error and S3 metadata to sidecar
 4. Sidecar reports final failure status to gateway
@@ -51,7 +51,7 @@ Persists errors to S3 and returns error metadata for sidecar to report to gatewa
 | `ASYA_HANDLER` | - | Set to `asya_crew.checkpointer.handler` |
 | `ASYA_PERSISTENCE_MOUNT` | - | Directory path for checkpoint persistence |
 
-### Meshage Format
+### Envelope Format
 
 ```json
 {

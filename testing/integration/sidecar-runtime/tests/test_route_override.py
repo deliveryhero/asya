@@ -33,7 +33,7 @@ def test_route_override_routes_to_alternate_queue(transport_helper):
     """
     transport_helper.purge_queue("asya-default-x-sink")
 
-    meshage = {
+    envelope = {
         "id": "test-route-override-1",
         "route": {
             "prev": [],
@@ -47,12 +47,12 @@ def test_route_override_routes_to_alternate_queue(transport_helper):
         },
         "payload": {"test": "route_override", "data": "override_target"},
     }
-    logger.info(f"Publishing meshage with route override: {json.dumps(meshage, indent=2)}")
+    logger.info(f"Publishing envelope with route override: {json.dumps(envelope, indent=2)}")
 
-    transport_helper.publish_meshage("asya-default-test-echo", meshage)
-    logger.info("Meshage published, waiting for result in x-sink...")
+    transport_helper.publish_envelope("asya-default-test-echo", envelope)
+    logger.info("Envelope published, waiting for result in x-sink...")
 
-    result = transport_helper.assert_meshage_in_queue("asya-default-x-sink", timeout=30)
+    result = transport_helper.assert_envelope_in_queue("asya-default-x-sink", timeout=30)
     logger.info(f"Result from x-sink: {json.dumps(result, indent=2) if result else 'None'}")
     assert result is not None, "No message in x-sink queue after route override"
 
@@ -79,7 +79,7 @@ def test_no_override_normal_routing(transport_helper):
     """
     transport_helper.purge_queue("asya-default-x-sink")
 
-    meshage = {
+    envelope = {
         "id": "test-no-override-1",
         "route": {
             "prev": [],
@@ -88,12 +88,12 @@ def test_no_override_normal_routing(transport_helper):
         },
         "payload": {"test": "no_override", "data": "normal_routing"},
     }
-    logger.info(f"Publishing meshage without route override: {json.dumps(meshage, indent=2)}")
+    logger.info(f"Publishing envelope without route override: {json.dumps(envelope, indent=2)}")
 
-    transport_helper.publish_meshage("asya-default-test-echo", meshage)
-    logger.info("Meshage published, waiting for result in x-sink...")
+    transport_helper.publish_envelope("asya-default-test-echo", envelope)
+    logger.info("Envelope published, waiting for result in x-sink...")
 
-    result = transport_helper.assert_meshage_in_queue("asya-default-x-sink", timeout=30)
+    result = transport_helper.assert_envelope_in_queue("asya-default-x-sink", timeout=30)
     logger.info(f"Result from x-sink: {json.dumps(result, indent=2) if result else 'None'}")
     assert result is not None, "No message in x-sink queue for normal routing"
 
@@ -127,7 +127,7 @@ def test_route_override_audit_trail(transport_helper):
     """
     transport_helper.purge_queue("asya-default-x-sink")
 
-    meshage = {
+    envelope = {
         "id": "test-route-override-audit-1",
         "route": {
             "prev": [],
@@ -141,12 +141,12 @@ def test_route_override_audit_trail(transport_helper):
         },
         "payload": {"test": "audit_trail"},
     }
-    logger.info(f"Publishing meshage for audit trail test: {json.dumps(meshage, indent=2)}")
+    logger.info(f"Publishing envelope for audit trail test: {json.dumps(envelope, indent=2)}")
 
-    transport_helper.publish_meshage("asya-default-test-echo", meshage)
-    logger.info("Meshage published, waiting for result in x-sink...")
+    transport_helper.publish_envelope("asya-default-test-echo", envelope)
+    logger.info("Envelope published, waiting for result in x-sink...")
 
-    result = transport_helper.assert_meshage_in_queue("asya-default-x-sink", timeout=30)
+    result = transport_helper.assert_envelope_in_queue("asya-default-x-sink", timeout=30)
     logger.info(f"Result from x-sink: {json.dumps(result, indent=2) if result else 'None'}")
     assert result is not None, "No message in x-sink queue for audit trail test"
 

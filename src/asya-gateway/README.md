@@ -39,8 +39,8 @@ go run cmd/gateway/main.go
 | Endpoint | Description |
 |----------|-------------|
 | `POST /tools/call` | REST tool invocation (simple JSON API) |
-| `GET /mesh/{id}` | Meshage status |
-| `GET /mesh/{id}/stream` | SSE meshage updates |
+| `GET /mesh/{id}` | Envelope status |
+| `GET /mesh/{id}/stream` | SSE envelope updates |
 | `POST /mesh/{id}/progress` | Sidecar progress update |
 | `POST /mesh/{id}/final` | End actor final status |
 | `GET /health` | Health check |
