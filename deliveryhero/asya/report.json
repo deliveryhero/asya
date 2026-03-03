@@ -1,7 +1,7 @@
 {
   "repository": "deliveryhero/asya",
   "ref": "refs/heads/main",
-  "commit": "6da68beaa94fa7758d1d4a194ed5508bc4b75691",
+  "commit": "4b7ce38b79a00cf14eed67adae25ee60fe35bc1e",
   "coverage": {
     "type": "merged",
     "format": "Merged",
@@ -1989,7 +1989,7 @@
           {
             "type": "statement",
             "start_line": 162,
-            "start_col": 101,
+            "start_col": 102,
             "end_line": 172,
             "end_col": 16,
             "num_stmt": 3,
@@ -2331,7 +2331,7 @@
           {
             "type": "statement",
             "start_line": 68,
-            "start_col": 63,
+            "start_col": 65,
             "end_line": 72,
             "end_col": 23,
             "num_stmt": 3,
@@ -2403,7 +2403,7 @@
           {
             "type": "statement",
             "start_line": 108,
-            "start_col": 72,
+            "start_col": 74,
             "end_line": 111,
             "end_col": 45,
             "num_stmt": 2,
@@ -2439,7 +2439,7 @@
           {
             "type": "statement",
             "start_line": 126,
-            "start_col": 73,
+            "start_col": 75,
             "end_line": 127,
             "end_col": 24,
             "num_stmt": 1,
@@ -2495,14 +2495,14 @@
             "start_line": 137,
             "start_col": 23,
             "end_line": 139,
-            "end_col": 72,
+            "end_col": 74,
             "num_stmt": 2,
             "count": 0
           },
           {
             "type": "statement",
             "start_line": 139,
-            "start_col": 72,
+            "start_col": 74,
             "end_line": 142,
             "end_col": 4,
             "num_stmt": 2,
@@ -2520,7 +2520,7 @@
           {
             "type": "statement",
             "start_line": 153,
-            "start_col": 127,
+            "start_col": 130,
             "end_line": 166,
             "end_col": 129,
             "num_stmt": 4,
@@ -2709,7 +2709,7 @@
           {
             "type": "statement",
             "start_line": 226,
-            "start_col": 127,
+            "start_col": 129,
             "end_line": 228,
             "end_col": 54,
             "num_stmt": 2,
@@ -2790,7 +2790,7 @@
           {
             "type": "statement",
             "start_line": 261,
-            "start_col": 143,
+            "start_col": 145,
             "end_line": 263,
             "end_col": 75,
             "num_stmt": 1,
@@ -2837,7 +2837,7 @@
             "start_line": 274,
             "start_col": 3,
             "end_line": 274,
-            "end_col": 77,
+            "end_col": 78,
             "num_stmt": 1,
             "count": 1
           },
@@ -2873,7 +2873,7 @@
             "start_line": 288,
             "start_col": 3,
             "end_line": 288,
-            "end_col": 84,
+            "end_col": 85,
             "num_stmt": 1,
             "count": 1
           },
@@ -2909,7 +2909,7 @@
             "start_line": 302,
             "start_col": 3,
             "end_line": 302,
-            "end_col": 84,
+            "end_col": 85,
             "num_stmt": 1,
             "count": 1
           },
@@ -2945,7 +2945,7 @@
             "start_line": 322,
             "start_col": 3,
             "end_line": 322,
-            "end_col": 77,
+            "end_col": 78,
             "num_stmt": 1,
             "count": 1
           },
@@ -3132,7 +3132,7 @@
           {
             "type": "statement",
             "start_line": 386,
-            "start_col": 132,
+            "start_col": 134,
             "end_line": 400,
             "end_col": 16,
             "num_stmt": 7,
@@ -3177,7 +3177,7 @@
           {
             "type": "statement",
             "start_line": 414,
-            "start_col": 134,
+            "start_col": 136,
             "end_line": 421,
             "end_col": 67,
             "num_stmt": 3,
@@ -3384,7 +3384,7 @@
           {
             "type": "statement",
             "start_line": 502,
-            "start_col": 163,
+            "start_col": 165,
             "end_line": 514,
             "end_col": 53,
             "num_stmt": 6,
@@ -3492,7 +3492,7 @@
           {
             "type": "statement",
             "start_line": 564,
-            "start_col": 166,
+            "start_col": 168,
             "end_line": 570,
             "end_col": 45,
             "num_stmt": 2,
@@ -4230,7 +4230,7 @@
           {
             "type": "statement",
             "start_line": 866,
-            "start_col": 144,
+            "start_col": 146,
             "end_line": 872,
             "end_col": 33,
             "num_stmt": 2,
@@ -4329,7 +4329,7 @@
           {
             "type": "statement",
             "start_line": 912,
-            "start_col": 194,
+            "start_col": 196,
             "end_line": 919,
             "end_col": 23,
             "num_stmt": 4,
@@ -4590,7 +4590,7 @@
           {
             "type": "statement",
             "start_line": 1045,
-            "start_col": 104,
+            "start_col": 106,
             "end_line": 1046,
             "end_col": 22,
             "num_stmt": 1,
@@ -4635,16 +4635,16 @@
           {
             "type": "statement",
             "start_line": 1064,
-            "start_col": 87,
+            "start_col": 89,
             "end_line": 1065,
-            "end_col": 128,
+            "end_col": 130,
             "num_stmt": 1,
             "count": 1
           },
           {
             "type": "statement",
             "start_line": 1065,
-            "start_col": 128,
+            "start_col": 130,
             "end_line": 1068,
             "end_col": 28,
             "num_stmt": 3,
@@ -4932,7 +4932,7 @@
           {
             "type": "statement",
             "start_line": 1209,
-            "start_col": 152,
+            "start_col": 154,
             "end_line": 1210,
             "end_col": 31,
             "num_stmt": 1,
@@ -5841,7 +5841,7 @@
           {
             "type": "statement",
             "start_line": 1522,
-            "start_col": 108,
+            "start_col": 109,
             "end_line": 1524,
             "end_col": 2,
             "num_stmt": 1,
@@ -8353,8 +8353,8 @@
       },
       {
         "type": "statement",
-        "file": "github.com/deliveryhero/asya/asya-sidecar/pkg/messages/message.go",
-        "normalized_path": "src/asya-sidecar/pkg/messages/message.go",
+        "file": "github.com/deliveryhero/asya/asya-sidecar/pkg/envelopes/envelope.go",
+        "normalized_path": "src/asya-sidecar/pkg/envelopes/envelope.go",
         "total": 43,
         "covered": 43,
         "blocks": [
@@ -8442,7 +8442,7 @@
           {
             "type": "statement",
             "start_line": 134,
-            "start_col": 53,
+            "start_col": 54,
             "end_line": 135,
             "end_col": 50,
             "num_stmt": 1,
@@ -9002,14 +9002,14 @@
             "start_line": 117,
             "start_col": 2,
             "end_line": 136,
-            "end_col": 73,
+            "end_col": 72,
             "num_stmt": 8,
             "count": 0
           },
           {
             "type": "statement",
             "start_line": 136,
-            "start_col": 73,
+            "start_col": 72,
             "end_line": 137,
             "end_col": 47,
             "num_stmt": 1,
@@ -15894,7 +15894,7 @@
           {
             "type": "statement",
             "start_line": 31,
-            "start_col": 62,
+            "start_col": 64,
             "end_line": 32,
             "end_col": 27,
             "num_stmt": 1,
@@ -15939,7 +15939,7 @@
           {
             "type": "statement",
             "start_line": 31,
-            "start_col": 62,
+            "start_col": 64,
             "end_line": 32,
             "end_col": 27,
             "num_stmt": 1,
@@ -21260,7 +21260,7 @@
     ]
   },
   "code_to_test_ratio": {
-    "code": 30141,
+    "code": 30232,
     "test": 21653,
     "code_files": [
       {
@@ -22765,7 +22765,7 @@
         "code": 99,
         "comment": 31,
         "blank": 13,
-        "path": "src/asya-sidecar/pkg/messages/message.go",
+        "path": "src/asya-sidecar/pkg/envelopes/envelope.go",
         "language": "Go"
       },
       {
@@ -22981,6 +22981,13 @@
       {
         "code": 86,
         "comment": 13,
+        "blank": 22,
+        "path": "src/asya-testing/asya_testing/clients/pubsub.py",
+        "language": "Python"
+      },
+      {
+        "code": 86,
+        "comment": 13,
         "blank": 21,
         "path": "src/asya-testing/asya_testing/clients/rabbitmq.py",
         "language": "Python"
@@ -23049,7 +23056,7 @@
         "language": "Python"
       },
       {
-        "code": 60,
+        "code": 65,
         "comment": 43,
         "blank": 25,
         "path": "src/asya-testing/asya_testing/fixtures/transport.py",
@@ -23544,7 +23551,7 @@
         "code": 659,
         "comment": 23,
         "blank": 85,
-        "path": "src/asya-sidecar/pkg/messages/message_test.go",
+        "path": "src/asya-sidecar/pkg/envelopes/envelope_test.go",
         "language": "Go"
       },
       {
@@ -23647,6 +23654,6 @@
       }
     ]
   },
-  "test_execution_time": 312000000000,
-  "timestamp": "2026-03-03T16:18:12.122583963Z"
+  "test_execution_time": 263000000000,
+  "timestamp": "2026-03-03T19:01:20.107104881Z"
 }
