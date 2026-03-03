@@ -1200,7 +1200,9 @@ class _InvokeHandler(http.server.BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Content-Type", "text/event-stream")
         self.send_header("Cache-Control", "no-cache")
+        self.send_header("Connection", "close")
         self.end_headers()
+        self.close_connection = True  # single-threaded server must not keep-alive SSE connections
 
         ctx = _AbiContext(envelope)
 
