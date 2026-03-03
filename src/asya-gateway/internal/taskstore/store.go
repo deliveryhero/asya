@@ -116,6 +116,10 @@ func (s *Store) Update(update types.TaskUpdate) error {
 		task.ProgressPercent = *update.ProgressPercent
 	}
 
+	if update.Message != "" {
+		task.Message = update.Message
+	}
+
 	// Update route if any route fields are provided
 	if update.Curr != "" || len(update.Prev) > 0 || len(update.Next) > 0 {
 		task.Route.Prev = update.Prev
