@@ -117,6 +117,9 @@ gcpProviderConfig:
     namespace: crossplane-system
     name: gcp-creds
     key: credentials.json
+  # Pub/Sub emulator host (for testing with local emulator)
+  # Set to "pubsub-emulator.asya-system.svc.cluster.local:8085" for emulator
+  emulatorHost: ""
 
 # Pub/Sub KEDA authentication configuration
 pubsub:
