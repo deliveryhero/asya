@@ -1,0 +1,23 @@
+{{- if .Values.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: pubsub-emulator
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: pubsub-emulator
+    app.kubernetes.io/name: pubsub-emulator
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  type: {{ .Values.service.type | default "ClusterIP" }}
+  ports:
+  - port: 8085
+    targetPort: 8085
+    protocol: TCP
+    name: pubsub
+    {{- if and .Values.service.nodePort (eq (.Values.service.type | default "ClusterIP") "NodePort") }}
+    nodePort: {{ .Values.service.nodePort }}
+    {{- end }}
+  selector:
+    app: pubsub-emulator
+{{- end }}

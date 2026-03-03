@@ -1,0 +1,6 @@
+apiVersion: v2
+name: gcs
+description: Fake GCS server for Google Cloud Storage emulation in E2E testing
+type: application
+version: 1.0.0
+appVersion: "latest"
