@@ -247,13 +247,15 @@ func (h *Handler) HandleMeshStream(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	sse := newSSEWriter(w, flusher)
+
 	// Send historical updates first (to avoid missing early progress updates)
 	historicalUpdates, err := h.taskStore.GetUpdates(taskID, nil)
 	if err != nil {
 		slog.Warn("Failed to get historical updates", "error", err, "task_id", taskID)
 	} else {
 		for _, update := range historicalUpdates {
-			writeSSEEvent(w, flusher, update)
+			sse.writeEvent(update)
 		}
 	}
 
@@ -271,10 +273,9 @@ func (h *Handler) HandleMeshStream(w http.ResponseWriter, r *http.Request) {
 		case <-r.Context().Done():
 			return
 		case <-keepaliveTicker.C:
-			_, _ = io.WriteString(w, ": keepalive\n\n")
-			flusher.Flush()
+			sse.writeKeepalive()
 		case update := <-updateChan:
-			writeSSEEvent(w, flusher, update)
+			sse.writeEvent(update)
 
 			if isFinalStatus(update.Status) {
 				flusher.Flush()
@@ -284,32 +285,40 @@ func (h *Handler) HandleMeshStream(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// writeSSEEvent writes a TaskUpdate as an SSE event to the client.
-// FLY events (PartialPayload set) are sent with A2A-detected event type.
-// All other updates (progress, status changes) are sent as "event: update".
-//
-// Security: SSE streams use Content-Type text/event-stream, not text/html.
-// eventType is a hardcoded constant from DetectFLYEventType; data is JSON.
-// HTML escaping would corrupt the SSE protocol framing.
-func writeSSEEvent(w http.ResponseWriter, flusher http.Flusher, update types.TaskUpdate) {
+// sseWriter wraps an io.Writer for SSE event formatting.
+// Typed as io.Writer (not http.ResponseWriter) because SSE streams use
+// Content-Type text/event-stream — HTML escaping would corrupt the protocol.
+type sseWriter struct {
+	w       io.Writer
+	flusher http.Flusher
+}
+
+func newSSEWriter(w io.Writer, flusher http.Flusher) *sseWriter {
+	return &sseWriter{w: w, flusher: flusher}
+}
+
+func (s *sseWriter) writeKeepalive() {
+	_, _ = io.WriteString(s.w, ": keepalive\n\n")
+	s.flusher.Flush()
+}
+
+func (s *sseWriter) writeEvent(update types.TaskUpdate) {
 	if update.PartialPayload != nil {
 		var payload map[string]any
 		eventType := "partial"
 		if json.Unmarshal(update.PartialPayload, &payload) == nil {
 			eventType = a2a.DetectFLYEventType(payload)
 		}
-		// nosemgrep: go.lang.security.audit.xss.no-direct-write-to-responsewriter
-		_, _ = io.WriteString(w, "event: "+eventType+"\ndata: "+string(update.PartialPayload)+"\n\n")
+		_, _ = io.WriteString(s.w, "event: "+eventType+"\ndata: "+string(update.PartialPayload)+"\n\n")
 	} else {
 		data, err := json.Marshal(update)
 		if err != nil {
 			slog.Error("Failed to marshal SSE update", "error", err)
 			return
 		}
-		// nosemgrep: go.lang.security.audit.xss.no-direct-write-to-responsewriter
-		_, _ = io.WriteString(w, "event: update\ndata: "+string(data)+"\n\n")
+		_, _ = io.WriteString(s.w, "event: update\ndata: "+string(data)+"\n\n")
 	}
-	flusher.Flush()
+	s.flusher.Flush()
 }
 
 // isFinalStatus checks if a status is final (Succeeded, Failed, or Canceled)
