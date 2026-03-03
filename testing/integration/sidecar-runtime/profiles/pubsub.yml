@@ -30,7 +30,7 @@ services:
       retries: 15
       start_period: 10s
 
-  topic-setup:
+  queue-setup:
     image: curlimages/curl:latest
     logging: *default-logging
     depends_on:
@@ -73,7 +73,7 @@ services:
     environment:
       ASYA_TRANSPORT: pubsub
     depends_on:
-      topic-setup:
+      queue-setup:
         condition: service_completed_successfully
       storage-setup:
         condition: service_completed_successfully
