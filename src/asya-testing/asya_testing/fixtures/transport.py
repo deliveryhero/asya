@@ -6,6 +6,7 @@ from dataclasses import dataclass
 import pytest
 
 from asya_testing.clients.base import ActorTransportClient, TransportClient
+from asya_testing.clients.pubsub import PubSubClient
 from asya_testing.clients.rabbitmq import RabbitMQClient
 from asya_testing.clients.sqs import SQSClient
 from asya_testing.config import require_env
@@ -85,6 +86,10 @@ def transport_client():
             access_key=require_env("AWS_ACCESS_KEY_ID"),
             secret_key=require_env("AWS_SECRET_ACCESS_KEY"),
         )
+    elif transport_type == "pubsub":
+        base_client = PubSubClient(
+            project_id=require_env("PUBSUB_PROJECT_ID"),
+        )
     else:
         raise ValueError(f"Unsupported transport: {transport_type}")
 
@@ -112,7 +117,7 @@ def transport_timeouts() -> TransportTimeouts:
     """
     transport = os.getenv("ASYA_TRANSPORT", "rabbitmq").lower()
 
-    if transport == "sqs":
+    if transport in ("sqs", "pubsub"):
         return TransportTimeouts(
             crash_detection=30,
             task_completion_short=30,
