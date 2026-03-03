@@ -12,13 +12,14 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/a2aproject/a2a-go/a2asrv"
 	mcpserver "github.com/mark3labs/mcp-go/server"
 
 	"github.com/deliveryhero/asya/asya-gateway/internal/a2a"
-	"github.com/deliveryhero/asya/asya-gateway/internal/config"
 	"github.com/deliveryhero/asya/asya-gateway/internal/mcp"
 	"github.com/deliveryhero/asya/asya-gateway/internal/queue"
 	"github.com/deliveryhero/asya/asya-gateway/internal/taskstore"
+	"github.com/deliveryhero/asya/asya-gateway/internal/toolstore"
 )
 
 func main() {
@@ -46,7 +47,6 @@ func main() {
 	// Load configuration from environment
 	port := getEnv("ASYA_GATEWAY_PORT", "8080")
 	dbURL := getEnv("ASYA_DATABASE_URL", "")
-	configPath := getEnv("ASYA_CONFIG_PATH", "")
 
 	slog.Info("Starting Asya Gateway", "port", port, "logLevel", logLevel)
 
@@ -82,39 +82,12 @@ func main() {
 	slog.Info("Gateway uses standalone end actors for final status reporting",
 		"info", "Deploy x-sink and x-sump actors to handle end queues")
 
-	// Load tool configuration if provided
-	var toolConfig *config.Config
-	if configPath != "" {
-		slog.Info("Loading tool configuration", "path", configPath)
-		cfg, err := config.LoadConfig(configPath)
-		if err != nil {
-			slog.Error("Failed to load config", "error", err)
-			os.Exit(1)
-		}
-		toolConfig = cfg
-		slog.Info("Loaded tools from configuration", "count", len(cfg.Tools))
-	} else {
-		slog.Info("No ASYA_CONFIG_PATH provided, using default tools")
-	}
+	// Initialize tool registry
+	registry := toolstore.NewInMemoryRegistry()
+	// TODO: When DB is available, use toolstore.NewRegistry(ctx, pool)
 
-	// Apply default timeout from environment if set and no default exists
-	defaultTimeoutStr := getEnv("ASYA_GATEWAY_DEFAULT_TIMEOUT", "")
-	if defaultTimeoutStr != "" && toolConfig != nil {
-		if defaultTimeout, err := strconv.Atoi(defaultTimeoutStr); err == nil {
-			if toolConfig.Defaults == nil {
-				toolConfig.Defaults = &config.ToolDefaults{}
-			}
-			if toolConfig.Defaults.Timeout == nil {
-				toolConfig.Defaults.Timeout = &defaultTimeout
-				slog.Info("Applied default timeout from environment", "timeout_seconds", defaultTimeout)
-			}
-		} else {
-			slog.Warn("Invalid ASYA_GATEWAY_DEFAULT_TIMEOUT value", "value", defaultTimeoutStr)
-		}
-	}
-
-	// Create MCP server with mark3labs/mcp-go (minimal boilerplate!)
-	mcpServer := mcp.NewServer(taskStore, queueClient, toolConfig)
+	// Create MCP server
+	mcpServer := mcp.NewServer(taskStore, queueClient)
 
 	// Create task handler for custom endpoints
 	taskHandler := mcp.NewHandler(taskStore)
@@ -131,6 +104,10 @@ func main() {
 
 	// REST endpoint for tool calls (simpler alternative to SSE-based MCP)
 	mux.HandleFunc("/tools/call", taskHandler.HandleToolCall)
+
+	// Tool registration endpoint
+	exposeHandler := toolstore.NewHandler(registry)
+	mux.HandleFunc("/mesh/expose", exposeHandler.HandleExpose)
 
 	// Mesh status endpoints (custom functionality)
 	mux.HandleFunc("/mesh/", func(w http.ResponseWriter, r *http.Request) {
@@ -158,45 +135,22 @@ func main() {
 		_, _ = fmt.Fprintln(w, "OK")
 	})
 
-	// A2A protocol endpoints
-	a2aHandler := a2a.NewHandler(taskStore, queueClient, toolConfig)
-	a2aTaskStatusHandler := a2a.NewTaskStatusHandler(taskStore)
-	a2aSubscribeHandler := a2a.NewSubscribeHandler(taskStore)
+	// A2A setup using a2a-go library
+	namespace := getEnv("ASYA_NAMESPACE", "default")
+	executor := a2a.NewExecutor(queueClient, taskStore, registry, namespace)
+	storeAdapter := a2a.NewStoreAdapter(taskStore)
+	cardProducer := a2a.NewCardProducer(registry)
 
-	// Agent Card discovery
-	if toolConfig != nil {
-		agentCardHandler := a2a.NewAgentCardHandler(toolConfig)
-		mux.Handle("/.well-known/a2a/agent-card", agentCardHandler)
-	}
+	a2aHandler := a2asrv.NewHandler(executor,
+		a2asrv.WithTaskStore(storeAdapter),
+	)
+	a2aHTTPHandler := a2asrv.NewJSONRPCHandler(a2aHandler,
+		a2asrv.WithKeepAlive(15*time.Second),
+	)
 
-	// A2A JSON-RPC endpoint (message/send, message/stream, tasks/get)
-	mux.Handle("/a2a/", a2aHandler)
-
-	// A2A lifecycle endpoints (pause, cancel, list)
-	a2aLifecycleHandler := a2a.NewLifecycleHandler(taskStore)
-
-	// A2A task list endpoint
-	mux.HandleFunc("GET /a2a/tasks", a2aLifecycleHandler.HandleList)
-
-	// A2A REST endpoints for task status, subscribe, pause, and cancel
-	mux.HandleFunc("GET /a2a/tasks/{id}", func(w http.ResponseWriter, r *http.Request) {
-		if strings.HasSuffix(r.PathValue("id"), ":subscribe") {
-			a2aSubscribeHandler.ServeHTTP(w, r)
-		} else {
-			a2aTaskStatusHandler.ServeHTTP(w, r)
-		}
-	})
-
-	mux.HandleFunc("POST /a2a/tasks/{id}", func(w http.ResponseWriter, r *http.Request) {
-		id := r.PathValue("id")
-		if strings.HasSuffix(id, ":pause") {
-			a2aLifecycleHandler.HandlePause(w, r)
-		} else if strings.HasSuffix(id, ":cancel") {
-			a2aLifecycleHandler.HandleCancel(w, r)
-		} else {
-			http.Error(w, "Unknown action", http.StatusBadRequest)
-		}
-	})
+	// Mount A2A endpoints
+	mux.Handle("/a2a/", a2aHTTPHandler)
+	mux.Handle("/.well-known/agent.json", a2asrv.NewAgentCardHandler(cardProducer))
 
 	// Setup graceful shutdown
 	sigChan := make(chan os.Signal, 1)
@@ -218,13 +172,9 @@ func main() {
 		slog.Info("Mesh active check: GET /mesh/{id}/active (for actors)")
 		slog.Info("Mesh progress: POST /mesh/{id}/progress (from sidecar)")
 		slog.Info("Mesh final status: POST /mesh/{id}/final (for end actors)")
-		slog.Info("A2A endpoint: POST /a2a/ (JSON-RPC: message/send, message/stream, tasks/get)")
-		slog.Info("A2A Agent Card: GET /.well-known/a2a/agent-card")
-		slog.Info("A2A task status: GET /a2a/tasks/{id}")
-		slog.Info("A2A subscribe: GET /a2a/tasks/{id}:subscribe (SSE)")
-		slog.Info("A2A pause: POST /a2a/tasks/{id}:pause")
-		slog.Info("A2A cancel: POST /a2a/tasks/{id}:cancel")
-		slog.Info("A2A list: GET /a2a/tasks")
+		slog.Info("A2A endpoint (JSON-RPC): POST /a2a/ (via a2a-go)")
+		slog.Info("A2A Agent Card: GET /.well-known/agent.json")
+		slog.Info("Tool registration: POST/GET /mesh/expose")
 
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			slog.Error("Server failed", "error", err)
