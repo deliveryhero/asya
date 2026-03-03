@@ -893,55 +893,18 @@ spec:
         )
         logger.info("[+] ConfigMap labels verified (no actor-specific labels)")
 
-        logger.info("Testing reserved label prefix rejection...")
-        invalid_actor_manifest = f"""
-apiVersion: asya.sh/v1alpha1
-kind: AsyncActor
-metadata:
-  name: test-invalid-labels
-  namespace: {e2e_helper.namespace}
-  labels:
-    app.kubernetes.io/custom: forbidden
-spec:
-  actor: test-invalid-labels
-  transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: ghcr.io/deliveryhero/asya-testing:latest
-          imagePullPolicy: IfNotPresent
-          env:
-          - name: ASYA_HANDLER
-            value: asya_testing.handlers.payload.echo_handler
-"""
-
-        kubectl_apply(invalid_actor_manifest, namespace=e2e_helper.namespace)
-
-        time.sleep(10)  # Wait for Crossplane to reconcile and surface the Fatal result
-
-        # Fatal results surface on the XR (composite), not the claim.
-        # Get the XR name from the claim's resourceRef.
-        claim = kubectl_get("asyncactor", "test-invalid-labels", namespace=e2e_helper.namespace)
-        xr_name = claim.get("spec", {}).get("resourceRef", {}).get("name")
-        assert xr_name, f"Claim should reference a composite resource, got spec: {claim.get('spec', {})}"
-
-        xr = kubectl_get("xasyncactor", xr_name, namespace=e2e_helper.namespace)
-        xr_conditions = xr.get("status", {}).get("conditions", [])
-
-        error_condition = next(
-            (
-                c
-                for c in xr_conditions
-                if c.get("status") == "False" and "reserved prefix" in c.get("message", "").lower()
-            ),
-            None,
-        )
-        assert error_condition is not None, (
-            f"XR should have a False condition mentioning reserved prefix, got conditions: {xr_conditions}"
-        )
+        logger.info("Verifying app.kubernetes.io/ labels from claims are filtered out...")
+        # Operator labels (app.kubernetes.io/*) are managed by the composition.
+        # User labels with this prefix are silently filtered to prevent conflicts.
+        for label_key in deployment_labels:
+            if label_key.startswith("app.kubernetes.io/"):
+                assert label_key in (
+                    "app.kubernetes.io/name",
+                    "app.kubernetes.io/component",
+                    "app.kubernetes.io/part-of",
+                    "app.kubernetes.io/managed-by",
+                ), f"Unexpected app.kubernetes.io/ label '{label_key}' on Deployment (should be operator-managed only)"
+        logger.info("[+] No unexpected app.kubernetes.io/ labels on Deployment")
 
         logger.info("[+] Label propagation verified successfully")
 
@@ -950,7 +913,6 @@ spec:
         raise
     finally:
         kubectl_delete("asyncactor", "test-labels", namespace=e2e_helper.namespace, ignore_not_found=True)
-        kubectl_delete("asyncactor", "test-invalid-labels", namespace=e2e_helper.namespace, ignore_not_found=True)
         wait_for_deletion("deployment", "test-labels", namespace=e2e_helper.namespace, timeout=60)
         wait_for_deletion("scaledobject", "test-labels", namespace=e2e_helper.namespace, timeout=60)
 

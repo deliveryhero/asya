@@ -12,8 +12,8 @@ spec:
     kind: XAsyncActor
   mode: Pipeline
   pipeline:
-    # Extract user labels into context and reject reserved prefixes (app.kubernetes.io/)
-    - step: validate-labels
+    # Extract user labels into pipeline context, filtering system prefixes
+    - step: extract-user-labels
       functionRef:
         name: function-go-templating
       input:
@@ -25,7 +25,7 @@ spec:
             {{`{{- $xr := .observed.composite.resource -}}`}}
             {{`{{- $userLabels := dict -}}`}}
             {{`{{- range $k, $v := $xr.metadata.labels -}}`}}
-              {{`{{- if not (hasPrefix "crossplane.io/" $k) -}}`}}
+              {{`{{- if not (or (hasPrefix "crossplane.io/" $k) (hasPrefix "app.kubernetes.io/" $k)) -}}`}}
                 {{`{{- $_ := set $userLabels $k $v -}}`}}
               {{`{{- end -}}`}}
             {{`{{- end -}}`}}
@@ -34,19 +34,6 @@ spec:
             data:
               "asya/user-labels":
                 {{`{{- $userLabels | toYaml | nindent 4 }}`}}
-            {{`{{- $reserved := list -}}`}}
-            {{`{{- range $k, $v := $xr.metadata.labels -}}`}}
-              {{`{{- if hasPrefix "app.kubernetes.io/" $k -}}`}}
-                {{`{{- $reserved = append $reserved $k -}}`}}
-              {{`{{- end -}}`}}
-            {{`{{- end -}}`}}
-            {{`{{- if gt (len $reserved) 0 }}`}}
-            ---
-            apiVersion: meta.gotemplating.fn.crossplane.io/v1alpha1
-            kind: Result
-            severity: Fatal
-            message: "Labels with reserved prefix 'app.kubernetes.io/' are not allowed: {{`{{ join ", " $reserved }}`}}"
-            {{`{{- end -}}`}}
 
     {{- if .Values.functions.overlaysEnabled }}
     # Resolve actor overlays -- merges EnvironmentConfig overlay data into a resolved spec
