@@ -12,7 +12,7 @@ spec:
     kind: XAsyncActor
   mode: Pipeline
   pipeline:
-    # Reject claims with reserved label prefixes (app.kubernetes.io/)
+    # Extract user labels into context and reject reserved prefixes (app.kubernetes.io/)
     - step: validate-labels
       functionRef:
         name: function-go-templating
@@ -23,13 +23,23 @@ spec:
         inline:
           template: |
             {{`{{- $xr := .observed.composite.resource -}}`}}
+            {{`{{- $userLabels := dict -}}`}}
+            {{`{{- if and .context (index .context "asya.sh/user-labels") -}}`}}
+              {{`{{- $userLabels = index .context "asya.sh/user-labels" -}}`}}
+            {{`{{- end -}}`}}
+            apiVersion: meta.gotemplating.fn.crossplane.io/v1alpha1
+            kind: Context
+            data:
+              "asya.sh/user-labels":
+                {{`{{- $userLabels | toYaml | nindent 4 }}`}}
             {{`{{- $reserved := list -}}`}}
             {{`{{- range $k, $v := $xr.metadata.labels -}}`}}
               {{`{{- if hasPrefix "app.kubernetes.io/" $k -}}`}}
                 {{`{{- $reserved = append $reserved $k -}}`}}
               {{`{{- end -}}`}}
             {{`{{- end -}}`}}
-            {{`{{- if gt (len $reserved) 0 -}}`}}
+            {{`{{- if gt (len $reserved) 0 }}`}}
+            ---
             apiVersion: meta.gotemplating.fn.crossplane.io/v1alpha1
             kind: Result
             severity: Fatal
@@ -60,10 +70,8 @@ spec:
             {{`{{- $claimName := index $xr.metadata.labels "crossplane.io/claim-name" -}}`}}
             {{`{{- $actorName := (index $xr.metadata.labels "asya.sh/actor") | default $claimName -}}`}}
             {{`{{- $userLabels := dict -}}`}}
-            {{`{{- range $k, $v := $xr.metadata.labels -}}`}}
-              {{`{{- if not (hasPrefix "crossplane.io/" $k) -}}`}}
-                {{`{{- $_ := set $userLabels $k $v -}}`}}
-              {{`{{- end -}}`}}
+            {{`{{- if and .context (index .context "asya.sh/user-labels") -}}`}}
+              {{`{{- $userLabels = index .context "asya.sh/user-labels" -}}`}}
             {{`{{- end -}}`}}
             {{`{{- $scalingEnabled := true -}}`}}
             {{`{{- if hasKey $xr.spec "scaling" -}}`}}
@@ -118,10 +126,8 @@ spec:
             {{`{{- $claimName := index $xr.metadata.labels "crossplane.io/claim-name" -}}`}}
             {{`{{- $actorName := (index $xr.metadata.labels "asya.sh/actor") | default $claimName -}}`}}
             {{`{{- $userLabels := dict -}}`}}
-            {{`{{- range $k, $v := $xr.metadata.labels -}}`}}
-              {{`{{- if not (hasPrefix "crossplane.io/" $k) -}}`}}
-                {{`{{- $_ := set $userLabels $k $v -}}`}}
-              {{`{{- end -}}`}}
+            {{`{{- if and .context (index .context "asya.sh/user-labels") -}}`}}
+              {{`{{- $userLabels = index .context "asya.sh/user-labels" -}}`}}
             {{`{{- end -}}`}}
             {{`{{- $resolvedSpec := dict -}}`}}
             {{`{{- if and .context (index .context "asya.sh/resolved-spec") -}}`}}
@@ -233,10 +239,8 @@ spec:
             {{`{{- $claimName := index $xr.metadata.labels "crossplane.io/claim-name" -}}`}}
             {{`{{- $actorName := (index $xr.metadata.labels "asya.sh/actor") | default $claimName -}}`}}
             {{`{{- $userLabels := dict -}}`}}
-            {{`{{- range $k, $v := $xr.metadata.labels -}}`}}
-              {{`{{- if not (hasPrefix "crossplane.io/" $k) -}}`}}
-                {{`{{- $_ := set $userLabels $k $v -}}`}}
-              {{`{{- end -}}`}}
+            {{`{{- if and .context (index .context "asya.sh/user-labels") -}}`}}
+              {{`{{- $userLabels = index .context "asya.sh/user-labels" -}}`}}
             {{`{{- end -}}`}}
             {{`{{- $resolvedSpec := dict -}}`}}
             {{`{{- if and .context (index .context "asya.sh/resolved-spec") -}}`}}
