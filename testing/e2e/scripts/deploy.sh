@@ -118,20 +118,19 @@ time {
   docker build -t "function-asya-overlays:latest" "$ROOT_DIR/src/function-asya-overlays/" > /dev/null 2>&1 &
   FUNCTION_BUILD_PID=$!
 
-  # Build state proxy connector image (used by fan-in aggregator for S3-backed state)
-  echo "[.] Building asya-state-proxy-s3-buffered-lww image..."
-  docker build -t "${IMAGE_PREFIX}asya-state-proxy-s3-buffered-lww:v1.0.0" \
-    -f "$ROOT_DIR/src/asya-state-proxy/Dockerfile.s3-buffered-lww" \
-    "$ROOT_DIR/src/asya-state-proxy/" > /dev/null 2>&1 &
-  STATE_PROXY_S3_BUILD_PID=$!
-
-  # Build state-proxy GCS connector image for pubsub-gcs profile
-  if [[ "$PROFILE" == "pubsub-gcs" ]]; then
+  # Build state-proxy connector image for the active profile
+  if [[ "$PROFILE" == "sqs-s3" ]]; then
+    echo "[.] Building state-proxy S3 connector image..."
+    docker build -t "${IMAGE_PREFIX}asya-state-proxy-s3-buffered-lww:latest" \
+      -f "$ROOT_DIR/src/asya-state-proxy/Dockerfile.s3-buffered-lww" \
+      "$ROOT_DIR/src/asya-state-proxy/" > /dev/null 2>&1 &
+    STATE_PROXY_BUILD_PID=$!
+  elif [[ "$PROFILE" == "pubsub-gcs" ]]; then
     echo "[.] Building state-proxy GCS connector image..."
     docker build -t "${IMAGE_PREFIX}asya-state-proxy-gcs-buffered-lww:latest" \
       -f "$ROOT_DIR/src/asya-state-proxy/Dockerfile.gcs-buffered-lww" \
       "$ROOT_DIR/src/asya-state-proxy/" > /dev/null 2>&1 &
-    STATE_PROXY_GCS_BUILD_PID=$!
+    STATE_PROXY_BUILD_PID=$!
   fi
 
   # Wait for image builds
@@ -153,18 +152,12 @@ time {
   fi
   echo "[+] function-asya-overlays image built"
 
-  if ! wait "$STATE_PROXY_S3_BUILD_PID"; then
-    echo "[-] asya-state-proxy-s3-buffered-lww build failed"
-    exit 1
-  fi
-  echo "[+] asya-state-proxy-s3-buffered-lww image built"
-
-  if [[ -n "${STATE_PROXY_GCS_BUILD_PID:-}" ]]; then
-    if ! wait "$STATE_PROXY_GCS_BUILD_PID"; then
-      echo "[-] State-proxy GCS image build failed"
+  if [[ -n "${STATE_PROXY_BUILD_PID:-}" ]]; then
+    if ! wait "$STATE_PROXY_BUILD_PID"; then
+      echo "[-] State-proxy connector image build failed"
       exit 1
     fi
-    echo "[+] State-proxy GCS image built"
+    echo "[+] State-proxy connector image built"
   fi
 
   # Wait for cluster creation
@@ -232,10 +225,11 @@ time {
     "asya-crew:latest"
     "asya-testing:latest"
     "asya-injector:latest"
-    "asya-state-proxy-s3-buffered-lww:v1.0.0"
   )
 
-  if [[ "$PROFILE" == "pubsub-gcs" ]]; then
+  if [[ "$PROFILE" == "sqs-s3" ]]; then
+    IMAGES_TO_LOAD+=("asya-state-proxy-s3-buffered-lww:latest")
+  elif [[ "$PROFILE" == "pubsub-gcs" ]]; then
     IMAGES_TO_LOAD+=("asya-state-proxy-gcs-buffered-lww:latest")
   fi
 

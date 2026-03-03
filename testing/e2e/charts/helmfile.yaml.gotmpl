@@ -298,11 +298,17 @@ releases:
           imagePullPolicy: Never
         crewImage: ghcr.io/deliveryhero/asya-crew:latest
         stateProxy:
-          connector:
-            image: ghcr.io/deliveryhero/asya-state-proxy-s3-buffered-lww:v1.0.0
+          backend: {{ .Values.actors.storage.type | default "s3" }}
           config:
             bucket: {{ .Values.actors.storage.bucket | default "asya-results" }}
+            {{- if eq (.Values.actors.storage.type | default "s3") "s3" }}
             endpoint: {{ .Values.actors.storage.endpoint | default "" }}
             region: {{ .Values.actors.storage.region | default "us-east-1" }}
+            accessKey: {{ .Values.actors.storage.accessKey | default "" }}
+            secretKey: {{ .Values.actors.storage.secretKey | default "" }}
+            {{- else if eq .Values.actors.storage.type "gcs" }}
+            project: {{ .Values.actors.storage.project | default "" }}
+            emulatorHost: {{ .Values.actors.storage.emulatorHost | default "" }}
+            {{- end }}
     labels:
       layer: app

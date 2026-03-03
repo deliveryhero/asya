@@ -1,17 +1,22 @@
 ---
 # Fan-in aggregator for the research_flow E2E test.
 #
-# Runs the asya_crew S3 split-key aggregator, which:
+# Runs the asya_crew split-key aggregator, which:
 # - Collects N+1 fan-in slices (1 parent payload + N sub-agent results)
 # - Emits a merged message once all slices arrive
-# - Uses the state proxy sidecar for durable S3-backed state storage
+# - Uses the state proxy sidecar for durable state storage (S3 or GCS)
 #
 # The aggregator reads x-asya-fan-in header via ABI yield protocol
 # for fan-in coordination.
-#
-# State proxy is configured inline (not via overlay) because the
-# Crossplane composition does not yet propagate stateProxy from
-# the overlay context to the XR spec where the injector reads it.
+{{- $sp := .Values.stateProxy }}
+{{- $connectorImage := dict "val" $sp.connector.image }}
+{{- if not $connectorImage.val }}
+  {{- if eq $sp.backend "s3" }}
+    {{- $_ := set $connectorImage "val" "ghcr.io/deliveryhero/asya-state-proxy-s3-buffered-lww:latest" }}
+  {{- else if eq $sp.backend "gcs" }}
+    {{- $_ := set $connectorImage "val" "ghcr.io/deliveryhero/asya-state-proxy-gcs-buffered-lww:latest" }}
+  {{- end }}
+{{- end }}
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 metadata:
@@ -29,26 +34,41 @@ spec:
   transport: {{ .Values.transport }}
 
   stateProxy:
-    - name: checkpoints
+    - name: fanin
       mount:
-        path: /state/checkpoints
+        path: /state/fanin
       connector:
-        image: {{ .Values.stateProxy.connector.image }}
+        image: {{ $connectorImage.val }}
         env:
           - name: STATE_BUCKET
-            value: {{ .Values.stateProxy.config.bucket | quote }}
-          {{- with .Values.stateProxy.config.endpoint }}
-          - name: STATE_ENDPOINT
+            value: {{ $sp.config.bucket | quote }}
+          {{- if eq $sp.backend "s3" }}
+          {{- with $sp.config.endpoint }}
+          - name: AWS_ENDPOINT_URL
             value: {{ . | quote }}
           {{- end }}
-          {{- with .Values.stateProxy.config.region }}
+          {{- with $sp.config.region }}
           - name: AWS_REGION
             value: {{ . | quote }}
           {{- end }}
+          {{- with $sp.config.accessKey }}
           - name: AWS_ACCESS_KEY_ID
-            value: "test"
+            value: {{ . | quote }}
+          {{- end }}
+          {{- with $sp.config.secretKey }}
           - name: AWS_SECRET_ACCESS_KEY
-            value: "test"
+            value: {{ . | quote }}
+          {{- end }}
+          {{- else if eq $sp.backend "gcs" }}
+          {{- with $sp.config.project }}
+          - name: GCS_PROJECT
+            value: {{ . | quote }}
+          {{- end }}
+          {{- with $sp.config.emulatorHost }}
+          - name: STORAGE_EMULATOR_HOST
+            value: {{ . | quote }}
+          {{- end }}
+          {{- end }}
 
   scaling:
     enabled: {{ .Values.scaling.enabled }}
@@ -69,10 +89,6 @@ spec:
           env:
           - name: ASYA_HANDLER
             value: asya_crew.fanin.s3_split_key.aggregator
-          - name: AWS_ACCESS_KEY_ID
-            value: "test"
-          - name: AWS_SECRET_ACCESS_KEY
-            value: "test"
           resources:
             requests:
               cpu: 10m

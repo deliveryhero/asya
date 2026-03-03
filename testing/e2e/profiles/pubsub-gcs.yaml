@@ -29,6 +29,8 @@ actors:
     bucket: asya-results
     resultsBucket: asya-results
     errorsBucket: asya-errors
+    project: test-project
+    emulatorHost: "http://fake-gcs.asya-system.svc.cluster.local:4443"
 
 crew:
   image:
