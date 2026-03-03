@@ -31,16 +31,16 @@ SendStreamingMessage, GetTask, SubscribeToTask, A2A-native FLY streaming.
 
 **Status**: Not started
 
-| # | Task | Description | Deps |
-|---|------|-------------|------|
-| 1 | DB migration: tools table | Create `tools` table (Section 13.4), add new status values | None |
-| 2 | Import a2a-go + state mapping | `go get a2a-go@v0.3.7`, state translation functions | None |
-| 3 | Tool registry + /mesh/expose API | `internal/toolstore/`, POST/GET handlers, remove YAML config | T1 |
-| 4 | Message-to-envelope translator | `internal/a2a/translator.go`, payload construction rules (Section 5.2) | T2 |
-| 5 | A2AStoreAdapter | Wrap PgStore for `a2asrv.TaskStore` interface | T2 |
-| 6 | AsyaExecutor + skill resolution | Execute, Cancel, resume detection, skill resolution (Section 8.3) | T3, T4, T5 |
-| 7 | Wire a2a-go handler + Agent Card | Mount handler, endpoint layout (/a2a, /mcp, /mesh), Agent Card | T3, T6 |
-| 8 | Rename /partial -> /fly + A2A-native FLY | Gateway + sidecar rename, FLY dict -> SSE event mapping | T7 |
+| # | Ref | Task | Deps |
+|---|-----|------|------|
+| 1 | `1c0d/1qtbxr` | DB migration: tools table + new status values | None |
+| 2 | `1c0d/1qcmsr` | Import a2a-go v0.3.7 + state mapping | None |
+| 3 | `1c0d/1qn6p7` | Tool registry + /mesh/expose API | T1 |
+| 4 | `1c0d/1qzr7p` | Message-to-envelope translator | T2 |
+| 5 | `1c0d/1qv3q2` | A2AStoreAdapter wrapping PgStore | T2 |
+| 6 | `1c0d/1qx70r` | AsyaExecutor + skill resolution | T3, T4, T5 |
+| 7 | `1c0d/1qdvt8` | Wire a2a-go handler + Agent Card + endpoint layout | T3, T6 |
+| 8 | `1c0d/1q8x33` | Rename /partial → /fly + A2A-native FLY format | T7 |
 
 ## Phase 2: Production Readiness
 
