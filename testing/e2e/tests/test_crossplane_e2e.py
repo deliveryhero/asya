@@ -1596,11 +1596,11 @@ def test_asyncactor_overlays_resolved(e2e_helper):
         runtime = next((c for c in containers if c["name"] == "asya-runtime"), None)
         assert runtime is not None, "asya-runtime container must exist"
         resources = runtime.get("resources", {})
-        assert resources.get("limits", {}).get("cpu") == "500m", (
-            f"Overlay should set cpu limit to 500m, got: {resources}"
+        assert resources.get("limits", {}).get("cpu") == "200m", (
+            f"Overlay should set cpu limit to 200m, got: {resources}"
         )
-        assert resources.get("requests", {}).get("memory") == "128Mi", (
-            f"Overlay should set memory request to 128Mi, got: {resources}"
+        assert resources.get("requests", {}).get("memory") == "64Mi", (
+            f"Overlay should set memory request to 64Mi, got: {resources}"
         )
         logger.info("[+] Single overlay: resources correctly injected from overlay")
 

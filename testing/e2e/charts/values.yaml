@@ -211,7 +211,7 @@ gateway:
       timeout: 120
   resources:
     requests:
-      cpu: 100m
+      cpu: 50m
       memory: 128Mi
     limits:
       cpu: 250m
@@ -243,10 +243,10 @@ crew:
       ASYA_SQS_WAIT_TIME_SECONDS: "2"
     resources:
       requests:
-        cpu: 50m
+        cpu: 10m
         memory: 64Mi
       limits:
-        cpu: 200m
+        cpu: 100m
         memory: 128Mi
     scaling:
       enabled: true
@@ -268,10 +268,10 @@ crew:
       ASYA_SQS_WAIT_TIME_SECONDS: "2"
     resources:
       requests:
-        cpu: 50m
+        cpu: 10m
         memory: 64Mi
       limits:
-        cpu: 200m
+        cpu: 100m
         memory: 128Mi
     scaling:
       enabled: true
