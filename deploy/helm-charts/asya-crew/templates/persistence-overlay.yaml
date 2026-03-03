@@ -1,9 +1,17 @@
 {{- if .Values.persistence.enabled }}
-{{- if not (eq .Values.persistence.backend "s3") }}
-{{- fail "persistence.backend must be 's3' (only backend currently supported)" }}
+{{- if and (ne .Values.persistence.backend "s3") (ne .Values.persistence.backend "gcs") }}
+{{- fail "persistence.backend must be 's3' or 'gcs'" }}
 {{- end }}
 {{- if not .Values.persistence.config.bucket }}
 {{- fail "persistence.config.bucket is required when persistence.enabled is true" }}
+{{- end }}
+{{- $connectorImage := dict "val" .Values.persistence.connector.image }}
+{{- if not $connectorImage.val }}
+  {{- if eq .Values.persistence.backend "s3" }}
+    {{- $_ := set $connectorImage "val" "ghcr.io/deliveryhero/asya-state-proxy-s3-buffered-lww:v1.0.0" }}
+  {{- else if eq .Values.persistence.backend "gcs" }}
+    {{- $_ := set $connectorImage "val" "ghcr.io/deliveryhero/asya-state-proxy-gcs-buffered-lww:v1.0.0" }}
+  {{- end }}
 {{- end }}
 apiVersion: apiextensions.crossplane.io/v1beta1
 kind: EnvironmentConfig
@@ -18,10 +26,11 @@ data:
       mount:
         path: /state/checkpoints
       connector:
-        image: {{ .Values.persistence.connector.image }}
+        image: {{ $connectorImage.val }}
         env:
           - name: STATE_BUCKET
             value: {{ .Values.persistence.config.bucket | quote }}
+          {{- if eq .Values.persistence.backend "s3" }}
           {{- with .Values.persistence.config.endpoint }}
           - name: STATE_ENDPOINT
             value: {{ . | quote }}
@@ -29,5 +38,15 @@ data:
           {{- with .Values.persistence.config.region }}
           - name: AWS_REGION
             value: {{ . | quote }}
+          {{- end }}
+          {{- else if eq .Values.persistence.backend "gcs" }}
+          {{- with .Values.persistence.config.project }}
+          - name: GCS_PROJECT
+            value: {{ . | quote }}
+          {{- end }}
+          {{- with .Values.persistence.config.emulatorHost }}
+          - name: STORAGE_EMULATOR_HOST
+            value: {{ . | quote }}
+          {{- end }}
           {{- end }}
 {{- end }}

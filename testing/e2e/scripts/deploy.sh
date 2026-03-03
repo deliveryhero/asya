@@ -33,9 +33,10 @@ fi
 case "$PROFILE" in
   sqs-s3) ;;
   rabbitmq-minio) ;;
+  pubsub-gcs) ;;
   *)
     echo "[!] Unknown profile: $PROFILE"
-    echo "    Valid profiles: sqs-s3, rabbitmq-minio"
+    echo "    Valid profiles: sqs-s3, rabbitmq-minio, pubsub-gcs"
     exit 1
     ;;
 esac
@@ -122,7 +123,16 @@ time {
   docker build -t "${IMAGE_PREFIX}asya-state-proxy-s3-buffered-lww:v1.0.0" \
     -f "$ROOT_DIR/src/asya-state-proxy/Dockerfile.s3-buffered-lww" \
     "$ROOT_DIR/src/asya-state-proxy/" > /dev/null 2>&1 &
-  STATE_PROXY_BUILD_PID=$!
+  STATE_PROXY_S3_BUILD_PID=$!
+
+  # Build state-proxy GCS connector image for pubsub-gcs profile
+  if [[ "$PROFILE" == "pubsub-gcs" ]]; then
+    echo "[.] Building state-proxy GCS connector image..."
+    docker build -t "${IMAGE_PREFIX}asya-state-proxy-gcs-buffered-lww:latest" \
+      -f "$ROOT_DIR/src/asya-state-proxy/Dockerfile.gcs-buffered-lww" \
+      "$ROOT_DIR/src/asya-state-proxy/" > /dev/null 2>&1 &
+    STATE_PROXY_GCS_BUILD_PID=$!
+  fi
 
   # Wait for image builds
   if ! wait "$BUILD_PID"; then
@@ -143,11 +153,19 @@ time {
   fi
   echo "[+] function-asya-overlays image built"
 
-  if ! wait "$STATE_PROXY_BUILD_PID"; then
+  if ! wait "$STATE_PROXY_S3_BUILD_PID"; then
     echo "[-] asya-state-proxy-s3-buffered-lww build failed"
     exit 1
   fi
   echo "[+] asya-state-proxy-s3-buffered-lww image built"
+
+  if [[ -n "${STATE_PROXY_GCS_BUILD_PID:-}" ]]; then
+    if ! wait "$STATE_PROXY_GCS_BUILD_PID"; then
+      echo "[-] State-proxy GCS image build failed"
+      exit 1
+    fi
+    echo "[+] State-proxy GCS image built"
+  fi
 
   # Wait for cluster creation
   if [ -n "$CLUSTER_PID" ]; then
@@ -216,6 +234,10 @@ time {
     "asya-injector:latest"
     "asya-state-proxy-s3-buffered-lww:v1.0.0"
   )
+
+  if [[ "$PROFILE" == "pubsub-gcs" ]]; then
+    IMAGES_TO_LOAD+=("asya-state-proxy-gcs-buffered-lww:latest")
+  fi
 
   LOAD_PIDS=()
   for img in "${IMAGES_TO_LOAD[@]}"; do
@@ -382,8 +404,22 @@ aws_secret_access_key = test
 
     # sqs-secret in asya-system is created by the SQS Helm chart (testing/e2e/charts/sqs/)
     # Do NOT create it here — Helm requires ownership metadata on managed resources
+  elif [[ "$PROFILE" == "pubsub-gcs" ]]; then
+    GCP_DUMMY_CREDS='{"type":"service_account","project_id":"test-project","private_key_id":"key-id","private_key":"-----BEGIN RSA PRIVATE KEY-----\nMIIBogIBAAJBALRiMLAH\n-----END RSA PRIVATE KEY-----\n","client_email":"test@test-project.iam.gserviceaccount.com","client_id":"123","auth_uri":"https://accounts.google.com/o/oauth2/auth","token_uri":"https://oauth2.googleapis.com/token"}'
+
+    kubectl create secret generic gcp-creds \
+      -n crossplane-system \
+      --from-literal=credentials.json="$GCP_DUMMY_CREDS" \
+      --dry-run=client -o yaml | kubectl apply -f - > /dev/null 2>&1
+    echo "[+] Created gcp-creds secret in crossplane-system"
+
+    kubectl create secret generic gcp-keda-secret \
+      -n "$NAMESPACE" \
+      --from-literal=credentials.json="$GCP_DUMMY_CREDS" \
+      --dry-run=client -o yaml | kubectl apply -f - > /dev/null 2>&1
+    echo "[+] Created gcp-keda-secret in $NAMESPACE"
   else
-    echo "[.] Skipping AWS credentials (not needed for $PROFILE)"
+    echo "[.] Skipping cloud credentials (not needed for $PROFILE)"
   fi
 }
 echo

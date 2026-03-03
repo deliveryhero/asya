@@ -102,7 +102,7 @@ spec:
     try:
         kubectl_apply(actor_manifest, namespace=namespace)
 
-        assert wait_for_asyncactor_ready(actor_name, namespace=namespace, timeout=240), \
+        assert wait_for_asyncactor_ready(actor_name, namespace=namespace, timeout=180), \
             "AsyncActor should reach Ready condition"
 
         assert wait_for_resource("scaledobject", actor_name, namespace=namespace, timeout=90), \
@@ -174,7 +174,7 @@ spec:
     try:
         kubectl_apply(actor_manifest, namespace=namespace)
 
-        assert wait_for_asyncactor_ready(actor_name, namespace=namespace, timeout=120), \
+        assert wait_for_asyncactor_ready(actor_name, namespace=namespace, timeout=180), \
             "AsyncActor should reach Ready condition even without scaling"
 
         result = subprocess.run(
@@ -334,7 +334,7 @@ spec:
     try:
         kubectl_apply(initial_manifest, namespace=namespace)
 
-        assert wait_for_asyncactor_ready(actor_name, namespace=namespace, timeout=120), \
+        assert wait_for_asyncactor_ready(actor_name, namespace=namespace, timeout=180), \
             "AsyncActor should reach Ready condition"
 
         initial_scaled = kubectl_get("scaledobject", actor_name, namespace=namespace)
@@ -412,7 +412,7 @@ spec:
     try:
         kubectl_apply(actor_manifest, namespace=namespace)
 
-        assert wait_for_asyncactor_ready(actor_name, namespace=namespace, timeout=120), \
+        assert wait_for_asyncactor_ready(actor_name, namespace=namespace, timeout=180), \
             "AsyncActor should reach Ready condition"
 
         trigger_auth_name = f"{actor_name}-trigger-auth"
@@ -493,7 +493,7 @@ spec:
     try:
         kubectl_apply(actor_manifest, namespace=namespace)
 
-        assert wait_for_asyncactor_ready(actor_name, namespace=namespace, timeout=120), \
+        assert wait_for_asyncactor_ready(actor_name, namespace=namespace, timeout=180), \
             "AsyncActor should reach Ready condition"
 
         assert wait_for_resource("scaledobject", actor_name, namespace=namespace, timeout=60), \
@@ -631,7 +631,7 @@ spec:
     try:
         kubectl_apply(actor_manifest, namespace=namespace)
 
-        assert wait_for_asyncactor_ready(actor_name, namespace=namespace, timeout=120), \
+        assert wait_for_asyncactor_ready(actor_name, namespace=namespace, timeout=180), \
             "AsyncActor should reach Ready condition"
 
         label_selector = f"asya.sh/actor={actor_name}"
@@ -706,7 +706,7 @@ spec:
     try:
         kubectl_apply(actor_manifest, namespace=namespace)
 
-        assert wait_for_asyncactor_ready(actor_name, namespace=namespace, timeout=120), \
+        assert wait_for_asyncactor_ready(actor_name, namespace=namespace, timeout=180), \
             "AsyncActor should reach Ready condition"
 
         assert wait_for_resource("scaledobject", actor_name, namespace=namespace, timeout=60), \

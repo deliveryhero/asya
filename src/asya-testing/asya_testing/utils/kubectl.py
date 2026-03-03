@@ -317,7 +317,7 @@ def delete_pod(pod_name: str, namespace: str = "asya-e2e", force: bool = True) -
 def wait_for_asyncactor_ready(
     name: str,
     namespace: str = "asya-e2e",
-    timeout: int = 60,
+    timeout: int = 180,
 ) -> bool:
     """
     Wait for AsyncActor to be ready by checking the XR Ready condition.

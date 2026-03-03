@@ -1,0 +1,17 @@
+enabled: true
+
+service:
+  type: NodePort
+  nodePort: 30443
+
+buckets:
+- asya-results
+- asya-errors
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 128Mi
+  limits:
+    cpu: 250m
+    memory: 256Mi

@@ -17,6 +17,13 @@ data:
   ASYA_SQS_VISIBILITY_TIMEOUT: "{{ .Values.transports.sqs.config.visibilityTimeout }}"
   ASYA_SQS_WAIT_TIME_SECONDS: "{{ .Values.transports.sqs.config.waitTimeSeconds }}"
   {{- end }}
+  {{- if .Values.transports.pubsub.enabled }}
+  ASYA_PUBSUB_PROJECT_ID: {{ .Values.transports.pubsub.config.projectId | quote }}
+  {{- with .Values.transports.pubsub.config.endpoint }}
+  ASYA_PUBSUB_ENDPOINT: {{ . | quote }}
+  {{- end }}
+  ASYA_NAMESPACE: {{ .Release.Namespace | quote }}
+  {{- end }}
   {{- if .Values.routes.createConfigMap }}
   ASYA_CONFIG_PATH: "/config/routes.yaml"
   {{- end }}

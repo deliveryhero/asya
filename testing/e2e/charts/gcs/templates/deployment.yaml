@@ -1,0 +1,71 @@
+{{- if .Values.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fake-gcs
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: fake-gcs
+    app.kubernetes.io/name: fake-gcs
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fake-gcs
+  template:
+    metadata:
+      labels:
+        app: fake-gcs
+    spec:
+      initContainers:
+      - name: create-buckets
+        image: busybox:latest
+        command:
+        - sh
+        - -c
+        - |
+          {{- range .Values.buckets }}
+          mkdir -p /data/{{ . }}
+          {{- end }}
+        volumeMounts:
+        - name: data
+          mountPath: /data
+      containers:
+      - name: fake-gcs-server
+        image: fsouza/fake-gcs-server:latest
+        args:
+        - "-scheme"
+        - "http"
+        - "-port"
+        - "4443"
+        - "-backend"
+        - "filesystem"
+        - "-data"
+        - "/data"
+        - "-public-host"
+        - "fake-gcs.{{ .Release.Namespace }}.svc.cluster.local:4443"
+        ports:
+        - containerPort: 4443
+          name: http
+        readinessProbe:
+          httpGet:
+            path: /storage/v1/b
+            port: 4443
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /storage/v1/b
+            port: 4443
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        resources:
+          {{- toYaml .Values.resources | nindent 10 }}
+        volumeMounts:
+        - name: data
+          mountPath: /data
+      volumes:
+      - name: data
+        emptyDir: {}
+{{- end }}

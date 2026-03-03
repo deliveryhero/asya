@@ -1,0 +1,31 @@
+# Pub/Sub topics for sidecar-runtime integration tests
+
+# Actor queues (with asya-{namespace}- prefix for namespace isolation)
+asya-default-test-echo
+asya-default-test-error
+asya-default-test-oom-queue
+asya-default-test-cuda-oom-queue
+asya-default-test-timeout
+asya-default-test-fanout
+asya-default-test-empty
+asya-default-test-large-queue
+asya-default-test-unicode
+asya-default-test-null
+asya-default-test-conditional-queue
+asya-default-test-nested
+asya-default-test-invalid-route
+asya-default-test-echo-v2
+
+# Retry test actor queues
+asya-default-test-retry-fail
+asya-default-test-retry-nonretryable
+asya-default-test-retry-mro
+asya-default-test-retry-succeed
+
+# SLA test actor queues
+asya-default-test-sla-slow
+asya-default-test-sla-retry
+
+# System actor queues
+asya-default-x-sink
+asya-default-x-sump

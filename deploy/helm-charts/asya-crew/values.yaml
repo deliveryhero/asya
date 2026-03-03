@@ -276,19 +276,21 @@ x-resume:
     ASYA_RESUME_MERGE_MODE: ""
 
 # Persistence overlay configuration
-# When enabled, creates a shared EnvironmentConfig overlay providing S3 infrastructure
+# When enabled, creates a shared EnvironmentConfig overlay providing storage infrastructure
 # (stateProxy connector + bucket). Each crew actor sets its own ASYA_PERSISTENCE_MOUNT.
 # Mount path is NOT configurable here — it's a per-actor concern (container-level).
 # The overlay hardcodes mount path to /state/checkpoints; actors use subdirectories.
 persistence:
   enabled: false
-  backend: "" # "s3" (only backend currently supported)
+  backend: "" # "s3" or "gcs"
   config:
-    bucket: "" # S3 bucket name (required when enabled)
-    endpoint: "" # custom S3 endpoint for MinIO/LocalStack (omit for AWS)
-    region: "" # AWS region (optional)
+    bucket: "" # bucket name (required when enabled)
+    endpoint: "" # custom S3 endpoint for MinIO/LocalStack (S3 only)
+    region: "" # AWS region (S3 only)
+    project: "" # GCP project ID (GCS only)
+    emulatorHost: "" # GCS emulator host:port (GCS only)
   connector:
-    image: ghcr.io/deliveryhero/asya-state-proxy-s3-buffered-lww:v1.0.0
+    image: "" # auto-selected based on backend if not set
 
 # DLQ Worker configuration
 # Standalone Go binary for processing transport-level Dead Letter Queue messages.

@@ -1,0 +1,122 @@
+# Test profile (values.yaml file): Pub/Sub + GCS
+#
+# Tests Google Cloud Pub/Sub message transport with GCS object storage
+# (using gcloud Pub/Sub emulator and fake-gcs-server in E2E environment)
+
+namespace: asya-e2e
+
+transport:
+  rabbitmq:
+    enabled: false
+  sqs:
+    enabled: false
+  pubsub:
+    enabled: true
+
+storage:
+  minio:
+    enabled: false
+  s3:
+    enabled: false
+  gcs:
+    enabled: true
+
+actors:
+  namespace: asya-e2e
+  transport: pubsub
+  storage:
+    type: gcs
+    bucket: asya-results
+    resultsBucket: asya-results
+    errorsBucket: asya-errors
+
+crew:
+  image:
+    tag: latest
+    pullPolicy: Never
+  persistence:
+    enabled: true
+    backend: gcs
+    config:
+      bucket: asya-results
+      project: test-project
+      emulatorHost: "http://fake-gcs.asya-system.svc.cluster.local:4443"
+    connector:
+      image: ghcr.io/deliveryhero/asya-state-proxy-gcs-buffered-lww:latest
+  x-sink:
+    transport: pubsub
+    env:
+      ASYA_GATEWAY_URL: "http://asya-gateway.asya-e2e.svc.cluster.local:8080"
+      ASYA_PERSISTENCE_MOUNT: "/state/checkpoints/results"
+      PUBSUB_EMULATOR_HOST: "pubsub-emulator.asya-system.svc.cluster.local:8085"
+    scaling:
+      enabled: true
+      minReplicas: 1
+  x-sump:
+    transport: pubsub
+    env:
+      ASYA_GATEWAY_URL: "http://asya-gateway.asya-e2e.svc.cluster.local:8080"
+      ASYA_PERSISTENCE_MOUNT: "/state/checkpoints/errors"
+      PUBSUB_EMULATOR_HOST: "pubsub-emulator.asya-system.svc.cluster.local:8085"
+    scaling:
+      enabled: true
+      minReplicas: 1
+
+gateway:
+  routes:
+    defaults:
+      progress: true
+      timeout: 120
+  transports:
+    rabbitmq:
+      enabled: false
+    sqs:
+      enabled: false
+    pubsub:
+      enabled: true
+      config:
+        projectId: "test-project"
+        endpoint: "pubsub-emulator.asya-system.svc.cluster.local:8085"
+  env:
+  - name: PUBSUB_EMULATOR_HOST
+    value: "pubsub-emulator.asya-system.svc.cluster.local:8085"
+  - name: ASYA_NAMESPACE
+    value: "asya-e2e"
+
+crossplane:
+  providers:
+    aws:
+      enabled: false
+    gcp:
+      enabled: true
+  providerConfigs:
+    install: false
+  functions:
+    overlaysEnabled: true
+  gcpProviderConfig:
+    name: gcp-emulator
+    projectId: test-project
+    emulatorHost: "pubsub-emulator.asya-system.svc.cluster.local:8085"
+    credentialsSource: Secret
+    secretRef:
+      namespace: crossplane-system
+      name: gcp-creds
+      key: credentials.json
+  pubsub:
+    keda:
+      secretRef:
+        name: gcp-keda-secret
+        credentialsKey: credentials.json
+  actorNamespace: asya-e2e
+  irsa:
+    enabled: false
+
+injector:
+  image:
+    tag: latest
+    pullPolicy: Never
+  config:
+    sidecarImage: ghcr.io/deliveryhero/asya-sidecar:latest
+    sidecarImagePullPolicy: Never
+    pubsubEndpoint: pubsub-emulator.asya-system.svc.cluster.local:8085
+    gatewayURL: http://asya-gateway.asya-e2e.svc.cluster.local:8080

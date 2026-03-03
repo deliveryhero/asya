@@ -302,7 +302,7 @@ jobs:
       run: |
         ./testing/e2e/scripts/deploy.sh
 
-    - name: "Run E2E tests (crossplane)"
+    - name: "Run E2E tests: crossplane"
       if: matrix.run_crossplane
       continue-on-error: true
       id: e2e-crossplane
@@ -313,10 +313,10 @@ jobs:
         cd testing/e2e
         make test-crossplane
 
-    - name: "Run E2E tests: non-chaos"
+    - name: "Run E2E tests: regular"
       if: matrix.run_pipeline
       continue-on-error: true
-      id: e2e-non-chaos
+      id: e2e-regular
       env:
         ASYA_LOG_LEVEL: INFO
       run: |
@@ -343,8 +343,8 @@ jobs:
           echo "[-] E2E test suite failed: crossplane"
           FAILED=1
         fi
-        if [[ "${{ steps.e2e-non-chaos.outcome }}" == "failure" ]]; then
-          echo "[-] E2E test suite failed: non-chaos"
+        if [[ "${{ steps.e2e-regular.outcome }}" == "failure" ]]; then
+          echo "[-] E2E test suite failed: regular"
           FAILED=1
         fi
         if [[ "${{ steps.e2e-chaos.outcome }}" == "failure" ]]; then

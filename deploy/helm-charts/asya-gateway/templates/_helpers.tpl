@@ -135,10 +135,12 @@ Validate transport configuration - ensure exactly one transport is enabled
 {{- define "asya-gateway.validateTransports" -}}
 {{- $rabbitmqEnabled := .Values.transports.rabbitmq.enabled }}
 {{- $sqsEnabled := .Values.transports.sqs.enabled }}
-{{- if and $rabbitmqEnabled $sqsEnabled }}
-{{- fail "ERROR: Cannot enable both RabbitMQ and SQS transports. Please set exactly one to enabled: true" }}
+{{- $pubsubEnabled := ((.Values.transports).pubsub).enabled | default false }}
+{{- $enabledCount := (list $rabbitmqEnabled $sqsEnabled $pubsubEnabled) | compact | len }}
+{{- if gt $enabledCount 1 }}
+{{- fail "ERROR: Cannot enable multiple transports. Please set exactly one of transports.rabbitmq.enabled, transports.sqs.enabled, or transports.pubsub.enabled to true" }}
 {{- end }}
-{{- if and (not $rabbitmqEnabled) (not $sqsEnabled) }}
-{{- fail "ERROR: No transport enabled. Please set either transports.rabbitmq.enabled or transports.sqs.enabled to true" }}
+{{- if eq $enabledCount 0 }}
+{{- fail "ERROR: No transport enabled. Please set one of transports.rabbitmq.enabled, transports.sqs.enabled, or transports.pubsub.enabled to true" }}
 {{- end }}
 {{- end }}

@@ -11,6 +11,26 @@ spec:
 {{- end }}
 ---
 {{- if .Values.providers.gcp.enabled }}
+{{- if .Values.gcpProviderConfig.emulatorHost }}
+apiVersion: pkg.crossplane.io/v1beta1
+kind: DeploymentRuntimeConfig
+metadata:
+  name: gcp-emulator-config
+  labels:
+    {{- include "asya-crossplane.labels" . | nindent 4 }}
+spec:
+  deploymentTemplate:
+    spec:
+      selector: {}
+      template:
+        spec:
+          containers:
+          - name: package-runtime
+            env:
+            - name: PUBSUB_EMULATOR_HOST
+              value: {{ .Values.gcpProviderConfig.emulatorHost | quote }}
+---
+{{- end }}
 apiVersion: pkg.crossplane.io/v1
 kind: Provider
 metadata:
@@ -19,6 +39,10 @@ metadata:
     {{- include "asya-crossplane.labels" . | nindent 4 }}
 spec:
   package: xpkg.upbound.io/upbound/provider-gcp-pubsub:{{ .Values.providers.gcp.pubsubVersion }}
+  {{- if .Values.gcpProviderConfig.emulatorHost }}
+  runtimeConfigRef:
+    name: gcp-emulator-config
+  {{- end }}
 {{- end }}
 ---
 apiVersion: pkg.crossplane.io/v1beta1
