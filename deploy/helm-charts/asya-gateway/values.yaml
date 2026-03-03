@@ -88,6 +88,12 @@ transports:
       visibilityTimeout: 300
       waitTimeSeconds: 20
 
+  pubsub:
+    enabled: false
+    config:
+      projectId: ""
+      endpoint: ""
+
 # Gateway routes configuration
 # When createConfigMap is true, chart creates gateway-routes ConfigMap from these values
 routes:
