@@ -9,6 +9,7 @@ tags:
 
 
 
+
 ## Objective
 
 Create Sqitch migration `009_tools_table_and_status_values` that adds the `tools` table
