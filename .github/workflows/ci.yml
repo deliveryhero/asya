@@ -275,6 +275,10 @@ jobs:
           profile: sqs-s3
           run_pipeline: true
           run_crossplane: true
+        - name: pubsub-gcs
+          profile: pubsub-gcs
+          run_pipeline: true
+          run_crossplane: true
           ## For now, focusing on SQS+S3 only
           # - name: rabbitmq-minio
           #   profile: rabbitmq-minio
