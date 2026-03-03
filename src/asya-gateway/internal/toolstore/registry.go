@@ -165,7 +165,13 @@ func (r *Registry) Refresh(ctx context.Context) error {
 // All returns all tools from the cache.
 func (r *Registry) All() []Tool {
 	val := r.cache.Load()
-	tools := val.(*[]Tool)
+	if val == nil {
+		return nil
+	}
+	tools, ok := val.(*[]Tool)
+	if !ok {
+		return nil
+	}
 	return *tools
 }
 

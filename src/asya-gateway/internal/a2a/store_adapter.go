@@ -122,4 +122,3 @@ func internalToA2ATask(task *types.Task) *a2alib.Task {
 
 	return a2aTask
 }
-

@@ -82,4 +82,3 @@ func messageToHistoryEntry(msg *a2alib.Message) any {
 	_ = json.Unmarshal(data, &entry)
 	return entry
 }
-
