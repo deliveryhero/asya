@@ -1,20 +1,20 @@
-# Execution Plan: Rename Message to Meshage
+# Execution Plan: Rename Message to Envelope
 
 ## Summary
 
-Rename Asya's internal envelope type from "Message" to "Meshage" (mesh + message)
+Rename Asya's internal envelope type from "Message" to "Envelope" (mesh + message)
 and rename the gateway's sidecar-facing routes from `/tasks/` to `/mesh/`.
 
 ## What Changes
 
 | Symbol / Path | Before | After |
 |---|---|---|
-| Go package | `pkg/messages` | `pkg/meshages` |
-| Go file | `message.go` | `meshage.go` |
-| Go struct | `messages.Message` | `meshages.Meshage` |
-| Gateway queue struct | `ActorMessage` | `ActorMeshage` |
-| Gateway queue struct | `ActorMessageStatus` | `ActorMeshageStatus` |
-| Gateway func | `NewActorMessage` | `NewActorMeshage` |
+| Go package | `pkg/messages` | `pkg/envelopes` |
+| Go file | `message.go` | `envelope.go` |
+| Go struct | `messages.Message` | `envelopes.Envelope` |
+| Gateway queue struct | `ActorMessage` | `ActorEnvelope` |
+| Gateway queue struct | `ActorMessageStatus` | `ActorEnvelopeStatus` |
+| Gateway func | `NewActorMessage` | `NewActorEnvelope` |
 | Sidecar reporter struct | `CreateTaskPayload` | `CreateMeshPayload` |
 | Sidecar reporter method | `CreateTask` | `CreateMesh` |
 | Gateway sidecar routes | `/tasks/{id}/*` | `/mesh/{id}/*` |
@@ -22,27 +22,27 @@ and rename the gateway's sidecar-facing routes from `/tasks/` to `/mesh/`.
 | Sidecar reporter URLs | `/tasks/%s/progress` etc. | `/mesh/%s/progress` etc. |
 | Crew DLQ worker URLs | `/tasks/%s/final` | `/mesh/%s/final` |
 | Gateway server URLs | `/tasks/%s` | `/mesh/%s` |
-| Python runtime funcs | `_parse_message_json` | `_parse_meshage_json` |
-| Python runtime funcs | `_validate_message` | `_validate_meshage` |
-| Python runtime var | `message` | `meshage` |
-| Python testing utils | `find_message_in_s3` | `find_meshage_in_s3` |
-| Python testing utils | `wait_for_message_in_s3` | `wait_for_meshage_in_s3` |
-| Python testing clients | `message` param | `meshage` param |
-| Python testing class | `MessageHandler` | `MeshageHandler` |
+| Python runtime funcs | `_parse_message_json` | `_parse_envelope_json` |
+| Python runtime funcs | `_validate_message` | `_validate_envelope` |
+| Python runtime var | `message` | `envelope` |
+| Python testing utils | `find_message_in_s3` | `find_envelope_in_s3` |
+| Python testing utils | `wait_for_message_in_s3` | `wait_for_envelope_in_s3` |
+| Python testing clients | `message` param | `envelope` param |
+| Python testing class | `MessageHandler` | `EnvelopeHandler` |
 
 ## What Does NOT Change
 
 - JSON wire field names (`id`, `route`, `payload`, `headers`, `status`) — no wire break
 - A2A protocol types (`A2AMessage`, `/a2a/tasks/`) — external protocol
 - AMQP/SQS `QueueMessage` — external transport concept
-- Gateway `TaskStore` / `types.Task` — MCP task lifecycle, not meshage
+- Gateway `TaskStore` / `types.Task` — MCP task lifecycle, not envelope
 - `StatusError.Message` field — error description string, not envelope type
 - `ProgressUpdate.Message` field — human-readable text, not envelope type
 - `TaskUpdate.Message` field — human-readable status text
 - MCP/A2A endpoints (`/mcp`, `/a2a/`)
 - `ASYA_MSG_ROOT` env var and `/proc/asya/msg/` VFS paths — separate concern (legacy VFS)
 - `types.TaskStatus*` constants — the A2A RFC (1c0d) notes these may become
-  `MeshageStatus` but defers that to the A2A native implementation, not 1mx1
+  `EnvelopeStatus` but defers that to the A2A native implementation, not 1mx1
 
 ---
 
@@ -50,30 +50,30 @@ and rename the gateway's sidecar-facing routes from `/tasks/` to `/mesh/`.
 
 ### Phase 1: Go core — package and struct rename
 
-**Scope**: `src/asya-sidecar/pkg/messages/` → `src/asya-sidecar/pkg/meshages/`
+**Scope**: `src/asya-sidecar/pkg/messages/` → `src/asya-sidecar/pkg/envelopes/`
 
-1. Rename directory: `pkg/messages/` → `pkg/meshages/`
-2. Rename file: `message.go` → `meshage.go`
-3. Change package declaration: `package messages` → `package meshages`
-4. Rename struct: `Message` → `Meshage`
+1. Rename directory: `pkg/messages/` → `pkg/envelopes/`
+2. Rename file: `message.go` → `envelope.go`
+3. Change package declaration: `package messages` → `package envelopes`
+4. Rename struct: `Message` → `Envelope`
 5. Update all comments referencing "message" in the envelope sense
 6. Keep `StatusError.Message` field as-is (it's an error description string)
 
 **Files**:
-- `src/asya-sidecar/pkg/messages/message.go` → `src/asya-sidecar/pkg/meshages/meshage.go`
+- `src/asya-sidecar/pkg/messages/message.go` → `src/asya-sidecar/pkg/envelopes/envelope.go`
 
 ### Phase 2: Go sidecar — update all imports and references
 
 **Scope**: All files importing `pkg/messages`
 
-1. Update import paths: `asya-sidecar/pkg/messages` → `asya-sidecar/pkg/meshages`
-2. Update type references: `messages.Message` → `meshages.Meshage`
-3. Update type references: `messages.Route` → `meshages.Route`
-4. Update type references: `messages.Status` → `meshages.Status`
-5. Update type references: `messages.StatusError` → `meshages.StatusError`
-6. Update type references: `messages.NewDefaultStatus` → `meshages.NewDefaultStatus`
-7. Update type references: `messages.Phase*` → `meshages.Phase*`
-8. Update type references: `messages.Reason*` → `meshages.Reason*`
+1. Update import paths: `asya-sidecar/pkg/messages` → `asya-sidecar/pkg/envelopes`
+2. Update type references: `messages.Message` → `envelopes.Envelope`
+3. Update type references: `messages.Route` → `envelopes.Route`
+4. Update type references: `messages.Status` → `envelopes.Status`
+5. Update type references: `messages.StatusError` → `envelopes.StatusError`
+6. Update type references: `messages.NewDefaultStatus` → `envelopes.NewDefaultStatus`
+7. Update type references: `messages.Phase*` → `envelopes.Phase*`
+8. Update type references: `messages.Reason*` → `envelopes.Reason*`
 9. Update variable names in comments/logs where "message" means the envelope
 
 **Files** (8 files):
@@ -130,9 +130,9 @@ and rename the gateway's sidecar-facing routes from `/tasks/` to `/mesh/`.
 
 **Scope**: Gateway queue package
 
-1. `queue.go`: `ActorMessage` → `ActorMeshage`
-2. `queue.go`: `ActorMessageStatus` → `ActorMeshageStatus`
-3. `queue.go`: `NewActorMessage` → `NewActorMeshage`
+1. `queue.go`: `ActorMessage` → `ActorEnvelope`
+2. `queue.go`: `ActorMessageStatus` → `ActorEnvelopeStatus`
+3. `queue.go`: `NewActorMessage` → `NewActorEnvelope`
 4. Update all files using these types
 
 **Files**:
@@ -167,15 +167,15 @@ and rename the gateway's sidecar-facing routes from `/tasks/` to `/mesh/`.
 
 **Scope**: `src/asya-runtime/asya_runtime.py`
 
-1. `_parse_message_json` → `_parse_meshage_json`
-2. `_validate_message` → `_validate_meshage`
-3. `_get_current_actor(message)` → `_get_current_actor(meshage)` (param name)
-4. `_collect_payload_frames(message, ...)` → `_collect_payload_frames(meshage, ...)`
-5. `_handle_invoke` — update local variable `message` → `meshage`
-6. `_stream_sse_response(self, message, ...)` → `_stream_sse_response(self, meshage, ...)`
-7. `_AbiContext(message)` → `_AbiContext(meshage)` (param and internal refs)
+1. `_parse_message_json` → `_parse_envelope_json`
+2. `_validate_message` → `_validate_envelope`
+3. `_get_current_actor(message)` → `_get_current_actor(envelope)` (param name)
+4. `_collect_payload_frames(message, ...)` → `_collect_payload_frames(envelope, ...)`
+5. `_handle_invoke` — update local variable `message` → `envelope`
+6. `_stream_sse_response(self, message, ...)` → `_stream_sse_response(self, envelope, ...)`
+7. `_AbiContext(message)` → `_AbiContext(envelope)` (param and internal refs)
 8. Update all internal comments mentioning "message" in envelope sense
-9. Keep: error strings like "Missing required field 'payload' in message" → update to "meshage"
+9. Keep: error strings like "Missing required field 'payload' in message" → update to "envelope"
 
 **Files**:
 - `src/asya-runtime/asya_runtime.py`
@@ -184,10 +184,10 @@ and rename the gateway's sidecar-facing routes from `/tasks/` to `/mesh/`.
 
 **Scope**: `src/asya-runtime/tests/`
 
-1. `_make_message()` → `_make_meshage()`
-2. `TestMessageFieldPreservation` → `TestMeshageFieldPreservation`
-3. Update variable names `message` → `meshage` in test functions
-4. Update `call_invoke(message, ...)` → `call_invoke(meshage, ...)`
+1. `_make_message()` → `_make_envelope()`
+2. `TestMessageFieldPreservation` → `TestEnvelopeFieldPreservation`
+3. Update variable names `message` → `envelope` in test functions
+4. Update `call_invoke(message, ...)` → `call_invoke(envelope, ...)`
 
 **Files**:
 - `src/asya-runtime/tests/test_asya_runtime.py`
@@ -196,13 +196,13 @@ and rename the gateway's sidecar-facing routes from `/tasks/` to `/mesh/`.
 
 **Scope**: `src/asya-testing/asya_testing/`
 
-1. `clients/base.py`: `publish(queue, message)` → `publish(queue, meshage)`
+1. `clients/base.py`: `publish(queue, message)` → `publish(queue, envelope)`
 2. `clients/rabbitmq.py`: Same parameter rename + log updates
 3. `clients/sqs.py`: Same parameter rename + log updates
-4. `utils/s3.py`: `find_message_in_s3` → `find_meshage_in_s3`
-5. `utils/s3.py`: `wait_for_message_in_s3` → `wait_for_meshage_in_s3`
-6. `handlers/classes.py`: `MessageHandler` → `MeshageHandler`
-7. `handlers/fanout.py`: `_read_message_id()` → `_read_meshage_id()`
+4. `utils/s3.py`: `find_message_in_s3` → `find_envelope_in_s3`
+5. `utils/s3.py`: `wait_for_message_in_s3` → `wait_for_envelope_in_s3`
+6. `handlers/classes.py`: `MessageHandler` → `EnvelopeHandler`
+7. `handlers/fanout.py`: `_read_message_id()` → `_read_envelope_id()`
 
 **Files**:
 - `src/asya-testing/asya_testing/clients/base.py`
@@ -217,7 +217,7 @@ and rename the gateway's sidecar-facing routes from `/tasks/` to `/mesh/`.
 **Scope**: `src/asya-crew/`
 
 1. `pause.py`: Update comments/docstrings mentioning "message" in envelope sense
-2. `fanin/s3_split_key.py`: `make_message()` → `make_meshage()`
+2. `fanin/s3_split_key.py`: `make_message()` → `make_envelope()`
 3. Crew test files: update helper names and variable names
 
 **Files**:
@@ -230,8 +230,8 @@ and rename the gateway's sidecar-facing routes from `/tasks/` to `/mesh/`.
 **Scope**: `src/asya-cli/tests/flow/`
 
 1. `_make_msg_ctx()` → keep as-is (abbreviation, not "message")
-2. `make_message()` → `make_meshage()` in `test_while_integration.py`
-3. Update comments mentioning "message routes" → "meshage routes"
+2. `make_message()` → `make_envelope()` in `test_while_integration.py`
+3. Update comments mentioning "message routes" → "envelope routes"
 
 **Files**:
 - `src/asya-cli/tests/flow/test_try_except_integration.py`
@@ -248,9 +248,9 @@ and rename the gateway's sidecar-facing routes from `/tasks/` to `/mesh/`.
 
 **Scope**: `testing/integration/` and `testing/component/`
 
-1. Update `publish_message` → `publish_meshage` in test conftest files
-2. Update `get_message` → `get_meshage`
-3. Update `wait_for_message` → `wait_for_meshage`
+1. Update `publish_message` → `publish_envelope` in test conftest files
+2. Update `get_message` → `get_envelope`
+3. Update `wait_for_message` → `wait_for_envelope`
 4. Update `wait_for_merged_result` (name may stay, check context)
 5. Update inline message construction variable names
 6. Update `/tasks/` URL references in any test assertions
@@ -266,9 +266,9 @@ and rename the gateway's sidecar-facing routes from `/tasks/` to `/mesh/`.
 **Scope**: All docs mentioning the internal envelope
 
 1. `AGENTS.md`: Update "Message Protocol" section, message flow description
-2. `docs/architecture/protocols/actor-actor.md`: Rename "Message Structure" → "Meshage Structure"
+2. `docs/architecture/protocols/actor-actor.md`: Rename "Message Structure" → "Envelope Structure"
 3. `docs/architecture/protocols/sidecar-runtime.md`: Update POST /invoke references
-4. `docs/concepts.md`: Update "Message" section → "Meshage"
+4. `docs/concepts.md`: Update "Message" section → "Envelope"
 5. `docs/architecture/asya-gateway.md`: Update `/tasks/` endpoint references
 6. `docs/reference/abi-protocol.md`: Update message metadata references
 7. `src/asya-gateway/README.md`: Update route table
@@ -319,7 +319,7 @@ This plan was cross-checked against the A2A native protocol RFC. Findings:
    "Collision avoidance: internal sidecar-facing routes are at `/mesh/*`".
 
 3. **`TaskStatus` rename deferred** — RFC line 185 notes `TaskStatus` should
-   become `MeshageStatus`, but the RFC's own code examples still use
+   become `EnvelopeStatus`, but the RFC's own code examples still use
    `types.TaskStatus*` constants. This rename belongs to the A2A implementation
    (1c0d), not to 1mx1, since it involves restructuring the gateway type system
    around `a2a-go` library types.

@@ -1,5 +1,5 @@
 ---
-title: Rename asya Message to Meshage
+title: Rename asya Message to Envelope
 status: vibed
 priority: 2 # medium
 type: epic
@@ -7,7 +7,7 @@ type: epic
 
 
 Mesh + message. Rename Asya's internal envelope (id, route, payload, status,
-headers) from "message" to "meshage" to avoid collision with A2A "Message"
+headers) from "message" to "envelope" to avoid collision with A2A "Message"
 (immutable communication turn) and MQ "message" (queue entry).
 
 ## Motivation
@@ -17,7 +17,7 @@ headers) from "message" to "meshage" to avoid collision with A2A "Message"
   mutable envelope with route, payload, and status that travels through the
   actor mesh.
 - The naming collision causes confusion in gateway code that handles both A2A
-  Messages and internal meshages.
+  Messages and internal envelopes.
 - The rename frees "message" for exclusive A2A use in the gateway layer.
 
 ## Scope
@@ -29,14 +29,14 @@ The sidecar-facing internal endpoints currently live under `/tasks/`:
 ```
 POST /tasks/{id}/progress   — sidecar reports actor progress
 POST /tasks/{id}/final      — end actors report completion
-GET  /tasks/{id}/active     — sidecar checks meshage liveness
+GET  /tasks/{id}/active     — sidecar checks envelope liveness
 GET  /tasks/{id}/stream     — SSE streaming (legacy clients)
-GET  /tasks/{id}            — meshage status
+GET  /tasks/{id}            — envelope status
 POST /tasks/{id}/partial    — streaming partial data
 POST /tasks                 — fanout child creation
 ```
 
-These are about **meshage lifecycle**, not A2A tasks. Rename to `/mesh/`:
+These are about **envelope lifecycle**, not A2A tasks. Rename to `/mesh/`:
 
 ```
 POST /mesh/{id}/progress
@@ -63,7 +63,7 @@ client-facing A2A API.
 
 ### Go (asya-sidecar, asya-gateway)
 
-- `src/asya-sidecar/pkg/messages/message.go` — `Message` struct -> `Meshage`
+- `src/asya-sidecar/pkg/messages/message.go` — `Message` struct -> `Envelope`
 - `src/asya-sidecar/internal/` — all references to `Message`, `msg`, etc.
 - `src/asya-sidecar/internal/progress/reporter.go` — gateway URL format strings
 - `src/asya-gateway/pkg/types/` — any internal message types
@@ -97,4 +97,4 @@ client-facing A2A API.
 
 - Changing the queue-level wire format (JSON field names in transit)
 - Changing MCP or A2A protocol endpoints (those stay as `/mcp`, `/a2a/`)
-- Changing the JSON field names inside meshage bodies (id, route, payload, etc.)
+- Changing the JSON field names inside envelope bodies (id, route, payload, etc.)

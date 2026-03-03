@@ -108,7 +108,7 @@ yield MyResultModel(status="done", artifacts=[...])
 
 ### What stays the same
 
-- Wire format: meshages are still plain JSON — the serializer is syntactic sugar
+- Wire format: envelopes are still plain JSON — the serializer is syntactic sugar
 - Sidecar, gateway, queues: never see pydantic objects
 - TypedDict: already works (it's a dict)
 - Plain dicts: no behavior change
