@@ -309,14 +309,14 @@ func (s *sseWriter) writeEvent(update types.TaskUpdate) {
 		if json.Unmarshal(update.PartialPayload, &payload) == nil {
 			eventType = a2a.DetectFLYEventType(payload)
 		}
-		_, _ = io.WriteString(s.w, "event: "+eventType+"\ndata: "+string(update.PartialPayload)+"\n\n")
+		_, _ = io.WriteString(s.w, "event: "+eventType+"\ndata: "+string(update.PartialPayload)+"\n\n") // #nosec G203 -- SSE text/event-stream, not HTML
 	} else {
 		data, err := json.Marshal(update)
 		if err != nil {
 			slog.Error("Failed to marshal SSE update", "error", err)
 			return
 		}
-		_, _ = io.WriteString(s.w, "event: update\ndata: "+string(data)+"\n\n")
+		_, _ = io.WriteString(s.w, "event: update\ndata: "+string(data)+"\n\n") // #nosec G203 -- SSE text/event-stream, not HTML
 	}
 	s.flusher.Flush()
 }
