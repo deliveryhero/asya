@@ -25,6 +25,7 @@ if [ "$subcmd" = "list" ] || [ "$subcmd" = "ls" ]; then
         fi
 
         # Extract task ID from branch: "epic/task.slug" -> "task" (part before first dot)
+        # Also handles flat format "task.slug" where s|.*/|| is a no-op (no "/" to strip)
         task_part=$(printf '%s' "$branch" | sed 's|.*/||; s|\..*||')
         info=$(git aint get "$task_part" --format "{status}	{title}" 2>/dev/null)
         if [ $? -eq 0 ] && [ -n "$info" ]; then
@@ -40,10 +41,12 @@ if [ "$subcmd" = "list" ] || [ "$subcmd" = "ls" ]; then
   done
 elif [ "$subcmd" = "remove" ] || [ "$subcmd" = "rm" ]; then
   ref="$1"; shift
-  wt_path=$(git aint get "$ref" --format "{tag:worktree}") || exit 1
-  branch=$(git aint get "$ref" --format "{tag:branch}") || exit 1
-  git worktree remove "$wt_path" "$@" || exit 1
-  git aint update "$ref" --rm-tag "worktree:$wt_path" --rm-tag "branch:$branch" || exit 1
+  repo_root=$(git rev-parse --show-toplevel) || exit 1
+  wt_pattern=$(git aint get "$ref" --format "{config:worktree-pattern}") || exit 1
+  wt_dir="$repo_root/$(git config aint.worktree-dir 2>/dev/null || echo '.worktrees')/$wt_pattern"
+  branch=$(git aint get "$ref" --format "{config:branch-pattern}") || exit 1
+  git worktree remove "$wt_dir" "$@" || exit 1
+  git aint update "$ref" --rm-tag "worktree:$wt_dir" --rm-tag "branch:$branch" || exit 1
   echo "Removed worktree for [$ref]"
 else
   echo "usage: git aint worktree <list|remove> [ref]" >&2
