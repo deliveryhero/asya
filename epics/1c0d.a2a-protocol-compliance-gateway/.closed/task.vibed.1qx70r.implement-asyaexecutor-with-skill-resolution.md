@@ -2,8 +2,14 @@
 title: Implement AsyaExecutor with skill resolution
 priority: 2 # medium
 type: task
-dependencies: [1c0d/1qn6p7, 1c0d/1qzr7p, 1c0d/1qv3q2]
+tags:
+  - pr:257
+dependencies:
+  - 1c0d/1qn6p7
+  - 1c0d/1qzr7p
+  - 1c0d/1qv3q2
 ---
+
 
 ## Summary
 
