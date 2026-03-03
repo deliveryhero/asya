@@ -2,7 +2,11 @@
 title: "DB migration: tools table and new task status values"
 priority: 2 # medium
 type: task
+tags:
+  - worktree:.worktrees/1c0d/1qtbxr.db-migration-tools-table-new-task-status-values
+  - branch:1c0d/1qtbxr.db-migration-tools-table-new-task-status-values
 ---
+
 
 
 ## Objective
