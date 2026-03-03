@@ -96,6 +96,7 @@ crossplane:
   gcpProviderConfig:
     name: gcp-emulator
     projectId: test-project
+    emulatorHost: "pubsub-emulator.asya-system.svc.cluster.local:8085"
     credentialsSource: Secret
     secretRef:
       namespace: crossplane-system

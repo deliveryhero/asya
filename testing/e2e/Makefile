@@ -18,8 +18,8 @@ ifneq ($(filter $(PROFILE_REQUIRED_TARGETS),$(MAKECMDGOALS)),)
   ifndef PROFILE
     $(error PROFILE is not set. Use: make <target> PROFILE=sqs-s3 or PROFILE=rabbitmq-minio)
   endif
-  ifneq ($(filter-out sqs-s3 rabbitmq-minio,$(PROFILE)),)
-    $(error Unknown PROFILE: $(PROFILE). Valid profiles: sqs-s3, rabbitmq-minio)
+  ifneq ($(filter-out sqs-s3 rabbitmq-minio pubsub-gcs,$(PROFILE)),)
+    $(error Unknown PROFILE: $(PROFILE). Valid profiles: sqs-s3, rabbitmq-minio, pubsub-gcs)
   endif
 endif
 

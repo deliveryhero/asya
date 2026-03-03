@@ -67,6 +67,11 @@ gateway:
         region: "us-east-1"
         visibilityTimeout: 300
         waitTimeSeconds: 2
+    pubsub:
+      enabled: false
+      config:
+        projectId: ""
+        endpoint: ""
 
   postgresql:
     host: postgres.asya-e2e.svc.cluster.local
@@ -282,3 +287,19 @@ crew:
       queueLength: 5
     workload:
       kind: Deployment
+
+transport:
+  rabbitmq:
+    enabled: false
+  sqs:
+    enabled: false
+  pubsub:
+    enabled: false
+
+storage:
+  minio:
+    enabled: false
+  s3:
+    enabled: false
+  gcs:
+    enabled: false

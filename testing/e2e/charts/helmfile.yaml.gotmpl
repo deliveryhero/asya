@@ -13,6 +13,10 @@ environments:
     values:
       - values.yaml
       - ../profiles/sqs-s3.yaml
+  pubsub-gcs:
+    values:
+      - values.yaml
+      - ../profiles/pubsub-gcs.yaml
 
 ---
 
@@ -141,6 +145,48 @@ releases:
         command: "sh"
         args: ["-c", "echo \"[+] MinIO deployed in $(($(date +%s) - $(cat /tmp/helm-minio-start)))s\""]
 
+  - name: pubsub
+    namespace: asya-system
+    chart: ./pubsub
+    condition: transport.pubsub.enabled
+    values:
+      - enabled: {{ .Values.transport.pubsub.enabled | default false }}
+        projectId: test-project
+    labels:
+      layer: infra
+    hooks:
+      - events: ["presync"]
+        command: "sh"
+        args: ["-c", "echo '[.] Deploying Pub/Sub (emulator)...' && date +%s > /tmp/helm-pubsub-start"]
+      - events: ["postsync"]
+        command: "sh"
+        args: ["-c", "echo \"[+] Pub/Sub (emulator) deployed in $(($(date +%s) - $(cat /tmp/helm-pubsub-start)))s\""]
+
+  - name: gcs
+    namespace: asya-system
+    chart: ./gcs
+    condition: storage.gcs.enabled
+    values:
+      - enabled: {{ .Values.storage.gcs.enabled | default false }}
+        {{- if and (.Values.storage.gcs.enabled) (.Values.actors).storage }}
+        buckets:
+          {{- with .Values.actors.storage.resultsBucket }}
+          - {{ . }}
+          {{- end }}
+          {{- with .Values.actors.storage.errorsBucket }}
+          - {{ . }}
+          {{- end }}
+        {{- end }}
+    labels:
+      layer: infra
+    hooks:
+      - events: ["presync"]
+        command: "sh"
+        args: ["-c", "echo '[.] Deploying GCS (emulator)...' && date +%s > /tmp/helm-gcs-start"]
+      - events: ["postsync"]
+        command: "sh"
+        args: ["-c", "echo \"[+] GCS (emulator) deployed in $(($(date +%s) - $(cat /tmp/helm-gcs-start)))s\""]
+
   - name: asya-crossplane
     namespace: asya-system
     chart: ../../../deploy/helm-charts/asya-crossplane
@@ -156,6 +202,12 @@ releases:
       {{- end }}
       {{- if .Values.storage.minio.enabled }}
       - minio
+      {{- end }}
+      {{- if .Values.transport.pubsub.enabled }}
+      - pubsub
+      {{- end }}
+      {{- if .Values.storage.gcs.enabled }}
+      - gcs
       {{- end }}
     values:
       - {{- .Values.crossplane | toYaml | nindent 8 }}
