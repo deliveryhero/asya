@@ -287,6 +287,10 @@ func (h *Handler) HandleMeshStream(w http.ResponseWriter, r *http.Request) {
 // writeSSEEvent writes a TaskUpdate as an SSE event to the client.
 // FLY events (PartialPayload set) are sent with A2A-detected event type.
 // All other updates (progress, status changes) are sent as "event: update".
+//
+// Security: SSE streams use Content-Type text/event-stream, not text/html.
+// eventType is a hardcoded constant from DetectFLYEventType; data is JSON.
+// HTML escaping would corrupt the SSE protocol framing.
 func writeSSEEvent(w http.ResponseWriter, flusher http.Flusher, update types.TaskUpdate) {
 	if update.PartialPayload != nil {
 		var payload map[string]any
@@ -294,6 +298,7 @@ func writeSSEEvent(w http.ResponseWriter, flusher http.Flusher, update types.Tas
 		if json.Unmarshal(update.PartialPayload, &payload) == nil {
 			eventType = a2a.DetectFLYEventType(payload)
 		}
+		// nosemgrep: go.lang.security.audit.xss.no-direct-write-to-responsewriter
 		_, _ = io.WriteString(w, "event: "+eventType+"\ndata: "+string(update.PartialPayload)+"\n\n")
 	} else {
 		data, err := json.Marshal(update)
@@ -301,6 +306,7 @@ func writeSSEEvent(w http.ResponseWriter, flusher http.Flusher, update types.Tas
 			slog.Error("Failed to marshal SSE update", "error", err)
 			return
 		}
+		// nosemgrep: go.lang.security.audit.xss.no-direct-write-to-responsewriter
 		_, _ = io.WriteString(w, "event: update\ndata: "+string(data)+"\n\n")
 	}
 	flusher.Flush()
