@@ -1107,6 +1107,10 @@ import (
 )
 ```
 
+> **Version**: This RFC targets `a2a-go` **v0.3.7** (stable). The v1.0.0-alpha
+> line introduces breaking API changes (iterator-based `AgentExecutor`, renamed
+> `RequestContext` -> `ExecutorContext`). Pin to v0.3.7 until v1.0 stabilizes.
+
 **What a2a-go provides**:
 
 | Package | Provides | Replaces |
@@ -1142,8 +1146,8 @@ func (e *AsyaExecutor) Execute(
     reqCtx *a2asrv.RequestContext,
     queue eventqueue.Queue,
 ) error {
-    msg := reqCtx.Message()
-    taskInfo := reqCtx.TaskInfo()
+    msg := reqCtx.Message
+    taskInfo := reqCtx.TaskInfo
 
     // 1. Resolve skill → entrypoint actor
     skill, err := e.resolveSkill(msg)
@@ -1198,7 +1202,7 @@ func (e *AsyaExecutor) Cancel(
     reqCtx *a2asrv.RequestContext,
     queue eventqueue.Queue,
 ) error {
-    taskID := reqCtx.TaskInfo().TaskID
+    taskID := reqCtx.TaskInfo.TaskID
 
     // Mark task as canceled in internal store
     err := e.taskStore.Update(types.TaskUpdate{
@@ -1212,7 +1216,7 @@ func (e *AsyaExecutor) Cancel(
     // Write cancellation event
     return queue.Write(ctx, &a2a.TaskStatusUpdateEvent{
         TaskID:    taskID,
-        ContextID: reqCtx.TaskInfo().ContextID,
+        ContextID: reqCtx.TaskInfo.ContextID,
         Status: a2a.TaskStatus{
             State:     a2a.TaskStateCanceled,
             Timestamp: timePtr(time.Now()),
@@ -1226,7 +1230,7 @@ task, the executor detects this and dispatches to x-resume instead:
 
 ```go
 func (e *AsyaExecutor) Execute(ctx, reqCtx, queue) error {
-    msg := reqCtx.Message()
+    msg := reqCtx.Message
 
     // Check if this is a resume (message has task_id and task is paused)
     if msg.TaskID != "" {
@@ -1527,7 +1531,7 @@ should continue processing rather than dropping the message. The envelope is
 already dequeued — dropping it would lose work. Better to process and let the
 next progress report discover the cancellation.
 
-**Error**: `TaskNotCancelableError` if task is already in terminal state.
+**Error**: `a2a.ErrTaskNotCancelable` if task is already in terminal state.
 
 ### 7.6 SubscribeToTask
 
@@ -1538,7 +1542,7 @@ SSE stream for an existing task. Same event format as SendStreamingMessage.
 
 **Behavior**:
 
-1. If task is in terminal state: return `UnsupportedOperationError`
+1. If task is in terminal state: return `a2a.ErrUnsupportedOperation`
 2. Replay historical events (from `task_updates` table)
 3. Subscribe to live events via TaskStore pub/sub
 4. Stream until terminal state, then close SSE connection
@@ -1562,7 +1566,7 @@ headers.
 **Database**: New `task_push_configs` table (see Section 13).
 
 **Implementation phase**: Phase 4 (deferred). The a2a-go handler returns
-`PushNotificationNotSupportedError` until implemented. The Agent Card declares
+`a2a.ErrPushNotificationNotSupported` until implemented. The Agent Card declares
 `capabilities.push_notifications: false`.
 
 ### 7.8 GetExtendedAgentCard
@@ -1573,7 +1577,7 @@ headers.
 Returns an authenticated, extended version of the Agent Card with additional
 details not publicly visible.
 
-**Implementation phase**: Phase 3. Returns `UnsupportedOperationError` initially.
+**Implementation phase**: Phase 3. Returns `a2a.ErrUnsupportedOperation` initially.
 The Agent Card declares `capabilities.extended_agent_card: false`.
 
 ---
@@ -2688,9 +2692,12 @@ by the gateway:
 | `StreamResponse` | `a2a.StreamResponse` | SSE streaming |
 | `TaskStatusUpdateEvent` | `a2a.TaskStatusUpdateEvent` | Status streaming |
 | `TaskArtifactUpdateEvent` | `a2a.TaskArtifactUpdateEvent` | Artifact streaming |
-| `SendMessageRequest` | `a2a.SendMessageRequest` | Inbound requests |
-| `SendMessageConfig` | `a2a.SendMessageConfig` | Blocking, output modes |
-| `PushNotificationConfig` | `a2a.PushNotificationConfig` | Webhooks |
+| `SendMessageRequest` | `a2a.MessageSendParams` | Inbound requests |
+| `SendMessageConfig` | `a2a.MessageSendConfig` | Blocking, output modes |
+| `PushNotificationConfig` | `a2a.TaskPushConfig` | Webhooks |
+
+> **Note**: Type names above reflect `a2a-go` **v0.3.7**. These may change in
+> v1.0.0+ (e.g., `MessageSendParams` was previously `SendMessageRequest`).
 
 ## Appendix B: a2a-go Server Integration
 
@@ -2702,9 +2709,15 @@ executor := a2a.NewAsyaExecutor(queueClient, taskStore, skillRegistry, namespace
 a2aStore := a2a.NewStoreAdapter(taskStore)
 
 // Create a2a-go handler
+// Note: Agent Card is NOT passed to NewHandler. It is served via a separate
+// handler mounted at /.well-known/agent.json:
+//   a2asrv.NewStaticAgentCardHandler(card)        — for static cards
+//   a2asrv.NewAgentCardHandler(producer)           — for dynamic cards
+// For the extended card endpoint, use:
+//   a2asrv.WithExtendedAgentCard(card)             — static extended card
+//   a2asrv.WithExtendedAgentCardProducer(producer) — dynamic extended card
 a2aHandler := a2asrv.NewHandler(executor,
     a2asrv.WithTaskStore(a2aStore),
-    a2asrv.WithAgentCard(agentCardProvider),
 )
 
 // Mount with base prefix + fixed /a2a namespace
@@ -2726,6 +2739,6 @@ mux.Handle(base+"/mesh/expose", meshExposeHandler)
 mux.Handle(base+"/mesh/", meshHandler)  // sidecar routes
 
 // Root-level (no prefix)
-mux.HandleFunc("/.well-known/agent.json", a2aHandler.AgentCard)
+mux.Handle("/.well-known/agent.json", a2asrv.NewStaticAgentCardHandler(agentCard))
 mux.HandleFunc("/health", healthHandler)
 ```

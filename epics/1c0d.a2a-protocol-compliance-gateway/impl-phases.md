@@ -3,6 +3,13 @@
 **Source of truth**: `rfc-a2a-native.md` (supersedes all previous design)
 **Library**: `a2a-go` v0.3.7 (stable)
 
+```
+  T1 (DB migration)  ──────> T3 (tool registry) ──┐
+                                                  ├──> T6 (executor) ──> T7 (wire handler) ──> T8 (FLY rename)
+  T2 (a2a-go import) ──┬──> T4 (translator) ──────┘
+                       └──> T5 (store adapter) ───┘
+```
+
 ## Previous Work (Superseded)
 
 Phases 1 and 1.5 (PRs #202, #208) implemented hand-rolled A2A types and endpoints.
