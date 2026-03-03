@@ -74,6 +74,10 @@ def chaos_queues(chaos_actors, namespace):
             access_key=os.getenv("AWS_ACCESS_KEY_ID", "test"),
             secret_key=os.getenv("AWS_SECRET_ACCESS_KEY", "test"),
         )
+    elif transport == "pubsub":
+        from asya_testing.clients.pubsub import PubSubClient
+        project_id = os.getenv("PUBSUB_PROJECT_ID", "test-project")
+        transport_client = PubSubClient(project_id=project_id)
     else:
         pytest.fail(f"Unsupported transport: {transport}")
 
