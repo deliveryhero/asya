@@ -119,8 +119,8 @@ func main() {
 			taskHandler.HandleMeshProgress(w, r)
 		} else if strings.HasSuffix(r.URL.Path, "/final") {
 			taskHandler.HandleMeshFinal(w, r)
-		} else if strings.HasSuffix(r.URL.Path, "/partial") {
-			taskHandler.HandleMeshPartial(w, r)
+		} else if strings.HasSuffix(r.URL.Path, "/fly") {
+			taskHandler.HandleMeshFly(w, r)
 		} else {
 			taskHandler.HandleMeshStatus(w, r)
 		}

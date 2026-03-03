@@ -196,29 +196,29 @@ func (r *Reporter) CreateMesh(ctx context.Context, id, parentID string, route en
 	return nil
 }
 
-// ForwardPartial sends a partial event to the gateway for live SSE delivery.
+// ForwardFly sends a FLY event to the gateway for live SSE delivery.
 // Used for streaming token-by-token output from generator handlers to connected clients.
-func (r *Reporter) ForwardPartial(ctx context.Context, taskID string, payload json.RawMessage) error {
+func (r *Reporter) ForwardFly(ctx context.Context, taskID string, payload json.RawMessage) error {
 	if taskID == "" {
 		return nil
 	}
 
-	url := fmt.Sprintf("%s/mesh/%s/partial", r.gatewayURL, taskID)
+	url := fmt.Sprintf("%s/mesh/%s/fly", r.gatewayURL, taskID)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(payload))
 	if err != nil {
-		return fmt.Errorf("failed to create partial request: %w", err)
+		return fmt.Errorf("failed to create FLY request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := r.httpClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("failed to forward partial event: %w", err)
+		return fmt.Errorf("failed to forward FLY event: %w", err)
 	}
 	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("partial forward returned non-200 status: %d", resp.StatusCode)
+		return fmt.Errorf("FLY forward returned non-200 status: %d", resp.StatusCode)
 	}
 
 	return nil
