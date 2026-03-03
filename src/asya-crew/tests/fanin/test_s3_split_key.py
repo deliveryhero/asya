@@ -64,8 +64,12 @@ def make_envelope(
     }
 
 
-def call_aggregator(msg: dict, base_dir: str) -> dict | None:
-    """Drive the aggregator generator with ABI protocol simulation."""
+def call_aggregator(msg: dict, base_dir: str) -> tuple[dict | None, list[tuple]]:
+    """Drive the aggregator generator with ABI protocol simulation.
+
+    Returns (emitted_payload, abi_commands) where abi_commands is a list of
+    ABI tuples yielded by the generator (e.g., GET, DEL verbs).
+    """
     from asya_crew.fanin.s3_split_key import aggregator
 
     fan_in_header = msg["headers"]["x-asya-fan-in"]
@@ -73,9 +77,11 @@ def call_aggregator(msg: dict, base_dir: str) -> dict | None:
 
     # First yield: ("GET", ".headers.x-asya-fan-in")
     cmd = next(gen)
+    assert isinstance(cmd, tuple)
     assert cmd == ("GET", ".headers.x-asya-fan-in"), f"Expected GET .headers.x-asya-fan-in, got {cmd}"
 
     emitted_payload = None
+    abi_commands: list[tuple[str, ...]] = [cmd]
     try:
         yielded = gen.send(fan_in_header)
         while True:
@@ -83,13 +89,14 @@ def call_aggregator(msg: dict, base_dir: str) -> dict | None:
                 emitted_payload = yielded
                 yielded = next(gen)
             elif isinstance(yielded, tuple):
+                abi_commands.append(yielded)
                 yielded = next(gen)
             else:
                 raise RuntimeError(f"Unexpected yield: {yielded}")
     except StopIteration:
         pass
 
-    return emitted_payload
+    return emitted_payload, abi_commands
 
 
 def test_full_cycle_two_slices(tmp_path):
@@ -104,12 +111,12 @@ def test_full_cycle_two_slices(tmp_path):
 
     # Slice 0: parent payload
     msg0 = make_envelope(origin_id, 0, 2, parent_payload)
-    result = call_aggregator(msg0, base_dir)
+    result, _ = call_aggregator(msg0, base_dir)
     assert result is None, "Should accumulate, not emit yet"
 
     # Slice 1: sub-agent result triggers emission
     msg1 = make_envelope(origin_id, 1, 2, subagent_result)
-    result = call_aggregator(msg1, base_dir)
+    result, _ = call_aggregator(msg1, base_dir)
 
     assert result is not None, "Should emit merged payload"
     # Aggregator returns the merged payload dict directly (not a full envelope)
@@ -136,12 +143,12 @@ def test_multi_slice_in_order_arrival(tmp_path):
     for i in range(slice_count - 1):
         payload = parent_payload if i == 0 else sub_results[i - 1]
         msg = make_envelope(origin_id, i, slice_count, payload)
-        result = call_aggregator(msg, base_dir)
+        result, _ = call_aggregator(msg, base_dir)
         assert result is None, f"Slice {i} should not trigger emission"
 
     # Last slice triggers emission
     msg_last = make_envelope(origin_id, slice_count - 1, slice_count, sub_results[-1])
-    result = call_aggregator(msg_last, base_dir)
+    result, _ = call_aggregator(msg_last, base_dir)
 
     assert result is not None
     assert result["task"] == "classify"
@@ -164,17 +171,17 @@ def test_out_of_order_arrival(tmp_path):
 
     # Slice 2 arrives first
     msg2 = make_envelope(origin_id, 2, slice_count, sub2)
-    result = call_aggregator(msg2, base_dir)
+    result, _ = call_aggregator(msg2, base_dir)
     assert result is None
 
     # Slice 0 (parent) arrives second
     msg0 = make_envelope(origin_id, 0, slice_count, parent_payload)
-    result = call_aggregator(msg0, base_dir)
+    result, _ = call_aggregator(msg0, base_dir)
     assert result is None
 
     # Slice 1 arrives last and triggers emission
     msg1 = make_envelope(origin_id, 1, slice_count, sub1)
-    result = call_aggregator(msg1, base_dir)
+    result, _ = call_aggregator(msg1, base_dir)
 
     assert result is not None
     assert result["task"] == "summarize"
@@ -198,16 +205,16 @@ def test_index_zero_arrives_last(tmp_path):
 
     # Sub-agents arrive first
     msg1 = make_envelope(origin_id, 1, slice_count, sub1)
-    result = call_aggregator(msg1, base_dir)
+    result, _ = call_aggregator(msg1, base_dir)
     assert result is None
 
     msg2 = make_envelope(origin_id, 2, slice_count, sub2)
-    result = call_aggregator(msg2, base_dir)
+    result, _ = call_aggregator(msg2, base_dir)
     assert result is None
 
     # Parent slice arrives last and triggers emission
     msg0 = make_envelope(origin_id, 0, slice_count, parent_payload)
-    result = call_aggregator(msg0, base_dir)
+    result, _ = call_aggregator(msg0, base_dir)
 
     assert result is not None
     assert result["task"] == "translate"
@@ -235,7 +242,7 @@ def test_duplicate_slice_idempotent(tmp_path):
 
     # Slice 1 arrives first time -- triggers emission with v1 data
     msg1_first = make_envelope(origin_id, 1, slice_count, sub_result_v1)
-    result = call_aggregator(msg1_first, base_dir)
+    result, _ = call_aggregator(msg1_first, base_dir)
     assert result is not None
 
     # Only first delivery stored
@@ -244,7 +251,7 @@ def test_duplicate_slice_idempotent(tmp_path):
     # Re-deliver slice 1 with different content (simulates at-least-once delivery)
     # After emission, directory is gone, so re-delivery starts fresh accumulation
     msg1_dup = make_envelope(origin_id, 1, slice_count, sub_result_v2)
-    result_dup = call_aggregator(msg1_dup, base_dir)
+    result_dup, _ = call_aggregator(msg1_dup, base_dir)
     # Fresh aggregation started but idx=0 (parent) not re-delivered, so returns None
     assert result_dup is None
 
@@ -262,7 +269,7 @@ def test_incomplete_returns_none(tmp_path):
     for i in range(slice_count - 1):
         payload = {"data": f"slice-{i}"}
         msg = make_envelope(origin_id, i, slice_count, payload)
-        result = call_aggregator(msg, base_dir)
+        result, _ = call_aggregator(msg, base_dir)
         assert result is None, f"Slice {i} of {slice_count} should not emit"
 
     logger.info("=== test_incomplete_returns_none: PASSED ===")
@@ -295,7 +302,7 @@ def test_concurrent_completion_exactly_once(tmp_path):
 
     # Now call aggregator with slice 1 -- sentinel already exists, should return None
     msg1 = make_envelope(origin_id, 1, slice_count, sub_result)
-    result = call_aggregator(msg1, base_dir)
+    result, _ = call_aggregator(msg1, base_dir)
 
     assert result is None, "Should return None when sentinel already created by another pod"
 
@@ -317,21 +324,14 @@ def test_del_strips_fan_in_header(tmp_path):
     call_aggregator(msg0, base_dir)
 
     msg1 = make_envelope(origin_id, 1, slice_count, sub_result)
+    result, abi_commands = call_aggregator(msg1, base_dir)
 
-    from asya_crew.fanin.s3_split_key import aggregator
+    assert result is not None
+    assert result["task"] == "strip-headers"
+    assert result["results"] == [sub_result]
 
-    gen = aggregator(msg1["payload"], _base_dir=base_dir)
-    cmd = next(gen)
-    assert cmd == ("GET", ".headers.x-asya-fan-in")
-
-    yielded = gen.send(msg1["headers"]["x-asya-fan-in"])
-    assert isinstance(yielded, tuple), f"Expected DEL tuple, got {type(yielded)}"
-    assert yielded == ("DEL", ".headers.x-asya-fan-in")
-
-    merged = next(gen)
-    assert isinstance(merged, dict)
-    assert merged["task"] == "strip-headers"
-    assert merged["results"] == [sub_result]
+    assert ("GET", ".headers.x-asya-fan-in") in abi_commands
+    assert ("DEL", ".headers.x-asya-fan-in") in abi_commands
 
     logger.info("=== test_del_strips_fan_in_header: PASSED ===")
 
@@ -362,7 +362,7 @@ def test_aggregation_key_placement(tmp_path):
     call_aggregator(msg1, base_dir)
 
     msg2 = make_envelope(origin_id, 2, slice_count, sub2, aggregation_key=aggregation_key)
-    result = call_aggregator(msg2, base_dir)
+    result, _ = call_aggregator(msg2, base_dir)
 
     assert result is not None
     # Results placed at /analysis/scores, not at /results
@@ -387,7 +387,7 @@ def test_state_cleanup_after_emission(tmp_path):
     call_aggregator(msg0, base_dir)
 
     msg1 = make_envelope(origin_id, 1, slice_count, sub_result)
-    result = call_aggregator(msg1, base_dir)
+    result, _ = call_aggregator(msg1, base_dir)
 
     assert result is not None
 
@@ -417,7 +417,7 @@ def test_merged_payload_preserves_parent_fields(tmp_path):
     call_aggregator(msg0, base_dir)
 
     msg1 = make_envelope(origin_id, 1, slice_count, sub_result)
-    result = call_aggregator(msg1, base_dir)
+    result, _ = call_aggregator(msg1, base_dir)
 
     assert result is not None
     # All parent payload fields preserved

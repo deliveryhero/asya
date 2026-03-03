@@ -15,3 +15,14 @@ scaling:
   pollingInterval: 5
   cooldownPeriod: 30
   queueLength: 5
+
+# State proxy connector for aggregator S3-backed state storage.
+# Injected inline (not via overlay) because overlay->injector stateProxy
+# propagation is not yet wired in the Crossplane composition.
+stateProxy:
+  connector:
+    image: ghcr.io/deliveryhero/asya-state-proxy-s3-buffered-lww:v1.0.0
+  config:
+    bucket: asya-results
+    endpoint: ""
+    region: us-east-1

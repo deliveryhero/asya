@@ -117,6 +117,13 @@ time {
   docker build -t "function-asya-overlays:latest" "$ROOT_DIR/src/function-asya-overlays/" > /dev/null 2>&1 &
   FUNCTION_BUILD_PID=$!
 
+  # Build state proxy connector image (used by fan-in aggregator for S3-backed state)
+  echo "[.] Building asya-state-proxy-s3-buffered-lww image..."
+  docker build -t "${IMAGE_PREFIX}asya-state-proxy-s3-buffered-lww:v1.0.0" \
+    -f "$ROOT_DIR/src/asya-state-proxy/Dockerfile.s3-buffered-lww" \
+    "$ROOT_DIR/src/asya-state-proxy/" > /dev/null 2>&1 &
+  STATE_PROXY_BUILD_PID=$!
+
   # Wait for image builds
   if ! wait "$BUILD_PID"; then
     echo "[-] Docker image build failed"
@@ -135,6 +142,12 @@ time {
     exit 1
   fi
   echo "[+] function-asya-overlays image built"
+
+  if ! wait "$STATE_PROXY_BUILD_PID"; then
+    echo "[-] asya-state-proxy-s3-buffered-lww build failed"
+    exit 1
+  fi
+  echo "[+] asya-state-proxy-s3-buffered-lww image built"
 
   # Wait for cluster creation
   if [ -n "$CLUSTER_PID" ]; then
@@ -201,6 +214,7 @@ time {
     "asya-crew:latest"
     "asya-testing:latest"
     "asya-injector:latest"
+    "asya-state-proxy-s3-buffered-lww:v1.0.0"
   )
 
   LOAD_PIDS=()

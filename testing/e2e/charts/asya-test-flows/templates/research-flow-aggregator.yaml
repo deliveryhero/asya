@@ -8,6 +8,10 @@
 #
 # The aggregator reads x-asya-fan-in header via ABI yield protocol
 # for fan-in coordination.
+#
+# State proxy is configured inline (not via overlay) because the
+# Crossplane composition does not yet propagate stateProxy from
+# the overlay context to the XR spec where the injector reads it.
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 metadata:
@@ -24,7 +28,27 @@ spec:
       asya.sh/transport: {{ .Values.transport }}
   transport: {{ .Values.transport }}
 
-  overlays: [asya-persistence-s3]
+  stateProxy:
+    - name: checkpoints
+      mount:
+        path: /state/checkpoints
+      connector:
+        image: {{ .Values.stateProxy.connector.image }}
+        env:
+          - name: STATE_BUCKET
+            value: {{ .Values.stateProxy.config.bucket | quote }}
+          {{- with .Values.stateProxy.config.endpoint }}
+          - name: STATE_ENDPOINT
+            value: {{ . | quote }}
+          {{- end }}
+          {{- with .Values.stateProxy.config.region }}
+          - name: AWS_REGION
+            value: {{ . | quote }}
+          {{- end }}
+          - name: AWS_ACCESS_KEY_ID
+            value: "test"
+          - name: AWS_SECRET_ACCESS_KEY
+            value: "test"
 
   scaling:
     enabled: {{ .Values.scaling.enabled }}
