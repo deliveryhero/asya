@@ -4,6 +4,7 @@ go 1.24.4
 
 require (
 	cloud.google.com/go/pubsub v1.50.1
+	github.com/a2aproject/a2a-go v0.3.7
 	github.com/aws/aws-sdk-go-v2 v1.39.4
 	github.com/aws/aws-sdk-go-v2/config v1.31.15
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.42.11
@@ -22,7 +23,6 @@ require (
 	cloud.google.com/go/compute/metadata v0.8.0 // indirect
 	cloud.google.com/go/iam v1.5.2 // indirect
 	cloud.google.com/go/pubsub/v2 v2.0.0 // indirect
-	github.com/a2aproject/a2a-go v0.3.7 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.18.19 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.18.11 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.4.11 // indirect
