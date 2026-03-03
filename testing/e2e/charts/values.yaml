@@ -246,7 +246,7 @@ crew:
         cpu: 10m
         memory: 64Mi
       limits:
-        cpu: 200m
+        cpu: 100m
         memory: 128Mi
     scaling:
       enabled: true
@@ -271,7 +271,7 @@ crew:
         cpu: 10m
         memory: 64Mi
       limits:
-        cpu: 200m
+        cpu: 100m
         memory: 128Mi
     scaling:
       enabled: true

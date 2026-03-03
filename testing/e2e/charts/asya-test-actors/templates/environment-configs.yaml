@@ -26,7 +26,7 @@ data:
               cpu: 10m
               memory: 64Mi
             limits:
-              cpu: 500m
+              cpu: 200m
               memory: 256Mi
 ---
 apiVersion: apiextensions.crossplane.io/v1beta1
