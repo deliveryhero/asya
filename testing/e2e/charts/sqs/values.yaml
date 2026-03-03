@@ -1,6 +1,10 @@
 enabled: true
 region: us-east-1
 
+service:
+  type: NodePort
+  nodePort: 30566
+
 auth:
   accessKey: test
   secretKey: test
@@ -8,7 +12,7 @@ auth:
 resources:
   requests:
     cpu: 100m
-    memory: 256Mi
-  limits:
-    cpu: 500m
     memory: 512Mi
+  limits:
+    cpu: 1
+    memory: 1Gi

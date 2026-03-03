@@ -55,76 +55,29 @@ def e2e_helper(gateway_url, namespace):
 
 
 @pytest.fixture(scope="session", autouse=True)
-def check_port_forward_health(gateway_url):
+def check_gateway_health(gateway_url):
     """
-    Check port-forward health at session start.
+    Verify gateway is reachable at session start.
 
-    This fixture runs once per pytest-xdist worker to ensure port-forwards
-    are running. Uses file-based locking to prevent race conditions when
-    multiple workers start simultaneously.
-
-    The Makefile calls port-forward.sh before pytest, so this is primarily
-    a verification step and fallback for chaos tests that kill pods.
+    Runs once per pytest-xdist worker. With NodePort, the gateway is
+    accessible directly via Kind extraPortMappings — no port-forward needed.
     """
-    import fcntl
-    import os
-    import subprocess
-    import tempfile
     import time
 
-    lock_file = os.path.join(tempfile.gettempdir(), "asya-e2e-port-forward.lock")
-
-    with open(lock_file, "w") as lock:
+    for _attempt in range(5):
         try:
-            fcntl.flock(lock.fileno(), fcntl.LOCK_EX)
+            response = requests.get(f"{gateway_url}/health", timeout=2)
+            if response.status_code == 200:
+                logger.info("[+] Gateway is healthy")
+                return
+        except requests.exceptions.RequestException:
+            pass
+        time.sleep(2)  # Wait for gateway pod readiness
 
-            try:
-                response = requests.get(f"{gateway_url}/health", timeout=2)
-                if response.status_code == 200:
-                    logger.info("[+] Gateway port-forward is healthy")
-                    return
-            except requests.exceptions.RequestException:
-                logger.warning("[!] Gateway port-forward not responding, restarting...")
-
-            try:
-                script_dir = subprocess.run(
-                    ["git", "rev-parse", "--show-toplevel"],
-                    capture_output=True,
-                    text=True,
-                    timeout=5,
-                ).stdout.strip()
-
-                port_forward_script = f"{script_dir}/testing/e2e/scripts/port-forward.sh"
-
-                subprocess.run(
-                    [port_forward_script, "start"],
-                    env={**os.environ, "NAMESPACE": "asya-e2e"},
-                    timeout=30,
-                    check=True,
-                )
-                logger.info("[+] Port-forward restart completed")
-
-                for attempt in range(5):
-                    time.sleep(2)  # Wait for port-forward to stabilize
-                    try:
-                        response = requests.get(f"{gateway_url}/health", timeout=2)
-                        if response.status_code == 200:
-                            logger.info(f"[+] Gateway healthy after restart (attempt {attempt + 1}/5)")
-                            return
-                    except requests.exceptions.RequestException:
-                        pass
-
-                raise RuntimeError("Gateway port-forward failed to become healthy after restart")
-
-            except Exception as restart_error:
-                logger.error(f"[-] Failed to restart port-forward: {restart_error}")
-                raise
-
-        finally:
-            fcntl.flock(lock.fileno(), fcntl.LOCK_UN)
+    raise RuntimeError("Gateway not reachable — check NodePort and Kind extraPortMappings")
 
 
-def wait_for_actors_factory(kubectl, namespace, actor_names, max_wait=120, check_interval=5):
+def wait_for_actors_factory(kubectl, namespace, actor_names, max_wait=120, check_interval=2):
     """
     Generic fixture factory to wait for AsyncActors to be deployed.
 
@@ -168,7 +121,7 @@ def wait_for_actors_factory(kubectl, namespace, actor_names, max_wait=120, check
     return actor_names
 
 
-def wait_for_queues_factory(transport_client, queue_names, namespace, max_wait=120, check_interval=5):
+def wait_for_queues_factory(transport_client, queue_names, namespace, max_wait=120, check_interval=2):
     """
     Generic fixture factory to wait for queues to be created by operator.
 

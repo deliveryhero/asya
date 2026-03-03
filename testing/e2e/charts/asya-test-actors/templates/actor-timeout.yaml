@@ -19,6 +19,8 @@ spec:
     enabled: true
     minReplicas: 1
     maxReplicas: 10
+    pollingInterval: 5
+    cooldownPeriod: 30
     queueLength: 5
 
   workload:

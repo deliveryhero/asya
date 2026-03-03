@@ -180,9 +180,7 @@ def test_multiple_component_failures(e2e_helper):
         # They will scale up automatically when needed, so we don't check them here
         logger.info("Note: Crew actors not checked - they scale based on queue depth")
 
-        logger.info("Re-establishing port-forward to new gateway pod...")
-        assert e2e_helper.restart_port_forward(), "Port-forward should be re-established"
-        time.sleep(10)
+        e2e_helper.ensure_gateway_connectivity(max_retries=10, retry_interval=2.0)
 
         logger.info("Checking if system recovered...")
         try:
@@ -265,7 +263,8 @@ def test_resource_exhaustion_handling(e2e_helper):
     logger.info("[+] Resource exhaustion handled gracefully")
 
 
-@pytest.mark.fast
+@pytest.mark.chaos
+@pytest.mark.xdist_group(name="chaos")
 def test_network_partition_simulation(e2e_helper):
     """
     E2E: Test system handles network issues.

@@ -21,6 +21,7 @@ def start_mutations_only_flow(payload: dict):
     p['x'] = 10
     p['y'] = 20
     p['x'] += p['y']
+    p['z'] = p['x'] + 30
     yield "SET", ".route.next[:0]", _next
     yield p
 

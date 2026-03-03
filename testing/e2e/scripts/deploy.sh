@@ -537,7 +537,7 @@ echo
 echo "[.] Phase 9: Waiting for actor pods to be ready..."
 time {
   # Give KEDA time to create HPAs and scale up pods
-  sleep 5
+  sleep 2
 
   if ! kubectl wait --for=condition=ready pod \
     -l app.kubernetes.io/component=actor \
@@ -654,6 +654,4 @@ echo "Crossplane logs saved to: $CROSSPLANE_LOGS"
 echo ""
 echo "Next steps (from the current directory):"
 echo "$ make trigger-tests"
-echo "To just port-forward services, run:"
-echo "$ make port-forward-up"
-echo "$ make port-forward-down"
+echo ""

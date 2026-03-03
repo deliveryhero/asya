@@ -4,11 +4,11 @@ password: asya-db-password
 
 resources:
   requests:
-    cpu: 100m
+    cpu: 50m
     memory: 128Mi
   limits:
-    cpu: 250m
-    memory: 256Mi
+    cpu: 500m
+    memory: 512Mi
 
 persistence:
   enabled: true

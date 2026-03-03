@@ -11,4 +11,5 @@ def mutations_only_flow(p: dict) -> dict:
     p["x"] = 10
     p["y"] = 20
     p["x"] += p["y"]
+    p["z"] = p["x"] + 30
     return p

@@ -18,6 +18,8 @@ spec:
     enabled: {{ .Values.scaling.enabled }}
     minReplicas: {{ .Values.scaling.minReplicas }}
     maxReplicas: {{ .Values.scaling.maxReplicas }}
+    pollingInterval: {{ .Values.scaling.pollingInterval }}
+    cooldownPeriod: {{ .Values.scaling.cooldownPeriod }}
     queueLength: {{ .Values.scaling.queueLength }}
   workload:
     kind: Deployment
@@ -51,6 +53,8 @@ spec:
     enabled: {{ .Values.scaling.enabled }}
     minReplicas: {{ .Values.scaling.minReplicas }}
     maxReplicas: {{ .Values.scaling.maxReplicas }}
+    pollingInterval: {{ .Values.scaling.pollingInterval }}
+    cooldownPeriod: {{ .Values.scaling.cooldownPeriod }}
     queueLength: {{ .Values.scaling.queueLength }}
   workload:
     kind: Deployment
@@ -84,6 +88,8 @@ spec:
     enabled: {{ .Values.scaling.enabled }}
     minReplicas: {{ .Values.scaling.minReplicas }}
     maxReplicas: {{ .Values.scaling.maxReplicas }}
+    pollingInterval: {{ .Values.scaling.pollingInterval }}
+    cooldownPeriod: {{ .Values.scaling.cooldownPeriod }}
     queueLength: {{ .Values.scaling.queueLength }}
   workload:
     kind: Deployment
@@ -117,6 +123,8 @@ spec:
     enabled: {{ .Values.scaling.enabled }}
     minReplicas: {{ .Values.scaling.minReplicas }}
     maxReplicas: {{ .Values.scaling.maxReplicas }}
+    pollingInterval: {{ .Values.scaling.pollingInterval }}
+    cooldownPeriod: {{ .Values.scaling.cooldownPeriod }}
     queueLength: {{ .Values.scaling.queueLength }}
   workload:
     kind: Deployment
@@ -150,6 +158,8 @@ spec:
     enabled: {{ .Values.scaling.enabled }}
     minReplicas: {{ .Values.scaling.minReplicas }}
     maxReplicas: {{ .Values.scaling.maxReplicas }}
+    pollingInterval: {{ .Values.scaling.pollingInterval }}
+    cooldownPeriod: {{ .Values.scaling.cooldownPeriod }}
     queueLength: {{ .Values.scaling.queueLength }}
   workload:
     kind: Deployment
@@ -183,6 +193,8 @@ spec:
     enabled: {{ .Values.scaling.enabled }}
     minReplicas: {{ .Values.scaling.minReplicas }}
     maxReplicas: {{ .Values.scaling.maxReplicas }}
+    pollingInterval: {{ .Values.scaling.pollingInterval }}
+    cooldownPeriod: {{ .Values.scaling.cooldownPeriod }}
     queueLength: {{ .Values.scaling.queueLength }}
   workload:
     kind: Deployment
