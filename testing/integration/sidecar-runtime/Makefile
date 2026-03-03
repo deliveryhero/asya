@@ -27,7 +27,7 @@ export PYTEST_OPTS
 
 COMPOSE_PROJECT := int-sidecar-runtime-$(ASYA_TRANSPORT)
 
-test: clean test-rabbitmq test-sqs
+test: clean test-rabbitmq test-sqs test-pubsub
 
 test-rabbitmq:
 	@echo "[.] Running RabbitMQ transport tests"
@@ -36,6 +36,10 @@ test-rabbitmq:
 test-sqs:
 	@echo "[.] Running SQS transport tests"
 	$(MAKE) test-one ASYA_TRANSPORT=sqs
+
+test-pubsub:
+	@echo "[.] Running Pub/Sub transport tests"
+	$(MAKE) test-one ASYA_TRANSPORT=pubsub
 
 
 test-one: require-ASYA_TRANSPORT validate-env
@@ -57,6 +61,7 @@ cov-one: require-ASYA_TRANSPORT
 down:
 	$(MAKE) down-one ASYA_TRANSPORT=rabbitmq || true
 	$(MAKE) down-one ASYA_TRANSPORT=sqs || true
+	$(MAKE) down-one ASYA_TRANSPORT=pubsub || true
 
 down-one: require-ASYA_TRANSPORT
 	$(DOCKER_COMPOSE) -f profiles/$(ASYA_TRANSPORT).yml -p $(COMPOSE_PROJECT) down -v --remove-orphans || true
@@ -65,6 +70,7 @@ down-one: require-ASYA_TRANSPORT
 clean:
 	$(MAKE) clean-one ASYA_TRANSPORT=rabbitmq || true
 	$(MAKE) clean-one ASYA_TRANSPORT=sqs || true
+	$(MAKE) clean-one ASYA_TRANSPORT=pubsub || true
 	rm -rf $(COVERAGE_DIR)
 
 clean-one: require-ASYA_TRANSPORT
