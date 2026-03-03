@@ -614,10 +614,9 @@ spec:
   actor: test-sidecar-env
   transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
   scaling:
-    enabled: true
-    minReplicas: 1
-    maxReplicas: 5
+    enabled: false
   workload:
+    replicas: 1
     kind: Deployment
     template:
       spec:
@@ -635,7 +634,7 @@ spec:
         kubectl_apply(manifest, namespace=e2e_helper.namespace)
 
         logger.info("Waiting for AsyncActor to be ready (Ready condition)...")
-        assert wait_for_asyncactor_ready("test-sidecar-env", namespace=e2e_helper.namespace, timeout=120), (
+        assert wait_for_asyncactor_ready("test-sidecar-env", namespace=e2e_helper.namespace, timeout=60), (
             "AsyncActor should reach Ready=True"
         )
 
