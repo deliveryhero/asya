@@ -52,8 +52,8 @@ spec:
             value: "fanin:/state/fanin:write=buffered"
           resources:
             requests:
-              cpu: 50m
+              cpu: 10m
               memory: 64Mi
             limits:
-              cpu: 500m
+              cpu: 200m
               memory: 256Mi
