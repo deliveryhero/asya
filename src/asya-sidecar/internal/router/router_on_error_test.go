@@ -9,13 +9,13 @@ import (
 	"github.com/deliveryhero/asya/asya-sidecar/internal/config"
 	"github.com/deliveryhero/asya/asya-sidecar/internal/metrics"
 	"github.com/deliveryhero/asya/asya-sidecar/internal/runtime"
-	"github.com/deliveryhero/asya/asya-sidecar/pkg/messages"
+	"github.com/deliveryhero/asya/asya-sidecar/pkg/envelopes"
 )
 
 func TestRouter_RouteToFlowErrorHandler(t *testing.T) {
 	tests := []struct {
 		name                 string
-		msg                  *messages.Message
+		msg                  *envelopes.Envelope
 		onError              string
 		response             runtime.RuntimeResponse
 		expectedQueue        string
@@ -28,9 +28,9 @@ func TestRouter_RouteToFlowErrorHandler(t *testing.T) {
 	}{
 		{
 			name: "routes to flow error handler and clears _on_error header",
-			msg: &messages.Message{
+			msg: &envelopes.Envelope{
 				ID: "msg-001",
-				Route: messages.Route{
+				Route: envelopes.Route{
 					Prev: []string{},
 					Curr: "actor-a",
 					Next: []string{"actor-b", "actor-c"},
@@ -40,8 +40,8 @@ func TestRouter_RouteToFlowErrorHandler(t *testing.T) {
 					"trace_id":  "abc-123",
 				},
 				Payload: json.RawMessage(`{"input": "data"}`),
-				Status: &messages.Status{
-					Phase:     messages.PhaseProcessing,
+				Status: &envelopes.Status{
+					Phase:     envelopes.PhaseProcessing,
 					Actor:     "actor-a",
 					CreatedAt: "2025-01-01T00:00:00Z",
 					UpdatedAt: "2025-01-01T00:00:01Z",
@@ -67,9 +67,9 @@ func TestRouter_RouteToFlowErrorHandler(t *testing.T) {
 		},
 		{
 			name: "preserves original payload in routed message",
-			msg: &messages.Message{
+			msg: &envelopes.Envelope{
 				ID: "msg-002",
-				Route: messages.Route{
+				Route: envelopes.Route{
 					Prev: []string{},
 					Curr: "validate",
 					Next: []string{"transform"},
@@ -96,9 +96,9 @@ func TestRouter_RouteToFlowErrorHandler(t *testing.T) {
 		},
 		{
 			name: "handles message without prior status",
-			msg: &messages.Message{
+			msg: &envelopes.Envelope{
 				ID: "msg-003",
-				Route: messages.Route{
+				Route: envelopes.Route{
 					Prev: []string{},
 					Curr: "process",
 					Next: []string{},
@@ -125,9 +125,9 @@ func TestRouter_RouteToFlowErrorHandler(t *testing.T) {
 		},
 		{
 			name: "replaces next actors with error handler",
-			msg: &messages.Message{
+			msg: &envelopes.Envelope{
 				ID: "msg-004",
-				Route: messages.Route{
+				Route: envelopes.Route{
 					Prev: []string{"step1"},
 					Curr: "step2",
 					Next: []string{"step3", "step4"},
@@ -136,8 +136,8 @@ func TestRouter_RouteToFlowErrorHandler(t *testing.T) {
 					"_on_error": "err-dispatch",
 				},
 				Payload: json.RawMessage(`{"value": 100}`),
-				Status: &messages.Status{
-					Phase:     messages.PhaseProcessing,
+				Status: &envelopes.Status{
+					Phase:     envelopes.PhaseProcessing,
 					Actor:     "step2",
 					CreatedAt: "2025-06-01T12:00:00Z",
 				},
@@ -202,7 +202,7 @@ func TestRouter_RouteToFlowErrorHandler(t *testing.T) {
 			}
 
 			// Parse the sent message
-			var sentMsg messages.Message
+			var sentMsg envelopes.Envelope
 			if err := json.Unmarshal(mt.sentMessages[0].body, &sentMsg); err != nil {
 				t.Fatalf("Failed to unmarshal sent message: %v", err)
 			}
@@ -235,8 +235,8 @@ func TestRouter_RouteToFlowErrorHandler(t *testing.T) {
 				t.Fatal("Expected status to be set on sent message")
 			}
 
-			if sentMsg.Status.Phase != messages.PhaseFailed {
-				t.Errorf("Expected status phase %q, got %q", messages.PhaseFailed, sentMsg.Status.Phase)
+			if sentMsg.Status.Phase != envelopes.PhaseFailed {
+				t.Errorf("Expected status phase %q, got %q", envelopes.PhaseFailed, sentMsg.Status.Phase)
 			}
 
 			if sentMsg.Status.Error == nil {
@@ -308,9 +308,9 @@ func TestRouter_HandleErrorResponse_WithOnErrorHeader(t *testing.T) {
 	}
 
 	// Build a message with _on_error header
-	msg := &messages.Message{
+	msg := &envelopes.Envelope{
 		ID: "msg-with-on-error",
-		Route: messages.Route{
+		Route: envelopes.Route{
 			Prev: []string{},
 			Curr: "test-actor",
 			Next: []string{"next-actor"},
@@ -376,9 +376,9 @@ func TestRouter_HandleErrorResponse_WithoutOnErrorHeader(t *testing.T) {
 	}
 
 	// Build a message WITHOUT _on_error header
-	msg := &messages.Message{
+	msg := &envelopes.Envelope{
 		ID: "msg-no-on-error",
-		Route: messages.Route{
+		Route: envelopes.Route{
 			Prev: []string{},
 			Curr: "test-actor",
 			Next: []string{"next-actor"},
@@ -434,9 +434,9 @@ func TestRouter_HandleErrorResponse_EmptyOnErrorHeader(t *testing.T) {
 	}
 
 	// Build a message with empty _on_error header
-	msg := &messages.Message{
+	msg := &envelopes.Envelope{
 		ID: "msg-empty-on-error",
-		Route: messages.Route{
+		Route: envelopes.Route{
 			Prev: []string{},
 			Curr: "test-actor",
 			Next: []string{},
@@ -495,9 +495,9 @@ func TestRouter_RouteToFlowErrorHandler_PreservesCreatedAt(t *testing.T) {
 	}
 
 	originalCreatedAt := "2025-03-15T10:30:00Z"
-	msg := &messages.Message{
+	msg := &envelopes.Envelope{
 		ID: "msg-created-at",
-		Route: messages.Route{
+		Route: envelopes.Route{
 			Prev: []string{},
 			Curr: "my-actor",
 			Next: []string{"next"},
@@ -506,8 +506,8 @@ func TestRouter_RouteToFlowErrorHandler_PreservesCreatedAt(t *testing.T) {
 			"_on_error": "handler",
 		},
 		Payload: json.RawMessage(`{}`),
-		Status: &messages.Status{
-			Phase:     messages.PhaseProcessing,
+		Status: &envelopes.Status{
+			Phase:     envelopes.PhaseProcessing,
 			Actor:     "my-actor",
 			CreatedAt: originalCreatedAt,
 			UpdatedAt: "2025-03-15T10:30:05Z",
@@ -529,7 +529,7 @@ func TestRouter_RouteToFlowErrorHandler_PreservesCreatedAt(t *testing.T) {
 		t.Fatalf("routeToFlowErrorHandler returned error: %v", err)
 	}
 
-	var sentMsg messages.Message
+	var sentMsg envelopes.Envelope
 	if err := json.Unmarshal(mt.sentMessages[0].body, &sentMsg); err != nil {
 		t.Fatalf("Failed to unmarshal sent message: %v", err)
 	}
@@ -562,9 +562,9 @@ func TestRouter_RouteToFlowErrorHandler_SetsActorName(t *testing.T) {
 		metrics:   m,
 	}
 
-	msg := &messages.Message{
+	msg := &envelopes.Envelope{
 		ID: "msg-actor-name",
-		Route: messages.Route{
+		Route: envelopes.Route{
 			Prev: []string{},
 			Curr: "failing-actor",
 			Next: []string{},
@@ -590,7 +590,7 @@ func TestRouter_RouteToFlowErrorHandler_SetsActorName(t *testing.T) {
 		t.Fatalf("routeToFlowErrorHandler returned error: %v", err)
 	}
 
-	var sentMsg messages.Message
+	var sentMsg envelopes.Envelope
 	if err := json.Unmarshal(mt.sentMessages[0].body, &sentMsg); err != nil {
 		t.Fatalf("Failed to unmarshal sent message: %v", err)
 	}
@@ -624,9 +624,9 @@ func TestRouter_RouteToFlowErrorHandler_ErrorTraceback(t *testing.T) {
 
 	traceback := "Traceback (most recent call last):\n  File \"handler.py\", line 10, in process\n    raise ValueError(\"bad input\")\nValueError: bad input"
 
-	msg := &messages.Message{
+	msg := &envelopes.Envelope{
 		ID: "msg-traceback",
-		Route: messages.Route{
+		Route: envelopes.Route{
 			Prev: []string{},
 			Curr: "actor-x",
 			Next: []string{"actor-y"},
@@ -654,7 +654,7 @@ func TestRouter_RouteToFlowErrorHandler_ErrorTraceback(t *testing.T) {
 		t.Fatalf("routeToFlowErrorHandler returned error: %v", err)
 	}
 
-	var sentMsg messages.Message
+	var sentMsg envelopes.Envelope
 	if err := json.Unmarshal(mt.sentMessages[0].body, &sentMsg); err != nil {
 		t.Fatalf("Failed to unmarshal sent message: %v", err)
 	}

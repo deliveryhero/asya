@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/deliveryhero/asya/asya-sidecar/pkg/messages"
+	"github.com/deliveryhero/asya/asya-sidecar/pkg/envelopes"
 )
 
 // ProgressStatus represents the status of an actor
@@ -63,7 +63,7 @@ func (r *Reporter) ReportProgress(ctx context.Context, id string, update Progres
 		return fmt.Errorf("failed to marshal progress update: %w", err)
 	}
 
-	url := fmt.Sprintf("%s/tasks/%s/progress", r.gatewayURL, id)
+	url := fmt.Sprintf("%s/mesh/%s/progress", r.gatewayURL, id)
 
 	slog.Info("Sending progress update to gateway",
 		"task_id", id,
@@ -148,8 +148,8 @@ func (r *Reporter) CheckHealth(ctx context.Context) error {
 	return nil
 }
 
-// CreateTaskPayload represents the payload for creating a fanout task
-type CreateTaskPayload struct {
+// CreateMeshPayload represents the payload for creating a fanout mesh
+type CreateMeshPayload struct {
 	ID       string   `json:"id"`
 	ParentID string   `json:"parent_id"`
 	Prev     []string `json:"prev"`
@@ -157,10 +157,10 @@ type CreateTaskPayload struct {
 	Next     []string `json:"next"`
 }
 
-// CreateTask creates a fanout child task in the gateway
+// CreateMesh creates a fanout child mesh in the gateway
 // This is called when the sidecar detects multiple responses from runtime (fanout scenario)
-func (r *Reporter) CreateTask(ctx context.Context, id, parentID string, route messages.Route) error {
-	payload := CreateTaskPayload{
+func (r *Reporter) CreateMesh(ctx context.Context, id, parentID string, route envelopes.Route) error {
+	payload := CreateMeshPayload{
 		ID:       id,
 		ParentID: parentID,
 		Prev:     route.Prev,
@@ -170,10 +170,10 @@ func (r *Reporter) CreateTask(ctx context.Context, id, parentID string, route me
 
 	payloadBytes, err := json.Marshal(payload)
 	if err != nil {
-		return fmt.Errorf("failed to marshal create task payload: %w", err)
+		return fmt.Errorf("failed to marshal create mesh payload: %w", err)
 	}
 
-	url := fmt.Sprintf("%s/tasks", r.gatewayURL)
+	url := fmt.Sprintf("%s/mesh", r.gatewayURL)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(payloadBytes))
 	if err != nil {
@@ -184,15 +184,15 @@ func (r *Reporter) CreateTask(ctx context.Context, id, parentID string, route me
 
 	resp, err := r.httpClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("failed to send create task request: %w", err)
+		return fmt.Errorf("failed to send create mesh request: %w", err)
 	}
 	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
-		return fmt.Errorf("create task returned status %d", resp.StatusCode)
+		return fmt.Errorf("create mesh returned status %d", resp.StatusCode)
 	}
 
-	slog.Debug("Created fanout task in gateway", "id", id, "parent_id", parentID)
+	slog.Debug("Created fanout mesh in gateway", "id", id, "parent_id", parentID)
 	return nil
 }
 
@@ -203,7 +203,7 @@ func (r *Reporter) ForwardPartial(ctx context.Context, taskID string, payload js
 		return nil
 	}
 
-	url := fmt.Sprintf("%s/tasks/%s/partial", r.gatewayURL, taskID)
+	url := fmt.Sprintf("%s/mesh/%s/partial", r.gatewayURL, taskID)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(payload))
 	if err != nil {
@@ -239,7 +239,7 @@ func (r *Reporter) ReportFinalError(ctx context.Context, taskID, errorMsg string
 		return fmt.Errorf("failed to marshal final error: %w", err)
 	}
 
-	url := fmt.Sprintf("%s/tasks/%s/final", r.gatewayURL, taskID)
+	url := fmt.Sprintf("%s/mesh/%s/final", r.gatewayURL, taskID)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(payloadBytes))
 	if err != nil {

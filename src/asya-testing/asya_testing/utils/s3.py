@@ -121,7 +121,7 @@ def get_object_from_s3(bucket_name: str, key: str) -> dict[str, Any] | None:
         return None
 
 
-def find_message_in_s3(bucket_name: str, message_id: str, prefix: str = "") -> dict[str, Any] | None:
+def find_envelope_in_s3(bucket_name: str, envelope_id: str, prefix: str = "") -> dict[str, Any] | None:
     """
     Find a message in S3 by ID.
 
@@ -130,7 +130,7 @@ def find_message_in_s3(bucket_name: str, message_id: str, prefix: str = "") -> d
 
     Args:
         bucket_name: Bucket name
-        message_id: Message ID to search for
+        envelope_id: Message ID to search for
         prefix: Optional prefix to narrow search
 
     Returns:
@@ -139,17 +139,17 @@ def find_message_in_s3(bucket_name: str, message_id: str, prefix: str = "") -> d
     objects = list_objects_in_bucket(bucket_name, prefix)
     for obj in objects:
         key = obj["Key"]
-        if message_id in key:
-            logger.info(f"Found message {message_id} at s3://{bucket_name}/{key}")
+        if envelope_id in key:
+            logger.info(f"Found message {envelope_id} at s3://{bucket_name}/{key}")
             return get_object_from_s3(bucket_name, key)
 
-    logger.debug(f"Message {message_id} not found in bucket {bucket_name}")
+    logger.debug(f"Message {envelope_id} not found in bucket {bucket_name}")
     return None
 
 
-def wait_for_message_in_s3(
+def wait_for_envelope_in_s3(
     bucket_name: str,
-    message_id: str,
+    envelope_id: str,
     prefix: str = "",
     timeout: int = 5,
     poll_interval: float = 0.2,
@@ -162,7 +162,7 @@ def wait_for_message_in_s3(
 
     Args:
         bucket_name: Bucket name
-        message_id: Message ID to search for
+        envelope_id: Message ID to search for
         prefix: Optional prefix to narrow search
         timeout: Maximum time to wait in seconds
         poll_interval: Polling interval in seconds
@@ -172,21 +172,21 @@ def wait_for_message_in_s3(
     """
     start_time = time.time()
     attempt = 0
-    logger.info(f"Polling S3 for message {message_id} in {bucket_name} (timeout={timeout}s)")
+    logger.info(f"Polling S3 for message {envelope_id} in {bucket_name} (timeout={timeout}s)")
 
     while time.time() - start_time < timeout:
         attempt += 1
-        message = find_message_in_s3(bucket_name, message_id, prefix)
+        message = find_envelope_in_s3(bucket_name, envelope_id, prefix)
 
         if message is not None:
             elapsed = time.time() - start_time
-            logger.info(f"Found message {message_id} in S3 after {elapsed:.2f}s ({attempt} attempts)")
+            logger.info(f"Found message {envelope_id} in S3 after {elapsed:.2f}s ({attempt} attempts)")
             return message
 
         time.sleep(poll_interval)  # Polling interval for S3 message check
 
     elapsed = time.time() - start_time
-    logger.warning(f"Message {message_id} not found in S3 after {elapsed:.1f}s ({attempt} attempts)")
+    logger.warning(f"Message {envelope_id} not found in S3 after {elapsed:.1f}s ({attempt} attempts)")
     return None
 
 

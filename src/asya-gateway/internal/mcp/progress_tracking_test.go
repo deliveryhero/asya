@@ -99,11 +99,11 @@ func TestProgressTracking_EndToEnd(t *testing.T) {
 		}
 
 		body, _ := json.Marshal(progressUpdate)
-		req := httptest.NewRequest(http.MethodPost, "/tasks/"+job.ID+"/progress", bytes.NewReader(body))
+		req := httptest.NewRequest(http.MethodPost, "/mesh/"+job.ID+"/progress", bytes.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 		rr := httptest.NewRecorder()
 
-		handler.HandleTaskProgress(rr, req)
+		handler.HandleMeshProgress(rr, req)
 
 		if rr.Code != http.StatusOK {
 			t.Fatalf("Progress update failed for %s/%s: status=%d", report.curr, report.status, rr.Code)
@@ -174,12 +174,12 @@ func TestProgressTracking_SSEStream(t *testing.T) {
 	_ = store.Create(job)
 
 	// Start SSE stream in goroutine
-	req := httptest.NewRequest(http.MethodGet, "/tasks/"+job.ID+"/stream", nil)
+	req := httptest.NewRequest(http.MethodGet, "/mesh/"+job.ID+"/stream", nil)
 	rr := httptest.NewRecorder()
 
 	// Stream in background
 	go func() {
-		handler.HandleTaskStream(rr, req)
+		handler.HandleMeshStream(rr, req)
 	}()
 
 	// Give stream time to start
@@ -196,11 +196,11 @@ func TestProgressTracking_SSEStream(t *testing.T) {
 		}
 
 		body, _ := json.Marshal(progressUpdate)
-		progressReq := httptest.NewRequest(http.MethodPost, "/tasks/"+job.ID+"/progress", bytes.NewReader(body))
+		progressReq := httptest.NewRequest(http.MethodPost, "/mesh/"+job.ID+"/progress", bytes.NewReader(body))
 		progressReq.Header.Set("Content-Type", "application/json")
 		progressRr := httptest.NewRecorder()
 
-		handler.HandleTaskProgress(progressRr, progressReq)
+		handler.HandleMeshProgress(progressRr, progressReq)
 
 		if progressRr.Code != http.StatusOK {
 			t.Fatalf("Progress update %d failed: %v", i, progressRr.Code)
@@ -245,12 +245,12 @@ func TestProgressTracking_SSEKeepalive(t *testing.T) {
 	}
 	_ = store.Create(job)
 
-	req := httptest.NewRequest(http.MethodGet, "/tasks/"+job.ID+"/stream", nil)
+	req := httptest.NewRequest(http.MethodGet, "/mesh/"+job.ID+"/stream", nil)
 	rr := httptest.NewRecorder()
 
 	done := make(chan bool)
 	go func() {
-		handler.HandleTaskStream(rr, req)
+		handler.HandleMeshStream(rr, req)
 		done <- true
 	}()
 
@@ -309,11 +309,11 @@ func TestProgressTracking_ConcurrentUpdates(t *testing.T) {
 			}
 
 			body, _ := json.Marshal(progressUpdate)
-			req := httptest.NewRequest(http.MethodPost, "/tasks/"+taskID+"/progress", bytes.NewReader(body))
+			req := httptest.NewRequest(http.MethodPost, "/mesh/"+taskID+"/progress", bytes.NewReader(body))
 			req.Header.Set("Content-Type", "application/json")
 			rr := httptest.NewRecorder()
 
-			handler.HandleTaskProgress(rr, req)
+			handler.HandleMeshProgress(rr, req)
 
 			if rr.Code != http.StatusOK {
 				t.Errorf("Update %d failed: status=%d", idx, rr.Code)
@@ -354,11 +354,11 @@ func TestProgressTracking_InvalidTaskID(t *testing.T) {
 	}
 
 	body, _ := json.Marshal(progressUpdate)
-	req := httptest.NewRequest(http.MethodPost, "/tasks/non-existent-task/progress", bytes.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/mesh/non-existent-task/progress", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	rr := httptest.NewRecorder()
 
-	handler.HandleTaskProgress(rr, req)
+	handler.HandleMeshProgress(rr, req)
 
 	if rr.Code != http.StatusOK {
 		t.Errorf("Expected 200 OK for non-existent task (silent accept), got %d", rr.Code)
@@ -396,11 +396,11 @@ func TestProgressTracking_RouteUpdate(t *testing.T) {
 	}
 
 	body, _ := json.Marshal(progressUpdate)
-	req := httptest.NewRequest(http.MethodPost, "/tasks/"+taskID+"/progress", bytes.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/mesh/"+taskID+"/progress", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	rr := httptest.NewRecorder()
 
-	handler.HandleTaskProgress(rr, req)
+	handler.HandleMeshProgress(rr, req)
 
 	if rr.Code != http.StatusOK {
 		t.Fatalf("Progress update failed: status=%d", rr.Code)
@@ -510,11 +510,11 @@ func TestProgressTracking_EmptyActorsList(t *testing.T) {
 	}
 
 	body, _ := json.Marshal(progressUpdate)
-	req := httptest.NewRequest(http.MethodPost, "/tasks/"+taskID+"/progress", bytes.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/mesh/"+taskID+"/progress", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	rr := httptest.NewRecorder()
 
-	handler.HandleTaskProgress(rr, req)
+	handler.HandleMeshProgress(rr, req)
 
 	if rr.Code != http.StatusOK {
 		t.Fatalf("Progress update failed: status=%d, body=%s", rr.Code, rr.Body.String())
@@ -565,11 +565,11 @@ func sendProgressUpdateNew(t *testing.T, handler *Handler, taskID string, prev [
 	}
 
 	body, _ := json.Marshal(progressUpdate)
-	req := httptest.NewRequest(http.MethodPost, "/tasks/"+taskID+"/progress", bytes.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/mesh/"+taskID+"/progress", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	rr := httptest.NewRecorder()
 
-	handler.HandleTaskProgress(rr, req)
+	handler.HandleMeshProgress(rr, req)
 
 	if rr.Code != http.StatusOK {
 		t.Fatalf("Progress update failed: status=%d", rr.Code)

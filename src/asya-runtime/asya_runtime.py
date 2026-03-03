@@ -255,19 +255,19 @@ def _load_function():
         sys.exit(1)
 
 
-def _parse_message_json(data: bytes) -> dict[str, Any]:
-    """Parse received message from bytes to dict."""
+def _parse_envelope_json(data: bytes) -> dict[str, Any]:
+    """Parse received envelope from bytes to dict."""
     return json.loads(data.decode("utf-8"))
 
 
-def _validate_message(
+def _validate_envelope(
     e,  # type: dict
 ):
     # type: (...) -> dict
     if "payload" not in e:
-        raise ValueError("Missing required field 'payload' in message")
+        raise ValueError("Missing required field 'payload' in envelope")
     if "route" not in e:
-        raise ValueError("Missing required field 'route' in message")
+        raise ValueError("Missing required field 'route' in envelope")
 
     # Validate route structure
     route = e["route"]
@@ -310,8 +310,8 @@ def _validate_message(
     return result
 
 
-def _get_current_actor(message: dict) -> str:
-    return message["route"]["curr"]
+def _get_current_actor(envelope: dict) -> str:
+    return envelope["route"]["curr"]
 
 
 def _error_response(code: str, exc: Exception | None = None) -> dict[str, Any]:
@@ -414,24 +414,24 @@ def _resolve_del(data, segments):
 
 
 class _AbiContext:
-    """ABI context for a single message invocation.
+    """ABI context for a single envelope invocation.
 
     Lifecycle: populate -> use -> snapshot -> discard.
     """
 
-    def __init__(self, message):
+    def __init__(self, envelope):
         # type: (dict) -> None
-        route = message["route"]
+        route = envelope["route"]
         self.data = {
-            "id": message.get("id", ""),
-            "parent_id": message.get("parent_id", ""),
+            "id": envelope.get("id", ""),
+            "parent_id": envelope.get("parent_id", ""),
             "route": {
                 "prev": list(route["prev"]),
                 "curr": route["curr"],
                 "next": list(route["next"]),
             },
-            "headers": dict(message.get("headers") or {}),
-            "status": copy.deepcopy(message.get("status") or {}),
+            "headers": dict(envelope.get("headers") or {}),
+            "status": copy.deepcopy(envelope.get("status") or {}),
         }
         self.input_route = route
 
@@ -585,18 +585,18 @@ def _build_frame(payload_value, input_route, ctx_state):
     return frame
 
 
-def _collect_payload_frames(message, user_func):
+def _collect_payload_frames(envelope, user_func):
     """Collect response frames using ABI dispatch for metadata."""
-    ctx = _AbiContext(message)
+    ctx = _AbiContext(envelope)
 
     if inspect.isasyncgenfunction(user_func):
-        return asyncio.run(_drive_async_generator(user_func(message["payload"]), ctx))
+        return asyncio.run(_drive_async_generator(user_func(envelope["payload"]), ctx))
 
     if inspect.isgeneratorfunction(user_func):
-        return _drive_generator(user_func(message["payload"]), ctx)
+        return _drive_generator(user_func(envelope["payload"]), ctx)
 
     # Function actor - no ABI access
-    result = _call_handler(user_func, message["payload"])
+    result = _call_handler(user_func, envelope["payload"])
     if result is None:
         return []
     return [_build_frame(result, ctx.input_route, ctx.snapshot())]
@@ -610,18 +610,18 @@ def _handle_invoke(data: bytes, user_func) -> tuple:
     Returns:
         (200, b'{"frames": [...]}')  - success
         (204, b'')                   - handler returned None (abort pipeline)
-        (400, b'{"error": "..."}')   - message parsing/validation error
+        (400, b'{"error": "..."}')   - envelope parsing/validation error
         (500, b'{"error": "..."}')   - handler raised an exception
     """
     try:
-        message = _parse_message_json(data)
+        envelope = _parse_envelope_json(data)
         if ASYA_ENABLE_VALIDATION:
-            message = _validate_message(message)
+            envelope = _validate_envelope(envelope)
     except (json.JSONDecodeError, UnicodeDecodeError, KeyError, ValueError) as exc:
         return 400, json.dumps(_error_response("msg_parsing_error", exc)).encode("utf-8")
 
     try:
-        frames = _collect_payload_frames(message, user_func)
+        frames = _collect_payload_frames(envelope, user_func)
     except Exception as exc:
         return 500, json.dumps(_error_response("processing_error", exc)).encode("utf-8")
 
@@ -1161,25 +1161,25 @@ class _InvokeHandler(http.server.BaseHTTPRequestHandler):
         body = self.rfile.read(content_length)
 
         try:
-            message = _parse_message_json(body)
+            envelope = _parse_envelope_json(body)
             if ASYA_ENABLE_VALIDATION:
-                message = _validate_message(message)
-            logger.debug(f"Received message: {len(body)} bytes")
+                envelope = _validate_envelope(envelope)
+            logger.debug(f"Received envelope: {len(body)} bytes")
         except (json.JSONDecodeError, UnicodeDecodeError, KeyError, ValueError) as exc:
             self._send_json(400, _error_response("msg_parsing_error", exc))
             return
 
         user_func = self.server.user_func
         is_generator = inspect.isgeneratorfunction(user_func) or inspect.isasyncgenfunction(user_func)
-        logger.info(f"[DIAG] Starting handler execution, message_id={message.get('id', 'unknown')}")
+        logger.info(f"[DIAG] Starting handler execution, envelope_id={envelope.get('id', 'unknown')}")
 
         if is_generator:
-            self._stream_sse_response(message, user_func)
+            self._stream_sse_response(envelope, user_func)
         else:
             try:
-                frames = _collect_payload_frames(message, user_func)
+                frames = _collect_payload_frames(envelope, user_func)
             except Exception as exc:
-                logger.exception("Fatal error on processing input message")
+                logger.exception("Fatal error on processing input envelope")
                 self._send_json(500, _error_response("processing_error", exc))
                 return
 
@@ -1195,14 +1195,14 @@ class _InvokeHandler(http.server.BaseHTTPRequestHandler):
         else:
             self.send_error(404)
 
-    def _stream_sse_response(self, message, user_func):
+    def _stream_sse_response(self, envelope, user_func):
         """Stream generator frames as SSE events using ABI dispatch."""
         self.send_response(200)
         self.send_header("Content-Type", "text/event-stream")
         self.send_header("Cache-Control", "no-cache")
         self.end_headers()
 
-        ctx = _AbiContext(message)
+        ctx = _AbiContext(envelope)
 
         def on_fly(payload):
             data = json.dumps({"payload": payload})
@@ -1216,9 +1216,9 @@ class _InvokeHandler(http.server.BaseHTTPRequestHandler):
 
         try:
             if inspect.isasyncgenfunction(user_func):
-                asyncio.run(_drive_async_generator(user_func(message["payload"]), ctx, on_fly=on_fly, on_emit=on_emit))
+                asyncio.run(_drive_async_generator(user_func(envelope["payload"]), ctx, on_fly=on_fly, on_emit=on_emit))
             else:
-                _drive_generator(user_func(message["payload"]), ctx, on_fly=on_fly, on_emit=on_emit)
+                _drive_generator(user_func(envelope["payload"]), ctx, on_fly=on_fly, on_emit=on_emit)
         except Exception as exc:
             logger.exception("Error during SSE streaming")
             error_data = json.dumps(_error_response("processing_error", exc))

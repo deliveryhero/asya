@@ -281,7 +281,7 @@ class TestMCPTaskIntegration:
 
         # Verify task exists
         task_id = data["task_id"]
-        status_resp = session.get(f"{gateway_url}/tasks/{task_id}")
+        status_resp = session.get(f"{gateway_url}/mesh/{task_id}")
         assert status_resp.status_code == 200
 
     def test_streaming_url_in_response(self, gateway_url, session):

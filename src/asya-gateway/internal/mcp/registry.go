@@ -227,12 +227,12 @@ func (r *Registry) createToolHandler(toolDef config.Tool) func(context.Context, 
 		responseData := map[string]interface{}{
 			"task_id":    taskID,
 			"message":    "Task created successfully",
-			"status_url": fmt.Sprintf("/tasks/%s", taskID),
+			"status_url": fmt.Sprintf("/mesh/%s", taskID),
 		}
 
 		// Add stream endpoint if progress is enabled
 		if opts.Progress {
-			responseData["stream_url"] = fmt.Sprintf("/tasks/%s/stream", taskID)
+			responseData["stream_url"] = fmt.Sprintf("/mesh/%s/stream", taskID)
 		}
 
 		// Add metadata to response if present

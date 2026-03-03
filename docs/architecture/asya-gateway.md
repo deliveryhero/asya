@@ -13,7 +13,7 @@
 1. Client calls MCP tool via HTTP POST
 2. Gateway creates task with unique ID
 3. Gateway stores task in PostgreSQL (status: `pending`)
-4. Gateway sends message to first actor's queue
+4. Gateway sends envelope to first actor's queue
 5. Crew actors (`x-sink`, `x-sump`) report final task status
 6. Client polls or streams task status updates via SSE
 
@@ -100,7 +100,7 @@ Response (MCP CallToolResult):
   "content": [
     {
       "type": "text",
-      "text": "{\"task_id\":\"5e6fdb2d...\",\"message\":\"Task created successfully\",\"status_url\":\"/tasks/5e6fdb2d...\",\"stream_url\":\"/tasks/5e6fdb2d.../stream\"}"
+      "text": "{\"task_id\":\"5e6fdb2d...\",\"message\":\"Task created successfully\",\"status_url\":\"/mesh/5e6fdb2d...\",\"stream_url\":\"/mesh/5e6fdb2d.../stream\"}"
     }
   ],
   "isError": false
@@ -135,7 +135,7 @@ Response:
 #### Stream Task Updates (SSE)
 
 ```bash
-GET /tasks/{id}/stream
+GET /mesh/{id}/stream
 Accept: text/event-stream
 ```
 
@@ -178,7 +178,7 @@ data: {"id":"task-123","status":"succeeded","progress_percent":100,"result":{...
 #### Check Task Active
 
 ```bash
-GET /tasks/{id}/active
+GET /mesh/{id}/active
 ```
 
 **Used by**: Actors to verify task hasn't timed out
@@ -198,7 +198,7 @@ Response (inactive - HTTP 410 Gone):
 #### Report Progress
 
 ```bash
-POST /tasks/{id}/progress
+POST /mesh/{id}/progress
 Content-Type: application/json
 
 {
@@ -214,7 +214,7 @@ Content-Type: application/json
 - `received` = 10, `processing` = 50, `completed` = 100
 
 **Unknown task IDs**: Progress updates for tasks not found in the store are
-silently accepted (200 OK). This is expected for direct-SQS messages that bypass
+silently accepted (200 OK). This is expected for direct-SQS envelopes that bypass
 gateway task creation. Infrastructure errors (e.g., database failures) still
 return 500.
 
@@ -226,7 +226,7 @@ Response:
 #### Report Final Status
 
 ```bash
-POST /tasks/{id}/final
+POST /mesh/{id}/final
 Content-Type: application/json
 
 {

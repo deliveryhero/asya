@@ -1,7 +1,7 @@
 """Integration tests for while loop compilation.
 
 These tests exercise the full compilation pipeline (parse -> group -> codegen)
-and validate that the generated router code correctly manipulates message routes
+and validate that the generated router code correctly manipulates envelope routes
 for various while loop patterns.
 """
 
@@ -58,7 +58,7 @@ def compile_and_import():
         del sys.modules["routers"]
 
 
-def make_message(
+def make_envelope(
     payload: dict,
     prev: list[str] | None = None,
     curr: str = "",

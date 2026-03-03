@@ -99,15 +99,15 @@ def mock_env():
     return _mock_env
 
 
-def call_invoke(message: dict, user_func) -> list[dict]:
-    """Call _handle_invoke with a message dict and return response frames.
+def call_invoke(envelope: dict, user_func) -> list[dict]:
+    """Call _handle_invoke with a envelope dict and return response frames.
 
     Returns a list of frames:
     - On 200: returns parsed frames list from {"frames": [...]}
     - On 204: returns []
     - On 400/500: returns [{"error": "...", ...}] (single error frame)
     """
-    data = json.dumps(message).encode("utf-8")
+    data = json.dumps(envelope).encode("utf-8")
     status_code, body = asya_runtime._handle_invoke(data, user_func)
 
     if status_code == 204:
@@ -133,7 +133,7 @@ def runtime_invoke(tmp_path):
     """
     call_count = [0]
 
-    def _invoke(user_func, message):
+    def _invoke(user_func, envelope):
         call_count[0] += 1
         socket_path = str(tmp_path / f"rt-{call_count[0]}.sock")
         server = asya_runtime._UnixHTTPServer(socket_path, asya_runtime._InvokeHandler)
@@ -143,7 +143,7 @@ def runtime_invoke(tmp_path):
         thread.start()
 
         conn = _UnixHTTPConnection(socket_path)
-        body = json.dumps(message).encode("utf-8")
+        body = json.dumps(envelope).encode("utf-8")
         conn.request(
             "POST",
             "/invoke",
@@ -178,12 +178,12 @@ class TestHandlerReturnTypeValidation:
         def string_handler(payload):
             return "this is a string, not a dict"
 
-        message = {
+        envelope = {
             "payload": {"test": "data"},
             "route": {"prev": [], "curr": "a", "next": []},
         }
 
-        responses = call_invoke(message, string_handler)
+        responses = call_invoke(envelope, string_handler)
 
         # String is a valid payload type
         assert len(responses) == 1
@@ -195,12 +195,12 @@ class TestHandlerReturnTypeValidation:
         def number_handler(payload):
             return 42
 
-        message = {
+        envelope = {
             "payload": {"test": "data"},
             "route": {"prev": [], "curr": "a", "next": []},
         }
 
-        responses = call_invoke(message, number_handler)
+        responses = call_invoke(envelope, number_handler)
 
         assert len(responses) == 1
         assert responses[0]["payload"] == 42
@@ -211,12 +211,12 @@ class TestHandlerReturnTypeValidation:
         def none_handler(payload):
             return None
 
-        message = {
+        envelope = {
             "payload": {"test": "data"},
             "route": {"prev": [], "curr": "a", "next": []},
         }
 
-        responses = call_invoke(message, none_handler)
+        responses = call_invoke(envelope, none_handler)
 
         assert len(responses) == 0
 
@@ -226,12 +226,12 @@ class TestHandlerReturnTypeValidation:
         def empty_list_handler(payload):
             return []
 
-        message = {
+        envelope = {
             "payload": {"test": "data"},
             "route": {"prev": [], "curr": "a", "next": []},
         }
 
-        responses = call_invoke(message, empty_list_handler)
+        responses = call_invoke(envelope, empty_list_handler)
 
         assert len(responses) == 1
         assert responses[0]["payload"] == []
@@ -244,29 +244,29 @@ class TestRouteValidation:
         """Test route as string instead of dict - should fail validation."""
         with pytest.raises(ValueError, match="Field 'route' must be a dict"):
             data = json.dumps({"payload": {"test": "data"}, "route": "not a dict"}).encode("utf-8")
-            msg = asya_runtime._parse_message_json(data)
-            asya_runtime._validate_message(msg)
+            msg = asya_runtime._parse_envelope_json(data)
+            asya_runtime._validate_envelope(msg)
 
     def test_parse_msg_route_missing_prev(self):
         """Test route without prev field - should fail validation."""
         with pytest.raises(ValueError, match="Missing required field 'prev' in route"):
             data = json.dumps({"payload": {"test": "data"}, "route": {"curr": "a", "next": []}}).encode("utf-8")
-            msg = asya_runtime._parse_message_json(data)
-            asya_runtime._validate_message(msg)
+            msg = asya_runtime._parse_envelope_json(data)
+            asya_runtime._validate_envelope(msg)
 
     def test_parse_msg_route_missing_curr(self):
         """Test route without curr field - should fail validation."""
         with pytest.raises(ValueError, match="Missing required field 'curr' in route"):
             data = json.dumps({"payload": {"test": "data"}, "route": {"prev": [], "next": []}}).encode("utf-8")
-            msg = asya_runtime._parse_message_json(data)
-            asya_runtime._validate_message(msg)
+            msg = asya_runtime._parse_envelope_json(data)
+            asya_runtime._validate_envelope(msg)
 
     def test_parse_msg_route_missing_next(self):
         """Test route without next field - should fail validation."""
         with pytest.raises(ValueError, match="Missing required field 'next' in route"):
             data = json.dumps({"payload": {"test": "data"}, "route": {"prev": [], "curr": "a"}}).encode("utf-8")
-            msg = asya_runtime._parse_message_json(data)
-            asya_runtime._validate_message(msg)
+            msg = asya_runtime._parse_envelope_json(data)
+            asya_runtime._validate_envelope(msg)
 
     def test_parse_msg_route_prev_not_list(self):
         """Test route with prev as non-list - should fail validation."""
@@ -274,8 +274,8 @@ class TestRouteValidation:
             data = json.dumps(
                 {"payload": {"test": "data"}, "route": {"prev": "not a list", "curr": "a", "next": []}}
             ).encode("utf-8")
-            msg = asya_runtime._parse_message_json(data)
-            asya_runtime._validate_message(msg)
+            msg = asya_runtime._parse_envelope_json(data)
+            asya_runtime._validate_envelope(msg)
 
     def test_parse_msg_route_curr_not_string(self):
         """Test route with curr as non-string - should fail validation."""
@@ -283,8 +283,8 @@ class TestRouteValidation:
             data = json.dumps({"payload": {"test": "data"}, "route": {"prev": [], "curr": 42, "next": []}}).encode(
                 "utf-8"
             )
-            msg = asya_runtime._parse_message_json(data)
-            asya_runtime._validate_message(msg)
+            msg = asya_runtime._parse_envelope_json(data)
+            asya_runtime._validate_envelope(msg)
 
     def test_parse_msg_route_next_not_list(self):
         """Test route with next as non-list - should fail validation."""
@@ -292,14 +292,14 @@ class TestRouteValidation:
             data = json.dumps(
                 {"payload": {"test": "data"}, "route": {"prev": [], "curr": "a", "next": "not a list"}}
             ).encode("utf-8")
-            msg = asya_runtime._parse_message_json(data)
-            asya_runtime._validate_message(msg)
+            msg = asya_runtime._parse_envelope_json(data)
+            asya_runtime._validate_envelope(msg)
 
     def test_parse_msg_route_valid_single_actor(self):
         """Test valid route with single actor."""
         data = json.dumps({"payload": {"test": "data"}, "route": {"prev": [], "curr": "a", "next": []}}).encode("utf-8")
-        msg = asya_runtime._parse_message_json(data)
-        validated = asya_runtime._validate_message(msg)
+        msg = asya_runtime._parse_envelope_json(data)
+        validated = asya_runtime._validate_envelope(msg)
 
         assert validated["route"]["prev"] == []
         assert validated["route"]["curr"] == "a"
@@ -310,8 +310,8 @@ class TestRouteValidation:
         data = json.dumps(
             {"payload": {"test": "data"}, "route": {"prev": ["x"], "curr": "a", "next": ["b", "c"]}}
         ).encode("utf-8")
-        msg = asya_runtime._parse_message_json(data)
-        validated = asya_runtime._validate_message(msg)
+        msg = asya_runtime._parse_envelope_json(data)
+        validated = asya_runtime._validate_envelope(msg)
 
         assert validated["route"]["prev"] == ["x"]
         assert validated["route"]["curr"] == "a"
@@ -322,54 +322,54 @@ class TestRouteValidation:
         data = json.dumps({"payload": {"test": "data"}, "route": {"prev": ["a", "b"], "curr": "", "next": []}}).encode(
             "utf-8"
         )
-        msg = asya_runtime._parse_message_json(data)
-        validated = asya_runtime._validate_message(msg)
+        msg = asya_runtime._parse_envelope_json(data)
+        validated = asya_runtime._validate_envelope(msg)
 
         assert validated["route"]["prev"] == ["a", "b"]
         assert validated["route"]["curr"] == ""
         assert validated["route"]["next"] == []
 
 
-class TestMessageFieldPreservation:
-    """Test that message fields are properly preserved through validation."""
+class TestEnvelopeFieldPreservation:
+    """Test that envelope fields are properly preserved through validation."""
 
-    def test_validate_message_preserves_id_field(self):
+    def test_validate_envelope_preserves_id_field(self):
         """Test that id field is preserved through validation."""
-        message = {
+        envelope = {
             "id": "message-123",
             "payload": {"test": "data"},
             "route": {"prev": [], "curr": "a", "next": []},
         }
-        validated = asya_runtime._validate_message(message)
+        validated = asya_runtime._validate_envelope(envelope)
 
         assert validated["id"] == "message-123"
         assert validated["payload"] == {"test": "data"}
         assert validated["route"] == {"prev": [], "curr": "a", "next": []}
 
-    def test_validate_message_preserves_parent_id_field(self):
+    def test_validate_envelope_preserves_parent_id_field(self):
         """Test that parent_id field is preserved through validation."""
-        message = {
+        envelope = {
             "id": "message-456",
             "parent_id": "parent-message-123",
             "payload": {"test": "data"},
             "route": {"prev": [], "curr": "a", "next": []},
         }
-        validated = asya_runtime._validate_message(message)
+        validated = asya_runtime._validate_envelope(envelope)
 
         assert validated["id"] == "message-456"
         assert validated["parent_id"] == "parent-message-123"
         assert validated["payload"] == {"test": "data"}
 
-    def test_validate_message_preserves_all_fields(self):
+    def test_validate_envelope_preserves_all_fields(self):
         """Test that all message fields are preserved together."""
-        message = {
+        envelope = {
             "id": "message-789",
             "parent_id": "parent-message-456",
             "payload": {"test": "data"},
             "route": {"prev": [], "curr": "a", "next": ["b"]},
             "headers": {"trace_id": "trace-123", "priority": "high"},
         }
-        validated = asya_runtime._validate_message(message)
+        validated = asya_runtime._validate_envelope(envelope)
 
         assert validated["id"] == "message-789"
         assert validated["parent_id"] == "parent-message-456"
@@ -377,7 +377,7 @@ class TestMessageFieldPreservation:
         assert validated["route"] == {"prev": [], "curr": "a", "next": ["b"]}
         assert validated["headers"] == {"trace_id": "trace-123", "priority": "high"}
 
-    def test_validate_message_preserves_status(self):
+    def test_validate_envelope_preserves_status(self):
         """Test that status field is preserved through validation."""
         status = {
             "phase": "processing",
@@ -387,48 +387,48 @@ class TestMessageFieldPreservation:
             "created_at": "2025-01-01T00:00:00Z",
             "updated_at": "2025-01-01T00:01:00Z",
         }
-        message = {
+        envelope = {
             "id": "status-msg-1",
             "payload": {"test": "data"},
             "route": {"prev": [], "curr": "a", "next": ["b"]},
             "status": status,
         }
-        validated = asya_runtime._validate_message(message)
+        validated = asya_runtime._validate_envelope(envelope)
 
         assert validated["status"] == status
         assert validated["status"]["phase"] == "processing"
         assert validated["status"]["actor"] == "actor-a"
 
-    def test_validate_message_without_status(self):
-        """Test that messages without status field still validate (backward compat)."""
-        message = {
+    def test_validate_envelope_without_status(self):
+        """Test that envelopes without status field still validate (backward compat)."""
+        envelope = {
             "payload": {"test": "data"},
             "route": {"prev": [], "curr": "a", "next": []},
         }
-        validated = asya_runtime._validate_message(message)
+        validated = asya_runtime._validate_envelope(envelope)
 
         assert "status" not in validated
 
-    def test_validate_message_without_id_field(self):
-        """Test that message without id field still validates (id is optional)."""
-        message = {
+    def test_validate_envelope_without_id_field(self):
+        """Test envelope without id field still validates (id is optional)."""
+        envelope = {
             "payload": {"test": "data"},
             "route": {"prev": [], "curr": "a", "next": []},
         }
-        validated = asya_runtime._validate_message(message)
+        validated = asya_runtime._validate_envelope(envelope)
 
         assert "id" not in validated
         assert validated["payload"] == {"test": "data"}
 
-    def test_validate_message_id_field_invalid_type(self):
+    def test_validate_envelope_id_field_invalid_type(self):
         """Test that id field with non-string type fails validation."""
-        message = {
+        envelope = {
             "id": 12345,
             "payload": {"test": "data"},
             "route": {"prev": [], "curr": "a", "next": []},
         }
         with pytest.raises(ValueError, match="Field 'id' must be a string"):
-            asya_runtime._validate_message(message)
+            asya_runtime._validate_envelope(envelope)
 
     def test_vfs_handler_accesses_id_field(self):
         """Test that generators can access message id via ABI."""
@@ -437,13 +437,13 @@ class TestMessageFieldPreservation:
             message_id = yield "GET", ".id"
             yield {"message_id": message_id, "data": payload}
 
-        message = {
+        envelope = {
             "id": "test-vfs-123",
             "payload": {"value": 42},
             "route": {"prev": [], "curr": "a", "next": []},
         }
 
-        responses = call_invoke(message, abi_handler)
+        responses = call_invoke(envelope, abi_handler)
 
         assert len(responses) == 1
         assert responses[0]["payload"]["message_id"] == "test-vfs-123"
@@ -459,12 +459,12 @@ class TestAbiRouteModification:
             yield "SET", ".route.next", ["x", "y", "z"]
             yield payload
 
-        message = {
+        envelope = {
             "payload": {"test": "data"},
             "route": {"prev": [], "curr": "a", "next": ["b", "c"]},
         }
 
-        responses = call_invoke(message, next_modifying_handler)
+        responses = call_invoke(envelope, next_modifying_handler)
 
         # Generator replaced next via ABI SET.
         # Route shifts: "a" -> prev, curr becomes "x" (modified next[0])
@@ -480,12 +480,12 @@ class TestAbiRouteModification:
             yield "SET", ".route.curr", "evil"
             yield payload
 
-        message = {
+        envelope = {
             "payload": {"test": "data"},
             "route": {"prev": [], "curr": "a", "next": []},
         }
 
-        responses = call_invoke(message, curr_writer)
+        responses = call_invoke(envelope, curr_writer)
 
         # Should fail with PermissionError (processing_error)
         assert len(responses) == 1
@@ -498,12 +498,12 @@ class TestAbiRouteModification:
             yield "SET", ".route.prev", ["injected"]
             yield payload
 
-        message = {
+        envelope = {
             "payload": {"test": "data"},
             "route": {"prev": [], "curr": "a", "next": ["b"]},
         }
 
-        responses = call_invoke(message, prev_writer)
+        responses = call_invoke(envelope, prev_writer)
 
         # Should fail with PermissionError (processing_error)
         assert len(responses) == 1
@@ -518,12 +518,12 @@ class TestAbiRouteModification:
             yield "SET", ".route.next", ["c"]
             yield {"id": 2}
 
-        message = {
+        envelope = {
             "payload": {"test": "data"},
             "route": {"prev": [], "curr": "a", "next": ["b"]},
         }
 
-        responses = call_invoke(message, fanout_handler)
+        responses = call_invoke(envelope, fanout_handler)
 
         assert len(responses) == 2
         assert responses[0]["payload"] == {"id": 1}
@@ -538,12 +538,12 @@ class TestAbiRouteModification:
             yield "SET", ".route.next", ["c", "d", "e"]
             yield payload
 
-        message = {
+        envelope = {
             "payload": {"test": "data"},
             "route": {"prev": ["a"], "curr": "b", "next": ["c"]},
         }
 
-        responses = call_invoke(message, extending_handler)
+        responses = call_invoke(envelope, extending_handler)
 
         # Route shifts: "b" -> prev (prev becomes ["a","b"]), curr becomes "c"
         assert len(responses) == 1
@@ -558,12 +558,12 @@ class TestAbiRouteModification:
             yield "SET", ".route.next", ["x", "y"]
             yield payload
 
-        message = {
+        envelope = {
             "payload": {"test": "data"},
             "route": {"prev": ["a"], "curr": "b", "next": ["c", "d"]},
         }
 
-        responses = call_invoke(message, replacing_handler)
+        responses = call_invoke(envelope, replacing_handler)
 
         # Route shifts: "b" -> prev (prev becomes ["a","b"]), curr becomes "x"
         assert len(responses) == 1
@@ -583,12 +583,12 @@ class TestLargePayloads:
             return payload
 
         large_data = "X" * (size_kb * 1024)
-        message = {
+        envelope = {
             "payload": {"data": large_data},
             "route": {"prev": [], "curr": "a", "next": []},
         }
 
-        responses = call_invoke(message, echo_handler)
+        responses = call_invoke(envelope, echo_handler)
 
         assert len(responses) == 1
         assert len(responses[0]["payload"]["data"]) == size_kb * 1024
@@ -775,7 +775,7 @@ class TestSocketSetup:
 
 
 class TestParseMsg:
-    """Test _parse_message_json and _validate_message functions."""
+    """Test _parse_envelope_json and _validate_envelope functions."""
 
     def test_parse_msg_with_payload_and_route(self):
         """Test parsing message with both payload and route."""
@@ -783,8 +783,8 @@ class TestParseMsg:
             "utf-8"
         )
 
-        msg = asya_runtime._parse_message_json(data)
-        msg = asya_runtime._validate_message(msg)
+        msg = asya_runtime._parse_envelope_json(data)
+        msg = asya_runtime._validate_envelope(msg)
 
         assert msg["payload"] == {"test": "data"}
         assert msg["route"] == {"prev": [], "curr": "a", "next": ["b"]}
@@ -793,23 +793,23 @@ class TestParseMsg:
         """Test parsing message without payload field."""
         with pytest.raises(ValueError, match="Missing required .*payload"):
             data = json.dumps({"route": {"prev": [], "curr": "a", "next": []}}).encode("utf-8")
-            msg = asya_runtime._parse_message_json(data)
-            asya_runtime._validate_message(msg)
+            msg = asya_runtime._parse_envelope_json(data)
+            asya_runtime._validate_envelope(msg)
 
     def test_parse_msg_missing_route(self):
         """Test parsing message without route field."""
         with pytest.raises(ValueError, match="Missing required .*route"):
             data = json.dumps({"payload": {"test": "data"}}).encode("utf-8")
-            msg = asya_runtime._parse_message_json(data)
-            asya_runtime._validate_message(msg)
+            msg = asya_runtime._parse_envelope_json(data)
+            asya_runtime._validate_envelope(msg)
 
     @pytest.mark.parametrize("payload", [None, {}])
     def test_parse_msg_empty_payload(self, payload):
         """Test parsing message with null/empty payload."""
         data = json.dumps({"payload": payload, "route": {"prev": [], "curr": "a", "next": []}}).encode("utf-8")
 
-        msg = asya_runtime._parse_message_json(data)
-        msg = asya_runtime._validate_message(msg)
+        msg = asya_runtime._parse_envelope_json(data)
+        msg = asya_runtime._validate_envelope(msg)
 
         assert msg["payload"] == payload
         assert msg["route"] == {"prev": [], "curr": "a", "next": []}
@@ -817,12 +817,12 @@ class TestParseMsg:
     def test_parse_msg_invalid_json(self):
         """Test parsing invalid JSON."""
         with pytest.raises(json.JSONDecodeError):
-            asya_runtime._parse_message_json(b"not json{")
+            asya_runtime._parse_envelope_json(b"not json{")
 
     def test_parse_msg_invalid_utf8(self):
         """Test parsing invalid UTF-8."""
         with pytest.raises(UnicodeDecodeError):
-            asya_runtime._parse_message_json(b"\xff\xfe invalid utf8")
+            asya_runtime._parse_envelope_json(b"\xff\xfe invalid utf8")
 
 
 class TestErrorDict:
@@ -897,12 +897,12 @@ class TestHandleRequestPayloadMode:
         def simple_handler(payload):
             return {"result": payload["value"] * 2}
 
-        message = {
+        envelope = {
             "route": {"prev": [], "curr": "actor1", "next": []},
             "payload": {"value": 42},
         }
 
-        responses = call_invoke(message, simple_handler)
+        responses = call_invoke(envelope, simple_handler)
 
         assert len(responses) == 1
         assert responses[0]["payload"] == {"result": 84}
@@ -916,12 +916,12 @@ class TestHandleRequestPayloadMode:
             return {"doubled": payload["value"] * 2}
 
         # Message for actor at start of 3-actor pipeline
-        message = {
+        envelope = {
             "route": {"prev": [], "curr": "doubler", "next": ["incrementer", "finalizer"]},
             "payload": {"value": 21},
         }
 
-        responses = call_invoke(message, pipeline_handler)
+        responses = call_invoke(envelope, pipeline_handler)
 
         assert len(responses) == 1
         assert responses[0]["payload"] == {"doubled": 42}
@@ -936,12 +936,12 @@ class TestHandleRequestPayloadMode:
             yield {"id": 2}
             yield {"id": 3}
 
-        message = {
+        envelope = {
             "route": {"prev": [], "curr": "fan", "next": []},
             "payload": {"test": "data"},
         }
 
-        responses = call_invoke(message, fanout_handler)
+        responses = call_invoke(envelope, fanout_handler)
 
         assert len(responses) == 3
         assert responses[0]["payload"] == {"id": 1}
@@ -961,12 +961,12 @@ class TestHandleRequestVFSMode:
         def simple_handler(payload):
             return {"result": payload["value"] * 2}
 
-        message = {
+        envelope = {
             "route": {"prev": [], "curr": "actor1", "next": []},
             "payload": {"value": 42},
         }
 
-        responses = call_invoke(message, simple_handler)
+        responses = call_invoke(envelope, simple_handler)
 
         assert len(responses) == 1
         assert responses[0]["payload"] == {"result": 84}
@@ -982,12 +982,12 @@ class TestHandleRequestVFSMode:
             yield "SET", ".route.next", current_next
             yield payload
 
-        message = {
+        envelope = {
             "route": {"prev": [], "curr": "actor1", "next": []},
             "payload": {"data": "test"},
         }
 
-        responses = call_invoke(message, route_modifying_handler)
+        responses = call_invoke(envelope, route_modifying_handler)
 
         assert len(responses) == 1
         # Generator appended "modified" to next, so curr becomes "modified"
@@ -1003,12 +1003,12 @@ class TestHandleRequestVFSMode:
             yield {"id": 2}
             yield {"id": 3}
 
-        message = {
+        envelope = {
             "route": {"prev": [], "curr": "fan", "next": []},
             "payload": {"test": "data"},
         }
 
-        responses = call_invoke(message, fanout_handler)
+        responses = call_invoke(envelope, fanout_handler)
 
         assert len(responses) == 3
         assert responses[0]["payload"] == {"id": 1}
@@ -1022,13 +1022,13 @@ class TestHandleRequestVFSMode:
             msg_id = yield "GET", ".id"
             yield {"id_seen": msg_id, **payload}
 
-        message = {
+        envelope = {
             "route": {"prev": [], "curr": "actor1", "next": []},
             "payload": {"test": "data"},
             "id": "msg-xyz-789",
         }
 
-        responses = call_invoke(message, id_reader)
+        responses = call_invoke(envelope, id_reader)
 
         assert len(responses) == 1
         assert responses[0]["payload"]["id_seen"] == "msg-xyz-789"
@@ -1056,12 +1056,12 @@ class TestHandleRequestErrorCases:
         def failing_handler(payload):
             raise ValueError("Handler failed")
 
-        message = {
+        envelope = {
             "payload": {"test": "data"},
             "route": {"prev": [], "curr": "a", "next": []},
         }
 
-        responses = call_invoke(message, failing_handler)
+        responses = call_invoke(envelope, failing_handler)
 
         assert len(responses) == 1
         assert responses[0]["error"] == "processing_error"
@@ -1074,12 +1074,12 @@ class TestHandleRequestErrorCases:
         def raising_handler(payload):
             raise RuntimeError("unexpected failure")
 
-        message = {
+        envelope = {
             "route": {"prev": [], "curr": "actor1", "next": []},
             "payload": {"test": "data"},
         }
 
-        responses = call_invoke(message, raising_handler)
+        responses = call_invoke(envelope, raising_handler)
 
         assert len(responses) == 1
         assert responses[0]["error"] == "processing_error"
@@ -1178,11 +1178,11 @@ class TestClassBasedHandlers:
             with mock_env(ASYA_HANDLER="payload_class.PayloadProcessor.process"):
                 handler = asya_runtime._load_function()
 
-                message = {
+                envelope = {
                     "payload": {"value": 21},
                     "route": {"prev": [], "curr": "a", "next": []},
                 }
-                responses = call_invoke(message, handler)
+                responses = call_invoke(envelope, handler)
 
                 assert len(responses) == 1
                 assert responses[0]["payload"]["result"] == 42
@@ -1210,12 +1210,12 @@ class TestClassBasedHandlers:
             with mock_env(ASYA_HANDLER="abi_class.AbiProcessor.process"):
                 handler = asya_runtime._load_function()
 
-                message = {
+                envelope = {
                     "payload": {"value": 100},
                     "route": {"prev": [], "curr": "a", "next": []},
                     "headers": {"trace_id": "123"},
                 }
-                responses = call_invoke(message, handler)
+                responses = call_invoke(envelope, handler)
 
                 assert len(responses) == 1
                 assert responses[0]["payload"]["prefix"] == "processed"
@@ -1357,11 +1357,11 @@ class TestClassBasedHandlers:
             with mock_env(ASYA_HANDLER="fanout_class.FanoutProcessor.process"):
                 handler = asya_runtime._load_function()
 
-                message = {
+                envelope = {
                     "payload": {"value": 42},
                     "route": {"prev": [], "curr": "fan", "next": []},
                 }
-                responses = call_invoke(message, handler)
+                responses = call_invoke(envelope, handler)
 
                 assert len(responses) == 3
                 assert responses[0]["payload"]["id"] == 0
@@ -1390,11 +1390,11 @@ class TestClassBasedHandlers:
             with mock_env(ASYA_HANDLER="none_class.NoneProcessor.process"):
                 handler = asya_runtime._load_function()
 
-                message = {
+                envelope = {
                     "payload": {"value": 42},
                     "route": {"prev": [], "curr": "a", "next": []},
                 }
-                responses = call_invoke(message, handler)
+                responses = call_invoke(envelope, handler)
 
                 assert len(responses) == 0
 
@@ -1420,11 +1420,11 @@ class TestClassBasedHandlers:
             with mock_env(ASYA_HANDLER="no_validation.NoValidationProcessor.process", ASYA_ENABLE_VALIDATION="false"):
                 handler = asya_runtime._load_function()
 
-                message = {
+                envelope = {
                     "payload": {"value": 23},
                     "route": {"prev": [], "curr": "a", "next": []},
                 }
-                responses = call_invoke(message, handler)
+                responses = call_invoke(envelope, handler)
 
                 assert len(responses) == 1
                 assert responses[0]["payload"]["result"] == 123
@@ -1513,11 +1513,11 @@ class TestClassBasedHandlers:
             with mock_env(ASYA_HANDLER="no_init_handler.ProcessorWithoutInit.process"):
                 handler = asya_runtime._load_function()
 
-                message = {
+                envelope = {
                     "payload": {"value": 7},
                     "route": {"prev": [], "curr": "a", "next": []},
                 }
-                responses = call_invoke(message, handler)
+                responses = call_invoke(envelope, handler)
 
                 assert len(responses) == 1
                 assert responses[0]["payload"]["result"] == 21
@@ -1596,13 +1596,13 @@ class TestAbiReadOnly:
             yield "SET", ".id", "injected"
             yield payload
 
-        message = {
+        envelope = {
             "id": "original-id",
             "payload": {"test": True},
             "route": {"prev": [], "curr": "a", "next": []},
         }
 
-        responses = call_invoke(message, id_writer)
+        responses = call_invoke(envelope, id_writer)
 
         assert len(responses) == 1
         assert responses[0]["error"] == "processing_error"
@@ -1614,14 +1614,14 @@ class TestAbiReadOnly:
             yield "SET", ".parent_id", "injected"
             yield payload
 
-        message = {
+        envelope = {
             "id": "msg-1",
             "parent_id": "original-parent",
             "payload": {},
             "route": {"prev": [], "curr": "a", "next": []},
         }
 
-        responses = call_invoke(message, parent_id_writer)
+        responses = call_invoke(envelope, parent_id_writer)
 
         assert len(responses) == 1
         assert responses[0]["error"] == "processing_error"
@@ -1633,12 +1633,12 @@ class TestAbiReadOnly:
             yield "SET", ".route.next", ["new-actor"]
             yield payload
 
-        message = {
+        envelope = {
             "payload": {"test": True},
             "route": {"prev": [], "curr": "a", "next": ["old-actor"]},
         }
 
-        responses = call_invoke(message, next_writer)
+        responses = call_invoke(envelope, next_writer)
 
         assert len(responses) == 1
         assert responses[0]["route"]["curr"] == "new-actor"
@@ -1654,12 +1654,12 @@ class TestEdgeCases:
         def simple_handler(payload):
             return payload
 
-        message = {
+        envelope = {
             "payload": {"text": "Hello 世界 こんにちは"},
             "route": {"prev": [], "curr": "a", "next": []},
         }
 
-        responses = call_invoke(message, simple_handler)
+        responses = call_invoke(envelope, simple_handler)
 
         assert len(responses) == 1
         assert responses[0]["payload"]["text"] == "Hello 世界 こんにちは"
@@ -1676,9 +1676,9 @@ class TestEdgeCases:
             current["next"] = {"level": i}
             current = current["next"]
 
-        message = {"payload": nested, "route": {"prev": [], "curr": "a", "next": []}}
+        envelope = {"payload": nested, "route": {"prev": [], "curr": "a", "next": []}}
 
-        responses = call_invoke(message, simple_handler)
+        responses = call_invoke(envelope, simple_handler)
 
         assert len(responses) == 1
         assert responses[0]["payload"]["level"] == 0
@@ -1689,9 +1689,9 @@ class TestEdgeCases:
         def simple_handler(payload):
             return payload if payload is not None else {"default": True}
 
-        message = {"payload": None, "route": {"prev": [], "curr": "a", "next": []}}
+        envelope = {"payload": None, "route": {"prev": [], "curr": "a", "next": []}}
 
-        responses = call_invoke(message, simple_handler)
+        responses = call_invoke(envelope, simple_handler)
 
         assert len(responses) == 1
         assert responses[0]["payload"] == {"default": True}
@@ -1702,12 +1702,12 @@ class TestEdgeCases:
         def error_handler(payload):
             raise RuntimeError("Something went wrong")
 
-        message = {
+        envelope = {
             "payload": {"test": "data"},
             "route": {"prev": [], "curr": "a", "next": []},
         }
 
-        responses = call_invoke(message, error_handler)
+        responses = call_invoke(envelope, error_handler)
 
         assert len(responses) == 1
         response_error: str | None = responses[0].get("error")
@@ -1730,12 +1730,12 @@ class TestEdgeCases:
                 "nested": {"a": {"b": {"c": "deep"}}},
             }
 
-        message = {
+        envelope = {
             "payload": {"test": "data"},
             "route": {"prev": [], "curr": "a", "next": []},
         }
 
-        responses = call_invoke(message, complex_handler)
+        responses = call_invoke(envelope, complex_handler)
 
         assert len(responses) == 1
         assert responses[0]["payload"]["int"] == 42
@@ -1749,12 +1749,12 @@ class TestEdgeCases:
         def large_handler(payload):
             return {"data": "X" * (1024 * 1024)}
 
-        message = {
+        envelope = {
             "payload": {"test": "data"},
             "route": {"prev": [], "curr": "a", "next": []},
         }
 
-        responses = call_invoke(message, large_handler)
+        responses = call_invoke(envelope, large_handler)
 
         assert len(responses) == 1
         assert len(responses[0]["payload"]["data"]) == 1024 * 1024
@@ -1765,12 +1765,12 @@ class TestEdgeCases:
         def simple_handler(payload):
             return payload
 
-        message = {
+        envelope = {
             "payload": {"text": 'Test "quotes" and \\backslashes\\ and \n newlines \t tabs'},
             "route": {"prev": [], "curr": "a", "next": []},
         }
 
-        responses = call_invoke(message, simple_handler)
+        responses = call_invoke(envelope, simple_handler)
 
         assert len(responses) == 1
         assert responses[0]["payload"]["text"] == 'Test "quotes" and \\backslashes\\ and \n newlines \t tabs'
@@ -1793,13 +1793,13 @@ class TestStatusPreservation:
             "created_at": "2025-01-01T00:00:00Z",
             "updated_at": "2025-01-01T00:01:00Z",
         }
-        message = {
+        envelope = {
             "payload": {"value": 21},
             "route": {"prev": [], "curr": "doubler", "next": ["next_actor"]},
             "status": status,
         }
 
-        responses = call_invoke(message, simple_handler)
+        responses = call_invoke(envelope, simple_handler)
 
         assert len(responses) == 1
         assert responses[0]["payload"] == {"result": 42}
@@ -1813,12 +1813,12 @@ class TestStatusPreservation:
         def simple_handler(payload):
             return {"result": "ok"}
 
-        message = {
+        envelope = {
             "payload": {"test": True},
             "route": {"prev": [], "curr": "a", "next": []},
         }
 
-        responses = call_invoke(message, simple_handler)
+        responses = call_invoke(envelope, simple_handler)
 
         assert len(responses) == 1
         assert responses[0]["payload"] == {"result": "ok"}
@@ -1839,13 +1839,13 @@ class TestStatusPreservation:
             "created_at": "2025-01-01T00:00:00Z",
             "updated_at": "2025-01-01T00:01:00Z",
         }
-        message = {
+        envelope = {
             "payload": {"data": "test"},
             "route": {"prev": [], "curr": "processor", "next": ["next_actor"]},
             "status": status,
         }
 
-        responses = call_invoke(message, status_reader)
+        responses = call_invoke(envelope, status_reader)
 
         assert len(responses) == 1
         assert responses[0]["payload"]["phase_seen"] == "processing"
@@ -1862,13 +1862,13 @@ class TestHeadersPreservation:
         def simple_handler(payload):
             return {"result": payload["value"] * 2}
 
-        message = {
+        envelope = {
             "payload": {"value": 42},
             "route": {"prev": [], "curr": "doubler", "next": []},
             "headers": {"trace_id": "abc-123", "priority": "high"},
         }
 
-        responses = call_invoke(message, simple_handler)
+        responses = call_invoke(envelope, simple_handler)
 
         assert len(responses) == 1
         assert responses[0]["payload"] == {"result": 84}
@@ -1883,13 +1883,13 @@ class TestHeadersPreservation:
             yield {"id": 1}
             yield {"id": 2}
 
-        message = {
+        envelope = {
             "payload": {"test": "data"},
             "route": {"prev": [], "curr": "fan", "next": []},
             "headers": {"correlation_id": "xyz-789"},
         }
 
-        responses = call_invoke(message, fanout_handler)
+        responses = call_invoke(envelope, fanout_handler)
 
         assert len(responses) == 2
         assert responses[0]["payload"] == {"id": 1}
@@ -1903,12 +1903,12 @@ class TestHeadersPreservation:
         def simple_handler(payload):
             return payload
 
-        message = {
+        envelope = {
             "payload": {"test": "data"},
             "route": {"prev": [], "curr": "echo", "next": []},
         }
 
-        responses = call_invoke(message, simple_handler)
+        responses = call_invoke(envelope, simple_handler)
 
         assert len(responses) == 1
         assert responses[0]["payload"] == {"test": "data"}
@@ -1921,13 +1921,13 @@ class TestHeadersPreservation:
             req_id = yield "GET", ".headers.request_id"
             yield {"value": payload["value"], "request_id": req_id}
 
-        message = {
+        envelope = {
             "payload": {"value": 100},
             "route": {"prev": [], "curr": "passthrough", "next": []},
             "headers": {"request_id": "req-456"},
         }
 
-        responses = call_invoke(message, header_reader)
+        responses = call_invoke(envelope, header_reader)
 
         assert len(responses) == 1
         assert responses[0]["payload"] == {"value": 100, "request_id": "req-456"}
@@ -1940,13 +1940,13 @@ class TestHeadersPreservation:
         def simple_handler(payload):
             return payload
 
-        message = {
+        envelope = {
             "payload": {"test": "data"},
             "route": {"prev": [], "curr": "echo", "next": []},
             "headers": "this should be a dict, not a string",
         }
 
-        responses = call_invoke(message, simple_handler)
+        responses = call_invoke(envelope, simple_handler)
 
         assert len(responses) == 1
         assert responses[0]["error"] == "msg_parsing_error"
@@ -1968,13 +1968,13 @@ class TestAbiHeaderAccess:
                 "value": payload["value"],
             }
 
-        message = {
+        envelope = {
             "payload": {"value": 42},
             "route": {"prev": [], "curr": "processor", "next": []},
             "headers": {"priority": "high", "trace_id": "xyz"},
         }
 
-        responses = call_invoke(message, header_reader)
+        responses = call_invoke(envelope, header_reader)
 
         assert len(responses) == 1
         assert responses[0]["payload"] == {"priority": "high", "trace_id": "xyz", "value": 42}
@@ -1988,13 +1988,13 @@ class TestAbiHeaderAccess:
             yield "SET", ".headers.new-header", "added-value"
             yield payload
 
-        message = {
+        envelope = {
             "payload": {"test": True},
             "route": {"prev": [], "curr": "a", "next": []},
             "headers": {"existing": "kept"},
         }
 
-        responses = call_invoke(message, header_writer)
+        responses = call_invoke(envelope, header_writer)
 
         assert len(responses) == 1
         assert responses[0]["headers"]["existing"] == "kept"
@@ -2007,13 +2007,13 @@ class TestAbiHeaderAccess:
             yield {"id": 1}
             yield {"id": 2}
 
-        message = {
+        envelope = {
             "payload": {"test": "data"},
             "route": {"prev": [], "curr": "fan", "next": []},
             "headers": {"correlation_id": "abc"},
         }
 
-        responses = call_invoke(message, fanout_handler)
+        responses = call_invoke(envelope, fanout_handler)
 
         assert len(responses) == 2
         assert responses[0]["payload"] == {"id": 1}
@@ -2028,13 +2028,13 @@ class TestAbiHeaderAccess:
             yield "GET", ".headers.nonexistent"
             yield payload
 
-        message = {
+        envelope = {
             "payload": {"test": True},
             "route": {"prev": [], "curr": "a", "next": []},
             "headers": {},
         }
 
-        responses = call_invoke(message, missing_header_reader)
+        responses = call_invoke(envelope, missing_header_reader)
 
         assert len(responses) == 1
         assert responses[0]["error"] == "processing_error"
@@ -2045,12 +2045,12 @@ class TestAbiHeaderAccess:
         def none_handler(payload):
             return None
 
-        message = {
+        envelope = {
             "payload": {"test": "data"},
             "route": {"prev": [], "curr": "processor", "next": []},
         }
 
-        responses = call_invoke(message, none_handler)
+        responses = call_invoke(envelope, none_handler)
 
         assert len(responses) == 0
 
@@ -2226,12 +2226,12 @@ class TestAsyncHandlers:
         async def async_echo(payload):
             return {"echoed": payload["msg"]}
 
-        message = {
+        envelope = {
             "payload": {"msg": "hello"},
             "route": {"prev": [], "curr": "a", "next": []},
         }
 
-        responses = call_invoke(message, async_echo)
+        responses = call_invoke(envelope, async_echo)
 
         assert len(responses) == 1
         assert responses[0]["payload"] == {"echoed": "hello"}
@@ -2244,12 +2244,12 @@ class TestAsyncHandlers:
         async def async_list_return(payload):
             return [{"i": 0}, {"i": 1}, {"i": 2}]
 
-        message = {
+        envelope = {
             "payload": {"test": True},
             "route": {"prev": [], "curr": "a", "next": ["b"]},
         }
 
-        responses = call_invoke(message, async_list_return)
+        responses = call_invoke(envelope, async_list_return)
 
         assert len(responses) == 1
         assert responses[0]["payload"] == [{"i": 0}, {"i": 1}, {"i": 2}]
@@ -2262,12 +2262,12 @@ class TestAsyncHandlers:
         async def async_none(payload):
             return None
 
-        message = {
+        envelope = {
             "payload": {"test": True},
             "route": {"prev": [], "curr": "a", "next": []},
         }
 
-        responses = call_invoke(message, async_none)
+        responses = call_invoke(envelope, async_none)
 
         assert len(responses) == 0
 
@@ -2278,13 +2278,13 @@ class TestAsyncHandlers:
             trace_id = yield "GET", ".headers.trace_id"
             yield {"processed": payload["data"], "trace_id": trace_id}
 
-        message = {
+        envelope = {
             "payload": {"data": "test"},
             "route": {"prev": [], "curr": "a", "next": ["b"]},
             "headers": {"trace_id": "t1"},
         }
 
-        responses = call_invoke(message, async_abi_handler)
+        responses = call_invoke(envelope, async_abi_handler)
 
         assert len(responses) == 1
         assert responses[0]["payload"] == {"processed": "test", "trace_id": "t1"}
@@ -2298,12 +2298,12 @@ class TestAsyncHandlers:
         async def async_error(payload):
             raise ValueError("async handler failed")
 
-        message = {
+        envelope = {
             "payload": {"test": True},
             "route": {"prev": [], "curr": "a", "next": []},
         }
 
-        responses = call_invoke(message, async_error)
+        responses = call_invoke(envelope, async_error)
 
         assert len(responses) == 1
         assert responses[0]["error"] == "processing_error"
@@ -2316,12 +2316,12 @@ class TestAsyncHandlers:
         def sync_handler(payload):
             return {"result": payload["value"] + 1}
 
-        message = {
+        envelope = {
             "payload": {"value": 41},
             "route": {"prev": [], "curr": "a", "next": []},
         }
 
-        responses = call_invoke(message, sync_handler)
+        responses = call_invoke(envelope, sync_handler)
 
         assert len(responses) == 1
         assert responses[0]["payload"] == {"result": 42}
@@ -2339,12 +2339,12 @@ class TestAsyncHandlers:
 
         processor = AsyncProcessor()
 
-        message = {
+        envelope = {
             "payload": {"test": "data"},
             "route": {"prev": [], "curr": "a", "next": []},
         }
 
-        responses = call_invoke(message, processor.process)
+        responses = call_invoke(envelope, processor.process)
 
         assert len(responses) == 1
         assert responses[0]["payload"]["count"] == 1
@@ -2356,13 +2356,13 @@ class TestAsyncHandlers:
         async def async_handler(payload):
             return {"result": "ok"}
 
-        message = {
+        envelope = {
             "payload": {"test": True},
             "route": {"prev": [], "curr": "a", "next": ["b"]},
             "headers": {"trace_id": "abc", "priority": "high"},
         }
 
-        responses = call_invoke(message, async_handler)
+        responses = call_invoke(envelope, async_handler)
 
         assert len(responses) == 1
         assert responses[0]["headers"] == {"trace_id": "abc", "priority": "high"}
@@ -2379,12 +2379,12 @@ class TestAsyncGeneratorHandlers:
             yield {"id": 2}
             yield {"id": 3}
 
-        message = {
+        envelope = {
             "payload": {},
             "route": {"prev": [], "curr": "a", "next": ["b"]},
         }
 
-        responses = call_invoke(message, async_gen)
+        responses = call_invoke(envelope, async_gen)
 
         assert len(responses) == 3
         assert [f["payload"]["id"] for f in responses] == [1, 2, 3]
@@ -2397,12 +2397,12 @@ class TestAsyncGeneratorHandlers:
             for _ in []:
                 yield
 
-        message = {
+        envelope = {
             "payload": {},
             "route": {"prev": [], "curr": "a", "next": []},
         }
 
-        responses = call_invoke(message, empty_gen)
+        responses = call_invoke(envelope, empty_gen)
 
         assert len(responses) == 0
 
@@ -2414,12 +2414,12 @@ class TestAsyncGeneratorHandlers:
             yield "SET", ".route.next", ["c", "d"]
             yield {"step": 2}
 
-        message = {
+        envelope = {
             "payload": {},
             "route": {"prev": [], "curr": "a", "next": ["b"]},
         }
 
-        responses = call_invoke(message, gen_with_abi)
+        responses = call_invoke(envelope, gen_with_abi)
 
         assert len(responses) == 2
         assert responses[0]["route"]["curr"] == "b"
@@ -2433,12 +2433,12 @@ class TestAsyncGeneratorHandlers:
             yield {"id": 1}
             raise ValueError("midstream failure")
 
-        message = {
+        envelope = {
             "payload": {},
             "route": {"prev": [], "curr": "a", "next": []},
         }
 
-        responses = call_invoke(message, failing_gen)
+        responses = call_invoke(envelope, failing_gen)
 
         assert len(responses) == 1
         assert responses[0]["error"] == "processing_error"
@@ -2450,12 +2450,12 @@ class TestAsyncGeneratorHandlers:
         async def single_gen(payload):
             yield {"result": payload["value"] * 2}
 
-        message = {
+        envelope = {
             "payload": {"value": 21},
             "route": {"prev": [], "curr": "a", "next": []},
         }
 
-        responses = call_invoke(message, single_gen)
+        responses = call_invoke(envelope, single_gen)
 
         assert len(responses) == 1
         assert responses[0]["payload"] == {"result": 42}
@@ -2468,13 +2468,13 @@ class TestAsyncGeneratorHandlers:
             yield {"id": 1}
             yield {"id": 2}
 
-        message = {
+        envelope = {
             "payload": {},
             "route": {"prev": [], "curr": "a", "next": ["b"]},
             "headers": {"trace_id": "t1"},
         }
 
-        responses = call_invoke(message, gen)
+        responses = call_invoke(envelope, gen)
 
         assert len(responses) == 2
         assert all(f["headers"] == {"trace_id": "t1"} for f in responses)
@@ -2515,11 +2515,11 @@ class TestHTTPInvoke:
         def handler(payload):
             return {"result": payload["x"] + 1}
 
-        message = {
+        envelope = {
             "payload": {"x": 10},
             "route": {"prev": [], "curr": "a", "next": ["b"]},
         }
-        frames, status = runtime_invoke(handler, message)
+        frames, status = runtime_invoke(handler, envelope)
         assert status == 200
         assert len(frames) == 1
         assert frames[0]["payload"] == {"result": 11}
@@ -2527,22 +2527,22 @@ class TestHTTPInvoke:
         assert frames[0]["route"]["prev"] == ["a"]
 
     def test_payload_mode_preserves_headers(self, runtime_invoke):
-        message = {
+        envelope = {
             "payload": {"x": 1},
             "route": {"prev": [], "curr": "a", "next": ["b"]},
             "headers": {"trace_id": "abc-123"},
         }
-        frames, status = runtime_invoke(lambda p: {"ok": True}, message)
+        frames, status = runtime_invoke(lambda p: {"ok": True}, envelope)
         assert status == 200
         assert frames[0]["headers"] == {"trace_id": "abc-123"}
 
     def test_payload_mode_preserves_status(self, runtime_invoke):
-        message = {
+        envelope = {
             "payload": {},
             "route": {"prev": [], "curr": "a", "next": []},
             "status": {"phase": "working"},
         }
-        frames, status = runtime_invoke(lambda p: {"ok": True}, message)
+        frames, status = runtime_invoke(lambda p: {"ok": True}, envelope)
         assert status == 200
         assert frames[0]["status"] == {"phase": "working"}
 
@@ -2550,16 +2550,16 @@ class TestHTTPInvoke:
         async def handler(payload):
             return {"async": True}
 
-        message = {"payload": {}, "route": {"prev": [], "curr": "a", "next": []}}
-        frames, status = runtime_invoke(handler, message)
+        envelope = {"payload": {}, "route": {"prev": [], "curr": "a", "next": []}}
+        frames, status = runtime_invoke(handler, envelope)
         assert status == 200
         assert frames[0]["payload"] == {"async": True}
 
     # --- Abort (204) ---
 
     def test_handler_returns_none_204(self, runtime_invoke):
-        message = {"payload": {}, "route": {"prev": [], "curr": "a", "next": []}}
-        frames, status = runtime_invoke(lambda p: None, message)
+        envelope = {"payload": {}, "route": {"prev": [], "curr": "a", "next": []}}
+        frames, status = runtime_invoke(lambda p: None, envelope)
         assert status == 204
         assert frames == []
 
@@ -2569,8 +2569,8 @@ class TestHTTPInvoke:
         def bad_handler(payload):
             raise ValueError("something broke")
 
-        message = {"payload": {}, "route": {"prev": [], "curr": "a", "next": []}}
-        error, status = runtime_invoke(bad_handler, message)
+        envelope = {"payload": {}, "route": {"prev": [], "curr": "a", "next": []}}
+        error, status = runtime_invoke(bad_handler, envelope)
         assert status == 500
         assert error["error"] == "processing_error"
         assert "something broke" in error["details"]["message"]
@@ -2579,14 +2579,14 @@ class TestHTTPInvoke:
     # --- Parse error (400) ---
 
     def test_missing_payload_400(self, runtime_invoke):
-        message = {"route": {"prev": [], "curr": "a", "next": []}}
-        error, status = runtime_invoke(lambda p: p, message)
+        envelope = {"route": {"prev": [], "curr": "a", "next": []}}
+        error, status = runtime_invoke(lambda p: p, envelope)
         assert status == 400
         assert error["error"] == "msg_parsing_error"
 
     def test_missing_route_400(self, runtime_invoke):
-        message = {"payload": {"x": 1}}
-        error, status = runtime_invoke(lambda p: p, message)
+        envelope = {"payload": {"x": 1}}
+        error, status = runtime_invoke(lambda p: p, envelope)
         assert status == 400
         assert error["error"] == "msg_parsing_error"
 
@@ -2602,7 +2602,7 @@ class TestHTTPInvoke:
             msg_id = yield "GET", ".id"
             yield {"processed": True, "id_seen": msg_id}
 
-        message = {"id": "test-msg-id", "payload": {"x": 1}, "route": {"prev": [], "curr": "a", "next": []}}
+        envelope = {"id": "test-msg-id", "payload": {"x": 1}, "route": {"prev": [], "curr": "a", "next": []}}
         socket_path = str(tmp_path / "abi-id.sock")
         server = asya_runtime._UnixHTTPServer(socket_path, asya_runtime._InvokeHandler)
         server.user_func = handler
@@ -2611,7 +2611,7 @@ class TestHTTPInvoke:
         thread.start()
 
         conn = _UnixHTTPConnection(socket_path)
-        body = json.dumps(message).encode("utf-8")
+        body = json.dumps(envelope).encode("utf-8")
         conn.request("POST", "/invoke", body=body, headers={"Content-Type": "application/json"})
         resp = conn.getresponse()
         status = resp.status
@@ -2628,8 +2628,8 @@ class TestHTTPInvoke:
         assert downstream[0]["payload"]["id_seen"] == "test-msg-id"
 
     def test_vfs_handler_returns_none(self, runtime_invoke):
-        message = {"payload": {}, "route": {"prev": [], "curr": "a", "next": []}}
-        frames, status = runtime_invoke(lambda p: None, message)
+        envelope = {"payload": {}, "route": {"prev": [], "curr": "a", "next": []}}
+        frames, status = runtime_invoke(lambda p: None, envelope)
         assert status == 204
 
     # test_vfs_generator_handler moved to TestSSEStreaming
@@ -2639,11 +2639,11 @@ class TestHTTPInvoke:
     @pytest.mark.parametrize("size_kb", [10, 100, 500, 1024])
     def test_large_payloads(self, runtime_invoke, size_kb):
         large_data = "X" * (size_kb * 1024)
-        message = {
+        envelope = {
             "payload": {"data": large_data},
             "route": {"prev": [], "curr": "a", "next": []},
         }
-        frames, status = runtime_invoke(lambda p: p, message)
+        frames, status = runtime_invoke(lambda p: p, envelope)
         assert status == 200
         assert len(frames[0]["payload"]["data"]) == size_kb * 1024
 
@@ -2696,8 +2696,8 @@ class TestSSEStreaming:
         def gen(payload):
             yield {"id": 1}
 
-        message = {"payload": {}, "route": {"prev": [], "curr": "a", "next": []}}
-        status, ct, _ = self._invoke_raw(tmp_path, gen, message)
+        envelope = {"payload": {}, "route": {"prev": [], "curr": "a", "next": []}}
+        status, ct, _ = self._invoke_raw(tmp_path, gen, envelope)
         assert status == 200
         assert ct == "text/event-stream"
 
@@ -2709,8 +2709,8 @@ class TestSSEStreaming:
             yield {"id": 2}
             yield {"id": 3}
 
-        message = {"payload": {}, "route": {"prev": [], "curr": "a", "next": ["b"]}}
-        status, _, raw = self._invoke_raw(tmp_path, gen, message)
+        envelope = {"payload": {}, "route": {"prev": [], "curr": "a", "next": ["b"]}}
+        status, _, raw = self._invoke_raw(tmp_path, gen, envelope)
         assert status == 200
 
         events = _parse_sse(raw)
@@ -2728,8 +2728,8 @@ class TestSSEStreaming:
             yield "FLY", {"token": "hello"}
             yield "FLY", {"token": "world"}
 
-        message = {"payload": {}, "route": {"prev": [], "curr": "a", "next": []}}
-        status, _, raw = self._invoke_raw(tmp_path, gen, message)
+        envelope = {"payload": {}, "route": {"prev": [], "curr": "a", "next": []}}
+        status, _, raw = self._invoke_raw(tmp_path, gen, envelope)
         assert status == 200
 
         events = _parse_sse(raw)
@@ -2749,8 +2749,8 @@ class TestSSEStreaming:
             yield "FLY", {"token": "done"}
             yield {"result": "step2"}
 
-        message = {"payload": {}, "route": {"prev": [], "curr": "a", "next": ["b"]}}
-        status, _, raw = self._invoke_raw(tmp_path, gen, message)
+        envelope = {"payload": {}, "route": {"prev": [], "curr": "a", "next": ["b"]}}
+        status, _, raw = self._invoke_raw(tmp_path, gen, envelope)
         assert status == 200
 
         events = _parse_sse(raw)
@@ -2763,8 +2763,8 @@ class TestSSEStreaming:
         def gen(payload):
             yield from []
 
-        message = {"payload": {}, "route": {"prev": [], "curr": "a", "next": []}}
-        status, _, raw = self._invoke_raw(tmp_path, gen, message)
+        envelope = {"payload": {}, "route": {"prev": [], "curr": "a", "next": []}}
+        status, _, raw = self._invoke_raw(tmp_path, gen, envelope)
         assert status == 200
 
         events = _parse_sse(raw)
@@ -2778,8 +2778,8 @@ class TestSSEStreaming:
             yield {"id": 1}
             raise ValueError("midstream failure")
 
-        message = {"payload": {}, "route": {"prev": [], "curr": "a", "next": []}}
-        status, _, raw = self._invoke_raw(tmp_path, gen, message)
+        envelope = {"payload": {}, "route": {"prev": [], "curr": "a", "next": []}}
+        status, _, raw = self._invoke_raw(tmp_path, gen, envelope)
         assert status == 200
 
         events = _parse_sse(raw)
@@ -2796,8 +2796,8 @@ class TestSSEStreaming:
             yield "FLY", {"token": "partial"}
             yield {"id": 2}
 
-        message = {"payload": {}, "route": {"prev": [], "curr": "a", "next": ["b"]}}
-        status, _, raw = self._invoke_raw(tmp_path, gen, message)
+        envelope = {"payload": {}, "route": {"prev": [], "curr": "a", "next": ["b"]}}
+        status, _, raw = self._invoke_raw(tmp_path, gen, envelope)
         assert status == 200
 
         events = _parse_sse(raw)
@@ -2810,8 +2810,8 @@ class TestSSEStreaming:
         def handler(payload):
             return {"result": "ok"}
 
-        message = {"payload": {}, "route": {"prev": [], "curr": "a", "next": []}}
-        status, ct, raw = self._invoke_raw(tmp_path, handler, message)
+        envelope = {"payload": {}, "route": {"prev": [], "curr": "a", "next": []}}
+        status, ct, raw = self._invoke_raw(tmp_path, handler, envelope)
         assert status == 200
         assert ct == "application/json"
         data = json.loads(raw)
@@ -2825,8 +2825,8 @@ class TestSSEStreaming:
             yield "SET", ".route.next", ["c", "d"]
             yield {"step": 2}
 
-        message = {"payload": {}, "route": {"prev": [], "curr": "a", "next": ["b"]}}
-        status, _, raw = self._invoke_raw(tmp_path, gen, message)
+        envelope = {"payload": {}, "route": {"prev": [], "curr": "a", "next": ["b"]}}
+        status, _, raw = self._invoke_raw(tmp_path, gen, envelope)
         assert status == 200
 
         events = _parse_sse(raw)
@@ -2991,7 +2991,7 @@ class TestAbiPathResolver:
 class TestAbiContext:
     """Test _AbiContext class."""
 
-    def _make_message(self, **overrides):
+    def _make_envelope(self, **overrides):
         msg = {
             "id": "msg-1",
             "route": {"prev": ["x"], "curr": "a", "next": ["b", "c"]},
@@ -3002,36 +3002,36 @@ class TestAbiContext:
         return msg
 
     def test_context_populates_from_message(self):
-        ctx = asya_runtime._AbiContext(self._make_message())
+        ctx = asya_runtime._AbiContext(self._make_envelope())
         assert ctx.data["id"] == "msg-1"
         assert ctx.data["route"]["next"] == ["b", "c"]
         assert ctx.data["headers"]["trace_id"] == "t1"
 
     def test_context_snapshot(self):
-        ctx = asya_runtime._AbiContext(self._make_message())
+        ctx = asya_runtime._AbiContext(self._make_envelope())
         snap = ctx.snapshot()
         assert snap["route_next"] == ["b", "c"]
         assert snap["headers"] == {"trace_id": "t1"}
 
     def test_context_isolates_from_message(self):
-        msg = self._make_message()
+        msg = self._make_envelope()
         ctx = asya_runtime._AbiContext(msg)
         ctx.data["route"]["next"].append("mutated")
         assert msg["route"]["next"] == ["b", "c"]
 
     def test_context_with_status(self):
-        msg = self._make_message(status={"error": {"type": "ValueError"}})
+        msg = self._make_envelope(status={"error": {"type": "ValueError"}})
         ctx = asya_runtime._AbiContext(msg)
         assert ctx.data["status"]["error"]["type"] == "ValueError"
 
     def test_context_without_headers(self):
-        msg = self._make_message()
+        msg = self._make_envelope()
         del msg["headers"]
         ctx = asya_runtime._AbiContext(msg)
         assert ctx.data["headers"] == {}
 
     def test_context_with_parent_id(self):
-        msg = self._make_message(parent_id="parent-1")
+        msg = self._make_envelope(parent_id="parent-1")
         ctx = asya_runtime._AbiContext(msg)
         assert ctx.data["parent_id"] == "parent-1"
 

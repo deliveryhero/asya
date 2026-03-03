@@ -40,7 +40,7 @@ func NewRabbitMQClientPooled(url, exchange string, poolSize int) (*RabbitMQClien
 
 // SendMessage sends a message to the current actor's queue in the route
 func (c *RabbitMQClientPooled) SendMessage(ctx context.Context, task *types.Task) error {
-	msg, err := NewActorMessage(task)
+	msg, err := NewActorEnvelope(task)
 	if err != nil {
 		return fmt.Errorf("failed to create actor message: %w", err)
 	}

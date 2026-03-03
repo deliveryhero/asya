@@ -73,7 +73,7 @@ type Route struct {
 //
 // INTERNAL USE: This type is used within the gateway for:
 // - Database persistence (updating task table and task_updates table)
-// - SSE event streaming to clients (sent via /tasks/{id}/stream)
+// - SSE event streaming to clients (sent via /mesh/{id}/stream)
 // - In-memory state management and event notification
 //
 // TaskUpdate includes full task lifecycle events (status changes, results, errors)
@@ -101,7 +101,7 @@ type TaskUpdate struct {
 
 // ProgressUpdate represents a progress report sent FROM sidecars TO the gateway.
 //
-// EXTERNAL API: This type is used for the POST /tasks/{id}/progress endpoint.
+// EXTERNAL API: This type is used for the POST /mesh/{id}/progress endpoint.
 // Sidecars send these updates as actors process tasks to report:
 // - Which actor is currently processing (Curr)
 // - Task processing state ("received", "processing", "completed")

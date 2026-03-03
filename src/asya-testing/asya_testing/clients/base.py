@@ -12,27 +12,27 @@ class TransportClient(ABC):
     """
 
     @abstractmethod
-    def publish(self, queue: str, message: dict) -> None:
+    def publish(self, queue: str, envelope: dict) -> None:
         """
-        Publish message to queue.
+        Publish envelope to queue.
 
         Args:
             queue: Queue name
-            message: Message dict (will be JSON-serialized)
+            envelope: Envelope dict (will be JSON-serialized)
         """
         pass
 
     @abstractmethod
     def consume(self, queue: str, timeout: int = 10) -> dict | None:
         """
-        Consume message from queue with timeout.
+        Consume envelope from queue with timeout.
 
         Args:
             queue: Queue name
             timeout: Timeout in seconds
 
         Returns:
-            Message dict or None if timeout
+            Envelope dict or None if timeout
         """
         pass
 
@@ -81,18 +81,18 @@ class ActorTransportClient(TransportClient):
         """Convert actor name to queue name using Asya naming convention."""
         return f"asya-{self._namespace}-{actor_name}"
 
-    def publish(self, queue: str, message: dict) -> None:
-        """Publish message to actor queue."""
+    def publish(self, queue: str, envelope: dict) -> None:
+        """Publish envelope to actor queue."""
         queue_name = self._resolve_queue_name(queue)
-        self._transport.publish(queue_name, message)
+        self._transport.publish(queue_name, envelope)
 
     def consume(self, queue: str, timeout: int = 10) -> dict | None:
-        """Consume message from actor queue."""
+        """Consume envelope from actor queue."""
         queue_name = self._resolve_queue_name(queue)
         return self._transport.consume(queue_name, timeout)
 
     def purge(self, queue: str) -> None:
-        """Purge all messages from actor queue."""
+        """Purge all envelopes from actor queue."""
         queue_name = self._resolve_queue_name(queue)
         self._transport.purge(queue_name)
 

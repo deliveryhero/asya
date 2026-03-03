@@ -164,7 +164,7 @@ services:
       dockerfile: Dockerfile
     command: ["python3", "/opt/asya/asya_runtime.py"]
     environment:
-    - ASYA_HANDLER=asya_testing.handlers.classes.MessageHandler.process
+    - ASYA_HANDLER=asya_testing.handlers.classes.EnvelopeHandler.process
     - ASYA_SOCKET_NAME=msg-class.sock
 
 

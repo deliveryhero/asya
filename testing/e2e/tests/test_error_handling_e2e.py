@@ -66,7 +66,7 @@ def test_error_goes_to_sump_when_available(e2e_helper, kubectl, chaos_queues, na
 
     This is the NORMAL case - application handles its own errors.
     """
-    from asya_testing.utils.s3 import wait_for_message_in_s3
+    from asya_testing.utils.s3 import wait_for_envelope_in_s3
 
     transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
     transport_client = _get_transport_client(transport)
@@ -102,7 +102,7 @@ def test_error_goes_to_sump_when_available(e2e_helper, kubectl, chaos_queues, na
 
     # Verify error persisted to S3
     logger.info("Waiting for error to appear in S3 errors bucket...")
-    s3_object = wait_for_message_in_s3(
+    s3_object = wait_for_envelope_in_s3(
         bucket_name=errors_bucket,
         message_id=task_id,
         timeout=30

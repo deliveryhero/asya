@@ -64,7 +64,7 @@ func TestRabbitMQQueueNaming(t *testing.T) {
 			}
 
 			// Marshal expected message to compare
-			expectedMsg, _ := NewActorMessage(task)
+			expectedMsg, _ := NewActorEnvelope(task)
 			expectedBody, _ := json.Marshal(expectedMsg)
 
 			// Create a mock channel that captures the routing key

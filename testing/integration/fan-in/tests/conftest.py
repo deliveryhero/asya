@@ -40,8 +40,8 @@ class RabbitMQTestHelper:
         self.base_url = f"http://{rabbitmq_host}:15672/api"
         self.auth = (rabbitmq_user, rabbitmq_pass)
 
-    def publish_message(self, queue: str, message: dict, exchange: str = "asya") -> None:
-        """Publish a message to RabbitMQ with delivery confirmation."""
+    def publish_envelope(self, queue: str, envelope: dict, exchange: str = "asya") -> None:
+        """Publish envelope to RabbitMQ with delivery confirmation."""
         routing_key = queue.removeprefix(f"asya-{self.namespace}-")
         credentials = pika.PlainCredentials(self.rabbitmq_user, self.rabbitmq_pass)
         parameters = pika.ConnectionParameters(
@@ -50,7 +50,7 @@ class RabbitMQTestHelper:
         connection = pika.BlockingConnection(parameters)
         channel = connection.channel()
         channel.confirm_delivery()
-        body = json.dumps(message)
+        body = json.dumps(envelope)
         channel.basic_publish(
             exchange=exchange,
             routing_key=routing_key,
@@ -62,8 +62,8 @@ class RabbitMQTestHelper:
         )
         connection.close()
 
-    def get_message(self, queue: str, timeout: int = 10) -> Optional[Dict]:
-        """Get a message from a queue with timeout."""
+    def get_envelope(self, queue: str, timeout: int = 10) -> Optional[Dict]:
+        """Get envelope from a queue with timeout."""
         start_time = time.time()
         poll_interval = 0.1  # 100ms polling interval
         while time.time() - start_time < timeout:
@@ -92,13 +92,13 @@ class RabbitMQTestHelper:
         return response.status_code == 204
 
     def assert_message_in_queue(self, queue: str, timeout: int = 30) -> dict:
-        """Wait for a message in the queue and assert it is present."""
-        msg = self.get_message(queue, timeout)
+        """Wait for envelope in the queue and assert it is present."""
+        msg = self.get_envelope(queue, timeout)
         assert msg is not None, f"No message found in '{queue}' within {timeout}s"
         return msg
 
     def wait_for_merged_result(self, queue: str, aggregation_key: str = "results", timeout: int = 60) -> dict:
-        """Wait for the merged fan-in result: a message whose payload contains aggregation_key.
+        """Wait for envelope whose payload contains aggregation_key.
 
         Intermediate fan-in slices (None-returning aggregator calls) also go to x-sink,
         so we must skip them and wait for the final merged payload that contains the
@@ -149,12 +149,12 @@ class SQSTestHelper:
             secret_key=secret_key,
         )
 
-    def publish_message(self, queue: str, message: dict, exchange: str = "") -> None:
-        """Publish a message to SQS queue."""
-        self.sqs_client.publish(queue, message, exchange)
+    def publish_envelope(self, queue: str, envelope: dict, exchange: str = "") -> None:
+        """Publish envelope to SQS queue."""
+        self.sqs_client.publish(queue, envelope, exchange)
 
-    def get_message(self, queue: str, timeout: int = 10) -> Optional[Dict]:
-        """Get a message from a queue with timeout."""
+    def get_envelope(self, queue: str, timeout: int = 10) -> Optional[Dict]:
+        """Get envelope from a queue with timeout."""
         return self.sqs_client.consume(queue, timeout)
 
     def purge_queue(self, queue: str) -> bool:
@@ -167,13 +167,13 @@ class SQSTestHelper:
             return False
 
     def assert_message_in_queue(self, queue: str, timeout: int = 30) -> dict:
-        """Wait for a message in the queue and assert it is present."""
-        msg = self.get_message(queue, timeout)
+        """Wait for envelope in the queue and assert it is present."""
+        msg = self.get_envelope(queue, timeout)
         assert msg is not None, f"No message found in '{queue}' within {timeout}s"
         return msg
 
     def wait_for_merged_result(self, queue: str, aggregation_key: str = "results", timeout: int = 60) -> dict:
-        """Wait for the merged fan-in result: a message whose payload contains aggregation_key.
+        """Wait for envelope whose payload contains aggregation_key.
 
         Intermediate fan-in slices (None-returning aggregator calls) also go to x-sink,
         so we must skip them and wait for the final merged payload that contains the

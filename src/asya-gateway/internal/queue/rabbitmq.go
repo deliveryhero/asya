@@ -73,7 +73,7 @@ func NewRabbitMQClient(url, exchange string) (*RabbitMQClient, error) {
 
 // SendMessage sends a message to the current actor's queue in the route
 func (c *RabbitMQClient) SendMessage(ctx context.Context, task *types.Task) error {
-	actorMsg, err := NewActorMessage(task)
+	actorMsg, err := NewActorEnvelope(task)
 	if err != nil {
 		return err
 	}

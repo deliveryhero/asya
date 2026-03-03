@@ -133,7 +133,7 @@ class RabbitMQTestHelper:
         )
         return response.status_code == 204
 
-    def assert_message_in_queue(
+    def assert_envelope_in_queue(
         self, queue: str, expected_fields: Optional[Dict] = None, timeout: int = 10
     ) -> Optional[Dict]:
         """
@@ -211,7 +211,7 @@ class SQSTestHelper:
             logger.warning(f"Failed to purge queue '{queue}': {e}")
             return False
 
-    def assert_message_in_queue(
+    def assert_envelope_in_queue(
         self, queue: str, expected_fields: Optional[Dict] = None, timeout: int = 10
     ) -> Optional[Dict]:
         """
@@ -246,17 +246,17 @@ class SQSTestHelper:
 
 def test_happy_path(transport_helper):
     """Test successful message processing with echo_handler."""
-    message = {
+    envelope = {
         "id": "test-happy-path-1",
         "route": {"prev": [], "curr": "test-echo", "next": []},
         "payload": {"test": "happy_path", "data": "integration test"},
     }
-    logger.info(f"Publishing message to asya-test-echo: {json.dumps(message, indent=2)}")
+    logger.info(f"Publishing envelope to asya-test-echo: {json.dumps(envelope, indent=2)}")
 
-    transport_helper.publish_message("asya-default-test-echo", message)
-    logger.info("Message published successfully, waiting for response in asya-x-sink...")
+    transport_helper.publish_envelope("asya-default-test-echo", envelope)
+    logger.info("Envelope published successfully, waiting for response in asya-x-sink...")
 
-    result = transport_helper.assert_message_in_queue("asya-default-x-sink", timeout=10)
+    result = transport_helper.assert_envelope_in_queue("asya-default-x-sink", timeout=10)
     logger.info(f"Result from x-sink: {json.dumps(result, indent=2) if result else 'None'}")
     assert result is not None, "No message in x-sink queue"
 
@@ -270,17 +270,17 @@ def test_happy_path(transport_helper):
 def test_error_handling(transport_helper):
     """Test runtime error handling."""
     transport_helper.purge_queue("asya-default-x-sump")
-    message = {
+    envelope = {
         "id": "test-error-handling-1",
         "route": {"prev": [], "curr": "test-error", "next": []},
         "payload": {"test": "error_handling"},
     }
-    logger.info(f"Publishing error test message to test-error: {json.dumps(message, indent=2)}")
+    logger.info(f"Publishing error test envelope to test-error: {json.dumps(envelope, indent=2)}")
 
-    transport_helper.publish_message("asya-default-test-error", message)
-    logger.info("Message published, waiting for error in asya-x-sump...")
+    transport_helper.publish_envelope("asya-default-test-error", envelope)
+    logger.info("Envelope published, waiting for error in asya-x-sump...")
 
-    result = transport_helper.assert_message_in_queue("asya-default-x-sump", timeout=10)
+    result = transport_helper.assert_envelope_in_queue("asya-default-x-sump", timeout=10)
     logger.info(f"Result from x-sump: {json.dumps(result, indent=2) if result else 'None'}")
     assert result is not None, "No message in x-sump queue"
 
@@ -299,17 +299,17 @@ def test_error_handling(transport_helper):
 def test_oom_error(transport_helper):
     """Test OOM error detection and recovery."""
     transport_helper.purge_queue("asya-default-x-sump")
-    message = {
+    envelope = {
         "id": "test-oom-error-1",
         "route": {"prev": [], "curr": "test-oom-queue", "next": []},
         "payload": {"test": "oom_simulation"},
     }
-    logger.info(f"Publishing OOM test message: {json.dumps(message, indent=2)}")
+    logger.info(f"Publishing OOM test envelope: {json.dumps(envelope, indent=2)}")
 
-    transport_helper.publish_message("asya-default-test-oom-queue", message)
+    transport_helper.publish_envelope("asya-default-test-oom-queue", envelope)
     logger.info("Waiting for OOM error in asya-x-sump...")
 
-    result = transport_helper.assert_message_in_queue("asya-default-x-sump", timeout=10)
+    result = transport_helper.assert_envelope_in_queue("asya-default-x-sump", timeout=10)
     logger.info(f"Result from x-sump: {json.dumps(result, indent=2) if result else 'None'}")
     assert result is not None, "No message in x-sump queue"
 
@@ -324,15 +324,15 @@ def test_oom_error(transport_helper):
 def test_cuda_oom_error(transport_helper):
     """Test CUDA OOM error detection."""
     transport_helper.purge_queue("asya-default-x-sump")
-    message = {
+    envelope = {
         "id": "test-cuda-oom-error-1",
         "route": {"prev": [], "curr": "test-cuda-oom-queue", "next": []},
         "payload": {"test": "cuda_oom_simulation"},
     }
 
-    transport_helper.publish_message("asya-default-test-cuda-oom-queue", message)
+    transport_helper.publish_envelope("asya-default-test-cuda-oom-queue", envelope)
 
-    result = transport_helper.assert_message_in_queue("asya-default-x-sump", timeout=10)
+    result = transport_helper.assert_envelope_in_queue("asya-default-x-sump", timeout=10)
     assert result is not None, "No message in x-sump queue"
 
     error_data = str(result)
@@ -343,32 +343,32 @@ def test_cuda_oom_error(transport_helper):
 
 def test_timeout(transport_helper):
     """Test sidecar timeout enforcement."""
-    message = {
+    envelope = {
         "id": "test-timeout-1",
         "route": {"prev": [], "curr": "test-timeout", "next": []},
         "payload": {"test": "timeout", "sleep": 5},
     }
 
-    transport_helper.publish_message("asya-default-test-timeout", message)
+    transport_helper.publish_envelope("asya-default-test-timeout", envelope)
 
-    result = transport_helper.assert_message_in_queue("asya-default-x-sump", timeout=10)
+    result = transport_helper.assert_envelope_in_queue("asya-default-x-sump", timeout=10)
     assert result is not None, "No timeout error in x-sump queue"
 
 
 def test_fanout(transport_helper):
     """Test fan-out (multiple responses)."""
-    message = {
+    envelope = {
         "id": "test-fanout-1",
         "route": {"prev": [], "curr": "test-fanout", "next": []},
         "payload": {"test": "fanout", "count": 3},
     }
 
-    transport_helper.publish_message("asya-default-test-fanout", message)
+    transport_helper.publish_envelope("asya-default-test-fanout", envelope)
 
     # Should get 3 messages in asya-x-sink
     messages = []
     for _ in range(3):
-        msg = transport_helper.get_message("asya-default-x-sink", timeout=5)
+        msg = transport_helper.get_envelope("asya-default-x-sink", timeout=5)
         if msg:
             messages.append(msg)
 
@@ -377,7 +377,7 @@ def test_fanout(transport_helper):
 
 def test_empty_response(transport_helper):
     """Test empty/null response (abort pipeline)."""
-    message = {
+    envelope = {
         "id": "test-empty-response-1",
         "route": {
             "prev": [],
@@ -387,24 +387,24 @@ def test_empty_response(transport_helper):
         "payload": {"test": "empty_response"},
     }
 
-    transport_helper.publish_message("asya-default-test-empty", message)
+    transport_helper.publish_envelope("asya-default-test-empty", envelope)
 
     # Empty response should go to asya-x-sink, not continue to next actor
-    result = transport_helper.assert_message_in_queue("asya-default-x-sink", timeout=10)
+    result = transport_helper.assert_envelope_in_queue("asya-default-x-sink", timeout=10)
     assert result is not None, "Empty response should go to x-sink"
 
 
 def test_large_payload(transport_helper):
     """Test large payload handling."""
-    message = {
+    envelope = {
         "id": "test-large-payload-1",
         "route": {"prev": [], "curr": "test-large-queue", "next": []},
         "payload": {"test": "large_payload", "size_kb": 100},
     }
 
-    transport_helper.publish_message("asya-default-test-large-queue", message)
+    transport_helper.publish_envelope("asya-default-test-large-queue", envelope)
 
-    result = transport_helper.assert_message_in_queue("asya-default-x-sink", timeout=10)
+    result = transport_helper.assert_envelope_in_queue("asya-default-x-sink", timeout=10)
     assert result is not None, "Large payload not processed"
 
     payload = result.get("payload", {})
@@ -413,7 +413,7 @@ def test_large_payload(transport_helper):
 
 def test_unicode_handling(transport_helper):
     """Test Unicode/UTF-8 handling."""
-    message = {
+    envelope = {
         "id": "test-unicode-handling-1",
         "route": {"prev": [], "curr": "test-unicode", "next": []},
         "payload": {
@@ -422,9 +422,9 @@ def test_unicode_handling(transport_helper):
         },
     }
 
-    transport_helper.publish_message("asya-default-test-unicode", message)
+    transport_helper.publish_envelope("asya-default-test-unicode", envelope)
 
-    result = transport_helper.assert_message_in_queue("asya-default-x-sink", timeout=10)
+    result = transport_helper.assert_envelope_in_queue("asya-default-x-sink", timeout=10)
     assert result is not None, "Unicode message not processed"
 
     payload = result.get("payload", {})
@@ -433,15 +433,15 @@ def test_unicode_handling(transport_helper):
 
 def test_null_values(transport_helper):
     """Test null value handling."""
-    message = {
+    envelope = {
         "id": "test-null-values-1",
         "route": {"prev": [], "curr": "test-null", "next": []},
         "payload": {"test": "null_values", "data": None},
     }
 
-    transport_helper.publish_message("asya-default-test-null", message)
+    transport_helper.publish_envelope("asya-default-test-null", envelope)
 
-    result = transport_helper.assert_message_in_queue("asya-default-x-sink", timeout=10)
+    result = transport_helper.assert_envelope_in_queue("asya-default-x-sink", timeout=10)
     assert result is not None, "Null values not processed"
 
 
@@ -453,7 +453,7 @@ def test_multi_actor_routing(transport_helper):
     transport_helper.purge_queue("test-conditional-queue")
     transport_helper.purge_queue("test-echo")
 
-    message = {
+    envelope = {
         "id": "test-multi-actor-routing-1",
         "route": {
             "prev": [],
@@ -462,14 +462,14 @@ def test_multi_actor_routing(transport_helper):
         },
         "payload": {"test": "multi_actor", "data": "routed", "action": "success"},
     }
-    logger.info(f"Publishing multi-actor message: {json.dumps(message, indent=2)}")
+    logger.info(f"Publishing multi-actor envelope: {json.dumps(envelope, indent=2)}")
 
-    transport_helper.publish_message("asya-default-test-conditional-queue", message)
-    logger.info("Message published to asya-test-conditional-queue")
-    logger.info("Waiting for message to route through asya-test-conditional-queue -> asya-test-echo -> asya-x-sink...")
+    transport_helper.publish_envelope("asya-default-test-conditional-queue", envelope)
+    logger.info("Envelope published to asya-test-conditional-queue")
+    logger.info("Waiting for envelope to route through asya-test-conditional-queue -> asya-test-echo -> asya-x-sink...")
 
     # Should eventually reach asya-x-sink after going through both queues
-    result = transport_helper.assert_message_in_queue("asya-default-x-sink", timeout=30)
+    result = transport_helper.assert_envelope_in_queue("asya-default-x-sink", timeout=30)
     logger.info(f"Result from x-sink: {json.dumps(result, indent=2) if result else 'None'}")
     assert result is not None, "Multi-actor routing failed - no message in x-sink after 30s"
     logger.info("=== test_multi_actor_routing: PASSED ===\n")
@@ -477,15 +477,15 @@ def test_multi_actor_routing(transport_helper):
 
 def test_conditional_success(transport_helper):
     """Test conditional handler with success action."""
-    message = {
+    envelope = {
         "id": "test-conditional-success-1",
         "route": {"prev": [], "curr": "test-conditional-queue", "next": []},
         "payload": {"action": "success"},
     }
 
-    transport_helper.publish_message("asya-default-test-conditional-queue", message)
+    transport_helper.publish_envelope("asya-default-test-conditional-queue", envelope)
 
-    result = transport_helper.assert_message_in_queue("asya-default-x-sink", timeout=10)
+    result = transport_helper.assert_envelope_in_queue("asya-default-x-sink", timeout=10)
     assert result is not None, "Conditional success failed"
 
 
@@ -494,29 +494,29 @@ def test_conditional_error(transport_helper):
     # Purge source queue to ensure clean state
     transport_helper.purge_queue("test-conditional-queue")
 
-    message = {
+    envelope = {
         "id": "test-conditional-error-1",
         "route": {"prev": [], "curr": "test-conditional-queue", "next": []},
         "payload": {"action": "error", "error_msg": "conditional test error"},
     }
 
-    transport_helper.publish_message("asya-default-test-conditional-queue", message)
+    transport_helper.publish_envelope("asya-default-test-conditional-queue", envelope)
 
-    result = transport_helper.assert_message_in_queue("asya-default-x-sump", timeout=20)
+    result = transport_helper.assert_envelope_in_queue("asya-default-x-sump", timeout=20)
     assert result is not None, "Conditional error not caught"
 
 
 def test_nested_data(transport_helper):
     """Test deeply nested data structures."""
-    message = {
+    envelope = {
         "id": "test-nested-data-1",
         "route": {"prev": [], "curr": "test-nested", "next": []},
         "payload": {"test": "nested"},
     }
 
-    transport_helper.publish_message("asya-default-test-nested", message)
+    transport_helper.publish_envelope("asya-default-test-nested", envelope)
 
-    result = transport_helper.assert_message_in_queue("asya-default-x-sink", timeout=10)
+    result = transport_helper.assert_envelope_in_queue("asya-default-x-sink", timeout=10)
     assert result is not None, "Nested data not processed"
 
     payload = result.get("payload", {})
@@ -532,17 +532,17 @@ def test_invalid_route_current(transport_helper):
     to x-sump as a processing_error.
     """
     transport_helper.purge_queue("asya-default-x-sump")
-    message = {
+    envelope = {
         "id": "test-invalid-route-current-1",
         "route": {"prev": [], "curr": "test-invalid-route", "next": ["should-not-reach"]},
         "payload": {"test": "invalid_route_current"},
     }
-    logger.info(f"Publishing message to test-invalid-route: {json.dumps(message, indent=2)}")
+    logger.info(f"Publishing envelope to test-invalid-route: {json.dumps(envelope, indent=2)}")
 
-    transport_helper.publish_message("asya-default-test-invalid-route", message)
-    logger.info("Message published, waiting for result in asya-x-sump...")
+    transport_helper.publish_envelope("asya-default-test-invalid-route", envelope)
+    logger.info("Envelope published, waiting for result in asya-x-sump...")
 
-    result = transport_helper.assert_message_in_queue("asya-default-x-sump", timeout=10)
+    result = transport_helper.assert_envelope_in_queue("asya-default-x-sump", timeout=10)
     logger.info(f"Result from x-sump: {json.dumps(result, indent=2) if result else 'None'}")
     assert result is not None, "Message with read-only VFS write attempt should route to x-sump"
 

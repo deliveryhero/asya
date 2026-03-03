@@ -27,8 +27,8 @@ func TestGatewayClient_ReportFailure_Success(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if receivedPath != "/tasks/task-abc/final" {
-		t.Errorf("path = %q, want /tasks/task-abc/final", receivedPath)
+	if receivedPath != "/mesh/task-abc/final" {
+		t.Errorf("path = %q, want /mesh/task-abc/final", receivedPath)
 	}
 	if receivedBody["id"] != "task-abc" {
 		t.Errorf("id = %v", receivedBody["id"])

@@ -1,7 +1,7 @@
 """Integration tests for try-except flow compilation.
 
 These tests exercise the full compilation pipeline (parse -> group -> codegen)
-and validate that the generated router code correctly manipulates message routes,
+and validate that the generated router code correctly manipulates envelope routes,
 headers, and status fields for try-except error handling patterns via ABI yields.
 """
 

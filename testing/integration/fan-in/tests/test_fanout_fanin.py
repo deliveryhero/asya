@@ -41,14 +41,14 @@ class TestFanOutFanIn:
             "topics": ["topic-alpha", "topic-beta"],
         }
 
-        message = {
+        envelope = {
             "id": msg_id,
             "route": {"prev": [], "curr": "test-fanout-router", "next": []},
             "payload": payload,
         }
 
         logger.info(f"[.] Publishing fan-out message id={msg_id} with 2 topics")
-        transport.publish_message(FANOUT_ROUTER_QUEUE, message)
+        transport.publish_envelope(FANOUT_ROUTER_QUEUE, envelope)
 
         # Intermediate slices also appear at x-sink (when aggregator returns None),
         # so use wait_for_merged_result to skip them and find the final merged payload.
@@ -82,14 +82,14 @@ class TestFanOutFanIn:
             "topics": ["alpha", "beta", "gamma"],
         }
 
-        message = {
+        envelope = {
             "id": msg_id,
             "route": {"prev": [], "curr": "test-fanout-router", "next": []},
             "payload": payload,
         }
 
         logger.info(f"[.] Publishing fan-out message id={msg_id} with 3 topics")
-        transport.publish_message(FANOUT_ROUTER_QUEUE, message)
+        transport.publish_envelope(FANOUT_ROUTER_QUEUE, envelope)
 
         result = transport.wait_for_merged_result(SINK_QUEUE, aggregation_key="results", timeout=60)
         assert result is not None, f"No merged result at '{SINK_QUEUE}' within 60s"
@@ -117,14 +117,14 @@ class TestFanOutFanIn:
             "topics": ["only-topic"],
         }
 
-        message = {
+        envelope = {
             "id": msg_id,
             "route": {"prev": [], "curr": "test-fanout-router", "next": []},
             "payload": payload,
         }
 
         logger.info(f"[.] Publishing fan-out message id={msg_id} with 1 topic")
-        transport.publish_message(FANOUT_ROUTER_QUEUE, message)
+        transport.publish_envelope(FANOUT_ROUTER_QUEUE, envelope)
 
         result = transport.wait_for_merged_result(SINK_QUEUE, aggregation_key="results", timeout=60)
         assert result is not None, f"No merged result at '{SINK_QUEUE}' within 60s"
@@ -154,8 +154,8 @@ class TestFanOutFanIn:
         }
 
         logger.info(f"[.] Publishing two independent fan-out messages")
-        transport.publish_message(FANOUT_ROUTER_QUEUE, message_1)
-        transport.publish_message(FANOUT_ROUTER_QUEUE, message_2)
+        transport.publish_envelope(FANOUT_ROUTER_QUEUE, message_1)
+        transport.publish_envelope(FANOUT_ROUTER_QUEUE, message_2)
 
         # Both must produce merged results at x-sink; order is not guaranteed
         result_a = transport.wait_for_merged_result(SINK_QUEUE, aggregation_key="results", timeout=60)
@@ -188,14 +188,14 @@ class TestFanOutFanInEdgeCases:
         msg_id = _msg_id()
         payload = {"query": "empty topics test", "topics": []}
 
-        message = {
+        envelope = {
             "id": msg_id,
             "route": {"prev": [], "curr": "test-fanout-router", "next": []},
             "payload": payload,
         }
 
         logger.info(f"[.] Publishing fan-out message with empty topics list")
-        transport.publish_message(FANOUT_ROUTER_QUEUE, message)
+        transport.publish_envelope(FANOUT_ROUTER_QUEUE, envelope)
 
         # With 0 topics, slice_count=1 so only the parent slice is needed.
         # Aggregator receives the parent, sets results=[], emits to x-sink.

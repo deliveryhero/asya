@@ -168,7 +168,7 @@ func (m *sqsMessage) DeliveryTag() uint64 {
 
 // SendMessage sends a message to the current actor's queue in the route
 func (c *SQSClient) SendMessage(ctx context.Context, task *types.Task) error {
-	actorMsg, err := NewActorMessage(task)
+	actorMsg, err := NewActorEnvelope(task)
 	if err != nil {
 		return err
 	}

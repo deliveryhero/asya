@@ -20,7 +20,7 @@ import (
 	"github.com/deliveryhero/asya/asya-sidecar/internal/progress"
 	"github.com/deliveryhero/asya/asya-sidecar/internal/runtime"
 	"github.com/deliveryhero/asya/asya-sidecar/internal/transport"
-	"github.com/deliveryhero/asya/asya-sidecar/pkg/messages"
+	"github.com/deliveryhero/asya/asya-sidecar/pkg/envelopes"
 )
 
 const (
@@ -28,7 +28,7 @@ const (
 	statusFailed    = "failed"
 )
 
-// Router handles message routing between queues and runtime client
+// Router handles envelope routing between queues and runtime client
 type Router struct {
 	cfg              *config.Config
 	transport        transport.Transport
@@ -61,17 +61,17 @@ func NewRouter(cfg *config.Config, transport transport.Transport, runtimeClient 
 	}
 }
 
-// ensureAndUpdateStatus initializes or updates the status on a message before processing.
+// ensureAndUpdateStatus initializes or updates the status on a envelope before processing.
 // If status is nil, creates a default with phase=processing.
 // If status exists, transitions to processing phase and updates actor/timestamps.
 // MaxAttempts is set from the resiliency config when available.
-func (r *Router) ensureAndUpdateStatus(msg *messages.Message) {
+func (r *Router) ensureAndUpdateStatus(msg *envelopes.Envelope) {
 	now := time.Now().UTC().Format(time.RFC3339)
 	maxAttempts := r.maxAttempts()
 
 	if msg.Status == nil {
-		msg.Status = &messages.Status{
-			Phase:       messages.PhaseProcessing,
+		msg.Status = &envelopes.Status{
+			Phase:       envelopes.PhaseProcessing,
 			Actor:       r.actorName,
 			Attempt:     1,
 			MaxAttempts: maxAttempts,
@@ -86,7 +86,7 @@ func (r *Router) ensureAndUpdateStatus(msg *messages.Message) {
 		msg.Status.Attempt = 1
 	}
 
-	msg.Status.Phase = messages.PhaseProcessing
+	msg.Status.Phase = envelopes.PhaseProcessing
 	msg.Status.Reason = ""
 	msg.Status.Actor = r.actorName
 	msg.Status.MaxAttempts = maxAttempts
@@ -102,10 +102,10 @@ func (r *Router) maxAttempts() int {
 	return 1
 }
 
-// effectiveTimeout computes the per-message timeout as the minimum of:
+// effectiveTimeout computes the per-envelope timeout as the minimum of:
 //   - ASYA_RESILIENCY_ACTOR_TIMEOUT (per-actor timeout, r.cfg.Timeout)
-//   - remaining SLA (deadline_at - now, from message status)
-func (r *Router) effectiveTimeout(msg *messages.Message) time.Duration {
+//   - remaining SLA (deadline_at - now, from envelope status)
+func (r *Router) effectiveTimeout(msg *envelopes.Envelope) time.Duration {
 	timeout := r.cfg.Timeout
 
 	if deadline, ok := msg.ParseDeadline(); ok {
@@ -118,12 +118,12 @@ func (r *Router) effectiveTimeout(msg *messages.Message) time.Duration {
 	return timeout
 }
 
-// shouldReportFinalToGateway returns false for messages that must NOT trigger
+// shouldReportFinalToGateway returns false for envelopes that must NOT trigger
 // a final-status report to the gateway:
 //  1. x-asya-fan-in header: fan-in partial batch (actor handles aggregation, not gateway)
-//  2. parent_id set: fire-and-forget fan-out child (only root message is tracked by gateway)
+//  2. parent_id set: fire-and-forget fan-out child (only root envelope is tracked by gateway)
 //  3. non-terminal status.phase: human-in-the-loop or custom intermediate states
-func (r *Router) shouldReportFinalToGateway(msg *messages.Message) bool {
+func (r *Router) shouldReportFinalToGateway(msg *envelopes.Envelope) bool {
 	if msg.Headers != nil {
 		if _, ok := msg.Headers["x-asya-fan-in"]; ok {
 			slog.Debug("Skipping gateway report: x-asya-fan-in header", "id", msg.ID)
@@ -136,7 +136,7 @@ func (r *Router) shouldReportFinalToGateway(msg *messages.Message) bool {
 	}
 	if msg.Status != nil {
 		phase := msg.Status.Phase
-		if phase != messages.PhaseSucceeded && phase != messages.PhaseFailed {
+		if phase != envelopes.PhaseSucceeded && phase != envelopes.PhaseFailed {
 			slog.Debug("Skipping gateway report: non-terminal phase", "id", msg.ID, "phase", phase)
 			return false
 		}
@@ -144,20 +144,20 @@ func (r *Router) shouldReportFinalToGateway(msg *messages.Message) bool {
 	return true
 }
 
-// processEndActorMessage handles message processing for end actors (x-sink, x-sump)
+// processEndActorEnvelope handles envelope processing for end actors (x-sink, x-sump)
 // End actors are terminal nodes that:
-// - Accept messages with ANY route state (no validation)
-// - Process the message through runtime
+// - Accept envelopes with ANY route state (no validation)
+// - Process the envelope through runtime
 // - Do NOT route responses anywhere (terminal processing)
 // - Report final status to gateway
-func (r *Router) processEndActorMessage(ctx context.Context, msg messages.Message, msgBody []byte, startTime time.Time) error {
+func (r *Router) processEndActorEnvelope(ctx context.Context, msg envelopes.Envelope, msgBody []byte, startTime time.Time) error {
 	slog.Debug("End actor processing message", "id", msg.ID, "actor", r.actorName)
 
 	// IMPORTANT: End actors are terminal - they do NOT route to any queue
 	// and do NOT shift the route. They only:
-	// 1. Process the message via runtime
+	// 1. Process the envelope via runtime
 	// 2. Report final status to gateway
-	// End actors run in message mode with validation disabled.
+	// End actors run in envelope mode with validation disabled.
 	// They typically return empty dict {}, which is ignored by the sidecar.
 
 	// Send to runtime without route validation (end actors don't forward upstream events)
@@ -206,12 +206,12 @@ func (r *Router) processEndActorMessage(ctx context.Context, msg messages.Messag
 		r.metrics.RecordProcessingDuration(r.actorName, time.Since(startTime))
 	}
 
-	// Use original message payload if runtime returned empty/null
+	// Use original envelope payload if runtime returned empty/null
 	if len(resultPayload) == 0 {
 		resultPayload = msg.Payload
 	}
 
-	// Report final status to gateway if configured and message is terminal/not a fan-out child.
+	// Report final status to gateway if configured and envelope is terminal/not a fan-out child.
 	if r.progressReporter != nil && r.shouldReportFinalToGateway(&msg) {
 		if err := r.reportFinalStatusWithMessage(ctx, &msg, resultPayload, runtimeDuration); err != nil {
 			slog.Warn("Failed to report final status to gateway", "id", msg.ID, "error", err)
@@ -222,9 +222,9 @@ func (r *Router) processEndActorMessage(ctx context.Context, msg messages.Messag
 	return nil
 }
 
-// parseAndValidateMessage parses and validates the message from message body
-func (r *Router) parseAndValidateMessage(ctx context.Context, msgBody []byte, startTime time.Time) (*messages.Message, error) {
-	var msg messages.Message
+// parseAndValidateMessage parses and validates the envelope from message body
+func (r *Router) parseAndValidateMessage(ctx context.Context, msgBody []byte, startTime time.Time) (*envelopes.Envelope, error) {
+	var msg envelopes.Envelope
 	if err := json.Unmarshal(msgBody, &msg); err != nil {
 		slog.Error("Failed to parse message", "error", err)
 
@@ -258,7 +258,7 @@ func (r *Router) parseAndValidateMessage(ctx context.Context, msgBody []byte, st
 // handleErrorResponse handles error responses from runtime with retry logic.
 // When resiliency is configured, it checks whether the error is retryable and
 // whether retry attempts remain before deciding to retry or fail permanently.
-func (r *Router) handleErrorResponse(ctx context.Context, msg *messages.Message, response runtime.RuntimeResponse, startTime time.Time) error {
+func (r *Router) handleErrorResponse(ctx context.Context, msg *envelopes.Envelope, response runtime.RuntimeResponse, startTime time.Time) error {
 	// Check for flow-level _on_error header — bypasses retry logic
 	if onError, ok := msg.Headers["_on_error"].(string); ok && onError != "" {
 		return r.routeToFlowErrorHandler(ctx, msg, onError, response, startTime)
@@ -271,7 +271,7 @@ func (r *Router) handleErrorResponse(ctx context.Context, msg *messages.Message,
 			r.metrics.RecordMessageFailed(r.actorName, "runtime_error")
 			r.metrics.RecordProcessingDuration(r.actorName, time.Since(startTime))
 		}
-		return r.sendRetryFailure(ctx, msg, response, messages.ReasonRuntimeError)
+		return r.sendRetryFailure(ctx, msg, response, envelopes.ReasonRuntimeError)
 	}
 
 	// Check MRO-based non-retryable error classification
@@ -285,7 +285,7 @@ func (r *Router) handleErrorResponse(ctx context.Context, msg *messages.Message,
 			r.metrics.RecordMessageFailed(r.actorName, "non_retryable_error")
 			r.metrics.RecordProcessingDuration(r.actorName, time.Since(startTime))
 		}
-		return r.sendRetryFailure(ctx, msg, response, messages.ReasonNonRetryableFailure)
+		return r.sendRetryFailure(ctx, msg, response, envelopes.ReasonNonRetryableFailure)
 	}
 
 	// Check if max attempts exhausted
@@ -299,7 +299,7 @@ func (r *Router) handleErrorResponse(ctx context.Context, msg *messages.Message,
 			r.metrics.RecordMessageFailed(r.actorName, "max_retries_exhausted")
 			r.metrics.RecordProcessingDuration(r.actorName, time.Since(startTime))
 		}
-		return r.sendRetryFailure(ctx, msg, response, messages.ReasonMaxRetriesExhausted)
+		return r.sendRetryFailure(ctx, msg, response, envelopes.ReasonMaxRetriesExhausted)
 	}
 
 	// Retry: compute delay, update status, send with delay to own queue
@@ -319,7 +319,7 @@ func (r *Router) handleErrorResponse(ctx context.Context, msg *messages.Message,
 			r.metrics.RecordMessageFailed(r.actorName, "retry_send_failed")
 			r.metrics.RecordProcessingDuration(r.actorName, time.Since(startTime))
 		}
-		return r.sendRetryFailure(ctx, msg, response, messages.ReasonRuntimeError)
+		return r.sendRetryFailure(ctx, msg, response, envelopes.ReasonRuntimeError)
 	}
 
 	if r.metrics != nil {
@@ -381,13 +381,13 @@ func (r *Router) computeRetryDelay(failedAttempt int) time.Duration {
 	return delay
 }
 
-// retryMessage sends the message back to the actor's own queue with a delay.
-// Updates the message status to reflect the retry state.
-func (r *Router) retryMessage(ctx context.Context, msg *messages.Message, details runtime.ErrorDetails, delay time.Duration) error {
+// retryMessage sends the envelope back to the actor's own queue with a delay.
+// Updates the envelope status to reflect the retry state.
+func (r *Router) retryMessage(ctx context.Context, msg *envelopes.Envelope, details runtime.ErrorDetails, delay time.Duration) error {
 	now := time.Now().UTC().Format(time.RFC3339)
-	msg.Status.Phase = messages.PhaseRetrying
+	msg.Status.Phase = envelopes.PhaseRetrying
 	msg.Status.UpdatedAt = now
-	msg.Status.Error = &messages.StatusError{
+	msg.Status.Error = &envelopes.StatusError{
 		Type:      details.Type,
 		MRO:       details.MRO,
 		Message:   details.Message,
@@ -409,9 +409,9 @@ func (r *Router) retryMessage(ctx context.Context, msg *messages.Message, detail
 	return r.transport.SendWithDelay(ctx, queueName, body, delay)
 }
 
-// sendRetryFailure sends a failed message to the x-sump queue with proper
+// sendRetryFailure sends a failed envelope to the x-sump queue with proper
 // retry status information (attempt count, reason, error details).
-func (r *Router) sendRetryFailure(ctx context.Context, msg *messages.Message, response runtime.RuntimeResponse, reason string) error {
+func (r *Router) sendRetryFailure(ctx context.Context, msg *envelopes.Envelope, response runtime.RuntimeResponse, reason string) error {
 	now := time.Now().UTC().Format(time.RFC3339)
 
 	// Build error payload (backward compatible with x-sump actor)
@@ -443,20 +443,20 @@ func (r *Router) sendRetryFailure(ctx context.Context, msg *messages.Message, re
 		attempt = msg.Status.Attempt
 	}
 
-	failedMsg := messages.Message{
+	failedMsg := envelopes.Envelope{
 		ID:       msg.ID,
 		ParentID: msg.ParentID,
 		Route:    msg.Route,
 		Payload:  payloadBytes,
-		Status: &messages.Status{
-			Phase:       messages.PhaseFailed,
+		Status: &envelopes.Status{
+			Phase:       envelopes.PhaseFailed,
 			Reason:      reason,
 			Actor:       r.actorName,
 			Attempt:     attempt,
 			MaxAttempts: r.maxAttempts(),
 			CreatedAt:   createdAt,
 			UpdatedAt:   now,
-			Error: &messages.StatusError{
+			Error: &envelopes.StatusError{
 				Type:      response.Details.Type,
 				MRO:       response.Details.MRO,
 				Message:   response.Details.Message,
@@ -499,7 +499,7 @@ func (r *Router) sendRetryFailure(ctx context.Context, msg *messages.Message, re
 // routeToFlowErrorHandler routes an error to a flow-level error handler (except_dispatch router)
 // instead of the error-end queue. This preserves the original payload and sets error details
 // in status.error for the except_dispatch router to inspect.
-func (r *Router) routeToFlowErrorHandler(ctx context.Context, msg *messages.Message, onError string, response runtime.RuntimeResponse, startTime time.Time) error {
+func (r *Router) routeToFlowErrorHandler(ctx context.Context, msg *envelopes.Envelope, onError string, response runtime.RuntimeResponse, startTime time.Time) error {
 	slog.Info("Routing error to flow error handler", "id", msg.ID, "handler", onError, "error", response.Error)
 
 	// Clear _on_error to prevent infinite error routing loops
@@ -514,14 +514,14 @@ func (r *Router) routeToFlowErrorHandler(ctx context.Context, msg *messages.Mess
 	if msg.Status != nil && msg.Status.CreatedAt != "" {
 		createdAt = msg.Status.CreatedAt
 	}
-	msg.Status = &messages.Status{
-		Phase:       messages.PhaseFailed,
+	msg.Status = &envelopes.Status{
+		Phase:       envelopes.PhaseFailed,
 		Actor:       r.actorName,
 		Attempt:     1,
 		MaxAttempts: 1,
 		CreatedAt:   createdAt,
 		UpdatedAt:   now,
-		Error: &messages.StatusError{
+		Error: &envelopes.StatusError{
 			Message:   response.Details.Message,
 			Type:      response.Details.Type,
 			Traceback: response.Details.Traceback,
@@ -561,7 +561,7 @@ func (r *Router) routeToFlowErrorHandler(ctx context.Context, msg *messages.Mess
 }
 
 // handleSuccessResponse handles successful responses from runtime
-func (r *Router) handleSuccessResponse(ctx context.Context, msg *messages.Message, response runtime.RuntimeResponse, index int, runtimeDuration time.Duration) error {
+func (r *Router) handleSuccessResponse(ctx context.Context, msg *envelopes.Envelope, response runtime.RuntimeResponse, index int, runtimeDuration time.Duration) error {
 	// Runtime is responsible for shifting the route (prev/curr/next):
 	// - Default: runtime auto-shifts route
 	// - Via ABI: user handler yields SET ".route.next" with new actors
@@ -598,7 +598,7 @@ func (r *Router) handleSuccessResponse(ctx context.Context, msg *messages.Messag
 		statusFromRuntime = msg.Status
 	}
 
-	// Use headers from runtime response; fall back to original message headers
+	// Use headers from runtime response; fall back to original envelope headers
 	var outHeaders map[string]interface{}
 	if response.Headers != nil {
 		outHeaders = make(map[string]interface{}, len(response.Headers))
@@ -643,14 +643,14 @@ func (r *Router) handleSuccessResponse(ctx context.Context, msg *messages.Messag
 			r.metrics.RecordMessageProcessed(r.actorName, "paused")
 		}
 
-		// Do NOT route to next actor — message is persisted by x-pause, gateway tracks state
+		// Do NOT route to next actor — envelope is persisted by x-pause, gateway tracks state
 		return nil
 	}
 
 	return r.routeResponse(ctx, msgID, parentID, outputRoute, response.Payload, statusFromRuntime, outHeaders)
 }
 
-// ProcessMessage handles a single message from the queue
+// ProcessMessage handles a single envelope from the queue
 func (r *Router) ProcessMessage(ctx context.Context, queueMsg transport.QueueMessage) error {
 	startTime := time.Now()
 
@@ -669,7 +669,7 @@ func (r *Router) ProcessMessage(ctx context.Context, queueMsg transport.QueueMes
 		return nil
 	}
 
-	// SLA pre-check: reject expired messages before processing
+	// SLA pre-check: reject expired envelopes before processing
 	if deadline, ok := msg.ParseDeadline(); ok && time.Now().After(deadline) {
 		slog.Warn("Message SLA expired, routing to x-sink",
 			"id", msg.ID, "deadline_at", msg.Status.DeadlineAt,
@@ -680,9 +680,9 @@ func (r *Router) ProcessMessage(ctx context.Context, queueMsg transport.QueueMes
 		if msg.Status != nil {
 			createdAt = msg.Status.CreatedAt
 		}
-		msg.Status = &messages.Status{
-			Phase:       messages.PhaseFailed,
-			Reason:      messages.ReasonTimeout,
+		msg.Status = &envelopes.Status{
+			Phase:       envelopes.PhaseFailed,
+			Reason:      envelopes.ReasonTimeout,
 			Actor:       r.actorName,
 			Attempt:     1,
 			MaxAttempts: 1,
@@ -695,7 +695,7 @@ func (r *Router) ProcessMessage(ctx context.Context, queueMsg transport.QueueMes
 	}
 
 	if r.cfg.IsEndActor {
-		return r.processEndActorMessage(ctx, *msg, queueMsg.Body, startTime)
+		return r.processEndActorEnvelope(ctx, *msg, queueMsg.Body, startTime)
 	}
 
 	if r.progressReporter != nil {
@@ -783,8 +783,8 @@ func (r *Router) ProcessMessage(ctx context.Context, queueMsg transport.QueueMes
 			"effective_timeout", timeout)
 
 		now := time.Now().UTC().Format(time.RFC3339)
-		msg.Status.Phase = messages.PhaseFailed
-		msg.Status.Reason = messages.ReasonTimeout
+		msg.Status.Phase = envelopes.PhaseFailed
+		msg.Status.Reason = envelopes.ReasonTimeout
 		msg.Status.UpdatedAt = now
 
 		return r.handleSLAExpiry(ctx, *msg, startTime)
@@ -863,7 +863,7 @@ func (r *Router) ProcessMessage(ctx context.Context, queueMsg transport.QueueMes
 
 // handleRuntimeCallError handles errors returned by CallRuntime, including SSE
 // handler errors (*RuntimeError), infrastructure errors, and timeouts.
-func (r *Router) handleRuntimeCallError(ctx context.Context, msg *messages.Message, err error, originalBody []byte, startTime time.Time) error {
+func (r *Router) handleRuntimeCallError(ctx context.Context, msg *envelopes.Envelope, err error, originalBody []byte, startTime time.Time) error {
 	// Generator handlers signal errors via SSE error events, which the
 	// runtime client wraps as *RuntimeError. Convert these back into a
 	// normal error response so that retry/MRO logic in handleErrorResponse
@@ -909,7 +909,7 @@ func (r *Router) handleRuntimeCallError(ctx context.Context, msg *messages.Messa
 // routeResponse routes a single response to the appropriate queue
 // The route parameter should already have its Current index incremented by the caller
 // parentID should be set for fanout children (when index > 0 in fanout scenario)
-func (r *Router) routeResponse(ctx context.Context, id string, parentID *string, route messages.Route, payload json.RawMessage, inStatus *messages.Status, headers map[string]interface{}) error {
+func (r *Router) routeResponse(ctx context.Context, id string, parentID *string, route envelopes.Route, payload json.RawMessage, inStatus *envelopes.Status, headers map[string]interface{}) error {
 	// Determine destination queue
 	var destinationQueue string
 	var msgType string
@@ -960,11 +960,11 @@ func (r *Router) routeResponse(ctx context.Context, id string, parentID *string,
 	}
 
 	// Build outbound status
-	var outStatus *messages.Status
+	var outStatus *envelopes.Status
 	now := time.Now().UTC().Format(time.RFC3339)
 	if actorToSend != "" {
-		outStatus = &messages.Status{
-			Phase:       messages.PhasePending,
+		outStatus = &envelopes.Status{
+			Phase:       envelopes.PhasePending,
 			Actor:       actorToSend,
 			Attempt:     1,
 			MaxAttempts: 1,
@@ -976,9 +976,9 @@ func (r *Router) routeResponse(ctx context.Context, id string, parentID *string,
 			outStatus.CreatedAt = now
 		}
 	} else {
-		outStatus = &messages.Status{
-			Phase:       messages.PhaseSucceeded,
-			Reason:      messages.ReasonCompleted,
+		outStatus = &envelopes.Status{
+			Phase:       envelopes.PhaseSucceeded,
+			Reason:      envelopes.ReasonCompleted,
 			Attempt:     1,
 			MaxAttempts: 1,
 			UpdatedAt:   now,
@@ -995,7 +995,7 @@ func (r *Router) routeResponse(ctx context.Context, id string, parentID *string,
 	}
 
 	// Create new message with the route as-is
-	newMsg := messages.Message{
+	newMsg := envelopes.Envelope{
 		ID:       id,
 		ParentID: parentID,
 		Route:    route,
@@ -1040,9 +1040,9 @@ func (r *Router) routeResponse(ctx context.Context, id string, parentID *string,
 }
 
 // handleSLAExpiry records SLA timeout metrics, notifies the gateway, and
-// routes the message to x-sink. The caller must set msg.Status fields
+// routes the envelope to x-sink. The caller must set msg.Status fields
 // (Phase, Reason, etc.) before calling.
-func (r *Router) handleSLAExpiry(ctx context.Context, msg messages.Message, startTime time.Time) error {
+func (r *Router) handleSLAExpiry(ctx context.Context, msg envelopes.Envelope, startTime time.Time) error {
 	if r.metrics != nil {
 		r.metrics.RecordMessageProcessed(r.actorName, "sla_expired")
 		r.metrics.RecordMessageFailed(r.actorName, "sla_timeout")
@@ -1058,19 +1058,19 @@ func (r *Router) handleSLAExpiry(ctx context.Context, msg messages.Message, star
 	return r.sendToSinkQueue(ctx, msg)
 }
 
-// sendToSinkQueue sends the original message to the x-sink queue.
-// If message.Status already has a terminal phase (succeeded/failed),
+// sendToSinkQueue sends the original envelope to the x-sink queue.
+// If envelope.Status already has a terminal phase (succeeded/failed),
 // it is preserved. Otherwise, PhaseSucceeded/ReasonCompleted is stamped.
-func (r *Router) sendToSinkQueue(ctx context.Context, message messages.Message) error {
-	if message.Status == nil || (message.Status.Phase != messages.PhaseSucceeded && message.Status.Phase != messages.PhaseFailed) {
+func (r *Router) sendToSinkQueue(ctx context.Context, message envelopes.Envelope) error {
+	if message.Status == nil || (message.Status.Phase != envelopes.PhaseSucceeded && message.Status.Phase != envelopes.PhaseFailed) {
 		now := time.Now().UTC().Format(time.RFC3339)
 		createdAt := now
 		if message.Status != nil {
 			createdAt = message.Status.CreatedAt
 		}
-		message.Status = &messages.Status{
-			Phase:       messages.PhaseSucceeded,
-			Reason:      messages.ReasonCompleted,
+		message.Status = &envelopes.Status{
+			Phase:       envelopes.PhaseSucceeded,
+			Reason:      envelopes.ReasonCompleted,
 			Actor:       r.actorName,
 			Attempt:     1,
 			MaxAttempts: 1,
@@ -1106,10 +1106,10 @@ func (r *Router) sendToSinkQueue(ctx context.Context, message messages.Message) 
 	return err
 }
 
-// sendToSumpQueue sends an error message to the x-sump queue
+// sendToSumpQueue sends an error envelope to the x-sump queue
 func (r *Router) sendToSumpQueue(ctx context.Context, originalBody []byte, errorMsg string, errorDetails ...runtime.ErrorDetails) error {
-	// Parse original message to extract id, parent_id, and route
-	var originalMsg messages.Message
+	// Parse original envelope to extract id, parent_id, and route
+	var originalMsg envelopes.Envelope
 	id := ""
 	var parentID *string
 	route := map[string]any{
@@ -1158,7 +1158,7 @@ func (r *Router) sendToSumpQueue(ctx context.Context, originalBody []byte, error
 		}
 	}
 	errorStatus := map[string]any{
-		"phase":        messages.PhaseFailed,
+		"phase":        envelopes.PhaseFailed,
 		"actor":        actor,
 		"attempt":      1,
 		"max_attempts": 1,
@@ -1203,10 +1203,10 @@ func (r *Router) sendToSumpQueue(ctx context.Context, originalBody []byte, error
 	return err
 }
 
-// reportFinalStatusWithMessage reports final message status to gateway with full message context
+// reportFinalStatusWithMessage reports final envelope status to gateway with full envelope context
 // This is called by end actors (x-sink, x-sump) after processing
-// It has access to both the message (with route) and the result payload
-func (r *Router) reportFinalStatusWithMessage(ctx context.Context, msg *messages.Message, resultPayload json.RawMessage, duration time.Duration) error {
+// It has access to both the envelope (with route) and the result payload
+func (r *Router) reportFinalStatusWithMessage(ctx context.Context, msg *envelopes.Envelope, resultPayload json.RawMessage, duration time.Duration) error {
 	if r.progressReporter == nil {
 		return nil
 	}
@@ -1295,7 +1295,7 @@ func (r *Router) reportFinalStatusWithMessage(ctx context.Context, msg *messages
 		return fmt.Errorf("failed to marshal final status: %w", err)
 	}
 
-	url := fmt.Sprintf("%s/tasks/%s/final", r.gatewayURL, msg.ID)
+	url := fmt.Sprintf("%s/mesh/%s/final", r.gatewayURL, msg.ID)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(payloadBytes))
 	if err != nil {
@@ -1343,7 +1343,7 @@ func (r *Router) reportFinalStatus(ctx context.Context, msgID string, resultPayl
 	var status string
 	var errorMsg string
 	var errorDetails interface{}
-	var route messages.Route
+	var route envelopes.Route
 	var currentActorIdx *int
 	var currentActorName string
 
@@ -1427,7 +1427,7 @@ func (r *Router) reportFinalStatus(ctx context.Context, msgID string, resultPayl
 		return fmt.Errorf("failed to marshal final status: %w", err)
 	}
 
-	url := fmt.Sprintf("%s/tasks/%s/final", r.gatewayURL, msgID)
+	url := fmt.Sprintf("%s/mesh/%s/final", r.gatewayURL, msgID)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(payloadBytes))
 	if err != nil {
@@ -1519,8 +1519,8 @@ func (r *Router) resolveQueueName(actorName string) string {
 
 // createFanoutMessage creates a fanout child message in the gateway
 // Fanout children use the same route state as the parent after runtime processing
-func (r *Router) createFanoutMessage(ctx context.Context, id, parentID string, route messages.Route) error {
-	return r.progressReporter.CreateTask(ctx, id, parentID, route)
+func (r *Router) createFanoutMessage(ctx context.Context, id, parentID string, route envelopes.Route) error {
+	return r.progressReporter.CreateMesh(ctx, id, parentID, route)
 }
 
 // CheckGatewayHealth verifies the gateway is reachable if gateway URL is configured

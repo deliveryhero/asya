@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/deliveryhero/asya/asya-sidecar/pkg/messages"
+	"github.com/deliveryhero/asya/asya-sidecar/pkg/envelopes"
 )
 
 func TestNewReporter(t *testing.T) {
@@ -51,8 +51,8 @@ func TestReportProgress_Success(t *testing.T) {
 			t.Errorf("Method = %v, want POST", r.Method)
 		}
 
-		if r.URL.Path != "/tasks/test-message-123/progress" {
-			t.Errorf("Path = %v, want /tasks/test-message-123/progress", r.URL.Path)
+		if r.URL.Path != "/mesh/test-message-123/progress" {
+			t.Errorf("Path = %v, want /mesh/test-message-123/progress", r.URL.Path)
 		}
 
 		// Verify content type
@@ -527,8 +527,8 @@ func TestReportProgress_SucceedsOnFirstAttempt(t *testing.T) {
 	}
 }
 
-func TestCreateTask_Success(t *testing.T) {
-	var receivedPayload CreateTaskPayload
+func TestCreateMesh_Success(t *testing.T) {
+	var receivedPayload CreateMeshPayload
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Verify request method and path
@@ -536,8 +536,8 @@ func TestCreateTask_Success(t *testing.T) {
 			t.Errorf("Method = %v, want POST", r.Method)
 		}
 
-		if r.URL.Path != "/tasks" {
-			t.Errorf("Path = %v, want /tasks", r.URL.Path)
+		if r.URL.Path != "/mesh" {
+			t.Errorf("Path = %v, want /mesh", r.URL.Path)
 		}
 
 		// Verify content type
@@ -559,15 +559,15 @@ func TestCreateTask_Success(t *testing.T) {
 	reporter := NewReporter(server.URL, "test-actor")
 
 	ctx := context.Background()
-	route := messages.Route{
+	route := envelopes.Route{
 		Prev: []string{"actor1"},
 		Curr: "actor2",
 		Next: []string{},
 	}
-	err := reporter.CreateTask(ctx, "abc-123-1", "abc-123", route)
+	err := reporter.CreateMesh(ctx, "abc-123-1", "abc-123", route)
 
 	if err != nil {
-		t.Errorf("CreateTask returned error: %v", err)
+		t.Errorf("CreateMesh returned error: %v", err)
 	}
 
 	// Verify received payload
@@ -588,7 +588,7 @@ func TestCreateTask_Success(t *testing.T) {
 	}
 }
 
-func TestCreateTask_ServerError(t *testing.T) {
+func TestCreateMesh_ServerError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		_, _ = w.Write([]byte("Internal server error"))
@@ -598,8 +598,8 @@ func TestCreateTask_ServerError(t *testing.T) {
 	reporter := NewReporter(server.URL, "test-actor")
 
 	ctx := context.Background()
-	route := messages.Route{Prev: []string{}, Curr: "actor1", Next: []string{}}
-	err := reporter.CreateTask(ctx, "abc-123-1", "abc-123", route)
+	route := envelopes.Route{Prev: []string{}, Curr: "actor1", Next: []string{}}
+	err := reporter.CreateMesh(ctx, "abc-123-1", "abc-123", route)
 
 	// Should return error
 	if err == nil {
@@ -611,13 +611,13 @@ func TestCreateTask_ServerError(t *testing.T) {
 	}
 }
 
-func TestCreateTask_NetworkError(t *testing.T) {
+func TestCreateMesh_NetworkError(t *testing.T) {
 	// Use invalid URL to simulate network error
 	reporter := NewReporter("http://invalid-host-that-does-not-exist:99999", "test-actor")
 
 	ctx := context.Background()
-	route := messages.Route{Prev: []string{}, Curr: "actor1", Next: []string{}}
-	err := reporter.CreateTask(ctx, "abc-123-1", "abc-123", route)
+	route := envelopes.Route{Prev: []string{}, Curr: "actor1", Next: []string{}}
+	err := reporter.CreateMesh(ctx, "abc-123-1", "abc-123", route)
 
 	// Should return error
 	if err == nil {
@@ -625,7 +625,7 @@ func TestCreateTask_NetworkError(t *testing.T) {
 	}
 }
 
-func TestCreateTask_ContextCancellation(t *testing.T) {
+func TestCreateMesh_ContextCancellation(t *testing.T) {
 	// Create slow server
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		time.Sleep(2 * time.Second)
@@ -639,8 +639,8 @@ func TestCreateTask_ContextCancellation(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 	defer cancel()
 
-	route := messages.Route{Prev: []string{}, Curr: "actor1", Next: []string{}}
-	err := reporter.CreateTask(ctx, "abc-123-1", "abc-123", route)
+	route := envelopes.Route{Prev: []string{}, Curr: "actor1", Next: []string{}}
+	err := reporter.CreateMesh(ctx, "abc-123-1", "abc-123", route)
 
 	// Should return error due to timeout
 	if err == nil {

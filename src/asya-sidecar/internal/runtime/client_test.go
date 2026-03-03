@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/deliveryhero/asya/asya-sidecar/pkg/messages"
+	"github.com/deliveryhero/asya/asya-sidecar/pkg/envelopes"
 )
 
 // startMockHTTPRuntime starts an HTTP server on a Unix socket that handles POST /invoke.
@@ -83,7 +83,7 @@ func TestClient_CallRuntime_Success(t *testing.T) {
 		return []RuntimeResponse{
 			{
 				Payload: json.RawMessage(`{"processed": true}`),
-				Route: messages.Route{
+				Route: envelopes.Route{
 					Prev: []string{"test"},
 					Curr: "next",
 					Next: []string{},
@@ -170,7 +170,7 @@ func TestClient_CallRuntime_FanOut(t *testing.T) {
 		return []RuntimeResponse{
 			{
 				Payload: json.RawMessage(`{"id": 1}`),
-				Route: messages.Route{
+				Route: envelopes.Route{
 					Prev: []string{"fan"},
 					Curr: "",
 					Next: []string{},
@@ -178,7 +178,7 @@ func TestClient_CallRuntime_FanOut(t *testing.T) {
 			},
 			{
 				Payload: json.RawMessage(`{"id": 2}`),
-				Route: messages.Route{
+				Route: envelopes.Route{
 					Prev: []string{"fan"},
 					Curr: "",
 					Next: []string{},
@@ -186,7 +186,7 @@ func TestClient_CallRuntime_FanOut(t *testing.T) {
 			},
 			{
 				Payload: json.RawMessage(`{"id": 3}`),
-				Route: messages.Route{
+				Route: envelopes.Route{
 					Prev: []string{"fan"},
 					Curr: "",
 					Next: []string{},

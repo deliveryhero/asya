@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/deliveryhero/asya/asya-sidecar/pkg/messages"
+	"github.com/deliveryhero/asya/asya-sidecar/pkg/envelopes"
 	sidecartesting "github.com/deliveryhero/asya/asya-sidecar/pkg/testing"
 	"github.com/deliveryhero/asya/asya-sidecar/pkg/transport"
 	"golang.org/x/net/nettest"
@@ -136,7 +136,7 @@ func createTestRouter(t *testing.T, socketPath string, timeout time.Duration) (s
 
 // createTestMessage creates a test message with the given payload
 func createTestMessage(payload map[string]interface{}) transport.QueueMessage {
-	route := messages.Route{
+	route := envelopes.Route{
 		Prev: []string{},
 		Curr: "test-actor",
 		Next: []string{},
@@ -144,7 +144,7 @@ func createTestMessage(payload map[string]interface{}) transport.QueueMessage {
 
 	payloadBytes, _ := json.Marshal(payload)
 
-	msg := messages.Message{
+	msg := envelopes.Envelope{
 		ID:      "test-message-1",
 		Route:   route,
 		Payload: json.RawMessage(payloadBytes),
@@ -196,7 +196,7 @@ func TestSocketIntegration_HappyPath(t *testing.T) {
 	}
 
 	// Verify payload contains expected fields
-	var sentMsg messages.Message
+	var sentMsg envelopes.Envelope
 	if err := json.Unmarshal(sentMessages[0].Body, &sentMsg); err != nil {
 		t.Fatalf("Failed to unmarshal sent message: %v", err)
 	}
@@ -350,7 +350,7 @@ func TestSocketIntegration_Fanout(t *testing.T) {
 
 	// Verify each message has the correct index
 	for i := 0; i < 3; i++ {
-		var sentMsg messages.Message
+		var sentMsg envelopes.Envelope
 		if err := json.Unmarshal(sentMessages[i].Body, &sentMsg); err != nil {
 			t.Fatalf("Failed to unmarshal message %d: %v", i, err)
 		}
@@ -435,7 +435,7 @@ func TestSocketIntegration_LargePayload(t *testing.T) {
 	}
 
 	// Verify payload contains large data
-	var sentMsg messages.Message
+	var sentMsg envelopes.Envelope
 	if err := json.Unmarshal(sentMessages[0].Body, &sentMsg); err != nil {
 		t.Fatalf("Failed to unmarshal sent message: %v", err)
 	}
@@ -485,7 +485,7 @@ func TestSocketIntegration_Unicode(t *testing.T) {
 	}
 
 	// Verify payload contains unicode data
-	var sentMsg messages.Message
+	var sentMsg envelopes.Envelope
 	if err := json.Unmarshal(sentMessages[0].Body, &sentMsg); err != nil {
 		t.Fatalf("Failed to unmarshal sent message: %v", err)
 	}

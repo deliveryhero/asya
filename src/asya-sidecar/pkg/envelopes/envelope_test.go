@@ -1,4 +1,4 @@
-package messages
+package envelopes
 
 import (
 	"encoding/json"
@@ -154,8 +154,8 @@ func TestRoute_IncrementCurrent_LastActor(t *testing.T) {
 	}
 }
 
-func TestMessage_JSONSerialization(t *testing.T) {
-	original := Message{
+func TestEnvelope_JSONSerialization(t *testing.T) {
+	original := Envelope{
 		Route: Route{
 			Prev: []string{"actor1"},
 			Curr: "actor2",
@@ -171,7 +171,7 @@ func TestMessage_JSONSerialization(t *testing.T) {
 	}
 
 	// Unmarshal
-	var decoded Message
+	var decoded Envelope
 	if err := json.Unmarshal(data, &decoded); err != nil {
 		t.Fatalf("Failed to unmarshal: %v", err)
 	}
@@ -202,15 +202,15 @@ func TestMessage_JSONSerialization(t *testing.T) {
 	}
 }
 
-func TestMessage_ParentID_Serialization(t *testing.T) {
+func TestEnvelope_ParentID_Serialization(t *testing.T) {
 	tests := []struct {
 		name     string
-		msg      Message
+		msg      Envelope
 		wantJSON string
 	}{
 		{
-			name: "message without parent_id",
-			msg: Message{
+			name: "envelope without parent_id",
+			msg: Envelope{
 				ID: "abc-123",
 				Route: Route{
 					Prev: []string{},
@@ -223,7 +223,7 @@ func TestMessage_ParentID_Serialization(t *testing.T) {
 		},
 		{
 			name: "fanout child with parent_id",
-			msg: Message{
+			msg: Envelope{
 				ID:       "abc-123-1",
 				ParentID: stringPtr("abc-123"),
 				Route: Route{
@@ -264,7 +264,7 @@ func TestMessage_ParentID_Serialization(t *testing.T) {
 			}
 
 			// Verify round-trip
-			var roundtrip Message
+			var roundtrip Envelope
 			if err := json.Unmarshal(data, &roundtrip); err != nil {
 				t.Fatalf("Failed to unmarshal: %v", err)
 			}
@@ -400,8 +400,8 @@ func TestStatus_JSONSerialization_OmitsEmptyFields(t *testing.T) {
 	}
 }
 
-func TestMessage_WithStatus_Serialization(t *testing.T) {
-	msg := Message{
+func TestEnvelope_WithStatus_Serialization(t *testing.T) {
+	msg := Envelope{
 		ID: "test-123",
 		Route: Route{
 			Prev: []string{},
@@ -424,7 +424,7 @@ func TestMessage_WithStatus_Serialization(t *testing.T) {
 		t.Fatalf("Failed to marshal: %v", err)
 	}
 
-	var decoded Message
+	var decoded Envelope
 	if err := json.Unmarshal(data, &decoded); err != nil {
 		t.Fatalf("Failed to unmarshal: %v", err)
 	}
@@ -440,16 +440,16 @@ func TestMessage_WithStatus_Serialization(t *testing.T) {
 	}
 }
 
-func TestMessage_WithoutStatus_BackwardCompat(t *testing.T) {
+func TestEnvelope_WithoutStatus_BackwardCompat(t *testing.T) {
 	rawJSON := `{"id":"test-123","route":{"prev":[],"curr":"a","next":["b"]},"payload":{"data":"test"}}`
 
-	var msg Message
+	var msg Envelope
 	if err := json.Unmarshal([]byte(rawJSON), &msg); err != nil {
 		t.Fatalf("Failed to unmarshal: %v", err)
 	}
 
 	if msg.Status != nil {
-		t.Error("Status should be nil for messages without status field")
+		t.Error("Status should be nil for envelopes without status field")
 	}
 	if msg.ID != "test-123" {
 		t.Errorf("ID = %q, want %q", msg.ID, "test-123")
@@ -477,10 +477,10 @@ func TestMessage_WithoutStatus_BackwardCompat(t *testing.T) {
 	}
 }
 
-// TestMessage_RawMessagePreservesPayloadBytes verifies that json.RawMessage
+// TestEnvelope_RawMessagePreservesPayloadBytes verifies that json.RawMessage
 // keeps payload as raw bytes without parsing into Go objects.
 // This is a regression test for the optimization in asya-866.
-func TestMessage_RawMessagePreservesPayloadBytes(t *testing.T) {
+func TestEnvelope_RawMessagePreservesPayloadBytes(t *testing.T) {
 	// Large nested payload that would be expensive to parse
 	rawJSON := `{
 		"id": "test-123",
@@ -488,7 +488,7 @@ func TestMessage_RawMessagePreservesPayloadBytes(t *testing.T) {
 		"payload": {"deeply": {"nested": {"structure": {"with": {"many": {"levels": "value"}}}}}, "array": [1,2,3,4,5]}
 	}`
 
-	var msg Message
+	var msg Envelope
 	if err := json.Unmarshal([]byte(rawJSON), &msg); err != nil {
 		t.Fatalf("Failed to unmarshal: %v", err)
 	}
@@ -517,7 +517,7 @@ func TestMessage_RawMessagePreservesPayloadBytes(t *testing.T) {
 		t.Fatalf("Failed to re-marshal: %v", err)
 	}
 
-	var roundtrip Message
+	var roundtrip Envelope
 	if err := json.Unmarshal(remarshaled, &roundtrip); err != nil {
 		t.Fatalf("Failed to unmarshal roundtrip: %v", err)
 	}
@@ -539,13 +539,13 @@ func TestMessage_RawMessagePreservesPayloadBytes(t *testing.T) {
 	}
 }
 
-// TestMessage_RawMessageForwardsUnchanged verifies that payload bytes
+// TestEnvelope_RawMessageForwardsUnchanged verifies that payload bytes
 // can be extracted and forwarded without modification.
-func TestMessage_RawMessageForwardsUnchanged(t *testing.T) {
-	// Simulate receiving a message from queue
+func TestEnvelope_RawMessageForwardsUnchanged(t *testing.T) {
+	// Simulate receiving a envelope from queue
 	queueMessage := []byte(`{"id":"msg-1","route":{"prev":[],"curr":"actor1","next":[]},"payload":{"key":"value","number":42}}`)
 
-	var msg Message
+	var msg Envelope
 	if err := json.Unmarshal(queueMessage, &msg); err != nil {
 		t.Fatalf("Failed to unmarshal: %v", err)
 	}
@@ -568,7 +568,7 @@ func TestMessage_RawMessageForwardsUnchanged(t *testing.T) {
 	}
 }
 
-func TestMessage_ParseDeadline_Valid(t *testing.T) {
+func TestEnvelope_ParseDeadline_Valid(t *testing.T) {
 	tests := []struct {
 		name       string
 		deadlineAt string
@@ -593,7 +593,7 @@ func TestMessage_ParseDeadline_Valid(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			msg := &Message{
+			msg := &Envelope{
 				Status: &Status{
 					DeadlineAt: tt.deadlineAt,
 				},
@@ -613,8 +613,8 @@ func TestMessage_ParseDeadline_Valid(t *testing.T) {
 	}
 }
 
-func TestMessage_ParseDeadline_Empty(t *testing.T) {
-	msg := &Message{
+func TestEnvelope_ParseDeadline_Empty(t *testing.T) {
+	msg := &Envelope{
 		Status: &Status{
 			DeadlineAt: "",
 		},
@@ -629,8 +629,8 @@ func TestMessage_ParseDeadline_Empty(t *testing.T) {
 	}
 }
 
-func TestMessage_ParseDeadline_NoStatus(t *testing.T) {
-	msg := &Message{
+func TestEnvelope_ParseDeadline_NoStatus(t *testing.T) {
+	msg := &Envelope{
 		Status: nil,
 	}
 
@@ -643,7 +643,7 @@ func TestMessage_ParseDeadline_NoStatus(t *testing.T) {
 	}
 }
 
-func TestMessage_ParseDeadline_Malformed(t *testing.T) {
+func TestEnvelope_ParseDeadline_Malformed(t *testing.T) {
 	tests := []struct {
 		name       string
 		deadlineAt string
@@ -668,7 +668,7 @@ func TestMessage_ParseDeadline_Malformed(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			msg := &Message{
+			msg := &Envelope{
 				Status: &Status{
 					DeadlineAt: tt.deadlineAt,
 				},

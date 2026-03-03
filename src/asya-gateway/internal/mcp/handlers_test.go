@@ -16,7 +16,7 @@ import (
 	"github.com/deliveryhero/asya/asya-gateway/pkg/types"
 )
 
-func TestHandleTaskProgress(t *testing.T) {
+func TestHandleMeshProgress(t *testing.T) {
 	tests := []struct {
 		name           string
 		method         string
@@ -115,21 +115,21 @@ func TestHandleTaskProgress(t *testing.T) {
 			var req *http.Request
 			if tt.method == http.MethodPost && tt.taskID != "" {
 				body, _ := json.Marshal(tt.progressUpdate)
-				req = httptest.NewRequest(tt.method, "/tasks/"+tt.taskID+"/progress", bytes.NewReader(body))
+				req = httptest.NewRequest(tt.method, "/mesh/"+tt.taskID+"/progress", bytes.NewReader(body))
 				req.Header.Set("Content-Type", "application/json")
 			} else {
-				req = httptest.NewRequest(tt.method, "/tasks/"+tt.taskID+"/progress", nil)
+				req = httptest.NewRequest(tt.method, "/mesh/"+tt.taskID+"/progress", nil)
 			}
 
 			// Create response recorder
 			rr := httptest.NewRecorder()
 
 			// Call handler
-			handler.HandleTaskProgress(rr, req)
+			handler.HandleMeshProgress(rr, req)
 
 			// Check status code
 			if rr.Code != tt.wantStatus {
-				t.Errorf("HandleTaskProgress() status = %v, want %v", rr.Code, tt.wantStatus)
+				t.Errorf("HandleMeshProgress() status = %v, want %v", rr.Code, tt.wantStatus)
 			}
 
 			// Check response for successful cases
@@ -169,7 +169,7 @@ func TestHandleTaskProgress(t *testing.T) {
 	}
 }
 
-func TestHandleTaskProgress_ProgressCalculation(t *testing.T) {
+func TestHandleMeshProgress_ProgressCalculation(t *testing.T) {
 	tests := []struct {
 		name         string
 		prev         []string
@@ -226,11 +226,11 @@ func TestHandleTaskProgress_ProgressCalculation(t *testing.T) {
 			}
 
 			body, _ := json.Marshal(progressUpdate)
-			req := httptest.NewRequest(http.MethodPost, "/tasks/"+taskID+"/progress", bytes.NewReader(body))
+			req := httptest.NewRequest(http.MethodPost, "/mesh/"+taskID+"/progress", bytes.NewReader(body))
 			req.Header.Set("Content-Type", "application/json")
 			rr := httptest.NewRecorder()
 
-			handler.HandleTaskProgress(rr, req)
+			handler.HandleMeshProgress(rr, req)
 
 			if rr.Code != http.StatusOK {
 				t.Fatalf("Expected status 200, got %v", rr.Code)
@@ -250,7 +250,7 @@ func TestHandleTaskProgress_ProgressCalculation(t *testing.T) {
 	}
 }
 
-func TestHandleTaskProgress_SSENotification(t *testing.T) {
+func TestHandleMeshProgress_SSENotification(t *testing.T) {
 	store := taskstore.NewStore()
 	handler := NewHandler(store)
 
@@ -282,11 +282,11 @@ func TestHandleTaskProgress_SSENotification(t *testing.T) {
 	}
 
 	body, _ := json.Marshal(progressUpdate)
-	req := httptest.NewRequest(http.MethodPost, "/tasks/"+taskID+"/progress", bytes.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/mesh/"+taskID+"/progress", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	rr := httptest.NewRecorder()
 
-	handler.HandleTaskProgress(rr, req)
+	handler.HandleMeshProgress(rr, req)
 
 	if rr.Code != http.StatusOK {
 		t.Fatalf("Expected status 200, got %v", rr.Code)
@@ -456,8 +456,8 @@ func TestHandleToolCall(t *testing.T) {
 	}
 }
 
-// TestHandleTaskStatus tests the GET /tasks/{id} endpoint
-func TestHandleTaskStatus(t *testing.T) {
+// TestHandleMeshStatus tests the GET /mesh/{id} endpoint
+func TestHandleMeshStatus(t *testing.T) {
 	tests := []struct {
 		name        string
 		method      string
@@ -562,13 +562,13 @@ func TestHandleTaskStatus(t *testing.T) {
 				}
 			}
 
-			req := httptest.NewRequest(tt.method, "/tasks/"+tt.taskID, nil)
+			req := httptest.NewRequest(tt.method, "/mesh/"+tt.taskID, nil)
 			rr := httptest.NewRecorder()
 
-			handler.HandleTaskStatus(rr, req)
+			handler.HandleMeshStatus(rr, req)
 
 			if rr.Code != tt.wantStatus {
-				t.Errorf("HandleTaskStatus() status = %v, want %v", rr.Code, tt.wantStatus)
+				t.Errorf("HandleMeshStatus() status = %v, want %v", rr.Code, tt.wantStatus)
 			}
 
 			if tt.checkFields && tt.wantStatus == http.StatusOK {
@@ -588,8 +588,8 @@ func TestHandleTaskStatus(t *testing.T) {
 	}
 }
 
-// TestHandleTaskActive tests the GET /tasks/{id}/active endpoint
-func TestHandleTaskActive(t *testing.T) {
+// TestHandleMeshActive tests the GET /mesh/{id}/active endpoint
+func TestHandleMeshActive(t *testing.T) {
 	tests := []struct {
 		name       string
 		method     string
@@ -692,16 +692,16 @@ func TestHandleTaskActive(t *testing.T) {
 
 			var req *http.Request
 			if tt.taskID == "" {
-				req = httptest.NewRequest(tt.method, "/tasks//active", nil)
+				req = httptest.NewRequest(tt.method, "/mesh//active", nil)
 			} else {
-				req = httptest.NewRequest(tt.method, "/tasks/"+tt.taskID+"/active", nil)
+				req = httptest.NewRequest(tt.method, "/mesh/"+tt.taskID+"/active", nil)
 			}
 			rr := httptest.NewRecorder()
 
-			handler.HandleTaskActive(rr, req)
+			handler.HandleMeshActive(rr, req)
 
 			if rr.Code != tt.wantStatus {
-				t.Errorf("HandleTaskActive() status = %v, want %v", rr.Code, tt.wantStatus)
+				t.Errorf("HandleMeshActive() status = %v, want %v", rr.Code, tt.wantStatus)
 			}
 
 			if tt.wantStatus == http.StatusOK || tt.wantStatus == http.StatusGone {
@@ -720,8 +720,8 @@ func TestHandleTaskActive(t *testing.T) {
 	}
 }
 
-// TestHandleTaskFinal tests the POST /tasks/{id}/final endpoint
-func TestHandleTaskFinal(t *testing.T) {
+// TestHandleMeshFinal tests the POST /mesh/{id}/final endpoint
+func TestHandleMeshFinal(t *testing.T) {
 	tests := []struct {
 		name           string
 		method         string
@@ -879,20 +879,20 @@ func TestHandleTaskFinal(t *testing.T) {
 
 			var req *http.Request
 			if tt.finalUpdate == nil {
-				req = httptest.NewRequest(tt.method, "/tasks/"+tt.taskID+"/final", nil)
+				req = httptest.NewRequest(tt.method, "/mesh/"+tt.taskID+"/final", nil)
 			} else if bodyStr, ok := tt.finalUpdate.(string); ok {
-				req = httptest.NewRequest(tt.method, "/tasks/"+tt.taskID+"/final", bytes.NewReader([]byte(bodyStr)))
+				req = httptest.NewRequest(tt.method, "/mesh/"+tt.taskID+"/final", bytes.NewReader([]byte(bodyStr)))
 			} else {
 				body, _ := json.Marshal(tt.finalUpdate)
-				req = httptest.NewRequest(tt.method, "/tasks/"+tt.taskID+"/final", bytes.NewReader(body))
+				req = httptest.NewRequest(tt.method, "/mesh/"+tt.taskID+"/final", bytes.NewReader(body))
 			}
 			req.Header.Set("Content-Type", "application/json")
 
 			rr := httptest.NewRecorder()
-			handler.HandleTaskFinal(rr, req)
+			handler.HandleMeshFinal(rr, req)
 
 			if rr.Code != tt.wantStatus {
-				t.Errorf("HandleTaskFinal() status = %v, want %v, body = %s", rr.Code, tt.wantStatus, rr.Body.String())
+				t.Errorf("HandleMeshFinal() status = %v, want %v, body = %s", rr.Code, tt.wantStatus, rr.Body.String())
 			}
 
 			if tt.checkUpdate && tt.wantStatus == http.StatusOK {
@@ -925,7 +925,7 @@ func TestHandleTaskFinal(t *testing.T) {
 	}
 }
 
-func TestTaskPathRegex(t *testing.T) {
+func TestMeshPathRegex(t *testing.T) {
 	tests := []struct {
 		name        string
 		path        string
@@ -936,47 +936,47 @@ func TestTaskPathRegex(t *testing.T) {
 	}{
 		{
 			name:        "valid task status path",
-			path:        "/tasks/abc-123",
+			path:        "/mesh/abc-123",
 			regex:       "status",
 			wantMatch:   true,
 			wantID:      "abc-123",
-			description: "Should match /tasks/{id}",
+			description: "Should match /mesh/{id}",
 		},
 		{
 			name:        "valid task stream path",
-			path:        "/tasks/test-id-456/stream",
+			path:        "/mesh/test-id-456/stream",
 			regex:       "stream",
 			wantMatch:   true,
 			wantID:      "test-id-456",
-			description: "Should match /tasks/{id}/stream",
+			description: "Should match /mesh/{id}/stream",
 		},
 		{
 			name:        "valid task active path",
-			path:        "/tasks/uuid-789/active",
+			path:        "/mesh/uuid-789/active",
 			regex:       "active",
 			wantMatch:   true,
 			wantID:      "uuid-789",
-			description: "Should match /tasks/{id}/active",
+			description: "Should match /mesh/{id}/active",
 		},
 		{
 			name:        "valid task progress path",
-			path:        "/tasks/task-001/progress",
+			path:        "/mesh/task-001/progress",
 			regex:       "progress",
 			wantMatch:   true,
 			wantID:      "task-001",
-			description: "Should match /tasks/{id}/progress",
+			description: "Should match /mesh/{id}/progress",
 		},
 		{
 			name:        "valid task final path",
-			path:        "/tasks/final-test/final",
+			path:        "/mesh/final-test/final",
 			regex:       "final",
 			wantMatch:   true,
 			wantID:      "final-test",
-			description: "Should match /tasks/{id}/final",
+			description: "Should match /mesh/{id}/final",
 		},
 		{
 			name:        "UUID format task ID",
-			path:        "/tasks/550e8400-e29b-41d4-a716-446655440000",
+			path:        "/mesh/550e8400-e29b-41d4-a716-446655440000",
 			regex:       "status",
 			wantMatch:   true,
 			wantID:      "550e8400-e29b-41d4-a716-446655440000",
@@ -984,49 +984,49 @@ func TestTaskPathRegex(t *testing.T) {
 		},
 		{
 			name:        "empty task ID",
-			path:        "/tasks//stream",
+			path:        "/mesh//stream",
 			regex:       "stream",
 			wantMatch:   false,
 			description: "Should reject empty task ID",
 		},
 		{
 			name:        "missing task ID",
-			path:        "/tasks/",
+			path:        "/mesh/",
 			regex:       "status",
 			wantMatch:   false,
 			description: "Should reject missing task ID",
 		},
 		{
 			name:        "wrong suffix",
-			path:        "/tasks/test-id/wrong",
+			path:        "/mesh/test-id/wrong",
 			regex:       "stream",
 			wantMatch:   false,
 			description: "Should reject wrong suffix",
 		},
 		{
 			name:        "extra path segments",
-			path:        "/tasks/test-id/stream/extra",
+			path:        "/mesh/test-id/stream/extra",
 			regex:       "stream",
 			wantMatch:   false,
 			description: "Should reject extra path segments",
 		},
 		{
 			name:        "task ID with slashes",
-			path:        "/tasks/id/with/slashes/stream",
+			path:        "/mesh/id/with/slashes/stream",
 			regex:       "stream",
 			wantMatch:   false,
 			description: "Should reject task ID containing slashes",
 		},
 		{
 			name:        "status path with trailing slash",
-			path:        "/tasks/test-id/",
+			path:        "/mesh/test-id/",
 			regex:       "status",
 			wantMatch:   false,
 			description: "Should reject trailing slash",
 		},
 		{
 			name:        "stream path without trailing slash",
-			path:        "/tasks/test-id/stream",
+			path:        "/mesh/test-id/stream",
 			regex:       "stream",
 			wantMatch:   true,
 			wantID:      "test-id",
@@ -1034,7 +1034,7 @@ func TestTaskPathRegex(t *testing.T) {
 		},
 		{
 			name:        "alphanumeric with hyphens and underscores",
-			path:        "/tasks/test_id-123_abc/progress",
+			path:        "/mesh/test_id-123_abc/progress",
 			regex:       "progress",
 			wantMatch:   true,
 			wantID:      "test_id-123_abc",
@@ -1042,7 +1042,7 @@ func TestTaskPathRegex(t *testing.T) {
 		},
 		{
 			name:        "numeric only ID",
-			path:        "/tasks/123456/final",
+			path:        "/mesh/123456/final",
 			regex:       "final",
 			wantMatch:   true,
 			wantID:      "123456",
@@ -1051,11 +1051,11 @@ func TestTaskPathRegex(t *testing.T) {
 	}
 
 	regexMap := map[string]*regexp.Regexp{
-		"status":   taskPathRegex,
-		"stream":   taskStreamPathRegex,
-		"active":   taskActivePathRegex,
-		"progress": taskProgressPathRegex,
-		"final":    taskFinalPathRegex,
+		"status":   meshPathRegex,
+		"stream":   meshStreamPathRegex,
+		"active":   meshActivePathRegex,
+		"progress": meshProgressPathRegex,
+		"final":    meshFinalPathRegex,
 	}
 
 	for _, tt := range tests {
@@ -1089,7 +1089,7 @@ func TestTaskPathRegex(t *testing.T) {
 	}
 }
 
-func TestTaskPathRegex_EdgeCases(t *testing.T) {
+func TestMeshPathRegex_EdgeCases(t *testing.T) {
 	store := taskstore.NewStore()
 	handler := NewHandler(store)
 
@@ -1103,9 +1103,9 @@ func TestTaskPathRegex_EdgeCases(t *testing.T) {
 	}{
 		{
 			name:        "double slashes in path",
-			path:        "/tasks//active",
+			path:        "/mesh//active",
 			method:      http.MethodGet,
-			handlerFunc: handler.HandleTaskActive,
+			handlerFunc: handler.HandleMeshActive,
 			wantStatus:  http.StatusBadRequest,
 			description: "Regex should reject double slashes",
 		},
@@ -1113,23 +1113,23 @@ func TestTaskPathRegex_EdgeCases(t *testing.T) {
 			name:        "malformed path missing prefix",
 			path:        "/wrong/test-id/stream",
 			method:      http.MethodGet,
-			handlerFunc: handler.HandleTaskStream,
+			handlerFunc: handler.HandleMeshStream,
 			wantStatus:  http.StatusBadRequest,
 			description: "Regex should reject wrong prefix",
 		},
 		{
 			name:        "path with query parameters",
-			path:        "/tasks/test-id?foo=bar",
+			path:        "/mesh/test-id?foo=bar",
 			method:      http.MethodGet,
-			handlerFunc: handler.HandleTaskStatus,
+			handlerFunc: handler.HandleMeshStatus,
 			wantStatus:  http.StatusNotFound,
 			description: "Query parameters are stripped by URL.Path, task not found",
 		},
 		{
 			name:        "extremely long task ID",
-			path:        "/tasks/" + strings.Repeat("a", 1000) + "/progress",
+			path:        "/mesh/" + strings.Repeat("a", 1000) + "/progress",
 			method:      http.MethodPost,
-			handlerFunc: handler.HandleTaskProgress,
+			handlerFunc: handler.HandleMeshProgress,
 			wantStatus:  http.StatusBadRequest,
 			description: "Should handle extremely long IDs gracefully",
 		},
@@ -1149,7 +1149,7 @@ func TestTaskPathRegex_EdgeCases(t *testing.T) {
 	}
 }
 
-func TestHandleTaskCreate(t *testing.T) {
+func TestHandleMeshCreate(t *testing.T) {
 	tests := []struct {
 		name        string
 		method      string
@@ -1225,7 +1225,7 @@ func TestHandleTaskCreate(t *testing.T) {
 			req.Header.Set("Content-Type", "application/json")
 			rr := httptest.NewRecorder()
 
-			handler.HandleTaskCreate(rr, req)
+			handler.HandleMeshCreate(rr, req)
 
 			if rr.Code != tt.wantStatus {
 				t.Errorf("got status %d, want %d", rr.Code, tt.wantStatus)
@@ -1257,7 +1257,7 @@ func TestHandleTaskCreate(t *testing.T) {
 	}
 }
 
-func TestHandleTaskCreate_DuplicateID(t *testing.T) {
+func TestHandleMeshCreate_DuplicateID(t *testing.T) {
 	store := taskstore.NewStore()
 	handler := NewHandler(store)
 
@@ -1285,7 +1285,7 @@ func TestHandleTaskCreate_DuplicateID(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	rr := httptest.NewRecorder()
 
-	handler.HandleTaskCreate(rr, req)
+	handler.HandleMeshCreate(rr, req)
 
 	// Should return error
 	if rr.Code == http.StatusCreated {

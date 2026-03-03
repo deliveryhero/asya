@@ -614,10 +614,9 @@ spec:
   actor: test-sidecar-env
   transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
   scaling:
-    enabled: true
-    minReplicas: 1
-    maxReplicas: 5
+    enabled: false
   workload:
+    replicas: 1
     kind: Deployment
     template:
       spec:
@@ -683,9 +682,6 @@ spec:
         wait_for_deletion("scaledobject", "test-sidecar-env", namespace=e2e_helper.namespace, timeout=60)
 
 
-@pytest.mark.xfail(
-    reason="Crossplane labels differ from operator; managed-by is 'crossplane', no reserved prefix rejection"
-)
 @pytest.mark.core
 def test_asyncactor_label_propagation(e2e_helper):
     """
@@ -897,45 +893,18 @@ spec:
         )
         logger.info("[+] ConfigMap labels verified (no actor-specific labels)")
 
-        logger.info("Testing reserved label prefix rejection...")
-        invalid_actor_manifest = f"""
-apiVersion: asya.sh/v1alpha1
-kind: AsyncActor
-metadata:
-  name: test-invalid-labels
-  namespace: {e2e_helper.namespace}
-  labels:
-    app.kubernetes.io/custom: forbidden
-spec:
-  actor: test-invalid-labels
-  transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: ghcr.io/deliveryhero/asya-testing:latest
-          imagePullPolicy: IfNotPresent
-          env:
-          - name: ASYA_HANDLER
-            value: asya_testing.handlers.payload.echo_handler
-"""
-
-        kubectl_apply(invalid_actor_manifest, namespace=e2e_helper.namespace)
-
-        time.sleep(5)
-
-        asyncactor = kubectl_get("asyncactor", "test-invalid-labels", namespace=e2e_helper.namespace)
-        status = asyncactor.get("status", {})
-        conditions = status.get("conditions", [])
-
-        workload_ready = next((c for c in conditions if c["type"] == "WorkloadReady"), None)
-        assert workload_ready is not None, "WorkloadReady condition should exist"
-        assert workload_ready["status"] == "False", "WorkloadReady should be False when labels use reserved prefixes"
-        assert "reserved prefix" in workload_ready.get("message", "").lower(), (
-            "Error message should mention reserved prefix"
-        )
+        logger.info("Verifying app.kubernetes.io/ labels from claims are filtered out...")
+        # Operator labels (app.kubernetes.io/*) are managed by the composition.
+        # User labels with this prefix are silently filtered to prevent conflicts.
+        for label_key in deployment_labels:
+            if label_key.startswith("app.kubernetes.io/"):
+                assert label_key in (
+                    "app.kubernetes.io/name",
+                    "app.kubernetes.io/component",
+                    "app.kubernetes.io/part-of",
+                    "app.kubernetes.io/managed-by",
+                ), f"Unexpected app.kubernetes.io/ label '{label_key}' on Deployment (should be operator-managed only)"
+        logger.info("[+] No unexpected app.kubernetes.io/ labels on Deployment")
 
         logger.info("[+] Label propagation verified successfully")
 
@@ -944,7 +913,6 @@ spec:
         raise
     finally:
         kubectl_delete("asyncactor", "test-labels", namespace=e2e_helper.namespace, ignore_not_found=True)
-        kubectl_delete("asyncactor", "test-invalid-labels", namespace=e2e_helper.namespace, ignore_not_found=True)
         wait_for_deletion("deployment", "test-labels", namespace=e2e_helper.namespace, timeout=60)
         wait_for_deletion("scaledobject", "test-labels", namespace=e2e_helper.namespace, timeout=60)
 

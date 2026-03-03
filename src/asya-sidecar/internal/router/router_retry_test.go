@@ -13,7 +13,7 @@ import (
 	"github.com/deliveryhero/asya/asya-sidecar/internal/metrics"
 	"github.com/deliveryhero/asya/asya-sidecar/internal/runtime"
 	"github.com/deliveryhero/asya/asya-sidecar/internal/transport"
-	"github.com/deliveryhero/asya/asya-sidecar/pkg/messages"
+	"github.com/deliveryhero/asya/asya-sidecar/pkg/envelopes"
 )
 
 // delayedMessage tracks a message sent via SendWithDelay
@@ -261,9 +261,9 @@ func TestRouter_EnsureAndUpdateStatus_SetsMaxAttemptsFromResiliency(t *testing.T
 		},
 	}
 
-	msg := &messages.Message{
+	msg := &envelopes.Envelope{
 		ID:      "msg-1",
-		Route:   messages.Route{Prev: []string{}, Curr: "actor-a", Next: []string{}},
+		Route:   envelopes.Route{Prev: []string{}, Curr: "actor-a", Next: []string{}},
 		Payload: json.RawMessage(`{}`),
 	}
 
@@ -280,9 +280,9 @@ func TestRouter_EnsureAndUpdateStatus_DefaultMaxAttemptsWithoutResiliency(t *tes
 		cfg:       &config.Config{},
 	}
 
-	msg := &messages.Message{
+	msg := &envelopes.Envelope{
 		ID:      "msg-1",
-		Route:   messages.Route{Prev: []string{}, Curr: "actor-a", Next: []string{}},
+		Route:   envelopes.Route{Prev: []string{}, Curr: "actor-a", Next: []string{}},
 		Payload: json.RawMessage(`{}`),
 	}
 
@@ -301,12 +301,12 @@ func TestRouter_EnsureAndUpdateStatus_UpdatesMaxAttemptsOnTransition(t *testing.
 		},
 	}
 
-	msg := &messages.Message{
+	msg := &envelopes.Envelope{
 		ID:      "msg-1",
-		Route:   messages.Route{Prev: []string{"actor-a"}, Curr: "actor-b", Next: []string{}},
+		Route:   envelopes.Route{Prev: []string{"actor-a"}, Curr: "actor-b", Next: []string{}},
 		Payload: json.RawMessage(`{}`),
-		Status: &messages.Status{
-			Phase:       messages.PhasePending,
+		Status: &envelopes.Status{
+			Phase:       envelopes.PhasePending,
 			Actor:       "actor-a",
 			Attempt:     3,
 			MaxAttempts: 5,
@@ -329,12 +329,12 @@ func TestRouter_RetryMessage_SendsToOwnQueue(t *testing.T) {
 	mt := &retryMockTransport{}
 	r, _ := newTestRouterWithRetry(t, mt, newRetryConfig(5, nil))
 
-	msg := &messages.Message{
+	msg := &envelopes.Envelope{
 		ID:      "msg-retry-1",
-		Route:   messages.Route{Prev: []string{}, Curr: "test-actor", Next: []string{"next-actor"}},
+		Route:   envelopes.Route{Prev: []string{}, Curr: "test-actor", Next: []string{"next-actor"}},
 		Payload: json.RawMessage(`{"data": "test"}`),
-		Status: &messages.Status{
-			Phase:       messages.PhaseProcessing,
+		Status: &envelopes.Status{
+			Phase:       envelopes.PhaseProcessing,
 			Actor:       "test-actor",
 			Attempt:     1,
 			MaxAttempts: 5,
@@ -372,12 +372,12 @@ func TestRouter_RetryMessage_SendsToOwnQueue(t *testing.T) {
 	}
 
 	// Verify message content
-	var retryMsg messages.Message
+	var retryMsg envelopes.Envelope
 	if err := json.Unmarshal(dm.body, &retryMsg); err != nil {
 		t.Fatalf("Failed to unmarshal retry message: %v", err)
 	}
 
-	if retryMsg.Status.Phase != messages.PhaseRetrying {
+	if retryMsg.Status.Phase != envelopes.PhaseRetrying {
 		t.Errorf("Expected phase retrying, got %s", retryMsg.Status.Phase)
 	}
 
@@ -453,9 +453,9 @@ func TestRouter_ProcessMessage_RetryOnRetriableError(t *testing.T) {
 		metrics:       m,
 	}
 
-	inputMsg := messages.Message{
+	inputMsg := envelopes.Envelope{
 		ID:      "test-retry-msg",
-		Route:   messages.Route{Prev: []string{}, Curr: "test-actor", Next: []string{"next"}},
+		Route:   envelopes.Route{Prev: []string{}, Curr: "test-actor", Next: []string{"next"}},
 		Payload: json.RawMessage(`{"input": "data"}`),
 	}
 	msgBody, _ := json.Marshal(inputMsg)
@@ -482,12 +482,12 @@ func TestRouter_ProcessMessage_RetryOnRetriableError(t *testing.T) {
 		t.Errorf("Retry should go to own queue, got %s", dm.queue)
 	}
 
-	var retryMsg messages.Message
+	var retryMsg envelopes.Envelope
 	if err := json.Unmarshal(dm.body, &retryMsg); err != nil {
 		t.Fatalf("Failed to unmarshal: %v", err)
 	}
 
-	if retryMsg.Status.Phase != messages.PhaseRetrying {
+	if retryMsg.Status.Phase != envelopes.PhaseRetrying {
 		t.Errorf("Expected phase retrying, got %s", retryMsg.Status.Phase)
 	}
 	if retryMsg.Status.Attempt != 2 {
@@ -537,9 +537,9 @@ func TestRouter_ProcessMessage_SSEErrorTriggersRetry(t *testing.T) {
 		metrics:       m,
 	}
 
-	inputMsg := messages.Message{
+	inputMsg := envelopes.Envelope{
 		ID:      "test-sse-retry-msg",
-		Route:   messages.Route{Prev: []string{}, Curr: "test-actor", Next: []string{"next"}},
+		Route:   envelopes.Route{Prev: []string{}, Curr: "test-actor", Next: []string{"next"}},
 		Payload: json.RawMessage(`{"input": "data"}`),
 	}
 	msgBody, _ := json.Marshal(inputMsg)
@@ -566,12 +566,12 @@ func TestRouter_ProcessMessage_SSEErrorTriggersRetry(t *testing.T) {
 		t.Errorf("Retry should go to own queue, got %s", dm.queue)
 	}
 
-	var retryMsg messages.Message
+	var retryMsg envelopes.Envelope
 	if err := json.Unmarshal(dm.body, &retryMsg); err != nil {
 		t.Fatalf("Failed to unmarshal: %v", err)
 	}
 
-	if retryMsg.Status.Phase != messages.PhaseRetrying {
+	if retryMsg.Status.Phase != envelopes.PhaseRetrying {
 		t.Errorf("Expected phase retrying, got %s", retryMsg.Status.Phase)
 	}
 	if retryMsg.Status.Attempt != 2 {
@@ -616,9 +616,9 @@ func TestRouter_ProcessMessage_NonRetryableError(t *testing.T) {
 		metrics:       metrics.NewMetrics("test", []config.CustomMetricConfig{}),
 	}
 
-	inputMsg := messages.Message{
+	inputMsg := envelopes.Envelope{
 		ID:      "test-nonretryable",
-		Route:   messages.Route{Prev: []string{}, Curr: "test-actor", Next: []string{}},
+		Route:   envelopes.Route{Prev: []string{}, Curr: "test-actor", Next: []string{}},
 		Payload: json.RawMessage(`{"input": "bad"}`),
 	}
 	msgBody, _ := json.Marshal(inputMsg)
@@ -644,15 +644,15 @@ func TestRouter_ProcessMessage_NonRetryableError(t *testing.T) {
 		t.Errorf("Expected x-sump queue, got %s", mt.sentMessages[0].queue)
 	}
 
-	var errorMsg messages.Message
+	var errorMsg envelopes.Envelope
 	if err := json.Unmarshal(mt.sentMessages[0].body, &errorMsg); err != nil {
 		t.Fatalf("Failed to unmarshal: %v", err)
 	}
 
-	if errorMsg.Status.Phase != messages.PhaseFailed {
+	if errorMsg.Status.Phase != envelopes.PhaseFailed {
 		t.Errorf("Expected phase failed, got %s", errorMsg.Status.Phase)
 	}
-	if errorMsg.Status.Reason != messages.ReasonNonRetryableFailure {
+	if errorMsg.Status.Reason != envelopes.ReasonNonRetryableFailure {
 		t.Errorf("Expected reason NonRetryableFailure, got %s", errorMsg.Status.Reason)
 	}
 	if errorMsg.Status.Error == nil {
@@ -701,11 +701,11 @@ func TestRouter_ProcessMessage_MaxRetriesExhausted(t *testing.T) {
 	}
 
 	// Simulate attempt 3 (max) — the message already had 2 previous attempts
-	inputMsg := messages.Message{
+	inputMsg := envelopes.Envelope{
 		ID:    "test-exhausted",
-		Route: messages.Route{Prev: []string{}, Curr: "test-actor", Next: []string{}},
-		Status: &messages.Status{
-			Phase:       messages.PhaseRetrying,
+		Route: envelopes.Route{Prev: []string{}, Curr: "test-actor", Next: []string{}},
+		Status: &envelopes.Status{
+			Phase:       envelopes.PhaseRetrying,
 			Actor:       "test-actor",
 			Attempt:     3,
 			MaxAttempts: 3,
@@ -733,15 +733,15 @@ func TestRouter_ProcessMessage_MaxRetriesExhausted(t *testing.T) {
 		t.Fatalf("Expected 1 message to x-sump, got %d", len(mt.sentMessages))
 	}
 
-	var errorMsg messages.Message
+	var errorMsg envelopes.Envelope
 	if err := json.Unmarshal(mt.sentMessages[0].body, &errorMsg); err != nil {
 		t.Fatalf("Failed to unmarshal: %v", err)
 	}
 
-	if errorMsg.Status.Phase != messages.PhaseFailed {
+	if errorMsg.Status.Phase != envelopes.PhaseFailed {
 		t.Errorf("Expected phase failed, got %s", errorMsg.Status.Phase)
 	}
-	if errorMsg.Status.Reason != messages.ReasonMaxRetriesExhausted {
+	if errorMsg.Status.Reason != envelopes.ReasonMaxRetriesExhausted {
 		t.Errorf("Expected reason MaxRetriesExhausted, got %s", errorMsg.Status.Reason)
 	}
 	if errorMsg.Status.Attempt != 3 {
@@ -788,9 +788,9 @@ func TestRouter_ProcessMessage_NoResiliency_LegacyBehavior(t *testing.T) {
 		metrics:       metrics.NewMetrics("test", []config.CustomMetricConfig{}),
 	}
 
-	inputMsg := messages.Message{
+	inputMsg := envelopes.Envelope{
 		ID:      "test-legacy",
-		Route:   messages.Route{Prev: []string{}, Curr: "test-actor", Next: []string{}},
+		Route:   envelopes.Route{Prev: []string{}, Curr: "test-actor", Next: []string{}},
 		Payload: json.RawMessage(`{"input": "test"}`),
 	}
 	msgBody, _ := json.Marshal(inputMsg)
@@ -858,9 +858,9 @@ func TestRouter_ProcessMessage_SendWithDelayFails_FallsBackToSump(t *testing.T) 
 		metrics:       metrics.NewMetrics("test", []config.CustomMetricConfig{}),
 	}
 
-	inputMsg := messages.Message{
+	inputMsg := envelopes.Envelope{
 		ID:      "test-delay-fail",
-		Route:   messages.Route{Prev: []string{}, Curr: "test-actor", Next: []string{}},
+		Route:   envelopes.Route{Prev: []string{}, Curr: "test-actor", Next: []string{}},
 		Payload: json.RawMessage(`{"input": "test"}`),
 	}
 	msgBody, _ := json.Marshal(inputMsg)
@@ -920,9 +920,9 @@ func TestRouter_ProcessMessage_RetryPreservesPayloadAndRoute(t *testing.T) {
 	}
 
 	originalPayload := `{"complex": {"nested": true}, "array": [1,2,3]}`
-	inputMsg := messages.Message{
+	inputMsg := envelopes.Envelope{
 		ID:      "test-preserve",
-		Route:   messages.Route{Prev: []string{}, Curr: "test-actor", Next: []string{"next-actor", "final"}},
+		Route:   envelopes.Route{Prev: []string{}, Curr: "test-actor", Next: []string{"next-actor", "final"}},
 		Payload: json.RawMessage(originalPayload),
 	}
 	msgBody, _ := json.Marshal(inputMsg)
@@ -939,7 +939,7 @@ func TestRouter_ProcessMessage_RetryPreservesPayloadAndRoute(t *testing.T) {
 		t.Fatalf("Expected 1 delayed message, got %d", len(mt.delayedMessages))
 	}
 
-	var retryMsg messages.Message
+	var retryMsg envelopes.Envelope
 	if err := json.Unmarshal(mt.delayedMessages[0].body, &retryMsg); err != nil {
 		t.Fatalf("Failed to unmarshal: %v", err)
 	}
@@ -971,12 +971,12 @@ func TestRouter_SendRetryFailure_PreservesErrorDetailsInPayload(t *testing.T) {
 	mt := &retryMockTransport{}
 	r, _ := newTestRouterWithRetry(t, mt, newRetryConfig(3, nil))
 
-	msg := &messages.Message{
+	msg := &envelopes.Envelope{
 		ID:      "msg-fail",
-		Route:   messages.Route{Prev: []string{}, Curr: "test-actor", Next: []string{}},
+		Route:   envelopes.Route{Prev: []string{}, Curr: "test-actor", Next: []string{}},
 		Payload: json.RawMessage(`{"original": "data"}`),
-		Status: &messages.Status{
-			Phase:       messages.PhaseProcessing,
+		Status: &envelopes.Status{
+			Phase:       envelopes.PhaseProcessing,
 			Actor:       "test-actor",
 			Attempt:     3,
 			MaxAttempts: 3,
@@ -994,7 +994,7 @@ func TestRouter_SendRetryFailure_PreservesErrorDetailsInPayload(t *testing.T) {
 		},
 	}
 
-	err := r.sendRetryFailure(context.Background(), msg, response, messages.ReasonMaxRetriesExhausted)
+	err := r.sendRetryFailure(context.Background(), msg, response, envelopes.ReasonMaxRetriesExhausted)
 	if err != nil {
 		t.Fatalf("sendRetryFailure failed: %v", err)
 	}
@@ -1003,16 +1003,16 @@ func TestRouter_SendRetryFailure_PreservesErrorDetailsInPayload(t *testing.T) {
 		t.Fatalf("Expected 1 sent message, got %d", len(mt.sentMessages))
 	}
 
-	var failedMsg messages.Message
+	var failedMsg envelopes.Envelope
 	if err := json.Unmarshal(mt.sentMessages[0].body, &failedMsg); err != nil {
 		t.Fatalf("Failed to unmarshal: %v", err)
 	}
 
 	// Verify status fields
-	if failedMsg.Status.Phase != messages.PhaseFailed {
+	if failedMsg.Status.Phase != envelopes.PhaseFailed {
 		t.Errorf("Expected phase failed, got %s", failedMsg.Status.Phase)
 	}
-	if failedMsg.Status.Reason != messages.ReasonMaxRetriesExhausted {
+	if failedMsg.Status.Reason != envelopes.ReasonMaxRetriesExhausted {
 		t.Errorf("Expected reason MaxRetriesExhausted, got %s", failedMsg.Status.Reason)
 	}
 	if failedMsg.Status.Attempt != 3 {
@@ -1077,9 +1077,9 @@ func TestRouter_ProcessMessage_MaxAttemptsOne_NoRetry(t *testing.T) {
 		metrics:       metrics.NewMetrics("test", []config.CustomMetricConfig{}),
 	}
 
-	inputMsg := messages.Message{
+	inputMsg := envelopes.Envelope{
 		ID:      "test-maxone",
-		Route:   messages.Route{Prev: []string{}, Curr: "test-actor", Next: []string{}},
+		Route:   envelopes.Route{Prev: []string{}, Curr: "test-actor", Next: []string{}},
 		Payload: json.RawMessage(`{}`),
 	}
 	msgBody, _ := json.Marshal(inputMsg)

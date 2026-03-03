@@ -16,7 +16,7 @@ const (
 	// ContextKeyResolvedSpec is the context key where the resolved (merged) spec is stored.
 	// Downstream composition functions (e.g., Go templates) read from this key
 	// instead of the raw XR spec when overlays are active.
-	ContextKeyResolvedSpec = "asya.sh/resolved-spec"
+	ContextKeyResolvedSpec = "asya/resolved-spec"
 
 	// EnvConfigAPIVersion is the Crossplane EnvironmentConfig API version.
 	EnvConfigAPIVersion = "apiextensions.crossplane.io/v1beta1"
@@ -41,7 +41,7 @@ type Function struct {
 //     for each overlay's EnvironmentConfig (matched by label asya.sh/overlay=<name>).
 //  2. Merge phase: once Crossplane provides the EnvironmentConfigs, applies strategic
 //     merge patch in spec.overlays order, then applies the actor's inline spec as the
-//     final override. The resolved spec is written to the context key asya.sh/resolved-spec.
+//     final override. The resolved spec is written to the context key asya/resolved-spec.
 func (f *Function) RunFunction(_ context.Context, req *fnv1.RunFunctionRequest) (*fnv1.RunFunctionResponse, error) {
 	f.log.Info("Running function", "tag", req.GetMeta().GetTag())
 

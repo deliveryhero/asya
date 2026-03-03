@@ -17,12 +17,12 @@ import (
 )
 
 var (
-	taskPathRegex         = regexp.MustCompile(`^/tasks/([^/]+)$`)
-	taskStreamPathRegex   = regexp.MustCompile(`^/tasks/([^/]+)/stream$`)
-	taskActivePathRegex   = regexp.MustCompile(`^/tasks/([^/]+)/active$`)
-	taskProgressPathRegex = regexp.MustCompile(`^/tasks/([^/]+)/progress$`)
-	taskFinalPathRegex    = regexp.MustCompile(`^/tasks/([^/]+)/final$`)
-	taskPartialPathRegex  = regexp.MustCompile(`^/tasks/([^/]+)/partial$`)
+	meshPathRegex         = regexp.MustCompile(`^/mesh/([^/]+)$`)
+	meshStreamPathRegex   = regexp.MustCompile(`^/mesh/([^/]+)/stream$`)
+	meshActivePathRegex   = regexp.MustCompile(`^/mesh/([^/]+)/active$`)
+	meshProgressPathRegex = regexp.MustCompile(`^/mesh/([^/]+)/progress$`)
+	meshFinalPathRegex    = regexp.MustCompile(`^/mesh/([^/]+)/final$`)
+	meshPartialPathRegex  = regexp.MustCompile(`^/mesh/([^/]+)/partial$`)
 )
 
 // Handler provides HTTP endpoints for task management
@@ -103,8 +103,8 @@ func (h *Handler) HandleToolCall(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// HandleTaskCreate handles POST /tasks (for sidecars to create fanout child tasks)
-func (h *Handler) HandleTaskCreate(w http.ResponseWriter, r *http.Request) {
+// HandleMeshCreate handles POST /tasks (for sidecars to create fanout child tasks)
+func (h *Handler) HandleMeshCreate(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -188,14 +188,14 @@ func (h *Handler) HandleTaskCreate(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(map[string]string{"status": "created", "id": createReq.ID})
 }
 
-// HandleTaskStatus handles GET /tasks/{id}
-func (h *Handler) HandleTaskStatus(w http.ResponseWriter, r *http.Request) {
+// HandleMeshStatus handles GET /tasks/{id}
+func (h *Handler) HandleMeshStatus(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	matches := taskPathRegex.FindStringSubmatch(r.URL.Path)
+	matches := meshPathRegex.FindStringSubmatch(r.URL.Path)
 	if matches == nil {
 		http.Error(w, "Invalid task path", http.StatusBadRequest)
 		return
@@ -214,14 +214,14 @@ func (h *Handler) HandleTaskStatus(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// HandleTaskStream handles GET /tasks/{id}/stream (SSE)
-func (h *Handler) HandleTaskStream(w http.ResponseWriter, r *http.Request) {
+// HandleMeshStream handles GET /mesh/{id}/stream (SSE)
+func (h *Handler) HandleMeshStream(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	matches := taskStreamPathRegex.FindStringSubmatch(r.URL.Path)
+	matches := meshStreamPathRegex.FindStringSubmatch(r.URL.Path)
 	if matches == nil {
 		http.Error(w, "Invalid task stream path", http.StatusBadRequest)
 		return
@@ -307,14 +307,14 @@ func isFinalStatus(status types.TaskStatus) bool {
 		status == types.TaskStatusCanceled
 }
 
-// HandleTaskActive handles GET /tasks/{id}/active (for actors to check if task is still valid)
-func (h *Handler) HandleTaskActive(w http.ResponseWriter, r *http.Request) {
+// HandleMeshActive handles GET /mesh/{id}/active (for actors to check if task is still valid)
+func (h *Handler) HandleMeshActive(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	matches := taskActivePathRegex.FindStringSubmatch(r.URL.Path)
+	matches := meshActivePathRegex.FindStringSubmatch(r.URL.Path)
 	if matches == nil {
 		http.Error(w, "Invalid task active path", http.StatusBadRequest)
 		return
@@ -346,14 +346,14 @@ func calculateProgress(prev []string, next []string, statusWeight float64) float
 	return progress
 }
 
-// HandleTaskProgress handles POST /tasks/{id}/progress (for actors to report progress)
-func (h *Handler) HandleTaskProgress(w http.ResponseWriter, r *http.Request) {
+// HandleMeshProgress handles POST /mesh/{id}/progress (for actors to report progress)
+func (h *Handler) HandleMeshProgress(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	matches := taskProgressPathRegex.FindStringSubmatch(r.URL.Path)
+	matches := meshProgressPathRegex.FindStringSubmatch(r.URL.Path)
 	if matches == nil {
 		http.Error(w, "Invalid task progress path", http.StatusBadRequest)
 		return
@@ -483,15 +483,15 @@ func (h *Handler) HandleTaskProgress(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// HandleTaskFinal handles POST /tasks/{id}/final (for end actors to report final status)
+// HandleMeshFinal handles POST /mesh/{id}/final (for end actors to report final status)
 // This is called by x-sink and x-sump actors to report task completion
-func (h *Handler) HandleTaskFinal(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) HandleMeshFinal(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	matches := taskFinalPathRegex.FindStringSubmatch(r.URL.Path)
+	matches := meshFinalPathRegex.FindStringSubmatch(r.URL.Path)
 	if matches == nil {
 		http.Error(w, "Invalid task final path", http.StatusBadRequest)
 		return
@@ -603,16 +603,16 @@ func (h *Handler) HandleTaskFinal(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 }
 
-// HandleTaskPartial handles POST /tasks/{id}/partial (for sidecar to forward partial events)
+// HandleMeshPartial handles POST /mesh/{id}/partial (for sidecar to forward partial events)
 // Partial events are incremental results (e.g., LLM tokens) from generator handlers.
 // They bypass message queues and are forwarded directly to SSE clients.
-func (h *Handler) HandleTaskPartial(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) HandleMeshPartial(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	matches := taskPartialPathRegex.FindStringSubmatch(r.URL.Path)
+	matches := meshPartialPathRegex.FindStringSubmatch(r.URL.Path)
 	if matches == nil {
 		http.Error(w, "Invalid task partial path", http.StatusBadRequest)
 		return

@@ -1,4 +1,4 @@
-package messages
+package envelopes
 
 import (
 	"encoding/json"
@@ -35,7 +35,7 @@ type StatusError struct {
 	Traceback string   `json:"traceback,omitempty"`
 }
 
-// Status tracks the lifecycle phase of a message as it moves through actors
+// Status tracks the lifecycle phase of a envelope as it moves through actors
 type Status struct {
 	Phase       string       `json:"phase"`
 	Reason      string       `json:"reason,omitempty"`
@@ -61,9 +61,9 @@ func NewDefaultStatus(actor string) *Status {
 	}
 }
 
-// Route represents the routing state of a message through the actor pipeline.
-// prev: actors that have already processed this message (read-only to handlers).
-// curr: the actor currently processing this message (read-only to handlers).
+// Route represents the routing state of a envelope through the actor pipeline.
+// prev: actors that have already processed this envelope (read-only to handlers).
+// curr: the actor currently processing this envelope (read-only to handlers).
 // next: actors remaining after curr (writable via ABI yield protocol).
 type Route struct {
 	Prev []string `json:"prev"`
@@ -71,22 +71,22 @@ type Route struct {
 	Next []string `json:"next"`
 }
 
-// Message represents the full message structure with routing metadata.
+// Envelope represents the full envelope structure with routing metadata.
 //
 // Fanout ID Semantics:
 // When an actor handler uses yield (generator), the runtime sends multiple response
 // frames over the Unix socket. The sidecar reads each frame and creates a separate
-// message for routing.
-// The first fanout message retains the original ID to preserve SSE streaming compatibility.
-// Subsequent fanout messages receive UUID4 IDs to avoid collisions across concurrent fan-outs.
+// envelope for routing.
+// The first fanout envelope retains the original ID to preserve SSE streaming compatibility.
+// Subsequent fanout envelopes receive UUID4 IDs to avoid collisions across concurrent fan-outs.
 //
-// Example fanout from message "abc-123" returning 3 items:
+// Example fanout from envelope "abc-123" returning 3 items:
 //   - Index 0: ID = "abc-123"                               ParentID = nil        (original ID, SSE clients can track this)
 //   - Index 1: ID = "550e8400-e29b-41d4-a716-446655440000"  ParentID = "abc-123"  (fanout child, UUID4)
 //   - Index 2: ID = "7c9e6679-7425-40de-944b-e07fc1f90ae7"  ParentID = "abc-123"  (fanout child, UUID4)
 //
-// All fanout children have ParentID set to the original message ID for traceability.
-type Message struct {
+// All fanout children have ParentID set to the original envelope ID for traceability.
+type Envelope struct {
 	ID       string                 `json:"id"`
 	ParentID *string                `json:"parent_id,omitempty"` // Set for fanout children (index > 0)
 	Route    Route                  `json:"route"`
@@ -130,8 +130,8 @@ func (r *Route) IncrementCurrent() Route {
 }
 
 // ParseDeadline parses the status.deadline_at field as RFC3339.
-// Returns zero time and false if the message has no status, no deadline, or the value is malformed.
-func (m *Message) ParseDeadline() (time.Time, bool) {
+// Returns zero time and false if the envelope has no status, no deadline, or the value is malformed.
+func (m *Envelope) ParseDeadline() (time.Time, bool) {
 	if m.Status == nil || m.Status.DeadlineAt == "" {
 		return time.Time{}, false
 	}

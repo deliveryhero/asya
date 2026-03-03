@@ -113,7 +113,7 @@ class CounterHandler:
 
 
 # VFS metadata handler
-class MessageHandler:
+class EnvelopeHandler:
     """Handler that accesses message metadata via VFS."""
 
     def __init__(self):

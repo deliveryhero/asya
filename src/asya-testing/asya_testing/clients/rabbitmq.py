@@ -37,8 +37,8 @@ class RabbitMQClient(TransportClient):
         self.api_url = f"http://{host}:15672/api"
         self.auth = (user, password)
 
-    def publish(self, queue: str, message: dict, exchange: str = "asya") -> None:
-        """Publish message to queue."""
+    def publish(self, queue: str, envelope: dict, exchange: str = "asya") -> None:
+        """Publish envelope to queue."""
         credentials = pika.PlainCredentials(self.user, self.password)
         parameters = pika.ConnectionParameters(self.host, self.port, "/", credentials)
         connection = pika.BlockingConnection(parameters)
@@ -48,7 +48,7 @@ class RabbitMQClient(TransportClient):
         # Derive routing key from queue name by stripping asya-{namespace}- prefix
         routing_key = queue.removeprefix(f"asya-{self.namespace}-")
 
-        body = json.dumps(message)
+        body = json.dumps(envelope)
         channel.basic_publish(
             exchange=exchange,
             routing_key=routing_key,
@@ -57,10 +57,10 @@ class RabbitMQClient(TransportClient):
             mandatory=True,
         )
         connection.close()
-        logger.debug(f"Published to {queue}: {message.get('id', 'N/A')}")
+        logger.debug(f"Published to {queue}: {envelope.get('id', 'N/A')}")
 
     def consume(self, queue: str, timeout: int = 10) -> dict | None:
-        """Consume message from queue with timeout."""
+        """Consume envelope from queue with timeout."""
         start = time.time()
         poll_interval = 0.1
 
@@ -80,11 +80,11 @@ class RabbitMQClient(TransportClient):
 
             time.sleep(poll_interval)
 
-        logger.debug(f"Timeout waiting for message in {queue}")
+        logger.debug(f"Timeout waiting for envelope in {queue}")
         return None
 
     def purge(self, queue: str) -> None:
-        """Purge all messages from queue."""
+        """Purge all envelopes from queue."""
         requests.delete(f"{self.api_url}/queues/%2F/{queue}/contents", auth=self.auth)
         logger.debug(f"Purged {queue}")
 

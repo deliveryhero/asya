@@ -33,7 +33,7 @@ library.
 
 But actors sometimes need to do more than transform payloads — they need to:
 
-- **Read message metadata** (where did this message come from?)
+- **Read envelope metadata** (where did this envelope come from?)
 - **Modify routing** (send the result to a different actor than planned)
 - **Stream tokens upstream** (deliver LLM output to the gateway in real-time)
 - **Set headers** (attach trace IDs, priorities, or custom metadata)
@@ -118,8 +118,8 @@ generator. Otherwise, use a plain function.
 value = yield "GET", "<path>"
 ```
 
-Read a field from the message metadata. Returns a **deep copy** — mutating
-the returned value does not affect the message.
+Read a field from the envelope metadata. Returns a **deep copy** — mutating
+the returned value does not affect the envelope.
 
 ```python
 prev = yield "GET", ".route.prev"       # list of previous actors
@@ -137,7 +137,7 @@ yield "SET", "<path>", <value>
 ```
 
 Write a value to a writable metadata field. The value is **deep copied**
-into the message.
+into the envelope.
 
 ```python
 # Replace the entire route.next
@@ -167,7 +167,7 @@ yield "SET", ".status.phase", "processing"
 yield "DEL", "<path>"
 ```
 
-Remove a field from the message metadata.
+Remove a field from the envelope metadata.
 
 ```python
 yield "DEL", ".headers.trace_id"
@@ -212,7 +212,7 @@ yield {"result": "processed data"}
 ```
 
 A generator can emit **multiple frames** — each yield of a dict produces a
-separate downstream message (fan-out):
+separate downstream envelope (fan-out):
 
 ```python
 async def splitter(payload):
@@ -225,17 +225,17 @@ async def splitter(payload):
 
 ## Path syntax
 
-Paths use **jq-like dot notation** rooted at the message envelope.
+Paths use **jq-like dot notation** rooted at the envelope envelope.
 
 ### Dot access
 
 ```
-.route.next       → message["route"]["next"]
-.headers.trace_id → message["headers"]["trace_id"]
-.route            → message["route"]  (entire subtree)
+.route.next       → envelope["route"]["next"]
+.headers.trace_id → envelope["headers"]["trace_id"]
+.route            → envelope["route"]  (entire subtree)
 ```
 
-The leading `.` is required and refers to the message root.
+The leading `.` is required and refers to the envelope root.
 
 ### Bracket access
 
@@ -284,8 +284,8 @@ Not all metadata fields are writable. The ABI enforces access control:
 | `.headers.*`   | read | write | write |
 | `.status`      | read | write | deny  |
 
-The message **payload** is not accessible via the ABI — it's the function
-argument itself. The ABI operates on message metadata only.
+The envelope **payload** is not accessible via the ABI — it's the function
+argument itself. The ABI operates on envelope metadata only.
 
 ---
 
@@ -464,7 +464,7 @@ async def test_full_flow():
     assert state["notified"] is True
 ```
 
-This mirrors the actual Asya execution: each `await` represents a message
+This mirrors the actual Asya execution: each `await` represents a envelope
 passing through a queue to the next actor. The difference is that in
 production, each actor runs in its own pod; in tests, they run sequentially
 in one process.
@@ -562,5 +562,5 @@ async for cmd in helper():   # async generators
 
 - [Flow DSL Reference](flow-dsl.md) — compile Python control flow into
   router actor networks (routers use the ABI internally)
-- [Architecture: Actor Message Protocol](../architecture/protocols/actor-actor.md) —
-  message envelope format and routing semantics
+- [Architecture: Actor Envelope Protocol](../architecture/protocols/actor-actor.md) —
+  envelope envelope format and routing semantics

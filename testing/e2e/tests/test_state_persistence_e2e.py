@@ -20,7 +20,7 @@ import pytest
 import requests
 
 from asya_testing.utils.kubectl import wait_for_pod_ready as kubectl_wait_for_pod_ready
-from asya_testing.utils.s3 import wait_for_message_in_s3, delete_all_objects_in_bucket
+from asya_testing.utils.s3 import wait_for_envelope_in_s3, delete_all_objects_in_bucket
 
 logger = logging.getLogger(__name__)
 
@@ -145,7 +145,7 @@ def test_successful_result_persisted_to_s3(e2e_helper, s3_endpoint, results_buck
     assert final_task["status"] == "succeeded", "Task should succeed"
 
     logger.info("Waiting for result to appear in S3...")
-    s3_object = wait_for_message_in_s3(
+    s3_object = wait_for_envelope_in_s3(
         bucket_name=results_bucket,
         message_id=task_id,
         timeout=30
@@ -186,7 +186,7 @@ def test_error_result_persisted_to_s3(e2e_helper, s3_endpoint, errors_bucket):
     assert final_task["status"] == "failed", "Task should fail"
 
     logger.info("Waiting for error to appear in S3...")
-    s3_object = wait_for_message_in_s3(
+    s3_object = wait_for_envelope_in_s3(
         bucket_name=errors_bucket,
         message_id=task_id,
         timeout=30
@@ -229,7 +229,7 @@ def test_s3_persistence_with_large_payload(e2e_helper, s3_endpoint, results_buck
     assert final_task["status"] == "succeeded", "Large payload should succeed"
 
     logger.info("Waiting for result in S3...")
-    s3_object = wait_for_message_in_s3(
+    s3_object = wait_for_envelope_in_s3(
         bucket_name=results_bucket,
         message_id=task_id,
         timeout=60
@@ -330,7 +330,7 @@ def test_concurrent_s3_writes_no_conflicts(e2e_helper, s3_endpoint, results_buck
     logger.info("Verifying S3 objects created...")
     s3_found = 0
     for task_id in task_ids[:10]:
-        s3_object = wait_for_message_in_s3(
+        s3_object = wait_for_envelope_in_s3(
             bucket_name=results_bucket,
             message_id=task_id,
             timeout=10

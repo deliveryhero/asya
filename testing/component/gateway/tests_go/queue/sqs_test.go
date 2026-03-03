@@ -83,7 +83,7 @@ func TestSQS_SendAndReceive(t *testing.T) {
 	require.NoError(t, err, "Failed to receive message")
 	require.NotNil(t, msg)
 
-	var received queue.ActorMessage
+	var received queue.ActorEnvelope
 	err = json.Unmarshal(msg.Body(), &received)
 	require.NoError(t, err, "Failed to unmarshal message")
 
@@ -134,7 +134,7 @@ func TestSQS_MultipleMessages(t *testing.T) {
 		msg, err := client.Receive(receiveCtx, testQueueName)
 		require.NoError(t, err, "Failed to receive message %d", i)
 
-		var received queue.ActorMessage
+		var received queue.ActorEnvelope
 		err = json.Unmarshal(msg.Body(), &received)
 		require.NoError(t, err, "Failed to unmarshal message %d", i)
 
@@ -201,7 +201,7 @@ func TestSQS_TaskWithDeadline(t *testing.T) {
 	msg, err := client.Receive(receiveCtx, testQueueName)
 	require.NoError(t, err, "Failed to receive message")
 
-	var received queue.ActorMessage
+	var received queue.ActorEnvelope
 	err = json.Unmarshal(msg.Body(), &received)
 	require.NoError(t, err, "Failed to unmarshal message")
 
@@ -277,7 +277,7 @@ func TestSQS_LargePayload(t *testing.T) {
 	msg, err := client.Receive(receiveCtx, testQueueName)
 	require.NoError(t, err, "Failed to receive large message")
 
-	var received queue.ActorMessage
+	var received queue.ActorEnvelope
 	err = json.Unmarshal(msg.Body(), &received)
 	require.NoError(t, err, "Failed to unmarshal large message")
 
@@ -335,7 +335,7 @@ func TestSQS_MultipleQueues(t *testing.T) {
 	msg2, err := client.Receive(receiveCtx, queue2)
 	require.NoError(t, err, "Failed to receive from queue2")
 
-	var received1, received2 queue.ActorMessage
+	var received1, received2 queue.ActorEnvelope
 	json.Unmarshal(msg1.Body(), &received1)
 	json.Unmarshal(msg2.Body(), &received2)
 

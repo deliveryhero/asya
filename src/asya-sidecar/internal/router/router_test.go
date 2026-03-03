@@ -19,7 +19,7 @@ import (
 	"github.com/deliveryhero/asya/asya-sidecar/internal/progress"
 	"github.com/deliveryhero/asya/asya-sidecar/internal/runtime"
 	"github.com/deliveryhero/asya/asya-sidecar/internal/transport"
-	"github.com/deliveryhero/asya/asya-sidecar/pkg/messages"
+	"github.com/deliveryhero/asya/asya-sidecar/pkg/envelopes"
 )
 
 const (
@@ -126,7 +126,7 @@ func TestRouter_RouteValidation(t *testing.T) {
 	tests := []struct {
 		name                 string
 		actorName            string
-		inputRoute           messages.Route
+		inputRoute           envelopes.Route
 		expectedWarnContains string
 		shouldRejectAndError bool
 		shouldCallRuntime    bool
@@ -135,7 +135,7 @@ func TestRouter_RouteValidation(t *testing.T) {
 		{
 			name:      "route matches sidecar queue - processes normally",
 			actorName: "test-actor",
-			inputRoute: messages.Route{
+			inputRoute: envelopes.Route{
 				Prev: []string{},
 				Curr: "test-actor",
 				Next: []string{"next-actor"},
@@ -147,7 +147,7 @@ func TestRouter_RouteValidation(t *testing.T) {
 		{
 			name:      "route does not match sidecar queue - sends to error queue",
 			actorName: "test-actor",
-			inputRoute: messages.Route{
+			inputRoute: envelopes.Route{
 				Prev: []string{},
 				Curr: "wrong-actor",
 				Next: []string{"next-actor"},
@@ -160,7 +160,7 @@ func TestRouter_RouteValidation(t *testing.T) {
 		{
 			name:      "route current index out of sync - sends to error queue",
 			actorName: "test-actor",
-			inputRoute: messages.Route{
+			inputRoute: envelopes.Route{
 				Prev: []string{"test-actor"},
 				Curr: "next-actor",
 				Next: []string{},
@@ -213,7 +213,7 @@ func TestRouter_RouteValidation(t *testing.T) {
 				metrics:       metrics.NewMetrics("test", []config.CustomMetricConfig{}),
 			}
 
-			inputMsg := messages.Message{
+			inputMsg := envelopes.Envelope{
 				ID:      "test-msg-123",
 				Route:   tt.inputRoute,
 				Payload: json.RawMessage(`{"input": "test"}`),
@@ -408,7 +408,7 @@ func TestRouter_DynamicRouteModification(t *testing.T) {
 				return []runtime.RuntimeResponse{
 					{
 						Payload: json.RawMessage(`{"result": "processed"}`),
-						Route: messages.Route{
+						Route: envelopes.Route{
 							Prev: tt.runtimeOutputActors[:1],
 							Curr: tt.runtimeOutputActors[1],
 							Next: tt.runtimeOutputActors[2:],
@@ -440,9 +440,9 @@ func TestRouter_DynamicRouteModification(t *testing.T) {
 			}
 
 			// Create test message with initial route
-			inputMsg := messages.Message{
+			inputMsg := envelopes.Envelope{
 				ID: "test-dynamic-route",
-				Route: messages.Route{
+				Route: envelopes.Route{
 					Prev: []string{},
 					Curr: tt.initialActors[0],
 					Next: tt.initialActors[1:],
@@ -472,7 +472,7 @@ func TestRouter_DynamicRouteModification(t *testing.T) {
 			}
 
 			// Parse the sent message to verify route was updated
-			var sentMsg messages.Message
+			var sentMsg envelopes.Envelope
 			err = json.Unmarshal(mockTransport.sentMessages[0].body, &sentMsg)
 			if err != nil {
 				t.Fatalf("Failed to unmarshal sent message: %v", err)
@@ -549,7 +549,7 @@ func TestRouter_ResolveQueueName_Integration(t *testing.T) {
 				return []runtime.RuntimeResponse{
 					{
 						Payload: json.RawMessage(`{"result": "processed"}`),
-						Route: messages.Route{
+						Route: envelopes.Route{
 							Prev: tt.inputActors[:1],
 							Curr: tt.inputActors[1],
 							Next: tt.inputActors[2:],
@@ -573,9 +573,9 @@ func TestRouter_ResolveQueueName_Integration(t *testing.T) {
 			}
 
 			// Create test message
-			inputMsg := messages.Message{
+			inputMsg := envelopes.Envelope{
 				ID: "test-123",
-				Route: messages.Route{
+				Route: envelopes.Route{
 					Prev: []string{},
 					Curr: tt.inputActors[0],
 					Next: tt.inputActors[1:],
@@ -699,9 +699,9 @@ func TestRouter_SendToSinkQueue(t *testing.T) {
 		metrics:   m,
 	}
 
-	msg := messages.Message{
+	msg := envelopes.Envelope{
 		ID: "test-msg-123",
-		Route: messages.Route{
+		Route: envelopes.Route{
 			Prev: []string{"actor1"},
 			Curr: "actor2",
 			Next: []string{},
@@ -723,7 +723,7 @@ func TestRouter_SendToSinkQueue(t *testing.T) {
 		t.Errorf("Message sent to queue %q, expected %q", mockTransport.sentMessages[0].queue, "asya-default-"+testQueueSink)
 	}
 
-	var sentMsg messages.Message
+	var sentMsg envelopes.Envelope
 	err = json.Unmarshal(mockTransport.sentMessages[0].body, &sentMsg)
 	if err != nil {
 		t.Fatalf("Failed to unmarshal sent message: %v", err)
@@ -756,9 +756,9 @@ func TestRouter_SendToSumpQueue(t *testing.T) {
 		metrics:   m,
 	}
 
-	originalMsg := messages.Message{
+	originalMsg := envelopes.Envelope{
 		ID: "test-msg-456",
-		Route: messages.Route{
+		Route: envelopes.Route{
 			Prev: []string{},
 			Curr: "actor1",
 			Next: []string{},
@@ -1047,9 +1047,9 @@ func TestRouter_ProcessMessage_EmptyResponse(t *testing.T) {
 		metrics:       m,
 	}
 
-	inputMsg := messages.Message{
+	inputMsg := envelopes.Envelope{
 		ID: "test-123",
-		Route: messages.Route{
+		Route: envelopes.Route{
 			Prev: []string{},
 			Curr: "test-actor",
 			Next: []string{},
@@ -1083,7 +1083,7 @@ func TestRouter_ProcessMessage_EndActor(t *testing.T) {
 		return []runtime.RuntimeResponse{
 			{
 				Payload: json.RawMessage(`{"status": "logged"}`),
-				Route: messages.Route{
+				Route: envelopes.Route{
 					Prev: []string{},
 					Curr: "x-sink",
 					Next: []string{},
@@ -1116,9 +1116,9 @@ func TestRouter_ProcessMessage_EndActor(t *testing.T) {
 		metrics:       m,
 	}
 
-	inputMsg := messages.Message{
+	inputMsg := envelopes.Envelope{
 		ID: "test-123",
-		Route: messages.Route{
+		Route: envelopes.Route{
 			Prev: []string{},
 			Curr: "x-sink",
 			Next: []string{},
@@ -1146,12 +1146,12 @@ func TestRouter_ProcessMessage_EndActor(t *testing.T) {
 func TestRouter_EndActor_WithInvalidRoute(t *testing.T) {
 	tests := []struct {
 		name  string
-		route messages.Route
+		route envelopes.Route
 		desc  string
 	}{
 		{
 			name: "current points to wrong actor",
-			route: messages.Route{
+			route: envelopes.Route{
 				Prev: []string{},
 				Curr: "test-echo",
 				Next: []string{},
@@ -1160,7 +1160,7 @@ func TestRouter_EndActor_WithInvalidRoute(t *testing.T) {
 		},
 		{
 			name: "current out of bounds",
-			route: messages.Route{
+			route: envelopes.Route{
 				Prev: []string{"test-echo"},
 				Curr: "",
 				Next: []string{},
@@ -1169,7 +1169,7 @@ func TestRouter_EndActor_WithInvalidRoute(t *testing.T) {
 		},
 		{
 			name: "empty route",
-			route: messages.Route{
+			route: envelopes.Route{
 				Prev: []string{},
 				Curr: "",
 				Next: []string{},
@@ -1178,7 +1178,7 @@ func TestRouter_EndActor_WithInvalidRoute(t *testing.T) {
 		},
 		{
 			name: "multi-actor route pointing elsewhere",
-			route: messages.Route{
+			route: envelopes.Route{
 				Prev: []string{"actor1"},
 				Curr: "actor2",
 				Next: []string{"actor3"},
@@ -1221,7 +1221,7 @@ func TestRouter_EndActor_WithInvalidRoute(t *testing.T) {
 				metrics:       m,
 			}
 
-			inputMsg := messages.Message{
+			inputMsg := envelopes.Envelope{
 				ID:      "test-invalid-route",
 				Route:   tt.route,
 				Payload: json.RawMessage(`{"data": "test"}`),
@@ -1276,9 +1276,9 @@ func TestRouter_EndActor_WithGatewayReporting(t *testing.T) {
 
 	router := NewRouter(cfg, mockTransport, runtimeClient, m)
 
-	inputMsg := messages.Message{
+	inputMsg := envelopes.Envelope{
 		ID: "test-gateway-report",
-		Route: messages.Route{
+		Route: envelopes.Route{
 			Prev: []string{"actor1"},
 			Curr: "actor2",
 			Next: []string{},
@@ -1302,7 +1302,7 @@ func TestRouter_EndActor_WithGatewayReporting(t *testing.T) {
 		t.Errorf("End actor should not send any messages, got %d", len(mockTransport.sentMessages))
 	}
 
-	expectedPath := "/tasks/test-gateway-report/final"
+	expectedPath := "/mesh/test-gateway-report/final"
 	req := mockServer.GetRequest(expectedPath)
 	if req == nil {
 		t.Fatalf("Expected gateway request to %s, but none received", expectedPath)
@@ -1350,9 +1350,9 @@ func TestRouter_EndActor_RuntimeError(t *testing.T) {
 		metrics:       m,
 	}
 
-	inputMsg := messages.Message{
+	inputMsg := envelopes.Envelope{
 		ID: "test-end-error",
-		Route: messages.Route{
+		Route: envelopes.Route{
 			Prev: []string{},
 			Curr: "some-actor",
 			Next: []string{},
@@ -1387,7 +1387,7 @@ func TestRouter_EndActor_DoesNotIncrementCurrent(t *testing.T) {
 		return []runtime.RuntimeResponse{
 			{
 				Payload: json.RawMessage(`{"status": "logged"}`),
-				Route: messages.Route{
+				Route: envelopes.Route{
 					Prev: []string{"actor1", "actor2", "x-sink"},
 					Curr: "",
 					Next: []string{},
@@ -1420,9 +1420,9 @@ func TestRouter_EndActor_DoesNotIncrementCurrent(t *testing.T) {
 		metrics:       m,
 	}
 
-	inputMsg := messages.Message{
+	inputMsg := envelopes.Envelope{
 		ID: "test-no-increment",
-		Route: messages.Route{
+		Route: envelopes.Route{
 			Prev: []string{"actor1", "actor2"},
 			Curr: "x-sink",
 			Next: []string{},
@@ -1475,9 +1475,9 @@ func TestRouter_ProcessMessage_RuntimeError(t *testing.T) {
 		metrics:       m,
 	}
 
-	inputMsg := messages.Message{
+	inputMsg := envelopes.Envelope{
 		ID: "test-123",
-		Route: messages.Route{
+		Route: envelopes.Route{
 			Prev: []string{},
 			Curr: "test-actor",
 			Next: []string{},
@@ -1542,9 +1542,9 @@ func TestRouter_ProcessMessage_ErrorResponse(t *testing.T) {
 		metrics:       m,
 	}
 
-	inputMsg := messages.Message{
+	inputMsg := envelopes.Envelope{
 		ID: "test-123",
-		Route: messages.Route{
+		Route: envelopes.Route{
 			Prev: []string{},
 			Curr: "test-actor",
 			Next: []string{},
@@ -1636,7 +1636,7 @@ func TestRouter_ReportFinalStatus_Sink(t *testing.T) {
 		t.Fatalf("reportFinalStatus failed: %v", err)
 	}
 
-	expectedPath := "/tasks/test-msg-123/final"
+	expectedPath := "/mesh/test-msg-123/final"
 	req := mockServer.GetRequest(expectedPath)
 	if req == nil {
 		t.Fatalf("Expected request to %s, but none received", expectedPath)
@@ -1689,7 +1689,7 @@ func TestRouter_ReportFinalStatus_Sump(t *testing.T) {
 		t.Fatalf("reportFinalStatus failed: %v", err)
 	}
 
-	expectedPath := "/tasks/test-error-456/final"
+	expectedPath := "/mesh/test-error-456/final"
 	req := mockServer.GetRequest(expectedPath)
 	if req == nil {
 		t.Fatalf("Expected request to %s, but none received", expectedPath)
@@ -1748,9 +1748,9 @@ func TestRouter_ReportFinalStatusWithMessage_Sump_ExtractsErrorDetails(t *testin
 	}
 	errorPayloadBytes, _ := json.Marshal(errorPayload)
 
-	inputMsg := messages.Message{
+	inputMsg := envelopes.Envelope{
 		ID: "test-error-details-789",
-		Route: messages.Route{
+		Route: envelopes.Route{
 			Prev: []string{"actor1"},
 			Curr: "actor2",
 			Next: []string{},
@@ -1770,7 +1770,7 @@ func TestRouter_ReportFinalStatusWithMessage_Sump_ExtractsErrorDetails(t *testin
 		t.Fatalf("ProcessMessage failed: %v", err)
 	}
 
-	expectedPath := "/tasks/test-error-details-789/final"
+	expectedPath := "/mesh/test-error-details-789/final"
 	req := mockServer.GetRequest(expectedPath)
 	if req == nil {
 		t.Fatalf("Expected request to %s, but none received", expectedPath)
@@ -1845,9 +1845,9 @@ func TestRouter_ReportFinalStatusWithMessage_Sump_NoErrorDetails(t *testing.T) {
 
 	router := NewRouter(cfg, mockTransport, runtimeClient, m)
 
-	inputMsg := messages.Message{
+	inputMsg := envelopes.Envelope{
 		ID: "test-no-error-details",
-		Route: messages.Route{
+		Route: envelopes.Route{
 			Prev: []string{},
 			Curr: "actor1",
 			Next: []string{},
@@ -1867,7 +1867,7 @@ func TestRouter_ReportFinalStatusWithMessage_Sump_NoErrorDetails(t *testing.T) {
 		t.Fatalf("ProcessMessage failed: %v", err)
 	}
 
-	expectedPath := "/tasks/test-no-error-details/final"
+	expectedPath := "/mesh/test-no-error-details/final"
 	req := mockServer.GetRequest(expectedPath)
 	if req == nil {
 		t.Fatalf("Expected request to %s, but none received", expectedPath)
@@ -1921,15 +1921,15 @@ func TestRouter_ProcessMessage_FanOut(t *testing.T) {
 	socketPath := startMockRuntime(t, func(body []byte) ([]runtime.RuntimeResponse, int) {
 		return []runtime.RuntimeResponse{
 			{
-				Route:   messages.Route{Prev: []string{"test-actor"}, Curr: "next-actor", Next: []string{}},
+				Route:   envelopes.Route{Prev: []string{"test-actor"}, Curr: "next-actor", Next: []string{}},
 				Payload: json.RawMessage(`{"index": 0, "message": "Fan-out message 0"}`),
 			},
 			{
-				Route:   messages.Route{Prev: []string{"test-actor"}, Curr: "next-actor", Next: []string{}},
+				Route:   envelopes.Route{Prev: []string{"test-actor"}, Curr: "next-actor", Next: []string{}},
 				Payload: json.RawMessage(`{"index": 1, "message": "Fan-out message 1"}`),
 			},
 			{
-				Route:   messages.Route{Prev: []string{"test-actor"}, Curr: "next-actor", Next: []string{}},
+				Route:   envelopes.Route{Prev: []string{"test-actor"}, Curr: "next-actor", Next: []string{}},
 				Payload: json.RawMessage(`{"index": 2, "message": "Fan-out message 2"}`),
 			},
 		}, http.StatusOK
@@ -1958,9 +1958,9 @@ func TestRouter_ProcessMessage_FanOut(t *testing.T) {
 		metrics:       m,
 	}
 
-	inputMsg := messages.Message{
+	inputMsg := envelopes.Envelope{
 		ID: "test-fanout-123",
-		Route: messages.Route{
+		Route: envelopes.Route{
 			Prev: []string{},
 			Curr: "test-actor",
 			Next: []string{"next-actor"},
@@ -1991,7 +1991,7 @@ func TestRouter_ProcessMessage_FanOut(t *testing.T) {
 			t.Errorf("Message %d sent to %q, expected %q", i, msg.queue, "asya-default-next-actor")
 		}
 
-		var parsedMsg messages.Message
+		var parsedMsg envelopes.Envelope
 		if err := json.Unmarshal(msg.body, &parsedMsg); err != nil {
 			t.Fatalf("Failed to unmarshal message %d: %v", i, err)
 		}
@@ -2039,15 +2039,15 @@ func TestRouter_ProcessMessage_FanOut_CreatesGatewayTasks(t *testing.T) {
 	socketPath := startMockRuntime(t, func(body []byte) ([]runtime.RuntimeResponse, int) {
 		return []runtime.RuntimeResponse{
 			{
-				Route:   messages.Route{Prev: []string{"test-actor"}, Curr: "next-actor", Next: []string{}},
+				Route:   envelopes.Route{Prev: []string{"test-actor"}, Curr: "next-actor", Next: []string{}},
 				Payload: json.RawMessage(`{"index": 0}`),
 			},
 			{
-				Route:   messages.Route{Prev: []string{"test-actor"}, Curr: "next-actor", Next: []string{}},
+				Route:   envelopes.Route{Prev: []string{"test-actor"}, Curr: "next-actor", Next: []string{}},
 				Payload: json.RawMessage(`{"index": 1}`),
 			},
 			{
-				Route:   messages.Route{Prev: []string{"test-actor"}, Curr: "next-actor", Next: []string{}},
+				Route:   envelopes.Route{Prev: []string{"test-actor"}, Curr: "next-actor", Next: []string{}},
 				Payload: json.RawMessage(`{"index": 2}`),
 			},
 		}, http.StatusOK
@@ -2065,7 +2065,7 @@ func TestRouter_ProcessMessage_FanOut_CreatesGatewayTasks(t *testing.T) {
 
 	// Mock HTTP server for gateway
 	gatewayServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/tasks" && r.Method == http.MethodPost {
+		if r.URL.Path == "/mesh" && r.Method == http.MethodPost {
 			createTaskCalled++
 			var req struct {
 				ID       string   `json:"id"`
@@ -2119,9 +2119,9 @@ func TestRouter_ProcessMessage_FanOut_CreatesGatewayTasks(t *testing.T) {
 		metrics:          m,
 	}
 
-	inputMsg := messages.Message{
+	inputMsg := envelopes.Envelope{
 		ID: "test-fanout-456",
-		Route: messages.Route{
+		Route: envelopes.Route{
 			Prev: []string{},
 			Curr: "test-actor",
 			Next: []string{"next-actor"},
@@ -2144,12 +2144,12 @@ func TestRouter_ProcessMessage_FanOut_CreatesGatewayTasks(t *testing.T) {
 	// Verify task creation was called for fanout children (indices 1 and 2)
 	expectedCalls := 2
 	if createTaskCalled != expectedCalls {
-		t.Errorf("CreateTask called %d times, expected %d", createTaskCalled, expectedCalls)
+		t.Errorf("CreateMesh called %d times, expected %d", createTaskCalled, expectedCalls)
 	}
 
-	// Verify created tasks
+	// Verify created meshes
 	if len(createdTasks) != 2 {
-		t.Fatalf("Expected 2 created tasks, got %d", len(createdTasks))
+		t.Fatalf("Expected 2 created meshes, got %d", len(createdTasks))
 	}
 
 	// First fanout child (index 1): UUID4 ID, parent is original
@@ -2305,9 +2305,9 @@ func TestRouter_CheckGatewayHealth_NetworkError(t *testing.T) {
 
 func TestRouter_EnsureAndUpdateStatus_NewMessage(t *testing.T) {
 	router := &Router{actorName: "test-actor"}
-	msg := &messages.Message{
+	msg := &envelopes.Envelope{
 		ID:      "msg-1",
-		Route:   messages.Route{Prev: []string{}, Curr: "test-actor", Next: []string{}},
+		Route:   envelopes.Route{Prev: []string{}, Curr: "test-actor", Next: []string{}},
 		Payload: json.RawMessage(`{}`),
 	}
 
@@ -2316,8 +2316,8 @@ func TestRouter_EnsureAndUpdateStatus_NewMessage(t *testing.T) {
 	if msg.Status == nil {
 		t.Fatal("Status should not be nil after ensureAndUpdateStatus")
 	}
-	if msg.Status.Phase != messages.PhaseProcessing {
-		t.Errorf("Phase = %q, want %q", msg.Status.Phase, messages.PhaseProcessing)
+	if msg.Status.Phase != envelopes.PhaseProcessing {
+		t.Errorf("Phase = %q, want %q", msg.Status.Phase, envelopes.PhaseProcessing)
 	}
 	if msg.Status.Actor != "test-actor" {
 		t.Errorf("Actor = %q, want %q", msg.Status.Actor, "test-actor")
@@ -2332,25 +2332,25 @@ func TestRouter_EnsureAndUpdateStatus_NewMessage(t *testing.T) {
 
 func TestRouter_EnsureAndUpdateStatus_ExistingStatus(t *testing.T) {
 	router := &Router{actorName: "actor-b"}
-	msg := &messages.Message{
+	msg := &envelopes.Envelope{
 		ID:      "msg-1",
-		Route:   messages.Route{Prev: []string{"actor-a"}, Curr: "actor-b", Next: []string{}},
+		Route:   envelopes.Route{Prev: []string{"actor-a"}, Curr: "actor-b", Next: []string{}},
 		Payload: json.RawMessage(`{}`),
-		Status: &messages.Status{
-			Phase:     messages.PhasePending,
+		Status: &envelopes.Status{
+			Phase:     envelopes.PhasePending,
 			Reason:    "some-reason",
 			Actor:     "actor-a",
 			Attempt:   1,
 			CreatedAt: "2025-01-01T00:00:00Z",
 			UpdatedAt: "2025-01-01T00:00:00Z",
-			Error:     &messages.StatusError{Message: "old error"},
+			Error:     &envelopes.StatusError{Message: "old error"},
 		},
 	}
 
 	router.ensureAndUpdateStatus(msg)
 
-	if msg.Status.Phase != messages.PhaseProcessing {
-		t.Errorf("Phase = %q, want %q", msg.Status.Phase, messages.PhaseProcessing)
+	if msg.Status.Phase != envelopes.PhaseProcessing {
+		t.Errorf("Phase = %q, want %q", msg.Status.Phase, envelopes.PhaseProcessing)
 	}
 	if msg.Status.Reason != "" {
 		t.Errorf("Reason should be cleared, got %q", msg.Status.Reason)
@@ -2371,12 +2371,12 @@ func TestRouter_EnsureAndUpdateStatus_ExistingStatus(t *testing.T) {
 
 func TestRouter_EnsureAndUpdateStatus_ActorTransition(t *testing.T) {
 	router := &Router{actorName: "actor-b"}
-	msg := &messages.Message{
+	msg := &envelopes.Envelope{
 		ID:      "msg-1",
-		Route:   messages.Route{Prev: []string{"actor-a"}, Curr: "actor-b", Next: []string{}},
+		Route:   envelopes.Route{Prev: []string{"actor-a"}, Curr: "actor-b", Next: []string{}},
 		Payload: json.RawMessage(`{}`),
-		Status: &messages.Status{
-			Phase:   messages.PhasePending,
+		Status: &envelopes.Status{
+			Phase:   envelopes.PhasePending,
 			Actor:   "actor-a",
 			Attempt: 3,
 		},
@@ -2394,12 +2394,12 @@ func TestRouter_EnsureAndUpdateStatus_ActorTransition(t *testing.T) {
 
 func TestRouter_EnsureAndUpdateStatus_SameActorRetry(t *testing.T) {
 	router := &Router{actorName: "actor-a"}
-	msg := &messages.Message{
+	msg := &envelopes.Envelope{
 		ID:      "msg-1",
-		Route:   messages.Route{Prev: []string{}, Curr: "actor-a", Next: []string{}},
+		Route:   envelopes.Route{Prev: []string{}, Curr: "actor-a", Next: []string{}},
 		Payload: json.RawMessage(`{}`),
-		Status: &messages.Status{
-			Phase:   messages.PhasePending,
+		Status: &envelopes.Status{
+			Phase:   envelopes.PhasePending,
 			Actor:   "actor-a",
 			Attempt: 3,
 		},
@@ -2417,7 +2417,7 @@ func TestRouter_RouteResponse_NextActor_HasStatus(t *testing.T) {
 		return []runtime.RuntimeResponse{
 			{
 				Payload: json.RawMessage(`{"result": "ok"}`),
-				Route:   messages.Route{Prev: []string{"actor1"}, Curr: "actor2", Next: []string{}},
+				Route:   envelopes.Route{Prev: []string{"actor1"}, Curr: "actor2", Next: []string{}},
 			},
 		}, http.StatusOK
 	})
@@ -2443,9 +2443,9 @@ func TestRouter_RouteResponse_NextActor_HasStatus(t *testing.T) {
 		metrics:       metrics.NewMetrics("test", []config.CustomMetricConfig{}),
 	}
 
-	inputMsg := messages.Message{
+	inputMsg := envelopes.Envelope{
 		ID:      "test-status-next",
-		Route:   messages.Route{Prev: []string{}, Curr: "actor1", Next: []string{"actor2"}},
+		Route:   envelopes.Route{Prev: []string{}, Curr: "actor1", Next: []string{"actor2"}},
 		Payload: json.RawMessage(`{"input": "test"}`),
 	}
 	msgBody, _ := json.Marshal(inputMsg)
@@ -2460,7 +2460,7 @@ func TestRouter_RouteResponse_NextActor_HasStatus(t *testing.T) {
 		t.Fatalf("Expected 1 message sent, got %d", len(mockTransport.sentMessages))
 	}
 
-	var sentMsg messages.Message
+	var sentMsg envelopes.Envelope
 	if err := json.Unmarshal(mockTransport.sentMessages[0].body, &sentMsg); err != nil {
 		t.Fatalf("Failed to unmarshal sent message: %v", err)
 	}
@@ -2468,8 +2468,8 @@ func TestRouter_RouteResponse_NextActor_HasStatus(t *testing.T) {
 	if sentMsg.Status == nil {
 		t.Fatal("Status should be present on routed message")
 	}
-	if sentMsg.Status.Phase != messages.PhasePending {
-		t.Errorf("Status.Phase = %q, want %q", sentMsg.Status.Phase, messages.PhasePending)
+	if sentMsg.Status.Phase != envelopes.PhasePending {
+		t.Errorf("Status.Phase = %q, want %q", sentMsg.Status.Phase, envelopes.PhasePending)
 	}
 	if sentMsg.Status.Actor != "actor2" {
 		t.Errorf("Status.Actor = %q, want %q", sentMsg.Status.Actor, "actor2")
@@ -2482,7 +2482,7 @@ func TestRouter_RouteResponse_Sink_HasStatus(t *testing.T) {
 		return []runtime.RuntimeResponse{
 			{
 				Payload: json.RawMessage(`{"result": "done"}`),
-				Route:   messages.Route{Prev: []string{"actor1"}, Curr: "", Next: []string{}},
+				Route:   envelopes.Route{Prev: []string{"actor1"}, Curr: "", Next: []string{}},
 			},
 		}, http.StatusOK
 	})
@@ -2508,9 +2508,9 @@ func TestRouter_RouteResponse_Sink_HasStatus(t *testing.T) {
 		metrics:       metrics.NewMetrics("test", []config.CustomMetricConfig{}),
 	}
 
-	inputMsg := messages.Message{
+	inputMsg := envelopes.Envelope{
 		ID:      "test-sink-status",
-		Route:   messages.Route{Prev: []string{}, Curr: "actor1", Next: []string{}},
+		Route:   envelopes.Route{Prev: []string{}, Curr: "actor1", Next: []string{}},
 		Payload: json.RawMessage(`{"input": "test"}`),
 	}
 	msgBody, _ := json.Marshal(inputMsg)
@@ -2525,7 +2525,7 @@ func TestRouter_RouteResponse_Sink_HasStatus(t *testing.T) {
 		t.Fatalf("Expected 1 message sent to x-sink, got %d", len(mockTransport.sentMessages))
 	}
 
-	var sentMsg messages.Message
+	var sentMsg envelopes.Envelope
 	if err := json.Unmarshal(mockTransport.sentMessages[0].body, &sentMsg); err != nil {
 		t.Fatalf("Failed to unmarshal sent message: %v", err)
 	}
@@ -2533,11 +2533,11 @@ func TestRouter_RouteResponse_Sink_HasStatus(t *testing.T) {
 	if sentMsg.Status == nil {
 		t.Fatal("Status should be present on x-sink message")
 	}
-	if sentMsg.Status.Phase != messages.PhaseSucceeded {
-		t.Errorf("Status.Phase = %q, want %q", sentMsg.Status.Phase, messages.PhaseSucceeded)
+	if sentMsg.Status.Phase != envelopes.PhaseSucceeded {
+		t.Errorf("Status.Phase = %q, want %q", sentMsg.Status.Phase, envelopes.PhaseSucceeded)
 	}
-	if sentMsg.Status.Reason != messages.ReasonCompleted {
-		t.Errorf("Status.Reason = %q, want %q", sentMsg.Status.Reason, messages.ReasonCompleted)
+	if sentMsg.Status.Reason != envelopes.ReasonCompleted {
+		t.Errorf("Status.Reason = %q, want %q", sentMsg.Status.Reason, envelopes.ReasonCompleted)
 	}
 }
 
@@ -2562,12 +2562,12 @@ func TestRouter_SendToSumpQueue_HasStatus(t *testing.T) {
 		metrics:   m,
 	}
 
-	originalMsg := messages.Message{
+	originalMsg := envelopes.Envelope{
 		ID:      "test-error-status",
-		Route:   messages.Route{Prev: []string{}, Curr: "test-actor", Next: []string{}},
+		Route:   envelopes.Route{Prev: []string{}, Curr: "test-actor", Next: []string{}},
 		Payload: json.RawMessage(`{"data": "test"}`),
-		Status: &messages.Status{
-			Phase:     messages.PhaseProcessing,
+		Status: &envelopes.Status{
+			Phase:     envelopes.PhaseProcessing,
 			Actor:     "test-actor",
 			CreatedAt: "2025-01-01T00:00:00Z",
 		},
@@ -2593,8 +2593,8 @@ func TestRouter_SendToSumpQueue_HasStatus(t *testing.T) {
 	if !ok {
 		t.Fatal("Status should be present in error message")
 	}
-	if status["phase"] != messages.PhaseFailed {
-		t.Errorf("Status.phase = %q, want %q", status["phase"], messages.PhaseFailed)
+	if status["phase"] != envelopes.PhaseFailed {
+		t.Errorf("Status.phase = %q, want %q", status["phase"], envelopes.PhaseFailed)
 	}
 	if status["actor"] != "test-actor" {
 		t.Errorf("Status.actor = %q, want %q", status["actor"], "test-actor")
@@ -2625,9 +2625,9 @@ func TestRouter_SendToSinkQueue_HasStatus(t *testing.T) {
 		metrics:   m,
 	}
 
-	msg := messages.Message{
+	msg := envelopes.Envelope{
 		ID:      "test-sink-queue-status",
-		Route:   messages.Route{Prev: []string{"actor1"}, Curr: "", Next: []string{}},
+		Route:   envelopes.Route{Prev: []string{"actor1"}, Curr: "", Next: []string{}},
 		Payload: json.RawMessage(`{"result": "success"}`),
 	}
 
@@ -2637,7 +2637,7 @@ func TestRouter_SendToSinkQueue_HasStatus(t *testing.T) {
 		t.Fatalf("sendToSinkQueue failed: %v", err)
 	}
 
-	var sentMsg messages.Message
+	var sentMsg envelopes.Envelope
 	if err := json.Unmarshal(mockTransport.sentMessages[0].body, &sentMsg); err != nil {
 		t.Fatalf("Failed to unmarshal: %v", err)
 	}
@@ -2645,11 +2645,11 @@ func TestRouter_SendToSinkQueue_HasStatus(t *testing.T) {
 	if sentMsg.Status == nil {
 		t.Fatal("Status should be present")
 	}
-	if sentMsg.Status.Phase != messages.PhaseSucceeded {
-		t.Errorf("Status.Phase = %q, want %q", sentMsg.Status.Phase, messages.PhaseSucceeded)
+	if sentMsg.Status.Phase != envelopes.PhaseSucceeded {
+		t.Errorf("Status.Phase = %q, want %q", sentMsg.Status.Phase, envelopes.PhaseSucceeded)
 	}
-	if sentMsg.Status.Reason != messages.ReasonCompleted {
-		t.Errorf("Status.Reason = %q, want %q", sentMsg.Status.Reason, messages.ReasonCompleted)
+	if sentMsg.Status.Reason != envelopes.ReasonCompleted {
+		t.Errorf("Status.Reason = %q, want %q", sentMsg.Status.Reason, envelopes.ReasonCompleted)
 	}
 }
 
@@ -2815,7 +2815,7 @@ func TestRouter_RouteOverride_Integration(t *testing.T) {
 		name              string
 		actorName         string
 		inputHeaders      map[string]interface{}
-		inputRoute        messages.Route
+		inputRoute        envelopes.Route
 		expectedDestQueue string
 		expectResolved    bool
 	}{
@@ -2827,7 +2827,7 @@ func TestRouter_RouteOverride_Integration(t *testing.T) {
 					"model": "model-v2",
 				},
 			},
-			inputRoute: messages.Route{
+			inputRoute: envelopes.Route{
 				Prev: []string{},
 				Curr: "prep",
 				Next: []string{"model", "post"},
@@ -2841,7 +2841,7 @@ func TestRouter_RouteOverride_Integration(t *testing.T) {
 			inputHeaders: map[string]interface{}{
 				"trace_id": "abc-123",
 			},
-			inputRoute: messages.Route{
+			inputRoute: envelopes.Route{
 				Prev: []string{},
 				Curr: "prep",
 				Next: []string{"model", "post"},
@@ -2857,7 +2857,7 @@ func TestRouter_RouteOverride_Integration(t *testing.T) {
 					"postprocess": "postprocess-v2",
 				},
 			},
-			inputRoute: messages.Route{
+			inputRoute: envelopes.Route{
 				Prev: []string{},
 				Curr: "prep",
 				Next: []string{"model", "post"},
@@ -2869,7 +2869,7 @@ func TestRouter_RouteOverride_Integration(t *testing.T) {
 			name:         "nil headers - normal routing",
 			actorName:    "prep",
 			inputHeaders: nil,
-			inputRoute: messages.Route{
+			inputRoute: envelopes.Route{
 				Prev: []string{},
 				Curr: "prep",
 				Next: []string{"model"},
@@ -2923,7 +2923,7 @@ func TestRouter_RouteOverride_Integration(t *testing.T) {
 				metrics:       metrics.NewMetrics("test", []config.CustomMetricConfig{}),
 			}
 
-			inputMsg := messages.Message{
+			inputMsg := envelopes.Envelope{
 				ID:      "test-override-123",
 				Route:   tt.inputRoute,
 				Payload: json.RawMessage(`{"input": "test"}`),
@@ -2951,7 +2951,7 @@ func TestRouter_RouteOverride_Integration(t *testing.T) {
 					mockTr.sentMessages[0].queue, tt.expectedDestQueue)
 			}
 
-			var sentMsg messages.Message
+			var sentMsg envelopes.Envelope
 			if err := json.Unmarshal(mockTr.sentMessages[0].body, &sentMsg); err != nil {
 				t.Fatalf("Failed to unmarshal sent message: %v", err)
 			}
@@ -2983,7 +2983,7 @@ func TestRouter_RouteOverride_ActorValidation(t *testing.T) {
 	tests := []struct {
 		name              string
 		actorName         string
-		inputRoute        messages.Route
+		inputRoute        envelopes.Route
 		inputHeaders      map[string]interface{}
 		shouldCallRuntime bool
 		expectedDestQueue string
@@ -2991,7 +2991,7 @@ func TestRouter_RouteOverride_ActorValidation(t *testing.T) {
 		{
 			name:      "override matches actor - accepted",
 			actorName: "model-v2",
-			inputRoute: messages.Route{
+			inputRoute: envelopes.Route{
 				Prev: []string{"prep"},
 				Curr: "model",
 				Next: []string{"post"},
@@ -3007,7 +3007,7 @@ func TestRouter_RouteOverride_ActorValidation(t *testing.T) {
 		{
 			name:      "override maps to different actor - rejected",
 			actorName: "model-v2",
-			inputRoute: messages.Route{
+			inputRoute: envelopes.Route{
 				Prev: []string{"prep"},
 				Curr: "model",
 				Next: []string{"post"},
@@ -3023,7 +3023,7 @@ func TestRouter_RouteOverride_ActorValidation(t *testing.T) {
 		{
 			name:      "no override and mismatch - rejected",
 			actorName: "model-v2",
-			inputRoute: messages.Route{
+			inputRoute: envelopes.Route{
 				Prev: []string{"prep"},
 				Curr: "model",
 				Next: []string{"post"},
@@ -3069,7 +3069,7 @@ func TestRouter_RouteOverride_ActorValidation(t *testing.T) {
 				metrics:       metrics.NewMetrics("test", []config.CustomMetricConfig{}),
 			}
 
-			inputMsg := messages.Message{
+			inputMsg := envelopes.Envelope{
 				ID:      "test-validation-123",
 				Route:   tt.inputRoute,
 				Payload: json.RawMessage(`{"input": "test"}`),
@@ -3111,7 +3111,7 @@ func TestRouter_RouteOverride_ActorValidation(t *testing.T) {
 func TestRouter_RouteOverride_FanOut(t *testing.T) {
 	overrideJSON := json.RawMessage(`{"model":"model-v2"}`)
 	socketPath := startMockRuntime(t, func(body []byte) ([]runtime.RuntimeResponse, int) {
-		inputRoute := messages.Route{
+		inputRoute := envelopes.Route{
 			Prev: []string{},
 			Curr: "prep",
 			Next: []string{"model", "post"},
@@ -3164,9 +3164,9 @@ func TestRouter_RouteOverride_FanOut(t *testing.T) {
 		metrics:       metrics.NewMetrics("test", []config.CustomMetricConfig{}),
 	}
 
-	inputMsg := messages.Message{
+	inputMsg := envelopes.Envelope{
 		ID: "test-fanout-override-123",
-		Route: messages.Route{
+		Route: envelopes.Route{
 			Prev: []string{},
 			Curr: "prep",
 			Next: []string{"model", "post"},
@@ -3201,7 +3201,7 @@ func TestRouter_RouteOverride_FanOut(t *testing.T) {
 				i, sent.queue, "asya-default-model-v2")
 		}
 
-		var sentMsg messages.Message
+		var sentMsg envelopes.Envelope
 		if err := json.Unmarshal(sent.body, &sentMsg); err != nil {
 			t.Fatalf("Failed to unmarshal fanout message %d: %v", i, err)
 		}
@@ -3234,7 +3234,7 @@ func TestRouter_RouteOverride_FanOut(t *testing.T) {
 		}
 	}
 
-	var msg0 messages.Message
+	var msg0 envelopes.Envelope
 	if err := json.Unmarshal(mockTr.sentMessages[0].body, &msg0); err != nil {
 		t.Fatalf("unmarshal msg 0: %v", err)
 	}
@@ -3246,7 +3246,7 @@ func TestRouter_RouteOverride_FanOut(t *testing.T) {
 	}
 
 	for i := 1; i < 3; i++ {
-		var msgN messages.Message
+		var msgN envelopes.Envelope
 		if err := json.Unmarshal(mockTr.sentMessages[i].body, &msgN); err != nil {
 			t.Fatalf("unmarshal msg %d: %v", i, err)
 		}
@@ -3264,7 +3264,7 @@ func TestRouter_RouteOverride_ResolvedHeaderAuditTrail(t *testing.T) {
 		return []runtime.RuntimeResponse{
 			{
 				Payload: json.RawMessage(`{"result": "ok"}`),
-				Route: messages.Route{
+				Route: envelopes.Route{
 					Prev: []string{"prep"},
 					Curr: "model",
 					Next: []string{"post"},
@@ -3298,9 +3298,9 @@ func TestRouter_RouteOverride_ResolvedHeaderAuditTrail(t *testing.T) {
 		metrics:       metrics.NewMetrics("test", []config.CustomMetricConfig{}),
 	}
 
-	inputMsg := messages.Message{
+	inputMsg := envelopes.Envelope{
 		ID: "test-audit-123",
-		Route: messages.Route{
+		Route: envelopes.Route{
 			Prev: []string{},
 			Curr: "prep",
 			Next: []string{"model", "post"},
@@ -3325,7 +3325,7 @@ func TestRouter_RouteOverride_ResolvedHeaderAuditTrail(t *testing.T) {
 		t.Errorf("Queue = %q, want asya-default-model-v2", mockTr.sentMessages[0].queue)
 	}
 
-	var sentMsg messages.Message
+	var sentMsg envelopes.Envelope
 	if err := json.Unmarshal(mockTr.sentMessages[0].body, &sentMsg); err != nil {
 		t.Fatalf("unmarshal: %v", err)
 	}
@@ -3378,7 +3378,7 @@ func TestRouter_RouteOverride_PreservesExistingAuditTrail(t *testing.T) {
 		return []runtime.RuntimeResponse{
 			{
 				Payload: json.RawMessage(`{"result": "ok"}`),
-				Route: messages.Route{
+				Route: envelopes.Route{
 					Prev: []string{"router", "prep"},
 					Curr: "model",
 					Next: []string{"post"},
@@ -3413,9 +3413,9 @@ func TestRouter_RouteOverride_PreservesExistingAuditTrail(t *testing.T) {
 		metrics:       metrics.NewMetrics("test", []config.CustomMetricConfig{}),
 	}
 
-	inputMsg := messages.Message{
+	inputMsg := envelopes.Envelope{
 		ID: "test-preserve-audit-123",
-		Route: messages.Route{
+		Route: envelopes.Route{
 			Prev: []string{},
 			Curr: "prep",
 			Next: []string{"model", "post"},
@@ -3441,7 +3441,7 @@ func TestRouter_RouteOverride_PreservesExistingAuditTrail(t *testing.T) {
 		t.Errorf("Queue = %q, want asya-default-model-v2", mockTr.sentMessages[0].queue)
 	}
 
-	var sentMsg messages.Message
+	var sentMsg envelopes.Envelope
 	if err := json.Unmarshal(mockTr.sentMessages[0].body, &sentMsg); err != nil {
 		t.Fatalf("unmarshal: %v", err)
 	}
@@ -3539,16 +3539,16 @@ func TestRouter_EffectiveTimeout(t *testing.T) {
 
 			router := &Router{cfg: cfg}
 
-			msg := &messages.Message{
+			msg := &envelopes.Envelope{
 				ID: "test-msg",
-				Route: messages.Route{
+				Route: envelopes.Route{
 					Curr: "test-actor",
 				},
 			}
 
 			if tt.deadlineIn != 0 {
 				deadline := time.Now().Add(tt.deadlineIn).UTC().Format(time.RFC3339)
-				msg.Status = &messages.Status{
+				msg.Status = &envelopes.Status{
 					DeadlineAt: deadline,
 				}
 			}
@@ -3577,7 +3577,7 @@ func TestRouter_ProcessMessage_SLAExpired(t *testing.T) {
 		return []runtime.RuntimeResponse{
 			{
 				Payload: json.RawMessage(`{"result": "ok"}`),
-				Route: messages.Route{
+				Route: envelopes.Route{
 					Prev: []string{},
 					Curr: "",
 					Next: []string{},
@@ -3607,16 +3607,16 @@ func TestRouter_ProcessMessage_SLAExpired(t *testing.T) {
 		metrics:       metrics.NewMetrics("test", []config.CustomMetricConfig{}),
 	}
 
-	msg := messages.Message{
+	msg := envelopes.Envelope{
 		ID: "expired-msg",
-		Route: messages.Route{
+		Route: envelopes.Route{
 			Prev: []string{},
 			Curr: "test-actor",
 			Next: []string{"next-actor"},
 		},
 		Payload: json.RawMessage(`{"test": "data"}`),
-		Status: &messages.Status{
-			Phase:      messages.PhasePending,
+		Status: &envelopes.Status{
+			Phase:      envelopes.PhasePending,
 			Actor:      "test-actor",
 			CreatedAt:  time.Now().Add(-10 * time.Minute).UTC().Format(time.RFC3339),
 			DeadlineAt: time.Now().Add(-1 * time.Minute).UTC().Format(time.RFC3339),
@@ -3653,7 +3653,7 @@ func TestRouter_ProcessMessage_SLAExpired(t *testing.T) {
 		t.Errorf("Message sent to %s, want %s", sentMsg.queue, expectedQueue)
 	}
 
-	var sentMsgData messages.Message
+	var sentMsgData envelopes.Envelope
 	if err := json.Unmarshal(sentMsg.body, &sentMsgData); err != nil {
 		t.Fatalf("Failed to unmarshal sent message: %v", err)
 	}
@@ -3662,12 +3662,12 @@ func TestRouter_ProcessMessage_SLAExpired(t *testing.T) {
 		t.Fatal("Sent message has no status")
 	}
 
-	if sentMsgData.Status.Phase != messages.PhaseFailed {
-		t.Errorf("Status phase = %s, want %s", sentMsgData.Status.Phase, messages.PhaseFailed)
+	if sentMsgData.Status.Phase != envelopes.PhaseFailed {
+		t.Errorf("Status phase = %s, want %s", sentMsgData.Status.Phase, envelopes.PhaseFailed)
 	}
 
-	if sentMsgData.Status.Reason != messages.ReasonTimeout {
-		t.Errorf("Status reason = %s, want %s", sentMsgData.Status.Reason, messages.ReasonTimeout)
+	if sentMsgData.Status.Reason != envelopes.ReasonTimeout {
+		t.Errorf("Status reason = %s, want %s", sentMsgData.Status.Reason, envelopes.ReasonTimeout)
 	}
 }
 
@@ -3679,7 +3679,7 @@ func TestRouter_ProcessMessage_SLANotExpired(t *testing.T) {
 		return []runtime.RuntimeResponse{
 			{
 				Payload: json.RawMessage(`{"result": "ok"}`),
-				Route: messages.Route{
+				Route: envelopes.Route{
 					Prev: []string{"test-actor"},
 					Curr: "next-actor",
 					Next: []string{},
@@ -3709,16 +3709,16 @@ func TestRouter_ProcessMessage_SLANotExpired(t *testing.T) {
 		metrics:       metrics.NewMetrics("test", []config.CustomMetricConfig{}),
 	}
 
-	msg := messages.Message{
+	msg := envelopes.Envelope{
 		ID: "valid-msg",
-		Route: messages.Route{
+		Route: envelopes.Route{
 			Prev: []string{},
 			Curr: "test-actor",
 			Next: []string{"next-actor"},
 		},
 		Payload: json.RawMessage(`{"test": "data"}`),
-		Status: &messages.Status{
-			Phase:      messages.PhasePending,
+		Status: &envelopes.Status{
+			Phase:      envelopes.PhasePending,
 			Actor:      "test-actor",
 			CreatedAt:  time.Now().UTC().Format(time.RFC3339),
 			DeadlineAt: time.Now().Add(5 * time.Minute).UTC().Format(time.RFC3339),
@@ -3785,7 +3785,7 @@ func TestRouter_ProcessMessage_SLAGuard(t *testing.T) {
 				return []runtime.RuntimeResponse{
 					{
 						Payload: json.RawMessage(`{"result": "ok"}`),
-						Route: messages.Route{
+						Route: envelopes.Route{
 							Prev: []string{},
 							Curr: "",
 							Next: []string{},
@@ -3815,16 +3815,16 @@ func TestRouter_ProcessMessage_SLAGuard(t *testing.T) {
 				metrics:       metrics.NewMetrics("test", []config.CustomMetricConfig{}),
 			}
 
-			msg := messages.Message{
+			msg := envelopes.Envelope{
 				ID: "guard-msg",
-				Route: messages.Route{
+				Route: envelopes.Route{
 					Prev: []string{},
 					Curr: "test-actor",
 					Next: []string{"next-actor"},
 				},
 				Payload: json.RawMessage(`{"test": "data"}`),
-				Status: &messages.Status{
-					Phase:      messages.PhasePending,
+				Status: &envelopes.Status{
+					Phase:      envelopes.PhasePending,
 					Actor:      "test-actor",
 					CreatedAt:  time.Now().UTC().Format(time.RFC3339),
 					DeadlineAt: time.Now().Add(tt.deadlineIn).UTC().Format(time.RFC3339),
@@ -3861,7 +3861,7 @@ func TestRouter_ProcessMessage_SLAGuard(t *testing.T) {
 				t.Errorf("Message sent to %s, want %s", sentMsg.queue, expectedQueue)
 			}
 
-			var sentMsgData messages.Message
+			var sentMsgData envelopes.Envelope
 			if err := json.Unmarshal(sentMsg.body, &sentMsgData); err != nil {
 				t.Fatalf("Failed to unmarshal sent message: %v", err)
 			}
@@ -3870,12 +3870,12 @@ func TestRouter_ProcessMessage_SLAGuard(t *testing.T) {
 				t.Fatal("Sent message has no status")
 			}
 
-			if sentMsgData.Status.Phase != messages.PhaseFailed {
-				t.Errorf("Status phase = %s, want %s", sentMsgData.Status.Phase, messages.PhaseFailed)
+			if sentMsgData.Status.Phase != envelopes.PhaseFailed {
+				t.Errorf("Status phase = %s, want %s", sentMsgData.Status.Phase, envelopes.PhaseFailed)
 			}
 
-			if sentMsgData.Status.Reason != messages.ReasonTimeout {
-				t.Errorf("Status reason = %s, want %s", sentMsgData.Status.Reason, messages.ReasonTimeout)
+			if sentMsgData.Status.Reason != envelopes.ReasonTimeout {
+				t.Errorf("Status reason = %s, want %s", sentMsgData.Status.Reason, envelopes.ReasonTimeout)
 			}
 		})
 	}

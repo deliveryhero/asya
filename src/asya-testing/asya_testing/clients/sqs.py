@@ -51,15 +51,15 @@ class SQSClient(TransportClient):
                     raise
         return self.queue_urls[queue]
 
-    def publish(self, queue: str, message: dict, exchange: str = "") -> None:
-        """Publish message to queue."""
+    def publish(self, queue: str, envelope: dict, exchange: str = "") -> None:
+        """Publish envelope to queue."""
         queue_url = self._get_queue_url(queue)
-        body = json.dumps(message)
+        body = json.dumps(envelope)
         self.sqs.send_message(QueueUrl=queue_url, MessageBody=body)
-        logger.debug(f"Published to {queue}: {message.get('id', 'N/A')}")
+        logger.debug(f"Published to {queue}: {envelope.get('id', 'N/A')}")
 
     def consume(self, queue: str, timeout: int = 10) -> dict | None:
-        """Consume message from queue with timeout."""
+        """Consume envelope from queue with timeout."""
         queue_url = self._get_queue_url(queue)
         start = time.time()
         poll_interval = 0.1
@@ -80,11 +80,11 @@ class SQSClient(TransportClient):
 
             time.sleep(poll_interval)
 
-        logger.debug(f"Timeout waiting for message in {queue}")
+        logger.debug(f"Timeout waiting for envelope in {queue}")
         return None
 
     def purge(self, queue: str) -> None:
-        """Purge all messages from queue."""
+        """Purge all envelopes from queue."""
         queue_url = self._get_queue_url(queue)
         try:
             self.sqs.purge_queue(QueueUrl=queue_url)

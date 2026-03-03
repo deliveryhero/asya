@@ -11,7 +11,7 @@ Asya🎭 is an Actor Mesh framework for deploying AI workloads on Kubernetes usi
 - **KEDA autoscaling** for event-driven, scale-to-zero workloads
 - **MCP gateway** (optional) for task tracking and API integration
 - **Choreography (decentralized)** instead of centralized orchestration
-- **Message passing** each message contains "route" which allows actors send messages each other
+- **Envelope passing** each envelope contains "route" which allows actors send envelopes each other
 - **Synchronous MCP-compliant HTTP gateway** for exposing async actors routes (pipelines) via sync HTTP
 
 ## Quick Reference
@@ -69,9 +69,9 @@ All components are in `src/`. See [docs/architecture/](docs/architecture/) for d
 MCP gateway with JSON-RPC 2.0, task tracking, and SSE streaming. Tools configurable via YAML (`src/asya-gateway/config/README.md`). Optional component for API integration.
 
 ### asya-sidecar (Go)
-Message router injected into actor pods. Consumes from RabbitMQ/SQS, forwards to runtime via Unix socket, routes responses. Pluggable transport layer.
+Envelope router injected into actor pods. Consumes from RabbitMQ/SQS, forwards to runtime via Unix socket, routes responses. Pluggable transport layer.
 
-**Message Flow**: Queue → Sidecar → Runtime (Unix socket) → Sidecar → Next Queue
+**Envelope Flow**: Queue → Sidecar → Runtime (Unix socket) → Sidecar → Next Queue
 
 ### asya-runtime (Python)
 Lightweight socket server injected via ConfigMap. Loads user function, executes handler logic, returns results or errors.
@@ -109,7 +109,7 @@ class Processor:
         return {"result": await self.model.predict(payload)}
 ```
 
-**Message Metadata**: Generator handlers access message metadata (route, headers, status)
+**Envelope Metadata**: Generator handlers access envelope metadata (route, headers, status)
 via the **yield-based ABI protocol**. Four verbs: GET, SET, DEL, FLY. Function handlers
 have no metadata access — use generators if needed. See
 `docs/reference/abi-protocol.md`.
@@ -161,7 +161,7 @@ Command-line tools for debugging and operating the Asya🎭 framework:
 
 ### Overview
 
-The Flow DSL compiler transforms Python-based workflow descriptions into router-based actor networks. Instead of manually managing message routes and creating router actors, you write familiar Python code with conditionals, and the compiler generates optimized router actors automatically.
+The Flow DSL compiler transforms Python-based workflow descriptions into router-based actor networks. Instead of manually managing envelope routes and creating router actors, you write familiar Python code with conditionals, and the compiler generates optimized router actors automatically.
 
 **Key Benefits**:
 - Write actor pipelines in familiar Python syntax
@@ -483,12 +483,12 @@ services:
 
 See CONTRIBUTING.md for complete testing documentation.
 
-## Message Protocol
+## Envelope Protocol
 
 ```json
 {
-  "id": "<message-id>",
-  "parent_id": "<original-message-id>",  // optional, for fanout tracking
+  "id": "<envelope-id>",
+  "parent_id": "<original-envelope-id>",  // optional, for fanout tracking
   "route": {"prev": [], "curr": "q1", "next": ["q2"]},
   "headers": {"trace_id": "...", "priority": "high"},  // optional routing metadata
   "payload": <arbitrary JSON>
@@ -496,8 +496,8 @@ See CONTRIBUTING.md for complete testing documentation.
 ```
 
 **Fields**:
-- `id`: Unique message identifier
-- `parent_id` (optional): Original message ID for fanout children (see docs/architecture/protocols/actor-actor.md)
+- `id`: Unique envelope identifier
+- `parent_id` (optional): Original envelope ID for fanout children (see docs/architecture/protocols/actor-actor.md)
 - `route`: Routing information with processed actors, current actor, and pending actors
 - `headers` (optional): Routing-specific metadata (trace IDs, priorities, etc.)
 - `payload`: Arbitrary JSON data processed by actors
@@ -526,7 +526,7 @@ spec:
 
 ### Queue Management
 
-**IMPORTANT**: All message queues are automatically managed by Crossplane providers (e.g., `provider-aws-sqs`).
+**IMPORTANT**: All envelope queues are automatically managed by Crossplane providers (e.g., `provider-aws-sqs`).
 
 **Queue naming convention**: `asya-{namespace}-{actor_name}`
 - Example: Actor `text-analyzer` in namespace `prod` → Queue `asya-prod-text-analyzer`

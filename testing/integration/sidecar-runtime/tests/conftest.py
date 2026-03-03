@@ -37,10 +37,10 @@ class RabbitMQTestHelper:
         self.base_url = f"http://{rabbitmq_host}:15672/api"
         self.auth = (rabbitmq_user, rabbitmq_pass)
 
-    def publish_message(
-        self, queue: str, message: dict, exchange: str = "asya"
+    def publish_envelope(
+        self, queue: str, envelope: dict, exchange: str = "asya"
     ) -> None:
-        """Publish a message to RabbitMQ with delivery confirmation."""
+        """Publish envelope to RabbitMQ with delivery confirmation."""
         routing_key = queue.removeprefix(f"asya-{self.namespace}-")
         logger.debug(f"Publishing to exchange='{exchange}', routing_key='{routing_key}'")
         credentials = pika.PlainCredentials(self.rabbitmq_user, self.rabbitmq_pass)
@@ -52,7 +52,7 @@ class RabbitMQTestHelper:
 
         channel.confirm_delivery()
 
-        body = json.dumps(message)
+        body = json.dumps(envelope)
         logger.debug(f"Message body: {body[:200]}{'...' if len(body) > 200 else ''}")
 
         channel.basic_publish(
@@ -68,8 +68,8 @@ class RabbitMQTestHelper:
         logger.debug("Message published and confirmed")
         connection.close()
 
-    def get_message(self, queue: str, timeout: int = 10) -> Optional[Dict]:
-        """Get a message from a queue with timeout."""
+    def get_envelope(self, queue: str, timeout: int = 10) -> Optional[Dict]:
+        """Get envelope from a queue with timeout."""
         start_time = time.time()
         poll_interval = 0.1  # 100ms polling interval
         poll_count = 0
@@ -110,11 +110,11 @@ class RabbitMQTestHelper:
         )
         return response.status_code == 204
 
-    def assert_message_in_queue(
+    def assert_envelope_in_queue(
         self, queue: str, expected_fields: Optional[Dict] = None, timeout: int = 10
     ) -> Optional[Dict]:
-        """Assert that a message appears in the specified queue."""
-        message = self.get_message(queue, timeout)
+        """Assert that a envelope appears in the specified queue."""
+        message = self.get_envelope(queue, timeout)
 
         if message is None:
             return None
@@ -145,17 +145,17 @@ class SQSTestHelper:
             secret_key=secret_key,
         )
 
-    def publish_message(
-        self, queue: str, message: dict, exchange: str = ""
+    def publish_envelope(
+        self, queue: str, envelope: dict, exchange: str = ""
     ) -> None:
-        """Publish a message to SQS queue."""
+        """Publish envelope to SQS queue."""
         logger.debug(f"Publishing to queue='{queue}'")
-        logger.debug(f"Message body: {json.dumps(message)[:200]}...")
-        self.sqs_client.publish(queue, message, exchange)
+        logger.debug(f"Message body: {json.dumps(envelope)[:200]}...")
+        self.sqs_client.publish(queue, envelope, exchange)
         logger.debug("Message published")
 
-    def get_message(self, queue: str, timeout: int = 10) -> Optional[Dict]:
-        """Get a message from a queue with timeout."""
+    def get_envelope(self, queue: str, timeout: int = 10) -> Optional[Dict]:
+        """Get envelope from a queue with timeout."""
         logger.debug(f"Polling SQS queue '{queue}' for up to {timeout}s...")
         message = self.sqs_client.consume(queue, timeout)
         if message:
@@ -174,11 +174,11 @@ class SQSTestHelper:
             logger.warning(f"Failed to purge queue '{queue}': {e}")
             return False
 
-    def assert_message_in_queue(
+    def assert_envelope_in_queue(
         self, queue: str, expected_fields: Optional[Dict] = None, timeout: int = 10
     ) -> Optional[Dict]:
-        """Assert that a message appears in the specified queue."""
-        message = self.get_message(queue, timeout)
+        """Assert that a envelope appears in the specified queue."""
+        message = self.get_envelope(queue, timeout)
 
         if message is None:
             return None
