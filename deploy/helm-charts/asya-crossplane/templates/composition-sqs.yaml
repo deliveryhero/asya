@@ -24,13 +24,15 @@ spec:
           template: |
             {{`{{- $xr := .observed.composite.resource -}}`}}
             {{`{{- $userLabels := dict -}}`}}
-            {{`{{- if and .context (index .context "asya.sh/user-labels") -}}`}}
-              {{`{{- $userLabels = index .context "asya.sh/user-labels" -}}`}}
+            {{`{{- range $k, $v := $xr.metadata.labels -}}`}}
+              {{`{{- if not (hasPrefix "crossplane.io/" $k) -}}`}}
+                {{`{{- $_ := set $userLabels $k $v -}}`}}
+              {{`{{- end -}}`}}
             {{`{{- end -}}`}}
             apiVersion: meta.gotemplating.fn.crossplane.io/v1alpha1
             kind: Context
             data:
-              "asya.sh/user-labels":
+              "asya/user-labels":
                 {{`{{- $userLabels | toYaml | nindent 4 }}`}}
             {{`{{- $reserved := list -}}`}}
             {{`{{- range $k, $v := $xr.metadata.labels -}}`}}
@@ -48,7 +50,7 @@ spec:
 
     {{- if .Values.functions.overlaysEnabled }}
     # Resolve actor overlays -- merges EnvironmentConfig overlay data into a resolved spec
-    # written to context key asya.sh/resolved-spec for downstream steps to consume.
+    # written to context key asya/resolved-spec for downstream steps to consume.
     # Actors without spec.overlays are passed through with no changes.
     - step: resolve-overlays
       functionRef:
@@ -104,8 +106,8 @@ spec:
             {{`{{- $namespace := index $xr.metadata.labels "crossplane.io/claim-namespace" -}}`}}
             {{`{{- $actorName := $xr.spec.actor -}}`}}
             {{`{{- $userLabels := dict -}}`}}
-            {{`{{- if and .context (index .context "asya.sh/user-labels") -}}`}}
-              {{`{{- $userLabels = index .context "asya.sh/user-labels" -}}`}}
+            {{`{{- if and .context (index .context "asya/user-labels") -}}`}}
+              {{`{{- $userLabels = index .context "asya/user-labels" -}}`}}
             {{`{{- end -}}`}}
             {{`{{- $irsaEnabled := true -}}`}}
             {{`{{- if hasKey $xr.spec "irsa" -}}`}}
@@ -161,8 +163,8 @@ spec:
             {{`{{- $namespace := index $xr.metadata.labels "crossplane.io/claim-namespace" -}}`}}
             {{`{{- $actorName := $xr.spec.actor -}}`}}
             {{`{{- $userLabels := dict -}}`}}
-            {{`{{- if and .context (index .context "asya.sh/user-labels") -}}`}}
-              {{`{{- $userLabels = index .context "asya.sh/user-labels" -}}`}}
+            {{`{{- if and .context (index .context "asya/user-labels") -}}`}}
+              {{`{{- $userLabels = index .context "asya/user-labels" -}}`}}
             {{`{{- end -}}`}}
             {{`{{- $scalingEnabled := true -}}`}}
             {{`{{- if hasKey $xr.spec "scaling" -}}`}}
@@ -225,8 +227,8 @@ spec:
             {{`{{- $namespace := index $xr.metadata.labels "crossplane.io/claim-namespace" -}}`}}
             {{`{{- $actorName := $xr.spec.actor -}}`}}
             {{`{{- $userLabels := dict -}}`}}
-            {{`{{- if and .context (index .context "asya.sh/user-labels") -}}`}}
-              {{`{{- $userLabels = index .context "asya.sh/user-labels" -}}`}}
+            {{`{{- if and .context (index .context "asya/user-labels") -}}`}}
+              {{`{{- $userLabels = index .context "asya/user-labels" -}}`}}
             {{`{{- end -}}`}}
             {{`{{- $region := $xr.spec.region | default "us-east-1" -}}`}}
             {{`{{- $queueURL := "" -}}`}}
@@ -239,8 +241,8 @@ spec:
               {{`{{- end -}}`}}
             {{`{{- end -}}`}}
             {{`{{- $resolvedSpec := dict -}}`}}
-            {{`{{- if and .context (index .context "asya.sh/resolved-spec") -}}`}}
-            {{`{{- $resolvedSpec = index .context "asya.sh/resolved-spec" -}}`}}
+            {{`{{- if and .context (index .context "asya/resolved-spec") -}}`}}
+            {{`{{- $resolvedSpec = index .context "asya/resolved-spec" -}}`}}
             {{`{{- end -}}`}}
             {{`{{- $scaling := $xr.spec.scaling -}}`}}
             {{`{{- if and $resolvedSpec (hasKey $resolvedSpec "scaling") -}}`}}
@@ -349,12 +351,12 @@ spec:
             {{`{{- $namespace := index $xr.metadata.labels "crossplane.io/claim-namespace" -}}`}}
             {{`{{- $actorName := $xr.spec.actor -}}`}}
             {{`{{- $userLabels := dict -}}`}}
-            {{`{{- if and .context (index .context "asya.sh/user-labels") -}}`}}
-              {{`{{- $userLabels = index .context "asya.sh/user-labels" -}}`}}
+            {{`{{- if and .context (index .context "asya/user-labels") -}}`}}
+              {{`{{- $userLabels = index .context "asya/user-labels" -}}`}}
             {{`{{- end -}}`}}
             {{`{{- $resolvedSpec := dict -}}`}}
-            {{`{{- if and .context (index .context "asya.sh/resolved-spec") -}}`}}
-            {{`{{- $resolvedSpec = index .context "asya.sh/resolved-spec" -}}`}}
+            {{`{{- if and .context (index .context "asya/resolved-spec") -}}`}}
+            {{`{{- $resolvedSpec = index .context "asya/resolved-spec" -}}`}}
             {{`{{- end -}}`}}
             {{`{{- $workload := $xr.spec.workload -}}`}}
             {{`{{- if and $resolvedSpec (hasKey $resolvedSpec "workload") -}}`}}
