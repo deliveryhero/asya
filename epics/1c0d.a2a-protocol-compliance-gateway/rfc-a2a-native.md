@@ -251,14 +251,14 @@ exact field names and types from the A2A `Task` proto. This means:
 by the A2A proto (`TaskStatus status = 3 [REQUIRED]`), so it MUST be present.
 The gateway sets it at dispatch time and actors MAY update it as the envelope
 flows. However, it is a **point-in-time snapshot** — the gateway DB is the
-authoritative source. The sidecar uses `GET /mesh/{id}/active` to check the
+authoritative source. The sidecar uses `GET /mesh/{id}/status` to check the
 gateway's authoritative status before processing:
 
 | Location | What it stores | Authoritative? |
 |----------|---------------|----------------|
 | Gateway DB (`tasks.status`) | Current task state | **Yes** — single source of truth |
 | `payload.a2a.task.status` | Snapshot at dispatch/last-update time | **No** — may be stale |
-| `GET /mesh/{id}/active` | Gateway's live answer | **Yes** — real-time check |
+| `GET /mesh/{id}/status` | Gateway's live status (`{"status": "running"}`) | **Yes** — real-time check |
 
 **Why duplicate in headers**: The sidecar needs `task_id` for progress
 reporting (`POST /mesh/{id}/progress`) but must NOT parse payload contents.
@@ -824,7 +824,7 @@ def stream_analysis(payload):
 | Payload artifacts | `payload.a2a.task.artifacts` | Yes — in envelope/S3 | Final result for `GetTask` responses |
 
 **Gateway translation**: The sidecar forwards FLY events to the gateway via
-`POST {base}/mesh/{id}/partial`. The gateway broadcasts them as SSE
+`POST {base}/mesh/{id}/fly`. The gateway broadcasts them as SSE
 `TaskArtifactUpdateEvent` to subscribed clients. When the task completes,
 `GetTask` returns only the URL artifacts from `payload.a2a.task.artifacts` —
 the streamed tokens are gone.
@@ -991,7 +991,7 @@ they are transient signals or canonical records:
 | Feature | FLY (Ephemeral) | Envelope History (Persistent) |
 |---------|-----------------|------------------------------|
 | **A2A semantic** | `StreamResponse` variants: `artifact_update`, `status_update`, `message` | A2A `Task.history` (`repeated Message`) |
-| **Asya mechanism** | `yield "FLY", {...}` → runtime SSE → sidecar → `POST /mesh/{id}/partial` → gateway SSE | Appended to `payload.a2a.task.history[]` → travels through message queues |
+| **Asya mechanism** | `yield "FLY", {...}` → runtime SSE → sidecar → `POST /mesh/{id}/fly` → gateway SSE | Appended to `payload.a2a.task.history[]` → travels through message queues |
 | **Persistence** | None (real-time broadcast only) | Travels with envelope, survives pause/resume via S3 |
 | **Primary use** | Streaming tokens, thoughts, live status, progress indicators | Multi-turn conversation history, final answers, input prompts |
 | **Visibility** | Connected SSE clients only | All subsequent actors + late-joining clients (via S3 fetch) |
@@ -1064,13 +1064,12 @@ asya-gateway
 ├── {base}/mcp/sse                       # MCP SSE deprecated (GET)
 ├── {base}/mcp/tools/call                # REST tool invocation (POST)
 │
-│  Mesh namespace (/mesh) — internal, sidecar + management
+│  Mesh namespace (/mesh) — internal, sidecar-only
 ├── {base}/mesh/expose                   # Register tool/skill (POST), list (GET)
 ├── {base}/mesh/{id}/progress            # Sidecar progress reporting (POST)
 ├── {base}/mesh/{id}/final               # End actor final status (POST)
-├── {base}/mesh/{id}/active              # Sidecar liveness check (GET)
-├── {base}/mesh/{id}/stream              # SSE streaming (GET, internal)
-├── {base}/mesh/{id}/partial             # Partial event payload (POST)
+├── {base}/mesh/{id}/status              # Task status check for sidecar (GET)
+├── {base}/mesh/{id}/fly                 # FLY event forwarding from sidecar (POST)
 ├── {base}/mesh                          # Sidecar registers fanout child tasks (POST)
 │
 │  Root (no prefix, not affected by ASYA_BASE_PREFIX)
@@ -1414,12 +1413,12 @@ clauses.
 1. Validate task exists and is not in terminal state
 2. Set task status to `canceled` in TaskStore (DB — authoritative)
 3. Return updated Task with `status.state: CANCELED` to client immediately
-4. Sidecar discovers cancellation on next `GET /mesh/{id}/active` → `410 Gone`
+4. Sidecar discovers cancellation on next `GET /mesh/{id}/status` → `410 Gone`
 5. Sidecar drops the envelope, persists it, and reports final status
 
 **Race condition**: The envelope may be in a queue, being processed by an actor,
 or waiting to be picked up. The gateway cannot modify messages already in queues.
-The sidecar's `GET /mesh/{id}/active` check is the handshake that resolves this:
+The sidecar's `GET /mesh/{id}/status` check is the handshake that resolves this:
 
 **Cancellation flow — envelope in queue (not yet picked up)**:
 
@@ -1500,18 +1499,33 @@ Client                     Gateway              Sidecar               Runtime
    handler runs to completion if already started — the sidecar decides not to
    route further.
 
+**`GET /mesh/{id}/status` response format**:
+
+```json
+// 200 OK — task is active, proceed
+{"status": "running"}
+
+// 410 Gone — task is inactive, stop processing
+{"status": "canceled"}   // or "succeeded", "failed", "rejected"
+```
+
+The response includes the actual status so the sidecar can log the reason
+(e.g., "task canceled by user" vs "task already completed") and emit accurate
+metrics.
+
 **Progress reporter response codes**:
 
-| Response | Meaning | Sidecar action |
-|----------|---------|----------------|
-| `200 OK` | Task is active | Continue processing normally |
-| `410 Gone` | Task is inactive (canceled/completed/failed) | Drop, persist, don't route |
-| `5xx` / timeout | Gateway unreachable | Continue processing (fail-open) |
+| Response | Body | Sidecar action |
+|----------|------|----------------|
+| `200 OK` | `{"status": "running"}` | Continue processing normally |
+| `410 Gone` | `{"status": "canceled"}` | Drop, persist to x-sink, don't route |
+| `404 Not Found` | — | Task unknown — route to x-sump |
+| `5xx` / timeout | — | Continue processing (fail-open) |
 
 **Why fail-open on 5xx**: If the gateway is temporarily unreachable, the sidecar
-should continue processing rather than dropping the message (fail-safe over fail-fast).
-The envelope is already dequeued — dropping it would lose work. Better to process and
-let the next progress report discover the cancellation.
+should continue processing rather than dropping the message. The envelope is
+already dequeued — dropping it would lose work. Better to process and let the
+next progress report discover the cancellation.
 
 **Error**: `TaskNotCancelableError` if task is already in terminal state.
 
@@ -1988,7 +2002,7 @@ Actor                Runtime              Sidecar              Gateway          
   |                    |                    |                    |   or message)       |
 ```
 
-The gateway receives FLY events on `POST /mesh/{id}/partial`, detects the
+The gateway receives FLY events on `POST /mesh/{id}/fly`, detects the
 StreamResponse variant from the dict keys (`artifact_update`, `status_update`,
 or `message`), stamps `taskId` and `contextId`, and broadcasts to SSE subscribers.
 
@@ -2081,7 +2095,7 @@ Sidecar receives SSE from runtime:
 
 The `onUpstream` callback is wired by the router to call
 `progressReporter.ForwardPartial()`, which POSTs the raw FLY payload to the
-gateway at `POST /mesh/{id}/partial`.
+gateway at `POST /mesh/{id}/fly`.
 
 **FLY forwarding is fire-and-forget**: The sidecar does not wait for gateway
 acknowledgment. If the gateway is unavailable, the event is logged and dropped.
@@ -2321,10 +2335,10 @@ Per epic 1mx1, internal sidecar-facing routes move from `/tasks/` to `/mesh/`:
 |-----------|-----------|---------|
 | `POST /tasks/{id}/progress` | `POST /mesh/{id}/progress` | Sidecar progress |
 | `POST /tasks/{id}/final` | `POST /mesh/{id}/final` | End actor final |
-| `GET /tasks/{id}/active` | `GET /mesh/{id}/active` | Liveness check |
-| `GET /tasks/{id}/stream` | `GET /mesh/{id}/stream` | SSE (internal) |
-| `POST /tasks/{id}/partial` | `POST /mesh/{id}/partial` | FLY events |
+| `GET /tasks/{id}/active` | `GET /mesh/{id}/status` | Task status (sidecar pre-check) |
+| `POST /tasks/{id}/partial` | `POST /mesh/{id}/fly` | FLY event forwarding |
 | `POST /tasks` | `POST /mesh` | Fanout child |
+| `GET /tasks/{id}/stream` | *(removed from /mesh)* | Streaming is protocol-specific: A2A uses `GET /a2a/tasks/{id}:subscribe`, MCP uses `/mcp` streamable HTTP |
 
 ### 11.2 Sidecar Changes for A2A
 
@@ -2337,11 +2351,11 @@ MCP or A2A. Changes:
    compatible).
 
 2. **FLY forwarding**: FLY events from the runtime are forwarded to
-   `POST /mesh/{id}/partial` as-is. The gateway handles the A2A translation.
+   `POST /mesh/{id}/fly` as-is. The gateway handles the A2A translation.
    No sidecar change needed.
 
-3. **Progress-based active check**: The sidecar's `POST /mesh/{id}/progress`
-   report now doubles as an active check. If the gateway returns `410 Gone`
+3. **Progress-based status check**: The sidecar's `POST /mesh/{id}/progress`
+   report now doubles as a status check. If the gateway returns `410 Gone`
    instead of `200 OK`, the sidecar drops the envelope, persists it to x-sink
    queue, and does not route further. This handles cancellation (and any other
    terminal state transition) that happened while the envelope was in the queue.
@@ -2520,7 +2534,7 @@ can discover the gateway, send messages, and track results.
 | Rename `/tasks/*` to `/mesh/*` | Epic 1mx1 (prereq for path clarity) | Sidecar update |
 | DB migration: `context_id`, `a2a_enabled` on tools | Schema changes | None |
 | State proxy URL extension | Return external URLs on write | State proxy |
-| FLY A2A-native format | Update sidecar to pass FLY dicts to `/mesh/{id}/partial` | Sidecar |
+| FLY A2A-native format | Update sidecar to pass FLY dicts to `/mesh/{id}/fly` | Sidecar |
 
 **Estimated scope**: ~1500 lines of Go (new `internal/a2a/` package refactored
 around a2a-go). ~200 lines sidecar changes (URL rename + FLY forwarding).
@@ -2531,7 +2545,7 @@ around a2a-go). ~200 lines sidecar changes (URL rename + FLY forwarding).
 |------|-------------|
 | API Key authentication | `ASYA_A2A_API_KEY` middleware on `{base}/a2a/*` |
 | ListTasks with pagination | Internal TaskStore.List() + cursor pagination |
-| CancelTask with sidecar support | Extend `/mesh/{id}/active` for canceled |
+| CancelTask with sidecar support | `/mesh/{id}/status` returns status + 410 for terminal states |
 | Blocking mode | Hold connection for `configuration.blocking: true` |
 | Runtime helpers | `fly_text()`, `fly_status()` in `asya_runtime.py` |
 
@@ -2595,7 +2609,7 @@ around a2a-go). ~200 lines sidecar changes (URL rename + FLY forwarding).
 | MCP + A2A parity | Same flow callable via both protocols, same result |
 | Multi-turn conversation | Same context_id → grouped tasks in ListTasks |
 | Pause/resume as input_required | Pause → INPUT_REQUIRED → resume with data → COMPLETED |
-| FLY streaming pipeline | Actor FLY → runtime upstream SSE → sidecar → `/mesh/{id}/partial` → client SSE artifact_update |
+| FLY streaming pipeline | Actor FLY → runtime upstream SSE → sidecar → `/mesh/{id}/fly` → client SSE artifact_update |
 | Multi-frame ordering | Multiple FLY events arrive in order at client SSE |
 | Cancellation mid-flight | Cancel during actor processing → sidecar acks, no routing |
 | Context_id propagation | context_id in headers, readable by actor via ABI GET |
