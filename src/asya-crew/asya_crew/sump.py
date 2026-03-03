@@ -15,42 +15,39 @@ Architecture:
              |-- ACK. Done.
 
 Environment Variables:
-- ASYA_MSG_ROOT: Path to virtual filesystem for message metadata (default: /proc/asya/msg)
 - ASYA_PERSISTENCE_MOUNT: State proxy mount path for inline checkpoint persistence (optional)
 
-VFS Paths:
-- /proc/asya/msg/id — read-only: message UUID
-- /proc/asya/msg/status/{key} — read-only: status fields (e.g., phase, attempt)
+ABI Protocol:
+- yield ("GET", ".id") -> message UUID
+- yield ("GET", ".status") -> status dict (may contain "phase")
+- yield ("GET", ".route") -> route dict with prev/curr/next (for checkpointer)
+- yield payload -> emit downstream frame
 
 Handler Behavior:
 - On failed: logs complete message summary JSON at ERROR level
 - On succeeded: debug-level log only
-- Returns None (terminal, no further routing)
+- Returns payload (terminal, no further routing)
 """
 
 import json
 import logging
 import os
+from collections.abc import Generator
 from typing import Any
 
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
-ASYA_MSG_ROOT = os.getenv("ASYA_MSG_ROOT", "/proc/asya/msg")
 ASYA_PERSISTENCE_MOUNT = os.getenv("ASYA_PERSISTENCE_MOUNT", "")
 
 
-def sump_handler(payload: dict[str, Any]) -> None:
+def sump_handler(payload: dict[str, Any]) -> Generator[tuple | dict[str, Any], Any, None]:
     """Sump handler. Terminal actor, logs and acknowledges."""
-    with open(f"{ASYA_MSG_ROOT}/id") as f:
-        message_id = f.read()
+    message_id: str = yield "GET", ".id"
 
-    try:
-        with open(f"{ASYA_MSG_ROOT}/status/phase") as f:
-            phase = f.read()
-    except FileNotFoundError:
-        phase = "unknown"
+    status: dict[str, Any] = yield "GET", ".status"
+    phase = status.get("phase", "unknown")
 
     if phase == "failed":
         msg_info = {"id": message_id, "phase": phase, "payload": payload}
@@ -64,8 +61,15 @@ def sump_handler(payload: dict[str, Any]) -> None:
         try:
             from asya_crew.checkpointer import handler
 
-            handler(payload)
+            route: dict[str, Any] = yield "GET", ".route"
+            handler(
+                payload,
+                message_id=message_id,
+                phase=phase,
+                route_prev=route.get("prev", []),
+                route_curr=route.get("curr", ""),
+            )
         except Exception as e:
             logger.error(f"Checkpoint failed for message {message_id}: {e}")
 
-    return None
+    yield payload
