@@ -10,3 +10,4 @@
 006_add_context_id [005_route_prev_curr_next] 2026-02-25T00:00:00Z Asya Team <team@asya.sh> # Add context_id for A2A conversation grouping
 007_add_partial_payload [006_add_context_id] 2026-02-25T01:00:00Z Asya Team <team@asya.sh> # Add partial_payload to task_updates for streaming event persistence
 008_add_pause_metadata [007_add_partial_payload] 2026-02-25T02:00:00Z Asya Team <team@asya.sh> # Add pause_metadata and remaining_timeout_sec for pause/resume functionality
+009_tools_table_and_status_values [008_add_pause_metadata] 2026-03-03T00:00:00Z Asya Team <team@asya.sh> # Tools table and expanded task status values for A2A

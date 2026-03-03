@@ -9,13 +9,15 @@ import (
 type TaskStatus string
 
 const (
-	TaskStatusPending   TaskStatus = "pending"
-	TaskStatusRunning   TaskStatus = "running"
-	TaskStatusSucceeded TaskStatus = "succeeded"
-	TaskStatusFailed    TaskStatus = "failed"
-	TaskStatusUnknown   TaskStatus = "unknown"
-	TaskStatusPaused    TaskStatus = "paused"
-	TaskStatusCanceled  TaskStatus = "canceled"
+	TaskStatusPending      TaskStatus = "pending"
+	TaskStatusRunning      TaskStatus = "running"
+	TaskStatusSucceeded    TaskStatus = "succeeded"
+	TaskStatusFailed       TaskStatus = "failed"
+	TaskStatusUnknown      TaskStatus = "unknown"
+	TaskStatusPaused       TaskStatus = "paused"
+	TaskStatusCanceled     TaskStatus = "canceled"
+	TaskStatusRejected     TaskStatus = "rejected"
+	TaskStatusAuthRequired TaskStatus = "auth_required"
 )
 
 // Task represents a task in the system.
