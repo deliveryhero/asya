@@ -84,6 +84,11 @@ func NewPgStore(ctx context.Context, connString string) (*PgStore, error) {
 	return s, nil
 }
 
+// Pool returns the underlying connection pool.
+func (s *PgStore) Pool() *pgxpool.Pool {
+	return s.pool
+}
+
 // Close closes the database connection pool
 func (s *PgStore) Close() {
 	s.cancel()

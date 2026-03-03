@@ -83,8 +83,19 @@ func main() {
 		"info", "Deploy x-sink and x-sump actors to handle end queues")
 
 	// Initialize tool registry
-	registry := toolstore.NewInMemoryRegistry()
-	// TODO: When DB is available, use toolstore.NewRegistry(ctx, pool)
+	var registry *toolstore.Registry
+	if pgStore, ok := taskStore.(*taskstore.PgStore); ok {
+		var err error
+		registry, err = toolstore.NewRegistry(ctx, pgStore.Pool())
+		if err != nil {
+			slog.Error("Failed to create DB-backed tool registry", "error", err)
+			os.Exit(1)
+		}
+		slog.Info("Using DB-backed tool registry")
+	} else {
+		registry = toolstore.NewInMemoryRegistry()
+		slog.Info("Using in-memory tool registry")
+	}
 
 	// Create MCP server
 	mcpServer := mcp.NewServer(taskStore, queueClient)

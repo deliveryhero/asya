@@ -77,8 +77,13 @@ func BuildA2AHeaders(taskID, contextID string) map[string]any {
 // messageToHistoryEntry serializes an a2a-go Message to a JSON-compatible map
 // for storage in payload.a2a.task.history[].
 func messageToHistoryEntry(msg *a2alib.Message) any {
-	data, _ := json.Marshal(msg)
+	data, err := json.Marshal(msg)
+	if err != nil {
+		return map[string]any{"error": "failed to serialize message"}
+	}
 	var entry any
-	_ = json.Unmarshal(data, &entry)
+	if err := json.Unmarshal(data, &entry); err != nil {
+		return map[string]any{"error": "failed to deserialize message"}
+	}
 	return entry
 }
