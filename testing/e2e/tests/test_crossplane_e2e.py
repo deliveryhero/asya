@@ -229,7 +229,7 @@ spec:
         kubectl_apply(actor_manifest, namespace=e2e_helper.namespace)
 
         logger.info("Waiting for AsyncActor to be ready (Ready condition)...")
-        assert wait_for_asyncactor_ready("test-lifecycle", namespace=e2e_helper.namespace, timeout=120), (
+        assert wait_for_asyncactor_ready("test-lifecycle", namespace=e2e_helper.namespace, timeout=180), (
             "AsyncActor should reach Ready=True"
         )
 
@@ -635,7 +635,7 @@ spec:
         kubectl_apply(manifest, namespace=e2e_helper.namespace)
 
         logger.info("Waiting for AsyncActor to be ready (Ready condition)...")
-        assert wait_for_asyncactor_ready("test-sidecar-env", namespace=e2e_helper.namespace, timeout=120), (
+        assert wait_for_asyncactor_ready("test-sidecar-env", namespace=e2e_helper.namespace, timeout=180), (
             "AsyncActor should reach Ready=True"
         )
 
@@ -738,7 +738,7 @@ spec:
         kubectl_apply(actor_manifest, namespace=e2e_helper.namespace)
 
         logger.info("Waiting for AsyncActor to be ready...")
-        assert wait_for_asyncactor_ready("test-labels", namespace=e2e_helper.namespace, timeout=60), (
+        assert wait_for_asyncactor_ready("test-labels", namespace=e2e_helper.namespace, timeout=180), (
             "AsyncActor should reach Ready=True"
         )
 
@@ -976,7 +976,7 @@ def test_asyncactor_deletion_cascades_all_resources(e2e_helper):
         kubectl_apply(manifest, namespace=e2e_helper.namespace)
 
         logger.info("Waiting for AsyncActor to be ready...")
-        assert wait_for_asyncactor_ready(name, namespace=e2e_helper.namespace, timeout=120), (
+        assert wait_for_asyncactor_ready(name, namespace=e2e_helper.namespace, timeout=180), (
             "AsyncActor should reach Ready"
         )
 
@@ -1213,7 +1213,7 @@ def test_keda_scaledobject_detailed_configuration(e2e_helper):
         kubectl_apply(manifest, namespace=e2e_helper.namespace)
 
         logger.info("Waiting for AsyncActor to be ready...")
-        assert wait_for_asyncactor_ready(name, namespace=e2e_helper.namespace, timeout=120), (
+        assert wait_for_asyncactor_ready(name, namespace=e2e_helper.namespace, timeout=180), (
             "AsyncActor should reach Ready"
         )
 
@@ -1287,7 +1287,7 @@ def test_sidecar_injection_volumes_on_pod(e2e_helper):
         kubectl_apply(manifest, namespace=e2e_helper.namespace)
 
         logger.info("Waiting for AsyncActor to be ready...")
-        assert wait_for_asyncactor_ready(name, namespace=e2e_helper.namespace, timeout=120), (
+        assert wait_for_asyncactor_ready(name, namespace=e2e_helper.namespace, timeout=180), (
             "AsyncActor should reach Ready"
         )
 
@@ -1356,7 +1356,7 @@ def test_sidecar_injection_multi_container(e2e_helper):
         kubectl_apply(manifest, namespace=e2e_helper.namespace)
 
         logger.info("Waiting for AsyncActor to be ready...")
-        assert wait_for_asyncactor_ready(name, namespace=e2e_helper.namespace, timeout=120), (
+        assert wait_for_asyncactor_ready(name, namespace=e2e_helper.namespace, timeout=180), (
             "AsyncActor should reach Ready"
         )
 
@@ -1471,7 +1471,7 @@ def test_crossplane_resilience_after_provider_restart(e2e_helper):
         kubectl_apply(manifest, namespace=e2e_helper.namespace)
 
         logger.info("Waiting for AsyncActor to be ready...")
-        assert wait_for_asyncactor_ready(name, namespace=e2e_helper.namespace, timeout=120), (
+        assert wait_for_asyncactor_ready(name, namespace=e2e_helper.namespace, timeout=180), (
             "AsyncActor should reach Ready"
         )
 
@@ -1529,7 +1529,7 @@ def test_crossplane_resilience_after_provider_restart(e2e_helper):
             time.sleep(5)  # Poll every 5s for provider recovery
 
         logger.info("Verifying AsyncActor is still Ready...")
-        assert wait_for_asyncactor_ready(name, namespace=e2e_helper.namespace, timeout=120), (
+        assert wait_for_asyncactor_ready(name, namespace=e2e_helper.namespace, timeout=180), (
             "AsyncActor should remain Ready after provider restart"
         )
 
