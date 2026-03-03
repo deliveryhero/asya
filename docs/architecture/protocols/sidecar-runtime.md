@@ -21,7 +21,7 @@ Sidecar never sees a listening socket before the handler is fully loaded — no 
 
 ## Endpoints
 
-### `POST /invoke` — Process a message
+### `POST /invoke` — Process a envelope
 
 **Request** (sidecar → runtime):
 
@@ -122,13 +122,13 @@ The sidecar enforces timeouts at two levels:
 
 ### SLA Pre-Check (Pipeline-Level Deadline)
 
-Before calling the runtime, the sidecar checks `status.deadline_at` on the incoming message. If the current time is past the deadline, the message is routed directly to `x-sink` with `phase=failed`, `reason=Timeout` — the runtime is never called.
+Before calling the runtime, the sidecar checks `status.deadline_at` on the incoming envelope. If the current time is past the deadline, the envelope is routed directly to `x-sink` with `phase=failed`, `reason=Timeout` — the runtime is never called.
 
-The gateway stamps `status.deadline_at` based on the tool's `timeout_seconds` configuration. This absolute deadline is never mutated as the message travels through actors.
+The gateway stamps `status.deadline_at` based on the tool's `timeout_seconds` configuration. This absolute deadline is never mutated as the envelope travels through actors.
 
 ### Effective Timeout (Per-Call)
 
-For messages that pass the SLA pre-check, the sidecar computes an effective timeout:
+For envelopes that pass the SLA pre-check, the sidecar computes an effective timeout:
 
 ```
 effective_timeout = min(ASYA_RESILIENCY_ACTOR_TIMEOUT, remaining_SLA)
@@ -139,7 +139,7 @@ Where `remaining_SLA = deadline_at - now` (only if `deadline_at` is set).
 ### Runtime Timeout Behavior
 
 **On runtime timeout** (`context.DeadlineExceeded`):
-1. Sidecar sends the message to `x-sump` with a timeout error
+1. Sidecar sends the envelope to `x-sump` with a timeout error
 2. Sidecar **crashes the pod** (exits with status code 1)
 3. Kubernetes restarts the pod to recover clean state
 
@@ -186,7 +186,7 @@ curl --unix-socket /var/run/asya/asya-runtime.sock http://localhost/healthz
 
 1. **Monitor processing time** — return early if approaching the timeout limit; the sidecar will crash the pod on `DeadlineExceeded`, so a graceful early return is preferable.
 2. **Use context managers** for resource cleanup (file handles, HTTP clients, DB connections) so teardown happens even when exceptions occur.
-3. **Return `None` to abort** — handlers returning `None` produce a `204` response, which routes the message to `x-sink` without an error. Use this for intentional pipeline exits, not errors.
+3. **Return `None` to abort** — handlers returning `None` produce a `204` response, which routes the envelope to `x-sink` without an error. Use this for intentional pipeline exits, not errors.
 4. **Avoid global mutable state** that leaks across requests; class handlers share the instance, so thread-safety matters for concurrent runtimes.
 5. **Let exceptions propagate** — the runtime catches all unhandled exceptions and returns `processing_error` with a full traceback. Wrapping everything in a bare `except` hides bugs.
 6. **Use structured logging** — log at `DEBUG` during normal processing so `ASYA_LOG_LEVEL=DEBUG` gives full trace without changing code.
@@ -197,4 +197,4 @@ curl --unix-socket /var/run/asya/asya-runtime.sock http://localhost/healthz
 2. **Monitor `x-sump` queue depth** — a growing sump queue signals systematic handler errors or timeout spikes.
 3. **Size container memory** for peak model/data size, not average; OOM kills look like pod crashes and are hard to distinguish from timeout crashes without metrics.
 4. **Use `GET /healthz`** as the Kubernetes readiness probe target — it becomes available only after the handler is fully loaded, so the pod never receives traffic while still initialising.
-5. **Test failure modes in staging** before production: inject bad payloads, simulate timeouts, and verify messages land in `x-sump` rather than disappearing silently.
+5. **Test failure modes in staging** before production: inject bad payloads, simulate timeouts, and verify envelopes land in `x-sump` rather than disappearing silently.

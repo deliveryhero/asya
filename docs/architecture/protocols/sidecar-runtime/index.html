@@ -882,7 +882,7 @@
 </ol>
 <p>Sidecar never sees a listening socket before the handler is fully loaded — no race condition at startup.</p>
 <h2 id="endpoints">Endpoints<a class="headerlink" href="#endpoints" title="Permanent link">&para;</a></h2>
-<h3 id="post-invoke-process-a-message"><code>POST /invoke</code> — Process a message<a class="headerlink" href="#post-invoke-process-a-message" title="Permanent link">&para;</a></h3>
+<h3 id="post-invoke-process-a-envelope"><code>POST /invoke</code> — Process a envelope<a class="headerlink" href="#post-invoke-process-a-envelope" title="Permanent link">&para;</a></h3>
 <p><strong>Request</strong> (sidecar → runtime):</p>
 <div class="highlight"><pre><span></span><code><span class="nf">POST</span> <span class="nn">/invoke</span> <span class="kr">HTTP</span><span class="o">/</span><span class="m">1.1</span>
 <span class="na">Content-Type</span><span class="o">:</span> <span class="l">application/json</span>
@@ -1016,16 +1016,16 @@ Content-Type: application/json
 <h2 id="timeout-strategy">Timeout Strategy<a class="headerlink" href="#timeout-strategy" title="Permanent link">&para;</a></h2>
 <p>The sidecar enforces timeouts at two levels:</p>
 <h3 id="sla-pre-check-pipeline-level-deadline">SLA Pre-Check (Pipeline-Level Deadline)<a class="headerlink" href="#sla-pre-check-pipeline-level-deadline" title="Permanent link">&para;</a></h3>
-<p>Before calling the runtime, the sidecar checks <code>status.deadline_at</code> on the incoming message. If the current time is past the deadline, the message is routed directly to <code>x-sink</code> with <code>phase=failed</code>, <code>reason=Timeout</code> — the runtime is never called.</p>
-<p>The gateway stamps <code>status.deadline_at</code> based on the tool's <code>timeout_seconds</code> configuration. This absolute deadline is never mutated as the message travels through actors.</p>
+<p>Before calling the runtime, the sidecar checks <code>status.deadline_at</code> on the incoming envelope. If the current time is past the deadline, the envelope is routed directly to <code>x-sink</code> with <code>phase=failed</code>, <code>reason=Timeout</code> — the runtime is never called.</p>
+<p>The gateway stamps <code>status.deadline_at</code> based on the tool's <code>timeout_seconds</code> configuration. This absolute deadline is never mutated as the envelope travels through actors.</p>
 <h3 id="effective-timeout-per-call">Effective Timeout (Per-Call)<a class="headerlink" href="#effective-timeout-per-call" title="Permanent link">&para;</a></h3>
-<p>For messages that pass the SLA pre-check, the sidecar computes an effective timeout:</p>
+<p>For envelopes that pass the SLA pre-check, the sidecar computes an effective timeout:</p>
 <div class="highlight"><pre><span></span><code>effective_timeout = min(ASYA_RESILIENCY_ACTOR_TIMEOUT, remaining_SLA)
 </code></pre></div>
 <p>Where <code>remaining_SLA = deadline_at - now</code> (only if <code>deadline_at</code> is set).</p>
 <h3 id="runtime-timeout-behavior">Runtime Timeout Behavior<a class="headerlink" href="#runtime-timeout-behavior" title="Permanent link">&para;</a></h3>
 <p><strong>On runtime timeout</strong> (<code>context.DeadlineExceeded</code>):
-1. Sidecar sends the message to <code>x-sump</code> with a timeout error
+1. Sidecar sends the envelope to <code>x-sump</code> with a timeout error
 2. Sidecar <strong>crashes the pod</strong> (exits with status code 1)
 3. Kubernetes restarts the pod to recover clean state</p>
 <p><strong>Rationale</strong>: crash-on-timeout prevents zombie processing where the runtime may still be executing after the sidecar gives up.</p>
@@ -1102,7 +1102,7 @@ curl<span class="w"> </span>--unix-socket<span class="w"> </span>/var/run/asya/a
 <ol>
 <li><strong>Monitor processing time</strong> — return early if approaching the timeout limit; the sidecar will crash the pod on <code>DeadlineExceeded</code>, so a graceful early return is preferable.</li>
 <li><strong>Use context managers</strong> for resource cleanup (file handles, HTTP clients, DB connections) so teardown happens even when exceptions occur.</li>
-<li><strong>Return <code>None</code> to abort</strong> — handlers returning <code>None</code> produce a <code>204</code> response, which routes the message to <code>x-sink</code> without an error. Use this for intentional pipeline exits, not errors.</li>
+<li><strong>Return <code>None</code> to abort</strong> — handlers returning <code>None</code> produce a <code>204</code> response, which routes the envelope to <code>x-sink</code> without an error. Use this for intentional pipeline exits, not errors.</li>
 <li><strong>Avoid global mutable state</strong> that leaks across requests; class handlers share the instance, so thread-safety matters for concurrent runtimes.</li>
 <li><strong>Let exceptions propagate</strong> — the runtime catches all unhandled exceptions and returns <code>processing_error</code> with a full traceback. Wrapping everything in a bare <code>except</code> hides bugs.</li>
 <li><strong>Use structured logging</strong> — log at <code>DEBUG</code> during normal processing so <code>ASYA_LOG_LEVEL=DEBUG</code> gives full trace without changing code.</li>
@@ -1113,7 +1113,7 @@ curl<span class="w"> </span>--unix-socket<span class="w"> </span>/var/run/asya/a
 <li><strong>Monitor <code>x-sump</code> queue depth</strong> — a growing sump queue signals systematic handler errors or timeout spikes.</li>
 <li><strong>Size container memory</strong> for peak model/data size, not average; OOM kills look like pod crashes and are hard to distinguish from timeout crashes without metrics.</li>
 <li><strong>Use <code>GET /healthz</code></strong> as the Kubernetes readiness probe target — it becomes available only after the handler is fully loaded, so the pod never receives traffic while still initialising.</li>
-<li><strong>Test failure modes in staging</strong> before production: inject bad payloads, simulate timeouts, and verify messages land in <code>x-sump</code> rather than disappearing silently.</li>
+<li><strong>Test failure modes in staging</strong> before production: inject bad payloads, simulate timeouts, and verify envelopes land in <code>x-sump</code> rather than disappearing silently.</li>
 </ol>
   </div>
 </article>
@@ -1403,10 +1403,10 @@ curl<span class="w"> </span>--unix-socket<span class="w"> </span>/var/run/asya/a
         </a>
         
         
-        <a href="#post-invoke-process-a-message"
+        <a href="#post-invoke-process-a-envelope"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="3">
-            POST /invoke — Process a message
+            POST /invoke — Process a envelope
         </a>
         
         <a href="#get-healthz-kubernetes-readiness-probe"

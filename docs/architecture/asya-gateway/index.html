@@ -878,7 +878,7 @@
 <li>Client calls MCP tool via HTTP POST</li>
 <li>Gateway creates task with unique ID</li>
 <li>Gateway stores task in PostgreSQL (status: <code>pending</code>)</li>
-<li>Gateway sends message to first actor's queue</li>
+<li>Gateway sends envelope to first actor's queue</li>
 <li>Crew actors (<code>x-sink</code>, <code>x-sump</code>) report final task status</li>
 <li>Client polls or streams task status updates via SSE</li>
 </ol>
@@ -942,7 +942,7 @@ Content-Type:<span class="w"> </span>application/json
 <span class="w">  </span><span class="nt">&quot;content&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
 <span class="w">    </span><span class="p">{</span>
 <span class="w">      </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;text&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;text&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;{\&quot;task_id\&quot;:\&quot;5e6fdb2d...\&quot;,\&quot;message\&quot;:\&quot;Task created successfully\&quot;,\&quot;status_url\&quot;:\&quot;/tasks/5e6fdb2d...\&quot;,\&quot;stream_url\&quot;:\&quot;/tasks/5e6fdb2d.../stream\&quot;}&quot;</span>
+<span class="w">      </span><span class="nt">&quot;text&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;{\&quot;task_id\&quot;:\&quot;5e6fdb2d...\&quot;,\&quot;message\&quot;:\&quot;Task created successfully\&quot;,\&quot;status_url\&quot;:\&quot;/mesh/5e6fdb2d...\&quot;,\&quot;stream_url\&quot;:\&quot;/mesh/5e6fdb2d.../stream\&quot;}&quot;</span>
 <span class="w">    </span><span class="p">}</span>
 <span class="w">  </span><span class="p">],</span>
 <span class="w">  </span><span class="nt">&quot;isError&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span>
@@ -968,7 +968,7 @@ Content-Type:<span class="w"> </span>application/json
 <span class="p">}</span>
 </code></pre></div></p>
 <h4 id="stream-task-updates-sse">Stream Task Updates (SSE)<a class="headerlink" href="#stream-task-updates-sse" title="Permanent link">&para;</a></h4>
-<div class="highlight"><pre><span></span><code>GET<span class="w"> </span>/tasks/<span class="o">{</span>id<span class="o">}</span>/stream
+<div class="highlight"><pre><span></span><code>GET<span class="w"> </span>/mesh/<span class="o">{</span>id<span class="o">}</span>/stream
 Accept:<span class="w"> </span>text/event-stream
 </code></pre></div>
 <p><strong>Features</strong>:</p>
@@ -1006,7 +1006,7 @@ data: {&quot;id&quot;:&quot;task-123&quot;,&quot;status&quot;:&quot;succeeded&qu
 <li><code>timestamp</code>: When this update occurred</li>
 </ul>
 <h4 id="check-task-active">Check Task Active<a class="headerlink" href="#check-task-active" title="Permanent link">&para;</a></h4>
-<div class="highlight"><pre><span></span><code>GET<span class="w"> </span>/tasks/<span class="o">{</span>id<span class="o">}</span>/active
+<div class="highlight"><pre><span></span><code>GET<span class="w"> </span>/mesh/<span class="o">{</span>id<span class="o">}</span>/active
 </code></pre></div>
 <p><strong>Used by</strong>: Actors to verify task hasn't timed out</p>
 <p>Response (active):
@@ -1017,7 +1017,7 @@ data: {&quot;id&quot;:&quot;task-123&quot;,&quot;status&quot;:&quot;succeeded&qu
 </code></pre></div></p>
 <h3 id="internal-endpoints-sidecarcrew">Internal Endpoints (Sidecar/Crew)<a class="headerlink" href="#internal-endpoints-sidecarcrew" title="Permanent link">&para;</a></h3>
 <h4 id="report-progress">Report Progress<a class="headerlink" href="#report-progress" title="Permanent link">&para;</a></h4>
-<div class="highlight"><pre><span></span><code>POST<span class="w"> </span>/tasks/<span class="o">{</span>id<span class="o">}</span>/progress
+<div class="highlight"><pre><span></span><code>POST<span class="w"> </span>/mesh/<span class="o">{</span>id<span class="o">}</span>/progress
 Content-Type:<span class="w"> </span>application/json
 
 <span class="o">{</span>
@@ -1030,14 +1030,14 @@ Content-Type:<span class="w"> </span>application/json
 <p><strong>Progress formula</strong>: <code>(actor_idx * 100 + status_weight) / total_actors</code>
 - <code>received</code> = 10, <code>processing</code> = 50, <code>completed</code> = 100</p>
 <p><strong>Unknown task IDs</strong>: Progress updates for tasks not found in the store are
-silently accepted (200 OK). This is expected for direct-SQS messages that bypass
+silently accepted (200 OK). This is expected for direct-SQS envelopes that bypass
 gateway task creation. Infrastructure errors (e.g., database failures) still
 return 500.</p>
 <p>Response:
 <div class="highlight"><pre><span></span><code><span class="p">{</span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ok&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;progress_percent&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">33.3</span><span class="p">}</span>
 </code></pre></div></p>
 <h4 id="report-final-status">Report Final Status<a class="headerlink" href="#report-final-status" title="Permanent link">&para;</a></h4>
-<div class="highlight"><pre><span></span><code>POST<span class="w"> </span>/tasks/<span class="o">{</span>id<span class="o">}</span>/final
+<div class="highlight"><pre><span></span><code>POST<span class="w"> </span>/mesh/<span class="o">{</span>id<span class="o">}</span>/final
 Content-Type:<span class="w"> </span>application/json
 
 <span class="o">{</span>

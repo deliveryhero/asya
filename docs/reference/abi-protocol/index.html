@@ -838,7 +838,7 @@ write a handler, deploy it as an actor, and the platform runs it. There are no
 library.</p>
 <p>But actors sometimes need to do more than transform payloads — they need to:</p>
 <ul>
-<li><strong>Read message metadata</strong> (where did this message come from?)</li>
+<li><strong>Read envelope metadata</strong> (where did this envelope come from?)</li>
 <li><strong>Modify routing</strong> (send the result to a different actor than planned)</li>
 <li><strong>Stream tokens upstream</strong> (deliver LLM output to the gateway in real-time)</li>
 <li><strong>Set headers</strong> (attach trace IDs, priorities, or custom metadata)</li>
@@ -900,8 +900,8 @@ generator. Otherwise, use a plain function.</p>
 <h3 id="get-read-metadata">GET — read metadata<a class="headerlink" href="#get-read-metadata" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><span class="n">value</span> <span class="o">=</span> <span class="k">yield</span> <span class="s2">&quot;GET&quot;</span><span class="p">,</span> <span class="s2">&quot;&lt;path&gt;&quot;</span>
 </code></pre></div>
-<p>Read a field from the message metadata. Returns a <strong>deep copy</strong> — mutating
-the returned value does not affect the message.</p>
+<p>Read a field from the envelope metadata. Returns a <strong>deep copy</strong> — mutating
+the returned value does not affect the envelope.</p>
 <div class="highlight"><pre><span></span><code><span class="n">prev</span> <span class="o">=</span> <span class="k">yield</span> <span class="s2">&quot;GET&quot;</span><span class="p">,</span> <span class="s2">&quot;.route.prev&quot;</span>       <span class="c1"># list of previous actors</span>
 <span class="n">curr</span> <span class="o">=</span> <span class="k">yield</span> <span class="s2">&quot;GET&quot;</span><span class="p">,</span> <span class="s2">&quot;.route.curr&quot;</span>       <span class="c1"># current actor name</span>
 <span class="n">nxt</span>  <span class="o">=</span> <span class="k">yield</span> <span class="s2">&quot;GET&quot;</span><span class="p">,</span> <span class="s2">&quot;.route.next&quot;</span>       <span class="c1"># list of upcoming actors</span>
@@ -913,7 +913,7 @@ the returned value does not affect the message.</p>
 <div class="highlight"><pre><span></span><code><span class="k">yield</span> <span class="s2">&quot;SET&quot;</span><span class="p">,</span> <span class="s2">&quot;&lt;path&gt;&quot;</span><span class="p">,</span> <span class="o">&lt;</span><span class="n">value</span><span class="o">&gt;</span>
 </code></pre></div>
 <p>Write a value to a writable metadata field. The value is <strong>deep copied</strong>
-into the message.</p>
+into the envelope.</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># Replace the entire route.next</span>
 <span class="k">yield</span> <span class="s2">&quot;SET&quot;</span><span class="p">,</span> <span class="s2">&quot;.route.next&quot;</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;actor_a&quot;</span><span class="p">,</span> <span class="s2">&quot;actor_b&quot;</span><span class="p">]</span>
 
@@ -937,7 +937,7 @@ into the message.</p>
 <h3 id="del-remove-metadata">DEL — remove metadata<a class="headerlink" href="#del-remove-metadata" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><span class="k">yield</span> <span class="s2">&quot;DEL&quot;</span><span class="p">,</span> <span class="s2">&quot;&lt;path&gt;&quot;</span>
 </code></pre></div>
-<p>Remove a field from the message metadata.</p>
+<p>Remove a field from the envelope metadata.</p>
 <div class="highlight"><pre><span></span><code><span class="k">yield</span> <span class="s2">&quot;DEL&quot;</span><span class="p">,</span> <span class="s2">&quot;.headers.trace_id&quot;</span>
 <span class="k">yield</span> <span class="s2">&quot;DEL&quot;</span><span class="p">,</span> <span class="s2">&quot;.route.next&quot;</span>
 </code></pre></div>
@@ -966,7 +966,7 @@ next actor.</p>
 <div class="highlight"><pre><span></span><code><span class="k">yield</span> <span class="p">{</span><span class="s2">&quot;result&quot;</span><span class="p">:</span> <span class="s2">&quot;processed data&quot;</span><span class="p">}</span>
 </code></pre></div>
 <p>A generator can emit <strong>multiple frames</strong> — each yield of a dict produces a
-separate downstream message (fan-out):</p>
+separate downstream envelope (fan-out):</p>
 <div class="highlight"><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">splitter</span><span class="p">(</span><span class="n">payload</span><span class="p">):</span>
     <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">payload</span><span class="p">[</span><span class="s2">&quot;items&quot;</span><span class="p">]:</span>
         <span class="k">yield</span> <span class="s2">&quot;SET&quot;</span><span class="p">,</span> <span class="s2">&quot;.route.next&quot;</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;item_processor&quot;</span><span class="p">]</span>
@@ -974,13 +974,13 @@ separate downstream message (fan-out):</p>
 </code></pre></div>
 <hr />
 <h2 id="path-syntax">Path syntax<a class="headerlink" href="#path-syntax" title="Permanent link">&para;</a></h2>
-<p>Paths use <strong>jq-like dot notation</strong> rooted at the message envelope.</p>
+<p>Paths use <strong>jq-like dot notation</strong> rooted at the envelope envelope.</p>
 <h3 id="dot-access">Dot access<a class="headerlink" href="#dot-access" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code>.route.next       → message[&quot;route&quot;][&quot;next&quot;]
-.headers.trace_id → message[&quot;headers&quot;][&quot;trace_id&quot;]
-.route            → message[&quot;route&quot;]  (entire subtree)
+<div class="highlight"><pre><span></span><code>.route.next       → envelope[&quot;route&quot;][&quot;next&quot;]
+.headers.trace_id → envelope[&quot;headers&quot;][&quot;trace_id&quot;]
+.route            → envelope[&quot;route&quot;]  (entire subtree)
 </code></pre></div>
-<p>The leading <code>.</code> is required and refers to the message root.</p>
+<p>The leading <code>.</code> is required and refers to the envelope root.</p>
 <h3 id="bracket-access">Bracket access<a class="headerlink" href="#bracket-access" title="Permanent link">&para;</a></h3>
 <p>For keys containing dots or special characters:</p>
 <div class="highlight"><pre><span></span><code><span class="k">yield</span> <span class="s2">&quot;GET&quot;</span><span class="p">,</span> <span class="s1">&#39;.headers[&quot;model.config.version&quot;]&#39;</span>
@@ -1055,8 +1055,8 @@ separate downstream message (fan-out):</p>
 </tr>
 </tbody>
 </table></div>
-<p>The message <strong>payload</strong> is not accessible via the ABI — it's the function
-argument itself. The ABI operates on message metadata only.</p>
+<p>The envelope <strong>payload</strong> is not accessible via the ABI — it's the function
+argument itself. The ABI operates on envelope metadata only.</p>
 <hr />
 <h2 id="type-based-dispatch">Type-based dispatch<a class="headerlink" href="#type-based-dispatch" title="Permanent link">&para;</a></h2>
 <p>The runtime dispatches on the Python type of the yielded value:</p>
@@ -1223,7 +1223,7 @@ simulates a message hop through the Asya actor mesh:</p>
     <span class="n">state</span> <span class="o">=</span> <span class="k">await</span> <span class="n">actor</span><span class="p">(</span><span class="n">notifier</span><span class="p">(</span><span class="n">state</span><span class="p">))</span>
     <span class="k">assert</span> <span class="n">state</span><span class="p">[</span><span class="s2">&quot;notified&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">True</span>
 </code></pre></div>
-<p>This mirrors the actual Asya execution: each <code>await</code> represents a message
+<p>This mirrors the actual Asya execution: each <code>await</code> represents a envelope
 passing through a queue to the next actor. The difference is that in
 production, each actor runs in its own pod; in tests, they run sequentially
 in one process.</p>
@@ -1301,8 +1301,8 @@ contents for control signals. This means:</p>
 <ul>
 <li><a href="../flow-dsl/">Flow DSL Reference</a> — compile Python control flow into
   router actor networks (routers use the ABI internally)</li>
-<li><a href="../../architecture/protocols/actor-actor/">Architecture: Actor Message Protocol</a> —
-  message envelope format and routing semantics</li>
+<li><a href="../../architecture/protocols/actor-actor/">Architecture: Actor Envelope Protocol</a> —
+  envelope envelope format and routing semantics</li>
 </ul>
   </div>
 </article>

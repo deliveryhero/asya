@@ -865,9 +865,9 @@
     </div>
   </div>
   <div class="typography w-full flex-1 *:data-[slot=alert]:first:mt-0">
-    <h2 id="message-structure">Message Structure<a class="headerlink" href="#message-structure" title="Permanent link">&para;</a></h2>
-<p><strong>Message</strong>: Structured JSON object transmitted through message queues (RabbitMQ, SQS), containing routing information and application data.</p>
-<p><strong>Payload</strong>: Application-specific data within message, processed by actors.</p>
+    <h2 id="envelope-structure">Envelope Structure<a class="headerlink" href="#envelope-structure" title="Permanent link">&para;</a></h2>
+<p><strong>Envelope</strong>: Structured JSON object transmitted through message queues (RabbitMQ, SQS), containing routing information and application data.</p>
+<p><strong>Payload</strong>: Application-specific data within envelope, processed by actors.</p>
 <div class="highlight"><pre><span></span><code><span class="p">{</span>
 <span class="w">  </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;unique-message-id&quot;</span><span class="p">,</span>
 <span class="w">  </span><span class="nt">&quot;parent_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;original-message-id&quot;</span><span class="p">,</span>
@@ -896,13 +896,13 @@
 </code></pre></div>
 <p><strong>Fields</strong>:</p>
 <ul>
-<li><code>id</code> (required): Unique message identifier</li>
-<li><code>parent_id</code> (optional): Parent message ID for fanout children (see Fan-Out section)</li>
+<li><code>id</code> (required): Unique envelope identifier</li>
+<li><code>parent_id</code> (optional): Parent envelope ID for fanout children (see Fan-Out section)</li>
 <li><code>route</code> (required): Actor routing state</li>
-<li><code>prev</code>: Actors that have already processed the message (read-only, maintained by runtime)</li>
-<li><code>curr</code>: The actor currently processing the message (read-only, set by runtime)</li>
-<li><code>next</code>: Actors yet to process the message (modifiable via VFS)</li>
-<li><code>status</code> (optional): Message lifecycle status, stamped by gateway on creation</li>
+<li><code>prev</code>: Actors that have already processed the envelope (read-only, maintained by runtime)</li>
+<li><code>curr</code>: The actor currently processing the envelope (read-only, set by runtime)</li>
+<li><code>next</code>: Actors yet to process the envelope (modifiable via VFS)</li>
+<li><code>status</code> (optional): Envelope lifecycle status, stamped by gateway on creation</li>
 <li><code>phase</code>: Current lifecycle phase (<code>pending</code>, <code>processing</code>, <code>succeeded</code>, <code>failed</code>)</li>
 <li><code>actor</code>: Actor that last updated the status</li>
 <li><code>deadline_at</code>: Absolute deadline in RFC3339 UTC (omitted if no timeout configured)</li>
@@ -922,11 +922,11 @@ Namespace: <code>example-ecommerce</code>
 <li>Clear namespace separation</li>
 <li>Automated queue management by operator</li>
 </ul>
-<h2 id="message-acknowledgment">Message Acknowledgment<a class="headerlink" href="#message-acknowledgment" title="Permanent link">&para;</a></h2>
-<p><strong>Ack</strong>: Message processed successfully, remove from queue
+<h2 id="envelope-acknowledgment">Envelope Acknowledgment<a class="headerlink" href="#envelope-acknowledgment" title="Permanent link">&para;</a></h2>
+<p><strong>Ack</strong>: Envelope processed successfully, remove from queue
 - Runtime returns valid response
 - Sidecar routes to next actor or end queue</p>
-<p><strong>Nack</strong>: Message processing failed in sidecar, requeue
+<p><strong>Nack</strong>: Envelope processing failed in sidecar, requeue
 - Sidecar crashes before processing
 - Queue automatically sends to DLQ after max retries</p>
 <h2 id="end-queues">End Queues<a class="headerlink" href="#end-queues" title="Permanent link">&para;</a></h2>
@@ -943,21 +943,21 @@ Namespace: <code>example-ecommerce</code>
 <p>Runtime returns mutated payload:
 <div class="highlight"><pre><span></span><code><span class="p">{</span><span class="nt">&quot;processed&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;timestamp&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2025-11-18T12:00:00Z&quot;</span><span class="p">}</span>
 </code></pre></div></p>
-<p><strong>Action</strong>: Sidecar creates message → Runtime shifts route (prev grows, curr advances) → Routes to next actor</p>
+<p><strong>Action</strong>: Sidecar creates envelope → Runtime shifts route (prev grows, curr advances) → Routes to next actor</p>
 <h3 id="fan-out-generatoryield">Fan-Out (Generator/Yield)<a class="headerlink" href="#fan-out-generatoryield" title="Permanent link">&para;</a></h3>
 <p>Handlers use <code>yield</code> to produce multiple outputs. Each <code>yield</code> sends a frame immediately to the sidecar over the Unix socket, and the sidecar creates a separate message for routing.</p>
 <div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">process</span><span class="p">(</span><span class="n">payload</span><span class="p">):</span>
     <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">payload</span><span class="p">[</span><span class="s2">&quot;items&quot;</span><span class="p">]:</span>
         <span class="k">yield</span> <span class="p">{</span><span class="s2">&quot;processed&quot;</span><span class="p">:</span> <span class="n">item</span><span class="p">}</span>
 </code></pre></div>
-<p><strong>Action</strong>: Sidecar reads each yielded frame and routes it as a separate message to the next actor.</p>
+<p><strong>Action</strong>: Sidecar reads each yielded frame and routes it as a separate envelope to the next actor.</p>
 <p><strong>Fanout ID semantics</strong>:</p>
 <ul>
-<li>First yielded message retains original ID (for SSE streaming compatibility)</li>
-<li>Subsequent yielded messages receive suffixed IDs: <code>{original_id}-{index}</code></li>
-<li>All fanout children have <code>parent_id</code> set to original message ID</li>
+<li>First yielded envelope retains original ID (for SSE streaming compatibility)</li>
+<li>Subsequent yielded envelopes receive suffixed IDs: <code>{original_id}-{index}</code></li>
+<li>All fanout children have <code>parent_id</code> set to original envelope ID</li>
 </ul>
-<p><strong>Example</strong>: Message <code>abc-123</code> yields 3 items:</p>
+<p><strong>Example</strong>: Envelope <code>abc-123</code> yields 3 items:</p>
 <ul>
 <li>Index 0: <code>id="abc-123"</code>, <code>parent_id=null</code> (original ID preserved)</li>
 <li>Index 1: <code>id="abc-123-1"</code>, <code>parent_id="abc-123"</code> (fanout child)</li>
@@ -966,7 +966,7 @@ Namespace: <code>example-ecommerce</code>
 <p><strong>Note</strong>: Returning a list from a handler does NOT trigger fan-out. A returned list is treated as a single payload value.</p>
 <h3 id="empty-response">Empty Response<a class="headerlink" href="#empty-response" title="Permanent link">&para;</a></h3>
 <p>Runtime returns <code>None</code> (<code>null</code>):</p>
-<p><strong>Action</strong>: Sidecar routes message to <code>x-sink</code> (no increment)</p>
+<p><strong>Action</strong>: Sidecar routes envelope to <code>x-sink</code> (no increment)</p>
 <h3 id="error-response">Error Response<a class="headerlink" href="#error-response" title="Permanent link">&para;</a></h3>
 <p>Runtime returns error object:
 <div class="highlight"><pre><span></span><code><span class="p">{</span>
@@ -1053,12 +1053,12 @@ Namespace: <code>example-ecommerce</code>
 <p>Sidecars report progress to gateway at three points per actor:</p>
 <p><strong>1. Received</strong> (<code>received</code>):</p>
 <ul>
-<li>Message pulled from queue</li>
+<li>Envelope pulled from queue</li>
 <li>Before forwarding to runtime</li>
 </ul>
 <p><strong>2. Processing</strong> (<code>processing</code>):</p>
 <ul>
-<li>Message sent to runtime via Unix socket</li>
+<li>Envelope sent to runtime via Unix socket</li>
 <li>Runtime is executing handler</li>
 </ul>
 <p><strong>3. Completed</strong> (<code>completed</code>):</p>
@@ -1077,18 +1077,18 @@ Namespace: <code>example-ecommerce</code>
 <div class="highlight"><pre><span></span><code>Sidecar                    Gateway                    Client
 -------                    -------                    ------
 1. Receive from queue
-   └─&gt; POST /tasks/{id}/progress
+   └─&gt; POST /mesh/{id}/progress
        {status: &quot;received&quot;, current_actor_idx: 0}
                            └─&gt; Update DB: running
                            └─&gt; SSE: progress 10%
 
 2. Send to runtime
-   └─&gt; POST /tasks/{id}/progress
+   └─&gt; POST /mesh/{id}/progress
        {status: &quot;processing&quot;, current_actor_idx: 0}
                            └─&gt; SSE: progress 15%
 
 3. Runtime returns
-   └─&gt; POST /tasks/{id}/progress
+   └─&gt; POST /mesh/{id}/progress
        {status: &quot;completed&quot;, current_actor_idx: 0}
                            └─&gt; SSE: progress 33%
 
@@ -1098,7 +1098,7 @@ Namespace: <code>example-ecommerce</code>
 <p><strong>Success path</strong>:
 <div class="highlight"><pre><span></span><code>Actor N completes → Sidecar routes to x-sink
   → x-sink persists to S3
-  → x-sink reports: POST /tasks/{id}/final
+  → x-sink reports: POST /mesh/{id}/final
      {status: &quot;succeeded&quot;, result: {...}}
   → Gateway updates: status=succeeded, progress=100%
   → SSE: final success event
@@ -1106,7 +1106,7 @@ Namespace: <code>example-ecommerce</code>
 <p><strong>Error path</strong>:
 <div class="highlight"><pre><span></span><code>Runtime error → Sidecar routes to x-sump
   → x-sump persists to S3
-  → x-sump reports: POST /tasks/{id}/final
+  → x-sump reports: POST /mesh/{id}/final
      {status: &quot;failed&quot;, error: &quot;...&quot;}
   → Gateway updates: status=failed
   → SSE: final error event
@@ -1383,10 +1383,10 @@ Namespace: <code>example-ecommerce</code>
         
         
         
-        <a href="#message-structure"
+        <a href="#envelope-structure"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
-            Message Structure
+            Envelope Structure
         </a>
         
 
@@ -1399,10 +1399,10 @@ Namespace: <code>example-ecommerce</code>
         
 
         
-        <a href="#message-acknowledgment"
+        <a href="#envelope-acknowledgment"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
-            Message Acknowledgment
+            Envelope Acknowledgment
         </a>
         
 

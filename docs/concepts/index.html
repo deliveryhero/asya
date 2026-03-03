@@ -884,12 +884,12 @@
 <h2 id="sidecar">Sidecar<a class="headerlink" href="#sidecar" title="Permanent link">&para;</a></h2>
 <p><strong>Responsibilities</strong>:</p>
 <ul>
-<li>Message routing between queues and runtime</li>
+<li>Envelope routing between queues and runtime</li>
 <li>Transport management (RabbitMQ, SQS)</li>
 <li>Observability (metrics, logs)</li>
 <li>Reliability (retries, error handling)</li>
 </ul>
-<p><strong>How it works</strong>: Injected as a container into actor pods. Consumes messages from queues, validates message structure, forwards to runtime via Unix socket, routes responses to next queue.</p>
+<p><strong>How it works</strong>: Injected as a container into actor pods. Consumes envelopes from queues, validates envelope structure, forwards to runtime via Unix socket, routes responses to next queue.</p>
 <p><strong>See</strong>: <a href="../architecture/asya-sidecar/">architecture/asya-sidecar.md</a> for details.</p>
 <h2 id="runtime">Runtime<a class="headerlink" href="#runtime" title="Permanent link">&para;</a></h2>
 <p><strong>Responsibilities</strong>:</p>
@@ -898,7 +898,7 @@
 <li>Processing input messages</li>
 <li>Generating output messages</li>
 </ul>
-<p><strong>How it works</strong>: Receives messages from sidecar via Unix socket, loads user handler (function or class), executes it, returns results back to sidecar.</p>
+<p><strong>How it works</strong>: Receives envelopes from sidecar via Unix socket, loads user handler (function or class), executes it, returns results back to sidecar.</p>
 <p><strong>Deployment</strong>: User defines container image with Python code. Asya injector webhook injects <code>asya_runtime.py</code> entrypoint script via ConfigMap.</p>
 <p><strong>See</strong>: <a href="../architecture/asya-runtime/">architecture/asya-runtime.md</a> for details.</p>
 <h2 id="crew-actors">Crew Actors<a class="headerlink" href="#crew-actors" title="Permanent link">&para;</a></h2>
@@ -923,11 +923,11 @@
 </ul>
 <p><strong>Pluggable design</strong>: Transport layer is abstracted - adding new transports (Kafka, NATS, Pub/Sub) requires implementing transport interface.</p>
 <p><strong>See</strong>: <a href="../architecture/transports/">architecture/transports/README.md</a> for details.</p>
-<h2 id="message">Message<a class="headerlink" href="#message" title="Permanent link">&para;</a></h2>
+<h2 id="envelope">Envelope<a class="headerlink" href="#envelope" title="Permanent link">&para;</a></h2>
 <p><strong>Definition</strong>: JSON object passed between actors via message queues.</p>
 <p><strong>Structure</strong>:
 <div class="highlight"><pre><span></span><code><span class="p">{</span>
-<span class="w">  </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;unique-message-id&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;unique-envelope-id&quot;</span><span class="p">,</span>
 <span class="w">  </span><span class="nt">&quot;route&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="nt">&quot;prev&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
 <span class="w">    </span><span class="nt">&quot;curr&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;preprocess&quot;</span><span class="p">,</span>
@@ -949,7 +949,7 @@
 <li><code>payload</code> (required): User data processed by actors</li>
 <li><code>headers</code> (optional): Routing metadata (traces, priorities)</li>
 </ul>
-<p><strong>Stateful routing</strong>: <code>route.current</code> increments after each actor processes the message. Note once again, this is a unique feature of 🎭: pipelines are stateless, but messages are stateful (they represent different pipeline executions).</p>
+<p><strong>Stateful routing</strong>: <code>route.current</code> increments after each actor processes the envelope. Note once again, this is a unique feature of 🎭: pipelines are stateless, but envelopes are stateful (they represent different pipeline executions).</p>
 <p><strong>See</strong>: <a href="../architecture/protocols/actor-actor/">architecture/protocols/actor-actor.md</a> for details.</p>
 <h2 id="crossplane-compositions">Crossplane Compositions<a class="headerlink" href="#crossplane-compositions" title="Permanent link">&para;</a></h2>
 <p><strong>Responsibilities</strong>:</p>
@@ -1307,10 +1307,10 @@
         
 
         
-        <a href="#message"
+        <a href="#envelope"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
-            Message
+            Envelope
         </a>
         
 
