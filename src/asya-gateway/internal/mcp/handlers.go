@@ -271,7 +271,7 @@ func (h *Handler) HandleMeshStream(w http.ResponseWriter, r *http.Request) {
 		case <-r.Context().Done():
 			return
 		case <-keepaliveTicker.C:
-			_, _ = fmt.Fprintf(w, ": keepalive\n\n")
+			_, _ = io.WriteString(w, ": keepalive\n\n")
 			flusher.Flush()
 		case update := <-updateChan:
 			writeSSEEvent(w, flusher, update)
@@ -294,14 +294,14 @@ func writeSSEEvent(w http.ResponseWriter, flusher http.Flusher, update types.Tas
 		if json.Unmarshal(update.PartialPayload, &payload) == nil {
 			eventType = a2a.DetectFLYEventType(payload)
 		}
-		_, _ = fmt.Fprintf(w, "event: %s\ndata: %s\n\n", eventType, update.PartialPayload)
+		_, _ = io.WriteString(w, "event: "+eventType+"\ndata: "+string(update.PartialPayload)+"\n\n")
 	} else {
 		data, err := json.Marshal(update)
 		if err != nil {
 			slog.Error("Failed to marshal SSE update", "error", err)
 			return
 		}
-		_, _ = fmt.Fprintf(w, "event: update\ndata: %s\n\n", data)
+		_, _ = io.WriteString(w, "event: update\ndata: "+string(data)+"\n\n")
 	}
 	flusher.Flush()
 }
