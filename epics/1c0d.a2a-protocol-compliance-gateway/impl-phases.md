@@ -1,82 +1,61 @@
 # Implementation Phases: A2A Protocol Compliance (Epic 1c0d)
 
-## Phase 1: A2A Foundation + Core Endpoints ✅
+**Source of truth**: `rfc-a2a-native.md` (supersedes all previous design)
+**Library**: `a2a-go` v0.3.7 (stable)
 
-**Status**: Merged (PR #202)
-**Branch**: `1c0d/phase1-a2a-core`
+## Previous Work (Superseded)
 
-### Tasks Combined
+Phases 1 and 1.5 (PRs #202, #208) implemented hand-rolled A2A types and endpoints.
+The new RFC replaces this with `a2a-go` library integration. All previous slopped
+tasks have been moved to `.closed/`.
 
-| Ref | Title | Priority | Status |
-|-----|-------|----------|--------|
-| 1c0d/1fkrbh | Rename envelope to task throughout gateway | P2 | ✅ vibed |
-| 1c0d/1f5jo3 | A2A error response format | P2 | ✅ vibed |
-| 1c0d/1f2hre | Add context_id for conversation grouping | P2 | ✅ vibed |
-| 1c0d/1f9519 | Agent Card discovery endpoint | P2 | ✅ vibed |
-| 1c0d/1fuhpq | POST /messages endpoint | P2 | ✅ vibed |
-| 1c0d/1fkoxi | POST /messages:stream endpoint | P2 | ✅ vibed |
-| 1c0d/1f2tkx | GET /tasks/{id} A2A endpoint | P2 | ✅ vibed |
-| 1c0d/1fgpla | GET /tasks/{id}:subscribe SSE endpoint | P2 | ✅ vibed |
+## Prerequisites (All Complete)
 
-### Deliverables
+| Epic | Status | What it delivered |
+|------|--------|-------------------|
+| 1mx1 (envelope rename) | Done | `/tasks/` -> `/mesh/` routes (except `/partial` -> `/fly`) |
+| 1ixy (pause/resume) | Done | x-pause, x-resume actors, sidecar integration |
+| 1dmf (state proxy) | Done | xattr API (`user.asya.url`, `user.asya.presigned_url`) |
 
-- ✅ Renamed internal types (envelope -> task in data layer)
-- ✅ A2A-compliant error responses
-- ✅ context_id support in task model and store (Sqitch migration 006)
-- ✅ `GET /.well-known/a2a/agent-card` endpoint
-- ✅ `POST /a2a/` (send message) endpoint
-- ✅ `POST /a2a/` (streaming variant) endpoint
-- ✅ `GET /a2a/tasks/{id}` endpoint
-- ✅ `GET /a2a/tasks/{id}:subscribe` SSE endpoint
-- ✅ Unit tests for all new code
-- ✅ Backward compatibility for existing /mcp and /tools/call endpoints
+## Phase 1: Core A2A with a2a-go (MVP)
 
----
-
-## Phase 1.5: Sidecar Terminology Alignment ✅
-
-**Status**: Merged (PR #208)
-**Branch**: `1c0d/1fl5rf.update-sidecar-use-a2a-task-terminology`
-
-| Ref | Title | Priority | Status |
-|-----|-------|----------|--------|
-| 1c0d/1fl5rf | Update sidecar A2A terminology | P2 | ✅ vibed |
-
-- ✅ Replaced "envelope mode" with "VFS mode" in comments
-- ✅ Updated test fixture IDs (`test-envelope-*` -> `test-msg-*`)
-- ✅ Fixed db/README.md table names to match actual schema
-
-Note: Sidecar API endpoints (`/tasks/{id}/progress`, `/tasks/{id}/final`) were already using task terminology — only comments, tests, and docs needed updates.
-
----
-
-## Phase 2: Extended A2A Features
+Delivers: a2a-go integration, tools registry, Agent Card, SendMessage,
+SendStreamingMessage, GetTask, SubscribeToTask, A2A-native FLY streaming.
 
 **Status**: Not started
-**Branch**: TBD
 
-### Remaining Tasks
+| # | Task | Description | Deps |
+|---|------|-------------|------|
+| 1 | DB migration: tools table | Create `tools` table (Section 13.4), add new status values | None |
+| 2 | Import a2a-go + state mapping | `go get a2a-go@v0.3.7`, state translation functions | None |
+| 3 | Tool registry + /mesh/expose API | `internal/toolstore/`, POST/GET handlers, remove YAML config | T1 |
+| 4 | Message-to-envelope translator | `internal/a2a/translator.go`, payload construction rules (Section 5.2) | T2 |
+| 5 | A2AStoreAdapter | Wrap PgStore for `a2asrv.TaskStore` interface | T2 |
+| 6 | AsyaExecutor + skill resolution | Execute, Cancel, resume detection, skill resolution (Section 8.3) | T3, T4, T5 |
+| 7 | Wire a2a-go handler + Agent Card | Mount handler, endpoint layout (/a2a, /mcp, /mesh), Agent Card | T3, T6 |
+| 8 | Rename /partial -> /fly + A2A-native FLY | Gateway + sidecar rename, FLY dict -> SSE event mapping | T7 |
 
-| Ref | Title | Priority | Status |
-|-----|-------|----------|--------|
-| 1c0d/1fgefe | GET /tasks (list tasks) | P3 | slopped |
-| 1c0d/1f5b6o | POST /tasks/{id}:cancel | P3 | slopped |
-| 1c0d/1f7am4 | input_required state for human-in-the-loop | P2 | slopped |
+## Phase 2: Production Readiness
 
-### Deliverables
+| # | Task | Description |
+|---|------|-------------|
+| 9 | ListTasks with cursor pagination | Internal TaskStore.List(), context_id/status filtering |
+| 10 | CancelTask + sidecar 410 Gone (1c0d/1qtug1) | Cancel endpoint, sidecar handles 410 on progress |
+| 11 | Blocking mode | `configuration.blocking: true`, hold connection until terminal |
+| 12 | API Key authentication | `ASYA_A2A_API_KEY` middleware on `{base}/a2a/*` |
+| 13 | Runtime FLY helpers | `fly_text()`, `fly_status()` in `asya_runtime.py` |
 
-- `GET /a2a/tasks` list endpoint with filtering
-- `POST /a2a/tasks/{id}:cancel` endpoint
-- `input_required` task state with resume flow
+## Phase 3: Advanced Features
 
----
+| # | Task | Description |
+|---|------|-------------|
+| 14 | Bearer/JWT authentication | `ASYA_A2A_JWT_*` env vars, JWKS validation |
+| 15 | Extended Agent Card | `GetExtendedAgentCard` with auth-gated details |
+| 16 | GetTask history/artifacts from S3 | Fetch `payload.a2a.task.history` from S3 for paused/completed |
 
-## Deferred Tasks
+## Phase 4: Extended Protocol
 
-| Ref | Title | Priority | Reason |
-|-----|-------|----------|--------|
-| 1c0d/1fw76h | AG-UI event streaming | P2 | Separate protocol, separate PR |
-| 1c0d/1fkicd | Research A2A/ACP/A2UI standards | P3 | Done via RFC |
-| 1c0d/1foqab | gRPC transport | P3 | Separate effort |
-| 1c0d/1fgyh1 | A2UI payload support | P4 | Backlog |
-| 1c0d/1f5373 | Push notification endpoints | P4 | Backlog |
+| # | Task | Description |
+|---|------|-------------|
+| 17 | Push notification CRUD | 4 methods + webhook delivery + DB table |
+| 18 | gRPC transport | `a2agrpc.NewHandler()` from a2a-go |
