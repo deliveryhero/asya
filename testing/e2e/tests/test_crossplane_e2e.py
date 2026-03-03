@@ -923,21 +923,25 @@ spec:
 
         time.sleep(10)  # Wait for Crossplane to reconcile and surface the Fatal result
 
-        asyncactor = kubectl_get("asyncactor", "test-invalid-labels", namespace=e2e_helper.namespace)
-        status = asyncactor.get("status", {})
-        conditions = status.get("conditions", [])
+        # Fatal results surface on the XR (composite), not the claim.
+        # Get the XR name from the claim's resourceRef.
+        claim = kubectl_get("asyncactor", "test-invalid-labels", namespace=e2e_helper.namespace)
+        xr_name = claim.get("spec", {}).get("resourceRef", {}).get("name")
+        assert xr_name, f"Claim should reference a composite resource, got spec: {claim.get('spec', {})}"
 
-        # Crossplane surfaces Fatal results as Synced=False with the error message
+        xr = kubectl_get("xasyncactor", xr_name, namespace=e2e_helper.namespace)
+        xr_conditions = xr.get("status", {}).get("conditions", [])
+
         error_condition = next(
             (
                 c
-                for c in conditions
+                for c in xr_conditions
                 if c.get("status") == "False" and "reserved prefix" in c.get("message", "").lower()
             ),
             None,
         )
         assert error_condition is not None, (
-            f"Should have a False condition mentioning reserved prefix, got conditions: {conditions}"
+            f"XR should have a False condition mentioning reserved prefix, got conditions: {xr_conditions}"
         )
 
         logger.info("[+] Label propagation verified successfully")
