@@ -1,9 +1,8 @@
 ---
 title: Implement nats-kv-buffered-cas connector
 priority: 2 # medium
-dependencies:
-  - 1iph
 ---
+
 
 NATS KV connector with buffered writes and revision-based CAS.
 

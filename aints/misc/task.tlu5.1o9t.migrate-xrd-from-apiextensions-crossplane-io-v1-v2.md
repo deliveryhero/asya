@@ -3,6 +3,7 @@ title: Migrate XRD from apiextensions.crossplane.io/v1 to v2
 priority: 2 # medium
 ---
 
+
 ## Context
 
 Crossplane v2.x (now the latest stable release) deprecates `apiextensions.crossplane.io/v1` for CompositeResourceDefinitions with the warning:

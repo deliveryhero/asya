@@ -1,14 +1,13 @@
 ---
 title: "Rename 'partial' to 'stream' across wire protocol, gateway, and sidecar"
-priority: 2
+priority: 2 # medium
 tags:
   - type:breaking-change
   - component:gateway
   - component:sidecar
   - component:runtime
-dependencies:
-  - 1l01
 ---
+
 
 ## Context
 

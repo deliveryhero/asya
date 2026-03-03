@@ -1,11 +1,12 @@
 ---
-title: "Explicit adapter functions instead of ASYA_PARAMS_AT/ASYA_RESULT_AT"
-priority: 2
+title: Explicit adapter functions instead of ASYA_PARAMS_AT/ASYA_RESULT_AT
+priority: 2 # medium
 tags:
   - type:simplification
   - component:runtime
   - component:docs
 ---
+
 
 ## Context
 
@@ -52,7 +53,7 @@ users freedom and keep asya framework explicit and simple.
 
 ## For Generator Handlers (ABI)
 
-See epic [[1l01]].
+See epic [[abi-instead-vfs]].
 
 ```python
 async def llm_adapter(state: dict):

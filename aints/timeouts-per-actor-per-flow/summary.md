@@ -5,13 +5,14 @@ priority: 2 # medium
 
 
 
+
 Design and implement a comprehensive timeout system that supports: (1) per-actor processing and graceful shutdown timeouts, (2) per-N-actors (flow or partial flow) end-to-end timeouts, (3) SQS visibility timeout coordination - actor processing timeout must align with SQS visibilityTimeout to prevent duplicate processing, (4) error handling edge cases - what happens when a timeout fires mid-processing, how retries interact with timeouts, (5) DLQ implications - messages that timeout vs messages that error, (6) multi-hop timeout budgets - a flow-level timeout that decrements as messages pass through actors. This is an epic that needs design before implementation.
 
 
 ---
 ## Notes
 
-[Error Handling RFC context] [[1c46]] The per-message SLA timeout connects directly to error retry flow:
+[Error Handling RFC context] [[misc]] The per-message SLA timeout connects directly to error retry flow:
 
 1. Every message carries status.created_at (set by gateway/first actor, never reset)
 2. Every sidecar checks: now - status.created_at > SLA_TIMEOUT before processing

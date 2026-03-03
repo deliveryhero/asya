@@ -1,8 +1,8 @@
 ---
 title: "Asya Lens: Self-Hosted Dashboard and IDE"
 priority: 2 # medium
-dependencies: [1jux, 1juv]
 ---
+
 
 Single Docker image (`asya-lens`) that serves as both a shared status dashboard and
 a self-hosted development environment. Built on code-server with the Asya VSCode

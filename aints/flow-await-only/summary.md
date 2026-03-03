@@ -1,13 +1,12 @@
 ---
 title: "Flow DSL: only await, arbitrary payload names, no generator logic in flows"
-priority: 1
+priority: 1 # high
 tags:
   - type:simplification
   - component:compiler
   - component:flow-dsl
-dependencies:
-  - 1l01
 ---
+
 
 ## Context
 

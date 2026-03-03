@@ -8,6 +8,7 @@ tags:
 
 
 
+
 ## Summary
 
 Add comprehensive CEL validation rules to the XAsyncActor XRD to prevent users from defining operator-injected resources. This provides immediate feedback at admission time instead of confusing errors during reconciliation.

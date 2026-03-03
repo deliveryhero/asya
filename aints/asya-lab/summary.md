@@ -1,8 +1,8 @@
 ---
 title: "Asya Lab: Python SDK, CLI, and Jupyter Magics"
 priority: 1 # high
-dependencies: [1jow]
 ---
+
 
 Python package `asya-lab` (PyPI) -- the single source of truth for all Asya client
 logic. Every CLI command maps 1:1 to an SDK function. Jupyter magics call the SDK

@@ -1,8 +1,8 @@
 ---
 title: "Asya UI: TypeScript Workspace (React Components + VSCode Extension)"
 priority: 3 # low
-dependencies: [1jow, 1jux]
 ---
+
 
 TypeScript pnpm monorepo workspace containing all client-side UI code: the shared
 React component library (`@asya/ui`) and the VSCode extension. Both packages live
