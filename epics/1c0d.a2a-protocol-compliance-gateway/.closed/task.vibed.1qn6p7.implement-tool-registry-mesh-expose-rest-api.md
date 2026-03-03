@@ -2,8 +2,12 @@
 title: Implement tool registry and /mesh/expose REST API
 priority: 2 # medium
 type: task
-dependencies: [1c0d/1qtbxr]
+tags:
+  - pr:257
+dependencies:
+  - 1c0d/1qtbxr
 ---
+
 
 ## Objective
 
