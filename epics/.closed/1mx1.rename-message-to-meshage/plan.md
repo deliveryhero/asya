@@ -2,7 +2,7 @@
 
 ## Summary
 
-Rename Asya's internal envelope type from "Message" to "Envelope" (mesh + message)
+Rename Asya's internal envelope type from "Message" to "Envelope" (actor mesh message)
 and rename the gateway's sidecar-facing routes from `/tasks/` to `/mesh/`.
 
 ## What Changes

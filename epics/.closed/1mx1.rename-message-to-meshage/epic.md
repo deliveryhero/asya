@@ -6,7 +6,7 @@ type: epic
 ---
 
 
-Mesh + message. Rename Asya's internal envelope (id, route, payload, status,
+Rename Asya's internal envelope (id, route, payload, status,
 headers) from "message" to "envelope" to avoid collision with A2A "Message"
 (immutable communication turn) and MQ "message" (queue entry).
 
