@@ -5,16 +5,10 @@ Persists complete messages (metadata + payload) as JSON files via the state prox
 Storage backend is pluggable (S3/GCS/PostgreSQL/etc.) through the state proxy connector
 configured in the AsyncActor CRD.
 
-Environment Variables:
-- ASYA_MSG_ROOT: Path to virtual filesystem for message metadata (default: /proc/asya/msg)
-- ASYA_PERSISTENCE_MOUNT: State proxy mount path for checkpoint storage
+Called from the sink handler, which passes message metadata obtained via ABI protocol.
 
-VFS Paths Read:
-- /proc/asya/msg/id — read-only: message UUID
-- /proc/asya/msg/parent_id — read-only: parent message UUID (for fanout)
-- /proc/asya/msg/route/prev — read-only: newline-separated list of processed actors
-- /proc/asya/msg/route/curr — read-only: current actor name
-- /proc/asya/msg/status/phase — read-only: terminal phase (succeeded/failed)
+Environment Variables:
+- ASYA_PERSISTENCE_MOUNT: State proxy mount path for checkpoint storage
 
 File Path Structure:
     {mount}/{prefix}/{timestamp}/{actor}/{id}.json
@@ -29,7 +23,7 @@ Examples:
     /state/checkpoints/failed/2026-02-12T10:30:00.123456Z/image-analyzer/msg-456.json
 
 Handler Behavior:
-- Reads message metadata from VFS
+- Receives message metadata as keyword arguments from caller (sink handler)
 - Persists full message (metadata + payload) as JSON to state proxy mount
 - Returns empty dict (message passes through unchanged)
 - Gracefully skips if ASYA_PERSISTENCE_MOUNT not set
@@ -45,28 +39,32 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
-ASYA_MSG_ROOT = os.getenv("ASYA_MSG_ROOT", "/proc/asya/msg")
 ASYA_PERSISTENCE_MOUNT = os.getenv("ASYA_PERSISTENCE_MOUNT", "")
 
 
-def _read_msg_meta(path: str, default: str = "") -> str:
-    """Read message metadata field, returning default if not found."""
-    try:
-        with open(f"{ASYA_MSG_ROOT}/{path}") as f:
-            return f.read().strip()
-    except FileNotFoundError:
-        return default
-
-
-def handler(payload: dict[str, Any]) -> dict[str, Any]:
+def handler(
+    payload: dict[str, Any],
+    *,
+    message_id: str = "unknown",
+    parent_id: str = "",
+    phase: str = "",
+    route_prev: list[str] | None = None,
+    route_curr: str = "",
+) -> dict[str, Any]:
     """
     Checkpoint handler for message persistence via state proxy.
 
-    Reads message metadata from the VFS and persists the complete message
-    (metadata + payload) as a JSON file to the configured state proxy mount.
+    Receives message metadata as keyword arguments from the sink handler,
+    and persists the complete message (metadata + payload) as a JSON file
+    to the configured state proxy mount.
 
     Args:
         payload: Message payload dict
+        message_id: Message UUID
+        parent_id: Parent message UUID (for fanout)
+        phase: Terminal phase (succeeded/failed)
+        route_prev: List of processed actors
+        route_curr: Current actor name
 
     Returns:
         Empty dict (message passes through unchanged)
@@ -77,17 +75,11 @@ def handler(payload: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(payload, dict):
         raise ValueError(f"Payload must be a dict, got {type(payload).__name__}")
 
-    message_id = _read_msg_meta("id", "unknown")
-
     if not ASYA_PERSISTENCE_MOUNT:
         logger.debug(f"Checkpoint skipped for message {message_id} (ASYA_PERSISTENCE_MOUNT not set)")
         return {}
 
-    phase = _read_msg_meta("status/phase")
-    parent_id = _read_msg_meta("parent_id")
-    prev_raw = _read_msg_meta("route/prev")
-    prev_actors = [a for a in prev_raw.splitlines() if a] if prev_raw else []
-    curr = _read_msg_meta("route/curr")
+    prev_actors = route_prev if route_prev is not None else []
 
     if phase == "succeeded":
         prefix = "succeeded"
@@ -107,7 +99,7 @@ def handler(payload: dict[str, Any]) -> dict[str, Any]:
         "id": message_id,
         "route": {
             "prev": prev_actors,
-            "curr": curr,
+            "curr": route_curr,
         },
         "payload": payload,
     }
