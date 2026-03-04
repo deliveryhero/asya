@@ -47,8 +47,8 @@ git aint doctor --only sync            # check .aint/ sync status
 
 | Command | Purpose |
 |---------|---------|
-| `summarize` | Generate structured project status (`--output txt\|md`, `--brief`) |
-| `summary` | Alias for `summarize` |
+| `summary` | Generate structured project status (`--output txt\|md`, `--brief`) |
+| `summary` | Alias for `summary` |
 | `status` | Alias for `summary` |
 
 All commands support `--output json`. Run `git aint <cmd> --help` for full options.

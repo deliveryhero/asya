@@ -2,8 +2,8 @@
 # whats-next: show unblocked tasks ready to work on
 #
 # Usage:
-#   git aint whats-next                    # human: peeped + deps clear
-#   git aint whats-next --for agent        # agent: slopped + deps clear
+#   git aint whats-next                    # human: open + deps clear
+#   git aint whats-next --for agent        # agent: open + deps clear
 #   git aint whats-next --for human --epic init  # scoped to epic
 
 FOR="human"
@@ -30,10 +30,10 @@ done
 
 case "$FOR" in
   human)
-    STATUS="peeped"
+    STATUS="open"
     ;;
   agent)
-    STATUS="slopped"
+    STATUS="open"
     ;;
   *)
     echo "error: --for must be 'human' or 'agent', got '$FOR'" >&2

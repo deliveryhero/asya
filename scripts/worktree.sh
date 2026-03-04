@@ -39,16 +39,38 @@ if [ "$subcmd" = "list" ] || [ "$subcmd" = "ls" ]; then
         ;;
     esac
   done
+elif [ "$subcmd" = "status" ] || [ "$subcmd" = "st" ]; then
+  # Show uncommitted changes in each managed worktree via git aint exec
+  wt_dir=$(git config aint.worktree-dir 2>/dev/null || echo ".worktrees")
+  repo_root=$(git rev-parse --show-toplevel) || exit 1
+  wt_base="$repo_root/$wt_dir"
+  [ -d "$wt_base" ] || { echo "No worktrees found"; exit 0; }
+
+  # Find aints that have a worktree tag
+  git aint list --output json --status all 2>/dev/null | python3 -c "
+import json, sys
+aints = json.load(sys.stdin)
+for a in aints:
+    tags = a.get('tags', [])
+    wt = next((t['value'] for t in tags if t.get('key') == 'worktree'), None)
+    if wt:
+        print(a['id'])
+" | while read -r ref; do
+    echo "[$ref]:"
+    git aint exec "$ref" -- git status --short 2>/dev/null | sed 's/^/  /'
+    echo ""
+  done
 elif [ "$subcmd" = "remove" ] || [ "$subcmd" = "rm" ]; then
   ref="$1"; shift
   repo_root=$(git rev-parse --show-toplevel) || exit 1
   wt_pattern=$(git aint get "$ref" --format "{config:worktree-pattern}") || exit 1
-  wt_dir="$repo_root/$(git config aint.worktree-dir 2>/dev/null || echo '.worktrees')/$wt_pattern"
+  wt_rel="$(git config aint.worktree-dir 2>/dev/null || echo '.worktrees')/$wt_pattern"
+  wt_dir="$repo_root/$wt_rel"
   branch=$(git aint get "$ref" --format "{config:branch-pattern}") || exit 1
   git worktree remove "$wt_dir" "$@" || exit 1
-  git aint update "$ref" --rm-tag "worktree:$wt_dir" --rm-tag "branch:$branch" || exit 1
+  git aint update "$ref" --rm-tag "worktree:$wt_rel" --rm-tag "branch:$branch" || exit 1
   echo "Removed worktree for [$ref]"
 else
-  echo "usage: git aint worktree <list|remove> [ref]" >&2
+  echo "usage: git aint worktree <list|status|remove> [args]" >&2
   exit 1
 fi
