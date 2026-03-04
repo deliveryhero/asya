@@ -34,9 +34,12 @@ ABI Protocol:
 
 Handler Behavior:
 - Accepts any status.phase value (no strict validation)
+- Fan-in partials (x-asya-fan-in header): silently consumed, no checkpoint or hooks
+  (these are accumulating slices that should not produce visible results)
 - Fire-and-forget fan-out children (parent_id set, no x-asya-fan-in header): skip hooks by default
   unless ASYA_SINK_FANOUT_HOOKS=true
-- Fan-in partials (x-asya-fan-in header): always run hooks (aggregation handled by caller)
+- x-asya-origin-id header: when present, used as the checkpoint filename (instead of envelope ID)
+  so the merged fan-in result is stored under the original task ID
 - If ASYA_SINK_HOOKS is set and hooks should run: routes message to hooks via ABI SET
 - If no hooks (or hooks skipped): yields payload (message passes to sump directly)
 """
@@ -71,6 +74,17 @@ def sink_handler(payload: dict[str, Any]) -> Generator[tuple | dict[str, Any], A
         f"Processing sink for message {message_id}, phase={phase}, fan_in={has_fan_in}, parent_id={has_parent_id}"
     )
 
+    # Fan-in partials (accumulating slices) are silently consumed.
+    # They arrive at x-sink because the sidecar routes empty responses here,
+    # but they should not produce checkpoints or gateway reports.
+    if has_fan_in:
+        logger.info(f"Fan-in partial (x-asya-fan-in header), suppressing for message {message_id}")
+        return
+
+    # Use x-asya-origin-id header (set by the fan-in aggregator on merged results)
+    # as the checkpoint filename so the result is stored under the original task ID.
+    checkpoint_id = headers.get("x-asya-origin-id", "") or message_id
+
     if ASYA_PERSISTENCE_MOUNT:
         try:
             from asya_crew.checkpointer import handler
@@ -78,7 +92,7 @@ def sink_handler(payload: dict[str, Any]) -> Generator[tuple | dict[str, Any], A
             route: dict[str, Any] = yield "GET", ".route"
             handler(
                 payload,
-                message_id=message_id,
+                message_id=checkpoint_id,
                 parent_id=parent_id,
                 phase=phase,
                 route_prev=route.get("prev", []),

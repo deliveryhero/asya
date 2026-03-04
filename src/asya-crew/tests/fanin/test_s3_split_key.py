@@ -47,6 +47,7 @@ def make_envelope(
     slice_count: int,
     payload: dict,
     aggregation_key: str = "/results",
+    route_next: list[str] | None = None,
 ) -> dict:
     """Build a fan-in envelope for testing."""
     return {
@@ -60,6 +61,7 @@ def make_envelope(
                 "aggregation_key": aggregation_key,
             },
         },
+        "route": {"next": route_next or []},
         "payload": payload,
     }
 
@@ -68,29 +70,40 @@ def call_aggregator(msg: dict, base_dir: str) -> tuple[dict | None, list[tuple]]
     """Drive the aggregator generator with ABI protocol simulation.
 
     Returns (emitted_payload, abi_commands) where abi_commands is a list of
-    ABI tuples yielded by the generator (e.g., GET, DEL verbs).
+    ABI tuples yielded by the generator (e.g., GET, SET, DEL verbs).
     """
     from asya_crew.fanin.s3_split_key import aggregator
 
     fan_in_header = msg["headers"]["x-asya-fan-in"]
+    route_next = msg.get("route", {}).get("next", [])
     gen = aggregator(msg["payload"], _base_dir=base_dir)
 
-    # First yield: ("GET", ".headers.x-asya-fan-in")
-    cmd = next(gen)
-    assert isinstance(cmd, tuple)
-    assert cmd == ("GET", ".headers.x-asya-fan-in"), f"Expected GET .headers.x-asya-fan-in, got {cmd}"
+    def resolve_get(path: str):
+        if path == ".headers.x-asya-fan-in":
+            return fan_in_header
+        if path == ".route.next":
+            return route_next
+        raise ValueError(f"Unknown GET path in test driver: {path}")
 
     emitted_payload = None
-    abi_commands: list[tuple[str, ...]] = [cmd]
+    abi_commands: list[tuple[str, ...]] = []
+
     try:
-        yielded = gen.send(fan_in_header)
+        yielded = next(gen)
         while True:
             if isinstance(yielded, dict):
                 emitted_payload = yielded
                 yielded = next(gen)
             elif isinstance(yielded, tuple):
                 abi_commands.append(yielded)
-                yielded = next(gen)
+                verb = yielded[0]
+                if verb == "GET":
+                    val = resolve_get(yielded[1])
+                    yielded = gen.send(val)
+                elif verb in ("SET", "DEL"):
+                    yielded = next(gen)
+                else:
+                    raise RuntimeError(f"Unknown ABI verb: {verb}")
             else:
                 raise RuntimeError(f"Unexpected yield: {yielded}")
     except StopIteration:
@@ -310,7 +323,7 @@ def test_concurrent_completion_exactly_once(tmp_path):
 
 
 def test_del_strips_fan_in_header(tmp_path):
-    """Aggregator yields DEL for x-asya-fan-in before emitting merged payload."""
+    """Aggregator yields DEL for x-asya-fan-in and SET for origin-id before emitting."""
     logger.info("=== test_del_strips_fan_in_header ===")
 
     base_dir = str(tmp_path)
@@ -331,7 +344,9 @@ def test_del_strips_fan_in_header(tmp_path):
     assert result["results"] == [sub_result]
 
     assert ("GET", ".headers.x-asya-fan-in") in abi_commands
+    assert ("GET", ".route.next") in abi_commands
     assert ("DEL", ".headers.x-asya-fan-in") in abi_commands
+    assert ("SET", ".headers.x-asya-origin-id", origin_id) in abi_commands
 
     logger.info("=== test_del_strips_fan_in_header: PASSED ===")
 
@@ -428,3 +443,59 @@ def test_merged_payload_preserves_parent_fields(tmp_path):
     assert result["results"] == [sub_result]
 
     logger.info("=== test_merged_payload_preserves_parent_fields: PASSED ===")
+
+
+def test_parent_route_restored_on_emission(tmp_path):
+    """Merged result restores the parent's route.next via ABI SET."""
+    logger.info("=== test_parent_route_restored_on_emission ===")
+
+    base_dir = str(tmp_path)
+    origin_id = "test-origin-012"
+    slice_count = 2
+
+    parent_payload = {"task": "route-restore"}
+    sub_result = {"data": "processed"}
+
+    # Parent has route.next pointing to the summarizer
+    msg0 = make_envelope(origin_id, 0, slice_count, parent_payload, route_next=["summarizer"])
+    call_aggregator(msg0, base_dir)
+
+    # Child has empty route.next (sub-agent → aggregator path)
+    msg1 = make_envelope(origin_id, 1, slice_count, sub_result, route_next=[])
+    result, abi_commands = call_aggregator(msg1, base_dir)
+
+    assert result is not None
+    assert result["task"] == "route-restore"
+    assert result["results"] == [sub_result]
+
+    # The parent route should be restored before emission
+    assert ("SET", ".route.next", ["summarizer"]) in abi_commands
+
+    logger.info("=== test_parent_route_restored_on_emission: PASSED ===")
+
+
+def test_parent_route_not_set_when_empty(tmp_path):
+    """When parent route.next is empty, no SET .route.next is emitted."""
+    logger.info("=== test_parent_route_not_set_when_empty ===")
+
+    base_dir = str(tmp_path)
+    origin_id = "test-origin-013"
+    slice_count = 2
+
+    parent_payload = {"task": "no-route"}
+    sub_result = {"data": "done"}
+
+    # Parent has empty route.next
+    msg0 = make_envelope(origin_id, 0, slice_count, parent_payload, route_next=[])
+    call_aggregator(msg0, base_dir)
+
+    msg1 = make_envelope(origin_id, 1, slice_count, sub_result, route_next=[])
+    result, abi_commands = call_aggregator(msg1, base_dir)
+
+    assert result is not None
+
+    # No SET for route.next when parent had empty route
+    set_route_cmds = [c for c in abi_commands if c[0] == "SET" and c[1] == ".route.next"]
+    assert len(set_route_cmds) == 0
+
+    logger.info("=== test_parent_route_not_set_when_empty: PASSED ===")

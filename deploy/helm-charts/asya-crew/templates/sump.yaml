@@ -18,8 +18,8 @@ spec:
       asya.sh/transport: {{ $sump.transport }}
   transport: {{ $sump.transport }}
   {{- if .Values.persistence.enabled }}
-  overlays:
-    - {{ include "asya-crew.persistence.overlayName" . }}
+  stateProxy:
+    {{- include "asya-crew.persistence.stateProxy" . | nindent 4 }}
   {{- end }}
 
   {{- with $sump.sidecar }}

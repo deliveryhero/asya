@@ -209,8 +209,8 @@ def test_fan_out_child_runs_hooks_when_enabled(monkeypatch):
     assert ("SET", ".route.next", ["checkpoint-s3"]) in abi_commands
 
 
-def test_fan_in_partial_runs_hooks(monkeypatch):
-    """Fan-in partial: x-asya-fan-in header -> always run hooks."""
+def test_fan_in_partial_suppressed(monkeypatch):
+    """Fan-in partial: x-asya-fan-in header -> silently consumed, no checkpoint or hooks."""
     monkeypatch.setenv("ASYA_SINK_HOOKS", "checkpoint-s3")
 
     if "asya_crew.sink" in sys.modules:
@@ -223,8 +223,11 @@ def test_fan_in_partial_runs_hooks(monkeypatch):
     )
     result, abi_commands = drive_sink({"shard": 1}, ctx)
 
-    assert result == {"shard": 1}
-    assert ("SET", ".route.next", ["checkpoint-s3"]) in abi_commands
+    # Fan-in partials produce 0 frames (silently consumed)
+    assert result is None
+    # No SET commands (no hooks, no routing)
+    set_commands = [c for c in abi_commands if c[0] == "SET"]
+    assert len(set_commands) == 0
 
 
 def test_missing_phase_defaults_to_unknown(monkeypatch):
@@ -261,10 +264,74 @@ def test_persistence_calls_checkpointer(tmp_path, monkeypatch):
     get_paths = [c[1] for c in abi_commands if c[0] == "GET"]
     assert ".route" in get_paths
 
-    # Verify file was written
+    # Verify file was written with envelope message_id in filename
     json_files = []
     for dirpath, _, filenames in os.walk(mount_path):
         for f in filenames:
             if f.endswith(".json"):
                 json_files.append(os.path.join(dirpath, f))
     assert len(json_files) == 1
+    assert "test-persist" in json_files[0]
+
+
+def test_persistence_uses_origin_id_when_present(tmp_path, monkeypatch):
+    """When x-asya-origin-id header is set, checkpointer uses it as filename."""
+    mount_path = str(tmp_path / "checkpoints")
+    os.makedirs(mount_path)
+    monkeypatch.setenv("ASYA_PERSISTENCE_MOUNT", mount_path)
+
+    if "asya_crew.sink" in sys.modules:
+        del sys.modules["asya_crew.sink"]
+    if "asya_crew.checkpointer" in sys.modules:
+        del sys.modules["asya_crew.checkpointer"]
+
+    ctx = make_abi_context(
+        msg_id="child-envelope-id",
+        phase="succeeded",
+        route_prev=["aggregator", "summarizer"],
+        route_curr="",
+        headers={"x-asya-origin-id": "original-task-id"},
+    )
+    result, _ = drive_sink({"result": "merged"}, ctx)
+
+    assert result == {"result": "merged"}
+
+    # Verify file uses origin-id (not child envelope ID) in filename
+    json_files = []
+    for dirpath, _, filenames in os.walk(mount_path):
+        for f in filenames:
+            if f.endswith(".json"):
+                json_files.append(os.path.join(dirpath, f))
+    assert len(json_files) == 1
+    assert "original-task-id" in json_files[0]
+    assert "child-envelope-id" not in json_files[0]
+
+
+def test_fan_in_partial_skips_persistence(tmp_path, monkeypatch):
+    """Fan-in partials skip checkpoint even when ASYA_PERSISTENCE_MOUNT is set."""
+    mount_path = str(tmp_path / "checkpoints")
+    os.makedirs(mount_path)
+    monkeypatch.setenv("ASYA_PERSISTENCE_MOUNT", mount_path)
+
+    if "asya_crew.sink" in sys.modules:
+        del sys.modules["asya_crew.sink"]
+    if "asya_crew.checkpointer" in sys.modules:
+        del sys.modules["asya_crew.checkpointer"]
+
+    ctx = make_abi_context(
+        msg_id="test-fanin-persist",
+        phase="partial",
+        headers={"x-asya-fan-in": {"origin_id": "abc", "slice_index": 0}},
+    )
+    result, _ = drive_sink({"shard": 1}, ctx)
+
+    # Silently consumed
+    assert result is None
+
+    # No checkpoint file written
+    json_files = []
+    for dirpath, _, filenames in os.walk(mount_path):
+        for f in filenames:
+            if f.endswith(".json"):
+                json_files.append(os.path.join(dirpath, f))
+    assert len(json_files) == 0

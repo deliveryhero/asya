@@ -287,6 +287,8 @@ persistence:
     bucket: "" # bucket name (required when enabled)
     endpoint: "" # custom S3 endpoint for MinIO/LocalStack (S3 only)
     region: "" # AWS region (S3 only)
+    accessKey: "" # AWS access key (S3 only, for dev/LocalStack; use IRSA in production)
+    secretKey: "" # AWS secret key (S3 only, for dev/LocalStack; use IRSA in production)
     project: "" # GCP project ID (GCS only)
     emulatorHost: "" # GCS emulator host:port (GCS only)
   connector:

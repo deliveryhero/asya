@@ -1,0 +1,38 @@
+---
+# research-flow-summarizer: post-aggregation summarizer for the research_flow.
+# Receives the merged payload from the fan-in aggregator and adds a summary.
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: research-flow-summarizer
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "asya-test-flows.labels" . | nindent 4 }}
+    asya.sh/flow: research-flow
+    asya.sh/actor-type: handler
+spec:
+  actor: research-flow-summarizer
+  compositionSelector:
+    matchLabels:
+      asya.sh/transport: {{ .Values.transport }}
+  transport: {{ .Values.transport }}
+
+  scaling:
+    enabled: {{ .Values.scaling.enabled }}
+    minReplicas: {{ .Values.scaling.minReplicas }}
+    maxReplicas: {{ .Values.scaling.maxReplicas }}
+    pollingInterval: {{ .Values.scaling.pollingInterval }}
+    cooldownPeriod: {{ .Values.scaling.cooldownPeriod }}
+    queueLength: {{ .Values.scaling.queueLength }}
+
+  workload:
+    kind: Deployment
+    template:
+      spec:
+        containers:
+        - name: asya-runtime
+          image: {{ .Values.workload.image }}
+          imagePullPolicy: {{ .Values.workload.imagePullPolicy }}
+          env:
+          - name: ASYA_HANDLER
+            value: asya_testing.flows.research_flow.flow.summarizer

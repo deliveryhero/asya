@@ -23,8 +23,10 @@ results list is placed inside the parent payload.
 
 The handler reads x-asya-fan-in via the ABI yield protocol:
     fan_in = yield "GET", ".headers.x-asya-fan-in"
-Before emitting the merged payload, the header is deleted:
-    yield "DEL", ".headers.x-asya-fan-in"
+Before emitting the merged payload:
+    - The parent's route.next is restored (saved from slice 0)
+    - The x-asya-fan-in header is deleted
+    - The x-asya-origin-id header is set to origin_id for downstream tracking
 """
 
 import json
@@ -51,14 +53,20 @@ def aggregator(payload: dict, *, _base_dir: str = "/state/checkpoints/fanin") ->
     Reads x-asya-fan-in via ABI GET verb. Uses the state proxy filesystem at
     _base_dir for durable per-origin state.
 
+    Route restoration: The parent envelope (slice 0) carries the original route.next
+    (e.g. [summarizer, ...]) that the merged result should follow. Since the completing
+    slice may be a child with a different route, the aggregator saves the parent's
+    route.next to a file and restores it before emitting the merged payload.
+
     Args:
         payload: Message payload (slice content for this fan-in message)
         _base_dir: Base directory for state storage (injectable for testing)
 
     Yields:
-        ABI protocol tuples (GET/DEL) and the merged payload dict when complete
+        ABI protocol tuples (GET/SET/DEL) and the merged payload dict when complete
     """
     fan_in = yield "GET", ".headers.x-asya-fan-in"
+    route_next = yield "GET", ".route.next"
     origin_id = fan_in["origin_id"]
     idx = fan_in["slice_index"]
     slice_count = fan_in["slice_count"]
@@ -77,6 +85,13 @@ def aggregator(payload: dict, *, _base_dir: str = "/state/checkpoints/fanin") ->
         logger.info(f"[+] Wrote slice-{idx}.json for origin_id={origin_id}")
     else:
         logger.info(f"[.] Slice-{idx}.json already exists (duplicate delivery), skipping write")
+
+    # Save the parent's route.next so the merged result can continue the pipeline
+    route_path = f"{base}/parent-route.json"
+    if idx == 0 and not os.path.exists(route_path):
+        with open(route_path, "w") as fh:
+            json.dump(route_next, fh)
+        logger.info(f"[+] Saved parent route.next for origin_id={origin_id}")
 
     # Check completeness by counting slice files present
     entries = os.listdir(base)
@@ -109,8 +124,23 @@ def aggregator(payload: dict, *, _base_dir: str = "/state/checkpoints/fanin") ->
     merged_payload = results[0]
     jsonpointer.set_pointer(merged_payload, fan_in["aggregation_key"], results[1:])
 
+    # Restore the parent's route.next so the merged result continues the pipeline.
+    # The completing slice may be a child with route.next=[] (no downstream actors),
+    # but the parent's route.next points to the next actors after the aggregator.
+    route_path = f"{base}/parent-route.json"
+    if os.path.exists(route_path):
+        with open(route_path) as fh:
+            parent_route_next = json.load(fh)
+        if parent_route_next:
+            yield "SET", ".route.next", parent_route_next
+            logger.info(f"[+] Restored parent route.next={parent_route_next} for origin_id={origin_id}")
+
     # Strip the x-asya-fan-in header via ABI DEL verb
     yield "DEL", ".headers.x-asya-fan-in"
+
+    # Set origin_id header so downstream actors (x-sink) can associate
+    # the merged result with the original task.
+    yield "SET", ".headers.x-asya-origin-id", origin_id
 
     # Clean up state directory after successful emission.
     # S3-backed state proxies have no real directories, so rmdir may fail

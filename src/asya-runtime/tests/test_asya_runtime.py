@@ -3159,13 +3159,15 @@ class TestAbiDispatch:
         frames = asya_runtime._drive_generator(gen({}), ctx)
         assert len(frames) == 1
 
-    def test_protocol_error_bad_type(self):
+    def test_non_dict_payload_accepted(self):
+        """Non-dict values (int, str, list) are valid payload frames."""
         def gen(payload):
             yield 42
 
         ctx = self._make_ctx()
-        with pytest.raises(RuntimeError, match="protocol error"):
-            asya_runtime._drive_generator(gen({}), ctx)
+        frames = asya_runtime._drive_generator(gen({}), ctx)
+        assert len(frames) == 1
+        assert frames[0]["payload"] == 42
 
     def test_protocol_error_unknown_verb(self):
         def gen(payload):

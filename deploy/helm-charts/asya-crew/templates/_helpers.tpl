@@ -222,3 +222,52 @@ Persistence overlay labels
 {{- define "asya-crew.persistence.labels" -}}
 helm.sh/chart: {{ include "asya-crew.chart" . }}
 {{- end }}
+
+{{/*
+Persistence stateProxy spec (inline on AsyncActor, bypasses EnvironmentConfig overlay)
+*/}}
+{{- define "asya-crew.persistence.stateProxy" -}}
+{{- $connectorImage := dict "val" .Values.persistence.connector.image }}
+{{- if not $connectorImage.val }}
+  {{- if eq .Values.persistence.backend "s3" }}
+    {{- $_ := set $connectorImage "val" "ghcr.io/deliveryhero/asya-state-proxy-s3-buffered-lww:v1.0.0" }}
+  {{- else if eq .Values.persistence.backend "gcs" }}
+    {{- $_ := set $connectorImage "val" "ghcr.io/deliveryhero/asya-state-proxy-gcs-buffered-lww:v1.0.0" }}
+  {{- end }}
+{{- end }}
+- name: checkpoints
+  mount:
+    path: /state/checkpoints
+  connector:
+    image: {{ $connectorImage.val }}
+    env:
+      - name: STATE_BUCKET
+        value: {{ .Values.persistence.config.bucket | quote }}
+      {{- if eq .Values.persistence.backend "s3" }}
+      {{- with .Values.persistence.config.endpoint }}
+      - name: AWS_ENDPOINT_URL
+        value: {{ . | quote }}
+      {{- end }}
+      {{- with .Values.persistence.config.region }}
+      - name: AWS_REGION
+        value: {{ . | quote }}
+      {{- end }}
+      {{- with .Values.persistence.config.accessKey }}
+      - name: AWS_ACCESS_KEY_ID
+        value: {{ . | quote }}
+      {{- end }}
+      {{- with .Values.persistence.config.secretKey }}
+      - name: AWS_SECRET_ACCESS_KEY
+        value: {{ . | quote }}
+      {{- end }}
+      {{- else if eq .Values.persistence.backend "gcs" }}
+      {{- with .Values.persistence.config.project }}
+      - name: GCS_PROJECT
+        value: {{ . | quote }}
+      {{- end }}
+      {{- with .Values.persistence.config.emulatorHost }}
+      - name: STORAGE_EMULATOR_HOST
+        value: {{ . | quote }}
+      {{- end }}
+      {{- end }}
+{{- end }}

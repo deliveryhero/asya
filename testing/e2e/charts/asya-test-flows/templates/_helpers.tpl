@@ -62,15 +62,17 @@ Flow handler resolution environment variables for research-flow (fan-out/fan-in)
 These env vars allow routers to resolve handler names to actor queue names.
 
 Handler-to-actor name mapping (via ASYA_HANDLER_<ACTOR_NAME_UPPER> env vars):
-  ASYA_HANDLER_START_RESEARCH_FLOW     -> actor "start-research-flow"
-  ASYA_HANDLER_FANOUT_RESEARCH_FLOW_L2 -> actor "fanout-research-flow-l2"
-  ASYA_HANDLER_END_RESEARCH_FLOW       -> actor "end-research-flow"
-  ASYA_HANDLER_RESEARCH_AGENT          -> actor "research-agent"
+  ASYA_HANDLER_START_RESEARCH_FLOW      -> actor "start-research-flow"
+  ASYA_HANDLER_FANOUT_RESEARCH_FLOW_L2  -> actor "fanout-research-flow-l2"
+  ASYA_HANDLER_END_RESEARCH_FLOW        -> actor "end-research-flow"
+  ASYA_HANDLER_RESEARCH_AGENT           -> actor "research-agent"
   ASYA_HANDLER_RESEARCH_FLOW_AGGREGATOR -> actor "research-flow-aggregator"
+  ASYA_HANDLER_RESEARCH_FLOW_SUMMARIZER -> actor "research-flow-summarizer"
 
-resolve("summarizer") matches suffix "summarizer" of handler path
-  "asya_testing.flows.research_flow.flow.summarizer" and returns
-  actor name "research-flow-aggregator" (derived from env key suffix).
+resolve("fanin_research_flow_line_2") -> "research-flow-aggregator"
+  (fan-in destination: crew s3_split_key aggregator)
+resolve("summarizer") -> "research-flow-summarizer"
+  (post-aggregation handler from flow.py)
 */}}
 {{- define "asya-test-flows.research-flow-handler-env" -}}
 - name: ASYA_HANDLER_START_RESEARCH_FLOW
@@ -82,5 +84,7 @@ resolve("summarizer") matches suffix "summarizer" of handler path
 - name: ASYA_HANDLER_RESEARCH_AGENT
   value: asya_testing.flows.research_flow.flow.research_agent
 - name: ASYA_HANDLER_RESEARCH_FLOW_AGGREGATOR
+  value: asya_testing.flows.research_flow.compiled.routers.fanin_research_flow_line_2
+- name: ASYA_HANDLER_RESEARCH_FLOW_SUMMARIZER
   value: asya_testing.flows.research_flow.flow.summarizer
 {{- end }}
