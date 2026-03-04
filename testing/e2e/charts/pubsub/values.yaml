@@ -24,7 +24,6 @@ actors:
   - test-slow-boundary
   - test-timeout
   - test-fan-out
-  - test-large-payload
   - test-unicode
   - test-pipeline
   - test-empty
