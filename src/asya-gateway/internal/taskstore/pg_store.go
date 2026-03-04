@@ -809,27 +809,61 @@ func (s *PgStore) Resume(id string) (*types.Task, error) {
 	return task, nil
 }
 
-// List returns tasks, optionally filtered by status
-func (s *PgStore) List(status *types.TaskStatus) ([]*types.Task, error) {
-	query := `
+// List returns tasks filtered by params with pagination. Returns (tasks, totalCount, error).
+func (s *PgStore) List(params ListParams) ([]*types.Task, int, error) {
+	// Build dynamic WHERE clause
+	var conditions []string
+	var args []any
+	argIdx := 1
+
+	if params.Status != nil {
+		conditions = append(conditions, fmt.Sprintf("status = $%d", argIdx))
+		args = append(args, *params.Status)
+		argIdx++
+	}
+	if params.ContextID != "" {
+		conditions = append(conditions, fmt.Sprintf("context_id = $%d", argIdx))
+		args = append(args, params.ContextID)
+		argIdx++
+	}
+
+	whereClause := ""
+	if len(conditions) > 0 {
+		whereClause = " WHERE " + conditions[0]
+		for _, c := range conditions[1:] {
+			whereClause += " AND " + c
+		}
+	}
+
+	// Count query for totalCount
+	countQuery := "SELECT COUNT(*) FROM tasks" + whereClause
+	var totalCount int
+	if err := s.pool.QueryRow(s.ctx, countQuery, args...).Scan(&totalCount); err != nil {
+		return nil, 0, fmt.Errorf("failed to count tasks: %w", err)
+	}
+
+	// Data query with pagination
+	dataQuery := `
 		SELECT id, context_id, status, payload, result, error, timeout_seconds, deadline,
 		       remaining_timeout_sec, progress_percent, current_actor_name, message,
 		       pause_metadata, actors_completed, total_actors,
 		       route_prev, route_curr, route_next,
 		       created_at, updated_at
-		FROM tasks`
-	var args []any
+		FROM tasks` + whereClause + " ORDER BY created_at DESC"
 
-	if status != nil {
-		query += " WHERE status = $1"
-		args = []any{*status}
+	if params.Limit > 0 {
+		dataQuery += fmt.Sprintf(" LIMIT $%d", argIdx)
+		args = append(args, params.Limit)
+		argIdx++
+	}
+	if params.Offset > 0 {
+		dataQuery += fmt.Sprintf(" OFFSET $%d", argIdx)
+		args = append(args, params.Offset)
 	}
 
-	query += " ORDER BY created_at DESC"
-
-	rows, err := s.pool.Query(s.ctx, query, args...)
+	rows, err := s.pool.Query(s.ctx, dataQuery, args...)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list tasks: %w", err)
+		return nil, 0, fmt.Errorf("failed to list tasks: %w", err)
 	}
 	defer rows.Close()
 
@@ -851,17 +885,17 @@ func (s *PgStore) List(status *types.TaskStatus) ([]*types.Task, error) {
 			&task.CreatedAt, &task.UpdatedAt,
 		)
 		if err != nil {
-			return nil, fmt.Errorf("failed to scan task: %w", err)
+			return nil, 0, fmt.Errorf("failed to scan task: %w", err)
 		}
 
 		if payloadJSON != nil {
 			if err := json.Unmarshal(payloadJSON, &task.Payload); err != nil {
-				return nil, fmt.Errorf("failed to unmarshal payload for task %s: %w", task.ID, err)
+				return nil, 0, fmt.Errorf("failed to unmarshal payload for task %s: %w", task.ID, err)
 			}
 		}
 		if resultJSON != nil {
 			if err := json.Unmarshal(resultJSON, &task.Result); err != nil {
-				return nil, fmt.Errorf("failed to unmarshal result for task %s: %w", task.ID, err)
+				return nil, 0, fmt.Errorf("failed to unmarshal result for task %s: %w", task.ID, err)
 			}
 		}
 		if pauseMetadataJSON != nil {
@@ -874,7 +908,7 @@ func (s *PgStore) List(status *types.TaskStatus) ([]*types.Task, error) {
 		tasks = append(tasks, &task)
 	}
 
-	return tasks, nil
+	return tasks, totalCount, nil
 }
 
 // isFinal checks if a status is final

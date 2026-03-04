@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/deliveryhero/asya/asya-gateway/internal/queue"
+	"github.com/deliveryhero/asya/asya-gateway/internal/taskstore"
 	"github.com/deliveryhero/asya/asya-gateway/pkg/types"
 )
 
@@ -48,7 +49,9 @@ func (s *mockTaskStore) IsActive(id string) bool { return false }
 
 func (s *mockTaskStore) Resume(id string) (*types.Task, error) { return nil, nil }
 
-func (s *mockTaskStore) List(status *types.TaskStatus) ([]*types.Task, error) { return nil, nil }
+func (s *mockTaskStore) List(params taskstore.ListParams) ([]*types.Task, int, error) {
+	return nil, 0, nil
+}
 
 // mockQueueClient implements queue.Client with all no-ops
 type mockQueueClient struct{}

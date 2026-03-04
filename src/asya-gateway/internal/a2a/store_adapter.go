@@ -3,6 +3,7 @@ package a2a
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -75,15 +76,39 @@ func (a *StoreAdapter) Get(ctx context.Context, taskID a2alib.TaskID) (*a2alib.T
 	return a2aTask, version, nil
 }
 
-// List translates status filter, calls internal.List, and converts results.
+// List translates status filter, calls internal.List with pagination, and converts results.
 func (a *StoreAdapter) List(ctx context.Context, req *a2alib.ListTasksRequest) (*a2alib.ListTasksResponse, error) {
-	var statusFilter *types.TaskStatus
-	if req.Status != "" {
-		status := FromA2AState(req.Status)
-		statusFilter = &status
+	// Clamp PageSize to 1-100, default 50
+	pageSize := req.PageSize
+	if pageSize <= 0 {
+		pageSize = 50
+	}
+	if pageSize > 100 {
+		pageSize = 100
 	}
 
-	tasks, err := a.internal.List(statusFilter)
+	// Parse PageToken as offset integer
+	offset := 0
+	if req.PageToken != "" {
+		parsed, err := strconv.Atoi(req.PageToken)
+		if err != nil {
+			return nil, fmt.Errorf("invalid page_token: %w", err)
+		}
+		offset = parsed
+	}
+
+	params := taskstore.ListParams{
+		ContextID: req.ContextID,
+		Limit:     pageSize,
+		Offset:    offset,
+	}
+
+	if req.Status != "" {
+		status := FromA2AState(req.Status)
+		params.Status = &status
+	}
+
+	tasks, totalCount, err := a.internal.List(params)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list tasks: %w", err)
 	}
@@ -93,10 +118,18 @@ func (a *StoreAdapter) List(ctx context.Context, req *a2alib.ListTasksRequest) (
 		a2aTasks = append(a2aTasks, internalToA2ATask(task))
 	}
 
+	// Calculate NextPageToken
+	nextPageToken := ""
+	nextOffset := offset + pageSize
+	if nextOffset < totalCount {
+		nextPageToken = strconv.Itoa(nextOffset)
+	}
+
 	return &a2alib.ListTasksResponse{
-		Tasks:     a2aTasks,
-		TotalSize: len(a2aTasks),
-		PageSize:  len(a2aTasks),
+		Tasks:         a2aTasks,
+		TotalSize:     totalCount,
+		PageSize:      pageSize,
+		NextPageToken: nextPageToken,
 	}, nil
 }
 

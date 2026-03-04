@@ -3,6 +3,7 @@ package taskstore
 import (
 	"errors"
 	"fmt"
+	"sort"
 	"sync"
 	"time"
 
@@ -395,19 +396,44 @@ func (s *Store) Resume(id string) (*types.Task, error) {
 	return task, nil
 }
 
-// List returns all tasks, optionally filtered by status
-func (s *Store) List(status *types.TaskStatus) ([]*types.Task, error) {
+// List returns tasks filtered by params with pagination. Returns (tasks, totalCount, error).
+func (s *Store) List(params ListParams) ([]*types.Task, int, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	var result []*types.Task
+	// Collect matching tasks
+	var matched []*types.Task
 	for _, task := range s.tasks {
-		if status != nil && task.Status != *status {
+		if params.Status != nil && task.Status != *params.Status {
 			continue
 		}
-		result = append(result, task)
+		if params.ContextID != "" && task.ContextID != params.ContextID {
+			continue
+		}
+		matched = append(matched, task)
 	}
-	return result, nil
+
+	// Sort by CreatedAt descending for deterministic pagination (matches PgStore behavior)
+	sort.Slice(matched, func(i, j int) bool {
+		return matched[i].CreatedAt.After(matched[j].CreatedAt)
+	})
+
+	totalCount := len(matched)
+
+	// Apply offset
+	if params.Offset > 0 {
+		if params.Offset >= len(matched) {
+			return []*types.Task{}, totalCount, nil
+		}
+		matched = matched[params.Offset:]
+	}
+
+	// Apply limit
+	if params.Limit > 0 && params.Limit < len(matched) {
+		matched = matched[:params.Limit]
+	}
+
+	return matched, totalCount, nil
 }
 
 // isFinal checks if a status is final (must hold lock)
