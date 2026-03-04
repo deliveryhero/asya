@@ -3,7 +3,7 @@
 E2E tests for Gateway routing and MCP protocol.
 
 Tests gateway functionality in a real Kubernetes environment:
-- Dynamic route modification via VFS
+- Dynamic route modification via ABI protocol
 - Route validation and error handling
 - Concurrent requests with different routes
 - MCP SSE streaming robustness
@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 @pytest.mark.chaos
 @pytest.mark.xdist_group(name="chaos")
-@pytest.mark.skip(reason="Gateway restart causes task timeout - timing issue in test environment")
+@pytest.mark.skip(reason="Gateway restart causes task timeout - timing issue in test environment [oz2o]")
 def test_gateway_restart_during_processing(e2e_helper):
     """
     E2E: Test gateway restart while messages are being processed.

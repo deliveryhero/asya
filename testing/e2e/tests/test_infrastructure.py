@@ -275,32 +275,3 @@ def test_gateway_pod_healthy():
     logger.info(f"[+] Gateway pod is healthy")
 
 
-@pytest.mark.core
-@pytest.mark.order(4)
-@pytest.mark.skipif(
-    require_env("ASYA_TRANSPORT").lower() != "rabbitmq",
-    reason="RabbitMQ test only runs with rabbitmq transport"
-)
-def test_rabbitmq_pod_healthy():
-    """Test that RabbitMQ pod is running."""
-    logger.info("Testing RabbitMQ pod health")
-
-    namespace = require_env("NAMESPACE")
-    label = "app.kubernetes.io/name=rabbitmq"
-
-    pods = get_pod_status(namespace, label)
-
-    assert len(pods) > 0, "No RabbitMQ pods found"
-
-    for pod_name, ready_status, phase, reason in pods:
-        ready_containers = ready_status.split()
-        total_ready = sum(1 for r in ready_containers if r == "true")
-        total_containers = len(ready_containers)
-
-        assert phase == "Running", f"RabbitMQ pod {pod_name} not Running (phase={phase}, reason={reason})"
-        assert total_ready == total_containers, (
-            f"RabbitMQ pod {pod_name} not all containers ready "
-            f"({total_ready}/{total_containers})"
-        )
-
-    logger.info(f"[+] RabbitMQ pod is healthy")

@@ -19,6 +19,10 @@ persistence:
   enabled: true
   size: 2Gi
 
+tests:
+  image: ghcr.io/deliveryhero/asya-testing:latest
+  imagePullPolicy: Never
+
 # Operator transport configuration
 operator:
   transport:
