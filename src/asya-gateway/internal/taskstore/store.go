@@ -40,6 +40,22 @@ func routeTotalActors(route types.Route) int {
 	return total
 }
 
+// applyRouteUpdate copies route fields from the update into the task and
+// recalculates TotalActors / ActorsCompleted / CurrentActorName.
+// Returns true if route fields were present in the update.
+func applyRouteUpdate(task *types.Task, update types.TaskUpdate) bool {
+	if update.Curr == "" && len(update.Prev) == 0 && len(update.Next) == 0 {
+		return false
+	}
+	task.Route.Prev = update.Prev
+	task.Route.Curr = update.Curr
+	task.Route.Next = update.Next
+	task.TotalActors = routeTotalActors(task.Route)
+	task.ActorsCompleted = len(update.Prev)
+	task.CurrentActorName = update.Curr
+	return true
+}
+
 // Create creates a new task
 func (s *Store) Create(task *types.Task) error {
 	s.mu.Lock()
@@ -121,14 +137,7 @@ func (s *Store) Update(update types.TaskUpdate) error {
 	}
 
 	// Update route if any route fields are provided
-	if update.Curr != "" || len(update.Prev) > 0 || len(update.Next) > 0 {
-		task.Route.Prev = update.Prev
-		task.Route.Curr = update.Curr
-		task.Route.Next = update.Next
-		task.TotalActors = routeTotalActors(task.Route)
-		task.ActorsCompleted = len(update.Prev)
-		task.CurrentActorName = update.Curr
-	} else if update.Actor != "" {
+	if !applyRouteUpdate(task, update) && update.Actor != "" {
 		task.CurrentActorName = update.Actor
 	}
 
@@ -174,14 +183,7 @@ func (s *Store) UpdateProgress(update types.TaskUpdate) error {
 	}
 
 	// Update route fields when provided
-	if update.Curr != "" || len(update.Prev) > 0 || len(update.Next) > 0 {
-		task.Route.Prev = update.Prev
-		task.Route.Curr = update.Curr
-		task.Route.Next = update.Next
-		task.TotalActors = routeTotalActors(task.Route)
-		task.ActorsCompleted = len(update.Prev)
-		task.CurrentActorName = update.Curr
-	}
+	applyRouteUpdate(task, update)
 
 	if update.Message != "" {
 		task.Message = update.Message
