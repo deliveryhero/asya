@@ -29,36 +29,40 @@ tasks have been moved to `.closed/`.
 Delivers: a2a-go integration, tools registry, Agent Card, SendMessage,
 SendStreamingMessage, GetTask, SubscribeToTask, A2A-native FLY streaming.
 
+**Status**: Complete (all merged)
+
+| # | Ref | Task | Deps | Status |
+|---|-----|------|------|--------|
+| 1 | `1qtbxr` | DB migration: tools table + new status values | None | Merged |
+| 2 | `1qcmsr` | Import a2a-go v0.3.7 + state mapping | None | Merged |
+| 3 | `1qn6p7` | Tool registry + /mesh/expose API | T1 | Merged |
+| 4 | `1qzr7p` | Message-to-envelope translator | T2 | Merged |
+| 5 | `1qv3q2` | A2AStoreAdapter wrapping PgStore | T2 | Merged |
+| 6 | `1qx70r` | AsyaExecutor + skill resolution | T3, T4, T5 | Merged |
+| 7 | `1qdvt8` | Wire a2a-go handler + Agent Card + endpoint layout | T3, T6 | Merged |
+| 8 | `1q8x33` | Rename /partial → /fly + A2A-native FLY format | T7 | Merged |
+
+## Phase 2: Production Readiness
+
 **Status**: Not started
 
 | # | Ref | Task | Deps |
 |---|-----|------|------|
-| 1 | `1qtbxr` | DB migration: tools table + new status values | None |
-| 2 | `1qcmsr` | Import a2a-go v0.3.7 + state mapping | None |
-| 3 | `1qn6p7` | Tool registry + /mesh/expose API | T1 |
-| 4 | `1qzr7p` | Message-to-envelope translator | T2 |
-| 5 | `1qv3q2` | A2AStoreAdapter wrapping PgStore | T2 |
-| 6 | `1qx70r` | AsyaExecutor + skill resolution | T3, T4, T5 |
-| 7 | `1qdvt8` | Wire a2a-go handler + Agent Card + endpoint layout | T3, T6 |
-| 8 | `1q8x33` | Rename /partial → /fly + A2A-native FLY format | T7 |
-
-## Phase 2: Production Readiness
-
-| # | Task | Description |
-|---|------|-------------|
-| 9 | ListTasks with cursor pagination | Internal TaskStore.List(), context_id/status filtering |
-| 10 | CancelTask + sidecar 410 Gone (1qtug1) | Cancel endpoint, sidecar handles 410 on progress |
-| 11 | Blocking mode | `configuration.blocking: true`, hold connection until terminal |
-| 12 | API Key authentication | `ASYA_A2A_API_KEY` middleware on `{base}/a2a/*` |
-| 13 | Runtime FLY helpers | `fly_text()`, `fly_status()` in `asya_runtime.py` |
+| 9 | `932x` | ListTasks with cursor pagination | None |
+| 10 | `m19w` | CancelTask endpoint | None |
+| 11 | `zr7m` | Blocking mode for SendMessage | None |
+| 12 | `tuw5` | API Key authentication middleware | None |
+| 13 | `8cnd` | Runtime FLY helpers (fly_text, fly_status) | None |
 
 ## Phase 3: Advanced Features
 
-| # | Task | Description |
-|---|------|-------------|
-| 14 | Bearer/JWT authentication | `ASYA_A2A_JWT_*` env vars, JWKS validation |
-| 15 | Extended Agent Card | `GetExtendedAgentCard` with auth-gated details |
-| 16 | GetTask history/artifacts from S3 | Fetch `payload.a2a.task.history` from S3 for paused/completed |
+**Status**: Not started
+
+| # | Ref | Task | Deps |
+|---|-----|------|------|
+| 14 | `7fuy` | Bearer/JWT authentication | T12 (`tuw5`) |
+| 15 | `qf0l` | Extended Agent Card (GetExtendedAgentCard) | T14 (`7fuy`) |
+| 16 | `tgfp` | GetTask history and artifacts from S3 | None |
 
 ## Phase 4: Extended Protocol
 
