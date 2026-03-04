@@ -1,9 +1,14 @@
 package a2a
 
 import (
+	"context"
 	"crypto/subtle"
 	"encoding/json"
 	"net/http"
+	"strings"
+
+	"github.com/MicahParks/keyfunc/v3"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 // Authenticator checks if a request is authenticated.
@@ -20,6 +25,56 @@ type APIKeyAuthenticator struct {
 func (a *APIKeyAuthenticator) Authenticate(r *http.Request) bool {
 	provided := r.Header.Get("X-API-Key")
 	return subtle.ConstantTimeCompare([]byte(provided), []byte(a.Key)) == 1
+}
+
+// JWTAuthenticator validates Bearer tokens using JWKS for key resolution.
+type JWTAuthenticator struct {
+	jwks     keyfunc.Keyfunc
+	cancel   context.CancelFunc
+	issuer   string
+	audience string
+}
+
+// NewJWTAuthenticator creates a JWTAuthenticator that fetches keys from the
+// given JWKS URL. The issuer and audience are validated on every token.
+func NewJWTAuthenticator(jwksURL, issuer, audience string) (*JWTAuthenticator, error) {
+	ctx, cancel := context.WithCancel(context.Background())
+	k, err := keyfunc.NewDefaultCtx(ctx, []string{jwksURL})
+	if err != nil {
+		cancel()
+		return nil, err
+	}
+	return &JWTAuthenticator{
+		jwks:     k,
+		cancel:   cancel,
+		issuer:   issuer,
+		audience: audience,
+	}, nil
+}
+
+// Close releases background resources held by the JWKS fetcher.
+func (j *JWTAuthenticator) Close() {
+	j.cancel()
+}
+
+// Authenticate extracts a Bearer token from the Authorization header and
+// validates it against the JWKS, issuer, and audience.
+func (j *JWTAuthenticator) Authenticate(r *http.Request) bool {
+	authHeader := r.Header.Get("Authorization")
+	if !strings.HasPrefix(authHeader, "Bearer ") {
+		return false
+	}
+	tokenStr := strings.TrimPrefix(authHeader, "Bearer ")
+
+	token, err := jwt.Parse(tokenStr, j.jwks.Keyfunc,
+		jwt.WithIssuer(j.issuer),
+		jwt.WithAudience(j.audience),
+		jwt.WithExpirationRequired(),
+	)
+	if err != nil {
+		return false
+	}
+	return token.Valid
 }
 
 // A2AAuthMiddleware returns middleware that checks all configured authenticators.

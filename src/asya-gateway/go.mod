@@ -4,14 +4,18 @@ go 1.24.4
 
 require (
 	cloud.google.com/go/pubsub v1.50.1
+	github.com/MicahParks/keyfunc/v3 v3.8.0
 	github.com/a2aproject/a2a-go v0.3.7
 	github.com/aws/aws-sdk-go-v2 v1.39.4
 	github.com/aws/aws-sdk-go-v2/config v1.31.15
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.42.11
+	github.com/golang-jwt/jwt/v5 v5.3.1
+	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.7.6
 	github.com/mark3labs/mcp-go v0.41.1
 	github.com/rabbitmq/amqp091-go v1.10.0
 	github.com/stretchr/testify v1.10.0
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
@@ -21,6 +25,7 @@ require (
 	cloud.google.com/go/compute/metadata v0.8.0 // indirect
 	cloud.google.com/go/iam v1.5.2 // indirect
 	cloud.google.com/go/pubsub/v2 v2.0.0 // indirect
+	github.com/MicahParks/jwkset v0.11.0 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.18.19 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.18.11 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.4.11 // indirect
@@ -39,7 +44,6 @@ require (
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/google/s2a-go v0.1.9 // indirect
-	github.com/google/uuid v1.6.0 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.6 // indirect
 	github.com/googleapis/gax-go/v2 v2.15.0 // indirect
 	github.com/invopop/jsonschema v0.13.0 // indirect
@@ -72,5 +76,4 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250811230008-5f3141c8851a // indirect
 	google.golang.org/grpc v1.74.2 // indirect
 	google.golang.org/protobuf v1.36.7 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
