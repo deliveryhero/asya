@@ -11,64 +11,66 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 
-	"github.com/deliveryhero/asya/asya-gateway/internal/config"
 	"github.com/deliveryhero/asya/asya-gateway/internal/queue"
 	"github.com/deliveryhero/asya/asya-gateway/internal/taskstore"
+	"github.com/deliveryhero/asya/asya-gateway/internal/toolstore"
 	"github.com/deliveryhero/asya/asya-gateway/pkg/types"
 )
 
 // ToolHandler is a function that handles MCP tool calls
 type ToolHandler func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error)
 
-// Registry manages dynamic MCP tool registration from configuration
+// Registry manages dynamic MCP tool registration from the DB-backed tool registry
 type Registry struct {
-	config      *config.Config
-	taskStore   taskstore.TaskStore
-	queueClient queue.Client
-	mcpServer   *server.MCPServer
-	handlers    map[string]ToolHandler // Map of tool name -> handler
+	toolRegistry *toolstore.Registry
+	taskStore    taskstore.TaskStore
+	queueClient  queue.Client
+	mcpServer    *server.MCPServer
+	handlers     map[string]ToolHandler // Map of tool name -> handler
 }
 
 // NewRegistry creates a new tool registry
-func NewRegistry(cfg *config.Config, taskStore taskstore.TaskStore, queueClient queue.Client) *Registry {
-	if cfg == nil {
-		cfg = &config.Config{Tools: []config.Tool{}}
-	}
+func NewRegistry(toolRegistry *toolstore.Registry, taskStore taskstore.TaskStore, queueClient queue.Client) *Registry {
 	return &Registry{
-		config:      cfg,
-		taskStore:   taskStore,
-		queueClient: queueClient,
-		handlers:    make(map[string]ToolHandler),
+		toolRegistry: toolRegistry,
+		taskStore:    taskStore,
+		queueClient:  queueClient,
+		handlers:     make(map[string]ToolHandler),
 	}
 }
 
-// RegisterAll registers all tools from config to the MCP server
+// RegisterAll registers all MCP-enabled tools from the tool registry to the MCP server
 func (r *Registry) RegisterAll(mcpServer *server.MCPServer) error {
 	r.mcpServer = mcpServer
 
-	for _, toolDef := range r.config.Tools {
+	if r.toolRegistry == nil {
+		return nil
+	}
+
+	tools := r.toolRegistry.MCPTools()
+	for _, toolDef := range tools {
 		if err := r.registerTool(toolDef); err != nil {
 			return fmt.Errorf("failed to register tool %q: %w", toolDef.Name, err)
 		}
-		log.Printf("Registered tool: %s", toolDef.Name)
+		log.Printf("Registered MCP tool: %s", toolDef.Name)
 	}
 
-	log.Printf("Successfully registered %d tools", len(r.config.Tools))
+	log.Printf("Successfully registered %d MCP tools", len(tools))
 	return nil
 }
 
-// registerTool converts a config.Tool to an MCP tool and registers it
-func (r *Registry) registerTool(toolDef config.Tool) error {
+// registerTool converts a toolstore.Tool to an MCP tool and registers it
+func (r *Registry) registerTool(toolDef toolstore.Tool) error {
 	// Build options for mcp.NewTool
 	options := []mcp.ToolOption{mcp.WithDescription(toolDef.Description)}
 
-	// Add all parameters as options
-	for paramName, param := range toolDef.Parameters {
-		paramOption, err := r.buildParameterOptions(paramName, param)
-		if err != nil {
-			return fmt.Errorf("parameter %q: %w", paramName, err)
+	// Parse parameters JSON Schema and add as a single schema option if present
+	if len(toolDef.Parameters) > 0 {
+		var schema map[string]interface{}
+		if err := json.Unmarshal(toolDef.Parameters, &schema); err == nil {
+			paramOptions := buildParamOptionsFromSchema(schema)
+			options = append(options, paramOptions...)
 		}
-		options = append(options, paramOption)
 	}
 
 	// Create MCP tool with all options
@@ -86,108 +88,117 @@ func (r *Registry) registerTool(toolDef config.Tool) error {
 	return nil
 }
 
+// buildParamOptionsFromSchema converts a JSON Schema object into MCP tool options.
+func buildParamOptionsFromSchema(schema map[string]interface{}) []mcp.ToolOption {
+	var opts []mcp.ToolOption
+
+	properties, _ := schema["properties"].(map[string]interface{})
+	requiredList, _ := schema["required"].([]interface{})
+
+	requiredSet := make(map[string]bool)
+	for _, r := range requiredList {
+		if name, ok := r.(string); ok {
+			requiredSet[name] = true
+		}
+	}
+
+	for name, propRaw := range properties {
+		prop, ok := propRaw.(map[string]interface{})
+		if !ok {
+			continue
+		}
+
+		var paramOptions []mcp.PropertyOption
+
+		if desc, ok := prop["description"].(string); ok && desc != "" {
+			paramOptions = append(paramOptions, mcp.Description(desc))
+		}
+
+		if requiredSet[name] {
+			paramOptions = append(paramOptions, mcp.Required())
+		}
+
+		paramType, _ := prop["type"].(string)
+
+		switch paramType {
+		case "string":
+			if enumVals, ok := prop["enum"].([]interface{}); ok {
+				strs := make([]string, 0, len(enumVals))
+				for _, v := range enumVals {
+					if s, ok := v.(string); ok {
+						strs = append(strs, s)
+					}
+				}
+				paramOptions = append(paramOptions, mcp.Enum(strs...))
+			}
+			opts = append(opts, mcp.WithString(name, paramOptions...))
+		case "number", "integer":
+			opts = append(opts, mcp.WithNumber(name, paramOptions...))
+		case "boolean":
+			opts = append(opts, mcp.WithBoolean(name, paramOptions...))
+		case "array":
+			opts = append(opts, mcp.WithArray(name, paramOptions...))
+		default:
+			opts = append(opts, mcp.WithString(name, paramOptions...))
+		}
+	}
+
+	return opts
+}
+
 // GetToolHandler returns the handler for a given tool name
 func (r *Registry) GetToolHandler(toolName string) ToolHandler {
 	return r.handlers[toolName]
 }
 
-// buildParameterOptions creates the appropriate mcp.WithX option for a parameter
-func (r *Registry) buildParameterOptions(name string, param config.Parameter) (mcp.ToolOption, error) {
-	var paramOptions []mcp.PropertyOption
-
-	// Add description if present
-	if param.Description != "" {
-		paramOptions = append(paramOptions, mcp.Description(param.Description))
-	}
-
-	// Add required flag if true
-	if param.Required {
-		paramOptions = append(paramOptions, mcp.Required())
-	}
-
-	// Build parameter option based on type
-	switch param.Type {
-	case "string":
-		// Add enum if specified
-		if len(param.Options) > 0 {
-			paramOptions = append(paramOptions, mcp.Enum(param.Options...))
-		}
-		return mcp.WithString(name, paramOptions...), nil
-
-	case "number", "integer":
-		return mcp.WithNumber(name, paramOptions...), nil
-
-	case "boolean":
-		return mcp.WithBoolean(name, paramOptions...), nil
-
-	case "array":
-		if param.Items != nil {
-			// Handle typed arrays
-			switch param.Items.Type {
-			case "string":
-				paramOptions = append(paramOptions, mcp.WithStringItems())
-			case "number", "integer":
-				paramOptions = append(paramOptions, mcp.WithNumberItems())
-			}
-		}
-		return mcp.WithArray(name, paramOptions...), nil
-
-	case "object":
-		log.Printf("Warning: object parameter %q uses generic validation", name)
-		return mcp.WithString(name, paramOptions...), nil
-
-	default:
-		return nil, fmt.Errorf("unsupported parameter type: %s", param.Type)
-	}
-}
-
-// createToolHandler creates a tool handler function for the given tool definition
-func (r *Registry) createToolHandler(toolDef config.Tool) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+// createToolHandler creates a tool handler function for the given tool definition.
+// The tool sends the payload to a single entrypoint actor; routing is handled by
+// router actors via ABI yields (Continuation-Passing Style).
+func (r *Registry) createToolHandler(toolDef toolstore.Tool) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		// Resolve route actors
-		actors, err := toolDef.Route.GetActors(r.config.Routes)
-		if err != nil {
-			return mcp.NewToolResultError(fmt.Sprintf("route error: %v", err)), nil
-		}
-
-		// Get tool options (merged with defaults)
-		opts := toolDef.GetOptions(r.config.Defaults)
-
 		// Extract all arguments
 		arguments := request.GetArguments()
 
-		// Validate required parameters
-		for paramName, param := range toolDef.Parameters {
-			if param.Required {
-				if _, ok := arguments[paramName]; !ok {
-					return mcp.NewToolResultError(fmt.Sprintf("missing required parameter: %s", paramName)), nil
+		// Validate required parameters from JSON Schema
+		if len(toolDef.Parameters) > 0 {
+			var schema map[string]interface{}
+			if err := json.Unmarshal(toolDef.Parameters, &schema); err == nil {
+				if requiredList, ok := schema["required"].([]interface{}); ok {
+					for _, r := range requiredList {
+						if paramName, ok := r.(string); ok {
+							if _, exists := arguments[paramName]; !exists {
+								return mcp.NewToolResultError(fmt.Sprintf("missing required parameter: %s", paramName)), nil
+							}
+						}
+					}
 				}
 			}
 		}
 
-		// Create task
-		taskID := uuid.New().String()
-		var routeCurr string
-		var routeNext []string
-		if len(actors) > 0 {
-			routeCurr = actors[0]
-			routeNext = actors[1:]
+		// Resolve timeout
+		timeoutSec := 300 // 5 minutes default
+		if toolDef.TimeoutSec != nil {
+			timeoutSec = *toolDef.TimeoutSec
 		}
+		timeout := time.Duration(timeoutSec) * time.Second
+
+		// Create task with single entrypoint actor (CPS routing)
+		taskID := uuid.New().String()
 		task := &types.Task{
 			ID:     taskID,
 			Status: types.TaskStatusPending,
 			Route: types.Route{
 				Prev: []string{},
-				Curr: routeCurr,
-				Next: routeNext,
+				Curr: toolDef.Actor,
+				Next: []string{},
 			},
 			Payload:    arguments,
-			TimeoutSec: int(opts.Timeout.Seconds()),
+			TimeoutSec: timeoutSec,
 		}
 
 		// Set deadline if timeout is configured
-		if opts.Timeout > 0 {
-			task.Deadline = time.Now().Add(opts.Timeout)
+		if timeout > 0 {
+			task.Deadline = time.Now().Add(timeout)
 		}
 
 		// Store task
@@ -229,13 +240,8 @@ func (r *Registry) createToolHandler(toolDef config.Tool) func(context.Context, 
 		}
 
 		// Add stream endpoint if progress is enabled
-		if opts.Progress {
+		if toolDef.Progress {
 			responseData["stream_url"] = fmt.Sprintf("/mesh/%s/stream", taskID)
-		}
-
-		// Add metadata to response if present
-		if len(opts.Metadata) > 0 {
-			responseData["metadata"] = opts.Metadata
 		}
 
 		// Convert to JSON string for text content
@@ -246,15 +252,4 @@ func (r *Registry) createToolHandler(toolDef config.Tool) func(context.Context, 
 
 		return mcp.NewToolResultText(string(responseJSON)), nil
 	}
-}
-
-// GetToolOptions returns the options for a specific tool by name
-func (r *Registry) GetToolOptions(toolName string) (*config.ToolOptions, error) {
-	for _, tool := range r.config.Tools {
-		if tool.Name == toolName {
-			opts := tool.GetOptions(r.config.Defaults)
-			return &opts, nil
-		}
-	}
-	return nil, fmt.Errorf("tool %q not found", toolName)
 }

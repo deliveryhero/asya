@@ -5,9 +5,9 @@ import (
 
 	"github.com/mark3labs/mcp-go/server"
 
-	"github.com/deliveryhero/asya/asya-gateway/internal/config"
 	"github.com/deliveryhero/asya/asya-gateway/internal/queue"
 	"github.com/deliveryhero/asya/asya-gateway/internal/taskstore"
+	"github.com/deliveryhero/asya/asya-gateway/internal/toolstore"
 )
 
 // Server wraps the mark3labs MCP server
@@ -19,9 +19,8 @@ type Server struct {
 }
 
 // NewServer creates a new MCP server using mark3labs/mcp-go.
-// If cfg is nil, no tools are registered from config (tools can still be
-// registered dynamically via the /mesh/expose API).
-func NewServer(taskStore taskstore.TaskStore, queueClient queue.Client, cfg *config.Config) *Server {
+// Tools are loaded from the DB-backed tool registry (toolstore.Registry).
+func NewServer(taskStore taskstore.TaskStore, queueClient queue.Client, toolRegistry *toolstore.Registry) *Server {
 	s := &Server{
 		taskStore:   taskStore,
 		queueClient: queueClient,
@@ -34,16 +33,21 @@ func NewServer(taskStore taskstore.TaskStore, queueClient queue.Client, cfg *con
 		server.WithToolCapabilities(false), // Tools don't change at runtime
 	)
 
-	// Create registry and register tools from config
-	s.registry = NewRegistry(cfg, taskStore, queueClient)
+	// Create registry that reads from toolstore.Registry
+	s.registry = NewRegistry(toolRegistry, taskStore, queueClient)
 	s.registry.mcpServer = s.mcpServer
 
-	if cfg != nil && len(cfg.Tools) > 0 {
-		if err := s.registry.RegisterAll(s.mcpServer); err != nil {
-			log.Fatalf("Failed to register tools from config: %v", err)
+	if toolRegistry != nil {
+		tools := toolRegistry.MCPTools()
+		if len(tools) > 0 {
+			if err := s.registry.RegisterAll(s.mcpServer); err != nil {
+				log.Fatalf("Failed to register tools from registry: %v", err)
+			}
+		} else {
+			log.Println("MCP server initialized (no MCP-enabled tools registered; use /mesh/expose API for dynamic registration)")
 		}
 	} else {
-		log.Println("MCP server initialized (no config tools; use /mesh/expose API for dynamic registration)")
+		log.Println("MCP server initialized (no tool registry; use /mesh/expose API for dynamic registration)")
 	}
 
 	return s

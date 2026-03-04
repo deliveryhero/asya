@@ -56,13 +56,13 @@ spec:
                               -p {{ include "asya-gateway.databasePort" . }} \
                               -U {{ include "asya-gateway.databaseUsername" . }} \
                               -d {{ include "asya-gateway.databaseName" . }} \
-                              -tAc "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='public' AND table_name IN ('tasks', 'task_updates')")
+                              -tAc "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='public' AND table_name IN ('tasks', 'task_updates', 'tools')")
 
-          if [ "$TABLES_EXIST" -eq 2 ]; then
-            echo "[+] Database schema validated (tasks and task_updates tables exist)"
+          if [ "$TABLES_EXIST" -eq 3 ]; then
+            echo "[+] Database schema validated (tasks, task_updates, tools tables exist)"
           else
             echo "[-] Database schema validation failed!"
-            echo "[-] Expected tables: tasks, task_updates"
+            echo "[-] Expected tables: tasks, task_updates, tools"
             echo "[-] Found $TABLES_EXIST table(s)"
             echo "[-] Please ensure database migrations have been run successfully"
             exit 1
@@ -117,22 +117,12 @@ spec:
           periodSeconds: 10
         resources:
           {{- toYaml .Values.resources | nindent 12 }}
-        volumeMounts:
-        {{- if .Values.routes.createConfigMap }}
-        - name: routes-config
-          mountPath: /config
-          readOnly: true
-        {{- end }}
         {{- with .Values.volumeMounts }}
+        volumeMounts:
           {{- toYaml . | nindent 12 }}
         {{- end }}
-      volumes:
-      {{- if .Values.routes.createConfigMap }}
-      - name: routes-config
-        configMap:
-          name: gateway-routes
-      {{- end }}
       {{- with .Values.volumes }}
+      volumes:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       {{- with .Values.nodeSelector }}

@@ -24,6 +24,3 @@ data:
   {{- end }}
   ASYA_NAMESPACE: {{ .Release.Namespace | quote }}
   {{- end }}
-  {{- if .Values.routes.createConfigMap }}
-  ASYA_CONFIG_PATH: "/config/routes.yaml"
-  {{- end }}

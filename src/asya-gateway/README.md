@@ -19,7 +19,6 @@ go run cmd/gateway/main.go
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `ASYA_CONFIG_PATH` | Tool config file/directory | `""` (uses hardcoded tools) |
 | `ASYA_DATABASE_URL` | PostgreSQL connection string | `""` (uses in-memory store) |
 | `ASYA_GATEWAY_PORT` | HTTP server port | `"8080"` |
 | `ASYA_RABBITMQ_URL` | RabbitMQ connection URL | `"amqp://guest:guest@localhost:5672/"` |
@@ -39,15 +38,22 @@ go run cmd/gateway/main.go
 | Endpoint | Description |
 |----------|-------------|
 | `POST /tools/call` | REST tool invocation (simple JSON API) |
+| `POST /mesh/expose` | Register or update a tool/skill |
+| `GET /mesh/expose` | List all registered tools/skills |
 | `GET /mesh/{id}` | Envelope status |
 | `GET /mesh/{id}/stream` | SSE envelope updates |
 | `POST /mesh/{id}/progress` | Sidecar progress update |
 | `POST /mesh/{id}/final` | End actor final status |
 | `GET /health` | Health check |
 
-## Configurable Tools
+## Tool Registration
 
-Define tools via YAML instead of code. See [config/README.md](config/README.md) for details.
+Tools are registered dynamically via the `/mesh/expose` REST API and stored in PostgreSQL.
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/mesh/expose` | `POST` | Register or update a tool/skill (upsert) |
+| `/mesh/expose` | `GET` | List all registered tools/skills |
 
 ## Database
 

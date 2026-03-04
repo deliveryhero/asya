@@ -6,6 +6,7 @@ import (
 
 	"github.com/deliveryhero/asya/asya-gateway/internal/queue"
 	"github.com/deliveryhero/asya/asya-gateway/internal/taskstore"
+	"github.com/deliveryhero/asya/asya-gateway/internal/toolstore"
 	"github.com/deliveryhero/asya/asya-gateway/pkg/types"
 )
 
@@ -49,5 +50,25 @@ func TestNewServer_Basic(t *testing.T) {
 	mcpServer := server.GetMCPServer()
 	if mcpServer == nil {
 		t.Fatal("GetMCPServer returned nil")
+	}
+}
+
+func TestNewServer_WithToolRegistry(t *testing.T) {
+	taskStore := taskstore.NewStore()
+	queueClient := &MockQueueClient{}
+	registry := toolstore.NewInMemoryRegistry()
+
+	server := NewServer(taskStore, queueClient, registry)
+
+	if server == nil {
+		t.Fatal("NewServer returned nil")
+	}
+
+	if server.mcpServer == nil {
+		t.Fatal("MCP server not initialized")
+	}
+
+	if server.registry == nil {
+		t.Error("Registry should be created")
 	}
 }

@@ -94,24 +94,6 @@ transports:
       projectId: ""
       endpoint: ""
 
-# Gateway routes configuration
-# When createConfigMap is true, chart creates gateway-routes ConfigMap from these values
-routes:
-  createConfigMap: true
-  defaults:
-    progress: true
-    timeout: 30
-  tools: []
-  # Example tool definition:
-  # - name: test_echo
-  #   description: Echo back the input message
-  #   parameters:
-  #     message:
-  #       type: string
-  #       description: Message to echo
-  #       required: true
-  #   route: [test-echo]
-
 # PostgreSQL configuration
 postgresql:
   enabled: true

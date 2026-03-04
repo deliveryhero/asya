@@ -2,12 +2,14 @@ package mcp
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"testing"
 	"time"
 
 	"github.com/deliveryhero/asya/asya-gateway/internal/queue"
 	"github.com/deliveryhero/asya/asya-gateway/internal/taskstore"
+	"github.com/deliveryhero/asya/asya-gateway/internal/toolstore"
 	"github.com/deliveryhero/asya/asya-gateway/pkg/types"
 )
 
@@ -122,8 +124,9 @@ func (m *MockTaskStore) List(params taskstore.ListParams) ([]*types.Task, int, e
 func TestNewRegistry(t *testing.T) {
 	taskStore := taskstore.NewStore()
 	queueClient := &MockQueueClient{}
+	toolRegistry := toolstore.NewInMemoryRegistry()
 
-	registry := NewRegistry(nil, taskStore, queueClient)
+	registry := NewRegistry(toolRegistry, taskStore, queueClient)
 
 	if registry == nil {
 		t.Fatal("Expected non-nil registry")
@@ -143,8 +146,9 @@ func TestNewRegistry(t *testing.T) {
 func TestGetToolHandler(t *testing.T) {
 	taskStore := taskstore.NewStore()
 	queueClient := &MockQueueClient{}
+	toolRegistry := toolstore.NewInMemoryRegistry()
 
-	registry := NewRegistry(nil, taskStore, queueClient)
+	registry := NewRegistry(toolRegistry, taskStore, queueClient)
 
 	t.Run("non-existing tool returns nil", func(t *testing.T) {
 		handler := registry.GetToolHandler("non_existing_tool")
@@ -152,4 +156,76 @@ func TestGetToolHandler(t *testing.T) {
 			t.Error("Expected nil handler for non-existing tool")
 		}
 	})
+}
+
+// TestRegisterAllFromToolRegistry tests that MCP tools are registered from toolstore.Registry
+func TestRegisterAllFromToolRegistry(t *testing.T) {
+	taskStore := taskstore.NewStore()
+	queueClient := &MockQueueClient{}
+	toolRegistry := toolstore.NewInMemoryRegistry()
+
+	ctx := context.Background()
+
+	// Add MCP-enabled tool
+	err := toolRegistry.Upsert(ctx, toolstore.Tool{
+		Name:        "mcp-tool",
+		Actor:       "test-actor",
+		Description: "Test MCP tool",
+		Parameters:  json.RawMessage(`{"type": "object", "properties": {"query": {"type": "string", "description": "Search query"}}, "required": ["query"]}`),
+		MCPEnabled:  true,
+		A2AEnabled:  false,
+	})
+	if err != nil {
+		t.Fatalf("failed to upsert tool: %v", err)
+	}
+
+	// Add A2A-only tool (should NOT be registered for MCP)
+	err = toolRegistry.Upsert(ctx, toolstore.Tool{
+		Name:        "a2a-only-tool",
+		Actor:       "a2a-actor",
+		Description: "A2A only tool",
+		MCPEnabled:  false,
+		A2AEnabled:  true,
+	})
+	if err != nil {
+		t.Fatalf("failed to upsert tool: %v", err)
+	}
+
+	server := NewServer(taskStore, queueClient, toolRegistry)
+
+	handler := server.registry.GetToolHandler("mcp-tool")
+	if handler == nil {
+		t.Error("Expected MCP-enabled tool to be registered")
+	}
+
+	a2aHandler := server.registry.GetToolHandler("a2a-only-tool")
+	if a2aHandler != nil {
+		t.Error("Expected A2A-only tool to NOT be registered as MCP tool")
+	}
+}
+
+// TestBuildParamOptionsFromSchema tests JSON schema parsing for MCP parameters
+func TestBuildParamOptionsFromSchema(t *testing.T) {
+	schema := map[string]interface{}{
+		"type": "object",
+		"properties": map[string]interface{}{
+			"query": map[string]interface{}{
+				"type":        "string",
+				"description": "The search query",
+			},
+			"count": map[string]interface{}{
+				"type": "integer",
+			},
+			"verbose": map[string]interface{}{
+				"type": "boolean",
+			},
+		},
+		"required": []interface{}{"query"},
+	}
+
+	opts := buildParamOptionsFromSchema(schema)
+
+	if len(opts) != 3 {
+		t.Errorf("expected 3 parameter options, got %d", len(opts))
+	}
 }
