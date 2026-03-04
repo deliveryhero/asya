@@ -16,6 +16,7 @@ type Tool struct {
 	MCPEnabled     bool            `json:"mcp_enabled"`
 	A2AEnabled     bool            `json:"a2a_enabled"`
 	A2ATags        []string        `json:"a2a_tags,omitempty"`
+	RouteNext      []string        `json:"route_next,omitempty"`
 	A2AInputModes  []string        `json:"a2a_input_modes,omitempty"`
 	A2AOutputModes []string        `json:"a2a_output_modes,omitempty"`
 	A2AExamples    []string        `json:"a2a_examples,omitempty"`
@@ -27,6 +28,7 @@ type Tool struct {
 type RegisterRequest struct {
 	Name        string          `json:"name"`
 	Actor       string          `json:"actor"`
+	Route       []string        `json:"route,omitempty"`
 	Description string          `json:"description"`
 	Parameters  json.RawMessage `json:"parameters,omitempty"`
 	TimeoutSec  *int            `json:"timeout_sec,omitempty"`

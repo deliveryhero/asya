@@ -1,0 +1,19 @@
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "2"
+
+services:
+  tool-seed:
+    image: postgres:16-alpine
+    restart: "no"
+    logging: *default-logging
+    depends_on:
+      postgres-migrate:
+        condition: service_completed_successfully
+    environment:
+    - PGPASSWORD=postgres
+    volumes:
+    - ./configs/gateway-tools-seed.sql:/seed.sql:ro
+    command: ["psql", "-h", "postgres", "-U", "postgres", "-d", "asya_test", "-f", "/seed.sql"]

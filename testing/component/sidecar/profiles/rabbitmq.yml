@@ -10,6 +10,7 @@ include:
 - path: ../../../shared/compose/rabbitmq.yml
 - path: ../../../shared/compose/minio.yml
 - path: ../../../shared/compose/postgres.yml
+- path: ../../../shared/compose/tool-seed.yml
 
 - path: ../compose/testing-actors.yml
   env_file: .env.rabbitmq
@@ -22,18 +23,15 @@ services:
     env_file: .env.rabbitmq
     environment:
       ASYA_DATABASE_URL: postgres://postgres:postgres@postgres:5432/asya_test?sslmode=disable
-      ASYA_CONFIG_PATH: /etc/asya/routes.yaml
       ASYA_LOG_LEVEL: ${ASYA_LOG_LEVEL:-INFO}
       ASYA_GATEWAY_PORT: 8080
-    volumes:
-    - ../../../shared/compose/configs/gateway-routes.yaml:/etc/asya/routes.yaml:ro
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/health"]
       interval: 5s
       timeout: 3s
       retries: 10
     depends_on:
-      postgres-migrate:
+      tool-seed:
         condition: service_completed_successfully
       rabbitmq:
         condition: service_healthy

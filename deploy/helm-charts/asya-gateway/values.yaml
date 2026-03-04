@@ -123,6 +123,10 @@ migration:
       memory: 128Mi
   backoffLimit: 5
 
+# Tool routes (seeded into database via tool-seed-job)
+routes:
+  tools: []
+
 # External database (if postgresql.enabled=false)
 # Leave host empty to use in-memory store (no persistence)
 externalDatabase:

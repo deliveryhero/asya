@@ -49,10 +49,21 @@ func (h *Handler) handleRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Resolve actor and route_next from either "actor" or "route" field
+	actor := req.Actor
+	var routeNext []string
+	if len(req.Route) > 0 {
+		actor = req.Route[0]
+		if len(req.Route) > 1 {
+			routeNext = req.Route[1:]
+		}
+	}
+
 	// Map RegisterRequest to Tool
 	tool := Tool{
 		Name:        req.Name,
-		Actor:       req.Actor,
+		Actor:       actor,
+		RouteNext:   routeNext,
 		Description: req.Description,
 		Parameters:  req.Parameters,
 		TimeoutSec:  req.TimeoutSec,

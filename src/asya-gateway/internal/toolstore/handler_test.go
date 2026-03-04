@@ -96,6 +96,46 @@ func TestPostUpdatesTool(t *testing.T) {
 	}
 }
 
+func TestPostWithRouteArrayExtractsActorAndRouteNext(t *testing.T) {
+	r := NewInMemoryRegistry()
+	h := NewHandler(r)
+
+	reqBody := RegisterRequest{
+		Name:        "pipeline-tool",
+		Route:       []string{"actor-a", "actor-b", "actor-c"},
+		Description: "Multi-actor pipeline",
+	}
+
+	body, err := json.Marshal(reqBody)
+	if err != nil {
+		t.Fatalf("failed to marshal request: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "/mesh/expose", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	h.HandleExpose(rec, req)
+
+	if rec.Code != http.StatusCreated {
+		t.Errorf("expected status %d, got %d", http.StatusCreated, rec.Code)
+	}
+
+	tool := r.GetByName("pipeline-tool")
+	if tool == nil {
+		t.Fatal("tool not registered")
+	}
+	if tool.Actor != "actor-a" {
+		t.Errorf("expected actor 'actor-a', got '%s'", tool.Actor)
+	}
+	if len(tool.RouteNext) != 2 {
+		t.Fatalf("expected 2 route_next entries, got %d", len(tool.RouteNext))
+	}
+	if tool.RouteNext[0] != "actor-b" || tool.RouteNext[1] != "actor-c" {
+		t.Errorf("expected route_next ['actor-b', 'actor-c'], got %v", tool.RouteNext)
+	}
+}
+
 func TestGetListsAllTools(t *testing.T) {
 	r := NewInMemoryRegistry()
 	h := NewHandler(r)

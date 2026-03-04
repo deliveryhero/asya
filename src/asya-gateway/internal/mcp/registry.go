@@ -182,15 +182,19 @@ func (r *Registry) createToolHandler(toolDef toolstore.Tool) func(context.Contex
 		}
 		timeout := time.Duration(timeoutSec) * time.Second
 
-		// Create task with single entrypoint actor (CPS routing)
+		// Create task with route from tool definition
 		taskID := uuid.New().String()
+		routeNext := toolDef.RouteNext
+		if routeNext == nil {
+			routeNext = []string{}
+		}
 		task := &types.Task{
 			ID:     taskID,
 			Status: types.TaskStatusPending,
 			Route: types.Route{
 				Prev: []string{},
 				Curr: toolDef.Actor,
-				Next: []string{},
+				Next: routeNext,
 			},
 			Payload:    arguments,
 			TimeoutSec: timeoutSec,

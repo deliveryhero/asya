@@ -14,13 +14,10 @@ services:
     - ../envs/.env.${ASYA_TRANSPORT}
     environment:
       ASYA_DATABASE_URL: postgres://postgres:postgres@postgres:5432/asya_test?sslmode=disable
-      ASYA_CONFIG_PATH: /etc/asya/routes.yaml
       ASYA_LOG_LEVEL: ${ASYA_LOG_LEVEL:-INFO}
       ASYA_GATEWAY_PORT: 8080
     ports:
     - "8081:8080"
-    volumes:
-    - ../configs/gateway-routes.yaml:/etc/asya/routes.yaml:ro
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/health"]
       interval: 5s

@@ -2,6 +2,18 @@ include:
 - path: ../../shared/compose/postgres.yml
 
 services:
+  tool-seed:
+    image: postgres:16-alpine
+    restart: "no"
+    depends_on:
+      postgres-migrate:
+        condition: service_completed_successfully
+    environment:
+    - PGPASSWORD=postgres
+    volumes:
+    - ./config/tools-seed.sql:/seed.sql:ro
+    command: ["psql", "-h", "postgres", "-U", "postgres", "-d", "asya_test", "-f", "/seed.sql"]
+
   # Asya Gateway - MCP server under test
   asya-gateway:
     build:
@@ -11,19 +23,11 @@ services:
     - "8089:8089"
     environment:
     - ASYA_GATEWAY_PORT=8089
-    - ASYA_GATEWAY_HOST=0.0.0.0
-    - ASYA_GATEWAY_DB_HOST=postgres
-    - ASYA_GATEWAY_DB_PORT=5432
-    - ASYA_GATEWAY_DB_NAME=asya
-    - ASYA_GATEWAY_DB_USER=asya
-    - ASYA_GATEWAY_DB_PASSWORD=asya
-    - ASYA_CONFIG_PATH=/app/config/tools.yml
+    - ASYA_DATABASE_URL=postgres://postgres:postgres@postgres:5432/asya_test?sslmode=disable
     - ASYA_LOG_LEVEL=${ASYA_LOG_LEVEL:-INFO}
-    volumes:
-    - ./config:/app/config:ro
     depends_on:
-      postgres:
-        condition: service_healthy
+      tool-seed:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:8089/health"]
       interval: 2s
