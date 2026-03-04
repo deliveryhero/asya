@@ -27,7 +27,7 @@ Usage: git aint create [OPTIONS] --title <TITLE>
 
 ```bash
 git aint create --title "Fix auth timeout"
-git aint create --title "Add linting" --in ci-setup --priority 1
+git aint create --title "Add linting" --in ci-setup --priority1
 git aint create --title "Maybe later" --status backlog
 ```
 
@@ -110,31 +110,6 @@ git aint pickup c9x8
 
 ---
 
-### summarize (alias)
-
-Generate structured project status overview.
-
-```
-Usage: git aint summarize [DIR] [OPTIONS]
-```
-
-| Flag | Description | Default |
-|------|-------------|---------|
-| `--output <FORMAT>` | Output format: `txt`, `md` | `txt` |
-| `--brief` | Compact one-line-per-aint output | |
-| `[DIR]` | Scope to a specific directory slug | all dirs |
-
-```bash
-git aint summarize                        # txt, full detail
-git aint summarize --brief                # txt, compact (for hooks)
-git aint summarize --output md            # markdown (for auto-summary.md)
-git aint summarize auth-rework            # single directory
-```
-
-**Aliases:** `summary`, `status`
-
----
-
 ## Other Commands
 
 These are available but less commonly needed by AI agents:
@@ -144,9 +119,7 @@ These are available but less commonly needed by AI agents:
 | `list` | List/filter/search aints (`--status`, `--in`, `--search`, `--view tree`) |
 | `doctor` | Health checks (`--fix` to auto-fix) |
 | `sync` | Pull/commit/push manual changes in `.aint/` |
-| `summarize` | Generate structured project status (`--output txt\|md`, `--brief`) |
-| `summary` | Alias for `summarize` |
-| `status` | Alias for `summary` |
+| `status` | No args: summary. With ref: `get --no-body` |
 | `push` | Push code, create PR via `gh`, set status to pushed |
 
 Run `git aint <command> --help` for full syntax.

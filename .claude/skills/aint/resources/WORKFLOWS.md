@@ -10,8 +10,8 @@ Plan and execute a multi-aint feature.
 
 ```bash
 # Create aints in a grouping directory
-git aint create --title "Design auth schema" --in auth-rework --priority 1
-git aint create --title "Implement login endpoint" --in auth-rework --priority 1
+git aint create --title "Design auth schema" --in auth-rework --priority1
+git aint create --title "Implement login endpoint" --in auth-rework --priority1
 git aint create --title "Add session management" --in auth-rework --priority2
 
 # Create with dependency
@@ -57,7 +57,7 @@ Fast path for small fixes.
 ### Step 1: Create in misc
 
 ```bash
-git aint create --title "Fix null pointer in auth" --priority 1 \
+git aint create --title "Fix null pointer in auth" --priority1 \
   --description "Users see crash on login when session expires"
 ```
 
