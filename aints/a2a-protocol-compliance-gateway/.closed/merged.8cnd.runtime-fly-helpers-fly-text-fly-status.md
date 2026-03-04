@@ -3,6 +3,7 @@ title: "Runtime FLY helpers (fly_text, fly_status)"
 priority: 2 # medium
 ---
 
+
 ## Objective
 
 Add zero-dependency FLY helper functions to `asya_runtime.py` for common A2A streaming patterns.
