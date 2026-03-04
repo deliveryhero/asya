@@ -48,7 +48,7 @@ All commands support `--output json`. Run `git aint <cmd> --help` for full optio
 ## Aint References
 
 - Aint ID: `c9x8` — 4-char base-36 random ID
-- Optional dir-qualified ref: `ci-setup/c9x8`
+- File path: `.aint/aints/ci-setup/active.c9x8.fix-auth.md` (also accepted)
 - Status: `backlog` | `open` | `active` | `pushed` | `merged` | `rejected`
 - Priority: `0` critical, `1` high, `2` medium, `3` low, `4` backlog
 
