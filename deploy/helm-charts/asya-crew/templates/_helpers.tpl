@@ -210,6 +210,15 @@ Resolve image pull policy for DLQ worker
 {{- end }}
 
 {{/*
+Pub/Sub spec fields (gcpProject). Include in AsyncActor spec when gcpProject is set.
+*/}}
+{{- define "asya-crew.pubsub-spec" -}}
+{{- if .Values.gcpProject }}
+gcpProject: {{ .Values.gcpProject }}
+{{- end }}
+{{- end }}
+
+{{/*
 Persistence overlay name
 */}}
 {{- define "asya-crew.persistence.overlayName" -}}

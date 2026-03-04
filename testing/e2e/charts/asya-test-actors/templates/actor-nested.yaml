@@ -8,6 +8,7 @@ metadata:
 spec:
   actor: test-nested
   transport: {{ .Values.transport }}
+  {{- include "asya-test-actors.pubsub-spec" . | nindent 2 }}
   overlays:
   - asya-test-actor
 

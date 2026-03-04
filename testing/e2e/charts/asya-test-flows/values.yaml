@@ -1,4 +1,5 @@
 transport: sqs
+gcpProject: ""
 
 workload:
   image: localhost/asya-runtime:latest

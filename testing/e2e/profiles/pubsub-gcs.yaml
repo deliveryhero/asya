@@ -31,6 +31,7 @@ actors:
     errorsBucket: asya-errors
 
 crew:
+  gcpProject: test-project
   image:
     tag: latest
     pullPolicy: Never

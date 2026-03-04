@@ -3,6 +3,9 @@
 #
 # IMPORTANT: ASYA_HANDLER is pre-configured by the Helm templates and MUST NOT be overridden in values.
 
+# GCP project ID (required for pubsub transport)
+gcpProject: ""
+
 # Global image configuration
 image:
   repository: ghcr.io/deliveryhero/asya-crew

@@ -23,6 +23,15 @@ asya.sh/test-type: flow
 {{- end }}
 
 {{/*
+Pub/Sub spec fields (gcpProject). Include in AsyncActor spec when transport is pubsub.
+*/}}
+{{- define "asya-test-flows.pubsub-spec" -}}
+{{- if and (eq .Values.transport "pubsub") .Values.gcpProject }}
+gcpProject: {{ .Values.gcpProject }}
+{{- end }}
+{{- end }}
+
+{{/*
 Flow handler resolution environment variables for nested-if flow.
 These environment variables allow routers to resolve handler names to actor names.
 */}}
