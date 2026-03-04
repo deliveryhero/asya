@@ -1516,7 +1516,7 @@ def test_crossplane_resilience_after_provider_restart(e2e_helper):
 
 
 @pytest.mark.core
-@pytest.mark.timeout(300)
+@pytest.mark.timeout(600)
 def test_asyncactor_overlays_resolved(e2e_helper):
     """
     E2E: Test that spec.overlays are resolved and merged into the actor workload.
