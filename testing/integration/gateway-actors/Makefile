@@ -28,6 +28,12 @@ PYTEST_OPTS ?= -v -s
 export PYTEST_OPTS
 
 COMPOSE_FILES := -f profiles/$(ASYA_TRANSPORT)-$(ASYA_STORAGE).yml
+
+# Add state proxy overlay for GCS storage
+ifeq ($(ASYA_STORAGE),gcs)
+COMPOSE_FILES += -f compose/crew-gcs-overlay.yml
+endif
+
 COMPOSE_PROJECT := int-gateway-actors-$(ASYA_TRANSPORT)-$(ASYA_STORAGE)
 
 test: clean test-aws test-gcp

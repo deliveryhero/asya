@@ -3,9 +3,10 @@
 Unit tests for sink handler.
 
 Tests the x-sink actor which handles first-layer termination,
-routing to configurable hooks and reporting status via VFS.
+routing to configurable hooks and reporting status via ABI yield protocol.
 """
 
+import copy
 import logging
 import os
 import sys
@@ -19,177 +20,176 @@ logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(name)s - %(leve
 logger = logging.getLogger(__name__)
 
 
-def setup_vfs(tmpdir, msg_id="test-001", phase="succeeded", parent_id="", headers=None):
-    """Create VFS directory structure for testing."""
-    os.makedirs(os.path.join(tmpdir, "route"), exist_ok=True)
-    os.makedirs(os.path.join(tmpdir, "headers"), exist_ok=True)
-    os.makedirs(os.path.join(tmpdir, "status"), exist_ok=True)
+def make_metadata(msg_id="test-001", phase="succeeded", parent_id="", headers=None):
+    """Create ABI metadata dict for testing."""
+    return {
+        "id": msg_id,
+        "parent_id": parent_id,
+        "route": {
+            "prev": [],
+            "curr": "x-sink",
+            "next": [],
+        },
+        "headers": headers or {},
+        "status": {"phase": phase} if phase else {},
+    }
 
-    with open(os.path.join(tmpdir, "id"), "w") as f:
-        f.write(msg_id)
-    with open(os.path.join(tmpdir, "parent_id"), "w") as f:
-        f.write(parent_id)
-    with open(os.path.join(tmpdir, "route", "prev"), "w") as f:
-        f.write("")
-    with open(os.path.join(tmpdir, "route", "curr"), "w") as f:
-        f.write("x-sink")
-    with open(os.path.join(tmpdir, "route", "next"), "w") as f:
-        f.write("")
-    if phase is not None:
-        with open(os.path.join(tmpdir, "status", "phase"), "w") as f:
-            f.write(phase)
 
-    if headers:
-        for key, value in headers.items():
-            with open(os.path.join(tmpdir, "headers", key), "w") as f:
-                f.write(value)
+def drive_abi(gen, metadata):
+    """Drive an ABI generator handler, simulating the runtime's _drive_generator."""
+    meta = copy.deepcopy(metadata)
+    frames = []
+    send_val = None
 
-    return tmpdir
+    while True:
+        try:
+            yielded = gen.send(send_val)
+        except StopIteration:
+            break
+
+        send_val = None
+
+        if yielded is None:
+            continue
+        elif isinstance(yielded, dict):
+            frames.append(yielded)
+        elif isinstance(yielded, tuple):
+            verb = yielded[0]
+            if verb == "GET":
+                send_val = _resolve_path(meta, yielded[1])
+            elif verb == "SET" and len(yielded) >= 3:
+                _set_path(meta, yielded[1], yielded[2])
+
+    return frames, meta
+
+
+def _resolve_path(data, path):
+    """Resolve a dotted ABI path against a metadata dict."""
+    parts = path.lstrip(".").split(".")
+    current = data
+    for part in parts:
+        if isinstance(current, dict) and part in current:
+            current = current[part]
+        else:
+            return None
+    if isinstance(current, dict | list):
+        return copy.deepcopy(current)
+    return current
+
+
+def _set_path(data, path, value):
+    """Set a value at a dotted ABI path in a metadata dict."""
+    parts = path.lstrip(".").split(".")
+    current = data
+    for part in parts[:-1]:
+        current = current[part]
+    current[parts[-1]] = value
 
 
 @pytest.fixture(autouse=True)
-def setup_test_env(tmp_path, monkeypatch):
+def setup_test_env(monkeypatch):
     """Set up test environment before each test."""
     for key in ["ASYA_SINK_HOOKS", "ASYA_SINK_FANOUT_HOOKS", "ASYA_PERSISTENCE_MOUNT"]:
         monkeypatch.delenv(key, raising=False)
 
-    vfs_root = setup_vfs(str(tmp_path))
-    monkeypatch.setenv("ASYA_MSG_ROOT", vfs_root)
+    if "asya_crew.sink" in sys.modules:
+        del sys.modules["asya_crew.sink"]
+
+    yield
 
     if "asya_crew.sink" in sys.modules:
         del sys.modules["asya_crew.sink"]
 
-    yield vfs_root
 
-    if "asya_crew.sink" in sys.modules:
-        del sys.modules["asya_crew.sink"]
-
-
-def test_succeeded_phase_with_hooks(tmp_path, monkeypatch):
+def test_succeeded_phase_with_hooks(monkeypatch):
     """Test sink handler with succeeded phase and hooks configured."""
-    logger.info("=== test_succeeded_phase_with_hooks ===")
-
-    vfs_root = setup_vfs(str(tmp_path), msg_id="test-message-123", phase="succeeded")
-    monkeypatch.setenv("ASYA_MSG_ROOT", vfs_root)
     monkeypatch.setenv("ASYA_SINK_HOOKS", "checkpoint-s3,notify-slack")
 
     if "asya_crew.sink" in sys.modules:
         del sys.modules["asya_crew.sink"]
     from asya_crew.sink import sink_handler
 
-    result = sink_handler({"result": 42})
+    metadata = make_metadata(msg_id="test-message-123", phase="succeeded")
+    frames, meta = drive_abi(sink_handler({"result": 42}), metadata)
 
-    with open(os.path.join(vfs_root, "route", "next")) as f:
-        next_file = f.read()
-    assert next_file == "checkpoint-s3\nnotify-slack"
-    assert result == {"result": 42}
-
-    logger.info("=== test_succeeded_phase_with_hooks: PASSED ===")
+    assert meta["route"]["next"] == ["checkpoint-s3", "notify-slack"]
+    assert len(frames) == 1
+    assert frames[0] == {"result": 42}
 
 
-def test_failed_phase_with_hooks(tmp_path, monkeypatch):
+def test_failed_phase_with_hooks(monkeypatch):
     """Test sink handler with failed phase and hooks configured."""
-    logger.info("=== test_failed_phase_with_hooks ===")
-
-    vfs_root = setup_vfs(str(tmp_path), msg_id="test-message-456", phase="failed")
-    monkeypatch.setenv("ASYA_MSG_ROOT", vfs_root)
     monkeypatch.setenv("ASYA_SINK_HOOKS", "checkpoint-s3")
 
     if "asya_crew.sink" in sys.modules:
         del sys.modules["asya_crew.sink"]
     from asya_crew.sink import sink_handler
 
-    result = sink_handler({})
+    metadata = make_metadata(msg_id="test-message-456", phase="failed")
+    frames, meta = drive_abi(sink_handler({}), metadata)
 
-    with open(os.path.join(vfs_root, "route", "next")) as f:
-        next_file = f.read()
-    assert next_file == "checkpoint-s3"
-    assert result == {}
-
-    logger.info("=== test_failed_phase_with_hooks: PASSED ===")
+    assert meta["route"]["next"] == ["checkpoint-s3"]
+    assert len(frames) == 1
+    assert frames[0] == {}
 
 
-def test_succeeded_phase_no_hooks(tmp_path, monkeypatch):
+def test_succeeded_phase_no_hooks(monkeypatch):
     """Test sink handler with succeeded phase and no hooks configured."""
-    logger.info("=== test_succeeded_phase_no_hooks ===")
-
-    vfs_root = setup_vfs(str(tmp_path), msg_id="test-message-789", phase="succeeded")
-    monkeypatch.setenv("ASYA_MSG_ROOT", vfs_root)
-
     if "asya_crew.sink" in sys.modules:
         del sys.modules["asya_crew.sink"]
     from asya_crew.sink import sink_handler
 
-    result = sink_handler({"result": 100})
+    metadata = make_metadata(msg_id="test-message-789", phase="succeeded")
+    frames, meta = drive_abi(sink_handler({"result": 100}), metadata)
 
-    assert result == {"result": 100}
+    assert len(frames) == 1
+    assert frames[0] == {"result": 100}
 
-    logger.info("=== test_succeeded_phase_no_hooks: PASSED ===")
 
-
-def test_failed_phase_no_hooks(tmp_path, monkeypatch):
+def test_failed_phase_no_hooks(monkeypatch):
     """Test sink handler with failed phase and no hooks configured."""
-    logger.info("=== test_failed_phase_no_hooks ===")
-
-    vfs_root = setup_vfs(str(tmp_path), msg_id="test-message-abc", phase="failed")
-    monkeypatch.setenv("ASYA_MSG_ROOT", vfs_root)
-
     if "asya_crew.sink" in sys.modules:
         del sys.modules["asya_crew.sink"]
     from asya_crew.sink import sink_handler
 
-    result = sink_handler({})
+    metadata = make_metadata(msg_id="test-message-abc", phase="failed")
+    frames, meta = drive_abi(sink_handler({}), metadata)
 
-    assert result == {}
+    assert len(frames) == 1
+    assert frames[0] == {}
 
-    logger.info("=== test_failed_phase_no_hooks: PASSED ===")
 
-
-def test_non_terminal_phase_accepted(tmp_path, monkeypatch):
+def test_non_terminal_phase_accepted(monkeypatch):
     """Test sink handler accepts any status.phase (not just 'succeeded'/'failed')."""
-    logger.info("=== test_non_terminal_phase_accepted ===")
-
-    vfs_root = setup_vfs(str(tmp_path), msg_id="test-message", phase="processing")
-    monkeypatch.setenv("ASYA_MSG_ROOT", vfs_root)
-
     if "asya_crew.sink" in sys.modules:
         del sys.modules["asya_crew.sink"]
     from asya_crew.sink import sink_handler
 
-    result = sink_handler({})
-    assert result == {}
+    metadata = make_metadata(msg_id="test-message", phase="processing")
+    frames, _ = drive_abi(sink_handler({}), metadata)
 
-    logger.info("=== test_non_terminal_phase_accepted: PASSED ===")
+    assert len(frames) == 1
+    assert frames[0] == {}
 
 
-def test_fan_out_child_skips_hooks(tmp_path, monkeypatch):
+def test_fan_out_child_skips_hooks(monkeypatch):
     """Fire-and-forget fan-out child: parent_id set -> skip hooks, return payload."""
-    logger.info("=== test_fan_out_child_skips_hooks ===")
-
-    vfs_root = setup_vfs(str(tmp_path), msg_id="test-fanout-child", phase="succeeded", parent_id="test-parent")
-    monkeypatch.setenv("ASYA_MSG_ROOT", vfs_root)
     monkeypatch.setenv("ASYA_SINK_HOOKS", "checkpoint-s3")
 
     if "asya_crew.sink" in sys.modules:
         del sys.modules["asya_crew.sink"]
     from asya_crew.sink import sink_handler
 
-    result = sink_handler({"result": 1})
+    metadata = make_metadata(msg_id="test-fanout-child", phase="succeeded", parent_id="test-parent")
+    frames, meta = drive_abi(sink_handler({"result": 1}), metadata)
 
-    with open(os.path.join(vfs_root, "route", "next")) as f:
-        next_file = f.read()
-    assert next_file == ""
-    assert result == {"result": 1}
-
-    logger.info("=== test_fan_out_child_skips_hooks: PASSED ===")
+    assert meta["route"]["next"] == []
+    assert len(frames) == 1
+    assert frames[0] == {"result": 1}
 
 
-def test_fan_out_child_runs_hooks_when_enabled(tmp_path, monkeypatch):
+def test_fan_out_child_runs_hooks_when_enabled(monkeypatch):
     """Fire-and-forget fan-out child: ASYA_SINK_FANOUT_HOOKS=true -> run hooks."""
-    logger.info("=== test_fan_out_child_runs_hooks_when_enabled ===")
-
-    vfs_root = setup_vfs(str(tmp_path), msg_id="test-fanout-hooks", phase="succeeded", parent_id="test-parent")
-    monkeypatch.setenv("ASYA_MSG_ROOT", vfs_root)
     monkeypatch.setenv("ASYA_SINK_HOOKS", "checkpoint-s3")
     monkeypatch.setenv("ASYA_SINK_FANOUT_HOOKS", "true")
 
@@ -197,38 +197,29 @@ def test_fan_out_child_runs_hooks_when_enabled(tmp_path, monkeypatch):
         del sys.modules["asya_crew.sink"]
     from asya_crew.sink import sink_handler
 
-    result = sink_handler({"result": 1})
+    metadata = make_metadata(msg_id="test-fanout-hooks", phase="succeeded", parent_id="test-parent")
+    frames, meta = drive_abi(sink_handler({"result": 1}), metadata)
 
-    with open(os.path.join(vfs_root, "route", "next")) as f:
-        next_file = f.read()
-    assert next_file == "checkpoint-s3"
-    assert result == {"result": 1}
-
-    logger.info("=== test_fan_out_child_runs_hooks_when_enabled: PASSED ===")
+    assert meta["route"]["next"] == ["checkpoint-s3"]
+    assert len(frames) == 1
+    assert frames[0] == {"result": 1}
 
 
-def test_fan_in_partial_runs_hooks(tmp_path, monkeypatch):
+def test_fan_in_partial_runs_hooks(monkeypatch):
     """Fan-in partial: x-asya-fan-in header -> always run hooks."""
-    logger.info("=== test_fan_in_partial_runs_hooks ===")
-
-    vfs_root = setup_vfs(
-        str(tmp_path),
-        msg_id="test-fanin",
-        phase="partial",
-        headers={"x-asya-fan-in": "aggregator"},
-    )
-    monkeypatch.setenv("ASYA_MSG_ROOT", vfs_root)
     monkeypatch.setenv("ASYA_SINK_HOOKS", "checkpoint-s3")
 
     if "asya_crew.sink" in sys.modules:
         del sys.modules["asya_crew.sink"]
     from asya_crew.sink import sink_handler
 
-    result = sink_handler({"shard": 1})
+    metadata = make_metadata(
+        msg_id="test-fanin",
+        phase="partial",
+        headers={"x-asya-fan-in": "aggregator"},
+    )
+    frames, meta = drive_abi(sink_handler({"shard": 1}), metadata)
 
-    with open(os.path.join(vfs_root, "route", "next")) as f:
-        next_file = f.read()
-    assert next_file == "checkpoint-s3"
-    assert result == {"shard": 1}
-
-    logger.info("=== test_fan_in_partial_runs_hooks: PASSED ===")
+    assert meta["route"]["next"] == ["checkpoint-s3"]
+    assert len(frames) == 1
+    assert frames[0] == {"shard": 1}

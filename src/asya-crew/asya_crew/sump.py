@@ -15,42 +15,40 @@ Architecture:
              |-- ACK. Done.
 
 Environment Variables:
-- ASYA_MSG_ROOT: Path to virtual filesystem for message metadata (default: /proc/asya/msg)
 - ASYA_PERSISTENCE_MOUNT: State proxy mount path for inline checkpoint persistence (optional)
 
-VFS Paths:
-- /proc/asya/msg/id — read-only: message UUID
-- /proc/asya/msg/status/{key} — read-only: status fields (e.g., phase, attempt)
+ABI Paths Used:
+- GET .id — read-only: message UUID
+- GET .status.phase — read-only: terminal phase
+- GET .parent_id — read-only: parent UUID (for checkpointer)
+- GET .route.prev — read-only: list of processed actors (for checkpointer)
+- GET .route.curr — read-only: current actor name (for checkpointer)
 
 Handler Behavior:
+- Generator handler using ABI yield protocol for metadata access
 - On failed: logs complete message summary JSON at ERROR level
 - On succeeded: debug-level log only
-- Returns None (terminal, no further routing)
+- Does not emit any payload (terminal, no further routing)
 """
 
 import json
 import logging
 import os
+from collections.abc import Generator
 from typing import Any
 
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
-ASYA_MSG_ROOT = os.getenv("ASYA_MSG_ROOT", "/proc/asya/msg")
 ASYA_PERSISTENCE_MOUNT = os.getenv("ASYA_PERSISTENCE_MOUNT", "")
 
 
-def sump_handler(payload: dict[str, Any]) -> None:
+def sump_handler(payload: dict[str, Any]) -> Generator:
     """Sump handler. Terminal actor, logs and acknowledges."""
-    with open(f"{ASYA_MSG_ROOT}/id") as f:
-        message_id = f.read()
+    message_id: str = (yield "GET", ".id") or ""
 
-    try:
-        with open(f"{ASYA_MSG_ROOT}/status/phase") as f:
-            phase = f.read()
-    except FileNotFoundError:
-        phase = "unknown"
+    phase: str = (yield "GET", ".status.phase") or ""
 
     if phase == "failed":
         msg_info = {"id": message_id, "phase": phase, "payload": payload}
@@ -58,14 +56,24 @@ def sump_handler(payload: dict[str, Any]) -> None:
     elif phase == "succeeded":
         logger.debug(f"Terminal success for message {message_id}")
     else:
-        logger.info(f"Terminal non-final phase '{phase}' for message {message_id}")
+        phase_label = phase if phase else "unknown"
+        logger.info(f"Terminal non-final phase '{phase_label}' for message {message_id}")
 
     if ASYA_PERSISTENCE_MOUNT:
         try:
             from asya_crew.checkpointer import handler
 
-            handler(payload)
+            parent_id: str = (yield "GET", ".parent_id") or ""
+            prev_actors: list[str] = (yield "GET", ".route.prev") or []
+            curr: str = (yield "GET", ".route.curr") or ""
+
+            handler(
+                payload,
+                message_id=message_id,
+                phase=phase,
+                parent_id=parent_id,
+                prev_actors=prev_actors,
+                curr=curr,
+            )
         except Exception as e:
             logger.error(f"Checkpoint failed for message {message_id}: {e}")
-
-    return None

@@ -3,9 +3,10 @@
 Unit tests for sump handler.
 
 Tests the x-sump actor which handles final termination,
-logging errors and emitting metrics via VFS metadata.
+logging errors and emitting metrics via ABI yield protocol.
 """
 
+import copy
 import logging
 import os
 import sys
@@ -19,121 +20,137 @@ logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(name)s - %(leve
 logger = logging.getLogger(__name__)
 
 
-def setup_vfs(tmpdir, msg_id="test-001", phase="succeeded", parent_id="", headers=None):
-    """Create VFS directory structure for testing."""
-    os.makedirs(os.path.join(tmpdir, "route"), exist_ok=True)
-    os.makedirs(os.path.join(tmpdir, "headers"), exist_ok=True)
-    os.makedirs(os.path.join(tmpdir, "status"), exist_ok=True)
+def make_metadata(msg_id="test-001", phase="succeeded", parent_id="", headers=None):
+    """Create ABI metadata dict for testing."""
+    return {
+        "id": msg_id,
+        "parent_id": parent_id,
+        "route": {
+            "prev": [],
+            "curr": "x-sump",
+            "next": [],
+        },
+        "headers": headers or {},
+        "status": {"phase": phase} if phase else {},
+    }
 
-    with open(os.path.join(tmpdir, "id"), "w") as f:
-        f.write(msg_id)
-    with open(os.path.join(tmpdir, "parent_id"), "w") as f:
-        f.write(parent_id)
-    with open(os.path.join(tmpdir, "route", "prev"), "w") as f:
-        f.write("")
-    with open(os.path.join(tmpdir, "route", "curr"), "w") as f:
-        f.write("x-sump")
-    with open(os.path.join(tmpdir, "route", "next"), "w") as f:
-        f.write("")
-    if phase is not None:
-        with open(os.path.join(tmpdir, "status", "phase"), "w") as f:
-            f.write(phase)
 
-    if headers:
-        for key, value in headers.items():
-            with open(os.path.join(tmpdir, "headers", key), "w") as f:
-                f.write(value)
+def drive_abi(gen, metadata):
+    """Drive an ABI generator handler, simulating the runtime's _drive_generator."""
+    meta = copy.deepcopy(metadata)
+    frames = []
+    send_val = None
 
-    return tmpdir
+    while True:
+        try:
+            yielded = gen.send(send_val)
+        except StopIteration:
+            break
+
+        send_val = None
+
+        if yielded is None:
+            continue
+        elif isinstance(yielded, dict):
+            frames.append(yielded)
+        elif isinstance(yielded, tuple):
+            verb = yielded[0]
+            if verb == "GET":
+                send_val = _resolve_path(meta, yielded[1])
+            elif verb == "SET" and len(yielded) >= 3:
+                _set_path(meta, yielded[1], yielded[2])
+
+    return frames, meta
+
+
+def _resolve_path(data, path):
+    """Resolve a dotted ABI path against a metadata dict."""
+    parts = path.lstrip(".").split(".")
+    current = data
+    for part in parts:
+        if isinstance(current, dict) and part in current:
+            current = current[part]
+        else:
+            return None
+    if isinstance(current, dict | list):
+        return copy.deepcopy(current)
+    return current
+
+
+def _set_path(data, path, value):
+    """Set a value at a dotted ABI path in a metadata dict."""
+    parts = path.lstrip(".").split(".")
+    current = data
+    for part in parts[:-1]:
+        current = current[part]
+    current[parts[-1]] = value
 
 
 @pytest.fixture(autouse=True)
-def setup_test_env(tmp_path, monkeypatch):
+def setup_test_env(monkeypatch):
     """Set up test environment before each test."""
     monkeypatch.delenv("ASYA_PERSISTENCE_MOUNT", raising=False)
 
-    vfs_root = setup_vfs(str(tmp_path))
-    monkeypatch.setenv("ASYA_MSG_ROOT", vfs_root)
+    if "asya_crew.sump" in sys.modules:
+        del sys.modules["asya_crew.sump"]
+
+    yield
 
     if "asya_crew.sump" in sys.modules:
         del sys.modules["asya_crew.sump"]
 
-    yield vfs_root
 
-    if "asya_crew.sump" in sys.modules:
-        del sys.modules["asya_crew.sump"]
-
-
-def test_succeeded_phase_returns_none(tmp_path, monkeypatch, caplog):
-    """Test sump handler with succeeded phase returns None with debug log."""
-    logger.info("=== test_succeeded_phase_returns_none ===")
-
-    vfs_root = setup_vfs(str(tmp_path), msg_id="test-message-123", phase="succeeded")
-    monkeypatch.setenv("ASYA_MSG_ROOT", vfs_root)
-
+def test_succeeded_phase_returns_no_frames(monkeypatch, caplog):
+    """Test sump handler with succeeded phase emits no frames with debug log."""
     if "asya_crew.sump" in sys.modules:
         del sys.modules["asya_crew.sump"]
     from asya_crew.sump import sump_handler
 
+    metadata = make_metadata(msg_id="test-message-123", phase="succeeded")
     with caplog.at_level(logging.DEBUG):
-        sump_handler({"result": 42})
+        frames, _ = drive_abi(sump_handler({"result": 42}), metadata)
 
+    assert len(frames) == 0
     assert "Terminal success for message test-message-123" in caplog.text
 
-    logger.info("=== test_succeeded_phase_returns_none: PASSED ===")
 
-
-def test_failed_phase_returns_none_logs_error(tmp_path, monkeypatch, caplog):
-    """Test sump handler with failed phase returns None and logs at ERROR level."""
-    logger.info("=== test_failed_phase_returns_none_logs_error ===")
-
-    vfs_root = setup_vfs(str(tmp_path), msg_id="test-message-456", phase="failed")
-    monkeypatch.setenv("ASYA_MSG_ROOT", vfs_root)
-
+def test_failed_phase_returns_no_frames_logs_error(monkeypatch, caplog):
+    """Test sump handler with failed phase emits no frames and logs at ERROR level."""
     if "asya_crew.sump" in sys.modules:
         del sys.modules["asya_crew.sump"]
     from asya_crew.sump import sump_handler
 
+    metadata = make_metadata(msg_id="test-message-456", phase="failed")
     with caplog.at_level(logging.ERROR):
-        sump_handler({"data": "test"})
+        frames, _ = drive_abi(sump_handler({"data": "test"}), metadata)
 
+    assert len(frames) == 0
     assert "Terminal failure for message test-message-456" in caplog.text
 
-    logger.info("=== test_failed_phase_returns_none_logs_error: PASSED ===")
 
-
-def test_non_terminal_phase_logs_info(tmp_path, monkeypatch, caplog):
+def test_non_terminal_phase_logs_info(monkeypatch, caplog):
     """Non-terminal phase (not succeeded/failed) is logged at INFO level."""
-    logger.info("=== test_non_terminal_phase_logs_info ===")
-
-    vfs_root = setup_vfs(str(tmp_path), msg_id="test-nonterminal", phase="awaiting_approval")
-    monkeypatch.setenv("ASYA_MSG_ROOT", vfs_root)
-
     if "asya_crew.sump" in sys.modules:
         del sys.modules["asya_crew.sump"]
     from asya_crew.sump import sump_handler
 
+    metadata = make_metadata(msg_id="test-nonterminal", phase="awaiting_approval")
     with caplog.at_level(logging.INFO):
-        sump_handler({"data": "test"})
+        frames, _ = drive_abi(sump_handler({"data": "test"}), metadata)
 
+    assert len(frames) == 0
     assert "non-final phase" in caplog.text
     assert "awaiting_approval" in caplog.text
 
-    logger.info("=== test_non_terminal_phase_logs_info: PASSED ===")
 
-
-def test_missing_phase_vfs(tmp_path, monkeypatch, caplog):
-    """Test sump handler when status/phase file is absent (graceful handling)."""
-    logger.info("=== test_missing_phase_vfs ===")
-
-    vfs_root = setup_vfs(str(tmp_path), msg_id="test-no-phase", phase=None)
-    monkeypatch.setenv("ASYA_MSG_ROOT", vfs_root)
-
+def test_missing_phase(monkeypatch, caplog):
+    """Test sump handler when status.phase is absent (graceful handling)."""
     if "asya_crew.sump" in sys.modules:
         del sys.modules["asya_crew.sump"]
     from asya_crew.sump import sump_handler
 
+    metadata = make_metadata(msg_id="test-no-phase", phase=None)
     with caplog.at_level(logging.INFO):
-        sump_handler({"data": "test"})
+        frames, _ = drive_abi(sump_handler({"data": "test"}), metadata)
 
-    logger.info("=== test_missing_phase_vfs: PASSED ===")
+    assert len(frames) == 0

@@ -6,15 +6,7 @@ Storage backend is pluggable (S3/GCS/PostgreSQL/etc.) through the state proxy co
 configured in the AsyncActor CRD.
 
 Environment Variables:
-- ASYA_MSG_ROOT: Path to virtual filesystem for message metadata (default: /proc/asya/msg)
 - ASYA_PERSISTENCE_MOUNT: State proxy mount path for checkpoint storage
-
-VFS Paths Read:
-- /proc/asya/msg/id — read-only: message UUID
-- /proc/asya/msg/parent_id — read-only: parent message UUID (for fanout)
-- /proc/asya/msg/route/prev — read-only: newline-separated list of processed actors
-- /proc/asya/msg/route/curr — read-only: current actor name
-- /proc/asya/msg/status/phase — read-only: terminal phase (succeeded/failed)
 
 File Path Structure:
     {mount}/{prefix}/{timestamp}/{actor}/{id}.json
@@ -29,9 +21,8 @@ Examples:
     /state/checkpoints/failed/2026-02-12T10:30:00.123456Z/image-analyzer/msg-456.json
 
 Handler Behavior:
-- Reads message metadata from VFS
+- Accepts message metadata as function arguments (called from sink/sump generators)
 - Persists full message (metadata + payload) as JSON to state proxy mount
-- Returns empty dict (message passes through unchanged)
 - Gracefully skips if ASYA_PERSISTENCE_MOUNT not set
 """
 
@@ -45,31 +36,31 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
-ASYA_MSG_ROOT = os.getenv("ASYA_MSG_ROOT", "/proc/asya/msg")
 ASYA_PERSISTENCE_MOUNT = os.getenv("ASYA_PERSISTENCE_MOUNT", "")
 
 
-def _read_msg_meta(path: str, default: str = "") -> str:
-    """Read message metadata field, returning default if not found."""
-    try:
-        with open(f"{ASYA_MSG_ROOT}/{path}") as f:
-            return f.read().strip()
-    except FileNotFoundError:
-        return default
-
-
-def handler(payload: dict[str, Any]) -> dict[str, Any]:
+def handler(
+    payload: dict[str, Any],
+    *,
+    message_id: str = "unknown",
+    phase: str = "",
+    parent_id: str = "",
+    prev_actors: list[str] | None = None,
+    curr: str = "",
+) -> None:
     """
     Checkpoint handler for message persistence via state proxy.
 
-    Reads message metadata from the VFS and persists the complete message
-    (metadata + payload) as a JSON file to the configured state proxy mount.
+    Persists the complete message (metadata + payload) as a JSON file
+    to the configured state proxy mount.
 
     Args:
         payload: Message payload dict
-
-    Returns:
-        Empty dict (message passes through unchanged)
+        message_id: Envelope ID
+        phase: Terminal phase (succeeded/failed)
+        parent_id: Parent envelope ID (for fanout tracking)
+        prev_actors: List of previously processed actors
+        curr: Current actor name
 
     Raises:
         ValueError: If payload is not a dict
@@ -77,17 +68,12 @@ def handler(payload: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(payload, dict):
         raise ValueError(f"Payload must be a dict, got {type(payload).__name__}")
 
-    message_id = _read_msg_meta("id", "unknown")
-
     if not ASYA_PERSISTENCE_MOUNT:
         logger.debug(f"Checkpoint skipped for message {message_id} (ASYA_PERSISTENCE_MOUNT not set)")
-        return {}
+        return
 
-    phase = _read_msg_meta("status/phase")
-    parent_id = _read_msg_meta("parent_id")
-    prev_raw = _read_msg_meta("route/prev")
-    prev_actors = [a for a in prev_raw.splitlines() if a] if prev_raw else []
-    curr = _read_msg_meta("route/curr")
+    if prev_actors is None:
+        prev_actors = []
 
     if phase == "succeeded":
         prefix = "succeeded"
@@ -130,5 +116,3 @@ def handler(payload: dict[str, Any]) -> dict[str, Any]:
         logger.info(f"Checkpointed message {message_id} to {file_path}")
     except Exception as e:
         logger.error(f"Failed to checkpoint message {message_id}: {e}", exc_info=True)
-
-    return {}

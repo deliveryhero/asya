@@ -1,0 +1,82 @@
+# Overlay: GCS state proxy connectors for crew actors
+#
+# Adds gcs-buffered-lww state proxy connectors for x-sink and x-sump actors,
+# enabling checkpointer persistence to fake-gcs-server in integration tests.
+#
+# Used via: docker compose -f profiles/pubsub-gcs.yml -f compose/crew-gcs-overlay.yml up
+
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "2"
+
+services:
+  # State proxy connector for x-sink (results → GCS)
+  asya-x-sink-state-proxy:
+    build:
+      context: ../../../../src/asya-state-proxy
+      dockerfile: Dockerfile.gcs-buffered-lww
+    logging: *default-logging
+    environment:
+      CONNECTOR_SOCKET: /var/run/asya/state/results.sock
+      STATE_BUCKET: asya-results
+      STORAGE_EMULATOR_HOST: http://fake-gcs:4443
+    depends_on:
+      fake-gcs:
+        condition: service_healthy
+      storage-setup:
+        condition: service_completed_successfully
+    volumes:
+    - asya-x-sink-state-sockets:/var/run/asya/state
+    healthcheck:
+      test: ["CMD", "test", "-S", "/var/run/asya/state/results.sock"]
+      interval: 1s
+      timeout: 1s
+      retries: 30
+
+  # State proxy connector for x-sump (errors → GCS)
+  asya-x-sump-state-proxy:
+    build:
+      context: ../../../../src/asya-state-proxy
+      dockerfile: Dockerfile.gcs-buffered-lww
+    logging: *default-logging
+    environment:
+      CONNECTOR_SOCKET: /var/run/asya/state/errors.sock
+      STATE_BUCKET: asya-errors
+      STORAGE_EMULATOR_HOST: http://fake-gcs:4443
+    depends_on:
+      fake-gcs:
+        condition: service_healthy
+      storage-setup:
+        condition: service_completed_successfully
+    volumes:
+    - asya-x-sump-state-sockets:/var/run/asya/state
+    healthcheck:
+      test: ["CMD", "test", "-S", "/var/run/asya/state/errors.sock"]
+      interval: 1s
+      timeout: 1s
+      retries: 30
+
+  # Override crew runtimes to add state proxy mounts
+  asya-x-sink-runtime:
+    environment:
+    - ASYA_STATE_PROXY_MOUNTS=results:/tmp/checkpoints/results:write=buffered
+    depends_on:
+      asya-x-sink-state-proxy:
+        condition: service_healthy
+    volumes:
+    - asya-x-sink-state-sockets:/var/run/asya/state
+
+  asya-x-sump-runtime:
+    environment:
+    - ASYA_STATE_PROXY_MOUNTS=errors:/tmp/checkpoints/errors:write=buffered
+    depends_on:
+      asya-x-sump-state-proxy:
+        condition: service_healthy
+    volumes:
+    - asya-x-sump-state-sockets:/var/run/asya/state
+
+volumes:
+  asya-x-sink-state-sockets:
+  asya-x-sump-state-sockets:
