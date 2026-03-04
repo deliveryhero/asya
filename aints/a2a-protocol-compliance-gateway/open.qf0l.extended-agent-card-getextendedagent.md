@@ -2,7 +2,7 @@
 title: Extended Agent Card (GetExtendedAgentCard)
 priority: 3 # low
 dependencies:
-  - 1c0d
+  - 7fuy
 ---
 
 ## Objective

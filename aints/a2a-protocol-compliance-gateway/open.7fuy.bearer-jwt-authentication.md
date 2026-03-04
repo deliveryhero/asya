@@ -2,7 +2,7 @@
 title: Bearer/JWT authentication
 priority: 2 # medium
 dependencies:
-  - 1c0d
+  - tuw5
 ---
 
 ## Objective
