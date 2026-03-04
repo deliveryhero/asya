@@ -12,9 +12,9 @@
 {{- $connectorImage := dict "val" $sp.connector.image }}
 {{- if not $connectorImage.val }}
   {{- if eq $sp.backend "s3" }}
-    {{- $_ := set $connectorImage "val" "ghcr.io/deliveryhero/asya-state-proxy-s3-buffered-lww:latest" }}
+    {{- $_ := set $connectorImage "val" "ghcr.io/deliveryhero/asya-state-proxy-s3-buffered-lww:dev" }}
   {{- else if eq $sp.backend "gcs" }}
-    {{- $_ := set $connectorImage "val" "ghcr.io/deliveryhero/asya-state-proxy-gcs-buffered-lww:latest" }}
+    {{- $_ := set $connectorImage "val" "ghcr.io/deliveryhero/asya-state-proxy-gcs-buffered-lww:dev" }}
   {{- end }}
 {{- end }}
 apiVersion: asya.sh/v1alpha1
