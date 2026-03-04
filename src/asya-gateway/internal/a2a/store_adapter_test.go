@@ -26,7 +26,7 @@ func TestStoreAdapterGet(t *testing.T) {
 			Curr: "actor1",
 			Next: []string{"actor2"},
 		},
-		Payload: map[string]interface{}{"test": "data"},
+		Payload: map[string]any{"test": "data"},
 		Message: "Task initialized",
 	}
 
@@ -67,7 +67,7 @@ func TestStoreAdapterSave(t *testing.T) {
 			Curr: "actor1",
 			Next: []string{"actor2"},
 		},
-		Payload: map[string]interface{}{"test": "data"},
+		Payload: map[string]any{"test": "data"},
 	}
 
 	err := store.Create(task)
@@ -107,7 +107,7 @@ func TestStoreAdapterList(t *testing.T) {
 			Curr: "actor1",
 			Next: []string{},
 		},
-		Payload: map[string]interface{}{"test": "data1"},
+		Payload: map[string]any{"test": "data1"},
 	}
 	task2 := &types.Task{
 		ID:        "test-task-4",
@@ -118,7 +118,7 @@ func TestStoreAdapterList(t *testing.T) {
 			Curr: "actor2",
 			Next: []string{},
 		},
-		Payload: map[string]interface{}{"test": "data2"},
+		Payload: map[string]any{"test": "data2"},
 	}
 
 	err := store.Create(task1)
@@ -152,7 +152,7 @@ func TestStoreAdapterListPagination(t *testing.T) {
 	adapter := NewStoreAdapter(store)
 
 	// Create 5 tasks in ctx-1
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		err := store.Create(&types.Task{
 			ID:        fmt.Sprintf("ctx1-task-%d", i),
 			ContextID: "ctx-1",
@@ -161,7 +161,7 @@ func TestStoreAdapterListPagination(t *testing.T) {
 				Curr: "actor1",
 				Next: []string{},
 			},
-			Payload: map[string]interface{}{"i": i},
+			Payload: map[string]any{"i": i},
 		})
 		require.NoError(t, err)
 	}
@@ -175,7 +175,7 @@ func TestStoreAdapterListPagination(t *testing.T) {
 			Curr: "actor1",
 			Next: []string{},
 		},
-		Payload: map[string]interface{}{"i": 0},
+		Payload: map[string]any{"i": 0},
 	})
 	require.NoError(t, err)
 
@@ -253,7 +253,7 @@ func TestStoreAdapterListStatusFilter(t *testing.T) {
 			Curr: "actor1",
 			Next: []string{},
 		},
-		Payload: map[string]interface{}{},
+		Payload: map[string]any{},
 	})
 	require.NoError(t, err)
 
@@ -266,7 +266,7 @@ func TestStoreAdapterListStatusFilter(t *testing.T) {
 			Curr: "actor1",
 			Next: []string{},
 		},
-		Payload: map[string]interface{}{},
+		Payload: map[string]any{},
 	})
 	require.NoError(t, err)
 

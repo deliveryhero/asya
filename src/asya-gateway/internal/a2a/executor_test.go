@@ -2,7 +2,6 @@ package a2a
 
 import (
 	"context"
-	"errors"
 	"testing"
 	"time"
 
@@ -90,6 +89,16 @@ func TestExecutorExecute(t *testing.T) {
 		Metadata:  map[string]any{"skill": "analyze"},
 	}
 
+	// Simulate task completion after a short delay so the blocking wait returns
+	go func() {
+		time.Sleep(100 * time.Millisecond) // Wait for task creation
+		_ = store.Update(types.TaskUpdate{
+			ID:        string(reqCtx.TaskID),
+			Status:    types.TaskStatusSucceeded,
+			Timestamp: time.Now(),
+		})
+	}()
+
 	mockQueue := &mockEventQueue{}
 	err := exec.Execute(ctx, reqCtx, mockQueue)
 	if err != nil {
@@ -105,9 +114,9 @@ func TestExecutorExecute(t *testing.T) {
 		t.Errorf("route.curr = %q, want %q", task.Route.Curr, "start-analysis")
 	}
 
-	// Verify event was written
-	if len(mockQueue.events) == 0 {
-		t.Fatal("expected at least one event written to queue")
+	// Verify events were written (submitted + terminal)
+	if len(mockQueue.events) < 2 {
+		t.Fatalf("expected at least 2 events (submitted + terminal), got %d", len(mockQueue.events))
 	}
 }
 
@@ -212,7 +221,7 @@ func TestExecutorCancelTerminalTask(t *testing.T) {
 
 			mockQueue := &mockEventQueue{}
 			err := exec.Cancel(ctx, reqCtx, mockQueue)
-			if !errors.Is(err, a2alib.ErrTaskNotCancelable) {
+			if err != a2alib.ErrTaskNotCancelable {
 				t.Fatalf("Cancel() error = %v, want %v", err, a2alib.ErrTaskNotCancelable)
 			}
 

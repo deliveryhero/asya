@@ -103,8 +103,18 @@ func (e *Executor) Execute(
 		}
 	}
 
-	return eq.Write(ctx, a2alib.NewStatusUpdateEvent(
-		reqCtx, a2alib.TaskStateSubmitted, nil))
+	if err := eq.Write(ctx, a2alib.NewStatusUpdateEvent(
+		reqCtx, a2alib.TaskStateSubmitted, nil)); err != nil {
+		return fmt.Errorf("write submitted event: %w", err)
+	}
+
+	// Block until the task reaches a terminal/interrupted state, times out,
+	// or the client disconnects (context canceled).
+	return waitAndRelayEvents(
+		ctx, e.taskStore, string(taskID),
+		time.Duration(timeoutSec)*time.Second,
+		reqCtx, eq,
+	)
 }
 
 func (e *Executor) Cancel(
