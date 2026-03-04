@@ -59,16 +59,32 @@ func (p *CardProducer) Card(_ context.Context) (*a2alib.AgentCard, error) {
 		},
 	}
 
+	schemes := a2alib.NamedSecuritySchemes{}
+	var security []a2alib.SecurityRequirements
+
 	if apiKey := os.Getenv("ASYA_A2A_API_KEY"); apiKey != "" {
-		card.SecuritySchemes = a2alib.NamedSecuritySchemes{
-			a2alib.SecuritySchemeName("apiKey"): a2alib.APIKeySecurityScheme{
-				In:   a2alib.APIKeySecuritySchemeInHeader,
-				Name: "X-API-Key",
-			},
+		schemes[a2alib.SecuritySchemeName("apiKey")] = a2alib.APIKeySecurityScheme{
+			In:   a2alib.APIKeySecuritySchemeInHeader,
+			Name: "X-API-Key",
 		}
-		card.Security = []a2alib.SecurityRequirements{
-			{a2alib.SecuritySchemeName("apiKey"): a2alib.SecuritySchemeScopes{}},
+		security = append(security, a2alib.SecurityRequirements{
+			a2alib.SecuritySchemeName("apiKey"): a2alib.SecuritySchemeScopes{},
+		})
+	}
+
+	if os.Getenv("ASYA_A2A_JWT_JWKS_URL") != "" && os.Getenv("ASYA_A2A_JWT_ISSUER") != "" && os.Getenv("ASYA_A2A_JWT_AUDIENCE") != "" {
+		schemes[a2alib.SecuritySchemeName("bearer")] = a2alib.HTTPAuthSecurityScheme{
+			Scheme:       "bearer",
+			BearerFormat: "JWT",
 		}
+		security = append(security, a2alib.SecurityRequirements{
+			a2alib.SecuritySchemeName("bearer"): a2alib.SecuritySchemeScopes{},
+		})
+	}
+
+	if len(schemes) > 0 {
+		card.SecuritySchemes = schemes
+		card.Security = security
 	}
 
 	return card, nil

@@ -166,11 +166,30 @@ func main() {
 		a2asrv.WithKeepAlive(15*time.Second),
 	)
 
-	// Mount A2A endpoints (with optional API key auth)
-	var a2aRootHandler http.Handler = a2aHTTPHandler
+	// Build authenticator chain (API Key + JWT)
+	var authenticators []a2a.Authenticator
 	if apiKey != "" {
 		slog.Info("A2A API Key authentication enabled")
-		a2aRootHandler = a2a.APIKeyMiddleware(apiKey)(a2aHTTPHandler)
+		authenticators = append(authenticators, &a2a.APIKeyAuthenticator{Key: apiKey})
+	}
+
+	jwksURL := os.Getenv("ASYA_A2A_JWT_JWKS_URL")
+	jwtIssuer := os.Getenv("ASYA_A2A_JWT_ISSUER")
+	jwtAudience := os.Getenv("ASYA_A2A_JWT_AUDIENCE")
+	if jwksURL != "" && jwtIssuer != "" && jwtAudience != "" {
+		jwtAuth, err := a2a.NewJWTAuthenticator(jwksURL, jwtIssuer, jwtAudience)
+		if err != nil {
+			slog.Error("Failed to create JWT authenticator", "error", err)
+			os.Exit(1)
+		}
+		defer jwtAuth.Close()
+		slog.Info("A2A JWT authentication enabled", "jwks_url", jwksURL, "issuer", jwtIssuer)
+		authenticators = append(authenticators, jwtAuth)
+	}
+
+	var a2aRootHandler http.Handler = a2aHTTPHandler
+	if len(authenticators) > 0 {
+		a2aRootHandler = a2a.A2AAuthMiddleware(authenticators...)(a2aHTTPHandler)
 	}
 	mux.Handle("/a2a/", a2aRootHandler)
 
