@@ -61,8 +61,8 @@ func (e *Executor) Execute(
 				&a2alib.TextPart{Text: err.Error()})))
 	}
 
-	// Translate A2A Message -> envelope payload
-	payload := MessageToPayload(msg, taskID, contextID)
+	// Translate A2A Message -> envelope payload + headers
+	payload, headers := MessageToPayload(msg, taskID, contextID)
 
 	// Build internal task
 	timeoutSec := 300
@@ -79,7 +79,7 @@ func (e *Executor) Execute(
 			Curr: skill.Actor,
 			Next: []string{},
 		},
-		Headers:    BuildA2AHeaders(string(taskID), contextID),
+		Headers:    headers,
 		Payload:    payload,
 		TimeoutSec: timeoutSec,
 		Deadline:   time.Now().Add(time.Duration(timeoutSec) * time.Second),
@@ -193,7 +193,10 @@ func (e *Executor) handleResume(
 	contextID := reqCtx.ContextID
 	msg := reqCtx.Message
 
-	payload := MessageToPayload(msg, taskID, contextID)
+	payload, headers := MessageToPayload(msg, taskID, contextID)
+
+	// Merge resume-specific header with A2A headers
+	headers["x-asya-resume-task"] = string(taskID)
 
 	task := &types.Task{
 		ID:        fmt.Sprintf("resume-%s", taskID),
@@ -204,11 +207,7 @@ func (e *Executor) handleResume(
 			Curr: "x-resume",
 			Next: []string{},
 		},
-		Headers: map[string]any{
-			"x-asya-resume-task":    string(taskID),
-			"x-asya-a2a-task-id":    string(taskID),
-			"x-asya-a2a-context-id": contextID,
-		},
+		Headers: headers,
 		Payload: payload,
 	}
 
