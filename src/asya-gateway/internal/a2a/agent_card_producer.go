@@ -2,6 +2,7 @@ package a2a
 
 import (
 	"context"
+	"fmt"
 	"os"
 
 	a2alib "github.com/a2aproject/a2a-go/a2a"
@@ -54,8 +55,8 @@ func (p *CardProducer) Card(_ context.Context) (*a2alib.AgentCard, error) {
 		DefaultOutputModes: []string{"application/json"},
 		Skills:             a2aSkills,
 		Provider: &a2alib.AgentProvider{
-			Org: "Asya",
-			URL: "https://asya.sh",
+			Org: getEnvOrDefault("ASYA_A2A_PROVIDER_ORG", "Asya"),
+			URL: getEnvOrDefault("ASYA_A2A_PROVIDER_URL", "https://asya.sh"),
 		},
 	}
 
@@ -85,7 +86,59 @@ func (p *CardProducer) Card(_ context.Context) (*a2alib.AgentCard, error) {
 	if len(schemes) > 0 {
 		card.SecuritySchemes = schemes
 		card.Security = security
+		card.SupportsAuthenticatedExtendedCard = true
 	}
+
+	return card, nil
+}
+
+// ExtendedCardProducer implements a2asrv.AgentCardProducer for the extended
+// (authenticated) agent card. It includes additional internal details like
+// actor names and timeout configuration per skill.
+type ExtendedCardProducer struct {
+	publicProducer *CardProducer
+	registry       *toolstore.Registry
+}
+
+// NewExtendedCardProducer creates a new ExtendedCardProducer.
+func NewExtendedCardProducer(registry *toolstore.Registry) *ExtendedCardProducer {
+	return &ExtendedCardProducer{
+		publicProducer: NewCardProducer(registry),
+		registry:       registry,
+	}
+}
+
+// Card returns the extended AgentCard with internal skill details.
+func (p *ExtendedCardProducer) Card(ctx context.Context) (*a2alib.AgentCard, error) {
+	card, err := p.publicProducer.Card(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Enrich skills with internal metadata via x-prefixed tags
+	skills := p.registry.A2ASkills()
+	enrichedSkills := make([]a2alib.AgentSkill, 0, len(skills))
+	for _, s := range skills {
+		tags := append([]string{}, s.A2ATags...)
+		tags = append(tags, "x-actor:"+s.Actor)
+		if s.TimeoutSec != nil {
+			tags = append(tags, fmt.Sprintf("x-timeout:%d", *s.TimeoutSec))
+		}
+		if s.Progress {
+			tags = append(tags, "x-progress:true")
+		}
+
+		enrichedSkills = append(enrichedSkills, a2alib.AgentSkill{
+			ID:          s.Name,
+			Name:        s.Name,
+			Description: s.Description,
+			Tags:        tags,
+			InputModes:  s.A2AInputModes,
+			OutputModes: s.A2AOutputModes,
+			Examples:    s.A2AExamples,
+		})
+	}
+	card.Skills = enrichedSkills
 
 	return card, nil
 }

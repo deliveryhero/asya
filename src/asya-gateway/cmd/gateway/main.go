@@ -159,8 +159,10 @@ func main() {
 	storeAdapter := a2a.NewStoreAdapter(taskStore)
 	cardProducer := a2a.NewCardProducer(registry)
 
+	extendedCardProducer := a2a.NewExtendedCardProducer(registry)
 	a2aHandler := a2asrv.NewHandler(executor,
 		a2asrv.WithTaskStore(storeAdapter),
+		a2asrv.WithExtendedAgentCardProducer(extendedCardProducer),
 	)
 	a2aHTTPHandler := a2asrv.NewJSONRPCHandler(a2aHandler,
 		a2asrv.WithKeepAlive(15*time.Second),
