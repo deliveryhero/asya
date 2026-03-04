@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -809,59 +810,73 @@ func (s *PgStore) Resume(id string) (*types.Task, error) {
 	return task, nil
 }
 
-// List returns tasks filtered by params with pagination. Returns (tasks, totalCount, error).
-func (s *PgStore) List(params ListParams) ([]*types.Task, int, error) {
-	// Build dynamic WHERE clause
+// listQueryArgs holds the separate arg slices for the count and data queries
+// because the data query may have extra LIMIT/OFFSET parameters.
+type listQueryArgs struct {
+	countArgs []any
+	dataArgs  []any
+}
+
+// buildListQueries constructs parameterised COUNT and SELECT queries from ListParams.
+// All dynamic parts are positional placeholders ($1, $2, …); no user input is
+// interpolated into the SQL string.
+func buildListQueries(params ListParams) (countSQL, dataSQL string, args listQueryArgs) {
 	var conditions []string
-	var args []any
+	var filterArgs []any
 	argIdx := 1
 
 	if params.Status != nil {
 		conditions = append(conditions, fmt.Sprintf("status = $%d", argIdx))
-		args = append(args, *params.Status)
+		filterArgs = append(filterArgs, *params.Status)
 		argIdx++
 	}
 	if params.ContextID != "" {
 		conditions = append(conditions, fmt.Sprintf("context_id = $%d", argIdx))
-		args = append(args, params.ContextID)
+		filterArgs = append(filterArgs, params.ContextID)
 		argIdx++
 	}
 
-	whereClause := ""
+	var where string
 	if len(conditions) > 0 {
-		whereClause = " WHERE " + conditions[0]
-		for _, c := range conditions[1:] {
-			whereClause += " AND " + c
-		}
+		where = " WHERE " + strings.Join(conditions, " AND ")
 	}
 
-	// Count query for totalCount
-	countQuery := "SELECT COUNT(*) FROM tasks" + whereClause
-	var totalCount int
-	if err := s.pool.QueryRow(s.ctx, countQuery, args...).Scan(&totalCount); err != nil {
-		return nil, 0, fmt.Errorf("failed to count tasks: %w", err)
-	}
+	countSQL = fmt.Sprintf("SELECT COUNT(*) FROM tasks%s", where)
+	args.countArgs = append(args.countArgs, filterArgs...)
 
-	// Data query with pagination
-	dataQuery := `
-		SELECT id, context_id, status, payload, result, error, timeout_seconds, deadline,
-		       remaining_timeout_sec, progress_percent, current_actor_name, message,
-		       pause_metadata, actors_completed, total_actors,
-		       route_prev, route_curr, route_next,
-		       created_at, updated_at
-		FROM tasks` + whereClause + " ORDER BY created_at DESC"
+	dataSQL = fmt.Sprintf(
+		`SELECT id, context_id, status, payload, result, error, timeout_seconds, deadline,
+		        remaining_timeout_sec, progress_percent, current_actor_name, message,
+		        pause_metadata, actors_completed, total_actors,
+		        route_prev, route_curr, route_next,
+		        created_at, updated_at
+		 FROM tasks%s ORDER BY created_at DESC`, where)
 
+	dataArgs := append([]any{}, filterArgs...)
 	if params.Limit > 0 {
-		dataQuery += fmt.Sprintf(" LIMIT $%d", argIdx)
-		args = append(args, params.Limit)
+		dataSQL += fmt.Sprintf(" LIMIT $%d", argIdx)
+		dataArgs = append(dataArgs, params.Limit)
 		argIdx++
 	}
 	if params.Offset > 0 {
-		dataQuery += fmt.Sprintf(" OFFSET $%d", argIdx)
-		args = append(args, params.Offset)
+		dataSQL += fmt.Sprintf(" OFFSET $%d", argIdx)
+		dataArgs = append(dataArgs, params.Offset)
+	}
+	args.dataArgs = dataArgs
+
+	return countSQL, dataSQL, args
+}
+
+// List returns tasks filtered by params with pagination. Returns (tasks, totalCount, error).
+func (s *PgStore) List(params ListParams) ([]*types.Task, int, error) {
+	countQuery, dataQuery, args := buildListQueries(params)
+
+	var totalCount int
+	if err := s.pool.QueryRow(s.ctx, countQuery, args.countArgs...).Scan(&totalCount); err != nil {
+		return nil, 0, fmt.Errorf("failed to count tasks: %w", err)
 	}
 
-	rows, err := s.pool.Query(s.ctx, dataQuery, args...)
+	rows, err := s.pool.Query(s.ctx, dataQuery, args.dataArgs...)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to list tasks: %w", err)
 	}
