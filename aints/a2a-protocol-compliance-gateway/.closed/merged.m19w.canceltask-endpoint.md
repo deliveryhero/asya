@@ -3,6 +3,7 @@ title: CancelTask endpoint
 priority: 2 # medium
 ---
 
+
 ## Objective
 
 Implement `tasks/cancel` (A2A method) / `POST {base}/a2a/tasks/{id}:cancel` endpoint. The sidecar 410 Gone handling is already merged (PR from Phase 1).
