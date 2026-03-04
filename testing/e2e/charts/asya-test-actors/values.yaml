@@ -13,3 +13,8 @@ transport: rabbitmq
 workload:
   image: ghcr.io/deliveryhero/asya-testing:latest
   imagePullPolicy: Never
+
+# Test image configuration (for Helm test pods)
+tests:
+  image: ghcr.io/deliveryhero/asya-testing:latest
+  imagePullPolicy: Never

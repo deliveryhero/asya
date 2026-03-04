@@ -11,7 +11,8 @@ spec:
   restartPolicy: Never
   containers:
   - name: wget
-    image: busybox:latest
+    image: {{ .Values.tests.image }}
+    imagePullPolicy: {{ .Values.tests.imagePullPolicy }}
     command: ['/bin/sh', '-c']
     args:
     - |

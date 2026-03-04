@@ -151,3 +151,9 @@ externalDatabase:
   password: "" # Password for external database (only used if existingSecret is not set)
   existingSecret: "" # Name of existing secret containing database password (recommended)
   existingSecretKey: password # Key in existingSecret that contains the password
+
+# Test image configuration (for Helm test pods)
+# Override to use a pre-loaded image in Kind clusters
+tests:
+  image: alpine/k8s:1.28.3
+  imagePullPolicy: IfNotPresent
