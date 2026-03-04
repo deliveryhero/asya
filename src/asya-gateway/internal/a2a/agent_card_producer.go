@@ -41,7 +41,7 @@ func (p *CardProducer) Card(_ context.Context) (*a2alib.AgentCard, error) {
 	version := getEnvOrDefault("ASYA_A2A_VERSION", "1.0.0")
 	publicURL := getEnvOrDefault("ASYA_A2A_PUBLIC_URL", "")
 
-	return &a2alib.AgentCard{
+	card := &a2alib.AgentCard{
 		Name:        name,
 		Description: desc,
 		Version:     version,
@@ -57,7 +57,21 @@ func (p *CardProducer) Card(_ context.Context) (*a2alib.AgentCard, error) {
 			Org: "Asya",
 			URL: "https://asya.sh",
 		},
-	}, nil
+	}
+
+	if apiKey := os.Getenv("ASYA_A2A_API_KEY"); apiKey != "" {
+		card.SecuritySchemes = a2alib.NamedSecuritySchemes{
+			a2alib.SecuritySchemeName("apiKey"): a2alib.APIKeySecurityScheme{
+				In:   a2alib.APIKeySecuritySchemeInHeader,
+				Name: "X-API-Key",
+			},
+		}
+		card.Security = []a2alib.SecurityRequirements{
+			{a2alib.SecuritySchemeName("apiKey"): a2alib.SecuritySchemeScopes{}},
+		}
+	}
+
+	return card, nil
 }
 
 func getEnvOrDefault(key, def string) string {

@@ -173,9 +173,19 @@ func main() {
 		a2asrv.WithKeepAlive(15*time.Second),
 	)
 
-	// Mount A2A endpoints
-	mux.Handle("/a2a/", a2aHTTPHandler)
-	mux.Handle("/.well-known/agent.json", a2asrv.NewAgentCardHandler(cardProducer))
+	// Mount A2A endpoints (with optional API key auth)
+	var a2aRootHandler http.Handler = a2aHTTPHandler
+	if apiKey := os.Getenv("ASYA_A2A_API_KEY"); apiKey != "" {
+		slog.Info("A2A API Key authentication enabled")
+		a2aRootHandler = a2a.APIKeyMiddleware(apiKey)(a2aHTTPHandler)
+	}
+	mux.Handle("/a2a/", a2aRootHandler)
+
+	var agentCardHandler http.Handler = a2asrv.NewAgentCardHandler(cardProducer)
+	if apiKey := os.Getenv("ASYA_A2A_API_KEY"); apiKey != "" {
+		agentCardHandler = a2a.APIKeyMiddleware(apiKey)(agentCardHandler)
+	}
+	mux.Handle("/.well-known/agent.json", agentCardHandler)
 
 	// Setup graceful shutdown
 	sigChan := make(chan os.Signal, 1)
