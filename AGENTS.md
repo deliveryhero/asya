@@ -4,7 +4,7 @@ This project uses **git-aint** for issue tracking.
 
 ## How It Works
 
-Aints (issues) are markdown files with YAML frontmatter stored in `.aint/epics/`.
+Aints (issues) are markdown files with YAML frontmatter stored in `.aint/aints/`.
 The `.aint/` directory is a **git worktree** on the `aint-sync` branch — it's
 gitignored from the main branch. Don't `git add` it from main.
 
@@ -20,82 +20,84 @@ check `git config --get-regexp aint.alias` to debug.
 ```bash
 # List & filter
 git aint list                          # open aints
-git aint list --search "query" --output tree  # search + tree view
+git aint list --search "query" --view tree  # search + tree view
+git aint list --stats                  # summary statistics
 
 # Read
 git aint get <ref>                     # details (--output json for structured)
 
 # Create
-git aint create --title "Title" --priority 2            # task (P2 = medium)
-git aint create --title "Title" --epic init --dep init/1bm2  # with epic + dep
+git aint create --title "Title" --priority 2            # aint (P2 = medium)
+git aint create --title "Title" --in ci-setup           # in a specific dir
 
 # Update
-git aint update <ref> --status afoot             # pick up
-git aint update <ref> --status vibed             # close
-git aint update <ref> --add-tag "pr:123"         # tag a PR
+git aint update <ref> --status active          # pick up
+git aint update <ref> --status pushed          # code pushed
+git aint update <ref> --status merged          # close
+git aint update <ref> --add-tag "pr:123"       # tag a PR
 
-# Review & deprioritize
-git aint peep <ref>                              # approve (sets status to peeped)
-git aint snooze <ref>                            # deprioritize (sets status to snoozed)
+# Health checks
+git aint doctor                        # run all validation checks
+git aint doctor --fix                  # auto-fix safe issues
+git aint doctor --only sync            # check .aint/ sync status
 ```
 
 All commands support `--output json`. Run `git aint <cmd> --help` for full options.
 
 ## Aint References
 
-- Epic: `init` — base-36 generated ID (default 6 chars, configurable via `git config aint.id-length`)
-- Task: `init/1bm2cd` — epic/task, IDs are base-36
-- Task status: `slopped` | `peeped` | `afoot` | `snoozed` | `vibed` | `yeeted`
-- Epic state: open (in `epics/`) or closed (in `epics/.closed/`) — no status field
+- Aint ID: `c9x8` — 4-char base-36 random ID
+- Optional dir-qualified ref: `ci-setup/c9x8`
+- Status: `backlog` | `open` | `active` | `pushed` | `merged` | `rejected`
 - Priority: `0` critical, `1` high, `2` medium, `3` low, `4` backlog
 
 ## Workflow
 
 1. `git aint list` — see open aints
-2. `git aint pickup <ref>` — (git alias) creates worktree + branch, sets status to afoot
-3. Work in the worktree at `.worktrees/<epic>/<task>.<slug>`
-4. `git aint update <ref> --status vibed` — close when finished
+2. `git aint pickup <ref>` — (alias) creates worktree + branch, sets status to active
+3. Work in the worktree
+4. `git aint push <ref>` — push code, create PR, set status to pushed
+5. `git aint update <ref> --status merged` — close when PR merged
 
 ### Worktrees
 
 All work should be done in a git worktree. `git aint pickup <ref>` automates this:
-- Creates branch `<epic>/<task>.<slug>` (e.g. `init/1bm2.implmnt-auth`)
+- Creates branch `<dir>/<id>.<slug>` (e.g. `ci-setup/c9x8.fix-auth`)
 - Creates worktree in `.worktrees/` (configurable via `git config aint.worktree-dir`)
-- Tags the aint with `worktree:<worktree-path>` and `branch:<branch>`
-- Sets status to `afoot`
+- Tags the aint with `worktree:<path>` and `branch:<branch>`
+- Sets status to `active`
 
 ## File Structure
 
 ```
-.aint/epics/
-├── .closed/                     # closed epics (moved here when done)
-│   └── 1iv.rework-status/
-│       └── epic.md
-├── 1b0.init/                    # open epic directory (<id>.<slug>)
-│   ├── epic.md                  # epic metadata (YAML frontmatter, no status)
-│   ├── rfc.md                   # optional RFC/design doc
-│   ├── adr.chose-yaml.md        # optional ADR
-│   ├── .closed/                 # closed tasks within the epic
-│   │   └── task.vibed.1bt9.fix-store.md
-│   └── task.slopped.1bm2.implmnt-auth.md  # task.<status>.<id>.<slug>.md
-├── 1bp.publish/
-│   └── ...
-└── misc/                        # default epic for uncategorized tasks
+.aint/aints/
+├── .closed/                         # closed dirs (moved here when done)
+│   └── old-feature/
+│       ├── summary.md
+│       └── merged.a3x1.impl-thing.md
+├── ci-setup/                        # grouping dir (slug only, no ID)
+│   ├── summary.md                   # dir metadata (title + description)
+│   ├── rfc.md                       # optional RFC/design doc
+│   ├── .closed/                     # closed aints within the dir
+│   │   └── merged.b2k9.fix-pipe.md
+│   ├── active.c9x8.fix-auth.md     # aint file: <status>.<id>.<slug>.md
+│   └── open.d4m1.add-cache.md
+├── misc/                            # default dir
+│   └── backlog.e5n2.random-idea.md
+└── open.f6p3.standalone-task.md     # aint at root (no dir)
 ```
 
-- **epic.md**: epic metadata (YAML frontmatter + brief description). No status
-  field — epics are open (in `epics/`) or closed (moved to `epics/.closed/`)
-- **rfc.md**: optional RFC/design doc, typically created collaboratively
-  by brainstorming with the user
-- **adr.*.md**: optional architecture decision records
-- **Task files**: YAML frontmatter (priority, deps, tags) + markdown body.
-  Status is encoded in the filename (`task.<status>.<id>.<slug>.md`). Closed
-  tasks are moved to `.closed/` within the epic directory
+- **summary.md**: dir metadata (title + description). No status field — dirs
+  are open (in `aints/`) or closed (moved to `aints/.closed/`)
+- **rfc.md**: optional RFC/design doc
+- **Aint files**: YAML frontmatter (priority, deps, tags) + markdown body.
+  Status is encoded in the filename (`<status>.<id>.<slug>.md`). Closed
+  aints are moved to `.closed/` within their directory
 - **Conflicts**: since `.aint/` is a git worktree, resolve conflicts with
   `git -C .aint/ ...` (e.g. `git -C .aint/ merge --abort`)
 
 ## Conventions
 
-- **Branches**: `<epic>/<task>.<slug>` (e.g. `1bd2/1bm2.implmnt-auth`)
-- **Tags**: `worktree:<worktree-path>`, `branch:<branch>`, `pr:<number>`
-- **Dependencies**: aint refs in frontmatter (e.g. `dependencies: [init/1bm2]`)
+- **Branches**: `<dir>/<id>.<slug>` (e.g. `ci-setup/c9x8.fix-auth`)
+- **Tags**: `worktree:<path>`, `branch:<branch>`, `pr:<number>`
+- **Dependencies**: aint IDs in frontmatter (e.g. `dependencies: [c9x8, d4m1]`)

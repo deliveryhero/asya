@@ -5,8 +5,6 @@ tags:
   - type:feature
 ---
 
-Leftover from [[1cph]]
-
 
 ## Overview
 
