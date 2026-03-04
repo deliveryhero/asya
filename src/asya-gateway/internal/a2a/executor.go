@@ -114,7 +114,18 @@ func (e *Executor) Cancel(
 ) error {
 	taskID := reqCtx.TaskID
 
-	err := e.taskStore.Update(types.TaskUpdate{
+	// Check current state — reject if already terminal
+	task, err := e.taskStore.Get(string(taskID))
+	if err != nil {
+		return fmt.Errorf("cancel task %q: %w", taskID, err)
+	}
+
+	switch task.Status {
+	case types.TaskStatusSucceeded, types.TaskStatusFailed, types.TaskStatusCanceled:
+		return a2alib.ErrTaskNotCancelable
+	}
+
+	err = e.taskStore.Update(types.TaskUpdate{
 		ID:        string(taskID),
 		Status:    types.TaskStatusCanceled,
 		Message:   "Canceled by client",
