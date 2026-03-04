@@ -1064,8 +1064,8 @@ asya-gateway
 ├── {base}/mcp/sse                       # MCP SSE deprecated (GET)
 ├── {base}/mcp/tools/call                # REST tool invocation (POST)
 │
-│  Mesh namespace (/mesh) — internal, sidecar-only
-├── {base}/mesh/expose                   # Register tool/skill (POST), list (GET)
+│  Mesh namespace (/mesh) — management + sidecar
+├── {base}/mesh/expose                   # Register tool/skill (POST), list (GET) — user-facing
 ├── {base}/mesh/{id}/progress            # Sidecar progress reporting (POST)
 ├── {base}/mesh/{id}/final               # End actor final status (POST)
 ├── {base}/mesh/{id}/status              # Task status check for sidecar (GET)
@@ -1083,7 +1083,7 @@ asya-gateway
 |-----------|----------|------|---------|
 | `/a2a` | External AI agents, orchestrators | A2A auth middleware | A2A protocol surface |
 | `/mcp` | LLMs, developers, tool-calling clients | MCP auth (future) | MCP protocol surface |
-| `/mesh` | Sidecars, operators, CLI | Internal (network-level) | Actor mesh management |
+| `/mesh` | Data scientists, operators, sidecars | API key (same as A2A) for `/mesh/expose`; network-level for sidecar routes | Actor mesh management + tool registration |
 
 **Design decisions**:
 - A2A paths follow the protobuf HTTP annotations (`/message:send`,
@@ -1741,9 +1741,11 @@ Tool/skill registration replaces the former YAML-based static config
 (`routes.yaml` ConfigMap) with a DB-backed registry and REST API. The gateway
 boots from PostgreSQL. No ConfigMap, no fsnotify, no gateway restart needed.
 
-**Design decision**: Registration lives under `/mesh/expose` — an internal
-management operation for the actor mesh, same namespace as sidecar-facing routes.
-MCP tool invocation lives at `/mcp/tools/call`. A2A endpoints at `/a2a/*`.
+**Design decision**: Registration lives under `/mesh/expose` — a user-facing
+management API for data scientists to register their actor pipelines as
+callable tools/skills. Same `/mesh` namespace as sidecar-facing routes, but
+authenticated (API key). MCP tool invocation lives at `/mcp/tools/call`. A2A
+endpoints at `/a2a/*`.
 
 #### 8.4.1 Endpoints
 
@@ -2372,8 +2374,10 @@ MCP or A2A. Changes:
 
 ## 12. Authentication and Security
 
-Authentication applies to A2A endpoints only. Internal `/mesh/*` routes and
-MCP `/mcp` to be protected later, in future RFCs.
+Authentication applies to A2A endpoints and `/mesh/expose` (tool registration).
+The `/mesh/expose` endpoint is user-facing (data scientists register tools) and
+shares the same API key as A2A. Internal sidecar routes (`/mesh/{id}/*`) remain
+network-level only. MCP `/mcp` to be protected later, in future RFCs.
 
 ### Phase 1: No Auth (MVP)
 
@@ -2601,7 +2605,7 @@ around a2a-go). ~200 lines sidecar changes (URL rename + FLY forwarding).
 | CancelTask | Cancel → status updated → sidecar stops routing (410 Gone) |
 | Registration API | `POST /mesh/expose` upsert, `GET /mesh/expose` list |
 | Registration refresh | POST new tool → Agent Card immediately reflects new skill |
-| Auth middleware | 401 for unauthenticated, 200 for authenticated, no auth on `/mesh/*` |
+| Auth middleware | 401 for unauthenticated, 200 for authenticated; API key on `/mesh/expose`, no auth on sidecar `/mesh/{id}/*` |
 | Blocking mode | `configuration.blocking: true` → response after completion |
 | Error responses | JSON-RPC error codes for skill not found, task not found, invalid params |
 
@@ -2625,7 +2629,7 @@ around a2a-go). ~200 lines sidecar changes (URL rename + FLY forwarding).
 | Agent Card with real AsyncActors | Skills match deployed flows via `POST /mesh/expose` |
 | Full A2A flow with Crossplane | SendMessage → Crossplane-managed actors → result |
 | Cross-namespace routing | Gateway routes to correct namespace queue |
-| Auth enforcement | API Key required for A2A, not for MCP or `/mesh/*` |
+| Auth enforcement | API Key required for A2A and `/mesh/expose`, not for MCP or sidecar `/mesh/{id}/*` |
 | A2A SDK client interop | Official `a2a-go` client can discover, send, stream, cancel |
 | Pause/resume with S3 | Full pause → S3 persist → resume → S3 load → continue |
 | Concurrent tasks | Multiple tasks in same context, correct isolation |
