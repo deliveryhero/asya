@@ -83,6 +83,9 @@ spec:
               providerConfigRef:
                 name: {{`{{ $providerConfigRef }}`}}
               deletionPolicy: Delete
+              {{- if .Values.gcpProviderConfig.emulatorHost }}
+              managementPolicies: ["Create", "Observe", "Delete"]
+              {{- end }}
 
     # Create KEDA TriggerAuthentication for GCP Pub/Sub scaling
     - step: render-triggerauthentication
