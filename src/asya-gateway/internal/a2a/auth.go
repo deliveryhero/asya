@@ -81,6 +81,9 @@ func (j *JWTAuthenticator) Authenticate(r *http.Request) bool {
 // A request passes if ANY authenticator succeeds.
 // Agent Card (/.well-known/agent.json) is always bypassed.
 func A2AAuthMiddleware(authenticators ...Authenticator) func(http.Handler) http.Handler {
+	if len(authenticators) == 0 {
+		panic("A2AAuthMiddleware requires at least one authenticator")
+	}
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if r.URL.Path == "/.well-known/agent.json" {

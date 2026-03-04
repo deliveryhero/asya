@@ -364,3 +364,29 @@ func TestA2AAuthMiddleware_MultiScheme(t *testing.T) {
 		}
 	})
 }
+
+func TestJWTAuthenticator_MalformedToken(t *testing.T) {
+	srv, _, _ := setupJWKSServer(t)
+
+	auth, err := NewJWTAuthenticator(srv.URL, "https://test-issuer.example.com", "test-audience")
+	if err != nil {
+		t.Fatalf("failed to create JWTAuthenticator: %v", err)
+	}
+	t.Cleanup(auth.Close)
+
+	req := httptest.NewRequest(http.MethodPost, "/a2a/", nil)
+	req.Header.Set("Authorization", "Bearer not-a-valid-jwt")
+
+	if auth.Authenticate(req) {
+		t.Fatal("expected malformed token to fail authentication")
+	}
+}
+
+func TestA2AAuthMiddleware_PanicsWithNoAuthenticators(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Fatal("expected panic with no authenticators")
+		}
+	}()
+	A2AAuthMiddleware()
+}
