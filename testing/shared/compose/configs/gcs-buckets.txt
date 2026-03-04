@@ -1,0 +1,7 @@
+# GCS buckets for test results/errors
+# One bucket name per line
+# Used by storage-setup service in fake-gcs.yml
+
+asya-results
+asya-errors
+asya-state-test

@@ -1,23 +1,22 @@
 """
-Integration tests for S3 persistence in x-sink and x-sump actors.
+Integration tests for GCS persistence in x-sink and x-sump actors.
 
-Tests that end actors properly persist results and errors to MinIO.
+Tests that end actors properly persist results and errors to GCS (fake-gcs-server).
 """
 
 import json
 import logging
 import os
-import re
 import time
 
 import pytest
 import requests
 
 storage = os.getenv("ASYA_STORAGE", "s3")
-if storage not in ("s3", "minio"):
-    pytest.skip("S3 persistence tests only run with S3/MinIO storage", allow_module_level=True)
+if storage != "gcs":
+    pytest.skip("GCS persistence tests only run with GCS storage", allow_module_level=True)
 
-from asya_testing.utils.s3 import delete_all_objects_in_bucket, find_envelope_in_s3, wait_for_envelope_in_s3
+from asya_testing.utils.gcs import delete_all_objects_in_bucket, find_envelope_in_gcs, wait_for_envelope_in_gcs
 from asya_testing.config import require_env
 
 logger = logging.getLogger(__name__)
@@ -28,8 +27,8 @@ ERRORS_BUCKET = "asya-errors"
 
 
 @pytest.fixture(autouse=True)
-def cleanup_s3():
-    """Clean up S3 buckets before and after each test."""
+def cleanup_gcs():
+    """Clean up GCS buckets before and after each test."""
     delete_all_objects_in_bucket(RESULTS_BUCKET)
     delete_all_objects_in_bucket(ERRORS_BUCKET)
     yield
@@ -52,8 +51,6 @@ def call_mcp_tool(tool_name: str, arguments: dict, timeout: int = 60) -> str:
     response.raise_for_status()
 
     mcp_result = response.json()
-
-    # Parse response following the pattern from test_progress_standalone.py (which works)
     text_content = mcp_result["content"][0].get("text", "")
     response_data = json.loads(text_content)
     task_id = response_data.get("task_id")
@@ -84,19 +81,19 @@ def wait_for_completion(task_id: str, timeout: int = 60) -> dict:
     reason="Checkpointer writes via open() to local filesystem; needs state proxy connector in Docker Compose (debt/1k5a8e)",
     strict=True,
 )
-def test_x_sink_persists_to_s3():
+def test_x_sink_persists_to_gcs():
     """
-    Test that x-sink actor persists successful results to S3.
+    Test that x-sink actor persists successful results to GCS.
 
     Inventory:
     - Submit echo request via gateway
     - Wait for completion
     - Verify result saved to asya-results bucket
-    - Verify S3 object structure matches expected schema
+    - Verify GCS object structure matches expected schema
     """
-    logger.info("=== test_x_sink_persists_to_s3 ===")
+    logger.info("=== test_x_sink_persists_to_gcs ===")
 
-    task_id = call_mcp_tool("test_echo", {"message": "test s3 persistence"})
+    task_id = call_mcp_tool("test_echo", {"message": "test gcs persistence"})
     logger.info(f"Created task {task_id}")
 
     final_task = wait_for_completion(task_id, timeout=60)
@@ -104,32 +101,31 @@ def test_x_sink_persists_to_s3():
 
     logger.info(f"Task {task_id} completed successfully")
 
-    s3_object = wait_for_envelope_in_s3(RESULTS_BUCKET, task_id, timeout=10)
+    gcs_object = wait_for_envelope_in_gcs(RESULTS_BUCKET, task_id, timeout=10)
 
-    assert s3_object is not None, f"Message {task_id} not found in {RESULTS_BUCKET}"
-    # S3 stores just the payload dict (not the full message message)
-    assert isinstance(s3_object, dict), f"S3 object should be a dict, got {type(s3_object)}"
-    assert s3_object.get("echoed") == "test s3 persistence", f"S3 payload should contain echoed message, got {s3_object}"
+    assert gcs_object is not None, f"Envelope {task_id} not found in {RESULTS_BUCKET}"
+    assert isinstance(gcs_object, dict), f"GCS object should be a dict, got {type(gcs_object)}"
+    assert gcs_object.get("echoed") == "test gcs persistence", f"GCS payload should contain echoed message, got {gcs_object}"
 
-    logger.info(f"S3 payload validated: {s3_object}")
-    logger.info("=== test_x_sink_persists_to_s3: PASSED ===")
+    logger.info(f"GCS payload validated: {gcs_object}")
+    logger.info("=== test_x_sink_persists_to_gcs: PASSED ===")
 
 
 @pytest.mark.xfail(
     reason="Checkpointer writes via open() to local filesystem; needs state proxy connector in Docker Compose (debt/1k5a8e)",
     strict=True,
 )
-def test_x_sump_persists_to_s3():
+def test_x_sump_persists_to_gcs():
     """
-    Test that x-sump actor persists errors to S3.
+    Test that x-sump actor persists errors to GCS.
 
     Inventory:
     - Submit request that triggers error
     - Wait for failure
     - Verify error saved to asya-errors bucket
-    - Verify S3 object structure includes error details
+    - Verify GCS object structure includes error details
     """
-    logger.info("=== test_x_sump_persists_to_s3 ===")
+    logger.info("=== test_x_sump_persists_to_gcs ===")
 
     task_id = call_mcp_tool("test_error", {"should_fail": True})
     logger.info(f"Created task {task_id}")
@@ -139,23 +135,22 @@ def test_x_sump_persists_to_s3():
 
     logger.info(f"Task {task_id} failed as expected")
 
-    s3_object = wait_for_envelope_in_s3(ERRORS_BUCKET, task_id, timeout=10)
+    gcs_object = wait_for_envelope_in_gcs(ERRORS_BUCKET, task_id, timeout=10)
 
-    assert s3_object is not None, f"Message {task_id} not found in {ERRORS_BUCKET}"
-    # S3 stores just the payload dict (not the full message message)
-    assert isinstance(s3_object, dict), f"S3 object should be a dict, got {type(s3_object)}"
+    assert gcs_object is not None, f"Envelope {task_id} not found in {ERRORS_BUCKET}"
+    assert isinstance(gcs_object, dict), f"GCS object should be a dict, got {type(gcs_object)}"
 
-    logger.info(f"S3 error payload validated: {s3_object}")
-    logger.info("=== test_x_sump_persists_to_s3: PASSED ===")
+    logger.info(f"GCS error payload validated: {gcs_object}")
+    logger.info("=== test_x_sump_persists_to_gcs: PASSED ===")
 
 
 @pytest.mark.xfail(
     reason="Checkpointer writes via open() to local filesystem; needs state proxy connector in Docker Compose (debt/1k5a8e)",
     strict=True,
 )
-def test_pipeline_result_persists_to_s3():
+def test_pipeline_result_persists_to_gcs():
     """
-    Test that multi-actor pipeline results are persisted to S3.
+    Test that multi-actor pipeline results are persisted to GCS.
 
     Inventory:
     - Submit pipeline request (doubler + incrementer)
@@ -163,7 +158,7 @@ def test_pipeline_result_persists_to_s3():
     - Verify final result saved to asya-results bucket
     - Verify last_actor field reflects final pipeline actor
     """
-    logger.info("=== test_pipeline_result_persists_to_s3 ===")
+    logger.info("=== test_pipeline_result_persists_to_gcs ===")
 
     task_id = call_mcp_tool("test_pipeline", {"value": 10})
     logger.info(f"Created pipeline task {task_id}")
@@ -173,12 +168,11 @@ def test_pipeline_result_persists_to_s3():
 
     logger.info(f"Pipeline task {task_id} completed successfully")
 
-    s3_object = wait_for_envelope_in_s3(RESULTS_BUCKET, task_id, timeout=10)
+    gcs_object = wait_for_envelope_in_gcs(RESULTS_BUCKET, task_id, timeout=10)
 
-    assert s3_object is not None, f"Message {task_id} not found in {RESULTS_BUCKET}"
-    # S3 stores just the payload dict (not the full message message)
-    assert isinstance(s3_object, dict), f"S3 object should be a dict, got {type(s3_object)}"
-    assert s3_object["value"] == 25, f"Expected pipeline result value 25, got {s3_object.get('value')}"
+    assert gcs_object is not None, f"Envelope {task_id} not found in {RESULTS_BUCKET}"
+    assert isinstance(gcs_object, dict), f"GCS object should be a dict, got {type(gcs_object)}"
+    assert gcs_object["value"] == 25, f"Expected pipeline result value 25, got {gcs_object.get('value')}"
 
-    logger.info(f"Pipeline S3 payload validated: {s3_object}")
-    logger.info("=== test_pipeline_result_persists_to_s3: PASSED ===")
+    logger.info(f"Pipeline GCS payload validated: {gcs_object}")
+    logger.info("=== test_pipeline_result_persists_to_gcs: PASSED ===")
