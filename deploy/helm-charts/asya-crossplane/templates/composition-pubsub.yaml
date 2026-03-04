@@ -45,7 +45,6 @@ spec:
                 gotemplating.fn.crossplane.io/composition-resource-name: pubsub-topic
             spec:
               forProvider:
-                name: asya-{{`{{ $namespace }}`}}-{{`{{ $actorName }}`}}
                 project: {{`{{ $gcpProject }}`}}
               providerConfigRef:
                 name: {{`{{ $providerConfigRef }}`}}
@@ -74,7 +73,6 @@ spec:
                 gotemplating.fn.crossplane.io/composition-resource-name: pubsub-subscription
             spec:
               forProvider:
-                name: asya-{{`{{ $namespace }}`}}-{{`{{ $actorName }}`}}
                 project: {{`{{ $gcpProject }}`}}
                 topicSelector:
                   matchControllerRef: true

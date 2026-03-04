@@ -42,7 +42,7 @@ spec:
     {{- if eq .Values.transport "pubsub" }}
     env:
     - name: PUBSUB_EMULATOR_HOST
-      value: "pubsub-emulator.{{ .Release.Namespace }}.svc.cluster.local:8085"
+      value: "pubsub-emulator.asya-system.svc.cluster.local:8085"
     - name: PUBSUB_PROJECT_ID
       value: {{ .Values.pubsubProjectId | default "test-project" | quote }}
     {{- end }}
