@@ -8,6 +8,14 @@
             "type": "command"
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "command": "git aint status",
+            "type": "command"
+          }
+        ]
       }
     ],
     "SessionStart": [
