@@ -239,6 +239,17 @@ time {
     LOAD_PIDS+=($!)
   done
 
+  # Pre-pull and load Helm test images into Kind to avoid Docker Hub rate limits
+  HELM_TEST_IMAGES=(
+    "alpine/k8s:1.28.3"
+    "curlimages/curl:latest"
+    "busybox:latest"
+  )
+  for img in "${HELM_TEST_IMAGES[@]}"; do
+    (docker pull "$img" && kind load docker-image "$img" --name "$CLUSTER_NAME") &
+    LOAD_PIDS+=($!)
+  done
+
   # Set up local OCI registry with TLS for Crossplane Function packages.
   # Crossplane's package manager runs inside a pod and uses HTTPS by default,
   # so the registry must serve TLS. We generate a self-signed CA + server cert
