@@ -40,7 +40,7 @@ crew:
     config:
       bucket: asya-results
       project: test-project
-      emulatorHost: "http://fake-gcs.asya-system.svc.cluster.local:4443"
+      emulatorHost: "http://gcs-emulator.asya-system.svc.cluster.local:4443"
     connector:
       image: ghcr.io/deliveryhero/asya-state-proxy-gcs-buffered-lww:latest
   x-sink:
