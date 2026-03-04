@@ -218,7 +218,7 @@ def test_s3_persistence_with_large_payload(e2e_helper, s3_endpoint, results_buck
     if transport == "sqs":
         pytest.skip("Large payload test not supported with SQS (256KB limit)")
 
-    size_kb = 9728 if transport == "pubsub" else 10240  # 9.5MB for Pub/Sub (10MB limit minus envelope overhead)
+    size_kb = 5120 if transport == "pubsub" else 10240  # 5MB for Pub/Sub (10MB limit minus JSON + envelope overhead)
     logger.info("Sending large payload...")
     response = e2e_helper.call_mcp_tool(
         tool_name="test_large_payload",
