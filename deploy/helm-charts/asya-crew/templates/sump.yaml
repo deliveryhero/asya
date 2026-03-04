@@ -19,8 +19,8 @@ spec:
   transport: {{ $sump.transport }}
   {{- include "asya-crew.pubsub-spec" . | nindent 2 }}
   {{- if .Values.persistence.enabled }}
-  overlays:
-    - {{ include "asya-crew.persistence.overlayName" . }}
+  stateProxy:
+    {{- include "asya-crew.persistence.stateProxy" . | nindent 4 }}
   {{- end }}
 
   {{- with $sump.sidecar }}

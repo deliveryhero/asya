@@ -3,6 +3,7 @@ package taskstore
 import (
 	"errors"
 	"fmt"
+	"sort"
 	"sync"
 	"time"
 
@@ -38,6 +39,22 @@ func routeTotalActors(route types.Route) int {
 		total++
 	}
 	return total
+}
+
+// applyRouteUpdate copies route fields from the update into the task and
+// recalculates TotalActors / ActorsCompleted / CurrentActorName.
+// Returns true if route fields were present in the update.
+func applyRouteUpdate(task *types.Task, update types.TaskUpdate) bool {
+	if update.Curr == "" && len(update.Prev) == 0 && len(update.Next) == 0 {
+		return false
+	}
+	task.Route.Prev = update.Prev
+	task.Route.Curr = update.Curr
+	task.Route.Next = update.Next
+	task.TotalActors = routeTotalActors(task.Route)
+	task.ActorsCompleted = len(update.Prev)
+	task.CurrentActorName = update.Curr
+	return true
 }
 
 // Create creates a new task
@@ -116,15 +133,12 @@ func (s *Store) Update(update types.TaskUpdate) error {
 		task.ProgressPercent = *update.ProgressPercent
 	}
 
+	if update.Message != "" {
+		task.Message = update.Message
+	}
+
 	// Update route if any route fields are provided
-	if update.Curr != "" || len(update.Prev) > 0 || len(update.Next) > 0 {
-		task.Route.Prev = update.Prev
-		task.Route.Curr = update.Curr
-		task.Route.Next = update.Next
-		task.TotalActors = routeTotalActors(task.Route)
-		task.ActorsCompleted = len(update.Prev)
-		task.CurrentActorName = update.Curr
-	} else if update.Actor != "" {
+	if !applyRouteUpdate(task, update) && update.Actor != "" {
 		task.CurrentActorName = update.Actor
 	}
 
@@ -170,14 +184,7 @@ func (s *Store) UpdateProgress(update types.TaskUpdate) error {
 	}
 
 	// Update route fields when provided
-	if update.Curr != "" || len(update.Prev) > 0 || len(update.Next) > 0 {
-		task.Route.Prev = update.Prev
-		task.Route.Curr = update.Curr
-		task.Route.Next = update.Next
-		task.TotalActors = routeTotalActors(task.Route)
-		task.ActorsCompleted = len(update.Prev)
-		task.CurrentActorName = update.Curr
-	}
+	applyRouteUpdate(task, update)
 
 	if update.Message != "" {
 		task.Message = update.Message
@@ -389,19 +396,44 @@ func (s *Store) Resume(id string) (*types.Task, error) {
 	return task, nil
 }
 
-// List returns all tasks, optionally filtered by status
-func (s *Store) List(status *types.TaskStatus) ([]*types.Task, error) {
+// List returns tasks filtered by params with pagination. Returns (tasks, totalCount, error).
+func (s *Store) List(params ListParams) ([]*types.Task, int, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	var result []*types.Task
+	// Collect matching tasks
+	var matched []*types.Task
 	for _, task := range s.tasks {
-		if status != nil && task.Status != *status {
+		if params.Status != nil && task.Status != *params.Status {
 			continue
 		}
-		result = append(result, task)
+		if params.ContextID != "" && task.ContextID != params.ContextID {
+			continue
+		}
+		matched = append(matched, task)
 	}
-	return result, nil
+
+	// Sort by CreatedAt descending for deterministic pagination (matches PgStore behavior)
+	sort.Slice(matched, func(i, j int) bool {
+		return matched[i].CreatedAt.After(matched[j].CreatedAt)
+	})
+
+	totalCount := len(matched)
+
+	// Apply offset
+	if params.Offset > 0 {
+		if params.Offset >= len(matched) {
+			return []*types.Task{}, totalCount, nil
+		}
+		matched = matched[params.Offset:]
+	}
+
+	// Apply limit
+	if params.Limit > 0 && params.Limit < len(matched) {
+		matched = matched[:params.Limit]
+	}
+
+	return matched, totalCount, nil
 }
 
 // isFinal checks if a status is final (must hold lock)

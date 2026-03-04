@@ -6,6 +6,14 @@ import (
 	"github.com/deliveryhero/asya/asya-gateway/pkg/types"
 )
 
+// ListParams defines filtering and pagination parameters for listing tasks.
+type ListParams struct {
+	Status    *types.TaskStatus
+	ContextID string
+	Limit     int // 0 = no limit
+	Offset    int
+}
+
 // TaskStore defines the interface for task storage
 type TaskStore interface {
 	// Create creates a new task
@@ -36,6 +44,6 @@ type TaskStore interface {
 	// with the remaining timeout budget. Returns the updated task.
 	Resume(id string) (*types.Task, error)
 
-	// List returns tasks, optionally filtered by status
-	List(status *types.TaskStatus) ([]*types.Task, error)
+	// List returns tasks filtered by params, with pagination. Returns (tasks, totalCount, error).
+	List(params ListParams) ([]*types.Task, int, error)
 }

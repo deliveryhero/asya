@@ -9,6 +9,21 @@ workload:
 # Uses the same tag as the rest of the cluster deployment.
 crewImage: ghcr.io/deliveryhero/asya-crew:latest
 
+stateProxy:
+  backend: s3
+  connector:
+    image: ""
+  config:
+    bucket: asya-results
+    # S3-specific
+    endpoint: ""
+    region: us-east-1
+    accessKey: ""
+    secretKey: ""
+    # GCS-specific
+    project: ""
+    emulatorHost: ""
+
 scaling:
   enabled: true
   minReplicas: 1

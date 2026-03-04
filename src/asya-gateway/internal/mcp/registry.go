@@ -31,6 +31,9 @@ type Registry struct {
 
 // NewRegistry creates a new tool registry
 func NewRegistry(cfg *config.Config, taskStore taskstore.TaskStore, queueClient queue.Client) *Registry {
+	if cfg == nil {
+		cfg = &config.Config{Tools: []config.Tool{}}
+	}
 	return &Registry{
 		config:      cfg,
 		taskStore:   taskStore,
@@ -130,11 +133,7 @@ func (r *Registry) buildParameterOptions(name string, param config.Parameter) (m
 		return mcp.WithArray(name, paramOptions...), nil
 
 	case "object":
-		// For objects, use a generic parameter
-		// Object validation will be done in the handler
 		log.Printf("Warning: object parameter %q uses generic validation", name)
-		// We'll treat it as a flexible any parameter - mcp-go will handle it
-		// No specific type method needed - it will accept any JSON object
 		return mcp.WithString(name, paramOptions...), nil
 
 	default:
@@ -167,7 +166,6 @@ func (r *Registry) createToolHandler(toolDef config.Tool) func(context.Context, 
 		}
 
 		// Create task
-		// actors is the full actor list: first actor goes to Curr, rest go to Next
 		taskID := uuid.New().String()
 		var routeCurr string
 		var routeNext []string

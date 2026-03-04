@@ -24,6 +24,13 @@ import time
 
 import pytest
 
+if os.getenv("ASYA_TRANSPORT") == "pubsub":
+    pytest.skip(
+        "KEDA scaling tests require Crossplane provider reconciliation; "
+        "the GCP Pub/Sub provider cannot reconcile with the emulator",
+        allow_module_level=True,
+    )
+
 from asya_testing.utils.kubectl import (
     kubectl_apply,
     kubectl_delete,

@@ -17,18 +17,17 @@ Architecture:
 Environment Variables:
 - ASYA_PERSISTENCE_MOUNT: State proxy mount path for inline checkpoint persistence (optional)
 
-ABI Paths Used:
-- GET .id — read-only: message UUID
-- GET .status.phase — read-only: terminal phase
-- GET .parent_id — read-only: parent UUID (for checkpointer)
-- GET .route.prev — read-only: list of processed actors (for checkpointer)
-- GET .route.curr — read-only: current actor name (for checkpointer)
+ABI Protocol:
+- yield ("GET", ".id") -> message UUID
+- yield ("GET", ".status") -> status dict (may contain "phase")
+- yield ("GET", ".route") -> route dict with prev/curr/next (for checkpointer)
+- yield payload -> emit downstream frame
 
 Handler Behavior:
 - Generator handler using ABI yield protocol for metadata access
 - On failed: logs complete message summary JSON at ERROR level
 - On succeeded: debug-level log only
-- Does not emit any payload (terminal, no further routing)
+- Returns payload (terminal, no further routing)
 """
 
 import json
@@ -44,11 +43,12 @@ logger = logging.getLogger(__name__)
 ASYA_PERSISTENCE_MOUNT = os.getenv("ASYA_PERSISTENCE_MOUNT", "")
 
 
-def sump_handler(payload: dict[str, Any]) -> Generator:
+def sump_handler(payload: dict[str, Any]) -> Generator[tuple | dict[str, Any], Any, None]:
     """Sump handler. Terminal actor, logs and acknowledges."""
-    message_id: str = (yield "GET", ".id") or ""
+    message_id: str = yield "GET", ".id"
 
-    phase: str = (yield "GET", ".status.phase") or ""
+    status: dict[str, Any] = yield "GET", ".status"
+    phase = status.get("phase", "unknown")
 
     if phase == "failed":
         msg_info = {"id": message_id, "phase": phase, "payload": payload}
@@ -63,17 +63,15 @@ def sump_handler(payload: dict[str, Any]) -> Generator:
         try:
             from asya_crew.checkpointer import handler
 
-            parent_id: str = (yield "GET", ".parent_id") or ""
-            prev_actors: list[str] = (yield "GET", ".route.prev") or []
-            curr: str = (yield "GET", ".route.curr") or ""
-
+            route: dict[str, Any] = yield "GET", ".route"
             handler(
                 payload,
                 message_id=message_id,
                 phase=phase,
-                parent_id=parent_id,
-                prev_actors=prev_actors,
-                curr=curr,
+                route_prev=route.get("prev", []),
+                route_curr=route.get("curr", ""),
             )
         except Exception as e:
             logger.error(f"Checkpoint failed for message {message_id}: {e}")
+
+    yield payload

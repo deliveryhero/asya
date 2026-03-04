@@ -20,27 +20,29 @@ Environment Variables:
                    Example: "checkpoint-s3,notify-slack"
 - ASYA_SINK_FANOUT_HOOKS: When "true", run hooks even for fire-and-forget fan-out children
                            (messages with parent_id set but no x-asya-fan-in header).
-                           Default: "false" — fan-out children skip hooks silently.
+                           Default: "false" -- fan-out children skip hooks silently.
 - ASYA_PERSISTENCE_MOUNT: State proxy mount path for inline checkpoint persistence (optional)
 
-ABI Paths Used:
-- GET .id — read-only: message UUID
-- GET .parent_id — read-only: parent UUID (empty if unset)
-- GET .status.phase — read-only: terminal phase
-- GET .headers.x-asya-fan-in — read-only: fan-in header
-- GET .route.prev — read-only: list of processed actors
-- GET .route.curr — read-only: current actor name
-- SET .route.next — read-write: list of next actors
+ABI Protocol:
+- yield ("GET", ".id") -> message UUID
+- yield ("GET", ".parent_id") -> parent UUID (empty if unset)
+- yield ("GET", ".status") -> status dict (may contain "phase")
+- yield ("GET", ".headers") -> headers dict (may contain "x-asya-fan-in")
+- yield ("GET", ".route") -> route dict with prev/curr/next
+- yield ("SET", ".route.next", [...]) -> set next actors for hook routing
+- yield payload -> emit downstream frame
 
 Handler Behavior:
 - Generator handler using ABI yield protocol for metadata access
 - Accepts any status.phase value (no strict validation)
+- Fan-in partials (x-asya-fan-in header): silently consumed, no checkpoint or hooks
+  (these are accumulating slices that should not produce visible results)
 - Fire-and-forget fan-out children (parent_id set, no x-asya-fan-in header): skip hooks by default
   unless ASYA_SINK_FANOUT_HOOKS=true
-- Fan-in partials (x-asya-fan-in header): always run hooks (aggregation handled by caller)
-- If ASYA_SINK_HOOKS is set and hooks should run: routes message to hooks by SET .route.next
-- If no hooks (or hooks skipped): emits payload (message passes to sump directly)
-- The sidecar automatically routes to the configured sink actor (x-sump)
+- x-asya-origin-id header: when present, used as the checkpoint filename (instead of envelope ID)
+  so the merged fan-in result is stored under the original task ID
+- If ASYA_SINK_HOOKS is set and hooks should run: routes message to hooks via ABI SET
+- If no hooks (or hooks skipped): yields payload (message passes to sump directly)
 """
 
 import logging
@@ -57,36 +59,45 @@ ASYA_SINK_FANOUT_HOOKS = os.getenv("ASYA_SINK_FANOUT_HOOKS", "false").lower() ==
 ASYA_PERSISTENCE_MOUNT = os.getenv("ASYA_PERSISTENCE_MOUNT", "")
 
 
-def sink_handler(payload: dict[str, Any]) -> Generator:
+def sink_handler(payload: dict[str, Any]) -> Generator[tuple | dict[str, Any], Any, None]:
     """Sink handler. Receives payload, accesses metadata via ABI yield protocol."""
-    message_id: str = (yield "GET", ".id") or ""
+    message_id: str = yield "GET", ".id"
+    parent_id: str = yield "GET", ".parent_id"
 
-    phase: str = (yield "GET", ".status.phase") or ""
+    status: dict[str, Any] = yield "GET", ".status"
+    phase = status.get("phase", "unknown")
 
-    headers: dict[str, Any] = (yield "GET", ".headers") or {}
-    has_fan_in = bool(headers.get("x-asya-fan-in", ""))
-
-    parent_id: str = (yield "GET", ".parent_id") or ""
+    headers: dict[str, Any] = yield "GET", ".headers"
+    has_fan_in = bool(headers.get("x-asya-fan-in"))
     has_parent_id = bool(parent_id)
 
     logger.info(
         f"Processing sink for message {message_id}, phase={phase}, fan_in={has_fan_in}, parent_id={has_parent_id}"
     )
 
+    # Fan-in partials (accumulating slices) are silently consumed.
+    # They arrive at x-sink because the sidecar routes empty responses here,
+    # but they should not produce checkpoints or gateway reports.
+    if has_fan_in:
+        logger.info(f"Fan-in partial (x-asya-fan-in header), suppressing for message {message_id}")
+        return
+
+    # Use x-asya-origin-id header (set by the fan-in aggregator on merged results)
+    # as the checkpoint filename so the result is stored under the original task ID.
+    checkpoint_id = headers.get("x-asya-origin-id", "") or message_id
+
     if ASYA_PERSISTENCE_MOUNT:
         try:
             from asya_crew.checkpointer import handler
 
-            prev_actors: list[str] = (yield "GET", ".route.prev") or []
-            curr: str = (yield "GET", ".route.curr") or ""
-
+            route: dict[str, Any] = yield "GET", ".route"
             handler(
                 payload,
-                message_id=message_id,
-                phase=phase,
+                message_id=checkpoint_id,
                 parent_id=parent_id,
-                prev_actors=prev_actors,
-                curr=curr,
+                phase=phase,
+                route_prev=route.get("prev", []),
+                route_curr=route.get("curr", ""),
             )
         except Exception as e:
             logger.error(f"Checkpoint failed for message {message_id}: {e}")

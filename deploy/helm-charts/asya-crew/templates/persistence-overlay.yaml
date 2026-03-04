@@ -32,11 +32,19 @@ data:
             value: {{ .Values.persistence.config.bucket | quote }}
           {{- if eq .Values.persistence.backend "s3" }}
           {{- with .Values.persistence.config.endpoint }}
-          - name: STATE_ENDPOINT
+          - name: AWS_ENDPOINT_URL
             value: {{ . | quote }}
           {{- end }}
           {{- with .Values.persistence.config.region }}
           - name: AWS_REGION
+            value: {{ . | quote }}
+          {{- end }}
+          {{- with .Values.persistence.config.accessKey }}
+          - name: AWS_ACCESS_KEY_ID
+            value: {{ . | quote }}
+          {{- end }}
+          {{- with .Values.persistence.config.secretKey }}
+          - name: AWS_SECRET_ACCESS_KEY
             value: {{ . | quote }}
           {{- end }}
           {{- else if eq .Values.persistence.backend "gcs" }}

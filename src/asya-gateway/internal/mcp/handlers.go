@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/deliveryhero/asya/asya-gateway/internal/a2a"
 	"github.com/deliveryhero/asya/asya-gateway/internal/taskstore"
 	"github.com/deliveryhero/asya/asya-gateway/pkg/types"
 	"github.com/mark3labs/mcp-go/mcp"
@@ -22,7 +23,7 @@ var (
 	meshActivePathRegex   = regexp.MustCompile(`^/mesh/([^/]+)/active$`)
 	meshProgressPathRegex = regexp.MustCompile(`^/mesh/([^/]+)/progress$`)
 	meshFinalPathRegex    = regexp.MustCompile(`^/mesh/([^/]+)/final$`)
-	meshPartialPathRegex  = regexp.MustCompile(`^/mesh/([^/]+)/partial$`)
+	meshFlyPathRegex      = regexp.MustCompile(`^/mesh/([^/]+)/fly$`)
 )
 
 // Handler provides HTTP endpoints for task management
@@ -246,13 +247,15 @@ func (h *Handler) HandleMeshStream(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	sse := newSSEWriter(w, flusher)
+
 	// Send historical updates first (to avoid missing early progress updates)
 	historicalUpdates, err := h.taskStore.GetUpdates(taskID, nil)
 	if err != nil {
 		slog.Warn("Failed to get historical updates", "error", err, "task_id", taskID)
 	} else {
 		for _, update := range historicalUpdates {
-			writeSSEEvent(w, flusher, update)
+			sse.writeEvent(update)
 		}
 	}
 
@@ -270,10 +273,9 @@ func (h *Handler) HandleMeshStream(w http.ResponseWriter, r *http.Request) {
 		case <-r.Context().Done():
 			return
 		case <-keepaliveTicker.C:
-			_, _ = fmt.Fprintf(w, ": keepalive\n\n")
-			flusher.Flush()
+			sse.writeKeepalive()
 		case update := <-updateChan:
-			writeSSEEvent(w, flusher, update)
+			sse.writeEvent(update)
 
 			if isFinalStatus(update.Status) {
 				flusher.Flush()
@@ -283,21 +285,40 @@ func (h *Handler) HandleMeshStream(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// writeSSEEvent writes a TaskUpdate as an SSE event to the client.
-// Partial events (PartialPayload set) are sent as "event: partial".
-// All other updates (progress, status changes) are sent as "event: update".
-func writeSSEEvent(w http.ResponseWriter, flusher http.Flusher, update types.TaskUpdate) {
+// sseWriter wraps an io.Writer for SSE event formatting.
+// Typed as io.Writer (not http.ResponseWriter) because SSE streams use
+// Content-Type text/event-stream — HTML escaping would corrupt the protocol.
+type sseWriter struct {
+	w       io.Writer
+	flusher http.Flusher
+}
+
+func newSSEWriter(w io.Writer, flusher http.Flusher) *sseWriter {
+	return &sseWriter{w: w, flusher: flusher}
+}
+
+func (s *sseWriter) writeKeepalive() {
+	_, _ = io.WriteString(s.w, ": keepalive\n\n")
+	s.flusher.Flush()
+}
+
+func (s *sseWriter) writeEvent(update types.TaskUpdate) {
 	if update.PartialPayload != nil {
-		_, _ = fmt.Fprintf(w, "event: partial\ndata: %s\n\n", update.PartialPayload)
+		var payload map[string]any
+		eventType := "partial"
+		if json.Unmarshal(update.PartialPayload, &payload) == nil {
+			eventType = a2a.DetectFLYEventType(payload)
+		}
+		_, _ = io.WriteString(s.w, "event: "+eventType+"\ndata: "+string(update.PartialPayload)+"\n\n") // #nosec G203 -- SSE text/event-stream, not HTML
 	} else {
 		data, err := json.Marshal(update)
 		if err != nil {
 			slog.Error("Failed to marshal SSE update", "error", err)
 			return
 		}
-		_, _ = fmt.Fprintf(w, "event: update\ndata: %s\n\n", data)
+		_, _ = io.WriteString(s.w, "event: update\ndata: "+string(data)+"\n\n") // #nosec G203 -- SSE text/event-stream, not HTML
 	}
-	flusher.Flush()
+	s.flusher.Flush()
 }
 
 // isFinalStatus checks if a status is final (Succeeded, Failed, or Canceled)
@@ -603,18 +624,18 @@ func (h *Handler) HandleMeshFinal(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 }
 
-// HandleMeshPartial handles POST /mesh/{id}/partial (for sidecar to forward partial events)
-// Partial events are incremental results (e.g., LLM tokens) from generator handlers.
+// HandleMeshFly handles POST /mesh/{id}/fly (for sidecar to forward FLY events)
+// FLY events are incremental results (e.g., LLM tokens) from generator handlers.
 // They bypass message queues and are forwarded directly to SSE clients.
-func (h *Handler) HandleMeshPartial(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) HandleMeshFly(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	matches := meshPartialPathRegex.FindStringSubmatch(r.URL.Path)
+	matches := meshFlyPathRegex.FindStringSubmatch(r.URL.Path)
 	if matches == nil {
-		http.Error(w, "Invalid task partial path", http.StatusBadRequest)
+		http.Error(w, "Invalid task fly path", http.StatusBadRequest)
 		return
 	}
 	taskID := matches[1]
@@ -644,8 +665,8 @@ func (h *Handler) HandleMeshPartial(w http.ResponseWriter, r *http.Request) {
 
 	// Store and broadcast to SSE subscribers
 	if err := h.taskStore.UpdateProgress(update); err != nil {
-		slog.Error("Failed to store partial event", "task_id", taskID, "error", err)
-		http.Error(w, "Failed to store partial event", http.StatusInternalServerError)
+		slog.Error("Failed to store FLY event", "task_id", taskID, "error", err)
+		http.Error(w, "Failed to store FLY event", http.StatusInternalServerError)
 		return
 	}
 

@@ -21,14 +21,18 @@ slice_index 0 is the parent payload; indices 1..N are sub-agent results.
 aggregation_key is a JSON Pointer (RFC 6901) pointing to where the sub-agent
 results list is placed inside the parent payload.
 
-The handler reads x-asya-fan-in from the VFS at /proc/asya/msg/headers/x-asya-fan-in
-(JSON-serialized by the runtime VFS). Route and non-transient headers are also
-read from VFS to construct the merged message for emission.
+The handler reads x-asya-fan-in via the ABI yield protocol:
+    fan_in = yield "GET", ".headers.x-asya-fan-in"
+Before emitting the merged payload:
+    - The parent's route.next is restored (saved from slice 0)
+    - The x-asya-fan-in header is deleted
+    - The x-asya-origin-id header is set to origin_id for downstream tracking
 """
 
 import json
 import logging
 import os
+from collections.abc import Generator
 from contextlib import suppress
 
 import jsonpointer
@@ -37,86 +41,32 @@ import jsonpointer
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
-ASYA_MSG_ROOT = os.getenv("ASYA_MSG_ROOT", "/proc/asya/msg")
 
-_TRANSIENT_HEADERS = {
-    "x-asya-fan-in",
-    "x-asya-route-override",
-    "x-asya-route-resolved",
-    "x-asya-parent-id",
-}
-
-
-def _read_fan_in_header() -> dict:
-    """Read and parse the x-asya-fan-in header from VFS."""
-    with open(f"{ASYA_MSG_ROOT}/headers/x-asya-fan-in") as f:
-        raw = f.read()
-    return json.loads(raw)
-
-
-def _read_route() -> dict:
-    """Read route fields from VFS."""
-    with open(f"{ASYA_MSG_ROOT}/route/prev") as f:
-        prev_raw = f.read()
-    with open(f"{ASYA_MSG_ROOT}/route/curr") as f:
-        curr = f.read()
-    with open(f"{ASYA_MSG_ROOT}/route/next") as f:
-        next_raw = f.read()
-
-    prev = [a for a in prev_raw.splitlines() if a] if prev_raw else []
-    next_actors = [a for a in next_raw.splitlines() if a] if next_raw else []
-
-    return {"prev": prev, "curr": curr, "next": next_actors}
-
-
-def _read_non_transient_headers() -> dict:
-    """Read all non-transient headers from VFS."""
-    try:
-        header_keys = os.listdir(f"{ASYA_MSG_ROOT}/headers")
-    except (FileNotFoundError, NotADirectoryError):
-        return {}
-
-    result = {}
-    for key in header_keys:
-        if key in _TRANSIENT_HEADERS:
-            continue
-        try:
-            with open(f"{ASYA_MSG_ROOT}/headers/{key}") as f:
-                raw = f.read()
-            try:
-                result[key] = json.loads(raw)
-            except (json.JSONDecodeError, ValueError):
-                result[key] = raw
-        except FileNotFoundError:
-            continue
-    return result
-
-
-def _read_message_id() -> str:
-    """Read message id from VFS."""
-    with open(f"{ASYA_MSG_ROOT}/id") as f:
-        return f.read()
-
-
-def aggregator(payload: dict, *, _base_dir: str = "/state/fanin") -> dict | None:
-    """Fan-in aggregator handler.
+def aggregator(payload: dict, *, _base_dir: str = "/state/checkpoints/fanin") -> Generator[tuple | dict, dict, None]:
+    """Fan-in aggregator handler (ABI generator).
 
     Collects N+1 messages for a single fan-out operation and emits a merged payload.
-    Returns None while accumulating (runtime returns 204, sidecar routes to x-sink).
-    Returns the merged payload dict when all slices arrive.
+    When accumulating (incomplete), the generator returns without yielding a dict,
+    producing 0 frames (runtime returns 204, sidecar routes to x-sink).
+    When complete, yields the merged payload dict (1 frame, runtime returns 200).
 
-    Reads x-asya-fan-in from VFS to identify origin_id, slice_index, slice_count,
-    and aggregation_key. Uses the state proxy filesystem at _base_dir for durable
-    per-origin state.
+    Reads x-asya-fan-in via ABI GET verb. Uses the state proxy filesystem at
+    _base_dir for durable per-origin state.
+
+    Route restoration: The parent envelope (slice 0) carries the original route.next
+    (e.g. [summarizer, ...]) that the merged result should follow. Since the completing
+    slice may be a child with a different route, the aggregator saves the parent's
+    route.next to a file and restores it before emitting the merged payload.
 
     Args:
         payload: Message payload (slice content for this fan-in message)
         _base_dir: Base directory for state storage (injectable for testing)
 
-    Returns:
-        Merged parent payload with sub-agent results when complete, None while accumulating
+    Yields:
+        ABI protocol tuples (GET/SET/DEL) and the merged payload dict when complete
     """
-    fan_in = _read_fan_in_header()
+    fan_in = yield "GET", ".headers.x-asya-fan-in"
+    route_next = yield "GET", ".route.next"
     origin_id = fan_in["origin_id"]
     idx = fan_in["slice_index"]
     slice_count = fan_in["slice_count"]
@@ -136,13 +86,20 @@ def aggregator(payload: dict, *, _base_dir: str = "/state/fanin") -> dict | None
     else:
         logger.info(f"[.] Slice-{idx}.json already exists (duplicate delivery), skipping write")
 
+    # Save the parent's route.next so the merged result can continue the pipeline
+    route_path = f"{base}/parent-route.json"
+    if idx == 0 and not os.path.exists(route_path):
+        with open(route_path, "w") as fh:
+            json.dump(route_next, fh)
+        logger.info(f"[+] Saved parent route.next for origin_id={origin_id}")
+
     # Check completeness by counting slice files present
     entries = os.listdir(base)
     slice_files = sorted(e for e in entries if e.startswith("slice-"))
 
     if len(slice_files) < slice_count:
         logger.info(f"[.] Accumulating: {len(slice_files)}/{slice_count} slices for origin_id={origin_id}")
-        return None  # still collecting
+        return  # 0 frames -> runtime returns 204
 
     # All slices arrived. Use atomic create to ensure exactly-one emission
     # across concurrent pods that may race to this point.
@@ -152,7 +109,7 @@ def aggregator(payload: dict, *, _base_dir: str = "/state/fanin") -> dict | None
             fh.write(b"1")
     except FileExistsError:
         logger.info(f"[.] Sentinel already exists, skipping emission for origin_id={origin_id}")
-        return None  # another pod already handling emission
+        return  # 0 frames -> runtime returns 204
 
     logger.info(f"[+] All {slice_count} slices ready, emitting merged payload for origin_id={origin_id}")
 
@@ -167,9 +124,23 @@ def aggregator(payload: dict, *, _base_dir: str = "/state/fanin") -> dict | None
     merged_payload = results[0]
     jsonpointer.set_pointer(merged_payload, fan_in["aggregation_key"], results[1:])
 
-    # Remove the x-asya-fan-in header so the merged message is clean
-    with suppress(FileNotFoundError, OSError):
-        os.remove(f"{ASYA_MSG_ROOT}/headers/x-asya-fan-in")
+    # Restore the parent's route.next so the merged result continues the pipeline.
+    # The completing slice may be a child with route.next=[] (no downstream actors),
+    # but the parent's route.next points to the next actors after the aggregator.
+    route_path = f"{base}/parent-route.json"
+    if os.path.exists(route_path):
+        with open(route_path) as fh:
+            parent_route_next = json.load(fh)
+        if parent_route_next:
+            yield "SET", ".route.next", parent_route_next
+            logger.info(f"[+] Restored parent route.next={parent_route_next} for origin_id={origin_id}")
+
+    # Strip the x-asya-fan-in header via ABI DEL verb
+    yield "DEL", ".headers.x-asya-fan-in"
+
+    # Set origin_id header so downstream actors (x-sink) can associate
+    # the merged result with the original task.
+    yield "SET", ".headers.x-asya-origin-id", origin_id
 
     # Clean up state directory after successful emission.
     # S3-backed state proxies have no real directories, so rmdir may fail
@@ -181,4 +152,4 @@ def aggregator(payload: dict, *, _base_dir: str = "/state/fanin") -> dict | None
 
     logger.info(f"[+] State cleaned up for origin_id={origin_id}")
 
-    return merged_payload
+    yield merged_payload

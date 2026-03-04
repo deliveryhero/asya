@@ -14,6 +14,7 @@ This prevents confusing test failures when infrastructure is broken.
 
 import json
 import logging
+import os
 import subprocess
 from typing import Dict, List, Set
 
@@ -154,6 +155,30 @@ def get_all_sqs_queues(namespace: str) -> Set[str]:
         return set()
 
 
+def get_all_pubsub_subscriptions() -> Set[str]:
+    """Get set of all Pub/Sub subscription names from the emulator."""
+    import urllib.request
+
+    emulator_host = os.getenv("PUBSUB_EMULATOR_HOST", "127.0.0.1:8085")
+    project_id = os.getenv("PUBSUB_PROJECT_ID", "test-project")
+
+    url = f"http://{emulator_host}/v1/projects/{project_id}/subscriptions"
+    try:
+        with urllib.request.urlopen(url, timeout=5) as resp:
+            data = json.loads(resp.read().decode())
+    except Exception as e:
+        logger.warning(f"Failed to list Pub/Sub subscriptions: {e}")
+        return set()
+
+    subscriptions = data.get("subscriptions", [])
+    names = set()
+    for sub in subscriptions:
+        name = sub.get("name", "")
+        short_name = name.rsplit("/", 1)[-1] if "/" in name else name
+        names.add(short_name)
+    return names
+
+
 @pytest.mark.core
 @pytest.mark.order(5)
 def test_all_actors_healthy():
@@ -200,6 +225,8 @@ def test_all_actors_healthy():
         all_queues = get_all_rabbitmq_queues(namespace)
     elif transport == "sqs":
         all_queues = get_all_sqs_queues(namespace)
+    elif transport == "pubsub":
+        all_queues = get_all_pubsub_subscriptions()
     else:
         raise NotImplementedError(transport)
 
@@ -230,7 +257,9 @@ def test_all_actors_healthy():
             logger.error(f"  [-] {transport.upper()} queue missing")
 
         scaling_enabled = actors_scaling_config.get(actor, True)
-        if scaling_enabled:
+        if transport == "pubsub":
+            logger.info(f"  [.] ScaledObject skipped (Pub/Sub emulator mode)")
+        elif scaling_enabled:
             if actor in all_scaledobjects:
                 ready_status = all_scaledobjects[actor]
                 if ready_status == "True":

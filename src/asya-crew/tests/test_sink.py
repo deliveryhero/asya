@@ -3,10 +3,18 @@
 Unit tests for sink handler.
 
 Tests the x-sink actor which handles first-layer termination,
-routing to configurable hooks and reporting status via ABI yield protocol.
+routing to configurable hooks and reporting status via ABI protocol.
+
+The sink handler is a generator driven via the ABI yield protocol:
+- yield ("GET", ".id") -> runtime sends back the message UUID
+- yield ("GET", ".parent_id") -> runtime sends back the parent UUID
+- yield ("GET", ".status") -> runtime sends back the status dict
+- yield ("GET", ".headers") -> runtime sends back the headers dict
+- yield ("GET", ".route") -> runtime sends back the route dict
+- yield ("SET", ".route.next", [...]) -> runtime sets next routing
+- yield payload -> emitted as a downstream frame
 """
 
-import copy
 import logging
 import os
 import sys
@@ -20,75 +28,78 @@ logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(name)s - %(leve
 logger = logging.getLogger(__name__)
 
 
-def make_metadata(msg_id="test-001", phase="succeeded", parent_id="", headers=None):
-    """Create ABI metadata dict for testing."""
+def make_abi_context(
+    msg_id: str = "test-001",
+    parent_id: str = "",
+    phase: str = "succeeded",
+    headers: dict | None = None,
+    route_prev: list[str] | None = None,
+    route_curr: str = "",
+    route_next: list[str] | None = None,
+) -> dict:
+    """Build an ABI context dict for driving the sink generator."""
     return {
         "id": msg_id,
         "parent_id": parent_id,
-        "route": {
-            "prev": [],
-            "curr": "x-sink",
-            "next": [],
-        },
-        "headers": headers or {},
         "status": {"phase": phase} if phase else {},
+        "headers": headers or {},
+        "route": {
+            "prev": route_prev or [],
+            "curr": route_curr,
+            "next": route_next or [],
+        },
     }
 
 
-def drive_abi(gen, metadata):
-    """Drive an ABI generator handler, simulating the runtime's _drive_generator."""
-    meta = copy.deepcopy(metadata)
-    frames = []
-    send_val = None
+def drive_sink(payload: dict, ctx: dict) -> tuple[dict | None, list[tuple]]:
+    """Drive the sink generator with ABI protocol simulation.
 
-    while True:
-        try:
-            yielded = gen.send(send_val)
-        except StopIteration:
-            break
+    Returns (emitted_payload, abi_commands) where abi_commands is a list of
+    ABI tuples yielded by the generator (GET, SET, DEL verbs).
+    """
+    from asya_crew.sink import sink_handler
 
-        send_val = None
+    gen = sink_handler(payload)
 
-        if yielded is None:
-            continue
-        elif isinstance(yielded, dict):
-            frames.append(yielded)
-        elif isinstance(yielded, tuple):
-            verb = yielded[0]
-            if verb == "GET":
-                send_val = _resolve_path(meta, yielded[1])
-            elif verb == "SET" and len(yielded) >= 3:
-                _set_path(meta, yielded[1], yielded[2])
+    emitted_payload = None
+    abi_commands: list[tuple[str, ...]] = []
 
-    return frames, meta
+    # Map ABI GET paths to context values
+    def resolve_get(path: str) -> object:
+        parts = path.lstrip(".").split(".", 1)
+        root = parts[0]
+        return ctx.get(root)
 
+    try:
+        yielded = next(gen)
+        while True:
+            if isinstance(yielded, dict):
+                emitted_payload = yielded
+                yielded = next(gen)
+            elif isinstance(yielded, tuple):
+                abi_commands.append(yielded)
+                verb = yielded[0]
+                if verb == "GET":
+                    send_val = resolve_get(yielded[1])
+                    yielded = gen.send(send_val)
+                elif verb == "SET":
+                    # Apply SET to context for assertions
+                    if yielded[1] == ".route.next" and len(yielded) >= 3:
+                        ctx["route"]["next"] = yielded[2]
+                    yielded = next(gen)
+                else:
+                    yielded = next(gen)
+            else:
+                raise RuntimeError(f"Unexpected yield: {yielded}")
+    except StopIteration:
+        pass
 
-def _resolve_path(data, path):
-    """Resolve a dotted ABI path against a metadata dict."""
-    parts = path.lstrip(".").split(".")
-    current = data
-    for part in parts:
-        if isinstance(current, dict) and part in current:
-            current = current[part]
-        else:
-            return None
-    if isinstance(current, dict | list):
-        return copy.deepcopy(current)
-    return current
-
-
-def _set_path(data, path, value):
-    """Set a value at a dotted ABI path in a metadata dict."""
-    parts = path.lstrip(".").split(".")
-    current = data
-    for part in parts[:-1]:
-        current = current[part]
-    current[parts[-1]] = value
+    return emitted_payload, abi_commands
 
 
 @pytest.fixture(autouse=True)
-def setup_test_env(monkeypatch):
-    """Set up test environment before each test."""
+def clean_module_cache(monkeypatch):
+    """Clean module cache and env vars before each test."""
     for key in ["ASYA_SINK_HOOKS", "ASYA_SINK_FANOUT_HOOKS", "ASYA_PERSISTENCE_MOUNT"]:
         monkeypatch.delenv(key, raising=False)
 
@@ -107,14 +118,13 @@ def test_succeeded_phase_with_hooks(monkeypatch):
 
     if "asya_crew.sink" in sys.modules:
         del sys.modules["asya_crew.sink"]
-    from asya_crew.sink import sink_handler
 
-    metadata = make_metadata(msg_id="test-message-123", phase="succeeded")
-    frames, meta = drive_abi(sink_handler({"result": 42}), metadata)
+    ctx = make_abi_context(msg_id="test-message-123", phase="succeeded")
+    result, abi_commands = drive_sink({"result": 42}, ctx)
 
-    assert meta["route"]["next"] == ["checkpoint-s3", "notify-slack"]
-    assert len(frames) == 1
-    assert frames[0] == {"result": 42}
+    assert result == {"result": 42}
+    assert ("SET", ".route.next", ["checkpoint-s3", "notify-slack"]) in abi_commands
+    assert ctx["route"]["next"] == ["checkpoint-s3", "notify-slack"]
 
 
 def test_failed_phase_with_hooks(monkeypatch):
@@ -123,53 +133,49 @@ def test_failed_phase_with_hooks(monkeypatch):
 
     if "asya_crew.sink" in sys.modules:
         del sys.modules["asya_crew.sink"]
-    from asya_crew.sink import sink_handler
 
-    metadata = make_metadata(msg_id="test-message-456", phase="failed")
-    frames, meta = drive_abi(sink_handler({}), metadata)
+    ctx = make_abi_context(msg_id="test-message-456", phase="failed")
+    result, abi_commands = drive_sink({}, ctx)
 
-    assert meta["route"]["next"] == ["checkpoint-s3"]
-    assert len(frames) == 1
-    assert frames[0] == {}
+    assert result == {}
+    assert ("SET", ".route.next", ["checkpoint-s3"]) in abi_commands
 
 
 def test_succeeded_phase_no_hooks(monkeypatch):
     """Test sink handler with succeeded phase and no hooks configured."""
     if "asya_crew.sink" in sys.modules:
         del sys.modules["asya_crew.sink"]
-    from asya_crew.sink import sink_handler
 
-    metadata = make_metadata(msg_id="test-message-789", phase="succeeded")
-    frames, meta = drive_abi(sink_handler({"result": 100}), metadata)
+    ctx = make_abi_context(msg_id="test-message-789", phase="succeeded")
+    result, abi_commands = drive_sink({"result": 100}, ctx)
 
-    assert len(frames) == 1
-    assert frames[0] == {"result": 100}
+    assert result == {"result": 100}
+    # No SET commands should be issued when no hooks configured
+    set_commands = [c for c in abi_commands if c[0] == "SET"]
+    assert len(set_commands) == 0
 
 
 def test_failed_phase_no_hooks(monkeypatch):
     """Test sink handler with failed phase and no hooks configured."""
     if "asya_crew.sink" in sys.modules:
         del sys.modules["asya_crew.sink"]
-    from asya_crew.sink import sink_handler
 
-    metadata = make_metadata(msg_id="test-message-abc", phase="failed")
-    frames, meta = drive_abi(sink_handler({}), metadata)
+    ctx = make_abi_context(msg_id="test-message-abc", phase="failed")
+    result, abi_commands = drive_sink({}, ctx)
 
-    assert len(frames) == 1
-    assert frames[0] == {}
+    assert result == {}
+    set_commands = [c for c in abi_commands if c[0] == "SET"]
+    assert len(set_commands) == 0
 
 
 def test_non_terminal_phase_accepted(monkeypatch):
     """Test sink handler accepts any status.phase (not just 'succeeded'/'failed')."""
     if "asya_crew.sink" in sys.modules:
         del sys.modules["asya_crew.sink"]
-    from asya_crew.sink import sink_handler
 
-    metadata = make_metadata(msg_id="test-message", phase="processing")
-    frames, _ = drive_abi(sink_handler({}), metadata)
-
-    assert len(frames) == 1
-    assert frames[0] == {}
+    ctx = make_abi_context(msg_id="test-message", phase="processing")
+    result, _ = drive_sink({}, ctx)
+    assert result == {}
 
 
 def test_fan_out_child_skips_hooks(monkeypatch):
@@ -178,14 +184,14 @@ def test_fan_out_child_skips_hooks(monkeypatch):
 
     if "asya_crew.sink" in sys.modules:
         del sys.modules["asya_crew.sink"]
-    from asya_crew.sink import sink_handler
 
-    metadata = make_metadata(msg_id="test-fanout-child", phase="succeeded", parent_id="test-parent")
-    frames, meta = drive_abi(sink_handler({"result": 1}), metadata)
+    ctx = make_abi_context(msg_id="test-fanout-child", phase="succeeded", parent_id="test-parent")
+    result, abi_commands = drive_sink({"result": 1}, ctx)
 
-    assert meta["route"]["next"] == []
-    assert len(frames) == 1
-    assert frames[0] == {"result": 1}
+    assert result == {"result": 1}
+    # No SET to route.next -- hooks skipped for fan-out children
+    set_commands = [c for c in abi_commands if c[0] == "SET"]
+    assert len(set_commands) == 0
 
 
 def test_fan_out_child_runs_hooks_when_enabled(monkeypatch):
@@ -195,31 +201,137 @@ def test_fan_out_child_runs_hooks_when_enabled(monkeypatch):
 
     if "asya_crew.sink" in sys.modules:
         del sys.modules["asya_crew.sink"]
-    from asya_crew.sink import sink_handler
 
-    metadata = make_metadata(msg_id="test-fanout-hooks", phase="succeeded", parent_id="test-parent")
-    frames, meta = drive_abi(sink_handler({"result": 1}), metadata)
+    ctx = make_abi_context(msg_id="test-fanout-hooks", phase="succeeded", parent_id="test-parent")
+    result, abi_commands = drive_sink({"result": 1}, ctx)
 
-    assert meta["route"]["next"] == ["checkpoint-s3"]
-    assert len(frames) == 1
-    assert frames[0] == {"result": 1}
+    assert result == {"result": 1}
+    assert ("SET", ".route.next", ["checkpoint-s3"]) in abi_commands
 
 
-def test_fan_in_partial_runs_hooks(monkeypatch):
-    """Fan-in partial: x-asya-fan-in header -> always run hooks."""
+def test_fan_in_partial_suppressed(monkeypatch):
+    """Fan-in partial: x-asya-fan-in header -> silently consumed, no checkpoint or hooks."""
     monkeypatch.setenv("ASYA_SINK_HOOKS", "checkpoint-s3")
 
     if "asya_crew.sink" in sys.modules:
         del sys.modules["asya_crew.sink"]
-    from asya_crew.sink import sink_handler
 
-    metadata = make_metadata(
+    ctx = make_abi_context(
         msg_id="test-fanin",
         phase="partial",
         headers={"x-asya-fan-in": "aggregator"},
     )
-    frames, meta = drive_abi(sink_handler({"shard": 1}), metadata)
+    result, abi_commands = drive_sink({"shard": 1}, ctx)
 
-    assert meta["route"]["next"] == ["checkpoint-s3"]
-    assert len(frames) == 1
-    assert frames[0] == {"shard": 1}
+    # Fan-in partials produce 0 frames (silently consumed)
+    assert result is None
+    # No SET commands (no hooks, no routing)
+    set_commands = [c for c in abi_commands if c[0] == "SET"]
+    assert len(set_commands) == 0
+
+
+def test_missing_phase_defaults_to_unknown(monkeypatch):
+    """When status has no 'phase' key, defaults to 'unknown'."""
+    if "asya_crew.sink" in sys.modules:
+        del sys.modules["asya_crew.sink"]
+
+    ctx = make_abi_context(msg_id="test-no-phase", phase="")
+    result, _ = drive_sink({"data": "test"}, ctx)
+    assert result == {"data": "test"}
+
+
+def test_persistence_calls_checkpointer(tmp_path, monkeypatch):
+    """When ASYA_PERSISTENCE_MOUNT is set, sink calls checkpointer."""
+    mount_path = str(tmp_path / "checkpoints")
+    os.makedirs(mount_path)
+    monkeypatch.setenv("ASYA_PERSISTENCE_MOUNT", mount_path)
+
+    if "asya_crew.sink" in sys.modules:
+        del sys.modules["asya_crew.sink"]
+    if "asya_crew.checkpointer" in sys.modules:
+        del sys.modules["asya_crew.checkpointer"]
+
+    ctx = make_abi_context(
+        msg_id="test-persist",
+        phase="succeeded",
+        route_prev=["actor-a", "actor-b"],
+        route_curr="",
+    )
+    result, abi_commands = drive_sink({"result": 42}, ctx)
+
+    assert result == {"result": 42}
+    # Should have read .route for checkpointer
+    get_paths = [c[1] for c in abi_commands if c[0] == "GET"]
+    assert ".route" in get_paths
+
+    # Verify file was written with envelope message_id in filename
+    json_files = []
+    for dirpath, _, filenames in os.walk(mount_path):
+        for f in filenames:
+            if f.endswith(".json"):
+                json_files.append(os.path.join(dirpath, f))
+    assert len(json_files) == 1
+    assert "test-persist" in json_files[0]
+
+
+def test_persistence_uses_origin_id_when_present(tmp_path, monkeypatch):
+    """When x-asya-origin-id header is set, checkpointer uses it as filename."""
+    mount_path = str(tmp_path / "checkpoints")
+    os.makedirs(mount_path)
+    monkeypatch.setenv("ASYA_PERSISTENCE_MOUNT", mount_path)
+
+    if "asya_crew.sink" in sys.modules:
+        del sys.modules["asya_crew.sink"]
+    if "asya_crew.checkpointer" in sys.modules:
+        del sys.modules["asya_crew.checkpointer"]
+
+    ctx = make_abi_context(
+        msg_id="child-envelope-id",
+        phase="succeeded",
+        route_prev=["aggregator", "summarizer"],
+        route_curr="",
+        headers={"x-asya-origin-id": "original-task-id"},
+    )
+    result, _ = drive_sink({"result": "merged"}, ctx)
+
+    assert result == {"result": "merged"}
+
+    # Verify file uses origin-id (not child envelope ID) in filename
+    json_files = []
+    for dirpath, _, filenames in os.walk(mount_path):
+        for f in filenames:
+            if f.endswith(".json"):
+                json_files.append(os.path.join(dirpath, f))
+    assert len(json_files) == 1
+    assert "original-task-id" in json_files[0]
+    assert "child-envelope-id" not in json_files[0]
+
+
+def test_fan_in_partial_skips_persistence(tmp_path, monkeypatch):
+    """Fan-in partials skip checkpoint even when ASYA_PERSISTENCE_MOUNT is set."""
+    mount_path = str(tmp_path / "checkpoints")
+    os.makedirs(mount_path)
+    monkeypatch.setenv("ASYA_PERSISTENCE_MOUNT", mount_path)
+
+    if "asya_crew.sink" in sys.modules:
+        del sys.modules["asya_crew.sink"]
+    if "asya_crew.checkpointer" in sys.modules:
+        del sys.modules["asya_crew.checkpointer"]
+
+    ctx = make_abi_context(
+        msg_id="test-fanin-persist",
+        phase="partial",
+        headers={"x-asya-fan-in": {"origin_id": "abc", "slice_index": 0}},
+    )
+    result, _ = drive_sink({"shard": 1}, ctx)
+
+    # Silently consumed
+    assert result is None
+
+    # No checkpoint file written
+    json_files = []
+    for dirpath, _, filenames in os.walk(mount_path):
+        for f in filenames:
+            if f.endswith(".json"):
+                json_files.append(os.path.join(dirpath, f))
+    assert len(json_files) == 0

@@ -1,141 +1,89 @@
 package a2a
 
 import (
+	"encoding/json"
 	"maps"
 	"strings"
 
-	"github.com/deliveryhero/asya/asya-gateway/pkg/types"
+	a2alib "github.com/a2aproject/a2a-go/a2a"
 )
 
 // MessageToPayload converts an A2A message to an internal task payload.
 //
-// Rules:
-// 1. Single data part -> unwrap as payload directly
-// 2. Text parts -> merge into _a2a_text
-// 3. File parts -> collect into _a2a_files array
-// 4. Mixed -> combine into unified payload with _a2a_* keys
-func MessageToPayload(msg types.A2AMessage) any {
+// Rules (from RFC Section 5.2):
+// 1. ALWAYS: Initialize payload["a2a"]["task"] with id, context_id, and history array containing the serialized message
+// 2. Single DataPart, no text -> unwrap Data map at payload root
+// 3. Text-only Parts -> concatenate with "\n", store as payload["query"]
+// 4. Mixed -> merge data at root, add text as payload["query"]
+//
+// NO synthetic fields (_a2a_text, _a2a_files) are allowed.
+func MessageToPayload(msg *a2alib.Message, taskID a2alib.TaskID, contextID string) any {
 	var textParts []string
 	var dataParts []map[string]any
-	var fileParts []map[string]string
+	hasFiles := false
 
 	for _, part := range msg.Parts {
-		switch part.Type {
-		case "text":
-			textParts = append(textParts, part.Text)
-		case "data":
-			if m, ok := part.Data.(map[string]any); ok {
-				dataParts = append(dataParts, m)
-			}
-		case "file":
-			fileParts = append(fileParts, map[string]string{
-				"url":        part.URL,
-				"media_type": part.MediaType,
-			})
+		switch p := part.(type) {
+		case *a2alib.TextPart:
+			textParts = append(textParts, p.Text)
+		case *a2alib.DataPart:
+			dataParts = append(dataParts, p.Data)
+		case *a2alib.FilePart:
+			hasFiles = true
 		}
 	}
 
-	// Single data part, no text or files: unwrap directly
-	if len(dataParts) == 1 && len(textParts) == 0 && len(fileParts) == 0 {
-		return dataParts[0]
+	// Build base payload
+	var payload map[string]any
+
+	// Rule 2: Single data part, no text or files -> unwrap directly
+	if len(dataParts) == 1 && len(textParts) == 0 && !hasFiles {
+		payload = dataParts[0]
+	} else {
+		payload = make(map[string]any)
+
+		// Merge all data parts at root
+		for _, dp := range dataParts {
+			maps.Copy(payload, dp)
+		}
+
+		// Rule 3 & 4: Add text as payload["query"] if present
+		if len(textParts) > 0 {
+			payload["query"] = strings.Join(textParts, "\n")
+		}
 	}
 
-	// Build composite payload
-	payload := make(map[string]any)
-
-	// Merge data parts
-	for _, dp := range dataParts {
-		maps.Copy(payload, dp)
+	// Rule 1: ALWAYS initialize payload["a2a"]["task"] namespace
+	a2aNamespace := map[string]any{
+		"task": map[string]any{
+			"id":         string(taskID),
+			"context_id": contextID,
+			"history":    []any{messageToHistoryEntry(msg)},
+		},
 	}
-
-	// Add text
-	if len(textParts) > 0 {
-		payload["_a2a_text"] = strings.Join(textParts, "\n")
-	}
-
-	// Add files
-	if len(fileParts) > 0 {
-		payload["_a2a_files"] = fileParts
-	}
+	payload["a2a"] = a2aNamespace
 
 	return payload
 }
 
-// TaskToA2ATask converts an internal Task to an A2A Task response.
-func TaskToA2ATask(task *types.Task) types.A2ATask {
-	a2aTask := types.A2ATask{
-		ID:        task.ID,
-		ContextID: task.ContextID,
-		Status: types.A2ATaskStatus{
-			State:     types.ToA2AState(task.Status),
-			Timestamp: task.UpdatedAt.UTC().Format("2006-01-02T15:04:05Z"),
-		},
+// BuildA2AHeaders returns envelope headers for A2A task tracking.
+func BuildA2AHeaders(taskID, contextID string) map[string]any {
+	return map[string]any{
+		"x-asya-a2a-task-id":    taskID,
+		"x-asya-a2a-context-id": contextID,
 	}
-
-	// Add status message if present
-	if task.Message != "" {
-		a2aTask.Status.Message = &types.A2AMessage{
-			Role:  "agent",
-			Parts: []types.A2APart{{Type: "text", Text: task.Message}},
-		}
-	}
-
-	// Convert result to artifact
-	if task.Result != nil && task.Status == types.TaskStatusSucceeded {
-		a2aTask.Artifacts = []types.A2AArtifact{
-			{
-				ArtifactID: "result-1",
-				Parts:      []types.A2APart{{Type: "data", Data: task.Result}},
-			},
-		}
-	}
-
-	// Convert error to status message
-	if task.Error != "" && task.Status == types.TaskStatusFailed {
-		a2aTask.Status.Message = &types.A2AMessage{
-			Role:  "agent",
-			Parts: []types.A2APart{{Type: "text", Text: task.Error}},
-		}
-	}
-
-	// Add progress metadata for in-progress tasks
-	if task.Status == types.TaskStatusRunning {
-		a2aTask.Metadata = map[string]any{
-			"progress_percent":   task.ProgressPercent,
-			"current_actor_name": task.CurrentActorName,
-			"actors_completed":   task.ActorsCompleted,
-			"total_actors":       task.TotalActors,
-		}
-	}
-
-	return a2aTask
 }
 
-// TaskUpdateToSSEEvents converts an internal TaskUpdate to A2A SSE events.
-func TaskUpdateToSSEEvents(update types.TaskUpdate) types.A2ATaskStatusUpdateEvent {
-	state := types.ToA2AState(update.Status)
-	final := state == types.A2AStateCompleted || state == types.A2AStateFailed || state == types.A2AStateCanceled
-
-	event := types.A2ATaskStatusUpdateEvent{
-		ID: update.ID,
-		Status: types.A2ATaskStatus{
-			State:     state,
-			Timestamp: update.Timestamp.UTC().Format("2006-01-02T15:04:05Z"),
-		},
-		Final: final,
+// messageToHistoryEntry serializes an a2a-go Message to a JSON-compatible map
+// for storage in payload.a2a.task.history[].
+func messageToHistoryEntry(msg *a2alib.Message) any {
+	data, err := json.Marshal(msg)
+	if err != nil {
+		return map[string]any{"error": "failed to serialize message"}
 	}
-
-	// Add message from update
-	msg := update.Message
-	if update.Error != "" {
-		msg = update.Error
+	var entry any
+	if err := json.Unmarshal(data, &entry); err != nil {
+		return map[string]any{"error": "failed to deserialize message"}
 	}
-	if msg != "" {
-		event.Status.Message = &types.A2AMessage{
-			Role:  "agent",
-			Parts: []types.A2APart{{Type: "text", Text: msg}},
-		}
-	}
-
-	return event
+	return entry
 }

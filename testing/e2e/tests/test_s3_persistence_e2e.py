@@ -6,8 +6,12 @@ in a full Kubernetes deployment.
 """
 
 import logging
+import os
 
 import pytest
+
+if os.getenv("ASYA_STORAGE") not in ("s3", "minio", None):
+    pytest.skip("S3 persistence tests require S3/MinIO storage", allow_module_level=True)
 
 from asya_testing.utils.s3 import delete_all_objects_in_bucket, wait_for_envelope_in_s3
 

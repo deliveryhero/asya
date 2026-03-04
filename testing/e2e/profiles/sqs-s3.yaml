@@ -37,10 +37,14 @@ crew:
   persistence:
     enabled: true
     backend: s3
+    connector:
+      image: ghcr.io/deliveryhero/asya-state-proxy-s3-buffered-lww:dev
     config:
       bucket: asya-results
       endpoint: http://localstack-s3.asya-system.svc.cluster.local:4566
       region: us-east-1
+      accessKey: test
+      secretKey: test
   x-sink:
     transport: sqs
     env:

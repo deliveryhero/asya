@@ -12,6 +12,7 @@ These tests verify the system performs well under various load conditions.
 """
 
 import logging
+import os
 import time
 
 import pytest
@@ -227,6 +228,10 @@ def test_processing_throughput(e2e_helper):
 
 @pytest.mark.chaos
 @pytest.mark.xdist_group(name="chaos")
+@pytest.mark.skipif(
+    os.getenv("ASYA_TRANSPORT") == "pubsub",
+    reason="KEDA ScaledObjects not available with Pub/Sub emulator",
+)
 def test_keda_pollingInterval_effectiveness(e2e_helper):
     """
     E2E: Test KEDA pollingInterval affects scale-up responsiveness.

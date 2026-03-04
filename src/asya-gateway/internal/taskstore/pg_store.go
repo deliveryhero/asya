@@ -84,6 +84,11 @@ func NewPgStore(ctx context.Context, connString string) (*PgStore, error) {
 	return s, nil
 }
 
+// Pool returns the underlying connection pool.
+func (s *PgStore) Pool() *pgxpool.Pool {
+	return s.pool
+}
+
 // Close closes the database connection pool
 func (s *PgStore) Close() {
 	s.cancel()
@@ -804,27 +809,53 @@ func (s *PgStore) Resume(id string) (*types.Task, error) {
 	return task, nil
 }
 
-// List returns tasks, optionally filtered by status
-func (s *PgStore) List(status *types.TaskStatus) ([]*types.Task, error) {
-	query := `
-		SELECT id, context_id, status, payload, result, error, timeout_seconds, deadline,
-		       remaining_timeout_sec, progress_percent, current_actor_name, message,
-		       pause_metadata, actors_completed, total_actors,
-		       route_prev, route_curr, route_next,
-		       created_at, updated_at
-		FROM tasks`
-	var args []any
+// Constant query strings use NULL-coalescing filters so no dynamic SQL construction
+// is needed. PostgreSQL evaluates ($1::text IS NULL OR column = $1) as a no-op
+// when $1 is NULL, and LIMIT NULL is equivalent to no limit.
+const listCountQuery = `SELECT COUNT(*) FROM tasks
+	WHERE ($1::text IS NULL OR status = $1)
+	  AND ($2::text IS NULL OR context_id = $2)`
 
-	if status != nil {
-		query += " WHERE status = $1"
-		args = []any{*status}
+const listDataQuery = `SELECT id, context_id, status, payload, result, error, timeout_seconds, deadline,
+	        remaining_timeout_sec, progress_percent, current_actor_name, message,
+	        pause_metadata, actors_completed, total_actors,
+	        route_prev, route_curr, route_next,
+	        created_at, updated_at
+	 FROM tasks
+	WHERE ($1::text IS NULL OR status = $1)
+	  AND ($2::text IS NULL OR context_id = $2)
+	ORDER BY created_at DESC
+	LIMIT $3 OFFSET $4`
+
+// listArgs converts ListParams into the fixed positional arguments for the
+// constant list queries. NULL values disable the corresponding filter.
+func listArgs(params ListParams) (statusArg, contextIDArg *string, limit *int, offset int) {
+	if params.Status != nil {
+		s := string(*params.Status)
+		statusArg = &s
+	}
+	if params.ContextID != "" {
+		contextIDArg = &params.ContextID
+	}
+	if params.Limit > 0 {
+		limit = &params.Limit
+	}
+	offset = params.Offset
+	return
+}
+
+// List returns tasks filtered by params with pagination. Returns (tasks, totalCount, error).
+func (s *PgStore) List(params ListParams) ([]*types.Task, int, error) {
+	statusArg, contextIDArg, limit, offset := listArgs(params)
+
+	var totalCount int
+	if err := s.pool.QueryRow(s.ctx, listCountQuery, statusArg, contextIDArg).Scan(&totalCount); err != nil {
+		return nil, 0, fmt.Errorf("failed to count tasks: %w", err)
 	}
 
-	query += " ORDER BY created_at DESC"
-
-	rows, err := s.pool.Query(s.ctx, query, args...)
+	rows, err := s.pool.Query(s.ctx, listDataQuery, statusArg, contextIDArg, limit, offset)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list tasks: %w", err)
+		return nil, 0, fmt.Errorf("failed to list tasks: %w", err)
 	}
 	defer rows.Close()
 
@@ -846,17 +877,17 @@ func (s *PgStore) List(status *types.TaskStatus) ([]*types.Task, error) {
 			&task.CreatedAt, &task.UpdatedAt,
 		)
 		if err != nil {
-			return nil, fmt.Errorf("failed to scan task: %w", err)
+			return nil, 0, fmt.Errorf("failed to scan task: %w", err)
 		}
 
 		if payloadJSON != nil {
 			if err := json.Unmarshal(payloadJSON, &task.Payload); err != nil {
-				return nil, fmt.Errorf("failed to unmarshal payload for task %s: %w", task.ID, err)
+				return nil, 0, fmt.Errorf("failed to unmarshal payload for task %s: %w", task.ID, err)
 			}
 		}
 		if resultJSON != nil {
 			if err := json.Unmarshal(resultJSON, &task.Result); err != nil {
-				return nil, fmt.Errorf("failed to unmarshal result for task %s: %w", task.ID, err)
+				return nil, 0, fmt.Errorf("failed to unmarshal result for task %s: %w", task.ID, err)
 			}
 		}
 		if pauseMetadataJSON != nil {
@@ -869,7 +900,7 @@ func (s *PgStore) List(status *types.TaskStatus) ([]*types.Task, error) {
 		tasks = append(tasks, &task)
 	}
 
-	return tasks, nil
+	return tasks, totalCount, nil
 }
 
 // isFinal checks if a status is final

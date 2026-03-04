@@ -3159,13 +3159,16 @@ class TestAbiDispatch:
         frames = asya_runtime._drive_generator(gen({}), ctx)
         assert len(frames) == 1
 
-    def test_protocol_error_bad_type(self):
+    def test_non_dict_payload_accepted(self):
+        """Non-dict values (int, str, list) are valid payload frames."""
+
         def gen(payload):
             yield 42
 
         ctx = self._make_ctx()
-        with pytest.raises(RuntimeError, match="protocol error"):
-            asya_runtime._drive_generator(gen({}), ctx)
+        frames = asya_runtime._drive_generator(gen({}), ctx)
+        assert len(frames) == 1
+        assert frames[0]["payload"] == 42
 
     def test_protocol_error_unknown_verb(self):
         def gen(payload):
@@ -3207,3 +3210,45 @@ class TestAbiDispatch:
         ctx = self._make_ctx()
         frames = asya_runtime._drive_generator(gen({}), ctx)
         assert frames[0]["payload"]["actual"] == ["b"]
+
+
+class TestFlyHelpers:
+    """Tests for fly_text and fly_status helper functions."""
+
+    def test_fly_text_basic(self):
+        from asya_runtime import fly_text
+
+        result = fly_text("hello world")
+        assert result == {
+            "artifact_update": {
+                "artifact": {
+                    "artifact_id": "stream-0",
+                    "parts": [{"text": "hello world"}],
+                },
+                "append": True,
+                "last_chunk": False,
+            }
+        }
+
+    def test_fly_text_custom_artifact_id(self):
+        from asya_runtime import fly_text
+
+        result = fly_text("chunk", artifact_id="my-stream", last=True)
+        assert result["artifact_update"]["artifact"]["artifact_id"] == "my-stream"
+        assert result["artifact_update"]["last_chunk"] is True
+
+    def test_fly_status_basic(self):
+        from asya_runtime import fly_status
+
+        result = fly_status("Thinking...")
+        assert result == {
+            "status_update": {
+                "status": {
+                    "state": "WORKING",
+                    "message": {
+                        "role": "agent",
+                        "parts": [{"text": "Thinking..."}],
+                    },
+                }
+            }
+        }

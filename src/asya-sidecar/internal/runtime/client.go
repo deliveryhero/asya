@@ -108,12 +108,14 @@ func (c *Client) CallRuntime(ctx context.Context, data []byte, timeout time.Dura
 		return fmt.Errorf("failed to create HTTP request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
-
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("failed to send request to runtime: %w", err)
 	}
-	defer func() { _ = resp.Body.Close() }()
+	defer func() {
+		cancel() // cancel context before draining body to avoid blocking on SSE keep-alive
+		_ = resp.Body.Close()
+	}()
 
 	contentType := resp.Header.Get("Content-Type")
 
@@ -156,6 +158,7 @@ func (c *Client) CallRuntime(ctx context.Context, data []byte, timeout time.Dura
 // via callback and forwarding upstream events via the onUpstream callback.
 func (c *Client) parseSSEStream(body io.ReadCloser, onUpstream func(json.RawMessage), onDownstream func(RuntimeResponse, int)) error {
 	scanner := bufio.NewScanner(body)
+	scanner.Buffer(make([]byte, 64*1024), 16*1024*1024) // 16MB max SSE line length
 	var downstreamIndex int
 	var eventType string
 	var dataLines []string

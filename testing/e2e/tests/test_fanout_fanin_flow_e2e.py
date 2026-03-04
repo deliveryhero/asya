@@ -12,7 +12,6 @@ Tests the full fan-out/fan-in lifecycle on a live Kind cluster:
 Prerequisites:
 - Kind cluster deployed with PROFILE=sqs-s3
 - asya-test-flows Helm chart deployed (includes research-flow actors)
-- ASYA_HANDLER_MODE=message support in asya_runtime (see epic 1c7i)
 - State proxy sidecar active on research-flow-aggregator pod
 
 Actors deployed by the asya-test-flows chart:
@@ -91,37 +90,39 @@ def flow_helper(transport_timeouts, s3_endpoint, results_bucket, test_config):
         def wait_for_result(self, task_id: str, timeout: int = 120) -> dict:
             """Poll S3 results bucket until a result matching task_id appears.
 
-            Returns the full message message stored by x-sink.
+            Searches under the 'results/' prefix where x-sink checkpoints land
+            (not 'fanin/' which contains aggregator working state).
+
+            Returns the payload dict from the checkpoint envelope.
             Raises TimeoutError if result does not appear within timeout seconds.
             """
             s3 = boto3.client("s3", endpoint_url=self.s3_endpoint)
 
             start_time = time.time()
             while time.time() - start_time < timeout:
-                # S3 key format: {prefix}/{timestamp}/{actor}/{task_id}.json
-                # task_id appears as the filename, so we list with a broad prefix
-                # and match by task_id within the key
-                response = s3.list_objects_v2(Bucket=self.results_bucket)
+                # x-sink checkpoints: results/{phase}/{timestamp}/{actor}/{task_id}.json
+                # Aggregator state files live under fanin/ — exclude by scoping to results/
+                response = s3.list_objects_v2(Bucket=self.results_bucket, Prefix="results/")
 
                 if "Contents" in response:
                     for obj in response["Contents"]:
                         if task_id in obj["Key"]:
                             result_obj = s3.get_object(Bucket=self.results_bucket, Key=obj["Key"])
-                            result = json.loads(result_obj["Body"].read())
+                            checkpoint = json.loads(result_obj["Body"].read())
                             logger.info(f"[+] Retrieved result for task {task_id} from {obj['Key']}")
-                            return result
+                            return checkpoint.get("payload", checkpoint)
 
                 time.sleep(2)  # Poll S3 for new result objects
 
             raise TimeoutError(
                 f"Fan-out/fan-in result not found after {timeout}s for task_id={task_id}. "
-                f"Check aggregator logs (asya-e2e/research-flow-aggregator) and "
-                f"ensure ASYA_HANDLER_MODE=message is supported by asya_runtime."
+                f"Check aggregator logs (asya-e2e/research-flow-aggregator)."
             )
 
         def count_partial_results_in_sink(self, task_id: str, timeout: int = 60) -> int:
-            """Count how many S3 objects reference this task_id.
+            """Count how many x-sink checkpoint objects reference this task_id.
 
+            Searches under 'results/' prefix only (x-sink checkpoints).
             For a correctly working fan-in, exactly ONE final merged message
             should reach x-sink (the partial slices are suppressed via
             x-asya-fan-in header detection in x-sink).
@@ -131,9 +132,7 @@ def flow_helper(transport_timeouts, s3_endpoint, results_bucket, test_config):
             # Wait a moment for any partial results to potentially appear
             time.sleep(min(timeout, 10))  # Give x-sink time to process partials
 
-            # S3 key format: {prefix}/{timestamp}/{actor}/{task_id}.json
-            # task_id appears as the filename, so we list broadly and filter by key
-            response = s3.list_objects_v2(Bucket=self.results_bucket)
+            response = s3.list_objects_v2(Bucket=self.results_bucket, Prefix="results/")
 
             count = 0
             if "Contents" in response:
@@ -151,9 +150,6 @@ def flow_helper(transport_timeouts, s3_endpoint, results_bucket, test_config):
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.skip(
-    reason="Fan-out/fan-in flow requires VFS-based route modification and S3 state-proxy (not yet functional in E2E)",
-)
 @pytest.mark.flow
 @pytest.mark.timeout(300)
 def test_fanout_fanin_basic_3_topics(flow_helper):
@@ -195,9 +191,6 @@ def test_fanout_fanin_basic_3_topics(flow_helper):
     logger.info(f"[+] Fan-out/fan-in with {len(topics)} topics completed: {len(results)} results in merged payload")
 
 
-@pytest.mark.skip(
-    reason="Fan-out/fan-in flow requires VFS-based route modification and S3 state-proxy (not yet functional in E2E)",
-)
 @pytest.mark.flow
 @pytest.mark.timeout(300)
 def test_fanout_fanin_no_false_positives_from_partial_slices(flow_helper):
@@ -236,9 +229,6 @@ def test_fanout_fanin_no_false_positives_from_partial_slices(flow_helper):
     logger.info(f"[+] No false positives: exactly {count} result in S3 for task {task_id}")
 
 
-@pytest.mark.skip(
-    reason="Fan-out/fan-in flow requires VFS-based route modification and S3 state-proxy (not yet functional in E2E)",
-)
 @pytest.mark.flow
 @pytest.mark.timeout(600)
 def test_fanout_fanin_10_topics(flow_helper):
@@ -269,9 +259,6 @@ def test_fanout_fanin_10_topics(flow_helper):
     logger.info(f"[+] 10-topic fan-out/fan-in completed: all {len(results)} results present")
 
 
-@pytest.mark.skip(
-    reason="Fan-out/fan-in flow requires VFS-based route modification and S3 state-proxy (not yet functional in E2E)",
-)
 @pytest.mark.flow
 @pytest.mark.timeout(300)
 def test_fanout_fanin_single_topic(flow_helper):
@@ -298,9 +285,6 @@ def test_fanout_fanin_single_topic(flow_helper):
     logger.info("[+] Single-topic fan-out/fan-in completed successfully")
 
 
-@pytest.mark.skip(
-    reason="Fan-out/fan-in flow requires VFS-based route modification and S3 state-proxy (not yet functional in E2E)",
-)
 @pytest.mark.flow
 @pytest.mark.timeout(300)
 def test_fanout_fanin_concurrent_requests(flow_helper):
@@ -344,9 +328,6 @@ def test_fanout_fanin_concurrent_requests(flow_helper):
     )
 
 
-@pytest.mark.skip(
-    reason="Fan-out/fan-in flow requires VFS-based route modification and S3 state-proxy (not yet functional in E2E)",
-)
 @pytest.mark.flow
 @pytest.mark.slow
 @pytest.mark.timeout(600)

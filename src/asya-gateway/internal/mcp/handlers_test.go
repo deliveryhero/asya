@@ -11,7 +11,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/deliveryhero/asya/asya-gateway/internal/config"
 	"github.com/deliveryhero/asya/asya-gateway/internal/taskstore"
 	"github.com/deliveryhero/asya/asya-gateway/pkg/types"
 )
@@ -325,7 +324,7 @@ func TestHandleToolCall(t *testing.T) {
 		checkBody  bool
 	}{
 		{
-			name:   "valid tool call - success",
+			name:   "tool not found - no tools registered",
 			method: http.MethodPost,
 			body: map[string]interface{}{
 				"name":      "test_tool",
@@ -333,8 +332,7 @@ func TestHandleToolCall(t *testing.T) {
 			},
 			setupMCP:   true,
 			toolName:   "test_tool",
-			wantStatus: http.StatusOK,
-			checkBody:  true,
+			wantStatus: http.StatusNotFound,
 		},
 		{
 			name:       "invalid method - GET not allowed",
@@ -396,7 +394,7 @@ func TestHandleToolCall(t *testing.T) {
 			wantStatus: http.StatusNotFound,
 		},
 		{
-			name:   "nil arguments",
+			name:   "nil arguments - tool not found",
 			method: http.MethodPost,
 			body: map[string]interface{}{
 				"name":      "test_tool",
@@ -404,7 +402,7 @@ func TestHandleToolCall(t *testing.T) {
 			},
 			setupMCP:   true,
 			toolName:   "test_tool",
-			wantStatus: http.StatusOK,
+			wantStatus: http.StatusNotFound,
 		},
 	}
 
@@ -414,17 +412,8 @@ func TestHandleToolCall(t *testing.T) {
 			handler := NewHandler(store)
 
 			if tt.setupMCP {
-				cfg := &config.Config{
-					Tools: []config.Tool{
-						{
-							Name:        "test_tool",
-							Description: "Test tool",
-							Route:       config.RouteSpec{Actors: []string{"actor1"}},
-						},
-					},
-				}
 				queueClient := &MockQueueClient{}
-				mcpServer := NewServer(store, queueClient, cfg)
+				mcpServer := NewServer(store, queueClient, nil)
 				handler.SetServer(mcpServer)
 			}
 

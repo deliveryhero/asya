@@ -20,7 +20,6 @@ import pytest
 import requests
 
 from asya_testing.utils.kubectl import wait_for_pod_ready as kubectl_wait_for_pod_ready
-from asya_testing.utils.s3 import wait_for_envelope_in_s3, delete_all_objects_in_bucket
 
 logger = logging.getLogger(__name__)
 
@@ -144,6 +143,8 @@ def test_successful_result_persisted_to_s3(e2e_helper, s3_endpoint, results_buck
 
     assert final_task["status"] == "succeeded", "Task should succeed"
 
+    from asya_testing.utils.s3 import wait_for_envelope_in_s3
+
     logger.info("Waiting for result to appear in S3...")
     s3_object = wait_for_envelope_in_s3(
         bucket_name=results_bucket,
@@ -185,6 +186,8 @@ def test_error_result_persisted_to_s3(e2e_helper, s3_endpoint, errors_bucket):
 
     assert final_task["status"] == "failed", "Task should fail"
 
+    from asya_testing.utils.s3 import wait_for_envelope_in_s3
+
     logger.info("Waiting for error to appear in S3...")
     s3_object = wait_for_envelope_in_s3(
         bucket_name=errors_bucket,
@@ -215,10 +218,11 @@ def test_s3_persistence_with_large_payload(e2e_helper, s3_endpoint, results_buck
     if transport == "sqs":
         pytest.skip("Large payload test not supported with SQS (256KB limit)")
 
+    size_kb = 9728 if transport == "pubsub" else 10240  # 9.5MB for Pub/Sub (10MB limit minus envelope overhead)
     logger.info("Sending large payload...")
     response = e2e_helper.call_mcp_tool(
         tool_name="test_large_payload",
-        arguments={"size_kb": 10240},
+        arguments={"size_kb": size_kb},
     )
 
     task_id = response["result"]["task_id"]
@@ -227,6 +231,8 @@ def test_s3_persistence_with_large_payload(e2e_helper, s3_endpoint, results_buck
     final_task = e2e_helper.wait_for_task_completion(task_id, timeout=90)
 
     assert final_task["status"] == "succeeded", "Large payload should succeed"
+
+    from asya_testing.utils.s3 import wait_for_envelope_in_s3
 
     logger.info("Waiting for result in S3...")
     s3_object = wait_for_envelope_in_s3(
@@ -326,6 +332,8 @@ def test_concurrent_s3_writes_no_conflicts(e2e_helper, s3_endpoint, results_buck
             logger.warning(f"Task failed: {e}")
 
     logger.info(f"Completed {completed}/{len(task_ids)} tasks")
+
+    from asya_testing.utils.s3 import wait_for_envelope_in_s3
 
     logger.info("Verifying S3 objects created...")
     s3_found = 0

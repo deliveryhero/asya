@@ -5,6 +5,8 @@ Persists complete messages (metadata + payload) as JSON files via the state prox
 Storage backend is pluggable (S3/GCS/PostgreSQL/etc.) through the state proxy connector
 configured in the AsyncActor CRD.
 
+Called from the sink handler, which passes message metadata obtained via ABI protocol.
+
 Environment Variables:
 - ASYA_PERSISTENCE_MOUNT: State proxy mount path for checkpoint storage
 
@@ -21,7 +23,7 @@ Examples:
     /state/checkpoints/failed/2026-02-12T10:30:00.123456Z/image-analyzer/msg-456.json
 
 Handler Behavior:
-- Accepts message metadata as function arguments (called from sink/sump generators)
+- Receives message metadata as keyword arguments from caller (sink/sump generators)
 - Persists full message (metadata + payload) as JSON to state proxy mount
 - Gracefully skips if ASYA_PERSISTENCE_MOUNT not set
 """
@@ -43,24 +45,25 @@ def handler(
     payload: dict[str, Any],
     *,
     message_id: str = "unknown",
-    phase: str = "",
     parent_id: str = "",
-    prev_actors: list[str] | None = None,
-    curr: str = "",
+    phase: str = "",
+    route_prev: list[str] | None = None,
+    route_curr: str = "",
 ) -> None:
     """
     Checkpoint handler for message persistence via state proxy.
 
-    Persists the complete message (metadata + payload) as a JSON file
+    Receives message metadata as keyword arguments from the sink/sump handler,
+    and persists the complete message (metadata + payload) as a JSON file
     to the configured state proxy mount.
 
     Args:
         payload: Message payload dict
-        message_id: Envelope ID
+        message_id: Message UUID
+        parent_id: Parent message UUID (for fanout)
         phase: Terminal phase (succeeded/failed)
-        parent_id: Parent envelope ID (for fanout tracking)
-        prev_actors: List of previously processed actors
-        curr: Current actor name
+        route_prev: List of processed actors
+        route_curr: Current actor name
 
     Raises:
         ValueError: If payload is not a dict
@@ -72,8 +75,7 @@ def handler(
         logger.debug(f"Checkpoint skipped for message {message_id} (ASYA_PERSISTENCE_MOUNT not set)")
         return
 
-    if prev_actors is None:
-        prev_actors = []
+    prev_actors = route_prev if route_prev is not None else []
 
     if phase == "succeeded":
         prefix = "succeeded"
@@ -93,7 +95,7 @@ def handler(
         "id": message_id,
         "route": {
             "prev": prev_actors,
-            "curr": curr,
+            "curr": route_curr,
         },
         "payload": payload,
     }

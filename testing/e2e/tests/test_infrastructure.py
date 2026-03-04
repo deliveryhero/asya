@@ -109,6 +109,8 @@ def test_actor_pods_healthy():
     else:
         logger.warning("test-echo deployment not found - Crossplane may still be creating deployments")
 
+    transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
+
     logger.info("Checking KEDA ScaledObjects...")
     result = subprocess.run(
         ["kubectl", "get", "scaledobjects", "-n", namespace, "-o", "jsonpath={range .items[*]}{.metadata.name}{'|'}{.status.conditions[?(@.type=='Ready')].status}{'\\n'}{end}"],
@@ -124,12 +126,18 @@ def test_actor_pods_healthy():
         if len(parts) >= 2:
             scaled_objects.append((parts[0], parts[1]))
 
-    assert len(scaled_objects) > 0, "No KEDA ScaledObjects found"
-    logger.info(f"Found {len(scaled_objects)} KEDA ScaledObjects")
+    if transport == "pubsub":
+        logger.info(
+            f"[.] Pub/Sub emulator mode: ScaledObjects not expected "
+            f"(Crossplane GCP provider cannot reconcile with emulator)"
+        )
+    else:
+        assert len(scaled_objects) > 0, "No KEDA ScaledObjects found"
+        logger.info(f"Found {len(scaled_objects)} KEDA ScaledObjects")
 
-    for so_name, ready_status in scaled_objects:
-        assert ready_status == "True", f"ScaledObject {so_name} not ready (status={ready_status})"
-        logger.info(f"  ScaledObject {so_name}: Ready")
+        for so_name, ready_status in scaled_objects:
+            assert ready_status == "True", f"ScaledObject {so_name} not ready (status={ready_status})"
+            logger.info(f"  ScaledObject {so_name}: Ready")
 
     logger.info("Checking any running pods for health issues...")
     label = "app.kubernetes.io/component=actor"

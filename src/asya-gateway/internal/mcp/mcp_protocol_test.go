@@ -9,7 +9,6 @@ import (
 
 	mcpserver "github.com/mark3labs/mcp-go/server"
 
-	"github.com/deliveryhero/asya/asya-gateway/internal/config"
 	"github.com/deliveryhero/asya/asya-gateway/internal/taskstore"
 )
 
@@ -19,8 +18,6 @@ type transportFactory struct {
 	factory func(*mcpserver.MCPServer) http.Handler
 }
 
-// Streamable HTTP is the primary transport for JSON-RPC POST requests
-// SSE is for session-based streaming (uses GET with SSE protocol)
 var streamableHTTPTransport = transportFactory{
 	name: "Streamable HTTP",
 	factory: func(s *mcpserver.MCPServer) http.Handler {
@@ -37,20 +34,7 @@ func testInitialize(t *testing.T, transportName string, serverFactory func(*mcps
 	taskStore := taskstore.NewStore()
 	queueClient := &MockQueueClient{}
 
-	cfg := &config.Config{
-		Tools: []config.Tool{
-			{
-				Name:        "test_tool",
-				Description: "Test tool for MCP protocol verification",
-				Parameters: map[string]config.Parameter{
-					"input": {Type: "string", Required: true},
-				},
-				Route: config.RouteSpec{Actors: []string{"actor1"}},
-			},
-		},
-	}
-
-	mcpSrv := NewServer(taskStore, queueClient, cfg)
+	mcpSrv := NewServer(taskStore, queueClient, nil)
 	handler := serverFactory(mcpSrv.GetMCPServer())
 
 	initRequest := map[string]interface{}{
@@ -123,69 +107,6 @@ func testInitialize(t *testing.T, transportName string, serverFactory func(*mcps
 	}
 }
 
-// TestMCPProtocol_ListTools verifies the tools/list method
-func TestMCPProtocol_ListTools(t *testing.T) {
-	taskStore := taskstore.NewStore()
-	queueClient := &MockQueueClient{}
-
-	cfg := &config.Config{
-		Tools: []config.Tool{
-			{
-				Name:        "test_tool_1",
-				Description: "First test tool",
-				Parameters: map[string]config.Parameter{
-					"input": {
-						Type:        "string",
-						Description: "Input string",
-						Required:    true,
-					},
-					"count": {
-						Type:        "number",
-						Description: "Count parameter",
-						Required:    false,
-					},
-				},
-				Route: config.RouteSpec{Actors: []string{"actor1"}},
-			},
-			{
-				Name:        "test_tool_2",
-				Description: "Second test tool",
-				Parameters: map[string]config.Parameter{
-					"enabled": {
-						Type:     "boolean",
-						Required: true,
-					},
-				},
-				Route: config.RouteSpec{Actors: []string{"actor2", "actor3"}},
-			},
-		},
-	}
-
-	mcpSrv := NewServer(taskStore, queueClient, cfg)
-
-	tools := mcpSrv.GetMCPServer().ListTools()
-
-	if len(tools) != 2 {
-		t.Errorf("Expected 2 tools, got %d", len(tools))
-	}
-
-	if _, exists := tools["test_tool_1"]; !exists {
-		t.Error("Expected tool 'test_tool_1' not found")
-	}
-
-	if _, exists := tools["test_tool_2"]; !exists {
-		t.Error("Expected tool 'test_tool_2' not found")
-	}
-
-	tool1 := tools["test_tool_1"]
-	if tool1 == nil {
-		t.Fatal("tool_1 is nil")
-	}
-
-	t.Logf("Tool 1 registered successfully")
-	t.Logf("Tool 2 registered successfully")
-}
-
 // TestMCPProtocol_InvalidMethod verifies error handling for invalid methods via Streamable HTTP
 func TestMCPProtocol_InvalidMethod(t *testing.T) {
 	testInvalidMethod(t, streamableHTTPTransport.name, streamableHTTPTransport.factory)
@@ -195,20 +116,7 @@ func testInvalidMethod(t *testing.T, transportName string, serverFactory func(*m
 	taskStore := taskstore.NewStore()
 	queueClient := &MockQueueClient{}
 
-	cfg := &config.Config{
-		Tools: []config.Tool{
-			{
-				Name:        "test_tool",
-				Description: "Test tool",
-				Parameters: map[string]config.Parameter{
-					"input": {Type: "string", Required: true},
-				},
-				Route: config.RouteSpec{Actors: []string{"actor1"}},
-			},
-		},
-	}
-
-	mcpSrv := NewServer(taskStore, queueClient, cfg)
+	mcpSrv := NewServer(taskStore, queueClient, nil)
 	handler := serverFactory(mcpSrv.GetMCPServer())
 
 	invalidRequest := map[string]interface{}{
@@ -241,166 +149,12 @@ func testInvalidMethod(t *testing.T, transportName string, serverFactory func(*m
 	}
 }
 
-// TestMCPProtocol_ParameterValidation verifies parameter validation
-func TestMCPProtocol_ParameterValidation(t *testing.T) {
-	taskStore := taskstore.NewStore()
-	queueClient := &MockQueueClient{}
-
-	cfg := &config.Config{
-		Tools: []config.Tool{
-			{
-				Name:        "strict_tool",
-				Description: "Tool with required parameters",
-				Parameters: map[string]config.Parameter{
-					"required_param": {
-						Type:        "string",
-						Description: "This parameter is required",
-						Required:    true,
-					},
-					"optional_param": {
-						Type:     "number",
-						Required: false,
-					},
-				},
-				Route: config.RouteSpec{Actors: []string{"handler"}},
-			},
-		},
-	}
-
-	mcpSrv := NewServer(taskStore, queueClient, cfg)
-
-	tools := mcpSrv.GetMCPServer().ListTools()
-	tool, exists := tools["strict_tool"]
-	if !exists {
-		t.Fatal("Tool 'strict_tool' not registered")
-	}
-
-	if tool == nil {
-		t.Fatal("Tool is nil")
-	}
-
-	t.Logf("Tool with required parameters registered successfully")
-}
-
-// TestMCPProtocol_MultipleParameterTypes verifies different parameter types
-func TestMCPProtocol_MultipleParameterTypes(t *testing.T) {
-	taskStore := taskstore.NewStore()
-	queueClient := &MockQueueClient{}
-
-	cfg := &config.Config{
-		Tools: []config.Tool{
-			{
-				Name:        "complex_tool",
-				Description: "Tool with various parameter types",
-				Parameters: map[string]config.Parameter{
-					"string_param":  {Type: "string", Required: true},
-					"number_param":  {Type: "number", Required: false},
-					"boolean_param": {Type: "boolean", Required: false},
-					"array_param": {
-						Type: "array",
-						Items: &config.Parameter{
-							Type: "string",
-						},
-						Required: false,
-					},
-				},
-				Route: config.RouteSpec{Actors: []string{"handler"}},
-			},
-		},
-	}
-
-	mcpSrv := NewServer(taskStore, queueClient, cfg)
-
-	tools := mcpSrv.GetMCPServer().ListTools()
-	if _, exists := tools["complex_tool"]; !exists {
-		t.Fatal("Tool 'complex_tool' not registered")
-	}
-
-	t.Logf("Tool with multiple parameter types registered successfully")
-}
-
-// TestMCPProtocol_MissingRequiredParameter verifies parameter validation
-func TestMCPProtocol_MissingRequiredParameter(t *testing.T) {
-	taskStore := taskstore.NewStore()
-	queueClient := &MockQueueClient{}
-
-	cfg := &config.Config{
-		Tools: []config.Tool{
-			{
-				Name:        "strict_tool",
-				Description: "Tool with required parameter",
-				Parameters: map[string]config.Parameter{
-					"required_param": {Type: "string", Required: true},
-				},
-				Route: config.RouteSpec{Actors: []string{"handler"}},
-			},
-		},
-	}
-
-	mcpSrv := NewServer(taskStore, queueClient, cfg)
-
-	handler := mcpSrv.GetMCPServer()
-	if handler == nil {
-		t.Fatal("MCP server is nil")
-	}
-
-	t.Log("Parameter validation test completed - server validates required parameters")
-}
-
-// TestMCPProtocol_TaskCreation verifies task creation via tool call
-func TestMCPProtocol_TaskCreation(t *testing.T) {
-	taskStore := taskstore.NewStore()
-	queueClient := &MockQueueClient{}
-
-	cfg := &config.Config{
-		Tools: []config.Tool{
-			{
-				Name:        "create_job",
-				Description: "Creates a new job",
-				Parameters: map[string]config.Parameter{
-					"input": {Type: "string", Required: true},
-					"route": {
-						Type: "array",
-						Items: &config.Parameter{
-							Type: "string",
-						},
-						Required: true,
-					},
-				},
-				Route: config.RouteSpec{Actors: []string{"processor"}},
-			},
-		},
-	}
-
-	mcpSrv := NewServer(taskStore, queueClient, cfg)
-
-	tools := mcpSrv.GetMCPServer().ListTools()
-	if _, exists := tools["create_job"]; !exists {
-		t.Fatal("Tool 'create_job' not registered")
-	}
-
-	t.Log("Task creation tool registered successfully")
-}
-
 // TestMCPProtocol_BothTransportsWork verifies both transports can coexist
 func TestMCPProtocol_BothTransportsWork(t *testing.T) {
 	taskStore := taskstore.NewStore()
 	queueClient := &MockQueueClient{}
 
-	cfg := &config.Config{
-		Tools: []config.Tool{
-			{
-				Name:        "dual_test",
-				Description: "Test tool for dual transport",
-				Parameters: map[string]config.Parameter{
-					"data": {Type: "string", Required: true},
-				},
-				Route: config.RouteSpec{Actors: []string{"handler"}},
-			},
-		},
-	}
-
-	mcpSrv := NewServer(taskStore, queueClient, cfg)
+	mcpSrv := NewServer(taskStore, queueClient, nil)
 
 	streamableHandler := mcpserver.NewStreamableHTTPServer(mcpSrv.GetMCPServer())
 	sseHandler := mcpserver.NewSSEServer(mcpSrv.GetMCPServer())
@@ -413,7 +167,6 @@ func TestMCPProtocol_BothTransportsWork(t *testing.T) {
 		t.Fatal("Failed to create SSE handler")
 	}
 
-	// Test Streamable HTTP with POST request
 	t.Run("StreamableHTTP", func(t *testing.T) {
 		initRequest := map[string]interface{}{
 			"jsonrpc": "2.0",
@@ -448,18 +201,5 @@ func TestMCPProtocol_BothTransportsWork(t *testing.T) {
 		if response["result"] == nil {
 			t.Error("Expected result in Streamable HTTP response")
 		}
-
-		t.Log("Streamable HTTP transport works correctly")
 	})
-
-	// Test SSE server was created successfully
-	// Note: SSE uses a session-based protocol (GET with SSE handshake)
-	// Testing the full SSE protocol requires a proper SSE client which is complex
-	// For now, we verify the server was created and can be mounted
-	t.Run("SSE", func(t *testing.T) {
-		t.Log("SSE server created successfully (session-based transport available)")
-		t.Log("SSE protocol requires proper GET + SSE handshake (tested separately in E2E tests)")
-	})
-
-	t.Log("Both Streamable HTTP and SSE transports created successfully and can coexist")
 }

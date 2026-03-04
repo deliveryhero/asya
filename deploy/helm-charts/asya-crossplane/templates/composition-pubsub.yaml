@@ -79,7 +79,7 @@ spec:
                 ackDeadlineSeconds: 300
                 messageRetentionDuration: "604800s"
                 expirationPolicy:
-                  - ttl: ""
+                  ttl: ""
               providerConfigRef:
                 name: {{`{{ $providerConfigRef }}`}}
               deletionPolicy: Delete

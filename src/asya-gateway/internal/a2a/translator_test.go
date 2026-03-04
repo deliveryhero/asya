@@ -2,186 +2,227 @@ package a2a
 
 import (
 	"testing"
-	"time"
 
-	"github.com/deliveryhero/asya/asya-gateway/pkg/types"
+	a2alib "github.com/a2aproject/a2a-go/a2a"
 )
 
 func TestMessageToPayload_SingleDataPart(t *testing.T) {
-	msg := types.A2AMessage{
-		Role: "user",
-		Parts: []types.A2APart{
-			{Type: "data", Data: map[string]any{"key": "val"}},
+	msg := &a2alib.Message{
+		ID:     "msg-1",
+		TaskID: "task-1",
+		Role:   a2alib.MessageRoleUser,
+		Parts: a2alib.ContentParts{
+			&a2alib.DataPart{Data: map[string]any{"key": "val"}},
 		},
 	}
-	payload := MessageToPayload(msg)
+	taskID := a2alib.TaskID("task-1")
+	contextID := "ctx-1"
+
+	payload := MessageToPayload(msg, taskID, contextID)
 	m, ok := payload.(map[string]any)
 	if !ok {
 		t.Fatalf("expected map, got %T", payload)
 	}
+
+	// Verify root-level extraction
 	if m["key"] != "val" {
 		t.Errorf("key = %v, want val", m["key"])
 	}
+
+	// Verify a2a.task namespace exists
+	a2aNamespace, ok := m["a2a"].(map[string]any)
+	if !ok {
+		t.Fatal("missing a2a namespace")
+	}
+	taskNamespace, ok := a2aNamespace["task"].(map[string]any)
+	if !ok {
+		t.Fatal("missing a2a.task namespace")
+	}
+	if taskNamespace["id"] != "task-1" {
+		t.Errorf("a2a.task.id = %v, want task-1", taskNamespace["id"])
+	}
+	if taskNamespace["context_id"] != "ctx-1" {
+		t.Errorf("a2a.task.context_id = %v, want ctx-1", taskNamespace["context_id"])
+	}
+	history, ok := taskNamespace["history"].([]any)
+	if !ok || len(history) != 1 {
+		t.Fatal("a2a.task.history should be array with 1 entry")
+	}
 }
 
-func TestMessageToPayload_TextPart(t *testing.T) {
-	msg := types.A2AMessage{
-		Role:  "user",
-		Parts: []types.A2APart{{Type: "text", Text: "hello"}},
+func TestMessageToPayload_TextOnly(t *testing.T) {
+	msg := &a2alib.Message{
+		ID:     "msg-2",
+		TaskID: "task-2",
+		Role:   a2alib.MessageRoleUser,
+		Parts: a2alib.ContentParts{
+			&a2alib.TextPart{Text: "hello"},
+		},
 	}
-	payload := MessageToPayload(msg)
+	taskID := a2alib.TaskID("task-2")
+	contextID := "ctx-2"
+
+	payload := MessageToPayload(msg, taskID, contextID)
 	m, ok := payload.(map[string]any)
 	if !ok {
 		t.Fatalf("expected map, got %T", payload)
 	}
-	if m["_a2a_text"] != "hello" {
-		t.Errorf("_a2a_text = %v, want hello", m["_a2a_text"])
+
+	// Verify query field set
+	if m["query"] != "hello" {
+		t.Errorf("query = %v, want hello", m["query"])
+	}
+
+	// Verify a2a.task namespace exists
+	a2aNamespace, ok := m["a2a"].(map[string]any)
+	if !ok {
+		t.Fatal("missing a2a namespace")
+	}
+	_, ok = a2aNamespace["task"].(map[string]any)
+	if !ok {
+		t.Fatal("missing a2a.task namespace")
+	}
+}
+
+func TestMessageToPayload_MultiText(t *testing.T) {
+	msg := &a2alib.Message{
+		ID:     "msg-3",
+		TaskID: "task-3",
+		Role:   a2alib.MessageRoleUser,
+		Parts: a2alib.ContentParts{
+			&a2alib.TextPart{Text: "line 1"},
+			&a2alib.TextPart{Text: "line 2"},
+		},
+	}
+	taskID := a2alib.TaskID("task-3")
+	contextID := "ctx-3"
+
+	payload := MessageToPayload(msg, taskID, contextID)
+	m, ok := payload.(map[string]any)
+	if !ok {
+		t.Fatalf("expected map, got %T", payload)
+	}
+
+	// Verify text concatenation with "\n"
+	if m["query"] != "line 1\nline 2" {
+		t.Errorf("query = %v, want 'line 1\\nline 2'", m["query"])
+	}
+}
+
+func TestMessageToPayload_NoSyntheticFields(t *testing.T) {
+	msg := &a2alib.Message{
+		ID:     "msg-4",
+		TaskID: "task-4",
+		Role:   a2alib.MessageRoleUser,
+		Parts: a2alib.ContentParts{
+			&a2alib.TextPart{Text: "analyze this"},
+			&a2alib.DataPart{Data: map[string]any{"x": 1}},
+		},
+	}
+	taskID := a2alib.TaskID("task-4")
+	contextID := "ctx-4"
+
+	payload := MessageToPayload(msg, taskID, contextID)
+	m, ok := payload.(map[string]any)
+	if !ok {
+		t.Fatalf("expected map, got %T", payload)
+	}
+
+	// Verify no underscore-prefixed synthetic fields exist
+	for key := range m {
+		if len(key) > 0 && key[0] == '_' {
+			t.Errorf("found synthetic field: %s (forbidden by RFC)", key)
+		}
+	}
+
+	// Verify data merged at root
+	if m["x"] != 1 {
+		t.Error("data part not merged at root")
+	}
+
+	// Verify text as query
+	if m["query"] != "analyze this" {
+		t.Error("text not stored as query")
 	}
 }
 
 func TestMessageToPayload_MixedParts(t *testing.T) {
-	msg := types.A2AMessage{
-		Role: "user",
-		Parts: []types.A2APart{
-			{Type: "text", Text: "analyze this"},
-			{Type: "data", Data: map[string]any{"x": 1}},
-			{Type: "file", URL: "s3://b/f.pdf", MediaType: "application/pdf"},
+	msg := &a2alib.Message{
+		ID:     "msg-5",
+		TaskID: "task-5",
+		Role:   a2alib.MessageRoleUser,
+		Parts: a2alib.ContentParts{
+			&a2alib.TextPart{Text: "analyze"},
+			&a2alib.DataPart{Data: map[string]any{"type": "image"}},
+			&a2alib.DataPart{Data: map[string]any{"priority": "high"}},
 		},
 	}
-	payload := MessageToPayload(msg)
+	taskID := a2alib.TaskID("task-5")
+	contextID := "ctx-5"
+
+	payload := MessageToPayload(msg, taskID, contextID)
 	m, ok := payload.(map[string]any)
 	if !ok {
 		t.Fatalf("expected map, got %T", payload)
 	}
-	if m["_a2a_text"] != "analyze this" {
-		t.Error("missing _a2a_text")
+
+	// Verify all data parts merged at root
+	if m["type"] != "image" {
+		t.Error("first data part not merged")
 	}
-	files, ok := m["_a2a_files"].([]map[string]string)
-	if !ok || len(files) != 1 {
-		t.Error("missing or wrong _a2a_files")
+	if m["priority"] != "high" {
+		t.Error("second data part not merged")
+	}
+
+	// Verify text as query
+	if m["query"] != "analyze" {
+		t.Error("text not stored as query")
 	}
 }
 
-func TestTaskToA2ATask(t *testing.T) {
-	task := &types.Task{
-		ID:        "t1",
-		ContextID: "ctx-1",
-		Status:    types.TaskStatusSucceeded,
-		Result:    map[string]any{"score": 0.9},
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+func TestBuildA2AHeaders(t *testing.T) {
+	headers := BuildA2AHeaders("task-123", "ctx-456")
+
+	if headers["x-asya-a2a-task-id"] != "task-123" {
+		t.Errorf("task-id header = %v, want task-123", headers["x-asya-a2a-task-id"])
 	}
-	a2aTask := TaskToA2ATask(task)
-	if a2aTask.ID != "t1" {
-		t.Errorf("ID = %s, want t1", a2aTask.ID)
+	if headers["x-asya-a2a-context-id"] != "ctx-456" {
+		t.Errorf("context-id header = %v, want ctx-456", headers["x-asya-a2a-context-id"])
 	}
-	if a2aTask.ContextID != "ctx-1" {
-		t.Errorf("ContextID = %s, want ctx-1", a2aTask.ContextID)
-	}
-	if a2aTask.Status.State != types.A2AStateCompleted {
-		t.Errorf("State = %s, want completed", a2aTask.Status.State)
-	}
-	if len(a2aTask.Artifacts) != 1 {
-		t.Errorf("Artifacts count = %d, want 1", len(a2aTask.Artifacts))
+
+	// Verify only expected headers are present
+	if len(headers) != 2 {
+		t.Errorf("expected 2 headers, got %d", len(headers))
 	}
 }
 
-func TestTaskToA2ATask_Running(t *testing.T) {
-	task := &types.Task{
-		ID:               "t2",
-		Status:           types.TaskStatusRunning,
-		ProgressPercent:  50.0,
-		CurrentActorName: "analyzer",
-		ActorsCompleted:  1,
-		TotalActors:      3,
-		Message:          "Processing",
-		UpdatedAt:        time.Now(),
+func TestMessageToPayload_WithFilePart(t *testing.T) {
+	msg := &a2alib.Message{
+		ID:     "msg-6",
+		TaskID: "task-6",
+		Role:   a2alib.MessageRoleUser,
+		Parts: a2alib.ContentParts{
+			&a2alib.TextPart{Text: "process this file"},
+			&a2alib.FilePart{},
+		},
 	}
-	a2aTask := TaskToA2ATask(task)
-	if a2aTask.Status.State != types.A2AStateWorking {
-		t.Errorf("State = %s, want working", a2aTask.Status.State)
-	}
-	if a2aTask.Metadata == nil {
-		t.Fatal("Metadata should not be nil for running task")
-	}
-	meta, ok := a2aTask.Metadata.(map[string]any)
+	taskID := a2alib.TaskID("task-6")
+	contextID := "ctx-6"
+
+	payload := MessageToPayload(msg, taskID, contextID)
+	m, ok := payload.(map[string]any)
 	if !ok {
-		t.Fatal("Metadata should be map[string]any")
+		t.Fatalf("expected map, got %T", payload)
 	}
-	if meta["progress_percent"] != 50.0 {
-		t.Errorf("progress_percent = %v, want 50.0", meta["progress_percent"])
-	}
-}
 
-func TestTaskToA2ATask_Failed(t *testing.T) {
-	task := &types.Task{
-		ID:        "t3",
-		Status:    types.TaskStatusFailed,
-		Error:     "processing error",
-		UpdatedAt: time.Now(),
+	// When files are present, we should not unwrap single data part
+	// Text should be stored as query
+	if m["query"] != "process this file" {
+		t.Error("text not stored as query when file part present")
 	}
-	a2aTask := TaskToA2ATask(task)
-	if a2aTask.Status.State != types.A2AStateFailed {
-		t.Errorf("State = %s, want failed", a2aTask.Status.State)
-	}
-	if a2aTask.Status.Message == nil {
-		t.Fatal("Status.Message should not be nil for failed task with error")
-	}
-	if a2aTask.Status.Message.Parts[0].Text != "processing error" {
-		t.Errorf("error text = %s, want 'processing error'", a2aTask.Status.Message.Parts[0].Text)
-	}
-}
 
-func TestTaskUpdateToSSEEvents(t *testing.T) {
-	update := types.TaskUpdate{
-		ID:        "t1",
-		Status:    types.TaskStatusSucceeded,
-		Message:   "done",
-		Timestamp: time.Now(),
-	}
-	event := TaskUpdateToSSEEvents(update)
-	if event.ID != "t1" {
-		t.Errorf("ID = %s, want t1", event.ID)
-	}
-	if event.Status.State != types.A2AStateCompleted {
-		t.Errorf("State = %s, want completed", event.Status.State)
-	}
-	if !event.Final {
-		t.Error("Final should be true for completed state")
-	}
-}
-
-func TestTaskUpdateToSSEEvents_NotFinal(t *testing.T) {
-	update := types.TaskUpdate{
-		ID:        "t2",
-		Status:    types.TaskStatusRunning,
-		Message:   "working",
-		Timestamp: time.Now(),
-	}
-	event := TaskUpdateToSSEEvents(update)
-	if event.Final {
-		t.Error("Final should be false for working state")
-	}
-	if event.Status.State != types.A2AStateWorking {
-		t.Errorf("State = %s, want working", event.Status.State)
-	}
-}
-
-func TestTaskUpdateToSSEEvents_ErrorMessage(t *testing.T) {
-	update := types.TaskUpdate{
-		ID:        "t3",
-		Status:    types.TaskStatusFailed,
-		Error:     "something broke",
-		Timestamp: time.Now(),
-	}
-	event := TaskUpdateToSSEEvents(update)
-	if !event.Final {
-		t.Error("Final should be true for failed state")
-	}
-	if event.Status.Message == nil {
-		t.Fatal("Status.Message should not be nil when error is set")
-	}
-	if event.Status.Message.Parts[0].Text != "something broke" {
-		t.Errorf("error text = %s, want 'something broke'", event.Status.Message.Parts[0].Text)
+	// Verify no synthetic _a2a_files field
+	if _, exists := m["_a2a_files"]; exists {
+		t.Error("found forbidden _a2a_files synthetic field")
 	}
 }
