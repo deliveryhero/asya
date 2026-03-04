@@ -3,6 +3,7 @@ title: ListTasks with cursor pagination
 priority: 2 # medium
 ---
 
+
 ## Objective
 
 Implement `tasks/list` (A2A method) / `GET {base}/a2a/tasks` endpoint with cursor-based pagination.
