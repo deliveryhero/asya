@@ -85,6 +85,42 @@ func TestAPIKeyMiddleware_AgentCardBypass(t *testing.T) {
 	}
 }
 
+func TestA2AAuthMiddleware_APIKey(t *testing.T) {
+	auth := &APIKeyAuthenticator{Key: "test-key"}
+	handler := A2AAuthMiddleware(auth)(okHandler())
+
+	t.Run("ValidKey", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodPost, "/a2a/", nil)
+		req.Header.Set("X-API-Key", "test-key")
+		rec := httptest.NewRecorder()
+		handler.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected 200, got %d", rec.Code)
+		}
+	})
+
+	t.Run("MissingKey", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodPost, "/a2a/", nil)
+		rec := httptest.NewRecorder()
+		handler.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusUnauthorized {
+			t.Fatalf("expected 401, got %d", rec.Code)
+		}
+	})
+
+	t.Run("AgentCardBypass", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/.well-known/agent.json", nil)
+		rec := httptest.NewRecorder()
+		handler.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected 200 for agent card bypass, got %d", rec.Code)
+		}
+	})
+}
+
 func TestAPIKeyMiddleware_EmptyAPIKey(t *testing.T) {
 	handler := APIKeyMiddleware("")(okHandler())
 

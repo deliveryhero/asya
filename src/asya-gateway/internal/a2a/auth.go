@@ -6,26 +6,50 @@ import (
 	"net/http"
 )
 
-// APIKeyMiddleware returns middleware that validates X-API-Key header.
-// Agent Card (/.well-known/agent.json) is excluded from auth.
-func APIKeyMiddleware(apiKey string) func(http.Handler) http.Handler {
+// Authenticator checks if a request is authenticated.
+type Authenticator interface {
+	Authenticate(r *http.Request) bool
+}
+
+// APIKeyAuthenticator validates X-API-Key header using constant-time comparison.
+type APIKeyAuthenticator struct {
+	Key string
+}
+
+// Authenticate returns true if the X-API-Key header matches the configured key.
+func (a *APIKeyAuthenticator) Authenticate(r *http.Request) bool {
+	provided := r.Header.Get("X-API-Key")
+	return subtle.ConstantTimeCompare([]byte(provided), []byte(a.Key)) == 1
+}
+
+// A2AAuthMiddleware returns middleware that checks all configured authenticators.
+// A request passes if ANY authenticator succeeds.
+// Agent Card (/.well-known/agent.json) is always bypassed.
+func A2AAuthMiddleware(authenticators ...Authenticator) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// Agent Card is public (exact path only)
 			if r.URL.Path == "/.well-known/agent.json" {
 				next.ServeHTTP(w, r)
 				return
 			}
 
-			provided := r.Header.Get("X-API-Key")
-			if subtle.ConstantTimeCompare([]byte(provided), []byte(apiKey)) != 1 {
-				writeJSONRPCError(w, http.StatusUnauthorized, -32005, "Authentication required")
-				return
+			for _, auth := range authenticators {
+				if auth.Authenticate(r) {
+					next.ServeHTTP(w, r)
+					return
+				}
 			}
 
-			next.ServeHTTP(w, r)
+			writeJSONRPCError(w, http.StatusUnauthorized, -32005, "Authentication required")
 		})
 	}
+}
+
+// APIKeyMiddleware returns middleware that validates X-API-Key header.
+// Agent Card (/.well-known/agent.json) is excluded from auth.
+// Deprecated: Use A2AAuthMiddleware with APIKeyAuthenticator.
+func APIKeyMiddleware(apiKey string) func(http.Handler) http.Handler {
+	return A2AAuthMiddleware(&APIKeyAuthenticator{Key: apiKey})
 }
 
 func writeJSONRPCError(w http.ResponseWriter, httpStatus, code int, message string) {
