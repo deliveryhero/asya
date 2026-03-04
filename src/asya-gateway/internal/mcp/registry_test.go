@@ -114,8 +114,8 @@ func (m *MockTaskStore) Resume(id string) (*types.Task, error) {
 	return nil, fmt.Errorf("task not found")
 }
 
-func (m *MockTaskStore) List(status *types.TaskStatus) ([]*types.Task, error) {
-	return nil, nil
+func (m *MockTaskStore) List(params taskstore.ListParams) ([]*types.Task, int, error) {
+	return nil, 0, nil
 }
 
 // TestNewRegistry tests registry initialization
