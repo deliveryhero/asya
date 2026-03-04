@@ -8,12 +8,13 @@ Aints (issues) are markdown files with YAML frontmatter stored in `.aint/aints/`
 The `.aint/` directory is a **git worktree** on the `aint-sync` branch — it's
 gitignored from the main branch. Don't `git add` it from main.
 
-Sync happens automatically: every `git aint create` / `update` auto-commits and
-pushes to `aint-sync`. For manual sync: `git aint sync` (runs pull/commit/push
-inside `.aint/`).
+**The source of truth is the files in `.aint/`.** You can read, edit, create, or
+delete aint files directly — they're just markdown. After manual edits, run
+`git aint sync` to commit and push, or `git aint doctor` to validate.
 
-Most commands are **git aliases** seeded by `git aint init`. If something breaks,
-check `git config --get-regexp aint.alias` to debug.
+The CLI (`git aint create`, `update`, etc.) auto-commits and pushes to `aint-sync`
+after each write operation. For manual sync: `git aint sync` (runs pull/commit/push
+inside `.aint/`).
 
 ## Commands
 
@@ -62,7 +63,7 @@ All commands support `--output json`. Run `git aint <cmd> --help` for full optio
 ### Worktrees
 
 All work should be done in a git worktree. `git aint pickup <ref>` automates this:
-- Creates branch `<dir>/<id>.<slug>` (e.g. `ci-setup/c9x8.fix-auth`)
+- Creates branch `<epic>/<task>.<task_slug>` (e.g. `{epic}/{task}.{task_slug}`)
 - Creates worktree in `.worktrees/` (configurable via `git config aint.worktree-dir`)
 - Tags the aint with `worktree:<path>` and `branch:<branch>`
 - Sets status to `active`
@@ -98,6 +99,6 @@ All work should be done in a git worktree. `git aint pickup <ref>` automates thi
 
 ## Conventions
 
-- **Branches**: `<dir>/<id>.<slug>` (e.g. `ci-setup/c9x8.fix-auth`)
+- **Branches**: `<epic>/<task>.<task_slug>` (e.g. `{epic}/{task}.{task_slug}`)
 - **Tags**: `worktree:<path>`, `branch:<branch>`, `pr:<number>`
 - **Dependencies**: aint IDs in frontmatter (e.g. `dependencies: [c9x8, d4m1]`)
