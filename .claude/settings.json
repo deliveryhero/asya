@@ -8,6 +8,22 @@
             "type": "command"
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "command": "git aint status",
+            "type": "command"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "command": "git aint summary --output txt --brief",
+            "type": "command"
+          }
+        ]
       }
     ],
     "SessionStart": [
@@ -15,6 +31,14 @@
         "hooks": [
           {
             "command": "git aint status",
+            "type": "command"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "command": "git aint summary --output txt --brief",
             "type": "command"
           }
         ]

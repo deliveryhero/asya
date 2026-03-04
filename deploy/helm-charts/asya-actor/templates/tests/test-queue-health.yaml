@@ -15,13 +15,8 @@ spec:
   restartPolicy: Never
   containers:
   - name: test
-    {{- if eq .Values.transport "rabbitmq" }}
-    image: alpine/k8s:1.28.3
-    {{- else if eq .Values.transport "sqs" }}
-    image: amazon/aws-cli:2.15.10
-    {{- else }}
-    image: busybox:1.36
-    {{- end }}
+    image: {{ .Values.tests.image }}
+    imagePullPolicy: {{ .Values.tests.imagePullPolicy }}
     {{- if eq .Values.transport "sqs" }}
     env:
     - name: AWS_REGION
@@ -124,6 +119,12 @@ spec:
 
         AWS_REGION="${AWS_REGION:-us-east-1}"
 
+        # Build endpoint flag for awscli v1 compatibility (v1 ignores AWS_ENDPOINT_URL)
+        ENDPOINT_FLAG=""
+        if [ -n "$AWS_ENDPOINT_URL" ]; then
+          ENDPOINT_FLAG="--endpoint-url $AWS_ENDPOINT_URL"
+        fi
+
         echo "Region: ${AWS_REGION}"
         echo ""
 
@@ -135,12 +136,12 @@ spec:
           ATTEMPT=$((ATTEMPT + 1))
 
           # Try to get queue URL
-          if QUEUE_URL=$(aws sqs get-queue-url --queue-name "${QUEUE_NAME}" --region "${AWS_REGION}" --output text 2>/dev/null); then
+          if QUEUE_URL=$(aws sqs get-queue-url $ENDPOINT_FLAG --queue-name "${QUEUE_NAME}" --region "${AWS_REGION}" --output text 2>/dev/null); then
             echo "[+] Queue '${QUEUE_NAME}' exists in SQS"
             echo "  Queue URL: ${QUEUE_URL}"
 
             # Get queue attributes
-            ATTRS=$(aws sqs get-queue-attributes --queue-url "${QUEUE_URL}" \
+            ATTRS=$(aws sqs get-queue-attributes $ENDPOINT_FLAG --queue-url "${QUEUE_URL}" \
               --attribute-names ApproximateNumberOfMessages ApproximateNumberOfMessagesNotVisible VisibilityTimeout MessageRetentionPeriod \
               --region "${AWS_REGION}" --output json 2>/dev/null || echo "{}")
 

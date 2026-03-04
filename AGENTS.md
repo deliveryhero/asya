@@ -796,3 +796,10 @@ logger.info("[+] Test passed")
 - NEVER stop before pushing - that leaves work stranded locally
 - NEVER say "ready to push when you are" - YOU must push
 - If push fails, resolve and retry until it succeeds
+
+# git-aint
+
+This project uses [git-aint](https://github.com/atemate/git-aint) for issue
+tracking. Run `git aint init` to initialize (idempotent). `.aint/` is a git
+worktree on branch `aint-sync`, shared across all agents. See `.aint/AGENTS.md`
+for usage instructions.

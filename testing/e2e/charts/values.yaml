@@ -43,6 +43,10 @@ gateway:
     tag: latest
     pullPolicy: Never
 
+  tests:
+    image: ghcr.io/deliveryhero/asya-testing:latest
+    imagePullPolicy: Never
+
   replicaCount: 1
 
   service:

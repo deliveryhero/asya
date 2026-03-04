@@ -135,6 +135,12 @@ default:
     status:
       enabled: true
 
+# Test image configuration (for Helm test pods)
+# Override to use a pre-loaded image in Kind clusters
+tests:
+  image: alpine/k8s:1.28.3
+  imagePullPolicy: IfNotPresent
+
 # Infrastructure configuration (for health checks)
 infrastructure:
   # Operator namespace (for checking operator logs in error messages)

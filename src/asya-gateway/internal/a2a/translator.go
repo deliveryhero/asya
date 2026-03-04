@@ -8,7 +8,7 @@ import (
 	a2alib "github.com/a2aproject/a2a-go/a2a"
 )
 
-// MessageToPayload converts an A2A message to an internal task payload.
+// MessageToPayload converts an A2A message to an envelope payload and headers.
 //
 // Rules (from RFC Section 5.2):
 // 1. ALWAYS: Initialize payload["a2a"]["task"] with id, context_id, and history array containing the serialized message
@@ -17,7 +17,7 @@ import (
 // 4. Mixed -> merge data at root, add text as payload["query"]
 //
 // NO synthetic fields (_a2a_text, _a2a_files) are allowed.
-func MessageToPayload(msg *a2alib.Message, taskID a2alib.TaskID, contextID string) any {
+func MessageToPayload(msg *a2alib.Message, taskID a2alib.TaskID, contextID string) (map[string]any, map[string]any) {
 	var textParts []string
 	var dataParts []map[string]any
 	hasFiles := false
@@ -26,9 +26,14 @@ func MessageToPayload(msg *a2alib.Message, taskID a2alib.TaskID, contextID strin
 		switch p := part.(type) {
 		case *a2alib.TextPart:
 			textParts = append(textParts, p.Text)
+		case a2alib.TextPart:
+			textParts = append(textParts, p.Text)
 		case *a2alib.DataPart:
 			dataParts = append(dataParts, p.Data)
-		case *a2alib.FilePart:
+		case a2alib.DataPart:
+			dataParts = append(dataParts, p.Data)
+		case *a2alib.FilePart, a2alib.FilePart:
+			_ = p
 			hasFiles = true
 		}
 	}
@@ -63,7 +68,9 @@ func MessageToPayload(msg *a2alib.Message, taskID a2alib.TaskID, contextID strin
 	}
 	payload["a2a"] = a2aNamespace
 
-	return payload
+	headers := BuildA2AHeaders(string(taskID), contextID)
+
+	return payload, headers
 }
 
 // BuildA2AHeaders returns envelope headers for A2A task tracking.

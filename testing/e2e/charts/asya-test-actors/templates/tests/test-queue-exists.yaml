@@ -13,15 +13,8 @@ spec:
   restartPolicy: Never
   containers:
   - name: test
-    {{- if eq .Values.transport "rabbitmq" }}
-    image: alpine/k8s:1.28.3
-    {{- else if eq .Values.transport "sqs" }}
-    image: amazon/aws-cli:2.15.10
-    {{- else if eq .Values.transport "pubsub" }}
-    image: busybox:1.36
-    {{- else }}
-    image: busybox:1.36
-    {{- end }}
+    image: {{ .Values.tests.image }}
+    imagePullPolicy: {{ .Values.tests.imagePullPolicy }}
     {{- if eq .Values.transport "sqs" }}
     env:
     - name: AWS_REGION
@@ -120,6 +113,12 @@ spec:
         AWS_REGION="${AWS_REGION:-us-east-1}"
         QUEUE_NAME="asya-{{ .Values.namespace }}-$TEST_ACTOR"
 
+        # Build endpoint flag for awscli v1 compatibility (v1 ignores AWS_ENDPOINT_URL)
+        ENDPOINT_FLAG=""
+        if [ -n "$AWS_ENDPOINT_URL" ]; then
+          ENDPOINT_FLAG="--endpoint-url $AWS_ENDPOINT_URL"
+        fi
+
         echo "Region: ${AWS_REGION}"
         echo "Queue name: ${QUEUE_NAME}"
         echo ""
@@ -132,12 +131,12 @@ spec:
           ATTEMPT=$((ATTEMPT + 1))
 
           # Try to get queue URL
-          if QUEUE_URL=$(aws sqs get-queue-url --queue-name "${QUEUE_NAME}" --region "${AWS_REGION}" --output text 2>/dev/null); then
+          if QUEUE_URL=$(aws sqs get-queue-url $ENDPOINT_FLAG --queue-name "${QUEUE_NAME}" --region "${AWS_REGION}" --output text 2>/dev/null); then
             echo "[+] Queue '${QUEUE_NAME}' exists in SQS"
             echo "  Queue URL: ${QUEUE_URL}"
 
             # Get queue attributes
-            ATTRS=$(aws sqs get-queue-attributes --queue-url "${QUEUE_URL}" \
+            ATTRS=$(aws sqs get-queue-attributes $ENDPOINT_FLAG --queue-url "${QUEUE_URL}" \
               --attribute-names ApproximateNumberOfMessages ApproximateNumberOfMessagesNotVisible VisibilityTimeout \
               --region "${AWS_REGION}" --output json 2>/dev/null || echo "{}")
 
@@ -194,10 +193,17 @@ spec:
         while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
           ATTEMPT=$((ATTEMPT + 1))
 
-          # Check subscription via emulator REST API
-          HTTP_CODE=$(wget -q -O /dev/null -S \
-            "http://${EMULATOR}/v1/projects/${PROJECT_ID}/subscriptions/${SUBSCRIPTION_NAME}" \
-            2>&1 | grep "HTTP/" | tail -1 | awk '{print $2}' || echo "000")
+          # Check subscription via emulator REST API (python3 available in testing image)
+          HTTP_CODE=$(python3 -c "
+        import urllib.request, urllib.error
+        try:
+            urllib.request.urlopen('http://${EMULATOR}/v1/projects/${PROJECT_ID}/subscriptions/${SUBSCRIPTION_NAME}')
+            print(200)
+        except urllib.error.HTTPError as e:
+            print(e.code)
+        except Exception:
+            print(0)
+          ")
 
           if [ "$HTTP_CODE" = "200" ]; then
             echo "[+] Subscription '${SUBSCRIPTION_NAME}' exists in Pub/Sub emulator"
