@@ -3161,6 +3161,7 @@ class TestAbiDispatch:
 
     def test_non_dict_payload_accepted(self):
         """Non-dict values (int, str, list) are valid payload frames."""
+
         def gen(payload):
             yield 42
 
