@@ -3,6 +3,7 @@ title: API Key authentication middleware
 priority: 2 # medium
 ---
 
+
 ## Objective
 
 Implement API Key authentication middleware for all `{base}/a2a/*` routes.
