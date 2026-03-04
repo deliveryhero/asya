@@ -120,6 +120,31 @@ SOCKET_NAME = os.getenv("ASYA_SOCKET_NAME", "asya-runtime.sock")
 SOCKET_PATH = os.path.join(SOCKET_DIR, SOCKET_NAME)
 
 
+def fly_text(text, artifact_id="stream-0", last=False):
+    # type: (str, str, bool) -> dict
+    """Build A2A artifact_update FLY payload. Usage: yield "FLY", fly_text("hello")"""
+    return {
+        "artifact_update": {
+            "artifact": {"artifact_id": artifact_id, "parts": [{"text": text}]},
+            "append": True,
+            "last_chunk": last,
+        }
+    }
+
+
+def fly_status(message):
+    # type: (str) -> dict
+    """Build A2A status_update FLY payload. Usage: yield "FLY", fly_status("Thinking...")"""
+    return {
+        "status_update": {
+            "status": {
+                "state": "WORKING",
+                "message": {"role": "agent", "parts": [{"text": message}]},
+            }
+        }
+    }
+
+
 def _instantiate_class_handler(handler_class):
     """Instantiate class handler.
 
