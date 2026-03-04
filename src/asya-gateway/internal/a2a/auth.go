@@ -4,7 +4,6 @@ import (
 	"crypto/subtle"
 	"encoding/json"
 	"net/http"
-	"strings"
 )
 
 // APIKeyMiddleware returns middleware that validates X-API-Key header.
@@ -12,8 +11,8 @@ import (
 func APIKeyMiddleware(apiKey string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// Agent Card is public
-			if strings.HasSuffix(r.URL.Path, "agent.json") {
+			// Agent Card is public (exact path only)
+			if r.URL.Path == "/.well-known/agent.json" {
 				next.ServeHTTP(w, r)
 				return
 			}

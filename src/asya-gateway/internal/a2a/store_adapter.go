@@ -91,8 +91,8 @@ func (a *StoreAdapter) List(ctx context.Context, req *a2alib.ListTasksRequest) (
 	offset := 0
 	if req.PageToken != "" {
 		parsed, err := strconv.Atoi(req.PageToken)
-		if err != nil {
-			return nil, fmt.Errorf("invalid page_token: %w", err)
+		if err != nil || parsed < 0 {
+			return nil, fmt.Errorf("invalid page_token: %q", req.PageToken)
 		}
 		offset = parsed
 	}
