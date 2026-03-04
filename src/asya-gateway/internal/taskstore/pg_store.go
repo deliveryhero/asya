@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 
@@ -810,73 +809,51 @@ func (s *PgStore) Resume(id string) (*types.Task, error) {
 	return task, nil
 }
 
-// listQueryArgs holds the separate arg slices for the count and data queries
-// because the data query may have extra LIMIT/OFFSET parameters.
-type listQueryArgs struct {
-	countArgs []any
-	dataArgs  []any
-}
+// Constant query strings use NULL-coalescing filters so no dynamic SQL construction
+// is needed. PostgreSQL evaluates ($1::text IS NULL OR column = $1) as a no-op
+// when $1 is NULL, and LIMIT NULL is equivalent to no limit.
+const listCountQuery = `SELECT COUNT(*) FROM tasks
+	WHERE ($1::text IS NULL OR status = $1)
+	  AND ($2::text IS NULL OR context_id = $2)`
 
-// buildListQueries constructs parameterised COUNT and SELECT queries from ListParams.
-// All dynamic parts are positional placeholders ($1, $2, …); no user input is
-// interpolated into the SQL string.
-func buildListQueries(params ListParams) (countSQL, dataSQL string, args listQueryArgs) {
-	var conditions []string
-	var filterArgs []any
-	argIdx := 1
+const listDataQuery = `SELECT id, context_id, status, payload, result, error, timeout_seconds, deadline,
+	        remaining_timeout_sec, progress_percent, current_actor_name, message,
+	        pause_metadata, actors_completed, total_actors,
+	        route_prev, route_curr, route_next,
+	        created_at, updated_at
+	 FROM tasks
+	WHERE ($1::text IS NULL OR status = $1)
+	  AND ($2::text IS NULL OR context_id = $2)
+	ORDER BY created_at DESC
+	LIMIT $3 OFFSET $4`
 
+// listArgs converts ListParams into the fixed positional arguments for the
+// constant list queries. NULL values disable the corresponding filter.
+func listArgs(params ListParams) (statusArg, contextIDArg *string, limit *int, offset int) {
 	if params.Status != nil {
-		conditions = append(conditions, fmt.Sprintf("status = $%d", argIdx))
-		filterArgs = append(filterArgs, *params.Status)
-		argIdx++
+		s := string(*params.Status)
+		statusArg = &s
 	}
 	if params.ContextID != "" {
-		conditions = append(conditions, fmt.Sprintf("context_id = $%d", argIdx))
-		filterArgs = append(filterArgs, params.ContextID)
-		argIdx++
+		contextIDArg = &params.ContextID
 	}
-
-	var where string
-	if len(conditions) > 0 {
-		where = " WHERE " + strings.Join(conditions, " AND ")
-	}
-
-	countSQL = fmt.Sprintf("SELECT COUNT(*) FROM tasks%s", where)
-	args.countArgs = append(args.countArgs, filterArgs...)
-
-	dataSQL = fmt.Sprintf(
-		`SELECT id, context_id, status, payload, result, error, timeout_seconds, deadline,
-		        remaining_timeout_sec, progress_percent, current_actor_name, message,
-		        pause_metadata, actors_completed, total_actors,
-		        route_prev, route_curr, route_next,
-		        created_at, updated_at
-		 FROM tasks%s ORDER BY created_at DESC`, where)
-
-	dataArgs := append([]any{}, filterArgs...)
 	if params.Limit > 0 {
-		dataSQL += fmt.Sprintf(" LIMIT $%d", argIdx)
-		dataArgs = append(dataArgs, params.Limit)
-		argIdx++
+		limit = &params.Limit
 	}
-	if params.Offset > 0 {
-		dataSQL += fmt.Sprintf(" OFFSET $%d", argIdx)
-		dataArgs = append(dataArgs, params.Offset)
-	}
-	args.dataArgs = dataArgs
-
-	return countSQL, dataSQL, args
+	offset = params.Offset
+	return
 }
 
 // List returns tasks filtered by params with pagination. Returns (tasks, totalCount, error).
 func (s *PgStore) List(params ListParams) ([]*types.Task, int, error) {
-	countQuery, dataQuery, args := buildListQueries(params)
+	statusArg, contextIDArg, limit, offset := listArgs(params)
 
 	var totalCount int
-	if err := s.pool.QueryRow(s.ctx, countQuery, args.countArgs...).Scan(&totalCount); err != nil { // #nosec G201 -- query uses positional placeholders only
+	if err := s.pool.QueryRow(s.ctx, listCountQuery, statusArg, contextIDArg).Scan(&totalCount); err != nil {
 		return nil, 0, fmt.Errorf("failed to count tasks: %w", err)
 	}
 
-	rows, err := s.pool.Query(s.ctx, dataQuery, args.dataArgs...) // #nosec G201 -- query uses positional placeholders only
+	rows, err := s.pool.Query(s.ctx, listDataQuery, statusArg, contextIDArg, limit, offset)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to list tasks: %w", err)
 	}
