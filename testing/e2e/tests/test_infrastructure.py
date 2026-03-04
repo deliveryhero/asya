@@ -273,5 +273,3 @@ def test_gateway_pod_healthy():
         )
 
     logger.info(f"[+] Gateway pod is healthy")
-
-
