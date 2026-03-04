@@ -201,6 +201,10 @@ jobs:
         - name: stateful-actors
           target: stateful-actors
         # Sidecar-runtime tests (2 transports)
+        ##rabbitmq - disabled for now to save resources
+        # - name: sidecar-runtime (rabbitmq)
+        #   target: sidecar-runtime
+        #   transport: rabbitmq
         - name: sidecar-runtime (sqs)
           target: sidecar-runtime
           transport: sqs
@@ -208,6 +212,11 @@ jobs:
           target: sidecar-runtime
           transport: pubsub
         # Gateway-actors tests (2 transport-storage combos)
+        ##rabbitmq - disabled for now to save resources
+        # - name: gateway-actors (rabbitmq-minio)
+        #   target: gateway-actors
+        #   transport: rabbitmq
+        #   storage: minio
         - name: gateway-actors (sqs-s3)
           target: gateway-actors
           transport: sqs
