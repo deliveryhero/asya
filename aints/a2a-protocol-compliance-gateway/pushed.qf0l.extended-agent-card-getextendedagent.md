@@ -1,7 +1,10 @@
 ---
 title: Extended Agent Card (GetExtendedAgentCard)
 priority: 3 # low
+tags:
+  - pr:262
 ---
+
 
 
 ## Objective
