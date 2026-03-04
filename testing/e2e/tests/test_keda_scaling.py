@@ -26,8 +26,8 @@ import pytest
 
 if os.getenv("ASYA_TRANSPORT") == "pubsub":
     pytest.skip(
-        "KEDA scaling tests require Crossplane provider reconciliation; "
-        "the GCP Pub/Sub provider cannot reconcile with the emulator",
+        "KEDA gcp-pubsub scaler cannot query the Pub/Sub emulator for subscription metrics; "
+        "ScaledObjects are created by Crossplane but KEDA triggers show TriggerError",
         allow_module_level=True,
     )
 

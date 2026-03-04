@@ -126,16 +126,15 @@ def test_actor_pods_healthy():
         if len(parts) >= 2:
             scaled_objects.append((parts[0], parts[1]))
 
-    if transport == "pubsub":
-        logger.info(
-            f"[.] Pub/Sub emulator mode: ScaledObjects not expected "
-            f"(Crossplane GCP provider cannot reconcile with emulator)"
-        )
-    else:
-        assert len(scaled_objects) > 0, "No KEDA ScaledObjects found"
-        logger.info(f"Found {len(scaled_objects)} KEDA ScaledObjects")
+    assert len(scaled_objects) > 0, "No KEDA ScaledObjects found"
+    logger.info(f"Found {len(scaled_objects)} KEDA ScaledObjects")
 
-        for so_name, ready_status in scaled_objects:
+    for so_name, ready_status in scaled_objects:
+        if transport == "pubsub":
+            # KEDA gcp-pubsub scaler cannot query the emulator for metrics,
+            # so ScaledObjects exist but show TriggerError (Ready=False).
+            logger.info(f"  ScaledObject {so_name}: Ready={ready_status} (emulator mode, TriggerError expected)")
+        else:
             assert ready_status == "True", f"ScaledObject {so_name} not ready (status={ready_status})"
             logger.info(f"  ScaledObject {so_name}: Ready")
 

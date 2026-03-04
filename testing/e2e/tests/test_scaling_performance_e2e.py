@@ -230,7 +230,7 @@ def test_processing_throughput(e2e_helper):
 @pytest.mark.xdist_group(name="chaos")
 @pytest.mark.skipif(
     os.getenv("ASYA_TRANSPORT") == "pubsub",
-    reason="KEDA ScaledObjects not available with Pub/Sub emulator",
+    reason="KEDA gcp-pubsub scaler cannot query the Pub/Sub emulator for subscription metrics",
 )
 def test_keda_pollingInterval_effectiveness(e2e_helper):
     """

@@ -216,12 +216,8 @@ def test_s3_persistence_with_large_payload(e2e_helper, s3_endpoint, results_buck
     """
     import os
     transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
-    if transport == "sqs":
-        pytest.skip("Large payload test not supported with SQS (256KB limit)")
-    if transport == "pubsub":
-        pytest.skip("Pub/Sub emulator publish timeout on large payloads")
-
-    size_kb = 10240
+    # Each transport has a different message size limit; test near each limit
+    size_kb = {"sqs": 200, "pubsub": 4096, "rabbitmq": 10240}.get(transport, 10240)
     logger.info("Sending large payload...")
     response = e2e_helper.call_mcp_tool(
         tool_name="test_large_payload",

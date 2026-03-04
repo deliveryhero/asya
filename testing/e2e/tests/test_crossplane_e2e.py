@@ -27,12 +27,6 @@ import time
 
 import pytest
 
-if os.getenv("ASYA_TRANSPORT") == "pubsub":
-    pytest.skip(
-        "Crossplane lifecycle tests require provider reconciliation; "
-        "the GCP Pub/Sub provider cannot reconcile with the emulator",
-        allow_module_level=True,
-    )
 from asya_testing.utils.kubectl import (
     kubectl_apply,
     kubectl_apply_raw,
@@ -387,6 +381,8 @@ spec:
             assert triggers[0]["metadata"]["value"] == "5", "Queue length trigger should be updated"
         elif transport == "sqs":
             assert triggers[0]["metadata"]["queueLength"] == "5", "Queue length trigger should be updated"
+        elif transport == "pubsub":
+            assert triggers[0]["metadata"]["value"] == "5", "Queue length trigger should be updated"
 
         logger.info("[+] AsyncActor updates propagated successfully")
 
@@ -1220,6 +1216,12 @@ def test_keda_scaledobject_detailed_configuration(e2e_helper):
             assert trigger["metadata"]["value"] == "15", (
                 f"Queue length value should be '15', got {trigger['metadata'].get('value')}"
             )
+        elif transport == "pubsub":
+            assert trigger["type"] == "gcp-pubsub", f"Trigger type should be gcp-pubsub, got {trigger['type']}"
+            assert trigger["metadata"]["value"] == "15", (
+                f"Queue length value should be '15', got {trigger['metadata'].get('value')}"
+            )
+            assert "subscriptionName" in trigger["metadata"], "Pub/Sub trigger should have subscriptionName"
 
         logger.info(f"ScaledObject trigger config: {json.dumps(trigger, indent=2)}")
         logger.info("[+] KEDA ScaledObject configuration verified")

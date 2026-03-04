@@ -563,23 +563,27 @@ def test_unicode_payload_end_to_end(e2e_helper):
 @pytest.mark.fast
 def test_large_payload_end_to_end(e2e_helper):
     """
-    E2E: Test large payload (10MB) through full pipeline.
+    E2E: Test large payload through full pipeline.
 
-    Scenario: Send 10MB payload through gateway → queue → actor
+    Scenario: Send payload near transport size limit through gateway → queue → actor
     Expected: Processes successfully
 
-    Note: SQS has a 256KB message size limit, so this test is skipped for SQS transport.
-    Use RabbitMQ for large payload testing.
+    Each transport has its own message size limit, so "large" is
+    transport-specific.  The handler returns {**payload, "data": "X"*N},
+    and the response is also published via the transport (sidecar → x-sink),
+    so both directions must fit within the limit.
+
+    Transport   | Limit   | Test size | Headroom
+    ------------|---------|-----------|-------------------------------
+    SQS         | 256 KB  | 200 KB    | ~56 KB for envelope/JSON
+    Pub/Sub     | 10 MB   | 4 MB      | ~6 MB (response goes via Pub/Sub too)
+    RabbitMQ    | none    | 10 MB     | effectively unlimited
     """
     import os
 
     transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
-    if transport == "sqs":
-        pytest.skip("Large payload test not supported with SQS (256KB limit)")
-    if transport == "pubsub":
-        pytest.skip("Pub/Sub emulator publish timeout on large payloads")
-
-    size_kb = 10240
+    # Each transport has a different message size limit; test near each limit
+    size_kb = {"sqs": 200, "pubsub": 4096, "rabbitmq": 10240}.get(transport, 10240)
     response = e2e_helper.call_mcp_tool(
         tool_name="test_large_payload",
         arguments={"size_kb": size_kb},

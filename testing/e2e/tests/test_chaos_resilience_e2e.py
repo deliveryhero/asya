@@ -223,8 +223,8 @@ def test_resource_exhaustion_handling(e2e_helper):
     """
     import os
     transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
-    if transport == "sqs":
-        pytest.skip("Large payload test not supported with SQS (256KB limit)")
+    # Each transport has a different message size limit; stress test near each limit
+    size_kb = {"sqs": 200, "pubsub": 4096, "rabbitmq": 5120}.get(transport, 5120)
 
     logger.info("Sending resource-intensive workload...")
     task_ids = []
@@ -233,7 +233,7 @@ def test_resource_exhaustion_handling(e2e_helper):
         try:
             response = e2e_helper.call_mcp_tool(
                 tool_name="test_large_payload",
-                arguments={"size_kb": 5120},
+                arguments={"size_kb": size_kb},
             )
             task_ids.append(response["result"]["task_id"])
         except Exception as e:

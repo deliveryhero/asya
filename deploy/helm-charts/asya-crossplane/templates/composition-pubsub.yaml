@@ -84,6 +84,12 @@ spec:
                 name: {{`{{ $providerConfigRef }}`}}
               deletionPolicy: Delete
               {{- if .Values.gcpProviderConfig.emulatorHost }}
+              # TODO: Subscription updates are not verified in E2E tests when using the Pub/Sub emulator.
+              # The Upbound GCP provider (Terraform-based) sends camelCase field masks (e.g. ackDeadlineSeconds),
+              # but the emulator only accepts snake_case (ack_deadline_seconds).
+              # This is a known parity gap in the emulator's UpdateSubscription RPC.
+              # Proof: https://github.com/googleapis/nodejs-pubsub/issues/1029
+              # Official Limitations: https://cloud.google.com/pubsub/docs/emulator#known_limitations
               managementPolicies: ["Create", "Observe", "Delete"]
               {{- end }}
 
