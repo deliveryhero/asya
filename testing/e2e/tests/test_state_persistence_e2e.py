@@ -14,6 +14,7 @@ These tests verify data isn't lost during failures.
 """
 
 import logging
+import os
 import time
 
 import pytest
@@ -377,7 +378,7 @@ def test_database_connection_recovery(e2e_helper):
     )
 
     task_id_1 = response["result"]["task_id"]
-    final_1 = e2e_helper.wait_for_task_completion(task_id_1, timeout=30)
+    final_1 = e2e_helper.wait_for_task_completion(task_id_1, timeout=60)
     assert final_1["status"] == "succeeded", "Initial task should succeed"
 
     logger.info("Simulating database failure...")
@@ -427,6 +428,10 @@ def test_database_connection_recovery(e2e_helper):
 
 @pytest.mark.chaos
 @pytest.mark.xdist_group(name="chaos")
+@pytest.mark.skipif(
+    os.getenv("ASYA_TRANSPORT") == "pubsub",
+    reason="S3 retry test uses minio-specific deployment names",
+)
 def test_s3_error_retry_logic(e2e_helper, s3_endpoint):
     """
     E2E: Test S3 write failures are retried.

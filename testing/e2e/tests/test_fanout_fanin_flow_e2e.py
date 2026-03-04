@@ -28,12 +28,19 @@ Fan-out protocol (N topics => N+1 messages):
 
 import json
 import logging
+import os
 import time
 import uuid
 
 import boto3
 import pytest
 
+if os.getenv("ASYA_TRANSPORT") == "pubsub":
+    pytest.skip(
+        "Fan-out/fan-in tests use SQS and S3 clients directly (boto3); "
+        "not applicable to Pub/Sub transport",
+        allow_module_level=True,
+    )
 
 logger = logging.getLogger(__name__)
 
