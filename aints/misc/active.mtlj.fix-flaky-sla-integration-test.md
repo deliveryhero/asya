@@ -2,7 +2,8 @@
 title: "Fix flaky SLA integration test (sidecar-runtime rabbitmq)"
 priority: 2
 assignee: Claude
-tags: []
+tags:
+  - pr:263
 ---
 
 ## Problem
