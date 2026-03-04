@@ -1,7 +1,10 @@
 ---
 title: Bearer/JWT authentication
 priority: 2 # medium
+tags:
+  - pr:262
 ---
+
 
 
 ## Objective
