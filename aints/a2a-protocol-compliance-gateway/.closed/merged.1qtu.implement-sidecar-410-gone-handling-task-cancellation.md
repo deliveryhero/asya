@@ -9,7 +9,7 @@ Implement the sidecar-side handling of `410 Gone` responses from the gateway's
 progress reporter. When the gateway returns `410 Gone` on `POST /mesh/{id}/progress`,
 the sidecar must stop processing and persist the envelope to x-sink.
 
-## Design (from rfc-a2a-native.md Section 7.5)
+## Design (from rfc.md Section 7.5)
 
 ### Progress reporter response codes
 

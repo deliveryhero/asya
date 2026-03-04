@@ -1,6 +1,6 @@
-# Implementation Phases: A2A Protocol Compliance (Epic 1c0d)
+# Implementation Phases: A2A Protocol Compliance
 
-**Source of truth**: `rfc-a2a-native.md` (supersedes all previous design)
+**Source of truth**: `rfc.md` (supersedes all previous design)
 **Library**: `a2a-go` v0.3.7 (stable)
 
 ```
@@ -33,21 +33,21 @@ SendStreamingMessage, GetTask, SubscribeToTask, A2A-native FLY streaming.
 
 | # | Ref | Task | Deps |
 |---|-----|------|------|
-| 1 | `1c0d/1qtbxr` | DB migration: tools table + new status values | None |
-| 2 | `1c0d/1qcmsr` | Import a2a-go v0.3.7 + state mapping | None |
-| 3 | `1c0d/1qn6p7` | Tool registry + /mesh/expose API | T1 |
-| 4 | `1c0d/1qzr7p` | Message-to-envelope translator | T2 |
-| 5 | `1c0d/1qv3q2` | A2AStoreAdapter wrapping PgStore | T2 |
-| 6 | `1c0d/1qx70r` | AsyaExecutor + skill resolution | T3, T4, T5 |
-| 7 | `1c0d/1qdvt8` | Wire a2a-go handler + Agent Card + endpoint layout | T3, T6 |
-| 8 | `1c0d/1q8x33` | Rename /partial → /fly + A2A-native FLY format | T7 |
+| 1 | `1qtbxr` | DB migration: tools table + new status values | None |
+| 2 | `1qcmsr` | Import a2a-go v0.3.7 + state mapping | None |
+| 3 | `1qn6p7` | Tool registry + /mesh/expose API | T1 |
+| 4 | `1qzr7p` | Message-to-envelope translator | T2 |
+| 5 | `1qv3q2` | A2AStoreAdapter wrapping PgStore | T2 |
+| 6 | `1qx70r` | AsyaExecutor + skill resolution | T3, T4, T5 |
+| 7 | `1qdvt8` | Wire a2a-go handler + Agent Card + endpoint layout | T3, T6 |
+| 8 | `1q8x33` | Rename /partial → /fly + A2A-native FLY format | T7 |
 
 ## Phase 2: Production Readiness
 
 | # | Task | Description |
 |---|------|-------------|
 | 9 | ListTasks with cursor pagination | Internal TaskStore.List(), context_id/status filtering |
-| 10 | CancelTask + sidecar 410 Gone (1c0d/1qtug1) | Cancel endpoint, sidecar handles 410 on progress |
+| 10 | CancelTask + sidecar 410 Gone (1qtug1) | Cancel endpoint, sidecar handles 410 on progress |
 | 11 | Blocking mode | `configuration.blocking: true`, hold connection until terminal |
 | 12 | API Key authentication | `ASYA_A2A_API_KEY` middleware on `{base}/a2a/*` |
 | 13 | Runtime FLY helpers | `fly_text()`, `fly_status()` in `asya_runtime.py` |

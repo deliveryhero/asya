@@ -304,7 +304,7 @@ and rename the gateway's sidecar-facing routes from `/tasks/` to `/mesh/`.
 | Python runtime symlink | Symlink follows source; no manual sync needed |
 | `StatusError.Message` accidentally renamed | Excluded explicitly — it's a string field, not the type |
 
-## Verified Against A2A RFC (1c0d/rfc-a2a-native.md)
+## Verified Against A2A RFC (1c0d/rfc.md)
 
 This plan was cross-checked against the A2A native protocol RFC. Findings:
 
