@@ -43,6 +43,14 @@ git aint doctor --fix                  # auto-fix safe issues
 git aint doctor --only sync            # check .aint/ sync status
 ```
 
+### Other Commands
+
+| Command | Purpose |
+|---------|---------|
+| `summarize` | Generate structured project status (`--output txt\|md`, `--brief`) |
+| `summary` | Alias for `summarize` |
+| `status` | Alias for `summary` |
+
 All commands support `--output json`. Run `git aint <cmd> --help` for full options.
 
 ## Aint References
