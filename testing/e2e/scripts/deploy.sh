@@ -399,7 +399,15 @@ aws_secret_access_key = test
     # sqs-secret in asya-system is created by the SQS Helm chart (testing/e2e/charts/sqs/)
     # Do NOT create it here — Helm requires ownership metadata on managed resources
   elif [[ "$PROFILE" == "pubsub-gcs" ]]; then
-    GCP_DUMMY_CREDS='{"type":"service_account","project_id":"test-project","private_key_id":"key-id","private_key":"-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQChPeVW2k2Fnenz\niuM7fYlIjiIUwSrJo7oomXcJ+vHUsWDBG0uz2jqyMQg8qJC5uWduC7v3au+cz04u\neLPEoMDnT4PNj5/jP+VCVokg8W9sj+LjjbzsmnMnz4z5NZchpNqdFaiiaKpmkMZt\nBhST96WddZYLa91C0NMJ4sof8lqZJX8K2TjZoVuZ2aW4TmQhAXW+n7UcsET1l3BM\n+e6sZkmup+7Rpe0spSISA7UKBNXxiC0E7FkMaZIpUlSNjtLj4zoC2vGrCA+vOXno\nnDCqBbEc+vGlzfQ8J8UP3Il5QcnrAQXndBNoplOLWE8OC5SGTXgkFeOP0kLshQKT\n/BYndvcPAgMBAAECggEAIV6I5veY0Y1DzJYyvq4VSkG4BemQLFjI/vv7qcIYaDcp\nWe2HNjp0qUoCdWNBSF55bEnbZbHo0uAIQw/RzGCka3qGQXV21nXzwU3dZUbyE1qX\nzxYXQjQYnuWSPET9+QWABMBlvO7CTSWrGwcGHTVEPhkGq2hwSxKiiko4IHJsk4Ld\nnF7e0Pt7oRb8/9oSMQ6pi+cfEwmIRDw0KKJsLaXOtMHVY9C6v1NkWblTX7XamLSP\nPmyFfxzPN7O3fJ4GmuWe6PenzWClPr2Gm6FjOIR8xoxoN78qzbsq4IXw/G1ZfGS0\nMtWMDhzCCX+jGYoW5twhFSdRHSy7aM4y5YfhAMCXQQKBgQDeq7rZcKuo3hUmeGjJ\n7w93gORFv76GA1+4/OoooiLK9AfifuJpEscjLvc6+BF5iiwXsjxfeyXX8vhBH/lb\n2lDl7m0uvLORvpZOKQOnlefDEluPlE9YaigZkpE+EbLVSYDPbpcBbAbcZlUOtVyA\nv1WFTA+m+1c/KZk0gw2X1KXDLwKBgQC5YFYgJOkAsd2PrHuU0DbDBR0hvx64D6wl\n1AYYJP2h5rAWyV8Izy04OgLsnv+RNIIA/ryCYSWPIVOUUX0EkA0E0CXLvrNFFOGo\nt09Slq4SX/1/ZaGq9bq6MuSMiOdsfb+Ls2/maUBaIQlHr3eO0tJGgsciA4Y79e2t\n3uYHBbiSIQKBgB8U4ZQQgiWkOleQXzAwynvn5fVGepXCSs5Ln3Pkje6+eYtIItp/\n4IQsvh3hGq9YdiconfzF99ZY+AY/LFOB+eDekyb++CHT9K8cUoJGDn/QRC+aiCjT\nSJ2pM9TyK4BSLkTGLxXnul1xe1X+QtdF3e4pW9X3J4qNh/EoifEzoZ/JAoGAPstb\nYVgfdZTKsLiExEwjwLwiuiO7jC4C6m2AAv3EzOsQCyf7gUhs0PcVtoHFoLJgt2WT\nBbdSucFYRo20A6+oOVEo/HOE1onURwqRXDCelqrdfCI5OWgz8I78zH4zppSSJgiK\nh0pv+hfmxNmzbjYL9MaoHeWDuxv7f0JaOVa+xwECgYA+cqVsrvvjsJibM/kfS14C\nm+l5W3CTHwThH95/QRrQ9sq0tMNGBZS5iDyZHwZ0wAYNAPhJlGALJJW7aObp8lA6\nXm+jcTPWM/FKLUelVqSJR/FhuMRZlmidlGc3Qpa2sZ7f/ovUS+yAnV7QyJr9+tuT\njkZ39uMQUM0AwY367zF4pQ==\n-----END PRIVATE KEY-----\n","client_email":"test@test-project.iam.gserviceaccount.com","client_id":"123","auth_uri":"https://accounts.google.com/o/oauth2/auth","token_uri":"http://mock-oauth.asya-system.svc.cluster.local:8090/token"}'
+    # Use a clearly labeled placeholder instead of a real RSA block
+    GCP_DUMMY_CREDS='{
+        "type": "service_account",
+        "project_id": "test-project",
+        "private_key_id": "placeholder-id",
+        "private_key": "-----BEGIN PRIVATE KEY-----\nPLACEHOLDER_FOR_TESTING_PURPOSES_ONLY\n-----END PRIVATE KEY-----\n",
+        "client_email": "test@test-project.iam.gserviceaccount.com",
+        "token_uri": "http://mock-oauth.asya-system.svc.cluster.local:8090/token"
+    }'
 
     kubectl create secret generic gcp-creds \
       -n crossplane-system \
