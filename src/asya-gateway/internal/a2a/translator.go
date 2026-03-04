@@ -32,9 +32,8 @@ func MessageToPayload(msg *a2alib.Message, taskID a2alib.TaskID, contextID strin
 			dataParts = append(dataParts, p.Data)
 		case a2alib.DataPart:
 			dataParts = append(dataParts, p.Data)
-		case *a2alib.FilePart:
-			hasFiles = true
-		case a2alib.FilePart:
+		case *a2alib.FilePart, a2alib.FilePart:
+			_ = p
 			hasFiles = true
 		}
 	}

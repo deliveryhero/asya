@@ -27,7 +27,7 @@ Usage: git aint create [OPTIONS] --title <TITLE>
 
 ```bash
 git aint create --title "Fix auth timeout"
-git aint create --title "Add linting" --in ci-setup --priority1
+git aint create --title "Add linting" --in ci-setup --priority 1
 git aint create --title "Maybe later" --status backlog
 ```
 

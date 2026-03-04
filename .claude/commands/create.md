@@ -37,7 +37,7 @@ git aint create --title "Fix authentication timeout"
 git aint create --title "Add linting step" --in ci-setup
 
 # Create with priority and deps
-git aint create --title "Add tests" --in ci-setup --priority1 --depends-on c9x8
+git aint create --title "Add tests" --in ci-setup --priority 1 --depends-on c9x8
 
 # Create as backlog
 git aint create --title "Maybe later" --status backlog

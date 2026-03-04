@@ -8,7 +8,7 @@ Common usage patterns for AI agents working with git-aint.
 
 ```bash
 # Use --output json to reliably parse the created aint's reference
-git aint create --title "Implement feature" --in ci-setup --priority2 --output json
+git aint create --title "Implement feature" --in ci-setup --priority 2 --output json
 ```
 
 The JSON output includes the `id` field (e.g. `c9x8`) which you need
@@ -19,7 +19,7 @@ for subsequent operations.
 ```bash
 git aint create --title "Add OAuth support" \
   --in ci-setup \
-  --priority1 \
+  --priority 1 \
   --depends-on c9x8 \
   --description "Implement OAuth 2.0 flow with Google and GitHub providers" \
   --output json
