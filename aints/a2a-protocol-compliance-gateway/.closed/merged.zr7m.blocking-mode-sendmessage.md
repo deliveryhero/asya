@@ -3,6 +3,7 @@ title: Blocking mode for SendMessage
 priority: 2 # medium
 ---
 
+
 ## Objective
 
 Implement blocking mode: when `configuration.blocking: true` in SendMessage request, the gateway holds the HTTP connection until the task reaches a terminal or interrupted state.
