@@ -79,7 +79,7 @@ Handler-to-actor name mapping (via ASYA_HANDLER_<ACTOR_NAME_UPPER> env vars):
   ASYA_HANDLER_RESEARCH_FLOW_SUMMARIZER -> actor "research-flow-summarizer"
 
 resolve("fanin_research_flow_line_2") -> "research-flow-aggregator"
-  (fan-in destination: crew s3_split_key aggregator)
+  (fan-in destination: crew split_key aggregator)
 resolve("summarizer") -> "research-flow-summarizer"
   (post-aggregation handler from flow.py)
 */}}
