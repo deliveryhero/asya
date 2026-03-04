@@ -872,11 +872,11 @@ func (s *PgStore) List(params ListParams) ([]*types.Task, int, error) {
 	countQuery, dataQuery, args := buildListQueries(params)
 
 	var totalCount int
-	if err := s.pool.QueryRow(s.ctx, countQuery, args.countArgs...).Scan(&totalCount); err != nil {
+	if err := s.pool.QueryRow(s.ctx, countQuery, args.countArgs...).Scan(&totalCount); err != nil { // #nosec G201 -- query uses positional placeholders only
 		return nil, 0, fmt.Errorf("failed to count tasks: %w", err)
 	}
 
-	rows, err := s.pool.Query(s.ctx, dataQuery, args.dataArgs...)
+	rows, err := s.pool.Query(s.ctx, dataQuery, args.dataArgs...) // #nosec G201 -- query uses positional placeholders only
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to list tasks: %w", err)
 	}
