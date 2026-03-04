@@ -114,8 +114,7 @@ def flow_helper(transport_timeouts, s3_endpoint, results_bucket, test_config):
 
             raise TimeoutError(
                 f"Fan-out/fan-in result not found after {timeout}s for task_id={task_id}. "
-                f"Check aggregator logs (asya-e2e/research-flow-aggregator) and "
-                f"ensure ASYA_HANDLER_MODE=message is supported by asya_runtime."
+                f"Check aggregator logs (asya-e2e/research-flow-aggregator)."
             )
 
         def count_partial_results_in_sink(self, task_id: str, timeout: int = 60) -> int:
