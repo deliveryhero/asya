@@ -2,7 +2,10 @@
 title: "A2A Phase 2: Tool Registry"
 priority: 2 # medium
 assignee: Artem Yushkovskiy
+tags:
+  - pr:262
 ---
+
 
 
 
