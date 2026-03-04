@@ -26,7 +26,6 @@ import os
 import time
 
 import pytest
-from asya_testing.utils.sqs import purge_queue
 
 
 logger = logging.getLogger(__name__)
@@ -101,6 +100,8 @@ def test_slow_boundary_completes_before_timeout_e2e(e2e_helper):
     """
     transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
     if transport == "sqs":
+        from asya_testing.utils.sqs import purge_queue
+
         namespace = os.getenv("NAMESPACE", "asya-e2e")
         purge_queue(f"asya-{namespace}-test-slow-boundary")
 
@@ -126,7 +127,6 @@ def test_slow_boundary_completes_before_timeout_e2e(e2e_helper):
 
 
 @pytest.mark.fast
-@pytest.mark.skip(reason="Crossplane XRD does not support timeout field yet (asya-bija)")
 def test_timeout_crash_and_pod_restart_e2e(e2e_helper, namespace, transport_timeouts):
     """
     E2E: Test timeout causes pod crash and KEDA rescales for retry.
@@ -150,6 +150,8 @@ def test_timeout_crash_and_pod_restart_e2e(e2e_helper, namespace, transport_time
     try:
         transport = os.environ.get("ASYA_TRANSPORT", "rabbitmq")
         if transport == "sqs":
+            from asya_testing.utils.sqs import purge_queue
+
             logger.info("Purging test-timeout queue to remove stuck messages...")
             purge_queue(f"asya-{namespace}-test-timeout")
             time.sleep(2)

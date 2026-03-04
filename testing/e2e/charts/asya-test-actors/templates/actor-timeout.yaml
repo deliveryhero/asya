@@ -12,9 +12,8 @@ spec:
   overlays:
   - asya-test-actor
 
-  timeout:
-    processing: 5
-    gracefulShutdown: 10
+  resiliency:
+    actorTimeout: "5s"
 
   scaling:
     enabled: true
