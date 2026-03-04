@@ -44,15 +44,15 @@ SendStreamingMessage, GetTask, SubscribeToTask, A2A-native FLY streaming.
 
 ## Phase 2: Production Readiness
 
-**Status**: Not started
+**Status**: Complete (PR #259, merged)
 
-| # | Ref | Task | Deps |
-|---|-----|------|------|
-| 9 | `932x` | ListTasks with cursor pagination | None |
-| 10 | `m19w` | CancelTask endpoint | None |
-| 11 | `zr7m` | Blocking mode for SendMessage | None |
-| 12 | `tuw5` | API Key authentication middleware | None |
-| 13 | `8cnd` | Runtime FLY helpers (fly_text, fly_status) | None |
+| # | Ref | Task | Deps | Status |
+|---|-----|------|------|--------|
+| 9 | `932x` | ListTasks with cursor pagination | None | Merged |
+| 10 | `m19w` | CancelTask endpoint | None | Merged |
+| 11 | `zr7m` | Blocking mode for SendMessage | None | Merged |
+| 12 | `tuw5` | API Key authentication middleware | None | Merged |
+| 13 | `8cnd` | Runtime FLY helpers (fly_text, fly_status) | None | Merged |
 
 ## Phase 3: Advanced Features
 
