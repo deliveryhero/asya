@@ -11,4 +11,32 @@ resources:
     memory: 256Mi
   limits:
     cpu: 500m
-    memory: 512Mi
+    memory: 1Gi
+
+# Actors whose topics and subscriptions are pre-created by the init job.
+# The naming convention is: asya-<actorNamespace>-<actor>
+actorNamespace: asya-e2e
+actors:
+  - test-echo
+  - test-error
+  - test-doubler
+  - test-incrementer
+  - test-slow-boundary
+  - test-timeout
+  - test-fan-out
+  - test-large-payload
+  - test-unicode
+  - test-pipeline
+  - test-empty
+  - test-fanout
+  - test-nested
+  - test-queue-health
+  - x-sink
+  - x-sump
+
+# Mock OAuth token server for Crossplane GCP provider.
+# The Terraform-based provider requires OAuth token exchange even
+# when using a custom endpoint (emulator). This mock returns a
+# dummy Bearer token for any POST request.
+mockOAuth:
+  enabled: true

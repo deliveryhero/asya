@@ -1,0 +1,49 @@
+{{- if and .Values.enabled .Values.actors }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: pubsub-init
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: pubsub-init
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "1"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 3
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+      - name: init
+        image: curlimages/curl:latest
+        command:
+        - sh
+        - -c
+        - |
+          EMULATOR="pubsub-emulator.{{ .Release.Namespace }}.svc.cluster.local:8085"
+          PROJECT={{ .Values.projectId | quote }}
+          NS={{ .Values.actorNamespace | quote }}
+
+          echo "[.] Waiting for Pub/Sub emulator..."
+          for i in $(seq 1 30); do
+            if curl -sf "http://${EMULATOR}/v1/projects/${PROJECT}/topics" > /dev/null 2>&1; then
+              echo "[+] Emulator ready"
+              break
+            fi
+            sleep 1
+          done
+
+          echo "[.] Creating topics and subscriptions..."
+          {{- range .Values.actors }}
+          TOPIC="asya-${NS}-{{ . }}"
+          curl -sf -X PUT "http://${EMULATOR}/v1/projects/${PROJECT}/topics/${TOPIC}" > /dev/null && \
+          curl -sf -X PUT "http://${EMULATOR}/v1/projects/${PROJECT}/subscriptions/${TOPIC}" \
+            -H 'Content-Type: application/json' \
+            -d "{\"topic\":\"projects/${PROJECT}/topics/${TOPIC}\",\"ackDeadlineSeconds\":30}" > /dev/null && \
+          echo "[+] {{ . }}" || echo "[-] {{ . }}"
+          {{- end }}
+
+          echo "[+] Pub/Sub init complete"
+{{- end }}

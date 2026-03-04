@@ -1,0 +1,87 @@
+{{- if .Values.mockOAuth.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mock-oauth-server
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: mock-oauth
+data:
+  server.py: |
+    import http.server
+    import json
+
+    class Handler(http.server.BaseHTTPRequestHandler):
+        def do_POST(self):
+            body = json.dumps({
+                "access_token": "emulator-dummy-token",
+                "token_type": "Bearer",
+                "expires_in": 3600,
+            })
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(body.encode())
+
+        def log_message(self, format, *args):
+            pass
+
+    http.server.HTTPServer(("0.0.0.0", 8090), Handler).serve_forever()
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mock-oauth
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: mock-oauth
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mock-oauth
+  template:
+    metadata:
+      labels:
+        app: mock-oauth
+    spec:
+      containers:
+      - name: mock-oauth
+        image: python:3.13-alpine
+        command: ["python", "/app/server.py"]
+        ports:
+        - containerPort: 8090
+        volumeMounts:
+        - name: server
+          mountPath: /app
+        resources:
+          requests:
+            cpu: 10m
+            memory: 32Mi
+          limits:
+            cpu: 100m
+            memory: 64Mi
+        readinessProbe:
+          tcpSocket:
+            port: 8090
+          initialDelaySeconds: 3
+          periodSeconds: 5
+      volumes:
+      - name: server
+        configMap:
+          name: mock-oauth-server
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mock-oauth
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: mock-oauth
+spec:
+  selector:
+    app: mock-oauth
+  ports:
+  - port: 8090
+    targetPort: 8090
+{{- end }}
