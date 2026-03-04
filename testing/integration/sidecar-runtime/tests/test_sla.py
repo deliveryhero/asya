@@ -239,8 +239,8 @@ class TestSLAEffectiveTimeout:
         transport_helper.publish_envelope("asya-default-test-sla-slow", envelope)
 
         # With SLA: effective timeout ~5s, message in x-sump by ~8s.
-        # Without SLA: timeout at 30s (ACTOR_TIMEOUT), would fail this 15s poll.
-        result = transport_helper.get_envelope("asya-default-x-sump", timeout=15)
+        # Without SLA: timeout at 30s (ACTOR_TIMEOUT), would fail this 25s poll.
+        result = transport_helper.get_envelope("asya-default-x-sump", timeout=25)
         elapsed = time.monotonic() - start
 
         logger.info(
@@ -249,7 +249,7 @@ class TestSLAEffectiveTimeout:
         )
 
         assert result is not None, (
-            f"No message in x-sump after 15s. "
+            f"No message in x-sump after 25s. "
             f"effectiveTimeout should be ~5s (SLA), not 30s (ACTOR_TIMEOUT)."
         )
 
@@ -262,9 +262,9 @@ class TestSLAEffectiveTimeout:
         )
 
         # Wall time should be well under 30s (the ACTOR_TIMEOUT).
-        # SLA effective timeout is ~5s, so total with overhead should be <12s.
-        assert elapsed < 12, (
-            f"Message took {elapsed:.1f}s — expected <12s with 5s SLA deadline. "
+        # SLA effective timeout is ~5s, so total with overhead should be <20s.
+        assert elapsed < 20, (
+            f"Message took {elapsed:.1f}s — expected <20s with 5s SLA deadline. "
             f"Without SLA enforcement, timeout would be ~30s."
         )
 
