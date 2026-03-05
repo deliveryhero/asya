@@ -42,6 +42,7 @@ crew:
     backend: gcs
     config:
       bucket: asya-results
+      errorsBucket: asya-errors
       project: test-project
       emulatorHost: "http://gcs-emulator.asya-system.svc.cluster.local:4443"
     connector:

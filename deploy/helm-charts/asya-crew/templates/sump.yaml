@@ -20,7 +20,7 @@ spec:
   {{- include "asya-crew.pubsub-spec" . | nindent 2 }}
   {{- if .Values.persistence.enabled }}
   stateProxy:
-    {{- include "asya-crew.persistence.stateProxy" . | nindent 4 }}
+    {{- include "asya-crew.persistence.stateProxy" (dict "Values" .Values "bucket" .Values.persistence.config.errorsBucket) | nindent 4 }}
   {{- end }}
 
   {{- with $sump.sidecar }}
