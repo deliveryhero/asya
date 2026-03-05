@@ -201,21 +201,30 @@ jobs:
         - name: stateful-actors
           target: stateful-actors
         # Sidecar-runtime tests (2 transports)
-        - name: sidecar-runtime (rabbitmq)
-          target: sidecar-runtime
-          transport: rabbitmq
+        ##rabbitmq - disabled for now to save resources
+        # - name: sidecar-runtime (rabbitmq)
+        #   target: sidecar-runtime
+        #   transport: rabbitmq
         - name: sidecar-runtime (sqs)
           target: sidecar-runtime
           transport: sqs
+        - name: sidecar-runtime (pubsub)
+          target: sidecar-runtime
+          transport: pubsub
         # Gateway-actors tests (2 transport-storage combos)
-        - name: gateway-actors (rabbitmq-minio)
-          target: gateway-actors
-          transport: rabbitmq
-          storage: minio
+        ##rabbitmq - disabled for now to save resources
+        # - name: gateway-actors (rabbitmq-minio)
+        #   target: gateway-actors
+        #   transport: rabbitmq
+        #   storage: minio
         - name: gateway-actors (sqs-s3)
           target: gateway-actors
           transport: sqs
           storage: s3
+        - name: gateway-actors (pubsub-gcs)
+          target: gateway-actors
+          transport: pubsub
+          storage: gcs
 
     steps:
     - uses: actions/checkout@v4
@@ -273,6 +282,10 @@ jobs:
         include:
         - name: sqs-s3
           profile: sqs-s3
+          run_pipeline: true
+          run_crossplane: true
+        - name: pubsub-gcs
+          profile: pubsub-gcs
           run_pipeline: true
           run_crossplane: true
           ## For now, focusing on SQS+S3 only

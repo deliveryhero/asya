@@ -22,7 +22,13 @@ logger = logging.getLogger(__name__)
 
 @pytest.fixture(scope="function")
 def flow_helper(gateway_helper, transport_timeouts, s3_endpoint, results_bucket, test_config):
-    """Helper for flow testing with result retrieval."""
+    """Helper for flow testing with result retrieval.
+
+    Only supported for SQS transport — uses boto3 SQS APIs for message injection and
+    boto3 S3 APIs for result retrieval.
+    """
+    if not test_config.is_sqs():
+        pytest.skip(f"Flow injection tests require SQS transport, got: {test_config.transport.value}")
 
     class FlowHelper:
         def __init__(self):
@@ -69,9 +75,9 @@ def flow_helper(gateway_helper, transport_timeouts, s3_endpoint, results_bucket,
                     for obj in response["Contents"]:
                         if task_id in obj["Key"]:
                             result_obj = s3.get_object(Bucket=self.results_bucket, Key=obj["Key"])
-                            result = json.loads(result_obj["Body"].read())
+                            envelope = json.loads(result_obj["Body"].read())
                             logger.info(f"Retrieved result for task {task_id} from {obj['Key']}")
-                            return result
+                            return envelope["payload"]
 
                 time.sleep(2)
 
@@ -80,9 +86,6 @@ def flow_helper(gateway_helper, transport_timeouts, s3_endpoint, results_bucket,
     return FlowHelper()
 
 
-@pytest.mark.skip(
-    reason="Flow routing requires VFS-based route modification (not yet functional in E2E)",
-)
 @pytest.mark.flow
 @pytest.mark.timeout(300)
 def test_route_a_x(flow_helper):
@@ -103,9 +106,6 @@ def test_route_a_x(flow_helper):
     logger.info("[+] Route A-X completed successfully")
 
 
-@pytest.mark.skip(
-    reason="Flow routing requires VFS-based route modification (not yet functional in E2E)",
-)
 @pytest.mark.flow
 @pytest.mark.timeout(300)
 def test_route_a_y(flow_helper):
@@ -126,9 +126,6 @@ def test_route_a_y(flow_helper):
     logger.info("[+] Route A-Y completed successfully")
 
 
-@pytest.mark.skip(
-    reason="Flow routing requires VFS-based route modification (not yet functional in E2E)",
-)
 @pytest.mark.flow
 @pytest.mark.timeout(300)
 def test_route_b_x(flow_helper):
@@ -149,9 +146,6 @@ def test_route_b_x(flow_helper):
     logger.info("[+] Route B-X completed successfully")
 
 
-@pytest.mark.skip(
-    reason="Flow routing requires VFS-based route modification (not yet functional in E2E)",
-)
 @pytest.mark.flow
 @pytest.mark.timeout(300)
 def test_route_b_y(flow_helper):
@@ -172,9 +166,6 @@ def test_route_b_y(flow_helper):
     logger.info("[+] Route B-Y completed successfully")
 
 
-@pytest.mark.skip(
-    reason="Flow routing requires VFS-based route modification (not yet functional in E2E)",
-)
 @pytest.mark.flow
 @pytest.mark.timeout(300)
 def test_all_routes_parallel(flow_helper):

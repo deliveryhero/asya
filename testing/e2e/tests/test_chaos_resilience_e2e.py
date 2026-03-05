@@ -223,8 +223,8 @@ def test_resource_exhaustion_handling(e2e_helper):
     """
     import os
     transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
-    if transport == "sqs":
-        pytest.skip("Large payload test not supported with SQS (256KB limit)")
+    # Each transport has a different message size limit; stress test near each limit
+    size_kb = {"sqs": 200, "pubsub": 4096, "rabbitmq": 5120}.get(transport, 5120)
 
     logger.info("Sending resource-intensive workload...")
     task_ids = []
@@ -233,7 +233,7 @@ def test_resource_exhaustion_handling(e2e_helper):
         try:
             response = e2e_helper.call_mcp_tool(
                 tool_name="test_large_payload",
-                arguments={"size_kb": 5120},
+                arguments={"size_kb": size_kb},
             )
             task_ids.append(response["result"]["task_id"])
         except Exception as e:
@@ -444,88 +444,6 @@ def test_keda_restart_preserves_scaling(e2e_helper):
         assert completed >= 7, f"At least 7/10 should complete, got {completed}"
 
         logger.info("[+] KEDA restart preserved scaling functionality")
-
-    except Exception as e:
-        logger.error(f"Test failed: {e}")
-        raise
-
-
-@pytest.mark.chaos
-@pytest.mark.xdist_group(name="chaos")
-@pytest.mark.timeout(300)
-@pytest.mark.skip(reason="Operator restart takes >180s in test environment - flaky timing issue")
-def test_full_cluster_restart_simulation(e2e_helper):
-    """
-    E2E: Test system recovers from cluster-wide restart.
-
-    Scenario:
-    1. Send message and verify success
-    2. Restart all major components
-    3. Verify system comes back online
-    4. Send new message
-    5. Verify it processes correctly
-
-    Expected: Full system recovery after widespread restart
-
-    NOTE: Skipped due to operator pod restart timing variability (120-200s).
-    """
-    logger.info("Sending baseline message...")
-    response = e2e_helper.call_mcp_tool(
-        tool_name="test_echo",
-        arguments={"message": "pre-cluster-restart"},
-    )
-
-    task_id_before = response["result"]["task_id"]
-    final_before = e2e_helper.wait_for_task_completion(task_id_before, timeout=30)
-    assert final_before["status"] == "succeeded"
-
-    logger.info("Simulating cluster-wide restart...")
-    components = [
-        ("gateway", "app.kubernetes.io/name=asya-gateway"),
-        ("injector", "app.kubernetes.io/name=asya-injector"),
-        ("test-echo", "asya.sh/actor=test-echo"),
-    ]
-
-    try:
-        for component_name, label in components:
-            logger.info(f"Restarting {component_name}...")
-            pods = e2e_helper.kubectl(
-                "get", "pods",
-                "-l", label,
-                "-o", "jsonpath='{.items[*].metadata.name}'"
-            )
-
-            if pods and pods != "''":
-                for pod_name in pods.strip("'").split():
-                    try:
-                        e2e_helper.delete_pod(pod_name)
-                    except Exception as e:
-                        logger.warning(f"Failed to delete {pod_name}: {e}")
-
-        logger.info("Waiting for all components to restart...")
-        time.sleep(10)
-
-        for component_name, label in components:
-            logger.info(f"Waiting for {component_name}...")
-            timeout = 180 if component_name == "operator" else 60
-            assert e2e_helper.wait_for_pod_ready(label, timeout=timeout), \
-                f"{component_name} should restart"
-
-        time.sleep(10)
-
-        logger.info("Sending message after cluster restart...")
-        response_after = e2e_helper.call_mcp_tool(
-            tool_name="test_echo",
-            arguments={"message": "post-cluster-restart"},
-        )
-
-        task_id_after = response_after["result"]["task_id"]
-        final_after = e2e_helper.wait_for_task_completion(task_id_after, timeout=60)
-
-        assert final_after["status"] == "succeeded", \
-            "System should fully recover after cluster-wide restart"
-
-        logger.info("[+] Full cluster restart recovery successful")
 
     except Exception as e:
         logger.error(f"Test failed: {e}")

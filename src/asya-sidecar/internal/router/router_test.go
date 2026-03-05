@@ -331,6 +331,16 @@ func TestRouter_ResolveQueueName(t *testing.T) {
 			expected:  "asya-default-image-processor",
 		},
 		{
+			name:          "pubsub - namespace prefixed",
+			transportType: "pubsub",
+			config: &config.Config{
+				TransportType: "pubsub",
+				Namespace:     "default",
+			},
+			actorName: "image-processor",
+			expected:  "asya-default-image-processor",
+		},
+		{
 			name:          "unknown transport - fallback to identity",
 			transportType: "unknown",
 			config: &config.Config{

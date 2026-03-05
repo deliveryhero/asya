@@ -30,9 +30,10 @@ actors:
     resultsBucket: asya-results
     errorsBucket: asya-errors
     project: test-project
-    emulatorHost: "http://fake-gcs.asya-system.svc.cluster.local:4443"
+    emulatorHost: "http://gcs-emulator.asya-system.svc.cluster.local:4443"
 
 crew:
+  gcpProject: test-project
   image:
     tag: latest
     pullPolicy: Never
@@ -41,10 +42,11 @@ crew:
     backend: gcs
     config:
       bucket: asya-results
+      errorsBucket: asya-errors
       project: test-project
-      emulatorHost: "http://fake-gcs.asya-system.svc.cluster.local:4443"
+      emulatorHost: "http://gcs-emulator.asya-system.svc.cluster.local:4443"
     connector:
-      image: ghcr.io/deliveryhero/asya-state-proxy-gcs-buffered-lww:latest
+      image: ghcr.io/deliveryhero/asya-state-proxy-gcs-buffered-lww:dev
   x-sink:
     transport: pubsub
     env:

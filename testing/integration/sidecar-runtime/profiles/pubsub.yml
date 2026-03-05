@@ -30,7 +30,7 @@ services:
       retries: 15
       start_period: 10s
 
-  topic-setup:
+  queue-setup:
     image: curlimages/curl:latest
     logging: *default-logging
     depends_on:
@@ -52,18 +52,19 @@ services:
       timeout: 5s
       retries: 30
       start_period: 5s
-    entrypoint: >
-      /bin/sh -c "
-      while IFS= read -r topic || [ -n \"$$topic\" ]; do
-        [ -z \"$$topic\" ] && continue;
-        case \"$$topic\" in '#'*) continue;; esac;
-        curl -sf -X PUT http://pubsub:8085/v1/projects/test-project/topics/$$topic || true;
-        curl -sf -X PUT http://pubsub:8085/v1/projects/test-project/subscriptions/$$topic \
+    entrypoint:
+    - /bin/sh
+    - -c
+    - |
+      while IFS= read -r topic || [ -n "$$topic" ]; do
+        [ -z "$$topic" ] && continue
+        case "$$topic" in '#'*) continue;; esac
+        curl -sf -X PUT "http://pubsub:8085/v1/projects/test-project/topics/$$topic" || true
+        curl -sf -X PUT "http://pubsub:8085/v1/projects/test-project/subscriptions/$$topic" \
           -H 'Content-Type: application/json' \
-          -d '{\"topic\":\"projects/test-project/topics/'$$topic'\",\"ackDeadlineSeconds\":60}' || true;
-      done < /tmp/pubsub-topics.txt;
-      echo '[+] Pub/Sub topics and subscriptions created successfully';
-      "
+          -d "{\"topic\":\"projects/test-project/topics/$$topic\",\"ackDeadlineSeconds\":60}" || true
+      done < /tmp/pubsub-topics.txt
+      echo '[+] Pub/Sub topics and subscriptions created successfully'
 
   tester:
     extends:
@@ -73,7 +74,7 @@ services:
     environment:
       ASYA_TRANSPORT: pubsub
     depends_on:
-      topic-setup:
+      queue-setup:
         condition: service_completed_successfully
       storage-setup:
         condition: service_completed_successfully

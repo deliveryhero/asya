@@ -32,6 +32,13 @@ spec:
     - name: AWS_ENDPOINT_URL
       value: "http://localstack-sqs.asya-system.svc.cluster.local:4566"
     {{- end }}
+    {{- if eq .Values.transport "pubsub" }}
+    env:
+    - name: PUBSUB_EMULATOR_HOST
+      value: "pubsub-emulator.asya-system.svc.cluster.local:8085"
+    - name: PUBSUB_PROJECT_ID
+      value: {{ .Values.pubsubProjectId | default "test-project" | quote }}
+    {{- end }}
     command:
       - /bin/sh
       - -c
@@ -166,10 +173,69 @@ spec:
         kubectl get asyncactor -n {{ .Release.Namespace }} "${TEST_ACTOR}" -o yaml
         exit 1
 
+        {{- else if eq .Values.transport "pubsub" }}
+        # Pub/Sub subscription validation via emulator REST API
+        echo "[.] Validating Pub/Sub subscription..."
+
+        PROJECT_ID="${PUBSUB_PROJECT_ID}"
+        SUBSCRIPTION_NAME="asya-{{ .Values.namespace }}-$TEST_ACTOR"
+        EMULATOR="${PUBSUB_EMULATOR_HOST}"
+
+        echo "Project: ${PROJECT_ID}"
+        echo "Subscription: ${SUBSCRIPTION_NAME}"
+        echo "Emulator: ${EMULATOR}"
+        echo ""
+
+        # Wait for subscription to be created (max 300 seconds)
+        MAX_ATTEMPTS=300
+        ATTEMPT=0
+
+        while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+          ATTEMPT=$((ATTEMPT + 1))
+
+          # Check subscription via emulator REST API (python3 available in testing image)
+          HTTP_CODE=$(python3 -c "
+        import urllib.request, urllib.error
+        try:
+            urllib.request.urlopen('http://${EMULATOR}/v1/projects/${PROJECT_ID}/subscriptions/${SUBSCRIPTION_NAME}')
+            print(200)
+        except urllib.error.HTTPError as e:
+            print(e.code)
+        except Exception:
+            print(0)
+          ")
+
+          if [ "$HTTP_CODE" = "200" ]; then
+            echo "[+] Subscription '${SUBSCRIPTION_NAME}' exists in Pub/Sub emulator"
+            echo ""
+            echo "[+] Pub/Sub subscription validation passed!"
+            exit 0
+          fi
+
+          echo "[.] Attempt ${ATTEMPT}/${MAX_ATTEMPTS}: Subscription not found yet (HTTP ${HTTP_CODE}), waiting..."
+          sleep 1
+        done
+
+        echo "[-] FAILED: Subscription '${SUBSCRIPTION_NAME}' does not exist in Pub/Sub emulator after ${MAX_ATTEMPTS} seconds (5 minutes)"
+        echo ""
+        echo "Possible causes:"
+        echo "  1. Crossplane has not created the subscription yet (check operator logs)"
+        echo "  2. GCP provider is not configured correctly"
+        echo "  3. Pub/Sub emulator is not accessible"
+        echo "  4. Subscription creation failed in Crossplane provider"
+        echo ""
+        echo "Debug steps:"
+        echo "  kubectl logs -n crossplane-system -l pkg.crossplane.io/revision"
+        echo "  wget -q -O - http://${EMULATOR}/v1/projects/${PROJECT_ID}/subscriptions"
+        echo ""
+        echo "AsyncActor status:"
+        kubectl get asyncactor -n {{ .Release.Namespace }} "${TEST_ACTOR}" -o yaml 2>/dev/null || echo "(kubectl not available in busybox)"
+        exit 1
+
         {{- else }}
         # Unknown transport
         echo "[-] FAILED: Unknown transport '{{ .Values.transport }}'"
         echo ""
-        echo "Supported transports: rabbitmq, sqs"
+        echo "Supported transports: rabbitmq, sqs, pubsub"
         exit 1
         {{- end }}

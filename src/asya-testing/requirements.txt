@@ -15,3 +15,4 @@ redis>=5.0.0
 requests>=2.31.0
 sseclient-py>=1.8.0
 google-cloud-pubsub>=2.23.0
+google-cloud-storage>=2.14.0

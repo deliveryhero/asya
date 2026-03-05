@@ -23,3 +23,12 @@ helm.sh/chart: {{ include "asya-test-actors.chart" . }}
 {{ toYaml . }}
 {{- end }}
 {{- end }}
+
+{{/*
+Pub/Sub spec fields (gcpProject). Include in AsyncActor spec when transport is pubsub.
+*/}}
+{{- define "asya-test-actors.pubsub-spec" -}}
+{{- if and (eq .Values.transport "pubsub") .Values.gcpProject }}
+gcpProject: {{ .Values.gcpProject }}
+{{- end }}
+{{- end }}

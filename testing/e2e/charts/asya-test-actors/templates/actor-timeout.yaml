@@ -8,12 +8,12 @@ metadata:
 spec:
   actor: test-timeout
   transport: {{ .Values.transport }}
+  {{- include "asya-test-actors.pubsub-spec" . | nindent 2 }}
   overlays:
   - asya-test-actor
 
-  timeout:
-    processing: 5
-    gracefulShutdown: 10
+  resiliency:
+    actorTimeout: "5s"
 
   scaling:
     enabled: true

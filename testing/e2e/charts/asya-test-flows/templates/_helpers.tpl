@@ -23,6 +23,15 @@ asya.sh/test-type: flow
 {{- end }}
 
 {{/*
+Pub/Sub spec fields (gcpProject). Include in AsyncActor spec when transport is pubsub.
+*/}}
+{{- define "asya-test-flows.pubsub-spec" -}}
+{{- if and (eq .Values.transport "pubsub") .Values.gcpProject }}
+gcpProject: {{ .Values.gcpProject }}
+{{- end }}
+{{- end }}
+
+{{/*
 Flow handler resolution environment variables for nested-if flow.
 These environment variables allow routers to resolve handler names to actor names.
 */}}
@@ -70,7 +79,7 @@ Handler-to-actor name mapping (via ASYA_HANDLER_<ACTOR_NAME_UPPER> env vars):
   ASYA_HANDLER_RESEARCH_FLOW_SUMMARIZER -> actor "research-flow-summarizer"
 
 resolve("fanin_research_flow_line_2") -> "research-flow-aggregator"
-  (fan-in destination: crew s3_split_key aggregator)
+  (fan-in destination: crew split_key aggregator)
 resolve("summarizer") -> "research-flow-summarizer"
   (post-aggregation handler from flow.py)
 */}}

@@ -8,3 +8,13 @@ def resilient_pipeline(p: dict) -> dict:
         p["error_type"] = "unknown"
         p = handle_unknown_error(p)
     return p
+
+
+def risky_operation(p):
+    return p
+
+def handle_known_error(p):
+    return p
+
+def handle_unknown_error(p):
+    return p

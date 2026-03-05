@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Unit tests for the S3 split-key fan-in aggregator.
+Unit tests for the split-key fan-in aggregator.
 
 Tests the aggregator generator handler that collects N+1 fan-in slices and emits
 a merged payload once all slices have arrived. Uses tmp_path for filesystem
@@ -72,7 +72,7 @@ def call_aggregator(msg: dict, base_dir: str) -> tuple[dict | None, list[tuple]]
     Returns (emitted_payload, abi_commands) where abi_commands is a list of
     ABI tuples yielded by the generator (e.g., GET, SET, DEL verbs).
     """
-    from asya_crew.fanin.s3_split_key import aggregator
+    from asya_crew.fanin.split_key import aggregator
 
     fan_in_header = msg["headers"]["x-asya-fan-in"]
     route_next = msg.get("route", {}).get("next", [])

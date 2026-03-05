@@ -210,6 +210,15 @@ Resolve image pull policy for DLQ worker
 {{- end }}
 
 {{/*
+Pub/Sub spec fields (gcpProject). Include in AsyncActor spec when gcpProject is set.
+*/}}
+{{- define "asya-crew.pubsub-spec" -}}
+{{- if .Values.gcpProject }}
+gcpProject: {{ .Values.gcpProject }}
+{{- end }}
+{{- end }}
+
+{{/*
 Persistence overlay name
 */}}
 {{- define "asya-crew.persistence.overlayName" -}}
@@ -225,13 +234,17 @@ helm.sh/chart: {{ include "asya-crew.chart" . }}
 
 {{/*
 Persistence stateProxy spec (inline on AsyncActor, bypasses EnvironmentConfig overlay)
+Call with bucket name override via dict: include "asya-crew.persistence.stateProxy" (dict "Values" .Values "bucket" "my-bucket")
+If "bucket" key is absent, falls back to .Values.persistence.config.bucket.
 */}}
 {{- define "asya-crew.persistence.stateProxy" -}}
-{{- $connectorImage := dict "val" .Values.persistence.connector.image }}
+{{- $values := .Values }}
+{{- $bucket := default $values.persistence.config.bucket .bucket }}
+{{- $connectorImage := dict "val" $values.persistence.connector.image }}
 {{- if not $connectorImage.val }}
-  {{- if eq .Values.persistence.backend "s3" }}
+  {{- if eq $values.persistence.backend "s3" }}
     {{- $_ := set $connectorImage "val" "ghcr.io/deliveryhero/asya-state-proxy-s3-buffered-lww:v1.0.0" }}
-  {{- else if eq .Values.persistence.backend "gcs" }}
+  {{- else if eq $values.persistence.backend "gcs" }}
     {{- $_ := set $connectorImage "val" "ghcr.io/deliveryhero/asya-state-proxy-gcs-buffered-lww:v1.0.0" }}
   {{- end }}
 {{- end }}
@@ -242,30 +255,30 @@ Persistence stateProxy spec (inline on AsyncActor, bypasses EnvironmentConfig ov
     image: {{ $connectorImage.val }}
     env:
       - name: STATE_BUCKET
-        value: {{ .Values.persistence.config.bucket | quote }}
-      {{- if eq .Values.persistence.backend "s3" }}
-      {{- with .Values.persistence.config.endpoint }}
+        value: {{ $bucket | quote }}
+      {{- if eq $values.persistence.backend "s3" }}
+      {{- with $values.persistence.config.endpoint }}
       - name: AWS_ENDPOINT_URL
         value: {{ . | quote }}
       {{- end }}
-      {{- with .Values.persistence.config.region }}
+      {{- with $values.persistence.config.region }}
       - name: AWS_REGION
         value: {{ . | quote }}
       {{- end }}
-      {{- with .Values.persistence.config.accessKey }}
+      {{- with $values.persistence.config.accessKey }}
       - name: AWS_ACCESS_KEY_ID
         value: {{ . | quote }}
       {{- end }}
-      {{- with .Values.persistence.config.secretKey }}
+      {{- with $values.persistence.config.secretKey }}
       - name: AWS_SECRET_ACCESS_KEY
         value: {{ . | quote }}
       {{- end }}
-      {{- else if eq .Values.persistence.backend "gcs" }}
-      {{- with .Values.persistence.config.project }}
+      {{- else if eq $values.persistence.backend "gcs" }}
+      {{- with $values.persistence.config.project }}
       - name: GCS_PROJECT
         value: {{ . | quote }}
       {{- end }}
-      {{- with .Values.persistence.config.emulatorHost }}
+      {{- with $values.persistence.config.emulatorHost }}
       - name: STORAGE_EMULATOR_HOST
         value: {{ . | quote }}
       {{- end }}

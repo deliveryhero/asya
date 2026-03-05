@@ -1,12 +1,12 @@
-"""S3 split-key fan-in aggregator.
+"""Split-key fan-in aggregator.
 
 Uses a split-key storage pattern: each fan-in message writes to its own file
 under {base_dir}/{origin_id}/. Completeness is detected by listing the directory.
 Exactly-once emission uses atomic create (open with 'x' mode -> FileExistsError on conflict).
 
 Requires state proxy sidecar (epic 1dmf) to be active for filesystem access.
-The state proxy maps Python file I/O to an S3-backed HTTP API, so this code
-works with local filesystems in tests and with S3 in production.
+The state proxy maps Python file I/O to a state-proxy-backed HTTP API, so this code
+works with local filesystems in tests and with cloud storage (S3, GCS) in production.
 
 The x-asya-fan-in header on each incoming message contains:
     {
@@ -143,7 +143,7 @@ def aggregator(payload: dict, *, _base_dir: str = "/state/checkpoints/fanin") ->
     yield "SET", ".headers.x-asya-origin-id", origin_id
 
     # Clean up state directory after successful emission.
-    # S3-backed state proxies have no real directories, so rmdir may fail
+    # Cloud-backed state proxies have no real directories, so rmdir may fail
     # if the directory key has already been removed by the file deletions.
     for entry in os.listdir(base):
         os.remove(f"{base}/{entry}")

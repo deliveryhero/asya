@@ -28,17 +28,23 @@ PYTEST_OPTS ?= -v -s
 export PYTEST_OPTS
 
 COMPOSE_FILES := -f profiles/$(ASYA_TRANSPORT)-$(ASYA_STORAGE).yml
+
+# Add state proxy overlay for GCS storage
+ifeq ($(ASYA_STORAGE),gcs)
+COMPOSE_FILES += -f compose/crew-gcs-overlay.yml
+endif
+
 COMPOSE_PROJECT := int-gateway-actors-$(ASYA_TRANSPORT)-$(ASYA_STORAGE)
 
-test: clean test-open test-aws
-
-test-open:
-	@echo "[.] Running open stack tests (RabbitMQ + MinIO)"
-	$(MAKE) test-one ASYA_TRANSPORT=rabbitmq ASYA_STORAGE=minio
+test: clean test-aws test-gcp
 
 test-aws:
 	@echo "[.] Running AWS stack tests (SQS + S3)"
 	$(MAKE) test-one ASYA_TRANSPORT=sqs ASYA_STORAGE=s3
+
+test-gcp:
+	@echo "[.] Running GCP stack tests (Pub/Sub + GCS)"
+	$(MAKE) test-one ASYA_TRANSPORT=pubsub ASYA_STORAGE=gcs
 
 
 test-one: require-ASYA_TRANSPORT validate-env
@@ -58,16 +64,16 @@ cov-one: require-ASYA_TRANSPORT
 		echo "  [-] Coverage not generated"
 
 down:
-	$(MAKE) down-one ASYA_TRANSPORT=rabbitmq ASYA_STORAGE=minio || true
 	$(MAKE) down-one ASYA_TRANSPORT=sqs ASYA_STORAGE=s3 || true
+	$(MAKE) down-one ASYA_TRANSPORT=pubsub ASYA_STORAGE=gcs || true
 
 down-one: require-ASYA_TRANSPORT
 	$(DOCKER_COMPOSE) $(COMPOSE_FILES) -p $(COMPOSE_PROJECT) down -v --remove-orphans || true
 	docker volume rm $(COMPOSE_PROJECT)_sockets $(COMPOSE_PROJECT)_default 2>/dev/null || true
 
 clean:
-	$(MAKE) clean-one ASYA_TRANSPORT=rabbitmq ASYA_STORAGE=minio || true
 	$(MAKE) clean-one ASYA_TRANSPORT=sqs ASYA_STORAGE=s3 || true
+	$(MAKE) clean-one ASYA_TRANSPORT=pubsub ASYA_STORAGE=gcs || true
 	rm -rf $(COVERAGE_DIR)
 
 clean-one: require-ASYA_TRANSPORT

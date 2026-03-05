@@ -3,6 +3,9 @@
 #
 # IMPORTANT: ASYA_HANDLER is pre-configured by the Helm templates and MUST NOT be overridden in values.
 
+# GCP project ID (required for pubsub transport)
+gcpProject: ""
+
 # Global image configuration
 image:
   repository: ghcr.io/deliveryhero/asya-crew
@@ -284,7 +287,8 @@ persistence:
   enabled: false
   backend: "" # "s3" or "gcs"
   config:
-    bucket: "" # bucket name (required when enabled)
+    bucket: "" # bucket name for results (required when enabled)
+    errorsBucket: "" # bucket name for errors from x-sump (defaults to bucket if empty)
     endpoint: "" # custom S3 endpoint for MinIO/LocalStack (S3 only)
     region: "" # AWS region (S3 only)
     accessKey: "" # AWS access key (S3 only, for dev/LocalStack; use IRSA in production)

@@ -189,7 +189,7 @@ def test_fan_out_child_skips_hooks(monkeypatch):
     result, abi_commands = drive_sink({"result": 1}, ctx)
 
     assert result == {"result": 1}
-    # No SET to route.next — hooks skipped for fan-out children
+    # No SET to route.next -- hooks skipped for fan-out children
     set_commands = [c for c in abi_commands if c[0] == "SET"]
     assert len(set_commands) == 0
 

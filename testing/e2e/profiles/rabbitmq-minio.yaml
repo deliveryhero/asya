@@ -41,6 +41,7 @@ crew:
     backend: s3
     config:
       bucket: asya-results
+      errorsBucket: asya-errors
       endpoint: http://minio.asya-e2e.svc.cluster.local:9000
       region: us-east-1
   x-sink:

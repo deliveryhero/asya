@@ -1,0 +1,33 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ .Release.Name }}-test-connection"
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: rabbitmq
+    app.kubernetes.io/instance: {{ .Release.Name }}
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-delete-policy": before-hook-creation
+spec:
+  restartPolicy: Never
+  containers:
+  - name: test
+    image: {{ .Values.tests.image }}
+    imagePullPolicy: {{ .Values.tests.imagePullPolicy }}
+    command: ['/bin/sh', '-c']
+    args:
+    - |
+      set -e
+
+      echo "Testing RabbitMQ pod health..."
+
+      echo "[.] Checking RabbitMQ management port..."
+      wget --spider -q -T 5 http://asya-rabbitmq.{{ .Release.Namespace }}.svc.cluster.local:15672
+      echo "[+] RabbitMQ management port reachable"
+
+      echo "[.] Checking AMQP port with nc..."
+      nc -z -w5 asya-rabbitmq.{{ .Release.Namespace }}.svc.cluster.local 5672
+      echo "[+] RabbitMQ AMQP port reachable"
+
+      echo "[+] RabbitMQ health check passed"

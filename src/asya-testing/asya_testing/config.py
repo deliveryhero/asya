@@ -83,6 +83,7 @@ class Transport(str, Enum):
 
     RABBITMQ = "rabbitmq"
     SQS = "sqs"
+    PUBSUB = "pubsub"
 
 
 class Storage(str, Enum):
@@ -90,6 +91,7 @@ class Storage(str, Enum):
 
     MINIO = "minio"
     S3 = "s3"
+    GCS = "gcs"
 
 
 @dataclass
@@ -98,8 +100,8 @@ class TestConfig:
     Consolidated test configuration loaded from environment variables.
 
     Environment Variables:
-        ASYA_TRANSPORT: Transport backend (rabbitmq, sqs)
-        ASYA_STORAGE: Storage backend (minio, s3)
+        ASYA_TRANSPORT: Transport backend (rabbitmq, sqs, pubsub)
+        ASYA_STORAGE: Storage backend (minio, s3, gcs)
         ASYA_GATEWAY_URL: Gateway URL (default: http://gateway:8080)
         ASYA_S3_ENDPOINT: S3/MinIO endpoint (default: http://minio:9000)
         ASYA_LOG_LEVEL: Log level (default: INFO)
@@ -139,16 +141,20 @@ class TestConfig:
             ConfigurationError: If required variables are not set or invalid
         """
         # Required: Transport configuration
-        transport_str = require_env("ASYA_TRANSPORT", valid_values=["rabbitmq", "sqs"]).lower()
+        transport_str = require_env("ASYA_TRANSPORT", valid_values=["rabbitmq", "sqs", "pubsub"]).lower()
         transport = Transport(transport_str)
 
         # Required: Storage configuration
-        storage_str = require_env("ASYA_STORAGE", valid_values=["minio", "s3"]).lower()
+        storage_str = require_env("ASYA_STORAGE", valid_values=["minio", "s3", "gcs"]).lower()
         storage = Storage(storage_str)
 
         # Required: Service URLs
         gateway_url = require_env("ASYA_GATEWAY_URL")
-        s3_endpoint = require_env("ASYA_S3_ENDPOINT")
+
+        # Storage-specific URLs (conditionally required)
+        s3_endpoint = ""
+        if storage in (Storage.MINIO, Storage.S3):
+            s3_endpoint = require_env("ASYA_S3_ENDPOINT")
 
         # Transport-specific URLs (conditionally required)
         rabbitmq_url = None
@@ -196,6 +202,14 @@ class TestConfig:
     def is_s3(self) -> bool:
         """Check if using S3 storage."""
         return self.storage == Storage.S3
+
+    def is_pubsub(self) -> bool:
+        """Check if using Pub/Sub transport."""
+        return self.transport == Transport.PUBSUB
+
+    def is_gcs(self) -> bool:
+        """Check if using GCS storage."""
+        return self.storage == Storage.GCS
 
     def get_transport_url(self) -> str | None:
         """Get transport connection URL based on active transport."""

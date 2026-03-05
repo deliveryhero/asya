@@ -22,11 +22,18 @@ services:
     depends_on:
       fake-gcs:
         condition: service_healthy
-    entrypoint: >
-      sh -c "
-      curl -s -X POST
-      'http://fake-gcs:4443/storage/v1/b?project=test'
-      -H 'Content-Type: application/json'
-      -d '{\"name\": \"asya-state-test\"}';
-      echo 'GCS bucket created successfully';
-      "
+    volumes:
+    - ./configs/gcs-buckets.txt:/tmp/gcs-buckets.txt:ro
+    entrypoint:
+    - /bin/sh
+    - -c
+    - |
+      while IFS= read -r bucket || [ -n "$$bucket" ]; do
+        [ -z "$$bucket" ] && continue
+        case "$$bucket" in '#'*) continue;; esac
+        curl -sf -X POST \
+          "http://fake-gcs:4443/storage/v1/b?project=test" \
+          -H 'Content-Type: application/json' \
+          -d "{\"name\": \"$$bucket\"}" || true
+      done < /tmp/gcs-buckets.txt
+      echo '[+] GCS buckets created successfully'

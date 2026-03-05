@@ -14,6 +14,7 @@ spec:
     matchLabels:
       asya.sh/transport: {{ .Values.transport }}
   transport: {{ .Values.transport }}
+  {{- include "asya-test-flows.pubsub-spec" . | nindent 2 }}
 
   scaling:
     enabled: {{ .Values.scaling.enabled }}
@@ -51,6 +52,7 @@ spec:
     matchLabels:
       asya.sh/transport: {{ .Values.transport }}
   transport: {{ .Values.transport }}
+  {{- include "asya-test-flows.pubsub-spec" . | nindent 2 }}
   scaling:
     enabled: {{ .Values.scaling.enabled }}
     minReplicas: {{ .Values.scaling.minReplicas }}
@@ -86,6 +88,7 @@ spec:
     matchLabels:
       asya.sh/transport: {{ .Values.transport }}
   transport: {{ .Values.transport }}
+  {{- include "asya-test-flows.pubsub-spec" . | nindent 2 }}
   scaling:
     enabled: {{ .Values.scaling.enabled }}
     minReplicas: {{ .Values.scaling.minReplicas }}
@@ -121,6 +124,7 @@ spec:
     matchLabels:
       asya.sh/transport: {{ .Values.transport }}
   transport: {{ .Values.transport }}
+  {{- include "asya-test-flows.pubsub-spec" . | nindent 2 }}
   scaling:
     enabled: {{ .Values.scaling.enabled }}
     minReplicas: {{ .Values.scaling.minReplicas }}
@@ -156,6 +160,7 @@ spec:
     matchLabels:
       asya.sh/transport: {{ .Values.transport }}
   transport: {{ .Values.transport }}
+  {{- include "asya-test-flows.pubsub-spec" . | nindent 2 }}
   scaling:
     enabled: {{ .Values.scaling.enabled }}
     minReplicas: {{ .Values.scaling.minReplicas }}
@@ -191,6 +196,7 @@ spec:
     matchLabels:
       asya.sh/transport: {{ .Values.transport }}
   transport: {{ .Values.transport }}
+  {{- include "asya-test-flows.pubsub-spec" . | nindent 2 }}
   scaling:
     enabled: {{ .Values.scaling.enabled }}
     minReplicas: {{ .Values.scaling.minReplicas }}
@@ -226,6 +232,7 @@ spec:
     matchLabels:
       asya.sh/transport: {{ .Values.transport }}
   transport: {{ .Values.transport }}
+  {{- include "asya-test-flows.pubsub-spec" . | nindent 2 }}
   scaling:
     enabled: {{ .Values.scaling.enabled }}
     minReplicas: {{ .Values.scaling.minReplicas }}
@@ -261,6 +268,7 @@ spec:
     matchLabels:
       asya.sh/transport: {{ .Values.transport }}
   transport: {{ .Values.transport }}
+  {{- include "asya-test-flows.pubsub-spec" . | nindent 2 }}
   scaling:
     enabled: {{ .Values.scaling.enabled }}
     minReplicas: {{ .Values.scaling.minReplicas }}
@@ -296,6 +304,7 @@ spec:
     matchLabels:
       asya.sh/transport: {{ .Values.transport }}
   transport: {{ .Values.transport }}
+  {{- include "asya-test-flows.pubsub-spec" . | nindent 2 }}
   scaling:
     enabled: {{ .Values.scaling.enabled }}
     minReplicas: {{ .Values.scaling.minReplicas }}

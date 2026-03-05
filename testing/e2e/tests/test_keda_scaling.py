@@ -24,6 +24,13 @@ import time
 
 import pytest
 
+if os.getenv("ASYA_TRANSPORT") == "pubsub":
+    pytest.skip(
+        "KEDA gcp-pubsub scaler cannot query the Pub/Sub emulator for subscription metrics; "
+        "ScaledObjects are created by Crossplane but KEDA triggers show TriggerError",
+        allow_module_level=True,
+    )
+
 from asya_testing.utils.kubectl import (
     kubectl_apply,
     kubectl_delete,

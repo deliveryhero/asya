@@ -26,6 +26,7 @@ import subprocess
 import time
 
 import pytest
+
 from asya_testing.utils.kubectl import (
     kubectl_apply,
     kubectl_apply_raw,
@@ -46,6 +47,7 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 TRANSPORT = os.getenv("ASYA_TRANSPORT", "rabbitmq")
+GCP_PROJECT = os.getenv("ASYA_PUBSUB_PROJECT_ID", "")
 
 
 def _actor_manifest(
@@ -63,9 +65,15 @@ def _actor_manifest(
     image_pull_policy: str = "IfNotPresent",
     transport: str | None = None,
     overlays: list[str] | None = None,
+    gcp_project: str | None = None,
 ) -> str:
     """Build an AsyncActor manifest with common defaults."""
     transport = transport or TRANSPORT
+
+    # Pubsub transport requires gcpProject so the injector can set ASYA_PUBSUB_PROJECT_ID
+    # on the sidecar. Default to the value from the test environment.
+    if gcp_project is None and transport == "pubsub":
+        gcp_project = GCP_PROJECT
 
     scaling_block = f"""\
   scaling:
@@ -86,6 +94,8 @@ def _actor_manifest(
         overlay_lines = "\n".join(f"    - {f}" for f in overlays)
         overlays_block = f"\n  overlays:\n{overlay_lines}"
 
+    gcp_project_line = f"\n  gcpProject: {gcp_project}" if gcp_project else ""
+
     extra_env_block = f"\n{extra_runtime_env}" if extra_runtime_env else ""
 
     return f"""
@@ -96,7 +106,7 @@ metadata:
   namespace: {namespace}
 spec:
   actor: {name}
-  transport: {transport}{overlays_block}
+  transport: {transport}{gcp_project_line}{overlays_block}
 {scaling_block}
   workload:
     kind: Deployment{replicas_line}
@@ -197,6 +207,8 @@ def test_asyncactor_basic_lifecycle(e2e_helper):
 
     Expected: Full lifecycle works without errors
     """
+    _transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
+    _transport_suffix = f"\n  gcpProject: {GCP_PROJECT}" if _transport == "pubsub" and GCP_PROJECT else ""
     actor_manifest = f"""
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
@@ -205,7 +217,7 @@ metadata:
   namespace: {e2e_helper.namespace}
 spec:
   actor: test-lifecycle
-  transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
+  transport: {_transport}{_transport_suffix}
   scaling:
     enabled: true
     minReplicas: 1
@@ -293,6 +305,8 @@ def test_asyncactor_update_propagates(e2e_helper):
 
     Expected: Changes propagate correctly
     """
+    _transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
+    _transport_suffix = f"\n  gcpProject: {GCP_PROJECT}" if _transport == "pubsub" and GCP_PROJECT else ""
     initial_manifest = f"""
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
@@ -301,7 +315,7 @@ metadata:
   namespace: {e2e_helper.namespace}
 spec:
   actor: test-update
-  transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
+  transport: {_transport}{_transport_suffix}
   scaling:
     enabled: true
     minReplicas: 1
@@ -328,7 +342,7 @@ metadata:
   namespace: {e2e_helper.namespace}
 spec:
   actor: test-update
-  transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
+  transport: {_transport}{_transport_suffix}
   scaling:
     enabled: true
     minReplicas: 3
@@ -380,6 +394,8 @@ spec:
             assert triggers[0]["metadata"]["value"] == "5", "Queue length trigger should be updated"
         elif transport == "sqs":
             assert triggers[0]["metadata"]["queueLength"] == "5", "Queue length trigger should be updated"
+        elif transport == "pubsub":
+            assert triggers[0]["metadata"]["value"] == "5", "Queue length trigger should be updated"
 
         logger.info("[+] AsyncActor updates propagated successfully")
 
@@ -456,6 +472,8 @@ def test_asyncactor_status_conditions(e2e_helper):
 
     Expected: Status reflects actual state
     """
+    _transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
+    _transport_suffix = f"\n  gcpProject: {GCP_PROJECT}" if _transport == "pubsub" and GCP_PROJECT else ""
     manifest = f"""
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
@@ -464,7 +482,7 @@ metadata:
   namespace: {e2e_helper.namespace}
 spec:
   actor: test-status
-  transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
+  transport: {_transport}{_transport_suffix}
   scaling:
     enabled: true
     minReplicas: 1
@@ -529,6 +547,8 @@ def test_asyncactor_with_broken_image(e2e_helper):
 
     Expected: Graceful handling of image pull failures
     """
+    _transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
+    _transport_suffix = f"\n  gcpProject: {GCP_PROJECT}" if _transport == "pubsub" and GCP_PROJECT else ""
     manifest = f"""
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
@@ -537,7 +557,7 @@ metadata:
   namespace: {e2e_helper.namespace}
 spec:
   actor: test-broken-image
-  transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
+  transport: {_transport}{_transport_suffix}
   scaling:
     enabled: false
   workload:
@@ -604,6 +624,8 @@ def test_asyncactor_sidecar_environment_variables(e2e_helper):
 
     Expected: All required env vars present
     """
+    _transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
+    _transport_suffix = f"\n  gcpProject: {GCP_PROJECT}" if _transport == "pubsub" and GCP_PROJECT else ""
     manifest = f"""
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
@@ -612,7 +634,7 @@ metadata:
   namespace: {e2e_helper.namespace}
 spec:
   actor: test-sidecar-env
-  transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
+  transport: {_transport}{_transport_suffix}
   scaling:
     enabled: false
   workload:
@@ -698,6 +720,8 @@ def test_asyncactor_label_propagation(e2e_helper):
 
     Expected: All user labels present on child resources, operator labels preserved
     """
+    _transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
+    _transport_suffix = f"\n  gcpProject: {GCP_PROJECT}" if _transport == "pubsub" and GCP_PROJECT else ""
     actor_manifest = f"""
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
@@ -710,7 +734,7 @@ metadata:
     env: test
 spec:
   actor: test-labels
-  transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
+  transport: {_transport}{_transport_suffix}
   scaling:
     enabled: true
     minReplicas: 1
@@ -1213,6 +1237,12 @@ def test_keda_scaledobject_detailed_configuration(e2e_helper):
             assert trigger["metadata"]["value"] == "15", (
                 f"Queue length value should be '15', got {trigger['metadata'].get('value')}"
             )
+        elif transport == "pubsub":
+            assert trigger["type"] == "gcp-pubsub", f"Trigger type should be gcp-pubsub, got {trigger['type']}"
+            assert trigger["metadata"]["value"] == "15", (
+                f"Queue length value should be '15', got {trigger['metadata'].get('value')}"
+            )
+            assert "subscriptionName" in trigger["metadata"], "Pub/Sub trigger should have subscriptionName"
 
         logger.info(f"ScaledObject trigger config: {json.dumps(trigger, indent=2)}")
         logger.info("[+] KEDA ScaledObject configuration verified")

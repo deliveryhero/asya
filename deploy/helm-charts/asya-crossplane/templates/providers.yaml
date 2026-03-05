@@ -29,6 +29,10 @@ spec:
             env:
             - name: PUBSUB_EMULATOR_HOST
               value: {{ .Values.gcpProviderConfig.emulatorHost | quote }}
+            - name: GOOGLE_PUBSUB_CUSTOM_ENDPOINT
+              value: "http://{{ .Values.gcpProviderConfig.emulatorHost }}/v1/"
+            - name: GOOGLE_OAUTH_ACCESS_TOKEN
+              value: "emulator-dummy-token"
 ---
 {{- end }}
 apiVersion: pkg.crossplane.io/v1

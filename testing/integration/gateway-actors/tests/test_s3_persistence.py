@@ -13,6 +13,10 @@ import time
 import pytest
 import requests
 
+storage = os.getenv("ASYA_STORAGE", "s3")
+if storage not in ("s3", "minio"):
+    pytest.skip("S3 persistence tests only run with S3/MinIO storage", allow_module_level=True)
+
 from asya_testing.utils.s3 import delete_all_objects_in_bucket, find_envelope_in_s3, wait_for_envelope_in_s3
 from asya_testing.config import require_env
 

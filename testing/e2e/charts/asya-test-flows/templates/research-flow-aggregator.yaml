@@ -32,6 +32,7 @@ spec:
     matchLabels:
       asya.sh/transport: {{ .Values.transport }}
   transport: {{ .Values.transport }}
+  {{- include "asya-test-flows.pubsub-spec" . | nindent 2 }}
 
   stateProxy:
     - name: fanin
@@ -93,7 +94,7 @@ spec:
           imagePullPolicy: {{ .Values.workload.imagePullPolicy }}
           env:
           - name: ASYA_HANDLER
-            value: asya_crew.fanin.s3_split_key.aggregator
+            value: asya_crew.fanin.split_key.aggregator
           resources:
             requests:
               cpu: 10m

@@ -17,6 +17,7 @@ spec:
     matchLabels:
       asya.sh/transport: {{ $checkpointS3.transport }}
   transport: {{ $checkpointS3.transport }}
+  {{- include "asya-crew.pubsub-spec" . | nindent 2 }}
   {{- if .Values.persistence.enabled }}
   overlays:
     - {{ include "asya-crew.persistence.overlayName" . }}

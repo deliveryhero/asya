@@ -7,10 +7,10 @@ Tests the full fan-out/fan-in lifecycle on a live Kind cluster:
 - fanout-research-flow-l2 router (generates N+1 slices)
 - research-agent actors (processes individual topics in parallel)
 - research-flow-aggregator crew actor (collects N+1 slices, emits merged message)
-- Final merged result persisted to S3 by x-sink
+- Final merged result persisted to object storage by x-sink
 
 Prerequisites:
-- Kind cluster deployed with PROFILE=sqs-s3
+- Kind cluster deployed with any supported profile
 - asya-test-flows Helm chart deployed (includes research-flow actors)
 - State proxy sidecar active on research-flow-aggregator pod
 
@@ -28,12 +28,13 @@ Fan-out protocol (N topics => N+1 messages):
 
 import json
 import logging
+import os
 import time
 import uuid
 
-import boto3
 import pytest
 
+from asya_testing.utils.storage import get_storage_client
 
 logger = logging.getLogger(__name__)
 
@@ -44,32 +45,28 @@ logger = logging.getLogger(__name__)
 
 
 @pytest.fixture(scope="function")
-def flow_helper(transport_timeouts, s3_endpoint, results_bucket, test_config):
+def flow_helper(transport_timeouts, results_bucket, test_config):
     """Helper for research_flow fan-out/fan-in testing."""
 
     class FanoutFlowHelper:
         def __init__(self):
             self.timeouts = transport_timeouts
-            self.s3_endpoint = s3_endpoint
             self.results_bucket = results_bucket
             self.test_config = test_config
             self.namespace = test_config.namespace
+            self.storage_client = get_storage_client()
 
         def _queue_name(self, actor_name: str) -> str:
-            """Compute SQS queue name for the given actor in this namespace."""
+            """Compute queue name for the given actor in this namespace."""
             return f"asya-{self.namespace}-{actor_name}"
 
         def send_to_flow(self, topics: list) -> str:
             """Send a message with a list of topics to the start-research-flow queue.
 
-            Returns the task_id (message id) used to locate the result in S3.
+            Returns the task_id (message id) used to locate the result in object storage.
             """
-            sqs = boto3.client("sqs", endpoint_url=self.test_config.sqs_endpoint)
-
+            transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
             queue_name = self._queue_name("start-research-flow")
-            response = sqs.get_queue_url(QueueName=queue_name)
-            queue_url = response["QueueUrl"]
-
             task_id = str(uuid.uuid4())
 
             message = {
@@ -82,13 +79,34 @@ def flow_helper(transport_timeouts, s3_endpoint, results_bucket, test_config):
                 "payload": {"topics": topics},
             }
 
-            sqs.send_message(QueueUrl=queue_url, MessageBody=json.dumps(message))
+            if transport == "sqs":
+                import boto3
+
+                sqs = boto3.client("sqs", endpoint_url=self.test_config.sqs_endpoint)
+                response = sqs.get_queue_url(QueueName=queue_name)
+                queue_url = response["QueueUrl"]
+                sqs.send_message(QueueUrl=queue_url, MessageBody=json.dumps(message))
+
+            elif transport == "pubsub":
+                from google.cloud import pubsub_v1
+
+                project_id = os.getenv("PUBSUB_PROJECT_ID")
+                if not project_id:
+                    raise RuntimeError("PUBSUB_PROJECT_ID environment variable is required for Pub/Sub transport")
+
+                publisher = pubsub_v1.PublisherClient()
+                topic_path = publisher.topic_path(project_id, queue_name)
+                future = publisher.publish(topic_path, json.dumps(message).encode("utf-8"))
+                future.result()
+
+            else:
+                raise ValueError(f"Unsupported transport: {transport}")
 
             logger.info(f"[.] Sent message {task_id} to start-research-flow with {len(topics)} topics: {topics}")
             return task_id
 
         def wait_for_result(self, task_id: str, timeout: int = 120) -> dict:
-            """Poll S3 results bucket until a result matching task_id appears.
+            """Poll object storage results bucket until a result matching task_id appears.
 
             Searches under the 'results/' prefix where x-sink checkpoints land
             (not 'fanin/' which contains aggregator working state).
@@ -96,23 +114,18 @@ def flow_helper(transport_timeouts, s3_endpoint, results_bucket, test_config):
             Returns the payload dict from the checkpoint envelope.
             Raises TimeoutError if result does not appear within timeout seconds.
             """
-            s3 = boto3.client("s3", endpoint_url=self.s3_endpoint)
-
             start_time = time.time()
             while time.time() - start_time < timeout:
-                # x-sink checkpoints: results/{phase}/{timestamp}/{actor}/{task_id}.json
-                # Aggregator state files live under fanin/ — exclude by scoping to results/
-                response = s3.list_objects_v2(Bucket=self.results_bucket, Prefix="results/")
+                objects = self.storage_client.list_objects(self.results_bucket, prefix="results/")
 
-                if "Contents" in response:
-                    for obj in response["Contents"]:
-                        if task_id in obj["Key"]:
-                            result_obj = s3.get_object(Bucket=self.results_bucket, Key=obj["Key"])
-                            checkpoint = json.loads(result_obj["Body"].read())
-                            logger.info(f"[+] Retrieved result for task {task_id} from {obj['Key']}")
+                for obj in objects:
+                    if task_id in obj.key:
+                        checkpoint = self.storage_client.get_object_json(self.results_bucket, obj.key)
+                        if checkpoint:
+                            logger.info(f"[+] Retrieved result for task {task_id} from {obj.key}")
                             return checkpoint.get("payload", checkpoint)
 
-                time.sleep(2)  # Poll S3 for new result objects
+                time.sleep(2)  # Poll storage for new result objects
 
             raise TimeoutError(
                 f"Fan-out/fan-in result not found after {timeout}s for task_id={task_id}. "
@@ -127,18 +140,14 @@ def flow_helper(transport_timeouts, s3_endpoint, results_bucket, test_config):
             should reach x-sink (the partial slices are suppressed via
             x-asya-fan-in header detection in x-sink).
             """
-            s3 = boto3.client("s3", endpoint_url=self.s3_endpoint)
-
-            # Wait a moment for any partial results to potentially appear
             time.sleep(min(timeout, 10))  # Give x-sink time to process partials
 
-            response = s3.list_objects_v2(Bucket=self.results_bucket, Prefix="results/")
+            objects = self.storage_client.list_objects(self.results_bucket, prefix="results/")
 
             count = 0
-            if "Contents" in response:
-                for obj in response["Contents"]:
-                    if task_id in obj["Key"]:
-                        count += 1
+            for obj in objects:
+                if task_id in obj.key:
+                    count += 1
 
             return count
 
@@ -157,10 +166,10 @@ def test_fanout_fanin_basic_3_topics(flow_helper):
 
     Flow: start-research-flow -> fanout-research-flow-l2 -> [research-agent x3]
           -> research-flow-aggregator (collects 4 slices: 1 parent + 3 agent results)
-          -> x-sink -> S3
+          -> x-sink -> object storage
 
     Expected:
-    - Exactly 1 result in S3 (not 4 partial results)
+    - Exactly 1 result in object storage (not 4 partial results)
     - payload.results has 3 items (one per topic)
     - Each result item has topic and findings fields
     """
@@ -172,9 +181,9 @@ def test_fanout_fanin_basic_3_topics(flow_helper):
     # Timeout = 3 topics * 30s + 60s buffer for aggregation and routing
     result = flow_helper.wait_for_result(task_id, timeout=150)
 
-    assert result is not None, "Expected a result from S3"
+    assert result is not None, "Expected a result from object storage"
 
-    # x-sink persists the payload dict directly (not the full message message)
+    # x-sink persists the payload dict directly (not the full envelope)
     assert "results" in result, f"Merged payload missing 'results' field. Got keys: {list(result.keys())}"
 
     results = result["results"]
@@ -201,8 +210,8 @@ def test_fanout_fanin_no_false_positives_from_partial_slices(flow_helper):
     for messages carrying the x-asya-fan-in header (non-reporting mechanism).
 
     Only the final merged message (emitted when all slices collected) triggers
-    x-sink gateway reporting. This test verifies exactly ONE S3 result object
-    appears for the task -- not N+1 partial results.
+    x-sink gateway reporting. This test verifies exactly ONE result object
+    appears for the task in object storage, not N+1 partial results.
 
     See: RFC fan-in protocol, section 'Non-Reporting Mechanisms'.
     """
@@ -220,13 +229,13 @@ def test_fanout_fanin_no_false_positives_from_partial_slices(flow_helper):
     # Now check that only 1 result exists for this task_id
     count = flow_helper.count_partial_results_in_sink(task_id, timeout=30)
     assert count == 1, (
-        f"Expected exactly 1 result in S3 for task {task_id} "
+        f"Expected exactly 1 result in object storage for task {task_id} "
         f"(merged message only), but found {count}. "
         f"x-sink may not be suppressing partial fan-in results. "
         f"Check x-sink's x-asya-fan-in header detection logic."
     )
 
-    logger.info(f"[+] No false positives: exactly {count} result in S3 for task {task_id}")
+    logger.info(f"[+] No false positives: exactly {count} result in object storage for task {task_id}")
 
 
 @pytest.mark.flow
@@ -235,7 +244,7 @@ def test_fanout_fanin_10_topics(flow_helper):
     """Fan-out with 10 topics: verify all 10 results aggregated correctly.
 
     Tests higher fan-out cardinality to surface race conditions in the aggregator
-    and verify the S3 split-key pattern handles concurrent slice writes correctly.
+    and verify the storage split-key pattern handles concurrent slice writes correctly.
 
     Timeout: 10 topics * 30s + 120s buffer = 420s
     """
@@ -291,7 +300,7 @@ def test_fanout_fanin_concurrent_requests(flow_helper):
     """Two concurrent fan-out requests must not interfere with each other.
 
     Each request has a distinct task_id used as the origin_id in the x-asya-fan-in
-    header. The aggregator uses origin_id as the S3 directory key, so concurrent
+    header. The aggregator uses origin_id as the storage directory key, so concurrent
     requests must use independent state directories.
 
     Verifies: no cross-contamination between concurrent fan-out operations.
@@ -334,17 +343,17 @@ def test_fanout_fanin_concurrent_requests(flow_helper):
 def test_fanout_fanin_aggregator_restart_mid_aggregation(flow_helper, e2e_helper):
     """Aggregator pod restart mid-aggregation must not lose progress.
 
-    State is stored in S3 via the state proxy sidecar. When the aggregator
+    State is stored in object storage via the state proxy sidecar. When the aggregator
     pod is restarted, a new pod picks up the next slice and reads existing
-    state from S3. The merged message is still emitted exactly once.
+    state from object storage. The merged message is still emitted exactly once.
 
-    This test verifies the durability guarantee of the S3 split-key fan-in design.
+    This test verifies the durability guarantee of the storage split-key fan-in design.
 
     Scenario:
     1. Send fan-out with 5 topics
     2. Wait briefly for first slice to arrive at aggregator
     3. Restart aggregator pod
-    4. Wait for all slices to arrive and merged result to appear in S3
+    4. Wait for all slices to arrive and merged result to appear in object storage
     5. Verify exactly 1 merged result (no duplicate emission)
     """
     topics = [f"durable-topic-{i}" for i in range(5)]
@@ -379,7 +388,7 @@ def test_fanout_fanin_aggregator_restart_mid_aggregation(flow_helper, e2e_helper
         pytest.skip("No research-flow-aggregator pod found; skip restart test")
 
     logger.info("[.] Waiting for merged result after aggregator restart")
-    # Extra time for pod restart + S3 state recovery
+    # Extra time for pod restart + state recovery from storage
     result = flow_helper.wait_for_result(task_id, timeout=300)
 
     assert result is not None, "Expected merged result after aggregator restart"
@@ -390,10 +399,10 @@ def test_fanout_fanin_aggregator_restart_mid_aggregation(flow_helper, e2e_helper
     assert len(results) == len(topics), (
         f"Expected {len(topics)} results after restart, got {len(results)}. "
         f"State may not have survived pod restart. "
-        f"Verify state proxy sidecar and S3 state storage are working correctly."
+        f"Verify state proxy sidecar and object storage state are working correctly."
     )
 
-    # Verify no duplicate emission (exactly 1 result in S3)
+    # Verify no duplicate emission (exactly 1 result in object storage)
     count = flow_helper.count_partial_results_in_sink(task_id, timeout=10)
     assert count == 1, (
         f"Expected exactly 1 merged result but found {count}. "

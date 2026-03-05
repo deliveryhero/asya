@@ -1,9 +1,14 @@
 """Transport-agnostic utilities for integration tests."""
 
+import logging
+
 from asya_testing.config import require_env
 
 from .rabbitmq import wait_for_rabbitmq_consumers
 from .sqs import wait_for_sqs_queues
+
+
+logger = logging.getLogger(__name__)
 
 
 def wait_for_transport(
@@ -11,7 +16,7 @@ def wait_for_transport(
     timeout: int = 15,
 ) -> None:
     """
-    Wait for transport (RabbitMQ or SQS) to be ready based on ASYA_TRANSPORT.
+    Wait for transport to be ready based on ASYA_TRANSPORT.
 
     This function determines the transport type from the ASYA_TRANSPORT environment
     variable and calls the appropriate waiting function. This ensures tests work
@@ -61,5 +66,7 @@ def wait_for_transport(
     elif transport == "sqs":
         endpoint_url = require_env("AWS_ENDPOINT_URL")
         wait_for_sqs_queues(endpoint_url, required_queues, timeout)
+    elif transport == "pubsub":
+        logger.info("Using Pub/Sub transport - queue readiness managed by docker-compose healthcheck")
     else:
-        raise ValueError(f"Unsupported transport: {transport}. Supported: rabbitmq, sqs")
+        raise ValueError(f"Unsupported transport: {transport}. Supported: rabbitmq, sqs, pubsub")

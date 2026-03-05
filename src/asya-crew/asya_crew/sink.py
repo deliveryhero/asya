@@ -20,7 +20,7 @@ Environment Variables:
                    Example: "checkpoint-s3,notify-slack"
 - ASYA_SINK_FANOUT_HOOKS: When "true", run hooks even for fire-and-forget fan-out children
                            (messages with parent_id set but no x-asya-fan-in header).
-                           Default: "false" — fan-out children skip hooks silently.
+                           Default: "false" -- fan-out children skip hooks silently.
 - ASYA_PERSISTENCE_MOUNT: State proxy mount path for inline checkpoint persistence (optional)
 
 ABI Protocol:
@@ -33,6 +33,7 @@ ABI Protocol:
 - yield payload -> emit downstream frame
 
 Handler Behavior:
+- Generator handler using ABI yield protocol for metadata access
 - Accepts any status.phase value (no strict validation)
 - Fan-in partials (x-asya-fan-in header): silently consumed, no checkpoint or hooks
   (these are accumulating slices that should not produce visible results)

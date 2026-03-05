@@ -23,9 +23,8 @@ Examples:
     /state/checkpoints/failed/2026-02-12T10:30:00.123456Z/image-analyzer/msg-456.json
 
 Handler Behavior:
-- Receives message metadata as keyword arguments from caller (sink handler)
+- Receives message metadata as keyword arguments from caller (sink/sump generators)
 - Persists full message (metadata + payload) as JSON to state proxy mount
-- Returns empty dict (message passes through unchanged)
 - Gracefully skips if ASYA_PERSISTENCE_MOUNT not set
 """
 
@@ -50,11 +49,11 @@ def handler(
     phase: str = "",
     route_prev: list[str] | None = None,
     route_curr: str = "",
-) -> dict[str, Any]:
+) -> None:
     """
     Checkpoint handler for message persistence via state proxy.
 
-    Receives message metadata as keyword arguments from the sink handler,
+    Receives message metadata as keyword arguments from the sink/sump handler,
     and persists the complete message (metadata + payload) as a JSON file
     to the configured state proxy mount.
 
@@ -66,9 +65,6 @@ def handler(
         route_prev: List of processed actors
         route_curr: Current actor name
 
-    Returns:
-        Empty dict (message passes through unchanged)
-
     Raises:
         ValueError: If payload is not a dict
     """
@@ -77,7 +73,7 @@ def handler(
 
     if not ASYA_PERSISTENCE_MOUNT:
         logger.debug(f"Checkpoint skipped for message {message_id} (ASYA_PERSISTENCE_MOUNT not set)")
-        return {}
+        return
 
     prev_actors = route_prev if route_prev is not None else []
 
@@ -122,5 +118,3 @@ def handler(
         logger.info(f"Checkpointed message {message_id} to {file_path}")
     except Exception as e:
         logger.error(f"Failed to checkpoint message {message_id}: {e}", exc_info=True)
-
-    return {}

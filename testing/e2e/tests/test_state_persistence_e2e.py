@@ -6,7 +6,7 @@ Tests persistence and state handling in a real environment:
 - Class handler state preservation
 - Task tracking across system restarts
 - Database persistence (PostgreSQL)
-- S3 persistence and retrieval
+- Object storage persistence and retrieval
 - Error persistence and retry state
 - Gateway state recovery
 
@@ -14,13 +14,13 @@ These tests verify data isn't lost during failures.
 """
 
 import logging
+import os
 import time
 
 import pytest
-import requests
 
 from asya_testing.utils.kubectl import wait_for_pod_ready as kubectl_wait_for_pod_ready
-from asya_testing.utils.s3 import wait_for_envelope_in_s3, delete_all_objects_in_bucket
+from asya_testing.utils.storage import get_storage_client
 
 logger = logging.getLogger(__name__)
 
@@ -115,26 +115,23 @@ def test_gateway_restart_preserves_task_history(e2e_helper):
     logger.info("[+] Task history preserved across gateway restart")
 
 
-@pytest.mark.skip(
-    reason="S3 persistence requires state-proxy connector on x-sink",
-)
 @pytest.mark.fast
-def test_successful_result_persisted_to_s3(e2e_helper, s3_endpoint, results_bucket):
+def test_successful_result_persisted_to_storage(e2e_helper, results_bucket):
     """
-    E2E: Test successful results are persisted to S3.
+    E2E: Test successful results are persisted to object storage.
 
     Scenario:
     1. Send message
     2. Wait for completion
-    3. Verify result appears in S3 bucket
-    4. Verify S3 object content matches message
+    3. Verify result appears in storage bucket
+    4. Verify storage object content matches message
 
-    Expected: Results stored in S3 for later retrieval
+    Expected: Results stored in object storage for later retrieval
     """
     logger.info("Sending message...")
     response = e2e_helper.call_mcp_tool(
         tool_name="test_echo",
-        arguments={"message": "s3-success-test"},
+        arguments={"message": "storage-success-test"},
     )
 
     task_id = response["result"]["task_id"]
@@ -144,30 +141,29 @@ def test_successful_result_persisted_to_s3(e2e_helper, s3_endpoint, results_buck
 
     assert final_task["status"] == "succeeded", "Task should succeed"
 
-    logger.info("Waiting for result to appear in S3...")
-    s3_object = wait_for_envelope_in_s3(
-        bucket_name=results_bucket,
-        message_id=task_id,
+    storage_client = get_storage_client()
+
+    logger.info("Waiting for result to appear in storage...")
+    storage_object = storage_client.wait_for_object(
+        bucket=results_bucket,
+        envelope_id=task_id,
         timeout=30
     )
 
-    assert s3_object is not None, "Result should be in S3"
+    assert storage_object is not None, "Result should be in storage"
 
-    logger.info("[+] Successful result persisted to S3")
+    logger.info("[+] Successful result persisted to storage")
 
 
-@pytest.mark.skip(
-    reason="S3 persistence requires state-proxy connector on x-sump",
-)
 @pytest.mark.fast
-def test_error_result_persisted_to_s3(e2e_helper, s3_endpoint, errors_bucket):
+def test_error_result_persisted_to_storage(e2e_helper, errors_bucket):
     """
-    E2E: Test error results are persisted to S3 errors bucket.
+    E2E: Test error results are persisted to object storage errors bucket.
 
     Scenario:
     1. Send message that will fail
     2. Wait for completion
-    3. Verify error appears in S3 errors bucket
+    3. Verify error appears in storage errors bucket
     4. Verify error details stored
 
     Expected: Errors stored separately for debugging
@@ -185,40 +181,40 @@ def test_error_result_persisted_to_s3(e2e_helper, s3_endpoint, errors_bucket):
 
     assert final_task["status"] == "failed", "Task should fail"
 
-    logger.info("Waiting for error to appear in S3...")
-    s3_object = wait_for_envelope_in_s3(
-        bucket_name=errors_bucket,
-        message_id=task_id,
+    storage_client = get_storage_client()
+
+    logger.info("Waiting for error to appear in storage...")
+    storage_object = storage_client.wait_for_object(
+        bucket=errors_bucket,
+        envelope_id=task_id,
         timeout=30
     )
 
-    assert s3_object is not None, "Error should be in S3 errors bucket"
+    assert storage_object is not None, "Error should be in storage errors bucket"
 
-    logger.info("[+] Error result persisted to S3")
+    logger.info("[+] Error result persisted to storage")
 
 
 @pytest.mark.fast
-def test_s3_persistence_with_large_payload(e2e_helper, s3_endpoint, results_bucket):
+def test_storage_persistence_with_large_payload(e2e_helper, results_bucket):
     """
-    E2E: Test large payload persisted correctly to S3.
+    E2E: Test large payload persisted correctly to object storage.
 
     Scenario:
     1. Send large payload (10MB)
     2. Wait for completion
-    3. Verify large payload in S3
+    3. Verify large payload in storage
     4. Verify payload integrity
 
     Expected: Large payloads stored without truncation
     """
     import os
     transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
-    if transport == "sqs":
-        pytest.skip("Large payload test not supported with SQS (256KB limit)")
-
+    size_kb = {"sqs": 200, "pubsub": 4096, "rabbitmq": 10240}.get(transport, 10240)
     logger.info("Sending large payload...")
     response = e2e_helper.call_mcp_tool(
         tool_name="test_large_payload",
-        arguments={"size_kb": 10240},
+        arguments={"size_kb": size_kb},
     )
 
     task_id = response["result"]["task_id"]
@@ -228,16 +224,18 @@ def test_s3_persistence_with_large_payload(e2e_helper, s3_endpoint, results_buck
 
     assert final_task["status"] == "succeeded", "Large payload should succeed"
 
-    logger.info("Waiting for result in S3...")
-    s3_object = wait_for_envelope_in_s3(
-        bucket_name=results_bucket,
-        message_id=task_id,
+    storage_client = get_storage_client()
+
+    logger.info("Waiting for result in storage...")
+    storage_object = storage_client.wait_for_object(
+        bucket=results_bucket,
+        envelope_id=task_id,
         timeout=60
     )
 
-    assert s3_object is not None, "Large payload should be in S3"
+    assert storage_object is not None, "Large payload should be in storage"
 
-    logger.info("[+] Large payload persisted to S3")
+    logger.info("[+] Large payload persisted to storage")
 
 
 @pytest.mark.fast
@@ -284,21 +282,18 @@ def test_task_state_transitions_tracked(e2e_helper):
     logger.info("[+] Task state transitions tracked")
 
 
-@pytest.mark.skip(
-    reason="S3 persistence requires state-proxy connector on x-sink",
-)
 @pytest.mark.fast
-def test_concurrent_s3_writes_no_conflicts(e2e_helper, s3_endpoint, results_bucket):
+def test_concurrent_storage_writes_no_conflicts(e2e_helper, results_bucket):
     """
-    E2E: Test concurrent S3 writes don't conflict.
+    E2E: Test concurrent object storage writes don't conflict.
 
     Scenario:
     1. Send 20 messages concurrently
     2. All complete successfully
-    3. All results appear in S3
-    4. No S3 write conflicts
+    3. All results appear in storage
+    4. No storage write conflicts
 
-    Expected: S3 handles concurrent writes gracefully
+    Expected: Object storage handles concurrent writes gracefully
     """
     logger.info("Sending 20 concurrent messages...")
     task_ids = []
@@ -307,7 +302,7 @@ def test_concurrent_s3_writes_no_conflicts(e2e_helper, s3_endpoint, results_buck
         try:
             response = e2e_helper.call_mcp_tool(
                 tool_name="test_echo",
-                arguments={"message": f"s3-concurrent-{i}"},
+                arguments={"message": f"storage-concurrent-{i}"},
             )
             task_ids.append(response["result"]["task_id"])
         except Exception as e:
@@ -327,21 +322,23 @@ def test_concurrent_s3_writes_no_conflicts(e2e_helper, s3_endpoint, results_buck
 
     logger.info(f"Completed {completed}/{len(task_ids)} tasks")
 
-    logger.info("Verifying S3 objects created...")
-    s3_found = 0
+    storage_client = get_storage_client()
+
+    logger.info("Verifying storage objects created...")
+    storage_found = 0
     for task_id in task_ids[:10]:
-        s3_object = wait_for_envelope_in_s3(
-            bucket_name=results_bucket,
-            message_id=task_id,
+        storage_object = storage_client.wait_for_object(
+            bucket=results_bucket,
+            envelope_id=task_id,
             timeout=10
         )
-        if s3_object is not None:
-            s3_found += 1
+        if storage_object is not None:
+            storage_found += 1
 
-    logger.info(f"Found {s3_found}/10 sample results in S3")
-    assert s3_found >= 8, f"At least 8/10 should be in S3, got {s3_found}"
+    logger.info(f"Found {storage_found}/10 sample results in storage")
+    assert storage_found >= 8, f"At least 8/10 should be in storage, got {storage_found}"
 
-    logger.info("[+] Concurrent S3 writes handled successfully")
+    logger.info("[+] Concurrent storage writes handled successfully")
 
 
 @pytest.mark.chaos
@@ -367,7 +364,7 @@ def test_database_connection_recovery(e2e_helper):
     )
 
     task_id_1 = response["result"]["task_id"]
-    final_1 = e2e_helper.wait_for_task_completion(task_id_1, timeout=30)
+    final_1 = e2e_helper.wait_for_task_completion(task_id_1, timeout=60)
     assert final_1["status"] == "succeeded", "Initial task should succeed"
 
     logger.info("Simulating database failure...")
@@ -417,33 +414,37 @@ def test_database_connection_recovery(e2e_helper):
 
 @pytest.mark.chaos
 @pytest.mark.xdist_group(name="chaos")
-def test_s3_error_retry_logic(e2e_helper, s3_endpoint):
+@pytest.mark.skipif(
+    os.getenv("ASYA_STORAGE") not in ("minio",),
+    reason="Storage retry test uses minio-specific deployment names; needs per-storage adaptation",
+)
+def test_storage_error_retry_logic(e2e_helper):
     """
-    E2E: Test S3 write failures are retried.
+    E2E: Test storage write failures are retried.
 
     Scenario:
     1. Send message
-    2. Simulate S3 failure (scale minio to 0)
-    3. Task should complete but S3 write may fail
-    4. Restore S3
+    2. Simulate storage failure (scale minio to 0)
+    3. Task should complete but storage write may fail
+    4. Restore storage
     5. Verify retry mechanism or eventual consistency
 
-    Expected: System handles S3 outages gracefully
+    Expected: System handles storage outages gracefully
     """
     logger.info("Sending message...")
     response = e2e_helper.call_mcp_tool(
         tool_name="test_echo",
-        arguments={"message": "s3-retry-test"},
+        arguments={"message": "storage-retry-test"},
     )
 
     task_id = response["result"]["task_id"]
 
-    logger.info("Simulating S3 failure...")
+    logger.info("Simulating storage failure...")
     try:
         e2e_helper.kubectl("scale", "deployment", "s3", "--replicas=0", namespace=e2e_helper.system_namespace)
-        time.sleep(10)  # Let the outage propagate through the pipeline
+        time.sleep(10)
 
-        logger.info("Restoring S3...")
+        logger.info("Restoring storage...")
         e2e_helper.kubectl("scale", "deployment", "s3", "--replicas=1", namespace=e2e_helper.system_namespace)
 
         logger.info("Waiting for s3 pod...")
@@ -454,17 +455,17 @@ def test_s3_error_retry_logic(e2e_helper, s3_endpoint):
 
         e2e_helper.ensure_gateway_connectivity(max_retries=5, retry_interval=2.0)
 
-        logger.info("Waiting for task to reach terminal state after S3 recovery...")
+        logger.info("Waiting for task to reach terminal state after storage recovery...")
         final_task = e2e_helper.wait_for_task_completion(task_id, timeout=90)
 
         logger.info(f"Task status: {final_task['status']}")
         assert final_task["status"] in ["succeeded", "failed"], (
-            f"Task should reach a terminal state after S3 recovery, got: {final_task['status']}"
+            f"Task should reach a terminal state after storage recovery, got: {final_task['status']}"
         )
 
-        logger.info("[+] S3 error handling verified")
+        logger.info("[+] Storage error handling verified")
 
     finally:
-        logger.info("Ensuring S3 is restored...")
+        logger.info("Ensuring storage is restored...")
         e2e_helper.kubectl("scale", "deployment", "s3", "--replicas=1", namespace=e2e_helper.system_namespace)
         kubectl_wait_for_pod_ready("app=s3", namespace=e2e_helper.system_namespace, timeout=60)

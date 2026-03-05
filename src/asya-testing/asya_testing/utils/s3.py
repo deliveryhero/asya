@@ -79,6 +79,8 @@ def list_objects_in_bucket(bucket_name: str, prefix: str = "") -> list[dict[str,
     List all objects in a bucket with optional prefix.
 
     Ensures bucket exists before listing. Creates bucket if missing.
+    Handles pagination transparently so all objects are returned regardless
+    of how many are stored in the bucket.
 
     Args:
         bucket_name: Bucket name
@@ -90,8 +92,15 @@ def list_objects_in_bucket(bucket_name: str, prefix: str = "") -> list[dict[str,
     ensure_bucket_exists(bucket_name)
     client = get_s3_client()
     try:
-        response = client.list_objects_v2(Bucket=bucket_name, Prefix=prefix)
-        return response.get("Contents", [])
+        objects: list[dict[str, Any]] = []
+        kwargs: dict[str, Any] = {"Bucket": bucket_name, "Prefix": prefix}
+        while True:
+            response = client.list_objects_v2(**kwargs)
+            objects.extend(response.get("Contents", []))
+            if not response.get("IsTruncated"):
+                break
+            kwargs["ContinuationToken"] = response["NextContinuationToken"]
+        return objects
     except Exception as e:
         logger.error(f"Failed to list objects in {bucket_name}/{prefix}: {e}")
         return []

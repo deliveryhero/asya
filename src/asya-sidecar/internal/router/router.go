@@ -1509,8 +1509,7 @@ func (r *Router) isOverrideTarget(routeActor string, headers map[string]interfac
 // resolveQueueName resolves an actor name to a queue name based on transport type
 func (r *Router) resolveQueueName(actorName string) string {
 	switch r.cfg.TransportType {
-	case "rabbitmq", "sqs":
-		// Both RabbitMQ and SQS use asya-{namespace}-{actor} naming convention
+	case "rabbitmq", "sqs", "pubsub":
 		return fmt.Sprintf("asya-%s-%s", r.cfg.Namespace, actorName)
 	default:
 		return actorName

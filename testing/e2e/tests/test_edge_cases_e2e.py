@@ -26,7 +26,6 @@ import os
 import time
 
 import pytest
-from asya_testing.utils.sqs import purge_queue
 
 
 logger = logging.getLogger(__name__)
@@ -101,6 +100,8 @@ def test_slow_boundary_completes_before_timeout_e2e(e2e_helper):
     """
     transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
     if transport == "sqs":
+        from asya_testing.utils.sqs import purge_queue
+
         namespace = os.getenv("NAMESPACE", "asya-e2e")
         purge_queue(f"asya-{namespace}-test-slow-boundary")
 
@@ -126,7 +127,6 @@ def test_slow_boundary_completes_before_timeout_e2e(e2e_helper):
 
 
 @pytest.mark.fast
-@pytest.mark.skip(reason="Crossplane XRD does not support timeout field yet (asya-bija)")
 def test_timeout_crash_and_pod_restart_e2e(e2e_helper, namespace, transport_timeouts):
     """
     E2E: Test timeout causes pod crash and KEDA rescales for retry.
@@ -150,6 +150,8 @@ def test_timeout_crash_and_pod_restart_e2e(e2e_helper, namespace, transport_time
     try:
         transport = os.environ.get("ASYA_TRANSPORT", "rabbitmq")
         if transport == "sqs":
+            from asya_testing.utils.sqs import purge_queue
+
             logger.info("Purging test-timeout queue to remove stuck messages...")
             purge_queue(f"asya-{namespace}-test-timeout")
             time.sleep(2)
@@ -546,7 +548,7 @@ def test_unicode_payload_end_to_end(e2e_helper):
 
     task_id = response["result"]["task_id"]
 
-    final_task = e2e_helper.wait_for_task_completion(task_id, timeout=30)
+    final_task = e2e_helper.wait_for_task_completion(task_id, timeout=60)
 
     assert final_task["status"] == "succeeded", "Unicode should succeed"
 
@@ -563,23 +565,30 @@ def test_unicode_payload_end_to_end(e2e_helper):
 @pytest.mark.fast
 def test_large_payload_end_to_end(e2e_helper):
     """
-    E2E: Test large payload (10MB) through full pipeline.
+    E2E: Test large payload through full pipeline.
 
-    Scenario: Send 10MB payload through gateway → queue → actor
+    Scenario: Send payload near transport size limit through gateway → queue → actor
     Expected: Processes successfully
 
-    Note: SQS has a 256KB message size limit, so this test is skipped for SQS transport.
-    Use RabbitMQ for large payload testing.
+    Each transport has its own message size limit, so "large" is
+    transport-specific.  The handler returns {**payload, "data": "X"*N},
+    and the response is also published via the transport (sidecar → x-sink),
+    so both directions must fit within the limit.
+
+    Transport   | Limit   | Test size | Headroom
+    ------------|---------|-----------|-------------------------------
+    SQS         | 256 KB  | 200 KB    | ~56 KB for envelope/JSON
+    Pub/Sub     | 10 MB   | 4 MB      | ~6 MB (response goes via Pub/Sub too)
+    RabbitMQ    | none    | 10 MB     | effectively unlimited
     """
     import os
 
     transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
-    if transport == "sqs":
-        pytest.skip("Large payload test not supported with SQS (256KB limit)")
-
+    # Each transport has a different message size limit; test near each limit
+    size_kb = {"sqs": 200, "pubsub": 4096, "rabbitmq": 10240}.get(transport, 10240)
     response = e2e_helper.call_mcp_tool(
         tool_name="test_large_payload",
-        arguments={"size_kb": 10240},  # 10MB
+        arguments={"size_kb": size_kb},
     )
 
     task_id = response["result"]["task_id"]

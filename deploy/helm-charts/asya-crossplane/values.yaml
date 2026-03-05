@@ -13,7 +13,7 @@ providers:
     # Enable GCP Pub/Sub provider (set to false for non-GCP deployments)
     enabled: false
     # GCP Pub/Sub provider version
-    pubsubVersion: "v1.14.0"
+    pubsubVersion: "v2.5.0"
   kubernetes:
     # Kubernetes provider version
     version: "v0.17.0"

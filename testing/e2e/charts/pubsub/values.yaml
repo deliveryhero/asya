@@ -11,4 +11,11 @@ resources:
     memory: 256Mi
   limits:
     cpu: 500m
-    memory: 512Mi
+    memory: 1Gi
+
+# Mock OAuth token server for Crossplane GCP provider.
+# The Terraform-based provider requires OAuth token exchange even
+# when using a custom endpoint (emulator). This mock returns a
+# dummy Bearer token for any POST request.
+mockOAuth:
+  enabled: true

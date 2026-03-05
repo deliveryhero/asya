@@ -1,0 +1,79 @@
+# Profile: Pub/Sub + GCS
+#
+# This configuration uses:
+# - Google Cloud Pub/Sub emulator for message transport
+# - fake-gcs-server for object storage
+#
+# State proxy connectors for GCS persistence are added via crew-gcs-overlay.yml
+# (merged by the Makefile with an additional -f flag).
+#
+# Usage: docker compose -f profiles/pubsub-gcs.yml -f compose/crew-gcs-overlay.yml up
+
+include:
+# Base infrastructure
+- path: ../../../shared/compose/pubsub.yml
+- path: ../../../shared/compose/fake-gcs.yml
+- path: ../../../shared/compose/postgres.yml
+# Asya components:
+- path: ../../../shared/compose/asya/testing-actors.yml
+  env_file: .env.pubsub-gcs
+- path: ../../../shared/compose/asya/crew-actors.yml
+  env_file: .env.pubsub-gcs
+
+services:
+  gateway:
+    extends:
+      file: ../../../shared/compose/asya/gateway.yml
+      service: gateway
+    env_file: .env.pubsub-gcs
+    depends_on:
+      pubsub:
+        condition: service_healthy
+      queue-setup:
+        condition: service_completed_successfully
+      postgres-migrate:
+        condition: service_completed_successfully
+
+  tester:
+    extends:
+      file: ../compose/tester.yml
+      service: tester
+    env_file: .env.pubsub-gcs
+    depends_on:
+      pubsub:
+        condition: service_healthy
+      fake-gcs:
+        condition: service_healthy
+      queue-setup:
+        condition: service_completed_successfully
+      postgres-migrate:
+        condition: service_completed_successfully
+      storage-setup:
+        condition: service_completed_successfully
+      gateway:
+        condition: service_healthy
+      test-actors-waiter:
+        condition: service_completed_successfully
+      crew-actors-waiter:
+        condition: service_completed_successfully
+
+volumes:
+  asya-echo-sockets:
+  asya-doubler-sockets:
+  asya-incrementer-sockets:
+  asya-error-sockets:
+  asya-timeout-sockets:
+  asya-fanout-sockets:
+  asya-empty-sockets:
+  asya-unicode-sockets:
+  asya-large-payload-sockets:
+  asya-nested-sockets:
+  asya-null-sockets:
+  asya-slow-boundary-sockets:
+  asya-cycle-sockets:
+  asya-param-flow-1-sockets:
+  asya-param-flow-2-sockets:
+  asya-streaming-sockets:
+  asya-streaming-error-sockets:
+  asya-x-sink-sockets:
+  asya-x-sump-sockets:

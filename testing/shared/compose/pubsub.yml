@@ -1,0 +1,57 @@
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "2"
+
+services:
+  pubsub:
+    image: gcr.io/google.com/cloudsdktool/google-cloud-cli:emulators
+    logging: *default-logging
+    command: ["gcloud", "beta", "emulators", "pubsub", "start", "--host-port=0.0.0.0:8085"]
+    ports:
+    - "8085:8085"
+    environment:
+    - PUBSUB_PROJECT_ID=test-project
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8085"]
+      interval: 5s
+      timeout: 15s
+      retries: 15
+      start_period: 10s
+
+  queue-setup:
+    image: curlimages/curl:latest
+    logging: *default-logging
+    depends_on:
+      pubsub:
+        condition: service_healthy
+    environment:
+    - PUBSUB_PROJECT_ID=test-project
+    volumes:
+    - ./configs/pubsub-topics.txt:/tmp/pubsub-topics.txt:ro
+    healthcheck:
+      test:
+      - CMD
+      - sh
+      - -c
+      - |
+        curl -sf http://pubsub:8085/v1/projects/test-project/subscriptions/asya-default-x-sink >/dev/null &&
+        curl -sf http://pubsub:8085/v1/projects/test-project/subscriptions/asya-default-x-sump >/dev/null
+      interval: 2s
+      timeout: 5s
+      retries: 30
+      start_period: 5s
+    entrypoint:
+    - /bin/sh
+    - -c
+    - |
+      while IFS= read -r topic || [ -n "$$topic" ]; do
+        [ -z "$$topic" ] && continue
+        case "$$topic" in '#'*) continue;; esac
+        curl -sf -X PUT "http://pubsub:8085/v1/projects/test-project/topics/$$topic" || true
+        curl -sf -X PUT "http://pubsub:8085/v1/projects/test-project/subscriptions/$$topic" \
+          -H 'Content-Type: application/json' \
+          -d "{\"topic\":\"projects/test-project/topics/$$topic\",\"ackDeadlineSeconds\":60}" || true
+      done < /tmp/pubsub-topics.txt
+      echo '[+] Pub/Sub topics and subscriptions created successfully'

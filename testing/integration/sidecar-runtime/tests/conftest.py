@@ -13,6 +13,7 @@ import pytest
 import requests
 
 from asya_testing.config import require_env, get_env
+from asya_testing.clients.pubsub import PubSubClient
 from asya_testing.clients.sqs import SQSClient
 
 logger = logging.getLogger(__name__)
@@ -192,6 +193,59 @@ class SQSTestHelper:
         return message
 
 
+class PubSubTestHelper:
+    """Helper class for Pub/Sub integration testing."""
+
+    def __init__(self, project_id: str = "test-project"):
+        self.pubsub_client = PubSubClient(project_id=project_id)
+
+    def publish_envelope(
+        self, queue: str, envelope: dict, exchange: str = ""
+    ) -> None:
+        """Publish envelope to Pub/Sub topic."""
+        logger.debug(f"Publishing to topic='{queue}'")
+        logger.debug(f"Message body: {json.dumps(envelope)[:200]}...")
+        self.pubsub_client.publish(queue, envelope)
+        logger.debug("Message published")
+
+    def get_envelope(self, queue: str, timeout: int = 10) -> Optional[Dict]:
+        """Get envelope from a subscription with timeout."""
+        logger.debug(f"Polling Pub/Sub subscription '{queue}' for up to {timeout}s...")
+        message = self.pubsub_client.consume(queue, timeout)
+        if message:
+            logger.debug(f"Message found in '{queue}'")
+        else:
+            logger.debug(f"Timeout, no message found in '{queue}'")
+        return message
+
+    def purge_queue(self, queue: str) -> bool:
+        """Purge all messages from a subscription."""
+        try:
+            self.pubsub_client.purge(queue)
+            logger.debug(f"Purged subscription '{queue}'")
+            return True
+        except Exception as e:
+            logger.warning(f"Failed to purge subscription '{queue}': {e}")
+            return False
+
+    def assert_envelope_in_queue(
+        self, queue: str, expected_fields: Optional[Dict] = None, timeout: int = 10
+    ) -> Optional[Dict]:
+        """Assert that an envelope appears in the specified subscription."""
+        message = self.get_envelope(queue, timeout)
+
+        if message is None:
+            return None
+
+        if expected_fields:
+            for field, expected_value in expected_fields.items():
+                actual_value = message.get(field)
+                if actual_value != expected_value:
+                    return None
+
+        return message
+
+
 @pytest.fixture(scope="session", autouse=True)
 def log_test_session_start():
     """Log when pytest session starts to track initialization time."""
@@ -235,8 +289,14 @@ def transport_helper():
             secret_key=secret_key,
         )
         logger.info(f"[+] SQS helper created in {time.time()-start:.2f}s")
+    elif transport == "pubsub":
+        project_id = require_env("PUBSUB_PROJECT_ID")
+        logger.info(f"[+] Environment loaded in {time.time()-start:.2f}s")
+
+        helper = PubSubTestHelper(project_id=project_id)
+        logger.info(f"[+] Pub/Sub helper created in {time.time()-start:.2f}s")
     else:
-        raise ValueError(f"Unsupported transport: {transport}. Use 'rabbitmq' or 'sqs'")
+        raise ValueError(f"Unsupported transport: {transport}. Use 'rabbitmq', 'sqs', or 'pubsub'")
 
     yield helper
 

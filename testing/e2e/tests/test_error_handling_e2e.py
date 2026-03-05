@@ -21,6 +21,8 @@ import time
 
 import pytest
 
+from asya_testing.utils.storage import get_storage_client
+
 logger = logging.getLogger(__name__)
 
 
@@ -43,9 +45,6 @@ def _get_transport_client(transport: str):
         pytest.skip(f"Unsupported transport: {transport}")
 
 
-@pytest.mark.skip(
-    reason="S3 persistence requires state-proxy connector on x-sump",
-)
 @pytest.mark.slow
 def test_error_goes_to_sump_when_available(e2e_helper, kubectl, chaos_queues, namespace, errors_bucket):
     """
@@ -66,7 +65,7 @@ def test_error_goes_to_sump_when_available(e2e_helper, kubectl, chaos_queues, na
 
     This is the NORMAL case - application handles its own errors.
     """
-    from asya_testing.utils.s3 import wait_for_envelope_in_s3
+    storage_client = get_storage_client()
 
     transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
     transport_client = _get_transport_client(transport)
@@ -100,17 +99,17 @@ def test_error_goes_to_sump_when_available(e2e_helper, kubectl, chaos_queues, na
         "Task should be marked as 'failed' after x-sump processes it"
     logger.info("[+] Task marked as failed - error was processed")
 
-    # Verify error persisted to S3
-    logger.info("Waiting for error to appear in S3 errors bucket...")
-    s3_object = wait_for_envelope_in_s3(
-        bucket_name=errors_bucket,
-        message_id=task_id,
+    # Verify error persisted to storage
+    logger.info("Waiting for error to appear in storage errors bucket...")
+    storage_object = storage_client.wait_for_object(
+        bucket=errors_bucket,
+        envelope_id=task_id,
         timeout=30
     )
 
-    assert s3_object is not None, \
-        f"Error should be persisted to S3 errors bucket by x-sump"
-    logger.info("[+] Error persisted to S3 by x-sump")
+    assert storage_object is not None, \
+        "Error should be persisted to storage errors bucket by x-sump"
+    logger.info("[+] Error persisted to storage by x-sump")
 
     # Verify DLQ is EMPTY (x-sump handled the error, no fallback needed)
     logger.info(f"Verifying DLQ {dlq_name} is empty")

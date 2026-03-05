@@ -7,20 +7,33 @@ containerdConfigPatches:
 nodes:
 - role: control-plane
   extraPortMappings:
+  # Gateway HTTP
   - containerPort: 30080
     hostPort: 8080
     protocol: TCP
+  # LocalStack SQS
   - containerPort: 30566
     hostPort: 4566
     protocol: TCP
+  # LocalStack S3
   - containerPort: 30567
     hostPort: 4567
     protocol: TCP
+  # RabbitMQ AMQP
   - containerPort: 30672
     hostPort: 5672
     protocol: TCP
+  # MinIO S3
   - containerPort: 30900
     hostPort: 9000
+    protocol: TCP
+  # Pub/Sub emulator
+  - containerPort: 30085
+    hostPort: 8085
+    protocol: TCP
+  # fake-gcs-server
+  - containerPort: 30443
+    hostPort: 4443
     protocol: TCP
   kubeadmConfigPatches:
   - |

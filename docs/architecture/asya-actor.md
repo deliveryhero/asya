@@ -198,6 +198,23 @@ kubectl logs -f deploy/text-processor
 kubectl logs -f deploy/text-processor -c asya-sidecar
 ```
 
+## Handler Return Values and Sidecar Behavior
+
+The sidecar interprets the handler's return value to decide routing:
+
+| Handler returns | Sidecar behavior |
+|----------------|-----------------|
+| `dict` (e.g. `{"result": ...}`) | Route payload to next actor in `route.next`, or to x-sink if route is exhausted |
+| `None` | Treat as empty response — route original envelope to x-sink |
+| Generator `yield payload` | Each yield emits a downstream frame routed independently |
+| Generator returns without yielding | Same as `None` — route original envelope to x-sink |
+
+**Key distinction**: returning `None` vs `{}` changes routing behavior for regular actors:
+- `None` → runtime signals end-of-route (`route.curr` becomes `""`) → sidecar routes to x-sink with **original** payload
+- `{}` → runtime treats as valid output → sidecar routes `{}` as payload to next actor or x-sink
+
+**End actors** (x-sink, x-sump) are terminal — the sidecar never routes their responses. Instead, it reports final status to gateway. See [asya-crew.md](asya-crew.md) for details.
+
 ## Deployment with Helm
 
 Use `asya-actor` chart for batch deployment:

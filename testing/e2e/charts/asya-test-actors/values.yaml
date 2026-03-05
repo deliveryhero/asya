@@ -6,8 +6,11 @@ namespace: asya-e2e
 
 # Transport name (required)
 # Must reference a transport configured in the operator
-# Common values: rabbitmq, sqs
+# Common values: rabbitmq, sqs, pubsub
 transport: rabbitmq
+
+# GCP project ID (required for pubsub transport)
+gcpProject: ""
 
 # Common workload configuration for all actors
 workload:

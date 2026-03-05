@@ -4,7 +4,7 @@ Unit tests for generic checkpointer.
 
 Tests the checkpointer which persists messages via state proxy file I/O.
 Receives message metadata (id, phase, actor) as keyword arguments from
-the sink handler and writes complete messages as JSON files to
+the sink/sump handler and writes complete messages as JSON files to
 ASYA_PERSISTENCE_MOUNT.
 """
 
@@ -46,14 +46,13 @@ def test_succeeded_phase_uses_succeeded_prefix(tmp_path, monkeypatch):
         del sys.modules["asya_crew.checkpointer"]
     from asya_crew.checkpointer import handler
 
-    result = handler(
+    handler(
         {"result": 42},
         message_id="test-message-123",
         phase="succeeded",
         route_prev=["test-actor"],
     )
 
-    assert result == {}
     files = _find_json_files(mount_path)
     assert len(files) == 1
     assert files[0].startswith(os.path.join(mount_path, "succeeded/"))
@@ -69,14 +68,13 @@ def test_failed_phase_uses_failed_prefix(tmp_path, monkeypatch):
         del sys.modules["asya_crew.checkpointer"]
     from asya_crew.checkpointer import handler
 
-    result = handler(
+    handler(
         {"error": "Processing failed"},
         message_id="test-message-456",
         phase="failed",
         route_prev=["test-actor"],
     )
 
-    assert result == {}
     files = _find_json_files(mount_path)
     assert len(files) == 1
     assert files[0].startswith(os.path.join(mount_path, "failed/"))
@@ -92,28 +90,29 @@ def test_missing_phase_uses_checkpoint_prefix(tmp_path, monkeypatch):
         del sys.modules["asya_crew.checkpointer"]
     from asya_crew.checkpointer import handler
 
-    result = handler(
+    handler(
         {"data": "test"},
         message_id="test-message-789",
         phase="",
         route_prev=["test-actor"],
     )
 
-    assert result == {}
     files = _find_json_files(mount_path)
     assert len(files) == 1
     assert files[0].startswith(os.path.join(mount_path, "checkpoint/"))
 
 
-def test_returns_empty_dict(monkeypatch):
-    """Test checkpoint handler returns empty dict."""
+def test_completes_without_error(tmp_path, monkeypatch):
+    """Test checkpoint handler completes without raising."""
+    mount_path = str(tmp_path / "checkpoints")
+    os.makedirs(mount_path)
+    monkeypatch.setenv("ASYA_PERSISTENCE_MOUNT", mount_path)
+
     if "asya_crew.checkpointer" in sys.modules:
         del sys.modules["asya_crew.checkpointer"]
     from asya_crew.checkpointer import handler
 
-    result = handler({"result": 100}, message_id="test-message-abc", phase="succeeded")
-
-    assert result == {}
+    handler({"result": 100}, message_id="test-message-abc", phase="succeeded")
 
 
 def test_skips_when_mount_not_configured(monkeypatch):
@@ -122,9 +121,7 @@ def test_skips_when_mount_not_configured(monkeypatch):
         del sys.modules["asya_crew.checkpointer"]
     from asya_crew.checkpointer import handler
 
-    result = handler({"value": 42}, message_id="test-message-no-mount", phase="succeeded")
-
-    assert result == {}
+    handler({"value": 42}, message_id="test-message-no-mount", phase="succeeded")
 
 
 def test_key_includes_actor_from_route_prev(tmp_path, monkeypatch):
@@ -137,14 +134,13 @@ def test_key_includes_actor_from_route_prev(tmp_path, monkeypatch):
         del sys.modules["asya_crew.checkpointer"]
     from asya_crew.checkpointer import handler
 
-    result = handler(
+    handler(
         {"data": "test"},
         message_id="test-actor-key",
         phase="succeeded",
         route_prev=["actor-a", "actor-b", "text-processor"],
     )
 
-    assert result == {}
     files = _find_json_files(mount_path)
     assert len(files) == 1
     assert "/text-processor/" in files[0]

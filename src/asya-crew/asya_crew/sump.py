@@ -24,6 +24,7 @@ ABI Protocol:
 - yield payload -> emit downstream frame
 
 Handler Behavior:
+- Generator handler using ABI yield protocol for metadata access
 - On failed: logs complete message summary JSON at ERROR level
 - On succeeded: debug-level log only
 - Returns payload (terminal, no further routing)
@@ -55,7 +56,8 @@ def sump_handler(payload: dict[str, Any]) -> Generator[tuple | dict[str, Any], A
     elif phase == "succeeded":
         logger.debug(f"Terminal success for message {message_id}")
     else:
-        logger.info(f"Terminal non-final phase '{phase}' for message {message_id}")
+        phase_label = phase if phase else "unknown"
+        logger.info(f"Terminal non-final phase '{phase_label}' for message {message_id}")
 
     if ASYA_PERSISTENCE_MOUNT:
         try:

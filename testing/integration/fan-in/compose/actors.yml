@@ -128,7 +128,7 @@ services:
         condition: service_healthy
     env_file: *runtime-env-files
     environment:
-      ASYA_HANDLER: asya_crew.fanin.s3_split_key.aggregator
+      ASYA_HANDLER: asya_crew.fanin.split_key.aggregator
       ASYA_RESILIENCY_ACTOR_TIMEOUT: 30s
       ASYA_STATE_PROXY_MOUNTS: "fanin:/state/fanin:write=cas"
     volumes:
