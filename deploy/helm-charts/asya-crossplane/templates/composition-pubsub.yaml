@@ -38,7 +38,7 @@ spec:
 
     {{- if .Values.functions.overlaysEnabled }}
     # Resolve actor overlays -- merges EnvironmentConfig overlay data into a resolved spec
-    # written to context key asya.sh/resolved-spec for downstream steps to consume.
+    # written to context key asya/resolved-spec for downstream steps to consume.
     # Actors without spec.overlays are passed through with no changes.
     - step: resolve-overlays
       functionRef:
@@ -203,8 +203,8 @@ spec:
               {{`{{- end -}}`}}
             {{`{{- end -}}`}}
             {{`{{- $resolvedSpec := dict -}}`}}
-            {{`{{- if and .context (index .context "asya.sh/resolved-spec") -}}`}}
-            {{`{{- $resolvedSpec = index .context "asya.sh/resolved-spec" -}}`}}
+            {{`{{- if and .context (index .context "asya/resolved-spec") -}}`}}
+            {{`{{- $resolvedSpec = index .context "asya/resolved-spec" -}}`}}
             {{`{{- end -}}`}}
             {{`{{- $scaling := $xr.spec.scaling -}}`}}
             {{`{{- if and $resolvedSpec (hasKey $resolvedSpec "scaling") -}}`}}
@@ -314,8 +314,8 @@ spec:
               {{`{{- $userLabels = index .context "asya/user-labels" -}}`}}
             {{`{{- end -}}`}}
             {{`{{- $resolvedSpec := dict -}}`}}
-            {{`{{- if and .context (index .context "asya.sh/resolved-spec") -}}`}}
-            {{`{{- $resolvedSpec = index .context "asya.sh/resolved-spec" -}}`}}
+            {{`{{- if and .context (index .context "asya/resolved-spec") -}}`}}
+            {{`{{- $resolvedSpec = index .context "asya/resolved-spec" -}}`}}
             {{`{{- end -}}`}}
             {{`{{- $workload := $xr.spec.workload -}}`}}
             {{`{{- if and $resolvedSpec (hasKey $resolvedSpec "workload") -}}`}}

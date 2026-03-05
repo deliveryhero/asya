@@ -47,6 +47,7 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 TRANSPORT = os.getenv("ASYA_TRANSPORT", "rabbitmq")
+GCP_PROJECT = os.getenv("ASYA_PUBSUB_PROJECT_ID", "")
 
 
 def _actor_manifest(
@@ -64,9 +65,15 @@ def _actor_manifest(
     image_pull_policy: str = "IfNotPresent",
     transport: str | None = None,
     overlays: list[str] | None = None,
+    gcp_project: str | None = None,
 ) -> str:
     """Build an AsyncActor manifest with common defaults."""
     transport = transport or TRANSPORT
+
+    # Pubsub transport requires gcpProject so the injector can set ASYA_PUBSUB_PROJECT_ID
+    # on the sidecar. Default to the value from the test environment.
+    if gcp_project is None and transport == "pubsub":
+        gcp_project = GCP_PROJECT
 
     scaling_block = f"""\
   scaling:
@@ -87,6 +94,8 @@ def _actor_manifest(
         overlay_lines = "\n".join(f"    - {f}" for f in overlays)
         overlays_block = f"\n  overlays:\n{overlay_lines}"
 
+    gcp_project_line = f"\n  gcpProject: {gcp_project}" if gcp_project else ""
+
     extra_env_block = f"\n{extra_runtime_env}" if extra_runtime_env else ""
 
     return f"""
@@ -97,7 +106,7 @@ metadata:
   namespace: {namespace}
 spec:
   actor: {name}
-  transport: {transport}{overlays_block}
+  transport: {transport}{gcp_project_line}{overlays_block}
 {scaling_block}
   workload:
     kind: Deployment{replicas_line}
