@@ -13,7 +13,6 @@ from dataclasses import dataclass
 from typing import Any
 
 from asya_testing.config import Storage, require_env
-from asya_testing.utils import gcs, s3
 
 
 logger = logging.getLogger(__name__)
@@ -45,6 +44,16 @@ class StorageClient:
         self.storage_type = storage_type
         logger.debug(f"Initialized StorageClient with backend: {storage_type.value}")
 
+    @property
+    def _backend(self):
+        """Lazy-import the backend module matching the configured storage type."""
+        if self.storage_type == Storage.GCS:
+            from asya_testing.utils import gcs
+            return gcs
+        else:
+            from asya_testing.utils import s3
+            return s3
+
     def list_objects(self, bucket: str, prefix: str = "") -> list[ObjectInfo]:
         """
         List all objects in bucket with optional prefix.
@@ -57,10 +66,10 @@ class StorageClient:
             List of ObjectInfo with key and name attributes
         """
         if self.storage_type == Storage.GCS:
-            blobs = gcs.list_objects_in_bucket(bucket, prefix)
+            blobs = self._backend.list_objects_in_bucket(bucket, prefix)
             return [ObjectInfo(key=blob.name, name=blob.name) for blob in blobs]
         else:
-            objects = s3.list_objects_in_bucket(bucket, prefix)
+            objects = self._backend.list_objects_in_bucket(bucket, prefix)
             return [ObjectInfo(key=obj["Key"], name=obj["Key"]) for obj in objects]
 
     def get_object_json(self, bucket: str, key: str) -> dict[str, Any] | None:
@@ -74,10 +83,7 @@ class StorageClient:
         Returns:
             Parsed JSON content or None if object not found
         """
-        if self.storage_type == Storage.GCS:
-            return gcs.get_object_from_gcs(bucket, key)
-        else:
-            return s3.get_object_from_s3(bucket, key)
+        return self._backend.get_object_from_gcs(bucket, key) if self.storage_type == Storage.GCS else self._backend.get_object_from_s3(bucket, key)
 
     def find_by_id(self, bucket: str, envelope_id: str, prefix: str = "") -> dict[str, Any] | None:
         """
@@ -95,9 +101,9 @@ class StorageClient:
             Parsed envelope content or None if not found
         """
         if self.storage_type == Storage.GCS:
-            return gcs.find_envelope_in_gcs(bucket, envelope_id, prefix)
+            return self._backend.find_envelope_in_gcs(bucket, envelope_id, prefix)
         else:
-            return s3.find_envelope_in_s3(bucket, envelope_id, prefix)
+            return self._backend.find_envelope_in_s3(bucket, envelope_id, prefix)
 
     def wait_for_object(
         self,
@@ -121,9 +127,9 @@ class StorageClient:
             Parsed envelope content or None if not found within timeout
         """
         if self.storage_type == Storage.GCS:
-            return gcs.wait_for_envelope_in_gcs(bucket, envelope_id, prefix, timeout)
+            return self._backend.wait_for_envelope_in_gcs(bucket, envelope_id, prefix, timeout)
         else:
-            return s3.wait_for_envelope_in_s3(bucket, envelope_id, prefix, timeout)
+            return self._backend.wait_for_envelope_in_s3(bucket, envelope_id, prefix, timeout)
 
     def delete_all(self, bucket: str, prefix: str = "") -> int:
         """
@@ -137,9 +143,9 @@ class StorageClient:
             Number of objects deleted
         """
         if self.storage_type == Storage.GCS:
-            return gcs.delete_all_objects_in_bucket(bucket, prefix)
+            return self._backend.delete_all_objects_in_bucket(bucket, prefix)
         else:
-            return s3.delete_all_objects_in_bucket(bucket, prefix)
+            return self._backend.delete_all_objects_in_bucket(bucket, prefix)
 
     def ensure_bucket(self, bucket: str) -> None:
         """
@@ -149,9 +155,9 @@ class StorageClient:
             bucket: Bucket name to ensure exists
         """
         if self.storage_type == Storage.GCS:
-            gcs.ensure_bucket_exists(bucket)
+            self._backend.ensure_bucket_exists(bucket)
         else:
-            s3.ensure_bucket_exists(bucket)
+            self._backend.ensure_bucket_exists(bucket)
 
 
 def get_storage_client() -> StorageClient:

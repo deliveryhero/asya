@@ -45,7 +45,7 @@ crew:
       project: test-project
       emulatorHost: "http://gcs-emulator.asya-system.svc.cluster.local:4443"
     connector:
-      image: ghcr.io/deliveryhero/asya-state-proxy-gcs-buffered-lww:latest
+      image: ghcr.io/deliveryhero/asya-state-proxy-gcs-buffered-lww:dev
   x-sink:
     transport: pubsub
     env:
