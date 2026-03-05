@@ -676,7 +676,256 @@ src/asya-lab/
 
 ---
 
-## 21. Open Questions
+## 21. Flow Compiler: Actor Marking and Ownership
+
+### 21.1 Actor vs Inline Distinction
+
+The flow compiler needs to distinguish actor calls (message boundaries) from
+inline helper functions. The convention:
+
+- **Default**: every `p = func(p)` call is an actor boundary
+- **Inline marker**: `# asya: inline` marks a call as NOT an actor (executed
+  inside the router). Non-actor calls are discouraged but sometimes necessary
+  (e.g., `uuid.uuid4()`)
+- **Actor naming**: `# asya: actor=<name>` assigns the actor name. Required
+  because one handler function can be deployed as multiple actors with
+  different names and configs
+
+```python
+def order_processing(p: dict) -> dict:
+    p = validate_order(p)          # asya: actor=order-validator
+    p["id"] = str(uuid.uuid4())    # asya: inline
+    p = payment_processor(p)       # asya: actor=order-payment
+    return p
+```
+
+### 21.2 External Actor/Flow References
+
+For actors developed in other repos (not pip-importable), users write a stub
+function and mark it with an import directive:
+
+```python
+def external_sentiment(p: dict) -> dict:  # asya: import-actor team-nlp-sentiment
+    """Stub for sentiment-analyzer actor from team-nlp repo."""
+    pass
+
+def billing_pipeline(p: dict) -> dict:  # asya: import-flow billing-pipeline
+    """Stub for billing flow from finance repo."""
+    pass
+
+def order_processing(p: dict) -> dict:
+    p = validate_order(p)          # asya: actor=order-validator
+    p = external_sentiment(p)      # routes to existing actor (NOT owned)
+    p = billing_pipeline(p)        # routes to existing flow (NOT owned)
+    p = payment_processor(p)       # asya: actor=order-payment
+    return p
+```
+
+- `import-actor` / `import-flow`: routes to an existing actor/flow but does
+  NOT own it. `asya flow undeploy` will NOT delete imported actors.
+- The stub function provides type hints and docstrings for validation and
+  documentation, but the compiler only needs the comment directive for routing.
+
+### 21.3 Flow Ownership Model
+
+Each flow owns the actors it deploys. Ownership rules:
+
+- `asya flow deploy` creates actors with label `asya.sh/flow=<flow-name>`
+- `asya flow undeploy` deletes ONLY actors with that label
+- Each actor has at most ONE `asya.sh/flow` label (1:M constraint)
+- `import-actor` / `import-flow` references route to existing actors without
+  setting ownership labels
+- Same handler deployed in two flows = two separate actors (different names,
+  same code). No shared actor ownership.
+- If a user needs the same handler as both a flow-owned actor AND a standalone
+  actor serving identical traffic, they should implement a router with
+  `x-asya-route-override` header for traffic splitting.
+
+---
+
+## 22. Image Building
+
+### 22.1 Three-Layer Separation
+
+Image building follows the same layered pattern as IaC (Crossplane
+compositions):
+
+| Layer | Responsibility | Analogy to IaC |
+|---|---|---|
+| **Build intent** | WHAT to build (Python version, deps, GPU) | `actor.yaml` (simplified spec) |
+| **Build rendering** | Intent → build artifact (Dockerfile, cog.yaml, etc.) | `asya compile` → CRD manifest |
+| **Build execution** | Actually building the OCI image | `kubectl apply` / ArgoCD |
+
+Asya owns the first two layers. Build execution is **pluggable and optional**
+-- teams can use CI pipelines, Shipwright, Skaffold, or local Docker.
+
+### 22.2 Build Intent (`build:` in actor.yaml)
+
+The `build:` section in `actor.yaml` declares the image build requirements
+in terms meaningful to data scientists -- no Dockerfile knowledge needed:
+
+```yaml
+# deploy/actors/text-analyzer/actor.yaml
+name: text-analyzer
+handler: my_actors.text_analyzer.analyze
+transport: sqs
+flavors: [base]
+
+build:
+  python: "3.11"
+  requirements: requirements.txt
+  packages: [ffmpeg, libsndfile1]
+  gpu: true
+```
+
+For power users who need full control:
+
+```yaml
+build:
+  dockerfile: custom.Dockerfile   # escape hatch: BYO Dockerfile
+```
+
+### 22.3 Build Strategies (Pluggable)
+
+The build strategy determines HOW the intent is executed. Different strategies
+can produce Dockerfiles or bypass them entirely:
+
+| Strategy | Renders to | Dockerfile in git? | Best for |
+|---|---|---|---|
+| `dockerfile` | Dockerfile | Yes | Platform eng, GitOps, CI pipelines |
+| `cog` | cog.yaml | No | ML/GPU actors, CUDA auto-detection |
+| `buildpack` | project.toml (or auto-detect) | No | Standard Python, CNCF-native |
+| `local` | Dockerfile → docker build | Optional | Local dev, Docker Compose |
+
+Configured per context in `asya.yaml`:
+
+```yaml
+contexts:
+  k8s-stg:
+    build:
+      strategy: cog            # DS-friendly, auto CUDA
+      registry: ghcr.io/team   # where to push images
+  k8s-prod:
+    build:
+      strategy: dockerfile     # CI builds from generated Dockerfile
+  docker:
+    build:
+      strategy: local          # docker build on host
+```
+
+### 22.4 Build Rendering (`asya build render`)
+
+Transforms build intent into the target format for the selected strategy:
+
+```bash
+# Generate Dockerfile from build config
+asya build render text-analyzer --strategy=dockerfile
+# -> deploy/actors/text-analyzer/Dockerfile
+
+# Generate cog.yaml
+asya build render text-analyzer --strategy=cog
+# -> deploy/actors/text-analyzer/cog.yaml
+
+# Buildpacks need no rendering (auto-detect from requirements.txt)
+```
+
+The `dockerfile` strategy generates a Dockerfile from `asya-runtime` base
+images:
+
+```dockerfile
+# Auto-generated by asya build render
+FROM asya-runtime:3.11-gpu AS base
+RUN apt-get update && apt-get install -y ffmpeg libsndfile1
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY src/ /app/
+ENV ASYA_HANDLER=my_actors.text_analyzer.analyze
+```
+
+### 22.5 Router Actors (Framework-Managed)
+
+Router actors generated by the flow compiler are a special case:
+
+- All routers in a flow share ONE image: the framework-provided `asya-runtime`
+  base
+- Router code lives in a ConfigMap (`routers.py`), mounted at runtime
+- **No custom build needed** -- routers have no user dependencies
+- Platform engineers define a `flow-router` flavor for minimal resources
+
+This means a flow with 25 steps does NOT generate 25 Dockerfiles. It generates
+zero -- all routers use the same pre-built `asya-runtime` image.
+
+### 22.6 Lab vs Prod Workflow
+
+**Lab (staging, imperative)**:
+
+```
+DS writes handler → build: config in actor.yaml
+                  → asya actor deploy --context=k8s-stg
+                  → strategy builds image (Cog/local/Shipwright)
+                  → pushes to dev registry
+                  → applies AsyncActor CRD to staging
+```
+
+**Prod (GitOps, declarative)**:
+
+```
+DS commits deploy/ files → CI runs asya build render
+                         → CI builds Docker image from Dockerfile
+                         → CI pushes to prod registry
+                         → PR reviewed by platform engineers
+                         → ArgoCD/FluxCD applies CRD with image digest
+```
+
+The key: lab mode can use Dockerfile-less strategies (Cog, buildpacks) for
+speed. Prod mode can use Dockerfiles in git for auditability. Both read the
+same `build:` intent from actor.yaml.
+
+### 22.7 Build Execution (Not Asya's Core)
+
+Where the image is built is NOT part of Asya's core. Asya renders the intent;
+execution is delegated:
+
+- **CI pipeline**: GitHub Actions, GitLab CI, Jenkins -- builds from rendered
+  Dockerfile
+- **Shipwright** (CNCF): On-cluster builds with ClusterBuildStrategy CRDs.
+  Supports Buildpacks, Kaniko, Buildah, custom Cog strategy
+- **Skaffold** (CNCF): Local builds with file-sync for inner-loop dev
+- **Local Docker**: `docker build` on the developer's machine
+
+Asya-quickstart Helm chart may include optional Shipwright integration for
+showcasing, but production teams choose their own build infrastructure.
+
+### 22.8 Cog Integration (Separate Epic)
+
+Cog (by Replicate) provides the best DS experience for GPU/ML actors. The
+integration is detailed in the `cog-for-building-docker-images` epic:
+
+- `cog.yaml` auto-maps framework versions to NVIDIA CUDA base images
+- `cog debug` generates optimized multi-stage Dockerfiles
+- Asya strips Cog's orchestrator (Axum server) and uses its own sidecar
+- Integration via Shipwright ClusterBuildStrategy or standalone `cog build`
+
+### 22.9 Scoping
+
+**In scope for asya-lab (this epic)**:
+1. `build:` config schema in actor.yaml
+2. `asya build render` command (Dockerfile strategy only)
+3. `asya actor deploy` with `--builder=local` (docker build + push)
+4. Router actors use `asya-runtime` base directly
+
+**Separate epics (future)**:
+- Cog integration as build strategy
+- Shipwright on-cluster builds
+- Skaffold live-sync for inner loop
+- Buildpack strategy
+- Wolfi/apko base images for minimal footprint
+- OCI-as-source for ArgoCD (bundled manifests via ORAS)
+- Build flavors (gpu-pytorch, cpu-minimal, etc.)
+
+---
+
+## 23. Open Questions
 
 1. **Click vs argparse**: Current CLI uses argparse. Should the new CLI use
    Click (richer features, better subcommand support) or stay with argparse?
@@ -686,3 +935,7 @@ src/asya-lab/
 
 3. **Docker Compose generation**: Should `asya compile --context=docker`
    generate a full `docker-compose.yaml` or a partial overlay?
+
+4. **`import-actor` / `import-flow` syntax**: The inline comment syntax for
+   external actor/flow references needs refinement. Current proposal
+   `# asya: import-actor <name>` works but alternatives may be cleaner.
