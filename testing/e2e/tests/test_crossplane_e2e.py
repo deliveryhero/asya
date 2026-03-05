@@ -207,6 +207,8 @@ def test_asyncactor_basic_lifecycle(e2e_helper):
 
     Expected: Full lifecycle works without errors
     """
+    _transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
+    _transport_suffix = f"\n  gcpProject: {GCP_PROJECT}" if _transport == "pubsub" and GCP_PROJECT else ""
     actor_manifest = f"""
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
@@ -215,7 +217,7 @@ metadata:
   namespace: {e2e_helper.namespace}
 spec:
   actor: test-lifecycle
-  transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
+  transport: {_transport}{_transport_suffix}
   scaling:
     enabled: true
     minReplicas: 1
@@ -303,6 +305,8 @@ def test_asyncactor_update_propagates(e2e_helper):
 
     Expected: Changes propagate correctly
     """
+    _transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
+    _transport_suffix = f"\n  gcpProject: {GCP_PROJECT}" if _transport == "pubsub" and GCP_PROJECT else ""
     initial_manifest = f"""
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
@@ -311,7 +315,7 @@ metadata:
   namespace: {e2e_helper.namespace}
 spec:
   actor: test-update
-  transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
+  transport: {_transport}{_transport_suffix}
   scaling:
     enabled: true
     minReplicas: 1
@@ -338,7 +342,7 @@ metadata:
   namespace: {e2e_helper.namespace}
 spec:
   actor: test-update
-  transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
+  transport: {_transport}{_transport_suffix}
   scaling:
     enabled: true
     minReplicas: 3
@@ -468,6 +472,8 @@ def test_asyncactor_status_conditions(e2e_helper):
 
     Expected: Status reflects actual state
     """
+    _transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
+    _transport_suffix = f"\n  gcpProject: {GCP_PROJECT}" if _transport == "pubsub" and GCP_PROJECT else ""
     manifest = f"""
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
@@ -476,7 +482,7 @@ metadata:
   namespace: {e2e_helper.namespace}
 spec:
   actor: test-status
-  transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
+  transport: {_transport}{_transport_suffix}
   scaling:
     enabled: true
     minReplicas: 1
@@ -541,6 +547,8 @@ def test_asyncactor_with_broken_image(e2e_helper):
 
     Expected: Graceful handling of image pull failures
     """
+    _transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
+    _transport_suffix = f"\n  gcpProject: {GCP_PROJECT}" if _transport == "pubsub" and GCP_PROJECT else ""
     manifest = f"""
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
@@ -549,7 +557,7 @@ metadata:
   namespace: {e2e_helper.namespace}
 spec:
   actor: test-broken-image
-  transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
+  transport: {_transport}{_transport_suffix}
   scaling:
     enabled: false
   workload:
@@ -616,6 +624,8 @@ def test_asyncactor_sidecar_environment_variables(e2e_helper):
 
     Expected: All required env vars present
     """
+    _transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
+    _transport_suffix = f"\n  gcpProject: {GCP_PROJECT}" if _transport == "pubsub" and GCP_PROJECT else ""
     manifest = f"""
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
@@ -624,7 +634,7 @@ metadata:
   namespace: {e2e_helper.namespace}
 spec:
   actor: test-sidecar-env
-  transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
+  transport: {_transport}{_transport_suffix}
   scaling:
     enabled: false
   workload:
