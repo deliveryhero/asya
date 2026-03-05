@@ -13,6 +13,29 @@ spec:
     kind: XAsyncActor
   mode: Pipeline
   pipeline:
+    # Extract user labels into pipeline context, filtering system prefixes
+    - step: extract-user-labels
+      functionRef:
+        name: function-go-templating
+      input:
+        apiVersion: gotemplating.fn.crossplane.io/v1beta1
+        kind: GoTemplate
+        source: Inline
+        inline:
+          template: |
+            {{`{{- $xr := .observed.composite.resource -}}`}}
+            {{`{{- $userLabels := dict -}}`}}
+            {{`{{- range $k, $v := $xr.metadata.labels -}}`}}
+              {{`{{- if not (or (hasPrefix "crossplane.io/" $k) (hasPrefix "app.kubernetes.io/" $k)) -}}`}}
+                {{`{{- $_ := set $userLabels $k $v -}}`}}
+              {{`{{- end -}}`}}
+            {{`{{- end -}}`}}
+            apiVersion: meta.gotemplating.fn.crossplane.io/v1alpha1
+            kind: Context
+            data:
+              "asya/user-labels":
+                {{`{{- $userLabels | toYaml | nindent 4 }}`}}
+
     {{- if .Values.functions.overlaysEnabled }}
     # Resolve actor overlays -- merges EnvironmentConfig overlay data into a resolved spec
     # written to context key asya.sh/resolved-spec for downstream steps to consume.
@@ -106,6 +129,10 @@ spec:
             {{`{{- $xr := .observed.composite.resource -}}`}}
             {{`{{- $namespace := index $xr.metadata.labels "crossplane.io/claim-namespace" -}}`}}
             {{`{{- $actorName := $xr.spec.actor -}}`}}
+            {{`{{- $userLabels := dict -}}`}}
+            {{`{{- if and .context (index .context "asya/user-labels") -}}`}}
+              {{`{{- $userLabels = index .context "asya/user-labels" -}}`}}
+            {{`{{- end -}}`}}
             {{`{{- $scalingEnabled := true -}}`}}
             {{`{{- if hasKey $xr.spec "scaling" -}}`}}
               {{`{{- if hasKey $xr.spec.scaling "enabled" -}}`}}
@@ -128,6 +155,9 @@ spec:
                     name: {{`{{ $actorName }}`}}-trigger-auth
                     namespace: {{`{{ $namespace }}`}}
                     labels:
+                      {{`{{- range $k, $v := $userLabels }}`}}
+                      {{`{{ $k }}`}}: "{{`{{ $v }}`}}"
+                      {{`{{- end }}`}}
                       app.kubernetes.io/name: {{`{{ $actorName }}`}}
                       app.kubernetes.io/component: triggerauthentication
                       app.kubernetes.io/part-of: asya
@@ -155,6 +185,10 @@ spec:
             {{`{{- $namespace := index $xr.metadata.labels "crossplane.io/claim-namespace" -}}`}}
             {{`{{- $actorName := $xr.spec.actor -}}`}}
             {{`{{- $gcpProject := $xr.spec.gcpProject | default "`}}{{ .Values.gcpProviderConfig.projectId }}{{`" -}}`}}
+            {{`{{- $userLabels := dict -}}`}}
+            {{`{{- if and .context (index .context "asya/user-labels") -}}`}}
+              {{`{{- $userLabels = index .context "asya/user-labels" -}}`}}
+            {{`{{- end -}}`}}
             {{`{{- $subscriptionReady := false -}}`}}
             {{`{{- if .observed.resources -}}`}}
               {{`{{- if index .observed.resources "pubsub-subscription" -}}`}}
@@ -217,6 +251,9 @@ spec:
                     name: {{`{{ $actorName }}`}}
                     namespace: {{`{{ $namespace }}`}}
                     labels:
+                      {{`{{- range $k, $v := $userLabels }}`}}
+                      {{`{{ $k }}`}}: "{{`{{ $v }}`}}"
+                      {{`{{- end }}`}}
                       app.kubernetes.io/name: {{`{{ $actorName }}`}}
                       app.kubernetes.io/component: scaledobject
                       app.kubernetes.io/part-of: asya
@@ -272,6 +309,10 @@ spec:
             {{`{{- $xr := .observed.composite.resource -}}`}}
             {{`{{- $namespace := index $xr.metadata.labels "crossplane.io/claim-namespace" -}}`}}
             {{`{{- $actorName := $xr.spec.actor -}}`}}
+            {{`{{- $userLabels := dict -}}`}}
+            {{`{{- if and .context (index .context "asya/user-labels") -}}`}}
+              {{`{{- $userLabels = index .context "asya/user-labels" -}}`}}
+            {{`{{- end -}}`}}
             {{`{{- $resolvedSpec := dict -}}`}}
             {{`{{- if and .context (index .context "asya.sh/resolved-spec") -}}`}}
             {{`{{- $resolvedSpec = index .context "asya.sh/resolved-spec" -}}`}}
@@ -315,6 +356,9 @@ spec:
                     name: {{`{{ $actorName }}`}}
                     namespace: {{`{{ $namespace }}`}}
                     labels:
+                      {{`{{- range $k, $v := $userLabels }}`}}
+                      {{`{{ $k }}`}}: "{{`{{ $v }}`}}"
+                      {{`{{- end }}`}}
                       app.kubernetes.io/name: {{`{{ $actorName }}`}}
                       app.kubernetes.io/component: actor
                       app.kubernetes.io/part-of: asya
