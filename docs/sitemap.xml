@@ -105,6 +105,18 @@
          <lastmod>2026-03-05</lastmod>
     </url>
     <url>
+         <loc>https://asya.sh/docs/internal/</loc>
+         <lastmod>2026-03-05</lastmod>
+    </url>
+    <url>
+         <loc>https://asya.sh/docs/internal/testing-e2e-state-proxy/</loc>
+         <lastmod>2026-03-05</lastmod>
+    </url>
+    <url>
+         <loc>https://asya.sh/docs/internal/testing-e2e-transport/</loc>
+         <lastmod>2026-03-05</lastmod>
+    </url>
+    <url>
          <loc>https://asya.sh/docs/mkdocs/README-mkdocs-shadcn-patch/</loc>
          <lastmod>2026-03-05</lastmod>
     </url>
