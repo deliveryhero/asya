@@ -107,7 +107,7 @@ data:
       {{- else }}
       '{}',
       {{- end }}
-      {{ .description | squote }},
+      {{ .description | trim | replace "\n" " " | squote }},
       {{- if .parameters }}
       {{ .parameters | toJson | squote }},
       {{- else }}

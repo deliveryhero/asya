@@ -147,9 +147,7 @@ gateway:
           required: false
       route: [test-empty]
     - name: test_slow_boundary
-      description: |
-        Test slow processing at actor boundary
-        (1.5s processing, generous timeout for SQS transit)
+      description: "Test slow processing at actor boundary (1.5s processing, generous timeout for SQS transit)"
       parameters:
         first_call:
           type: boolean
